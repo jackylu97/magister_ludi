@@ -3,7 +3,7 @@
 Draft for the user to cut, answering the 8/29 note: *"we need more orders in the pool, as you
 tend to see a lot of repeats currently. We may also want to introduce a rarity value for the
 better orders."* Companion to `docs/orders-and-doctrines.md` (the master list; nothing here is
-in it until it is moved there) and `docs/statecraft-cards.md` (the ratified Æra I–II content).
+in it until it is moved there) and `docs/deprecated/statecraft-cards.md` (the ratified Æra I–II content).
 **Nothing here is scheduled until the master list says so.**
 
 ## Why the repeats happen

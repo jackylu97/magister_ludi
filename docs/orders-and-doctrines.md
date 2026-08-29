@@ -1,6 +1,6 @@
 # Orders and Doctrines — the master list
 
-Every Order, Doctrine and government in one place, tables only. Edit here; the two working docs (`statecraft-cards.md`, `statecraft-ages-3-5.md`) keep the commentary and are no longer the source. Tier: ● defining · ◆ strong · ○ situational (blank = not yet tiered).
+Every Order, Doctrine and government in one place, tables only. Edit here; the two working docs (`deprecated/statecraft-cards.md`, `deprecated/statecraft-ages-3-5.md`) keep the commentary and are no longer the source. Tier: ● defining · ◆ strong · ○ situational (blank = not yet tiered).
 
 **As built, 2026-08-28 (second pass)** — six of those halves are built and the shapes are
 generic:

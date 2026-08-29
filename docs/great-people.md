@@ -3,7 +3,7 @@
 (2026-08-27, first pass; nothing scheduled.) Companion to `docs/tech-tree.md`
 (where great people first appear, in the Age of Heroes), design-notes Entry III (history's
 half-remembered characters), Entry XVIII (windfall settlement — the seams a great person's
-act pays through) and `docs/religion.md` (the augur, which is the *template* for an agent;
+act pays through) and `docs/deprecated/religion.md` (the augur, which is the *template* for an agent;
 prophets stay religion's and are not in this system).
 
 **User rulings so far:** great people are a *rolling* mechanic · the sources that are not
@@ -106,7 +106,7 @@ way, and persists — *they served you; their legacy remains*. Two decisions per
 (which name, then burst or ground), one content cost per name, and the family-weighted draw
 still matters because a general's legacy is a war card and a scholar's a science card.
 
-Three tiers, the Doctrine split (`docs/statecraft-cards.md`), roughly 2 / 4 / 4 per age:
+Three tiers, the Doctrine split (`docs/deprecated/statecraft-cards.md`), roughly 2 / 4 / 4 per age:
 
 | tier | count/age | shape | examples from the roster |
 |---|---|---|---|

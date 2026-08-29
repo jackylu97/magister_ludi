@@ -1,6 +1,6 @@
 # Religion v2 — prophets, religions and the tide of belief
 
-Working doc (2026-08-27), first draft for the user's Revisions. Builds on `docs/religion.md`
+Working doc (2026-08-27), first draft for the user's Revisions. Builds on `docs/deprecated/religion.md`
 (v1: the pantheon and the augur — **shipped**, ledger Entry XXVIII — and its **founder** and
 **enhancer** pools and the 2026-08-26 scope ruling, which this doc keeps: the follower beliefs
 below are v1's founder pool's *follower* half, and the enhancer pool is v1's) and on `docs/trade.md` (roads and routes
