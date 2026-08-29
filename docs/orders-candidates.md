@@ -63,14 +63,11 @@ is thin on E and W, and every M is about barbarians. Candidates lean the other w
 
 | Order | T | theme | rarity | effect | shape |
 |---|---|---|---|---|---|
-| Fire-Keepers | W | 🕯 | ● | +1🕯 in your capital · +1 happiness while you hold exactly one city | `cityYields` scoped capital + `conditionRule` (cities ≤1) → `happiness` |
+| Fire-Keepers | W | 🕯 | ● | +1🕯 +1 happiness in your capital | `cityYields` scoped capital + `conditionRule` (cities ≤1) → `happiness` |
 | The Long Portage | E | ⚓ | ● | coastal cities +1⚙ · embarked units +1 movement | `cityYields` scoped coastal + `unitStat movement` filtered embarked (NEW filter) |
-| Flint and Tinder | E | ⚒ | ● | your first Mine and first Quarry are built with no charge spent | `actionRule` NEW: `freeFirstImprovement` |
-| Seed Corn | E | 🌾 | ● | a newly founded city starts with +5🌾 banked | `foundingRider` `food: 5` (NEW field on the existing rider) |
-| The Watch-Fires | M | 🏹 | ● | +1 sight for units standing in your territory | `unitStat sight` with a territory condition (NEW `where: 'ownTerritory'`) |
-| Elder's Counsel | W | 📜 | ◆ | your first Order draft of every government shows one more card | `offerRider {offer:'order', extra:1}` + a once-per-government gate (NEW) |
-| Wolf-Runners | M | 🏹 | ◆ | scouts +1 movement · claiming a ruin grants +5💰 | `unitStat movement` filtered explorer + `windfallRider occasion:'discovery'` |
-| Hearth Songs | W | 🎵 | ◆ | +1🎵 per city while no city exceeds size 4 | `countScaled cities` + `conditionRule` (max city size ≤4, NEW condition) |
+| Seed Corn | E | 🌾 | uncommon | newly founded cities start with an extra population | `foundingRider` `food: 5` (NEW field on the existing rider) |
+| Wolf-Runners | M | 🏹 | ◆ | scouts +1 movement · claiming a ruin grants +10💰 | `unitStat movement` filtered explorer + `windfallRider occasion:'discovery'` |
+| Hearth Songs | W | 🎵 | ◆ | +1🎵 per city in cities with <= 4 population | `countScaled cities` + `conditionRule` |
 
 ### Government I pool (tier 3 · 22 today)
 
@@ -83,12 +80,11 @@ draft feels like a caravan catalogue. Candidates fill W and the non-caravan E li
 | River Wardens | E | 🌾 | ● | +1🌾 on every farm beside fresh water | `tileYields` with `freshwater` condition (exists for the renewal) |
 | The Almanac | W | ✶ | ● | +2🔬 in your capital · +1🔬 per Library | `cityYields` scoped capital + `hasBuilding` scope |
 | Village Fairs | W | 🌱 | ● | +1 happiness per luxury you hold two or more copies of | `countScaled` on duplicate luxuries (existing `resourceCopies`) |
-| The Muster Roll | M | 🎖 | ● | units complete with +10 hp of their maximum (veteran on the day) | `unitStat` NEW stat `startHp` read in `createUnit`'s card fold |
-| Hill Forts | M | ⛰ | ◆ | +2 combat strength defending on hills · cities on hills +1 authority capacity | `combatLine` terrain-conditioned + `countScaled cities` with terrain scope |
-| The Pilgrim's Purse | W | 🕯 | ◆ | founding a city beside a holy site grants +20🕯 | `foundingRider` NEW: adjacency to an improvement |
-| Charter Towns | E | 📜 | ◆ | your third and every later city is founded with a free Granary | `foundingRider {building:'granary', fromCity:3}` (NEW `fromCity`) |
-| The Bronze Mirror | W | ✶ | ○ | completing a technology reveals one hidden luxury within 3 hexes of your capital | `actionRule` NEW |
-| Marcher Lords | M | 📜 | ○ | a city founded within 3 hexes of another empire's border costs no authority | `meterRule` NEW `frontierCityCost` |
+| The Muster Roll | M | 🎖 | ● | newly created units gain +10 max hp (veteran on the day) | `unitStat` NEW stat `startHp` read in `createUnit`'s card fold |
+| Hill Forts | M | ⛰ | ◆ | +2 combat strength defending on hills · cities on hills cost 1 fewer authority | `combatLine` terrain-conditioned + `countScaled cities` with terrain scope |
+| The Pilgrim's Purse | W | 🕯 | ◆ | cities adjacent to a holy site gain +5 faith per turn | `foundingRider` NEW: adjacency to an improvement |
+| Charter Towns | E | 📜 | ◆ | newly founded cities gain a free granary | `foundingRider {building:'granary', fromCity:3}` (NEW `fromCity`) |
+| The Bronze Mirror | W | ✶ | ○ | completing a technology spawns one unique luxury within 3 hexes of your capital (one-time use, spawns a unique luxury that isn't in the game) | `actionRule` NEW |
 
 ### Government II pool (tier 7 · 19 today)
 
@@ -98,12 +94,12 @@ Solid M line, thin W (three). Candidates: four W, two E outside 🐫, one M with
 |---|---|---|---|---|---|
 | The Choir | W | 🕯 | ● | +1🎵 per Temple · Temples +1 happiness | `cityYields hasBuilding` + `happiness hasBuilding` |
 | Star-Gazers | W | ✶ | ● | +2🔬 in cities beside a mountain | `cityYields` scoped `mountainAdjacent` (exists) |
-| Cistern Works | E | 🌾 | ● | cities not beside fresh water +2🌾 | `cityYields` scoped NOT freshwater (NEW negation, or a `dryCity` scope) |
-| Ledger-Keepers | E | 🐫 | ● | +1💰 per Market · Markets +1 route capacity | `cityYields hasBuilding` + `routeSlots` rider (NEW on a card; exists on buildings) |
-| Drums of War | M | 🎖 | ◆ | units within 2 hexes of your capital +1 combat strength · +2 while at war… (deferred: no war state) | `combatLine` with a capital-radius condition (NEW) |
-| The Cartographers | W | 🧭 | ◆ | +1🔬 per 30 hexes revealed (max +6) | `countScaled revealedTiles per 30 max 6` |
+| Cistern Works | E | 🌾 | ● | all cities gain freshwater access |
+| Ledger-Keepers | E | 🐫 | ● | +1💰 per Market · while slotted, gain +1 route capacity | `cityYields hasBuilding` + `routeSlots` rider (NEW on a card; exists on buildings) |
+| Drums of War | M | 🎖 | ◆ | newly trained units gain +1 combat strength | `combatLine` with a capital-radius condition (NEW) |
+| The Cartographers | W | 🧭 | ◆ | +1🔬 per 40 hexes revealed (no cap) | `countScaled revealedTiles per 30 max 6` |
 | Guild of Masons | E | ⚒ | ◆ | buildings cost −10%⚙ in cities of size 6+ | `productionBonus category:'building'` scoped by size (exists for The Estates) |
-| The Oath-Bound | M | 🎖 | ○ | a unit that wins a fight heals 20 on the spot | `windfallRider occasion:'kill'` NEW grant kind `heal` |
+| The Oath-Bound | M | 🎖 | ○ | after killing a unit, units gain +15hp | `windfallRider occasion:'kill'` NEW grant kind `heal` |
 | Sanctuary | W | 🕯 | ○ | your holy city cannot be captured while it follows your religion — it is sacked instead (walls to one, gold taken, town keeps its owner) | NEW rule; deferred until sacking exists |
 
 ### Government III pool (tier 15 · 15 today)
