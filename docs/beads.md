@@ -164,7 +164,7 @@ luck, an opponent's choice, or a draw. The user filters; the counts are a pool, 
 | **The Veteran Host** | war | D | hold ten units with the veteran stamp at once | every unit heals to full, once |
 | **The Standing Army** | war | D | hold twenty combat units at once for a turn | +2 happiness (cap) |
 
-### Æra V deck (Magister) — 11 candidates
+### Æra V deck (Magister) — 12 candidates
 
 | quest | system | family | the deed | boon |
 |---|---|---|---|---|
@@ -179,6 +179,7 @@ luck, an opponent's choice, or a draw. The user filters; the counts are a pool, 
 | **The Aeronaut** | war | D | field an aerostat over a foreign capital | a free aerostat |
 | **The Usurper** | war | D | hold an enemy capital at the reckoning | +4 authority capacity (cap) |
 | **The Entranced** | projects | C | run The Entranced Workforce in three cities at once | a one-time windfall of 300⚙ in the capital |
+| **The Exposition** | wonders | C | hold six wonders of any age at once | a one-time windfall of 20🎵 per wonder held |
 | **The Magnum Opus** | — | all | the golden bead | Part 6 |
 
 *Removed as map-dependent: The Marches, The Chronicler. The Circumnavigator is a feat.
@@ -204,7 +205,7 @@ pool, not a fixed set); the two the user wrote are the first two.
 
 ## The count
 
-Feats ~12 · endeavours 3 per age dealt of 11 written (9 beads a game, one seat each) · quests ~2 per age dealt of ~30 written · reckonings 4 per age from Æra II. A busy
+Feats ~12 · endeavours 3 per age dealt of 9 written (9 beads a game, one seat each) · quests ~2 per age dealt of ~30 written · reckonings 4 per age from Æra II. A busy
 winner reaches ~20; N ≈ 20 on Quick is the first guess, and it is Entry VI's pacing knob.
 
 ## Open questions
