@@ -3985,6 +3985,12 @@ share is the lever for "how many", the base for "how soon". Under a linear thres
 capital was *all* specialists by t140, and under any threshold without the cap a village
 urbanised half its people — which is why both rules exist.
 
+**The idle backstop (user).** Late in a game a city runs out of workable tiles. A citizen
+with no field — `population − specialists − workableSeats`, seats being what `assignCitizens`
+could seat — pays **3 a turn into the bar** (`idleWeight`) and **lifts the quarter cap while
+any are idle**: the cap is about pulling workers off land, and an idle citizen is not on
+land. The last-worker guard and "no renown family, no guild" still hold.
+
 **Assignment by apportionment, never a draw.** A new specialist joins the family whose share of
 the city's renown is most under-represented among its specialists so far (the D'Hondt rule —
 one comparison, a pure function of the city, no `rng` consumed). It reads as "your library
