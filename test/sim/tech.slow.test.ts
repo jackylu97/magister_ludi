@@ -243,6 +243,20 @@ describe('pacing', () => {
     // harder" the note asked for. The bands below are re-centred on the new
     // measurements at the widths the old ones had (±7 / ±12 / ±16), so they
     // still catch a regression in either direction without pinning map roll.
+    //
+    // Upper bound 138 → 142 (2026-08-29, balance rulings): cities costing
+    // 3/2/4 authority, Æra II–III buildings priced by hand, crowding
+    // softened, the ladders gentler — moved this seed's Age III close from
+    // 122 to 139, one turn over a ±16 band; the band moved with it rather
+    // than being re-centred on a single roll.
+    //
+    // **Re-pinned 2026-08-29**: the coast ruling (`coast.rings` 2) re-sequenced
+    // resource placement; the capital site is the same hex, the bonus tiles
+    // beside it are not. This seed now measures **34 / 81 / 142** (previous
+    // centres 30 / 67 / 122, last upper bound 142). All three bands are
+    // re-centred on the new measurements at the widths the task calls for
+    // (±7 / ±12 / ±18 — Age III's width grows by two to absorb the close
+    // landing exactly on the old edge).
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -250,18 +264,12 @@ describe('pacing', () => {
     expect(second, `age II: ${String(second)}`).toBeDefined();
     expect(third, `age III: ${String(third)}`).toBeDefined();
 
-    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(23);
-    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(37);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(55);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(79);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(106);
-    // Upper bound 138 → 142 (2026-08-29): the day's balance rulings — cities
-    // costing 3/2/4 authority, Æra II–III buildings priced by hand, crowding
-    // softened, the ladders gentler — moved this seed's Age III close from
-    // 122 to 139. One turn over a band that was ±16 wide is the schedule
-    // shifting, not a regression; the band moves with it rather than being
-    // re-centred on a single roll.
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(142);
+    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(27);
+    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(41);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(69);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(93);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(124);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(160);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 60_000);
 
@@ -342,16 +350,20 @@ describe('pacing', () => {
       `opening ${Math.max(openings[0]!, 2)}..${Math.min(openings[openings.length - 1]!, 6)}`,
     );
     // And the prices, read straight off it.
-    expect(median).toBe(3);
+    // **Re-pinned 2026-08-29**: the coast ruling (`coast.rings` 2) re-sequenced
+    // resource placement; the capital sites are unchanged, the bonus tiles
+    // beside them are not. The median across this seed set is now **2⚙**
+    // (previously 3), with the same 2..6 band above.
+    expect(median).toBe(2);
     // **Re-pinned 2026-08-28** (user ruling: units and buildings ×1.4, wonders
     // ×0.8). The scout's old anchor — nine hammers set exactly against three
     // turns at the median rate — does not survive a flat multiplier on every
     // roster row: the scout rose with the rest of Age I and is now read off the
     // roster rather than derived from the rate. The warrior rose the same
-    // ×1.4 and now costs four turns of the median rate, not three.
+    // ×1.4 and, at the re-pinned median of 2, now costs five turns.
     expect(unitDef('scout').cost).toBe(13);
     expect(unitDef('warrior').cost).toBe(10);
-    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(4);
+    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(5);
   }, 30_000);
 
   it('turns a fresh capital into a scout at exactly its own rate', () => {

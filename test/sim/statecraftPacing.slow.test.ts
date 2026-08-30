@@ -128,7 +128,12 @@ function playEmpire(maxTurns: number): { game: Game; draftTurn: number[] } {
 
 describe('the culture ladder', () => {
   it('hands the scripted empire a draft about every five turns early on', () => {
-    const { draftTurn } = playEmpire(140);
+    // Horizon 140 → 150 (2026-08-29): the coast ruling (`coast.rings` 2)
+    // re-sequenced resource placement, and on the re-sequenced map this
+    // scripted empire's third government (draft 18) now lands at turn 144 —
+    // four turns past the old 140-turn horizon. A modest extension keeps it
+    // in view rather than dropping the tier from the measurement.
+    const { draftTurn } = playEmpire(150);
     /**
      * **Measured on seed 4242 at `costBase 6 / costLinear 3 / costExponent 2`,
      * re-measured 2026-08-26 after the water milestone (Entry XXVII):** drafts
@@ -238,9 +243,17 @@ describe('the culture ladder', () => {
     // — governments (drafts 4/10/18) at 28/64/130 before this ruling and
     // 32/73/135 after it. `tiers[2]` landed exactly on the old upper bound, so
     // the band is re-centred rather than merely widened.
+    //
+    // **Re-pinned 2026-08-29**: the coast ruling (`coast.rings` 2) re-sequenced
+    // resource placement; the capital site is unchanged, the bonus tiles beside
+    // it are not. This seed's ladder now measures governments (drafts 4/10/18)
+    // at **31 / 72 / 144**, against 32/73/135 before. `tiers[0]` and `tiers[1]`
+    // still sit inside their existing bands; `tiers[2]`'s band is re-centred on
+    // the new measurement, widened to keep the horizon extension's four turns
+    // of headroom on the top side.
     expect(tiers[1]!).toBeGreaterThan(48);
     expect(tiers[1]!).toBeLessThan(84);
-    expect(tiers[2]!).toBeGreaterThan(90);
-    expect(tiers[2]!).toBeLessThan(142);
+    expect(tiers[2]!).toBeGreaterThan(118);
+    expect(tiers[2]!).toBeLessThan(170);
   });
 });

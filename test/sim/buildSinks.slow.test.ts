@@ -122,7 +122,7 @@ function playWarband(maxTurns: number): Game {
 }
 
 describe('what the pass did to the opening', () => {
-  it('leaves the median capital opening on three hammers, unit prices read off the roster', () => {
+  it('leaves the median capital opening on two hammers, unit prices read off the roster', () => {
     const openings: number[] = [];
     for (const seed of [
       4242, 1, 2, 3, 7, 11, 42, 99, 777, 1234, 2024, 2468, 31337, 555, 8888, 90210, 5, 6, 8, 9, 12,
@@ -164,13 +164,23 @@ describe('what the pass did to the opening', () => {
      *   scout    9⚙ → 13⚙, 3 turns → **5**
      *   warrior  7⚙ → 10⚙, 3 turns → **4**
      *   worker  10⚙ → 14⚙, 4 turns → **5**
+     *
+     * **Re-pinned 2026-08-29**: the coast ruling (`coast.rings` 2) re-sequenced
+     * resource placement; the capital sites are unchanged, the bonus tiles
+     * beside them are not. Re-measured on the same 21 seeds, the median opening
+     * is now **2⚙** (band unchanged, 2–6) — ten of twenty-one seeds now open on
+     * 2 rather than 3. Against the new rate:
+     *
+     *   scout   13⚙, median 2 → **7 turns**
+     *   warrior 10⚙, median 2 → **5 turns**
+     *   worker  14⚙, median 2 → **7 turns**
      */
-    expect(median).toBe(3);
+    expect(median).toBe(2);
     expect(openings[0]).toBeGreaterThanOrEqual(2);
     expect(openings[openings.length - 1]).toBeLessThanOrEqual(6);
-    expect(Math.ceil(unitDef('scout').cost / median)).toBe(5);
-    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(4);
-    expect(Math.ceil(unitDef('worker').cost / median)).toBe(5);
+    expect(Math.ceil(unitDef('scout').cost / median)).toBe(7);
+    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(5);
+    expect(Math.ceil(unitDef('worker').cost / median)).toBe(7);
   }, 60_000);
 
   it('costs the warband empire a quarter of its army by turn 40', () => {
