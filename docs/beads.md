@@ -212,6 +212,15 @@ winner reaches ~20; N ≈ 20 on Quick is the first guess, and it is Entry VI's p
   turn-stamped; the counters the deeds needed (cities founded and captured, tiles bought, faith
   spent on augurs and prophets, Tithes' gold, Scholarship's science, route yields and great
   people this age).
+- **A hand is a set of open slots** (ruled 2026-08-30 after the first count model showed a
+  4/5-card hand dealt once puts only nine cards on the table in a whole game — a ceiling
+  below the threshold): `handSize` is the number of cards face up at once; a claimed card frees
+  its slot and the deck deals into it, so the whole deck flows through the age. Reckoning cards
+  hold their slot until the next opening.
+- **The decks are keyed to the built ages for now**: the doc's Æra III and IV are the
+  re-banded Empire and Cathedrals, which in today's data are age 2 and age 3, so the first hand
+  opens when the first seat enters built age 2 (~t35) — the tree pass renumbers the keys with
+  the ages.
 - **Reckonings are dealt**: four per age deck (one per family) drawn from the pool of eight,
   face up with the hand, taken at the next age's opening — a victor each, ties pay nobody.
   (The first build took all eight at every opening; corrected the same day.)
