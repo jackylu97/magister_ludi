@@ -150,168 +150,187 @@ Buildings' prices are hand-tuned rows (Æra II–III raised 2026-08-29: temple 5
 134); units take the age band `[1, 1.5, 2]` off the unlocking tech; there is no building age
 band by ruling.
 
-## Part 3 — The proposal, second pass (2026-08-29): one list, five ages, four traditions
+## Part 3 — The proposal, third pass (2026-08-29): one list, five ages, the naval line, guilds and beads folded in
 
-**What each age is for** (the user's brief, 2026-08-29), and the register it draws on:
+**What each age is for** (the user's brief), and the register it draws on:
 
 | Æra | the play | the register |
 |---|---|---|
-| I · Omens | early settling · early religion · unlocking resources | myth that was real: oracle bones, megaliths, the first fields — every tradition's dawn |
-| II · Heroes | developing the empire through **buildings that generate renown** · **great people unlocked** · **trade routes** · **the first prophet** | the Iliad and Gilgamesh, the Shang and Zhou bronzes, the Olmec heads, Hammurabi's stele |
-| III · Empire | **late settling** · **premiere military** (anti-cavalry, cavalry, melee, ranged) · **accelerating yields** (the university; a premiere culture house) · buildings and mechanics for **empire-wide** play | **late antiquity and the early medieval**: Rome and Byzantium, the Han and Tang, the Caliphate, the Mongol khanates, Teotihuacan and the Maya classic |
-| IV · Cathedrals | **executing late-game objectives** — the Bead Race's age objectives are dealt here (Part 6) | the House of Wisdom, Song China, Mansa Musa, the cathedral builders, Tenochtitlan, the sagas |
-| V · Magister | **futuristic sciences from the renaissance's point of view** · extremely strong buildings and mechanics that multiply yields · true late-game power spikes · explicit accelerants toward the win | brass, aether, clockwork — never smokestacks; the magister's dream of what the far peoples must know |
+| I · Omens | early settling · early religion · unlocking resources · **the first hull** | myth that was real: oracle bones, megaliths, the first fields and the first boats |
+| II · Heroes | **buildings that generate renown** (which now also feed guilds — Entry XLVIII) · **great people unlocked** · **trade routes** · **the first prophet** | the Iliad and Gilgamesh, the Shang and Zhou, the Olmec, Hammurabi; the Phoenician bireme |
+| III · Empire | **late settling** · **premiere military** in every class *and at sea* · **accelerating yields** (the university; a premiere culture house) · empire-wide mechanics | late antiquity and the early medieval: Rome and Byzantium, the Han and Tang, the Caliphate, the khanates, Teotihuacan; the dromon and the junk |
+| IV · Cathedrals | **executing late-game objectives** — the beads deck's heavy hand (`docs/beads.md`); **the ocean opens** | the House of Wisdom, Song China, Mansa Musa, the cathedral builders, Tenochtitlan, the treasure fleets and the cog |
+| V · Magister | futuristic sciences from the renaissance's view · multipliers · power spikes · explicit accelerants (deck deferred) | brass, aether, clockwork; the galleon and the paper lantern |
 
-**Four traditions, each with a real share** (the user's brief): **Western** (Greece, Rome, the
-cathedrals, the renaissance) · **Middle Eastern** (Sumer and Babylon, Persia, the Caliphate,
-the House of Wisdom) · **Eastern** (the Shang and Zhou, the Han and Tang, Song, the Mongols) ·
-**Pre-Columbian** (the Olmec, Teotihuacan, the Maya, the Inca, the Mexica) — the last is
-allowed to be *speculative*: from the magister's desk these are rumours from across the ocean,
-so a Pre-Columbian node may describe what the magister *imagines* the far peoples know
-(knotted cords that remember, mirrors that show what is far, fields that float). The tradition
-column below marks each node **W · ME · E · PC**; a node with two marks is shared history.
-Real kernels only, still — the speculation is in the telling.
+**Four traditions** (W · ME · E · PC — the last speculative, "what the magister imagines the far
+peoples know"), each with a real share; a node with two marks is shared history.
 
-Legend: **prereqs** are display order (first = the lane continued) · **thread** as Part 4 ·
-⬆ shipped, re-banded · ✎ the user's edit · ✱ a new node this pass · **needs** names what is
-unbuilt (blank = today's mechanisms). Costs: the built ones where built; the rest are band
-placements to be re-priced together (Part 5).
+**Three systems this pass threads through every age**, so a row that serves one says so:
+- **Guilds (Entry XLVIII)** — a city's renown-per-turn fills its guild bar, so every age needs
+  a renown building for each of the four specialist families (scholar · merchant · engineer ·
+  artist); the *renown* column below names the family a building feeds. Æra I has them
+  already (library · market? — no: the market is II — so Æra I feeds only scholars and, via
+  Funeral Games, nobody; that is fine: guilds begin in II by design).
+- **Beads (`docs/beads.md`)** — endeavours name prerequisite buildings (Funeral Games in
+  every city; a cathedral, a mint, an armoury in every city; ten routes), quests name deeds;
+  the *beads* column names what a node provisions. The Long Count shows the next age's hand a
+  turn early; The Obsidian Mirror waits with the Æra V deck.
+- **The naval line (user, 2026-08-29: "triremes at Sailing")** — one hull per age on the
+  naval-focused node of that age, each with `upgradesTo`, coast-only until the ocean opens
+  at The Astrolabe: **Trireme** (I) → **Bireme** (II) → **Dromon** (III, the fire-ship;
+  ranged) and the **Junk** (III, a cargo hull: a caravan at sea) → **Cog** (IV, ocean-going,
+  carries one unit) and the **Treasure Ship** (IV, the junk's successor) → **Galleon** (V).
+  A naval unit is `modelClass: 'naval'`, embarks nothing, stacks with an embarked unit, and
+  fights at sea with the same flat ledger; a harbour is its barracks. The Fleet quest
+  reads "nine naval units" once these exist.
 
-### Æra I — The Age of Omens (12 nodes, kept as built)
+Legend: ⬆ shipped, re-banded · ✎ the user's edit · ✱ new this pass · **renown** the family a
+building feeds · **needs** what is unbuilt (blank = today's mechanisms). Costs are the built
+ones where built; the rest are band placements (Part 5, one re-pricing pass).
 
-Early settling, early religion, resources. Nothing moves; the flavour is where the four
-traditions first speak (the Compendium's epigrams, not the rows).
+### Æra I — The Age of Omens (12 nodes, as built + the trireme)
 
-| node | 🔬 | prereqs | package | tradition | thread |
-|---|---|---|---|---|---|
-| Agriculture | start | — | settler, warrior, scout, worker · farm | all | — |
-| Husbandry | 8 | Agriculture | horseman · pasture · reveals horses · Temple of Artemis | W ME | — |
-| Fletching | 8 | Agriculture | archer · camp | PC E | — |
-| Sailing | 8 | Agriculture | embark (civilians + scout) · fishing boats, unlocks the trireme · Great Lighthouse | W PC | Water |
-| Mining | 8 | Agriculture | mine · quarry | all | Fire |
-| Earthenware | 8 | Agriculture | granary (the kiln; ding cauldrons for the ancestors first) | E ME | Fire |
-| Bronzeworking | 16 | Mining, Earthenware | spearman · barracks · Funeral Games · Walls of Uruk · Blessing of Arms · reveals iron | ME E | Fire |
-| Stonecraft | 16 | Husbandry, Earthenware | monument · palisade · Stonehenge · Pyramids · Consecration of the Bounds | W PC | Sky |
-| Calendar | 16 | Earthenware | plantation · Hanging Gardens · Rite of Plenty | PC ME | Sky |
-| Divination | 16 | Husbandry | augur · shrine · The Oracle · Rite of the Harvest · Recasting the Omens | E W | Fate |
-| Letters | 24 | Earthenware, Divination | library · Great Ziggurat · Omen Reading (writing born on oracle bones) | ME E | Fate |
-| The Wheel | 26 | Husbandry, Bronzeworking | chariot, chariot archer · granary renewal | ME | — |
-
-### Æra II — The Age of Heroes (11 nodes, 45–130🔬)
-
-Buildings that generate renown; great people unlocked; trade routes; the first prophet. Two
-of the eleven are the "more mythological" nodes the user asked for (The Deluge Remembered,
-The Long Count) beside the canon spine (Epic Poetry, Kingship, Ancestor Rites).
-
-| node | 🔬 | prereqs | package | tradition | thread | needs |
+| node | 🔬 | prereqs | package | tradition | renown | beads |
 |---|---|---|---|---|---|---|
-| **Epic Poetry** ✎ | 45 | Letters | **Hall of Deeds** (+2🎵 +1 happiness, +1 renown/turn to the Artist family) · **amphitheater**, **Theatre of Dionysus** (from Drama, which leaves) · rule *the fallen become verse*: a friendly unit's death pays 🎵 to the nearest city | W ME (Homer, Gilgamesh) | ✦ | the death-culture line on a tech |
-| **Kingship** | 50 | Stonecraft, Letters | **Stele of Laws** (+2 authority capacity) · *(later)* the King List: capital yields scale with the age of the line | ME (Hammurabi, the King List) | ✦ | King List: turns since founding |
-| **Ancestor Rites** ✱ | 55 | Divination, Stonecraft | **unlocks the great-person offer** (the honoured dead return as the great) · **Ancestor Mound** = monument renewal (+1🎵 +1 authority, +1 renown/turn to the Scholar family) | E PC (ancestor veneration; the lineage of the dead) | ✦ | — (great people are built; the *gate* is the new thing) |
-| **The High Temple** ⬆ | 170 → band | Divination, Stonecraft | as built: temple, **prophets** (found · plant · enhance · proclaim · redraft), The Preaching · candidate +1 pantheon slot | ME (the ziggurat) | ✦ | — |
-| **Currency** ⬆ ✎ **moved here** | 210 → band | Letters, Caravans | **the trade system** as built: trader, market + route capacity, Colossus, Mausoleum | ME W E (Lydia, cowrie, the denarius) | — | — |
-| **Caravans** ✎ | 80 | Calendar, The Wheel | **Bazaar** (+2🪙, +1🪙 on luxury resources) · the Founders' Road is live | ME | — | — |
-| **The Deluge Remembered** ✱ | 60 | Earthenware, Sailing | *every people remembers the flood*: **Levee** = granary renewal (+1🌾 in a city beside fresh water; a river city keeps 25% of its basket on growth) · floodplain farms allowed | ME W E PC (Utnapishtim, Noah, Manu, the Popol Vuh's flood) | Water | — |
-| **Irrigation** ✎ | 65 | Calendar, Earthenware | farm renewal **+1🌾 on farms beside fresh water** (moves here from Feudalism) · **lake tiles +1🌾** | ME PC (Mesopotamia; the chinampa's first rumour) | Water | — |
-| **Standing Stones** ✎ | 70 | Stonecraft, Divination | **Standing Stones** improvement (worker-built, open flat ground, +1🎵 +1🕯) | W PC (Göbekli Tepe, Stonehenge, the Olmec heads) | Sky ✦ | a row + a sculpt |
-| **The Long Count** ✱ | 95 | Calendar, Letters | *the calendar that counts the ages*: **gain access to age objectives (these start in era III** (the Bead Race's public goals, Part 6; until then +2🔬 in the capital) · Calendar renewal: plantations +1🎵 | PC (the Maya count; speculative — the magister has heard of a people who number the world's ages) | Sky | the Bead Race |
-| **Bronze Panoply** ✎ | 90 | Bronzeworking, The Wheel | **Phalanx** (spearman upgrade; str 10, anti-mounted) · barracks renewal **+1⚙** · auto-upgrade (built) | W (the hoplite) | Fire | — |
-| **Wayfinding** ✎ | 110 | Sailing, Husbandry | **military units may embark** · **Harbour** (coastal; +1🌾 on worked sea resources, +1 route capacity), unlocks sea trade routes (use embarked unit model for traders, use traders movement on water with the same rules for determining range, sea routes are 50% more effective than land ones) | PC W (the songlines, the Phoenicians) | Water | the embark rule's third clause |
+| Agriculture | start | — | settler, warrior, scout, worker · farm | all | | |
+| Husbandry | 8 | Agriculture | horseman · pasture · reveals horses · Temple of Artemis | W ME | artist (wonder) | |
+| Fletching | 8 | Agriculture | archer · camp | PC E | | |
+| **Sailing** ✎ | 8 | Agriculture | embark (civilians + scout) · fishing boats · **Trireme** ✱ (naval melee, str 10, coast; the first hull) · Great Lighthouse | W PC ME | merchant (wonder) | |
+| Mining | 8 | Agriculture | mine · quarry | all | | |
+| Earthenware | 8 | Agriculture | granary | E ME | | |
+| Bronzeworking | 16 | Mining, Earthenware | spearman · barracks · **Funeral Games** · Walls of Uruk · reveals iron | ME E | general | **The Great Games** endeavour (Funeral Games everywhere) |
+| Stonecraft | 16 | Husbandry, Earthenware | monument · palisade · Stonehenge · Pyramids | W PC | engineer/scholar (wonders) | The Bulwark (palisade) |
+| Calendar | 16 | Earthenware | plantation · Hanging Gardens | PC ME | engineer (wonder) | |
+| Divination | 16 | Husbandry | augur · shrine · The Oracle · rites | E W | scholar (wonder) | |
+| Letters | 24 | Earthenware, Divination | **library** · Great Ziggurat | ME E | **scholar** | The Library of the Realm |
+| The Wheel | 26 | Husbandry, Bronzeworking | chariot, chariot archer | ME | | |
 
-### Æra III — The Age of Empire (12 nodes, the shipped Æra II re-banded plus five, 170–320🔬)
+### Æra II — The Age of Heroes (12 nodes, 45–130🔬)
 
-Rome and the Han, the Caliphate and the khanates. Late settling, the premiere line of every
-military class, the university and a premiere culture house, and the mechanics of ruling many
-cities at once. **The premiere roster the age adds**: melee **Legionary** (W), anti-cavalry
-**Spear Wall** (E — the Han crossbow-and-halberd line, as the pike's better), cavalry
-**Cataphract** (ME — Parthian and Sassanid), ranged **Horse Archer** (E — the Mongol
-`mountedRanged` premier), siege **Trebuchet** ⬆ (already Æra III in role). Each is a row with
-`upgradesTo` from its Æra II ancestor and the strategic gate its kind carries.
-
-| node | 🔬 | prereqs | package | tradition | thread | needs |
+| node | 🔬 | prereqs | package | tradition | renown | beads / needs |
 |---|---|---|---|---|---|---|
-| **Iron Working** ⬆ | 170 | Bronze Panoply, Stonecraft | swordsman (iron-gated) · Terracotta Army, Statue of Zeus | E W | Fire | — |
-| **The Legion** ✱ | 190 | Iron Working, Kingship | **Legionary** (melee premier; str 17; iron; may build a road step when it ends its turn on unpaved ground — the roads the legions left) · **Castrum** = barracks renewal (+2 production) | W (Rome) | Fire | a unit that lays road: `layRoad` from `arriveOnTile` exists |
-| **Mathematics** ⬆ | 200 | Letters, The Wheel | catapult · **Scholarship** project renewal 20⚙ → 6🔬 · Petra | ME W (al-Khwarizmi, Euclid) | Sky | — |
-| **Construction** ⬆ | 240 | Stonecraft, Fletching | composite bowman, aqueduct · **Baths** (+2 happiness) · Circus Maximus | W | Water | — |
-| **Rhetoric** ⬆ (Philosophy, renamed per Entry X) | 255 | Letters, Divination | **Forum** — the premiere culture house (+3🎵, +1 renown/turn to the Artist family; a Statecraft draft comes one tier sooner while you hold three) · Great Library | W (Cicero, the agora) | Fate | — |
-| **Engineering** ⬆ | 275 | Mathematics, Construction | **workshop**, watermill · Great Wall | E W (Zhang Heng, Vitruvius) | Water | — |
-| **The Imperial Post** ✱ (was The Royal Road) | 230 | Engineering, Currency | *the yam, the cursus publicus, the Persian road*: roads cost nothing to maintain within 3 hexes of a city · connected cities +1🪙 and +1🔬 · caravans +1 movement | E ME W (the khan's riders, Darius' road) | — | road maintenance exists (`explainEmpireGold`) |
-| **The Steppe Bow** ✱ | 260 | The Wheel, Husbandry | **Horse Archer** (mountedRanged premier; str 14 / ranged 14, range 2, horses) · **Keshig** rule: mounted units ignore zone-of-control tolls | E (the Mongols, the Xiongnu) | — | — |
-| **The Cataphract** ✱ | 280 | The Steppe Bow, Iron Working | **Cataphract** (cavalry premier; str 22, horses + iron; +3 vs ranged) · stables = a pasture renewal (+1⚙) | ME (Parthia, the Sassanids, Byzantium) | Fire | — |
-| **The Halberd Wall** ✱ | 250 | Bronze Panoply, Engineering | **Spear Wall** (anti-cavalry premier; str 18; +50% vs mounted; fortifies twice as fast) | E (the Han ji, the Qin crossbow lines) | Fire | — |
-| **The Examination Hall** | 175 | Kingship, Letters | **Examination Hall** (+3 authority capacity) · Great Warring Tribes' courthouse bar wakes · authority tier +5 → 10% becomes 15% | E (the Han and Tang examinations) | ✦ | — |
-| **The Qadi's Court** ✱ | 300 | The Examination Hall, The High Temple | *law under heaven*: captured cities cost one less authority · cities that follow your religion +1 authority capacity per 3 · **Madrasa** = library renewal (+1🔬 +1🕯) | ME (the Caliphate's judges and schools) | ✦ Fate | — |
-| **Colonial Charters** ✱ | 220 | Currency, Construction | *late settling*: settlers cost −25% and a city founded from now on starts with a Monument and a Granary · a new city within 3 hexes of another empire's border costs no authority (Marcher Lords' rule) | W ME (Rome's coloniae, the ribats) | — | `foundingRider` (exists) |
-| **The Knotted Cord** ✱ | 310 | Currency, Mathematics | *accounts kept in knots*: each trade route +1🔬 · +1 authority capacity per 4 cities connected to the capital · the Trade screen shows every empire's route count | PC (the quipu — speculative: the magister imagines a people who remember in string) | Fate | — |
-| **The Orrery of Bronze** | 200 | Mathematics, Rhetoric | library renewal (+1🔬 per library, +1 more with a Madrasa) · Antikythera, the first Sky device | W | Sky Fate | — |
-| **Education** ⬆ **moved down** | 810 → band | Rhetoric, The Examination Hall | **university** — the premiere science house, in Æra III by the user's brief · House of Wisdom, Forbidden City | ME E W | Fate | — |
+| **Epic Poetry** ✎ | 45 | Letters | **Hall of Deeds** (+2🎵 +1 happiness) · amphitheater, Theatre of Dionysus (from Drama) · *the fallen become verse* | W ME | **artist** (Hall, amphitheater) | needs the death-culture line |
+| **Kingship** | 50 | Stonecraft, Letters | **Stele of Laws** (+2 authority capacity) · *(later)* the King List | ME | — (magistrate, later) | |
+| **Ancestor Rites** ✱ | 55 | Divination, Stonecraft | **unlocks the great-person offer** · **Ancestor Mound** = monument renewal (+1🎵 +1 authority) | E PC | **scholar** (the Mound) | the first great person feat |
+| **The High Temple** ⬆ | 170 → band | Divination, Stonecraft | temple · prophets · The Preaching | ME | — | |
+| **Currency** ⬆ ✎ | 210 → band | Letters, Caravans | **the trade system**: trader, **market** + route capacity, Colossus, Mausoleum | ME W E | **merchant** (market) | The Grand Caravan endeavour (ten routes); The Ledger, The Exchange |
+| **Caravans** ✎ | 80 | Calendar, The Wheel | **Bazaar** (+2🪙, +1🪙 on luxury resources) | ME | merchant | |
+| **The Deluge Remembered** ✱ | 60 | Earthenware, Sailing | **Levee** = granary renewal (+1🌾 beside fresh water; a river city keeps 25% of its basket) · floodplain farms | ME W E PC | | |
+| **Irrigation** ✎ | 65 | Calendar, Earthenware | farms beside fresh water +1🌾 · lake tiles +1🌾 | ME PC | | The Breadbasket (100🌾 in a city) |
+| **Standing Stones** ✎ | 70 | Stonecraft, Divination | **Standing Stones** improvement (+1🎵 +1🕯) | W PC | | |
+| **The Long Count** ✱ | 95 | Calendar, Letters | **the next age's beads hand is shown a turn before the age opens** (until beads exist: +2🔬 in the capital) · plantations +1🎵 | PC | | the deck's reveal rule |
+| **Bronze Panoply** ✎ | 90 | Bronzeworking, The Wheel | **Phalanx** (spearman upgrade, anti-mounted) · barracks +1⚙ | W | general | |
+| **Wayfinding** ✎ | 110 | Sailing, Husbandry | **military units may embark** · **Harbour** (coastal; +1🌾 on sea resources, +1 route capacity; the naval unit's barracks) · **Bireme** ✱ (trireme upgrade, str 13, coast) | PC W ME | merchant (harbour) | The Fleet (nine hulls); The Market Town |
 
-*Fifteen rows are listed so the user can cut to twelve; the five military nodes are the
-non-negotiable half of the brief.*
+### Æra III — The Age of Empire (15 rows to cut to ~12, 170–320🔬)
 
-### Æra IV — The Age of Cathedrals (10 nodes, 480–810🔬 — the shipped Æra III re-banded plus three)
+The premiere roster, one per tradition — **Legionary** (W, melee), **Spear Wall** (E,
+anti-cavalry), **Cataphract** (ME, cavalry), **Horse Archer** (E, mounted ranged), the
+trebuchet ⬆ (siege) — and at sea the **Dromon** (ME, the fire-ship: naval ranged) and the
+**Junk** (E, cargo). The university is the premiere science house; the **Forum** the premiere
+culture house; the **Examination Hall** and the **Qadi's Court** the empire-wide law.
 
-Executing late-game objectives. Every node here should hand the player something that pays a
-**bead** (Part 6) or makes one reachable: the walls that hold the objective city, the
-university's successor, the trade tier that dominates a resource, the faith that converts a
-world. The three additions each carry one of the four traditions the shipped rows lack.
-
-| node | 🔬 | prereqs | package | tradition | thread | needs |
+| node | 🔬 | prereqs | package | tradition | renown | beads / needs |
 |---|---|---|---|---|---|---|
-| **Feudalism** ⬆ | 480 | The Legion, Currency | pikeman → **Spear Wall** ancestor · **Castle** (+8 city defence, the Walls line tier two) · serfdom — farms +1⚙ under an Order of the age | W E (the manor, the fubing) | Fire | — |
-| **Machinery** ⬆ | 515 | Engineering, Construction | crossbowman · **Windmill** = workshop renewal (+2⚙ on flat cities) · Water Clock of Su Song | E (Su Song) | Sky | — |
-| **Theology** ⬆ | 565 | Rhetoric, Epic Poetry | monastery · **Cathedral** (+3🕯 +2 happiness; the Curia's home) · rite **The Mysteries** · enhancers · the five wonders as built | W ME | ✦ | — |
-| **Chivalry** ⬆ | 615 | Feudalism, The Cataphract | knight · **Tourney Ground** (barracks renewal) · Alhambra | W ME | — | — |
-| **Steel** ⬆ | 685 | Iron Working, Machinery | longswordsman · **Forge** (+15%⚙ on units; +1⚙ per mine) · war elephants where ivory is held | E W (Damascus and Toledo steel) | Fire | — |
-| **Physics** ⬆ | 750 | Mathematics, Engineering | trebuchet · Machu Picchu | ME W (Ibn al-Haytham) | Sky | — |
-| **The Silk Road** ✎ | 600 | Currency, The Imperial Post | **Caravanserai** (+2🪙, +1 route capacity) · luxuries imported by route count as held · routes may reach two cities further · Great Mosque of Djenné's route line | E ME (Samarkand, Mansa Musa's road) | — | — |
-| **Movable Type** | 640 | Letters, Machinery | **Printing House** (+2🔬 +2🎵) · every library +1🎵 · one extra Order offer per draft | E W (Bi Sheng, Gutenberg) | Fate | — |
-| **The First Distillation** | 700 | Earthenware, Theology | *alchemy begins*: **Distillery** = market renewal (+2🪙, +1 happiness where wine/spirits is held) — The Adepts and The Philosopher's Stone wake | ME E (Jabir, the jindan) | Fire | — |
-| **The Floating Fields** ✱ | 560 | Irrigation, The Knotted Cord | *the city on the lake*: coastal and lake cities may build **Chinampas** (a worked water tile beside the city yields +2🌾 +1🎵) · **Causeways**: a city on water counts as connected to any city it can see across it | PC (Tenochtitlan — speculative: the magister has heard of a city that floats) | Water | a water improvement (a row; the sculpt) |
-| **The Astrolabe** ✱ | 520 | Physics, Wayfinding | ocean crossable · embarked units +1 movement and +1 sight · **Observatory** (+3🔬, +1 more beside a mountain) · the compass's first half (the second is The Luopan) | ME (the Islamic astronomers; the mariner's astrolabe) | Sky | ocean `embarkable` |
+| **Iron Working** ⬆ | 170 | Bronze Panoply, Stonecraft | swordsman (iron) · Terracotta Army, Statue of Zeus | E W | general (wonders) | |
+| **The Legion** ✱ | 190 | Iron Working, Kingship | **Legionary** (melee premier, str 17, iron; lays a road step where it ends its turn) · **Castrum** = barracks renewal (+1 happiness; units built here +1 hp stamp) | W | general | The Conqueror; The Siege Master |
+| **Mathematics** ⬆ | 200 | Letters, The Wheel | catapult · Scholarship renewal 20⚙ → 6🔬 · Petra | ME W | merchant (wonder) | The Scholarship |
+| **Construction** ⬆ | 240 | Stonecraft, Fletching | composite bowman, **aqueduct** · **Baths** (+2 happiness) · Circus Maximus | W | artist (wonder) | The Waterworks (aqueducts in four size-10 cities) |
+| **Rhetoric** ⬆ (Philosophy) | 255 | Letters, Divination | **Forum** — the premiere culture house (+3🎵) · Great Library | W | **artist** (Forum), scholar (wonder) | |
+| **Engineering** ⬆ ✎ | 275 | Mathematics, Construction | **workshop**, watermill · Great Wall | E W | **engineer** (workshop, watermill) | The Forge-City (100⚙ in a city) |
+| **Shipwrights** ✱ | 230 | Wayfinding, Engineering | **Dromon** ✱ (bireme upgrade; naval *ranged*, str 14 / ranged 14, range 2; the Greek-fire ship) · **Junk** ✱ (a cargo hull: a trader at sea — a route between two harbours, +2 range) · **Shipyard** building (coastal: naval units −25%⚙, +1 route capacity) | ME E (Byzantium's fire, the Song junk) | merchant (shipyard) | The Fleet; The Long Haul at sea |
+| **The Imperial Post** ✱ | 230 | Engineering, Currency | roads cost nothing within 3 hexes of a city · connected cities +1🪙 +1🔬 · caravans +1 movement | E ME W | | The Road-Builder (eight connected) |
+| **The Steppe Bow** ✱ | 260 | The Wheel, Husbandry | **Horse Archer** (mounted ranged premier; horses) · mounted units ignore zone-of-control tolls | E | general | |
+| **The Cataphract** ✱ | 280 | The Steppe Bow, Iron Working | **Cataphract** (cavalry premier; horses + iron; +3 vs ranged) · stables = pasture renewal (+1⚙) | ME | general | |
+| **The Halberd Wall** ✱ | 250 | Bronze Panoply, Engineering | **Spear Wall** (anti-cavalry premier; +50% vs mounted; fortifies twice as fast) | E | general | |
+| **The Examination Hall** | 175 | Kingship, Letters | **Examination Hall** (+3 authority capacity) · Great Warring Tribes' bar wakes · authority tier +5 → 10% becomes 15% | E | — (magistrate, later) | |
+| **The Qadi's Court** ✱ | 300 | The Examination Hall, The High Temple | captured cities cost one less authority · following cities +1 authority capacity per 3 · **Madrasa** = library renewal (+1🔬 +1🕯) | ME | scholar (madrasa) | The Conqueror's cap |
+| **Colonial Charters** ✱ | 220 | Currency, Construction | settlers −25% · a new city starts with a Monument and a Granary · a city within 3 hexes of a foreign border costs no authority | W ME | | The Founder (eight founded) |
+| **The Knotted Cord** ✱ | 310 | Currency, Mathematics | each trade route +1🔬 · +1 authority capacity per 4 connected cities · the Trade screen shows every empire's routes | PC | | The Census endeavour's spirit |
+| **The Orrery of Bronze** | 200 | Mathematics, Rhetoric | library renewal (+1🔬 per library, +1 more with a Madrasa) · Antikythera | W | scholar | |
+| **Education** ⬆ ✎ | 810 → band | Rhetoric, The Examination Hall | **university** — the premiere science house · House of Wisdom, Forbidden City | ME E W | **scholar** (university) | The Library of the Realm (library + university in four) |
 
-### Æra V — The Age of the Magister (10 nodes, 900🔬 and up)
+### Æra IV — The Age of Cathedrals (12 rows to cut to ~10, 480–810🔬)
 
-The future as the renaissance dreamed it. Each node is one of three things: a **multiplier**
-(a building or rule that scales a yield the empire already makes), a **power spike** (a unit
-or rule that changes what an army or a city can do), or an **accelerant** (an explicit push
-toward the win — beads, the Opus, the curtain). The register is the magister's speculation:
-the far peoples' arts imagined, the alchemist's promises kept.
+The objectives age: every node hands the player a tool for a card on the table — the walls,
+the cathedral, the mint, the armoury, the ocean.
 
-| node | 🔬 | prereqs | package | kind | tradition | thread | needs |
+| node | 🔬 | prereqs | package | tradition | renown | beads / needs |
+|---|---|---|---|---|---|---|
+| **Feudalism** ⬆ | 480 | The Legion, Currency | pikeman · **Castle** (+8 city defence) · serfdom (farms +1⚙ under an Order of the age) | W E | | The Bulwark (palisade + castle in four) |
+| **Machinery** ⬆ | 515 | Engineering, Construction | crossbowman · **Windmill** = workshop renewal (+2⚙ on flat cities) · Water Clock of Su Song | E | engineer (windmill, wonder) | |
+| **Theology** ⬆ | 565 | Rhetoric, Epic Poetry | monastery · **Cathedral** (+3🕯 +2 happiness) · rite The Mysteries · enhancers · the five wonders as built | W ME | **artist** (cathedral), scholar (wonders) | **The Cathedral of the Age** endeavour; The Cloister (temple + monastery + cathedral in four) |
+| **Chivalry** ⬆ | 615 | Feudalism, The Cataphract | knight · **Tourney Ground** (barracks renewal: +1 happiness, mounted +1) · Alhambra | W ME | general | |
+| **Steel** ⬆ | 685 | Iron Working, Machinery | longswordsman · **Forge** (+15%⚙ on units; +1⚙ per mine) · **Armoury** ✱ (the Æra IV military building: +5 hp stamp on units built here; the Muster's prerequisite) · war elephants where ivory is held | E W | **engineer** (forge), general (armoury) | **The Muster of the Realm** endeavour |
+| **Physics** ⬆ | 750 | Mathematics, Engineering | trebuchet · Machu Picchu | ME W | engineer (wonder) | |
+| **Paper Money** ✱ | 520 | Currency, Movable Type | *the Song's jiaozi, the Medici's ledger*: **Mint** building (+3🪙, purchases −10% in the city) · **Banking house** = market renewal (+2🪙) | E W ME | **merchant** (mint) | **The Mint** endeavour (a mint in every city) |
+| **The Silk Road** ✎ | 600 | Currency, The Imperial Post | **Caravanserai** (+2🪙, +1 route capacity) · imported luxuries count as held · routes reach two cities further · the Great Mosque's route line | E ME | merchant (caravanserai) | The Caravanserai quest (ten routes from one city) |
+| **Movable Type** | 640 | Letters, Machinery | **Printing House** (+2🔬 +2🎵) · every library +1🎵 · one extra Order offer per draft | E W | scholar/artist (printing house) | |
+| **The First Distillation** | 700 | Earthenware, Theology | **Distillery** = market renewal (+2🪙, +1 happiness with wine/spirits) — The Adepts and The Philosopher's Stone wake | ME E | merchant | |
+| **The Astrolabe** ✱ | 520 | Physics, Wayfinding | **the ocean opens** · embarked +1 movement, +1 sight · **Cog** ✱ (dromon's melee cousin; ocean-going; carries one unit) · **Treasure Ship** ✱ (junk upgrade; ocean routes, +3 range; Zheng He) · **Observatory** (+3🔬, +1 beside a mountain) | ME E W | **scholar** (observatory) | the Circumnavigator feat; The Fleet at sea |
+| **The Floating Fields** ✱ | 560 | Irrigation, The Knotted Cord | **Chinampas** (a worked water tile beside the city: +2🌾 +1🎵) · **Causeways**: a city on water counts as connected to any city it can see across it | PC | | The Breadbasket at sea |
+
+**The House of Wisdom clash (flag):** the Encyclopaedia endeavour's prerequisite reads "a
+House of Wisdom in every city", but the House of Wisdom is a *wonder* (one per world). Either
+the endeavour means the **university** (my reading — "the university's successor" in
+`beads.md`), or Æra IV gains a building named for it. The user's call.
+
+### Æra V — The Age of the Magister (10 nodes, 900🔬 and up; deck deferred with the age's loop)
+
+| node | 🔬 | prereqs | package | kind | tradition | renown | needs |
 |---|---|---|---|---|---|---|---|
-| **The Luopan** | 900 | The Astrolabe, The First Distillation | geomancy: the settler lens shows the land's veins (site bonuses +50%, a hidden luxury within 3 hexes of a founded city) · every city +1 sight | accelerant (late settling's last word) | E (feng shui, the compass) | Sky | lens data |
-| **Fire Medicine** | 950 | The First Distillation, Physics | **Bombard** (trebuchet upgrade) · **Rocket Arrows** (crossbow upgrade, range 2, + vs cities) · castle renewal +4 defence | power spike | E (火藥 — "they sought eternal life; they found this") | Fire | — |
-| **The White Gold** | 1000 | The First Distillation, Earthenware | **Porcelain Works** mints a luxury no tile has (+4 happiness as a unique luxury; tradeable) · **the Economic bead: hold the most copies of a manufactured luxury at the age's close** | multiplier + accelerant | E (Jingdezhen) | Fire | manufactured luxury |
-| **The Perspective Glass** | 1050 | Education, The Astrolabe | optics: every city +1 sight · **Observatory** renewal (+4🔬) · reveals every unrevealed resource on explored land · wonder **The Astronomical Bureau** (+6🔬; the next age's objectives shown at once) | multiplier | W E (Galileo, the imperial star ministry) | Sky | a 28th wonder |
-| **The Clockwork Servant** | 1100 | Machinery, The Orrery of Bronze | automata: **Clockwork Worker** — never expends charges · Windmill renewal +1⚙ · Forge +1 renown/turn to the Engineer family | power spike | ME E (al-Jazari, Yan Shi) | Sky Fate | `chargesLeft` absent = infinite |
-| **The Obsidian Mirror** ✱ | 1150 | The Perspective Glass, The Long Count | *the smoking mirror shows what is far*: **every seat's bead count and Opus progress is visible on the Abacus** · your capital sees every hex within 6 · +1 Magister's Die | accelerant (the two-minute warning made permanent) | PC (Tezcatlipoca's mirror — speculative: a glass that shows the whole world at once) | Sky Fate | the Bead Race · dice |
-| **The Loom That Remembers** | 1200 | The Silk Road, Movable Type | Jacquard: plantations +1🪙 +1🎵 · **Manufactory** = Forge renewal (+3⚙; the Manufactories Order's home) · +25%⚙ empire-wide toward buildings | multiplier | W (Jacquard) | Fate | — |
-| **Mesmerism** | 1250 | Theology, The Perspective Glass | **The Entranced Workforce** project: 25 happiness surplus → +30%⚙ in a city for 10 turns · **the Culture bead: the most followers of your religion in foreign cities at the age's close** | accelerant | W (Mesmer; fashionably sinister) | — | a project priced in a meter surplus |
-| **The Paper Lantern That Lifted** | 1300 | Fire Medicine, The Perspective Glass | **Aerostat**: sight 5, ignores terrain, cannot fight, cannot be attacked by melee · +1 happiness · **the Domination bead: hold a city on every continent** | power spike + accelerant | E (the Kongming lantern) | Sky | `unattackable` |
-| **The Calculating Engine** | 1400 | The Loom That Remembers, The Clockwork Servant | **The Engine** (+8🔬, +1 Magister's Die per age, science +25% in its city) · Scholarship renewal 20⚙ → 8🔬 · **the Science bead: first to complete the Engine** | multiplier + accelerant | W (Babbage) | Fate | dice economy |
-| **The Great Work** | 1500 | The Calculating Engine, The White Gold | **the Magnum Opus** — the golden bead's only source (Part 6) | the win | ME W (the alchemists' opus; from reading entrails to transmuting the world) | Fire Fate Sky | the Bead Race |
+| **The Luopan** | 900 | The Astrolabe, The First Distillation | the settler lens shows the land's veins · every city +1 sight | accelerant | E | | lens data |
+| **Fire Medicine** | 950 | The First Distillation, Physics | **Bombard**, **Rocket Arrows** · castle renewal +4 | power spike | E | general | |
+| **Square Rigging** ✱ | 980 | The Astrolabe, Shipwrights | **Galleon** ✱ (cog upgrade: str 28, carries two units, may bombard a coastal city) · **Drydock** = shipyard renewal (naval units +1 movement) · a naval unit adjacent to a coastal city besieges it | power spike | W (the carrack and the galleon) | engineer (drydock) | naval siege |
+| **The White Gold** | 1000 | The First Distillation, Earthenware | **Porcelain Works** mints a luxury no tile has | multiplier | E | merchant | manufactured luxury |
+| **The Perspective Glass** | 1050 | Education, The Astrolabe | every city +1 sight · Observatory renewal (+4🔬) · reveals every resource on explored land · wonder **The Astronomical Bureau** | multiplier | W E | scholar | a 28th wonder |
+| **The Clockwork Servant** | 1100 | Machinery, The Orrery of Bronze | **Clockwork Worker** (never expends charges) · Windmill +1⚙ | power spike | ME E | engineer | a row flag |
+| **The Obsidian Mirror** ✱ | 1150 | The Perspective Glass, The Long Count | every seat's beads and Opus progress visible · the capital sees 6 hexes · +1 die | accelerant | PC | | the deck (deferred) |
+| **The Loom That Remembers** | 1200 | The Silk Road, Movable Type | plantations +1🪙 +1🎵 · **Manufactory** = Forge renewal (+3⚙) · +25%⚙ toward buildings | multiplier | W | engineer | |
+| **Mesmerism** | 1250 | Theology, The Perspective Glass | **The Entranced Workforce** project | accelerant | W | | a meter-priced project |
+| **The Paper Lantern That Lifted** | 1300 | Fire Medicine, The Perspective Glass | **Aerostat** · +1 happiness | power spike | E | | `unattackable` |
+| **The Calculating Engine** | 1400 | The Loom That Remembers, The Clockwork Servant | **The Engine** (+8🔬, +1 die per age, science +25% in its city) · Scholarship renewal | multiplier | W | scholar | dice |
+| **The Great Work** | 1500 | The Calculating Engine, The White Gold | **the Magnum Opus** | the win | ME W | | the Bead Race |
+
+### The naval line, read as one table
+
+| age | hull | node | class | notes |
+|---|---|---|---|---|
+| I | **Trireme** (user) | Sailing | naval melee, str 10 | coast only; the harbour is not yet built, so it trains at any coastal city |
+| II | **Bireme** | Wayfinding | naval melee, str 13 | trireme's upgrade; Harbour = its barracks |
+| III | **Dromon** | Shipwrights | naval ranged, 14 / 14, range 2 | the fire-ship; Shipyard −25%⚙ |
+| III | **Junk** | Shipwrights | cargo | a trader at sea between harbours, +2 route range |
+| IV | **Cog** | The Astrolabe | naval melee, str 20, carries 1 | ocean-going |
+| IV | **Treasure Ship** | The Astrolabe | cargo | junk's upgrade; ocean routes, +3 range |
+| V | **Galleon** | Square Rigging | naval melee, str 28, carries 2, bombards | naval siege |
+
+The rules a hull needs, all small: `modelClass: 'naval'` (never embarks, never enters land;
+stacks with an embarked unit; `stepCost` prices water for it, land as impassable); the Harbour
+as the spawn tile's owner (a naval unit completes on the city's coast hex); `carries` on the
+row (an embarked unit may end its move on a hull's hex and ride); a cargo hull is a `trader`
+category with `sea: true` for `startRoute`'s path. The ledger stays flat.
 
 ### What moves in the shipped tree
 
 | shipped | today | proposed | why |
 |---|---|---|---|
-| **Currency** | Æra II (170🔬 band, Empire in role) | **Æra II Heroes** (the user, 2026-08-29) | trade routes are a Heroes goal |
-| Education | Æra III | **Æra III Empire** (down from Cathedrals) | the university is the premiere science house the Empire brief asks for |
-| Philosophy | a name | **Rhetoric** (Entry X, applied at last) | its building is the Forum |
+| **Sailing** | embark, boats, the Lighthouse | **+ Trireme** | the user, 2026-08-29 |
+| **Currency** | Æra II band, Empire in role | **Æra II Heroes** | trade routes are a Heroes goal |
+| Education | Æra III | **Æra III Empire** | the university is the premiere science house |
+| Philosophy | a name | **Rhetoric** (Entry X, applied) | its building is the Forum |
 | Drama and Poetry | a node | gone — Epic Poetry takes its rows | the user's edit |
 | Theology's prereq | Drama | Epic Poetry | follows |
 | Feudalism → freshwater renewal | Æra III | → Irrigation (II); Feudalism gets the Castle | growth with the Gardens, a wall with the pike |
-| Iron Working's prereq | Bronzeworking | Bronze Panoply | the Fire thread runs Bronze → Panoply → Iron |
+| Iron Working's prereq | Bronzeworking | Bronze Panoply | the Fire thread |
 | Currency's second prereq | Stonecraft | Caravans | gold descends from trade |
-| The Royal Road / The Silk Road | packages spent by shipped systems | The Imperial Post (III) / The Silk Road re-gifted (IV) | ruling 3 |
+| The Royal Road / The Silk Road | packages spent | The Imperial Post (III) / The Silk Road re-gifted (IV) | ruling 3 |
 | wonders | as built | **stay** | ruling 2 |
 
-Count: I 12 · II 11 · III 15 (cut to ~12) · IV 11 (cut to ~10) · V 10 → **59 rows, ~54 after the
-cut**; Entry V wanted 45–55. Tradition tally across the new and re-flavoured rows: W 14 ·
-ME 12 · E 12 · PC 6 (the six speculative ones: The Long Count, The Knotted Cord, The Floating
-Fields, The Obsidian Mirror, Standing Stones' Olmec half, Wayfinding's).
+Count: I 12 · II 12 · III 17 (→ ~12) · IV 12 (→ ~10) · V 11 → **64 rows, ~56 after the cut**.
+Renown coverage per family per age (guilds): scholar I–V · merchant II–V · engineer III–V ·
+artist II–IV (V has none — The Exposition's home if one is wanted). New buildings this pass:
+Harbour (II), Shipyard, Baths, Forum, Madrasa* (III), Castle, Armoury, Mint, Caravanserai,
+Printing House, Cathedral, Observatory (IV), Drydock*, Manufactory* (V); * = a renewal.
 
 ## Part 4 — Register and threads (the tone, condensed)
 
