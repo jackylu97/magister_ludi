@@ -3971,11 +3971,17 @@ a specialist**, taken from the general population: one fewer citizen works the l
 worst-worked tile is what goes (there are no idle citizens until very late; that is not the
 rule). A city never converts its last worker, and **a city with no renown source in a
 specialist family never converts** — size accelerates a guild, it never founds one. The
-threshold **climbs per specialist** (`base 15 + step 5 × specialists`), and each specialist
-pays **+1 renown per turn to its family**, so a scholarly city recruits great scholars faster
-— the specialist system paying into the great-person system, which is what replaces the
-slots. The climbing threshold is what keeps the loop from being geometric: inflow and
-threshold race and the cadence settles.
+threshold **climbs quadratically** (`40 + 15 n²` — 40, 55, 100, 175, 280…; the user: "15 + 5
+feels very low, it should be 40 + something polynomial"), and **specialists never exceed a
+third of the city** (a cap on conversion only — a town that shrinks keeps them). Each
+specialist pays **+1 renown per turn to its family**, so a scholarly city recruits great
+scholars faster — the specialist system paying into the great-person system, which is what
+replaces the slots. The numbers were simulated over 240 turns before they were set (pop
+weight 0.15, trickle 0.25): a tall capital forms its first guild around t55 and ends near
+7 of 22; an ordinary town around t80 and ends at 4 of 12; a size-6 village at 2 of 6. Under
+a linear threshold the capital was *all* specialists by t140, and under any absolute
+threshold without the cap the village urbanised half its people — which is why both rules
+exist.
 
 **Assignment by apportionment, never a draw.** A new specialist joins the family whose share of
 the city's renown is most under-represented among its specialists so far (the D'Hondt rule —
