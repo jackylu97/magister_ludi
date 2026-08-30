@@ -3732,7 +3732,7 @@ kbd {
    of the two is ever on a given verb. */
 .unit-action-note {
   flex: 0 0 auto;
-  font-family: var(--face-mono);
+  font-family: var(--face-num);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
@@ -9041,7 +9041,7 @@ kbd {
 }
 
 .cmp-section-count {
-  font-family: var(--face-mono);
+  font-family: var(--face-num);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--ink-faint);
@@ -9148,7 +9148,7 @@ kbd {
 }
 
 .cmp-row-value {
-  font-family: var(--face-mono);
+  font-family: var(--face-num);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -9314,13 +9314,13 @@ kbd {
 }
 
 .trade-row-figures {
-  font-family: var(--face-mono);
+  font-family: var(--face-num);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
 .trade-row-clock {
-  font-family: var(--face-mono);
+  font-family: var(--face-num);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   color: var(--ink-faint);
@@ -9367,7 +9367,7 @@ kbd {
   padding: 0;
   border: 0;
   background: none;
-  font-family: var(--face-mono);
+  font-family: var(--face-num);
   font-size: 11px;
   text-align: right;
   color: var(--ink-faint);
@@ -9408,7 +9408,7 @@ kbd {
    A zero is a mid-dot rather than "+0": a column of noughts is noise, and the
    dot keeps the row's height and the eye's line. */
 .trade-cell {
-  font-family: var(--face-mono);
+  font-family: var(--face-num);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
   text-align: right;
@@ -9459,7 +9459,7 @@ kbd {
 /* The routes chip, at the end of the yield strip beside renown. It is a button
    because it opens a screen — the culture chip's precedent exactly. */
 .civ-yield-routes {
-  font-family: var(--face-mono);
+  font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
 }
 

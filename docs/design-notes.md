@@ -4081,3 +4081,37 @@ the units now, `TurnReport.campBounties` carries the resolution's, and one sente
 both: "⚔ Camp cleared: +25💰, +50🌾 → Uruk, a Warrior joins you at Uruk".
 
 ---
+
+## Entry L — The Bead Race, built (2026-08-30)
+
+Entry VI's win condition, as `docs/beads.md` ruled it and one day's building shaped it.
+**The deck deals.** One deck per age, shuffled from the seed in `newGame` (so a seed is a
+deal, and every seeded roll in the game moved — schema 37); one card a turn into a hand of
+open slots that refill as cards are claimed, face down until the **world clock** — the first
+seat to enter the age — turns the hand up; four reckonings dealt per deck, one per family,
+taken at the next opening with ties paying nobody. **The first count model was wrong twice**,
+and both corrections are the rulings worth keeping: a hand dealt *once* puts nine cards on a
+table in a whole game (a ceiling below the threshold), so a hand is open slots, not a deal;
+and the decks were keyed to the doc's Æra III/IV while the built tree has ages 1–3, so nothing
+would have been dealt before ~t140 — the keys are the *built* age numbers until the tree pass
+re-bands, and the first hand opens on the first Age II technology (~t46 on the pacing seed,
+pinned wide).
+
+**Three kinds, one vocabulary.** Feats ride `awardOccasion` (the Triumph seams; three
+occasions the Triumph table lacked are hooked in their own mechanisms). Endeavours are
+**projects that finish** — offered only while face up, unclaimed and under their prerequisite;
+the first finisher takes bead and boon and a later finisher's hammers buy the fallback. Quests
+are a deed of three shapes (an occasion, a count swept once a turn, a streak held N turns).
+Every boon settles through a seam that already existed: the windfall family, `realiseItem`
+free, the great-person draw; **dice** are a new uncapped integer with no spend yet (the user:
+no cap); the caps are card effects — `liveEffects`' ninth source, `statecraft.ts` still the
+one reader. First to the threshold (20) sets the one `winnerId` conquest already used.
+
+**What waits.** Cathedral, Mint and Armoury exist as rows with `awaitsTech` — not buildable,
+not in the tree — so their endeavours are dormant until the tree pass; deck 3's reckonings are
+never taken until a fourth age exists; the golden bead and the Opus wait for Æra V; the deeds
+needing history the game does not keep are listed in the doc. The Abacus's rods carry the
+beads in the four families' glass, with the golden slot gilt-rimmed and empty on every rod —
+the standing question Entry VI asked for.
+
+---
