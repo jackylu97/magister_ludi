@@ -175,14 +175,11 @@ peoples know"), each with a real share; a node with two marks is shared history.
   every city; a cathedral, a mint, an armoury in every city; ten routes), quests name deeds;
   the *beads* column names what a node provisions. The Long Count shows the next age's hand a
   turn early; The Obsidian Mirror waits with the Æra V deck.
-- **The naval line (user, 2026-08-29: "triremes at Sailing")** — one hull per age on the
-  naval-focused node of that age, each with `upgradesTo`, coast-only until the ocean opens
-  at The Astrolabe: **Trireme** (I) → **Bireme** (II) → **Dromon** (III, the fire-ship;
-  ranged) and the **Junk** (III, a cargo hull: a caravan at sea) → **Cog** (IV, ocean-going,
-  carries one unit) and the **Treasure Ship** (IV, the junk's successor) → **Galleon** (V).
-  A naval unit is `modelClass: 'naval'`, embarks nothing, stacks with an embarked unit, and
-  fights at sea with the same flat ledger; a harbour is its barracks. The Fleet quest
-  reads "nine naval units" once these exist.
+- **The naval line (user, 2026-08-29)** — three classes (light melee · heavy melee · naval
+  ranged), no cargo hull, one hull per class per age on the naval-focused node of that age:
+  Sailing (I), Wayfinding (II), **Shipwrights** ✱ (III), **The Astrolabe** ✱ (IV, the ocean
+  opens), **Square Rigging** ✱ (V). The section after Æra V has the classes, the triangle and
+  the names.
 
 Legend: ⬆ shipped, re-banded · ✎ the user's edit · ✱ new this pass · **renown** the family a
 building feeds · **needs** what is unbuilt (blank = today's mechanisms). Costs are the built
@@ -220,14 +217,13 @@ ones where built; the rest are band placements (Part 5, one re-pricing pass).
 | **Standing Stones** ✎ | 70 | Stonecraft, Divination | **Standing Stones** improvement (+1🎵 +1🕯) | W PC | | |
 | **The Long Count** ✱ | 95 | Calendar, Letters | **the next age's beads hand is shown a turn before the age opens** (until beads exist: +2🔬 in the capital) · plantations +1🎵 | PC | | the deck's reveal rule |
 | **Bronze Panoply** ✎ | 90 | Bronzeworking, The Wheel | **Phalanx** (spearman upgrade, anti-mounted) · barracks +1⚙ | W | general | |
-| **Wayfinding** ✎ | 110 | Sailing, Husbandry | **military units may embark** · **Harbour** (coastal; +1🌾 on sea resources, +1 route capacity; the naval unit's barracks) · **Bireme** ✱ (trireme upgrade, str 13, coast) | PC W ME | merchant (harbour) | The Fleet (nine hulls); The Market Town |
+| **Wayfinding** ✎ | 110 | Sailing, Husbandry | **military units may embark** · **Harbour** (coastal; +1🌾 on sea resources, +1 route capacity; the naval unit's barracks) · **Bireme** ✱ (light, str 13, mv 5; user) · **War Galley** ✱ (heavy, str 16, mv 3) | PC W ME | merchant (harbour) | The Fleet (nine hulls); The Market Town |
 
 ### Æra III — The Age of Empire (15 rows to cut to ~12, 170–320🔬)
 
 The premiere roster, one per tradition — **Legionary** (W, melee), **Spear Wall** (E,
 anti-cavalry), **Cataphract** (ME, cavalry), **Horse Archer** (E, mounted ranged), the
-trebuchet ⬆ (siege) — and at sea the **Dromon** (ME, the fire-ship: naval ranged) and the
-**Junk** (E, cargo). The university is the premiere science house; the **Forum** the premiere
+trebuchet ⬆ (siege) — and at sea the Galley, the Tower Ship and the Fire Ship — the three classes' Æra III hulls. The university is the premiere science house; the **Forum** the premiere
 culture house; the **Examination Hall** and the **Qadi's Court** the empire-wide law.
 
 | node | 🔬 | prereqs | package | tradition | renown | beads / needs |
@@ -238,7 +234,7 @@ culture house; the **Examination Hall** and the **Qadi's Court** the empire-wide
 | **Construction** ⬆ | 240 | Stonecraft, Fletching | composite bowman, **aqueduct** · **Baths** (+2 happiness) · Circus Maximus | W | artist (wonder) | The Waterworks (aqueducts in four size-10 cities) |
 | **Rhetoric** ⬆ (Philosophy) | 255 | Letters, Divination | **Forum** — the premiere culture house (+3🎵) · Great Library | W | **artist** (Forum), scholar (wonder) | |
 | **Engineering** ⬆ ✎ | 275 | Mathematics, Construction | **workshop**, watermill · Great Wall | E W | **engineer** (workshop, watermill) | The Forge-City (100⚙ in a city) |
-| **Shipwrights** ✱ | 230 | Wayfinding, Engineering | **Dromon** ✱ (bireme upgrade; naval *ranged*, str 14 / ranged 14, range 2; the Greek-fire ship) · **Junk** ✱ (a cargo hull: a trader at sea — a route between two harbours, +2 range) · **Shipyard** building (coastal: naval units −25%⚙, +1 route capacity) | ME E (Byzantium's fire, the Song junk) | merchant (shipyard) | The Fleet; The Long Haul at sea |
+| **Shipwrights** ✱ | 230 | Wayfinding, Engineering | **Galley** ✱ (light, 16, mv 5) · **Tower Ship** ✱ (heavy, 24, mv 3) · **Fire Ship** ✱ (naval ranged, 12 / 18 at range 1) · **Shipyard** building (coastal: naval units −25%⚙, +1 route capacity) | ME E (Byzantium's fire, the Song junk) | merchant (shipyard) | The Fleet; The Long Haul at sea |
 | **The Imperial Post** ✱ | 230 | Engineering, Currency | roads cost nothing within 3 hexes of a city · connected cities +1🪙 +1🔬 · caravans +1 movement | E ME W | | The Road-Builder (eight connected) |
 | **The Steppe Bow** ✱ | 260 | The Wheel, Husbandry | **Horse Archer** (mounted ranged premier; horses) · mounted units ignore zone-of-control tolls | E | general | |
 | **The Cataphract** ✱ | 280 | The Steppe Bow, Iron Working | **Cataphract** (cavalry premier; horses + iron; +3 vs ranged) · stables = pasture renewal (+1⚙) | ME | general | |
@@ -281,7 +277,7 @@ the endeavour means the **university** (my reading — "the university's success
 |---|---|---|---|---|---|---|---|
 | **The Luopan** | 900 | The Astrolabe, The First Distillation | the settler lens shows the land's veins · every city +1 sight | accelerant | E | | lens data |
 | **Fire Medicine** | 950 | The First Distillation, Physics | **Bombard**, **Rocket Arrows** · castle renewal +4 | power spike | E | general | |
-| **Square Rigging** ✱ | 980 | The Astrolabe, Shipwrights | **Galleon** ✱ (cog upgrade: str 28, carries two units, may bombard a coastal city) · **Drydock** = shipyard renewal (naval units +1 movement) · a naval unit adjacent to a coastal city besieges it | power spike | W (the carrack and the galleon) | engineer (drydock) | naval siege |
+| **Square Rigging** ✱ | 980 | The Astrolabe, Shipwrights | **Corvette** ✱ (light, 28, mv 6) · **Ship of the Line** ✱ (heavy, 44) · **Frigate** ✱ (naval ranged, 28 / 38 at range 2, bombards) · **Drydock** = shipyard renewal (naval units +1 movement) | power spike | W (the carrack and the galleon) | engineer (drydock) | naval siege |
 | **The White Gold** | 1000 | The First Distillation, Earthenware | **Porcelain Works** mints a luxury no tile has | multiplier | E | merchant | manufactured luxury |
 | **The Perspective Glass** | 1050 | Education, The Astrolabe | every city +1 sight · Observatory renewal (+4🔬) · reveals every resource on explored land · wonder **The Astronomical Bureau** | multiplier | W E | scholar | a 28th wonder |
 | **The Clockwork Servant** | 1100 | Machinery, The Orrery of Bronze | **Clockwork Worker** (never expends charges) · Windmill +1⚙ | power spike | ME E | engineer | a row flag |
@@ -292,23 +288,47 @@ the endeavour means the **university** (my reading — "the university's success
 | **The Calculating Engine** | 1400 | The Loom That Remembers, The Clockwork Servant | **The Engine** (+8🔬, +1 die per age, science +25% in its city) · Scholarship renewal | multiplier | W | scholar | dice |
 | **The Great Work** | 1500 | The Calculating Engine, The White Gold | **the Magnum Opus** | the win | ME W | | the Bead Race |
 
-### The naval line, read as one table
+### The naval line (ruled 2026-08-29): three classes, no cargo hull
 
-| age | hull | node | class | notes |
-|---|---|---|---|---|
-| I | **Trireme** (user) | Sailing | naval melee, str 10 | coast only; the harbour is not yet built, so it trains at any coastal city |
-| II | **Bireme** | Wayfinding | naval melee, str 13 | trireme's upgrade; Harbour = its barracks |
-| III | **Dromon** | Shipwrights | naval ranged, 14 / 14, range 2 | the fire-ship; Shipyard −25%⚙ |
-| III | **Junk** | Shipwrights | cargo | a trader at sea between harbours, +2 route range |
-| IV | **Cog** | The Astrolabe | naval melee, str 20, carries 1 | ocean-going |
-| IV | **Treasure Ship** | The Astrolabe | cargo | junk's upgrade; ocean routes, +3 range |
-| V | **Galleon** | Square Rigging | naval melee, str 28, carries 2, bombards | naval siege |
+**Rulings (user):** a ship spawns on the hex of the city that built it; a coastal city's hex is
+the **one** land hex a ship may enter — it garrisons there like any unit — and every other
+land hex is impassable to it; **a naval melee unit takes a city like a land melee does** —
+the three beats (walls, garrison, then it moves onto the city tile and captures); no civilian
+or cargo hull (a route at sea is the trader's rule, not a ship). Three classes, each with a
+predator and a prey, all through flat lines `planCombat` already prints:
 
-The rules a hull needs, all small: `modelClass: 'naval'` (never embarks, never enters land;
-stacks with an embarked unit; `stepCost` prices water for it, land as impassable); the Harbour
-as the spawn tile's owner (a naval unit completes on the city's coast hex); `carries` on the
-row (an embarked unit may end its move on a hull's hex and ride); a cargo hull is a `trader`
-category with `sea: true` for `startRoute`'s path. The ledger stays flat.
+| class | speed | cost | its rules |
+|---|---|---|---|
+| **Light melee** (nimble) | fast | ~60% of heavy | **hit and run** — may move after attacking with movement left · **+5 vs naval ranged** (it closes before the shot) · **escort** — an embarked unit on its hex defends at the ship's strength · plunders a route on a kill |
+| **Heavy melee** | slow | high | **the line** — +2 per adjacent friendly heavy (max +4) · **blockade** — adjacent to a coastal city it counts toward the siege ring and stops the city's routes · captures embarked civilians by advance |
+| **Naval ranged** | medium | high | strikes at range 1 (III) / 2 (IV+) without counter, like land ranged · a −5 melee-defence line (fragile when caught) · **bombardment** from IV: +vs cities, may strike the walls beat from range |
+
+So **light beats ranged** (closes and takes no shot), **ranged beats heavy** (kites a 3-move
+hull), **heavy beats light** (raw strength) — a triangle to pin with a fixture before tuning:
+light kills ranged in two strikes, ranged kills heavy in three kites untouched, heavy kills
+light in two. Speed is a *strategic* stat at sea (the coast is long); escort and plunder are
+what keep the light line worth building after ranged hulls appear in III, which is exactly
+when Civ's light ships die.
+
+| class | I | II | III | IV | V |
+|---|---|---|---|---|---|
+| **Light melee** | **Trireme** 10 · mv 4 (Sailing; user) | **Bireme** 13 · mv 5 (Wayfinding; user) | **Galley** 16 · mv 5 (Shipwrights) | **Caravel** 22 · mv 6 (The Astrolabe) | **Corvette** 28 · mv 6 (Square Rigging) |
+| **Heavy melee** | — | **War Galley** 16 · mv 3 (Wayfinding) | **Tower Ship** 24 · mv 3 (Shipwrights) | **Carrack** 32 · mv 3 (The Astrolabe) | **Ship of the Line** 44 · mv 3 (Square Rigging) |
+| **Naval ranged** | — | — | **Fire Ship** 12 · 18 at range 1 · mv 4 (Shipwrights) | **Gun Galley** 18 · 26 at range 2 · mv 4 (Paper Money → Fire Medicine's predecessor; place on The Astrolabe) | **Frigate** 28 · 38 at range 2, bombards · mv 4 (Square Rigging) |
+
+Names are deliberately nobody's: *Tower Ship* is the plain English of the louchuan and
+describes every medieval heavy (a castle at each end); *War Galley*, *Gun Galley* and *Fire
+Ship* are descriptive; *Caravel* is the generic word for the small fast ocean ship in every
+language. The traditions live in the epigrams (the dromon's siphons, the Song thunderclap,
+the turtle ship's shell, the Polynesian waka for the trireme's PC half).
+
+**The rules a hull needs**, all small: `modelClass: 'naval'` (`stepCost` prices water for it
+and land as impassable, save the owner's own coastal city hexes); the spawn tile is the city
+hex; `carries` is not needed (ships do not ferry — units embark on their own); `hitAndRun`,
+`escort` and the `+5 vs naval ranged` are three `combatLine`/`actionRule` shapes; blockade is
+one clause in `siegeField`; bombardment is the ranged unit's `vsClass: 'city'` line plus the
+walls beat from range. A coastal city defends against ships at its own strength, so early
+triremes cannot bully a walled town.
 
 ### What moves in the shipped tree
 
