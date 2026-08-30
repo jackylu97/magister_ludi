@@ -120,7 +120,7 @@ import { YIELD_GLYPH } from './yieldMark';
 /**
  * The mark each axis wears, and the accent it is drawn in.
  *
- * The glyphs are `docs/religion.md`'s own — the table was authored with them,
+ * The glyphs are `docs/deprecated/religion.md`'s own — the table was authored with them,
  * and a screen that renamed the hearth would be a screen disagreeing with the
  * design doc it implements. The accent keys resolve through `style.css`'s
  * `--line-ink` block, exactly as a card's line does, so the frame rule, the

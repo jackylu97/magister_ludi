@@ -37,7 +37,7 @@ export type { AnyCardLine };
  * How a line reads when the interface has to *say* it — a card's title
  * attribute, a collection heading, a screen reader.
  *
- * `docs/statecraft-cards.md`'s names, to the word: these are the designer's
+ * `docs/deprecated/statecraft-cards.md`'s names, to the word: these are the designer's
  * names for the threads and the screen has no business inventing a synonym.
  * `'none'` is deliberately not "None" — a neutral card is not a member of a
  * line called nothing, it is a card that joins no line, and the sentence has to

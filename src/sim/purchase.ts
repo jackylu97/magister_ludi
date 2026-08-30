@@ -184,7 +184,7 @@ function rosterBank(item: PurchasableItem): PurchaseCurrency | undefined {
  *
  *   1. **The roster's own bank** (the augur's faith): `purchase.cost` plus
  *      `purchase.increment` for every one this empire has already called. Two
- *      lines, no era band and no card rule — see `docs/religion.md`'s open
+ *      lines, no era band and no card rule — see `docs/deprecated/religion.md`'s open
  *      numbers for why the first augur's price is the pacing decision.
  *   2. **The treasury**: every line of the thing's production cost, then the
  *      conversion as a line of its own carrying the *difference* it makes. So a

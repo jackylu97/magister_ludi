@@ -484,7 +484,7 @@ export function nearestTarget(state: GameState, wild: Player, unit: Unit): RaidT
     // this seat and everything else about combat is unchanged. Theft continues,
     // because a thief's prey is chosen by `barbarianRoles` and not by this
     // function: the wolves take their share, they just do not come for the
-    // spears. See `docs/statecraft-cards.md`.
+    // spears. See `docs/deprecated/statecraft-cards.md`.
     if (cardBehaviorRule(state, ownerId, 'barbariansPassive')) return;
     const tile = getTileAt(map, col, row);
     if (!tile) return;

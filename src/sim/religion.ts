@@ -1,6 +1,6 @@
 /**
  * Religion v1: the augur and the pantheon (design ledger, Entry XXVIII;
- * `docs/religion.md` is the ratified design).
+ * `docs/deprecated/religion.md` is the ratified design).
  *
  * Faith is the **third draft currency**. Culture drafts Orders (slottable
  * posture), faith drafts **beliefs** (permanent identity) — and, unlike culture,
@@ -49,7 +49,7 @@
  * -------------------------------------------------------------
  * Prophets, founder/follower/enhancer pools, founding a religion, spread,
  * conversion and the Religious Mandate doctrine are the **Age 2–3 pass**
- * (`docs/religion.md`'s scope ruling). Pantheons are native and never convert
+ * (`docs/deprecated/religion.md`'s scope ruling). Pantheons are native and never convert
  * away, which is exactly why this half ships alone and needs no spread
  * machinery: every belief here applies in every city its empire owns, always.
  */
@@ -250,7 +250,7 @@ export function augurHasActed(unit: Unit): boolean {
  * Why this augur cannot consecrate, or `null` when it can.
  *
  * **Consecrate spends the whole unit, whatever it has left.** That is the
- * anti-spam structure (`docs/religion.md`): an augur is *either* three rites *or*
+ * anti-spam structure (`docs/deprecated/religion.md`): an augur is *either* three rites *or*
  * one god, so a player who has already spent two charges is giving up much less
  * than one who has spent none, and the choice is a real one at every point on
  * that curve. There is therefore no charge clause here at all — only a slot one,

@@ -546,7 +546,7 @@ export interface Player {
    * The room is furnished now. `purchaseUnit` charges this pool through
    * `explainPurchaseCost` (`religion.ts`), which is the only thing that spends
    * it — augurs, and nothing else, because "keep faith legible" is the design
-   * (`docs/religion.md`). The hover's note is *gone* rather than reworded,
+   * (`docs/deprecated/religion.md`). The hover's note is *gone* rather than reworded,
    * exactly as it promised.
    *
    * A pool rather than a rate, exactly as `sciencePool` and `culturePool` are:

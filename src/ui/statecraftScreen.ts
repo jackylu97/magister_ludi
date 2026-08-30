@@ -206,7 +206,7 @@ function clauseList(clauses: readonly CardClause[], linked = true): HTMLElement 
   for (const clause of clauses) {
     const item = element('li', clause.deferred ? 'sc-clause sc-clause-deferred' : 'sc-clause');
     setDescriptorText(item, clause.text, { linked });
-    if (clause.deferred) item.title = 'Declared, and not built yet — see docs/statecraft-cards.md';
+    if (clause.deferred) item.title = 'Declared, and not built yet — see docs/deprecated/statecraft-cards.md';
     list.append(item);
   }
   return list;

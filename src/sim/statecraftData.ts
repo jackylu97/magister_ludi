@@ -16,7 +16,7 @@
  * stated condition*, and Blooded Spears, Border Wardens, The Shield Wall, Siege
  * Doctrine, The Finisher's Art, Vanguard and The Marshals are seven rows of it.
  * A card whose ratified text needs a one-off is **deferred and annotated**
- * (`deferred` on the row, and `docs/statecraft-cards.md`) rather than bent into a
+ * (`deferred` on the row, and `docs/deprecated/statecraft-cards.md`) rather than bent into a
  * shape that nearly fits — Entry XV.b's rule, and `resourceData.ts`'s precedent.
  *
  * Three classes, one vocabulary
@@ -108,7 +108,7 @@ export type CardId =
  * Which slot an Order fits, and therefore what a government's spread is counted
  * in.
  *
- * Three rather than Entry XV's four: the ratified table (`docs/statecraft-cards.md`)
+ * Three rather than Entry XV's four: the ratified table (`docs/deprecated/statecraft-cards.md`)
  * types every Order M/E/W, and a *diplomatic* slot with no diplomacy to spend it
  * on would be a slot the player can only fill with a wildcard card. It joins the
  * union the day the system it names exists.
@@ -2163,7 +2163,7 @@ export interface CardDefBase {
   text?: string;
   /** Why part of this card is not built. Printed on the card, in italics. */
   note?: string;
-  /** Named halves that are deliberately absent. See `docs/statecraft-cards.md`. */
+  /** Named halves that are deliberately absent. See `docs/deprecated/statecraft-cards.md`. */
   deferred?: string[];
   /**
    * False for a card the upgrade slot must never roll. **Absent means yes.**

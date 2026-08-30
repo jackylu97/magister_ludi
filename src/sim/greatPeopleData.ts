@@ -83,7 +83,7 @@ export const FAMILIES: readonly Family[] = [
 
 /**
  * The Doctrine philosophy's three grades, read off the roster
- * (`docs/statecraft-cards.md`, applied to people by the 2026-08-27 ruling):
+ * (`docs/deprecated/statecraft-cards.md`, applied to people by the 2026-08-27 ruling):
  * game-defining **with a malice**, generically strong, or situational and
  * harmless. Presentation and design bookkeeping only — nothing in the
  * simulation switches on it, exactly as nothing switches on a card's `line`.

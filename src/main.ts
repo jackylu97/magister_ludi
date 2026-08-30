@@ -407,7 +407,7 @@ const PLAYERS: PlayerSpec[] = [
  * How many of that roster a new game seats, and why the default is one.
  *
  * A game is *playtested* solo — there is no AI yet (it is punted until every
- * major system exists, see `docs/playable.md`), so a second seat is a second
+ * major system exists, see `docs/deprecated/playable.md`), so a second seat is a second
  * empire nobody is driving, and every end of turn waits for a human to press
  * the button for it. One seat is therefore the honest default: the turn model
  * is simultaneous, `turnEnded` is an array of one, and resolution happens the
@@ -2256,7 +2256,7 @@ async function boot(initial: Game | null): Promise<void> {
    *
    * Reused from the Statecraft deck's own eight rather than added beside them,
    * because the three gradings *are* the deck's own philosophy read one class
-   * over (`docs/statecraft-cards.md`, applied to people by the 2026-08-27
+   * over (`docs/deprecated/statecraft-cards.md`, applied to people by the 2026-08-27
    * ruling) and a fourth palette would be the interface claiming they are a
    * different kind of thing:
    *

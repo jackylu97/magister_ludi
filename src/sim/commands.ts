@@ -758,7 +758,7 @@ export interface PurchaseItemCommand extends PlayerCommand {
  * It names the unit and nothing else, which is `foundCity`'s argument: the augur
  * is what authorises it and there is nothing else to say. And it consumes the
  * piece *whatever charges are left on it*, which is the anti-spam structure
- * rather than an oversight (`docs/religion.md`): an augur is three rites **or**
+ * rather than an oversight (`docs/deprecated/religion.md`): an augur is three rites **or**
  * one god, so the price of a god is always a whole agent and the decision is
  * live at every point on that curve.
  *

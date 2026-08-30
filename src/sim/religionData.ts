@@ -112,7 +112,7 @@ export const BELIEF_AXES: readonly BeliefAxis[] = [
  * `CardDefBase` plus an axis and nothing else. There is deliberately no cost, no
  * tier and no prerequisite on a belief — what a belief costs is *an augur*, and
  * that price is the escalating one on the agent rather than a second ladder here
- * (`docs/religion.md`, "the anti-spam structure").
+ * (`docs/deprecated/religion.md`, "the anti-spam structure").
  */
 export interface BeliefDef extends CardDefBase {
   axis: BeliefAxis;
@@ -272,7 +272,7 @@ export interface BeliefOffer {
  * cannot be derived: which gods were taken, in the order they were taken, and
  * whether an offer is outstanding.
  *
- * Beliefs are **permanent and unconvertible** (`docs/religion.md`, the Civ VI
+ * Beliefs are **permanent and unconvertible** (`docs/deprecated/religion.md`, the Civ VI
  * split): a pantheon is your civilization's native cults, it applies in every
  * city you own always, and nothing in this game or the religion pass after it
  * can take one away. So there is no slot *layout*, no seal and no swap — the
@@ -442,7 +442,7 @@ export function riteAbility(id: RiteId): AbilityId {
  * How many belief slots these technologies open, in all.
  *
  * A table keyed by tech rather than a constant, so the High Temple's +1 is a
- * JSON row and not a code change (`docs/religion.md`, the slot table). Summed
+ * JSON row and not a code change (`docs/deprecated/religion.md`, the slot table). Summed
  * over what the empire actually holds, in `slotsFromTech`'s own key order, which
  * matters for nothing today and would matter the moment a row went negative.
  */
