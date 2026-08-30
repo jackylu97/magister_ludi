@@ -160,6 +160,8 @@ import {
   slotLayout,
 } from './statecraftData';
 import { isWaterTerrain } from './terrainData';
+import { anyBeadDef, isBeadCardId } from './beadData';
+import { beadCapEffects } from './beads';
 import { awardOccasion } from './triumphs';
 import { UNIT_UNLOCK_TECH, highestAge } from './techData';
 import {
@@ -660,6 +662,7 @@ const CLASS_WORD = {
   building: 'Building',
   legacy: 'Legacy',
   religion: 'Religion',
+  bead: 'Bead',
 } as const;
 
 /**
@@ -689,6 +692,21 @@ export function anyCardDef(id: CardId): CardDefBase {
   // should not have to prove it. A row with an **empty** legacy is a name whose
   // ratified text needs a shape that does not exist yet; it answers a
   // card-shaped nothing, which is exactly what it is worth to this evaluator.
+  // The **eighth** class (the Bead Race): a bead's boon may carry a cap, and the
+  // row is adapted into the card shape here for the great person's reason
+  // exactly — one lookup, one label, one `describeCard`, rather than a parallel
+  // evaluator for a fourth table. Asked before the building arm for its reason:
+  // the id spaces are disjoint and the cheaper guard should not have to prove it.
+  if (isBeadCardId(id)) {
+    const { def } = anyBeadDef(id);
+    const boon = 'boon' in def ? def.boon : undefined;
+    return {
+      name: def.name,
+      flavor: 'flavor' in def ? def.flavor : '',
+      effects: boon?.effects ?? [],
+      deferred: def.deferred,
+    };
+  }
   if (isGreatPersonId(id)) {
     const def = greatPersonDef(id);
     return { name: def.name, flavor: def.epigram, effects: def.legacy, deferred: def.deferred };
@@ -820,6 +838,28 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
   // fact about a town and this is a fact about everybody.
   const seat = playerById(state, playerId);
   if (seat?.timed !== undefined) list.push(...timedLive(state, playerId, seat));
+  // **The ninth source** (the Bead Race, design ledger Entry VI): the *caps* a
+  // bead's boon granted — a permanent step in contentment, in authority
+  // capacity, in route capacity. Read off `Player.beads` every time rather than
+  // settled once when the bead was earned, which is what keeps a bead's cap an
+  // ordinary card effect in every ledger it reaches instead of a number
+  // somebody added to a meter. `beadCapEffects` answers `[]` for the
+  // overwhelmingly common seat holding no bead that pays one.
+  //
+  // Last, after the law, the gods, the stones, the dead and the bill, for the
+  // reason each of those is last in turn: it is the order they were acquired
+  // in, so no ledger reshuffles itself. A bead is `CardId`'s eighth class and
+  // is adapted here rather than in `anyCardDef` — a bead is not drafted, not
+  // slotted and not upgradable, so `scaleByLevel` has nothing to say about it
+  // and its level is always one.
+  if (seat) {
+    for (const held of beadCapEffects(seat)) {
+      for (const effect of held.effects) {
+        if (effect.kind === 'conditionRule') continue;
+        list.push({ source: `${CLASS_WORD.bead} · ${held.name}`, card: held.id, level: 1, effect });
+      }
+    }
+  }
   // **The seventh source** (`docs/religion-v2.md`, corrected by the user's
   // ruling of 2026-08-28): every religion whose **holy city this empire holds**.
   // Two things arrive together and they are two readings of one fact — that a

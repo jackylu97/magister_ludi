@@ -174,6 +174,7 @@ import {
   startRouteAt,
   startRouteError,
 } from './trade';
+import { type BeadAward, beadMarks, beadsSince } from './beads';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
 import type { CampBounty } from './camps';
@@ -1182,6 +1183,7 @@ export type CommandResult =
       guilds?: GuildReport[];
       proclaimed?: ProclamationReport;
       campBounties?: { ownerId: number; col: number; row: number; bounty: CampBounty }[];
+      beads?: BeadAward[];
     }
   | { ok: false; error: string };
 
@@ -1384,7 +1386,7 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   const report = runEndOfTurn(state);
   clearTurnEnded(state);
   state.turn += 1;
-  return ok(
+  const result = ok(
     undefined,
     report.combats,
     report.wonders,
@@ -1398,6 +1400,13 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
     report.guilds,
     report.campBounties,
   );
+  // The resolution's beads, **with the boon lines the settlements produced** —
+  // set beside the helper rather than passed through it for `proclaimed`'s
+  // reason (a fourteenth positional argument on every other caller is a worse
+  // price than the two lines it saves), and set *before* `applyCommand`'s own
+  // diff runs, which is what stops the same bead being announced twice.
+  if (result.ok && report.beads.length > 0) result.beads = [...report.beads];
+  return result;
 }
 
 /** Reads an offset cell defensively; commands may arrive from a save or a socket. */
@@ -2983,8 +2992,23 @@ function orderedUnitId(command: Command): number | undefined {
  * never given.
  */
 export function applyCommand(state: GameState, command: Command): CommandResult {
+  // **The bead diff, taken once, here** (design ledger Entry VI). `Player.beads`
+  // is append-only and turn-stamped, so a mark taken before the handler and a
+  // slice taken after it is exactly what this command earned, at whatever depth
+  // it earned it — a city founded eight deep in `foundCityAt`, a wonder claimed
+  // inside `realiseItem`, a faith founded by a prophet. Taken in *this* function
+  // rather than in each handler because that is the one place every command
+  // passes through, and a handler that forgot would be a bead nobody was told
+  // about. `endTurn` sets the field itself first, with the boon lines the phase
+  // produced; the merge below leaves those alone.
+  const marks = beadMarks(state);
   const result = runCommand(state, command);
   if (!result.ok) return result;
+  const already = new Set((result.beads ?? []).map((award) => `${award.playerId}:${award.id}`));
+  for (const award of beadsSince(state, marks)) {
+    if (already.has(`${award.playerId}:${award.id}`)) continue;
+    (result.beads ??= []).push(award);
+  }
   const ordered = orderedUnitId(command);
   if (ordered !== undefined) {
     const unit = unitById(state, ordered);

@@ -55,6 +55,13 @@
  */
 
 import type { BuildingId } from './buildingData';
+import {
+  type BeadCardId,
+  type BeadFamily,
+  type BeadKind,
+  BEAD_DECK_AGES,
+  beadDeckFor,
+} from './beadData';
 import type { ProjectId } from './projectData';
 import type { DiscoveryId, DiscoveryKind } from './discoveryData';
 import {
@@ -69,7 +76,7 @@ import type { GameMap } from './map';
 import { generateMap, getMapSize } from './mapgen';
 import { type MapgenOverrides, resolveMapgenConfig } from './mapgenData';
 import { type BeliefId, type PlayerPantheon, newPlayerPantheon } from './religionData';
-import { type Rng, hashSeed, makeRng } from './rng';
+import { type Rng, hashSeed, makeRng, shuffle } from './rng';
 import { RULES } from './rulesData';
 import {
   type PlayerStatecraft,
@@ -430,8 +437,32 @@ import {
  *     version could have had a guild. It is still refused, because the board a
  *     v35 log produces here is not the board it produced there, and a snapshot
  *     restored into this version would be a game the log can no longer explain.
+ * 37: **The Bead Race** (design ledger Entry VI, `docs/beads.md`) — the game's
+ *     one victory condition, and the largest single addition since Statecraft.
+ *     One field on the state (`GameState.beads`: the two shuffled decks, the two
+ *     hands, the world's register of claims, the streak book and the world's
+ *     age), eight on the player (`beads`, `dice`, and the six counters a deed
+ *     asks about that the board cannot answer — `citiesFounded`,
+ *     `citiesCaptured`, `faithOnHolyOrders`, `tithesGold`,
+ *     `scholarshipScience`, `routeYieldsThisAge`, `greatPeopleThisAge`), one
+ *     phase (`beads`, after `renown`) and three building rows nothing unlocks
+ *     yet (`BuildingDef.awaitsTech`).
+ *
+ *     **A v36 log replayed here is a different game**, and the decks are the
+ *     smaller half of why. `newGame` now draws two shuffles off `state.rng`
+ *     before a single unit is placed, which moves **every seeded roll in the
+ *     game** — the first barbarian camp, the first ruin's hand, every draft.
+ *     Beyond that: a race project is a queue row a v36 city could not hold, a
+ *     bead's boon settles through five of the Entry XVIII seams, and the first
+ *     empire to twenty beads simply wins, which is a way a v36 game could not
+ *     end.
+ *
+ *     The migration note: absent means a game that has raced nobody, which is
+ *     right for every v36 save — nothing before this version could hold a bead.
+ *     It is still refused, because the board a v36 log produces here is not the
+ *     board it produced there.
  */
-export const SCHEMA_VERSION = 36;
+export const SCHEMA_VERSION = 37;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -886,6 +917,142 @@ export interface Player {
    * at a screen, and under simultaneous turns two seats look at different times.
    */
   greatPersonOffer?: GreatPersonOffer;
+  /**
+   * Every bead this empire has clacked onto the Abacus, **in the order they
+   * were earned** (design ledger Entry VI, `docs/beads.md`).
+   *
+   * `Player.triumphs`' discipline one system up and for its reasons exactly:
+   * append-only and turn-stamped, so what a command earned is the slice past
+   * the length it started at and no seam had to grow a parameter to say so; and
+   * it is the register of what this seat holds, which is what the threshold
+   * counts. Nothing ever removes an entry — a bead once clacked is clacked.
+   *
+   * Contention between *seats* is settled elsewhere: `GameState.beads.claimed`
+   * is the world's register, because almost every bead is a first-in-the-world.
+   */
+  beads: EarnedBead[];
+  /**
+   * Magister's Dice, held. **Uncapped** (user ruling, 2026-08-30), which
+   * supersedes Entry XV's "cap 3 held": a fourth die is kept like the first
+   * three, and a boon that pays one is `dice += n` with nothing to clamp.
+   *
+   * Nothing spends them yet — the seal they were designed for is Æra V's — so
+   * this is a bank the game fills and never draws on, said out loud here rather
+   * than left as a surprise.
+   */
+  dice: number;
+  /**
+   * Cities this empire **founded itself**, ever. The Founder's count.
+   *
+   * On the player rather than derived from the board, and that is the whole
+   * point of the counter: `state.cities` cannot say who founded a town (a
+   * capture rewrites `ownerId`, and `City.captured` is sticky the other way), so
+   * "eight cities of your own" is a fact only a counter can keep. Nothing lowers
+   * it — a city lost was still a city founded.
+   */
+  citiesFounded: number;
+  /** Cities taken by force, ever. `citiesFounded`' twin. Nothing lowers it. */
+  citiesCaptured: number;
+  /**
+   * Faith spent on augurs and prophets, ever — The Hierophant's count.
+   *
+   * A *spend* is not a thing on the board and `faithPool` is a bank that moves
+   * both ways, so the only honest reading is a counter raised where the coin
+   * leaves (`purchaseItemAt`).
+   */
+  faithOnHolyOrders: number;
+  /** Gold banked from the Tithes project, ever. Raised in `payProject`. */
+  tithesGold: number;
+  /** Science banked from the Scholarship project, ever. `tithesGold`' twin. */
+  scholarshipScience: number;
+  /**
+   * Yields this empire's caravans carried **during the current age** — the
+   * Richest Roads' reckoning.
+   *
+   * The one counter that is **reset**, and it is reset in exactly one place
+   * (`openBeadAge` in `beads.ts`) at the moment the world's age turns over,
+   * because a reckoning of the age is a question about the age. A total that
+   * never reset would hand every later reckoning to whoever led the first one.
+   */
+  routeYieldsThisAge: number;
+  /** Great people called during the current age. `routeYieldsThisAge`' twin. */
+  greatPeopleThisAge: number;
+}
+
+/**
+ * One bead, earned. See `Player.beads`.
+ *
+ * `EarnedTriumph`'s shape one system up: **what**, **which class of card**,
+ * **which family's rod it lands on**, and **when**. The name, the text and the
+ * boon are the catalogue's business and history does not restate a table — but
+ * the family is on the record rather than looked up, because the Abacus counts
+ * rods and a card retuned from culture to science must not silently move a bead
+ * an empire already owns.
+ */
+export interface EarnedBead {
+  id: BeadCardId;
+  kind: BeadKind;
+  family: BeadFamily;
+  /** `state.turn` it was earned on. What makes the news a diff. */
+  turn: number;
+}
+
+/**
+ * One bead claimed **by the world**, and who took it. See `GameState.beads`.
+ *
+ * `ContestedTriumph`'s twin, and keyed the same way for its reason: nearly every
+ * bead is a first-in-the-world, and the pair `(id, age)` is the key because a
+ * feat may be once per game (`age: 0`) or once per age of the world's clock.
+ */
+export interface BeadClaim {
+  id: BeadCardId;
+  age: number;
+  playerId: number;
+  turn: number;
+}
+
+/**
+ * One card on the table. See `BeadTable.hands`.
+ *
+ * `faceUp` is the whole of Entry VI's drafting model: a card dealt before its
+ * age opens is face down — it is *there*, it is in the seeded order, and nobody
+ * may claim it — and the turn the first seat in the world reaches that age every
+ * card in the hand turns over at once. A card dealt after the age has opened
+ * arrives face up.
+ */
+export interface BeadCard {
+  id: BeadCardId;
+  faceUp: boolean;
+}
+
+/**
+ * The Bead Race's whole world state (design ledger Entry VI).
+ *
+ * Five fields, and each of them is one sentence:
+ *
+ *   · `decks` — the shuffled order of each age's cards, drawn from `state.rng`
+ *     **once, in `newGame`**, so a seed *is* a deal (Entry II's fairness: every
+ *     seat sees the same cards in the same order). Cards are taken off the
+ *     front; an empty deck is an age that has dealt everything it holds.
+ *   · `hands` — what is on the table for each age, in deal order.
+ *   · `claimed` — the world's register. **The** place contention is settled, so
+ *     "the first seat by log and sweep order" is a property of the order things
+ *     were applied in rather than of a check somebody could forget.
+ *   · `streaks` — how many consecutive turns each seat has held each streak
+ *     deed's count at or above its value. Reset to zero the turn it falls short.
+ *   · `worldAge` — the world's clock, one clock for everybody: the highest age
+ *     any real seat has reached. An age *opens* the turn this rises.
+ *
+ * Plain objects and arrays throughout, never a `Map` or a `Set`: every one of
+ * them is iterated for an outcome, and an outcome that depends on iteration
+ * order must depend on an order the state itself carries.
+ */
+export interface BeadTable {
+  decks: Record<string, BeadCardId[]>;
+  hands: Record<string, BeadCard[]>;
+  claimed: BeadClaim[];
+  streaks: Record<string, Record<string, number>>;
+  worldAge: number;
 }
 
 /**
@@ -1898,18 +2065,6 @@ export interface GameState {
    */
   contested: ContestedTriumph[];
   /**
-   * The last player standing, once there is one; `null` while the game is live.
-   *
-   * Conquest is the only victory v1 has, and it is decided by
-   * `updateElimination` (`combat.ts`) rather than by a phase of its own, because
-   * the moment it becomes true is the moment somebody's last unit died — which
-   * is inside a command, not at the end of a turn.
-   *
-   * It is a *record*, not a gate: the reducer keeps accepting commands after it
-   * is set, because refusing them would mean a replay of a finished game
-   * diverges from the game it replays. The interface is what stops.
-   */
-  /**
    * Every religion that has been founded, **in founding order** — which is also
    * what a `ReligionId` is.
    *
@@ -1926,6 +2081,25 @@ export interface GameState {
    * itself carries.
    */
   religions: Religion[];
+  /**
+   * The Bead Race — the decks, the hands, the world's register and its clock.
+   * See `BeadTable`, and design ledger Entry VI for why there is one victory
+   * condition rather than four.
+   */
+  beads: BeadTable;
+  /**
+   * The winner, once there is one; `null` while the game is live.
+   *
+   * **One field, two ways to reach it** (Entry VI.3): the last empire standing
+   * (`updateElimination`, `combat.ts`) and the first empire to
+   * `BEAD_RULES.threshold` beads (the `beads` phase). Whichever comes first
+   * writes it, and neither ever clears a winner the other named — a game that
+   * has been won stays won.
+   *
+   * It is a *record*, not a gate: the reducer keeps accepting commands after it
+   * is set, because refusing them would mean a replay of a finished game
+   * diverges from the game it replays. The interface is what stops.
+   */
   winnerId: number | null;
 }
 
@@ -1999,6 +2173,35 @@ function validateConfig(config: GameConfig): void {
 }
 
 /**
+ * A fresh Bead Race: both decks shuffled, both hands empty, nothing claimed.
+ *
+ * **The one place a deck is ordered.** It is drawn here, in `newGame`, rather
+ * than when an age opens, for the doctrine `discoveries.ts` states and every
+ * offer generator obeys: an order rolled later would make the deal a function
+ * of *when* somebody reached an age, and under simultaneous turns two seats
+ * reach it in the same window. Rolled once from the config's own generator, a
+ * seed **is** a deal — which is also Entry II's fairness rule, since every seat
+ * looks at the same table.
+ *
+ * Decks are walked in `BEAD_DECK_AGES` order so the two shuffles always consume
+ * the generator in the same sequence; `beadDeckFor` has already dropped every
+ * dormant card, so nothing unreachable is ever dealt into a hand somebody has
+ * to read.
+ */
+function newBeadTable(rng: Rng): BeadTable {
+  const decks: Record<string, BeadCardId[]> = {};
+  const hands: Record<string, BeadCard[]> = {};
+  for (const age of BEAD_DECK_AGES) {
+    decks[String(age)] = shuffle(rng, beadDeckFor(age));
+    hands[String(age)] = [];
+  }
+  // The world begins in its first age, whatever the tree's opening technologies
+  // are: `worldAge` is the *clock*, and a clock that started at the highest age
+  // anybody happened to hold would open an age before anybody had entered it.
+  return { decks, hands, claimed: [], streaks: {}, worldAge: 1 };
+}
+
+/**
  * Builds the initial state. Deterministic in `config` alone: the same config
  * always produces a byte-identical state.
  */
@@ -2007,10 +2210,13 @@ export function newGame(config: GameConfig): GameState {
   validateConfig(normalized);
 
   const map = generateMap(normalized.seed, normalized.sizeName, normalized.mapgenOverrides);
+  // Named before the state is built, because the two decks are shuffled off it
+  // (see `newBeadTable`) and the state literal below cannot refer to itself.
+  const rng = deriveGameplayRng(normalized.seed);
   const state: GameState = {
     schemaVersion: SCHEMA_VERSION,
     turn: RULES.game.startingTurn,
-    rng: deriveGameplayRng(normalized.seed),
+    rng,
     nextEntityId: RULES.game.firstEntityId,
     players: normalized.players.map((spec, index) => ({
       id: index,
@@ -2054,6 +2260,18 @@ export function newGame(config: GameConfig): GameState {
       legacies: [],
       triumphs: [],
       greatPeopleRecruited: 0,
+      // Fresh every time rather than a shared literal, for `techsResearched`'s
+      // reason: an empire that clacks a bead must not write it onto every rod
+      // in the world.
+      beads: [],
+      dice: 0,
+      citiesFounded: 0,
+      citiesCaptured: 0,
+      faithOnHolyOrders: 0,
+      tithesGold: 0,
+      scholarshipScience: 0,
+      routeYieldsThisAge: 0,
+      greatPeopleThisAge: 0,
     })),
     turnEnded: normalized.players.map(() => false),
     map,
@@ -2075,6 +2293,11 @@ export function newGame(config: GameConfig): GameState {
     contested: [],
     // Nobody has founded anything, which is what an empty register means.
     religions: [],
+    // **The deal is the seed.** Both decks are shuffled here, before a single
+    // piece is placed, so that a config alone determines every card and the
+    // order it comes off — Entry II's fairness, and the reason no generator ever
+    // draws a bead card on sight (see `beads.ts`).
+    beads: newBeadTable(rng),
     winnerId: null,
   };
   placeStartingUnits(state);
@@ -2162,6 +2385,18 @@ function seatBarbarians(state: GameState): void {
     legacies: [],
     triumphs: [],
     greatPeopleRecruited: 0,
+    // Present so every reader may index a seat without asking which kind it is,
+    // and filled by nothing: the `beads` phase skips the wild the way the renown
+    // phase does. The wild has no Abacus and nothing to win.
+    beads: [],
+    dice: 0,
+    citiesFounded: 0,
+    citiesCaptured: 0,
+    faithOnHolyOrders: 0,
+    tithesGold: 0,
+    scholarshipScience: 0,
+    routeYieldsThisAge: 0,
+    greatPeopleThisAge: 0,
   };
   state.players.push(player);
   state.turnEnded.push(true);

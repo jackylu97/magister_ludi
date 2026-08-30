@@ -45,6 +45,7 @@
  * greyed, which is what the doc asks for.
  */
 
+import { awardBeadOccasion } from './beads';
 import { controlledHoldings } from './cities';
 import type { Family } from './greatPeopleData';
 import { tileIndex } from './map';
@@ -221,6 +222,15 @@ export function awardOccasion(
     const award = awardTriumph(state, playerId, id);
     if (award) awards.push(award);
   }
+  // **The Bead Race listens at the same ten seams** (design ledger Entry VI).
+  // Hung off this one call rather than added to ten call sites, and — the
+  // load-bearing half — *not* a second switch on an occasion kind inside this
+  // file: `beads.ts` owns its own vocabulary and its own switch, exactly as this
+  // module owns the Triumph table's. Nothing is returned, because a bead is
+  // reported as a diff of `Player.beads` (`beadsAwarded`) rather than passed
+  // back up through nine signatures — which is this file's own argument, read
+  // one system over.
+  awardBeadOccasion(state, playerId, occasion);
   return awards;
 }
 

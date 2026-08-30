@@ -149,6 +149,8 @@ import {
   techsGrant,
 } from './techData';
 import { awardOccasion } from './triumphs';
+import { isBeadEndeavourId } from './beadData';
+import { endeavourError, endeavourIsOffered } from './beads';
 import { isProjectId, projectDef } from './projectData';
 import { type UnitTypeId, isNaval, isUnitTypeId, unitDef, unitMaxHp } from './unitData';
 
@@ -212,6 +214,18 @@ export function isUnlocked(
   // beside it — see `BuildingDef.unlockedByCard`.
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByCard === true) {
     return cardUnlocksBuilding(state, playerId, id);
+  }
+  // **A race project is asked of the table**, before the tree, for the clause
+  // above's reason exactly one kind over: an endeavour has no gate in the tree
+  // — no technology names it — so without this it would be offered from turn
+  // one, in every city, for ever. What gates it is the Bead Race (design ledger
+  // Entry VI): the card must be face up in its age's hand, unclaimed, and the
+  // empire must already have what the race asks for. Availability that can go
+  // *backwards* is the one thing this function otherwise never does, and it is
+  // deliberate here: a race somebody else has won is a row that must leave every
+  // build list in the world the instant they win it.
+  if (kind === 'project' && isBeadEndeavourId(id)) {
+    return endeavourIsOffered(state, playerId, id);
   }
   const gate = gatingTech(kind, id);
   if (gate === null) return true;
@@ -337,10 +351,28 @@ export function buildError(
   id: string,
   city?: City,
 ): string | null {
+  // **The endeavour's own sentence, before the tree's.** `isUnlocked` answers
+  // no for a race project that is off the table, already won or out of reach,
+  // and the tree's message ("needs a technology you do not have") would be a
+  // lie about all three. One rule asked twice — the panel greys the row with
+  // this sentence and the reducer refuses with it.
+  if (kind === 'project' && isBeadEndeavourId(id)) {
+    const why = endeavourError(state, playerId, id);
+    if (why !== null) return why;
+  }
   if (!isUnlocked(state, playerId, kind, id)) {
     const gate = gatingTech(kind, id);
     const needs = gate ? techDef(gate).name : 'a technology you do not have';
     return `${itemName(kind, id)} needs ${needs}`;
+  }
+  // **A building may be in the data ahead of the age that opens it** — the
+  // cathedral, the mint and the armoury shipped with the Æra IV endeavours that
+  // race toward them and no technology names them yet. Refused here and in
+  // `purchaseError`, beside the unit clause and for its reason: without the
+  // marker "no tech names it" reads as "available from turn one", which would
+  // put a cathedral in the opening build list. See `BuildingDef.awaitsTech`.
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).awaitsTech === true) {
+    return `${itemName(kind, id)} waits on a technology this age has not reached`;
   }
   // Some things are **bought or not at all** (ledger Entry XXVIII): the augur is
   // faith-purchased, and a city that could also hammer one out would make the

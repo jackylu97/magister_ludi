@@ -230,6 +230,12 @@ export type BuildingId =
   | 'amphitheater'
   | 'monastery'
   | 'university'
+  // **In the data ahead of the age that opens them** (`awaitsTech`, the Bead
+  // Race's Æra IV endeavours). Three rows the tree does not name yet; the pass
+  // that lands Æra IV deletes the marker and adds them to a node's `unlocks`.
+  | 'cathedral'
+  | 'mint'
+  | 'armoury'
   // **Opened by a card, not by a node** — the one row in the table with no
   // technology behind it (`unlockedByCard`, `purchaseOnly`). The Gilded Court
   // hands it over and the treasury is the only way to raise it.
@@ -471,6 +477,27 @@ export interface BuildingDef {
   cityHp?: number;
   /** What this pays into the renown bucket, or absent. See `BuildingRenown`. */
   renown?: BuildingRenown;
+  /**
+   * **This row is in the data ahead of the age that opens it.** Absent means an
+   * ordinary building, which is every row but three.
+   *
+   * `UnitDef.awaitsTech`'s twin one table over, and it exists for that field's
+   * reason exactly: the Bead Race's Æra IV endeavours are races toward a
+   * cathedral, a mint and an armoury, so the rows shipped with the endeavours
+   * that name them — and no technology names *them* yet. Without this marker
+   * "no tech names it" reads as "available from turn one" (`isUnlocked`), which
+   * would put a cathedral in the opening build list.
+   *
+   * Refused in the two places a thing is acquired (`buildError`,
+   * `purchaseError`) and nowhere else, beside `purchaseOnly` in the same
+   * switch. It is also read by `beadDataProblems`, which derives **dormancy**
+   * from it: an endeavour whose prerequisite names a building nobody can build
+   * is a card that is never dealt.
+   *
+   * **Temporary by construction.** The Æra IV tech pass deletes the field from
+   * three rows and adds them to a node's `unlocks`, and nothing else changes.
+   */
+  awaitsTech?: boolean;
   /** Tech-driven renewals. See `BuildingUpgrade` and the module docblock. */
   upgrades?: BuildingUpgrade[];
   /** What this pays on the *ground*. See `BuildingTileYield`. */

@@ -126,6 +126,7 @@ import { type ImprovementId, workForFamily } from './improvementData';
 import { improvementErrorAt } from './improvements';
 import { nextFloat } from './rng';
 import { RULES } from './rulesData';
+import { awardBeadOccasion } from './beads';
 import { awardOccasion } from './triumphs';
 import { isCombatant, unitDef, unitMaxHp } from './unitData';
 
@@ -1309,6 +1310,11 @@ export function foundReligion(state: GameState, player: Player): Religion {
     foundedTurn: state.turn,
   };
   state.religions.push(religion);
+  // **The First Faith** — a bead occasion the Triumph table has no word for, so
+  // it is hooked here rather than at `awardOccasion` (design ledger Entry VI).
+  // In the *mechanism* beside the register write, for `awardFoundingTriumphs`'
+  // reason: an AI that founds a faith earns what a player would.
+  awardBeadOccasion(state, player.id, 'religionFounded');
   return religion;
 }
 

@@ -392,6 +392,15 @@ export function purchaseError(
   if (bought.kind === 'unit' && unitDef(bought.id).greatWork === true) {
     return `A ${name} is called, not bought`;
   }
+  // **And some rows are in the data ahead of the age that opens them.** The
+  // cathedral, the mint and the armoury shipped with the Æra IV endeavours that
+  // race toward them; no technology names them yet, so `isUnlocked` would read
+  // them as available from turn one and this bank would sell one. The matching
+  // refusal is in `buildError`, and this is `UnitDef.awaitsTech`'s sentence one
+  // table over. See `BuildingDef.awaitsTech`, which is temporary by construction.
+  if (bought.kind === 'building' && buildingDef(bought.id).awaitsTech === true) {
+    return `${name} waits on a technology this age has not reached`;
+  }
 
   const bank = rosterBank(bought);
   if (bank !== undefined && bank !== currency) {
@@ -512,6 +521,18 @@ export function purchaseItemAt(
   }
   if (item.kind === 'unit' && unitDef(item.id).prophesies === true) {
     player.prophetsPurchased += 1;
+  }
+  // **The Hierophant's counter** (design ledger Entry VI). Faith spent on the
+  // two holy orders, counted where the coin leaves — a *spend* is not a thing on
+  // the board and `faithPool` is a bank that moves both ways, so a counter is
+  // the only honest reading. Asked of the row's own markers (`consecrates`,
+  // `prophesies`), so nothing here compares a type against a string.
+  if (
+    price.currency === 'faith' &&
+    item.kind === 'unit' &&
+    (unitDef(item.id).consecrates === true || unitDef(item.id).prophesies === true)
+  ) {
+    player.faithOnHolyOrders += price.total;
   }
   // The town's day is spent on units, and stamped as an absolute turn so nothing
   // has to unstamp it. Written for every unit including the augur — a faith

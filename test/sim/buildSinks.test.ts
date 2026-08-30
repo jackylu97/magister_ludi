@@ -218,9 +218,20 @@ describe('a project is gated, once, by the tree', () => {
   it('names its technology and refuses a queue without it', () => {
     expect(PROJECT_UNLOCK_TECH.get('tithes')).toBe('calendar');
     expect(PROJECT_UNLOCK_TECH.get('scholarship')).toBe('letters');
-    // Every project is gated: one available on turn one is a capital that never
-    // has to choose what to do with its hammers.
-    for (const id of PROJECT_IDS) expect(gatingTech('project', id)).not.toBeNull();
+    // Every *conversion* is gated by the tree: one available on turn one is a
+    // capital that never has to choose what to do with its hammers. A **race
+    // project** is the deliberate exception — no technology names an endeavour,
+    // and what gates it is the Bead Race (the card must be face up in its age's
+    // hand, unclaimed, and the empire must meet its prerequisite), asked in
+    // `isUnlocked`'s project arm exactly as the Gilded Hall's card gate is.
+    for (const id of PROJECT_IDS) {
+      if (projectDef(id).finishes === true) {
+        expect(gatingTech('project', id), id).toBeNull();
+        expect(isUnlocked(flatState(), 0, 'project', id), id).toBe(false);
+        continue;
+      }
+      expect(gatingTech('project', id), id).not.toBeNull();
+    }
 
     const state = flatState();
     const city = plant(state, 0, 5, 5);

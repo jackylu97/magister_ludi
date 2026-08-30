@@ -58,6 +58,7 @@ import {
   settleProductionWindfall,
   spawnTileFor,
 } from './cities';
+import { awardBeadOccasion } from './beads';
 import {
   FAMILIES,
   type Family,
@@ -495,8 +496,17 @@ export function settleGreatPersonChoice(
   delete player.greatPersonOffer;
   state.recruited.push(id);
   player.greatPeopleRecruited += 1;
+  // The Bead Race's per-age counter — the Dynasty's deed and the Most Called
+  // reckoning. Reset in exactly one place, when the world's age turns over
+  // (`openBeadAge`), because a reckoning of the age is a question about the age.
+  player.greatPeopleThisAge += 1;
 
   const def = greatPersonDef(id);
+  // **The first of each family**, a bead occasion the Triumph table has no word
+  // for. Announced here, in the mechanism, so an AI that calls a name earns it
+  // too; the family rides along because "the first artist" is four data rows
+  // rather than a fifth scope (see `awardBeadOccasion`).
+  awardBeadOccasion(state, player.id, 'greatPersonRecruited', def.family);
   const recruit: GreatPersonRecruit = {
     id,
     name: def.name,

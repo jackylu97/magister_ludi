@@ -117,6 +117,18 @@ describe('newGame', () => {
       legacies: [],
       triumphs: [],
       greatPeopleRecruited: 0,
+      // The Bead Race's eight, present from turn one for the same reason: an
+      // empty Abacus, no dice, and six counters at nothing. `dice` is uncapped
+      // (user ruling, 2026-08-30) and nothing spends it yet.
+      beads: [],
+      dice: 0,
+      citiesFounded: 0,
+      citiesCaptured: 0,
+      faithOnHolyOrders: 0,
+      tithesGold: 0,
+      scholarshipScience: 0,
+      routeYieldsThisAge: 0,
+      greatPeopleThisAge: 0,
     };
     expect(state.players).toEqual([
       { id: 0, name: 'Ada', color: '#e8503a', isHuman: true, ...pools },
@@ -157,7 +169,13 @@ describe('newGame', () => {
     const state = newGame(config({ seed }));
     // The map generator starts at `seed` itself; gameplay must not.
     expect(state.rng.state).not.toBe(seed | 0);
-    expect(state.rng).toEqual(deriveGameplayRng(seed));
+    // **Not the derived seed itself any more**: `newGame` shuffles the two bead
+    // decks off this generator before a piece is placed (schema 37), so what a
+    // fresh state carries is the derived stream *already advanced*. The property
+    // that matters is unchanged and is asserted below — the stream is a pure
+    // function of the config, and it is not the map's.
+    expect(state.rng.state).not.toBe(deriveGameplayRng(seed).state);
+    expect(newGame(config({ seed })).rng).toEqual(state.rng);
     // The first gameplay roll is not the first mapgen roll either.
     const gameplay = deriveGameplayRng(seed);
     const mapgen = { state: seed | 0 };
@@ -427,6 +445,10 @@ describe('end-of-turn pipeline', () => {
       // this turn pays into the sweep that banks the library beside it. See
       // `runRenown`.
       'renown',
+      // The Bead Race's own beat, directly after `renown` so the turn's standing
+      // Triumphs and this turn's recruitments are already on the register before
+      // a deed is swept. See `runBeads` (design ledger Entry VI).
+      'beads',
       // The two revocations that are conditions of a turn rather than events —
       // Hypatia's mob, Boudica's century. A broom's twin: marking a record
       // already marked changes nothing, so the phase is safe anywhere, and it
@@ -466,6 +488,12 @@ describe('end-of-turn pipeline', () => {
     const state = newGame(config());
     const before = clone(state);
     runEndOfTurn(state);
+    // **Except the table**, which deals one card a turn whatever anybody does:
+    // the hand fills over an age rather than all at once (design ledger Entry
+    // VI), so a quiet turn still turns a card face down onto the table. Nothing
+    // else moved — which is what the rest of this comparison says.
+    expect(state.beads).not.toEqual(before.beads);
+    state.beads = before.beads;
     expect(state).toEqual(before);
   });
 });
@@ -529,7 +557,7 @@ describe('the research queue field', () => {
     // A v21 log is not merely older: a `moveUnit` given with no movement left
     // used to be refused and is now a standing order, and the resolution has
     // grown a phase no v21 state has been through.
-    expect(SCHEMA_VERSION).toBe(36);
+    expect(SCHEMA_VERSION).toBe(37);
   });
 });
 

@@ -21,6 +21,7 @@ import {
 import {
   advanceResearch,
   availableTechs,
+  buildError,
   buildingYieldDelta,
   describeUpgrade,
   isUnlocked,
@@ -190,6 +191,13 @@ describe('tech data integrity', () => {
       // asking the tree. Without this clause an ungated row would be buildable
       // from turn one, which is exactly what that field exists to prevent.
       if (buildingDef(id).unlockedByCard === true) continue;
+      // **And the third exception, temporary by construction**: a row shipped
+      // ahead of the age that opens it (`BuildingDef.awaitsTech` — the
+      // cathedral, the mint and the armoury, which the Æra IV endeavours race
+      // toward). It is refused by `buildError` and `purchaseError` rather than
+      // gated by the tree, and the day a node names it the marker is deleted
+      // and this clause stops skipping it.
+      if (buildingDef(id).awaitsTech === true) continue;
       expect(BUILDING_UNLOCK_TECH.has(id), id).toBe(true);
     }
   });
@@ -305,6 +313,13 @@ describe('tech data integrity', () => {
       expect(isUnlocked(state, 0, 'unit', unit), unit).toBe(true);
     }
     for (const id of BUILDING_IDS) {
+      // An `awaitsTech` row is *unlocked* — no node gates it — and refused at
+      // the two places a thing is acquired instead. That is the marker's whole
+      // shape, so the opening kit is asked the question a player would ask.
+      if (buildingDef(id).awaitsTech === true) {
+        expect(buildError(state, 0, 'building', id), id).not.toBeNull();
+        continue;
+      }
       expect(isUnlocked(state, 0, 'building', id), id).toBe(false);
     }
     expect(isUnlocked(state, 0, 'unit', 'swordsman')).toBe(false);
@@ -965,8 +980,8 @@ describe('glanceable numbers', () => {
 // ---------------------------------------------------------------------------
 
 describe('research in the log', () => {
-  it('round-trips a schema 36 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(36);
+  it('round-trips a schema 37 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(37);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

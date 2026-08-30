@@ -122,6 +122,7 @@ import {
 } from './statecraft';
 import { reviewLegacies } from './greatPeople';
 import { type GuildReport, runGuilds } from './guilds';
+import { type BeadAward, beadMarks, beadsSince, runBeads } from './beads';
 import { runRenown } from './renown';
 import { advanceResearch } from './tech';
 import { type RouteEndReport, endRoute, routeTarget, standsIn } from './trade';
@@ -300,6 +301,25 @@ export interface TurnReport {
    * multi-hex march that found more than one thing.
    */
   campBounties: { ownerId: number; col: number; row: number; bounty: CampBounty }[];
+  /**
+   * Every bead anybody clacked during the resolution, in the order they were
+   * earned (`BeadAward`, design ledger Entry VI).
+   *
+   * `triumphs`' sibling and news to **every** seat, like `wonders`: a bead is a
+   * claim on the world, so the empire that has just been beaten to one is
+   * exactly the empire that needs to hear about it. It is filled two ways and
+   * both are here on purpose — the `beads` phase writes its own awards into
+   * this list as it makes them, because a boon's plain lines exist only at the
+   * moment it settles and no diff can re-derive them; and `runEndOfTurn`
+   * appends the **diff** of every other phase's awards (`beadsSince`), because
+   * a wonder finished in `advanceProduction` or an era entered in
+   * `advanceResearch` can earn a feat six phases before this list is written.
+   *
+   * A bead earned by a phase therefore appears exactly once: the phase's own
+   * awards are taken before the marks are compared, and the diff is filtered
+   * against what is already here.
+   */
+  beads: BeadAward[];
 }
 
 /** A fresh, empty report. The one place its shape is written. */
@@ -316,6 +336,7 @@ export function emptyTurnReport(): TurnReport {
     starved: [],
     guilds: [],
     campBounties: [],
+    beads: [],
   };
 }
 
@@ -440,6 +461,23 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // finished this turn pay into the same sweep that banks the library beside
     // it. It skips the wild for `runStatecraft`'s reason. See `runRenown`.
     run: runRenown,
+  },
+  {
+    name: 'beads',
+    // The Bead Race's own beat (design ledger Entry VI): the world's clock
+    // advances, an age opens if it rose, one card is dealt, every standing deed
+    // is swept, and the threshold is checked.
+    //
+    // Its position is the usual rules decision. **Directly after `renown`**, so
+    // the turn's standing Triumphs and its recruitments are already on the
+    // register before a bead is swept — a great person called this turn is a
+    // great person the Dynasty's count can see. And **before `expandBorders`**
+    // for `renown`'s own reason one phase down: everything a deed reads has
+    // already grown, built, learnt and been paid this turn.
+    //
+    // It skips the wild the way `runStatecraft` does: the wild has no Abacus
+    // and nothing to win.
+    run: runBeads,
   },
   {
     name: 'reviewLegacies',
@@ -889,7 +927,21 @@ export function runEndOfTurn(state: GameState): TurnReport {
   // append-only list is cheaper and less forgettable than a sink threaded
   // through all four. See `TurnReport.triumphs`.
   const marks = triumphMarks(state);
+  // The bead marks are taken for the same reason and in the same breath: a feat
+  // can be earned by nearly any phase — an era in `advanceResearch`, a wonder in
+  // `advanceProduction`, a palace taken by a raider in `resetMovement` — and the
+  // `beads` phase itself is only one of them.
+  const beadMarksBefore = beadMarks(state);
   for (const phase of END_OF_TURN_PHASES) phase.run(state, report);
   report.triumphs.push(...triumphsSince(state, marks));
+  // The diff, minus what the phase already reported with its boon lines intact.
+  // Matching on the pair `(playerId, id)` is exact: a bead is claimed once in
+  // the world, so one seat can hold one row once and there is nothing to
+  // disambiguate.
+  const already = new Set(report.beads.map((award) => `${award.playerId}:${award.id}`));
+  for (const award of beadsSince(state, beadMarksBefore)) {
+    if (already.has(`${award.playerId}:${award.id}`)) continue;
+    report.beads.push(award);
+  }
   return report;
 }

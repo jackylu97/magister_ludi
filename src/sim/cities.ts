@@ -95,8 +95,10 @@ import {
   resourceIsVisibleTo,
   resourceYield,
 } from './resourceData';
-import { type ProjectId, isProjectId, projectDef } from './projectData';
+import { type ProjectId, isProjectId, projectDef, projectFinishes } from './projectData';
 import { type CardId, governmentDef } from './statecraftData';
+import { isBeadEndeavourId } from './beadData';
+import { claimEndeavour } from './beads';
 import { settleRenownWindfall } from './renown';
 import { type CitizenWeights, RULES } from './rulesData';
 import {
@@ -1106,6 +1108,12 @@ export function nextCityName(state: GameState, ownerId: number): string {
 export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City {
   const city = createCity(state, ownerId, nextCityName(state, ownerId), tile.col, tile.row);
   state.tileOwner[tileIndex(state.map, tile.col, tile.row)] = city.id;
+  // The Founder's count (design ledger Entry VI). On the player rather than
+  // derived, because once a town changes hands nothing on the board says who
+  // built it — see `Player.citiesFounded`. Raised in the mechanism so an AI's
+  // eighth city counts like a player's.
+  const founder = playerById(state, ownerId);
+  if (founder) founder.citiesFounded += 1;
   for (const near of mapRange(state.map, tileHex(tile), 1)) {
     claimTile(state, city, near);
   }
@@ -1617,6 +1625,16 @@ function chooseCitizens(
  *      requirement — the phase runs inside the pipeline and `collectYields`
  *      would re-seat the town next turn regardless — but `dismissSpecialistAt`
  *      is a **command's** mutation and owes it outright.
+ *  18. **A bead's boon** (`payWindfall` in `beads.ts`, design ledger Entry VI) —
+ *      and it owes the register nothing new, which is the point of it being
+ *      here. Every arm of a boon reaches one of the wrappers *above*: food into
+ *      the basket through `settleGrowthWindfall`, hammers through
+ *      `settleProductionWindfall`, a citizen outright through
+ *      `settlePopulationWindfall`, beakers, culture and renown through their
+ *      own seams — so the only thing the boon adds of its own is a refresh
+ *      beside the two that write a basket directly, and no fourth path into a
+ *      bucket. It is in this list anyway so the register stays the complete
+ *      answer to "what settles".
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -3199,6 +3217,15 @@ export function collectYields(state: GameState, report?: TurnReport): void {
     // The faithful gather, and augurs are what they gather for — see
     // `Player.faithPool` and `explainPurchaseCost`.
     player.faithPool += yields.faith;
+    // **What the caravans carried**, counted once a turn for the Richest Roads
+    // reckoning (design ledger Entry VI). Counted *here* and nowhere else,
+    // because this is the one place a route's yields are banked rather than
+    // previewed: `cityRouteYields` is folded into `cityQuote` on every estimate
+    // the panel draws, and a counter raised there would count a hover. Reset at
+    // the age's turn-over — see `Player.routeYieldsThisAge`.
+    for (const line of cityRouteYields(state, city)) {
+      player.routeYieldsThisAge += line.food + line.production + line.gold;
+    }
   }
 
   // The empire-scale half of the luxury vocabulary, banked **once per player**
@@ -3960,9 +3987,19 @@ function payProject(state: GameState, playerId: number, id: ProjectId): void {
   if (!player) return;
   const { pays } = projectDef(id);
   const extra = cardProjectPays(state, playerId, id);
-  player.gold += (pays.gold ?? 0) + (extra.gold ?? 0);
-  player.sciencePool += (pays.science ?? 0) + (extra.science ?? 0);
+  const gold = (pays.gold ?? 0) + (extra.gold ?? 0);
+  const science = (pays.science ?? 0) + (extra.science ?? 0);
+  player.gold += gold;
+  player.sciencePool += science;
   player.faithPool += (pays.faith ?? 0) + (extra.faith ?? 0);
+  // The Bead Race's two cumulative counters (The Tithe, The Scholarship). They
+  // count what the *conversion* paid, riders included, because that is what the
+  // card asks — "gather a great sum of gold from tithes" is about the tithes and
+  // not about the treasury, which a war can empty. On the player rather than
+  // derived, for `citiesFounded`' reason: a pool is a bank that moves both ways
+  // and a total spent is not a thing the board remembers.
+  if (id === 'tithes') player.tithesGold += gold;
+  if (id === 'scholarship') player.scholarshipScience += science;
 }
 
 export function settleProduction(state: GameState, city: City): ProductionCompletion | null {
@@ -3995,6 +4032,29 @@ export function settleProduction(state: GameState, city: City): ProductionComple
   // payout that rode the modifier pipeline would charge one conversion twice.
   if (plan.kind === 'project') {
     city.hammerBasket -= plan.cost;
+    // **A race project finishes**, and that is the whole of what separates an
+    // endeavour from Tithes (design ledger Entry VI). It leaves the queue like a
+    // building and claims its bead through `beads.ts` — which refuses a row the
+    // world has already given away, so a later finisher's hammers are simply
+    // spent and nothing here needs a clause about second place.
+    //
+    // It falls through to the *building* half deliberately: the splice, the
+    // overflow and The Common Purse's doubling are all about a thing that
+    // finished, and this one did.
+    if (projectFinishes(plan.id)) {
+      city.queue.splice(plan.index, 1);
+      const done: ProductionCompletion = {
+        city,
+        item: plan.item,
+        name: queueItemName(plan.item),
+        cost: plan.cost,
+      };
+      if (city.hammerBasket > 0 && cardActionRule(state, city.ownerId, 'doubleOverflow')) {
+        city.hammerBasket += city.hammerBasket;
+      }
+      if (isBeadEndeavourId(plan.id)) claimEndeavour(state, city, plan.id);
+      return done;
+    }
     payProject(state, city.ownerId, plan.id);
     return { city, item: plan.item, name: queueItemName(plan.item), cost: plan.cost };
   }

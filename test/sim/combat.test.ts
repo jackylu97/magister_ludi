@@ -1086,7 +1086,9 @@ describe('cities in combat', () => {
     expect(view.damageToDefender).toBe(0);
     expect(view.damageToAttacker).toBe(0);
 
-    expect(applyCommand(state, attack(b.id, 4, 3))).toEqual({ ok: true });
+    // `toMatchObject` rather than `toEqual`: taking a seat of government now
+    // clacks a bead (The Fallen Palace), and the result carries what it earned.
+    expect(applyCommand(state, attack(b.id, 4, 3))).toMatchObject({ ok: true });
     expect(b.hp).toBe(unitDef('warrior').maxHp);
 
     expect(city.ownerId).toBe(0);
@@ -1201,13 +1203,13 @@ describe('cities in combat', () => {
 
     // Beat two kills the garrison. The swordsman advances onto the hex, so the
     // town is *its* neighbour's to take — one attack per unit per turn.
-    expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
+    expect(applyCommand(state, attack(a.id, 4, 3))).toMatchObject({ ok: true });
     expect(state.units.find((unit) => unit.id === garrison.id)).toBeUndefined();
     expect(city.ownerId).toBe(1);
 
     // Beat three.
     expect(forecast(state, b.id, 4, 3).cityPhase).toBe('capture');
-    expect(applyCommand(state, attack(b.id, 4, 3))).toEqual({ ok: true });
+    expect(applyCommand(state, attack(b.id, 4, 3))).toMatchObject({ ok: true });
     expect(city.ownerId).toBe(0);
   });
 

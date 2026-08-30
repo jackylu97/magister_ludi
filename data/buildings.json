@@ -233,6 +233,60 @@
         "perTurn": 2
       }
     },
+    "cathedral": {
+      "name": "Cathedral",
+      "category": "faith",
+      "cost": 180,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 3,
+      "faith": 3,
+      "sciencePerPop": 0,
+      "happiness": 2,
+      "renown": {
+        "family": "artist",
+        "perTurn": 1
+      },
+      "awaitsTech": true
+    },
+    "mint": {
+      "name": "Mint",
+      "category": "gold",
+      "cost": 150,
+      "food": 0,
+      "production": 0,
+      "gold": 3,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "merchant",
+        "perTurn": 1
+      },
+      "awaitsTech": true
+    },
+    "armoury": {
+      "name": "Armoury",
+      "category": "military",
+      "cost": 160,
+      "food": 0,
+      "production": 1,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "productionBonus": {
+        "category": "unit",
+        "percent": 15
+      },
+      "renown": {
+        "family": "general",
+        "perTurn": 1
+      },
+      "awaitsTech": true
+    },
     "theOracle": {
       "name": "The Oracle",
       "category": "faith",

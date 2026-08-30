@@ -44,6 +44,10 @@
 
 import statecraftJson from '../../data/statecraft.json';
 
+// Type-only in both directions with `beadData.ts`, exactly as `religionData.ts`
+// is: a bead's boon carries ordinary `CardEffect`s and a bead id is a `CardId`,
+// and a *value* import either way would turn a type cycle into a runtime one.
+import type { BeadCardId } from './beadData';
 import type { BuildingCategory, BuildingId, ProductionCategory } from './buildingData';
 // Type-only in both directions, exactly as `religionData.ts` is. See `CardId`.
 import type { Family, GreatPersonId } from './greatPeopleData';
@@ -94,6 +98,13 @@ export type OrderId = keyof typeof statecraftJson.orders & string;
  * building that one day carries an effect is then already spoken for. Ids
  * remain unique across the whole table: no building id is a card id, and
  * `test/sim/wonders.test.ts` pins that.
+ *
+ * **Eight classes since the Bead Race**, and the eighth is the quietest: a
+ * bead's boon may carry a *cap* — a permanent step in contentment, in authority
+ * capacity, in route capacity — written in this vocabulary on a row of
+ * `beads.json` and read by this evaluator through `liveEffects`' ninth source.
+ * A bead is not drafted, not slotted and not upgradable, so its level is always
+ * one and `scaleByLevel` has nothing to say about it.
  */
 export type CardId =
   | GovernmentId
@@ -102,7 +113,8 @@ export type CardId =
   | BeliefId
   | RiteId
   | BuildingId
-  | GreatPersonId;
+  | GreatPersonId
+  | BeadCardId;
 
 /**
  * Which slot an Order fits, and therefore what a government's spread is counted

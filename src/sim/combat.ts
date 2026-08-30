@@ -247,6 +247,7 @@ import {
   type GameState,
   type Unit,
   breakFortify,
+  capitalCityOf,
   captureUnit,
   isBarbarian,
   playerById,
@@ -273,6 +274,7 @@ import {
 } from './unitData';
 import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { improvementDef } from './improvementData';
+import { awardBeadOccasion } from './beads';
 import { awardOccasion } from './triumphs';
 import { hasStackingRoom, unitsOnTile } from './units';
 import { DIRECTION_COUNT, hasRiverEdge, neighborInDirection } from './water';
@@ -2166,6 +2168,10 @@ function payBattleRiders(
 }
 
 function captureCity(state: GameState, city: City, ownerId: number): void {
+  // Read **before** the flag changes hands, because "was this the seat of their
+  // government" is a question about the empire that is losing it.
+  const loser = city.ownerId;
+  const wasCapital = capitalCityOf(state, loser)?.id === city.id;
   city.ownerId = ownerId;
   city.captured = true;
   // A fraction of the **new** maximum, which is the same maximum as the old one
@@ -2182,6 +2188,14 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // `awardFoundingTriumphs`' reason: capturing a town is one thing that happens
   // in one place, and an AI that storms a city earns what a player would.
   awardOccasion(state, ownerId, 'cityCaptured');
+  // The Bead Race's own counter and its own occasion. `citiesCaptured` is on the
+  // player because the board cannot say how a town was acquired once the flag
+  // has changed (see the field); **The Fallen Palace** is an occasion the
+  // Triumph table has no word for, so it is hooked here beside the change of
+  // hands rather than at `awardOccasion`.
+  const captor = playerById(state, ownerId);
+  if (captor) captor.citiesCaptured += 1;
+  if (wasCapital && loser !== ownerId) awardBeadOccasion(state, ownerId, 'capitalCaptured');
 }
 
 /**
@@ -2262,7 +2276,14 @@ export function updateElimination(state: GameState): void {
   }
 
   const alive = roster.filter((player) => !player.eliminated);
-  state.winnerId = roster.length > 1 && alive.length === 1 ? alive[0]!.id : null;
+  // **One field, two ways to reach it** (Entry VI.3): this and the bead
+  // threshold. Neither ever clears a winner the other named — a game that has
+  // been won stays won — so this only ever writes a name in, never `null` over
+  // one. (It never had a `null` to write that mattered: elimination is monotone,
+  // so a roster that has produced one survivor cannot un-produce them.)
+  if (state.winnerId === null && roster.length > 1 && alive.length === 1) {
+    state.winnerId = alive[0]!.id;
+  }
 }
 
 // --- siege ------------------------------------------------------------------

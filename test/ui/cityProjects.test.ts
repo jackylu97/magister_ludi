@@ -79,6 +79,13 @@ describe('a project prints its rate from the table', () => {
       for (const glyph of Object.values(PROJECT_GLYPHS)) {
         expect(spoken.includes(glyph), `${id} spoken`).toBe(false);
       }
+      // A **race project** pays no conversion at all — what it pays is a bead
+      // and a boon, settled once at the claim (design ledger Entry VI) — so its
+      // rate is said in words and there is no figure to find.
+      if (projectDef(id).finishes === true) {
+        expect(drawn, id).toBe('a bead');
+        continue;
+      }
       // And the drawn form is the figure beside its mark, off the same row the
       // cost comes from.
       expect(drawn).toContain(String(projectDef(id).pays.gold ?? projectDef(id).pays.science));

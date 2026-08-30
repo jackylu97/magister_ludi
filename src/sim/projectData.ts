@@ -45,14 +45,30 @@
 
 import buildingsJson from '../../data/buildings.json';
 
+import {
+  type BeadBoon,
+  type BeadEndeavourId,
+  type BeadFamily,
+  type BeadPrerequisite,
+  BEAD_ENDEAVOUR_IDS,
+  beadEndeavourDef,
+} from './beadData';
+
 /**
  * This module deliberately imports nothing from `techData.ts`, not even a type:
  * `techData` imports `ProjectId` from *here* to type `unlocks.projects`, and
  * the gate is declared forwards in the tech table, so there is nothing on this
  * side to name a technology with. It is `buildingData.ts`'s cycle rule with the
  * one import it still needs removed.
+ *
+ * **An endeavour is a project id too** (the Bead Race). A race project is a
+ * queue row in every respect — priced, planned, paid for and completed by the
+ * same routines — so it is a `ProjectId` rather than a fourth `QueueItem` kind,
+ * and the queue needed no new arm at all. What separates it is one field,
+ * `finishes`, and everything downstream reads that rather than asking where the
+ * row came from.
  */
-export type ProjectId = 'tithes' | 'scholarship';
+export type ProjectId = 'tithes' | 'scholarship' | BeadEndeavourId;
 
 /**
  * What one completion of a project banks for its owner.
@@ -77,18 +93,72 @@ export interface ProjectDef {
   pays: ProjectPayout;
   /** One line of flavour for the panel's card. */
   note: string;
+  /**
+   * **This project finishes.** Absent — which is every row in
+   * `buildings.json` — means the repeating conversion Entry XXVI describes.
+   *
+   * The one field that separates an endeavour from Tithes, and everything else
+   * about a race project is read off the three below it. `settleProduction`
+   * splices a finishing project out of the queue exactly as it splices a
+   * building, so "at most one item per city per turn" and the overflow rule are
+   * inherited rather than re-stated.
+   */
+  finishes?: true;
+  /** What the empire must already have before the row may be queued at all. */
+  prerequisite?: BeadPrerequisite;
+  /** What the **first** empire to finish takes. Nobody else gets either. */
+  boon?: BeadBoon;
+  /** The bead it clacks, and which family's rod it lands on. */
+  bead?: { family: BeadFamily };
 }
 
 interface ProjectTable {
-  projects: Record<ProjectId, ProjectDef>;
+  projects: Record<'tithes' | 'scholarship', ProjectDef>;
 }
 
-export const PROJECT_DATA: ProjectTable = buildingsJson as unknown as ProjectTable;
+const BASE_PROJECTS: ProjectTable = buildingsJson as unknown as ProjectTable;
+
+/**
+ * The whole project table: the two conversions from `buildings.json`, then
+ * every endeavour from `beads.json` adapted into the same shape.
+ *
+ * Adapted here rather than duplicated in the bead table, so that the queue's
+ * four readers (`planQueueItem`, `queueItemCost`, `queueItemName`,
+ * `payProject`) keep asking one function about one shape. The adaptation is the
+ * whole of it: a race project pays no conversion (`pays` is empty), and what it
+ * *does* pay is its `boon`, settled once by `beads.ts` at the claim.
+ */
+function buildProjectTable(): Record<ProjectId, ProjectDef> {
+  const table: Record<string, ProjectDef> = { ...BASE_PROJECTS.projects };
+  for (const id of BEAD_ENDEAVOUR_IDS) {
+    const def = beadEndeavourDef(id);
+    table[id] = {
+      name: def.name,
+      cost: def.cost,
+      pays: {},
+      note: def.flavor,
+      finishes: true,
+      prerequisite: def.prerequisite,
+      boon: def.boon,
+      bead: { family: def.family },
+    };
+  }
+  return table as Record<ProjectId, ProjectDef>;
+}
+
+export const PROJECT_DATA: { projects: Record<ProjectId, ProjectDef> } = {
+  projects: buildProjectTable(),
+};
 
 export const PROJECT_IDS = Object.keys(PROJECT_DATA.projects) as ProjectId[];
 
 export function projectDef(id: ProjectId): ProjectDef {
   return PROJECT_DATA.projects[id];
+}
+
+/** Is this row a race project rather than a repeating conversion? */
+export function projectFinishes(id: ProjectId): boolean {
+  return projectDef(id).finishes === true;
 }
 
 /**
@@ -113,6 +183,10 @@ export function isProjectId(value: unknown): value is ProjectId {
  */
 export function projectRate(id: ProjectId, glyphs: Record<keyof ProjectPayout, string>): string {
   const def = projectDef(id);
+  // A race project trades at no rate at all: it is paid for once and what it
+  // pays is a bead and a boon, settled by `beads.ts` at the claim. Said in
+  // words rather than glyphs, because there is no yield to name.
+  if (def.finishes === true) return 'a bead';
   const parts: string[] = [];
   for (const key of ['gold', 'science', 'faith'] as const) {
     const amount = def.pays[key];

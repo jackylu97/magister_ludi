@@ -98,7 +98,9 @@ describe('moveUnit onto a city hex', () => {
     // thing that changed for it is who the city belongs to.
     const settler = createUnit(state, 0, 'settler', 6, 4);
 
-    expect(applyCommand(state, attack(raider.id, 5, 4))).toEqual({ ok: true });
+    // `toMatchObject`: taking a seat of government clacks a bead, and the
+    // result carries what it earned.
+    expect(applyCommand(state, attack(raider.id, 5, 4))).toMatchObject({ ok: true });
     expect(city.ownerId).toBe(0);
 
     const result = applyCommand(state, moveUnit(settler.id, 5, 4));
