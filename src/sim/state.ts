@@ -57,7 +57,13 @@
 import type { BuildingId } from './buildingData';
 import type { ProjectId } from './projectData';
 import type { DiscoveryId, DiscoveryKind } from './discoveryData';
-import { FAMILIES, type Family, type GreatPersonId } from './greatPeopleData';
+import {
+  FAMILIES,
+  SPECIALIST_FAMILIES,
+  type Family,
+  type GreatPersonId,
+  type SpecialistFamily,
+} from './greatPeopleData';
 import type { TriumphId } from './triumphData';
 import type { GameMap } from './map';
 import { generateMap, getMapSize } from './mapgen';
@@ -402,8 +408,30 @@ import {
  *     exactly what this version writes for a game whose council has stamped
  *     nothing — but the log replays against a different pool and a different
  *     maximum, so the bump refuses the snapshot and keeps the log honest.
+ * 36: **Guilds** (ledger Entry XLVIII, user ruling 2026-08-29). Two fields on
+ *     every city — `specialists`, four counts by family, and `guildBasket`, the
+ *     bar they are earned on — and a `guilds` phase between `growCities` and
+ *     `advanceProduction` that turns a citizen into a specialist whenever the
+ *     bar covers its threshold. Neither field is optional: a specialist count is
+ *     arithmetic in the innermost loop this simulation has, not an event (see
+ *     `City.specialists`).
+ *
+ *     **A v35 log replayed here is a different game**, and the fields are the
+ *     smaller half of why. From the first town that finishes a library, one of
+ *     its citizens eventually stops working a hex — so the tile assignment
+ *     diverges, and with it the food, the hammers, the growth turn, what the
+ *     borders reach for and every seeded roll that comes after a differently
+ *     timed draft. The empire's renown moves too: a standing specialist pays a
+ *     point a turn into its own family's feed, which is the weighting a great
+ *     person is drawn against.
+ *
+ *     The migration note, said plainly because it cannot be fixed: *absent means
+ *     zeros*, which is right for every town in an old save — nothing before this
+ *     version could have had a guild. It is still refused, because the board a
+ *     v35 log produces here is not the board it produced there, and a snapshot
+ *     restored into this version would be a game the log can no longer explain.
  */
-export const SCHEMA_VERSION = 35;
+export const SCHEMA_VERSION = 36;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1404,6 +1432,40 @@ export interface City {
    * the instant a prophet or an augur speaks (`pressLump`).
    */
   pressureBank?: Partial<Record<ReligionId, number>>;
+  /**
+   * How many of this town's citizens have left the fields for each trade
+   * (ledger Entry XLVIII), zero for every family in a town with no guild — which
+   * is every town for the first stretch of a game.
+   *
+   * **Written in full rather than by presence**, which is the one place this
+   * town breaks with `followers` and `pressureBank` beside it, and the reason is
+   * that a specialist count is *arithmetic* and not an event: `population −
+   * specialists` is the number of citizens `assignCitizens` seats on hexes, and
+   * it is asked of every city on every pass over the map. Four zeros in a
+   * serialised town are cheaper than an optional lookup in the innermost loop
+   * the simulation has, and a field that is always there can never be the reason
+   * a sweep forgot to ask.
+   *
+   * A **captured** town keeps its guilds, exactly as it keeps its granary and
+   * its followers: a conquest changes whose town it is, not what its people do
+   * for a living.
+   */
+  specialists: Record<SpecialistFamily, number>;
+  /**
+   * Renown banked toward this town's **next** specialist — the guild bar.
+   *
+   * `foodBasket`'s shape one currency over, and it carries for the same reason:
+   * the threshold is spent and the remainder stays, so a town does not lose the
+   * overflow it earned on the turn a guild formed. It is filled by the `guilds`
+   * phase alone (`guilds.ts`) and emptied to zero by exactly one other thing —
+   * `dismissSpecialist`, where the restart *is* the price of the verb.
+   *
+   * The empire's renown pool is untouched by all of this: the bar is a second
+   * reading of the same trickle, never a diversion of it. A library pays its
+   * owner one renown toward a great person **and** one into the bar of the town
+   * it stands in.
+   */
+  guildBasket: number;
 }
 
 /**
@@ -2360,9 +2422,21 @@ export function createCity(
     hammerBasket: 0,
     workedTiles: [],
     lockedTiles: [],
+    // Written in full — see `City.specialists`. A fresh object every time, for
+    // the reason every table accessor in this game builds one: a shared record
+    // summed into by one town would give every other town its guilds.
+    specialists: newCitySpecialists(),
+    guildBasket: 0,
   };
   state.cities.push(city);
   return city;
+}
+
+/** A town with nobody in the trades yet. The one place the zeros are written. */
+export function newCitySpecialists(): Record<SpecialistFamily, number> {
+  const counts = {} as Record<SpecialistFamily, number>;
+  for (const family of SPECIALIST_FAMILIES) counts[family] = 0;
+  return counts;
 }
 
 /**

@@ -76,6 +76,7 @@ import {
   purchaseVerb,
 } from '../sim/purchase';
 import type { Command } from '../sim/commands';
+import type { ConfirmRequest } from './confirmCard';
 import { type Game, dispatch } from '../sim/game';
 import { growthPercent, meterEffects } from '../sim/meters';
 import {
@@ -86,6 +87,14 @@ import {
 } from '../sim/modifiers';
 import { CITY_YIELD_KEYS, type CityYieldKey, resourceDef } from '../sim/resourceData';
 import { type ResourceYieldLine, cityResourceYields } from '../sim/resourceEffects';
+import {
+  type SpecialistYieldLine,
+  citySpecialistYields,
+  guildThreshold,
+  totalSpecialists,
+} from '../sim/specialists';
+import { cityGuildInflow, dismissSpecialistError, guildIdleLine } from '../sim/guilds';
+import type { SpecialistFamily } from '../sim/greatPeopleData';
 import { type RouteYieldLine, cityRouteYields } from '../sim/trade';
 import { cityRouteRows, routeSlotsLine as routeSlotsLineOf } from './tradeLines';
 import { resourceLabelNodes } from './resourceMark';
@@ -395,6 +404,16 @@ export interface CityPanelOptions {
    * simply carries no button.
    */
   onOpenTrade?: () => void;
+  /**
+   * Asks the player before something that cannot be taken back, then runs it.
+   *
+   * The panel owns the *verb* and the page owns the *card* — `unitPanel.ts`'s
+   * split with the halves the other way round, and for the same argument: the
+   * confirm card is a surface `main.ts` mounts, and a panel built without one
+   * (this suite does exactly that) must still be a panel whose buttons work. So
+   * the default simply runs, and the page hands in the card.
+   */
+  askConfirm?: (request: ConfirmRequest, run: () => void) => void;
 }
 
 export interface CityPanel {
@@ -507,6 +526,100 @@ export function previewFigures(entry: CityYields): string {
 }
 
 /**
+ * "+6🔬", "+8🪙" — what one family's guildsmen pay, in the six voices.
+ *
+ * `previewFigures`' shape over a `SpecialistYieldLine`, which carries the same
+ * numeric fields under the same names; a shared formatter would need a type
+ * neither of them has, and the two are three lines each.
+ */
+export function specialistFigures(entry: SpecialistYieldLine): string {
+  const parts: string[] = [];
+  for (const key of CITY_YIELD_KEYS) {
+    const value = entry[key];
+    if (value === 0) continue;
+    parts.push(`${value > 0 ? '+' : ''}${value}${YIELD_GLYPH[key]}`);
+  }
+  return parts.join(' ');
+}
+
+/** One family's reading on the Specialists row: "3 scholars +6🔬". */
+export interface SpecialistRowEntry {
+  family: SpecialistFamily;
+  text: string;
+}
+
+/** The Specialists row, as parts. See `specialistRow`. */
+export interface SpecialistRowParts {
+  label: string;
+  total: string;
+  families: SpecialistRowEntry[];
+}
+
+/**
+ * The Specialists row's parts, or `null` for a town with nobody in the trades —
+ * which is the ruling's "ignorable" made a return value: the row is **absent**
+ * until a guild exists, rather than present and saying zero.
+ *
+ * Parts rather than one string because the row lays each family out with a
+ * control beside it, and parts rather than elements because this suite has no
+ * jsdom (`previewLineText`'s reason exactly). Every figure is the simulation's:
+ * `citySpecialistYields` is the same list `cityYields` folds and the panel's
+ * ledger prints, so the row cannot name a number the chips above it do not.
+ */
+export function specialistRow(city: City): SpecialistRowParts | null {
+  const lines = citySpecialistYields(city);
+  if (lines.length === 0) return null;
+  const families = lines.map((line): SpecialistRowEntry => {
+    const figures = specialistFigures(line);
+    return { family: line.family, text: figures ? `${line.source} ${figures}` : line.source };
+  });
+  return { label: 'Specialists', total: String(totalSpecialists(city)), families };
+}
+
+/** The whole row as one reading: "Specialists 6 · 3 scholars +6🔬 · 2 merchants +8🪙". */
+export function specialistRowText(parts: SpecialistRowParts): string {
+  return [`${parts.label} ${parts.total}`, ...parts.families.map((entry) => entry.text)].join(' · ');
+}
+
+/**
+ * The hover behind the row: "Guild 12 / 60 · +6.8 renown a turn", and — only in
+ * a town with people it cannot seat — a second line for the idle.
+ *
+ * Every figure is the `guilds` phase's own. `guildThreshold` is what it compares
+ * the bar against, `cityGuildInflow` is the fold of what it banks, and the idle
+ * figure is that fold's own line rather than a second multiplication — so the
+ * bar a player watches is the bar the resolution fills.
+ */
+export function guildBarText(state: GameState, city: City): string {
+  const idle = guildIdleLine(state, city);
+  return (
+    `Guild ${Math.floor(city.guildBasket)} / ${guildThreshold(city)} · ` +
+    `+${figure(cityGuildInflow(state, city))} renown a turn` +
+    (idle ? `\n${idle.source} · +${figure(idle.amount)} a turn` : '')
+  );
+}
+
+/**
+ * Why this Dismiss is greyed, or `null`.
+ *
+ * The simulation's own sentence (`dismissSpecialistError`) with the panel's one
+ * addition in front of it — a finished seat, which is a fact about the *screen*
+ * and not about the town, and is the same clause every other control on this
+ * panel is greyed by. Everything else is the reducer's, so a disabled button
+ * says exactly what the command would have said.
+ */
+export function dismissBlocker(
+  state: GameState,
+  playerId: number,
+  city: City,
+  family: SpecialistFamily,
+  locked: boolean,
+): string | null {
+  if (locked) return `You have ended turn ${state.turn}`;
+  return dismissSpecialistError(state, playerId, city, family);
+}
+
+/**
  * One line of `explainBuildingPreview`'s breakdown, read exactly as the sim
  * labelled it: the building's own row, a card that woke, the ground that
  * changed, or the reconciliation line last. Never re-derived — the source and
@@ -572,6 +685,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   const { container, getGame, localPlayerId, getCity, onClose, onChanged, onOpenTrade } =
     options;
   const isBuyMode = options.isBuyMode ?? ((): boolean => false);
+  // No card handed in: the act happens on the click. See `askConfirm`.
+  const askConfirm =
+    options.askConfirm ?? ((_request: ConfirmRequest, run: () => void): void => run());
   const setBuyMode = options.setBuyMode ?? ((): void => {});
 
   /** Sends a queue and repaints. A refused command changes nothing at all. */
@@ -1114,6 +1230,16 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const figures = buildingFigures(entry);
       if (figures) line(entry.source, figures);
     }
+    // And the guildsmen, beside the buildings that earned them (Entry XLVIII).
+    // `citySpecialistYields` is already one of `cityYields`' flats, so leaving
+    // these out would be a chip multiplied without its reason beside it — rule
+    // 5's exact failure, and the one that would make a scholar's beakers seem to
+    // come from nowhere. `SpecialistYieldLine.source` is the simulation's own
+    // label ("3 scholars"), printed verbatim.
+    for (const entry of citySpecialistYields(city)) {
+      const figures = specialistFigures(entry);
+      if (figures) line(entry.source, figures);
+    }
     // What the caravans sent *to* this town are bringing, after the buildings
     // because that is what they are read off — `explainRouteYield` counts the
     // *partner's* (the origin's) buildings and the two towns' people.
@@ -1379,6 +1505,82 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       ),
     );
     return line;
+  }
+
+  /**
+   * "Specialists 6 · 3 scholars +6🔬 · 2 merchants +8🪙 · 1 artist +2🎵", with a
+   * quiet Dismiss beside each trade.
+   *
+   * **Absent until a town has one**, which is the ruling's "ignorable": a player
+   * who never reads this row is playing the game correctly, and a row that says
+   * "Specialists 0" on every town from turn one would be the interface insisting
+   * on a system that has not started yet.
+   *
+   * Every figure is the simulation's own. The names and the yields are
+   * `citySpecialistYields`, the same list `cityYields` folds into the chips
+   * above and prints again in the ledger; the hover card is `guildThreshold` and
+   * `cityGuildInflow`, the two numbers the `guilds` phase itself compares. There
+   * is no arithmetic in this function, which is the only way the bar a player
+   * watches and the bar the phase fills can be promised to be the same bar.
+   *
+   * Dismiss is greyed by `dismissSpecialistError` and carries its sentence, so a
+   * disabled control says exactly what the reducer would have said — and asks
+   * before it acts, through the page's confirm card, because a guildsman sent
+   * back to the fields cannot be recalled and the bar restarts with them.
+   */
+  function renderSpecialists(city: City, locked: boolean): HTMLElement | null {
+    const parts = specialistRow(city);
+    if (!parts) return null;
+    const row = element('p', 'city-specialists');
+    row.append(element('span', undefined, parts.label));
+    row.append(element('span', 'city-specialists-count', parts.total));
+
+    for (const entry of parts.families) {
+      const group = element('span', 'city-specialist');
+      group.append(element('span', 'city-specialist-name', entry.text));
+      group.append(dismissControl(city, entry.family, locked));
+      row.append(group);
+    }
+
+    // The bar, on the row rather than under it: it is the one number a curious
+    // player wants and the one a beginner never has to see.
+    row.title = guildBarText(getGame().state, city);
+    return row;
+  }
+
+  /** The quiet Dismiss beside one trade. See `renderSpecialists`. */
+  function dismissControl(
+    city: City,
+    family: SpecialistFamily,
+    locked: boolean,
+  ): HTMLButtonElement {
+    const { state } = getGame();
+    const button = element('button', 'btn btn-quiet btn-tiny city-specialist-dismiss', 'Dismiss');
+    button.type = 'button';
+    const blocker = dismissBlocker(state, localPlayerId(), city, family, locked);
+    button.disabled = blocker !== null;
+    button.title = blocker ?? `Send a ${family} back to the fields`;
+    button.addEventListener('click', () => {
+      askConfirm(
+        {
+          title: `Dismiss a ${family}?`,
+          body: 'They return to the fields and the guild bar restarts.',
+          confirmLabel: 'Dismiss',
+          cancelLabel: 'Keep',
+        },
+        () => {
+          const command: Command = {
+            type: 'dismissSpecialist',
+            playerId: localPlayerId(),
+            cityId: city.id,
+            family,
+          };
+          if (!dispatch(getGame(), command).ok) return;
+          onChanged();
+        },
+      );
+    });
+    return button;
   }
 
   /**
@@ -2101,6 +2303,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // why those hexes and not the ones the town worked last turn.
     const focus = renderCitizenFocus(city);
     if (focus) container.append(focus);
+    // And which of those citizens are not standing on a hex at all (Entry
+    // XLVIII). Directly under the focus note for the citizens' row's own reason:
+    // it is the second half of "where are this town's people", and a player
+    // reading "5/8 assigned" above needs the other three accounted for.
+    const guilds = renderSpecialists(city, locked);
+    if (guilds) container.append(guilds);
     // And what those citizens believe — a second reading of the row above, and
     // absent until something presses. See `renderFollowers`.
     const faith = renderFollowers(city);

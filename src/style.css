@@ -3135,6 +3135,54 @@ kbd {
   color: var(--ink);
 }
 
+/* The trades (ledger Entry XLVIII): the citizens' row's sibling, and set as one
+   so a player reads "assigned" and "in the trades" as two halves of the same
+   sentence. It wraps, because a late capital lists four families with a control
+   apiece and a row that scrolled sideways would hide the last of them. Absent
+   entirely until a town has a guild — see `renderSpecialists`. */
+.city-specialists {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0 0 6px;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.city-specialists-count {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* One family: its name, what it pays, and the way out. `margin-right: auto` on
+   the count above would push these apart; they are meant to read as a list. */
+.city-specialist {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+.city-specialist-name {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.city-specialist-pay {
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
 /* Why the citizens moved: a footnote to the row above it, in the running face
    rather than the mono eyebrow, so it reads as a remark and not as another
    figure. Only on the towns that are actually chasing hammers — see

@@ -3956,7 +3956,7 @@ and worker's ladders one hammer gentler; Æra II–III buildings priced by hand,
 The Great Litany was banked all along — the top bar's headline had never folded the card-empire
 lines (`explainEmpireCardYields` is the one list both read now).
 
-## Entry XLVIII — Guilds: the passive specialist (**design**, 2026-08-29; not yet built)
+## Entry XLVIII — Guilds: the passive specialist (**built**, 2026-08-29)
 
 **The problem (user):** by the late game a city has more citizens than tiles worth working.
 Civ's specialist slots are the historical answer and too finicky; renown already replaced
@@ -4014,5 +4014,35 @@ to place, nothing to plan.
 **Cost when built:** `City.specialists` as counts by family (schema bump) · a `guilds` phase
 after growth · one fold in `cityYields` (rule 5, one line per family) · one line in
 `explainRenown` · the panel row · `dismissSpecialist`. The renown-per-city half exists already.
+
+**As built (2026-08-29), with the four rulings that came during the pass.** Schema 36;
+`City.specialists` and `City.guildBasket`, both written in full rather than by presence;
+`src/sim/specialists.ts` (a leaf: what a guildsman *is*) and `src/sim/guilds.ts` (the phase,
+the verb); the `guilds` phase sits between `growCities` and `advanceProduction`.
+
+  1. **The conversion takes from the general population**, not from idle citizens first —
+     `assignCitizens` seats `population − specialists` and the hex that goes is the worst the
+     town was working, which falls out of the subtraction rather than needing a clause.
+  2. **The bar is weighted by population as well as renown.** Inflow is
+     `cityRenown(specialist families) + trickle × specialists + popWeight × population`,
+     `trickle 0.25`, `popWeight 0.15`. Population *accelerates* a guild and never founds one:
+     a town with no renown building in any specialist family never converts, whatever its bar.
+  3. **The threshold mirrors the growth curve**, `base 60 + linear 6 × n + n ^ 1.65` — 60 · 67
+     · 75 · 84 · 93 — after two tunings (15 + 5n, then 40 + 15n²) failed to do two jobs with
+     one number. **The share cap is what sets the late count**: no more than a **quarter** of a
+     town's people, compared integer-exactly as `4 × (n + 1) <= population`, so a capital of 22
+     ends at five guilds, an ordinary town of 12 at three and a village of six at one. The cap
+     gates *conversion only* — a town that shrinks below it keeps everybody.
+  4. **The idle backstop.** `idle = population − specialists − workableSeats`; each idle
+     citizen is worth `idleWeight 3` a turn on the bar (twenty times a settled one) **and**
+     waives the share cap entirely while any remain. A cap on pulling people off the land has
+     nothing to say about a citizen who is not on any. The last-worker guard and the
+     renown-family gate still hold.
+
+Apportionment is D'Hondt over the town's building renown by family, ties by the fixed order
+scholar · merchant · engineer · artist, consuming no `Rng` at all. Measured cadence, holding
+the buildings from turn one: renown 5 at size 12 → first guild turn 9, then 19, then 29, stop
+at three; size 22 → 8 · 16 · 24 · 33 · 43, stop at five; a village of six with one library →
+turn 32, stop at one; a size-12 town hemmed in at six seats → turn 3, and six guilds by turn 31.
 
 ---

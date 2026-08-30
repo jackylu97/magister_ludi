@@ -3166,6 +3166,12 @@ async function boot(initial: Game | null): Promise<void> {
     isBuyMode: () => controls.isBuyMode(),
     setBuyMode: (on) => controls.setBuyMode(on),
     onOpenTrade: () => trade?.open(),
+    // The **second** verb on any sheet that asks before it acts, and the asking
+    // is here for `onDisband`'s reason exactly: the card is a surface this page
+    // owns, and the act underneath it must stay reachable without one. Dismissing
+    // a guildsman cannot be taken back — they return to the fields and the town's
+    // guild bar restarts with them — which is the whole test for this card.
+    askConfirm: (request, run) => confirmCard.ask(request, run),
     onChanged: () => {
       renderer.invalidate();
       updatePanel(null, renderer.getHover());

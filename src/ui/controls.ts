@@ -201,7 +201,11 @@ import {
   personOf,
   workOf,
 } from '../sim/greatPeople';
-import { type Family, greatPersonDef } from '../sim/greatPeopleData';
+import {
+  type Family,
+  type SpecialistFamily,
+  greatPersonDef,
+} from '../sim/greatPeopleData';
 import { type StarvationReport, yieldContextFor } from '../sim/cities';
 import {
   IMPROVEMENT_IDS,
@@ -1064,6 +1068,22 @@ export function pillageVictimSentence(state: GameState, report: PillageReport): 
  * Pure and exported: this suite has no DOM, and a sentence that is merely wrong
  * throws nothing.
  */
+/**
+ * "A guild of scholars has formed in Uruk."
+ *
+ * The **only** sentence the guild system ever says, and it is said once per town
+ * (see `reportGuilds`). Plain words in the beginner's voice (CLAUDE.md rule 7):
+ * no figure, no threshold, no talk of renown — a player who reads this and does
+ * nothing has understood it correctly, and the city panel is where the numbers
+ * live for the player who goes looking.
+ *
+ * Pure and exported for `disbandSentence`'s reason: this suite has no DOM, and a
+ * sentence that is merely wrong throws nothing.
+ */
+export function guildSentence(family: SpecialistFamily, cityName: string): string {
+  return `A guild of ${family}s has formed in ${cityName}.`;
+}
+
 export function disbandSentence(report: DisbandReport): string {
   const floor = `${signedFigure(RULES.upkeep.disbandBelow)}${YIELD_GLYPH.gold}`;
   return `Your ${unitDef(report.type).name} was disbanded — the treasury is below ${floor}.`;
@@ -2229,6 +2249,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportPillages(result);
       reportDisbands(command, result);
       reportStarvation(result);
+      reportGuilds(result);
       reportTriumphs(result);
       checkFirstStatecraftDraft();
       checkGreatPersonOffer();
@@ -2454,6 +2475,33 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       const city = cityById(state, report.cityId);
       if (!city) continue;
       announce(starvationSentence(report, cityDisplayName(state, city)));
+    }
+  }
+
+  /**
+   * **A guild formed, for the first time in that town.** One line, once, and
+   * then this city is never mentioned again (ledger Entry XLVIII).
+   *
+   * The ruling's word for the whole system is *ignorable*, and an announcement
+   * every time a citizen changed trades would be the interface arguing with it —
+   * a late capital would say something on most turns about a thing the player
+   * never chose. So the once-rule: `GuildReport.count === 1` is a town's **first**
+   * guild in that family, and the first line about a town is the one worth
+   * reading, because it is where a player learns the system exists at all.
+   *
+   * `reportStarvation`'s shape — seat-filtered, read off the reducer's own
+   * report rather than diffed off the board (`GuildReport`), no cell, because a
+   * city's hex never moves.
+   */
+  function reportGuilds(result: CommandResult): void {
+    if (!result.ok || !result.guilds) return;
+    const { state } = getGame();
+    for (const report of result.guilds) {
+      if (report.ownerId !== localPlayerId) continue;
+      if (report.count !== 1) continue;
+      const city = cityById(state, report.cityId);
+      if (!city) continue;
+      announce(guildSentence(report.family, cityDisplayName(state, city)));
     }
   }
 

@@ -401,6 +401,12 @@ describe('end-of-turn pipeline', () => {
       'spreadReligion',
       'collectYields',
       'growCities',
+      // A town's own renown quietly takes a citizen out of the fields and puts
+      // them in a trade (ledger Entry XLVIII). After growth, so the conversion
+      // is judged against the population the town ended the turn with; before
+      // production, so a guildsman formed this turn is seated and paying before
+      // the next basket is banked. See `runGuilds`.
+      'guilds',
       'advanceProduction',
       'advanceResearch',
       // Culture buys a draft, beside the phase that spends the other pool a
@@ -523,7 +529,7 @@ describe('the research queue field', () => {
     // A v21 log is not merely older: a `moveUnit` given with no movement left
     // used to be refused and is now a standing order, and the resolution has
     // grown a phase no v21 state has been through.
-    expect(SCHEMA_VERSION).toBe(35);
+    expect(SCHEMA_VERSION).toBe(36);
   });
 });
 

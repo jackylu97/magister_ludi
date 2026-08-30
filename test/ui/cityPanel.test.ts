@@ -26,7 +26,17 @@ import { explainBuildingPreview, foldBuildingPreview, foundCityAt } from '../../
 import { beliefDef } from '../../src/sim/religionData';
 import { type City, type GameState, newGame } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
-import { previewFigures, previewLineText } from '../../src/ui/cityPanel';
+import { cityGuildInflow, dismissSpecialistError, idleCitizens } from '../../src/sim/guilds';
+import { guildThreshold } from '../../src/sim/specialists';
+import { figure } from '../../src/ui/figures';
+import {
+  dismissBlocker,
+  guildBarText,
+  previewFigures,
+  previewLineText,
+  specialistRow,
+  specialistRowText,
+} from '../../src/ui/cityPanel';
 
 /** A two-player state on a blank, landlocked desert rectangle — `cities.test.ts`'s `flatState`. */
 function flatState(width = 16, height = 12): GameState {
@@ -228,3 +238,81 @@ describe('the build list prices rows off one quote', () => {
   });
 });
 
+
+
+/**
+ * The Specialists row (ledger Entry XLVIII), through the three printers the DOM
+ * builder lays out — `previewLineText`'s split for the same reason: this suite
+ * has no jsdom, and a row that is merely *wrong* throws nothing.
+ */
+describe('the specialists row', () => {
+  function guilded(): { state: GameState; city: City } {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    city.population = 12;
+    return { state, city };
+  }
+
+  it('is absent entirely until a town has a guild', () => {
+    const { city } = guilded();
+    // The ruling's "ignorable" as a return value: no row, rather than a row
+    // saying zero on every town from turn one.
+    expect(specialistRow(city)).toBeNull();
+  });
+
+  it('reads as the count and then one family at a time, in the fixed order', () => {
+    const { city } = guilded();
+    city.specialists.scholar = 3;
+    city.specialists.merchant = 2;
+    city.specialists.artist = 1;
+    const parts = specialistRow(city);
+    expect(parts).not.toBeNull();
+    expect(specialistRowText(parts!)).toBe(
+      'Specialists 6 · 3 scholars +6🔬 · 2 merchants +8💰 · 1 artist +2🎭',
+    );
+    // A family with nobody in it is not a part, and the order is the
+    // apportionment's own.
+    expect(parts!.families.map((entry) => entry.family)).toEqual([
+      'scholar',
+      'merchant',
+      'artist',
+    ]);
+  });
+
+  it('quotes the bar the phase itself compares against', () => {
+    const { state, city } = guilded();
+    city.specialists.scholar = 1;
+    city.guildBasket = 12;
+    // `guildThreshold` at one guild held, and the fold of `explainGuildInflow` —
+    // no arithmetic of the panel's own.
+    expect(guildBarText(state, city)).toContain(`/ ${guildThreshold(city)} `);
+    expect(guildBarText(state, city)).toContain(
+      `+${figure(cityGuildInflow(state, city))} renown a turn`,
+    );
+  });
+
+  it('names the idle on a line of their own, and only when there are any', () => {
+    const { state, city } = guilded();
+    city.specialists.scholar = 1;
+    const idle = idleCitizens(state, city);
+    if (idle > 0) expect(guildBarText(state, city)).toContain(`${idle} idle · +`);
+    else expect(guildBarText(state, city)).not.toContain(' idle · ');
+  });
+
+  it('greys Dismiss with the simulation’s own sentence', () => {
+    const { state, city } = guilded();
+    city.specialists.scholar = 1;
+    // Available: the reducer would take it.
+    expect(dismissBlocker(state, 0, city, 'scholar', false)).toBeNull();
+    // And every refusal is the reducer's word for word, never a second sentence
+    // composed here.
+    expect(dismissBlocker(state, 0, city, 'artist', false)).toBe(
+      dismissSpecialistError(state, 0, city, 'artist'),
+    );
+    expect(dismissBlocker(state, 1, city, 'scholar', false)).toBe(
+      dismissSpecialistError(state, 1, city, 'scholar'),
+    );
+    // The one clause the panel adds is about the screen, not the town.
+    expect(dismissBlocker(state, 0, city, 'scholar', true)).toMatch(/ended turn/);
+  });
+});

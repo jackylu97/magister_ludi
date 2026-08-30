@@ -120,6 +120,7 @@ import {
   runStatecraft,
 } from './statecraft';
 import { reviewLegacies } from './greatPeople';
+import { type GuildReport, runGuilds } from './guilds';
 import { runRenown } from './renown';
 import { advanceResearch } from './tech';
 import { type RouteEndReport, endRoute, routeTarget, standsIn } from './trade';
@@ -260,6 +261,21 @@ export interface TurnReport {
    * starved the town. See `StarvationReport` for why the write is split.
    */
   starved: StarvationReport[];
+  /**
+   * Every guild that formed this resolution, in the sweep's own order
+   * (`GuildReport`, ledger Entry XLVIII) — `disbanded`'s and `starved`'s
+   * sibling, and a *difference* for their identical reason: by the time this
+   * returns the citizen has moved into the trades and the town's assignment has
+   * already been rewritten around them, so no diff of two boards can say whether
+   * a city works one hex fewer because a guild formed or because a rival's
+   * culture took the tile.
+   *
+   * The **interface announces a city's first guild and nothing after** (the
+   * ruling's "ignorable"), and `GuildReport.count` is what makes that a property
+   * of the report rather than a flag somebody has to remember to clear: the
+   * first is the one whose count is one.
+   */
+  guilds: GuildReport[];
 }
 
 /** A fresh, empty report. The one place its shape is written. */
@@ -274,6 +290,7 @@ export function emptyTurnReport(): TurnReport {
     pillages: [],
     disbanded: [],
     starved: [],
+    guilds: [],
   };
 }
 
@@ -324,6 +341,23 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     name: 'growCities',
     // Spends a full food basket on a population point, or starves one away.
     run: growCities,
+  },
+  {
+    name: 'guilds',
+    // A town's own renown quietly takes a citizen out of the fields and puts
+    // them in a trade (ledger Entry XLVIII). Its position is the usual rules
+    // decision, and it is a pair of sentences:
+    //
+    //   · **after `growCities`**, because a citizen born this turn is a citizen
+    //     the share cap may now allow to convert, and because the conversion has
+    //     to be measured against the population the town actually ended the turn
+    //     with rather than the one it started it with;
+    //   · **before `advanceProduction`**, so a guildsman formed this turn is
+    //     seated — and paying — before the next basket is banked against an
+    //     assignment that no longer describes the town.
+    //
+    // See `runGuilds`.
+    run: runGuilds,
   },
   {
     name: 'advanceProduction',

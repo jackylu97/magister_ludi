@@ -82,6 +82,41 @@ export const FAMILIES: readonly Family[] = [
 ];
 
 /**
+ * The families a **townsman** can belong to (ledger Entry XLVIII): every family
+ * but the general's.
+ *
+ * The exclusion is the ruling, not an omission. A barracks' renown makes a great
+ * general, not a guildsman — there is no such thing as a citizen who leaves the
+ * fields to be a soldier and stays a citizen — so renown in that family neither
+ * fills a city's guild bar nor can ever be apportioned a specialist. Written as
+ * `Exclude` rather than as a second literal union so that a *sixth* family (the
+ * magistrate, parked in Entry XLVIII for a later pass) joins both lists by being
+ * added to one.
+ */
+export type SpecialistFamily = Exclude<Family, 'general'>;
+
+/**
+ * The specialist families in **apportionment order** — the fixed tie-break for
+ * D'Hondt in the `guilds` phase, and the order the city panel prints its row in.
+ *
+ * Deliberately *not* `FAMILIES` with the general filtered out. That order is the
+ * roster table's and moving a row in `data/greatPeople.json` would silently
+ * re-break every tie in every game ever seeded; this one is written down here,
+ * where a change to it is a decision somebody made on purpose.
+ */
+export const SPECIALIST_FAMILIES: readonly SpecialistFamily[] = [
+  'scholar',
+  'merchant',
+  'engineer',
+  'artist',
+];
+
+/** Is this a family a citizen can join? The guard `dismissSpecialist` asks. */
+export function isSpecialistFamily(value: unknown): value is SpecialistFamily {
+  return typeof value === 'string' && (SPECIALIST_FAMILIES as readonly string[]).includes(value);
+}
+
+/**
  * The Doctrine philosophy's three grades, read off the roster
  * (`docs/deprecated/statecraft-cards.md`, applied to people by the 2026-08-27 ruling):
  * game-defining **with a malice**, generically strong, or situational and

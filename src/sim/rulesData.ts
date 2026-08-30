@@ -19,6 +19,8 @@
  */
 
 import rulesJson from '../../data/rules.json';
+import type { SpecialistFamily } from './greatPeopleData';
+import type { ResourceYieldBag } from './resourceData';
 import type { TechId } from './techData';
 import type { TileYieldSpec } from './terrainData';
 import type { UnitTypeId } from './unitData';
@@ -489,6 +491,100 @@ export interface TilePurchaseRules {
   perPriorPurchase: number;
 }
 
+/**
+ * A fraction written as two integers, so a comparison against it is **exact**.
+ *
+ * `0.3334` and `1/3` are two different numbers and a share cap written in
+ * floating point is a cap that lets a ninth specialist into a size-27 city on
+ * one machine and not on another. Every reading multiplies out instead —
+ * `den × (n + 1) <= num × population` — which is integer arithmetic end to end
+ * and is what keeps hard rule 2 true of a rule expressed as a proportion.
+ */
+export interface Fraction {
+  num: number;
+  den: number;
+}
+
+/**
+ * Guilds: how a town's own renown turns citizens into specialists (ledger Entry
+ * XLVIII).
+ *
+ * The shape is the design read straight off the page. Each city banks an inflow
+ * every turn — what its **buildings** earn in renown for the four specialist
+ * families, plus a trickle back from the specialists it already has, plus a
+ * weight on its sheer size — into `City.guildBasket`. When the bar covers the
+ * threshold, one citizen leaves the fields.
+ *
+ * The three terms of the inflow are three different statements and that is why
+ * they are three numbers rather than one curve:
+ *
+ *   · **renown** is the engine and the *gate* — a city with no renown building
+ *     in any specialist family never forms a guild, whatever the other two
+ *     terms say. A trade needs a building to name it;
+ *   · **`trickle`** is the loop: a guild is a place apprentices are trained, so
+ *     it accelerates the next one. It only ever accelerates — see the gate;
+ *   · **`popWeight`** is the crowd (the user's amendment, 2026-08-29). A big
+ *     town has more people than good hexes, which is the problem this whole
+ *     system exists to answer, so size itself hurries the trades along.
+ *
+ * The threshold is the **growth curve's own three terms** — `base + linear × n +
+ * n ^ exponent` over the specialists a town already holds, 60 · 67 · 75 · 84 ·
+ * 93 — and it is that shape on the user's ruling of 2026-08-29 rather than by
+ * coincidence: a player who has learnt one escalating basket in this game has
+ * learnt all of them, and a guild is a growth curve wearing a different hat. See
+ * `guildThreshold` (`specialists.ts`), which mirrors `growthThreshold` term for
+ * term.
+ *
+ * **The cap is what sets the late count, and the base is what sets the first
+ * turn.** Two earlier tunings tried to do both with the threshold and could not:
+ * a curve steep enough to stop a tall capital going entirely specialist was a
+ * curve an ordinary town never climbed at all. Splitting the job is what fixed
+ * it — a quarter share pins a size-22 capital at five guilds, a size-12 town at
+ * three and a village of six at one, whatever the curve does, and the base is
+ * then free to be a *pace* rather than a brake.
+ */
+export interface GuildRules {
+  /** What the *first* specialist in a city costs the bar. Sets the first turn. */
+  base: number;
+  /** The linear term, per specialist already held. `growthLinear`'s twin. */
+  linear: number;
+  /** The superlinear term's exponent. `growthExponent`'s twin, and equal to it. */
+  exponent: number;
+  /** Renown a standing specialist puts back into the bar every turn. */
+  trickle: number;
+  /** Bar filled per point of population every turn, whatever the town holds. */
+  popWeight: number;
+  /**
+   * Bar filled per **idle** citizen every turn — a citizen the town has no hex
+   * left to seat (the user's backstop, 2026-08-29).
+   *
+   * Twenty times `popWeight`, and deliberately so: an idle citizen is the exact
+   * problem this whole system exists to answer, standing in the open with
+   * nothing to do, and a town in that state should not have to wait out an
+   * ordinary curve. See `guildIdleLine` for the other half of the backstop — an
+   * idle citizen also converts *past* the share cap, because the cap is about
+   * pulling people off the land and an idle citizen is not on any.
+   */
+  idleWeight: number;
+  /**
+   * The most of a town's people who may be specialists, as an exact fraction.
+   *
+   * A **gate on conversion only**: a city that shrinks under its own cap keeps
+   * every specialist it has. Nothing in this game dismisses a citizen on the
+   * player's behalf, and a famine that turned three guildsmen back into farmers
+   * would be the growth system quietly reaching into a system it does not own.
+   *
+   * At a quarter this is the number that answers "how many guilds does a big
+   * city end up with": five in a capital of 22, three in a town of 12, one in a
+   * village of six.
+   */
+  maxShare: Fraction;
+  /** What one specialist of each family pays its city every turn. */
+  pays: Record<SpecialistFamily, ResourceYieldBag>;
+  /** Renown a standing specialist pays **its own family's** feed every turn. */
+  renownPerSpecialist: number;
+}
+
 export interface CityRules {
   /** How far from its centre a city may assign citizens, in hexes. */
   workRadius: number;
@@ -597,6 +693,8 @@ export interface CityRules {
   borderCostExponent: number;
   /** What gold asks for a tile culture has not reached yet. */
   tilePurchase: TilePurchaseRules;
+  /** How a town's people leave the fields for the trades. See `GuildRules`. */
+  guilds: GuildRules;
   /** Weights the citizen assigner and the border chooser both score tiles with. */
   citizenWeights: CitizenWeights;
   /**

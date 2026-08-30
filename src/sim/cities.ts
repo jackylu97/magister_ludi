@@ -194,6 +194,10 @@ import {
   resourceTileLines,
 } from './resourceEffects';
 import { buildingTileLines } from './buildingEffects';
+// A leaf, like `roads.ts` and `routeYields.ts`, and imported for the same
+// reason: `guilds.ts` needs these answers too and must be free to import this
+// file. See `specialists.ts`.
+import { citySpecialistYields, totalSpecialists } from './specialists';
 // **This file no longer imports `trade.ts`, and that is a rule** (2026-08-28).
 // It used to, for the three readers below, while `trade.ts` imported this file
 // back for the capital, the tile owner and the windfall settlements — a
@@ -1371,9 +1375,37 @@ export function assignableTiles(state: GameState, city: City): Tile[] {
 }
 
 /**
+ * How many citizens this city could actually seat on the land — the length of
+ * the very list the assignment chooses from.
+ *
+ * Asked of `assignableTiles` rather than re-derived, which makes it exactly the
+ * enumeration `chooseCitizens` walks: this city's ground, workable, inside the
+ * work radius, and not the free centre (which is worked for nothing and is never
+ * a citizen's seat). One rule, one implementation — a second count that
+ * disagreed with the greedy would be a town told it has idle people while every
+ * one of them is standing on a hex.
+ *
+ * Its reader is the guild bar (Entry XLVIII): `population − specialists − seats`
+ * is how many of a town's people have nowhere to go, which is precisely the
+ * problem specialists exist to answer and so the thing that hurries them along.
+ */
+export function workableSeats(state: GameState, city: City): number {
+  return assignableTiles(state, city).length;
+}
+
+/**
  * Recomputes `city.workedTiles` from scratch: every honoured lock first, then
  * the best remaining assignable tiles by weighted yield, ties by tile index,
- * until `population` citizens are placed.
+ * until `population − specialists` citizens are placed.
+ *
+ * Specialists
+ * -----------
+ * A guildsman is a citizen of this town who is not standing on a hex (Entry
+ * XLVIII), so the seats to fill are the population **less** whoever is in the
+ * trades. Nothing else about the assignment changed for them, and that is the
+ * design: one fewer seat means the greedy stops one tile earlier, so the hex a
+ * new guild costs the town is the worst-scoring one it was working. See
+ * `chooseCitizens`.
  *
  * Locks
  * -----
@@ -1459,7 +1491,14 @@ function chooseCitizens(
   const { map } = state;
   const candidates = assignableTiles(state, city);
   const index = (tile: Tile): number => tileIndex(map, tile.col, tile.row);
-  const cap = Math.max(0, city.population);
+  // **Citizens in the fields, not citizens** (Entry XLVIII). A guildsman is a
+  // person of this town who is not standing on a hex, so the seats to fill are
+  // `population − specialists` — and the "one fewer citizen works the land" rule
+  // falls out of that subtraction rather than needing a clause: the greedy fills
+  // one seat less, so the tile that goes is the last one it would have taken,
+  // which is the worst-scoring hex the town was working. Honoured pins come
+  // first as always, so a player's own choice is never what a guild costs them.
+  const cap = Math.max(0, city.population - totalSpecialists(city));
 
   const assignable = new Map<number, Tile>();
   for (const tile of candidates) assignable.set(index(tile), tile);
@@ -1569,6 +1608,15 @@ function chooseCitizens(
  *      the second is the one added last (2026-08-29, Recasting the Omens): a god
  *      handed back stops paying the instant it leaves the list, so the town that
  *      had a citizen out on a dune for it must be told before the turn ends.
+ *  17. **The guild verbs** (`guilds.ts`, ledger Entry XLVIII) — and they are one
+ *      reason read from both ends. A citizen who joins a trade *stops working a
+ *      hex* and a citizen the player dismisses *starts working one again*, so
+ *      the town has a seat to fill either way and the assignment is exactly the
+ *      derived state that changed. The `guilds` phase reaches it too, once per
+ *      converted city, which is the register's own courtesy rather than a
+ *      requirement — the phase runs inside the pipeline and `collectYields`
+ *      would re-seat the town next turn regardless — but `dismissSpecialistAt`
+ *      is a **command's** mutation and owes it outright.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -2553,6 +2601,22 @@ export function cityQuote(
   }
 
   for (const line of cityResourceYields(state, city)) {
+    total.food += line.food;
+    total.production += line.production;
+    total.gold += line.gold;
+    total.science += line.science;
+    total.culture += line.culture;
+    total.faith += line.faith;
+  }
+
+  // What the town's guilds pay it (Entry XLVIII), one line per family that has
+  // anybody — folded here rather than added downstream so a scholar's beakers
+  // are staged by Entry XVII exactly as a library's are, reach the pool through
+  // the same `collectYields`, and appear in the panel's ledger with their reason
+  // beside them. A specialist is a citizen who stopped working a hex: the tile
+  // he left is already missing from `workedTiles` above, so this is a
+  // substitution and never a bonus.
+  for (const line of citySpecialistYields(city)) {
     total.food += line.food;
     total.production += line.production;
     total.gold += line.gold;

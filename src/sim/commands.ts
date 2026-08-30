@@ -176,6 +176,8 @@ import {
 } from './trade';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
+import { type GuildReport, dismissSpecialistAt, dismissSpecialistError } from './guilds';
+import { type SpecialistFamily, isSpecialistFamily } from './greatPeopleData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom, sleepError } from './units';
 import { recomputeVisibility } from './visibility';
@@ -333,6 +335,29 @@ export interface SetLockedTilesCommand extends PlayerCommand {
   type: 'setLockedTiles';
   cityId: number;
   cells: Cell[];
+}
+
+/**
+ * Sends one of a city's guildsmen back to the fields (ledger Entry XLVIII).
+ *
+ * **The only verb the guild system has**, and it only ever *removes*: there is
+ * no way to add a specialist, choose a family, or hold a seat open. That is the
+ * ruling — passive, unlimited, ignorable — and this exists for the one case a
+ * player can be hurt by it, a town that has grown into famine and needs the hex
+ * back.
+ *
+ * The bar restarts (`City.guildBasket` to zero), which is what stops the verb
+ * being a dial: a town that could dismiss and re-form at will would have found a
+ * way to choose a family. See `dismissSpecialistAt`.
+ *
+ * Turn-gated like `setLockedTiles`, and for its reason exactly: deciding where a
+ * town's people stand is an act, and a seat that has declared itself finished
+ * has finished acting.
+ */
+export interface DismissSpecialistCommand extends PlayerCommand {
+  type: 'dismissSpecialist';
+  cityId: number;
+  family: SpecialistFamily;
 }
 
 /**
@@ -1082,6 +1107,7 @@ export type Command =
   | FoundCityCommand
   | SetCityProductionCommand
   | SetLockedTilesCommand
+  | DismissSpecialistCommand
   | ChooseResearchCommand
   | DequeueResearchCommand
   | AttackCommand
@@ -1152,6 +1178,7 @@ export type CommandResult =
       pillages?: PillageReport[];
       disbanded?: DisbandReport[];
       starved?: StarvationReport[];
+      guilds?: GuildReport[];
       proclaimed?: ProclamationReport;
     }
   | { ok: false; error: string };
@@ -1221,7 +1248,16 @@ export type CommandResult =
  * of two boards can say whether a town lost food this turn or spent a healthy
  * surplus on nothing.
  *
- * `proclaimed` is the eleventh and the only one that is **not** a list, which is
+ * `guilds` is the eleventh, from `endTurn` alone: every city where a citizen
+ * left the fields for a trade during the resolution (`GuildReport`, ledger Entry
+ * XLVIII). `starved`'s sibling and a difference for its reason — by the time
+ * this returns the assignment has already been rewritten around the new
+ * guildsman, and nothing on the board says why a town works one hex fewer than
+ * it did. The interface announces a city's **first** guild and nothing after,
+ * which is a property of the report rather than a flag: the first is the one
+ * whose `count` is one.
+ *
+ * `proclaimed` is the twelfth and the only one that is **not** a list, which is
  * why it is set beside this helper rather than passed through it: a proclamation
  * is one act on one board, and an eleventh positional `undefined` on every other
  * caller would be a worse price than the two lines it saves. Two commands
@@ -1241,6 +1277,7 @@ function ok(
   pillages?: readonly PillageReport[],
   disbanded?: readonly DisbandReport[],
   starved?: readonly StarvationReport[],
+  guilds?: readonly GuildReport[],
 ): CommandResult {
   const result: CommandResult = { ok: true };
   if (arrivals !== undefined && arrivals.length > 0) result.arrivals = [...arrivals];
@@ -1253,6 +1290,7 @@ function ok(
   if (pillages !== undefined && pillages.length > 0) result.pillages = [...pillages];
   if (disbanded !== undefined && disbanded.length > 0) result.disbanded = [...disbanded];
   if (starved !== undefined && starved.length > 0) result.starved = [...starved];
+  if (guilds !== undefined && guilds.length > 0) result.guilds = [...guilds];
   return result;
 }
 
@@ -1346,6 +1384,7 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
     report.pillages,
     report.disbanded,
     report.starved,
+    report.guilds,
   );
 }
 
@@ -1736,6 +1775,38 @@ function applySetLockedTiles(
   // entry, and a caller that reused its array would be rewriting history.
   city.lockedTiles = cells.map((cell) => ({ col: cell.col, row: cell.row }));
   refreshCityDerived(state, city);
+  return ok();
+}
+
+/**
+ * Sends one guildsman back to the fields. See `DismissSpecialistCommand`.
+ *
+ * Everything the *gate* refuses is asked of `dismissSpecialistError`, the one
+ * function the panel greys its control with, so a Dismiss button is disabled
+ * exactly when this would refuse and the sentence a player reads on the hover is
+ * the sentence the reducer would have returned. What is checked here and not
+ * there is what a *command* has to check and a button never does: that the
+ * family named is one the game knows, because a command may have arrived from a
+ * save file or a socket carrying anything at all.
+ */
+function applyDismissSpecialist(
+  state: GameState,
+  command: DismissSpecialistCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+
+  const city = cityById(state, command.cityId);
+  if (!city) return fail(`No city with id ${String(command.cityId)}`);
+  const family: unknown = command.family;
+  if (!isSpecialistFamily(family)) {
+    return fail(`"${String(family)}" is not a specialist family`);
+  }
+
+  const blocker = dismissSpecialistError(state, actor.id, city, family);
+  if (blocker !== null) return fail(blocker);
+
+  dismissSpecialistAt(state, city, family);
   return ok();
 }
 
@@ -2851,6 +2922,10 @@ function orderedUnitId(command: Command): number | undefined {
     case 'endTurn':
     case 'setCityProduction':
     case 'setLockedTiles':
+    // Sending a guildsman back to the fields names a *city* and a trade. There
+    // is no piece on the board to wake — a specialist is a citizen, and this
+    // game has never drawn one.
+    case 'dismissSpecialist':
     case 'chooseResearch':
     // Research is about the empire's schedule, not about a piece: neither
     // aiming the beakers nor dropping a node off the plan is an order to
@@ -2931,6 +3006,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applySetCityProduction(state, command);
     case 'setLockedTiles':
       return applySetLockedTiles(state, command);
+    case 'dismissSpecialist':
+      return applyDismissSpecialist(state, command);
     case 'chooseResearch':
       return applyChooseResearch(state, command);
     case 'dequeueResearch':

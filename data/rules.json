@@ -107,6 +107,33 @@
       "roundTo": 5,
       "perPriorPurchase": 2
     },
+    "guilds": {
+      "base": 60,
+      "linear": 6,
+      "exponent": 1.65,
+      "trickle": 0.25,
+      "popWeight": 0.15,
+      "idleWeight": 3,
+      "maxShare": {
+        "num": 1,
+        "den": 4
+      },
+      "pays": {
+        "scholar": {
+          "science": 2
+        },
+        "merchant": {
+          "gold": 4
+        },
+        "engineer": {
+          "production": 2
+        },
+        "artist": {
+          "culture": 2
+        }
+      },
+      "renownPerSpecialist": 1
+    },
     "citizenWeights": {
       "food": 3,
       "production": 2,

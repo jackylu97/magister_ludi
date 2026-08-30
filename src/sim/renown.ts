@@ -13,10 +13,13 @@
  *
  * What fills it, and why the answer is a list
  * -------------------------------------------
- * Four sources: a **trickle** from buildings, a lump and a trickle from
+ * Five sources: a **trickle** from buildings, a lump and a trickle from
  * **wonders**, a trickle from whatever **cards** say so (the Council of Elders'
  * counsel — `CardRenownEffect`, read by the one evaluator like every other
- * clause), and lumps from **Triumphs**. Rule 5 applies to a count exactly as it
+ * clause), lumps from **Triumphs**, and — since Entry XLVIII — a point a turn
+ * from every **specialist**, into its own family's feed. That last one is the
+ * loop the guild system was built to close: a scholarly city recruits great
+ * scholars faster because its scholars say so. Rule 5 applies to a count exactly as it
  * applies to a yield, so `explainRenown` is the ordered list — one line per
  * building, per wonder, per card and per triumph earned this turn — and every
  * total is a fold of it. The HUD's hover prints those lines verbatim; nothing
@@ -52,7 +55,9 @@ import { BUILDING_IDS, buildingDef } from './buildingData';
 import type { Family } from './greatPeopleData';
 import { drawGreatPersonOffer } from './greatPeople';
 import { RULES } from './rulesData';
+import { citySpecialistYields } from './specialists';
 import {
+  type City,
   type GameState,
   type GreatPersonOffer,
   type Player,
@@ -63,6 +68,8 @@ import { triumphDef } from './triumphData';
 import { awardCountTriumphs } from './triumphs';
 
 const RENOWN = RULES.renown;
+/** What one standing specialist pays its own family's feed every turn. */
+const RENOWN_PER_SPECIALIST = RULES.cities.guilds.renownPerSpecialist;
 
 // --- the ledger -------------------------------------------------------------
 
@@ -110,14 +117,18 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
   const lines: RenownLine[] = [];
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    for (const id of BUILDING_IDS) {
-      if (!city.buildings.includes(id)) continue;
-      const renown = buildingDef(id).renown;
-      if (renown === undefined || renown.perTurn === 0) continue;
+    for (const line of explainCityRenown(city)) lines.push(line);
+    // And what its guilds pay back (Entry XLVIII). *Beside* the buildings rather
+    // than inside `explainCityRenown`, and the separation is load-bearing: that
+    // list is what fills this town's guild bar, and a specialist feeding the bar
+    // that made it is a loop with no brake on it. Here it feeds the empire's
+    // pool and its family's record — which is the design's whole point, the
+    // specialist system paying into the great-person system.
+    for (const line of citySpecialistYields(city)) {
       lines.push({
-        source: `${buildingDef(id).name} at ${city.name}`,
-        family: renown.family,
-        amount: renown.perTurn,
+        source: `${city.name} · ${line.source}`,
+        family: line.family,
+        amount: RENOWN_PER_SPECIALIST * line.count,
         perTurn: true,
       });
     }
@@ -134,6 +145,38 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
       family: def.family ?? null,
       amount: def.pays,
       perTurn: false,
+    });
+  }
+  return lines;
+}
+
+/**
+ * What **one city's buildings** earn their empire in renown every turn.
+ *
+ * Split out of `explainRenown` rather than copied out of it (Entry XLVIII), and
+ * that is the whole reason it exists: the guild bar in `guilds.ts` is filled by
+ * this figure, and a second sweep over `city.buildings` reading the same rows
+ * would be two answers to "what is this town worth" that agree until somebody
+ * edits one. The empire's building half is now the fold of this over its cities,
+ * so the two cannot drift by construction and the total is unchanged.
+ *
+ * `BUILDING_IDS` order, which is table order — the same walk this list has
+ * always had, one city in rather than the whole empire.
+ *
+ * Buildings **only**: a specialist's own point of renown is added by
+ * `explainRenown` beside this call and deliberately not here. See there.
+ */
+export function explainCityRenown(city: City): RenownLine[] {
+  const lines: RenownLine[] = [];
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    const renown = buildingDef(id).renown;
+    if (renown === undefined || renown.perTurn === 0) continue;
+    lines.push({
+      source: `${buildingDef(id).name} at ${city.name}`,
+      family: renown.family,
+      amount: renown.perTurn,
+      perTurn: true,
     });
   }
   return lines;
