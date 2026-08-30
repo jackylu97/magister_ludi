@@ -130,7 +130,8 @@ import {
   anyBeadDef,
   beadHandSize,
 } from '../sim/beadData';
-import { BEAD_FAMILY_MARK, beadBoonWords, deckEraWord } from './beadsScreen';
+import { BEAD_FAMILY_MARK, deckEraWord } from './beadsScreen';
+import { describeBeadBoon } from '../sim/beads';
 import { AXIS_MARK, riteGrantWords } from './religionScreen';
 import { resourceMarkNode } from './resourceMark';
 import { setYieldText } from './yieldMark';
@@ -1201,7 +1202,10 @@ function beadEntry(id: BeadCardId): CompendiumEntry {
   const clauses: CompendiumClause[] = [{ text: def.text }];
   // What it pays, in the words the Beads screen prints; then the halves of the
   // ratified card this build has not made, and the reason a row is unreachable.
-  for (const line of beadBoonWords(boon)) clauses.push({ text: line });
+  // Spread rather than rebuilt: a `CardClause` *is* a `CompendiumClause` minus
+  // the note flag, and copying it field by field is how a deferred half comes to
+  // be dropped the day the vocabulary grows one.
+  for (const paid of describeBeadBoon(boon ?? {})) clauses.push({ ...paid });
   for (const line of def.deferred ?? []) clauses.push({ text: line, deferred: true });
   if (def.dormant !== undefined) clauses.push({ text: def.dormant, note: true });
 

@@ -114,7 +114,8 @@ import { type PressureLine, explainPressure } from '../sim/religion';
 import { pressureLedgerText } from './religionScreen';
 import { techDef } from '../sim/techData';
 import { buildError, isUnlocked, requiredResource } from '../sim/tech';
-import { BEAD_FAMILY_MARK, beadBoonWords } from './beadsScreen';
+import { BEAD_FAMILY_MARK } from './beadsScreen';
+import { describeBeadBoon } from '../sim/beads';
 import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
 import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
 import { cityDisplayName } from './cityDisplay';
@@ -1086,7 +1087,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // separates this row from a wonder: everybody may build it, and every
       // hammer spent by a seat that does not finish first is spent.
       notes.append(note('First to finish takes the bead — nobody else gets it'));
-      for (const line of beadBoonWords(def.boon)) notes.append(note(line));
+      // The simulation's own sentences, and they may name the thing they hand
+      // over — so they go through the one renderer rather than through `note`,
+      // which takes a plain string. Unlinked, like every hover card's clause.
+      for (const clause of describeBeadBoon(def.boon ?? {})) {
+        const paid = element('li');
+        setDescriptorText(paid, clause.text, { linked: false });
+        notes.append(paid);
+      }
     }
     notes.append(note(def.note));
     box.append(notes);

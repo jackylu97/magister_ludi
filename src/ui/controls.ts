@@ -2306,6 +2306,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportStarvation(result);
       reportGuilds(result);
       reportTriumphs(result);
+      reportAgeOpened(result);
       reportBeads(result);
       checkFirstStatecraftDraft();
       checkGreatPersonOffer();
@@ -2675,25 +2676,27 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   /**
    * **An age opened.** One line for the world's clock turning over, said once.
    *
-   * The world's age is a single number on the state (`state.beads.worldAge`),
-   * raised by the `beads` phase the turn the first seat in the world reaches a
-   * new age — at which moment that age's whole hand turns face up. The line is
-   * therefore about *the table*, not about whoever got there first, who has
-   * already been announced their feat.
+   * The world's age is a single number on the state, raised by the `beads` phase
+   * the turn the first seat in the world reaches a new age — at which moment
+   * that age's whole hand turns face up. The line is therefore about *the
+   * table*, not about whoever got there first, who has already been announced
+   * their feat.
    *
-   * Read as a before-and-after around the resolution rather than off the report,
-   * for the reason `wonBefore` is: `TurnReport` carries the awards and not the
-   * clock, and there is no diff of a scalar to be got any other way. If the
-   * simulation grows a report field for it, this becomes a read of that field
-   * and nothing else about the line changes.
+   * Read off the reducer's own report (`CommandResult.beadAgeOpened`, ridden out
+   * of `TurnReport`), never as a before-and-after of `state.beads.worldAge`: a
+   * diff of a scalar is a second implementation of "did it move", and it is the
+   * one that goes wrong the day anything else touches the clock. Said from
+   * inside `commit` like every other piece of news, so the one funnel covers
+   * both paths.
    */
-  function reportAgeOpened(before: number): void {
-    const { state } = getGame();
-    if (state.beads.worldAge <= before) return;
-    const key = String(state.beads.worldAge);
-    const dealt = (state.beads.hands[key] ?? []).filter((card) => card.faceUp).length;
+  function reportAgeOpened(result: CommandResult): void {
+    if (!result.ok || result.beadAgeOpened === undefined) return;
+    const age = result.beadAgeOpened;
+    const dealt = (getGame().state.beads.hands[String(age)] ?? []).filter(
+      (card) => card.faceUp,
+    ).length;
     const what = dealt === 1 ? 'card' : 'cards';
-    announce(`◈ ${deckEraWord(state.beads.worldAge)} opens — ${dealt} ${what} on the table`);
+    announce(`◈ ${deckEraWord(age)} opens — ${dealt} ${what} on the table`);
   }
 
   /**
@@ -5675,17 +5678,16 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // a turn that went by, it is a standing condition the player has to act on,
     // and it repeats every turn until they do — which is the point of it.
     const debt = debtWarning(playerById(getGame().state, localPlayerId));
-    // The world's clock and the winner are the two scalars a resolution can move
-    // that leave no diff behind them. Both are read here, in the same breath and
-    // for the same reason as the research snapshot above.
-    const ageBefore = getGame().state.beads.worldAge;
+    // The winner is the one scalar a resolution can move that leaves no diff
+    // behind it — the world's clock now rides the report (`beadAgeOpened`) — so
+    // it is read here, in the same breath and for the same reason as the
+    // research snapshot above.
     const wonBefore = getGame().state.winnerId;
     const result = commit({ type: 'endTurn', playerId: localPlayerId });
     const earned = heldTriumphs;
     heldTriumphs = null;
     if (!result.ok) return;
     if (debt !== null) announce(debt);
-    reportAgeOpened(ageBefore);
 
     // Whatever was still sliding belongs to the turn that just ended.
     renderer.skipAnimations();

@@ -35,7 +35,6 @@
  */
 
 import {
-  type BeadBoon,
   type BeadAge,
   type BeadCardId,
   type BeadFamily,
@@ -47,11 +46,12 @@ import {
   beadHandSize,
   isBeadEndeavourId,
 } from '../sim/beadData';
-import { endeavourError } from '../sim/beads';
+import { describeBeadBoon, endeavourError, endeavourPrerequisiteMet } from '../sim/beads';
 import { type EarnedBead, type GameState, playerById, realPlayers } from '../sim/state';
 import { eraWord, figure } from './figures';
 import { setDescriptorText } from './keywords';
-import { unitDef, isUnitTypeId } from '../sim/unitData';
+import type { CardClause } from '../sim/statecraft';
+import { stripRefs } from '../sim/statecraft';
 
 // --- the four families ------------------------------------------------------
 
@@ -108,78 +108,6 @@ const KIND_WORD: Record<BeadKind, string> = {
   reckoning: 'reckoning',
 };
 
-// --- what a boon pays, in words ---------------------------------------------
-
-/**
- * Which bank a windfall lands in, in the word a player uses for it.
- *
- * A lookup rather than a rule: this table says what the six banks are *called*,
- * and says nothing at all about what happens to one — the settlement is
- * `payBoon`'s (`src/sim/beads.ts`), through Entry XVIII's own seams.
- */
-const WINDFALL_WORD: Record<string, string> = {
-  food: 'food into the stores',
-  production: 'production toward what is being built',
-  gold: 'gold into the treasury',
-  science: 'toward what you are learning',
-  culture: 'culture toward the next draft',
-  faith: 'faith banked',
-  renown: 'renown',
-  population: 'citizens',
-};
-
-/** "in every city", "at the capital" — where a windfall lands. */
-const WHERE_WORD: Record<string, string> = {
-  every: 'in every city',
-  capital: 'at the capital',
-  nearest: 'at the nearest city',
-};
-
-/**
- * What a bead pays, one plain line per thing it does.
- *
- * **A stopgap, and it is marked as one.** `payBoon` (`src/sim/beads.ts`) is the
- * one place a boon shape is read, and this screen would rather print *its*
- * sentences than compose a second set — but the settlement's lines exist only at
- * the moment a bead is awarded, and a card sitting face up on the table has not
- * been awarded yet. Until `beads.ts` exports a describer, this is a **naming
- * table plus a fold**: it says what the banks are called and what a die is
- * called, and it decides nothing. The one clause that could drift is the last —
- * a cap is printed as the sim's own summary sentence rather than by reading the
- * card effects, because `statecraft.ts` is the only module in the game that may
- * read a `CardEffect.kind`.
- *
- * Returns `[]` for a row that pays nothing — every reckoning today.
- */
-export function beadBoonWords(boon: BeadBoon | undefined): string[] {
-  if (boon === undefined) return [];
-  const lines: string[] = [];
-
-  const dice = Math.max(0, Math.floor(boon.dice ?? 0));
-  if (dice === 1) lines.push('A die of the Magister.');
-  else if (dice > 1) lines.push(`${figure(dice)} dice of the Magister.`);
-
-  const windfall = boon.windfall;
-  if (windfall !== undefined && windfall.amount > 0) {
-    const bank = WINDFALL_WORD[windfall.yield] ?? windfall.yield;
-    const where = windfall.where === 'capital' ? '' : ` ${WHERE_WORD[windfall.where] ?? ''}`;
-    lines.push(`${figure(windfall.amount)} ${bank}${where}.`.replace(/ +\./, '.'));
-  }
-
-  const grant = boon.grant;
-  if (grant !== undefined) {
-    if ('greatPerson' in grant) lines.push('A great person is offered.');
-    else if ('prophet' in grant) lines.push('A prophet is sent to you.');
-    else if ('settler' in grant) lines.push('A settler is sent to you.');
-    else if (isUnitTypeId(grant.unit)) {
-      lines.push(`A ${unitDef(grant.unit).name.toLowerCase()} is sent to you.`);
-    }
-  }
-
-  if ((boon.effects?.length ?? 0) > 0) lines.push('A lasting step, kept for good.');
-  return lines;
-}
-
 // --- one card's face --------------------------------------------------------
 
 /** Who has taken a card, as this screen needs to read it. */
@@ -198,14 +126,24 @@ export interface BeadCardFace {
   eyebrow: string;
   /** The deed, or the race's prerequisite, in the row's own player-facing words. */
   deed: string;
-  /** What it pays. Empty for a row that pays nothing. */
-  boon: string[];
+  /**
+   * What it pays, in the simulation's own words (`describeBeadBoon`) — the
+   * *same* clauses the award toast prints, so a card can never promise what the
+   * settlement does not deliver. Empty for a row that pays nothing.
+   */
+  boon: CardClause[];
   /** "Taken by Crimson on turn 84", or "Open — nobody has taken it". */
   claim: string;
   /**
    * For a race project only: does the reading seat meet what the race asks,
    * right now? `null` for every other kind — a quest is not something you
    * qualify for, it is something you do.
+   *
+   * **`endeavourPrerequisiteMet`'s answer, and nothing else.** It is a different
+   * question from `refusal` below and they must not be folded: a race whose
+   * prerequisite this empire meets can still be refused because somebody else
+   * finished it, and a tick that flipped to a cross the moment a rival won would
+   * be telling the player something untrue about their own realm.
    */
   met: boolean | null;
   /** Why the reducer would refuse this race today, in its own sentence. */
@@ -240,18 +178,23 @@ export function beadClaimLine(claim: BeadClaimView | null): string {
 /**
  * One card's whole face.
  *
- * `refusal` arrives from the caller rather than being asked for here, because
- * asking is `endeavourError`'s job and this function is pure — which is what
- * lets the test suite build a face with no game behind it.
+ * The three facts about a *game* arrive from the caller rather than being asked
+ * for here — the claimant off the world's register, `met` off
+ * `endeavourPrerequisiteMet`, `refusal` off `endeavourError` — because asking is
+ * the simulation's job and this function is pure, which is what lets the test
+ * suite build a face with no game behind it.
  */
 export function beadCardFace(
   id: BeadCardId,
-  options: { claim?: BeadClaimView | null; refusal?: string | null } = {},
+  options: {
+    claim?: BeadClaimView | null;
+    met?: boolean | null;
+    refusal?: string | null;
+  } = {},
 ): BeadCardFace {
   const { kind, def } = anyBeadDef(id);
   const age = 'age' in def && typeof def.age === 'number' ? def.age : null;
   const boon = 'boon' in def ? def.boon : undefined;
-  const refusal = options.refusal ?? null;
   return {
     id,
     kind,
@@ -259,10 +202,10 @@ export function beadCardFace(
     family: def.family,
     eyebrow: eyebrowFor(kind, age),
     deed: def.text,
-    boon: beadBoonWords(boon),
+    boon: boon === undefined ? [] : describeBeadBoon(boon),
     claim: beadClaimLine(options.claim ?? null),
-    met: kind === 'endeavour' ? refusal === null : null,
-    refusal,
+    met: options.met ?? null,
+    refusal: options.refusal ?? null,
     deferred: def.deferred ?? [],
     dormant: def.dormant ?? null,
   };
@@ -350,8 +293,11 @@ export function beadHoverText(earned: EarnedBead): string {
   const { def } = anyBeadDef(earned.id);
   const mark = BEAD_FAMILY_MARK[earned.family];
   const head = `${def.name} — ${mark.word.toLowerCase()}, turn ${figure(earned.turn)}`;
-  const boon = beadBoonWords('boon' in def ? def.boon : undefined);
-  return boon.length === 0 ? head : `${head}\n${boon.join(' ')}`;
+  const boon = 'boon' in def && def.boon !== undefined ? describeBeadBoon(def.boon) : [];
+  // **Stripped**, because a native tooltip is a string the platform draws: a
+  // keyword's marks would come out as brackets. `keywords.ts`' plain sink.
+  if (boon.length === 0) return head;
+  return `${head}\n${boon.map((clause) => stripRefs(clause.text)).join(' · ')}`;
 }
 
 // --- the screen -------------------------------------------------------------
@@ -435,9 +381,14 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     setDescriptorText(deed, face.deed, { linked: false });
     card.append(deed);
 
-    for (const line of face.boon) {
+    for (const clause of face.boon) {
       const paid = element('p', 'bead-card-boon');
-      setDescriptorText(paid, line, { linked: false });
+      paid.classList.toggle('is-deferred', clause.deferred === true);
+      // A boon may name a thing it hands over ("a free [[unit:settler|settler]]
+      // at the capital"), so it goes through the one renderer. Unlinked: the
+      // card is a face on a screen with its own doors, and a click that opened
+      // the Compendium from under it would take the table away.
+      setDescriptorText(paid, clause.text, { linked: false });
       card.append(paid);
     }
     for (const line of face.deferred) {
@@ -447,13 +398,20 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
       card.append(element('p', 'bead-card-deferred', face.dormant));
     }
 
-    // The race's own gate, in the reducer's sentence. A tick when this seat
-    // could queue the row today; the refusal itself when it could not.
+    // **Two lines, two questions, and they must not be folded.** The tick is
+    // `endeavourPrerequisiteMet` — a fact about *this realm*, which does not
+    // change because a rival finished first — and the sentence under it is
+    // `endeavourError`, which is why the reducer would refuse the row today.
     if (face.met !== null) {
       const gate = element('p', 'bead-card-gate');
       gate.classList.toggle('is-met', face.met);
-      gate.textContent = face.met ? '✓ Your empire may build it' : `✗ ${face.refusal ?? ''}`;
+      gate.textContent = face.met
+        ? '✓ Your empire meets what the race asks'
+        : '✗ Your empire does not meet what the race asks yet';
       card.append(gate);
+    }
+    if (face.refusal !== null) {
+      card.append(element('p', 'info-card-state is-blocked', face.refusal));
     }
 
     card.append(element('p', 'bead-card-claim', face.claim));
@@ -493,8 +451,16 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     const faceUp = hand.filter((card) => card.faceUp);
     const grid = element('div', 'bead-card-grid');
     for (const card of faceUp) {
-      const refusal = isBeadEndeavourId(card.id) ? endeavourError(state, seat, card.id) : null;
-      grid.append(drawCard(beadCardFace(card.id, { claim: claimOf(state, card.id), refusal })));
+      const race = card.id;
+      grid.append(
+        drawCard(
+          beadCardFace(card.id, {
+            claim: claimOf(state, card.id),
+            met: isBeadEndeavourId(race) ? endeavourPrerequisiteMet(state, seat, race) : null,
+            refusal: isBeadEndeavourId(race) ? endeavourError(state, seat, race) : null,
+          }),
+        ),
+      );
     }
     if (faceUp.length === 0) {
       grid.append(
