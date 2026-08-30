@@ -39,11 +39,14 @@ import {
   awardBead,
   awardBeadOccasion,
   beadCount,
+  describeBeadBoon,
   endeavourError,
+  endeavourPrerequisiteMet,
   runBeads,
   takeReckonings,
 } from '../../src/sim/beads';
 import { buildingDef } from '../../src/sim/buildingData';
+import { stripRefs } from '../../src/sim/statecraft';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   advanceProduction,
@@ -632,6 +635,31 @@ describe('the threshold', () => {
 
 // --- 8. the news ------------------------------------------------------------
 
+describe('the age opening', () => {
+  it('rides out on the report and on the command result', () => {
+    const state = flatState();
+    plant(state, 0, 4, 4);
+    // A quiet turn says nothing at all.
+    expect(runEndOfTurn(state).beadAgeOpened).toBeUndefined();
+    reachAge(state, 0, 2);
+    expect(runEndOfTurn(state).beadAgeOpened).toBe(2);
+    // And once only: the clock rose, and it does not rise again.
+    expect(runEndOfTurn(state).beadAgeOpened).toBeUndefined();
+  });
+
+  it('reaches the caller through endTurn', () => {
+    const game = createGame(config({ seed: 3 }));
+    reachAge(game.state, 0, 2);
+    let opened: number | undefined;
+    for (const player of game.state.players) {
+      if (player.barbarian) continue;
+      const result = applyCommand(game.state, { type: 'endTurn', playerId: player.id });
+      if (result.ok && result.beadAgeOpened !== undefined) opened = result.beadAgeOpened;
+    }
+    expect(opened).toBe(2);
+  });
+});
+
 describe('every award reaches the caller', () => {
   it('rides out on the turn report and on the command result', () => {
     const state = flatState();
@@ -645,6 +673,101 @@ describe('every award reaches the caller', () => {
     expect(award?.playerId).toBe(0);
     // The boon lines survive: they exist only at the moment of settlement.
     expect(award?.boon.length).toBeGreaterThan(0);
+  });
+});
+
+// --- 8b. the describer ------------------------------------------------------
+
+describe('describeBeadBoon', () => {
+  it('says a die, a windfall, a grant and a cap in that order', () => {
+    expect(describeBeadBoon({ dice: 1 }).map((c) => c.text)).toEqual(['a die of the Magister']);
+    expect(describeBeadBoon({ dice: 2 }).map((c) => c.text)).toEqual([
+      '2 dice of the Magister',
+    ]);
+    expect(
+      describeBeadBoon({ windfall: { yield: 'science', amount: 200, where: 'capital' } }).map(
+        (c) => c.text,
+      ),
+    ).toEqual(['a one-time windfall of 200 science']);
+    // `where` is printed only where the settlement reads it: beakers land in an
+    // empire's bank whatever the row says, hammers land in a town.
+    expect(
+      describeBeadBoon({ windfall: { yield: 'production', amount: 200, where: 'capital' } }).map(
+        (c) => c.text,
+      ),
+    ).toEqual(['a one-time windfall of 200 production in the capital']);
+    expect(
+      describeBeadBoon({ windfall: { yield: 'population', amount: 1, where: 'every' } }).map(
+        (c) => c.text,
+      ),
+    ).toEqual(['a citizen in every city']);
+    expect(describeBeadBoon({ grant: { settler: true } }).map((c) => stripRefs(c.text))).toEqual([
+      'a free settler at the capital',
+    ]);
+    expect(describeBeadBoon({ grant: { prophet: true } }).map((c) => stripRefs(c.text))).toEqual([
+      'a free prophet at the capital',
+    ]);
+    expect(describeBeadBoon({ grant: { greatPerson: 'choice' } }).map((c) => c.text)).toEqual([
+      'a great person of your choosing',
+    ]);
+    expect(
+      describeBeadBoon({ effects: [{ kind: 'authority', amount: 2 }] }).map((c) => c.text),
+    ).toEqual(['a lasting step: +2 authority capacity']);
+
+    // Several at once, in the settlement's own order.
+    expect(
+      describeBeadBoon({ dice: 1, effects: [{ kind: 'happiness', amount: 2 }] }).map((c) => c.text),
+    ).toEqual(['a die of the Magister', 'a lasting step: +2 happiness']);
+  });
+
+  it('names a granted unit as a keyword ref', () => {
+    // CLAUDE.md's rule: a describer that names a thing marks it, so the word is
+    // a link wherever a click can land.
+    expect(describeBeadBoon({ grant: { settler: true } })[0]!.text).toContain('[[unit:settler|');
+  });
+
+  it('prints exactly the words the award prints', () => {
+    // The whole reason the describer exists beside the settlement: an offer card
+    // that promised different words from the toast would be two vocabularies.
+    const state = flatState();
+    plant(state, 0, 4, 4);
+    state.beads.worldAge = 2;
+    table(state, 'theTithe');
+    state.players[0]!.tithesGold = 600;
+    const report = runEndOfTurn(state);
+    const award = report.beads.find((one) => one.id === 'theTithe')!;
+    expect(award.boon).toEqual(
+      describeBeadBoon(beadQuestDef('theTithe').boon).map((clause) => stripRefs(clause.text)),
+    );
+  });
+
+  it('says every row in the catalogue, and never says nothing', () => {
+    for (const id of BEAD_QUEST_IDS) {
+      expect(describeBeadBoon(beadQuestDef(id).boon).length, id).toBeGreaterThan(0);
+    }
+    for (const id of BEAD_ENDEAVOUR_IDS) {
+      expect(describeBeadBoon(beadEndeavourDef(id).boon).length, id).toBeGreaterThan(0);
+    }
+  });
+});
+
+// --- 8c. the prerequisite, asked on its own ---------------------------------
+
+describe('endeavourPrerequisiteMet', () => {
+  it('is the reachability question, separate from the claim', () => {
+    const state = flatState();
+    state.beads.worldAge = 2;
+    table(state, 'theGrandSatrapy');
+    for (let i = 0; i < 9; i++) plant(state, 0, i, 4);
+    expect(endeavourPrerequisiteMet(state, 0, 'theGrandSatrapy')).toBe(false);
+    plant(state, 0, 9, 4);
+    expect(endeavourPrerequisiteMet(state, 0, 'theGrandSatrapy')).toBe(true);
+
+    // Still met once somebody else has won it — which is exactly the fact
+    // `endeavourError` cannot report, because it answers a refusal instead.
+    state.beads.claimed.push({ id: 'theGrandSatrapy', age: 2, playerId: 1, turn: 1 });
+    expect(endeavourPrerequisiteMet(state, 0, 'theGrandSatrapy')).toBe(true);
+    expect(endeavourError(state, 0, 'theGrandSatrapy')).toMatch(/finished first/);
   });
 });
 

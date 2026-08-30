@@ -55,12 +55,15 @@ import {
   type BeadFamily,
   type BeadKind,
   type BeadOccasion,
+  type BeadGrant,
   type BeadPrerequisite,
+  type BeadWindfall,
   BEAD_DECK_AGES,
   BEAD_FEAT_IDS,
   BEAD_QUEST_IDS,
   BEAD_RULES,
   anyBeadDef,
+  isBeadAge,
   beadEndeavourDef,
   beadFeatDef,
   beadHandSize,
@@ -98,7 +101,15 @@ import {
   playerById,
   realPlayers,
 } from './state';
-import { orderLevel, religionFounder, settleCultureWindfall } from './statecraft';
+import {
+  type CardClause,
+  describeEffects,
+  orderLevel,
+  ref,
+  religionFounder,
+  settleCultureWindfall,
+  stripRefs,
+} from './statecraft';
 import { settleResearchWindfall } from './tech';
 import { BUILDING_UNLOCK_TECH, highestAge, isTechId, techDef } from './techData';
 import { type UnitTypeId, isCombatant, isUnitTypeId, unitDef } from './unitData';
@@ -549,6 +560,94 @@ function bestCityYield(state: GameState, playerId: number, key: 'food' | 'produc
 
 // --- the boons --------------------------------------------------------------
 
+// --- what a boon says -------------------------------------------------------
+
+/**
+ * A bead's boon, in words — **the one description of what a bead pays**.
+ *
+ * A pure describer beside the settlement, and the two are held together by
+ * construction rather than by discipline: `payBoon` prints *these* strings for
+ * every arm that actually paid, so the sentence on the offer card, the sentence
+ * in the Compendium and the sentence in the award toast are the same sentence.
+ * A second phrasing anywhere is how a card comes to promise what a settlement
+ * does not deliver.
+ *
+ * `CardClause`, not a bare string, so a boon prints beside a card's own clauses
+ * with no translation — and so a deferred half of a cap comes through struck
+ * through like everything else the vocabulary cannot do yet.
+ *
+ * The order is the settlement's order: dice, windfall, grant, caps.
+ */
+export function describeBeadBoon(boon: BeadBoon): CardClause[] {
+  const clauses: CardClause[] = [];
+  const dice = Math.max(0, Math.floor(boon.dice ?? 0));
+  if (dice > 0) clauses.push({ text: diceWords(dice) });
+  if (boon.windfall !== undefined) clauses.push({ text: windfallWords(boon.windfall) });
+  if (boon.grant !== undefined) clauses.push({ text: grantWords(boon.grant) });
+  // The **caps**, said in the vocabulary's own words: a step of contentment a
+  // bead grants and a step an Order grants are the same effect, so they are
+  // described by the same function. Prefixed rather than reworded, because what
+  // makes a bead's version different is only that it is permanent and unslotted.
+  for (const clause of describeEffects(boon.effects ?? [], 1)) {
+    const lasting: CardClause = { text: `a lasting step: ${clause.text}` };
+    if (clause.deferred === true) lasting.deferred = true;
+    clauses.push(lasting);
+  }
+  return clauses;
+}
+
+/** "a die of the Magister", "two dice of the Magister". */
+function diceWords(count: number): string {
+  return count === 1 ? 'a die of the Magister' : `${count} dice of the Magister`;
+}
+
+/**
+ * "a one-time windfall of 200 science", "a citizen in every city".
+ *
+ * **`where` is printed only where it is read**, which is the honest half: a
+ * windfall of gold, faith, beakers, culture or renown lands in an *empire's*
+ * bank and the field is ignored by `payWindfall`, so a sentence that said "in
+ * the capital" would be describing a rule the settlement does not have. Food,
+ * hammers and citizens land in a town, and those say where.
+ */
+function windfallWords(windfall: BeadWindfall): string {
+  const amount = Math.max(0, Math.floor(windfall.amount));
+  const where = WHERE_WORDS[windfall.where] ?? WHERE_WORDS.capital;
+  if (windfall.yield === 'population') {
+    const who = amount === 1 ? 'a citizen' : `${amount} citizens`;
+    return `${who} ${where}`;
+  }
+  if (windfall.yield === 'food' || windfall.yield === 'production') {
+    return `a one-time windfall of ${amount} ${windfall.yield} ${where}`;
+  }
+  return `a one-time windfall of ${amount} ${windfall.yield}`;
+}
+
+const WHERE_WORDS: Record<string, string> = {
+  capital: 'in the capital',
+  nearest: 'in the nearest city',
+  every: 'in every city',
+};
+
+/**
+ * "a free settler at the capital", "a great person of your choosing".
+ *
+ * The unit arms carry a **keyword ref** (CLAUDE.md's rule: a describer that
+ * names a thing marks it), so the word is a link wherever a click can land and
+ * plain bold everywhere else. `payBoon` strips them, because a toast is not a
+ * surface a player can click.
+ */
+function grantWords(grant: BeadGrant): string {
+  if ('greatPerson' in grant) {
+    return grant.greatPerson === 'choice'
+      ? 'a great person of your choosing'
+      : `a great person of the ${grant.greatPerson}s`;
+  }
+  const type: string = 'prophet' in grant ? 'prophet' : 'settler' in grant ? 'settler' : grant.unit;
+  if (!isUnitTypeId(type)) return 'a free unit at the capital';
+  return `a free ${ref('unit', type, unitDef(type).name.toLowerCase())} at the capital`;
+}
+
 /**
  * Settles what a bead pays, and says what it did.
  *
@@ -575,17 +674,22 @@ function payBoon(state: GameState, player: Player, boon: BeadBoon): string[] {
     // **Uncapped** (user ruling, 2026-08-30), which supersedes Entry XV's held
     // cap of three: a fourth die is kept like the first three.
     player.dice += dice;
-    lines.push(dice === 1 ? 'A die of the Magister.' : `${dice} dice of the Magister.`);
+    lines.push(stripRefs(diceWords(dice)));
   }
 
   const windfall = boon.windfall;
-  if (windfall !== undefined) lines.push(...payWindfall(state, player, windfall));
+  if (windfall !== undefined && payWindfall(state, player, windfall)) {
+    lines.push(stripRefs(windfallWords(windfall)));
+  }
 
   const grant = boon.grant;
   if (grant !== undefined) lines.push(...payGrant(state, player, grant));
 
-  // The caps are read, never settled. See the docblock.
-  if ((boon.effects?.length ?? 0) > 0) lines.push('A lasting step, kept for good.');
+  // The caps are read, never settled — so there is nothing to succeed or fail
+  // and the describer's own words go straight out. See the docblock.
+  for (const clause of describeBeadBoon({ effects: boon.effects ?? [] })) {
+    lines.push(stripRefs(clause.text));
+  }
   return lines;
 }
 
@@ -615,63 +719,48 @@ function windfallCities(state: GameState, player: Player, where: string): City[]
  * Gold and faith are the two that accumulate and are read where they lie, which
  * is `payProject`'s own reading, so they are added and nothing else is owed.
  */
-function payWindfall(
-  state: GameState,
-  player: Player,
-  windfall: { yield: string; amount: number; where: string },
-): string[] {
+function payWindfall(state: GameState, player: Player, windfall: BeadWindfall): boolean {
   const amount = Math.max(0, Math.floor(windfall.amount));
-  if (amount === 0) return [];
-  const lines: string[] = [];
+  if (amount === 0) return false;
   const cities = windfallCities(state, player, windfall.where);
 
   switch (windfall.yield) {
     case 'gold':
       player.gold += amount;
-      lines.push(`${amount} gold into the treasury.`);
-      return lines;
+      return true;
     case 'faith':
       player.faithPool += amount;
-      lines.push(`${amount} faith banked.`);
-      return lines;
+      return true;
     case 'science':
       player.sciencePool += amount;
       settleResearchWindfall(state, player);
-      lines.push(`${amount} toward what you are learning.`);
-      return lines;
+      return true;
     case 'culture':
       player.culturePool += amount;
       settleCultureWindfall(state, player);
-      lines.push(`${amount} culture toward the next draft.`);
-      return lines;
+      return true;
     case 'renown':
       settleRenownWindfall(state, player, [{ family: null, amount }]);
-      lines.push(`${amount} renown.`);
-      return lines;
+      return true;
     case 'food':
       for (const city of cities) {
         city.foodBasket += amount;
         settleGrowthWindfall(state, city);
         refreshCityDerived(state, city);
       }
-      if (cities.length > 0) lines.push(`${amount} food into the stores.`);
-      return lines;
+      return cities.length > 0;
     case 'production':
       for (const city of cities) {
         city.hammerBasket += amount;
         settleProductionWindfall(state, city);
         refreshCityDerived(state, city);
       }
-      if (cities.length > 0) lines.push(`${amount} production toward what is being built.`);
-      return lines;
+      return cities.length > 0;
     case 'population':
       for (const city of cities) settlePopulationWindfall(state, city, amount);
-      if (cities.length > 0) {
-        lines.push(cities.length === 1 ? 'A citizen arrives.' : 'A citizen in every city.');
-      }
-      return lines;
+      return cities.length > 0;
     default:
-      return lines;
+      return false;
   }
 }
 
@@ -708,7 +797,9 @@ function payGrant(
   const tile = spawnTileFor(state, seat, type);
   if (!tile) return [];
   realiseItem(state, seat, { kind: 'unit', id: type, tile }, { free: true });
-  return [`A ${unitDef(type).name.toLowerCase()} is sent to you.`];
+  // The describer's own words, stripped: a toast is not a surface a player can
+  // click, so the keyword mark comes out and the name stays.
+  return [stripRefs(grantWords(grant as BeadGrant))];
 }
 
 // --- endeavours -------------------------------------------------------------
@@ -746,6 +837,23 @@ export function endeavourError(
   const missing = prerequisiteMissing(state, playerId, def.prerequisite);
   if (missing !== null) return `${def.name} wants ${missing}`;
   return null;
+}
+
+/**
+ * Does this empire already have what the race asks for?
+ *
+ * `prerequisiteMissing` inverted, and exported as its own question because the
+ * screen asks a *different* one from `endeavourError`: a row may be met and
+ * still refused (somebody else finished it), or unmet and perfectly reachable,
+ * and a tick beside "ten cities" is not the same fact as a greyed button. One
+ * evaluator, two readings — the `isUnlocked`/`buildError` split one scale in.
+ */
+export function endeavourPrerequisiteMet(
+  state: GameState,
+  playerId: number,
+  id: BeadEndeavourId,
+): boolean {
+  return prerequisiteMissing(state, playerId, beadEndeavourDef(id).prerequisite) === null;
 }
 
 /**
@@ -843,28 +951,49 @@ export function claimEndeavour(state: GameState, city: City, id: BeadEndeavourId
  * threshold on the same turn always resolve the same way, and the wild is
  * skipped for `runStatecraft`'s reason: it has no Abacus and nothing to win.
  */
-export function runBeads(state: GameState, report?: { beads: BeadAward[] }): void {
+export function runBeads(state: GameState, report?: BeadReport): void {
   const awards: BeadAward[] = [];
 
-  advanceWorldClock(state, awards);
+  const opened = advanceWorldClock(state, awards);
   clearSpentCards(state);
   dealOneCard(state);
   sweepStandingBeads(state, awards);
   namePossibleWinner(state);
 
-  if (report) report.beads.push(...awards);
+  if (report) {
+    report.beads.push(...awards);
+    // **The opening is news, not a diff.** An age opens once, on one turn, and
+    // by the time the resolution returns `worldAge` simply *is* the new number
+    // — nothing on the board says it moved this turn rather than eight turns
+    // ago. `TurnReport.beads`' argument for a fact that is not an award.
+    if (opened !== null) report.beadAgeOpened = opened;
+  }
 }
 
-/** The world's clock, and the age it opens when it rises. See `runBeads`. */
-function advanceWorldClock(state: GameState, awards: BeadAward[]): void {
+/** What the phase writes into. `TurnReport`'s two bead fields and nothing else. */
+export interface BeadReport {
+  beads: BeadAward[];
+  beadAgeOpened?: BeadAge;
+}
+
+/**
+ * The world's clock, and the age it opens when it rises. See `runBeads`.
+ *
+ * Answers the age that opened, or `null` on the overwhelmingly common turn
+ * where nothing did — which is what the report rides out on. A rise **past** a
+ * deck age (two ages in one turn, which nothing today can do) still answers the
+ * age reached, because that is the number a player is told.
+ */
+function advanceWorldClock(state: GameState, awards: BeadAward[]): BeadAge | null {
   let reached = state.beads.worldAge;
   for (const player of realPlayers(state)) {
     reached = Math.max(reached, highestAge(player.techsResearched));
   }
-  if (reached <= state.beads.worldAge) return;
+  if (reached <= state.beads.worldAge) return null;
   const closing = state.beads.worldAge;
   state.beads.worldAge = reached;
   openBeadAge(state, closing, awards);
+  return isBeadAge(reached) ? reached : null;
 }
 
 /**

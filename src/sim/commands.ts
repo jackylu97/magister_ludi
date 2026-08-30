@@ -175,6 +175,7 @@ import {
   startRouteError,
 } from './trade';
 import { type BeadAward, beadMarks, beadsSince } from './beads';
+import type { BeadAge } from './beadData';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
 import type { CampBounty } from './camps';
@@ -1184,6 +1185,7 @@ export type CommandResult =
       proclaimed?: ProclamationReport;
       campBounties?: { ownerId: number; col: number; row: number; bounty: CampBounty }[];
       beads?: BeadAward[];
+      beadAgeOpened?: BeadAge;
     }
   | { ok: false; error: string };
 
@@ -1406,6 +1408,11 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   // price than the two lines it saves), and set *before* `applyCommand`'s own
   // diff runs, which is what stops the same bead being announced twice.
   if (result.ok && report.beads.length > 0) result.beads = [...report.beads];
+  // And the age, on the one turn in a game that opens one: a fact about the
+  // *transition*, which is what every field on this shape is.
+  if (result.ok && report.beadAgeOpened !== undefined) {
+    result.beadAgeOpened = report.beadAgeOpened;
+  }
   return result;
 }
 

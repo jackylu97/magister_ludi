@@ -123,6 +123,7 @@ import {
 import { reviewLegacies } from './greatPeople';
 import { type GuildReport, runGuilds } from './guilds';
 import { type BeadAward, beadMarks, beadsSince, runBeads } from './beads';
+import type { BeadAge } from './beadData';
 import { runRenown } from './renown';
 import { advanceResearch } from './tech';
 import { type RouteEndReport, endRoute, routeTarget, standsIn } from './trade';
@@ -320,6 +321,22 @@ export interface TurnReport {
    * against what is already here.
    */
   beads: BeadAward[];
+  /**
+   * The age the world's clock opened during this resolution, or absent — which
+   * it is on every turn but two or three in a whole game.
+   *
+   * `beads`' sibling and a *difference* for the identical reason: an age opens
+   * once, and by the time this returns `state.beads.worldAge` simply *is* the
+   * new number, with nothing on the board to say whether it moved this turn or
+   * forty turns ago. An interface that wanted to announce "Æra III opens" would
+   * otherwise have to keep its own copy of the previous turn's `worldAge` and
+   * diff it — which is a second clock, and a second clock is how a reload comes
+   * to announce an age that opened a decade back.
+   *
+   * The **built** age number (see `BeadAge`): what the interface prints beside
+   * it is the interface's business.
+   */
+  beadAgeOpened?: BeadAge;
 }
 
 /** A fresh, empty report. The one place its shape is written. */

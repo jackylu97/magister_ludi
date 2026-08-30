@@ -4159,10 +4159,25 @@ function bagWords(bag: Partial<Record<CityYieldKey, number>>, level: number): st
  * and an **upgraded** face reads as its scaled numbers everywhere for the same
  * reason.
  */
+/**
+ * A loose list of effects, in words — `describeCard` for a caller that holds
+ * effects rather than an id.
+ *
+ * The Bead Race is the one such caller: a boon's **cap** is a list of ordinary
+ * `CardEffect`s on a row that is not a card table (`BeadBoon.effects`), and
+ * `describeBeadBoon` has to print it in the same words an Order's would be
+ * printed in. Exported rather than copied, because a second loop over
+ * `describeEffect` is a second vocabulary the day an arm is added.
+ */
+export function describeEffects(effects: readonly CardEffect[], level = 1): CardClause[] {
+  const clauses: CardClause[] = [];
+  for (const effect of effects) describeEffect(effect, level, clauses);
+  return clauses;
+}
+
 export function describeCard(id: CardId, level = 1): CardClause[] {
   const def: CardDefBase = anyCardDef(id);
-  const clauses: CardClause[] = [];
-  for (const effect of def.effects) describeEffect(effect, level, clauses);
+  const clauses: CardClause[] = describeEffects(def.effects, level);
   // **A completion grant is not an effect, and it still has to be printed.** It
   // happens once, at the moment the stones go up, so it is a field on the
   // building row rather than a shape in the vocabulary (`CompletionGrant`) — but
