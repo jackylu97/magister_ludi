@@ -322,6 +322,17 @@ Ship* are descriptive; *Caravel* is the generic word for the small fast ocean sh
 language. The traditions live in the epigrams (the dromon's siphons, the Song thunderclap,
 the turtle ship's shell, the Polynesian waka for the trireme's PC half).
 
+**The badge and the sculpt (user, 2026-08-29).** One drawn hull per age in the tile atlas's
+own idiom (path data, never a fetched file): *oars and a pennant* (I) → *one square sail* (II)
+→ *sail and a fighting tower* (III) → *two masts* (IV) → *three masts, full rig* (V) — so
+a Galley and a Tower Ship share the Æra III hull and differ by the **canton**, a Tabler mark
+(MIT, the set every badge already wears) printed on the parchment corner exactly as the seat's
+charge is: **chevrons** for light melee (forward, fast), the **rook** for heavy melee (the tower
+ship's castle; the line), the **crosshair** for naval ranged. Thirteen badges from five paths
+and three marks; `badges.byUnitType` keys each row to its `{ hull: age, canton: class }` pair,
+and the three generic sculpts read the same mast count off the row, so the piece and its badge
+agree. Candidate sheet: the "Naval Badges" artifact of 2026-08-29.
+
 **The rules a hull needs**, all small: `modelClass: 'naval'` (`stepCost` prices water for it
 and land as impassable, save the owner's own coastal city hexes); the spawn tile is the city
 hex; `carries` is not needed (ships do not ferry — units embark on their own); `hitAndRun`,
