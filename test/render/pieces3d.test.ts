@@ -17,6 +17,7 @@ import {
 import {
   BADGE_CELLS,
   BADGE_ICON_FILES,
+  FILE_BADGE_CELLS,
   type TileIcons,
   type UnitBadges,
   hpBarY,
@@ -168,8 +169,15 @@ describe('the model-class roster', () => {
     ] as const;
     for (const id of MODEL_CLASS_IDS) expect(BADGE_CELLS).toContain(id);
     for (const id of NOT_A_SCULPT) expect(BADGE_CELLS).toContain(id);
-    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + NOT_A_SCULPT.length);
-    for (const id of BADGE_CELLS) {
+    // The naval line broke the old equality and did so deliberately: fifteen
+    // **composed** cells (hull × canton) are worn by twelve hulls through
+    // `badgeClassFor`'s fourth clause and by nothing in either list here. What
+    // survives, and is the claim that mattered, is that every sculpt and every
+    // named extra still has a cell.
+    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + NOT_A_SCULPT.length + 15);
+    // Every cell that is a *file* names one; the drawn half is `navalMarks.ts`
+    // and its own partition assertion lives in `badges3d.test.ts`.
+    for (const id of FILE_BADGE_CELLS) {
       expect(BADGE_ICON_FILES[id], `no icon file for ${id}`).toMatch(/^sprites\/icons\/.+\.svg$/);
     }
   });
@@ -189,6 +197,9 @@ describe('the model-class roster', () => {
     for (const type of UNIT_TYPE_IDS) {
       const def = unitDef(type);
       if (def.greatWork || def.prophesies || def.consecrates) continue;
+      // A hull's badge is composed from its rig and canton, which is the fourth
+      // rules clause and not the art table's — see `badgeClassFor`.
+      if (def.masts !== undefined && def.canton !== undefined) continue;
       if (type in VIEW3D.badges.byUnitType) continue;
       expect(badgeClassFor(type)).toBe(modelClassFor(type));
     }
@@ -382,9 +393,20 @@ describe('the model-class roster', () => {
     expect(unitSculpt(dry)).toBe('settler');
     expect(unitSculpt(dry, 'grassland')).toBe('settler');
     expect(unitSculpt(dry, 'coast')).toBe('boat');
-    // One hull for the whole roster: the badge over the piece is what still
-    // says which unit it is, which is why there is no second nautical roster.
-    for (const type of UNIT_TYPE_IDS) expect(unitSculpt({ type } as never, 'coast')).toBe('boat');
+    // One hull for the whole roster — **except a warship**, which is the naval
+    // line's one clause here (2026-08-29): the boat is what a piece takes when
+    // it is somewhere it cannot stand, and a hull is not somewhere it cannot
+    // stand. So a trireme on the coast keeps its own silhouette and everything
+    // else still becomes the generic boat, badge and all.
+    for (const type of UNIT_TYPE_IDS) {
+      const drawn = unitSculpt({ type } as never, 'coast');
+      if (unitDef(type).category === 'naval') {
+        expect(drawn, `${type} lost its hull at sea`).not.toBe('boat');
+        expect(drawn).toBe(sculptFor(type));
+      } else {
+        expect(drawn, type).toBe('boat');
+      }
+    }
     // …and only on water something can *embark* onto. Deep ocean is not a
     // legal hex for anything, so a piece drawn as a boat there would be a
     // picture of a bug rather than a state.

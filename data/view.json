@@ -64,7 +64,19 @@
       "trebuchet": "tower",
       "augur": "house",
       "prophet": "house",
-      "greatPerson": "house"
+      "greatPerson": "house",
+      "trireme": "boat",
+      "bireme": "boat",
+      "galley": "boat",
+      "caravel": "boat",
+      "corvette": "boat",
+      "warGalley": "boat",
+      "towerShip": "boat",
+      "carrack": "boat",
+      "shipOfTheLine": "boat",
+      "fireShip": "boat",
+      "gunGalley": "boat",
+      "frigate": "boat"
     },
     "byPlayerColor": {
       "#d4502e": "red",

@@ -1224,6 +1224,18 @@ export class UnitLayer {
  * fingerprint is already right, and getting that wrong is a board that goes on
  * drawing the old picture until something unrelated moves. One `imul` for a
  * property that is absent on all but a handful of units in a whole game.
+ *
+ * **The naval line added no member, and that is worth writing down** (2026-08-29)
+ * because it is the first pass in a while that changed what a piece looks like
+ * and did not touch this function. A hull's body is chosen by its `modelClass`
+ * and its rig (`sculptFor` through `pieces.byUnitType`) and its badge by its rig
+ * and canton (`badgeClassFor`), and all three of those are facts about the
+ * **type** — which `type` already hashes, and hashes for precisely this reason:
+ * a trireme that upgrades to a bireme in place, without moving, gets a new hull
+ * and a new badge on the frame the type changes. Nothing about a ship varies
+ * *per piece*. If a later pass gives one a per-piece fact that shows — a
+ * damaged rig, a flagship pennant — that field joins this list, and it will be a
+ * decision because the source test will stop compiling until it is.
  */
 export function signUnits(state: GameState): number {
   let h = 2166136261 ^ state.units.length;

@@ -4,6 +4,11 @@ import { InstancedMesh, Matrix4, MeshBasicMaterial, Quaternion, Vector3 } from '
 import {
   BADGE_CELLS,
   BADGE_ICON_FILES,
+  BADGE_MARK_PAIRS,
+  FILE_BADGE_CELLS,
+  type FileBadgeClass,
+  NAVAL_CLASS_CANTON,
+  navalBadgeId,
   BADGE_LINES,
   type UnitBadges,
   badgeAtlasLayout,
@@ -35,7 +40,7 @@ import { UnitLayer, badgeAnchors } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { createMap } from '../../src/sim/map';
 import { type GameState, barbarianPlayer, newGame } from '../../src/sim/state';
-import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 
 /**
@@ -123,7 +128,13 @@ describe('the badge atlas layout', () => {
       eager: true,
     }) as Record<string, string>;
     const onDisk = new Set(Object.keys(files).map((path) => path.split('/').pop()!));
-    const named = new Set(BADGE_CELLS.map((cls) => BADGE_ICON_FILES[cls].split('/').pop()!));
+    // The **file half** of the set, which is the half this assertion is about.
+    // Since the naval line (2026-08-29) a cell is either a file or a drawing in
+    // `src/art/navalMarks.ts`, and the partition is asserted below — so a naval
+    // cell with no file is not a missing drawing, it is the other table.
+    const named = new Set(
+      FILE_BADGE_CELLS.map((cls) => BADGE_ICON_FILES[cls].split('/').pop()!),
+    );
     expect([...named].sort()).toEqual([...onDisk].sort());
     // And each is a drawing rather than an empty file somebody touched.
     for (const [path, text] of Object.entries(files)) {
@@ -156,7 +167,7 @@ describe('the badge atlas layout', () => {
       import: 'default',
       eager: true,
     }) as Record<string, string>;
-    expect(Object.keys(files)).toHaveLength(BADGE_CELLS.length);
+    expect(Object.keys(files)).toHaveLength(FILE_BADGE_CELLS.length);
     for (const [path, text] of Object.entries(files)) {
       expect(text, `${path} is not on the 24-unit box`).toContain('viewBox="0 0 24 24"');
       expect(text, `${path} is not at the badge weight`).toContain('stroke-width="2.75"');
@@ -228,7 +239,7 @@ describe('the badge atlas layout', () => {
       'spear',
       'trader',
     ]);
-    expect(BADGE_CELLS.slice(12)).toEqual([
+    expect(BADGE_CELLS.slice(12, 21)).toEqual([
       'warrior',
       'longswordsman',
       'pikeman',
@@ -241,11 +252,19 @@ describe('the badge atlas layout', () => {
       // rule doing its job for the third time. See `BADGE_CELLS`.
       'prophet',
     ]);
-    expect(BADGE_CELLS).toHaveLength(21);
+    // The naval line appended eighteen more (2026-08-29) — three class
+    // fallbacks and the fifteen composed hull × canton cells — and the rule
+    // held at that scale for the fourth time: the twenty-one above are
+    // byte-identical and in the same order, so every badge already on a board
+    // kept its cell.
+    expect(BADGE_CELLS.slice(21, 24)).toEqual(['navalLight', 'navalHeavy', 'navalRanged']);
+    expect(BADGE_CELLS.slice(24, 27)).toEqual(['naval1Chevrons', 'naval1Rook', 'naval1Crosshair']);
+    expect(BADGE_CELLS[BADGE_CELLS.length - 1]).toBe('naval5Crosshair');
+    expect(BADGE_CELLS).toHaveLength(39);
     const layout = badgeAtlasSize();
     expect(layout.columns).toBe(4);
-    expect(layout.rows).toBe(6);
-    expect(layout.height).toBe(6 * BADGE.atlasCell);
+    expect(layout.rows).toBe(10);
+    expect(layout.height).toBe(10 * BADGE.atlasCell);
     // And the twelve before them did not move: the rectangle of cell 0 is still
     // the top-left one, which is what `badgeCellRect` is asked for everywhere.
     expect(badgeCellRect(BADGE_CELLS[0]!).u0).toBe(0);
@@ -306,9 +325,68 @@ describe('the badge atlas layout', () => {
       badges.set(badge, type);
     }
     expect(badges.size).toBe(21);
-    // Twenty-one types, twenty-one cells: the set is exactly used up, so there
-    // is no drawing in the atlas that no piece on the board can ever wear.
-    expect(badges.size).toBe(BADGE_CELLS.length);
+    // Twenty-one types, twenty-one cells — and since the naval line the atlas is
+    // eighteen longer, which is the one place this claim had to give. Twelve of
+    // those cells are worn by the twelve hulls (the sweep below), and the three
+    // class fallbacks are deliberately unworn by any *current* row: they are
+    // what a naval row added with no `canton` would get, which is the same
+    // insurance `badgeClassFor`'s fourth clause exists to provide.
+    expect(BADGE_CELLS.length).toBe(badges.size + 18);
+  });
+
+  /**
+   * The naval line: twelve hulls, twelve composed cells, and the pair each is
+   * composed of read straight off the roster row.
+   *
+   * The *rules* clause again, and this is why it is one. Nothing in
+   * `badges.byUnitType` names a hull — the cell is a pure function of
+   * `UnitDef.masts` and `UnitDef.canton`, so twelve entries in the art table
+   * would have been a third list of the same facts, and the drift they would
+   * eventually acquire is exactly what this file's cell-order discipline exists
+   * to prevent. What the test holds is the identity: the badge a row wears is
+   * `navalBadgeId(row.masts, row.canton)`, and that cell composes those two
+   * drawings and no others.
+   */
+  it('composes each hull\'s badge from the rig and canton on its own roster row', () => {
+    const hulls = UNIT_TYPE_IDS.filter((id) => unitDef(id).category === 'naval');
+    expect(hulls).toHaveLength(12);
+    const worn = new Set<string>();
+    for (const type of hulls) {
+      const def = unitDef(type);
+      expect(def.masts, `${type} has no rig`).toBeDefined();
+      expect(def.canton, `${type} has no canton`).toBeDefined();
+      const badge = badgeClassFor(type);
+      expect(badge).toBe(navalBadgeId(def.masts!, def.canton!));
+      expect(BADGE_CELLS, `${type} wears a cell the atlas has not got`).toContain(badge);
+      // And the cell really is the composition, not a name that happens to look
+      // like one: the pair table is what the atlas painter reads.
+      expect(BADGE_MARK_PAIRS.get(badge as never)).toEqual({
+        rig: def.masts,
+        canton: def.canton,
+      });
+      expect(worn.has(badge), `${type} shares a badge`).toBe(false);
+      worn.add(badge);
+    }
+    expect(worn.size).toBe(12);
+  });
+
+  /**
+   * Every cell is a file **or** a drawing, and never both or neither.
+   *
+   * The partition `FileBadgeClass` declares, asserted rather than assumed. It is
+   * the assertion that makes the two on-disk sweeps above honest: they walk only
+   * the file half, and this is what says the other half is accounted for.
+   */
+  it('gives every badge cell exactly one source — a file, or drawn path data', () => {
+    for (const cls of BADGE_CELLS) {
+      const file = BADGE_ICON_FILES[cls as FileBadgeClass] !== undefined;
+      const drawn =
+        BADGE_MARK_PAIRS.has(cls as never) ||
+        NAVAL_CLASS_CANTON[cls as keyof typeof NAVAL_CLASS_CANTON] !== undefined;
+      expect(file !== drawn, `${cls} has ${file && drawn ? 'two sources' : 'none'}`).toBe(true);
+    }
+    expect(FILE_BADGE_CELLS).toHaveLength(21);
+    expect(BADGE_MARK_PAIRS.size).toBe(15);
   });
 
   /**
@@ -382,10 +460,10 @@ describe('the badge atlas layout', () => {
     expect(listed).toHaveLength(BADGE_CELLS.length);
     expect([...listed].sort()).toEqual([...BADGE_CELLS].sort());
     expect(new Set(listed).size).toBe(listed.length);
-    // Six lines, each with a name and a sentence: a line with no note is a row
-    // of drawings on the page with nothing said about how they differ, which is
-    // the one thing this page exists to say.
-    expect(BADGE_LINES).toHaveLength(6);
+    // Seven lines since the naval one, each with a name and a sentence: a line
+    // with no note is a row of drawings on the page with nothing said about how
+    // they differ, which is the one thing this page exists to say.
+    expect(BADGE_LINES).toHaveLength(7);
     for (const line of BADGE_LINES) {
       expect(line.members.length, line.line).toBeGreaterThan(0);
       expect(line.line.length).toBeGreaterThan(0);

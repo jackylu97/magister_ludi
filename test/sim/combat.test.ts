@@ -1494,8 +1494,11 @@ describe('the unit roster carries the combat data the rules need', () => {
   it('gives every military type a combat strength and every civilian none', () => {
     for (const id of UNIT_TYPE_IDS) {
       const def = unitDef(id);
-      if (def.category === 'military') expect(def.combatStrength).toBeGreaterThan(0);
-      else expect(def.combatStrength).toBe(0);
+      // A ship is a combatant too, and takes the same claim: the naval category
+      // is about *where a piece may be*, never about whether it fights.
+      if (def.category === 'military' || def.category === 'naval') {
+        expect(def.combatStrength).toBeGreaterThan(0);
+      } else expect(def.combatStrength).toBe(0);
     }
   });
 
@@ -1522,6 +1525,11 @@ describe('the unit roster carries the combat data the rules need', () => {
         'compositeBowman',
         'crossbowman',
         'trebuchet',
+        // And the naval ranged line, whose three hulls shoot for the same
+        // reason and by the same pair of fields (2026-08-29).
+        'fireShip',
+        'gunGalley',
+        'frigate',
       ].sort(),
     );
   });

@@ -201,6 +201,37 @@ export interface CombatRules {
 }
 
 /**
+ * The four numbers the naval line spends, and there are deliberately only four.
+ *
+ * Every *other* fact about a ship is on its roster row — the strengths, the
+ * movement, the range, the labelled lines the triangle is made of — because they
+ * describe *a hull* rather than the system, which is the same split `combat`
+ * makes with `data/units.json` and the reason a thirteenth ship is a JSON row.
+ * What is left here is what the **rules** say about being at sea at all: what an
+ * attack costs a hull that keeps going, what a line of battle is worth, and what
+ * a soldier caught on the water loses.
+ */
+export interface NavalRules {
+  /**
+   * Movement points a **hit-and-run** attack spends, in place of emptying the
+   * purse. See `UnitDef.hitAndRun`, which is the marker; nothing else in the
+   * game charges an attacker for the blow, because nothing else survives it with
+   * anywhere to go.
+   */
+  hitAndRunCost: number;
+  /** Strength points a heavy hull gains per adjacent friendly heavy hull. */
+  lineBonusPerHull: number;
+  /** The most **the line** is ever worth, in strength points. */
+  lineBonusMax: number;
+  /**
+   * Strength points an **embarked** piece loses defending itself on the water,
+   * unless a friendly light hull is sharing its hex. One labelled line, "At
+   * sea", in the defender's fold.
+   */
+  atSeaPenalty: number;
+}
+
+/**
  * The system half of tile improvements. The per-improvement half (yields,
  * constraints, charge cost, tech renewals) lives in `data/improvements.json`,
  * because those describe *an improvement* rather than the system — the same
@@ -1175,6 +1206,7 @@ export interface RulesConfig {
   visibility: VisibilityRules;
   healing: HealingRules;
   combat: CombatRules;
+  naval: NavalRules;
   improvements: ImprovementRules;
   trade: TradeRules;
   barbarians: BarbarianRules;

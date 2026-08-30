@@ -54,6 +54,18 @@ export type UnitTypeId =
   | 'knight'
   | 'longswordsman'
   | 'trebuchet'
+  | 'trireme'
+  | 'bireme'
+  | 'galley'
+  | 'caravel'
+  | 'corvette'
+  | 'warGalley'
+  | 'towerShip'
+  | 'carrack'
+  | 'shipOfTheLine'
+  | 'fireShip'
+  | 'gunGalley'
+  | 'frigate'
   | 'augur'
   | 'prophet'
   | 'greatPerson';
@@ -77,8 +89,21 @@ export type UnitTypeId =
  * plunder, fortify, sleep, upkeep and embarkation all read a trader exactly as
  * they read a worker. Two questions, two predicates; a category comparison that
  * meant "civilian in combat terms" would be the drift this note exists to stop.
+ *
+ * **`'naval'` is the fourth slot** (the naval line, 2026-08-29), and it is a
+ * stacking category for the trader's reason exactly: a hull and the piece it
+ * escorts stand on one hex, and two hulls never do. So the cap does the whole of
+ * "one warship per hex" with no clause anywhere, and the *escort* — at most one
+ * embarked piece beside a hull, **on water only** — is the one clause
+ * `hasStackingRoom` grew (`units.ts`). On a coastal city hex a ship garrisons
+ * under the ordinary caps, which is why the escort clause asks the ground.
+ *
+ * Like `'trader'` it says nothing about fighting: a hull is `isCombatant`
+ * because its row carries a strength, and `isCivilian` is false of it. "Is this
+ * a ship" is `isNaval`, and it is a question about *where the piece may be*,
+ * never about what it may do.
  */
-export type UnitCategory = 'military' | 'civilian' | 'trader';
+export type UnitCategory = 'military' | 'civilian' | 'trader' | 'naval';
 
 /**
  * Which *class* of model the 3D board stands this unit on.
@@ -102,6 +127,14 @@ export type UnitCategory = 'military' | 'civilian' | 'trader';
  * worker looks like; `test/pieces3d.test.ts` allows exactly this one unmapped
  * class and no other. `src/render3d/board3d.ts` holds the registry that turns
  * one of these into geometry and will not compile if a name here has no sculpt.
+ *
+ * The three naval classes are the same bargain at sea: three hulls, twelve rows,
+ * and the *rig* (`UnitDef.masts`) is what separates a trireme from a corvette in
+ * the diorama, exactly as the badge separates a catapult from a trebuchet. They
+ * are a **model** class and nothing else — the rules ask `UnitDef.category`
+ * whether a piece may be on the water, never this field — with one deliberate
+ * exception, `UnitCombatLine.vsModelClass`, which is how the Trireme's row says
+ * "against ranged ships" without naming the Fire Ship.
  */
 export type ModelClass =
   | 'settler'
@@ -111,7 +144,10 @@ export type ModelClass =
   | 'mountedRanged'
   | 'mounted'
   | 'siege'
-  | 'scout';
+  | 'scout'
+  | 'navalLight'
+  | 'navalHeavy'
+  | 'navalRanged';
 
 /**
  * What one of these costs to **buy outright**, or the field is absent for a type
@@ -158,6 +194,47 @@ export interface UnitPurchaseSpec {
    * a type's name. Absent falls back to "Buy a ⟨name⟩".
    */
   verb?: string;
+}
+
+/**
+ * One labelled flat strength line a **roster row** carries into every fight the
+ * piece is in — the Trireme's "+5 against ranged ships", the Fire Ship's "−5
+ * Fragile hull", the Frigate's "+10 Bombardment".
+ *
+ * `CardCombatLineEffect`'s shape minus the empire (`statecraftData.ts`): a card's
+ * line is a fact about the *law* and is asked of `liveEffects`, this one is a
+ * fact about the *type* and is read straight off the row — so the two lists
+ * concatenate in `planCombat`'s fold with no translation, exactly as
+ * `buildingEffects.ts`'s `cityStat` concatenates with a card's. Both answers are
+ * labelled lists and neither is ever a number: hard rule 5 at the scale of one
+ * soldier, and the reason the naval triangle is three data rows rather than
+ * three branches in the combat evaluator.
+ *
+ * The narrowing fields are declared here rather than reused from
+ * `statecraftData.ts` on purpose. That module imports this one, and a
+ * `UnitFilter` in a roster row would put an import back the other way — the
+ * runtime cycle `test/mapgen/moduleCycles.test.ts` exists to catch. There is
+ * nothing a hull's line needs to say that a model class cannot.
+ */
+export interface UnitCombatLine {
+  /** Plain words, printed on the forecast card as written. */
+  label: string;
+  /** Strength points. Signed: the fragile hull takes points away. */
+  amount: number;
+  /** Which posture it pays in. Absent means both. */
+  side?: 'attack' | 'defend' | 'both';
+  /**
+   * Only against a piece of this model class. Absent means anything.
+   *
+   * A **city has no silhouette**, so a line carrying this never pays against
+   * walls — `CardCombatLineEffect.vsClass`' rule, and the honest reading rather
+   * than an omission. A row that wants the walls says `vsCity`.
+   */
+  vsModelClass?: ModelClass;
+  /** True: only against a city. False: only against a piece. Absent: either. */
+  vsCity?: boolean;
+  /** Only in a blow of this kind. Absent: either. */
+  vsKind?: 'melee' | 'ranged';
 }
 
 export interface UnitDef {
@@ -368,6 +445,103 @@ export interface UnitDef {
    * list contains the successor, so the tree stays the single source of gating.
    */
   upgradesTo?: UnitTypeId;
+  /**
+   * Strength lines this **type** carries into every fight, or absent for a row
+   * that fights on its printed number alone. See `UnitCombatLine`.
+   */
+  combatLines?: readonly UnitCombatLine[];
+  /**
+   * True when an attack does **not** end this piece's turn: it pays
+   * `rules.naval.hitAndRunCost` out of its allowance and keeps the rest — or the
+   * field is absent for everything that commits to its blow.
+   *
+   * The light hull's identity and the reason it is still worth building once
+   * ranged hulls appear (`docs/tech-tree.md`, the naval line): a nimble ship
+   * closes, strikes and is gone, which is what makes speed a *strategic* stat at
+   * sea rather than a nicer version of the same fight.
+   *
+   * Presence is the marker, exactly as with `foundsCity`, `charges` and
+   * `trades`: nothing in `src/sim/` compares a type against `"trireme"`, so the
+   * raider a later age adds inherits it from one data field. It is read in one
+   * place — `applyCombat`'s bookkeeping step, where every other attacker's
+   * allowance is zeroed — and it does **not** touch `hasAttacked`, so a hull
+   * still strikes once a turn and then merely has somewhere to be.
+   */
+  hitAndRun?: boolean;
+  /**
+   * True when this row's ranged blow is a **bombardment** — it is built to
+   * batter walls — or the field is absent.
+   *
+   * The bonus itself is an ordinary `combatLines` entry with `vsCity: true`, so
+   * nothing switches on this flag to *price* anything. What it is for is the
+   * word: the Compendium and the unit sheet say "bombards", and the roster is
+   * where "what kind of gun is this" belongs rather than in a describer reading
+   * a strength line's label.
+   */
+  bombard?: boolean;
+  /**
+   * True when this hull **blockades** — parked off a port it denies the sea lane
+   * and stops the town's trade — or the field is absent for everything that only
+   * fights.
+   *
+   * The heavy line's identity, and the reason it is slow: a ship that cannot
+   * outrun anything is a ship that is *there*, and being there is what a
+   * blockade is. Presence is the marker, so nothing compares a type against
+   * `"warGalley"` and nothing in the simulation switches on a naval model class
+   * to decide it.
+   *
+   * Two rules read it, and they are two readings of one idea rather than two
+   * rules: `siegeField` marks the water around such a hull as denied — which is
+   * what lets a single hull cut a small port's supply, since `underSiege` denies
+   * a water hex only when somebody is standing on it — and `explainRouteYield`
+   * pays a blockaded town's routes nothing. `blockade.ts` is the one place both
+   * ask, and it is a leaf so the two can.
+   */
+  blockades?: boolean;
+  /**
+   * How the hull is rigged, 1–5 — oars and a pennant, one square sail, sail and
+   * a fighting tower, two masts, three masts and a full rig.
+   *
+   * A **visual** field like `glyph` and here for `glyph`'s reason: two lists of
+   * the same ships drift apart. It is read twice and both readings must agree —
+   * the sculpt (`board3d.ts` picks the rig's body) and the badge (`badges3d.ts`
+   * composes the hull mark of this age with the class's canton) — which is the
+   * whole point of the number living on the row rather than in either art file.
+   *
+   * Absent on everything that is not a ship.
+   */
+  masts?: 1 | 2 | 3 | 4 | 5;
+  /**
+   * The mark printed on the badge's parchment corner, which is what separates
+   * two hulls of the same age: chevrons for the light line, the rook for the
+   * heavy, the crosshair for the ranged.
+   *
+   * `masts`' sibling and visual for the same reason. It is a *word* rather than
+   * a derivation from `modelClass` because the drawing is a decision about
+   * drawings — a fourth naval class would want its own mark and might well share
+   * a silhouette with one of these three.
+   */
+  canton?: 'chevrons' | 'rook' | 'crosshair';
+  /**
+   * True when this row is **in the game's data but not yet in the game**: no
+   * technology names it, and until one does it may be neither built nor bought.
+   *
+   * The naval line shipped its Æra V hulls (Corvette, Ship of the Line, Frigate)
+   * ahead of the age that unlocks them, because the triangle is only a triangle
+   * once every class has every rank and the balance pass wants all twelve rows
+   * to read against each other. Without this marker such a row is *worse* than
+   * unbuildable — it is buildable **from turn one**, since `isUnlocked` treats
+   * "no tech names it" as "available from the start" (`techData.ts`), which is
+   * the right default for content nobody gated and exactly wrong here.
+   *
+   * Deliberately a marker on the roster and not a second gate beside it, so it
+   * is refused in the two places a thing is acquired (`buildError`,
+   * `purchaseError`) and nowhere else — the augur's `purchase.exclusive` and the
+   * great person's `greatWork` are its two neighbours in that switch. **It is
+   * temporary by construction**: the Æra V tech pass deletes the field from
+   * three rows and adds them to a node's `unlocks`, and nothing else changes.
+   */
+  awaitsTech?: boolean;
   /** Which carved model the 3D board draws this unit as. See `ModelClass`. */
   modelClass: ModelClass;
   /** Single letter drawn on the unit disc. Visual only. */
@@ -513,6 +687,56 @@ export function unitStampStrength(unit: StampedUnit): number {
 export function trades(def: UnitDef): boolean {
   return def.trades === true;
 }
+
+/**
+ * Is this a **ship** — a piece whose home is the water?
+ *
+ * THE reading of the naval category, so that nothing anywhere compares a
+ * category against the string `'naval'` to answer a movement, stacking or
+ * combat question — `stacksFreely`'s discipline one category over, and
+ * `isExplorer`'s one field over.
+ *
+ * It is asked of `category` rather than of `modelClass` because it is a rule
+ * about *where a piece may be*, and the category is what the board's stacking
+ * caps are keyed by. The model class is art (`ModelClass`); a hull drawn with a
+ * different silhouette would still be a ship.
+ *
+ * Three things read it: `moveProfile` (which water and which land a hull may
+ * enter), `hasStackingRoom` (the escort clause), and `spawnTileFor` (a ship is
+ * launched from its city's own hex). Everything else about a hull — that it
+ * fights, that it may be captured, that it pays upkeep — is answered by the
+ * predicates above, unchanged, which is the whole reason the category is a
+ * fourth slot rather than a fourth kind of unit.
+ */
+export function isNaval(def: UnitDef): boolean {
+  return def.category === 'naval';
+}
+
+/**
+ * The **temporary** homes the twelve naval rows sit on until the tech-tree pass
+ * (the naval line, 2026-08-29; `docs/tech-tree.md`).
+ *
+ * A register in a comment rather than a field, because a note on a data row is
+ * player prose (CLAUDE.md hard rule 7) and "this ship is parked on Currency
+ * until Æra II exists" is a fact about the *project*. The user's ruling was
+ * "leave the tech tree alone until we finalize", so the rows were hung on nodes
+ * that already exist and nothing was renamed, re-costed or re-parented:
+ *
+ *     Trireme                              → Sailing      (the user's placement)
+ *     Bireme · War Galley                  → Currency
+ *     Galley · Tower Ship · Fire Ship      → Engineering
+ *     Caravel · Carrack · Gun Galley       → Physics
+ *     Corvette · Ship of the Line · Frigate → nothing yet — `awaitsTech`
+ *
+ * The tree's ratified homes are Sailing (I), Wayfinding (II), Shipwrights (III),
+ * The Astrolabe (IV) and Square Rigging (V). When those nodes land, the four
+ * lists above move and the three `awaitsTech` markers are deleted; **nothing
+ * else in the naval line depends on where a hull is unlocked**, with one honest
+ * exception worth naming here: `explainUnitCost`'s age band is read off the
+ * unlocking tech, so a row with no tech at all prices at its printed base and a
+ * row parked on an early node prices in that node's band. Both move on their own
+ * the moment the tree does.
+ */
 
 /**
  * Runtime guard. Commands arrive from save files and (eventually) sockets, so a

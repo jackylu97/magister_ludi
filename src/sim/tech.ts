@@ -105,6 +105,7 @@ import {
   cityYields,
   emptyCityYields,
   hasResource,
+  isCoastalCity,
   refreshCityDerived,
   turnsToFill,
 } from './cities';
@@ -149,7 +150,7 @@ import {
 } from './techData';
 import { awardOccasion } from './triumphs';
 import { isProjectId, projectDef } from './projectData';
-import { type UnitTypeId, isUnitTypeId, unitDef, unitMaxHp } from './unitData';
+import { type UnitTypeId, isNaval, isUnitTypeId, unitDef, unitMaxHp } from './unitData';
 
 const RESEARCH = RULES.research;
 
@@ -368,6 +369,36 @@ export function buildError(
   // `"greatPerson"`, exactly as nothing compares against `"augur"`.
   if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).greatWork === true) {
     return `${itemName(kind, id)}s are neither built nor bought — they are called`;
+  }
+  // And some rows are **in the data ahead of the age that opens them**: the Æra
+  // V hulls shipped with the rest of the naval line so the twelve could be
+  // balanced against each other, and no technology names them yet. Refused here
+  // and in `purchaseError` — see `UnitDef.awaitsTech`, which is temporary by
+  // construction — because "no tech names it" otherwise reads as "available from
+  // turn one" (`isUnlocked`), which would put a Ship of the Line in the opening
+  // build list.
+  if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).awaitsTech === true) {
+    return `${itemName(kind, id)} waits on a technology this age has not reached`;
+  }
+  /**
+   * **A ship needs the sea**, and the sentence names the town (the naval line,
+   * 2026-08-29).
+   *
+   * Asked of the *city* rather than of the empire, which is why it is here with
+   * the wonder's site clause rather than beside the strategic resource: "can I
+   * ever build a trireme" is a question about the tree and this is a question
+   * about a harbour. A caller with no town in hand — the Compendium, the tech
+   * chart — is asking the first one and is deliberately told nothing.
+   *
+   * `isCoastalCity` is the same test a harbour's site and `navalPorts` ask, so a
+   * town that may build a hull is a town a hull may be launched into and the two
+   * cannot drift. Nothing here compares a type against `"trireme"`: `isNaval`
+   * reads the row's own category, which is the marker.
+   */
+  if (kind === 'unit' && isUnitTypeId(id) && city !== undefined && isNaval(unitDef(id))) {
+    if (!isCoastalCity(state, city)) {
+      return `${city.name} is not on the coast`;
+    }
   }
   // The two wonder clauses, after the technology and before the resource, in the
   // order a player needs to hear them: a wonder that already stands somewhere is

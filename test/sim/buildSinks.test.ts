@@ -334,6 +334,11 @@ describe('the roster is priced in the money of its own age', () => {
       // A great person is neither built nor bought, so it is not priced in
       // hammers at all — see `tech.test.ts`'s reading of the same exception.
       if (unitDef(id).greatWork === true) continue;
+      // And the Æra V hulls, which shipped ahead of the age that opens them
+      // (`UnitDef.awaitsTech`, temporary by construction): no technology names
+      // them, `buildError` and `purchaseError` refuse them outright, and the
+      // tree pass deletes the marker from three rows and adds them to a node.
+      if (unitDef(id).awaitsTech === true) continue;
       const gate = UNIT_UNLOCK_TECH.get(id);
       // Every unit in the roster is gated; an ungated one would take band 1.
       expect(gate, id).toBeDefined();

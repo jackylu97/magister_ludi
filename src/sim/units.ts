@@ -22,6 +22,11 @@
  * "unlimited" is the shape of the rule, not a tuning knob somebody might set to
  * 3. A designer who wants three caravans a hex is asking for a different rule.
  *
+ * **One is capped twice** (the naval line, 2026-08-29): a ship takes the
+ * ordinary `'naval'` slot, and *on water* it may share its hex with exactly one
+ * piece that is not a ship — the escort. See `hasEscortRoom`, which is the one
+ * place that reading lives and the only clause the caps could not express.
+ *
  * Transit vs stopping
  * -------------------
  * They are different questions and the pathfinder needs both. Walking *through*
@@ -46,10 +51,12 @@
  * says so.
  */
 
+import { getTileAt } from './map';
 import type { GameState, Unit } from './state';
 import { cardUnitStat } from './statecraft';
 import { type UnitCategory, isCivilian, unitDef } from './unitData';
 import { RULES } from './rulesData';
+import { isWaterTerrain } from './terrainData';
 
 /** Every unit standing on an offset cell, in `state.units` order. */
 export function unitsOnTile(state: GameState, col: number, row: number): Unit[] {
@@ -120,6 +127,7 @@ export function hasStackingRoom(
   exceptId = -1,
 ): boolean {
   if (stacksFreely(category)) return true;
+  if (!hasEscortRoom(state, col, row, category, exceptId)) return false;
   const limit = RULES.stacking.perCategoryPerTile;
   let count = 0;
   for (const unit of state.units) {
@@ -130,6 +138,53 @@ export function hasStackingRoom(
     if (count >= limit) return false;
   }
   return true;
+}
+
+/**
+ * **The escort clause**: at sea, a hull carries one passenger and no more.
+ *
+ * The one thing the ordinary per-category caps cannot say (the naval line,
+ * 2026-08-29). `'naval'` being its own category already gives "one warship per
+ * hex" for free, and it also gives one military piece *and* one civilian piece
+ * beside it — which is right in a harbour and wrong on open water, where a
+ * warship with a whole column standing on its deck is not a ship, it is a
+ * transport. So the rule is: **on water, a hex holds at most one piece that is
+ * not a ship** — the escort — and the hull it is sailing with.
+ *
+ * Asked of the *ground* rather than of the pieces, and that is the whole reason
+ * this reads cleanly: a coastal city hex is dry land, so a ship garrisons there
+ * alongside the town's warrior and its settler under the ordinary caps, exactly
+ * as the user's ruling says it should ("it garrisons there like any unit").
+ * Nothing about a port needed a clause of its own.
+ *
+ * Traders are outside it for `stacksFreely`'s reason: a caravan needs no slot of
+ * anybody's. It could not be on the water without embarking anyway, and if a
+ * cargo hull ever lands, "any number of traders" will still be the rule.
+ *
+ * Symmetric by construction — it is asked whichever piece is arriving, so a hull
+ * joining a hex that already holds two embarked pieces is refused by the same
+ * count that refuses the second embarked piece joining a hull.
+ */
+function hasEscortRoom(
+  state: GameState,
+  col: number,
+  row: number,
+  category: UnitCategory,
+  exceptId: number,
+): boolean {
+  const tile = getTileAt(state.map, col, row);
+  if (!tile || !isWaterTerrain(tile.terrain)) return true;
+  let hulls = category === 'naval' ? 1 : 0;
+  let riders = category === 'naval' || stacksFreely(category) ? 0 : 1;
+  for (const unit of state.units) {
+    if (unit.id === exceptId) continue;
+    if (unit.col !== col || unit.row !== row) continue;
+    const other = unitDef(unit.type).category;
+    if (stacksFreely(other)) continue;
+    if (other === 'naval') hulls += 1;
+    else riders += 1;
+  }
+  return hulls <= 1 && riders <= 1;
 }
 
 /**

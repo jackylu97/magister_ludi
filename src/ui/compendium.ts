@@ -112,7 +112,7 @@ import { TECH_IDS, type TechId, techDef } from '../sim/techData';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
 import { TILE_YIELD_KEYS, type TileYieldSpec, readTileYield } from '../sim/terrainData';
 import { TRIUMPH_IDS, type TriumphId, triumphDef } from '../sim/triumphData';
-import { UNIT_TYPE_IDS, type UnitDef, type UnitTypeId, unitDef } from '../sim/unitData';
+import { UNIT_TYPE_IDS, type UnitDef, type UnitTypeId, isNaval, unitDef } from '../sim/unitData';
 import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
 import { CARD_LINE_NAME, lineOf } from './cardLine';
 import { setDescriptorText } from './keywords';
@@ -446,6 +446,50 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
   }
   if (def.ignoresTerrainCost === true) {
     out.push({ text: 'Rough ground does not slow it: every hex it can enter costs it the same.' });
+  }
+  /**
+   * The ship's clauses, in the order a player meets them: where it may be, then
+   * what its own line does that the others do not.
+   *
+   * Every one is asked of a **marker on the row** rather than of a class name —
+   * `isNaval`, `hitAndRun`, `blockades`, `bombard` — so a thirteenth hull is a
+   * JSON row here as everywhere else, and the words are the plain ones (hard
+   * rule 7): a *ship*, the *coast*, a *harbour*, never "naval", "hull class" or
+   * "blockade radius". Numbers stay out of the prose and are on the rows above.
+   */
+  if (isNaval(def)) {
+    out.push({
+      text: 'A ship. It sails on the coast and can come ashore only in one of your own cities that stands on the coast, where it can be built and where it can rest.',
+    });
+    out.push({
+      text: 'It shares a hex with one land unit at sea — the unit it is escorting — and never with another ship.',
+    });
+  }
+  if (def.hitAndRun === true) {
+    out.push({
+      text: 'Attacking does not end its turn: it pays a little movement for the blow and can sail away with the rest. It still attacks only once a turn.',
+    });
+    out.push({
+      text: 'A land unit sharing its hex out at sea defends with this ship’s strength instead of its own.',
+    });
+  }
+  if (def.blockades === true) {
+    out.push({
+      text: 'Standing beside a friendly ship of its own kind makes both of them stronger, up to a limit.',
+    });
+    out.push({
+      text: 'Sitting in the mouth of an enemy harbour closes it: the city is cut off as though an army stood around it, and its trade routes pay nothing while the ship is there.',
+    });
+  }
+  if (def.bombard === true) {
+    out.push({
+      text: 'Built to batter walls. It is worth more attacking a city than anything else, and it can knock the walls down from a distance without being struck back.',
+    });
+  }
+  if (def.awaitsTech === true) {
+    out.push({
+      text: 'Nothing you can research reaches this yet. It cannot be built or bought.',
+    });
   }
   if (def.requiresResource !== undefined) {
     out.push({

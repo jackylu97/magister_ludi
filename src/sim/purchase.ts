@@ -416,7 +416,12 @@ export function purchaseError(
         return `${name} is not open to ${player.name} yet`;
       }
     } else {
-      const blocked = buildError(state, playerId, bought.kind, bought.id);
+      // **With the town in hand**, which is the register's own rule (CLAUDE.md:
+      // a caller that has a city passes it). It buys the clauses that are about
+      // *this* town rather than about the empire — a wonder's site, and since
+      // the naval line a hull's coastline — so a landlocked city cannot buy the
+      // trireme it cannot build, and the sentence names the town either way.
+      const blocked = buildError(state, playerId, bought.kind, bought.id, city);
       if (blocked !== null) return blocked;
     }
     if (bought.kind === 'building' && city.buildings.includes(bought.id)) {

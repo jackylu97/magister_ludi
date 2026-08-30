@@ -95,6 +95,16 @@ import { HERALDRY_IDS, type HeraldryId, heraldryMark } from '../art/heraldryMark
 import { DRACONES_LINES, marginaliaMark } from '../art/marginaliaMarks';
 import { pantheonMark } from '../art/pantheonMarks';
 import {
+  NAVAL_CANTONS,
+  NAVAL_CANTON_MARKS,
+  NAVAL_HULLS,
+  NAVAL_MARK_BOX,
+  NAVAL_MARK_STROKE,
+  NAVAL_RIGS,
+  type NavalCanton,
+  type NavalRig,
+} from '../art/navalMarks';
+import {
   MARK_BOX,
   MARK_STROKE,
   type MarkPath,
@@ -211,8 +221,41 @@ const LENS = VIEW3D.lens;
  * in `data/view3d.json`, and it now names *every* row it decides — art keyed by
  * row, never a name compared in this file.
  */
+/**
+ * One composed naval badge: the age's hull, with the class's mark in the corner.
+ *
+ * A **template literal type** rather than fifteen written-out members, because
+ * the set is a product of two roster fields (`UnitDef.masts`, `UnitDef.canton`)
+ * and writing it out would be a third list of the same things — the drift this
+ * file's whole cell-order discipline exists to prevent. `navalBadgeId` is the
+ * one place the name is built, so the type, the cell list and `badgeClassFor`
+ * cannot disagree about what a cell is called.
+ */
+export type NavalBadgeId = `naval${NavalRig}${Capitalize<NavalCanton>}`;
+
+/** The composed cell's name for one rig and one class. THE naming. */
+export function navalBadgeId(rig: NavalRig, canton: NavalCanton): NavalBadgeId {
+  const suffix = (canton.charAt(0).toUpperCase() + canton.slice(1)) as Capitalize<NavalCanton>;
+  return `naval${rig}${suffix}`;
+}
+
+/**
+ * The canton a naval **model class** falls back to when a row names none.
+ *
+ * `badgeClassFor`'s fallback, one grade finer: a roster row with a `canton` gets
+ * a composed badge, and a naval row somebody added without one still gets a mark
+ * that says which line it is in. Art keyed to art — the three classes are a
+ * decision about drawings and so is which mark stands for each.
+ */
+export const NAVAL_CLASS_CANTON: Record<'navalLight' | 'navalHeavy' | 'navalRanged', NavalCanton> = {
+  navalLight: 'chevrons',
+  navalHeavy: 'rook',
+  navalRanged: 'crosshair',
+};
+
 export type BadgeClass =
   | ModelClass
+  | NavalBadgeId
   | 'greatPerson'
   | 'religious'
   | 'prophet'
@@ -273,7 +316,39 @@ export const BADGE_CELLS: readonly BadgeClass[] = [
   'knight',
   'trebuchet',
   'prophet',
+  // The three naval **classes**, which are the fallback a naval row with no
+  // `canton` gets — a mark that still says which line it is in. Appended before
+  // the composed set for no reason but the order they were written; the rule is
+  // only that nothing already in the list moved, and nothing did.
+  'navalLight',
+  'navalHeavy',
+  'navalRanged',
+  // And the fifteen **composed** cells, rig-major: every rig's chevrons, then
+  // its rook, then its crosshair. Generated from the two art tables rather than
+  // written out, for `NavalBadgeId`'s reason — a fourth canton is a row in
+  // `navalMarks.ts` and five more cells on the end of this list, and the append
+  // rule holds at that scale exactly as it held when eight arrived at once.
+  ...NAVAL_RIGS.flatMap((rig) => NAVAL_CANTONS.map((canton) => navalBadgeId(rig, canton))),
 ];
+
+/**
+ * The composed cells, in the same order `BADGE_CELLS` lists them, with the pair
+ * each is composed of.
+ *
+ * `BADGE_ICON_FILES`' counterpart for the half of the set that is **drawn**
+ * rather than fetched, and the reason the file table stopped being total (see
+ * its docblock). A cell is in exactly one of the two, which
+ * `test/render/badges3d.test.ts` asserts as a partition — the same claim
+ * `BADGE_LINES` makes about the lines.
+ */
+export const BADGE_MARK_PAIRS: ReadonlyMap<NavalBadgeId, { rig: NavalRig; canton: NavalCanton }> =
+  new Map(
+    NAVAL_RIGS.flatMap((rig) =>
+      NAVAL_CANTONS.map(
+        (canton) => [navalBadgeId(rig, canton), { rig, canton }] as const,
+      ),
+    ),
+  );
 
 /**
  * The badges grouped into the **lines** they were drawn as, which is the only
@@ -332,6 +407,16 @@ export const BADGE_LINES: readonly BadgeLine[] = [
     note: 'The five that are not a weapon at all, plus the laurel a great person wears over the settler’s body, the candle an augur wears over the worker’s, and the same candle ringed for the prophet — the three the rules decide, ahead of the art table.',
     members: ['settler', 'worker', 'scout', 'trader', 'religious', 'prophet', 'greatPerson'],
   },
+  {
+    line: 'The naval line',
+    note: 'Five hulls and three corner marks. The rank is the rig — oars and a pennant, one square sail, sail and a fighting tower, two masts, three — and the class is the canton: chevrons for the light line, the rook for the heavy, the crosshair for the ranged. The three bare cantons are the fallback a naval row with no rig would wear.',
+    members: [
+      'navalLight',
+      'navalHeavy',
+      'navalRanged',
+      ...NAVAL_RIGS.flatMap((rig) => NAVAL_CANTONS.map((canton) => navalBadgeId(rig, canton))),
+    ],
+  },
 ];
 
 /**
@@ -371,7 +456,30 @@ export const BADGE_LINES: readonly BadgeLine[] = [
  * is the swordsman's sword *and* the drawing any unnamed foot soldier wears;
  * `longswordsman.svg` is one unit's and nothing else's.
  */
-export const BADGE_ICON_FILES: Record<BadgeClass, string> = {
+/**
+ * A badge class whose artwork is a **file**. Every cell that is not naval.
+ *
+ * The split arrived with the naval line (2026-08-29) and it is worth the type it
+ * costs. The twenty-one below are still files for the reason the docblock above
+ * gives — each is printed here and nowhere else, so it never paid what a file
+ * charges. The eighteen naval cells could not take that bargain even in
+ * principle: fifteen of them are *composed*, a hull of one age with a class's
+ * mark in the corner, and two files cannot be composed without a third file that
+ * is the pair — which is fifteen drawings where there are eight. So they are
+ * path data (`src/art/navalMarks.ts`) and go through `paintMarkPaths` like every
+ * mark in the tile atlas.
+ *
+ * Exhaustive over *this* half rather than over `BadgeClass`, which is the point:
+ * a twenty-second file class still fails to compile without a file, and the
+ * naval cells are not silently missing one. The partition is asserted in
+ * `test/render/badges3d.test.ts` — every cell in exactly one table.
+ */
+export type FileBadgeClass = Exclude<
+  BadgeClass,
+  NavalBadgeId | 'navalLight' | 'navalHeavy' | 'navalRanged'
+>;
+
+export const BADGE_ICON_FILES: Record<FileBadgeClass, string> = {
   settler: 'sprites/icons/settler.svg',
   worker: 'sprites/icons/worker.svg',
   melee: 'sprites/icons/melee.svg',
@@ -394,6 +502,20 @@ export const BADGE_ICON_FILES: Record<BadgeClass, string> = {
   trebuchet: 'sprites/icons/trebuchet.svg',
   prophet: 'sprites/icons/prophet.svg',
 };
+
+/**
+ * The cells whose artwork is a file, in `BADGE_CELLS` order — the other half
+ * being the eighteen naval cells, which are drawn.
+ *
+ * Derived from `BADGE_CELLS` by asking the file table, never written out: two
+ * lists of the same twenty-one would be the drift this file spends its whole
+ * cell-order discipline avoiding. It is what the on-disk sweep in
+ * `test/render/badges3d.test.ts` walks, so "every named file exists and every
+ * file is named" stays a total claim about the half it is a claim about.
+ */
+export const FILE_BADGE_CELLS: readonly FileBadgeClass[] = BADGE_CELLS.filter(
+  (cls): cls is FileBadgeClass => BADGE_ICON_FILES[cls as FileBadgeClass] !== undefined,
+);
 
 // --- layout arithmetic -----------------------------------------------------
 
@@ -624,6 +746,92 @@ export function drawBadgeCell(
   ink.fillStyle = cssHex(style.ink);
   ink.fillRect(0, 0, size, size);
   context.drawImage(scratch, Math.round(center.x - size / 2), Math.round(center.y - size / 2));
+}
+
+/**
+ * How much of the cell a hull mark is printed at, and where the canton sits.
+ *
+ * Code rather than `view3d.json` for `SITE_MARK_SCALE`'s reason: these are not
+ * taste numbers but the geometry of putting two drawings on one roundel. The
+ * hull is printed a shade smaller than a class icon so the corner is clear of
+ * it, and the canton is a third the size, seated on the lower-right of the
+ * parchment at the radius a seat's heraldic charge is printed at — the same
+ * corner, deliberately, because a player already reads that corner as "which
+ * one of these is it".
+ */
+const NAVAL_HULL_SCALE = 0.86;
+const NAVAL_CANTON_SCALE = 0.36;
+const NAVAL_CANTON_OFFSET = 0.3;
+
+/**
+ * Paints one composed naval cell: the parchment roundel, the age's hull across
+ * it, then the class's mark on the corner.
+ *
+ * `drawBadgeCell`'s sibling for the drawn half of the set, and it takes the same
+ * `BadgeInkStyle` — so the wild's second print is free here exactly as it is
+ * there, and a barbarian trireme is the same two drawings in oxblood on darkened
+ * vellum with no second table.
+ *
+ * `rig` may be absent, which is the bare-canton fallback: a naval row with a
+ * class but no `masts` gets its line's mark alone, centred, at the hull's size.
+ * That is a real cell rather than a blank, for `loadIcon`'s reason — a mark
+ * nobody drew must still say *something* about the piece under it.
+ */
+export function drawNavalBadgeCell(
+  context: CanvasRenderingContext2D,
+  index: number,
+  layout: AtlasLayout,
+  canton: NavalCanton,
+  rig: NavalRig | null,
+  style: BadgeInkStyle = nationBadgeStyle(),
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
+
+  context.save();
+  context.fillStyle = cssHex(style.paper);
+  context.beginPath();
+  context.arc(center.x, center.y, paperRadiusFraction() * cell, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+
+  const mark = NAVAL_CANTON_MARKS[canton];
+  if (rig === null) {
+    paintMarkPaths(
+      context,
+      mark,
+      center,
+      Math.max(1, NAVAL_HULL_SCALE * BADGE.iconScale * cell),
+      style.ink,
+      NAVAL_MARK_BOX,
+      NAVAL_MARK_STROKE,
+    );
+    return;
+  }
+
+  paintMarkPaths(
+    context,
+    NAVAL_HULLS[rig],
+    center,
+    Math.max(1, NAVAL_HULL_SCALE * BADGE.iconScale * cell),
+    style.ink,
+    NAVAL_MARK_BOX,
+    NAVAL_MARK_STROKE,
+  );
+  const nudge = NAVAL_CANTON_OFFSET * paperRadiusFraction() * cell * 2;
+  paintMarkPaths(
+    context,
+    mark,
+    { x: center.x + nudge, y: center.y + nudge },
+    Math.max(1, NAVAL_CANTON_SCALE * BADGE.iconScale * cell),
+    style.ink,
+    NAVAL_MARK_BOX,
+    // Stroked heavier than the hull in grid units, because it is printed at a
+    // third the size: a mark that kept the set's weight through a 3× reduction
+    // would come out as a hairline and break up at the alpha test.
+    NAVAL_MARK_STROKE * 1.8,
+  );
 }
 
 // --- the tile icons --------------------------------------------------------
@@ -1930,7 +2138,14 @@ export class UnitBadges {
    */
   static async load(): Promise<UnitBadges | null> {
     const layout = badgeAtlasSize();
-    const icons = await Promise.all(BADGE_CELLS.map((cls) => loadIcon(BADGE_ICON_FILES[cls])));
+    // Only the file half is fetched. The naval cells are drawn from path data
+    // and resolve to `null` here, which is what the branch in `print` reads.
+    const icons = await Promise.all(
+      BADGE_CELLS.map((cls) => {
+        const file = BADGE_ICON_FILES[cls as FileBadgeClass];
+        return file === undefined ? Promise.resolve(null) : loadIcon(file);
+      }),
+    );
 
     const print = (style: BadgeInkStyle): CanvasTexture | null => {
       const canvas = document.createElement('canvas');
@@ -1938,7 +2153,19 @@ export class UnitBadges {
       canvas.height = layout.height;
       const context = canvas.getContext('2d');
       if (!context) return null;
-      BADGE_CELLS.forEach((_, index) => {
+      BADGE_CELLS.forEach((cls, index) => {
+        // The drawn half first, so a composed cell is never mistaken for a file
+        // class whose artwork failed to load and printed as a blank roundel.
+        const pair = BADGE_MARK_PAIRS.get(cls as NavalBadgeId);
+        if (pair) {
+          drawNavalBadgeCell(context, index, layout, pair.canton, pair.rig, style);
+          return;
+        }
+        const fallback = NAVAL_CLASS_CANTON[cls as keyof typeof NAVAL_CLASS_CANTON];
+        if (fallback !== undefined) {
+          drawNavalBadgeCell(context, index, layout, fallback, null, style);
+          return;
+        }
         drawBadgeCell(context, icons[index] ?? null, index, layout, style);
       });
       const texture = new CanvasTexture(canvas);

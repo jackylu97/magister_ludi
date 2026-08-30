@@ -2580,6 +2580,208 @@ export const boatMini: MiniFactory = (spec) => {
   return mini.build();
 };
 
+// --- the naval line ---------------------------------------------------------
+
+/**
+ * The three warship hulls' proportions, as fractions of the kit.
+ *
+ * `BOAT`'s shape and its reason — one table so that nudging a hull moves the
+ * masts standing in it — with the three classes side by side rather than in
+ * three tables, because the whole claim of the set is that they are *the same
+ * boat at three weights*: a light hull is narrow and low, a heavy one is broad
+ * and carries a castle, a ranged one sits between them with its bow raised. A
+ * reader comparing three tables cannot check that; a reader comparing three rows
+ * can.
+ *
+ * `beam` and `long` scale the shared lathe, so the silhouette from the ortho
+ * camera is the whole of the difference — which is right, because that is the
+ * only view this board has.
+ */
+const WARSHIP = {
+  /** The tub every class is turned from, before its own beam and length. */
+  hull: { height: 0.22, long: 1.34, beam: 0.66 },
+  /** Shifted astern so the *silhouette* is centred on the disc. `BOAT.aft`. */
+  aft: -0.28,
+  prow: { radius: 0.42, length: 0.62, drop: 0.6 },
+  mast: { radius: 0.026, foot: 0.74 },
+  /** The sail hung on each mast, as fractions of that mast's own length. */
+  sail: { width: 1.2, height: 0.46, thickness: 0.032, at: 0.52 },
+  yard: { width: 1.38, thickness: 0.05, at: 0.82 },
+  /** The pennant a rig-1 hull flies in place of a sail, and its oars. */
+  pennant: { length: 0.34, drop: 0.14, thickness: 0.03, foot: 0.55 },
+  oar: { count: 3, length: 0.34, thickness: 0.026, spread: 0.62 },
+  classes: {
+    navalLight: { long: 1.06, beam: 0.82, height: 0.86, castle: 0, bow: 0 },
+    navalHeavy: { long: 1.0, beam: 1.24, height: 1.2, castle: 0.34, bow: 0 },
+    navalRanged: { long: 1.02, beam: 1.0, height: 1.0, castle: 0, bow: 0.26 },
+  },
+} as const;
+
+/** Which of the three hulls this sculpt is cut to. `MiniClass`' one grade down. */
+export type WarshipClass = keyof typeof WARSHIP.classes;
+
+/**
+ * A warship: one hull shape per class, rigged to the age its row names.
+ *
+ * The boat the whole roster embarks in (`boatMini`) answers a different
+ * question and stays: a settler at sea is *the unit somewhere the unit cannot
+ * stand*, so it loses its body entirely and one generic hull carries it. A
+ * warship is the opposite — the water is where it belongs, and the piece is the
+ * ship. So it keeps its own silhouette, and `sculptFor` refuses to swap it for
+ * the boat.
+ *
+ * Two axes, and both come off the **roster row**, which is what makes the piece
+ * and its badge agree: `modelClass` picks the body and `masts` picks the rig, and
+ * the badge composes the same rig's hull mark with the same class's canton. A
+ * player who has learnt that three masts means late and a castle means heavy has
+ * learnt it once for both.
+ *
+ * The rig is a **count**, exactly as the badge's is, and rank 1 is the odd one
+ * for the same reason there: no mast at all, oars beneath the sheer and a
+ * pennant on a short staff. The absence is what a trireme *is*, and a rank that
+ * differed only in the height of a sail would be a difference the ortho camera
+ * never resolves.
+ *
+ * The seat's colour goes in the sails — the largest flat faces, square-on to the
+ * camera — which is `boatMini`'s argument and `miniHorse`'s before it: a hull
+ * painted in team colour is a large blob of it with rigging on top. A rig-1 hull
+ * has no sail, so its pennant carries the colour instead.
+ */
+export function warshipMini(cls: WarshipClass, masts: 1 | 2 | 3 | 4 | 5): MiniFactory {
+  const shape = WARSHIP.classes[cls];
+  return (spec) => {
+    const t = spec.baseThickness;
+    const h = spec.height - t;
+    const r = spec.baseRadius;
+    const mini = new Mini().add('body', miniBase(spec));
+    const aft = r * WARSHIP.aft;
+    const long = WARSHIP.hull.long * shape.long;
+    const beam = WARSHIP.hull.beam * shape.beam;
+
+    const hullH = h * WARSHIP.hull.height * shape.height;
+    const hull = lathe([
+      [0, 0],
+      [r * 0.58, 0],
+      [r * 0.86, hullH * 0.5],
+      [r * 0.94, hullH],
+      [0, hullH],
+    ]);
+    hull.scale(long, 1, beam);
+    hull.translate(aft, t, 0);
+    mini.add('wood', hull);
+
+    // The stem. Squashed rather than a spike, `BOAT.prow`'s reason: a cone at
+    // full height is a ram and only one of these three is one.
+    const prow = spike(r * WARSHIP.prow.radius, r * WARSHIP.prow.length, 5);
+    prow.rotateZ(-Math.PI / 2);
+    prow.scale(1, WARSHIP.prow.drop, beam);
+    prow.translate(aft + r * long * 0.9, t + hullH * (0.52 + shape.bow), 0);
+    mini.add('wood', prow);
+
+    // The heavy line's castle: a block aft, above the sheer. The one box in the
+    // set and the one thing a reader can name from across the table.
+    if (shape.castle > 0) {
+      mini.add(
+        'wood',
+        slabAt(
+          r * 0.42,
+          hullH * shape.castle * 3,
+          r * beam * 0.72,
+          aft - r * long * 0.44,
+          t + hullH + (hullH * shape.castle * 3) / 2,
+          0,
+        ),
+      );
+    }
+
+    const foot = t + hullH * WARSHIP.mast.foot;
+    if (masts === 1) {
+      // Oars and a pennant. The oars are the only elements below the sheer in
+      // the whole roster, which is exactly what makes rank 1 legible.
+      const oarLength = r * WARSHIP.oar.length;
+      for (let i = 0; i < WARSHIP.oar.count; i++) {
+        const along = aft + r * long * (0.34 - i * 0.34);
+        for (const side of [-1, 1]) {
+          const oar = slabAt(
+            oarLength,
+            r * WARSHIP.oar.thickness,
+            r * WARSHIP.oar.thickness,
+            along - oarLength * 0.3,
+            t + hullH * 0.42,
+            side * r * beam * WARSHIP.oar.spread,
+            side * 0.34,
+          );
+          mini.add('wood', oar);
+        }
+      }
+      // The staff runs to the **class's full height**, like every mast in the
+      // set, because `pieceHeightFor` is what the badge and the hit-point bar
+      // ride on and a rank that stood short would hang its own tag halfway down
+      // itself. What says "no mast" is the absence of a *sail* and the presence
+      // of oars, not a shorter stick — and the staff is cut thinner than a mast
+      // so the two do not read alike at size.
+      const staffFoot = t + hullH * WARSHIP.pennant.foot;
+      const staffLength = spec.height - staffFoot;
+      const staff = shaft(staffLength, r * WARSHIP.mast.radius * 0.72);
+      staff.translate(aft - r * long * 0.36, staffFoot, 0);
+      mini.add('wood', staff);
+      mini.add(
+        'body',
+        slabAt(
+          r * WARSHIP.pennant.length,
+          spec.height * WARSHIP.pennant.drop,
+          r * WARSHIP.pennant.thickness,
+          aft - r * long * 0.36 + (r * WARSHIP.pennant.length) / 2,
+          staffFoot + staffLength * 0.86,
+          0,
+        ),
+      );
+      return mini.build();
+    }
+
+    // Two through five masts, spread fore-and-aft about the hull's middle, the
+    // centre one tallest. `masts − 1` sails, because the rig count *is* the
+    // rank: a two-mast hull is rank IV and a three-mast hull is rank V, while
+    // ranks II and III carry one mast and differ by the castle.
+    const count = masts <= 3 ? 1 : masts - 2;
+    for (let i = 0; i < count; i++) {
+      const spread = count === 1 ? 0 : (i / (count - 1) - 0.5) * 0.66;
+      const x = aft + r * long * spread;
+      // The centre mast is tallest, so the silhouette peaks rather than walls.
+      const tall = count === 1 ? 1 : 1 - Math.abs(spread) * 0.5;
+      const length = (spec.height - foot) * tall;
+      const mast = shaft(length, r * WARSHIP.mast.radius);
+      mast.translate(x, foot, 0);
+      mini.add('wood', mast);
+
+      const width = (r * WARSHIP.sail.width) / Math.max(1, count * 0.8);
+      mini.add(
+        'wood',
+        slabAt(
+          (width * WARSHIP.yard.width) / WARSHIP.sail.width,
+          r * WARSHIP.yard.thickness,
+          r * WARSHIP.yard.thickness,
+          x,
+          foot + length * WARSHIP.yard.at,
+          0,
+        ),
+      );
+      mini.add(
+        'body',
+        slabAt(
+          width,
+          length * WARSHIP.sail.height,
+          r * WARSHIP.sail.thickness,
+          x,
+          foot + length * WARSHIP.sail.at,
+          0,
+        ),
+      );
+    }
+    return mini.build();
+  };
+}
+
 /** Archer: token with a self bow held at the side and a quiver on the back. */
 export const archerMini: MiniFactory = (spec) => {
   const t = spec.baseThickness;

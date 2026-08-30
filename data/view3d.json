@@ -245,7 +245,19 @@
     },
     "byUnitType": {
       "trader": "trader",
-      "prophet": "prophet"
+      "prophet": "prophet",
+      "trireme": "navalLight",
+      "bireme": "navalLight2",
+      "galley": "navalLight3",
+      "caravel": "navalLight4",
+      "corvette": "navalLight5",
+      "warGalley": "navalHeavy",
+      "towerShip": "navalHeavy3",
+      "carrack": "navalHeavy4",
+      "shipOfTheLine": "navalHeavy5",
+      "fireShip": "navalRanged",
+      "gunGalley": "navalRanged4",
+      "frigate": "navalRanged5"
     }
   },
   "city": {

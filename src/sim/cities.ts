@@ -84,7 +84,7 @@ import {
   foldStages,
   withStage,
 } from './modifiers';
-import { type Cell, type MoveProfile, findPath, isPassable } from './pathfind';
+import { type Cell, type MoveProfile, findPath, isPassable, moveProfile, tileMoveCost } from './pathfind';
 import {
   CITY_YIELD_KEYS,
   RESOURCE_IDS,
@@ -171,7 +171,7 @@ import { TECH_IDS, type TechId, UNIT_UNLOCK_TECH, isTechId, techDef } from './te
 // condition the whole simulation's cycles are safe under — see the docblock in
 // `statecraft.ts`.
 import { buildError, settleResearchWindfall } from './tech';
-import { UNIT_TYPE_IDS, type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId, isNaval, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
 import { recomputeVisibility } from './visibility';
 import { isCoastal } from './water';
@@ -1221,7 +1221,7 @@ function layFoundingRoad(state: GameState, city: City): void {
     hasAttacked: false,
   };
   // A road does not swim, whatever the empire's caravans may do. See above.
-  const mover: MoveProfile = { def, embarks: false };
+  const mover: MoveProfile = { def, embarks: false, naval: false };
 
   let route: Cell[] | null = null;
   for (const candidate of candidates) {
@@ -3666,8 +3666,51 @@ function ejectUnbuildableQueue(city: City): string[] {
  * price cannot answer. See `realiseItem`.
  */
 export function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile | null {
-  const { category } = unitDef(type);
+  const def = unitDef(type);
+  const { category } = def;
   const centre = cityTile(state.map, city);
+  /**
+   * **A ship is launched from the city that built it** (the user's ruling,
+   * 2026-08-29), and the fallback is the water rather than the land.
+   *
+   * The same two beats as everything else — the centre, then a neighbour — but
+   * read through the *hull's* own passability instead of `isPassable`, which is
+   * the question "is this dry ground" and is exactly wrong here. `moveProfile`
+   * answers both halves at once and answers them the way the walk will: the
+   * centre is enterable iff this town is coastal (it is in the mover's `ports`),
+   * and a neighbour is enterable iff it is open water. So a landlocked city
+   * cannot launch a hull *and does not need a clause saying so* — it simply has
+   * nowhere to put one, and `buildError` refuses the queue row long before this
+   * with a sentence a player can read.
+   *
+   * A probe rather than a real unit for the reason every spawn question is a
+   * hypothetical: nothing has been created yet, so the profile is built from a
+   * piece that stands where the town does and belongs to whoever owns it.
+   */
+  if (isNaval(def)) {
+    const probe: Unit = {
+      id: -1,
+      ownerId: city.ownerId,
+      type,
+      col: centre.col,
+      row: centre.row,
+      hp: def.maxHp,
+      movesLeft: def.movement,
+      hasAttacked: false,
+    };
+    const mover = moveProfile(state, probe);
+    if (
+      tileMoveCost(centre, mover) !== null &&
+      hasStackingRoom(state, centre.col, centre.row, category)
+    ) {
+      return centre;
+    }
+    for (const tile of neighborTiles(state.map, tileHex(centre))) {
+      if (tileMoveCost(tile, mover) === null) continue;
+      if (hasStackingRoom(state, tile.col, tile.row, category)) return tile;
+    }
+    return null;
+  }
   if (hasStackingRoom(state, centre.col, centre.row, category)) return centre;
   for (const tile of neighborTiles(state.map, tileHex(centre))) {
     if (!isPassable(tile)) continue;

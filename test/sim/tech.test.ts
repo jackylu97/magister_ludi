@@ -176,6 +176,11 @@ describe('tech data integrity', () => {
       // the row outright, which is what keeps an ungated type — `isUnlocked`
       // answers `true` for one — off every roster.
       if (unitDef(id).greatWork === true) continue;
+      // And the Æra V hulls, which shipped ahead of the age that opens them
+      // (`UnitDef.awaitsTech`, temporary by construction): no technology names
+      // them, `buildError` and `purchaseError` refuse them outright, and the
+      // tree pass deletes the marker from three rows and adds them to a node.
+      if (unitDef(id).awaitsTech === true) continue;
       expect(UNIT_UNLOCK_TECH.has(id), id).toBe(true);
     }
     for (const id of BUILDING_IDS) {

@@ -78,13 +78,19 @@ describe('the stacking rule', () => {
    * traders**. Three claims live here: the roster is split three ways, the cap
    * is per slot, and the trader's slot has no cap at all.
    */
-  it('gives every unit exactly one of three slots, and only the trader an uncapped one', () => {
+  it('gives every unit exactly one of four slots, and only the trader an uncapped one', () => {
     const categories = new Set(UNIT_TYPE_IDS.map((id) => unitDef(id).category));
-    expect([...categories].sort()).toEqual(['civilian', 'military', 'trader']);
+    // The fourth is the naval line's (2026-08-29): a hull takes a slot of its
+    // own, which is the whole of "one warship per hex" with no clause anywhere.
+    expect([...categories].sort()).toEqual(['civilian', 'military', 'naval', 'trader']);
     expect(unitDef('trader').category).toBe('trader');
+    expect(unitDef('trireme').category).toBe('naval');
     expect(stacksFreely('trader')).toBe(true);
     expect(stacksFreely('civilian')).toBe(false);
     expect(stacksFreely('military')).toBe(false);
+    // A ship is capped like a soldier. Its *escort* is the extra clause, and it
+    // is asked of the ground rather than of the category — see `naval.test.ts`.
+    expect(stacksFreely('naval')).toBe(false);
     // The category is a *stacking* answer and not a combat one: `isCivilian` is
     // `!isCombatant`, so capture, plunder, fortify and upkeep still read a
     // caravan exactly as they read a worker.

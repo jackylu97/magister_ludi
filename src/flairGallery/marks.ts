@@ -45,9 +45,25 @@ import {
   pantheonMarkSvg,
   religionDevice,
 } from '../art/pantheonMarks';
+import {
+  NAVAL_CANTONS,
+  NAVAL_CANTON_MARKS,
+  NAVAL_HULLS,
+  NAVAL_MARK_BOX,
+  NAVAL_MARK_STROKE,
+  NAVAL_RIGS,
+} from '../art/navalMarks';
 import { siteMark } from '../art/siteMarks';
 import { YIELD_MARKS, yieldMarkDataUri } from '../art/yieldMarks';
-import { BADGE_ICON_FILES, BADGE_LINES } from '../render3d/badges3d';
+import {
+  BADGE_ICON_FILES,
+  BADGE_LINES,
+  type FileBadgeClass,
+  drawNavalBadgeCell,
+  nationBadgeStyle,
+  navalBadgeId,
+  wildBadgeStyle,
+} from '../render3d/badges3d';
 import { deviceLayout } from '../render3d/cities3d';
 import { VIEW3D } from '../render3d/lookData';
 import { DISCOVERY_KINDS } from '../sim/discoveryData';
@@ -104,6 +120,7 @@ export function drawMarkFamilies(into: HTMLElement): void {
   pantheonFamily(into);
   deviceFamily(into);
   badgeFamily(into);
+  navalFamily(into);
   heraldryFamily(into);
   marginaliaFamily(into);
 }
@@ -211,6 +228,111 @@ function siteFamily(into: HTMLElement): void {
   for (const kind of DISCOVERY_KINDS) {
     const mark = siteMark(kind);
     markCell(grid, kind, uriOf(markSvg(mark.paths, MARK_BOX, MARK_STROKE)), mark.note);
+  }
+}
+
+/**
+ * The naval marks: five hulls, three cantons, and the fifteen composed badges.
+ *
+ * **Three blocks, because the set answers three questions** — the pantheon's
+ * argument one family over. The hulls have to be five things a reader can rank
+ * at twelve pixels, which is a question about the row of five. The cantons have
+ * to be three things a reader can tell apart in a *corner*, printed at a third
+ * the size, which is a question this page answers by showing them at 12 as well
+ * as at 64. And the badge is neither of those: it is the two drawings composed
+ * on one roundel, and whether a Galley reads as a Galley next to a Tower Ship is
+ * a question only the composed cells can answer.
+ *
+ * The third block is the shipping composition rather than a picture of it — the
+ * cells are painted by `drawNavalBadgeCell`, the same function the atlas calls,
+ * onto a canvas of the atlas's own cell size — so a nudge to the canton's inset
+ * or its heavier stroke shows up here without this file being touched.
+ */
+function navalFamily(into: HTMLElement): void {
+  const hulls = markGrid(
+    block(
+      into,
+      'Naval hulls — src/art/navalMarks.ts',
+      'One drawn hull per age, and the rank is what changes the silhouette rather than the detail: oars and a pennant with nothing above the sheer, one square sail, that sail with a fighting castle, two masts, three. Read the row at 12 — a rank a reader cannot count at twelve pixels is a rank the board never says out loud.',
+    ),
+  );
+  for (const rig of NAVAL_RIGS) {
+    const mark = NAVAL_HULLS[rig];
+    hulls.append();
+    markCell(
+      hulls,
+      `rig ${rig}`,
+      uriOf(markSvg(mark.paths, NAVAL_MARK_BOX, NAVAL_MARK_STROKE)),
+      mark.note,
+    );
+  }
+
+  const cantons = markGrid(
+    block(
+      into,
+      'Naval cantons — the three classes',
+      'Tabler outline marks (MIT), inlined as path data like every other mark in the atlas. Printed small on the badge’s parchment corner, in the corner a player already reads as “which one of these is it” — the corner a seat’s heraldic charge takes.',
+    ),
+  );
+  for (const canton of NAVAL_CANTONS) {
+    const mark = NAVAL_CANTON_MARKS[canton];
+    markCell(
+      cantons,
+      canton,
+      uriOf(markSvg(mark.paths, NAVAL_MARK_BOX, NAVAL_MARK_STROKE)),
+      `${mark.note} · ${mark.credit}`,
+    );
+  }
+
+  drawNavalBadges(into);
+}
+
+/**
+ * The fifteen composed badges, painted by the atlas's own painter.
+ *
+ * Canvas rather than SVG, and that is the point rather than a shortcut: the
+ * composition — the hull's inset, the canton's corner, its heavier stroke at a
+ * third the size — lives in `drawNavalBadgeCell`, so a page that re-emitted it
+ * as two overlaid SVGs would be a second implementation drifting from the first.
+ * Each cell is a one-cell atlas at the shipping cell size, printed in the
+ * nation's ink and again in the wild's, which is the only place the barbarian
+ * treatment of this set can be judged.
+ */
+function drawNavalBadges(into: HTMLElement): void {
+  const root = block(
+    into,
+    'Naval badges — hull × canton, composed',
+    'The fifteen cells the atlas actually prints, each the age’s hull with its class’s mark on the corner — plus the wild’s second print of the same drawings, which is the whole cost of a barbarian fleet on the board. Painted here by `drawNavalBadgeCell`, the function the atlas calls, so this is the shipping badge rather than a picture of one.',
+  );
+  for (const rig of NAVAL_RIGS) {
+    const grid = markGrid(root);
+    for (const canton of NAVAL_CANTONS) {
+      const id = navalBadgeId(rig, canton);
+      const cell = element('div', 'mark-cell');
+      const row = element('div', 'mark-row');
+      for (const style of [nationBadgeStyle(), wildBadgeStyle()]) {
+        const canvas = document.createElement('canvas');
+        const size = VIEW3D.badges.atlasCell;
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext('2d');
+        if (context) {
+          drawNavalBadgeCell(
+            context,
+            0,
+            { cell: size, columns: 1, rows: 1, width: size, height: size },
+            canton,
+            rig,
+            style,
+          );
+        }
+        canvas.style.width = '64px';
+        canvas.style.height = '64px';
+        row.append(canvas);
+      }
+      cell.append(row, element('div', 'mark-id', id));
+      grid.append(cell);
+    }
   }
 }
 
@@ -416,9 +538,17 @@ function badgeFamily(into: HTMLElement): void {
     'One mark per unit type, on the parchment badge that floats over a piece: the family says the line and the axis or the count says the rank, because those are the two things that survive twenty-four pixels. Tabler Icons (MIT) at the yield marks’ weight where Tabler has the shape, drawn here in Tabler’s geometry where it has not — no icon set in the world draws a catapult, a trebuchet, a pike, a chariot, a crossbow, a club, or a caravan that is not a modern trailer. Vendored files rather than path data: the last set in the game that is fetched at all.',
   );
   for (const line of BADGE_LINES) {
+    // The naval line is drawn from path data and has its own three blocks
+    // (`navalFamily`), which is the whole of `FileBadgeClass`' split made
+    // visible: this block is the half of the set that is a *file*, and a cell
+    // with no file in it is not missing — it is somewhere else on this page.
+    const files = line.members.filter(
+      (cls): cls is FileBadgeClass => BADGE_ICON_FILES[cls as FileBadgeClass] !== undefined,
+    );
+    if (files.length === 0) continue;
     root.append(element('p', 'sheet-note', `${line.line} — ${line.note}`));
     const grid = markGrid(root);
-    for (const cls of line.members) markCell(grid, cls, `/${BADGE_ICON_FILES[cls]}`);
+    for (const cls of files) markCell(grid, cls, `/${BADGE_ICON_FILES[cls]}`);
   }
   drawBadgeRoundels(root);
 }

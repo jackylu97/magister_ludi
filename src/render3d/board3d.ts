@@ -50,13 +50,14 @@ import type { Unit } from '../sim/state';
 import type { BeliefAxis } from '../sim/religionData';
 import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
 import { type TerrainId, isEmbarkableTerrain } from '../sim/terrainData';
-import { type ModelClass, UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
+import { type ModelClass, UNIT_TYPE_IDS, type UnitTypeId, isNaval, unitDef } from '../sim/unitData';
 import { hasRiverEdge, neighborInDirection } from '../sim/water';
 
 import {
   type BadgeClass,
   AXIS_CELLS,
   BADGE_CELLS,
+  navalBadgeId,
   CHARGE_CELLS,
   NUMERAL_CELLS,
   SITE_MARK_CELLS,
@@ -79,6 +80,7 @@ import {
   bannerPole,
   barQuad,
   boatMini,
+  warshipMini,
   borderCorner,
   cactus,
   cairnStack,
@@ -281,6 +283,23 @@ export function badgeClassFor(type: UnitTypeId): BadgeClass {
   if (def.greatWork) return 'greatPerson';
   if (def.prophesies) return 'prophet';
   if (def.consecrates) return 'religious';
+  /**
+   * **A ship's badge is composed**, and that is the fourth rules clause.
+   *
+   * It sits with the other three rather than in the art table for their reason
+   * exactly: `masts` and `canton` are fields the *roster* carries, and the badge
+   * is the board's one sentence about what a piece is. Twelve rows would
+   * otherwise need twelve entries in `badges.byUnitType` naming cells that are
+   * already a pure function of two fields on the row — a third list of the same
+   * things, which is the drift every table in this file is arranged to prevent.
+   *
+   * A naval row that names only one of the two falls through to its class's own
+   * cell, which is a real mark (the line's canton alone) and not a blank — see
+   * `NAVAL_CLASS_CANTON`.
+   */
+  if (def.masts !== undefined && def.canton !== undefined) {
+    return navalBadgeId(def.masts, def.canton);
+  }
   return BADGE_OVERRIDES.get(type) ?? def.modelClass;
 }
 
@@ -342,6 +361,37 @@ export const MINI_SCULPTS: Record<SculptId, MiniSculpt> = {
   traderLaden: { cls: 'foot', build: caravanLadenMini },
   prophet: { cls: 'foot', build: prophetMini },
   boat: { cls: 'foot', build: boatMini },
+  /**
+   * **The naval line: three hulls, five rigs, twelve bodies** (2026-08-29).
+   *
+   * The three `ModelClass` keys are each that class's *first* rank — the rig
+   * the earliest hull in the line carries — so a naval row added with nothing
+   * but a `modelClass` still stands in the right kind of boat. Everything later
+   * in a line is an extra sculpt named by `pieces.byUnitType`, which is the
+   * caravan's split exactly: which drawing a row wears is a decision about
+   * drawings and is made here and in `data/view3d.json`, never by a column
+   * reaching across into the rules' own file.
+   *
+   * Twelve entries where nine would have done, because a rig is a *count* a
+   * player reads off the silhouette and the badge composes the same count in the
+   * corner. A single sculpt per class with the rank carried by the badge alone
+   * would have made a corvette and a trireme the same object on the water, which
+   * is the one place this board has room to say otherwise: at sea a piece is
+   * unobstructed and its whole outline is visible, which is exactly not true of
+   * a foot soldier standing in a wood.
+   */
+  navalLight: { cls: 'foot', build: warshipMini('navalLight', 1) },
+  navalLight2: { cls: 'foot', build: warshipMini('navalLight', 2) },
+  navalLight3: { cls: 'foot', build: warshipMini('navalLight', 3) },
+  navalLight4: { cls: 'foot', build: warshipMini('navalLight', 4) },
+  navalLight5: { cls: 'foot', build: warshipMini('navalLight', 5) },
+  navalHeavy: { cls: 'foot', build: warshipMini('navalHeavy', 2) },
+  navalHeavy3: { cls: 'foot', build: warshipMini('navalHeavy', 3) },
+  navalHeavy4: { cls: 'foot', build: warshipMini('navalHeavy', 4) },
+  navalHeavy5: { cls: 'foot', build: warshipMini('navalHeavy', 5) },
+  navalRanged: { cls: 'foot', build: warshipMini('navalRanged', 3) },
+  navalRanged4: { cls: 'foot', build: warshipMini('navalRanged', 4) },
+  navalRanged5: { cls: 'foot', build: warshipMini('navalRanged', 5) },
 };
 
 /**
@@ -399,7 +449,25 @@ export interface MiniSculpt {
  * `data/view3d.json`, never by a `sculpt:` column reaching across into the
  * rules' own file.
  */
-const EXTRA_SCULPT_IDS = ['trader', 'traderLaden', 'prophet', 'boat'] as const;
+const EXTRA_SCULPT_IDS = [
+  'trader',
+  'traderLaden',
+  'prophet',
+  'boat',
+  // The nine later rigs of the three naval lines. Each *is* named by
+  // `pieces.byUnitType` — unlike `traderLaden` and `boat`, which are reached
+  // only through a piece's own situation — because a hull's rank is a fact about
+  // the **type**, exactly as `trader` and `prophet` are.
+  'navalLight2',
+  'navalLight3',
+  'navalLight4',
+  'navalLight5',
+  'navalHeavy3',
+  'navalHeavy4',
+  'navalHeavy5',
+  'navalRanged4',
+  'navalRanged5',
+] as const;
 
 /** A body a piece can stand in: a model class, or one of the extras above. */
 export type SculptId = ModelClass | (typeof EXTRA_SCULPT_IDS)[number];
@@ -436,6 +504,12 @@ export const MODEL_CLASS_IDS = SCULPT_IDS.filter(
  * which is the honest default for a question with no hex in it.
  */
 export function sculptFor(type: UnitTypeId, terrain?: TerrainId): SculptId {
+  // **A warship is never the boat.** `AFLOAT` is what a piece takes when it is
+  // somewhere it cannot stand, and a hull is not somewhere it cannot stand — the
+  // water is where it lives. So the naval clause is read first, off the roster's
+  // own category (`isNaval`) rather than off a model class, and a trireme on the
+  // coast keeps its own silhouette.
+  if (isNaval(unitDef(type))) return SCULPT_OVERRIDES.get(type) ?? modelClassFor(type);
   if (terrain !== undefined && isEmbarkableTerrain(terrain)) return AFLOAT;
   return SCULPT_OVERRIDES.get(type) ?? modelClassFor(type);
 }

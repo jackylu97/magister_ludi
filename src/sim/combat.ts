@@ -213,6 +213,7 @@
  */
 
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
+import { blockadedWaterAround, blockades } from './blockade';
 import { isWonder } from './buildingData';
 import { buildingCityHp, buildingCityStat } from './buildingEffects';
 import { assignCitizens, cityAt, settleProductionWindfall } from './cities';
@@ -226,7 +227,7 @@ import {
   tileIndex,
   wrappedDistance,
 } from './map';
-import { type Cell, isPassable } from './pathfind';
+import { type Cell, isPassable, moveProfile, snapMovement, tileMoveCost } from './pathfind';
 import { nextRange } from './rng';
 import { RULES } from './rulesData';
 import {
@@ -258,10 +259,12 @@ import { type TraderPlunder, settleTraderPlunder } from './trade';
 import { explainTerrainDefense, isWaterTerrain } from './terrainData';
 import { isVisibleTo, recomputeVisibilityFor } from './visibility';
 import {
+  type UnitDef,
   type UnitTypeId,
   UNIT_TYPE_IDS,
   isCivilian,
   isCombatant,
+  isNaval,
   isRanged,
   trades,
   unitDef,
@@ -559,7 +562,22 @@ function canAdvanceOnto(state: GameState, attacker: Unit, tile: Tile): boolean {
  * the town clause and gets it above.
  */
 function canHoldTakenGround(state: GameState, attacker: Unit, tile: Tile): boolean {
-  if (!isPassable(tile)) return false;
+  /**
+   * **The winner's own passability, not the land's.**
+   *
+   * This used to ask `isPassable`, which is deliberately "is this dry ground"
+   * (see its docblock) and was exactly right while every attacker walked. It is
+   * wrong the moment a hull can attack: a trireme that sank another trireme
+   * would have been refused the water it was already floating on, and one that
+   * beat down a coastal town would have been refused the gate it is entitled to
+   * walk into. So the question is asked of the *mover* — `tileMoveCost` with the
+   * attacker's own profile — which is the same evaluator the four readers of
+   * `stepCost` share, and therefore the same answer a march would have given.
+   *
+   * It is a strict narrowing for everything on land: a land piece's profile
+   * refuses water exactly as `isPassable` did, and refuses a mountain likewise.
+   */
+  if (tileMoveCost(tile, moveProfile(state, attacker)) === null) return false;
   const { category } = unitDef(attacker.type);
   if (!hasStackingRoom(state, tile.col, tile.row, category, attacker.id)) return false;
   for (const unit of unitsOnTile(state, tile.col, tile.row)) {
@@ -827,6 +845,140 @@ export function generalAuraLines(state: GameState, unit: Unit): CombatStrengthLi
     return [{ source: `Great general · ${def.name}`, amount }];
   }
   return [];
+}
+
+// --- the naval line ---------------------------------------------------------
+
+/**
+ * The strength lines a **roster row** carries into this fight — the Trireme's
+ * "+5 against ranged ships", the Fire Ship's "−5 Fragile hull", the Frigate's
+ * "+10 Bombardment".
+ *
+ * `cardCombatLines`' sibling and deliberately the same shape (`buildingCityStat`
+ * and `cardCityStat` make the identical pair one system over): a card's line is
+ * a fact about the *law* and this is a fact about the *type*, so the two lists
+ * concatenate in `planCombat`'s fold with no translation and the forecast card
+ * itemises a hull's own advantage exactly as it itemises a doctrine's.
+ *
+ * Read on **whichever side the row is on**, once per side, which is what makes
+ * the triangle symmetric with no second implementation: the Trireme's line pays
+ * when it charges a Fire Ship and when a Fire Ship charges it, because both are
+ * "a light hull in a fight with a ranged hull".
+ *
+ * Every clause is a narrowing and absent means "always" — `side`, `vsKind`,
+ * `vsCity`, `vsModelClass` — and the city one is asymmetric on purpose: a town
+ * has no silhouette, so a `vsModelClass` line never pays against walls (see
+ * `UnitCombatLine`).
+ */
+export function rowCombatLines(
+  def: UnitDef,
+  side: 'attacker' | 'defender',
+  kind: CombatKind,
+  vsType: UnitTypeId | undefined,
+  vsCity: boolean,
+): CombatStrengthLine[] {
+  const posture = side === 'attacker' ? 'attack' : 'defend';
+  const lines: CombatStrengthLine[] = [];
+  for (const line of def.combatLines ?? []) {
+    if (line.side !== undefined && line.side !== 'both' && line.side !== posture) continue;
+    if (line.vsKind !== undefined && line.vsKind !== kind) continue;
+    if (line.vsCity !== undefined && line.vsCity !== vsCity) continue;
+    if (line.vsModelClass !== undefined) {
+      if (vsType === undefined) continue;
+      if (unitDef(vsType).modelClass !== line.vsModelClass) continue;
+    }
+    lines.push({ source: line.label, amount: line.amount });
+  }
+  return lines;
+}
+
+/**
+ * **The line of battle**: what standing shoulder to shoulder with other heavy
+ * hulls is worth, as the one labelled line it adds — or nothing.
+ *
+ * `generalAuraLines`' shape at sea, and the resemblance is the design rather
+ * than a copy: a fact about *where the piece is standing* is a flat labelled
+ * point total, never a term in a multiplier. What differs is that this one
+ * *counts* — `rules.naval.lineBonusPerHull` per neighbour, capped at
+ * `lineBonusMax` — because a line of battle is a formation and a general is a
+ * person, so one of them stacks and the other cannot.
+ *
+ * Four clauses, each a sentence. **Heavy hulls only**, asked of `blockades` —
+ * the roster's own marker for the heavy line — so nothing here compares a type
+ * against a name or switches on a model class, which is art. **Its own side**,
+ * the reading everything in this file gives "friendly". **Adjacent**, the six
+ * neighbours and nothing further: a formation is contact, and a fleet spread
+ * over a sea is not a line. **`state.units` in array order**, never a `Map`,
+ * because the count reaches an outcome (hard rule 2).
+ *
+ * Read on both sides by `planCombat`, like every other flat line: a wall of
+ * hulls is worth the same closing as it is holding.
+ */
+export function navalLineLines(state: GameState, unit: Unit): CombatStrengthLine[] {
+  const per = RULES.naval.lineBonusPerHull;
+  if (per === 0) return [];
+  if (!blockades(unitDef(unit.type))) return [];
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here) return [];
+  const eye = tileHex(here);
+  let neighbours = 0;
+  for (const other of state.units) {
+    if (other.id === unit.id) continue;
+    if (other.ownerId !== unit.ownerId) continue;
+    if (!blockades(unitDef(other.type))) continue;
+    const stands = getTileAt(state.map, other.col, other.row);
+    if (!stands) continue;
+    if (wrappedDistance(state.map, eye, tileHex(stands)) !== 1) continue;
+    neighbours += 1;
+  }
+  if (neighbours === 0) return [];
+  const amount = Math.min(RULES.naval.lineBonusMax, neighbours * per);
+  return [{ source: 'The line', amount }];
+}
+
+/**
+ * What being **on the water** is worth to a piece that does not belong there —
+ * the escort's shelter, or the price of having none.
+ *
+ * Exactly one of two lines, never both, and never anything for a ship (a hull
+ * *is* the water; it takes no penalty for being on it) or for a piece standing
+ * on dry land.
+ *
+ *   · **Escort.** A friendly *light* hull sharing the hex means the passenger
+ *     defends at the ship's strength: the line is the difference, so the fold
+ *     lands exactly on the hull's number before the ground and the trench are
+ *     added. It never subtracts — a soldier stronger than the ship escorting it
+ *     is simply not helped — because "defends at the hull's strength" is a
+ *     floor, and a fast hull that made a legion easier to kill would be a card
+ *     nobody would ever play.
+ *   · **At sea.** Otherwise, `rules.naval.atSeaPenalty` off. A column caught mid
+ *     crossing is a column that cannot form up, and it is the whole reason a
+ *     light hull is worth building alongside an invasion.
+ *
+ * The escort is asked of `hitAndRun`, the light line's own marker, for
+ * `navalLineLines`' reason: the roster says what a hull is for, and a model
+ * class is art. `stacksFreely` pieces are skipped so a caravan sharing the hex
+ * is neither an escort nor in the way.
+ */
+export function seaDefenceLines(
+  state: GameState,
+  defender: Unit,
+  tile: Tile,
+): CombatStrengthLine[] {
+  const def = unitDef(defender.type);
+  if (isNaval(def)) return [];
+  if (!isWaterTerrain(tile.terrain)) return [];
+  for (const other of state.units) {
+    if (other.id === defender.id) continue;
+    if (other.ownerId !== defender.ownerId) continue;
+    if (other.col !== tile.col || other.row !== tile.row) continue;
+    const hull = unitDef(other.type);
+    if (!isNaval(hull) || hull.hitAndRun !== true) continue;
+    const lift = hull.combatStrength - def.combatStrength;
+    return lift > 0 ? [{ source: `Escort · ${hull.name}`, amount: lift }] : [];
+  }
+  const penalty = RULES.naval.atSeaPenalty;
+  return penalty === 0 ? [] : [{ source: 'At sea', amount: -penalty }];
 }
 
 /** Everything a forecast says, and everything the notice line needs. */
@@ -1178,6 +1330,52 @@ function planCombat(
   }
   if (target.unit) {
     for (const line of generalAuraLines(state, target.unit)) {
+      bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
+    }
+  }
+  /**
+   * **The naval triangle**, all three of it, and every part is a flat labelled
+   * line joining the list every other advantage joins.
+   *
+   * The roster's own lines first (`rowCombatLines`) — the light hull's edge over
+   * a gun deck, the ranged hull's fragility when a melee catches it, the
+   * frigate's bombardment — read on whichever side the row is on, so one table
+   * answers for an attack and for a defence. Then **the line of battle**, both
+   * sides, beside the general's aura it is modelled on. Then the water, on the
+   * defender only: a piece caught crossing is worth less unless a light hull is
+   * standing over it, which is what `seaDefenceLines` is.
+   *
+   * That is the whole of the triangle in the simulation. There is no naval
+   * branch in the damage curve, no second evaluator and no clause anywhere that
+   * asks whether a fight is at sea — three data rows and three folds, which is
+   * the same bargain a luxury's signature and a card's effect make.
+   */
+  for (const line of rowCombatLines(
+    def,
+    'attacker',
+    kind,
+    target.unit?.type,
+    target.city !== null,
+  )) {
+    bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
+  }
+  for (const line of navalLineLines(state, attacker)) {
+    bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
+  }
+  if (target.unit) {
+    for (const line of rowCombatLines(
+      unitDef(target.unit.type),
+      'defender',
+      kind,
+      attacker.type,
+      false,
+    )) {
+      bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
+    }
+    for (const line of navalLineLines(state, target.unit)) {
+      bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
+    }
+    for (const line of seaDefenceLines(state, target.unit, tile)) {
       bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
     }
   }
@@ -1776,7 +1974,23 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       );
     }
   } else {
-    attacker.movesLeft = 0;
+    /**
+     * **Hit and run**: a light hull pays for the blow and keeps the rest.
+     *
+     * The one exception to "an attack ends your turn", and it is a *price*
+     * rather than an exemption — `rules.naval.hitAndRunCost` out of the purse,
+     * so a hull that came in on its last point is finished exactly like anybody
+     * else. `hasAttacked` is set either way, which is what keeps "one blow a
+     * turn" true: what the light line buys is somewhere to be afterwards, never
+     * a second attack.
+     *
+     * Read off `UnitDef.hitAndRun`, the row's own marker, so the raider a later
+     * age adds inherits it without this line moving. `snapMovement` because a
+     * purse is exact thirds and a hull may have walked a road to get here.
+     */
+    attacker.movesLeft = unitDef(attacker.type).hitAndRun === true
+      ? Math.max(0, snapMovement(attacker.movesLeft - RULES.naval.hitAndRunCost))
+      : 0;
     attacker.hasAttacked = true;
     breakFortify(attacker);
     // The route the player approved ended in a fight. Resuming it next turn
@@ -2113,8 +2327,29 @@ export function siegeField(state: GameState, ownerId: number): SiegeField {
   };
   for (const unit of state.units) {
     if (unit.ownerId === ownerId) continue;
-    if (!isCombatant(unitDef(unit.type))) continue;
+    const def = unitDef(unit.type);
+    if (!isCombatant(def)) continue;
     mark(unit.col, unit.row);
+    /**
+     * **The blockade**, and it is the one clause in this field that denies a hex
+     * nobody is standing on.
+     *
+     * `underSiege` denies a *water* neighbour only when an enemy is standing on
+     * it — an open sea lane is a supply line, and that is the rule which makes a
+     * port hard to starve. A heavy hull is what changes it: parked in the mouth
+     * of the harbour it holds the lane either side of itself, so one warship
+     * closes a small port instead of one per hex of water. Marked as `held` and
+     * not merely `denied`, because `held` is precisely the grid `underSiege`
+     * asks about the sea.
+     *
+     * Asked of `blockades` (`blockade.ts`), the roster's own marker, so nothing
+     * here compares a type against a name — and the lane is water only, so this
+     * can never widen a siege on land.
+     */
+    if (!blockades(def)) continue;
+    const here = getTileAt(map, unit.col, unit.row);
+    if (!here) continue;
+    for (const lane of blockadedWaterAround(map, here)) mark(lane.col, lane.row);
   }
   for (const city of state.cities) {
     if (city.ownerId === ownerId) continue;

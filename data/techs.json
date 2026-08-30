@@ -67,6 +67,9 @@
         ],
         "buildings": [
           "greatLighthouse"
+        ],
+        "units": [
+          "trireme"
         ]
       },
       "flavor": "The shore stops being the edge of the world."
@@ -309,7 +312,9 @@
       ],
       "unlocks": {
         "units": [
-          "trader"
+          "trader",
+          "bireme",
+          "warGalley"
         ],
         "buildings": [
           "market",
@@ -338,7 +343,7 @@
     },
     "theHighTemple": {
       "name": "The High Temple",
-      "glyph": "\ud83d\udd4c",
+      "glyph": "🕌",
       "age": 2,
       "row": 3,
       "cost": 170,
@@ -374,6 +379,11 @@
           "workshop",
           "watermill",
           "greatWall"
+        ],
+        "units": [
+          "galley",
+          "towerShip",
+          "fireShip"
         ]
       },
       "flavor": "The river is put to work and does not complain."
@@ -487,7 +497,10 @@
       ],
       "unlocks": {
         "units": [
-          "trebuchet"
+          "trebuchet",
+          "caravel",
+          "carrack",
+          "gunGalley"
         ],
         "buildings": [
           "machuPicchu"
@@ -565,7 +578,7 @@
     },
     "thePreaching": {
       "name": "The Preaching",
-      "glyph": "\ud83d\udcef",
+      "glyph": "📯",
       "summary": "An augur may spend a rite to preach, spreading your religion for a while."
     },
     "riteOfPlenty": {

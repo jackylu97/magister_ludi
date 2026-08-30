@@ -25,6 +25,7 @@
  * the leaf asking the hub whether it was allowed to pay.
  */
 
+import { cityBlockaded } from './blockade';
 import {
   type BuildingCategory,
   type BuildingId,
@@ -236,6 +237,40 @@ export function explainRouteYieldBetween(
     };
     if (extra.food !== 0 || extra.production !== 0 || extra.gold !== 0) {
       lines.push({ source: label(`cards ${percent > 0 ? '+' : ''}${percent}%`), ...extra });
+    }
+  }
+
+  /**
+   * **The blockade, last, and it takes back everything above it.**
+   *
+   * A heavy hull in the mouth of either town's harbour stops the route paying —
+   * the user's ruling with the naval line, and the heavy hull's whole reason to
+   * be slow. Written as a **negative line** rather than an early return, which is
+   * rule 5 doing the work it exists for: the sheet says *why* the caravan stopped
+   * paying, on the row where the number went, instead of a total quietly
+   * becoming zero and a player wondering what broke.
+   *
+   * Either end, because a blockade is about goods that cannot move: a hull off
+   * the origin stops them leaving and one off the destination stops them
+   * arriving, and there is no honest reading under which only one of those
+   * counts. It is placed after the amplifier so it cancels the card's share too
+   * — a law that pays a percentage of nothing pays nothing.
+   *
+   * `cityBlockaded` is the same reading `siegeField` marks the sea lane with
+   * (`blockade.ts`, a leaf so this module can ask it without importing the
+   * fight), so a port that is besieged from the water is a port whose caravans
+   * have stopped.
+   */
+  const cut = cityBlockaded(state, from) ? from : cityBlockaded(state, to) ? to : null;
+  if (cut !== null) {
+    const total = foldRouteYield(lines);
+    if (total.food !== 0 || total.production !== 0 || total.gold !== 0) {
+      lines.push({
+        source: `Blockaded · ${cut.name}`,
+        food: -total.food,
+        production: -total.production,
+        gold: -total.gold,
+      });
     }
   }
 

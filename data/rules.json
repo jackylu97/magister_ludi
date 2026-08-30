@@ -37,6 +37,12 @@
     "siegeDamagePerTurn": 5,
     "captureCivilians": true
   },
+  "naval": {
+    "hitAndRunCost": 1,
+    "lineBonusPerHull": 2,
+    "lineBonusMax": 4,
+    "atSeaPenalty": 10
+  },
   "improvements": {
     "pillageGold": 25,
     "pillageHeal": 25,
@@ -262,7 +268,10 @@
     "templeForeignPercent": 50,
     "bombRange": 10,
     "bombLump": 60,
-    "maxReligions": { "numerator": 2, "denominator": 3 }
+    "maxReligions": {
+      "numerator": 2,
+      "denominator": 3
+    }
   },
   "offers": {
     "order": 3,

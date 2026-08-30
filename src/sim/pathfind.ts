@@ -87,7 +87,8 @@ import { cardBorderZoc } from './statecraft';
 import { type GameState, type Unit, playerById } from './state';
 import { techsGrant } from './techData';
 import { isEmbarkableTerrain, moveCost } from './terrainData';
-import { type UnitDef, isCivilian, isCombatant, isExplorer, unitDef } from './unitData';
+import { isCoastal } from './water';
+import { type UnitDef, isCivilian, isCombatant, isExplorer, isNaval, unitDef } from './unitData';
 import { fullMovement, hasForeignUnit, hasStackingRoom } from './units';
 
 /** An offset cell. The wire/serialisation form of a position. */
@@ -194,10 +195,84 @@ export interface MoveProfile {
    * True when this piece may cross **embarkable** water: a civilian whose owner
    * holds the embark ability (Sailing, today — `techsGrant` is the register).
    *
-   * Civilians only, and that is the v1 rule rather than an oversight: a combat
-   * unit at sea would be a navy, and there is none. See `moveProfile`.
+   * Civilians only — plus the explorer since 2026-08-29. It is emphatically not
+   * how a *ship* is on the water: a hull does not embark, it belongs there. See
+   * `naval` below and `moveProfile`.
    */
   embarks: boolean;
+  /**
+   * True when this piece is a **ship** (`isNaval`), which inverts the whole
+   * question a step asks of the ground.
+   *
+   * Embarkation *widens* what a land piece may enter; this **replaces** it. A
+   * hull may cross `embarkable` water — coast today, the ocean when the Astrolabe
+   * opens it — and exactly one kind of dry land: `ports`. Every other hex on the
+   * map is impassable to it, which is one clause in `tileMoveCost` and therefore
+   * one clause the four readers of `stepCost` inherit by construction.
+   */
+  naval: boolean;
+  /**
+   * The **land** hexes a ship may stand on at all: coastal city centres, and
+   * nothing else (the user's ruling, 2026-08-29 — "a coastal city's hex is the
+   * one land hex a ship may enter; it garrisons there like any unit").
+   *
+   * **Every** coastal town, not only this seat's, and the asymmetry that makes
+   * it right is already in the movement rules: `canTransit` refuses a hex
+   * holding a foreign city outright, so a hull can never *march* into somebody
+   * else's harbour, while `canHoldTakenGround` — the one reading that
+   * deliberately drops that clause, because the foreign town is the thing being
+   * taken — lets a melee hull walk into a beaten one and capture it. That is
+   * the second half of the ruling ("a naval melee unit takes a city like a land
+   * melee does") and it needed no naval clause anywhere in `combat.ts`: the hex
+   * is simply ground this piece can be on.
+   *
+   * Owner-free, therefore, and hoisted once per sweep rather than per seat.
+   *
+   * Held as a set of `Tile` objects rather than of indices because
+   * `tileMoveCost` is a pure function of a tile and a mover and has no map to
+   * take an index against — and object identity is exact here, since `getTile`
+   * and `getTileAt` both hand back the very entries of `map.tiles`. It is only
+   * ever asked `.has`, never iterated, so nothing about an outcome depends on
+   * its order.
+   *
+   * Hoisted once per sweep, `zocField`'s bargain: the answer is a walk of
+   * `state.cities` and asking it per edge would be that walk tens of thousands
+   * of times. Its lifetime is that one sweep, for `tileOwnerField`'s reason —
+   * a port set that outlived its loop would answer with a city list the state
+   * has moved past.
+   *
+   * Absent for every mover that is not a ship, which is every mover in a game
+   * with no navy in it.
+   */
+  ports?: ReadonlySet<Tile>;
+}
+
+/**
+ * The dry hexes a ship may enter: every **coastal** city centre on the map.
+ *
+ * One rule, in one place, and the coastal half is `isCoastal`'s — the same test
+ * `isCoastalCity` and a harbour's site ask, so a town that may build a hull is a
+ * town a hull may sit in and the two cannot drift.
+ *
+ * Foreign towns are deliberately **in** the set, and the seat filter that used
+ * to be here would have been a second answer to a question the movement rules
+ * already answer better: `canTransit` refuses any hex holding somebody else's
+ * city, so a hull cannot march into a stranger's harbour, and
+ * `canHoldTakenGround` — which drops that clause precisely because the foreign
+ * town is what is being taken — lets a melee hull walk in and capture. See
+ * `MoveProfile.ports`.
+ *
+ * `state.cities` in array order, though the result is a set and the order cannot
+ * reach an outcome — the discipline, not the requirement.
+ */
+export function navalPorts(state: GameState): ReadonlySet<Tile> {
+  const ports = new Set<Tile>();
+  for (const city of state.cities) {
+    const tile = getTileAt(state.map, city.col, city.row);
+    if (!tile || !isCoastal(state.map, tile)) continue;
+    ports.add(tile);
+  }
+  return ports;
 }
 
 /**
@@ -211,6 +286,13 @@ export interface MoveProfile {
 export function moveProfile(state: GameState, unit: Unit): MoveProfile {
   const def = unitDef(unit.type);
   const owner = playerById(state, unit.ownerId);
+  // A ship is answered first and separately, because the two abilities are not
+  // degrees of one thing: a hull does not embark onto the water, it is refused
+  // the land. Its ports are hoisted here for the sweep, beside the embark
+  // lookup, so nothing downstream asks the state a second time.
+  if (isNaval(def)) {
+    return { def, embarks: false, naval: true, ports: navalPorts(state) };
+  }
   // A civilian, or the explorer (user, 2026-08-29: "sailing should also allow
   // scouts to embark") — the one combat unit that may take to the water, read
   // off its row's marker rather than its name, so a later explorer inherits it.
@@ -218,7 +300,7 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     (isCivilian(def) || isExplorer(def)) &&
     owner !== undefined &&
     techsGrant(owner.techsResearched, 'embark');
-  return { def, embarks };
+  return { def, embarks, naval: false };
 }
 
 /**
@@ -258,8 +340,24 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
 export function tileMoveCost(tile: Tile, mover?: MoveProfile): number | null {
   const ground = moveCost(tile.terrain, tile.feature, tile.hills);
   if (ground === null) {
+    // A ship's water is the *same* water an embarked settler crosses, and that
+    // is deliberate: `isEmbarkableTerrain` is the one reading of "which sea is
+    // open", so the day The Astrolabe opens the ocean it opens for both at once
+    // and neither this function nor its four readers change.
+    if (mover?.naval === true && isEmbarkableTerrain(tile.terrain)) {
+      return RULES.movement.minStepCost;
+    }
     if (!mover?.embarks || !isEmbarkableTerrain(tile.terrain)) return null;
     return RULES.movement.embarkCost;
+  }
+  // **The land half of the naval rule, and it is a refusal.** A hull pays the
+  // floor to enter one of its empire's own coastal city hexes — the launch and
+  // the garrison, which is the one thing a ship does ashore — and nothing at all
+  // for any other dry ground, whatever the terrain table says it costs a
+  // warrior. Read strictly *before* `ignoresTerrainCost`, which is a discount on
+  // a price that exists and must never become a way onto a hex.
+  if (mover?.naval === true) {
+    return mover.ports?.has(tile) === true ? RULES.movement.minStepCost : null;
   }
   return mover?.def?.ignoresTerrainCost ? RULES.movement.minStepCost : ground;
 }

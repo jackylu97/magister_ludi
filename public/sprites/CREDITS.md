@@ -551,6 +551,45 @@ Edits to upstream: the stroke weighted 2 → 2.75, and `smile`'s `<circle>` face
 data (every member of a mark in this project is a `d` string). Nothing re-fitted, nothing
 re-centred.
 
+## The naval marks (`src/art/navalMarks.ts`) — **no files**
+
+The naval line's badges are **path data in a module**, not files, and the section is here rather
+than in a "no files" appendix because three of the eight drawings are somebody else's and the
+licence has to be recorded wherever a reader looks for it.
+
+Why no files, when the twenty-one class badges beside them are files: a naval badge is
+*composed* — the age's hull with the class's mark on the parchment corner — and two files
+cannot be composed without a third file that is the pair, which is fifteen drawings where
+there are eight. So the hulls and the cantons are traced into the atlas by `paintMarkPaths`,
+exactly as every mark in the tile atlas is, and `drawNavalBadgeCell` puts them together.
+
+The five hulls are **original work for this project**, CC0 1.0, drawn on Tabler's 24-unit grid at
+the badges' own weight so they stand beside the file set without looking heavier. The rank is the
+rig, and each step changes the silhouette rather than the detail:
+
+| Rig | What it is | Worn by |
+| --- | --- | --- |
+| 1 | a bare hull over a line of oars, one pennant streaming aft | Trireme |
+| 2 | one mast under a single square sail | Bireme, War Galley |
+| 3 | a square sail with a fighting castle aft | Galley, Tower Ship, Fire Ship |
+| 4 | two masts, the forward one shorter, under narrowed sails | Caravel, Carrack, Gun Galley |
+| 5 | three masts under a full rig | Corvette, Ship of the Line, Frigate |
+
+The three cantons are **Tabler Icons** (MIT — see the licence text under the badge section
+above), inlined as `d` strings at the same weight, printed at about a third the hull's size on
+the corner a seat's heraldic charge takes:
+
+| Canton | Upstream | What it says |
+| --- | --- | --- |
+| `chevrons` | Tabler `chevrons-right` | the light line — forward, fast, and gone |
+| `rook` | Tabler `chess-rook` | the heavy line — the tower ship's castle, and the line of battle |
+| `crosshair` | Tabler `crosshair` | the ranged line — it strikes at a distance |
+
+Edits to upstream: the stroke weighted 2 → 2.2 for this set's grid, and nothing else — nothing
+re-fitted, nothing re-centred. The composed cell strokes the canton heavier again in *grid* units
+(1.8×) because it is printed at a third the size, so that it lands at the set's weight on the
+canvas rather than as a hairline that breaks up at the atlas's alpha test.
+
 ## Marginalia (`icons/marginalia/`)
 
 **Original work for this project**, CC0 1.0, same 64 × 64 grid and same round caps, drawn a

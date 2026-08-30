@@ -282,6 +282,291 @@
       "modelClass": "siege",
       "glyph": "E"
     },
+    "trireme": {
+      "name": "Trireme",
+      "category": "naval",
+      "movement": 4,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 10,
+      "cost": 12,
+      "hitAndRun": true,
+      "combatLines": [
+        {
+          "label": "Against ranged ships",
+          "amount": 5,
+          "vsModelClass": "navalRanged"
+        }
+      ],
+      "masts": 1,
+      "canton": "chevrons",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "bireme",
+      "modelClass": "navalLight",
+      "glyph": "T"
+    },
+    "bireme": {
+      "name": "Bireme",
+      "category": "naval",
+      "movement": 5,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 13,
+      "cost": 12,
+      "hitAndRun": true,
+      "combatLines": [
+        {
+          "label": "Against ranged ships",
+          "amount": 5,
+          "vsModelClass": "navalRanged"
+        }
+      ],
+      "masts": 2,
+      "canton": "chevrons",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "galley",
+      "modelClass": "navalLight",
+      "glyph": "B"
+    },
+    "galley": {
+      "name": "Galley",
+      "category": "naval",
+      "movement": 5,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 16,
+      "cost": 14,
+      "hitAndRun": true,
+      "combatLines": [
+        {
+          "label": "Against ranged ships",
+          "amount": 5,
+          "vsModelClass": "navalRanged"
+        }
+      ],
+      "masts": 3,
+      "canton": "chevrons",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "caravel",
+      "modelClass": "navalLight",
+      "glyph": "G"
+    },
+    "caravel": {
+      "name": "Caravel",
+      "category": "naval",
+      "movement": 6,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 22,
+      "cost": 17,
+      "hitAndRun": true,
+      "combatLines": [
+        {
+          "label": "Against ranged ships",
+          "amount": 5,
+          "vsModelClass": "navalRanged"
+        }
+      ],
+      "masts": 4,
+      "canton": "chevrons",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "corvette",
+      "modelClass": "navalLight",
+      "glyph": "V"
+    },
+    "corvette": {
+      "name": "Corvette",
+      "category": "naval",
+      "movement": 6,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 28,
+      "cost": 19,
+      "hitAndRun": true,
+      "combatLines": [
+        {
+          "label": "Against ranged ships",
+          "amount": 5,
+          "vsModelClass": "navalRanged"
+        }
+      ],
+      "masts": 5,
+      "canton": "chevrons",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "awaitsTech": true,
+      "modelClass": "navalLight",
+      "glyph": "O"
+    },
+    "warGalley": {
+      "name": "War Galley",
+      "category": "naval",
+      "movement": 3,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 16,
+      "cost": 19,
+      "blockades": true,
+      "masts": 2,
+      "canton": "rook",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "towerShip",
+      "modelClass": "navalHeavy",
+      "glyph": "W"
+    },
+    "towerShip": {
+      "name": "Tower Ship",
+      "category": "naval",
+      "movement": 3,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 24,
+      "cost": 23,
+      "blockades": true,
+      "masts": 3,
+      "canton": "rook",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "carrack",
+      "modelClass": "navalHeavy",
+      "glyph": "H"
+    },
+    "carrack": {
+      "name": "Carrack",
+      "category": "naval",
+      "movement": 3,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 32,
+      "cost": 27,
+      "blockades": true,
+      "masts": 4,
+      "canton": "rook",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "shipOfTheLine",
+      "modelClass": "navalHeavy",
+      "glyph": "K"
+    },
+    "shipOfTheLine": {
+      "name": "Ship of the Line",
+      "category": "naval",
+      "movement": 3,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 44,
+      "cost": 31,
+      "blockades": true,
+      "masts": 5,
+      "canton": "rook",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "awaitsTech": true,
+      "modelClass": "navalHeavy",
+      "glyph": "L"
+    },
+    "fireShip": {
+      "name": "Fire Ship",
+      "category": "naval",
+      "movement": 4,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 12,
+      "rangedStrength": 18,
+      "range": 1,
+      "cost": 20,
+      "combatLines": [
+        {
+          "label": "Fragile hull",
+          "amount": -5,
+          "side": "defend",
+          "vsKind": "melee"
+        }
+      ],
+      "masts": 3,
+      "canton": "crosshair",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "gunGalley",
+      "modelClass": "navalRanged",
+      "glyph": "F"
+    },
+    "gunGalley": {
+      "name": "Gun Galley",
+      "category": "naval",
+      "movement": 4,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 18,
+      "rangedStrength": 26,
+      "range": 2,
+      "cost": 24,
+      "combatLines": [
+        {
+          "label": "Fragile hull",
+          "amount": -5,
+          "side": "defend",
+          "vsKind": "melee"
+        }
+      ],
+      "masts": 4,
+      "canton": "crosshair",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "frigate",
+      "modelClass": "navalRanged",
+      "glyph": "U"
+    },
+    "frigate": {
+      "name": "Frigate",
+      "category": "naval",
+      "movement": 4,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 28,
+      "rangedStrength": 38,
+      "range": 2,
+      "cost": 28,
+      "bombard": true,
+      "combatLines": [
+        {
+          "label": "Fragile hull",
+          "amount": -5,
+          "side": "defend",
+          "vsKind": "melee"
+        },
+        {
+          "label": "Bombardment",
+          "amount": 10,
+          "side": "attack",
+          "vsCity": true
+        }
+      ],
+      "masts": 5,
+      "canton": "crosshair",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "awaitsTech": true,
+      "modelClass": "navalRanged",
+      "glyph": "R"
+    },
     "augur": {
       "name": "Augur",
       "category": "civilian",

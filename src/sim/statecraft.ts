@@ -4977,6 +4977,16 @@ function filterWords(filter: UnitFilter): string {
   // happens to give it.
   if (filter.explores === true) return 'scouts';
   if (filter.explores === false) return 'units other than scouts';
+  // **Ships**, and the plain word is the point (hard rule 7): the roster calls
+  // them a `'naval'` category and three `navalLight`/`navalHeavy`/`navalRanged`
+  // model classes, and none of those is a thing a first-time player has ever
+  // been told. Asked before the silhouette for `consecrates`' reason — a hull's
+  // model class is art, and "navalRanged units" is exactly the sentence this
+  // table exists to prevent.
+  if (filter.category === 'naval') return 'ships';
+  if (filter.modelClass === 'navalLight') return 'light warships';
+  if (filter.modelClass === 'navalHeavy') return 'heavy warships';
+  if (filter.modelClass === 'navalRanged') return 'ships that fire at a distance';
   if (filter.modelClass !== undefined) return `${filter.modelClass} units`;
   if (filter.ranged === true) return 'ranged units';
   if (filter.ranged === false) return 'melee units';

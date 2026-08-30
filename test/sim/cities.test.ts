@@ -1953,6 +1953,11 @@ describe('escalating settler cost', () => {
       // A great person is neither built nor bought and has no unlock tech, so
       // it has no band either — see `tech.test.ts`'s reading of the exception.
       if (def.greatWork === true) continue;
+      // And the Æra V hulls, which shipped ahead of the age that opens them
+      // (`UnitDef.awaitsTech`, temporary by construction): no technology names
+      // them, `buildError` and `purchaseError` refuse them outright, and the
+      // tree pass deletes the marker from three rows and adds them to a node.
+      if (def.awaitsTech === true) continue;
       // Not `def.cost`: since the build-sink pass a later-age type is also
       // multiplied by its Æra band (Entry XXVI), which is a fact about the
       // *roster* and not about this empire. What the ladder must not do is
