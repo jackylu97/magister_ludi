@@ -79,15 +79,27 @@ anything else, it competes with a settler, a wonder, a unit — the decision *is
 | endeavour | age | ⚙ | family | flavour |
 |---|---|---|---|---|
 | **The Census of the World** | III | 120 | S | the first count of every soul in the realm — the King List's promise kept |
+Must be built in a city with population > 15. Awards +1 population in every city.
 | **The Great Games** | III | 150 | C | funeral games for the whole age; the Olympiad |
-| **The Grand Caravan** | III | 180 | E | a caravan to the edge of the known world; +1 route capacity in the city on completion |
+Must have funerary rites built in every city. Awards +10 happiness for the rest of the game.
+| **The Grand Caravan** | III | 180 | E | a caravan to the edge of the known world |
+Must have 10 active trade routes. Awards +2 trade route capacity.
 | **The Cathedral of the Age** | IV | 260 | C | a house of the faith taller than the walls |
+Must have a cathedral built in every city. Gain a religious follower slot. If you have no religion, awards a great prophet and the ability to found a religion.
 | **The Encyclopaedia** | IV | 280 | S | every known thing written down once — the House of Wisdom's task |
+Must have a house of wisdom built in every city.
+| the grand satrapy | III
+must have 10 or more cities. Awards 5 happiness and 10 authority for the rest of the game.
 | **The Mint** | IV | 240 | E | one coin for the whole realm |
-| **The Muster of the Realm** | IV | 220 | D | every levy counted and drilled; pays a free unit of your best type in the city |
+Must have a mint in every city. 15% purchasing costs for the rest of the game
+| **The Muster of the Realm** | IV | 220 | D | every levy counted and drilled|
+Must have a barracks + armory (age 4 building, TBD) in every city. Newly trained units gain +2 combat strength.
 | **The Grand Orrery** | V | 400 | S | the heavens in brass; the Engine's rehearsal |
+TBD
 | **The Exposition** | V | 380 | C | every wonder of yours shown to the world; +1🎵 per wonder you hold, once |
+TBD
 | **The Armada** | V | 360 | D | a fleet for the far shore; pays two embarked units of your best type |
+TBD
 
 ## Quests — deeds dealt from the deck
 
@@ -99,18 +111,18 @@ trade, war — and to be *done*, not held.
 
 | quest | family | the deed | needs |
 |---|---|---|---|
-| **The Archetype** ∗ | C | hold three Orders of one theme in your slots at once (the archetype lines are the point of the themes) | a slot read |
-| **The Reformer** | C | adopt a new government and fill every slot within three turns of the adoption | — |
-| **The Deepening** | C | raise an Order to its third level | `level` (built) |
-| **The Missionary** | C | your religion becomes the majority in a foreign city | built |
-| **The Pilgrim** | C | plant a holy site on ground you do not own | `plantHolySite` (built) |
-| **The Cartographer** | S | claim ten ruins and villages | `pendingDiscovery` count |
+| **The Archetype** ∗ | C | hold three Orders of one theme in your slots at once (the archetype lines are the point of the themes) | a slot read | [too rng, remove]
+| **The Reformer** | C | adopt a new government and fill every slot within three turns of the adoption | — | [too easy to do, remove]
+| **The Deepening** | C | raise an Order to its third level, have it slotted for 10 turns | `level` (built) |
+| **The Missionary** | C | your religion becomes the majority in a foreign city | built | [too easy to do, remove]
+| **The Pilgrim** | C | plant a holy site on ground you do not own | `plantHolySite` (built) | [too easy to do, remove]
+| **The Cartographer** | S | claim ten ruins and villages | `pendingDiscovery` count | [too easy to do, remove]
 | **The Scholar's Wager** | S | complete a technology two ages above the world's lowest seat *(a science lead made public)* | — |
-| **The Patron** | S | recruit two great people of one family | built |
+| **The Patron** | S | have three great people improvements built adjacent to each other | built |
 | **The Road-Builder** | E | eight cities connected to your capital by road (user's number) | connections (built) |
-| **The Factor** ∗ | E | send a trade route to every other empire | routes to foreign cities (built) |
-| **The Wall-Breaker** | D | take a city whose walls stood at full health when the siege began | `cityMaxHp` (built) |
-| **The Camp-Burner** ∗ | D | clear five barbarian camps in one age | `arrivals` (built) |
+| **The Factor** ∗ | E | send a trade route to every other empire | routes to foreign cities (built) | [too map-dependent, remove]
+| **The Wall-Breaker** | D | raze five cities (upon conquering a city, give the option to raze or keep the city) | `cityMaxHp` (built) |
+| **The Camp-Burner** ∗ | D | clear five barbarian camps in one age | `arrivals` (built) | [remove, age III too late in the game for this]
 
 ### Æra IV deck (Cathedrals)
 
@@ -119,13 +131,13 @@ trade, war — and to be *done*, not held.
 | **Three of the Age** | C | hold three wonders of the current age (user's wording) | built |
 | **The Enhancer** | C | enhance your religion, then convert a foreign capital | built |
 | **The Laureate's Court** | C | plant a great work of every family | `greatWork` (built) |
-| **The Legislator** | C | slot a Doctrine and every Order of one government within five turns of adopting it | — |
+| **The Legislator** | C | slot a Doctrine and every Order of one government within five turns of adopting it | — | [too easy, remove]
 | **The Encyclopaedist** | S | complete a technology of the next age before anyone completes the current age's last | — |
-| **The Observatory** | S | hold a university and an observatory in one city beside a mountain | the observatory |
-| **The Silk Exchange** | E | import a luxury you do not hold by trade route, and hold it for the reckoning | the Silk Road's rule |
+| **The Observatory** | S | hold a university and an observatory in one city beside a mountain | the observatory | [too rng, remove]
+| **The Silk Exchange** | E | import a luxury you do not hold by trade route, and hold it for the reckoning | the Silk Road's rule | [do we have importing luxuries? remove]
 | **The Banker** | E | buy a great person with gold | `purchaseGreatPersonOffer` (built) |
-| **The Plunderer** | D | plunder a caravan carrying another empire's route | built |
-| **The Liberator** ∗ | D | retake a city of yours that another empire captured | — |
+| **The Plunderer** | D | plunder a caravan carrying another empire's route | built | [too rng, remove]
+| **The Liberator** ∗ | D | retake a city of yours that another empire captured | — | [too rng, remove]
 
 ### Æra V deck (Magister)
 
