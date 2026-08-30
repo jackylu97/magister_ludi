@@ -21,7 +21,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { tileNeighbors } from '../../src/sim/map';
+import { tileIndex, tileNeighbors } from '../../src/sim/map';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES, generateMap } from '../../src/sim/mapgen';
 import { detailFor, mapFor } from './fixtures';
 import { isFreshwaterTerrain, isWaterTerrain } from '../../src/sim/terrainData';
@@ -37,14 +37,47 @@ import {
 
 describe('lake classification', () => {
   it('is only ocean, never lake, that becomes coast on a generated map', () => {
+    // `coast.rings` widened this from a plain adjacency check to a reachability
+    // one (2026-08-29): a coast tile no longer has to touch land itself, only
+    // to lie within `coast.rings` hex steps of it across open water — but a
+    // lake is still never that water, at any ring width, because a lake is by
+    // definition a water body with no ocean in it (see `water.ts`'s docblock).
+    // So the invariant this test guards splits in two: no coast tile ever
+    // neighbours a lake, and every coast tile is within reach of land through
+    // non-lake water, the same reachability the generator's own flood used.
     for (const seed of [1, 7, 31337, 2024]) {
       const map = mapFor(seed, 'standard');
+      const distance = new Int32Array(map.tiles.length).fill(-1);
+      let frontier: typeof map.tiles = [];
+      for (const tile of map.tiles) {
+        if (isWaterTerrain(tile.terrain)) continue;
+        for (const n of tileNeighbors(map, tile)) {
+          if (!isWaterTerrain(n.terrain) || n.terrain === 'lake') continue;
+          const idx = tileIndex(map, n.col, n.row);
+          if (distance[idx] !== -1) continue;
+          distance[idx] = 1;
+          frontier.push(n);
+        }
+      }
+      for (let d = 2; frontier.length > 0; d++) {
+        const next: typeof map.tiles = [];
+        for (const tile of frontier) {
+          for (const n of tileNeighbors(map, tile)) {
+            if (!isWaterTerrain(n.terrain) || n.terrain === 'lake') continue;
+            const idx = tileIndex(map, n.col, n.row);
+            if (distance[idx] !== -1) continue;
+            distance[idx] = d;
+            next.push(n);
+          }
+        }
+        frontier = next;
+      }
       for (const tile of map.tiles) {
         if (tile.terrain !== 'coast') continue;
-        // A coast tile must touch land *and* be reachable from the open sea; a
-        // lake tile next to it would mean the lake minted a shelf.
-        expect(tileNeighbors(map, tile).some((n) => !isWaterTerrain(n.terrain))).toBe(true);
+        // A lake tile next to it would mean the lake minted a shelf.
         expect(tileNeighbors(map, tile).every((n) => n.terrain !== 'lake')).toBe(true);
+        const d = distance[tileIndex(map, tile.col, tile.row)];
+        expect(d !== -1 && d <= MAPGEN_CONFIG.coast.rings).toBe(true);
       }
     }
   });

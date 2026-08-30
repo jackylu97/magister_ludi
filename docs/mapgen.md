@@ -60,7 +60,7 @@ Passes, in order, all in `generateMapDetail`:
 | 1 | fields → terrain, hills | `buildTerrainFields`, `pickLandTerrain` |
 | 1b | forest and jungle, then oases | `assignFeatures`, `assignOases` |
 | 2 | small water bodies → lakes | `classifyLakes` (`water.ts`) |
-| 3 | ocean touching land → coast | `mapgen.ts` |
+| 3 | ocean within `coast.rings` hexes of land → coast | `mapgen.ts` |
 | 4 | rivers (**first dice**) | `traceRivers` (`water.ts`) |
 | 4b | watered flat desert → floodplain | `deriveFloodplains` (`water.ts`) |
 | 5 | who can drink | `computeFreshwater` (`water.ts`) |
@@ -258,11 +258,37 @@ tile belongs to a connected water body (wrap-aware, so a puddle on the seam is
 one lake); bodies of at most `lakes.maxSize` tiles that are not part of the polar
 margin become `lake`.
 
-**Coast** fires only from `ocean` tiles adjacent to land, and that guard is
-load-bearing: `coast` is a *marine* terrain — the shelf a trireme hugs — and a
-pond has no shelf. A lake is a maximal water body, so no ocean tile is ever
-adjacent to one and a lake can neither become coast nor mint it. Lake-adjacent
-land keeps its terrain and gains `freshwater`.
+**Coast** is a multi-source BFS, flooding outward from every land tile across
+ocean tiles only, up to `coast.rings` hex steps (2, since the naval-combat
+ruling of 2026-08-29 — a one-ring shelf was too thin a strip to fight over).
+The flood fires only from `ocean` tiles, and that guard is load-bearing: `coast`
+is a *marine* terrain — the shelf a trireme hugs, the water a fishing boat or a
+caravel may enter (`isEmbarkableTerrain`) — and a pond has no shelf. A lake is a
+maximal water body, so no ocean tile is ever adjacent to one, the flood can
+never step onto or through a lake, and a lake can neither become coast nor mint
+it. Lake-adjacent land keeps its terrain and gains `freshwater`.
+
+Distance is a graph invariant, so the *set* of tiles the flood promotes does not
+depend on the order it visits them in — what determinism actually rests on is
+the ring-1 seed (every ocean tile with a land neighbour, walked in tile-index
+order, exactly the old single-ring check) and the final sweep that writes
+`coast` back onto `map.tiles` in that same order. `rings: 1` therefore
+reproduces the pre-ruling map byte for byte — pinned in
+`test/mapgen/resources.slow.test.ts`'s `OLD_FIXTURES` — and `rings: 2` is a
+strict superset of that shelf, never a different one.
+
+A second ring roughly doubles coast's share of the map's water (measured on
+three sizes at seed-fixed generation: standard 15.8% → 29.4%, duel 37.3% →
+63.1%, large 12.1% → 23.2% — a duel map is nearly all shelf now, which is the
+point on the smallest board). Total water is unmoved — this pass only
+relabels `ocean` as `coast`, it plants nothing and removes nothing — so land
+share, the sea-resource budget (`bonusPer1000LandTiles` etc., which is counted
+per **land** tile) and `isCoastal`'s adjacency reading for the start scorer's
+`coastBonus` (still "does a land tile touch a `coast` tile", still true or false
+exactly as before — ring 1 is unchanged) are all untouched by the width. What
+does widen is the *pool* every sea resource (`validTerrain: ['coast']` only,
+never `'ocean'`) draws its candidate tiles from, so a coastal luxury or bonus
+resource has more shelf to land on, at the same fixed budget.
 
 **Rivers run on edges, not tiles.** A river is a path along hex *corners*; each
 step crosses exactly one edge and flags it. A corner's altitude is the mean
@@ -891,6 +917,12 @@ about a city. Parked, not planned.
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `maxSize` | 8 | water bodies of at most this many tiles become lakes |
+
+### coast
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `rings` | 2 | hex steps of open ocean, BFS-flooded from land, that become `coast` — where embark reach ends, where a fishing boat or a caravel's water begins, and the shelf a trireme hugs. `1` is the pre-2026-08-29 shelf and reproduces it byte for byte (`test/mapgen/resources.slow.test.ts`'s `OLD_FIXTURES`); the ruling raised it to 2 so naval combat has a strip of water worth fighting over |
 
 ### rivers
 

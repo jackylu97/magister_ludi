@@ -69,6 +69,7 @@ import {
   createMap,
   offsetToAxial,
   tileHex,
+  tileIndex,
   tileNeighbors,
   wrappedDistance,
 } from './map';
@@ -828,19 +829,53 @@ export function generateMapDetail(
   // that order is the whole point — see `classifyLakes` in `water.ts`.
   const lakeCount = classifyLakes(map, config.lakes.maxSize);
 
-  // Pass 3: water adjacent to land becomes coast. Wrap-aware via tileNeighbors.
+  // Pass 3: ocean within `coast.rings` hex steps of land becomes coast.
+  // Wrap-aware via tileNeighbors, a multi-source BFS flooding outward from
+  // every land tile over ocean tiles only.
   //
   // The `!== 'ocean'` guard is load-bearing now that lakes exist: `coast` is a
   // marine terrain and a lake must never mint one. A lake tile is skipped as a
   // *source* (it is not ocean), and it cannot promote its neighbours either,
   // because a lake is a maximal water body — no ocean tile is ever next to one.
-  const coastal: Tile[] = [];
-  for (const tile of map.tiles) {
-    if (tile.terrain !== 'ocean') continue;
-    const neighbors = tileNeighbors(map, tile);
-    if (neighbors.some((n) => !isWaterTerrain(n.terrain))) coastal.push(tile);
+  // That guard survives every ring width unchanged, because the BFS never
+  // steps onto anything but an `ocean` tile in the first place.
+  //
+  // Distance is a graph invariant — the *set* of tiles within `rings` steps of
+  // land does not depend on the order the flood visits them in — so what has to
+  // stay deterministic is the ring-1 seed and the tile that finally gets
+  // written, not the walk between. Both are tile-index order (the outer loop
+  // below, and the final sweep over `map.tiles` that turns `reached` into
+  // writes), which is what makes `rings: 1` reproduce the old single pass byte
+  // for byte: the ring-1 frontier below *is* that pass, unchanged.
+  const coastRings = config.coast.rings;
+  const reached = new Uint8Array(map.tiles.length);
+  let frontier: Tile[] = [];
+  if (coastRings >= 1) {
+    for (const tile of map.tiles) {
+      if (tile.terrain !== 'ocean') continue;
+      const neighbors = tileNeighbors(map, tile);
+      if (neighbors.some((n) => !isWaterTerrain(n.terrain))) {
+        reached[tileIndex(map, tile.col, tile.row)] = 1;
+        frontier.push(tile);
+      }
+    }
   }
-  for (const tile of coastal) tile.terrain = 'coast';
+  for (let ring = 2; ring <= coastRings && frontier.length > 0; ring++) {
+    const next: Tile[] = [];
+    for (const tile of frontier) {
+      for (const neighbor of tileNeighbors(map, tile)) {
+        if (neighbor.terrain !== 'ocean') continue;
+        const idx = tileIndex(map, neighbor.col, neighbor.row);
+        if (reached[idx]) continue;
+        reached[idx] = 1;
+        next.push(neighbor);
+      }
+    }
+    frontier = next;
+  }
+  for (const tile of map.tiles) {
+    if (reached[tileIndex(map, tile.col, tile.row)]) tile.terrain = 'coast';
+  }
 
   // Pass 4: rivers. The generator's only dice, and they are rolled *after* every
   // noise field has been drawn from `rng`, so every tile's terrain is exactly

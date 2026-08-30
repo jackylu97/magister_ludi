@@ -271,12 +271,18 @@ describe('the ground did not move', () => {
   // that resources draw from `rng` strictly after the ground does, and
   // re-measuring them is exactly what a deliberate change to the ground is
   // supposed to require.
+  //
+  // Re-measured 2026-08-29 for `coast.rings` 1 → 2 ("the ruling" — wider naval
+  // water). This is the one deliberate exception to "the ground did not move":
+  // the hash covers `terrain`, and a second ring of coast is exactly a terrain
+  // change, on marine tiles only. Nothing else moved — see `OLD_FIXTURES` below,
+  // which still reproduces byte for byte through `{ coast: { rings: 1 } }`.
   const FIXTURES: [number, string, string][] = [
-    [1234, 'duel', 'b684b4fe'],
-    [7, 'duel', 'b853ac9'],
-    [31337, 'standard', '36503f2b'],
-    [99, 'large', '9b297196'],
-    [2024, 'huge', 'eb14ffad'],
+    [1234, 'duel', '8541dc76'],
+    [7, 'duel', '82a9e7e1'],
+    [31337, 'standard', '2863ca1f'],
+    [99, 'large', 'f03c9ec6'],
+    [2024, 'huge', 'f722a081'],
   ];
 
   it('reproduces the pre-resource generator exactly', () => {
@@ -284,6 +290,29 @@ describe('the ground did not move', () => {
       expect(`${seed}/${size}: ${hashTerrain(mapFor(seed, size))}`).toBe(
         `${seed}/${size}: ${expected}`,
       );
+    }
+  });
+
+  // `coast.rings` 1 → 2 (2026-08-29, "the ruling") widens the shelf so naval
+  // combat has water worth fighting over; it moves nothing else in this hash —
+  // not the noise fields, not the hills, not the rivers or freshwater flag,
+  // only which marine tiles read `coast` versus `ocean`. `OLD_FIXTURES` is the
+  // pre-ruling roster verbatim, and passing `{ coast: { rings: 1 } }` against it
+  // is the promise pass 3's docblock makes: the one-ring shelf this game
+  // shipped with for a year is still exactly reachable, byte for byte, through
+  // the general BFS that replaced its hand-written adjacency check.
+  const OLD_FIXTURES: [number, string, string][] = [
+    [1234, 'duel', 'b684b4fe'],
+    [7, 'duel', 'b853ac9'],
+    [31337, 'standard', '36503f2b'],
+    [99, 'large', '9b297196'],
+    [2024, 'huge', 'eb14ffad'],
+  ];
+
+  it('rings: 1 reproduces the pre-ruling one-ring shelf exactly', () => {
+    for (const [seed, size, expected] of OLD_FIXTURES) {
+      const map = mapFor(seed, size, { coast: { rings: 1 } });
+      expect(`${seed}/${size}: ${hashTerrain(map)}`).toBe(`${seed}/${size}: ${expected}`);
     }
   });
 

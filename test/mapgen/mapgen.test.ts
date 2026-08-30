@@ -86,16 +86,50 @@ describe('terrain distribution', () => {
     expect((counts['grassland'] ?? 0) + (counts['plains'] ?? 0)).toBeGreaterThan(0);
   });
 
-  it('marks marine water next to land as coast and open water as ocean', () => {
+  it('marks ocean within coast.rings hex steps of land as coast, and no further', () => {
     // Lakes are excluded: they are classified out of the sea *before* the coast
     // pass and are deliberately not coast, however much land they touch. That a
     // lake never mints a coastal tile is asserted in `water.test.ts`.
+    //
+    // Independent BFS over the *finished* map: `coast` and `ocean` are both
+    // still "was ocean before pass 3 relabelled some of it", so flooding out
+    // from land across every non-lake water tile reproduces the same distances
+    // the generator's own flood used, whatever label pass 3 ended up writing —
+    // this is the ring-N generalisation of what used to be a plain adjacency
+    // check (ring 1 is that check, unchanged; see `mapgen.ts` pass 3).
+    const rings = MAPGEN_CONFIG.coast.rings;
     for (const seed of [2468, 1, 7, 31337]) {
       const map = mapFor(seed, 'duel');
+      const distance = new Int32Array(map.tiles.length).fill(-1);
+      let frontier: typeof map.tiles = [];
+      for (const tile of map.tiles) {
+        if (isWaterTerrain(tile.terrain)) continue;
+        for (const n of tileNeighbors(map, tile)) {
+          if (!isWaterTerrain(n.terrain) || n.terrain === 'lake') continue;
+          const idx = tileIndex(map, n.col, n.row);
+          if (distance[idx] !== -1) continue;
+          distance[idx] = 1;
+          frontier.push(n);
+        }
+      }
+      for (let d = 2; frontier.length > 0; d++) {
+        const next: typeof map.tiles = [];
+        for (const tile of frontier) {
+          for (const n of tileNeighbors(map, tile)) {
+            if (!isWaterTerrain(n.terrain) || n.terrain === 'lake') continue;
+            const idx = tileIndex(map, n.col, n.row);
+            if (distance[idx] !== -1) continue;
+            distance[idx] = d;
+            next.push(n);
+          }
+        }
+        frontier = next;
+      }
       for (const tile of map.tiles) {
         if (!isWaterTerrain(tile.terrain) || tile.terrain === 'lake') continue;
-        const touchesLand = tileNeighbors(map, tile).some((n) => !isWaterTerrain(n.terrain));
-        expect(tile.terrain).toBe(touchesLand ? 'coast' : 'ocean');
+        const d = distance[tileIndex(map, tile.col, tile.row)];
+        const withinRings = d !== -1 && d <= rings;
+        expect(tile.terrain).toBe(withinRings ? 'coast' : 'ocean');
       }
     }
   });

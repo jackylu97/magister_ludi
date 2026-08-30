@@ -106,6 +106,9 @@
   "lakes": {
     "maxSize": 8
   },
+  "coast": {
+    "rings": 2
+  },
   "rivers": {
     "countPer1000Tiles": 14,
     "minCount": 3,

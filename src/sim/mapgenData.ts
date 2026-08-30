@@ -212,6 +212,16 @@ export interface MapgenConfig {
     /** Water bodies of at most this many tiles become lakes. See `water.ts`. */
     maxSize: number;
   };
+  coast: {
+    /**
+     * How many hex steps of open ocean, BFS-flooded outward from land, become
+     * `coast` (pass 3, `mapgen.ts`). `1` is the shelf every map shipped with
+     * before naval combat had a reason to want more of it; `rings: 1` must
+     * reproduce that map exactly, tile for tile — see the pass's docblock and
+     * `docs/mapgen.md` for why the `!== 'ocean'` guard survives every width.
+     */
+    rings: number;
+  };
   rivers: RiverConfig;
   resources: ResourceConfig;
   starts: StartsConfig;
