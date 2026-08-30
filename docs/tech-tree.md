@@ -234,7 +234,7 @@ culture house; the **Examination Hall** and the **Qadi's Court** the empire-wide
 | **Construction** ⬆ | 240 | Stonecraft, Fletching | composite bowman, **aqueduct** · **Baths** (+2 happiness) · Circus Maximus | W | artist (wonder) | The Waterworks (aqueducts in four size-10 cities) |
 | **Rhetoric** ⬆ (Philosophy) | 255 | Letters, Divination | **Forum** — the premiere culture house (+3🎵) · Great Library | W | **artist** (Forum), scholar (wonder) | |
 | **Engineering** ⬆ ✎ | 275 | Mathematics, Construction | **workshop**, watermill · Great Wall | E W | **engineer** (workshop, watermill) | The Forge-City (100⚙ in a city) |
-| **Shipwrights** ✱ | 230 | Wayfinding, Engineering | **Galley** ✱ (light, 16, mv 5) · **Tower Ship** ✱ (heavy, 24, mv 3) · **Fire Ship** ✱ (naval ranged, 12 / 18 at range 1) · **Shipyard** building (coastal: naval units −25%⚙, +1 route capacity) | ME E (Byzantium's fire, the Song junk) | merchant (shipyard) | The Fleet; The Long Haul at sea |
+| **Shipwrights** ✱ | 230 | Wayfinding, Engineering | **Galley** ✱ (light, 16, mv 5) · **Tower Ship** ✱ (heavy, 24, mv 3) · **Fire Ship** ✱ (naval ranged, 12 / 18 at range 2) · **Shipyard** building (coastal: naval units −25%⚙, +1 route capacity) | ME E (Byzantium's fire, the Song junk) | merchant (shipyard) | The Fleet; The Long Haul at sea |
 | **The Imperial Post** ✱ | 230 | Engineering, Currency | roads cost nothing within 3 hexes of a city · connected cities +1🪙 +1🔬 · caravans +1 movement | E ME W | | The Road-Builder (eight connected) |
 | **The Steppe Bow** ✱ | 260 | The Wheel, Husbandry | **Horse Archer** (mounted ranged premier; horses) · mounted units ignore zone-of-control tolls | E | general | |
 | **The Cataphract** ✱ | 280 | The Steppe Bow, Iron Working | **Cataphract** (cavalry premier; horses + iron; +3 vs ranged) · stables = pasture renewal (+1⚙) | ME | general | |
@@ -301,7 +301,7 @@ predator and a prey, all through flat lines `planCombat` already prints:
 |---|---|---|---|
 | **Light melee** (nimble) | fast | ~60% of heavy | **hit and run** — may move after attacking with movement left · **+5 vs naval ranged** (it closes before the shot) · **escort** — an embarked unit on its hex defends at the ship's strength · plunders a route on a kill |
 | **Heavy melee** | slow | high | **the line** — +2 per adjacent friendly heavy (max +4) · **blockade** — adjacent to a coastal city it counts toward the siege ring and stops the city's routes · captures embarked civilians by advance |
-| **Naval ranged** | medium | high | strikes at range 1 (III) / 2 (IV+) without counter, like land ranged · a −5 melee-defence line (fragile when caught) · **bombardment** from IV: +vs cities, may strike the walls beat from range |
+| **Naval ranged** | medium | high | strikes at range 2 without counter, like land ranged · a −5 melee-defence line (fragile when caught) · **bombardment** from IV: +vs cities, may strike the walls beat from range |
 
 So **light beats ranged** (closes and takes no shot), **ranged beats heavy** (kites a 3-move
 hull), **heavy beats light** (raw strength) — a triangle to pin with a fixture before tuning:
@@ -314,7 +314,7 @@ when Civ's light ships die.
 |---|---|---|---|---|---|
 | **Light melee** | **Trireme** 10 · mv 4 (Sailing; user) | **Bireme** 13 · mv 5 (Wayfinding; user) | **Galley** 16 · mv 5 (Shipwrights) | **Caravel** 22 · mv 6 (The Astrolabe) | **Corvette** 28 · mv 6 (Square Rigging) |
 | **Heavy melee** | — | **War Galley** 16 · mv 3 (Wayfinding) | **Tower Ship** 24 · mv 3 (Shipwrights) | **Carrack** 32 · mv 3 (The Astrolabe) | **Ship of the Line** 44 · mv 3 (Square Rigging) |
-| **Naval ranged** | — | — | **Fire Ship** 12 · 18 at range 1 · mv 4 (Shipwrights) | **Gun Galley** 18 · 26 at range 2 · mv 4 (Paper Money → Fire Medicine's predecessor; place on The Astrolabe) | **Frigate** 28 · 38 at range 2, bombards · mv 4 (Square Rigging) |
+| **Naval ranged** | — | — | **Fire Ship** 12 · 18 at range 2 · mv 4 (Shipwrights) | **Gun Galley** 18 · 26 at range 2 · mv 4 (Paper Money → Fire Medicine's predecessor; place on The Astrolabe) | **Frigate** 28 · 38 at range 2, bombards · mv 4 (Square Rigging) |
 
 Names are deliberately nobody's: *Tower Ship* is the plain English of the louchuan and
 describes every medieval heavy (a castle at each end); *War Galley*, *Gun Galley* and *Fire
@@ -328,9 +328,8 @@ ranged kills heavy in three kites untouched, heavy kills light in two) does **no
 Æra III under the damage curve, because the Fire Ship has **range 1** — it must stand in
 contact, so it kites nothing and the Tower Ship kills it first. The triangle is pinned at Æra
 IV (Caravel / Carrack / Gun Galley, range 2), where all three mechanisms are real, and the
-range-1 gap is asserted as a named exception. **For the ruling:** give the Fire Ship range 2
-(the triangle then holds from III), or accept that Æra III's sea is a two-class fight and the
-ranged hull is a city-bombardment piece until IV.
+range-1 gap was the build's finding. **Ruled (user, 2026-08-29): the Fire Ship has range 2** —
+"keep it simple" — so the triangle holds from Æra III on and is pinned there and at IV.
 
 **The badge and the sculpt (user, 2026-08-29).** One drawn hull per age in the tile atlas's
 own idiom (path data, never a fetched file): *oars and a pennant* (I) → *one square sail* (II)
