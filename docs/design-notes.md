@@ -3963,14 +3963,19 @@ Civ's specialist slots are the historical answer and too finicky; renown already
 great-person points; the user wants something **passive, unlimited, and ignorable by a
 beginner**, with the one verb *remove* and never *add*.
 
-**The rule.** Each city banks its own **renown per turn** — the renown lines of its buildings,
-which `explainRenown` already itemises by source — into a *guild bar*. When the bar fills,
-**one citizen becomes a specialist**: an idle citizen first, then the worst-worked tile's. The
-threshold **climbs per specialist** (`rules.cities.guilds`: `base 15 + step 5 × specialists`),
-and each specialist **trickles back** (0.5) into the bar and pays **+1 renown per turn to its
-family**, so a scholarly city recruits great scholars faster — the specialist system paying
-into the great-person system, which is what replaces the slots. The climbing threshold is what
-keeps the loop from being geometric: inflow and threshold race and the cadence settles.
+**The rule.** Each city banks into a *guild bar* its own **renown per turn** — the renown
+lines of its buildings, which `explainRenown` already itemises by source — **plus a share of
+its size** (`popWeight 0.25` per citizen; the user's amendment: a big city urbanises whatever
+it built) and each specialist's **trickle** (0.5). When the bar fills, **one citizen becomes
+a specialist**, taken from the general population: one fewer citizen works the land, so the
+worst-worked tile is what goes (there are no idle citizens until very late; that is not the
+rule). A city never converts its last worker, and **a city with no renown source in a
+specialist family never converts** — size accelerates a guild, it never founds one. The
+threshold **climbs per specialist** (`base 15 + step 5 × specialists`), and each specialist
+pays **+1 renown per turn to its family**, so a scholarly city recruits great scholars faster
+— the specialist system paying into the great-person system, which is what replaces the
+slots. The climbing threshold is what keeps the loop from being geometric: inflow and
+threshold race and the cadence settles.
 
 **Assignment by apportionment, never a draw.** A new specialist joins the family whose share of
 the city's renown is most under-represented among its specialists so far (the D'Hondt rule —
