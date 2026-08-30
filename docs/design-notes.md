@@ -4046,3 +4046,38 @@ at three; size 22 → 8 · 16 · 24 · 33 · 43, stop at five; a village of six 
 turn 32, stop at one; a size-12 town hemmed in at six seats → turn 3, and six guilds by turn 31.
 
 ---
+
+## Entry XLIX — The sea (**built** 2026-08-29): the coast two rings wide, and the naval line
+
+**The coast (user):** "so that naval combat feels more meaningful" — pass 3 of the generator
+floods `coast` outward from every ocean tile touching land, `coast.rings` steps (2; `rings: 1`
+reproduces the old maps byte for byte, pinned). Coast as a share of water roughly doubled
+(standard 16 → 29%, duel 37 → 63%). Capital sites did not move; the doubled sea-resource pool
+re-sequences placement, so the bonus tiles beside each capital re-rolled and the slow fixtures
+were re-measured with that cause stated. One seed's finding for the playtest: the shelf is
+richer ground than dead ocean — the pacing seed funded an 18-piece army by t60 where the
+maintenance spiral used to bite at 11, and its ages closed later (34 / 81 / 142).
+
+**The naval line (user's rulings).** No civilian hull — a route at sea is the trader's rule.
+Three classes with a predator and a prey each, all flat lines on the one ledger: **light melee**
+(nimble; hit-and-run keeps its movement, +5 vs a ranged hull, an escort lifts an embarked
+unit to the hull's strength), **heavy melee** (the line: +2 per adjacent heavy, cap 4; blockade:
+a heavy beside a coastal city joins the siege ring and its routes pay nothing), **naval ranged**
+(reach 2 from Æra III — the Fire Ship shipped at 1 and could kite nothing, so the user ruled
+range 2, "keep it simple"; fragile in melee; the Frigate bombards). A ship spawns on the hex
+of the city that built it, that city hex is the one land tile it may enter (a fleet in port is
+a garrison), and **a hull takes a coastal city by the three beats and moves onto it**. Twelve
+hulls, neutral names (Trireme → Bireme → Galley → Caravel → Corvette · War Galley → Tower
+Ship → Carrack → Ship of the Line · Fire Ship → Gun Galley → Frigate), on temporary tech
+homes until the tree pass; the Æra V three carry `awaitsTech`, because a row with no gate was
+buildable from turn one. **Badges are five drawn hulls** (oars → one sail → sail and tower →
+two masts → three) **with the class in the canton** — chevrons, rook, crosshair — thirteen
+badges from five paths and three marks; three sculpts read `masts` off the row.
+
+**Camp Followers was silent, not broken.** The stray is realised at the nearest city and the
+food banked there, and the camp toast printed only the base bounty; a camp cleared by a
+standing order had no result to ride out on at all. The bounty carries the riders' lines and
+the units now, `TurnReport.campBounties` carries the resolution's, and one sentence serves
+both: "⚔ Camp cleared: +25💰, +50🌾 → Uruk, a Warrior joins you at Uruk".
+
+---
