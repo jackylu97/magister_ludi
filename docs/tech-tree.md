@@ -333,6 +333,12 @@ and three marks; `badges.byUnitType` keys each row to its `{ hull: age, canton: 
 and the three generic sculpts read the same mast count off the row, so the piece and its badge
 agree. Candidate sheet: the "Naval Badges" artifact of 2026-08-29.
 
+**Temporary homes while the tree is unfinalised (2026-08-29):** the hulls ship on built techs
+so they can be played — Trireme on Sailing (the user's), Bireme and War Galley on Currency,
+Galley / Tower Ship / Fire Ship on Engineering, Caravel / Carrack / Gun Galley on Physics; the
+three Æra V hulls have no tech yet and are unbuildable until the tree pass moves everything to
+Wayfinding, Shipwrights, The Astrolabe and Square Rigging.
+
 **The rules a hull needs**, all small: `modelClass: 'naval'` (`stepCost` prices water for it
 and land as impassable, save the owner's own coastal city hexes); the spawn tile is the city
 hex; `carries` is not needed (ships do not ferry — units embark on their own); `hitAndRun`,
