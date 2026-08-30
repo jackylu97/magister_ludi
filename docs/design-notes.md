@@ -1331,7 +1331,7 @@ Converged over one design session; playtest tunes numbers, not shapes.
   changes are anticipated, not reactive — which simultaneous turns need. Unslotting after the
   seal expires is free. UI: wax-seal glyph + mono turn count ("sealed for 3").
 
-**Magister's Dice — the one flexibility currency** (cap 3 held, earned deterministically):
+**Magister's Dice — the one flexibility currency** (earned deterministically; *the cap of three was dropped 2026-08-30 — dice are uncapped, minted by the Bead Race's quests*):
 reroll a mastery roll · reroll a card offer · reroll the upgrade target · break a seal.
 
 **The two-stream doctrine** (why neither Civ V policy trees nor a Civ VI civic tree):

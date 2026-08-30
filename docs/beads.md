@@ -97,7 +97,7 @@ remove is the fold.
 A quest is dealt from its age's deck and **persists** after (the model, rule 3). Its age is
 the earliest the deed is plausible — the deck it lives in — so a quest that needs a Cathedral
 is Æra IV's even though a fast seat could finish it in III. Each row: quest · the system it
-plays into · family · the deed · the one-time boon (a **die** is a Magister's Die; a
+plays into · family · the deed · the one-time boon (a **die** is a Magister's Die (uncapped — the user, 2026-08-30; Entry XV's "cap 3 held" is superseded); a
 **cap** is a permanent step in authority capacity or happiness; everything else is a windfall
 or a grant through built seams). ∗ pays every seat that does it, once. **Never** the map's
 luck, an opponent's choice, or a draw. The user filters; the counts are a pool, not a hand.
