@@ -3956,4 +3956,44 @@ and worker's ladders one hammer gentler; Æra II–III buildings priced by hand,
 The Great Litany was banked all along — the top bar's headline had never folded the card-empire
 lines (`explainEmpireCardYields` is the one list both read now).
 
+## Entry XLVIII — Guilds: the passive specialist (**design**, 2026-08-29; not yet built)
+
+**The problem (user):** by the late game a city has more citizens than tiles worth working.
+Civ's specialist slots are the historical answer and too finicky; renown already replaced
+great-person points; the user wants something **passive, unlimited, and ignorable by a
+beginner**, with the one verb *remove* and never *add*.
+
+**The rule.** Each city banks its own **renown per turn** — the renown lines of its buildings,
+which `explainRenown` already itemises by source — into a *guild bar*. When the bar fills,
+**one citizen becomes a specialist**: an idle citizen first, then the worst-worked tile's. The
+threshold **climbs per specialist** (`rules.cities.guilds`: `base 15 + step 5 × specialists`),
+and each specialist **trickles back** (0.5) into the bar and pays **+1 renown per turn to its
+family**, so a scholarly city recruits great scholars faster — the specialist system paying
+into the great-person system, which is what replaces the slots. The climbing threshold is what
+keeps the loop from being geometric: inflow and threshold race and the cadence settles.
+
+**Assignment by apportionment, never a draw.** A new specialist joins the family whose share of
+the city's renown is most under-represented among its specialists so far (the D'Hondt rule —
+one comparison, a pure function of the city, no `rng` consumed). It reads as "your library
+outweighs your market, so scholars" and replays for free.
+
+**What a specialist pays (user):** scholar +2🔬 · merchant +4🪙 · engineer +2⚙ · artist +2🎵.
+**Generals are not specialists** — a barracks' renown makes a great general, not a townsman, and
+renown in that family does not fill the bar. Specialists still eat and still demand happiness;
+they are citizens who left the fields. Unlimited: no seats, no per-building cap.
+
+**Magistrates, later (user):** a fifth family for a much later pass — magistrate specialists pay
+flat happiness (a cap, so it stacks safely); great magistrates carry rarer, rule-shaped legacies
+fed by the authority buildings (Stele, Examination Hall, the Qadi's Court). Families are data, so
+the door stays open.
+
+**The surface.** One row on the city panel ("Specialists 6 · 3 scholars +6🔬 · 2 merchants +8🪙
+· 1 artist +2🎵"), one announcement for a city's *first* guild and then silence, and a single
+*Dismiss* verb at the foot of the panel for the starving-city case (the bar restarts). Nothing
+to place, nothing to plan.
+
+**Cost when built:** `City.specialists` as counts by family (schema bump) · a `guilds` phase
+after growth · one fold in `cityYields` (rule 5, one line per family) · one line in
+`explainRenown` · the panel row · `dismissSpecialist`. The renown-per-city half exists already.
+
 ---
