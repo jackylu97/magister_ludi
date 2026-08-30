@@ -61,6 +61,7 @@ import {
   type BeadKind,
   BEAD_DECK_AGES,
   beadDeckFor,
+  drawAgeReckonings,
 } from './beadData';
 import type { ProjectId } from './projectData';
 import type { DiscoveryId, DiscoveryKind } from './discoveryData';
@@ -2173,7 +2174,8 @@ function validateConfig(config: GameConfig): void {
 }
 
 /**
- * A fresh Bead Race: both decks shuffled, both hands empty, nothing claimed.
+ * A fresh Bead Race: both decks drawn and shuffled, both hands empty, nothing
+ * claimed.
  *
  * **The one place a deck is ordered.** It is drawn here, in `newGame`, rather
  * than when an age opens, for the doctrine `discoveries.ts` states and every
@@ -2183,16 +2185,26 @@ function validateConfig(config: GameConfig): void {
  * seed **is** a deal — which is also Entry II's fairness rule, since every seat
  * looks at the same table.
  *
- * Decks are walked in `BEAD_DECK_AGES` order so the two shuffles always consume
- * the generator in the same sequence; `beadDeckFor` has already dropped every
- * dormant card, so nothing unreachable is ever dealt into a hand somebody has
- * to read.
+ * A deck is **two halves shuffled together**: the age's endeavours and quests,
+ * which are the same in every game (`beadDeckFor`), and **four reckonings, one
+ * per family, drawn from the pool of eight** (`drawAgeReckonings`). A reckoning
+ * is an ordinary card in every respect that matters here — shuffled in, dealt
+ * one a turn, turned face up when its age opens — and differs only in when it
+ * resolves: at the *next* age's opening, across every seat at once.
+ *
+ * The order of the two calls per age is the rule, not a habit: the reckonings
+ * are drawn first and the combined list is shuffled second, so the generator is
+ * consumed in one fixed sequence and a replay deals the same table. Ages are
+ * walked in `BEAD_DECK_AGES` order for the same reason. `beadDeckFor` has
+ * already dropped every dormant card, so nothing unreachable is ever dealt into
+ * a hand somebody has to read.
  */
 function newBeadTable(rng: Rng): BeadTable {
   const decks: Record<string, BeadCardId[]> = {};
   const hands: Record<string, BeadCard[]> = {};
   for (const age of BEAD_DECK_AGES) {
-    decks[String(age)] = shuffle(rng, beadDeckFor(age));
+    const reckonings = drawAgeReckonings(rng);
+    decks[String(age)] = shuffle(rng, [...beadDeckFor(age), ...reckonings]);
     hands[String(age)] = [];
   }
   // The world begins in its first age, whatever the tree's opening technologies

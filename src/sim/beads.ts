@@ -46,6 +46,7 @@
  */
 
 import {
+  type BeadAge,
   type BeadBoon,
   type BeadCardId,
   type BeadCount,
@@ -58,7 +59,6 @@ import {
   BEAD_DECK_AGES,
   BEAD_FEAT_IDS,
   BEAD_QUEST_IDS,
-  BEAD_RECKONING_IDS,
   BEAD_RULES,
   anyBeadDef,
   beadEndeavourDef,
@@ -68,6 +68,7 @@ import {
   beadQuestDef,
   beadReckoningDef,
   isBeadEndeavourId,
+  isBeadReckoningId,
 } from './beadData';
 import { type BuildingId, isWonder, buildingDef } from './buildingData';
 import type { CardEffect } from './statecraftData';
@@ -731,12 +732,17 @@ export function endeavourError(
 ): string | null {
   const def = beadEndeavourDef(id);
   if (beadIsDormant(id)) return `${def.name} waits on something this age has not reached`;
-  if (!questIsOnTheTable(state, id)) return `${def.name} is not on the table`;
+  // **Asked before the table**, and the order is the message: a race somebody
+  // has won leaves every hand in the world the moment they win it
+  // (`clearSpentCards`), so a claimed row is also an absent row — and "it is not
+  // on the table" is a true sentence that tells the player nothing about why
+  // their hammers stopped mattering.
   if (beadClaimed(state, id, def.age)) {
     const claim = state.beads.claimed.find((one) => one.id === id);
     const who = claim ? playerById(state, claim.playerId) : undefined;
     return who ? `${def.name} was finished first by ${who.name}` : `${def.name} is already won`;
   }
+  if (!questIsOnTheTable(state, id)) return `${def.name} is not on the table`;
   const missing = prerequisiteMissing(state, playerId, def.prerequisite);
   if (missing !== null) return `${def.name} wants ${missing}`;
   return null;
@@ -841,6 +847,7 @@ export function runBeads(state: GameState, report?: { beads: BeadAward[] }): voi
   const awards: BeadAward[] = [];
 
   advanceWorldClock(state, awards);
+  clearSpentCards(state);
   dealOneCard(state);
   sweepStandingBeads(state, awards);
   namePossibleWinner(state);
@@ -875,7 +882,44 @@ function advanceWorldClock(state: GameState, awards: BeadAward[]): void {
  * reason the reset lives here and not in the phase above it.
  */
 function openBeadAge(state: GameState, closing: number, awards: BeadAward[]): void {
-  for (const id of BEAD_RECKONING_IDS) {
+  awards.push(...takeReckonings(state, closing));
+
+  for (const age of BEAD_DECK_AGES) {
+    if (age > state.beads.worldAge) continue;
+    for (const card of state.beads.hands[String(age)] ?? []) card.faceUp = true;
+  }
+
+  for (const player of state.players) {
+    player.routeYieldsThisAge = 0;
+    player.greatPeopleThisAge = 0;
+  }
+}
+
+/**
+ * Takes the closing age's reckonings: **only the ones on the table**.
+ *
+ * A reckoning is an ordinary card of its age's deck (`drawAgeReckonings` picks
+ * four of the eight, one per family, at `newGame`), so which of them the world
+ * ever answers is a fact about what was *dealt* — the doc's "one per family per
+ * age is dealt, so the eight are a pool, not a fixed set". A card still face
+ * down, or still in the deck, measures nobody: nobody was ever shown it.
+ *
+ * Every seat is measured at once on one count, the highest takes it, and **ties
+ * pay nobody** — two empires with nine cities each have not settled the
+ * question. Walked in the hand's own order so two reckonings resolved in one
+ * opening always resolve the same way, and `realPlayers` order inside, so a tie
+ * broken by seat order is a fact about the roster rather than about which sweep
+ * ran first.
+ *
+ * Exported because it is the one seam a test can reach without an age-four
+ * technology: `advanceWorldClock` is the only caller in the game.
+ */
+export function takeReckonings(state: GameState, closing: number): BeadAward[] {
+  const awards: BeadAward[] = [];
+  for (const card of state.beads.hands[String(closing)] ?? []) {
+    if (!card.faceUp) continue;
+    if (!isBeadReckoningId(card.id)) continue;
+    const id = card.id;
     if (beadIsDormant(id)) continue;
     if (beadClaimed(state, id, closing)) continue;
     const count = beadReckoningDef(id).count;
@@ -897,21 +941,57 @@ function openBeadAge(state: GameState, closing: number, awards: BeadAward[]): vo
     const award = awardBead(state, bestSeat, id, closing);
     if (award) awards.push(award);
   }
+  return awards;
+}
 
+/**
+ * Is this card spent — has the world already given away what it offered?
+ *
+ * The key is the pair the claim was written under, never the bare id, and that
+ * precision is load-bearing: the same reckoning may be drawn into **both**
+ * decks, and one taken when age 2 closed must not sweep its twin off age 3's
+ * table before anybody has answered it. So a quest is asked at `0`, an
+ * endeavour at its own age, and a reckoning at the age whose hand it is sitting
+ * in.
+ */
+function cardIsSpent(state: GameState, age: BeadAge, id: BeadCardId): boolean {
+  if (isBeadEndeavourId(id)) return beadClaimed(state, id, beadEndeavourDef(id).age);
+  if (isBeadReckoningId(id)) return beadClaimed(state, id, age);
+  return beadClaimed(state, id, 0);
+}
+
+/**
+ * Takes every spent card off the table, freeing its slot.
+ *
+ * **A hand is a set of open slots, not a one-time deal** (the ruling of
+ * 2026-08-30). Without this the table was a window four cards wide that never
+ * moved: a twenty-five card deck would show four of its rows in a whole game
+ * and the other twenty-one would never be seen by anybody. With it the deck
+ * *flows* through the hand — a card claimed frees its slot, `dealOneCard` fills
+ * it on the next tick, and what bounds the age is the deck rather than the hand.
+ *
+ * A **reckoning holds its slot** until its age closes, and needs no clause of
+ * its own to do it: a reckoning is claimed *at* the closing, which is the
+ * moment it stops being worth a slot.
+ *
+ * Run before the deal and after the previous turn's sweep, so a card claimed
+ * last turn is gone before this turn's card is dealt. It is a **broom**, exactly
+ * like `pruneTimedEffects`: a spent card is already inert (`awardBead` refuses
+ * it, `endeavourError` refuses it), so removing it changes no outcome — which is
+ * what makes it safe to run anywhere, twice, or not at all.
+ */
+function clearSpentCards(state: GameState): void {
   for (const age of BEAD_DECK_AGES) {
-    if (age > state.beads.worldAge) continue;
-    for (const card of state.beads.hands[String(age)] ?? []) card.faceUp = true;
-  }
-
-  for (const player of state.players) {
-    player.routeYieldsThisAge = 0;
-    player.greatPeopleThisAge = 0;
+    const key = String(age);
+    const hand = state.beads.hands[key];
+    if (!hand) continue;
+    state.beads.hands[key] = hand.filter((card) => !cardIsSpent(state, age, card.id));
   }
 }
 
 /**
  * Deals one card, once a turn, off the first deck that still has one into a hand
- * that is not yet full.
+ * with a slot open.
  *
  * The hand fills **over** the age rather than all at once, which is Entry VI's
  * drafting model: a card dealt before its age opens lies face down — it is
@@ -919,6 +999,10 @@ function openBeadAge(state: GameState, closing: number, awards: BeadAward[]): vo
  * with the rest the moment the first seat in the world reaches that age. So the
  * deck for an age nobody has entered still deals, and the deal is a fact about
  * the *turn* rather than about who looked at a screen.
+ *
+ * "Not full" is asked *after* `clearSpentCards` has swept the table, which is
+ * the whole of the open-slot rule: a hand of four with one card claimed is a
+ * hand of three, and the deck fills it back up.
  *
  * `BEAD_DECK_AGES` order, so the earlier age's hand always fills first and the
  * order of the world's table is a property of the data.

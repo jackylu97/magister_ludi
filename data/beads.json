@@ -1,7 +1,10 @@
 {
   "rules": {
     "threshold": 20,
-    "handSize": { "3": 4, "4": 5 },
+    "handSize": {
+      "2": 4,
+      "3": 5
+    },
     "dealEveryTurns": 1
   },
   "feats": {
@@ -10,114 +13,188 @@
       "family": "science",
       "text": "The first empire in the world to reach a new age.",
       "once": "age",
-      "trigger": { "shape": "occasion", "occasion": "ageEntered" }
+      "trigger": {
+        "shape": "occasion",
+        "occasion": "ageEntered"
+      }
     },
     "firstMarvelOfTheAge": {
       "name": "The First Marvel",
       "family": "culture",
       "text": "The first wonder finished in the world during an age.",
       "once": "age",
-      "trigger": { "shape": "occasion", "occasion": "wonderCompleted" }
+      "trigger": {
+        "shape": "occasion",
+        "occasion": "wonderCompleted"
+      }
     },
     "theFirstFaith": {
       "name": "The First Faith",
       "family": "culture",
       "text": "The first religion founded in the world.",
       "once": "game",
-      "trigger": { "shape": "occasion", "occasion": "religionFounded" }
+      "trigger": {
+        "shape": "occasion",
+        "occasion": "religionFounded"
+      }
     },
     "theFallenPalace": {
       "name": "The Fallen Palace",
       "family": "domination",
       "text": "The first empire to take a rival's seat of government.",
       "once": "game",
-      "trigger": { "shape": "occasion", "occasion": "capitalCaptured" }
+      "trigger": {
+        "shape": "occasion",
+        "occasion": "capitalCaptured"
+      }
     },
     "theFirstScholar": {
       "name": "The First Scholar",
       "family": "culture",
       "text": "The first scholar called into the world.",
       "once": "game",
-      "trigger": { "shape": "occasion", "occasion": "greatPersonRecruited", "family": "scholar" }
+      "trigger": {
+        "shape": "occasion",
+        "occasion": "greatPersonRecruited",
+        "family": "scholar"
+      }
     },
     "theFirstGeneral": {
       "name": "The First General",
       "family": "culture",
       "text": "The first general called into the world.",
       "once": "game",
-      "trigger": { "shape": "occasion", "occasion": "greatPersonRecruited", "family": "general" }
+      "trigger": {
+        "shape": "occasion",
+        "occasion": "greatPersonRecruited",
+        "family": "general"
+      }
     },
     "theFirstMerchant": {
       "name": "The First Merchant",
       "family": "culture",
       "text": "The first merchant called into the world.",
       "once": "game",
-      "trigger": { "shape": "occasion", "occasion": "greatPersonRecruited", "family": "merchant" }
+      "trigger": {
+        "shape": "occasion",
+        "occasion": "greatPersonRecruited",
+        "family": "merchant"
+      }
     },
     "theFirstArtist": {
       "name": "The First Artist",
       "family": "culture",
       "text": "The first artist called into the world.",
       "once": "game",
-      "trigger": { "shape": "occasion", "occasion": "greatPersonRecruited", "family": "artist" }
+      "trigger": {
+        "shape": "occasion",
+        "occasion": "greatPersonRecruited",
+        "family": "artist"
+      }
     },
     "theGreatCityOfTheWorld": {
       "name": "The Great City",
       "family": "culture",
       "text": "The first city in the world to hold fifteen citizens.",
       "once": "game",
-      "trigger": { "shape": "count", "count": "largestCity", "value": 15 }
+      "trigger": {
+        "shape": "count",
+        "count": "largestCity",
+        "value": 15
+      }
     },
     "theEngine": {
       "name": "The Engine",
       "family": "science",
       "text": "The first empire to complete the Engine.",
       "once": "game",
-      "trigger": { "shape": "count", "count": "engineCompleted", "value": 1 },
+      "trigger": {
+        "shape": "count",
+        "count": "engineCompleted",
+        "value": 1
+      },
       "dormant": "The Engine has no row in the tree yet."
     }
   },
   "endeavours": {
     "censusOfTheWorld": {
       "name": "The Census of the World",
-      "age": 3,
+      "age": 2,
       "cost": 120,
       "family": "science",
-      "prerequisite": { "test": "citySize", "value": 15 },
-      "boon": { "windfall": { "yield": "population", "amount": 1, "where": "every" } },
+      "prerequisite": {
+        "test": "citySize",
+        "value": 15
+      },
+      "boon": {
+        "windfall": {
+          "yield": "population",
+          "amount": 1,
+          "where": "every"
+        }
+      },
       "flavor": "Every soul in the realm, set down in one hand.",
       "text": "A race. Needs a city of fifteen citizens. The first empire to finish gains a citizen in every city."
     },
     "theGreatGames": {
       "name": "The Great Games",
-      "age": 3,
+      "age": 2,
       "cost": 150,
       "family": "culture",
-      "prerequisite": { "test": "buildingInEveryCity", "building": "funeralGames" },
-      "boon": { "effects": [{ "kind": "happiness", "amount": 5 }] },
+      "prerequisite": {
+        "test": "buildingInEveryCity",
+        "building": "funeralGames"
+      },
+      "boon": {
+        "effects": [
+          {
+            "kind": "happiness",
+            "amount": 5
+          }
+        ]
+      },
       "flavor": "The whole world comes to watch, and forgets to fight.",
       "text": "A race. Needs funeral games in every city. The first empire to finish keeps a lasting step of contentment."
     },
     "theGrandCaravan": {
       "name": "The Grand Caravan",
-      "age": 3,
+      "age": 2,
       "cost": 180,
       "family": "economic",
-      "prerequisite": { "test": "activeRoutes", "value": 10 },
-      "boon": { "effects": [{ "kind": "routeRider", "extra": 2 }] },
+      "prerequisite": {
+        "test": "activeRoutes",
+        "value": 10
+      },
+      "boon": {
+        "effects": [
+          {
+            "kind": "routeRider",
+            "extra": 2
+          }
+        ]
+      },
       "flavor": "One road, and the whole of it yours.",
       "text": "A race. Needs ten caravans on the road at once. The first empire to finish may keep more of them thereafter."
     },
     "theGrandSatrapy": {
       "name": "The Grand Satrapy",
-      "age": 3,
+      "age": 2,
       "cost": 200,
       "family": "domination",
-      "prerequisite": { "test": "cities", "value": 10 },
+      "prerequisite": {
+        "test": "cities",
+        "value": 10
+      },
       "boon": {
         "effects": [
-          { "kind": "happiness", "amount": 5 },
-          { "kind": "authority", "amount": 10 }
+          {
+            "kind": "happiness",
+            "amount": 5
+          },
+          {
+            "kind": "authority",
+            "amount": 10
+          }
         ]
       },
       "flavor": "Govern a province and you govern a people; govern ten and you govern a world.",
@@ -125,55 +202,106 @@
     },
     "theCathedralOfTheAge": {
       "name": "The Cathedral of the Age",
-      "age": 4,
+      "age": 3,
       "cost": 260,
       "family": "culture",
-      "prerequisite": { "test": "buildingInEveryCity", "building": "cathedral" },
-      "boon": { "grant": { "prophet": true } },
+      "prerequisite": {
+        "test": "buildingInEveryCity",
+        "building": "cathedral"
+      },
+      "boon": {
+        "grant": {
+          "prophet": true
+        }
+      },
       "flavor": "Stone raised so high the argument stops.",
       "text": "A race. Needs a cathedral in every city. The first empire to finish is sent a prophet."
     },
     "theEncyclopaedia": {
       "name": "The Encyclopaedia",
-      "age": 4,
+      "age": 3,
       "cost": 280,
       "family": "science",
-      "prerequisite": { "test": "buildingInEveryCity", "building": "university" },
-      "boon": { "windfall": { "yield": "science", "amount": 400, "where": "capital" } },
+      "prerequisite": {
+        "test": "buildingInEveryCity",
+        "building": "university"
+      },
+      "boon": {
+        "windfall": {
+          "yield": "science",
+          "amount": 400,
+          "where": "capital"
+        }
+      },
       "flavor": "Everything known, in the order it was found.",
       "text": "A race. Needs a university in every city. The first empire to finish banks a great sum of learning.",
-      "deferred": ["A free technology of the current age — a research grant is banked as beakers instead."]
+      "deferred": [
+        "A free technology of the current age — a research grant is banked as beakers instead."
+      ]
     },
     "theMint": {
       "name": "The Mint",
-      "age": 4,
+      "age": 3,
       "cost": 240,
       "family": "economic",
-      "prerequisite": { "test": "buildingInEveryCity", "building": "mint" },
-      "boon": { "windfall": { "yield": "gold", "amount": 400, "where": "capital" } },
+      "prerequisite": {
+        "test": "buildingInEveryCity",
+        "building": "mint"
+      },
+      "boon": {
+        "windfall": {
+          "yield": "gold",
+          "amount": 400,
+          "where": "capital"
+        }
+      },
       "flavor": "A coin is a promise that everyone has agreed to keep.",
       "text": "A race. Needs a mint in every city. The first empire to finish banks a great sum of gold.",
-      "deferred": ["Cheaper purchases for a spell — a timed empire effect the boon vocabulary does not carry."]
+      "deferred": [
+        "Cheaper purchases for a spell — a timed empire effect the boon vocabulary does not carry."
+      ]
     },
     "theMusterOfTheRealm": {
       "name": "The Muster of the Realm",
-      "age": 4,
+      "age": 3,
       "cost": 220,
       "family": "domination",
-      "prerequisite": { "test": "buildingsInCities", "building": "armoury", "cities": 3 },
+      "prerequisite": {
+        "test": "buildingsInCities",
+        "building": "armoury",
+        "cities": 3
+      },
       "boon": {
-        "effects": [{ "kind": "combatLine", "amount": 2, "when": { "test": "always" }, "side": "both" }]
+        "effects": [
+          {
+            "kind": "combatLine",
+            "amount": 2,
+            "when": {
+              "test": "always"
+            },
+            "side": "both"
+          }
+        ]
       },
       "flavor": "Every spear counted, every spear sharpened.",
       "text": "A race. Needs an armoury in three cities. The first empire to finish fights a little harder ever after."
     },
     "theExposition": {
       "name": "The Exposition",
-      "age": 4,
+      "age": 3,
       "cost": 380,
       "family": "culture",
-      "prerequisite": { "test": "wondersHeld", "value": 6 },
-      "boon": { "windfall": { "yield": "culture", "amount": 240, "where": "capital" } },
+      "prerequisite": {
+        "test": "wondersHeld",
+        "value": 6
+      },
+      "boon": {
+        "windfall": {
+          "yield": "culture",
+          "amount": 240,
+          "where": "capital"
+        }
+      },
       "flavor": "Come and see what we have made of the world.",
       "text": "A race. Needs six wonders held. The first empire to finish banks a great sum of culture."
     }
@@ -181,231 +309,459 @@
   "quests": {
     "theRoadBuilder": {
       "name": "The Road-Builder",
-      "age": 3,
+      "age": 2,
       "family": "economic",
       "system": "trade",
       "text": "Bind the realm together by road.",
-      "deed": { "shape": "count", "count": "citiesConnectedToCapital", "value": 8 },
-      "boon": { "effects": [{ "kind": "authority", "amount": 4 }] }
+      "deed": {
+        "shape": "count",
+        "count": "citiesConnectedToCapital",
+        "value": 8
+      },
+      "boon": {
+        "effects": [
+          {
+            "kind": "authority",
+            "amount": 4
+          }
+        ]
+      }
     },
     "theFounder": {
       "name": "The Founder",
-      "age": 3,
+      "age": 2,
       "family": "economic",
       "system": "cities",
       "text": "Found eight cities of your own. Cities taken from others do not count.",
-      "deed": { "shape": "count", "count": "citiesFounded", "value": 8 },
-      "boon": { "grant": { "settler": true } }
+      "deed": {
+        "shape": "count",
+        "count": "citiesFounded",
+        "value": 8
+      },
+      "boon": {
+        "grant": {
+          "settler": true
+        }
+      }
     },
     "theConqueror": {
       "name": "The Conqueror",
-      "age": 3,
+      "age": 2,
       "family": "domination",
       "system": "war",
       "text": "Take three cities by force.",
-      "deed": { "shape": "count", "count": "citiesCaptured", "value": 3 },
-      "boon": { "effects": [{ "kind": "authority", "amount": 4 }] }
+      "deed": {
+        "shape": "count",
+        "count": "citiesCaptured",
+        "value": 3
+      },
+      "boon": {
+        "effects": [
+          {
+            "kind": "authority",
+            "amount": 4
+          }
+        ]
+      }
     },
     "threeOfTheAge": {
       "name": "Three of the Age",
-      "age": 3,
+      "age": 2,
       "family": "culture",
       "system": "wonders",
       "text": "Hold three wonders of the age the world stands in.",
-      "deed": { "shape": "count", "count": "wondersOfWorldAgeHeld", "value": 3 },
-      "boon": { "dice": 1 }
+      "deed": {
+        "shape": "count",
+        "count": "wondersOfWorldAgeHeld",
+        "value": 3
+      },
+      "boon": {
+        "dice": 1
+      }
     },
     "theScholarsWager": {
       "name": "The Scholar's Wager",
-      "age": 3,
+      "age": 2,
       "family": "science",
       "system": "science",
       "text": "Stand two whole ages ahead of the most backward empire in the world.",
-      "deed": { "shape": "count", "count": "agesAheadOfLowestSeat", "value": 2 },
-      "boon": { "dice": 1 }
+      "deed": {
+        "shape": "count",
+        "count": "agesAheadOfLowestSeat",
+        "value": 2
+      },
+      "boon": {
+        "dice": 1
+      }
     },
     "theLibraryOfTheRealm": {
       "name": "The Library of the Realm",
-      "age": 3,
+      "age": 2,
       "family": "science",
       "system": "buildings",
       "text": "Hold a library and a university in four cities.",
-      "deed": { "shape": "count", "count": "libraryAndUniversityCities", "value": 4 },
-      "boon": { "windfall": { "yield": "science", "amount": 300, "where": "capital" } }
+      "deed": {
+        "shape": "count",
+        "count": "libraryAndUniversityCities",
+        "value": 4
+      },
+      "boon": {
+        "windfall": {
+          "yield": "science",
+          "amount": 300,
+          "where": "capital"
+        }
+      }
     },
     "theWaterworks": {
       "name": "The Waterworks",
-      "age": 3,
+      "age": 2,
       "family": "economic",
       "system": "cities",
       "text": "Hold an aqueduct in four cities of ten citizens or more.",
-      "deed": { "shape": "count", "count": "aqueductCitiesOfTen", "value": 4 },
-      "boon": { "windfall": { "yield": "population", "amount": 1, "where": "every" } }
+      "deed": {
+        "shape": "count",
+        "count": "aqueductCitiesOfTen",
+        "value": 4
+      },
+      "boon": {
+        "windfall": {
+          "yield": "population",
+          "amount": 1,
+          "where": "every"
+        }
+      }
     },
     "theSurveyor": {
       "name": "The Surveyor",
-      "age": 3,
+      "age": 2,
       "family": "economic",
       "system": "cities",
       "text": "Buy twenty hexes of ground across the game.",
-      "deed": { "shape": "count", "count": "tilesPurchased", "value": 20 },
-      "boon": { "dice": 1 },
-      "deferred": ["One more claimed hex for every city — a border grant in every town at once."]
+      "deed": {
+        "shape": "count",
+        "count": "tilesPurchased",
+        "value": 20
+      },
+      "boon": {
+        "dice": 1
+      },
+      "deferred": [
+        "One more claimed hex for every city — a border grant in every town at once."
+      ]
     },
     "theApostle": {
       "name": "The Apostle",
-      "age": 3,
+      "age": 2,
       "family": "culture",
       "system": "religion",
       "text": "Have your faith followed by twenty citizens in cities you do not own.",
-      "deed": { "shape": "count", "count": "foreignFollowers", "value": 20 },
-      "boon": { "dice": 1, "effects": [{ "kind": "happiness", "amount": 2 }] }
+      "deed": {
+        "shape": "count",
+        "count": "foreignFollowers",
+        "value": 20
+      },
+      "boon": {
+        "dice": 1,
+        "effects": [
+          {
+            "kind": "happiness",
+            "amount": 2
+          }
+        ]
+      }
     },
     "theHierophant": {
       "name": "The Hierophant",
-      "age": 3,
+      "age": 2,
       "family": "culture",
       "system": "religion",
       "text": "Spend a great sum of faith on augurs and prophets across the game.",
-      "deed": { "shape": "count", "count": "faithOnHolyOrders", "value": 1500 },
-      "boon": { "grant": { "prophet": true } }
+      "deed": {
+        "shape": "count",
+        "count": "faithOnHolyOrders",
+        "value": 1500
+      },
+      "boon": {
+        "grant": {
+          "prophet": true
+        }
+      }
     },
     "theTithe": {
       "name": "The Tithe",
-      "age": 3,
+      "age": 2,
       "family": "economic",
       "system": "projects",
       "text": "Gather a great sum of gold from tithes.",
-      "deed": { "shape": "count", "count": "tithesGold", "value": 600 },
-      "boon": { "windfall": { "yield": "gold", "amount": 200, "where": "capital" } }
+      "deed": {
+        "shape": "count",
+        "count": "tithesGold",
+        "value": 600
+      },
+      "boon": {
+        "windfall": {
+          "yield": "gold",
+          "amount": 200,
+          "where": "capital"
+        }
+      }
     },
     "theScholarship": {
       "name": "The Scholarship",
-      "age": 3,
+      "age": 2,
       "family": "science",
       "system": "projects",
       "text": "Gather a great sum of learning from scholarship.",
-      "deed": { "shape": "count", "count": "scholarshipScience", "value": 600 },
-      "boon": { "windfall": { "yield": "science", "amount": 200, "where": "capital" } }
+      "deed": {
+        "shape": "count",
+        "count": "scholarshipScience",
+        "value": 600
+      },
+      "boon": {
+        "windfall": {
+          "yield": "science",
+          "amount": 200,
+          "where": "capital"
+        }
+      }
     },
     "thePatron": {
       "name": "The Patron",
-      "age": 3,
+      "age": 2,
       "family": "science",
       "system": "great people",
       "text": "Plant three great works so that each one touches the other two.",
-      "deed": { "shape": "count", "count": "adjacentGreatWorks", "value": 3 },
-      "boon": { "dice": 1 }
+      "deed": {
+        "shape": "count",
+        "count": "adjacentGreatWorks",
+        "value": 3
+      },
+      "boon": {
+        "dice": 1
+      }
     },
     "theDeepening": {
       "name": "The Deepening",
-      "age": 3,
+      "age": 2,
       "family": "culture",
       "system": "Statecraft",
       "text": "Raise an Order to its third level and keep it slotted for ten turns together.",
-      "deed": { "shape": "streak", "count": "deepestSlottedOrder", "value": 3, "turns": 10 },
-      "boon": { "dice": 1 }
+      "deed": {
+        "shape": "streak",
+        "count": "deepestSlottedOrder",
+        "value": 3,
+        "turns": 10
+      },
+      "boon": {
+        "dice": 1
+      }
     },
     "theLongReign": {
       "name": "The Long Reign",
-      "age": 3,
+      "age": 2,
       "family": "culture",
       "system": "Statecraft",
       "text": "Keep a council whose slotted Orders total fifteen levels for ten turns together.",
-      "deed": { "shape": "streak", "count": "slottedOrderLevels", "value": 15, "turns": 10 },
-      "boon": { "dice": 1 },
-      "deferred": ["A free Order draft — a draft handed over outright is not in the boon vocabulary."]
+      "deed": {
+        "shape": "streak",
+        "count": "slottedOrderLevels",
+        "value": 15,
+        "turns": 10
+      },
+      "boon": {
+        "dice": 1
+      },
+      "deferred": [
+        "A free Order draft — a draft handed over outright is not in the boon vocabulary."
+      ]
     },
     "theBreadbasket": {
       "name": "The Breadbasket",
-      "age": 3,
+      "age": 2,
       "family": "economic",
       "system": "cities",
       "text": "Keep one city fed to a hundred of food for ten turns together.",
-      "deed": { "shape": "streak", "count": "bestCityFood", "value": 100, "turns": 10 },
-      "boon": { "windfall": { "yield": "population", "amount": 1, "where": "capital" } }
+      "deed": {
+        "shape": "streak",
+        "count": "bestCityFood",
+        "value": 100,
+        "turns": 10
+      },
+      "boon": {
+        "windfall": {
+          "yield": "population",
+          "amount": 1,
+          "where": "capital"
+        }
+      }
     },
     "theForgeCity": {
       "name": "The Forge-City",
-      "age": 3,
+      "age": 2,
       "family": "economic",
       "system": "cities",
       "text": "Keep one city working to a hundred of production for ten turns together.",
-      "deed": { "shape": "streak", "count": "bestCityProduction", "value": 100, "turns": 10 },
-      "boon": { "windfall": { "yield": "production", "amount": 200, "where": "capital" } }
+      "deed": {
+        "shape": "streak",
+        "count": "bestCityProduction",
+        "value": 100,
+        "turns": 10
+      },
+      "boon": {
+        "windfall": {
+          "yield": "production",
+          "amount": 200,
+          "where": "capital"
+        }
+      }
     },
     "theMetropolis": {
       "name": "The Metropolis",
-      "age": 4,
+      "age": 3,
       "family": "culture",
       "system": "cities",
       "text": "Grow a city to twenty citizens.",
-      "deed": { "shape": "count", "count": "largestCity", "value": 20 },
-      "boon": { "effects": [{ "kind": "happiness", "amount": 3 }] }
+      "deed": {
+        "shape": "count",
+        "count": "largestCity",
+        "value": 20
+      },
+      "boon": {
+        "effects": [
+          {
+            "kind": "happiness",
+            "amount": 3
+          }
+        ]
+      }
     },
     "theTwelve": {
       "name": "The Twelve",
-      "age": 4,
+      "age": 3,
       "family": "economic",
       "system": "cities",
       "text": "Hold twelve cities of six citizens or more.",
-      "deed": { "shape": "count", "count": "citiesOfSixOrMore", "value": 12 },
-      "boon": { "effects": [{ "kind": "authority", "amount": 6 }] }
+      "deed": {
+        "shape": "count",
+        "count": "citiesOfSixOrMore",
+        "value": 12
+      },
+      "boon": {
+        "effects": [
+          {
+            "kind": "authority",
+            "amount": 6
+          }
+        ]
+      }
     },
     "theBuilder": {
       "name": "The Builder",
-      "age": 4,
+      "age": 3,
       "family": "culture",
       "system": "wonders",
       "text": "Hold ten wonders at once.",
-      "deed": { "shape": "count", "count": "wondersHeld", "value": 10 },
-      "boon": { "dice": 1 }
+      "deed": {
+        "shape": "count",
+        "count": "wondersHeld",
+        "value": 10
+      },
+      "boon": {
+        "dice": 1
+      }
     },
     "theLegacy": {
       "name": "The Legacy",
-      "age": 4,
+      "age": 3,
       "family": "culture",
       "system": "great people",
       "text": "Hold fifteen legacies that have not been struck from the record.",
-      "deed": { "shape": "count", "count": "unrevokedLegacies", "value": 15 },
-      "boon": { "dice": 1 },
-      "deferred": ["Every struck legacy of yours restored — a revocation is marked, and unmarking it is not a boon shape."]
+      "deed": {
+        "shape": "count",
+        "count": "unrevokedLegacies",
+        "value": 15
+      },
+      "boon": {
+        "dice": 1
+      },
+      "deferred": [
+        "Every struck legacy of yours restored — a revocation is marked, and unmarking it is not a boon shape."
+      ]
     },
     "theLaureatesCourt": {
       "name": "The Laureate's Court",
-      "age": 4,
+      "age": 3,
       "family": "culture",
       "system": "great people",
       "text": "Plant a great work of every family inside one city's ground.",
-      "deed": { "shape": "count", "count": "greatWorkFamiliesInOneCity", "value": 4 },
-      "boon": { "grant": { "greatPerson": "choice" } }
+      "deed": {
+        "shape": "count",
+        "count": "greatWorkFamiliesInOneCity",
+        "value": 4
+      },
+      "boon": {
+        "grant": {
+          "greatPerson": "choice"
+        }
+      }
     },
     "theDynasty": {
       "name": "The Dynasty",
-      "age": 4,
+      "age": 3,
       "family": "culture",
       "system": "great people",
       "text": "Call six great people during one age.",
-      "deed": { "shape": "count", "count": "greatPeopleThisAge", "value": 6 },
-      "boon": { "windfall": { "yield": "renown", "amount": 200, "where": "capital" } }
+      "deed": {
+        "shape": "count",
+        "count": "greatPeopleThisAge",
+        "value": 6
+      },
+      "boon": {
+        "windfall": {
+          "yield": "renown",
+          "amount": 200,
+          "where": "capital"
+        }
+      }
     },
     "theEnhancer": {
       "name": "The Enhancer",
-      "age": 4,
+      "age": 3,
       "family": "culture",
       "system": "religion",
       "text": "Enhance your faith, and see a rival's seat of government take it up.",
-      "deed": { "shape": "count", "count": "enhancedFaithInForeignCapital", "value": 1 },
-      "boon": { "grant": { "prophet": true } }
+      "deed": {
+        "shape": "count",
+        "count": "enhancedFaithInForeignCapital",
+        "value": 1
+      },
+      "boon": {
+        "grant": {
+          "prophet": true
+        }
+      }
     },
     "theStandingArmy": {
       "name": "The Standing Army",
-      "age": 4,
+      "age": 3,
       "family": "domination",
       "system": "war",
       "text": "Keep twenty fighting units under arms for ten turns together.",
-      "deed": { "shape": "streak", "count": "combatUnits", "value": 20, "turns": 10 },
-      "boon": { "effects": [{ "kind": "happiness", "amount": 2 }] }
+      "deed": {
+        "shape": "streak",
+        "count": "combatUnits",
+        "value": 20,
+        "turns": 10
+      },
+      "boon": {
+        "effects": [
+          {
+            "kind": "happiness",
+            "amount": 2
+          }
+        ]
+      }
     }
   },
   "reckonings": {

@@ -51,6 +51,9 @@ import beadsJson from '../../data/beads.json';
 import type { CardEffect } from './statecraftData';
 import { type BuildingId, isBuildingId, buildingDef } from './buildingData';
 import { type Family, isFamily } from './greatPeopleData';
+// `rng.ts` is a pure leaf with no imports of its own, so the draw rule can live
+// beside the table it draws from rather than in whichever module holds a seed.
+import { type Rng, nextInt } from './rng';
 
 /**
  * The four families a bead may belong to (Entry VI.5). Domination, culture,
@@ -75,13 +78,38 @@ export function isBeadFamily(value: unknown): value is BeadFamily {
 /** Which class of row a bead came off. Carried on the earned record. */
 export type BeadKind = 'feat' | 'endeavour' | 'quest' | 'reckoning';
 
-/** The ages that hold a deck. Æra I–II have feats and reckonings only. */
-export type BeadAge = 3 | 4;
+/**
+ * The ages that hold a deck — and **the keys are the built age numbers, not the
+ * doc's numerals** (2026-08-30).
+ *
+ * `docs/beads.md` writes the two decks as Æra **III** (Empire) and Æra **IV**
+ * (Cathedrals), which is the *re-banded* tree of `docs/tech-tree.md` Part 1,
+ * ruling 1. The tree that exists today has three ages, and the Empire and
+ * Cathedrals bands are its ages **2** and **3**. Since the phase deals off
+ * `highestAge`, the keys have to be the numbers the tree actually produces or a
+ * real game would deal nothing at all: nobody ever reaches an age 4, so an age-4
+ * deck would sit face down for the whole game.
+ *
+ * So deck **2** is the doc's Æra III and deck **3** is the doc's Æra IV, and
+ * `data/beads.json` carries the built numbers on every row. **The tree pass
+ * renumbers these with the ages** — when Part 1's re-banding lands, these two
+ * constants and the `age` field on every endeavour and quest move up by one, and
+ * nothing else changes.
+ *
+ * One consequence is worth stating rather than discovering: a reckoning is taken
+ * at the **next** age's opening, so deck 2's reckonings are taken at the 2→3
+ * opening and **deck 3's are never taken at all** until a fourth age exists.
+ * That is the same dormancy the three `awaitsTech` buildings have, and it lifts
+ * on the same day.
+ *
+ * Æra I holds no cards: it has feats only.
+ */
+export type BeadAge = 2 | 3;
 
-export const BEAD_DECK_AGES: readonly BeadAge[] = [3, 4];
+export const BEAD_DECK_AGES: readonly BeadAge[] = [2, 3];
 
 export function isBeadAge(value: unknown): value is BeadAge {
-  return value === 3 || value === 4;
+  return value === 2 || value === 3;
 }
 
 // --- what a deed can ask ----------------------------------------------------
@@ -403,7 +431,16 @@ export type BeadCardId = BeadFeatId | BeadEndeavourId | BeadQuestId | BeadReckon
 export interface BeadRules {
   /** Beads that win the game. Entry VI's pacing knob. */
   threshold: number;
-  /** How many cards an age's hand holds, by age. */
+  /**
+   * How many cards an age's hand holds **face up at once**, by built age.
+   *
+   * A hand is a set of **open slots**, not a one-time deal (the ruling of
+   * 2026-08-30). A card that is claimed — an endeavour finished, a quest taken —
+   * leaves the table, and the deck deals into the freed slot on the next tick,
+   * so a twenty-five card deck flows through a four-slot hand over an age rather
+   * than stopping at four. A reckoning holds its slot until its age closes,
+   * which is exactly when it is taken.
+   */
   handSize: Record<string, number>;
   /** Turns between deals. One. */
   dealEveryTurns: number;
@@ -508,7 +545,15 @@ function prerequisiteAwaitsTech(prerequisite: BeadPrerequisite): boolean {
   return buildingDef(building).awaitsTech === true;
 }
 
-/** The cards of one age's deck, in file order: its endeavours, then its quests. */
+/**
+ * The **fixed** cards of one age's deck, in file order: its endeavours, then its
+ * quests.
+ *
+ * The reckonings are deliberately not here. Which four an age holds is a *draw*
+ * (`drawAgeReckonings`), so it needs a generator and cannot be a pure function
+ * of the age — this is the half that is the same in every game, and
+ * `newBeadTable` shuffles the two halves together.
+ */
 export function beadDeckFor(age: BeadAge): BeadCardId[] {
   const deck: BeadCardId[] = [];
   for (const id of BEAD_ENDEAVOUR_IDS) {
@@ -522,6 +567,44 @@ export function beadDeckFor(age: BeadAge): BeadCardId[] {
     deck.push(id);
   }
   return deck;
+}
+
+/** The live reckonings of one family, in file order. The pool a draw picks from. */
+export function reckoningsOfFamily(family: BeadFamily): BeadReckoningId[] {
+  return BEAD_RECKONING_IDS.filter(
+    (id) => beadReckoningDef(id).family === family && !beadIsDormant(id),
+  );
+}
+
+/**
+ * The **four** reckonings one age holds — one per family, drawn from the pool of
+ * eight (`docs/beads.md`: "one per family per age is *dealt*, so the eight are a
+ * pool, not a fixed set").
+ *
+ * A reckoning is an ordinary card of its age's deck, exactly like a quest: it is
+ * shuffled in with the rest, it reaches the table by the ordinary deal, and it
+ * turns face up when the age opens. What makes it a reckoning is only *when* it
+ * resolves — at the **next** age's opening, across every seat at once.
+ *
+ * Drawn here rather than when the age opens, for the doctrine every offer
+ * generator in the game obeys: a deal rolled later would be a function of when
+ * somebody reached an age, and under simultaneous turns two seats reach it in
+ * the same window. Rolled once at `newGame`, a seed **is** the deal.
+ *
+ * Families are walked in `BEAD_FAMILIES` order and each picks one row from its
+ * own pool, so the generator is consumed in the same sequence every time. A
+ * family with exactly one live row still costs a roll — deliberately, because a
+ * draw that skipped the trivial case would change every roll after it the day
+ * somebody added a second economic reckoning.
+ */
+export function drawAgeReckonings(rng: Rng): BeadReckoningId[] {
+  const drawn: BeadReckoningId[] = [];
+  for (const family of BEAD_FAMILIES) {
+    const pool = reckoningsOfFamily(family);
+    if (pool.length === 0) continue;
+    drawn.push(pool[nextInt(rng, 0, pool.length)]!);
+  }
+  return drawn;
 }
 
 /** How many cards an age's hand holds. */
@@ -649,6 +732,14 @@ export function beadDataProblems(): string[] {
   // the one failure the per-row checks cannot see.
   for (const age of BEAD_DECK_AGES) {
     if (beadDeckFor(age).length === 0) problems.push(`age ${age}'s deck holds no live card`);
+  }
+  // And a family with no live reckoning is an age that can only ever deal three:
+  // the draw is one row per family, so an empty pool is a rod nobody can score
+  // at a reckoning at all.
+  for (const family of BEAD_FAMILIES) {
+    if (reckoningsOfFamily(family).length === 0) {
+      problems.push(`no live reckoning measures the ${family} family`);
+    }
   }
   return problems;
 }
