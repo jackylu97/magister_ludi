@@ -19,7 +19,7 @@ takes of everyone at once.
 | kind | what | how it scores |
 |---|---|---|
 | **feat** | a first in the world, always in play | the first seat to do it, once per game (or per age where marked) |
-| **endeavour** | a *race project* dealt from the deck — a queue row every empire can build | **the first three empires to complete it** each clack a bead (the user's idea: rewards high production, and three winners keeps the race alive after the leader finishes) |
+| **endeavour** | a *race project* dealt from the deck — a queue row every empire can build | **the first empire to complete it** clacks the bead and takes the boon (user, 2026-08-29 — first only, for both); everyone else's hammers are spent |
 | **quest** | a deed dealt from the deck — something you *do*, in Statecraft, religion, war, exploration | the first seat to do it, once; a few pay every seat that does it (marked ∗) |
 | **reckoning** | the age's snapshot | **taken the moment the first seat enters the next age** (user): every seat is measured at once and a victor named per card; ties pay nobody |
 
@@ -44,7 +44,7 @@ takes of everyone at once.
 
 **What the code needs, by kind** — an endeavour is a `project` queue row that *finishes*
 (unlike Tithes and Scholarship it leaves the queue) and a world register keyed `(id, age)`
-holding up to three claimants (the wonder register with a count); a quest is a Triumph-shaped
+holding one claimant (the wonder register, exactly); a quest is a Triumph-shaped
 occasion hooked at the seam it names, world-contested through `state.contested`; a reckoning
 is a standing count read once, in the `renown` phase of the turn the first seat's age
 advances, across `realPlayers`. **The Long Count** (Æra II) shows the next hand a turn early;
@@ -71,13 +71,14 @@ strategic kind.
 A dealt endeavour puts a **project row** in every empire's build list the turn it is revealed
 (projects sort at the back of the queue by `insertionIndex`). Each has a **prerequisite** on
 the empire — a condition you can see and plan toward — a hammer cost that climbs by age, and
-a **boon** beside the bead. **The first three empires to finish each clack a bead** (the
-race stays alive after the leader crosses); **only the first to finish takes the boon**
-(user, 2026-08-29). Boons are **one-time** — a windfall, a grant, a permanent step in a *cap*
-(authority, happiness) — never a standing rate. A fourth finisher gets nothing but the
-hammers' fallback.
+a **boon** beside the bead. **The first empire to finish takes the bead and the boon; nobody
+else gets either** (user, 2026-08-29) — a race with one winner, which is what makes it a
+race. Boons are **one-time** — a windfall, a grant, a permanent step in a *cap* (authority,
+happiness) — never a standing rate. A later finisher's hammers are spent for the row's
+fallback `pays` alone, so a seat that sees the race lost should drop the row — the queue's
+remove is the fold.
 
-| endeavour | age | ⚙ | family | prerequisite (user) | boon, first finisher only |
+| endeavour | age | ⚙ | family | prerequisite (user) | boon (bead and boon to the first finisher only) |
 |---|---|---|---|---|---|
 | **The Census of the World** | III | 120 | S | built in a city of size 15+ | +1 population in every city, once |
 | **The Great Games** | III | 150 | C | Funeral Games in every city | +2 happiness, permanent (a cap, not a rate) |
@@ -270,14 +271,13 @@ completion-grant path — all built. The dice finally have a source.*
 
 ## The count
 
-Feats ~12 · endeavours 3 per age dealt of 10 written (9 beads a game, spread over three
-seats) · quests ~2 per age dealt of ~30 written · reckonings 4 per age from Æra II. A busy
+Feats ~12 · endeavours 3 per age dealt of 11 written (9 beads a game, one seat each) · quests ~2 per age dealt of ~30 written · reckonings 4 per age from Æra II. A busy
 winner reaches ~20; N ≈ 20 on Quick is the first guess, and it is Entry VI's pacing knob.
 
 ## Open questions
 
 - Hand sizes; how many endeavours per age hand (one at a time, so the race is *the* race?).
-- The endeavour's ⚙ scale by speed and seat count; whether a fourth finisher gets anything.
+- The endeavour's ⚙ scale by speed and seat count; whether a losing seat is warned when another finishes (the announcement is the warning).
 - Whether a quest marked ∗ (pays everyone) dilutes the race — or is the comeback structure.
 - N by speed and seat count; whether a solo game can win by threshold.
 - The Opus: hammers + science + culture in what proportion; halved on interruption (proposed).
