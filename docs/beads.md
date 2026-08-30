@@ -198,6 +198,46 @@ pool, not a fixed set); the two the user wrote are the first two.
 Feats ~12 · endeavours 3 per age dealt of 9 written (9 beads a game, one seat each) · quests ~2 per age dealt of ~30 written · reckonings 4 per age from Æra II. A busy
 winner reaches ~20; N ≈ 20 on Quick is the first guess, and it is Entry VI's pacing knob.
 
+## As built (2026-08-30, sim half; the interface follows)
+
+- **Data**: `data/beads.json` — 10 feats, 9 endeavours, 25 quests (Æra III 17, IV 8), 8
+  reckonings; `threshold 20` (one number — there is no speed table), `handSize {3: 4, 4: 5}`,
+  one card dealt a turn. A deed is one of three shapes — `occasion` (hooked at a seam),
+  `count` (swept), `streak` (swept, held N turns); a boon is one vocabulary — `dice` (uncapped,
+  user 2026-08-30; nothing spends them yet), a `windfall` through the Entry XVIII seams, a
+  `grant` through the free-unit paths, or `effects` (the caps — `liveEffects`' ninth source).
+- **State**: decks shuffled from the seed in `newGame` (every seeded roll in a game moved —
+  schema 37); hands dealt face down until the **world clock** opens the age (the first seat's
+  entry); the register `(id, age)`; per-seat streaks; `Player.beads` append-only and
+  turn-stamped; the counters the deeds needed (cities founded and captured, tiles bought, faith
+  spent on augurs and prophets, Tithes' gold, Scholarship's science, route yields and great
+  people this age).
+- **Reckonings are dealt**: four per age deck (one per family) drawn from the pool of eight,
+  face up with the hand, taken at the next age's opening — a victor each, ties pay nobody.
+  (The first build took all eight at every opening; corrected the same day.)
+- **Endeavours are projects that finish**: offered in the build list only while face up,
+  unclaimed and the empire meets the prerequisite; the first finisher takes bead and boon; a
+  later finisher's hammers buy the row's fallback alone. **Cathedral, Mint and Armoury exist as
+  rows with `awaitsTech`** (not buildable, not in the tree) so their three endeavours are
+  *dormant* — never dealt — until the tree pass places them. The Encyclopaedia reads
+  "a university in every city"; The Grand Orrery waits for an observatory; The Exposition
+  moved into the IV deck (Æra V has none).
+- **Feats** ride `awardOccasion`; three occasions the Triumph table lacked are hooked in their
+  own mechanisms (a religion founded, a city captured, a great person chosen). "Every capital
+  captured" became "a capital captured" — nothing records a city's founder once it changes
+  hands. The Engine's feat is dormant; circumnavigation waits for the ocean rule.
+- **Deferred** (needs history the game does not keep, or a shape it lacks): The Star-Reader,
+  The Overflow, The Exchange, The Long Haul, The Caravanserai, The Encyclopaedist, The Full
+  Bench, The Wall-Breaker (no raze), The Fleet / Siege Master / General's Brilliance, The
+  Market Town, The Bulwark, The Cloister, The School, The Wayfarer; and four boons without a
+  shape yet (a free Order draft, a free technology, a timed purchase discount, restoring
+  revoked legacies).
+- **Streaks**: five quests are "held for N turns" by the user's own rewrites (The Long Reign,
+  The Deepening, The Breadbasket, The Forge-City, The Standing Army) — they are about keeping a
+  bench or a yield, not a map state, and stand.
+- **The win**: first to the threshold sets `winnerId` (one field with conquest). The golden
+  bead and the Opus wait for Æra V; the curtain with it.
+
 ## Open questions
 
 - Hand sizes; how many endeavours per age hand (one at a time, so the race is *the* race?).
