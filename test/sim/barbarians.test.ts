@@ -36,6 +36,7 @@ import {
 } from '../../src/sim/map';
 import { isPassable } from '../../src/sim/pathfind';
 import { RULES } from '../../src/sim/rulesData';
+import { type OrderId } from '../../src/sim/statecraftData';
 import {
   type GameState,
   allTurnsEnded,
@@ -115,6 +116,19 @@ function at(state: GameState, col: number, row: number): Tile {
 /** The wild's seat id in a world that has one. */
 function wildId(state: GameState): number {
   return barbarianPlayer(state)!.id;
+}
+
+/**
+ * Slots an Order card directly, growing the spread if the government has no
+ * room — test scaffolding only, `statecraft.test.ts`'s `slot` helper for a
+ * suite that has no reason to import it back.
+ */
+function slotOrder(state: GameState, playerId: number, id: OrderId, level = 1): void {
+  const sc = playerById(state, playerId)!.statecraft;
+  const owned = sc.orders.find((entry) => entry.id === id);
+  if (owned) owned.level = level;
+  else sc.orders.push({ id, level });
+  sc.slots.push({ card: id, sealedUntil: state.turn });
 }
 
 describe('the faction', () => {
@@ -627,6 +641,40 @@ describe('clearing a camp', () => {
     expect(bounty?.food).toBe(BARB.campClearFood);
     expect(bounty?.cityName).toBe(city.name);
     expect(bounty?.warning).toBeNull();
+    // No rider slotted, so nothing rides along — the report is honest about
+    // there being no voice beyond the camp's own.
+    expect(bounty?.lines).toEqual([]);
+    expect(bounty?.units).toEqual([]);
+  });
+
+  it('Camp Followers folds its food into one total and gifts a piece that reaches the report', () => {
+    // "camp followers didn't do anything in my playtest" — it had, silently:
+    // the unit was realised and the food was banked, and only the toast never
+    // said so (2026-08-29). This pins the bounty the toast now reads from.
+    const state = wildState();
+    foundCityAt(state, 0, at(state, 5, 5));
+    const city = state.cities[0]!;
+    state.camps.push({ col: 9, row: 5, foundedTurn: 1 });
+    slotOrder(state, 0, 'campFollowers');
+
+    const bounty = settleCampBounty(state, 0, { col: 9, row: 5 });
+
+    // 25 base + 25 rider = 50, one honest total — never a base the player
+    // banked and a rider they never heard about.
+    expect(bounty.food).toBe(BARB.campClearFood + 25);
+    expect(bounty.cityName).toBe(city.name);
+    // The gifted piece actually found ground and is named for the toast.
+    expect(bounty.units).toHaveLength(1);
+    expect(bounty.units[0]!.cityName).toBe(city.name);
+    expect(unitDef(bounty.units[0]!.type).category).toBe('military');
+    expect(
+      state.units.some(
+        (unit) => unit.ownerId === 0 && unit.type === bounty.units[0]!.type && unit.freeUpkeep === true,
+      ),
+    ).toBe(true);
+    // The rider's own voice is on `lines`, for a surface that wants every card
+    // that touched the occasion rather than only the delivered pieces.
+    expect(bounty.lines.some((line) => line.card === 'campFollowers')).toBe(true);
   });
 
   it('grows the city on the spot when the provisions fill the basket', () => {
@@ -654,6 +702,62 @@ describe('clearing a camp', () => {
     expect(bounty.grownTo).toBeNull();
     expect(bounty.warning).toBe('no city to receive the provisions');
     expect(playerById(state, 0)!.gold).toBe(BARB.campClearGold);
+    // Even with Camp Followers slotted, a piece has nowhere to stand with no
+    // owned city — `payWindfallGrants` finds no `nearestOwnedCity` and skips
+    // the gift, and `bounty.units` says so honestly rather than claiming one.
+    slotOrder(state, 0, 'campFollowers');
+    state.camps.push({ col: 12, row: 5, foundedTurn: 1 });
+    const second = settleCampBounty(state, 0, { col: 12, row: 5 });
+    expect(second.units).toEqual([]);
+  });
+
+  it('reports a camp a standing order burns out at End Turn, which a phase used to drop', () => {
+    // Before 2026-08-29 a camp cleared by `resetMovement` resuming a stored
+    // order paid correctly and told nobody — `spendLeftoverMovement`'s own
+    // docblock said the report was dropped. `TurnReport.campBounties` is the
+    // seam that carries it out, so `CommandResult.campBounties` (and the
+    // chronicle) can hear about it too.
+    const state = wildState();
+    foundCityAt(state, 0, at(state, 5, 5));
+    const city = state.cities[0]!;
+    state.camps.push({ col: 9, row: 5, foundedTurn: 1 });
+    const warrior = createUnit(state, 0, 'warrior', 8, 5);
+    // A standing order with no movement left this turn — exactly what
+    // `resetMovement` resumes once it has refilled the allowance.
+    warrior.movesLeft = 0;
+    warrior.path = [{ col: 9, row: 5 }];
+
+    const report = runEndOfTurn(state);
+
+    expect(hasCampAt(state, 9, 5)).toBe(false);
+    expect(report.campBounties).toHaveLength(1);
+    const entry = report.campBounties[0]!;
+    expect(entry.ownerId).toBe(0);
+    expect(entry.col).toBe(9);
+    expect(entry.row).toBe(5);
+    expect(entry.bounty.gold).toBe(BARB.campClearGold);
+    expect(entry.bounty.cityName).toBe(city.name);
+  });
+
+  it('carries the standing-order bounty out of `endTurn` through `CommandResult.campBounties`', () => {
+    // `ok()`'s own wiring, checked rather than trusted: `report.campBounties`
+    // is a new positional argument on a twelve-argument function, and an
+    // off-by-one there would silently thread the wrong list.
+    const state = wildState();
+    foundCityAt(state, 0, at(state, 5, 5));
+    state.camps.push({ col: 9, row: 5, foundedTurn: 1 });
+    const warrior = createUnit(state, 0, 'warrior', 8, 5);
+    warrior.movesLeft = 0;
+    warrior.path = [{ col: 9, row: 5 }];
+
+    expect(applyCommand(state, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
+    const result = applyCommand(state, { type: 'endTurn', playerId: 1 });
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.campBounties?.[0]).toMatchObject({
+      ownerId: 0,
+      col: 9,
+      row: 5,
+    });
   });
 
   it('pays the wild nothing for walking over its own camp', () => {

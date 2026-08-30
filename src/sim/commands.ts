@@ -176,6 +176,7 @@ import {
 } from './trade';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
+import type { CampBounty } from './camps';
 import { type GuildReport, dismissSpecialistAt, dismissSpecialistError } from './guilds';
 import { type SpecialistFamily, isSpecialistFamily } from './greatPeopleData';
 import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
@@ -1180,6 +1181,7 @@ export type CommandResult =
       starved?: StarvationReport[];
       guilds?: GuildReport[];
       proclaimed?: ProclamationReport;
+      campBounties?: { ownerId: number; col: number; row: number; bounty: CampBounty }[];
     }
   | { ok: false; error: string };
 
@@ -1265,6 +1267,13 @@ export type CommandResult =
  * augur's Preaching — and it is `arrivals`' argument in a third currency: by the
  * time this returns the citizens have turned and nothing on the board says which
  * towns were spoken to (see `ProclamationReport`).
+ *
+ * `campBounties` is the thirteenth, from `endTurn` alone (`TurnReport.campBounties`,
+ * 2026-08-29): every camp a **standing order** burnt out during the resolution,
+ * which `spendLeftoverMovement` and `resetMovement` cannot report any other way
+ * — they are phases, with no `CommandResult` of their own to write into. A camp
+ * a fresh `moveUnit` clears is still `arrivals`' own field; this is only the
+ * gap a phase leaves.
  */
 function ok(
   arrivals?: readonly ArrivalReport[],
@@ -1278,6 +1287,7 @@ function ok(
   disbanded?: readonly DisbandReport[],
   starved?: readonly StarvationReport[],
   guilds?: readonly GuildReport[],
+  campBounties?: readonly { ownerId: number; col: number; row: number; bounty: CampBounty }[],
 ): CommandResult {
   const result: CommandResult = { ok: true };
   if (arrivals !== undefined && arrivals.length > 0) result.arrivals = [...arrivals];
@@ -1291,6 +1301,7 @@ function ok(
   if (disbanded !== undefined && disbanded.length > 0) result.disbanded = [...disbanded];
   if (starved !== undefined && starved.length > 0) result.starved = [...starved];
   if (guilds !== undefined && guilds.length > 0) result.guilds = [...guilds];
+  if (campBounties !== undefined && campBounties.length > 0) result.campBounties = [...campBounties];
   return result;
 }
 
@@ -1385,6 +1396,7 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
     report.disbanded,
     report.starved,
     report.guilds,
+    report.campBounties,
   );
 }
 

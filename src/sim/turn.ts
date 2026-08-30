@@ -95,6 +95,7 @@
  */
 
 import { barbarianTurn } from './barbarians';
+import type { CampBounty } from './camps';
 import {
   type CompletionGrantReport,
   type StarvationReport,
@@ -276,6 +277,29 @@ export interface TurnReport {
    * first is the one whose count is one.
    */
   guilds: GuildReport[];
+  /**
+   * Every camp a **standing order** burnt out during the resolution — one
+   * that was already under way before this turn ended, or one this turn's
+   * fresh order had no movement left to start — with who cleared it and
+   * where the walk left them standing (`CampBounty`).
+   *
+   * A fresh march clears a camp too, but that is `moveUnit`'s own
+   * `CommandResult.arrivals` and never reaches here: this list exists only
+   * because `spendLeftoverMovement` and `resetMovement` are **phases**, and a
+   * phase has no `CommandResult` to hand its findings out through (see
+   * `spendLeftoverMovement`'s docblock — "the report is dropped"). Without
+   * this the bounty was still paid, correctly, into the treasury and the
+   * nearest city's basket; it simply never reached the chronicle, which is
+   * the gap the user's 2026-08-29 playtest turned up.
+   *
+   * `guilds`' sibling and a *difference* for their identical reason: by the
+   * time this returns the camp is gone from `state.camps`, the gold and food
+   * are already banked, and no diff of two boards can say who cleared it or
+   * what a rider added. Coordinates are the unit's position when its walk
+   * finished — the same courtesy `reportArrivals` already takes for a
+   * multi-hex march that found more than one thing.
+   */
+  campBounties: { ownerId: number; col: number; row: number; bounty: CampBounty }[];
 }
 
 /** A fresh, empty report. The one place its shape is written. */
@@ -291,6 +315,7 @@ export function emptyTurnReport(): TurnReport {
     disbanded: [],
     starved: [],
     guilds: [],
+    campBounties: [],
   };
 }
 
@@ -772,18 +797,46 @@ function marchOneTrader(state: GameState, unit: Unit, report: TurnReport): void 
  *
  * Walked in `state.units` order, like every other sweep, so two orders
  * contending for the same tile always resolve the same way. Whatever the march
- * turns up — a ruin, a camp — is claimed by `arriveOnTile` per step and the
- * report is dropped, exactly as `resetMovement` drops it: this is a phase, and a
- * phase has no `CommandResult` to hand it out through.
+ * turns up — a ruin, a camp — is claimed by `arriveOnTile` per step; a
+ * discovery and a captured civilian are still dropped here exactly as
+ * `resetMovement` drops them (this is a phase, and a phase has no
+ * `CommandResult` to hand them out through), but a camp's bounty is now
+ * collected into `report.campBounties` (2026-08-29), because a boon a
+ * standing order earned and nobody was told about is the bug the user's
+ * playtest turned up.
  */
-function spendLeftoverMovement(state: GameState): void {
+function spendLeftoverMovement(state: GameState, report: TurnReport): void {
   for (const unit of state.units) {
     const path = unit.path;
     // `length === 0` is only reachable from a hand-edited save; `resetMovement`
     // is one line away and owns tidying it up.
     if (!path || path.length === 0) continue;
     if (unit.movesLeft <= 0) continue;
-    advanceAlongPath(state, unit, path);
+    const result = advanceAlongPath(state, unit, path);
+    collectCampBounties(report, unit, result.arrivals);
+  }
+}
+
+/**
+ * Pulls the camp bounties out of a walk's arrivals and into the resolution's
+ * report, with the unit's position when the walk finished — `resetMovement`
+ * and `spendLeftoverMovement`'s one shared line, so the two phases that both
+ * resume a standing order cannot drift on how they report what it found.
+ */
+function collectCampBounties(
+  report: TurnReport,
+  unit: Unit,
+  arrivals: readonly { camp: CampBounty | null }[],
+): void {
+  for (const arrival of arrivals) {
+    if (arrival.camp) {
+      report.campBounties.push({
+        ownerId: unit.ownerId,
+        col: unit.col,
+        row: unit.row,
+        bounty: arrival.camp,
+      });
+    }
   }
 }
 
@@ -795,8 +848,12 @@ function spendLeftoverMovement(state: GameState): void {
  * the array with a full allowance rather than a stale one. Within the second
  * pass units are walked in `state.units` order, which is part of the state — so
  * two units whose orders contend for the same tile always resolve the same way.
+ *
+ * `spendLeftoverMovement`'s sibling for `collectCampBounties`: a camp burnt
+ * out by a standing order resumed *here*, on the freshly refilled allowance,
+ * is exactly as much news as one burnt out on last turn's leftover points.
  */
-function resetMovement(state: GameState): void {
+function resetMovement(state: GameState, report: TurnReport): void {
   for (const unit of state.units) {
     unit.movesLeft = fullMovement(unit, state);
     // The same allowance, refilled in the same breath: one attack per unit per
@@ -812,7 +869,8 @@ function resetMovement(state: GameState): void {
       delete unit.path;
       continue;
     }
-    advanceAlongPath(state, unit, path);
+    const result = advanceAlongPath(state, unit, path);
+    collectCampBounties(report, unit, result.arrivals);
   }
 }
 

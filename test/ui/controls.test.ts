@@ -407,6 +407,37 @@ describe('pillage news in the commit funnel', () => {
 });
 
 /**
+ * A camp is cleared on two occasions — a fresh march (`reportArrivals`'s own
+ * camp branch) and a standing order resumed at End Turn, which is a *phase*
+ * and had no `CommandResult` to report through until `TurnReport.campBounties`
+ * (2026-08-29, the user's playtest: "camp followers didn't do anything" —
+ * it had, and said nothing). Both must reach `announce`, through the one
+ * shared sentence, or the two occasions can drift on what the same kind of
+ * news says.
+ */
+describe('cleared-camp news in the commit funnel', () => {
+  const SOURCE = (
+    import.meta.glob('../../src/ui/controls.ts', {
+      eager: true,
+      query: '?raw',
+      import: 'default',
+    }) as Record<string, string>
+  )['../../src/ui/controls.ts'];
+
+  it('a fresh march announces its camp bounty through the one shared sentence', () => {
+    expect(SOURCE).toMatch(/function campSentence\(bounty: CampBounty\): string \{/);
+    expect(SOURCE).toMatch(/announce\(`\$\{campSentence\(camp\)\}\$\{tail\}`, \{ cell: at \}\);/);
+  });
+
+  it("toasts a standing order's camp off endTurn's resolution, filtered to this seat, through the same sentence", () => {
+    expect(SOURCE).toMatch(/function reportCampNews\(/);
+    expect(SOURCE).toMatch(/reportCampNews\(result\);/);
+    expect(SOURCE).toMatch(/ownerId !== localPlayerId/);
+    expect(SOURCE).toMatch(/announce\(campSentence\(bounty\), \{ cell: \{ col, row \} \}\);/);
+  });
+});
+
+/**
  * The three siege-beat sentences the combat forecast card prints
  * (`main.ts`'s `showCombatForecast`), off a fixture shaped like the field the
  * card actually reads — `CombatForecast.cityPhase` — rather than a whole

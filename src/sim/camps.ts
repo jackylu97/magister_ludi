@@ -36,10 +36,16 @@
  */
 
 import { nearestOwnedCity, settleGrowthWindfall } from './cities';
-import { payWindfallGrants, settleCultureWindfall, windfallPayout } from './statecraft';
+import {
+  payWindfallGrants,
+  settleCultureWindfall,
+  windfallPayout,
+  type WindfallPayout,
+} from './statecraft';
 import type { Cell } from './pathfind';
 import { RULES } from './rulesData';
 import { type BarbarianCamp, type GameState, playerById } from './state';
+import type { UnitTypeId } from './unitData';
 
 const BARB = RULES.barbarians;
 
@@ -73,7 +79,11 @@ export function removeCampAt(state: GameState, col: number, row: number): boolea
 /** What clearing a camp paid, for the line the interface announces it in. */
 export interface CampBounty {
   gold: number;
-  /** Food actually banked. Zero when there was nowhere to bank it. */
+  /**
+   * Food actually banked — the camp's own provisions **plus** any rider's
+   * food grant (Camp Followers' twenty-five bushels), folded into one honest
+   * total. Zero when there was nowhere to bank it.
+   */
   food: number;
   /** The city that received the provisions, or `null` when none did. */
   cityName: string | null;
@@ -81,6 +91,20 @@ export interface CampBounty {
   grownTo: number | null;
   /** Why the food was forfeited, or `null`. */
   warning: string | null;
+  /**
+   * Every rider that touched this occasion — Camp Followers', Spoils of the
+   * Wild's, Wolf-Mother's Pact's — reused verbatim from `WindfallPayout.lines`
+   * (Entry XVIII.5: a rider is part of the printed number, and this is the
+   * record of what changed it). Empty when no card touched the occasion.
+   */
+  lines: WindfallPayout['lines'];
+  /**
+   * Military units a rider gifted outright that actually found ground to
+   * stand on — Camp Followers' stray. A drawn-but-undelivered gift (no hex
+   * free) is not in this list, matching what `payWindfallGrants` actually
+   * realised.
+   */
+  units: { type: UnitTypeId; cityName: string }[];
 }
 
 /**
@@ -106,6 +130,8 @@ export function settleCampBounty(
     cityName: null,
     grownTo: null,
     warning: null,
+    lines: [],
+    units: [],
   };
   const player = playerById(state, playerId);
   if (!player) return bounty;
@@ -115,6 +141,7 @@ export function settleCampBounty(
   // own and are banked below with the provisions.
   const payout = windfallPayout(state, playerId, 'camp', BARB.campClearGold);
   bounty.gold = payout.amount;
+  bounty.lines = payout.lines;
   player.gold += bounty.gold;
 
   const city = nearestOwnedCity(state, playerId, at);
@@ -124,7 +151,7 @@ export function settleCampBounty(
     bounty.warning = 'no city to receive the provisions';
     // The grants that do not need a town — culture, science, faith — are still
     // paid: a card's verse about a burnt camp is not owed to a granary.
-    payWindfallGrants(state, player, payout, at);
+    payWindfallGrants(state, player, payout, at, bounty.units);
     settleCultureWindfall(state, player);
     return bounty;
   }
@@ -134,9 +161,17 @@ export function settleCampBounty(
   bounty.food = Math.floor((BARB.campClearFood * payout.amount) / Math.max(1, BARB.campClearGold));
   city.foodBasket += bounty.food;
   bounty.cityName = city.name;
-  // Camp Followers' twenty-five bushels and anything else a rider grants, into
-  // the same town the provisions went to (`nearestOwnedCity`, one rule).
-  payWindfallGrants(state, player, payout, at);
+  // Camp Followers' twenty-five bushels folded into the one printed figure —
+  // the toast owes one honest total, never a base the player banked and a
+  // rider it never heard about (`payWindfallGrants` banks this same amount
+  // into the same basket below; this only makes the report agree with it).
+  for (const grant of payout.grants) {
+    if (grant.yield === 'food') bounty.food += grant.amount;
+  }
+  // Camp Followers' stray and anything else a rider grants, into the same
+  // town the provisions went to (`nearestOwnedCity`, one rule); the pieces
+  // that actually found ground land in `bounty.units` for the announcement.
+  payWindfallGrants(state, player, payout, at, bounty.units);
   const grown = settleGrowthWindfall(state, city);
   if (grown) bounty.grownTo = grown.population;
   settleCultureWindfall(state, player);

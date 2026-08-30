@@ -173,6 +173,7 @@ import {
   withinWorkRadius,
 } from '../sim/cities';
 import { buildingDef } from '../sim/buildingData';
+import type { CampBounty } from '../sim/camps';
 import {
   type CityAttackPhase,
   type CombatPreview,
@@ -1082,6 +1083,45 @@ export function pillageVictimSentence(state: GameState, report: PillageReport): 
  */
 export function guildSentence(family: SpecialistFamily, cityName: string): string {
   return `A guild of ${family}s has formed in ${cityName}.`;
+}
+
+/**
+ * "⚔ Camp cleared: +25💰, +50🌾 → Uruk, a Warrior joins you at Uruk" — the
+ * plain sentence for a cleared camp's bounty (Entry XVIII.5: a rider is part
+ * of the printed number, so the food line is one honest total, not a base the
+ * player banked and a rider they never heard about — see `CampBounty.food`).
+ *
+ * A camp is cleared on two occasions — a fresh march (`reportArrivals`'s own
+ * camp branch, which appends its own tail of captured civilians) and a
+ * standing order resumed at End Turn (`reportCampNews`, a phase with no
+ * `CommandResult` of its own until `TurnReport.campBounties`, 2026-08-29) —
+ * and both read this one function, so neither can tell a different story
+ * about the same kind of news. `stripRefs` is hard rule 7's: a describer's
+ * word table may hand back a `[[kind:id|Name]]` keyword ref, and a toast is
+ * neither `setDescriptorText` nor a keyword-linked surface, so it strips.
+ *
+ * A gifted piece with nowhere to stand is not in `bounty.units` at all — what
+ * `payWindfallGrants` actually realised — so the roster giving nothing simply
+ * adds no clause, never a line about a unit that never arrived.
+ *
+ * Pure and exported for `disbandSentence`'s reason: this suite has no DOM,
+ * and a sentence that is merely wrong throws nothing.
+ */
+export function campSentence(bounty: CampBounty): string {
+  const parts = [`+${bounty.gold}${YIELD_GLYPH.gold}`];
+  if (bounty.cityName !== null) {
+    const grew = bounty.grownTo === null ? '' : ` · grows to ${bounty.grownTo}`;
+    parts.push(`+${bounty.food}${YIELD_GLYPH.food} → ${bounty.cityName}${grew}`);
+  } else if (bounty.warning !== null) {
+    // The forfeited half, said out loud. An empire with no towns has nowhere
+    // to put provisions, and a boon that vanished silently is the interface
+    // keeping a secret.
+    parts.push(bounty.warning);
+  }
+  for (const unit of bounty.units) {
+    parts.push(stripRefs(`${withArticle(unitDef(unit.type).name)} joins you at ${unit.cityName}`));
+  }
+  return `⚔ Camp cleared: ${parts.join(', ')}`;
 }
 
 export function disbandSentence(report: DisbandReport): string {
@@ -2246,6 +2286,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportGrants(result);
       reportRoutes(result);
       reportSieges(result);
+      reportCampNews(result);
       reportPillages(result);
       reportDisbands(command, result);
       reportStarvation(result);
@@ -2400,6 +2441,28 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       announce(`✶ ${name} is under siege · ${siegeTail(report)}`, {
         cell: { col: city.col, row: city.row },
       });
+    }
+  }
+
+  /**
+   * **A camp a standing order burnt out while nobody was watching.** One toast
+   * per bounty this seat earned from a march resumed at End Turn
+   * (`CommandResult.campBounties`, `endTurn` alone — `TurnReport.campBounties`).
+   *
+   * `reportSieges`' shape exactly: seat-filtered, read off the reducer's own
+   * report rather than diffed off the board, because by the time this runs the
+   * camp is gone from `state.camps` and its bounty is already banked. The other
+   * occasion — a camp a *fresh* march finds in the same click that ordered it —
+   * is `reportArrivals`' own camp branch; the two share `campSentence` so
+   * neither can tell a different story about the same kind of news. Before this
+   * (2026-08-29) a camp cleared by a resumed standing order paid correctly and
+   * said nothing at all — the gap the user's playtest turned up.
+   */
+  function reportCampNews(result: CommandResult): void {
+    if (!result.ok || !result.campBounties) return;
+    for (const { ownerId, col, row, bounty } of result.campBounties) {
+      if (ownerId !== localPlayerId) continue;
+      announce(campSentence(bounty), { cell: { col, row } });
     }
   }
 
@@ -4959,17 +5022,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       ];
       const tail = spoils.length > 0 ? ` · ${spoils.join(', ')}` : '';
       if (camp) {
-        const parts = [`+${camp.gold}${YIELD_GLYPH.gold}`];
-        if (camp.cityName !== null) {
-          const grew = camp.grownTo === null ? '' : ` · grows to ${camp.grownTo}`;
-          parts.push(`+${camp.food}${YIELD_GLYPH.food} → ${camp.cityName}${grew}`);
-        } else if (camp.warning !== null) {
-          // The forfeited half, said out loud. An empire with no towns has
-          // nowhere to put provisions, and a boon that vanished silently is the
-          // interface keeping a secret.
-          parts.push(camp.warning);
-        }
-        announce(`⚔ Camp cleared: ${parts.join(', ')}${tail}`, { cell: at });
+        announce(`${campSentence(camp)}${tail}`, { cell: at });
       } else if (spoils.length > 0) {
         announce(`⚔ ${spoils.join(', ')}`, { cell: at });
       }

@@ -3547,12 +3547,18 @@ export function musterPeriodicUnits(state: GameState): void {
  * city": the same `nearestOwnedCity` a discovery uses, so a Widow's Levy and a
  * grain cache name the same town. Returns which cities were touched, so the
  * caller can settle them (the windfall settlement register in CLAUDE.md).
+ *
+ * `realized`, if passed, collects the pieces that actually found a hex to
+ * stand on — type and the city they arrived in — for a caller whose
+ * announcement needs to name them (Camp Followers'). Optional and additive
+ * only: every existing caller that does not pass it sees no change at all.
  */
 export function payWindfallGrants(
   state: GameState,
   player: Player,
   payout: WindfallPayout,
   at?: { col: number; row: number },
+  realized?: { type: UnitTypeId; cityName: string }[],
 ): City[] {
   const touched: City[] = [];
   // **The pieces first**, because a gifted soldier is a thing that arrives
@@ -3571,6 +3577,7 @@ export function payWindfallGrants(
     // Levies' spearman and Camp Followers' stray go on no payroll. See
     // `Unit.freeUpkeep`, entry 2.
     realiseItem(state, city, { kind: 'unit', id: gift.type, tile }, { free: true });
+    realized?.push({ type: gift.type, cityName: city.name });
   }
   for (const grant of payout.grants) {
     if (grant.yield === 'gold') player.gold += grant.amount;
