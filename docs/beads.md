@@ -111,18 +111,11 @@ trade, war — and to be *done*, not held.
 
 | quest | family | the deed | needs |
 |---|---|---|---|
-| **The Archetype** ∗ | C | hold three Orders of one theme in your slots at once (the archetype lines are the point of the themes) | a slot read | [too rng, remove]
-| **The Reformer** | C | adopt a new government and fill every slot within three turns of the adoption | — | [too easy to do, remove]
 | **The Deepening** | C | raise an Order to its third level, have it slotted for 10 turns | `level` (built) |
-| **The Missionary** | C | your religion becomes the majority in a foreign city | built | [too easy to do, remove]
-| **The Pilgrim** | C | plant a holy site on ground you do not own | `plantHolySite` (built) | [too easy to do, remove]
-| **The Cartographer** | S | claim ten ruins and villages | `pendingDiscovery` count | [too easy to do, remove]
 | **The Scholar's Wager** | S | complete a technology two ages above the world's lowest seat *(a science lead made public)* | — |
 | **The Patron** | S | have three great people improvements built adjacent to each other | built |
 | **The Road-Builder** | E | eight cities connected to your capital by road (user's number) | connections (built) |
-| **The Factor** ∗ | E | send a trade route to every other empire | routes to foreign cities (built) | [too map-dependent, remove]
 | **The Wall-Breaker** | D | raze five cities (upon conquering a city, give the option to raze or keep the city) | `cityMaxHp` (built) |
-| **The Camp-Burner** ∗ | D | clear five barbarian camps in one age | `arrivals` (built) | [remove, age III too late in the game for this]
 
 ### Æra IV deck (Cathedrals)
 
@@ -131,13 +124,8 @@ trade, war — and to be *done*, not held.
 | **Three of the Age** | C | hold three wonders of the current age (user's wording) | built |
 | **The Enhancer** | C | enhance your religion, then convert a foreign capital | built |
 | **The Laureate's Court** | C | plant a great work of every family | `greatWork` (built) |
-| **The Legislator** | C | slot a Doctrine and every Order of one government within five turns of adopting it | — | [too easy, remove]
 | **The Encyclopaedist** | S | complete a technology of the next age before anyone completes the current age's last | — |
-| **The Observatory** | S | hold a university and an observatory in one city beside a mountain | the observatory | [too rng, remove]
-| **The Silk Exchange** | E | import a luxury you do not hold by trade route, and hold it for the reckoning | the Silk Road's rule | [do we have importing luxuries? remove]
 | **The Banker** | E | buy a great person with gold | `purchaseGreatPersonOffer` (built) |
-| **The Plunderer** | D | plunder a caravan carrying another empire's route | built | [too rng, remove]
-| **The Liberator** ∗ | D | retake a city of yours that another empire captured | — | [too rng, remove]
 
 ### Æra V deck (Magister)
 
@@ -168,6 +156,125 @@ pool, not a fixed set); the two the user wrote are the first two.
 | the most followers of your religion in foreign cities | C |
 | the most wonders of the age | C |
 | the most unit strength in the world | D |
+
+## Quest candidates — third pass (2026-08-29), for the user to filter
+
+The shape your endeavours found is the right one: **a condition you can plan toward from
+any position** (never the map's luck, never an opponent's choice, never a draw), **a thing to
+do** that costs a real trade-off, and **a reward that lasts** beside the bead. Written in that
+shape, grouped by the system each plays into. Rewards are first guesses; a quest without one
+listed pays the bead alone. Families as before; ∗ pays every seat that does it.
+
+### Statecraft — the empire's law
+
+| quest | family | the deed | reward |
+|---|---|---|---|
+| **The Long Reign** | C | hold one government for 25 turns without adopting another | +1 wildcard slot for the rest of the game |
+| **The Deepening** (kept) | C | raise an Order to its third level and keep it slotted 10 turns | that Order is never sealed again |
+| **The Full Bench** | C | hold every slot of a tier-IV or later government filled by Orders of level 2+ | Orders seal for 3 turns instead of 5 |
+| **The Grand Doctrine** | C | hold five Doctrines | one more card on every Doctrine draft |
+| **The Turncoat** | C | adopt three different governments across the game | adoption's amnesty also refunds the culture of the draft that opened it |
+| **The Codifier** ∗ | S | hold an Order of every one of the fourteen themes at some point in the game (the Statecraft screen tracks it) | +10% 🎵 for the rest of the game |
+
+### Religion — the faith's reach
+
+| quest | family | the deed | reward |
+|---|---|---|---|
+| **The Enhancer** (kept) | C | enhance your religion, then convert a foreign capital | +1 follower slot |
+| **The Apostle** | C | have your religion followed by twenty foreign citizens | your proclamations cost no charge |
+| **The Cloister** | C | hold a temple, a monastery and a cathedral in one city | +1 enhancer slot |
+| **The Hierophant** | C | spend 500 faith on augurs and prophets across the game | a free prophet |
+| **The Tide** | C | your holy city's pressure reaches every city of yours | rites last 50% longer |
+| **The Concord** ∗ | C | every city of yours follows your religion at once | +1 happiness per following city, permanent |
+
+### Great people and renown
+
+| quest | family | the deed | reward |
+|---|---|---|---|
+| **The Patron** (kept) | S | three great works planted adjacent to one another | those works +1 of their yield |
+| **The Laureate's Court** (kept) | C | plant a great work of every family | +2 renown per turn |
+| **The Dynasty** | C | recruit six great people | the seventh is half price |
+| **The School** | S | earn 100 renown in one family (the feed) | that family's draft shows one more card |
+| **The Banker** (kept) | E | buy a great person with gold | great people cost −25% gold |
+| **The Legacy** | C | hold four legacies unrevoked at once | legacies can no longer be revoked |
+
+### Cities, growth and the ground
+
+| quest | family | the deed | reward |
+|---|---|---|---|
+| **The Metropolis** | C | grow a city to size 20 | that city's crowding demand is halved |
+| **The Twelve** | E | hold twelve cities of size 6 or more | +1 authority capacity per city of size 8+ |
+| **The Breadbasket** | E | one city working eight farms at once | farms +1🌾 in that city |
+| **The Forge-City** | E | one city working six mines at once | mines +1⚙ in that city |
+| **The Garden** | C | one city with every happiness building of the age | +2 happiness in every city |
+| **The Founder** | E | found eight cities yourself (captures do not count) | settlers cost −25% |
+| **The Surveyor** | E | buy twenty tiles across the game | tiles cost −25% |
+| **The Waterworks** | E | an aqueduct in every city of size 6+ | growth surplus +10% empire-wide |
+
+### Buildings and wonders
+
+| quest | family | the deed | reward |
+|---|---|---|---|
+| **Three of the Age** (kept) | C | hold three wonders of the current age | +1🎵 per wonder |
+| **The Builder** | C | complete six wonders across the game | wonders −10% ⚙ |
+| **The Library of the Realm** | S | a library in every city and a university in three | +1🔬 per library |
+| **The Market Town** | E | a market and a harbour (or a bazaar) in one city with three routes ending there | that city's routes +1🪙 |
+| **The Bulwark** | D | walls in every city that touches a foreign border | those walls +5 strength |
+| **The Renewal** | S | hold every renewal of one thread (Fire, Sky, Water, Fate) | the thread's buildings +1 of their yield |
+
+### Trade and the road
+
+| quest | family | the deed | reward |
+|---|---|---|---|
+| **The Road-Builder** (kept) | E | eight cities connected to your capital by road | road maintenance halved |
+| **The Long Haul** | E | a trade route that runs for 40 turns without lapsing (auto-resend counts) | +1 route capacity |
+| **The Caravanserai** | E | ten routes ending in one city over the game | that city's routes +2🪙 |
+| **The Exchange** | E | a route to a foreign city returns 100 cumulative gold | foreign routes +1🪙 +1🔬 |
+| **The Ledger** ∗ | E | 500 cumulative gold from routes | the Trade screen shows every empire's routes |
+
+### Science and the chart
+
+| quest | family | the deed | reward |
+|---|---|---|---|
+| **The Scholar's Wager** (kept) | S | complete a technology two ages above the world's lowest seat | +5% 🔬 |
+| **The Encyclopaedist** (kept) | S | complete a technology of the next age before anyone completes the current age's last | the next age's first tech −25% |
+| **The Thread** | S | complete every node of one thread | the thread's masteries are drawn from a hand of four |
+| **The Polymath** | S | hold a mastery from every thread | one free reroll die |
+| **The Star-Reader** | S | complete three technologies in five turns | +10% 🔬 for ten turns |
+| **The Tablet House** | S | research 2000 cumulative science from libraries and their renewals | libraries +1🔬 |
+
+### War, proactive (never "be attacked")
+
+| quest | family | the deed | reward |
+|---|---|---|---|
+| **The Wall-Breaker** (kept, user) | D | raze five cities *(needs the raze-or-keep choice on capture)* | razing pays double gold |
+| **The Conqueror** | D | capture three cities | captured cities cost one less authority |
+| **The Veteran Host** | D | hold ten units with the veteran stamp at once | new units +5 hp stamp |
+| **The Siege Master** | D | take a city while it stands under siege (every neighbour hex yours) | siege chip damage doubled |
+| **The Standing Army** | D | hold twenty combat units at once for a turn | unit upkeep −1 per age |
+| **The General's Road** | D | a great general's aura covers a fight that kills a unit two strengths above yours | the aura +1 |
+| **The Fleet** | D | six embarked units at once | embarked units +1 movement |
+| **The Marches** | D | hold a city within 3 hexes of three different empires' borders — *map-dependent; keep only if the map guarantees neighbours* | that city +5 strength |
+
+### Exploration and discovery (map-independent forms)
+
+| quest | family | the deed | reward |
+|---|---|---|---|
+| **The Wayfarer** | S | reveal 40% of the world | scouts +1 sight |
+| **The Chronicler** | S | claim every ruin within 6 hexes of your capital *(the count is the map's; the reach is yours)* | ruins pay double |
+| **The Circumnavigator** (feat) | E | a route or a march crossing every longitude | embarked +1 movement |
+
+### Projects and the queue
+
+| quest | family | the deed | reward |
+|---|---|---|---|
+| **The Tithe** | E | run Tithes for 20 conversions across the game | Tithes pays +2🪙 |
+| **The Scholarship** | S | run Scholarship for 20 conversions | Scholarship pays +2🔬 |
+| **The Overflow** | E | complete three items in one city in three turns (chops and windfalls count) | that city's overflow doubled for the age |
+
+*Forty-odd. The ones I'd keep first, by your criteria: The Long Reign, The Full Bench, The
+Apostle, The Concord, The Dynasty, The Metropolis, The Twelve, The Founder, The Builder,
+The Long Haul, The Thread, The Conqueror, The Veteran Host, The Standing Army.*
 
 ## The count
 
