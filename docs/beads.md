@@ -106,63 +106,63 @@ luck, an opponent's choice, or a draw. The user filters; the counts are a pool, 
 
 | quest | system | family | the deed | boon |
 |---|---|---|---|---|
-| **The Long Reign** | Statecraft | C | hold one government for 25 turns without adopting another | a die · every sealed Order unseals now |
+| **The Long Reign** | Statecraft | C | hold one government with combined 15 levels for 10 turns without adopting another | a free order draft |
 | **The Deepening** (kept) | Statecraft | C | raise an Order to its third level and keep it slotted 10 turns | a die |
-| **The Turncoat** | Statecraft | C | adopt three different governments across the game | a free Doctrine draft, now |
+| **The Turncoat** | Statecraft | C | adopt three different governments across the game | a free Doctrine draft, now [too easy, remove]|
 | **The Apostle** | religion | C | have your religion followed by twenty foreign citizens | a die · +2 happiness (cap) |
-| **The Hierophant** | religion | C | spend 500 faith on augurs and prophets across the game | a free prophet |
-| **The Tide** | religion | C | your holy city's pressure reaches every city of yours | every city of yours converts fully, once |
-| **The Concord** ∗ | religion | C | every city of yours follows your religion at once | +3 happiness (cap) |
+| **The Hierophant** | religion | C | spend 1500 faith on augurs and prophets across the game | a free prophet |
+| **The Tide** | religion | C | your holy city's pressure reaches every city of yours | every city of yours converts fully, once | [remove]
+| **The Concord** ∗ | religion | C | every city of yours follows your religion at once | +3 happiness (cap) | [remove, too easy]
 | **The Patron** (kept, user) | great people | S | three great works planted adjacent to one another | a die |
-| **The School** | great people | S | earn 100 renown in one family | a free great person of that family |
-| **The Banker** (kept) | great people | E | buy a great person with gold | a die |
-| **The Breadbasket** | cities | E | one city working eight farms at once | +1 population in that city and every city beside fresh water, once |
-| **The Forge-City** | cities | E | one city working six mines at once | a one-time windfall of 200⚙ in that city |
-| **The Garden** | cities | C | one city with every happiness building of the age | +2 happiness (cap) |
+| **The School** | great people | S | earn 200 renown in one family | a free great person of that family |
+| **The Banker** (kept) | great people | E | buy a great person with gold | a die | [we don't have this ability until later ages, no? remove]
+| **The Breadbasket** | cities | E | one city has a food yield of 100+ for 10 turns | +1 population in that city and every city beside fresh water, once |
+| **The Forge-City** | cities | E | one city has a production yield of 100+ for 10 turns | a one-time windfall of 200⚙ in that city |
+| **The Garden** | cities | C | one city with every happiness building of the age | +2 happiness (cap) | [remove, too easy]
 | **The Founder** | cities | E | found eight cities yourself (captures do not count) | a free settler at the capital |
-| **The Surveyor** | cities | E | buy twenty tiles across the game | every city claims its next border tile now |
-| **The Waterworks** | cities | E | an aqueduct in every city of size 6+ | +1 population in every city with an aqueduct, once |
+| **The Surveyor** | cities | E | buy twenty tiles across the game | every city claims one more tile |
+| **The Waterworks** | cities | E | an aqueduct in 4 cities of size 10+ | +1 population in every city with an aqueduct, once |
 | **Three of the Age** (kept) | wonders | C | hold three wonders of the current age | a die |
-| **The Library of the Realm** | buildings | S | a library in every city and a university in three | a one-time windfall of 300🔬 |
-| **The Market Town** | buildings | E | a market and a harbour (or a bazaar) in one city with three routes ending there | a one-time treasury of 200 gold |
-| **The Bulwark** | buildings | D | walls in every city that touches a foreign border | every city heals to full, once |
-| **The Road-Builder** (kept) | trade | E | eight cities connected to your capital by road | +2 authority capacity (cap) |
-| **The Exchange** | trade | E | a route to a foreign city returns 100 cumulative gold | a one-time treasury of 150 gold |
-| **The Ledger** ∗ | trade | E | 500 cumulative gold from routes | a die |
+| **The Library of the Realm** | buildings | S | a library and university built in 4 cities | a one-time windfall of 300🔬 |
+| **The Market Town** | buildings | E | a market and a harbour (or a bazaar) in one city with four routes ending there | a one-time treasury of 200 gold |
+| **The Bulwark** | buildings | D | palisades and castle in 4 cities | a die |
+| **The Road-Builder** (kept) | trade | E | eight cities connected to your capital by road | +4 authority capacity (cap) |
+| **The Exchange** | trade | E | routes to foreign cities accumulate 250 gold | a one-time treasury of 150 gold |
+| **The Ledger** ∗ | trade | E | 600 cumulative yields from routes | a die |
 | **The Scholar's Wager** (kept) | science | S | complete a technology two ages above the world's lowest seat | a die |
 | **The Star-Reader** | science | S | complete three technologies in five turns | a one-time windfall of 200🔬 |
 | **The Wall-Breaker** (kept, user) | war | D | raze five cities *(needs the raze-or-keep choice on capture)* | a one-time treasury of 300 gold |
 | **The Conqueror** | war | D | capture three cities | +4 authority capacity (cap) |
 | **The Siege Master** | war | D | take a city while it stands under siege (every neighbour hex yours) | a free unit of your best type at that city |
-| **The General's Road** | war | D | a great general's aura covers a fight that kills a unit two strengths above yours | a free great general |
-| **The Fleet** | war | D | six embarked units at once | a die |
+| **The General's Brilliance** | war | D | a great general's aura covers a fight that kills a unit with greater base strength | a free great general |
+| **The Fleet** | war | D | 9 naval units at once | a die |
 | **The Wayfarer** | exploration | S | reveal 40% of the world | a one-time windfall of 100🔬 |
-| **The Tithe** | projects | E | run Tithes for 20 conversions across the game | a one-time treasury of 200 gold |
-| **The Scholarship** | projects | S | run Scholarship for 20 conversions | a one-time windfall of 200🔬 |
+| **The Tithe** | projects | E | gain 600 cumulative gold from tithes| a one-time treasury of 200 gold |
+| **The Scholarship** | projects | S | gain X cumulative science from scholarship | a one-time windfall of 200🔬 |
 | **The Overflow** | projects | E | complete three items in one city in three turns (chops and windfalls count) | a one-time windfall of 100⚙ in that city |
 
 ### Æra IV deck (Cathedrals) — 16 candidates
 
 | quest | system | family | the deed | boon |
 |---|---|---|---|---|
-| **The Full Bench** | Statecraft | C | hold every slot of a tier-IV or later government filled by Orders of level 2+ | a free Order draft, now |
-| **The Codifier** ∗ | Statecraft | C | hold an Order of every one of the fourteen themes at some point in the game | a one-time windfall of 100🎵 |
+| **The Full Bench** | Statecraft | C | hold one tier-IV or later government filled by combined level of (number of slots * 2) for 10 turns | a free Order draft, now |
+| **The Codifier** ∗ | Statecraft | C | hold an Order of every one of the fourteen themes at some point in the game | a one-time windfall of 100🎵 | [tedious, themes not important to players visually, remove]
 | **The Enhancer** (kept) | religion | C | enhance your religion, then convert a foreign capital | a free prophet |
-| **The Cloister** | religion | C | hold a temple, a monastery and a cathedral in one city | a one-time windfall of 150🕯 |
-| **The Laureate's Court** (kept) | great people | C | plant a great work of every family | a free great person of your choice of family |
-| **The Dynasty** | great people | C | recruit six great people | a one-time windfall of renown equal to the next recruitment's price |
-| **The Legacy** | great people | C | hold four legacies unrevoked at once | every revoked legacy of yours is restored, once |
+| **The Cloister** | religion | C | hold a temple, a monastery and a cathedral in four cities | a one-time windfall of 150🕯 |
+| **The Laureate's Court** (kept) | great people | C | plant a great work of every family in one city | a free great person of your choice of family |
+| **The Dynasty** | great people | C | recruit six great people in this age | a one-time windfall of renown equal to the next recruitment's price |
+| **The Legacy** | great people | C | hold fifteen legacies unrevoked at once | every revoked legacy of yours is restored, once |
 | **The Metropolis** | cities | C | grow a city to size 20 | +3 happiness (cap) |
 | **The Twelve** | cities | E | hold twelve cities of size 6 or more | +6 authority capacity (cap) |
-| **The Builder** | wonders | C | complete six wonders across the game | a one-time windfall of 300⚙ in the capital |
-| **The Renewal** | buildings | S | hold every renewal of one thread (Fire, Sky, Water, Fate) | a die · a free mastery draft from that thread |
-| **The Long Haul** | trade | E | a trade route that runs for 40 turns without lapsing | +1 route capacity (cap) |
-| **The Caravanserai** | trade | E | ten routes ending in one city over the game | a free trader at that city |
+| **The Builder** | wonders | C | complete ten wonders across the game | a die |
+| **The Renewal** | buildings | S | hold every renewal of one thread (Fire, Sky, Water, Fate) | a die · a free mastery draft from that thread | [too tedious, remove]
+| **The Long Haul** | trade | E | accumulate (X) yields in one trade route this age | +1 route capacity (cap) |
+| **The Caravanserai** | trade | E | ten routes originating from one city during the age | +1 route capacity |
 | **The Encyclopaedist** (kept) | science | S | complete a technology of the next age before anyone completes the current age's last | a free technology of the current age |
-| **The Thread** | science | S | complete every node of one thread | a free mastery draft from that thread |
-| **The Tablet House** | science | S | 2000 cumulative science from libraries and their renewals | a die |
-| **The Veteran Host** | war | D | hold ten units with the veteran stamp at once | every unit heals to full, once |
-| **The Standing Army** | war | D | hold twenty combat units at once for a turn | +2 happiness (cap) |
+| **The Thread** | science | S | complete every node of one thread | a free mastery draft from that thread | [what is a thread? remove probably]
+| **The Tablet House** | science | S | 2000 cumulative science from libraries and their renewals | a die | [remove]
+| **The Veteran Host** | war | D | hold ten units with the veteran stamp at once | every unit heals to full, once | [remove]
+| **The Standing Army** | war | D | hold twenty combat units at once for ten turns | +2 happiness (cap) |
 
 ### Æra V deck (Magister) — 12 candidates
 
