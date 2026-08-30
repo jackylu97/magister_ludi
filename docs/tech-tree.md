@@ -325,7 +325,7 @@ the turtle ship's shell, the Polynesian waka for the trireme's PC half).
 **As built (2026-08-29) and a balance flag.** The line shipped as specified on the temporary
 homes below, with one finding from the build: the doc's triangle (light kills ranged in two,
 ranged kills heavy in three kites untouched, heavy kills light in two) does **not** hold at
-Æra III under the damage curve, because the Fire Ship has **range 1** — it must stand in
+Æra III under the damage curve while the Fire Ship **had range 1** as first shipped — it stood in
 contact, so it kites nothing and the Tower Ship kills it first. The triangle is pinned at Æra
 IV (Caravel / Carrack / Gun Galley, range 2), where all three mechanisms are real, and the
 range-1 gap was the build's finding. **Ruled (user, 2026-08-29): the Fire Ship has range 2** —
