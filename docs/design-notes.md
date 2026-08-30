@@ -3971,17 +3971,19 @@ a specialist**, taken from the general population: one fewer citizen works the l
 worst-worked tile is what goes (there are no idle citizens until very late; that is not the
 rule). A city never converts its last worker, and **a city with no renown source in a
 specialist family never converts** — size accelerates a guild, it never founds one. The
-threshold **climbs quadratically** (`40 + 15 n²` — 40, 55, 100, 175, 280…; the user: "15 + 5
-feels very low, it should be 40 + something polynomial"), and **specialists never exceed a
-third of the city** (a cap on conversion only — a town that shrinks keeps them). Each
-specialist pays **+1 renown per turn to its family**, so a scholarly city recruits great
-scholars faster — the specialist system paying into the great-person system, which is what
-replaces the slots. The numbers were simulated over 240 turns before they were set (pop
-weight 0.15, trickle 0.25): a tall capital forms its first guild around t55 and ends near
-7 of 22; an ordinary town around t80 and ends at 4 of 12; a size-6 village at 2 of 6. Under
-a linear threshold the capital was *all* specialists by t140, and under any absolute
-threshold without the cap the village urbanised half its people — which is why both rules
-exist.
+threshold **mirrors the growth curve with a higher base** — `60 + 6n + n^1.65`, the same
+three-term shape as `growthThreshold` (the user: "it should mirror our growth requirement
+curve, maybe an even higher base like 60") — and **specialists never exceed a quarter of the
+city** (a cap on conversion only — a town that shrinks keeps them). Each specialist pays
+**+1 renown per turn to its family**, so a scholarly city recruits great scholars faster —
+the specialist system paying into the great-person system, which is what replaces the
+slots. The numbers were simulated over 240 turns before they were set (pop weight 0.15,
+trickle 0.25) and the two knobs do different jobs: **the base sets the first guild's turn**
+(~t60 in a tall capital, ~t90 in an ordinary town, ~t130 in a village) and **the cap sets
+the late count** (5 of 22, 3 of 12, 1 of 6) — every curve tried ended at the cap, so the
+share is the lever for "how many", the base for "how soon". Under a linear threshold the
+capital was *all* specialists by t140, and under any threshold without the cap a village
+urbanised half its people — which is why both rules exist.
 
 **Assignment by apportionment, never a draw.** A new specialist joins the family whose share of
 the city's renown is most under-represented among its specialists so far (the D'Hondt rule —
