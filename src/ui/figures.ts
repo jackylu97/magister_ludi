@@ -218,6 +218,39 @@ export function percentFigure(percent: number): string {
 export const BORDER_GLYPH = '⛫';
 
 /**
+ * The Æra a thing belongs to, in the numerals the star chart uses.
+ *
+ * Actual Roman numerals rather than a tally of `I`s. The tally read correctly
+ * for the three ages the tech tree has and broke on the great-people table,
+ * which reaches the fifth: "Æra IIIII" is not a numeral, it is a count of
+ * strokes. Written as a subtractive table so a sixth age costs nothing.
+ *
+ * It lives here, beside the other things this interface has exactly one way of
+ * writing, because three surfaces now name an age — the Compendium's eyebrows,
+ * the Bead Race's tables and the Beads screen's headings — and an era numeral
+ * written two ways is the same failure a figure written two ways is.
+ */
+const ROMAN_ERA: readonly (readonly [number, string])[] = [
+  [10, 'X'],
+  [9, 'IX'],
+  [5, 'V'],
+  [4, 'IV'],
+  [1, 'I'],
+];
+
+export function eraWord(age: number): string {
+  let left = Math.max(1, Math.round(age));
+  let out = '';
+  for (const [value, mark] of ROMAN_ERA) {
+    while (left >= value) {
+      out += mark;
+      left -= value;
+    }
+  }
+  return `Æra ${out}`;
+}
+
+/**
  * "🔬🎭 +10%" — what one empire modifier is doing, in the glyphs of the yields
  * it is doing it to. The growth stifle wears the food glyph, because growth is
  * what food is *for*, and a modifier on the borders wears the boundary stone.

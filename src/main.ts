@@ -97,6 +97,9 @@ import {
   savedAtLabel,
 } from './ui/savesPanel';
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
+import { type BeadsScreen, createBeadsScreen } from './ui/beadsScreen';
+import { type VictoryModal, createVictoryModal } from './ui/victoryModal';
+import { BEAD_RULES } from './sim/beadData';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import {
@@ -326,6 +329,10 @@ const compendiumOverlayEl = requireElement<HTMLElement>('compendium-overlay');
 const compendiumBodyEl = requireElement<HTMLElement>('compendium-body');
 const abacusOverlayEl = requireElement<HTMLElement>('abacus-overlay');
 const abacusStageEl = requireElement<HTMLElement>('abacus-stage');
+const abacusRegisterEl = requireElement<HTMLElement>('abacus-register');
+const beadsOverlayEl = requireElement<HTMLElement>('beads-overlay');
+const beadsBodyEl = requireElement<HTMLElement>('beads-body');
+const victoryOverlayEl = requireElement<HTMLElement>('victory-overlay');
 /**
  * Saving and loading: the landing's resume row, the ☰ menu's four verbs, and the
  * load list that both of them open. See `src/ui/saves.ts` for what a save *is*
@@ -558,6 +565,14 @@ let techTree: TechTree | null = null;
  * `controls` is seated at.
  */
 let abacus: AbacusScreen | null = null;
+
+/**
+ * The Bead Race's table, and the sheet that says the race is over. Holders for
+ * the Abacus's reason exactly: both are built inside `boot`, and everything
+ * above it that has to close a screen reaches them through here.
+ */
+let beads: BeadsScreen | null = null;
+let victory: VictoryModal | null = null;
 /* Declared before `controls` for `techTree`'s reason exactly: the controls reach
    it (the End Turn blocker steers here), and it reaches the controls. */
 let statecraft: StatecraftScreen | null = null;
@@ -647,6 +662,7 @@ const compendium: Compendium = createCompendium({
     meterCards?.close();
     techTree?.close();
     abacus?.close();
+    beads?.close();
     statecraft?.close();
     religion?.close();
     trade?.close();
@@ -676,6 +692,7 @@ function closePopovers(): boolean {
     (meterCards?.isOpen ?? false) ||
     (techTree?.isOpen ?? false) ||
     (abacus?.isOpen ?? false) ||
+    (beads?.isOpen ?? false) ||
     (statecraft?.isOpen ?? false) ||
     (religion?.isOpen ?? false) ||
     (trade?.isOpen ?? false) ||
@@ -693,6 +710,7 @@ function closePopovers(): boolean {
   meterCards?.close();
   techTree?.close();
   abacus?.close();
+  beads?.close();
   statecraft?.close();
   religion?.close();
   trade?.close();
@@ -746,6 +764,8 @@ function showLanding(): void {
   // would sit over the landing waiting to be proceeded past into a game that is
   // no longer running.
   triumphSheet?.clear();
+  // And the victory sheet, for the same reason.
+  victory?.clear();
   setRestartConfirm(false);
   // The Abacus holds a WebGL context of its own, and the game it was counting
   // is over. `closePopovers` above has already shut it; this gives the context
@@ -1798,6 +1818,13 @@ async function boot(initial: Game | null): Promise<void> {
   triumphSheet = createTriumphModal(triumphOverlayEl);
 
   /**
+   * The victory sheet — the Triumph sheet's sibling, raised once when the Bead
+   * Race is decided (`victoryModal.ts`). Held in the module-level `victory` for
+   * the same reason: `showLanding` has to take it down.
+   */
+  victory = createVictoryModal(victoryOverlayEl);
+
+  /**
    * The header line for an offer dealt wider than the table deals: the fold's
    * own lines, signed.
    *
@@ -2445,6 +2472,7 @@ async function boot(initial: Game | null): Promise<void> {
       !landingEl.hidden ||
       (techTree?.isOpen ?? false) ||
       (abacus?.isOpen ?? false) ||
+      (beads?.isOpen ?? false) ||
       (statecraft?.isOpen ?? false) ||
       // The two screens this pass added. Both own the keyboard while they are
       // up — each handles its own Escape — and neither has any business letting
@@ -2465,6 +2493,8 @@ async function boot(initial: Game | null): Promise<void> {
       // hotkeys — `H`, `T`, End Turn — which have no business firing under a
       // sheet the player has not proceeded past.
       (triumphSheet?.isOpen ?? false) ||
+      // The victory sheet is that sheet's sibling and blocks on the same terms.
+      (victory?.isOpen ?? false) ||
       // The confirm card is the Triumph sheet's kind (`confirmCard.ts`): it
       // answers its own Enter and Escape in a capturing listener, so it is here
       // for the *other* hotkeys — `H`, `T`, End Turn — which have no business
@@ -2503,6 +2533,7 @@ async function boot(initial: Game | null): Promise<void> {
     inputBlocked: isInputBlocked,
     onToggleTechTree: () => techTree?.toggle(),
     onToggleAbacus: () => abacus?.toggle(),
+    onToggleBeads: () => beads?.toggle(),
     // End Turn's research blocker puts the chart up; it never takes it down.
     onOpenTechTree: () => techTree?.open(),
     onOfferDiscovery: showDiscoveryOffer,
@@ -2570,7 +2601,19 @@ async function boot(initial: Game | null): Promise<void> {
     onDamage: (events) => damageNumbers.show(events),
     onVictory: (playerId) => {
       const player = game.state.players[playerId];
-      if (player) splash.announceVictory(player.name);
+      if (!player) return;
+      // Two volumes, one moment, `reportTriumphs`' own split: the splash is the
+      // flourish over the board and the sheet is the thing with a button on it.
+      // The sheet is raised for **every** seat, not only the winner — a player
+      // who lost is entitled to be told, by name, rather than to find a line in
+      // the chronicle three scrolls down.
+      splash.announceVictory(player.name);
+      victory?.show({
+        winner: player.name,
+        mine: playerId === controls.localPlayerId(),
+        beads: player.beads.length,
+        threshold: BEAD_RULES.threshold,
+      });
     },
     // The number-key hotkeys' one source of order — see `LENS_OPTIONS`'s own
     // docblock for why this is declared above rather than the menu passing it
@@ -2815,6 +2858,7 @@ async function boot(initial: Game | null): Promise<void> {
       lens.close();
       techTree?.close();
       abacus?.close();
+    beads?.close();
     },
   });
 
@@ -2858,6 +2902,7 @@ async function boot(initial: Game | null): Promise<void> {
       lens.close();
       techTree?.close();
       abacus?.close();
+    beads?.close();
       statecraft?.close();
     },
   });
@@ -2907,6 +2952,7 @@ async function boot(initial: Game | null): Promise<void> {
       meterCards?.close();
       techTree?.close();
       abacus?.close();
+    beads?.close();
       statecraft?.close();
       religion?.close();
       compendium.close();
@@ -2919,13 +2965,14 @@ async function boot(initial: Game | null): Promise<void> {
    * One rod per seat, read off the live roster rather than off a snapshot, so a
    * new game re-strings it — and off `realPlayers`, for `renderSeats`' reason:
    * the reckoning is between nations, and a rod for the wild was a score line
-   * for the weather. `beads` is empty for everybody and will stay empty
-   * until M11 gives the simulation a bead to earn — the screen says so itself,
-   * and this is the field that will carry the answer when there is one.
+   * for the weather. `beads` is `Player.beads` itself — the earned record, in
+   * the order it was earned (design ledger Entry VI) — and the rods read it and
+   * nothing else.
    */
   abacus = createAbacusScreen({
     overlay: abacusOverlayEl,
     stage: abacusStageEl,
+    register: abacusRegisterEl,
     closeButton: requireElement('abacus-close'),
     trigger: abacusButton,
     rows: (): AbacusRow[] =>
@@ -2935,13 +2982,47 @@ async function boot(initial: Game | null): Promise<void> {
         // The diorama ink, not the panel colour: the label swatch belongs to the
         // same table the frame is standing on. Same call the pieces make.
         color: playerPieceColor(player.color, player.id),
-        beads: [],
+        beads: player.beads,
       })),
     onOpen: () => {
       menu.close();
       help.close();
       lens.close();
       techTree?.close();
+      beads?.close();
+    },
+    // A rod is the door to the cards behind it.
+    onOpenBeads: () => {
+      abacus?.close();
+      beads?.open();
+    },
+  });
+
+  /**
+   * The Beads screen: the Bead Race's table.
+   *
+   * Statecraft's sibling in every respect — see `beadsScreen.ts` — and reached
+   * three ways: the bead chip in the top bar, a rod on the Abacus, and `V`.
+   * Nothing on it is stored, so it is built on each open off the live state.
+   */
+  beads = createBeadsScreen({
+    overlay: beadsOverlayEl,
+    body: beadsBodyEl,
+    closeButton: requireElement('beads-close'),
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      meterCards?.close();
+      techTree?.close();
+      abacus?.close();
+      statecraft?.close();
+      religion?.close();
+      trade?.close();
+      compendium.close();
     },
   });
 
@@ -2997,6 +3078,18 @@ async function boot(initial: Game | null): Promise<void> {
       notifications?.close();
       techTree?.close();
       trade?.open();
+    },
+    // The bead chip's own door, on the same precedent again: the Bead Race is
+    // the third system in this strip with a screen behind it, and the only one
+    // that is what the whole game is played for.
+    onOpenBeads: () => {
+      meterCards?.close();
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      techTree?.close();
+      beads?.open();
     },
   });
   // Escape and the landing screen reach these through `closePopovers`, which is
@@ -3344,6 +3437,8 @@ async function boot(initial: Game | null): Promise<void> {
     // new game says nothing about ground it starts already knowing.
     notificationLog.clear();
     toasts?.clear();
+    // A decided race belongs to the game that decided it.
+    victory?.clear();
     // A star chart of the game that just ended has nothing to say about the
     // one starting either.
     techTree?.close();
@@ -3351,6 +3446,7 @@ async function boot(initial: Game | null): Promise<void> {
     // may seat different people — but not now: `refresh` only marks them stale,
     // and the rebuild happens on the next open, if there ever is one.
     abacus?.close();
+    beads?.close();
     abacus?.refresh();
     game = next ?? createGame(currentConfig());
     // The turn guard is about *this* game's turns. A resumed game is very often

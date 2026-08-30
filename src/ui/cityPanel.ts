@@ -114,6 +114,7 @@ import { type PressureLine, explainPressure } from '../sim/religion';
 import { pressureLedgerText } from './religionScreen';
 import { techDef } from '../sim/techData';
 import { buildError, isUnlocked, requiredResource } from '../sim/tech';
+import { BEAD_FAMILY_MARK, beadBoonWords } from './beadsScreen';
 import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
 import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
 import { cityDisplayName } from './cityDisplay';
@@ -1041,11 +1042,23 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    */
   function projectCard(city: City, id: ProjectId, index: number): Node {
     const def = projectDef(id);
+    const bead = def.bead;
     const box = element('div');
 
     const head = element('div', 'info-card-head');
     head.append(element('span', 'info-card-name', def.name));
-    head.append(element('span', 'info-card-kind', 'project · repeats'));
+    head.append(
+      element(
+        'span',
+        'info-card-kind',
+        // A race project is the *opposite* of the repeating kind and must not
+        // wear its word: one finishes and leaves the queue, the other never
+        // does. `finishes` is the one field that separates them.
+        bead === undefined
+          ? 'project · repeats'
+          : `race project · ${BEAD_FAMILY_MARK[bead.family].word.toLowerCase()}`,
+      ),
+    );
     box.append(head);
 
     const figures = element('div', 'info-card-figures');
@@ -1060,15 +1073,28 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     box.append(figures);
 
     const notes = element('ul', 'info-card-notes');
-    const rate = element('li');
-    setYieldText(rate, `Pays ${projectRate(id, PROJECT_GLYPHS)} for every ${def.cost}${HAMMER}`);
-    notes.append(rate);
-    // The two things a player has to know to plan around one, and both are
-    // consequences of "it never leaves the queue" rather than extra rules.
-    notes.append(note('Never completes — the city pays it again and again'));
-    notes.append(note('Anything else you queue goes in front of it'));
+    if (bead === undefined) {
+      const rate = element('li');
+      setYieldText(rate, `Pays ${projectRate(id, PROJECT_GLYPHS)} for every ${def.cost}${HAMMER}`);
+      notes.append(rate);
+      // The two things a player has to know to plan around one, and both are
+      // consequences of "it never leaves the queue" rather than extra rules.
+      notes.append(note('Never completes — the city pays it again and again'));
+      notes.append(note('Anything else you queue goes in front of it'));
+    } else {
+      // The one rule that makes a race a race, and it is the whole of what
+      // separates this row from a wonder: everybody may build it, and every
+      // hammer spent by a seat that does not finish first is spent.
+      notes.append(note('First to finish takes the bead — nobody else gets it'));
+      for (const line of beadBoonWords(def.boon)) notes.append(note(line));
+    }
     notes.append(note(def.note));
     box.append(notes);
+    // Why this town cannot start it, in the reducer's own sentence — the race is
+    // already won, the card is off the table, or the empire has not got what the
+    // race asks for. `buildingCard`'s clause, one queue kind over.
+    const problem = buildError(getGame().state, city.ownerId, 'project', id, city);
+    if (problem !== null) box.append(element('p', 'info-card-state is-blocked', problem));
     return box;
   }
 
@@ -1951,14 +1977,29 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       if (standing.has(id)) continue;
       if (!isUnlocked(state, city.ownerId, 'project', id)) continue;
       const def = projectDef(id);
+      const bead = def.bead;
       const button = element('button', 'city-buildable is-building');
       button.type = 'button';
       button.disabled = locked;
       button.setAttribute(
         'aria-label',
-        `${def.name} — repeating project, ${def.cost} production for ${projectRate(id, PROJECT_SPOKEN)}`,
+        bead === undefined
+          ? `${def.name} — repeating project, ${def.cost} production for ${projectRate(id, PROJECT_SPOKEN)}`
+          : `${def.name} — race project, ${def.cost} production, first to finish takes a ` +
+            `${BEAD_FAMILY_MARK[bead.family].word.toLowerCase()} bead`,
       );
-      button.append(element('span', 'city-buildable-name', `${def.name} ↻`));
+      // The ↻ is "this never leaves the queue" and belongs only to the two
+      // conversions; a race wears the bead's own mark in the bead's own ink.
+      const name = element('span', 'city-buildable-name');
+      if (bead === undefined) {
+        name.textContent = `${def.name} ↻`;
+      } else {
+        const mark = element('span', 'bead-family-mark', '◉');
+        mark.style.setProperty('--bead-ink', `var(${BEAD_FAMILY_MARK[bead.family].ink})`);
+        mark.setAttribute('aria-hidden', 'true');
+        name.append(mark, document.createTextNode(def.name));
+      }
+      button.append(name);
       button.append(
         element(
           'span',

@@ -83,7 +83,7 @@ import {
   explainBuildingUpkeep,
   explainUnitUpkeep,
 } from '../sim/upkeep';
-import { type GameState, type Player, playerById } from '../sim/state';
+import { type GameState, type Player, playerById, realPlayers } from '../sim/state';
 import { cityDisplayName, starCapitalSource } from './cityDisplay';
 import {
   type YieldKey,
@@ -98,6 +98,8 @@ import { foldCardYields, nextDraftCost, statecraftBlocker } from '../sim/statecr
 import { greatPersonBlocker } from '../sim/greatPeople';
 import { explainRenown, foldRenown, renownPerTurn, renownThreshold } from '../sim/renown';
 import { TRIUMPH_IDS, type TriumphScope, triumphDef } from '../sim/triumphData';
+import { BEAD_RULES, anyBeadDef } from '../sim/beadData';
+import { BEAD_FAMILY_MARK } from './beadsScreen';
 import { highestAge } from '../sim/techData';
 import { createInfoCard } from './infoCard';
 import { foldCityHappiness, meterGroups } from './meterBreakdown';
@@ -405,6 +407,13 @@ export interface CivYieldStripOptions {
    * screen behind it, so it is the second chip that is also a button.
    */
   onOpenTrade?: () => void;
+  /**
+   * Opens the Beads screen. The bead chip's own door, and the **third** chip
+   * that is also a button — culture's argument twice over: the Bead Race is the
+   * one thing the whole game is played for, so its figure has somewhere further
+   * to go than a hover card.
+   */
+  onOpenBeads?: () => void;
 }
 
 export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStrip {
@@ -417,6 +426,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     onOpenPopover,
     onOpenStatecraft,
     onOpenTrade,
+    onOpenBeads,
   } = options;
   const values = new Map<YieldKey, HTMLElement>();
 
@@ -686,6 +696,110 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   }
   container.append(routesItem);
   info.bind(routesItem, () => routesCard());
+
+  // --- beads ----------------------------------------------------------------
+
+  /**
+   * The bead chip: how far this empire is along the one race there is.
+   *
+   * `4 / 20` in the routes chip's grammar rather than the renown chip's, and
+   * that is the reading: a bead count is not a pool filling at a rate — nothing
+   * accrues, every bead is an announced event — it is **a claim on the world
+   * against the number that wins** (design ledger Entry VI). So it is a ratio,
+   * and it is the third chip that is also a button, because the table those
+   * beads are dealt on is a screen.
+   *
+   * The count comes off `Player.beads`, which is append-only and is the only
+   * thing on this chip: the threshold is `data/beads.json`'s rules row. Neither
+   * is computed here.
+   */
+  const beadsItem = element('span', 'civ-yield is-beads');
+  {
+    const icon = element('span', 'civ-yield-icon', '◉');
+    icon.setAttribute('aria-hidden', 'true');
+    beadsItem.append(icon);
+    beadsItem.tabIndex = 0;
+  }
+  const beadsValue = element('span', 'civ-yield-value', '—');
+  beadsItem.append(beadsValue);
+  if (onOpenBeads) {
+    beadsItem.classList.add('civ-yield-clickable');
+    beadsItem.setAttribute('role', 'button');
+    beadsItem.title = 'Open the Bead Race';
+    beadsItem.setAttribute('aria-label', 'beads earned — open the Bead Race');
+    beadsItem.addEventListener('click', () => onOpenBeads());
+    beadsItem.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      onOpenBeads();
+    });
+  } else {
+    beadsItem.title = '◉ Beads earned, against the number that wins the game';
+    beadsItem.setAttribute('aria-label', 'beads earned');
+  }
+  container.append(beadsItem);
+  info.bind(beadsItem, () => beadsCard());
+
+  /**
+   * The last three beads, and every seat's standing under them.
+   *
+   * Three, because the chip's question is "what just happened and who is
+   * ahead" — the whole table is a screen away, and a hover card that listed
+   * twenty rows would be that screen badly. The standings are `realPlayers`',
+   * for `renderSeats`' reason: the wild has no Abacus.
+   */
+  function beadsCard(): Node {
+    const { state } = getGame();
+    const playerId = localPlayerId();
+    const player = playerById(state, playerId);
+    const box = element('div');
+
+    const head = element('div', 'info-card-head');
+    head.append(element('span', 'info-card-name', 'The Bead Race'));
+    head.append(
+      element(
+        'span',
+        'info-card-kind',
+        `${figure(player?.beads.length ?? 0)} of ${figure(BEAD_RULES.threshold)}`,
+      ),
+    );
+    box.append(head);
+
+    const recent = (player?.beads ?? []).slice(-3).reverse();
+    if (recent.length === 0) {
+      box.append(element('p', 'hint', 'No bead yet. Every bead is a first in the world.'));
+    } else {
+      const list = element('ul', 'meter-lines ledger');
+      for (const earned of recent) {
+        const row = element('li', 'meter-line');
+        row.append(
+          element('span', 'meter-line-source', anyBeadDef(earned.id).def.name),
+        );
+        row.append(
+          element(
+            'span',
+            'meter-line-value',
+            BEAD_FAMILY_MARK[earned.family].word.toLowerCase(),
+          ),
+        );
+        list.append(row);
+      }
+      box.append(list);
+    }
+
+    box.append(element('p', 'eyebrow renown-heading', 'the rods'));
+    const rods = element('ul', 'meter-lines ledger');
+    for (const seat of realPlayers(state)) {
+      const row = element('li', 'meter-line');
+      row.classList.toggle('is-earned', seat.id === playerId);
+      row.append(element('span', 'meter-line-source', seat.name));
+      row.append(element('span', 'meter-line-value', figure(seat.beads.length)));
+      rods.append(row);
+    }
+    box.append(rods);
+    if (onOpenBeads) box.append(element('p', 'hint', '☞ Press V for the whole table.'));
+    return box;
+  }
 
   /**
    * The summary ledger: what trade is paying, line by line, folding to gold.
@@ -1157,6 +1271,14 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       const ledger = tradeLedger(state, playerId);
       if (routesValue.textContent !== ledger.chip) routesValue.textContent = ledger.chip;
       routesItem.classList.toggle('is-good', ledger.used < ledger.slots);
+
+      // Beads against the threshold. No `is-good`: there is nothing *actionable*
+      // about a bead count — a bead is earned by playing, never by pressing —
+      // and the quiet ink on this strip means "something you can do is true".
+      const beads = player
+        ? `${figure(player.beads.length)} / ${figure(BEAD_RULES.threshold)}`
+        : '—';
+      if (beadsValue.textContent !== beads) beadsValue.textContent = beads;
 
       // The badge used to ride here — a small mark on the culture chip while
       // Statecraft owed the player a decision. It has moved to the HUD dock's

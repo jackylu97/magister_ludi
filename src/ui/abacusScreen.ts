@@ -13,21 +13,23 @@
  * the table at night, this is the table in daylight, vellum ground and a real
  * object sitting on it.
  *
- * Honest state
- * ------------
- * There is no bead system yet. Scoring lands at M11 (Entry VI, the Bead Race),
- * and until it does **every bead on this screen is unearned** — the object shows
- * a full waiting stack on every rod and says so, once, in the register:
+ * The object, and the register under it
+ * -------------------------------------
+ * Two readings of one fact, and they are not redundant. The **frame** is the
+ * score as a thing on a table — glass beads in the four families' colours, slid
+ * left as they are earned, and it is what makes a lead legible across the room.
+ * The **register** beneath it is the same rods in DOM, and it carries the three
+ * things a WebGL object cannot: it is as long as the *threshold* rather than as
+ * long as the frame was cut for, every bead answers a pointer with the card it
+ * came off, and the **golden slot** sits at the far end of every rod, drawn
+ * empty with a gilt rim all game as the standing question (Entry VI.3's climax
+ * amendment: only the Magnum Opus mints that bead).
  *
- *     Beads are earned as the Æras close. The first reckoning awaits.
- *
- * That is the whole of the copy, and there are no demo controls: a button that
- * slid a bead over would be the interface lying about the simulation. The
- * look-dev page keeps those, because faking things is what a bench is for.
- *
- * The roster is handed in as `AbacusRow[]`, `beads` included and empty. When M11
- * has real scores it fills that field and nothing else on this screen changes
- * shape — which is the only reason to carry a field nothing writes yet.
+ * `AbacusRow.beads` is `Player.beads` itself — the earned record, in the order
+ * it was earned — and the rods read it and nothing else. The 3D stage wants a
+ * scoring-family id per bead (`data/view3d.json`'s four), so the one translation
+ * between the simulation's family names and the look file's lives here, in
+ * `STAGE_FAMILY`, and nowhere else.
  *
  * Lifecycle
  * ---------
@@ -46,19 +48,41 @@ import {
   type FamilyId,
   cssHex,
 } from '../render3d/abacus3d';
+import { BEAD_RULES } from '../sim/beadData';
+import type { BeadFamily } from '../sim/beadData';
+import type { EarnedBead } from '../sim/state';
+import { BEAD_FAMILY_MARK, abacusRodSlots, beadHoverText } from './beadsScreen';
+import { figure } from './figures';
+
+/**
+ * The simulation's four bead families, in the look file's four scoring-family
+ * ids — **the one translation between the two vocabularies**.
+ *
+ * They are the same four things named twice: `data/view3d.json` was written
+ * before the rules were and calls them conquest, culture, philosophy and
+ * commerce; `data/beads.json` calls them domination, culture, science and
+ * economic. Rather than rename a look file (and every colour keyed off it) or
+ * bend the rules' words, the map lives here, at the one seam that needs both.
+ */
+const STAGE_FAMILY: Record<BeadFamily, FamilyId> = {
+  domination: 'conquest',
+  culture: 'culture',
+  science: 'philosophy',
+  economic: 'commerce',
+};
 
 /**
  * One player's rod.
  *
- * `beads` is the list of families they have earned, in the order they earned
- * them — the shape M11's scoring will hand over, and empty until it does.
+ * `beads` is `Player.beads` — every bead this empire has clacked, in the order
+ * it was earned. The rods read it and nothing else.
  */
 export interface AbacusRow {
   playerId: number;
   name: string;
   /** The player's diorama ink, for the label swatch. Never painted on a bead. */
   color: number;
-  beads: FamilyId[];
+  beads: readonly EarnedBead[];
 }
 
 export interface AbacusScreen {
@@ -83,8 +107,18 @@ export interface AbacusScreenOptions {
   trigger: HTMLElement;
   /** The current table, local seat first is not required — rod order is roster order. */
   rows: () => readonly AbacusRow[];
+  /**
+   * The element under the stage that the DOM rods are written into.
+   *
+   * Separate from `stage` because the two are different in kind: the stage holds
+   * a WebGL canvas built once and left alone, and this is rewritten on every
+   * open off the live roster.
+   */
+  register: HTMLElement;
   /** Called as this opens, so whatever else was up can get out of the way. */
   onOpen?: () => void;
+  /** Opens the Bead Race's table. A rod is the door to the cards behind it. */
+  onOpenBeads?: () => void;
 }
 
 /** Two DOM labels per rod: the name at the earned end, the tally at the waiting end. */
@@ -111,7 +145,8 @@ function rosterKey(rows: readonly AbacusRow[]): string {
 }
 
 export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
-  const { overlay, stage: host, closeButton, trigger, rows, onOpen } = options;
+  const { overlay, stage: host, register, closeButton, trigger, rows, onOpen, onOpenBeads } =
+    options;
 
   let open = false;
   let restoreTo: HTMLElement | null = null;
@@ -187,9 +222,83 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
     return table.map((row) => ({ name: row.name, color: row.color }));
   }
 
-  /** Slides each rod straight to the state it is in. No animation: this is a load. */
+  /**
+   * Slides each rod straight to the state it is in. No animation: this is a load.
+   *
+   * The frame is cut for a fixed number of beads (`beadsPerRod`), which is a
+   * fact about the *object* and not about the rules — so a run longer than the
+   * frame is truncated here rather than overflowing it. The register below is
+   * the reading that is as long as the threshold.
+   */
   function seedRods(table: readonly AbacusRow[]): void {
-    table.forEach((row, index) => abacus?.seed(index, row.beads));
+    const perRod = abacus?.beadsPerRod ?? 0;
+    table.forEach((row, index) =>
+      abacus?.seed(
+        index,
+        row.beads.slice(0, perRod).map((earned) => STAGE_FAMILY[earned.family]),
+      ),
+    );
+  }
+
+  // --- the register --------------------------------------------------------
+
+  /**
+   * The rods in DOM: one row per seat, `threshold` slots long, the golden one
+   * last.
+   *
+   * `abacusRodSlots` is the arithmetic and it is pure and pinned by a test —
+   * "which slot, and is it the gilt one" is exactly the half of a drawing no
+   * screenshot catches. Everything here is `append` calls over its answer.
+   */
+  function drawRegister(table: readonly AbacusRow[]): void {
+    register.replaceChildren();
+    const threshold = BEAD_RULES.threshold;
+
+    const caption = document.createElement('p');
+    caption.className = 'abacus-caption';
+    caption.textContent = `${figure(threshold)} beads win the game — the last is golden`;
+    register.append(caption);
+
+    for (const row of table) {
+      const rod = element('div', 'abacus-rod');
+      const name = element('span', 'abacus-rod-name');
+      const swatch = element('span', 'abacus-swatch');
+      swatch.style.background = cssHex(row.color);
+      name.append(swatch, element('span', undefined, row.name));
+      rod.append(name);
+
+      const wire = element('div', 'abacus-rod-wire');
+      abacusRodSlots(row.beads, threshold).forEach((slot, index) => {
+        if (slot.kind === 'golden') {
+          const golden = element('span', 'bead-slot is-golden');
+          golden.title = 'The golden bead — only the Magnum Opus mints it';
+          wire.append(golden);
+          return;
+        }
+        if (slot.kind === 'empty') {
+          wire.append(element('span', 'bead-slot is-empty'));
+          return;
+        }
+        const earned = row.beads[index]!;
+        const chip = element('span', 'bead-chip');
+        chip.style.setProperty('--bead-ink', `var(${BEAD_FAMILY_MARK[earned.family].ink})`);
+        chip.title = beadHoverText(earned);
+        wire.append(chip);
+      });
+      rod.append(wire);
+      rod.append(element('span', 'abacus-rod-tally', figure(row.beads.length)));
+
+      if (onOpenBeads) {
+        const open = document.createElement('button');
+        open.type = 'button';
+        open.className = 'abacus-rod-open';
+        open.textContent = 'The table';
+        open.setAttribute('aria-label', `Open the Bead Race — ${row.name}`);
+        open.addEventListener('click', () => onOpenBeads());
+        rod.append(open);
+      }
+      register.append(rod);
+    }
   }
 
   /**
@@ -252,6 +361,7 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
     // After `hidden` is cleared, never before: the stage measures the element it
     // is being built into, and an element with `display: none` measures zero.
     ensureStage();
+    drawRegister(rows());
     abacus?.setRunning(true);
     abacus?.resize();
     layoutLabels();

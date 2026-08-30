@@ -6500,14 +6500,16 @@ kbd {
 #statecraft-overlay,
 #religion-overlay,
 #trade-overlay,
-#compendium-overlay {
+#compendium-overlay,
+#beads-overlay {
   overflow: hidden;
 }
 
 #statecraft-overlay .statecraft-sheet,
 #religion-overlay .statecraft-sheet,
 #trade-overlay .statecraft-sheet,
-#compendium-overlay .statecraft-sheet {
+#compendium-overlay .statecraft-sheet,
+#beads-overlay .statecraft-sheet {
   display: flex;
   flex-direction: column;
   width: min(1240px, 100%);
@@ -6518,7 +6520,8 @@ kbd {
 #statecraft-overlay .statecraft-body,
 #religion-overlay .statecraft-body,
 #trade-overlay .statecraft-body,
-#compendium-overlay .statecraft-body {
+#compendium-overlay .statecraft-body,
+#beads-overlay .statecraft-body {
   flex: 1 1 auto;
   min-height: 0;
   gap: 14px;
@@ -6583,15 +6586,34 @@ kbd {
   #statecraft-overlay,
   #religion-overlay,
   #trade-overlay,
-  #compendium-overlay {
+  #compendium-overlay,
+  #beads-overlay {
     overflow-y: auto;
   }
 
   #statecraft-overlay .statecraft-sheet,
   #religion-overlay .statecraft-sheet,
   #trade-overlay .statecraft-sheet,
-  #compendium-overlay .statecraft-sheet {
+  #compendium-overlay .statecraft-sheet,
+  #beads-overlay .statecraft-sheet {
     max-height: none;
+  }
+
+  .bead-body {
+    flex-direction: column;
+  }
+
+  .bead-rods {
+    flex: 0 0 auto;
+    padding-right: 0;
+    padding-bottom: 12px;
+    border-right: none;
+    border-bottom: var(--border-thin) solid var(--ink-faint);
+  }
+
+  .bead-rods,
+  .bead-pane {
+    overflow-y: visible;
   }
 
   .sc-split {
@@ -9528,4 +9550,405 @@ body.compendium-page {
   .cmp-body {
     overflow-y: visible;
   }
+}
+
+
+/* ===========================================================================
+   The Bead Race — the beads themselves, the rods they sit on, and the table
+   the cards are dealt onto (design ledger Entry VI, src/ui/beadsScreen.ts).
+
+   **A bead is the one place this interface is allowed a saturated colour.**
+   Everything else on the parchment is ink, ink-soft or one restrained accent
+   on a figure; a bead is glass, and glass is the point of it — a rod has to be
+   readable across a room and at a glance. The four inks are the specimen's own
+   accents used for what they already mean (vermilion is blood, grape is rite,
+   lapis is knowledge, gilt is money) and they arrive per element as
+   `--bead-ink`, never hard-coded here, so the family table in
+   `beadsScreen.ts` stays the one place a family has a colour.
+   =========================================================================== */
+
+/* One bead. A disc with a highlight, because the highlight is the whole of
+   what makes a flat circle read as glass rather than as a dot. */
+.bead-chip {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1px solid var(--ink);
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 52%),
+    var(--bead-ink, var(--ink-soft));
+}
+
+/* A slot with no bead in it: the wire showing through, and nothing else. */
+.bead-slot {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+}
+
+.bead-slot.is-empty {
+  border: 1px dashed var(--ink-faint);
+}
+
+/* The golden slot, and it is empty all game (Entry VI.3): larger than its
+   neighbours, gilt-rimmed, and drawn hollow — the standing question. */
+.bead-slot.is-golden {
+  width: 17px;
+  height: 17px;
+  margin-left: 4px;
+  border: 2px solid var(--gilt);
+  background: radial-gradient(circle at 50% 50%, rgba(200, 144, 31, 0.14) 0%, transparent 70%);
+}
+
+/* A family's glyph, in the family's ink. `rel-axis-mark`'s twin. */
+.bead-family-mark {
+  color: var(--bead-ink, var(--ink-soft));
+  font-size: 0.95em;
+  line-height: 1;
+}
+
+/* --- the register under the Abacus ---------------------------------------- */
+
+.abacus-register {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 34vh;
+  overflow-y: auto;
+  padding-top: 8px;
+  border-top: var(--border-thin) solid var(--ink-faint);
+}
+
+.abacus-caption {
+  margin: 0 0 2px;
+  text-align: center;
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 1.02rem;
+  color: var(--ink-soft);
+}
+
+.abacus-rod {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.abacus-rod-name {
+  display: flex;
+  flex: 0 0 168px;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--face-name);
+  font-size: 0.92rem;
+}
+
+/* The wire: the beads in a row, wrapping rather than scrolling, because a rod
+   that ran off the edge would be a score you cannot read. */
+.abacus-rod-wire,
+.bead-rod-wire {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 3px 0;
+}
+
+.abacus-rod-tally,
+.bead-rod-tally {
+  flex: 0 0 auto;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+.abacus-rod-open {
+  flex: 0 0 auto;
+  border: 1px solid var(--ink-faint);
+  border-radius: 2px;
+  background: transparent;
+  padding: 2px 8px;
+  font-family: var(--face-ui);
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.abacus-rod-open:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* --- the Beads screen ------------------------------------------------------ */
+
+/* The Statecraft split, borrowed whole: the rods are the half you read *from*
+   and never move, the table is the half that scrolls. */
+.bead-body {
+  display: flex;
+  flex-direction: row;
+  gap: 18px;
+  min-height: 0;
+}
+
+.bead-rods {
+  display: flex;
+  flex: 0 0 300px;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 16px;
+  border-right: var(--border-thin) solid var(--ink);
+}
+
+.bead-threshold {
+  margin: 0 0 4px;
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 1.02rem;
+  color: var(--ink-soft);
+}
+
+.bead-rod {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.bead-rod.is-local .bead-rod-name {
+  font-weight: 600;
+}
+
+.bead-rod-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bead-rod-name {
+  font-family: var(--face-name);
+  font-size: 0.95rem;
+}
+
+.bead-rod-dice {
+  margin: 2px 0 0;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+.bead-pane {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.bead-age-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 4px;
+  border-bottom: var(--border-thin) solid var(--ink);
+}
+
+.bead-age-title {
+  margin: 0;
+  font-family: var(--face-display);
+  font-size: 1.25rem;
+  font-weight: 400;
+}
+
+.bead-age-count,
+.bead-deck-line {
+  margin: 0;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+/* The cards. A grid rather than a hand of tarot faces: the ceremony belongs to
+   the offer card, and this is a table you read across. */
+.bead-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.bead-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: var(--border-thin) solid var(--ink);
+  border-left: 3px solid var(--bead-ink, var(--ink));
+  background: var(--parchment);
+}
+
+.bead-card.is-taken,
+.bead-card.is-dormant {
+  opacity: 0.55;
+}
+
+.bead-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.bead-card-name {
+  margin: 0;
+  font-family: var(--face-name);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.bead-card-eyebrow {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.bead-card-deed {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+  line-height: 1.35;
+}
+
+.bead-card-boon {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+}
+
+.bead-card-deferred {
+  margin: 0;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+/* The race's gate, in the reducer's own sentence. Never vermilion: a race this
+   empire does not yet qualify for is not an alarm, it is a plan. */
+.bead-card-gate {
+  margin: 4px 0 0;
+  font-family: var(--face-num);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.bead-card-gate.is-met {
+  color: var(--teal);
+}
+
+.bead-card-claim {
+  margin: 4px 0 0;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+/* The pile: backs, and a count. The backs are furniture — the count is the
+   sentence — so they are aria-hidden and drawn as blank cards. */
+.bead-facedown {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.bead-backs {
+  display: flex;
+  gap: 3px;
+}
+
+.bead-back {
+  width: 16px;
+  height: 24px;
+  border: 1px solid var(--ink-faint);
+  border-radius: 2px;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--table) 0 3px,
+    var(--parchment) 3px 6px
+  );
+}
+
+.bead-facedown-line {
+  margin: 0;
+}
+
+/* The feats and the reckonings: rows, not cards. A feat is always in play and
+   there are a dozen of them — a grid of a dozen cards is a wall. */
+.bead-feat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bead-feat {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.bead-feat.is-dormant {
+  opacity: 0.5;
+}
+
+.bead-feat-words {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bead-feat-name {
+  font-family: var(--face-name);
+  font-size: 0.92rem;
+}
+
+.bead-feat-deed {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.bead-feat-claim {
+  flex: 0 0 auto;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+}
+
+/* --- the victory sheet ----------------------------------------------------- */
+
+/* The Triumph sheet's dress with one difference: the gilt is louder, because
+   this is the golden bead's own moment. */
+.victory-sheet {
+  border-color: var(--gilt);
+}
+
+.victory-sheet .triumph-eyebrow {
+  color: var(--gilt);
 }

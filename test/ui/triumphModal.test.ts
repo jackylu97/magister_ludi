@@ -182,7 +182,10 @@ describe('when the sheet is raised', () => {
     );
     expect(body).toContain('const earned = heldTriumphs;');
     expect(body).toContain('heldTriumphs = null;');
-    expect(body).toContain('scheduleHandOver(report, deficitLines(meters), earned);');
+    // The prefix, not the whole call: the hand-over grew a fourth argument when
+    // the Bead Race landed (the seat that crossed the threshold, `victoryModal.ts`),
+    // and what this pin is about is that `earned` is what reaches it.
+    expect(body).toContain('scheduleHandOver(report, deficitLines(meters), earned');
     // The turn that did not resolve has no hand-over to wait for.
     expect(body).toContain('if (earned.length > 0) onTriumphs?.(earned);');
   });

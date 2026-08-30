@@ -118,7 +118,19 @@ import { CARD_LINE_NAME, lineOf } from './cardLine';
 import { setDescriptorText } from './keywords';
 import { SHELF_INTROS } from './compendiumShelves';
 import { CONCEPT_ENTRIES, INTRO_ENTRIES } from './compendiumText';
-import { YIELD_GLYPH, figure, percentFigure, signedFigure } from './figures';
+import { HAMMER, YIELD_GLYPH, eraWord, figure, percentFigure, signedFigure } from './figures';
+import {
+  type BeadCardId,
+  BEAD_DECK_AGES,
+  BEAD_ENDEAVOUR_IDS,
+  BEAD_FEAT_IDS,
+  BEAD_QUEST_IDS,
+  BEAD_RECKONING_IDS,
+  BEAD_RULES,
+  anyBeadDef,
+  beadHandSize,
+} from '../sim/beadData';
+import { BEAD_FAMILY_MARK, beadBoonWords, deckEraWord } from './beadsScreen';
 import { AXIS_MARK, riteGrantWords } from './religionScreen';
 import { resourceMarkNode } from './resourceMark';
 import { setYieldText } from './yieldMark';
@@ -141,6 +153,7 @@ export type CompendiumSectionId =
   | 'rite'
   | 'greatPerson'
   | 'triumph'
+  | 'bead'
   | 'meter'
   | 'trade';
 
@@ -228,6 +241,7 @@ const SECTION_NAMES: readonly (readonly [CompendiumSectionId, string])[] = [
   ['rite', 'Rites'],
   ['greatPerson', 'Great People'],
   ['triumph', 'Triumphs'],
+  ['bead', 'The Bead Race'],
   ['meter', 'The Meters'],
   ['trade', 'Trade'],
 ];
@@ -270,30 +284,11 @@ function tileYieldFigures(spec: TileYieldSpec): string {
 /**
  * The Æra a thing belongs to, in the numerals the star chart uses.
  *
- * Actual Roman numerals rather than a tally of `I`s. The tally read correctly
- * for the three ages the tech tree has and broke on the great-people table,
- * which reaches the fifth: "Æra IIIII" is not a numeral, it is a count of
- * strokes. Written as a subtractive table so a sixth age costs nothing.
+ * The table itself moved to `figures.ts` when the Beads screen became the third
+ * surface that names an age — this file keeps the name it reads by, and there is
+ * still one implementation of the numerals.
  */
-const ROMAN: readonly (readonly [number, string])[] = [
-  [10, 'X'],
-  [9, 'IX'],
-  [5, 'V'],
-  [4, 'IV'],
-  [1, 'I'],
-];
-
-function ageWord(age: number): string {
-  let left = Math.max(1, Math.round(age));
-  let out = '';
-  for (const [value, mark] of ROMAN) {
-    while (left >= value) {
-      out += mark;
-      left -= value;
-    }
-  }
-  return `Æra ${out}`;
-}
+const ageWord = eraWord;
 
 /** `Bronze Working`, or empty for a thing the tree gates on nothing. */
 function techName(id: TechId | null | undefined): string {
@@ -1160,6 +1155,99 @@ function ladderRows(steps: readonly { whenAtOrAbove?: number; whenAtOrBelow?: nu
   }));
 }
 
+// --- the Bead Race ----------------------------------------------------------
+
+/**
+ * The rules of the race, from the rules row and nowhere else.
+ *
+ * The threshold and the two hand sizes are the only figures the Bead Race has
+ * that are not on a card, and they are exactly the two a player needs before any
+ * card means anything. Read off `BEAD_RULES` so a retuned threshold rewrites this
+ * page and no prose above it.
+ */
+function beadRulesEntry(): CompendiumEntry {
+  return {
+    id: compendiumId('bead', 'rules'),
+    section: 'bead',
+    name: 'The rules of the race',
+    eyebrow: 'the reckoning',
+    mark: { kind: 'glyph', glyph: '◉' },
+    rows: [
+      { label: 'Beads that win the game', figures: figure(BEAD_RULES.threshold) },
+      ...BEAD_DECK_AGES.map((age) => ({
+        label: `Cards on the table in ${deckEraWord(age)}`,
+        figures: figure(beadHandSize(age)),
+      })),
+      { label: 'Turns between deals', figures: figure(BEAD_RULES.dealEveryTurns) },
+    ],
+    clauses: [
+      {
+        text: 'The last bead of all is golden, and only the Magnum Opus mints it. Its slot sits empty on every rod for the whole game.',
+      },
+      {
+        text: 'A hand is a set of open slots. When a card is claimed it leaves the table, and the deck fills the gap on the next deal.',
+      },
+    ],
+    flavor: null,
+  };
+}
+
+/** One bead card — a feat, a race project, a quest or a reckoning. */
+function beadEntry(id: BeadCardId): CompendiumEntry {
+  const { kind, def } = anyBeadDef(id);
+  const age = 'age' in def && typeof def.age === 'number' ? def.age : null;
+  const boon = 'boon' in def ? def.boon : undefined;
+  const family = BEAD_FAMILY_MARK[def.family];
+  const clauses: CompendiumClause[] = [{ text: def.text }];
+  // What it pays, in the words the Beads screen prints; then the halves of the
+  // ratified card this build has not made, and the reason a row is unreachable.
+  for (const line of beadBoonWords(boon)) clauses.push({ text: line });
+  for (const line of def.deferred ?? []) clauses.push({ text: line, deferred: true });
+  if (def.dormant !== undefined) clauses.push({ text: def.dormant, note: true });
+
+  const scope =
+    kind === 'feat'
+      ? (def as { once: 'game' | 'age' }).once === 'age'
+        ? 'a first in the world, once in each age'
+        : 'a first in the world, once per game'
+      : age === null
+        ? BEAD_KIND_WORD[kind]
+        : `${BEAD_KIND_WORD[kind]}, dealt in ${deckEraWord(age)}`;
+
+  const rows: CompendiumRow[] = [{ label: 'Family', figures: family.word }];
+  if (kind === 'endeavour') {
+    rows.push({ label: 'Production cost', figures: `${figure((def as { cost: number }).cost)}${HAMMER}` });
+  }
+  return {
+    id: compendiumId('bead', id),
+    section: 'bead',
+    name: def.name,
+    eyebrow: scope,
+    mark: { kind: 'glyph', glyph: family.glyph },
+    rows,
+    clauses,
+    flavor: 'flavor' in def && typeof def.flavor === 'string' ? def.flavor : null,
+  };
+}
+
+/** What class of row a bead card came off, in a player's word. */
+const BEAD_KIND_WORD: Record<string, string> = {
+  feat: 'a first in the world',
+  endeavour: 'a race project',
+  quest: 'a deed',
+  reckoning: 'the age’s snapshot',
+};
+
+function beadEntries(): CompendiumEntry[] {
+  return [
+    beadRulesEntry(),
+    ...BEAD_FEAT_IDS.map(beadEntry),
+    ...BEAD_ENDEAVOUR_IDS.map(beadEntry),
+    ...BEAD_QUEST_IDS.map(beadEntry),
+    ...BEAD_RECKONING_IDS.map(beadEntry),
+  ];
+}
+
 function meterEntries(): CompendiumEntry[] {
   const happiness = RULES.meters.happiness;
   const authority = RULES.meters.authority;
@@ -1419,6 +1507,7 @@ export function compendiumSections(state: GameState | null = null): CompendiumSe
   for (const id of RITE_IDS) push(riteEntry(id));
   for (const id of GREAT_PERSON_IDS) push(greatPersonEntry(id));
   for (const id of TRIUMPH_IDS) push(triumphEntry(id));
+  for (const entry of beadEntries()) push(entry);
   for (const entry of meterEntries()) push(entry);
   for (const entry of tradeEntries()) push(entry);
 

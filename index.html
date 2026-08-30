@@ -639,7 +639,8 @@
           </li>
           <li>
             <kbd>C</kbd> Statecraft · <kbd>H</kbd> Religion · <kbd>A</kbd> the
-            Abacus · <b>❧</b> in the bar keeps the chronicle
+            Abacus · <kbd>V</kbd> the Bead Race · <b>❧</b> in the bar keeps the
+            chronicle
           </li>
           <li>
             <b>Buy Tiles</b> on a city panel arms the price tags; click a tag to
@@ -913,6 +914,58 @@
       </div>
     </div>
 
+    <!-- ================= the Beads screen ======================
+         The Bead Race's table (design ledger Entry VI, docs/beads.md): every
+         card on offer this age, who has taken which, the pile still face down,
+         the feats that are always in play, and one rod per seat with the golden
+         slot on it. The Abacus is the *score*; this is the table the score is
+         played on.
+
+         Statecraft's sibling and deliberately the same sheet, for the reason
+         the Religion overlay gives above it: three systems that deal cards from
+         a pool must not look like three different games. Built by
+         src/ui/beadsScreen.ts on each open; nothing on it is stored. Reached
+         from the bead chip in the top bar, from the Abacus, or with V.
+         ============================================================ -->
+    <div
+      id="beads-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="The Bead Race"
+      hidden
+    >
+      <div class="statecraft-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <p class="eyebrow statecraft-eyebrow">the magister&rsquo;s reckoning</p>
+            <h2 class="statecraft-title">The Bead <em>Race</em></h2>
+          </div>
+          <p class="statecraft-hint">
+            the last bead is golden &mdash; <kbd>Esc</kbd> to close
+          </p>
+          <button id="beads-close" class="statecraft-close" type="button" aria-label="Close">
+            &times;
+          </button>
+        </header>
+        <div id="beads-body" class="statecraft-body bead-body"></div>
+      </div>
+    </div>
+
+    <!-- ================= the victory sheet =====================
+         The Triumph sheet's sibling (src/ui/victoryModal.ts): one seat has
+         reached the threshold, and every seat is told, not only the winner.
+         Raised at the hand-over, behind the turn card.
+         ============================================================ -->
+    <div
+      id="victory-overlay"
+      class="triumph-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="The Bead Race is decided"
+      hidden
+    ></div>
+
     <!-- ================= the Abacus ============================
          The score, as a counting frame standing on the table: one rod per
          player, thirteen beads on each, slid left as they are earned and
@@ -925,10 +978,10 @@
          on the first open — the stage is not built at boot, and nothing in here
          costs a WebGL context until somebody asks for the score.
 
-         Every bead is unearned today, which is the truth: scoring lands at M11.
-         The epigraph says so once, in the register, and there is deliberately no
-         control on this screen that would slide a bead — the look-dev page
-         (abacus.html) keeps those.
+         The beads are real (design ledger Entry VI, the Bead Race): the rods
+         read Player.beads and nothing else. There is deliberately no control on
+         this screen that would slide one — the look-dev page (abacus.html)
+         keeps those, because faking things is what a bench is for.
          ============================================================ -->
     <div
       id="abacus-overlay"
@@ -949,9 +1002,12 @@
           </button>
         </header>
         <div id="abacus-stage" class="abacus-stage"></div>
-        <p class="abacus-epigraph">
-          Beads are earned as the Æras close. The first reckoning awaits.
-        </p>
+        <!-- The same rods in DOM, and the reading the object cannot give: as
+             long as the threshold rather than as long as the frame, every bead
+             answering a pointer with the card it came off, and the golden slot
+             at the far end of every rod — drawn empty, gilt-rimmed, all game.
+             Written by src/ui/abacusScreen.ts on each open. -->
+        <div id="abacus-register" class="abacus-register"></div>
       </div>
     </div>
 

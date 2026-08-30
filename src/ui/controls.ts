@@ -278,6 +278,7 @@ import {
 import { highestAge, techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import type { TriumphAward } from '../sim/triumphs';
+import { BEAD_FAMILY_MARK, deckEraWord } from './beadsScreen';
 import { type TraderPlunder, routeCities } from '../sim/trade';
 import { type UnitDef, isExplorer, trades, unitDef, unitMaxHp } from '../sim/unitData';
 import { type DisbandReport, treasuryInDebt } from '../sim/upkeep';
@@ -1446,6 +1447,18 @@ export interface GameControlsOptions {
   onToggleAbacus?: () => void;
 
   /**
+   * Opens or closes the Beads screen — the Bead Race's table. `V`, on the same
+   * terms as `A` and `T`: the screen owns its own Escape while it is up and
+   * reports itself through `inputBlocked`, so this module never sees a key while
+   * it is open.
+   *
+   * `V` rather than `B`, which the brief asked for first: `B` founds a city and
+   * has since the first playable build (see the key block below), and taking a
+   * verb's key for a screen is how a player loses a settler.
+   */
+  onToggleBeads?: () => void;
+
+  /**
    * A blow landed: numbers to float over the board.
    *
    * Reported from here because this is the only place that can measure it — the
@@ -1949,6 +1962,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     inputBlocked,
     onToggleTechTree,
     onToggleAbacus,
+    onToggleBeads,
     onOpenTechTree,
     onOfferDiscovery,
     onToggleStatecraft,
@@ -2292,6 +2306,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportStarvation(result);
       reportGuilds(result);
       reportTriumphs(result);
+      reportBeads(result);
       checkFirstStatecraftDraft();
       checkGreatPersonOffer();
     }
@@ -2611,6 +2626,74 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (mine.length === 0) return;
     if (heldTriumphs === null) onTriumphs?.(mine);
     else heldTriumphs.push(...mine);
+  }
+
+  /**
+   * **A bead was clacked.** One chronicle line per award, seat-aware, through
+   * the funnel every other piece of news goes through.
+   *
+   * The Bead Race is the game's one victory condition (design ledger Entry VI),
+   * so a bead is the loudest ordinary thing that happens in it and — like a
+   * wonder, and unlike a Triumph — **another empire's is your news too**: the
+   * whole design is that everybody races one legible number. So there is no
+   * seat filter here; there are two voices.
+   *
+   * Your own line carries the family and what the bead paid, and the boon lines
+   * are the *settlement's own* (`BeadAward.boon`), already banked by the time
+   * this runs — never re-derived, exactly as a Triumph's renown is not.
+   * Somebody else's names them and the card and stops there, because what a
+   * rival's bead paid them is not on your screen.
+   *
+   * A reckoning is called out by name rather than announced as a bead, because
+   * it is not something a seat *did*: it is the age taking a measurement of
+   * everybody at once and naming a victor.
+   *
+   * `commit` covers both paths with no second call site, `reportTriumphs`'
+   * argument exactly: a bead earned inside a command rides that command's
+   * `CommandResult.beads`, and every bead earned during a resolution rides
+   * `endTurn`'s (`TurnReport.beads`, handed straight into its own result).
+   */
+  function reportBeads(result: CommandResult): void {
+    if (!result.ok || !result.beads) return;
+    const { state } = getGame();
+    for (const award of result.beads) {
+      const who = playerById(state, award.playerId)?.name ?? 'An empire';
+      if (award.kind === 'reckoning') {
+        announce(`◈ Reckoning: ${award.name} — ${who}`);
+        continue;
+      }
+      if (award.playerId !== localPlayerId) {
+        announce(`${who} took a bead: ${award.name}`);
+        continue;
+      }
+      const family = BEAD_FAMILY_MARK[award.family].word.toLowerCase();
+      const paid = award.boon.length === 0 ? '' : ` · ${award.boon.join(' ')}`;
+      announce(`◉ A bead: ${award.name} (${family})${paid}`);
+    }
+  }
+
+  /**
+   * **An age opened.** One line for the world's clock turning over, said once.
+   *
+   * The world's age is a single number on the state (`state.beads.worldAge`),
+   * raised by the `beads` phase the turn the first seat in the world reaches a
+   * new age — at which moment that age's whole hand turns face up. The line is
+   * therefore about *the table*, not about whoever got there first, who has
+   * already been announced their feat.
+   *
+   * Read as a before-and-after around the resolution rather than off the report,
+   * for the reason `wonBefore` is: `TurnReport` carries the awards and not the
+   * clock, and there is no diff of a scalar to be got any other way. If the
+   * simulation grows a report field for it, this becomes a read of that field
+   * and nothing else about the line changes.
+   */
+  function reportAgeOpened(before: number): void {
+    const { state } = getGame();
+    if (state.beads.worldAge <= before) return;
+    const key = String(state.beads.worldAge);
+    const dealt = (state.beads.hands[key] ?? []).filter((card) => card.faceUp).length;
+    const what = dealt === 1 ? 'card' : 'cards';
+    announce(`◈ ${deckEraWord(state.beads.worldAge)} opens — ${dealt} ${what} on the table`);
   }
 
   /**
@@ -5302,6 +5385,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     research: ResearchReport,
     deficits: readonly string[],
     triumphs: readonly TriumphAward[],
+    /** The seat that crossed the bead threshold in this resolution, or null. */
+    decided: number | null = null,
   ): void {
     const marching = renderer.pendingAnimationMs?.() ?? 0;
     afterBeat(marching, () => {
@@ -5316,6 +5401,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // held hostage to a button press would be a beat that never arrives if
       // the sheet is answered from the keyboard mid-glide.
       if (triumphs.length > 0) onTriumphs?.(triumphs);
+      // And the loudest thing of all, last of the three, so it stands in front
+      // of a Triumph sheet earned on the same turn: the race is over.
+      if (decided !== null) onVictory?.(decided);
       // A reader who has asked for less motion has asked for fewer beats too:
       // the card and the camera arrive together, as they always did.
       afterBeat(prefersReducedMotion() ? 0 : HANDOVER_PAN_MS, () => {
@@ -5587,11 +5675,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // a turn that went by, it is a standing condition the player has to act on,
     // and it repeats every turn until they do — which is the point of it.
     const debt = debtWarning(playerById(getGame().state, localPlayerId));
+    // The world's clock and the winner are the two scalars a resolution can move
+    // that leave no diff behind them. Both are read here, in the same breath and
+    // for the same reason as the research snapshot above.
+    const ageBefore = getGame().state.beads.worldAge;
+    const wonBefore = getGame().state.winnerId;
     const result = commit({ type: 'endTurn', playerId: localPlayerId });
     const earned = heldTriumphs;
     heldTriumphs = null;
     if (!result.ok) return;
     if (debt !== null) announce(debt);
+    reportAgeOpened(ageBefore);
 
     // Whatever was still sliding belongs to the turn that just ended.
     renderer.skipAnimations();
@@ -5615,12 +5709,23 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // read three seconds later. Its pan is a link the player follows, never a
       // camera move of its own — so it cannot fight the marches.
       announceWakes(asleep);
-      scheduleHandOver(report, deficitLines(meters), earned);
+      // The threshold was crossed inside the resolution: the sheet belongs to
+      // the hand-over, behind the turn card, exactly where a Triumph's does.
+      // `wonBefore` is what makes it fire once — a game that has been won stays
+      // won, and every later End Turn press must not re-announce it.
+      const decided =
+        getGame().state.winnerId !== null && wonBefore === null
+          ? getGame().state.winnerId
+          : null;
+      scheduleHandOver(report, deficitLines(meters), earned, decided);
       return;
     }
     // The turn did not resolve — other seats are still playing — so there is no
     // hand-over to hold anything for and whatever was earned is shown now.
     if (earned.length > 0) onTriumphs?.(earned);
+    if (getGame().state.winnerId !== null && wonBefore === null) {
+      onVictory?.(getGame().state.winnerId!);
+    }
     const next = nextOpenSeat(localPlayerId);
     if (next !== null) {
       setLocalPlayer(next);
@@ -5850,6 +5955,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // The Abacus. Like the star chart, it takes the keyboard from here while
       // it is up, so this is only ever the way in.
       onToggleAbacus?.();
+      return;
+    }
+    if (event.key === 'v' || event.key === 'V') {
+      // The Bead Race's table. `B` is the settler's key and always has been, so
+      // the screen takes the letter next to what it is about — victory — on the
+      // Abacus's own terms: it owns the keyboard while it is up.
+      onToggleBeads?.();
       return;
     }
     if (event.key === 'm' || event.key === 'M') {

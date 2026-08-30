@@ -41,6 +41,15 @@ import { DOCTRINE_IDS, ORDER_IDS } from '../../src/sim/statecraftData';
 import { newGame } from '../../src/sim/state';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { TRIUMPH_IDS, triumphDef } from '../../src/sim/triumphData';
+import {
+  BEAD_DECK_AGES,
+  BEAD_ENDEAVOUR_IDS,
+  BEAD_FEAT_IDS,
+  BEAD_QUEST_IDS,
+  BEAD_RECKONING_IDS,
+  BEAD_RULES,
+  beadQuestDef,
+} from '../../src/sim/beadData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import {
   DEFAULT_ENTRY,
@@ -154,10 +163,11 @@ describe('the shelves', () => {
     }
   });
 
-  it('has sixteen of them, every one with something on it', () => {
-    // The index the brief names. A shelf that came back empty would be a
-    // section heading a reader clicks and learns nothing from.
-    expect(BOOK).toHaveLength(16);
+  it('has seventeen of them, every one with something on it', () => {
+    // The index the brief names, plus the Bead Race's — the seventeenth, added
+    // with the win condition. A shelf that came back empty would be a section
+    // heading a reader clicks and learns nothing from.
+    expect(BOOK).toHaveLength(17);
     for (const section of BOOK) {
       expect(section.name.length, section.id).toBeGreaterThan(0);
       expect(section.entries.length, section.id).toBeGreaterThan(0);
@@ -496,6 +506,69 @@ function stringLiterals(source: string): string[] {
 function isHeadingTag(text: string): boolean {
   return /^h[1-6]$/.test(text);
 }
+
+/**
+ * The Bead Race's shelf — the game's one win condition, read back off its own
+ * table (design ledger Entry VI).
+ *
+ * Three claims, and each is a way the shelf could be quietly wrong: an entry
+ * that carried no stable anchor (so a keyword could never link to it), a page
+ * that named a figure in prose (the module's standing rule, which the scanner
+ * above already holds over `compendiumShelves.ts`), and a shelf that listed the
+ * feats but not the cards actually dealt.
+ */
+describe('the Bead Race shelf', () => {
+  const shelf = BOOK.find((section) => section.id === 'bead')!;
+
+  it('is on the index, named for what it is', () => {
+    expect(shelf).toBeDefined();
+    expect(shelf.name).toBe('The Bead Race');
+  });
+
+  it('opens on a lead page and then lists every card in the table', () => {
+    const ids = shelf.entries.map((entry) => entry.id);
+    expect(ids[0]).toBe('bead:about');
+    expect(ids[1]).toBe('bead:rules');
+    for (const id of [
+      ...BEAD_FEAT_IDS,
+      ...BEAD_ENDEAVOUR_IDS,
+      ...BEAD_QUEST_IDS,
+      ...BEAD_RECKONING_IDS,
+    ]) {
+      expect(ids, id).toContain(`bead:${id}`);
+    }
+  });
+
+  it('gives every entry a stable anchor of its own', () => {
+    for (const entry of shelf.entries) {
+      expect(entry.id.startsWith('bead:'), entry.id).toBe(true);
+      expect(sectionOfId(entry.id)).toBe('bead');
+      expect(entry.name.length, entry.id).toBeGreaterThan(0);
+      expect(entry.clauses.length, entry.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('prints the threshold and the hand sizes from the rules row', () => {
+    const rules = shelf.entries.find((entry) => entry.id === 'bead:rules')!;
+    const labels = rules.rows.map((row) => row.label);
+    expect(labels).toContain('Beads that win the game');
+    const winning = rules.rows.find((row) => row.label === 'Beads that win the game')!;
+    expect(winning.figures).toBe(String(BEAD_RULES.threshold));
+    // One row per deck, and each carries that deck's own hand size.
+    for (const age of BEAD_DECK_AGES) {
+      const row = rules.rows.find((one) => one.label.startsWith('Cards on the table'));
+      expect(row, String(age)).toBeDefined();
+    }
+    expect(rules.rows).toHaveLength(2 + BEAD_DECK_AGES.length);
+  });
+
+  it('says what a card does in the row’s own words', () => {
+    for (const id of BEAD_QUEST_IDS) {
+      const entry = shelf.entries.find((one) => one.id === `bead:${id}`)!;
+      expect(entry.clauses[0]!.text, id).toBe(beadQuestDef(id).text);
+    }
+  });
+});
 
 describe('never hand-written prose about a number', () => {
   it('has no digit in any string the Compendium prints', () => {
