@@ -434,11 +434,18 @@ describe('the triangle', () => {
    * enough to move a two-blow kill to three on an unlucky pair of rolls, and a
    * balance fixture that is 85% likely to pass is a fixture nobody can read.
    *
-   * The rank pinned is the **Æra IV** one, and deliberately: it is the first
-   * tier at which all three mechanisms are actually present, because the Æra III
-   * shooter has `range: 1` and a hull that must stand adjacent to fire is not
-   * kiting anything. See the note on the ranged case.
+   * Pinned at **both** ranks that have all three classes, and that is the whole
+   * of the user's ruling of 2026-08-29 ("fire ship range 2, let's keep it
+   * simple"). The build's finding had been that the Æra III shooter reached only
+   * one hex, so it stood in contact and kited nothing; with the reach at two the
+   * three mechanisms are identical at both ranks, which is why this reads as one
+   * table walked twice rather than as a rank and an exception.
    */
+  const RANKS = [
+    { age: 'Æra III', light: 'galley', heavy: 'towerShip', shooter: 'fireShip' },
+    { age: 'Æra IV', light: 'caravel', heavy: 'carrack', shooter: 'gunGalley' },
+  ] as const;
+
   const blowsToKill = (
     state: GameState,
     attacker: Unit,
@@ -453,72 +460,63 @@ describe('the triangle', () => {
     };
   };
 
-  it('lets a light hull beat a gun deck, closing faster than it is shot', () => {
-    const closing = duel('caravel', 'gunGalley');
-    const shooting = duel('gunGalley', 'caravel', 2);
-    const light = blowsToKill(closing.state, closing.a, closing.b);
-    const ranged = blowsToKill(shooting.state, shooting.a, shooting.b);
-    expect(light.blows).toBe(2);
-    expect(light.blows).toBeLessThan(ranged.blows);
-  });
+  for (const rank of RANKS) {
+    it(`lets a light hull beat a gun deck at ${rank.age}, closing faster than it is shot`, () => {
+      const closing = duel(rank.light, rank.shooter);
+      const shooting = duel(rank.shooter, rank.light, 2);
+      const light = blowsToKill(closing.state, closing.a, closing.b);
+      const ranged = blowsToKill(shooting.state, shooting.a, shooting.b);
+      // Two strikes, which is the doc's own figure — the light hull's +5 against
+      // a gun deck and the gun deck's own −5 fragility are a ten-point swing,
+      // and that is what buys the kill a rank early.
+      expect(light.blows).toBe(2);
+      expect(light.blows).toBeLessThan(ranged.blows);
+    });
 
-  it('lets a heavy hull beat a light one on raw strength', () => {
-    const heavy = duel('carrack', 'caravel');
-    const light = duel('caravel', 'carrack');
-    expect(blowsToKill(heavy.state, heavy.a, heavy.b).blows).toBeLessThan(
-      blowsToKill(light.state, light.a, light.b).blows,
-    );
-  });
+    it(`lets a heavy hull beat a light one at ${rank.age}, on raw strength`, () => {
+      const heavy = duel(rank.heavy, rank.light);
+      const light = duel(rank.light, rank.heavy);
+      expect(blowsToKill(heavy.state, heavy.a, heavy.b).blows).toBeLessThan(
+        blowsToKill(light.state, light.a, light.b).blows,
+      );
+    });
 
-  /**
-   * And ranged beats heavy — by **kiting**, which is a fact about movement and
-   * the absence of a counter rather than about damage.
-   *
-   * The heavy hull hits harder when it connects; what it cannot do is connect.
-   * A gun deck fires at two hexes, takes nothing back, and outruns a three-move
-   * hull by a hex a turn, so the exchange it forces is the whole of its win —
-   * which is why this is asserted as three properties and not as a blow count.
-   */
-  it('lets a gun deck kite a heavy hull: no counter, longer reach, more speed', () => {
-    const { state, a, b } = duel('gunGalley', 'carrack', 2);
-    const plan = previewCombat(state, a.id, { col: b.col, row: b.row });
-    expect(plan.ok).toBe(true);
-    if (!plan.ok) return;
-    expect(plan.kind).toBe('ranged');
-    // Untouched: a shot draws no counter, so every kite is free.
-    expect(plan.damageToAttacker).toBe(0);
-    expect(plan.damageToAttackerMax).toBe(0);
-    expect(plan.damageToDefender).toBeGreaterThan(0);
-    // Out of reach: it fires from two and a melee hull must stand at one.
-    expect(unitDef('gunGalley').range).toBe(2);
-    // And out of range next turn too, which is what makes the reach hold.
-    expect(unitDef('gunGalley').movement).toBeGreaterThan(unitDef('carrack').movement);
-  });
+    /**
+     * And ranged beats heavy — by **kiting**, which is a fact about movement and
+     * the absence of a counter rather than about damage.
+     *
+     * The heavy hull hits harder when it connects; what it cannot do is connect.
+     * A gun deck fires at two hexes, takes nothing back, and outruns a
+     * three-move hull by a hex a turn, so the exchange it forces is the whole of
+     * its win — which is why this is asserted as three properties and not as a
+     * blow count.
+     */
+    it(`lets a gun deck kite a heavy hull at ${rank.age}: no counter, longer reach, more speed`, () => {
+      const { state, a, b } = duel(rank.shooter, rank.heavy, 2);
+      const plan = previewCombat(state, a.id, { col: b.col, row: b.row });
+      expect(plan.ok).toBe(true);
+      if (!plan.ok) return;
+      expect(plan.kind).toBe('ranged');
+      // Untouched: a shot draws no counter, so every kite is free.
+      expect(plan.damageToAttacker).toBe(0);
+      expect(plan.damageToAttackerMax).toBe(0);
+      expect(plan.damageToDefender).toBeGreaterThan(0);
+      // Out of reach: it fires from two and a melee hull must stand at one.
+      expect(unitDef(rank.shooter).range).toBe(2);
+      // And out of range again next turn, which is what makes the reach hold.
+      expect(unitDef(rank.shooter).movement).toBeGreaterThan(unitDef(rank.heavy).movement);
+    });
+  }
 
-  /**
-   * The Æra III shooter is the flagged exception, and it is written down rather
-   * than quietly passing.
-   *
-   * `docs/tech-tree.md` gives the Fire Ship `range: 1`, so it has to stand
-   * adjacent to fire — the heavy hull it is "kiting" is already in contact and
-   * swings on its own turn. It still takes no counter on the shot itself, which
-   * is asserted here, but the *speed* half of the mechanism does nothing at one
-   * hex. Recorded as a fact about the shipped table so a balance pass has
-   * somewhere to start.
-   */
-  it('gives the Æra III shooter reach of one, which is contact rather than a kite', () => {
-    expect(unitDef('fireShip').range).toBe(1);
-    const { state, a, b } = duel('fireShip', 'towerShip');
-    const plan = previewCombat(state, a.id, { col: b.col, row: b.row });
-    expect(plan.ok).toBe(true);
-    if (!plan.ok) return;
-    expect(plan.damageToAttacker).toBe(0);
-    // The heavy hull answers harder on its own turn, which is the whole of why
-    // this rank does not yet play as the design's triangle.
-    const answer = duel('towerShip', 'fireShip');
-    expect(blowsToKill(answer.state, answer.a, answer.b).blows).toBeLessThan(
-      blowsToKill(state, a, b).blows,
-    );
+  it('gives every shooter in the line the same reach, from the first rank on', () => {
+    // The ruling as one claim about the *roster*: there is no rank at which a
+    // naval shooter stands in contact, so the kite is the class's identity
+    // rather than a property it grows into at Æra IV.
+    for (const id of UNIT_TYPE_IDS) {
+      const def = unitDef(id);
+      if (def.modelClass !== 'navalRanged') continue;
+      expect(def.range, id).toBe(2);
+    }
   });
 });
 
