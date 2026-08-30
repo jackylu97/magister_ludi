@@ -322,6 +322,16 @@ Ship* are descriptive; *Caravel* is the generic word for the small fast ocean sh
 language. The traditions live in the epigrams (the dromon's siphons, the Song thunderclap,
 the turtle ship's shell, the Polynesian waka for the trireme's PC half).
 
+**As built (2026-08-29) and a balance flag.** The line shipped as specified on the temporary
+homes below, with one finding from the build: the doc's triangle (light kills ranged in two,
+ranged kills heavy in three kites untouched, heavy kills light in two) does **not** hold at
+Æra III under the damage curve, because the Fire Ship has **range 1** — it must stand in
+contact, so it kites nothing and the Tower Ship kills it first. The triangle is pinned at Æra
+IV (Caravel / Carrack / Gun Galley, range 2), where all three mechanisms are real, and the
+range-1 gap is asserted as a named exception. **For the ruling:** give the Fire Ship range 2
+(the triangle then holds from III), or accept that Æra III's sea is a two-class fight and the
+ranged hull is a city-bombardment piece until IV.
+
 **The badge and the sculpt (user, 2026-08-29).** One drawn hull per age in the tile atlas's
 own idiom (path data, never a fetched file): *oars and a pennant* (I) → *one square sail* (II)
 → *sail and a fighting tower* (III) → *two masts* (IV) → *three masts, full rig* (V) — so
