@@ -9,6 +9,47 @@ proposal was first drafted. Companions: `docs/wonders.md` (the 27 rows), `docs/t
 `docs/religion-v2.md`, `docs/orders-and-doctrines.md`, `docs/great-people.md`. Nothing in Part 3
 is scheduled until the Revisions section says so.
 
+## Part 0 — The reference frame: how Civ V and Civ VI play, era by era (2026-08-29)
+
+Read against this before cutting Part 3. The lens is a high-level player's build order.
+
+**Civ V (BNW).** *Ancient*: expansion under the happiness cap, ruins, the pantheon race, a
+stolen worker; the beeline is Pottery → Writing → **Philosophy (the National College)**, the
+biggest early spike; Tradition four-city or Liberty wide. *Classical*: trade routes fund
+everything, religion at 200 faith, composite bows hold the walls; Currency, Construction.
+*Medieval*: **Education → universities in every city by ~t105** — the science pivot; Civil
+Service, Machinery. *Renaissance*: bulbed Great Scientists, observatories, the Rationalism
+tree; Astronomy → Printing → **Scientific Theory (Public Schools)**. *Industrial*: **ideology
+at three factories** — the identity choice; the World Congress; tourism begins; then
+**Plastics (Research Labs)**. *Modern → Information*: explicit victory infrastructure —
+spaceship parts, tourism, votes; the last techs bulbed. The through-line: one beeline per era,
+always a *science building per city* fed by population; expansion front-loaded and capped;
+policies as the per-era identity pivot; the finish line named from mid-game.
+
+**Civ VI (GS).** *Ancient*: **settle wide and fast** (ten cities is normal), eurekas drive
+the tree, district adjacency makes the map the build order, chop with Magnus; Code of Laws →
+Early Empire (Colonization) → **Political Philosophy** (first government ~t40). *Classical*:
+a Campus and a Commercial Hub everywhere, **trade routes at Currency**, the great-person race.
+*Medieval*: **Feudalism → Serfdom** (+2 builder charges) is *the* spike, then Education;
+era score → a planned Golden Age. *Renaissance*: **Merchant Republic** (~t110), Humanism,
+gunpowder. *Industrial*: factories in range of six cities, Scientific Theory, corps.
+*Modern → Future*: victory as a track you run — Rocketry → Satellites → the exoplanet, rock
+bands, Congress favour, apostles. The through-line: wide over tall; one spike per era
+(Political Philosophy → Feudalism → Merchant Republic → Industrialization → Rocketry); each
+era its own arc; victory visible from mid-game.
+
+**What the five ages take from it.** (1) **One named beeline per age**, legible on the chart:
+I Bronzeworking/Divination · II **Currency + Ancestor Rites** · III **Education** (our
+"universities everywhere") · IV the Silk Road/Theology · V the Engine. (2) **A science
+building per city per age** — library → Madrasa/university → Observatory → the Engine — kept
+to one slot by *renewals*. (3) **An identity pivot per age** — the government tiers 4 · 10 ·
+18 · 29 · 45 already fall one per age; keep them age-shaped. (4) **Expansion front-loaded and
+capped** — authority is our happiness cap (3 / 2 / 4), Colonial Charters our Colonization
+card. (5) **The finish line explicit from Æra III** — the beads hand revealed at III and
+persisting (`docs/beads.md`) is spaceship-parts-from-mid-game, done as a deck. (6) The one
+thing neither Civ has: the deck makes each age's *objectives* differ per seed while the tree
+stays fixed.
+
 ## Part 1 — Standing determinations
 
 These outrank anything below that still reads otherwise.
@@ -146,7 +187,7 @@ traditions first speak (the Compendium's epigrams, not the rows).
 | Agriculture | start | — | settler, warrior, scout, worker · farm | all | — |
 | Husbandry | 8 | Agriculture | horseman · pasture · reveals horses · Temple of Artemis | W ME | — |
 | Fletching | 8 | Agriculture | archer · camp | PC E | — |
-| Sailing | 8 | Agriculture | embark (civilians + scout) · fishing boats · Great Lighthouse | W PC | Water |
+| Sailing | 8 | Agriculture | embark (civilians + scout) · fishing boats, unlocks the trireme · Great Lighthouse | W PC | Water |
 | Mining | 8 | Agriculture | mine · quarry | all | Fire |
 | Earthenware | 8 | Agriculture | granary (the kiln; ding cauldrons for the ancestors first) | E ME | Fire |
 | Bronzeworking | 16 | Mining, Earthenware | spearman · barracks · Funeral Games · Walls of Uruk · Blessing of Arms · reveals iron | ME E | Fire |
@@ -173,9 +214,9 @@ The Long Count) beside the canon spine (Epic Poetry, Kingship, Ancestor Rites).
 | **The Deluge Remembered** ✱ | 60 | Earthenware, Sailing | *every people remembers the flood*: **Levee** = granary renewal (+1🌾 in a city beside fresh water; a river city keeps 25% of its basket on growth) · floodplain farms allowed | ME W E PC (Utnapishtim, Noah, Manu, the Popol Vuh's flood) | Water | — |
 | **Irrigation** ✎ | 65 | Calendar, Earthenware | farm renewal **+1🌾 on farms beside fresh water** (moves here from Feudalism) · **lake tiles +1🌾** | ME PC (Mesopotamia; the chinampa's first rumour) | Water | — |
 | **Standing Stones** ✎ | 70 | Stonecraft, Divination | **Standing Stones** improvement (worker-built, open flat ground, +1🎵 +1🕯) | W PC (Göbekli Tepe, Stonehenge, the Olmec heads) | Sky ✦ | a row + a sculpt |
-| **The Long Count** ✱ | 95 | Calendar, Letters | *the calendar that counts the ages*: **the age's objectives are shown a turn before the age opens** (the Bead Race's public goals, Part 6; until then +2🔬 in the capital) · Calendar renewal: plantations +1🎵 | PC (the Maya count; speculative — the magister has heard of a people who number the world's ages) | Sky | the Bead Race |
+| **The Long Count** ✱ | 95 | Calendar, Letters | *the calendar that counts the ages*: **gain access to age objectives (these start in era III** (the Bead Race's public goals, Part 6; until then +2🔬 in the capital) · Calendar renewal: plantations +1🎵 | PC (the Maya count; speculative — the magister has heard of a people who number the world's ages) | Sky | the Bead Race |
 | **Bronze Panoply** ✎ | 90 | Bronzeworking, The Wheel | **Phalanx** (spearman upgrade; str 10, anti-mounted) · barracks renewal **+1⚙** · auto-upgrade (built) | W (the hoplite) | Fire | — |
-| **Wayfinding** ✎ | 110 | Sailing, Husbandry | **military units may embark** · **Harbour** (coastal; +1🌾 on worked sea resources, +1 route capacity) | PC W (the songlines, the Phoenicians) | Water | the embark rule's third clause |
+| **Wayfinding** ✎ | 110 | Sailing, Husbandry | **military units may embark** · **Harbour** (coastal; +1🌾 on worked sea resources, +1 route capacity), unlocks sea trade routes (use embarked unit model for traders, use traders movement on water with the same rules for determining range, sea routes are 50% more effective than land ones) | PC W (the songlines, the Phoenicians) | Water | the embark rule's third clause |
 
 ### Æra III — The Age of Empire (12 nodes, the shipped Æra II re-banded plus five, 170–320🔬)
 
@@ -190,7 +231,7 @@ cities at once. **The premiere roster the age adds**: melee **Legionary** (W), a
 | node | 🔬 | prereqs | package | tradition | thread | needs |
 |---|---|---|---|---|---|---|
 | **Iron Working** ⬆ | 170 | Bronze Panoply, Stonecraft | swordsman (iron-gated) · Terracotta Army, Statue of Zeus | E W | Fire | — |
-| **The Legion** ✱ | 190 | Iron Working, Kingship | **Legionary** (melee premier; str 17; iron; may build a road step when it ends its turn on unpaved ground — the roads the legions left) · **Castrum** = barracks renewal (+1 happiness, units built here +1 hp stamp) | W (Rome) | Fire | a unit that lays road: `layRoad` from `arriveOnTile` exists |
+| **The Legion** ✱ | 190 | Iron Working, Kingship | **Legionary** (melee premier; str 17; iron; may build a road step when it ends its turn on unpaved ground — the roads the legions left) · **Castrum** = barracks renewal (+2 production) | W (Rome) | Fire | a unit that lays road: `layRoad` from `arriveOnTile` exists |
 | **Mathematics** ⬆ | 200 | Letters, The Wheel | catapult · **Scholarship** project renewal 20⚙ → 6🔬 · Petra | ME W (al-Khwarizmi, Euclid) | Sky | — |
 | **Construction** ⬆ | 240 | Stonecraft, Fletching | composite bowman, aqueduct · **Baths** (+2 happiness) · Circus Maximus | W | Water | — |
 | **Rhetoric** ⬆ (Philosophy, renamed per Entry X) | 255 | Letters, Divination | **Forum** — the premiere culture house (+3🎵, +1 renown/turn to the Artist family; a Statecraft draft comes one tier sooner while you hold three) · Great Library | W (Cicero, the agora) | Fate | — |
