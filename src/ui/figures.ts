@@ -163,17 +163,36 @@ export function turnsLabel(turns: number | null): string {
  */
 export function signedFigure(value: number): string {
   const rounded = Math.round(value * 10) / 10;
-  const body =
-    Math.abs(rounded) % 1 === 0 ? String(Math.abs(rounded)) : Math.abs(rounded).toFixed(1);
+  const body = compact(Math.abs(rounded));
   if (rounded > 0) return `+${body}`;
   if (rounded < 0) return `−${body}`;
   return '0';
 }
 
-/** A plain magnitude in the same voice: `6`, `2.4`. */
-export function figure(value: number): string {
-  const rounded = Math.round(value * 10) / 10;
+/**
+ * The abbreviation past three digits (user, 2026-08-30: the top bar was
+ * overflowing): a magnitude of a thousand reads `1k`, a million `1M` — one
+ * decimal while the leading part is a single digit (`1.5k`, `2.4M`), a whole
+ * number after (`15k`, `234k`). Below a thousand nothing changes, tenths
+ * included. One helper, so `figure` and `signedFigure` cannot drift on it.
+ */
+function compact(magnitude: number): string {
+  for (const [unit, mark] of [
+    [1_000_000, 'M'],
+    [1_000, 'k'],
+  ] as const) {
+    if (magnitude < unit) continue;
+    const scaled = magnitude / unit;
+    const body = scaled < 10 ? (Math.round(scaled * 10) / 10).toFixed(1).replace(/\.0$/, '') : String(Math.round(scaled));
+    return `${body}${mark}`;
+  }
+  const rounded = Math.round(magnitude * 10) / 10;
   return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1);
+}
+
+/** A plain magnitude in the same voice: `6`, `2.4`, `1.5k`, `2M`. */
+export function figure(value: number): string {
+  return compact(Math.abs(value));
 }
 
 /**

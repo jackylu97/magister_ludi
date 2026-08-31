@@ -196,3 +196,22 @@ describe('an empire modifier as a figure', () => {
     expect(frozen).toBe(`${BORDER_GLYPH} −100%`);
   });
 });
+
+describe('the three-digit abbreviation (user, 2026-08-30)', () => {
+  it('leaves everything under a thousand alone, tenths included', () => {
+    expect(figure(999)).toBe('999');
+    expect(figure(2.4)).toBe('2.4');
+  });
+  it('reads thousands as k and millions as M, one decimal while single-digit', () => {
+    expect(figure(1000)).toBe('1k');
+    expect(figure(1500)).toBe('1.5k');
+    expect(figure(15300)).toBe('15k');
+    expect(figure(234_000)).toBe('234k');
+    expect(figure(1_000_000)).toBe('1M');
+    expect(figure(2_400_000)).toBe('2.4M');
+  });
+  it('keeps the sign outside the abbreviation', () => {
+    expect(signedFigure(-1500)).toBe('−1.5k');
+    expect(signedFigure(1_000_000)).toBe('+1M');
+  });
+});
