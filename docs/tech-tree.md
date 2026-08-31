@@ -50,6 +50,24 @@ persisting (`docs/beads.md`) is spaceship-parts-from-mid-game, done as a deck. (
 thing neither Civ has: the deck makes each age's *objectives* differ per seed while the tree
 stays fixed.
 
+## Built 2026-08-30 — the tree pass (ages I–IV)
+
+Part 3 shipped, with these deviations now authoritative: **all seventeen Empire rows went in**
+(the cut was not taken — the user edits from the chart now); Æra III/IV costs were re-priced
+so every prerequisite chain rises monotonically (Heroes 45–130 with the High Temple at 80 and
+Currency at 130; Empire 170–320 with Education at 320; Cathedrals 480–760); several prereqs
+were re-cut to fit five full lanes (the chart was *searched* — 179 crossings against a naive
+323; the re-cuts are listed in the pass's commit and are the user's to overrule); Drama is
+deleted and Philosophy wears the name Rhetoric; technologies carry card effects
+(`liveEffects`' tenth source); four abilities landed (ancestorRites gates the great-person
+offer, militaryEmbark, oceanGoing, theLongCount); renewals stack additively, so Tourney
+Ground rides the barracks beside Castrum; the bead decks are keyed 3|4 and the Cathedral,
+Mint and Armoury endeavours are awake. Age closes measure **34 / 64 / 124 / 191** on the
+pacing seed — the curtain (~t190 against the old ~t160 hope) is Part 5's open question.
+Still deferred on rows: the King List, Colonial Charters' frontier clause, the Imperial
+Post's and Knotted Cord's connected-science/authority halves, serfdom, chinampas/causeways.
+Æra V remains unbuilt and its nodes still assume The First Distillation as written.
+
 ## Part 1 — Standing determinations
 
 These outrank anything below that still reads otherwise.

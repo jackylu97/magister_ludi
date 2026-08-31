@@ -4115,3 +4115,25 @@ beads in the four families' glass, with the golden slot gilt-rimmed and empty on
 the standing question Entry VI asked for.
 
 ---
+
+## Entry LI — The tree pass (**built** 2026-08-30): ages I–IV, fifty-three nodes
+
+The five-age proposal's first four ages, shipped in one pass. Heroes inserted at 45–130
+(the High Temple re-priced to 80, Currency to 130); Empire seventeen rows at 170–320 with the
+premiere roster (Legionary · Spear Wall · Cataphract · Horse Archer, and the sea's Galley /
+Tower Ship / Fire Ship at Shipwrights) and the university at 320; Cathedrals twelve at
+480–760, the ocean opening at The Astrolabe. **Drama is deleted** — Epic Poetry took its rows
+— and Philosophy wears the name Rhetoric (ids are forever; the name is data). **Technologies
+carry card effects** now: `TechDef.effects`, `liveEffects`' tenth source, which is what the
+Imperial Post, the Qadi's Court, the Knotted Cord, Colonial Charters and *the fallen become
+verse* are made of; abilities gate the rest (ancestorRites holds the great-person offer until
+the dead are honoured; oceanGoing widens the water for hull and swimmer through one rule).
+Renewals stack additively — a barracks carries Bronze Panoply's, Castrum's and the Tourney
+Ground's lines at once — which is why no building needed a second row. The chart's five lanes
+were *searched* (annealed, ~90k candidates): 179 crossings against a naive 323, every column
+exactly five. The pacing seed closes its ages at **34 / 64 / 124 / 191** — the curtain sits
+near t190, and whether to compress Heroes/Empire is the standing question. The fixtures that
+scripted the old tree were re-derived rather than re-pinned where they could be (a beeline is
+now a prereq *closure*, so a re-cut chain cannot strand a script on a refused pick).
+
+---

@@ -217,10 +217,9 @@ winner reaches ~20; N ≈ 20 on Quick is the first guess, and it is Entry VI's p
   below the threshold): `handSize` is the number of cards face up at once; a claimed card frees
   its slot and the deck deals into it, so the whole deck flows through the age. Reckoning cards
   hold their slot until the next opening.
-- **The decks are keyed to the built ages for now**: the doc's Æra III and IV are the
-  re-banded Empire and Cathedrals, which in today's data are age 2 and age 3, so the first hand
-  opens when the first seat enters built age 2 (~t35) — the tree pass renumbers the keys with
-  the ages.
+- **The decks are keyed 3 | 4** (the tree pass of 2026-08-30 renumbered them with the ages,
+  as promised): the first hand opens when the first seat enters Æra III (~t64 on the pacing
+  seed), the second at Æra IV; The Long Count reads the next hand a turn early.
 - **Reckonings are dealt**: four per age deck (one per family) drawn from the pool of eight,
   face up with the hand, taken at the next age's opening — a victor each, ties pay nobody.
   (The first build took all eight at every opening; corrected the same day.)
