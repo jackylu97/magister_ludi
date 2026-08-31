@@ -244,11 +244,16 @@ function playTwoFaiths(maxTurns: number): {
     ],
   });
   const CITY_TARGET = 3;
+  // Re-derived for the tree pass of 2026-08-30: the beeline is the prereq
+  // closure of The High Temple in display order, so a re-cut chain cannot
+  // silently strand the script on a refused chooseResearch again.
   const ROAD = [
+    'agriculture',
     'husbandry',
-    'divination',
     'earthenware',
     'stonecraft',
+    'divination',
+    'standingStones',
     'theHighTemple',
     'letters',
     'calendar',
