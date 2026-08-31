@@ -43,6 +43,7 @@ import { MAPGEN_CONFIG, MAP_SIZE_NAMES, getMapSize } from './sim/mapgen';
 import { hashSeed } from './sim/rng';
 import { RULES } from './sim/rulesData';
 import { type Game, createGame, dispatch } from './sim/game';
+import { driveBots } from './ai/driver';
 import {
   type GameConfig,
   type GameState,
@@ -417,29 +418,53 @@ const PLAYERS: PlayerSpec[] = [
 ];
 
 /**
- * How many of that roster a new game seats, and why the default is one.
+ * The three shapes a new game can be seated in, and why the bot one is the
+ * default.
  *
- * A game is *playtested* solo — there is no AI yet (it is punted until every
- * major system exists, see `docs/deprecated/playable.md`), so a second seat is a second
- * empire nobody is driving, and every end of turn waits for a human to press
- * the button for it. One seat is therefore the honest default: the turn model
- * is simultaneous, `turnEnded` is an array of one, and resolution happens the
- * moment the only player ends their turn.
+ * Single-player-against-an-AI is the product (CLAUDE.md, Direction), so from the
+ * day a bot exists it is what the landing screen opens on. The other two stay
+ * because both are still worth having: **Solo** is the quiet world a pacing
+ * measurement or a look at the map wants, and **Sandbox** is the hot-seat dev
+ * harness — one tester driving both chairs from the seat chips, and the shape
+ * remote multiplayer will arrive in.
  *
- * The multi-seat sandbox stays exactly as it was, one option down the select —
- * it is the dev harness for driving both sides from the seat chips, and it is
- * the shape remote multiplayer will arrive in.
+ * A bot seat needs **no schema change and no new field**: `normalizeConfig`
+ * already defaults `PlayerSpec.isHuman` to false, so "a seat nobody is sitting
+ * in" is the roster entry with `isHuman` left off, and `driveBots`
+ * (`src/ai/driver.ts`) is the only thing in the program that asks.
  */
-const DEFAULT_SEATS = 1;
+type SeatMode = 'bot' | 'solo' | 'sandbox';
 
-for (let seats = RULES.game.minPlayers; seats <= PLAYERS.length; seats++) {
+const SEAT_MODES: { value: SeatMode; label: string; seats: number }[] = [
+  { value: 'bot', label: 'You vs one bot', seats: 2 },
+  { value: 'solo', label: 'Solo (1 player)', seats: 1 },
+  { value: 'sandbox', label: `Sandbox (${PLAYERS.length} players, one tester)`, seats: PLAYERS.length },
+];
+
+const DEFAULT_SEAT_MODE: SeatMode = 'bot';
+
+for (const mode of SEAT_MODES) {
+  if (mode.seats < RULES.game.minPlayers || mode.seats > PLAYERS.length) continue;
   const option = document.createElement('option');
-  option.value = String(seats);
-  option.textContent =
-    seats === 1 ? 'Solo (1 player)' : `Sandbox (${seats} players, one tester)`;
+  option.value = mode.value;
+  option.textContent = mode.label;
   seatsSelect.append(option);
 }
-seatsSelect.value = String(Math.min(DEFAULT_SEATS, PLAYERS.length));
+seatsSelect.value = DEFAULT_SEAT_MODE;
+
+/**
+ * The roster one mode seats.
+ *
+ * Seat 0 is always Crimson and always the person at the keyboard, so a bot game
+ * is the two-seat game with the second chair *driven* rather than a different
+ * game — which is what keeps the seat strip, the status line and every save
+ * exactly as they were.
+ */
+function rosterFor(mode: string): PlayerSpec[] {
+  if (mode === 'solo') return PLAYERS.slice(0, 1);
+  if (mode === 'sandbox') return PLAYERS.slice(0, PLAYERS.length);
+  return [PLAYERS[0]!, { ...PLAYERS[1]!, isHuman: false }];
+}
 
 // --- the HUD's transient cards ---------------------------------------------
 
@@ -946,9 +971,9 @@ function currentConfig(): GameConfig {
   return {
     seed: parseSeed(seedInput.value),
     sizeName: sizeSelect.value,
-    // The first N of the roster, so seat 0 is always Crimson and a solo game is
-    // the two-seat game with the second chair empty rather than a different one.
-    players: PLAYERS.slice(0, Number(seatsSelect.value) || DEFAULT_SEATS),
+    // Whose chairs are filled and which of them a person is sitting in. See
+    // `rosterFor`: seat 0 is always Crimson and always the human.
+    players: rosterFor(seatsSelect.value),
     // **The game asks for the wild.** `GameConfig.barbarians` defaults to off so
     // that a fixture, an inspection page or a pacing measurement gets the quiet
     // world it always had (see that field); a real game played by a person is
@@ -2657,7 +2682,15 @@ async function boot(initial: Game | null): Promise<void> {
     // hungry — because those three are differences that stop existing the
     // instant the command returns (`CommandResult`'s own docblock).
     onCommand: (command, result) => {
-      tutorial.note({ kind: 'command', command: command.type });
+      // **The guide advances on the player's own deed**, so a bot's order is not
+      // one of them — the driver reaches this same listener (see
+      // `driveBots`' reporter below), and without this clause a rival founding
+      // its capital would tick off the step asking the player to found theirs.
+      // The reports underneath are not filtered: an age opening is news about
+      // the world whoever caused it.
+      if (command.playerId === controls.localPlayerId()) {
+        tutorial.note({ kind: 'command', command: command.type });
+      }
       if (!result.ok) return;
       if (result.beads && result.beads.length > 0) {
         tutorial.note({ kind: 'event', event: 'bead' });
@@ -2669,6 +2702,28 @@ async function boot(initial: Game | null): Promise<void> {
         tutorial.note({ kind: 'event', event: 'starved' });
       }
       noteEnemySighting();
+    },
+    /**
+     * **Every seat nobody is sitting in takes its turn**, immediately before
+     * this one hands over.
+     *
+     * The whole of the AI's wiring, and it is one line because the turn model
+     * already does the work: turns are simultaneous, so the seats can play in
+     * any order, and the *last* `endTurn` is what resolves the turn. Letting the
+     * bots go first makes the human's press the last one, so the resolution
+     * happens inside the dispatch `controls.endTurn` is watching and every
+     * report — raids, wonders, sieges, Triumphs, the turn card — lands exactly
+     * where it did before a bot existed. See `onBeforeEndTurn` in `controls.ts`.
+     *
+     * Their commands go to `controls.reportCommand`, the same seam the star
+     * chart and the city panel use, so anything listening for "an order was
+     * accepted" hears a bot's too. Deliberately **not** `commit`: that funnel
+     * carries a *seat's* after-effects — the sighting poll, the raid toasts —
+     * and firing them for a rival's order would narrate another empire's turn
+     * to the player.
+     */
+    onBeforeEndTurn: () => {
+      driveBots(game, { report: (command, result) => controls.reportCommand(command, result) });
     },
     closePopovers,
     inputBlocked: isInputBlocked,

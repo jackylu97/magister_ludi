@@ -1308,6 +1308,28 @@ export interface GameControlsOptions {
    */
   onTurnResolved?: (turn: number, research: ResearchReport) => void;
   /**
+   * **The local seat has passed its End Turn gate and is about to send the
+   * command.** The one seam the AI driver hangs on (`src/ai/driver.ts`).
+   *
+   * *Before* rather than after, and that is the whole reason it exists. Turns
+   * are simultaneous, so the last seat to end resolves the turn inside its own
+   * dispatch — and everything `commit` reports about a resolution (the raids,
+   * the wonders, the sieges, the Triumphs, the news the player has to read)
+   * hangs off the result of *that* command. Running the bots first makes the
+   * human's `endTurn` the last one, so the resolution happens inside the
+   * dispatch this seat is watching and every report lands where it always did.
+   * Running them afterwards would put the resolution on a rival's command and
+   * quietly rob the player of a turn's news.
+   *
+   * It has a second, smaller dividend: a save can never be left with the human
+   * finished and a bot still owing a turn, because the bot's `endTurn` is always
+   * logged first — so loading needs no special case.
+   *
+   * Optional like every other listener here, and this module knows nothing about
+   * what it does. A page with no bots simply does not pass one.
+   */
+  onBeforeEndTurn?: () => void;
+  /**
    * The turn is *handed over*: the pieces resolution marched have finished
    * moving and the interface may speak.
    *
@@ -2003,6 +2025,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onUpdate,
     onHover,
     onTurnResolved,
+    onBeforeEndTurn,
     onTurnHandedOver,
     onSeatAdvanced,
     onNotice,
@@ -5792,6 +5815,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         return;
       }
     }
+
+    // **Everyone else who is not a person plays here**, before this seat's own
+    // command goes in — see `onBeforeEndTurn`, which carries the argument. After
+    // the gates above, because a seat that is not actually ending its turn has
+    // no business setting a rival's in motion.
+    onBeforeEndTurn?.();
 
     // A hand-over still owed by an earlier press has been overtaken: the turn it
     // was going to announce is not the turn about to begin.

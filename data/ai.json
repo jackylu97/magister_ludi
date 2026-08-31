@@ -1,0 +1,103 @@
+{
+  "driver": {
+    "commandsPerSeat": 400,
+    "endTurnAttempts": 3,
+    "greatPersonRedraws": 4
+  },
+  "search": {
+    "pathProbes": 4
+  },
+  "spending": {
+    "goldSpendAbove": 150,
+    "goldReserve": 100,
+    "faithSpendAbove": 40,
+    "faithReserve": 0
+  },
+  "expansion": {
+    "settlerCap": 5,
+    "settlerCityPop": 3,
+    "settlerAuthorityFloor": 1,
+    "siteSearchRadius": 8,
+    "siteScoreMin": 14
+  },
+  "site": {
+    "ringRadius": 1,
+    "freshWaterBonus": 6,
+    "coastBonus": 3,
+    "yieldWeights": {
+      "food": 3,
+      "production": 2,
+      "gold": 1,
+      "science": 1,
+      "culture": 1,
+      "faith": 1
+    }
+  },
+  "workers": {
+    "perCity": 1,
+    "cap": 6,
+    "searchRadius": 6,
+    "improvements": [
+      "farm",
+      "mine",
+      "pasture",
+      "camp",
+      "plantation",
+      "quarry",
+      "fishingBoats",
+      "lumbermill"
+    ]
+  },
+  "military": {
+    "campHuntRadius": 7,
+    "garrisonPerCity": 1,
+    "armyPerCity": 2
+  },
+  "trade": {
+    "tradersPerCity": 1,
+    "traderCap": 4
+  },
+  "build": {
+    "buildings": [
+      "monument",
+      "granary",
+      "shrine",
+      "library",
+      "barracks",
+      "watermill",
+      "market",
+      "temple",
+      "workshop",
+      "amphitheater",
+      "aqueduct",
+      "harbour",
+      "forum",
+      "baths",
+      "bazaar",
+      "forge",
+      "courthouse",
+      "caravanserai",
+      "monastery",
+      "university",
+      "castle",
+      "observatory",
+      "printingHouse",
+      "examinationHall",
+      "shipyard",
+      "palisade",
+      "funeralGames",
+      "steleOfLaws",
+      "hallOfDeeds"
+    ]
+  },
+  "statecraft": {
+    "preferredEffectKinds": [
+      "cityYields",
+      "tileYield",
+      "countScaled",
+      "empireYields",
+      "percentYields",
+      "productionBonus"
+    ]
+  }
+}
