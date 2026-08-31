@@ -2024,13 +2024,20 @@ async function boot(initial: Game | null): Promise<void> {
           widening: wideningLines('order'),
         },
         (index) => {
-          dispatch(game, { type: 'chooseOrder', playerId: seat, optionIndex: index });
+          // The result is *checked* (the deployed bug of 2026-08-30): a refused
+          // pick used to re-deal the same card forever with no word said — the
+          // one reachable case being a seat that Shift-ended its turn with the
+          // draft still up, which the reducer refuses until the next turn.
+          const result = dispatch(game, { type: 'chooseOrder', playerId: seat, optionIndex: index });
+          if (!result.ok) controls.guide(`☞ ${result.error}`);
           controls.refresh();
           statecraft?.refresh();
           // A pick can uncover the next thing owed — a banked charter dealt on
           // the same tier — so the chain is offered rather than left waiting
-          // behind a blocker the player has to press twice.
-          showStatecraftOffer();
+          // behind a blocker the player has to press twice. Never for a seat
+          // whose turn is over: the blocker re-deals the card next turn, and
+          // re-showing it to a seat that cannot answer is the loop the bug was.
+          if (!hasEndedTurn(game.state, seat)) showStatecraftOffer();
         },
       );
       return;
@@ -2059,10 +2066,15 @@ async function boot(initial: Game | null): Promise<void> {
           })),
         },
         (index) => {
-          dispatch(game, { type: 'adoptGovernment', playerId: seat, choiceIndex: index });
+          // The result is *checked* (the deployed bug of 2026-08-30): a refused
+          // pick used to re-deal the same card forever with no word said — the
+          // one reachable case being a seat that Shift-ended its turn with the
+          // draft still up, which the reducer refuses until the next turn.
+          const result = dispatch(game, { type: 'adoptGovernment', playerId: seat, choiceIndex: index });
+          if (!result.ok) controls.guide(`☞ ${result.error}`);
           controls.refresh();
           statecraft?.refresh();
-          showStatecraftOffer();
+          if (!hasEndedTurn(game.state, seat)) showStatecraftOffer();
         },
       );
       return;
@@ -2086,7 +2098,12 @@ async function boot(initial: Game | null): Promise<void> {
           })),
         },
         (index) => {
-          dispatch(game, { type: 'chooseDoctrine', playerId: seat, optionIndex: index });
+          // The result is *checked* (the deployed bug of 2026-08-30): a refused
+          // pick used to re-deal the same card forever with no word said — the
+          // one reachable case being a seat that Shift-ended its turn with the
+          // draft still up, which the reducer refuses until the next turn.
+          const result = dispatch(game, { type: 'chooseDoctrine', playerId: seat, optionIndex: index });
+          if (!result.ok) controls.guide(`☞ ${result.error}`);
           controls.refresh();
           statecraft?.refresh();
         },
