@@ -19,8 +19,6 @@
  * a document to hold still.
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { createMap, getTileAt } from '../../src/sim/map';
@@ -323,7 +321,13 @@ describe('the build list hides what can never be built (user, 2026-08-30)', () =
   // Source-reading pins, the register's style: a row no technology can reach
   // and a wonder already claimed are *hidden*, never greyed — the greyed rows
   // are for things a player can do something about.
-  const source = readFileSync(resolve(__dirname, '../../src/ui/cityPanel.ts'), 'utf8');
+  // Vite's raw import rather than node:fs — the project has no node typings
+  // and a source assertion is not worth a dependency (seatRoster's reason).
+  const source = import.meta.glob('../../src/ui/cityPanel.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  })['../../src/ui/cityPanel.ts'] as string;
   it('skips awaitsTech rows in every roster loop', () => {
     expect(source.match(/awaitsTech === true\) continue;/g)?.length).toBeGreaterThanOrEqual(3);
   });
