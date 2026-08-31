@@ -1069,6 +1069,15 @@ export interface CameraSpec {
    * at both ends (`style.css`'s `#city-panel` carries the other half).
    */
   cityFrameBiasPx: number;
+  /**
+   * How close a brand-new game's opening camera sits, as a fraction of the
+   * way from the ordinary `frustum` down to `minFrustum` (the closest zoom
+   * the camera allows) — 0 opens at the ordinary zoom, 1 opens fully zoomed
+   * in on the founder. Read once, at boot, by `DioramaCamera.openAt`; a
+   * loaded save never reads it (see `main.ts`'s `boot`/`adoptGame` — Entry
+   * "boot camera", 2026-08-30).
+   */
+  startZoom: number;
 }
 
 /**

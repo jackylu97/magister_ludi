@@ -393,12 +393,13 @@
     "azimuth": 90,
     "frustum": 14,
     "minFrustum": 5,
-    "maxFrustum": 46,
+    "maxFrustum": 30.67,
     "eyeDistance": 240,
     "fitPadding": 1.06,
     "panMs": 620,
     "panSnapDistance": 0.4,
-    "cityFrameBiasPx": 177
+    "cityFrameBiasPx": 177,
+    "startZoom": 0.8
   },
   "lights": {
     "keyColor": "#ffe9c8",

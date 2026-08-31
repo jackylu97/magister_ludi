@@ -434,6 +434,19 @@ export interface MapView {
   panToCells?(cells: readonly CellRef[], animate: boolean): void;
 
   /**
+   * Optional: the boot camera move for a brand-new game (2026-08-30) — jumps
+   * to a cell (the founder's, by `openingFocus`) and zooms in close, per
+   * `camera.startZoom`. Called once, after the ordinary `panToCells` a fresh
+   * `refresh()` already did, so it *replaces* that framing rather than
+   * competing with it.
+   *
+   * Optional for the usual reason: it is a 3D feature and the 2D pipelines
+   * are frozen, so a fresh game under `?art=flat` opens at its ordinary
+   * whole-board framing instead.
+   */
+  focusOpening?(cell: CellRef): void;
+
+  /**
    * Optional: pans **and** zooms to frame a group of cells — the "show me
    * this city's work radius" gesture that opening a city panel makes.
    *

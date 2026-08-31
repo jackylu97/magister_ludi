@@ -1336,6 +1336,18 @@ export class Renderer3D implements MapView {
   }
 
   /**
+   * The boot camera for a brand-new game — see `MapView.focusOpening`. A
+   * plain `cellCenter`, unlike `panToCells`'s wrap-aware centroid: this is
+   * the very first placement the camera makes, so there is no existing
+   * target to pull the nearest copy toward.
+   */
+  focusOpening(cell: CellRef): void {
+    const { x, z } = cellCenter(cell.col, cell.row);
+    this.view.openAt(x, z);
+    this.invalidate();
+  }
+
+  /**
    * Pans and zooms together to frame a group of cells — see
    * `MapView.frameCells`.
    *

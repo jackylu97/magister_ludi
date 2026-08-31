@@ -17,6 +17,20 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { generateMap } from '../../src/sim/mapgen';
 
 const CAMERA = VIEW3D.camera;
+
+/**
+ * `maxFrustum` — how far out the diorama can zoom — was cut to two-thirds of
+ * its former 46 (2026-08-30, the "reduce max zoom" ruling). Pinned deliberately,
+ * against the historical value, so a future change to the widest view is a
+ * decision rather than a drift.
+ */
+describe('camera.maxFrustum', () => {
+  it('is two-thirds of the pre-ruling ceiling of 46', () => {
+    expect(CAMERA.maxFrustum).toBeCloseTo(46 * (2 / 3), 1);
+    expect(CAMERA.maxFrustum).toBeLessThan(46);
+  });
+});
+
 const map = generateMap(11, 'duel');
 const period = wrapWidth(map);
 const bounds = boardBounds(map);
@@ -206,6 +220,42 @@ describe('DioramaCamera.frameCells', () => {
     const camera = seated();
     camera.panTo(0, 0, false, 0);
     camera.frameCells(rect, true, 0);
+    camera.pan(5, 5);
+    expect(camera.isPanning).toBe(false);
+    expect(camera.stepPan(CAMERA.panMs)).toBe(false);
+  });
+});
+
+/**
+ * `openAt` — the boot camera for a brand-new game (2026-08-30, the
+ * boot-camera ruling): jumps to a point at `camera.startZoom`'s fraction of
+ * the way from the ordinary `frustum` to `minFrustum`.
+ */
+describe('DioramaCamera.openAt', () => {
+  it('jumps straight to the point, never animating', () => {
+    const camera = seated();
+    camera.panTo(0, 0, false, 0);
+    camera.openAt(9, 4);
+    expect(camera.isPanning).toBe(false);
+    expect(camera.target.x).toBeCloseTo(9, 6);
+    expect(camera.target.z).toBeCloseTo(4, 6);
+  });
+
+  it('zooms to the configured startZoom fraction toward minFrustum', () => {
+    const camera = seated();
+    camera.openAt(0, 0);
+    const expected =
+      CAMERA.frustum - CAMERA.startZoom * (CAMERA.frustum - CAMERA.minFrustum);
+    expect(camera.radius).toBeCloseTo(expected, 6);
+    // Closer than the ordinary opening zoom, and no closer than the camera
+    // ever allows.
+    expect(camera.radius).toBeLessThan(CAMERA.frustum);
+    expect(camera.radius).toBeGreaterThanOrEqual(CAMERA.minFrustum);
+  });
+
+  it('is cancelled by the player’s own hand, like any other pan', () => {
+    const camera = seated();
+    camera.openAt(9, 4);
     camera.pan(5, 5);
     expect(camera.isPanning).toBe(false);
     expect(camera.stepPan(CAMERA.panMs)).toBe(false);

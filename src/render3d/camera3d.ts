@@ -174,6 +174,24 @@ export class DioramaCamera {
     this.apply();
   }
 
+  /**
+   * The boot camera for a brand-new game: jumps straight to a point (there is
+   * no previous view to animate from) at `camera.startZoom`'s close-in
+   * fraction of the way from the ordinary `frustum` down to `minFrustum`.
+   *
+   * Never asks the zoom-out ceiling to move — only `frameBoard` does that,
+   * for a map too big to fit at the ordinary zoom — so this only ever
+   * tightens the view.
+   */
+  openAt(x: number, z: number): void {
+    this.cancelPan();
+    this.target.set(x, 0, z);
+    const near = CAMERA.frustum - CAMERA.startZoom * (CAMERA.frustum - CAMERA.minFrustum);
+    this.frustum = Math.min(this.maxFrustum, Math.max(CAMERA.minFrustum, near));
+    this.normalize();
+    this.apply();
+  }
+
   /** `dx`/`dy` are pointer deltas in CSS pixels, screen-space (y down). */
   pan(dx: number, dy: number): void {
     this.cancelPan();
