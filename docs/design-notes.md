@@ -4137,3 +4137,55 @@ scripted the old tree were re-derived rather than re-pinned where they could be 
 now a prereq *closure*, so a re-cut chain cannot strand a script on a refused pick).
 
 ---
+
+## Entry LII — Postures, and the coming-online doctrine (**design**, 2026-08-31)
+
+**The user's direction.** The early game is Civ's fun; the mid–late game should feel like a
+deckbuilder — foundations laid in Æra I–II (religion, great people, infrastructure), then a
+build that *comes online* and finds its exponential turn. Players should discover extremely
+powerful combos, and unit/tech costs are balanced under the assumption the combos get found.
+Happiness bites tall and wide alike; a continent's luxuries support only four-odd cities, and
+that scarcity is the age-1–2 cap by design.
+
+**Æra III is the decision point — three postures, each a kit.** A posture = one marquee tech
++ the tier-18 government + a theme's card triangle + its own happiness engine + its endeavour
+family. Adopting the government is the ignition key: the posture's *rule-flip* switches on at
+the adoption ceremony, one felt moment in the game's existing grammar.
+
+| posture | government | marquee tech | happiness engine | the flip |
+|---|---|---|---|---|
+| **The Charter** (mass settling) | Merchant League → the 📜 line | Colonial Charters | + per city connected to the capital | new cities arrive working, connected, content |
+| **The Sword** (expansion through war) | Imperium | the premiere-roster node of your line | + per foreign luxury kind seized · per capital held | captured cities pay, not cost — war becomes the happiness play |
+| **The Core** (turtle and grow) | Divine Mandate | Education | crowding relief · the entertainment line · guilds | your few cities break the caps the others obey |
+
+**The playstyle inventory (what already works, 2026-08-31)**: the Death Cult (Conscription ·
+Levies · Rites of Passage · The Widow's Levy · Epic Poetry's verse · War Chief — units pay
+faith, culture, science and gold by existing and dying; the completest engine in the pool and
+undiscoverable), the Pilgrim Economy (faith → conversions → drafts), the Caravan State (the
+🐫 stack — currently degenerate), the Renown Court (renown buildings · guilds · aged acts ·
+legacies), the Tall Core, the Wild Shepherd (Wolf-Mother's Pact). Lean hardest into the Death
+Cult (it gives war an economy before an AI gives it a stage), growth-triggers for tall, a
+trade *trigger* for the caravans, plunder for the sea.
+
+**The coming-online doctrine — snowball without generic bonuses:**
+1. **Rule-flips at thresholds, never adders**: the online moment changes a *rule* and is felt
+   once and remembered; +2 is felt never.
+2. **Trigger-chains are the engine currency**: a build's output is *events* (a death pays, a
+   growth pays, a route renewing pays) so the chronicle drums when the engine runs; every
+   theme is owed a **triangle** — trigger · payoff · scaler — across Orders, beliefs and a
+   legacy, and the cost pass assumes the triangle assembled.
+3. **Conversion, not addition**: one yield-conversion per theme (The Great Litany's shape),
+   so a build routes its economy through its engine.
+4. **Deepening is the spike**: the level-3 face of a theme's core card carries the flip.
+5. **Named combos**: a known pair slotted together is *named* in the chronicle ("The Widow's
+   March assembles") — recognition teaches that combos exist, at the cost of a data table.
+6. **Endeavours rework** (the user: they punish wide and military): prerequisites become
+   count-fixed ("in four cities") or capital-shaped, never "in every city" (which scales its
+   own difficulty with the empire); each posture gets an endeavour family — found N in the
+   age, take N (razing counts), grow the core past N.
+
+**Order of work**: the endeavour prerequisite rework (data, fixes an active wrong) → the
+theme-triangle audit (which themes lack a trigger or a scaler — the map for the user's Orders
+rework) → the posture kits into the tree worksheet's Æra III → the flips and named combos.
+
+---
