@@ -1071,6 +1071,15 @@ export interface RenownRules {
  * in Æra I should still be worth something in Æra III.
  */
 export interface GreatPeopleRules {
+  /**
+   * The act's age, per technology (user, 2026-08-30): every flat act figure —
+   * the engineer's hammers, the merchant's gold, the artist's culture — pays
+   * ×(1 + actPerTech × technologies researched), the chop's shape one system
+   * over. The scholar's act is deliberately outside it: its figure is a share
+   * of the aimed technology's own cost, which already grows with the tree,
+   * and scaling it twice would compound.
+   */
+  actPerTech: number;
   /** Share of the *current technology's* cost a scholar's act pays, 0–1. */
   scholarShare: number;
   /** Hammers an engineer's act pays, **multiplied by the empire's era**. */

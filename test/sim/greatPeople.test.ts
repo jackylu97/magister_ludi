@@ -309,7 +309,16 @@ describe('the act', () => {
     const before = city.hammerBasket;
     applyCommand(g.state, { type: 'greatPersonAct', playerId: 0, unitId: unit.id });
     const era = highestAge(g.state.players[0]!.techsResearched);
-    expect(city.hammerBasket).toBe(before + PEOPLE.engineerHammers * era);
+    // Aged by the tree since 2026-08-30 (`actPerTech`): the flat figure pays
+    // ×(1 + 0.05 × techs), floored before the amplifier.
+    expect(city.hammerBasket).toBe(
+      before +
+        Math.floor(
+          PEOPLE.engineerHammers *
+            era *
+            (1 + PEOPLE.actPerTech * state.players[0]!.techsResearched.length),
+        ),
+    );
   });
 
   it('a merchant pays gold, scaled by the era', () => {
@@ -319,7 +328,10 @@ describe('the act', () => {
     const unit = call(g.state, 0, SAMPLE.merchant);
     const before = player.gold;
     applyCommand(g.state, { type: 'greatPersonAct', playerId: 0, unitId: unit.id });
-    expect(player.gold).toBe(before + PEOPLE.merchantGold);
+    expect(player.gold).toBe(
+      before +
+        Math.floor(PEOPLE.merchantGold * (1 + PEOPLE.actPerTech * player.techsResearched.length)),
+    );
   });
 
   it('an artist pays culture into the draft basket and blesses the town', () => {

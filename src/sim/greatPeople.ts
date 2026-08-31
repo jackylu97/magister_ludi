@@ -648,7 +648,13 @@ export function greatPersonActAt(
   // act *pays* and never a duration or a radius — a general's aura is not a
   // figure, which is the honest split rather than a silence.
   const boost = cardAmplifier(state, player.id, 'greatPersonAct');
-  const paid = (base: number): number => Math.floor((base * (100 + boost)) / 100);
+  // The act ages with the tree (user, 2026-08-30): every *flat* figure pays
+  // ×(1 + actPerTech × techs) — composed here, once, before Leonardo's boost
+  // and before anything is banked, so the preview and the payout stay one
+  // number (Entry XVIII.5). The scholar's arm never sees it: a share of the
+  // aimed technology's cost already grows with the tree.
+  const aged = 1 + PEOPLE.actPerTech * player.techsResearched.length;
+  const paid = (base: number): number => Math.floor((Math.floor(base * aged) * (100 + boost)) / 100);
   const done: GreatPersonAct = {
     id,
     name: def.name,
@@ -664,7 +670,8 @@ export function greatPersonActAt(
     case 'scholar': {
       const aim = player.researching;
       const cost = aim === null ? 0 : techDef(aim).cost;
-      player.sciencePool += paid(Math.floor(cost * PEOPLE.scholarShare));
+      // Deliberately un-aged: see `aged`'s comment.
+      player.sciencePool += Math.floor((Math.floor(cost * PEOPLE.scholarShare) * (100 + boost)) / 100);
       done.research = settleResearchWindfall(state, player)?.name ?? null;
       break;
     }

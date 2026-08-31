@@ -290,6 +290,7 @@
     "step": 25
   },
   "greatPeople": {
+    "actPerTech": 0.05,
     "scholarShare": 0.5,
     "engineerHammers": 40,
     "merchantGold": 60,
