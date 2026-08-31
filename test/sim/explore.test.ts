@@ -40,7 +40,7 @@ import { RULES } from '../../src/sim/rulesData';
 import { type GameState, createUnit, newGame } from '../../src/sim/state';
 import { END_OF_TURN_PHASES } from '../../src/sim/turn';
 import { unitAwaitsOrders } from '../../src/sim/units';
-import { EXPLORED, resetVisibility } from '../../src/sim/visibility';
+import { EXPLORED, isExploredBy, resetVisibility } from '../../src/sim/visibility';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 
 /**
@@ -215,6 +215,65 @@ describe('exploreTarget', () => {
     expect(target).toBeNull();
     expect(examined).toBe(RULES.explore.searchLimit);
     expect(examined).toBeLessThanOrEqual(RULES.explore.searchLimit);
+  });
+});
+
+describe('a known discovery outranks the frontier', () => {
+  it('targets a known, unclaimed ruin over the nearest revealing tile', () => {
+    const state = flatState();
+    const scout = createUnit(state, 0, 'scout', 5, 5);
+    const start = getTileAt(state.map, 5, 5)!;
+    // The same ring the plain frontier test reads, sorted by index: the
+    // scout's own sight (radius 2) already charted the whole ring, so a ruin
+    // sitting on any hex in it is a *known* one. Put it on the far end of the
+    // ring (highest index) — same distance as the frontier answer, so this
+    // only tells apart "ruins outrank frontier" from "ruins happen to be
+    // nearer".
+    const ring = mapRange(state.map, tileHex(start), 1)
+      .filter((tile) => !(tile.col === 5 && tile.row === 5))
+      .sort((a, b) => tileIndex(state.map, a.col, a.row) - tileIndex(state.map, b.col, b.row));
+    const ruinTile = ring[ring.length - 1]!;
+    expect(isExploredBy(state, 0, ruinTile.col, ruinTile.row)).toBe(true);
+    ruinTile.discovery = 'ruins';
+
+    const target = exploreTarget(state, scout);
+    expect(target).toEqual({ col: ruinTile.col, row: ruinTile.row });
+  });
+
+  it('ignores a ruin the owner has never explored — the fog-honesty pin', () => {
+    const state = flatState();
+    const scout = createUnit(state, 0, 'scout', 5, 5);
+    const start = getTileAt(state.map, 5, 5)!;
+    // Well outside the scout's sight radius (2): unexplored, so unknown.
+    const hiddenTile = getTileAt(state.map, 15, 5)!;
+    expect(isExploredBy(state, 0, hiddenTile.col, hiddenTile.row)).toBe(false);
+    hiddenTile.discovery = 'ruins';
+
+    // Same answer as the plain frontier test — the hidden ruin changes nothing.
+    const target = exploreTarget(state, scout);
+    const ring = mapRange(state.map, tileHex(start), 1)
+      .filter((tile) => !(tile.col === 5 && tile.row === 5))
+      .map((tile) => tileIndex(state.map, tile.col, tile.row));
+    expect(tileIndex(state.map, target!.col, target!.row)).toBe(Math.min(...ring));
+  });
+
+  it('goes back to frontier-seeking once the ruin is claimed', () => {
+    const state = flatState();
+    const scout = createUnit(state, 0, 'scout', 5, 5);
+    const start = getTileAt(state.map, 5, 5)!;
+    const ring = mapRange(state.map, tileHex(start), 1)
+      .filter((tile) => !(tile.col === 5 && tile.row === 5))
+      .sort((a, b) => tileIndex(state.map, a.col, a.row) - tileIndex(state.map, b.col, b.row));
+    const ruinTile = ring[ring.length - 1]!;
+    ruinTile.discovery = 'ruins';
+    expect(exploreTarget(state, scout)).toEqual({ col: ruinTile.col, row: ruinTile.row });
+
+    // The claim (`arriveOnTile`, in production) removes the field — presence
+    // is the state — and nothing else changes.
+    delete ruinTile.discovery;
+    const target = exploreTarget(state, scout);
+    const minIndex = Math.min(...ring.map((tile) => tileIndex(state.map, tile.col, tile.row)));
+    expect(tileIndex(state.map, target!.col, target!.row)).toBe(minIndex);
   });
 });
 

@@ -48,7 +48,11 @@ export interface ExploreEndReport {
 
 /** What the bounded search found, and what it cost — see `exploreSearch`. */
 export interface ExploreSearch {
-  /** The nearest revealing hex the piece can stand on, or `null`. */
+  /**
+   * The nearest known, unclaimed discovery the piece can stand on, or —
+   * failing that — the nearest revealing hex; `null` if neither exists
+   * within the bound.
+   */
   target: Cell | null;
   /** Tiles judged before the answer, for the bound's own test. */
   examined: number;
@@ -107,8 +111,23 @@ function revealsAnything(state: GameState, unit: Unit, tile: Tile): boolean {
 }
 
 /**
- * The nearest tile this unit can stand on whose own sight would reveal at
- * least one unexplored hex for its owner — and what finding it cost.
+ * Does `tile` carry a discovery this owner already knows stands there?
+ *
+ * `Tile.discovery` can only ever be *removed*, by a unit walking onto it
+ * (`claimDiscoveryAt`) — never regenerated, never moved (see the trap in
+ * `CLAUDE.md`) — so an explored tile that still carries one in the state is
+ * genuinely, currently, still a ruin. `isExploredBy` is the same fog reading
+ * `revealsAnything` uses below: EXPLORED or VISIBLE both count, HIDDEN does
+ * not — a seat cannot aim at ground it has never seen.
+ */
+function isKnownDiscovery(state: GameState, ownerId: number, tile: Tile): boolean {
+  return tile.discovery !== undefined && isExploredBy(state, ownerId, tile.col, tile.row);
+}
+
+/**
+ * The nearest tile this unit can stand on that either carries a known,
+ * unclaimed discovery, or whose own sight would reveal at least one
+ * unexplored hex for its owner — and what finding it cost.
  *
  * A breadth-first search over `stepCost`-legal steps from where the piece
  * stands, **bounded** at `rules.explore.searchLimit` tiles examined: nearness
@@ -118,6 +137,18 @@ function revealsAnything(state: GameState, unit: Unit, tile: Tile): boolean {
  * depth, candidates are judged in **tile-index order** — the tie-break every
  * deterministic sweep in this simulation uses — so two equally-near lookouts
  * always resolve the same way in a replay.
+ *
+ * A known ruin outranks the frontier absolutely, not merely when nearer: it
+ * is a certain payoff (renown, a windfall, a great person) while an
+ * unexplored hex is only a maybe, so a discovery anywhere inside the bound
+ * beats a closer patch of fog. Because that ranking does not fall out of
+ * plain nearest-first order, the search cannot return the moment it finds a
+ * frontier candidate the way it used to — a nearer-in-index but
+ * lower-priority frontier hit has to wait on the rest of the bounded sweep in
+ * case a ruin turns up later in it. A discovery hit, by contrast, can still
+ * return immediately: the level-by-level, index-tied traversal visits
+ * everything nearer first, so the first discovery tile found is already the
+ * nearest reachable one and nothing later in the sweep could outrank it.
  *
  * The mover's profile and the zone-of-control field are hoisted once, `findPath`'s
  * bargain; intermediate hexes need only transit (a search may thread between
@@ -137,6 +168,9 @@ export function exploreSearch(state: GameState, unit: Unit): ExploreSearch {
   visited[startIndex] = 1;
   let level: number[] = [startIndex];
   let examined = 0;
+  // The frontier fallback: the nearest revealing tile seen so far, kept only
+  // in case the whole bounded sweep turns up no discovery to prefer over it.
+  let frontier: Cell | null = null;
 
   while (level.length > 0 && examined < limit) {
     // The tie-break: everything at one depth, judged in index order.
@@ -146,8 +180,13 @@ export function exploreSearch(state: GameState, unit: Unit): ExploreSearch {
       if (examined >= limit) break;
       examined += 1;
       const tile = map.tiles[index]!;
-      if (canStopOn(state, unit, tile, mover) && revealsAnything(state, unit, tile)) {
-        return { target: { col: tile.col, row: tile.row }, examined };
+      if (canStopOn(state, unit, tile, mover)) {
+        if (isKnownDiscovery(state, unit.ownerId, tile)) {
+          return { target: { col: tile.col, row: tile.row }, examined };
+        }
+        if (frontier === null && revealsAnything(state, unit, tile)) {
+          frontier = { col: tile.col, row: tile.row };
+        }
       }
       for (const neighbor of neighborsOf(map, tile)) {
         const at = tileIndex(map, neighbor.col, neighbor.row);
@@ -160,6 +199,7 @@ export function exploreSearch(state: GameState, unit: Unit): ExploreSearch {
     }
     level = next;
   }
+  if (frontier !== null) return { target: frontier, examined };
   return { target: null, examined };
 }
 
