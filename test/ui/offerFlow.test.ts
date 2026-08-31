@@ -34,3 +34,11 @@ describe('the statecraft offer chain checks its results', () => {
     expect(MAIN).not.toMatch(/statecraft\?\.refresh\(\);\n\s*showStatecraftOffer\(\);/);
   });
 });
+
+describe('the soft pause lives on the End Turn button (user, 2026-08-30)', () => {
+  it('labels the button and opens the waiting thing on click', () => {
+    expect(MAIN).toContain("order: 'You have a new Order'");
+    expect(MAIN).toContain('PAUSE_LABELS[pause]');
+    expect(MAIN).toContain('onStatecraftPause: (kind) =>');
+  });
+});

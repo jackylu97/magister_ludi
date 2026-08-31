@@ -1415,6 +1415,14 @@ export interface GameControlsOptions {
    */
   onOfferStatecraft?: () => void;
   /**
+   * The soft pause's door (user, 2026-08-30: "the notification is too easy to
+   * miss"): pressing End Turn while a banked charter or an unslotted Order
+   * waits now *opens the thing itself* — the screen for an Order, the charter
+   * card for a government — instead of printing a line and hoping. The second
+   * press ends the turn, exactly as before.
+   */
+  onStatecraftPause?: (kind: StatecraftPause) => void;
+  /**
    * Puts the local seat's belief offer on screen — `main.ts`'s
    * `showReligionOffer`. `onOfferStatecraft`'s twin, and it exists for that
    * one's reason exactly: the End Turn blocker takes the player *to* the thing
@@ -1984,6 +1992,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onOfferDiscovery,
     onToggleStatecraft,
     onOfferStatecraft,
+    onStatecraftPause,
     onOfferReligion,
     onOfferGreatPerson,
     onTriumphs,
@@ -5671,6 +5680,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       const pause = statecraftPause(getGame().state, localPlayerId);
       if (pause !== null && !acknowledgePause(pause)) {
         guide(statecraftPauseNotice(pause));
+        // The door, not just the sentence — see `onStatecraftPause`'s docblock.
+        onStatecraftPause?.(pause);
         return;
       }
     }

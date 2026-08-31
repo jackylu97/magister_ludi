@@ -90,6 +90,7 @@ import {
   resumeSeat,
   writeSave,
 } from './ui/saves';
+import { openingFocus } from './ui/openingFocus';
 import {
   createSavesPanel,
   downloadJson,
@@ -103,11 +104,13 @@ import { BEAD_RULES } from './sim/beadData';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import {
-  type GameControls,
-  type NoticeKind,
   cityPhaseLine,
   createGameControls,
   showsSeatStrip,
+  statecraftPause,
+  type GameControls,
+  type NoticeKind,
+  type StatecraftPause,
   wantsNativeContextMenu,
 } from './ui/controls';
 import { type DamageNumbers, createDamageNumbers } from './ui/damageNumbers';
@@ -1333,10 +1336,23 @@ const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
   greatPerson: 'A great person awaits',
 };
 
+const PAUSE_LABELS: Record<StatecraftPause, string> = {
+  // The soft pause on the button itself (user, 2026-08-30): the guide line was
+  // too easy to miss, and a button that says what is waiting is the reminder.
+  order: 'You have a new Order',
+  government: 'A government awaits your oath',
+};
+
 function showEndTurnState(blocker: TurnBlocker | null): void {
-  endTurnLabelEl.textContent = blocker ? END_TURN_LABELS[blocker.kind] : 'End Turn';
-  endTurnButton.classList.toggle('btn-primary', blocker === null);
-  endTurnButton.classList.toggle('btn-quiet', blocker !== null);
+  const pause = game ? statecraftPause(game.state, controls.localPlayerId()) : null;
+  endTurnLabelEl.textContent = blocker
+    ? END_TURN_LABELS[blocker.kind]
+    : pause
+      ? PAUSE_LABELS[pause]
+      : 'End Turn';
+  const waiting = blocker !== null || (game !== null && statecraftPause(game.state, controls.localPlayerId()) !== null);
+  endTurnButton.classList.toggle('btn-primary', !waiting);
+  endTurnButton.classList.toggle('btn-quiet', waiting);
   endTurnButton.title = blocker
     ? 'Something is still outstanding — press to go to it, or Shift-click to end the turn anyway'
     : 'End your turn (Enter)';
@@ -2653,6 +2669,11 @@ async function boot(initial: Game | null): Promise<void> {
     // what is owed; the screen is where a *slot* is changed and is opened by the
     // player rather than at them.
     onOfferStatecraft: showStatecraftOffer,
+    onStatecraftPause: (kind) => {
+      // The button's promise kept: the pause opens the thing that waits.
+      if (kind === 'government') showStatecraftOffer();
+      else statecraft?.open();
+    },
     onOfferReligion: showReligionOffer,
     onOfferGreatPerson: showGreatPersonOffer,
     /**
@@ -3566,6 +3587,9 @@ async function boot(initial: Game | null): Promise<void> {
     autosave.reset();
     renderer.setGameState(game.state);
     controls.refresh(next === null ? 0 : resumeSeat(game.state));
+    // A brand-new game only — see `boot`'s matching line and the boot-camera
+    // ruling (2026-08-30). A loaded save keeps the refresh's own framing.
+    if (next === null) renderer.focusOpening?.(openingFocus(game.state, controls.localPlayerId()));
     updateMapInfo();
     updatePanel(null, null);
     // The guide, on the same two terms `boot` sets it on below: a fresh table
@@ -3716,6 +3740,11 @@ async function boot(initial: Game | null): Promise<void> {
   // `resumeSeat`). Everything above this line was built the same way either way.
   controls.refresh(initial === null ? 0 : resumeSeat(game.state));
   if (initial !== null) controls.announce(`Resumed at turn ${game.state.turn}.`);
+  // A brand-new game only: the refresh above already panned to the local
+  // seat's units (see `GameControls.refresh`), and this replaces that framing
+  // with a close-in start on the founder — a loaded save keeps what the
+  // refresh gave it (2026-08-30, the boot-camera ruling).
+  if (initial === null) renderer.focusOpening?.(openingFocus(game.state, controls.localPlayerId()));
   // Last, after the camera has framed the board: the coach card is placed
   // against elements the refresh above has just rebuilt.
   if (initial === null) tutorial.begin();
