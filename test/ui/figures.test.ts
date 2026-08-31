@@ -12,14 +12,7 @@
 import { describe, expect, it } from 'vitest';
 import { turnsToFill } from '../../src/sim/cities';
 import type { MeterEffect } from '../../src/sim/meters';
-import {
-  BORDER_GLYPH,
-  HAMMER,
-  YIELD_GLYPH,
-  effectFigure,
-  poolFigure,
-  turnsLabel,
-} from '../../src/ui/figures';
+import { BORDER_GLYPH, HAMMER, YIELD_GLYPH, effectFigure, figure, poolFigure, signedFigure, turnsLabel } from '../../src/ui/figures';
 import { BEAKER } from '../../src/ui/researchProgress';
 
 describe('turnsLabel', () => {
