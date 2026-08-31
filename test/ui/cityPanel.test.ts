@@ -316,3 +316,16 @@ describe('the specialists row', () => {
     expect(dismissBlocker(state, 0, city, 'scholar', true)).toMatch(/ended turn/);
   });
 });
+
+describe('the build list hides what can never be built (user, 2026-08-30)', () => {
+  // Source-reading pins, the register's style: a row no technology can reach
+  // and a wonder already claimed are *hidden*, never greyed — the greyed rows
+  // are for things a player can do something about.
+  const source = readFileSync(resolve(__dirname, '../../src/ui/cityPanel.ts'), 'utf8');
+  it('skips awaitsTech rows in every roster loop', () => {
+    expect(source.match(/awaitsTech === true\) continue;/g)?.length).toBeGreaterThanOrEqual(3);
+  });
+  it('skips a wonder somebody already raised', () => {
+    expect(source).toContain('wonderClaim(getGame().state, id) !== undefined) continue;');
+  });
+});

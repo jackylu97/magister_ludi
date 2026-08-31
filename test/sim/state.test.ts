@@ -121,7 +121,8 @@ describe('newGame', () => {
       // empty Abacus, no dice, and six counters at nothing. `dice` is uncapped
       // (user ruling, 2026-08-30) and nothing spends it yet.
       beads: [],
-      dice: 0,
+      // Two at the start of every real seat's game (user, 2026-08-30).
+      dice: 2,
       citiesFounded: 0,
       citiesCaptured: 0,
       faithOnHolyOrders: 0,

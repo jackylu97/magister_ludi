@@ -48,6 +48,7 @@ import {
   unitProductionCost,
 } from '../sim/cities';
 import { type BuildingId, BUILDING_IDS, buildingDef, isWonder } from '../sim/buildingData';
+import { wonderClaim } from '../sim/state';
 import { cardCityStat, describeCard } from '../sim/statecraft';
 import { RULES } from '../sim/rulesData';
 import {
@@ -1828,6 +1829,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     };
 
     for (const id of UNIT_TYPE_IDS) {
+      // Hidden outright (user, 2026-08-30): a hull no technology can reach
+      // yet has no business on the list.
+      if (unitDef(id).awaitsTech === true) continue;
       if (!isUnlocked(state, city.ownerId, 'unit', id)) continue;
       // Bought or not at all, or called and never made: neither belongs on a
       // build row. See `offeredInBuildList`.
@@ -1902,6 +1906,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // since before Divination, and a player who opens a city ought to find the
     // same offer in the place they are already deciding what a town does next.
     for (const id of UNIT_TYPE_IDS) {
+      // Hidden outright (user, 2026-08-30): a hull no technology can reach
+      // yet has no business on the list.
+      if (unitDef(id).awaitsTech === true) continue;
       const item: PurchasableItem = { kind: 'unit', id };
       if (!isPurchaseOnly(item)) continue;
       const currency = unitDef(id).purchase!.currency;
@@ -1917,6 +1924,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       city.queue.filter((item) => item.kind === 'building').map((item) => item.id),
     );
     for (const id of BUILDING_IDS) {
+      // Hidden outright, not greyed (user, 2026-08-30): a building no
+      // technology can reach yet is noise, and a wonder somebody already raised
+      // is a row that can never be built — the same reading the reducer's
+      // planQueueItem gives both.
+      if (buildingDef(id).awaitsTech === true) continue;
+      if (isWonder(id) && wonderClaim(getGame().state, id) !== undefined) continue;
       if (city.buildings.includes(id) || queued.has(id)) continue;
       if (!isUnlocked(state, city.ownerId, 'building', id)) continue;
       const def = buildingDef(id);
