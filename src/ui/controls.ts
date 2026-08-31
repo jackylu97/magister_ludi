@@ -192,7 +192,7 @@ import type {
 } from '../sim/commands';
 import { disbandError } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
-import {
+import { agedActFactor,
   actCityFor,
   familyOf,
   greatPersonActError,
@@ -4578,12 +4578,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         return `+${beakers}${YIELD_GLYPH.science} toward ${toward}`;
       }
       case 'engineer':
-        return `+${people.engineerHammers * era}${HAMMER} to ${where}`;
+        // Aged like the act itself (`agedActFactor`) — the hint is the payout.
+        return `+${Math.floor(people.engineerHammers * era * agedActFactor(player!))}${HAMMER} to ${where}`;
       case 'merchant':
-        return `+${people.merchantGold * era}${YIELD_GLYPH.gold} to the treasury`;
+        return `+${Math.floor(people.merchantGold * era * agedActFactor(player!))}${YIELD_GLYPH.gold} to the treasury`;
       case 'artist':
         return (
-          `+${people.artistCulture}${YIELD_GLYPH.culture} toward the next draft · ` +
+          `+${Math.floor(people.artistCulture * agedActFactor(player!))}${YIELD_GLYPH.culture} toward the next draft · ` +
           `+${people.artistHappiness} happiness in ${where} for ${people.artistTurns} turns`
         );
       case 'general':

@@ -630,6 +630,15 @@ export interface GreatPersonAct {
  * that is the design (`docs/great-people.md`): the board decision is burst or
  * ground, and the card is yours whichever you chose.
  */
+/**
+ * The act's age: ×(1 + actPerTech × technologies researched) — exported so the
+ * sheet's hint prints the same figure the act will bank (rule 5; the preview
+ * and the payout are one number).
+ */
+export function agedActFactor(player: Player): number {
+  return 1 + PEOPLE.actPerTech * player.techsResearched.length;
+}
+
 export function greatPersonActAt(
   state: GameState,
   player: Player,
@@ -653,7 +662,7 @@ export function greatPersonActAt(
   // and before anything is banked, so the preview and the payout stay one
   // number (Entry XVIII.5). The scholar's arm never sees it: a share of the
   // aimed technology's cost already grows with the tree.
-  const aged = 1 + PEOPLE.actPerTech * player.techsResearched.length;
+  const aged = agedActFactor(player);
   const paid = (base: number): number => Math.floor((Math.floor(base * aged) * (100 + boost)) / 100);
   const done: GreatPersonAct = {
     id,

@@ -316,7 +316,7 @@ describe('the act', () => {
         Math.floor(
           PEOPLE.engineerHammers *
             era *
-            (1 + PEOPLE.actPerTech * state.players[0]!.techsResearched.length),
+            (1 + PEOPLE.actPerTech * g.state.players[0]!.techsResearched.length),
         ),
     );
   });
