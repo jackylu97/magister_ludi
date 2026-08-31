@@ -1462,13 +1462,29 @@ describe('the worker charge badge', () => {
     expect(signUnits(out)).toBe(signUnits(home));
   });
 
+  it('moves when a piece is set to range ahead, and not for the aim it holds', () => {
+    // Presence of `autoExplore` puts the piece in the routed wash — busy, not
+    // orderable — so the flag is drawn and must move the hash (2026-08-30).
+    const idle = state([{ type: 'scout' }]);
+    const ranging = state([{ type: 'scout' }]);
+    ranging.units[0]!.autoExplore = true;
+    expect(signUnits(ranging)).not.toBe(signUnits(idle));
+    // The aim itself is an ordinary `path`, which was never hashed and must
+    // not start being: a hash that noticed would rebuild the whole board on
+    // every step of every ranging march.
+    const aimed = state([{ type: 'scout' }]);
+    aimed.units[0]!.autoExplore = true;
+    aimed.units[0]!.path = [{ col: 1, row: 1 }];
+    expect(signUnits(aimed)).toBe(signUnits(ranging));
+  });
+
   /**
    * And nothing *else* new joined it. Written as a source read rather than as a
    * behaviour, because the failure this guards against is somebody adding a
    * field to the hash that moves on every step of every march — the one thing
    * the movement-allowance test above is about, generalised.
    */
-  it('hashes exactly the nine properties the trap names', () => {
+  it('hashes exactly the ten properties the trap names', () => {
     // Read through Vite's raw glob rather than `node:fs` — the pattern
     // `test/sim/cities.test.ts` set for the same kind of assertion, and for the
     // same reason: this project has no node typings and a source read is not
@@ -1499,6 +1515,11 @@ describe('the worker charge badge', () => {
       // moved — `chargesLeft`'s case exactly. The route's *contents* are not
       // hashed: see the docblock on `signUnits`.
       'routeBit(unit)',
+      // Added deliberately with auto-explore (2026-08-30): presence takes the
+      // routed wash, so a piece set to range ahead — or called back — changes
+      // the picture without moving. The aim it holds is an ordinary `path`
+      // and is not hashed: see the docblock on `signUnits`.
+      'exploreBit(unit)',
     ]);
   });
 });

@@ -1002,10 +1002,10 @@ describe('every hook family, end to end', () => {
 // --- determinism ------------------------------------------------------------
 
 describe('determinism', () => {
-  it('round-trips a schema 38 save with Statecraft in it', () => {
+  it('round-trips a schema 39 save with Statecraft in it', () => {
     // Bumped to 32 by the master-list cut of 2026-08-28: no new field, but the
     // balance table moved under every replay (see the version's own entry).
-    expect(SCHEMA_VERSION).toBe(38);
+    expect(SCHEMA_VERSION).toBe(39);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

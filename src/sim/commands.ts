@@ -76,6 +76,7 @@ import {
 } from './cities';
 import { type CombatOutcome, type SiegeReport, applyCombat, fortifyError } from './combat';
 import { discoveryChoiceError, settleDiscovery } from './discoveries';
+import { type ExploreEndReport, aimExplorer, autoExploreError } from './explore';
 import type { ImprovementId } from './improvementData';
 import {
   type PillageReport,
@@ -508,6 +509,32 @@ export interface FortifyCommand extends PlayerCommand {
 export interface SleepUnitCommand extends PlayerCommand {
   type: 'sleepUnit';
   unitId: number;
+}
+
+/**
+ * Tells a soldier or a scout to seek out unexplored land on its own, or calls
+ * it back.
+ *
+ * A toggle like `setAutoResend`, and an order like `moveUnit`: setting it
+ * drops whatever the piece was doing — the path it held, the sleep it was
+ * given — and aims it at the nearest hex whose own sight would still show its
+ * empire something new (`exploreTarget` in `explore.ts` is the whole rule).
+ * The `marchExplorers` phase re-aims the piece every resolution until the
+ * search comes back empty, at which point the flag is deleted and
+ * `TurnReport.exploreEnded` says so. Any *other* accepted order naming the
+ * unit clears the flag (`applyCommand`'s one seam, `sleeping`'s argument
+ * exactly), so a piece told to do anything at all is a piece called back —
+ * and `cancelOrder` is the plain "never mind".
+ *
+ * Turn-gated like every other order, and refused for a piece that is neither
+ * a combatant nor the explorer (`autoExploreError` — a kind, never a name): a
+ * worker ranging ahead is a worker walking into somebody's spear for nothing
+ * it can use.
+ */
+export interface SetAutoExploreCommand extends PlayerCommand {
+  type: 'setAutoExplore';
+  unitId: number;
+  on: boolean;
 }
 
 /**
@@ -1116,6 +1143,7 @@ export type Command =
   | AttackCommand
   | FortifyCommand
   | SleepUnitCommand
+  | SetAutoExploreCommand
   | BuildImprovementCommand
   | ChopFeatureCommand
   | PillageCommand
@@ -1177,6 +1205,7 @@ export type CommandResult =
       triumphs?: TriumphAward[];
       grants?: CompletionGrantReport[];
       routesEnded?: RouteEndReport[];
+      exploreEnded?: ExploreEndReport[];
       sieges?: SiegeReport[];
       pillages?: PillageReport[];
       disbanded?: DisbandReport[];
@@ -1278,6 +1307,13 @@ export type CommandResult =
  * — they are phases, with no `CommandResult` of their own to write into. A camp
  * a fresh `moveUnit` clears is still `arrivals`' own field; this is only the
  * gap a phase leaves.
+ *
+ * `exploreEnded` is the fourteenth, from `endTurn` alone
+ * (`TurnReport.exploreEnded`, 2026-08-30): every piece whose auto-explore ran
+ * out of world during the resolution. `routesEnded`'s argument one verb over —
+ * by the time this returns the flag is simply gone from the unit, and no diff
+ * of two boards can say the search came back empty rather than never having
+ * run.
  */
 function ok(
   arrivals?: readonly ArrivalReport[],
@@ -1292,6 +1328,7 @@ function ok(
   starved?: readonly StarvationReport[],
   guilds?: readonly GuildReport[],
   campBounties?: readonly { ownerId: number; col: number; row: number; bounty: CampBounty }[],
+  exploreEnded?: readonly ExploreEndReport[],
 ): CommandResult {
   const result: CommandResult = { ok: true };
   if (arrivals !== undefined && arrivals.length > 0) result.arrivals = [...arrivals];
@@ -1306,6 +1343,7 @@ function ok(
   if (starved !== undefined && starved.length > 0) result.starved = [...starved];
   if (guilds !== undefined && guilds.length > 0) result.guilds = [...guilds];
   if (campBounties !== undefined && campBounties.length > 0) result.campBounties = [...campBounties];
+  if (exploreEnded !== undefined && exploreEnded.length > 0) result.exploreEnded = [...exploreEnded];
   return result;
 }
 
@@ -1401,6 +1439,7 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
     report.starved,
     report.guilds,
     report.campBounties,
+    report.exploreEnded,
   );
   // The resolution's beads, **with the boon lines the settlements produced** —
   // set beside the helper rather than passed through it for `proclaimed`'s
@@ -1530,7 +1569,10 @@ function applyCancelOrder(state: GameState, command: CancelOrderCommand): Comman
   // subject rather than a fifteenth entry in the union. The flag itself is
   // cleared by `applyCommand`, which wakes the unit *any* accepted order names;
   // all this handler owes is agreeing there was something to cancel.
-  if (!marching && unit.sleeping !== true) {
+  // Auto-explore is the third subject (2026-08-30), for sleep's reason: it is
+  // a standing order with no wake verb of its own, and "never mind" is this
+  // command. The flag itself is cleared by `applyCommand`'s one seam.
+  if (!marching && unit.sleeping !== true && unit.autoExplore !== true) {
     return fail(`Unit ${unit.id} has no standing order`);
   }
 
@@ -2014,6 +2056,56 @@ function applySleepUnit(state: GameState, command: SleepUnitCommand): CommandRes
   if (problem) return fail(problem);
 
   unit.sleeping = true;
+  return ok();
+}
+
+/**
+ * Sets or clears a unit's auto-explore. See `SetAutoExploreCommand`.
+ *
+ * `applySetAutoResend`'s shape: the seat's questions here, the *eligibility*
+ * delegated whole to `autoExploreError` — the same function the unit sheet
+ * greys its button with, so a live button and an accepted command are one rule
+ * — and a value that would change nothing refused, which keeps the log free of
+ * commands that say nothing.
+ *
+ * Turning it on aims the piece at once (`aimExplorer`) — the `startRoute`
+ * precedent: the path is written here and the pipeline walks it,
+ * `spendLeftoverMovement` on this very turn, so the piece moves the turn it
+ * was told to range ahead rather than the one after. An aim that finds nothing
+ * deliberately leaves the flag standing: the `marchExplorers` phase is the one
+ * place an empty search ends the order, with the report that lets the
+ * interface say so.
+ */
+function applySetAutoExplore(state: GameState, command: SetAutoExploreCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot change orders`);
+  }
+  if (typeof command.on !== 'boolean') return fail('setAutoExplore needs a boolean "on"');
+
+  const unit = unitById(state, command.unitId);
+  if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
+  if (unit.ownerId !== actor.id) {
+    return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
+  }
+  const problem = autoExploreError(unit);
+  if (problem) return fail(problem);
+  if ((unit.autoExplore === true) === command.on) {
+    return fail(`Unit ${unit.id} is ${command.on ? 'already' : 'not'} exploring`);
+  }
+
+  if (!command.on) {
+    // The one seam excuses this verb from the clearing, so the off half is the
+    // handler's own line.
+    delete unit.autoExplore;
+    return ok();
+  }
+  // Whatever it was walking toward, the search decides now. The sleep flag is
+  // `orderedUnitId`'s business, like every other order's.
+  delete unit.path;
+  unit.autoExplore = true;
+  aimExplorer(state, unit);
   return ok();
 }
 
@@ -2936,6 +3028,11 @@ function orderedUnitId(command: Command): number | undefined {
     case 'startRoute':
     case 'setAutoResend':
     case 'cancelRoute':
+    // Telling a piece to range ahead — or calling it back — is an order to it,
+    // so it wakes like anybody else. It is deliberately *not* in the excused
+    // arm below: only the auto-explore *clearing* in `applyCommand` excuses
+    // this verb, because a command must not erase its own work.
+    case 'setAutoExplore':
     // Letting a piece go is an order to it, and the last one it will ever be
     // given. It names the unit like its neighbours here rather than joining the
     // excused arm below: `applyCommand` already looks the piece up and finds
@@ -3020,7 +3117,16 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
   if (ordered !== undefined) {
     const unit = unitById(state, ordered);
     // Absent when the order spent the piece — a settler that founded a city.
-    if (unit) wakeUnit(unit);
+    if (unit) {
+      wakeUnit(unit);
+      // An order is a waking, and a change of plan too: any accepted order
+      // naming an auto-exploring unit calls it back to the colours, here in
+      // the one seam rather than as a line in each handler — `sleeping`'s
+      // argument exactly. The one excused verb is the flag's own: a
+      // `setAutoExplore` that erased what it just wrote would be a switch
+      // that cannot be turned on.
+      if (command.type !== 'setAutoExplore') delete unit.autoExplore;
+    }
   }
   return result;
 }
@@ -3061,6 +3167,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyFortify(state, command);
     case 'sleepUnit':
       return applySleepUnit(state, command);
+    case 'setAutoExplore':
+      return applySetAutoExplore(state, command);
     case 'buildImprovement':
       return applyBuildImprovement(state, command);
     case 'chopFeature':

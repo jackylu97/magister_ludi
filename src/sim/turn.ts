@@ -126,6 +126,7 @@ import { type BeadAward, beadMarks, beadsSince, runBeads } from './beads';
 import type { BeadAge } from './beadData';
 import { runRenown } from './renown';
 import { advanceResearch } from './tech';
+import { type ExploreEndReport, marchExplorers } from './explore';
 import { type RouteEndReport, endRoute, routeTarget, standsIn } from './trade';
 import { type TriumphAward, triumphMarks, triumphsSince } from './triumphs';
 import { type GameState, type Unit, wakeUnit } from './state';
@@ -208,6 +209,18 @@ export interface TurnReport {
    * (a command, which already knows what it did) is not.
    */
   routesEnded: RouteEndReport[];
+  /**
+   * Every unit whose auto-explore ran out of world this resolution, in
+   * `state.units` sweep order (`ExploreEndReport`).
+   *
+   * `routesEnded`'s sibling one verb over, and a *difference* for its reason:
+   * by the time this returns the flag is simply gone from the piece, and
+   * nothing on the board distinguishes a scout that has seen all it can reach
+   * from one that was never sent. `marchExplorers` is the one writer — a
+   * player calling a piece back (`setAutoExplore`, or any other order) is a
+   * command, which already knows what it did.
+   */
+  exploreEnded: ExploreEndReport[];
   /**
    * Every city the `healCities` phase found cut off, with what the siege cost
    * it (`SiegeReport`).
@@ -347,6 +360,7 @@ export function emptyTurnReport(): TurnReport {
     triumphs: [],
     grants: [],
     routesEnded: [],
+    exploreEnded: [],
     sieges: [],
     pillages: [],
     disbanded: [],
@@ -559,6 +573,15 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // has run out. Directly before `spendLeftoverMovement`, and the position is
     // the rule — see `marchTraders`.
     run: marchTraders,
+  },
+  {
+    name: 'marchExplorers',
+    // The explorers aim themselves at the next unseen hex, or stand down when
+    // there is none left within reach. Directly before `spendLeftoverMovement`
+    // — `marchTraders`' seat and argument: this phase decides *where* a ranging
+    // piece is going and never how far it gets, and the one spender below walks
+    // the path it set on this turn's unspent points.
+    run: marchExplorers,
   },
   {
     name: 'spendLeftoverMovement',

@@ -487,8 +487,18 @@ import {
  *     The migration note: nothing to migrate. Every field a v37 save carries is
  *     still a field this version reads; what is gone is the tree the log was
  *     played against.
+ * 39: Auto-explore — `Unit.autoExplore` and the `setAutoExplore` command
+ *     (2026-08-30). A soldier or a scout told to range ahead aims itself at the
+ *     nearest hex whose own sight would still show it something new
+ *     (`explore.ts`), and the `marchExplorers` phase re-aims it every
+ *     resolution until nothing within reach is left to see. A v38 log replayed
+ *     here is the same game: nothing in it can carry the new command, and a
+ *     unit with no `autoExplore` key is a unit under its own orders. It is a
+ *     bump rather than a free field for sleep's reason exactly (entry 16): the
+ *     *phase* is new — the resolution has grown a step, and a state that ran
+ *     without it is not a state this build produced.
  */
-export const SCHEMA_VERSION = 38;
+export const SCHEMA_VERSION = 39;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1377,6 +1387,29 @@ export interface Unit {
    * piece fingerprint: nothing it changes is drawn.
    */
   stamp?: UnitStamp;
+  /**
+   * This piece has been told to seek out unexplored land on its own, or the
+   * key is **absent** when it is under its own orders.
+   *
+   * Presence is the state — `path`'s convention, here for the tenth time and
+   * for the same reason: a warrior that never ranged ahead and one called back
+   * to the colours must serialise identically.
+   *
+   * What it means: the `marchExplorers` phase (`turn.ts`) aims the piece at
+   * `exploreTarget` (`explore.ts`) whenever it stands without a path, and
+   * deletes the key — reporting it (`TurnReport.exploreEnded`) — the turn
+   * nothing within reach would show it anything new. Three things end it, and
+   * they are the sleep flag's endings one field over: **any other accepted
+   * order naming the unit** clears it in `applyCommand`'s one seam (never per
+   * handler), `cancelOrder` is the plain "never mind", and the search running
+   * dry ends it from inside the resolution. Only `setAutoExplore` writes it.
+   *
+   * **The renderer's fingerprint hashes it** (`signUnits`): an exploring piece
+   * takes the routed caravan's wash — busy, not orderable — so presence
+   * changes what is drawn on a piece that has not moved, which is
+   * `Unit.trade`'s case exactly.
+   */
+  autoExplore?: true;
 }
 
 /**

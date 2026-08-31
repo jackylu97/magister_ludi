@@ -49,7 +49,7 @@ import { inZoneOfControl, pathTurns } from '../sim/pathfind';
 import { cityAt } from '../sim/cities';
 import type { GameState, Unit } from '../sim/state';
 import type { TileYield } from '../sim/terrainData';
-import { trades, unitDef, unitMaxHp } from '../sim/unitData';
+import { isExplorer, trades, unitDef, unitMaxHp } from '../sim/unitData';
 import { unitUpkeep, unitUpkeepOf } from '../sim/upkeep';
 import type { ImprovementOption } from './controls';
 import { cityDisplayName } from './cityDisplay';
@@ -157,6 +157,13 @@ export interface UnitPanelOptions {
    */
   sleepBlocker: () => string | null | undefined;
   onSleep: () => void;
+  /**
+   * Why the selected unit cannot be told to range ahead — the same
+   * three-valued shape again, answered by `controls.autoExploreBlocker()`.
+   */
+  autoExploreBlocker: () => string | null | undefined;
+  /** Flips auto-explore for the selected unit — the toggle's one handler. */
+  onAutoExplore: () => void;
   /**
    * Why the selected unit cannot be waved off this turn — the same
    * three-valued shape again, answered by `controls.skipBlocker()`.
@@ -522,6 +529,8 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     onFortify,
     sleepBlocker,
     onSleep,
+    autoExploreBlocker,
+    onAutoExplore,
     skipBlocker,
     onSkip,
     isUnitSkipped,
@@ -775,6 +784,23 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         blocked: blocker === undefined ? 'No unit selected' : blocker,
         hint: 'Sleep here — stops blocking End Turn until enemies come near',
         run: onSleep,
+      });
+    }
+    // The ranging order (2026-08-30): every combatant and the scout, whether
+    // or not it can set out *now* — Fortify's reading, and the same
+    // kind-not-name test the reducer refuses with (`autoExploreError`), so the
+    // row and the refusal cannot disagree. A toggle rather than a pair of
+    // verbs: while the piece is ranging, the same slot reads Stop.
+    if (isCombatant(unitDef(unit.type)) || isExplorer(unitDef(unit.type))) {
+      const blocker = autoExploreBlocker();
+      const ranging = unit.autoExplore === true;
+      actions.push({
+        label: ranging ? 'Stop exploring' : 'Auto-explore',
+        blocked: blocker === undefined ? 'No unit selected' : blocker,
+        hint: ranging
+          ? 'Call the piece back — it stands where it is, awaiting orders'
+          : 'Seek out unexplored land until there is none',
+        run: onAutoExplore,
       });
     }
     // Offered to every unit, not only combatants or builders: any piece with
@@ -1314,6 +1340,9 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // same one the button wears, so the sheet says one thing twice rather than
     // two things once.
     if (unit.sleeping === true) notes.push('Sleeping 💤');
+    // The routed caravan's precedent one verb over: a standing state the
+    // player chose, said in the same breath the toggle's Stop row implies it.
+    if (unit.autoExplore === true) notes.push('Exploring.');
     // A board fact the player cannot see by looking, and the one rule that
     // turns a neighbouring enemy into a *cost*: stepping to another hex that
     // same piece also touches costs one extra movement point (Entry XXV, the toll of

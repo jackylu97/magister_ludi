@@ -618,14 +618,16 @@ export function badgeAnchors(
 const ROUTED_WASH_TARGET = VIEW3D.fog.exploredWash;
 
 /**
- * Is this piece running a trade route — the one thing on the board that reads
- * as *busy* rather than *orderable* (ruling, 2026-08-28)? Presence, exactly as
- * `routeBit` (`signUnits`'s reader) treats it, and for the same reason: the
- * leg itself changes turn to turn with no visual consequence, so only whether
- * `Unit.trade` exists is a question about what gets *drawn*.
+ * Is this piece busy running itself — a caravan carrying a route, or a unit
+ * ranging ahead on auto-explore (2026-08-30)? The board's one reading of
+ * *busy* rather than *orderable* (ruling, 2026-08-28), and both flags join it
+ * by presence, exactly as `routeBit` and `exploreBit` (`signUnits`'s readers)
+ * treat them: the leg or the aim changes turn to turn with no visual
+ * consequence, so only whether the key exists is a question about what gets
+ * *drawn*.
  */
 function unitIsRouted(unit: Unit): boolean {
-  return unit.trade !== undefined;
+  return unit.trade !== undefined || unit.autoExplore === true;
 }
 
 /** `0xRRGGBB` mixed `mix` of the way toward `target`, channel by channel. */
@@ -1213,6 +1215,13 @@ export class UnitLayer {
  * fingerprint trap — and `test/render/pieces3d.test.ts` reads this function's
  * source to keep the next one a decision too.
  *
+ * `autoExplore` is the newest member (2026-08-30) and joins for `trade`'s
+ * reason exactly: presence puts the piece in the routed wash — busy, not
+ * orderable (`unitIsRouted`) — so a flag set or called back changes the
+ * picture on a piece that has not moved. One bit (`exploreBit`), presence and
+ * nothing else: the aim it holds is an ordinary `path`, which was never
+ * hashed and must not start being.
+ *
  * `person` is the member before it and the one that needs a sentence, because it
  * changes nothing that is drawn *today*: every great person wears one badge (see
  * `BadgeClass`) and stands on the settler's sculpt, so Archimedes and Imhotep
@@ -1249,6 +1258,7 @@ export function signUnits(state: GameState): number {
     h = Math.imul(h ^ chargesLeft(unit), 16777619);
     h = Math.imul(h ^ personIndex(unit), 16777619);
     h = Math.imul(h ^ routeBit(unit), 16777619);
+    h = Math.imul(h ^ exploreBit(unit), 16777619);
   }
   return h >>> 0;
 }
@@ -1283,4 +1293,13 @@ function personIndex(unit: Unit): number {
  */
 function routeBit(unit: Unit): number {
   return unit.trade === undefined ? 0 : 1;
+}
+
+/**
+ * Is this piece ranging ahead on its own? One bit, `routeBit`'s twin in every
+ * respect: presence and nothing else, and a predicate so the fingerprint's
+ * source stays a list of properties — the form the pin test reads it in.
+ */
+function exploreBit(unit: Unit): number {
+  return unit.autoExplore === undefined ? 0 : 1;
 }

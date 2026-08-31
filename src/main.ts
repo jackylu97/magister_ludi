@@ -3490,6 +3490,11 @@ async function boot(initial: Game | null): Promise<void> {
       controls.sleepUnit();
       updatePanel(null, renderer.getHover());
     },
+    autoExploreBlocker: () => controls.autoExploreBlocker(),
+    onAutoExplore: () => {
+      controls.setAutoExplore(!(controls.selectedUnit()?.autoExplore === true));
+      updatePanel(null, renderer.getHover());
+    },
     skipBlocker: () => controls.skipBlocker(),
     onSkip: () => {
       controls.skipUnit();

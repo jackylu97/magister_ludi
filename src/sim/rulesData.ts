@@ -87,6 +87,21 @@ export interface MovementRules {
   zocExtraCost: number;
 }
 
+export interface ExploreRules {
+  /**
+   * How many tiles an auto-exploring unit's search may examine before giving
+   * up (`exploreSearch` in `explore.ts`).
+   *
+   * A bound on the *search*, not on the map: the BFS walks outward from the
+   * piece and stops the moment it has judged this many candidates, so an idle
+   * explorer on a charted continent costs a bounded sweep rather than a
+   * full-map Dijkstra per unit per turn. ~400 is a disc of radius eleven —
+   * far past anything a piece could march to soon, and cheap enough to ask
+   * every resolution.
+   */
+  searchLimit: number;
+}
+
 export interface StackingRules {
   /**
    * How many units of each `UnitCategory` may occupy one tile. At 1 this is the
@@ -1212,6 +1227,7 @@ export interface ReligionRules {
 export interface RulesConfig {
   game: GameRules;
   movement: MovementRules;
+  explore: ExploreRules;
   stacking: StackingRules;
   visibility: VisibilityRules;
   healing: HealingRules;

@@ -280,6 +280,7 @@ import type { TileYield } from '../sim/terrainData';
 import type { TriumphAward } from '../sim/triumphs';
 import { BEAD_FAMILY_MARK, deckEraWord } from './beadsScreen';
 import { type TraderPlunder, routeCities } from '../sim/trade';
+import { autoExploreError } from '../sim/explore';
 import { type UnitDef, isExplorer, trades, unitDef, unitMaxHp } from '../sim/unitData';
 import { type DisbandReport, treasuryInDebt } from '../sim/upkeep';
 import {
@@ -1697,6 +1698,20 @@ export interface GameControls {
   sleepUnit(): void;
 
   /**
+   * Why the selected unit cannot be told to range ahead, or `null` when it
+   * can. `undefined` with nothing selected — the same three-valued shape as
+   * `foundCityBlocker`, and `autoExploreError`'s own sentence unaltered.
+   */
+  autoExploreBlocker(): string | null | undefined;
+  /**
+   * Flips the selected unit's auto-explore. The unit sheet's toggle: on, the
+   * piece seeks out unexplored land until there is none it can reach; off, it
+   * stands where it is awaiting orders. Any other order also calls it back
+   * (`SetAutoExploreCommand`).
+   */
+  setAutoExplore(on: boolean): void;
+
+  /**
    * Why the selected unit cannot be let go, or `null` when it can. `undefined`
    * with nothing selected — the same three-valued shape as `foundCityBlocker`,
    * and `disbandError`'s own sentence unaltered.
@@ -1968,6 +1983,16 @@ export interface GameControls {
   cancelRouteOf(unitId: number): void;
   /** "2 of 3 routes" for the local seat, for the sheet and the city panel. */
   routeSlotsLine(): string;
+
+  /**
+   * Says that a command this module did not send was accepted.
+   *
+   * The seam for the two screens that dispatch for themselves — the star chart
+   * and the city panel — so `onCommand`'s listener hears every order the player
+   * gives, not only the ones the board issued. See the closure of the same name
+   * for why they report rather than route.
+   */
+  reportCommand(command: Command, result: CommandResult): void;
 }
 
 export function createGameControls(options: GameControlsOptions): GameControls {
@@ -2325,6 +2350,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportWonders(result);
       reportGrants(result);
       reportRoutes(result);
+      reportExplorers(result);
       reportSieges(result);
       reportCampNews(result);
       reportPillages(result);
@@ -2336,15 +2362,34 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportBeads(result);
       checkFirstStatecraftDraft();
       checkGreatPersonOffer();
-      // **The commit funnel's one outward report of the command itself.**
-      // Everything above this line is a *reading* of what changed; this is the
-      // raw fact that an order was accepted, and the only listener today is the
-      // tutorial (`tutorial.ts`), which advances on the player's own deed rather
-      // than on a timer. Last, so a listener sees a page whose news has already
-      // been announced. Optional like every other reporting hook.
-      onCommand?.(command, result);
+      // **The commit funnel's one outward report of the command itself** — see
+      // `reportCommand`, which is this line, exposed, so the two screens that
+      // dispatch for themselves can reach the same listener.
+      reportCommand(command, result);
     }
     return result;
+  }
+
+  /**
+   * **An order was accepted** — reported outward, and the only listener today is
+   * the tutorial (`tutorial.ts`), which advances on the player's own deed.
+   *
+   * Factored out of `commit` and exposed on `GameControls` for one reason: this
+   * module is *not* the only place a command is dispatched. The star chart sends
+   * its own `chooseResearch` and the city screen its own `setCityProduction`,
+   * each for a stated reason of its own (see `send` in `techTree.ts` and
+   * `report` in `cityPanel.ts`), and a listener that only ever heard this file's
+   * commands was a listener deaf to two of the first four things a new player
+   * is asked to do. Those screens call **this**, not `commit`: routing their
+   * dispatch through the funnel would fire the sighting poll, the raid report
+   * and a dozen other readings a second time for one command.
+   *
+   * Only on acceptance, everywhere: a refused command changes nothing (hard
+   * rule 1), so nothing downstream may act on one.
+   */
+  function reportCommand(command: Command, result: CommandResult): void {
+    if (!result.ok) return;
+    onCommand?.(command, result);
   }
 
   /**
@@ -2461,6 +2506,27 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     for (const report of result.routesEnded) {
       if (report.ownerId !== localPlayerId) continue;
       announce(routeEndSentence(getGame().state, report));
+    }
+  }
+
+  /**
+   * **A ranging piece has seen all it can reach.** One line per unit of this
+   * seat's whose auto-explore ran out of world during the resolution
+   * (`CommandResult.exploreEnded`, `endTurn` alone).
+   *
+   * `reportRoutes`' shape and reason: seat-filtered, read off the reducer's
+   * own report rather than diffed off the board, because by the time this runs
+   * the flag is simply gone and nothing distinguishes a scout that stood down
+   * from one that was never sent.
+   */
+  function reportExplorers(result: CommandResult): void {
+    if (!result.ok || !result.exploreEnded) return;
+    const { state } = getGame();
+    for (const report of result.exploreEnded) {
+      if (report.ownerId !== localPlayerId) continue;
+      const unit = unitById(state, report.unitId);
+      const name = unit ? unitDef(unit.type).name : 'unit';
+      announce(`Your ${name} has seen all it can reach.`);
     }
   }
 
@@ -3934,6 +4000,46 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!unit) return undefined;
     if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
     return sleepError(unit);
+  }
+
+  /**
+   * `sleepBlocker`'s shape for the ranging order: the sentence is
+   * `autoExploreError`'s, so the greyed toggle and the reducer's refusal are
+   * one rule.
+   */
+  function autoExploreBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    return autoExploreError(unit);
+  }
+
+  /**
+   * Flips the selected unit's auto-explore, through the ordinary funnel.
+   *
+   * Unlike `sleepUnit` the selection is kept: the sheet's toggle reads "Stop
+   * exploring" while the flag stands, and a sheet that vanished under the
+   * click would hide the way back. The reducer refuses a value that would
+   * change nothing, and that refusal is shown — `setAutoResend`'s reading.
+   * The board is invalidated because setting the order may have aimed a path
+   * this very click, and the wash on the piece has changed either way.
+   */
+  function setAutoExplore(on: boolean): void {
+    const unit = selectedUnit();
+    if (!unit) return;
+    const result = commit({
+      type: 'setAutoExplore',
+      playerId: localPlayerId,
+      unitId: unit.id,
+      on,
+    });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
   }
 
   /**
@@ -6087,6 +6193,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     fortifyBlocker,
     sleepBlocker,
     sleepUnit,
+    autoExploreBlocker,
+    setAutoExplore,
     disbandBlocker,
     disbandUnit,
     skipUnit,
@@ -6125,6 +6233,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     setAutoResendOf,
     cancelRouteOf,
     routeSlotsLine: () => routeSlotsLineOf(getGame().state, localPlayerId),
+    reportCommand,
     selectedUnit,
     isMoveMode: () => moveMode,
     isBuyMode: () => buyMode,

@@ -153,7 +153,7 @@ describe('the bead catalogue', () => {
   });
 
   it('pins the schema version the Bead Race moved', () => {
-    expect(SCHEMA_VERSION).toBe(38);
+    expect(SCHEMA_VERSION).toBe(39);
   });
 
   it('puts the beads phase directly after renown', () => {

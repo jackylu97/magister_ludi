@@ -468,6 +468,11 @@ describe('end-of-turn pipeline', () => {
       // phases that actually spend the movement it just aimed. See
       // `marchTraders`.
       'marchTraders',
+      // The explorers aim themselves at the next unseen hex, or stand down
+      // with a report when there is none left within reach — `marchTraders`'
+      // seat and argument, one verb over: the phase decides *where* a ranging
+      // piece goes, and the spender below walks it. See `marchExplorers`.
+      'marchExplorers',
       // A standing order that was jammed marches once more on *this* turn's
       // unspent points — after the two phases that ask "has this unit been
       // still all turn?", so a piece's healing never depends on whether a
@@ -558,7 +563,7 @@ describe('the research queue field', () => {
     // A v21 log is not merely older: a `moveUnit` given with no movement left
     // used to be refused and is now a standing order, and the resolution has
     // grown a phase no v21 state has been through.
-    expect(SCHEMA_VERSION).toBe(38);
+    expect(SCHEMA_VERSION).toBe(39);
   });
 });
 

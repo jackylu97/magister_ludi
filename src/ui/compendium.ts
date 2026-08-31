@@ -112,7 +112,15 @@ import { TECH_IDS, type TechId, techDef } from '../sim/techData';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
 import { TILE_YIELD_KEYS, type TileYieldSpec, readTileYield } from '../sim/terrainData';
 import { TRIUMPH_IDS, type TriumphId, triumphDef } from '../sim/triumphData';
-import { UNIT_TYPE_IDS, type UnitDef, type UnitTypeId, isNaval, unitDef } from '../sim/unitData';
+import {
+  UNIT_TYPE_IDS,
+  type UnitDef,
+  type UnitTypeId,
+  isCombatant,
+  isExplorer,
+  isNaval,
+  unitDef,
+} from '../sim/unitData';
 import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
 import { CARD_LINE_NAME, lineOf } from './cardLine';
 import { setDescriptorText } from './keywords';
@@ -393,6 +401,14 @@ function rosterCost(state: GameState | null, type: UnitTypeId): number {
 function unitMarkers(def: UnitDef): CompendiumClause[] {
   const out: CompendiumClause[] = [];
   if (def.foundsCity) out.push({ text: 'Founds a city. The unit is used up doing it.' });
+  // Auto-explore (2026-08-30): said off the same kind-not-name test the
+  // reducer refuses with (`autoExploreError` in `explore.ts`), so the book and
+  // the button cannot drift about who may range ahead.
+  if (isCombatant(def) || isExplorer(def)) {
+    out.push({
+      text: 'Can be set to explore on its own: it seeks out unexplored land until there is none it can reach, and any other order calls it back.',
+    });
+  }
   if (def.haltsGrowth) {
     out.push({
       text: 'A city stores no food toward its next citizen while one of these is at the front of its build queue.',

@@ -1968,8 +1968,8 @@ describe('improvements in the log', () => {
     expect(snapshotState(loadGame(saveGame(game)).state)).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 38 save with improvements on the board', () => {
-    expect(SCHEMA_VERSION).toBe(38);
+  it('round-trips a schema 39 save with improvements on the board', () => {
+    expect(SCHEMA_VERSION).toBe(39);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

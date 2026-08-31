@@ -261,6 +261,10 @@ export function unitAwaitsOrders(unit: Unit): boolean {
   if (unit.path !== undefined && unit.path.length > 0) return false;
   if (unit.fortifiedTurns !== undefined) return false;
   if (unit.sleeping === true) return false;
+  // Ranging ahead is a standing order the resolution itself renews
+  // (`marchExplorers` in `turn.ts`), so the piece is busy even on the turn it
+  // stands waiting for its next aim — `trade`'s case one verb over.
+  if (unit.autoExplore === true) return false;
   if (unit.trade !== undefined) return false;
   return true;
 }

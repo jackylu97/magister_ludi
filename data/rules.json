@@ -11,6 +11,9 @@
     "roadCostThirds": 1,
     "zocExtraCost": 1
   },
+  "explore": {
+    "searchLimit": 400
+  },
   "stacking": {
     "perCategoryPerTile": 1
   },
