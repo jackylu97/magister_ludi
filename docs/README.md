@@ -7,6 +7,7 @@
 | `design-notes.md` | the design ledger — argue here before a number lands in `data/*.json` |
 | `design-specimen.html` | the interface's design language (ink/parchment, the four faces) |
 | `tech-tree.md` | the technology tree — as built, and the five-age proposal |
+| `tree-worksheet.md` | the whole tree as ascii with fill-in slots — the user's canvas |
 | `beads.md` | the Bead Race's catalogue — feats, the three decks, the drafting model |
 | `orders-and-doctrines.md` | every Order, Doctrine and government — the master list |
 | `orders-candidates.md` | candidate Orders and the rarity proposal, for the user to cut |
