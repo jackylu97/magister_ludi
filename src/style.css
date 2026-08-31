@@ -9952,3 +9952,129 @@ body.compendium-page {
 .victory-sheet .triumph-eyebrow {
   color: var(--gilt);
 }
+
+/* --- the tutorial ---------------------------------------------------------
+   The coach card and its spotlight (src/ui/tutorial.ts).
+
+   Two rules decide everything below. **It never blocks input**: the scrim takes
+   no pointer event at all, so the player can act at any moment and the card
+   simply follows them — a guide that has to be dismissed before a settler can be
+   selected is a guide that gets skipped. And **it sits between the HUD and the
+   screens**: z 35 is over the bar (20), the panels (10–16) and the turn splash
+   (30), and under the offer card and the full-window screens (40), so a note
+   raised by an offer opening floats over that offer rather than dimming it. */
+
+/* The dimmer *is* the hole: a huge spread paints everything outside this box
+   and nothing inside it, so a resize moves one rectangle rather than four
+   panels. With no anchor the box collapses off-screen and the spread alone
+   remains, which is a plain dim of the whole window. */
+.tutorial-scrim {
+  position: fixed;
+  z-index: 35;
+  pointer-events: none;
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 9999px rgba(29, 26, 32, 0.38);
+}
+
+/* Only a real cutout gets a ring around it. */
+.tutorial-scrim.has-hole {
+  outline: var(--border-thin) solid var(--vermilion);
+  outline-offset: 2px;
+  animation: tutorial-breathe 1.8s ease-in-out infinite;
+}
+
+/* The viewer asked for less motion: the ring stays, and stops moving. */
+.tutorial-scrim.is-still {
+  animation: none;
+}
+
+@keyframes tutorial-breathe {
+  0%,
+  100% {
+    outline-offset: 2px;
+  }
+  50% {
+    outline-offset: 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-scrim.has-hole {
+    animation: none;
+  }
+}
+
+/* The card itself. Above the scrim, and above an offer card too — a note about
+   the draft is read *over* the draft it is about. */
+.tutorial-card {
+  position: fixed;
+  z-index: 44;
+  width: min(320px, calc(100vw - 24px));
+  padding: 12px 14px 11px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--parchment);
+  box-shadow: var(--shadow);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+/* A note is the milder shape: it interrupts nothing, so it says so in vermilion
+   rather than wearing the sequence's full weight. */
+.tutorial-card.is-tip {
+  border-color: var(--vermilion);
+}
+
+/* Mono, small, tracked — the counter, and every number in this interface. */
+.tutorial-eyebrow {
+  margin: 0 0 4px;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.tutorial-card.is-tip .tutorial-eyebrow {
+  color: var(--vermilion);
+}
+
+/* The display face announces, exactly as it does on the landing. */
+.tutorial-title {
+  margin: 0 0 6px;
+  font-family: var(--face-display);
+  font-size: 1.32rem;
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.tutorial-body {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.tutorial-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* Skip is always reachable and never the loud one; it takes the far end so a
+   fast Next never lands on it. */
+.tutorial-skip {
+  margin-left: auto;
+}
+
+/* The landing's checkbox row: the one place the guide is switched on and off
+   before a game exists. It wears the shared `.row.check` recipe — native box,
+   hot accent, label to the right of it — and adds only the top margin that
+   separates it from the three setup rows above. */
+.landing-tutorial {
+  margin-top: 11px;
+  color: var(--ink-soft);
+}

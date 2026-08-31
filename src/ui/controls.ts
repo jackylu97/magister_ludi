@@ -1354,6 +1354,22 @@ export interface GameControlsOptions {
   onNotify?: (entry: NotificationEntry, seatId: number) => void;
 
   /**
+   * An order was **accepted** — the command, and what the reducer reported.
+   *
+   * The flattest hook on this interface, and deliberately so: every other
+   * reporting hook here carries a *reading* (a sighting, a refund, a blow), and
+   * this one carries the command itself, because its listener is asking a
+   * question none of the readings answer — "did the player do the thing I asked
+   * them to do?". That is the tutorial (`tutorial.ts`), which advances a step on
+   * the deed rather than on a button or a clock.
+   *
+   * Only on acceptance. A refused command changes nothing (hard rule 1), so a
+   * step advanced by one would be a step advanced by a settler that never
+   * founded anything.
+   */
+  onCommand?: (command: Command, result: CommandResult) => void;
+
+  /**
    * Closes any HUD popover that is open; returns whether there was one.
    *
    * Escape belongs to one listener, and it is this module's — see the docblock
@@ -1958,6 +1974,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onSeatAdvanced,
     onNotice,
     onNotify,
+    onCommand,
     closePopovers,
     inputBlocked,
     onToggleTechTree,
@@ -2310,6 +2327,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportBeads(result);
       checkFirstStatecraftDraft();
       checkGreatPersonOffer();
+      // **The commit funnel's one outward report of the command itself.**
+      // Everything above this line is a *reading* of what changed; this is the
+      // raw fact that an order was accepted, and the only listener today is the
+      // tutorial (`tutorial.ts`), which advances on the player's own deed rather
+      // than on a timer. Last, so a listener sees a page whose news has already
+      // been announced. Optional like every other reporting hook.
+      onCommand?.(command, result);
     }
     return result;
   }

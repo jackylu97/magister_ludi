@@ -130,6 +130,7 @@ import { faithPlates } from './ui/faithPlates';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
 import { type TriumphModal, createTriumphModal } from './ui/triumphModal';
+import { createTutorial } from './ui/tutorial';
 import { type ConfirmCard, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
 import { AXIS_MARK, beliefOfferEyebrow } from './ui/religionScreen';
@@ -346,6 +347,8 @@ const menuSaveAsButton = requireElement<HTMLButtonElement>('menu-save-as');
 const menuLoadButton = requireElement<HTMLButtonElement>('menu-load');
 const menuExportButton = requireElement<HTMLButtonElement>('menu-export');
 const menuStatecraftButton = requireElement<HTMLButtonElement>('menu-statecraft');
+const menuTutorialButton = requireElement<HTMLButtonElement>('menu-tutorial');
+const tutorialToggle = requireElement<HTMLInputElement>('tutorial-toggle');
 const saveAsForm = requireElement<HTMLFormElement>('save-as');
 const saveAsNameInput = requireElement<HTMLInputElement>('save-as-name');
 const saveAsGoButton = requireElement<HTMLButtonElement>('save-as-go');
@@ -493,6 +496,24 @@ const lens = createPopover({
  * rather than a feature that is missing.
  */
 const saveStorage = openSaveStorage();
+
+/**
+ * The guide (`src/ui/tutorial.ts`), built at module level for one reason: the
+ * landing screen's checkbox is wired here, above `boot`, and a player who
+ * unchecks it before ever pressing Start must be answered by the same object the
+ * first game will ask.
+ *
+ * It shares the save shelf's storage handle rather than reaching for
+ * `localStorage` itself — one probe, one fallback, and a private window loses
+ * the tutorial's memory exactly as it loses a save's.
+ */
+const tutorial = createTutorial({ storage: saveStorage, root: document.body });
+
+// The checkbox reads the remembered answer on first paint, and writes it back
+// on every change. `enabled` is the whole of the state — there is no second flag
+// for "has been shown", which is what `TutorialProgress` is.
+tutorialToggle.checked = tutorial.enabled();
+tutorialToggle.addEventListener('change', () => tutorial.setEnabled(tutorialToggle.checked));
 
 /**
  * Hides the ☰ menu's Save As field and its last message.
@@ -1639,7 +1660,12 @@ async function boot(initial: Game | null): Promise<void> {
 
     // Asked after the readout, because it is a question about the selection and
     // the pointer together rather than about the ground.
-    showCombatForecast(controls.combatForecast());
+    const forecast = controls.combatForecast();
+    showCombatForecast(forecast);
+    // The guide's note about reading the odds, raised the first time a forecast
+    // is actually on screen — not the first time a piece is selected, which is
+    // a lesson about a card the player cannot see yet.
+    if (forecast !== null) tutorial.note({ kind: 'event', event: 'combatForecast' });
 
     contextEl.classList.toggle('is-shown', hover !== null || !contextNoticeEl.hidden);
 
@@ -1738,6 +1764,29 @@ async function boot(initial: Game | null): Promise<void> {
    * that has no unit to hand (the End Turn button, a city panel edit) cannot
    * accidentally blank a panel that should still be up.
    */
+  /**
+   * "There is somebody else out there" — the one tutorial note with no seam of
+   * its own.
+   *
+   * Every other trigger is a moment the interface already has (an overlay
+   * opening, a report the reducer handed back). Seeing a foreign piece for the
+   * first time is a *standing fact about the board*, so it is swept — and the
+   * sweep is gated on the note still being wanted, which is what keeps it from
+   * being a walk of every unit on every accepted command for the rest of the
+   * game. Once the note has been read the guard is false and this costs a
+   * boolean.
+   */
+  function noteEnemySighting(): void {
+    if (!tutorial.wantsTip('enemy')) return;
+    const seat = controls.localPlayerId();
+    for (const unit of game.state.units) {
+      if (unit.ownerId === seat) continue;
+      if (!isVisibleTo(game.state, seat, unit.col, unit.row)) continue;
+      tutorial.note({ kind: 'event', event: 'enemySeen' });
+      return;
+    }
+  }
+
   function updatePanel(_selected: Unit | null, hover: HoverInfo | null): void {
     updateStatus();
     renderSeats();
@@ -1776,6 +1825,16 @@ async function boot(initial: Game | null): Promise<void> {
     // else on this list — a unit that just moved, a queue that just filled, a
     // technology just chosen — so it is recomputed in the same one place.
     showEndTurnState(controls.endTurnBlocker());
+    // The guide's two halves of this beat. The selection is a *signal* — the
+    // opening sequence's second step is "select your settler", and the caravan's
+    // note is raised by picking one up — and it is read here rather than pushed
+    // from `controls` because this is the one place that runs after every kind
+    // of change to what is selected. The reposition is Entry XLVII's rule
+    // applied to a card that hangs off a panel: the unit sheet and the city
+    // screen are rebuilt on the commit path, so a highlight anchored to one has
+    // to be re-measured on the same beat or it points at where the panel was.
+    tutorial.note({ kind: 'select', unit: controls.selectedUnit()?.type ?? null });
+    tutorial.refresh();
 
     updateContext(hover);
   }
@@ -1864,6 +1923,10 @@ async function boot(initial: Game | null): Promise<void> {
     const player = playerById(game.state, seat);
     const offer = player?.pendingDiscovery;
     if (!offer) return;
+    // The guide's note about ruins, raised where the card is — the trigger is
+    // "this screen opened", which is a moment the interface already has, and
+    // never a poll (`tutorial.ts`).
+    tutorial.note({ kind: 'event', event: 'discoveryOffer' });
 
     const options = explainDiscoveryOffer(game.state, seat, offer).map((payoff) => {
       const parts: string[] = [];
@@ -1923,6 +1986,7 @@ async function boot(initial: Game | null): Promise<void> {
     const player = playerById(game.state, seat);
     if (!player) return;
     const sc = player.statecraft;
+    tutorial.note({ kind: 'event', event: 'statecraftOffer' });
 
     if (sc.pendingOrder !== undefined) {
       const offer = sc.pendingOrder;
@@ -2052,6 +2116,7 @@ async function boot(initial: Game | null): Promise<void> {
     const player = playerById(game.state, seat);
     const offer = player?.pantheon.pending;
     if (!offer) return;
+    tutorial.note({ kind: 'event', event: 'religionOffer' });
 
     offerCard.show(
       {
@@ -2208,6 +2273,7 @@ async function boot(initial: Game | null): Promise<void> {
     // An empty offer is what a spent roster leaves behind for one instant
     // (`settleRenownWindfall`); it blocks nothing and there is nothing to show.
     if (!offer || offer.options.length === 0) return;
+    tutorial.note({ kind: 'event', event: 'greatPersonOffer' });
 
     offerCard.show(
       {
@@ -2528,6 +2594,26 @@ async function boot(initial: Game | null): Promise<void> {
       // for everyone, because a seat comes back to it.
       if (seatId === controls.localPlayerId()) toasts?.show(entry);
       notifications?.refresh();
+    },
+    // The commit funnel, straight through to the guide: a tutorial step is
+    // advanced by the player's own deed, so "a `foundCity` was accepted" is the
+    // whole of what it needs. It is also where the notes that ride on a
+    // reducer's report are raised — the first bead, an age opening, a town going
+    // hungry — because those three are differences that stop existing the
+    // instant the command returns (`CommandResult`'s own docblock).
+    onCommand: (command, result) => {
+      tutorial.note({ kind: 'command', command: command.type });
+      if (!result.ok) return;
+      if (result.beads && result.beads.length > 0) {
+        tutorial.note({ kind: 'event', event: 'bead' });
+      }
+      if (result.beadAgeOpened !== undefined) {
+        tutorial.note({ kind: 'event', event: 'ageOpened' });
+      }
+      if (result.starved?.some((report) => report.ownerId === controls.localPlayerId())) {
+        tutorial.note({ kind: 'event', event: 'starved' });
+      }
+      noteEnemySighting();
     },
     closePopovers,
     inputBlocked: isInputBlocked,
@@ -3457,6 +3543,12 @@ async function boot(initial: Game | null): Promise<void> {
     controls.refresh(next === null ? 0 : resumeSeat(game.state));
     updateMapInfo();
     updatePanel(null, null);
+    // The guide, on the same two terms `boot` sets it on below: a fresh table
+    // gets the opening sequence, a resumed one never does (a save carries no
+    // tutorial state, so there is no way to know which of those steps were
+    // taken forty turns ago — see `Tutorial.resume`).
+    if (next === null) tutorial.begin();
+    else tutorial.resume();
     report();
     // The name follows the game, so an export straight after a load offers the
     // file the player recognises rather than the house default.
@@ -3557,6 +3649,16 @@ async function boot(initial: Game | null): Promise<void> {
     statecraft?.open();
   });
 
+  // The guide, from the top: the sequence *and* every one-time note, because a
+  // player asking for it again is almost always showing the game to somebody
+  // else. It also switches the guide back on, so the checkbox on the landing
+  // agrees with what is on screen the next time that screen is up.
+  menuTutorialButton.addEventListener('click', () => {
+    menu.close();
+    tutorial.replay();
+    tutorialToggle.checked = tutorial.enabled();
+  });
+
   menuExportButton.addEventListener('click', () => {
     resetSaveMenu();
     // Straight off the live game rather than out of a slot: Export is "give me
@@ -3589,4 +3691,8 @@ async function boot(initial: Game | null): Promise<void> {
   // `resumeSeat`). Everything above this line was built the same way either way.
   controls.refresh(initial === null ? 0 : resumeSeat(game.state));
   if (initial !== null) controls.announce(`Resumed at turn ${game.state.turn}.`);
+  // Last, after the camera has framed the board: the coach card is placed
+  // against elements the refresh above has just rebuilt.
+  if (initial === null) tutorial.begin();
+  else tutorial.resume();
 }

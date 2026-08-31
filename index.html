@@ -95,6 +95,15 @@
             <select id="seats"></select>
           </div>
 
+          <!-- The guide. On for a browser that has never been here, remembered
+               after that in localStorage and nowhere else — it is never in a
+               save (see src/ui/tutorial.ts). Unchecking it here is the whole of
+               turning it off; the ☰ menu is where it is asked for again. -->
+          <div class="row check landing-tutorial">
+            <input id="tutorial-toggle" type="checkbox" checked />
+            <label for="tutorial-toggle">Tutorial — walk me through my first turns</label>
+          </div>
+
           <div class="row landing-actions">
             <button id="start-game" class="btn btn-primary btn-start" type="submit">
               Start Game
@@ -542,6 +551,15 @@
           </button>
         </div>
 
+        <!-- The guide, asked for again. It starts the opening sequence from the
+             top and forgets every one-time note, so a player showing the game
+             to somebody else gets the whole of it back. -->
+        <div class="row">
+          <button id="menu-tutorial" class="btn btn-quiet" type="button">
+            Show the tutorial again
+          </button>
+        </div>
+
         <!-- Saving. Four verbs, in the order they are reached for: Save
              overwrites one quick slot without asking anything, Save As names a
              slot, Load opens the shelf, and Export hands the file to the player.
@@ -655,6 +673,11 @@
           </li>
           <li data-only="2d"><kbd>G</kbd> toggles the hex grid</li>
           <li><kbd>Esc</kbd> backs out: move mode, then this panel, then the selection</li>
+          <li>
+            The <b>tutorial</b> walks you through a first turn and explains each
+            new thing once as you reach it. Switch it on or off on the opening
+            screen, or ask for it again from <b>☰</b>
+          </li>
         </ul>
         <!-- The one link at the foot: everything this card used to list, and
              every table behind it. See src/ui/compendium.ts. -->
