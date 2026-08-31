@@ -38,7 +38,9 @@ import {
   TIPS,
   TUTORIAL_KEY,
   type TutorialMemory,
+  type TutorialSignal,
   type TutorialStorage,
+  cornerCard,
   advanceKey,
   nextStep,
   placeCard,
@@ -72,6 +74,20 @@ function prose(): string[] {
   return lines;
 }
 
+/** The signal that satisfies a step — the reducer's own reading, from outside. */
+function signalOf(advance: (typeof STEPS)[number]['advance']): TutorialSignal {
+  switch (advance.kind) {
+    case 'next':
+      return { kind: 'next' };
+    case 'select':
+      return { kind: 'select', unit: advance.unit };
+    case 'event':
+      return { kind: 'event', event: advance.event };
+    default:
+      return { kind: 'command', command: advance.command };
+  }
+}
+
 /** A shelf that lasts as long as the test — `memorySaveStorage`, two methods. */
 function fakeStorage(): TutorialStorage & { map: Map<string, string> } {
   const map = new Map<string, string>();
@@ -100,6 +116,29 @@ describe('the step table', () => {
       expect(step.title.length).toBeGreaterThan(0);
       expect(step.body.length).toBeGreaterThan(20);
     }
+  });
+
+  it('splits opening the star chart from aiming it', () => {
+    // The user, 2026-08-30: one card to open the chart, a second one, out of the
+    // way of the stars, to pick one. The first advances on the screen opening —
+    // which is not a command, because nothing about the world changed.
+    const open = STEPS.find((step) => step.id === 'openChart');
+    const aim = STEPS.find((step) => step.id === 'research');
+    expect(open?.advance).toEqual({ kind: 'event', event: 'techChartOpened' });
+    expect(aim?.advance).toEqual({ kind: 'command', command: 'chooseResearch' });
+    // The chart fills the window, so the second card takes a corner and has no
+    // element to sit beside.
+    expect(aim?.place).toBe('corner');
+    expect(aim?.anchor).toBeNull();
+    expect(STEPS.indexOf(open!)).toBeLessThan(STEPS.indexOf(aim!));
+  });
+
+  it('rings the settler on the board rather than a panel', () => {
+    const select = STEPS.find((step) => step.id === 'select');
+    expect(select?.board).toBe('settler');
+    // And keeps an element fallback, for the frame where the projection has no
+    // answer (the piece off screen, or a renderer with no projection at all).
+    expect(select?.anchor).not.toBeNull();
   });
 
   it('names a command the reducer actually has on every action step', () => {
@@ -183,6 +222,20 @@ describe('nextStep', () => {
     expect(after).toBe(FIRST_PROGRESS);
   });
 
+  it('advances on an event a step names, and skips it if it already happened', () => {
+    const chart = [
+      { id: 'p', anchor: null, title: 'P', body: 'p', advance: { kind: 'next' } },
+      { id: 'q', anchor: null, title: 'Q', body: 'q', advance: { kind: 'event', event: 'techChartOpened' } },
+    ] as const satisfies readonly (typeof STEPS)[number][];
+    expect(nextStep({ step: 1, done: false, satisfied: [] }, { kind: 'event', event: 'techChartOpened' }, chart).done).toBe(true);
+    // Opened early, from the first card: the step is satisfied and Next walks
+    // straight past it.
+    const early = nextStep(FIRST_PROGRESS, { kind: 'event', event: 'techChartOpened' }, chart);
+    expect(early.step).toBe(0);
+    expect(early.satisfied).toContain('q');
+    expect(nextStep(early, { kind: 'next' }, chart).done).toBe(true);
+  });
+
   it('advances an informational step on Next, and never on a deed', () => {
     expect(nextStep(FIRST_PROGRESS, { kind: 'next' }, steps).step).toBe(1);
     expect(nextStep(FIRST_PROGRESS, { kind: 'select', unit: 'warrior' }, steps)).toBe(
@@ -228,15 +281,7 @@ describe('nextStep', () => {
       expect(step).not.toBeNull();
       if (step === null) break;
       const advance = step.advance;
-      progress = nextStep(
-        progress,
-        advance.kind === 'next'
-          ? { kind: 'next' }
-          : advance.kind === 'select'
-            ? { kind: 'select', unit: advance.unit }
-            : { kind: 'command', command: advance.command },
-        STEPS,
-      );
+      progress = nextStep(progress, signalOf(advance), STEPS);
     }
     expect(progress.done).toBe(true);
     expect(guard).toBeLessThanOrEqual(STEPS.length);
@@ -342,6 +387,17 @@ describe('placeCard', () => {
   });
 });
 
+describe('cornerCard', () => {
+  it('takes the bottom-left, clear of the star chart\'s own furniture', () => {
+    const view = { width: 1280, height: 720 };
+    const card = { width: 272, height: 180 };
+    const at = cornerCard(card, view);
+    expect(at.left).toBeLessThan(view.width / 4);
+    expect(at.top + card.height).toBeLessThanOrEqual(view.height);
+    expect(at.top).toBeGreaterThan(view.height / 2);
+  });
+});
+
 describe('the copy', () => {
   it('never leaks an identifier onto the screen', () => {
     for (const line of prose()) {
@@ -388,7 +444,8 @@ describe('the wiring', () => {
     expect(controls).toContain('onCommand?.(command, result)');
 
     const main = source('main.ts');
-    expect(main).toContain("createTutorial({ storage: saveStorage, root: document.body })");
+    expect(main).toContain('createTutorial({');
+    expect(main).toContain('storage: saveStorage,');
     expect(main).toContain('onCommand: (command, result) =>');
     expect(main).toContain("tutorial.note({ kind: 'command', command: command.type })");
     // And no timer anywhere near it: a step advances on a deed.
@@ -408,6 +465,50 @@ describe('the wiring', () => {
     const main = source('main.ts');
     expect(main).toContain('tutorial.begin()');
     expect(main).toContain('tutorial.resume()');
+  });
+
+  /**
+   * The deployed bug of 2026-08-30, pinned so it cannot come back.
+   *
+   * `commit` in `controls.ts` is not the only place a command is dispatched: the
+   * star chart sends its own `chooseResearch` and the city screen its own
+   * `setCityProduction`, each for a stated reason of its own. Both were deaf to
+   * the guide until they reported into the same seam, and the two steps that ask
+   * for exactly those two commands simply never advanced. So: **every command a
+   * step names must be built in a file that reports.**
+   */
+  it('names no deed a screen could be deaf to', () => {
+    const funnels: Record<string, string> = {
+      'ui/controls.ts': 'reportCommand(command, result)',
+      'ui/techTree.ts': 'onCommitted?.(command, result)',
+      'ui/cityPanel.ts': 'options.onCommitted?.(command, result)',
+    };
+    for (const [file, call] of Object.entries(funnels)) {
+      expect(source(file), file).toContain(call);
+    }
+    for (const step of STEPS) {
+      if (step.advance.kind !== 'command') continue;
+      const built = Object.keys(funnels).filter((file) =>
+        source(file).includes(`type: '${step.advance.kind === 'command' ? step.advance.command : ''}'`),
+      );
+      expect(built, `${step.id} is dispatched from nowhere that reports`).not.toEqual([]);
+    }
+  });
+
+  it('wires both self-dispatching screens back into the funnel', () => {
+    const main = source('main.ts');
+    const wired = [...main.matchAll(/onCommitted: \(command, result\) => controls\.reportCommand/g)];
+    // The star chart and the city panel. A third screen that starts dispatching
+    // for itself joins them here.
+    expect(wired.length).toBe(2);
+  });
+
+  it('re-projects the board ring on the renderer\'s frame beat', () => {
+    const main = source('main.ts');
+    expect(main).toContain('tutorial.reposition()');
+    // Off the same projection the banners and the damage numbers use.
+    expect(main).toContain('renderer.projectCell');
+    expect(main).toContain("tutorial.note({ kind: 'event', event: 'techChartOpened' })");
   });
 
   it('anchors its highlights on elements that exist', () => {

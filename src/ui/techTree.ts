@@ -404,6 +404,14 @@ export interface TechTreeOptions {
   /** Called after a command lands, so the rest of the page catches up. */
   onChanged: () => void;
   /**
+   * A command this screen sent, and what the reducer said — accepted or not.
+   *
+   * `main.ts` hands it `controls.reportCommand`. Optional like `onOpen`: a page
+   * that mounts the chart without a board (there is none today) simply has no
+   * listener.
+   */
+  onCommitted?: (command: Command, result: ReturnType<typeof dispatch>) => void;
+  /**
    * Called as this screen opens, so whatever else was up can get out of the way.
    *
    * The same hook the HUD's popovers take, and it exists for the same reason:
@@ -544,6 +552,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     getGame,
     localPlayerId,
     onChanged,
+    onCommitted,
     onOpen,
   } = options;
 
@@ -676,6 +685,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   function send(command: Command): ReturnType<typeof dispatch> {
     const result = dispatch(getGame(), command);
     if (result.ok && unlocksFrom) unlocksFrom.commands += 1;
+    // This screen dispatches for itself (see above), so it reports for itself
+    // too — `controls.reportCommand`, the same seam the board's own funnel
+    // ends on. Without it a listener that watches what the player *does*
+    // never hears the one command this screen exists to send.
+    onCommitted?.(command, result);
     return result;
   }
 

@@ -133,7 +133,7 @@ import { faithPlates } from './ui/faithPlates';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
 import { type TriumphModal, createTriumphModal } from './ui/triumphModal';
-import { createTutorial } from './ui/tutorial';
+import { type Rect as TutorialRect, createTutorial } from './ui/tutorial';
 import { type ConfirmCard, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
 import { AXIS_MARK, beliefOfferEyebrow } from './ui/religionScreen';
@@ -510,7 +510,22 @@ const saveStorage = openSaveStorage();
  * `localStorage` itself — one probe, one fallback, and a private window loses
  * the tutorial's memory exactly as it loses a save's.
  */
-const tutorial = createTutorial({ storage: saveStorage, root: document.body });
+/**
+ * Where a named piece is on screen, once there is a board to ask.
+ *
+ * The guide is built at module level (above), and the renderer and the game are
+ * `boot`'s. This is the one thing it needs from them — the settler step rings the
+ * settler itself (the user, 2026-08-30) — so it is a holder `boot` fills, in the
+ * shape every other renderer-specific feature on `MapView` already has: absent
+ * under the frozen 2D pipelines, and the step falls back to its element anchor.
+ */
+let tutorialBoardAnchor: ((what: string) => TutorialRect | null) | null = null;
+
+const tutorial = createTutorial({
+  storage: saveStorage,
+  root: document.body,
+  boardAnchor: (what) => tutorialBoardAnchor?.(what) ?? null,
+});
 
 // The checkbox reads the remembered answer on first paint, and writes it back
 // on every change. `enabled` is the whole of the state — there is no second flag
@@ -2947,8 +2962,19 @@ async function boot(initial: Game | null): Promise<void> {
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
     onChanged: () => updatePanel(null, renderer.getHover()),
+    // The chart sends its own `chooseResearch` (see `send` in `techTree.ts`), so
+    // it reports it back into the board's funnel — otherwise everything watching
+    // what the player *does* is deaf to the one command this screen exists for.
+    onCommitted: (command, result) => controls.reportCommand(command, result),
     // Two full-screen screens at one z-index is one of them being invisible.
-    onOpen: () => abacus?.close(),
+    onOpen: () => {
+      abacus?.close();
+      // The chart opening is the guide's fourth step, and it is an *event*
+      // rather than a command: nothing about the world changed, so there is
+      // nothing in the commit funnel to read. Hooked here, at the screen's one
+      // open seam, so `T`, the research card and End Turn's blocker all count.
+      tutorial.note({ kind: 'event', event: 'techChartOpened' });
+    },
   });
 
   /**
@@ -3369,7 +3395,37 @@ async function boot(initial: Game | null): Promise<void> {
     onPick: () => {},
   });
 
+  /**
+   * The guide's ring, projected onto a piece.
+   *
+   * The **radius is in screen pixels around the hex's projected ground point**,
+   * lifted a little because a piece stands *above* its hex — the same offset the
+   * city banners take when they hang themselves off the identical point. A piece
+   * the camera has scrolled away answers `null` and the ring simply goes.
+   */
+  tutorialBoardAnchor = (what) => {
+    const project = renderer.projectCell;
+    if (project === undefined) return null;
+    const seat = controls.localPlayerId();
+    const piece = game.state.units.find((unit) => unit.ownerId === seat && unit.type === what);
+    if (piece === undefined) return null;
+    const point = project.call(renderer, piece.col, piece.row);
+    if (point === null || !point.onScreen) return null;
+    const radius = 34;
+    return {
+      left: point.x - radius,
+      top: point.y - radius - 22,
+      width: radius * 2,
+      height: radius * 2,
+    };
+  };
+
   renderer.setFrameListener?.(() => {
+    // The guide's ring, when it is hung on a *piece* rather than on a control:
+    // a hex's screen position is a function of the camera, so it rides the same
+    // beat every other board-anchored DOM element does. It measures nothing and
+    // does nothing at all while no ring is up.
+    tutorial.reposition();
     banners.reposition();
     damageNumbers.reposition();
     priceTags.reposition();
@@ -3387,6 +3443,8 @@ async function boot(initial: Game | null): Promise<void> {
     localPlayerId: () => controls.localPlayerId(),
     getCity: () => controls.openCity(),
     onClose: () => controls.setOpenCity(null),
+    // The panel dispatches for itself too — the star chart's argument exactly.
+    onCommitted: (command, result) => controls.reportCommand(command, result),
     isBuyMode: () => controls.isBuyMode(),
     setBuyMode: (on) => controls.setBuyMode(on),
     onOpenTrade: () => trade?.open(),

@@ -9976,6 +9976,15 @@ body.compendium-page {
   box-shadow: 0 0 0 9999px rgba(29, 26, 32, 0.38);
 }
 
+/* A piece on the board is round, and the ring around it has to be too — a
+   rectangle drawn over a hex reads as a selection box, which is a different
+   thing this interface already draws. The hole is projected from the piece's
+   own screen position every frame the renderer draws (see `Tutorial.reposition`),
+   so it tracks a pan and a zoom instead of sliding off. */
+.tutorial-scrim.is-round {
+  border-radius: 50%;
+}
+
 /* Only a real cutout gets a ring around it. */
 .tutorial-scrim.has-hole {
   outline: var(--border-thin) solid var(--vermilion);
@@ -10019,6 +10028,19 @@ body.compendium-page {
   font-size: 12px;
   line-height: 1.5;
   color: var(--ink);
+}
+
+/* The star chart's step: the chart fills the window, so the card takes the one
+   free corner and gets out of the way of the stars it is asking to be clicked.
+   Narrower and quieter than the anchored card — it is a caption on a screen,
+   not a card pointing at a control. */
+.tutorial-card.is-corner {
+  width: min(272px, calc(100vw - 24px));
+  padding: 10px 12px 10px;
+}
+
+.tutorial-card.is-corner .tutorial-title {
+  font-size: 1.16rem;
 }
 
 /* A note is the milder shape: it interrupts nothing, so it says so in vermilion

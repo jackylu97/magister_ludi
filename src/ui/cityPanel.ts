@@ -76,7 +76,7 @@ import {
   purchaseError,
   purchaseVerb,
 } from '../sim/purchase';
-import type { Command } from '../sim/commands';
+import type { Command, CommandResult } from '../sim/commands';
 import type { ConfirmRequest } from './confirmCard';
 import { type Game, dispatch } from '../sim/game';
 import { growthPercent, meterEffects } from '../sim/meters';
@@ -392,6 +392,13 @@ export interface CityPanelOptions {
   /** Called after a command lands, so the rest of the page can catch up. */
   onChanged: () => void;
   /**
+   * A command this panel sent, and what the reducer said.
+   *
+   * `main.ts` hands it `controls.reportCommand`, so a listener watching what the
+   * player does hears the queue this screen sets — see `report`.
+   */
+  onCommitted?: (command: Command, result: CommandResult) => void;
+  /**
    * Whether the board's Buy Tiles mode is up, and how to flip it.
    *
    * The mode itself lives in `controls.ts`, beside the click precedence it
@@ -693,6 +700,19 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     options.askConfirm ?? ((_request: ConfirmRequest, run: () => void): void => run());
   const setBuyMode = options.setBuyMode ?? ((): void => {});
 
+  /**
+   * Every dispatch this panel makes leaves through here.
+   *
+   * The panel sends its own commands rather than going through the board's
+   * funnel, so it reports its own — `controls.reportCommand`, the same seam
+   * that funnel ends on (see its docblock for why reporting beats routing).
+   * Answers the result so a call site stays one line.
+   */
+  function report(command: Command, result: CommandResult): CommandResult {
+    if (result.ok) options.onCommitted?.(command, result);
+    return result;
+  }
+
   /** Sends a queue and repaints. A refused command changes nothing at all. */
   function commit(city: City, queue: QueueItem[]): void {
     const command: Command = {
@@ -701,7 +721,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       cityId: city.id,
       queue,
     };
-    if (!dispatch(getGame(), command).ok) return;
+    if (!report(command, dispatch(getGame(), command)).ok) return;
     onChanged();
   }
 
@@ -719,7 +739,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       item,
       currency,
     };
-    if (!dispatch(getGame(), command).ok) return;
+    if (!report(command, dispatch(getGame(), command)).ok) return;
     onChanged();
   }
 
@@ -1610,7 +1630,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
             cityId: city.id,
             family,
           };
-          if (!dispatch(getGame(), command).ok) return;
+          if (!report(command, dispatch(getGame(), command)).ok) return;
           onChanged();
         },
       );

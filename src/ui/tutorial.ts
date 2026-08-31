@@ -6,7 +6,7 @@
  * and explain the bead system"*. What that turns into here is **two layers over
  * one table of prose**:
  *
- *   1. **The opening sequence** — nine steps, linear, from "select your settler"
+ *   1. **The opening sequence** — ten steps, linear, from "select your settler"
  *      to "end the turn". A parchment coach card sits beside a highlighted
  *      element with the rest of the screen dimmed, and an *action* step is
  *      advanced by the player's own deed rather than by a button. Nobody is ever
@@ -60,8 +60,10 @@
 /**
  * What advances a step.
  *
- * `next` is the informational step's button; the other two are the player's own
- * deed. A step that names a command names it as a plain string, because this
+ * `next` is the informational step's button; the other three are the player's
+ * own deed — an order the reducer accepted, a piece picked up, or a screen
+ * opening, which is the one kind of deed that is not a command (opening the star
+ * chart changes nothing about the world). A step that names a command names it as a plain string, because this
  * module has no business importing the reducer's discriminant — the pin that
  * keeps `src/sim` out of here is worth more than the two characters of type
  * safety, and the step table is asserted against the real command names by the
@@ -70,13 +72,36 @@
 export type StepAdvance =
   | { kind: 'next' }
   | { kind: 'command'; command: string }
-  | { kind: 'select'; unit: string };
+  | { kind: 'select'; unit: string }
+  | { kind: 'event'; event: string };
 
 export interface TutorialStep {
   /** Stable, and the key the memory records as satisfied. */
   id: string;
   /** The element the spotlight cuts out and the card sits beside, or `null`. */
   anchor: string | null;
+  /**
+   * A thing **on the board** to ring instead, named for the host to find.
+   *
+   * The user's note of 2026-08-30: the settler step should ring the settler, not
+   * a panel. A hex is not an element, so the step names *what* ("settler") and
+   * `TutorialOptions.boardAnchor` answers *where* — that is the whole of the
+   * split, and it is what keeps this module free of both the rules (which piece
+   * is a settler) and the renderer (where a hex lands on screen). It wins over
+   * `anchor` when it answers, and falls back to it when it does not: a piece
+   * scrolled off screen has no ring, and the card still has somewhere to be.
+   */
+  board?: string;
+  /**
+   * Where the card goes when a full-window screen is up.
+   *
+   * `'corner'` is the star chart's step (the user, 2026-08-30): the chart fills
+   * the viewport, so there is no element to sit beside and every star on it is
+   * something the player is being asked to click. The card takes the bottom-left
+   * — the one corner the chart's own furniture leaves alone, its close button
+   * being top-right and its head top-left — and shrinks while it is there.
+   */
+  place?: 'corner';
   /** Display face, one line. */
   title: string;
   /** Sans body. One paragraph — a step nobody reads is a step that ran long. */
@@ -87,10 +112,11 @@ export interface TutorialStep {
 /**
  * The opening sequence, in order.
  *
- * Nine steps, and the shape of them is the argument: the four that ask for a
- * deed (`select`, `command`) have **no Next button at all**, so the only way
- * past them is to do the thing. The five that merely explain something have
- * nothing to do and take the button. Skip is on every one of them.
+ * Ten steps, and the shape of them is the argument: the six that ask for a deed
+ * (`select`, `command`, and the star chart's `event`) have **no Next button at
+ * all**, so the only way past one is to do the thing. The three that merely
+ * explain something have nothing to do and take the button. Skip is on every one
+ * of them.
  */
 export const STEPS: readonly TutorialStep[] = [
   {
@@ -104,6 +130,7 @@ export const STEPS: readonly TutorialStep[] = [
   {
     id: 'select',
     anchor: 'unit-panel',
+    board: 'settler',
     title: 'Select your settler',
     body:
       'Your first piece is a settler: a wagon of people looking for somewhere to stop. Left click it on the board. Its sheet opens on the right and lists everything it can do — that sheet is where every piece in this game is given its orders.',
@@ -118,11 +145,20 @@ export const STEPS: readonly TutorialStep[] = [
     advance: { kind: 'command', command: 'foundCity' },
   },
   {
-    id: 'research',
+    id: 'openChart',
     anchor: 'hud-research',
-    title: 'Choose what to learn',
+    title: 'Open the star chart',
     body:
-      'This card is what your people are learning. Click it to open the star chart, then click a star to begin. Later stars need earlier ones and the chart queues those for you; hold Shift and click to line up more behind it. Learning is how you unlock new pieces, new buildings and new ways to work the land, and it is what carries you into the next age.',
+      'This card is what your people are learning, and right now that is nothing at all. Click it. The star chart opens over the board: every idea your people could have, and the order they have to come in.',
+    advance: { kind: 'event', event: 'techChartOpened' },
+  },
+  {
+    id: 'research',
+    anchor: null,
+    place: 'corner',
+    title: 'Aim at a star',
+    body:
+      'Click any star to start learning it. A star further out needs the ones before it and the chart lines those up for you; hold Shift and click to queue more behind what you have chosen. Learning is what unlocks new pieces, new buildings and new ways to work the land, and it is what carries you into the next age.',
     advance: { kind: 'command', command: 'chooseResearch' },
   },
   {
@@ -348,6 +384,8 @@ export function advanceKey(advance: StepAdvance): string | null {
       return `command:${advance.command}`;
     case 'select':
       return `select:${advance.unit}`;
+    case 'event':
+      return `event:${advance.event}`;
     default:
       return null;
   }
@@ -621,6 +659,18 @@ function clamp(at: { left: number; top: number }, card: Size, view: Size): { lef
   };
 }
 
+/**
+ * Where the card goes when a full-window screen owns the viewport.
+ *
+ * No anchor is involved: the screen *is* the anchor, and the only question is
+ * which corner of it is free. Bottom-left, because the star chart's head sits
+ * top-left, its close button top-right, and its plan strip is hidden for the
+ * whole of the turn this step happens on.
+ */
+export function cornerCard(card: Size, view: Size): { left: number; top: number } {
+  return clamp({ left: EDGE, top: view.height - card.height - EDGE }, card, view);
+}
+
 /** "Step 3 of 9" — the mono line, and the one place the sequence counts. */
 export function stepCount(index: number, total: number): string {
   return `Step ${index + 1} of ${total}`;
@@ -635,6 +685,15 @@ export interface TutorialOptions {
   root: HTMLElement;
   /** Finds a step's anchor. Defaults to the document. */
   anchor?: (id: string) => HTMLElement | null;
+  /**
+   * Finds a step's *board* anchor — the rectangle a named piece occupies on
+   * screen right now, or `null` when there is no such piece or it is off screen.
+   *
+   * Optional, like every renderer-specific feature on `MapView`: under the
+   * frozen 2D pipelines there is no projection, so this is simply never given
+   * and every step falls back to its element anchor.
+   */
+  boardAnchor?: (what: string) => Rect | null;
   /** True when the viewer has asked for less motion; the highlight then rests. */
   reducedMotion?: () => boolean;
 }
@@ -670,6 +729,16 @@ export interface Tutorial {
   wantsTip(id: string): boolean;
   /** Re-places whatever is up. Called on resize and wherever the panels rebuild. */
   refresh(): void;
+  /**
+   * Re-projects the ring, on the renderer's own frame beat.
+   *
+   * `refresh`'s cheap twin, and the split is `cityBanners`': a ring hung on a
+   * *hex* moves whenever the camera does, so it has to be driven by the frame
+   * listener — but the card's own size cannot have changed since the last draw,
+   * so this one never measures it. Measuring per frame is a forced layout per
+   * frame, which is the cost the render-on-demand loop exists to avoid.
+   */
+  reposition(): void;
   /** Puts the card away without deciding anything. A new game, a restart. */
   close(): void;
 }
@@ -681,7 +750,7 @@ interface TipShowing {
 }
 
 export function createTutorial(options: TutorialOptions): Tutorial {
-  const { storage, root } = options;
+  const { storage, root, boardAnchor } = options;
   const findAnchor = options.anchor ?? ((id: string) => root.ownerDocument.getElementById(id));
   const reducedMotion =
     options.reducedMotion ??
@@ -845,6 +914,7 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       return;
     }
     card.classList.remove('is-tip');
+    card.classList.toggle('is-corner', step.place === 'corner');
     eyebrow.textContent = stepCount(memory.progress.step, STEPS.length);
     title.textContent = step.title;
     body.textContent = step.body;
@@ -854,7 +924,8 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       memory.progress.step === STEPS.length - 1 ? 'Begin' : 'Next';
     skipButton.hidden = false;
     card.hidden = false;
-    scrim.hidden = false;
+    // No dimmer over a full-window screen; see `place`.
+    scrim.hidden = step.place === 'corner';
     place();
   }
 
@@ -871,13 +942,23 @@ export function createTutorial(options: TutorialOptions): Tutorial {
    * torn down and rebuilt on every accepted command — so a stored rectangle
    * would be a highlight one commit behind the panel it is highlighting.
    */
-  function place(): void {
+  /**
+   * The card's own box, measured at the last draw.
+   *
+   * Kept rather than read per frame: `offsetWidth` forces a layout, and the
+   * frame beat below runs on every frame the renderer draws. The content is the
+   * only thing that changes it, so it is re-measured exactly where the content
+   * is written.
+   */
+  let cardSize: Size = { width: 320, height: 200 };
+
+  function place(measure = true): void {
     if (card.hidden) return;
     const view = doc.defaultView;
-    const size: Size = {
-      width: card.offsetWidth || 320,
-      height: card.offsetHeight || 200,
-    };
+    if (measure) {
+      cardSize = { width: card.offsetWidth || 320, height: card.offsetHeight || 200 };
+    }
+    const size = cardSize;
     const viewport: Size = {
       width: view?.innerWidth ?? 1280,
       height: view?.innerHeight ?? 720,
@@ -885,7 +966,17 @@ export function createTutorial(options: TutorialOptions): Tutorial {
     const step = tip === null && running ? stepAt(memory.progress) : null;
     const anchorId = step?.anchor ?? null;
     const anchor = anchorId === null ? null : findAnchor(anchorId);
-    const rect = anchor === null || anchor.hidden ? null : boxOf(anchor);
+    // The board wins where it answers. A piece is what the step is *about*, and
+    // a panel that happens to be open is only ever the fallback.
+    const onBoard =
+      step?.board !== undefined && boardAnchor !== undefined ? boardAnchor(step.board) : null;
+    // A screen that fills the window has nothing to cut a hole in, and a dim
+    // laid over the chart would be the guide obscuring the very thing it is
+    // pointing at.
+    const rect =
+      step?.place === 'corner'
+        ? null
+        : (onBoard ?? (anchor === null || anchor.hidden ? null : boxOf(anchor)));
 
     if (rect === null) {
       // No hole: the shadow's spread still dims the window, and the collapsed
@@ -901,9 +992,13 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       scrim.style.height = `${rect.height + 12}px`;
     }
     scrim.classList.toggle('has-hole', rect !== null);
+    // A piece is round and a button is not: the cutout takes the shape of the
+    // thing it is ringing, or the ring reads as a box drawn over the board.
+    scrim.classList.toggle('is-round', onBoard !== null);
     scrim.classList.toggle('is-still', reducedMotion());
 
-    const at = placeCard(rect, size, viewport);
+    const at =
+      step?.place === 'corner' ? cornerCard(size, viewport) : placeCard(rect, size, viewport);
     card.style.left = `${at.left}px`;
     card.style.top = `${at.top}px`;
   }
@@ -944,7 +1039,8 @@ export function createTutorial(options: TutorialOptions): Tutorial {
     wantsTip(id) {
       return memory.enabled && !memory.seen.includes(id);
     },
-    refresh: place,
+    refresh: () => place(true),
+    reposition: () => place(false),
     close() {
       tip = null;
       running = false;
