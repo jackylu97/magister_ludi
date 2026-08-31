@@ -1343,14 +1343,13 @@ const PAUSE_LABELS: Record<StatecraftPause, string> = {
   government: 'A government awaits your oath',
 };
 
-function showEndTurnState(blocker: TurnBlocker | null): void {
-  const pause = game ? statecraftPause(game.state, controls.localPlayerId()) : null;
+function showEndTurnState(blocker: TurnBlocker | null, pause: StatecraftPause | null): void {
   endTurnLabelEl.textContent = blocker
     ? END_TURN_LABELS[blocker.kind]
     : pause
       ? PAUSE_LABELS[pause]
       : 'End Turn';
-  const waiting = blocker !== null || (game !== null && statecraftPause(game.state, controls.localPlayerId()) !== null);
+  const waiting = blocker !== null || pause !== null;
   endTurnButton.classList.toggle('btn-primary', !waiting);
   endTurnButton.classList.toggle('btn-quiet', waiting);
   endTurnButton.title = blocker
@@ -1840,7 +1839,7 @@ async function boot(initial: Game | null): Promise<void> {
     // Whether the turn may end is derived from the same state as everything
     // else on this list — a unit that just moved, a queue that just filled, a
     // technology just chosen — so it is recomputed in the same one place.
-    showEndTurnState(controls.endTurnBlocker());
+    showEndTurnState(controls.endTurnBlocker(), statecraftPause(game.state, controls.localPlayerId()));
     // The guide's two halves of this beat. The selection is a *signal* — the
     // opening sequence's second step is "select your settler", and the caravan's
     // note is raised by picking one up — and it is read here rather than pushed
