@@ -15,7 +15,8 @@
     "test:render": "vitest run test/render",
     "test:ui": "vitest run test/ui",
     "test:stress": "TEST_TIER=all vitest run test/stress",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "codex": "node scripts/codex.mjs"
   },
   "devDependencies": {
     "typescript": "^5.6.3",
