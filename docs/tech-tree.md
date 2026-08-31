@@ -68,6 +68,41 @@ Still deferred on rows: the King List, Colonial Charters' frontier clause, the I
 Post's and Knotted Cord's connected-science/authority halves, serfdom, chinampas/causeways.
 Æra V remains unbuilt and its nodes still assume The First Distillation as written.
 
+## The barebones re-cut (proposal, 2026-08-30 — the user: "start barebones… just the techs that upgrade units / enable key mechanics / enable key buildings")
+
+Ages I–II re-cut to sixteen nodes, each a unit, a mechanic or a planning-grade building; the
+flavour riders that wore node costumes (a node for +1 food on a granary) fold onto survivors
+or shelve. For the user to mark up; implementation on their word.
+
+```
+ÆRA I — OMENS (9)
+Agriculture ············ START · settler, warrior, scout, worker · farms
+ ├── Husbandry ········· horseman · pastures · reveals horses
+ │    └── The Wheel ···· chariot archer
+ ├── Mining ············ mines, quarries
+ │    ├── Bronzeworking · spearman (anti-cav) · barracks · reveals iron
+ │    └── Stonecraft ···· monument · palisade
+ ├── Earthenware ······· granary · plantations
+ │    ├── Letters ······· library
+ │    └── Divination ···· augur · shrine — THE PANTHEON
+ └── Sailing ··········· embark (civilians+scout) · fishing boats · Trireme
+
+ÆRA II — HEROES (7)
+Letters ──── Epic Poetry ····· Hall of Deeds + amphitheater · "the fallen become verse"
+Stonecraft ─ Kingship ········ Stele of Laws (+authority)
+Divination ─ Ancestor Rites ·· UNLOCKS GREAT PEOPLE · Ancestor Mound
+Divination + Stonecraft ─ The High Temple · temple · prophets — RELIGION PROPER
+Letters ──── Currency ········ TRADE ROUTES · market + bazaar
+Bronzeworking ─ Bronze Panoply · Phalanx (spearman upgrade)
+Sailing + Husbandry ─ Wayfinding · Harbour · MILITARY EMBARK · Bireme + War Galley
+```
+
+Folds: Calendar → plantations on Earthenware · Fletching → the archer ungated (or keep the
+node if ranged should gate) · Caravans → the bazaar on Currency · Deluge / Irrigation /
+Standing Stones / Long Count dropped as nodes (their lines become renewals on survivors or
+shelve; the Long Count's bead reveal onto Currency if kept). Wonders re-home to the nearest
+survivor.
+
 ## Part 1 — Standing determinations
 
 These outrank anything below that still reads otherwise.
