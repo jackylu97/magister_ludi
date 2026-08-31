@@ -13,7 +13,14 @@ const MAIN = import.meta.glob('../../src/main.ts', {
 
 describe('the statecraft offer chain checks its results', () => {
   it('captures every statecraft pick result and guides on refusal', () => {
-    for (const kind of ["'chooseOrder'", "'adoptGovernment'", "'chooseDoctrine'"]) {
+    for (const kind of [
+      "'chooseOrder'",
+      "'adoptGovernment'",
+      "'chooseDoctrine'",
+      "'chooseDiscovery'",
+      "'chooseBelief'",
+      "'chooseGreatPerson'",
+    ]) {
       const site = MAIN.indexOf(`type: ${kind}`);
       expect(site, kind).toBeGreaterThan(-1);
       const around = MAIN.slice(site - 400, site + 400);

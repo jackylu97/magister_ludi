@@ -1959,7 +1959,9 @@ async function boot(initial: Game | null): Promise<void> {
         widening: wideningLines('discovery'),
       },
       (index) => {
-        dispatch(game, { type: 'chooseDiscovery', playerId: seat, optionIndex: index });
+        // Checked, like every pick (the offer-loop bug of 2026-08-30).
+        const result = dispatch(game, { type: 'chooseDiscovery', playerId: seat, optionIndex: index });
+        if (!result.ok) controls.guide(`☞ ${result.error}`);
         controls.refresh();
       },
     );
@@ -2182,7 +2184,9 @@ async function boot(initial: Game | null): Promise<void> {
         }),
       },
       (index) => {
-        dispatch(game, { type: 'chooseBelief', playerId: seat, optionIndex: index });
+        // Checked, like every pick (the offer-loop bug of 2026-08-30).
+        const result = dispatch(game, { type: 'chooseBelief', playerId: seat, optionIndex: index });
+        if (!result.ok) controls.guide(`☞ ${result.error}`);
         // Which shelf the pick lands on is the *offer's* answer, never this
         // card's (`settleBeliefChoice`): an offer that names a pool belongs to
         // the religion, one that names none to the pantheon. So the line is read
@@ -2324,8 +2328,12 @@ async function boot(initial: Game | null): Promise<void> {
       },
       (index) => {
         const taken = offer.options[index];
-        dispatch(game, { type: 'chooseGreatPerson', playerId: seat, optionIndex: index });
-        if (taken !== undefined) announceRecruit(seat, taken);
+        // Checked (the offer-loop bug of 2026-08-30) — and the recruit is
+        // announced only when the reducer actually seated them: this arm can
+        // legitimately refuse-and-redraw when another seat took the name.
+        const result = dispatch(game, { type: 'chooseGreatPerson', playerId: seat, optionIndex: index });
+        if (!result.ok) controls.guide(`☞ ${result.error}`);
+        if (result.ok && taken !== undefined) announceRecruit(seat, taken);
         controls.refresh();
         statecraft?.refresh();
       },
