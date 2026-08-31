@@ -4189,3 +4189,46 @@ theme-triangle audit (which themes lack a trigger or a scaler — the map for th
 rework) → the posture kits into the tree worksheet's Æra III → the flips and named combos.
 
 ---
+
+## Entry LIII — The naive bot, and the balance doctrine (**built**, 2026-08-31)
+
+**Every unseated chair plays itself.** `nextBotCommand(state, playerId)` (`src/ai/bot.ts`) is
+pure — no rng of any kind (a bot on `state.rng` would move its decisions *inside* the seeded
+stream), no memory between calls, ties by array order — and returns one command or `null`;
+`driveBots` (`driver.ts`) loops it per non-human real seat and then ends that seat's turn. The
+creed, each clause a deliberate simplification with a named successor: pure · **omniscient**
+(fog-honest reads are a pass of their own) · greedy (validator-first, no search) · **peaceful
+toward real players** (no diplomacy state exists; a bot war would be a war nobody could end).
+It never reimplements a rule: every candidate is pre-validated by the sim's own gates, so a
+refused command is a bug (zero over 120 two-bot turns) — except `chooseGreatPerson`, whose
+refusal legitimately redraws. The waterfall: offer blockers → **spending** (gold purchases
+down the build list, then a soldier for an ungarrisoned town; faith buys augurs/prophets who
+consecrate, plant, rite, enhance) → cities → units → research. Every tunable in `data/ai.json`.
+
+**The one wiring ruling: bots play *before* the human's End Turn**, on `onBeforeEndTurn` —
+because the last `endTurn` resolves the turn inside its own dispatch, and `commit`'s report
+chain (raids, wonders, sieges, Triumphs, the turn card) reads that command's result. Bots
+after the human would hang the resolution on a rival's command and silently rob the player of
+a turn's news; bots first also makes "human finished, bot owing" unsaveable, so loading needs
+no special case. Their commands reach `reportCommand` (the funnel), never `commit` (a seat's
+own after-effects). The tutorial advances only on the local seat's deeds. "You vs one bot" is
+the new-game default; a bot seat is just `isHuman` left off — no schema change.
+
+**The balance doctrine** (ruled with the build): the bot is honest by construction (it can
+only emit commands through the reducer), so difficulty is **labelled handicap lines** in the
+ordinary yield folds — transparent cheating, hover-readable — never rules-cheats or combat
+rigging. The instrument is the **arena**: deterministic headless self-play over seeds,
+measuring the standard curves; balance the bot to the curve first (~70–80% of the t83 human
+baseline), wins second; tiers change the handicap, never the behavior. Later, **posture
+personas** (a weight vector per kit) turn the arena into the theme-balance probe — if the
+Sword persona never wins, the War Economy is underpriced. The ladder above v0: scored greedy
+on the sim's own explainers → one value currency + weights (`data/ai.json` is already the
+tuning surface) → search only where it pays (combat micro, operations) → self-play parameter
+tuning. The beads make goal-direction cheap: objectives are data with measurable progress.
+
+**Known profile note** (measured during the build): a 120-turn two-bot game spends ~97% of
+its wall clock in `runEndOfTurn`, superlinear past ~14 cities / 100 units — the thing to
+profile when end-of-turn latency matters. Deferred: fog-honesty, diplomacy state (the War
+Economy's duty cycle), great people act, `proclaim`, research goals, real draft valuation.
+
+---
