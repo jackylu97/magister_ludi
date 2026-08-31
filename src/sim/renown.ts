@@ -55,6 +55,7 @@ import { BUILDING_IDS, buildingDef } from './buildingData';
 import type { Family } from './greatPeopleData';
 import { drawGreatPersonOffer } from './greatPeople';
 import { RULES } from './rulesData';
+import { techsGrant } from './techData';
 import { citySpecialistYields } from './specialists';
 import {
   type City,
@@ -283,6 +284,15 @@ export function settleRenownWindfall(
       player.renownByFamily[grant.family] = (player.renownByFamily[grant.family] ?? 0) + grant.amount;
     }
   }
+
+  // **The gate** (the tree pass of 2026-08-30): until an empire keeps the
+  // ancestor rites, nobody answers its renown. The pool still fills — that is
+  // the point, and it is why the gate sits *after* the grants are banked rather
+  // than at the top: a realm that reaches the rites late finds a great person
+  // waiting the moment it does, instead of having thrown away the renown it
+  // earned getting there. Read through `techsGrant`, the one register for "may
+  // this empire do that", so moving the gate is one line of `data/techs.json`.
+  if (!techsGrant(player.techsResearched, 'ancestorRites')) return null;
 
   let first: GreatPersonOffer | null = null;
   for (;;) {

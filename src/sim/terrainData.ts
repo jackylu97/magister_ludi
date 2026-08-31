@@ -202,6 +202,21 @@ export interface TerrainDef {
    * passable and never narrow it — nothing here makes dry ground unwalkable.
    */
   embarkable: boolean;
+  /**
+   * True for the **deep** sea — the water no one crosses until The Astrolabe
+   * opens it (`oceanGoing`).
+   *
+   * `embarkable`'s complement rather than its negation, and a flag for that
+   * field's reason exactly: "which water is open once the ocean opens" is a
+   * fact about the terrain row, so an inland sea a later map adds joins by one
+   * field rather than by a clause in the movement evaluator. A lake is neither
+   * — it is water nobody crosses at all — which is precisely the distinction a
+   * negation could not have drawn.
+   *
+   * Read through `isOceanTerrain`, by `openWater` (`pathfind.ts`) and nowhere
+   * else.
+   */
+  deepWater: boolean;
   /** False when no citizen may ever work the tile (mountains). See the docblock. */
   workable: boolean;
   /** Movement points to enter; `null` means impassable. See the docblock. */
@@ -316,6 +331,17 @@ export function isWaterTerrain(id: TerrainId): boolean {
  */
 export function isEmbarkableTerrain(id: TerrainId): boolean {
   return TERRAIN_DATA.terrains[id].embarkable;
+}
+
+/**
+ * True when the terrain is the **deep ocean** — the water that opens at The
+ * Astrolabe and is impassable to everything before it.
+ *
+ * `isEmbarkableTerrain`'s complement, and asked beside it in the one place
+ * either is asked (`openWater`, `pathfind.ts`). See `TerrainDef.deepWater`.
+ */
+export function isOceanTerrain(id: TerrainId): boolean {
+  return TERRAIN_DATA.terrains[id].deepWater;
 }
 
 /**

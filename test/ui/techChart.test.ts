@@ -38,51 +38,40 @@ import {
 import { techColumnCount } from '../../src/sim/techData';
 
 /**
- * The lanes as they were authored before 2026-08-26: one lane per theme, seven
- * of them, the seventh holding Sailing alone. Written down rather than derived
- * because it is the *before* half of a before-and-after, and a before that could
- * be recomputed from the file would only ever equal the after.
+ * The lanes **before this chart was laid**: the file's own order, dealt into the
+ * five lanes column by column.
+ *
+ * The tree pass of 2026-08-30 replaced twenty-six nodes with fifty-three, so the
+ * hand-authored "before" table this file used to carry stopped describing a
+ * graph that exists — a before that names nodes the after does not have is not a
+ * comparison, it is a stale copy. What replaces it is the honest baseline for a
+ * graph nobody has laid yet: the same columns, the same edges, and the lanes a
+ * designer would get by simply typing the rows in.
+ *
+ * Derived rather than written down, which the old table could not be for its own
+ * good reason (a before that could be recomputed from the file would only ever
+ * equal the after) — and *can* be here, because this one is recomputed from the
+ * file's **order** and not from its lanes.
  */
-const LANES_BEFORE: Record<string, number> = {
-  // The High Temple did not exist when these lanes were recorded (religion v2,
-  // 2026-08-28). It is written into the *old* layout in the lane the new one
-  // gives it, so the comparison below measures the change this pass actually
-  // made rather than the arrival of a node the old chart never had.
-  theHighTemple: 3,
-  agriculture: 2,
-  husbandry: 0,
-  fletching: 1,
-  sailing: 6,
-  mining: 2,
-  earthenware: 3,
-  bronzeWorking: 2,
-  stonecraft: 3,
-  calendar: 4,
-  divination: 5,
-  theWheel: 0,
-  letters: 4,
-  ironWorking: 2,
-  construction: 1,
-  mathematics: 4,
-  currency: 3,
-  philosophy: 5,
-  engineering: 3,
-  drama: 4,
-  feudalism: 2,
-  machinery: 1,
-  theology: 5,
-  chivalry: 0,
-  steel: 2,
-  physics: 3,
-  education: 5,
-};
+function naiveLanes(): Record<string, number> {
+  const perColumn = new Map<number, number>();
+  const rows: Record<string, number> = {};
+  for (const id of TECH_IDS) {
+    const column = techDepth(id);
+    const next = perColumn.get(column) ?? 0;
+    perColumn.set(column, next + 1);
+    rows[id] = next % TECH_LANE_LIMIT;
+  }
+  return rows;
+}
 
-/** The same graph and the same columns, re-laid into the old lanes. */
+/** The same graph and the same columns, re-laid into the unlaid lanes. */
 function layoutBefore(): ChartLayout {
+  const before = naiveLanes();
   const now = techChartLayout();
   const cells = new Map<string, ChartCell>();
   for (const [id, cell] of now.cells) {
-    const row = LANES_BEFORE[id];
+    const row = before[id];
     expect(row, `${id} has no "before" lane recorded`).not.toBeUndefined();
     cells.set(id, { column: cell.column, row: row! });
   }
@@ -170,18 +159,27 @@ describe('the shipped lanes', () => {
   it('crosses less than the lanes it replaced', () => {
     const before = chartCrossings(layoutBefore());
     const after = chartCrossings(techChartLayout());
-    // The figures the 2026-08-26 re-lay was judged on. The inequality is the
-    // rule; the numbers are here so that a future re-lay has to say out loud
+    // **Re-measured for the tree pass of 2026-08-30.** The figures the
+    // 2026-08-26 re-lay was judged on were 25 against 11 over a twenty-six node
+    // graph; this chart holds fifty-three nodes and a hundred and four
+    // connectors, and the honest thing to say is that four times the graph
+    // crosses more. What the pair still measures is whether the lanes were
+    // *laid* — 323 for the same columns and the same edges dealt naively into
+    // the same five lanes, 179 for the layout in the file — so the inequality is
+    // the rule and the numbers are here so a future re-lay has to say out loud
     // which direction it moved them.
-    // 11 until religion v2 put The High Temple into column 3 (2026-08-28) —
-    // the one column the chart had already filled to four lanes. The lanes were
-    // re-tuned around it (Mathematics and Currency moved up one) to keep the
-    // rule that outranks a crossing: no connector runs flat through a node it is
-    // not joined to. A proper re-tune of the sky is the interface pass's, and
-    // this pin is what will measure it.
-    expect(before).toBe(25);
-    expect(after).toBe(15);
-    expect(after).toBeLessThanOrEqual(before);
+    //
+    // The lanes were searched rather than eyeballed this time (annealing on
+    // crossings, false chains and lane-continuation together), which is what
+    // `chartCrossings` was written for in the first place: a metric that can
+    // only be pointed at the current data cannot say whether the current data is
+    // any good, and this one was pointed at ninety thousand candidates.
+    //
+    // **Zero false chains is the claim that did not move** — see the test below
+    // — and it is the one the lane principle ranks above a crossing.
+    expect(before).toBe(323);
+    expect(after).toBe(179);
+    expect(after).toBeLessThan(before);
   });
 
   it('leaves exactly one crossing inside Age I, which is the minimum', () => {
@@ -190,12 +188,15 @@ describe('the shipped lanes', () => {
     // 1.4M ways to arrange Age I's four columns in five lanes finds one crossing
     // at best, and a hill climb finds the same at six, seven, eight and twelve.
     // Age I's own subgraph cannot be drawn flat, so one is the floor and this is
-    // a regression pin rather than an aspiration. The old lanes managed seven.
+    // a regression pin rather than an aspiration. The tree pass of 2026-08-30
+    // left Æra I's twelve nodes and their lanes exactly where they were, which
+    // is why this number did not move while every other figure in this file did.
     expect(chartCrossings(ageOne)).toBe(1);
+    const before = naiveLanes();
     expect(chartCrossings(ageOne)).toBeLessThan(
       chartCrossings({
         cells: new Map(
-          [...ageOne.cells].map(([id, cell]) => [id, { column: cell.column, row: LANES_BEFORE[id]! }]),
+          [...ageOne.cells].map(([id, cell]) => [id, { column: cell.column, row: before[id]! }]),
         ),
         edges: ageOne.edges,
       }),
@@ -241,6 +242,9 @@ describe('the shipped lanes', () => {
     const continuing = TECH_IDS.filter((id) =>
       techDef(id).prereqs.some((prereq) => techDef(prereq).row === techDef(id).row),
     );
+    // Thirty-three of the fifty-three, measured after the 2026-08-30 re-lay:
+    // the search optimised exactly this ratio alongside the crossings, because
+    // it is what makes a lane read as a line rather than as a shelf.
     expect(continuing.length).toBeGreaterThanOrEqual(TECH_IDS.length * 0.6);
     // And the root sits in the middle lane, so its five children fan evenly.
     expect(techDepth('agriculture')).toBe(0);

@@ -240,11 +240,11 @@ culture house; the **Examination Hall** and the **Qadi's Court** the empire-wide
 | **The Cataphract** ✱ | 280 | The Steppe Bow, Iron Working | **Cataphract** (cavalry premier; horses + iron; +3 vs ranged) · stables = pasture renewal (+1⚙) | ME | general | |
 | **The Halberd Wall** ✱ | 250 | Bronze Panoply, Engineering | **Spear Wall** (anti-cavalry premier; +50% vs mounted; fortifies twice as fast) | E | general | |
 | **The Examination Hall** | 175 | Kingship, Letters | **Examination Hall** (+3 authority capacity) · Great Warring Tribes' bar wakes · authority tier +5 → 10% becomes 15% | E | — (magistrate, later) | |
-| **The Qadi's Court** ✱ | 300 | The Examination Hall, The High Temple | captured cities cost one less authority · following cities +1 authority capacity per 3 · **Madrasa** = library renewal (+1🔬 +1🕯) | ME | scholar (madrasa) | The Conqueror's cap |
+| **The Qadi's Court** ✱ | 300 | The Examination Hall, The High Temple | Courthouse: can only be built in a captured city, removes authority penalty from being a captured city · **Madrasa** = library renewal (+1🔬 +1🕯) | ME | scholar (madrasa) | The Conqueror's cap |
 | **Colonial Charters** ✱ | 220 | Currency, Construction | settlers −25% · a new city starts with a Monument and a Granary · a city within 3 hexes of a foreign border costs no authority | W ME | | The Founder (eight founded) |
 | **The Knotted Cord** ✱ | 310 | Currency, Mathematics | each trade route +1🔬 · +1 authority capacity per 4 connected cities · the Trade screen shows every empire's routes | PC | | The Census endeavour's spirit |
 | **The Orrery of Bronze** | 200 | Mathematics, Rhetoric | library renewal (+1🔬 per library, +1 more with a Madrasa) · Antikythera | W | scholar | |
-| **Education** ⬆ ✎ | 810 → band | Rhetoric, The Examination Hall | **university** — the premiere science house · House of Wisdom, Forbidden City | ME E W | **scholar** (university) | The Library of the Realm (library + university in four) |
+| **Education** ⬆ ✎ | 810 → band | Rhetoric, The Examination Hall | **university** — the premiere science house: +20% science in this city, +2 scholar renown per turn · House of Wisdom, Forbidden City | ME E W | **scholar** (university) | The Library of the Realm (library + university in four) |
 
 ### Æra IV — The Age of Cathedrals (12 rows to cut to ~10, 480–810🔬)
 
@@ -253,7 +253,7 @@ the cathedral, the mint, the armoury, the ocean.
 
 | node | 🔬 | prereqs | package | tradition | renown | beads / needs |
 |---|---|---|---|---|---|---|
-| **Feudalism** ⬆ | 480 | The Legion, Currency | pikeman · **Castle** (+8 city defence) · serfdom (farms +1⚙ under an Order of the age) | W E | | The Bulwark (palisade + castle in four) |
+| **Feudalism** ⬆ | 480 | The Legion, Currency | pikeman · **Castle** (+5 city defence, +25 city hp) · serfdom (farms +1⚙ under an Order of the age) | W E | | The Bulwark (palisade + castle in four) |
 | **Machinery** ⬆ | 515 | Engineering, Construction | crossbowman · **Windmill** = workshop renewal (+2⚙ on flat cities) · Water Clock of Su Song | E | engineer (windmill, wonder) | |
 | **Theology** ⬆ | 565 | Rhetoric, Epic Poetry | monastery · **Cathedral** (+3🕯 +2 happiness) · rite The Mysteries · enhancers · the five wonders as built | W ME | **artist** (cathedral), scholar (wonders) | **The Cathedral of the Age** endeavour; The Cloister (temple + monastery + cathedral in four) |
 | **Chivalry** ⬆ | 615 | Feudalism, The Cataphract | knight · **Tourney Ground** (barracks renewal: +1 happiness, mounted +1) · Alhambra | W ME | general | |
@@ -261,10 +261,10 @@ the cathedral, the mint, the armoury, the ocean.
 | **Physics** ⬆ | 750 | Mathematics, Engineering | trebuchet · Machu Picchu | ME W | engineer (wonder) | |
 | **Paper Money** ✱ | 520 | Currency, Movable Type | *the Song's jiaozi, the Medici's ledger*: **Mint** building (+3🪙, purchases −10% in the city) · **Banking house** = market renewal (+2🪙) | E W ME | **merchant** (mint) | **The Mint** endeavour (a mint in every city) |
 | **The Silk Road** ✎ | 600 | Currency, The Imperial Post | **Caravanserai** (+2🪙, +1 route capacity) · imported luxuries count as held · routes reach two cities further · the Great Mosque's route line | E ME | merchant (caravanserai) | The Caravanserai quest (ten routes from one city) |
-| **Movable Type** | 640 | Letters, Machinery | **Printing House** (+2🔬 +2🎵) · every library +1🎵 · one extra Order offer per draft | E W | scholar/artist (printing house) | |
-| **The First Distillation** | 700 | Earthenware, Theology | **Distillery** = market renewal (+2🪙, +1 happiness with wine/spirits) — The Adepts and The Philosopher's Stone wake | ME E | merchant | |
+| **Movable Type** | 640 | Letters, Machinery | **Printing House** (+2🔬 +2🎵) · every library +1🎵 | E W | scholar/artist (printing house) | |
+| **The First Distillation** | 700 | Earthenware, Theology | **Distillery** = market renewal (+2🪙, +1 happiness with wine/spirits) — The Adepts and The Philosopher's Stone wake | ME E | merchant | | [REWORK, distillery seems too specific, lets replace with a different tech]
 | **The Astrolabe** ✱ | 520 | Physics, Wayfinding | **the ocean opens** · embarked +1 movement, +1 sight · **Caravel** ✱ (light, 22, mv 6) · **Carrack** ✱ (heavy, 32) · **Gun Galley** ✱ (naval ranged, 18 / 26 at range 2) · **Observatory** (+3🔬, +1 beside a mountain) | ME E W | **scholar** (observatory) | the Circumnavigator feat; The Fleet at sea |
-| **The Floating Fields** ✱ | 560 | Irrigation, The Knotted Cord | **Chinampas** (a worked water tile beside the city: +2🌾 +1🎵) · **Causeways**: a city on water counts as connected to any city it can see across it | PC | | The Breadbasket at sea |
+| **The Floating Fields** ✱ | 560 | Irrigation, The Knotted Cord | **Chinampas** (a worked water tile beside the city: +2🌾 +1🎵), can be built on coast | PC | | The Breadbasket at sea |
 
 **The House of Wisdom clash (flag):** the Encyclopaedia endeavour's prerequisite reads "a
 House of Wisdom in every city", but the House of Wisdom is a *wonder* (one per world). Either
@@ -275,17 +275,17 @@ the endeavour means the **university** (my reading — "the university's success
 
 | node | 🔬 | prereqs | package | kind | tradition | renown | needs |
 |---|---|---|---|---|---|---|---|
-| **The Luopan** | 900 | The Astrolabe, The First Distillation | the settler lens shows the land's veins · every city +1 sight | accelerant | E | | lens data |
-| **Fire Medicine** | 950 | The First Distillation, Physics | **Bombard**, **Rocket Arrows** · castle renewal +4 | power spike | E | general | |
+| **The Luopan** | 900 | The Astrolabe, The First Distillation | the settler lens shows the land's veins [what is this?] · every city +1 sight | accelerant | E | | lens data |
+| **Fire Medicine** | 950 | The First Distillation, Physics | **Bombard**, **Rocket Arrows** · ramparts (+5 city defense strength, +25 city hp) | power spike | E | general | |
 | **Square Rigging** ✱ | 980 | The Astrolabe, Shipwrights | **Corvette** ✱ (light, 28, mv 6) · **Ship of the Line** ✱ (heavy, 44) · **Frigate** ✱ (naval ranged, 28 / 38 at range 2, bombards) · **Drydock** = shipyard renewal (naval units +1 movement) | power spike | W (the carrack and the galleon) | engineer (drydock) | naval siege |
-| **The White Gold** | 1000 | The First Distillation, Earthenware | **Porcelain Works** mints a luxury no tile has | multiplier | E | merchant | manufactured luxury |
+| **The White Gold** | 1000 | The First Distillation, Earthenware | **Porcelain Works** gives the player one copy of porcelain: +1 prod and +1 gold to all cities (duplicate copies provide the same bonus, but don't supply extra happiness) | multiplier | E | merchant | manufactured luxury |
 | **The Perspective Glass** | 1050 | Education, The Astrolabe | every city +1 sight · Observatory renewal (+4🔬) · reveals every resource on explored land · wonder **The Astronomical Bureau** | multiplier | W E | scholar | a 28th wonder |
 | **The Clockwork Servant** | 1100 | Machinery, The Orrery of Bronze | **Clockwork Worker** (never expends charges) · Windmill +1⚙ | power spike | ME E | engineer | a row flag |
 | **The Obsidian Mirror** ✱ | 1150 | The Perspective Glass, The Long Count | every seat's beads and Opus progress visible · the capital sees 6 hexes · +1 die | accelerant | PC | | the deck (deferred) |
 | **The Loom That Remembers** | 1200 | The Silk Road, Movable Type | plantations +1🪙 +1🎵 · **Manufactory** = Forge renewal (+3⚙) · +25%⚙ toward buildings | multiplier | W | engineer | |
-| **Mesmerism** | 1250 | Theology, The Perspective Glass | **The Entranced Workforce** project | accelerant | W | | a meter-priced project |
+| **Mesmerism** | 1250 | Theology, The Perspective Glass | **The Entranced Workforce** project | accelerant | W | | a meter-priced project | [this idea seems kind of lame, lets replace with a different tech]
 | **The Paper Lantern That Lifted** | 1300 | Fire Medicine, The Perspective Glass | **Aerostat** · +1 happiness | power spike | E | | `unattackable` |
-| **The Calculating Engine** | 1400 | The Loom That Remembers, The Clockwork Servant | **The Engine** (+8🔬, +1 die per age, science +25% in its city) · Scholarship renewal | multiplier | W | scholar | dice |
+| **The Calculating Engine** | 1400 | The Loom That Remembers, The Clockwork Servant | **The Engine** (+8🔬, +1 die per age, science +25% in its city), can only be built once all cities have a university · Scholarship renewal | multiplier | W | scholar | dice |
 | **The Great Work** | 1500 | The Calculating Engine, The White Gold | **the Magnum Opus** | the win | ME W | | the Bead Race |
 
 ### The naval line (ruled 2026-08-29): three classes, no cargo hull

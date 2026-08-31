@@ -150,7 +150,7 @@ function slot(state: GameState, playerId: number, id: OrderId, level = 1): void 
 }
 
 /** A city for a player, on the tile their first unit is standing on. */
-import { found, game } from './statecraftHelpers';
+import { found, game, keepTheRites } from './statecraftHelpers';
 
 // --- the table --------------------------------------------------------------
 
@@ -1002,10 +1002,10 @@ describe('every hook family, end to end', () => {
 // --- determinism ------------------------------------------------------------
 
 describe('determinism', () => {
-  it('round-trips a schema 37 save with Statecraft in it', () => {
+  it('round-trips a schema 38 save with Statecraft in it', () => {
     // Bumped to 32 by the master-list cut of 2026-08-28: no new field, but the
     // balance table moved under every replay (see the version's own entry).
-    expect(SCHEMA_VERSION).toBe(37);
+    expect(SCHEMA_VERSION).toBe(38);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1196,7 +1196,10 @@ describe('rule 5 holds with cards active', () => {
     // composition is pinned by lending War Chief's science rider the era for the
     // length of this test and handing it straight back — the alternative is a
     // product nobody checks until the first card that wants one.
-    playerById(g.state, 0)!.techsResearched.push('currency' as never, 'mathematics' as never, 'philosophy' as never);
+    // An Æra-II empire. Re-read against the tree pass of 2026-08-30, which put
+    // Currency in Æra II and Mathematics and Rhetoric in Æra III — one node of
+    // the second age is all the era multiplier is being asked about.
+    playerById(g.state, 0)!.techsResearched.push('currency' as never);
     const rider = governmentDef('warChief').effects.find(
       (effect) => effect.kind === 'windfallRider' && effect.grant?.yield === 'science',
     ) as CardWindfallRiderEffect;
@@ -1883,6 +1886,7 @@ describe('the master-list cut of 2026-08-28', () => {
   it('onSlot — The Laureate calls one great person, and never a second', () => {
     const g = game();
     found(g.state, 0);
+    keepTheRites(g.state);
     const player = playerById(g.state, 0)!;
     const sc = player.statecraft;
     grant(sc, 'theLaureate');
@@ -2213,6 +2217,7 @@ describe('the governments’ deferred halves, built', () => {
   it('The Commonwealth sells the recruitment, and no other law does', () => {
     const g = game(317);
     found(g.state, 0);
+    keepTheRites(g.state);
     const player = playerById(g.state, 0)!;
     player.gold = 10_000;
     // Under the opening chiefdom there is no such verb at all.

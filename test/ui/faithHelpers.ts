@@ -121,7 +121,7 @@ export function faithWorld(): { state: GameState; ours: Religion; theirs: Religi
   // **Named outright** rather than left to the generator. A religion's name is
   // drawn from `state.rng` at the founding, and every seeded draw in the game
   // moved when `newGame` began shuffling the bead decks off that same stream
-  // (schema 37) — so a fixture that quoted a generated name was a fixture that
+  // (schema 38) — so a fixture that quoted a generated name was a fixture that
   // would break again the next time anything touched the opening rolls. What
   // these suites are about is what a *plate* says, not what a name generator
   // produces; `religionData.test.ts` is where the names themselves are pinned.

@@ -3,8 +3,8 @@
     "threshold": 20,
     "startingDice": 2,
     "handSize": {
-      "2": 4,
-      "3": 5
+      "3": 4,
+      "4": 5
     },
     "dealEveryTurns": 1
   },
@@ -120,7 +120,7 @@
   "endeavours": {
     "censusOfTheWorld": {
       "name": "The Census of the World",
-      "age": 2,
+      "age": 3,
       "cost": 120,
       "family": "science",
       "prerequisite": {
@@ -139,7 +139,7 @@
     },
     "theGreatGames": {
       "name": "The Great Games",
-      "age": 2,
+      "age": 3,
       "cost": 150,
       "family": "culture",
       "prerequisite": {
@@ -159,7 +159,7 @@
     },
     "theGrandCaravan": {
       "name": "The Grand Caravan",
-      "age": 2,
+      "age": 3,
       "cost": 180,
       "family": "economic",
       "prerequisite": {
@@ -179,7 +179,7 @@
     },
     "theGrandSatrapy": {
       "name": "The Grand Satrapy",
-      "age": 2,
+      "age": 3,
       "cost": 200,
       "family": "domination",
       "prerequisite": {
@@ -203,7 +203,7 @@
     },
     "theCathedralOfTheAge": {
       "name": "The Cathedral of the Age",
-      "age": 3,
+      "age": 4,
       "cost": 260,
       "family": "culture",
       "prerequisite": {
@@ -220,7 +220,7 @@
     },
     "theEncyclopaedia": {
       "name": "The Encyclopaedia",
-      "age": 3,
+      "age": 4,
       "cost": 280,
       "family": "science",
       "prerequisite": {
@@ -242,7 +242,7 @@
     },
     "theMint": {
       "name": "The Mint",
-      "age": 3,
+      "age": 4,
       "cost": 240,
       "family": "economic",
       "prerequisite": {
@@ -264,7 +264,7 @@
     },
     "theMusterOfTheRealm": {
       "name": "The Muster of the Realm",
-      "age": 3,
+      "age": 4,
       "cost": 220,
       "family": "domination",
       "prerequisite": {
@@ -289,7 +289,7 @@
     },
     "theExposition": {
       "name": "The Exposition",
-      "age": 3,
+      "age": 4,
       "cost": 380,
       "family": "culture",
       "prerequisite": {
@@ -310,7 +310,7 @@
   "quests": {
     "theRoadBuilder": {
       "name": "The Road-Builder",
-      "age": 2,
+      "age": 3,
       "family": "economic",
       "system": "trade",
       "text": "Bind the realm together by road.",
@@ -330,7 +330,7 @@
     },
     "theFounder": {
       "name": "The Founder",
-      "age": 2,
+      "age": 3,
       "family": "economic",
       "system": "cities",
       "text": "Found eight cities of your own. Cities taken from others do not count.",
@@ -347,7 +347,7 @@
     },
     "theConqueror": {
       "name": "The Conqueror",
-      "age": 2,
+      "age": 3,
       "family": "domination",
       "system": "war",
       "text": "Take three cities by force.",
@@ -367,7 +367,7 @@
     },
     "threeOfTheAge": {
       "name": "Three of the Age",
-      "age": 2,
+      "age": 3,
       "family": "culture",
       "system": "wonders",
       "text": "Hold three wonders of the age the world stands in.",
@@ -382,7 +382,7 @@
     },
     "theScholarsWager": {
       "name": "The Scholar's Wager",
-      "age": 2,
+      "age": 3,
       "family": "science",
       "system": "science",
       "text": "Stand two whole ages ahead of the most backward empire in the world.",
@@ -397,7 +397,7 @@
     },
     "theLibraryOfTheRealm": {
       "name": "The Library of the Realm",
-      "age": 2,
+      "age": 3,
       "family": "science",
       "system": "buildings",
       "text": "Hold a library and a university in four cities.",
@@ -416,7 +416,7 @@
     },
     "theWaterworks": {
       "name": "The Waterworks",
-      "age": 2,
+      "age": 3,
       "family": "economic",
       "system": "cities",
       "text": "Hold an aqueduct in four cities of ten citizens or more.",
@@ -435,7 +435,7 @@
     },
     "theSurveyor": {
       "name": "The Surveyor",
-      "age": 2,
+      "age": 3,
       "family": "economic",
       "system": "cities",
       "text": "Buy twenty hexes of ground across the game.",
@@ -453,7 +453,7 @@
     },
     "theApostle": {
       "name": "The Apostle",
-      "age": 2,
+      "age": 3,
       "family": "culture",
       "system": "religion",
       "text": "Have your faith followed by twenty citizens in cities you do not own.",
@@ -474,7 +474,7 @@
     },
     "theHierophant": {
       "name": "The Hierophant",
-      "age": 2,
+      "age": 3,
       "family": "culture",
       "system": "religion",
       "text": "Spend a great sum of faith on augurs and prophets across the game.",
@@ -491,7 +491,7 @@
     },
     "theTithe": {
       "name": "The Tithe",
-      "age": 2,
+      "age": 3,
       "family": "economic",
       "system": "projects",
       "text": "Gather a great sum of gold from tithes.",
@@ -510,7 +510,7 @@
     },
     "theScholarship": {
       "name": "The Scholarship",
-      "age": 2,
+      "age": 3,
       "family": "science",
       "system": "projects",
       "text": "Gather a great sum of learning from scholarship.",
@@ -529,7 +529,7 @@
     },
     "thePatron": {
       "name": "The Patron",
-      "age": 2,
+      "age": 3,
       "family": "science",
       "system": "great people",
       "text": "Plant three great works so that each one touches the other two.",
@@ -544,7 +544,7 @@
     },
     "theDeepening": {
       "name": "The Deepening",
-      "age": 2,
+      "age": 3,
       "family": "culture",
       "system": "Statecraft",
       "text": "Raise an Order to its third level and keep it slotted for ten turns together.",
@@ -560,7 +560,7 @@
     },
     "theLongReign": {
       "name": "The Long Reign",
-      "age": 2,
+      "age": 3,
       "family": "culture",
       "system": "Statecraft",
       "text": "Keep a council whose slotted Orders total fifteen levels for ten turns together.",
@@ -579,7 +579,7 @@
     },
     "theBreadbasket": {
       "name": "The Breadbasket",
-      "age": 2,
+      "age": 3,
       "family": "economic",
       "system": "cities",
       "text": "Keep one city fed to a hundred of food for ten turns together.",
@@ -599,7 +599,7 @@
     },
     "theForgeCity": {
       "name": "The Forge-City",
-      "age": 2,
+      "age": 3,
       "family": "economic",
       "system": "cities",
       "text": "Keep one city working to a hundred of production for ten turns together.",
@@ -619,7 +619,7 @@
     },
     "theMetropolis": {
       "name": "The Metropolis",
-      "age": 3,
+      "age": 4,
       "family": "culture",
       "system": "cities",
       "text": "Grow a city to twenty citizens.",
@@ -639,7 +639,7 @@
     },
     "theTwelve": {
       "name": "The Twelve",
-      "age": 3,
+      "age": 4,
       "family": "economic",
       "system": "cities",
       "text": "Hold twelve cities of six citizens or more.",
@@ -659,7 +659,7 @@
     },
     "theBuilder": {
       "name": "The Builder",
-      "age": 3,
+      "age": 4,
       "family": "culture",
       "system": "wonders",
       "text": "Hold ten wonders at once.",
@@ -674,7 +674,7 @@
     },
     "theLegacy": {
       "name": "The Legacy",
-      "age": 3,
+      "age": 4,
       "family": "culture",
       "system": "great people",
       "text": "Hold fifteen legacies that have not been struck from the record.",
@@ -692,7 +692,7 @@
     },
     "theLaureatesCourt": {
       "name": "The Laureate's Court",
-      "age": 3,
+      "age": 4,
       "family": "culture",
       "system": "great people",
       "text": "Plant a great work of every family inside one city's ground.",
@@ -709,7 +709,7 @@
     },
     "theDynasty": {
       "name": "The Dynasty",
-      "age": 3,
+      "age": 4,
       "family": "culture",
       "system": "great people",
       "text": "Call six great people during one age.",
@@ -728,7 +728,7 @@
     },
     "theEnhancer": {
       "name": "The Enhancer",
-      "age": 3,
+      "age": 4,
       "family": "culture",
       "system": "religion",
       "text": "Enhance your faith, and see a rival's seat of government take it up.",
@@ -745,7 +745,7 @@
     },
     "theStandingArmy": {
       "name": "The Standing Army",
-      "age": 3,
+      "age": 4,
       "family": "domination",
       "system": "war",
       "text": "Keep twenty fighting units under arms for ten turns together.",

@@ -104,7 +104,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "upgradesTo": "pikeman",
+      "upgradesTo": "phalanx",
       "modelClass": "melee",
       "glyph": "P"
     },
@@ -120,7 +120,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "requiresResource": "horses",
-      "upgradesTo": "knight",
+      "upgradesTo": "cataphract",
       "modelClass": "mounted",
       "glyph": "H"
     },
@@ -154,7 +154,8 @@
       "minCityPop": 0,
       "requiresResource": "horses",
       "modelClass": "mountedRanged",
-      "glyph": "Y"
+      "glyph": "Y",
+      "upgradesTo": "horseArcher"
     },
     "swordsman": {
       "name": "Swordsman",
@@ -168,7 +169,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "requiresResource": "iron",
-      "upgradesTo": "longswordsman",
+      "upgradesTo": "legionary",
       "modelClass": "melee",
       "glyph": "X"
     },
@@ -218,7 +219,8 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "modelClass": "melee",
-      "glyph": "I"
+      "glyph": "I",
+      "upgradesTo": "spearWall"
     },
     "crossbowman": {
       "name": "Crossbowman",
@@ -628,6 +630,122 @@
       "minCityPop": 0,
       "modelClass": "settler",
       "glyph": "G"
+    },
+    "phalanx": {
+      "name": "Phalanx",
+      "category": "military",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 110,
+      "combatStrength": 14,
+      "cost": 14,
+      "combatLines": [
+        {
+          "label": "Against mounted",
+          "amount": 6,
+          "vsModelClass": "mounted"
+        }
+      ],
+      "upgradesTo": "pikeman",
+      "modelClass": "melee",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "glyph": "L"
+    },
+    "legionary": {
+      "name": "Legionary",
+      "category": "military",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 110,
+      "combatStrength": 17,
+      "cost": 16,
+      "requiresResource": "iron",
+      "laysRoad": true,
+      "upgradesTo": "longswordsman",
+      "modelClass": "melee",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "glyph": "E"
+    },
+    "horseArcher": {
+      "name": "Horse Archer",
+      "category": "military",
+      "movement": 4,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 12,
+      "rangedStrength": 14,
+      "range": 2,
+      "cost": 20,
+      "requiresResource": "horses",
+      "modelClass": "mountedRanged",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "glyph": "S"
+    },
+    "cataphract": {
+      "name": "Cataphract",
+      "category": "military",
+      "movement": 4,
+      "sight": 2,
+      "maxHp": 120,
+      "combatStrength": 22,
+      "cost": 24,
+      "combatLines": [
+        {
+          "label": "Against ranged",
+          "amount": 3,
+          "vsKind": "ranged"
+        }
+      ],
+      "requiresResource": "horses",
+      "modelClass": "mounted",
+      "note": "Rides where there are horses. The doc asks for iron as well; a unit row names one resource.",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "glyph": "C",
+      "upgradesTo": "knight"
+    },
+    "spearWall": {
+      "name": "Spear Wall",
+      "category": "military",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 120,
+      "combatStrength": 20,
+      "cost": 21,
+      "combatLines": [
+        {
+          "label": "Against mounted",
+          "amount": 8,
+          "vsModelClass": "mounted"
+        }
+      ],
+      "modelClass": "melee",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "glyph": "J"
+    },
+    "warElephant": {
+      "name": "War Elephant",
+      "category": "military",
+      "movement": 3,
+      "sight": 2,
+      "maxHp": 130,
+      "combatStrength": 24,
+      "cost": 26,
+      "requiresResource": "ivory",
+      "modelClass": "mounted",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "glyph": "D"
     }
   }
 }

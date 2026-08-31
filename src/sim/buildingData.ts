@@ -215,6 +215,24 @@ export type CompletionGrant =
   | { grant: 'doctrineDraft' };
 
 export type BuildingId =
+  // The fourteen rows the tree pass of 2026-08-30 added, in the order the ages
+  // open them: the Heroes band's hall, stele and bazaar, the Empire band's
+  // harbour, baths, forum, examination hall, court, shipyard and castle, and
+  // the Cathedrals band's forge, caravanserai, printing house and observatory.
+  | 'hallOfDeeds'
+  | 'steleOfLaws'
+  | 'bazaar'
+  | 'harbour'
+  | 'baths'
+  | 'forum'
+  | 'examinationHall'
+  | 'courthouse'
+  | 'shipyard'
+  | 'castle'
+  | 'forge'
+  | 'caravanserai'
+  | 'printingHouse'
+  | 'observatory'
   | 'monument'
   | 'granary'
   | 'shrine'

@@ -79,37 +79,29 @@ export function isBeadFamily(value: unknown): value is BeadFamily {
 export type BeadKind = 'feat' | 'endeavour' | 'quest' | 'reckoning';
 
 /**
- * The ages that hold a deck — and **the keys are the built age numbers, not the
- * doc's numerals** (2026-08-30).
+ * The ages that hold a deck.
  *
  * `docs/beads.md` writes the two decks as Æra **III** (Empire) and Æra **IV**
- * (Cathedrals), which is the *re-banded* tree of `docs/tech-tree.md` Part 1,
- * ruling 1. The tree that exists today has three ages, and the Empire and
- * Cathedrals bands are its ages **2** and **3**. Since the phase deals off
- * `highestAge`, the keys have to be the numbers the tree actually produces or a
- * real game would deal nothing at all: nobody ever reaches an age 4, so an age-4
- * deck would sit face down for the whole game.
+ * (Cathedrals), and since the tree pass of 2026-08-30 those are the tree's own
+ * ages **3** and **4** — so the keys and the doc's numerals finally say the same
+ * thing. They were 2 and 3 until that pass, which is exactly what the note here
+ * promised would happen ("the tree pass renumbers these with the ages"); the
+ * paragraph explaining the mismatch is deleted rather than reworded, because
+ * there is no longer a mismatch to explain.
  *
- * So deck **2** is the doc's Æra III and deck **3** is the doc's Æra IV, and
- * `data/beads.json` carries the built numbers on every row. **The tree pass
- * renumbers these with the ages** — when Part 1's re-banding lands, these two
- * constants and the `age` field on every endeavour and quest move up by one, and
- * nothing else changes.
+ * A reckoning is taken at the **next** age's opening, so deck 3's reckonings are
+ * taken at the 3→4 opening and deck 4's at the 4→5 opening — which is the first
+ * thing Æra V will switch on, and the reason the fifth age is not in
+ * `TECH_AGES` until it has nodes.
  *
- * One consequence is worth stating rather than discovering: a reckoning is taken
- * at the **next** age's opening, so deck 2's reckonings are taken at the 2→3
- * opening and **deck 3's are never taken at all** until a fourth age exists.
- * That is the same dormancy the three `awaitsTech` buildings have, and it lifts
- * on the same day.
- *
- * Æra I holds no cards: it has feats only.
+ * Æra I and II hold no cards: they have feats only.
  */
-export type BeadAge = 2 | 3;
+export type BeadAge = 3 | 4;
 
-export const BEAD_DECK_AGES: readonly BeadAge[] = [2, 3];
+export const BEAD_DECK_AGES: readonly BeadAge[] = [3, 4];
 
 export function isBeadAge(value: unknown): value is BeadAge {
-  return value === 2 || value === 3;
+  return value === 3 || value === 4;
 }
 
 // --- what a deed can ask ----------------------------------------------------

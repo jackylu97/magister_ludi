@@ -90,7 +90,7 @@ import {
   foldCardRulePercent,
 } from './statecraft';
 import { type GameState, playerById } from './state';
-import { highestAge } from './techData';
+import { eraNumeral, highestAge } from './techData';
 import { isCoastal } from './water';
 
 const METERS = RULES.meters;
@@ -455,7 +455,7 @@ export function explainAuthority(
   // One line per advance rather than one line worth the lot: "Æra II +2" is the
   // gift the turn splash announced, and a player should be able to find it again.
   for (let age = 2; age <= agesAdvanced(state, playerId) + 1; age++) {
-    list.push({ source: `Æra ${'I'.repeat(age)}`, part: 'gain', value: rules.perAge });
+    list.push({ source: `Æra ${eraNumeral(age)}`, part: 'gain', value: rules.perAge });
   }
   // The writ an empire has *built*, after the writ it was born with and before
   // anything spends it: gains together, in the order they were earned.

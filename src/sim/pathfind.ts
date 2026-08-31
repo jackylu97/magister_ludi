@@ -86,7 +86,7 @@ import { RULES } from './rulesData';
 import { cardBorderZoc } from './statecraft';
 import { type GameState, type Unit, playerById } from './state';
 import { techsGrant } from './techData';
-import { isEmbarkableTerrain, moveCost } from './terrainData';
+import { type TerrainId, isEmbarkableTerrain, isOceanTerrain, moveCost } from './terrainData';
 import { isCoastal } from './water';
 import { type UnitDef, isCivilian, isCombatant, isExplorer, isNaval, unitDef } from './unitData';
 import { fullMovement, hasForeignUnit, hasStackingRoom } from './units';
@@ -212,6 +212,17 @@ export interface MoveProfile {
    */
   naval: boolean;
   /**
+   * True when this mover may cross the **deep ocean** — its owner holds The
+   * Astrolabe (`oceanGoing`).
+   *
+   * `embarks` widens what a land piece may enter and `naval` replaces the
+   * question outright; this widens *which water* either of them means, which is
+   * why it is a third flag and not a fourth arm. It is asked of a hull and of an
+   * embarked settler alike, so the day the ocean opens it opens for both at once
+   * — which is exactly what `tileMoveCost`'s docblock promised it would.
+   */
+  ocean: boolean;
+  /**
    * The **land** hexes a ship may stand on at all: coastal city centres, and
    * nothing else (the user's ruling, 2026-08-29 — "a coastal city's hex is the
    * one land hex a ship may enter; it garrisons there like any unit").
@@ -290,17 +301,25 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
   // degrees of one thing: a hull does not embark onto the water, it is refused
   // the land. Its ports are hoisted here for the sweep, beside the embark
   // lookup, so nothing downstream asks the state a second time.
+  const ocean = owner !== undefined && techsGrant(owner.techsResearched, 'oceanGoing');
   if (isNaval(def)) {
-    return { def, embarks: false, naval: true, ports: navalPorts(state) };
+    return { def, embarks: false, naval: true, ocean, ports: navalPorts(state) };
   }
   // A civilian, or the explorer (user, 2026-08-29: "sailing should also allow
   // scouts to embark") — the one combat unit that may take to the water, read
   // off its row's marker rather than its name, so a later explorer inherits it.
+  // Wayfinding's next step (`militaryEmbark`): a soldier may take to the water
+  // too. Read as a *widening of who* rather than as a second ability to cross
+  // with — `embark` is still the gate on the water itself, so an empire holding
+  // the second verb without the first embarks nobody, which is the honest
+  // reading of a tree where Wayfinding descends from Sailing.
+  const mayEmbark =
+    isCivilian(def) ||
+    isExplorer(def) ||
+    (owner !== undefined && techsGrant(owner.techsResearched, 'militaryEmbark'));
   const embarks =
-    (isCivilian(def) || isExplorer(def)) &&
-    owner !== undefined &&
-    techsGrant(owner.techsResearched, 'embark');
-  return { def, embarks, naval: false };
+    mayEmbark && owner !== undefined && techsGrant(owner.techsResearched, 'embark');
+  return { def, embarks, naval: false, ocean };
 }
 
 /**
@@ -337,6 +356,22 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
  * ability costs whatever the game says a step costs at minimum, and the "no
  * zero-cost edges" guarantee both searches settle on holds for a scout too.
  */
+/**
+ * The water this mover may be on at all: what the terrain table calls
+ * `embarkable` — coast — plus the **ocean**, once the mover's empire holds The
+ * Astrolabe.
+ *
+ * One reading, asked by both arms of the water clause below, which is what keeps
+ * "the ocean opened" from being two rules that could drift: a hull and an
+ * embarked settler cross exactly the same sea. It is a *widening* rather than a
+ * second table, so lakes and mountains stay untouched and nothing about the
+ * unopened game changes by a byte.
+ */
+function openWater(terrain: TerrainId, mover?: MoveProfile): boolean {
+  if (isEmbarkableTerrain(terrain)) return true;
+  return mover?.ocean === true && isOceanTerrain(terrain);
+}
+
 export function tileMoveCost(tile: Tile, mover?: MoveProfile): number | null {
   const ground = moveCost(tile.terrain, tile.feature, tile.hills);
   if (ground === null) {
@@ -344,10 +379,10 @@ export function tileMoveCost(tile: Tile, mover?: MoveProfile): number | null {
     // is deliberate: `isEmbarkableTerrain` is the one reading of "which sea is
     // open", so the day The Astrolabe opens the ocean it opens for both at once
     // and neither this function nor its four readers change.
-    if (mover?.naval === true && isEmbarkableTerrain(tile.terrain)) {
+    if (mover?.naval === true && openWater(tile.terrain, mover)) {
       return RULES.movement.minStepCost;
     }
-    if (!mover?.embarks || !isEmbarkableTerrain(tile.terrain)) return null;
+    if (!mover?.embarks || !openWater(tile.terrain, mover)) return null;
     return RULES.movement.embarkCost;
   }
   // **The land half of the naval rule, and it is a refusal.** A hull pays the

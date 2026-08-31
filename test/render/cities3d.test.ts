@@ -108,11 +108,23 @@ function convert(state: GameState, city: City, founderId: number): void {
   city.followers = { [id]: city.population };
 }
 
-/** Advances a seat into the era a tech belongs to. `highestAge` is the rule. */
-function ageUp(state: GameState, playerId: number, tier: number): void {
+/**
+ * Advances a seat into the era a tech belongs to. `highestAge` is the rule, so
+ * these are the **cheapest node of each age** rather than a list of names the
+ * test cares about — re-pinned by the tree pass of 2026-08-30, which renumbered
+ * every age band under them (Iron Working was Æra II and is Æra III now).
+ */
+function ageUp(state: GameState, playerId: number, era: number): void {
   const player = state.players[playerId]!;
-  if (tier >= 2) player.techsResearched = [...player.techsResearched, 'ironWorking'];
-  if (tier >= 3) player.techsResearched = [...player.techsResearched, 'feudalism'];
+  const opener: Record<number, string> = {
+    2: 'theDelugeRemembered',
+    3: 'construction',
+    4: 'theology',
+  };
+  for (let step = 2; step <= era; step++) {
+    const id = opener[step];
+    if (id) player.techsResearched = [...player.techsResearched, id as never];
+  }
 }
 
 interface Built {
@@ -174,10 +186,17 @@ describe('a town shows its era', () => {
     built.layer.dispose();
   });
 
-  it('has as many tiers as there are eras, and clamps past the last', () => {
+  it('has three sculpt tiers, and clamps every era past the last', () => {
+    // **Three sculpts, four eras** since the tree pass of 2026-08-30, and that
+    // is what the clamp has always been for: a fourth era's town is roofed like
+    // a third era's until the art pass draws it a fourth. The board never
+    // disagrees with the ledger about which *era* the town is in — `highestAge`
+    // is still the one derivation — only about how many roofs have been drawn.
     const state = townState();
     expect(cityTier(state, state.cities[0]!)).toBe(1);
     ageUp(state, 0, 3);
+    expect(cityTier(state, state.cities[0]!)).toBe(CITY_TIERS);
+    ageUp(state, 0, 4);
     expect(cityTier(state, state.cities[0]!)).toBe(CITY_TIERS);
   });
 

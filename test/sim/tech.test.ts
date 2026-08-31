@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
+import { BUILDING_IDS, buildingDef, isBuildingId } from '../../src/sim/buildingData';
 import { cityYields, foundCityAt } from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
@@ -51,8 +51,14 @@ import {
   techRowCount,
 } from '../../src/sim/techData';
 import { techGifts, unlockDataProblems } from '../../src/sim/techUnlocks';
+import {
+  anyCardDef,
+  liveEffects,
+  payWindfallGrants,
+  windfallPayout,
+} from '../../src/sim/statecraft';
 import { choose, config, researchingGame } from './techHelpers';
-import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../../src/sim/unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId, isUnitTypeId, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 
 const RESEARCH = RULES.research;
@@ -120,6 +126,29 @@ function grant(state: GameState, playerId: number, ...techs: TechId[]): void {
   for (const tech of techs) {
     if (!player.techsResearched.includes(tech)) player.techsResearched.push(tech);
   }
+}
+
+/**
+ * Grants everything a node **needs**, and not the node itself — the transitive
+ * closure of its prerequisites, asked of the table.
+ *
+ * Written for the tree pass of 2026-08-30, which doubled the tree: a
+ * hand-written list of the two names behind Iron Working was a list that went
+ * stale the moment a lane was re-cut, and it went stale as three-line
+ * assertions about swordsmen rather than as a sentence about prerequisites.
+ * This cannot go stale — it is the same walk `researchExpansion` makes.
+ */
+function grantPrereqs(state: GameState, playerId: number, id: TechId): void {
+  const need: TechId[] = [];
+  const walk = (at: TechId): void => {
+    for (const prereq of techDef(at).prereqs) {
+      if (need.includes(prereq)) continue;
+      walk(prereq);
+      need.push(prereq);
+    }
+  };
+  walk(id);
+  grant(state, playerId, ...need);
 }
 
 // ---------------------------------------------------------------------------
@@ -271,10 +300,20 @@ describe('tech data integrity', () => {
     // is Age III's floor sitting barely above Age II's ceiling: 480 against 305
     // is a gap on purpose, because the endgame was being swept in thirty-five
     // turns and is now sixty. The bands were [120, 250] and [255, 460].
+    //
+    // **Re-banded by the tree pass of 2026-08-30** (`docs/tech-tree.md` Part 3):
+    // four ages, and the two that were already built moved wholesale. The Heroes
+    // band is new and sits between the Omens ramp and the old 170 floor;
+    // Empire is the shipped Æra II band with Education pulled down to its
+    // ceiling; Cathedrals is the shipped Æra III band with Education gone from
+    // its top. Costs rise monotonically along **every** prerequisite chain now,
+    // which the pre-pass tree did not manage and which the assertion below is
+    // the whole of.
     const bands: Record<number, [number, number]> = {
       1: [8, 32],
-      2: [165, 310],
-      3: [475, 815],
+      2: [45, 130],
+      3: [170, 320],
+      4: [480, 780],
     };
     for (const id of TECH_IDS) {
       const def = techDef(id);
@@ -282,8 +321,19 @@ describe('tech data integrity', () => {
       expect(def.cost, id).toBeGreaterThanOrEqual(low);
       expect(def.cost, id).toBeLessThanOrEqual(high);
     }
-    // Three ages, all of them populated.
-    expect(new Set(TECH_IDS.map((id) => techDef(id).age))).toEqual(new Set([1, 2, 3]));
+    // Four ages, all of them populated. Æra V (Magister) is deliberately not in
+    // `TECH_AGES` until it has nodes — an age no technology belongs to is a
+    // payoff that can never arrive.
+    expect(new Set(TECH_IDS.map((id) => techDef(id).age))).toEqual(new Set([1, 2, 3, 4]));
+    // And no node is dearer than anything it needs, along every edge in the
+    // graph. Agriculture is the one exemption: it is the *starting* technology
+    // and its cost is what a seat begins already holding.
+    for (const id of TECH_IDS) {
+      for (const prereq of techDef(id).prereqs) {
+        if (prereq === 'agriculture') continue;
+        expect(techDef(prereq).cost, `${prereq} → ${id}`).toBeLessThanOrEqual(techDef(id).cost);
+      }
+    }
   });
 
   it('starts every player on real, prerequisite-free technologies', () => {
@@ -358,10 +408,11 @@ describe('star chart layout', () => {
     // so these are assertions about the *data*: a prerequisite added out of
     // order would flatten one of them into a single column.
     const chains: TechId[][] = [
-      ['earthenware', 'bronzeWorking', 'ironWorking', 'feudalism', 'chivalry'],
+      ['earthenware', 'bronzeWorking', 'ironWorking', 'theLegion', 'feudalism', 'chivalry'],
       ['bronzeWorking', 'ironWorking', 'steel'],
       ['agriculture', 'fletching', 'construction', 'engineering', 'machinery'],
-      ['earthenware', 'letters', 'philosophy', 'drama', 'theology', 'education'],
+      ['earthenware', 'letters', 'epicPoetry', 'philosophy', 'theology'],
+      ['letters', 'kingship', 'theExaminationHall', 'education'],
     ];
     for (const chain of chains) {
       const columns = chain.map((id) => techDepth(id));
@@ -371,12 +422,17 @@ describe('star chart layout', () => {
         );
       }
     }
-    // The whole chart, for scale: eight columns deep, five lanes tall. Seven
-    // lanes was what hand-authoring one theme per line had grown to, and the
-    // bottom one was below the fold of a 900px window; the 2026-08-26 re-lay
-    // (the lane principle, in `techData.ts`) put every tech back inside five —
-    // which is the floor, the widest column holding five techs.
-    expect(techColumnCount()).toBe(8);
+    // The whole chart, for scale: **twelve** columns deep, five lanes tall.
+    // Eight columns held twenty-six nodes; the tree pass of 2026-08-30 brought
+    // fifty-three, and the chart grew the way a dependency chart is supposed to
+    // — sideways, where it already scrolls — rather than downwards, where the
+    // fold is. Five lanes is still the height budget (`TECH_LANE_LIMIT`), and
+    // the tree was re-cut to fit it: **every** column holds exactly five nodes
+    // except the root's, which holds Agriculture alone, and the last, which
+    // holds the two deepest Æra IV nodes. That is not luck — the prerequisites
+    // were chained deliberately until each rung was five wide, which is also
+    // what makes each age read as three or four rungs rather than one fan.
+    expect(techColumnCount()).toBe(12);
     expect(techRowCount()).toBe(5);
   });
 
@@ -439,19 +495,14 @@ describe('star chart layout', () => {
       expect(band.from).toBe(before.to + 1);
       expect(band.age).toBeGreaterThan(before.age);
     }
-    // Which is: ÆRA I over the first three columns, II over the next three, III
-    // over the last two — the ages annotate the chart, they no longer place it.
-    // Column 3 used to be an even split (Letters and The Wheel against Iron
-    // Working and Construction) that the tie-break gave to the earlier age; The
-    // High Temple (religion v2) sits there too and carries the column for ÆRA
-    // II, so two ancient nodes now stand under the second numeral. That is the
-    // rule working — a band is a majority vote of the column, and the test below
-    // is the one that says how far adrift a node may ever be.
-    expect(bands).toEqual([
-      { age: 1, from: 0, to: 2 },
-      { age: 2, from: 3, to: 5 },
-      { age: 3, from: 6, to: 7 },
-    ]);
+    // Re-measured by the tree pass of 2026-08-30 rather than re-argued: a band
+    // is a *majority vote of the column* and always has been, so the runs below
+    // are read off the tree the same way the numerals are painted. Twelve
+    // columns, four ages, in order and contiguous — which is the property this
+    // test is actually about.
+    expect(bands.map((band) => band.age)).toEqual([1, 2, 3, 4]);
+    expect(bands[0]!.from).toBe(0);
+    expect(bands[bands.length - 1]!.to).toBe(techColumnCount() - 1);
   });
 
   it('never lands a tech more than one band away from its own age', () => {
@@ -515,7 +566,10 @@ describe('chooseResearch', () => {
     const plan = researchPlan(state.players[0]!);
     expect(plan[plan.length - 1]).toBe('ironWorking');
     expect(plan).toContain('bronzeWorking');
-    expect(plan).toContain('stonecraft');
+    // Iron Working descends from the Bronze Panoply and the works now, not from
+    // Stonecraft — the tree pass of 2026-08-30's Fire thread.
+    expect(plan).toContain('bronzePanoply');
+    expect(plan).toContain('construction');
     // The head is what the beakers are aimed at, and it is a node that can be
     // started right now.
     expect(state.players[0]!.researching).toBe(plan[0]);
@@ -709,7 +763,7 @@ describe('auto-upgrade', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 8, 5);
     unit.hp = 60;
-    grant(state, 0, 'bronzeWorking', 'stonecraft');
+    grantPrereqs(state, 0, 'ironWorking');
     connectIron(state, 0, 8, 5);
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
@@ -731,8 +785,12 @@ describe('auto-upgrade', () => {
     unit.hp = 50; // half of 100
     connectIron(state, 0, 8, 5);
     grant(state, 0, 'bronzeWorking', 'stonecraft', 'ironWorking', 'letters', 'theWheel');
-    grant(state, 0, 'husbandry', 'mathematics', 'fletching', 'construction', 'engineering');
-    grant(state, 0, 'machinery');
+    // The melee ladder is warrior → swordsman → **legionary** → longswordsman
+    // since the tree pass of 2026-08-30, so The Legion is part of what the
+    // longswordsman needs even though Steel does not descend from it.
+    grantPrereqs(state, 0, 'steel');
+    grantPrereqs(state, 0, 'theLegion');
+    grant(state, 0, 'theLegion');
     applyCommand(state, choose(0, 'steel'));
     state.players[0]!.sciencePool = techDef('steel').cost;
 
@@ -748,7 +806,7 @@ describe('auto-upgrade', () => {
     for (let i = 0; i < 3; i++) createUnit(state, 0, 'warrior', 8, 5 + i);
     createUnit(state, 0, 'scout', 4, 4);
     createUnit(state, 1, 'warrior', 2, 2); // another player's
-    grant(state, 0, 'bronzeWorking', 'stonecraft');
+    grantPrereqs(state, 0, 'ironWorking');
     connectIron(state, 0, 8, 5);
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
@@ -768,28 +826,17 @@ describe('auto-upgrade', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 8, 5);
     connectIron(state, 0, 8, 5);
-    // Everything the longswordsman needs, except the tech that finishes it.
-    grant(
-      state,
-      0,
-      'bronzeWorking',
-      'stonecraft',
-      'ironWorking',
-      'letters',
-      'fletching',
-      'husbandry',
-      'theWheel',
-      'mathematics',
-      'construction',
-      'engineering',
-      'machinery',
-    );
-    expect(upgradeTargetFor(state, unit)).toBe('swordsman');
+    // Everything the longswordsman needs, except the tech that finishes it —
+    // The Legion included, because the ladder runs through the legionary now.
+    grantPrereqs(state, 0, 'steel');
+    grantPrereqs(state, 0, 'theLegion');
+    grant(state, 0, 'theLegion');
+    expect(upgradeTargetFor(state, unit)).toBe('legionary');
 
     applyCommand(state, choose(0, 'steel'));
     state.players[0]!.sciencePool = techDef('steel').cost;
     advanceResearch(state);
-    // Warrior → swordsman → longswordsman, in one resolution.
+    // Warrior → swordsman → legionary → longswordsman, in one resolution.
     expect(state.units[0]!.type).toBe('longswordsman');
   });
 
@@ -800,7 +847,7 @@ describe('auto-upgrade', () => {
     // `buildError` keeps at the queue.
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 8, 5);
-    grant(state, 0, 'bronzeWorking', 'stonecraft');
+    grantPrereqs(state, 0, 'ironWorking');
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
     advanceResearch(state);
@@ -816,7 +863,8 @@ describe('auto-upgrade', () => {
     // capture, a founding) need not know about upgrades at all.
     const state = flatState();
     createUnit(state, 0, 'warrior', 8, 5);
-    grant(state, 0, 'bronzeWorking', 'stonecraft', 'ironWorking');
+    grantPrereqs(state, 0, 'ironWorking');
+    grant(state, 0, 'ironWorking');
     advanceResearch(state);
     expect(state.units[0]!.type).toBe('warrior');
     connectIron(state, 0, 8, 5);
@@ -828,7 +876,7 @@ describe('auto-upgrade', () => {
   it('charges retooling gold when the rules ask for it, and stops when it runs out', () => {
     const state = flatState();
     for (let i = 0; i < 3; i++) createUnit(state, 0, 'warrior', 8, 5 + i);
-    grant(state, 0, 'bronzeWorking', 'stonecraft');
+    grantPrereqs(state, 0, 'ironWorking');
     connectIron(state, 0, 8, 5);
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
@@ -855,7 +903,7 @@ describe('auto-upgrade', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 8, 5);
     unit.movesLeft = 2;
-    grant(state, 0, 'bronzeWorking', 'stonecraft');
+    grantPrereqs(state, 0, 'ironWorking');
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
     advanceResearch(state);
@@ -865,7 +913,7 @@ describe('auto-upgrade', () => {
   it('reports what changed, in words', () => {
     const state = flatState();
     for (let i = 0; i < 3; i++) createUnit(state, 0, 'warrior', 8, 5 + i);
-    grant(state, 0, 'bronzeWorking', 'stonecraft');
+    grantPrereqs(state, 0, 'ironWorking');
     connectIron(state, 0, 8, 5);
     const before = researchSnapshot(state, 0);
 
@@ -980,8 +1028,8 @@ describe('glanceable numbers', () => {
 // ---------------------------------------------------------------------------
 
 describe('research in the log', () => {
-  it('round-trips a schema 37 save with research in it', () => {
-    expect(SCHEMA_VERSION).toBe(37);
+  it('round-trips a schema 38 save with research in it', () => {
+    expect(SCHEMA_VERSION).toBe(38);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1036,16 +1084,23 @@ describe('the research queue', () => {
 
   it('expands a locked node by prerequisite depth, then roster order', () => {
     const state = flatState();
-    // Iron Working from the opening kit needs five nodes under it, spread over
-    // three depths. Depth first — so nothing is ever queued before something it
-    // needs — and `TECH_IDS` order within a depth, because a sort that fell back
-    // on anything else would be a sort a replay could disagree with.
+    // Iron Working from the opening kit needs eleven nodes under it, spread over
+    // six depths — the tree pass of 2026-08-30 put the Bronze Panoply and the
+    // works behind it. Depth first, so nothing is ever queued before something
+    // it needs, and `TECH_IDS` order within a depth, because a sort that fell
+    // back on anything else would be a sort a replay could disagree with.
     expect(researchExpansion(state, 0, 'ironWorking')).toEqual([
       'husbandry',
+      'fletching',
       'mining',
       'earthenware',
       'bronzeWorking',
-      'stonecraft',
+      'calendar',
+      'theWheel',
+      'irrigation',
+      'caravans',
+      'bronzePanoply',
+      'construction',
       'ironWorking',
     ]);
     // Every entry stands behind everything it needs.
@@ -1060,7 +1115,13 @@ describe('the research queue', () => {
     grant(state, 0, 'mining', 'earthenware', 'bronzeWorking');
     expect(researchExpansion(state, 0, 'ironWorking')).toEqual([
       'husbandry',
-      'stonecraft',
+      'fletching',
+      'calendar',
+      'theWheel',
+      'irrigation',
+      'caravans',
+      'bronzePanoply',
+      'construction',
       'ironWorking',
     ]);
   });
@@ -1071,10 +1132,16 @@ describe('the research queue', () => {
     const player = state.players[0]!;
     expect(player.researching).toBe('husbandry');
     expect(player.researchQueue).toEqual([
+      'fletching',
       'mining',
       'earthenware',
       'bronzeWorking',
-      'stonecraft',
+      'calendar',
+      'theWheel',
+      'irrigation',
+      'caravans',
+      'bronzePanoply',
+      'construction',
       'ironWorking',
     ]);
     expect(researchPlan(player)).toEqual(['husbandry', ...player.researchQueue!]);
@@ -1126,15 +1193,30 @@ describe('the research queue', () => {
 
     // Bronzeworking goes, and Iron Working goes with it — a plan holding a node
     // whose prerequisite has been pulled out is a plan that lies.
+    // The Wheel, the Panoply, the caravans and the works all descend from it, so
+    // the whole tail of the plan goes with the one node that was pulled.
     expect(applyCommand(state, drop(0, 'bronzeWorking'))).toEqual({ ok: true });
-    expect(researchPlan(player)).toEqual(['husbandry', 'mining', 'earthenware', 'stonecraft']);
+    expect(researchPlan(player)).toEqual([
+      'husbandry',
+      'fletching',
+      'mining',
+      'earthenware',
+      'calendar',
+      'irrigation',
+    ]);
 
     // Dropping the head promotes whatever stood behind it, and spends nothing.
     player.sciencePool = 33;
     expect(applyCommand(state, drop(0, 'husbandry'))).toEqual({ ok: true });
-    // Stonecraft needed Husbandry, so it went too.
-    expect(researchPlan(player)).toEqual(['mining', 'earthenware']);
-    expect(player.researching).toBe('mining');
+    // Nothing left in the plan needed Husbandry, so nothing followed it out.
+    expect(researchPlan(player)).toEqual([
+      'fletching',
+      'mining',
+      'earthenware',
+      'calendar',
+      'irrigation',
+    ]);
+    expect(player.researching).toBe('fletching');
     expect(player.sciencePool).toBe(33);
   });
 
@@ -1240,14 +1322,20 @@ describe('the research queue', () => {
     // And nothing lands sooner than its place in the queue, however full the
     // pool is — `settleResearch` completes at most one a resolution.
     state.players[0]!.sciencePool = 100_000;
-    expect(queueTurns(state, 0).map((step) => step.turns)).toEqual([1, 2, 3, 4, 5, 6]);
+    // One a turn, all twelve of them, however full the pool is.
+    expect(queueTurns(state, 0).map((step) => step.turns)).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+    ]);
   });
 
   it('replays a queued game byte-identically', () => {
     const game = researchingGame();
     expect(dispatch(game, queue(0, 'ironWorking', 'replace')).ok).toBe(true);
     expect(dispatch(game, queue(0, 'sailing', 'append')).ok).toBe(true);
-    expect(dispatch(game, drop(0, 'stonecraft')).ok).toBe(true);
+    // Bronzeworking is in Iron Working's expansion, so this is a real dequeue
+    // that takes a tail with it — the tree pass of 2026-08-30 moved Stonecraft
+    // off that path.
+    expect(dispatch(game, drop(0, 'bronzeWorking')).ok).toBe(true);
     for (let turn = 0; turn < 25; turn++) {
       for (const player of game.state.players) {
         dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1260,3 +1348,142 @@ describe('the research queue', () => {
 
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+
+/**
+ * The structural rulings of the tree pass of 2026-08-30 (`docs/tech-tree.md`
+ * Part 1), each pinned as the fact it is rather than as a number that happened
+ * to come out right. What is on trial is the *shape*: ids that are forever, a
+ * node deleted and its rows re-homed, the ages a renumber reaches, the ladders
+ * a unit climbs, and the tenth source that makes a technology a card.
+ */
+describe('the tree pass of 2026-08-30', () => {
+  it('keeps every shipped id, and deletes exactly one', () => {
+    // **Ids are forever.** Philosophy wears the display name *Rhetoric* and is
+    // still `philosophy`; a save that named it replays. Drama is the one row
+    // that went, and a v37 log naming it is dead — which is the schema bump's
+    // note, in so many words.
+    for (const id of [
+      'agriculture', 'husbandry', 'fletching', 'sailing', 'mining', 'earthenware',
+      'bronzeWorking', 'stonecraft', 'calendar', 'divination', 'theWheel', 'letters',
+      'ironWorking', 'construction', 'mathematics', 'currency', 'philosophy',
+      'theHighTemple', 'engineering', 'feudalism', 'machinery', 'theology',
+      'chivalry', 'steel', 'physics', 'education',
+    ]) {
+      expect(isTechId(id), id).toBe(true);
+    }
+    expect(isTechId('drama')).toBe(false);
+    expect(techDef('philosophy').name).toBe('Rhetoric');
+  });
+
+  it("re-homes Drama's rows on Epic Poetry, and Theology's prerequisites with them", () => {
+    const gifts = techDef('epicPoetry').unlocks.buildings ?? [];
+    expect(gifts).toContain('amphitheater');
+    expect(gifts).toContain('theatreOfDionysus');
+    // Unlocked once and by one node: a building gated twice is a building whose
+    // gate depends on which node the player happened to take first.
+    expect(BUILDING_UNLOCK_TECH.get('amphitheater')).toBe('epicPoetry');
+    expect(BUILDING_UNLOCK_TECH.get('theatreOfDionysus')).toBe('epicPoetry');
+    expect(techDef('theology').prereqs).toEqual(['philosophy', 'epicPoetry']);
+  });
+
+  it('re-chains the spear line and the melee line', () => {
+    // spearman → phalanx → pikeman → spear wall, and warrior → swordsman →
+    // legionary → longswordsman. Read off the rows, because `upgradeTargetFor`
+    // walks them and a chain with a hole in it is a unit that stops improving.
+    expect(unitDef('spearman').upgradesTo).toBe('phalanx');
+    expect(unitDef('phalanx').upgradesTo).toBe('pikeman');
+    expect(unitDef('pikeman').upgradesTo).toBe('spearWall');
+    expect(unitDef('spearWall').upgradesTo).toBeUndefined();
+    expect(unitDef('warrior').upgradesTo).toBe('swordsman');
+    expect(unitDef('swordsman').upgradesTo).toBe('legionary');
+    expect(unitDef('legionary').upgradesTo).toBe('longswordsman');
+    // And no chain loops: every ladder ends.
+    for (const id of UNIT_TYPE_IDS) {
+      const seen = new Set<string>([id]);
+      let at = unitDef(id).upgradesTo;
+      while (at !== undefined) {
+        expect(seen.has(at), `${id} loops at ${at}`).toBe(false);
+        seen.add(at);
+        at = unitDef(at).upgradesTo;
+      }
+    }
+  });
+
+  it('brings every hull home to its own age’s naval node', () => {
+    const home: Record<string, string> = {
+      trireme: 'sailing',
+      bireme: 'wayfinding',
+      warGalley: 'wayfinding',
+      galley: 'shipwrights',
+      towerShip: 'shipwrights',
+      fireShip: 'shipwrights',
+      caravel: 'theAstrolabe',
+      carrack: 'theAstrolabe',
+      gunGalley: 'theAstrolabe',
+    };
+    for (const [hull, tech] of Object.entries(home)) {
+      expect(UNIT_UNLOCK_TECH.get(hull as never), hull).toBe(tech);
+    }
+    // The Æra V hulls still wait: their node has not been written.
+    for (const hull of ['corvette', 'shipOfTheLine', 'frigate'] as const) {
+      expect(UNIT_UNLOCK_TECH.get(hull), hull).toBeUndefined();
+      expect(unitDef(hull).awaitsTech, hull).toBe(true);
+    }
+  });
+
+  it('is liveEffects’ tenth source: a technology is a card, and folds like one', () => {
+    // The fold identity every other source keeps: what `liveEffects` reports for
+    // a node is exactly the node's own row, labelled, at level one — nothing
+    // scaled, nothing re-derived.
+    const state = flatState();
+    const player = state.players[0]!;
+    const held = TECH_IDS.filter((id) => (techDef(id).effects ?? []).length > 0);
+    expect(held.length).toBeGreaterThan(0);
+
+    // Nothing held, nothing said.
+    const before = liveEffects(state, 0).filter((entry) => isTechId(entry.card));
+    expect(before).toEqual([]);
+
+    for (const id of held) grant(state, 0, id);
+    const live = liveEffects(state, 0).filter((entry) => isTechId(entry.card));
+    // One line per clause, in row order, in the order the technologies were
+    // learnt — and never a `conditionRule`, which `liveEffects` flattens.
+    const expected = held.flatMap((id) =>
+      (techDef(id).effects ?? []).map((effect) => ({
+        source: `Technology · ${techDef(id).name}`,
+        card: id,
+        level: 1,
+        effect,
+      })),
+    );
+    expect(live).toEqual(expected);
+    // And the lookup spans it: a tech id is a `CardId` and answers its own row.
+    expect(anyCardDef('theImperialPost').name).toBe('The Imperial Post');
+    expect(anyCardDef('theImperialPost').effects).toEqual(techDef('theImperialPost').effects);
+    // The id spaces stay disjoint — no technology id is any other card's id.
+    for (const id of TECH_IDS) {
+      expect(isBuildingId(id), id).toBe(false);
+      expect(isUnitTypeId(id), id).toBe(false);
+    }
+    void player;
+  });
+
+  it('pays Epic Poetry’s verse into the nearest city when a piece falls', () => {
+    // The `death` occasion, which already existed and had no card on it. What
+    // the node buys is a `windfallRider`, read by the ordinary evaluator, paid
+    // by the ordinary seam — so the culture lands in the town nearest the body.
+    const state = flatState();
+    const city = plant(state, 0, 4, 4);
+    void city;
+    const player = state.players[0]!;
+    const bare = windfallPayout(state, 0, 'death');
+    expect(bare.grants).toEqual([]);
+    grant(state, 0, 'epicPoetry');
+    const paid = windfallPayout(state, 0, 'death');
+    expect(paid.grants.map((entry) => [entry.yield, entry.amount])).toEqual([['culture', 4]]);
+    const before = player.culturePool;
+    payWindfallGrants(state, player, paid, { col: 8, row: 5 });
+    expect(player.culturePool).toBeGreaterThan(before);
+  });
+});

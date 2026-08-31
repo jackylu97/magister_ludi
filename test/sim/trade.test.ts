@@ -24,6 +24,7 @@ import {
 } from '../../src/sim/pathfind';
 import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
 import { RULES } from '../../src/sim/rulesData';
+import { TECH_IDS, techDef } from '../../src/sim/techData';
 import {
   type City,
   type GameConfig,
@@ -1158,7 +1159,7 @@ describe("The Founders' Road", () => {
     const swimmer = createUnit(state, 0, 'trader', marooned.col, marooned.row);
     const goal = at(state, 3, 4);
     expect(findPath(state, swimmer, goal)).not.toBeNull();
-    expect(findPath(state, swimmer, goal, { def: unitDef('trader'), embarks: false, naval: false })).toBeNull();
+    expect(findPath(state, swimmer, goal, { def: unitDef('trader'), embarks: false, naval: false, ocean: false })).toBeNull();
   });
 
   it('is free of maintenance, and the ledger charges only the roads that are not', () => {
@@ -1236,7 +1237,7 @@ describe('trade in the log', () => {
     // v23 wrote `sendTrader`, which this build's reducer does not have: a v23
     // log would stop dead partway through a replay, so the save is refused
     // rather than misread.
-    expect(SCHEMA_VERSION).toBe(37);
+    expect(SCHEMA_VERSION).toBe(38);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {
@@ -1321,5 +1322,71 @@ describe('trade in the log', () => {
       expect(applyCommand(replayed, command).ok, JSON.stringify(command)).toBe(true);
     }
     expect(snapshotState(replayed)).toBe(after);
+  });
+});
+
+// --- The Imperial Post ------------------------------------------------------
+
+/**
+ * The tree pass of 2026-08-30's one change to this ledger: a technology that
+ * keeps a town's own roads for nothing.
+ *
+ * It is a clause on the **count** and not on the price, which is what keeps
+ * `explainEmpireGold` four lines: the road line prints the number it is charging
+ * on, so a count that included hexes nobody is billed for would be a line whose
+ * own figure did not explain it — `Tile.roadFree`'s argument, one occasion over.
+ */
+describe('The Imperial Post', () => {
+  /** Puts the Post in a seat's hand, through the register rather than by name. */
+  function post(state: GameState, playerId: number): void {
+    const player = state.players[playerId]!;
+    for (const id of TECH_IDS) {
+      if (!(techDef(id).effects ?? []).some((effect) =>
+        effect.kind === 'behaviorRule' && effect.rule === 'freeCityRoads',
+      )) {
+        continue;
+      }
+      if (!player.techsResearched.includes(id)) player.techsResearched.push(id);
+    }
+  }
+
+  it('keeps the roads near a town, and charges the ones out in the country', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    applyCommand(state, send(0, trader.id, home.id, partner.id));
+    runUntil(state, () => trader.col === partner.col && trader.row === partner.row);
+    runUntil(state, () => trader.col === home.col && trader.row === home.row);
+    const charged = roadsBuiltBy(state, 0);
+    expect(charged).toBeGreaterThan(0);
+
+    post(state, 0);
+    const posted = roadsBuiltBy(state, 0);
+    // Both towns are on row 4 and the road runs between them, so the reach of
+    // three hexes covers the whole of it: the empire pays nothing.
+    expect(posted).toBeLessThan(charged);
+    expect(explainEmpireGold(state, 0).some((line) => /Road maintenance/.test(line.source))).toBe(
+      false,
+    );
+
+    // A hex out of reach of every town is charged exactly as before — the rule
+    // is about *where* a road is, never about who researched what.
+    const far = at(state, 3, 0);
+    far.road = 0;
+    expect(roadsBuiltBy(state, 0)).toBe(posted + 1);
+  });
+
+  it('pays a further coin for every city joined to the capital', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    applyCommand(state, send(0, trader.id, home.id, partner.id));
+    runUntil(state, () => trader.col === partner.col && trader.row === partner.row);
+    runUntil(state, () => trader.col === home.col && trader.row === home.row);
+    partner.population = 6;
+    const line = (): number =>
+      explainEmpireGold(state, 0).find((entry) => /City connections/.test(entry.source))?.gold ?? 0;
+    const before = line();
+    post(state, 0);
+    // One connected city, one further coin — folded into the connection line's
+    // own figure rather than multiplied afterwards, which is rule 5 for a
+    // treasury and the reason there is still only one line.
+    expect(line()).toBe(before + connectedCities(state, 0).length);
   });
 });

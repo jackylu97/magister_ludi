@@ -31,7 +31,7 @@ import { type GameState, claimWonder } from '../../src/sim/state';
 import { offerSize } from '../../src/sim/statecraft';
 import { isWaterTerrain } from '../../src/sim/terrainData';
 import { runEndOfTurn } from '../../src/sim/turn';
-import { game, found } from './statecraftHelpers';
+import { game, found, keepTheRites } from './statecraftHelpers';
 
 const LADDER = RULES.renown;
 
@@ -201,6 +201,7 @@ describe('settleRenownWindfall', () => {
   it('opens an offer on crossing, and keeps the overflow', () => {
     const g = game();
     found(g.state, 0);
+    keepTheRites(g.state);
     const player = g.state.players[0]!;
     const offer = settleRenownWindfall(g.state, player, [
       { family: 'scholar', amount: LADDER.first + 9 },
@@ -214,6 +215,7 @@ describe('settleRenownWindfall', () => {
   it('draws to offerSize, so a rider widens it', () => {
     const g = game();
     const city = found(g.state, 0);
+    keepTheRites(g.state);
     city.buildings.push('theOracle');
     claimWonder(g.state, 'theOracle', city);
     // The Oracle widens Statecraft drafts only, so the great-person offer is
@@ -228,6 +230,7 @@ describe('settleRenownWindfall', () => {
   it('deals only one offer at a time, and banks the rest', () => {
     const g = game();
     found(g.state, 0);
+    keepTheRites(g.state);
     const player = g.state.players[0]!;
     // Enough for three recruitments in one lump.
     settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.first * 4 }]);
@@ -237,6 +240,29 @@ describe('settleRenownWindfall', () => {
     const before = player.greatPersonOffer;
     settleRenownWindfall(g.state, player, [{ family: null, amount: 50 }]);
     expect(player.greatPersonOffer).toBe(before);
+  });
+
+  it('is gated on the ancestor rites: renown gathers, and nobody answers it', () => {
+    // The tree pass of 2026-08-30. The pool still fills — that is the point of
+    // where the gate sits, *after* the grants are banked — so an empire that
+    // reaches the rites late finds a name waiting the moment it does, instead of
+    // having thrown away the renown it earned getting there.
+    const g = game();
+    found(g.state, 0);
+    const player = g.state.players[0]!;
+    expect(settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.first * 2 }])).toBe(
+      null,
+    );
+    expect(player.renownPool).toBe(LADDER.first * 2);
+    expect(player.greatPersonOffer).toBeUndefined();
+    expect(greatPersonBlocker(player)).toBeNull();
+
+    // And the moment the rites are kept, the banked renown is answered — with
+    // no second payment, and with the overflow carried exactly as ever.
+    keepTheRites(g.state);
+    const offer = settleRenownWindfall(g.state, player, []);
+    expect(offer).not.toBeNull();
+    expect(player.renownPool).toBe(LADDER.first);
   });
 
   it('banks rather than blocks when the whole roster is spent', () => {
@@ -254,6 +280,7 @@ describe('settleRenownWindfall', () => {
   it('blocks End Turn while a name is waiting', () => {
     const g = game();
     found(g.state, 0);
+    keepTheRites(g.state);
     const player = g.state.players[0]!;
     expect(greatPersonBlocker(player)).toBeNull();
     settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.first }]);

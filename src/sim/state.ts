@@ -463,8 +463,32 @@ import {
  *     right for every v36 save — nothing before this version could hold a bead.
  *     It is still refused, because the board a v36 log produces here is not the
  *     board it produced there.
+ * 38: **The tree** (`docs/tech-tree.md` Part 3, the tree pass of 2026-08-30) —
+ *     four ages where there were three, and fifty-three nodes where there were
+ *     twenty-six. Nothing on the *state* changed shape, and the version still
+ *     has to move, because a save is `{config, log}` and this pass changed what
+ *     a log **means**:
+ *
+ *       · **`drama` is deleted.** A v37 log containing `chooseResearch drama`
+ *         names a technology that no longer exists, and there is no honest
+ *         reading of it — its buildings are Epic Poetry's now and Theology's
+ *         prerequisites are Rhetoric and Epic Poetry.
+ *       · Every surviving node keeps its **id** (Philosophy is displayed as
+ *         *Rhetoric* and is still `philosophy`), and almost none keeps its cost,
+ *         its prerequisites or its age. A v37 log's research plan therefore
+ *         completes at different turns, in a different order, and hands over a
+ *         different roster.
+ *       · Ages renumber, so everything keyed by one moves with them: the unit
+ *         cost band gains a fourth rung, the glass-bead decks re-key 2|3 → 3|4,
+ *         and a barbarian's tier is read off a different median tree.
+ *       · The great-person offer is gated on Ancestor Rites, so the turn a name
+ *         is first dealt — and therefore every `state.rng` draw after it — moves.
+ *
+ *     The migration note: nothing to migrate. Every field a v37 save carries is
+ *     still a field this version reads; what is gone is the tree the log was
+ *     played against.
  */
-export const SCHEMA_VERSION = 37;
+export const SCHEMA_VERSION = 38;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

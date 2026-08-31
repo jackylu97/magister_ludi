@@ -46,7 +46,7 @@ import {
   triumphsSince,
 } from '../../src/sim/triumphs';
 import { runEndOfTurn } from '../../src/sim/turn';
-import { game, found } from './statecraftHelpers';
+import { game, found, keepTheRites } from './statecraftHelpers';
 
 /** Did this empire earn this row, and how many times? */
 function count(state: GameState, playerId: number, id: TriumphId): number {
@@ -186,6 +186,7 @@ describe('what a triumph pays', () => {
   it('can fill the ladder and open a great-person offer on the spot', () => {
     const g = game();
     found(g.state, 0);
+    keepTheRites(g.state);
     const player = g.state.players[0]!;
     player.renownPool = RULES.renown.first - triumphDef('cityOfMarvels').pays;
     awardTriumph(g.state, 0, 'cityOfMarvels');

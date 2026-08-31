@@ -192,8 +192,19 @@ describe('what maintenance did to the warband', () => {
     // crosses into the red on this richer map. The lower bound is what would
     // catch a retune making maintenance harsher again; the upper bound is what
     // a retune making it free again would break.
-    expect(gold.get(60)!).toBeLessThan(60);
-    expect(gold.get(60)!).toBeGreaterThan(-40);
+    // **Re-measured 2026-08-30, the tree pass.** Upkeep is the age of the node
+    // that unlocks a row and the tree renumbered under it, so the *same* army
+    // is dearer: the warband here draws Æra III wages where it drew Æra II
+    // ones. That should have pushed the turn-60 treasury down, and it went the
+    // other way — up, to about 110 — because the empire is also *poorer in
+    // technology* at turn 60 now: the Heroes band sits between it and the
+    // roster it used to be spamming by then, so it spends sixty turns buying
+    // cheaper pieces. The band is re-centred on the new measurement at a
+    // comparable width. What it still catches is the thing the test is for: a
+    // retune that made maintenance free would sail past the upper bound, and
+    // one that made it harsh would fall through the lower.
+    expect(gold.get(60)!).toBeLessThan(170);
+    expect(gold.get(60)!).toBeGreaterThan(50);
 
     // And the army is still an army — the creditors thin it, they do not erase
     // it, because they take one piece a turn and the towns keep building.

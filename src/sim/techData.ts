@@ -42,13 +42,24 @@
  *
  * Ages
  * ----
- * `age` is 1, 2 or 3 today (Ancient, Classical, Medieval — the tech screen sets
- * them as ÆRA I/II/III). It is a display and pacing fact rather than a rule: no
- * mechanic reads it, prerequisites do the ordering, and the integrity check only
- * insists that a tech never depends on a *later* age than its own. The chart
- * paints ages as background regions behind whatever columns their techs happen
- * to occupy (see `techAgeBands`) — an age annotates a position, it never sets
- * one.
+ * `age` is 1, 2, 3 or 4 (Omens, Heroes, Empire, Cathedrals — the tech screen
+ * sets them as ÆRA I…IV). Æra V (Magister) is written in `docs/tech-tree.md` and
+ * is deliberately **not** in `TECH_AGES` until it has nodes: an age no
+ * technology belongs to is a payoff that can never arrive, and `resourceData.ts`
+ * is right to refuse a luxury tier gated on one.
+ *
+ * It is a display and pacing fact rather than a rule: no mechanic reads it,
+ * prerequisites do the ordering, and the integrity check only insists that a
+ * tech never depends on a *later* age than its own. The chart paints ages as
+ * background regions behind whatever columns their techs happen to occupy (see
+ * `techAgeBands`) — an age annotates a position, it never sets one.
+ *
+ * What *is* keyed by it, and moved with the 2026-08-30 renumbering: the unit
+ * cost band (`rules.production.unitCostAgeMultiplier`, a fourth rung), a unit's
+ * and a building's upkeep, authority capacity per advance, the glass-bead decks
+ * (`BeadAge`), the great-person roster (`rosterAgeFor`), a luxury tier's
+ * `fromAge`, a windfall rider's `perAge`, the barbarians' median tier and a
+ * town's sculpt (clamped at three, which is what the clamp was always for).
  *
  * Where a tech sits on the chart
  * ------------------------------
@@ -90,33 +101,46 @@
  * crossing is a line a player can follow with a finger; a line entering one card
  * and leaving the other side reads as a prerequisite that does not exist.
  *
- * What it bought: 24 connector crossings → 11, seven lanes → five, and the Age I
- * corner from 7 crossings to **1** — which `chartCrossings` and a brute force
- * over every five-lane arrangement say is the *minimum*: Age I's own subgraph
- * cannot be drawn flat, at any lane count. The counter is here rather than in a
- * test so that a future re-lay can be checked rather than eyeballed.
+ * What it bought in 2026-08-26: 24 connector crossings → 11, seven lanes → five,
+ * and the Age I corner from 7 crossings to **1** — which `chartCrossings` and a
+ * brute force over every five-lane arrangement say is the *minimum*: Age I's own
+ * subgraph cannot be drawn flat, at any lane count.
  *
- * The five lanes as they stand:
+ * The tree pass of 2026-08-30 (fifty-three nodes where there were twenty-six)
+ * re-laid the rest of the sky under the same four rules, and the honest thing to
+ * say about the result is that a chart four times as dense crosses more: the
+ * measured figures are in `test/ui/techChart.test.ts`, against a baseline that
+ * is the same graph dealt naively into the same five lanes. **Zero false
+ * chains** is the claim that did not move, and it is the one that outranks a
+ * crossing. The counter is here rather than in a test so that a future re-lay
+ * can be checked rather than eyeballed.
  *
- *   0. Fletching → Construction → Machinery → Steel — the bowyer and the works.
- *   1. Mining → Bronzeworking → Iron Working → Engineering → Physics — the ore.
- *   2. Agriculture → Earthenware → Calendar → The Wheel → Mathematics — the
- *      hearth: the root of the tree and what a settled year makes possible.
- *   3. Sailing → Stonecraft → Currency → Feudalism → Chivalry — stone and coin.
- *   4. Husbandry → Divination → Letters → Philosophy → Drama → Theology →
- *      Education — the omen and the word, the one lane that runs end to end.
+ * The tree is now **twelve columns of exactly five** — the root's column holds
+ * Agriculture alone and the last holds the two deepest Æra IV nodes — and that
+ * is not luck: the prerequisites were chained deliberately until each rung was
+ * five wide, which is also what makes each age read as three or four rungs
+ * rather than as one wide fan. Five lanes is a *height* budget and a fifty-three
+ * node fan would have wanted eleven of them.
  *
  * `techDataProblems` insists every tech has a row inside `TECH_LANE_LIMIT` and
  * that no two share a (column, row) cell, which is the whole failure mode
- * hand-authoring has.
+ * hand-authoring has — and the lanes themselves are a searched layout now
+ * (crossings, false chains and lane-continuation measured, not eyeballed),
+ * written into `data/techs.json` as ordinary authored rows.
  */
 
 import techsJson from '../../data/techs.json';
 import { type BuildingId, isBuildingId } from './buildingData';
+// Type-only, and it must stay that way in both directions: `statecraftData.ts`
+// imports `TechId` from here for `CardId`'s tenth class, and a *value* import
+// either way would turn a type cycle into a runtime one. The same bargain
+// `religionData.ts` and `beadData.ts` already keep with that file.
+import type { CardEffect } from './statecraftData';
 import { type ProjectId, isProjectId } from './projectData';
 import { type UnitTypeId, isUnitTypeId } from './unitData';
 
 export type TechId =
+  // Æra I — The Age of Omens
   | 'agriculture'
   | 'husbandry'
   | 'fletching'
@@ -129,23 +153,58 @@ export type TechId =
   | 'divination'
   | 'theWheel'
   | 'letters'
-  | 'ironWorking'
-  | 'construction'
-  | 'mathematics'
+  // Æra II — The Age of Heroes
+  | 'theDelugeRemembered'
+  | 'irrigation'
+  | 'standingStones'
+  | 'wayfinding'
+  | 'kingship'
+  | 'ancestorRites'
+  | 'theHighTemple'
+  | 'caravans'
+  | 'bronzePanoply'
+  | 'epicPoetry'
+  | 'theLongCount'
   | 'currency'
+  // Æra III — The Age of Empire
+  | 'construction'
+  | 'theSteppeBow'
+  | 'ironWorking'
+  | 'theExaminationHall'
+  | 'mathematics'
   | 'philosophy'
+  | 'colonialCharters'
+  | 'theLegion'
+  | 'theOrreryOfBronze'
   | 'engineering'
-  | 'drama'
+  | 'theCataphract'
+  | 'theHalberdWall'
+  | 'theImperialPost'
+  | 'shipwrights'
+  | 'theQadisCourt'
+  | 'education'
+  | 'theKnottedCord'
+  // Æra IV — The Age of Cathedrals
+  | 'theology'
   | 'feudalism'
   | 'machinery'
-  | 'theology'
+  | 'theSilkRoad'
+  | 'physics'
+  | 'theFloatingFields'
+  | 'movableType'
   | 'chivalry'
   | 'steel'
-  | 'physics'
-  | 'education';
+  | 'theAstrolabe'
+  | 'paperMoney'
+  | 'theFirstDistillation';
 
-/** Ancient, Classical, Medieval. Later ages arrive with later content. */
-export type TechAge = 1 | 2 | 3;
+/**
+ * Omens, Heroes, Empire, Cathedrals. The fifth age (Magister) arrives with its
+ * own content; nothing here reserves a number for it, because a `TECH_AGES`
+ * entry no technology belongs to is a payoff that can never arrive
+ * (`resourceData.ts` refuses one, and would be right to).
+ */
+export type TechAge = 1 | 2 | 3 | 4;
 
 /**
  * Every age, in order. Written down beside the type because a *value* is what a
@@ -153,7 +212,7 @@ export type TechAge = 1 | 2 | 3;
  * technology has, which would otherwise be a payoff that can never arrive and
  * would fail as silence rather than as an error.
  */
-export const TECH_AGES: readonly TechAge[] = [1, 2, 3];
+export const TECH_AGES: readonly TechAge[] = [1, 2, 3, 4];
 
 /**
  * A *verb* a technology hands an empire, as opposed to a thing it may make.
@@ -177,7 +236,39 @@ export type AbilityId =
   | 'consecrationOfTheBounds'
   | 'blessingOfArms'
   | 'riteOfPlenty'
-  | 'recastingTheOmens';
+  | 'recastingTheOmens'
+  | 'thePreaching'
+  /**
+   * **The great-person offer opens at all** (the tree pass of 2026-08-30).
+   *
+   * Renown gathers from the first turn — the buildings pay their trickle, a
+   * wonder pays its lump — and until an empire keeps the rites nobody answers
+   * it. Read in exactly one place, `settleRenownWindfall` (`renown.ts`), which
+   * is the one seam an offer is ever opened at, so the gate is a lookup rather
+   * than a clause repeated at three call sites.
+   */
+  | 'ancestorRites'
+  /**
+   * Soldiers may take to the water. Sailing's `embark` is civilians and the
+   * scout; this is the next step of that same rule and is read in the same
+   * place (`moveProfile`), which is why it is a second verb rather than a
+   * second field on the first.
+   */
+  | 'militaryEmbark'
+  /**
+   * The **next age's glass beads are shown a turn before that age opens**. Read
+   * by `beads.ts` and nowhere else.
+   */
+  | 'theLongCount'
+  /**
+   * The **deep ocean is crossable** — by a hull, and by anything embarked.
+   *
+   * `embark`'s widening one sea further out, and read at the same seam
+   * (`tileMoveCost`, through `MoveProfile`), so the four readers of `stepCost`
+   * inherit it by construction and no highlight can promise a crossing the
+   * walk will not make.
+   */
+  | 'oceanGoing';
 
 /** What an ability is *called*, for the surfaces that print it. Flavour only. */
 export interface AbilityDef {
@@ -229,8 +320,33 @@ export interface TechDef {
   /** Every tech that must already be researched. Order is display order. */
   prereqs: TechId[];
   unlocks: TechUnlocks;
+  /**
+   * Card effects the empire holds for as long as it holds the technology —
+   * `liveEffects`' **tenth** source, "the technologies you hold".
+   *
+   * The same vocabulary a belief, an Order, a wonder and a great person's
+   * legacy are written in, read by the same evaluator (`statecraft.ts` is still
+   * the only module that switches on a `CardEffect.kind`), so a node whose gift
+   * is a *rule* rather than a thing is a JSON row and not a branch. Epic
+   * Poetry's fallen-become-verse is a `windfallRider` on the death occasion;
+   * The Qadi's Court's mercy to a seized town is a `meterRule`; Colonial
+   * Charters' cheaper settlers are the `settlerCost` `rulePercent` two Orders
+   * already use.
+   *
+   * A node whose ratified text needs a shape the vocabulary lacks says so in
+   * `deferred` and ships the halves it can — the Statecraft rule, for the
+   * fourth time.
+   */
+  effects?: CardEffect[];
   /** One-line epigram for the tech screen. Flavour only. */
   flavor?: string;
+  /**
+   * What this node's gift needs that the game has not built yet, in a player's
+   * words. Printed as an honest caveat, exactly as a card's is.
+   */
+  deferred?: string[];
+  /** What the node's rules mean, in plain words. Printed under the gifts. */
+  note?: string;
 }
 
 export interface TechData {
@@ -557,6 +673,37 @@ export function highestAge(techs: readonly TechId[]): TechAge {
   return highest;
 }
 
+/**
+ * An age as its numeral — `1` → `"I"`, `4` → `"IV"`.
+ *
+ * Written here, beside `TechAge`, because four ledger lines in `src/sim/` quote
+ * an era in words (`explainUnitCost`'s band, `explainAuthority`'s advance, a
+ * windfall rider's era note, a luxury tier's `ageLabel`) and all four spelled it
+ * `'I'.repeat(age)` — which was exactly right for three ages and prints
+ * **IIII** for the fourth. One derivation, so a fifth age is one table entry and
+ * not four bugs. The interface has its own (`eraWord` in `figures.ts`) because
+ * it prefixes the word *Æra*; the two agree by construction on the numeral.
+ */
+const ROMAN: readonly (readonly [number, string])[] = [
+  [10, 'X'],
+  [9, 'IX'],
+  [5, 'V'],
+  [4, 'IV'],
+  [1, 'I'],
+];
+
+export function eraNumeral(age: number): string {
+  let left = Math.max(1, Math.round(age));
+  let out = '';
+  for (const [value, mark] of ROMAN) {
+    while (left >= value) {
+      out += mark;
+      left -= value;
+    }
+  }
+  return out;
+}
+
 /** A run of columns painted with one age's numeral. `to` is inclusive. */
 export interface TechAgeBand {
   age: TechAge;
@@ -582,17 +729,17 @@ export function techAgeBands(): TechAgeBand[] {
   let previous: TechAge = 1;
 
   for (let column = 0; column < columns; column++) {
-    const tally: Record<TechAge, number> = { 1: 0, 2: 0, 3: 0 };
+    const tally: Record<TechAge, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
     for (const id of TECH_IDS) {
       if (techDepth(id) !== column) continue;
       const { age } = techDef(id);
-      if (age === 1 || age === 2 || age === 3) tally[age]++;
+      if (TECH_AGES.includes(age)) tally[age]++;
     }
     // Ascending order plus a strict `>` is the tie-break: an even split stays
     // with the earlier age. An empty column (only possible in a half-written
     // file) inherits the column before it.
     let best: TechAge | null = null;
-    for (const candidate of [1, 2, 3] as TechAge[]) {
+    for (const candidate of TECH_AGES) {
       if (tally[candidate] === 0) continue;
       if (best === null || tally[candidate] > tally[best]) best = candidate;
     }
@@ -622,8 +769,10 @@ export function techDataProblems(): string[] {
 
   for (const id of TECH_IDS) {
     const def = techDef(id);
-    if (def.age !== 1 && def.age !== 2 && def.age !== 3) {
-      problems.push(`tech "${id}" has age ${String(def.age)}, which is not 1, 2 or 3`);
+    if (!TECH_AGES.includes(def.age)) {
+      problems.push(
+        `tech "${id}" has age ${String(def.age)}, which is not one of ${TECH_AGES.join(', ')}`,
+      );
     }
     if (!(def.cost > 0)) problems.push(`tech "${id}" costs ${String(def.cost)} beakers`);
     // The dial and the node card both centre on this character; a tech

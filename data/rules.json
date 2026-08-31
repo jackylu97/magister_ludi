@@ -59,7 +59,8 @@
       "gold": 30,
       "food": 10,
       "production": 10
-    }
+    },
+    "postRange": 3
   },
   "barbarians": {
     "firstCampTurn": 6,
@@ -305,7 +306,8 @@
     "unitCostAgeMultiplier": [
       1,
       1.5,
-      2
+      2,
+      2.5
     ],
     "goldPerHammer": 2,
     "wonderRefundGoldPerHammer": 1

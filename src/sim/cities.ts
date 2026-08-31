@@ -164,7 +164,14 @@ import {
   readTileYield,
   terrainDef,
 } from './terrainData';
-import { TECH_IDS, type TechId, UNIT_UNLOCK_TECH, isTechId, techDef } from './techData';
+import {
+  TECH_IDS,
+  type TechId,
+  UNIT_UNLOCK_TECH,
+  eraNumeral,
+  isTechId,
+  techDef,
+} from './techData';
 // **A function-level cycle, and the mirror of one that already existed**:
 // `tech.ts` asks this module what a city yields, and since the wonders' roster
 // this module asks `tech.ts` what an empire may build (the Statue of Zeus' best
@@ -1229,7 +1236,7 @@ function layFoundingRoad(state: GameState, city: City): void {
     hasAttacked: false,
   };
   // A road does not swim, whatever the empire's caravans may do. See above.
-  const mover: MoveProfile = { def, embarks: false, naval: false };
+  const mover: MoveProfile = { def, embarks: false, naval: false, ocean: false };
 
   let route: Cell[] | null = null;
   for (const candidate of candidates) {
@@ -3014,7 +3021,10 @@ export function explainUnitCost(
   const { age, factor } = unitCostFactor(type);
   if (factor !== 1) {
     const scaled = Math.floor(running * factor);
-    lines.push({ source: `Age band · Æra ${'I'.repeat(age)} ×${factor}`, amount: scaled - running });
+    lines.push({
+      source: `Age band · Æra ${eraNumeral(age)} ×${factor}`,
+      amount: scaled - running,
+    });
     running = scaled;
   }
 

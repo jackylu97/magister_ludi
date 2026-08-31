@@ -414,7 +414,10 @@ describe('the victory sheet', () => {
 
 describe('the deck keys', () => {
   it('are the built ages, and the screen never prints one', () => {
-    expect([...BEAD_DECK_AGES]).toEqual([2, 3]);
+    // Re-keyed by the tree pass of 2026-08-30: the deck keys and the doc's
+    // numerals are the same numbers now — Æra III (Empire) and Æra IV
+    // (Cathedrals). See `BeadAge`.
+    expect([...BEAD_DECK_AGES]).toEqual([3, 4]);
     const screen = source('beadsScreen.ts');
     // One helper, one comment, one place to delete when the tree re-bands.
     expect(screen.match(/eraWord\(age \+ 1\)/g)).toHaveLength(1);

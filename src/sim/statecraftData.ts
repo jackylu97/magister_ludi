@@ -57,6 +57,11 @@ import type { ProjectId, ProjectPayout } from './projectData';
 import type { BeliefId, RiteId } from './religionData';
 import type { CityYieldKey, ResourceId, ResourceKind } from './resourceData';
 import type { TerrainId } from './terrainData';
+// Type-only in both directions, exactly as `beadData.ts` and `religionData.ts`
+// are: a technology's row carries ordinary `CardEffect`s and a tech id is a
+// `CardId`, and a *value* import either way would turn a type cycle into a
+// runtime one. See `CardId`'s tenth class.
+import type { TechId } from './techData';
 import type { ModelClass, UnitCategory, UnitTypeId } from './unitData';
 
 // --- ids --------------------------------------------------------------------
@@ -105,6 +110,15 @@ export type OrderId = keyof typeof statecraftJson.orders & string;
  * `beads.json` and read by this evaluator through `liveEffects`' ninth source.
  * A bead is not drafted, not slotted and not upgradable, so its level is always
  * one and `scaleByLevel` has nothing to say about it.
+ *
+ * **Nine classes since the tree pass of 2026-08-30**, and the ninth is held for
+ * as long as the game lasts: a *technology* may carry `effects` in this
+ * vocabulary (`TechDef.effects`), read by this evaluator through `liveEffects`'
+ * tenth source. It is a card for the reason a wonder is — what differs is only
+ * how it is acquired, which is `tech.ts`'s business — and, like a wonder and a
+ * bead, it is never drafted, never slotted and never upgradable, so its level
+ * is always one. Ids stay unique across the whole table: no technology id is
+ * any other class's id, and `test/sim/tech.test.ts` pins that.
  */
 export type CardId =
   | GovernmentId
@@ -114,7 +128,8 @@ export type CardId =
   | RiteId
   | BuildingId
   | GreatPersonId
-  | BeadCardId;
+  | BeadCardId
+  | TechId;
 
 /**
  * Which slot an Order fits, and therefore what a government's spread is counted
@@ -1004,7 +1019,16 @@ export type BehaviorRuleId =
    * is the reading that makes the clause bite on a campaign rather than only in a
    * rival's homeland.
    */
-  | 'noHealAbroad';
+  | 'noHealAbroad'
+  /**
+   * **Roads near a city cost nothing to keep** — The Imperial Post's.
+   *
+   * A rule about the *count* rather than about the price, and read in the one
+   * place a road's upkeep is counted (`roadsBuiltBy`, `empireGold.ts`), which
+   * is what keeps `explainEmpireGold`'s four lines four. `rules.trade.postRange`
+   * is how near "near" is, so the reach is data and this is only the switch.
+   */
+  | 'freeCityRoads';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId = 'sealTurns';

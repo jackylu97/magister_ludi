@@ -61,8 +61,11 @@ describe('techGifts', () => {
     // Maximus — a wonder is an ordinary building on the list — and, since
     // 2026-08-27, the **lumbermill**, which is an improvement and sorts after
     // the buildings exactly as the chop's ability sorts after everything.
+    // The Baths joined the list on 2026-08-30 — three buildings now, still all
+    // after the bowman and still all before the lumbermill.
     expect(techGifts('construction').map((gift) => gift.kind)).toEqual([
       'unit',
+      'building',
       'building',
       'building',
       'improvement',
@@ -117,7 +120,11 @@ describe('techGifts', () => {
   });
 
   it('finds the improvement renewals a tech switches on, with what they add', () => {
-    const renewals = techGifts('feudalism').filter((gift) => gift.kind === 'renewal');
+    // The farm's freshwater renewal moved from Feudalism to **Irrigation** in
+    // the tree pass of 2026-08-30 — growth belongs with the Hanging Gardens, and
+    // Feudalism took the castle instead. The gift itself is unchanged, which is
+    // the point: a renewal's home is one line of `improvements.json`.
+    const renewals = techGifts('irrigation').filter((gift) => gift.kind === 'renewal');
     expect(renewals.map((gift) => gift.id)).toEqual(['farm']);
     const farm = renewals[0]!;
     if (farm.kind !== 'renewal') throw new Error('expected a renewal');
@@ -128,7 +135,7 @@ describe('techGifts', () => {
 
   it('hands over a copy of a renewal\'s yield, not the shared table', () => {
     const before = { ...improvementDef('farm').upgrades![0]!.add };
-    const gift = techGifts('feudalism').find((entry) => entry.kind === 'renewal')!;
+    const gift = techGifts('irrigation').find((entry) => entry.kind === 'renewal')!;
     if (gift.kind !== 'renewal') throw new Error('expected a renewal');
     gift.add.food += 99;
     expect(improvementDef('farm').upgrades![0]!.add).toEqual(before);

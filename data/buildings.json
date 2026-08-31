@@ -10,7 +10,16 @@
       "science": 0,
       "culture": 2,
       "sciencePerPop": 0,
-      "authorityCapacity": 1
+      "authorityCapacity": 1,
+      "upgrades": [
+        {
+          "tech": "ancestorRites",
+          "add": {
+            "culture": 1,
+            "faith": 1
+          }
+        }
+      ]
     },
     "granary": {
       "name": "Granary",
@@ -25,6 +34,12 @@
       "upgrades": [
         {
           "tech": "theWheel",
+          "add": {
+            "food": 1
+          }
+        },
+        {
+          "tech": "theDelugeRemembered",
           "add": {
             "food": 1
           }
@@ -71,7 +86,28 @@
       "renown": {
         "family": "general",
         "perTurn": 1
-      }
+      },
+      "upgrades": [
+        {
+          "tech": "bronzePanoply",
+          "add": {
+            "production": 1
+          }
+        },
+        {
+          "tech": "theLegion",
+          "add": {
+            "production": 1
+          }
+        },
+        {
+          "tech": "chivalry",
+          "add": {
+            "production": 1,
+            "culture": 1
+          }
+        }
+      ]
     },
     "palisade": {
       "name": "Palisade",
@@ -114,7 +150,28 @@
       "renown": {
         "family": "scholar",
         "perTurn": 1
-      }
+      },
+      "upgrades": [
+        {
+          "tech": "theOrreryOfBronze",
+          "add": {
+            "science": 1
+          }
+        },
+        {
+          "tech": "theQadisCourt",
+          "add": {
+            "science": 1,
+            "faith": 1
+          }
+        },
+        {
+          "tech": "movableType",
+          "add": {
+            "culture": 1
+          }
+        }
+      ]
     },
     "temple": {
       "name": "Temple",
@@ -142,7 +199,21 @@
       "renown": {
         "family": "merchant",
         "perTurn": 1
-      }
+      },
+      "upgrades": [
+        {
+          "tech": "paperMoney",
+          "add": {
+            "gold": 2
+          }
+        },
+        {
+          "tech": "theFirstDistillation",
+          "add": {
+            "gold": 2
+          }
+        }
+      ]
     },
     "aqueduct": {
       "name": "Aqueduct",
@@ -175,7 +246,15 @@
       "renown": {
         "family": "engineer",
         "perTurn": 1
-      }
+      },
+      "upgrades": [
+        {
+          "tech": "machinery",
+          "add": {
+            "production": 2
+          }
+        }
+      ]
     },
     "watermill": {
       "name": "Watermill",
@@ -248,8 +327,7 @@
       "renown": {
         "family": "artist",
         "perTurn": 1
-      },
-      "awaitsTech": true
+      }
     },
     "mint": {
       "name": "Mint",
@@ -264,8 +342,7 @@
       "renown": {
         "family": "merchant",
         "perTurn": 1
-      },
-      "awaitsTech": true
+      }
     },
     "armoury": {
       "name": "Armoury",
@@ -284,8 +361,7 @@
       "renown": {
         "family": "general",
         "perTurn": 1
-      },
-      "awaitsTech": true
+      }
     },
     "theOracle": {
       "name": "The Oracle",
@@ -1238,6 +1314,278 @@
         "family": "merchant",
         "perTurn": 1
       }
+    },
+    "hallOfDeeds": {
+      "name": "Hall of Deeds",
+      "category": "culture",
+      "cost": 32,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 2,
+      "sciencePerPop": 0,
+      "happiness": 1,
+      "renown": {
+        "family": "artist",
+        "perTurn": 1
+      },
+      "note": "The names of the fallen are kept here, and the city is the better for keeping them."
+    },
+    "steleOfLaws": {
+      "name": "Stele of Laws",
+      "category": "culture",
+      "cost": 36,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 1,
+      "sciencePerPop": 0,
+      "authorityCapacity": 2,
+      "note": "The law, cut in stone where anyone may read it."
+    },
+    "bazaar": {
+      "name": "Bazaar",
+      "category": "gold",
+      "cost": 44,
+      "food": 0,
+      "production": 0,
+      "gold": 2,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "merchant",
+        "perTurn": 1
+      },
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "uniqueLuxuries",
+          "within": "city",
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 1,
+            "where": "city"
+          }
+        }
+      ],
+      "note": "Every kind of luxury this city can reach pays a further gold here."
+    },
+    "harbour": {
+      "name": "Harbour",
+      "category": "food",
+      "cost": 62,
+      "food": 1,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "routeSlots": 1,
+      "renown": {
+        "family": "merchant",
+        "perTurn": 1
+      },
+      "requiresSite": {
+        "test": "coastal"
+      },
+      "tileYields": [
+        {
+          "on": {
+            "test": "water"
+          },
+          "add": {
+            "food": 1
+          }
+        }
+      ],
+      "note": "Built on the coast. Every water hex the city works pays a further food."
+    },
+    "baths": {
+      "name": "Baths",
+      "category": "culture",
+      "cost": 80,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 1,
+      "sciencePerPop": 0,
+      "happiness": 2,
+      "renown": {
+        "family": "artist",
+        "perTurn": 1
+      },
+      "note": "Hot water, cold water, and somewhere to argue in between."
+    },
+    "forum": {
+      "name": "Forum",
+      "category": "culture",
+      "cost": 96,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 3,
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "artist",
+        "perTurn": 2
+      },
+      "note": "The square where the city hears itself think."
+    },
+    "examinationHall": {
+      "name": "Examination Hall",
+      "category": "culture",
+      "cost": 92,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 1,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "authorityCapacity": 3,
+      "renown": {
+        "family": "scholar",
+        "perTurn": 1
+      },
+      "note": "Clerks chosen by what they can write down."
+    },
+    "courthouse": {
+      "name": "Courthouse",
+      "category": "culture",
+      "cost": 100,
+      "food": 0,
+      "production": 0,
+      "gold": 1,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "authorityCapacity": 4,
+      "requiresSite": {
+        "test": "captured"
+      },
+      "note": "Built only in a city taken by force. It answers for the whole cost of holding one."
+    },
+    "shipyard": {
+      "name": "Shipyard",
+      "category": "military",
+      "cost": 90,
+      "food": 0,
+      "production": 1,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "routeSlots": 1,
+      "requiresSite": {
+        "test": "coastal"
+      },
+      "productionBonus": {
+        "category": "unit",
+        "percent": 10
+      },
+      "renown": {
+        "family": "merchant",
+        "perTurn": 1
+      },
+      "note": "Built on the coast. Ships and everything else leave the slips faster.",
+      "deferred": [
+        "A discount that reached ships alone waits until a production bonus can name a kind of unit."
+      ]
+    },
+    "castle": {
+      "name": "Castle",
+      "category": "military",
+      "cost": 140,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "cityStat": {
+        "stat": "defense",
+        "amount": 5
+      },
+      "cityHp": 25,
+      "renown": {
+        "family": "engineer",
+        "perTurn": 1
+      },
+      "note": "The town is worth more to storm, and takes longer to empty."
+    },
+    "forge": {
+      "name": "Forge",
+      "category": "production",
+      "cost": 155,
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "productionBonus": {
+        "category": "unit",
+        "percent": 15
+      },
+      "renown": {
+        "family": "engineer",
+        "perTurn": 1
+      },
+      "note": "Soldiers are made here faster than anywhere else in the realm."
+    },
+    "caravanserai": {
+      "name": "Caravanserai",
+      "category": "gold",
+      "cost": 150,
+      "food": 0,
+      "production": 0,
+      "gold": 2,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "routeSlots": 1,
+      "renown": {
+        "family": "merchant",
+        "perTurn": 1
+      },
+      "note": "A walled yard, a well, and room for one more trade route."
+    },
+    "printingHouse": {
+      "name": "Printing House",
+      "category": "science",
+      "cost": 160,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 2,
+      "culture": 2,
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "scholar",
+        "perTurn": 1
+      },
+      "note": "One carved character, used a thousand times."
+    },
+    "observatory": {
+      "name": "Observatory",
+      "category": "science",
+      "cost": 175,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 3,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "scholar",
+        "perTurn": 2
+      },
+      "note": "The sky, written down night after night."
     }
   },
   "projects": {

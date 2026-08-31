@@ -31,7 +31,13 @@ import {
 import { RULES } from '../../src/sim/rulesData';
 import { type City, type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
 import { hasAbility } from '../../src/sim/tech';
-import { ABILITY_IDS, ABILITY_TECH, TECH_IDS, techsGrant } from '../../src/sim/techData';
+import {
+  ABILITY_IDS,
+  ABILITY_TECH,
+  type AbilityId,
+  TECH_IDS,
+  techsGrant,
+} from '../../src/sim/techData';
 import { techGifts } from '../../src/sim/techUnlocks';
 import { TERRAIN_IDS, isEmbarkableTerrain, isWaterTerrain, isWorkableTerrain } from '../../src/sim/terrainData';
 import { isCivilian, isExplorer, unitDef } from '../../src/sim/unitData';
@@ -93,7 +99,27 @@ function seaState(width = 14, height = 10): GameState {
   state.units = [];
   state.cities = [];
   state.nextEntityId = 1;
-  for (const player of state.players) player.techsResearched = [...TECH_IDS];
+  // Every technology **except the three that widen the sea**, so that this
+  // file's fixture is the Sailing-era rule it was written about (the tree pass
+  // of 2026-08-30). Wayfinding lets soldiers embark, The Astrolabe opens the
+  // ocean to hull and swimmer alike, and The Floating Fields pay a worked water
+  // hex an extra food — each of which is a *later* rule with its own tests
+  // below. A blanket grant would have quietly turned every "and nobody else may"
+  // assertion here into a test of the wrong age.
+  // `colonialCharters` is in the list for a different reason and it is worth
+  // stating: it founds every city **with a granary**, and a granary pays a point
+  // of food on water — so a blanket grant would have put a citizen on the
+  // fishery before the boats were ever built, which is the premise two of the
+  // tests below rest on.
+  const SEA_WIDENERS = new Set<string>([
+    'wayfinding',
+    'theAstrolabe',
+    'theFloatingFields',
+    'colonialCharters',
+  ]);
+  for (const player of state.players) {
+    player.techsResearched = TECH_IDS.filter((id) => !SEA_WIDENERS.has(id));
+  }
   computeFreshwater(state.map);
   return state;
 }
@@ -643,5 +669,64 @@ describe('MoveProfile', () => {
     const profile: MoveProfile = moveProfile(state, worker);
     expect(profile.def).toBe(unitDef('worker'));
     expect(profile.embarks).toBe(true);
+  });
+});
+
+// --- what the later ages widen ----------------------------------------------
+
+/**
+ * The two rules that widen the sea after Sailing (the tree pass of 2026-08-30).
+ * Both are *abilities* read at the one seam every step is priced through, which
+ * is why neither needed a clause in `findPath`, `reachableTiles`,
+ * `advanceAlongPath` or `pathTurns`: the four readers inherit them.
+ */
+describe('the sea widens twice', () => {
+  /** Puts one ability's technology in a seat's hand. */
+  function learn(state: GameState, playerId: number, ability: AbilityId): void {
+    const gate = ABILITY_TECH.get(ability);
+    if (gate === undefined) throw new Error(`no technology hands over ${ability}`);
+    const player = state.players[playerId]!;
+    if (!player.techsResearched.includes(gate)) player.techsResearched.push(gate);
+  }
+
+  it('lets soldiers embark at Wayfinding, and never without Sailing', () => {
+    const state = seaState();
+    const warrior = createUnit(state, 0, 'warrior', 4, 4);
+    expect(moveProfile(state, warrior).embarks).toBe(false);
+    learn(state, 0, 'militaryEmbark');
+    expect(moveProfile(state, warrior).embarks).toBe(true);
+    expect(tileMoveCost(at(state, 2, 4), moveProfile(state, warrior))).toBe(
+      RULES.movement.embarkCost,
+    );
+
+    // And it is a widening of *who*, never of the water: an empire that somehow
+    // held Wayfinding without Sailing embarks nobody, which is the honest
+    // reading of a tree where one descends from the other.
+    forget(state, 0, 'sailing');
+    expect(moveProfile(state, warrior).embarks).toBe(false);
+  });
+
+  it('opens the ocean at The Astrolabe, to hull and swimmer alike', () => {
+    const state = seaState();
+    const worker = createUnit(state, 0, 'worker', 2, 5);
+    const ocean = at(state, 1, 5);
+    expect(tileMoveCost(ocean, moveProfile(state, worker))).toBeNull();
+
+    learn(state, 0, 'oceanGoing');
+    // One rule, so the deep water opens for both at once — which is what the
+    // `tileMoveCost` docblock promised the day it would.
+    expect(tileMoveCost(ocean, moveProfile(state, worker))).toBe(RULES.movement.embarkCost);
+    const hull = createUnit(state, 0, 'trireme', 2, 4);
+    expect(tileMoveCost(ocean, moveProfile(state, hull))).toBe(RULES.movement.minStepCost);
+    // And it reaches every reader, because they all price through `stepCost`.
+    expect(canStopOn(state, worker, ocean)).toBe(true);
+    expect(findPath(state, worker, ocean)).not.toBeNull();
+
+    // A lake is untouched: `deepWater` is a flag on the row and not "water that
+    // is not coast", which is exactly the distinction a negation could not draw.
+    const lake = at(state, 6, 5);
+    lake.terrain = 'lake';
+    expect(tileMoveCost(lake, moveProfile(state, worker))).toBeNull();
+    expect(tileMoveCost(lake, moveProfile(state, hull))).toBeNull();
   });
 });

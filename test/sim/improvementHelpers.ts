@@ -12,7 +12,7 @@
 import { foundCityAt } from '../../src/sim/cities';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { type City, type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
-import { TECH_IDS } from '../../src/sim/techData';
+import { ABILITY_TECH, TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -32,7 +32,30 @@ export function bareState(width = 12, height = 10): GameState {
   state.units = [];
   state.cities = [];
   state.nextEntityId = 1;
-  for (const player of state.players) player.techsResearched = [...TECH_IDS];
+  // **Every technology whose gift is a *thing***, and deliberately not the ones
+  // whose gift is a *rule* (`TechDef.effects`, the tree pass of 2026-08-30).
+  //
+  // What every file sharing this fixture means by it is "nothing is gated" —
+  // Currency is held so the roster question never comes up, Sailing is held so
+  // the water is not the subject. What none of them means is "and seven rules of
+  // the world have been rewritten": The Imperial Post keeps a town's roads for
+  // nothing, Colonial Charters founds every city with a granary, The Floating
+  // Fields pay every worked water hex a further food. Those belong in tests
+  // about *those* nodes, and each has one.
+  //
+  // Derived rather than listed, so the eighth such node joins the exclusion by
+  // being written rather than by somebody remembering this line.
+  // The node that **opens the ocean** is left out for the same reason and by
+  // the same kind of derivation: half the fixtures in these files are built out
+  // of walls of ocean, and a seat holding The Astrolabe walks through them.
+  const ruleNodes = new Set<TechId>(
+    TECH_IDS.filter((id) => (techDef(id).effects ?? []).length > 0),
+  );
+  const ocean = ABILITY_TECH.get('oceanGoing');
+  if (ocean !== undefined) ruleNodes.add(ocean);
+  for (const player of state.players) {
+    player.techsResearched = TECH_IDS.filter((id) => !ruleNodes.has(id));
+  }
   computeFreshwater(state.map);
   return state;
 }

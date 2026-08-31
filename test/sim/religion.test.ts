@@ -718,8 +718,10 @@ describe('a belief is an effect source, not a second evaluator', () => {
     // Æra I: the printed fifteen.
     payWindfallGrants(g.state, player, windfallPayout(g.state, 0, 'kill'));
     expect(player.faithPool - before).toBe(15);
-    // Æra II: the same rider, tripled at Æra III and doubled here.
-    learn(g.state, 0, 'currency', 'mathematics', 'philosophy');
+    // Æra II: the same rider, doubled. One node of the second age is all the era
+    // multiplier is being asked about — re-read against the four-age tree of
+    // 2026-08-30, which put Mathematics and Rhetoric into Æra III.
+    learn(g.state, 0, 'currency');
     const mid = player.faithPool;
     payWindfallGrants(g.state, player, windfallPayout(g.state, 0, 'kill'));
     expect(player.faithPool - mid).toBe(15 * 2);
@@ -1529,7 +1531,9 @@ describe('The High Temple', () => {
   it('is the node that hands over the prophet, the temple and a third god', () => {
     const def = techDef('theHighTemple' as never);
     expect(def.age).toBe(2);
-    expect(def.prereqs).toEqual(['divination', 'stonecraft']);
+    // Re-cut by the tree pass of 2026-08-30: the stones come first and the
+    // high temple is what is raised on them.
+    expect(def.prereqs).toEqual(['standingStones', 'divination']);
     expect(def.unlocks.units ?? []).toContain('prophet');
     expect(def.unlocks.buildings ?? []).toContain('temple');
     expect(def.unlocks.abilities ?? []).toContain('thePreaching');

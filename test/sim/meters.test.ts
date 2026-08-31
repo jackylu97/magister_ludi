@@ -389,8 +389,10 @@ describe('authority: what a city costs', () => {
     expect(agesAdvanced(state, 0)).toBe(0);
     expect(meterStanding(explainAuthority(state, 0)).gain).toBe(WRIT.palaceCapacity);
 
-    // A Classical technology is the second age reached, which is one advance.
-    state.players[0]!.techsResearched.push('mathematics');
+    // A **Heroes** technology is the second age reached, which is one advance —
+    // re-read against the four-age tree of 2026-08-30, which put Mathematics
+    // into Æra III.
+    state.players[0]!.techsResearched.push('theDelugeRemembered');
     expect(agesAdvanced(state, 0)).toBe(1);
     const entries = explainAuthority(state, 0);
     expect(lineFor(entries, 'Æra II')).toBe(WRIT.perAge);
@@ -720,8 +722,8 @@ describe('a captured city, end to end', () => {
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 37 save with a captured city in it', () => {
-    expect(SCHEMA_VERSION).toBe(37);
+  it('round-trips a schema 38 save with a captured city in it', () => {
+    expect(SCHEMA_VERSION).toBe(38);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

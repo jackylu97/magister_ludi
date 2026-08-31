@@ -376,12 +376,16 @@ describe('the roster is priced in the money of its own age', () => {
     expect(unitProductionCost(state, 0, 'horseman')).toBe(17);
     expect(unitProductionCost(state, 0, 'chariot')).toBe(24);
     expect(unitProductionCost(state, 0, 'chariotArcher')).toBe(20);
-    // Age II at ×1.5, Age III at ×2, off the printed (already ×1.4) row.
-    expect(unitProductionCost(state, 0, 'swordsman')).toBe(19);
-    expect(unitProductionCost(state, 0, 'catapult')).toBe(22);
-    expect(unitProductionCost(state, 0, 'pikeman')).toBe(34);
-    expect(unitProductionCost(state, 0, 'knight')).toBe(44);
-    expect(unitProductionCost(state, 0, 'trebuchet')).toBe(48);
+    // Æra II at ×1.5, III at ×2, **IV at ×2.5**, off the printed (already ×1.4)
+    // row — the fourth rung the tree pass of 2026-08-30 added to the band. The
+    // rule never moved; every figure below did, because the roster's rows moved
+    // ages under it.
+    expect(unitProductionCost(state, 0, 'phalanx')).toBe(21);
+    expect(unitProductionCost(state, 0, 'swordsman')).toBe(26);
+    expect(unitProductionCost(state, 0, 'catapult')).toBe(30);
+    expect(unitProductionCost(state, 0, 'pikeman')).toBe(42);
+    expect(unitProductionCost(state, 0, 'knight')).toBe(55);
+    expect(unitProductionCost(state, 0, 'trebuchet')).toBe(60);
   });
 
   it('is the fold of its own labelled lines, escalation included', () => {
@@ -404,7 +408,7 @@ describe('the roster is priced in the money of its own age', () => {
     // And a later-age unit says which band it is in.
     expect(explainUnitCost(state, 0, 'knight').map((line) => line.source)).toEqual([
       'Knight',
-      'Age band · Æra III ×2',
+      'Age band · Æra IV ×2.5',
     ]);
   });
 

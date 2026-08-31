@@ -65,7 +65,7 @@ import {
   createUnit,
   newGame,
 } from '../../src/sim/state';
-import { TECH_IDS } from '../../src/sim/techData';
+import { plainTechs } from './techHelpers';
 import { resetVisibility } from '../../src/sim/visibility';
 
 /**
@@ -105,7 +105,7 @@ function bareState(width = 16, height = 12): GameState {
   state.units = [];
   state.cities = [];
   state.nextEntityId = 1;
-  for (const player of state.players) player.techsResearched = [...TECH_IDS];
+  for (const player of state.players) player.techsResearched = plainTechs();
   computeFreshwater(state.map);
   return state;
 }

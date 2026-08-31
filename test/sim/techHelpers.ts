@@ -13,6 +13,7 @@ import { expect } from 'vitest';
 import type { Command } from '../../src/sim/commands';
 import { type Game, createGame, dispatch } from '../../src/sim/game';
 import type { GameConfig } from '../../src/sim/state';
+import { ABILITY_TECH, TECH_IDS, type TechAge, type TechId, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 
 /** A two-player duel config, overridable a field at a time. */
@@ -48,4 +49,34 @@ export function researchingGame(): Game {
     expect(dispatch(game, choose(player.id, 'earthenware')).ok).toBe(true);
   }
   return game;
+}
+
+/**
+ * Every technology whose gift is a **thing** — and deliberately not the ones
+ * whose gift is a **rule** (the tree pass of 2026-08-30).
+ *
+ * What a fixture saying "give the seat every technology" has always meant is
+ * *nothing is gated*: Currency is held so the roster question never comes up,
+ * Sailing so the water is not the subject. What none of them ever meant is
+ * *and seven rules of the world have been rewritten* — The Imperial Post keeps
+ * a town's roads for nothing, The Examination Hall lifts every good rung of
+ * the meters by five points, Colonial Charters founds every city with a
+ * granary. Each of those belongs in a test about that node, and each has one.
+ *
+ * The node that **opens the ocean** is left out for the same reason and by the
+ * same kind of derivation: a great many fixtures in this suite are built out of
+ * walls of ocean, and a seat holding The Astrolabe walks through them.
+ *
+ * Derived rather than listed, so the next such node joins by being written
+ * rather than by somebody remembering this function. `upTo` narrows it to an
+ * era, which is what the resource tiers want.
+ */
+export function plainTechs(upTo: TechAge = 4): TechId[] {
+  const ocean = ABILITY_TECH.get('oceanGoing');
+  return TECH_IDS.filter((id) => {
+    const def = techDef(id);
+    if (def.age > upTo) return false;
+    if ((def.effects ?? []).length > 0) return false;
+    return id !== ocean;
+  });
 }

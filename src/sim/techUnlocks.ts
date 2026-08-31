@@ -43,7 +43,7 @@ import {
 } from './improvementData';
 import { type ProjectId, projectDef } from './projectData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from './resourceData';
-import type { TileCondition } from './statecraftData';
+import type { CardEffect, TileCondition } from './statecraftData';
 import { type FeatureId, type TileYield, featureDef, readTileYield } from './terrainData';
 import {
   type AbilityId,
@@ -96,7 +96,19 @@ export type TechGiftKind =
   | 'ability'
   | 'reveal'
   | 'renewal'
-  | 'buildingRenewal';
+  | 'buildingRenewal'
+  /**
+   * A **rule** the empire holds for as long as it holds the technology —
+   * `TechDef.effects`, `liveEffects`' tenth source (the tree pass of
+   * 2026-08-30).
+   *
+   * The eighth kind, and the first whose gift is not a row in any table: The
+   * Imperial Post hands over nothing a city may build and nothing a worker may
+   * lay, and what it hands over is nonetheless the whole reason to research it.
+   * A node whose only gift were of this kind used to read as connective tissue
+   * to `unlockDataProblems`; it now reads as the package it is.
+   */
+  | 'techEffect';
 
 /** What every gift carries, whichever table it came out of. */
 interface TechGiftBase {
@@ -146,6 +158,13 @@ export type TechGift =
       id: BuildingId;
       /** What the renewal adds to every city holding the building. */
       add: BuildingYield;
+    })
+  | (TechGiftBase & {
+      kind: 'techEffect';
+      /** The node's own id — the card these effects belong to. */
+      id: TechId;
+      /** The clauses, in row order. Worded by `describeCard`'s vocabulary. */
+      effects: readonly CardEffect[];
     })
   | (TechGiftBase & {
       kind: 'buildingTileYield';
@@ -260,6 +279,24 @@ export function techGifts(id: TechId): TechGift[] {
         add: { ...upgrade.add },
       });
     }
+  }
+  // The rules the node hands over, last: they arrive without the player doing
+  // anything else, exactly as a renewal does, and they are the one gift with no
+  // row of its own anywhere. One entry for the whole node rather than one per
+  // clause, because a card is read as a card.
+  const effects = techDef(id).effects;
+  if (effects !== undefined && effects.length > 0) {
+    gifts.push({
+      kind: 'techEffect',
+      id,
+      name: techDef(id).name,
+      // The scroll: what this hands over is a *rule*, and the badge is the one
+      // place the card can say so without a sentence.
+      glyph: '§',
+      // Copied rather than handed over, like every renewal's `add`: the table
+      // is shared module state.
+      effects: [...effects],
+    });
   }
   for (const building of BUILDING_IDS) {
     for (const line of buildingDef(building).tileYields ?? []) {

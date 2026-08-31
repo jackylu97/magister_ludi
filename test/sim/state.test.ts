@@ -171,7 +171,7 @@ describe('newGame', () => {
     // The map generator starts at `seed` itself; gameplay must not.
     expect(state.rng.state).not.toBe(seed | 0);
     // **Not the derived seed itself any more**: `newGame` shuffles the two bead
-    // decks off this generator before a piece is placed (schema 37), so what a
+    // decks off this generator before a piece is placed (schema 38), so what a
     // fresh state carries is the derived stream *already advanced*. The property
     // that matters is unchanged and is asserted below — the stream is a pure
     // function of the config, and it is not the map's.
@@ -558,7 +558,7 @@ describe('the research queue field', () => {
     // A v21 log is not merely older: a `moveUnit` given with no movement left
     // used to be refused and is now a standing order, and the resolution has
     // grown a phase no v21 state has been through.
-    expect(SCHEMA_VERSION).toBe(37);
+    expect(SCHEMA_VERSION).toBe(38);
   });
 });
 

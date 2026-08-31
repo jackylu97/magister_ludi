@@ -339,6 +339,16 @@ export interface TradeRules {
    */
   roadsPerMaintenance: number;
   /**
+   * How near a town a road has to be for **The Imperial Post** to keep it for
+   * nothing (`behaviorRule: 'freeCityRoads'`), in hexes.
+   *
+   * On the trade block rather than on a card, for `roadsPerMaintenance`'s
+   * reason: how far a post road reaches is a constant of the world, and the
+   * technology only turns it on. Read in one place, `postedHexes`
+   * (`empireGold.ts`).
+   */
+  postRange: number;
+  /**
    * What killing somebody's laden caravan pays the killer's nearest owned city
    * (`settleTraderPlunder` in `trade.ts`).
    *

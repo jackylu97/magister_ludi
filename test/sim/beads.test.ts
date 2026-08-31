@@ -39,13 +39,15 @@ import {
   awardBead,
   awardBeadOccasion,
   beadCount,
+  beadHandIsShownTo,
   describeBeadBoon,
   endeavourError,
   endeavourPrerequisiteMet,
   runBeads,
   takeReckonings,
 } from '../../src/sim/beads';
-import { buildingDef } from '../../src/sim/buildingData';
+import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
+import { ABILITY_TECH, TECH_IDS } from '../../src/sim/techData';
 import { stripRefs } from '../../src/sim/statecraft';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
@@ -105,11 +107,13 @@ function plant(state: GameState, ownerId: number, col: number, row: number): Cit
 
 /**
  * Puts one seat into a **built** age, by handing it a technology that belongs to
- * it. The deck keys are built ages (see `BeadAge`): deck 2 is the doc's Æra III.
+ * it. Since the tree pass of 2026-08-30 the deck keys and the doc's numerals are
+ * the same numbers: deck 3 is Æra III (Empire) and deck 4 is Æra IV
+ * (Cathedrals). See `BeadAge`.
  */
-function reachAge(state: GameState, playerId: number, age: 2 | 3): void {
+function reachAge(state: GameState, playerId: number, age: 3 | 4): void {
   const player = state.players[playerId]!;
-  const tech = age === 2 ? 'currency' : 'feudalism';
+  const tech = age === 3 ? 'construction' : 'theology';
   if (!player.techsResearched.includes(tech)) player.techsResearched.push(tech);
 }
 
@@ -119,7 +123,7 @@ function beat(state: GameState): void {
 }
 
 /** Forces a card onto the table face up, for a test about what it then does. */
-function table(state: GameState, id: string, age: BeadAge = 2): void {
+function table(state: GameState, id: string, age: BeadAge = 3): void {
   const key = String(age);
   state.beads.decks[key] = (state.beads.decks[key] ?? []).filter((one) => one !== id);
   state.beads.hands[key] = [{ id: id as never, faceUp: true }];
@@ -149,7 +153,7 @@ describe('the bead catalogue', () => {
   });
 
   it('pins the schema version the Bead Race moved', () => {
-    expect(SCHEMA_VERSION).toBe(37);
+    expect(SCHEMA_VERSION).toBe(38);
   });
 
   it('puts the beads phase directly after renown', () => {
@@ -173,41 +177,43 @@ describe('the deal', () => {
     for (const age of BEAD_DECK_AGES) {
       for (const id of beadDeckFor(age)) expect(beadIsDormant(id), id).toBe(false);
     }
-    // The Cathedral of the Age is the demonstration: its prerequisite names a
-    // building no technology opens, so the row is dormant *derived* rather than
-    // flagged, and no hand ever holds it.
-    expect(buildingDef('cathedral').awaitsTech).toBe(true);
-    expect(beadIsDormant('theCathedralOfTheAge')).toBe(true);
-    const state = newGame(config());
-    for (let turn = 0; turn < 30; turn++) {
-      state.turn += 1;
-      beat(state);
+    // **The endeavours woke on 2026-08-30.** The Cathedral of the Age, The Mint
+    // and The Muster of the Realm each named a building no technology opened,
+    // so all three were dormant *derived* rather than flagged; the tree pass
+    // gave the cathedral to Theology, the mint to Paper Money and the armoury to
+    // Steel, and the derivation now answers `false` for every one of them with
+    // nothing here or in `beadData.ts` having changed. That is the whole point
+    // of deriving dormancy — `BuildingDef.awaitsTech` was deleted from three
+    // rows and three cards came back to life.
+    for (const id of ['cathedral', 'mint', 'armoury'] as const) {
+      expect(buildingDef(id).awaitsTech, id).toBeUndefined();
     }
-    const dealt = Object.values(state.beads.hands).flat().map((card) => card.id);
-    expect(dealt).not.toContain('theCathedralOfTheAge');
+    for (const id of ['theCathedralOfTheAge', 'theMint', 'theMusterOfTheRealm'] as const) {
+      expect(beadIsDormant(id), id).toBe(false);
+    }
   });
 
   it('deals one card a turn, face down until the age opens', () => {
     const state = newGame(config());
-    expect(state.beads.hands['2']).toEqual([]);
+    expect(state.beads.hands['3']).toEqual([]);
     state.turn += 1;
     beat(state);
-    expect(state.beads.hands['2']).toHaveLength(1);
-    expect(state.beads.hands['2']?.[0]?.faceUp).toBe(false);
+    expect(state.beads.hands['3']).toHaveLength(1);
+    expect(state.beads.hands['3']?.[0]?.faceUp).toBe(false);
     state.turn += 1;
     beat(state);
-    expect(state.beads.hands['2']).toHaveLength(2);
+    expect(state.beads.hands['3']).toHaveLength(2);
   });
 
   it('stops at the hand size and moves to the next age', () => {
     const state = newGame(config());
-    const size = BEAD_RULES.handSize['2']!;
+    const size = BEAD_RULES.handSize['3']!;
     for (let turn = 0; turn < size + 3; turn++) {
       state.turn += 1;
       beat(state);
     }
-    expect(state.beads.hands['2']).toHaveLength(size);
-    expect((state.beads.hands['3'] ?? []).length).toBeGreaterThan(0);
+    expect(state.beads.hands['3']).toHaveLength(size);
+    expect((state.beads.hands['4'] ?? []).length).toBeGreaterThan(0);
   });
 
   it('frees a slot when a card is claimed and deals into it', () => {
@@ -216,26 +222,26 @@ describe('the deal', () => {
     // showing four of its rows in a whole game.
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 2;
-    const size = BEAD_RULES.handSize['2']!;
-    const deck = state.beads.decks['2']!;
-    state.beads.decks['2'] = deck.filter((id) => id !== 'theFounder');
-    state.beads.hands['2'] = [
+    state.beads.worldAge = 3;
+    const size = BEAD_RULES.handSize['3']!;
+    const deck = state.beads.decks['3']!;
+    state.beads.decks['3'] = deck.filter((id) => id !== 'theFounder');
+    state.beads.hands['3'] = [
       { id: 'theFounder', faceUp: true },
-      ...state.beads.decks['2'].splice(0, size - 1).map((id) => ({ id, faceUp: true })),
+      ...state.beads.decks['3'].splice(0, size - 1).map((id) => ({ id, faceUp: true })),
     ];
-    expect(state.beads.hands['2']).toHaveLength(size);
-    const deckBefore = state.beads.decks['2'].length;
+    expect(state.beads.hands['3']).toHaveLength(size);
+    const deckBefore = state.beads.decks['3'].length;
 
     state.players[0]!.citiesFounded = 8;
     beat(state); // the sweep claims it, and it is still holding its slot
     expect(state.players[0]!.beads.map((bead) => bead.id)).toContain('theFounder');
     beat(state); // the broom takes it off, and the deck deals into the slot
 
-    const hand = state.beads.hands['2']!;
+    const hand = state.beads.hands['3']!;
     expect(hand.map((card) => card.id)).not.toContain('theFounder');
     expect(hand).toHaveLength(size);
-    expect(state.beads.decks['2']!.length).toBe(deckBefore - 1);
+    expect(state.beads.decks['3']!.length).toBe(deckBefore - 1);
   });
 
   it('lets a whole deck flow through the hand over an age', () => {
@@ -243,12 +249,12 @@ describe('the deal', () => {
     // lands, a twenty-five card deck empties rather than stopping at four.
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 2;
+    state.beads.worldAge = 3;
     const dealt = new Set<string>();
     for (let turn = 0; turn < 120; turn++) {
       state.turn += 1;
       beat(state);
-      for (const card of state.beads.hands['2'] ?? []) {
+      for (const card of state.beads.hands['3'] ?? []) {
         dealt.add(card.id);
         // Claimed outright, whatever it is — the point here is the flow, not the
         // deed. Written under every key a card can be claimed at (a quest at 0,
@@ -259,8 +265,8 @@ describe('the deal', () => {
         }
       }
     }
-    expect(state.beads.decks['2']).toHaveLength(0);
-    expect(dealt.size).toBeGreaterThan(BEAD_RULES.handSize['2']! * 2);
+    expect(state.beads.decks['3']).toHaveLength(0);
+    expect(dealt.size).toBeGreaterThan(BEAD_RULES.handSize['3']! * 2);
   });
 
   it('replays byte for byte with awards in the log', () => {
@@ -273,7 +279,7 @@ describe('the deal', () => {
         game.log.push(endTurn(player.id));
       }
     }
-    expect(game.state.beads.hands['2']!.length).toBeGreaterThan(0);
+    expect(game.state.beads.hands['3']!.length).toBeGreaterThan(0);
     expect(JSON.stringify(replay(game.config, game.log))).toBe(JSON.stringify(game.state));
     const json = saveGame(game);
     expect(JSON.stringify(loadGame(json).state)).toBe(JSON.stringify(game.state));
@@ -290,13 +296,13 @@ describe("the world's clock", () => {
       beat(state);
     }
     expect(state.beads.worldAge).toBe(1);
-    expect(state.beads.hands['2']!.every((card) => !card.faceUp)).toBe(true);
+    expect(state.beads.hands['3']!.every((card) => !card.faceUp)).toBe(true);
 
-    reachAge(state, 1, 2);
+    reachAge(state, 1, 3);
     state.turn += 1;
     beat(state);
-    expect(state.beads.worldAge).toBe(2);
-    expect(state.beads.hands['2']!.every((card) => card.faceUp)).toBe(true);
+    expect(state.beads.worldAge).toBe(3);
+    expect(state.beads.hands['3']!.every((card) => card.faceUp)).toBe(true);
   });
 
   it('resets the per-age counters at every opening', () => {
@@ -304,10 +310,10 @@ describe("the world's clock", () => {
     plant(state, 0, 4, 4);
     state.players[0]!.greatPeopleThisAge = 4;
     state.players[0]!.routeYieldsThisAge = 90;
-    reachAge(state, 0, 2);
+    reachAge(state, 0, 3);
     state.turn += 1;
     beat(state);
-    expect(state.beads.worldAge).toBe(2);
+    expect(state.beads.worldAge).toBe(3);
     expect(state.players[0]!.greatPeopleThisAge).toBe(0);
     expect(state.players[0]!.routeYieldsThisAge).toBe(0);
   });
@@ -327,7 +333,7 @@ describe('a reckoning', () => {
     // The pool, not a fixed set: a different seed measures different things.
     const other = newGame(config({ seed: 56 }));
     const pick = (one: GameState): string[] =>
-      (one.beads.decks['2'] ?? []).filter((id) => isBeadReckoningId(id)).sort();
+      (one.beads.decks['3'] ?? []).filter((id) => isBeadReckoningId(id)).sort();
     expect(pick(state)).not.toEqual(pick(other));
     // And it is a function of the seed alone.
     expect(pick(newGame(config({ seed: 55 })))).toEqual(pick(state));
@@ -337,31 +343,31 @@ describe('a reckoning', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
     plant(state, 1, 9, 4);
-    state.beads.worldAge = 2;
-    state.beads.hands['2'] = [{ id: 'theMostCities', faceUp: true }];
+    state.beads.worldAge = 3;
+    state.beads.hands['3'] = [{ id: 'theMostCities', faceUp: true }];
 
     // Two seats, one city each: The Most Cities is a tie and pays nobody.
-    expect(takeReckonings(state, 2)).toHaveLength(0);
+    expect(takeReckonings(state, 3)).toHaveLength(0);
 
     // Break the tie: now it is taken, once, and stamped with the closing age.
     plant(state, 0, 6, 8);
-    const taken = takeReckonings(state, 2);
+    const taken = takeReckonings(state, 3);
     expect(taken).toHaveLength(1);
     expect(taken[0]!.playerId).toBe(0);
     const claims = state.beads.claimed.filter((claim) => claim.id === 'theMostCities');
     expect(claims).toHaveLength(1);
-    expect(claims[0]!.age).toBe(2);
+    expect(claims[0]!.age).toBe(3);
     // And never twice.
-    expect(takeReckonings(state, 2)).toHaveLength(0);
+    expect(takeReckonings(state, 3)).toHaveLength(0);
   });
 
   it('measures nobody while its card is still face down', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
     plant(state, 0, 6, 8);
-    state.beads.worldAge = 2;
-    state.beads.hands['2'] = [{ id: 'theMostCities', faceUp: false }];
-    expect(takeReckonings(state, 2)).toHaveLength(0);
+    state.beads.worldAge = 3;
+    state.beads.hands['3'] = [{ id: 'theMostCities', faceUp: false }];
+    expect(takeReckonings(state, 3)).toHaveLength(0);
     // A card nobody was ever shown is a card the world never answered.
     expect(state.players[0]!.beads).toHaveLength(0);
   });
@@ -370,7 +376,7 @@ describe('a reckoning', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
     plant(state, 0, 6, 8);
-    reachAge(state, 0, 2);
+    reachAge(state, 0, 3);
     state.turn += 1;
     beat(state);
     // Æra I closed, and Æra I holds no cards — so it closed with no reckoning.
@@ -383,9 +389,9 @@ describe('a reckoning', () => {
 describe('a count quest', () => {
   it('goes to the first seat, once', () => {
     const state = flatState();
-    reachAge(state, 0, 2);
+    reachAge(state, 0, 3);
     table(state, 'theFounder');
-    state.beads.worldAge = 2;
+    state.beads.worldAge = 3;
     state.players[1]!.citiesFounded = 8;
     state.players[0]!.citiesFounded = 8;
     plant(state, 0, 4, 4);
@@ -402,8 +408,8 @@ describe('a count quest', () => {
 
   it('is not claimable while its card is off the table', () => {
     const state = flatState();
-    state.beads.worldAge = 2;
-    state.beads.hands['2'] = [];
+    state.beads.worldAge = 3;
+    state.beads.hands['3'] = [];
     state.players[0]!.citiesFounded = 8;
     beat(state);
     expect(state.players[0]!.beads.map((bead) => bead.id)).not.toContain('theFounder');
@@ -413,7 +419,7 @@ describe('a count quest', () => {
 describe('a streak quest', () => {
   it('needs the whole run, and starts again on a miss', () => {
     const state = flatState();
-    state.beads.worldAge = 2;
+    state.beads.worldAge = 3;
     table(state, 'theStandingArmy', 3);
     const def = beadQuestDef('theStandingArmy');
     expect(def.deed.shape).toBe('streak');
@@ -482,7 +488,7 @@ describe('a race project', () => {
     expect(isUnlocked(state, 0, 'project', 'theGrandSatrapy')).toBe(false);
     expect(buildError(state, 0, 'project', 'theGrandSatrapy')).toMatch(/not on the table/);
 
-    state.beads.worldAge = 2;
+    state.beads.worldAge = 3;
     table(state, 'theGrandSatrapy');
     // On the table but out of reach: the sentence names what is missing.
     expect(buildError(state, 0, 'project', 'theGrandSatrapy')).toMatch(/wants 10 cities/);
@@ -496,7 +502,7 @@ describe('a race project', () => {
 
   it('is claimed by the first finisher, with the bead and the boon', () => {
     const state = flatState();
-    state.beads.worldAge = 2;
+    state.beads.worldAge = 3;
     table(state, 'theGrandSatrapy');
     const cities: City[] = [];
     for (let i = 0; i < 10; i++) cities.push(plant(state, 0, i, 4));
@@ -517,7 +523,7 @@ describe('a race project', () => {
 
   it('pays the second finisher nothing at all', () => {
     const state = flatState();
-    state.beads.worldAge = 2;
+    state.beads.worldAge = 3;
     table(state, 'theGrandSatrapy');
     for (let i = 0; i < 10; i++) plant(state, 0, i, 4);
     for (let i = 0; i < 10; i++) plant(state, 1, i, 9);
@@ -546,7 +552,7 @@ describe('a boon settles through the seam that already exists', () => {
   it('banks a windfall in the bank it names', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 2;
+    state.beads.worldAge = 3;
     table(state, 'theTithe');
     state.players[0]!.tithesGold = 600;
     const before = state.players[0]!.gold;
@@ -557,7 +563,7 @@ describe('a boon settles through the seam that already exists', () => {
   it('grants a piece through the free-unit path', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 2;
+    state.beads.worldAge = 3;
     table(state, 'theFounder');
     state.players[0]!.citiesFounded = 8;
     beat(state);
@@ -606,20 +612,44 @@ describe('a boon settles through the seam that already exists', () => {
 // --- 7. awaitsTech and the threshold ---------------------------------------
 
 describe('a building shipped ahead of its age', () => {
-  it('is refused by both the queue and the treasury', () => {
+  /**
+   * **No row is in that state any more** (the tree pass of 2026-08-30): the
+   * cathedral, the mint and the armoury were the three, and all three have a
+   * technology now. The mechanism is kept and asserted as a *property of the
+   * table* rather than deleted, because the next content pass will ship rows
+   * ahead of their age again and this is the refusal they will need.
+   */
+  it('is a state no building row is left in', () => {
+    for (const id of BUILDING_IDS) {
+      expect(buildingDef(id).awaitsTech, id).not.toBe(true);
+    }
+  });
+
+  it('is still refused by both the queue and the treasury when a row asks for it', () => {
     const state = flatState();
     const city = plant(state, 0, 4, 4);
-    expect(buildError(state, 0, 'building', 'cathedral', city)).toMatch(/waits on a technology/);
-    const player = state.players[0]!;
-    player.gold = 100000;
-    const refused = applyCommand(state, {
-      type: 'purchaseItem',
-      playerId: 0,
-      cityId: city.id,
-      item: { kind: 'building', id: 'cathedral' },
-      currency: 'gold',
-    });
-    expect(refused.ok).toBe(false);
+    // The unlock tech is checked first, so the seat has to be able to build the
+    // row before the dormancy refusal is the one that answers.
+    state.players[0]!.techsResearched = [...TECH_IDS];
+    const def = buildingDef('observatory') as { awaitsTech?: boolean };
+    def.awaitsTech = true;
+    try {
+      expect(buildError(state, 0, 'building', 'observatory', city)).toMatch(
+        /waits on a technology/,
+      );
+      const player = state.players[0]!;
+      player.gold = 100000;
+      const refused = applyCommand(state, {
+        type: 'purchaseItem',
+        playerId: 0,
+        cityId: city.id,
+        item: { kind: 'building', id: 'observatory' },
+        currency: 'gold',
+      });
+      expect(refused.ok).toBe(false);
+    } finally {
+      delete def.awaitsTech;
+    }
   });
 });
 
@@ -652,22 +682,22 @@ describe('the age opening', () => {
     plant(state, 0, 4, 4);
     // A quiet turn says nothing at all.
     expect(runEndOfTurn(state).beadAgeOpened).toBeUndefined();
-    reachAge(state, 0, 2);
-    expect(runEndOfTurn(state).beadAgeOpened).toBe(2);
+    reachAge(state, 0, 3);
+    expect(runEndOfTurn(state).beadAgeOpened).toBe(3);
     // And once only: the clock rose, and it does not rise again.
     expect(runEndOfTurn(state).beadAgeOpened).toBeUndefined();
   });
 
   it('reaches the caller through endTurn', () => {
     const game = createGame(config({ seed: 3 }));
-    reachAge(game.state, 0, 2);
+    reachAge(game.state, 0, 3);
     let opened: number | undefined;
     for (const player of game.state.players) {
       if (player.barbarian) continue;
       const result = applyCommand(game.state, { type: 'endTurn', playerId: player.id });
       if (result.ok && result.beadAgeOpened !== undefined) opened = result.beadAgeOpened;
     }
-    expect(opened).toBe(2);
+    expect(opened).toBe(3);
   });
 });
 
@@ -675,7 +705,7 @@ describe('every award reaches the caller', () => {
   it('rides out on the turn report and on the command result', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 2;
+    state.beads.worldAge = 3;
     table(state, 'theTithe');
     state.players[0]!.tithesGold = 600;
     const report = runEndOfTurn(state);
@@ -742,7 +772,7 @@ describe('describeBeadBoon', () => {
     // that promised different words from the toast would be two vocabularies.
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 2;
+    state.beads.worldAge = 3;
     table(state, 'theTithe');
     state.players[0]!.tithesGold = 600;
     const report = runEndOfTurn(state);
@@ -767,7 +797,7 @@ describe('describeBeadBoon', () => {
 describe('endeavourPrerequisiteMet', () => {
   it('is the reachability question, separate from the claim', () => {
     const state = flatState();
-    state.beads.worldAge = 2;
+    state.beads.worldAge = 3;
     table(state, 'theGrandSatrapy');
     for (let i = 0; i < 9; i++) plant(state, 0, i, 4);
     expect(endeavourPrerequisiteMet(state, 0, 'theGrandSatrapy')).toBe(false);
@@ -776,7 +806,7 @@ describe('endeavourPrerequisiteMet', () => {
 
     // Still met once somebody else has won it — which is exactly the fact
     // `endeavourError` cannot report, because it answers a refusal instead.
-    state.beads.claimed.push({ id: 'theGrandSatrapy', age: 2, playerId: 1, turn: 1 });
+    state.beads.claimed.push({ id: 'theGrandSatrapy', age: 3, playerId: 1, turn: 1 });
     expect(endeavourPrerequisiteMet(state, 0, 'theGrandSatrapy')).toBe(true);
     expect(endeavourError(state, 0, 'theGrandSatrapy')).toMatch(/finished first/);
   });
@@ -809,7 +839,7 @@ describe('the endeavour rows', () => {
 describe('the production phase', () => {
   it('finishes a race project inside the ordinary sweep', () => {
     const state = flatState();
-    state.beads.worldAge = 2;
+    state.beads.worldAge = 3;
     table(state, 'theGrandSatrapy');
     for (let i = 0; i < 10; i++) plant(state, 0, i, 4);
     const city = state.cities[0]!;
@@ -817,5 +847,40 @@ describe('the production phase', () => {
     city.hammerBasket = projectDef('theGrandSatrapy').cost;
     advanceProduction(state);
     expect(state.players[0]!.beads.map((bead) => bead.id)).toContain('theGrandSatrapy');
+  });
+});
+
+// --- 10. The Long Count -----------------------------------------------------
+
+describe('The Long Count', () => {
+  /** Puts the long count in a seat's hand, through the ability register. */
+  function count(state: GameState, playerId: number): void {
+    const gate = ABILITY_TECH.get('theLongCount');
+    if (gate === undefined) throw new Error('no technology hands over the long count');
+    const player = state.players[playerId]!;
+    if (!player.techsResearched.includes(gate)) player.techsResearched.push(gate);
+  }
+
+  it('shows the next age’s hand a turn early, and never turns a card over', () => {
+    const state = flatState();
+    plant(state, 0, 4, 4);
+    state.beads.worldAge = 3;
+
+    // Without it, the age ahead is shut.
+    expect(beadHandIsShownTo(state, 0, 3)).toBe(true);
+    expect(beadHandIsShownTo(state, 0, 4)).toBe(false);
+    count(state, 0);
+    expect(beadHandIsShownTo(state, 0, 4)).toBe(true);
+    // Exactly one age ahead: a realm that reaches it early is not handed the
+    // whole book.
+    expect(beadHandIsShownTo(state, 0, 5)).toBe(false);
+
+    // **Sight, never a claim.** `faceUp` is the world's fact and is what makes a
+    // quest claimable, so the seat that can see the next hand still cannot race
+    // for it — and the seat that has not researched it sees exactly what it saw
+    // before, which is what makes this a per-seat reading and not a write.
+    state.beads.hands['4'] = [{ id: 'theMetropolis', faceUp: false }];
+    expect(state.beads.hands['4']!.every((card) => !card.faceUp)).toBe(true);
+    expect(beadHandIsShownTo(state, 1, 4)).toBe(false);
   });
 });

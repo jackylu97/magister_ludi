@@ -327,12 +327,24 @@ describe('strategic resources gate production', () => {
   });
 
   it('every gated unit names a resource the table actually has', () => {
+    // **And a strategic one, with the war elephant as the stated exception**
+    // (the tree pass of 2026-08-30). Iron and horses are war metals and a unit
+    // gated on one is a unit gated on a seam; ivory is a *luxury*, and the
+    // elephant is the one row where "you may raise this because you happen to
+    // have that" is the point rather than an oversight. The gate is the same
+    // rule either way — `openedResource` never asked what kind a resource was —
+    // so what this pins is the **decision**, not a limitation of the mechanism.
+    const luxuryGated: string[] = [];
     for (const id of UNIT_TYPE_IDS) {
       const needs = unitDef(id).requiresResource;
       if (needs === undefined) continue;
       expect(RESOURCE_IDS).toContain(needs);
-      expect(resourceDef(needs).kind).toBe('strategic');
+      if (resourceDef(needs).kind === 'strategic') continue;
+      luxuryGated.push(id);
     }
+    expect(luxuryGated).toEqual(['warElephant']);
+    expect(unitDef('warElephant').requiresResource).toBe('ivory');
+    expect(resourceDef('ivory').kind).toBe('luxury');
   });
 
   it('counts a resource as held when the player owns it AND has improved it', () => {

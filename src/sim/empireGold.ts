@@ -28,12 +28,13 @@ import {
   getTile,
   getTileAt,
   mapNeighbors,
+  neighborTiles,
   tileHex,
   tileIndex,
 } from './map';
 import { RULES } from './rulesData';
 import { type City, type GameState, capitalCityOf, tileOwnerField } from './state';
-import { cardAmplifier, cardAmplifierFlat } from './statecraft';
+import { cardAmplifier, cardAmplifierFlat, cardBehaviorRule } from './statecraft';
 import { explainBuildingUpkeep, explainUnitUpkeep, explainUnitUpkeepRebate } from './upkeep';
 
 const TRADE = RULES.trade;
@@ -57,11 +58,65 @@ const TRADE = RULES.trade;
  * shape that turned a forty-city resolution into a profile.
  */
 export function roadsBuiltBy(state: GameState, playerId: number): number {
+  // **The Imperial Post** (the tree pass of 2026-08-30): roads near a town cost
+  // nothing to keep. A clause on the *count* rather than on the price, which is
+  // what keeps `explainEmpireGold` four lines — and it is hoisted once per
+  // sweep, `zocField`'s bargain, because the alternative is a walk of the city
+  // list per hex over four thousand hexes.
+  const posted = cardBehaviorRule(state, playerId, 'freeCityRoads')
+    ? postedHexes(state, playerId)
+    : null;
   let count = 0;
-  for (const tile of state.map.tiles) {
-    if (tile.road === playerId && tile.roadFree !== true) count += 1;
+  for (let index = 0; index < state.map.tiles.length; index++) {
+    const tile = state.map.tiles[index];
+    if (tile.road !== playerId || tile.roadFree === true) continue;
+    if (posted?.has(index) === true) continue;
+    count += 1;
   }
   return count;
+}
+
+/**
+ * The hexes within `rules.trade.postRange` of one of this empire's own cities,
+ * by tile index — the ground The Imperial Post keeps for nothing.
+ *
+ * By index because `roadsBuiltBy` is an index sweep and already holds the
+ * address, `tileOwnerField`'s reading exactly. Built from the city list rather
+ * than from the borders on purpose: what the Post pays for is the *road home*,
+ * and a town's third ring is not always its own.
+ *
+ * Its lifetime is one sweep, for `tileOwnerField`'s reason — a set that outlived
+ * its loop would answer with a city list the state has moved past.
+ */
+function postedHexes(state: GameState, playerId: number): ReadonlySet<number> {
+  const { map } = state;
+  const near = new Set<number>();
+  const range = Math.max(0, Math.floor(TRADE.postRange));
+  // A ring walk **out of each town** rather than a distance test per hex: the
+  // reach is three, so this is forty hexes a city, where the other reading is
+  // four thousand hexes times the city list — the shape the 2026-08-28 profile
+  // pass took out of `hasResource`. `mapNeighbors` is the same walk every other
+  // ring in the game uses, so a road across the east–west seam is posted too.
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    const start = getTileAt(map, city.col, city.row);
+    if (!start) continue;
+    let ring: Tile[] = [start];
+    near.add(tileIndex(map, start.col, start.row));
+    for (let step = 0; step < range; step++) {
+      const next: Tile[] = [];
+      for (const tile of ring) {
+        for (const neighbour of neighborTiles(map, tileHex(tile))) {
+          const index = tileIndex(map, neighbour.col, neighbour.row);
+          if (near.has(index)) continue;
+          near.add(index);
+          next.push(neighbour);
+        }
+      }
+      ring = next;
+    }
+  }
+  return near;
 }
 
 /** May the connection fill cross this hex? */

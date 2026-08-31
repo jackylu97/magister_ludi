@@ -175,7 +175,7 @@ describe('pacing', () => {
 
       dispatch(game, { type: 'endTurn', playerId: 0 });
 
-      for (const age of [1, 2, 3]) {
+      for (const age of [1, 2, 3, 4]) {
         if (ageDone.has(age)) continue;
         const all = TECH_IDS.filter((id) => techDef(id).age === age);
         if (all.every((id) => player.techsResearched.includes(id))) {
@@ -186,8 +186,8 @@ describe('pacing', () => {
     return { game, ageDone };
   }
 
-  it('closes its three ages on the Quick-speed schedule (Entry V)', () => {
-    const { game, ageDone } = playEmpire(200);
+  it('closes its four ages on the Quick-speed schedule (Entry V)', () => {
+    const { game, ageDone } = playEmpire(260);
     // Measured on this seed after the city-centre re-base: **41 / 80 / 120**,
     // against 40 / 78 / 118 immediately before it, 37 / 74 / 111 when the Civ
     // 6-style Age I ramp landed, 40 / 68 / 107 with the flat 16–29 Age I costs,
@@ -257,21 +257,51 @@ describe('pacing', () => {
     // re-centred on the new measurements at the widths the task calls for
     // (±7 / ±12 / ±18 — Age III's width grows by two to absorb the close
     // landing exactly on the old edge).
+    //
+    // **Re-pinned 2026-08-30, the tree pass.** Four ages where there were three
+    // and fifty-three nodes where there were twenty-six, so every band here is a
+    // fresh measurement rather than a moved one. This seed closes at
+    // **34 / 64 / 124 / 191**, against 34 / 81 / 142 for the three-age tree —
+    // and the two things worth reading off that pair are:
+    //
+    //   · **Æra I did not move at all** (34 both times). Its twelve nodes and
+    //     their costs are untouched, and the opening is production-bound rather
+    //     than science-bound, exactly as the ramp note below says.
+    //   · **The old Æra II split in two.** What used to be one 47-turn band
+    //     (34 → 81) is now Heroes (34 → 64, thirty turns) and Empire
+    //     (64 → 124, sixty). The Heroes band is *cheap and quick* on purpose —
+    //     it is where trade, the first prophet and the great people open — and
+    //     Empire is where the university and the premiere roster are paid for.
+    //   · **Cathedrals is the long one** (124 → 191, sixty-seven turns), which
+    //     is the objectives age and the one the glass-bead deck is dealt over.
+    //
+    // The curtain therefore lands around **t190** rather than t142. Whether
+    // that is the game's length or whether Heroes and Empire should compress to
+    // hold ~t160 is Part 5 of `docs/tech-tree.md` and the user's to rule; this
+    // test measures it and does not have an opinion.
+    //
+    // Bands are ±7 / ±12 / ±18 / ±20 — the widths the three-age pass used, with
+    // the fourth given a little more room because it is the longest band and
+    // the furthest downstream of a map roll.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
+    const fourth = ageDone.get(4);
     expect(first, `age I: ${String(first)}`).toBeDefined();
     expect(second, `age II: ${String(second)}`).toBeDefined();
     expect(third, `age III: ${String(third)}`).toBeDefined();
+    expect(fourth, `age IV: ${String(fourth)}`).toBeDefined();
 
     expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(27);
     expect(first!, `age I: ${first}`).toBeLessThanOrEqual(41);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(69);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(93);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(124);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(160);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(52);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(76);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(106);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(142);
+    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(171);
+    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(211);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
-  }, 60_000);
+  }, 120_000);
 
   /**
    * A one-player standard map with its capital already planted on turn 1 — the

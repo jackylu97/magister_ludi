@@ -46,7 +46,12 @@ import {
   beadHandSize,
   isBeadEndeavourId,
 } from '../sim/beadData';
-import { describeBeadBoon, endeavourError, endeavourPrerequisiteMet } from '../sim/beads';
+import {
+  beadHandIsShownTo,
+  describeBeadBoon,
+  endeavourError,
+  endeavourPrerequisiteMet,
+} from '../sim/beads';
 import { type EarnedBead, type GameState, playerById, realPlayers } from '../sim/state';
 import { eraWord, figure } from './figures';
 import { setDescriptorText } from './keywords';
@@ -448,7 +453,13 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     );
     section.append(head);
 
-    const faceUp = hand.filter((card) => card.faceUp);
+    // **The Long Count shows the next age's hand a turn early** (the tree pass
+    // of 2026-08-30). It is *sight* and never a claim: `faceUp` stays the
+    // world's fact — it is what makes a quest claimable — and this seat is
+    // simply allowed to read a table that has not turned over yet. So the cards
+    // are drawn and the claim state on them is whatever it already was.
+    const shown = beadHandIsShownTo(state, seat, age);
+    const faceUp = hand.filter((card) => card.faceUp || shown);
     const grid = element('div', 'bead-card-grid');
     for (const card of faceUp) {
       const race = card.id;
@@ -465,6 +476,10 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     if (faceUp.length === 0) {
       grid.append(
         element('p', 'hint', 'Nothing has turned face up here yet — the age has not opened.'),
+      );
+    } else if (shown && hand.some((card) => !card.faceUp)) {
+      grid.append(
+        element('p', 'hint', 'Read ahead of the age, by the long count your scribes keep.'),
       );
     }
     section.append(grid);

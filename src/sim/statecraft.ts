@@ -163,7 +163,7 @@ import { isWaterTerrain } from './terrainData';
 import { anyBeadDef, isBeadCardId } from './beadData';
 import { beadCapEffects } from './beads';
 import { awardOccasion } from './triumphs';
-import { UNIT_UNLOCK_TECH, highestAge } from './techData';
+import { UNIT_UNLOCK_TECH, eraNumeral, highestAge, isTechId, techDef } from './techData';
 import {
   type ModelClass,
   type UnitStamp,
@@ -663,6 +663,7 @@ const CLASS_WORD = {
   legacy: 'Legacy',
   religion: 'Religion',
   bead: 'Bead',
+  tech: 'Technology',
 } as const;
 
 /**
@@ -711,6 +712,23 @@ export function anyCardDef(id: CardId): CardDefBase {
     const def = greatPersonDef(id);
     return { name: def.name, flavor: def.epigram, effects: def.legacy, deferred: def.deferred };
   }
+  // The **ninth** class (the tree pass of 2026-08-30): a technology's row may
+  // carry effects in this vocabulary, and it is adapted here for the great
+  // person's reason exactly — one lookup, one label, one `describeCard`, rather
+  // than a parallel evaluator for a fifth table. Asked before the building arm
+  // because the id spaces are disjoint and the cheaper guard should not have to
+  // prove it. A node with no effects answers a card-shaped nothing, which is
+  // what every ordinary technology is worth to this evaluator.
+  if (isTechId(id)) {
+    const def = techDef(id);
+    return {
+      name: def.name,
+      flavor: def.flavor ?? '',
+      effects: def.effects ?? [],
+      deferred: def.deferred,
+      note: def.note,
+    };
+  }
   // The sixth class, and the one whose table is not a card table at all: a
   // wonder's effects sit on its **building** row (`BuildingDef.effects`), so the
   // row is adapted into the card shape here rather than copied into a second
@@ -749,7 +767,11 @@ let conditionDepth = 0;
  * Every effect currently reaching this empire, in one fixed order: the
  * government's signature, then its Doctrines in the order they were taken, then
  * the slotted Orders in **slot order**, then the pantheon's beliefs, then the
- * wonders this empire's cities hold.
+ * wonders this empire's cities hold, then the legacies of the great people it
+ * has spent, then what it is carrying that runs out, then the caps its beads
+ * pay, then **the technologies it holds** (the tenth source, the tree pass of
+ * 2026-08-30 — a node's gift is sometimes a rule), then the religions whose holy
+ * city it holds.
  *
  * **The** walk. Every reader below filters this and none of them repeats the
  * gating, the level scaling or the ordering — which is how "one evaluator" stays
@@ -859,6 +881,23 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
         list.push({ source: `${CLASS_WORD.bead} · ${held.name}`, card: held.id, level: 1, effect });
       }
     }
+  }
+  // **The tenth source** (the tree pass of 2026-08-30): *the technologies you
+  // hold*. A node's gift is sometimes a rule rather than a thing — the fallen
+  // become verse, a seized town costs one authority less, settlers come
+  // cheaper — and a technology is the most permanent card in the game: never
+  // drafted, never slotted, never lost, so its level is always one and
+  // `scaleByLevel` has nothing to say about it.
+  //
+  // Walked in `techsResearched` order, which is the order they were learnt, so
+  // no ledger reshuffles itself. The overwhelming majority of rows carry
+  // nothing, and the `effects` guard is what keeps this a cheap walk in a game
+  // where an empire ends holding fifty of them.
+  for (const id of playerById(state, playerId)?.techsResearched ?? []) {
+    if (!isTechId(id)) continue;
+    const effects = techDef(id).effects;
+    if (effects === undefined || effects.length === 0) continue;
+    push(id, CLASS_WORD.tech, 1, effects);
   }
   // **The seventh source** (`docs/religion-v2.md`, corrected by the user's
   // ruling of 2026-08-28): every religion whose **holy city this empire holds**.
@@ -3385,7 +3424,7 @@ export function windfallPayout(
     if (effect.capturedWonder === true && facts.capturedWonder !== true) continue;
     if (effect.perAge === true) {
       ageMultiplied = true;
-      if (era > 1) payout.lines.push({ card, source, note: `×${era} (Æra ${'I'.repeat(era)})` });
+      if (era > 1) payout.lines.push({ card, source, note: `×${era} (Æra ${eraNumeral(era)})` });
     }
     if (effect.perSlottedOrder === true) {
       slotMultiplied = true;
@@ -5500,6 +5539,7 @@ const BEHAVIOR_WORDS: Record<BehaviorRuleId, string> = {
   barbarianKillsConvert: 'a barbarian you kill joins you instead of dying',
   noCampClearing: 'you can no longer clear a barbarian camp',
   noHealAbroad: 'your units do not heal outside your own borders',
+  freeCityRoads: 'roads near your cities cost nothing to keep',
 };
 
 const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {

@@ -57,7 +57,8 @@ import {
 import { makeRng } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
 import { type City, type GameState, newGame } from '../../src/sim/state';
-import { TECH_IDS, type TechAge, type TechId, highestAge, techDef } from '../../src/sim/techData';
+import { type TechAge, type TechId, highestAge } from '../../src/sim/techData';
+import { plainTechs } from './techHelpers';
 import { resetVisibility } from '../../src/sim/visibility';
 import { civYields } from '../../src/ui/topBar';
 
@@ -82,7 +83,7 @@ import { civYields } from '../../src/ui/topBar';
 
 /** Every technology of `age` or earlier — an empire standing in that age. */
 function techsUpTo(age: TechAge): TechId[] {
-  return TECH_IDS.filter((id) => techDef(id).age <= age);
+  return plainTechs(age);
 }
 
 /** Stands a player in an age, with every reveal and improvement of it in hand. */

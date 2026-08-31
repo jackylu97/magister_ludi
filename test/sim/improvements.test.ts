@@ -121,9 +121,9 @@ function build(playerId: number, unitId: number, improvement: ImprovementId): Co
 // --- the table --------------------------------------------------------------
 
 describe('the improvement table', () => {
-  it('names eight worker improvements, six works, and recognises its own ids', () => {
+  it('names nine worker improvements, six works, and recognises its own ids', () => {
     // Two halves of one table, and the split is `ImprovementDef.greatPerson`:
-    // the first eight are what a worker's charge buys, the last six are what a
+    // the first nine are what a worker's charge buys, the last six are what a
     // *work's* hand plants (`docs/great-people.md`, and the holy site the
     // prophet leaves — `docs/religion-v2.md`), and no rule anywhere compares an
     // id against a string to tell them apart.
@@ -136,6 +136,10 @@ describe('the improvement table', () => {
       'fishingBoats',
       'plantation',
       'lumbermill',
+      // The ninth worker improvement (the tree pass of 2026-08-30): a ring of
+      // raised stones, and the first row a worker may lay that pays in culture
+      // and faith rather than in food, hammers or coin.
+      'standingStones',
       'academy',
       'landmark',
       'manufactory',
@@ -1576,7 +1580,7 @@ describe('explainTileYield', () => {
 // --- the renewal hook -------------------------------------------------------
 
 describe('growth renewals', () => {
-  const withTech = { techs: ['feudalism' as const] };
+  const withTech = { techs: ['irrigation' as const] };
 
   it('pays nothing without the technology, whatever the water', () => {
     const map = createMap({ width: 3, height: 3, terrain: 'grassland' });
@@ -1605,9 +1609,9 @@ describe('growth renewals', () => {
     tile.improvement = 'farm';
     tile.freshwater = true;
     const list = explainTileYield(tile, withTech);
-    expect(list.map((entry) => entry.source)).toEqual(['Grassland', 'Farm', 'Feudalism']);
+    expect(list.map((entry) => entry.source)).toEqual(['Grassland', 'Farm', 'Irrigation']);
     expect(list[2]).toEqual({
-      source: 'Feudalism',
+      source: 'Irrigation',
       kind: 'add',
       ...readTileYield({ food: 1, production: 0, gold: 0 }),
     });
@@ -1632,7 +1636,7 @@ describe('growth renewals', () => {
     assignCitizens(state, city);
 
     const before = cityYields(state, city).food;
-    state.players[0]!.techsResearched.push('feudalism');
+    state.players[0]!.techsResearched.push('irrigation');
     // No phase, no rebuild: the same call, one technology later.
     expect(cityYields(state, city).food).toBe(before + 1);
     // And the rival, who has not researched it, sees the old number.
@@ -1670,7 +1674,7 @@ describe('improvements and the city', () => {
     // The preview is a diff of the real evaluator, so a renewal the player holds
     // is inside it — which a reading of `improvementDef(id).yields` would miss.
     tile.freshwater = true;
-    expect(improvementYieldDelta(tile, 'farm', { techs: ['feudalism'] })).toEqual({
+    expect(improvementYieldDelta(tile, 'farm', { techs: ['irrigation'] })).toEqual({
       food: 2,
       production: 0,
       gold: 0,
@@ -1964,8 +1968,8 @@ describe('improvements in the log', () => {
     expect(snapshotState(loadGame(saveGame(game)).state)).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 37 save with improvements on the board', () => {
-    expect(SCHEMA_VERSION).toBe(37);
+  it('round-trips a schema 38 save with improvements on the board', () => {
+    expect(SCHEMA_VERSION).toBe(38);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

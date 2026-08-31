@@ -7,11 +7,16 @@
       "embarkable": false,
       "workable": true,
       "moveCost": null,
-      "yield": { "food": 1, "production": 0, "gold": 1 },
+      "yield": {
+        "food": 1,
+        "production": 0,
+        "gold": 1
+      },
       "defenseBonus": 0,
       "fillColor": "#1d3f6b",
       "glyph": null,
-      "glyphColor": "#152f52"
+      "glyphColor": "#152f52",
+      "deepWater": true
     },
     "coast": {
       "name": "Coast",
@@ -20,11 +25,16 @@
       "embarkable": true,
       "workable": true,
       "moveCost": null,
-      "yield": { "food": 1, "production": 0, "gold": 1 },
+      "yield": {
+        "food": 1,
+        "production": 0,
+        "gold": 1
+      },
       "defenseBonus": 0,
       "fillColor": "#2f74a8",
       "glyph": null,
-      "glyphColor": "#215579"
+      "glyphColor": "#215579",
+      "deepWater": false
     },
     "lake": {
       "name": "Lake",
@@ -33,11 +43,16 @@
       "embarkable": false,
       "workable": true,
       "moveCost": null,
-      "yield": { "food": 2, "production": 0, "gold": 0 },
+      "yield": {
+        "food": 2,
+        "production": 0,
+        "gold": 0
+      },
       "defenseBonus": 0,
       "fillColor": "#4f9fb0",
       "glyph": null,
-      "glyphColor": "#367583"
+      "glyphColor": "#367583",
+      "deepWater": false
     },
     "grassland": {
       "name": "Grassland",
@@ -46,11 +61,16 @@
       "embarkable": false,
       "workable": true,
       "moveCost": 1,
-      "yield": { "food": 2, "production": 0, "gold": 0 },
+      "yield": {
+        "food": 2,
+        "production": 0,
+        "gold": 0
+      },
       "defenseBonus": 0,
       "fillColor": "#6f9a4a",
       "glyph": null,
-      "glyphColor": "#4a6b31"
+      "glyphColor": "#4a6b31",
+      "deepWater": false
     },
     "plains": {
       "name": "Plains",
@@ -59,11 +79,16 @@
       "embarkable": false,
       "workable": true,
       "moveCost": 1,
-      "yield": { "food": 1, "production": 1, "gold": 0 },
+      "yield": {
+        "food": 1,
+        "production": 1,
+        "gold": 0
+      },
       "defenseBonus": 0,
       "fillColor": "#a8a054",
       "glyph": null,
-      "glyphColor": "#77713a"
+      "glyphColor": "#77713a",
+      "deepWater": false
     },
     "desert": {
       "name": "Desert",
@@ -72,11 +97,16 @@
       "embarkable": false,
       "workable": true,
       "moveCost": 1,
-      "yield": { "food": 0, "production": 0, "gold": 0 },
+      "yield": {
+        "food": 0,
+        "production": 0,
+        "gold": 0
+      },
       "defenseBonus": 0,
       "fillColor": "#dbc98a",
       "glyph": null,
-      "glyphColor": "#a8965c"
+      "glyphColor": "#a8965c",
+      "deepWater": false
     },
     "tundra": {
       "name": "Tundra",
@@ -85,11 +115,16 @@
       "embarkable": false,
       "workable": true,
       "moveCost": 1,
-      "yield": { "food": 1, "production": 0, "gold": 0 },
+      "yield": {
+        "food": 1,
+        "production": 0,
+        "gold": 0
+      },
       "defenseBonus": 0,
       "fillColor": "#9aa090",
       "glyph": null,
-      "glyphColor": "#6d7265"
+      "glyphColor": "#6d7265",
+      "deepWater": false
     },
     "snow": {
       "name": "Snow",
@@ -98,11 +133,16 @@
       "embarkable": false,
       "workable": true,
       "moveCost": 1,
-      "yield": { "food": 0, "production": 0, "gold": 0 },
+      "yield": {
+        "food": 0,
+        "production": 0,
+        "gold": 0
+      },
       "defenseBonus": 0,
       "fillColor": "#e6ecef",
       "glyph": null,
-      "glyphColor": "#a8b3b8"
+      "glyphColor": "#a8b3b8",
+      "deepWater": false
     },
     "mountain": {
       "name": "Mountain",
@@ -111,11 +151,16 @@
       "embarkable": false,
       "workable": false,
       "moveCost": null,
-      "yield": { "food": 0, "production": 0, "gold": 0 },
+      "yield": {
+        "food": 0,
+        "production": 0,
+        "gold": 0
+      },
       "defenseBonus": 0,
       "fillColor": "#7d7568",
       "glyph": "▲",
-      "glyphColor": "#4a443b"
+      "glyphColor": "#4a443b",
+      "deepWater": false
     }
   },
   "features": {
@@ -131,7 +176,11 @@
     "forest": {
       "name": "Forest",
       "moveCostOverride": 2,
-      "yieldOverride": { "food": 1, "production": 1, "gold": 0 },
+      "yieldOverride": {
+        "food": 1,
+        "production": 1,
+        "gold": 0
+      },
       "freshwater": false,
       "defenseBonus": 2,
       "glyph": "▲▲",
@@ -140,7 +189,11 @@
     "jungle": {
       "name": "Jungle",
       "moveCostOverride": 2,
-      "yieldOverride": { "food": 2, "production": 0, "gold": 0 },
+      "yieldOverride": {
+        "food": 2,
+        "production": 0,
+        "gold": 0
+      },
       "freshwater": false,
       "defenseBonus": 2,
       "glyph": "♣♣",
@@ -149,7 +202,11 @@
     "oasis": {
       "name": "Oasis",
       "moveCostOverride": null,
-      "yieldOverride": { "food": 3, "production": 1, "gold": 0 },
+      "yieldOverride": {
+        "food": 3,
+        "production": 1,
+        "gold": 0
+      },
       "freshwater": true,
       "defenseBonus": 0,
       "glyph": "❁",
@@ -158,7 +215,11 @@
     "floodplain": {
       "name": "Floodplain",
       "moveCostOverride": null,
-      "yieldOverride": { "food": 2, "production": 0, "gold": 0 },
+      "yieldOverride": {
+        "food": 2,
+        "production": 0,
+        "gold": 0
+      },
       "freshwater": false,
       "defenseBonus": 0,
       "glyph": "≈",
@@ -168,7 +229,11 @@
   "hills": {
     "name": "Hills",
     "moveCostExtra": 1,
-    "yieldOverride": { "food": 0, "production": 2, "gold": 0 },
+    "yieldOverride": {
+      "food": 0,
+      "production": 2,
+      "gold": 0
+    },
     "defenseBonus": 3,
     "glyph": "︿︿",
     "glyphColor": "#5c513c"

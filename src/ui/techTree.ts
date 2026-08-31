@@ -90,6 +90,7 @@ import { type Game, dispatch } from '../sim/game';
 import { improvementDef } from '../sim/improvementData';
 import { projectDef, projectRate } from '../sim/projectData';
 import { type GameState, type Player, hasEndedTurn } from '../sim/state';
+import { describeCard, stripRefs } from '../sim/statecraft';
 import {
   type CityBaselines,
   availableTechs,
@@ -125,12 +126,17 @@ import { LANE_GAP_MIN, fitColumns, fitLanes } from './techFit';
 import { BEAKER, researchProgress } from './researchProgress';
 import { resourceMarkNode } from './resourceMark';
 
-/** ÆRA I / II / III — the ages, in the numerals the specimen sets them in. */
-const AGE_NUMERALS: Record<TechAge, string> = { 1: 'I', 2: 'II', 3: 'III' };
+/**
+ * ÆRA I … IV — the ages, in the numerals the specimen sets them in, and the
+ * names `docs/tech-tree.md` Part 1 rules them by (the tree pass of 2026-08-30:
+ * Omens · Heroes · Empire · Cathedrals; Magister arrives with its own nodes).
+ */
+const AGE_NUMERALS: Record<TechAge, string> = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV' };
 const AGE_NAMES: Record<TechAge, string> = {
-  1: 'Ancient',
-  2: 'Classical',
-  3: 'Medieval',
+  1: 'Omens',
+  2: 'Heroes',
+  3: 'Empire',
+  4: 'Cathedrals',
 };
 
 /**
@@ -161,6 +167,10 @@ const GIFT_MARK: Record<TechGift['kind'], string> = {
   renewal: 'is-renewal',
   buildingRenewal: 'is-renewal',
   buildingTileYield: 'is-renewal',
+  // A rule is not a thing, and it wears the ability mark for that reason: what
+  // an empire gains here is a *verb the world does differently*, which is the
+  // same kind of news as being allowed to embark.
+  techEffect: 'is-ability',
 };
 
 /**
@@ -193,6 +203,9 @@ function giftEntryId(gift: TechGift): string | null {
       return `resource:${gift.id}`;
     case 'project':
     case 'ability':
+    // A node's own rules have no shelf of their own in the book — the node does,
+    // and clicking the node you are already reading is not a link.
+    case 'techEffect':
       return null;
     default: {
       const unhandled: never = gift;
@@ -225,6 +238,10 @@ const GIFT_HEADING: Record<TechGift['kind'], string> = {
   // city more, and this one pays its city's *ground* more. The heading is what
   // tells a player to go and look at the map rather than at the panel.
   buildingTileYield: 'Buildings pay new ground',
+  // The rules the node hands over. Deliberately not "Effects": what a player
+  // gains is a change in how the world works, and `describeCard`'s own sentences
+  // are what follow the heading.
+  techEffect: 'Changes the rules',
 };
 
 // --- the plan, read four ways ------------------------------------------------
@@ -842,6 +859,24 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   }
 
   /**
+   * What a node's own rules do, in the vocabulary the rest of the game already
+   * words cards in.
+   *
+   * `describeCard` (`statecraft.ts`) is the one describer for a card, and a
+   * technology **is** a card now (`CardId`'s ninth class), so the node's rules
+   * are asked of it by id rather than a second table being written — the same
+   * bargain every card screen keeps: a shape that grows a clause grows it once.
+   * `stripRefs` because this is a plain span and not a `setDescriptorText`
+   * surface, and a raw `[[` on any surface is what the sweep forbids.
+   */
+  function techEffectNote(gift: TechGift & { kind: 'techEffect' }): string {
+    return describeCard(gift.id)
+      .map((clause) => stripRefs(clause.text))
+      .filter((text) => text.length > 0)
+      .join(' · ');
+  }
+
+  /**
    * The whole of what a node hands over, which is more than a node card holds.
    *
    * The card in the chart lists the units and buildings, because those are what
@@ -975,7 +1010,9 @@ export function createTechTree(options: TechTreeOptions): TechTree {
                   ? renewalNote(gift)
                   : gift.kind === 'buildingRenewal'
                     ? buildingRenewalNote(gift)
-                    : '';
+                    : gift.kind === 'techEffect'
+                      ? techEffectNote(gift)
+                      : '';
       if (note) row.append(element('span', 'info-card-gift-note', note));
       list?.append(row);
     }

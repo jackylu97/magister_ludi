@@ -79,7 +79,7 @@ import {
 } from '../../src/sim/statecraft';
 import type { CardEffectKind } from '../../src/sim/statecraftData';
 import { highestAge } from '../../src/sim/techData';
-import { game, found } from './statecraftHelpers';
+import { game, found, keepTheRites } from './statecraftHelpers';
 
 const PEOPLE = RULES.greatPeople;
 
@@ -140,8 +140,11 @@ describe('the draw', () => {
   it('spills to the previous age before the next when the age runs short', () => {
     const g = game(11);
     const player = g.state.players[0]!;
-    // An Æra-III empire whose own age holds one name left.
-    player.techsResearched.push('ironWorking');
+    // An Æra-III **roster** empire whose own age holds one name left. The
+    // roster's ages run one past the tree's (`rosterAgeFor`), so this is a seat
+    // standing in the tree's Æra II — re-read, not re-argued, by the tree pass
+    // of 2026-08-30, which moved Iron Working into Æra III under it.
+    player.techsResearched.push('theDelugeRemembered');
     const age = 3;
     expect(highestAge(player.techsResearched)).toBeGreaterThan(1);
     const own = rosterOfAge(age);
@@ -156,7 +159,7 @@ describe('the draw', () => {
   it('reaches forward once the previous ages are spent too', () => {
     const g = game(13);
     const player = g.state.players[0]!;
-    player.techsResearched.push('ironWorking');
+    player.techsResearched.push('theDelugeRemembered');
     g.state.recruited.push(...rosterOfAge(2), ...rosterOfAge(3).slice(1));
     const pool = greatPersonPool(g.state, player, 3);
     expect(pool[0]).toBe(rosterOfAge(3)[0]);
@@ -207,6 +210,7 @@ describe('chooseGreatPerson', () => {
   it('spends the name for the whole world and mints the piece in the capital', () => {
     const g = game(19);
     const city = found(g.state, 0);
+    keepTheRites(g.state);
     settleRenownWindfall(g.state, g.state.players[0]!, [
       { family: null, amount: RULES.renown.first },
     ]);
@@ -229,6 +233,7 @@ describe('chooseGreatPerson', () => {
     const g = game(23);
     found(g.state, 0);
     found(g.state, 1);
+    keepTheRites(g.state);
     for (const id of [0, 1]) {
       settleRenownWindfall(g.state, g.state.players[id]!, [
         { family: null, amount: RULES.renown.first },
@@ -660,7 +665,9 @@ describe('the legacies this pass built', () => {
     // An empire in the first age has closed nothing.
     expect(highestAge(player.techsResearched)).toBe(1);
     expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(0);
-    player.techsResearched.push('ironWorking');
+    // One age closed, so one point — Æra II, since the tree pass of 2026-08-30
+    // put Iron Working two ages up.
+    player.techsResearched.push('theDelugeRemembered');
     expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(1);
   });
 
@@ -986,6 +993,7 @@ describe('great people in the log', () => {
       const unit = state.units.find((u) => u.ownerId === 0)!;
       foundCityAt(state, 0, getTileAt(state.map, unit.col, unit.row)!);
       state.players[0]!.researching = 'mining';
+      keepTheRites(state);
       settleRenownWindfall(state, state.players[0]!, [
         { family: 'scholar', amount: RULES.renown.first },
       ]);

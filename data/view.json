@@ -76,7 +76,13 @@
       "shipOfTheLine": "boat",
       "fireShip": "boat",
       "gunGalley": "boat",
-      "frigate": "boat"
+      "frigate": "boat",
+      "phalanx": "pawn",
+      "legionary": "pawn",
+      "spearWall": "pawn",
+      "horseArcher": "flag",
+      "cataphract": "person",
+      "warElephant": "person"
     },
     "byPlayerColor": {
       "#d4502e": "red",

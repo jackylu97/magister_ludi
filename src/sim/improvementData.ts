@@ -169,6 +169,11 @@ export type ImprovementId =
   | 'fishingBoats'
   | 'plantation'
   | 'lumbermill'
+  // A ring of raised stones — the tree pass of 2026-08-30, and the temple that
+  // stood before the field did. An ordinary worker's improvement in every
+  // respect; what is unusual is only that it pays in culture and faith rather
+  // than in food, hammers or coin, which the yield type has always allowed.
+  | 'standingStones'
   // The five **great-person works** (`docs/great-people.md`). Ordinary rows in
   // every respect but one: `greatPerson` names the family whose piece plants
   // them, which is what a worker is refused by and what a great person is

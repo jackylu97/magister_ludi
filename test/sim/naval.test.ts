@@ -17,7 +17,7 @@ import { explainRouteYieldBetween, foldRouteYield } from '../../src/sim/routeYie
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
 import { buildError } from '../../src/sim/tech';
-import { TECH_IDS } from '../../src/sim/techData';
+import { plainTechs } from './techHelpers';
 import { isWaterTerrain } from '../../src/sim/terrainData';
 import { purchaseError } from '../../src/sim/purchase';
 import { UNIT_TYPE_IDS, isNaval, unitDef } from '../../src/sim/unitData';
@@ -73,7 +73,7 @@ function seaState(width = 14, height = 10): GameState {
   state.units = [];
   state.cities = [];
   state.nextEntityId = 1;
-  for (const player of state.players) player.techsResearched = [...TECH_IDS];
+  for (const player of state.players) player.techsResearched = plainTechs();
   computeFreshwater(state.map);
   return state;
 }
@@ -309,7 +309,10 @@ describe('a row shipped ahead of its age', () => {
     }
     // And every hull that *does* have a home is buildable in a port, which is
     // what says the marker is doing the refusing rather than the coastline.
-    for (const id of ['trireme', 'bireme', 'warGalley', 'galley', 'fireShip', 'caravel']) {
+    // The Æra IV hulls came home to The Astrolabe on 2026-08-30 and are not in
+    // this fixture's hand (see `plainTechs` — the node that opens the ocean is
+    // deliberately left out of it), so the six here are I, II and III.
+    for (const id of ['trireme', 'bireme', 'warGalley', 'galley', 'towerShip', 'fireShip']) {
       expect(buildError(state, 0, 'unit', id as never, port), id).toBeNull();
     }
   });
@@ -855,7 +858,7 @@ describe('a naval fight replays byte for byte', () => {
       state.units = [];
       state.cities = [];
       state.nextEntityId = 1;
-      for (const player of state.players) player.techsResearched = [...TECH_IDS];
+      for (const player of state.players) player.techsResearched = plainTechs();
       computeFreshwater(state.map);
       seeEverything(state);
       createUnit(state, 0, 'galley', 1, 4);

@@ -63,9 +63,19 @@ export function layRoad(tile: Tile, ownerId: number, free = false): boolean {
  * the roster's own marker, so nothing here compares a type against a name), and
  * it wears one only while it is actually *carrying* a route (`Unit.trade`) — an
  * idle trader parked on a hill is not a trade road.
+ *
+ * **Or when the piece is a road-builder** (`UnitDef.laysRoad`, the tree pass of
+ * 2026-08-30 — the Legionary's "the road is the army, laid down behind it").
+ * A second marker rather than a second function, because it is the same
+ * sentence: a piece of this kind, come to rest here, paves the hex. It goes
+ * through `layRoad` like everything else, so the legion's road and the
+ * caravan's are one mark on one field and the maintenance count cannot tell
+ * them apart — which is the point.
  */
 export function layRoadUnder(unit: Unit, tile: Tile): boolean {
-  if (!trades(unitDef(unit.type))) return false;
+  const def = unitDef(unit.type);
+  if (def.laysRoad === true) return layRoad(tile, unit.ownerId);
+  if (!trades(def)) return false;
   if (unit.trade === undefined) return false;
   return layRoad(tile, unit.ownerId);
 }

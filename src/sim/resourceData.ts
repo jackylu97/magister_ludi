@@ -108,7 +108,7 @@ import {
   type TileYieldSpec,
   readTileYield,
 } from './terrainData';
-import { TECH_AGES, TECH_IDS, type TechAge, type TechId } from './techData';
+import { TECH_AGES, TECH_IDS, type TechAge, type TechId, eraNumeral } from './techData';
 
 /**
  * Every resource the table names — read off the JSON's keys, so a new row is a
@@ -481,7 +481,7 @@ export function effectIsLive(effect: ResourceEffect, age: TechAge): boolean {
 
 /** "Æra III" — how the interface names the age a locked tier is waiting for. */
 export function ageLabel(age: TechAge): string {
-  return `Æra ${'I'.repeat(age)}`;
+  return `Æra ${eraNumeral(age)}`;
 }
 
 /**

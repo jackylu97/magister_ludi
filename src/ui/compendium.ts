@@ -898,6 +898,16 @@ function giftWords(gift: TechGift): string {
     })} to certain hexes the city works`;
   }
   if (gift.kind === 'project') return `New city project: ${gift.name}`;
+  // A node's own rules (`TechDef.effects`, the tree pass of 2026-08-30). Said in
+  // the vocabulary every other card is said in — `describeCard` answers for a
+  // technology now, because a technology **is** a card — rather than in a second
+  // table of words that could disagree with the star chart's.
+  if (gift.kind === 'techEffect') {
+    const said = describeCard(gift.id)
+      .map((clause) => stripRefs(clause.text))
+      .filter((text) => text.length > 0);
+    return said.length > 0 ? said.join('. ') : `Changes the rules: ${gift.name}`;
+  }
   return `New ability: ${gift.name}`;
 }
 

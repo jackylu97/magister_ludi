@@ -73,16 +73,21 @@ function world(): { state: GameState; city: ReturnType<typeof foundCityAt> } {
 
 describe('what a unit costs to keep', () => {
   it('is the age of the technology that unlocks it', () => {
-    // The ruling's own three examples, and they span the tree: Agriculture,
-    // Iron Working, Chivalry.
+    // The ruling's own examples, re-read against the four-age tree of
+    // 2026-08-30: Agriculture (I), Wayfinding (II), Iron Working (III),
+    // Chivalry (IV). The **rule** never moved — upkeep is the age of the node
+    // that unlocks the row — and every number here moved with the tree, which
+    // is the rule working.
     expect(unitUpkeep('warrior')).toBe(1);
-    expect(unitUpkeep('swordsman')).toBe(2);
-    expect(unitUpkeep('knight')).toBe(3);
+    expect(unitUpkeep('bireme')).toBe(2);
+    expect(unitUpkeep('swordsman')).toBe(3);
+    expect(unitUpkeep('knight')).toBe(4);
     // And the rate is the rule rather than a table of prices: every combat row
     // is exactly its node's age.
     expect(unitUpkeep('spearman')).toBe(1 * UPKEEP.goldPerUnitAge);
-    expect(unitUpkeep('catapult')).toBe(2 * UPKEEP.goldPerUnitAge);
-    expect(unitUpkeep('trebuchet')).toBe(3 * UPKEEP.goldPerUnitAge);
+    expect(unitUpkeep('phalanx')).toBe(2 * UPKEEP.goldPerUnitAge);
+    expect(unitUpkeep('catapult')).toBe(3 * UPKEEP.goldPerUnitAge);
+    expect(unitUpkeep('trebuchet')).toBe(4 * UPKEEP.goldPerUnitAge);
   });
 
   it('exempts every non-combatant, the explorer and the trader', () => {
@@ -118,11 +123,16 @@ describe('what a building costs to keep', () => {
     // renown bucket, which is the set of rows that are *institutions*.
     expect(buildingUpkeep('barracks')).toBe(1);
     expect(buildingUpkeep('library')).toBe(1);
+    // Re-read against the four-age tree of 2026-08-30: the market is a Heroes
+    // institution now, the workshop and the university are Empire ones, and the
+    // printing house is the first Cathedrals row to draw a wage.
     expect(buildingUpkeep('market')).toBe(2);
-    expect(buildingUpkeep('workshop')).toBe(2);
-    expect(buildingUpkeep('watermill')).toBe(2);
+    expect(buildingUpkeep('bazaar')).toBe(2);
+    expect(buildingUpkeep('workshop')).toBe(3);
+    expect(buildingUpkeep('watermill')).toBe(3);
     expect(buildingUpkeep('amphitheater')).toBe(2);
     expect(buildingUpkeep('university')).toBe(3);
+    expect(buildingUpkeep('printingHouse')).toBe(4);
   });
 
   it('charges nothing for a monument, a granary or a wonder', () => {
@@ -211,7 +221,7 @@ describe('the empire ledger', () => {
 
     expect(explainUnitUpkeep(state, 0).map((line) => [line.source, line.gold])).toEqual([
       ['Warrior', 1],
-      ['Swordsman', 2],
+      ['Swordsman', 3],
     ]);
     expect(explainBuildingUpkeep(state, 0).map((line) => [line.source, line.gold])).toEqual([
       [`Library · ${city.name}`, 1],
@@ -373,7 +383,7 @@ describe('the creditors', () => {
     // is a fact a replay reproduces.
     const first = disbandCandidate(state, 0)!;
     expect(first.type).toBe('knight');
-    expect(first.gold).toBe(3);
+    expect(first.gold).toBe(4);
     expect(first.unitId).toBeLessThan(youngWarrior.id);
 
     // With both knights gone the warriors are next, oldest first.
@@ -405,7 +415,7 @@ describe('the creditors', () => {
     collectYields(state, report);
     expect(state.units.length).toBe(before - 1);
     expect(report.disbanded).toEqual([
-      { unitId: expect.any(Number), ownerId: 0, type: 'knight', upkeep: 3 },
+      { unitId: expect.any(Number), ownerId: 0, type: 'knight', upkeep: 4 },
     ]);
 
     // And again next turn, because disbanding banks no gold — it only lowers the

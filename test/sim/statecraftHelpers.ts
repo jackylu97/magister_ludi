@@ -13,6 +13,7 @@ import { foundCityAt } from '../../src/sim/cities';
 import { createGame } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
 import type { GameState } from '../../src/sim/state';
+import { ABILITY_TECH } from '../../src/sim/techData';
 
 export function game(seed = 7) {
   return createGame({
@@ -23,6 +24,31 @@ export function game(seed = 7) {
       { name: 'Bors', color: '#3a7fe8' },
     ],
   });
+}
+
+/**
+ * Puts the **ancestor rites** in every seat's hand — the gate a great-person
+ * offer opens behind since the tree pass of 2026-08-30.
+ *
+ * Renown gathers from turn one and nobody answers it until an empire has
+ * researched Ancestor Rites, so any test that is about what renown is *worth*,
+ * what a legacy pays or what a Triumph mints has to get past the gate first.
+ * The gate itself has its own test in `renown.test.ts`.
+ *
+ * Written directly onto the seat rather than through a command, exactly as the
+ * other fixtures here reach for `foundCityAt`: it is scenery, not the subject.
+ * It is therefore **not** for a test that replays a log — grant the technology
+ * inside the log for those.
+ *
+ * Read through `ABILITY_TECH` so that moving the gate to another node moves this
+ * with it, and never leaves it naming a technology that opens nothing.
+ */
+export function keepTheRites(state: GameState): void {
+  const gate = ABILITY_TECH.get('ancestorRites');
+  if (gate === undefined) return;
+  for (const player of state.players) {
+    if (!player.techsResearched.includes(gate)) player.techsResearched.push(gate);
+  }
 }
 
 export function found(state: GameState, playerId: number) {

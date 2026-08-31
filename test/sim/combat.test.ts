@@ -1523,6 +1523,9 @@ describe('the unit roster carries the combat data the rules need', () => {
       [
         'archer',
         'catapult',
+        // The mounted ranged premier of Æra III (the tree pass of 2026-08-30),
+        // and the chariot archer's successor: the bow that does not stop.
+        'horseArcher',
         'chariotArcher',
         'compositeBowman',
         'crossbowman',

@@ -488,7 +488,13 @@
       "settler": "settler",
       "worker": "worker",
       "scout": "scout",
-      "trader": "trader"
+      "trader": "trader",
+      "phalanx": "spear",
+      "legionary": "melee",
+      "spearWall": "pikeman",
+      "horseArcher": "mountedRanged",
+      "cataphract": "mounted",
+      "warElephant": "mounted"
     },
     "selectedRimShade": 0.3,
     "atlasCell": 128,

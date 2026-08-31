@@ -111,7 +111,7 @@ import {
   stripRefs,
 } from './statecraft';
 import { settleResearchWindfall } from './tech';
-import { BUILDING_UNLOCK_TECH, highestAge, isTechId, techDef } from './techData';
+import { BUILDING_UNLOCK_TECH, highestAge, isTechId, techDef, techsGrant } from './techData';
 import { type UnitTypeId, isCombatant, isUnitTypeId, unitDef } from './unitData';
 
 /**
@@ -253,6 +253,29 @@ function deedMatches(deed: BeadDeed, occasion: BeadOccasion, family?: Family): b
   if (deed.occasion !== occasion) return false;
   if (deed.family !== undefined && deed.family !== family) return false;
   return true;
+}
+
+/**
+ * Is this age's hand **shown to this seat**, whether or not the world has turned
+ * it face up?
+ *
+ * **The Long Count** (the tree pass of 2026-08-30): an empire that keeps the long
+ * count sees the *next* age's hand before that age opens. It is a per-seat
+ * reading rather than a write, and that is the whole of why it is here and not a
+ * second `faceUp` rule: `card.faceUp` is the **world's** fact and it is what
+ * makes a quest claimable (`questIsOnTheTable`), so turning one over early for
+ * one seat would hand that seat a bead nobody else could race for. What the
+ * technology buys is *sight* — knowing what the age will ask before it asks —
+ * and sight is a question a screen asks, never a field.
+ *
+ * Exactly one age ahead, so a realm that reaches it in Æra II is not handed the
+ * whole book.
+ */
+export function beadHandIsShownTo(state: GameState, playerId: number, age: number): boolean {
+  if (age <= state.beads.worldAge) return true;
+  if (age !== state.beads.worldAge + 1) return false;
+  const player = playerById(state, playerId);
+  return player !== undefined && techsGrant(player.techsResearched, 'theLongCount');
 }
 
 /** Is this quest's card face up in its age's hand? A quest is claimable only there. */

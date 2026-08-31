@@ -54,6 +54,15 @@ export type UnitTypeId =
   | 'knight'
   | 'longswordsman'
   | 'trebuchet'
+  // The Æra II–IV roster (the tree pass of 2026-08-30): the spear line's two
+  // successors, the melee premier that paves the ground it rests on, the two
+  // mounted premiers, and the beast that comes with the ivory.
+  | 'phalanx'
+  | 'spearWall'
+  | 'legionary'
+  | 'horseArcher'
+  | 'cataphract'
+  | 'warElephant'
   | 'trireme'
   | 'bireme'
   | 'galley'
@@ -468,6 +477,18 @@ export interface UnitDef {
    * still strikes once a turn and then merely has somewhere to be.
    */
   hitAndRun?: boolean;
+  /**
+   * True when this piece **paves the hex it comes to rest on** — the
+   * Legionary's, and the whole of "the road is the army, laid down behind it".
+   *
+   * Presence is the marker, exactly as with `hitAndRun`, `blockades` and
+   * `trades`: nothing in `src/sim/` compares a type against `"legionary"`, so a
+   * later engineer inherits the rule from one data field. It is read in exactly
+   * one place — `arriveOnTile` (`arrival.ts`), the one "a unit came to rest
+   * here" seam — beside the trader's own paving, and it goes through `layRoad`
+   * (`roads.ts`), which is still the **only** writer of `Tile.road`.
+   */
+  laysRoad?: boolean;
   /**
    * True when this row's ranged blow is a **bombardment** — it is built to
    * batter walls — or the field is absent.
