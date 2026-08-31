@@ -412,6 +412,11 @@ export interface TechTreeOptions {
    */
   onCommitted?: (command: Command, result: ReturnType<typeof dispatch>) => void;
   /**
+   * The chart folded away — by any of its five doors. `onOpen`'s twin; see
+   * `setOpen`, which is the one place either fires.
+   */
+  onClose?: () => void;
+  /**
    * Called as this screen opens, so whatever else was up can get out of the way.
    *
    * The same hook the HUD's popovers take, and it exists for the same reason:
@@ -553,6 +558,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     localPlayerId,
     onChanged,
     onCommitted,
+    onClose,
     onOpen,
   } = options;
 
@@ -1962,6 +1968,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // overlay, so hiding the overlay would not take it with it. The focus mode
     // is put back for the same reason a pointer leaving a card puts it back:
     // a hidden chart keeping one node lit would reopen mid-sentence.
+    // `onOpen`'s twin, and it is one line here rather than one at each door
+    // precisely because there are five of them — the ×, Escape, a click on the
+    // ink around the chart, the `close()` verb and the toggle. `setOpen` is
+    // where they all arrive, so it is where the chart says it has folded away.
+    onClose?.();
     info.hide();
     readNode(null);
     restoreTo?.focus();

@@ -2975,6 +2975,12 @@ async function boot(initial: Game | null): Promise<void> {
       // open seam, so `T`, the research card and End Turn's blocker all count.
       tutorial.note({ kind: 'event', event: 'techChartOpened' });
     },
+    // Its twin. The guide asks the player to fold the chart away before the
+    // next card appears — a city screen raised over a star chart is two screens
+    // arguing (the user, 2026-08-30) — and `setOpen` is the one place all five
+    // of the chart's doors arrive at, so this fires for the ×, for Escape, and
+    // for a click on the ink around it alike.
+    onClose: () => tutorial.note({ kind: 'event', event: 'techChartClosed' }),
   });
 
   /**
@@ -3407,7 +3413,18 @@ async function boot(initial: Game | null): Promise<void> {
     const project = renderer.projectCell;
     if (project === undefined) return null;
     const seat = controls.localPlayerId();
-    const piece = game.state.units.find((unit) => unit.ownerId === seat && unit.type === what);
+    const mine = game.state.units.filter((unit) => unit.ownerId === seat);
+    // Two names, because the guide asks about two different pieces. `settler` is
+    // literal; `mover` is "the other one" — the scout by preference, and
+    // otherwise anything of this seat's that is not the founder, which is what
+    // the step means by *your starting unit* both before the capital is founded
+    // and after the settler has become one.
+    const piece =
+      what === 'mover'
+        ? (mine.find((unit) => unit.type === 'scout') ??
+          mine.find((unit) => unit.type !== 'settler') ??
+          mine[0])
+        : mine.find((unit) => unit.type === what);
     if (piece === undefined) return null;
     const point = project.call(renderer, piece.col, piece.row);
     if (point === null || !point.onScreen) return null;

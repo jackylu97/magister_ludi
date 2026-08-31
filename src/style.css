@@ -9976,6 +9976,14 @@ body.compendium-page {
   box-shadow: 0 0 0 9999px rgba(29, 26, 32, 0.38);
 }
 
+/* A hole cut over a **screen** has to be drawn on top of it: the star chart owns
+   z 40, and the dimmer sits under the HUD's own cards otherwise. Only the two
+   chart steps set it, and only the second of them has anything to ring — see
+   `place` in tutorial.ts, which is what decides whether the dimmer is up at all. */
+.tutorial-scrim.is-over {
+  z-index: 43;
+}
+
 /* A piece on the board is round, and the ring around it has to be too — a
    rectangle drawn over a hex reads as a selection box, which is a different
    thing this interface already draws. The hole is projected from the piece's

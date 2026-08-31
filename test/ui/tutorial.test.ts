@@ -133,6 +133,47 @@ describe('the step table', () => {
     expect(STEPS.indexOf(open!)).toBeLessThan(STEPS.indexOf(aim!));
   });
 
+  it('asks the chart to be folded away before the next card', () => {
+    // The user, 2026-08-30: a city screen raised over an open star chart is two
+    // screens arguing. The step between them is what stops it, and the pin is
+    // the *order* plus the fact that the build step cannot be reached until the
+    // chart has actually closed.
+    const ids = STEPS.map((step) => step.id);
+    expect(ids.indexOf('research')).toBeLessThan(ids.indexOf('closeChart'));
+    expect(ids.indexOf('closeChart')).toBeLessThan(ids.indexOf('build'));
+    const close = STEPS.find((step) => step.id === 'closeChart');
+    expect(close?.advance).toEqual({ kind: 'event', event: 'techChartClosed' });
+    // It rings the × and keeps the pick step's corner, so the card does not
+    // land in the middle of the chart it is asking to be closed.
+    expect(close?.anchor).toBe('#tech-close');
+    expect(close?.place).toBe('corner');
+  });
+
+  it('never raises the build card while the chart is still up', () => {
+    // Queueing something early marks the build step satisfied, but the sequence
+    // must still be standing on "fold the chart away" — the card on screen is
+    // the close step's until the chart actually closes.
+    let progress = FIRST_PROGRESS;
+    for (const step of STEPS) {
+      if (step.id === 'research') break;
+      progress = nextStep(progress, signalOf(step.advance), STEPS);
+    }
+    expect(stepAt(progress, STEPS)?.id).toBe('research');
+    progress = nextStep(progress, { kind: 'command', command: 'chooseResearch' }, STEPS);
+    expect(stepAt(progress, STEPS)?.id).toBe('closeChart');
+    const early = nextStep(progress, { kind: 'command', command: 'setCityProduction' }, STEPS);
+    expect(stepAt(early, STEPS)?.id).toBe('closeChart');
+    expect(stepAt(nextStep(early, { kind: 'event', event: 'techChartClosed' }), STEPS)?.id).toBe(
+      'move',
+    );
+  });
+
+  it('rings the starting unit on the board too', () => {
+    const move = STEPS.find((step) => step.id === 'move');
+    expect(move?.title).toBe('Move your starting unit');
+    expect(move?.board).toBe('mover');
+  });
+
   it('rings the settler on the board rather than a panel', () => {
     const select = STEPS.find((step) => step.id === 'select');
     expect(select?.board).toBe('settler');
@@ -503,6 +544,16 @@ describe('the wiring', () => {
     expect(wired.length).toBe(2);
   });
 
+  it('hears the chart close through the one door they all arrive at', () => {
+    const chart = source('ui/techTree.ts');
+    // `setOpen` is where the ×, Escape, the ink around the chart, `close()` and
+    // the toggle all end up, so `onClose` is one line rather than five.
+    expect([...chart.matchAll(/onClose\?\.\(\)/g)].length).toBe(1);
+    expect(source('main.ts')).toContain(
+      "onClose: () => tutorial.note({ kind: 'event', event: 'techChartClosed' })",
+    );
+  });
+
   it('re-projects the board ring on the renderer\'s frame beat', () => {
     const main = source('main.ts');
     expect(main).toContain('tutorial.reposition()');
@@ -514,8 +565,45 @@ describe('the wiring', () => {
   it('anchors its highlights on elements that exist', () => {
     const html = source('index.html');
     for (const step of STEPS) {
-      if (step.anchor === null) continue;
-      expect(html, step.id).toContain(`id="${step.anchor}"`);
+      const anchor = step.anchor;
+      if (anchor === null) continue;
+      // A selector, not an id (2026-08-30): `#foo` is markup in the document,
+      // `.foo` is a class some module builds.
+      if (anchor.startsWith('#')) {
+        expect(html, step.id).toContain(`id="${anchor.slice(1)}"`);
+        continue;
+      }
+      expect(anchor.startsWith('.'), `${step.id}: ${anchor}`).toBe(true);
+      const built = Object.keys(SOURCES).some((path) =>
+        SOURCES[path]?.includes(`'${anchor.slice(1)}'`),
+      );
+      expect(built, `${step.id}: nothing builds ${anchor}`).toBe(true);
     }
+  });
+
+  it('rings the two meters and not the yield figures beside them', () => {
+    // The user, 2026-08-30. `#civ-yields` is the whole strip — six yield chips
+    // *and* the meters — so the anchor is the meters' own wrapper, whose only
+    // children are happiness and authority (`chip` in `topBar.ts`).
+    const meters = STEPS.find((step) => step.id === 'meters');
+    expect(meters?.anchor).toBe('.civ-meters');
+    const bar = source('ui/topBar.ts');
+    expect(bar).toContain("element('div', 'civ-meters')");
+    // Every meter chip is appended to it, and nothing else is.
+    expect(bar).toContain('meters.append(button)');
+    expect([...bar.matchAll(/meters\.append\(/g)].length).toBe(1);
+  });
+
+  it('starts a new game at the first step, and keeps the notes', () => {
+    // The user, 2026-08-30: a fresh game begins the sequence again whatever the
+    // shelf remembers — progress is about *this* game's opening turns. The
+    // one-time notes are a different kind of memory and stand, except on the
+    // one edge where the player switched the guide off and on again.
+    const text = source('ui/tutorial.ts');
+    expect(text).toMatch(/begin\(\) \{[\s\S]*?progress: FIRST_PROGRESS/);
+    expect(text).toMatch(/const rekindled = on && !memory\.enabled;/);
+    expect(text).toMatch(/rekindled\s*\?\s*\{ enabled: true, progress: FIRST_PROGRESS, seen: \[\] \}/);
+    // And a loaded save never starts it — `resume` sets nothing running.
+    expect(text).toMatch(/resume\(\) \{\s*running = false;/);
   });
 });

@@ -6,8 +6,8 @@
  * and explain the bead system"*. What that turns into here is **two layers over
  * one table of prose**:
  *
- *   1. **The opening sequence** — ten steps, linear, from "select your settler"
- *      to "end the turn". A parchment coach card sits beside a highlighted
+ *   1. **The opening sequence** — eleven steps, linear, from "select your
+ *      settler" to "end the turn". A parchment coach card sits beside a highlighted
  *      element with the rest of the screen dimmed, and an *action* step is
  *      advanced by the player's own deed rather than by a button. Nobody is ever
  *      told to press Next to found a city.
@@ -78,7 +78,19 @@ export type StepAdvance =
 export interface TutorialStep {
   /** Stable, and the key the memory records as satisfied. */
   id: string;
-  /** The element the spotlight cuts out and the card sits beside, or `null`. */
+  /**
+   * A **CSS selector** for the element the spotlight cuts out and the card sits
+   * beside, or `null`.
+   *
+   * A selector rather than an id (2026-08-30, the user's note about the meters):
+   * the two things this guide most wants to ring are a *pair* of chips inside a
+   * strip that also holds the six yield figures, and that pair has a wrapper of
+   * its own but no id. Ringing the strip rings the yields with them, which says
+   * the wrong thing; ringing `.civ-meters` rings exactly happiness and authority,
+   * because that wrapper's only children are the two of them. A selector also
+   * keeps the whole change inside this file — nothing in `topBar.ts` had to grow
+   * an id for the guide's benefit.
+   */
   anchor: string | null;
   /**
    * A thing **on the board** to ring instead, named for the host to find.
@@ -112,16 +124,16 @@ export interface TutorialStep {
 /**
  * The opening sequence, in order.
  *
- * Ten steps, and the shape of them is the argument: the six that ask for a deed
- * (`select`, `command`, and the star chart's `event`) have **no Next button at
- * all**, so the only way past one is to do the thing. The three that merely
- * explain something have nothing to do and take the button. Skip is on every one
- * of them.
+ * Eleven steps, and the shape of them is the argument: the eight that ask for a
+ * deed (`select`, `command`, and the star chart's two `event`s) have **no Next
+ * button at all**, so the only way past one is to do the thing. The three that
+ * merely explain something have nothing to do and take the button. Skip is on
+ * every one of them.
  */
 export const STEPS: readonly TutorialStep[] = [
   {
     id: 'welcome',
-    anchor: 'abacus-button',
+    anchor: '#abacus-button',
     title: 'Welcome',
     body:
       'You lead one people, from a single wagon to an empire. The game is won by the Bead Race: every player has a rod, a bead is threaded onto it for a first in the world, and the first rod to twenty beads wins. Nothing is scored in secret — every bead is announced, so a rival can always see you coming and race you to it. The Abacus, on the bar above, keeps the count for everyone at the table.',
@@ -129,7 +141,7 @@ export const STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'select',
-    anchor: 'unit-panel',
+    anchor: '#unit-panel',
     board: 'settler',
     title: 'Select your settler',
     body:
@@ -138,7 +150,7 @@ export const STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'found',
-    anchor: 'unit-panel',
+    anchor: '#unit-panel',
     title: 'Found your capital',
     body:
       'Press Found City on the sheet. The wagon becomes a city, the hexes around it become yours, and its people start working the land straight away. Grass and fresh water feed a city best, but anywhere green will do — a first city founded now is worth more than a perfect one founded in five turns.',
@@ -146,7 +158,7 @@ export const STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'openChart',
-    anchor: 'hud-research',
+    anchor: '#hud-research',
     title: 'Open the star chart',
     body:
       'This card is what your people are learning, and right now that is nothing at all. Click it. The star chart opens over the board: every idea your people could have, and the order they have to come in.',
@@ -162,8 +174,17 @@ export const STEPS: readonly TutorialStep[] = [
     advance: { kind: 'command', command: 'chooseResearch' },
   },
   {
+    id: 'closeChart',
+    anchor: '#tech-close',
+    place: 'corner',
+    title: 'Fold the chart away',
+    body:
+      'The stars will keep. Press Escape, or the cross in the corner, and the study comes back to the table — the card you opened it from now shows what your people are working on and how long it has left.',
+    advance: { kind: 'event', event: 'techChartClosed' },
+  },
+  {
     id: 'build',
-    anchor: 'city-panel',
+    anchor: '#city-panel',
     title: 'Give the city something to build',
     body:
       'Click your city to open it. Its screen lists everything it could make, with what each would cost and how long it would take. Pick one and it joins the build list. A warrior to keep the raiders off, a scout to see what is out there, or a worker to improve your land are all sound first choices.',
@@ -172,14 +193,15 @@ export const STEPS: readonly TutorialStep[] = [
   {
     id: 'move',
     anchor: null,
-    title: 'Walk somebody out',
+    board: 'mover',
+    title: 'Move your starting unit',
     body:
-      'Select your other piece and right click a hex to send it there. Rough ground costs more to cross, and a piece ordered further than it can walk today keeps walking by itself tomorrow. Go and see what you have been given — every hex you have never stood near is blank until somebody looks at it.',
+      'This one is your other piece. Select it, then right click a hex to send it there. Rough ground costs more to cross, and a piece ordered further than it can walk today keeps walking by itself tomorrow. Go and see what you have been given — every hex nobody has stood near is blank until somebody looks at it.',
     advance: { kind: 'command', command: 'moveUnit' },
   },
   {
     id: 'endTurn',
-    anchor: 'end-turn',
+    anchor: '#end-turn',
     title: 'End the turn',
     body:
       'When you have nothing left to do, press this. Everyone plays at once: nothing moves in the world until every player has ended, and then the whole turn resolves together. If something still wants an answer the button says so and takes you to it first. Watch the hand-over — the pieces under standing orders march, the new turn is announced, and then you are put in front of the first piece with nothing to do.',
@@ -187,10 +209,12 @@ export const STEPS: readonly TutorialStep[] = [
   },
   {
     id: 'meters',
-    anchor: 'civ-yields',
+    // The two meter chips and nothing else — not the six yield figures beside
+    // them, which are a different reading and were being ringed with them.
+    anchor: '.civ-meters',
     title: 'Happiness and authority',
     body:
-      'The two meters on the bar are the limits on growing. Happiness is about how big your cities are; authority is about how many you have. Neither is a wall — go over and you pay for it, in slower growth or in less learning. Hover either one to see every source that fed it, and click for the whole list. Almost every number in this game answers a hover like that, and it is the fastest way to learn what is going on.',
+      'These two, on the bar, are the limits on growing. Happiness is about how big your cities are; authority is about how many you have. Neither is a wall — go over and you pay for it, in slower growth or in less learning. Hover either one to see every source that fed it, and click for the whole list. Almost every number in this game answers a hover like that, and it is the fastest way to learn what is going on.',
     advance: { kind: 'next' },
   },
   {
@@ -683,8 +707,8 @@ export interface TutorialOptions {
   storage: TutorialStorage;
   /** Where the scrim and the card are mounted — `document.body`. */
   root: HTMLElement;
-  /** Finds a step's anchor. Defaults to the document. */
-  anchor?: (id: string) => HTMLElement | null;
+  /** Resolves a step's anchor selector. Defaults to the document's own lookup. */
+  anchor?: (selector: string) => HTMLElement | null;
   /**
    * Finds a step's *board* anchor — the rectangle a named piece occupies on
    * screen right now, or `null` when there is no such piece or it is off screen.
@@ -751,7 +775,9 @@ interface TipShowing {
 
 export function createTutorial(options: TutorialOptions): Tutorial {
   const { storage, root, boardAnchor } = options;
-  const findAnchor = options.anchor ?? ((id: string) => root.ownerDocument.getElementById(id));
+  const findAnchor =
+    options.anchor ??
+    ((selector: string) => root.ownerDocument.querySelector<HTMLElement>(selector));
   const reducedMotion =
     options.reducedMotion ??
     (() => {
@@ -924,8 +950,9 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       memory.progress.step === STEPS.length - 1 ? 'Begin' : 'Next';
     skipButton.hidden = false;
     card.hidden = false;
-    // No dimmer over a full-window screen; see `place`.
-    scrim.hidden = step.place === 'corner';
+    // `place` has the last word on the dimmer — it is the half that knows
+    // whether there turned out to be anything to cut a hole in.
+    scrim.hidden = false;
     place();
   }
 
@@ -970,13 +997,7 @@ export function createTutorial(options: TutorialOptions): Tutorial {
     // a panel that happens to be open is only ever the fallback.
     const onBoard =
       step?.board !== undefined && boardAnchor !== undefined ? boardAnchor(step.board) : null;
-    // A screen that fills the window has nothing to cut a hole in, and a dim
-    // laid over the chart would be the guide obscuring the very thing it is
-    // pointing at.
-    const rect =
-      step?.place === 'corner'
-        ? null
-        : (onBoard ?? (anchor === null || anchor.hidden ? null : boxOf(anchor)));
+    const rect = onBoard ?? (anchor === null || anchor.hidden ? null : boxOf(anchor));
 
     if (rect === null) {
       // No hole: the shadow's spread still dims the window, and the collapsed
@@ -990,6 +1011,16 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       scrim.style.top = `${rect.top - 6}px`;
       scrim.style.width = `${rect.width + 12}px`;
       scrim.style.height = `${rect.height + 12}px`;
+    }
+    if (step !== null) {
+      // **A corner step with nothing to ring gets no dimmer at all.** Aiming at
+      // a star is the one step where a dim would obscure the very thing being
+      // pointed at; folding the chart away is its opposite — the chart's work is
+      // done, so it dims with a hole cut over the one control left to press.
+      scrim.hidden = step.place === 'corner' && rect === null;
+      // And a hole over a *screen* has to be drawn on top of it: the chart owns
+      // z 40, and the scrim sits under the HUD's cards otherwise.
+      scrim.classList.toggle('is-over', step.place === 'corner');
     }
     scrim.classList.toggle('has-hole', rect !== null);
     // A piece is round and a button is not: the cutout takes the shape of the
@@ -1012,7 +1043,15 @@ export function createTutorial(options: TutorialOptions): Tutorial {
   return {
     enabled: () => memory.enabled,
     setEnabled(on) {
-      memory = { ...memory, enabled: on };
+      // Off and on again is a player asking for the guide back, and the notes go
+      // with it: somebody who switched it off, played, and switched it on has
+      // said they want to be told things, and half the table already marked seen
+      // would leave them told almost nothing. Ticking a box that was already
+      // ticked changes nothing at all.
+      const rekindled = on && !memory.enabled;
+      memory = rekindled
+        ? { enabled: true, progress: FIRST_PROGRESS, seen: [] }
+        : { ...memory, enabled: on };
       save();
       if (!on) {
         tip = null;
@@ -1021,7 +1060,16 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       draw();
     },
     begin() {
-      running = memory.enabled && !memory.progress.done;
+      // **A new game restarts the sequence** (the user, 2026-08-30). Progress is
+      // about *this* game's opening turns — which settler, which capital — so
+      // carrying it across a restart would drop somebody into "end the turn" on
+      // a board with no city on it. The one-time notes are the opposite kind of
+      // memory: each is a lesson about a mechanic, learned once, so they stand.
+      // (`setEnabled` is where a player asking for the guide back gets those
+      // cleared too.)
+      memory = { ...memory, progress: FIRST_PROGRESS };
+      save();
+      running = memory.enabled;
       draw();
     },
     resume() {
