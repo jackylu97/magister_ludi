@@ -19,6 +19,8 @@
  * a document to hold still.
  */
 
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { createMap, getTileAt } from '../../src/sim/map';
