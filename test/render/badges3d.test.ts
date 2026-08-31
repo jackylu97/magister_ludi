@@ -68,6 +68,29 @@ function fakeBadges(): UnitBadges {
   } as unknown as UnitBadges;
 }
 
+describe('every named badge cell exists (the trireme bug of 2026-08-30)', () => {
+  // `badges.byUnitType` mapped the hulls to cell ids that were never in
+  // `BADGE_CELLS` ("navalLight2"…), so the trireme wore a bare canton disc
+  // with no hull. The rules clause composes a hull's cell from its row
+  // (`masts` + `canton`), so the map must never name a hull — and no entry,
+  // for any row, may name a cell the atlas does not draw.
+  it('maps byUnitType only onto cells the atlas draws', () => {
+    const cells = new Set<string>(BADGE_CELLS);
+    for (const [row, cell] of Object.entries(VIEW3D.badges.byUnitType as Record<string, string>)) {
+      expect(cells.has(cell), `${row} -> ${cell}`).toBe(true);
+    }
+  });
+  it('composes an existing cell for every naval row from its own rig and canton', () => {
+    const cells = new Set<string>(BADGE_CELLS);
+    for (const id of UNIT_TYPE_IDS) {
+      const def = unitDef(id);
+      if (def.category !== 'naval') continue;
+      expect((VIEW3D.badges.byUnitType as Record<string, string>)[id], `${id} must not be named`).toBeUndefined();
+      expect(cells.has(badgeClassFor(id)), `${id} -> ${badgeClassFor(id)}`).toBe(true);
+    }
+  });
+});
+
 describe('the badge atlas layout', () => {
   it('tiles a count into a grid and sizes the canvas to match', () => {
     const layout = badgeAtlasLayout(8, 4, 128);

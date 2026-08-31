@@ -729,6 +729,12 @@
         "size": 0.72,
         "jitter": 0.0,
         "gilt": "gilt"
+      },
+      "standingStones": {
+        "color": "bone",
+        "shade": -0.08,
+        "size": 0.66,
+        "jitter": 0.0
       }
     }
   },
