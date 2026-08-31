@@ -431,6 +431,8 @@ export type BeadCardId = BeadFeatId | BeadEndeavourId | BeadQuestId | BeadReckon
 export interface BeadRules {
   /** Beads that win the game. Entry VI's pacing knob. */
   threshold: number;
+  /** Dice every real seat starts the game with (user, 2026-08-30). The wild gets none. */
+  startingDice: number;
   /**
    * How many cards an age's hand holds **face up at once**, by built age.
    *

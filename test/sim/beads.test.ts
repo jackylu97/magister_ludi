@@ -567,12 +567,23 @@ describe('a boon settles through the seam that already exists', () => {
     expect(settler?.freeUpkeep).toBe(true);
   });
 
+  it('seats every real player with the rules\' starting dice, and the wild with none', () => {
+    const state = flatState();
+    for (const player of state.players) {
+      expect(player.dice).toBe(player.barbarian ? 0 : BEAD_RULES.startingDice);
+    }
+    expect(BEAD_RULES.startingDice).toBe(2);
+  });
+
   it('keeps every die it is paid — there is no cap', () => {
     // The user's ruling of 2026-08-30 supersedes Entry XV's held cap of three:
     // a fourth die is kept like the first three.
     const state = flatState();
     plant(state, 0, 4, 4);
     const player = state.players[0]!;
+    // Zeroed so the claim is about the awards alone — a fresh seat starts with
+    // the rules' two (pinned below), which would fog this count.
+    player.dice = 0;
     for (const id of ['threeOfTheAge', 'theScholarsWager', 'thePatron', 'theBuilder'] as const) {
       state.beads.claimed = state.beads.claimed.filter((claim) => claim.id !== id);
       awardBead(state, 0, id, 0);

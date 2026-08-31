@@ -1,6 +1,7 @@
 {
   "rules": {
     "threshold": 20,
+    "startingDice": 2,
     "handSize": {
       "2": 4,
       "3": 5

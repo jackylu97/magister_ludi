@@ -62,6 +62,7 @@ import {
   BEAD_DECK_AGES,
   beadDeckFor,
   drawAgeReckonings,
+  BEAD_RULES,
 } from './beadData';
 import type { ProjectId } from './projectData';
 import type { DiscoveryId, DiscoveryKind } from './discoveryData';
@@ -2276,7 +2277,9 @@ export function newGame(config: GameConfig): GameState {
       // reason: an empire that clacks a bead must not write it onto every rod
       // in the world.
       beads: [],
-      dice: 0,
+      // Every real seat opens the game with the rules' starting dice (user,
+      // 2026-08-30); the wild's stays zero below — it rolls nothing.
+      dice: BEAD_RULES.startingDice,
       citiesFounded: 0,
       citiesCaptured: 0,
       faithOnHolyOrders: 0,
