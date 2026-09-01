@@ -153,7 +153,9 @@ describe('the bead catalogue', () => {
   });
 
   it('pins the schema version the Bead Race moved', () => {
-    expect(SCHEMA_VERSION).toBe(39);
+    // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
+    // moved every replay that raised one.
+    expect(SCHEMA_VERSION).toBe(40);
   });
 
   it('puts the beads phase directly after renown', () => {

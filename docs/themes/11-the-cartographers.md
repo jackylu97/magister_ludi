@@ -23,6 +23,11 @@ sea (IV). Wins by: circumnavigation · discovery counts per layer.
   - Athenaeum of the Road — A ruin you claim pays every option instead of one.
 - Deeds: ▢ ________ (reveal a share of the world?)
 
+## Great people (the theme's two, both Æra III — already in the game)
+- Eratosthenes (scholar) — legacy: +1 science per 20 tiles you have revealed, empire-wide.
+- Zhang Qian (merchant) — legacy: +2 gold per 20 tiles you have revealed, empire-wide.
+(The map itself pays their pensions — every layer proposal below makes both better.)
+
 ## Æra III
 - Tech: *(planned)* Prospecting — veins under hills, revealed by a worker/explorer act (the reveal machinery exists; "revealed by an act" joins "revealed by a tech")
 - Orders: ▢ ________

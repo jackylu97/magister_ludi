@@ -563,7 +563,9 @@ describe('the research queue field', () => {
     // A v21 log is not merely older: a `moveUnit` given with no movement left
     // used to be refused and is now a standing order, and the resolution has
     // grown a phase no v21 state has been through.
-    expect(SCHEMA_VERSION).toBe(39);
+    // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
+    // moved every replay that raised one.
+    expect(SCHEMA_VERSION).toBe(40);
   });
 });
 
