@@ -28,7 +28,7 @@ Agriculture ············ START · settler, warrior, scout, worker ·
 ```
 
 Open questions for this age:
-- [ ] archer: ungated on Agriculture, or restore Fletching as its own node?
+- [ ] archer: ungated on Agriculture, or restore Fletching as its own node? keep fletching, unlocks camps and archers
 - [ ] where do Walls of Uruk / Temple of Artemis re-home? `[ ________ ]`
 
 ---

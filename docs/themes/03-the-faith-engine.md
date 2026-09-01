@@ -70,7 +70,7 @@ Wins by: the Opus faith pillar · The Cathedral of the Age · The Hierophant.
 
 ## Æra IV
 - Tech: The Holy Office (below) is the age's node — already traditional format (unit + building unlocks). The observatory cloister is *re-ruled a BUILDING* — its "+10% science with temple and university" becomes the building's own effect, unlocked by the Holy Office — so the tree stays neutral.
-  - The Holy Office *(user's effects, named)* — unlocks the Inquisitor (strips a lump of every rival religion's pressure from cities within 5 hexes · +2 combat strength to adjacent units) and the tier-4 faith building. NOTE: the user's tier-4 building (+4 happiness · +10% faith in its city · allows purchasing units with faith) matches the planned Reliquary almost exactly — propose they merge as one building; the Basilica below stays separate.
+  - The Holy Office *(user's effects, named)* — unlocks the Inquisitor (strips a lump of every rival religion's pressure from cities within 5 hexes · +2 combat strength to adjacent units) and **the Reliquary** — RULED merged (2026-09-02): the tier-4 faith building IS the Reliquary (+4 happiness · +10% faith in its city · allows purchasing units with faith). The Basilica stays separate behind The Holy See.
 - Orders: 
   - The Great Commission *(user)* — your religion presses +50% harder.
   - The Field Chaplains *(user)* — units adjacent to a religious unit heal +5 every turn, whatever they did that turn.
