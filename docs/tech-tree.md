@@ -103,6 +103,9 @@ Standing Stones / Long Count dropped as nodes (their lines become renewals on su
 shelve; the Long Count's bead reveal onto Currency if kept). Wonders re-home to the nearest
 survivor.
 
+**Ruling 2026-09-01**: Theology moves to Æra III (cost 600) — the cathedral is the faith
+line's age-III marquee, and its seven buildings come with it. Æra IV's floor is now Feudalism (765).
+
 ## Part 1 — Standing determinations
 
 These outrank anything below that still reads otherwise.
