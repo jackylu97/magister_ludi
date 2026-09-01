@@ -301,6 +301,8 @@ describe('tech data integrity', () => {
     // is a gap on purpose, because the endgame was being swept in thirty-five
     // turns and is now sixty. The bands were [120, 250] and [255, 460].
     //
+    // **Retuned by Entry LIV (2026-09-01)**: late Æra II ×1.5, Æra III ×2,
+    // Æra IV ×1.5 — the playtest's walls; the bands below are the retuned ones.
     // **Re-banded by the tree pass of 2026-08-30** (`docs/tech-tree.md` Part 3):
     // four ages, and the two that were already built moved wholesale. The Heroes
     // band is new and sits between the Omens ramp and the old 170 floor;
@@ -311,9 +313,9 @@ describe('tech data integrity', () => {
     // the whole of.
     const bands: Record<number, [number, number]> = {
       1: [8, 32],
-      2: [45, 130],
-      3: [170, 320],
-      4: [480, 780],
+      2: [45, 195],
+      3: [340, 640],
+      4: [720, 1140],
     };
     for (const id of TECH_IDS) {
       const def = techDef(id);

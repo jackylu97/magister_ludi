@@ -243,7 +243,7 @@
       "glyph": "🎼",
       "age": 2,
       "row": 4,
-      "cost": 100,
+      "cost": 150,
       "prereqs": [
         "letters",
         "kingship"
@@ -293,7 +293,7 @@
       "glyph": "🕯",
       "age": 2,
       "row": 3,
-      "cost": 70,
+      "cost": 105,
       "prereqs": [
         "divination",
         "standingStones"
@@ -350,7 +350,7 @@
       "glyph": "🐫",
       "age": 2,
       "row": 0,
-      "cost": 85,
+      "cost": 130,
       "prereqs": [
         "theWheel",
         "calendar"
@@ -367,7 +367,7 @@
       "glyph": "🛡",
       "age": 2,
       "row": 2,
-      "cost": 90,
+      "cost": 135,
       "prereqs": [
         "bronzeWorking",
         "theWheel"
@@ -384,7 +384,7 @@
       "glyph": "📿",
       "age": 2,
       "row": 3,
-      "cost": 110,
+      "cost": 165,
       "prereqs": [
         "ancestorRites",
         "calendar"
@@ -425,7 +425,7 @@
       "glyph": "🕌",
       "age": 2,
       "row": 1,
-      "cost": 80,
+      "cost": 120,
       "prereqs": [
         "standingStones",
         "divination"
@@ -448,7 +448,7 @@
       "glyph": "💰",
       "age": 2,
       "row": 0,
-      "cost": 130,
+      "cost": 195,
       "prereqs": [
         "caravans",
         "letters"
@@ -470,7 +470,7 @@
       "glyph": "⚒",
       "age": 3,
       "row": 1,
-      "cost": 210,
+      "cost": 420,
       "prereqs": [
         "bronzePanoply",
         "construction"
@@ -491,7 +491,7 @@
       "glyph": "🏛",
       "age": 3,
       "row": 2,
-      "cost": 220,
+      "cost": 440,
       "prereqs": [
         "kingship",
         "currency"
@@ -515,7 +515,7 @@
       "glyph": "🦅",
       "age": 3,
       "row": 0,
-      "cost": 250,
+      "cost": 500,
       "prereqs": [
         "ironWorking",
         "kingship"
@@ -532,7 +532,7 @@
       "glyph": "📐",
       "age": 3,
       "row": 3,
-      "cost": 200,
+      "cost": 400,
       "prereqs": [
         "letters",
         "theLongCount"
@@ -552,7 +552,7 @@
       "glyph": "🏗",
       "age": 3,
       "row": 1,
-      "cost": 170,
+      "cost": 340,
       "prereqs": [
         "irrigation",
         "caravans",
@@ -575,7 +575,7 @@
       "glyph": "🦉",
       "age": 3,
       "row": 4,
-      "cost": 195,
+      "cost": 390,
       "prereqs": [
         "letters",
         "epicPoetry"
@@ -593,7 +593,7 @@
       "glyph": "📋",
       "age": 3,
       "row": 0,
-      "cost": 230,
+      "cost": 460,
       "prereqs": [
         "currency",
         "construction"
@@ -624,7 +624,7 @@
       "glyph": "⚙",
       "age": 3,
       "row": 3,
-      "cost": 255,
+      "cost": 510,
       "prereqs": [
         "mathematics",
         "philosophy"
@@ -637,7 +637,7 @@
       "glyph": "🏇",
       "age": 3,
       "row": 2,
-      "cost": 180,
+      "cost": 360,
       "prereqs": [
         "bronzePanoply",
         "caravans"
@@ -654,7 +654,7 @@
       "glyph": "🔩",
       "age": 3,
       "row": 2,
-      "cost": 245,
+      "cost": 490,
       "prereqs": [
         "mathematics",
         "construction"
@@ -673,7 +673,7 @@
       "glyph": "🔱",
       "age": 3,
       "row": 4,
-      "cost": 275,
+      "cost": 550,
       "prereqs": [
         "engineering",
         "bronzePanoply"
@@ -690,7 +690,7 @@
       "glyph": "📯",
       "age": 3,
       "row": 1,
-      "cost": 280,
+      "cost": 560,
       "prereqs": [
         "engineering",
         "currency"
@@ -718,7 +718,7 @@
       "glyph": "🛠",
       "age": 3,
       "row": 2,
-      "cost": 285,
+      "cost": 570,
       "prereqs": [
         "engineering",
         "wayfinding"
@@ -740,7 +740,7 @@
       "glyph": "🐎",
       "age": 3,
       "row": 1,
-      "cost": 265,
+      "cost": 530,
       "prereqs": [
         "theSteppeBow",
         "ironWorking"
@@ -757,7 +757,7 @@
       "glyph": "⚖",
       "age": 3,
       "row": 0,
-      "cost": 295,
+      "cost": 590,
       "prereqs": [
         "theLegion",
         "theExaminationHall"
@@ -782,7 +782,7 @@
       "glyph": "🪢",
       "age": 3,
       "row": 1,
-      "cost": 310,
+      "cost": 620,
       "prereqs": [
         "theOrreryOfBronze",
         "theImperialPost"
@@ -811,7 +811,7 @@
       "glyph": "🎓",
       "age": 3,
       "row": 3,
-      "cost": 320,
+      "cost": 640,
       "prereqs": [
         "philosophy",
         "theExaminationHall",
@@ -831,7 +831,7 @@
       "glyph": "🏰",
       "age": 4,
       "row": 0,
-      "cost": 510,
+      "cost": 765,
       "prereqs": [
         "theLegion",
         "theQadisCourt"
@@ -854,7 +854,7 @@
       "glyph": "🔧",
       "age": 4,
       "row": 3,
-      "cost": 530,
+      "cost": 795,
       "prereqs": [
         "engineering",
         "shipwrights"
@@ -874,7 +874,7 @@
       "glyph": "🪷",
       "age": 4,
       "row": 1,
-      "cost": 650,
+      "cost": 975,
       "prereqs": [
         "irrigation",
         "theKnottedCord"
@@ -900,7 +900,7 @@
       "glyph": "🔠",
       "age": 4,
       "row": 2,
-      "cost": 590,
+      "cost": 885,
       "prereqs": [
         "letters",
         "machinery"
@@ -917,7 +917,7 @@
       "glyph": "⛪",
       "age": 4,
       "row": 4,
-      "cost": 480,
+      "cost": 720,
       "prereqs": [
         "philosophy",
         "epicPoetry"
@@ -940,7 +940,7 @@
       "glyph": "🧾",
       "age": 4,
       "row": 2,
-      "cost": 720,
+      "cost": 1080,
       "prereqs": [
         "movableType",
         "currency"
@@ -957,7 +957,7 @@
       "glyph": "🐴",
       "age": 4,
       "row": 0,
-      "cost": 635,
+      "cost": 950,
       "prereqs": [
         "feudalism",
         "theCataphract"
@@ -977,7 +977,7 @@
       "glyph": "🧵",
       "age": 4,
       "row": 2,
-      "cost": 560,
+      "cost": 840,
       "prereqs": [
         "theImperialPost",
         "currency"
@@ -994,7 +994,7 @@
       "glyph": "☄",
       "age": 4,
       "row": 4,
-      "cost": 545,
+      "cost": 820,
       "prereqs": [
         "theOrreryOfBronze",
         "theHalberdWall"
@@ -1014,7 +1014,7 @@
       "glyph": "🗡",
       "age": 4,
       "row": 3,
-      "cost": 615,
+      "cost": 920,
       "prereqs": [
         "machinery",
         "ironWorking"
@@ -1036,7 +1036,7 @@
       "glyph": "⚗",
       "age": 4,
       "row": 3,
-      "cost": 760,
+      "cost": 1140,
       "prereqs": [
         "theology",
         "steel"
@@ -1049,7 +1049,7 @@
       "glyph": "🌐",
       "age": 4,
       "row": 4,
-      "cost": 690,
+      "cost": 1035,
       "prereqs": [
         "physics",
         "wayfinding"

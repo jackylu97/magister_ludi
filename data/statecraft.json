@@ -1,8 +1,8 @@
 {
   "meter": {
-    "costBase": 6,
-    "costLinear": 3,
-    "costExponent": 2.0,
+    "costBase": 12,
+    "costLinear": 6,
+    "costExponent": 2.25,
     "sealTurns": 5
   },
   "upgradeMultiplier": 1.5,

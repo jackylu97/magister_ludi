@@ -4232,3 +4232,26 @@ profile when end-of-turn latency matters. Deferred: fog-honesty, diplomacy state
 Economy's duty cycle), great people act, `proclaim`, research goals, real draft valuation.
 
 ---
+
+## Entry LIV — Two playtest rulings: the cost curves and the happiness supply (**design**, 2026-09-01)
+
+**1. The tree is too fast, and the walls go up at the age-II/III seam.** Clarified in the
+same playtest: science and culture need aggressively scaling *costs* — it is far too easy
+to walk the tree. Applied with the entry: late Æra II techs (cost ≥ 70) ×1.5, **all of
+Æra III ×2** (the user's 1.5–2× on the seam; later III inherits the doubling so the ladder
+never inverts), Æra IV ×1.5 to stay above III's new ceiling. **The Order rate is roughly
+halved**: the draft meter goes 6+3n+n² → 12+6n+n^2.25, ~2× cost through the mid-game
+drafts — and since governments ride the draft count, the whole Statecraft cadence slows
+with it, deliberately. Re-run the t83 audit and a bot sweep against the new walls.
+
+**2. Happiness and authority are over-supplied, and the supply moves to the Orders.** In
+playtest it was easy to run tall *and* wide at once and simply build more of both meters —
+the tall-vs-wide decision Entry LII designs for never bites. Ruling: **happiness and
+authority relief is Order-gated** — the bulk of both lives in Order/Doctrine cards (a slot
+is an opportunity cost; relief must displace something), with only a little in the tech
+tree, and buildings/luxuries trimmed to match. Each posture buys its own relief through
+commitment (Entry LII's happiness engines); a theme worksheet that relieves either meter
+does it in its Orders column. The per-theme worksheets (`docs/themes/`) carry this as a
+standing constraint.
+
+---
