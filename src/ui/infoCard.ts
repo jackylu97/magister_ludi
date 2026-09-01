@@ -450,6 +450,14 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
     window.addEventListener(
       'keydown',
       (event) => {
+        // A hidden card claims nothing (Entry LVII's second half): if the DOM
+        // moved on without the machine — an anchor torn out mid-hover never
+        // fires pointerleave — the press belongs to whatever is actually on
+        // screen, and the machine is put back rather than fed.
+        if (card.hidden || (anchoredTo !== null && !anchoredTo.isConnected)) {
+          if (state.open) send('elsewhere');
+          return;
+        }
         if (!state.open || event.key !== 'Escape') return;
         event.preventDefault();
         event.stopPropagation();
@@ -460,6 +468,11 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
     window.addEventListener(
       'pointerdown',
       (event) => {
+        // The keydown guard's twin: a card that is not on screen eats no click.
+        if (card.hidden || (anchoredTo !== null && !anchoredTo.isConnected)) {
+          if (state.open) send('elsewhere');
+          return;
+        }
         if (!state.open) return;
         const target = event.target;
         const inside =
