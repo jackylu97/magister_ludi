@@ -17,7 +17,7 @@ Wins by: The Richest Roads · The Grand Caravan · the Opus gold pillar.
 ## Æra II
 - Tech:
   - Currency — unlocks Trader, Market, The Colossus, The Mausoleum
-  - The Knotted Cord — unlocks The Knotted Cord · +1 science per trade route you run · Authority capacity for every four cities joined by road waits until the writ can count a road network. — not built yet
+  - The Knotted Cord — unlocks The Knotted Cord · +1 science per trade route you run · Authority capacity for every four cities joined by road.
 - Orders:
   - Silk Roads — +3 gold for each trade route you run.
   - Harbour Dues — Coastal cities gain +2 gold and +1 culture.
@@ -35,15 +35,19 @@ Wins by: The Richest Roads · The Grand Caravan · the Opus gold pillar.
 - Wonders:
   - The Colossus — +1 production, +1 gold on every water hex carrying a resource
   - Petra — +1 food, +1 production on every desert hex, in every city with Petra · +1 gold on every floodplain hex, in every city with Petra
-  - The Great Lighthouse — all units: +1 movement while embarked · +1 gold on every hex with a Fishing Boat · every coastal city: +1 city sight · +1 trade route
+  - The Great Lighthouse — +1 gold on every hex with a Fishing Boat · every coastal city: +1 city sight · +1 trade route
 - Deeds:
   - The Grand Caravan — A race. Needs ten caravans on the road at once. The first empire to finish may keep more of them thereafter.
 
 ## Æra III
 - Tech:
-  - The Imperial Post *(deferred)* — free roads near cities, gold per connected city
-- Orders: *(planned)* ▢ ________ (THE TRIGGER: a caravan completing a circuit pays a windfall — the theme's chronicle drum, missing entirely)
-- Doctrines: ▢ ________
+  - The Relay Stations *(replacement — the Post was too strong and duplicated an Order)* — when a caravan completes a full circuit of its route, its origin banks a windfall equal to one turn of the route's yield. (THE trigger this theme was missing — its chronicle drum.)
+- Orders: 
+  - The Wayhouses *(user; read the typo as gold)* — +2 gold and +1 culture for every trade route.
+  - The Merchant Venturers *(user)* — trade routes to foreign cities pay +50% gold.
+  - The Provisioners *(user)* — +1 happiness for every internal trade route.
+- Doctrines:
+  - The Golden Standard *(proposal)* — your gold buys hammers at 1.5 per instead of 2 — purchases and contributions both; the whole late game gets cheaper.
 - Buildings: *(planned)* The Counting House — purchase-only, converts gold→science per turn
 - Great people: the Æra III merchants · *(planned)* mercenaries (units bought anywhere, at a premium)
 - Deeds:
@@ -52,8 +56,14 @@ Wins by: The Richest Roads · The Grand Caravan · the Opus gold pillar.
 
 ## Æra IV
 - Buildings: *(planned)* The Bourse — purchase-only, gold→culture
-- Doctrines: ▢ ________ (gold's endgame before diplomacy: war chests? tribute?)
-- Deeds: ▢ ________ · Opus pillar: gold (part-buying the Opus is the fantasy)
+- Orders:
+  - The Learned Roads *(user)* — caravans pay +1 science and +1 culture per citizen of their destination city.
+- Doctrines:
+  - The Great Endowment *(proposal)* — your contributions (cathedrals, and one day the Opus) convert at double rate: gold literally builds the finish line.
+  - The Tribute Fleets *(proposal)* — every foreign trade route ending in your cities pays you +3 gold and its owner +1 happiness — traffic you invite, not seize.
+- Deeds:
+  - The Bank of the World *(proposal, feat)* — the first empire to hold 2,000 gold at once.
+  - Opus pillar: gold (part-buying the Opus is the fantasy).
 
 ## Gaps
 The trigger; the trim (audit the flat +gold stack down); everything late is planned.

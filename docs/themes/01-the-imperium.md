@@ -14,6 +14,7 @@ Constraint: war's happiness relief (seized luxuries, held capitals) lives in the
   - Militia Levies — All your cities gain +5 defense and +1 sight radius.
   - Vanguard — +3 combat strength outside your territory.
   - Border Wardens — +3 combat strength inside your territory.
+  - (see 02) the convert-the-barbarians lane is Wolf-Mother's Pact — the Wild Frontier owns it; the Imperium inherits the horde.
 - Doctrines: —
 - Religion:
   - God of the Forge — Barracks supply +1 production. All your units gain +1 combat strength.
@@ -37,6 +38,7 @@ Constraint: war's happiness relief (seized luxuries, held capitals) lives in the
   - Siege Doctrine — +5 combat strength when attacking cities.
   - Rites of Passage (🕯 crossover) — Buying or completing a unit grants +5 faith.
   - The Long Watch — +1 happiness for each unit standing in one of your cities, and +1 more for each fortification a city has built.
+  - The Quartermasters *(user)* — military units cost 1 less maintenance.
 - Doctrines:
   - The Iron Price — Killing a unit grants +15 culture · pillaging pays +15 gold.
 - Religion:
@@ -44,45 +46,66 @@ Constraint: war's happiness relief (seized luxuries, held capitals) lives in the
   - Warrior Monks — +5 combat strength for units defending a city that follows.
 - Great people: the Æra II generals
 - Wonders:
-  - The Statue of Zeus (deferred row) — on completion, the best melee unit you can build joins you · +15% combat strength when attacking cities — not built yet
-  - The Terracotta Army — +3 combat strength while standing in one of your cities · +2 authority capacity · units built in this city start with +1 combat strength — not built yet
+  - The Statue of Zeus — on completion, gain 2 melee units · +15% combat strength when attacking cities
+  - The Terracotta Army — military buildings give +1 extra renown · +2 authority capacity · units built in this city start with +1 combat strength
 - Deeds:
   - The Conqueror — Take three cities by force.
 
 ## Æra III
-- Tech: ▢ ________ (the iron-line marquee — the posture's tech)
+- Tech: The Legion (the existing Æra III node, refined per user) — unlocks the Legionary · melee units gain: +1 combat strength per adjacent friendly unit.
 - Orders:
   - The Legion — Melee units gain +1 movement and +1 combat strength, and cities put 15% more production behind them.
   - Garrison State — Each city gains +3 production for each combat unit standing in it (at most +6 per city).
-  - The Marshals — +2 combat strength for each adjacent friendly combat unit (at most +4).
+  - The Marshals — +1 combat strength for each adjacent friendly combat unit (at most +4).
   - Skirmishers' Creed — Ranged units gain +1 range.
   - Triumphs — Capturing a city grants +30 culture.
-  - The Finisher's Art — +4 combat strength against units below half strength.
+  - No Quarter (rename of The Finisher's Art; user's alt: The Art of War) — +4 combat strength against units below half strength.
   - Frontier Forts — +6 city defence in every city near another empire's territory.
   - *(planned)* The Horde Levy (−30% cost, −2 strength)
-  - ▢ ________ (war-happiness: +per foreign luxury kind seized / per capital held)
+  - The Victor's Seat *(user)* — conquered capitals demand 50% less happiness.
+  - The Conqueror's Table *(user)* — luxuries held by conquered cities pay +50% happiness.
+  - The War College *(user)* — training a military unit pays 30% of its strength as science.
 - Doctrines:
   - The Standing Army — +1 authority capacity for each 5 units you have in the field. −1 happiness in every city. Units cost no upkeep.
   - Blitz — Units that kill may move again that turn. Units cannot fortify.
-  - The Levée en Masse (deferred) — When an enemy unit enters your borders, every city with a Barracks musters a militia unit (at most once every 10 turns).
+  - The Levée en Masse — after declaring war, gain a melee unit 'militia' in every city. It has the same strength as your strongest melee unit, but -4 combat strength.
   - The Great Warring Tribes — Negative authority no longer slows production toward units · +10% production toward mounted units · captured cities pay +5 science and +5 culture.
-- Religion: ▢ ________ (a war faith's III act)
-- Great people: the Æra III generals · *(planned)* a legacy scaling with units lost
+- Religion: 
+  - The Crusade *(user; enhancer-shaped)* — +5 combat strength inside foreign cities that follow your religion.
+  - Blood Sanctified *(user; belief)* — a kill presses your faith on cities within 6 hexes, at about a tenth of a prophet's proclamation (tune).
+- Great people: the Æra III generals · *(planned)* The Paymaster's Ledger (a general's legacy) — lost units return half their cost in gold.
 - Wonders:
   - The Great Wall — every hex you own exerts zone of control on enemy units, as a unit of yours would · every city: +5 city defence
-  - The Alhambra (deferred) — +2 combat strength for mounted units · +1 happiness · units built here start with the bonus for standing in one of your cities — not built yet
+  - The Alhambra (deferred) — +2 combat strength for mounted units · +1 happiness · after building a unit in this city, gain half its strength as culture
 - Deeds:
   - The Fallen Palace — The first empire to take a rival's seat of government.
   - The Muster of the Realm — A race. Needs an armoury in three cities. The first empire to finish fights a little harder ever after.
 
 ## Æra IV
-- Tech: ▢ ________
+- Tech: 
+  - Steel (the existing Æra IV node, refined per user) — unlocks the age's melee line · melee units gain +1 movement.
+  - ▢ the Armoury's home (Machinery? its own node?) — unlocks the Armoury: +20%⚙ toward military units · units trained, bought or mustered in its city pay 50% of their strength as science and culture *(user)*.
 - Orders: *(planned)* the flip — the fallen return (every Nth loss musters a free militia)
-- Doctrines: ▢ ________
-- Great people: ▢ ________ (the marshal whose legacy is the standing army)
+  - The Glorious Dead (○) *(user)* — every yield your fallen units pay is doubled.
+  - The War Chest (◆) *(user)* — military units cost 3 less maintenance.
+  - The Escorted Roads (◆, 🐫 crossover) *(user)* — trade routes within 3 hexes of your military cannot be plundered · trade routes pay +30%.
+  - Forced Marches (●) *(user)* — melee units +1 movement, +2 instead in friendly territory.
+  - The Breach (○) *(user)* — melee units +8 combat strength against cities under siege.
+- Doctrines *(six proposals — go-wild batch, cut freely)*:
+  - The Triumphal Way — capturing a city is a festival: +5 happiness in every city for 10 turns.
+  - Pax per Bellum — while you are at war with anyone, +10% every yield in every city; peace pays nothing (the War Economy said out loud).
+  - The Old Guard — a unit that survives a kill gains +1 combat strength for life (at most +5): armies become veterans, not stacks.
+  - The Doctrine of Annexation — captured cities keep every building and suffer no capture penalty · each costs +1 authority.
+  - The Warrior Kings — a great general standing in a city doubles its aura and puts +25% production behind units there.
+  - The Empire of Iron — military units cost no maintenance while at war · −2 happiness in every city while at peace.
+  - The Crown of Crowns *(user — bold, and I say worth trying: once per capital, it makes conquest a scoring verb)* — conquering a rival's capital pays a bead (once per capital, ever) and heals your whole army.
+- Great people: The Grand Muster (a general's legacy) *(user)* — +1% science and +1% gold per unit you field (cap 30%).
 - Deeds:
   - The Strongest Arm — At the close of the age, the empire whose army is worth the most in the field.
   - Opus pillar: hammers taken by war
+- Wonders:
+  - The Pillar of Victories *(user's effect, named)* — great generals gain +4 movement · a unit killed inside a general's aura pays its strength as science and culture.
+  - The Arsenal *(user's effect, named)* — +100% production toward units in this city · units built here gain +4 movement in friendly lands.
 
 ## Gaps
 No wonder identity past walls · general legacies thin · the war-happiness Order is the

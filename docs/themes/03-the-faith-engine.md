@@ -33,7 +33,7 @@ Wins by: the Opus faith pillar · The Cathedral of the Age · The Hierophant.
   - The Choir — +1 culture and +1 happiness in every city with a Temple.
 - Doctrines:
   - The Great Litany — +1 culture for each 3 faith you gain per turn.
-  - The Tithe — +1 gold for each faith you gain per turn.
+  - The Tithe — +1 gold for every 2 faith you gain per turn.
   - Divine Inspiration — +1% science and +1% culture for each 200 banked faith.
 - Religion:
   - founding
@@ -48,28 +48,42 @@ Wins by: the Opus faith pillar · The Cathedral of the Age · The Hierophant.
   - The Tithe — Gather a great sum of gold from tithes.
 
 ## Æra III
-- Tech: ▢ ________ (the cathedral-line marquee)
+- Tech: the Cathedral **(built 2026-09-01, Entry LV — cost 340, +3 happiness, contribute verb, five consecrations)**. NOTE: it currently unlocks at Theology, an Æra IV node — this sheet wants it in III, so either Theology moves or the cathedral re-homes to an Æra III node. Needs a ruling.
 - Orders:
   - Mandate of Heaven — The science and culture your happy cities pay rises from 10% to 15% · +1 happiness for each 200 banked faith.
-  - *(planned)* ▢ ________ (a III converter that is NOT another culture line — the pool is over-supplied there)
+  - The Saints' Fields *(user)* — great-person improvements pay +3 faith.
+  - The Illuminated Texts *(user)* — spending faith pays a third of it back as science.
 - Doctrines:
-  - Cuius Regio — In cities that follow your religion, augurs are trained with +1 charge.
-  - Religious Mandate (deferred) — Permanent war with empires of a different majority religion · your cities cannot be converted.
+  - Cuius Regio *(rework proposal)* — every city you own immediately follows your religion, and foreign pressure on your cities is halved. ("Whose realm, his religion" — the ruler's faith IS the land's.)
+  - Holy War — Permanent war and +2 combat strength against empires of a different majority religion · your cities cannot be converted.
 - Religion:
   - enhancers' III act
   - Recasting the Omens — augur rite
-- Great people: *(planned)* buy great people with faith — Divine Mandate's signature (the government has no text yet)
+- Great people: buy great people with faith — *user ruling: moved to the Æra V/tier-45 government layer, not Divine Mandate.*
 - Wonders:
   - Hagia Sophia — +1 culture, +1 faith in every city with a Temple · spreads your religion +4 faith to every city within 8 hexes · on completion, a Prophet joins you
-  - Angkor Wat — +1 faith per 2 hexes worked here · -25% the price of buying a hex
-  - The Great Mosque of Djenné — newly created religious units gain +1 charge · +1 pantheon slot
+  - Angkor Wat — faith buildings and improvements (holy sites) in this city gain +2 food. gain +1 faith for every 3 population in this city.
+  - The Great Mosque of Djenné — religious pressure +20% for your religion (does nothing if you didn't found one). +1 follower belief.
 - Deeds:
   - The Cathedral of the Age — A race. Needs a cathedral in every city. The first empire to finish is sent a prophet.
 
 ## Æra IV
-- Tech: *(planned)* the observatory cloister — temples pay science beside science buildings (faith × science)
-- Orders: ▢ ________
-- Doctrines: ▢ ________
+- Tech: *(planned)* the observatory cloister — cities with a temple and university gain 10% science.
+  - The Holy Office *(user's effects, named)* — unlocks the Inquisitor (strips a lump of every rival religion's pressure from cities within 5 hexes · +2 combat strength to adjacent units) and the tier-4 faith building. NOTE: the user's tier-4 building (+4 happiness · +10% faith in its city · allows purchasing units with faith) matches the planned Reliquary almost exactly — propose they merge as one building; the Basilica below stays separate.
+- Orders: 
+  - The Great Commission *(user)* — your religion presses +50% harder.
+  - The Field Chaplains *(user)* — units adjacent to a religious unit heal +5 every turn, whatever they did that turn.
+  - The Holy See *(user)* — unlocks the Basilica (1000🕯, only in a city with a holy site): +5🎵 and +5🔬 · +10%⚙ toward buildings and wonders in its city.
+  - The Pilgrim Caravans (🐫 crossover) *(user)* — trade routes carry +1 faith per 2 citizens of their origin city.
+
+Wonders:
+  - The Pyramid of the Sun *(user)* — its city gains a rite: spend 1000🕯 and 1 population → +10% science and culture empire-wide for 15 turns (never stacks).
+  - El Dorado *(user)* — its city pays 50% of its faith income again as gold · +5🕯 and +5💰.
+
+- Doctrines: 
+  - The Scholastic Creed *(user)* — cities pay 15% of their faith income again as science and culture.
 - Religion: *(planned)* Holy Order built (warrior monks called with faith) + a late faith unit or two
 - Buildings: *(planned)* The Reliquary — faith-purchase-only, renown + happiness
-- Deeds: ▢ ________ · Opus pillar: faith
+- Deeds:
+  - The Ecumenical Council — first faith followed by a world majority
+  - Opus pillar: faith
