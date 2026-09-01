@@ -48,7 +48,7 @@ Wins by: the Opus faith pillar · The Cathedral of the Age · The Hierophant.
   - The Tithe — Gather a great sum of gold from tithes.
 
 ## Æra III
-- Tech: **Theology — moved to Æra III by user ruling (2026-09-01), cost 600** — brings the Cathedral (Entry LV: cost 340, +3 happiness, contribute verb, five consecrations), the Monastery, and the age's faith wonders (Hagia Sophia, Angkor Wat, the Great Mosque, Chichen Itza, Notre-Dame).
+- Tech: **Theology — moved to Æra III by user ruling (2026-09-01), cost 600** — brings the Cathedral (Entry LV: cost 340, +3 happiness, contribute verb, five consecrations), the Monastery, and the age's faith wonders (Hagia Sophia, Angkor Wat, the Great Mosque, Chichen Itza, Notre-Dame). Theology is also the tech that opens the **enhancer pool** (user: important to have earlier too) — the whole enhancing act now lives in Æra III.
 - Orders:
   - Mandate of Heaven — The science and culture your happy cities pay rises from 10% to 15% · +1 happiness for each 200 banked faith.
   - The Saints' Fields *(user)* — great-person improvements pay +3 faith.
