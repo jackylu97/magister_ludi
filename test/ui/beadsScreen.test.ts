@@ -99,8 +99,8 @@ describe('a card face', () => {
       expect(face.eyebrow, id).toContain('Æra');
       expect(face.eyebrow, id).not.toContain('Æra I —');
     }
-    expect(deckEraWord(2)).toBe('Æra III');
-    expect(deckEraWord(3)).toBe('Æra IV');
+    expect(deckEraWord(2)).toBe('Æra II');
+    expect(deckEraWord(3)).toBe('Æra III');
   });
 
   it('calls a feat a feat, and says it is always in play', () => {
@@ -181,8 +181,8 @@ describe('what a bead pays', () => {
 
 describe('the pile', () => {
   it('counts the backs and names the age they are waiting for', () => {
-    expect(faceDownLine(3, 2)).toBe('3 cards face down until Æra III opens');
-    expect(faceDownLine(1, 3)).toBe('1 card face down until Æra IV opens');
+    expect(faceDownLine(3, 2)).toBe('3 cards face down until Æra II opens');
+    expect(faceDownLine(1, 3)).toBe('1 card face down until Æra III opens');
   });
 
   it('says nothing when nothing is face down', () => {
@@ -419,7 +419,9 @@ describe('the deck keys', () => {
     // (Cathedrals). See `BeadAge`.
     expect([...BEAD_DECK_AGES]).toEqual([3, 4]);
     const screen = source('beadsScreen.ts');
-    // One helper, one comment, one place to delete when the tree re-bands.
-    expect(screen.match(/eraWord\(age \+ 1\)/g)).toHaveLength(1);
+    // The +1 shim died with the re-banding (2026-08-31, as its docblock
+    // promised); this pin keeps it dead — the helper reads the key straight.
+    expect(screen).not.toContain('age + 1');
+    expect(screen.match(/eraWord\(age\)/g)).toHaveLength(1);
   });
 });

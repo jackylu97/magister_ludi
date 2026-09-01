@@ -97,18 +97,17 @@ export const BEAD_FAMILY_MARK: Record<BeadFamily, BeadFamilyMark> = {
 };
 
 /**
- * The Æra a deck is, **in the numerals the player knows** — never its key.
+ * The Æra a deck is, in the numerals the player knows.
  *
- * `BEAD_DECK_AGES` is keyed to the ages the tech tree actually produces today
- * (2 and 3) while `docs/beads.md` writes the same two decks as Æra III (Empire)
- * and Æra IV (Cathedrals); the sim's own docblock says so and says the tree pass
- * will renumber them. Until it does, the key and the numeral differ by one, and
- * a screen that printed the key would be teaching a player a number that is
- * about to change. One helper, one comment, one place to delete: **when the
- * re-banding lands, this becomes `eraWord(age)` and nothing else moves.**
+ * Once a shim: before the tree pass re-banded the ages, deck keys ran one
+ * behind the numerals the design doc used, and this helper carried the `+1`
+ * with a promise — when the re-banding lands, the shim is deleted and nothing
+ * else moves. The re-banding landed (`BEAD_DECK_AGES` is 3 and 4 now),
+ * the promise is kept, and the helper survives only as the one name every bead
+ * surface asks, so a future re-banding is still a one-line change.
  */
 export function deckEraWord(age: number): string {
-  return eraWord(age + 1);
+  return eraWord(age);
 }
 
 /** What class of row a card came off, in a player's word. */

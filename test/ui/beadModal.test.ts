@@ -89,7 +89,7 @@ describe('beadAwardFace', () => {
     // The Æra is `deckEraWord`'s, which is the screen's own numeral for a deck
     // key — one list of era words for the table and the sheet, whatever that
     // helper decides it is.
-    expect(face.line).toBe('quest · Æra IV · economic');
+    expect(face.line).toBe('quest · Æra III · economic');
     expect(face.eyebrow).toBe('a bead');
   });
 
@@ -225,7 +225,7 @@ describe('the age-opening list', () => {
     // Hard rule 7: an Æra is a name, not a count, and the counting is done by
     // the cards themselves.
     const banner = ageOpeningBanner(3);
-    expect(banner.headline).toContain('Æra IV');
+    expect(banner.headline).toContain('Æra III');
     expect(banner.lead).not.toMatch(/\d/);
     expect(banner.headline).not.toMatch(/\d/);
   });
