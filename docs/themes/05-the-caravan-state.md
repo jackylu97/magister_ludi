@@ -1,6 +1,9 @@
 # 05 · The Caravan State
-Roads and routes as veins; gold buys what hammers can't. Currently degenerate — the pass
-here is a trigger and a trim, not adders.
+Roads and routes as veins; gold buys what hammers can't. **Support theme by ruling
+(2026-09-02)**: gold is universally powerful like science, so this stays thin — but unlike
+science, every coin must be invested for first (routes, markets, roads), so the cards are
+infrastructure and flexibility, never multiplication. The trim of the flat +gold stack is
+part of the same ruling.
 Wins by: The Richest Roads · The Grand Caravan · the Opus gold pillar.
 
 ## Æra I

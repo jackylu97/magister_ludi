@@ -20,6 +20,23 @@ units and key power spikes, plus plain bonuses — Civ-traditional. Theme *abili
 on cards and building rows; a "tech that pays" is the rare exception (the seven existing
 effect-techs stay). It is fine for a theme to have no tech in some ages.
 
+**Spines and glue (ruled with the user, 2026-09-02).** Not every theme is a win condition —
+cross-play exists, and a pool that is all payoff cards is a pool where nothing feels found.
+- **Spine themes** (can carry a game; full arc, own happiness budget, own deed lanes):
+  01 The Imperium · 03 The Faith Engine · 07 The Land Rush · 08 The Tall Hearth · 15 The Steppes.
+- **Support themes** (one identity mechanic, crossover hooks, at most a deed; deliberately thin):
+  02 The Wild Frontier · 04 The Mission · 05 The Caravan State · 06 The Luxury Table ·
+  09 The Court · 10 The Observatory · 11 The Cartographers · 13 The Waters · 14 The Old Ways
+  (and 17–19 if kept).
+
+**The universal-yield rule** (same ruling): *the more universally useful a yield, the thinner
+its theme.* Science buys entry into every theme, so the Observatory owns tempo and
+conversion sinks (bead projects), never % science engines. Gold spends everywhere, so the
+Caravan State is support too — with the nuance that gold must be **invested for**: its
+supply is infrastructure the player builds (routes, markets, roads, purchase-only
+buildings), its cards are verbs and flexibility, never rate multiplication. A support
+theme's thin sheet is the design working, not a gap.
+
 Legend: plain = built and live · *(planned)* = proposed in themes.md / deferred on a data
 row · ▢ = blank for the design pass. Ages are the tree's: Æra I (the founding), II
 (Heroes), III (Empire), IV (Cathedrals).
