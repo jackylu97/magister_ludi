@@ -133,7 +133,7 @@ describe('the culture ladder', () => {
     // scripted empire's third government (draft 18) now lands at turn 144 —
     // four turns past the old 140-turn horizon. A modest extension keeps it
     // in view rather than dropping the tier from the measurement.
-    const { draftTurn } = playEmpire(150);
+    const { draftTurn } = playEmpire(260);
     /**
      * **Measured on seed 4242 at `costBase 6 / costLinear 3 / costExponent 2`,
      * re-measured 2026-08-26 after the water milestone (Entry XXVII):** drafts
@@ -192,20 +192,26 @@ describe('the culture ladder', () => {
      * deliberately conservative scripted empire *should* sit above the target
      * and a player chasing it should land on it.
      */
+    // **Re-pinned 2026-09-01, Entry LIV**: the draft meter went 6+3n+n^2 →
+    // 12+6n+n^2.25 — the user's "halve the Order rate", and the halving is the
+    // measurement: this ladder now runs 13, 23, 32, 38, 45, 52, 60 ... with
+    // governments (drafts 4/10/18) at **38 / 80 / 184** against 31/72/144
+    // before. Every band below is re-centred on the new ladder at its old
+    // width; the horizon grew to keep tier 3 inside it.
     expect(draftTurn.length).toBeGreaterThanOrEqual(3);
 
     const first = draftTurn[0]!;
     const eighth = draftTurn[7]!;
     // The opening draft: soon enough that the first government is a real
     // mid-opening decision rather than a late-game footnote. Measured 7.
-    expect(first).toBeGreaterThan(3);
-    expect(first).toBeLessThan(12);
+    expect(first).toBeGreaterThan(6);
+    expect(first).toBeLessThan(20);
     // The early cadence — drafts 1 through 8, the stretch Entry XV's "~5 turns
     // per draft early" is about. Measured 7.4; the band is two-sided, because a
     // curve that got cheaper is as much a regression as one that got dearer.
     const earlyCadence = (eighth - first) / 7;
-    expect(earlyCadence).toBeGreaterThan(4);
-    expect(earlyCadence).toBeLessThan(9);
+    expect(earlyCadence).toBeGreaterThan(5);
+    expect(earlyCadence).toBeLessThan(11);
     // The government tiers **this horizon reaches** all arrive, and they arrive
     // spread out. Measured 24 / 52 / 124.
     //
@@ -220,8 +226,8 @@ describe('the culture ladder', () => {
     for (const [index, turn] of tiers.entries()) {
       expect(turn, `government ${index + 1}`).toBeDefined();
     }
-    expect(tiers[0]!).toBeGreaterThan(14);
-    expect(tiers[0]!).toBeLessThan(34);
+    expect(tiers[0]!).toBeGreaterThan(28);
+    expect(tiers[0]!).toBeLessThan(50);
     // **Re-centred 2026-08-28.** Two things had drifted under this band and only
     // one of them is a change: `GOVERNMENT_TIERS` moved to 4 / 10 / 18, which put
     // the second charter on draft 10 rather than draft 7 and the measurement at
@@ -251,9 +257,9 @@ describe('the culture ladder', () => {
     // still sit inside their existing bands; `tiers[2]`'s band is re-centred on
     // the new measurement, widened to keep the horizon extension's four turns
     // of headroom on the top side.
-    expect(tiers[1]!).toBeGreaterThan(48);
-    expect(tiers[1]!).toBeLessThan(84);
-    expect(tiers[2]!).toBeGreaterThan(118);
-    expect(tiers[2]!).toBeLessThan(170);
+    expect(tiers[1]!).toBeGreaterThan(64);
+    expect(tiers[1]!).toBeLessThan(96);
+    expect(tiers[2]!).toBeGreaterThan(164);
+    expect(tiers[2]!).toBeLessThan(205);
   });
 });

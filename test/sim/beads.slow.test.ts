@@ -77,7 +77,7 @@ function playSeat(maxTurns: number): { game: Game; opened: number | null; firstD
 
 describe('the table in a played game', () => {
   it('deals from turn one and opens when the first seat enters built age 3', () => {
-    const { game, opened, firstDeal } = playSeat(90);
+    const { game, opened, firstDeal } = playSeat(220);
     const player = game.state.players[0]!;
 
     // The deal does not wait for anybody: a card lands on the table face down
@@ -98,7 +98,9 @@ describe('the table in a played game', () => {
     // card.
     expect(opened).not.toBeNull();
     expect(opened!).toBeGreaterThan(20);
-    expect(opened!).toBeLessThan(90);
+    // Re-banded 2026-09-01 (Entry LIV): the tree's new walls put the Empire
+    // band around t100 on this seed; the band stays deliberately loose.
+    expect(opened!).toBeLessThan(180);
     expect(game.state.beads.worldAge).toBeGreaterThanOrEqual(3);
     expect(highestAge(player.techsResearched)).toBeGreaterThanOrEqual(3);
 

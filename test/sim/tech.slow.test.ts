@@ -187,7 +187,7 @@ describe('pacing', () => {
   }
 
   it('closes its four ages on the Quick-speed schedule (Entry V)', () => {
-    const { game, ageDone } = playEmpire(260);
+    const { game, ageDone } = playEmpire(340);
     // Measured on this seed after the city-centre re-base: **41 / 80 / 120**,
     // against 40 / 78 / 118 immediately before it, 37 / 74 / 111 when the Civ
     // 6-style Age I ramp landed, 40 / 68 / 107 with the flat 16–29 Age I costs,
@@ -283,6 +283,13 @@ describe('pacing', () => {
     // Bands are ±7 / ±12 / ±18 / ±20 — the widths the three-age pass used, with
     // the fourth given a little more room because it is the longest band and
     // the furthest downstream of a map roll.
+    // **Re-pinned 2026-09-01, Entry LIV — the walls go up.** The playtest ruled
+    // the tree far too fast, so the costs moved: late Æra II ×1.5, all of
+    // Æra III ×2, Æra IV ×1.5. This seed now closes at **34 / 71 / 177 / 265**
+    // against 34 / 64 / 124 / 191 before the ruling — Æra I untouched (the
+    // opening is production-bound), Heroes seven turns longer, Empire the
+    // doubled wall the ruling asked for, and the curtain at ~t265. Bands are
+    // re-centred at the widths above; the horizon grew with them.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -294,12 +301,12 @@ describe('pacing', () => {
 
     expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(27);
     expect(first!, `age I: ${first}`).toBeLessThanOrEqual(41);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(52);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(76);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(106);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(142);
-    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(171);
-    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(211);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(59);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(83);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(159);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(195);
+    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(245);
+    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(285);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 120_000);
 
