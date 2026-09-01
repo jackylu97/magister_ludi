@@ -52,7 +52,13 @@ import {
   endeavourError,
   endeavourPrerequisiteMet,
 } from '../sim/beads';
-import { type EarnedBead, type GameState, playerById, realPlayers } from '../sim/state';
+import {
+  type BeadCard,
+  type EarnedBead,
+  type GameState,
+  playerById,
+  realPlayers,
+} from '../sim/state';
 import { eraWord, figure } from './figures';
 import { setDescriptorText } from './keywords';
 import type { CardClause } from '../sim/statecraft';
@@ -242,6 +248,91 @@ export function deckLine(remaining: number): string {
   return `${figure(remaining)} still in the deck`;
 }
 
+// --- the age opening --------------------------------------------------------
+
+/**
+ * The banner the screen wears when an age has just opened, in plain words.
+ *
+ * **A world moment, shown to everybody at once** (the ruling): the clock is one
+ * clock, so the turn the first seat in the world reaches a new age every seat's
+ * table turns face up together and every seat is told. Nothing here is about
+ * who got there first — that empire has already been announced its feat.
+ *
+ * No numbers in the prose (hard rule 7); the Æra is a name, not a count, and
+ * the counting is done by the cards below.
+ */
+export interface BeadAgeBanner {
+  eyebrow: string;
+  /** "Æra III opens". */
+  headline: string;
+  /** What the table now is, in a first-time player's terms. */
+  lead: string;
+}
+
+export function ageOpeningBanner(age: number): BeadAgeBanner {
+  return {
+    eyebrow: 'the age opens',
+    headline: `${deckEraWord(age)} opens`,
+    lead:
+      'Every card below is face up for every empire. A race is taken by the first ' +
+      'across the line and nobody else; a measure is taken when the age closes, by ' +
+      'whoever stands highest, and a tie pays nobody.',
+  };
+}
+
+/** One row of the opening list: a card, named and said in its own words. */
+export interface BeadAgeRow {
+  id: BeadCardId;
+  name: string;
+  family: BeadFamily;
+  /** The row's own player-facing sentence (`def.text`). */
+  text: string;
+}
+
+/** One plain-headed group of the opening list. Empty groups are left out. */
+export interface BeadAgeGroup {
+  title: string;
+  rows: BeadAgeRow[];
+}
+
+/**
+ * The age's prizes, grouped: **the races first, then what the age's close
+ * measures.**
+ *
+ * Pure — a hand in, groups out — because the ordering and the grouping are the
+ * two things about this list that can be quietly wrong, and this suite has no
+ * jsdom. Face-down cards are left out on purpose: a card nobody has been shown
+ * is not a prize that has been announced, and the same list read again later
+ * off a hand that has since been dealt into simply says more.
+ *
+ * The order inside a group is the hand's own, which is the deal's order, which
+ * is the seed's — so two players reading the same game read the same list.
+ */
+export function ageOpeningGroups(hand: readonly BeadCard[]): BeadAgeGroup[] {
+  const races: BeadAgeRow[] = [];
+  const measures: BeadAgeRow[] = [];
+  for (const card of hand) {
+    if (!card.faceUp) continue;
+    const { kind, def } = anyBeadDef(card.id);
+    const row: BeadAgeRow = {
+      id: card.id,
+      name: def.name,
+      family: def.family,
+      text: def.text,
+    };
+    if (kind === 'reckoning') measures.push(row);
+    else races.push(row);
+  }
+  const groups: BeadAgeGroup[] = [];
+  if (races.length > 0) {
+    groups.push({ title: 'Races — the first empire across the line takes it', rows: races });
+  }
+  if (measures.length > 0) {
+    groups.push({ title: 'Measures — taken when the age closes', rows: measures });
+  }
+  return groups;
+}
+
 // --- the rods ---------------------------------------------------------------
 
 /**
@@ -312,6 +403,19 @@ export interface BeadsScreen {
   open(): void;
   close(): void;
   toggle(): void;
+  /**
+   * **An age has opened** — raise this screen with the banner on it.
+   *
+   * The age-opening sheet *is* this screen (the ruling of this pass): the table
+   * already lists every card of the age, every feat and every rod, and a second
+   * surface listing the same rows would be a second list to keep true. So the
+   * announcement is the screen, opened with a header saying what happened and a
+   * grouped index of what the age just put on the table — which also makes it
+   * **reopenable** for nothing: `V` brings the table back all game.
+   *
+   * The banner belongs to the raising and is dropped when the screen closes.
+   */
+  announceAge(age: BeadAge): void;
   /** The state changed. Redraws if the screen is up; cheap enough to call always. */
   refresh(): void;
   dispose(): void;
@@ -334,8 +438,14 @@ function element(tag: string, className: string, text?: string): HTMLElement {
   return node;
 }
 
-/** A bead chip, in its family's ink. The one saturated colour on the sheet. */
-function beadChip(family: BeadFamily, title?: string): HTMLElement {
+/**
+ * A bead chip, in its family's ink. The one saturated colour on the sheet.
+ *
+ * Exported because the **award sheet** draws the same object (`beadModal.ts`):
+ * a bead on a rod is one thing in this interface, and a second drawing of it
+ * would be the first place the two palettes drifted apart.
+ */
+export function beadChipNode(family: BeadFamily, title?: string): HTMLElement {
   const mark = BEAD_FAMILY_MARK[family];
   const chip = element('span', 'bead-chip');
   chip.style.setProperty('--bead-ink', `var(${mark.ink})`);
@@ -355,6 +465,13 @@ function familyMarkNode(family: BeadFamily): HTMLElement {
 
 export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
   const { overlay, body, closeButton, trigger, getState, getPlayerId } = options;
+
+  /**
+   * The age this screen is currently announcing, or `null` for the ordinary
+   * table. View state and nothing else — it is dropped the moment the screen
+   * closes, so a player who comes back to the table by `V` gets the table.
+   */
+  let banner: BeadAge | null = null;
 
   function isOpen(): boolean {
     return !overlay.hidden;
@@ -600,7 +717,7 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
           return;
         }
         const earned = player.beads[index]!;
-        wire.append(beadChip(slot.family!, beadHoverText(earned)));
+        wire.append(beadChipNode(slot.family!, beadHoverText(earned)));
       });
       rod.append(wire);
       rod.append(
@@ -617,6 +734,42 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     return column;
   }
 
+  /**
+   * The age-opening banner: what happened, then the age's prizes under plain
+   * headers, races first.
+   *
+   * An **index**, not a second set of cards: the full faces are drawn a few
+   * inches below by `drawAge`, and printing them twice would be two places a
+   * card's words could disagree. What this adds is the grouping — a race and a
+   * measure are won in entirely different ways, and the table does not say so.
+   */
+  function drawBanner(state: GameState, age: BeadAge): HTMLElement {
+    const words = ageOpeningBanner(age);
+    const box = element('section', 'bead-banner gilt-frame');
+    box.append(element('p', 'eyebrow bead-banner-eyebrow', words.eyebrow));
+    box.append(element('h3', 'bead-banner-title', words.headline));
+    box.append(element('p', 'bead-banner-lead', words.lead));
+
+    for (const group of ageOpeningGroups(state.beads.hands[String(age)] ?? [])) {
+      box.append(element('h4', 'bead-banner-group', group.title));
+      const list = element('ul', 'bead-banner-list');
+      for (const row of group.rows) {
+        const item = element('li', 'bead-banner-row');
+        item.style.setProperty('--bead-ink', `var(${BEAD_FAMILY_MARK[row.family].ink})`);
+        item.append(familyMarkNode(row.family));
+        const words2 = element('div', 'bead-banner-words');
+        words2.append(element('span', 'bead-banner-name', row.name));
+        const deed = element('span', 'bead-banner-deed');
+        setDescriptorText(deed, row.text, { linked: false });
+        words2.append(deed);
+        item.append(words2);
+        list.append(item);
+      }
+      box.append(list);
+    }
+    return box;
+  }
+
   function render(): void {
     const state = getState();
     const seat = getPlayerId();
@@ -625,6 +778,7 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     body.append(drawRods(state, seat));
 
     const pane = element('div', 'bead-pane');
+    if (banner !== null) pane.append(drawBanner(state, banner));
     for (const age of BEAD_DECK_AGES) pane.append(drawAge(state, seat, age));
     pane.append(drawFeats(state));
     const reckonings = drawReckonings(state);
@@ -636,7 +790,13 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     if (next === isOpen()) return;
     overlay.hidden = !next;
     trigger?.setAttribute('aria-expanded', String(next));
-    if (!next) return;
+    // The banner is the *raising*, not the screen: a table reopened by `V` is
+    // the table. Dropped on close rather than on open so that a screen already
+    // standing when an age opens keeps the banner `announceAge` just set.
+    if (!next) {
+      banner = null;
+      return;
+    }
     options.onOpen?.();
     render();
     closeButton.focus({ preventScroll: true });
@@ -661,6 +821,13 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     open: () => setOpen(true),
     close: () => setOpen(false),
     toggle: () => setOpen(!isOpen()),
+    announceAge: (age: BeadAge) => {
+      banner = age;
+      // Already up — the player was reading the table when the age turned over.
+      // Re-render in place rather than closing and reopening it under them.
+      if (isOpen()) render();
+      else setOpen(true);
+    },
     refresh: () => {
       if (isOpen()) render();
     },

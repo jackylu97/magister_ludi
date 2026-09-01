@@ -278,6 +278,8 @@ import {
 import { highestAge, techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import type { TriumphAward } from '../sim/triumphs';
+import type { BeadAge } from '../sim/beadData';
+import type { BeadAward } from '../sim/beads';
 import { BEAD_FAMILY_MARK, deckEraWord } from './beadsScreen';
 import { type TraderPlunder, routeCities } from '../sim/trade';
 import { autoExploreError } from '../sim/explore';
@@ -1475,6 +1477,32 @@ export interface GameControlsOptions {
   onTriumphs?: (awards: readonly TriumphAward[]) => void;
 
   /**
+   * Raises the bead sheet over these awards — `main.ts`'s bead modal
+   * (`beadModal.ts`). **Local seat only**, on `onTriumphs`' terms exactly: a
+   * rival's bead is news and gets the toast and the chronicle line
+   * (`reportBeads` writes both, for every seat), and a sheet is the moment,
+   * which only happens to the empire it happened to.
+   *
+   * It carries its payload for `onTriumphs`' reason: the boon was banked by
+   * `awardBead` before this module saw the result and `Player.beads` is
+   * append-only, so "which of these are new" is a diff the reducer already
+   * handed over (`beads.ts`: the news is a diff, never a sink).
+   */
+  onBeadAwards?: (awards: readonly BeadAward[]) => void;
+
+  /**
+   * **An age of the Bead Race opened** — the world's clock turned over and that
+   * age's whole hand is face up.
+   *
+   * Carries the age and nothing else, because everything else is *on the
+   * state*: the hand is `GameState.beads.hands`, and a copy handed over here
+   * could be a deal out of date by the time a player is looking at it. Shown to
+   * **every** seat, unlike the awards above — one clock for everybody, so the
+   * table turning over is the same event on every screen.
+   */
+  onBeadAgeOpened?: (age: BeadAge) => void;
+
+  /**
    * Puts the local seat's pending discovery card in front of the player.
    *
    * It carries nothing, deliberately: the offer is *on the player*
@@ -2044,6 +2072,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onOfferReligion,
     onOfferGreatPerson,
     onTriumphs,
+    onBeadAwards,
+    onBeadAgeOpened,
     onDamage,
     onVictory,
     lensOrder,
@@ -2775,12 +2805,27 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * argument exactly: a bead earned inside a command rides that command's
    * `CommandResult.beads`, and every bead earned during a resolution rides
    * `endTurn`'s (`TurnReport.beads`, handed straight into its own result).
+   *
+   * **Two volumes, one funnel** — `reportTriumphs`' ruling, applied to the thing
+   * the whole game is played for. The chronicle line above stays and is written
+   * for every seat, because the log is the record. The *sheet* (`beadModal.ts`)
+   * is the moment and belongs to the local seat alone, and the moment it belongs
+   * to is not always now: a bead earned by a command the player just issued is
+   * shown on the spot, and a bead earned in a *resolution* waits for the
+   * hand-over (CLAUDE.md's three beats — marches, then the card, then this).
+   * So this only ever *collects*, and `endTurn` decides which of the two it is.
+   *
+   * A reckoning taken by this seat is a bead on this seat's rod like any other
+   * and gets a sheet; the chronicle's separate voice for it is about the
+   * *world* being told a measurement was taken, which is a different sentence.
    */
   function reportBeads(result: CommandResult): void {
     if (!result.ok || !result.beads) return;
     const { state } = getGame();
+    const mine: BeadAward[] = [];
     for (const award of result.beads) {
       const who = playerById(state, award.playerId)?.name ?? 'An empire';
+      if (award.playerId === localPlayerId) mine.push(award);
       if (award.kind === 'reckoning') {
         announce(`◈ Reckoning: ${award.name} — ${who}`);
         continue;
@@ -2793,6 +2838,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       const paid = award.boon.length === 0 ? '' : ` · ${award.boon.join(' ')}`;
       announce(`◉ A bead: ${award.name} (${family})${paid}`);
     }
+    if (mine.length === 0) return;
+    if (heldBeadNews === null) onBeadAwards?.(mine);
+    else heldBeadNews.awards.push(...mine);
   }
 
   /**
@@ -2810,6 +2858,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * one that goes wrong the day anything else touches the clock. Said from
    * inside `commit` like every other piece of news, so the one funnel covers
    * both paths.
+   *
+   * **And the table is raised, to every seat.** An age opening is the moment
+   * the race is announced — the whole hand turns face up at once and nothing
+   * else in the game tells a player what this age is worth winning — so it gets
+   * a surface and not only a line (`beadsScreen.ts`'s `announceAge`, which is
+   * the table itself wearing a banner). Collected exactly like an award above:
+   * one that lands in a resolution belongs to the hand-over, behind the card.
    */
   function reportAgeOpened(result: CommandResult): void {
     if (!result.ok || result.beadAgeOpened === undefined) return;
@@ -2819,6 +2874,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     ).length;
     const what = dealt === 1 ? 'card' : 'cards';
     announce(`◈ ${deckEraWord(age)} opens — ${dealt} ${what} on the table`);
+    if (heldBeadNews === null) onBeadAgeOpened?.(age);
+    else heldBeadNews.ageOpened = age;
   }
 
   /**
@@ -2832,6 +2889,25 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * the hand-over shows them, or it did not and they are shown at once.
    */
   let heldTriumphs: TriumphAward[] | null = null;
+
+  /**
+   * The Bead Race's news, collected while a resolution is being applied, or
+   * `null` whenever nothing is collecting.
+   *
+   * `heldTriumphs`' twin and its `null`/value distinction exactly. **One
+   * holder, two facts**, deliberately: a bead earned and an age opened are the
+   * same kind of news arriving through the same funnel in the same resolution,
+   * and two holders would be two things `endTurn` has to remember to empty.
+   *
+   * `ageOpened` is a single value rather than a list because the world's clock
+   * rises once per resolution — and a rise past two deck ages still answers the
+   * age reached (`advanceWorldClock`), which is the number a player is told.
+   */
+  interface HeldBeadNews {
+    awards: BeadAward[];
+    ageOpened: BeadAge | null;
+  }
+  let heldBeadNews: HeldBeadNews | null = null;
 
   /**
    * The Statecraft screen's batch, through the same seam every other order takes.
@@ -5551,6 +5627,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     research: ResearchReport,
     deficits: readonly string[],
     triumphs: readonly TriumphAward[],
+    /** The Bead Race's news from this resolution. See `HeldBeadNews`. */
+    beadNews: HeldBeadNews,
     /** The seat that crossed the bead threshold in this resolution, or null. */
     decided: number | null = null,
   ): void {
@@ -5567,6 +5645,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // held hostage to a button press would be a beat that never arrives if
       // the sheet is answered from the keyboard mid-glide.
       if (triumphs.length > 0) onTriumphs?.(triumphs);
+      // The Bead Race's own news, in the same beat and directly behind the
+      // Triumph sheet. Two sheets at once say less than one, so the *listener*
+      // queues them (`main.ts` holds them until nothing modal is standing) —
+      // this only says what happened and in what order it happened: the bead
+      // you took, then the table it went onto.
+      if (beadNews.awards.length > 0) onBeadAwards?.(beadNews.awards);
+      if (beadNews.ageOpened !== null) onBeadAgeOpened?.(beadNews.ageOpened);
       // And the loudest thing of all, last of the three, so it stands in front
       // of a Triumph sheet earned on the same turn: the race is over.
       if (decided !== null) onVictory?.(decided);
@@ -5843,6 +5928,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // on **both** branches below — a turn that did not resolve has nothing to
     // wait for, and a sheet nobody raised is renown a player never saw awarded.
     heldTriumphs = [];
+    // The Bead Race's news, on exactly the same terms and emptied on both
+    // branches below for the same reason: a bead nobody was shown is the one
+    // thing in this game a player is actually playing for.
+    heldBeadNews = { awards: [], ageOpened: null };
     // Read **before** the dispatch, so the sentence describes the treasury the
     // player was looking at when they pressed the button. Said whether or not
     // the turn resolves and never held for the hand-over: it is not news about
@@ -5857,6 +5946,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const result = commit({ type: 'endTurn', playerId: localPlayerId });
     const earned = heldTriumphs;
     heldTriumphs = null;
+    const beadNews = heldBeadNews ?? { awards: [], ageOpened: null };
+    heldBeadNews = null;
     if (!result.ok) return;
     if (debt !== null) announce(debt);
 
@@ -5890,12 +5981,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         getGame().state.winnerId !== null && wonBefore === null
           ? getGame().state.winnerId
           : null;
-      scheduleHandOver(report, deficitLines(meters), earned, decided);
+      scheduleHandOver(report, deficitLines(meters), earned, beadNews, decided);
       return;
     }
     // The turn did not resolve — other seats are still playing — so there is no
     // hand-over to hold anything for and whatever was earned is shown now.
     if (earned.length > 0) onTriumphs?.(earned);
+    if (beadNews.awards.length > 0) onBeadAwards?.(beadNews.awards);
+    if (beadNews.ageOpened !== null) onBeadAgeOpened?.(beadNews.ageOpened);
     if (getGame().state.winnerId !== null && wonBefore === null) {
       onVictory?.(getGame().state.winnerId!);
     }

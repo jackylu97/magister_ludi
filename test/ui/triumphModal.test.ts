@@ -213,7 +213,11 @@ describe('the page it lives on', () => {
   });
 
   it('is built once and held where the pre-boot helpers can find it', () => {
-    expect(main).toContain('triumphSheet = createTriumphModal(triumphOverlayEl)');
+    expect(main).toContain('triumphSheet = createTriumphModal(triumphOverlayEl,');
+    // And it says when it comes down: a bead earned in the same resolution is
+    // queued behind this sheet (`beadModal.ts`, `pumpBeadNews` in main.ts), so
+    // "the screen is clear" has to be announced rather than polled for.
+    expect(main).toContain('onClosed: () => pumpBeadNews()');
     // The other hotkeys have no business firing under a sheet nobody has
     // proceeded past — `H`, `T`, End Turn.
     expect(main).toContain('(triumphSheet?.isOpen ?? false)');

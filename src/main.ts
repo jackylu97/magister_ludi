@@ -101,7 +101,13 @@ import {
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type BeadsScreen, createBeadsScreen } from './ui/beadsScreen';
 import { type VictoryModal, createVictoryModal } from './ui/victoryModal';
-import { BEAD_RULES } from './sim/beadData';
+import {
+  type BeadModal,
+  type BeadNews,
+  beadRodsFor,
+  createBeadModal,
+} from './ui/beadModal';
+import { type BeadAge, BEAD_RULES } from './sim/beadData';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import {
@@ -273,6 +279,10 @@ const offerOverlayEl = requireElement<HTMLElement>('offer-overlay');
 /* The Triumph sheet's shell — `ui/triumphModal.ts` builds its contents on each
    show. Milder than the offer above it: news with one affirmative button. */
 const triumphOverlayEl = requireElement<HTMLElement>('triumph-overlay');
+/* The bead sheet's shell — `ui/beadModal.ts` builds its contents on each show.
+   The Triumph sheet's twin one system over, and it wears that sheet's own
+   overlay class for exactly that reason. */
+const beadOverlayEl = requireElement<HTMLElement>('bead-overlay');
 /* The confirm card's shell — `ui/confirmCard.ts` builds its contents on each
    ask. The smallest of the three modal shapes: one question, two answers. */
 const confirmOverlayEl = requireElement<HTMLElement>('confirm-overlay');
@@ -680,6 +690,30 @@ let toasts: ToastStack | null = null;
 let triumphSheet: TriumphModal | null = null;
 
 /**
+ * The bead sheet, and the Bead Race's news waiting for a clear screen.
+ *
+ * **One queue for two kinds of moment.** A resolution can hand over a Triumph,
+ * a bead and an age opening at once, and three surfaces landing on one another
+ * say less than any one of them. So the sheets are raised one at a time, in the
+ * order the resolution reported them — the bead you took, then the table it
+ * went onto — and each raise waits for the screen to clear (`pumpBeadNews`,
+ * which is called by every seam that clears one).
+ *
+ * Held at module scope beside the Triumph sheet for its reasons: `showLanding`
+ * and `isInputBlocked` are both written above `boot` and both have to reach it.
+ */
+let beadSheet: BeadModal | null = null;
+let pendingBeadNews: BeadNews[] = [];
+let pendingBeadAge: BeadAge | null = null;
+
+/** Drops news about a game nobody is playing any more. */
+function clearBeadNews(): void {
+  pendingBeadNews = [];
+  pendingBeadAge = null;
+  beadSheet?.clear();
+}
+
+/**
  * The confirm card: "are you sure?", for the one verb that cannot be undone.
  *
  * Built here at module scope rather than in `boot`, beside the compendium and
@@ -828,6 +862,10 @@ function showLanding(): void {
   // would sit over the landing waiting to be proceeded past into a game that is
   // no longer running.
   triumphSheet?.clear();
+  // Nor the bead sheet, and nor the news queued behind it: a bead taken in a
+  // game the player has walked away from is not a sheet to proceed past into a
+  // game that is no longer running.
+  clearBeadNews();
   // And the victory sheet, for the same reason.
   victory?.clear();
   setRestartConfirm(false);
@@ -1919,6 +1957,10 @@ async function boot(initial: Game | null): Promise<void> {
      */
     onPhase: (phase) => {
       offerReturnEl.hidden = phase !== 'hidden';
+      // An offer is the one genuinely blocking surface, so bead news that
+      // arrived under it has been waiting. Every phase change is a chance for
+      // the screen to have cleared; `pumpBeadNews` answers that itself.
+      pumpBeadNews();
     },
   });
   offerReturnEl.addEventListener('click', () => offerCard.reopen());
@@ -1929,7 +1971,20 @@ async function boot(initial: Game | null): Promise<void> {
    * that `isInputBlocked` and `showLanding`, both written before any game
    * exists, can find it.
    */
-  triumphSheet = createTriumphModal(triumphOverlayEl);
+  triumphSheet = createTriumphModal(triumphOverlayEl, {
+    // A bead earned in the same resolution is standing behind this sheet. See
+    // `pumpBeadNews`, which is where the whole of that ordering lives.
+    onClosed: () => pumpBeadNews(),
+  });
+
+  /**
+   * The bead sheet — the Triumph sheet's twin, over the Bead Race's own news
+   * (`beadModal.ts`). Declared here for that sheet's reason exactly.
+   */
+  beadSheet = createBeadModal(beadOverlayEl, {
+    // The next bead, or the table the age just turned face up.
+    onClosed: () => pumpBeadNews(),
+  });
 
   /**
    * The victory sheet — the Triumph sheet's sibling, raised once when the Bead
@@ -2645,8 +2700,62 @@ async function boot(initial: Game | null): Promise<void> {
       // answers its own Enter and Escape in a capturing listener, so it is here
       // for the *other* hotkeys — `H`, `T`, End Turn — which have no business
       // firing under an unanswered question.
+      confirmCard.isOpen ||
+      // And the bead sheet, which is the Triumph sheet in every respect that
+      // matters here.
+      (beadSheet?.isOpen ?? false)
+    );
+  }
+
+  /**
+   * Is there a sheet in front of the player right now?
+   *
+   * Deliberately **narrower** than `isInputBlocked`: that one answers "may a
+   * hotkey fire", and a full-window screen the player opened themselves says no
+   * to it. This one answers "would a new sheet land on top of something", and a
+   * screen is not something news has to wait for — the star chart cannot be
+   * open at a hand-over anyway (End Turn is gated on the same guard), and a
+   * player reading the Beads table when their bead arrives should get the sheet.
+   */
+  function newsBlocked(): boolean {
+    return (
+      !landingEl.hidden ||
+      offerCard.isOpen ||
+      (triumphSheet?.isOpen ?? false) ||
+      (beadSheet?.isOpen ?? false) ||
+      (victory?.isOpen ?? false) ||
       confirmCard.isOpen
     );
+  }
+
+  /**
+   * Raises the next piece of Bead Race news, if the screen is clear.
+   *
+   * **The queue discipline the Triumph sheet has inside itself, one level up**,
+   * because these two moments live on two different surfaces: an award is a
+   * sheet (`beadModal.ts`) and an age opening is the Beads table wearing a
+   * banner (`beadsScreen.ts`'s `announceAge`). Awards go first — a bead is
+   * *yours* and the table is the world's — and the age's list is raised only
+   * once every sheet behind it has been proceeded past, so the player reads one
+   * thing at a time.
+   *
+   * Called from every seam that clears a sheet: the two modals' `onClosed`, the
+   * offer card's phase, and the report itself. Nothing polls, and news that
+   * arrives while something is up simply waits for the next call.
+   */
+  function pumpBeadNews(): void {
+    if (newsBlocked()) return;
+    if (pendingBeadNews.length > 0 && beadSheet) {
+      const news = pendingBeadNews;
+      pendingBeadNews = [];
+      beadSheet.show(news);
+      return;
+    }
+    if (pendingBeadAge !== null && beads) {
+      const age = pendingBeadAge;
+      pendingBeadAge = null;
+      beads.announceAge(age);
+    }
   }
 
   const controls = createGameControls({
@@ -2769,6 +2878,44 @@ async function boot(initial: Game | null): Promise<void> {
           };
         }),
       );
+    },
+    /**
+     * The bead sheet, over the beads this seat has just taken.
+     *
+     * The rod each sheet draws is composed **here**, at the moment the award is
+     * reported, and never at the moment it is shown: a batch held behind an
+     * offer card while a second resolution pays another bead would otherwise
+     * draw both sheets on the rod as it stands now, and the first sheet would
+     * animate a bead it did not earn. `beadRodsFor` is that slicing, pure and
+     * pinned, and `Player.beads` being append-only is what makes it exact.
+     */
+    onBeadAwards: (awards) => {
+      const seat = game.state.players[controls.localPlayerId()];
+      const rod = seat?.beads ?? [];
+      const rods = beadRodsFor(awards, rod);
+      awards.forEach((award, index) => {
+        pendingBeadNews.push({
+          id: award.id,
+          name: award.name,
+          kind: award.kind,
+          family: award.family,
+          // The settlement's own sentences, already banked and already plain.
+          boon: award.boon,
+          rod: rods[index] ?? rod,
+        });
+      });
+      pumpBeadNews();
+    },
+    /**
+     * The age opened: the Beads table, raised with its banner, to every seat.
+     *
+     * The age is all that is carried — the hand is on the state, and the screen
+     * reads it when it draws. Queued behind any award sheet, which is what
+     * `pumpBeadNews` is for.
+     */
+    onBeadAgeOpened: (age) => {
+      pendingBeadAge = age;
+      pumpBeadNews();
     },
     onTurnResolved: () => {
       // The turn is over and the next one has not been touched, which is the one
@@ -3703,8 +3850,10 @@ async function boot(initial: Game | null): Promise<void> {
     // new game says nothing about ground it starts already knowing.
     notificationLog.clear();
     toasts?.clear();
-    // A decided race belongs to the game that decided it.
+    // A decided race belongs to the game that decided it, and so does every
+    // bead taken in it.
     victory?.clear();
+    clearBeadNews();
     // A star chart of the game that just ended has nothing to say about the
     // one starting either.
     techTree?.close();

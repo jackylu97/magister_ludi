@@ -130,19 +130,39 @@ function element(tag: string, className?: string, text?: string): HTMLElement {
   return node;
 }
 
-export function createTriumphModal(container: HTMLElement): TriumphModal {
+export interface TriumphModalOptions {
+  /**
+   * The last sheet was proceeded past and the screen is clear.
+   *
+   * The seam other news waits on. A Triumph and a bead can land in the same
+   * resolution and two sheets at once say less than one, so `main.ts` holds the
+   * Bead Race's own sheet until this fires. Announced rather than polled for the
+   * reason every other report in this interface is: a poll would have to run on
+   * a frame, and this happens perhaps fifteen times in a game.
+   */
+  onClosed?: () => void;
+}
+
+export function createTriumphModal(
+  container: HTMLElement,
+  options: TriumphModalOptions = {},
+): TriumphModal {
   /** The head is what is on screen; the rest are waiting behind it. */
   let queue: TriumphNews[] = [];
   /** Where focus goes back to once the last sheet is proceeded past. */
   let restoreFocus: HTMLElement | null = null;
 
   function clear(): void {
+    // Read before the emptying: `clear` is also how a new game takes a standing
+    // sheet down, and news held behind one has to be released either way.
+    const wasUp = queue.length > 0 || !container.hidden;
     queue = [];
     container.replaceChildren();
     container.hidden = true;
     const back = restoreFocus;
     restoreFocus = null;
     back?.focus({ preventScroll: true });
+    if (wasUp) options.onClosed?.();
   }
 
   /** Proceeds past the head. The next sheet, or nothing left to say. */

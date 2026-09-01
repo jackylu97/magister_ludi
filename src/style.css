@@ -9953,6 +9953,197 @@ body.compendium-page {
   color: var(--gilt);
 }
 
+/* --- the bead sheet --------------------------------------------------------
+
+   "A deed was done, and a bead went onto the wire" — built by
+   `src/ui/beadModal.ts`. The Triumph sheet's dress reused whole (it borrows
+   `.triumph-sheet` and every control on it), with one addition: a rod of the
+   Abacus, drawn in the Beads screen's own bead vocabulary, and the bead that
+   was just earned sliding into its slot.
+
+   The rim takes the family's ink because the family is what a bead *is*, and
+   `--bead-ink` is set per sheet by the module — never a colour written here. */
+.bead-sheet {
+  border-color: var(--bead-ink, var(--ink));
+}
+
+/* The crest is a bead at crest size. The laurel belongs to renown, and this
+   system does not pay in it. */
+.bead-award-crest {
+  display: grid;
+  place-items: center;
+  margin: 10px 0 2px;
+}
+
+.bead-award-crest .bead-chip {
+  width: 30px;
+  height: 30px;
+  border-width: 2px;
+}
+
+/* "quest · Æra III · domination" — the row's class, deck and family, under the
+   name where the Triumph sheet puts its flavour. */
+.bead-award-line {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+}
+
+/* The rod. Centred, wrapping rather than scrolling for `.bead-rod-wire`'s
+   reason: a rod that ran off the edge would be a score you cannot read. */
+.bead-award-abacus {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: var(--border-thin) solid var(--ink);
+}
+
+.bead-award-wire {
+  justify-content: center;
+}
+
+.bead-award-tally {
+  margin-top: 6px;
+  color: var(--ink-soft);
+  font-family: var(--face-num);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* What it paid: the settlement's own sentences, in the order it paid them. */
+.bead-award-boons {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bead-award-boon {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* **The clack.** The bead comes down the wire from the empty end, overshoots
+   its slot and settles — one animation on one chip, and which chip is the
+   sheet's decision (`BeadAwardFace.arriving`), never this file's. */
+@keyframes bead-clack {
+  0% {
+    transform: translateX(64px) scale(0.86);
+    opacity: 0;
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  72% {
+    transform: translateX(-3px) scale(1.08);
+    opacity: 1;
+  }
+
+  86% {
+    transform: translateX(1px) scale(0.97);
+  }
+
+  100% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.bead-chip.is-arriving {
+  animation: bead-clack 760ms ease-out both;
+}
+
+/* A reader who has asked for less motion gets the settled rod. The module has
+   already read the same preference and left the class off; this is the brace to
+   that belt, for a preference that changes while a sheet is standing. */
+@media (prefers-reduced-motion: reduce) {
+  .bead-chip.is-arriving {
+    animation: none;
+  }
+}
+
+/* --- the age-opening banner ------------------------------------------------
+
+   The Beads screen wearing the announcement (`announceAge`): the world's clock
+   turned over, every card of the age is face up, and here is what the age is
+   worth winning, grouped by how it is won. Sits at the top of the scrolling
+   pane, above the tables it is an index of. */
+.bead-banner {
+  padding: 14px 16px 16px;
+  border: var(--border) solid var(--gilt);
+  border-radius: var(--radius);
+  background: var(--parchment);
+}
+
+.bead-banner-eyebrow {
+  margin: 0;
+  color: var(--gilt);
+}
+
+.bead-banner-title {
+  margin: 4px 0 0;
+  font-family: var(--face-display);
+  font-size: 1.6rem;
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.bead-banner-lead {
+  margin: 6px 0 0;
+  max-width: 62ch;
+  color: var(--ink-soft);
+  font-family: var(--face-ui);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Plain headers, races first. The two groups are won in entirely different
+   ways, which is the one thing the table below does not say. */
+.bead-banner-group {
+  margin: 14px 0 0;
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bead-banner-list {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bead-banner-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: var(--border-thin) solid var(--ink-faint);
+}
+
+.bead-banner-words {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bead-banner-name {
+  font-family: var(--face-name);
+  font-size: 0.94rem;
+}
+
+.bead-banner-deed {
+  color: var(--ink-soft);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 /* --- the tutorial ---------------------------------------------------------
    The coach card and its spotlight (src/ui/tutorial.ts).
 
