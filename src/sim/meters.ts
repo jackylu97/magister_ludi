@@ -283,12 +283,25 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // is the cost of governing one more town at all, and a Toleration Edict that
   // discounted it would be discounting the wrong thing.
   const perCity = cardMeterRule(state, playerId, 'cityHappinessDemand', 0);
+  // The Scattered Hearths' waiver: the first citizens of every town are simply
+  // not counted. Applied to *who is charged* rather than to what each one asks
+  // for — a discount on the rate is Toleration Edicts and is already `demand`
+  // above — and read outside the factor for that reason. Crowding is untouched:
+  // it is a fact about the size of the town, not about its households.
+  const free = Math.max(0, cardMeterRule(state, playerId, 'freeCitizens', 0));
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
+    const charged = Math.max(0, city.population - free);
     list.push({
-      source: `${city.name} · ${city.population} citizens`,
+      // The label says *how many are being charged* when that is not everybody,
+      // because a line reading "Ur · 5 citizens" beside a cost for two is a
+      // ledger a player cannot check.
+      source:
+        charged === city.population
+          ? `${city.name} · ${city.population} citizens`
+          : `${city.name} · ${charged} of ${city.population} citizens`,
       part: 'cost',
-      value: -rules.demandPerPop * city.population * demand,
+      value: -rules.demandPerPop * charged * demand,
     });
     const crowding = crowdingDemand(city.population) * demand;
     if (crowding > 0) {

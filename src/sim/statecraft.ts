@@ -56,8 +56,10 @@ import {
   cityResources,
   cityTile,
   controlledResources,
+  empireRateReading,
   isCoastalCity,
   nearestOwnedCity,
+  ownedTiles,
   queueCategory,
   realiseItem,
   resourceCopies,
@@ -1524,6 +1526,11 @@ export function cityScopeAdmits(
     case 'onTerrain':
       // The centre's own hex and nothing wider. See the scope's docblock.
       return cityTile(state.map, city).terrain === scope.terrain;
+    case 'terrainInBorders':
+      // What the *borders* have taken in, which is a different question from
+      // what the centre stands on and from what touches it. `ownedTiles` is the
+      // board's own answer, so a hex that changes hands changes this with it.
+      return ownedTiles(state, city).some((tile) => tile.terrain === scope.terrain);
     case 'follows': {
       // **"This town follows the religion this belief belongs to."** Since the
       // 2026-08-28 ruling a follower belief only ever reaches a town through
@@ -1601,6 +1608,8 @@ function scopeNote(scope?: CityScope): string | null {
       return scope.wonder === true ? `${scope.yields} wonder` : `${scope.yields} building`;
     case 'onTerrain':
       return `${scope.terrain} city`;
+    case 'terrainInBorders':
+      return `${scope.terrain} in its borders`;
     case 'follows':
       return 'follows this faith';
     case 'all':
@@ -1774,6 +1783,18 @@ function countOf(
       return city ? city.buildings.length : 0;
     case 'workedTilesInCity':
       return city ? city.workedTiles.length : 0;
+    case 'workedUnimprovedTiles': {
+      // `workedHills`' loop with the other question asked of the hex, and the
+      // question is asked through `tileConditionHolds` so the count and the 🌿
+      // ladder's tile lines cannot disagree about what "unimproved" means.
+      if (!city) return 0;
+      let total = 0;
+      for (const cell of city.workedTiles) {
+        const tile = getTileAt(state.map, cell.col, cell.row);
+        if (tile && tileConditionHolds(tile, { test: 'unimproved' })) total += 1;
+      }
+      return total;
+    }
     case 'wonders': {
       // A wonder is one per world, so the empire's own towns are the whole of
       // the question — and a captured wonder joins this count the turn the town
@@ -2078,6 +2099,7 @@ const CITY_SCOPED_COUNTS: readonly CountKind[] = [
   'scienceBuildings',
   'buildingsInCity',
   'workedTilesInCity',
+  'workedUnimprovedTiles',
   'defensiveBuildings',
 ];
 
@@ -2303,6 +2325,11 @@ export function tileConditionHolds(tile: Tile, on: TileCondition): boolean {
       return tile.feature === on.feature;
     case 'improved':
       return tile.improvement !== undefined;
+    case 'unimproved':
+      // `improved`'s mirror, asked of the same field: **presence is the state**,
+      // so ground whose works were pillaged away is unimproved again — which is
+      // the reading the 🌿 ladder's cards want.
+      return tile.improvement === undefined;
     case 'water':
       return isWaterTerrain(tile.terrain);
     case 'improvement':
@@ -3476,6 +3503,22 @@ export function windfallPayout(
       }
     }
     if (grant.yield !== undefined && grant.amount !== undefined) {
+      // **A figure quoted in turns** — The Lyceum's extra turn of culture. The
+      // rate is read here, with every other figure on this payout, because Entry
+      // XVIII.5's whole rule is that the number is composed once before anything
+      // is banked: a preview that quoted one turn and a settlement that read the
+      // rate again would be two answers to one sentence. Asked lazily, so an
+      // occasion no such rider names never sweeps the empire's books.
+      if (grant.fromRate !== undefined) {
+        const turns = scaleByLevel(grant.amount, level);
+        const rate = rateOf(state, playerId, grant.fromRate, empireRateReading(state, playerId));
+        const amount = turns * rate;
+        if (amount !== 0) {
+          payout.grants.push({ card, source, yield: grant.yield, amount });
+          payout.lines.push({ card, source, note: `+${amount} ${grant.yield}` });
+        }
+        continue;
+      }
       // A rider's own grant is multiplied by the era when *that rider* says so —
       // Rites of Blood pays fifteen faith a kill in Æra I and forty-five in Æra
       // III — which is a fact about the card and not about the occasion. The
@@ -4482,9 +4525,23 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
       // culture", …). War Chief carries two grants, so it would say it twice.
       const per = effect.perSlottedOrder === true ? ' for each Order you have in a slot' : '';
       if (grant?.yield !== undefined && grant.amount !== undefined) {
-        out.push({
-          text: `${occasion} grants ${signed(scaleByLevel(grant.amount, level))} ${grant.yield}${per}`,
-        });
+        // A figure quoted in **turns** reads as turns, because that is the whole
+        // sentence the card is making: "an extra turn of culture" is a promise
+        // about the empire's own books, and printing the number the rate happens
+        // to work out to today would be a card that says something different
+        // every time it is looked at.
+        if (grant.fromRate !== undefined) {
+          const turns = scaleByLevel(grant.amount, level);
+          out.push({
+            text:
+              `${occasion} grants ${turns === 1 ? 'an extra turn' : `${turns} extra turns`} ` +
+              `of ${grant.yield}${per}`,
+          });
+        } else {
+          out.push({
+            text: `${occasion} grants ${signed(scaleByLevel(grant.amount, level))} ${grant.yield}${per}`,
+          });
+        }
       }
       if (grant?.heal !== undefined) {
         // "**a further**" only where the occasion already pays a heal of its
@@ -4991,6 +5048,12 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'onTerrain':
       into.adjectives.push(scope.terrain);
       return;
+    case 'terrainInBorders':
+      // A qualifier and not an adjective, because the ground is not what the
+      // town *is*: "every mountain city" would name the hex the centre stands
+      // on, which is the neighbouring scope and a different card.
+      into.qualifiers.push(`with a ${scope.terrain} hex inside its borders`);
+      return;
     case 'follows':
       // "your religion" was the old ruling's wording and it is now wrong twice
       // over: the card may be printing in a compendium nobody's seat owns, and
@@ -5147,6 +5210,9 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       return;
     case 'improved':
       into.adjectives.push('improved');
+      return;
+    case 'unimproved':
+      into.adjectives.push('unimproved');
       return;
     case 'water':
       into.adjectives.push('water');
@@ -5383,6 +5449,10 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   buildingsOfKind: { one: 'of them', many: 'of them' },
   buildingsInCity: { one: 'building in this city', many: 'buildings in this city' },
   workedTilesInCity: { one: 'hex worked here', many: 'hexes worked here' },
+  workedUnimprovedTiles: {
+    one: 'unimproved hex worked here',
+    many: 'unimproved hexes worked here',
+  },
   wonders: { one: 'wonder you hold', many: 'wonders you hold' },
   revealedTiles: { one: 'hex you have revealed', many: 'hexes you have revealed' },
   sightedCities: { one: 'foreign city you have sighted', many: 'foreign cities you have sighted' },
@@ -5495,6 +5565,11 @@ const METER_RULE_WORDS: Record<MeterRuleId, string> = {
   coastalCityCost: 'the authority a coastal city costs',
   hillCityCost: 'the authority a city on hills costs',
   cityHappinessDemand: 'the happiness every city demands',
+  // Said as *who is waived* rather than as a figure on the demand, because that
+  // is what the rule does: the first citizens of every town are simply not
+  // counted, and "the happiness demanded falls by 3" would have read as a flat
+  // discount on a number that scales with the town.
+  freeCitizens: 'the citizens in every city who demand no happiness',
   borderFreezeExempt: 'your borders keep growing',
   authorityUnitProductionExempt: 'negative authority no longer slows production toward units',
 };

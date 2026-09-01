@@ -19,6 +19,7 @@ import {
   cityYields,
   explainTileYield,
   foldTileYield,
+  empireRateReading,
   growthThreshold,
   ownedTiles,
   settleGrowthWindfall,
@@ -721,19 +722,19 @@ describe('adoption', () => {
 // --- the hooks --------------------------------------------------------------
 
 describe('every hook family, end to end', () => {
-  it('tileYield — Common Granary is a line in the hex breakdown', () => {
+  it('tileYield — The Orchard Tithe is a line in the hex breakdown', () => {
     const g = game();
     const city = found(g.state, 0);
     const tile = getTileAt(g.state.map, city.col, city.row)!;
-    // A **luxury**, since the 2026-08-28 cut of the master list: Common Granary
-    // reads `resourceKind: 'luxury'` rather than "any resource at all".
+    // The luxury hex line, which the balance pass of 2026-08-31 moved off Common
+    // Granary (now a fact about the *town*) and onto a row of its own.
     tile.resource = 'gems';
     const before = explainTileYield(tile, yieldContextFor(g.state, 0));
-    slot(g.state, 0, 'commonGranary');
+    slot(g.state, 0, 'theOrchardTithe');
     const after = explainTileYield(tile, yieldContextFor(g.state, 0));
     expect(after).toHaveLength(before.length + 1);
     const line = after[after.length - 1]!;
-    expect(line.source).toBe('Order · Common Granary');
+    expect(line.source).toBe('Order · The Orchard Tithe');
     expect(line.food).toBe(1);
     expect(line.kind).toBe('add');
     // A hex with no resource is untouched — the condition is the whole rule.
@@ -742,15 +743,15 @@ describe('every hook family, end to end', () => {
     expect(explainTileYield(bare, yieldContextFor(g.state, 0))).toHaveLength(before.length - 1);
   });
 
-  it('cityYields — First Rites pays faith, and the fold is the sum of the list', () => {
+  it('cityYields — Wayside Shrines pays faith, and the fold is the sum of the list', () => {
     const g = game();
     const city = found(g.state, 0);
     const before = cityYields(g.state, city).faith;
-    slot(g.state, 0, 'firstRites');
+    slot(g.state, 0, 'waysideShrines');
     expect(cityYields(g.state, city).faith).toBe(before + 1);
     // Levels scale the printed number, through the one scaler.
-    slot(g.state, 0, 'firstRites', 2);
-    g.state.players[0]!.statecraft.slots = [{ card: 'firstRites', sealedUntil: 0 }];
+    slot(g.state, 0, 'waysideShrines', 2);
+    g.state.players[0]!.statecraft.slots = [{ card: 'waysideShrines', sealedUntil: 0 }];
     expect(cityYields(g.state, city).faith).toBe(before + scaleByLevel(1, 2));
   });
 
@@ -800,11 +801,16 @@ describe('every hook family, end to end', () => {
     const happyBefore = foldMeter(explainHappiness(g.state, 0));
     const writBefore = foldMeter(explainAuthority(g.state, 0));
     slot(g.state, 0, 'festivalDays');
-    slot(g.state, 0, 'censusRolls');
+    // Provincial Governors since the balance pass of 2026-08-31: Census Rolls
+    // became The King's Table and pays happiness off the capital's rolls now,
+    // so the flat writ line moved to the card that still carries one.
+    slot(g.state, 0, 'provincialGovernors');
     expect(explainHappiness(g.state, 0).some((l) => l.source === 'Order · Festival Days')).toBe(true);
-    expect(explainAuthority(g.state, 0).some((l) => l.source === 'Order · Census Rolls')).toBe(true);
+    expect(
+      explainAuthority(g.state, 0).some((l) => l.source === 'Order · Provincial Governors'),
+    ).toBe(true);
     expect(foldMeter(explainHappiness(g.state, 0))).toBe(happyBefore + 4);
-    expect(foldMeter(explainAuthority(g.state, 0))).toBe(writBefore + 2);
+    expect(foldMeter(explainAuthority(g.state, 0))).toBe(writBefore + 3);
   });
 
   it('combatLine — Blooded Spears is a labelled line in the forecast', () => {
@@ -1068,11 +1074,14 @@ describe('rule 5 holds with cards active', () => {
     const g = game(29);
     const city = found(g.state, 0);
     const before = cityYields(g.state, city);
-    slot(g.state, 0, 'firstRites');
+    // Wayside Shrines rather than First Rites since the balance pass of
+    // 2026-08-31: the capital's candles moved to First Rites and the flat "+1
+    // faith in every city" it used to carry became a row of its own.
+    slot(g.state, 0, 'waysideShrines');
     slot(g.state, 0, 'weightsAndMeasures');
     const lines = cardCityYields(g.state, city);
     expect(lines.map((line) => line.source)).toEqual([
-      'Order · First Rites',
+      'Order · Wayside Shrines',
       'Order · Weights & Measures',
     ]);
     const after = cityYields(g.state, city);
@@ -2041,9 +2050,12 @@ describe('the master-list cut of 2026-08-28', () => {
       'an amphitheatre instead of the Monument, once one is unlocked — not built yet',
     ]);
     expect(said('gildedCourt')).toEqual(['unlocks the Gilded Hall', '+3 authority capacity']);
+    // The pillage heal was Scorched Earth's all along, and the balance pass of
+    // 2026-08-31 gave the second half back to the doc's own sentence — which the
+    // board cannot answer, so it is deferred rather than approximated.
     expect(said('burningWay')).toEqual([
       'clearing a forest or jungle costs no worker charge',
-      'pillaging heals a further 25',
+      '+1 food on every hex you have cleared of forest or jungle — not built yet',
     ]);
     expect(said('scorchedEarth')).toEqual([
       'pillaging heals a further 25',
@@ -2077,7 +2089,11 @@ describe('the master-list cut of 2026-08-28', () => {
       'losing a unit grants +10 production',
       'losing a unit grants +40 gold',
     ]);
-    expect(said('commonGranary')).toEqual(['+1 food on every hex carrying a luxury resource']);
+    // 2026-08-31: the granary is a fact about the **town** now — the luxury hex
+    // line it used to carry is The Orchard Tithe's.
+    expect(said('commonGranary')).toEqual([
+      '+1 food in every city holding an improved luxury resource',
+    ]);
     expect(said('saltTithes')).toEqual(['+2 gold per unique luxury']);
     expect(said('borderBallads')).toEqual([
       '+2 culture per barbarian camp you have found',
@@ -2752,7 +2768,11 @@ describe('the Orders pass of 2026-08-29', () => {
       '+1 culture in every city with a Temple',
       '+1 happiness in every city with a Temple',
     ]);
-    expect(said('starGazers')).toEqual(['+2 science in every city beside a mountain']);
+    // 2026-08-31: the ratified text asks for a mountain *inside the borders*,
+    // which is a different question from one in the ring of six.
+    expect(said('starGazers')).toEqual([
+      '+2 science in every city with a mountain hex inside its borders',
+    ]);
     expect(said('cisternWorks')).toEqual(['every city of yours counts as being on fresh water']);
     expect(said('ledgerKeepers')).toEqual([
       '+1 gold in every city with a Market',
@@ -2768,10 +2788,235 @@ describe('the Orders pass of 2026-08-29', () => {
     expect(said('theOathBound')).toEqual(['killing a unit heals 15']);
     // The two deferred rows say what is missing and nothing else.
     expect(said('theBronzeMirror')).toEqual([
-      'a new luxury appears within three hexes of your capital when you complete a technology — not built yet',
+      'a luxury of your own make — bronze trinkets — worth +1 happiness in every city, ' +
+        'and +1 more for each copper or tin you hold — not built yet',
     ]);
     expect(said('sanctuary')).toEqual([
       'your holy city is sacked rather than captured while it keeps your religion — not built yet',
+    ]);
+  });
+});
+
+// --- the balance pass of 2026-08-31 -----------------------------------------
+
+/**
+ * The rows the user rebalanced in `docs/orders-and-doctrines.md` (the fold of
+ * 83358c2), and the five members of the vocabulary they needed.
+ *
+ * Same discipline as the two passes above: **one behavioural test per new
+ * member**, because the kind-level register only proves a *shape* is named by a
+ * row — a `TileCondition` value or a `CountKind` that nobody reads would sail
+ * straight through it — plus a register of its own naming exactly what this pass
+ * declared, plus the printed sentence of every row that changed.
+ */
+describe('the balance pass of 2026-08-31', () => {
+  it('unimproved — The Unbroken Land pays bare ground and stops when it is worked', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    const before = explainTileYield(tile, yieldContextFor(g.state, 0));
+    slot(g.state, 0, 'theUnbrokenLand');
+    const after = explainTileYield(tile, yieldContextFor(g.state, 0));
+    expect(after).toHaveLength(before.length + 1);
+    const line = after[after.length - 1]!;
+    expect(line.source).toBe('Order · The Unbroken Land');
+    expect(line.food).toBe(1);
+    expect(line.production).toBe(1);
+    // **Presence is the state**: build anything at all and the ladder stops
+    // paying for the hex, which is the whole bargain the 🌿 cards strike.
+    tile.improvement = 'farm';
+    const worked = explainTileYield(tile, yieldContextFor(g.state, 0));
+    expect(worked.some((entry) => entry.source === 'Order · The Unbroken Land')).toBe(false);
+  });
+
+  it('terrainInBorders — Star-Gazers reads the borders, never the ring of six', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const mine = ownedTiles(g.state, city).find((tile) => tile.terrain !== 'mountain')!;
+    const scope = { test: 'terrainInBorders', terrain: 'mountain' } as const;
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
+    const was = mine.terrain;
+    mine.terrain = 'mountain';
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(true);
+    // The science follows the scope, through the ordinary `cityYields` fold.
+    const before = cityYields(g.state, city).science;
+    slot(g.state, 0, 'starGazers');
+    expect(cityYields(g.state, city).science).toBe(before + 2);
+    // And a mountain the borders have **not** taken in pays nothing: the scope
+    // is about what a town owns, which is what makes it different from the ring
+    // of six `mountainAdjacent` asks about.
+    mine.terrain = was;
+    const far = g.state.map.tiles.find(
+      (tile) => g.state.tileOwner[tile.row * g.state.map.width + tile.col] === null,
+    )!;
+    far.terrain = 'mountain';
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
+    expect(cityYields(g.state, city).science).toBe(before);
+  });
+
+  it('workedUnimprovedTiles — The Quiet Fields counts the hexes the town works', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'theQuietFields');
+    const cheer = (): number => {
+      const line = explainHappiness(g.state, 0).find((entry) =>
+        entry.source.startsWith('Order · The Quiet Fields'),
+      );
+      return line?.value ?? 0;
+    };
+    const worked = city.workedTiles
+      .map((cell) => getTileAt(g.state.map, cell.col, cell.row)!)
+      .filter((tile) => tile.improvement === undefined);
+    expect(worked.length).toBeGreaterThan(0);
+    expect(cheer()).toBe(worked.length);
+    // A plough on one of them takes its point away — the count and the tile
+    // lines ask the board the same question.
+    worked[0]!.improvement = 'farm';
+    expect(cheer()).toBe(worked.length - 1);
+  });
+
+  it('freeCitizens — The Scattered Hearths waives the first three of every town', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    city.population = 5;
+    const demandLine = () =>
+      explainHappiness(g.state, 0).find(
+        (entry) => entry.source.startsWith(city.name) && entry.source.includes('citizens'),
+      )!;
+    const before = demandLine();
+    expect(before.source).toContain('5 citizens');
+    g.state.players[0]!.statecraft.doctrines.push('theScatteredHearths');
+    const after = demandLine();
+    // The label says who is being charged, because a line reading "5 citizens"
+    // beside a cost for two is a ledger nobody can check.
+    expect(after.source).toContain('2 of 5 citizens');
+    expect(after.value).toBeCloseTo((before.value * 2) / 5, 6);
+    // A town of three or fewer asks for nothing at all.
+    city.population = 3;
+    expect(demandLine().value).toBeCloseTo(0, 9);
+  });
+
+  it('fromRate — The Lyceum pays a whole turn of culture, composed once', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    // Something that actually sings, so the rate is not zero and the grant is
+    // not dropped as an empty line.
+    city.buildings.push('monument');
+    slot(g.state, 0, 'theLyceum');
+    const rate = empireRateReading(g.state, 0).culturePerTurn ?? 0;
+    expect(rate).toBeGreaterThan(0);
+    expect(windfallPayout(g.state, 0, 'tech').grants).toEqual([
+      { card: 'theLyceum', source: 'Order · The Lyceum', yield: 'culture', amount: rate },
+    ]);
+    // The occasion is the whole of the gate: nothing else pays a turn of
+    // anything.
+    expect(windfallPayout(g.state, 0, 'kill').grants).toEqual([]);
+    // The **turns** are what an upgrade deepens, which is what keeps one field
+    // carrying the level rather than a second rule about a deeper Lyceum.
+    slot(g.state, 0, 'theLyceum', 2);
+    g.state.players[0]!.statecraft.slots = [{ card: 'theLyceum', sealedUntil: 0 }];
+    expect(windfallPayout(g.state, 0, 'tech').grants[0]!.amount).toBe(scaleByLevel(1, 2) * rate);
+  });
+
+  it('reads every member this pass declared from at least one live card', () => {
+    // The register, narrowed to what this pass added. The kind-level register
+    // above cannot see any of these — they are *values inside* shapes it already
+    // counts — so a member declared and never written onto a row would otherwise
+    // be a switch arm nobody reaches.
+    const rows = [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS].map((id) => cardDef(id));
+    const json = JSON.stringify(rows);
+    for (const member of [
+      '"test":"unimproved"',
+      '"test":"terrainInBorders"',
+      '"count":"workedUnimprovedTiles"',
+      '"rule":"freeCitizens"',
+      '"fromRate":"culturePerTurn"',
+    ]) {
+      expect(json.includes(member), member).toBe(true);
+    }
+  });
+
+  it('places every row this pass touched in the pool the doc puts it in', () => {
+    // The Long Watch moved up a pool; the eight new Orders and the three new
+    // Doctrines land where the master list's tables put them.
+    const pool = (id: string): string => orderDef(id as never).pool;
+    expect(pool('theLongWatch')).toBe('governmentI');
+    expect(pool('waysideShrines')).toBe('governmentI');
+    expect(pool('theUnbrokenLand')).toBe('governmentI');
+    expect(pool('theOrchardTithe')).toBe('governmentII');
+    expect(pool('theGreenwoodLaw')).toBe('governmentII');
+    expect(pool('theQuietFields')).toBe('governmentII');
+    expect(pool('firstFruits')).toBe('governmentIII');
+    expect(pool('theOldWays')).toBe('governmentIII');
+    expect(doctrineDef('theGentleYoke').tier).toBe(10);
+    expect(doctrineDef('theScatteredHearths').tier).toBe(10);
+    expect(doctrineDef('theWanderingCourt').tier).toBe(18);
+    // Both halves of The Closed Realm are unbuilt, so it sits at tier 0 —
+    // Religious Mandate's rung, which is not a live pool — rather than being
+    // dealt into Pool IV as a card that does nothing.
+    expect(doctrineDef('theClosedRealm').tier).toBe(0);
+    // A retired row keeps its row so a save replays and leaves every pool.
+    expect(poolOrders('governmentIII').includes('theOldWays' as never)).toBe(false);
+  });
+
+  it('prints every changed and new row in the words the doc ratified', () => {
+    const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    expect(said('mountainHold')).toEqual([
+      '+15% production in every city beside a mountain',
+      'every city beside a mountain: +5 city defence',
+      'the bonus reaching a city with a mountain two hexes away, rather than only one — not built yet',
+    ]);
+    expect(said('firstRites')).toEqual(['+2 faith in your capital']);
+    expect(said('waysideShrines')).toEqual(['+1 faith in every city']);
+    expect(said('commonGranary')).toEqual([
+      '+1 food in every city holding an improved luxury resource',
+    ]);
+    expect(said('theOrchardTithe')).toEqual([
+      '+1 food on every hex carrying a luxury resource',
+    ]);
+    expect(said('oreTithes')).toEqual([
+      '+1 production on every hex carrying a strategic resource',
+    ]);
+    expect(said('terracedHillsides')).toEqual(['+1 food on every hill hex']);
+    expect(said('pilgrimRoads')).toEqual([
+      '+1 faith per 3 population in your capital',
+      '+1 happiness per 50 banked faith (at most +5 happiness)',
+    ]);
+    expect(said('theLyceum')).toEqual([
+      'completing a technology grants an extra turn of culture',
+    ]);
+    expect(said('censusRolls')).toEqual([
+      '+1 happiness per 2 population in your capital',
+    ]);
+    expect(said('theUnbrokenLand')).toEqual([
+      '+1 food, +1 production on every unimproved hex',
+    ]);
+    expect(said('theGreenwoodLaw')).toEqual([
+      '+2 food, +2 production on every unimproved hex',
+    ]);
+    expect(said('theQuietFields')).toEqual([
+      '+1 happiness per unimproved hex worked here',
+    ]);
+    expect(said('firstFruits')).toEqual(['+1 food on every hex carrying a resource']);
+    expect(said('theOldWays')).toEqual([
+      'the yields of every unimproved hex are doubled — not built yet',
+    ]);
+    expect(said('theGentleYoke')).toEqual([
+      '-15% happiness demanded per citizen',
+      '-2 authority capacity per city you hold',
+    ]);
+    expect(said('theScatteredHearths')).toEqual([
+      'the citizens in every city who demand no happiness rises by 3',
+      '-4 happiness in your capital',
+    ]);
+    expect(said('theWanderingCourt')).toEqual([
+      '-15% all yields in your capital',
+      '+3 food, +3 production, +3 science, +3 culture, +3 faith in every city but your capital',
+      '+3 happiness in every city but your capital',
+    ]);
+    expect(said('theClosedRealm')).toEqual([
+      'your happiness is held at +5 whatever your cities ask for — not built yet',
+      'your units cannot attack outside your own territory — not built yet',
     ]);
   });
 });

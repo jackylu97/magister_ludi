@@ -672,12 +672,12 @@
       "tier": 10,
       "line": "forge",
       "flavor": "The peaks are a wall nobody had to build.",
-      "text": "+25% production in every city beside a mountain · +5 city defence there.",
+      "text": "+15% production in every city beside a mountain · +5 city defence there.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "production",
-          "percent": 25,
+          "percent": 15,
           "scope": {
             "test": "mountainAdjacent"
           }
@@ -690,27 +690,28 @@
             "test": "mountainAdjacent"
           }
         }
-      ]
+      ],
+      "deferred": [
+        "the bonus reaching a city with a mountain two hexes away, rather than only one"
+      ],
+      "note": "Built for a mountain **next to** the city. The ratified text says within two hexes, and the board can only be asked about the ring of six today."
     },
     "burningWay": {
       "name": "The Burning Way",
       "tier": 10,
       "line": "forge",
       "flavor": "Ash is faster than a plough.",
-      "text": "Clearing a forest or jungle costs no worker charge. Pillaging heals a further 25.",
+      "text": "Clearing a forest or jungle costs no worker charge.",
       "effects": [
         {
           "kind": "actionRule",
           "rule": "freeChop"
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "pillage",
-          "grant": {
-            "heal": 25
-          }
         }
-      ]
+      ],
+      "deferred": [
+        "+1 food on every hex you have cleared of forest or jungle"
+      ],
+      "note": "Not built: the board does not remember a clearing. A felled forest leaves bare ground that looks exactly like ground nothing ever grew on, so nothing can tell the two apart to pay for one of them."
     },
     "breadAndCircuses": {
       "name": "Bread and Circuses",
@@ -1257,6 +1258,99 @@
           "buildingCategory": "science"
         }
       ]
+    },
+    "theGentleYoke": {
+      "name": "The Gentle Yoke",
+      "tier": 10,
+      "line": "green",
+      "flavor": "Ask little of them and they will not notice the asking.",
+      "text": "−15% happiness demanded per citizen · every city costs 2 more authority.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "happinessDemand",
+          "percent": -15
+        },
+        {
+          "kind": "countScaled",
+          "count": "cities",
+          "pays": {
+            "to": "authority",
+            "amount": -2
+          }
+        }
+      ]
+    },
+    "theScatteredHearths": {
+      "name": "The Scattered Hearths",
+      "tier": 10,
+      "line": "green",
+      "flavor": "A hamlet of three keeps itself. A capital of thirty does not.",
+      "text": "The first 3 citizens in every city demand no happiness · −4 happiness in your capital.",
+      "effects": [
+        {
+          "kind": "meterRule",
+          "rule": "freeCitizens",
+          "delta": 3
+        },
+        {
+          "kind": "happiness",
+          "amount": -4,
+          "per": "city",
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "theWanderingCourt": {
+      "name": "The Wandering Court",
+      "tier": 18,
+      "line": "green",
+      "flavor": "The court sleeps where it stops, and the country is the better for it.",
+      "text": "−15% to every yield in your capital · +3 food, production, science, culture and faith, and +3 happiness, in every city but your capital.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "all",
+          "percent": -15,
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "cityYields",
+          "food": 3,
+          "production": 3,
+          "science": 3,
+          "culture": 3,
+          "faith": 3,
+          "scope": {
+            "test": "notCapital"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 3,
+          "per": "city",
+          "scope": {
+            "test": "notCapital"
+          }
+        }
+      ]
+    },
+    "theClosedRealm": {
+      "name": "The Closed Realm",
+      "tier": 0,
+      "line": "none",
+      "flavor": "The gate is shut. What is inside it is enough.",
+      "text": "Your happiness is fixed at +5, always · your units cannot attack outside your territory.",
+      "effects": [],
+      "deferred": [
+        "your happiness is held at +5 whatever your cities ask for",
+        "your units cannot attack outside your own territory"
+      ],
+      "note": "Not built, both halves. Nothing in this game can hold a meter at a number instead of adding to it, and nothing can refuse an attack for where it is being made."
     }
   },
   "orders": {
@@ -1357,7 +1451,7 @@
     },
     "theLongWatch": {
       "name": "The Long Watch",
-      "pool": "chiefdom",
+      "pool": "governmentI",
       "slot": "military",
       "line": "none",
       "flavor": "A sleepless wall is a comfort to those inside it.",
@@ -1434,14 +1528,14 @@
       "slot": "economic",
       "line": "green",
       "flavor": "One store, one hunger, one answer.",
-      "text": "+1 food on every hex carrying a luxury resource.",
+      "text": "+1 food in every city holding an improved luxury resource.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "cityYields",
           "food": 1,
-          "on": {
-            "test": "resourceKind",
-            "kind": "luxury"
+          "scope": {
+            "test": "holdingCategory",
+            "category": "luxury"
           }
         }
       ]
@@ -1488,11 +1582,14 @@
       "slot": "wildcard",
       "line": "procession",
       "flavor": "Before the temple, the gesture.",
-      "text": "+1 faith in every city.",
+      "text": "+2 faith in your capital.",
       "effects": [
         {
           "kind": "cityYields",
-          "faith": 1
+          "faith": 2,
+          "scope": {
+            "test": "capital"
+          }
         }
       ]
     },
@@ -1759,16 +1856,21 @@
       ]
     },
     "censusRolls": {
-      "name": "Census Rolls",
+      "name": "The King's Table",
       "pool": "governmentI",
       "slot": "economic",
-      "line": "none",
-      "flavor": "What is counted can be commanded.",
-      "text": "+2 authority capacity.",
+      "line": "green",
+      "flavor": "A place is laid for every mouth in the city, and every mouth knows it.",
+      "text": "+1 happiness for every 2 citizens in your capital.",
       "effects": [
         {
-          "kind": "authority",
-          "amount": 2
+          "kind": "countScaled",
+          "count": "capitalPopulation",
+          "per": 2,
+          "pays": {
+            "to": "happiness",
+            "amount": 1
+          }
         }
       ]
     },
@@ -2058,14 +2160,14 @@
       "slot": "economic",
       "line": "forge",
       "flavor": "Where the ore is, the hammers gather.",
-      "text": "+3 production in every city holding an improved strategic resource.",
+      "text": "+1 production on every hex carrying a strategic resource.",
       "effects": [
         {
-          "kind": "cityYields",
-          "production": 3,
-          "scope": {
-            "test": "holdingCategory",
-            "category": "strategic"
+          "kind": "tileYield",
+          "production": 1,
+          "on": {
+            "test": "resourceKind",
+            "kind": "strategic"
           }
         }
       ]
@@ -2076,17 +2178,13 @@
       "slot": "economic",
       "line": "green",
       "flavor": "The hill was made to feed us; it only needed steps.",
-      "text": "+1 food for each worked hill hex in a city (at most +5).",
+      "text": "+1 food on every hill hex.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "workedHills",
-          "max": 5,
-          "pays": {
-            "to": "yield",
-            "yield": "food",
-            "amount": 1,
-            "where": "city"
+          "kind": "tileYield",
+          "food": 1,
+          "on": {
+            "test": "hills"
           }
         }
       ]
@@ -2197,11 +2295,18 @@
       "slot": "wildcard",
       "line": "procession",
       "flavor": "Where the faithful walk, the faithful settle.",
-      "text": "+1 faith in every city · +1 happiness for each 50 banked faith (at most +5).",
+      "text": "+1 faith for every 3 citizens in your capital · +1 happiness for each 50 banked faith (at most +5).",
       "effects": [
         {
-          "kind": "cityYields",
-          "faith": 1
+          "kind": "countScaled",
+          "count": "capitalPopulation",
+          "per": 3,
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 1,
+            "where": "empire"
+          }
         },
         {
           "kind": "countScaled",
@@ -2501,14 +2606,15 @@
       "slot": "wildcard",
       "line": "star",
       "flavor": "Every new thing learned is a song about the old.",
-      "text": "Completing a technology grants +20 culture.",
+      "text": "Completing a technology grants an extra turn of culture.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "tech",
           "grant": {
             "yield": "culture",
-            "amount": 20
+            "amount": 1,
+            "fromRate": "culturePerTurn"
           }
         }
       ]
@@ -2875,13 +2981,13 @@
       "slot": "wildcard",
       "line": "star",
       "flavor": "It shows the room, and one thing that is not in the room.",
-      "text": "Completing a technology reveals a new luxury near your capital.",
+      "text": "You gain a luxury of your own make — bronze trinkets: +1 happiness in every city, and +1 more for each copper or tin you hold.",
       "upgradable": false,
       "effects": [],
       "deferred": [
-        "a new luxury appears within three hexes of your capital when you complete a technology"
+        "a luxury of your own make — bronze trinkets — worth +1 happiness in every city, and +1 more for each copper or tin you hold"
       ],
-      "note": "Not built: the map cannot gain a resource after it has been made. Every resource is placed once, when the world is generated, and nothing may put a new one on a hex mid-game. Retired until it can.",
+      "note": "Not built: every luxury in this game is a seam in the ground, held by working it. Nothing can hand an empire a luxury that is not anywhere on the map. Retired until one can.",
       "retired": true
     },
     "theChoir": {
@@ -2917,13 +3023,14 @@
       "slot": "wildcard",
       "line": "star",
       "flavor": "Above the smoke, the sky keeps better records.",
-      "text": "+2 science in every city beside a mountain.",
+      "text": "+2 science in every city with a mountain hex inside its borders.",
       "effects": [
         {
           "kind": "cityYields",
           "science": 2,
           "scope": {
-            "test": "mountainAdjacent"
+            "test": "terrainInBorders",
+            "terrain": "mountain"
           }
         }
       ]
@@ -3051,6 +3158,124 @@
       ],
       "note": "Not built: a city can only be captured in this game, never sacked. Retired until sacking exists.",
       "retired": true
+    },
+    "waysideShrines": {
+      "name": "Wayside Shrines",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "A stone, a bowl, a name. No priest required.",
+      "text": "+1 faith in every city.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "faith": 1
+        }
+      ]
+    },
+    "theOrchardTithe": {
+      "name": "The Orchard Tithe",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "green",
+      "flavor": "The tenth basket goes to the crown, and the crown plants it.",
+      "text": "+1 food on every hex carrying a luxury resource.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "food": 1,
+          "on": {
+            "test": "resourceKind",
+            "kind": "luxury"
+          }
+        }
+      ]
+    },
+    "theUnbrokenLand": {
+      "name": "The Unbroken Land",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "green",
+      "flavor": "Nothing was asked of this ground. It gave anyway.",
+      "text": "+1 food and +1 production on every unimproved hex.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "food": 1,
+          "production": 1,
+          "on": {
+            "test": "unimproved"
+          }
+        }
+      ]
+    },
+    "theGreenwoodLaw": {
+      "name": "The Greenwood Law",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "green",
+      "flavor": "The law of the greenwood is short enough to remember: leave it be.",
+      "text": "+2 food and +2 production on every unimproved hex.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "food": 2,
+          "production": 2,
+          "on": {
+            "test": "unimproved"
+          }
+        }
+      ]
+    },
+    "theQuietFields": {
+      "name": "The Quiet Fields",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "green",
+      "flavor": "No plough, no boundary, no quarrel.",
+      "text": "+1 happiness for each unimproved hex your cities work.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "workedUnimprovedTiles",
+          "pays": {
+            "to": "happiness",
+            "amount": 1
+          }
+        }
+      ]
+    },
+    "theOldWays": {
+      "name": "The Old Ways",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "green",
+      "flavor": "They farmed here once. It has been better since they stopped.",
+      "text": "The yields of unimproved hexes are doubled.",
+      "upgradable": false,
+      "effects": [],
+      "deferred": [
+        "the yields of every unimproved hex are doubled"
+      ],
+      "note": "Not built: a percentage in this game lands on a whole city or on the whole empire, never on one hex. Doubling what a single hex pays is a new kind of arithmetic and is a design decision, not a number. Retired until it is made.",
+      "retired": true
+    },
+    "firstFruits": {
+      "name": "First Fruits",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "green",
+      "flavor": "The first of everything is set aside. The rest feeds us.",
+      "text": "+1 food on every hex carrying a resource.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "food": 1,
+          "on": {
+            "test": "hasResource"
+          }
+        }
+      ]
     }
   },
   "tierLadder": [

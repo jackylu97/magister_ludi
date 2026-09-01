@@ -103,6 +103,7 @@ import { settleRenownWindfall } from './renown';
 import { type CitizenWeights, RULES } from './rulesData';
 import {
   type CardYieldLine,
+  type RateReading,
   type TileLine,
   cardActionRule,
   cardMeterFlag,
@@ -3331,6 +3332,12 @@ function collectArrears(state: GameState, report?: TurnReport): void {
  * accumulator through two loops for the benefit of one card family, and this is
  * six additions per city. It is the *base* rate deliberately — before any
  * conversion pays anything — which is what stops two cards feeding each other.
+ *
+ * **Two readers now** (the master-list cut of 2026-08-31), and the second is
+ * `empireRateReading` below: a windfall whose figure is quoted in *turns* (The
+ * Lyceum's extra turn of culture) has to ask the same books a `rateConversion`
+ * asks, or "a turn of culture" would mean two different numbers depending on
+ * which surface said it.
  */
 function empireRates(state: GameState, playerId: number): {
   faithPerTurn: number;
@@ -3378,6 +3385,22 @@ function empireRates(state: GameState, playerId: number): {
   // and an empire whose upkeep eats its connections made less.
   for (const line of explainEmpireGold(state, playerId)) rates.goldPerTurn += line.gold;
   return rates;
+}
+
+/**
+ * What one empire is banking per turn **right now**, for a reader that has no
+ * turn phase behind it — `statecraft.ts`'s `windfallPayout`, composing a grant
+ * quoted in turns (The Lyceum).
+ *
+ * `empireRates` stays private, and this is deliberately the *whole* of what
+ * leaves the module: one function, returning the same `RateReading` a
+ * `rateConversion` is handed, so a card that says "a turn of culture" and a card
+ * that says "per culture gained per turn" read one set of books. It is asked
+ * lazily — only when a rider actually names a rate — because it prices every
+ * town, and an occasion nobody wrote such a rider for must not pay for it.
+ */
+export function empireRateReading(state: GameState, playerId: number): RateReading {
+  return empireRates(state, playerId);
 }
 
 /**

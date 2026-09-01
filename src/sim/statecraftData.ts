@@ -279,6 +279,24 @@ export type CityScope =
    */
   | { test: 'onHills' }
   /**
+   * A hex of this terrain stands **inside the town's own borders** —
+   * Star-Gazers' mountain, which the ratified text spells "the mountain hex is
+   * within the city boundaries".
+   *
+   * `onTerrain`'s sibling one ring wider, and the two are deliberately separate
+   * questions rather than a radius argument on one: `onTerrain` is a fact about
+   * *the ground the centre was planted on* and this is a fact about *what the
+   * borders have taken in*, which moves with culture. Read over
+   * `ownedTiles(state, city)` — the board's own answer to "whose hex is this" —
+   * so a mountain a rival's culture swallowed stops paying the turn it changes
+   * hands.
+   *
+   * It is **not** `mountainAdjacent`, which is the ring of six around the centre
+   * and reaches ground nobody owns. A card may want either; the table now says
+   * which.
+   */
+  | { test: 'terrainInBorders'; terrain: TerrainId }
+  /**
    * The town is **not** this empire's capital — Aššur-idī's colony trade.
    *
    * `notFreshwater`'s precedent, and it is here for that member's reason
@@ -548,6 +566,19 @@ export type TileCondition =
   | { test: 'hills' }
   | { test: 'feature'; feature: string }
   | { test: 'improved' }
+  /**
+   * **Nothing has been built here** — `improved`'s mirror, and the whole home of
+   * the 🌿 ladder (The Unbroken Land, The Greenwood Law).
+   *
+   * A named member rather than a sign on `improved`, for `notFreshwater`'s
+   * reason exactly: there is no `not` composite and there will not be one, so a
+   * negation the ratified table actually asks for earns its own arm. Asked of
+   * `Tile.improvement`, where **presence is the state** — an unimproved hex is
+   * one the field is simply absent from, so a pillaged farm becomes unimproved
+   * ground again the turn the works come down, which is the reading the ladder's
+   * cards want (leave the land alone and it pays you).
+   */
+  | { test: 'unimproved' }
   /** Any water hex — ocean, coast or lake. The granary's line (Entry XXVII). */
   | { test: 'water' }
   /** One *named* improvement, where `improved` is any of them at all. */
@@ -712,6 +743,20 @@ export type CountKind =
    * town's labour is on high ground and this asks how much labour there is.
    */
   | 'workedTilesInCity'
+  /**
+   * Hexes **this city** is working that nobody has built anything on
+   * (city-scoped) — The Quiet Fields', and the 🌿 ladder's one clause that is
+   * about labour rather than about ground.
+   *
+   * `workedHills`' shape exactly, asked of `TileCondition`'s `unimproved`
+   * question instead of of the shape of the land: `City.workedTiles`, the city
+   * centre excluded as the assigner counts them, keeping only the hexes whose
+   * `improvement` is absent. A member of its own rather than a filter argument
+   * on `workedTilesInCity`, for `improvedStrategicResources`' reason — the two
+   * read differently on a card ("per hex worked here", "per unimproved hex
+   * worked here") and a member each is what lets `COUNT_WORDS` write the words.
+   */
+  | 'workedUnimprovedTiles'
   /**
    * **Wonders** standing in this empire's cities — Phidias' and Dürer's.
    *
@@ -952,6 +997,19 @@ export type MeterRuleId =
   | 'hillCityCost'
   /** Every city demands `delta` more happiness. */
   | 'cityHappinessDemand'
+  /**
+   * How many citizens in each city demand **no happiness at all** — The
+   * Scattered Hearths' first three, who are the household and not the crowd.
+   *
+   * `delta` shifts the count, which is zero in every game nothing says
+   * otherwise. Read in `explainHappiness`'s demand line and nowhere else: the
+   * town's linear demand is charged on `max(0, population − free)` citizens
+   * instead of on all of them, **outside** the `happinessDemand` factor and
+   * before crowding — a waiver is a fact about *who is counted*, where
+   * Toleration Edicts is a discount on what each one asks for, and crowding is a
+   * fact about the size of the town rather than about its people.
+   */
+  | 'freeCitizens'
   /** Borders keep growing while the writ is in deficit. */
   | 'borderFreezeExempt'
   /** A negative writ stops slowing production toward units. */
@@ -1226,6 +1284,25 @@ export interface WindfallGrantSpec {
   /** A voice and an amount — culture on a kill, food on a camp. */
   yield?: CityYieldKey;
   amount?: number;
+  /**
+   * The figure is **that many turns of a rate**, read at the moment the occasion
+   * fires, rather than a number printed on the row — The Lyceum's *"completing a
+   * technology grants an extra turn of culture"*.
+   *
+   * `amount` stops being coins and becomes **turns**: one turn of culture is
+   * `amount: 1` with `fromRate: 'culturePerTurn'`, and an Order deepened to
+   * level 2 pays two turns because `scaleByLevel` reaches the turns exactly as
+   * it reaches every other figure in the vocabulary. So one field carries the
+   * upgrade rather than a second, quieter rule about what a deeper Lyceum means.
+   *
+   * It is still an Entry XVIII.5 **printed number**: the rate is read once, in
+   * `windfallPayout`, before anything is banked — so the preview, the basket and
+   * the announcement are one figure, and a card that pays "a turn of culture"
+   * cannot pay a different turn's worth to each of them. The rate itself is the
+   * *base* one (`empireRateReading`, the same reading a `rateConversion` takes),
+   * which is what stops a card feeding itself.
+   */
+  fromRate?: RateSource;
   /** Hit points restored to the acting unit. Pillage's, today. */
   heal?: number;
   /**
