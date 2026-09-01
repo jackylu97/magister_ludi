@@ -2402,6 +2402,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportRaids(result, caravans);
       reportWonders(result);
       reportGrants(result);
+      reportConsecrations(result);
       reportRoutes(result);
       reportExplorers(result);
       reportSieges(result);
@@ -2537,6 +2538,33 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       if (notice.opensDoctrine) doctrine = true;
     }
     if (doctrine) onOfferStatecraft?.();
+  }
+
+  /**
+   * **A cathedral was dedicated.** One line per town of this seat's that topped
+   * one out — at the end of a turn, on a contribution that finished it, or on a
+   * purchase (`CommandResult.consecrations`, design ledger Entry LV).
+   *
+   * `reportRoutes`' shape and reason: seat-filtered, read off the reducer's own
+   * report rather than diffed off the board, because by the time this runs the
+   * patron is simply written on the town and nothing there distinguishes a
+   * cathedral dedicated this turn from one dedicated forty turns ago.
+   *
+   * The pan is `reportGrants`' gesture one scale down: a cathedral is a thing
+   * the player queued and has been waiting three hundred hammers for, so the
+   * line takes them to it.
+   */
+  function reportConsecrations(result: CommandResult): void {
+    if (!result.ok || !result.consecrations) return;
+    const { state } = getGame();
+    for (const report of result.consecrations) {
+      if (report.playerId !== localPlayerId) continue;
+      const city = state.cities.find((town) => town.id === report.cityId);
+      const text =
+        `☩ ${report.cityName}'s ${buildingDef(report.building).name.toLowerCase()} ` +
+        `is consecrated — ${report.name}`;
+      announce(text, city ? { cell: { col: city.col, row: city.row } } : {});
+    }
   }
 
   /**

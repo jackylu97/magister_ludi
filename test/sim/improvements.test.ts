@@ -1968,8 +1968,10 @@ describe('improvements in the log', () => {
     expect(snapshotState(loadGame(saveGame(game)).state)).toBe(snapshotState(game.state));
   });
 
-  it('round-trips a schema 39 save with improvements on the board', () => {
-    expect(SCHEMA_VERSION).toBe(39);
+  it('round-trips a schema 40 save with improvements on the board', () => {
+    // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
+    // moved every replay that raised one.
+    expect(SCHEMA_VERSION).toBe(40);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

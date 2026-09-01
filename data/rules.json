@@ -314,6 +314,7 @@
       2.5
     ],
     "goldPerHammer": 2,
+    "faithPerHammer": 1,
     "wonderRefundGoldPerHammer": 1
   },
   "upkeep": {

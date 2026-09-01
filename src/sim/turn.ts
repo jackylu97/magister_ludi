@@ -98,6 +98,7 @@ import { barbarianTurn } from './barbarians';
 import type { CampBounty } from './camps';
 import {
   type CompletionGrantReport,
+  type ConsecrationReport,
   type StarvationReport,
   type WonderCompletion,
   advanceProduction,
@@ -196,6 +197,17 @@ export interface TurnReport {
    * two boards can say which building handed any of it over.
    */
   grants: CompletionGrantReport[];
+  /**
+   * Every cathedral dedicated during the resolution, in the sweep's own order
+   * (`ConsecrationReport`, design ledger Entry LV).
+   *
+   * `grants`' sibling and a *difference* for its reason exactly: by the time
+   * this returns the patron is written on the town and is already paying, and a
+   * diff of two boards cannot say that the dedication happened *this* turn
+   * rather than forty turns ago. News to its owner alone — a cathedral is one
+   * per town, not one per world.
+   */
+  consecrations: ConsecrationReport[];
   /**
    * Every route `marchTraders` dropped or renewed this resolution, in
    * `state.units` sweep order (`RouteEndReport`).
@@ -359,6 +371,7 @@ export function emptyTurnReport(): TurnReport {
     wonders: [],
     triumphs: [],
     grants: [],
+    consecrations: [],
     routesEnded: [],
     exploreEnded: [],
     sieges: [],

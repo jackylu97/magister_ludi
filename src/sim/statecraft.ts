@@ -93,7 +93,15 @@ import { type ProjectId, type ProjectPayout, projectDef } from './projectData';
 import { type Tile, getTileAt, neighborTiles, tileHex, wrappedDistance } from './map';
 import { authorityOf, happinessOf } from './meters';
 import type { ModifierStage } from './modifiers';
-import { RELIGION, beliefDef, isBeliefId, isRiteId, riteDef } from './religionData';
+import {
+  RELIGION,
+  beliefDef,
+  consecrationDef,
+  isBeliefId,
+  isConsecrationId,
+  isRiteId,
+  riteDef,
+} from './religionData';
 import { type CityYieldKey, type ResourceKind, resourceDef, resourceYield } from './resourceData';
 import { nextFloat } from './rng';
 import { RULES } from './rulesData';
@@ -105,6 +113,7 @@ import {
   type TimedEffect,
   type Unit,
   cityReligion,
+  followerCount,
   playerById,
   realPlayers,
 } from './state';
@@ -666,6 +675,13 @@ const CLASS_WORD = {
   religion: 'Religion',
   bead: 'Bead',
   tech: 'Technology',
+  /**
+   * The Cathedral's patron (Entry LV). It is prefixed with the building's own
+   * name on the line — "Cathedral · The Choir Loft" — because a player reading a
+   * ledger has to know *which* stones are paying, and "Consecration · The Choir
+   * Loft" names the ceremony rather than the thing.
+   */
+  consecration: 'Cathedral',
 } as const;
 
 /**
@@ -686,6 +702,12 @@ const CLASS_WORD = {
 export function anyCardDef(id: CardId): CardDefBase {
   if (isBeliefId(id)) return beliefDef(id);
   if (isRiteId(id)) return riteDef(id);
+  // The **tenth** class (Entry LV): a cathedral's patron. It is already a
+  // `CardDefBase` on its row, so there is nothing to adapt — the arm exists so
+  // that a breakdown line carrying a consecration id resolves to a name and a
+  // `describeCard` like every other line, which is the whole reason `CardId` is
+  // one id space.
+  if (isConsecrationId(id)) return consecrationDef(id);
   if (isOrderId(id) || isDoctrineId(id) || isGovernmentId(id)) return cardDef(id);
   // The **seventh** class, and the one that walks: a great person's legacy is a
   // list of effects in this vocabulary on a row of another table
@@ -1210,7 +1232,44 @@ function cityLocalEffects(state: GameState, city: City): LiveCardEffect[] {
     ...cityBuildingEffects(state, city),
     ...timedLive(state, city.ownerId, city),
     ...followerBeliefEffects(state, city),
+    ...consecrationEffects(state, city),
   ];
+}
+
+/**
+ * What this town's **cathedral patron** contributes (design ledger Entry LV).
+ *
+ * The fourth city-local source, and the simplest one in the file: one card, held
+ * permanently by one town, read off `City.consecration` — presence is the state,
+ * so a town with no cathedral answers the empty list and pays for nothing.
+ *
+ * It is a source of `liveCityEffects` and **never of `liveEffects`**, for
+ * `cityBuildingEffects`' reason exactly and one step stronger: a consecration is
+ * a fact about *these stones*, so a second cathedral in a second town is a
+ * second, independently rolled patron, and a dedication read from the empire's
+ * end would pay every town for one town's saint. Because it is read off the
+ * city, what it pays **follows the stones** — a captured cathedral pays its
+ * captor from the turn the town changes hands, with no bookkeeping at all.
+ *
+ * Last of the four, after the buildings, the rites and the follower beliefs, for
+ * the reason every source in this file is last in turn: it is the order they
+ * were built in, so no ledger reshuffles itself.
+ */
+function consecrationEffects(state: GameState, city: City): LiveCardEffect[] {
+  const id = city.consecration;
+  if (id === undefined || !isConsecrationId(id)) return [];
+  const def = consecrationDef(id);
+  if (def.effects.length === 0) return [];
+  const list: LiveCardEffect[] = [];
+  const push = (card: CardId, label: string, level: number, effects: readonly CardEffect[]): void => {
+    pushEffects(state, city.ownerId, list, card, label, level, effects, push);
+  };
+  // The bare class word, because `pushEffects` appends the card's own name — so
+  // the line reads "Cathedral \u00b7 The Choir Loft". A religion's word carries the
+  // faith's name as well because a belief's line has to say *which* faith; a
+  // cathedral has only one thing to say.
+  push(id, CLASS_WORD.consecration, 1, def.effects);
+  return list;
 }
 
 /**
@@ -1927,6 +1986,17 @@ function countOf(
         total += 1;
       }
       return total;
+    }
+    case 'followersHere': {
+      // **The town's own congregation**, and the one count in the union that is
+      // about a city's faith rather than about a founder's. `cityReligion` is
+      // derived from the citizens, so this and the banner cannot disagree; a
+      // town below a majority follows nothing and counts nothing, which is what
+      // "the old gods" means everywhere else in this file.
+      if (!city) return 0;
+      const followed = cityReligion(city);
+      if (followed === null) return 0;
+      return followerCount(city, followed);
     }
     case 'followingCities':
     case 'followingForeign':
@@ -5488,6 +5558,7 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'following city with the building',
     many: 'following cities with the building',
   },
+  followersHere: { one: 'follower in this city', many: 'followers in this city' },
 };
 
 const RATE_WORDS: Record<RateSource, PluralWords> = {

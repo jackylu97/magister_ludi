@@ -98,6 +98,8 @@ import {
 import { type ProjectId, isProjectId, projectDef, projectFinishes } from './projectData';
 import { type CardId, governmentDef } from './statecraftData';
 import { isBeadEndeavourId } from './beadData';
+import { CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religionData';
+import { nextInt } from './rng';
 import { claimEndeavour } from './beads';
 import { settleRenownWindfall } from './renown';
 import { type CitizenWeights, RULES } from './rulesData';
@@ -1572,6 +1574,11 @@ function chooseCitizens(
  *   1. `setLockedTiles` (`commands.ts`) — pinning a citizen. The precedent.
  *   2. `purchaseTileAt` — bought ground is worked ground before the turn ends.
  *   3. `settleProductionWindfall` — a one-time grant that completes an item.
+ *      **The `contribute` verb joins here rather than as an entry of its own**
+ *      (Entry LV): a contribution is hammers into the basket like any windfall,
+ *      so `contributeAt` (`purchase.ts`) settles through this wrapper and owes
+ *      the register nothing further. A second way to pour a bank into a basket
+ *      does the same, or it is a hand-rolled completion.
  *   4. `buildImprovementAt` (`improvements.ts`) — the farm pays this instant.
  *   5. `pillageAt` (`improvements.ts`) — and so does its absence, to its victim.
  *   6. `chopFeatureAt` (`improvements.ts`) — the felled wood changes the ground
@@ -3928,6 +3935,37 @@ export interface ProductionCompletion {
    * straight through. Absent when nothing was granted, which is almost always.
    */
   grants?: CompletionGrantReport[];
+  /**
+   * The patron a finished cathedral was dedicated to (Entry LV), carried
+   * straight through from `RealisedItem`. Absent for everything that does not
+   * consecrate, which is every completion but one.
+   */
+  consecration?: ConsecrationReport;
+}
+
+/**
+ * A cathedral topped out, and the saint the roll gave it.
+ *
+ * A **report** and never a rule — `City.consecration` is already written by the
+ * time anybody reads this (`ArrivalReport`'s discipline) — and it exists for
+ * `WonderCompletion`'s reason exactly: the dedication is a *difference* that
+ * stops existing the instant the command returns. A diff of two boards would
+ * show a town that has a cathedral and a patron, with nothing to say that either
+ * arrived this turn.
+ *
+ * News to its owner alone, unlike a wonder: a cathedral is one per town rather
+ * than one per world, and whose saint it is is nobody else's business.
+ */
+export interface ConsecrationReport {
+  cityId: number;
+  /** The town's name, resolved once so no surface has to look the city up. */
+  cityName: string;
+  playerId: number;
+  /** The row that consecrated — the cathedral today, whatever declares it later. */
+  building: BuildingId;
+  consecration: ConsecrationId;
+  /** The patron's display name — "The Choir Loft". */
+  name: string;
 }
 
 /**
@@ -4116,6 +4154,7 @@ export function settleProduction(state: GameState, city: City): ProductionComple
     const realised = realiseItem(state, city, { kind: 'building', id: plan.id });
     if (realised.wonder) done.wonder = realised.wonder;
     if (realised.grants) done.grants = realised.grants;
+    if (realised.consecration) done.consecration = realised.consecration;
     return done;
   }
   done.unitId = realiseItem(state, city, {
@@ -4184,6 +4223,17 @@ export interface RealisedItem {
    * research is banked and the offer is on the seat.
    */
   grants?: CompletionGrantReport[];
+  /**
+   * The patron a finished cathedral was dedicated to, when the building carried
+   * `BuildingDef.consecrated`. Absent for everything else, which is every
+   * completion but one.
+   *
+   * The fourth kind of news, joining the shape rather than becoming a second
+   * out-parameter — which is what this interface exists to prevent. It is a
+   * **report**: by the time anybody reads it the dedication is on the town and
+   * the patron is already paying.
+   */
+  consecration?: ConsecrationReport;
 }
 
 /**
@@ -4243,10 +4293,16 @@ export function realiseItem(
     // before the riders: a wonder hands over what it hands over because it now
     // stands, and a technology it finishes has to land before a rider that might
     // pay on `tech` is asked. See `CompletionGrant`.
+    // **The dedication** (Entry LV), between the claim and the grants: the
+    // stones stand, so the saint over the door is settled before anything the
+    // row hands over is asked for. Asked of the row's own **marker**, so nothing
+    // here compares a building id against `"cathedral"`.
+    const consecration = consecrateBuilding(state, city, item.id);
     const grants = payCompletionGrants(state, city, item.id);
     payCompletionRiders(state, city, 'building');
     const realised: RealisedItem = {};
     if (wonder) realised.wonder = wonder;
+    if (consecration) realised.consecration = consecration;
     if (grants.length > 0) realised.grants = grants;
     return realised;
   }
@@ -4323,6 +4379,45 @@ export function bestMeleeFor(state: GameState, playerId: number): UnitTypeId | n
     best = id;
   }
   return best;
+}
+
+/**
+ * Dedicates a finished building to a patron, if its row says one is dedicated —
+ * **the one place `City.consecration` is written** (design ledger Entry LV).
+ *
+ * One draw off `state.rng`, uniform over `CONSECRATION_IDS` in file order. It is
+ * logged-deterministic *by construction* rather than by a rule anybody has to
+ * keep: the roll sits inside `realiseItem`, which every way of acquiring a
+ * building goes through, so a replay of `{config, log}` reaches this line at the
+ * same point in the same order with the generator in the same state — and a
+ * cathedral hurried by contributions, bought outright or finished by the queue
+ * all draw from the same stream.
+ *
+ * The **marker** is the row's (`BuildingDef.consecrated`), so a second building
+ * that wants a pack-opening completion is a JSON flag and this function never
+ * learns its name. A town that somehow already carries a dedication keeps it:
+ * the field is presence-is-the-state and there is exactly one occasion that
+ * writes it, so a second write would mean a second cathedral in one town, which
+ * `buildError` refuses.
+ */
+function consecrateBuilding(
+  state: GameState,
+  city: City,
+  building: BuildingId,
+): ConsecrationReport | undefined {
+  if (buildingDef(building).consecrated !== true) return undefined;
+  if (city.consecration !== undefined) return undefined;
+  if (CONSECRATION_IDS.length === 0) return undefined;
+  const id = CONSECRATION_IDS[nextInt(state.rng, 0, CONSECRATION_IDS.length)]!;
+  city.consecration = id;
+  return {
+    cityId: city.id,
+    cityName: city.name,
+    playerId: city.ownerId,
+    building,
+    consecration: id,
+    name: consecrationDef(id).name,
+  };
 }
 
 /**
@@ -4662,6 +4757,10 @@ export function advanceProduction(state: GameState, report?: TurnReport): void {
     // stops existing the instant the resolution is over: by the time anybody
     // reads it the piece is on the board and the offer is on the seat.
     if (done?.grants) report?.grants.push(...done.grants);
+    // And the saint a finished cathedral was dedicated to. `grants`' sibling —
+    // news to its owner alone, and a difference that stops existing the moment
+    // the resolution is over.
+    if (done?.consecration) report?.consecrations.push(done.consecration);
   }
 }
 

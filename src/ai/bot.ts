@@ -80,6 +80,8 @@ import {
   type PurchasableItem,
   type PurchaseCurrency,
   bankOf,
+  contributeError,
+  explainContribution,
   explainPurchaseCost,
   purchaseError,
 } from '../sim/purchase';
@@ -471,7 +473,44 @@ function researchCommand(state: GameState, playerId: number): Command | null {
 function spendCommand(state: GameState, player: Player): Command | null {
   const gold = goldPurchase(state, player);
   if (gold !== null) return gold;
-  return faithPurchase(state, player);
+  const faith = faithPurchase(state, player);
+  if (faith !== null) return faith;
+  return contributionCommand(state, player);
+}
+
+/**
+ * The surplus poured into a basket that will take it — the Cathedral's verb
+ * (design ledger Entry LV).
+ *
+ * Last of the three arms, and deliberately: a purchase delivers a thing and a
+ * contribution only hurries one, so a bot with the coin for a granary buys the
+ * granary first. What it catches is the case the other two cannot — an empire
+ * three hundred hammers into a cathedral with nine hundred gold doing nothing.
+ *
+ * `contributeError` is the single gate, exactly as `purchaseError` is above: the
+ * marker on the row, the front of the queue, the remaining cost and the bank are
+ * all its, and none of them is restated here. The reserve is this bot's own
+ * opinion and is asked of `explainContribution`'s printed `spend`, which is the
+ * figure the reducer charges — so "I can give this and still keep a hundred
+ * back" is never a guess. Cities in founding order, gold before faith, and one
+ * press per command like every other arm.
+ */
+function contributionCommand(state: GameState, player: Player): Command | null {
+  const spend = AI.spending;
+  for (const currency of ['gold', 'faith'] as const) {
+    const reserve = currency === 'gold' ? spend.goldReserve : spend.faithReserve;
+    const above = currency === 'gold' ? spend.goldSpendAbove : spend.faithSpendAbove;
+    if (bankOf(player, currency) <= above + reserve) continue;
+    for (const city of state.cities) {
+      if (city.ownerId !== player.id) continue;
+      if (contributeError(state, player.id, city.id, currency) !== null) continue;
+      const offer = explainContribution(state, player.id, city.id, currency);
+      if (offer === null) continue;
+      if (bankOf(player, currency) - offer.spend < reserve) continue;
+      return { type: 'contribute', playerId: player.id, cityId: city.id, currency };
+    }
+  }
+  return null;
 }
 
 /**

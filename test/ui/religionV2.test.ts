@@ -37,9 +37,12 @@ import {
 import {
   ALL_BELIEF_IDS,
   BELIEF_IDS,
+  CONSECRATION_IDS,
   ENHANCER_BELIEF_IDS,
   FOLLOWER_BELIEF_IDS,
   beliefPoolOf,
+  consecrationDef,
+  isConsecrationId,
   riteDef,
 } from '../../src/sim/religionData';
 import { RULES } from '../../src/sim/rulesData';
@@ -813,7 +816,13 @@ describe('the Compendium’s religion rows', () => {
   });
 
   it('shelves all three belief pools, each under its own eyebrow', () => {
-    const beliefs = shelf('belief').entries.filter((row) => row.id !== 'belief:about');
+    // The shelf carries a fourth kind since Entry LV — the cathedral's patrons,
+    // which are cards of the same vocabulary out of the same file that nobody
+    // chooses. They are excluded here so this test stays about the *pools*, and
+    // asserted on their own terms one test down.
+    const beliefs = shelf('belief')
+      .entries.filter((row) => row.id !== 'belief:about')
+      .filter((row) => !isConsecrationId(row.id.split(':')[1]!));
     expect(beliefs).toHaveLength(ALL_BELIEF_IDS.length);
     for (const row of beliefs) {
       const id = row.id.split(':')[1]! as (typeof ALL_BELIEF_IDS)[number];
@@ -824,6 +833,21 @@ describe('the Compendium’s religion rows', () => {
       if (pool === 'follower') expect(card.eyebrow).toContain('every city that follows');
       else if (pool === 'enhancer') expect(card.eyebrow).toContain('enhancer belief');
       else expect(card.eyebrow).toContain('a god');
+    }
+  });
+
+  it('shelves every consecration under an eyebrow that says it is rolled', () => {
+    // Entry LV. The one thing about a patron a reader cannot work out from its
+    // clauses is that you do not pick it, so the eyebrow has to say so — and
+    // every one of the five has to be on the shelf, which is the same "no pool
+    // may be quietly missing" claim one table over.
+    for (const id of CONSECRATION_IDS) {
+      const card = entry(`belief:${id}`);
+      expect(card, id).toBeDefined();
+      expect(card!.name).toBe(consecrationDef(id).name);
+      expect(card!.eyebrow).toContain('rolled when a cathedral is finished');
+      // Read off the row's own describer, never hand-written prose.
+      expect(card!.clauses.length, id).toBeGreaterThan(0);
     }
   });
 

@@ -974,6 +974,24 @@ export interface ProductionRules {
    */
   goldPerHammer: number;
   /**
+   * Faith one hammer of a **contribution** costs (design ledger Entry LV).
+   *
+   * `goldPerHammer`'s sibling one bank over, read by the one function that
+   * prices a contribution (`explainContribution`, `purchase.ts`) and by nothing
+   * else. There is no faith *purchase* rate — the roster's own bank sells the
+   * augur and the prophet at their own prices — so this number does exactly one
+   * job: it says what a candle is worth against a coin when a congregation is
+   * hurrying its cathedral.
+   *
+   * **1 against gold's 2**, and the halving is the point: faith is the scarcer
+   * bank by a wide margin (nothing but a shrine, a temple and a signature pays
+   * it, and an augur is forty of it), so a rate equal to gold's would make the
+   * faith button the one nobody ever presses. At 1 a devout empire converts its
+   * whole pool into a cathedral roughly twice as efficiently as a rich one
+   * converts its treasury, which is what "funded every posture's own way" means.
+   */
+  faithPerHammer: number;
+  /**
    * Gold each hammer banked toward a wonder is worth when somebody else
    * finishes it first (the wonders framework, 2026-08-27).
    *

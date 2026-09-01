@@ -1237,7 +1237,9 @@ describe('trade in the log', () => {
     // v23 wrote `sendTrader`, which this build's reducer does not have: a v23
     // log would stop dead partway through a replay, so the save is refused
     // rather than misread.
-    expect(SCHEMA_VERSION).toBe(39);
+    // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
+    // moved every replay that raised one.
+    expect(SCHEMA_VERSION).toBe(40);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

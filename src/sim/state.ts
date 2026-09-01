@@ -77,7 +77,12 @@ import type { TriumphId } from './triumphData';
 import type { GameMap } from './map';
 import { generateMap, getMapSize } from './mapgen';
 import { type MapgenOverrides, resolveMapgenConfig } from './mapgenData';
-import { type BeliefId, type PlayerPantheon, newPlayerPantheon } from './religionData';
+import {
+  type BeliefId,
+  type ConsecrationId,
+  type PlayerPantheon,
+  newPlayerPantheon,
+} from './religionData';
 import { type Rng, hashSeed, makeRng, shuffle } from './rng';
 import { RULES } from './rulesData';
 import {
@@ -498,7 +503,7 @@ import {
  *     *phase* is new — the resolution has grown a step, and a state that ran
  *     without it is not a state this build produced.
  */
-export const SCHEMA_VERSION = 39;
+export const SCHEMA_VERSION = 40;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1692,6 +1697,28 @@ export interface City {
    * it stands in.
    */
   guildBasket: number;
+  /**
+   * The patron this town's cathedral was dedicated to, or the key is **absent**
+   * — which it is for every town that has not finished one, which is most of
+   * them for most of a game (design ledger Entry LV).
+   *
+   * **Presence is the state**, `tradingPost`'s rule and `Unit.trade`'s: there is
+   * no "unconsecrated" value and nothing to clear. It is written in exactly one
+   * place (`realiseItem`, when a completed row carries `BuildingDef.consecrated`)
+   * and read in exactly one (`liveCityEffects`' consecration source), so the
+   * dedication and what it pays cannot drift.
+   *
+   * It is **rolled, not chosen** — one draw off `state.rng` at the moment the
+   * stones are topped out — and it therefore replays: a save is `{config, log}`,
+   * the same commands reach the same completion in the same order, and the
+   * generator is at the same point when they do.
+   *
+   * A **captured** town keeps its dedication, exactly as it keeps its granary,
+   * its followers and its blessings: a conquest changes whose town it is, not
+   * which saint the masons carved over the door. What the patron pays therefore
+   * follows the stones, which is the wonders framework's rule one scale down.
+   */
+  consecration?: ConsecrationId;
 }
 
 /**

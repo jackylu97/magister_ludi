@@ -81,11 +81,14 @@ import {
 import {
   ALL_BELIEF_IDS,
   type BeliefId,
+  CONSECRATION_IDS,
+  type ConsecrationId,
   type ReligionBeliefPool,
   RITE_IDS,
   type RiteId,
   beliefDef,
   beliefPoolOf,
+  consecrationDef,
   riteDef,
 } from '../sim/religionData';
 import {
@@ -1044,6 +1047,33 @@ function beliefEntry(id: BeliefId): CompendiumEntry {
   };
 }
 
+/**
+ * One cathedral patron (design ledger Entry LV).
+ *
+ * On the beliefs shelf rather than on a shelf of its own, for that shelf's own
+ * stated reason: a consecration is a card of the same vocabulary out of the same
+ * data file, read by the same describer, and the **eyebrow** is what says which
+ * bag a row came from. Five rows do not earn a shelf; what they earn is a word
+ * that says how they are acquired, because that is the one thing about a
+ * consecration a reader cannot work out from its clauses — you do not choose it.
+ *
+ * Every printed word is the row's own (`cardClauses` over `anyCardDef`), exactly
+ * as a belief's is: no hand-written prose about a number.
+ */
+function consecrationEntry(id: ConsecrationId): CompendiumEntry {
+  const def = consecrationDef(id);
+  return {
+    id: compendiumId('belief', id),
+    section: 'belief',
+    name: def.name,
+    eyebrow: 'consecration — rolled when a cathedral is finished',
+    mark: { kind: 'glyph', glyph: '☩' },
+    rows: [],
+    clauses: cardClauses(id, def.note),
+    flavor: def.flavor.length === 0 ? null : def.flavor,
+  };
+}
+
 function riteEntry(id: RiteId): CompendiumEntry {
   const def = riteDef(id);
   const clauses: CompendiumClause[] = [];
@@ -1534,6 +1564,10 @@ export function compendiumSections(state: GameState | null = null): CompendiumSe
   // because they are one id space read by one describer; the eyebrow is what
   // says which bag a row came out of (see `BELIEF_POOL_WORD`).
   for (const id of ALL_BELIEF_IDS) push(beliefEntry(id));
+  // And the cathedral's five patrons, last on the shelf: they are cards of the
+  // same vocabulary out of the same file, and the one thing that separates them
+  // from a belief is that nobody picks one. See `consecrationEntry`.
+  for (const id of CONSECRATION_IDS) push(consecrationEntry(id));
   for (const id of RITE_IDS) push(riteEntry(id));
   for (const id of GREAT_PERSON_IDS) push(greatPersonEntry(id));
   for (const id of TRIUMPH_IDS) push(triumphEntry(id));

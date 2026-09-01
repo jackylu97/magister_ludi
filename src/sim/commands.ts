@@ -63,6 +63,7 @@ import { isBuildingId } from './buildingData';
 import { isProjectId } from './projectData';
 import {
   type CompletionGrantReport,
+  type ConsecrationReport,
   type StarvationReport,
   type WonderCompletion,
   assignableTiles,
@@ -125,6 +126,8 @@ import {
 import {
   type PurchaseCurrency,
   type PurchasableItem,
+  contributeAt,
+  contributeError,
   purchaseError,
   purchaseItemAt,
   readPurchasableItem,
@@ -808,6 +811,38 @@ export interface PurchaseItemCommand extends PlayerCommand {
 }
 
 /**
+ * Pours gold or faith into a city's basket — the Cathedral's verb (design ledger
+ * Entry LV).
+ *
+ * `purchaseItem`'s narrow cousin, and the differences are the design. A purchase
+ * charges the **full** cost and delivers the thing outright; a contribution
+ * charges only what the row still wants, banks it as hammers, and lets the
+ * ordinary completion routine decide whether that finished anything. It is
+ * therefore a deliberate, *declared* exception to Entry XXIX's "the full cost,
+ * never the remainder": the exception is confined to rows carrying
+ * `BuildingDef.acceptsContributions`, which today is the cathedral alone and
+ * tomorrow the Magnum Opus — the whole point being that the Opus's
+ * pillar-funding is rehearsed one age early on a building every player raises.
+ *
+ * The **city** and the **bank** are all it says. Which row is being paid for is
+ * not in the command and must not be: a city has one basket and it pays for
+ * `queue[0]`, so naming the row would be naming something the reducer would then
+ * have to second-guess against the queue as it stands at this point in the log.
+ * The *amount* is not in it either, for `purchaseItem`'s reason —
+ * `explainContribution` decides it at the moment this applies, capped at what
+ * the row still needs, so a client cannot name a figure that overshoots.
+ *
+ * Turn-gated like every other act. A seat that has declared itself finished has
+ * finished spending.
+ */
+export interface ContributeCommand extends PlayerCommand {
+  type: 'contribute';
+  cityId: number;
+  /** Which bank pays. Both are legal; the rate differs. */
+  currency: PurchaseCurrency;
+}
+
+/**
  * Spends an augur — the **whole** augur — to found or widen the pantheon.
  *
  * It names the unit and nothing else, which is `foundCity`'s argument: the augur
@@ -1155,6 +1190,7 @@ export type Command =
   | AdoptGovernmentCommand
   | ChooseDoctrineCommand
   | PurchaseItemCommand
+  | ContributeCommand
   | ConsecrateCommand
   | ChooseBeliefCommand
   | PerformRiteCommand
@@ -1204,6 +1240,7 @@ export type CommandResult =
       wonders?: WonderCompletion[];
       triumphs?: TriumphAward[];
       grants?: CompletionGrantReport[];
+      consecrations?: ConsecrationReport[];
       routesEnded?: RouteEndReport[];
       exploreEnded?: ExploreEndReport[];
       sieges?: SiegeReport[];
@@ -1447,6 +1484,13 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   // price than the two lines it saves), and set *before* `applyCommand`'s own
   // diff runs, which is what stops the same bead being announced twice.
   if (result.ok && report.beads.length > 0) result.beads = [...report.beads];
+  // Every cathedral dedicated during the resolution. Set beside the helper
+  // rather than passed through it, for `beads`' stated reason exactly: a
+  // fifteenth positional argument on every other caller is a worse price than
+  // the two lines it saves.
+  if (result.ok && report.consecrations.length > 0) {
+    result.consecrations = [...report.consecrations];
+  }
   // And the age, on the one turn in a game that opens one: a fact about the
   // *transition*, which is what every field on this shape is.
   if (result.ok && report.beadAgeOpened !== undefined) {
@@ -2460,8 +2504,51 @@ function applyPurchaseItem(state: GameState, command: PurchaseItemCommand): Comm
   // threaded out of the check, because the command's `item` is JSON off the
   // wire and this is the one place it becomes a type.
   const city = cityById(state, command.cityId)!;
-  purchaseItemAt(state, actor, city, readPurchasableItem(command.item)!, command.currency);
-  return ok();
+  const born = purchaseItemAt(
+    state,
+    actor,
+    city,
+    readPurchasableItem(command.item)!,
+    command.currency,
+  );
+  const result = ok();
+  // A bought cathedral is dedicated the instant it is delivered, by the same
+  // line in `realiseItem` that dedicates a built one — so the news leaves by the
+  // same field. Every other `RealisedItem` half is always absent on this path;
+  // see `purchaseItemAt`.
+  if (result.ok && born.consecration) result.consecrations = [born.consecration];
+  return result;
+}
+
+/**
+ * Pours a bank into a city's basket. See `ContributeCommand`, and `purchase.ts`
+ * for the rules.
+ *
+ * `applyPurchaseItem`'s shape exactly: the seat's two questions here, everything
+ * about the transaction delegated whole to `contributeError`, and the same
+ * guarantee — a refusal leaves the state byte-identical, because not one line
+ * below the validation runs until every question has been answered.
+ *
+ * The completion is `settleProductionWindfall`'s (inside `contributeAt`), so a
+ * cathedral finished by a contribution is finished by the same routine that
+ * finishes one at the end of a turn — and its **dedication** rides out on the
+ * result the way a wonder's completion does.
+ */
+function applyContribute(state: GameState, command: ContributeCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot contribute`);
+  }
+
+  const problem = contributeError(state, actor.id, command.cityId, command.currency);
+  if (problem) return fail(problem);
+
+  const city = cityById(state, command.cityId)!;
+  const done = contributeAt(state, actor, city, command.currency as PurchaseCurrency);
+  const result = ok();
+  if (result.ok && done?.consecration) result.consecrations = [done.consecration];
+  return result;
 }
 
 /**
@@ -3068,6 +3155,9 @@ function orderedUnitId(command: Command): number | undefined {
     // Buying a piece names a *type*, and taking a god names an offer; neither is
     // an order to anything standing on the board.
     case 'purchaseItem':
+    // Pouring a bank into a basket names a city. There is nothing standing on
+    // the board to wake.
+    case 'contribute':
     case 'chooseBelief':
     // Naming a faith is prose about the empire, not an order to a piece.
     case 'renameReligion':
@@ -3191,6 +3281,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyChooseDoctrine(state, command);
     case 'purchaseItem':
       return applyPurchaseItem(state, command);
+    case 'contribute':
+      return applyContribute(state, command);
     case 'consecrate':
       return applyConsecrate(state, command);
     case 'chooseBelief':

@@ -315,7 +315,7 @@
     "cathedral": {
       "name": "Cathedral",
       "category": "faith",
-      "cost": 180,
+      "cost": 340,
       "food": 0,
       "production": 0,
       "gold": 0,
@@ -323,7 +323,9 @@
       "culture": 3,
       "faith": 3,
       "sciencePerPop": 0,
-      "happiness": 2,
+      "happiness": 3,
+      "consecrated": true,
+      "acceptsContributions": true,
       "renown": {
         "family": "artist",
         "perTurn": 1

@@ -1082,5 +1082,91 @@
       "redraws": "pantheon",
       "effects": []
     }
+  },
+  "consecrations": {
+    "scholarsCrypt": {
+      "name": "The Scholars' Crypt",
+      "flavor": "They buried the librarians under the floor so nobody would move the books.",
+      "text": "+1 science for every 2 followers in this city.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "followersHere",
+          "per": 2,
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "city"
+          }
+        }
+      ]
+    },
+    "choirLoft": {
+      "name": "The Choir Loft",
+      "flavor": "Forty voices, one of them slightly wrong, for four hundred years.",
+      "text": "+1 culture for every 2 followers in this city.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "followersHere",
+          "per": 2,
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "city"
+          }
+        }
+      ]
+    },
+    "treasuryOfRelics": {
+      "name": "The Treasury of Relics",
+      "flavor": "A finger bone, a nail, a scrap of sail. Pilgrims pay to stand near them.",
+      "text": "+3 gold for every faith building in this city.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "buildingsOfCategory",
+          "category": "faith",
+          "within": "city",
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 3,
+            "where": "city"
+          }
+        }
+      ]
+    },
+    "masonsChapel": {
+      "name": "The Masons' Chapel",
+      "flavor": "The lodge kept its own altar, and its own idea of who the saints were.",
+      "text": "+10% production toward wonders in this city.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 10
+        }
+      ]
+    },
+    "eternalFlame": {
+      "name": "The Eternal Flame",
+      "flavor": "It has gone out twice. Both times somebody relit it before morning.",
+      "text": "+1 faith for every follower in this city.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "followersHere",
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 1,
+            "where": "city"
+          }
+        }
+      ]
+    }
   }
 }

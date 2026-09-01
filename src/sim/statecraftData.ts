@@ -54,7 +54,7 @@ import type { Family, GreatPersonId } from './greatPeopleData';
 import type { ImprovementId } from './improvementData';
 import type { ModifierStage } from './modifiers';
 import type { ProjectId, ProjectPayout } from './projectData';
-import type { BeliefId, RiteId } from './religionData';
+import type { BeliefId, ConsecrationId, RiteId } from './religionData';
 import type { CityYieldKey, ResourceId, ResourceKind } from './resourceData';
 import type { TerrainId } from './terrainData';
 // Type-only in both directions, exactly as `beadData.ts` and `religionData.ts`
@@ -129,7 +129,13 @@ export type CardId =
   | BuildingId
   | GreatPersonId
   | BeadCardId
-  | TechId;
+  | TechId
+  // **Ten classes since the Cathedral** (design ledger Entry LV), and the tenth
+  // is the only one nobody chooses: a consecration is *rolled* when a cathedral
+  // is topped out and is then a fact about that town. Like a wonder, a bead and
+  // a technology it is never drafted, never slotted and never upgradable, so its
+  // level is always one. Ids stay unique across the whole table.
+  | ConsecrationId;
 
 /**
  * Which slot an Order fits, and therefore what a government's spread is counted
@@ -904,7 +910,19 @@ export type CountKind =
    * which in `CardCountScaledEffect.building`, exactly as `buildingsOfKind`
    * does. Pilgrims' Coin's temples.
    */
-  | 'followingWithBuilding';
+  | 'followingWithBuilding'
+  /**
+   * Citizens of **this city** who follow the religion this city follows
+   * (city-scoped) — the Cathedral's Scholars' Crypt and Eternal Flame.
+   *
+   * The `following…` family's opposite number, and a member of its own for that
+   * family's reason exactly: those five are questions about a *founder* answered
+   * across the world, and this is a question about **one town** answered off its
+   * own `followers` count. A city that follows nothing counts nothing, which is
+   * the honest answer rather than a guard — the banner is derived from the
+   * citizens (`cityReligion`), so this cannot disagree with what the town flies.
+   */
+  | 'followersHere';
 
 /** What a `rateConversion` reads. A *rate* or a meter standing, never a bank. */
 export type RateSource =

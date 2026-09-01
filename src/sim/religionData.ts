@@ -60,6 +60,22 @@ export type BeliefId =
 export type RiteId = keyof typeof religionJson.rites & string;
 
 /**
+ * One of the five patrons a cathedral is dedicated to when it is finished
+ * (design ledger Entry LV).
+ *
+ * `CardId`'s eleventh class, and the shallowest: a consecration is never
+ * drafted, never slotted, never upgradable and never chosen — it is **rolled**
+ * off `state.rng` at the moment the stones are topped out, and it is then a fact
+ * about that town for as long as the town stands. So its level is always one and
+ * `scaleByLevel` has nothing to say about it.
+ *
+ * It is a `CardDefBase` with nothing added, which is the whole architectural
+ * claim: five rows of the ordinary effect vocabulary, read by the one evaluator
+ * in `statecraft.ts` through `liveCityEffects`, so a sixth patron is a JSON row.
+ */
+export type ConsecrationId = keyof typeof religionJson.consecrations & string;
+
+/**
  * Which bag a belief is drawn from. The pantheon is not one of them: it is
  * `consecrate`'s bag and it is never redrafted, because it is the religion's
  * identity (`docs/religion-v2.md`).
@@ -354,7 +370,24 @@ export interface ReligionConfig {
   followerBeliefs: Record<BeliefId, BeliefDef>;
   enhancerBeliefs: Record<BeliefId, BeliefDef>;
   rites: Record<RiteId, RiteDef>;
+  /**
+   * The five patrons a finished cathedral may be dedicated to. See
+   * `ConsecrationId`.
+   *
+   * Here rather than in `buildings.json` because a consecration is a *card*, and
+   * this file is where the card tables that are not Statecraft's live. The
+   * building row carries only the **marker** that says a completion rolls
+   * (`BuildingDef.consecrated`), so a second building that consecrates joins by
+   * setting one flag and nothing here learns its name.
+   */
+  consecrations: Record<ConsecrationId, ConsecrationDef>;
 }
+
+/**
+ * One patron. `CardDefBase` and nothing else — see `ConsecrationId` for why
+ * there is no cost, no tier and no prerequisite.
+ */
+export type ConsecrationDef = CardDefBase;
 
 export const RELIGION = religionJson as unknown as ReligionConfig;
 
@@ -377,6 +410,13 @@ export const ALL_BELIEF_IDS: readonly BeliefId[] = [
   ...ENHANCER_BELIEF_IDS,
 ];
 export const RITE_IDS = Object.keys(RELIGION.rites) as RiteId[];
+/**
+ * The patrons in **file order**, which is the order the roll walks them in and
+ * the order the Compendium lists them — `BELIEF_IDS`' rule, and here for its
+ * reason exactly: an outcome that depends on an order must depend on an order
+ * the data itself carries.
+ */
+export const CONSECRATION_IDS = Object.keys(RELIGION.consecrations) as ConsecrationId[];
 
 /** The rows of one drawable pool, in file order. `poolOrders`' twin. */
 export function poolBeliefs(pool: ReligionBeliefPool): BeliefId[] {
@@ -409,6 +449,19 @@ export function beliefPoolOf(id: BeliefId): ReligionBeliefPool | null {
 
 export function isRiteId(value: unknown): value is RiteId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(RELIGION.rites, value);
+}
+
+export function isConsecrationId(value: unknown): value is ConsecrationId {
+  return (
+    typeof value === 'string' &&
+    Object.prototype.hasOwnProperty.call(RELIGION.consecrations, value)
+  );
+}
+
+export function consecrationDef(id: ConsecrationId): ConsecrationDef {
+  const def = RELIGION.consecrations[id];
+  if (!def) throw new Error(`Unknown consecration "${String(id)}"`);
+  return def;
 }
 
 /** One belief by id, whichever of the three pools it was written for. */
@@ -561,6 +614,16 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
           `follower belief "${id}" counts "${effect.count}", which is a question about a founder`,
         );
       }
+    }
+  }
+  // A patron that pays nothing is a pack-opening that opens onto nothing — the
+  // belief guard one table over, and it fails for that guard's reason exactly:
+  // a cathedral finished and dedicated to a silent row reads as a game that
+  // forgot to write the card.
+  for (const id of CONSECRATION_IDS) {
+    const def = consecrationDef(id);
+    if (def.effects.length === 0 && (def.deferred ?? []).length === 0) {
+      problems.push(`consecration "${id}" does nothing`);
     }
   }
   // A pattern naming an epithet no axis supplies would name a religion after an

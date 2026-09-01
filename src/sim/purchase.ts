@@ -55,13 +55,19 @@ import {
   type City,
   type GameState,
   type Player,
+  type QueueItem,
   cityById,
   playerById,
 } from './state';
 import {
+  type ProductionCompletion,
+  type RealisedItem,
   type UnitCostLine,
   explainUnitCost,
   foldUnitCost,
+  productionSettledBy,
+  queueItemCost,
+  queueItemName,
   realiseItem,
   refreshCityDerived,
   settleProductionWindfall,
@@ -512,7 +518,7 @@ export function purchaseItemAt(
   city: City,
   item: PurchasableItem,
   currency: PurchaseCurrency,
-): number | undefined {
+): RealisedItem {
   const price = explainPurchaseCost(state, player.id, city.id, item, currency)!;
   if (price.currency === 'faith') player.faithPool -= price.total;
   else player.gold -= price.total;
@@ -577,11 +583,196 @@ export function purchaseItemAt(
   }
 
   refreshCityDerived(state, city);
-  // The unit's id, or `undefined` for a building. A purchase can never claim a
-  // wonder — `purchaseError` refuses one outright — so neither `RealisedItem`'s
-  // wonder nor its completion grants are ever populated on this path (only
-  // wonders carry `onComplete` today), and there is nothing here to report
-  // onward. The day an ordinary building grants something, this signature grows
-  // the way `RealisedItem` already has.
-  return born.unitId;
+  // **The whole report, not just the piece's id** — the day an ordinary building
+  // had something to say arrived with the Cathedral (Entry LV). A purchase can
+  // never claim a wonder (`purchaseError` refuses one outright) and no
+  // purchasable row carries `onComplete` today, so `wonder` and `grants` are
+  // still always absent on this path; `consecration` is not, because a cathedral
+  // bought with gold is dedicated by the same line that dedicates a built one.
+  // Widening the return rather than adding a second out-parameter is
+  // `RealisedItem`'s own discipline, read from the caller's end.
+  return born;
+}
+
+// --- contributions ----------------------------------------------------------
+
+/**
+ * Does this queue row take gold and faith poured into its basket?
+ *
+ * **Presence of the marker on the row is the answer** (`BuildingDef.acceptsContributions`),
+ * exactly as `UnitDef.purchase` is the answer to which bank sells a unit —
+ * nothing in `src/sim/` compares a building id against `"cathedral"`. A unit row
+ * and a project row can never say yes, and that is a fact about the tables
+ * rather than a clause here: only `BuildingDef` carries the field.
+ */
+export function acceptsContributions(item: QueueItem): boolean {
+  return item.kind === 'building' && isBuildingId(item.id)
+    ? buildingDef(item.id).acceptsContributions === true
+    : false;
+}
+
+/** What one bank buys a hammer for. `goldPerHammer`'s sibling. */
+function hammerRate(currency: PurchaseCurrency): number {
+  return currency === 'faith'
+    ? RULES.production.faithPerHammer
+    : RULES.production.goldPerHammer;
+}
+
+/**
+ * What one press of a contribute button would do — or `null` when this city has
+ * nothing to pour a bank into.
+ *
+ * The preview the button prints and the arithmetic the reducer performs, in one
+ * function, so the figure on the tag is the figure the bank loses: `hammers` go
+ * into the basket, `spend` comes out of the bank, and `completes` is the name of
+ * the thing this press would finish (asked of `productionSettledBy`, which asks
+ * `planProduction` — so the promise on the button is made by the routine that
+ * will keep it).
+ *
+ * **It never overshoots.** The hammers bought are capped at what the row still
+ * needs, so a treasury of nine hundred pressed against a cathedral eleven
+ * hammers short spends twenty-two gold and not a coin more. That cap is the
+ * whole of why this is a narrow, declared exception to Entry XXIX's "the full
+ * cost, never the remainder" rather than a second way to buy things: a
+ * contribution can only ever bring the front row *level*, and the row it is
+ * poured into had to declare that it takes contributions at all.
+ */
+export interface ContributionOffer {
+  currency: PurchaseCurrency;
+  /** The bank's price for one hammer — `goldPerHammer` / `faithPerHammer`. */
+  rate: number;
+  /** The row this would pay for, and its display name. */
+  item: QueueItem;
+  name: string;
+  /** Hammers the row still wants after the basket. Always positive. */
+  remaining: number;
+  /** Hammers this press would bank. `min(remaining, floor(bank / rate))`. */
+  hammers: number;
+  /** What leaves the bank — `hammers × rate`, so the two can never disagree. */
+  spend: number;
+  /** The name of what this press finishes outright, or `null`. */
+  completes: string | null;
+}
+
+export function explainContribution(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  currency: PurchaseCurrency,
+): ContributionOffer | null {
+  const player = playerById(state, playerId);
+  const city = cityById(state, cityId);
+  if (!player || !city || city.ownerId !== playerId) return null;
+  const item = city.queue[0];
+  if (item === undefined || !acceptsContributions(item)) return null;
+  const cost = queueItemCost(state, playerId, item);
+  if (cost === null) return null;
+  // **Ceiled**, so the cap is the whole hammers the row still needs: a basket
+  // is integral today, and a rate that could one day leave it fractional must
+  // not leave a completion one tenth of a hammer short.
+  const remaining = Math.ceil(cost - city.hammerBasket);
+  if (remaining <= 0) return null;
+  const rate = hammerRate(currency);
+  if (!(rate > 0)) return null;
+  const affordable = Math.floor(Math.max(0, bankOf(player, currency)) / rate);
+  const hammers = Math.min(remaining, affordable);
+  if (hammers <= 0) return null;
+  return {
+    currency,
+    rate,
+    item,
+    name: queueItemName(item),
+    remaining,
+    hammers,
+    spend: hammers * rate,
+    completes: productionSettledBy(state, city, hammers),
+  };
+}
+
+/**
+ * Why this player cannot pour this bank into this city's basket, or `null` when
+ * they can.
+ *
+ * **The** gate, `purchaseError`'s twin: the `contribute` command refuses with
+ * this sentence and the city panel greys its two buttons with exactly it, so a
+ * button a player can press is a command the reducer takes.
+ *
+ * The refusals in the order a player would think of them: is this my city, is
+ * there a bank by that name, is the row at the front of the queue one that takes
+ * contributions, does it still want hammers, and does the bank hold enough to
+ * buy one.
+ *
+ * **The front of the queue and nothing else.** A city has one basket and it pays
+ * for `queue[0]` (the wonders framework's rule, read here for its reason
+ * exactly): hammers poured in behind a row that is not being built would be
+ * hammers spent on whatever happens to reach the front, which is not what
+ * anybody pressed the button for.
+ *
+ * The **authority freeze is deliberately absent**, for the module docblock's
+ * reason: a torn writ stops borders, not banks.
+ */
+export function contributeError(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  currency: unknown,
+): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  const city = cityById(state, cityId);
+  if (!city) return `No city with id ${String(cityId)}`;
+  if (city.ownerId !== playerId) return `${city.name} does not belong to ${player.name}`;
+  if (currency !== 'faith' && currency !== 'gold') {
+    return `There is no bank called "${String(currency)}"`;
+  }
+  const item = city.queue[0];
+  if (item === undefined) return `${city.name} is building nothing`;
+  if (!acceptsContributions(item)) {
+    return `${queueItemName(item)} takes no contributions`;
+  }
+  const cost = queueItemCost(state, playerId, item);
+  if (cost === null) return `${queueItemName(item)} has no price`;
+  const remaining = cost - city.hammerBasket;
+  if (remaining <= 0) return `${city.name} has already paid for ${queueItemName(item)}`;
+  const rate = hammerRate(currency);
+  const held = Math.max(0, bankOf(player, currency));
+  if (rate <= 0 || held < rate) {
+    return `${player.name} has too little ${currency} to give`;
+  }
+  return null;
+}
+
+/**
+ * Pours one bank into one basket, and charges the bank.
+ *
+ * Validates nothing — the rule is `contributeError`'s and the command asks it
+ * first. Three mutations and each is a rule:
+ *
+ *   · the bank loses the **printed** `spend`, so the figure on the button is the
+ *     figure it costs;
+ *   · the basket gains the **printed** `hammers`, capped at what the row still
+ *     wants, so nothing is ever banked past a completion;
+ *   · the basket is then settled through `settleProductionWindfall` — Entry
+ *     XVIII's register, entry 3 — which is `advanceProduction`'s own completion
+ *     routine and brings the panel refresh with it. There is no completion
+ *     routine here and there must never be one.
+ *
+ * It is deliberately **not** a `windfallPayout` occasion. A chop's hammers are a
+ * grant, and a grant may be doubled by a card; these hammers are a *conversion*
+ * at a printed rate, exactly as a purchase is, and a rider on them would make
+ * the number on the button a lie. A card that wants to make contributions go
+ * further changes the rate, which is a `CardRule` if the design ever asks for
+ * one.
+ */
+export function contributeAt(
+  state: GameState,
+  player: Player,
+  city: City,
+  currency: PurchaseCurrency,
+): ProductionCompletion | null {
+  const offer = explainContribution(state, player.id, city.id, currency)!;
+  if (currency === 'faith') player.faithPool -= offer.spend;
+  else player.gold -= offer.spend;
+  city.hammerBasket += offer.hammers;
+  return settleProductionWindfall(state, city);
 }

@@ -3238,6 +3238,55 @@ kbd {
   color: var(--ink-soft);
 }
 
+/* The Cathedral's two banks, under the production bar (design ledger Entry LV).
+   A pair rather than a column: gold and faith are the same offer twice and a
+   player picks one, so they sit side by side and share the row's width. The
+   buttons wear the buy tag's plate (`.city-buildable-buy`) because a price on a
+   build row and a price under a bar are the same offer in two places — the one
+   difference is that these two say what the coin *buys*, so they carry a hammer
+   as well as a currency mark and are given room for both. */
+.city-contribute {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.city-contribute-button {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 5px 8px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--y-gold);
+  font-family: var(--face-num);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: pointer;
+}
+
+.city-contribute-button:hover:not(:disabled) {
+  background: #fffdf4;
+}
+
+.city-contribute-button:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.city-contribute-button:disabled {
+  border-color: var(--ink-faint);
+  color: var(--ink-faint);
+  background: var(--table);
+  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.18);
+  cursor: default;
+}
+
 /* The thing being built is a name, and the growth note has no name at all —
    hence the flex row above holding one child or two equally well. */
 .city-progress-item {

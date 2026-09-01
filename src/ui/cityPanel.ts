@@ -70,6 +70,8 @@ import { buildingCityStat } from '../sim/buildingEffects';
 import {
   type PurchasableItem,
   type PurchaseCurrency,
+  contributeError,
+  explainContribution,
   explainPurchaseCost,
   isPurchaseOnly,
   purchasableName,
@@ -737,6 +739,23 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       playerId: localPlayerId(),
       cityId: city.id,
       item,
+      currency,
+    };
+    if (!report(command, dispatch(getGame(), command)).ok) return;
+    onChanged();
+  }
+
+  /**
+   * Sends a contribution and repaints. `buy`'s twin one verb over, and the same
+   * contract: a refused command changes nothing at all, and the button that sent
+   * it was only enabled because `contributeError` said the reducer would take
+   * it.
+   */
+  function give(city: City, currency: PurchaseCurrency): void {
+    const command: Command = {
+      type: 'contribute',
+      playerId: localPlayerId(),
+      cityId: city.id,
       currency,
     };
     if (!report(command, dispatch(getGame(), command)).ok) return;
@@ -1678,7 +1697,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return track;
   }
 
-  function renderProduction(city: City, quote: CityQuote): HTMLElement {
+  function renderProduction(city: City, locked: boolean, quote: CityQuote): HTMLElement {
     const box = element('div', 'city-progress');
     const item = city.queue[0];
     const perTurn = cityYields(getGame().state, city, [], undefined, quote).production;
@@ -1713,7 +1732,63 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       element('span', undefined, `${Math.floor(city.hammerBasket)} / ${cost}`),
     );
     box.append(note);
+    // And the two banks, on the rows that declare they take them (Entry LV).
+    // Under the bar rather than beside the queue row because a contribution pays
+    // for `queue[0]` and this box *is* the front row — a button anywhere else
+    // would be offering to hurry a thing that is not being built.
+    const banks = contributeRow(city, locked);
+    if (banks) box.append(banks);
     return box;
+  }
+
+  /**
+   * The two contribute buttons — "💰 68 → +34⚙" — or `null` when the front of
+   * this queue does not take contributions.
+   *
+   * Shown only when the row declares it (`BuildingDef.acceptsContributions`,
+   * asked through `explainContribution`) *and* the bank holds enough to buy a
+   * hammer, which is the spec's "shown only when the front row accepts
+   * contributions and the bank is non-empty": an offer of nothing is not an
+   * offer, and a permanently greyed pair of buttons on every city panel in the
+   * game would be two controls that only ever mean "not here".
+   *
+   * Every figure is `explainContribution`'s, so the number on the button is the
+   * number the bank loses and the hammers it promises are the hammers the basket
+   * receives; the blocker is `contributeError`'s sentence, exactly as a price
+   * tag is greyed with `purchaseError`'s. A `title` rather than the hover card,
+   * for `priceTag`'s reason: this is a *control* with a refusal on it.
+   */
+  function contributeRow(city: City, locked: boolean): HTMLElement | null {
+    const { state } = getGame();
+    const seat = localPlayerId();
+    const row = element('div', 'city-contribute');
+    let any = false;
+    for (const currency of ['gold', 'faith'] as const) {
+      const offer = explainContribution(state, seat, city.id, currency);
+      if (!offer) continue;
+      any = true;
+      const glyph = currency === 'faith' ? YIELD_GLYPH.faith : YIELD_GLYPH.gold;
+      const button = element('button', 'city-contribute-button');
+      button.type = 'button';
+      setYieldText(button, `${offer.spend}${glyph} → +${offer.hammers}${HAMMER}`);
+      const blocker = locked
+        ? `You have ended turn ${state.turn}`
+        : contributeError(state, seat, city.id, currency);
+      button.disabled = blocker !== null;
+      // The completion is said out loud where there is one, because "this press
+      // finishes it" is the whole reason to press the bigger of the two.
+      const promise =
+        offer.completes === null
+          ? `Give ${offer.spend} ${currency} toward ${offer.name}`
+          : `Give ${offer.spend} ${currency} — completes ${offer.completes}`;
+      // Words only in the spoken form: a screen reader announcing a currency
+      // glyph reads its Unicode name before the number it decorates.
+      button.setAttribute('aria-label', blocker ?? promise);
+      button.title = blocker ?? promise;
+      button.addEventListener('click', () => give(city, currency));
+      row.append(button);
+    }
+    return any ? row : null;
   }
 
   /**
@@ -2396,7 +2471,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const faith = renderFollowers(city);
     if (faith) container.append(faith);
     container.append(renderGrowth(city, quote));
-    container.append(renderProduction(city, quote));
+    container.append(renderProduction(city, locked, quote));
     // After production, because the two food/hammer baskets are what a player
     // reads first and territory is the slower clock underneath them.
     container.append(renderBorders(city, locked, quote));

@@ -615,6 +615,38 @@ export interface BuildingDef {
    */
   onComplete?: CompletionGrant[];
   /**
+   * **Finishing this dedicates it to a patron** — one roll off `state.rng`,
+   * uniform over `religion.json`'s `consecrations`, written onto the town as
+   * `City.consecration` (design ledger Entry LV). Absent means an ordinary
+   * building, which is every row but the cathedral.
+   *
+   * A **marker**, exactly as `wonder` and `purchaseOnly` are: nothing in
+   * `src/sim/` compares a building id against `"cathedral"`, so the day a second
+   * row wants a pack-opening completion it sets this flag and `realiseItem`
+   * learns nothing new. Read in exactly one place — `realiseItem`, the routine
+   * that means "the city now has the thing" — so a cathedral bought with gold or
+   * hurried by contributions is dedicated by the same line that dedicates a
+   * built one.
+   *
+   * The roll is inside the completion routine and therefore inside the command
+   * log, which is what makes it replay: a save is `{config, log}`, the same
+   * commands reach the same completion in the same order, and `state.rng` is at
+   * the same point when it does.
+   */
+  consecrated?: boolean;
+  /**
+   * **Gold or faith may be poured into this row's basket while it stands at the
+   * front of a queue** — the `contribute` verb (Entry LV). Absent means an
+   * ordinary building, which is every row but the cathedral today.
+   *
+   * The marker `contributeError` asks, so the narrow exception to Entry XXIX's
+   * "the full cost, never the remainder" is confined to rows that *declare* it:
+   * a cathedral is funded every posture's own way, and the Magnum Opus is meant
+   * to be funded the same way one age later. Nothing else in the game may be
+   * part-paid out of a bank.
+   */
+  acceptsContributions?: boolean;
+  /**
    * A half of this row's ratified text that is **deliberately not built**, in
    * the words a player reads, struck through on the card.
    *

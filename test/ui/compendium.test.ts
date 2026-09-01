@@ -32,6 +32,7 @@ import { IMPROVEMENT_IDS } from '../../src/sim/improvementData';
 import {
   ALL_BELIEF_IDS,
   BELIEF_IDS,
+  CONSECRATION_IDS,
   ENHANCER_BELIEF_IDS,
   FOLLOWER_BELIEF_IDS,
   RITE_IDS,
@@ -101,10 +102,15 @@ describe('the shelves', () => {
     expect(shelf('tech').entries).toHaveLength(TECH_IDS.length + LEAD);
     expect(shelf('order').entries).toHaveLength(ORDER_IDS.length + LEAD);
     expect(shelf('doctrine').entries).toHaveLength(DOCTRINE_IDS.length + LEAD);
-    // **All three pools on one shelf** (religion v2). A belief is one id space
-    // across three bags, so the shelf is `ALL_BELIEF_IDS` and neither the
-    // follower nor the enhancer pool may be quietly missing from it.
-    expect(shelf('belief').entries).toHaveLength(ALL_BELIEF_IDS.length + LEAD);
+    // **All three pools on one shelf** (religion v2), **and the cathedral's
+    // patrons behind them** (Entry LV). A belief is one id space across three
+    // bags, so the shelf is `ALL_BELIEF_IDS` and neither the follower nor the
+    // enhancer pool may be quietly missing from it; a consecration is a card of
+    // the same vocabulary out of the same file that nobody chooses, which is
+    // five more rows and an eyebrow rather than a shelf of its own.
+    expect(shelf('belief').entries).toHaveLength(
+      ALL_BELIEF_IDS.length + CONSECRATION_IDS.length + LEAD,
+    );
     expect(ALL_BELIEF_IDS.length).toBe(
       BELIEF_IDS.length + FOLLOWER_BELIEF_IDS.length + ENHANCER_BELIEF_IDS.length,
     );
