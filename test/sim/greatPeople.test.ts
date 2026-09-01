@@ -644,14 +644,16 @@ describe('the legacies this pass built', () => {
     expect(empire(g.state, 0).culture).toBe(6);
   });
 
-  it('Eratosthenes measures the world in twenties, off the seat’s own grid', () => {
+  it('Eratosthenes measures the world in fifties, off the seat’s own grid', () => {
+    // Retuned per 20 → per 50 (user, 2026-09-02): the map layers pass made
+    // revealed ground much easier to come by, so the pension pays slower.
     const g = game(107);
     found(g.state, 0);
     bear(g.state, 0, 'eratosthenes');
     const grid = g.state.visibility[0]!;
     grid.fill(0);
-    for (let i = 0; i < 45; i++) grid[i] = 1;
-    // Two helpings of twenty; the five over pay nothing until they are twenty.
+    for (let i = 0; i < 110; i++) grid[i] = 1;
+    // Two helpings of fifty; the ten over pay nothing until they are fifty.
     expect(empire(g.state, 0).science).toBe(2);
     // The other seat's grid is the other seat's.
     expect(empire(g.state, 1).science).toBe(0);
@@ -869,7 +871,7 @@ describe('the legacies this pass built', () => {
       describeCard(id).map((clause) => stripRefs(clause.text));
     expect(printed('ptahhotep')).toEqual(['+1 authority capacity per Library']);
     expect(printed('phidias')).toEqual(['+3 culture per wonder you hold']);
-    expect(printed('eratosthenes')).toEqual(['+1 science per 20 hexes you have revealed']);
+    expect(printed('eratosthenes')).toEqual(['+1 science per 50 hexes you have revealed']);
     expect(printed('ibnBattuta')).toEqual(['+1 gold per foreign city you have sighted']);
     expect(printed('simaQian')).toEqual(['+1 culture per age that has closed']);
     expect(printed('murasakiShikibu')).toEqual(['+2 culture per melee unit in the field']);

@@ -491,7 +491,7 @@
         {
           "kind": "countScaled",
           "count": "revealedTiles",
-          "per": 20,
+          "per": 50,
           "pays": {
             "to": "yield",
             "yield": "science",
@@ -688,7 +688,7 @@
         {
           "kind": "countScaled",
           "count": "revealedTiles",
-          "per": 20,
+          "per": 50,
           "pays": {
             "to": "yield",
             "yield": "gold",

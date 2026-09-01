@@ -7,7 +7,7 @@ Renown as currency, legacies as a collection. Wins by: The Most Called · The Dy
 - Tech:
   - Ancestor Rites (the offer opens — the theme's front door)
 - Orders:
-  - The Laureate — The first time this Order is placed in a slot, you are offered a great person. Every great-person improvement pays +2 more of its own yield.
+  - The Laureate *(user rework — implementation pending: a per-turn renown Order needs a renown card shape)* — +1 renown per turn · every great-person improvement pays +2 more of its own yield.
 - Great people: the Æra II rosters, all five families
 - Wonders:
   - The Mausoleum — +1 gold per building in this city · +1 gold on every hex with a Quarry · +2 authority capacity
@@ -19,7 +19,10 @@ Renown as currency, legacies as a collection. Wins by: The Most Called · The Dy
   - The Most Called — At the close of the age, the empire that called the most great people during it.
 
 ## Æra III
-- Orders: ▢ ________ (the court needs one per age — renown rate? cheaper calls?)
+- Orders:
+  - The Groundskeepers *(user)* — +1 food and +1 production on every great-person improvement.
+  - The Patron's Purse *(user)* — expending a great person pays +50 gold.
+  - The Shortlist *(user)* — each great-person offer comes with one free redraw (never banked across offers).
 - Doctrines:
   - The Renaissance Court (deferred) — Great-person offers show one more card. Every great person's legacy is 50% stronger.
   - The Academy of Deeds (deferred) — Every Triumph pays its renown twice over. A Triumph missed in one age can still be earned in the next.
@@ -34,7 +37,9 @@ Renown as currency, legacies as a collection. Wins by: The Most Called · The Dy
 - Governments:
   - The Commonwealth — Great people may be bought with gold. Great-person improvements pay +50% more.
   - The Magisterium — Every offer of every kind shows one more card. +3 renown per turn for each wonder you hold.
-- Orders: ▢ ________
+- Orders:
+  - The Master's Presence *(user)* — a city adjacent to a great-person improvement gains +10% to every yield (never stacks).
+  - The Farewell Games *(user)* — expending a great person grants +3 happiness for 15 turns (the funeral the whole realm attends).
 - Deeds:
   - The Legacy — Hold fifteen legacies that have not been struck from the record.
 
