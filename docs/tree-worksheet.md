@@ -10,64 +10,209 @@ The tech tree, rebuilt from the ratified theme sheets. Principles, all ruled:
 - The game ends at Æra IV (the Opus closes it); Æra V is a shelf, not a promise.
 
 ## Æra I — Omens (11 nodes)
-| node | needs | cost | why it exists |
-|---|---|---|---|
-| Agriculture | START | 15 | settler · warrior · scout · worker · Farm |
-| Husbandry | Agriculture | 8 | Pasture · Horseman · reveals Horses |
-| Fletching | Agriculture | 8 | Archer · Camp *(user ruling: kept)* |
-| Sailing | Agriculture | 8 | embark · Trireme · Fishing Boat · The Great Lighthouse |
-| Mining | Agriculture | 8 | Mine · Quarry |
-| Earthenware | Agriculture | 8 | Granary · The Hanging Gardens *(re-homed from Calendar)* |
-| The Wheel | Husbandry | 26 | War Chariot · Chariot Archer |
-| Bronzeworking | Mining | 16 | ★ Spearman · Barracks · Funeral Games · The Walls of Uruk |
-| Stonecraft | Mining | 16 | Monument · Palisade · Stonehenge · The Pyramids |
-| Divination | Earthenware | 16 | ★ the faith door — Augur · Shrine · The Oracle · the first rites |
-| Letters | Earthenware | 24 | Library · The Great Ziggurat |
+
+### Agriculture — START · 15
+- Settler (unit) — 0 str · 2 mv · cost 28 · founds a city; consumes a population.
+- Warrior (unit) — 8 str · 2 mv · cost 10.
+- Scout (unit) — 5 str · 2 mv · cost 13 · ignores terrain cost.
+- Worker (unit) — 0 str · 2 mv · cost 14 · 3 charges.
+- Farm (improvement) — +1🌾; on fresh water and floodplains too.
+
+### Husbandry ← Agriculture · 8
+- Horseman (unit) — 12 str · 4 mv · cost 17.
+- Pasture (improvement) — works Horses, Cattle, Sheep.
+- reveals Horses (passive).
+- The Temple of Artemis (wonder) — +2🌾 +1🕯 · its hexes with Camps and Pastures pay more.
+
+### Fletching ← Agriculture · 8
+- Archer (unit) — 7 str · rng 2 · 2 mv · cost 11.
+- Camp (improvement) — works Furs, Ivory, Deer.
+
+### Sailing ← Agriculture · 8
+- embark (passive) — civilians may cross coast; military embark waits for Wayfinding.
+- Trireme (unit) — 10 str · 4 mv · cost 12 · the first hull.
+- Fishing Boat (improvement) — works sea resources.
+- The Great Lighthouse (wonder) — +1💰 on Fishing Boats · coastal cities +1 sight · +1 trade route.
+
+### Mining ← Agriculture · 8
+- Mine (improvement) — +1⚙, hills and ore.
+- Quarry (improvement) — works Stone and Marble.
+
+### Earthenware ← Agriculture · 8
+- Granary (building) — cost 21 · +3🌾.
+- The Hanging Gardens (wonder) — +25% food surplus stored toward growth · +1🌾 on farms beside fresh water here.
+
+### The Wheel ← Husbandry · 26
+- War Chariot (unit) — 14 str · 4 mv · cost 24.
+- Chariot Archer (unit) — 9 str · rng 2 · 3 mv · cost 20.
+
+### Bronzeworking ← Mining · 16 ★
+- Spearman (unit) — 11 str · 2 mv · cost 11.
+- Barracks (building) — cost 25 · +1 renown/turn · unit XP home when veterancy lands.
+- Funeral Games (building) — cost 49 · +3☺.
+- The Walls of Uruk (wonder) — capital: +10 city defence · +2 str inside its borders · +2 authority capacity.
+
+### Stonecraft ← Mining · 16
+- Monument (building) — cost 21 · +2🎵.
+- Palisade (building) — cost 42 · +15 city hp.
+- Stonehenge (wonder) — +1 pantheon slot · +1🕯 on Stone/Marble hexes · a free Augur on completion.
+- The Pyramids (wonder) — new workers gain +1 charge.
+
+### Divination ← Earthenware · 16 ★ (the faith door)
+- Augur (unit) — bought with faith only · 3 rites, or 1 god (consecration).
+- Shrine (building) — cost 15 · +1🔬 +1🕯.
+- The Oracle (wonder) — +1🕯 here · +1 card in every Statecraft and Doctrine draft.
+- the first rites (passive) — Rite of the Harvest (+1 pop), Omen Reading (+15🔬), Recasting the Omens.
+
+### Letters ← Earthenware · 24
+- Library (building) — cost 28 · +2💰 +2🔬 · +1🔬 per pop.
+- The Great Ziggurat (wonder) — +2🕯 +2🎵 · faith purchases cost less here.
 
 ## Æra II — Heroes (7 nodes)
-| node | needs | cost | why it exists |
-|---|---|---|---|
-| Kingship | Letters | 65 | Stele of Laws · the government ladder's home |
-| Epic Poetry | Letters | 150 | ★ deaths pay verse (legacy effect-tech) · Amphitheater · The Theatre of Dionysus |
-| Ancestor Rites | Divination | 105 | ★ the great-person offer opens |
-| The High Temple | Divination | 120 | ★ Prophet · Temple · founding a religion |
-| Currency | The Wheel + Letters | 195 | ★ the trade door — Trader · Market · Bazaar · The Colossus · The Mausoleum |
-| Bronze Panoply | Bronzeworking | 135 | ★ Phalanx — the first real soldier |
-| Wayfinding | Sailing | 60 | Bireme · War Galley · Harbour · military embark |
 
-## Æra III — Empire (15 nodes; the decision point earns the widest age)
-| node | needs | cost | why it exists |
-|---|---|---|---|
-| Iron Working | Bronze Panoply | 420 | ★ Swordsman + Halberdier *(Halberd Wall folded in)* · reveals Iron |
-| The Legion | Iron Working | 500 | ★ Legionary (adjacency lives on its unit row) |
-| The Cataphract | Iron Working | 530 | ★ Cataphract + Steppe Rider *(Steppe Bow folded in)* — the horse age |
-| Mathematics | Currency | 400 | Catapult — siege arrives |
-| Engineering | Mathematics | 490 | ★ Aqueduct (+15% surplus growth, user retune) · Baths *(Construction folded in)* |
-| Artisanry | Currency | 460 | ★ Workshop (+2⚙, +10%⚙ in its city) — 12's marquee, NEW |
-| Prospecting | Engineering | 520 | ★ the vein layer opens (ore · strategic · deep luxuries) — NEW |
-| Rhetoric | Epic Poetry | 390 | the renown buildings — 09's home |
-| The Qadi's Court | Kingship | 590 | Courthouse · the King List *(moved here per user)* · captured cities cheaper |
-| The Examination Hall | Kingship | 440 | Examination Hall (+1 authority; culture per spare authority — user rework) |
-| Education | Rhetoric + Mathematics | 640 | ★ University · The House of Wisdom · The Forbidden City |
-| Theology | The High Temple | 600 | ★ the Cathedral · Monastery · enhancers · the faith wonders |
-| Colonial Charters | Kingship | 460 | ★ 07's marquee — settlers stay viable, cities born developed |
-| The Imperial Post | Currency | 560 | ★ connected cities +1 happiness *(the user's node, homed)* |
-| Shipwrights | Wayfinding | 570 | ★ the naval triangle's III hulls · Dry Docks |
+### Kingship ← Letters · 65
+- Stele of Laws (building) — cost 36 · +1🎵 · +2 authority capacity *(proposed — its reason to exist post-authority-rework)*.
+- the government ladder's home (passive) — flavor anchor; tiers ride drafts, not techs.
+
+### Epic Poetry ← Letters · 150 ★
+- verse for the fallen (passive, legacy effect-tech) — when a unit of yours dies, its nearest city gains culture.
+- Amphitheater (building) — cost 74 · +3🎵.
+- Hall of Deeds (building) — cost 32 · +2🎵 +1☺ · +1 renown/turn.
+- The Theatre of Dionysus (wonder) — +4🎵 · +1☺ per Amphitheater you hold *(proposed rework — editable)*.
+
+### Ancestor Rites ← Divination · 105 ★
+- the great-person offer opens (passive) — renown starts buying names.
+
+### The High Temple ← Divination · 120 ★
+- Prophet (unit) — bought with faith · founds or enhances a religion (consumed) · proclaims · plants holy sites.
+- Temple (building) — cost 53 · +2🕯 · holds off foreign pressure.
+- founding (passive) — a religion, from your pantheon.
+
+### Currency ← The Wheel + Letters · 195 ★ (the trade door)
+- Trader (unit) — cost 28 · runs one route.
+- Market (building) — cost 59 · +3💰.
+- Bazaar (building) — cost 44 · +2💰 · +1💰 per luxury this city works *(its countScaled)*.
+- The Colossus (wonder) — +1⚙ +1💰 on water hexes carrying a resource.
+- The Mausoleum (wonder) — +1💰 per building here · +1💰 on Quarry hexes · +2 authority capacity.
+
+### Bronze Panoply ← Bronzeworking · 135 ★
+- Phalanx (unit) — 14 str · 2 mv · cost 14.
+
+### Wayfinding ← Sailing · 60
+- military embark (passive).
+- Bireme (unit) — 13 str · 5 mv · cost 12.
+- War Galley (unit) — 16 str · 3 mv · cost 19.
+- Harbour (building) — cost 62 · +1🌾 · sea routes from here.
+
+## Æra III — Empire (14 nodes; the decision point earns the widest age)
+
+### Iron Working ← Bronze Panoply · 420 ★ (The Legion merged in — user: one melee per age)
+- Legionary (unit) — 17 str · 2 mv · cost 16 · +1 str per adjacent friendly unit (its row's ability) · **replaces the Swordsman** (that row retires).
+- Pikeman (unit) — 16 str · 2 mv · cost 17 · +8 str vs mounted *(proposed — the folded Halberd Wall's role)*.
+- reveals Iron (passive) — gates this line; warriors retool when it connects.
+
+### The Cataphract ← Iron Working · 530 ★ (the horse age)
+- Cataphract (unit) — 22 str · 4 mv · cost 24 · requires Horses + Iron.
+- Horse Archer (unit) — 12 str · rng 2 · 4 mv · cost 20 *(the folded Steppe Bow)*.
+- War Elephant (unit) — 24 str · 3 mv · cost 26 · requires Ivory *(proposed placement — editable)*.
+
+### Mathematics ← Currency · 400
+- Catapult (unit) — 14 str · rng 2 · 1 mv · cost 15 · +10 vs cities *(proposed)*.
+- Composite Bowman (unit) — 11 str · rng 2 · 2 mv · cost 14.
+
+### Engineering ← Mathematics · 490 ★
+- Aqueduct (building) — cost 59 · +15% food surplus toward growth (user retune).
+- Baths (building) — cost 80 · +1🎵 +2☺.
+- Watermill (building) — cost 63 · +2🌾 +1⚙ · river cities only.
+
+### Artisanry ← Currency · 460 ★ (NEW — 12's marquee)
+- Workshop (building) — cost 69 · +2⚙ · +10%⚙ in its city (user spec).
+
+### Prospecting ← Engineering · 520 ★ (NEW — the vein layer)
+- the prospect act (passive) — a worker or explorer surveys a hill: ore veins (rich mine +2⚙ +1💰) · iron veins · deep luxuries (gems/silver/gold) · misses mark the hex barren · every survey pays a +15💰 assay.
+
+### Rhetoric ← Epic Poetry · 390
+- Forum (building) — cost 96 · +3🎵 · +2 renown/turn *(proposed)*.
+- the renown buildings' home (passive) — 09's shelf.
+
+### The Qadi's Court ← Kingship · 590
+- Courthouse (building) — cost 100 · +1💰 · a captured city with one costs 1 less authority.
+- The King List (passive, waits) — pays a city for its years since founding · needs founding-turn memory.
+
+### The Examination Hall ← Kingship · 440
+- Examination Hall (building) — cost 92 · +1🔬 · +1 authority capacity · +1🎵 per point of spare authority (user rework).
+
+### Education ← Rhetoric + Mathematics · 640 ★
+- University (building) — cost 134 · +0.75🔬 per pop.
+- The House of Wisdom (wonder) — +15% to the bonus positive happiness pays · +2🔬 (user rework).
+- The Forbidden City (wonder) — −5% happiness demanded everywhere · +1🔬 per point of spare authority (user).
+
+### Theology ← The High Temple · 600 ★
+- Cathedral (building) — cost 340 · +3☺ · gold/faith contributions hurry it · consecrated to one of five patrons on completion (Entry LV).
+- Monastery (building) — cost 106 · +2🎵 · +0.25🔬 per pop.
+- the enhancer pool opens (passive).
+- Hagia Sophia · Angkor Wat · The Great Mosque · Chichen Itza · Notre-Dame (wonders) — the faith slate, texts on sheet 03.
+
+### Colonial Charters ← Kingship · 460 ★ (07's marquee)
+- settlers train 50% faster (passive, user spec).
+- cities founded 15+ hexes from the capital cost 1 less authority (passive, user spec).
+- new cities are founded with a Granary *(proposed third clause — editable)*.
+
+### The Imperial Post ← Currency · 560 ★
+- connected cities gain +1☺ (passive — the user's node, homed).
+- roads near your cities cost no upkeep *(proposed second clause)*.
+
+### Shipwrights ← Wayfinding · 570 ★ (the triangle's III hulls)
+- Galley (unit) — 16 str · 5 mv · cost 14 (light).
+- Tower Ship (unit) — 24 str · 3 mv · cost 23 (heavy).
+- Fire Ship (unit) — 12 str · rng 2 · 4 mv · cost 20 (ranged).
+- Shipyard (building) — cost 90 · +1⚙ · +25%⚙ toward naval *(proposed)*.
 
 ## Æra IV — Cathedrals (11 nodes; ends the game)
-| node | needs | cost | why it exists |
-|---|---|---|---|
-| Feudalism | The Qadi's Court | 765 | Castle · the levy Orders' home |
-| Steel | The Legion | 920 | ★ the late melee line (+1 movement on their rows) |
-| Chivalry | Feudalism + The Cataphract | 950 | ★ Knight |
-| Machinery | Artisanry | 795 | ★ Armoury (its pays-science ability on the building row) · Crossbowman |
-| Physics | Engineering | 820 | Trebuchet |
-| Movable Type | Education | 885 | ★ the Printing House — the late science building's little sibling |
-| The Astrolabe | Shipwrights + Mathematics | 1035 | ★ ocean-going · The Observatory (building) · the ocean discoveries |
-| The Silk Road | The Imperial Post | 840 | ★ +route capacity, the caravanserai — 05's late act |
-| Paper Money | The Silk Road | 1080 | ★ The Bourse · the gold endgame |
-| The Holy Office | Theology | 900 | ★ Inquisitor · the Reliquary (merged, ruled) |
-| Gunpowder | Machinery | 1140 | ★★ reveals Niter · the first gunpowder unit · **pays a bead** (the closer's reward, user) |
+
+### Feudalism ← The Qadi's Court · 765
+- Castle (building) — cost 140 · +25 city hp · +5 city defence *(proposed)*.
+- Spear Wall (unit) — 20 str · 2 mv · cost 21 · the pike line's IV step.
+
+### Steel ← Iron Working · 920 ★
+- Longswordsman (unit) — 21 str · 2 mv · cost 21 · melee gains +1 mv at this node (user note on the row).
+
+### Chivalry ← Feudalism + The Cataphract · 950 ★
+- Knight (unit) — 20 str · 4 mv · cost 22 · *(proposed retune to 24 str — it should outclass the Cataphract)*.
+
+### Machinery ← Artisanry · 795 ★
+- Armoury (building) — cost 160 · +1⚙ · +20%⚙ toward units · units made here pay 50% of their strength as 🔬 and 🎵 (user spec, on the row).
+- Crossbowman (unit) — 18 str · rng 2 · 2 mv · cost 20.
+
+### Physics ← Engineering · 820
+- Trebuchet (unit) — 22 str · rng 2 · 1 mv · cost 24 · +15 vs cities *(proposed)*.
+
+### Movable Type ← Education · 885 ★
+- Printing House (building) — cost 160 · +2🔬 +2🎵 · +1 card shown on culture drafts *(proposed — editable)*.
+
+### The Astrolabe ← Shipwrights + Mathematics · 1035 ★
+- ocean-going (passive) — deep water opens; the ocean discoveries with it.
+- The Observatory (building) — cost 175 · +3🔬 · +10%🔬 in its city · +1🔬 per pop (user spec).
+- Caravel (unit) — 22 str · 6 mv · cost 17 (light).
+- Carrack (unit) — 32 str · 3 mv · cost 27 (heavy).
+- Gun Galley (unit) — 18 str · rng 2 · 4 mv · cost 24 (ranged).
+
+### The Silk Road ← The Imperial Post · 840 ★
+- +1 trade route (passive).
+- Caravanserai (building) — cost 150 · +2💰 · +25% route yields from this city *(proposed)*.
+
+### Paper Money ← The Silk Road · 1080 ★
+- Mint (building) — cost 150 · +3💰 *(moved here — flag: The Mint endeavour is an Æra III race; either the building stays earlier or the endeavour moves)*.
+- The Bourse (building, purchase-only) — converts gold→culture per turn *(proposed: 6💰 → 3🎵)*.
+
+### The Holy Office ← Theology · 900 ★
+- Inquisitor (unit) — bought with faith · strips a lump of rival pressure within 5 hexes · +2 str to adjacent units (user spec).
+- The Reliquary (building) — +4☺ · +10%🕯 in its city · allows purchasing units with faith (merged, ruled).
+
+### Gunpowder ← Machinery · 1140 ★★ (the closer)
+- reveals Niter (passive).
+- Handgonner (unit, NEW) — *(proposed 26 str · 2 mv · cost 26 · requires Niter)*.
+- pays a bead (passive — the closing node's reward, user ruling).
 
 **The Magnum Opus** is deliberately NOT a node: it unlocks for every empire when the world's
 first seat completes Gunpowder — the finish line announces itself to all contestants at
@@ -86,10 +231,11 @@ Implementation map for the themes build — every pruned-but-implemented node fo
 | The Knotted Cord | shelf (route science becomes an Order candidate, 05) |
 | The Orrery of Bronze | shelf |
 | Construction | → Engineering |
-| The Halberd Wall | Halberdier → Iron Working |
-| The Steppe Bow | Steppe Rider → The Cataphract |
+| The Halberd Wall | its role → Pikeman at Iron Working |
+| The Steppe Bow | Horse Archer → The Cataphract |
 | The Floating Fields | shelf (a rules-tech; the neutral ruling frowns) |
 | The First Distillation | CUT (distilleries removed, user 2026-09-02) |
+| The Legion (node) | merged into Iron Working (user: one melee per age — the Swordsman row retires for the Legionary) |
 
 ## The proposal shelf — ages II–V (add-backs and candidates; over-provisioned, cut freely)
 **Æra II**: Irrigation *(farm +1 beside fresh water; Hanging Gardens' truer home)* · The Long
