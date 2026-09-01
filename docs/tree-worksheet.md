@@ -56,7 +56,7 @@ node · pruned first, shelf holds the rest · costs in Entry LIV's bands (I 8–
 - The Pyramids (wonder) — new workers gain +1 charge.
 
 ### Divination ← Earthenware · 16 ★ (the faith door)
-- Augur (unit) — bought with faith only · 3 rites, or 1 god (consecration).
+- Augur (unit) — bought with faith · **rework (user, 2026-09-02): a single charge — consecrate, or perform one rite.**
 - Shrine (building) — cost 15 · +1🔬 +1🕯.
 - The Oracle (wonder) — +1🕯 here · +1 card in every Statecraft and Doctrine draft.
 - the first rites (passive) — Rite of the Harvest (+1 pop), Omen Reading (+15🔬), Recasting the Omens.
@@ -270,8 +270,9 @@ Bazaar's gate. **Æra IV**: The Compass · Windmills.
 **Æra V — DEFERRED WHOLESALE** (user, 2026-09-02: "lets see how the game plays before
 thinking about era 5"): the old V list parks here untouched.
 
-## Open questions for the ruling
-- [ ] The Magnum Opus: world-unlock at first Alchemy (recommended) or its own node?
-- [ ] Empire-Building and Movable Type both grant "connected cities +1☺" — deliberate stack (+2 total) or one home?
-- [ ] Castellany's name: keep, or The Bulwark / Vassalage?
+## Ruled (user, 2026-09-02)
+- [x] **The Magnum Opus unlocks for every empire when the world's first seat completes Alchemy** — the finish line announces itself to all contestants at once.
+- [x] The double "connected cities +1☺" (Empire-Building + Movable Type) is **intentional** — the connectivity build stacks to +2.
+- [x] **Castellany** stays.
+- [x] Two late additions to the build: **embark movement costs** (the mechanic The Sea Peoples queues on), and the **augur rework — a single charge: consecrate OR perform one rite** (the prophet's one-charge discipline, one unit down).
 - [ ] Costs are band placements; the pacing fixtures re-measure on the build.

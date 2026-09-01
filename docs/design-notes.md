@@ -4330,3 +4330,45 @@ healing on their own — is accounted for twice over; if the freeze is ever seen
 probe from 2026-08-31 (console + elementsFromPoint) is still the first move.
 
 ---
+
+## Entry LVIII — The Themes Build: the milestone scope (**ruled with the user**, 2026-09-02)
+
+Everything ratified across the theme sheets (docs/themes/) and tree revision 3
+(docs/tree-worksheet.md), built as ONE milestone in four phases — each phase a batch of
+agents on disjoint fences, each gated and pushed before the next begins. Final rulings
+folded: the Opus world-unlocks at the first Alchemy; the double connected-happiness is
+intentional; Castellany stays; embark movement costs and the one-charge augur join the
+scope.
+
+**Phase 1 — the ground** (tree + rows + mechanics):
+tree re-cut to revision 3 (renames keep ids — imperialPost prints Empire-Building, the
+Feudalism id prints Castellany, the closer is a NEW node `alchemy`); the melee/ranged
+line rework (Swordsman II · Bowman · Halberd · retunes); new rows (Lighthouse, Town
+Charter, Clocktower, Bank, Bastion, Alchemical Society, The Observatory, Fire Lance…);
+Courthouse's captured-cities-only gate (a new build condition shape); **the siege gate**
+(besieging — the chip-damage state — waits for Siegecraft; open detail: attacking cities
+stays legal, the *siege* status does not); **embark movement costs** (a real cost to enter
+and leave the water; unblocks The Sea Peoples later); chart re-anneal; SCHEMA bump;
+pacing fixtures re-measured.
+
+**Phase 2 — the faith rework**: the one-charge prophet (found = founder + a follower
+belief; later charges = one follower each; caps 3/2), the one-charge augur (consecrate OR
+one rite), Temple −25% pressure, The Holy Office's tenants (Inquisitor, the merged
+Reliquary), the faith-slate wonder moves.
+
+**Phase 3 — the systems**: Prospecting and the veins (three kinds, the assay, barren
+marks) · Antiquities (baked at mapgen, tech-gated claims) · ocean discoveries behind The
+Astrolabe · **the Magnum Opus v0** (world-unlock at first Alchemy; pillar funding via the
+contribute verb; first completion closes the age → final reckonings → most beads wins) ·
+project bead payouts + the three Observatory projects · The Long Count's die.
+
+**Phase 4 — the cards and the trim**: every ratified Order/Doctrine/belief/rework from
+the sheets, pool by pool; the Entry LIV supply trim (happiness/authority out of
+buildings/tree into the Orders; the flat-gold stack converted or cut); then the
+instruments — the t83 audit and a bot arena sweep against the finished walls.
+
+Standing rules for every phase: subagents on disjoint fences, narrow tests, the
+orchestrator gates (typecheck + core + build per batch; test:all before every push);
+deferred rows keep player-plain prose; a shape is never bent to nearly fit.
+
+---
