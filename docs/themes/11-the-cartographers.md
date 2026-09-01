@@ -4,13 +4,21 @@ revealed later, so the "generate once" rule holds): ruins (I) → veins (III) �
 sea (IV). Wins by: circumnavigation · discovery counts per layer.
 
 ## Æra I
-- Orders: Far Runners · Wolf-Runners · The Cartographers · Curious Elders
-- Religion: Oracle of the Crossroads
+- Orders:
+  - Far Runners — Scouts +1 movement and +1 sight. Civilians +2 movement while embarked.
+  - Wolf-Runners — Scouts gain +1 movement, and claiming a ruin grants +10 gold.
+  - The Cartographers — +1 science for each 40 hexes you have revealed.
+  - Curious Elders — +5 science whenever you claim a ruin.
+- Religion:
+  - Oracle of the Crossroads — +3 faith for each ruin you claim. Scouts see one hex further.
 - Deeds: ▢ ________ (first to claim N ruins?)
 
 ## Æra II
-- Tech: Wayfinding
-- Doctrines: Master of Maps · Athenaeum of the Road
+- Tech:
+  - Wayfinding — unlocks Bireme, War Galley, Harbour, Sea Legs
+- Doctrines:
+  - Master of Maps — All units +1 sight and +1 movement · all units −2 combat strength.
+  - Athenaeum of the Road — A ruin you claim pays every option instead of one.
 - Deeds: ▢ ________ (reveal a share of the world?)
 
 ## Æra III

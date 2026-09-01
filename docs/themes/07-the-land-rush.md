@@ -4,22 +4,39 @@ posture's spine. Constraint: authority relief lives HERE, in Orders — trim it 
 Wins by: The Founder · The Twelve · The Most Cities.
 
 ## Æra I
-- Orders: Boundary Stones · Land Grants · Homestead Charters · Charter Towns
-- Doctrines: The Founders' Road · Manifest of the Steppe
-- Deeds: The Founder
+- Orders:
+  - Boundary Stones — +30% border culture in every city.
+  - Land Grants — Buying a hex costs 25% less · +40% border culture.
+  - Homestead Charters — Newly founded cities start with 1 more population.
+  - Charter Towns — Newly founded cities are founded with a Granary.
+- Doctrines:
+  - The Founders' Road — Your first 5 cities are founded with a free Monument, and new cities are joined to your nearest city by road.
+  - Manifest of the Steppe — Settlers cost 40% less and never cost more than the first · every city demands +1 happiness.
+- Deeds:
+  - The Founder — Found eight cities of your own. Cities taken from others do not count.
 
 ## Æra II
-- Orders: Royal Surveyors · Provincial Governors · Client Kings · The King's Table
-- Doctrines: Hegemony (+authority per city)
+- Orders:
+  - Royal Surveyors — +50% border culture · buying a hex costs 25% less.
+  - Provincial Governors — +3 authority capacity.
+  - Client Kings — +2 authority capacity · a captured city costs one less authority.
+  - The King's Table — +1 happiness for every 2 citizens in your capital.
+- Doctrines:
+  - Hegemony — +1 authority capacity for each city you hold · a captured city costs one less authority.
 - Religion: ▢ ________ (a settler's faith — the road gods are 11's; what blesses a founding?)
 - Great people: ▢ ________
-- Deeds: The Twelve · The Surveyor
+- Deeds:
+  - The Twelve — Hold twelve cities of six citizens or more.
+  - The Surveyor — Buy twenty hexes of ground across the game.
 
 ## Æra III
-- Tech: Colonial Charters *(deferred — the marquee: settlers stay cheap, cities born developed)*
+- Tech:
+  - Colonial Charters *(deferred — the marquee: settlers stay cheap, cities born developed)*
 - Orders: *(planned)* The Provincial Academies (flat 🔬 per city, no building) · ▢ ________ (connection happiness: + per city joined to the capital)
 - Government: the Charter flip — new cities arrive working, connected, content
-- Deeds: The Most Cities · The Grand Satrapy
+- Deeds:
+  - The Most Cities — At the close of the age, the empire holding the most cities.
+  - The Grand Satrapy — A race. Needs ten cities. The first empire to finish keeps a lasting step of contentment and of authority.
 
 ## Æra IV
 - *(planned)* the overseas colony (with 11 and 13): settle the far landmass, an endeavour to plant a thriving colony
