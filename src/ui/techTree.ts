@@ -351,6 +351,8 @@ export interface TechTree {
   toggle(): void;
   /** Rebuilds the chart if it is open, and always refreshes the research card. */
   render(): void;
+  /** Unbinds the window listeners. See the dispose method's docblock. */
+  dispose(): void;
 }
 
 export interface TechTreeOptions {
@@ -2044,11 +2046,12 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * inside the overlay is handled there and stopped there, so this never sees
    * it. Two closers, and whichever is nearer the press is the one that runs.
    */
-  window.addEventListener('keydown', (event) => {
+  const onWindowKeyDown = (event: KeyboardEvent): void => {
     if (!open || event.key !== 'Escape') return;
     event.stopPropagation();
     setOpen(false);
-  });
+  };
+  window.addEventListener('keydown', onWindowKeyDown);
 
   // Clicking the ink around the chart closes it, like the popovers do.
   overlay.addEventListener('pointerdown', (event) => {
@@ -2058,12 +2061,13 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   // A resize changes the height the lanes were spaced for as readily as the
   // width the lines were measured in, so both are redone, in the same order
   // renderChart does them.
-  window.addEventListener('resize', () => {
+  const onWindowResize = (): void => {
     if (!open || !field || !lines) return;
     spaceColumns(field, techColumnCount());
     spaceLanes(field, techRowCount());
     drawLines(lines);
-  });
+  };
+  window.addEventListener('resize', onWindowResize);
 
   render();
 
@@ -2073,6 +2077,19 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     },
     open: () => setOpen(true),
     close: () => setOpen(false),
+    /**
+     * Unbinds the window listeners. The chart is built once per game (`boot`),
+     * over the same DOM every time — and a stale instance's `open` flag is
+     * exactly how the chart froze (Entry LVII): the leaked keydown closure
+     * answered `!open` for a chart the *new* instance had drawn, the overlay's
+     * own handler stopped the press, and every door no-opped until an open-door
+     * resynced the flag. `main.ts` sweeps these on the way to the landing and
+     * again at the top of `boot`, so a load that skips the landing is covered.
+     */
+    dispose(): void {
+      window.removeEventListener('keydown', onWindowKeyDown);
+      window.removeEventListener('resize', onWindowResize);
+    },
     toggle: () => setOpen(!open),
     render,
   };

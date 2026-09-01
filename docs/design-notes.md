@@ -4299,3 +4299,25 @@ Re-enabling is one number. The tall ceiling is now happiness *demand per citizen
 authority alone — watch The Metropolis playtests.
 
 ---
+
+## Entry LVII — The frozen star chart, and the game-screen disposal register (**bug**, solved 2026-09-01)
+
+The intermittent "nothing happens when I click × or hit Escape" (reported 2026-08-31, every
+static suspect eliminated) was reproduced live in the browser and root-caused: **`boot`
+rebuilds every per-game screen over the same DOM, and the star chart's window `keydown`
+listener leaked with a stale closure.** The chart tracks openness in a module `open` flag;
+after a second game, the *old* instance's listener answered `!open` for a chart the *new*
+instance had drawn, the overlay's own handler stopped the press, and `setOpen(false)`'s
+guard no-opped — every door dead at once. The tell that matched the report exactly: **any
+open-door resyncs the flag and the screen heals** ("huh, it seems to be working now").
+
+The fix is a register, not a patch: `gameDisposers` in `main.ts` — every per-boot screen
+that hangs a window listener pushes its `dispose` (splash, offer card, Triumph sheet, bead
+sheet, victory sheet, star chart — which had no dispose and now does — and the beads
+screen), and the sweep runs **twice**: on the way to the landing and at the top of `boot`,
+because a load can re-boot without visiting the landing. `test/ui/screenLifecycle.test.ts`
+pins the register complete — a screen added without a push is this bug in its next costume.
+(The four screens the landing already disposed — Abacus, Statecraft, Religion, Trade — keep
+their calls; they dispose more than listeners.)
+
+---

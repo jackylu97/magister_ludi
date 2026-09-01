@@ -633,18 +633,20 @@ describe('the chart’s Escape', () => {
   const chart = chartSource();
 
   it('is answered from the window as well as from inside the overlay', () => {
-    const window = chart.slice(chart.indexOf("window.addEventListener('keydown'"));
-    const body = window.slice(0, window.indexOf('// Clicking the ink'));
+    // Named since Entry LVII so `dispose` can unbind it; the body is pinned on
+    // the handler, the wiring on the registration.
+    const handler = chart.slice(chart.indexOf('const onWindowKeyDown'));
+    const body = handler.slice(0, handler.indexOf('};'));
     expect(body).toContain("if (!open || event.key !== 'Escape') return;");
     expect(body).toContain('setOpen(false);');
+    expect(chart).toContain("window.addEventListener('keydown', onWindowKeyDown)");
   });
 
   it('does not capture, so one press still closes exactly one thing', () => {
     // Capturing would make the window listener win over the overlay's, and the
     // overlay's is the one that also stops the press reaching the board.
-    const window = chart.slice(chart.indexOf("window.addEventListener('keydown'"));
-    const registration = window.slice(0, window.indexOf('});'));
-    expect(registration).not.toContain(', true)');
+    const registration = chart.slice(chart.indexOf("window.addEventListener('keydown', onWindowKeyDown"));
+    expect(registration.slice(0, registration.indexOf(');') + 2)).not.toContain(', true)');
   });
 
   it('still lets the overlay answer a press that started inside the chart', () => {

@@ -650,6 +650,19 @@ let victory: VictoryModal | null = null;
 /* Declared before `controls` for `techTree`'s reason exactly: the controls reach
    it (the End Turn blocker steers here), and it reaches the controls. */
 let statecraft: StatecraftScreen | null = null;
+/**
+ * What this boot's screens must unbind before the next game builds new ones
+ * over the same DOM (Entry LVII — the frozen star chart): every per-game
+ * screen that hangs a listener on `window` pushes its dispose here. The sweep
+ * runs on the way to the landing AND at the top of `boot`, so a load that
+ * never visits the landing is covered too; the array is cleared by the sweep,
+ * which is what makes running it twice safe.
+ */
+let gameDisposers: Array<() => void> = [];
+function disposeGameScreens(): void {
+  for (const dispose of gameDisposers) dispose();
+  gameDisposers = [];
+}
 let religion: ReligionScreen | null = null;
 /* Trade's screen, built in `boot` for `religion`'s reason: it asks whose seat
    this is, and `closePopovers` is declared before there is one. */
@@ -877,6 +890,9 @@ function showLanding(): void {
   statecraft?.dispose();
   religion?.dispose();
   trade?.dispose();
+  // And every per-game window listener this boot hung (Entry LVII) — the four
+  // above dispose more than listeners, these seven dispose exactly that.
+  disposeGameScreens();
   // The Compendium is deliberately **not** disposed here. It is a property of
   // the page rather than of a game — built at module scope beside the help
   // sheet, reachable from the controls card before anything has been started,
@@ -1557,6 +1573,10 @@ async function createRenderer(
  * chosen.
  */
 async function boot(initial: Game | null): Promise<void> {
+  // A second game over the same DOM: whatever the previous boot hung on
+  // `window` goes first (Entry LVII), here rather than only in `showLanding`,
+  // because a load can re-boot without ever showing the landing.
+  disposeGameScreens();
   let game: Game = initial ?? createGame(currentConfig());
   // The Compendium's one optional reader (see `liveState`): from here on there
   // is a game to price a unit's roster line against. `game` is reassigned by
@@ -1992,6 +2012,11 @@ async function boot(initial: Game | null): Promise<void> {
    * the same reason: `showLanding` has to take it down.
    */
   victory = createVictoryModal(victoryOverlayEl);
+  gameDisposers.push(() => splash.dispose());
+  gameDisposers.push(() => offerCard.dispose());
+  gameDisposers.push(() => triumphSheet?.dispose());
+  gameDisposers.push(() => beadSheet?.dispose());
+  gameDisposers.push(() => victory?.dispose());
 
   /**
    * The header line for an offer dealt wider than the table deals: the fold's
@@ -3199,6 +3224,8 @@ async function boot(initial: Game | null): Promise<void> {
    * arrangement and the whole diff goes over in one list when the player
    * confirms it or leaves the sheet. See `statecraftStaging.ts`.
    */
+  gameDisposers.push(() => techTree?.dispose());
+
   statecraft = createStatecraftScreen({
     overlay: statecraftOverlayEl,
     body: statecraftBodyEl,
@@ -3390,6 +3417,7 @@ async function boot(initial: Game | null): Promise<void> {
       compendium.close();
     },
   });
+  gameDisposers.push(() => beads?.dispose());
 
   /**
    * The empire's per-turn totals, at the left end of the top bar. A pure sum
