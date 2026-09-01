@@ -7,8 +7,6 @@ Wins by: The Founder · The Twelve · The Most Cities.
 - Orders:
   - Boundary Stones — +30% border culture in every city.
   - Land Grants — Buying a hex costs 25% less · +40% border culture.
-  - Homestead Charters — Newly founded cities start with 1 more population.
-  - Charter Towns — Newly founded cities are founded with a Granary.
 - Doctrines:
   - The Founders' Road — Your first 5 cities are founded with a free Monument, and new cities are joined to your nearest city by road.
   - Manifest of the Steppe — Settlers cost 40% less and never cost more than the first · every city demands +1 happiness.
@@ -19,8 +17,10 @@ Wins by: The Founder · The Twelve · The Most Cities.
 - Orders:
   - Royal Surveyors — +50% border culture · buying a hex costs 25% less.
   - Provincial Governors — +3 authority capacity.
-  - Client Kings — +2 authority capacity · a captured city costs one less authority.
+  - Vassalage — +2 authority capacity · a captured city costs one less authority.
   - The King's Table — +1 happiness for every 2 citizens in your capital.
+  - Homestead Charters — Newly founded cities start with 2 more population.
+  - Charter Towns — Newly founded cities are founded with a granary and a monument.
 - Doctrines:
   - Hegemony — +1 authority capacity for each city you hold · a captured city costs one less authority.
 - Religion: ▢ ________ (a settler's faith — the road gods are 11's; what blesses a founding?)

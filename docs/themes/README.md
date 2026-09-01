@@ -22,4 +22,5 @@ row · ▢ = blank for the design pass. Ages are the tree's: Æra I (the foundin
 01 The Imperium · 02 The Wild Frontier · 03 The Faith Engine · 04 The Mission ·
 05 The Caravan State · 06 The Luxury Table · 07 The Land Rush · 08 The Tall Hearth ·
 09 The Court of Great People · 10 The Observatory · 11 The Cartographers ·
-12 The Stoneworks · 13 The Waters · 14 The Old Ways · 15 The Steppes
+12 The Stoneworks · 13 The Waters · 14 The Old Ways · 15 The Steppes ·
+17 The Festival State · 18 The Magistracy · 19 The Almanac (candidates, sheeted 2026-09-01)

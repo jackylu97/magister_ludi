@@ -47,10 +47,7 @@ Wins by: The Richest Roads · The Grand Caravan · the Opus gold pillar.
   - The Merchant Venturers *(user)* — trade routes to foreign cities pay +50% gold.
   - The Provisioners *(user)* — +1 happiness for every internal trade route.
 - Doctrines:
-  - The Letters of Credit *(proposal)* — your treasury may run negative, to −200 · while in debt, −3 happiness in every city. (Borrowing: buy the moment, pay from income — flexibility with teeth.)
-  - The Hired Hands *(proposal)* — gold may finish any building already half-built: pay the remaining hammers at the purchase rate. (The contribute verb's little sibling, for ordinary stone.)
-  - The Grain Markets *(proposal)* — once per turn, a city may buy food into its basket at 3 gold per 🌾. (Gold buys growth — the one thing it has never touched.)
-  - The Insurance Houses *(proposal)* — a plundered caravan or pillaged improvement refunds its full value in gold. (Income that makes you fearless, not richer.)
+  - The Letters of Credit *(proposal)* — your treasury may run negative, to −200 · while in debt, −2 happiness in every city. (Borrowing: buy the moment, pay from income — flexibility with teeth.)
   - The Open Purse *(proposal)* — the one-unit-purchase-per-city-per-turn stamp is lifted. (Emergency armies for whoever can pay.)
 - Buildings: *(planned)* The Counting House — purchase-only, converts gold→science per turn
 - Great people: the Æra III merchants · *(planned)* mercenaries (units bought anywhere, at a premium)
@@ -63,12 +60,7 @@ Wins by: The Richest Roads · The Grand Caravan · the Opus gold pillar.
 - Orders:
   - The Learned Roads *(user)* — caravans pay +1 science and +1 culture per citizen of their destination city.
 - Doctrines:
-  - The Invisible Hand *(proposal — wild)* — whenever your treasury exceeds 500, your richest city automatically buys its cheapest missing building. (The economy runs itself; you just steer.)
-  - The Wonder Brokers *(proposal — wild)* — when any OTHER empire completes a wonder, you bank 25% of its cost in gold. (You sold them the stone. Rivals racing wonders funds your Opus.)
-  - The Private Armies *(proposal — wild)* — your military costs no gold upkeep; instead each trade route sustains 2 units, and units beyond that desert at age end. (An army the size of your commerce.)
-  - The Debasement *(proposal — wild)* — once per turn you may sell a turn of science or culture for gold at 2:1. (The inverse converter: every yield is liquid if you are shameless.)
-  - The Toll Roads *(proposal)* — every foreign trade route that crosses your territory pays you +2 gold. (Geography as income — pairs with The Great Wall's zoc and the Steppes' sprawl.)
-  - The World's Fair *(proposal — wild, one-shot)* — once, pay 1,000 gold: every empire gains +3 happiness for 10 turns, and you gain 30 culture per empire in the world plus a bead. (Buying prestige itself — the peaceful Crown of Crowns.)
+  - The World's Fair *(proposal — wild, one-shot)* — once, pay 2,000 gold: every empire gains +3 happiness for 10 turns, and you gain 100 culture per empire in the world plus a bead. (Buying prestige itself — the peaceful Crown of Crowns.)
 - Deeds:
   - The Bank of the World *(proposal, feat)* — the first empire to hold 10,000 gold at once.
   - Opus pillar: gold (part-buying the Opus is the fantasy).

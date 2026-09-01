@@ -92,13 +92,13 @@ Constraint: war's happiness relief (seized luxuries, held capitals) lives in the
   - Forced Marches (●) *(user)* — melee units +1 movement, +2 instead in friendly territory.
   - The Breach (○) *(user)* — melee units +8 combat strength against cities under siege.
 - Doctrines *(six proposals — go-wild batch, cut freely)*:
-  - The Triumphal Way — capturing a city is a festival: +5 happiness in every city for 10 turns.
-  - Pax per Bellum — while you are at war with anyone, +10% every yield in every city; peace pays nothing (the War Economy said out loud).
+  - The Triumphal Way — capturing a city is a festival: +5 happiness in every city for 10 turns. [KEEP]
+  - Pax per Bellum — while you are at war with anyone, +10% every yield in every city; peace pays nothing (the War Economy said out loud). [KEEP]
   - The Old Guard — a unit that survives a kill gains +1 combat strength for life (at most +5): armies become veterans, not stacks.
   - The Doctrine of Annexation — captured cities keep every building and suffer no capture penalty · each costs +1 authority.
   - The Warrior Kings — a great general standing in a city doubles its aura and puts +25% production behind units there.
   - The Empire of Iron — military units cost no maintenance while at war · −2 happiness in every city while at peace.
-  - The Crown of Crowns *(user — bold, and I say worth trying: once per capital, it makes conquest a scoring verb)* — conquering a rival's capital pays a bead (once per capital, ever) and heals your whole army.
+  - The Crown of Crowns *(user — bold, and I say worth trying: once per capital, it makes conquest a scoring verb)* — conquering a rival's capital pays a bead (once per capital, ever) and heals your whole army.[this is already a deed, right?]
 - Great people: The Grand Muster (a general's legacy) *(user)* — +1% science and +1% gold per unit you field (cap 30%).
 - Deeds:
   - The Strongest Arm — At the close of the age, the empire whose army is worth the most in the field.

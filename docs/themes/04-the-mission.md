@@ -18,7 +18,7 @@ Wins by: The Widest Faith · *(planned)* The Ecumenical Council.
   - Apostles — What foreign followers pay you is doubled.
   - Pilgrims' Coin — +1 faith for every city in the world that follows and has a Temple.
   - Congregation — +1 happiness for every 5 cities in the world that follow, up to 3.
-  - *(planned)* Theocratic Mandate built — foreign empires of your faith tithe you
+  - *(planned)* Theocratic Mandate built — foreign empires of your faith tithe you [remove, feels bad for other players]
 - Orders: 
   - The Sword and the Word *(user)* — your pressure is doubled against empires you are at war with.
   - The Sealed Church *(user)* — your cities cannot be converted · your pressure +50% · −50% faith income across your empire.
@@ -26,7 +26,7 @@ Wins by: The Widest Faith · *(planned)* The Ecumenical Council.
 - Doctrines:
   - Sanctuary (deferred) — Your holy city cannot be taken while it keeps your religion — it is sacked instead.
   - The Universal Church *(proposal)* — your follower beliefs also pay YOU their yields from foreign cities that follow (the founder's fold, revived for one doctrine).
-- Great people: ▢ ________ (the missionary — a prophet's sibling?)
+- Great people:
 - Deeds:
   - The Apostle — Have your faith followed by twenty citizens in cities you do not own.
 
