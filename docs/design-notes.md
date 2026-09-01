@@ -4288,3 +4288,14 @@ cathedral in every city" (the tall-checklist shape) — proposed as "first finis
 cathedral," not yet ruled.
 
 ---
+
+## Entry LVI — Crowding disabled (**user ruling**, 2026-09-01)
+
+"Let's remove the crowding mechanic altogether — I want to see how big I can get my
+cities. If it's out of hand, we can think about adding it back; leave it in the codebase,
+disabled." Done by data: `crowdingWeight` 0.5 → **0** (`crowdingFrom`/`crowdingExponent`
+kept, the code untouched, the Compendium's formula sentence conditional on the weight).
+Re-enabling is one number. The tall ceiling is now happiness *demand per citizen* plus
+authority alone — watch The Metropolis playtests.
+
+---

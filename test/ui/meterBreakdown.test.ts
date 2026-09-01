@@ -56,8 +56,8 @@ function empire(): GameState {
   ] as const) {
     foundCityAt(state, 0, getTileAt(state.map, col, row)!);
   }
-  // A town big enough to pay the crowding term, which is the one case where a
-  // single city owns two lines of the happiness ledger.
+  // A town well past the old crowding threshold — kept that size so the day the
+  // surcharge returns, this fixture immediately exercises it again.
   state.cities[1]!.population = 11;
   return state;
 }
@@ -204,12 +204,16 @@ describe('a town’s own buildings net into that town’s demand line', () => {
     expect(meterStanding(folded).total).toBe(meterStanding(raw).total);
   });
 
-  it('leaves the crowding line alone, because it is a different fact', () => {
-    // A town's size and the surcharge for being over the threshold are two
-    // things a player deciding whether to grow is reading apart.
+  it('leaves a crowding line alone, because it is a different fact', () => {
+    // The surcharge is disabled by data (Entry LVI), so the sim never emits
+    // this line today — the fold's promise is pinned against a hand-made entry,
+    // because the promise must survive the day the weight comes back.
     const state = empire();
-    state.cities[1]!.buildings.push('funeralGames');
-    const folded = foldCityHappiness(explainHappiness(state, 0), towns(state, 0));
+    const raw = [
+      ...explainHappiness(state, 0),
+      { source: `${state.cities[1]!.name} crowding`, part: 'cost' as const, value: -3 },
+    ];
+    const folded = foldCityHappiness(raw, towns(state, 0));
     expect(folded.some((entry) => entry.source.endsWith('crowding'))).toBe(true);
   });
 

@@ -201,7 +201,7 @@
       "palace": 9,
       "perUniqueLuxury": 4,
       "demandPerPop": 1,
-      "crowdingWeight": 0.5,
+      "crowdingWeight": 0,
       "crowdingFrom": 8,
       "crowdingExponent": 1.2
     },

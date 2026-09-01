@@ -181,24 +181,30 @@ describe('the breakdown is the number', () => {
     expect(capitalCityOf(state, 0)).toBeUndefined();
   });
 
-  it('charges crowding as its own line, and only past the threshold', () => {
+  it('charges no crowding by default, and still knows how when the weight returns', () => {
+    // Disabled by data (Entry LVI, user 2026-09-01): `crowdingWeight` is 0, so
+    // the surcharge never appears — the user wants to see how big cities get.
+    // The mechanism stays in the codebase; the second half of this test turns
+    // the weight back on for a moment to prove one number re-enables it.
     const state = flatState();
-    const city = foundCityAt(state, 0, at(state.map, 4, 4));
-
-    city.population = HAPPY.crowdingFrom;
+    foundCityAt(state, 0, at(state.map, 4, 4));
+    const city = state.cities[0]!;
+    city.population = HAPPY.crowdingFrom + 3;
     expect(explainHappiness(state, 0).some((entry) => entry.source.includes('crowding'))).toBe(
       false,
     );
-
-    city.population = HAPPY.crowdingFrom + 3;
-    const entries = explainHappiness(state, 0);
-    const crowding = lineFor(entries, 'crowding');
-    expect(crowding).toBeDefined();
-    expect(-crowding!).toBeCloseTo(HAPPY.crowdingWeight * 3 ** HAPPY.crowdingExponent, 10);
-    // And the two lines together are the curve `happinessDemand` states.
-    expect(-(lineFor(entries, 'citizens')! + crowding!)).toBeCloseTo(
-      happinessDemand(city.population),
-      10,
+    const offWeight = HAPPY.crowdingWeight;
+    try {
+      (HAPPY as { crowdingWeight: number }).crowdingWeight = 0.5;
+      const entries = explainHappiness(state, 0);
+      const crowding = lineFor(entries, 'crowding');
+      expect(crowding).toBeDefined();
+      expect(-crowding!).toBeCloseTo(0.5 * 3 ** HAPPY.crowdingExponent, 10);
+    } finally {
+      (HAPPY as { crowdingWeight: number }).crowdingWeight = offWeight;
+    }
+    expect(explainHappiness(state, 0).some((entry) => entry.source.includes('crowding'))).toBe(
+      false,
     );
   });
 });

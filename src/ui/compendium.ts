@@ -1333,8 +1333,18 @@ function meterEntries(): CompendiumEntry[] {
           text: 'Happiness is one figure for your whole empire: everything that supplies it, minus everything that demands it. While it is positive your empire gets a percentage bonus to its yields, in the steps listed above; while it is negative it gets a penalty.',
         },
         {
-          text: `Every citizen in every city demands ${figure(happiness.demandPerPop)}. A city larger than ${figure(happiness.crowdingFrom)} citizens demands more on top of that, for crowding: ${figure(happiness.crowdingWeight)} × (size − ${figure(happiness.crowdingFrom)}), raised to the power of ${figure(happiness.crowdingExponent)}.`,
+          text: `Every citizen in every city demands ${figure(happiness.demandPerPop)}.`,
         },
+        // The crowding surcharge is disabled by data (Entry LVI — weight 0); its
+        // sentence returns with the number, so the book never describes a rule
+        // the ledger is not charging.
+        ...(happiness.crowdingWeight > 0
+          ? [
+              {
+                text: `A city larger than ${figure(happiness.crowdingFrom)} citizens demands more on top of that, for crowding: ${figure(happiness.crowdingWeight)} × (size − ${figure(happiness.crowdingFrom)}), raised to the power of ${figure(happiness.crowdingExponent)}.`,
+              },
+            ]
+          : []),
         {
           text: `However far the steps above go, the bonus or penalty never passes ${percentFigure(RULES.meters.tierClamp)}.`,
         },
