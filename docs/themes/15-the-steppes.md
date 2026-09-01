@@ -13,11 +13,11 @@ Wins by: the sprawl double — The Most Cities AND The Strongest Arm at once.
 - Deeds: ▢ ________
 
 ## Æra III
-- Orders: *(planned)* The Ordu — every X turns, a free mounted unit per 3 cities · *(planned)* The Yam — 🔬 and 🎵 per pair of connected cities (the post-rider network; marries 05)
+- Orders: *(planned)* The Ordu — every X turns, a free mounted unit per 3 cities · *(planned)* The Yam — gain +2 science and +2 culture for every city connected to the capital, doubled for captured cities
 - Doctrines:
-  - Manifest of the Steppe (shared with 07) — Settlers cost 40% less and never cost more than the first · every city demands +1 happiness.
+  - Manifest of the Steppe (shared with 07) — Settlers cost 40% less and settler cost scaling stops · every city demands +1 happiness.
   - ▢ ________ (the authority-relief lane: cheaper cities while cavalry outnumber towns — Order-gated per the ruling)
-- Improvements: *(planned)* The Kurgan — culture + faith on plains/grassland, more beside pastures (culture without buildings)
+- Improvements: ~~The Kurgan~~ *(CUT — user ruling: saved as a faction-unique improvement for the civs pass)*.
 - Units: ranged cavalry emphasis (the roster's III)
 - Deeds: ▢ ________
 
@@ -32,11 +32,10 @@ Almost everything is planned; this is the newest theme and the Sword/Charter bri
 ## The proposal batch (2026-09-02 — safe · wild, over-provisioned; cut freely)
 Spine tier — this one gets the fuller arc.
 - Æra II · The Remuda *(safe, Order)* — mounted units cost −20% production in cities holding a Pasture.
-- Æra II · The Open Sky *(wild, Order)* — your units ignore zone of control on plains and grassland. (The steppe does not believe in fences.)
-- Æra III · The Horse Tax *(safe, Order)* — +1 gold per Pasture you hold.
-- Æra III · The Wintering Grounds *(wild, Doctrine — the raider economy)* — your units cost no upkeep while outside your borders; +1 upkeep while inside them. (An army that eats what it rides through — pairs with The Great Raid below and 01's death economy.)
+- Æra III · The Horse Tax *(safe, Order)* — +1 gold +1 culture per Pasture you hold.
+- Æra III · The Wintering Grounds *(user: LOVED — kept)* — units cost no upkeep outside your borders · +5 healing outside your territory.
 - Æra III · The Great Raid *(wild, Order)* — pillaging costs a mounted unit no movement.
-- Æra IV · The Yassa *(safe, Order — 18 crossover)* — +1 culture per slotted military Order.
-- Æra IV · The Horde Eternal *(wild, Doctrine — the flip)* — when a mounted unit of yours dies, another musters in your capital three turns later. (The steppe is never empty.)
+- Æra IV · The Yassa *(safe, Order — 18 crossover)* — +1 prod in every city per slotted military Order towards military units.
+- Æra IV · The Horde Eternal *(wild, Doctrine — the flip)* — when a mounted unit of yours dies, another musters in your capital three turns later. (once per unit) (The steppe is never empty.)
 - Æra IV · The Great Migration *(safe, endeavour)* — a race: the first empire to found a thriving city 20+ hexes from its capital.
 - Æra IV · The Sea of Grass *(safe, reckoning)* — at the close of the age, the empire holding the most Pasture and unimproved grassland together.

@@ -36,8 +36,9 @@ itself a build.
   - The Forge-City — Keep one city working to a hundred of production for ten turns together.
 
 ## Æra III
-- Tech: ▢ ________ (workshops — the hammer marquee)
-- Orders: ▢ ________ (a wonder-adjacent Order: +X while building a wonder?)
+- Tech: **Artisanry** *(named — the hammer marquee)* — unlocks the Workshop: +2 production, +10% production in its city.
+- Orders: 
+  - The Wonder-Feasts *(user, named)* — cities gain +2 food while building a wonder · +10% production toward wonders.
 - Doctrines:
   - Mountain Hold — +15% production in every city beside a mountain · +5 city defence there.
 - Deeds:
@@ -47,7 +48,7 @@ itself a build.
 
 ## Æra IV
 - Doctrines:
-  - The Philosopher's Stone (deferred) — The Great Work costs −25% production. Every Distillery pays +5 gold.
+  - The Philosopher's Stone (deferred) — The Great Work costs −25% production. *(Distilleries removed by user ruling — First Distillation leaves the tree.)*
 - The Opus: the build itself — this theme's whole IV
 - Deeds: ▢ ________
 
@@ -57,10 +58,6 @@ The III marquee tech; nothing currently celebrates *holding* wonders but The Gra
 ## The proposal batch (2026-09-02 — safe · wild, over-provisioned; cut freely)
 NOTE: 12 was omitted from the tier stamp — placed **support** by the universal-yield rule
 (hammers are universal; the identity is monuments, not output). Overrule freely.
-- Æra II · The Cornerstones *(safe, Order)* — completing a building pays +5 production toward the city's next item. (The chain-builder's drum.)
-- Æra III · The Dressed Stone *(safe, Order)* — buildings cost −10% production in cities holding Stone or Marble.
-- Æra III · The Living Rock *(safe, belief crossover)* — mines on Stone or Marble pay +2 culture.
-- Æra III · The Architect's Folly *(wild, Doctrine)* — you may build wonders another empire already claimed, at half cost, as **follies**: +4 culture and +2 happiness, none of the wonder's effects. (Replica Pyramids on your skyline; the wonder-race loser's consolation industry.)
-- Æra IV · The Restorers *(safe, Order)* — a pillaged improvement in your territory rebuilds itself after 5 turns.
-- Æra IV · The Master Builders *(wild, Doctrine — Opus crossover)* — your Opus pillars and cathedral stages cost 15% fewer hammers. (The Stoneworks' whole late act is the finish line itself.)
-- Æra IV · The Skyline *(safe, feat)* — the first city in the world holding six wonders and follies together.
+- Æra II · The Cornerstones *(user rework)* — +2 production toward any building your capital already has.
+- Æra III · The Living Rock *(user rework, belief crossover)* — mines on resources pay +1 culture.
+- Æra IV · The Master Builders *(KEPT)* — your Opus pillars and cathedral stages cost 15% fewer hammers.

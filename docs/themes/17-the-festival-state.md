@@ -29,19 +29,19 @@ the Golden Age itself.
   - The Grain Dole — +2 happiness in every city of 6 or more population.
   - Mandate of Heaven — The science and culture your happy cities pay rises from 10% to 15% · +1 happiness for each 200 banked faith. (shared with 03 — arguably this theme's card)
 - Projects:
-  - The Games *(proposal — the repeatable engine)* — a project: spend hammers and gold → +3 happiness in every city for 10 turns and a culture lump; each Games costs and pays more than the last. (The project machinery already rate-limits and refuses doubles.)
+  - The Games *(proposal — the repeatable engine)* — a project: spend hammers and gold → +3 happiness in every city for 10 turns and a culture lump; each Games costs and more than the last. (The project machinery already rate-limits and refuses doubles.)
 - Wonders:
   - The Circus Maximus — +1 happiness per Barracks · +4 happiness
 - **The marquee mechanic — the Golden Age** *(proposal)*: at +20 surplus happiness a
   player may DECLARE a Golden Age: spend 20 happiness → 10 turns of +10% every yield in
   every city. Happiness literally spent, Civ-familiar, and the theme's whole fantasy in
   one button. (An Entry XVII empire-stage percent with a timed effect — every mechanism
-  exists.)
+  exists.) *(CUT — user ruling: too many new mechanics. The converters and the Games carry the theme; the declare-button dies.)*
 - Deeds: ▢ ________
 
 ## Æra IV
 - Doctrines:
-  - The Coronation Games *(proposal)* — completing a wonder, a cathedral or an Opus pillar throws games: +5 happiness in every city for 5 turns.
+  - The Coronation Games *(proposal)* — completing a wonder, a cathedral or an Opus pillar throws games: +3 happiness in every city for 10 turns.
   - The World's Fair — see 05 (the gold theme's wild card is this theme's crown).
 - Deeds:
   - The Most Content *(proposal, reckoning)* — at the close of the age, the empire with the highest surplus happiness.

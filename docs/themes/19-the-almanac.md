@@ -12,7 +12,7 @@ Wins by: First Into the Age, every era · the timing bets below.
   - Keeper of the Calendar — Every 20 turns, you are offered a find from a ruin. A ruin pays once for each age you have reached.
   - Omen Reading (rite) — +15 science, the augur's little foresight
 - Orders:
-  - The Planting Songs *(proposal)* — every 10 turns, your capital banks +10 food. (The theme's shape stated at its smallest.)
+  - The Planting Songs *(proposal)* — every 10 turns, your capital banks +15 food. (The theme's shape stated at its smallest.)
 - Deeds:
   - First Into the Age — The first empire in the world to reach a new age. (recurring — already this theme's food)
 
@@ -21,6 +21,7 @@ Wins by: First Into the Age, every era · the timing bets below.
 - Orders:
   - The Standing Levy — Every 10 turns, a free melee unit musters in your capital. (shared with 01 — the rhythm shape's military face)
   - The Drums of the Seasons *(proposal — THE scaler)* — every effect of yours that fires "every N turns" fires 1 turn sooner. (The metronome: unique, generic, and it makes every rhythm card in the pool better.)
+  - The Long Calendar *(user, named)* — if slotted when your empire enters a new age: gain a Magister's Die.
 - Religion:
   - The Eclipse Omen *(proposal, rite)* — an augur reads the sky: you are told the next reckoning's standings now, mid-age. (Foresight as a purchase.)
 - Deeds: ▢ ________
@@ -28,7 +29,6 @@ Wins by: First Into the Age, every era · the timing bets below.
 ## Æra III
 - Orders:
   - The Jubilee *(proposal)* — every 25 turns, a free Statecraft draft. (The calendar pays in decisions.)
-  - The Astronomers' Court *(proposal)* — whenever any empire enters a new age, you bank +30 science. (Other people's time is also time.)
 - Doctrines:
   - ▢ ________
 - Deeds:
@@ -36,7 +36,7 @@ Wins by: First Into the Age, every era · the timing bets below.
 
 ## Æra IV
 - Wonders:
-  - The Water Clock of Su Song — Scholarship pays +3 science · +1 authority capacity
+  - The Water Clock of Su Song *(user rework — MOVED to Æra III; a wants-a-node note is on the tree shelf)* — every 5 turns: +20 science and +5 renown, the chime growing +5 science each ring · +3 authority capacity.
 - Doctrines:
   - The Perpetual Calendar *(proposal)* — all your "every N turns" rhythms are 25% shorter, and the first firing after adoption is immediate.
 - **The dice, homed** *(proposal)*: the Magister's Dice become this theme's system — omen

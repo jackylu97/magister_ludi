@@ -37,7 +37,7 @@ Wins by: The Long Reign · The Deepening · the perfected council.
   - Absolutism — +6 authority capacity. A newly placed Order is locked for 10 turns instead of 5.
   - The Praetorium *(proposal)* — while your authority surplus is +5 or better: +15% every yield in the capital. (Surplus as a stance, not a leftover.)
 - Wonders:
-  - The Court of Eunuchs *(user, spelling fixed)* — −3 authority · gain an extra economic slot.
+  - The Hanlin Academy *(renamed per user — the historical scholars' bureau)* — −3 authority · gain an extra economic slot.
 - Deeds:
   - The Long Reign — Keep a council whose slotted Orders total fifteen levels for ten turns together.
 

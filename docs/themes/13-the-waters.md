@@ -11,7 +11,7 @@ Wins by: sea-lane reckonings · the overseas colony · denial (blockade takes be
 - Orders:
   - Harbour Dues — Coastal cities gain +2 gold and +1 culture.
 - Religion:
-  - River Mother — +2 food in every city on fresh water. Those cities' shrines supply +1 happiness.
+  - ~~River Mother~~ → **moved to 08** (user ruling: a freshwater/tall belief).
   - Lord of the Sea — +1 production and +1 gold on every hex with a Fishing Boat.
   - Holy Water — +1 food and +1 faith for every city that follows and stands on fresh water.
 - Deeds: ▢ ________
@@ -19,6 +19,8 @@ Wins by: sea-lane reckonings · the overseas colony · denial (blockade takes be
 ## Æra II
 - Tech:
   - Wayfinding — unlocks Bireme, War Galley, Harbour, Sea Legs
+- Orders:
+  - The Shipwright Shores *(user, named)* — cities settled on the coast gain +1 production and +30% production toward naval units.
 - Doctrines:
   - Thalassocracy — +20% gold and +20% culture in every coastal city · a coastal city costs 1 less authority.
   - Mare Nostrum — +1 food and +1 gold on every water hex you own. Coastal cities cost no authority.
@@ -46,11 +48,7 @@ Deeds column empty top to bottom; plunder is the missing verb the whole theme wa
 
 ## The proposal batch (2026-09-02 — safe · wild, over-provisioned; cut freely)
 The missing VERBS first — the theme has payoffs and no acts.
-- Æra II · The Tidesmen *(safe, Order)* — coastal cities +1 sight over water · embarked units +1 movement.
-- Æra III · The Dry Docks *(safe, Order)* — naval units heal fully in a port · +25% production toward naval units in cities with a Harbour.
-- Æra III · The Sea Peoples *(wild, Order — THE verb)* — naval melee units may pillage coastal improvements from the water. (Plunder arrives; the coast stops being safe by default.)
-- Æra III · The Corsairs' Letters *(wild, Doctrine)* — plundering a trade route or coastal improvement pays double. (Pairs with The Sea Peoples; the raider economy at sea.)
-- Æra IV · The Grain Fleets *(safe, Order — 08 crossover)* — every coastal city with a Harbour feeds +2 food to every inland city of yours.
-- Æra IV · The Wave Wall *(safe, Doctrine)* — your coastal cities take half damage from attacks made from the water.
-- Æra IV · The Admiralty *(safe, reckoning)* — at the close of the age, the empire whose fleet is worth the most.
-- Æra IV · The First Blockade *(safe, feat)* — the first empire to hold a rival city under blockade for five turns.
+- Æra III · The Dry Docks *(KEPT)* — naval units heal fully in a port · +25% production toward naval units in cities with a Harbour.
+- Æra III · The Sea Peoples *(user rework — QUEUED: needs the embark movement-penalty mechanic first)* — naval melee move freely between sea and land · plundering costs no movement.
+- Æra III · The Corsairs' Letters *(user rework)* — plundering a route or coastal improvement pays double · destroying a naval unit pays gold equal to its strength.
+- Æra IV · The Grain Fleets *(user rework)* — coastal trade routes carry +25% food.
