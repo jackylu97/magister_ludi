@@ -4255,3 +4255,36 @@ does it in its Orders column. The per-theme worksheets (`docs/themes/`) carry th
 standing constraint.
 
 ---
+
+## Entry LV — The Cathedral (**ratified with the user**, 2026-09-01)
+
+The building that names Æra IV, specced in conversation and deliberately small: **one very
+expensive building · +3 happiness · contributions of gold or faith hurry it · consecrated
+on completion to one of five named patrons.** The staged-construction and relic-system
+ideas were considered and cut as tedious/over-machined; what survived is the identity
+(enormous cost, funded every posture's own way, a pack-opening completion) with zero new
+UI — rule 5 prints the consecration as a labelled breakdown line, the Compendium lists the
+table from its rows, and the completion is one announce sentence.
+
+**The consecrations** (five rows, ordinary `CardEffect` shapes, rolled off `state.rng` at
+completion — logged, deterministic): The Scholars' Crypt (+1🔬 per 2 followers here) · The
+Choir Loft (+1🎵 per 2 followers here) · The Treasury of Relics (+3💰 per faith
+building/wonder in this city) · The Masons' Chapel (+10%⚙ toward wonders here) · The
+Eternal Flame (+1🕯 per follower here). One rolled field on the city; read as one more
+`liveCityEffects` source; a marker on the building row (never a name comparison) says a
+completion rolls.
+
+**The `contribute` verb** — the one real mechanism: spend gold or faith into the basket of
+a city whose queue-front row *declares it accepts contributions*, converting at the
+purchase rates. A narrow, deliberate exception to "never the remainder" (Entry XXIX),
+confined to declaring rows — today the cathedral, tomorrow the **Magnum Opus**, which is
+the point: the Opus's pillar-funding is rehearsed one age early on a building every player
+raises. The faith rate is a new `rules.production` number beside `goldPerHammer`.
+
+The +3 happiness stands in deliberate tension with Entry LIV's scarcity ruling: an
+age-IV, one-per-city, contribution-priced building is the *earned* kind of relief that
+ruling wants. Open beside this entry: The Cathedral of the Age endeavour still reads "a
+cathedral in every city" (the tall-checklist shape) — proposed as "first finished
+cathedral," not yet ruled.
+
+---
