@@ -211,7 +211,13 @@ The tech tree, rebuilt from the ratified theme sheets. Principles, all ruled:
 
 ### Gunpowder ← Machinery · 1140 ★★ (the closer)
 - reveals Niter (passive).
-- Handgonner (unit, NEW) — *(proposed 26 str · 2 mv · cost 26 · requires Niter)*.
+- The Fire Lance (unit, NEW) — *(proposed 26 str · 2 mv · cost 26 · requires Niter)* — the first gunpowder soldier, named for the weapon that really was first.
+- **The gunpowder line's naming register (renaissance-punk, ruled 2026-09-02)** — smoke, brass and slightly heretical science; culturally neutral. The slate for the line as it grows:
+  - Æra IV: **The Fire Lance** (above) · alternates: The Serpentine, The Thunderhand.
+  - Æra V shelf, infantry: **The Thunder Rank** · alternates: The Powder Choir, The Brimstone Guard.
+  - Æra V shelf, siege: **The Bombard** · alternate: The Alchemist's Mouth.
+  - Æra V shelf, mounted: **The Serpentine Riders** · alternate: The Smoke Lancers.
+  - naval (bonus, existing rows): Gun Galley → **The Brimstone Galley**? · Frigate could stay plain — the sea names are settled art; flag only.
 - pays a bead (passive — the closing node's reward, user ruling).
 
 **The Magnum Opus** is deliberately NOT a node: it unlocks for every empire when the world's
