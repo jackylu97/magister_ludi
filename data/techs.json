@@ -915,9 +915,9 @@
     "theology": {
       "name": "Theology",
       "glyph": "⛪",
-      "age": 4,
+      "age": 3,
       "row": 4,
-      "cost": 720,
+      "cost": 600,
       "prereqs": [
         "philosophy",
         "epicPoetry"

@@ -48,7 +48,7 @@ Wins by: the Opus faith pillar · The Cathedral of the Age · The Hierophant.
   - The Tithe — Gather a great sum of gold from tithes.
 
 ## Æra III
-- Tech: the Cathedral **(built 2026-09-01, Entry LV — cost 340, +3 happiness, contribute verb, five consecrations)**. NOTE: it currently unlocks at Theology, an Æra IV node — this sheet wants it in III, so either Theology moves or the cathedral re-homes to an Æra III node. Needs a ruling.
+- Tech: the Cathedral **(built 2026-09-01, Entry LV — cost 340, +3 happiness, contribute verb, five consecrations)**. NOTE: it currently unlocks at Theology, an Æra IV node — this sheet wants it in III, so either Theology moves or the cathedral re-homes to an Æra III node. Needs a ruling. Let's move it to era III. Theology also opens the enhancer beliefs, which is important to have earlier too.
 - Orders:
   - Mandate of Heaven — The science and culture your happy cities pay rises from 10% to 15% · +1 happiness for each 200 banked faith.
   - The Saints' Fields *(user)* — great-person improvements pay +3 faith.
@@ -59,7 +59,8 @@ Wins by: the Opus faith pillar · The Cathedral of the Age · The Hierophant.
 - Religion:
   - enhancers' III act
   - Recasting the Omens — augur rite
-- Great people: buy great people with faith — *user ruling: moved to the Æra V/tier-45 government layer, not Divine Mandate.*
+- Great people: 
+- Fill in some ideas here, go wild
 - Wonders:
   - Hagia Sophia — +1 culture, +1 faith in every city with a Temple · spreads your religion +4 faith to every city within 8 hexes · on completion, a Prophet joins you
   - Angkor Wat — faith buildings and improvements (holy sites) in this city gain +2 food. gain +1 faith for every 3 population in this city.
