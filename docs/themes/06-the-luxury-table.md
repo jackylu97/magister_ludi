@@ -37,3 +37,14 @@ into Orders generally.
 
 ## Gaps
 No deed anywhere; the happiness budget re-balance lands mostly on this file and 01/07/14.
+
+## The proposal batch (2026-09-02 — safe · wild, over-provisioned; cut freely)
+Support tier: one identity mechanic + crossovers. The identity candidate here is
+**monopoly** — caring which copies exist in the *world*, not just yours.
+- Æra I · The Collector *(safe, feat)* — the first empire to hold four unique luxuries.
+- Æra II · The Sumptuary Courts *(safe, Order)* — +1 culture per unique luxury.
+- Æra II · The Royal Table *(wild, Order)* — your capital counts every luxury it holds twice (copies included — the per-copy engines eat well).
+- Æra III · The Monopolies *(wild, Order — the identity mechanic)* — +4 gold and +1 happiness per luxury kind of which you hold every copy in the world. (The first card that makes you read the *rival's* resource panel.)
+- Æra III · The Gift of Kings *(wild, Doctrine)* — once per age, gift a luxury copy to a rival empire: both of you gain +4 happiness for 20 turns. (Diplomacy's first shadow, buildable today — a one-way command.)
+- Æra IV · The World's Table *(wild, Doctrine)* — +1% to every yield per unique luxury you hold (cap +8%). (Flagged: an empire %, the shape we usually refuse — included for the cut pile or the exception.)
+- Æra IV · The Groaning Board *(safe, reckoning)* — at the close of the age, the empire holding the most unique luxuries.

@@ -36,3 +36,11 @@ budget. Wins by: the quiet races — contentment, wild-ground counts, the Grove.
 
 ## Gaps
 No deed anywhere; the pantheon carries I alone; the capstone waits on a staging ruling.
+
+## The proposal batch (2026-09-02 — safe · wild, over-provisioned; cut freely)
+- Æra I · The Wardens of the Wood *(safe, Order)* — your units heal +5 on unimproved forest and jungle.
+- Æra II · The Green Offering *(safe, rite)* — an augur rite on an unimproved wooded hex: +15 faith, and the hex pays +1 faith for good.
+- Æra III · The Grove Court *(wild, Doctrine)* — great-person works may be planted on forest without clearing it, and keep the forest's yields underneath. (The academy in the trees — the theme's one stacking exception, worn proudly.)
+- Æra III · The Long Fallow *(wild, Order — needs a memory the sim lacks)* — ground left unimproved for 30 turns pays +1 of everything it already pays. *(Deferred-shaped: the sim would need to remember when a tile was last touched — same memory the chopped-ground food waits on.)*
+- Æra IV · The Green Cathedral *(wild — a sixth consecration)* — a cathedral may be consecrated to the Old Ways: unimproved hexes in its city pay +1 faith and +1 culture. (One data row in the consecration table; the machinery ships already.)
+- Æra IV · The Untouched Vale *(safe, reckoning)* — at the close of the age, the empire working the most unimproved hexes.

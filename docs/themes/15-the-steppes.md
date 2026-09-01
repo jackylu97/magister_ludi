@@ -28,3 +28,15 @@ Wins by: the sprawl double — The Most Cities AND The Strongest Arm at once.
 
 ## Gaps
 Almost everything is planned; this is the newest theme and the Sword/Charter bridge.
+
+## The proposal batch (2026-09-02 — safe · wild, over-provisioned; cut freely)
+Spine tier — this one gets the fuller arc.
+- Æra II · The Remuda *(safe, Order)* — mounted units cost −20% production in cities holding a Pasture.
+- Æra II · The Open Sky *(wild, Order)* — your units ignore zone of control on plains and grassland. (The steppe does not believe in fences.)
+- Æra III · The Horse Tax *(safe, Order)* — +1 gold per Pasture you hold.
+- Æra III · The Wintering Grounds *(wild, Doctrine — the raider economy)* — your units cost no upkeep while outside your borders; +1 upkeep while inside them. (An army that eats what it rides through — pairs with The Great Raid below and 01's death economy.)
+- Æra III · The Great Raid *(wild, Order)* — pillaging costs a mounted unit no movement.
+- Æra IV · The Yassa *(safe, Order — 18 crossover)* — +1 culture per slotted military Order.
+- Æra IV · The Horde Eternal *(wild, Doctrine — the flip)* — when a mounted unit of yours dies, another musters in your capital three turns later. (The steppe is never empty.)
+- Æra IV · The Great Migration *(safe, endeavour)* — a race: the first empire to found a thriving city 20+ hexes from its capital.
+- Æra IV · The Sea of Grass *(safe, reckoning)* — at the close of the age, the empire holding the most Pasture and unimproved grassland together.

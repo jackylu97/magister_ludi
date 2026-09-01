@@ -26,8 +26,9 @@ cross-play exists, and a pool that is all payoff cards is a pool where nothing f
   01 The Imperium · 03 The Faith Engine · 07 The Land Rush · 08 The Tall Hearth · 15 The Steppes.
 - **Support themes** (one identity mechanic, crossover hooks, at most a deed; deliberately thin):
   02 The Wild Frontier · 04 The Mission · 05 The Caravan State · 06 The Luxury Table ·
-  09 The Court · 10 The Observatory · 11 The Cartographers · 13 The Waters · 14 The Old Ways
-  (and 17–19 if kept).
+  09 The Court · 10 The Observatory · 11 The Cartographers · 12 The Stoneworks (placed here
+  2026-09-02 by the universal-yield rule — hammers are universal; overrule freely) ·
+  13 The Waters · 14 The Old Ways (and 17–19 if kept).
 
 **The universal-yield rule** (same ruling): *the more universally useful a yield, the thinner
 its theme.* Science buys entry into every theme, so the Observatory owns tempo and

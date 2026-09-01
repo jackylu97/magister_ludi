@@ -53,3 +53,14 @@ itself a build.
 
 ## Gaps
 The III marquee tech; nothing currently celebrates *holding* wonders but The Grand Tour.
+
+## The proposal batch (2026-09-02 — safe · wild, over-provisioned; cut freely)
+NOTE: 12 was omitted from the tier stamp — placed **support** by the universal-yield rule
+(hammers are universal; the identity is monuments, not output). Overrule freely.
+- Æra II · The Cornerstones *(safe, Order)* — completing a building pays +5 production toward the city's next item. (The chain-builder's drum.)
+- Æra III · The Dressed Stone *(safe, Order)* — buildings cost −10% production in cities holding Stone or Marble.
+- Æra III · The Living Rock *(safe, belief crossover)* — mines on Stone or Marble pay +2 culture.
+- Æra III · The Architect's Folly *(wild, Doctrine)* — you may build wonders another empire already claimed, at half cost, as **follies**: +4 culture and +2 happiness, none of the wonder's effects. (Replica Pyramids on your skyline; the wonder-race loser's consolation industry.)
+- Æra IV · The Restorers *(safe, Order)* — a pillaged improvement in your territory rebuilds itself after 5 turns.
+- Æra IV · The Master Builders *(wild, Doctrine — Opus crossover)* — your Opus pillars and cathedral stages cost 15% fewer hammers. (The Stoneworks' whole late act is the finish line itself.)
+- Æra IV · The Skyline *(safe, feat)* — the first city in the world holding six wonders and follies together.
