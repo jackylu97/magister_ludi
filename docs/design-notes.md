@@ -4320,4 +4320,13 @@ pins the register complete — a screen added without a push is this bug in its 
 (The four screens the landing already disposed — Abacus, Statecraft, Religion, Trade — keep
 their calls; they dispose more than listeners.)
 
+**The second half, found in the same hunt** (`20d18f8`): the sticky info card's two
+window-capture eaters (Escape, pointerdown) claimed input whenever the machine believed a
+card was open — and an anchor torn out of the DOM mid-hover never fires `pointerleave`, so
+the machine could believe it with nothing on screen. Both eaters now release when the card
+is hidden or the anchor has left the document: **a hidden card claims nothing.** Between
+the two halves, the observed shape — ×, Escape and clicks dead on a screen, intermittently,
+healing on their own — is accounted for twice over; if the freeze is ever seen again, the
+probe from 2026-08-31 (console + elementsFromPoint) is still the first move.
+
 ---
