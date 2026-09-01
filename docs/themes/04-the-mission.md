@@ -2,6 +2,8 @@
 Faith exported: convert foreign cities, be paid per foreign follower.
 Wins by: The Widest Faith · *(planned)* The Ecumenical Council.
 
+**Tech (neutral-tree ruling):** none of its own — the Mission rides 03's nodes (the High Temple, Theology); it is cards all the way down.
+
 ## Æra II
 - Religion:
   - The Long Road — Roads and caravans carry 2 more faith to a city.

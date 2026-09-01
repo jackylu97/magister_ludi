@@ -4,6 +4,8 @@ faith (spirits) or culture (the wild as muse). The 🌿 ladder shipped 2026-08-3
 Constraint: this theme's happiness (wild ground pays content) is part of the Order-gated
 budget. Wins by: the quiet races — contentment, wild-ground counts, the Grove.
 
+**Tech (neutral-tree ruling):** deliberately none — the Old Ways refuse the tree; every card of theirs arrives by faith or culture.
+
 ## Æra I
 - Religion:
   - Spirits of the Wood — Clearing a forest or jungle pays +15 faith. +1 culture on every forest hex.

@@ -3,6 +3,8 @@ Hammers and monuments: per-building payoffs, wonder-holding as an engine, windfa
 doubled. Wins by: The Most Marvels · The Builder · The Exposition — and the Opus is
 itself a build.
 
+**Tech:** Mining · Stonecraft (I); The Standing Stones (II); Construction · Engineering (III); Machinery (IV) — the hammer spine of the tree, all plain unlocks.
+
 ## Æra I
 - Tech:
   - Mining — unlocks Mine, Clear Forest

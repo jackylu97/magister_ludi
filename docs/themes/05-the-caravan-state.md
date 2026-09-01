@@ -56,6 +56,10 @@ Wins by: The Richest Roads · The Grand Caravan · the Opus gold pillar.
   - The Mint — A race. Needs a mint in every city. The first empire to finish banks a great sum of gold.
 
 ## Æra IV
+- Tech *(neutral-tree fill — the age's own nodes already serve)*:
+  - The Silk Road (existing Æra IV node) — the late route marquee, plain (+routes, routes pay more).
+  - Paper Money (existing) — the gold spike, and the Bourse's natural home.
+  - The Astrolabe (existing, shared with 11/13) — the sea lanes open.
 - Buildings: *(planned)* The Bourse — purchase-only, gold→culture
 - Orders:
   - The Learned Roads *(user)* — caravans pay +1 science and +1 culture per citizen of their destination city.

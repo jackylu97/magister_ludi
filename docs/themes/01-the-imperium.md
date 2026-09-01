@@ -6,7 +6,7 @@ Constraint: war's happiness relief (seized luxuries, held capitals) lives in the
 ## Æra I
 - Tech:
   - Bronzeworking — unlocks Spearman, Barracks, Funeral Games, The Walls of Uruk, Clear Jungle, Blessing of Arms, Iron
-  - ▢ ________ (an early war tech that pays, not just unlocks)
+  - ruled (neutral tree): no bespoke early war tech — Bronzeworking and Fletching are the age's war nodes; a tech that *pays* is now the exception, not the rule.
 - Orders:
   - Blooded Spears — +1 combat strength, and +2 more against barbarians.
   - Conscription — +50% production toward units · −2 happiness.
@@ -52,7 +52,9 @@ Constraint: war's happiness relief (seized luxuries, held capitals) lives in the
   - The Conqueror — Take three cities by force.
 
 ## Æra III
-- Tech: The Legion (the existing Æra III node, refined per user) — unlocks the Legionary · melee units gain: +1 combat strength per adjacent friendly unit.
+- Tech:
+  - The Legion (existing Æra III node) — unlocks the Legionary. *(Neutral-tree ruling: the user's adjacency ability — +1 strength per adjacent friendly — moves onto the Legionary's unit row; the tech merely unlocks it.)*
+  - also the theme's: Iron Working · The Cataphract · The Halberd Wall — the roster's own nodes, plain unlocks, already in the tree.
 - Orders:
   - The Legion — Melee units gain +1 movement and +1 combat strength, and cities put 15% more production behind them.
   - Garrison State — Each city gains +3 production for each combat unit standing in it (at most +6 per city).
@@ -84,7 +86,7 @@ Constraint: war's happiness relief (seized luxuries, held capitals) lives in the
 ## Æra IV
 - Tech: 
   - Steel (the existing Æra IV node, refined per user) — unlocks the age's melee line · melee units gain +1 movement.
-  - ▢ the Armoury's home (Machinery? its own node?) — unlocks the Armoury: +20%⚙ toward military units · units trained, bought or mustered in its city pay 50% of their strength as science and culture *(user)*.
+  - Machinery (existing Æra IV node) — ruled the Armoury's home: a plain unlock. The user's trained-units-pay-science ability moves onto the Armoury building row itself.
 - Orders: *(planned)* the flip — the fallen return (every Nth loss musters a free militia)
   - The Glorious Dead (○) *(user)* — every yield your fallen units pay is doubled.
   - The War Chest (◆) *(user)* — military units cost 3 less maintenance.

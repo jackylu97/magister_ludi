@@ -3,6 +3,8 @@ The unknown as a resource — and the map keeps secrets in LAYERS (each placed a
 revealed later, so the "generate once" rule holds): ruins (I) → veins (III) → the deep
 sea (IV). Wins by: circumnavigation · discovery counts per layer.
 
+**Tech:** Wayfinding (II); Prospecting *(proposed Æra III node — traditional format: unlocks the prospecting verb and the veins layer)*; The Astrolabe (IV) opens the ocean layer.
+
 ## Æra I
 - Orders:
   - Far Runners — Scouts +1 movement and +1 sight. Civilians +2 movement while embarked.

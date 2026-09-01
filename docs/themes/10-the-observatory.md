@@ -3,6 +3,8 @@ Science tempo as identity: per-tech and per-age payoffs, age-lead as a weapon. T
 per-age scaler shape is the real identity and is barely used.
 Wins by: First Into the Age (every era) · The Deepest Learning · the curtain itself.
 
+**Tech:** this theme IS the tree — Letters · Calendar (I); Mathematics · The Orrery of Bronze · The Examination Hall · Education (III); Physics · Movable Type (IV). All plain; the age-lead mechanics do the theming.
+
 ## Æra I
 - Tech:
   - Letters — unlocks Library, The Great Ziggurat, Scholarship, Omen Reading

@@ -6,6 +6,8 @@ deckbuilder's deck-about-the-deck, and the title character's own theme. Entry LI
 authority scarce, which turns surplus into a real *purchase* this theme rewards.
 Wins by: The Long Reign · The Deepening · the perfected council.
 
+**Tech:** Kingship (II), The Qadi's Court and The Examination Hall (III) — cited below; the law needs no fourth node.
+
 ## Æra I
 - Tech: Kingship — unlocks Stele of Laws · The King List, which would pay a city for the years since it was founded, waits until a city remembers its own founding turn. — not built yet
 - Orders:

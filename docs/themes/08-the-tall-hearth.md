@@ -41,7 +41,7 @@ active one. Wins by: The Metropolis · The Greatest City · The Census of the Wo
   - The Census of the World — A race. Needs a city of fifteen citizens. The first empire to finish gains a citizen in every city.
 
 ## Æra III
-- Tech: ▢ ________ (the growth marquee — aqueducts? the granary line's third act)
+- Tech: Engineering (existing Æra III node) — the Aqueduct's home: the growth marquee as a plain building unlock, with Mathematics beside it for the tall-science lean.
 - Orders: ▢ ________ (a growth-trigger III: when a city grows, X — Granary Levies' big sibling)
 - Doctrines:
   - Pax Imperia — +3 happiness and +3 culture in every city of 8 or more population.

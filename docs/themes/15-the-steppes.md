@@ -3,6 +3,8 @@ Wide play that synergizes with war: many cities lightly held, cavalry covering t
 sprawl, science and culture from motion and law rather than buildings.
 Wins by: the sprawl double — The Most Cities AND The Strongest Arm at once.
 
+**Tech:** The Steppe Bow and The Cataphract (Æra III) — the horse roster's own nodes, already in the tree. Nothing else needed.
+
 ## Æra II (the on-ramp)
 - Inherit:
   - Wolf-Mother's horde (02's flip)

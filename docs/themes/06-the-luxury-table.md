@@ -3,6 +3,8 @@ Luxuries as a collection game — and the wide player's happiness engine, which 
 2026-09-01 ruling makes load-bearing: most of the game's happiness supply moves HERE and
 into Orders generally.
 
+**Tech (neutral-tree ruling):** none of its own — rides 05's commerce nodes; the map supplies the luxuries.
+
 ## Æra I
 - Orders:
   - Common Granary — +1 food in every city holding an improved luxury resource.

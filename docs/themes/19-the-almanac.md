@@ -4,6 +4,8 @@ fire every N turns — plus foresight and timing races. No other theme's cards c
 *when*. Natural home of the Magister's Dice (the gambling verb with no sink today).
 Wins by: First Into the Age, every era · the timing bets below.
 
+**Tech:** Calendar (I) and The Long Count (II) — cited below; the late act is cards and dice, not nodes.
+
 ## Æra I
 - Tech: Calendar — unlocks The Hanging Gardens, Tithes, Plantation, Rite of Plenty, Plantation
 - Religion:

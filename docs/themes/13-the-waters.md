@@ -3,6 +3,8 @@ Coast and river as a siting bet; the naval line defends it. Payoffs exist — VE
 missing (plunder, strait control; blockade is built).
 Wins by: sea-lane reckonings · the overseas colony · denial (blockade takes beads away).
 
+**Tech:** Sailing (I); Wayfinding (II — military embark); Shipwrights (III — the yards and the triangle); The Astrolabe (IV — ocean-going). The navy's whole ladder, already in the tree.
+
 ## Æra I
 - Tech:
   - Sailing — unlocks Trireme, The Great Lighthouse, Fishing Boat, Embark, Granary

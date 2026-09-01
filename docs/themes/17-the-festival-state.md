@@ -5,13 +5,14 @@ an input — and Entry LIV's scarcity ruling makes that input precious, which is
 what makes spending it a build. Wins by: the contentment measures · The Great Games ·
 the Golden Age itself.
 
+**Tech:** none of its own — spectacle is bought, not researched; Rhetoric (III) carries the theatre if it wants a home.
+
 ## Æra I
 - Buildings: Funeral Games (the existing early renown building — this theme's front door)
 - Orders:
   - Festival Days — +4 happiness.
 - Religion:
   - Feast Days — +1 happiness for every city that follows, and +1 more for each with a Temple.
-- Deeds: ▢ ________
 
 ## Æra II
 - Doctrines:
@@ -19,9 +20,9 @@ the Golden Age itself.
 - Orders:
   - The Processions *(proposal)* — +1 culture for every 2 points of surplus happiness (cap +6). (The meter becomes a yield — the theme's first converter.)
 - Wonders:
-  - The Theatre of Dionysus — +1 culture in every city with an Amphitheater · on completion, a Doctrine draft opens
+  - The Theatre of Dionysus — +1 happiness in every city with an Amphitheater · on completion, a Doctrine draft opens
 - Deeds:
-  - The Great Feast *(proposal, feat)* — the first empire to hold +15 surplus happiness.
+  - The Great Feast *(proposal, feat)* — the first empire to hold +15 surplus happiness. [remove]
 
 ## Æra III
 - Orders:

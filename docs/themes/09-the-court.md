@@ -1,6 +1,8 @@
 # 09 · The Court of Great People
 Renown as currency, legacies as a collection. Wins by: The Most Called · The Dynasty.
 
+**Tech:** Ancestor Rites (Æra II, shared with 03) opens the offer; Rhetoric (III) carries the renown buildings. Nothing of its own past those — the Court is renown's theme, not science's.
+
 ## Æra II
 - Tech:
   - Ancestor Rites (the offer opens — the theme's front door)

@@ -15,6 +15,11 @@ ratified milestones then land in `docs/tree-worksheet.md`'s barebones tree.
   buildings/luxuries trimmed. A worksheet cell that relieves either meter belongs under
   Orders.
 
+**The tree stays neutral** (user ruling, 2026-09-01): technologies unlock buildings,
+units and key power spikes, plus plain bonuses — Civ-traditional. Theme *abilities* live
+on cards and building rows; a "tech that pays" is the rare exception (the seven existing
+effect-techs stay). It is fine for a theme to have no tech in some ages.
+
 Legend: plain = built and live · *(planned)* = proposed in themes.md / deferred on a data
 row · ▢ = blank for the design pass. Ages are the tree's: Æra I (the founding), II
 (Heroes), III (Empire), IV (Cathedrals).

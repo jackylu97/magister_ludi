@@ -3,6 +3,8 @@ Ground as the payoff: authority + border culture → more of everything. The Cha
 posture's spine. Constraint: authority relief lives HERE, in Orders — trim it everywhere else.
 Wins by: The Founder · The Twelve · The Most Cities.
 
+**Tech:** Colonial Charters (Æra III) is the theme's one node — plain settler and founding bonuses; the overseas act arrives with The Astrolabe (see 13).
+
 ## Æra I
 - Orders:
   - Boundary Stones — +30% border culture in every city.
@@ -31,8 +33,10 @@ Wins by: The Founder · The Twelve · The Most Cities.
 
 ## Æra III
 - Tech:
-  - Colonial Charters *(deferred — the marquee: settlers stay cheap, cities born developed)*
-- Orders: *(planned)* The Provincial Academies (flat 🔬 per city, no building) · ▢ ________ (connection happiness: + per city joined to the capital)
+  - Move stele of laws here, with a new name.
+- Orders: *(planned)* 
+- cities connected to the capital gain +1 happiness for every 3 cities you control
+- Colonial Charters: train settlers 50% faster. Cities founded more than 15 tiles from your capital cost 1 fewer authority
 - Government: the Charter flip — new cities arrive working, connected, content
 - Deeds:
   - The Most Cities — At the close of the age, the empire holding the most cities.
