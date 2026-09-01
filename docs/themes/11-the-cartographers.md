@@ -40,9 +40,20 @@ Great people:
 ## Æra IV
 - Tech: Ocean-Going opens *(planned)* ocean discoveries — derelicts and drowned temples on deep water (Tile.discovery already does all of it)
   - Niter *(user)* — a new strategic resource, required by the gunpowder units late in the age *(forward hook: the roster has no gunpowder rows yet; niter ships with them)*.
-- Orders: *(planned)* sea charts sold for gold (🐫 crossover)
+- Orders: *(planned)* sea charts sold for gold (🐫 crossover) [remove]
 - Deeds: *(planned)* circumnavigation (feat) · Opus: ▢ ________
 
 ## Gaps
 Everything after II is planned; auto-explore is already the bot's and the player's shared
 verb, so every layer lands for both at once.
+
+## The proposal batch (2026-09-02 — safe · wild, over-provisioned; cut freely)
+- Æra I · The Ruin-Readers *(safe, feat)* — the first empire to claim five discoveries.
+- Æra II · The Traveler's Tales *(safe, Order — Ibn Baṭṭūṭa's little sibling)* — the first time one of your units enters a foreign empire's borders, +10 science and +10 culture (once per rival).
+- Æra II · The Charted Third *(safe, deed)* — the first empire to have revealed a third of the world.
+- Æra III · The Assayers *(safe, Order)* — every prospect survey pays +5 science, strike or barren. (Certainty itself becomes income — the theme's thesis in one card.)
+- Æra III · The Vein Maps *(wild, Order)* — veins inside your borders reveal themselves without a survey. (Convenience as power; makes Prospecting empire-shaped instead of unit-shaped.)
+- Æra III · The Prospector *(safe, feat)* — the first empire to strike three veins.
+- Æra IV · The Meridian *(wild, rider on circumnavigation)* — completing the circumnavigation also grants all your naval units +1 movement for good. (The feat leaves a permanent mark on the fleet that did it.)
+- Æra IV · The Antipodes *(wild, Doctrine — 07/13 crossover)* — while you hold a city on the far landmass: +10% science in your capital. (The far shore pays for the curiosity that found it.)
+- Æra IV · The Known World *(safe, reckoning)* — at the close of the age, the empire that has revealed the most of the map.
