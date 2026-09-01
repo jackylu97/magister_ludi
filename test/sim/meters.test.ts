@@ -35,7 +35,6 @@ import {
   foundingCostLines,
   growthFactor,
   growthStiflePercent,
-  happinessDemand,
   happinessOf,
   meterEffects,
   meterStanding,
