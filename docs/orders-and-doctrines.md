@@ -104,11 +104,13 @@ Warring Tribes (the courthouse).
 | Doctrine | Line | Effect |
 |---|---|---|
 | Thalassocracy | 🐫 | +20% 💰 and 🎵 in coastal cities · coastal cities cost 1 fewer authority |
-| Mountain Hold | ⚒ | +25% ⚙ in mountain-adjacent cities · +5 defense there |
-| The Burning Way | ⚒ | chopping costs no worker charge · pillaging heals a further 25 |
+| Mountain Hold | ⚒ | +15% ⚙ in cities within two tiles of a mountain · +5 defense there |
+| The Burning Way | ⚒ | chopping costs no worker charge · tiles that have been chopped gain +1 food |
 | Bread and Circuses | 🌱 | +3 happiness per city if authority is positive, -1 gold per city |
 | The Tithe | 🕯 | +1💰 per 🕯 gained per turn |
 | Divine Inspiration | 🕯 | +1% 🔬 and 🎵 per 200 banked 🕯 (no max) |
+| The Gentle Yoke | 🌱 | −15% happiness demanded per citizen · each city costs +2 authority |
+| The Scattered Hearths | 🌱 | a city's first 3 citizens demand no happiness · −4 happiness in the capital |
 
 ### Pool III (tier 15)
 
@@ -121,6 +123,7 @@ Warring Tribes (the courthouse).
 | Master of Maps | 🧭 | all units +1 sight and +1 movement · all units -2 combat strength |
 | Hegemony | ⚒ | +1 authority capacity per city you hold · captured cities cost one less authority point |
 | Pax Imperia | 🌱 | cities of 8+ population: +3 happiness and +3🎵 each |
+| The Wandering Court | 🌱 | −15% to every yield in the capital · +3 of every yield (🌾 ⚙ 🔬 🎵 🕯 and happiness) in every other city |
 
 ### Pool IV (tier 22)
 
@@ -133,6 +136,7 @@ Warring Tribes (the courthouse).
 | Cuius Regio | 🕯 | in cities that follow your religion, trained augurs gain +1 charge and their rites are 30% more effective |
 | The Yeomanry | 🌱 | every farm +1⚙ · cities of 10+ population −1 happiness |
 | Absolutism | — | +6 authority capacity · Orders seal for 10 turns instead of 5 · you gain a wildcard order slot |
+| The Closed Realm | — | your happiness is fixed at +5, always · your units cannot attack outside your territory |
 
 ### Pool V (tier 32)
 
@@ -169,12 +173,11 @@ weight halves for twenty turns) is the other half of the repeat fix and is in
 | Blooded Spears | M | 🏹 | ● |  +1 combat strength, +2 combat vs barbarians (3 total against barbs),|
 | Camp Followers | M | 🏹 | ◆ | camp clears pay +25🌾 and gift a random military unit |
 | Far Runners | M | 🧭 | ● | scouts +1 movement and +1 sight, civilian units gain +2 movement when embarked |
-| The Long Watch | M | — | ● | +1 happiness per unit stationed in a city (fortification does not matter) · +1 more per fortification building (palisades, castles, etc.) |
 | The Widow's Levy | M | — | ◆ | when a unit of yours dies, its nearest city gains +10⚙ and +40 gold |
-| Common Granary | E | 🌱 | ● | +1 food on luxury resource tiles |
+| Common Granary | E | 🌱 | ● | cities holding an improved luxury gain +1🌾 |
 | Salt Tithes | E | 🐫 | ● | +2💰 per unique luxury |
 | Boundary Stones | E | — | ● | +30% border culture, all cities (does not count towards global culture) |
-| First Rites | W | 🕯 | ● | +1🕯 per city |
+| First Rites | W | 🕯 | ● | +2🕯 in your capital |
 | Border Ballads | W | 🏹 | ◆ | +2🎵 per discovered barbarian camp, +4 culture for every barb killed |
 | Militia Levies | M | — | ● | all your cities +5 defense and +1 sight radius |
 | Fire-Keepers | W | 🕯 | ● | +1🕯 and +1 happiness in your capital |
@@ -185,6 +188,8 @@ weight halves for twenty turns) is the other half of the repeat fix and is in
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
+| The Long Watch | M | — | ● | +1 happiness per unit stationed in a city (fortification does not matter) · +1 more per fortification building (palisades, castles, etc.) |
+| Wayside Shrines | W | 🕯 | ● | +1🕯 per city |
 | Border Wardens | M | — | ● | +3 combat inside your territory |
 | Vanguard | M | ⚒ | ● | +3 combat outside your territory |
 | Conscription | M | ⚒ | ◆ | +50% ⚙ toward units · −2 happiness |
@@ -198,7 +203,7 @@ weight halves for twenty turns) is the other half of the repeat fix and is in
 | Land Grants | E | — | ◆ | tile purchases −25% · +40% border culture |
 | Homestead Charters | E | — | ◆ | newly founded cities start with an extra population |
 | Granary Levies | E | 🌱 | ◆ | when a city grows, it gains +10⚙ |
-| Census Rolls | E | — | ● | +2 authority capacity |
+| The King's Table | E | 🌱 | ● | +1 happiness for every 2 citizens in your capital |
 | Festival Days | W | 🌱 | ● | +4 happiness |
 | Curious Elders | W | ✶ | ◆ | +5🔬 whenever you claim a discovery |
 | Rites of Passage | W | 🕯 | ◆ | buying/completing a unit grants +5🕯 |
@@ -214,12 +219,15 @@ weight halves for twenty turns) is the other half of the repeat fix and is in
 | Hill Forts | M | ⛰ | ◆ | +2 combat strength defending on hills · cities on hills cost 1 fewer authority |
 | The Pilgrim's Purse | W | 🕯 | ◆ | cities adjacent to a holy site gain +5🕯 per turn |
 | Charter Towns | E | 📜 | ◆ | newly founded cities gain a free Granary |
-| The Bronze Mirror | W | ✶ | ○ | completing a technology spawns one unique luxury within 3 hexes of your capital (one-time) — *deferred: the map cannot gain a resource after it is made* |
+| The Bronze Mirror | W | ✶ | ○ | you gain a unique luxury of your own make — bronze trinkets: +1 happiness in every city, +1 more per copper or tin you hold |
+| The Unbroken Land | E | 🌿 | ◆ | +1🌾 and +1⚙ on every unimproved tile |
 
 ### Government II pool
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
+| The Orchard Tithe | E | 🌱 | ● | +1🌾 on every luxury resource tile |
+| The Quiet Fields | W | 🌿 | ● | +1 happiness for each worked unimproved tile |
 | Field Surgeons | M | ⚒ | ● | units heal +10 per turn anywhere |
 | March Discipline | M | ⚒ | ◆ | all combat units +1 movement | cannot be upgraded
 | The Shield Wall | M | ⚒ | ● | +3 combat on hills |
@@ -229,18 +237,18 @@ weight halves for twenty turns) is the other half of the repeat fix and is in
 | Publicani | E | 🐫 | ◆ | +2💰 per point of positive authority |
 | Chartered Companies | E | 🐫 | ◆ | each tile purchased pays +5🔬 · purchases −15% |
 | Foreign Quarters | E | 🐫 | ◆ | +1💰 and +1🔬 in cities with borders touching a different civ's borders |
-| Ore Tithes | E | ⚒ | ● | +3⚙ in each city holding an improved strategic resource |
-| Terraced Hillsides | E | 🌱 | ● | +1🌾 per worked hill tile in each city (cap +5) |
+| Ore Tithes | E | ⚒ | ● | +1 prod on every strategic resource tile |
+| Terraced Hillsides | E | 🌱 | ● | hill tiles gain +1 food |
 | Master Masons | E | ⚒ | ◆ | completing a building grants +5🎵 |
 | Royal Surveyors | E | — | ● | +50% border culture · tile purchases −25% |
 | Provincial Governors | E | — | ● | +3 authority capacity |
-| Pilgrim Roads | W | 🕯 | ◆ | +1🕯 per city · +1 happiness per 50 banked 🕯 (max +5) |
+| Pilgrim Roads | W | 🕯 | ◆ | +1🕯 for every 3 population in your capital · +1 happiness per 50 banked 🕯 (max +5) |
 | Lamplighters | W | 🕯 | ◆ | +1🎵 per 5🕯 gained per turn |
 | Scholars' Stipend | W | ✶ | ● | +2🔬 in each city of 5+ population |
 | Emergency Powers | E | — | ○ | while authority is negative: capital +25% ⚙ and borders do not freeze |
 | The Common Purse | E | — | ○ | production overflow from a completed item is doubled |
 | The Choir | W | 🕯 | ● | +1🎵 per Temple · Temples +1 happiness |
-| Star-Gazers | W | ✶ | ● | +2🔬 in cities beside a mountain |
+| Star-Gazers | W | ✶ | ● | +2🔬 in cities with a mountain (mountain tile is within city boundaries) |
 | Cistern Works | E | 🌾 | ● | all cities gain fresh-water access |
 | Ledger-Keepers | E | 🐫 | ● | +1💰 per Market · while slotted, +1 trade-route capacity |
 | Drums of War | M | 🎖 | ◆ | newly trained units gain +1 combat strength |
@@ -248,6 +256,7 @@ weight halves for twenty turns) is the other half of the repeat fix and is in
 | The Masons' Lodge | E | ⚒ | ◆ | buildings cost −10%⚙ in cities of size 6+ |
 | The Oath-Bound | M | 🎖 | ○ | after killing a unit, the killer gains +15 hp |
 | Sanctuary | W | 🕯 | ○ | your holy city cannot be captured while it follows your religion — it is sacked instead — *deferred until sacking exists* |
+| The Greenwood Law | E | 🌿 | ◆ | +2🌾 and +2⚙ on every unimproved tile |
 
 ### Government III pool
 
@@ -264,10 +273,12 @@ weight halves for twenty turns) is the other half of the repeat fix and is in
 | Quarrymen's Guild | E | ⚒ | ● | +5⚙ in cities holding stone or marble |
 | The Grain Dole | E | 🌱 | ● | cities of 6+ population: +2 happiness each |
 | Mandate of Heaven | W | 🕯 | ○ | happiness benefit effects increased by 5% (10%->15% science and culture from happy cities) · +1 happiness per 200 banked 🕯 (no cap) |
-| The Lyceum | W | ✶ | ◆ | completing a technology grants +20🎵 |
+| The Lyceum | W | ✶ | ◆ | completing a technology grants an extra turn of culture |
 | Census of Souls | W | 🕯 | ◆ | +1🕯 per population in your capital |
 | Toleration Edicts | W | — | ● | happiness demand −10% |
 | The Standing Levy | M | — | ○ | every 10 turns, receive a free melee unit in your capital |
+| First Fruits | E | 🌱 | ● | +1🌾 on every resource tile |
+| The Old Ways | W | 🌿 | ◆ | the yields of unimproved tiles are doubled |
 
 ### Æra III pool
 

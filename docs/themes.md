@@ -19,6 +19,7 @@ engine in the pool and entirely undiscoverable today.
   Poetry), beads (The Conqueror, The Strongest Arm).
 - State: **complete but hidden** — no wonder, no great-person hook, no named identity.
 - tags: forge · war · domination
+- **Wins by:** the sword as tempo — The Fallen Palace (first capital taken), The Strongest Arm and The Most Cities at age-close, The Muster of the Realm; late, captured ground funds any pillar of the Opus.
 - Direction (user): cheap units over strong ones; units cheaper but weaker; free units on
   a rhythm; melee and cheap ranged over cavalry (cavalry is the Steppes', below).
 - Proposed:
@@ -43,6 +44,7 @@ pays. Wolf-Mother's Pact flips the whole rule (barbarians join you).
   own: its heir is **The Steppes** (15), and Wolf-Mother's tamed horde is the bridge —
   the player who rode the wild in age II arrives at age III already horsed.
 - tags: hunt · wild
+- **Wins by:** nothing of its own, by ruling — it is the tempo feeder: camp bounties buy the age-II bead lead its heirs (1, 15) convert.
 
 ## 3. The Faith Engine
 Faith-per-turn as the master resource, converted into everything else: culture (The Great
@@ -54,6 +56,7 @@ the rest on augurs and rites.
 - State: **complete early, aimless late** — over-supplied with converters, under-supplied
   with destinations.
 - tags: procession · stone(part) · sun(part)
+- **Wins by:** the Opus faith pillar as its stated destination; The Cathedral of the Age and The Hierophant on the way.
 - Direction (user): a late-game payoff that ties directly into win conditions; buy units
   with faith; buy great people with faith; faith-only buildings; more late faith units;
   faith × science as a thematic pairing.
@@ -83,6 +86,7 @@ the Faith Engine: that one banks faith, this one exports it.
 - State: **one-channel** — no Orders, no wonder-identity beyond Hagia Sophia, no
   great-person hook past the prophet.
 - tags: road(part) · the enhancer pool
+- **Wins by:** conversion as conquest — The Widest Faith at every age-close, The Ecumenical Council as the majority race; the Opus premium on foreign followers makes the world itself the engine.
 - Direction (user): converting other civs needs a late payoff and a direct win-condition
   tie-in.
 - Proposed:
@@ -106,6 +110,7 @@ payoffs → gold buys what hammers can't.
   Grand Caravan, The Richest Roads).
 - State: **complete and currently degenerate** — needs a trigger and a trim, not adders.
 - tags: caravan · road(part) · economic
+- **Wins by:** The Richest Roads and The Grand Caravan mid-game; late, gold is the fungible pillar — the Caravan State part-buys the Opus, which is exactly its fantasy.
 - Direction (user): gold today is an accelerant for infrastructure and war, strongest
   early; wants creative late uses. The most powerful things (Orders, Doctrines, wonders)
   are rightly not for sale — the interesting lane is **powerful buildings that can only
@@ -131,6 +136,7 @@ Bazaar). The natural **wide-play happiness engine** — it already half-exists.
 - State: **half-built** — capped by map scarcity by design; the duplicate-copies rule is
   the lever to extend it.
 - tags: caravan(part) · green(part)
+- **Wins by:** no race of its own — it is the wide player's ceiling-lifter, and its reckoning is contentment (see 17).
 
 ## 7. The Land Rush
 Ground itself as the payoff: cheaper hexes, faster borders, cheaper settlers, cities born
@@ -142,6 +148,7 @@ Governors). The loop: authority + border culture → more ground → more of eve
   spine. See **16 (Expansionists)**: proposal is that 16 *is* this theme's Æra III+ act,
   folded here rather than kept separate.
 - tags: none(most) · charter · green(part)
+- **Wins by:** the count races — The Founder, The Twelve, The Most Cities at every age-close; late, the overseas colony endeavour (see 16's notes) and sheer pillar throughput from many towns.
 
 ## 8. The Tall Hearth
 Population as the multiplier: food kept on growth, per-citizen yields, thresholds for big
@@ -151,6 +158,7 @@ citizens → per-head yields → science and culture compound.
   beliefs, guilds, beads (The Metropolis, The Greatest City, The Census of the World).
 - State: **complete** — and the beads' current bias toward it is the endeavour problem.
 - tags: green · hearth · ploughshare
+- **Wins by:** the size races — The Metropolis, The Greatest City, The Census of the World; late, specialists and the Great Levy turn population directly into whichever pillar the build needs.
 - Direction (user): late game converts population into further yields; possibly a
   late-game **population-spending** mechanic as the payoff for having grown early.
 - Proposed:
@@ -170,6 +178,7 @@ Renown as a currency and legacies as a collection.
 - State: **system built, deck thin** — one court Order exists; the family tags should
   dissolve into the other themes (each family serves 2–3 themes as their face cards).
 - tags: court · the GP family vocabulary
+- **Wins by:** The Most Called and The Dynasty; a legacy-count standing race (The Legacy) is its natural signature — the court wins by *who* it kept, not what it built.
 
 ## 10. The Observatory
 Science tempo as identity: payoffs per technology completed, per age reached, age-lead as
@@ -178,6 +187,7 @@ a weapon. The per-age/per-tech scaling shape is its real identity and barely use
   (Great Library, House of Wisdom).
 - State: **thin as a theme** — mostly flat science adders today.
 - tags: star · sky(part) · science
+- **Wins by:** tempo itself — First Into the Age every era, The Deepest Learning at age-close, The Scholar's Wager; the curtain-closer: finishing the chart is this theme's Opus.
 
 ## 11. The Cartographers
 The unknown as a resource: ruins pay, revealed hexes pay, sight and movement stack.
@@ -186,6 +196,7 @@ The unknown as a resource: ruins pay, revealed hexes pay, sight and movement sta
 - State: the weakest theme (user) — discoveries are spent by age 2 and nothing renews the
   question the theme asks.
 - tags: wayfarers · road(part)
+- **Wins by:** the completed chart — circumnavigation, a discovery-count feat per layer (ruins, sea, veins); it wins early beads cheap and sells the map to whoever is winning late.
 - Direction (user): the map should keep secrets in later layers — veins were mentioned;
   critical points on the map with strong bonuses; a reason to explore after the chart is
   drawn.
@@ -212,6 +223,7 @@ theme** (user — affirmed as its own line, split out of forge).
   the Faithful, The Standing Stones), beads (the building endeavours, The Most Marvels,
   The Builder), all 27 wonders as its trophies.
 - tags: forge(part) · stone · culture(beads)
+- **Wins by:** The Most Marvels, The Builder, The Exposition — and the Opus is itself a build, so the Stoneworks is the one theme whose win condition is literally its loop.
 
 ## 13. The Waters
 Coast and river as a siting bet; the naval line defends the investment.
@@ -220,6 +232,7 @@ Coast and river as a siting bet; the naval line defends the investment.
 - State: **payoffs without verbs** — blockade exists; plunder, sea ruins (see 11) and
   strait control are the missing acts.
 - tags: water · caravan(part) · frost/sun
+- **Wins by:** the sea lanes at age-close (a Richest Roads sibling for sea routes), the overseas colony, and denial — a blockade is how this theme takes beads *away*.
 
 ## 14. The Old Ways (Nature)
 **User's proposal, fleshed out.** The unimproved world as a source: a counterpoint to
@@ -243,6 +256,7 @@ real costs, not just foregone bonuses.
   - Cross-play: Faith Engine (the druid lean), Tall Hearth (culture lean), Cartographers
     (wilderness is where the secrets are), and *deliberate* anti-synergy with the
     Stoneworks — the argument the theme exists to have.
+- **Wins by:** the quiet races — a contentment reckoning, the Grove as a wonder bead, and an unimproved-ground standing count; it wins by refusing the Stoneworks' race, visibly.
 
 ## 15. The Steppes
 **User's proposal, fleshed out.** Wide play that synergizes with war: the horse empire.
@@ -263,6 +277,7 @@ culture from *motion and law* rather than buildings and population.
     grassland, more beside pastures. Culture without buildings.
   - Cross-play: the Imperium (armies), the Caravans (the silk road runs through the
     steppe), the Wild Frontier (its heir), Expansionists/Land Rush (the peaceful twin).
+- **Wins by:** the sprawl double — The Most Cities *and* The Strongest Arm at once, which no other theme can hold together; the horde is both its economy and its reckoning.
 
 ## 16. Expansionists
 **User's proposal.** Build many cities; alternate science/culture sources; late-founded
@@ -281,6 +296,7 @@ resource control paying per unique luxury and per city.
     thriving colony overseas.
   - Resource control: the Luxury Table (6) already pays per kind and per copy; the wide
     player is simply the one who can collect them. No new mechanism needed — a tag.
+- **Wins by:** see 7 — the count races, plus the overseas colony as its age-IV signature.
 
 ---
 
@@ -294,7 +310,7 @@ Mandate of Heaven (happy cities pay more). Proposed: **The Games** as a repeatab
 project (spend hammers+gold → an empire happiness step and a culture lump, each grander
 than the last), festival rites for the augur, and a reckoning for the most content
 realm. Cross-play: Tall (big cities host), Caravans (fund it), the Court (artists
-headline it). Distinct because its input — happiness itself — is nothing else's input.
+headline it). Distinct because its input — happiness itself — is nothing else's input. **Wins by:** the contentment reckoning and ever-grander Games — the festival calendar *is* a bead schedule.
 
 ## 18. The Magistracy
 The law as an engine: authority and the Statecraft apparatus itself paying yields.
@@ -305,7 +321,7 @@ Order paying science per slotted Order level (the codified law as scholarship), 
 government whose wildcard slot doubles a card's level, the Qadi's Court tech effect as
 its anchor. Cross-play: it crosses *every* posture because every empire runs a
 government — the deckbuilder's deck-about-the-deck. Very much this game's own theme; the
-title character's.
+title character's. **Wins by:** The Long Reign and The Deepening made a family — the perfected council as a standing race; it converts governance itself into beads.
 
 ## 19. The Almanac
 Time itself: omens, calendars, the rhythm of turns. Already latent: Keeper of the
@@ -316,7 +332,31 @@ timing as a resource (first-into-the-age feats). Proposed: cards that shorten ev
 "every N turns" effect you run (the metronome as a scaler), an augur rite that *tells
 you the next reckoning early*, and an Æra IV wonder that fires everyone's rhythms one
 turn sooner. Cross-play: Faith (omens), Observatory (astronomy), Imperium (the levy
-rhythm). Distinct mechanically — no other theme's cards care *when*.
+rhythm). Distinct mechanically — no other theme's cards care *when*. **Wins by:** timing races — first-into-the-age feats are already its native food; an omen that predicts the next reckoning is a bead bought with foresight.
+
+---
+
+## Simplifying the beads — the themes as the win system
+
+The bead race today is four row kinds (feats · endeavours · quests · reckonings), hands
+that refill, drafting, and dice — a lot of *mechanics* for what the sections above show
+is really one idea: **every theme wants one race and one measure.** Two shapes cover
+everything:
+
+- **A Deed** (the race): first empire to do X, once per age — today's feats, endeavours
+  and quests collapse into this one kind. No hands, no drafting: the age's deeds are a
+  **public board** every player sees the day the age opens (drawn once, deterministically,
+  from the themes the age serves). You don't hold deed cards; you *do* deeds.
+- **A Reckoning** (the measure): most-X at age-close, unchanged — it is already the
+  cleanest mechanic in the system.
+
+Each ratified theme contributes exactly **one deed and one reckoning per age it is live**
+— the win system becomes a projection of the theme list, the codex grid gains two columns,
+and the endeavour bias problem (Entry LII) dissolves structurally: wide, war, faith and
+festival each own their lane because the *themes* do. Dice stay as the one gambling verb
+(re-roll a deed's terms? bank a bead? — needs its sink either way). The golden bead stays
+the Magnum Opus. What is *removed*: hand management, per-kind rules, the quest/endeavour
+distinction, and the drafting moment — the board replaces all four.
 
 ---
 
