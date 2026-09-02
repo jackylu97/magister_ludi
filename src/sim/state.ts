@@ -581,8 +581,34 @@ import {
  *     The migration note: nothing to migrate. Both new tile fields are absent on
  *     every v42 tile, which reads correctly as "nothing buried, nobody asked" —
  *     what a v42 save cannot carry across is the map itself.
+ * 44: **The age-1 restoration and the deepened chains** (2026-09-02, the user's
+ *     pass over revision 3). Entry 41's bump again, for exactly its reason: the
+ *     tree a log was played against is not this tree.
+ *       · **Æra I is restored wholesale to what it was before the re-cut** —
+ *         twelve nodes, **Calendar** among them, back at its old cost with the
+ *         Hanging Gardens, the tithes conversion and the Rite of Plenty on it,
+ *         and with the old prerequisites (Bronzeworking wants Mining *and*
+ *         Earthenware again, Letters wants Divination, The Wheel wants
+ *         Bronzeworking). A v43 log cannot name Calendar and a v43 log that
+ *         researched Letters researched a cheaper, differently-gated node.
+ *       · **Currency 195 → 160 and Irrigation 170 → 190**, so every seat's
+ *         beaker schedule from the middle of Æra II onward parts company with a
+ *         v43 replay's.
+ *       · **Æra III and Æra IV are re-chained** so each lays out in three
+ *         dependency columns rather than one — Empire-Building wants Colonial
+ *         Charters, Paper Money and The Qadi's Court want Empire-Building,
+ *         Machinery and Physics want Prospecting, Movable Type wants Paper
+ *         Money, Steel wants Machinery, Banking hangs off The Silk Road, The
+ *         Holy Office off Movable Type and Alchemy off Steel. A v43 log's
+ *         `chooseResearch` is a refusal here wherever a prerequisite moved.
+ *       · **Forgotten hymns pay 7 culture, not 13**, so the ruin a scout walked
+ *         into no longer settles the opening draft and the draws that follow it
+ *         come off `state.rng` in a different order.
+ *
+ *     The migration note: nothing to migrate — no field changed shape. What a
+ *     v43 save cannot carry across is the tree its log was aimed at.
  */
-export const SCHEMA_VERSION = 43;
+export const SCHEMA_VERSION = 44;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

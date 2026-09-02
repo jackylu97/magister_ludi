@@ -526,19 +526,44 @@ describe('the research queue field', () => {
     expect('researchQueue' in player).toBe(false);
     expect(researchPlan(player)).toEqual(['mining']);
 
-    // A locked node fills it: the Bronze Panoply wants Mining and Bronzeworking
-    // first (the re-cut of 2026-09-02 gave the bronze line one parent a rung).
+    // A locked node fills it: the Bronze Panoply wants Bronzeworking and The
+    // Wheel, and those two want four nodes between them — the age-1 restoration
+    // of 2026-09-02 put the old two-parent gates back under the bronze line, so
+    // the plan is a lattice flattened by depth and then by roster order.
     expect(
       applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: 'bronzePanoply' }),
     ).toEqual({ ok: true });
-    expect(researchPlan(player)).toEqual(['mining', 'bronzeWorking', 'bronzePanoply']);
-    expect(player.researchQueue).toEqual(['bronzeWorking', 'bronzePanoply']);
+    expect(researchPlan(player)).toEqual([
+      'husbandry',
+      'mining',
+      'earthenware',
+      'bronzeWorking',
+      'theWheel',
+      'bronzePanoply',
+    ]);
+    expect(player.researchQueue).toEqual([
+      'mining',
+      'earthenware',
+      'bronzeWorking',
+      'theWheel',
+      'bronzePanoply',
+    ]);
 
-    // Dropping the head takes its dependants with it and empties the plan — and
-    // the key is deleted rather than left as `[]`.
+    // Dropping a node takes its dependants with it: Mining goes, and
+    // Bronzeworking, The Wheel and the Panoply go with it, leaving exactly the
+    // two that never needed it.
     expect(
       applyCommand(state, { type: 'dequeueResearch', playerId: 0, techId: 'mining' }),
     ).toEqual({ ok: true });
+    expect(researchPlan(player)).toEqual(['husbandry', 'earthenware']);
+
+    // And dropping the rest empties the plan — the key is deleted rather than
+    // left as `[]`.
+    for (const techId of ['earthenware', 'husbandry'] as const) {
+      expect(applyCommand(state, { type: 'dequeueResearch', playerId: 0, techId })).toEqual({
+        ok: true,
+      });
+    }
     expect(researchPlan(player)).toEqual([]);
     expect(player.researching).toBe(null);
     expect('researchQueue' in player).toBe(false);
@@ -568,7 +593,10 @@ describe('the research queue field', () => {
     // v43: the map's layers of Entry LVIII — the vein pass, the second discovery
     // wave and the sea finds all draw off the same generator, so the board a
     // v42 seed produced is not the board this build produces from it.
-    expect(SCHEMA_VERSION).toBe(43);
+    // v44: the age-1 restoration and the deepened chains — Calendar is a node
+    // again, Currency and Irrigation trade places, and Æra III/IV are re-chained,
+    // so a v43 log aims research at a tree this build does not have.
+    expect(SCHEMA_VERSION).toBe(44);
   });
 });
 

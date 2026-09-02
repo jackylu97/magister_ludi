@@ -84,7 +84,7 @@ function plant(state: GameState, ownerId: number, col: number, row: number): Cit
 /** Hands a seat the four Age I nodes this pass hangs its content off. */
 function knowEverything(state: GameState, playerId: number): void {
   const player = state.players[playerId]!;
-  for (const tech of ['earthenware', 'letters', 'stonecraft', 'bronzeWorking'] as const) {
+  for (const tech of ['earthenware', 'calendar', 'letters', 'stonecraft', 'bronzeWorking'] as const) {
     if (!player.techsResearched.includes(tech)) player.techsResearched.push(tech);
   }
 }
@@ -216,7 +216,9 @@ describe('a project is a queue row that never leaves', () => {
 
 describe('a project is gated, once, by the tree', () => {
   it('names its technology and refuses a queue without it', () => {
-    expect(PROJECT_UNLOCK_TECH.get('tithes')).toBe('earthenware');
+    // Tithes went home to the Calendar with the age-1 restoration of
+    // 2026-09-02 — it was Earthenware's only while the Calendar was pruned.
+    expect(PROJECT_UNLOCK_TECH.get('tithes')).toBe('calendar');
     expect(PROJECT_UNLOCK_TECH.get('scholarship')).toBe('letters');
     // Every *conversion* is gated by the tree: one available on turn one is a
     // capital that never has to choose what to do with its hammers. A **race
@@ -236,7 +238,7 @@ describe('a project is gated, once, by the tree', () => {
     const state = flatState();
     const city = plant(state, 0, 5, 5);
     expect(isUnlocked(state, 0, 'project', 'tithes')).toBe(false);
-    expect(buildError(state, 0, 'project', 'tithes')).toBe('Tithes needs Earthenware');
+    expect(buildError(state, 0, 'project', 'tithes')).toBe('Tithes needs Calendar');
 
     const refused = applyCommand(state, {
       type: 'setCityProduction',
@@ -246,7 +248,7 @@ describe('a project is gated, once, by the tree', () => {
     } as Command);
     expect(refused.ok).toBe(false);
 
-    state.players[0]!.techsResearched.push('earthenware');
+    state.players[0]!.techsResearched.push('calendar');
     expect(buildError(state, 0, 'project', 'tithes')).toBeNull();
     expect(
       applyCommand(state, {
@@ -306,7 +308,7 @@ describe('a project is gated, once, by the tree', () => {
   });
 
   it('shows up on its tech\'s gift list, as its own kind', () => {
-    const tithes = techGifts('earthenware').filter((gift) => gift.kind === 'project');
+    const tithes = techGifts('calendar').filter((gift) => gift.kind === 'project');
     expect(tithes.map((gift) => gift.id)).toEqual(['tithes']);
     expect(tithes[0]).toMatchObject({ name: 'Tithes', glyph: '↻' });
     // Two buildings on Letters since the wonders' roster: the library, and the

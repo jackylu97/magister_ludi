@@ -100,7 +100,7 @@
       "effect": {
         "kind": "pool",
         "pool": "culture",
-        "amount": 13
+        "amount": 7
       }
     },
     "relicsOfTheOldFaith": {

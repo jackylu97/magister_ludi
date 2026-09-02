@@ -39,6 +39,7 @@ import {
 } from '../../src/sim/tech';
 import {
   BUILDING_UNLOCK_TECH,
+  PROJECT_UNLOCK_TECH,
   TECH_IDS,
   type TechId,
   UNIT_UNLOCK_TECH,
@@ -424,14 +425,16 @@ describe('star chart layout', () => {
         );
       }
     }
-    // The whole chart, for scale: **seven** columns deep, eleven lanes tall.
-    // The re-cut of 2026-09-02 (Entry LVIII) turned the chart on its side —
-    // forty-nine nodes almost all hanging off a single named prerequisite make
-    // a tree that is wide and shallow where the 2026-08-30 one was narrow and
-    // deep (twelve columns of five). The decision point is Æra III's sixteen-node
-    // fan rather than a ladder, so depth cannot absorb the width and the lane
-    // budget does: `TECH_LANE_LIMIT` is the widest column and not one lane more.
-    expect(techColumnCount()).toBe(7);
+    // The whole chart, for scale: **eleven** columns deep, eleven lanes tall.
+    // The re-cut of 2026-09-02 had turned the chart on its side — forty-nine
+    // nodes almost all hanging off a single named prerequisite, seven columns
+    // wide, the widest holding eleven — and the user's read of that was that
+    // the late ages were "a single vertical row". The chain pass answers it
+    // where the shape lives: Æra I's old two-parent gates are back and Æra III
+    // and Æra IV are chained *inside themselves*, so the graph is four columns
+    // deeper and no column now holds more than seven. The lane budget stays at
+    // eleven, which is now slack rather than a floor — see `TECH_LANE_LIMIT`.
+    expect(techColumnCount()).toBe(11);
     expect(techRowCount()).toBe(11);
   });
 
@@ -617,9 +620,9 @@ describe('chooseResearch', () => {
     expect(availableTechs(state, 0)).toEqual([
       'husbandry',
       'fletching',
-      'earthenware',
       'sailing',
       'mining',
+      'earthenware',
     ]);
     grant(state, 0, 'husbandry', 'bronzeWorking');
     expect(availableTechs(state, 0)).toContain('theWheel');
@@ -1037,7 +1040,9 @@ describe('research in the log', () => {
     // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
     // double draft and The Holy Office's tenants move every replay with a
     // prophet or an augur in it.
-    expect(SCHEMA_VERSION).toBe(43);
+    // v44: the age-1 restoration — Calendar is a node again and Æra I's old
+    // prerequisites are back, so a v43 log's research plan is not this tree's.
+    expect(SCHEMA_VERSION).toBe(44);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1092,15 +1097,20 @@ describe('the research queue', () => {
 
   it('expands a locked node by prerequisite depth, then roster order', () => {
     const state = flatState();
-    // Iron Working from the opening kit needs three nodes under it, one per
-    // depth — the re-cut of 2026-09-02 gave every rung of the bronze line a
-    // single parent, so the chain *is* the expansion. Depth first, so nothing is
-    // ever queued before something it needs, and `TECH_IDS` order within a
-    // depth, because a sort that fell back on anything else would be a sort a
-    // replay could disagree with.
+    // Iron Working from the opening kit needs six nodes under it. The age-1
+    // restoration of 2026-09-02 put the old two-parent gates back — Bronzeworking
+    // wants Earthenware as well as Mining, The Wheel wants Bronzeworking as well
+    // as Husbandry, and the Panoply wants both of those — so the bronze line is
+    // a *lattice* again and not the single file the re-cut had made of it.
+    // Depth first, so nothing is ever queued before something it needs, and
+    // `TECH_IDS` order within a depth, because a sort that fell back on anything
+    // else would be a sort a replay could disagree with.
     expect(researchExpansion(state, 0, 'ironWorking')).toEqual([
+      'husbandry',
       'mining',
+      'earthenware',
       'bronzeWorking',
+      'theWheel',
       'bronzePanoply',
       'ironWorking',
     ]);
@@ -1113,7 +1123,7 @@ describe('the research queue', () => {
       seen.push(id);
     }
     // What is already held is simply not in it.
-    grant(state, 0, 'mining', 'earthenware', 'bronzeWorking');
+    grant(state, 0, 'husbandry', 'mining', 'earthenware', 'bronzeWorking', 'theWheel');
     expect(researchExpansion(state, 0, 'ironWorking')).toEqual([
       'bronzePanoply',
       'ironWorking',
@@ -1124,9 +1134,16 @@ describe('the research queue', () => {
     const state = flatState();
     expect(applyCommand(state, choose(0, 'ironWorking'))).toEqual({ ok: true });
     const player = state.players[0]!;
-    expect(player.researching).toBe('mining');
-    expect(player.researchQueue).toEqual(['bronzeWorking', 'bronzePanoply', 'ironWorking']);
-    expect(researchPlan(player)).toEqual(['mining', ...player.researchQueue!]);
+    expect(player.researching).toBe('husbandry');
+    expect(player.researchQueue).toEqual([
+      'mining',
+      'earthenware',
+      'bronzeWorking',
+      'theWheel',
+      'bronzePanoply',
+      'ironWorking',
+    ]);
+    expect(researchPlan(player)).toEqual(['husbandry', ...player.researchQueue!]);
     // Nothing was spent: the pool is still the progress.
     expect(player.sciencePool).toBe(0);
   });
@@ -1142,14 +1159,16 @@ describe('the research queue', () => {
 
     // `append` is a second destination, and adds only what is missing.
     expect(applyCommand(state, queue(0, 'bronzeWorking', 'append'))).toEqual({ ok: true });
-    expect(researchPlan(player)).toEqual(['sailing', 'mining', 'bronzeWorking']);
+    expect(researchPlan(player)).toEqual(['sailing', 'mining', 'earthenware', 'bronzeWorking']);
     expect(applyCommand(state, queue(0, 'stonecraft', 'append'))).toEqual({ ok: true });
-    // Mining is already in the plan and is not queued twice; Stonecraft itself
-    // is the only thing left to add.
+    // Earthenware is already in the plan and is not queued twice; Husbandry and
+    // Stonecraft itself are all that is left to add.
     expect(researchPlan(player)).toEqual([
       'sailing',
       'mining',
+      'earthenware',
       'bronzeWorking',
+      'husbandry',
       'stonecraft',
     ]);
     // The head never moved: appending is not choosing.
@@ -1176,11 +1195,12 @@ describe('the research queue', () => {
     // descends from it too, so the whole tail of the plan goes with the one
     // node that was pulled.
     expect(applyCommand(state, drop(0, 'bronzeWorking'))).toEqual({ ok: true });
-    expect(researchPlan(player)).toEqual(['mining']);
+    expect(researchPlan(player)).toEqual(['husbandry', 'mining', 'earthenware']);
 
     // Dropping the head empties the plan, and spends nothing.
     player.sciencePool = 33;
-    expect(applyCommand(state, drop(0, 'mining'))).toEqual({ ok: true });
+    for (const id of ['mining', 'earthenware']) applyCommand(state, drop(0, id));
+    expect(applyCommand(state, drop(0, 'husbandry'))).toEqual({ ok: true });
     expect(researchPlan(player)).toEqual([]);
     expect(player.researching).toBe(null);
     expect(player.sciencePool).toBe(33);
@@ -1190,7 +1210,7 @@ describe('the research queue', () => {
     const state = flatState();
     applyCommand(state, choose(0, 'bronzeWorking'));
     const player = state.players[0]!;
-    for (const id of ['bronzeWorking', 'mining']) {
+    for (const id of ['bronzeWorking', 'mining', 'earthenware']) {
       applyCommand(state, drop(0, id));
     }
     // The key is deleted rather than emptied — an empire that emptied its queue
@@ -1232,16 +1252,18 @@ describe('the research queue', () => {
     const state = flatState();
     applyCommand(state, choose(0, 'bronzeWorking'));
     const player = state.players[0]!;
-    expect(researchPlan(player)).toEqual(['mining', 'bronzeWorking']);
+    // Bronzeworking wants Mining *and* Earthenware again since the age-1
+    // restoration, so the plan under it is two nodes deep rather than one.
+    expect(researchPlan(player)).toEqual(['mining', 'earthenware', 'bronzeWorking']);
 
     player.sciencePool = techDef('mining').cost + 5;
     advanceResearch(state);
     expect(player.techsResearched).toContain('mining');
     // The next one is aimed at in the same phase, and the overflow is waiting
     // for it exactly as it waited for a hand-made choice.
-    expect(player.researching).toBe('bronzeWorking');
+    expect(player.researching).toBe('earthenware');
     expect(player.sciencePool).toBe(5);
-    expect('researchQueue' in player).toBe(false);
+    expect(player.researchQueue).toEqual(['bronzeWorking']);
   });
 
   it('drops a queued node the empire came by some other way', () => {
@@ -1264,8 +1286,8 @@ describe('the research queue', () => {
     player.sciencePool = techDef('mining').cost;
     const done = settleResearchWindfall(state, player);
     expect(done?.techId).toBe('mining');
-    expect(player.researching).toBe('bronzeWorking');
-    expect('researchQueue' in player).toBe(false);
+    expect(player.researching).toBe('earthenware');
+    expect(player.researchQueue).toEqual(['bronzeWorking']);
   });
 
   it('schedules the plan cumulatively, one technology per turn at the floor', () => {
@@ -1281,10 +1303,10 @@ describe('the research queue', () => {
     // And nothing lands sooner than its place in the queue, however full the
     // pool is — `settleResearch` completes at most one a resolution.
     state.players[0]!.sciencePool = 100_000;
-    // One a turn, all four of them, however full the pool is — the re-cut of
-    // 2026-09-02 gave the bronze line a single parent per rung, so Iron Working
-    // is four nodes rather than twelve.
-    expect(queueTurns(state, 0).map((step) => step.turns)).toEqual([1, 2, 3, 4]);
+    // One a turn, all seven of them, however full the pool is — the age-1
+    // restoration of 2026-09-02 put the two-parent gates back under the bronze
+    // line, so Iron Working is seven nodes rather than four.
+    expect(queueTurns(state, 0).map((step) => step.turns)).toEqual([1, 2, 3, 4, 5, 6, 7]);
   });
 
   it('replays a queued game byte-identically', () => {
@@ -1325,18 +1347,25 @@ describe('the shape of the tree', () => {
     // all three are still their own ids, and a save that named one replays.
     for (const id of [
       'agriculture', 'husbandry', 'fletching', 'sailing', 'mining', 'earthenware',
-      'bronzeWorking', 'stonecraft', 'divination', 'theWheel', 'letters',
+      'bronzeWorking', 'stonecraft', 'calendar', 'divination', 'theWheel', 'letters',
       'ironWorking', 'mathematics', 'currency', 'philosophy',
       'theHighTemple', 'engineering', 'feudalism', 'machinery', 'theology',
       'chivalry', 'steel', 'physics', 'education', 'theImperialPost',
     ]) {
       expect(isTechId(id), id).toBe(true);
     }
-    // The twelve rows the re-cut pruned, plus Drama from the pass before it. A
-    // v40 log that researched one of these is dead, which is the schema bump's
-    // note in so many words.
+    // **Calendar came back on 2026-09-02** (user: "keep what we had before").
+    // Æra I is the pre-re-cut age wholesale — the twelve nodes, the old costs,
+    // the old prerequisites, and the Hanging Gardens back on the Calendar the
+    // re-cut had moved to Earthenware. It is the one row this list has ever
+    // handed back, so it is named here rather than quietly deleted from the
+    // pruned list below.
+    //
+    // The eleven rows the re-cut pruned that stayed pruned, plus Drama from the
+    // pass before it. A v40 log that researched one of these is dead, which is
+    // the schema bump's note in so many words.
     for (const id of [
-      'drama', 'calendar', 'construction', 'theLegion', 'theSteppeBow',
+      'drama', 'construction', 'theLegion', 'theSteppeBow',
       'theHalberdWall', 'standingStones', 'caravans', 'theKnottedCord',
       'theOrreryOfBronze', 'theDelugeRemembered', 'theFloatingFields',
       'theFirstDistillation',
@@ -1346,8 +1375,69 @@ describe('the shape of the tree', () => {
     expect(techDef('philosophy').name).toBe('Rhetoric');
     expect(techDef('theImperialPost').name).toBe('Empire-Building');
     expect(techDef('feudalism').name).toBe('Castellany');
-    // Forty-nine nodes, and every one of them inside the lane budget.
-    expect(TECH_IDS.length).toBe(49);
+    // Fifty nodes, and every one of them inside the lane budget.
+    expect(TECH_IDS.length).toBe(50);
+  });
+
+  it('restores Æra I wholesale — twelve nodes, the old gates, the old homes', () => {
+    // The user's ruling of 2026-09-02 in the shape it was given: *keep what we
+    // had before*. Read against the age as it stood at commit 18113e6, because
+    // "restored" is a claim about a thing that existed and not about a thing
+    // that reads well.
+    const ageOne = TECH_IDS.filter((id) => techDef(id).age === 1);
+    expect(ageOne.length).toBe(12);
+    // The old costs: one root at fifteen, five at eight, four at sixteen, and
+    // the two nodes the age ends on.
+    expect(Object.fromEntries(ageOne.map((id) => [id, techDef(id).cost]))).toEqual({
+      agriculture: 15,
+      husbandry: 8,
+      fletching: 8,
+      sailing: 8,
+      mining: 8,
+      earthenware: 8,
+      bronzeWorking: 16,
+      stonecraft: 16,
+      calendar: 16,
+      divination: 16,
+      letters: 24,
+      theWheel: 26,
+    });
+    // The old gates, which are what make the age a *graph* again rather than
+    // the five-way fan the re-cut flattened it into: four of the twelve want
+    // two parents apiece.
+    expect(techDef('bronzeWorking').prereqs).toEqual(['mining', 'earthenware']);
+    expect(techDef('stonecraft').prereqs).toEqual(['husbandry', 'earthenware']);
+    expect(techDef('calendar').prereqs).toEqual(['earthenware']);
+    expect(techDef('divination').prereqs).toEqual(['husbandry']);
+    expect(techDef('letters').prereqs).toEqual(['earthenware', 'divination']);
+    expect(techDef('theWheel').prereqs).toEqual(['husbandry', 'bronzeWorking']);
+    // The old homes. The Hanging Gardens are the Calendar's again — named in
+    // the ruling — and the tithes conversion came back with them off
+    // Earthenware; the Temple of Artemis never left Husbandry.
+    expect(BUILDING_UNLOCK_TECH.get('hangingGardens')).toBe('calendar');
+    expect(BUILDING_UNLOCK_TECH.get('templeOfArtemis')).toBe('husbandry');
+    expect(PROJECT_UNLOCK_TECH.get('tithes')).toBe('calendar');
+    // The **rites** deliberately did not come back with them. A rite's home is
+    // `RiteDef.tech` in `data/religion.json` and the religion table is the one
+    // that owns it: the Rite of Plenty stays on Currency, where the re-cut put
+    // it because the rite pays coin, and the omen read stays on Divination with
+    // the rest of the faith door. A restoration that moved them would be the
+    // tree quietly re-homing another table's rows.
+    expect(techDef('calendar').unlocks.abilities).toBeUndefined();
+    expect(techDef('letters').unlocks.abilities).toBeUndefined();
+    expect(techDef('divination').unlocks.abilities).toEqual([
+      'riteOfTheHarvest',
+      'recastingTheOmens',
+      'omenReading',
+    ]);
+    // The one row the restoration did *not* hand back, because it did not exist
+    // to hand back: the Lighthouse is a Wave-1 building and stays on Sailing,
+    // beside the Great Lighthouse it was written next to.
+    expect(BUILDING_UNLOCK_TECH.get('lighthouse')).toBe('sailing');
+    // And every Æra II node still names a parent that survived.
+    for (const id of TECH_IDS) {
+      for (const prereq of techDef(id).prereqs) expect(isTechId(prereq), `${id} → ${prereq}`).toBe(true);
+    }
   });
 
   it("re-homes Drama's rows on Epic Poetry, and hangs Theology off The High Temple", () => {
@@ -1358,10 +1448,14 @@ describe('the shape of the tree', () => {
     // gate depends on which node the player happened to take first.
     expect(BUILDING_UNLOCK_TECH.get('amphitheater')).toBe('epicPoetry');
     expect(BUILDING_UNLOCK_TECH.get('theatreOfDionysus')).toBe('epicPoetry');
-    // The re-cut hangs the faith line off itself end to end: Divination → The
-    // High Temple → Theology → The Holy Office, one parent apiece.
-    expect(techDef('theology').prereqs).toEqual(['theHighTemple']);
-    expect(techDef('theHolyOffice').prereqs).toEqual(['theology']);
+    // The faith line still runs off itself end to end — Divination → Ancestor
+    // Rites → The High Temple → Theology → The Holy Office — and the chain pass
+    // of 2026-09-02 gave three of its rungs a *second* parent so the line lays
+    // out as a line: the scholastic one on Theology (Rhetoric, which is where
+    // the pre-re-cut tree hung it too), and the printed word on The Holy Office.
+    expect(techDef('theHighTemple').prereqs).toEqual(['divination', 'ancestorRites']);
+    expect(techDef('theology').prereqs).toEqual(['theHighTemple', 'philosophy']);
+    expect(techDef('theHolyOffice').prereqs).toEqual(['theology', 'movableType']);
     // The Hall of Deeds left the tree with the re-cut and kept its row, so a
     // save that raised one replays. Nothing unlocks it and nothing may build it.
     expect(BUILDING_UNLOCK_TECH.get('hallOfDeeds')).toBeUndefined();

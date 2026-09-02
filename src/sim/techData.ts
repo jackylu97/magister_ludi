@@ -117,20 +117,37 @@
  * rather than eyeballed.
  *
  * The re-cut of 2026-09-02 (design ledger Entry LVIII, `docs/tree-worksheet.md`
- * revision 3) turned the chart on its side, and that is the fact to know about
- * it. Forty-nine nodes, almost all of them hanging off a **single** prerequisite
- * the user ruled by name, make a tree that is **wide and shallow** where the old
- * one was narrow and deep: seven columns instead of twelve, and the widest of
- * them holds *eleven* nodes where the old widest held five. Chains are short on
- * purpose — the decision point is Æra III's sixteen-node fan, not a ladder — so
- * depth cannot absorb the width and the lane budget has to.
+ * revision 3) turned the chart on its side: forty-nine nodes almost all hanging
+ * off a **single** prerequisite made a tree that was wide and shallow where the
+ * old one was narrow and deep — seven columns instead of twelve, the widest of
+ * them holding eleven nodes. That is what put `TECH_LANE_LIMIT` at eleven.
  *
- * Hence `TECH_LANE_LIMIT` is **eleven**, which is the widest column and not one
- * lane more: it is still a floor derived from the graph rather than a taste, and
- * the sky is still exactly as tall as it has to be. What changed is that it no
- * longer fits a 900px window without scrolling, which the chart already handles
- * — `fitLanes` closes the gaps to their minimum and *reports the overrun* rather
- * than drawing off the bottom, which is the whole reason it returns `overflow`.
+ * **The chain pass of the same day put the depth back** (the user's read of the
+ * re-cut: Æra III and Æra IV "are a single vertical row — more of a tree"), and
+ * it did it where the shape lives rather than in the lanes. Æra I is the
+ * pre-re-cut age again, two-parent gates and all; each late age is chained
+ * *inside itself* — Kingship → The Examination Hall → The Qadi's Court →
+ * Castellany → Fortification is five columns of one idea — and a **cross-age**
+ * parent is deliberately not enough, because every node of an age hanging off
+ * the age before it puts the whole age in one column. Fifty nodes, **eleven**
+ * columns, and no column holding more than seven.
+ *
+ * So `TECH_LANE_LIMIT` is eleven and is now **slack** rather than a floor: the
+ * widest column needs seven, and the four spare lanes are what the search spends
+ * to keep the crossings down and the false chains at zero. Eleven is kept rather
+ * than trimmed to seven because trimming it would force every wide column full
+ * and leave the lay nowhere to route — and because the sky's height is a number
+ * a player has learnt. It does not fit a 900px window without scrolling, which
+ * the chart already handles — `fitLanes` closes the gaps to their minimum and
+ * *reports the overrun* rather than drawing off the bottom, which is the whole
+ * reason it returns `overflow`.
+ *
+ * **A column is roughly a price** (the user's fourth ruling, 2026-09-02): inside
+ * an age a node's column is nondecreasing in cost, so the chart reads left to
+ * right as a schedule as well as a dependency. It is expressed entirely through
+ * prerequisites — there is no cost term anywhere in the layout — which is why a
+ * handful of nodes a dependency drags out of order are pinned as exceptions in
+ * `test/ui/techChart.test.ts` rather than bent into place.
  *
  * `techDataProblems` insists every tech has a row inside `TECH_LANE_LIMIT` and
  * that no two share a (column, row) cell, which is the whole failure mode
@@ -160,6 +177,11 @@ export type TechId =
   | 'theWheel'
   | 'bronzeWorking'
   | 'stonecraft'
+  // Restored on 2026-09-02 (user: "keep what we had before"). It was pruned by
+  // the re-cut of the same day, and this is the one id this union has ever
+  // handed back — see `SCHEMA_VERSION`'s v44 entry for why a v43 log is still
+  // refused rather than quietly replayed against a tree that now has it.
+  | 'calendar'
   | 'divination'
   | 'letters'
   // Æra II — The Age of Heroes

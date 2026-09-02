@@ -1565,8 +1565,10 @@ describe('The High Temple', () => {
     const def = techDef('theHighTemple' as never);
     expect(def.age).toBe(2);
     // Re-cut again on 2026-09-02: Standing Stones is pruned and the faith line
-    // hangs off itself, one parent apiece — Divination → The High Temple.
-    expect(def.prereqs).toEqual(['divination']);
+    // hangs off itself — Divination → Ancestor Rites → The High Temple, the
+    // middle rung added by the chain pass so the line lays out as a line rather
+    // than as three siblings sharing one column.
+    expect(def.prereqs).toEqual(['divination', 'ancestorRites']);
     expect(def.unlocks.units ?? []).toContain('prophet');
     expect(def.unlocks.buildings ?? []).toContain('temple');
     expect(def.unlocks.abilities ?? []).toContain('thePreaching');

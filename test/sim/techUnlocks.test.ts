@@ -49,14 +49,17 @@ describe('techGifts', () => {
       'unit',
       'improvement',
     ]);
-    // Earthenware carries the jar economy after the tree re-cut of 2026-09-02:
-    // the granary, the Hanging Gardens the pruned Calendar used to hold, the
-    // tithes conversion, and the plantation a worker may now lay.
+    // Earthenware is the jar and nothing else again after the age-1 restoration
+    // of 2026-09-02: the granary, and the plantation a worker may lay. The
+    // Hanging Gardens and the tithes conversion went back to the Calendar the
+    // re-cut had pruned, which is what "keep what we had before" restored.
     expect(techGifts('earthenware').map((gift) => [gift.kind, gift.id])).toEqual([
       ['building', 'granary'],
+      ['improvement', 'plantation'],
+    ]);
+    expect(techGifts('calendar').map((gift) => [gift.kind, gift.id])).toEqual([
       ['building', 'hangingGardens'],
       ['project', 'tithes'],
-      ['improvement', 'plantation'],
     ]);
   });
 

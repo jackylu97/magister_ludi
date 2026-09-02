@@ -161,7 +161,11 @@ describe('the discovery pool', () => {
       // should be lower". Culture is the one pool a discovery pays that buys a
       // *decision* rather than a number, so fifteen of it out of the first ruin
       // a scout walked into was handing a seat its opening Order for free.
-      forgottenHymns: 13,
+      // **13 → 7 on 2026-09-02** (user: "keep it the same as before"), which is
+      // the tablets' own number and, at an opening draft of twelve, the whole
+      // difference between a boon that buys a decision and one that banks
+      // toward it — see the settlement test below.
+      forgottenHymns: 7,
       relicsOfTheOldFaith: 15,
       aGuideOffersService: 'scout',
       laborersJoinYou: 'worker',
@@ -598,41 +602,45 @@ describe('settlement: every boon pays its printed number', () => {
     }
   });
 
-  it('forgotten hymns fill the culture meter and settle a draft on the spot', () => {
+  it('forgotten hymns bank toward the draft, and settle one only when the basket is already full enough', () => {
     // The paragraph `discoveries.ts` used to carry — "culture is banked and
     // nothing settles it, because nothing spends it yet" — closed. Culture is
     // the fourth Entry XVIII bucket now, and its settlement is a draft.
+    //
+    // **What moved on 2026-09-02** (user: the hymns go back to seven): at
+    // thirteen the boon *was* the opening draft, so the first ruin a scout
+    // walked into handed a seat its first Order. At seven it is a payment
+    // toward one, which is why this test now carries both halves — the boon on
+    // its own settles nothing, and the same settlement completes a draft the
+    // moment the basket it lands in was already close. The companion test that
+    // used to prove the second half by spending the ladder up is folded in
+    // here: one settlement routine, two baskets, and the difference between
+    // them is the only thing on trial.
     const state = withCity();
     const player = playerById(state, 0)!;
     const { effect } = discoveryDef('forgottenHymns');
     const grant = effect.kind === 'unit' ? 0 : effect.amount;
-    // The hymns are worth more than the opening draft costs, which is the
-    // interesting case and the reason this is its own test.
-    expect(grant).toBeGreaterThanOrEqual(draftCost(0));
+    // Seven against an opening draft of twelve: the boon cannot fill it alone.
+    expect(grant).toBeLessThan(draftCost(0));
 
+    const banked = player.culturePool;
     offerOf(state, 0, 'forgottenHymns');
-    const done = settleDiscovery(state, player, 0);
+    const first = settleDiscovery(state, player, 0);
+    expect(player.statecraft.drafts).toBe(0);
+    expect(player.culturePool).toBe(banked + grant);
+    expect(first?.completed).toBeNull();
+    expect(player.statecraft.pendingOrder).toBeUndefined();
+
+    // The same boon into a basket one point short of the rung: it completes,
+    // and the overflow is kept exactly as a chop's or a good harvest's would be.
+    player.culturePool = draftCost(0) - 1;
+    offerOf(state, 0, 'forgottenHymns');
+    const second = settleDiscovery(state, player, 0);
     expect(player.statecraft.drafts).toBe(1);
-    // The overflow is kept, exactly as a chop's or a good harvest's would be.
-    expect(player.culturePool).toBe(grant - draftCost(0));
+    expect(player.culturePool).toBe(draftCost(0) - 1 + grant - draftCost(0));
     // And the settlement says so, so the announce line can.
-    expect(done?.completed).toBe('tier 1');
+    expect(second?.completed).toBe('tier 1');
     expect(player.statecraft.pendingOrder).toBeDefined();
-  });
-
-  it('leaves the meter alone when the hymns do not fill it', () => {
-    const state = withCity();
-    const player = playerById(state, 0)!;
-    // A pool that has already been spent down below the threshold minus the
-    // grant: the boon banks and nothing completes, which is the ordinary case
-    // once the ladder has climbed a little.
-    player.statecraft.drafts = 6;
-    const before = player.culturePool;
-    offerOf(state, 0, 'forgottenHymns');
-    const done = settleDiscovery(state, player, 0);
-    expect(player.statecraft.drafts).toBe(6);
-    expect(player.culturePool).toBeGreaterThan(before);
-    expect(done?.completed).toBeNull();
   });
 
   it('star tablets complete the researched technology instantly, and hand the choice back', () => {

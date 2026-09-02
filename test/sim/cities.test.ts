@@ -2575,7 +2575,10 @@ describe('determinism with cities', () => {
         // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
     // double draft and The Holy Office's tenants move every replay with a
     // prophet or an augur in it.
-    expect(SCHEMA_VERSION).toBe(43);
+    // v44: the age-1 restoration and the deepened chains — Calendar is a node
+    // again, Currency and Irrigation trade places, and Æra III/IV are re-chained,
+    // so a v43 log aims research at a tree this build does not have.
+    expect(SCHEMA_VERSION).toBe(44);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);
