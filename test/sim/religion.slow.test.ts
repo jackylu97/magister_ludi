@@ -25,7 +25,8 @@ import { availableRites, consecrateError, isAugur, riteError } from '../../src/s
 import { type PurchasableItem, explainPurchaseCost } from '../../src/sim/purchase';
 import { type GameState, SCHEMA_VERSION, playerById } from '../../src/sim/state';
 import { availableTechs, buildError } from '../../src/sim/tech';
-import { TECH_IDS, techDef } from '../../src/sim/techData';
+import { TECH_IDS,
+  type TechId, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 
 /** The one thing faith sells. Named once, so the shape reads out of the way. */
@@ -48,6 +49,23 @@ const PROPHET: PurchasableItem = { kind: 'unit', id: 'prophet' };
  * Every act is a **command**, which is what lets the determinism test above
  * replay the whole thing: the harness never reaches into the state.
  */
+
+/**
+ * The prereq closure of a node, cheapest-first — the beeline the scripts walk.
+ * Derived rather than listed (the promise the old hand list kept breaking every
+ * time the tree was re-cut): a pruned id can no longer strand a script on a
+ * refused chooseResearch.
+ */
+function closureOf(target: TechId): TechId[] {
+  const seen = new Set<TechId>();
+  const walk = (id: TechId): void => {
+    if (seen.has(id)) return;
+    for (const parent of techDef(id).prereqs ?? []) walk(parent as TechId);
+    seen.add(id);
+  };
+  walk(target);
+  return [...seen];
+}
 function playFaithful(maxTurns: number): {
   game: ReturnType<typeof createGame>;
   firstAugurTurn: number | null;
@@ -62,7 +80,7 @@ function playFaithful(maxTurns: number): {
   const CITY_TARGET = 3;
   // The road to the augur, cheapest-first inside the prerequisites the tree
   // already enforces: this is a *pious* opening, not an optimal one.
-  const ROAD = ['husbandry', 'divination', 'earthenware', 'letters', 'stonecraft', 'calendar'];
+  const ROAD: TechId[] = closureOf('theHighTemple' as TechId);
   let firstAugurTurn: number | null = null;
   let ritesPerformed = 0;
   let augursBought = 0;
@@ -249,17 +267,7 @@ function playTwoFaiths(maxTurns: number): {
   // Re-derived for the tree pass of 2026-08-30: the beeline is the prereq
   // closure of The High Temple in display order, so a re-cut chain cannot
   // silently strand the script on a refused chooseResearch again.
-  const ROAD = [
-    'agriculture',
-    'husbandry',
-    'earthenware',
-    'stonecraft',
-    'divination',
-    'standingStones',
-    'theHighTemple',
-    'letters',
-    'calendar',
-  ];
+  const ROAD: TechId[] = closureOf('theHighTemple' as TechId);
   let bombs = 0;
 
   for (let turn = 0; turn < maxTurns; turn++) {
@@ -353,9 +361,21 @@ function playTwoFaiths(maxTurns: number): {
           bombs += 1;
           continue;
         }
-        // Nowhere to plant: walk one hex and try again next turn.
-        const target = nearestSite(g.state, unit.col, unit.row);
-        if (target) dispatch(g, { type: 'moveUnit', playerId: seat, unitId: unit.id, target });
+        // Nowhere to plant HERE: walk home. `nearestSite` is a settler's
+        // heuristic and marched prophets out of their own territory (where
+        // planting refuses) — re-learned on the Entry LVIII re-cut, when the
+        // niter re-roll moved the ground enough to expose it. The capital is
+        // always owned ground, and the plant is retried before every step, so
+        // the first in-territory stop founds.
+        const home2 = g.state.cities.find((city) => city.ownerId === seat);
+        if (home2 && (unit.col !== home2.col || unit.row !== home2.row)) {
+          dispatch(g, {
+            type: 'moveUnit',
+            playerId: seat,
+            unitId: unit.id,
+            target: { col: home2.col, row: home2.row },
+          });
+        }
       }
 
       const charges = unitDef('augur').charges ?? 0;
