@@ -4440,3 +4440,45 @@ tier 2, and simultaneously fresh evidence for the Entry LIV supply questions (go
 science especially). Recorded for the tuning pass; no numbers moved on it yet.
 
 ---
+
+## Entry LXI — the chart is a timeline and a column is a price (2026-09-02, schema 47)
+
+Two user rulings landed as one pass, because the second derives from the first.
+
+**The reshape.** The star chart now reads like Civ 5's tree: every column holds
+3–7 nodes (fourteen columns, ages owning disjoint runs — 4+4+3+3), seventeen
+edges re-hung so each age chains *inside* itself rather than fanning off one
+gateway, lanes re-annealed at the 8-lane cap (11 crossings against a naive 88;
+Æra I's single crossing proven a floor by exhaustive search). The four long
+edges that remain — Wayfinding→Shipwrights, Shipwrights→Astrolabe, Iron
+Working→Steel, Cataphract→Chivalry — are named in the docblock and kept: each is
+a line of work whose next chapter is genuinely an age away. The convention for
+future growth is written into `techData.ts`: **adding a technology is placement,
+not archaeology** — its prerequisites choose its column, its column *is* its
+price, and its lane is the annealer's to assign (the eight lanes now have
+standing identities: war · war · sea · metal-and-coin · measuring · letters ·
+clerks · sky).
+
+**The pricing.** "Lets make the first tier 13 science, and then 30 and then 70"
+(the user). No cost in `data/techs.json` is hand-tuned any more: one table
+indexed by `techColumn` — 13 · 30 · 69 · 135 · 225 · 335 · 450 · 565 · 665 ·
+750 · 820 · 875 · 920 · 950 — from `cost(n) = cost(n−1) × (1 + 1.3 ×
+0.72^max(0, n−2))`, the anchors held exactly and the ratio decaying
+geometrically. The briefed linear taper (2.3→1.5) was **built, measured and
+rejected**: it priced the tree at 491k beakers and a scripted 2000-turn empire
+never entered Æra IV — this science economy tops out in the low hundreds per
+turn, and the decay is what fits fourteen compounding columns inside that. One
+knob retunes the whole late game: the 0.72 (0.75 ⇒ 33.8k tree, 0.70 ⇒ 22.0k).
+
+**What it did to the clock.** Ages close 74 / 128 / 252 / 334 on the pacing
+seed (was 34/71/177/265) — era proportions 22/16/37/25%, which makes Æra III
+the long age, exactly the pacing target the user set the same day. Æra I costs
+×4.8 (the opening is a ramp, not a sweep), Æra II ×2.8, the late ages within a
+third of before. Drafts stretch with it (governments at 46/101/208), the beads
+table opens ~t211. **Interaction flagged**: the user's coming supply-nerf round
+(renewals axed, per-city-☺ luxuries, Orders trim) lowers science supply and
+lengthens all of this further — re-measure after that pass, and the 0.72 knob
+is where the correction goes.
+
+The Entry LIV band multipliers are superseded by the table (their test replaced
+by the formula pin). `docs/tech-tree.md` Part 2 is regenerated from the rows.

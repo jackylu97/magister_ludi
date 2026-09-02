@@ -35,7 +35,7 @@
  * A chart that travels sideways
  * -----------------------------
  * The screen is a dependency chart on a horizontally scrolling stage, not a
- * list of ages: a node's column is `techDepth` — the longest chain of
+ * list of ages: a node's column is `techColumn` — `techDepth` re-based so
  * prerequisites behind it — and its row is the lane hand-authored in
  * `data/techs.json` (the lane principle is written down in `techData.ts`). So a
  * chain reads as a chain, left to right, and the ages are demoted to what they
@@ -1578,7 +1578,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * and a node on the same lane as its prerequisite gets a straight sight-line;
    * the handles are capped, so a connector that spans four columns bends near
    * its ends rather than sagging through the middle of the chart. Because
-   * `techDepth` puts every prerequisite in a strictly earlier column, `x2` is
+   * `techColumn` puts every prerequisite in a strictly earlier column, `x2` is
    * always to the right of `x1` and no connector ever doubles back.
    *
    * The SVG sits *behind* the cards, so a line disappears under the two nodes
