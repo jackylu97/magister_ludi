@@ -66,11 +66,12 @@
  * The star chart is a dependency chart that scrolls sideways, so a node's
  * *column* is a fact about the graph and its *row* is a fact about the data:
  *
- *   - column = `techDepth`, the length of the longest prerequisite chain behind
- *     it. This is derived, never authored, which is what guarantees a chain
- *     reads as a chain — bronze working, iron working, steel march rightward
- *     because each one is strictly deeper than the last, and an edge can never
- *     point backwards.
+ *   - column = `techColumn`, which is `techDepth` — the length of the longest
+ *     prerequisite chain behind it — re-based so each age owns a disjoint run.
+ *     This is derived, never authored, which is what guarantees a chain reads
+ *     as a chain — bronze working, iron working, steel march rightward because
+ *     each one is strictly deeper than the last, and an edge can never point
+ *     backwards.
  *   - `row` is hand-authored in `data/techs.json`. There is no automatic
  *     row-assignment algorithm: a sugiyama-style solver would re-shuffle the
  *     lanes every time a tech was added, and a tree whose shape a player has
@@ -85,9 +86,12 @@
  *      column.** `0 … TECH_LANE_LIMIT - 1`, because a chart taller than its
  *      deepest column is height nobody needs. It was five for the deep tree of
  *      2026-08-30, eleven for revision 3's wide one, and is **eight** since the
- *      fold pass of 2026-09-02 — the widest column holds seven, so eight is the
- *      floor and the one spare lane is all the slack the search gets. The rule
- *      did not move; what moved is how much slack the chart can afford.
+ *      fold pass of 2026-09-02 — the widest column held seven then, so eight
+ *      was the floor and the one spare lane was all the slack the search got.
+ *      The timeline pass of the same day narrowed the widest column to **six**,
+ *      which leaves two spare lanes rather than one; the cap stayed at eight
+ *      because the lane count is also what the *stage* was fitted for and
+ *      moving it is a decision about the window, not about the graph.
  *   2. **A tech sits in the lane of the prerequisite whose line it continues.**
  *      Usually the first one listed, which is why `prereqs` order is display
  *      order. Iron Working continues Bronzeworking's line; Chivalry continues
@@ -159,12 +163,61 @@
  * way entirely is a card-metrics pass or a deeper tree, and both are decisions
  * somebody makes rather than something a re-lay can deliver.
  *
- * **A column is roughly a price** (the user's fourth ruling, 2026-09-02): inside
- * an age a node's column is nondecreasing in cost, so the chart reads left to
- * right as a schedule as well as a dependency. It is expressed entirely through
- * prerequisites — there is no cost term anywhere in the layout — which is why a
- * handful of nodes a dependency drags out of order are pinned as exceptions in
- * `test/ui/techChart.test.ts` rather than bent into place.
+ * ~~**A column is roughly a price**~~ — **a column *is* the price** since the
+ * timeline pass of 2026-09-02. It used to be an aspiration expressed through
+ * prerequisites, with a handful of nodes a dependency dragged out of order
+ * pinned as exceptions; now every cost is written from the node's own
+ * `techColumn` by one tapered table (the pacing note in `tech.ts` carries the
+ * formula and the fourteen figures), so the reading holds exactly, in every
+ * age, with no exceptions left to pin. There is still no cost term anywhere in
+ * the *layout* — the arrow points the other way, from the shape to the price,
+ * which is why this pass reshaped the tree before it repriced it.
+ *
+ * The timeline pass of 2026-09-02 (this file's shape today)
+ * ---------------------------------------------------------
+ * The user's read of the banded chart was that it should look like Civ V's:
+ * every column earning its width, edges reading as a timeline. Two measures
+ * came out of it and both are pinned in `test/sim/tech.test.ts`:
+ *
+ *   - **no column holds fewer than three nodes** (bar column 0, which is the
+ *     single root and always will be) **and none holds more than seven**. The
+ *     populations are 1·4·4·3 / 3·4·3 / 4·6·3·3 / 4·5·3 across the four ages.
+ *   - **an edge is short**: 42 of the 74 connectors span one column, 22 span
+ *     two, and only four span four or more. Those four are named and kept on
+ *     purpose — Wayfinding → Shipwrights, Shipwrights → The Astrolabe, Iron
+ *     Working → Steel, The Cataphract → Chivalry — because each is the spine of
+ *     a line of work whose next node is genuinely an age away, and the standing
+ *     rule is that thematic sensibility beats crossing-optimal nonsense.
+ *
+ * **Adding a technology later is placement, not archaeology.** Two decisions,
+ * in this order:
+ *
+ *   1. **Its column is chosen by its prerequisites**, because the column *is*
+ *      the longest chain behind it. So pick the column the node belongs in
+ *      (which also picks its price, off the table), then hang it on a parent
+ *      one column to its left inside its own age. A **cross-age** parent buys
+ *      no depth of its own — the banding re-bases each age — so a node that
+ *      hangs only on the age before it lands in its age's *first* column, and a
+ *      whole age hung that way is one column wide. That is the failure this
+ *      pass exists to prevent: chain inside the age.
+ *   2. **Its lane is the annealer's**, not a taste. Re-run the search
+ *      (crossings, false chains and lane-continuation measured together, the
+ *      figures in `test/ui/techChart.test.ts`) and write the rows it returns.
+ *      The lanes the search settled into are readable lines of work, which is
+ *      where a new node should be *offered* before the annealer is allowed to
+ *      move it: **0–1 the war lane** (Fletching, Siegecraft; Bronze Panoply,
+ *      Iron Working, The Cataphract, Chivalry), **2 the sea lane** (Wayfinding,
+ *      Shipwrights), **3 the metal-and-coin lane** (Mining, Bronzeworking, The
+ *      Wheel, Currency, Artisanry, running out through The Qadi's Court,
+ *      Castellany and Fortification), **4 the measuring lane** (Agriculture at
+ *      the root, then Earthenware, Sailing, Irrigation, Mathematics, Horology,
+ *      Physics, The Astrolabe), **5 the letters lane** (Stonecraft, Letters,
+ *      Kingship, Epic Poetry, Rhetoric, Theology, Education, and the late
+ *      makers Machinery, Steel, Alchemy), **6 the clerks' lane** (Ancestor
+ *      Rites, The Examination Hall, Colonial Charters, Empire-Building, Paper
+ *      Money, Movable Type, The Holy Office) and **7 the sky lane** (Husbandry,
+ *      Divination, Calendar, The Long Count, The High Temple, then Engineering,
+ *      Prospecting, The Silk Road, Banking).
  *
  * `techDataProblems` insists every tech has a row inside `TECH_LANE_LIMIT` and
  * that no two share a (column, row) cell, which is the whole failure mode
@@ -641,12 +694,17 @@ export function techRowCount(): number {
  * the user's report is what it cost: on a 1456×827 window Æra II read as five
  * technologies, because the other five were below the fold with the lanes
  * already closed to `LANE_GAP_MIN`. So the budget was cut to what the graph
- * actually needs plus one — the widest column holds seven — and the sky is long
+ * actually needs plus one — the widest column held seven — and the sky is long
  * rather than tall, which is the proportion Civ's own tree is drawn in.
  *
- * Eight is a floor the graph sets, not a preference: two techs in one column may
+ * Eight was a floor the graph set, not a preference: two techs in one column may
  * not share a lane, so a chart of seven lanes could not draw the widest column
- * at all. Going below it is a re-cut of the *tree*, never a re-lay of the lanes.
+ * at all. **The timeline pass of 2026-09-02 took the widest column down to six**
+ * — no column of the reshaped tree holds more than that — so the floor is now
+ * six and eight is two lanes of slack for the search. It stayed at eight
+ * deliberately: the lane budget is what the stage was measured against, and
+ * spending the slack on a shorter sky is a fit decision somebody makes with a
+ * window open, not a side effect of a re-shaping.
  *
  * A ninth lane is not forbidden by arithmetic — `techDataProblems` is what
  * forbids it, so that adding one is a decision somebody makes rather than a row
@@ -680,7 +738,12 @@ export function techChartLayout(includes?: (id: TechId) => boolean): ChartLayout
   const shown = TECH_IDS.filter((id) => includes?.(id) ?? true);
   const inside = new Set<TechId>(shown);
   const cells = new Map<string, ChartCell>(
-    shown.map((id) => [id, { column: techDepth(id), row: techDef(id).row }]),
+    // `techColumn`, not `techDepth`: the metric has to measure the chart that
+    // is *drawn*. Since the age banding landed, the two disagree — Æra II runs
+    // depths 3–5 where Æra I ends at 3 — so a depth-keyed layout would count
+    // crossings between two nodes the chart draws a column apart, and miss the
+    // ones it draws on top of each other.
+    shown.map((id) => [id, { column: techColumn(id), row: techDef(id).row }]),
   );
   const edges: [string, string][] = [];
   // Iterated over `shown` rather than the map, so the edge list is file order
@@ -987,7 +1050,10 @@ export function techDataProblems(): string[] {
 
   const occupied = new Map<string, TechId>();
   for (const id of TECH_IDS) {
-    const cell = `${techDepth(id)},${techDef(id).row}`;
+    // The *drawn* cell (`techColumn`), for `techChartLayout`'s reason: two
+    // techs at one depth in different ages sit in different columns and do not
+    // collide, and two at different depths in one column would.
+    const cell = `${techColumn(id)},${techDef(id).row}`;
     const sitting = occupied.get(cell);
     if (sitting !== undefined) {
       problems.push(`techs "${sitting}" and "${id}" both sit at chart cell (${cell})`);

@@ -187,7 +187,7 @@ describe('pacing', () => {
   }
 
   it('closes its four ages on the Quick-speed schedule (Entry V)', () => {
-    const { game, ageDone } = playEmpire(340);
+    const { game, ageDone } = playEmpire(420);
     // Measured on this seed after the city-centre re-base: **41 / 80 / 120**,
     // against 40 / 78 / 118 immediately before it, 37 / 74 / 111 when the Civ
     // 6-style Age I ramp landed, 40 / 68 / 107 with the flat 16–29 Age I costs,
@@ -290,6 +290,30 @@ describe('pacing', () => {
     // opening is production-bound), Heroes seven turns longer, Empire the
     // doubled wall the ruling asked for, and the curtain at ~t265. Bands are
     // re-centred at the widths above; the horizon grew with them.
+    //
+    // **Re-pinned 2026-09-02, the timeline pass — the costs became a formula.**
+    // Every price in the tree is now read off the node's own chart column (the
+    // pricing note in `tech.ts` carries the taper and the fourteen figures), so
+    // this is a fresh measurement of a tree nothing in which was hand-tuned.
+    // This seed closes at **74 / 128 / 252 / 334** against 34 / 71 / 177 / 265.
+    // Three things are worth reading off that pair:
+    //
+    //   · **Æra I finally moved, and it moved the most** (34 → 74). It is the
+    //     one age that had never been re-priced, because the opening is
+    //     production-bound — but the user's own anchors put a second-column
+    //     node at 30 beakers where the old table had 8, so the age costs 814
+    //     rather than 169 and the opening is science-bound now too. The first
+    //     technology lands around turn 8 rather than turn 5.
+    //   · **The two late ages barely moved** (177 → 252 is mostly Æra I and II
+    //     arriving late; Æra III itself is 124 turns against 106, and Æra IV 82
+    //     against 88). The formula happened to land them near where Entry LIV's
+    //     hand-tuning had, which is the honest reason to believe the taper.
+    //   · **The proportions are Civ's now**: 22% / 16% / 37% / 25% of the game
+    //     against 13% / 14% / 40% / 33%. An opening age a player sweeps before
+    //     their second city is what the anchors were aimed at.
+    //
+    // Bands widen with the horizon — ±10 / ±15 / ±25 / ±30, the same fraction
+    // of each band's own length that ±7 / ±12 / ±18 / ±20 were.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -299,14 +323,14 @@ describe('pacing', () => {
     expect(third, `age III: ${String(third)}`).toBeDefined();
     expect(fourth, `age IV: ${String(fourth)}`).toBeDefined();
 
-    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(27);
-    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(41);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(59);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(83);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(159);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(195);
-    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(245);
-    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(285);
+    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(64);
+    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(84);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(113);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(143);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(227);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(277);
+    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(304);
+    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(364);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 120_000);
 

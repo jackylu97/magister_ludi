@@ -238,12 +238,20 @@ describe('what the pass did to the opening', () => {
      * cost ruling. The band already covered it (10–14) — a price rise on
      * exactly the thing this empire spends its hammers on is what the band's
      * lower bound exists to still permit, not to flag.
+     *
+     * **Re-measured 2026-09-02, the column-formula costs: the units and the
+     * cities did not move, and the technology floor did.** By turn 40 this
+     * empire holds **5** technologies where it held 10, because Æra I costs 814
+     * beakers rather than 169 — the whole point of the retune, and the clearest
+     * possible demonstration that this test is not about the tree: the same
+     * hammers bought the same army out of an empire that knows half as much.
+     * The floor comes down to 4 and stays a floor.
      */
     expect(game.state.turn).toBe(41);
     expect(game.state.cities.length).toBe(3);
     expect(mine.length).toBeGreaterThanOrEqual(10);
     expect(mine.length).toBeLessThanOrEqual(14);
-    expect(game.state.players[0]!.techsResearched.length).toBeGreaterThanOrEqual(10);
+    expect(game.state.players[0]!.techsResearched.length).toBeGreaterThanOrEqual(4);
   }, 120_000);
 
 });

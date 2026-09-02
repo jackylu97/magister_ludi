@@ -281,50 +281,50 @@ describe('tech data integrity', () => {
     expect(techDataProblems()).toEqual([]);
   });
 
-  it('bands its costs by age, and rises inside each band', () => {
-    // The band the tree is tuned to (see the pacing note in `tech.ts`): a
-    // scale, measured against the current pop-based science economy rather
-    // than copied from another game's numbers. Age III's band starts barely
-    // above age II's ceiling on purpose — Entry V asks the endgame to
-    // *accelerate*, so the last age's costs rise more slowly than the beakers
-    // an empire of that size is making.
+  it('prices every node off its own column, by the one tapered table', () => {
+    // **The costs are a formula now** (the user, 2026-09-02): a column *is* a
+    // price. Every node's cost is read off one table indexed by `techColumn`,
+    // so the four age bands this test used to carry — [8, 32] / [45, 195] /
+    // [340, 640] / [720, 1140] — are gone, and with them every hand-tuned
+    // figure the tree has accumulated since Milestone 6. What replaces them is
+    // the table itself, written down here because the data is the truth and
+    // this is the witness that the data still agrees with the rule that made
+    // it.
     //
-    // Re-measured when settlers grew expensive and escalating: a slower
-    // expansion is a slower science economy, so the whole table came down
-    // (×0.50 / ×0.85 / ×0.95 by age) to hold the same three closing turns.
+    // The formula, from the user's own anchors (13, 30, ~70, "and on and on"):
     //
-    // Age I's floor came down again for the Civ 6-style 1:2:3 ramp: the tier-1
-    // techs (husbandry, fletching, mining, earthenware) now cost 8, cheaper
-    // than the old floor of 12, so the first tech lands around turn 5–6
-    // instead of eating 6–8% of the game before anything unlocks. The ceiling
-    // is untouched — the Wheel's 26 and Letters' 24 both still clear it — and
-    // ages II/III are unchanged, per the rework's own note that only Age I was
-    // in scope.
+    //     cost(0) = 13
+    //     cost(n) = friendly(cost(n - 1) x r(n))
+    //     r(n)    = 1 + 1.3 x 0.72 ^ max(0, n - 2)
     //
-    // **Ages II and III were scaled up on 2026-08-28** (user — "science costs
-    // need to scale harder"): ×1.3 and ×1.8, each cost rounded to the nearest
-    // five, Age I untouched. That is the "the table is a *scale*" paragraph in
-    // `tech.ts` used deliberately — the shape *inside* each age is preserved
-    // exactly and only the band moved. The one claim above that no longer holds
-    // is Age III's floor sitting barely above Age II's ceiling: 480 against 305
-    // is a gap on purpose, because the endgame was being swept in thirty-five
-    // turns and is now sixty. The bands were [120, 250] and [255, 460].
+    // so the first two steps are the anchors' 2.3x flat (13 -> 30 -> 69) and
+    // the ratio then decays geometrically toward 1, reaching 1.05 by the last
+    // column. `friendly` rounds to the nearest 1 below a hundred, the nearest 5
+    // below a thousand, the nearest 50 above.
     //
-    // **Retuned by Entry LIV (2026-09-01)**: late Æra II ×1.5, Æra III ×2,
-    // Æra IV ×1.5 — the playtest's walls; the bands below are the retuned ones.
-    // **Re-banded by the tree pass of 2026-08-30** (`docs/tech-tree.md` Part 3):
-    // four ages, and the two that were already built moved wholesale. The Heroes
-    // band is new and sits between the Omens ramp and the old 170 floor;
-    // Empire is the shipped Æra II band with Education pulled down to its
-    // ceiling; Cathedrals is the shipped Æra III band with Education gone from
-    // its top. Costs rise monotonically along **every** prerequisite chain now,
-    // which the pre-pass tree did not manage and which the assertion below is
-    // the whole of.
+    // **The taper is the tuned one, and the tuning is a measurement rather than
+    // a taste.** The brief asked for a linear taper from 2.3 to 1.5, which ends
+    // at 48350 and prices the whole tree at 490931 beakers; played out on the
+    // pacing harness below that empire researched **43 of the 50 nodes in two
+    // thousand turns** and never reached AEra IV, because this science economy
+    // tops out in the low hundreds of beakers a turn. A geometric decay holds
+    // the anchors the linear one was chosen for and lands the tree at 26089,
+    // which the same harness sweeps by turn 334 (see `tech.slow.test.ts`).
+    // Turning the game harder or easier is one number: 0.72 -> 0.75 is 33779
+    // beakers, 0.70 is 21994.
+    const COLUMN_COSTS = [13, 30, 69, 135, 225, 335, 450, 565, 665, 750, 820, 875, 920, 950];
+    expect(COLUMN_COSTS).toHaveLength(techColumnCount());
+    for (const id of TECH_IDS) {
+      expect(techDef(id).cost, id).toBe(COLUMN_COSTS[techColumn(id)]);
+    }
+    // Which makes "a column is roughly a price" exact rather than aspirational,
+    // and is why `techChart.test.ts` no longer pins a list of nodes a
+    // dependency drags out of cost order: there cannot be one.
     const bands: Record<number, [number, number]> = {
-      1: [8, 32],
-      2: [45, 195],
-      3: [340, 640],
-      4: [720, 1140],
+      1: [13, 135],
+      2: [225, 450],
+      3: [565, 820],
+      4: [875, 950],
     };
     for (const id of TECH_IDS) {
       const def = techDef(id);
@@ -631,10 +631,14 @@ describe('chooseResearch', () => {
     const state = flatState();
     // The five second-tier nodes, in the tree's own order — the whole of a
     // player's opening choice now that Agriculture is the only root.
+    // The four second-tier nodes, in the tree's own order — the whole of a
+    // player's opening choice now that Agriculture is the only root. Sailing
+    // left this list in the timeline pass of 2026-09-02: it hangs off
+    // Earthenware now (the jar before the voyage), which is what gives the
+    // second column four nodes instead of five and the third column three.
     expect(availableTechs(state, 0)).toEqual([
       'husbandry',
       'fletching',
-      'sailing',
       'mining',
       'earthenware',
     ]);
@@ -1063,7 +1067,11 @@ describe('research in the log', () => {
     // beliefs and a sixth consecration join the bags a draft draws from, and The
     // Laureate's once-per-game great person becomes a renown trickle. A v45 log
     // names indices of hands this build does not deal.
-    expect(SCHEMA_VERSION).toBe(46);
+    // v47: the timeline reshape and the column-formula costs — seventeen
+    // prerequisite edges moved so every column earns its width, and every cost
+    // is rewritten off the node's own column. A v46 log aims research at a tree
+    // this build does not have, and pays prices it never paid.
+    expect(SCHEMA_VERSION).toBe(47);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1175,25 +1183,27 @@ describe('the research queue', () => {
     const player = state.players[0]!;
 
     // `replace` blows the plan away — the player changed their mind.
+    // Sailing hangs off Earthenware since the timeline pass, so naming it names
+    // that too — which is the expansion this command has always done.
     expect(applyCommand(state, queue(0, 'sailing', 'replace'))).toEqual({ ok: true });
-    expect(researchPlan(player)).toEqual(['sailing']);
+    expect(researchPlan(player)).toEqual(['earthenware', 'sailing']);
 
     // `append` is a second destination, and adds only what is missing.
     expect(applyCommand(state, queue(0, 'bronzeWorking', 'append'))).toEqual({ ok: true });
-    expect(researchPlan(player)).toEqual(['sailing', 'mining', 'earthenware', 'bronzeWorking']);
+    expect(researchPlan(player)).toEqual(['earthenware', 'sailing', 'mining', 'bronzeWorking']);
     expect(applyCommand(state, queue(0, 'stonecraft', 'append'))).toEqual({ ok: true });
     // Earthenware is already in the plan and is not queued twice; Husbandry and
     // Stonecraft itself are all that is left to add.
     expect(researchPlan(player)).toEqual([
+      'earthenware',
       'sailing',
       'mining',
-      'earthenware',
       'bronzeWorking',
       'husbandry',
       'stonecraft',
     ]);
     // The head never moved: appending is not choosing.
-    expect(player.researching).toBe('sailing');
+    expect(player.researching).toBe('earthenware');
   });
 
   it('refuses an append that would change nothing, byte-identically', () => {
@@ -1407,29 +1417,41 @@ describe('the shape of the tree', () => {
     // that reads well.
     const ageOne = TECH_IDS.filter((id) => techDef(id).age === 1);
     expect(ageOne.length).toBe(12);
-    // The old costs: one root at fifteen, five at eight, four at sixteen, and
-    // the two nodes the age ends on.
+    // The old costs are gone — a cost is the node's column now (see "prices
+    // every node off its own column" above), and the user's anchors put the
+    // age's four columns at 13 / 30 / 69 / 135 where the hand-tuned table had
+    // 15 / 8 / 16 / 24-26. The age is therefore the same twelve nodes at nearly
+    // five times the price, which is the whole of why AEra I closes around turn
+    // 74 rather than turn 34; what is asserted here is the *shape* of the age,
+    // which is what the restoration was about.
     expect(Object.fromEntries(ageOne.map((id) => [id, techDef(id).cost]))).toEqual({
-      agriculture: 15,
-      husbandry: 8,
-      fletching: 8,
-      sailing: 8,
-      mining: 8,
-      earthenware: 8,
-      bronzeWorking: 16,
-      stonecraft: 16,
-      calendar: 16,
-      divination: 16,
-      letters: 24,
-      theWheel: 26,
+      agriculture: 13,
+      husbandry: 30,
+      fletching: 30,
+      mining: 30,
+      earthenware: 30,
+      sailing: 69,
+      bronzeWorking: 69,
+      stonecraft: 69,
+      divination: 69,
+      calendar: 135,
+      letters: 135,
+      theWheel: 135,
     });
     // The old gates, which are what make the age a *graph* again rather than
     // the five-way fan the re-cut flattened it into: four of the twelve want
     // two parents apiece.
     expect(techDef('bronzeWorking').prereqs).toEqual(['mining', 'earthenware']);
     expect(techDef('stonecraft').prereqs).toEqual(['husbandry', 'earthenware']);
-    expect(techDef('calendar').prereqs).toEqual(['earthenware']);
     expect(techDef('divination').prereqs).toEqual(['husbandry']);
+    // Two single-parent edges moved in the timeline pass of 2026-09-02, and
+    // only those two: Sailing hangs off the jar rather than the field, and the
+    // Calendar off the sky-watching rather than the jar. That is what turns a
+    // 1-5-4-2 age into a 1-4-4-3 one — five nodes in a column with two in the
+    // next is the "near-empty column" the pass was called to remove — and the
+    // four two-parent gates the restoration was actually about are untouched.
+    expect(techDef('sailing').prereqs).toEqual(['earthenware']);
+    expect(techDef('calendar').prereqs).toEqual(['divination']);
     expect(techDef('letters').prereqs).toEqual(['earthenware', 'divination']);
     expect(techDef('theWheel').prereqs).toEqual(['husbandry', 'bronzeWorking']);
     // The old homes. The Hanging Gardens are the Calendar's again — named in
@@ -1470,13 +1492,20 @@ describe('the shape of the tree', () => {
     expect(BUILDING_UNLOCK_TECH.get('amphitheater')).toBe('epicPoetry');
     expect(BUILDING_UNLOCK_TECH.get('theatreOfDionysus')).toBe('epicPoetry');
     // The faith line still runs off itself end to end — Divination → Ancestor
-    // Rites → The High Temple → Theology → The Holy Office — and the chain pass
-    // of 2026-09-02 gave three of its rungs a *second* parent so the line lays
-    // out as a line: the scholastic one on Theology (Rhetoric, which is where
-    // the pre-re-cut tree hung it too), and the printed word on The Holy Office.
-    expect(techDef('theHighTemple').prereqs).toEqual(['divination', 'ancestorRites']);
-    expect(techDef('theology').prereqs).toEqual(['theHighTemple', 'philosophy']);
-    expect(techDef('theHolyOffice').prereqs).toEqual(['theology', 'movableType']);
+    // Rites → The High Temple → Rhetoric → Theology → The Qadi's Court → The
+    // Holy Office — but the timeline pass of 2026-09-02 re-hung three of its
+    // rungs so that every step of it is one or two columns rather than four.
+    // The temple now stands on the rites and the count that fix its feast days
+    // (Stonecraft's stones were the alternative and lose the calendar); it
+    // hands its argument to Rhetoric rather than reaching five columns to
+    // Theology; Theology takes the canonical hours off Horology, which is where
+    // mechanical timekeeping actually came from; and the Holy Office descends
+    // from the *court* it is one of, with the printed edict beside it.
+    expect(techDef('theHighTemple').prereqs).toEqual(['ancestorRites', 'theLongCount']);
+    expect(techDef('philosophy').prereqs).toEqual(['epicPoetry', 'theHighTemple']);
+    expect(techDef('theology').prereqs).toEqual(['philosophy', 'horology']);
+    expect(techDef('theQadisCourt').prereqs).toEqual(['theImperialPost', 'theology']);
+    expect(techDef('theHolyOffice').prereqs).toEqual(['theQadisCourt', 'movableType']);
     // The Hall of Deeds left the tree with the re-cut and kept its row, so a
     // save that raised one replays. Nothing unlocks it and nothing may build it.
     expect(BUILDING_UNLOCK_TECH.get('hallOfDeeds')).toBeUndefined();

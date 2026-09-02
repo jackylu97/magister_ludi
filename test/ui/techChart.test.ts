@@ -23,6 +23,7 @@ import {
   chartCrossings,
   chartFalseChains,
   techChartLayout,
+  techColumn,
   techDataProblems,
   techDef,
   techDepth,
@@ -57,7 +58,10 @@ function naiveLanes(): Record<string, number> {
   const perColumn = new Map<number, number>();
   const rows: Record<string, number> = {};
   for (const id of TECH_IDS) {
-    const column = techDepth(id);
+    // `techColumn`, the column the chart draws, since the age banding — see
+    // `techChartLayout`, which the comparison has to be against the same
+    // geometry as.
+    const column = techColumn(id);
     const next = perColumn.get(column) ?? 0;
     perColumn.set(column, next + 1);
     rows[id] = next % TECH_LANE_LIMIT;
@@ -159,47 +163,32 @@ describe('the shipped lanes', () => {
   it('crosses less than the lanes it replaced', () => {
     const before = chartCrossings(layoutBefore());
     const after = chartCrossings(techChartLayout());
-    // **Re-measured for the chain pass of 2026-09-02.** The 2026-08-26 re-lay
-    // was judged at 25 against 11 over twenty-six nodes; the 2026-08-30 tree
-    // measured 323 against 179 over fifty-three; the re-cut's forty-nine wide
-    // and shallow nodes measured 31 against 5.
+    // **Re-measured for the timeline pass of 2026-09-02**, which reshaped the
+    // graph and then re-annealed every lane against it. The history, because a
+    // re-lay has to say which direction it moved the numbers: the 2026-08-26
+    // re-lay was 25 against 11 over twenty-six nodes; the 2026-08-30 tree 323
+    // against 179 over fifty-three; the re-cut's wide, shallow forty-nine 31
+    // against 5; the chain pass 113 against 10 at eleven lanes, and 113 against
+    // 14 when the fold pass cut the budget to eight.
     //
-    // This pass put the edges back — Æra I's old two-parent gates, and enough
-    // in-age chaining to lay Æra III and Æra IV in three columns each — so the
-    // graph carries **seventy-eight** connectors where the re-cut carried
-    // fifty-four, and a denser graph crosses more however it is laid. The
-    // honest reading is the ratio against a baseline of the *same* graph:
-    // **113 dealt naively into the same eleven lanes, 10 for the layout in the
-    // file.** The inequality is the rule; the numbers are here so a future
-    // re-lay has to say out loud which direction it moved them.
+    // This pass measures **88 for the naive deal, 11 for the layout in the
+    // file** — both against the *drawn* geometry rather than the raw depths,
+    // which is the other half of what changed here (`techChartLayout` keys on
+    // `techColumn` now; the ages own disjoint column runs, so a depth-keyed
+    // metric was counting crossings between nodes the chart draws a column
+    // apart and missing the ones it draws on top of each other).
     //
-    // The lanes were searched rather than eyeballed (annealing on crossings,
-    // false chains and lane-continuation together), which is what
-    // `chartCrossings` was written for in the first place: a metric that can
-    // only be pointed at the current data cannot say whether the current data is
-    // any good.
+    // Fewer crossings than the fold pass on a graph with four fewer connectors,
+    // and the lanes read as lines *better*: **34 of the 41 nodes that can
+    // continue a parent's lane do**, where the fold pass managed 30 of 39. Both
+    // came out of the same annealer on the same three measures — crossings,
+    // false chains and lane-continuation together — over ninety starts of
+    // forty-five thousand moves.
     //
-    // **Re-laid again the same day, at eight lanes** (the fold pass — the user
-    // read Æra II as five technologies on a 1456×827 window, because the other
-    // five were under the bottom edge). `TECH_LANE_LIMIT` came down from eleven
-    // to eight, which is the floor the graph sets: the widest column holds
-    // seven, and two techs in one column may not share a lane.
-    //
-    // A tighter cap crosses more and this one says how much: **ten at eleven
-    // lanes, fourteen at eight**, against the same 113 — the baseline does not
-    // move with the cap, because no column holds more than eight nodes and the
-    // naive deal never wraps. Four crossings is what three lanes of height cost,
-    // and it is the trade Civ's own tree makes: long, not tall. The search was
-    // given six hundred thousand moves from sixty-four starts and its best
-    // crossing figure at this cap was thirteen; the layout in the file takes
-    // fourteen because that arrangement also continues **thirty** lanes where
-    // the thirteen-crossing one continued twenty-seven — see the lane-run test
-    // below, and rule 1 of the lane principle, which is what a lane is *for*.
-    //
-    // **Zero false chains is the claim that did not move** — see the test below
-    // — and it is the one the lane principle ranks above a crossing.
-    expect(before).toBe(113);
-    expect(after).toBe(14);
+    // **Zero false chains is the claim that did not move** — see the test
+    // below — and it is the one the lane principle ranks above a crossing.
+    expect(before).toBe(88);
+    expect(after).toBe(11);
     expect(after).toBeLessThan(before);
   });
 
@@ -287,26 +276,30 @@ describe('the shipped lanes', () => {
 /**
  * The chart's *other* reading, ruled by the user on 2026-09-02: **inside an age
  * a column is roughly a price**, so the chart reads left to right as a schedule
- * as well as a dependency chart, and a cheaper technology never sits to the
- * right of a dearer one unless a prerequisite drags it there.
+ * as well as a dependency chart.
  *
- * There is no cost term anywhere in the layout — `techDepth` sees prerequisites
- * and nothing else — so this is a claim about the *edges* that were chosen, and
- * the only way to hold it is to choose them for it. Two measurements, because
- * one of them is a rule and the other is an inventory:
+ * It used to be a claim about the *edges* that had been chosen — there is no
+ * cost term anywhere in the layout, so the only way to hold it was to choose
+ * prerequisites for it, and a handful of nodes a dependency dragged out of
+ * order were pinned by name as the exceptions. The user's second ruling of the
+ * same day settled it the other way round: **every cost is now written from the
+ * node's own column** by one tapered table (`tech.test.ts` carries the formula
+ * and the fourteen figures), so the reading is exact by construction and there
+ * is no exception left to pin.
  *
- *   · the mean cost of each column rises across an age, which is the shape of
- *     the claim and holds without exception; and
- *   · the exact list of nodes a dependency drags out of order, pinned by name so
- *     a future chain pass has to say which ones it moved.
+ * The tests below are kept rather than deleted, and what they are for has
+ * changed: they are now the witnesses that the *shape* the pricing rests on is
+ * still there — the ages spread over columns that each earn their width, the
+ * means still rise, and the stray list is empty because it cannot be anything
+ * else.
  */
-describe('a column is roughly a price', () => {
-  /** Every age's columns, cheapest-first, with what sits in each. */
+describe('a column is a price', () => {
+  /** Every age's columns, left to right, with what sits in each. */
   function ageColumns(age: number): { column: number; costs: number[] }[] {
     const members = TECH_IDS.filter((id) => techDef(id).age === age);
     const byColumn = new Map<number, number[]>();
     for (const id of members) {
-      const column = techDepth(id);
+      const column = techColumn(id);
       byColumn.set(column, [...(byColumn.get(column) ?? []), techDef(id).cost]);
     }
     return [...byColumn.entries()]
@@ -314,82 +307,74 @@ describe('a column is roughly a price', () => {
       .map(([column, costs]) => ({ column, costs }));
   }
 
-  it('spreads Æra III and Æra IV over three dependency columns each', () => {
-    // The user's read of the re-cut — "age 3 and 4 are a single vertical row" —
-    // in the form that can fail. A **cross-age** parent buys no depth at all
-    // here: if every node of an age hangs off the age before it, the whole age
-    // lands in one column. Only an in-age chain spreads it.
-    expect(ageColumns(3).map((band) => band.column)).toEqual([5, 6, 7]);
-    expect(ageColumns(4).map((band) => band.column)).toEqual([8, 9, 10]);
-    // The two early ages were never the complaint and are wider anyway, because
-    // the age-1 restoration brought back four two-parent gates.
+  it('gives every age columns that each earn their width', () => {
+    // The timeline pass's own measure (user: make the chart read like Civ V's).
+    // Fourteen columns, and **no column holds fewer than three nodes or more
+    // than six** — bar column 0, which is Agriculture alone and always will be,
+    // because it is the one root the tree has.
     expect(ageColumns(1).map((band) => band.column)).toEqual([0, 1, 2, 3]);
-    expect(ageColumns(2).map((band) => band.column)).toEqual([2, 3, 4, 5]);
+    expect(ageColumns(2).map((band) => band.column)).toEqual([4, 5, 6]);
+    expect(ageColumns(3).map((band) => band.column)).toEqual([7, 8, 9, 10]);
+    expect(ageColumns(4).map((band) => band.column)).toEqual([11, 12, 13]);
+    const populations = [1, 2, 3, 4].flatMap((age) =>
+      ageColumns(age).map(({ column, costs }) => [column, costs.length] as const),
+    );
+    expect(populations).toEqual([
+      [0, 1], [1, 4], [2, 4], [3, 3],
+      [4, 3], [5, 4], [6, 3],
+      [7, 4], [8, 6], [9, 3], [10, 3],
+      [11, 4], [12, 5], [13, 3],
+    ]);
+    for (const [column, held] of populations) {
+      if (column === 0) continue;
+      expect(held, `column ${column}`).toBeGreaterThanOrEqual(3);
+      expect(held, `column ${column}`).toBeLessThanOrEqual(7);
+    }
   });
 
-  it('raises the mean cost of every column across every age', () => {
+  it('holds one cost per column, rising across every age', () => {
+    // Exact, not a mean: every node in a column costs the same thing, because
+    // the column is where the cost comes from. A rising *mean* was the strongest
+    // claim the hand-tuned table could support; this is the claim it was
+    // reaching for.
+    let last = 0;
     for (const age of [1, 2, 3, 4]) {
-      const means = ageColumns(age).map(({ column, costs }) => {
-        // Agriculture is the starting technology and is excused here exactly as
-        // it is excused from the monotonic-cost rule in `tech.test.ts`: its cost
-        // is what a seat begins already holding, not a price it ever paid.
-        const priced = costs.filter((cost) => age !== 1 || cost !== techDef('agriculture').cost);
-        return { column, mean: priced.reduce((sum, cost) => sum + cost, 0) / (priced.length || 1) };
-      });
-      const rising = means.filter(({ mean }) => mean > 0);
-      for (let i = 1; i < rising.length; i++) {
-        expect(rising[i]!.mean, `æra ${age}, column ${rising[i]!.column}`).toBeGreaterThan(
-          rising[i - 1]!.mean,
-        );
+      for (const { column, costs } of ageColumns(age)) {
+        expect(new Set(costs).size, `æra ${age}, column ${column}`).toBe(1);
+        expect(costs[0]!, `æra ${age}, column ${column}`).toBeGreaterThan(last);
+        last = costs[0]!;
       }
     }
   });
 
-  it('names the nodes a dependency drags out of order, and no others', () => {
-    // A node is "out of order" when something dearer than it sits in an earlier
-    // column of its own age. Each of these is genuinely forced — its column is
-    // one past its own deepest prerequisite and there is no cheaper parent to
-    // hang it on that would not be a lie about the design:
-    //
-    //   · **Kingship** (65) wants Letters, which is the deepest node of Æra I,
-    //     so it opens Æra II's fourth column beside Currency's 160.
-    //   · **Prospecting** (520) closes Mathematics → Engineering → Prospecting,
-    //     which is the chain that gives Æra III its third column at all.
-    //   · **The Qadi's Court** (590) and **Paper Money** (620) both want
-    //     Empire-Building, so they sit one past it and to the right of the 640
-    //     Education that hangs off two column-five nodes.
-    //   · **Fortification** (850) is Castellany's child and lands right of the
-    //     885 Movable Type that is only one column deep in Æra IV.
+  it('has no node a dependency drags out of order, and cannot have one', () => {
+    // The list this used to pin by name — Kingship, Prospecting, The Qadi's
+    // Court, Paper Money, Fortification — is empty in every age now. A node is
+    // "out of order" when something dearer than it sits in an earlier column of
+    // its own age, and a cost that *is* the column makes that unreachable.
     const strays: Record<number, string[]> = {};
     for (const age of [1, 2, 3, 4]) {
-      const members = TECH_IDS.filter((id) => techDef(id).age === age && id !== 'agriculture');
+      const members = TECH_IDS.filter((id) => techDef(id).age === age);
       strays[age] = members
         .filter((id) =>
           members.some(
             (other) =>
-              techDepth(other) < techDepth(id) && techDef(other).cost > techDef(id).cost,
+              techColumn(other) < techColumn(id) && techDef(other).cost > techDef(id).cost,
           ),
         )
         .sort();
     }
-    expect(strays).toEqual({
-      1: [],
-      2: ['kingship'],
-      3: ['paperMoney', 'prospecting', 'theQadisCourt'],
-      4: ['fortification'],
-    });
+    expect(strays).toEqual({ 1: [], 2: [], 3: [], 4: [] });
   });
 
   it('sits Irrigation to the right of Currency', () => {
     // The user's ruling of 2026-09-02 by name — "currency a bit too late,
-    // irrigation a bit too early" — has two halves, and this is the one the
-    // chart has to show. Currency came down to 160 and Irrigation went up to
-    // 190, so the chart would be lying if Irrigation still opened first: it is
-    // hung on the Calendar the restoration brought back *and* on Kingship, which
-    // puts it one column past Currency and last in its age.
-    expect(techDef('currency').cost).toBe(160);
-    expect(techDef('irrigation').cost).toBe(190);
-    expect(techDepth('irrigation')).toBeGreaterThan(techDepth('currency'));
+    // irrigation a bit too early" — kept as a *shape* claim now that the costs
+    // follow the columns rather than the other way round. Irrigation is hung on
+    // the Calendar and on Kingship, which puts it one column past Currency and
+    // last in its age; the prices follow from that, and no longer argue with it.
+    expect(techColumn('irrigation')).toBeGreaterThan(techColumn('currency'));
+    expect(techDef('irrigation').cost).toBeGreaterThan(techDef('currency').cost);
     expect(techDef('irrigation').prereqs).toEqual(['calendar', 'kingship']);
   });
 });

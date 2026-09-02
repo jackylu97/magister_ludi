@@ -60,6 +60,52 @@
  * half health is a half-health swordsman, not a fresh one, because upgrading
  * must never be a way to heal.
  *
+ * Pricing: a column *is* a cost (the user, 2026-09-02)
+ * ----------------------------------------------------
+ * **No cost in `data/techs.json` is hand-tuned any more.** A node's price is
+ * read off one table indexed by its `techColumn`, so two technologies the chart
+ * draws in the same column cost the same thing and the chart reads left to
+ * right as a schedule. Everything below this paragraph is the history of the
+ * table this replaced; it is kept because it is the record of what the science
+ * economy was measured to bear, and the taper was tuned against exactly that.
+ *
+ *     cost(0) = 13
+ *     cost(n) = friendly(cost(n - 1) × r(n))
+ *     r(n)    = 1 + 1.3 × 0.72 ^ max(0, n - 2)
+ *
+ * `friendly` rounds to the nearest 1 below a hundred, the nearest 5 below a
+ * thousand and the nearest 50 above. The first two steps are flat at 2.3×,
+ * which is the user's own anchor (13 → 30 → 69, "and on and on"), and the ratio
+ * then decays geometrically toward 1, reaching 1.05 by the last column. The
+ * fourteen figures are
+ *
+ *     13 · 30 · 69 · 135 · 225 · 335 · 450 · 565 · 665 · 750 · 820 · 875 · 920 · 950
+ *
+ * which prices the four ages at **814 / 3365 / 10960 / 10950** — 26089 for the
+ * whole tree, against 20354 for the hand-tuned table it replaced. The shape of
+ * the change is the point rather than the total: Æra I costs nearly five times
+ * what it did (the anchors put a second-column node at 30 beakers where the old
+ * table had 8), Æra II nearly three times, and the two late ages are within a
+ * third of where they were. So the opening is a real ramp instead of four techs
+ * a player sweeps before their second city, and the scripted empire's closes
+ * move from 34 / 71 / 177 / 265 to **74 / 128 / 252 / 334** — which is also
+ * closer to the era proportions Civ itself uses (22% / 16% / 37% / 25% of the
+ * game rather than 13% / 14% / 40% / 33%).
+ *
+ * **The taper is decaying rather than linear, and that was a measurement.** A
+ * linear taper from 2.3 to 1.5 over the thirteen steps — the shape this pass
+ * was briefed with — ends at 48350 and prices the tree at 490931; played out on
+ * `tech.slow.test.ts`'s own harness that empire researched **43 of the 50 nodes
+ * in two thousand turns** and never reached Æra IV, because this science
+ * economy tops out in the low hundreds of beakers a turn. Fourteen columns of
+ * compounding cannot stay inside that budget at a ratio that is still 1.5 at
+ * the end; a decaying one holds the anchors the linear one was chosen for and
+ * lands the tree where the economy can pay for it. Making the game harder or
+ * easier is one number: 0.72 → 0.75 prices the tree at 33779, 0.70 at 21994.
+ *
+ * Retuning it is therefore not a pass over fifty rows. It is that one decay
+ * constant, re-run over `techColumn`, and the shape of the tree is untouched.
+ *
  * Pacing (Quick speed, standard map, the science economy exactly as it stands)
  * ---------------------------------------------------------------------------
  * The ages cost 169 / 1655 / 4420 beakers; the two starting techs are free, so a

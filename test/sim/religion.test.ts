@@ -1570,8 +1570,12 @@ describe('The High Temple', () => {
     // Re-cut again on 2026-09-02: Standing Stones is pruned and the faith line
     // hangs off itself — Divination → Ancestor Rites → The High Temple, the
     // middle rung added by the chain pass so the line lays out as a line rather
-    // than as three siblings sharing one column.
-    expect(def.prereqs).toEqual(['divination', 'ancestorRites']);
+    // than as three siblings sharing one column. The timeline pass of the same
+    // day swapped the temple's *second* parent from Divination (three columns
+    // back, and already behind Ancestor Rites) to The Long Count one column
+    // back: the feast days a high temple keeps are the ones the count fixes,
+    // and the connector is now a step rather than a reach.
+    expect(def.prereqs).toEqual(['ancestorRites', 'theLongCount']);
     expect(def.unlocks.units ?? []).toContain('prophet');
     expect(def.unlocks.buildings ?? []).toContain('temple');
     expect(def.unlocks.abilities ?? []).toContain('thePreaching');

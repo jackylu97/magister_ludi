@@ -1252,7 +1252,11 @@ describe('trade in the log', () => {
     // beliefs and a sixth consecration join the bags a draft draws from, and The
     // Laureate's once-per-game great person becomes a renown trickle. A v45 log
     // names indices of hands this build does not deal.
-    expect(SCHEMA_VERSION).toBe(46);
+    // v47: the timeline reshape and the column-formula costs — seventeen
+    // prerequisite edges moved so every column earns its width, and every cost
+    // is rewritten off the node's own column. A v46 log aims research at a tree
+    // this build does not have, and pays prices it never paid.
+    expect(SCHEMA_VERSION).toBe(47);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

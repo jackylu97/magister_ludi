@@ -2,12 +2,21 @@
  * **Slow tier** (`npm run test:slow`, and `npm run test:all`) — religion, played
  * by a real empire.
  *
- * Both tests here run `playFaithful(90)`: a scripted empire that settles a few
- * towns, researches toward Divination first, puts a shrine in every town, and
- * then spends faith on augurs the moment the pool covers one. Ninety turns is
- * the measurement, not an implementation detail — "the first augur lands on turn
- * N" is a sentence about an opening, and the determinism claim is only worth
- * making over a log that actually *contains* a purchase, a rite and a god.
+ * The scripts here play a real opening: an empire that settles a few towns,
+ * beelines the prerequisite closure of The High Temple, puts a shrine in every
+ * town, and then spends faith on prophets and augurs the moment the pool covers
+ * one. The horizon is the measurement, not an implementation detail — the
+ * determinism claim is only worth making over a log that actually *contains* a
+ * purchase, a rite and a god, so each test asserts that its own game reached
+ * them before it asserts that the replay is byte-identical.
+ *
+ * **The horizons doubled on 2026-09-02**, with the column-formula costs: 90 →
+ * **200** for the one-seat game and 170 → **340** for the two-seat one. Nothing
+ * about faith moved — the beeline did. `closureOf('theHighTemple')` is seven
+ * nodes now and they are priced off their chart columns, so the road to the
+ * first prophet costs 1244 beakers where it cost 249, and a ninety-turn game no
+ * longer reaches the subsystem it is meant to be testing. That is exactly the
+ * failure mode the beeline was derived rather than written down for.
  *
  * `religion.test.ts` keeps everything a two-city bench answers, which is nearly
  * all of the concern: the table's integrity, the purchase's validation matrix
@@ -246,8 +255,12 @@ describe('determinism', () => {
     // beliefs and a sixth consecration join the bags a draft draws from, and The
     // Laureate's once-per-game great person becomes a renown trickle. A v45 log
     // names indices of hands this build does not deal.
-    expect(SCHEMA_VERSION).toBe(46);
-    const played = playFaithful(90);
+    // v47: the timeline reshape and the column-formula costs — seventeen
+    // prerequisite edges moved so every column earns its width, and every cost
+    // is rewritten off the node's own column. A v46 log aims research at a tree
+    // this build does not have, and pays prices it never paid.
+    expect(SCHEMA_VERSION).toBe(47);
+    const played = playFaithful(200);
     // The empire actually got there: an augur was bought out of faith it earned,
     // rites were performed, and a god was named. A determinism test over a log
     // with none of those in it would be a determinism test of nothing.
@@ -350,8 +363,25 @@ function playTwoFaiths(maxTurns: number): {
           // founding consumes the founder, so the bomb this test is about needs
           // a prophet of its own, and a policy that bought an augur every time
           // the prophet was out of reach never had one.
+          //
+          // **Unless there is no god yet** (2026-09-02). Saving is only sound
+          // once the seat can actually *use* a prophet, and a prophet is useless
+          // without a pantheon — `plantHolySite` refuses with "You have no gods
+          // to found a religion on". The column-formula costs pushed The High
+          // Temple far enough down the game that this seat reached it holding
+          // one prophet and never afforded a second, so it saved for ever,
+          // never bought an augur, never took a god, and founded nothing in
+          // three hundred and forty turns. The policy deadlocked on itself; the
+          // clause below is the fix, and it is the same preference the "a god
+          // first, here" comment further down already states.
           if (!price || player.faithPool < price.total) {
-            if (item === PROPHET && player.prophetsPurchased < 2) break;
+            if (
+              item === PROPHET &&
+              player.prophetsPurchased < 2 &&
+              player.pantheon.beliefs.length > 0
+            ) {
+              break;
+            }
             continue;
           }
           dispatch(g, {
@@ -456,11 +486,11 @@ function playTwoFaiths(maxTurns: number): {
 
 describe('two faiths and a bomb', () => {
   it('replays byte for byte over a game with religions, sites and a proclamation', () => {
-    const played = playTwoFaiths(170);
+    const played = playTwoFaiths(340);
     // eslint-disable-next-line no-console
     console.log(
       `[religion v2] ${played.religionsFounded} religions founded, ${played.bombs} ` +
-        `proclamations made, ${played.converts} citizens converted in 170 turns`,
+        `proclamations made, ${played.converts} citizens converted in 340 turns`,
     );
     // The log actually contains the subsystem. A determinism test over a game
     // where nobody founded anything would be a determinism test of nothing.
@@ -474,7 +504,7 @@ describe('two faiths and a bomb', () => {
 
 describe('what an augur costs a real empire', () => {
   it('lands the first one in the window the design predicted', () => {
-    const played = playFaithful(90);
+    const played = playFaithful(200);
     // eslint-disable-next-line no-console
     console.log(
       `[religion] first augur on turn ${String(played.firstAugurTurn)} — ` +

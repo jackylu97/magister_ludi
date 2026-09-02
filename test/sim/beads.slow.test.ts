@@ -77,7 +77,7 @@ function playSeat(maxTurns: number): { game: Game; opened: number | null; firstD
 
 describe('the table in a played game', () => {
   it('deals from turn one and opens when the first seat enters built age 3', () => {
-    const { game, opened, firstDeal } = playSeat(220);
+    const { game, opened, firstDeal } = playSeat(260);
     const player = game.state.players[0]!;
 
     // The deal does not wait for anybody: a card lands on the table face down
@@ -100,7 +100,14 @@ describe('the table in a played game', () => {
     expect(opened!).toBeGreaterThan(20);
     // Re-banded 2026-09-01 (Entry LIV): the tree's new walls put the Empire
     // band around t100 on this seed; the band stays deliberately loose.
-    expect(opened!).toBeLessThan(180);
+    // Re-banded 2026-09-02 (the column-formula costs): every price in the tree
+    // is read off the node's own chart column now, and the two early ages got
+    // much dearer — AEra I costs 814 beakers where it cost 169 — so this seat
+    // reaches the Empire band at **t211** rather than t100. The band goes to
+    // 300, which is still the loose one this test wants: what is pinned is that
+    // the table opens *inside a game*, and a tighter band would fail on a tree
+    // retune this file has no opinion about.
+    expect(opened!).toBeLessThan(300);
     expect(game.state.beads.worldAge).toBeGreaterThanOrEqual(3);
     expect(highestAge(player.techsResearched)).toBeGreaterThanOrEqual(3);
 

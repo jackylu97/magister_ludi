@@ -5,7 +5,7 @@
       "glyph": "🌾",
       "age": 1,
       "row": 4,
-      "cost": 15,
+      "cost": 13,
       "prereqs": [],
       "unlocks": {
         "units": [
@@ -21,8 +21,8 @@
       "name": "Husbandry",
       "glyph": "🐄",
       "age": 1,
-      "row": 1,
-      "cost": 8,
+      "row": 7,
+      "cost": 30,
       "prereqs": [
         "agriculture"
       ],
@@ -40,8 +40,8 @@
       "name": "Fletching",
       "glyph": "🏹",
       "age": 1,
-      "row": 0,
-      "cost": 8,
+      "row": 1,
+      "cost": 30,
       "prereqs": [
         "agriculture"
       ],
@@ -56,10 +56,10 @@
       "name": "Sailing",
       "glyph": "⛵",
       "age": 1,
-      "row": 7,
-      "cost": 8,
+      "row": 4,
+      "cost": 69,
       "prereqs": [
-        "agriculture"
+        "earthenware"
       ],
       "unlocks": {
         "abilities": [
@@ -79,8 +79,8 @@
       "name": "Mining",
       "glyph": "⛏",
       "age": 1,
-      "row": 6,
-      "cost": 8,
+      "row": 3,
+      "cost": 30,
       "prereqs": [
         "agriculture"
       ],
@@ -91,8 +91,8 @@
       "name": "Earthenware",
       "glyph": "⚱",
       "age": 1,
-      "row": 5,
-      "cost": 8,
+      "row": 4,
+      "cost": 30,
       "prereqs": [
         "agriculture"
       ],
@@ -107,8 +107,8 @@
       "name": "Bronzeworking",
       "glyph": "⚔",
       "age": 1,
-      "row": 6,
-      "cost": 16,
+      "row": 3,
+      "cost": 69,
       "prereqs": [
         "mining",
         "earthenware"
@@ -132,8 +132,8 @@
       "name": "Stonecraft",
       "glyph": "🧱",
       "age": 1,
-      "row": 4,
-      "cost": 16,
+      "row": 5,
+      "cost": 69,
       "prereqs": [
         "husbandry",
         "earthenware"
@@ -155,10 +155,10 @@
       "name": "Calendar",
       "glyph": "🌙",
       "age": 1,
-      "row": 5,
-      "cost": 16,
+      "row": 7,
+      "cost": 135,
       "prereqs": [
-        "earthenware"
+        "divination"
       ],
       "unlocks": {
         "projects": [
@@ -174,8 +174,8 @@
       "name": "Divination",
       "glyph": "🔮",
       "age": 1,
-      "row": 1,
-      "cost": 16,
+      "row": 7,
+      "cost": 69,
       "prereqs": [
         "husbandry"
       ],
@@ -199,8 +199,8 @@
       "name": "Letters",
       "glyph": "📜",
       "age": 1,
-      "row": 4,
-      "cost": 24,
+      "row": 5,
+      "cost": 135,
       "prereqs": [
         "earthenware",
         "divination"
@@ -220,8 +220,8 @@
       "name": "The Wheel",
       "glyph": "☸",
       "age": 1,
-      "row": 6,
-      "cost": 26,
+      "row": 3,
+      "cost": 135,
       "prereqs": [
         "husbandry",
         "bronzeWorking"
@@ -238,10 +238,11 @@
       "name": "Siegecraft",
       "glyph": "🎯",
       "age": 2,
-      "row": 0,
-      "cost": 90,
+      "row": 1,
+      "cost": 225,
       "prereqs": [
-        "fletching"
+        "fletching",
+        "bronzeWorking"
       ],
       "unlocks": {
         "units": [
@@ -257,8 +258,8 @@
       "name": "Irrigation",
       "glyph": "💧",
       "age": 2,
-      "row": 2,
-      "cost": 190,
+      "row": 4,
+      "cost": 450,
       "prereqs": [
         "calendar",
         "kingship"
@@ -271,8 +272,8 @@
       "name": "Wayfinding",
       "glyph": "🧭",
       "age": 2,
-      "row": 7,
-      "cost": 60,
+      "row": 2,
+      "cost": 225,
       "prereqs": [
         "sailing"
       ],
@@ -295,10 +296,10 @@
       "name": "Epic Poetry",
       "glyph": "🎼",
       "age": 2,
-      "row": 1,
-      "cost": 150,
+      "row": 5,
+      "cost": 450,
       "prereqs": [
-        "letters"
+        "kingship"
       ],
       "unlocks": {
         "buildings": [
@@ -326,8 +327,8 @@
       "name": "Currency",
       "glyph": "💰",
       "age": 2,
-      "row": 4,
-      "cost": 160,
+      "row": 3,
+      "cost": 335,
       "prereqs": [
         "theWheel",
         "letters"
@@ -350,8 +351,8 @@
       "name": "Kingship",
       "glyph": "👑",
       "age": 2,
-      "row": 3,
-      "cost": 65,
+      "row": 5,
+      "cost": 335,
       "prereqs": [
         "letters"
       ],
@@ -369,10 +370,10 @@
       "name": "The Long Count",
       "glyph": "📿",
       "age": 2,
-      "row": 2,
-      "cost": 110,
+      "row": 7,
+      "cost": 335,
       "prereqs": [
-        "divination"
+        "calendar"
       ],
       "unlocks": {
         "abilities": [
@@ -390,8 +391,8 @@
       "name": "Ancestor Rites",
       "glyph": "🕯",
       "age": 2,
-      "row": 0,
-      "cost": 105,
+      "row": 6,
+      "cost": 225,
       "prereqs": [
         "divination"
       ],
@@ -407,11 +408,11 @@
       "name": "The High Temple",
       "glyph": "🕌",
       "age": 2,
-      "row": 0,
-      "cost": 120,
+      "row": 7,
+      "cost": 450,
       "prereqs": [
-        "divination",
-        "ancestorRites"
+        "ancestorRites",
+        "theLongCount"
       ],
       "unlocks": {
         "units": [
@@ -430,8 +431,8 @@
       "name": "Bronze Panoply",
       "glyph": "🛡",
       "age": 2,
-      "row": 6,
-      "cost": 135,
+      "row": 0,
+      "cost": 335,
       "prereqs": [
         "bronzeWorking",
         "theWheel"
@@ -448,8 +449,8 @@
       "name": "Shipwrights",
       "glyph": "🛠",
       "age": 3,
-      "row": 6,
-      "cost": 570,
+      "row": 2,
+      "cost": 665,
       "prereqs": [
         "wayfinding",
         "artisanry"
@@ -470,10 +471,11 @@
       "name": "Rhetoric",
       "glyph": "🦉",
       "age": 3,
-      "row": 1,
-      "cost": 390,
+      "row": 5,
+      "cost": 665,
       "prereqs": [
-        "epicPoetry"
+        "epicPoetry",
+        "theHighTemple"
       ],
       "unlocks": {
         "buildings": [
@@ -487,8 +489,8 @@
       "name": "Paper Money",
       "glyph": "🧾",
       "age": 3,
-      "row": 2,
-      "cost": 620,
+      "row": 6,
+      "cost": 820,
       "prereqs": [
         "artisanry",
         "theImperialPost"
@@ -508,8 +510,8 @@
       "name": "Artisanry",
       "glyph": "🔨",
       "age": 3,
-      "row": 6,
-      "cost": 460,
+      "row": 3,
+      "cost": 565,
       "prereqs": [
         "currency"
       ],
@@ -525,7 +527,7 @@
       "glyph": "📐",
       "age": 3,
       "row": 4,
-      "cost": 400,
+      "cost": 565,
       "prereqs": [
         "currency"
       ],
@@ -544,11 +546,11 @@
       "name": "Empire-Building",
       "glyph": "📯",
       "age": 3,
-      "row": 2,
-      "cost": 560,
+      "row": 6,
+      "cost": 750,
       "prereqs": [
-        "currency",
-        "colonialCharters"
+        "colonialCharters",
+        "horology"
       ],
       "unlocks": {
         "buildings": [
@@ -584,8 +586,8 @@
       "name": "The Examination Hall",
       "glyph": "🏛",
       "age": 3,
-      "row": 5,
-      "cost": 440,
+      "row": 6,
+      "cost": 565,
       "prereqs": [
         "kingship"
       ],
@@ -607,10 +609,10 @@
       "name": "Colonial Charters",
       "glyph": "📋",
       "age": 3,
-      "row": 3,
-      "cost": 460,
+      "row": 6,
+      "cost": 665,
       "prereqs": [
-        "kingship"
+        "theExaminationHall"
       ],
       "unlocks": {
         "buildings": [
@@ -638,11 +640,11 @@
       "name": "The Qadi’s Court",
       "glyph": "⚖",
       "age": 3,
-      "row": 5,
-      "cost": 590,
+      "row": 3,
+      "cost": 820,
       "prereqs": [
-        "theExaminationHall",
-        "theImperialPost"
+        "theImperialPost",
+        "theology"
       ],
       "unlocks": {
         "buildings": [
@@ -663,11 +665,11 @@
       "name": "Theology",
       "glyph": "⛪",
       "age": 3,
-      "row": 0,
-      "cost": 600,
+      "row": 5,
+      "cost": 750,
       "prereqs": [
-        "theHighTemple",
-        "philosophy"
+        "philosophy",
+        "horology"
       ],
       "unlocks": {
         "buildings": [
@@ -686,8 +688,8 @@
       "name": "Iron Working",
       "glyph": "⚒",
       "age": 3,
-      "row": 7,
-      "cost": 420,
+      "row": 0,
+      "cost": 565,
       "prereqs": [
         "bronzePanoply"
       ],
@@ -708,11 +710,10 @@
       "name": "Education",
       "glyph": "🎓",
       "age": 3,
-      "row": 1,
-      "cost": 640,
+      "row": 5,
+      "cost": 820,
       "prereqs": [
-        "philosophy",
-        "mathematics"
+        "theology"
       ],
       "unlocks": {
         "buildings": [
@@ -727,8 +728,8 @@
       "name": "Horology",
       "glyph": "⏳",
       "age": 3,
-      "row": 3,
-      "cost": 510,
+      "row": 4,
+      "cost": 665,
       "prereqs": [
         "mathematics"
       ],
@@ -744,8 +745,8 @@
       "name": "Engineering",
       "glyph": "🔩",
       "age": 3,
-      "row": 4,
-      "cost": 490,
+      "row": 7,
+      "cost": 665,
       "prereqs": [
         "mathematics"
       ],
@@ -763,8 +764,8 @@
       "name": "The Cataphract",
       "glyph": "🐎",
       "age": 3,
-      "row": 7,
-      "cost": 530,
+      "row": 0,
+      "cost": 665,
       "prereqs": [
         "ironWorking"
       ],
@@ -781,8 +782,8 @@
       "name": "Prospecting",
       "glyph": "🪨",
       "age": 3,
-      "row": 4,
-      "cost": 520,
+      "row": 7,
+      "cost": 750,
       "prereqs": [
         "engineering"
       ],
@@ -794,10 +795,11 @@
       "name": "Banking",
       "glyph": "🏦",
       "age": 4,
-      "row": 2,
-      "cost": 900,
+      "row": 7,
+      "cost": 950,
       "prereqs": [
-        "theSilkRoad"
+        "theSilkRoad",
+        "movableType"
       ],
       "unlocks": {
         "buildings": [
@@ -810,11 +812,11 @@
       "name": "Machinery",
       "glyph": "🔧",
       "age": 4,
-      "row": 4,
-      "cost": 795,
+      "row": 5,
+      "cost": 875,
       "prereqs": [
-        "artisanry",
-        "prospecting"
+        "prospecting",
+        "education"
       ],
       "unlocks": {
         "units": [
@@ -830,8 +832,8 @@
       "name": "The Astrolabe",
       "glyph": "🌐",
       "age": 4,
-      "row": 3,
-      "cost": 1035,
+      "row": 4,
+      "cost": 920,
       "prereqs": [
         "shipwrights",
         "physics"
@@ -855,8 +857,8 @@
       "name": "The Silk Road",
       "glyph": "🧵",
       "age": 4,
-      "row": 2,
-      "cost": 840,
+      "row": 7,
+      "cost": 875,
       "prereqs": [
         "theImperialPost",
         "paperMoney"
@@ -879,8 +881,8 @@
       "name": "Castellany",
       "glyph": "🏰",
       "age": 4,
-      "row": 6,
-      "cost": 765,
+      "row": 3,
+      "cost": 875,
       "prereqs": [
         "theQadisCourt"
       ],
@@ -901,10 +903,10 @@
       "name": "The Holy Office",
       "glyph": "🕊",
       "age": 4,
-      "row": 0,
-      "cost": 900,
+      "row": 6,
+      "cost": 950,
       "prereqs": [
-        "theology",
+        "theQadisCourt",
         "movableType"
       ],
       "unlocks": {
@@ -922,7 +924,7 @@
       "name": "Steel",
       "glyph": "🗡",
       "age": 4,
-      "row": 4,
+      "row": 5,
       "cost": 920,
       "prereqs": [
         "ironWorking",
@@ -953,8 +955,8 @@
       "name": "Alchemy",
       "glyph": "⚗",
       "age": 4,
-      "row": 4,
-      "cost": 1140,
+      "row": 5,
+      "cost": 950,
       "prereqs": [
         "machinery",
         "steel"
@@ -976,11 +978,11 @@
       "name": "Movable Type",
       "glyph": "🔠",
       "age": 4,
-      "row": 1,
-      "cost": 885,
+      "row": 6,
+      "cost": 920,
       "prereqs": [
-        "education",
-        "paperMoney"
+        "paperMoney",
+        "machinery"
       ],
       "unlocks": {
         "buildings": [
@@ -1004,11 +1006,11 @@
       "name": "Physics",
       "glyph": "☄",
       "age": 4,
-      "row": 3,
-      "cost": 820,
+      "row": 4,
+      "cost": 875,
       "prereqs": [
         "engineering",
-        "prospecting"
+        "education"
       ],
       "unlocks": {
         "units": [
@@ -1024,8 +1026,8 @@
       "name": "Fortification",
       "glyph": "🗼",
       "age": 4,
-      "row": 6,
-      "cost": 850,
+      "row": 3,
+      "cost": 920,
       "prereqs": [
         "feudalism"
       ],
@@ -1044,8 +1046,8 @@
       "name": "Chivalry",
       "glyph": "🐴",
       "age": 4,
-      "row": 7,
-      "cost": 950,
+      "row": 0,
+      "cost": 920,
       "prereqs": [
         "feudalism",
         "theCataphract"

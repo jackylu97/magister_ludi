@@ -209,9 +209,10 @@ describe('the culture ladder', () => {
     // The early cadence — drafts 1 through 8, the stretch Entry XV's "~5 turns
     // per draft early" is about. Measured 7.4; the band is two-sided, because a
     // curve that got cheaper is as much a regression as one that got dearer.
+    // Measured 9.7 after the column-formula costs (7.4 before).
     const earlyCadence = (eighth - first) / 7;
     expect(earlyCadence).toBeGreaterThan(5);
-    expect(earlyCadence).toBeLessThan(11);
+    expect(earlyCadence).toBeLessThan(13);
     // The government tiers **this horizon reaches** all arrive, and they arrive
     // spread out. Measured 24 / 52 / 124.
     //
@@ -226,8 +227,8 @@ describe('the culture ladder', () => {
     for (const [index, turn] of tiers.entries()) {
       expect(turn, `government ${index + 1}`).toBeDefined();
     }
-    expect(tiers[0]!).toBeGreaterThan(28);
-    expect(tiers[0]!).toBeLessThan(50);
+    expect(tiers[0]!).toBeGreaterThan(36);
+    expect(tiers[0]!).toBeLessThan(58);
     // **Re-centred 2026-08-28.** Two things had drifted under this band and only
     // one of them is a change: `GOVERNMENT_TIERS` moved to 4 / 10 / 18, which put
     // the second charter on draft 10 rather than draft 7 and the measurement at
@@ -257,9 +258,25 @@ describe('the culture ladder', () => {
     // still sit inside their existing bands; `tiers[2]`'s band is re-centred on
     // the new measurement, widened to keep the horizon extension's four turns
     // of headroom on the top side.
-    expect(tiers[1]!).toBeGreaterThan(64);
-    expect(tiers[1]!).toBeLessThan(96);
-    expect(tiers[2]!).toBeGreaterThan(164);
-    expect(tiers[2]!).toBeLessThan(205);
+    //
+    // **Re-measured 2026-09-02, the column-formula costs.** Nothing in the
+    // draft meter moved; the *tree* did, and this empire's culture is built
+    // rather than found — the monument, the amphitheater and the temple are all
+    // gated by technologies that now cost what their chart column says, so each
+    // one lands later and an escalating draft cost widens the lag exactly as
+    // the faith move and the ×1.4 building ruling did before it. Full ladder on
+    // this seed, before → after:
+    //
+    //   before  13,23,32,38,45,52,60,68,76,84,93,102,111,121,131,142,154,167,180,195
+    //   after   13,23,33,46,57,64,73,81,91,101,112,123,133,145,159,173,189,208,227,248
+    //
+    // — governments (drafts 4/10/18) at **46 / 101 / 208** against 38/80/184.
+    // The first two drafts are unmoved (13, 23), which is the tell: the drift
+    // begins where the first *unlocked* culture building would have stood.
+    // Bands re-centred on the new measurements at their old widths.
+    expect(tiers[1]!).toBeGreaterThan(85);
+    expect(tiers[1]!).toBeLessThan(117);
+    expect(tiers[2]!).toBeGreaterThan(188);
+    expect(tiers[2]!).toBeLessThan(229);
   });
 });

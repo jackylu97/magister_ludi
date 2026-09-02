@@ -657,8 +657,35 @@ import {
  *
  *     The migration note: a v45 `Player` gains `campsCleared: 0`. Nothing else
  *     changed shape — what a v45 save cannot carry across is the deck.
+ * 47: **The column-formula costs and the timeline reshape** (the user, twice, on
+ *     2026-09-02: make the chart read like Civ V's, then price a node off the
+ *     column it lands in). A v46 log is refused because *the tree it was aimed
+ *     at is not this tree, and nothing in it costs what it cost*:
+ *       · **Seventeen prerequisite edges moved**, so that every column of every
+ *         age holds three nodes or more and almost every connector is a step
+ *         rather than a reach. Sailing hangs off Earthenware and the Calendar
+ *         off Divination; Epic Poetry off Kingship; The High Temple off The
+ *         Long Count; Rhetoric off the temple as well as the epic; Colonial
+ *         Charters, Empire-Building, Theology, The Qadi's Court and Education
+ *         are re-chained through Æra III; Machinery, Physics, Movable Type,
+ *         Banking and The Holy Office through Æra IV. A v46 `chooseResearch` is
+ *         a refusal here wherever a prerequisite moved, and a plan the reducer
+ *         expanded for it names different nodes.
+ *       · **Every cost in the tree is rewritten** from the node's own
+ *         `techColumn` by one tapered table (the pricing note in `tech.ts`), so
+ *         the beaker schedule parts company with a v46 replay's on the very
+ *         first technology: 30 where the table said 8. The tree costs 26089
+ *         against 20354, and the ages close on turns 74 / 128 / 252 / 334
+ *         against 34 / 71 / 177 / 265.
+ *       · **Every lane is re-annealed** against the reshaped graph. That is
+ *         presentation only — `row` is never read by a rule — and is named here
+ *         because it moved in the same pass, not because it moves a replay.
+ *
+ *     The migration note: nothing to migrate — no field changed shape. What a
+ *     v46 save cannot carry across is the tree its log was aimed at, and the
+ *     prices it was paying.
  */
-export const SCHEMA_VERSION = 46;
+export const SCHEMA_VERSION = 47;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
