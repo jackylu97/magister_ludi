@@ -1159,7 +1159,7 @@ describe("The Founders' Road", () => {
     const swimmer = createUnit(state, 0, 'trader', marooned.col, marooned.row);
     const goal = at(state, 3, 4);
     expect(findPath(state, swimmer, goal)).not.toBeNull();
-    expect(findPath(state, swimmer, goal, { def: unitDef('trader'), embarks: false, naval: false, ocean: false })).toBeNull();
+    expect(findPath(state, swimmer, goal, { def: unitDef('trader'), embarks: false, naval: false, ocean: false, full: unitDef('trader').movement })).toBeNull();
   });
 
   it('is free of maintenance, and the ledger charges only the roads that are not', () => {

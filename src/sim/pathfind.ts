@@ -42,6 +42,12 @@
  * be reached by a melee: see the ledger entry, where that quirk is stated rather
  * than patched around.
  *
+ * Since the Themes Build it is a property of the mover's *allowance* as well:
+ * crossing the shore costs `rules.movement.shoreCrossing`, which as shipped is
+ * everything the piece has for the turn (`MoveProfile.full`). Wading out and
+ * wading ashore are the same crossing and cost the same — the rule is symmetric
+ * — and it is the reason a landing is a decision rather than a detour.
+ *
  * Since the trade pass it is a property of the **pair of hexes** in a second
  * way: a step whose two ends are both paved costs `roadStepCost` — a third of a
  * point — and the ground's price is *replaced* rather than discounted. That is
@@ -86,7 +92,13 @@ import { RULES } from './rulesData';
 import { cardBorderZoc } from './statecraft';
 import { type GameState, type Unit, playerById } from './state';
 import { techsGrant } from './techData';
-import { type TerrainId, isEmbarkableTerrain, isOceanTerrain, moveCost } from './terrainData';
+import {
+  type TerrainId,
+  isEmbarkableTerrain,
+  isOceanTerrain,
+  isWaterTerrain,
+  moveCost,
+} from './terrainData';
 import { isCoastal } from './water';
 import { type UnitDef, isCivilian, isCombatant, isExplorer, isNaval, unitDef } from './unitData';
 import { fullMovement, hasForeignUnit, hasStackingRoom } from './units';
@@ -125,8 +137,21 @@ export const roadStepCost = RULES.movement.roadCostThirds / MOVEMENT_DENOMINATOR
  * board a straight line of highway is cheaper per hex than the floor, and a
  * heuristic that had not noticed would quietly return second-best routes over
  * exactly the ground a player built to be fast.
+ *
+ * The shore crossing is folded in for the same reason and with the opposite
+ * sign: as shipped it is `'all'` — the mover's whole allowance, which is never
+ * below the floor — so it changes nothing here, but a game tuned to a *number*
+ * could name a shore step cheaper than a road, and a minimum that had not
+ * noticed would be an overestimate. Folding the setting in keeps the claim true
+ * for whatever the data says rather than for the values shipped today.
  */
-export const cheapestStepCost = Math.min(RULES.movement.minStepCost, roadStepCost);
+export const cheapestStepCost = Math.min(
+  RULES.movement.minStepCost,
+  roadStepCost,
+  typeof RULES.movement.shoreCrossing === 'number'
+    ? RULES.movement.shoreCrossing
+    : Number.POSITIVE_INFINITY,
+);
 
 /**
  * Snaps a movement figure onto the exact third it must be a multiple of.
@@ -164,6 +189,51 @@ export function snapMovement(points: number): number {
  */
 export function isRoadStep(from: Tile, to: Tile): boolean {
   return from.road !== undefined && to.road !== undefined;
+}
+
+/**
+ * Is this step a **shore crossing** — one foot wet and one foot dry?
+ *
+ * `isRoadStep`'s sibling and the second rule that is a fact about the *pair* of
+ * hexes rather than about either one of them, which is why it is here and not in
+ * `tileMoveCost`. Symmetric on purpose: wading out and wading ashore are the
+ * same crossing, so `isWaterTerrain` is asked of both ends and the step is a
+ * crossing exactly when the two answers differ.
+ *
+ * Two movers are exempt and each for a different reason:
+ *
+ *   · **A ship** (`naval`). A hull entering a coastal city's hex is coming into
+ *     port, and a hull leaving one is putting to sea; neither is a piece
+ *     learning to swim. `tileMoveCost` already refuses it every other dry hex on
+ *     the map, so this exemption cannot widen where a ship may go.
+ *   · **No mover at all.** An absent profile is "the ground's own price to a
+ *     land unit" (see `tileMoveCost`), and that reading has no allowance to
+ *     spend — the crossing's price is a fact about the piece.
+ *
+ * The terrain question is `isWaterTerrain` rather than `openWater`, and
+ * deliberately the wider of the two: a lake shore is a shore, and a mover that
+ * cannot cross the water at all is refused by `tileMoveCost` long before a price
+ * is asked for.
+ */
+export function isShoreStep(from: Tile, to: Tile, mover?: MoveProfile): boolean {
+  if (mover === undefined || mover.naval) return false;
+  return isWaterTerrain(from.terrain) !== isWaterTerrain(to.terrain);
+}
+
+/**
+ * What a shore crossing costs this mover — `rules.movement.shoreCrossing`, read
+ * in the one place.
+ *
+ * `'all'` is the mover's **whole allowance** and not a large constant, because
+ * the rule is "the crossing ends your marching" and a constant would end a
+ * warrior's turn while leaving a four-point column half a move to spend. Paying
+ * more than the purse holds is already legal everywhere in this game — the walk
+ * forgives the balance and floors at zero — so a price equal to a full refill
+ * empties any purse that could still start the step, whatever is left in it.
+ */
+export function shoreStepCost(mover: MoveProfile): number {
+  const rule = RULES.movement.shoreCrossing;
+  return snapMovement(rule === 'all' ? mover.full : rule);
 }
 
 /** A tile a unit can reach this turn, with what getting there costs. */
@@ -222,6 +292,25 @@ export interface MoveProfile {
    * — which is exactly what `tileMoveCost`'s docblock promised it would.
    */
   ocean: boolean;
+  /**
+   * What a full turn's marching is worth to this piece — `fullMovement`, the
+   * allowance it refills to.
+   *
+   * The fourth fact about the mover a step's price depends on, and it arrived
+   * with the shore crossing (the Themes Build): under
+   * `rules.movement.shoreCrossing: 'all'` the price of getting one's feet wet
+   * *is* the allowance, so the evaluator needs the number. Hoisted here for
+   * `embarks`' reason exactly — it reads a card's stamp through `fullMovement`,
+   * which is not a lookup to repeat tens of thousands of times inside a search.
+   *
+   * It is the **refill**, never what the piece is holding right now. A price
+   * that shrank as a unit spent its points would be a price two of the four
+   * readers disagree about: `reachableTiles` prices from a purse and `pathTurns`
+   * prices across turn boundaries, and both must ask what the crossing *costs*
+   * rather than what this piece can afford. Affordability is the walk's own
+   * clause and stays there.
+   */
+  full: number;
   /**
    * The **land** hexes a ship may stand on at all: coastal city centres, and
    * nothing else (the user's ruling, 2026-08-29 — "a coastal city's hex is the
@@ -302,8 +391,12 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
   // the land. Its ports are hoisted here for the sweep, beside the embark
   // lookup, so nothing downstream asks the state a second time.
   const ocean = owner !== undefined && techsGrant(owner.techsResearched, 'oceanGoing');
+  // What a whole turn is worth to this piece, asked once for the sweep: the
+  // shore crossing is priced off it. `fullMovement` and not `unit.movesLeft`,
+  // for the reason on the field.
+  const full = fullMovement(unit, state);
   if (isNaval(def)) {
-    return { def, embarks: false, naval: true, ocean, ports: navalPorts(state) };
+    return { def, embarks: false, naval: true, ocean, full, ports: navalPorts(state) };
   }
   // A civilian, or the explorer (user, 2026-08-29: "sailing should also allow
   // scouts to embark") — the one combat unit that may take to the water, read
@@ -319,7 +412,7 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     (owner !== undefined && techsGrant(owner.techsResearched, 'militaryEmbark'));
   const embarks =
     mayEmbark && owner !== undefined && techsGrant(owner.techsResearched, 'embark');
-  return { def, embarks, naval: false, ocean };
+  return { def, embarks, naval: false, ocean, full };
 }
 
 /**
@@ -686,7 +779,18 @@ export interface StepPrice {
  * ever laid on one. The zone of control rides **on top** of whichever price
  * won, on a road or off it, and so it is the one term that is added rather than
  * substituted: a highway through a picket is a cheap step with a toll on it.
- * Rivers and embarkation are untouched.
+ * Rivers are untouched.
+ *
+ * **The shore replaces the ground too, and it outranks the road** (the Themes
+ * Build). A step with one foot wet and one dry costs
+ * `rules.movement.shoreCrossing` — the mover's whole allowance as shipped — so
+ * embarking and landing each end the turn's marching, which is the classic rule
+ * and the thing that makes a sea a sea rather than a slow field. It is priced
+ * here rather than in `tileMoveCost` for the road's exact reason: it is a fact
+ * about the *pair* of hexes, and pricing it here is what makes the four readers
+ * agree by construction — the highlight stops at the water's edge, the "~N
+ * turns" estimate counts the extra turn, and the walk spends what both of them
+ * promised.
  */
 export function stepCost(
   map: GameMap,
@@ -697,7 +801,13 @@ export function stepCost(
 ): StepPrice | null {
   const ground = tileMoveCost(to, mover);
   if (ground === null) return null;
-  const base = isRoadStep(from, to) ? roadStepCost : ground;
+  // The shore is asked **before** the road, because a crossing is not a step a
+  // highway can make cheap: a road runs to the water's edge and stops there, and
+  // a caravan wading off the end of one is wading, not driving. (Nothing lays
+  // paving on water, so the two can only ever meet on the dry half of the step.)
+  // Like the road, it *replaces* the ground's price rather than discounting it.
+  let base = isRoadStep(from, to) ? roadStepCost : ground;
+  if (mover !== undefined && isShoreStep(from, to, mover)) base = shoreStepCost(mover);
   const zoc = zocBinds(map, field, from, to);
   // Snapped for `snapMovement`'s reason: the base may be a road's third and the
   // toll is a whole point, and a sum of the two has to compare equal to itself

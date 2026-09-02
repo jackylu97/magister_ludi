@@ -1239,7 +1239,15 @@ function layFoundingRoad(state: GameState, city: City): void {
     hasAttacked: false,
   };
   // A road does not swim, whatever the empire's caravans may do. See above.
-  const mover: MoveProfile = { def, embarks: false, naval: false, ocean: false };
+  // `full` is the row's own allowance and is inert here: it prices a shore
+  // crossing, and a survey that may not enter the water never takes one.
+  const mover: MoveProfile = {
+    def,
+    embarks: false,
+    naval: false,
+    ocean: false,
+    full: def.movement,
+  };
 
   let route: Cell[] | null = null;
   for (const candidate of candidates) {

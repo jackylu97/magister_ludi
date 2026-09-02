@@ -227,12 +227,12 @@
       "unlocks": {
         "units": [
           "bowman"
+        ],
+        "abilities": [
+          "siege"
         ]
       },
-      "flavor": "A wall is only a promise about time.",
-      "deferred": [
-        "Starving a surrounded town — the chip damage and the refusal to heal — waits for the siege rule itself, which is built beside this node and not by it."
-      ]
+      "flavor": "A wall is only a promise about time."
     },
     "irrigation": {
       "name": "Irrigation",
@@ -1074,6 +1074,11 @@
       "name": "Sea Legs",
       "glyph": "🚣",
       "summary": "Soldiers may cross coastal water as workers and scouts do."
+    },
+    "siege": {
+      "name": "Siege",
+      "glyph": "⛺",
+      "summary": "Your armies that surround a town cut it off: it cannot heal, and it loses a little health each turn."
     },
     "theLongCount": {
       "name": "The Long Count",

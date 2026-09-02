@@ -9,7 +9,8 @@
     "minStepCost": 1,
     "embarkCost": 1,
     "roadCostThirds": 1,
-    "zocExtraCost": 1
+    "zocExtraCost": 1,
+    "shoreCrossing": "all"
   },
   "explore": {
     "searchLimit": 400

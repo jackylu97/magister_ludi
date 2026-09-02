@@ -12,7 +12,16 @@ import { foundCityAt, spawnTileFor } from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { type Game, createGame, dispatch, snapshotState } from '../../src/sim/game';
 import { type Tile, createMap, getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
-import { canStopOn, moveProfile, navalPorts, reachableTiles, tileMoveCost } from '../../src/sim/pathfind';
+import {
+  canStopOn,
+  isShoreStep,
+  moveProfile,
+  navalPorts,
+  reachableTiles,
+  stepCost,
+  tileMoveCost,
+  zocField,
+} from '../../src/sim/pathfind';
 import { explainRouteYieldBetween, foldRouteYield } from '../../src/sim/routeYields';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
@@ -21,7 +30,7 @@ import { plainTechs } from './techHelpers';
 import { isWaterTerrain } from '../../src/sim/terrainData';
 import { purchaseError } from '../../src/sim/purchase';
 import { UNIT_TYPE_IDS, isNaval, unitDef } from '../../src/sim/unitData';
-import { hasStackingRoom } from '../../src/sim/units';
+import { fullMovement, hasStackingRoom } from '../../src/sim/units';
 import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -162,6 +171,30 @@ describe('the naval roster', () => {
 // --- movement ---------------------------------------------------------------
 
 describe('a hull moves through the one step evaluator', () => {
+  it('pays no shore crossing coming into port or putting to sea', () => {
+    // The shore crossing (the Themes Build) costs a *land* piece its whole
+    // allowance in either direction. A hull is exempt and the exemption is one
+    // clause in `isShoreStep`: coming alongside is coming into port, not
+    // learning to swim, and `tileMoveCost` already refuses a ship every other
+    // dry hex on the map, so the exemption can never widen where one may go.
+    const state = seaState();
+    const town = foundCityAt(state, 0, at(state, 5, 4));
+    const hull = createUnit(state, 0, 'trireme', 4, 4);
+    const mover = moveProfile(state, hull);
+    const field = zocField(state, hull.ownerId);
+    const port = at(state, town.col, town.row);
+    const sea = at(state, 4, 4);
+    expect(isShoreStep(sea, port, mover)).toBe(false);
+    expect(stepCost(state.map, sea, port, mover, field)?.cost).toBe(RULES.movement.minStepCost);
+    expect(stepCost(state.map, port, sea, mover, field)?.cost).toBe(RULES.movement.minStepCost);
+    // A land piece on the same two hexes pays the crossing, which is what makes
+    // this an exemption rather than a hole in the rule.
+    const worker = createUnit(state, 0, 'worker', town.col, town.row);
+    const walker = moveProfile(state, worker);
+    expect(isShoreStep(port, sea, walker)).toBe(true);
+    expect(stepCost(state.map, port, sea, walker, field)?.cost).toBe(fullMovement(worker, state));
+  });
+
   it('enters coast, refuses ocean, and refuses every land hex but its own port', () => {
     const state = seaState();
     const town = foundCityAt(state, 0, at(state, 5, 4));

@@ -304,7 +304,13 @@ describe('the zone-of-control rule', () => {
     const { guard, here, along, away } = picket(state.map);
     unit(state, guard, 'warrior', 1);
     const field = zocField(state, 0);
-    const mover = { def: unitDef('warrior'), embarks: false, naval: false, ocean: false };
+    const mover = {
+      def: unitDef('warrior'),
+      embarks: false,
+      naval: false,
+      ocean: false,
+      full: unitDef('warrior').movement,
+    };
     expect(stepCost(state.map, here, along, mover, field)).toEqual({ cost: 1 + TOLL, zoc: true });
     expect(stepCost(state.map, here, away, mover, field)).toEqual({ cost: 1, zoc: false });
     // Impassable is still impassable, and it is decided before anything else.

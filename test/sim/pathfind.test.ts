@@ -3,11 +3,23 @@ import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map
 import {
   canStopOn,
   canTransit,
+  cheapestStepCost,
   findPath,
   isPassable,
+  isShoreStep,
+  moveProfile,
+  pathTurns,
   reachableTiles,
+  shoreStepCost,
+  snapMovement,
+  stepCost,
   tileMoveCost,
+  zocField,
 } from '../../src/sim/pathfind';
+import { advanceAlongPath } from '../../src/sim/movement';
+import { RULES } from '../../src/sim/rulesData';
+import { techsGrant } from '../../src/sim/techData';
+import { fullMovement } from '../../src/sim/units';
 import { type GameState, type Unit, createCity, createUnit, newGame } from '../../src/sim/state';
 import { moveCost } from '../../src/sim/terrainData';
 import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
@@ -63,7 +75,7 @@ function cost(
 ): number {
   let total = 0;
   for (const step of path) {
-    total += tileMoveCost(at(state.map, step.col, step.row), { def: unitDef(type), embarks: false, naval: false, ocean: false })!;
+    total += tileMoveCost(at(state.map, step.col, step.row), { def: unitDef(type), embarks: false, naval: false, ocean: false, full: unitDef(type).movement })!;
   }
   return total;
 }
@@ -439,5 +451,174 @@ describe('reachableTiles', () => {
     expect(second).toEqual(first);
     const indices = first.map((r) => r.tile.row * state.map.width + r.tile.col);
     expect([...indices].sort((a, b) => a - b)).toEqual(indices);
+  });
+});
+
+// --- the shore crossing -----------------------------------------------------
+
+/**
+ * **Crossing the shore costs everything** (the Themes Build's ruling, priced in
+ * `stepCost`): a step with one foot wet and one foot dry costs the mover's whole
+ * allowance, in either direction, so wading out and wading ashore each end the
+ * turn's marching.
+ *
+ * Tested at the evaluator and then at **all four of its readers**, because that
+ * is the property the rule was put in `stepCost` for: a price the searches and
+ * the walk could disagree about is a highlight promising a march the reducer
+ * will not deliver. The four are `findPath`, `reachableTiles`, `pathTurns` and
+ * `advanceAlongPath`, and each gets its own assertion below rather than a claim
+ * that they "read the same function".
+ */
+describe('the shore crossing', () => {
+  /**
+   * A strait: dry land, two columns of coast, dry land again. Both seats hold
+   * Sailing, so a civilian may take to the water at all — the crossing's *price*
+   * is what is under test, never who may pay it.
+   */
+  function straitState(): GameState {
+    const state = flatState(10, 8);
+    for (const tile of state.map.tiles) {
+      if (tile.col === 4 || tile.col === 5) tile.terrain = 'coast';
+    }
+    for (const player of state.players) {
+      if (!player.techsResearched.includes('sailing')) player.techsResearched.push('sailing');
+    }
+    return state;
+  }
+
+  /** The price of one step, asked exactly as the four readers ask it. */
+  function priceOf(state: GameState, mover: Unit, from: Tile, to: Tile): number | null {
+    const price = stepCost(state.map, from, to, moveProfile(state, mover), zocField(state, mover.ownerId));
+    return price === null ? null : price.cost;
+  }
+
+  it('charges the mover’s whole allowance in both directions', () => {
+    const state = straitState();
+    const worker = unit(state, 3, 4, 'worker');
+    const full = fullMovement(worker, state);
+    expect(full).toBeGreaterThan(RULES.movement.embarkCost);
+
+    // Wading out.
+    expect(priceOf(state, worker, at(state.map, 3, 4), at(state.map, 4, 4))).toBe(full);
+    // And wading ashore, from the far side of the strait: the same crossing seen
+    // from the other bank, and the rule is symmetric on purpose.
+    worker.col = 5;
+    expect(priceOf(state, worker, at(state.map, 5, 4), at(state.map, 6, 4))).toBe(full);
+  });
+
+  it('leaves a step that stays on one side of the water alone', () => {
+    const state = straitState();
+    const worker = unit(state, 4, 4, 'worker');
+    // Water to water is the embark price, unchanged.
+    expect(priceOf(state, worker, at(state.map, 4, 4), at(state.map, 5, 4))).toBe(
+      RULES.movement.embarkCost,
+    );
+    // Land to land is the ground's own price, unchanged.
+    worker.col = 2;
+    expect(priceOf(state, worker, at(state.map, 2, 4), at(state.map, 3, 4))).toBe(
+      moveCost('grassland', 'none', false),
+    );
+  });
+
+  it('is the rule read off the data, not a number written into the evaluator', () => {
+    // `'all'` as shipped, and `shoreStepCost` is the one reading of the setting.
+    const state = straitState();
+    const worker = unit(state, 3, 4, 'worker');
+    const mover = moveProfile(state, worker);
+    expect(RULES.movement.shoreCrossing).toBe('all');
+    expect(shoreStepCost(mover)).toBe(mover.full);
+    expect(isShoreStep(at(state.map, 3, 4), at(state.map, 4, 4), mover)).toBe(true);
+    expect(isShoreStep(at(state.map, 4, 4), at(state.map, 5, 4), mover)).toBe(false);
+    expect(isShoreStep(at(state.map, 2, 4), at(state.map, 3, 4), mover)).toBe(false);
+    // A price the searches lean on: still a whole third, and still admissible.
+    expect(snapMovement(shoreStepCost(mover))).toBe(shoreStepCost(mover));
+    expect(cheapestStepCost).toBeLessThanOrEqual(shoreStepCost(mover));
+  });
+
+  it('stops the reachable highlight at the water’s edge', () => {
+    const state = straitState();
+    const worker = unit(state, 3, 4, 'worker');
+    const keys = new Set(
+      reachableTiles(state, worker).map((entry) => `${entry.tile.col},${entry.tile.row}`),
+    );
+    // The near water is reachable — the crossing is legal with any movement in
+    // hand, and the overspend is forgiven.
+    expect(keys.has('4,4')).toBe(true);
+    // And nothing past it: the purse is empty on arrival, so the far water and
+    // the far shore are both next turn's business.
+    expect(keys.has('5,4')).toBe(false);
+    expect(keys.has('6,4')).toBe(false);
+    // The cost the highlight quotes is the crossing's own.
+    const wet = reachableTiles(state, worker).find(
+      (entry) => entry.tile.col === 4 && entry.tile.row === 4,
+    );
+    expect(wet?.cost).toBe(fullMovement(worker, state));
+  });
+
+  it('counts the extra turn in the “~N turns” estimate', () => {
+    const state = straitState();
+    const worker = unit(state, 3, 4, 'worker');
+    // Two hexes of dry marching is one turn for a two-point piece…
+    const dry = unit(state, 1, 4, 'worker');
+    expect(pathTurns(state, dry, [{ col: 2, row: 4 }, { col: 3, row: 4 }])).toBe(1);
+    // …and the same two hexes are two turns when the first of them is the shore,
+    // because the crossing took the whole purse and the second step waits for a
+    // refill.
+    expect(pathTurns(state, worker, [{ col: 4, row: 4 }, { col: 5, row: 4 }])).toBe(2);
+  });
+
+  it('walks a march to the water and stops there, keeping the order', () => {
+    const state = straitState();
+    const worker = unit(state, 3, 4, 'worker');
+    const walked = advanceAlongPath(state, worker, [
+      { col: 4, row: 4 },
+      { col: 5, row: 4 },
+    ]);
+    expect(walked.steps).toBe(1);
+    expect(walked.cleared).toBe(false);
+    expect(worker.col).toBe(4);
+    expect(worker.movesLeft).toBe(0);
+    // The rest of the order is kept — this is a purse running out, not a route
+    // that stopped existing.
+    expect(worker.path).toEqual([{ col: 5, row: 4 }]);
+  });
+
+  it('still routes across the strait, at the price the walk will spend', () => {
+    const state = straitState();
+    const worker = unit(state, 3, 4, 'worker');
+    const path = findPath(state, worker, at(state.map, 6, 4));
+    expect(path).not.toBeNull();
+    expect(path).toEqual([
+      { col: 4, row: 4 },
+      { col: 5, row: 4 },
+      { col: 6, row: 4 },
+    ]);
+    // Two turns of marching, and the second one is the whole point: the wade out
+    // takes the first turn's purse, then the refill pays for the hex of open
+    // water and the landing is made on what is left — a crossing costs
+    // everything, and overspending it is forgiven exactly as walking into a
+    // forest on one point is.
+    expect(pathTurns(state, worker, path!)).toBe(2);
+  });
+
+  it('pins Sea Legs: it widens who may cross, never what a crossing costs', () => {
+    const state = straitState();
+    const warrior = unit(state, 3, 4, 'warrior');
+    // Sailing alone is a civilian's verb: a soldier cannot be on the water at
+    // all, so there is no price to quote.
+    expect(priceOf(state, warrior, at(state.map, 3, 4), at(state.map, 4, 4))).toBeNull();
+
+    state.players[0]!.techsResearched.push('wayfinding');
+    expect(techsGrant(state.players[0]!.techsResearched, 'militaryEmbark')).toBe(true);
+    // With Sea Legs the soldier wades — and pays exactly what the worker beside
+    // it pays: its own whole allowance. The gift is a wider roster, not a
+    // discount, which is why no second number was invented for it.
+    const worker = unit(state, 3, 5, 'worker');
+    expect(priceOf(state, warrior, at(state.map, 3, 4), at(state.map, 4, 4))).toBe(
+      fullMovement(warrior, state),
+    );
+    expect(priceOf(state, worker, at(state.map, 3, 5), at(state.map, 4, 5))).toBe(
+      fullMovement(worker, state),
+    );
   });
 });

@@ -85,6 +85,29 @@ export interface MovementRules {
    * a toll on it.
    */
   zocExtraCost: number;
+  /**
+   * What **crossing the shore** costs — a step whose two ends are one wet and
+   * one dry (`stepCost` in `pathfind.ts`, the Themes Build's ruling).
+   *
+   * `'all'` is the classic rule and the shipped setting: the step costs the
+   * mover's **whole allowance**, so wading out and wading ashore each end the
+   * turn's marching. It is expressed as "the mover's full movement" rather than
+   * as a large number because the price has to empty a purse of any size — a
+   * two-point warrior and a four-point column both stop at the water's edge —
+   * and the ordinary overspend forgiveness (`advanceAlongPath`) is what lets a
+   * piece with one point left still make the crossing and arrive empty.
+   *
+   * A **number** is the tuning lever: a flat price in movement points, which is
+   * what to reach for the day a shore crossing should be dear rather than
+   * final. `cheapestStepCost` folds it in, so even a number below the floor
+   * leaves the A* heuristic admissible.
+   *
+   * It is a fact about the *pair* of hexes, like a road's third, which is why it
+   * lives in `stepCost` and not in `tileMoveCost` — and why all four readers of
+   * a step's price inherit it by construction. Ships are exempt: a hull entering
+   * a coastal city is coming into port, not learning to swim.
+   */
+  shoreCrossing: 'all' | number;
 }
 
 export interface ExploreRules {

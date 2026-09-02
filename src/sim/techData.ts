@@ -262,6 +262,17 @@ export type AbilityId =
    */
   | 'militaryEmbark'
   /**
+   * An army of yours that surrounds a town **starves** it: the place cannot heal
+   * and loses a little health every turn (`siegeField` in `combat.ts`, and
+   * nowhere else).
+   *
+   * The verb rather than the fight, which is the whole of the ruling (Entry
+   * LVIII): attacking a city is legal from the first turn, and war before this
+   * is a raid — you take a place by storming it or you do not take it. The
+   * technology buys the patience.
+   */
+  | 'siege'
+  /**
    * The **next age's glass beads are shown a turn before that age opens**. Read
    * by `beads.ts` and nowhere else.
    */

@@ -42,21 +42,32 @@ import { type GameState, createUnit, newGame } from '../../src/sim/state';
 import { techDef } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
+import { techsGrant } from '../../src/sim/techData';
 import { defenseBonus, explainTerrainDefense } from '../../src/sim/terrainData';
 import { setRiverEdge } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 
 const COMBAT = RULES.combat;
 
-/** A blank two-player state on a flat grassland rectangle, seeded and quiet. */
-function flatState(width = 16, height = 8): GameState {
+/**
+ * A blank two-player state on a flat grassland rectangle, seeded and quiet.
+ *
+ * `seats` is for the one question that needs a third empire — the joint siege,
+ * where two besiegers ring one town and only one of them holds Siegecraft — and
+ * `wild` seats the barbarians, for the question of what a raiding band may do to
+ * a town it has surrounded.
+ */
+function flatState(width = 16, height = 8, seats = 2, wild = false): GameState {
+  const colors = ['#a00', '#00a', '#0a0', '#aa0'];
   const state = newGame({
     seed: 1,
     sizeName: 'duel',
-    players: [
-      { name: 'A', color: '#a00', isHuman: true },
-      { name: 'B', color: '#00a', isHuman: true },
-    ],
+    ...(wild ? { barbarians: true } : {}),
+    players: Array.from({ length: seats }, (_unused, index) => ({
+      name: String.fromCharCode(65 + index),
+      color: colors[index]!,
+      isHuman: true,
+    })),
   });
   state.map = createMap({ width, height, terrain: 'grassland' });
   // The board was replaced under this state; the fog grids were sized for the
@@ -65,6 +76,10 @@ function flatState(width = 16, height = 8): GameState {
   state.tileOwner = new Array<number | null>(width * height).fill(null);
   state.units = [];
   state.cities = [];
+  // The board was replaced, so anything the generator placed on the old one is
+  // pointing at hexes that may not exist. Camps are the wild's own state and
+  // this file's fixtures place every piece by hand.
+  state.camps = [];
   state.nextEntityId = 1;
   state.rng = makeRng(12345);
   return state;
@@ -2065,8 +2080,20 @@ describe('siege', () => {
     return underSiege(state, city, siegeField(state, city.ownerId));
   }
 
+  /**
+   * Hand a seat Siegecraft — the technology that buys the *starving*, since the
+   * Themes Build. Every fixture below that expects a town to be cut off has to
+   * say so out loud now, which is the gate stated once per test rather than
+   * hidden in a helper.
+   */
+  function learnsSiege(state: GameState, playerId: number): void {
+    const player = state.players[playerId]!;
+    if (!player.techsResearched.includes('siegecraft')) player.techsResearched.push('siegecraft');
+  }
+
   function encircled(): { state: GameState; city: ReturnType<typeof foundCityAt> } {
     const state = flatState();
+    learnsSiege(state, 0);
     const city = foundCityAt(state, 1, at(state.map, 8, 4));
     for (const hex of ring(state, city)) createUnit(state, 0, 'warrior', hex.col, hex.row);
     return { state, city };
@@ -2090,6 +2117,7 @@ describe('siege', () => {
 
   it('counts a hex an enemy merely overlooks, so five hexes is not a siege', () => {
     const state = flatState();
+    learnsSiege(state, 0);
     const city = foundCityAt(state, 1, at(state.map, 8, 4));
     const hexes = ring(state, city);
     // Three besiegers standing on r2, r3 and r4 deny five of the six: r1 and r5
@@ -2108,6 +2136,7 @@ describe('siege', () => {
 
   it('leaves a port open: the sea is denied only by somebody standing on it', () => {
     const state = flatState();
+    learnsSiege(state, 0);
     const city = foundCityAt(state, 1, at(state.map, 8, 4));
     const hexes = ring(state, city);
     const water = hexes[0]!;
@@ -2159,6 +2188,107 @@ describe('siege', () => {
     healCities(state);
     expect(city.hp).toBe(1);
     expect(state.cities).toHaveLength(1);
+  });
+
+  it('waits for Siegecraft: an army without it starves nobody', () => {
+    // The Themes Build's ruling (Entry LVIII): war before Siegecraft is a raid.
+    // The ring is exactly the one that closes above — every hex held by a real
+    // army — and the town is not besieged, because that army does not know how
+    // to sit outside a wall.
+    const state = flatState();
+    const city = foundCityAt(state, 1, at(state.map, 8, 4));
+    for (const hex of ring(state, city)) createUnit(state, 0, 'warrior', hex.col, hex.row);
+    expect(besieged(state, city)).toBe(false);
+
+    // And the heal phase treats it as any town at peace: it recovers.
+    city.hp = cityMaxHp(city) - COMBAT.cityHealPerTurn - 10;
+    const wounded = city.hp;
+    const report = { sieges: [] as { cityId: number; ownerId: number; damage: number }[] };
+    healCities(state, report);
+    expect(city.hp).toBe(wounded + COMBAT.cityHealPerTurn);
+    expect(report.sieges).toEqual([]);
+
+    // The same board, the same soldiers, one technology later: cut off.
+    learnsSiege(state, 0);
+    expect(besieged(state, city)).toBe(true);
+    const after = city.hp;
+    healCities(state, report);
+    expect(city.hp).toBe(after - COMBAT.siegeDamagePerTurn);
+    expect(report.sieges).toHaveLength(1);
+  });
+
+  it('leaves the storming of a town legal without it', () => {
+    // The other half of the ruling, and the reason the gate is in `siegeField`
+    // and not in the fight: an empire with no Siegecraft still marches up and
+    // hits the place. Only the starving waits.
+    const state = flatState();
+    const city = foundCityAt(state, 1, at(state.map, 8, 4));
+    const hex = ring(state, city)[0]!;
+    const attacker = createUnit(state, 0, 'warrior', hex.col, hex.row);
+    const seen = previewCombat(state, attacker.id, { col: city.col, row: city.row });
+    expect(seen.ok).toBe(true);
+    const before = city.hp;
+    expect(applyCombat(state, attacker.id, { col: city.col, row: city.row }).ok).toBe(true);
+    expect(city.hp).toBeLessThan(before);
+  });
+
+  it('counts only the hexes a tech-holder projects, so a joint siege needs both', () => {
+    // Two besiegers, one ring. A hex denied by an empire without Siegecraft is
+    // not denied at all — an ally camped in the road without the technology is a
+    // gap in the line, which is the simplest honest rule and the one the
+    // docblock states.
+    const state = flatState(16, 8, 3);
+    learnsSiege(state, 0);
+    const city = foundCityAt(state, 2, at(state.map, 8, 4));
+    const hexes = ring(state, city);
+    // Three tech-holders on r2, r3 and r4 deny five of the six hexes — r1 and r5
+    // are overlooked from beside them — and the ally holds the sixth, r0, which
+    // nothing else touches. So the whole line rests on that one hex.
+    for (const index of [2, 3, 4]) {
+      const hex = hexes[index]!;
+      createUnit(state, 0, 'warrior', hex.col, hex.row);
+    }
+    createUnit(state, 1, 'warrior', hexes[0]!.col, hexes[0]!.row);
+    expect(besieged(state, city)).toBe(false);
+
+    // The second empire learns it and the line closes, with nobody moving.
+    learnsSiege(state, 1);
+    expect(besieged(state, city)).toBe(true);
+  });
+
+  it('is never laid by the wild, which holds no technologies at all', () => {
+    const state = flatState(16, 8, 2, true);
+    const wild = state.players[state.players.length - 1]!;
+    expect(wild.barbarian).toBe(true);
+    expect(wild.techsResearched).toEqual([]);
+    expect(techsGrant(wild.techsResearched, 'siege')).toBe(false);
+
+    // A whole band around the gates, and the town still heals: a raid burns what
+    // it can reach and storms what it can take, and starves nothing.
+    const city = foundCityAt(state, 1, at(state.map, 8, 4));
+    for (const hex of ring(state, city)) createUnit(state, wild.id, 'warrior', hex.col, hex.row);
+    expect(besieged(state, city)).toBe(false);
+  });
+
+  it('reads the gate as an ability, and keeps the siege derived', () => {
+    // The register pin. The technology is asked through `techsGrant` — the same
+    // seam embarkation is read at — so nothing in the fight compares a tech id
+    // against a string, and there is still no siege *field* on a city: the
+    // answer is recomputed from where the armies are standing.
+    const modules = import.meta.glob('../../src/sim/combat.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    const source = Object.values(modules)[0]!;
+    expect(source).toMatch(/techsGrant\(player\.techsResearched, 'siege'\)/);
+    expect(source).not.toMatch(/'siegecraft'/);
+
+    const { state, city } = encircled();
+    healCities(state);
+    expect(besieged(state, city)).toBe(true);
+    // Nothing was written down about it.
+    expect(Object.keys(city).some((key) => /siege|besieg/i.test(key))).toBe(false);
   });
 
   it('is a derived fact, so a resolution over it replays byte-identically', () => {

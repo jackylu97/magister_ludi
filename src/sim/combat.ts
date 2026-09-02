@@ -192,6 +192,11 @@
  * never takes a town on its own; somebody still has to attack. Derived every
  * turn and never stored, exactly as a barbarian's role is — see `underSiege`.
  *
+ * And it waits for **Siegecraft**: an empire without the technology may march on
+ * a town and storm it like anybody else, but its army camped outside the gates
+ * starves nobody. The gate is one clause in `siegeField`, where the besieger's
+ * seat is already in hand.
+ *
  * Deliberately deferred (v1 has none of these, on purpose)
  * -------------------------------------------------------
  *   · **Experience and promotions.** No XP, no promotion tree, no veterancy —
@@ -256,6 +261,7 @@ import {
   unitById,
 } from './state';
 import { buildError, settleResearchWindfall } from './tech';
+import { techsGrant } from './techData';
 import { type TraderPlunder, settleTraderPlunder } from './trade';
 import { explainTerrainDefense, isWaterTerrain } from './terrainData';
 import { isVisibleTo, recomputeVisibilityFor } from './visibility';
@@ -2321,6 +2327,26 @@ export interface SiegeReport {
  * this step end my turn" and wrong for "is that hex mine to walk out through":
  * a warrior standing on a hex most certainly denies it. So two grids, one sweep.
  *
+ * **Only an empire that knows how to lay a siege lays one** (the Themes Build,
+ * Entry LVIII). Attacking a town has always been legal and stays legal from the
+ * first turn — war before Siegecraft is a raid, and a raid takes a place by
+ * force or not at all. What the technology buys is the *starving*: the chip
+ * damage and the refusal to heal. So a source is marked here only when its owner
+ * holds the `siege` ability, which is read through `techsGrant` exactly as
+ * embarkation is — nothing in this file compares a tech id against a string.
+ *
+ * That one clause settles the joint siege too, and it is the simplest rule that
+ * is honest: **only hexes projected by a tech-holder count toward the surround.**
+ * Two empires ringing a town together besiege it only if every hex of the ring
+ * is denied by somebody who holds Siegecraft — an ally camped in the road
+ * without it is a gap in the line, because that army does not know to close the
+ * road. One rule, asked of each hex, with no notion of a coalition anywhere.
+ *
+ * And the wild never besieges, with no clause of its own: the barbarian seat is
+ * seated with an empty `techsResearched` and never researches (`seatBarbarians`
+ * in `state.ts`), so it can never hold the ability. A raiding band still burns
+ * what it can reach and still storms a town; it just cannot starve one.
+ *
  * Hoisted once per **owner** per sweep (`healCities` caches one per seat), which
  * is `zocField`'s own bargain: a field built per city would walk every unit in
  * the world forty times a turn.
@@ -2346,8 +2372,17 @@ export function siegeField(state: GameState, ownerId: number): SiegeField {
     held[index] = 1;
     sources.push(tile);
   };
+  // Who may lay a siege against this empire at all, resolved once for the sweep
+  // — `zocField`'s bargain, and the seats are few. A seat absent from this set
+  // holds ground for every other purpose in the game and denies nothing here.
+  const besiegers = new Set<number>();
+  for (const player of state.players) {
+    if (player.id === ownerId) continue;
+    if (techsGrant(player.techsResearched, 'siege')) besiegers.add(player.id);
+  }
+  if (besiegers.size === 0) return { held, denied };
   for (const unit of state.units) {
-    if (unit.ownerId === ownerId) continue;
+    if (!besiegers.has(unit.ownerId)) continue;
     const def = unitDef(unit.type);
     if (!isCombatant(def)) continue;
     mark(unit.col, unit.row);
@@ -2373,7 +2408,7 @@ export function siegeField(state: GameState, ownerId: number): SiegeField {
     for (const lane of blockadedWaterAround(map, here)) mark(lane.col, lane.row);
   }
   for (const city of state.cities) {
-    if (city.ownerId === ownerId) continue;
+    if (!besiegers.has(city.ownerId)) continue;
     mark(city.col, city.row);
   }
   for (const source of sources) {

@@ -11,13 +11,14 @@ import {
   tileYieldOf,
   yieldContextFor,
 } from '../../src/sim/cities';
+import { cityMaxHp } from '../../src/sim/combat';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { raid } from '../../src/sim/barbarians';
 import { type Game, createGame, dispatch, loadGame, replay, saveGame, snapshotState } from '../../src/sim/game';
 import { buildingDef } from '../../src/sim/buildingData';
 import { improvementDef, improvementForResource } from '../../src/sim/improvementData';
 import { improvementError, improvementErrorAt } from '../../src/sim/improvements';
-import { type Tile, createMap, getTileAt } from '../../src/sim/map';
+import { type Tile, createMap, getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
 import { explainHappiness, happinessOf } from '../../src/sim/meters';
 import {
   type MoveProfile,
@@ -630,11 +631,53 @@ describe('the milestone and the replay', () => {
       const { state, workerId } = fixture();
       const log: Command[] = [
         move(0, workerId, at(state, 2, 5)),
+        // A turn between the wading and the work, because **crossing the shore
+        // costs everything** (the Themes Build's ruling, priced in `stepCost`):
+        // the worker comes to rest on the water with an empty purse, and a
+        // worker with no movement left cannot start a job. Both seats end, since
+        // the turn model is simultaneous.
+        { type: 'endTurn', playerId: 0 },
+        { type: 'endTurn', playerId: 1 },
         { type: 'buildImprovement', playerId: 0, unitId: workerId, improvement: 'fishingBoats' },
       ];
       for (const command of log) expect(applyCommand(state, command).ok).toBe(true);
       expect(at(state, 2, 5).improvement).toBe('fishingBoats');
       expect(hasResource(state, 0, 'whales')).toBe(true);
+      return snapshotState(state);
+    };
+    expect(run()).toEqual(run());
+  });
+
+  it('walks an embark and a siege to the same bytes twice', () => {
+    // The Themes Build's two movement-and-war rulings in one script: a piece
+    // whose crossing costs it the whole turn, and a town cut off by an army that
+    // holds Siegecraft. Both are *derived* — a price asked of `stepCost`, a
+    // siege asked of where the armies stand — so nothing about either may reach
+    // the state except through the log.
+    const run = (): string => {
+      const state = seaState(14, 10);
+      // A town of the second seat, ringed by the first seat's soldiers. Every
+      // hex around it is dry, so the siege is the landward rule and not the
+      // harbour one.
+      const town = foundCityAt(state, 1, at(state, 6, 5));
+      for (const hex of neighborTiles(state.map, tileHex(at(state, 6, 5)))) {
+        createUnit(state, 0, 'warrior', hex.col, hex.row);
+      }
+      // And a worker of the first seat wading out on the far side of the board.
+      const worker = createUnit(state, 0, 'worker', 3, 5);
+      const log: Command[] = [
+        move(0, worker.id, at(state, 2, 5)),
+        { type: 'endTurn', playerId: 0 },
+        { type: 'endTurn', playerId: 1 },
+        { type: 'endTurn', playerId: 0 },
+        { type: 'endTurn', playerId: 1 },
+      ];
+      for (const command of log) expect(applyCommand(state, command).ok).toBe(true);
+      // The crossing took everything and the walk stopped on the water.
+      expect(worker.col).toBe(2);
+      // Two resolutions of a closed ring: the town has lost ground rather than
+      // healed, which is what makes this script a test of the siege at all.
+      expect(town.hp).toBeLessThan(cityMaxHp(town));
       return snapshotState(state);
     };
     expect(run()).toEqual(run());
