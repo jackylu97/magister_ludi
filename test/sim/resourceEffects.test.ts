@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildingDef } from '../../src/sim/buildingData';
+import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { improvementDef, improvementForResource } from '../../src/sim/improvementData';
 import {
   borderCostFor,
@@ -48,15 +48,24 @@ import {
   foldResourceYields,
   foldRulePercent,
   resourceAuthority,
+  resourceConnectionPercent,
   resourceHappiness,
   resourcePercentYields,
   resourceProduction,
+  resourceRouteYields,
   resourceRulePercent,
   resourceTierBoost,
 } from '../../src/sim/resourceEffects';
+import { empireGold, explainEmpireGold } from '../../src/sim/empireGold';
+import { explainRouteYieldBetween, foldRouteYield } from '../../src/sim/routeYields';
+import {
+  explainUnitUpkeepRebate,
+  unitUpkeep,
+  unitUpkeepTotal,
+} from '../../src/sim/upkeep';
 import { makeRng } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, newGame } from '../../src/sim/state';
+import { type City, type GameState, createUnit, newGame } from '../../src/sim/state';
 import { type TechAge, type TechId, highestAge } from '../../src/sim/techData';
 import { plainTechs } from './techHelpers';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -187,6 +196,20 @@ function plantableWith<K extends ResourceEffect['kind']>(
   return undefined;
 }
 
+/**
+ * Every voice of a list of resource lines, summed into one number.
+ *
+ * For the tests that care that a *figure moved* rather than which voice it moved
+ * in — a `perCopy` tier that pays food on silver and hammers on gold is one
+ * assertion either way, which is what keeps this suite about the mechanism.
+ */
+function foldOne(lines: ReturnType<typeof cityResourceYields>): number {
+  const total = foldResourceYields(lines);
+  return (
+    total.food + total.production + total.gold + total.science + total.culture + total.faith
+  );
+}
+
 // --- the vocabulary ---------------------------------------------------------
 
 describe('the effect vocabulary', () => {
@@ -203,23 +226,39 @@ describe('the effect vocabulary', () => {
 
   it('exercises every shape it defines, or holds it live here', () => {
     // A shape nobody declares is a shape whose evaluator nothing tests, and the
-    // fix for one is normally to delete it. The ratified table declares seven of
-    // the nine: it is **wide everywhere**, so the two flat readings that pay a
-    // fixed amount regardless of how many towns an empire has — `empireYields`,
-    // and the `'owner'` scope — have no row today.
+    // fix for one is normally to delete it. This list is the register of what the
+    // table is *not* using, and it turned over completely in the nerf round of
+    // 2026-09-02 — which is the point of pinning it: the round moved four shapes
+    // out of the data and one (`empireYields`) in, and every one of those moves
+    // had to be typed here on purpose.
     //
-    // Both are kept rather than deleted, and both are held live by a row
-    // installed at runtime in the two tests below. `empireYields` is the one
-    // *tall-friendly* reading in the whole vocabulary (one city or ten, it pays
-    // the same), it is what the turn pipeline's per-player banking exists for,
-    // and it costs one branch. Listing the gap here rather than letting the loop
-    // pass vacuously is the point: the day a row declares one, this line is what
-    // tells whoever wrote it to delete the exception.
+    // What the round did, and why each shape left the table:
+    //
+    //   · `empireYields` was the one reading nothing declared, precisely because
+    //     the old table was **wide everywhere**. It is now the backbone of the
+    //     round — gems, silk, spices, incense, jade, furs, dyes, tea all pay a
+    //     fixed sum however many towns an empire has, which is the whole of the
+    //     nerf;
+    //   · `percentYields` left because every row that had one was a percentage
+    //     of a wide empire's total, which is the same snowball read as a share;
+    //   · `authoritySupply` left with spices' and silver's writ lines;
+    //   · `happinessTierBoost` left with amber's, and `perPopulationYields` with
+    //     olives' half a coin a head.
+    //
+    // All four are kept rather than deleted — each is a real reading, and each is
+    // held live by a row installed at runtime in the tests below, which is the
+    // same proof the table's data-drivenness rests on. The day a row declares one
+    // again, this line is what tells whoever wrote it to delete the exception.
     const declared = new Set<string>();
     for (const id of RESOURCE_IDS) {
       for (const effect of resourceEffects(id)) declared.add(effect.kind);
     }
-    expect(RESOURCE_EFFECT_KINDS.filter((kind) => !declared.has(kind))).toEqual(['empireYields']);
+    expect(RESOURCE_EFFECT_KINDS.filter((kind) => !declared.has(kind))).toEqual([
+      'perPopulationYields',
+      'authoritySupply',
+      'percentYields',
+      'happinessTierBoost',
+    ]);
     expect(luxuryWith('perCityYields', (effect) => effect.scope === 'owner')).toBeUndefined();
   });
 
@@ -252,7 +291,7 @@ describe('the effect vocabulary', () => {
     // — so a payoff a player cannot use is still a payoff they can plan for.
     // `fromAge` is carried on the line rather than folded into the sentence, so
     // a surface can *style* it instead of parsing prose for the same fact.
-    const late = luxuryWith('percentYields', (effect) => effect.fromAge === 3);
+    const late = luxuryWith('perCityYields', (effect) => effect.fromAge === 3);
     expect(late).toBeDefined();
     const lines = describeResourceSignature(late!.id);
     expect(lines.some((line) => line.fromAge === 3)).toBe(true);
@@ -368,7 +407,10 @@ describe('empireYields: once for the empire, wherever it stands', () => {
 
 describe('perCityYields: the wide shape', () => {
   it('pays in every city the empire holds, not only the one with the seam', () => {
-    const wide = plantableWith('perCityYields', (effect) => effect.scope === undefined);
+    const wide = plantableWith(
+      'perCityYields',
+      (effect) => effect.scope === undefined && effect.fromAge === undefined,
+    );
     expect(wide).toBeDefined();
     const { id, effect } = wide!;
 
@@ -396,7 +438,10 @@ describe('perCityYields: the wide shape', () => {
   });
 
   it('pays once for a second seam of the same kind', () => {
-    const wide = plantableWith('perCityYields', (effect) => effect.scope === undefined);
+    const wide = plantableWith(
+      'perCityYields',
+      (effect) => effect.scope === undefined && effect.fromAge === undefined,
+    );
     const { id } = wide!;
     const state = flatState();
     const city = foundCityAt(state, 0, at(state.map, 6, 5));
@@ -441,33 +486,40 @@ describe('perCityYields: the wide shape', () => {
 });
 
 describe('perPopulationYields: paid a head', () => {
+  /**
+   * Olives' half a coin a head, held live with an overridden row.
+   *
+   * The shape left the table in the nerf round of 2026-09-02 — a yield paid per
+   * citizen in **every** city is the wide snowball read one scale finer — and it
+   * is kept for the same reason the `'owner'` scope is: it is a real reading of
+   * the vocabulary, it costs one branch, and a shape nothing exercises is a shape
+   * whose flooring rule quietly rots.
+   */
   it('scales with the city and floors per city', () => {
-    const perPop = plantableWith('perPopulationYields');
-    expect(perPop).toBeDefined();
-    const { id, effect } = perPop!;
-    expect(effect.fromAge).toBe(3);
+    withSignature([{ kind: 'perPopulationYields', gold: 0.5 }], () => {
+      const id: ResourceId = 'gems';
+      const state = flatState();
+      const city = foundCityAt(state, 0, at(state.map, 6, 5));
+      growTerritory(state, city);
+      at(state.map, 7, 5).hills = true;
+      plant(state, city, 7, 5, id);
 
-    const state = flatState();
-    standIn(state, 0, 3);
-    const city = foundCityAt(state, 0, at(state.map, 6, 5));
-    growTerritory(state, city);
-    plant(state, city, 7, 5, id);
-
-    // Half a coin a head, floored per city — the same rule a building's
-    // `sciencePerPop` keeps, and for the same reason: two half sources must pay
-    // for two halves rather than round into a free one.
-    for (const population of [1, 2, 3, 7]) {
-      city.population = population;
-      const line = cityResourceYields(state, city).find(
-        (entry) => entry.resource === id && entry.source.includes('per citizen'),
-      );
-      const expected = Math.floor((effect.gold ?? 0) * population);
-      if (expected === 0) {
-        expect(line).toBeUndefined();
-        continue;
+      // Half a coin a head, floored per city — the same rule a building's
+      // `sciencePerPop` keeps, and for the same reason: two half sources must pay
+      // for two halves rather than round into a free one.
+      for (const population of [1, 2, 3, 7]) {
+        city.population = population;
+        const line = cityResourceYields(state, city).find(
+          (entry) => entry.resource === id && entry.source.includes('per citizen'),
+        );
+        const expected = Math.floor(0.5 * population);
+        if (expected === 0) {
+          expect(line).toBeUndefined();
+          continue;
+        }
+        expect(line!.gold).toBe(expected);
       }
-      expect(line!.gold).toBe(expected);
-    }
+    });
   });
 });
 
@@ -504,8 +556,14 @@ describe('extraHappiness: a second line, not a bigger one', () => {
     const perCity = plantableWith('extraHappiness', (effect) => effect.per === 'city');
     expect(perCity).toBeDefined();
     const { id, effect } = perCity!;
+    // Every "per city" contentment line is an Æra III tier since the nerf round
+    // — the class the user called "way too strong" is now the *late* half of a
+    // row rather than the whole of it — so the fixture has to stand in that age
+    // for the line to be live at all.
+    expect(effect.fromAge).toBe(3);
 
     const state = flatState();
+    standIn(state, 0, 3);
     const first = foundCityAt(state, 0, at(state.map, 6, 5));
     growTerritory(state, first);
     plant(state, first, 7, 5, id);
@@ -528,51 +586,60 @@ describe('extraHappiness: a second line, not a bigger one', () => {
   });
 });
 
+/**
+ * The writ a luxury supplies — held live with overridden rows since the nerf
+ * round of 2026-09-02 took spices' and silver's authority lines off the table.
+ *
+ * Kept rather than deleted for the reason every unused reading here is kept: it
+ * is the one shape that pays into the *other* meter, its "capacity, never a
+ * discount" rule is a claim about `meters.ts` that nothing else asserts, and it
+ * costs one branch in the evaluator.
+ */
 describe('authoritySupply: capacity, never a discount', () => {
   it('adds a gain line to the writ, and never touches what a city costs', () => {
-    const writ = plantableWith('authoritySupply', (effect) => effect.per === undefined);
-    expect(writ).toBeDefined();
-    const { id, effect } = writ!;
+    withSignature([{ kind: 'authoritySupply', amount: 2 }], () => {
+      const id: ResourceId = 'gems';
+      const state = flatState();
+      const city = foundCityAt(state, 0, at(state.map, 6, 5));
+      growTerritory(state, city);
+      const before = explainAuthority(state, 0);
+      const beforeTotal = authorityOf(state, 0);
 
-    const state = flatState();
-    const city = foundCityAt(state, 0, at(state.map, 6, 5));
-    growTerritory(state, city);
-    const before = explainAuthority(state, 0);
-    const beforeTotal = authorityOf(state, 0);
+      at(state.map, 7, 5).hills = true;
+      plant(state, city, 7, 5, id);
+      const after = explainAuthority(state, 0);
+      expect(authorityOf(state, 0)).toBe(beforeTotal + 2);
 
-    plant(state, city, 7, 5, id);
-    const after = explainAuthority(state, 0);
-    expect(authorityOf(state, 0)).toBe(beforeTotal + effect.amount);
-
-    const added = after.filter((line) => line.source.startsWith(resourceDef(id).name));
-    expect(added).toHaveLength(1);
-    expect(added[0]!.part).toBe('gain');
-    // The cost side is byte-identical: a luxury widens the writ, it does not
-    // make a town cheaper to hold.
-    const costs = (list: typeof before): string =>
-      JSON.stringify(list.filter((line) => line.part === 'cost'));
-    expect(costs(after)).toBe(costs(before));
-    expect(resourceAuthority(state, 0).map((line) => line.resource)).toContain(id);
+      const added = after.filter((line) => line.source.startsWith(resourceDef(id).name));
+      expect(added).toHaveLength(1);
+      expect(added[0]!.part).toBe('gain');
+      // The cost side is byte-identical: a luxury widens the writ, it does not
+      // make a town cheaper to hold.
+      const costs = (list: typeof before): string =>
+        JSON.stringify(list.filter((line) => line.part === 'cost'));
+      expect(costs(after)).toBe(costs(before));
+      expect(resourceAuthority(state, 0).map((line) => line.resource)).toContain(id);
+    });
   });
 
   it('multiplies a "per city" writ by the empire\'s towns', () => {
-    const perCity = plantableWith('authoritySupply', (effect) => effect.per === 'city');
-    expect(perCity).toBeDefined();
-    const { id, effect } = perCity!;
+    withSignature([{ kind: 'authoritySupply', amount: 1, per: 'city' }], () => {
+      const id: ResourceId = 'gems';
+      const state = flatState();
+      const first = foundCityAt(state, 0, at(state.map, 6, 5));
+      growTerritory(state, first);
+      at(state.map, 7, 5).hills = true;
+      plant(state, first, 7, 5, id);
+      const line = (): number =>
+        resourceAuthority(state, 0).find(
+          (entry) => entry.resource === id && entry.source.includes('cities'),
+        )?.amount ?? 0;
+      expect(line()).toBe(1);
 
-    const state = flatState();
-    const first = foundCityAt(state, 0, at(state.map, 6, 5));
-    growTerritory(state, first);
-    plant(state, first, 7, 5, id);
-    const line = (): number =>
-      resourceAuthority(state, 0).find(
-        (entry) => entry.resource === id && entry.source.includes('cities'),
-      )?.amount ?? 0;
-    expect(line()).toBe(effect.amount);
-
-    const second = foundCityAt(state, 0, at(state.map, 20, 5));
-    growTerritory(state, second);
-    expect(line()).toBe(effect.amount * 2);
+      const second = foundCityAt(state, 0, at(state.map, 20, 5));
+      growTerritory(state, second);
+      expect(line()).toBe(2);
+    });
   });
 });
 
@@ -658,16 +725,28 @@ describe('productionBonus: one shape over two tables', () => {
   });
 });
 
+/**
+ * A luxury's percentage on a yield — held live with overridden rows since the
+ * nerf round of 2026-09-02 took the last one off the table.
+ *
+ * Every row that had one took a share of a *wide* empire's total, which is the
+ * snowball the round was about, so all of them went. The shape stays because the
+ * claim it carries is about Entry XVII rather than about any luxury: a
+ * percentage from this table is a **city-stage** line that sums with the
+ * buildings' and is multiplied once by the meters, and that is the doctrine a
+ * later age's row will land back into.
+ */
 describe('percentYields: two sums, each applied once', () => {
   it('joins the meters in a single per-yield stage sum rather than compounding', () => {
-    const percent = plantableWith('percentYields', (effect) => effect.scope === undefined);
-    expect(percent).toBeDefined();
-    const { id, effect } = percent!;
+    withSignature([{ kind: 'percentYields', yield: 'gold', percent: 10 }], () => {
+    const id: ResourceId = 'gems';
+    const effect = { yield: 'gold', percent: 10 } as const;
 
     const state = flatState();
     standIn(state, 0, 3);
     const city = foundCityAt(state, 0, at(state.map, 6, 5));
     growTerritory(state, city);
+    at(state.map, 7, 5).hills = true;
     plant(state, city, 7, 5, id);
 
     const lines = cityYieldPercents(state, city);
@@ -693,47 +772,52 @@ describe('percentYields: two sums, each applied once', () => {
     expect(lines.filter((line) => line.stage === 'empire').every((line) => line.meter !== undefined))
       .toBe(true);
     expect(sums.city).toBeGreaterThanOrEqual(effect.percent);
+    });
   });
 
   it('is not applied at all before its age, and is after it', () => {
-    const percent = plantableWith('percentYields', (effect) => effect.fromAge === 3);
-    expect(percent).toBeDefined();
-    const { id, effect } = percent!;
+    withSignature([{ kind: 'percentYields', yield: 'gold', percent: 10, fromAge: 3 }], () => {
+      const id: ResourceId = 'gems';
+      const state = flatState();
+      const city = foundCityAt(state, 0, at(state.map, 6, 5));
+      growTerritory(state, city);
+      at(state.map, 7, 5).hills = true;
+      plant(state, city, 7, 5, id);
 
-    const state = flatState();
-    const city = foundCityAt(state, 0, at(state.map, 6, 5));
-    growTerritory(state, city);
-    plant(state, city, 7, 5, id);
-
-    standIn(state, 0, 2);
-    expect(resourcePercentYields(state, city).map((line) => line.resource)).not.toContain(id);
-    standIn(state, 0, 3);
-    expect(resourcePercentYields(state, city).map((line) => line.resource)).toContain(id);
-    expect(effect.percent).not.toBe(0);
+      standIn(state, 0, 2);
+      expect(resourcePercentYields(state, city).map((line) => line.resource)).not.toContain(id);
+      standIn(state, 0, 3);
+      expect(resourcePercentYields(state, city).map((line) => line.resource)).toContain(id);
+    });
   });
 
   it('scopes to the coast when the row says so', () => {
-    const coastal = luxuryWith('percentYields', (effect) => effect.scope === 'coastal');
-    expect(coastal).toBeDefined();
+    withSignature(
+      [{ kind: 'percentYields', yield: 'science', percent: 20, scope: 'coastal' }],
+      () => {
+        const id: ResourceId = 'gems';
+        const state = flatState();
+        standIn(state, 0, 3);
+        for (let row = 0; row < 12; row++) at(state.map, 0, row).terrain = 'coast';
+        // The capital first and inland, because the capital is free and its line
+        // says "capital" rather than "coastal" (`cityAuthorityCost`'s precedence).
+        const inland = foundCityAt(state, 0, at(state.map, 20, 5));
+        growTerritory(state, inland);
+        const harbour = foundCityAt(state, 0, at(state.map, 1, 5));
+        growTerritory(state, harbour);
 
-    const state = flatState();
-    standIn(state, 0, 3);
-    for (let row = 0; row < 12; row++) at(state.map, 0, row).terrain = 'coast';
-    // The capital first and inland, because the capital is free and its line
-    // says "capital" rather than "coastal" (`cityAuthorityCost`'s precedence).
-    const inland = foundCityAt(state, 0, at(state.map, 20, 5));
-    growTerritory(state, inland);
-    const harbour = foundCityAt(state, 0, at(state.map, 1, 5));
-    growTerritory(state, harbour);
-
-    // Sea luxuries cannot be held yet (no work boat), so the scope is asserted
-    // where it is decided: both towns see nothing, and the coastal one is the
-    // one that *would* — proved by the same `isCoastalCity` the authority meter
-    // charges by, which the ledger below reads.
-    expect(resourcePercentYields(state, harbour)).toEqual([]);
-    expect(resourcePercentYields(state, inland)).toEqual([]);
-    const writ = explainAuthority(state, 0);
-    expect(writ.some((line) => line.source.includes('coastal'))).toBe(true);
+        // The seam is inland and the *scope* is what decides where the share
+        // lands: the harbour is paid because it stands on the coast, and the town
+        // that owns the mine is not, which is the whole difference between a
+        // scope and a holding.
+        at(state.map, 21, 5).hills = true;
+        plant(state, inland, 21, 5, id);
+        expect(resourcePercentYields(state, harbour).map((line) => line.resource)).toContain(id);
+        expect(resourcePercentYields(state, inland).map((line) => line.resource)).not.toContain(id);
+        const writ = explainAuthority(state, 0);
+        expect(writ.some((line) => line.source.includes('coastal'))).toBe(true);
+      },
+    );
   });
 });
 
@@ -762,61 +846,72 @@ describe('rulePercent: a percentage on a rule', () => {
   });
 
   it('takes a share off the next border tile', () => {
-    // Furs, and the only row that names `borderCost` today.
-    const rule = plantableWith('rulePercent', (effect) => effect.rule === 'borderCost');
-    expect(rule).toBeDefined();
-    const { id, effect } = rule!;
+    // `borderCost` left the table with furs' rebate in the nerf round of
+    // 2026-09-02 — cheaper borders are a *wide* empire's bonus — and the rule
+    // survives because the cards name it too (`CardRule`) and `cities.ts` folds
+    // both vocabularies into one figure. Held live here with an overridden row.
+    withSignature([{ kind: 'rulePercent', rule: 'borderCost', percent: -10 }], () => {
+      const id: ResourceId = 'gems';
+      const state = flatState();
+      standIn(state, 0, 3);
+      const city = foundCityAt(state, 0, at(state.map, 6, 5));
+      growTerritory(state, city);
+      expect(borderCostFor(state, city)).toBe(nextBorderCost(city.tilesClaimed));
 
-    const state = flatState();
-    standIn(state, 0, 3);
-    const city = foundCityAt(state, 0, at(state.map, 6, 5));
-    growTerritory(state, city);
-    expect(borderCostFor(state, city)).toBe(nextBorderCost(city.tilesClaimed));
-
-    plant(state, city, 7, 5, id);
-    expect(borderCostFor(state, city)).toBe(
-      Math.max(1, Math.floor(nextBorderCost(city.tilesClaimed) * (1 + effect.percent / 100))),
-    );
-    expect(borderCostFor(state, city)).toBeLessThan(nextBorderCost(city.tilesClaimed));
+      at(state.map, 7, 5).hills = true;
+      plant(state, city, 7, 5, id);
+      expect(borderCostFor(state, city)).toBe(
+        Math.max(1, Math.floor(nextBorderCost(city.tilesClaimed) * 0.9)),
+      );
+      expect(borderCostFor(state, city)).toBeLessThan(nextBorderCost(city.tilesClaimed));
+    });
   });
 
   it('keeps a share of the basket when a city grows', () => {
-    // Cotton, and the only row that names `growthCarryover`. The rule's number
-    // *is* the rate rather than a scaling of a base, because there is no base:
-    // an empire without cotton keeps nothing.
-    const rule = plantableWith('rulePercent', (effect) => effect.rule === 'growthCarryover');
-    expect(rule).toBeDefined();
-    const { id, effect } = rule!;
+    // `growthCarryover` left with cotton's line in the same round, and is held
+    // live the same way. The rule's number *is* the rate rather than a scaling of
+    // a base, because there is no base: an empire with nothing that names it
+    // keeps nothing.
+    withSignature([{ kind: 'rulePercent', rule: 'growthCarryover', percent: 10 }], () => {
+      const id: ResourceId = 'gems';
+      const state = flatState();
+      const city = foundCityAt(state, 0, at(state.map, 6, 5));
+      growTerritory(state, city);
+      const threshold = growthThreshold(city.population);
+      expect(growthCarryover(state, city, threshold)).toBe(0);
 
-    const state = flatState();
-    const city = foundCityAt(state, 0, at(state.map, 6, 5));
-    growTerritory(state, city);
-    const threshold = growthThreshold(city.population);
-    expect(growthCarryover(state, city, threshold)).toBe(0);
+      at(state.map, 7, 5).hills = true;
+      plant(state, city, 7, 5, id);
+      const kept = growthCarryover(state, city, threshold);
+      expect(kept).toBe(Math.floor((threshold * 10) / 100));
+      expect(kept).toBeGreaterThan(0);
 
-    plant(state, city, 7, 5, id);
-    const kept = growthCarryover(state, city, threshold);
-    expect(kept).toBe(Math.floor((threshold * effect.percent) / 100));
-    expect(kept).toBeGreaterThan(0);
-
-    // And the phase spends the threshold less the rebate, so the city starts its
-    // next citizen with the difference already banked.
-    city.foodBasket = threshold;
-    const population = city.population;
-    growCities(state);
-    expect(city.population).toBe(population + 1);
-    expect(city.foodBasket).toBe(kept);
+      // And the phase spends the threshold less the rebate, so the city starts
+      // its next citizen with the difference already banked.
+      city.foodBasket = threshold;
+      const population = city.population;
+      growCities(state);
+      expect(city.population).toBe(population + 1);
+      expect(city.foodBasket).toBe(kept);
+    });
   });
 });
 
-describe('happinessTierBoost: amber lifts the bonus rungs', () => {
+/**
+ * The tier boost — amber's, until the nerf round of 2026-09-02 took it off the
+ * row, and held live with an overridden one since.
+ *
+ * It is the only shape that reaches *inside* a meter's ladder rather than
+ * standing beside it, and its one-sidedness (the malus rungs are untouched) is a
+ * claim about `tierPercent` that nothing else in the suite makes. A card still
+ * declares the same reading (`cardTierBoost`), so the ladder's parameter is live
+ * either way — what this holds is the *luxury* half of it.
+ */
+describe('happinessTierBoost: a luxury lifts the bonus rungs', () => {
   it('raises the positive tiers and leaves the malus rungs alone', () => {
-    const boost = plantableWith('happinessTierBoost');
-    expect(boost).toBeDefined();
-    const { id, effect } = boost!;
-    expect(effect.fromAge).toBe(3);
-
-    const points = effect.points;
+    withSignature([{ kind: 'happinessTierBoost', points: 5, fromAge: 3 }], () => {
+    const id: ResourceId = 'gems';
+    const points = 5;
     // The ladder itself, asked directly: the boost is added *after* the clamp,
     // which is the only place it can be added and still do anything at the top
     // rung — `tierClamp` is exactly that rung's magnitude.
@@ -833,6 +928,7 @@ describe('happinessTierBoost: amber lifts the bonus rungs', () => {
     const bonusNow = (): number =>
       meterEffects(state, 0).find((entry) => entry.meter === 'happiness' && !entry.growth)?.percent ??
       0;
+    at(state.map, 7, 5).hills = true;
     plant(state, city, 7, 5, id);
     expect(resourceTierBoost(state, 0).points).toBe(points);
     // The empire is comfortably content with a palace and a luxury, so the rung
@@ -844,6 +940,271 @@ describe('happinessTierBoost: amber lifts the bonus rungs', () => {
     standIn(state, 0, 2);
     expect(resourceTierBoost(state, 0).points).toBe(0);
     expect(bonusNow()).toBe(tierPercent(happinessOf(state, 0)));
+    });
+  });
+});
+
+// --- the nerf round's four shapes -------------------------------------------
+
+/**
+ * The shapes the round of 2026-09-02 added, and the one scope it added with them.
+ *
+ * Each exists because the round moved a payoff **off "every city"** and had to
+ * put it somewhere that does not scale with how far the borders run: into the
+ * capital, onto the buildings an empire actually raised, onto the routes it
+ * actually sent, and onto the payroll it actually keeps. They are asserted here
+ * against the table rather than against the tuning, like every other shape with
+ * more than one user.
+ */
+describe("perCityYields at 'capital' scope: one town, however wide the empire", () => {
+  it('pays the capital and no other town, wherever the seam is', () => {
+    const capitalRow = plantableWith('perCityYields', (effect) => effect.scope === 'capital');
+    expect(capitalRow).toBeDefined();
+    const { id, effect } = capitalRow!;
+
+    const { state, first, second } = twoCities();
+    // The seam is in the *second* city, so what is under test is the scope and
+    // not the holding: a capital is paid for a mine it does not own.
+    at(state.map, 21, 5).hills = true;
+    plant(state, second, 21, 5, id);
+
+    const lineFor = (city: City) =>
+      cityResourceYields(state, city).find((entry) => entry.resource === id);
+    expect(lineFor(first)).toBeDefined();
+    expect(lineFor(first)!.source).toContain('capital');
+    expect(lineFor(second)).toBeUndefined();
+    expect(foldOne(cityResourceYields(state, first).filter((l) => l.resource === id))).toBe(
+      (effect.food ?? 0) + (effect.production ?? 0) + (effect.gold ?? 0) +
+        (effect.science ?? 0) + (effect.culture ?? 0) + (effect.faith ?? 0),
+    );
+
+    // And it *moves*: `capitalCityOf` is the one rule, so a capital that falls
+    // takes the line with it rather than leaving it behind on a flag.
+    first.captured = true;
+    expect(lineFor(first)).toBeUndefined();
+    expect(lineFor(second)).toBeDefined();
+  });
+});
+
+describe('buildingCategoryYields: paid for what you built, not for how wide you spread', () => {
+  it('lands in the town holding the building, and counts only its own shelf', () => {
+    const row = plantableWith(
+      'buildingCategoryYields',
+      (effect) => effect.category !== undefined,
+    );
+    expect(row).toBeDefined();
+    const { id, effect } = row!;
+    const category = effect.category!;
+
+    const { state, first, second } = twoCities();
+    standIn(state, 0, 3);
+    at(state.map, 7, 5).hills = true;
+    plant(state, first, 7, 5, id);
+
+    const lineFor = (city: City) =>
+      cityResourceYields(state, city).find((entry) => entry.resource === id);
+    // No buildings anywhere: no line anywhere. The buildings *are* the scope.
+    expect(lineFor(first)).toBeUndefined();
+    expect(lineFor(second)).toBeUndefined();
+
+    // A building of the right shelf, in the town that does *not* hold the seam —
+    // the line follows the building, which is the whole reading.
+    const matching = BUILDING_IDS.find(
+      (building) => buildingDef(building).category === category && !buildingDef(building).wonder,
+    )!;
+    const other = BUILDING_IDS.find(
+      (building) => buildingDef(building).category !== category && !buildingDef(building).wonder,
+    )!;
+    second.buildings = [other];
+    expect(lineFor(second)).toBeUndefined();
+    second.buildings = [other, matching];
+    const paid = lineFor(second);
+    expect(paid).toBeDefined();
+    expect(paid!.source).toContain('×1');
+    expect(lineFor(first)).toBeUndefined();
+
+    // Two of them are twice the line, and the count is on the label.
+    const secondMatching = BUILDING_IDS.filter(
+      (building) => buildingDef(building).category === category && !buildingDef(building).wonder,
+    )[1]!;
+    const once = foldOne(cityResourceYields(state, second).filter((l) => l.resource === id));
+    second.buildings = [other, matching, secondMatching];
+    expect(foldOne(cityResourceYields(state, second).filter((l) => l.resource === id))).toBe(
+      once * 2,
+    );
+    expect(lineFor(second)!.source).toContain('×2');
+  });
+
+  it('pays its happiness to the empire, counted over every town', () => {
+    const row = plantableWith(
+      'buildingCategoryYields',
+      (effect) => (effect.happiness ?? 0) > 0,
+    );
+    expect(row).toBeDefined();
+    const { id, effect } = row!;
+    const amount = effect.happiness!;
+
+    const { state, first, second } = twoCities();
+    standIn(state, 0, 3);
+    at(state.map, 7, 5).hills = true;
+    plant(state, first, 7, 5, id);
+
+    const contentment = (): number =>
+      resourceHappiness(state, 0)
+        .filter((line) => line.resource === id && line.source.includes('buildings'))
+        .reduce((sum, line) => sum + line.amount, 0);
+    expect(contentment()).toBe(0);
+
+    const matching = BUILDING_IDS.find(
+      (building) =>
+        buildingDef(building).category === effect.category && !buildingDef(building).wonder,
+    )!;
+    first.buildings = [matching];
+    expect(contentment()).toBe(amount);
+    // Happiness is an empire meter and has no city-scale reading to land in, so
+    // a second workshop in a second town is a second point on the same line.
+    second.buildings = [matching];
+    expect(contentment()).toBe(amount * 2);
+    expect(happinessOf(state, 0)).toBeGreaterThan(0);
+  });
+
+  it('counts wonders when the row names them, whatever shelf they sit on', () => {
+    const row = plantableWith('buildingCategoryYields', (effect) => effect.wonders === true);
+    expect(row).toBeDefined();
+    const { id } = row!;
+
+    const state = flatState();
+    standIn(state, 0, 3);
+    const city = foundCityAt(state, 0, at(state.map, 6, 5));
+    growTerritory(state, city);
+    at(state.map, 7, 5).hills = true;
+    plant(state, city, 7, 5, id);
+
+    const lineFor = () => cityResourceYields(state, city).find((entry) => entry.resource === id);
+    const wonder = BUILDING_IDS.find((building) => buildingDef(building).wonder === true)!;
+    const plain = BUILDING_IDS.find((building) => buildingDef(building).wonder !== true)!;
+    city.buildings = [plain];
+    expect(lineFor()).toBeUndefined();
+    city.buildings = [plain, wonder];
+    expect(lineFor()).toBeDefined();
+    expect(lineFor()!.source).toContain('wonders');
+  });
+});
+
+describe('routeYields: a coin on every caravan', () => {
+  it('joins the route’s own list, once per route, off the origin’s owner', () => {
+    const row = plantableWith('routeYields');
+    expect(row).toBeDefined();
+    const { id, effect } = row!;
+    expect(effect.fromAge).toBe(3);
+
+    const { state, first, second } = twoCities();
+    first.population = 3;
+    second.population = 3;
+    const bare = explainRouteYieldBetween(state, first, second);
+
+    at(state.map, 7, 5).hills = true;
+    plant(state, first, 7, 5, id);
+    // Locked before its age like every other second tier.
+    standIn(state, 0, 2);
+    expect(explainRouteYieldBetween(state, first, second)).toEqual(bare);
+
+    standIn(state, 0, 3);
+    const lines = explainRouteYieldBetween(state, first, second);
+    const added = lines.filter((line) => line.source.includes(resourceDef(id).name));
+    expect(added).toHaveLength(1);
+    expect(added[0]!.gold).toBe(effect.gold ?? 0);
+    // Rule 5: the route's totals are still the fold of the list it prints, with
+    // the new line in it.
+    expect(foldRouteYield(lines).gold).toBe(foldRouteYield(bare).gold + (effect.gold ?? 0));
+    // Once per kind however many seams — and once per *route*, which is what
+    // makes it a line on the caravan rather than a flat on the empire.
+    at(state.map, 5, 5).hills = true;
+    plant(state, first, 5, 5, id);
+    expect(
+      explainRouteYieldBetween(state, first, second).filter((line) =>
+        line.source.includes(resourceDef(id).name),
+      ),
+    ).toHaveLength(1);
+    expect(resourceRouteYields(state, 0)).toHaveLength(1);
+    expect(resourceRouteYields(state, 1)).toEqual([]);
+  });
+});
+
+describe('unitUpkeepRebate: a shilling off each soldier', () => {
+  it('joins the payroll’s one give-back list, floored at what a piece costs', () => {
+    const row = plantableWith('unitUpkeepRebate');
+    expect(row).toBeDefined();
+    const { id, effect } = row!;
+    expect(effect.fromAge).toBe(3);
+
+    const state = flatState();
+    standIn(state, 0, 3);
+    const city = foundCityAt(state, 0, at(state.map, 6, 5));
+    growTerritory(state, city);
+    createUnit(state, 0, 'warrior', 6, 6);
+    createUnit(state, 0, 'warrior', 6, 7);
+    // A settler pays nothing, so nothing may be rebated off it — the clamp is
+    // per piece and `unitUpkeepOf` is what says which pieces there are.
+    createUnit(state, 0, 'settler', 6, 8);
+    const gross = unitUpkeepTotal(state, 0);
+    expect(gross).toBeGreaterThan(0);
+
+    expect(explainUnitUpkeepRebate(state, 0)).toEqual([]);
+    at(state.map, 7, 5).hills = true;
+    plant(state, city, 7, 5, id);
+
+    const rebate = explainUnitUpkeepRebate(state, 0);
+    expect(rebate).toHaveLength(1);
+    expect(rebate[0]!.source).toContain(resourceDef(id).name);
+    // Two soldiers at a warrior's own price: the shilling is taken off each, and
+    // never off more than the piece was being charged.
+    expect(rebate[0]!.gold).toBe(Math.min(effect.amount, unitUpkeep('warrior')) * 2);
+    expect(rebate[0]!.gold).toBeLessThanOrEqual(gross);
+
+    // And it is the *same list* the law's rebates land in — one give-back on the
+    // ledger, never a second subtraction under the charge.
+    const ledger = explainEmpireGold(state, 0);
+    expect(ledger.some((line) => line.source.includes(resourceDef(id).name))).toBe(true);
+    expect(ledger.find((line) => line.source.startsWith('Unit maintenance'))!.gold).toBe(-gross);
+  });
+});
+
+describe('connectionPercent: a share of what the roads pay', () => {
+  it('rides the connections line of the empire ledger, floored once', () => {
+    const row = plantableWith('connectionPercent');
+    expect(row).toBeDefined();
+    const { id, effect } = row!;
+    expect(effect.fromAge).toBe(3);
+
+    const { state, first, second } = twoCities();
+    standIn(state, 0, 3);
+    // Big enough that a tenth of the connection's coin is a whole coin: the
+    // share is floored **once**, so a small connection legitimately rounds it
+    // away and this test would be asserting the flooring rather than the share.
+    second.population = 24;
+    // A road all the way home, so the flood fill reaches the second town.
+    for (let col = 6; col <= 20; col++) at(state.map, col, 5).road = 0;
+
+    const connections = (list: ReturnType<typeof explainEmpireGold>): number =>
+      list.find((line) => line.source.startsWith('City connections'))?.gold ?? 0;
+    const before = explainEmpireGold(state, 0);
+    expect(connections(before)).toBeGreaterThan(0);
+    expect(before.some((line) => line.source.includes(resourceDef(id).name))).toBe(false);
+
+    at(state.map, 7, 5).hills = true;
+    plant(state, first, 7, 5, id);
+    const after = explainEmpireGold(state, 0);
+    // The connections line itself is untouched — the share is its **own** line,
+    // after it, exactly as the payroll's rebates sit after the payroll.
+    expect(connections(after)).toBe(connections(before));
+    const share = after.find((line) => line.source.includes(resourceDef(id).name));
+    expect(share).toBeDefined();
+    expect(share!.gold).toBe(Math.floor((connections(before) * effect.percent) / 100));
+    expect(share!.gold).toBeGreaterThan(0);
+    // Rule 5: the treasury's figure is the fold of the list, with the share in it.
+    expect(empireGold(state, 0)).toBe(after.reduce((sum, line) => sum + line.gold, 0));
+    expect(resourceConnectionPercent(state, 0)).toHaveLength(1);
   });
 });
 
@@ -884,10 +1245,16 @@ describe('fromAge: the second tier', () => {
 
 describe('perCopy: the marked exception to uniqueness', () => {
   it('counts tiles rather than kinds, and only where the row says so', () => {
-    const scaled = plantableWith('authoritySupply', (effect) => effect.perCopy === true);
+    // Silver and gold, and only their Æra III tiers — the round of 2026-09-02
+    // moved both onto `perCityYields` (a food and a hammer a town, per copy) and
+    // left the exception exactly where it was: the *base* tier of each row is a
+    // flat coin a town however many veins are dug, and only the late line scales.
+    const scaled = plantableWith('perCityYields', (effect) => effect.perCopy === true);
     expect(scaled).toBeDefined();
     const { id, effect } = scaled!;
     expect(effect.fromAge).toBe(3);
+    const paid = (effect.food ?? 0) + (effect.production ?? 0) + (effect.gold ?? 0);
+    expect(paid).toBeGreaterThan(0);
 
     const state = flatState();
     standIn(state, 0, 3);
@@ -897,33 +1264,39 @@ describe('perCopy: the marked exception to uniqueness', () => {
     plant(state, city, 7, 5, id);
     expect(resourceCopies(state, 0, id)).toBe(1);
     const perCopyLine = (): number =>
-      resourceAuthority(state, 0)
-        .filter((line) => line.resource === id && line.source.includes('copies'))
-        .reduce((sum, line) => sum + line.amount, 0);
+      foldOne(
+        cityResourceYields(state, city).filter(
+          (line) => line.resource === id && line.source.includes('copies'),
+        ),
+      );
     // One copy prints no "×n" note at all — the label only earns its keep when
     // the number is not one.
     expect(perCopyLine()).toBe(0);
-    const oneCopy = authorityOf(state, 0);
+    const oneCopy = foldOne(cityResourceYields(state, city).filter((l) => l.resource === id));
 
     plant(state, city, 5, 5, id);
     expect(resourceCopies(state, 0, id)).toBe(2);
-    expect(authorityOf(state, 0)).toBe(oneCopy + effect.amount);
-    expect(perCopyLine()).toBe(effect.amount * 2);
+    expect(foldOne(cityResourceYields(state, city).filter((l) => l.resource === id))).toBe(
+      oneCopy + paid,
+    );
+    expect(perCopyLine()).toBe(paid * 2);
 
     plant(state, city, 6, 4, id);
     expect(resourceCopies(state, 0, id)).toBe(3);
-    expect(authorityOf(state, 0)).toBe(oneCopy + 2 * effect.amount);
+    expect(foldOne(cityResourceYields(state, city).filter((l) => l.resource === id))).toBe(
+      oneCopy + 2 * paid,
+    );
 
     // And the *unique* lines on the same row are untouched by the second seam:
     // uniqueness is still the rule, this is still the exception.
-    const flat = resourceAuthority(state, 0).filter(
+    const flat = cityResourceYields(state, city).filter(
       (line) => line.resource === id && !line.source.includes('copies'),
     );
     expect(flat).toHaveLength(1);
   });
 
   it('stops counting a copy the moment it stops being a holding', () => {
-    const scaled = plantableWith('authoritySupply', (effect) => effect.perCopy === true)!;
+    const scaled = plantableWith('perCityYields', (effect) => effect.perCopy === true)!;
     const state = flatState();
     standIn(state, 0, 3);
     const city = foundCityAt(state, 0, at(state.map, 6, 5));

@@ -52,10 +52,9 @@ import {
 } from '../../src/sim/modifiers';
 import {
   CITY_YIELD_KEYS,
-  type ResourceEffect,
   type ResourceId,
-  resourceEffects,
-  resourcesOfKind,
+  resourceDef,
+  withExtraResources,
 } from '../../src/sim/resourceData';
 import { RULES } from '../../src/sim/rulesData';
 import {
@@ -138,26 +137,6 @@ function plant(state: GameState, city: City, col: number, row: number, id: Resou
   tile.improvement = improvementForResource(id)!;
   expect(cityResources(state, city, 'luxury')).toContain(id);
   return tile;
-}
-
-/**
- * The first plantable luxury with an effect of this shape — asserted against the
- * table rather than against a named row, so moving silk's tier to another luxury
- * does not fail this suite.
- */
-function plantableWith<K extends ResourceEffect['kind']>(
-  kind: K,
-  where: (effect: Extract<ResourceEffect, { kind: K }>) => boolean = () => true,
-): { id: ResourceId; effect: Extract<ResourceEffect, { kind: K }> } | undefined {
-  for (const id of resourcesOfKind('luxury')) {
-    if (improvementForResource(id) === null) continue;
-    for (const effect of resourceEffects(id)) {
-      if (effect.kind !== kind) continue;
-      const narrowed = effect as Extract<ResourceEffect, { kind: K }>;
-      if (where(narrowed)) return { id, effect: narrowed };
-    }
-  }
-  return undefined;
 }
 
 /** One line of a staged list, for the arithmetic tests. */
@@ -358,37 +337,50 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
     // every city" is not an empire total — it lands on one town's culture and
     // multiplies with what that town built — so it joins the monument in the
     // first multiplication and the happiness tier multiplies the pair.
-    const found = plantableWith('percentYields', (effect) => effect.yield === 'culture');
-    expect(found).toBeDefined();
-    const { id, effect } = found!;
+    //
+    // Held live with a **row overridden at runtime** since the nerf round of
+    // 2026-09-02, which took the last `percentYields` off the table: every row
+    // that had one took a share of a wide empire's total, which is exactly the
+    // snowball the round was about. The doctrine under test is unchanged and is
+    // about the *stage*, not about any luxury, so the honest fixture is a row
+    // that declares the shape rather than a hunt for one that no longer does.
+    const percent = 5;
+    const row = {
+      ...(resourceDef('gems') as unknown as Record<string, unknown>),
+      effects: [{ kind: 'percentYields', yield: 'culture', percent }],
+    };
+    withExtraResources({ gems: row as never }, () => {
+      const id: ResourceId = 'gems';
+      const state = bareState(30, 12);
+      const city = foundCityAt(state, 0, at(state.map, 6, 5));
+      city.population = 3;
+      city.buildings = ['monument'];
+      growTerritory(state, city);
+      at(state.map, 7, 5).hills = true;
+      plant(state, city, 7, 5, id);
 
-    const state = bareState(30, 12);
-    const city = foundCityAt(state, 0, at(state.map, 6, 5));
-    city.population = 3;
-    city.buildings = ['monument'];
-    growTerritory(state, city);
-    plant(state, city, 7, 5, id);
+      const tier = tierPercent(happinessOf(state, 0));
+      expect(tier).toBeGreaterThan(0);
+      const sums = cityStageSums(state, city);
+      expect(sums.culture.city).toBe(percent);
+      expect(sums.culture.empire).toBe(tier);
 
-    const tier = tierPercent(happinessOf(state, 0));
-    expect(tier).toBeGreaterThan(0);
-    const sums = cityStageSums(state, city);
-    expect(sums.culture.city).toBe(effect.percent);
-    expect(sums.culture.empire).toBe(tier);
+      // Both stages live on one yield: the doctrine's ×1.21 shape, reached from a
+      // luxury and a meter rather than from a hand-built list.
+      expect(applyStages(100, sums.culture)).toBe(
+        Math.floor((100 * (100 + percent) * (100 + tier)) / 10_000),
+      );
+      expect(applyStages(100, sums.culture)).toBeGreaterThan(
+        applyStages(100, { city: 0, empire: percent + tier }),
+      );
 
-    // Both stages live on one yield: the doctrine's ×1.21 shape, reached from a
-    // luxury and a meter rather than from a hand-built list.
-    expect(applyStages(100, sums.culture)).toBe(
-      Math.floor((100 * (100 + effect.percent) * (100 + tier)) / 10_000),
-    );
-    expect(applyStages(100, sums.culture)).toBeGreaterThan(
-      applyStages(100, { city: 0, empire: effect.percent + tier }),
-    );
-
-    // And the panel's own line for it says city, beside the meter's empire.
-    const percents = cityYieldPercents(state, city);
-    expect(percents.find((entry) => entry.resource === id)!.stage).toBe('city');
-    expect(percents.filter((entry) => entry.stage === 'empire').every((e) => e.meter !== undefined))
-      .toBe(true);
+      // And the panel's own line for it says city, beside the meter's empire.
+      const percents = cityYieldPercents(state, city);
+      expect(percents.find((entry) => entry.resource === id)!.stage).toBe('city');
+      expect(
+        percents.filter((entry) => entry.stage === 'empire').every((e) => e.meter !== undefined),
+      ).toBe(true);
+    });
   });
 });
 

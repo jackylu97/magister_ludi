@@ -414,13 +414,12 @@
       ],
       "effects": [
         {
-          "kind": "perCityYields",
-          "gold": 2
+          "kind": "empireYields",
+          "gold": 3
         },
         {
-          "kind": "percentYields",
-          "yield": "gold",
-          "percent": 10,
+          "kind": "perCityYields",
+          "gold": 2,
           "fromAge": 3
         }
       ],
@@ -449,13 +448,12 @@
       ],
       "effects": [
         {
-          "kind": "perCityYields",
-          "culture": 1
+          "kind": "empireYields",
+          "culture": 2
         },
         {
-          "kind": "percentYields",
-          "yield": "culture",
-          "percent": 5,
+          "kind": "perCityYields",
+          "culture": 1,
           "fromAge": 3
         }
       ],
@@ -485,6 +483,12 @@
         {
           "kind": "extraHappiness",
           "amount": 2
+        },
+        {
+          "kind": "extraHappiness",
+          "amount": 1,
+          "per": "city",
+          "fromAge": 3
         }
       ],
       "emoji": "🍇"
@@ -511,8 +515,13 @@
       ],
       "effects": [
         {
-          "kind": "authoritySupply",
-          "amount": 2
+          "kind": "empireYields",
+          "gold": 3
+        },
+        {
+          "kind": "connectionPercent",
+          "percent": 10,
+          "fromAge": 3
         }
       ],
       "emoji": "🌶️"
@@ -544,9 +553,8 @@
           "scope": "empire"
         },
         {
-          "kind": "percentYields",
-          "yield": "food",
-          "percent": 5,
+          "kind": "unitUpkeepRebate",
+          "amount": 1,
           "fromAge": 3
         }
       ],
@@ -576,8 +584,13 @@
       ],
       "effects": [
         {
+          "kind": "empireYields",
+          "faith": 2
+        },
+        {
           "kind": "perCityYields",
-          "faith": 1
+          "faith": 1,
+          "fromAge": 3
         }
       ],
       "emoji": "🪔"
@@ -601,6 +614,23 @@
       "clusterSize": [
         1,
         1
+      ],
+      "effects": [
+        {
+          "kind": "extraHappiness",
+          "amount": 1
+        },
+        {
+          "kind": "empireYields",
+          "faith": 1
+        },
+        {
+          "kind": "buildingCategoryYields",
+          "category": "production",
+          "faith": 1,
+          "happiness": 1,
+          "fromAge": 3
+        }
       ],
       "emoji": "💠"
     },
@@ -629,9 +659,15 @@
       "effects": [
         {
           "kind": "productionBonus",
-          "category": "building",
-          "percent": 15,
+          "category": "wonder",
+          "percent": 10,
           "scope": "empire"
+        },
+        {
+          "kind": "buildingCategoryYields",
+          "wonders": true,
+          "culture": 2,
+          "fromAge": 3
         }
       ],
       "emoji": "🏛️"
@@ -659,9 +695,13 @@
       ],
       "effects": [
         {
-          "kind": "rulePercent",
-          "rule": "borderCost",
-          "percent": -10
+          "kind": "empireYields",
+          "gold": 3
+        },
+        {
+          "kind": "routeYields",
+          "gold": 1,
+          "fromAge": 3
         }
       ],
       "emoji": "🦫"
@@ -690,13 +730,12 @@
       ],
       "effects": [
         {
-          "kind": "perCityYields",
-          "culture": 1
+          "kind": "empireYields",
+          "culture": 2
         },
         {
-          "kind": "percentYields",
-          "yield": "culture",
-          "percent": 5,
+          "kind": "perCityYields",
+          "culture": 1,
           "fromAge": 3
         }
       ],
@@ -721,6 +760,7 @@
         1,
         2
       ],
+      "deferred": "The tusk trade would put hammers behind soldiers and their halls, and the war elephant it was ratified with is a kind of unit this game does not have. The tile pays, and the hole is honest.",
       "emoji": "🐘"
     },
     "amber": {
@@ -747,16 +787,12 @@
       "effects": [
         {
           "kind": "extraHappiness",
-          "amount": 1
+          "amount": 2
         },
         {
           "kind": "extraHappiness",
           "amount": 1,
-          "per": "city"
-        },
-        {
-          "kind": "happinessTierBoost",
-          "points": 5,
+          "per": "city",
           "fromAge": 3
         }
       ],
@@ -777,7 +813,6 @@
       "validFeatures": [
         "none"
       ],
-      "hills": true,
       "frequency": 2,
       "clusterSize": [
         1,
@@ -785,8 +820,15 @@
       ],
       "effects": [
         {
-          "kind": "perCityYields",
-          "science": 1
+          "kind": "empireYields",
+          "science": 2
+        },
+        {
+          "kind": "buildingCategoryYields",
+          "category": "science",
+          "science": 1,
+          "production": 1,
+          "fromAge": 3
         }
       ],
       "emoji": "🍵"
@@ -814,7 +856,15 @@
       "effects": [
         {
           "kind": "perCityYields",
-          "production": 1
+          "production": 2,
+          "scope": "capital"
+        },
+        {
+          "kind": "buildingCategoryYields",
+          "category": "production",
+          "science": 1,
+          "production": 1,
+          "fromAge": 3
         }
       ],
       "emoji": "☕"
@@ -841,9 +891,15 @@
       ],
       "effects": [
         {
-          "kind": "rulePercent",
-          "rule": "growthCarryover",
-          "percent": 10
+          "kind": "perCityYields",
+          "food": 2,
+          "scope": "capital"
+        },
+        {
+          "kind": "buildingCategoryYields",
+          "category": "production",
+          "food": 2,
+          "fromAge": 3
         }
       ],
       "emoji": "🧶"
@@ -873,17 +929,12 @@
       "effects": [
         {
           "kind": "extraHappiness",
-          "amount": 1
-        },
-        {
-          "kind": "extraHappiness",
-          "amount": 1,
-          "per": "city"
+          "amount": 2
         },
         {
           "kind": "rulePercent",
           "rule": "happinessDemand",
-          "percent": -10,
+          "percent": -5,
           "fromAge": 3
         }
       ],
@@ -912,11 +963,12 @@
       "effects": [
         {
           "kind": "perCityYields",
-          "food": 2
+          "food": 2,
+          "scope": "capital"
         },
         {
-          "kind": "perPopulationYields",
-          "gold": 0.5,
+          "kind": "perCityYields",
+          "food": 1,
           "fromAge": 3
         }
       ],
@@ -944,10 +996,11 @@
       ],
       "effects": [
         {
-          "kind": "perCityYields",
-          "culture": 1
+          "kind": "empireYields",
+          "culture": 2
         }
       ],
+      "deferred": "Its second age was ratified as renown in every city. Renown exists now, and what a luxury may pay into it has not been ruled on, so the row waits rather than guessing.",
       "emoji": "🔷"
     },
     "silver": {
@@ -979,13 +1032,8 @@
           "gold": 1
         },
         {
-          "kind": "authoritySupply",
-          "amount": 1,
-          "per": "city"
-        },
-        {
-          "kind": "authoritySupply",
-          "amount": 2,
+          "kind": "perCityYields",
+          "food": 1,
           "perCopy": true,
           "fromAge": 3
         }
@@ -1018,23 +1066,11 @@
       "effects": [
         {
           "kind": "perCityYields",
-          "food": 1,
           "gold": 1
         },
         {
-          "kind": "extraHappiness",
-          "amount": 1,
-          "per": "city"
-        },
-        {
-          "kind": "extraHappiness",
-          "amount": 2,
-          "perCopy": true,
-          "fromAge": 3
-        },
-        {
           "kind": "perCityYields",
-          "food": 2,
+          "production": 1,
           "perCopy": true,
           "fromAge": 3
         }
@@ -1063,14 +1099,13 @@
       ],
       "effects": [
         {
-          "kind": "extraHappiness",
-          "amount": 1,
-          "per": "city"
+          "kind": "perCityYields",
+          "food": 2,
+          "scope": "capital"
         },
         {
-          "kind": "rulePercent",
-          "rule": "happinessDemand",
-          "percent": -10,
+          "kind": "perCityYields",
+          "food": 1,
           "fromAge": 3
         }
       ],
@@ -1098,19 +1133,12 @@
       "effects": [
         {
           "kind": "extraHappiness",
-          "amount": 1,
-          "per": "city"
+          "amount": 2
         },
         {
           "kind": "perCityYields",
-          "gold": 3,
+          "gold": 2,
           "scope": "coastal",
-          "fromAge": 3
-        },
-        {
-          "kind": "extraHappiness",
-          "amount": 3,
-          "per": "coastalCity",
           "fromAge": 3
         }
       ],
@@ -1140,12 +1168,11 @@
         {
           "kind": "perCityYields",
           "science": 2,
-          "scope": "coastal"
+          "scope": "capital"
         },
         {
-          "kind": "percentYields",
-          "yield": "science",
-          "percent": 20,
+          "kind": "perCityYields",
+          "science": 1,
           "scope": "coastal",
           "fromAge": 3
         }
@@ -1156,8 +1183,8 @@
       "name": "Whales",
       "kind": "luxury",
       "yields": {
-        "food": 2,
-        "production": 0,
+        "food": 1,
+        "production": 1,
         "gold": 1
       },
       "validTerrain": [
@@ -1175,14 +1202,7 @@
         {
           "kind": "perCityYields",
           "production": 2,
-          "scope": "coastal"
-        },
-        {
-          "kind": "percentYields",
-          "yield": "production",
-          "percent": 5,
-          "scope": "coastal",
-          "fromAge": 3
+          "scope": "capital"
         },
         {
           "kind": "improvementYields",
@@ -1214,9 +1234,15 @@
       ],
       "effects": [
         {
+          "kind": "perCityYields",
+          "culture": 2,
+          "scope": "capital"
+        },
+        {
           "kind": "improvementYields",
           "improvement": "fishingBoats",
-          "culture": 1
+          "culture": 1,
+          "fromAge": 3
         }
       ],
       "emoji": "🐚"

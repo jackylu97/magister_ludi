@@ -31,6 +31,12 @@ import {
   type BuildingId,
   buildingDef,
 } from './buildingData';
+// Furs' Æra III coin a caravan, read through the one luxury evaluator. Like
+// `statecraft.ts` beside it, this module reaches `cities.ts` only *through*
+// another file and only inside a function — the leaf claim in the docblock above
+// is about what this file imports directly, and it still holds for `cities.ts`
+// and `trade.ts` themselves.
+import { resourceRouteYields } from './resourceEffects';
 import { RULES } from './rulesData';
 import { type City, type GameState, type Unit, cityById } from './state';
 import { cardAmplifier } from './statecraft';
@@ -172,12 +178,13 @@ export function explainRouteYield(state: GameState, unit: Unit): RouteYieldLine[
  * the pair, so there is exactly one implementation of the three lines and the
  * preview and the paying caravan cannot drift apart on what they promise.
  *
- * `_state` is unused today — every figure here reads off `from`/`to` alone —
- * and stays on the signature anyway (underscored, so the unused-parameter
- * check does not fight it), for the reason every `explain…` function in this
- * module takes it: the day a route's yield gains a card or a wonder rider
- * (`docs/trade.md`'s deferred half), that rider is read off the state and this
- * is where it joins, not a second function with the state parameter added back.
+ * `state` was unused when this was split out — every figure read off `from`/`to`
+ * alone — and stayed on the signature anyway, for the reason every `explain…`
+ * function in this module takes it: *"the day a route's yield gains a card or a
+ * wonder rider, that rider is read off the state and this is where it joins,
+ * not a second function with the state parameter added back."* That day came
+ * twice, and it joined here both times — the Merchant League's share, and now
+ * furs' coin a caravan (`resourceRouteYields`).
  */
 export function explainRouteYieldBetween(
   state: GameState,
@@ -215,6 +222,25 @@ export function explainRouteYieldBetween(
   const gold = Math.floor(people / per);
   if (gold > 0) {
     lines.push({ source: label(`${people} people`), food: 0, production: 0, gold });
+  }
+
+  // **The luxury's coin**, one line per paying kind and one kind per route —
+  // furs' Æra III. Before the card's share on purpose: a percentage takes what
+  // the flats have already reached, which is the order `explainEmpireGold` states
+  // for the connections line ("the share is taken of the total the flat has
+  // already reached"), and the alternative would have been the Merchant League
+  // quietly declining to carry one of the goods in the cart.
+  //
+  // The **origin's** owner again, for `cardAmplifier`'s reason: a route belongs
+  // to the seat that sent it, and a caravan into a rival's town is not enriched
+  // by the rival's mines.
+  for (const line of resourceRouteYields(state, from.ownerId)) {
+    lines.push({
+      source: label(line.source),
+      food: line.food,
+      production: line.production,
+      gold: line.gold,
+    });
   }
 
   // **The card's share, as a line of its own** — the Merchant League's fifty

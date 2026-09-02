@@ -93,7 +93,7 @@
 
 import resourcesJson from '../../data/resources.json';
 
-import type { ProductionCategory } from './buildingData';
+import type { BuildingCategory, ProductionCategory } from './buildingData';
 // Type-only, and it must stay that way: `improvementData.ts` imports
 // `RESOURCE_IDS` from here as a *value* and validates at load, so a value import
 // back would close a cycle around two tables that both build indexes on
@@ -153,10 +153,27 @@ export type CityYieldKey = 'food' | 'production' | 'gold' | 'science' | 'culture
  * available at the cost of one word, and it is exercised by a row invented at
  * runtime in `test/resourceEffects.test.ts`, which is the same proof the table's
  * data-drivenness rests on.
+ *
+ * `'capital'` is the *other* small set, and it arrived with the nerf round of
+ * 2026-09-02: one city, and the one city an empire cannot found a second of. It
+ * is what the ratified text means by "in your capital" (coffee, cotton, olives,
+ * honey, coral, whales, tyrian), and it exists because a flat paid into **every**
+ * town is the shape that made a wide empire's tenth city as good as its first —
+ * a capital line is a fixed amount however far the borders run, which is the
+ * same tall-friendly reading `empireYields` gives one grade out.
  */
-export type ResourceCityScope = 'all' | 'coastal' | 'owner';
+export type ResourceCityScope = 'all' | 'coastal' | 'owner' | 'capital';
 
-/** A rule of the simulation a signature may put a signed percentage on. */
+/**
+ * A rule of the simulation a signature may put a signed percentage on.
+ *
+ * Three, and the union stays **a subset of `CardRule`** (`statecraftData.ts`) on
+ * purpose: `ruleFactor` (`meters.ts`) asks both vocabularies the same question
+ * and sums the two answers, so a word this table knew and the cards did not
+ * would be a word that fails to compile there. That is exactly why spices' share
+ * of the connections line is `connectionPercent` — its own shape, one consumer —
+ * rather than a fourth rule nobody else could name.
+ */
 export type ResourceRule = 'happinessDemand' | 'borderCost' | 'growthCarryover';
 
 /**
@@ -195,7 +212,7 @@ export interface ResourceEffectModifiers {
 type Signature<T> = T & ResourceEffectModifiers;
 
 /**
- * The whole signature-effect vocabulary: nine shapes, and each one earns its
+ * The whole signature-effect vocabulary: thirteen shapes, and each one earns its
  * place by being the smallest generic thing several ratified rows need.
  *
  * Kept deliberately small — a luxury table where every row could name an
@@ -245,6 +262,37 @@ type Signature<T> = T & ResourceEffectModifiers;
  *                       one place. It is scoped to the *empire* like every other
  *                       signature: the seam is held once, and every boat the
  *                       empire owns is better for it.
+ *   · `buildingCategoryYields`  flat yields — and, optionally, happiness — **per
+ *                       building of one `BuildingCategory`**, or per **wonder**
+ *                       (`wonders: true`), that the empire holds. The 2026-09-02
+ *                       round's one genuinely new reading, and the shape the
+ *                       ledger refused when a single row wanted it: four rows
+ *                       want it now (jade, tea, coffee, cotton) and marble wants
+ *                       its wonder selector. The yields land **in the town
+ *                       holding the building**, which is what makes it a payoff
+ *                       for having built rather than for having spread; the
+ *                       happiness is the empire's, because happiness always is.
+ *   · `routeYields`     flat yields on **every trade route this empire is
+ *                       running** — furs' Æra III coin a caravan. It joins
+ *                       `explainRouteYieldBetween`'s own list (`routeYields.ts`)
+ *                       rather than a city's totals, `improvementYields`' bargain
+ *                       one ledger over: a route's figure is the fold of the
+ *                       lines the destination's sheet prints.
+ *   · `unitUpkeepRebate`  a flat number of gold off **each unit's own
+ *                       maintenance**, floored at what that unit costs (salt).
+ *                       It lands as a labelled line in `explainUnitUpkeepRebate`
+ *                       (`upkeep.ts`), the same list a card's rebate lands in —
+ *                       there is one give-back list on the payroll and this is
+ *                       not a second subtraction under it.
+ *   · `connectionPercent`  a signed percentage of what **the roads between this
+ *                       empire's cities** pay it (spices, Æra III). Its own
+ *                       shape rather than a fourth `rulePercent`, for two
+ *                       reasons: `ResourceRule` has to stay a subset of
+ *                       `CardRule` (see the note there), and what it takes a
+ *                       share of is one *line* of `explainEmpireGold` — a figure
+ *                       banked once for the empire, which never rides Entry
+ *                       XVII's two city stages and must not be routed through
+ *                       them. Applied and floored once, in `empireGold.ts`.
  *
  * Uniqueness is not part of the shape because it is part of the *reading*: an
  * empire effect counts once per kind however many seams feed it, and an
@@ -273,7 +321,21 @@ export type ResourceEffect =
     }>
   | Signature<{ kind: 'rulePercent'; rule: ResourceRule; percent: number }>
   | Signature<{ kind: 'happinessTierBoost'; points: number }>
-  | Signature<{ kind: 'improvementYields'; improvement: ImprovementId } & ResourceYieldBag>;
+  | Signature<{ kind: 'improvementYields'; improvement: ImprovementId } & ResourceYieldBag>
+  | Signature<
+      {
+        kind: 'buildingCategoryYields';
+        /** The shelf a building has to be on. Absent iff `wonders` is set. */
+        category?: BuildingCategory;
+        /** Count **wonders** instead of a category — marble's selector. */
+        wonders?: true;
+        /** Empire happiness per matching building, on top of the yields. */
+        happiness?: number;
+      } & ResourceYieldBag
+    >
+  | Signature<{ kind: 'routeYields' } & ResourceYieldBag>
+  | Signature<{ kind: 'unitUpkeepRebate'; amount: number }>
+  | Signature<{ kind: 'connectionPercent'; percent: number }>;
 
 /** Every effect shape's tag, for the loader's validation and for tests. */
 export const RESOURCE_EFFECT_KINDS: readonly ResourceEffect['kind'][] = [
@@ -287,6 +349,10 @@ export const RESOURCE_EFFECT_KINDS: readonly ResourceEffect['kind'][] = [
   'rulePercent',
   'happinessTierBoost',
   'improvementYields',
+  'buildingCategoryYields',
+  'routeYields',
+  'unitUpkeepRebate',
+  'connectionPercent',
 ];
 
 /** Every rule a `rulePercent` may name. Validation, and the evaluator's switch. */
@@ -295,6 +361,47 @@ export const RESOURCE_RULES: readonly ResourceRule[] = [
   'borderCost',
   'growthCarryover',
 ];
+
+/**
+ * Every shelf a `buildingCategoryYields` may name.
+ *
+ * Written as an exhaustive `Record` and read back as its keys, rather than as a
+ * hand-kept array, so that a category added to or renamed in `BuildingCategory`
+ * (`buildingData.ts`) **fails to compile here** instead of quietly becoming a
+ * word this validator would refuse. The import above stays type-only for the
+ * reason `validateEffect` documents about `ImprovementId`.
+ */
+const BUILDING_CATEGORY_SET: Record<BuildingCategory, true> = {
+  food: true,
+  culture: true,
+  science: true,
+  production: true,
+  military: true,
+  gold: true,
+  faith: true,
+};
+
+export const RESOURCE_BUILDING_CATEGORIES = Object.keys(
+  BUILDING_CATEGORY_SET,
+) as readonly BuildingCategory[];
+
+/**
+ * Every category a `productionBonus` may name — `ProductionCategory`'s three,
+ * kept the same exhaustive way for the same reason. `wonder` joined the union
+ * with the wonders framework and marble names it since 2026-09-02.
+ */
+const PRODUCTION_CATEGORY_SET: Record<ProductionCategory, true> = {
+  unit: true,
+  building: true,
+  wonder: true,
+};
+
+const RESOURCE_PRODUCTION_CATEGORIES = Object.keys(
+  PRODUCTION_CATEGORY_SET,
+) as readonly ProductionCategory[];
+
+/** The three voices a trade route pays. A `routeYields` bag may name no other. */
+const ROUTE_YIELD_KEYS: readonly (keyof ResourceYieldBag)[] = ['food', 'production', 'gold'];
 
 /**
  * Every yield a city banks, in the order surfaces print them — and the order
@@ -344,6 +451,17 @@ export interface ResourceDef {
    * unique units are a system this game does not have yet.
    */
   effects?: ResourceEffect[];
+  /**
+   * Player prose for the half of this row's ratified text that is **not in the
+   * data at all** — the honest hole, named on the row rather than only in
+   * `docs/luxuries.md`.
+   *
+   * `statecraftData.ts`' `deferred:` convention, and the same rule with it: a
+   * shape is never bent to nearly fit. Plain words in a first-time player's
+   * terms (hard rule 7), no identifiers and no numbers; the row's live effects
+   * are what actually pays.
+   */
+  deferred?: string;
   /**
    * Display glyph for text surfaces (hover readout, panels). An emoji
    * placeholder for now; the lens roundels use the drawn SVG icons instead —
@@ -540,7 +658,11 @@ function validateEffect(where: string, effect: ResourceEffect): void {
       throw new Error(`${where} is gated on age ${fromAge}, which no technology has`);
     }
   }
-  if (effect.kind === 'extraHappiness' || effect.kind === 'authoritySupply') {
+  if (
+    effect.kind === 'extraHappiness' ||
+    effect.kind === 'authoritySupply' ||
+    effect.kind === 'unitUpkeepRebate'
+  ) {
     if (!Number.isFinite(effect.amount)) throw new Error(`${where} has a non-numeric amount`);
     return;
   }
@@ -549,11 +671,30 @@ function validateEffect(where: string, effect: ResourceEffect): void {
     return;
   }
   if (effect.kind === 'productionBonus') {
-    if (effect.category !== 'unit' && effect.category !== 'building') {
+    if (!RESOURCE_PRODUCTION_CATEGORIES.includes(effect.category)) {
       throw new Error(`${where} has unknown production category "${effect.category}"`);
     }
     if (!Number.isFinite(effect.percent)) throw new Error(`${where} has a non-numeric percent`);
     return;
+  }
+  if (effect.kind === 'buildingCategoryYields') {
+    // **Exactly one selector.** A row that named both would be asking two
+    // questions of one line ("production buildings, and also every wonder"), and
+    // a row that named neither would count every building in the empire — which
+    // is a shape nobody has ratified and which would read as a typo forever.
+    const named = [effect.category !== undefined, effect.wonders === true].filter(Boolean).length;
+    if (named !== 1) {
+      throw new Error(`${where} must name exactly one of "category" or "wonders"`);
+    }
+    if (effect.category !== undefined && !RESOURCE_BUILDING_CATEGORIES.includes(effect.category)) {
+      throw new Error(`${where} names unknown building category "${effect.category}"`);
+    }
+    if (effect.happiness !== undefined && !Number.isFinite(effect.happiness)) {
+      throw new Error(`${where} has non-numeric happiness`);
+    }
+    // Falls through to the yield-bag check below, which is where "names nothing
+    // at all" is refused — except that happiness alone is a lawful line here,
+    // which is the one thing this shape adds to that reading.
   }
   if (effect.kind === 'percentYields') {
     if (!RESOURCE_EFFECT_YIELDS.includes(effect.yield)) {
@@ -568,6 +709,12 @@ function validateEffect(where: string, effect: ResourceEffect): void {
     if (!RESOURCE_RULES.includes(effect.rule)) {
       throw new Error(`${where} names unknown rule "${effect.rule}"`);
     }
+    if (!Number.isFinite(effect.percent) || effect.percent === 0) {
+      throw new Error(`${where} has a zero or non-numeric percent`);
+    }
+    return;
+  }
+  if (effect.kind === 'connectionPercent') {
     if (!Number.isFinite(effect.percent) || effect.percent === 0) {
       throw new Error(`${where} has a zero or non-numeric percent`);
     }
@@ -593,8 +740,18 @@ function validateEffect(where: string, effect: ResourceEffect): void {
     if (effect.kind === 'empireYields' && (key === 'food' || key === 'production')) {
       throw new Error(`${where} pays empire ${key}, which no empire has a basket for`);
     }
+    // A caravan carries three voices and a route line has three fields
+    // (`RouteYieldLine`, `routeYields.ts`). A fourth on a `routeYields` bag would
+    // load, pay nothing and say nothing — the quiet-nothing this validator is for.
+    if (effect.kind === 'routeYields' && !ROUTE_YIELD_KEYS.includes(key)) {
+      throw new Error(`${where} pays a route ${key}, which a route has no line for`);
+    }
     named += 1;
   }
+  // Happiness alone is a whole line for a `buildingCategoryYields` — jade pays
+  // both, marble pays only culture, and a row that paid only contentment per
+  // workshop would be perfectly lawful.
+  if (effect.kind === 'buildingCategoryYields' && effect.happiness !== undefined) return;
   if (named === 0) throw new Error(`${where} names no yields at all`);
 }
 

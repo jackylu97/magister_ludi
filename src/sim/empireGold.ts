@@ -33,6 +33,11 @@ import type { GameState } from './state';
 // `statecraft.ts`. Re-exported below, so a screen that reads the ledger and the
 // connections together still has one import site.
 import { type ConnectedCity, connectedCities } from './roads';
+// The luxury side of the connections line — spices' Æra III share. Read through
+// the one evaluator like every other signature; this module already imports
+// `statecraft.ts`, which reads `cities.ts`, so the import adds no shape of cycle
+// the file did not already have and nothing here is called at load.
+import { foldRulePercent, resourceConnectionPercent } from './resourceEffects';
 import { cardAmplifier, cardAmplifierFlat, cardBehaviorRule } from './statecraft';
 import { explainBuildingUpkeep, explainUnitUpkeep, explainUnitUpkeepRebate } from './upkeep';
 
@@ -138,7 +143,9 @@ export interface TradeGoldLine {
  *   · **City connections**, as *one* line for the total rather than one per city
  *     ("City connections · 4 cities +11💰"). The per-city figures are still
  *     `connectedCities`' answer, for a hover that wants them — the fold is a
- *     presentation decision and the list is the truth;
+ *     presentation decision and the list is the truth. A luxury that takes a
+ *     share of it (spices' Æra III, `connectionPercent`) adds its own positive
+ *     line **after** it, the way the payroll's rebates do;
  *   · **Road maintenance**, one negative line, charged only on the roads this
  *     empire's own caravans laid (`Tile.road` carries the builder's seat);
  *   · **Unit maintenance**, one negative line for the whole army, the fold of
@@ -187,6 +194,32 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
       source: `City connections · ${count} ${count === 1 ? 'city' : 'cities'}`,
       gold: connectionGold,
     });
+    // **A luxury's share of the roads' own coin** — spices' Æra III, and the one
+    // shape in the luxury vocabulary whose consumer is this ledger.
+    //
+    // Its **own line, after the charge it rides on**, exactly as the payroll's
+    // rebate lines sit after the payroll: a player reads what the roads are
+    // worth and then the reason it is more. It is deliberately *not* a
+    // `percentYields` — a share of one empire-scale figure banked once has
+    // nothing to do with Entry XVII's two city stages, and routing it through
+    // them would have multiplied a town's markets into the price of a road.
+    //
+    // Percentages **sum before one multiplication** and the product is floored
+    // **once**, then shared out in the lines' own order so the parts sum to it
+    // exactly however the flooring falls — `explainUnitUpkeepRebate`'s
+    // running-difference discipline, one ledger over.
+    const shares = resourceConnectionPercent(state, playerId);
+    const sum = foldRulePercent(shares);
+    const extra = Math.floor((connectionGold * sum) / 100);
+    if (extra !== 0) {
+      let paid = 0;
+      for (let i = 0; i < shares.length; i++) {
+        const share = i === shares.length - 1 ? extra - paid : Math.floor((extra * shares[i]!.percent) / sum);
+        paid += share;
+        if (share === 0) continue;
+        lines.push({ source: shares[i]!.source, gold: share });
+      }
+    }
   }
 
   const roads = roadsBuiltBy(state, playerId);

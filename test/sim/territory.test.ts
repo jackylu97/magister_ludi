@@ -37,6 +37,7 @@ import {
 import { RULES } from '../../src/sim/rulesData';
 import { type City, type GameState, newGame } from '../../src/sim/state';
 import { improvementForResource } from '../../src/sim/improvementData';
+import { resourceDef, withExtraResources } from '../../src/sim/resourceData';
 import { TECH_IDS } from '../../src/sim/techData';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -122,6 +123,20 @@ function ringPrice(state: GameState, playerId: number, ring: number): number {
 }
 
 // --- A. the culture curve ---------------------------------------------------
+
+/**
+ * Furs lost its live `borderCost` line in the 2026-09-02 luxury rework, but the
+ * rule is still vocabulary — cards name it and `cities.ts` folds both ladders —
+ * so the two discount tests hold the reading live with an overridden row,
+ * `resourceEffects.test.ts`'s pattern.
+ */
+function withBorderCostFurs<T>(body: () => T): T {
+  const row = {
+    ...(resourceDef('furs') as unknown as Record<string, unknown>),
+    effects: [{ kind: 'rulePercent', rule: 'borderCost', percent: -10 }],
+  };
+  return withExtraResources({ furs: row as never }, body);
+}
 
 describe('the border cost curve', () => {
   it('is Civ 6 shaped: base + mult · n ^ exp, floored, and strictly rising', () => {
@@ -361,9 +376,10 @@ describe('the writ and the borders', () => {
     expect(city.culture).toBe(0);
   });
 
-  it('discounts the culture cost for a border-cost luxury and never below one', () => {
-    // Furs' `rulePercent: borderCost` is the same −10% on both ladders; that it
-    // reaches the *gold* price is asserted under "what a tile costs".
+
+  it('discounts the culture cost for a border-cost luxury and never below one', () => withBorderCostFurs(() => {
+    // The overridden row's −10% is the same on both ladders; that it reaches
+    // the *gold* price is asserted under "what a tile costs".
     const state = flatState();
     const city = foundCityAt(state, 0, at(state.map, 6, 6));
     const plain = borderCostFor(state, city);
@@ -378,7 +394,7 @@ describe('the writ and the borders', () => {
     const discounted = borderCostFor(state, city);
     expect(discounted).toBeLessThan(plain);
     expect(discounted).toBe(Math.max(1, Math.floor(plain * 0.9)));
-  });
+  }));
 });
 
 // --- B. gold ----------------------------------------------------------------
@@ -470,7 +486,7 @@ describe('what a tile costs', () => {
     expect(lines.some((line) => line.source.includes('3 hexes bought before'))).toBe(true);
   });
 
-  it('takes furs off the gold price too, on a line that names them', () => {
+  it('takes furs off the gold price too, on a line that names them', () => withBorderCostFurs(() => {
     const state = flatState();
     const city = foundCityAt(state, 0, at(state.map, 6, 6));
     const cell = { col: 8, row: 6 };
@@ -493,7 +509,7 @@ describe('what a tile costs', () => {
     expect(lines.some((line) => line.source.includes('Furs') && line.amount < 0)).toBe(true);
     // Rule 5: the discounted total is still the fold of the printed list.
     expect(foldTilePrice(lines)).toBe(discounted);
-  });
+  }));
 });
 
 describe('buying ground', () => {

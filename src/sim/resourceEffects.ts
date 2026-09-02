@@ -5,7 +5,7 @@
  * Every luxury pays the same two things — whatever its row puts on its tile, and
  * a flat `meters.happiness.perUniqueLuxury` to whoever has it in hand. On top of
  * that each row declares a *list* of `effects` (`resourceData.ts`), and this
- * module is the only place in the game that reads one. Nine shapes go in;
+ * module is the only place in the game that reads one. Thirteen shapes go in;
  * labelled lists come out; nothing anywhere else switches on `effect.kind`.
  *
  * That is the whole design, and it is deliberately narrower than "luxuries can
@@ -48,8 +48,26 @@
  * Every function below returns the *list*, and every consumer folds it into a
  * breakdown it already had: `cityYields` and the city panel for the flat yields
  * and the percentages, `productionModifiers` for the hammers, `explainHappiness`
- * and `explainAuthority` for the meters. Totals are folds of lists, which is
- * CLAUDE.md's rule 5 read one scale out from a tile.
+ * and `explainAuthority` for the meters, `explainRouteYieldBetween` for a
+ * caravan's coin, `explainUnitUpkeepRebate` for what a payroll gives back, and
+ * `explainEmpireGold` for the share a rule takes of the roads' own line. Totals
+ * are folds of lists, which is CLAUDE.md's rule 5 read one scale out from a tile.
+ *
+ * The three folds outside a city (2026-09-02)
+ * -------------------------------------------
+ * The nerf round put three luxury lines somewhere other than a town's ledger,
+ * and each one joins a list that already existed rather than opening a fold:
+ *
+ *   · **`resourceRouteYields`** → `explainRouteYieldBetween` (`routeYields.ts`),
+ *     one line per route, printed on the destination's sheet;
+ *   · **`resourceUpkeepRebateLines`** → `explainUnitUpkeepRebate` (`upkeep.ts`),
+ *     beside a card's rebate, clamped by the caller against the same payroll;
+ *   · **`resourceConnectionPercent`** → `explainEmpireGold` (`empireGold.ts`), a
+ *     share of the connections line, summed and floored once there.
+ *
+ * All three of those modules already read `statecraft.ts`, which already reads
+ * `cities.ts`, so importing this file adds no *shape* of cycle any of them did
+ * not have — and nothing here is called at their top level.
  *
  * The import cycle with `cities.ts`, and why it is safe
  * ----------------------------------------------------
@@ -62,7 +80,7 @@
  * in this file may grow a top-level call into `cities.ts`.
  */
 
-import type { ProductionCategory } from './buildingData';
+import { type ProductionCategory, buildingDef } from './buildingData';
 import type { ModifierStage } from './modifiers';
 import {
   cityResources,
@@ -86,7 +104,7 @@ import {
 } from './resourceData';
 import { type ImprovementId, improvementDef } from './improvementData';
 import { type TileLine, cardAmplifier } from './statecraft';
-import { type City, type GameState, playerById } from './state';
+import { type City, type GameState, type Unit, capitalCityOf, playerById } from './state';
 import { type TechAge, highestAge } from './techData';
 
 /**
@@ -213,6 +231,11 @@ function scopeAdmits(
 ): boolean {
   if (scope === 'coastal') return isCoastalCity(state, city);
   if (scope === 'owner') return local.includes(id);
+  // **The capital**, asked of `capitalCityOf` rather than of a flag, so a
+  // conquered empire's seat of government is wherever the one rule says it is
+  // and a luxury's "in your capital" line moves with it. The walk is the city
+  // list and is only paid by a row that names the scope.
+  if (scope === 'capital') return capitalCityOf(state, city.ownerId)?.id === city.id;
   return true;
 }
 
@@ -246,6 +269,7 @@ function scopeStage(_scope: ResourceCityScope | undefined): ModifierStage {
 function scopeNote(scope: ResourceCityScope | undefined): string {
   if (scope === 'coastal') return 'coastal city';
   if (scope === 'owner') return 'this city';
+  if (scope === 'capital') return 'capital';
   return 'every city';
 }
 
@@ -332,6 +356,18 @@ export function cityResourceYields(state: GameState, city: City): ResourceYieldL
   const local = cityResources(state, city, 'luxury');
   const list: ResourceYieldLine[] = [];
   for (const { id, effect } of liveEffects(state, owner)) {
+    if (effect.kind === 'buildingCategoryYields') {
+      // **Paid where the building stands.** The shape's whole reading: a
+      // workshop is what earns the line, so the town that raised the workshop is
+      // the town the faith lands in. It carries no scope for that reason — the
+      // buildings *are* the scope — and a town with none of them is not in the
+      // list at all, which is `foldOne`'s filter below doing its usual job.
+      const held = matchingBuildings(city, effect);
+      if (held === 0) continue;
+      const copies = copiesFor(state, owner, id, effect);
+      list.push(lineOf(id, effect, `${selectorNote(effect)} ×${held}`, copies, held));
+      continue;
+    }
     if (effect.kind !== 'perCityYields' && effect.kind !== 'perPopulationYields') continue;
     if (!scopeAdmits(state, city, effect.scope, local, id)) continue;
     const copies = copiesFor(state, owner, id, effect);
@@ -342,6 +378,35 @@ export function cityResourceYields(state: GameState, city: City): ResourceYieldL
     list.push(lineOf(id, effect, `per citizen ×${city.population}`, copies, city.population));
   }
   return list.filter((line) => foldOne(line) !== 0);
+}
+
+/** The selector a `buildingCategoryYields` names, in one word for a label. */
+function selectorNote(effect: BuildingCategoryEffect): string {
+  return effect.wonders === true ? 'wonders' : `${effect.category} buildings`;
+}
+
+/** The `buildingCategoryYields` member of the union, narrowed once and named. */
+type BuildingCategoryEffect = Extract<ResourceEffect, { kind: 'buildingCategoryYields' }>;
+
+/**
+ * How many of this city's buildings the selector reaches.
+ *
+ * **A wonder is a building of its own category too**, which is the reading
+ * `routeYields.ts` already states one ledger over ("the Colossus is a gold
+ * building to a caravan and a `wonder` to a production bonus, and both readings
+ * are true at once"). So a `category: 'production'` row counts a production
+ * wonder, and `wonders: true` counts every wonder whatever shelf it is on —
+ * two selectors that deliberately overlap rather than partition.
+ */
+function matchingBuildings(city: City, effect: BuildingCategoryEffect): number {
+  let count = 0;
+  for (const id of city.buildings) {
+    const def = buildingDef(id);
+    if (effect.wonders === true ? def.wonder === true : def.category === effect.category) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 /** True when a line pays nothing at all — a rounded-away half coin, usually. */
@@ -441,6 +506,129 @@ export function resourceTileLines(state: GameState, playerId: number): TileLine[
   return list;
 }
 
+/**
+ * Is there any *live* effect of this kind on the table at all, for an empire
+ * standing where this one stands?
+ *
+ * The **cheap reject**, and it reads the table rather than the board — forty
+ * rows and their handful of effects, with no map sweep and no allocation —
+ * because the two folds below are asked once per caravan and once per turn from
+ * modules that have no reason to pay `controlledResources`' walk of every owned
+ * hex to be told an empire in Æra I holds nothing that could matter. It reads
+ * the live `RESOURCE_IDS` binding rather than a load-time snapshot, so a row
+ * installed by `withExtraResources` is seen.
+ *
+ * It is a *reject* only: a true answer says nothing about what this empire
+ * actually holds, and the real reading below is `liveEffects`' as always.
+ */
+function tableHasLive(state: GameState, playerId: number, kind: ResourceEffect['kind']): boolean {
+  const age = ageOf(state, playerId);
+  for (const id of RESOURCE_IDS) {
+    for (const effect of resourceEffects(id)) {
+      if (effect.kind === kind && effectIsLive(effect, age)) return true;
+    }
+  }
+  return false;
+}
+
+/** One line of what a luxury pays **each of an empire's trade routes**. */
+export interface ResourceRouteLine {
+  resource: ResourceId;
+  source: string;
+  food: number;
+  production: number;
+  gold: number;
+}
+
+/**
+ * What this empire's luxuries add to **every route it is running** — furs' Æra
+ * III coin a caravan, in table order.
+ *
+ * `improvementYields`' sibling at the other end of the road: that one pays a
+ * *hex* an empire has improved, this one pays a *route* an empire has sent, and
+ * both land as ordinary lines in a list somebody else already folds rather than
+ * as a lump anywhere. The fold here is `explainRouteYieldBetween`
+ * (`routeYields.ts`), which prints them on the destination's sheet beside the
+ * origin's buildings and the two towns' people.
+ *
+ * Per route and not per caravan-mile: a second furs seam is worth nothing (the
+ * uniqueness rule), and a second *route* is worth another coin, which is the
+ * whole reason it is a line on the route rather than a flat on the empire.
+ *
+ * The **origin's owner** is who is asked — the seat that sent the caravan, the
+ * same seat `cardAmplifier` asks about one line up.
+ */
+export function resourceRouteYields(state: GameState, playerId: number): ResourceRouteLine[] {
+  const list: ResourceRouteLine[] = [];
+  if (!tableHasLive(state, playerId, 'routeYields')) return list;
+  for (const { id, effect } of liveEffects(state, playerId)) {
+    if (effect.kind !== 'routeYields') continue;
+    const paid = lineOf(id, effect, 'trade route', copiesFor(state, playerId, id, effect));
+    if (paid.food === 0 && paid.production === 0 && paid.gold === 0) continue;
+    list.push({
+      resource: id,
+      source: paid.source,
+      food: paid.food,
+      production: paid.production,
+      gold: paid.gold,
+    });
+  }
+  return list;
+}
+
+/** One line of what a luxury takes off this empire's army payroll. */
+export interface ResourceUpkeepLine {
+  resource: ResourceId;
+  source: string;
+  /** Gold taken off the bill this turn. Always positive. */
+  gold: number;
+}
+
+/**
+ * What this empire's luxuries take off its **unit maintenance**, piece by piece
+ * — salt's Æra III shilling a soldier, in table order.
+ *
+ * `cardUpkeepRebateLines`' twin (`statecraft.ts`), down to the handed-in
+ * `costOf`, and that is not a coincidence: there is **one** give-back list on
+ * the payroll (`explainUnitUpkeepRebate`, `upkeep.ts`) and this joins it beside
+ * the cards' lines rather than opening a second subtraction under the total.
+ * `costOf` is a parameter for the same reason it is there — `upkeep.ts` reads
+ * this module, so the arrow points one way and a `unitUpkeepOf` import here
+ * would close a cycle. What this side owns is the luxury reading; what the
+ * caller owns is the price, and the caller's clamp against the gross payroll is
+ * what stops any pile of rebates minting coin.
+ *
+ * Floored **per piece** (`Math.min(off, cost)`): a rebate cannot make a warrior
+ * cheaper than free, and it cannot make a settler cheaper than the nothing a
+ * settler already costs — `costOf` answers zero for every exemption and this
+ * skips those, so the shilling is only ever taken off a soldier who is being
+ * charged for.
+ */
+export function resourceUpkeepRebateLines(
+  state: GameState,
+  playerId: number,
+  costOf: (unit: Unit) => number,
+): ResourceUpkeepLine[] {
+  const list: ResourceUpkeepLine[] = [];
+  if (!tableHasLive(state, playerId, 'unitUpkeepRebate')) return list;
+  for (const { id, effect } of liveEffects(state, playerId)) {
+    if (effect.kind !== 'unitUpkeepRebate') continue;
+    const off = effect.amount * copiesFor(state, playerId, id, effect);
+    if (off <= 0) continue;
+    let gold = 0;
+    for (const unit of state.units) {
+      if (unit.ownerId !== playerId) continue;
+      const cost = costOf(unit);
+      if (cost <= 0) continue;
+      gold += Math.min(off, cost);
+    }
+    gold = Math.floor(gold);
+    if (gold <= 0) continue;
+    list.push({ resource: id, source: label(id, 'each soldier', 1), gold });
+  }
+  return list;
+}
+
 /** The fold of any list of resource-yield lines. The only sum of them. */
 export function foldResourceYields(list: readonly ResourceYieldLine[]): {
   food: number;
@@ -497,6 +685,29 @@ function cityCount(state: GameState, playerId: number, coastalOnly: boolean): nu
 export function resourceHappiness(state: GameState, playerId: number): ResourceHappinessLine[] {
   const list: ResourceHappinessLine[] = [];
   for (const { id, effect } of liveEffects(state, playerId)) {
+    // **A building's contentment is the empire's**, not the town's — happiness
+    // is an empire meter and there is no city-scale reading of it to land in
+    // (`meters.ts`). So the same selector that pays faith into one workshop's
+    // town pays its happiness into one number, counted over every town: jade's
+    // Æra III is one line saying how many workshops earned it.
+    if (effect.kind === 'buildingCategoryYields') {
+      const amount = effect.happiness ?? 0;
+      if (amount === 0) continue;
+      const copies = copiesFor(state, playerId, id, effect);
+      let held = 0;
+      for (const city of state.cities) {
+        if (city.ownerId !== playerId) continue;
+        held += matchingBuildings(city, effect);
+      }
+      const total = Math.floor(amount * copies * held);
+      if (total === 0) continue;
+      list.push({
+        resource: id,
+        source: label(id, `${selectorNote(effect)} ×${held}`, copies),
+        amount: total,
+      });
+      continue;
+    }
     if (effect.kind !== 'extraHappiness') continue;
     const copies = copiesFor(state, playerId, id, effect);
     const towns =
@@ -655,6 +866,35 @@ export function resourceRulePercent(
   return list;
 }
 
+/**
+ * The percentages this player's luxuries put on **what the roads between its
+ * cities pay it**, in table order — spices' Æra III, and today the whole of the
+ * `connectionPercent` shape.
+ *
+ * `resourceRulePercent`'s sibling with one consumer instead of three, and a
+ * shape of its own rather than a fourth rule for the reason stated on
+ * `ResourceRule`: a *rule* here has to be a word the cards can name too, and
+ * this is not one. What it takes a share of is one line of `explainEmpireGold`
+ * (`empireGold.ts`) — the connections line — and that is where the fold is
+ * applied and floored, once, so nothing multiplies a treasury twice.
+ */
+export function resourceConnectionPercent(
+  state: GameState,
+  playerId: number,
+): ResourceRuleLine[] {
+  const list: ResourceRuleLine[] = [];
+  for (const { id, effect } of liveEffects(state, playerId)) {
+    if (effect.kind !== 'connectionPercent') continue;
+    const copies = copiesFor(state, playerId, id, effect);
+    list.push({
+      resource: id,
+      source: label(id, 'city connections', copies),
+      percent: effect.percent * copies,
+    });
+  }
+  return list;
+}
+
 /** The fold of any list of rule percentages: summed, applied once. */
 export function foldRulePercent(list: readonly ResourceRuleLine[]): number {
   let percent = 0;
@@ -723,8 +963,12 @@ function describeOne(effect: ResourceEffect): string | null {
   if (effect.kind === 'happinessTierBoost') {
     return `${signed(effect.points)} percentage points on the happiness bonus${each}`;
   }
+  if (effect.kind === 'unitUpkeepRebate') {
+    return `${effect.amount} less gold to keep each soldier${each}`;
+  }
   if (effect.kind === 'productionBonus') {
-    const category = effect.category === 'unit' ? 'units' : 'buildings';
+    const category =
+      effect.category === 'unit' ? 'units' : effect.category === 'wonder' ? 'wonders' : 'buildings';
     const where = effect.scope === 'empire' ? 'every city' : 'this city';
     return `${signed(effect.percent)}% production toward ${category} in ${where}${each}`;
   }
@@ -734,8 +978,19 @@ function describeOne(effect: ResourceEffect): string | null {
   if (effect.kind === 'rulePercent') {
     return `${signed(effect.percent)}% ${RULE_WORDS[effect.rule]}${each}`;
   }
+  if (effect.kind === 'connectionPercent') {
+    return `${signed(effect.percent)}% gold from the roads between your cities${each}`;
+  }
+  // The two bag shapes that name their own multiplier rather than a set of
+  // cities, written here so `describeOne` stays one sentence-builder over one
+  // yield-bag reading — the reason a new bag shape costs a clause and not a
+  // second describer.
   const where =
-    effect.kind === 'empireYields'
+    effect.kind === 'buildingCategoryYields'
+      ? `for each ${effect.wonders === true ? 'wonder' : `${effect.category} building`} you hold`
+      : effect.kind === 'routeYields'
+        ? 'on every trade route'
+        : effect.kind === 'empireYields'
       ? 'to the empire'
       : effect.kind === 'improvementYields'
         ? // The one bag that lands on ground rather than in a town, so it names
@@ -751,6 +1006,13 @@ function describeOne(effect: ResourceEffect): string | null {
     if (value === undefined || value === 0) continue;
     parts.push(`${signed(value)} ${key}`);
   }
+  // Happiness rides in the same sentence as the yields it is declared beside —
+  // jade's Æra III is one clause ("+1 faith, +1 happiness for each production
+  // building you hold"), because it is one line on the row and a reader who saw
+  // two would go looking for two buildings' worth of it.
+  if (effect.kind === 'buildingCategoryYields' && (effect.happiness ?? 0) !== 0) {
+    parts.push(`${signed(effect.happiness!)} happiness`);
+  }
   return parts.length > 0 ? `${parts.join(', ')} ${where}${each}` : null;
 }
 
@@ -764,6 +1026,7 @@ const RULE_WORDS: Record<ResourceRule, string> = {
 function scopeWords(scope: ResourceCityScope | undefined): string {
   if (scope === 'coastal') return 'every coastal city';
   if (scope === 'owner') return 'this city';
+  if (scope === 'capital') return 'your capital';
   return 'every city';
 }
 

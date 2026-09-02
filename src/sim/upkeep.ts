@@ -66,6 +66,10 @@ import { BUILDING_UNLOCK_TECH, UNIT_UNLOCK_TECH, techDef } from './techData';
 import { type BuildingId, buildingDef } from './buildingData';
 import { type UnitTypeId, isCivilian, isExplorer, trades, unitDef } from './unitData';
 import { RULES } from './rulesData';
+// Salt's Æra III shilling a soldier, read through the one luxury evaluator. It
+// takes `unitUpkeepOf` handed in for `cardUpkeepRebateLines`' reason exactly —
+// so the arrow between the two modules stays one-way.
+import { resourceUpkeepRebateLines } from './resourceEffects';
 import { cardRulePercent, cardUpkeepRebateLines, foldCardRulePercent } from './statecraft';
 import type { GameState, Unit } from './state';
 
@@ -216,9 +220,10 @@ export function unitUpkeepTotal(state: GameState, playerId: number): number {
 }
 
 /**
- * What this empire's **law** takes off its payroll, as the labelled lines
- * `explainEmpireGold` (`empireGold.ts`) folds beside the gross figure —
- * Tyranny's thirty percent, and The Standing Army's whole hundred.
+ * What this empire's **law and its luxuries** take off its payroll, as the
+ * labelled lines `explainEmpireGold` (`empireGold.ts`) folds beside the gross
+ * figure — Tyranny's thirty percent, The Standing Army's whole hundred, and
+ * salt's shilling a soldier.
  *
  * A **rebate line** rather than a discounted total, and both halves of that are
  * the design. Rule 5 says a figure is the fold of a list a player can read, so
@@ -245,6 +250,18 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
   // share of what is left. Both are clamped against the same gross below.
   let given = 0;
   for (const flat of cardUpkeepRebateLines(state, playerId, unitUpkeepOf)) {
+    const share = Math.min(flat.gold, gross - given);
+    if (share <= 0) break;
+    given += share;
+    out.push({ source: flat.source, gold: share });
+  }
+  // **And the salt**, in the same list and under the same clamp. A luxury's
+  // rebate is the cards' rebate in every respect that matters here — a figure
+  // per soldier, floored at what that soldier costs, labelled with where it came
+  // from — so it is a second *source* feeding one give-back list, never a second
+  // subtraction under the total. After the cards because the law is the older
+  // reading and a player who has both should see the charter first.
+  for (const flat of resourceUpkeepRebateLines(state, playerId, unitUpkeepOf)) {
     const share = Math.min(flat.gold, gross - given);
     if (share <= 0) break;
     given += share;
