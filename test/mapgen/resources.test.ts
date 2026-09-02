@@ -59,15 +59,17 @@ import { resetVisibility } from '../../src/sim/visibility';
 // --- the table --------------------------------------------------------------
 
 describe('the resource table', () => {
-  it('names forty-one resources across the three kinds', () => {
-    expect(RESOURCE_IDS).toHaveLength(41);
+  it('names forty-two resources across the three kinds', () => {
+    expect(RESOURCE_IDS).toHaveLength(42);
     // Table order is iteration order and therefore part of every seeded outcome,
     // so each kind is asserted in order rather than sorted.
     expect(resourcesOfKind('bonus')).toEqual([
       'wheat', 'cattle', 'deer', 'fish', 'stone', 'rice', 'maize', 'bananas',
       'copper', 'tin', 'clay', 'reeds', 'crabs', 'bison',
     ]);
-    expect(resourcesOfKind('strategic')).toEqual(['horses', 'iron']);
+    // **Niter** joined the strategics with the tree re-cut of 2026-09-02: the
+    // closing node names it, and the Fire Lance is the one row that asks for it.
+    expect(resourcesOfKind('strategic')).toEqual(['horses', 'iron', 'niter']);
     // Twenty-five luxuries since the ratified table: twenty-one on land and the
     // four that sit in the sea, which are placed and fully specified and cannot
     // be *held* by anybody until work boats exist (see `docs/luxuries.md`).
@@ -119,7 +121,10 @@ describe('the resource table', () => {
   });
 
   it('tech-gates exactly the resources that are meant to be hidden', () => {
-    expect(resourceDef('iron').requiresTech).toBe('bronzeWorking');
+    // Iron Working names the iron since the re-cut of 2026-09-02 — the
+    // worksheet's "reveals Iron (passive) — gates this line".
+    expect(resourceDef('iron').requiresTech).toBe('ironWorking');
+    expect(resourceDef('niter').requiresTech).toBe('alchemy');
     // Horses joined it in the Age I rework: Husbandry is the tech that unlocks
     // the horseman and the pasture, so it is also the tech that says where the
     // horses are, and the reveal now reads as part of one package rather than
@@ -133,7 +138,7 @@ describe('the resource table', () => {
     // incense is visible from turn one like every other luxury.
     expect(resourceDef('incense').requiresTech).toBeUndefined();
     const gated = RESOURCE_IDS.filter((id) => resourceDef(id).requiresTech !== undefined);
-    expect(gated).toEqual(['horses', 'iron']);
+    expect(gated).toEqual(['horses', 'iron', 'niter']);
   });
 
   it('recognises its own ids and nothing else', () => {
@@ -320,8 +325,12 @@ describe('strategic resources gate production', () => {
     expect(requiredResource('unit', 'horseman')).toBe('horses');
     expect(requiredResource('unit', 'chariot')).toBe('horses');
     expect(requiredResource('unit', 'knight')).toBe('horses');
-    expect(requiredResource('unit', 'swordsman')).toBe('iron');
+    // The **legionary** is the melee line's iron rung since the re-cut of
+    // 2026-09-02: the Æra II swordsman is bronze and asks for nothing.
+    expect(requiredResource('unit', 'legionary')).toBe('iron');
     expect(requiredResource('unit', 'longswordsman')).toBe('iron');
+    expect(requiredResource('unit', 'fireLance')).toBe('niter');
+    expect(requiredResource('unit', 'swordsman')).toBeNull();
     expect(requiredResource('unit', 'warrior')).toBeNull();
     expect(requiredResource('building', 'library')).toBeNull();
   });
@@ -436,10 +445,10 @@ describe('strategic resources gate production', () => {
       type: 'setCityProduction',
       playerId: 0,
       cityId: city.id,
-      queue: [{ kind: 'unit', id: 'swordsman' }],
+      queue: [{ kind: 'unit', id: 'legionary' }],
     });
     expect(result.ok).toBe(false);
-    expect(result.ok ? '' : result.error).toBe('Swordsman needs improved Iron');
+    expect(result.ok ? '' : result.error).toBe('Legionary needs improved Iron');
     // Validate-fully: a refused command leaves the queue exactly as it was.
     expect(city.queue).toEqual([]);
   });
@@ -453,10 +462,10 @@ describe('strategic resources gate production', () => {
       type: 'setCityProduction',
       playerId: 0,
       cityId: city.id,
-      queue: [{ kind: 'unit', id: 'swordsman' }],
+      queue: [{ kind: 'unit', id: 'legionary' }],
     });
     expect(result.ok).toBe(true);
-    expect(city.queue).toEqual([{ kind: 'unit', id: 'swordsman' }]);
+    expect(city.queue).toEqual([{ kind: 'unit', id: 'legionary' }]);
   });
 
   it('is one gate: the panel and the reducer read the same sentence', () => {
@@ -477,7 +486,7 @@ describe('strategic resources gate production', () => {
     state.players[0]!.techsResearched = [];
     // A player with neither Iron Working nor iron should be told about the
     // technology: the ore is not their problem yet.
-    expect(buildError(state, 0, 'unit', 'swordsman')).toBe('Swordsman needs Iron Working');
+    expect(buildError(state, 0, 'unit', 'legionary')).toBe('Legionary needs Iron Working');
   });
 
   it('holds production rather than dropping it when the resource is lost', () => {
@@ -485,7 +494,7 @@ describe('strategic resources gate production', () => {
     const city = foundCityAt(state, 0, at(state, 5, 5));
     at(state, 5, 4).resource = 'iron';
     at(state, 5, 4).improvement = 'mine';
-    city.queue = [{ kind: 'unit', id: 'swordsman' }];
+    city.queue = [{ kind: 'unit', id: 'legionary' }];
     city.hammerBasket = 1000;
 
     // The mine is pillaged mid-build. The hammers stay in the basket and the
@@ -494,14 +503,14 @@ describe('strategic resources gate production', () => {
     // the likelier one: a raid takes a turn, a city takes a war.)
     delete at(state, 5, 4).improvement;
     advanceProduction(state);
-    expect(city.queue).toEqual([{ kind: 'unit', id: 'swordsman' }]);
+    expect(city.queue).toEqual([{ kind: 'unit', id: 'legionary' }]);
     expect(city.hammerBasket).toBe(1000);
     expect(state.units).toHaveLength(0);
 
     at(state, 5, 4).improvement = 'mine';
     advanceProduction(state);
     expect(city.queue).toEqual([]);
-    expect(state.units.map((unit) => unit.type)).toEqual(['swordsman']);
+    expect(state.units.map((unit) => unit.type)).toEqual(['legionary']);
   });
 });
 
@@ -517,10 +526,10 @@ describe('what a player may be told', () => {
     }
   });
 
-  it('hides iron until Bronze Working, per player', () => {
+  it('hides iron until Iron Working, per player', () => {
     const state = bareState();
     state.players[0]!.techsResearched = [];
-    state.players[1]!.techsResearched = ['bronzeWorking'];
+    state.players[1]!.techsResearched = ['ironWorking'];
     const tile = at(state, 3, 3);
     tile.resource = 'iron';
 
@@ -561,7 +570,7 @@ describe('what a player may be told', () => {
     tile.resource = 'iron';
 
     const before = tileYieldOf(tile, yieldContextFor(state, 0));
-    player.techsResearched = ['bronzeWorking'];
+    player.techsResearched = ['ironWorking'];
     const after = tileYieldOf(tile, yieldContextFor(state, 0));
 
     const line = resourceYield('iron');

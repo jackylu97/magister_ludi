@@ -1025,7 +1025,7 @@ describe('the city centre', () => {
   });
 
   it('reads the ground through its owner, not through whoever is asking', () => {
-    // Iron is invisible until Bronze Working, and the reveal binds the yield
+    // Iron is invisible until Iron Working, and the reveal binds the yield
     // (`explainTileYield`). A centre standing on it is worth the hammer only to
     // an empire that has heard of iron — the same rule one grade up.
     const state = flatState();
@@ -1035,7 +1035,7 @@ describe('the city centre', () => {
     const city = plant(state, 0, 8, 5);
     const before = centreYield(state, city);
 
-    state.players[0]!.techsResearched = [...state.players[0]!.techsResearched, 'bronzeWorking'];
+    state.players[0]!.techsResearched = [...state.players[0]!.techsResearched, 'ironWorking'];
     const after = centreYield(state, city);
     expect(after.production).toBeGreaterThan(before.production);
     expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE, 'Inherited · Iron']);
@@ -2572,7 +2572,7 @@ describe('determinism with cities', () => {
     // number but that a city save is carried by whatever the number is.
     // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
     // moved every replay that raised one.
-    expect(SCHEMA_VERSION).toBe(40);
+    expect(SCHEMA_VERSION).toBe(41);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);
@@ -2682,7 +2682,7 @@ describe('the reveal gate, in a city', () => {
     // command being issued or any turn being ended.
     const { state, city } = seamCity();
     const before = cityYields(state, city);
-    state.players[0]!.techsResearched = ['bronzeWorking'];
+    state.players[0]!.techsResearched = ['ironWorking'];
     const after = cityYields(state, city);
 
     const line = resourceYield('iron');
@@ -2699,7 +2699,7 @@ describe('the reveal gate, in a city', () => {
     city.lockedTiles = [];
     assignCitizens(state, city);
     const blind = worked(city);
-    state.players[0]!.techsResearched = ['bronzeWorking'];
+    state.players[0]!.techsResearched = ['ironWorking'];
     assignCitizens(state, city);
     expect(worked(city)).toEqual([`${seam.col},${seam.row}`]);
     expect(blind).not.toEqual(worked(city));
@@ -2709,7 +2709,7 @@ describe('the reveal gate, in a city', () => {
     // The gate is asked of the *owner's* context, not of the board: two players
     // looking at one seam get two different answers, and neither is stored.
     const { state, seam } = seamCity();
-    state.players[1]!.techsResearched = ['bronzeWorking'];
+    state.players[1]!.techsResearched = ['ironWorking'];
     expect(tileYieldOf(seam, yieldContextFor(state, 0))).not.toEqual(
       tileYieldOf(seam, yieldContextFor(state, 1)),
     );

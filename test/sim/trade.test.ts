@@ -1239,7 +1239,7 @@ describe('trade in the log', () => {
     // rather than misread.
     // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
     // moved every replay that raised one.
-    expect(SCHEMA_VERSION).toBe(40);
+    expect(SCHEMA_VERSION).toBe(41);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

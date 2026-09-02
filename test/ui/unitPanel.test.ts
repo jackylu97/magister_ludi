@@ -262,7 +262,7 @@ describe('the worker offers every improvement the table names', () => {
     // claim — that the row is all there was to it.
     expect(IMPROVEMENT_IDS).toContain('lumbermill');
     const def = improvementDef('lumbermill');
-    expect(def.requiresTech).toBe('construction');
+    expect(def.requiresTech).toBe('engineering');
     expect(def.yields.production).toBe(1);
     expect(def.validFeatures).toEqual(['forest', 'jungle']);
   });

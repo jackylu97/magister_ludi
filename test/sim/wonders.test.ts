@@ -21,6 +21,7 @@ import {
   advanceProduction,
   emptyCityYields,
   foundCityAt,
+  realiseItem,
   growthSurplus,
   productionModifiers,
   queueCategory,
@@ -739,8 +740,10 @@ describe('a site requirement', () => {
   it('refuses a town without the ground, by naming the site', () => {
     const g = game();
     const city = found(g.state, 0);
-    learn(g.state, 0, 'letters', 'stonecraft', 'currency');
+    learn(g.state, 0, 'sailing', 'wayfinding');
     // A landlocked town cannot raise the Colossus, and is told what it wants.
+    // The wonder moved to Wayfinding with the re-cut of 2026-09-02 — the sea's
+    // node, which is where a coastal site belongs.
     const inland = getTileAt(g.state.map, city.col, city.row)!;
     inland.terrain = 'grassland';
     for (const tile of ring(g.state.map, inland)) tile.terrain = 'grassland';
@@ -764,7 +767,7 @@ describe('a site requirement', () => {
 
   it('says nothing at all to a caller with no town in hand', () => {
     const g = game();
-    learn(g.state, 0, 'letters', 'stonecraft', 'currency');
+    learn(g.state, 0, 'sailing', 'wayfinding');
     // The tree's question — "could this empire ever build one" — is not the
     // queue's, and a site is a fact about a city.
     expect(buildError(g.state, 0, 'building', 'colossus')).toBeNull();
@@ -1096,6 +1099,37 @@ function finish(state: GameState, city: City, id: BuildingId) {
 }
 
 describe('a completion grant', () => {
+  it('raises a building through `realiseItem`, and never a second copy', () => {
+    // `CompletionGrant`'s fourth arm (the tree re-cut of 2026-09-02): the
+    // Theatre of Dionysus builds the Amphitheater it is named for. It goes
+    // through `realiseItem` — the one seam that means "this town now has the
+    // thing" — so the granted row pays its renown and joins the list exactly as
+    // a built one does, and a town that already holds it gets nothing rather
+    // than a second copy.
+    const g = game();
+    const city = found(g.state, 0);
+    learn(g.state, 0, 'letters', 'epicPoetry');
+    expect(city.buildings).not.toContain('amphitheater');
+
+    const done = finish(g.state, city, 'theatreOfDionysus');
+    const raised = done!.grants!.find((one) => one.grant === 'building')!;
+    expect(raised).toEqual({ grant: 'building', name: 'Amphitheater', done: true });
+    expect(city.buildings).toContain('amphitheater');
+    // Once, and once only — the town holds one of each row.
+    expect(city.buildings.filter((id) => id === 'amphitheater')).toHaveLength(1);
+
+    // And a town that already has one is told so rather than given a second.
+    const other = foundCityAt(g.state, 0, at(g.state.map, city.col + 4, city.row));
+    other.buildings.push('amphitheater');
+    const again = realiseItem(g.state, other, { kind: 'building', id: 'theatreOfDionysus' });
+    expect(again.grants).toContainEqual({
+      grant: 'building',
+      name: 'Amphitheater',
+      done: false,
+    });
+    expect(other.buildings.filter((id) => id === 'amphitheater')).toHaveLength(1);
+  });
+
   it('calls the best melee unit the empire can build, through the ordinary spawn', () => {
     const g = game();
     const city = found(g.state, 0);
@@ -1105,15 +1139,16 @@ describe('a completion grant', () => {
     const done = finish(g.state, city, 'statueOfZeus');
     expect(done?.grants).toHaveLength(1);
     const [grant] = done!.grants!;
-    // The spearman, not the swordsman — and that is the rule working rather
-    // than a weak answer: "can build" is `buildError`'s whole question, and this
-    // seat holds Iron Working but no improved iron. So the free sword obeys the
+    // The Halberd, not the legionary — and that is the rule working rather than
+    // a weak answer: "can build" is `buildError`'s whole question, and this seat
+    // holds Iron Working but no improved iron. So the free sword obeys the
     // resource gate exactly as a built one does, read off the roster and never
-    // named on the row.
-    expect(grant).toMatchObject({ grant: 'unit', name: unitDef('spearman').name, done: true });
+    // named on the row. (It was the spearman before the re-cut of 2026-09-02
+    // put the Halberd on this node; what is on trial is the gate, not the name.)
+    expect(grant).toMatchObject({ grant: 'unit', name: unitDef('spearWall').name, done: true });
     expect(g.state.units).toHaveLength(before + 1);
     const born = g.state.units.find((u) => u.id === grant!.unitId)!;
-    expect(born.type).toBe('spearman');
+    expect(born.type).toBe('spearWall');
     expect(born.ownerId).toBe(0);
     // Born like a built one: it can act on the turn it arrived.
     expect(born.movesLeft).toBe(fullMovement(born, g.state));
@@ -1201,9 +1236,12 @@ describe('a completion grant', () => {
 
 describe('a wonder in words', () => {
   it('gives an ordinary building its article and a wonder its name', () => {
-    // "an Amphitheater", not "a Amphitheater" — a sound rule, in one place.
+    // "an Amphitheater", not "a Amphitheater" — a sound rule, in one place. The
+    // Theatre's own clause became a count with the re-cut of 2026-09-02 (+1
+    // happiness per Amphitheater held); the Great Library below still carries
+    // the scoped shape, so both readings of the article are still on trial.
     expect(describeCard('theatreOfDionysus').map((c) => stripRefs(c.text))).toContain(
-      '+1 culture in every city with an Amphitheater',
+      '+1 happiness per Amphitheater',
     );
     expect(describeCard('greatLibrary').map((c) => stripRefs(c.text))).toContain(
       '+1 science in every city with a Library',

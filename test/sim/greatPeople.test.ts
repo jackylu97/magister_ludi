@@ -144,7 +144,7 @@ describe('the draw', () => {
     // roster's ages run one past the tree's (`rosterAgeFor`), so this is a seat
     // standing in the tree's Æra II — re-read, not re-argued, by the tree pass
     // of 2026-08-30, which moved Iron Working into Æra III under it.
-    player.techsResearched.push('theDelugeRemembered');
+    player.techsResearched.push('siegecraft');
     const age = 3;
     expect(highestAge(player.techsResearched)).toBeGreaterThan(1);
     const own = rosterOfAge(age);
@@ -159,7 +159,7 @@ describe('the draw', () => {
   it('reaches forward once the previous ages are spent too', () => {
     const g = game(13);
     const player = g.state.players[0]!;
-    player.techsResearched.push('theDelugeRemembered');
+    player.techsResearched.push('siegecraft');
     g.state.recruited.push(...rosterOfAge(2), ...rosterOfAge(3).slice(1));
     const pool = greatPersonPool(g.state, player, 3);
     expect(pool[0]).toBe(rosterOfAge(3)[0]);
@@ -477,12 +477,12 @@ describe('the work', () => {
     tile.resource = 'iron';
 
     const player = g.state.players[0]!;
-    player.techsResearched = player.techsResearched.filter((id) => id !== 'bronzeWorking');
+    player.techsResearched = player.techsResearched.filter((id) => id !== 'ironWorking');
     applyCommand(g.state, { type: 'greatPersonWork', playerId: 0, unitId: unit.id });
     expect(tile.improvement).toBe('academy');
     expect(hasResource(g.state, 0, 'iron')).toBe(false);
 
-    player.techsResearched.push('bronzeWorking');
+    player.techsResearched.push('ironWorking');
     expect(hasResource(g.state, 0, 'iron')).toBe(true);
     const holding = controlledHoldings(g.state, 0, 'strategic').find((h) => h.id === 'iron')!;
     expect(holding.via).toBe('improvement');
@@ -681,7 +681,7 @@ describe('the legacies this pass built', () => {
     expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(0);
     // One age closed, so one point — Æra II, since the tree pass of 2026-08-30
     // put Iron Working two ages up.
-    player.techsResearched.push('theDelugeRemembered');
+    player.techsResearched.push('siegecraft');
     expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(1);
   });
 
@@ -716,8 +716,8 @@ describe('the legacies this pass built', () => {
     tile.hills = true;
     tile.resource = 'iron';
     const player = g.state.players[0]!;
-    if (!player.techsResearched.includes('bronzeWorking')) {
-      player.techsResearched.push('bronzeWorking');
+    if (!player.techsResearched.includes('ironWorking')) {
+      player.techsResearched.push('ironWorking');
     }
     applyCommand(g.state, { type: 'greatPersonWork', playerId: 0, unitId: unit.id });
     expect(hasResource(g.state, 0, 'iron')).toBe(true);

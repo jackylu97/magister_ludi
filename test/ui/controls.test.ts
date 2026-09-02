@@ -498,7 +498,7 @@ describe('chopPreview reads chopBaseFor, not the unscaled table figure', () => {
 
   it("the figure it would show is exactly chopBaseFor's, at a tech count that actually scales it", () => {
     const state = raidState();
-    const forestTechs = ['mining', 'bronzeWorking', 'ironWorking', 'construction'] as const;
+    const forestTechs = ['mining', 'bronzeWorking', 'ironWorking', 'engineering'] as const;
     state.players[0]!.techsResearched = [...forestTechs];
     const base = chopBaseFor(state, 0, 'forest');
     // What `chopPreview` would return for this player and this feature is, by

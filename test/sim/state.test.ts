@@ -526,23 +526,20 @@ describe('the research queue field', () => {
     expect('researchQueue' in player).toBe(false);
     expect(researchPlan(player)).toEqual(['mining']);
 
-    // A locked node fills it: Bronzeworking wants Mining and Earthenware first.
+    // A locked node fills it: the Bronze Panoply wants Mining and Bronzeworking
+    // first (the re-cut of 2026-09-02 gave the bronze line one parent a rung).
     expect(
-      applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: 'bronzeWorking' }),
+      applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: 'bronzePanoply' }),
     ).toEqual({ ok: true });
-    expect(researchPlan(player)).toEqual(['mining', 'earthenware', 'bronzeWorking']);
-    expect(player.researchQueue).toEqual(['earthenware', 'bronzeWorking']);
+    expect(researchPlan(player)).toEqual(['mining', 'bronzeWorking', 'bronzePanoply']);
+    expect(player.researchQueue).toEqual(['bronzeWorking', 'bronzePanoply']);
 
     // Dropping the head takes its dependants with it and empties the plan — and
     // the key is deleted rather than left as `[]`.
     expect(
       applyCommand(state, { type: 'dequeueResearch', playerId: 0, techId: 'mining' }),
     ).toEqual({ ok: true });
-    expect(researchPlan(player)).toEqual(['earthenware']);
-    expect('researchQueue' in player).toBe(false);
-    expect(
-      applyCommand(state, { type: 'dequeueResearch', playerId: 0, techId: 'earthenware' }),
-    ).toEqual({ ok: true });
+    expect(researchPlan(player)).toEqual([]);
     expect(player.researching).toBe(null);
     expect('researchQueue' in player).toBe(false);
   });
@@ -565,7 +562,7 @@ describe('the research queue field', () => {
     // grown a phase no v21 state has been through.
     // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
     // moved every replay that raised one.
-    expect(SCHEMA_VERSION).toBe(40);
+    expect(SCHEMA_VERSION).toBe(41);
   });
 });
 

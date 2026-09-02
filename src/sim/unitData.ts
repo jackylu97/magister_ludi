@@ -42,6 +42,9 @@ export type UnitTypeId =
   | 'worker'
   | 'trader'
   | 'archer'
+  // The bow line's second rung (the tree re-cut of 2026-09-02, Entry LVIII):
+  // Siegecraft's Bowman stands between the Archer and the Composite Bowman.
+  | 'bowman'
   | 'spearman'
   | 'horseman'
   | 'chariot'
@@ -75,6 +78,9 @@ export type UnitTypeId =
   | 'fireShip'
   | 'gunGalley'
   | 'frigate'
+  // Alchemy's closer (Entry LVIII): the first soldier who carries fire, and the
+  // only row on the roster that asks for niter.
+  | 'fireLance'
   | 'augur'
   | 'prophet'
   | 'greatPerson';

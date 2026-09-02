@@ -397,7 +397,7 @@ describe('authority: what a city costs', () => {
     // A **Heroes** technology is the second age reached, which is one advance —
     // re-read against the four-age tree of 2026-08-30, which put Mathematics
     // into Æra III.
-    state.players[0]!.techsResearched.push('theDelugeRemembered');
+    state.players[0]!.techsResearched.push('siegecraft');
     expect(agesAdvanced(state, 0)).toBe(1);
     const entries = explainAuthority(state, 0);
     expect(lineFor(entries, 'Æra II')).toBe(WRIT.perAge);
@@ -730,7 +730,7 @@ describe('a captured city, end to end', () => {
   it('round-trips a schema 40 save with a captured city in it', () => {
     // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
     // moved every replay that raised one.
-    expect(SCHEMA_VERSION).toBe(40);
+    expect(SCHEMA_VERSION).toBe(41);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

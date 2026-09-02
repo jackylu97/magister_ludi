@@ -50,6 +50,7 @@
       "worker": "tower",
       "trader": "boat",
       "archer": "flag",
+      "bowman": "flag",
       "spearman": "pawn",
       "horseman": "person",
       "chariot": "person",
@@ -82,7 +83,8 @@
       "spearWall": "pawn",
       "horseArcher": "flag",
       "cataphract": "person",
-      "warElephant": "person"
+      "warElephant": "person",
+      "fireLance": "pawn"
     },
     "byPlayerColor": {
       "#d4502e": "red",

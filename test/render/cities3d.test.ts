@@ -117,9 +117,9 @@ function convert(state: GameState, city: City, founderId: number): void {
 function ageUp(state: GameState, playerId: number, era: number): void {
   const player = state.players[playerId]!;
   const opener: Record<number, string> = {
-    2: 'theDelugeRemembered',
-    3: 'construction',
-    4: 'theology',
+    2: 'wayfinding',
+    3: 'mathematics',
+    4: 'steel',
   };
   for (let step = 2; step <= era; step++) {
     const id = opener[step];

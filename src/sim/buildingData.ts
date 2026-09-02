@@ -190,7 +190,7 @@ export interface ProductionBonus {
  * ordinary building wants to hand over a unit it fills this in, and
  * `realiseItem` will not notice the difference.
  *
- * Three grants, and each is a *seam that already exists* rather than a new one —
+ * Four grants, and each is a *seam that already exists* rather than a new one —
  * which is the whole test a grant has to pass to be in this union:
  *
  *   · **`unit`** — through `createUnit` and `spawnTileFor`, exactly as a built
@@ -208,11 +208,20 @@ export interface ProductionBonus {
  *     holding an unanswered Doctrine. That is `periodicOffer`'s precedent word
  *     for word: an offer is a decision the player owes the game, and a second
  *     one dealt on top of it would destroy the first.
+ *   · **`building`** — through `realiseItem` itself, which is the seam that
+ *     means "this town now has the thing" (the Theatre of Dionysus' free
+ *     Amphitheater). So a granted building claims a wonder, rolls a
+ *     consecration, pays its completion riders and joins the town's list
+ *     exactly as a built one does, and there is still one implementation of
+ *     what it means to gain a building. A town that already holds the row gets
+ *     nothing rather than a second copy, which is also what stops a row that
+ *     granted *itself* from recurring — `realiseItem` pushes before it asks.
  */
 export type CompletionGrant =
   | { grant: 'unit'; unit: UnitTypeId | 'bestMelee' }
   | { grant: 'tech' }
-  | { grant: 'doctrineDraft' };
+  | { grant: 'doctrineDraft' }
+  | { grant: 'building'; building: BuildingId };
 
 export type BuildingId =
   // The fourteen rows the tree pass of 2026-08-30 added, in the order the ages
@@ -258,6 +267,16 @@ export type BuildingId =
   // technology behind it (`unlockedByCard`, `purchaseOnly`). The Gilded Court
   // hands it over and the treasury is the only way to raise it.
   | 'gildedHall'
+  // The six rows the tree re-cut of 2026-09-02 adds (Entry LVIII), in the order
+  // the ages open them: Sailing's lighthouse, the charter a chartered city is
+  // founded with, Horology's clocktower, Banking's bank, Fortification's
+  // bastion, and the closing node's own workshop of the age.
+  | 'lighthouse'
+  | 'townCharter'
+  | 'clocktower'
+  | 'bank'
+  | 'bastion'
+  | 'alchemicalSociety'
   // --- the wonders ---------------------------------------------------------
   //
   // Twenty-seven, ratified from `docs/wonders.md` and homed on the tree as it

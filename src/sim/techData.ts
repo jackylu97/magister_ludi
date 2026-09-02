@@ -81,10 +81,11 @@
  * Hand-laid, but not arbitrary. Four rules, in priority order, and the Age 2–5
  * pass should author new rows the same way:
  *
- *   1. **A lane is a line of work, and it is five lanes wide.** `0 … 4`
- *      (`TECH_LANE_LIMIT`), because the widest column holds five techs and a
- *      chart deeper than its deepest column is height nobody needs — the old
- *      seven-lane sky put Divination below the bottom of a 900px window.
+ *   1. **A lane is a line of work, and the sky is exactly as tall as its widest
+ *      column.** `0 … TECH_LANE_LIMIT - 1`, because a chart taller than its
+ *      deepest column is height nobody needs. It was five for the deep tree of
+ *      2026-08-30 and is **eleven** for revision 3's wide one; the rule did not
+ *      move, the graph did.
  *   2. **A tech sits in the lane of the prerequisite whose line it continues.**
  *      Usually the first one listed, which is why `prereqs` order is display
  *      order. Iron Working continues Bronzeworking's line; Chivalry continues
@@ -110,17 +111,26 @@
  * re-laid the rest of the sky under the same four rules, and the honest thing to
  * say about the result is that a chart four times as dense crosses more: the
  * measured figures are in `test/ui/techChart.test.ts`, against a baseline that
- * is the same graph dealt naively into the same five lanes. **Zero false
- * chains** is the claim that did not move, and it is the one that outranks a
- * crossing. The counter is here rather than in a test so that a future re-lay
- * can be checked rather than eyeballed.
+ * is the same graph dealt naively into the same lanes. **Zero false chains** is
+ * the claim that did not move, and it is the one that outranks a crossing. The
+ * counter is here rather than in a test so that a future re-lay can be checked
+ * rather than eyeballed.
  *
- * The tree is now **twelve columns of exactly five** — the root's column holds
- * Agriculture alone and the last holds the two deepest Æra IV nodes — and that
- * is not luck: the prerequisites were chained deliberately until each rung was
- * five wide, which is also what makes each age read as three or four rungs
- * rather than as one wide fan. Five lanes is a *height* budget and a fifty-three
- * node fan would have wanted eleven of them.
+ * The re-cut of 2026-09-02 (design ledger Entry LVIII, `docs/tree-worksheet.md`
+ * revision 3) turned the chart on its side, and that is the fact to know about
+ * it. Forty-nine nodes, almost all of them hanging off a **single** prerequisite
+ * the user ruled by name, make a tree that is **wide and shallow** where the old
+ * one was narrow and deep: seven columns instead of twelve, and the widest of
+ * them holds *eleven* nodes where the old widest held five. Chains are short on
+ * purpose — the decision point is Æra III's sixteen-node fan, not a ladder — so
+ * depth cannot absorb the width and the lane budget has to.
+ *
+ * Hence `TECH_LANE_LIMIT` is **eleven**, which is the widest column and not one
+ * lane more: it is still a floor derived from the graph rather than a taste, and
+ * the sky is still exactly as tall as it has to be. What changed is that it no
+ * longer fits a 900px window without scrolling, which the chart already handles
+ * — `fitLanes` closes the gaps to their minimum and *reports the overrun* rather
+ * than drawing off the bottom, which is the whole reason it returns `overflow`.
  *
  * `techDataProblems` insists every tech has a row inside `TECH_LANE_LIMIT` and
  * that no two share a (column, row) cell, which is the whole failure mode
@@ -147,56 +157,52 @@ export type TechId =
   | 'sailing'
   | 'mining'
   | 'earthenware'
+  | 'theWheel'
   | 'bronzeWorking'
   | 'stonecraft'
-  | 'calendar'
   | 'divination'
-  | 'theWheel'
   | 'letters'
   // Æra II — The Age of Heroes
-  | 'theDelugeRemembered'
-  | 'irrigation'
-  | 'standingStones'
   | 'wayfinding'
+  | 'siegecraft'
+  | 'irrigation'
   | 'kingship'
+  | 'epicPoetry'
   | 'ancestorRites'
   | 'theHighTemple'
-  | 'caravans'
-  | 'bronzePanoply'
-  | 'epicPoetry'
   | 'theLongCount'
   | 'currency'
+  | 'bronzePanoply'
   // Æra III — The Age of Empire
-  | 'construction'
-  | 'theSteppeBow'
   | 'ironWorking'
-  | 'theExaminationHall'
-  | 'mathematics'
-  | 'philosophy'
-  | 'colonialCharters'
-  | 'theLegion'
-  | 'theOrreryOfBronze'
-  | 'engineering'
   | 'theCataphract'
-  | 'theHalberdWall'
-  | 'theImperialPost'
-  | 'shipwrights'
+  | 'mathematics'
+  | 'engineering'
+  | 'artisanry'
+  | 'prospecting'
+  | 'philosophy'
   | 'theQadisCourt'
+  | 'theExaminationHall'
   | 'education'
-  | 'theKnottedCord'
-  // Æra IV — The Age of Cathedrals
   | 'theology'
-  | 'feudalism'
-  | 'machinery'
-  | 'theSilkRoad'
-  | 'physics'
-  | 'theFloatingFields'
-  | 'movableType'
-  | 'chivalry'
-  | 'steel'
-  | 'theAstrolabe'
+  | 'colonialCharters'
+  | 'theImperialPost'
   | 'paperMoney'
-  | 'theFirstDistillation';
+  | 'horology'
+  | 'shipwrights'
+  // Æra IV — The Age of Cathedrals
+  | 'feudalism'
+  | 'steel'
+  | 'chivalry'
+  | 'machinery'
+  | 'physics'
+  | 'movableType'
+  | 'theAstrolabe'
+  | 'theSilkRoad'
+  | 'banking'
+  | 'fortification'
+  | 'theHolyOffice'
+  | 'alchemy';
 
 /**
  * Omens, Heroes, Empire, Cathedrals. The fifth age (Magister) arrives with its
@@ -508,14 +514,18 @@ export function techRowCount(): number {
 /**
  * How many lanes the sky is allowed to be: rows `0 … TECH_LANE_LIMIT - 1`.
  *
- * Five, and it is a *height* budget rather than a taste: the widest column holds
- * five techs, so five is the floor, and every lane past it is a lane the player
- * has to travel to. The seven-lane chart this replaced put its bottom lane below
- * the fold of a 900px window. A sixth lane is not forbidden by arithmetic —
- * `techDataProblems` is what forbids it, so that adding one is a decision
- * somebody makes rather than a row somebody types.
+ * **Eleven** since the re-cut of 2026-09-02, and it is a *height* budget rather
+ * than a taste: the widest column of revision 3's tree holds eleven nodes, so
+ * eleven is the floor, and every lane past it is a lane the player has to travel
+ * to for nothing. It was five when the widest column held five. The number
+ * follows the graph — see the lane principle above for why revision 3's graph is
+ * wide rather than deep.
+ *
+ * A twelfth lane is not forbidden by arithmetic — `techDataProblems` is what
+ * forbids it, so that adding one is a decision somebody makes rather than a row
+ * somebody types.
  */
-export const TECH_LANE_LIMIT = 5;
+export const TECH_LANE_LIMIT = 11;
 
 /** Where a node sits on the chart: its dependency column and its lane. */
 export interface ChartCell {

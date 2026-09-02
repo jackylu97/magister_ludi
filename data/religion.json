@@ -984,7 +984,7 @@
     },
     "omenReading": {
       "name": "Omen Reading",
-      "tech": "letters",
+      "tech": "divination",
       "target": "city",
       "flavor": "The liver said what the scribe already suspected.",
       "grant": {
@@ -1043,7 +1043,7 @@
     },
     "riteOfPlenty": {
       "name": "Rite of Plenty",
-      "tech": "calendar",
+      "tech": "currency",
       "target": "city",
       "flavor": "A feast is an argument that the year was good, made loudly enough to win.",
       "grant": {

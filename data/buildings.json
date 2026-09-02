@@ -39,7 +39,7 @@
           }
         },
         {
-          "tech": "theDelugeRemembered",
+          "tech": "irrigation",
           "add": {
             "food": 1
           }
@@ -95,7 +95,7 @@
           }
         },
         {
-          "tech": "theLegion",
+          "tech": "ironWorking",
           "add": {
             "production": 1
           }
@@ -153,7 +153,7 @@
       },
       "upgrades": [
         {
-          "tech": "theOrreryOfBronze",
+          "tech": "mathematics",
           "add": {
             "science": 1
           }
@@ -183,7 +183,8 @@
       "science": 0,
       "culture": 0,
       "faith": 2,
-      "sciencePerPop": 0
+      "sciencePerPop": 0,
+      "note": "Foreign faiths pressing on this city lose a quarter of their strength at its door."
     },
     "market": {
       "name": "Market",
@@ -208,7 +209,7 @@
           }
         },
         {
-          "tech": "theFirstDistillation",
+          "tech": "banking",
           "add": {
             "gold": 2
           }
@@ -900,20 +901,25 @@
       "production": 0,
       "gold": 0,
       "science": 0,
-      "culture": 3,
+      "culture": 4,
       "sciencePerPop": 0,
       "onComplete": [
         {
           "grant": "doctrineDraft"
+        },
+        {
+          "grant": "building",
+          "building": "amphitheater"
         }
       ],
       "effects": [
         {
-          "kind": "cityYields",
-          "culture": 1,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "amphitheater"
+          "kind": "countScaled",
+          "count": "buildingsOfKind",
+          "building": "amphitheater",
+          "pays": {
+            "to": "happiness",
+            "amount": 1
           }
         }
       ],
@@ -1284,7 +1290,7 @@
       "science": 3,
       "culture": 0,
       "sciencePerPop": 0,
-      "authorityCapacity": 1,
+      "authorityCapacity": 3,
       "effects": [
         {
           "kind": "projectRider",
@@ -1298,7 +1304,10 @@
         "family": "engineer",
         "onComplete": 10,
         "perTurn": 2
-      }
+      },
+      "deferred": [
+        "The chime itself — beakers and renown on a fixed cadence, each ring louder than the last — waits until a clock can pay a city on the calendar rather than on its scholarship."
+      ]
     },
     "gildedHall": {
       "name": "Gilded Hall",
@@ -1332,7 +1341,8 @@
         "family": "artist",
         "perTurn": 1
       },
-      "note": "The names of the fallen are kept here, and the city is the better for keeping them."
+      "note": "No longer raised anywhere. The row is kept so that a game begun before the tree was re-cut still plays back exactly as it did.",
+      "awaitsTech": true
     },
     "steleOfLaws": {
       "name": "Stele of Laws",
@@ -1410,11 +1420,11 @@
       "name": "Baths",
       "category": "culture",
       "cost": 80,
-      "food": 0,
+      "food": 2,
       "production": 0,
       "gold": 0,
       "science": 0,
-      "culture": 1,
+      "culture": 0,
       "sciencePerPop": 0,
       "happiness": 2,
       "renown": {
@@ -1462,11 +1472,11 @@
       "cost": 100,
       "food": 0,
       "production": 0,
-      "gold": 1,
+      "gold": 3,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "authorityCapacity": 4,
+      "authorityCapacity": 2,
       "requiresSite": {
         "test": "captured"
       },
@@ -1497,6 +1507,24 @@
       "note": "Built on the coast. Ships and everything else leave the slips faster.",
       "deferred": [
         "A discount that reached ships alone waits until a production bonus can name a kind of unit."
+      ],
+      "tileYields": [
+        {
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "water"
+              },
+              {
+                "test": "hasResource"
+              }
+            ]
+          },
+          "add": {
+            "production": 1
+          }
+        }
       ]
     },
     "castle": {
@@ -1571,7 +1599,10 @@
         "family": "scholar",
         "perTurn": 1
       },
-      "note": "One carved character, used a thousand times."
+      "note": "One carved character, used a thousand times.",
+      "deferred": [
+        "Beakers and songs carried in by the caravans that end here wait until a route can pay its destination something the origin did not send."
+      ]
     },
     "observatory": {
       "name": "Observatory",
@@ -1582,12 +1613,151 @@
       "gold": 0,
       "science": 3,
       "culture": 0,
-      "sciencePerPop": 0,
+      "sciencePerPop": 1,
       "renown": {
         "family": "scholar",
         "perTurn": 2
       },
-      "note": "The sky, written down night after night."
+      "note": "The sky, written down night after night.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "observatory"
+          }
+        }
+      ],
+      "deferred": [
+        "A further share of the beakers for an observatory raised in sight of a mountain waits until a clause can measure how far a peak is from a town."
+      ]
+    },
+    "lighthouse": {
+      "name": "Lighthouse",
+      "category": "gold",
+      "cost": 34,
+      "food": 0,
+      "production": 0,
+      "gold": 2,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "requiresSite": {
+        "test": "coastal"
+      },
+      "tileYields": [
+        {
+          "on": {
+            "test": "water"
+          },
+          "add": {
+            "food": 1
+          }
+        }
+      ],
+      "renown": {
+        "family": "merchant",
+        "perTurn": 1
+      },
+      "note": "Built on the coast. Every water hex the city works feeds it a little better."
+    },
+    "townCharter": {
+      "name": "Town Charter",
+      "category": "food",
+      "cost": 30,
+      "food": 4,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 2,
+      "sciencePerPop": 0,
+      "note": "The writ a chartered city is founded with: land granted, market days set, and a name on a list somewhere."
+    },
+    "clocktower": {
+      "name": "Clocktower",
+      "category": "science",
+      "cost": 120,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 2,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "engineer",
+        "perTurn": 1
+      },
+      "note": "The town keeps one hour, and everybody in it keeps the same one."
+    },
+    "bank": {
+      "name": "Bank",
+      "category": "gold",
+      "cost": 180,
+      "food": 0,
+      "production": 0,
+      "gold": 4,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "merchant",
+        "perTurn": 1
+      },
+      "note": "Coin that stays still long enough to be counted twice.",
+      "deferred": [
+        "A further coin for each caravan route touching this city waits until a count can ask which routes end here."
+      ]
+    },
+    "bastion": {
+      "name": "Bastion",
+      "category": "military",
+      "cost": 170,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "cityStat": {
+        "stat": "defense",
+        "amount": 10
+      },
+      "cityHp": 30,
+      "renown": {
+        "family": "engineer",
+        "perTurn": 1
+      },
+      "note": "A wall with corners, so that nobody may stand anywhere it cannot be shot at."
+    },
+    "alchemicalSociety": {
+      "name": "The Alchemical Society",
+      "category": "production",
+      "cost": 210,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 1,
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "buildingsInCity",
+          "pays": {
+            "to": "yield",
+            "yield": "production",
+            "amount": 1,
+            "where": "city"
+          }
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "perTurn": 2
+      },
+      "note": "Every other workshop in the city sends its problems here, and gets an answer back."
     }
   },
   "projects": {

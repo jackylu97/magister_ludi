@@ -16,26 +16,27 @@
  * of. `trade.ts` re-exports these names, so a screen that reads the ledger and
  * the routes together still has one import site.
  *
- * The flood fill (`connectedCities`) comes with it because the connection line
- * is what it is for: a road is only worth coin when it reaches the capital, and
- * the fill is the only thing that knows. It is hoisted for one sweep and never
- * stored, for `tileOwnerField`'s stated reason.
+ * The flood fill (`connectedCities`) is the connection line's whole basis — a
+ * road is only worth coin when it reaches the capital — and it lived here until
+ * the tree re-cut of 2026-09-02 gave Empire-Building a *contentment* for a
+ * joined city as well as a coin. That put a second reader in `statecraft.ts`,
+ * which this module imports, so the fill moved down to the leaf both of us can
+ * see (`roads.ts` — the road is what it is asking about) and is re-exported from
+ * here. One implementation, one import site, no cycle.
  */
 
-import {
-  type GameMap,
-  type Tile,
-  getTile,
-  getTileAt,
-  mapNeighbors,
-  neighborTiles,
-  tileHex,
-  tileIndex,
-} from './map';
+import { type Tile, getTileAt, neighborTiles, tileHex, tileIndex } from './map';
 import { RULES } from './rulesData';
-import { type City, type GameState, capitalCityOf, tileOwnerField } from './state';
+import type { GameState } from './state';
+// The connection fill lives in `roads.ts` — a leaf — because `statecraft.ts`
+// needs it too (Empire-Building's contented cities) and this module reads
+// `statecraft.ts`. Re-exported below, so a screen that reads the ledger and the
+// connections together still has one import site.
+import { type ConnectedCity, connectedCities } from './roads';
 import { cardAmplifier, cardAmplifierFlat, cardBehaviorRule } from './statecraft';
 import { explainBuildingUpkeep, explainUnitUpkeep, explainUnitUpkeepRebate } from './upkeep';
+
+export { type ConnectedCity, connectedCities };
 
 const TRADE = RULES.trade;
 
@@ -117,99 +118,6 @@ function postedHexes(state: GameState, playerId: number): ReadonlySet<number> {
     }
   }
   return near;
-}
-
-/** May the connection fill cross this hex? */
-function fillAdmits(
-  map: GameMap,
-  owner: { at(index: number): number | null },
-  cityCells: ReadonlySet<number>,
-  playerId: number,
-  tile: Tile,
-): boolean {
-  const index = tileIndex(map, tile.col, tile.row);
-  // Never through another seat's ground. Your own, or nobody's.
-  const holder = owner.at(index);
-  if (holder !== null && holder !== playerId) return false;
-  // A town is a junction: the fill crosses a city centre whether or not a
-  // caravan has happened to wear a road across it. That is the honest reading of
-  // "connected by road" — the road ends *at* the gates — and it is what stops a
-  // route's own two endpoints reading as unconnected until a caravan comes home.
-  if (cityCells.has(index)) return true;
-  return tile.road !== undefined;
-}
-
-/** What one connected city pays its empire. See `connectedCities`. */
-export interface ConnectedCity {
-  city: City;
-  /** `floor(pop / rules.trade.connectionPerPop)`. */
-  gold: number;
-}
-
-/**
- * Every non-capital city of this empire joined to its capital by road, with what
- * each pays.
- *
- * A **flood fill**, hoisted for one sweep and never stored — `tileOwnerField`'s
- * bargain, and for its reason: a stored connection graph would be a second thing
- * to keep in step with every road laid, every city founded and every border that
- * moved. It is a pure function of the board, so it is asked when it is wanted.
- *
- * The rules, and each is a decision:
- *
- *   · the root is `capitalCityOf` — the oldest city the empire *founded* — so a
- *     captured capital moves the graph's root with no code at all, which is the
- *     Civ rule;
- *   · the fill crosses hexes that are **this empire's or nobody's**, never
- *     another seat's: a highway through a rival's territory is a road you do not
- *     control;
- *   · a **city centre is a junction** (see `fillAdmits`), so the road has only to
- *     reach the gates;
- *   · the capital itself pays nothing — it is what the others are connected *to*.
- *
- * Neighbours come from `mapNeighbors`, so a connection may cross the east–west
- * seam exactly as a march may. Cities come back in `state.cities` order, which
- * is founding order, so the list is a fact about the state.
- */
-export function connectedCities(state: GameState, playerId: number): ConnectedCity[] {
-  const capital = capitalCityOf(state, playerId);
-  if (!capital) return [];
-  const { map } = state;
-
-  const cityCells = new Set<number>();
-  for (const city of state.cities) {
-    if (city.ownerId !== playerId) continue;
-    cityCells.add(tileIndex(map, city.col, city.row));
-  }
-  const owner = tileOwnerField(state);
-
-  const start = getTileAt(map, capital.col, capital.row);
-  if (!start) return [];
-  const seen = new Uint8Array(map.tiles.length);
-  const frontier: Tile[] = [start];
-  seen[tileIndex(map, start.col, start.row)] = 1;
-  while (frontier.length > 0) {
-    const tile = frontier.pop()!;
-    for (const hex of mapNeighbors(map, tileHex(tile))) {
-      const next = getTile(map, hex);
-      if (!next) continue;
-      const index = tileIndex(map, next.col, next.row);
-      if (seen[index] === 1) continue;
-      if (!fillAdmits(map, owner, cityCells, playerId, next)) continue;
-      seen[index] = 1;
-      frontier.push(next);
-    }
-  }
-
-  const per = Math.max(1, Math.floor(TRADE.connectionPerPop));
-  const list: ConnectedCity[] = [];
-  for (const city of state.cities) {
-    if (city.ownerId !== playerId) continue;
-    if (city.id === capital.id) continue;
-    if (seen[tileIndex(map, city.col, city.row)] !== 1) continue;
-    list.push({ city, gold: Math.floor(city.population / per) });
-  }
-  return list;
 }
 
 /** One labelled line of empire-scale gold. See `explainEmpireGold`. */

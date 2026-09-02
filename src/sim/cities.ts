@@ -4491,6 +4491,26 @@ function payCompletionGrants(
       });
       continue;
     }
+    if (grant.grant === 'building') {
+      // Through `realiseItem` itself — the one seam that means "this town now
+      // has the thing" — so a granted building claims its wonder, rolls its
+      // consecration and pays its riders exactly as a built one does. A town
+      // that already holds the row gets nothing, which is also what keeps a row
+      // that granted itself from recurring: `realiseItem` pushes the id before
+      // it asks for the grants.
+      const already = city.buildings.includes(grant.building);
+      if (already) {
+        reports.push({
+          grant: 'building',
+          name: buildingDef(grant.building).name,
+          done: false,
+        });
+        continue;
+      }
+      realiseItem(state, city, { kind: 'building', id: grant.building });
+      reports.push({ grant: 'building', name: buildingDef(grant.building).name, done: true });
+      continue;
+    }
     // A Doctrine draft.
     const sc = player.statecraft;
     if (sc.pendingDoctrine !== undefined) {

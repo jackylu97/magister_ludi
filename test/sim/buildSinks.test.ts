@@ -84,7 +84,7 @@ function plant(state: GameState, ownerId: number, col: number, row: number): Cit
 /** Hands a seat the four Age I nodes this pass hangs its content off. */
 function knowEverything(state: GameState, playerId: number): void {
   const player = state.players[playerId]!;
-  for (const tech of ['calendar', 'letters', 'stonecraft', 'bronzeWorking'] as const) {
+  for (const tech of ['earthenware', 'letters', 'stonecraft', 'bronzeWorking'] as const) {
     if (!player.techsResearched.includes(tech)) player.techsResearched.push(tech);
   }
 }
@@ -216,7 +216,7 @@ describe('a project is a queue row that never leaves', () => {
 
 describe('a project is gated, once, by the tree', () => {
   it('names its technology and refuses a queue without it', () => {
-    expect(PROJECT_UNLOCK_TECH.get('tithes')).toBe('calendar');
+    expect(PROJECT_UNLOCK_TECH.get('tithes')).toBe('earthenware');
     expect(PROJECT_UNLOCK_TECH.get('scholarship')).toBe('letters');
     // Every *conversion* is gated by the tree: one available on turn one is a
     // capital that never has to choose what to do with its hammers. A **race
@@ -236,7 +236,7 @@ describe('a project is gated, once, by the tree', () => {
     const state = flatState();
     const city = plant(state, 0, 5, 5);
     expect(isUnlocked(state, 0, 'project', 'tithes')).toBe(false);
-    expect(buildError(state, 0, 'project', 'tithes')).toBe('Tithes needs Calendar');
+    expect(buildError(state, 0, 'project', 'tithes')).toBe('Tithes needs Earthenware');
 
     const refused = applyCommand(state, {
       type: 'setCityProduction',
@@ -246,7 +246,7 @@ describe('a project is gated, once, by the tree', () => {
     } as Command);
     expect(refused.ok).toBe(false);
 
-    state.players[0]!.techsResearched.push('calendar');
+    state.players[0]!.techsResearched.push('earthenware');
     expect(buildError(state, 0, 'project', 'tithes')).toBeNull();
     expect(
       applyCommand(state, {
@@ -306,19 +306,18 @@ describe('a project is gated, once, by the tree', () => {
   });
 
   it('shows up on its tech\'s gift list, as its own kind', () => {
-    const tithes = techGifts('calendar').filter((gift) => gift.kind === 'project');
+    const tithes = techGifts('earthenware').filter((gift) => gift.kind === 'project');
     expect(tithes.map((gift) => gift.id)).toEqual(['tithes']);
     expect(tithes[0]).toMatchObject({ name: 'Tithes', glyph: '↻' });
-    // Letters also teaches Omen Reading, which is an ability (a rite is a verb,
-    // hung on the tree's `abilities` key like embarkation) and sorts last. Two
-    // buildings since the wonders' roster: the library, and the Great Ziggurat
-    // standing on the same node — a wonder is an ordinary `unlocks.buildings`
-    // entry, which is the whole of how it is homed.
+    // Two buildings on Letters since the wonders' roster: the library, and the
+    // Great Ziggurat standing on the same node — a wonder is an ordinary
+    // `unlocks.buildings` entry, which is the whole of how it is homed. The
+    // rites moved to Divination with the re-cut of 2026-09-02, so scholarship
+    // is the last thing the node hands over.
     expect(techGifts('letters').map((gift) => gift.kind)).toEqual([
       'building',
       'building',
       'project',
-      'ability',
     ]);
   });
 
@@ -380,10 +379,15 @@ describe('the roster is priced in the money of its own age', () => {
     // row — the fourth rung the tree pass of 2026-08-30 added to the band. The
     // rule never moved; every figure below did, because the roster's rows moved
     // ages under it.
+    // The re-cut of 2026-09-02 moved rows between ages, so these figures moved
+    // with them: the swordsman is Æra II's (Bronze Panoply) rather than Æra
+    // III's, the Bowman is new at Siegecraft, and the pikeman is Castellany's in
+    // Æra IV rather than the Æra III spear it used to be.
     expect(unitProductionCost(state, 0, 'phalanx')).toBe(21);
-    expect(unitProductionCost(state, 0, 'swordsman')).toBe(26);
+    expect(unitProductionCost(state, 0, 'swordsman')).toBe(21);
+    expect(unitProductionCost(state, 0, 'bowman')).toBe(21);
     expect(unitProductionCost(state, 0, 'catapult')).toBe(30);
-    expect(unitProductionCost(state, 0, 'pikeman')).toBe(42);
+    expect(unitProductionCost(state, 0, 'pikeman')).toBe(52);
     expect(unitProductionCost(state, 0, 'knight')).toBe(55);
     expect(unitProductionCost(state, 0, 'trebuchet')).toBe(60);
   });

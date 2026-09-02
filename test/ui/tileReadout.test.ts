@@ -568,7 +568,7 @@ describe('what a seam still wants', () => {
     hex.resource = 'iron';
     expect(resourceRequirementOf(state, 0, hex)).toBeNull();
 
-    state.players[0]!.techsResearched.push('bronzeWorking');
+    state.players[0]!.techsResearched.push('ironWorking');
     expect(resourceRequirementOf(state, 0, hex)!.text).toBe('requires Mine (Mining)');
   });
 

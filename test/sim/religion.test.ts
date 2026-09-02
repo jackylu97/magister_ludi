@@ -770,11 +770,18 @@ describe('rites', () => {
     const g = game();
     expect(availableRites(g.state, 0)).toEqual([]);
     learn(g.state, 0, 'divination');
-    // Divination teaches two: the augur's first rite and the one that recasts
-    // what the augur before it named, in the tree's own order.
-    expect(availableRites(g.state, 0)).toEqual(['riteOfTheHarvest', 'recastingTheOmens']);
+    // Divination teaches **three** since the re-cut of 2026-09-02 gathered the
+    // worksheet's "first rites" onto the faith door: the augur's first rite, the
+    // omen read for beakers, and the one that recasts what the augur before it
+    // named. The order is the tree's own.
+    expect(availableRites(g.state, 0)).toEqual([
+      'riteOfTheHarvest',
+      'omenReading',
+      'recastingTheOmens',
+    ]);
     expect(hasAbility(g.state, 0, 'riteOfTheHarvest')).toBe(true);
     expect(hasAbility(g.state, 0, 'recastingTheOmens')).toBe(true);
+    expect(hasAbility(g.state, 0, 'omenReading')).toBe(true);
   });
 
   it('refuse everything they should, byte-identically', () => {
@@ -1068,7 +1075,9 @@ describe('rites', () => {
 
   it('Rite of Plenty pays coin now and enriches this town’s seams after', () => {
     const g = game();
-    learn(g.state, 0, 'earthenware', 'calendar');
+    // Currency keeps the feast since the re-cut of 2026-09-02 pruned Calendar —
+    // the rite pays coin, so it belongs on the node that invents it.
+    learn(g.state, 0, 'earthenware', 'currency');
     const city = found(g.state, 0);
     const augur = augurAt(g.state, 0, city.col, city.row);
     const player = playerById(g.state, 0)!;
@@ -1531,9 +1540,9 @@ describe('The High Temple', () => {
   it('is the node that hands over the prophet, the temple and a third god', () => {
     const def = techDef('theHighTemple' as never);
     expect(def.age).toBe(2);
-    // Re-cut by the tree pass of 2026-08-30: the stones come first and the
-    // high temple is what is raised on them.
-    expect(def.prereqs).toEqual(['standingStones', 'divination']);
+    // Re-cut again on 2026-09-02: Standing Stones is pruned and the faith line
+    // hangs off itself, one parent apiece — Divination → The High Temple.
+    expect(def.prereqs).toEqual(['divination']);
     expect(def.unlocks.units ?? []).toContain('prophet');
     expect(def.unlocks.buildings ?? []).toContain('temple');
     expect(def.unlocks.abilities ?? []).toContain('thePreaching');
@@ -1945,16 +1954,18 @@ describe('the pressure ledger', () => {
     expect(pressureTotals(g.state, target)[religion.id]).toBe(RULES.religion.cityStrength);
   });
 
-  it('lets a Temple halve the bomb, exactly as it halves the tide', () => {
+  it('lets a Temple blunt the bomb, exactly as it blunts the tide', () => {
     const { g, religion, target, prophet } = bombWorld(7);
     target.buildings.push('temple');
     proclaim(g, prophet.id);
-    // 50% of 60 is 30: three citizens of seven, which is not a majority. The
-    // one defensive building in the game, and it holds against an event as well
-    // as against a tide (`templeShare`, shared by both paths).
-    expect(target.followers?.[religion.id]).toBe(3);
-    expect(cityReligion(target)).not.toBe(religion.id);
-    expect(RULES.religion.templeForeignPercent).toBe(50);
+    // 75% of 60 is 45: four citizens of seven — a majority, which is the point
+    // of the re-cut's retune. The worksheet rules the Temple at "foreign
+    // religious pressure −25%" where it used to turn away half, and the number
+    // is quoted as *what gets through*, so a smaller number is a stronger
+    // temple. The one defensive building in the game, and it holds against an
+    // event exactly as it holds against a tide (`templeShare`, shared by both).
+    expect(target.followers?.[religion.id]).toBe(4);
+    expect(RULES.religion.templeForeignPercent).toBe(75);
   });
 
   it('does not reach a town one hex past its range', () => {
@@ -2022,18 +2033,19 @@ describe('the pressure ledger', () => {
       wouldConvert: 6,
       wouldFollow: true,
     });
+    // The guarded town takes a quarter off rather than half since the re-cut of
+    // 2026-09-02 retuned `templeForeignPercent`, so four of its seven turn.
     expect(preview.cities).toContainEqual({
       cityId: guarded.id,
       population: 7,
-      wouldConvert: 3,
-      wouldFollow: false,
+      wouldConvert: 4,
+      wouldFollow: true,
     });
 
     // A promise on a button is kept by the function that made it.
     proclaim(g, prophet.id);
     expect(target.followers?.[religion.id]).toBe(6);
-    expect(guarded.followers?.[religion.id]).toBe(3);
-    expect(cityReligion(guarded)).not.toBe(religion.id);
+    expect(guarded.followers?.[religion.id]).toBe(4);
   });
 
   it('refuses a preview to a prophet with no faith to proclaim', () => {

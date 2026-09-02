@@ -159,41 +159,39 @@ describe('the shipped lanes', () => {
   it('crosses less than the lanes it replaced', () => {
     const before = chartCrossings(layoutBefore());
     const after = chartCrossings(techChartLayout());
-    // **Re-measured for the tree pass of 2026-08-30.** The figures the
-    // 2026-08-26 re-lay was judged on were 25 against 11 over a twenty-six node
-    // graph; this chart holds fifty-three nodes and a hundred and four
-    // connectors, and the honest thing to say is that four times the graph
-    // crosses more. What the pair still measures is whether the lanes were
-    // *laid* — 323 for the same columns and the same edges dealt naively into
-    // the same five lanes, 179 for the layout in the file — so the inequality is
-    // the rule and the numbers are here so a future re-lay has to say out loud
-    // which direction it moved them.
+    // **Re-measured for the tree re-cut of 2026-09-02** (Entry LVIII). The
+    // 2026-08-26 re-lay was judged at 25 against 11 over twenty-six nodes; the
+    // 2026-08-30 tree measured 323 against 179 over fifty-three. Revision 3's
+    // forty-nine nodes are a *wide* graph rather than a deep one — seven columns
+    // instead of twelve, the widest holding eleven — and it lays much flatter:
+    // **31 dealt naively into the same eleven lanes, 5 for the layout in the
+    // file.** The inequality is the rule; the numbers are here so a future
+    // re-lay has to say out loud which direction it moved them.
     //
-    // The lanes were searched rather than eyeballed this time (annealing on
-    // crossings, false chains and lane-continuation together), which is what
+    // The lanes were searched rather than eyeballed (annealing on crossings,
+    // false chains and lane-continuation together), which is what
     // `chartCrossings` was written for in the first place: a metric that can
     // only be pointed at the current data cannot say whether the current data is
-    // any good, and this one was pointed at ninety thousand candidates.
+    // any good.
     //
     // **Zero false chains is the claim that did not move** — see the test below
     // — and it is the one the lane principle ranks above a crossing.
-    expect(before).toBe(323);
-    expect(after).toBe(179);
+    expect(before).toBe(31);
+    expect(after).toBe(5);
     expect(after).toBeLessThan(before);
   });
 
-  it('leaves exactly one crossing inside Age I, which is the minimum', () => {
+  it('draws Æra I flat, which the old corner could not be', () => {
     const ageOne = techChartLayout((id) => techDef(id).age === 1);
-    // Not zero, and not for want of trying: a brute force over every one of the
-    // 1.4M ways to arrange Age I's four columns in five lanes finds one crossing
-    // at best, and a hill climb finds the same at six, seven, eight and twelve.
-    // Age I's own subgraph cannot be drawn flat, so one is the floor and this is
-    // a regression pin rather than an aspiration. The tree pass of 2026-08-30
-    // left Æra I's twelve nodes and their lanes exactly where they were, which
-    // is why this number did not move while every other figure in this file did.
-    expect(chartCrossings(ageOne)).toBe(1);
+    // **Zero**, and that is a fact about the graph rather than about the search:
+    // the re-cut of 2026-09-02 left every Æra I node with a single prerequisite,
+    // so the age's own subgraph is a *tree* and a tree always draws flat. The
+    // chart this replaced could not — one crossing was the proven floor for the
+    // 2026-08-26 corner, over every one of the 1.4M five-lane arrangements —
+    // which is the clearest single reading of what the re-cut did to the shape.
+    expect(chartCrossings(ageOne)).toBe(0);
     const before = naiveLanes();
-    expect(chartCrossings(ageOne)).toBeLessThan(
+    expect(chartCrossings(ageOne)).toBeLessThanOrEqual(
       chartCrossings({
         cells: new Map(
           [...ageOne.cells].map(([id, cell]) => [id, { column: cell.column, row: before[id]! }]),
@@ -209,7 +207,7 @@ describe('the shipped lanes', () => {
     expect(chartFalseChains(techChartLayout())).toEqual([]);
   });
 
-  it('keeps every tech inside the five lanes the window has room for', () => {
+  it('keeps every tech inside the lanes the chart is laid for', () => {
     for (const id of TECH_IDS) {
       const { row } = techDef(id);
       expect(row, id).toBeGreaterThanOrEqual(0);
@@ -242,10 +240,16 @@ describe('the shipped lanes', () => {
     const continuing = TECH_IDS.filter((id) =>
       techDef(id).prereqs.some((prereq) => techDef(prereq).row === techDef(id).row),
     );
-    // Thirty-three of the fifty-three, measured after the 2026-08-30 re-lay:
-    // the search optimised exactly this ratio alongside the crossings, because
-    // it is what makes a lane read as a line rather than as a shelf.
-    expect(continuing.length).toBeGreaterThanOrEqual(TECH_IDS.length * 0.6);
+    // Measured against what the *graph* allows rather than against the node
+    // count, which is the honest denominator and was not before the re-cut of
+    // 2026-09-02: lanes are unique within a column, so a node with four children
+    // can hand its lane down to exactly one of them. The ceiling is therefore
+    // the number of nodes that have any children at all — thirty of the
+    // forty-nine — and the shipped layout takes two thirds of it while holding
+    // the crossings at five. A ratio quoted against 49 would read as a failure
+    // of the lay when it is a fact about a wide tree.
+    const donors = new Set(TECH_IDS.flatMap((id) => techDef(id).prereqs)).size;
+    expect(continuing.length).toBeGreaterThanOrEqual(donors * 0.65);
     // And the root sits in the middle lane, so its five children fan evenly.
     expect(techDepth('agriculture')).toBe(0);
     expect(techDef('agriculture').row).toBe(Math.floor(TECH_LANE_LIMIT / 2));
@@ -436,32 +440,37 @@ function chartFunction(declaration: string): string {
   throw new Error(`"${declaration}" is never closed`);
 }
 
-/** A plan a player could actually hold: Bronzeworking behind both its parents. */
-const PLAN = ['mining', 'earthenware', 'bronzeWorking'] as const;
+/**
+ * A plan a player could actually hold, with a **two-parent node at the end** —
+ * Currency behind both The Wheel and Letters, which is what makes the cascade
+ * worth testing. Re-picked for the re-cut of 2026-09-02: Bronzeworking has one
+ * parent now, and a chain of single parents cannot show a ✕ that names two.
+ */
+const PLAN = ['husbandry', 'theWheel', 'earthenware', 'letters', 'currency'] as const;
 
 describe('the numbered chips', () => {
   it('numbers the plan head-first, counting the current research as 1', () => {
     // The head *is* what the beakers are pointed at (see `researchPlan`), so a
     // numeral is a schedule and not a list of things somebody clicked.
-    expect(planPlace(PLAN, 'mining')).toBe(1);
-    expect(planPlace(PLAN, 'earthenware')).toBe(2);
-    expect(planPlace(PLAN, 'bronzeWorking')).toBe(3);
+    expect(planPlace(PLAN, 'husbandry')).toBe(1);
+    expect(planPlace(PLAN, 'theWheel')).toBe(2);
+    expect(planPlace(PLAN, 'currency')).toBe(5);
   });
 
   it('gives a node that is not in the plan no numeral at all', () => {
     expect(planPlace(PLAN, 'sailing')).toBeNull();
-    expect(planPlace([], 'mining')).toBeNull();
+    expect(planPlace([], 'husbandry')).toBeNull();
   });
 
   it('renumbers rather than remembering — a shorter plan starts again at 1', () => {
     // What a dequeue leaves behind. The chips are derived on every render from
     // the plan as it stands, so a cascade that takes three rows out cannot leave
     // a ④ hanging over a plan of two.
-    const after = researchPlanWithout(PLAN, 'mining');
-    expect(after).toEqual(['earthenware']);
+    const after = researchPlanWithout(PLAN, 'husbandry');
+    expect(after).toEqual(['earthenware', 'letters']);
     expect(planPlace(after, 'earthenware')).toBe(1);
-    expect(planPlace(after, 'mining')).toBeNull();
-    expect(planPlace(after, 'bronzeWorking')).toBeNull();
+    expect(planPlace(after, 'husbandry')).toBeNull();
+    expect(planPlace(after, 'currency')).toBeNull();
   });
 
   it('draws nothing at all until there is a queue to be first in', () => {
@@ -469,7 +478,7 @@ describe('the numbered chips', () => {
     // one function so the numerals, the hover line and the strip cannot
     // disagree — a lone ① over a node with no list anywhere is the failure.
     expect(planIsQueue([])).toBe(false);
-    expect(planIsQueue(['mining'])).toBe(false);
+    expect(planIsQueue(['husbandry'])).toBe(false);
     expect(planIsQueue(PLAN)).toBe(true);
   });
 
@@ -490,18 +499,19 @@ describe('a chip’s ✕', () => {
     // Dropping a parent takes the child with it, and the child is *named* — "and
     // what depends on it" alone leaves the player to work out which of six chips
     // it meant.
-    expect(planDependants(PLAN, 'mining')).toEqual(['bronzeWorking']);
-    expect(dequeueTitle(PLAN, 'mining')).toBe(
-      'Removes Mining and what depends on it: Bronzeworking',
+    expect(planDependants(PLAN, 'theWheel')).toEqual(['currency']);
+    expect(dequeueTitle(PLAN, 'theWheel')).toBe(
+      'Removes The Wheel and what depends on it: Currency',
     );
+    expect(planDependants(PLAN, 'husbandry')).toEqual(['theWheel', 'currency']);
     expect(dequeueTitle(PLAN, 'earthenware')).toBe(
-      'Removes Earthenware and what depends on it: Bronzeworking',
+      'Removes Earthenware and what depends on it: Letters, Currency',
     );
   });
 
   it('says only what it removes when nothing stands on it', () => {
-    expect(planDependants(PLAN, 'bronzeWorking')).toEqual([]);
-    expect(dequeueTitle(PLAN, 'bronzeWorking')).toBe('Removes Bronzeworking from the plan');
+    expect(planDependants(PLAN, 'currency')).toEqual([]);
+    expect(dequeueTitle(PLAN, 'currency')).toBe('Removes Currency from the plan');
   });
 
   it('is exactly the difference the reducer’s own routine makes', () => {

@@ -1314,6 +1314,12 @@ export function researchSince(
 function pluralUnitName(name: string, count: number): string {
   if (count === 1) return name;
   if (name.endsWith('man')) return `${name.slice(0, -3)}men`;
+  // "legionaries", not "legionarys" — the consonant-plus-y rule, which the
+  // roster needed the moment the tree re-cut of 2026-09-02 put the legionary on
+  // the melee ladder every warrior climbs. "Y" after a vowel keeps the s.
+  if (name.endsWith('y') && !'aeiou'.includes(name.slice(-2, -1).toLowerCase())) {
+    return `${name.slice(0, -1)}ies`;
+  }
   return `${name}s`;
 }
 

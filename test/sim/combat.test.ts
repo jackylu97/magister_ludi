@@ -1522,6 +1522,8 @@ describe('the unit roster carries the combat data the rules need', () => {
       // took over the bow, which is the split the tech's two gifts describe.
       [
         'archer',
+        // Siegecraft's rung of the bow line (the re-cut of 2026-09-02).
+        'bowman',
         'catapult',
         // The mounted ranged premier of Æra III (the tree pass of 2026-08-30),
         // and the chariot archer's successor: the bow that does not stop.

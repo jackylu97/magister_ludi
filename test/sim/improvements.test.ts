@@ -486,12 +486,14 @@ describe('buildImprovement', () => {
       expect(tileYieldOf(tile).production).toBe(before.production + 1);
     });
 
-    it('waits for Construction, and says so last', () => {
+    it('waits for Engineering, and says so last', () => {
       const { state, worker } = workerState();
       const tile = at(state, 5, 4);
       tile.feature = 'forest';
       state.players[0]!.techsResearched = [];
-      const said = 'A lumbermill needs Construction';
+      // Engineering since the re-cut of 2026-09-02 pruned Construction and gave
+      // Engineering its works.
+      const said = 'A lumbermill needs Engineering';
       expect(improvementError(state, worker.id, 'lumbermill')).toBe(said);
       // The technology is asked *after* every question about the ground, which
       // is what lets the sheet grey a row rather than hide it.
@@ -1694,15 +1696,17 @@ describe('improvements and the city', () => {
     seam.resource = 'iron';
     const worker = createUnit(state, 0, 'worker', 5, 4);
 
+    // The **legionary** is the iron rung since the re-cut of 2026-09-02 — the
+    // Æra II swordsman asks for none — so the seam gate is read off it now.
     const queue: Command = {
       type: 'setCityProduction',
       playerId: 0,
       cityId: city.id,
-      queue: [{ kind: 'unit', id: 'swordsman' }],
+      queue: [{ kind: 'unit', id: 'legionary' }],
     };
     expect(applyCommand(state, queue)).toEqual({
       ok: false,
-      error: 'Swordsman needs improved Iron',
+      error: 'Legionary needs improved Iron',
     });
 
     expect(applyCommand(state, build(0, worker.id, 'mine')).ok).toBe(true);
@@ -1971,7 +1975,7 @@ describe('improvements in the log', () => {
   it('round-trips a schema 40 save with improvements on the board', () => {
     // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
     // moved every replay that raised one.
-    expect(SCHEMA_VERSION).toBe(40);
+    expect(SCHEMA_VERSION).toBe(41);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

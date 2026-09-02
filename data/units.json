@@ -89,9 +89,26 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "upgradesTo": "compositeBowman",
+      "upgradesTo": "bowman",
       "modelClass": "ranged",
       "glyph": "A"
+    },
+    "bowman": {
+      "name": "Bowman",
+      "category": "military",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 9,
+      "rangedStrength": 9,
+      "range": 2,
+      "cost": 14,
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "compositeBowman",
+      "modelClass": "ranged",
+      "glyph": "M"
     },
     "spearman": {
       "name": "Spearman",
@@ -163,12 +180,11 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 14,
-      "cost": 13,
+      "combatStrength": 16,
+      "cost": 14,
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "requiresResource": "iron",
       "upgradesTo": "legionary",
       "modelClass": "melee",
       "glyph": "X"
@@ -188,7 +204,15 @@
       "minCityPop": 0,
       "upgradesTo": "trebuchet",
       "modelClass": "siege",
-      "glyph": "K"
+      "glyph": "K",
+      "combatLines": [
+        {
+          "label": "Against cities",
+          "amount": 10,
+          "side": "attack",
+          "vsCity": true
+        }
+      ]
     },
     "compositeBowman": {
       "name": "Composite Bowman",
@@ -212,15 +236,21 @@
       "category": "military",
       "movement": 2,
       "sight": 2,
-      "maxHp": 110,
-      "combatStrength": 16,
-      "cost": 17,
+      "maxHp": 120,
+      "combatStrength": 20,
+      "cost": 21,
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
       "modelClass": "melee",
       "glyph": "I",
-      "upgradesTo": "spearWall"
+      "combatLines": [
+        {
+          "label": "Against mounted",
+          "amount": 8,
+          "vsModelClass": "mounted"
+        }
+      ]
     },
     "crossbowman": {
       "name": "Crossbowman",
@@ -244,7 +274,7 @@
       "movement": 4,
       "sight": 2,
       "maxHp": 120,
-      "combatStrength": 20,
+      "combatStrength": 28,
       "cost": 22,
       "foundsCity": false,
       "haltsGrowth": false,
@@ -259,7 +289,7 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 120,
-      "combatStrength": 21,
+      "combatStrength": 23,
       "cost": 21,
       "foundsCity": false,
       "haltsGrowth": false,
@@ -282,7 +312,15 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "modelClass": "siege",
-      "glyph": "E"
+      "glyph": "E",
+      "combatLines": [
+        {
+          "label": "Against cities",
+          "amount": 15,
+          "side": "attack",
+          "vsCity": true
+        }
+      ]
     },
     "trireme": {
       "name": "Trireme",
@@ -642,11 +680,11 @@
       "combatLines": [
         {
           "label": "Against mounted",
-          "amount": 6,
+          "amount": 5,
           "vsModelClass": "mounted"
         }
       ],
-      "upgradesTo": "pikeman",
+      "upgradesTo": "spearWall",
       "modelClass": "melee",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -712,13 +750,13 @@
       "upgradesTo": "knight"
     },
     "spearWall": {
-      "name": "Spear Wall",
+      "name": "Halberd",
       "category": "military",
       "movement": 2,
       "sight": 2,
-      "maxHp": 120,
-      "combatStrength": 20,
-      "cost": 21,
+      "maxHp": 110,
+      "combatStrength": 15,
+      "cost": 17,
       "combatLines": [
         {
           "label": "Against mounted",
@@ -730,7 +768,8 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "glyph": "J"
+      "glyph": "J",
+      "upgradesTo": "pikeman"
     },
     "warElephant": {
       "name": "War Elephant",
@@ -745,7 +784,30 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "glyph": "D"
+      "glyph": "D",
+      "combatLines": [
+        {
+          "label": "Against cities",
+          "amount": 5,
+          "side": "attack",
+          "vsCity": true
+        }
+      ]
+    },
+    "fireLance": {
+      "name": "The Fire Lance",
+      "category": "military",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 120,
+      "combatStrength": 26,
+      "cost": 26,
+      "requiresResource": "niter",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "melee",
+      "glyph": "F"
     }
   }
 }

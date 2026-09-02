@@ -160,7 +160,7 @@ describe('what a seat may be shown', () => {
     const { board, reveal } = rig(state);
     reveal.apply(state, 0);
 
-    state.players[0]!.techsResearched = ['bronzeWorking'];
+    state.players[0]!.techsResearched = ['ironWorking'];
     const stats = reveal.apply(state, 0);
     expect(stats.cells).toBe(1);
     expect(stats.matrixWrites).toBeGreaterThan(0);
@@ -192,7 +192,7 @@ describe('what a seat may be shown', () => {
   it('follows a seat change, both ways', () => {
     const state = flatState();
     const cell = put(state, 4, 4, 'iron');
-    state.players[1]!.techsResearched = ['bronzeWorking'];
+    state.players[1]!.techsResearched = ['ironWorking'];
     const { board, reveal } = rig(state);
 
     reveal.apply(state, 0);
@@ -236,7 +236,7 @@ describe('what a pass costs', () => {
     for (const handle of props) slots += handle.count;
 
     resetInstanceWrites();
-    state.players[0]!.techsResearched = ['bronzeWorking'];
+    state.players[0]!.techsResearched = ['ironWorking'];
     const stats = reveal.apply(state, 0);
     expect(stats.cells).toBe(2);
     // One write per instance slot the props own, and not one more — the board
@@ -274,7 +274,7 @@ describe('the three bits together', () => {
     const own = board.tiles.own.get(cell)!;
     expect(own.some((handle) => !isHidden(handle))).toBe(true);
 
-    state.players[0]!.techsResearched = ['bronzeWorking'];
+    state.players[0]!.techsResearched = ['ironWorking'];
     reveal.apply(s, 0);
     expect(isHidden(prop)).toBe(false);
     fog.dispose();
@@ -284,7 +284,7 @@ describe('the three bits together', () => {
   it('does not light a prop on ground nobody has charted', () => {
     const state = flatState();
     const cell = put(state, 4, 4, 'iron');
-    state.players[0]!.techsResearched = ['bronzeWorking'];
+    state.players[0]!.techsResearched = ['ironWorking'];
     const { geometry, mats, board, reveal } = rig(state);
     const fog = new FogView(state.map, board.tiles);
     fog.buildChart(geometry, mats, null);

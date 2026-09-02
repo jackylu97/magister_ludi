@@ -407,12 +407,15 @@ describe('the median-tier rule', () => {
     };
     expect(rung(['agriculture'])).toBe('warrior');
     expect(rung(['agriculture', 'bronzeWorking'])).toBe('spearman');
-    // Iron Working unlocks the swordsman, and the wild fields it **without the
+    // Iron Working unlocks the legionary, and the wild fields it **without the
     // iron** — it is not an empire and has no supply. That asymmetry is the one
-    // place it does not play by the rules, and it is deliberate.
-    expect(rung(['agriculture', 'bronzeWorking', 'ironWorking'])).toBe('swordsman');
-    expect(unitDef('swordsman').requiresResource).toBe('iron');
-    expect(rung([...TECH_IDS])).toBe('longswordsman');
+    // place it does not play by the rules, and it is deliberate. (It was the
+    // swordsman until the re-cut of 2026-09-02 moved the iron rung a node on.)
+    expect(rung(['agriculture', 'bronzeWorking', 'ironWorking'])).toBe('legionary');
+    expect(unitDef('legionary').requiresResource).toBe('iron');
+    // The whole tree ends at the Fire Lance — Alchemy's closer, the strongest
+    // footman on the roster since the re-cut of 2026-09-02.
+    expect(rung([...TECH_IDS])).toBe('fireLance');
   });
 
   it('ignores the eliminated, and still answers with nobody left', () => {

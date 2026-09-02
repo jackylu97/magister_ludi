@@ -73,14 +73,15 @@ function world(): { state: GameState; city: ReturnType<typeof foundCityAt> } {
 
 describe('what a unit costs to keep', () => {
   it('is the age of the technology that unlocks it', () => {
-    // The ruling's own examples, re-read against the four-age tree of
-    // 2026-08-30: Agriculture (I), Wayfinding (II), Iron Working (III),
-    // Chivalry (IV). The **rule** never moved — upkeep is the age of the node
-    // that unlocks the row — and every number here moved with the tree, which
-    // is the rule working.
+    // The ruling's own examples, re-read against the re-cut of 2026-09-02:
+    // Agriculture (I), Wayfinding (II), Bronze Panoply (II — the swordsman is
+    // bronze now), Iron Working (III), Chivalry (IV). The **rule** never moved —
+    // upkeep is the age of the node that unlocks the row — and every number here
+    // moved with the tree, which is the rule working.
     expect(unitUpkeep('warrior')).toBe(1);
     expect(unitUpkeep('bireme')).toBe(2);
-    expect(unitUpkeep('swordsman')).toBe(3);
+    expect(unitUpkeep('swordsman')).toBe(2);
+    expect(unitUpkeep('legionary')).toBe(3);
     expect(unitUpkeep('knight')).toBe(4);
     // And the rate is the rule rather than a table of prices: every combat row
     // is exactly its node's age.
@@ -127,7 +128,8 @@ describe('what a building costs to keep', () => {
     // institution now, the workshop and the university are Empire ones, and the
     // printing house is the first Cathedrals row to draw a wage.
     expect(buildingUpkeep('market')).toBe(2);
-    expect(buildingUpkeep('bazaar')).toBe(2);
+    // The bazaar moved to Paper Money (Æra III) with the re-cut of 2026-09-02.
+    expect(buildingUpkeep('bazaar')).toBe(3);
     expect(buildingUpkeep('workshop')).toBe(3);
     expect(buildingUpkeep('watermill')).toBe(3);
     expect(buildingUpkeep('amphitheater')).toBe(2);
@@ -221,7 +223,7 @@ describe('the empire ledger', () => {
 
     expect(explainUnitUpkeep(state, 0).map((line) => [line.source, line.gold])).toEqual([
       ['Warrior', 1],
-      ['Swordsman', 3],
+      ['Swordsman', 2],
     ]);
     expect(explainBuildingUpkeep(state, 0).map((line) => [line.source, line.gold])).toEqual([
       [`Library · ${city.name}`, 1],

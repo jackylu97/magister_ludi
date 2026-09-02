@@ -269,7 +269,7 @@
     "routeStrength": 3,
     "capitalStrength": 4,
     "templeOwnPercent": 200,
-    "templeForeignPercent": 50,
+    "templeForeignPercent": 75,
     "bombRange": 10,
     "bombLump": 60,
     "maxReligions": {

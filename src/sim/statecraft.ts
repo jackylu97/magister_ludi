@@ -104,6 +104,7 @@ import {
 } from './religionData';
 import { type CityYieldKey, type ResourceKind, resourceDef, resourceYield } from './resourceData';
 import { nextFloat } from './rng';
+import { connectedCities } from './roads';
 import { RULES } from './rulesData';
 import {
   type City,
@@ -1590,6 +1591,12 @@ export function cityScopeAdmits(
       // what the centre stands on and from what touches it. `ownedTiles` is the
       // board's own answer, so a hex that changes hands changes this with it.
       return ownedTiles(state, city).some((tile) => tile.terrain === scope.terrain);
+    case 'connected': {
+      // The gold ledger's own fill, asked of the same board (`roads.ts`, the
+      // leaf both readers can see). The capital is what the others are joined
+      // *to*, so it is never in the list and never admits — see the scope.
+      return connectedCities(state, city.ownerId).some((entry) => entry.city.id === city.id);
+    }
     case 'follows': {
       // **"This town follows the religion this belief belongs to."** Since the
       // 2026-08-28 ruling a follower belief only ever reaches a town through
@@ -1633,6 +1640,8 @@ function scopeNote(scope?: CityScope): string | null {
   if (!scope) return null;
   const test = scope.test;
   switch (test) {
+    case 'connected':
+      return 'joined to your capital';
     case 'coastal':
       return 'coastal city';
     case 'freshwater':
@@ -4933,6 +4942,10 @@ const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
 function grantWords(grant: CompletionGrant): string {
   if (grant.grant === 'tech') return 'on completion, the technology you are researching is finished';
   if (grant.grant === 'doctrineDraft') return 'on completion, a Doctrine draft opens';
+  if (grant.grant === 'building') {
+    const name = buildingDef(grant.building).name;
+    return `on completion, ${indefinite(name)} ${ref('building', grant.building, name)} is raised here as well`;
+  }
   const what =
     grant.unit === 'bestMelee'
       ? 'the best melee unit you can build'
@@ -5077,6 +5090,11 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       return;
     case 'captured':
       into.adjectives.push('captured');
+      return;
+    case 'connected':
+      // A qualifier and not an adjective: "connected city" is a word the game
+      // never defines, and what the rule stands for is a road that reaches home.
+      into.qualifiers.push('joined to your capital by road');
       return;
     case 'capital':
       into.adjectives.push('capital');

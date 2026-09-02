@@ -113,7 +113,7 @@ function plant(state: GameState, ownerId: number, col: number, row: number): Cit
  */
 function reachAge(state: GameState, playerId: number, age: 3 | 4): void {
   const player = state.players[playerId]!;
-  const tech = age === 3 ? 'construction' : 'theology';
+  const tech = age === 3 ? 'mathematics' : 'theology';
   if (!player.techsResearched.includes(tech)) player.techsResearched.push(tech);
 }
 
@@ -155,7 +155,7 @@ describe('the bead catalogue', () => {
   it('pins the schema version the Bead Race moved', () => {
     // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
     // moved every replay that raised one.
-    expect(SCHEMA_VERSION).toBe(40);
+    expect(SCHEMA_VERSION).toBe(41);
   });
 
   it('puts the beads phase directly after renown', () => {
@@ -615,16 +615,16 @@ describe('a boon settles through the seam that already exists', () => {
 
 describe('a building shipped ahead of its age', () => {
   /**
-   * **No row is in that state any more** (the tree pass of 2026-08-30): the
-   * cathedral, the mint and the armoury were the three, and all three have a
-   * technology now. The mechanism is kept and asserted as a *property of the
-   * table* rather than deleted, because the next content pass will ship rows
-   * ahead of their age again and this is the refusal they will need.
+   * **One row is in that state, and it is the register.** The cathedral, the
+   * mint and the armoury were the three the tree pass of 2026-08-30 gave nodes
+   * to; the re-cut of 2026-09-02 put the **Hall of Deeds** back into it from the
+   * other end — the node that unlocked it is gone and the row is kept so a save
+   * that raised one replays. The marker means the same thing either way ("no
+   * technology opens this"), and the refusal is the same refusal.
    */
-  it('is a state no building row is left in', () => {
-    for (const id of BUILDING_IDS) {
-      expect(buildingDef(id).awaitsTech, id).not.toBe(true);
-    }
+  it('names every row no technology opens', () => {
+    const dormant = BUILDING_IDS.filter((id) => buildingDef(id).awaitsTech === true);
+    expect(dormant).toEqual(['hallOfDeeds']);
   });
 
   it('is still refused by both the queue and the treasury when a row asks for it', () => {

@@ -20,7 +20,7 @@
         1,
         3
       ],
-      "emoji": "\ud83c\udf3e"
+      "emoji": "🌾"
     },
     "cattle": {
       "name": "Cattle",
@@ -41,7 +41,7 @@
         1,
         3
       ],
-      "emoji": "\ud83d\udc04"
+      "emoji": "🐄"
     },
     "deer": {
       "name": "Deer",
@@ -64,7 +64,7 @@
         1,
         2
       ],
-      "emoji": "\ud83e\udd8c"
+      "emoji": "🦌"
     },
     "fish": {
       "name": "Fish",
@@ -85,7 +85,7 @@
         1,
         3
       ],
-      "emoji": "\ud83d\udc1f"
+      "emoji": "🐟"
     },
     "stone": {
       "name": "Stone",
@@ -108,7 +108,7 @@
         1,
         2
       ],
-      "emoji": "\ud83e\udea8"
+      "emoji": "🪨"
     },
     "rice": {
       "name": "Rice",
@@ -130,7 +130,7 @@
         1,
         3
       ],
-      "emoji": "\ud83c\udf5a"
+      "emoji": "🍚"
     },
     "maize": {
       "name": "Maize",
@@ -152,7 +152,7 @@
         1,
         3
       ],
-      "emoji": "\ud83c\udf3d"
+      "emoji": "🌽"
     },
     "bananas": {
       "name": "Bananas",
@@ -174,7 +174,7 @@
         1,
         2
       ],
-      "emoji": "\ud83c\udf4c"
+      "emoji": "🍌"
     },
     "copper": {
       "name": "Copper",
@@ -199,7 +199,7 @@
         1,
         2
       ],
-      "emoji": "\ud83e\uded6"
+      "emoji": "🫖"
     },
     "tin": {
       "name": "Tin",
@@ -223,7 +223,7 @@
         1,
         2
       ],
-      "emoji": "\ud83e\udd6b"
+      "emoji": "🥫"
     },
     "clay": {
       "name": "Clay",
@@ -246,7 +246,7 @@
         1,
         3
       ],
-      "emoji": "\ud83c\udffa"
+      "emoji": "🏺"
     },
     "reeds": {
       "name": "Reeds",
@@ -270,7 +270,7 @@
         1,
         2
       ],
-      "emoji": "\ud83c\udf8b"
+      "emoji": "🎋"
     },
     "crabs": {
       "name": "Crabs",
@@ -291,7 +291,7 @@
         1,
         2
       ],
-      "emoji": "\ud83e\udd80"
+      "emoji": "🦀"
     },
     "bison": {
       "name": "Bison",
@@ -313,7 +313,7 @@
         1,
         3
       ],
-      "emoji": "\ud83e\uddac"
+      "emoji": "🦬"
     },
     "horses": {
       "name": "Horses",
@@ -337,7 +337,7 @@
         2,
         3
       ],
-      "emoji": "\ud83d\udc34"
+      "emoji": "🐴"
     },
     "iron": {
       "name": "Iron",
@@ -357,13 +357,38 @@
         "none"
       ],
       "hills": true,
-      "requiresTech": "bronzeWorking",
+      "requiresTech": "ironWorking",
       "frequency": 11,
       "clusterSize": [
         1,
         2
       ],
-      "emoji": "\u26cf\ufe0f"
+      "emoji": "⛏️"
+    },
+    "niter": {
+      "name": "Niter",
+      "kind": "strategic",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 1
+      },
+      "validTerrain": [
+        "plains",
+        "desert",
+        "tundra"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": false,
+      "requiresTech": "alchemy",
+      "frequency": 7,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "emoji": "⚗️"
     },
     "gems": {
       "name": "Gems",
@@ -399,7 +424,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83d\udc8e"
+      "emoji": "💎"
     },
     "silk": {
       "name": "Silk",
@@ -434,7 +459,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83e\uddf5"
+      "emoji": "🧵"
     },
     "wine": {
       "name": "Wine",
@@ -462,7 +487,7 @@
           "amount": 2
         }
       ],
-      "emoji": "\ud83c\udf47"
+      "emoji": "🍇"
     },
     "spices": {
       "name": "Spices",
@@ -490,7 +515,7 @@
           "amount": 2
         }
       ],
-      "emoji": "\ud83c\udf36\ufe0f"
+      "emoji": "🌶️"
     },
     "salt": {
       "name": "Salt",
@@ -525,7 +550,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83e\uddc2"
+      "emoji": "🧂"
     },
     "incense": {
       "name": "Incense",
@@ -555,7 +580,7 @@
           "faith": 1
         }
       ],
-      "emoji": "\ud83e\ude94"
+      "emoji": "🪔"
     },
     "jade": {
       "name": "Jade",
@@ -577,7 +602,7 @@
         1,
         1
       ],
-      "emoji": "\ud83d\udca0"
+      "emoji": "💠"
     },
     "marble": {
       "name": "Marble",
@@ -609,7 +634,7 @@
           "scope": "empire"
         }
       ],
-      "emoji": "\ud83c\udfdb\ufe0f"
+      "emoji": "🏛️"
     },
     "furs": {
       "name": "Furs",
@@ -639,7 +664,7 @@
           "percent": -10
         }
       ],
-      "emoji": "\ud83e\uddab"
+      "emoji": "🦫"
     },
     "dyes": {
       "name": "Dyes",
@@ -675,7 +700,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83c\udfa8"
+      "emoji": "🎨"
     },
     "ivory": {
       "name": "Ivory",
@@ -696,7 +721,7 @@
         1,
         2
       ],
-      "emoji": "\ud83d\udc18"
+      "emoji": "🐘"
     },
     "amber": {
       "name": "Amber",
@@ -735,7 +760,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83d\udd38"
+      "emoji": "🔸"
     },
     "tea": {
       "name": "Tea",
@@ -764,7 +789,7 @@
           "science": 1
         }
       ],
-      "emoji": "\ud83c\udf75"
+      "emoji": "🍵"
     },
     "coffee": {
       "name": "Coffee",
@@ -792,7 +817,7 @@
           "production": 1
         }
       ],
-      "emoji": "\u2615"
+      "emoji": "☕"
     },
     "cotton": {
       "name": "Cotton",
@@ -821,7 +846,7 @@
           "percent": 10
         }
       ],
-      "emoji": "\ud83e\uddf6"
+      "emoji": "🧶"
     },
     "sugar": {
       "name": "Sugar",
@@ -862,7 +887,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83c\udf6c"
+      "emoji": "🍬"
     },
     "olives": {
       "name": "Olives",
@@ -895,7 +920,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83e\uded2"
+      "emoji": "🫒"
     },
     "lapis": {
       "name": "Lapis Lazuli",
@@ -923,7 +948,7 @@
           "culture": 1
         }
       ],
-      "emoji": "\ud83d\udd37"
+      "emoji": "🔷"
     },
     "silver": {
       "name": "Silver",
@@ -965,7 +990,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83e\udd48"
+      "emoji": "🥈"
     },
     "gold": {
       "name": "Gold",
@@ -1014,7 +1039,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83e\udd47"
+      "emoji": "🥇"
     },
     "honey": {
       "name": "Honey",
@@ -1049,7 +1074,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83c\udf6f"
+      "emoji": "🍯"
     },
     "pearls": {
       "name": "Pearls",
@@ -1089,7 +1114,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83e\uddaa"
+      "emoji": "🦪"
     },
     "coral": {
       "name": "Coral",
@@ -1125,7 +1150,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83e\udeb8"
+      "emoji": "🪸"
     },
     "whales": {
       "name": "Whales",
@@ -1166,7 +1191,7 @@
           "fromAge": 3
         }
       ],
-      "emoji": "\ud83d\udc0b"
+      "emoji": "🐋"
     },
     "tyrian": {
       "name": "Tyrian Murex",
@@ -1194,7 +1219,7 @@
           "culture": 1
         }
       ],
-      "emoji": "\ud83d\udc1a"
+      "emoji": "🐚"
     }
   }
 }

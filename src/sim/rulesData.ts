@@ -1224,8 +1224,15 @@ export interface ReligionRules {
   /**
    * What a Temple does to the pressure on the town it stands in, in whole
    * percent: `templeOwnPercent` to the faith the town already keeps and
-   * `templeForeignPercent` to everybody else's. 200 and 50 are "twice, and
-   * half" — the defensive building, with no combat anywhere near it.
+   * `templeForeignPercent` to everybody else's. Twice for its own, and a
+   * quarter off everybody else's — the defensive building, with no combat
+   * anywhere near it.
+   *
+   * The foreign figure was *half* until the tree re-cut of 2026-09-02, whose
+   * worksheet rules the Temple at "foreign religious pressure −25%". It is
+   * quoted as **what gets through** rather than as what is turned away, which
+   * is why the ruling reads here as 75 and not as 25: a smaller number is a
+   * stronger temple, and this is the one number in the file that runs backwards.
    */
   templeOwnPercent: number;
   templeForeignPercent: number;
@@ -1238,8 +1245,8 @@ export interface ReligionRules {
    * spot. So it is quoted in the same currency as `pressurePerConvert` rather
    * than in faith-a-turn like every source above it — 60 against 10 a convert is
    * six citizens, which is a majority in a town of eleven and half of one in a
-   * town of twelve. A temple halves it (`templeForeignPercent`), which is the
-   * one number that decides whether a bomb lands.
+   * town of twelve. A temple takes a quarter off it (`templeForeignPercent`),
+   * which is the one number that decides whether a bomb lands.
    */
   bombRange: number;
   bombLump: number;

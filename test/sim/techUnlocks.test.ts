@@ -49,22 +49,35 @@ describe('techGifts', () => {
       'unit',
       'improvement',
     ]);
+    // Earthenware carries the jar economy after the tree re-cut of 2026-09-02:
+    // the granary, the Hanging Gardens the pruned Calendar used to hold, the
+    // tithes conversion, and the plantation a worker may now lay.
     expect(techGifts('earthenware').map((gift) => [gift.kind, gift.id])).toEqual([
       ['building', 'granary'],
+      ['building', 'hangingGardens'],
+      ['project', 'tithes'],
+      ['improvement', 'plantation'],
     ]);
   });
 
   it('puts units before buildings when a tech hands over both', () => {
-    // Construction and Bronzeworking are the nodes that do; the order is the
-    // reading order the node card already uses.
-    // Construction hands over the composite bowman, the aqueduct, the Circus
-    // Maximus — a wonder is an ordinary building on the list — and, since
-    // 2026-08-27, the **lumbermill**, which is an improvement and sorts after
-    // the buildings exactly as the chop's ability sorts after everything.
-    // The Baths joined the list on 2026-08-30 — three buildings now, still all
-    // after the bowman and still all before the lumbermill.
-    expect(techGifts('construction').map((gift) => gift.kind)).toEqual([
+    // Mathematics and Bronzeworking are the nodes that do; the order is the
+    // reading order the node card already uses. Mathematics hands over the
+    // catapult and the composite bowman the pruned Construction used to carry,
+    // then Petra — a wonder is an ordinary building on the list — and then the
+    // library's renewal, which is a building renewal and sorts after both.
+    expect(techGifts('mathematics').map((gift) => gift.kind)).toEqual([
       'unit',
+      'unit',
+      'building',
+      'buildingRenewal',
+    ]);
+    // Engineering took Construction's works and its lumbermill: four buildings
+    // (the Circus Maximus among them, because a wonder is an ordinary building
+    // on this list) and then the improvement, which sorts after them exactly as
+    // the chop's ability sorts after everything.
+    expect(techGifts('engineering').map((gift) => gift.kind)).toEqual([
+      'building',
       'building',
       'building',
       'building',
@@ -76,6 +89,9 @@ describe('techGifts', () => {
     // chop, which the chop table surfaces on whatever tech it names (2026-08-27,
     // user: "that should probably be in bronzeworking"), and the religion pass's
     // rite (Blessing of Arms). Both sort with the verbs at the end.
+    // The **reveal** left this list in the re-cut of 2026-09-02: iron is named
+    // by Iron Working now, which is what the worksheet means by "gates this
+    // line". Bronzeworking keeps the spear, the three buildings and the verbs.
     expect(techGifts('bronzeWorking').map((gift) => gift.kind)).toEqual([
       'unit',
       'building',
@@ -83,7 +99,6 @@ describe('techGifts', () => {
       'building',
       'ability',
       'ability',
-      'reveal',
     ]);
     expect(techGifts('bronzeWorking').find((gift) => gift.id === 'jungle')?.name).toBe(
       'Clear Jungle',
@@ -104,19 +119,23 @@ describe('techGifts', () => {
 
   it('finds the resource a tech reveals, which techs.json never mentions', () => {
     // Iron is on the map from turn one and pays its production to whoever works
-    // the tile; Bronze Working buys the *label* (see `isResourceVisible`). The
-    // gift is real and the `unlocks` block does not know about it.
-    expect(techDef('bronzeWorking').unlocks.buildings).toEqual([
-      'barracks',
-      'funeralGames',
-      'wallsOfUruk',
-    ]);
-    const reveals = techGifts('bronzeWorking').filter((gift) => gift.kind === 'reveal');
+    // the tile; **Iron Working** buys the *label* (see `isResourceVisible`) since
+    // the re-cut of 2026-09-02 moved the reveal off Bronzeworking. The gift is
+    // real and the `unlocks` block does not know about it.
+    expect(techDef('ironWorking').unlocks.buildings).toEqual(['terracottaArmy', 'statueOfZeus']);
+    const reveals = techGifts('ironWorking').filter((gift) => gift.kind === 'reveal');
     expect(reveals.map((gift) => gift.id)).toEqual(['iron']);
     expect(reveals[0]).toMatchObject({
       name: resourceDef('iron').name,
       glyph: resourceDef('iron').emoji,
     });
+    // Alchemy is the second reveal the closing node buys, and the only other
+    // strategic seam the tree names.
+    expect(
+      techGifts('alchemy')
+        .filter((gift) => gift.kind === 'reveal')
+        .map((gift) => gift.id),
+    ).toEqual(['niter']);
   });
 
   it('finds the improvement renewals a tech switches on, with what they add', () => {

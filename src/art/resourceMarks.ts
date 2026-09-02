@@ -548,6 +548,16 @@ export const RESOURCE_MARKS: Readonly<Record<string, ResourceMark>> = {
     'M3.2 8.8c2.1 -1.5 4.7 -2.3 7.3 -2.3h9.7v3.9h-5.4v3h2.3l1.5 4.7h-11.6l1.5 -4.7h2.3v-3h-6c-2.6 0 -5.2 -.8 -7.3 -2.3z',
   ),
 
+  // Saltpetre, which the alchemists' node names: the flask it is boiled in, on
+  // its own base, with the level of the liquor across it. A vessel rather than a
+  // mineral because the seam is a *worked* one — a niter bed is a built thing.
+  niter: drawn(
+    'a conical flask on a base, the liquor level across it',
+    'M9.6 3.4h4.8',
+    'M10.6 3.4v5.4l-5.2 9.1a1 1 0 0 0 .9 1.5h11.4a1 1 0 0 0 .9 -1.5l-5.2 -9.1v-5.4',
+    'M7.6 13.6h8.8',
+  ),
+
   // --- luxury --------------------------------------------------------------
   gems: tabler(
     'a cut gem, table and pavilion, with one facet line',

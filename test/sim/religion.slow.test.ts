@@ -206,7 +206,7 @@ describe('determinism', () => {
   it('round-trips a schema 40 save with augurs, rites and beliefs in the log', () => {
     // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
     // moved every replay that raised one.
-    expect(SCHEMA_VERSION).toBe(40);
+    expect(SCHEMA_VERSION).toBe(41);
     const played = playFaithful(90);
     // The empire actually got there: an augur was bought out of faith it earned,
     // rites were performed, and a god was named. A determinism test over a log

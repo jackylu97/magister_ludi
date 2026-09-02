@@ -1013,7 +1013,7 @@ describe('determinism', () => {
     // balance table moved under every replay (see the version's own entry).
     // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
     // moved every replay that raised one.
-    expect(SCHEMA_VERSION).toBe(40);
+    expect(SCHEMA_VERSION).toBe(41);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2829,6 +2829,47 @@ describe('the balance pass of 2026-08-31', () => {
     tile.improvement = 'farm';
     const worked = explainTileYield(tile, yieldContextFor(g.state, 0));
     expect(worked.some((entry) => entry.source === 'Order · The Unbroken Land')).toBe(false);
+  });
+
+  it('connected — the road home is what Empire-Building makes a town content about', () => {
+    // The re-cut of 2026-09-02's one new `CityScope`, and the one whose answer
+    // is a fact about the *board between* two towns. It is the gold ledger's own
+    // fill (`connectedCities`), so a road that stops paying coin stops paying
+    // contentment in the same instant.
+    const g = game(931);
+    const capital = found(g.state, 0);
+    const second = foundCityAt(g.state, 0, getTileAt(g.state.map, capital.col + 4, capital.row)!);
+    const scope = { test: 'connected' } as const;
+    // A capital is never connected *to itself*: it is what connection is
+    // measured from, exactly as `connectedCities` leaves it out of its own list.
+    expect(cityScopeAdmits(g.state, capital, scope)).toBe(false);
+    expect(cityScopeAdmits(g.state, second, scope)).toBe(false);
+
+    // Pave the whole line between them and the fill reaches.
+    for (let step = 1; step < 4; step++) {
+      getTileAt(g.state.map, capital.col + step, capital.row)!.road = 0;
+    }
+    expect(cityScopeAdmits(g.state, second, scope)).toBe(true);
+    expect(cityScopeAdmits(g.state, capital, scope)).toBe(false);
+
+    // And the technology's clause folds into `explainHappiness` like any other:
+    // one point, once, for the one town the road reaches.
+    const cheer = (): number => {
+      const line = explainHappiness(g.state, 0).find((entry) =>
+        entry.source.startsWith('Technology · Empire-Building'),
+      );
+      return line?.value ?? 0;
+    };
+    expect(cheer()).toBe(0);
+    playerById(g.state, 0)!.techsResearched.push('theImperialPost');
+    expect(cheer()).toBe(1);
+    // Movable Type says the same sentence a second time, and the worksheet rules
+    // the double deliberate: the connectivity build stacks.
+    playerById(g.state, 0)!.techsResearched.push('movableType');
+    const both = explainHappiness(g.state, 0).filter((entry) =>
+      /Technology · (Empire-Building|Movable Type)/.test(entry.source),
+    );
+    expect(both.map((entry) => entry.value)).toEqual([1, 1]);
   });
 
   it('terrainInBorders — Star-Gazers reads the borders, never the ring of six', () => {

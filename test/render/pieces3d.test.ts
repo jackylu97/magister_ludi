@@ -2079,11 +2079,13 @@ describe('what a health bar says', () => {
   it('measures a fill against the unit\'s own maxHp, never a hundred', () => {
     const board = geometry();
     // Same hit points, three different maxima: 60/100, 60/120, 60/110. A bar
-    // computed against a hundred would draw all three the same length.
+    // computed against a hundred would draw all three the same length. (The
+    // third was the pikeman until the re-cut of 2026-09-02 raised it to 120,
+    // which is the knight's — the legionary carries the middle maximum now.)
     const game = war([
       { type: 'warrior', col: 3, row: 3 },
       { type: 'knight', col: 4, row: 3 },
-      { type: 'pikeman', col: 5, row: 3 },
+      { type: 'legionary', col: 5, row: 3 },
     ]);
     const layer = new UnitLayer();
     for (const unit of game.units) unit.hp = 60;

@@ -89,6 +89,7 @@
       "requiresHills": true,
       "improvesResource": [
         "iron",
+        "niter",
         "gems",
         "marble",
         "copper",
@@ -97,7 +98,17 @@
         "gold",
         "lapis"
       ],
-      "clearsClutter": true
+      "clearsClutter": true,
+      "upgrades": [
+        {
+          "tech": "prospecting",
+          "add": {
+            "food": 0,
+            "production": 1,
+            "gold": 0
+          }
+        }
+      ]
     },
     "pasture": {
       "name": "Pasture",
@@ -214,7 +225,7 @@
       "name": "Plantation",
       "emoji": "🌿",
       "chargeCost": 1,
-      "requiresTech": "calendar",
+      "requiresTech": "earthenware",
       "yields": {
         "food": 1,
         "production": 0,
@@ -253,7 +264,7 @@
       "clearsClutter": false,
       "upgrades": [
         {
-          "tech": "calendar",
+          "tech": "currency",
           "add": {
             "food": 0,
             "production": 0,
@@ -275,7 +286,7 @@
       "name": "Lumbermill",
       "emoji": "🪵",
       "chargeCost": 1,
-      "requiresTech": "construction",
+      "requiresTech": "engineering",
       "yields": {
         "food": 0,
         "production": 1,
@@ -291,7 +302,7 @@
       "name": "Standing Stones",
       "emoji": "🗿",
       "chargeCost": 1,
-      "requiresTech": "standingStones",
+      "requiresTech": "stonecraft",
       "yields": {
         "food": 0,
         "production": 0,

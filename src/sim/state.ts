@@ -502,8 +502,36 @@ import {
  *     bump rather than a free field for sleep's reason exactly (entry 16): the
  *     *phase* is new — the resolution has grown a step, and a state that ran
  *     without it is not a state this build produced.
+ * 41: **The tree re-cut** (2026-09-02, ledger Entry LVIII, `docs/tree-worksheet.md`
+ *     revision 3). Entry 38's bump, for the same reason and at the same scale —
+ *     a log played against a different tree is a different game:
+ *       · fifty-three nodes become **forty-nine**, and twelve of the old ones
+ *         are gone entirely (Calendar, Construction, The Legion, The Steppe Bow,
+ *         The Halberd Wall, Standing Stones, Caravans, The Knotted Cord, The
+ *         Orrery of Bronze, The Deluge Remembered, The Floating Fields, The
+ *         First Distillation). A v40 log that researched one of them names a
+ *         technology this build has never heard of.
+ *       · Every surviving node keeps its **id** — The Imperial Post is displayed
+ *         as *Empire-Building* and Feudalism as *Castellany* — and almost none
+ *         keeps its prerequisites; nine nodes are new (Siegecraft, Artisanry,
+ *         Prospecting, Horology, Banking, Fortification, The Holy Office,
+ *         Alchemy, and the Bowman's line with them).
+ *       · **Iron is named by Iron Working**, not by Bronzeworking, so the reveal
+ *         moment — the label, the access and the tile's own hammer — lands an
+ *         age later, and the Swordsman that used to need it does not.
+ *       · **Niter** is a new strategic seam, so `placeResources` draws a
+ *         different map from the same seed.
+ *       · The roster retunes across the melee, pike and bow lines, and the
+ *         upgrade chains re-link (Warrior → Swordsman → Legionary →
+ *         Longswordsman; Archer → Bowman → Composite Bowman → Crossbowman;
+ *         Spearman → Phalanx → Halberd → Pikeman), so the retooling sweep moves
+ *         different pieces on different turns.
+ *
+ *     The migration note: nothing to migrate, and nothing that *could* be. Every
+ *     field a v40 save carries is still a field this version reads; what is gone
+ *     is the tree and the map the log was played against.
  */
-export const SCHEMA_VERSION = 40;
+export const SCHEMA_VERSION = 41;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

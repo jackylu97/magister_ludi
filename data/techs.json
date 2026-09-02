@@ -4,7 +4,7 @@
       "name": "Agriculture",
       "glyph": "🌾",
       "age": 1,
-      "row": 2,
+      "row": 5,
       "cost": 15,
       "prereqs": [],
       "unlocks": {
@@ -21,7 +21,7 @@
       "name": "Husbandry",
       "glyph": "🐄",
       "age": 1,
-      "row": 4,
+      "row": 2,
       "cost": 8,
       "prereqs": [
         "agriculture"
@@ -40,7 +40,7 @@
       "name": "Fletching",
       "glyph": "🏹",
       "age": 1,
-      "row": 0,
+      "row": 3,
       "cost": 8,
       "prereqs": [
         "agriculture"
@@ -52,11 +52,31 @@
       },
       "flavor": "Distance is the oldest mercy."
     },
+    "earthenware": {
+      "name": "Earthenware",
+      "glyph": "⚱",
+      "age": 1,
+      "row": 4,
+      "cost": 8,
+      "prereqs": [
+        "agriculture"
+      ],
+      "unlocks": {
+        "buildings": [
+          "granary",
+          "hangingGardens"
+        ],
+        "projects": [
+          "tithes"
+        ]
+      },
+      "flavor": "What the jar keeps, the year forgets."
+    },
     "sailing": {
       "name": "Sailing",
       "glyph": "⛵",
       "age": 1,
-      "row": 3,
+      "row": 5,
       "cost": 8,
       "prereqs": [
         "agriculture"
@@ -65,11 +85,12 @@
         "abilities": [
           "embark"
         ],
-        "buildings": [
-          "greatLighthouse"
-        ],
         "units": [
           "trireme"
+        ],
+        "buildings": [
+          "lighthouse",
+          "greatLighthouse"
         ]
       },
       "flavor": "The shore stops being the edge of the world."
@@ -78,7 +99,7 @@
       "name": "Mining",
       "glyph": "⛏",
       "age": 1,
-      "row": 1,
+      "row": 8,
       "cost": 8,
       "prereqs": [
         "agriculture"
@@ -86,31 +107,98 @@
       "unlocks": {},
       "flavor": "The hill is asked what it is made of."
     },
-    "earthenware": {
-      "name": "Earthenware",
-      "glyph": "⚱",
+    "theWheel": {
+      "name": "The Wheel",
+      "glyph": "☸",
       "age": 1,
       "row": 2,
-      "cost": 8,
+      "cost": 26,
       "prereqs": [
-        "agriculture"
+        "husbandry"
+      ],
+      "unlocks": {
+        "units": [
+          "chariot",
+          "chariotArcher"
+        ]
+      },
+      "flavor": "Nobody expected the circle to be useful."
+    },
+    "letters": {
+      "name": "Letters",
+      "glyph": "📜",
+      "age": 1,
+      "row": 4,
+      "cost": 24,
+      "prereqs": [
+        "earthenware"
       ],
       "unlocks": {
         "buildings": [
-          "granary"
+          "library",
+          "greatZiggurat"
+        ],
+        "projects": [
+          "scholarship"
         ]
       },
-      "flavor": "What the jar keeps, the year forgets."
+      "flavor": "A thought that outlives the mouth it came from."
+    },
+    "divination": {
+      "name": "Divination",
+      "glyph": "🔮",
+      "age": 1,
+      "row": 7,
+      "cost": 16,
+      "prereqs": [
+        "earthenware"
+      ],
+      "unlocks": {
+        "units": [
+          "augur"
+        ],
+        "buildings": [
+          "shrine",
+          "theOracle"
+        ],
+        "abilities": [
+          "riteOfTheHarvest",
+          "recastingTheOmens",
+          "omenReading"
+        ]
+      },
+      "flavor": "We question the sky, and learn the habit of questions."
+    },
+    "stonecraft": {
+      "name": "Stonecraft",
+      "glyph": "🧱",
+      "age": 1,
+      "row": 8,
+      "cost": 16,
+      "prereqs": [
+        "mining"
+      ],
+      "unlocks": {
+        "buildings": [
+          "monument",
+          "palisade",
+          "stonehenge",
+          "pyramids"
+        ],
+        "abilities": [
+          "consecrationOfTheBounds"
+        ]
+      },
+      "flavor": "Stone remembers longer than any of us."
     },
     "bronzeWorking": {
       "name": "Bronzeworking",
       "glyph": "⚔",
       "age": 1,
-      "row": 1,
+      "row": 10,
       "cost": 16,
       "prereqs": [
-        "mining",
-        "earthenware"
+        "mining"
       ],
       "unlocks": {
         "units": [
@@ -127,130 +215,73 @@
       },
       "flavor": "Two soft metals agree to become a hard one."
     },
-    "stonecraft": {
-      "name": "Stonecraft",
-      "glyph": "🧱",
-      "age": 1,
+    "siegecraft": {
+      "name": "Siegecraft",
+      "glyph": "🎯",
+      "age": 2,
       "row": 3,
-      "cost": 16,
+      "cost": 90,
       "prereqs": [
-        "husbandry",
-        "earthenware"
-      ],
-      "unlocks": {
-        "buildings": [
-          "monument",
-          "palisade",
-          "stonehenge",
-          "pyramids"
-        ],
-        "abilities": [
-          "consecrationOfTheBounds"
-        ]
-      },
-      "flavor": "Stone remembers longer than any of us."
-    },
-    "calendar": {
-      "name": "Calendar",
-      "glyph": "🌙",
-      "age": 1,
-      "row": 2,
-      "cost": 16,
-      "prereqs": [
-        "earthenware"
-      ],
-      "unlocks": {
-        "projects": [
-          "tithes"
-        ],
-        "abilities": [
-          "riteOfPlenty"
-        ],
-        "buildings": [
-          "hangingGardens"
-        ]
-      },
-      "flavor": "The year, cut into pieces small enough to plan."
-    },
-    "divination": {
-      "name": "Divination",
-      "glyph": "🔮",
-      "age": 1,
-      "row": 4,
-      "cost": 16,
-      "prereqs": [
-        "husbandry"
-      ],
-      "unlocks": {
-        "buildings": [
-          "shrine",
-          "theOracle"
-        ],
-        "units": [
-          "augur"
-        ],
-        "abilities": [
-          "riteOfTheHarvest",
-          "recastingTheOmens"
-        ]
-      },
-      "flavor": "We question the sky, and learn the habit of questions."
-    },
-    "letters": {
-      "name": "Letters",
-      "glyph": "📜",
-      "age": 1,
-      "row": 4,
-      "cost": 24,
-      "prereqs": [
-        "earthenware",
-        "divination"
-      ],
-      "unlocks": {
-        "buildings": [
-          "library",
-          "greatZiggurat"
-        ],
-        "projects": [
-          "scholarship"
-        ],
-        "abilities": [
-          "omenReading"
-        ]
-      },
-      "flavor": "A thought that outlives the mouth it came from."
-    },
-    "theWheel": {
-      "name": "The Wheel",
-      "glyph": "☸",
-      "age": 1,
-      "row": 2,
-      "cost": 26,
-      "prereqs": [
-        "husbandry",
-        "bronzeWorking"
+        "fletching"
       ],
       "unlocks": {
         "units": [
-          "chariot",
-          "chariotArcher"
+          "bowman"
         ]
       },
-      "flavor": "Nobody expected the circle to be useful."
+      "flavor": "A wall is only a promise about time.",
+      "deferred": [
+        "Starving a surrounded town — the chip damage and the refusal to heal — waits for the siege rule itself, which is built beside this node and not by it."
+      ]
+    },
+    "irrigation": {
+      "name": "Irrigation",
+      "glyph": "💧",
+      "age": 2,
+      "row": 5,
+      "cost": 170,
+      "prereqs": [
+        "earthenware"
+      ],
+      "unlocks": {},
+      "flavor": "Water is taught where to go.",
+      "note": "A farm standing beside fresh water feeds its city better than it did."
+    },
+    "wayfinding": {
+      "name": "Wayfinding",
+      "glyph": "🧭",
+      "age": 2,
+      "row": 6,
+      "cost": 60,
+      "prereqs": [
+        "sailing"
+      ],
+      "unlocks": {
+        "units": [
+          "bireme",
+          "warGalley"
+        ],
+        "buildings": [
+          "harbour",
+          "colossus"
+        ],
+        "abilities": [
+          "militaryEmbark"
+        ]
+      },
+      "flavor": "The stars are a coastline nobody can move."
     },
     "epicPoetry": {
       "name": "Epic Poetry",
       "glyph": "🎼",
       "age": 2,
-      "row": 4,
+      "row": 0,
       "cost": 150,
       "prereqs": [
-        "letters",
-        "kingship"
+        "letters"
       ],
       "unlocks": {
         "buildings": [
-          "hallOfDeeds",
           "amphitheater",
           "theatreOfDionysus"
         ]
@@ -266,16 +297,42 @@
         }
       ],
       "flavor": "The dead are given a metre, and stop being dead.",
-      "note": "When one of your units falls, the nearest city of yours records the loss in verse and gains culture."
+      "note": "When one of your units falls, the nearest city of yours records the loss in verse and gains culture.",
+      "deferred": [
+        "Verse measured against the fallen soldier — a greater loss sung longer — waits until a one-time grant can be sized by the piece that earned it."
+      ]
+    },
+    "currency": {
+      "name": "Currency",
+      "glyph": "💰",
+      "age": 2,
+      "row": 2,
+      "cost": 195,
+      "prereqs": [
+        "theWheel",
+        "letters"
+      ],
+      "unlocks": {
+        "units": [
+          "trader"
+        ],
+        "buildings": [
+          "market",
+          "mausoleum"
+        ],
+        "abilities": [
+          "riteOfPlenty"
+        ]
+      },
+      "flavor": "A promise small enough to carry."
     },
     "kingship": {
       "name": "Kingship",
       "glyph": "👑",
       "age": 2,
-      "row": 4,
+      "row": 5,
       "cost": 65,
       "prereqs": [
-        "stonecraft",
         "letters"
       ],
       "unlocks": {
@@ -288,15 +345,30 @@
         "The King List, which would pay a city for the years since it was founded, waits until a city remembers its own founding turn."
       ]
     },
+    "theLongCount": {
+      "name": "The Long Count",
+      "glyph": "📿",
+      "age": 2,
+      "row": 6,
+      "cost": 110,
+      "prereqs": [
+        "divination"
+      ],
+      "unlocks": {
+        "abilities": [
+          "theLongCount"
+        ]
+      },
+      "flavor": "A calendar long enough to outlast the people keeping it."
+    },
     "ancestorRites": {
       "name": "Ancestor Rites",
       "glyph": "🕯",
       "age": 2,
-      "row": 3,
+      "row": 7,
       "cost": 105,
       "prereqs": [
-        "divination",
-        "standingStones"
+        "divination"
       ],
       "unlocks": {
         "abilities": [
@@ -306,128 +378,13 @@
       "flavor": "The grandfathers are asked, and answer often enough.",
       "note": "Until the rites are kept, renown gathers but no great person will come."
     },
-    "theDelugeRemembered": {
-      "name": "The Deluge Remembered",
-      "glyph": "🌊",
-      "age": 2,
-      "row": 0,
-      "cost": 45,
-      "prereqs": [
-        "earthenware",
-        "sailing"
-      ],
-      "unlocks": {},
-      "flavor": "Every people remembers one flood, and builds against the next."
-    },
-    "irrigation": {
-      "name": "Irrigation",
-      "glyph": "💧",
-      "age": 2,
-      "row": 3,
-      "cost": 50,
-      "prereqs": [
-        "calendar",
-        "earthenware"
-      ],
-      "unlocks": {},
-      "flavor": "Water is taught where to go."
-    },
-    "standingStones": {
-      "name": "Standing Stones",
-      "glyph": "🗿",
-      "age": 2,
-      "row": 1,
-      "cost": 55,
-      "prereqs": [
-        "stonecraft",
-        "divination"
-      ],
-      "unlocks": {},
-      "flavor": "The temple stood before the field did."
-    },
-    "caravans": {
-      "name": "Caravans",
-      "glyph": "🐫",
-      "age": 2,
-      "row": 0,
-      "cost": 130,
-      "prereqs": [
-        "theWheel",
-        "calendar"
-      ],
-      "unlocks": {
-        "buildings": [
-          "bazaar"
-        ]
-      },
-      "flavor": "The road is invented by the people already walking it."
-    },
-    "bronzePanoply": {
-      "name": "Bronze Panoply",
-      "glyph": "🛡",
-      "age": 2,
-      "row": 2,
-      "cost": 135,
-      "prereqs": [
-        "bronzeWorking",
-        "theWheel"
-      ],
-      "unlocks": {
-        "units": [
-          "phalanx"
-        ]
-      },
-      "flavor": "A shield is only a wall if it stands beside another."
-    },
-    "theLongCount": {
-      "name": "The Long Count",
-      "glyph": "📿",
-      "age": 2,
-      "row": 3,
-      "cost": 165,
-      "prereqs": [
-        "ancestorRites",
-        "calendar"
-      ],
-      "unlocks": {
-        "abilities": [
-          "theLongCount"
-        ]
-      },
-      "flavor": "A calendar long enough to outlast the people keeping it."
-    },
-    "wayfinding": {
-      "name": "Wayfinding",
-      "glyph": "🧭",
-      "age": 2,
-      "row": 0,
-      "cost": 60,
-      "prereqs": [
-        "sailing",
-        "theDelugeRemembered"
-      ],
-      "unlocks": {
-        "units": [
-          "bireme",
-          "warGalley"
-        ],
-        "buildings": [
-          "harbour"
-        ],
-        "abilities": [
-          "militaryEmbark"
-        ]
-      },
-      "flavor": "The stars are a coastline nobody can move."
-    },
     "theHighTemple": {
       "name": "The High Temple",
       "glyph": "🕌",
       "age": 2,
-      "row": 1,
+      "row": 8,
       "cost": 120,
       "prereqs": [
-        "standingStones",
         "divination"
       ],
       "unlocks": {
@@ -443,284 +400,30 @@
       },
       "flavor": "A roof high enough that the god has to look down through it."
     },
-    "currency": {
-      "name": "Currency",
-      "glyph": "💰",
+    "bronzePanoply": {
+      "name": "Bronze Panoply",
+      "glyph": "🛡",
       "age": 2,
-      "row": 0,
-      "cost": 195,
+      "row": 10,
+      "cost": 135,
       "prereqs": [
-        "caravans",
-        "letters"
+        "bronzeWorking"
       ],
       "unlocks": {
         "units": [
-          "trader"
-        ],
-        "buildings": [
-          "market",
-          "colossus",
-          "mausoleum"
-        ]
-      },
-      "flavor": "A promise small enough to carry."
-    },
-    "ironWorking": {
-      "name": "Iron Working",
-      "glyph": "⚒",
-      "age": 3,
-      "row": 1,
-      "cost": 420,
-      "prereqs": [
-        "bronzePanoply",
-        "construction"
-      ],
-      "unlocks": {
-        "units": [
+          "phalanx",
           "swordsman"
-        ],
-        "buildings": [
-          "terracottaArmy",
-          "statueOfZeus"
         ]
       },
-      "flavor": "Every age is named for what it kills with."
-    },
-    "theExaminationHall": {
-      "name": "The Examination Hall",
-      "glyph": "🏛",
-      "age": 3,
-      "row": 2,
-      "cost": 440,
-      "prereqs": [
-        "kingship",
-        "currency"
-      ],
-      "unlocks": {
-        "buildings": [
-          "examinationHall"
-        ]
-      },
-      "effects": [
-        {
-          "kind": "happinessTierBoost",
-          "points": 5
-        }
-      ],
-      "flavor": "The clerk is chosen by the paper, not by the father.",
-      "note": "A realm that is content or well governed is rewarded five points more generously."
-    },
-    "theLegion": {
-      "name": "The Legion",
-      "glyph": "🦅",
-      "age": 3,
-      "row": 0,
-      "cost": 500,
-      "prereqs": [
-        "ironWorking",
-        "kingship"
-      ],
-      "unlocks": {
-        "units": [
-          "legionary"
-        ]
-      },
-      "flavor": "The road is the army, laid down behind it."
-    },
-    "mathematics": {
-      "name": "Mathematics",
-      "glyph": "📐",
-      "age": 3,
-      "row": 3,
-      "cost": 400,
-      "prereqs": [
-        "letters",
-        "theLongCount"
-      ],
-      "unlocks": {
-        "units": [
-          "catapult"
-        ],
-        "buildings": [
-          "petra"
-        ]
-      },
-      "flavor": "The siege begins as a diagram."
-    },
-    "construction": {
-      "name": "Construction",
-      "glyph": "🏗",
-      "age": 3,
-      "row": 1,
-      "cost": 340,
-      "prereqs": [
-        "irrigation",
-        "caravans",
-        "fletching"
-      ],
-      "unlocks": {
-        "units": [
-          "compositeBowman"
-        ],
-        "buildings": [
-          "aqueduct",
-          "baths",
-          "circusMaximus"
-        ]
-      },
-      "flavor": "Water persuaded to climb."
-    },
-    "philosophy": {
-      "name": "Rhetoric",
-      "glyph": "🦉",
-      "age": 3,
-      "row": 4,
-      "cost": 390,
-      "prereqs": [
-        "letters",
-        "epicPoetry"
-      ],
-      "unlocks": {
-        "buildings": [
-          "forum",
-          "greatLibrary"
-        ]
-      },
-      "flavor": "First we ask what a thing is; the asking never stops."
-    },
-    "colonialCharters": {
-      "name": "Colonial Charters",
-      "glyph": "📋",
-      "age": 3,
-      "row": 0,
-      "cost": 460,
-      "prereqs": [
-        "currency",
-        "construction"
-      ],
-      "unlocks": {},
-      "effects": [
-        {
-          "kind": "rulePercent",
-          "rule": "settlerCost",
-          "percent": -25
-        },
-        {
-          "kind": "foundingRider",
-          "building": "monument"
-        },
-        {
-          "kind": "foundingRider",
-          "building": "granary"
-        }
-      ],
-      "flavor": "A city, written down before it is built.",
-      "deferred": [
-        "A city near another realm’s border costing no authority waits for the writ to know how close a border is."
-      ]
-    },
-    "theOrreryOfBronze": {
-      "name": "The Orrery of Bronze",
-      "glyph": "⚙",
-      "age": 3,
-      "row": 3,
-      "cost": 510,
-      "prereqs": [
-        "mathematics",
-        "philosophy"
-      ],
-      "unlocks": {},
-      "flavor": "The heavens, geared."
-    },
-    "theSteppeBow": {
-      "name": "The Steppe Bow",
-      "glyph": "🏇",
-      "age": 3,
-      "row": 2,
-      "cost": 360,
-      "prereqs": [
-        "bronzePanoply",
-        "caravans"
-      ],
-      "unlocks": {
-        "units": [
-          "horseArcher"
-        ]
-      },
-      "flavor": "Shot backwards, at a gallop, and still true."
-    },
-    "engineering": {
-      "name": "Engineering",
-      "glyph": "🔩",
-      "age": 3,
-      "row": 2,
-      "cost": 490,
-      "prereqs": [
-        "mathematics",
-        "construction"
-      ],
-      "unlocks": {
-        "buildings": [
-          "workshop",
-          "watermill",
-          "greatWall"
-        ]
-      },
-      "flavor": "The river is put to work and does not complain."
-    },
-    "theHalberdWall": {
-      "name": "The Halberd Wall",
-      "glyph": "🔱",
-      "age": 3,
-      "row": 4,
-      "cost": 550,
-      "prereqs": [
-        "engineering",
-        "bronzePanoply"
-      ],
-      "unlocks": {
-        "units": [
-          "spearWall"
-        ]
-      },
-      "flavor": "Horses will not run onto a hedge of points."
-    },
-    "theImperialPost": {
-      "name": "The Imperial Post",
-      "glyph": "📯",
-      "age": 3,
-      "row": 1,
-      "cost": 560,
-      "prereqs": [
-        "engineering",
-        "currency"
-      ],
-      "unlocks": {},
-      "effects": [
-        {
-          "kind": "behaviorRule",
-          "rule": "freeCityRoads"
-        },
-        {
-          "kind": "effectAmplifier",
-          "target": "connectionYields",
-          "amount": 1
-        }
-      ],
-      "flavor": "The message arrives before the rumour does.",
-      "deferred": [
-        "A further beaker from each joined city waits until city connections pay in something other than gold."
-      ],
-      "note": "Roads near your cities cost nothing to keep, and every city joined to your capital pays one more gold."
+      "flavor": "A shield is only a wall if it stands beside another."
     },
     "shipwrights": {
       "name": "Shipwrights",
       "glyph": "🛠",
       "age": 3,
-      "row": 2,
+      "row": 3,
       "cost": 570,
       "prereqs": [
-        "engineering",
         "wayfinding"
       ],
       "unlocks": {
@@ -735,32 +438,180 @@
       },
       "flavor": "A hull is a house that has agreed to be wet."
     },
-    "theCataphract": {
-      "name": "The Cataphract",
-      "glyph": "🐎",
+    "philosophy": {
+      "name": "Rhetoric",
+      "glyph": "🦉",
+      "age": 3,
+      "row": 0,
+      "cost": 390,
+      "prereqs": [
+        "epicPoetry"
+      ],
+      "unlocks": {
+        "buildings": [
+          "forum",
+          "greatLibrary"
+        ]
+      },
+      "flavor": "First we ask what a thing is; the asking never stops."
+    },
+    "paperMoney": {
+      "name": "Paper Money",
+      "glyph": "🧾",
       "age": 3,
       "row": 1,
-      "cost": 530,
+      "cost": 620,
       "prereqs": [
-        "theSteppeBow",
-        "ironWorking"
+        "currency"
+      ],
+      "unlocks": {
+        "buildings": [
+          "mint",
+          "bazaar"
+        ]
+      },
+      "flavor": "A note that is worth something because everyone agrees it is.",
+      "deferred": [
+        "The Bourse, which would turn a city’s coin into culture every turn, waits for a building that spends gold rather than earning it."
+      ]
+    },
+    "artisanry": {
+      "name": "Artisanry",
+      "glyph": "🔨",
+      "age": 3,
+      "row": 2,
+      "cost": 460,
+      "prereqs": [
+        "currency"
+      ],
+      "unlocks": {
+        "buildings": [
+          "workshop"
+        ]
+      },
+      "flavor": "The guild decides what a thing is worth by how long it took."
+    },
+    "mathematics": {
+      "name": "Mathematics",
+      "glyph": "📐",
+      "age": 3,
+      "row": 3,
+      "cost": 400,
+      "prereqs": [
+        "currency"
       ],
       "unlocks": {
         "units": [
-          "cataphract"
+          "catapult",
+          "compositeBowman"
+        ],
+        "buildings": [
+          "petra"
         ]
       },
-      "flavor": "Man and horse, both in iron, both surprised by it."
+      "flavor": "The siege begins as a diagram."
+    },
+    "theImperialPost": {
+      "name": "Empire-Building",
+      "glyph": "📯",
+      "age": 3,
+      "row": 4,
+      "cost": 560,
+      "prereqs": [
+        "currency"
+      ],
+      "unlocks": {
+        "buildings": [
+          "forbiddenCity"
+        ]
+      },
+      "effects": [
+        {
+          "kind": "behaviorRule",
+          "rule": "freeCityRoads"
+        },
+        {
+          "kind": "effectAmplifier",
+          "target": "connectionYields",
+          "amount": 1
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "connected"
+          }
+        }
+      ],
+      "flavor": "The message arrives before the rumour does.",
+      "note": "Roads near your cities cost nothing to keep, every city joined to your capital pays one more gold, and a joined city is a contented one.",
+      "deferred": [
+        "Hammers toward a building your capital already keeps waits until a one-time grant can look at what stands in another town."
+      ]
+    },
+    "theExaminationHall": {
+      "name": "The Examination Hall",
+      "glyph": "🏛",
+      "age": 3,
+      "row": 5,
+      "cost": 440,
+      "prereqs": [
+        "kingship"
+      ],
+      "unlocks": {
+        "buildings": [
+          "examinationHall"
+        ]
+      },
+      "effects": [
+        {
+          "kind": "happinessTierBoost",
+          "points": 5
+        }
+      ],
+      "flavor": "The clerk is chosen by the paper, not by the father.",
+      "note": "A realm that is content or well governed is rewarded more generously."
+    },
+    "colonialCharters": {
+      "name": "Colonial Charters",
+      "glyph": "📋",
+      "age": 3,
+      "row": 6,
+      "cost": 460,
+      "prereqs": [
+        "kingship"
+      ],
+      "unlocks": {
+        "buildings": [
+          "townCharter"
+        ]
+      },
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "settlerCost",
+          "percent": -33
+        },
+        {
+          "kind": "foundingRider",
+          "building": "townCharter"
+        }
+      ],
+      "flavor": "A city, written down before it is built.",
+      "note": "Settlers are trained faster, and every city you found is founded with its charter already granted.",
+      "deferred": [
+        "A city planted far from the capital costing less authority waits for the writ to know how far from home a site is."
+      ]
     },
     "theQadisCourt": {
       "name": "The Qadi’s Court",
       "glyph": "⚖",
       "age": 3,
-      "row": 0,
+      "row": 7,
       "cost": 590,
       "prereqs": [
-        "theLegion",
-        "theExaminationHall"
+        "kingship"
       ],
       "unlocks": {
         "buildings": [
@@ -777,150 +628,14 @@
       "flavor": "The judgement is written down, and can be read back.",
       "note": "A city you have taken by force costs one less authority."
     },
-    "theKnottedCord": {
-      "name": "The Knotted Cord",
-      "glyph": "🪢",
-      "age": 3,
-      "row": 1,
-      "cost": 620,
-      "prereqs": [
-        "theOrreryOfBronze",
-        "theImperialPost"
-      ],
-      "unlocks": {},
-      "effects": [
-        {
-          "kind": "countScaled",
-          "count": "tradeRoutes",
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "empire"
-          }
-        }
-      ],
-      "flavor": "A record nobody has to be able to read.",
-      "deferred": [
-        "Authority capacity for every four cities joined by road waits until the writ can count a road network."
-      ],
-      "note": "Every trade route you run pays a beaker."
-    },
-    "education": {
-      "name": "Education",
-      "glyph": "🎓",
-      "age": 3,
-      "row": 3,
-      "cost": 640,
-      "prereqs": [
-        "philosophy",
-        "theExaminationHall",
-        "theOrreryOfBronze"
-      ],
-      "unlocks": {
-        "buildings": [
-          "university",
-          "houseOfWisdom",
-          "forbiddenCity"
-        ]
-      },
-      "flavor": "A school is a city’s second memory."
-    },
-    "feudalism": {
-      "name": "Feudalism",
-      "glyph": "🏰",
-      "age": 4,
-      "row": 0,
-      "cost": 765,
-      "prereqs": [
-        "theLegion",
-        "theQadisCourt"
-      ],
-      "unlocks": {
-        "units": [
-          "pikeman"
-        ],
-        "buildings": [
-          "castle"
-        ]
-      },
-      "flavor": "Everyone kneels to someone and calls it order.",
-      "deferred": [
-        "Serfdom, which would pay a farm an extra hammer, waits for an Order of this age to carry it."
-      ]
-    },
-    "machinery": {
-      "name": "Machinery",
-      "glyph": "🔧",
-      "age": 4,
-      "row": 3,
-      "cost": 795,
-      "prereqs": [
-        "engineering",
-        "shipwrights"
-      ],
-      "unlocks": {
-        "units": [
-          "crossbowman"
-        ],
-        "buildings": [
-          "waterClockOfSuSong"
-        ]
-      },
-      "flavor": "A crank is a servant that never sleeps."
-    },
-    "theFloatingFields": {
-      "name": "The Floating Fields",
-      "glyph": "🪷",
-      "age": 4,
-      "row": 1,
-      "cost": 975,
-      "prereqs": [
-        "irrigation",
-        "theKnottedCord"
-      ],
-      "unlocks": {},
-      "effects": [
-        {
-          "kind": "tileYield",
-          "on": {
-            "test": "water"
-          },
-          "food": 1
-        }
-      ],
-      "flavor": "The garden is towed into place.",
-      "deferred": [
-        "Chinampas and causeways — an improvement built on water — wait for a worker who can stand on the water."
-      ],
-      "note": "Every water hex your cities work pays a further food."
-    },
-    "movableType": {
-      "name": "Movable Type",
-      "glyph": "🔠",
-      "age": 4,
-      "row": 2,
-      "cost": 885,
-      "prereqs": [
-        "letters",
-        "machinery"
-      ],
-      "unlocks": {
-        "buildings": [
-          "printingHouse"
-        ]
-      },
-      "flavor": "One carved character, used a thousand times."
-    },
     "theology": {
       "name": "Theology",
       "glyph": "⛪",
       "age": 3,
-      "row": 4,
+      "row": 8,
       "cost": 600,
       "prereqs": [
-        "philosophy",
-        "epicPoetry"
+        "theHighTemple"
       ],
       "unlocks": {
         "buildings": [
@@ -929,130 +644,166 @@
           "chichenItza",
           "hagiaSophia",
           "angkorWat",
-          "greatMosqueOfDjenne",
-          "notreDame"
+          "greatMosqueOfDjenne"
         ]
       },
-      "flavor": "The library, copied by candlelight, one page a day."
+      "flavor": "The library, copied by candlelight, one page a day.",
+      "note": "The enhancing beliefs open here: a faith may now be deepened as well as spread."
     },
-    "paperMoney": {
-      "name": "Paper Money",
-      "glyph": "🧾",
-      "age": 4,
-      "row": 2,
-      "cost": 1080,
+    "ironWorking": {
+      "name": "Iron Working",
+      "glyph": "⚒",
+      "age": 3,
+      "row": 10,
+      "cost": 420,
       "prereqs": [
-        "movableType",
-        "currency"
-      ],
-      "unlocks": {
-        "buildings": [
-          "mint"
-        ]
-      },
-      "flavor": "A note that is worth something because everyone agrees it is."
-    },
-    "chivalry": {
-      "name": "Chivalry",
-      "glyph": "🐴",
-      "age": 4,
-      "row": 0,
-      "cost": 950,
-      "prereqs": [
-        "feudalism",
-        "theCataphract"
+        "bronzePanoply"
       ],
       "unlocks": {
         "units": [
-          "knight"
+          "legionary",
+          "spearWall"
         ],
         "buildings": [
-          "alhambra"
+          "terracottaArmy",
+          "statueOfZeus"
         ]
       },
-      "flavor": "Armour, with manners."
+      "flavor": "Every age is named for what it kills with.",
+      "note": "Iron is named at last, and every warrior of yours retools into a sword the moment a seam of it is yours."
     },
-    "theSilkRoad": {
-      "name": "The Silk Road",
-      "glyph": "🧵",
-      "age": 4,
+    "education": {
+      "name": "Education",
+      "glyph": "🎓",
+      "age": 3,
       "row": 2,
-      "cost": 840,
+      "cost": 640,
       "prereqs": [
-        "theImperialPost",
-        "currency"
+        "philosophy",
+        "mathematics"
       ],
       "unlocks": {
         "buildings": [
-          "caravanserai"
+          "university",
+          "houseOfWisdom"
         ]
       },
-      "flavor": "No one walks all of it; the cloth does."
+      "flavor": "A school is a city’s second memory."
     },
-    "physics": {
-      "name": "Physics",
-      "glyph": "☄",
-      "age": 4,
-      "row": 4,
-      "cost": 820,
-      "prereqs": [
-        "theOrreryOfBronze",
-        "theHalberdWall"
-      ],
-      "unlocks": {
-        "units": [
-          "trebuchet"
-        ],
-        "buildings": [
-          "machuPicchu"
-        ]
-      },
-      "flavor": "Weight, argued into flight."
-    },
-    "steel": {
-      "name": "Steel",
-      "glyph": "🗡",
-      "age": 4,
+    "horology": {
+      "name": "Horology",
+      "glyph": "⏳",
+      "age": 3,
       "row": 3,
-      "cost": 920,
+      "cost": 510,
       "prereqs": [
-        "machinery",
+        "mathematics"
+      ],
+      "unlocks": {
+        "buildings": [
+          "waterClockOfSuSong",
+          "clocktower"
+        ]
+      },
+      "flavor": "The hour stops being a guess."
+    },
+    "engineering": {
+      "name": "Engineering",
+      "glyph": "🔩",
+      "age": 3,
+      "row": 4,
+      "cost": 490,
+      "prereqs": [
+        "mathematics"
+      ],
+      "unlocks": {
+        "buildings": [
+          "aqueduct",
+          "baths",
+          "watermill",
+          "circusMaximus"
+        ]
+      },
+      "flavor": "The river is put to work and does not complain."
+    },
+    "theCataphract": {
+      "name": "The Cataphract",
+      "glyph": "🐎",
+      "age": 3,
+      "row": 10,
+      "cost": 530,
+      "prereqs": [
         "ironWorking"
       ],
       "unlocks": {
         "units": [
-          "longswordsman",
+          "cataphract",
+          "horseArcher",
           "warElephant"
-        ],
-        "buildings": [
-          "armoury",
-          "forge"
         ]
       },
-      "flavor": "Iron, taught patience by fire."
+      "flavor": "Man and horse, both in iron, both surprised by it."
     },
-    "theFirstDistillation": {
-      "name": "The First Distillation",
-      "glyph": "⚗",
-      "age": 4,
+    "prospecting": {
+      "name": "Prospecting",
+      "glyph": "🪨",
+      "age": 3,
       "row": 3,
-      "cost": 1140,
+      "cost": 520,
       "prereqs": [
-        "theology",
-        "steel"
+        "engineering"
       ],
       "unlocks": {},
-      "flavor": "The spirit is driven out of the thing and caught."
+      "flavor": "The hill is asked again, and this time it answers.",
+      "note": "Every mine your cities work gives up a further hammer.",
+      "deferred": [
+        "The survey itself — a worker reading a hill for ore, for iron, for a buried luxury, and marking it barren when there is nothing — waits for the pass that builds the veins."
+      ]
+    },
+    "banking": {
+      "name": "Banking",
+      "glyph": "🏦",
+      "age": 4,
+      "row": 0,
+      "cost": 900,
+      "prereqs": [
+        "paperMoney"
+      ],
+      "unlocks": {
+        "buildings": [
+          "bank"
+        ]
+      },
+      "flavor": "Somebody else’s promise, kept in a strongroom."
+    },
+    "machinery": {
+      "name": "Machinery",
+      "glyph": "🔧",
+      "age": 4,
+      "row": 1,
+      "cost": 795,
+      "prereqs": [
+        "artisanry"
+      ],
+      "unlocks": {
+        "units": [
+          "crossbowman"
+        ],
+        "buildings": [
+          "armoury"
+        ]
+      },
+      "flavor": "A crank is a servant that never sleeps."
     },
     "theAstrolabe": {
       "name": "The Astrolabe",
       "glyph": "🌐",
       "age": 4,
-      "row": 4,
+      "row": 5,
       "cost": 1035,
       "prereqs": [
-        "physics",
-        "wayfinding"
+        "shipwrights",
+        "mathematics"
       ],
       "unlocks": {
         "units": [
@@ -1068,6 +819,209 @@
         ]
       },
       "flavor": "The sky is held at arm’s length and measured."
+    },
+    "theSilkRoad": {
+      "name": "The Silk Road",
+      "glyph": "🧵",
+      "age": 4,
+      "row": 6,
+      "cost": 840,
+      "prereqs": [
+        "theImperialPost"
+      ],
+      "unlocks": {
+        "buildings": [
+          "caravanserai"
+        ]
+      },
+      "effects": [
+        {
+          "kind": "routeRider",
+          "extra": 1
+        }
+      ],
+      "flavor": "No one walks all of it; the cloth does.",
+      "note": "One more caravan may be on the road at once."
+    },
+    "feudalism": {
+      "name": "Castellany",
+      "glyph": "🏰",
+      "age": 4,
+      "row": 7,
+      "cost": 765,
+      "prereqs": [
+        "theQadisCourt"
+      ],
+      "unlocks": {
+        "units": [
+          "pikeman"
+        ],
+        "buildings": [
+          "castle"
+        ]
+      },
+      "flavor": "Everyone kneels to someone and calls it order.",
+      "deferred": [
+        "Defenders shrugging off arrows waits until a strength line can be told which weapon it is answering."
+      ]
+    },
+    "theHolyOffice": {
+      "name": "The Holy Office",
+      "glyph": "🕊",
+      "age": 4,
+      "row": 8,
+      "cost": 900,
+      "prereqs": [
+        "theology"
+      ],
+      "unlocks": {
+        "buildings": [
+          "notreDame"
+        ]
+      },
+      "flavor": "The question is asked, and it is not really a question.",
+      "deferred": [
+        "The Inquisitor and the Reliquary are written and wait for the faith pass that gives an inquisitor something to strip."
+      ]
+    },
+    "steel": {
+      "name": "Steel",
+      "glyph": "🗡",
+      "age": 4,
+      "row": 9,
+      "cost": 920,
+      "prereqs": [
+        "ironWorking"
+      ],
+      "unlocks": {
+        "units": [
+          "longswordsman"
+        ],
+        "buildings": [
+          "forge"
+        ]
+      },
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "melee"
+          }
+        }
+      ],
+      "flavor": "Iron, taught patience by fire.",
+      "note": "Every soldier of the sword line marches one hex further."
+    },
+    "alchemy": {
+      "name": "Alchemy",
+      "glyph": "⚗",
+      "age": 4,
+      "row": 1,
+      "cost": 1140,
+      "prereqs": [
+        "machinery"
+      ],
+      "unlocks": {
+        "units": [
+          "fireLance"
+        ],
+        "buildings": [
+          "alchemicalSociety"
+        ]
+      },
+      "flavor": "The stone is never found; everything else is.",
+      "note": "Niter is named, and the first soldier who carries fire may be trained where it is dug.",
+      "deferred": [
+        "The glass bead this closing node pays, and the Magnum Opus it opens for every empire at once, wait for the pass that builds the finish line."
+      ]
+    },
+    "movableType": {
+      "name": "Movable Type",
+      "glyph": "🔠",
+      "age": 4,
+      "row": 2,
+      "cost": 885,
+      "prereqs": [
+        "education"
+      ],
+      "unlocks": {
+        "buildings": [
+          "printingHouse"
+        ]
+      },
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "connected"
+          }
+        }
+      ],
+      "flavor": "One carved character, used a thousand times.",
+      "note": "A city joined to your capital is contented by the news that reaches it — and it is contented again if your roads were already famous."
+    },
+    "physics": {
+      "name": "Physics",
+      "glyph": "☄",
+      "age": 4,
+      "row": 4,
+      "cost": 820,
+      "prereqs": [
+        "engineering"
+      ],
+      "unlocks": {
+        "units": [
+          "trebuchet"
+        ],
+        "buildings": [
+          "machuPicchu"
+        ]
+      },
+      "flavor": "Weight, argued into flight."
+    },
+    "fortification": {
+      "name": "Fortification",
+      "glyph": "🗼",
+      "age": 4,
+      "row": 7,
+      "cost": 850,
+      "prereqs": [
+        "feudalism"
+      ],
+      "unlocks": {
+        "buildings": [
+          "bastion",
+          "greatWall"
+        ]
+      },
+      "flavor": "A wall built by people who have already lost one.",
+      "deferred": [
+        "Towns mending their own walls every turn waits for a rule that heals a city the way a garrison heals."
+      ]
+    },
+    "chivalry": {
+      "name": "Chivalry",
+      "glyph": "🐴",
+      "age": 4,
+      "row": 8,
+      "cost": 950,
+      "prereqs": [
+        "feudalism",
+        "theCataphract"
+      ],
+      "unlocks": {
+        "units": [
+          "knight"
+        ],
+        "buildings": [
+          "alhambra"
+        ]
+      },
+      "flavor": "Armour, with manners."
     }
   },
   "abilities": {

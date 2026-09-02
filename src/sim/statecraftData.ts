@@ -345,6 +345,23 @@ export type CityScope =
    * point is that it reaches other people's cities.
    */
   | { test: 'follows' }
+  /**
+   * The town is **joined to its empire's capital by road** — Empire-Building's
+   * contented provinces, and Movable Type's second helping of the same.
+   *
+   * The one scope in the union whose answer is a fact about the *board between*
+   * two towns rather than about a town, and it is answered by the fill the gold
+   * ledger already runs (`connectedCities`, `roads.ts`): a city centre is a
+   * junction, the fill crosses this empire's ground or nobody's, and the capital
+   * is what the others are joined *to*. So "connected" means here exactly what
+   * it means in the treasury line, and a road cut by a rival's border stops
+   * paying both at once.
+   *
+   * A capital admits **nothing**: it is not connected to itself, it is the thing
+   * connection is measured from — the same reading `connectedCities` takes when
+   * it leaves the capital out of its own list.
+   */
+  | { test: 'connected' }
   | { test: 'all'; of: CityScope[] };
 
 /**
