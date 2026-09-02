@@ -86,6 +86,7 @@ import {
   cairnStack,
   citadelBanner,
   citadelRing,
+  barrowMound,
   brokenColumns,
   campTent,
   caravanLadenMini,
@@ -140,6 +141,7 @@ import {
   hutCluster,
   quarrySteps,
   raiderCamp,
+  seaWreck,
   reedClump,
   riverSegment,
   rock,
@@ -770,7 +772,7 @@ function buildImprovementGilt(): Partial<Record<ImprovementId, BufferGeometry>> 
 }
 
 /**
- * The three site sculpts, by kind.
+ * The five site sculpts, by kind.
  *
  * Typed `Record<SiteKind, …>` for `IMPROVEMENT_PROPS`' reason: this is the one
  * place the art and the data are joined, so a fourth kind of site is a compile
@@ -782,11 +784,19 @@ function buildImprovementGilt(): Partial<Record<ImprovementId, BufferGeometry>> 
 export const SITE_PROPS: Record<SiteKind, (size: number) => BufferGeometry> = {
   ruins: brokenColumns,
   village: hutCluster,
+  antiquity: barrowMound,
+  wreck: seaWreck,
   camp: raiderCamp,
 };
 
 /** The site kinds, in the order everything that walks them walks them. */
-export const SITE_KINDS: readonly SiteKind[] = ['ruins', 'village', 'camp'];
+export const SITE_KINDS: readonly SiteKind[] = [
+  'ruins',
+  'village',
+  'antiquity',
+  'wreck',
+  'camp',
+];
 
 /** One prop per site kind, each built at the size its data row asks for. */
 function buildSiteProps(): Record<SiteKind, BufferGeometry> {
@@ -1400,6 +1410,20 @@ export interface ResourcePropCell {
   cell: number;
   resource: ResourceId;
   handles: InstanceHandle[];
+  /**
+   * True when these props are a **buried seam** the board baked ahead of time —
+   * the hex carries `Tile.vein` and no surface resource, so nothing is standing
+   * there yet (`veins.ts`).
+   *
+   * Presence is the marker, and it changes exactly one thing for the reveal
+   * pass: a vein cell is veiled until the tile actually *carries* the resource,
+   * which is what a survey striking it writes. Baked rather than left out
+   * because the board is built once per game and a resource that appears
+   * mid-game would otherwise have no prop at all until a new map — see the vein
+   * clause in `addDecorations`, and note that the hex still wears its ordinary
+   * clutter, so an unsurveyed hill is not readable off the board.
+   */
+  vein?: true;
 }
 
 export interface BuiltBoard {
@@ -1773,7 +1797,7 @@ function addDecorations(
   collector: InstanceCollector,
   /** `tileIndex` of `tile`, so every scrap of scatter is fog-addressable. */
   cell: number,
-): { treed: boolean; props: InstanceHandle[] } {
+): { treed: boolean; props: InstanceHandle[]; veinProps: InstanceHandle[]; vein?: ResourceId } {
   const position = new Vector3();
   const quaternion = new Quaternion();
   const scale = new Vector3();
@@ -1838,6 +1862,12 @@ function addDecorations(
   let treed = false;
   /** The tile's resource props, for the reveal pass. See the docblock above. */
   const props: InstanceHandle[] = [];
+  /**
+   * The veiled seam's props, kept apart from `props` so the caller can record
+   * them as a **vein** cell rather than as an ordinary resource cell. Almost
+   * always empty; see the vein clause below.
+   */
+  const veinProps: InstanceHandle[] = [];
   if (tile.feature === 'forest') {
     // Two or three, hashed — an even count everywhere looks planted by a
     // machine, and the sim has no per-tile density to read.
@@ -1960,11 +1990,54 @@ function addDecorations(
   } else {
     addGroundClutter(tile, geometry, place);
   }
+
+  /**
+   * **The seam under the hill, baked and veiled** (`Tile.vein`).
+   *
+   * The board is built once per game, so a resource that *appears* mid-game has
+   * no prop unless one was baked for it — and a survey does exactly that. Rather
+   * than rebuild ninety thousand instances when a worker strikes ore, the bake
+   * lays the ore down where the vein is and hands the instances to `RevealView`,
+   * which holds them **veiled** until the strike. That is fog's sibling doing
+   * precisely the job it was written for: per-instance writes, never a rebuild,
+   * on a per-*answer* question the frame re-asks anyway.
+   *
+   * Two things make it safe rather than a leak. The prop is veiled from the
+   * first frame — a veiled instance is zero-scaled, so nothing is drawn and no
+   * matrix is written — and, crucially, this runs **after** the clutter above
+   * rather than instead of it: a hill with a vein under it wears exactly the
+   * boulders and grass a hill without one wears, so there is no bare patch on
+   * the board for a player to read the map through. The `else` branch above is
+   * what would have given it away, which is why this is not in it.
+   */
+  const veinSpec = tile.vein === undefined || resource !== undefined
+    ? null
+    : resourcePropSpec(tile.vein);
+  if (veinSpec && tile.vein !== undefined) {
+    const count = hashedCount(
+      tile.col,
+      tile.row,
+      STREAM.resourceCount,
+      Math.max(1, veinSpec.count),
+    );
+    for (let i = 0; i < count; i++) {
+      veinProps.push(
+        place(
+          geometry.resourceProps[tile.vein],
+          shade(veinSpec.color, veinSpec.shade),
+          STREAM.resourcePlace,
+          i,
+          1,
+          { spread: RESOURCES.spread },
+        ),
+      );
+    }
+  }
   // The bank dressing stays either way: reeds are a fact about where the water
   // is, not about what is growing on the field beside it.
   addWaterEdge(map, tile, geometry, place);
 
-  return { treed, props };
+  return { treed, props, veinProps, vein: tile.vein };
 
   /**
    * Ground clutter and reeds share the scatter above; both are below.
@@ -2205,6 +2278,18 @@ export function buildBoard(
       // below really are every prop on the board.
       if (dressing.props.length > 0 && tile.resource !== undefined) {
         resourceCells.push({ cell, resource: tile.resource, handles: dressing.props });
+      }
+      // The buried seam's props, recorded as a **vein** cell. Same list, same
+      // pass, one flag — because `RevealView` asks the same question of both
+      // ("may this seat be shown this") and a second list would be a second
+      // place to forget the answer. See `ResourcePropCell.vein`.
+      if (dressing.veinProps.length > 0 && dressing.vein !== undefined) {
+        resourceCells.push({
+          cell,
+          resource: dressing.vein,
+          handles: dressing.veinProps,
+          vein: true,
+        });
       }
     }
 

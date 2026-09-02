@@ -565,7 +565,10 @@ describe('the research queue field', () => {
         // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
     // double draft and The Holy Office's tenants move every replay with a
     // prophet or an augur in it.
-    expect(SCHEMA_VERSION).toBe(42);
+    // v43: the map's layers of Entry LVIII — the vein pass, the second discovery
+    // wave and the sea finds all draw off the same generator, so the board a
+    // v42 seed produced is not the board this build produces from it.
+    expect(SCHEMA_VERSION).toBe(43);
   });
 });
 

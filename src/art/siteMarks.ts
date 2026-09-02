@@ -65,11 +65,15 @@ export interface SiteMark {
  * Every drawn site mark, keyed by kind. Exhaustive by type, unlike the resource
  * table — see the module docblock.
  *
- * Both are drawn as *architecture on a ground line*, which is the whole of what
- * separates them at a glance: a ruin is stone that has fallen, a village is
- * thatch that is standing. Nothing in either is a plant, a tool or a lump of
- * metal, so neither can be mistaken for a member of the resource set even before
- * the paper under it disagrees.
+ * Three of the four are drawn as *architecture on a ground line*, which is the
+ * whole of what separates them at a glance: a ruin is stone that has fallen, a
+ * village is thatch that is standing, a barrow is stone that was buried. Nothing
+ * in any of them is a plant, a tool or a lump of metal, so none can be mistaken
+ * for a member of the resource set even before the paper under it disagrees.
+ *
+ * The fourth has no ground line at all, and that is the point of it: a wreck
+ * floats, so its baseline is a wave, and the silhouette a player learns is *a
+ * mass lying over* rather than anything standing up.
  */
 const SITE_MARKS: Record<DiscoveryKind, SiteMark> = {
   ruins: {
@@ -107,6 +111,40 @@ const SITE_MARKS: Record<DiscoveryKind, SiteMark> = {
       // The second cone, smaller and set to one side. A single hut is a dwelling;
       // two are a settlement, which is what the site actually is.
       ink('M42 52L50 29L58 52'),
+    ],
+  },
+  antiquity: {
+    note: 'a long barrow cut open, a lintelled doorway showing in its flank',
+    paths: [
+      ink('M6 54H58'),
+      // The mound: one low arc, wider than it is tall. Read against the ruin's
+      // snapped vertical, that shape is the whole of what tells the two apart at
+      // twelve pixels — old stone standing up, against old stone buried.
+      ink('M8 54C12 24 52 24 56 54'),
+      // A kerb course following the foot of the mound, which is what says the
+      // heap was *built* rather than left.
+      ink('M13 45C22 40 42 40 51 45'),
+      // The doorway: two posts and a lintel, squared off against everything else
+      // here being curved.
+      ink(poly(24, 54, 24, 38, 40, 38, 40, 54)),
+      ink('M28 54V42H36V54'),
+    ],
+  },
+  wreck: {
+    note: 'a hull heeled over on the water, its mast snapped short',
+    paths: [
+      // The sea, not a ground line: the one mark in the set that does not stand
+      // on anything, because the one site in the set that does not either.
+      ink('M4 56C11 51 17 60 24 55C31 50 37 59 44 55C50 51 55 58 60 55'),
+      // The hull, canted. Drawn as a hull rather than as a boat — no stern, no
+      // rudder, nothing that suggests anybody is aboard.
+      ink('M10 48L20 34H44L52 48'),
+      ink('M14 43H48'),
+      // The mast, broken above the deck and leaning with the hull.
+      ink('M30 34V14L24 20'),
+      // A spar down across the deck, which is what makes a canted shape read as
+      // wreckage instead of as a ship under way.
+      ink('M18 27L40 39'),
     ],
   },
 };

@@ -19,6 +19,9 @@
       }
     }
   },
+  "prospect": {
+    "tech": "prospecting"
+  },
   "improvements": {
     "farm": {
       "name": "Farm",

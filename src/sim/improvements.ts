@@ -59,6 +59,7 @@
 
 import {
   type TileYieldContext,
+  nearestOwnedCity,
   refreshTileDerived,
   tileOwnerCityId,
   tileOwnerPlayerId,
@@ -72,12 +73,14 @@ import {
   improvementDef,
   improvementForResource,
   isImprovementId,
+  prospectDef,
 } from './improvementData';
 import { type Tile, getTileAt, tileIndex } from './map';
-import { resourceDef, resourceIsVisibleTo } from './resourceData';
+import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
 import { type FeatureId } from './terrainData';
 import {
+  type WindfallPayout,
   cardActionRule,
   payWindfallGrants,
   settleCultureWindfall,
@@ -102,7 +105,7 @@ import {
   isWaterTerrain,
   terrainDef,
 } from './terrainData';
-import { unitDef, unitMaxHp } from './unitData';
+import { isExplorer, unitDef, unitMaxHp } from './unitData';
 import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { hasFreshWater } from './water';
 
@@ -785,6 +788,183 @@ export function chopFeatureAt(state: GameState, unit: Unit, tile: Tile): boolean
   }
   unit.chargesLeft = left;
   return true;
+}
+
+// --- surveying --------------------------------------------------------------
+
+/**
+ * Why this unit cannot survey the hill it is standing on, or `null` when it can.
+ *
+ * **The** gate: the `prospect` command refuses with this sentence and the unit
+ * sheet enables its Survey row with it, so an offered button is a command the
+ * reducer takes — `chopError`'s bargain for a third verb.
+ *
+ * The clauses, and each is a rule rather than a guard:
+ *
+ *   · **alive, and the right kind of piece.** A worker or an **explorer**: the
+ *     one reads ground for a living and the other is the empire's eyes, and
+ *     both are asked of the data (`isBuilder`, `isExplorer`) rather than of a
+ *     type name, exactly as every other verb in this file asks.
+ *   · **movement left.** The act *is* the turn (see `prospectAt`), so a piece
+ *     that has already spent its purse has already spent its turn.
+ *   · **a hill.** The layer is under the hills and nowhere else.
+ *   · **not asked before.** `Tile.surveyed` is permanent and public; asking a
+ *     hill twice is spending a turn on an answer already written on the map.
+ *   · **not under a town.** Where every other verb in this file refuses one, and
+ *     for the same reason: a city tile has a town on it instead of ground.
+ *   · **the technology.** Last, after every question about the ground, which is
+ *     `improvementErrorAt`'s order and is what makes the sheet readable: "the
+ *     only thing refusing this is the tree" is exactly
+ *     `prospectError(…) === prospectTechError(…)`.
+ *
+ * There is deliberately **no territory clause** and **no resource clause**.
+ * Surveying is what an explorer does in the wilds, so it does not ask whose
+ * ground this is; and a hill that already carries a seam is surveyable and
+ * simply comes up barren, because a refusal there would be the map leaking
+ * through a button — the seam a player has not researched the word for is
+ * exactly the one a refusal would announce.
+ */
+export function prospectError(state: GameState, unitId: number): string | null {
+  const unit = unitById(state, unitId);
+  if (!unit) return `No unit with id ${String(unitId)}`;
+  if (unit.hp <= 0) return `Unit ${unit.id} is not alive`;
+
+  const def = unitDef(unit.type);
+  if (!isBuilder(unit) && !isExplorer(def)) return `A ${def.name} cannot survey ground`;
+  if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
+
+  const tile = getTileAt(state.map, unit.col, unit.row);
+  if (!tile) return `Unit ${unit.id} is not on the map`;
+  const where = `(${tile.col}, ${tile.row})`;
+  if (!tile.hills) return `${where} is not a hill`;
+  if (tile.surveyed) return `${where} has already been surveyed`;
+  for (const city of state.cities) {
+    if (city.col === tile.col && city.row === tile.row) {
+      return `${city.name} stands on ${where}`;
+    }
+  }
+
+  return prospectTechError(state, unit.ownerId);
+}
+
+/**
+ * Why the *tree* refuses this empire the survey, or `null`.
+ *
+ * `chopTechError`'s sibling and split out for its two callers: the last clause
+ * of `prospectError`, and the worker sheet, which greys its Survey row with the
+ * technology named rather than hiding it. The gate is `data/improvements.json`'s
+ * `prospect.tech`, so nothing here spells a tech id.
+ */
+export function prospectTechError(state: GameState, ownerId: number): string | null {
+  const { tech } = prospectDef();
+  if (hasTech(state, ownerId, tech)) return null;
+  return `Surveying a hill needs ${techDef(tech).name}`;
+}
+
+/** What asking a hill turned out to be worth. */
+export interface ProspectReport {
+  /** The seam that came up, or `null` — the hill was barren. */
+  struck: ResourceId | null;
+  /** The assay, riders folded in. Zero when there was nowhere to bank it. */
+  gold: number;
+  /** The city that received the assay, or `null` when none did. */
+  cityName: string | null;
+  /** Why the assay was forfeited, or `null`. */
+  warning: string | null;
+  /**
+   * Every rider that touched the occasion, verbatim from
+   * `WindfallPayout.lines` — Entry XVIII.5's record of what changed a printed
+   * number. Empty when no card touched it.
+   */
+  lines: WindfallPayout['lines'];
+}
+
+/**
+ * Asks the hill. Validates nothing — the rules are `prospectError`'s job; this
+ * is the mechanism.
+ *
+ * **Deterministic, and resolved off the map rather than off the dice.** The
+ * answer was seeded at generation (`placeVeins`, `veins.ts`) and this only turns
+ * it over, which is what makes a survey replay: `state.rng` is not touched, so a
+ * log that surveys twenty hills produces the same twenty answers in the same
+ * order however the rest of the turn went.
+ *
+ * Three mutations, and the first two are one move:
+ *
+ *   · **the seam surfaces.** `tile.vein` becomes `tile.resource` and the vein
+ *     key is deleted. A *move*, never a write beside a write, because a vein is
+ *     only ever seeded under a hill that carries no surface resource — so there
+ *     is nothing to overwrite and no rule needed for what would happen if there
+ *     were.
+ *   · **the hill is marked asked.** `tile.surveyed`, on a strike and on a barren
+ *     hill alike, which is the whole design: the map fills in with certainty
+ *     either way, and "surveyed" means *asked* rather than *paid*.
+ *   · **the surveyor's turn is spent.** All of it, exactly as felling a wood
+ *     spends it, and **no charge**: the cost of a survey is the turn, so a
+ *     worker is not one job closer to being used up for having read a hillside.
+ *
+ * **A strike is public.** Everybody's board shows ore on that hill from then on,
+ * because it is an ordinary `Tile.resource` from then on — the reveal machinery,
+ * the lens, the hover card and the yield all read it through the rules they
+ * already had, and no seat needs to be told. The per-seat alternative (each
+ * empire surveying the same hill for itself) would have meant a resource that is
+ * on the tile for one player and not for another, which is a second kind of
+ * resource and a second implementation of every rule that reads one. It is
+ * deliberately not built.
+ *
+ * The **assay** is an Entry XVIII windfall like the camp bounty it is shaped
+ * after: `windfallPayout` composes the printed figure with every rider *before*
+ * anything is banked, and it lands in the treasury with the empire's nearest
+ * owned city named for the ledger line. An empire with no cities at all collects
+ * nothing and is told so, which is `settleCampBounty`'s honest reading of the
+ * same situation.
+ */
+export function prospectAt(state: GameState, unit: Unit, tile: Tile): ProspectReport {
+  const report: ProspectReport = {
+    struck: null,
+    gold: 0,
+    cityName: null,
+    warning: null,
+    lines: [],
+  };
+
+  // The seam first, then the mark, then the turn. Order is not load-bearing
+  // here — nothing below reads what is above — but it is the order the sentence
+  // is read in, and the mark going on last would be a hill that was struck
+  // without ever having been asked.
+  if (tile.vein !== undefined && tile.resource === undefined) {
+    report.struck = tile.vein;
+    tile.resource = tile.vein;
+  }
+  delete tile.vein;
+  tile.surveyed = true;
+  unit.movesLeft = 0;
+
+  const player = playerById(state, unit.ownerId);
+  if (player) {
+    const payout = windfallPayout(state, unit.ownerId, 'prospect', IMPROVEMENTS.assayGold);
+    report.lines = payout.lines;
+    const city = nearestOwnedCity(state, unit.ownerId, { col: tile.col, row: tile.row });
+    if (city) {
+      report.gold = payout.amount;
+      report.cityName = city.name;
+      player.gold += report.gold;
+    } else {
+      // Nowhere to carry the samples. Said out loud rather than banked into
+      // nothing — `settleCampBounty`'s ruling, and for its reason.
+      report.warning = 'no city to receive the assay';
+    }
+    payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row });
+    settleCultureWindfall(state, player);
+  }
+
+  // A struck hill is a hill worth a different amount to a citizen standing on
+  // it *now*, whether or not anybody ends the turn — register entry 17 (see
+  // `refreshCityDerived`). A barren one changed nothing and is refreshed anyway,
+  // because the ground it stands on is the same ground either way and a
+  // conditional refresh is a second rule about when a tile counts.
+  refreshTileDerived(state, tile);
+  return report;
 }
 
 // --- pillaging --------------------------------------------------------------

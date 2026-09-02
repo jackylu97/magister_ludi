@@ -14,6 +14,32 @@
     "fairness": {
       "radius": 12,
       "minWithinRadius": 3
+    },
+    "antiquities": {
+      "sitesPerContinent": {
+        "min": 3,
+        "max": 4
+      }
+    },
+    "ocean": {
+      "sitesPer1000Water": 5,
+      "minDistanceApart": 8
+    }
+  },
+  "kinds": {
+    "ruins": {
+      "name": "Ancient ruins"
+    },
+    "village": {
+      "name": "Tribal village"
+    },
+    "antiquity": {
+      "name": "Buried antiquities",
+      "requiresTech": "prospecting"
+    },
+    "wreck": {
+      "name": "A find at sea",
+      "water": true
     }
   },
   "rows": {
@@ -22,7 +48,9 @@
       "flavor": "Jars sunk in cool earth, sealed against a winter nobody survived.",
       "weights": {
         "ruins": 1,
-        "village": 4
+        "village": 4,
+        "antiquity": 1,
+        "wreck": 0
       },
       "effect": {
         "kind": "cityYield",
@@ -35,7 +63,9 @@
       "flavor": "Dressed stone, stacked and numbered, for a wall never raised.",
       "weights": {
         "ruins": 4,
-        "village": 1
+        "village": 1,
+        "antiquity": 4,
+        "wreck": 0
       },
       "effect": {
         "kind": "cityYield",
@@ -48,7 +78,9 @@
       "flavor": "Clay ruled into a sky, and the sky has not moved since.",
       "weights": {
         "ruins": 5,
-        "village": 1
+        "village": 1,
+        "antiquity": 5,
+        "wreck": 2
       },
       "effect": {
         "kind": "pool",
@@ -61,7 +93,9 @@
       "flavor": "The words are gone; the shape of the singing is not.",
       "weights": {
         "ruins": 4,
-        "village": 2
+        "village": 2,
+        "antiquity": 4,
+        "wreck": 1
       },
       "effect": {
         "kind": "pool",
@@ -74,7 +108,9 @@
       "flavor": "Somebody knelt here for a long time, and wore the stone.",
       "weights": {
         "ruins": 4,
-        "village": 2
+        "village": 2,
+        "antiquity": 4,
+        "wreck": 2
       },
       "effect": {
         "kind": "pool",
@@ -87,7 +123,9 @@
       "flavor": "She knows the passes, and asks only to be going somewhere.",
       "weights": {
         "ruins": 1,
-        "village": 4
+        "village": 4,
+        "antiquity": 1,
+        "wreck": 0
       },
       "effect": {
         "kind": "unit",
@@ -99,7 +137,9 @@
       "flavor": "A dozen hands, and the tools they were holding when they came.",
       "weights": {
         "ruins": 1,
-        "village": 4
+        "village": 4,
+        "antiquity": 1,
+        "wreck": 0
       },
       "effect": {
         "kind": "unit",
@@ -111,12 +151,59 @@
       "flavor": "A caravan's whole season, buried the night before it was needed.",
       "weights": {
         "ruins": 3,
-        "village": 3
+        "village": 3,
+        "antiquity": 3,
+        "wreck": 3
       },
       "effect": {
         "kind": "pool",
         "pool": "gold",
         "amount": 25
+      }
+    },
+    "derelictHull": {
+      "name": "A derelict hull",
+      "flavor": "Sails long gone, the hold still dry, and somebody's whole season in it.",
+      "weights": {
+        "ruins": 0,
+        "village": 0,
+        "antiquity": 0,
+        "wreck": 5
+      },
+      "effect": {
+        "kind": "pool",
+        "pool": "gold",
+        "amount": 40
+      }
+    },
+    "drownedTemple": {
+      "name": "A drowned temple",
+      "flavor": "Columns standing in green light, and the sea keeping the hours now.",
+      "weights": {
+        "ruins": 0,
+        "village": 0,
+        "antiquity": 0,
+        "wreck": 4
+      },
+      "effect": {
+        "kind": "pool",
+        "pool": "faith",
+        "amount": 25
+      }
+    },
+    "pilotsCharts": {
+      "name": "A dead pilot's charts",
+      "flavor": "Inked by a hand that knew the currents better than it knew the coast.",
+      "weights": {
+        "ruins": 0,
+        "village": 0,
+        "antiquity": 0,
+        "wreck": 3
+      },
+      "effect": {
+        "kind": "pool",
+        "pool": "science",
+        "amount": 12
       }
     }
   }

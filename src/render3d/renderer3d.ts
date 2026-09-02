@@ -857,8 +857,13 @@ export class Renderer3D implements MapView {
       // why the marker belongs to this layer rather than to the lens.
       this.icons,
       this.view.camera.quaternion.clone(),
+      // The second wave's gate: a seat with no word for buried antiquities is
+      // shown none of them. Passed rather than derived — see `seatSeesKind` —
+      // and hashed into the fingerprint below, so finishing the node rebuilds
+      // this layer on the very next frame.
+      this.fogSeat,
     );
-    this.sitesSignature = signSites(this.state);
+    this.sitesSignature = signSites(this.state, this.fogSeat);
   }
 
   private rebuildOverlays(): void {
@@ -1970,7 +1975,7 @@ export class Renderer3D implements MapView {
     // Sites are seat-filtered twice over — a ruin fades on remembered ground and
     // a camp is not drawn at all off it — so a fog move reaches this layer for
     // both of its tenants. See `sites3d.ts`.
-    if (this.state && (fogMoved || signSites(this.state) !== this.sitesSignature)) {
+    if (this.state && (fogMoved || signSites(this.state, this.fogSeat) !== this.sitesSignature)) {
       this.rebuildSites();
       // The explorer lens is a picture of exactly what that fingerprint counts —
       // the unclaimed sites and the camps — so a ruin claimed or a camp burnt

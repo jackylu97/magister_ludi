@@ -60,6 +60,32 @@
  * alternative is a sweep that keeps searching until it hits a quota and packs the
  * last few in at the spacing floor, which is a clump wearing a budget's clothes.
  *
+ * Three layers, one sweep
+ * -----------------------
+ * The map keeps its secrets in **layers** (`docs/themes/11-the-cartographers.md`),
+ * and every one of them is placed *here*, at generation, exactly as the first
+ * one always was — a site spawned mid-game would be a tile the seed did not
+ * produce, which is the one thing `Tile.discovery`'s docblock forbids. What
+ * differs between the layers is not when they are placed but when they can be
+ * *seen*:
+ *
+ *   · **the first wave** (`ruins`, `village`) — dealt per continent, topped up
+ *     per start, claimable from turn one.
+ *   · **the second wave** (`antiquity`) — dealt on the same ground by the same
+ *     sweep, on its own per-continent budget, and **gated**: an empire without
+ *     the surveyor's technology cannot see one and cannot claim one
+ *     (`DiscoveryKindDef.requiresTech`, read by `discoveryClaimError` and by
+ *     `sites3d.ts`). It waits on the board for somebody learned.
+ *   · **the deep water** (`wreck`) — its own scatter, on ocean rather than on
+ *     land, dealt per thousand water tiles. It needs no gate at all: the sea is
+ *     its own lock, and it opens the day a hull can cross it.
+ *
+ * They are dealt **in that order, after the first wave's fairness top-up**, and
+ * the ordering is the same load-bearing discipline every pass in `mapgen.ts`
+ * keeps: every draw a later layer makes is a draw nothing before it can see, so
+ * the ruins and villages on a given seed are bit-identical to what they were
+ * before the second and third layers existed.
+ *
  * The fairness top-up
  * --------------------
  * Per-continent dealing evens out the *map's* read but says nothing about any
@@ -153,7 +179,12 @@ export function placeDiscoveries(map: GameMap, rng: Rng, resourceConfig: Resourc
   }
 
   const placed: Hex[] = [];
-  const counts = { ruins: 0, village: 0 };
+  const counts: Record<DiscoveryKind, number> = {
+    ruins: 0,
+    village: 0,
+    antiquity: 0,
+    wreck: 0,
+  };
   const spacing = PLACEMENT.minDistanceApart;
   const sweep = (list: readonly Tile[], kind: DiscoveryKind, budget: number): void => {
     let seated = 0;
@@ -185,6 +216,107 @@ export function placeDiscoveries(map: GameMap, rng: Rng, resourceConfig: Resourc
   }
 
   ensureStartDiscoveries(map, starts, candidates, placed, counts);
+
+  // --- the second wave, on the same ground ---------------------------------
+  // After the top-up, so nothing above it moves: the ruins and villages on a
+  // given seed are what they were before this layer existed. It reuses the very
+  // list the first wave drew from — already shuffled, already clear of every
+  // start's exclusion radius — and the same `placed` spacing, because a barrow
+  // four hexes from a ruin is the same crowding on the board as two ruins are.
+  const { min: antiqMin, max: antiqMax } = PLACEMENT.antiquities.sitesPerContinent;
+  const aMin = Math.max(0, Math.round(antiqMin));
+  const aMax = Math.max(aMin, Math.round(antiqMax));
+  for (let continent = 0; continent < continents.count; continent++) {
+    // The draw happens for every continent in id order whether or not that
+    // continent has any candidate ground — the first wave's bargain exactly.
+    const wanted = aMin >= aMax ? aMin : nextInt(rng, aMin, aMax + 1);
+    sweep(byContinent[continent] ?? [], 'antiquity', wanted);
+  }
+
+  // --- the deep water ------------------------------------------------------
+  placeOceanSites(map, rng, startHexes, placed, counts);
+}
+
+/**
+ * The third layer: what is floating, or sunk, out past the shelf.
+ *
+ * Its own sweep rather than a fourth kind in the one above, because it is dealt
+ * against a different geography: the sea is not carved into continents, so a
+ * per-continent budget would have nothing to mean out there. It is a flat rate
+ * per thousand **deep ocean** tiles — coast is deliberately excluded, since a
+ * derelict a rowboat could reach on turn three is not a layer, it is a ruin that
+ * happens to be wet.
+ *
+ * Spacing is measured against **everything already placed**, land sites
+ * included, from the same list, for the reason the land sweep gives: two finds a
+ * player reads as one site are one site whatever ground they are on. The wider
+ * `ocean.minDistanceApart` then thins the sea further, because a crossing is
+ * long and two wrecks eight hexes apart are two voyages.
+ *
+ * No fairness pass: nobody starts at sea, and there is nothing to guarantee a
+ * seat about ground it cannot reach for an age. The **start exclusion does**
+ * hold — see the clause, and the one-rule-for-the-whole-board argument in it.
+ */
+function placeOceanSites(
+  map: GameMap,
+  rng: Rng,
+  startHexes: readonly Hex[],
+  placed: Hex[],
+  counts: Record<DiscoveryKind, number>,
+): void {
+  const { sitesPer1000Water, minDistanceApart } = PLACEMENT.ocean;
+  let deep = 0;
+  const candidates: Tile[] = [];
+  for (const tile of map.tiles) {
+    if (!isDeepWater(tile)) continue;
+    deep += 1;
+    if (tile.discovery !== undefined) continue;
+    // `minDistanceFromStart` holds out here too, and it is one rule for the
+    // whole board rather than two: the sea's own gate makes a wreck no kind of
+    // turn-one freebie, but a derelict drawn inside a capital's opening rings
+    // would still be a site the first galley ever built collects for nothing,
+    // and "no discovery stands that close to a start" is a claim the map should
+    // be able to make without an exception clause.
+    const hex = tileHex(tile);
+    if (
+      !startHexes.every(
+        (start) => wrappedDistance(map, hex, start) >= PLACEMENT.minDistanceFromStart,
+      )
+    ) {
+      continue;
+    }
+    candidates.push(tile);
+  }
+  if (candidates.length === 0) return;
+  const budget = Math.max(0, Math.round((deep / 1000) * sitesPer1000Water));
+  if (budget <= 0) return;
+
+  // Shuffled on a fresh array, exactly as the land candidates are, so *which*
+  // legal hex is considered first is the generator's own draw rather than a
+  // function of tile order.
+  shuffle(rng, candidates);
+  let seated = 0;
+  for (const tile of candidates) {
+    if (seated >= budget) break;
+    const hex = tileHex(tile);
+    if (placed.some((other) => wrappedDistance(map, hex, other) < minDistanceApart)) continue;
+    tile.discovery = 'wreck';
+    placed.push(hex);
+    counts.wreck += 1;
+    seated += 1;
+  }
+}
+
+/**
+ * Deep water: the ocean proper, not the shelf.
+ *
+ * Asked of the terrain rather than of `isWaterTerrain`, and the difference is
+ * the whole of the third layer's gate — a lake or a coastal shallow is
+ * reachable by anything that can embark, and the sea sites are meant to wait for
+ * a hull that crosses the open ocean.
+ */
+function isDeepWater(tile: Tile): boolean {
+  return tile.terrain === 'ocean';
 }
 
 /**

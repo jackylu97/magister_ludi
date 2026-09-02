@@ -81,6 +81,7 @@ import { type ExploreEndReport, aimExplorer, autoExploreError } from './explore'
 import type { ImprovementId } from './improvementData';
 import {
   type PillageReport,
+  type ProspectReport,
   buildImprovementAt,
   chopCity,
   chopError,
@@ -88,6 +89,8 @@ import {
   improvementError,
   pillageAt,
   pillageError,
+  prospectAt,
+  prospectError,
 } from './improvements';
 import { type DisbandReport, unitUpkeepOf } from './upkeep';
 import {
@@ -592,6 +595,32 @@ export interface BuildImprovementCommand extends PlayerCommand {
  */
 export interface ChopFeatureCommand extends PlayerCommand {
   type: 'chopFeature';
+  unitId: number;
+}
+
+/**
+ * Asks a hill what is under it. See `prospectAt` (`improvements.ts`) for the
+ * rules, and `veins.ts` for what put the answer there.
+ *
+ * `chopFeature`'s shape exactly — it names the unit and nothing else, it is
+ * instant, and it spends all remaining movement — and it names no tile for that
+ * command's reason: the hill is wherever the surveyor is standing, and a command
+ * that carried one could disagree with the ground.
+ *
+ * What it does **not** cost is a charge. Clearing a wood uses a worker up
+ * because something happens to the wood; a survey leaves the hillside as it
+ * found it and takes the day. That also makes it a verb an *explorer* can spend,
+ * which is the other half of the ratified act.
+ *
+ * A command of its own rather than a mode of `buildImprovement`, for the reason
+ * `chopFeature` is one: nothing stands on the tile afterwards, so folding them
+ * together would have meant an improvement id that names no improvement.
+ *
+ * Turn-gated like `moveUnit`: reading a hillside is an act, and a seat that has
+ * declared itself finished has finished acting.
+ */
+export interface ProspectCommand extends PlayerCommand {
+  type: 'prospect';
   unitId: number;
 }
 
@@ -1208,6 +1237,7 @@ export type Command =
   | SetAutoExploreCommand
   | BuildImprovementCommand
   | ChopFeatureCommand
+  | ProspectCommand
   | PillageCommand
   | PurchaseTileCommand
   | ChooseDiscoveryCommand
@@ -1278,6 +1308,7 @@ export type CommandResult =
       guilds?: GuildReport[];
       proclaimed?: ProclamationReport;
       purged?: PurgeReport;
+      prospect?: ProspectReport;
       campBounties?: { ownerId: number; col: number; row: number; bounty: CampBounty }[];
       beads?: BeadAward[];
       beadAgeOpened?: BeadAge;
@@ -2296,6 +2327,48 @@ function applyChopFeature(state: GameState, command: ChopFeatureCommand): Comman
 }
 
 /**
+ * Asks a hill what is under it. See `ProspectCommand`, and `improvements.ts` for
+ * the rules.
+ *
+ * `applyChopFeature`'s twin, question for question: is this a real seat, may it
+ * still act, is that its unit — and everything about the *work* delegated whole
+ * to `prospectError`, which is what the unit sheet greys its Survey row with. So
+ * an offered row is a command this accepts, and the sentence a player reads on a
+ * refusal is this reducer's own.
+ *
+ * The report rides out on `CommandResult.prospect` rather than being announced
+ * here, and it is `arrivals`' argument in a fifth currency: by the time this
+ * returns the seam is an ordinary `Tile.resource` and the hill is marked
+ * surveyed, so nothing downstream could say whether the ore was struck this turn
+ * or has been sitting there since the map was made. The assay is banked by then
+ * too, and re-deriving which town received it would be a second implementation
+ * of `nearestOwnedCity`.
+ */
+function applyProspect(state: GameState, command: ProspectCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot survey`);
+  }
+
+  const unit = unitById(state, command.unitId);
+  if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
+  if (unit.ownerId !== actor.id) {
+    return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
+  }
+
+  const problem = prospectError(state, unit.id);
+  if (problem) return fail(problem);
+
+  // Validation is done — `prospectError` has already established that the unit
+  // is on the map and that what it is standing on is an unasked hill.
+  const tile = getTileAt(state.map, unit.col, unit.row)!;
+  const result = ok();
+  if (result.ok) result.prospect = prospectAt(state, unit, tile);
+  return result;
+}
+
+/**
  * Burns somebody else's works. See `PillageCommand`.
  *
  * The seat's questions here, the raid's delegated to `pillageError` — the same
@@ -3151,6 +3224,9 @@ function orderedUnitId(command: Command): number | undefined {
     case 'fortify':
     case 'buildImprovement':
     case 'chopFeature':
+    // A surveyor told to read a hill is a piece given an order, and it wakes
+    // like anybody else — the act spends its whole turn either way.
+    case 'prospect':
     case 'pillage':
     // An augur told to consecrate or to bless is an augur given an order, so it
     // wakes like anybody else — even though the first of the two spends it.
@@ -3322,6 +3398,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyBuildImprovement(state, command);
     case 'chopFeature':
       return applyChopFeature(state, command);
+    case 'prospect':
+      return applyProspect(state, command);
     case 'pillage':
       return applyPillage(state, command);
     case 'purchaseTile':

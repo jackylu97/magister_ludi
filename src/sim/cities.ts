@@ -59,6 +59,7 @@ import {
   isBuildingId,
   isWonder,
 } from './buildingData';
+import { discoveryKindTech } from './discoveryData';
 import type { Hex } from './hex';
 import {
   type GameMap,
@@ -1116,6 +1117,20 @@ export function nextCityName(state: GameState, ownerId: number): string {
  * Validates nothing. The rules are the command's job; this is the mechanism.
  */
 export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City {
+  // **A town covers what is buried under it** (the user's ruling, the layers
+  // pass). A gated site — a barrow nobody has the surveyors for yet — sits on
+  // the board waiting for an age, and a city founded on top of it would be a
+  // boon nothing could ever reach: `claimDiscoveryAt` refuses a hex a town
+  // stands on for the same reason every other verb does. So the site is dropped,
+  // quietly and without a report, exactly as the ratified note asks.
+  //
+  // Only the **gated** layers. A ruin or a village is claimed by the settler's
+  // own arrival on the way in (`arriveOnTile`, which runs before this), so there
+  // is nothing left to drop and a clause that dropped one anyway would be
+  // deleting a boon the player had already been dealt.
+  if (tile.discovery !== undefined && discoveryKindTech(tile.discovery) !== null) {
+    delete tile.discovery;
+  }
   const city = createCity(state, ownerId, nextCityName(state, ownerId), tile.col, tile.row);
   state.tileOwner[tileIndex(state.map, tile.col, tile.row)] = city.id;
   // The Founder's count (design ledger Entry VI). On the player rather than

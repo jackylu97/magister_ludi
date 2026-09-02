@@ -50,7 +50,8 @@
   "improvements": {
     "pillageGold": 25,
     "pillageHeal": 25,
-    "chopPerTech": 0.05
+    "chopPerTech": 0.05,
+    "assayGold": 15
   },
   "trade": {
     "routeTurns": 20,

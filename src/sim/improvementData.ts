@@ -388,6 +388,27 @@ export interface ImprovementData {
   improvements: Record<ImprovementId, ImprovementDef>;
   /** Which features a worker may clear, and what each one pays. May be empty. */
   chop: Partial<Record<FeatureId, ChopDef>>;
+  /** What the survey needs. See `ProspectDef`. */
+  prospect: ProspectDef;
+}
+
+/**
+ * The **survey**: what a worker or an explorer needs before it may ask a hill
+ * what is under it (`prospectError` / `prospectAt` in `improvements.ts`).
+ *
+ * A sibling block beside `chop` rather than a row inside `improvements`, and for
+ * `chop`'s own reason: a survey is not an improvement — nothing stands on the
+ * tile afterwards, there is no yield to name, no terrain list and no charge —
+ * and filing it as one would have meant six fields nobody could fill in.
+ *
+ * One field today, which is the honest size of it: the act costs the turn and
+ * pays `rules.improvements.assayGold`, and both of those are already written
+ * down somewhere a designer can find them. What lives here is the gate, so that
+ * nothing in `src/sim/` spells a tech id into a verb.
+ */
+export interface ProspectDef {
+  /** The technology that opens the act. */
+  tech: TechId;
 }
 
 export const IMPROVEMENT_DATA: ImprovementData = improvementsJson as ImprovementData;
@@ -446,6 +467,11 @@ export const CHOPPABLE_FEATURES = Object.keys(IMPROVEMENT_DATA.chop) as FeatureI
  */
 export function chopDef(feature: FeatureId): ChopDef | null {
   return IMPROVEMENT_DATA.chop[feature] ?? null;
+}
+
+/** What the survey needs. See `ProspectDef` — one lookup, one gate. */
+export function prospectDef(): ProspectDef {
+  return IMPROVEMENT_DATA.prospect;
 }
 
 /**

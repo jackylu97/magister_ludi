@@ -1292,6 +1292,15 @@ export type WindfallOccasion =
   | 'kill'
   /** An improvement pillaged (`pillageAt`). */
   | 'pillage'
+  /**
+   * A hill **surveyed** (`prospectAt`, the vein pass) — strike or barren.
+   *
+   * The occasion is the *asking*, not the finding, exactly as the assay it pays
+   * is (`rules.improvements.assayGold`). A rider that only paid on a strike
+   * would be a second rule about what a survey is, and the layer's whole thesis
+   * is that certainty is the thing being bought.
+   */
+  | 'prospect'
   /** A laden caravan destroyed (`settleTraderPlunder`, the trade pass). */
   | 'pillageTrader'
   /** A technology completed (`settleResearch`). */

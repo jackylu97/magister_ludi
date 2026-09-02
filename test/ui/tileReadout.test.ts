@@ -38,6 +38,7 @@ import { YIELD_GLYPH, type YieldKey } from '../../src/ui/figures';
 import {
   type TileYieldLine,
   describeImprovement,
+  describeSurvey,
   describeOccupant,
   describeTile,
   describeWater,
@@ -633,6 +634,31 @@ describe('what a city founded here would cost', () => {
     const hex = at(state, 9, 7);
     expect(foundingCostRow(state, 0, hex)).toBe(
       foundingCostText(explainFoundingCost(state, 0, hex)),
+    );
+  });
+});
+
+describe('the survey row', () => {
+  /**
+   * `Tile.surveyed` says **asked**, never *paid*, and it is a fact about the
+   * ground rather than about the seat — so the row has no technology gate and no
+   * player in it. An unasked hill says nothing at all, which is `describeWater`'s
+   * bargain: a row telling a player there is nothing to read is a line spent
+   * saying nothing.
+   */
+  it('says nothing about a hill nobody has asked', () => {
+    expect(describeSurvey(tile())).toBeNull();
+    expect(describeSurvey(tile({ hills: true }))).toBeNull();
+  });
+
+  it('names a barren hill plainly, and a struck one only as read', () => {
+    expect(describeSurvey(tile({ hills: true, surveyed: true }))).toBe(
+      'Surveyed — nothing found',
+    );
+    // The ore itself is the Resource row's business; this row's only job on a
+    // lucky hill is to explain why there is no second survey to spend.
+    expect(describeSurvey(tile({ hills: true, surveyed: true, resource: 'richOre' }))).toBe(
+      'Surveyed',
     );
   });
 });

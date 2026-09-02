@@ -1037,7 +1037,7 @@ describe('research in the log', () => {
     // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
     // double draft and The Holy Office's tenants move every replay with a
     // prophet or an augur in it.
-    expect(SCHEMA_VERSION).toBe(42);
+    expect(SCHEMA_VERSION).toBe(43);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

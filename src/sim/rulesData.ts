@@ -312,6 +312,22 @@ export interface ImprovementRules {
    * clearing early stays the efficient choice even as the ladder climbs.
    */
   chopPerTech: number;
+  /**
+   * The **assay**: gold banked to the surveying empire's nearest owned city
+   * every time a hill is prospected, strike or barren (the ratified vein spec,
+   * `docs/themes/11-the-cartographers.md`).
+   *
+   * Paid on the *asking* rather than on the finding, which is the whole thesis
+   * of the layer: what a survey buys is **certainty**, and a hill proved barren
+   * has been made worth exactly as much to know about as a hill proved rich. A
+   * bounty that paid only on a strike would have made the act a lottery ticket
+   * and the barren mark a wasted turn.
+   *
+   * An Entry XVIII windfall like every other figure in this block — a printed
+   * number, composed with its riders by `windfallPayout` before a coin is
+   * banked, and modifier-immune afterwards.
+   */
+  assayGold: number;
 }
 
 /**

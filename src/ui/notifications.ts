@@ -31,7 +31,9 @@
  * only ever be told what that seat was told.
  */
 
+import { type DiscoveryKind, discoveryKindTech } from '../sim/discoveryData';
 import { type GameState, type ReligionId, cityReligion, playerById } from '../sim/state';
+import { hasTech } from '../sim/tech';
 import { HIDDEN, isVisibleTo, visibilityAt } from '../sim/visibility';
 import { beliefDef, isBeliefId } from '../sim/religionData';
 import type { CellRef } from './mapView';
@@ -187,12 +189,18 @@ export function createNotificationLog(options: NotificationLogOptions = {}): Not
 // --- sightings ---------------------------------------------------------------
 
 /**
- * The three things a seat can *come to know about* without issuing an order for
- * it. Ruins and villages are ground; a camp is an occupation. See the fog split
- * in `render3d/sites3d.ts` — this module answers the same two questions the
- * renderer does, and deliberately with the same two rules.
+ * The things a seat can *come to know about* without issuing an order for it.
+ * Every kind of discovery site is ground; a camp is an occupation. See the fog
+ * split in `render3d/sites3d.ts` — this module answers the same two questions
+ * the renderer does, and deliberately with the same two rules, and since the
+ * layers landed it answers a **third** with it: a seat is not told about a site
+ * its empire has no word for (`discoveryKindTech`), because a notice for a thing
+ * the board is not drawing is a line pointing at nothing.
+ *
+ * A union over `DiscoveryKind` rather than a hand-written list, so a fifth layer
+ * cannot ship a sighting nobody wrote a sentence for.
  */
-export type SightingKind = 'ruins' | 'village' | 'camp';
+export type SightingKind = DiscoveryKind | 'camp';
 
 /** One thing the local seat has just learned is there. */
 export interface Sighting {
@@ -210,6 +218,8 @@ export interface Sighting {
 const SIGHTING_TEXT: Readonly<Record<SightingKind, string>> = {
   ruins: 'You sight ancient ruins.',
   village: 'You sight a tribal village.',
+  antiquity: 'Your surveyors mark a barrow worth opening.',
+  wreck: 'Your lookouts sight something adrift.',
   camp: 'A barbarian camp menaces the frontier.',
 };
 
@@ -303,6 +313,11 @@ export function createSightingWatcher(): SightingWatcher {
       // ruin. Explored is enough — a site the seat has walked past and left
       // behind is still a site they know about.
       if (visibilityAt(state, seatId, tile.col, tile.row) === HIDDEN) continue;
+      // The gate, read off the one lookup the reducer refuses with and the board
+      // draws with (`discoveryKindTech`): an empire with no word for buried
+      // antiquities is not told about one. See `SightingKind`.
+      const gate = discoveryKindTech(kind);
+      if (gate !== null && !hasTech(state, seatId, gate)) continue;
       found.push({
         sighting: { kind, col: tile.col, row: tile.row, text: SIGHTING_TEXT[kind] },
         epoch: 0,

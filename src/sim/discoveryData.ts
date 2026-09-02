@@ -44,20 +44,71 @@
 
 import discoveriesJson from '../../data/discoveries.json';
 import type { CityYieldKey } from './resourceData';
+import { type TechId, isTechId } from './techData';
 import { type UnitTypeId, isUnitTypeId } from './unitData';
 
 /**
- * The two kinds of site.
+ * The **four** kinds of site, and the layers they belong to.
  *
- * A union rather than a boolean, because they are not each other's negation on
- * any surface that matters: they are drawn differently (broken columns against a
- * cluster of huts), they lean on different halves of the pool, and they are
- * scattered in different numbers.
+ * A union rather than a boolean, because no two of them are each other's
+ * negation on any surface that matters: they are drawn differently (broken
+ * columns against a cluster of huts against a barrow against a wreck), they lean
+ * on different halves of the pool, and they are scattered in different numbers
+ * and on different ground.
+ *
+ * The layers (`docs/themes/11-the-cartographers.md`: the map keeps its secrets in
+ * layers, each **placed at generation and revealed later**, which is the only
+ * shape the "a save is `{config, log}`" promise allows):
+ *
+ *   `ruins` / `village`  the first wave, on land, claimable from turn one.
+ *   `antiquity`          the second wave, on the same ground, **gated**: an
+ *                        empire without the surveyor's technology walks over one
+ *                        and cannot see it, let alone claim it. The site stays
+ *                        for somebody learned.
+ *   `wreck`              the deep water, needing no gate at all — the ocean is
+ *                        its own lock, and it opens when a hull can cross it.
  */
-export type DiscoveryKind = 'ruins' | 'village';
+export type DiscoveryKind = 'ruins' | 'village' | 'antiquity' | 'wreck';
 
-/** Both kinds, in the order everything that walks them walks them. */
-export const DISCOVERY_KINDS: readonly DiscoveryKind[] = ['ruins', 'village'];
+/** Every kind, in the order everything that walks them walks them. */
+export const DISCOVERY_KINDS: readonly DiscoveryKind[] = [
+  'ruins',
+  'village',
+  'antiquity',
+  'wreck',
+];
+
+/**
+ * What a *kind* of site is — as opposed to what one *offers*, which is a row.
+ *
+ * The table that made the second and third layers data rather than branches: a
+ * gate is `requiresTech` and a sea site is `water`, so `claimDiscoveryAt` stayed
+ * **one function** and the placement pass grew one candidate rule rather than a
+ * parallel list. A fifth layer is a JSON object.
+ */
+export interface DiscoveryKindDef {
+  /** What it is called, in plain words. */
+  name: string;
+  /**
+   * The technology an empire needs before it may **claim** one — and, on every
+   * surface that draws the board, before it may even be *shown* one. Absent for
+   * the layers nothing gates.
+   *
+   * One field, two consequences, and they must not drift apart: a marker a seat
+   * can see but not claim is a promise the reducer refuses, and a site a seat
+   * can claim but not see is a boon nobody will ever walk to. `discoveryClaimError`
+   * is the rule; `sites3d.ts` draws off the same lookup.
+   */
+  requiresTech?: TechId;
+  /**
+   * True when this kind is seeded on **deep water** instead of on land.
+   *
+   * Presence-shaped rather than a terrain list, because it is not a constraint
+   * on a hex — it is which of the generator's two scatters deals the kind at
+   * all. See `placeDiscoveries`.
+   */
+  water?: true;
+}
 
 /**
  * A lump into one basket of a city. Which city is not written here: it is
@@ -96,8 +147,14 @@ export interface DiscoveryDef {
   name: string;
   /** One line of flavour for the choice card. Never a rule. */
   flavor: string;
-  /** Draw weight per kind of site. Zero means "never here". */
-  weights: Record<DiscoveryKind, number>;
+  /**
+   * Draw weight per kind of site. Zero — or absent — means "never here".
+   *
+   * Partial since the layers landed, and deliberately so: a row that has nothing
+   * to say about the sea says nothing, rather than writing a zero it would have
+   * to keep in step with a fifth kind later.
+   */
+  weights: Partial<Record<DiscoveryKind, number>>;
   effect: DiscoveryEffect;
 }
 
@@ -140,10 +197,35 @@ export interface DiscoveryPlacementConfig {
    * `discoveryPlacement.ts`'s `ensureStartDiscoveries` docblock.
    */
   fairness: { radius: number; minWithinRadius: number };
+  /**
+   * The **second wave**, dealt on the same ground and by the same sweep as the
+   * first — its own per-continent budget and nothing else, because everything
+   * that made the first wave fair to a start (the exclusion radius, the spacing,
+   * the shuffled candidate list) is exactly as true of the second.
+   *
+   * There is deliberately **no fairness top-up** for it. The first wave's floor
+   * exists so a scout has something to find in the opening; the second is a
+   * whole age away, by which time an empire's borders decide what it finds far
+   * more than the deal does — and a top-up planted near every *possible* start
+   * would seed the map's antiquities into twelve capital rings.
+   */
+  antiquities: { sitesPerContinent: { min: number; max: number } };
+  /**
+   * The **deep water**, dealt per thousand ocean tiles rather than per
+   * continent, because the sea is not carved into regions and a budget per
+   * landmass would have no meaning out there.
+   *
+   * Spaced wider than the land sites are, and for a reason a hull can feel: a
+   * crossing is long, so two finds eight hexes apart read as two voyages, while
+   * two finds four hexes apart read as one.
+   */
+  ocean: { sitesPer1000Water: number; minDistanceApart: number };
 }
 
 export interface DiscoveryData {
   placement: DiscoveryPlacementConfig;
+  /** What each kind of site *is* — the gate and the ground. See `DiscoveryKindDef`. */
+  kinds: Record<DiscoveryKind, DiscoveryKindDef>;
   /**
    * Tunables that no longer exist, with what replaced them and why — the same
    * changelog-as-data convention `MapgenConfig.retired` uses, kept here rather
@@ -186,7 +268,36 @@ export function isDiscoveryId(value: unknown): value is DiscoveryId {
 
 /** Runtime guard for the site kind, for the same reason. */
 export function isDiscoveryKind(value: unknown): value is DiscoveryKind {
-  return value === 'ruins' || value === 'village';
+  return (
+    typeof value === 'string' &&
+    Object.prototype.hasOwnProperty.call(DISCOVERY_DATA.kinds, value)
+  );
+}
+
+/**
+ * What this kind of site *is* — the gate and the ground.
+ *
+ * **The** lookup: the claim rule, the placement pass and every surface that
+ * draws a marker ask this one function, so a layer's gate cannot be true in the
+ * reducer and false on the board. See `DiscoveryKindDef`.
+ */
+export function discoveryKindDef(kind: DiscoveryKind): DiscoveryKindDef {
+  const def = DISCOVERY_DATA.kinds[kind];
+  if (!def) throw new Error(`Unknown discovery kind "${kind}"`);
+  return def;
+}
+
+/**
+ * The technology a seat needs before this kind of site exists for it at all, or
+ * `null`. One reading for the claim and for the marker — see `requiresTech`.
+ */
+export function discoveryKindTech(kind: DiscoveryKind): TechId | null {
+  return discoveryKindDef(kind).requiresTech ?? null;
+}
+
+/** True when this kind is seeded on deep water rather than on land. */
+export function discoveryKindIsWater(kind: DiscoveryKind): boolean {
+  return discoveryKindDef(kind).water === true;
 }
 
 /** This row's draw weight at a site of this kind. Never negative. */
@@ -221,6 +332,26 @@ export function discoveryDataProblems(): string[] {
   }
   if (placement.fairness.radius < placement.minDistanceFromStart) {
     problems.push('fairness.radius is inside minDistanceFromStart, so the top-up could never plant anything');
+  }
+
+  for (const kind of DISCOVERY_KINDS) {
+    const def = DISCOVERY_DATA.kinds[kind];
+    if (!def) {
+      problems.push(`discovery kind "${kind}" has no row in the kinds table`);
+      continue;
+    }
+    if (def.requiresTech !== undefined && !isTechId(def.requiresTech)) {
+      problems.push(`discovery kind "${kind}" names unknown technology "${def.requiresTech}"`);
+    }
+  }
+  if (!(placement.antiquities.sitesPerContinent.max >= placement.antiquities.sitesPerContinent.min)) {
+    problems.push('antiquities.sitesPerContinent is not a valid range');
+  }
+  if (placement.ocean.sitesPer1000Water < 0) {
+    problems.push('ocean.sitesPer1000Water is negative');
+  }
+  if (placement.ocean.minDistanceApart < 1) {
+    problems.push('ocean.minDistanceApart would let two sea sites stack');
   }
 
   for (const id of DISCOVERY_IDS) {

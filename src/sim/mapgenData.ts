@@ -28,6 +28,7 @@
 import mapgenJson from '../../data/mapgen.json';
 
 import type { FbmOptions, RidgedOptions } from './noise';
+import type { ResourceId } from './resourceData';
 import type { ResourceConfig } from './resources';
 import type { TerrainId } from './terrainData';
 import type { RiverConfig } from './water';
@@ -224,7 +225,40 @@ export interface MapgenConfig {
   };
   rivers: RiverConfig;
   resources: ResourceConfig;
+  veins: VeinConfig;
   starts: StartsConfig;
+}
+
+/**
+ * What is buried under the hills, and how often — the *invisible* layer of the
+ * map (`veins.ts`, and the ratified spec in `docs/themes/11-the-cartographers.md`).
+ *
+ * A separate block from `resources` for `DiscoveryPlacementConfig`'s reason one
+ * scale down: a vein is not a rarer resource, it is a resource nobody can see
+ * until a worker spends a turn asking the hill. Tuning "how often does a survey
+ * pay" and "how much iron is lying on the ground" are two designer questions and
+ * one dial for both would answer neither.
+ */
+export interface VeinConfig {
+  /**
+   * Share of **eligible hills** that carry a vein — a hill with no surface
+   * resource that at least one vein row could legally sit on.
+   *
+   * It is the hit rate of a survey read straight off the map, which is the whole
+   * reason the number is a share rather than a count: a player who surveys the
+   * hills of their own province and a player who surveys a continent are asking
+   * the same question and get the same odds.
+   */
+  share: number;
+  /**
+   * What may be buried, in **ascending rarity**, weighted against each other.
+   *
+   * A list rather than three named tiers, so the age's gate metal joins by a
+   * JSON row on the day the roster grows one — the `resourceEffects.ts` bargain
+   * applied to what is under the ground. A row whose resource cannot legally sit
+   * on a given hill is simply not drawn there; see `placeVeins`.
+   */
+  kinds: { resource: ResourceId; weight: number }[];
 }
 
 export const MAPGEN_CONFIG: MapgenConfig = mapgenJson as MapgenConfig;

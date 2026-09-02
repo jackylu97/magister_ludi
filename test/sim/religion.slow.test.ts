@@ -236,7 +236,7 @@ describe('determinism', () => {
     // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
     // double draft and The Holy Office's tenants move every replay with a
     // prophet or an augur in it.
-    expect(SCHEMA_VERSION).toBe(42);
+    expect(SCHEMA_VERSION).toBe(43);
     const played = playFaithful(90);
     // The empire actually got there: an augur was bought out of faith it earned,
     // rites were performed, and a god was named. A determinism test over a log

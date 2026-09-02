@@ -142,6 +142,31 @@
     "startLuxuryKinds": 2,
     "startLuxuryCopies": 2
   },
+  "veins": {
+    "share": 0.33,
+    "kinds": [
+      {
+        "resource": "richOre",
+        "weight": 62
+      },
+      {
+        "resource": "iron",
+        "weight": 26
+      },
+      {
+        "resource": "gems",
+        "weight": 5
+      },
+      {
+        "resource": "silver",
+        "weight": 4
+      },
+      {
+        "resource": "gold",
+        "weight": 3
+      }
+    ]
+  },
   "starts": {
     "spacingFactor": 0.55,
     "minDistance": 5,

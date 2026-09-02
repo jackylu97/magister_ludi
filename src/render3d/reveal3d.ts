@@ -3,7 +3,18 @@
  *
  * Fog asks whether a seat has *charted* a hex. This asks the other half of the
  * same question — whether it can **name** what is standing on one — and it has
- * exactly one subject: the diorama props for tech-gated resources. A player who
+ * two subjects: the diorama props for tech-gated resources, and, since the vein
+ * layer landed, the props the board baked over a **buried seam** nobody has
+ * surveyed yet (`Tile.vein`).
+ *
+ * The second subject is the same mechanism answering a question about the
+ * *board* rather than about the seat: the board is built once per game, so a
+ * resource that appears mid-game has no prop unless one was baked for it, and a
+ * survey striking ore is exactly that. The bake lays the ore down veiled; the
+ * strike flips one boolean and the frame draws it, for every seat at once,
+ * because a strike is public. No rebuild, no new seam, and no notification to
+ * plumb through the reducer — see "What it costs" below, which is why this pass
+ * is re-asked on the frame in the first place. A player who
  * has not researched Bronze Working sees a bare hill where the iron is, and the
  * turn the technology lands the ore appears, in the same breath as the lens
  * roundel, the hover card's label and the tile's yield. All four are derived
@@ -74,7 +85,9 @@ export class RevealView {
   private disposed = false;
 
   constructor(cells: readonly ResourcePropCell[]) {
-    this.gated = cells.filter((cell) => resourceDef(cell.resource).requiresTech !== undefined);
+    this.gated = cells.filter(
+      (cell) => cell.vein === true || resourceDef(cell.resource).requiresTech !== undefined,
+    );
     this.painted = this.gated.map(() => null);
   }
 
@@ -96,8 +109,24 @@ export class RevealView {
 
     for (let i = 0; i < this.gated.length; i++) {
       const entry = this.gated[i]!;
+      // **A buried seam is veiled until somebody digs it up.** The board baked
+      // the ore where `Tile.vein` said it was, so the props exist from the first
+      // frame and stand invisible; the moment a survey turns the seam over
+      // (`prospectAt` writes `Tile.resource` and deletes `Tile.vein`) this
+      // answer flips and the ore appears — on **every** seat, because a strike
+      // is public, and on the very next frame, because this pass is re-asked on
+      // the frame exactly as the fog is.
+      //
+      // The check is against the *tile* rather than against a flag this layer
+      // keeps, and that is deliberate: the state is the only thing that knows
+      // whether the hill has been asked, and a second record here would be a
+      // second answer that could disagree with it after a save is loaded.
+      const struck =
+        entry.vein !== true ||
+        (state !== null && state.map.tiles[entry.cell]?.resource === entry.resource);
       const veiled =
-        state !== null && seat !== null && !isResourceVisible(state, seat, entry.resource);
+        !struck ||
+        (state !== null && seat !== null && !isResourceVisible(state, seat, entry.resource));
       if (veiled === this.painted[i]) continue;
       this.painted[i] = veiled;
       changed += 1;

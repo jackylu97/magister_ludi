@@ -551,6 +551,19 @@ export const RESOURCE_MARKS: Readonly<Record<string, ResourceMark>> = {
   // Saltpetre, which the alchemists' node names: the flask it is boiled in, on
   // its own base, with the level of the liquor across it. A vessel rather than a
   // mineral because the seam is a *worked* one — a niter bed is a built thing.
+  // The seam a survey turns up: a split boulder with two nodules showing in the
+  // break. Read against `iron` (an anvil — the *worked* metal) and `stone` (a cut
+  // block — the *quarried* one), this is neither: it is rock that has been broken
+  // open, which is the whole of what a strike is.
+  richOre: drawn(
+    'a split boulder, two nodules showing in the break',
+    'M4 20L2 11L7 4H17L22 11L20 20Z',
+    'M9 4L11 12L8 20',
+    'M11 12L18 9',
+    'M13 14L15 16L13 18L11 16Z',
+    'M16 12L17 13L16 14L15 13Z',
+  ),
+
   niter: drawn(
     'a conical flask on a base, the liquor level across it',
     'M9.6 3.4h4.8',

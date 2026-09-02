@@ -45,6 +45,7 @@ import {
   IcosahedronGeometry,
   LatheGeometry,
   PlaneGeometry,
+  SphereGeometry,
   TorusGeometry,
   Vector2,
 } from 'three';
@@ -1179,6 +1180,131 @@ export function raiderCamp(size: number): BufferGeometry {
   rag.rotateZ(-0.16);
   rag.translate(size * 0.26, size * 0.74, -size * 0.12);
   parts.push(rag);
+
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * Buried antiquities: a low barrow with a cut in its flank and a lintel showing.
+ *
+ * The **fourth** of the "something is on this hex" sculpts and the hardest of the
+ * set to place, because it has to be tellable from `brokenColumns` — the other
+ * one made of old stone — under the fog wash at the ortho camera. So the two are
+ * built from opposite silhouettes: a ruin is a *broken vertical*, and this is a
+ * **low dome**, wider than it is tall, with nothing standing up off it at all.
+ * The only hard edge on it is the cut, which is what says the mound was made
+ * rather than grown.
+ *
+ * Nothing here is a column, a hut or a stake, and nothing is more than a quarter
+ * of the hex high — a barrow that stood up would be a hill, and the board
+ * already has hills.
+ */
+export function barrowMound(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+
+  // The mound: a squashed six-sided dome. Faceted rather than smooth, which is
+  // the toon board's rule and is also what keeps a low shape from reading as a
+  // puddle of shadow.
+  const mound = new SphereGeometry(size * 0.46, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2);
+  mound.scale(1, 0.42, 0.86);
+  mound.translate(0, size * 0.02, 0);
+  parts.push(mound);
+
+  // The cut into the flank: a squared trench, and the one hard edge on the prop.
+  const cut = new BoxGeometry(size * 0.22, size * 0.2, size * 0.3);
+  cut.rotateY(0.25);
+  cut.translate(size * 0.04, size * 0.1, size * 0.32);
+  parts.push(cut);
+
+  // Two uprights and a lintel over the cut — the doorway of the chamber, and the
+  // whole of what says somebody built this and somebody else has been in.
+  for (const side of [-1, 1]) {
+    const post = new BoxGeometry(size * 0.06, size * 0.2, size * 0.07);
+    post.translate(size * (0.04 + side * 0.11), size * 0.1, size * 0.45);
+    parts.push(post);
+  }
+  const lintel = new BoxGeometry(size * 0.32, size * 0.06, size * 0.09);
+  lintel.translate(size * 0.04, size * 0.23, size * 0.45);
+  parts.push(lintel);
+
+  // Two kerb stones at the foot, set off the axis: a barrow with a ring of kerb
+  // is a monument, and one without is a heap of earth.
+  const kerbs: [number, number][] = [
+    [-size * 0.44, size * 0.14],
+    [size * 0.38, -size * 0.26],
+  ];
+  for (const [x, z] of kerbs) {
+    const stone = new BoxGeometry(size * 0.13, size * 0.11, size * 0.12);
+    stone.rotateY(x * 7);
+    stone.translate(x, size * 0.055, z);
+    parts.push(stone);
+  }
+
+  const merged = merge(parts);
+  for (const part of parts) part.dispose();
+  return flatten(merged);
+}
+
+/**
+ * A find at sea: a hull heeled over with its mast snapped short.
+ *
+ * The **fifth** site sculpt and the only one that stands on water, which settles
+ * most of its design: there is no ground line to build off, so the silhouette
+ * has to be a single canted mass — a hull lying over — rather than the cluster
+ * or the ring the land props use. A player reads it as *a thing that has fallen
+ * on its side*, which is a shape nothing else on the board makes.
+ *
+ * The mast is short on purpose. A full spar would be the tallest vertical on
+ * open water and would read from three hexes away as a ship somebody is sailing,
+ * which is the one thing a derelict must never be mistaken for.
+ */
+export function seaWreck(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+
+  // The hull: a long box heeled to one side and down by the head, so the whole
+  // prop leans even before anything is put on it.
+  const hull = new BoxGeometry(size * 0.86, size * 0.2, size * 0.3);
+  hull.rotateZ(0.28);
+  hull.rotateY(0.36);
+  hull.translate(0, size * 0.09, 0);
+  parts.push(hull);
+
+  // The stem, rising out of the low end: the one curve-suggesting piece, and
+  // what keeps the hull from reading as a crate.
+  const stem = new BoxGeometry(size * 0.1, size * 0.3, size * 0.12);
+  stem.rotateZ(-0.5);
+  stem.rotateY(0.36);
+  stem.translate(-size * 0.34, size * 0.2, -size * 0.14);
+  parts.push(stem);
+
+  // The mast, snapped at half height and leaning with the hull.
+  const mast = shaft(size * 0.42, size * 0.035, 4);
+  mast.rotateZ(0.34);
+  mast.rotateY(0.36);
+  mast.translate(size * 0.04, size * 0.16, size * 0.02);
+  parts.push(mast);
+
+  // The spar it carried, fallen across the deck rather than still aloft.
+  const spar = new CylinderGeometry(size * 0.025, size * 0.025, size * 0.34, 4, 1);
+  spar.rotateZ(Math.PI / 2);
+  spar.rotateY(1.1);
+  spar.translate(size * 0.18, size * 0.19, size * 0.06);
+  parts.push(spar);
+
+  // Two pieces of wreckage floating off the stern: what makes one canted box
+  // read as the *remains* of something.
+  const flotsam: [number, number, number][] = [
+    [size * 0.46, -size * 0.3, 0.13],
+    [size * 0.3, size * 0.4, 0.09],
+  ];
+  for (const [x, z, scale] of flotsam) {
+    const plank = new BoxGeometry(size * scale * 2, size * 0.04, size * scale);
+    plank.rotateY(x * 5);
+    plank.translate(x, size * 0.02, z);
+    parts.push(plank);
+  }
 
   const merged = merge(parts);
   for (const part of parts) part.dispose();

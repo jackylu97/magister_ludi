@@ -20,6 +20,8 @@ import {
   type DiscoveryId,
   discoveryDataProblems,
   discoveryDef,
+  discoveryKindIsWater,
+  discoveryKindTech,
   discoveryWeight,
 } from '../../src/sim/discoveryData';
 import { discoveryCells, placeDiscoveries } from '../../src/sim/discoveryPlacement';
@@ -100,6 +102,9 @@ function offerOf(state: GameState, playerId: number, id: DiscoveryId, col = 5, r
   };
 }
 
+/** Every kind that is dealt on land — the three the sea is not. */
+const LAND_KINDS = DISCOVERY_KINDS.filter((kind) => !discoveryKindIsWater(kind));
+
 describe('the discovery pool', () => {
   it('is internally consistent', () => {
     expect(discoveryDataProblems()).toEqual([]);
@@ -116,18 +121,27 @@ describe('the discovery pool', () => {
     expect(discoveryWeight('laborersJoinYou', 'village')).toBeGreaterThan(
       discoveryWeight('laborersJoinYou', 'ruins'),
     );
-    // No row is exclusive to one kind today: a village that could never yield a
-    // mason's hoard is a worse village, and a ruin that could never yield
-    // provisions is a worse ruin. The data *may* say zero (the type allows it);
-    // the shipped table deliberately does not.
+    // No row is exclusive to one kind **on land**: a village that could never
+    // yield a mason's hoard is a worse village, and a ruin that could never
+    // yield provisions is a worse ruin. The data *may* say zero (the type
+    // allows it); the shipped land table deliberately does not, and the second
+    // wave inherits the first's column for the same reason.
     for (const id of DISCOVERY_IDS) {
-      for (const kind of DISCOVERY_KINDS) {
+      for (const kind of LAND_KINDS) {
+        // A sea row is not a land row that happens to be rare — a derelict hull
+        // is not a thing anybody finds in a wood — so it is excused, by reading
+        // its own column rather than by name.
+        if (discoveryWeight(id, 'wreck') > 0 && discoveryWeight(id, 'ruins') === 0) continue;
         expect(`${id}/${kind}: ${discoveryWeight(id, kind) > 0}`).toBe(`${id}/${kind}: true`);
       }
     }
+    // And the sea's own column is real: the deep water can deal something.
+    let atSea = 0;
+    for (const id of DISCOVERY_IDS) atSea += discoveryWeight(id, 'wreck');
+    expect(atSea).toBeGreaterThan(0);
   });
 
-  it('carries the eight rows the design asked for, with their printed numbers', () => {
+  it('carries the eleven rows the design asked for, with their printed numbers', () => {
     // The pool as shipped. A ledger entry in test form: if a payoff moves, this
     // is where the design is told about it.
     const printed = Object.fromEntries(
@@ -152,7 +166,165 @@ describe('the discovery pool', () => {
       aGuideOffersService: 'scout',
       laborersJoinYou: 'worker',
       tradersHoard: 25,
+      // The deep water's three (the layers pass). Sized like the ruins' better
+      // halves and no larger: a crossing is a long investment, not a jackpot,
+      // and the layer's scarcity is the ocean rather than the payout.
+      derelictHull: 40,
+      drownedTemple: 25,
+      pilotsCharts: 12,
     });
+  });
+
+  it('gates the second wave and leaves the first and the sea open', () => {
+    // One field, and it is what makes the layers layers: the barrows wait on a
+    // technology, the ruins never did, and the sea is locked by the sea. Read
+    // off the same lookup the reducer refuses with and the board draws with.
+    expect(discoveryKindTech('ruins')).toBeNull();
+    expect(discoveryKindTech('village')).toBeNull();
+    expect(discoveryKindTech('antiquity')).not.toBeNull();
+    expect(discoveryKindTech('wreck')).toBeNull();
+    expect(discoveryKindIsWater('wreck')).toBe(true);
+    for (const kind of LAND_KINDS) expect(discoveryKindIsWater(kind)).toBe(false);
+  });
+});
+
+describe('the map’s later layers', () => {
+  /**
+   * The second and third waves (ledger Entry LVIII, phase 3). Three claims, and
+   * each fails for its own reason:
+   *
+   *   1. **The gate is one field with two consequences.** An empire without the
+   *      surveyor's node cannot claim a barrow *and* is not shown one; a
+   *      marker a seat can see but not claim is a promise the reducer breaks.
+   *   2. **A site refused is a site left standing.** Walking over one does
+   *      nothing at all — the boon waits for somebody learned, exactly as it
+   *      waits for a player who already owes an answer.
+   *   3. **The sea needs no gate.** The ocean is its own lock, so a hull that
+   *      gets there claims like anything else.
+   */
+  const GATE = discoveryKindTech('antiquity')!;
+
+  function walkOnto(state: GameState, playerId: number, col: number, row: number) {
+    const unit = createUnit(state, playerId, 'scout', col, row);
+    return arriveOnTile(state, unit, at(state, col, row));
+  }
+
+  it('leaves a gated site standing for an empire with no word for it', () => {
+    const state = bareState();
+    playerById(state, 0)!.techsResearched = TECH_IDS.filter((id) => id !== GATE);
+    at(state, 5, 5).discovery = 'antiquity';
+
+    const report = walkOnto(state, 0, 5, 5);
+    expect(report.discovery).toBeNull();
+    // **Left standing**, which is the whole rule: nothing was consumed, so the
+    // barrow is still there for the empire that trains its surveyors.
+    expect(at(state, 5, 5).discovery).toBe('antiquity');
+    expect(playerById(state, 0)!.pendingDiscovery).toBeUndefined();
+  });
+
+  it('claims the same site the moment the node lands', () => {
+    const state = bareState();
+    playerById(state, 0)!.techsResearched = [...TECH_IDS];
+    at(state, 5, 5).discovery = 'antiquity';
+
+    const report = walkOnto(state, 0, 5, 5);
+    expect(report.discovery).not.toBeNull();
+    expect(at(state, 5, 5).discovery).toBeUndefined();
+    expect(playerById(state, 0)!.pendingDiscovery).toBeDefined();
+  });
+
+  it('says why, in the seat’s own words, through the one gate every surface asks', () => {
+    const state = bareState();
+    playerById(state, 0)!.techsResearched = TECH_IDS.filter((id) => id !== GATE);
+    const unit = createUnit(state, 0, 'scout', 5, 5);
+    at(state, 5, 5).discovery = 'antiquity';
+    expect(discoveryClaimError(state, unit, at(state, 5, 5))).toMatch(/no word yet/);
+    // The first wave is untouched by any of this.
+    at(state, 5, 5).discovery = 'ruins';
+    expect(discoveryClaimError(state, unit, at(state, 5, 5))).toBeNull();
+  });
+
+  it('drops a gated site under a new town, quietly', () => {
+    // The user's ruling: a barrow a city is founded on is covered for good —
+    // `claimDiscoveryAt` refuses a hex a town stands on, so leaving it there
+    // would be a boon nothing could ever reach.
+    const state = bareState();
+    at(state, 5, 5).discovery = 'antiquity';
+    foundCityAt(state, 0, at(state, 5, 5));
+    expect(at(state, 5, 5).discovery).toBeUndefined();
+  });
+
+  it('leaves an ungated site alone when a town is founded on it', () => {
+    // Only the gated layers are dropped: a ruin is claimed by the settler's own
+    // arrival on the way in, so a clause that dropped one anyway would delete a
+    // boon the player had already been dealt.
+    const state = bareState();
+    at(state, 5, 5).discovery = 'ruins';
+    foundCityAt(state, 0, at(state, 5, 5));
+    expect(at(state, 5, 5).discovery).toBe('ruins');
+  });
+
+  it('lets a hull claim a find at sea, with no gate at all', () => {
+    // The third layer needs no technology clause: nothing can reach the deep
+    // ocean until a hull can cross it, and `claimDiscoveryAt` has never had an
+    // opinion about terrain.
+    const state = bareState();
+    playerById(state, 0)!.techsResearched = TECH_IDS.filter((id) => id !== GATE);
+    const tile = at(state, 5, 5);
+    tile.terrain = 'ocean';
+    tile.discovery = 'wreck';
+    const unit = createUnit(state, 0, 'bireme', 5, 5);
+    expect(discoveryClaimError(state, unit, tile)).toBeNull();
+    const offer = claimDiscoveryAt(state, unit, tile);
+    expect(offer).not.toBeNull();
+    expect(offer!.kind).toBe('wreck');
+    expect(tile.discovery).toBeUndefined();
+  });
+
+  it('deals a sea find only rows that make sense at sea', () => {
+    // The unit rows carry no `wreck` weight, so a derelict never offers a scout
+    // there would be nowhere to land — the pool says so rather than the
+    // settlement warning about it afterwards.
+    const state = bareState();
+    for (let i = 0; i < 40; i++) {
+      for (const id of drawDiscoveryOffer(state, 'wreck', 3)) {
+        expect(discoveryDef(id).effect.kind, id).not.toBe('unit');
+      }
+    }
+  });
+
+  it('places all three layers deterministically, and the sea only on deep water', () => {
+    const a = generateMap(4242, 'duel');
+    const b = generateMap(4242, 'duel');
+    expect(discoveryCells(a)).toEqual(discoveryCells(b));
+
+    const kinds = new Set(discoveryCells(a).map((cell) => cell.kind));
+    expect(kinds.has('ruins') || kinds.has('village')).toBe(true);
+    for (const cell of discoveryCells(a)) {
+      const tile = getTileAt(a, cell.col, cell.row)!;
+      // A sea find is on the ocean proper, never on the shelf or on land; every
+      // land layer is on ground a unit could stand on.
+      expect(tile.terrain === 'ocean', `${cell.kind} at ${cell.col},${cell.row}`).toBe(
+        discoveryKindIsWater(cell.kind),
+      );
+    }
+  });
+
+  it('seeds the second wave on land, clear of every start, like the first', () => {
+    const map = generateMap(777, 'standard');
+    const barrows = discoveryCells(map).filter((cell) => cell.kind === 'antiquity');
+    expect(barrows.length).toBeGreaterThan(0);
+    const starts = chooseStartPositions(map, RULES.game.maxPlayers).map((tile) => tileHex(tile));
+    for (const cell of barrows) {
+      const hex = tileHex(getTileAt(map, cell.col, cell.row)!);
+      for (const start of starts) {
+        expect(`${cell.col},${cell.row}`).toBe(
+          wrappedDistance(map, hex, start) >= PLACEMENT.minDistanceFromStart
+            ? `${cell.col},${cell.row}`
+            : 'too close to a start',
+        );
+      }
+    }
   });
 });
 

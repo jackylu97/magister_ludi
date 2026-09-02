@@ -1016,7 +1016,7 @@ describe('determinism', () => {
     // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
     // double draft and The Holy Office's tenants move every replay with a
     // prophet or an augur in it.
-    expect(SCHEMA_VERSION).toBe(42);
+    expect(SCHEMA_VERSION).toBe(43);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

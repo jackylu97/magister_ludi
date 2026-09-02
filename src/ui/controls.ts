@@ -213,6 +213,7 @@ import {
   type ImprovementId,
   chopDef,
   improvementDef,
+  prospectDef,
 } from '../sim/improvementData';
 import {
   type PillageReport,
@@ -225,8 +226,11 @@ import {
   improvementYieldDelta,
   isBuilder,
   pillageError,
+  prospectError,
+  prospectTechError,
 } from '../sim/improvements';
 import { type Tile, getTileAt, mapRange, tileHex } from '../sim/map';
+import { resourceDef } from '../sim/resourceData';
 import { authorityOf, happinessOf } from '../sim/meters';
 import { findPath, reachableTiles } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
@@ -1903,6 +1907,22 @@ export interface GameControls {
    * `chopDef(feature).tech` field that sentence was built from.
    */
   chopTechName(): string | null;
+  /**
+   * Why the selected piece cannot survey the hill it stands on, `null` when it
+   * can, `undefined` when nothing is selected — `chopBlocker`'s shape exactly,
+   * and the same guarantee: an enabled Survey row is a command the reducer
+   * takes.
+   */
+  prospectBlocker(): string | null | undefined;
+  /**
+   * The technology a greyed Survey row is waiting on, or `null` —
+   * `chopTechName`'s sibling, and derived the same way: by comparing
+   * `prospectBlocker`'s sentence against `prospectTechError`'s, never by
+   * parsing it.
+   */
+  prospectTechName(): string | null;
+  /** Surveys the hill the selected piece is standing on. */
+  prospect(): void;
   chop(): void;
   /**
    * Why the selected unit cannot pillage where it stands, or `null` when it can.
@@ -5072,6 +5092,73 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * Why the selected piece cannot survey where it stands. The seat's question
+   * here, the act's delegated to `prospectError` — `chopBlocker`'s split, and
+   * the same guarantee.
+   */
+  function prospectBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    return prospectError(getGame().state, unit.id);
+  }
+
+  /**
+   * See `GameControls.prospectTechName`. `chopTechName`'s twin, and it asks
+   * `prospectBlocker` rather than `prospectError` a second time so it agrees
+   * with whatever the panel is actually showing.
+   */
+  function prospectTechName(): string | null {
+    const unit = selectedUnit();
+    if (!unit) return null;
+    const blocked = prospectBlocker();
+    if (!blocked) return null;
+    // Equal to `blocked` iff the technology is the *only* thing refusing this
+    // hill — `chopTechName`'s reading of the comparison.
+    if (prospectTechError(getGame().state, unit.ownerId) !== blocked) return null;
+    return techDef(prospectDef().tech).name;
+  }
+
+  /**
+   * Asks the hill. The command, then the one line that says what came of it.
+   *
+   * The report rides out on the `CommandResult` rather than being re-derived
+   * here, and it has to: by the time this returns the seam is an ordinary
+   * resource and the hill is marked surveyed, so nothing on the board would say
+   * whether the ore was struck this turn. See `applyProspect`.
+   *
+   * A **strike names the seam** and a barren hill says so plainly, because
+   * "nothing here" is the thing the player just bought and a silent row would
+   * read as a command that failed.
+   */
+  function prospect(): void {
+    const unit = selectedUnit();
+    if (!unit || prospectBlocker() !== null) return;
+    const at = { col: unit.col, row: unit.row };
+    const command: Command = { type: 'prospect', playerId: localPlayerId, unitId: unit.id };
+    const result = commit(command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    const report = result.prospect;
+    if (report) {
+      const struck = report.struck === null ? null : resourceDef(report.struck).name;
+      const assay =
+        report.cityName === null
+          ? ''
+          : ` · +${report.gold}${YIELD_GLYPH.gold} → ${report.cityName}`;
+      announce(
+        struck === null ? `Surveyed: nothing found${assay}` : `Struck ${struck}!${assay}`,
+        { cell: at },
+      );
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
    * Why the selected unit cannot pillage. The seat's questions here, the raid's
    * delegated to `pillageError` — the same split as `foundCityBlocker`.
    */
@@ -6433,6 +6520,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     improvementOptions,
     buildImprovement,
     chopBlocker,
+    prospect,
+    prospectBlocker,
+    prospectTechName,
     chopPreview,
     chopTechName,
     chop,

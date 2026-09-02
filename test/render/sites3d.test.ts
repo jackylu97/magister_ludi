@@ -8,7 +8,8 @@ import { SiteLayer, signSites } from '../../src/render3d/sites3d';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { type GameState, newGame } from '../../src/sim/state';
-import { DISCOVERY_KINDS } from '../../src/sim/discoveryData';
+import { TECH_IDS } from '../../src/sim/techData';
+import { DISCOVERY_KINDS, discoveryKindTech } from '../../src/sim/discoveryData';
 import { computeFreshwater } from '../../src/sim/water';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 
@@ -366,10 +367,22 @@ describe('the standing site markers', () => {
     const quads = DISCOVERY_KINDS.map((kind) => geometry.siteMarkers[kind]);
     expect(new Set(quads).size).toBe(DISCOVERY_KINDS.length);
 
+    // One of every kind, so "each kind prints from its own cell" is asked of
+    // every kind rather than of the two the first wave ships.
     const state = flatState();
-    at(state, 2, 2).discovery = 'ruins';
-    at(state, 5, 3).discovery = 'village';
+    const seats: [number, number][] = [
+      [2, 2],
+      [5, 3],
+      [8, 4],
+      [11, 5],
+    ];
+    DISCOVERY_KINDS.forEach((kind, i) => {
+      const [col, row] = seats[i]!;
+      at(state, col, row).discovery = kind;
+    });
     const layer = new SiteLayer();
+    // No seat: the omniscient board, which is what makes this a test about the
+    // atlas rather than about the second wave's gate (that has its own test).
     layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons);
 
     const printed = meshesOf(layer.group).filter(
@@ -455,5 +468,91 @@ describe('the fingerprint', () => {
     const b = flatState();
     b.camps.push({ col: 7, row: 6, foundedTurn: 1 });
     expect(signSites(a)).not.toBe(signSites(b));
+  });
+});
+
+describe('the second wave and the seat that cannot name it', () => {
+  /**
+   * **One field, two consequences** (`DiscoveryKindDef.requiresTech`). A seat
+   * without the surveyor's node is shown neither the barrow nor the pin over it,
+   * because a marker a seat can see and cannot claim is a promise
+   * `discoveryClaimError` breaks. The gate is read here off the same lookup the
+   * reducer refuses with, so the two cannot drift.
+   *
+   * It is deliberately **not** a veil (`reveal3d.ts`'s bit): this layer is
+   * rebuilt per seat off the fog anyway, so the cheapest correct thing is to not
+   * draw the instance at all.
+   */
+  const GATE = discoveryKindTech('antiquity')!;
+
+  it('draws nothing at all for a seat with no word for it', () => {
+    const state = flatState();
+    at(state, 2, 2).discovery = 'antiquity';
+    state.players[0]!.techsResearched = TECH_IDS.filter((id) => id !== GATE);
+
+    const layer = new SiteLayer();
+    const geometry = new BoardGeometry();
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons, new Quaternion(), 0);
+    expect(layer.instances).toBe(0);
+    expect(layer.markers).toBe(0);
+
+    // …and everything the moment the node lands. Prop and pin together: a site
+    // half-drawn is a site a player cannot read.
+    state.players[0]!.techsResearched = [...TECH_IDS];
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons, new Quaternion(), 0);
+    expect(layer.instances).toBe(1);
+    expect(layer.markers).toBe(1);
+    layer.dispose();
+  });
+
+  it('leaves the first wave and the sea alone', () => {
+    const state = flatState();
+    at(state, 2, 2).discovery = 'ruins';
+    at(state, 5, 3).discovery = 'wreck';
+    state.players[0]!.techsResearched = [];
+
+    const layer = new SiteLayer();
+    layer.build(
+      state,
+      new BoardGeometry(),
+      materials(),
+      false,
+      levels(state, VISIBLE),
+      fakeIcons,
+      new Quaternion(),
+      0,
+    );
+    expect(layer.instances).toBe(2);
+    layer.dispose();
+  });
+
+  it('draws everything for the omniscient board', () => {
+    // `seat === null` is the galleries and the map inspection page, and it takes
+    // the same "draw everything by not asking" default `RevealView` takes.
+    const state = flatState();
+    at(state, 2, 2).discovery = 'antiquity';
+    state.players[0]!.techsResearched = [];
+
+    const layer = new SiteLayer();
+    layer.build(state, new BoardGeometry(), materials(), false, levels(state, VISIBLE), fakeIcons);
+    expect(layer.instances).toBe(1);
+    layer.dispose();
+  });
+
+  it('puts the seat’s own answer in the fingerprint, so the node rebuilds the layer', () => {
+    // The register's rule, one scale over from `signUnits`: a site's own fields
+    // do not move when an empire finishes a technology, so without this the
+    // barrows would stay off the board until something unrelated rebuilt the
+    // layer. A seat change moves it for the same reason.
+    const state = flatState();
+    at(state, 2, 2).discovery = 'antiquity';
+    state.players[0]!.techsResearched = TECH_IDS.filter((id) => id !== GATE);
+    const before = signSites(state, 0);
+    state.players[0]!.techsResearched = [...TECH_IDS];
+    expect(signSites(state, 0)).not.toBe(before);
+    // The bit is folded in whether or not a barrow is actually on the board,
+    // which is deliberate and costs one rebuild: what it hashes is the *seat's
+    // answer*, so the layer cannot be left holding a picture drawn for an empire
+    // that has since learned the word.
   });
 });

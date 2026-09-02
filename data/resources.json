@@ -1220,6 +1220,31 @@
         }
       ],
       "emoji": "🐚"
+    },
+    "richOre": {
+      "name": "Rich Ore",
+      "kind": "bonus",
+      "yields": {
+        "food": 0,
+        "production": 2,
+        "gold": 1
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "validFeatures": [
+        "none",
+        "forest",
+        "jungle"
+      ],
+      "hills": true,
+      "buried": true,
+      "frequency": 0,
+      "emoji": "🪙"
     }
   }
 }

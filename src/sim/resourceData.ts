@@ -352,6 +352,24 @@ export interface ResourceDef {
   emoji: string;
   /** Relative weight in the placement draw. Not a count. */
   frequency: number;
+  /**
+   * This row is **never scattered on the surface** — it exists only under the
+   * ground, and the one thing that ever puts it on a tile is a survey striking
+   * a vein (`veins.ts`, `prospectAt` in `improvements.ts`).
+   *
+   * **Presence is the marker**, `charges`' and `consecrates`' convention: a
+   * buried row is filtered out of the scatter's own table in `resources.ts`, so
+   * the dice `placeResources` spends are the dice it spent before this field
+   * existed and every surface map on every seed is bit-identical.
+   *
+   * Its `validTerrain` / `validFeatures` / `hills` are still honest and still
+   * load-bearing — they are what `placeVeins` asks before it may seed one, so a
+   * struck vein leaves the tile in a state the generator could have produced.
+   * What it may *not* have is a `frequency`, which is why the table's
+   * non-positive check excuses a buried row: a weight in a draw it is never in
+   * would be a dial a designer turned expecting something to happen.
+   */
+  buried?: true;
   /** Inclusive `[min, max]` tiles one find spreads over. Absent means 1. */
   clusterSize?: [number, number];
 }
@@ -596,7 +614,13 @@ function validateTable(): void {
     if (def.requiresTech !== undefined && !TECH_IDS.includes(def.requiresTech)) {
       throw new Error(`${where} names unknown technology "${def.requiresTech}"`);
     }
-    if (def.frequency <= 0) throw new Error(`${where} has a non-positive frequency`);
+    // A **buried** row is never in the surface draw, so it has no weight to
+    // give — see `ResourceDef.buried`. Everything else must have one, because a
+    // zero-weight row in a table it *is* in is a row that can never be placed
+    // and nothing would ever say so.
+    if (!def.buried && def.frequency <= 0) {
+      throw new Error(`${where} has a non-positive frequency`);
+    }
     const cluster = def.clusterSize;
     if (cluster && (cluster[0] < 1 || cluster[1] < cluster[0])) {
       throw new Error(`${where} has a nonsensical clusterSize [${cluster[0]}, ${cluster[1]}]`);

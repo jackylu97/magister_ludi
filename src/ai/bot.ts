@@ -70,7 +70,7 @@ import { fortifyError, previewCombat } from '../sim/combat';
 import type { Command } from '../sim/commands';
 import { autoExploreError, exploreTarget } from '../sim/explore';
 import { greatPersonChoiceError } from '../sim/greatPeople';
-import { improvementError, improvementErrorAt } from '../sim/improvements';
+import { improvementError, improvementErrorAt, prospectError } from '../sim/improvements';
 import { type ImprovementId, isImprovementId, workForFamily } from '../sim/improvementData';
 import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim/map';
 import { authorityOf } from '../sim/meters';
@@ -935,6 +935,26 @@ function workerCommand(state: GameState, player: Player, unit: Unit): Command | 
     if (improvementError(state, unit.id, improvement) === null) {
       return { type: 'buildImprovement', playerId: player.id, unitId: unit.id, improvement };
     }
+  }
+  /**
+   * **The survey, after the spade and only where the worker already stands.**
+   *
+   * Deliberately the smallest possible arm: no search, no scoring, no walking
+   * to a hill. A worker with nothing to build under it that happens to be
+   * standing on unasked high ground inside its own borders spends the turn
+   * asking, because the alternative on that hex is `standDown` — so the survey
+   * costs the bot nothing it was going to do anyway and the assay is free money.
+   *
+   * The territory clause is the bot's own, not the rule's (`prospectError` lets
+   * anybody survey anywhere): a bot that wandered off to read hills in the wild
+   * would be an exploration policy wearing a worker, and `nearestWorkableTile`
+   * below is the policy this piece actually has.
+   */
+  if (
+    prospectError(state, unit.id) === null &&
+    tileOwnerPlayerId(state, unit.col, unit.row) === player.id
+  ) {
+    return { type: 'prospect', playerId: player.id, unitId: unit.id };
   }
   const target = nearestWorkableTile(state, player, unit);
   if (target !== null) {

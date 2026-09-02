@@ -61,6 +61,7 @@ import {
   type DiscoveryId,
   type DiscoveryKind,
   discoveryDef,
+  discoveryKindTech,
   discoveryWeight,
   discoveryYieldKey,
   isDiscoveryId,
@@ -86,7 +87,7 @@ import {
   createUnit,
   playerById,
 } from './state';
-import { researchSettledBy, settleResearchWindfall } from './tech';
+import { hasTech, researchSettledBy, settleResearchWindfall } from './tech';
 import { awardOccasion } from './triumphs';
 import { type UnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
@@ -153,7 +154,7 @@ export function drawDiscoveryOffer(
  * Why this unit does not claim the site it is standing on, or `null` when it
  * does. A pure read, so the interface could paint it and a test can name it.
  *
- * Three refusals and each is a rule rather than a guard:
+ * Four refusals and each is a rule rather than a guard:
  *
  *   · **there is nothing here.** The common case.
  *   · **the wild does not claim.** A barbarian has no pools, no cities and no
@@ -165,12 +166,28 @@ export function drawDiscoveryOffer(
  *     Overwriting would silently destroy a boon the player had already been
  *     promised; refusing turns the blocker into what it is for — answer the ruin
  *     you found before you go looking for another.
+ *   · **an empire with no word for it does not claim it.** The second and third
+ *     layers of the map (`DiscoveryKindDef.requiresTech`): a barrow is invisible
+ *     until the surveyors are trained, so walking over one does nothing and the
+ *     site is left standing. It is the same refusal the "one at a time" clause
+ *     makes and for the same reason — a site consumed by somebody who could not
+ *     be paid for it is a boon deleted.
  */
 export function discoveryClaimError(state: GameState, unit: Unit, tile: Tile): string | null {
   if (tile.discovery === undefined) return `There is nothing to find on (${tile.col}, ${tile.row})`;
   const player = playerById(state, unit.ownerId);
   if (!player) return `No player with id ${String(unit.ownerId)}`;
   if (player.barbarian) return 'The wild has no use for what it never lost';
+  // **The layer's gate**, and it is the whole of the second wave's rule: an
+  // empire without the surveyor's technology walks over a barrow and nothing
+  // happens — the site is **left standing** rather than consumed, exactly as it
+  // is for a player who already owes an answer, and for the same reason. Read
+  // off `discoveryKindTech`, the one lookup the board draws the marker with, so
+  // a site nobody can see is never a site somebody could have claimed.
+  const gate = discoveryKindTech(tile.discovery);
+  if (gate !== null && !hasTech(state, player.id, gate)) {
+    return `${player.name} has no word yet for what is buried here`;
+  }
   if (player.pendingDiscovery !== undefined) {
     return `${player.name} has a discovery still awaiting judgment`;
   }

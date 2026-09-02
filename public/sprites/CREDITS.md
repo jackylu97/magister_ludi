@@ -422,6 +422,7 @@ written for it.
 | `bison` | *drawn here* | a bison head, shaggy crown and stub horns |
 | `horses` | Tabler `horse` | the badge set's horse, in full |
 | `iron` | *drawn here* | an anvil, horn out, on its foot |
+| `richOre` | *drawn here* | a split boulder, two nodules showing in the break |
 | `gems` | Tabler `diamond` | a cut gem, table and pavilion, with one facet line |
 | `silk` | *drawn here* | a bolt of cloth hung from a rail, its hem in points |
 | `wine` | Tabler `grape` | a bunch of grapes under a stem and a leaf |

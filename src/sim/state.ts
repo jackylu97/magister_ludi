@@ -559,8 +559,30 @@ import {
  *     the board a v41 log produces here is not the board it produced there — the
  *     agents it spent are worth less and the drafts it opened are dealt
  *     differently.
+ * 43: **The map's layers** (2026-09-02, ledger Entry LVIII, phase 3 — veins, the
+ *     second discovery wave, the deep sea). The **map a seed produces is
+ *     different**, which is the whole of why a v42 log cannot be replayed here:
+ *       · **Veins** are seeded under the hills by a new generation pass
+ *         (`placeVeins`), and `placeDiscoveries` now deals two further layers —
+ *         the barrows and the sea finds — after its own. Every one of those
+ *         draws comes off the same generator, so a v42 seed's board and this
+ *         one's agree on the terrain and the ruins and part company on
+ *         everything the new passes touched.
+ *       · **Rich ore is a new resource row**, the first that is never scattered
+ *         on the surface (`ResourceDef.buried`) — so the surface scatter is
+ *         bit-identical, and the tile a survey turns over is not.
+ *       · **`prospect` is a new command** and the two new tile fields it writes
+ *         (`Tile.vein`, `Tile.surveyed`) did not exist; a v42 log naming it is
+ *         a verb this build has never heard of, and a v42 log that does not is
+ *         a game played on a map without hills worth asking.
+ *       · **A city founded on a gated site drops it**, so a settler's arrival on
+ *         a hex that carried a barrow resolves differently.
+ *
+ *     The migration note: nothing to migrate. Both new tile fields are absent on
+ *     every v42 tile, which reads correctly as "nothing buried, nobody asked" —
+ *     what a v42 save cannot carry across is the map itself.
  */
-export const SCHEMA_VERSION = 42;
+export const SCHEMA_VERSION = 43;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

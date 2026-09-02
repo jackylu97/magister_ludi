@@ -59,13 +59,20 @@ import { resetVisibility } from '../../src/sim/visibility';
 // --- the table --------------------------------------------------------------
 
 describe('the resource table', () => {
-  it('names forty-two resources across the three kinds', () => {
-    expect(RESOURCE_IDS).toHaveLength(42);
+  it('names forty-three resources across the three kinds', () => {
+    expect(RESOURCE_IDS).toHaveLength(43);
     // Table order is iteration order and therefore part of every seeded outcome,
     // so each kind is asserted in order rather than sorted.
+    //
+    // **Rich ore is last on purpose** (the vein pass, 2026-09-02). It is the
+    // one row nothing scatters — `ResourceDef.buried`, filtered out of the
+    // surface draw's own table — and appending it rather than filing it beside
+    // the other minerals is what keeps every seed's surface bit-identical: the
+    // draw walks `resourcesOfKind('bonus')` in order, and a row inserted in the
+    // middle would have moved every wheat field in the game.
     expect(resourcesOfKind('bonus')).toEqual([
       'wheat', 'cattle', 'deer', 'fish', 'stone', 'rice', 'maize', 'bananas',
-      'copper', 'tin', 'clay', 'reeds', 'crabs', 'bison',
+      'copper', 'tin', 'clay', 'reeds', 'crabs', 'bison', 'richOre',
     ]);
     // **Niter** joined the strategics with the tree re-cut of 2026-09-02: the
     // closing node names it, and the Fire Lance is the one row that asks for it.
@@ -87,7 +94,12 @@ describe('the resource table', () => {
       for (const terrain of def.validTerrain) expect(TERRAIN_IDS).toContain(terrain);
       for (const feature of def.validFeatures ?? []) expect(FEATURE_IDS).toContain(feature);
       if (def.requiresTech !== undefined) expect(TECH_IDS).toContain(def.requiresTech);
-      expect(def.frequency).toBeGreaterThan(0);
+      // A **buried** row has no weight to give: it is never in the surface
+      // draw's table at all, and a number there would be a dial a designer
+      // turned expecting something to happen. Everything else must have one, or
+      // it is a row that can never be placed and nothing would say so.
+      if (def.buried) expect(def.frequency).toBe(0);
+      else expect(def.frequency).toBeGreaterThan(0);
     }
   });
 

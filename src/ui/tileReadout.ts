@@ -29,6 +29,11 @@ import {
   yieldContextFor,
 } from '../sim/cities';
 import { campAt } from '../sim/camps';
+import {
+  type DiscoveryKind,
+  discoveryKindDef,
+  discoveryKindTech,
+} from '../sim/discoveryData';
 import { improvementDef, improvementForResource } from '../sim/improvementData';
 import type { Tile } from '../sim/map';
 import { resourceDef } from '../sim/resourceData';
@@ -40,7 +45,7 @@ import {
   foundingCostLines,
 } from '../sim/meters';
 import { type GameState, playerById } from '../sim/state';
-import { visibleResourceAt } from '../sim/tech';
+import { hasTech, visibleResourceAt } from '../sim/tech';
 import { techDef } from '../sim/techData';
 import { TILE_YIELD_KEYS, featureDef, terrainDef } from '../sim/terrainData';
 import { hasFreshWater, isCoastal } from '../sim/water';
@@ -341,11 +346,17 @@ export function knowsCity(state: GameState, playerId: number, cityId: number, ti
   );
 }
 
-/** What a site of each kind is called, once, for every surface that names one. */
-const SITE_NAME: Readonly<Record<'ruins' | 'village', string>> = {
-  ruins: 'Ancient ruins',
-  village: 'Tribal village',
-};
+/**
+ * What a site of each kind is called.
+ *
+ * Read off `data/discoveries.json`'s own kind table rather than kept here, since
+ * the layers landed: the name, the gate and the ground are one row, and a
+ * surface that kept its own copy of the name would be a surface that had to be
+ * remembered when a fifth layer arrived.
+ */
+function siteName(kind: DiscoveryKind): string {
+  return discoveryKindDef(kind).name;
+}
 
 /**
  * Who or what is standing on the hex, in the seat's own words — the card's
@@ -409,7 +420,15 @@ export function describeOccupant(
 
   const site = tile.discovery;
   if (site && (omniscient || isExploredBy(state, playerId, tile.col, tile.row))) {
-    return `${SITE_NAME[site]} — unclaimed`;
+    // The gate, read off the one lookup the reducer refuses with and the board
+    // draws with: an empire with no word for what is buried here is told nothing
+    // at all, exactly as it is shown nothing. Omniscient readouts (the map
+    // inspection page, the galleries) see everything, which is the default every
+    // other per-seat rule in this file takes.
+    const gate = discoveryKindTech(site);
+    if (omniscient || gate === null || hasTech(state, playerId, gate)) {
+      return `${siteName(site)} — unclaimed`;
+    }
   }
 
   return null;
@@ -427,6 +446,27 @@ export function describeImprovement(tile: Tile): string | null {
   if (id === undefined) return null;
   const def = improvementDef(id);
   return `${def.emoji} ${def.name}`;
+}
+
+/**
+ * Whether this hill has been surveyed, and what came of it — or `null` on ground
+ * nobody has ever asked.
+ *
+ * `describeWater`'s shape and its bargain: `null` rather than "Survey: none",
+ * because a row telling a player there is nothing to read is a line spent
+ * saying nothing. An **unsurveyed** hill therefore says nothing at all, which
+ * is exactly right — a hill is a hill, and the whole design of the layer is
+ * that the map is silent about what is under it until somebody spends a turn.
+ *
+ * No seat and no technology gate, unlike almost everything else on this card:
+ * `Tile.surveyed` is a fact about the **ground**, so everybody's chart says the
+ * hill has been read. And it says *asked* rather than *found* — a strike leaves
+ * the ore standing in the Resource row above, so this row's only job on a lucky
+ * hill is to explain why there is no second survey to spend.
+ */
+export function describeSurvey(tile: Tile): string | null {
+  if (tile.surveyed !== true) return null;
+  return tile.resource === undefined ? 'Surveyed — nothing found' : 'Surveyed';
 }
 
 /**

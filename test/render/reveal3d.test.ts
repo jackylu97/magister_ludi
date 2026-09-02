@@ -326,3 +326,90 @@ describe('the layer’s lifetime', () => {
     board.dispose();
   });
 });
+
+describe('the seam the board baked ahead of time', () => {
+  /**
+   * **A vein's prop exists from the first frame and stands invisible.**
+   *
+   * The board is built once per game, so a resource that *appears* mid-game has
+   * no prop unless one was baked for it — and a survey striking ore is exactly
+   * that. The bake lays the ore down where `Tile.vein` says it is, files it as a
+   * vein cell, and this pass holds it veiled until the tile actually carries the
+   * resource. No rebuild, no new seam, and no notification plumbed through the
+   * reducer: the pass is re-asked on the frame exactly as the fog is.
+   *
+   * The other half of the bargain is asserted here too, and it is the one that
+   * would leak the map if it broke: an unsurveyed hill wears exactly the clutter
+   * a hill with nothing under it wears, so there is no bare patch for a player
+   * to read the answer off the board.
+   */
+  function bury(state: GameState, col: number, row: number): number {
+    const tile = getTileAt(state.map, col, row)!;
+    tile.hills = true;
+    tile.vein = 'richOre';
+    return tileIndex(state.map, col, row);
+  }
+
+  it('files the buried seam as a vein cell and veils it for everybody', () => {
+    const state = flatState();
+    const cell = bury(state, 4, 4);
+    const { board, reveal } = rig(state);
+
+    const entry = board.resourceCells.find((row) => row.cell === cell);
+    expect(entry?.vein).toBe(true);
+    expect(entry?.resource).toBe('richOre');
+
+    reveal.apply(state, 0);
+    expect(reveal.isVeiled(cell)).toBe(true);
+    for (const handle of propsAt(board, cell)) expect(isHidden(handle)).toBe(true);
+    board.dispose();
+  });
+
+  it('unveils the moment the survey turns the seam over, for every seat', () => {
+    const state = flatState();
+    const cell = bury(state, 4, 4);
+    const { board, reveal } = rig(state);
+    reveal.apply(state, 0);
+
+    // What `prospectAt` writes: the seam moves off `vein` and onto `resource`.
+    const tile = getTileAt(state.map, 4, 4)!;
+    tile.resource = tile.vein;
+    delete tile.vein;
+    tile.surveyed = true;
+
+    const stats = reveal.apply(state, 0);
+    expect(stats.cells).toBe(1);
+    expect(reveal.isVeiled(cell)).toBe(false);
+    for (const handle of propsAt(board, cell)) expect(isHidden(handle)).toBe(false);
+    // **A strike is public**: the second seat sees it without being told.
+    reveal.reset();
+    reveal.apply(state, 1);
+    expect(reveal.isVeiled(cell)).toBe(false);
+    board.dispose();
+  });
+
+  it('leaves the hill wearing its ordinary clutter, so the board says nothing', () => {
+    // The leak this clause exists to prevent: the resource branch in
+    // `addDecorations` *replaces* the generic scatter, so a vein prop emitted
+    // through it would have left an unsurveyed hill visibly bare.
+    const bare = flatState();
+    getTileAt(bare.map, 4, 4)!.hills = true;
+    const plain = rig(bare);
+    const seeded = flatState();
+    bury(seeded, 4, 4);
+    const buried = rig(seeded);
+
+    const cell = tileIndex(bare.map, 4, 4);
+    const count = (board: Rig['board']) => board.tiles.own.get(cell)?.length ?? 0;
+    const plainCount = count(plain.board);
+    expect(plainCount).toBeGreaterThan(0);
+    // The buried hill carries **everything the bare one carries**, plus the
+    // veiled prop — never less, which is what "no bare patch" means.
+    expect(count(buried.board)).toBeGreaterThan(plainCount);
+    expect(propsAt(buried.board, cell).length).toBe(
+      count(buried.board) - plainCount,
+    );
+    plain.board.dispose();
+    buried.board.dispose();
+  });
+});

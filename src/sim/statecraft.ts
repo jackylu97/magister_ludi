@@ -5449,6 +5449,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   death: 'losing a unit',
   kill: 'killing a unit',
   pillage: 'pillaging',
+  prospect: 'surveying a hill',
   pillageTrader: 'plundering a caravan',
   tech: 'completing a technology',
   tilePurchase: 'buying a hex',

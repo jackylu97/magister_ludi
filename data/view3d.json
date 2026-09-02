@@ -987,6 +987,18 @@
         "size": 0.46,
         "jitter": 0.05
       },
+      "antiquity": {
+        "color": "slate",
+        "shade": 0.02,
+        "size": 0.5,
+        "jitter": 0.05
+      },
+      "wreck": {
+        "color": "timber",
+        "shade": -0.12,
+        "size": 0.48,
+        "jitter": 0.04
+      },
       "camp": {
         "color": "raven",
         "shade": -0.18,

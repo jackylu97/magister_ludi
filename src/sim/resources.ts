@@ -1094,7 +1094,14 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
     ['strategic', config.strategicPer1000LandTiles],
   ] as const) {
     const budget = Math.max(0, Math.round((land / 1000) * per1000));
-    const table = resourcesOfKind(kind).filter((id) => candidates.has(id));
+    // A **buried** row is not on this table at all (`ResourceDef.buried`): rich
+    // ore is under the hill, and the only thing that ever puts it on a tile is a
+    // survey striking a vein. Filtered here rather than given a zero weight so
+    // the draw's own arithmetic is untouched — every seed's surface resources are
+    // bit-identical to what they were before veins existed.
+    const table = resourcesOfKind(kind).filter(
+      (id) => candidates.has(id) && resourceDef(id).buried !== true,
+    );
     // The sea's thumb on the scale (`seaFrequencyMultiplier`). Weights are built
     // once per kind and handed to `drawWeighted`, which the luxury deal already
     // uses for its own reason — a second copy of the draw loop reading

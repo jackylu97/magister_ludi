@@ -44,10 +44,13 @@
  * `Tile.improvement` is the farm or the mine a worker built; `Tile.feature` is
  * what a chop takes away; `Tile.discovery` is the ruin or village a scout
  * consumes by walking into it; `Tile.road` is the highway a caravan wore into
- * the ground. Those **four** are the fields that change during a
+ * the ground; `Tile.vein` is the seam a survey turns over into `resource`, and
+ * `Tile.surveyed` is the mark it leaves whether it found anything or not. Those
+ * **six** are the fields that change during a
  * game, and each docblock says why that is compatible with a save file carrying a
- * seed rather than a board. The discovery is the mildest of them — it can
- * only ever be *removed* — and it forbids exactly what the others do: nothing
+ * seed rather than a board. The discovery and the vein are the mildest of them —
+ * each can only ever be *removed*, and `surveyed` only ever *added* — and they
+ * forbid exactly what the others do: nothing
  * regenerates the map mid-game.
  *
  * THE INVARIANT: an edge is flagged on *both* of the tiles that share it. Bit
@@ -190,6 +193,52 @@ export interface Tile {
    * a design decision and not a convenience.
    */
   roadFree?: true;
+  /**
+   * The seam buried under this hill, or the key is **absent** — which it is on
+   * every hex nothing is under, and on every hex a survey has already turned
+   * over. Absence rather than a `'none'` sentinel, for the reason `resource`
+   * gives above.
+   *
+   * **The fifth field on a tile that changes during a game**, and the strangest
+   * of them: it is generation output like `discovery` — `placeVeins`
+   * (`veins.ts`, run after the ruins as the last pass of `generateMap`) seeds it
+   * from the seed and nothing else ever writes one — and like `discovery` it can
+   * only ever be *removed*. What it removes *into* is the difference: the one
+   * thing that deletes a vein is a survey striking it (`prospectAt`,
+   * `improvements.ts`), and the same act writes the seam onto `resource`. So the
+   * pair is a move rather than two edits, and a struck hill is a hill the
+   * generator could have produced in the first place — which is exactly what
+   * `placeVeins` checks before it seeds one.
+   *
+   * **Nothing may read this but the survey.** It is a secret the map keeps: a
+   * yield that counted it, a lens that drew it or an AI that steered by it would
+   * be the map leaking through a surface, and the whole design of the layer is
+   * that certainty costs a worker's turn. `test/mapgen/veins.test.ts` reads the
+   * sources and fails on a second reader.
+   *
+   * The save-file promise survives exactly as it does for `discovery`: a strike
+   * is caused by a *logged command*, and a replay sends the same worker onto the
+   * same hill and turns over the same ground.
+   */
+  vein?: ResourceId;
+  /**
+   * A survey has asked this hill, or the key is **absent**. Public, permanent,
+   * and set **whether or not anything was found** — which is the whole point of
+   * it: "surveyed" means *asked*, so the barren mark and the strike are one
+   * field and the map fills in with certainty either way.
+   *
+   * **The sixth field on a tile that changes during a game**, and the mildest of
+   * all of them — it can only ever be *added*, once, by `prospectAt`, and
+   * nothing takes it off again. It is `roadFree`'s shape (`presence is the
+   * state`) rather than a boolean that is usually `false`, so a map nobody has
+   * ever surveyed serialises exactly as it did before the field existed.
+   *
+   * It is a fact about the **ground**, not about a seat: everybody's chart says
+   * this hill has been read, because a survey is a thing that visibly happens to
+   * a hillside. The per-seat alternative — every empire asking the same hill for
+   * itself — is docblocked on `prospectAt` and deliberately not built.
+   */
+  surveyed?: true;
 }
 
 export interface GameMap {

@@ -19,7 +19,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { getTileAt, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
-import { DISCOVERY_DATA } from '../../src/sim/discoveryData';
+import { DISCOVERY_DATA, discoveryKindIsWater } from '../../src/sim/discoveryData';
 import { discoveryCells } from '../../src/sim/discoveryPlacement';
 import { generateMap } from '../../src/sim/mapgen';
 import { MAPGEN_CONFIG } from '../../src/sim/mapgenData';
@@ -47,8 +47,17 @@ describe('placing discoveries', () => {
     const reach = PLACEMENT.fairness.radius;
     for (let i = 0; i < sites.length; i++) {
       const tile = getTileAt(map, sites[i]!.col, sites[i]!.row)!;
-      expect(isWaterTerrain(tile.terrain)).toBe(false);
-      expect(tile.terrain).not.toBe('mountain');
+      // The **sea layer** is the one exception to the ground rules, and it is a
+      // different rule rather than a relaxed one: a find at sea stands on deep
+      // ocean and nowhere else (`DiscoveryKindDef.water`, and `isDeepWater` in
+      // the placement pass). Everything dealt on land still keeps the first
+      // wave's three clauses exactly.
+      if (discoveryKindIsWater(sites[i]!.kind)) {
+        expect(tile.terrain).toBe('ocean');
+      } else {
+        expect(isWaterTerrain(tile.terrain)).toBe(false);
+        expect(tile.terrain).not.toBe('mountain');
+      }
       expect(tile.resource).toBeUndefined();
       for (let j = i + 1; j < sites.length; j++) {
         const other = getTileAt(map, sites[j]!.col, sites[j]!.row)!;

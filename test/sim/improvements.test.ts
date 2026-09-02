@@ -194,8 +194,20 @@ describe('the improvement table', () => {
     // resource on water goes to the boats and to nothing else, and no land
     // resource wanders into them.
     for (const id of RESOURCE_IDS) {
-      const wet = resourceDef(id).validTerrain.every(isWaterTerrain);
+      const def = resourceDef(id);
+      const wet = def.validTerrain.every(isWaterTerrain);
       const wants = improvementForResource(id);
+      // **Rich ore is the one row with no improver, and deliberately** (the
+      // vein pass): it pays its yield off the ground the moment a survey turns
+      // it up, so a seam clause would have taken a forested hill the strike
+      // landed on and refused it both the mine (no trees allowed) and the
+      // lumbermill (the seam wants a mine) — a hex nothing could be built on.
+      // "A bonus resource nothing improves stays free" is `improvementErrorAt`'s
+      // own stated rule, and this is the first row that stands on it.
+      if (def.buried) {
+        expect(wants, `${id} is buried and wants nothing`).toBeNull();
+        continue;
+      }
       expect(wants, `${id} is improved by something`).not.toBeNull();
       expect(wants === 'fishingBoats', `${id} wants fishing boats`).toBe(wet);
     }
@@ -656,14 +668,16 @@ describe('buildImprovement', () => {
         const tile = at(state, 5, 4);
         tile.resource = undefined;
         expect(improvementError(state, worker.id, 'farm')).toBeNull();
-        // Every land resource the table names has an improver today, so "a
-        // bonus resource nobody improves stays free" has no land row to stand
-        // on — the four unimproved ones are all at sea. Pinned as a property of
-        // the table so the day a land row is added with no improver, the rule
-        // above is already known to let it through.
+        // "A bonus resource nobody improves stays free" now has a land row
+        // standing on it: rich ore, which a survey turns up and which no
+        // improvement claims (see the table test above for why). Every *other*
+        // unimproved row is still at sea. Pinned as a property of the table, so
+        // a second unimproved land row is a decision rather than a drift.
         for (const resource of RESOURCE_IDS) {
           if (improvementForResource(resource) !== null) continue;
-          expect(resourceDef(resource).validTerrain?.every(isWaterTerrain) ?? false).toBe(true);
+          const def = resourceDef(resource);
+          if (def.buried) continue;
+          expect(def.validTerrain?.every(isWaterTerrain) ?? false).toBe(true);
         }
       });
 
@@ -1978,7 +1992,7 @@ describe('improvements in the log', () => {
         // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
     // double draft and The Holy Office's tenants move every replay with a
     // prophet or an augur in it.
-    expect(SCHEMA_VERSION).toBe(42);
+    expect(SCHEMA_VERSION).toBe(43);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

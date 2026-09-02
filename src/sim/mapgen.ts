@@ -90,6 +90,7 @@ import { placeDiscoveries } from './discoveryPlacement';
 import { createNoise3D, fbm3, ridged3, type Noise3D } from './noise';
 import { placeResources } from './resources';
 import { makeRng, nextUint32 } from './rng';
+import { placeVeins } from './veins';
 import { isWaterTerrain, type FeatureId, type TerrainId } from './terrainData';
 import {
   type RiverTrace,
@@ -907,6 +908,13 @@ export function generateMapDetail(
   // exactly as they are dealt luxuries); the carve itself rolls no dice, so this
   // costs the stream nothing. See `discoveryPlacement.ts`.
   placeDiscoveries(map, rng, config.resources);
+
+  // Pass 8: what is under the hills, and it is **last** for the fourth time for
+  // the same reason — every draw made here is a draw nothing before it can see,
+  // so terrain, water, resources and every ruin on a given seed are
+  // bit-identical to what they were before veins existed. See `veins.ts`, and
+  // note that nothing but the survey may ever read what this writes.
+  placeVeins(map, rng, config.veins);
 
   return { map, rivers, lakeCount, floodplainCount };
 }

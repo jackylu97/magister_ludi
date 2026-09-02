@@ -218,6 +218,17 @@ export interface UnitPanelOptions {
   chopTechName: () => string | null;
   onChop: () => void;
   /**
+   * Why the selected piece cannot survey the hill it stands on —
+   * `controls.prospectBlocker()`. `chopBlocker`'s shape.
+   */
+  prospectBlocker: () => string | null | undefined;
+  /**
+   * The technology a greyed Survey row is waiting on, or `null` —
+   * `controls.prospectTechName()`. Never parsed out of the blocker's sentence.
+   */
+  prospectTechName: () => string | null;
+  onProspect: () => void;
+  /**
    * Why the selected unit cannot pillage — the same three-valued shape as
    * `foundCityBlocker`, answered by `controls.pillageBlocker()`.
    */
@@ -540,6 +551,9 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     chopPreview,
     chopTechName,
     onChop,
+    prospectBlocker,
+    prospectTechName,
+    onProspect,
     pillageBlocker,
     onPillage,
     consecrateBlocker,
@@ -843,6 +857,18 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // reason: `plantingHandOf` gives it the holy site and nothing else, so six
     // greyed farm rows and an axe under its four ministries would be the sheet
     // offering spadework a prophet will never do.
+    /**
+     * Who is ever offered the survey row: the same pieces `prospectError` will
+     * accept — a worker, or the empire's eyes — minus the charge-carriers whose
+     * charge buys something else entirely (a great person, a prophet, an
+     * inquisitor), which is exactly the exclusion the improvement rows make one
+     * line down and for its reason.
+     */
+    const canSurvey =
+      (isBuilder(unit) || isExplorer(unitDef(unit.type))) &&
+      !person &&
+      !isProphet(unit) &&
+      !isInquisitor(unit);
     if (isBuilder(unit) && !person && !isProphet(unit) && !isInquisitor(unit)) {
       for (const option of improvementOptions()) {
         const delta = yieldDeltaNodes(option.delta);
@@ -894,6 +920,33 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
           : 'Spend a charge: clear the feature on this tile',
         title: techHoverTitle(chopTechName(), chopBlocked ?? null),
         run: onChop,
+      });
+    }
+    /**
+     * The survey, and it is **outside** the builder block on purpose: a scout
+     * reads a hillside as well as a worker does (`prospectError` asks
+     * `isBuilder || isExplorer`, of the data and never of a type name), so a row
+     * gated on being a builder would have hidden half the act.
+     *
+     * *Greyed* rather than hidden when the ground refuses, which is the axe's
+     * reading and Fortify's before it: "this is not a hill" is a fact about this
+     * hex this turn, and the piece will be standing somewhere else tomorrow.
+     * Hiding it would make the verb something a player discovers by wandering
+     * onto high ground.
+     *
+     * No payout on the label, unlike the axe's, and that is the act itself
+     * rather than an omission: what a survey buys is an *answer*, and a label
+     * that quoted the assay would be advertising the consolation prize as the
+     * reason to spend the turn.
+     */
+    if (canSurvey) {
+      const prospectBlocked = prospectBlocker();
+      actions.push({
+        label: 'Survey',
+        blocked: prospectBlocked === undefined ? 'No unit selected' : prospectBlocked,
+        hint: 'Spend the turn: ask this hill what is under it',
+        title: techHoverTitle(prospectTechName(), prospectBlocked ?? null),
+        run: onProspect,
       });
     }
     // The augur's two verbs, and the order is the decision: **Consecrate first**,

@@ -69,6 +69,7 @@ import {
   describeImprovement,
   describeOccupant,
   describeTile,
+  describeSurvey,
   describeWater,
   foundingCostRow,
   resourceRequirementNode,
@@ -391,6 +392,7 @@ const infoFounding = requireElement<HTMLElement>('info-founding');
 const infoYields = requireElement<HTMLElement>('info-yields');
 const infoResource = requireElement<HTMLElement>('info-resource');
 const infoImprovement = requireElement<HTMLElement>('info-improvement');
+const infoSurvey = requireElement<HTMLElement>('info-survey');
 const infoOccupant = requireElement<HTMLElement>('info-occupant');
 const infoUnit = requireElement<HTMLElement>('info-unit');
 
@@ -1082,6 +1084,7 @@ function clearInfoRows(): void {
     infoYields,
     infoResource,
     infoImprovement,
+    infoSurvey,
     infoOccupant,
     infoUnit,
   ]) {
@@ -1765,6 +1768,9 @@ async function boot(initial: Game | null): Promise<void> {
       showTileYields(game.state, seat, hover.tile);
       showTileResource(game.state, seat, hover.tile);
       setInfoRow(infoImprovement, describeImprovement(hover.tile));
+      // The survey mark: seatless and gateless, because it is a fact about the
+      // hillside rather than about who is looking at it. See `describeSurvey`.
+      setInfoRow(infoSurvey, describeSurvey(hover.tile));
       setInfoRow(infoOccupant, describeOccupant(game.state, seat, hover.tile));
     } else {
       setInfoRow(infoTerrain, null);
@@ -3768,6 +3774,12 @@ async function boot(initial: Game | null): Promise<void> {
     chopTechName: () => controls.chopTechName(),
     onChop: () => {
       controls.chop();
+      updatePanel(null, renderer.getHover());
+    },
+    prospectBlocker: () => controls.prospectBlocker(),
+    prospectTechName: () => controls.prospectTechName(),
+    onProspect: () => {
+      controls.prospect();
       updatePanel(null, renderer.getHover());
     },
     pillageBlocker: () => controls.pillageBlocker(),

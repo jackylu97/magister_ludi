@@ -86,9 +86,14 @@
 
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
-import type { DiscoveryKind } from '../sim/discoveryData';
+import {
+  DISCOVERY_KINDS,
+  type DiscoveryKind,
+  discoveryKindTech,
+} from '../sim/discoveryData';
 import { type Tile, tileIndex } from '../sim/map';
 import type { GameState } from '../sim/state';
+import { hasTech } from '../sim/tech';
 import { EXPLORED, HIDDEN } from '../sim/visibility';
 
 import type { TileIcons } from './badges3d';
@@ -119,7 +124,38 @@ const LENS = VIEW3D.lens;
 const STREAM = { place: 130, yaw: 131 } as const;
 
 /** Site kinds as small integers, so the fingerprint stays integer maths. */
-const SITE_INDEX: Record<SiteKind, number> = { ruins: 0, village: 1, camp: 2 };
+const SITE_INDEX: Record<SiteKind, number> = {
+  ruins: 0,
+  village: 1,
+  antiquity: 2,
+  wreck: 3,
+  camp: 4,
+};
+
+/**
+ * May this seat be shown this kind of site at all?
+ *
+ * The **second wave's gate**, read here off the same lookup the reducer refuses
+ * with (`discoveryKindTech`, `discoveryData.ts`) — one field, two consequences,
+ * and the whole reason they cannot drift: a marker a seat can see but not claim
+ * is a promise `discoveryClaimError` breaks, and a site a seat can claim but not
+ * see is a boon nobody will ever walk to.
+ *
+ * `seat === null` is the omniscient board — the galleries, the map inspection
+ * page — and it sees everything, which is the same "draw everything by not
+ * asking" default `RevealView` takes for the identical situation.
+ *
+ * It is emphatically **not** a fog rule and not a veil: an ungated seat does not
+ * get a hidden instance, it gets no instance. A veil is for something the board
+ * baked once and hands to every seat (`reveal3d.ts`); this layer is rebuilt per
+ * seat off the fog anyway, so the cheapest correct thing is to not draw it.
+ */
+function seatSeesKind(state: GameState, seat: number | null, kind: DiscoveryKind): boolean {
+  const tech = discoveryKindTech(kind);
+  if (tech === null) return true;
+  if (seat === null) return true;
+  return hasTech(state, seat, tech);
+}
 
 export class SiteLayer {
   readonly group = new Group();
@@ -141,6 +177,17 @@ export class SiteLayer {
     levels: FogLevels = null,
     icons: TileIcons | null = null,
     faceCamera: Quaternion = new Quaternion(),
+    /**
+     * The seat being drawn, or `null` for the omniscient board.
+     *
+     * The layer already filtered by seat through `levels`; this is the *other*
+     * per-seat question — "does this empire have a word for what that is" — and
+     * it is passed rather than derived because a layer that reached into
+     * `state.players` for a seat id would be a second answer to who is watching.
+     * See `seatSeesKind`, and `signSites`, which hashes the same answer so a
+     * technology completing rebuilds this layer.
+     */
+    seat: number | null = null,
   ): void {
     disposeInstancedGroup(this.group);
 
@@ -240,6 +287,10 @@ export class SiteLayer {
       const kind = tile.discovery;
       if (kind === undefined) continue;
       if (levelAt(levels, map, tile.col, tile.row) === HIDDEN) continue;
+      // The gate, before the fog and before the atlas: a seat with no word for
+      // buried antiquities is shown neither the mound nor the pin over it. See
+      // `seatSeesKind`.
+      if (!seatSeesKind(state, seat, kind)) continue;
       place(tile.col, tile.row, kind);
       if (icons) plant(tile, kind, icons);
     }
@@ -327,9 +378,18 @@ export class SiteLayer {
  * two states that differ in it are genuinely different states, and mixing the two
  * traversals into one hash is exactly as sound as either alone.
  */
-export function signSites(state: GameState): number {
+export function signSites(state: GameState, seat: number | null = null): number {
   const tiles = state.map.tiles;
   let h = 2166136261 ^ tiles.length;
+  // **The seat's gate is in the hash**, and it has to be: a site's own fields do
+  // not move when an empire finishes a technology, so without this the barrows
+  // would stay off the board until something unrelated rebuilt the layer. It is
+  // the piece fingerprint's discipline (`signUnits`) applied to a fact about the
+  // *watcher* rather than about the thing drawn — one bit per gated kind, folded
+  // in before the walk, so a seat change and a completed node both move it.
+  for (const kind of DISCOVERY_KINDS) {
+    h = Math.imul(h ^ (seatSeesKind(state, seat, kind) ? 1 : 0), 16777619);
+  }
   for (let i = 0; i < tiles.length; i++) {
     const kind = tiles[i]!.discovery;
     if (kind === undefined) continue;
