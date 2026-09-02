@@ -203,8 +203,19 @@ describe('what maintenance did to the warband', () => {
     // comparable width. What it still catches is the thing the test is for: a
     // retune that made maintenance free would sail past the upper bound, and
     // one that made it harsh would fall through the lower.
-    expect(gold.get(60)!).toBeLessThan(170);
-    expect(gold.get(60)!).toBeGreaterThan(50);
+    // **Re-measured 2026-09-02, the luxury rework (schema 48): 102 / 130 /
+    // −56.** The per-city luxury lines this warband's five towns were living on
+    // are empire flats now, so the ground no longer outruns a twenty-six-piece
+    // payroll — the treasury crosses into the red between turn 40 and turn 60,
+    // which is the spiral this test is *named for*, restored. The 2026-08-29
+    // note above lamented that the richer coast had erased it; the user's nerf
+    // pass put it back without anyone aiming at it, which is exactly what a
+    // flattening of scale-paying income should do to the one script that spams
+    // scale. The band re-centres on the new figure: the upper bound catches a
+    // retune making maintenance free again, the lower one catches a retune
+    // turning the tax into an execution.
+    expect(gold.get(60)!).toBeLessThan(30);
+    expect(gold.get(60)!).toBeGreaterThan(-160);
 
     // And the army is still an army — the creditors thin it, they do not erase
     // it, because they take one piece a turn and the towns keep building.

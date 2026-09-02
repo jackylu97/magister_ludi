@@ -246,9 +246,17 @@ describe('what the pass did to the opening', () => {
      * possible demonstration that this test is not about the tree: the same
      * hammers bought the same army out of an empire that knows half as much.
      * The floor comes down to 4 and stays a floor.
+     *
+     * **Re-measured 2026-09-02, the luxury rework (schema 48): 4 cities, 11
+     * units, 6 technologies.** The ground moved again — the capital-scoped food
+     * lines (olives/honey/cotton pay +2🌾 into the capital now) grow the
+     * first town into its settlers a few turns sooner, so the expansion half of
+     * this script reaches its fourth founding inside the horizon. The units
+     * band (10–14) did not move, which is this test's whole claim: richer
+     * ground, same army for the same hammers.
      */
     expect(game.state.turn).toBe(41);
-    expect(game.state.cities.length).toBe(3);
+    expect(game.state.cities.length).toBe(4);
     expect(mine.length).toBeGreaterThanOrEqual(10);
     expect(mine.length).toBeLessThanOrEqual(14);
     expect(game.state.players[0]!.techsResearched.length).toBeGreaterThanOrEqual(4);
