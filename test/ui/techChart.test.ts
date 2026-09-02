@@ -292,6 +292,15 @@ describe('the shipped lanes', () => {
  * still there — the ages spread over columns that each earn their width, the
  * means still rise, and the stray list is empty because it cannot be anything
  * else.
+ *
+ * **The ladder re-anchored on 2026-09-02** (the user: "the first tier should be
+ * 13 science ... I think the agent skipped a tier") and nothing in this file
+ * moved, which is the point worth writing down. The table shifted one column
+ * right — column 0 is a nominal 5 nobody pays, column 1 is the user's 13, and
+ * the old top figure of 950 fell off the end — and every claim below is about
+ * the *relation* between a column and its price rather than about the figures,
+ * so a re-anchoring passes it unchanged. A pin that had to be edited here would
+ * have meant the shape had moved too.
  */
 describe('a column is a price', () => {
   /** Every age's columns, left to right, with what sits in each. */

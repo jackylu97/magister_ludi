@@ -715,8 +715,25 @@ import {
  *     The migration note: nothing to migrate — no field changed shape. What a
  *     v47 save cannot carry across is the deck, the numbers on it, and the
  *     ladder its holdings were climbing.
+ * 49: **The cost ladder re-anchored at the first paid tier — the root is not a
+ *     tier** (the user, 2026-09-02: "the first tier should be 13 science …
+ *     I think the agent skipped a tier"). v47's table anchored cost(0) = 13 at
+ *     the *root*, but column 0 holds Agriculture alone and Agriculture is
+ *     pre-granted (`RULES.research.startingTechs`), so the first tier anybody
+ *     ever buys was priced at 30. The whole ladder shifts one column right:
+ *     every column now takes the price the column to its left used to carry,
+ *     the root gets a nominal 5 that is never paid, and the old top figure of
+ *     950 falls off the end. A v48 log is refused because *every node in the
+ *     tree costs something else*: Fletching is 13 where it was 30, Alchemy 920
+ *     where it was 950, the tree 22544 against 26089, and the ages close on
+ *     turns 46 / 91 / 200 / 273 against 74 / 128 / 252 / 334.
+ *
+ *     The migration note: nothing to migrate — no field changed shape, and no
+ *     prerequisite moved. What a v48 save cannot carry across is the beaker
+ *     schedule, which parts company with the replay on the first technology
+ *     anybody researches.
  */
-export const SCHEMA_VERSION = 48;
+export const SCHEMA_VERSION = 49;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

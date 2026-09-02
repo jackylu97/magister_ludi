@@ -293,14 +293,27 @@ describe('tech data integrity', () => {
     //
     // The formula, from the user's own anchors (13, 30, ~70, "and on and on"):
     //
-    //     cost(0) = 13
+    //     cost(1) = 13
     //     cost(n) = friendly(cost(n - 1) x r(n))
-    //     r(n)    = 1 + 1.3 x 0.72 ^ max(0, n - 2)
+    //     r(n)    = 1 + 1.3 x 0.72 ^ max(0, n - 3)
     //
     // so the first two steps are the anchors' 2.3x flat (13 -> 30 -> 69) and
     // the ratio then decays geometrically toward 1, reaching 1.05 by the last
     // column. `friendly` rounds to the nearest 1 below a hundred, the nearest 5
     // below a thousand, the nearest 50 above.
+    //
+    // **The formula anchors at column 1, not column 0** (the user, 2026-09-02:
+    // "the first tier should be 13 science ... I think the agent skipped a
+    // tier"). It anchored at the root when it landed, which put Fletching,
+    // Mining, Earthenware and Husbandry — the first tier anybody ever *buys* —
+    // at 30, because column 0 holds Agriculture alone and Agriculture is
+    // pre-granted (`RESEARCH.startingTechs`) and never paid for. So the whole
+    // ladder shifted one column right: every column takes the price the column
+    // to its left used to carry, and the old top figure of 950 falls off the
+    // end. Column 0's 5 is nominal and unpayable; it is written low only so
+    // that the monotone-along-every-edge pin at the bottom of this test is an
+    // honest statement rather than an exemption. The tree is 22544 beakers
+    // where the mis-anchored ladder was 26089.
     //
     // **The taper is the tuned one, and the tuning is a measurement rather than
     // a taste.** The brief asked for a linear taper from 2.3 to 1.5, which ends
@@ -308,11 +321,11 @@ describe('tech data integrity', () => {
     // pacing harness below that empire researched **43 of the 50 nodes in two
     // thousand turns** and never reached AEra IV, because this science economy
     // tops out in the low hundreds of beakers a turn. A geometric decay holds
-    // the anchors the linear one was chosen for and lands the tree at 26089,
-    // which the same harness sweeps by turn 334 (see `tech.slow.test.ts`).
+    // the anchors the linear one was chosen for and lands the tree at 22544,
+    // which the same harness sweeps by turn 273 (see `tech.slow.test.ts`).
     // Turning the game harder or easier is one number: 0.72 -> 0.75 is 33779
     // beakers, 0.70 is 21994.
-    const COLUMN_COSTS = [13, 30, 69, 135, 225, 335, 450, 565, 665, 750, 820, 875, 920, 950];
+    const COLUMN_COSTS = [5, 13, 30, 69, 135, 225, 335, 450, 565, 665, 750, 820, 875, 920];
     expect(COLUMN_COSTS).toHaveLength(techColumnCount());
     for (const id of TECH_IDS) {
       expect(techDef(id).cost, id).toBe(COLUMN_COSTS[techColumn(id)]);
@@ -321,10 +334,10 @@ describe('tech data integrity', () => {
     // and is why `techChart.test.ts` no longer pins a list of nodes a
     // dependency drags out of cost order: there cannot be one.
     const bands: Record<number, [number, number]> = {
-      1: [13, 135],
-      2: [225, 450],
-      3: [565, 820],
-      4: [875, 950],
+      1: [5, 69],
+      2: [135, 335],
+      3: [450, 750],
+      4: [820, 920],
     };
     for (const id of TECH_IDS) {
       const def = techDef(id);
@@ -337,11 +350,14 @@ describe('tech data integrity', () => {
     // payoff that can never arrive.
     expect(new Set(TECH_IDS.map((id) => techDef(id).age))).toEqual(new Set([1, 2, 3, 4]));
     // And no node is dearer than anything it needs, along every edge in the
-    // graph. Agriculture is the one exemption: it is the *starting* technology
-    // and its cost is what a seat begins already holding.
+    // graph — with **no exemption left**. Agriculture used to be one, because
+    // the old anchor priced the root at 13 and its children at 30 and the only
+    // honest thing to say was that a starting technology's cost is not a price.
+    // Re-anchoring at the first paid tier gave the root a nominal 5 instead, so
+    // the claim holds along every edge as written, which is the point of
+    // writing it that way.
     for (const id of TECH_IDS) {
       for (const prereq of techDef(id).prereqs) {
-        if (prereq === 'agriculture') continue;
         expect(techDef(prereq).cost, `${prereq} → ${id}`).toBeLessThanOrEqual(techDef(id).cost);
       }
     }
@@ -1071,7 +1087,16 @@ describe('research in the log', () => {
     // prerequisite edges moved so every column earns its width, and every cost
     // is rewritten off the node's own column. A v46 log aims research at a tree
     // this build does not have, and pays prices it never paid.
-    expect(SCHEMA_VERSION).toBe(48);
+    // v48: the user's balance pass — the authored Order deepening ladder, the
+    // Order and Doctrine retunes, and the reworked luxury signatures. A v47 log
+    // drafts from a deck this build does not deal, and deepens by numbers it
+    // does not carry.
+    // v49: the cost ladder re-anchored at the first *paid* tier — the root is
+    // not a tier. Column 0 holds Agriculture alone and Agriculture is granted,
+    // so every column now takes the price the column to its left used to carry
+    // (Fletching 13 where it was 30) and a v48 log pays the wrong beakers from
+    // the first technology anybody researches.
+    expect(SCHEMA_VERSION).toBe(49);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1419,24 +1444,33 @@ describe('the shape of the tree', () => {
     expect(ageOne.length).toBe(12);
     // The old costs are gone — a cost is the node's column now (see "prices
     // every node off its own column" above), and the user's anchors put the
-    // age's four columns at 13 / 30 / 69 / 135 where the hand-tuned table had
-    // 15 / 8 / 16 / 24-26. The age is therefore the same twelve nodes at nearly
-    // five times the price, which is the whole of why AEra I closes around turn
-    // 74 rather than turn 34; what is asserted here is the *shape* of the age,
-    // which is what the restoration was about.
+    // age's four columns at 5 / 13 / 30 / 69 where the hand-tuned table had
+    // 15 / 8 / 16 / 24-26. The age is therefore the same twelve nodes at rather
+    // more than twice the price, which is the whole of why AEra I closes around
+    // turn 46 rather than turn 34; what is asserted here is the *shape* of the
+    // age, which is what the restoration was about.
+    //
+    // **The figures moved once more on 2026-09-02**, and only the figures: the
+    // ladder was re-anchored at the first *paid* tier (the user: "the first tier
+    // should be 13 science ... I think the agent skipped a tier"), so the four
+    // columns each took the price of the column to their left. Fletching,
+    // Mining, Earthenware and Husbandry — the four nodes a player actually
+    // chooses between on turn one — are 13 apiece where they were 30, and
+    // Agriculture's 5 is a number nobody ever pays: it is granted at the start
+    // and the root is not a tier.
     expect(Object.fromEntries(ageOne.map((id) => [id, techDef(id).cost]))).toEqual({
-      agriculture: 13,
-      husbandry: 30,
-      fletching: 30,
-      mining: 30,
-      earthenware: 30,
-      sailing: 69,
-      bronzeWorking: 69,
-      stonecraft: 69,
-      divination: 69,
-      calendar: 135,
-      letters: 135,
-      theWheel: 135,
+      agriculture: 5,
+      husbandry: 13,
+      fletching: 13,
+      mining: 13,
+      earthenware: 13,
+      sailing: 30,
+      bronzeWorking: 30,
+      stonecraft: 30,
+      divination: 30,
+      calendar: 69,
+      letters: 69,
+      theWheel: 69,
     });
     // The old gates, which are what make the age a *graph* again rather than
     // the five-way fan the re-cut flattened it into: four of the twelve want

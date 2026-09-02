@@ -314,6 +314,36 @@ describe('pacing', () => {
     //
     // Bands widen with the horizon — ±10 / ±15 / ±25 / ±30, the same fraction
     // of each band's own length that ±7 / ±12 / ±18 / ±20 were.
+    //
+    // **Re-pinned 2026-09-02, the ladder re-anchored at the first paid tier.**
+    // The user's correction to the pass above: "the first tier should be 13
+    // science ... I think the agent skipped a tier". The table had been anchored
+    // at column 0, which holds Agriculture alone — and Agriculture is granted at
+    // the start and never bought — so the first tier a player actually pays for
+    // was priced a rung too high. Every column now takes the price the column to
+    // its left used to carry. Nothing else moved: same tree, same edges, same
+    // taper, one shift.
+    //
+    // This seed closes at **46 / 91 / 200 / 273** against 74 / 128 / 252 / 334.
+    // What the shift is worth, read off that pair:
+    //
+    //   · **The opening comes back** (74 → 46). Æra I costs 384 beakers rather
+    //     than 814 and the four nodes a player chooses between on turn one are
+    //     13 apiece rather than 30, so the age is a ramp rather than a wall —
+    //     which is what the anchors were for, and what anchoring them at an
+    //     unbought root quietly undid.
+    //   · **The later ages keep their shape and arrive earlier.** Æra II is
+    //     forty-five turns against fifty-four, Æra III a hundred and nine
+    //     against a hundred and twenty-four, Æra IV seventy-three against
+    //     eighty-two — every band a little shorter in the same proportion,
+    //     because the shift takes one step off a compounding ladder rather than
+    //     re-shaping it.
+    //   · **The curtain lands around t273** rather than t334, which is nearer
+    //     the ~t265 Entry LIV's hand-tuning had settled on than the mis-anchored
+    //     ladder ever was.
+    //
+    // Bands keep the widths above (±10 / ±15 / ±25 / ±30) and are re-centred on
+    // the new measurements.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -323,14 +353,14 @@ describe('pacing', () => {
     expect(third, `age III: ${String(third)}`).toBeDefined();
     expect(fourth, `age IV: ${String(fourth)}`).toBeDefined();
 
-    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(64);
-    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(84);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(113);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(143);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(227);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(277);
-    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(304);
-    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(364);
+    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(36);
+    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(56);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(76);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(106);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(175);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(225);
+    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(243);
+    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(303);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 120_000);
 

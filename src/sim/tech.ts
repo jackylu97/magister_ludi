@@ -69,9 +69,9 @@
  * table this replaced; it is kept because it is the record of what the science
  * economy was measured to bear, and the taper was tuned against exactly that.
  *
- *     cost(0) = 13
+ *     cost(1) = 13
  *     cost(n) = friendly(cost(n - 1) × r(n))
- *     r(n)    = 1 + 1.3 × 0.72 ^ max(0, n - 2)
+ *     r(n)    = 1 + 1.3 × 0.72 ^ max(0, n - 3)
  *
  * `friendly` rounds to the nearest 1 below a hundred, the nearest 5 below a
  * thousand and the nearest 50 above. The first two steps are flat at 2.3×,
@@ -79,18 +79,35 @@
  * then decays geometrically toward 1, reaching 1.05 by the last column. The
  * fourteen figures are
  *
- *     13 · 30 · 69 · 135 · 225 · 335 · 450 · 565 · 665 · 750 · 820 · 875 · 920 · 950
+ *     5 · 13 · 30 · 69 · 135 · 225 · 335 · 450 · 565 · 665 · 750 · 820 · 875 · 920
  *
- * which prices the four ages at **814 / 3365 / 10960 / 10950** — 26089 for the
- * whole tree, against 20354 for the hand-tuned table it replaced. The shape of
- * the change is the point rather than the total: Æra I costs nearly five times
- * what it did (the anchors put a second-column node at 30 beakers where the old
- * table had 8), Æra II nearly three times, and the two late ages are within a
- * third of where they were. So the opening is a real ramp instead of four techs
- * a player sweeps before their second city, and the scripted empire's closes
- * move from 34 / 71 / 177 / 265 to **74 / 128 / 252 / 334** — which is also
- * closer to the era proportions Civ itself uses (22% / 16% / 37% / 25% of the
- * game rather than 13% / 14% / 40% / 33%).
+ * **The first tier is the first *paid* tier — the root is not a tier** (the
+ * user, 2026-09-02). The table above used to be anchored one column to the
+ * left, with cost(0) = 13 at the root; but column 0 holds Agriculture alone and
+ * Agriculture is pre-granted (`RULES.research.startingTechs`), so that anchor
+ * priced the first tier a player ever *buys* — Fletching, Mining, Earthenware,
+ * Husbandry — at 30 rather than 13, and the whole ladder stood one rung too
+ * high. The formula therefore re-anchors at column **1**, every column takes
+ * the price the column before it used to carry, and the old top figure of 950
+ * falls off the end. The ruling is a shift, not a retune: 13 → 30 → 69 is still
+ * the user's 2.3× opening, it just starts where the spending starts.
+ *
+ * Column 0's **5** is nominal and is never paid by anybody. It exists so that
+ * "costs rise along every edge" stays an honest pin (a root priced at or above
+ * its children would make the monotone claim a lie rather than an untested
+ * invariant); no seat ever spends it, because the only node in that column is
+ * in every empire's hand on turn one.
+ *
+ * The shift prices the four ages at **384 / 2310 / 9435 / 10415** — 22544 for
+ * the whole tree, against 26089 for the one-column-higher ladder and 20354 for
+ * the hand-tuned table before that. The shape of the change from the hand-tuned
+ * table is still the point rather than the total: Æra I costs more than twice
+ * what it did, Æra II nearly twice, and the two late ages are within a fifth of
+ * where they were. So the opening is a real ramp instead of four techs a player
+ * sweeps before their second city, and the scripted empire's closes move from
+ * 34 / 71 / 177 / 265 (hand-tuned) through 74 / 128 / 252 / 334 (the
+ * mis-anchored ladder) to **46 / 91 / 200 / 273** — which is also closer to
+ * the era proportions Civ itself uses than the hand-tuned table was.
  *
  * **The taper is decaying rather than linear, and that was a measurement.** A
  * linear taper from 2.3 to 1.5 over the thirteen steps — the shape this pass

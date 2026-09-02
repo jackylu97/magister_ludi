@@ -274,9 +274,29 @@ describe('the culture ladder', () => {
     // The first two drafts are unmoved (13, 23), which is the tell: the drift
     // begins where the first *unlocked* culture building would have stood.
     // Bands re-centred on the new measurements at their old widths.
-    expect(tiers[1]!).toBeGreaterThan(85);
-    expect(tiers[1]!).toBeLessThan(117);
-    expect(tiers[2]!).toBeGreaterThan(188);
-    expect(tiers[2]!).toBeLessThan(229);
+    //
+    // **Re-measured 2026-09-02 again, the ladder re-anchored at the first paid
+    // tier** (the user: "the first tier should be 13 science ... I think the
+    // agent skipped a tier"). The pass above had anchored the cost table at
+    // column 0, which holds only the pre-granted Agriculture, so every paid
+    // column stood a rung too high; each column now takes the price the column
+    // to its left used to carry. Nothing about culture or the draft meter
+    // changed here either — this is the same drift as the paragraph above,
+    // running the other way, because the technologies that gate the monument,
+    // the amphitheater and the temple got cheaper. Full ladder on this seed,
+    // before → after:
+    //
+    //   before  13,23,33,46,57,64,73,81,91,101,112,123,133,145,159,173,189,208,227,248
+    //   after   13,23,31,39,46,53,60,67,75,85,93,102,112,123,136,150,166,181,198,217
+    //
+    // — governments (drafts 4/10/18) at **39 / 85 / 181** against 46/101/208.
+    // The first two drafts are unmoved again (13, 23), the same tell as before:
+    // the ladder only parts company where a *built* culture building's gate
+    // finally lands. `tiers[0]` stays inside its band; the other two are
+    // re-centred on the new measurements at their existing widths.
+    expect(tiers[1]!).toBeGreaterThan(69);
+    expect(tiers[1]!).toBeLessThan(101);
+    expect(tiers[2]!).toBeGreaterThan(160);
+    expect(tiers[2]!).toBeLessThan(202);
   });
 });

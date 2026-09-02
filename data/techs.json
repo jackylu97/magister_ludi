@@ -5,7 +5,7 @@
       "glyph": "🌾",
       "age": 1,
       "row": 4,
-      "cost": 13,
+      "cost": 5,
       "prereqs": [],
       "unlocks": {
         "units": [
@@ -22,7 +22,7 @@
       "glyph": "🐄",
       "age": 1,
       "row": 7,
-      "cost": 30,
+      "cost": 13,
       "prereqs": [
         "agriculture"
       ],
@@ -41,7 +41,7 @@
       "glyph": "🏹",
       "age": 1,
       "row": 1,
-      "cost": 30,
+      "cost": 13,
       "prereqs": [
         "agriculture"
       ],
@@ -57,7 +57,7 @@
       "glyph": "⛵",
       "age": 1,
       "row": 4,
-      "cost": 69,
+      "cost": 30,
       "prereqs": [
         "earthenware"
       ],
@@ -80,7 +80,7 @@
       "glyph": "⛏",
       "age": 1,
       "row": 3,
-      "cost": 30,
+      "cost": 13,
       "prereqs": [
         "agriculture"
       ],
@@ -92,7 +92,7 @@
       "glyph": "⚱",
       "age": 1,
       "row": 4,
-      "cost": 30,
+      "cost": 13,
       "prereqs": [
         "agriculture"
       ],
@@ -108,7 +108,7 @@
       "glyph": "⚔",
       "age": 1,
       "row": 3,
-      "cost": 69,
+      "cost": 30,
       "prereqs": [
         "mining",
         "earthenware"
@@ -133,7 +133,7 @@
       "glyph": "🧱",
       "age": 1,
       "row": 5,
-      "cost": 69,
+      "cost": 30,
       "prereqs": [
         "husbandry",
         "earthenware"
@@ -156,7 +156,7 @@
       "glyph": "🌙",
       "age": 1,
       "row": 7,
-      "cost": 135,
+      "cost": 69,
       "prereqs": [
         "divination"
       ],
@@ -175,7 +175,7 @@
       "glyph": "🔮",
       "age": 1,
       "row": 7,
-      "cost": 69,
+      "cost": 30,
       "prereqs": [
         "husbandry"
       ],
@@ -200,7 +200,7 @@
       "glyph": "📜",
       "age": 1,
       "row": 5,
-      "cost": 135,
+      "cost": 69,
       "prereqs": [
         "earthenware",
         "divination"
@@ -221,7 +221,7 @@
       "glyph": "☸",
       "age": 1,
       "row": 3,
-      "cost": 135,
+      "cost": 69,
       "prereqs": [
         "husbandry",
         "bronzeWorking"
@@ -239,7 +239,7 @@
       "glyph": "🎯",
       "age": 2,
       "row": 1,
-      "cost": 225,
+      "cost": 135,
       "prereqs": [
         "fletching",
         "bronzeWorking"
@@ -259,7 +259,7 @@
       "glyph": "💧",
       "age": 2,
       "row": 4,
-      "cost": 450,
+      "cost": 335,
       "prereqs": [
         "calendar",
         "kingship"
@@ -273,7 +273,7 @@
       "glyph": "🧭",
       "age": 2,
       "row": 2,
-      "cost": 225,
+      "cost": 135,
       "prereqs": [
         "sailing"
       ],
@@ -297,7 +297,7 @@
       "glyph": "🎼",
       "age": 2,
       "row": 5,
-      "cost": 450,
+      "cost": 335,
       "prereqs": [
         "kingship"
       ],
@@ -328,7 +328,7 @@
       "glyph": "💰",
       "age": 2,
       "row": 3,
-      "cost": 335,
+      "cost": 225,
       "prereqs": [
         "theWheel",
         "letters"
@@ -352,7 +352,7 @@
       "glyph": "👑",
       "age": 2,
       "row": 5,
-      "cost": 335,
+      "cost": 225,
       "prereqs": [
         "letters"
       ],
@@ -371,7 +371,7 @@
       "glyph": "📿",
       "age": 2,
       "row": 7,
-      "cost": 335,
+      "cost": 225,
       "prereqs": [
         "calendar"
       ],
@@ -392,7 +392,7 @@
       "glyph": "🕯",
       "age": 2,
       "row": 6,
-      "cost": 225,
+      "cost": 135,
       "prereqs": [
         "divination"
       ],
@@ -409,7 +409,7 @@
       "glyph": "🕌",
       "age": 2,
       "row": 7,
-      "cost": 450,
+      "cost": 335,
       "prereqs": [
         "ancestorRites",
         "theLongCount"
@@ -432,7 +432,7 @@
       "glyph": "🛡",
       "age": 2,
       "row": 0,
-      "cost": 335,
+      "cost": 225,
       "prereqs": [
         "bronzeWorking",
         "theWheel"
@@ -450,7 +450,7 @@
       "glyph": "🛠",
       "age": 3,
       "row": 2,
-      "cost": 665,
+      "cost": 565,
       "prereqs": [
         "wayfinding",
         "artisanry"
@@ -472,7 +472,7 @@
       "glyph": "🦉",
       "age": 3,
       "row": 5,
-      "cost": 665,
+      "cost": 565,
       "prereqs": [
         "epicPoetry",
         "theHighTemple"
@@ -490,7 +490,7 @@
       "glyph": "🧾",
       "age": 3,
       "row": 6,
-      "cost": 820,
+      "cost": 750,
       "prereqs": [
         "artisanry",
         "theImperialPost"
@@ -511,7 +511,7 @@
       "glyph": "🔨",
       "age": 3,
       "row": 3,
-      "cost": 565,
+      "cost": 450,
       "prereqs": [
         "currency"
       ],
@@ -527,7 +527,7 @@
       "glyph": "📐",
       "age": 3,
       "row": 4,
-      "cost": 565,
+      "cost": 450,
       "prereqs": [
         "currency"
       ],
@@ -547,7 +547,7 @@
       "glyph": "📯",
       "age": 3,
       "row": 6,
-      "cost": 750,
+      "cost": 665,
       "prereqs": [
         "colonialCharters",
         "horology"
@@ -587,7 +587,7 @@
       "glyph": "🏛",
       "age": 3,
       "row": 6,
-      "cost": 565,
+      "cost": 450,
       "prereqs": [
         "kingship"
       ],
@@ -610,7 +610,7 @@
       "glyph": "📋",
       "age": 3,
       "row": 6,
-      "cost": 665,
+      "cost": 565,
       "prereqs": [
         "theExaminationHall"
       ],
@@ -641,7 +641,7 @@
       "glyph": "⚖",
       "age": 3,
       "row": 3,
-      "cost": 820,
+      "cost": 750,
       "prereqs": [
         "theImperialPost",
         "theology"
@@ -666,7 +666,7 @@
       "glyph": "⛪",
       "age": 3,
       "row": 5,
-      "cost": 750,
+      "cost": 665,
       "prereqs": [
         "philosophy",
         "horology"
@@ -689,7 +689,7 @@
       "glyph": "⚒",
       "age": 3,
       "row": 0,
-      "cost": 565,
+      "cost": 450,
       "prereqs": [
         "bronzePanoply"
       ],
@@ -711,7 +711,7 @@
       "glyph": "🎓",
       "age": 3,
       "row": 5,
-      "cost": 820,
+      "cost": 750,
       "prereqs": [
         "theology"
       ],
@@ -729,7 +729,7 @@
       "glyph": "⏳",
       "age": 3,
       "row": 4,
-      "cost": 665,
+      "cost": 565,
       "prereqs": [
         "mathematics"
       ],
@@ -746,7 +746,7 @@
       "glyph": "🔩",
       "age": 3,
       "row": 7,
-      "cost": 665,
+      "cost": 565,
       "prereqs": [
         "mathematics"
       ],
@@ -765,7 +765,7 @@
       "glyph": "🐎",
       "age": 3,
       "row": 0,
-      "cost": 665,
+      "cost": 565,
       "prereqs": [
         "ironWorking"
       ],
@@ -783,7 +783,7 @@
       "glyph": "🪨",
       "age": 3,
       "row": 7,
-      "cost": 750,
+      "cost": 665,
       "prereqs": [
         "engineering"
       ],
@@ -796,7 +796,7 @@
       "glyph": "🏦",
       "age": 4,
       "row": 7,
-      "cost": 950,
+      "cost": 920,
       "prereqs": [
         "theSilkRoad",
         "movableType"
@@ -813,7 +813,7 @@
       "glyph": "🔧",
       "age": 4,
       "row": 5,
-      "cost": 875,
+      "cost": 820,
       "prereqs": [
         "prospecting",
         "education"
@@ -833,7 +833,7 @@
       "glyph": "🌐",
       "age": 4,
       "row": 4,
-      "cost": 920,
+      "cost": 875,
       "prereqs": [
         "shipwrights",
         "physics"
@@ -858,7 +858,7 @@
       "glyph": "🧵",
       "age": 4,
       "row": 7,
-      "cost": 875,
+      "cost": 820,
       "prereqs": [
         "theImperialPost",
         "paperMoney"
@@ -882,7 +882,7 @@
       "glyph": "🏰",
       "age": 4,
       "row": 3,
-      "cost": 875,
+      "cost": 820,
       "prereqs": [
         "theQadisCourt"
       ],
@@ -904,7 +904,7 @@
       "glyph": "🕊",
       "age": 4,
       "row": 6,
-      "cost": 950,
+      "cost": 920,
       "prereqs": [
         "theQadisCourt",
         "movableType"
@@ -925,7 +925,7 @@
       "glyph": "🗡",
       "age": 4,
       "row": 5,
-      "cost": 920,
+      "cost": 875,
       "prereqs": [
         "ironWorking",
         "machinery"
@@ -956,7 +956,7 @@
       "glyph": "⚗",
       "age": 4,
       "row": 5,
-      "cost": 950,
+      "cost": 920,
       "prereqs": [
         "machinery",
         "steel"
@@ -979,7 +979,7 @@
       "glyph": "🔠",
       "age": 4,
       "row": 6,
-      "cost": 920,
+      "cost": 875,
       "prereqs": [
         "paperMoney",
         "machinery"
@@ -1007,7 +1007,7 @@
       "glyph": "☄",
       "age": 4,
       "row": 4,
-      "cost": 875,
+      "cost": 820,
       "prereqs": [
         "engineering",
         "education"
@@ -1027,7 +1027,7 @@
       "glyph": "🗼",
       "age": 4,
       "row": 3,
-      "cost": 920,
+      "cost": 875,
       "prereqs": [
         "feudalism"
       ],
@@ -1047,7 +1047,7 @@
       "glyph": "🐴",
       "age": 4,
       "row": 0,
-      "cost": 920,
+      "cost": 875,
       "prereqs": [
         "feudalism",
         "theCataphract"

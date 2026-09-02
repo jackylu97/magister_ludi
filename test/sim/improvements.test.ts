@@ -2006,7 +2006,16 @@ describe('improvements in the log', () => {
     // prerequisite edges moved so every column earns its width, and every cost
     // is rewritten off the node's own column. A v46 log aims research at a tree
     // this build does not have, and pays prices it never paid.
-    expect(SCHEMA_VERSION).toBe(48);
+    // v48: the user's balance pass — the authored Order deepening ladder, the
+    // Order and Doctrine retunes, and the reworked luxury signatures. A v47 log
+    // drafts from a deck this build does not deal, and deepens by numbers it
+    // does not carry.
+    // v49: the cost ladder re-anchored at the first *paid* tier — the root is
+    // not a tier. Column 0 holds Agriculture alone and Agriculture is granted,
+    // so every column now takes the price the column to its left used to carry
+    // (Fletching 13 where it was 30) and a v48 log pays the wrong beakers from
+    // the first technology anybody researches.
+    expect(SCHEMA_VERSION).toBe(49);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;
