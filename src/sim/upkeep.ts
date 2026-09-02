@@ -66,7 +66,7 @@ import { BUILDING_UNLOCK_TECH, UNIT_UNLOCK_TECH, techDef } from './techData';
 import { type BuildingId, buildingDef } from './buildingData';
 import { type UnitTypeId, isCivilian, isExplorer, trades, unitDef } from './unitData';
 import { RULES } from './rulesData';
-import { cardRulePercent, foldCardRulePercent } from './statecraft';
+import { cardRulePercent, cardUpkeepRebateLines, foldCardRulePercent } from './statecraft';
 import type { GameState, Unit } from './state';
 
 /**
@@ -236,15 +236,28 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
   if (!seatPays(state, playerId)) return [];
   const gross = unitUpkeepTotal(state, playerId);
   if (gross <= 0) return [];
+  const out: UpkeepLine[] = [];
+  // **The flat half first** — a figure per soldier, counted off the pieces
+  // themselves (`cardUpkeepRebateLines`, which owns the card reading and takes
+  // the price from here so the arrow between the two modules stays one-way).
+  // Before the percentage because that is the order a player reads them: the
+  // quartermasters shave a shilling off each man, and *then* the law takes its
+  // share of what is left. Both are clamped against the same gross below.
+  let given = 0;
+  for (const flat of cardUpkeepRebateLines(state, playerId, unitUpkeepOf)) {
+    const share = Math.min(flat.gold, gross - given);
+    if (share <= 0) break;
+    given += share;
+    out.push({ source: flat.source, gold: share });
+  }
   const lines = cardRulePercent(state, playerId, 'unitUpkeep');
   const percent = foldCardRulePercent(lines);
-  if (percent >= 0) return [];
+  if (percent >= 0) return out;
   // The whole rebate first, then shared out in the lines' own order so the parts
   // sum to it exactly however the flooring falls — `explainUnitCost`'s
   // running-difference discipline, one ledger over.
-  const rebate = Math.min(gross, Math.floor((gross * -percent) / 100));
-  if (rebate <= 0) return [];
-  const out: UpkeepLine[] = [];
+  const rebate = Math.min(gross - given, Math.floor((gross * -percent) / 100));
+  if (rebate <= 0) return out;
   let paid = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;

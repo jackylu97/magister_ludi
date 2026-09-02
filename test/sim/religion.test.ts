@@ -108,7 +108,10 @@ import {
   cardPressureRule,
   cardProduction,
   describeCard,
+  cardFoundingRider,
+  consecrationCardTileLines,
   followerCardTileLines,
+  stripRefs,
   heldReligions,
   liveCityEffects,
   liveEffects,
@@ -2873,5 +2876,127 @@ describe('the inquisitor', () => {
     expect(
       guarded.bonuses.some((line) => line.source === 'Inquisitor' && line.side === 'attacker'),
     ).toBe(true);
+  });
+});
+
+// --- the ratified rows of the Themes Build (Entry LVIII, phase 4) ------------
+
+/**
+ * The religion rows the theme sheets ratified, and the one member of the combat
+ * vocabulary they needed.
+ *
+ * `statecraft.test.ts`' discipline on this side of the table: one behavioural
+ * test per row, plus the printed sentence, plus the seventh `TileLine`
+ * producer's wiring read off the source — `cityContext` is private by design, so
+ * "a consecration's ground line is folded in" is a claim about the module rather
+ * than about a number.
+ */
+describe('the ratified religion rows', () => {
+  it('followingTerritory — The Crusade fights harder among a foreign congregation', () => {
+    const g = game();
+    town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    const theirs = town(g.state, 1, 9, 6);
+    theirs.followers = { [religion.id]: theirs.population };
+
+    // A hex of the following town's own ground, with somebody standing on it.
+    const target = getTileAt(g.state.map, theirs.col, theirs.row + 1)!;
+    createUnit(g.state, 1, 'warrior', target.col, target.row);
+    const mine = createUnit(g.state, 0, 'warrior', theirs.col, theirs.row + 2);
+    const plain = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+    expect(plain.ok).toBe(true);
+    if (!plain.ok) return;
+    const before = plain.attackerStrength;
+
+    religion.enhancer = ['theCrusade'];
+    const crusading = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+    expect(crusading.ok).toBe(true);
+    if (!crusading.ok) return;
+    expect(crusading.attackerStrength - before).toBe(5);
+
+    // **The banner, not the border.** The same fight over a town that has since
+    // stopped following pays nothing at all.
+    theirs.followers = {};
+    const lapsed = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+    expect(lapsed.ok).toBe(true);
+    if (!lapsed.ok) return;
+    expect(lapsed.attackerStrength).toBe(before);
+  });
+
+  it("The Crusade's line stops at your own towns, which is what foreign means", () => {
+    const g = game();
+    const mineTown = town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    religion.enhancer = ['theCrusade'];
+    mineTown.followers = { [religion.id]: mineTown.population };
+    const target = getTileAt(g.state.map, mineTown.col, mineTown.row + 1)!;
+    createUnit(g.state, 1, 'warrior', target.col, target.row);
+    const mine = createUnit(g.state, 0, 'warrior', mineTown.col, mineTown.row + 2);
+    const preview = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+    expect(preview.ok).toBe(true);
+    if (!preview.ok) return;
+    expect(preview.bonuses.some((line) => line.source.includes('The Crusade'))).toBe(false);
+  });
+
+  it('The Green Cathedral is the seventh producer of a hex line', () => {
+    const g = game();
+    const city = town(g.state, 0, 6, 6);
+    expect(consecrationCardTileLines(g.state, city)).toEqual([]);
+    city.consecration = 'theGreenCathedral';
+    const lines = consecrationCardTileLines(g.state, city);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.on).toEqual({ test: 'unimproved' });
+    expect(lines[0]!.faith).toBe(1);
+    expect(lines[0]!.culture).toBe(1);
+    expect(lines[0]!.source).toContain('The Green Cathedral');
+    // A consecration is a fact about **one** cathedral in one town, so a second
+    // town of the same empire is untouched.
+    expect(consecrationCardTileLines(g.state, town(g.state, 0, 9, 6))).toEqual([]);
+    // Wired into the one place a town's own ground lines are gathered.
+    expect(simSource('cities.ts')).toContain('...consecrationCardTileLines(state, city),');
+  });
+
+  it('The Living Rock pays a mine that stands on a seam, and bare rock nothing', () => {
+    const g = game();
+    const city = town(g.state, 0, 6, 6);
+    keep(g.state, 0, 'theLivingRock');
+    const tile = getTileAt(g.state.map, city.col, city.row + 1)!;
+    tile.improvement = 'mine';
+    delete tile.resource;
+    const bare = explainTileYield(tile, yieldContextFor(g.state, 0));
+    expect(bare.some((line) => line.source.includes('The Living Rock'))).toBe(false);
+    tile.resource = 'iron';
+    const seam = explainTileYield(tile, yieldContextFor(g.state, 0));
+    const paid = seam.find((line) => line.source.includes('The Living Rock'));
+    expect(paid?.culture).toBe(1);
+  });
+
+  it('The Promised Land sends its settlers out one citizen heavier', () => {
+    const g = game();
+    town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    const plain = cardFoundingRider(g.state, 0);
+    religion.enhancer = ['thePromisedLand'];
+    const blessed = cardFoundingRider(g.state, 0);
+    expect(blessed.population - plain.population).toBe(1);
+  });
+
+  it('prints the new rows in the words the sheets ratified', () => {
+    const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    expect(said('theCrusade')).toEqual([
+      '+5 combat strength inside foreign cities that follow your religion',
+    ]);
+    expect(said('thePromisedLand')).toEqual([
+      'new cities start 1 population larger',
+      'the cities your settlers found start already keeping your faith — nothing can seed a ' +
+        'religion at a founding, and a lump of pressure at the moment a town is planted is a ' +
+        'second way to press faith — not built yet',
+    ]);
+    expect(said('theLivingRock')).toEqual([
+      '+1 culture on every hex with a Mine carrying a resource',
+    ]);
+    expect(said('theGreenCathedral')).toEqual([
+      '+1 culture, +1 faith on every unimproved hex',
+    ]);
   });
 });

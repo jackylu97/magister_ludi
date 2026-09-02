@@ -1493,6 +1493,27 @@ function hasAdjacentImprovement(state: GameState, city: City, improvement: Impro
 }
 
 /**
+ * Does a great person's work stand on this town's hex or on one of the six
+ * touching it? `hasAdjacentImprovement` asked of the *family*.
+ *
+ * The marker is `ImprovementDef.greatPerson` (presence is the marker), which is
+ * exactly what `TileCondition`'s `greatWork` reads one scale down — so the two
+ * questions about the same five improvements have one answer, and a sixth work
+ * added the day a great admiral lands joins both without either being touched.
+ */
+function hasAdjacentGreatWork(state: GameState, city: City): boolean {
+  const tile = getTileAt(state.map, city.col, city.row);
+  if (!tile) return false;
+  if (tile.improvement !== undefined && isGreatPersonWork(tile.improvement)) return true;
+  for (const neighbour of neighborTiles(state.map, tileHex(tile))) {
+    if (neighbour.improvement !== undefined && isGreatPersonWork(neighbour.improvement)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * **THE** question "can this town drink" — the board's answer, or a card's.
  *
  * The one predicate `cityScopeAdmits`' `freshwater` and `notFreshwater` arms go
@@ -1570,6 +1591,25 @@ export function cityScopeAdmits(
       return isMountainAdjacent(state, city);
     case 'adjacentImprovement':
       return hasAdjacentImprovement(state, city, scope.improvement);
+    case 'adjacentGreatWork':
+      // The same ring of six and the same hex, asked of the improvement table's
+      // own marker rather than of a name — so a sixth work joins for free.
+      return hasAdjacentGreatWork(state, city);
+    case 'onResourceKind': {
+      // The centre's own hex, exactly as `onTerrain` is: where the settler
+      // stopped, not what the borders later took in.
+      const seat = cityTile(state.map, city);
+      if (seat.resource === undefined) return false;
+      return resourceDef(seat.resource).kind === scope.kind;
+    }
+    case 'queueHolds': {
+      // The **front row**, because a city has one basket and it pays for
+      // `queue[0]`: a wonder standing second is a plan rather than a building
+      // site. Sorted through `queueCategory`, the one place a row is told what
+      // it is, exactly as `EmpireCondition`'s arm does it one scale out.
+      const front = city.queue[0];
+      return front !== undefined && queueCategory(front) === scope.category;
+    }
     case 'frontier':
       return isFrontierCity(state, city, scope.radius ?? FRONTIER_RADIUS);
     case 'captured':
@@ -1683,6 +1723,12 @@ function scopeNote(scope?: CityScope): string | null {
       return 'mountain hold';
     case 'adjacentImprovement':
       return `beside a ${improvementDef(scope.improvement).name.toLowerCase()}`;
+    case 'adjacentGreatWork':
+      return "beside a great person's work";
+    case 'onResourceKind':
+      return `settled on ${scope.kind}`;
+    case 'queueHolds':
+      return `building a ${scope.category}`;
     case 'frontier':
       return 'near a rival';
     case 'captured':
@@ -2027,6 +2073,53 @@ function countOf(
       }
       return total;
     }
+    case 'internalTradeRoutes': {
+      // `foreignTradeRoutes`' mirror over the same sweep of the same board — the
+      // partner resolved fresh every turn, so a town that changes hands moves
+      // from one count to the other with it.
+      let total = 0;
+      for (const unit of state.units) {
+        if (unit.ownerId !== playerId) continue;
+        const route = unit.trade;
+        if (route === undefined) continue;
+        if (state.turn >= route.expiresTurn) continue;
+        const partner = state.cities.find((entry) => entry.id === route.to);
+        if (partner === undefined || partner.ownerId !== playerId) continue;
+        total += 1;
+      }
+      return total;
+    }
+    case 'slottedOrderLevels': {
+      // The council's depth: one helping per *level* of every Order sitting in a
+      // chair. `slots` is the chairs and `orders` is the holdings, which is the
+      // same pair `perSlottedOrder` reads for its multiplier.
+      const sc = playerById(state, playerId)?.statecraft;
+      if (!sc) return 0;
+      let total = 0;
+      for (const slotted of sc.slots) {
+        if (slotted === null) continue;
+        const held = sc.orders.find((owned) => owned.id === slotted.card);
+        total += held?.level ?? 1;
+      }
+      return total;
+    }
+    case 'unslottedOrders': {
+      // The shelf: cards held and not sitting in a chair, counted once each
+      // however deeply they were drafted — an archive is a shelf of decisions.
+      const sc = playerById(state, playerId)?.statecraft;
+      if (!sc) return 0;
+      let total = 0;
+      for (const owned of sc.orders) {
+        if (sc.slots.some((slotted) => slotted !== null && slotted.card === owned.id)) continue;
+        total += 1;
+      }
+      return total;
+    }
+    case 'clearedCamps':
+      // The one count answered off a **record** rather than off the board: a
+      // camp that has been burnt out leaves nothing to sweep, which is exactly
+      // what clearing one means. Written at the single seam that clears one.
+      return Math.max(0, Math.floor(playerById(state, playerId)?.campsCleared ?? 0));
     case 'followersHere': {
       // **The town's own congregation**, and the one count in the union that is
       // about a city's faith rather than about a founder's. `cityReligion` is
@@ -2557,6 +2650,30 @@ export function followerCardTileLines(state: GameState, city: City): CardTileLin
   );
 }
 
+/**
+ * The `tileYield` lines a town's **consecration** puts on its own ground — the
+ * seventh producer of a `TileLine` (Entry LV's table, the Old Ways' chapel).
+ *
+ * `timedCityTileLines`' and `followerCardTileLines`' third sibling, and it joins
+ * `cityContext` beside them for their reason exactly: a consecration is a fact
+ * about **one cathedral in one town** (`City.consecration`, presence is the
+ * state), so only a caller holding that town can resolve it, and an empire-wide
+ * pass would pay every city for one chapel.
+ *
+ * It exists because the Green Cathedral is the first consecration whose gift is
+ * on the *ground* rather than in the ledger: every row before it pays through
+ * `cityYields` and `productionBonus`, which `liveCityEffects` already reaches, so
+ * a `tileYield` written on a consecration would have been read by nobody at all.
+ * A dead clause is exactly what this file's register test exists to refuse.
+ */
+export function consecrationCardTileLines(state: GameState, city: City): CardTileLine[] {
+  return tileLinesFrom(
+    pickKind(consecrationEffects(state, city), 'tileYield')
+      .filter(({ effect }) => cityScopeAdmits(state, city, effect.scope))
+      .map((entry) => ({ ...entry, source: label(entry.source, scopeNote(entry.effect.scope)) })),
+  );
+}
+
 /** One list of `tileYield` effects turned into lines. The only such conversion. */
 function tileLinesFrom(
   found: readonly { source: string; level: number; effect: CardTileYieldEffect }[],
@@ -2678,9 +2795,76 @@ export function cardProduction(
       if (unitType === undefined) continue;
       if (unitDef(unitType).modelClass !== effect.modelClass) continue;
     }
+    // The ordinary filter, beside the silhouette shorthand and never instead of
+    // it — a row carrying both must satisfy both. "Ships" is three model classes
+    // and one filter, which is the whole reason the field exists.
+    if (effect.class !== undefined) {
+      if (unitType === undefined) continue;
+      if (!unitMatches(unitType, effect.class)) continue;
+    }
     const percent = scaleByLevel(effect.percent, level);
     if (percent === 0) continue;
     list.push({ card, source, percent });
+  }
+  return list;
+}
+
+/** One card's flat rebate on this empire's payroll. See `cardUpkeepRebateLines`. */
+export interface CardUpkeepLine {
+  card: CardId;
+  source: string;
+  /** Gold this card takes off the army's bill this turn. Always positive. */
+  gold: number;
+}
+
+/**
+ * What this empire's cards take off its payroll **piece by piece** — The
+ * Quartermasters' shilling a soldier, The Wintering Grounds' whole bill for an
+ * army in the field.
+ *
+ * `cardRulePercent(…, 'unitUpkeep')`'s sibling and never its replacement: that
+ * one is a share of the total and this one is a figure per soldier, which is the
+ * only way to say "a knight costs one less" without saying something different
+ * about a warrior. One line per card, so two rebates read as two reasons —
+ * `explainUnitUpkeepRebate` (`upkeep.ts`) folds both lists into the ledger's
+ * give-back lines and clamps the pair to the payroll.
+ *
+ * `costOf` is handed in rather than imported, and that is the whole reason this
+ * function lives here at all: `upkeep.ts` reads *this* module, so the arrow
+ * points one way and a `unitUpkeepOf` import here would close a cycle. What this
+ * side owns is the card reading — which pieces a filter reaches, and whether the
+ * hex one is standing on is home — and what the caller owns is the price.
+ */
+export function cardUpkeepRebateLines(
+  state: GameState,
+  playerId: number,
+  costOf: (unit: Unit) => number,
+): CardUpkeepLine[] {
+  const list: CardUpkeepLine[] = [];
+  for (const { source, card, level, effect } of effectsOfKind(state, playerId, 'upkeepRebate')) {
+    // `free` is not a figure and is deliberately not scaled: a deeper Wintering
+    // Grounds cannot make an army more free than free. A flat rebate scales like
+    // every other number in the vocabulary.
+    const off = effect.free === true ? null : scaleByLevel(effect.amount ?? 0, level);
+    if (off !== null && off <= 0) continue;
+    let gold = 0;
+    for (const unit of state.units) {
+      if (unit.ownerId !== playerId) continue;
+      if (!unitMatches(unit.type, effect.class)) continue;
+      if (effect.where === 'ownTerritory') {
+        if (tileOwnerPlayerId(state, unit.col, unit.row) !== playerId) continue;
+      }
+      if (effect.where === 'foreignTerritory') {
+        // `cardUnitStat`'s reading exactly: a hex nobody owns is outside your
+        // borders, which is what makes a campaign the thing the card pays for.
+        if (tileOwnerPlayerId(state, unit.col, unit.row) === playerId) continue;
+      }
+      const cost = costOf(unit);
+      if (cost <= 0) continue;
+      gold += off === null ? cost : Math.min(off, cost);
+    }
+    if (gold <= 0) continue;
+    list.push({ card, source, gold });
   }
   return list;
 }
@@ -3074,6 +3258,21 @@ function combatConditionHolds(
       }
       return false;
     }
+    case 'followingTerritory': {
+      // The banner rather than the border. The hex's *owning* city, its derived
+      // `cityReligion`, against the faiths this empire is paid by — the same
+      // three readings `CityScope`'s `follows` takes with a viewer named, so a
+      // conquered holy city moves this line with it. A hex nobody owns has no
+      // congregation and never satisfies it.
+      const cityId = tileOwnerCityId(state, situation.tile.col, situation.tile.row);
+      if (cityId === undefined) return false;
+      const town = state.cities.find((entry) => entry.id === cityId);
+      if (!town) return false;
+      if (when.foreign === true && town.ownerId === situation.unit.ownerId) return false;
+      const kept = cityReligion(town);
+      if (kept === null) return false;
+      return heldReligions(state, situation.unit.ownerId).some((faith) => faith.id === kept);
+    }
     case 'strongerTarget':
       // Base against base — never the folded ledger, which would be a line
       // inside its own sum. A city has no such strength and never satisfies it,
@@ -3308,6 +3507,12 @@ export function cardUnitStat(
     if (!unitMatches(unit.type, effect.class)) continue;
     if (effect.where === 'ownTerritory') {
       if (tileOwnerPlayerId(state, unit.col, unit.row) !== unit.ownerId) continue;
+    }
+    if (effect.where === 'foreignTerritory') {
+      // `ownTerritory`'s mirror, asked of the same field: a hex nobody owns is
+      // outside your borders, which is the reach `noHealAbroad` already takes
+      // and what makes The Wintering Grounds bite on a campaign.
+      if (tileOwnerPlayerId(state, unit.col, unit.row) === unit.ownerId) continue;
     }
     if (effect.where === 'embarked') {
       // On water is embarked: nothing else can be standing there, because
@@ -4419,6 +4624,11 @@ export function describeCard(id: CardId, level = 1): CardClause[] {
           text: 'the first time this Order is placed in a slot, you are offered a great person',
         });
       }
+      if (grant.grant === 'die') {
+        clauses.push({
+          text: 'the first time this Order is placed in a slot, a die of the Magister is yours',
+        });
+      }
     }
   }
   // **A revocation is not an effect, and it still has to be printed** — the
@@ -4502,13 +4712,27 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         ? ref(
             isWonder(effect.building) ? 'wonder' : 'building',
             effect.building,
-            buildingPlural(buildingDef(effect.building).name, 2),
+            // **A one-of-a-kind row has no plural.** A discount on Temples is a
+            // discount on however many a realm raises, and a discount on The
+            // Magnum Opus is a discount on the one — "The Magnum Opuses" is a
+            // sentence about a thing that cannot exist. `oneOfAKind` is the same
+            // line `liveEffects` divides its sources on, asked here for the
+            // words rather than for the reading.
+            oneOfAKind(effect.building)
+              ? buildingDef(effect.building).name
+              : buildingPlural(buildingDef(effect.building).name, 2),
           )
         : effect.buildingCategory
           ? `${effect.buildingCategory} buildings`
           : effect.modelClass
             ? `${effect.modelClass} units`
-            : `${effect.category}s`;
+            : // The ordinary filter, which is the only one of the four that can
+              // say "ships" — `filterWords` is the same table `unitStat` and
+              // `combatLine` print through, so one card cannot call a hull one
+              // thing and another card call it another.
+              effect.class
+              ? filterWords(effect.class)
+              : `${effect.category}s`;
       // The scope trails as its own clause, exactly as a scoped `tileYield`'s
       // does: "+20% production toward wonders, in your capital" says *where* the
       // hammers are quicker without turning the category into a possessive.
@@ -4574,7 +4798,9 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
             ? `${COMBAT_WORDS.withinOfCity} ${effect.when.hexes} ${
                 effect.when.hexes === 1 ? 'hex' : 'hexes'
               } of one of your cities`
-            : COMBAT_WORDS[effect.when.test];
+            : effect.when.test === 'followingTerritory' && effect.when.foreign === true
+              ? FOREIGN_FOLLOWING_WORDS
+              : COMBAT_WORDS[effect.when.test];
       out.push({
         text: `${each} combat strength${who}${against}${scale} ${when}`.trim(),
       });
@@ -4683,10 +4909,18 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
         const inner: CardClause[] = [];
         for (const nested of grant.timed.effects) describeEffect(nested, level, inner);
         const turns = Math.max(1, scaleByLevel(grant.timed.turns, level));
+        // **A bill and a blessing are the same shape and not the same
+        // sentence.** Crassus hangs a penalty on the realm and The Triumphal Way
+        // hangs a festival, so the verb is read off the nested clauses' own sign
+        // rather than assumed: "costs your empire −1 happiness" is a double
+        // negative, and "grants +5 happiness" is what the ratified text says.
+        const pays = grant.timed.effects.some(
+          (nested) => 'amount' in nested && typeof nested.amount === 'number' && nested.amount > 0,
+        );
         out.push({
           text:
-            `${occasion} costs your empire ${inner.map((clause) => clause.text).join('; ')} ` +
-            `for ${turns} turns${per}`,
+            `${occasion} ${pays ? 'grants' : 'costs your empire'} ` +
+            `${inner.map((clause) => clause.text).join('; ')} for ${turns} turns${per}`,
         });
       }
       if (grant?.healAll === true) {
@@ -4938,6 +5172,17 @@ function describeEffect(effect: CardEffect, level: number, out: CardClause[]): v
           `to every city within ${effect.range} hexes`,
       });
       return;
+    case 'upkeepRebate': {
+      const who = effect.class ? filterWords(effect.class) : 'all units';
+      const where = WHERE_WORDS[effect.where ?? 'anywhere'];
+      if (effect.free === true) {
+        out.push({ text: `${who} cost no gold in maintenance${where}` });
+        return;
+      }
+      const off = scaleByLevel(effect.amount ?? 0, level);
+      out.push({ text: `${who} cost ${off} less gold in maintenance${where}` });
+      return;
+    }
     default: {
       const unhandled: never = kind;
       void unhandled;
@@ -5127,6 +5372,17 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
         `beside ${indefinite(improvementDef(scope.improvement).name)} ` +
           `${ref('improvement', scope.improvement, improvementDef(scope.improvement).name)}`,
       );
+      return;
+    case 'adjacentGreatWork':
+      into.qualifiers.push("beside a great person's work");
+      return;
+    case 'onResourceKind':
+      // "settled on a luxury", which is where the settler stopped — not what the
+      // borders later took in, which is `holdingCategory` and a different card.
+      into.qualifiers.push(`settled on ${indefinite(scope.kind)} ${scope.kind} resource`);
+      return;
+    case 'queueHolds':
+      into.qualifiers.push(`while it is building ${indefinite(scope.category)} ${scope.category}`);
       return;
     case 'frontier':
       // A qualifier and not an adjective, for `notCapital`'s reason one step
@@ -5435,7 +5691,14 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   // are one table entry and two data rows — `onFeature`'s bargain.
   withinOfCity: 'within',
   strongerTarget: 'against a stronger unit',
+  // The `foreign` half is printed by `describeEffect`, so that "in cities that
+  // follow your religion" and "in foreign cities that follow your religion" are
+  // one table entry and two data rows — `onFeature`'s bargain.
+  followingTerritory: 'inside cities that follow your religion',
 };
+
+/** The `followingTerritory` line narrowed to somebody else's towns. */
+const FOREIGN_FOLLOWING_WORDS = 'inside foreign cities that follow your religion';
 
 const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
   cities: { one: 'city you hold', many: 'cities you hold' },
@@ -5452,9 +5715,13 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
 };
 
 /** Where a `unitStat` applies, in words. `'anywhere'` is the absent field. */
-const WHERE_WORDS: Record<'anywhere' | 'ownTerritory' | 'embarked' | 'fortified', string> = {
+const WHERE_WORDS: Record<
+  'anywhere' | 'ownTerritory' | 'foreignTerritory' | 'embarked' | 'fortified',
+  string
+> = {
   anywhere: '',
   ownTerritory: ' inside your territory',
+  foreignTerritory: ' outside your territory',
   embarked: ' while embarked',
   fortified: ' while dug in',
 };
@@ -5609,6 +5876,22 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   foreignTradeRoutes: {
     one: 'trade route to another empire',
     many: 'trade routes to another empire',
+  },
+  internalTradeRoutes: {
+    one: 'trade route between your own cities',
+    many: 'trade routes between your own cities',
+  },
+  slottedOrderLevels: {
+    one: 'level of the Orders you have placed in a slot',
+    many: 'levels of the Orders you have placed in a slot',
+  },
+  unslottedOrders: {
+    one: 'Order you hold but have not placed in a slot',
+    many: 'Orders you hold but have not placed in a slot',
+  },
+  clearedCamps: {
+    one: 'barbarian camp you have cleared',
+    many: 'barbarian camps you have cleared',
   },
   followingCities: { one: 'city that follows you', many: 'cities that follow you' },
   followingForeign: {

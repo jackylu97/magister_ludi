@@ -1248,7 +1248,11 @@ describe('trade in the log', () => {
     // v45: the endgame of Entry LVIII — the Magnum Opus, the three bead-paying
     // great works, the Long Count's die and Alchemy's closing bead. A v44 log
     // reaches a winner it never reached, and spends rolls it never spent.
-    expect(SCHEMA_VERSION).toBe(45);
+    // v46: the card pools of Entry LVIII — nineteen new Orders, a Doctrine, two
+    // beliefs and a sixth consecration join the bags a draft draws from, and The
+    // Laureate's once-per-game great person becomes a renown trickle. A v45 log
+    // names indices of hands this build does not deal.
+    expect(SCHEMA_VERSION).toBe(46);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

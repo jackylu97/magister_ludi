@@ -636,8 +636,29 @@ import {
  *     game with none of the four rows built serialises exactly as a v44 one
  *     did. What a v44 save cannot carry across is a finish line its log was
  *     never played against.
+ * 46: **The card pools of Entry LVIII** — the Themes Build's fourth phase, the
+ *     ratified cards. A v45 log is refused because *the tables it was dealt
+ *     from are not these tables*:
+ *       · **Nineteen new Orders and a Doctrine** join four pools that a draft
+ *         draws from without replacement, so every `chooseOrder` and
+ *         `chooseDoctrine` in a v45 log names a different index of a different
+ *         hand. Two beliefs, a pantheon row and a sixth **consecration** join
+ *         their own bags, and the consecration is rolled from `state.rng` when a
+ *         cathedral is topped out — so a v45 game that raised one spent its
+ *         rolls against a five-card table.
+ *       · **The Laureate is reworked** (sheet 09, the user): its once-per-game
+ *         great person is gone and a renown trickle stands in its place, so an
+ *         empire that slotted it in a v45 game was handed a name this build
+ *         never offers and climbs the ladder at a different rate thereafter.
+ *       · **`Player.campsCleared` is a new field** — the tally The Last Hunt
+ *         reads, written at `arriveOnTile`. Every v45 player is missing it,
+ *         which reads as a realm that has cleared nothing rather than as a realm
+ *         whose hunts were never counted.
+ *
+ *     The migration note: a v45 `Player` gains `campsCleared: 0`. Nothing else
+ *     changed shape — what a v45 save cannot carry across is the deck.
  */
-export const SCHEMA_VERSION = 45;
+export const SCHEMA_VERSION = 46;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -867,6 +888,22 @@ export interface Player {
    * Nothing lowers it. Losing the ground does not refund the habit.
    */
   tilesPurchased: number;
+  /**
+   * How many barbarian camps this player has ever **burnt out**
+   * (`arriveOnTile`, the one seam that clears one).
+   *
+   * `tilesPurchased`' twin one verb over, and it is on the player for that
+   * counter's reason exactly: it can never be derived from the board, because a
+   * cleared camp leaves *nothing behind* — that is what clearing one means. The
+   * board can answer "how many camps still stand" (`visibleCamps`) and "how many
+   * have I found" (`discoveredCamps`, off the monotone fog); only a record can
+   * answer "how many did I ride down".
+   *
+   * Nothing lowers it. The Last Hunt is a tally of a life's work, and a hunt
+   * that stopped counting when the steppe emptied would be a card that punishes
+   * finishing the job.
+   */
+  campsCleared: number;
   /**
    * True once this player holds no units and no cities. They are out.
    *
@@ -2501,6 +2538,7 @@ export function newGame(config: GameConfig): GameState {
       // as a fresh `researchQueue`-less player.
       unitsBuilt: {},
       tilesPurchased: 0,
+      campsCleared: 0,
       eliminated: false,
       barbarian: false,
       // Fresh every time rather than a shared literal, for `techsResearched`'s
@@ -2630,6 +2668,7 @@ function seatBarbarians(state: GameState): void {
     techsResearched: [],
     unitsBuilt: {},
     tilesPurchased: 0,
+    campsCleared: 0,
     eliminated: false,
     barbarian: true,
     // A chiefdom the wild will never leave. Present so that every reader may

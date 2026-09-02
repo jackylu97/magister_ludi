@@ -103,7 +103,7 @@ import {
   poolOrders,
   slotLayout,
 } from '../../src/sim/statecraftData';
-import { getTileAt } from '../../src/sim/map';
+import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
 import { arriveOnTile } from '../../src/sim/arrival';
 import { foundCityAt } from '../../src/sim/cities';
 import { improvementDef } from '../../src/sim/improvementData';
@@ -114,7 +114,11 @@ import {
   greatPersonOfferPrice,
   greatPersonPurchaseError,
 } from '../../src/sim/greatPeople';
-import { explainUnitUpkeepRebate, unitUpkeepTotal } from '../../src/sim/upkeep';
+import {
+  explainUnitUpkeep,
+  explainUnitUpkeepRebate,
+  unitUpkeepTotal,
+} from '../../src/sim/upkeep';
 import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
 import { buildError, isUnlocked } from '../../src/sim/tech';
 import {
@@ -268,7 +272,13 @@ describe('the card table', () => {
       // The chiefdom is the one signature-less row: it is where a game starts,
       // not a thing a player chose.
       if (id === STARTING_GOVERNMENT) continue;
-      const hasSomething = def.effects.length > 0 || (def.deferred ?? []).length > 0;
+      // An Order whose whole face is a **slot grant** speaks too — The
+      // Auspicious Seal hands over a die the first time it is placed and stands
+      // for nothing afterwards, which is a card that says something and carries
+      // no `CardEffect` at all.
+      const granted = ORDER_IDS.includes(id as never) ? (orderDef(id as never).onSlot ?? []) : [];
+      const hasSomething =
+        def.effects.length > 0 || (def.deferred ?? []).length > 0 || granted.length > 0;
       expect(hasSomething, id).toBe(true);
     }
   });
@@ -307,7 +317,7 @@ describe('the card table', () => {
       'authority', 'happinessTierBoost', 'combatLine', 'unitStat', 'windfallRider',
       'foundingRider', 'countScaled', 'rateConversion', 'offerRider', 'effectAmplifier',
       'meterRule', 'conditionRule', 'actionRule', 'behaviorRule', 'cityStat', 'metaRule',
-      'tileYield', 'renown',
+      'tileYield', 'renown', 'upkeepRebate',
       // No longer the marked exception: buildings can be bought (Entry XXIX), so
       // `cardUnlocksBuilding` is read by `isUnlocked` and The Gilded Court
       // really does hand the Gilded Hall over.
@@ -1022,7 +1032,11 @@ describe('determinism', () => {
     // v45: the endgame of Entry LVIII — the Magnum Opus, the three bead-paying
     // great works, the Long Count's die and Alchemy's closing bead. A v44 log
     // reaches a winner it never reached, and spends rolls it never spent.
-    expect(SCHEMA_VERSION).toBe(45);
+    // v46: the card pools of Entry LVIII — nineteen new Orders, a Doctrine, two
+    // beliefs and a sixth consecration join the bags a draft draws from, and The
+    // Laureate's once-per-game great person becomes a renown trickle. A v45 log
+    // names indices of hands this build does not deal.
+    expect(SCHEMA_VERSION).toBe(46);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1903,31 +1917,35 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(g.state.camps).toHaveLength(0);
   });
 
-  it('onSlot — The Laureate calls one great person, and never a second', () => {
+  it('onSlot — The Auspicious Seal pays one die, and never a second', () => {
+    // The Laureate carried this machinery until the Themes Build's rework
+    // (sheet 09, the user): its face is a renown trickle now, and the
+    // once-per-game claim moved to The Auspicious Seal's die. The *mechanism* is
+    // unchanged and is what this pins — `grantedOnSlot` is presence, and nothing
+    // removes an entry.
     const g = game();
     found(g.state, 0);
     keepTheRites(g.state);
     const player = playerById(g.state, 0)!;
     const sc = player.statecraft;
-    grant(sc, 'theLaureate');
+    grant(sc, 'theAuspiciousSeal');
+    const before = player.dice;
     // Room for it: the chiefdom's wildcard slot takes anything.
     const index = slotLayout(sc.government).indexOf('wildcard');
     expect(dispatch(g, {
-      type: 'slotOrder', playerId: 0, cardId: 'theLaureate', slotIndex: index,
+      type: 'slotOrder', playerId: 0, cardId: 'theAuspiciousSeal', slotIndex: index,
     } as Command).ok).toBe(true);
-    expect(sc.grantedOnSlot).toEqual(['theLaureate']);
-    expect(player.greatPersonOffer).toBeDefined();
+    expect(sc.grantedOnSlot).toEqual(['theAuspiciousSeal']);
+    expect(player.dice).toBe(before + 1);
 
-    // Answer the offer, empty the slot when the seal lifts, and slot it again:
-    // the flag is presence, and nothing removes an entry.
-    delete player.greatPersonOffer;
+    // Empty the slot when the seal lifts and slot it again: no second die.
     g.state.turn = sc.slots[index]!.sealedUntil;
     expect(dispatch(g, { type: 'unslotOrder', playerId: 0, slotIndex: index } as Command).ok).toBe(true);
     expect(dispatch(g, {
-      type: 'slotOrder', playerId: 0, cardId: 'theLaureate', slotIndex: index,
+      type: 'slotOrder', playerId: 0, cardId: 'theAuspiciousSeal', slotIndex: index,
     } as Command).ok).toBe(true);
-    expect(sc.grantedOnSlot).toEqual(['theLaureate']);
-    expect(player.greatPersonOffer).toBeUndefined();
+    expect(sc.grantedOnSlot).toEqual(['theAuspiciousSeal']);
+    expect(player.dice).toBe(before + 1);
   });
 
   it('offers Gov IV and Gov V at their rungs, and deals a Doctrine pool for each', () => {
@@ -2113,13 +2131,15 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(said('silkRoads')).toEqual(['+3 gold per trade route you run']);
     expect(said('festivalDays')).toEqual(['+4 happiness']);
     expect(said('ritesOfPassage')).toEqual(['completing a unit grants +5 faith']);
+    // The Themes Build's rework (sheet 09, the user): the trickle replaces the
+    // one-off laureate, and the five works are untouched.
     expect(said('theLaureate')).toEqual([
+      '+1 renown per turn',
       '+2 science on every hex with an Academy',
       '+2 culture on every hex with a Landmark',
       '+2 production on every hex with a Manufactory',
       '+2 gold on every hex with a Customs House',
       '+2 production on every hex with a Citadel',
-      'the first time this Order is placed in a slot, you are offered a great person',
     ]);
 
     // The beliefs the same pass touched, read by the same evaluator.
@@ -3069,6 +3089,354 @@ describe('the balance pass of 2026-08-31', () => {
     expect(said('theClosedRealm')).toEqual([
       'your happiness is held at +5 whatever your cities ask for — not built yet',
       'your units cannot attack outside your own territory — not built yet',
+    ]);
+  });
+});
+
+// --- the ratified cards of Entry LVIII (the Themes Build, phase 4) -----------
+
+/**
+ * The theme sheets' ratified rows, and the eight members of the vocabulary they
+ * needed.
+ *
+ * Same discipline as the three passes above: **one behavioural test per new
+ * member**, because the kind-level register only proves a *shape* is named by a
+ * row — a `CityScope`, a `CountKind` or a `where` value nobody reads would sail
+ * straight through it — plus a register of its own naming exactly what this pass
+ * declared, plus the printed sentence of every row that is new or changed.
+ */
+describe('the ratified cards of the Themes Build', () => {
+  it('upkeepRebate — The Quartermasters take a coin off each soldier, never past free', () => {
+    const g = game();
+    const seat = g.state.units.find((u) => u.ownerId === 0)!;
+    for (let i = 0; i < 3; i++) createUnit(g.state, 0, 'warrior', seat.col, seat.row);
+    const soldiers = explainUnitUpkeep(g.state, 0);
+    expect(soldiers.length).toBeGreaterThan(0);
+    expect(explainUnitUpkeepRebate(g.state, 0)).toEqual([]);
+
+    slot(g.state, 0, 'theQuartermasters');
+    const lines = explainUnitUpkeepRebate(g.state, 0);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.source).toContain('The Quartermasters');
+    // A coin **per piece**, and never more than that piece costs: a card cannot
+    // turn a payroll into a mint, which is the clamp `unitUpkeep`'s percentage
+    // half has always had.
+    expect(lines[0]!.gold).toBe(soldiers.reduce((sum, l) => sum + Math.min(1, l.gold), 0));
+    expect(lines[0]!.gold).toBeLessThanOrEqual(unitUpkeepTotal(g.state, 0));
+
+    // And the ledger reads it: the give-back is its **own** line beside the
+    // gross charge, so a player sees the army's price and then the reason it
+    // is lower.
+    const ledger = explainEmpireGold(g.state, 0);
+    expect(ledger.some((line) => line.source.includes('The Quartermasters'))).toBe(true);
+    expect(ledger.some((line) => line.source.startsWith('Unit maintenance'))).toBe(true);
+  });
+
+  it('upkeepRebate free + unitStat outside — The Wintering Grounds keep an army in the field', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const home = createUnit(g.state, 0, 'warrior', city.col, city.row);
+    // Somewhere nobody owns: the far corner of a duel map is not anybody's third
+    // ring. `foreignTerritory` reaches unclaimed ground, which is the reading
+    // that makes the card about a campaign.
+    const away = createUnit(g.state, 0, 'warrior', 1, 1);
+    expect(cardUnitStat(g.state, home, 'heal')).toBe(0);
+    expect(cardUnitStat(g.state, away, 'heal')).toBe(0);
+
+    slot(g.state, 0, 'theWinteringGrounds');
+    expect(cardUnitStat(g.state, home, 'heal')).toBe(0);
+    expect(cardUnitStat(g.state, away, 'heal')).toBe(5);
+    // The payroll: only the piece standing abroad is forgiven, and it is
+    // forgiven **whole**.
+    const rebate = explainUnitUpkeepRebate(g.state, 0);
+    expect(rebate).toHaveLength(1);
+    expect(rebate[0]!.source).toContain('The Wintering Grounds');
+    const abroad = explainUnitUpkeep(g.state, 0).filter((line) => line.unitId === away.id);
+    expect(rebate[0]!.gold).toBe(abroad.reduce((sum, l) => sum + l.gold, 0));
+  });
+
+  it('onResourceKind — The Prize Grounds pay the town the settler planted on the vein', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    const luxury = { test: 'onResourceKind', kind: 'luxury' } as const;
+    expect(cityScopeAdmits(g.state, city, luxury)).toBe(false);
+    tile.resource = 'gems';
+    expect(cityScopeAdmits(g.state, city, luxury)).toBe(true);
+    // The centre's own hex and nothing wider — `holdingCategory` is the other
+    // question and a different card.
+    const before = foldMeter(explainHappiness(g.state, 0));
+    slot(g.state, 0, 'thePrizeGrounds');
+    expect(foldMeter(explainHappiness(g.state, 0))).toBe(before + 2);
+  });
+
+  it("adjacentGreatWork — The Master's Presence never stacks, however many works stand", () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const scope = { test: 'adjacentGreatWork' } as const;
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
+    const ring = neighborTiles(g.state.map, tileHex(getTileAt(g.state.map, city.col, city.row)!));
+    ring[0]!.improvement = 'academy';
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(true);
+
+    slot(g.state, 0, 'theMastersPresence');
+    const lines = cityYieldPercents(g.state, city).filter((line) =>
+      line.source.includes("The Master's Presence"),
+    );
+    // One line per voice, and each of them ten points — the `yield: 'all'`
+    // expansion, not six cards.
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) expect(line.percent).toBe(10);
+    // A second work beside the same town is the same boolean.
+    ring[1]!.improvement = 'landmark';
+    for (const line of cityYieldPercents(g.state, city).filter((l) =>
+      l.source.includes("The Master's Presence"),
+    )) {
+      expect(line.percent).toBe(10);
+    }
+  });
+
+  it('queueHolds — The Wonder-Feasts feed the town with the scaffolding up', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'theWonderFeasts');
+    const fed = (): number =>
+      foldCardYields(cardCityYields(g.state, city).filter((l) => l.source.includes('Wonder-Feasts')))
+        .food;
+    expect(fed()).toBe(0);
+    city.queue = [{ kind: 'building', id: 'stonehenge' }];
+    expect(fed()).toBe(2);
+    // **The front row only**: a wonder standing second is a plan, not a
+    // building site.
+    city.queue = [{ kind: 'unit', id: 'warrior' }, { kind: 'building', id: 'stonehenge' }];
+    expect(fed()).toBe(0);
+    // And the hammers, which are the card's other half and a plain category
+    // bonus.
+    city.queue = [{ kind: 'building', id: 'stonehenge' }];
+    expect(
+      cardProduction(g.state, city, 'wonder').find((l) => l.source.includes('Wonder-Feasts'))
+        ?.percent,
+    ).toBe(10);
+  });
+
+  it('productionBonus class — The Dry Docks say "ships", which no silhouette can', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'theDryDocks');
+    // No harbour, no docks: the scope is the ordinary one.
+    expect(cardProduction(g.state, city, 'unit', 'trireme')).toEqual([]);
+    city.buildings.push('harbour');
+    const hulls = cardProduction(g.state, city, 'unit', 'trireme');
+    expect(hulls).toHaveLength(1);
+    expect(hulls[0]!.percent).toBe(25);
+    // A soldier is not a ship — the filter is the roster's own `category`, so
+    // the day a fourth hull class is drawn it is quick without this row moving.
+    expect(cardProduction(g.state, city, 'unit', 'warrior')).toEqual([]);
+  });
+
+  it('clearedCamps — The Last Hunt counts what the steppe no longer has', () => {
+    const g = game();
+    const player = playerById(g.state, 0)!;
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    const tile = getTileAt(g.state.map, unit.col, unit.row)!;
+    g.state.camps.push({ col: tile.col, row: tile.row, foundedTurn: 0 });
+    expect(player.campsCleared).toBe(0);
+    expect(arriveOnTile(g.state, unit, tile).camp).not.toBeNull();
+    // Written at the one seam a camp stops existing, and never lowered.
+    expect(player.campsCleared).toBe(1);
+
+    slot(g.state, 0, 'theLastHunt');
+    const paid = cardEmpireYields(g.state, 0).find((line) => line.source.includes('The Last Hunt'));
+    expect(paid?.culture).toBe(2);
+    player.campsCleared = 4;
+    expect(
+      cardEmpireYields(g.state, 0).find((line) => line.source.includes('The Last Hunt'))?.culture,
+    ).toBe(8);
+  });
+
+  it('internalTradeRoutes — The Provisioners pay for the grain that never leaves', () => {
+    const g = game();
+    const mine = found(g.state, 0);
+    const second = foundCityAt(g.state, 0, getTileAt(g.state.map, mine.col + 3, mine.row)!);
+    const theirs = found(g.state, 1);
+    slot(g.state, 0, 'theProvisioners');
+    const happy = (): number =>
+      explainHappiness(g.state, 0)
+        .filter((line) => line.source.includes('The Provisioners'))
+        .reduce((sum, line) => sum + line.value, 0);
+    expect(happy()).toBe(0);
+
+    const caravan = createUnit(g.state, 0, 'trader', mine.col, mine.row);
+    const route = { from: mine.id, to: theirs.id, expiresTurn: g.state.turn + 10, outbound: true, autoResend: false };
+    caravan.trade = { ...route };
+    // A road to somebody else's town is `foreignTradeRoutes`, which is the
+    // other count and a different card.
+    expect(happy()).toBe(0);
+    caravan.trade = { ...route, to: second.id };
+    expect(happy()).toBe(1);
+  });
+
+  it('slottedOrderLevels and unslottedOrders — the council read from both ends', () => {
+    const g = game();
+    found(g.state, 0);
+    const sc = playerById(g.state, 0)!.statecraft;
+    // Two on the shelf and nothing in a chair yet.
+    grant(sc, 'theArchives');
+    grant(sc, 'theAnnalsOfLaw');
+    grant(sc, 'firstRites');
+    const culture = (name: string): number =>
+      cardEmpireYields(g.state, 0)
+        .filter((line) => line.source.includes(name))
+        .reduce((sum, line) => sum + line.culture, 0);
+    // Nothing is slotted, so neither card is live at all.
+    expect(culture('The Archives')).toBe(0);
+
+    sc.slots.push({ card: 'theArchives', sealedUntil: g.state.turn });
+    // One chair, one level: the Archives pay for themselves and nothing else.
+    expect(culture('The Archives')).toBe(1);
+    // Two left on the shelf, at two culture apiece — and the Annals must be
+    // slotted to say so, which is what makes the card a decision.
+    sc.slots.push({ card: 'theAnnalsOfLaw', sealedUntil: g.state.turn });
+    expect(culture('The Annals of Law')).toBe(2);
+    expect(culture('The Archives')).toBe(2);
+    // Deepening pays twice over, and the pun is the card: a deeper Archives
+    // raises the *count* (three levels sit in chairs now) and `scaleByLevel`
+    // raises what each level is worth (two culture, the vocabulary's
+    // at-least-a-point-per-level rule). Three by two.
+    grant(sc, 'theArchives', 2);
+    expect(culture('The Archives')).toBe(6);
+  });
+
+  it('renown — The Laureate is a trickle now, and it joins the ledger it pays into', () => {
+    const g = game();
+    found(g.state, 0);
+    expect(cardRenownLines(g.state, 0).some((l) => l.source.includes('The Laureate'))).toBe(false);
+    slot(g.state, 0, 'theLaureate');
+    const line = cardRenownLines(g.state, 0).find((l) => l.source.includes('The Laureate'));
+    expect(line?.amount).toBe(1);
+    // The court favours nobody in particular — an unfamilied trickle leaves the
+    // draw as flat as it was.
+    expect(line?.family ?? null).toBeNull();
+    // And the rework's other half is untouched: the five works still pay.
+    expect(orderDef('theLaureate').onSlot).toBeUndefined();
+  });
+
+  it('reads every shape this pass declared from at least one live card', () => {
+    const used = new Set<CardEffectKind>();
+    for (const id of ORDER_IDS) {
+      for (const effect of orderDef(id).effects) used.add(effect.kind);
+    }
+    expect(used.has('upkeepRebate')).toBe(true);
+
+    // The **member** register: a `CityScope`, a `CountKind`, a `where` and a
+    // `UnitFilter` narrowing nobody names would pass the kind-level test above
+    // while being read by nothing at all.
+    const scopes = new Set<string>();
+    const counts = new Set<string>();
+    const wheres = new Set<string>();
+    let filtered = false;
+    const noteScope = (scope: unknown): void => {
+      if (!scope || typeof scope !== 'object') return;
+      const test = (scope as { test?: string }).test;
+      if (test !== undefined) scopes.add(test);
+      for (const inner of (scope as { of?: unknown[] }).of ?? []) noteScope(inner);
+    };
+    for (const id of ORDER_IDS) {
+      for (const effect of orderDef(id).effects) {
+        noteScope((effect as { scope?: unknown }).scope);
+        if (effect.kind === 'countScaled') counts.add(effect.count);
+        if (effect.kind === 'unitStat' && effect.where) wheres.add(effect.where);
+        if (effect.kind === 'upkeepRebate' && effect.where) wheres.add(effect.where);
+        if (effect.kind === 'productionBonus' && effect.class !== undefined) filtered = true;
+      }
+    }
+    for (const scope of ['onResourceKind', 'adjacentGreatWork', 'queueHolds']) {
+      expect(scopes.has(scope), scope).toBe(true);
+    }
+    for (const count of [
+      'internalTradeRoutes',
+      'slottedOrderLevels',
+      'unslottedOrders',
+      'clearedCamps',
+    ]) {
+      expect(counts.has(count), count).toBe(true);
+    }
+    expect(wheres.has('foreignTerritory')).toBe(true);
+    expect(filtered).toBe(true);
+    // And the slot grant that is not an effect at all.
+    expect(orderDef('theAuspiciousSeal').onSlot).toEqual([{ grant: 'die' }]);
+  });
+
+  it('prints every new row in the words the sheets ratified', () => {
+    const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    expect(said('theQuartermasters')).toEqual([
+      'military units cost 1 less gold in maintenance',
+    ]);
+    expect(said('theWarChest')).toEqual(['military units cost 3 less gold in maintenance']);
+    expect(said('forcedMarches')).toEqual([
+      'melee units: +1 movement',
+      'melee units: +1 movement inside your territory',
+    ]);
+    expect(said('theEscortedRoads')).toEqual([
+      'trade routes pay +30% more',
+      'trade routes within 3 hexes of your soldiers cannot be plundered — nothing in the ' +
+        'game can say where a route is safe, only what it pays — not built yet',
+    ]);
+    expect(said('theLastHunt')).toEqual([
+      '+2 culture per barbarian camp you have cleared',
+    ]);
+    expect(said('theSaintsFields')).toEqual([
+      "+3 faith on every hex carrying a great person's work",
+    ]);
+    expect(said('theWayhouses')).toEqual([
+      '+2 gold per trade route you run',
+      '+1 culture per trade route you run',
+    ]);
+    expect(said('theProvisioners')).toEqual([
+      '+1 happiness per trade route between your own cities',
+    ]);
+    expect(said('thePrizeGrounds')).toEqual([
+      '+2 happiness in every city settled on a luxury resource',
+    ]);
+    expect(said('theCensusEternal')).toEqual(['+1 science per 4 population']);
+    expect(said('theGroundskeepers')).toEqual([
+      "+1 food, +1 production on every hex carrying a great person's work",
+    ]);
+    expect(said('theMastersPresence')).toEqual([
+      "+10% all yields in every city beside a great person's work",
+    ]);
+    expect(said('theWonderFeasts')).toEqual([
+      '+2 food in every city while it is building a wonder',
+      '+10% production toward wonders',
+    ]);
+    expect(said('theMasterBuilders')).toEqual([
+      '-15% production toward The Magnum Opus',
+      '-15% production toward Cathedrals',
+    ]);
+    expect(said('theShipwrightShores')).toEqual([
+      '+1 production in every coastal city',
+      '+30% production toward ships, in every coastal city',
+    ]);
+    expect(said('theDryDocks')).toEqual([
+      '+25% production toward ships, in every city with a Harbour',
+      'ships mend completely in a port — a heal that depends on where a piece is standing ' +
+        'is a rule about a hex, and healing is a rule about a turn — not built yet',
+    ]);
+    expect(said('theWinteringGrounds')).toEqual([
+      'all units cost no gold in maintenance outside your territory',
+      'all units: +5 healing per turn outside your territory',
+    ]);
+    expect(said('theArchives')).toEqual([
+      '+1 culture per level of the Orders you have placed in a slot',
+    ]);
+    expect(said('theAnnalsOfLaw')).toEqual([
+      '+2 culture per Order you hold but have not placed in a slot',
+    ]);
+    expect(said('theAuspiciousSeal')).toEqual([
+      'the first time this Order is placed in a slot, a die of the Magister is yours',
+    ]);
+    expect(said('theTriumphalWay')).toEqual([
+      'capturing a city grants +5 happiness in every city for 10 turns',
     ]);
   });
 });

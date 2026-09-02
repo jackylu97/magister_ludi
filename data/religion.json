@@ -495,6 +495,30 @@
           }
         }
       ]
+    },
+    "theLivingRock": {
+      "name": "The Living Rock",
+      "axis": "stone",
+      "flavor": "Cut deep enough and the seam sings back at you.",
+      "text": "+1 culture on every hex with a Mine carrying a resource.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "culture": 1,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "mine"
+              },
+              {
+                "test": "hasResource"
+              }
+            ]
+          }
+        }
+      ]
     }
   },
   "followerBeliefs": {
@@ -969,6 +993,38 @@
           }
         }
       ]
+    },
+    "theCrusade": {
+      "name": "The Crusade",
+      "axis": "war",
+      "flavor": "They took the long road, and every town along it fed them.",
+      "text": "+5 combat strength inside foreign cities that follow your religion.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "both",
+          "when": {
+            "test": "followingTerritory",
+            "foreign": true
+          }
+        }
+      ]
+    },
+    "thePromisedLand": {
+      "name": "The Promised Land",
+      "axis": "road",
+      "flavor": "It was described to them before any of them had seen it.",
+      "text": "Settlers you send out carry an extra citizen: the cities they found start one larger.",
+      "deferred": [
+        "the cities your settlers found start already keeping your faith — nothing can seed a religion at a founding, and a lump of pressure at the moment a town is planted is a second way to press faith"
+      ],
+      "effects": [
+        {
+          "kind": "foundingRider",
+          "population": 1
+        }
+      ]
     }
   },
   "rites": {
@@ -1164,6 +1220,21 @@
             "yield": "faith",
             "amount": 1,
             "where": "city"
+          }
+        }
+      ]
+    },
+    "theGreenCathedral": {
+      "name": "The Green Cathedral",
+      "flavor": "The nave was left roofless on purpose, and the wood grew in.",
+      "text": "+1 faith and +1 culture on every unimproved hex this city works.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "faith": 1,
+          "culture": 1,
+          "on": {
+            "test": "unimproved"
           }
         }
       ]

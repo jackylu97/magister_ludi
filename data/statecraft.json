@@ -1351,6 +1351,31 @@
         "your units cannot attack outside your own territory"
       ],
       "note": "Not built, both halves. Nothing in this game can hold a meter at a number instead of adding to it, and nothing can refuse an attack for where it is being made."
+    },
+    "theTriumphalWay": {
+      "name": "The Triumphal Way",
+      "tier": 45,
+      "line": "forge",
+      "flavor": "The road into the city was widened once, for one afternoon, four hundred years ago.",
+      "text": "Capturing a city grants +5 happiness in every city for 10 turns.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "timed": {
+              "turns": 10,
+              "effects": [
+                {
+                  "kind": "happiness",
+                  "amount": 5,
+                  "per": "city"
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   },
   "orders": {
@@ -2659,14 +2684,13 @@
       "pool": "governmentI",
       "slot": "wildcard",
       "flavor": "The court keeps one chair empty, and it is never empty for long.",
-      "text": "The first time this Order is placed in a slot, you are offered a great person. Every great-person improvement pays +2 more of its own yield.",
+      "text": "+1 renown per turn. Every great-person improvement pays +2 more of its own yield.",
       "note": "The great-person improvements are the academy, landmark, manufactory, customs house and citadel.",
-      "onSlot": [
-        {
-          "grant": "greatPerson"
-        }
-      ],
       "effects": [
+        {
+          "kind": "renown",
+          "amount": 1
+        },
         {
           "kind": "tileYield",
           "science": 2,
@@ -3276,6 +3300,423 @@
           }
         }
       ]
+    },
+    "theQuartermasters": {
+      "name": "The Quartermasters",
+      "pool": "governmentII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "An army marches on ledgers. The ledgers march on nothing at all.",
+      "text": "Military units cost 1 less gold in maintenance.",
+      "effects": [
+        {
+          "kind": "upkeepRebate",
+          "amount": 1,
+          "class": {
+            "category": "military"
+          }
+        }
+      ]
+    },
+    "theWarChest": {
+      "name": "The War Chest",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "forge",
+      "flavor": "Kept locked, kept counted, kept full. Kept, above all.",
+      "text": "Military units cost 3 less gold in maintenance.",
+      "effects": [
+        {
+          "kind": "upkeepRebate",
+          "amount": 3,
+          "class": {
+            "category": "military"
+          }
+        }
+      ]
+    },
+    "forcedMarches": {
+      "name": "Forced Marches",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "Sleep is a thing that happens to other armies.",
+      "text": "Melee units gain +1 movement, and +2 instead inside your own territory.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "melee"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "melee"
+          },
+          "where": "ownTerritory"
+        }
+      ]
+    },
+    "theEscortedRoads": {
+      "name": "The Escorted Roads",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "The merchants pay for the spears, and the spears pay them back in miles.",
+      "text": "Trade routes pay 30% more.",
+      "deferred": [
+        "trade routes within 3 hexes of your soldiers cannot be plundered — nothing in the game can say where a route is safe, only what it pays"
+      ],
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "routeYields",
+          "percent": 30
+        }
+      ]
+    },
+    "theLastHunt": {
+      "name": "The Last Hunt",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "hunt",
+      "flavor": "They sing the old raids now. Nobody living remembers being afraid.",
+      "text": "+2 culture for each barbarian camp you have cleared this game.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "clearedCamps",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 2,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theSaintsFields": {
+      "name": "The Saints' Fields",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "Where a great one stopped to think, the ground has been holy ever since.",
+      "text": "+3 faith on every great-person improvement.",
+      "note": "The great-person improvements are the academy, landmark, manufactory, customs house and citadel.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "faith": 3,
+          "on": {
+            "test": "greatWork"
+          }
+        }
+      ]
+    },
+    "theWayhouses": {
+      "name": "The Wayhouses",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "A bed, a fire, and somebody who will listen to where you have been.",
+      "text": "+2 gold and +1 culture for each trade route you run.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "tradeRoutes",
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 2,
+            "where": "empire"
+          }
+        },
+        {
+          "kind": "countScaled",
+          "count": "tradeRoutes",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theProvisioners": {
+      "name": "The Provisioners",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "Nobody notices the grain until the week it does not come.",
+      "text": "+1 happiness for each trade route between your own cities.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "internalTradeRoutes",
+          "pays": {
+            "to": "happiness",
+            "amount": 1
+          }
+        }
+      ]
+    },
+    "thePrizeGrounds": {
+      "name": "The Prize Grounds",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "charter",
+      "flavor": "They founded it on the vein and argued about the name for a century.",
+      "text": "+2 happiness in every city settled on a luxury resource.",
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city",
+          "scope": {
+            "test": "onResourceKind",
+            "kind": "luxury"
+          }
+        }
+      ]
+    },
+    "theCensusEternal": {
+      "name": "The Census Eternal",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "star",
+      "flavor": "Every soul written down, every year, for ever. The writing is the point.",
+      "text": "+1 science for every 4 citizens in your empire.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "population",
+          "per": 4,
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theGroundskeepers": {
+      "name": "The Groundskeepers",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "court",
+      "flavor": "Someone has to weed around the monument.",
+      "text": "+1 food and +1 production on every great-person improvement.",
+      "note": "The great-person improvements are the academy, landmark, manufactory, customs house and citadel.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "food": 1,
+          "production": 1,
+          "on": {
+            "test": "greatWork"
+          }
+        }
+      ]
+    },
+    "theMastersPresence": {
+      "name": "The Master's Presence",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "court",
+      "flavor": "He is not often at home. The town works harder anyway, in case.",
+      "text": "+10% to every yield in each city beside a great person's work.",
+      "note": "A city is beside a work when one stands on its own hex or on one of the six touching it. Two works never pay twice.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "all",
+          "percent": 10,
+          "scope": {
+            "test": "adjacentGreatWork"
+          }
+        }
+      ]
+    },
+    "theWonderFeasts": {
+      "name": "The Wonder-Feasts",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "forge",
+      "flavor": "The scaffolding goes up and the ovens do not go out again for a year.",
+      "text": "+2 food in every city while it is building a wonder · +10% production toward wonders.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "food": 2,
+          "scope": {
+            "test": "queueHolds",
+            "category": "wonder"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 10
+        }
+      ]
+    },
+    "theMasterBuilders": {
+      "name": "The Master Builders",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "forge",
+      "flavor": "They have built one of everything. The second is always cheaper.",
+      "text": "The Magnum Opus and cathedrals cost 15% less production.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": -15
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "cathedral",
+          "percent": -15
+        }
+      ]
+    },
+    "theShipwrightShores": {
+      "name": "The Shipwright Shores",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "A town that smells of pitch is a town with somewhere to be.",
+      "text": "+1 production in every coastal city · +30% production toward ships there.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "production": 1,
+          "scope": {
+            "test": "coastal"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 30,
+          "class": {
+            "category": "naval"
+          },
+          "scope": {
+            "test": "coastal"
+          }
+        }
+      ]
+    },
+    "theDryDocks": {
+      "name": "The Dry Docks",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "Pull the sea out from under her and you can see what she has been hiding.",
+      "text": "+25% production toward ships in every city with a Harbour.",
+      "deferred": [
+        "ships mend completely in a port — a heal that depends on where a piece is standing is a rule about a hex, and healing is a rule about a turn"
+      ],
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 25,
+          "class": {
+            "category": "naval"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "harbour"
+          }
+        }
+      ]
+    },
+    "theWinteringGrounds": {
+      "name": "The Wintering Grounds",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "none",
+      "flavor": "Home is wherever the horses have stopped.",
+      "text": "Your units cost no gold in maintenance outside your territory, and heal 5 more per turn there.",
+      "effects": [
+        {
+          "kind": "upkeepRebate",
+          "free": true,
+          "where": "foreignTerritory"
+        },
+        {
+          "kind": "unitStat",
+          "stat": "heal",
+          "amount": 5,
+          "where": "foreignTerritory"
+        }
+      ]
+    },
+    "theArchives": {
+      "name": "The Archives",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "none",
+      "flavor": "Every law ever passed, in order, in a room nobody is allowed to leave.",
+      "text": "+1 culture for each level of the Orders you have placed in a slot.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "slottedOrderLevels",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theAnnalsOfLaw": {
+      "name": "The Annals of Law",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "none",
+      "flavor": "The laws you chose not to pass are also history.",
+      "text": "+2 culture for each Order you hold but have not placed in a slot.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "unslottedOrders",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 2,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theAuspiciousSeal": {
+      "name": "The Auspicious Seal",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "none",
+      "flavor": "The clerk who chose the day was promoted, and never told anyone why.",
+      "text": "The first time this Order is placed in a slot, a die of the Magister is yours.",
+      "upgradable": false,
+      "onSlot": [
+        {
+          "grant": "die"
+        }
+      ],
+      "effects": []
     }
   },
   "tierLadder": [

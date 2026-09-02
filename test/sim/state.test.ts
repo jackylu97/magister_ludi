@@ -92,6 +92,10 @@ describe('newGame', () => {
       // opening kit.
       unitsBuilt: {},
       tilesPurchased: 0,
+      // The Themes Build's tally (The Last Hunt, sheet 02): `tilesPurchased`'
+      // twin one verb over, because a burnt-out camp leaves nothing on the
+      // board to count.
+      campsCleared: 0,
       eliminated: false,
       // Every seat carries the flag and every *real* seat carries it false; the
       // wild is appended separately and only when the config asks for it (see
@@ -600,7 +604,11 @@ describe('the research queue field', () => {
     // first Alchemy and whose completion closes the age, the three bead-paying
     // great works, the Long Count's die and Alchemy's closing bead. A v44 log
     // reaches a winner it never reached, and spends rolls it never spent.
-    expect(SCHEMA_VERSION).toBe(45);
+    // v46: the card pools of Entry LVIII — nineteen new Orders, a Doctrine, two
+    // beliefs and a sixth consecration join the bags a draft draws from, and The
+    // Laureate's once-per-game great person becomes a renown trickle. A v45 log
+    // names indices of hands this build does not deal.
+    expect(SCHEMA_VERSION).toBe(46);
   });
 });
 

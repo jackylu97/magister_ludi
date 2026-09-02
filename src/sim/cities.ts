@@ -123,6 +123,7 @@ import {
   cardProduction,
   cardRulePercent,
   cardTileLines,
+  consecrationCardTileLines,
   followerCardTileLines,
   cardProjectPays,
   drawDoctrineOffer,
@@ -377,9 +378,12 @@ export interface TileYieldContext {
    *     one city said by a card instead of by a building;
    *   · a **follower belief's** `tileYield` (`followerCardTileLines`) — Harvest
    *     Blessing's food on the farms of a city that follows, and the only
-   *     producer whose card may belong to another empire entirely.
+   *     producer whose card may belong to another empire entirely;
+   *   · a **consecration's** `tileYield` (`consecrationCardTileLines`) — the
+   *     Green Cathedral's faith on the wild ground of the town whose cathedral
+   *     was dedicated to the old gods.
    *
-   * A sixth producer joins by appending to this list. It was `cards` alone
+   * A seventh producer joins by appending to this list. It was `cards` alone
    * until Entry XXVII; folding the other two into the same channel rather than
    * giving each its own field is what keeps `explainTileYield`'s last clause one
    * loop instead of three.
@@ -453,7 +457,7 @@ export function yieldContextFor(
 function cityContext(state: GameState, city: City): TileYieldContext | undefined {
   const ctx = yieldContextFor(state, city.ownerId);
   if (!ctx) return undefined;
-  // Four producers are facts about *this town* rather than about the empire,
+  // Five producers are facts about *this town* rather than about the empire,
   // and none can be added by anybody without a city in hand: its buildings' tile
   // lines (the granary's food on water, Entry XXVII), its **live rites** (Rite
   // of Plenty's gold on its own worked seams, Entry XXVIII), the **scoped**
@@ -461,13 +465,16 @@ function cityContext(state: GameState, city: City): TileYieldContext | undefined
   // `tileYield` whose `scope` names which towns it lands in), and the **faith
   // this town follows** (Harvest Blessing's food on the farms of a following
   // city — the 2026-08-28 ruling, and the one producer whose card belongs to
-  // somebody else's empire). Appended in that order, and the tile chain still
-  // cannot tell any producer from another.
+  // somebody else's empire), and its **consecration** (the Green Cathedral's
+  // faith and culture on wild ground — a fact about one cathedral in one town).
+  // Appended in that order, and the tile chain still cannot tell any producer
+  // from another.
   const own = [
     ...buildingTileLines(city, ctx.techs),
     ...timedCityTileLines(state, city),
     ...scopedCardTileLines(state, city),
     ...followerCardTileLines(state, city),
+    ...consecrationCardTileLines(state, city),
   ];
   if (own.length === 0) return ctx;
   return { ...ctx, lines: [...(ctx.lines ?? []), ...own] };

@@ -324,6 +324,56 @@ export type CityScope =
    */
   | { test: 'onTerrain'; terrain: TerrainId }
   /**
+   * The town's **own hex** carries a resource of this kind — The Prize Grounds'
+   * city founded on a luxury.
+   *
+   * `onTerrain`'s sibling and a fact about the ground the centre was planted on,
+   * asked of the same hex: a town with a silk seam in its third ring is not a
+   * town *settled on* silk, and a scope that counted the ring would be a second,
+   * fuzzier answer to a question `holdingCategory` already answers exactly. So
+   * the two are the pair — this one is where the settler stopped, that one is
+   * what the borders have taken in.
+   *
+   * `TileCondition`'s `resourceKind` one scale up, read off `Tile.resource` and
+   * the resource's own row, so a designer who reclassifies a seam moves the
+   * scope with it.
+   */
+  | { test: 'onResourceKind'; kind: ResourceKind }
+  /**
+   * A hex **touching the town's own** carries a great person's work — The
+   * Master's Presence.
+   *
+   * `adjacentImprovement` asked of the *family* rather than of the row, exactly
+   * as `TileCondition`'s `greatWork` is: it reads the marker the improvement
+   * table already carries (`ImprovementDef.greatPerson`, presence is the marker)
+   * rather than a list of five names, so a sixth work joins for free. The ring
+   * of six and the hex itself, which is `adjacentImprovement`'s own reach and
+   * for its reason — a town founded on the academy is not further from it than
+   * its neighbour is.
+   *
+   * A boolean question, so it **cannot stack**: two academies beside one town
+   * admit it once, which is what The Master's Presence's "never stacks" says.
+   */
+  | { test: 'adjacentGreatWork' }
+  /**
+   * This town is **building** a row of this category right now — The
+   * Wonder-Feasts' feast, thrown while the scaffolding is up.
+   *
+   * `EmpireCondition`'s `queueHolds` at the other scale, and the two are
+   * deliberately the same word for the same question: that one asks *is anybody
+   * building one* and opens a clause wherever the clause lands, and this one
+   * asks *is this town building one* and lands in the towns that are. Read off
+   * `City.queue` through `queueCategory` — the one place a row is sorted into a
+   * category — so a project, a wonder and a building are told apart here by
+   * exactly the rule production tells them apart by.
+   *
+   * The **front row only**, because a city has one basket and it pays for
+   * `queue[0]`: a wonder standing second is a plan rather than a building site,
+   * and a feast thrown for it would be a feast thrown for every row a player
+   * ever queued.
+   */
+  | { test: 'queueHolds'; category: ProductionCategory }
+  /**
    * Every one of these holds. The composite, and the only one there is.
    *
    * There is deliberately no `any` and no `not`. A disjunction is two lines on
@@ -501,7 +551,25 @@ export type CombatCondition =
    * city has no strength of that kind and never satisfies it, for `vsClass`'
    * reason — nothing charges out of a town.
    */
-  | { test: 'strongerTarget' };
+  | { test: 'strongerTarget' }
+  /**
+   * The contested hex belongs to a city that **keeps this empire's faith** —
+   * The Crusade, whose soldiers fight harder among their own congregation.
+   *
+   * `ownTerritory` asked of the *banner* rather than of the border, and the two
+   * are genuinely different questions: a border says who collects the taxes and
+   * this says who the people pray with. Read the way every other faith question
+   * in this file is read — the hex's owning city, its derived `cityReligion`,
+   * against the religions this empire is paid by (`heldReligions`, the holy
+   * city's, so a conquered shrine moves the sentence with it) — so nothing here
+   * can disagree with what the town flies.
+   *
+   * `foreign: true` narrows it to a town **somebody else owns**, which is the
+   * half The Crusade's ratified text asks for ("inside foreign cities that
+   * follow your religion"). Absent counts your own towns too, because a card
+   * that meant the whole congregation should be able to say so.
+   */
+  | { test: 'followingTerritory'; foreign?: boolean };
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
@@ -886,6 +954,50 @@ export type CountKind =
    * `cityById`), so a partner that changes hands changes the count with it.
    */
   | 'foreignTradeRoutes'
+  /**
+   * Trade routes this empire runs whose **partner is one of its own towns** —
+   * The Provisioners' grain, which never leaves the realm.
+   *
+   * `foreignTradeRoutes`' mirror over the same sweep, and a member of its own
+   * for that count's reason exactly: the two read differently on a card ("per
+   * trade route to another empire", "per trade route between your own cities")
+   * and a member each is what lets `COUNT_WORDS` write the words without a
+   * second table. The far end is resolved off the board every turn, so a partner
+   * that changes hands moves from one count to the other with it.
+   */
+  | 'internalTradeRoutes'
+  /**
+   * The **levels** of the Orders this empire has placed in a slot, summed — The
+   * Archives, where deepening pays twice.
+   *
+   * Read off `PlayerStatecraft.slots` and the holdings behind them, which is the
+   * same pair `windfallRider`'s `perSlottedOrder` reads: that flag multiplies a
+   * payout by how many chairs are filled, and this counts how *deep* the council
+   * sits. Two readings of one table, each in the shape its cards want.
+   */
+  | 'slottedOrderLevels'
+  /**
+   * Orders this empire holds and has **not** placed in a slot — The Annals of
+   * Law, for which the laws you chose not to pass are also history.
+   *
+   * `slottedOrderLevels`' opposite number, and it counts *cards* rather than
+   * levels for the reason that one counts levels: the card is about the archive,
+   * and an archive is a shelf of decisions rather than a measure of how deeply
+   * any of them was taken.
+   */
+  | 'unslottedOrders'
+  /**
+   * Barbarian camps this empire has **burnt out**, across the whole game — The
+   * Last Hunt's tally.
+   *
+   * `discoveredCamps` counts what is still standing on ground you have walked;
+   * this counts what is no longer standing because you rode it down, so it only
+   * ever rises. It is the one count in the union answered off a *record* rather
+   * than off the board (`Player.campsCleared`) — a cleared camp leaves nothing
+   * behind to sweep, which is exactly what clearing one means — and the record
+   * is written at the single seam that clears one (`arriveOnTile`).
+   */
+  | 'clearedCamps'
   /**
    * Wonders standing **anywhere in the world**, yours and everybody's — The
    * Grand Tour's "seen or not".
@@ -1445,6 +1557,24 @@ export interface CardProductionBonusEffect {
   /** Narrows a unit bonus to one silhouette — the mounted line, today. */
   modelClass?: ModelClass;
   /**
+   * Narrows a unit bonus by the **ordinary `UnitFilter`** — The Shipwright
+   * Shores' ships, and The Dry Docks'.
+   *
+   * `modelClass` is the silhouette shorthand every row written before this field
+   * uses, in four tables this module may not edit, and `class: { modelClass: … }`
+   * says exactly the same thing — so the two are one question and the older
+   * spelling stays rather than being migrated across the tree, the roster, the
+   * wonders and the great people at once. What the filter buys is the sentences
+   * a silhouette cannot say: "ships" is *three* model classes (`navalLight`,
+   * `navalHeavy`, `navalRanged`), and three rows saying a third of one card each
+   * is exactly the drift `unitMatches` exists to prevent.
+   *
+   * Read by that same predicate, beside `modelClass` and never instead of it: a
+   * row carrying both must satisfy both, which is the reading every other pair
+   * of narrowings on this shape takes.
+   */
+  class?: UnitFilter;
+  /**
    * Narrows the bonus to the towns a scope admits — Amenhotep son of Hapu's
    * wonders **in the capital**.
    *
@@ -1574,6 +1704,14 @@ export interface CardUnitStatEffect {
    * Narrows the stat to *where the piece is standing*. Absent means anywhere.
    *
    *   · `'ownTerritory'` — on its owner's ground. Imperium's.
+   *   · `'foreignTerritory'` — anywhere else, which includes ground nobody has
+   *     claimed. `ownTerritory`'s mirror and a named value for `notFreshwater`'s
+   *     reason exactly: there is no negation composite and there will not be
+   *     one, so a reading the ratified table actually asks for earns its own
+   *     word. The Wintering Grounds' mending, and the same reach
+   *     `behaviorRule`'s `noHealAbroad` already takes — a hex nobody owns is
+   *     outside your borders, which is what makes the clause bite on a campaign
+   *     rather than only in a rival's homeland.
    *   · `'embarked'` — on water, which for a piece that is on the board at all
    *     means it embarked to get there (`isEmbarkableTerrain`, Entry XXVII).
    *     The Great Lighthouse's extra point of movement at sea.
@@ -1585,7 +1723,7 @@ export interface CardUnitStatEffect {
    * is the only reading a per-turn allowance can have: a ship is quick because
    * it set out from the water, and the allowance is refilled where it stands.
    */
-  where?: 'ownTerritory' | 'embarked' | 'fortified';
+  where?: 'ownTerritory' | 'foreignTerritory' | 'embarked' | 'fortified';
   /**
    * Narrows the stat to *the town the piece was trained in*. Absent means every
    * one. Cuius Regio's augurs, raised in the cities that keep his faith.
@@ -2268,6 +2406,46 @@ export interface CardMirrorYieldEffect {
   scope?: CityScope;
 }
 
+/**
+ * Gold off what **one piece** costs its empire every turn — The Quartermasters'
+ * shilling, The War Chest's three, The Wintering Grounds' whole payroll.
+ *
+ * `CardRule`'s `unitUpkeep` and this shape are two dials on one ledger and
+ * neither is the other, which is why both exist. That rule is a **percentage on
+ * the payroll total** — Tyranny takes thirty percent off the army, whatever the
+ * army is — and this is a **flat figure per soldier**, which is the only way to
+ * say "a knight costs one less" without saying a different thing about a
+ * warrior. `CardEffectAmplifierEffect`'s `percent`/`amount` pair, one ledger
+ * over, and split across two shapes rather than fused because the two land in
+ * different arithmetic: a share of a total, and a walk of the pieces.
+ *
+ * It joins `explainUnitUpkeepRebate` (`upkeep.ts`) as **its own labelled line**
+ * beside the percentage's, which keeps both halves of that function's bargain:
+ * rule 5 says the ledger shows what the army costs and then what the law gives
+ * back, and `disbandCandidate` goes on picking off the *gross* figures so the
+ * creditors' choice is the same under every government. The whole rebate is
+ * clamped to the payroll — a card that pays more than the army costs pays the
+ * army off and stops, because a treasury that earned coin by keeping soldiers
+ * would be a mint.
+ *
+ * `class` is the ordinary `UnitFilter`, so a row says "military units" by asking
+ * the roster; `where` is asked of the hex the piece is standing on, exactly as
+ * `CardUnitStatEffect.where` is, because "no upkeep outside your borders" is a
+ * fact about where the army *is* and a payroll is settled once a turn wherever
+ * it happens to be standing.
+ */
+export interface CardUpkeepRebateEffect {
+  kind: 'upkeepRebate';
+  /** Gold off each matching piece's own figure. Ignored when `free` is set. */
+  amount?: number;
+  /** The matching piece costs nothing at all — The Wintering Grounds'. */
+  free?: boolean;
+  /** Which pieces. Absent reaches every one this empire pays for. */
+  class?: UnitFilter;
+  /** Where the piece must be standing. Absent means anywhere. */
+  where?: 'ownTerritory' | 'foreignTerritory';
+}
+
 /** Everything a card may say. One union, one evaluator (`statecraft.ts`). */
 export type CardEffect =
   | CardCityYieldsEffect
@@ -2306,7 +2484,8 @@ export type CardEffect =
   | CardRenownEffect
   | CardPressureRuleEffect
   | CardPressureEffect
-  | CardMirrorYieldEffect;
+  | CardMirrorYieldEffect
+  | CardUpkeepRebateEffect;
 
 /** Every `kind` in the union, for the register test that pins the evaluator. */
 export type CardEffectKind = CardEffect['kind'];
@@ -2387,7 +2566,15 @@ export interface DoctrineDef extends CardDefBase {
  * `settleRenownWindfall` and the offer opens the way a Triumph opens one.
  */
 export interface OrderSlotGrant {
-  grant: 'greatPerson';
+  /**
+   * `'greatPerson'` — the recruitment the ladder would have opened.
+   * `'die'` — a die of the Magister, The Auspicious Seal's. The second kind, and
+   * it is here rather than as an effect for this field's stated reason: a die
+   * handed over once is a *moment*, and an effect is a standing reading of the
+   * board. It lands in `Player.dice`, the pool the beads already fill, so a
+   * card and a bead cannot disagree about what a die is.
+   */
+  grant: 'greatPerson' | 'die';
 }
 
 export interface OrderDef extends CardDefBase {

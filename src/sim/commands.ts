@@ -2531,6 +2531,15 @@ function applySlotOrder(state: GameState, command: SlotOrderCommand): CommandRes
   // opens exactly as a Triumph opens one — including the rule that an empire
   // already holding an offer banks rather than blocks.
   for (const grant of outcome.granted) {
+    // **The Auspicious Seal's die**, banked here beside the laureate's offer and
+    // for its reason: `slotOrderAt` makes the claim, and the module above both
+    // pools turns a claim into a payment. `Player.dice` is the pool the beads
+    // already fill (`beads.ts`), so a card and a bead cannot disagree about what
+    // a die is; nothing spends one yet, which is the Almanac's business.
+    if (grant.grant === 'die') {
+      actor.dice += 1;
+      continue;
+    }
     if (grant.grant !== 'greatPerson') continue;
     // Exactly what the ladder still wants, and never more: the gift is *a great
     // person*, not a lump of renown, so an empire two renown short of the next
