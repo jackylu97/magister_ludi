@@ -233,14 +233,23 @@ describe('what maintenance did to the warband', () => {
     const { game } = playWarband(45, []);
     const player = game.state.players[0]!;
     player.gold = -500;
-    const before = game.state.units.filter((unit) => unit.ownerId === 0).length;
+    const beforeIds = new Set(
+      game.state.units.filter((unit) => unit.ownerId === 0).map((unit) => unit.id),
+    );
     const result = dispatch(game, { type: 'endTurn', playerId: 0 });
     expect(result.ok).toBe(true);
     const disbanded = result.ok ? (result.disbanded ?? []) : [];
     expect(disbanded.filter((line) => line.ownerId === 0)).toHaveLength(1);
-    // One taken; the towns may have finished something in the same resolution,
-    // so the count is bounded rather than pinned.
-    const after = game.state.units.filter((unit) => unit.ownerId === 0).length;
-    expect(after).toBeLessThanOrEqual(before);
+    // One taken — asserted on *identity*, not on the count. A count bound
+    // (`after <= before`) quietly assumed at most one town completes a unit in
+    // the same resolution, and the 2026-09-02 ladder re-anchor broke exactly
+    // that assumption: a cheaper Æra I hands this warband two completions in
+    // the turn the creditors call. The rule under test is about what is TAKEN,
+    // so ask which pre-existing pieces vanished and require exactly one.
+    const afterIds = new Set(
+      game.state.units.filter((unit) => unit.ownerId === 0).map((unit) => unit.id),
+    );
+    const taken = [...beforeIds].filter((id) => !afterIds.has(id));
+    expect(taken).toHaveLength(1);
   }, 240_000);
 });
