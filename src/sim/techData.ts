@@ -84,8 +84,10 @@
  *   1. **A lane is a line of work, and the sky is exactly as tall as its widest
  *      column.** `0 … TECH_LANE_LIMIT - 1`, because a chart taller than its
  *      deepest column is height nobody needs. It was five for the deep tree of
- *      2026-08-30 and is **eleven** for revision 3's wide one; the rule did not
- *      move, the graph did.
+ *      2026-08-30, eleven for revision 3's wide one, and is **eight** since the
+ *      fold pass of 2026-09-02 — the widest column holds seven, so eight is the
+ *      floor and the one spare lane is all the slack the search gets. The rule
+ *      did not move; what moved is how much slack the chart can afford.
  *   2. **A tech sits in the lane of the prerequisite whose line it continues.**
  *      Usually the first one listed, which is why `prereqs` order is display
  *      order. Iron Working continues Bronzeworking's line; Chivalry continues
@@ -132,15 +134,30 @@
  * the age before it puts the whole age in one column. Fifty nodes, **eleven**
  * columns, and no column holding more than seven.
  *
- * So `TECH_LANE_LIMIT` is eleven and is now **slack** rather than a floor: the
- * widest column needs seven, and the four spare lanes are what the search spends
- * to keep the crossings down and the false chains at zero. Eleven is kept rather
- * than trimmed to seven because trimming it would force every wide column full
- * and leave the lay nowhere to route — and because the sky's height is a number
- * a player has learnt. It does not fit a 900px window without scrolling, which
- * the chart already handles — `fitLanes` closes the gaps to their minimum and
- * *reports the overrun* rather than drawing off the bottom, which is the whole
- * reason it returns `overflow`.
+ * **The fold pass of the same day spent that slack the other way** (the user
+ * read Æra II as five technologies on a 1456×827 window, because the other five
+ * were under the bottom edge). Eleven lanes was four more than the graph needed,
+ * and every one of them was height the player had to travel to. So the budget
+ * came down to **eight** — seven for the widest column, one spare for the search
+ * — and the whole sky was re-laid into it by the same annealer, on the same
+ * three measures. What it cost is a fact worth writing down rather than hiding:
+ * **ten crossings became fourteen**, against the same naive baseline of 113, and
+ * the lanes read as lines *better* than before (thirty of the thirty-nine nodes
+ * that can continue a parent's lane do, where eleven lanes managed twenty-nine).
+ * Zero false chains did not move, and Æra I still draws at its proven floor of
+ * one. A tree three lanes shorter that crosses four more times is the trade Civ
+ * itself makes: long, not tall.
+ *
+ * **Eight lanes is shorter, and it is still taller than an 827px window.** That
+ * is arithmetic about the *cards*, not about the lay: measured in Chrome at the
+ * shipped metrics the stage is 681px and eight lanes of node cards are 1032 with
+ * their epigrams dropped, so no arrangement of them fits — the shortest card in
+ * the set is 60px and eight of those plus the closed-up gaps already overrun. The
+ * chart handles the remainder the way it always has: `fitLanes` closes the gaps
+ * to their minimum and *reports the overrun* rather than drawing off the bottom,
+ * which is the whole reason it returns `overflow`. Getting the fold out of the
+ * way entirely is a card-metrics pass or a deeper tree, and both are decisions
+ * somebody makes rather than something a re-lay can deliver.
  *
  * **A column is roughly a price** (the user's fourth ruling, 2026-09-02): inside
  * an age a node's column is nondecreasing in cost, so the chart reads left to
@@ -582,18 +599,23 @@ export function techRowCount(): number {
 /**
  * How many lanes the sky is allowed to be: rows `0 … TECH_LANE_LIMIT - 1`.
  *
- * **Eleven** since the re-cut of 2026-09-02, and it is a *height* budget rather
- * than a taste: the widest column of revision 3's tree holds eleven nodes, so
- * eleven is the floor, and every lane past it is a lane the player has to travel
- * to for nothing. It was five when the widest column held five. The number
- * follows the graph — see the lane principle above for why revision 3's graph is
- * wide rather than deep.
+ * **Eight** since the fold pass of 2026-09-02, and it is a *height* budget
+ * rather than a taste. Eleven lanes was slack the search was free to spend, and
+ * the user's report is what it cost: on a 1456×827 window Æra II read as five
+ * technologies, because the other five were below the fold with the lanes
+ * already closed to `LANE_GAP_MIN`. So the budget was cut to what the graph
+ * actually needs plus one — the widest column holds seven — and the sky is long
+ * rather than tall, which is the proportion Civ's own tree is drawn in.
  *
- * A twelfth lane is not forbidden by arithmetic — `techDataProblems` is what
+ * Eight is a floor the graph sets, not a preference: two techs in one column may
+ * not share a lane, so a chart of seven lanes could not draw the widest column
+ * at all. Going below it is a re-cut of the *tree*, never a re-lay of the lanes.
+ *
+ * A ninth lane is not forbidden by arithmetic — `techDataProblems` is what
  * forbids it, so that adding one is a decision somebody makes rather than a row
  * somebody types.
  */
-export const TECH_LANE_LIMIT = 11;
+export const TECH_LANE_LIMIT = 8;
 
 /** Where a node sits on the chart: its dependency column and its lane. */
 export interface ChartCell {

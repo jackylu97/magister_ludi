@@ -179,10 +179,27 @@ describe('the shipped lanes', () => {
     // only be pointed at the current data cannot say whether the current data is
     // any good.
     //
+    // **Re-laid again the same day, at eight lanes** (the fold pass — the user
+    // read Æra II as five technologies on a 1456×827 window, because the other
+    // five were under the bottom edge). `TECH_LANE_LIMIT` came down from eleven
+    // to eight, which is the floor the graph sets: the widest column holds
+    // seven, and two techs in one column may not share a lane.
+    //
+    // A tighter cap crosses more and this one says how much: **ten at eleven
+    // lanes, fourteen at eight**, against the same 113 — the baseline does not
+    // move with the cap, because no column holds more than eight nodes and the
+    // naive deal never wraps. Four crossings is what three lanes of height cost,
+    // and it is the trade Civ's own tree makes: long, not tall. The search was
+    // given six hundred thousand moves from sixty-four starts and its best
+    // crossing figure at this cap was thirteen; the layout in the file takes
+    // fourteen because that arrangement also continues **thirty** lanes where
+    // the thirteen-crossing one continued twenty-seven — see the lane-run test
+    // below, and rule 1 of the lane principle, which is what a lane is *for*.
+    //
     // **Zero false chains is the claim that did not move** — see the test below
     // — and it is the one the lane principle ranks above a crossing.
     expect(before).toBe(113);
-    expect(after).toBe(10);
+    expect(after).toBe(14);
     expect(after).toBeLessThan(before);
   });
 
@@ -253,9 +270,12 @@ describe('the shipped lanes', () => {
     // 2026-09-02: lanes are unique within a column, so a node with four children
     // can hand its lane down to exactly one of them. The ceiling is therefore
     // the number of nodes that have any children at all — thirty-nine of the
-    // fifty after the chain pass — and the shipped layout takes twenty-nine of
-    // them while holding the crossings at ten. A ratio quoted against 50 would
-    // read as a failure of the lay when it is a fact about a wide tree.
+    // fifty after the chain pass — and the shipped layout takes **thirty** of
+    // them while holding the crossings at fourteen. (Eleven lanes managed
+    // twenty-nine at ten crossings: the tighter cap crosses more and reads
+    // *better*, because eight lanes over fifty nodes leaves fewer of them
+    // stranded alone in a lane.) A ratio quoted against 50 would read as a
+    // failure of the lay when it is a fact about a wide tree.
     const donors = new Set(TECH_IDS.flatMap((id) => techDef(id).prereqs)).size;
     expect(continuing.length).toBeGreaterThanOrEqual(donors * 0.65);
     // And the root sits in the middle lane, so its five children fan evenly.
@@ -417,6 +437,68 @@ describe('fitLanes', () => {
     // A single-lane chart has no gap to size, and asking for one would be a
     // division by zero dressed up as a layout.
     expect(fitLanes(900, 100, 0).gap).toBe(LANE_GAP_MIN);
+  });
+
+  /**
+   * The pin the fold pass of 2026-09-02 added, and the thing it is guarding is a
+   * *silence*: eleven lanes overran the user's window by eight hundred pixels
+   * and nothing in the suite said so, because `fitLanes` was only ever asked
+   * about miniatures. Æra II read as five technologies for a week.
+   *
+   * So this asks the question at the size the game is actually played at. **The
+   * stage on a 1456×827 window measures 681px** — the viewport less the
+   * overlay's padding, the sheet's border and padding, the head and the flex gap
+   * — measured in Chrome at the shipped metrics rather than derived, which is
+   * why it is a constant here with its provenance written down.
+   *
+   * Two claims, and neither is "it fits":
+   *
+   *   · **the pitch is bounded by the stage** whenever the chart fits at all, so
+   *     a future lane count re-fits instead of re-clipping; and
+   *   · **an overrun is always reported**, at every content height, so the stage
+   *     stays scrollable rather than drawing lanes off the bottom edge.
+   *
+   * The chart at eight lanes is 1032px of cards with the epigrams dropped, which
+   * is the second case: it is 351px shorter than eleven lanes were and it still
+   * overruns. That is a fact about the *cards* — the shortest node in the set is
+   * 60px, and eight of those plus the closed-up gaps already pass 681 — so no
+   * lane count the graph permits can clear the fold, and the honest thing for
+   * this file to pin is the report rather than a fit that is not available.
+   */
+  it('bounds the pitch by the stage, and says so when it cannot', () => {
+    /** The user's window, measured: `chart.clientHeight` at 1456×827. */
+    const STAGE = 681;
+    const LANES = TECH_LANE_LIMIT;
+    expect(LANES).toBe(8);
+
+    // A chart that fits: every lane's share of the stage — the pitch — is at
+    // most what the stage has to give, which is the whole of the fit rule.
+    for (let content = 120; content <= STAGE; content += 13) {
+      const { gap, overflow } = fitLanes(STAGE, content, LANES);
+      const drawn = content + gap * LANES;
+      if (overflow > 0) continue;
+      expect(drawn, `content ${content}`).toBeLessThanOrEqual(STAGE);
+      expect(drawn / LANES, `pitch at content ${content}`).toBeLessThanOrEqual(STAGE / LANES);
+    }
+
+    // And one that does not: the gap is at the floor and the remainder is
+    // handed back rather than swallowed. 1032 is the shipped chart's own lane
+    // height, epigrams dropped (`.is-compact`), measured in Chrome.
+    const shipped = fitLanes(STAGE, 1032, LANES);
+    expect(shipped.gap).toBe(LANE_GAP_MIN);
+    expect(shipped.overflow).toBe(1032 + LANE_GAP_MIN * LANES - STAGE);
+    expect(shipped.overflow).toBeGreaterThan(0);
+
+    // And the claim that this is the *cards* and not the lay. A lane is as tall
+    // as its tallest card, so the shortest chart any eight-lane arrangement of
+    // these fifty could draw is the one that sorts them by height and cuts every
+    // seven — the tallest seven sharing one lane, the next seven the next, and
+    // so on. Off the measured heights that comes to **845px**, and it overruns
+    // too. No re-lay reaches the fold from here; a card-metrics pass or a deeper
+    // tree does.
+    const BEST_PACKING = 845;
+    expect(BEST_PACKING).toBeLessThan(1032);
+    expect(fitLanes(STAGE, BEST_PACKING, LANES).overflow).toBeGreaterThan(0);
   });
 });
 

@@ -7,7 +7,8 @@
  * the bottom lane was simply below the fold — with the wheel turned sideways
  * there was no gesture that would have found it.
  *
- * Re-laying the tree to five lanes (`TECH_LANE_LIMIT`) is the real fix and this
+ * Re-laying the tree to fewer lanes (`TECH_LANE_LIMIT` — five when this was
+ * written, eight since the fold pass of 2026-09-02) is the real fix and this
  * is the other half of it: with the lanes counted, the gap between them is what
  * is left over, spread evenly, and the chart uses the height it is given instead
  * of a constant somebody typed. Two directions it can go:

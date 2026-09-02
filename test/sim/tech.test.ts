@@ -439,10 +439,14 @@ describe('star chart layout', () => {
     // the late ages were "a single vertical row". The chain pass answers it
     // where the shape lives: Æra I's old two-parent gates are back and Æra III
     // and Æra IV are chained *inside themselves*, so the graph is four columns
-    // deeper and no column now holds more than seven. The lane budget stays at
-    // eleven, which is now slack rather than a floor — see `TECH_LANE_LIMIT`.
+    // deeper and no column now holds more than seven. **The fold pass of the
+    // same day then spent the slack**: the lane budget came down from eleven to
+    // **eight**, which is the floor the graph sets (the widest column holds
+    // seven, and two techs in one column may not share a lane), because eleven
+    // lanes put half of Æra II under the bottom edge of an 827px window. Long,
+    // not tall — see `TECH_LANE_LIMIT` and `test/ui/techChart.test.ts`.
     expect(techColumnCount()).toBe(11);
-    expect(techRowCount()).toBe(11);
+    expect(techRowCount()).toBe(8);
   });
 
   it('hands every tech a lane, and never two techs the same cell', () => {
