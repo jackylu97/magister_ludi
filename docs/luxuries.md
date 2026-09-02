@@ -217,131 +217,95 @@ a system this game does not have, and inventing a near-miss shape for it would b
 worse than an honest hole.
 
 ### Gems — hills
-`+2🪙` on tile · **+2🪙 in every city** · Æra III: **+10% gold in every city**.
+`+2🪙` on tile · **+3🪙** · Æra III: **+2 gold in every city**.
 
 ### Silk — forest on grassland/plains
-`+1🎭` on tile · **+1🎭 in every city** · Æra III: **+5% culture in every city**.
+`+1🎭` on tile · **+2🎭** · Æra III: **+1 culture in every city**.
 
 ### Wine — grassland/plains
 `+2🪙` on tile · **+2 happiness** (empire).
-*Not re-specced in the Revisions*, so it keeps the signature it shipped with. It
-is the table's one bare-`extraHappiness` row.
+age 3: +1 happiness in every city
 
 ### Spices — jungle on grassland/plains
-`+2🪙` on tile · **+2 authority capacity**.
-**Deferred:** Æra III ("connected cities +25% gold, trade routes +10% yield") —
-waits on **trade routes and connected cities**, neither of which exists.
+`+2🪙` on tile · **+3 gold**.
+**Deferred:** Æra III ("city connections +10% gold") —
+waits on **trade routes and connected cities**, neither of which exists. [build this now]
 
 ### Salt — desert
 `+1🌾 +1⚙` on tile · **+10% production toward units in every city** · Æra III:
-**+5% food in every city** (the whole harvest, not the surplus — so it feeds
+**unit maintenance -1 gold** (the whole harvest, not the surplus — so it feeds
 growth *and* the citizens).
 **Deferred:** "−10% upkeep on units" — waits on **unit upkeep**, which this game
 does not have.
 
 ### Incense — desert or plains, hills either, bare or floodplain
-`+2🪙 +1🕯` on tile · **+1🕯 in every city**.
-**Deferred:** Æra III ("−10% cost to purchase units with faith") — waits on
-**faith spending**, which this pass deliberately does not build.
+`+2🪙 +1🕯` on tile · **+2🕯**.
+age 3: +1 faith in every city
 
 ### Jade — grassland, hills either
-`+1⚙ +1🕯` on tile. **No live signature.**
-**Deferred:** "+2 faith on production buildings" — waits on a **building
-classification** (there is no such thing as a "production building" in
-`buildings.json`, and inventing a per-building-class shape for one row is the
-one-off hack this pass refused). Æra III ("+1 option when selecting civics") —
-waits on **civics**.
+`+1⚙ +1🕯` on tile. +1 happiness, +1 faith
+age 3: +1 faith and +1 happiness on production buildings (workshop etc)
 
 ### Marble — hills
-`+2🪙 +1⚙` on tile · **+15% production toward buildings in every city**.
-**The interim, decided:** the ratified line is "+15% production towards wonders",
-and there are no wonders. The shipped +15% toward *buildings* is kept as the
-stand-in — it is the nearest live thing, it is what the row already did, and
-dropping marble to tile yields alone would have made the wonder-builder's luxury
-do nothing at all for an unknown number of milestones. What changed is its scope:
-it was the owning city's and is now the empire's, matching the ratified table's
-shape (every second-bullet line in it is an empire line). Re-point it at wonders
-the day they land.
-**Deferred:** Æra III ("+4 culture from world wonders in all cities") — **wonders**.
+`+2🪙 +1⚙` on tile · +10% production towards wonders
+Æra III  +2 culture on all wonders
 
 ### Furs — forest on tundra/plains/grassland
-`+1⚙ +2🪙` on tile · **−10% culture for the next border tile**.
-The ratified line is "new tiles cost 10% less culture **and gold**"; tiles cannot
-be bought with gold in this game, so the culture half is the whole of it.
-**Deferred:** Æra III ("+2 trade route limit") — **trade routes**.
+`+1⚙ +2🪙` on tile · **+3 gold**.
+era 3: trade routes supply +1 gold
 
 ### Dyes — jungle or forest on grassland/plains
-`+1🎭 +2🪙` on tile · **+1🎭 in every city** · Æra III: **+5% culture in every
+`+1🎭 +2🪙` on tile · **+2 culture** · Æra III: **+1 culture in every
 city**. ("Same bonuses as silk", as ratified.)
 
 ### Ivory — plains
-`+1🌾 +1⚙` on tile. **No live signature.**
-**Deferred:** the war elephant (a mounted-line replacement with its own combat
+`+1🌾 +1⚙` on tile. +2 production towards military units and buildings
+age 3: the war elephant (a mounted-line replacement with its own combat
 profile) and its Æra III siege bonus — waits on **unique units**, a system this
 game does not have. Ivory ships as tile yields and its flat happiness, as the
 task directed.
 
 ### Amber — forest on grassland/plains/tundra
-`+1🪙` on tile · **+1 happiness** (empire) and **+1 happiness per city** ·
-Æra III: **the positive happiness tiers rise by 5 percentage points** — M10's
-+10%/+20% rungs become +15%/+25% while amber is held.
-The boost is applied *after* the tier clamp (it would do nothing at the top rung
-otherwise) and only to the **positive** rungs: lifting the malus rungs would
-punish an unhappy empire for owning amber.
+`+1🪙` on tile · **+2 happiness** ·
+Æra III: +1 happiness in all cities
 
-### Tea — grassland hills
-`+1🔬 +2🪙` on tile · **+1🔬 in every city**.
-**Deferred:** Æra III ("+3% production per science building in the city") — waits
-on a **building classification**, exactly as jade's second bullet does.
+### Tea — grassland + grassland hills
+`+1🔬 +2🪙` on tile · **+2🔬**.
+age 3: +1 science and +1 production on science buildings
 
 ### Coffee — jungle on grassland/plains
-`+2🪙` on tile · **+1⚙ in every city**.
-The hills half of its ratified home was **dropped** (see Approximations): jungle
-and hills are near-independent on this generator, so "jungle hills" described
-about a dozen hexes on a standard map and coffee was absent from eleven maps in
-fifteen.
-**Deferred:** Æra III ("production buildings give an extra 50% of their base
-yield and +1 science") — **building classification**, plus a multiplier on
-building yields that nothing else in the game has.
+`+2🪙` on tile · **+2 prod in your cap**.
+age 3: +1 science and +1 prod on production buildings
 
 ### Cotton — flat grassland
-`+1🌾 +2🪙` on tile · **cities keep 10% of the basket when they grow**.
-A rebate on what growing cost, floored, and kept *in addition* to the usual
-overflow. `growthCarryover` is the one `rulePercent` whose number is the rate
-itself rather than a scaling of a base — an empire without cotton keeps nothing,
-so there is no base to scale.
-**Deferred:** Æra III ("production buildings give +2 food in each city") —
-**building classification**.
+`+1🌾 +2🪙` on tile · **+2 food in your cap**.
+age 3: +2 food on production buildings
 
 ### Sugar — jungle on grassland/plains, or desert floodplain
-`+2🪙` on tile · **+1 happiness** (empire) and **+1 happiness per city** ·
-Æra III: **−10% happiness demanded per citizen**, which multiplies both the
+`+2🪙` on tile · **+2 happiness** ·
+Æra III: **−5% happiness demanded per citizen**, which multiplies both the
 linear demand and the crowding term.
 
 ### Olives — grassland hills
-`+2🌾 +1🪙` on tile · **+2🌾 in every city** · Æra III: **+0.5🪙 per citizen in
-every city**, floored per city.
+`+2🌾 +1🪙` on tile · **+2🌾 in your capital** · 
+Æra III: +1 food in every city
 
 ### Lapis Lazuli — desert hills
-`+3🪙` on tile · **+1🎭 in every city**.
-**Deferred:** Æra III ("+10% great people generation") — **great people**.
+`+3🪙` on tile · **+2 culture**.
+**Deferred:** Æra III ("+1 renown in every city") — **great people**.
 
 ### Silver — hills
-`+3🪙` on tile · **+1🪙 in every city** and **+1 authority per city** ·
-Æra III: **+2 authority per copy of silver you control**.
-One of the two `perCopy` rows. See the exception above.
+`+3🪙` on tile · +1 gold in every city
+Æra III: **+1 food in every city for each copy**.
+no longer stacks with increased copies (age 3 bonus still does)
 
 ### Gold — hills
-`+3🪙` on tile · **+1🪙 +1🌾 in every city** and **+1 happiness per city** ·
-Æra III: **+2 happiness per copy** and **+2🌾 in every city per copy**.
-The other `perCopy` row. The food half of its Æra III tier is the most
-aggressive number in the table — the ratified text says "+2 food per copy" with
-no scale attached, and cities are the only place food can land — so it is the
-first thing to look at in playtesting.
+`+3🪙` on tile · **+1🪙 in every city**
+Æra III: **+1 prod in every city for each copy**.
+no longer stacks with increased copies (age 3 bonus still does)
 
 ### Honey — flat grassland
-`+2🌾 +1🪙` on tile · **+1 happiness per city** · Æra III: **−10% happiness
-demanded per citizen**. ("Same bonuses as sugar", as ratified — bullets two and
+`+2🌾 +1🪙` on tile · **+2 food in capital** · Æra III: **+1 food in every city**. ("Same bonuses as sugar", as ratified — bullets two and
 three; honey's own tile line carries no happiness.)
 
 ---
@@ -388,24 +352,18 @@ ratified text, and **Lord of the Sea** (the 🌊 water pantheon belief) rides on
 top of it with a further +1⚙ +1🪙.
 
 ### Pearls — coast
-`+3🪙` on tile · **+1 happiness per city** · Æra III: **+3🪙 in every coastal
-city** and **+3 happiness per coastal city**. All live.
+`+3🪙` on tile · **+2 happiness** · Æra III: **+2🪙 in every coastal
+city**. All live.
 
 ### Coral — coast
-`+1🔬 +1🌾` on tile · **+2🔬 in every coastal city** · Æra III: **+20% science in
-each coastal city** — a *local* percentage, applied inside each coastal city,
-not an empire-cumulative one. All live.
+`+1🔬 +1🌾` on tile · **+2🔬 in capital** · Æra III: +1 science in every coastal city
 
 ### Whales — coast
-`+2🌾 +1🪙` on tile · **+2⚙ in every coastal city** · Æra III: **+5% production
-in every coastal city** **and +1⚙ on every fishing boat the empire owns**. All
-live; the boat rider is an `improvementYields` line and, like its sibling
-percentage, waits for Æra III.
+`+1🌾 +1 prod +1🪙` on tile · **+2⚙ in capital** · Æra III: +1 production on all fishing boats
 
 ### Tyrian Murex — coast
-`+1🌾 +3🪙` on tile · **+1🎵 on every fishing boat the empire owns** — its base
-signature, live from the moment the seam is worked, and the row's first.
-**Deferred:** Æra III ("−10% cost of new civics") — **civics / Statecraft**.
+`+1🌾 +3🪙` on tile · **+2 culture in capital** — 
+**Deferred:** Æra III ("+1 culture on all fishing boats")
 
 ---
 
@@ -481,168 +439,3 @@ It is the obvious next extension if these rows are wanted.
 ---
 
 ## Revisions
-
-*(yours — edit away)*
-*Existing:* gems · silk · wine · spices · salt
-
-all bonuses are unique i.e. multiple copies don't stack the bonus
-
-gems:
-- spawns on hills
-- +2 gold on tile
-- +2 gold per city
-- at age 3: additionally provides +10% gold in all cities 
-
-silk:
-- keep current spawn
-- +1 culture on tile
-- +1 culture per city
-- at age 3: additionally provides +5% culture in all cities
-
-spices:
-- keep current spawn
-- +2 gold on tile
-- +2 authority
-- at age 3: connected cities provide +25% gold, trade routes increase yield by 10%
-
-salt:
-- keep current spawn
-- +1 food, +1 production on tile
-- +10% production towards units, -10% upkeep on units
-- at age 3: +5% food on all cities (all growth, not surplus growth)
-
-Incense:
-- desert, desert hills, plains, plains hills
-- +2 gold, +1 faith on tile
-- +1 faith per city
-- at age 3: -10% cost to purchase units with faith
-
-Jade:
-- grassland, grassland hills, riverside
-- +1 fath, +1 production on tile
-- +2 faith on production buildings
-- at age 3: gain 1 additional option when selecting civics
-
-Marble:
-- hills
-- +2 gold, +1 prod on tile
-- +15% production towards wonders
-- at age 3: +4 culture from world wonders in all cities
-
-Furs:
-- forest, tundra forest
-- +1 prod, +2 gold on tile
-- new tiles cost 10% less culture and gold
-- at age 3: gain +2 trade route limit
-
-Dyes:
-- jungle, forest
-- +1 culture, +2 gold
-- same bonuses as silk
-
-Ivory:
-- plains
-- +1 food, +1 prod
-- replaces mounted units line with war elephants (-1 movement, +20% combat strength, + 20% combat strength against mounted units and cities, +30% cost to produce)
-- at age 3: siege and mounted units gain 15% combat strength towards cities
-
-Amber:
-- coastal forest, coastal
-- +1 happiness, +1 gold
-- +1 happiness per city
-- at age 3: additional 5% bonus for happy cities
-
-Tea:
-- grassland hills
-- +1 science, +2 gold
-- +1 science per city
-- at age 3: cities gain 3% production for each science building in the city
-
-Coffee:
-- jungle hills
-- +2 gold
-- +1 prod per city
-- at age 3: production buildings give an extra 50% of their base yield and +1 science
-
-Cotton:
-- flat grassland, riverside
-- +1 food +2 gold
-- cities keep 10% of food upon growing
-- at age 3: production buildings give +2 food in each city
-
-Sugar:
-- jungle, marsh, desert floodplain
-- +1 happiness, +2 gold
-- +1 happiness per city
-- at age 3: happiness cost for population -10%
-
-Olives:
-- grassland hills
-- +2 food, +1 gold
-- +2 food per city
-- at age 3: +0.5 gold per population in cities
-
-Lapis:
-- desert hills
-- +3 gold
-- +1 culture per city
-- at age 3: +10% great people generation in all cities
-
-Silver:
-- hills
-- +3 gold on tile
-- +1 gold +1 authority per city
-- at age 3: gain +2 authority per copy of silver you control
-
-Gold:
-- hills
-- +3 gold on tile
-- +1 gold +1 food +1 happiness per city
-- at age 3: gain +2 happiness +2 food per copy of gold you control
-
-Honey:
-- grassland
-- +2 food, +1 gold
-- same bonuses as sugar
-
-Pearls:
-- coast
-- +3 gold on tile
-- +1 happiness per city
-- at age 3: +3 gold +3 happiness for each coastal city
-
-Coral:
-- coast
-- +1 science +1 food
-- +2 science for each coastal city
-- at age 3: +20% science for each coastal city
-
-Whales:
-- deep-coast edge
-- +2 food +1 gold
-- coastal cities gain +2 production
-- at age 3: fishing boats gain +1 production, coastal cities gain +5% production
-
-Tyrian:
-- coast, tile adjacent to coast
-- +1 food +3 gold
-- fishing boats give +1 culture
-- at age 3: decrease cost of new civics by 10%
-
-
-## Bonus resources
-
-wheat: +1 food
-cattle: +1 food
-deer: +1 food
-fish: +2 food
-stone: +1 prod
-rice: +2 food
-maize: +1 food
-bananas: +1 food
-copper: +1 prod +1 gold
-tin: +2 gold
-clay: +1 prod +1 food
-reeds: +1 food +1 science
-crabs: +1 food +1 gold
-bison: +1 food
