@@ -161,7 +161,10 @@ describe('the bead catalogue', () => {
     // v44: the age-1 restoration and the deepened chains — Calendar is a node
     // again, Currency and Irrigation trade places, and Æra III/IV are re-chained,
     // so a v43 log aims research at a tree this build does not have.
-    expect(SCHEMA_VERSION).toBe(44);
+    // v45: the endgame of Entry LVIII — the Magnum Opus, the three bead-paying
+    // great works, the Long Count's die and Alchemy's closing bead. A v44 log
+    // reaches a winner it never reached, and spends rolls it never spent.
+    expect(SCHEMA_VERSION).toBe(45);
   });
 
   it('puts the beads phase directly after renown', () => {

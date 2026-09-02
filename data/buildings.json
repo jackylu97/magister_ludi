@@ -1788,6 +1788,156 @@
         "perTurn": 2
       },
       "note": "Every other workshop in the city sends its problems here, and gets an answer back."
+    },
+    "chartTheStars": {
+      "name": "Chart the Stars",
+      "category": "science",
+      "cost": 300,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 2,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "requiresSite": {
+        "test": "hasBuilding",
+        "building": "library"
+      },
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "category": "naval"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "where": "embarked"
+        }
+      ],
+      "onComplete": [
+        {
+          "grant": "bead",
+          "bead": "theStarChart"
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 10,
+        "perTurn": 1
+      },
+      "note": "One of these in an empire. Every ship of the realm sails a hex further, and so does anybody crossing the water on a raft."
+    },
+    "theTurningHeavens": {
+      "name": "The Turning Heavens",
+      "category": "science",
+      "cost": 400,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 3,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "requiresSite": {
+        "test": "hasBuilding",
+        "building": "university"
+      },
+      "onComplete": [
+        {
+          "grant": "bead",
+          "bead": "theTurningHeavens"
+        },
+        {
+          "grant": "greatPerson",
+          "family": "scholar"
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 12,
+        "perTurn": 1
+      },
+      "note": "One of these in an empire, and only where there is a University to argue about it in."
+    },
+    "theAlchemicalCodex": {
+      "name": "The Alchemical Codex",
+      "category": "military",
+      "cost": 500,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 2,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "requiresSite": {
+        "test": "hasBuilding",
+        "building": "alchemicalSociety"
+      },
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "heal",
+          "amount": 5,
+          "where": "fortified"
+        },
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "when": {
+            "test": "always"
+          },
+          "side": "both"
+        }
+      ],
+      "onComplete": [
+        {
+          "grant": "bead",
+          "bead": "theCodex"
+        }
+      ],
+      "renown": {
+        "family": "scholar",
+        "onComplete": 12,
+        "perTurn": 1
+      },
+      "note": "One of these in an empire. Every soldier you have fights harder, and one that digs in mends faster."
+    },
+    "theMagnumOpus": {
+      "name": "The Magnum Opus",
+      "category": "culture",
+      "cost": 1200,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 5,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "worldUnlockTech": "alchemy",
+      "acceptsContributions": true,
+      "endsTheGame": true,
+      "onComplete": [
+        {
+          "grant": "bead",
+          "bead": "theGoldenBead"
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "onComplete": 25,
+        "perTurn": 3
+      },
+      "note": "The great work of the age. Nobody may begin one until some empire in the world has reached Alchemy, and every empire may begin one the moment somebody has. Gold and faith may be poured into it as well as production. The first one finished anywhere closes the age: the last measures are taken, and the empire holding the most beads wins.",
+      "deferred": [
+        "Pouring culture into it as well as gold and faith. Culture already fills the basket a draft comes out of, and spending it here needs its own ruling first."
+      ]
     }
   },
   "projects": {

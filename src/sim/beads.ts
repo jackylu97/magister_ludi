@@ -12,8 +12,8 @@
  * bead is a JSON row**. Every seam below calls `awardBeadOccasion` with a word
  * and knows nothing else about the system.
  *
- * Three kinds of question, three ways of asking
- * ---------------------------------------------
+ * Four kinds of question, four ways of asking
+ * -------------------------------------------
  *   · an **occasion** is announced. `awardOccasion` (`triumphs.ts`) already
  *     stands at ten of the eleven seams a bead cares about, so the bead
  *     listener is hung off that one call rather than added to ten call sites;
@@ -27,6 +27,13 @@
  *     holds a per-seat run per card, raised on a turn the count holds and reset
  *     to zero on a turn it does not, so "for ten turns together" means
  *     together.
+ *   · a **grant** is asked no question at all (Entry LVIII, the endgame). It is
+ *     the fifth class of row and the one thing here that is not a claim on the
+ *     world: a building or a node hands it over, through `awardBeadGrant`, and
+ *     because it is a *reward* rather than a first it is **once per empire** —
+ *     the register is asked by seat (`beadGrantedTo`) instead of by age. The
+ *     Opus's golden bead, the closing technology's, and one for each of the
+ *     three great works of the Observatory.
  *
  * The news is a **diff**, never a sink
  * ------------------------------------
@@ -56,6 +63,7 @@ import {
   type BeadKind,
   type BeadOccasion,
   type BeadGrant,
+  type BeadGrantId,
   type BeadPrerequisite,
   type BeadWindfall,
   BEAD_DECK_AGES,
@@ -154,6 +162,22 @@ export function beadClaimed(state: GameState, id: BeadCardId, age: number): bool
 }
 
 /**
+ * Has **this empire** already been given this row?
+ *
+ * `beadClaimed`'s sibling for the fifth class, and the one place the difference
+ * between them is written down. A feat, a quest, an endeavour and a reckoning
+ * are all *firsts in the world* — the world's register settles them and the key
+ * is `(id, age)`. A **grant** is not a first at all (`BeadGrantDef`): the
+ * closing technology pays every empire that reaches it and every realm that
+ * raises Chart the Stars is paid for it, so the key is `(id, seat)` and the age
+ * is not in it — a reward is not something an empire can win twice by living
+ * long enough.
+ */
+export function beadGrantedTo(state: GameState, id: BeadCardId, playerId: number): boolean {
+  return state.beads.claimed.some((claim) => claim.id === id && claim.playerId === playerId);
+}
+
+/**
  * Awards one bead to one empire, if the world has not already given it away.
  * **The** one place a bead is earned, and the only writer of `Player.beads` and
  * `GameState.beads.claimed`.
@@ -176,9 +200,13 @@ export function awardBead(
   const player = playerById(state, playerId);
   if (!player || player.barbarian) return null;
   if (beadIsDormant(id)) return null;
-  if (beadClaimed(state, id, age)) return null;
-
   const { kind, def } = anyBeadDef(id);
+  // **Which register answers depends on the class**, and it is the one branch
+  // in this function: a grant is once per empire (`beadGrantedTo`), everything
+  // else is once in the world at its age (`beadClaimed`). Both write the same
+  // record, so the next check refuses by exactly the line this one wrote.
+  const held = kind === 'grant' ? beadGrantedTo(state, id, playerId) : beadClaimed(state, id, age);
+  if (held) return null;
   state.beads.claimed.push({ id, age, playerId: player.id, turn: state.turn });
   const earned: EarnedBead = { id, kind, family: def.family, turn: state.turn };
   player.beads.push(earned);
@@ -952,6 +980,100 @@ export function claimEndeavour(state: GameState, city: City, id: BeadEndeavourId
   return awardBead(state, city.ownerId, id, beadEndeavourDef(id).age);
 }
 
+/**
+ * Hands one empire a bead a *thing* pays — the fifth class's one entry point.
+ *
+ * Two seams call it and neither knows anything else about the system, which is
+ * `awardBeadOccasion`'s bargain read one class over: `payCompletionGrants`
+ * (`cities.ts`) for a building that carries `{ grant: 'bead' }`, and
+ * `settleResearch` (`tech.ts`) for a node that carries `paysBead`. The age is
+ * `0` because a grant is not keyed by one — see `beadGrantedTo`.
+ */
+export function awardBeadGrant(
+  state: GameState,
+  playerId: number,
+  id: BeadGrantId,
+): BeadAward | null {
+  return awardBead(state, playerId, id, 0);
+}
+
+// --- the endgame ------------------------------------------------------------
+
+/**
+ * What closing the age settled, for the caller that has to say so out loud.
+ *
+ * A **report**, like everything else in this file: by the time anybody reads it
+ * the reckonings are on the register and `state.winnerId` is written.
+ */
+export interface GreatWorkClose {
+  /** The empire that raised the Opus. */
+  playerId: number;
+  /** The town it stands in. */
+  cityId: number;
+  /** The age whose reckonings were taken. */
+  age: number;
+  /** Those reckonings' awards, in the hand's own order. */
+  awards: BeadAward[];
+  /** Who won, or `null` when somebody had already won before this. */
+  winnerId: number | null;
+}
+
+/**
+ * **The finish line** — the Magnum Opus is finished, so the age closes and the
+ * race is settled (design ledger Entry LVIII).
+ *
+ * Called from `realiseItem` for a row carrying `BuildingDef.endsTheGame`, which
+ * is a *marker* like every other on that table: nothing in `src/sim/` compares a
+ * building id against the Opus by name, exactly as nothing compares one against
+ * the cathedral. It runs **after** the row's own completion grants, and that
+ * order is the whole of why the golden bead is on the builder's rod before
+ * anybody counts: the bead is `{ grant: 'bead' }` on the row, and a close that
+ * ran first would decide the race on a tally one short.
+ *
+ * Three beats, and each reaches machinery that already exists:
+ *
+ *   1. **the age closes** — `takeReckonings` for the world's current age, the
+ *      same call `advanceWorldClock` makes when a seat enters a new one. So the
+ *      final measures are taken by the one routine that takes every other
+ *      measure, ties pay nobody here exactly as they pay nobody there, and the
+ *      awards ride out on the ordinary bead diff (`beadsAwarded` /
+ *      `beadsSince`) with no new report field anywhere.
+ *   2. **the count** — most beads wins, across `realPlayers` in seat order.
+ *   3. **the tie** — broken for the Opus's builder, which is the whole reason
+ *      building it is worth a thousand hammers: a realm that draws level with
+ *      you cannot take the game off you at the last moment. A tie between two
+ *      seats that are *both* not the builder falls to seat order, which is this
+ *      game's contention rule everywhere else.
+ *
+ * `state.winnerId` is written only into a `null`, the third way to reach that
+ * field and the same discipline the other two keep: a game that has been won
+ * stays won.
+ */
+export function closeTheGreatWork(state: GameState, city: City): GreatWorkClose {
+  const age = state.beads.worldAge;
+  const awards = takeReckonings(state, age);
+
+  let winner: number | null = null;
+  if (state.winnerId === null) {
+    let best = -1;
+    for (const player of realPlayers(state)) {
+      const held = player.beads.length;
+      if (held > best) {
+        best = held;
+        winner = player.id;
+        continue;
+      }
+      // The builder's tie-break, and it is asked only on an exact tie: a seat
+      // level with the leader takes the game only if it is the seat that raised
+      // the Opus.
+      if (held === best && player.id === city.ownerId) winner = player.id;
+    }
+    if (winner !== null) state.winnerId = winner;
+  }
+
+  return { playerId: city.ownerId, cityId: city.id, age, awards, winnerId: winner };
+}
+
 // --- the phase --------------------------------------------------------------
 
 /**
@@ -1232,9 +1354,10 @@ function standingDeedHolds(
 /**
  * Names the winner the moment a seat reaches the threshold.
  *
- * **One field, two ways to reach it** (Entry VI.3): this and
- * `updateElimination`. Neither ever clears a winner the other named — a game
- * that has been won stays won — which is why this only writes into a `null`.
+ * **One field, three ways to reach it** (Entry VI.3, and Entry LVIII's finish
+ * line): this, `updateElimination`, and `closeTheGreatWork`. None of them ever
+ * clears a winner another named — a game that has been won stays won — which is
+ * why each only writes into a `null`.
  * Seats are walked in `realPlayers` order, so two empires that cross on the same
  * turn resolve by seat order like every other contention in the game.
  */

@@ -2480,6 +2480,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportGuilds(result);
       reportTriumphs(result);
       reportAgeOpened(result);
+      reportOpusOpened(result);
       reportBeads(result);
       checkFirstStatecraftDraft();
       checkGreatPersonOffer();
@@ -2971,6 +2972,24 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     announce(`◈ ${deckEraWord(age)} opens — ${dealt} ${what} on the table`);
     if (heldBeadNews === null) onBeadAgeOpened?.(age);
     else heldBeadNews.ageOpened = age;
+  }
+
+  /**
+   * **The finish line is open.** One line, said once, to every seat.
+   *
+   * `reportAgeOpened`'s sibling and read the same way — off the reducer's own
+   * report (`CommandResult.opusOpened`), never as a before-and-after of anything
+   * this module keeps — for that function's stated reason: a diff kept up here
+   * is a second clock, and a second clock announces a decade-old moment the
+   * first time somebody reloads.
+   *
+   * It is news to **everybody**, including the empires that did not research the
+   * technology: the Opus opens for the whole world at once, which is exactly why
+   * it is worth telling the seat that has not been anywhere near it.
+   */
+  function reportOpusOpened(result: CommandResult): void {
+    if (!result.ok || result.opusOpened !== true) return;
+    announce('◈ The Magnum Opus is open — any empire may begin the great work');
   }
 
   /**

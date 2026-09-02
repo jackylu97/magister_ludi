@@ -377,8 +377,13 @@
       "unlocks": {
         "abilities": [
           "theLongCount"
+        ],
+        "buildings": [
+          "chartTheStars"
         ]
       },
+      "ageEntryDice": 1,
+      "note": "Every new age this empire enters from now on pays a die of the Magister.",
       "flavor": "A calendar long enough to outlast the people keeping it."
     },
     "ancestorRites": {
@@ -712,7 +717,8 @@
       "unlocks": {
         "buildings": [
           "university",
-          "houseOfWisdom"
+          "houseOfWisdom",
+          "theTurningHeavens"
         ]
       },
       "flavor": "A school is a city’s second memory."
@@ -958,14 +964,13 @@
           "fireLance"
         ],
         "buildings": [
-          "alchemicalSociety"
+          "alchemicalSociety",
+          "theAlchemicalCodex"
         ]
       },
+      "paysBead": "theClosingWork",
       "flavor": "The stone is never found; everything else is.",
-      "note": "Niter is named, and the first soldier who carries fire may be trained where it is dug.",
-      "deferred": [
-        "The glass bead this closing node pays, and the Magnum Opus it opens for every empire at once, wait for the pass that builds the finish line."
-      ]
+      "note": "Niter is named, and the first soldier who carries fire may be trained where it is dug. Completing this pays a glass bead, and the first empire in the world to complete it opens the Magnum Opus for everybody."
     },
     "movableType": {
       "name": "Movable Type",

@@ -99,7 +99,7 @@
  * rather than a formality.
  */
 
-import { type BuildingId, buildingDef, isBuildingId, isWonder } from './buildingData';
+import { BUILDING_IDS, type BuildingId, buildingDef, isBuildingId, isWonder } from './buildingData';
 import {
   type CityYields,
   cityYields,
@@ -133,6 +133,7 @@ import {
   type Unit,
   cityById,
   playerById,
+  realPlayers,
   wonderClaim,
 } from './state';
 import {
@@ -150,7 +151,7 @@ import {
 } from './techData';
 import { awardOccasion } from './triumphs';
 import { isBeadEndeavourId } from './beadData';
-import { endeavourError, endeavourIsOffered } from './beads';
+import { awardBeadGrant, endeavourError, endeavourIsOffered } from './beads';
 import { isProjectId, projectDef } from './projectData';
 import { type UnitTypeId, isNaval, isUnitTypeId, unitDef, unitMaxHp } from './unitData';
 
@@ -178,6 +179,50 @@ export function hasAbility(state: GameState, playerId: number, ability: AbilityI
   const player = playerById(state, playerId);
   if (!player) return false;
   return techsGrant(player.techsResearched, ability);
+}
+
+/**
+ * Has **anybody in the world** completed this technology?
+ *
+ * The world's half of `hasTech`, and the only reading of
+ * `BuildingDef.worldUnlockTech`. It is a sweep of `realPlayers` — the wild keeps
+ * no research and wins nothing — and it is **derived every time it is asked**
+ * rather than stored: a flag saying "the Opus is open" would be a second answer
+ * to a question the technology lists already answer, and a second answer is how
+ * a loaded save comes to disagree with the board it was loaded from.
+ *
+ * Availability that a *rival* opens is new, and it only ever moves one way (a
+ * technology is never un-researched), so it keeps `isUnlocked`'s promise that
+ * availability never goes backwards.
+ */
+export function worldTechReached(state: GameState, tech: TechId): boolean {
+  for (const player of realPlayers(state)) {
+    if (player.techsResearched.includes(tech)) return true;
+  }
+  return false;
+}
+
+/**
+ * Is the Magnum Opus open to the world yet?
+ *
+ * A **named reading of the marker**, never of a name: the row is whichever one
+ * carries `BuildingDef.endsTheGame`, exactly as nothing in `src/sim/` compares a
+ * unit type against `"augur"`. Answers `false` when no row is the finish line at
+ * all, which is the honest reading of a table that has not shipped one.
+ *
+ * Its two readers are surfaces rather than rules — the beads screen's status
+ * line and the one announcement the reducer rides out (`CommandResult
+ * .opusOpened`) — because the *rule* is `isUnlocked`'s and is asked of the row.
+ */
+export function opusOpen(state: GameState): boolean {
+  for (const id of BUILDING_IDS) {
+    const def = buildingDef(id);
+    if (def.endsTheGame !== true) continue;
+    const tech = def.worldUnlockTech;
+    if (tech === undefined) return true;
+    if (worldTechReached(state, tech)) return true;
+  }
+  return false;
 }
 
 /** Are every one of a technology's prerequisites already in hand? */
@@ -226,6 +271,17 @@ export function isUnlocked(
   // build list in the world the instant they win it.
   if (kind === 'project' && isBeadEndeavourId(id)) {
     return endeavourIsOffered(state, playerId, id);
+  }
+  // **A row the *world* opens is asked of the world** (Entry LVIII, the finish
+  // line). The Magnum Opus has no gate in the tree — no node names it — so
+  // without this it would be buildable from turn one, `unlockedByCard`'s failure
+  // exactly one clause up. What opens it is any empire anywhere reaching the
+  // closing technology, which is the whole of "the finish line announces itself
+  // to all contestants at once": a seat that has not researched Alchemy itself
+  // may still raise the Opus.
+  if (kind === 'building' && isBuildingId(id)) {
+    const world = buildingDef(id).worldUnlockTech;
+    if (world !== undefined && !worldTechReached(state, world)) return false;
   }
   const gate = gatingTech(kind, id);
   if (gate === null) return true;
@@ -360,6 +416,16 @@ export function buildError(
     const why = endeavourError(state, playerId, id);
     if (why !== null) return why;
   }
+  // **The world's own gate, before the tree's**, and the order is the message:
+  // a player told "The Magnum Opus needs a technology you do not have" has been
+  // told something false — they need nobody's technology, they need *somebody's*
+  // (Entry LVIII). See `BuildingDef.worldUnlockTech`.
+  if (kind === 'building' && isBuildingId(id)) {
+    const world = buildingDef(id).worldUnlockTech;
+    if (world !== undefined && !worldTechReached(state, world)) {
+      return `${itemName(kind, id)} waits until some empire in the world reaches ${techDef(world).name}`;
+    }
+  }
   if (!isUnlocked(state, playerId, kind, id)) {
     const gate = gatingTech(kind, id);
     const needs = gate ? techDef(gate).name : 'a technology you do not have';
@@ -444,6 +510,26 @@ export function buildError(
       const town = where?.name ?? `city ${claim.cityId}`;
       const empire = who?.name ?? `player ${claim.playerId}`;
       return `${itemName(kind, id)} already stands in ${town} (${empire})`;
+    }
+    for (const other of state.cities) {
+      if (other.ownerId !== playerId || other.id === city?.id) continue;
+      if (!other.queue.some((item) => item.kind === 'building' && item.id === id)) continue;
+      return `${other.name} is already building ${itemName(kind, id)}`;
+    }
+  }
+  // **One per realm** (`BuildingDef.oncePerEmpire` — the Opus and the three great
+  // works of the Observatory). The wonder clauses' shape one scale in, and the
+  // two sentences say which scale: a wonder that already stands names the empire
+  // holding it because it is gone from the world, and this one names only the
+  // town, because every other empire may still raise theirs. The second clause
+  // is the wonder's word for word and for its reason: a second copy in one realm
+  // is a queue that can never complete.
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).oncePerEmpire === true) {
+    for (const other of state.cities) {
+      if (other.ownerId !== playerId) continue;
+      if (other.buildings.includes(id)) {
+        return `${itemName(kind, id)} already stands in ${other.name}`;
+      }
     }
     for (const other of state.cities) {
       if (other.ownerId !== playerId || other.id === city?.id) continue;
@@ -933,7 +1019,19 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   promoteResearchQueue(state, player);
   if (highestAge(player.techsResearched) > eraBefore) {
     awardOccasion(state, player.id, 'ageEntered');
+    // **The Long Count's die**, at the one moment in the game that knows an
+    // empire has *entered* an age rather than merely standing in one. Read off
+    // the rows (`TechDef.ageEntryDice`) rather than off a technology this
+    // function names, so a second such node is a JSON field.
+    payAgeEntryDice(player);
   }
+  // **The closer's own bead** (`TechDef.paysBead`), after the push so the node
+  // is already in the list, and inside this routine so a technology finished by
+  // a windfall pays it exactly as one finished by a turn's beakers does. It is a
+  // grant bead and therefore once per empire — every seat that reaches the end
+  // of the chart is paid for it, which is the user's ruling in full.
+  const bead = techDef(plan.techId).paysBead;
+  if (bead !== undefined) awardBeadGrant(state, player.id, bead);
   upgradeUnits(state, player);
   // The Lyceum's fifteen. Inside the one completion routine (Entry XVIII.1), so
   // a technology finished by star tablets pays the same verse as one finished by
@@ -945,6 +1043,25 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
     settleCultureWindfall(state, player);
   }
   return { player, techId: plan.techId, name: techDef(plan.techId).name, cost: plan.cost };
+}
+
+/**
+ * Pays the dice every node this empire holds owes it for entering a new age.
+ *
+ * A **fold over the empire's own list**, not a lookup of one technology: the
+ * figure is `TechDef.ageEntryDice` and any number of nodes may carry one, so the
+ * rule is "what do my technologies together pay" and a second such node needs no
+ * second line anywhere. Dice are uncapped (the user's ruling of 2026-08-30), so
+ * there is nothing to clamp; `Player.dice` is the bank and nothing else writes
+ * it but this and a bead's boon.
+ */
+function payAgeEntryDice(player: Player): void {
+  let dice = 0;
+  for (const id of player.techsResearched) {
+    if (!isTechId(id)) continue;
+    dice += Math.max(0, Math.floor(techDef(id).ageEntryDice ?? 0));
+  }
+  if (dice > 0) player.dice += dice;
 }
 
 /**

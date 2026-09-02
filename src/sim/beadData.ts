@@ -22,6 +22,15 @@
  *   · a **reckoning** is the age's snapshot, taken the moment the first seat
  *     enters the next age: every seat measured at once over one count, a victor
  *     named, and **ties pay nobody**.
+ *   · a **grant** is a bead a *thing hands over* — the closing technology, the
+ *     Magnum Opus, the three great works of the Observatory (Entry LVIII, the
+ *     endgame). It is never dealt, never swept and never contested: it has no
+ *     deed at all, because the deed is the building or the node that names it,
+ *     and it is **once per empire** rather than once in the world. That last
+ *     word is the whole reason it is a fifth class and not a feat with an odd
+ *     scope — a feat is a *first* in the world and this is a *reward*, and the
+ *     day the two shared a shape the closer's bead would have gone to whoever
+ *     finished the chart first and to nobody else.
  *
  * Why a deed is data and not a predicate
  * --------------------------------------
@@ -76,7 +85,7 @@ export function isBeadFamily(value: unknown): value is BeadFamily {
 }
 
 /** Which class of row a bead came off. Carried on the earned record. */
-export type BeadKind = 'feat' | 'endeavour' | 'quest' | 'reckoning';
+export type BeadKind = 'feat' | 'endeavour' | 'quest' | 'reckoning' | 'grant';
 
 /**
  * The ages that hold a deck.
@@ -412,13 +421,38 @@ export interface BeadReckoningDef extends BeadDefBase {
   count: BeadCount;
 }
 
+/**
+ * A bead a thing hands over. See the module docblock's fifth class.
+ *
+ * It carries **no deed and no boon**, and both absences are the design. There is
+ * no deed because the deed is whatever names it — a `CompletionGrant` on a
+ * building row, `TechDef.paysBead` on a node — so a row here that could be swept
+ * would be a second way to earn the same bead. There is no boon because the bead
+ * *is* the payment: the thing that hands it over has already cost an empire a
+ * thousand hammers or the last node of the chart, and a windfall on top of that
+ * would be paying twice for one deed.
+ *
+ * `source` is the one field it adds, and it is prose for the surfaces: a card
+ * with no deed to print needs a sentence saying where the bead comes from.
+ */
+export interface BeadGrantDef extends BeadDefBase {
+  /** Where the bead comes from, in a first-time player's words. Hard rule 7. */
+  source: string;
+}
+
 export type BeadFeatId = keyof typeof beadsJson.feats & string;
 export type BeadEndeavourId = keyof typeof beadsJson.endeavours & string;
 export type BeadQuestId = keyof typeof beadsJson.quests & string;
 export type BeadReckoningId = keyof typeof beadsJson.reckonings & string;
+export type BeadGrantId = keyof typeof beadsJson.grants & string;
 
-/** Every id in the catalogue, across all four classes. */
-export type BeadCardId = BeadFeatId | BeadEndeavourId | BeadQuestId | BeadReckoningId;
+/** Every id in the catalogue, across all five classes. */
+export type BeadCardId =
+  | BeadFeatId
+  | BeadEndeavourId
+  | BeadQuestId
+  | BeadReckoningId
+  | BeadGrantId;
 
 export interface BeadRules {
   /** Beads that win the game. Entry VI's pacing knob. */
@@ -446,6 +480,7 @@ export interface BeadData {
   endeavours: Record<BeadEndeavourId, BeadEndeavourDef>;
   quests: Record<BeadQuestId, BeadQuestDef>;
   reckonings: Record<BeadReckoningId, BeadReckoningDef>;
+  grants: Record<BeadGrantId, BeadGrantDef>;
 }
 
 export const BEAD_DATA = beadsJson as unknown as BeadData;
@@ -457,6 +492,7 @@ export const BEAD_FEAT_IDS = Object.keys(BEAD_DATA.feats) as BeadFeatId[];
 export const BEAD_ENDEAVOUR_IDS = Object.keys(BEAD_DATA.endeavours) as BeadEndeavourId[];
 export const BEAD_QUEST_IDS = Object.keys(BEAD_DATA.quests) as BeadQuestId[];
 export const BEAD_RECKONING_IDS = Object.keys(BEAD_DATA.reckonings) as BeadReckoningId[];
+export const BEAD_GRANT_IDS = Object.keys(BEAD_DATA.grants) as BeadGrantId[];
 
 export function isBeadFeatId(value: unknown): value is BeadFeatId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(BEAD_DATA.feats, value);
@@ -470,12 +506,16 @@ export function isBeadQuestId(value: unknown): value is BeadQuestId {
 export function isBeadReckoningId(value: unknown): value is BeadReckoningId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(BEAD_DATA.reckonings, value);
 }
+export function isBeadGrantId(value: unknown): value is BeadGrantId {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(BEAD_DATA.grants, value);
+}
 export function isBeadCardId(value: unknown): value is BeadCardId {
   return (
     isBeadFeatId(value) ||
     isBeadEndeavourId(value) ||
     isBeadQuestId(value) ||
-    isBeadReckoningId(value)
+    isBeadReckoningId(value) ||
+    isBeadGrantId(value)
   );
 }
 
@@ -491,6 +531,9 @@ export function beadQuestDef(id: BeadQuestId): BeadQuestDef {
 export function beadReckoningDef(id: BeadReckoningId): BeadReckoningDef {
   return BEAD_DATA.reckonings[id];
 }
+export function beadGrantDef(id: BeadGrantId): BeadGrantDef {
+  return BEAD_DATA.grants[id];
+}
 
 /**
  * What class of row this id names, and its definition — **the one lookup across
@@ -501,11 +544,15 @@ export function beadReckoningDef(id: BeadReckoningId): BeadReckoningDef {
  */
 export function anyBeadDef(
   id: BeadCardId,
-): { kind: BeadKind; def: BeadFeatDef | BeadEndeavourDef | BeadQuestDef | BeadReckoningDef } {
+): {
+  kind: BeadKind;
+  def: BeadFeatDef | BeadEndeavourDef | BeadQuestDef | BeadReckoningDef | BeadGrantDef;
+} {
   if (isBeadFeatId(id)) return { kind: 'feat', def: beadFeatDef(id) };
   if (isBeadEndeavourId(id)) return { kind: 'endeavour', def: beadEndeavourDef(id) };
   if (isBeadQuestId(id)) return { kind: 'quest', def: beadQuestDef(id) };
   if (isBeadReckoningId(id)) return { kind: 'reckoning', def: beadReckoningDef(id) };
+  if (isBeadGrantId(id)) return { kind: 'grant', def: beadGrantDef(id) };
   throw new Error(`Unknown bead "${String(id)}"`);
 }
 
@@ -719,6 +766,17 @@ export function beadDataProblems(): string[] {
     checkBase(id, def, 'reckonings');
     if (!BEAD_COUNTS.includes(def.count)) {
       problems.push(`reckonings: "${id}" names unknown count "${String(def.count)}"`);
+    }
+  }
+
+  // A grant has no deed and no boon to check; what it *must* have is the
+  // sentence saying where it comes from, because it is the one class of card
+  // whose face cannot print a deed.
+  for (const id of BEAD_GRANT_IDS) {
+    const def = beadGrantDef(id);
+    checkBase(id, def, 'grants');
+    if (typeof def.source !== 'string' || def.source.length === 0) {
+      problems.push(`grants: "${id}" does not say what hands it over`);
     }
   }
 

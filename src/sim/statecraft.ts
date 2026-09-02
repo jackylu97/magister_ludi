@@ -68,6 +68,7 @@ import {
   tileOwnerPlayerId,
 } from './cities';
 import {
+  BUILDING_IDS,
   type BuildingId,
   type CompletionGrant,
   type ProductionCategory,
@@ -847,15 +848,24 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
   // list, so a conqueror inherits the walls, the granary and the Oracle together
   // — the same reading `City.timed` takes of a rite performed on a place.
   //
-  // The empty-register guard is not an optimisation of the rare case, it is the
-  // ordinary one: this walk runs several times per city per turn, and in a game
-  // where nobody has finished a wonder there is nothing here to sweep for.
-  if (state.wonders.length > 0) {
+  // **A capstone is read from here too** (Entry LVIII, the endgame): a
+  // `oncePerEmpire` row — the Magnum Opus and the three great works of the
+  // Observatory — is one per *realm* exactly as a wonder is one per world, so
+  // reading it from the empire's walk counts it once and its clauses may say
+  // "every soldier you have" without being a granary's effect counted once per
+  // granary. That is the whole of `cityBuildingEffects`' argument, answered at
+  // one scale out; the two walks skip each other's rows, so nothing is read
+  // twice.
+  //
+  // The guard is the empty register **or** a table that has any such row in it:
+  // the walk is several per city per turn, and in a game where nobody has
+  // finished anything one of a kind there is nothing here to sweep for.
+  if (state.wonders.length > 0 || ONE_OF_A_KIND) {
     for (const city of state.cities) {
       if (city.ownerId !== playerId) continue;
       for (const id of city.buildings) {
-        if (!isWonder(id)) continue;
-        push(id, CLASS_WORD.wonder, 1, buildingDef(id).effects ?? []);
+        if (!oneOfAKind(id)) continue;
+        push(id, isWonder(id) ? CLASS_WORD.wonder : CLASS_WORD.building, 1, buildingDef(id).effects ?? []);
       }
     }
   }
@@ -1274,6 +1284,22 @@ function consecrationEffects(state: GameState, city: City): LiveCardEffect[] {
 }
 
 /**
+ * Is exactly one of these standing anywhere it could matter — one per world (a
+ * wonder) or one per realm (a capstone)?
+ *
+ * **The** line dividing `liveEffects`' fifth source from `cityBuildingEffects`,
+ * asked by both so the division has one definition. A row that answers yes is
+ * the empire's and its clauses may speak of the whole realm; a row that answers
+ * no stands in every town that built one and belongs to the town's own walk.
+ */
+function oneOfAKind(id: BuildingId): boolean {
+  return isWonder(id) || buildingDef(id).oncePerEmpire === true;
+}
+
+/** Does the table hold any one-of-a-kind row at all? `liveEffects`' cheap guard. */
+const ONE_OF_A_KIND = BUILDING_IDS.some((id) => buildingDef(id).oncePerEmpire === true);
+
+/**
  * The effects the **ordinary buildings standing in this town** contribute.
  *
  * `BuildingDef.effects` promised this in so many words — "the day an ordinary
@@ -1294,6 +1320,11 @@ function consecrationEffects(state: GameState, city: City): LiveCardEffect[] {
  *
  * Wonders are skipped rather than repeated: they arrive through `liveEffects`
  * already, and a wonder read from both ends would pay twice in its own city.
+ * **So is a capstone** (`BuildingDef.oncePerEmpire`), for the identical reason
+ * one scale in: a row an empire holds exactly one of is read by the empire's
+ * walk, and reading it from both ends would pay it twice in the town it stands
+ * in. `oneOfAKind` is the one predicate both walks ask, so the two can never
+ * disagree about which rows they are dividing between them.
  */
 function cityBuildingEffects(state: GameState, city: City): LiveCardEffect[] {
   const list: LiveCardEffect[] = [];
@@ -1301,7 +1332,7 @@ function cityBuildingEffects(state: GameState, city: City): LiveCardEffect[] {
     pushEffects(state, city.ownerId, list, card, word, level, effects, push);
   };
   for (const id of city.buildings) {
-    if (isWonder(id)) continue;
+    if (oneOfAKind(id)) continue;
     const effects = buildingDef(id).effects;
     if (effects === undefined || effects.length === 0) continue;
     push(id, CLASS_WORD.building, 1, effects);
@@ -3284,6 +3315,15 @@ export function cardUnitStat(
       const here = getTileAt(state.map, unit.col, unit.row);
       if (!here || !isWaterTerrain(here.terrain)) continue;
     }
+    if (effect.where === 'fortified') {
+      // **Presence is the state**, `path`'s and `sleeping`'s convention: a piece
+      // that has dug in carries `fortifiedTurns` and one that has not carries no
+      // key at all. The Alchemical Codex's extra mending, and it rides on the
+      // *rested* rule the ordinary heal already keeps (`healUnits`) rather than
+      // replacing it — a unit that dug in this turn spent no movement, so the
+      // two agree by construction.
+      if (unit.fortifiedTurns === undefined) continue;
+    }
     total += scaleByLevel(effect.amount, level);
   }
   return total;
@@ -4942,6 +4982,12 @@ const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
 function grantWords(grant: CompletionGrant): string {
   if (grant.grant === 'tech') return 'on completion, the technology you are researching is finished';
   if (grant.grant === 'doctrineDraft') return 'on completion, a Doctrine draft opens';
+  if (grant.grant === 'bead') return 'on completion, a glass bead is yours';
+  if (grant.grant === 'greatPerson') {
+    return grant.family === undefined
+      ? 'on completion, a great person is offered'
+      : `on completion, a great person of the ${grant.family}s is offered`;
+  }
   if (grant.grant === 'building') {
     const name = buildingDef(grant.building).name;
     return `on completion, ${indefinite(name)} ${ref('building', grant.building, name)} is raised here as well`;
@@ -5406,10 +5452,11 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
 };
 
 /** Where a `unitStat` applies, in words. `'anywhere'` is the absent field. */
-const WHERE_WORDS: Record<'anywhere' | 'ownTerritory' | 'embarked', string> = {
+const WHERE_WORDS: Record<'anywhere' | 'ownTerritory' | 'embarked' | 'fortified', string> = {
   anywhere: '',
   ownTerritory: ' inside your territory',
   embarked: ' while embarked',
+  fortified: ' while dug in',
 };
 
 /**

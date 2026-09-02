@@ -59,6 +59,7 @@ import {
   playerById,
   realPlayers,
 } from '../sim/state';
+import { opusOpen } from '../sim/tech';
 import { eraWord, figure } from './figures';
 import { setDescriptorText } from './keywords';
 import type { CardClause } from '../sim/statecraft';
@@ -116,6 +117,7 @@ const KIND_WORD: Record<BeadKind, string> = {
   endeavour: 'race project',
   quest: 'quest',
   reckoning: 'reckoning',
+  grant: 'reward',
 };
 
 // --- one card's face --------------------------------------------------------
@@ -168,6 +170,9 @@ export interface BeadCardFace {
 function eyebrowFor(kind: BeadKind, age: number | null): string {
   const word = KIND_WORD[kind];
   if (kind === 'feat') return `${word} · always in play`;
+  // A reward is never dealt and never contested — it is handed over by whatever
+  // names it — so it has neither a deck nor a race to say anything about.
+  if (kind === 'grant') return `${word} · handed over, never raced for`;
   if (age === null) return word;
   return `${word} · ${deckEraWord(age)}`;
 }
@@ -205,13 +210,16 @@ export function beadCardFace(
   const { kind, def } = anyBeadDef(id);
   const age = 'age' in def && typeof def.age === 'number' ? def.age : null;
   const boon = 'boon' in def ? def.boon : undefined;
+  // A reward has no deed to print — nobody races for it — so its `source` leads
+  // and its `text` follows: "Raising the Magnum Opus. The last bead on the rod…"
+  const source = 'source' in def && typeof def.source === 'string' ? def.source : null;
   return {
     id,
     kind,
     name: def.name,
     family: def.family,
     eyebrow: eyebrowFor(kind, age),
-    deed: def.text,
+    deed: source === null ? def.text : `${source} ${def.text}`,
     boon: boon === undefined ? [] : describeBeadBoon(boon),
     claim: beadClaimLine(options.claim ?? null),
     met: options.met ?? null,
@@ -369,6 +377,20 @@ export function abacusRodSlots(
     slots.push(earned ? { kind: 'bead', family: earned.family } : { kind: 'empty' });
   }
   return slots;
+}
+
+/**
+ * Where the Magnum Opus stands, in one line: open to the world, or not yet.
+ *
+ * A pure function of the one derived reading (`opusOpen`, `tech.ts`) so the
+ * screen and the reducer's own announcement cannot disagree about whether the
+ * finish line exists — and pure so a test may print the sentence with no game
+ * behind it, `beadCardFace`'s bargain.
+ */
+export function opusStandingLine(open: boolean): string {
+  return open
+    ? 'The Magnum Opus is open — the first one finished closes the age'
+    : 'The Magnum Opus is not yet open — it waits on the world reaching Alchemy';
 }
 
 /** "Crimson 7" — one seat's standing, for the threshold list. */
@@ -687,6 +709,9 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
         `${figure(BEAD_RULES.threshold)} beads win — the last is golden`,
       ),
     );
+    // The finish line's own line, under the threshold and above the rods,
+    // because it is a fact about the *world* rather than about any seat.
+    column.append(element('p', 'hint bead-opus-line', opusStandingLine(opusOpen(state))));
 
     for (const player of realPlayers(state)) {
       const rod = element('div', 'bead-rod');

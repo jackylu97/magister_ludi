@@ -186,12 +186,25 @@ export function spillOrder(age: number): number[] {
  * it, and an age with two hands back two of its own plus enough of the previous
  * one to make up the difference.
  */
-export function greatPersonPool(state: GameState, player: Player, size: number): GreatPersonId[] {
+export function greatPersonPool(
+  state: GameState,
+  player: Player,
+  size: number,
+  family?: Family,
+): GreatPersonId[] {
   const spent = new Set<GreatPersonId>(state.recruited);
   const list: GreatPersonId[] = [];
   for (const age of spillOrder(rosterAgeOf(player))) {
     for (const id of rosterOfAge(age)) {
-      if (!spent.has(id)) list.push(id);
+      if (spent.has(id)) continue;
+      // **A narrowed draft is the same walk with one clause** (Entry LVIII —
+      // The Turning Heavens' "a draft of scholars"). It filters and never
+      // reorders, so a narrowed pool is a subsequence of the ordinary one and
+      // the spill still reaches back an age at a time until the hand can fill.
+      // A family with fewer names than the hand wants simply deals fewer, which
+      // is what a spent roster already does.
+      if (family !== undefined && greatPersonDef(id).family !== family) continue;
+      list.push(id);
     }
     if (list.length >= size) break;
   }
@@ -257,10 +270,20 @@ export function greatPersonWeights(
  * An offer with **no options at all** is the honest answer when the whole roster
  * is spent, and its caller (`settleRenownWindfall`) is what turns that into "the
  * renown just banks" rather than into a blocker nobody can answer.
+ *
+ * `family` narrows the *pool* and nothing else (Entry LVIII, The Turning
+ * Heavens): the weights, the walk and the rolls are the ordinary ones, so a
+ * narrowed draft is the same machine with a shorter bag. Absent — which is every
+ * caller but one — is the whole roster, and a game with no such row deals
+ * byte-identically to one played before the parameter existed.
  */
-export function drawGreatPersonOffer(state: GameState, player: Player): GreatPersonOffer {
+export function drawGreatPersonOffer(
+  state: GameState,
+  player: Player,
+  family?: Family,
+): GreatPersonOffer {
   const size = offerSize(state, player.id, 'greatPerson');
-  const remaining = greatPersonPool(state, player, size);
+  const remaining = greatPersonPool(state, player, size, family);
   const weights = greatPersonWeights(player, remaining);
   const wanted = Math.min(Math.max(0, Math.floor(size)), remaining.length);
   const options: GreatPersonId[] = [];

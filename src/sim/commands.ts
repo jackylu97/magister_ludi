@@ -175,6 +175,7 @@ import {
   chooseResearchFor,
   dequeueResearchError,
   dequeueResearchFor,
+  opusOpen,
   researchError,
 } from './tech';
 import type { TechId } from './techData';
@@ -1312,6 +1313,25 @@ export type CommandResult =
       campBounties?: { ownerId: number; col: number; row: number; bounty: CampBounty }[];
       beads?: BeadAward[];
       beadAgeOpened?: BeadAge;
+      /**
+       * **The Magnum Opus is open to the world**, said once, on the command that
+       * opened it (design ledger Entry LVIII).
+       *
+       * `beadAgeOpened`'s sibling and here for exactly its argument. The reading
+       * is *derived* — any real seat holding the closing technology (`opusOpen`,
+       * `tech.ts`) — and deliberately not a flag on the state, so nothing on the
+       * board says the answer changed *this* command rather than eight turns
+       * ago. Without this an interface wanting to announce the finish line would
+       * keep its own copy of last turn's answer and diff it, which is a second
+       * clock and how a reload comes to announce something a decade old.
+       *
+       * Written in `applyCommand`, the one funnel every command passes through,
+       * for the bead diff's reason: the technology may land in the research
+       * phase of an `endTurn`, or mid-command through a windfall that finished
+       * it, and a handler that forgot would be a finish line nobody was told
+       * about.
+       */
+      opusOpened?: boolean;
     }
   | { ok: false; error: string };
 
@@ -3331,8 +3351,16 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
   // about. `endTurn` sets the field itself first, with the boon lines the phase
   // produced; the merge below leaves those alone.
   const marks = beadMarks(state);
+  // **Was the finish line open before this command?** The same before-and-after
+  // the bead marks take, one scalar over, and taken here for that field's reason
+  // exactly — the closing technology can land in a resolution's research phase
+  // or mid-command through a windfall, and `opusOpen` is derived, so a diff is
+  // the only honest way to say "this is the moment". See `CommandResult
+  // .opusOpened`.
+  const opusWasOpen = opusOpen(state);
   const result = runCommand(state, command);
   if (!result.ok) return result;
+  if (!opusWasOpen && opusOpen(state)) result.opusOpened = true;
   const already = new Set((result.beads ?? []).map((award) => `${award.playerId}:${award.id}`));
   for (const award of beadsSince(state, marks)) {
     if (already.has(`${award.playerId}:${award.id}`)) continue;

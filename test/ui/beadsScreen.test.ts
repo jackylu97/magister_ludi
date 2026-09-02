@@ -46,8 +46,10 @@ import {
   deckLine,
   faceDownLine,
   standingLine,
+  opusStandingLine,
 } from '../../src/ui/beadsScreen';
 import { describeBeadBoon, endeavourPrerequisiteMet } from '../../src/sim/beads';
+import { BEAD_GRANT_IDS } from '../../src/sim/beadData';
 import { stripRefs } from '../../src/sim/statecraft';
 import { victoryFace } from '../../src/ui/victoryModal';
 
@@ -423,5 +425,43 @@ describe('the deck keys', () => {
     // promised); this pin keeps it dead — the helper reads the key straight.
     expect(screen).not.toContain('age + 1');
     expect(screen.match(/eraWord\(age\)/g)).toHaveLength(1);
+  });
+});
+
+// --- the finish line --------------------------------------------------------
+
+describe('the Magnum Opus line', () => {
+  it('says which of the two states the world is in, in plain words', () => {
+    expect(opusStandingLine(false)).toContain('not yet open');
+    expect(opusStandingLine(true)).toContain('closes the age');
+    // Two sentences, not one with a negation stuck on the front: a player who
+    // has never seen the finish line and one racing for it need different lines.
+    expect(opusStandingLine(true)).not.toBe(opusStandingLine(false));
+  });
+
+  it('is drawn beside the rods, off the derived reading and nothing else', () => {
+    const screen = source('beadsScreen.ts');
+    expect(screen).toContain('opusStandingLine(opusOpen(state))');
+  });
+
+  it('is announced from the one commit funnel, off the reducer’s own diff', () => {
+    const controls = source('controls.ts');
+    // Beside `reportAgeOpened`, in the same funnel, for the same reason: a diff
+    // kept up in the interface is a second clock.
+    expect(controls).toContain('reportOpusOpened(result);');
+    expect(controls).toContain('result.opusOpened !== true');
+    // And never a before-and-after of the derived reading.
+    expect(controls).not.toContain('lastOpusOpen');
+  });
+
+  it('gives a reward card a face with the source on it', () => {
+    for (const id of BEAD_GRANT_IDS) {
+      const face = beadCardFace(id);
+      expect(face.kind).toBe('grant');
+      expect(face.eyebrow).toContain('reward');
+      expect(face.deed.length).toBeGreaterThan(0);
+      // A reward is never dealt, so it never carries an age in its eyebrow.
+      expect(face.eyebrow).not.toContain('Æra');
+    }
   });
 });

@@ -124,10 +124,15 @@ describe('the cathedral row', () => {
     // number here, so a retune of the band moves the claim with it.
     // Every row a town can *labour* toward: wonders are their own band, and the
     // Gilded Hall is a doctrine's counting-house nobody builds at all.
+    // **And the capstones are their own band too** (Entry LVIII): a
+    // `oncePerEmpire` row is a great work of the endgame, priced against the
+    // Opus rather than against the age's buildings, so a cathedral being cheaper
+    // than one is the design and not a drift.
     const ordinary = BUILDING_IDS.filter(
       (id) =>
         id !== CONSECRATOR &&
         buildingDef(id).wonder !== true &&
+        buildingDef(id).oncePerEmpire !== true &&
         buildingDef(id).purchaseOnly !== true,
     );
     for (const id of ordinary) expect(def.cost, id).toBeGreaterThan(buildingDef(id).cost);
@@ -139,13 +144,18 @@ describe('the cathedral row', () => {
     expect(buildingDef(CONSECRATOR).awaitsTech).toBeUndefined();
   });
 
-  it('is the only row that consecrates, and the only one that takes contributions', () => {
+  it('is the only row that consecrates, and one of the two that take contributions', () => {
     const consecrating = BUILDING_IDS.filter((id) => buildingDef(id).consecrated === true);
     const funded = BUILDING_IDS.filter(
       (id) => buildingDef(id).acceptsContributions === true,
     );
     expect(consecrating).toEqual([CONSECRATOR]);
-    expect(funded).toEqual([CONSECRATOR]);
+    // **The second one is the whole point of the first** (Entry LV, in its own
+    // words: "today the cathedral, tomorrow the Magnum Opus, which is the point
+    // — the Opus's pillar-funding is rehearsed one age early"). The list is
+    // pinned rather than merely counted so a third row is a decision somebody
+    // makes on purpose.
+    expect(funded).toEqual([CONSECRATOR, 'theMagnumOpus']);
   });
 });
 

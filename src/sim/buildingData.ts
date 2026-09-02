@@ -79,6 +79,11 @@ import buildingsJson from '../../data/buildings.json';
 // Type-only for `TechId`'s reason, one table over: `greatPeopleData.ts` imports
 // nothing from here at runtime and this imports only its `Family`.
 import type { Family } from './greatPeopleData';
+// Type-only, and it **must** stay that way: `beadData.ts` imports this module
+// for values (`buildingDef`, `isBuildingId`), so a value import back would close
+// a load-time cycle. A `import type` is erased entirely, which is why the edge
+// is safe in this one direction.
+import type { BeadGrantId } from './beadData';
 import type { TechId } from './techData';
 // Type-only for `TechId`'s reason, one table over: `statecraftData.ts` imports
 // `BuildingId` from here.
@@ -221,7 +226,33 @@ export type CompletionGrant =
   | { grant: 'unit'; unit: UnitTypeId | 'bestMelee' }
   | { grant: 'tech' }
   | { grant: 'doctrineDraft' }
-  | { grant: 'building'; building: BuildingId };
+  | { grant: 'building'; building: BuildingId }
+  /**
+   * A **glass bead**, through `awardBeadGrant` (`beads.ts`) — the fifth class
+   * of bead row and the reason it exists (Entry LVIII, the endgame). The Opus'
+   * golden bead and the three great works of the Observatory are all this one
+   * arm, and it passes the same test every other grant in this union passes: it
+   * reaches a seam that already exists and adds nothing beside it, so the bead
+   * is announced, recorded and diffed by exactly the machinery that announces,
+   * records and diffs every other bead in the game.
+   *
+   * Once per empire, which is the grant class's own rule: a row is refused by
+   * `beadGrantedTo` if this realm already holds it, and the report says
+   * `done: false` rather than paying twice.
+   */
+  | { grant: 'bead'; bead: BeadGrantId }
+  /**
+   * A **great-person draft**, through `drawGreatPersonOffer` — and optionally
+   * narrowed to one family, which is what The Turning Heavens' "a draft of
+   * scholars" needs.
+   *
+   * `doctrineDraft`'s sibling one roster over and it inherits that arm's word
+   * for word rule: an offer is a decision the player owes the game, so a seat
+   * already holding an unanswered name keeps the one it has and the report says
+   * the grant did not land. `family` absent is the ordinary draw over the whole
+   * pool.
+   */
+  | { grant: 'greatPerson'; family?: Family };
 
 export type BuildingId =
   // The fourteen rows the tree pass of 2026-08-30 added, in the order the ages
@@ -280,6 +311,15 @@ export type BuildingId =
   // The Holy Office's tenant (Entry LVIII, the faith rework): the tier-4 faith
   // building, and the one row that opens a bank (`faithPurchases`).
   | 'reliquary'
+  // **The endgame** (Entry LVIII): the Opus the world opens at the first
+  // Alchemy, and the three great works of the Observatory that pay a bead
+  // apiece. All four are `oncePerEmpire`; only the first `endsTheGame`. They are
+  // buildings and deliberately not projects — a project never leaves the queue
+  // (Entry XXVI), which is exactly the wrong shape for a one-time capstone.
+  | 'theMagnumOpus'
+  | 'chartTheStars'
+  | 'theTurningHeavens'
+  | 'theAlchemicalCodex'
   // --- the wonders ---------------------------------------------------------
   //
   // Twenty-seven, ratified from `docs/wonders.md` and homed on the tree as it
@@ -668,6 +708,51 @@ export interface BuildingDef {
    * part-paid out of a bank.
    */
   acceptsContributions?: boolean;
+  /**
+   * **One of these stands in an empire, ever** — the Magnum Opus and the three
+   * great works of the Observatory (Entry LVIII, the endgame).
+   *
+   * `BuildingDef.wonder`'s reading one scale in, and the two are deliberately
+   * different questions: a wonder is one per *world* and the register that
+   * settles it is `GameState.wonders`, because who raised it first is history
+   * anybody may need to read. This is one per *realm* and needs no register at
+   * all — the answer is on the board, in whether any city of this empire already
+   * holds the row, exactly as `buildError`'s "already building it somewhere
+   * else" clause is. Nothing is claimed, nothing is refunded and nothing moves
+   * on a capture: a realm that takes a town holding one simply holds one.
+   *
+   * Refused in `buildError` (and therefore in `purchaseError`, which asks it),
+   * in the two clauses a wonder is refused by and for their reasons.
+   */
+  oncePerEmpire?: boolean;
+  /**
+   * **The world opens this row, not the tree** — the Magnum Opus, which becomes
+   * buildable for *every* empire the moment the world's first seat completes
+   * Alchemy (Entry LVIII; `docs/tree-worksheet.md`'s ruling: "the finish line
+   * announces itself to all contestants at once").
+   *
+   * `unlockedByCard`'s sibling and read in the same place, `isUnlocked` — one
+   * clause of the one availability question rather than a second gate beside it
+   * — with `buildError` printing the sentence. The reading is **derived**
+   * (`worldTechReached` in `tech.ts`) and there is deliberately no flag on the
+   * state: a stored `opusOpen` would be a second answer to a question the
+   * technology lists already answer, and the two would part company the first
+   * time a save was loaded mid-age.
+   *
+   * It does not replace the ordinary gate; it is for a row no node names at all.
+   */
+  worldUnlockTech?: TechId;
+  /**
+   * **Finishing this ends the game** (Entry LVIII, the finish line).
+   *
+   * A marker, exactly as `consecrated` and `acceptsContributions` are, read in
+   * exactly one place — `realiseItem`, the routine that means "the city now has
+   * the thing" — so an Opus finished by hammers, by a contribution or bought
+   * outright closes the age by the same line. What it does is
+   * `closeTheGreatWork` (`beads.ts`): the age's reckonings are taken and the
+   * seat with the most beads wins, ties going to whoever raised it.
+   */
+  endsTheGame?: boolean;
   /**
    * **Units may be bought with faith in the town this stands in** — the
    * Reliquary's third clause (Entry LVIII, The Holy Office). Absent means a town

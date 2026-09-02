@@ -163,6 +163,11 @@ import { type BuildingId, isBuildingId } from './buildingData';
 // either way would turn a type cycle into a runtime one. The same bargain
 // `religionData.ts` and `beadData.ts` already keep with that file.
 import type { CardEffect } from './statecraftData';
+// Type-only, and it must stay that way for `buildingData.ts`'s reason exactly:
+// `beadData.ts` imports this module for nothing, but it imports `buildingData`
+// for values, and a value edge from here would put three tables in one load-time
+// cycle. `import type` is erased entirely.
+import type { BeadGrantId } from './beadData';
 import { type ProjectId, isProjectId } from './projectData';
 import { type UnitTypeId, isUnitTypeId } from './unitData';
 
@@ -377,6 +382,36 @@ export interface TechDef {
    * fourth time.
    */
   effects?: CardEffect[];
+  /**
+   * **Completing this hands the empire a glass bead** — Alchemy's, the closing
+   * node of the chart (Entry LVIII, the endgame; the user's ruling: *every*
+   * completer, not merely the first).
+   *
+   * A grant bead (`BeadGrantDef`), which is the class that exists for exactly
+   * this: it is once per empire rather than once in the world, so the last node
+   * pays whoever reaches it whenever they reach it. Read in one place —
+   * `settleResearch` (`tech.ts`), the one research-completion routine — so a
+   * node finished by a turn's beakers, by star tablets or by the Great Library
+   * pays the same bead by the same line.
+   */
+  paysBead?: BeadGrantId;
+  /**
+   * **Every new age this empire enters pays this many dice of the Magister** —
+   * The Long Count's, and nothing else's today.
+   *
+   * Read at the age-entry branch of `settleResearch`, beside the `ageEntered`
+   * occasion and for its reason: that comparison (`highestAge` before against
+   * `highestAge` after) is the one place in the game that knows an empire has
+   * *entered* an age, as opposed to standing in one. Deliberately **not
+   * retroactive** — the node pays for the ages you enter after keeping the
+   * count, never for the ones already behind you — which falls out of reading it
+   * at the moment rather than sweeping a list.
+   *
+   * A number on the row rather than a constant in the code (hard rule: data
+   * carries every tuned figure), and summed across every such node an empire
+   * holds, so a second one is a JSON field.
+   */
+  ageEntryDice?: number;
   /** One-line epigram for the tech screen. Flavour only. */
   flavor?: string;
   /**

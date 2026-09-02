@@ -1577,12 +1577,15 @@ export interface CardUnitStatEffect {
    *   · `'embarked'` — on water, which for a piece that is on the board at all
    *     means it embarked to get there (`isEmbarkableTerrain`, Entry XXVII).
    *     The Great Lighthouse's extra point of movement at sea.
+   *   · `'fortified'` — the piece has dug in (`Unit.fortifiedTurns`, presence is
+   *     the state). The Alchemical Codex's extra mending, and the only one of
+   *     the three that is a fact about the *posture* rather than the ground.
    *
-   * Both are asked of the hex the unit is on, in `cardUnitStat`, which is the
-   * only reading a per-turn allowance can have: a ship is quick because it set
-   * out from the water, and the allowance is refilled where it stands.
+   * All three are asked of the piece where it stands, in `cardUnitStat`, which
+   * is the only reading a per-turn allowance can have: a ship is quick because
+   * it set out from the water, and the allowance is refilled where it stands.
    */
-  where?: 'ownTerritory' | 'embarked';
+  where?: 'ownTerritory' | 'embarked' | 'fortified';
   /**
    * Narrows the stat to *the town the piece was trained in*. Absent means every
    * one. Cuius Regio's augurs, raised in the cities that keep his faith.

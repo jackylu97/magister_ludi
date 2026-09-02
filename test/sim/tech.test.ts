@@ -228,6 +228,13 @@ describe('tech data integrity', () => {
       // gated by the tree, and the day a node names it the marker is deleted
       // and this clause stops skipping it.
       if (buildingDef(id).awaitsTech === true) continue;
+      // **And the fourth, the finish line** (Entry LVIII): a row the *world*
+      // opens (`BuildingDef.worldUnlockTech` — the Magnum Opus) hangs on no
+      // node of anybody's tree, because what opens it is any empire anywhere
+      // reaching the closing technology. `isUnlocked` asks the world for it
+      // instead of asking this map, exactly as it asks the cards for the
+      // Gilded Hall.
+      if (buildingDef(id).worldUnlockTech !== undefined) continue;
       expect(BUILDING_UNLOCK_TECH.has(id), id).toBe(true);
     }
   });
@@ -1042,7 +1049,10 @@ describe('research in the log', () => {
     // prophet or an augur in it.
     // v44: the age-1 restoration — Calendar is a node again and Æra I's old
     // prerequisites are back, so a v43 log's research plan is not this tree's.
-    expect(SCHEMA_VERSION).toBe(44);
+    // v45: the endgame of Entry LVIII — the Magnum Opus, the three bead-paying
+    // great works, the Long Count's die and Alchemy's closing bead. A v44 log
+    // reaches a winner it never reached, and spends rolls it never spent.
+    expect(SCHEMA_VERSION).toBe(45);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

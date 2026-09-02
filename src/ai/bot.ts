@@ -51,7 +51,7 @@
 
 import aiJson from '../../data/ai.json';
 
-import { type BuildingId, isBuildingId } from '../sim/buildingData';
+import { BUILDING_IDS, type BuildingId, buildingDef, isBuildingId } from '../sim/buildingData';
 import {
   type QueueItem,
   cityById,
@@ -60,6 +60,7 @@ import {
 } from '../sim/state';
 import type { City, GameState, Player, Unit } from '../sim/state';
 import {
+  cityYields,
   explainTileYield,
   foldTileYield,
   foundingError,
@@ -663,6 +664,13 @@ function cityCommand(state: GameState, player: Player, cityId: number): Command 
 }
 
 function chooseProduction(state: GameState, player: Player, city: City): QueueItem | null {
+  // **The great work, before anything else** (design ledger Entry LVIII). Once
+  // the world has opened the Opus there is nothing else worth a thousand
+  // hammers: finishing it closes the age and settles the race, and the
+  // contribution arm above will pour the treasury into it every turn afterwards.
+  const opus = opusBuild(state, player, city);
+  if (opus !== null) return opus;
+
   const settler = settlerType(state, player, city);
   if (settler !== null) return { kind: 'unit', id: settler };
 
@@ -683,6 +691,41 @@ function chooseProduction(state: GameState, player: Player, city: City): QueueIt
     if (buildError(state, player.id, 'project', id, city) === null) {
       return { kind: 'project', id };
     }
+  }
+  return null;
+}
+
+/**
+ * The Magnum Opus, if this is the town to raise it in — or `null`.
+ *
+ * One small arm, and every question in it is somebody else's: **which row** is
+ * whichever carries `BuildingDef.endsTheGame` (a marker, so this file never
+ * learns a building's name, exactly as it never names a unit), **whether it may
+ * be queued** is `canQueueBuilding`'s — which is `buildError`, which is the
+ * reducer's — and **once per empire** is that gate's too, so a realm already
+ * raising one is refused here without a clause.
+ *
+ * The only opinion is *where*: the empire's busiest town, measured by the
+ * production its citizens actually make (`cityYields`), because a twelve-hundred
+ * hammer row started in a hamlet is a row that never finishes. Ties go to
+ * founding order, which is `state.cities` order and therefore a fact the replay
+ * reproduces.
+ */
+function opusBuild(state: GameState, player: Player, city: City): QueueItem | null {
+  let best: City | null = null;
+  let most = -1;
+  for (const town of state.cities) {
+    if (town.ownerId !== player.id) continue;
+    const made = cityYields(state, town).production;
+    if (made > most) {
+      most = made;
+      best = town;
+    }
+  }
+  if (best === null || best.id !== city.id) return null;
+  for (const id of BUILDING_IDS) {
+    if (buildingDef(id).endsTheGame !== true) continue;
+    if (canQueueBuilding(state, player, city, id)) return { kind: 'building', id };
   }
   return null;
 }

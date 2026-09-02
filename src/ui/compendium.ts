@@ -135,6 +135,7 @@ import {
   BEAD_DECK_AGES,
   BEAD_ENDEAVOUR_IDS,
   BEAD_FEAT_IDS,
+  BEAD_GRANT_IDS,
   BEAD_QUEST_IDS,
   BEAD_RECKONING_IDS,
   BEAD_RULES,
@@ -736,6 +737,30 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
       note: true,
     });
   }
+  // The two endgame markers, in a first-time player's words. Read off the row
+  // rather than written into each note, so a fifth capstone says the same thing
+  // without anybody remembering to type it again.
+  if (def.oncePerEmpire === true) {
+    clauses.push({ text: 'You may have only one of these, in one of your cities.', note: true });
+  }
+  if (def.worldUnlockTech !== undefined) {
+    clauses.push({
+      text: `Nobody can begin one until some empire in the world has researched ${techDef(def.worldUnlockTech).name}. After that, everybody can.`,
+      note: true,
+    });
+  }
+  if (def.acceptsContributions === true) {
+    clauses.push({
+      text: 'While this is at the front of a city’s build list, you may pour gold or faith into it to hurry it along.',
+      note: true,
+    });
+  }
+  if (def.endsTheGame === true) {
+    clauses.push({
+      text: 'Finishing it ends the game: the last measures of the age are taken, and whoever holds the most beads wins — a tie going to whoever raised it.',
+      note: true,
+    });
+  }
   return {
     id: compendiumId(wonder ? 'wonder' : 'building', id),
     section: wonder ? 'wonder' : 'building',
@@ -1258,13 +1283,17 @@ function beadRulesEntry(): CompendiumEntry {
   };
 }
 
-/** One bead card — a feat, a race project, a quest or a reckoning. */
+/** One bead card — a feat, a race project, a quest, a reckoning or a reward. */
 function beadEntry(id: BeadCardId): CompendiumEntry {
   const { kind, def } = anyBeadDef(id);
   const age = 'age' in def && typeof def.age === 'number' ? def.age : null;
   const boon = 'boon' in def ? def.boon : undefined;
   const family = BEAD_FAMILY_MARK[def.family];
   const clauses: CompendiumClause[] = [{ text: def.text }];
+  // A reward has no deed, so its own sentence leads: what hands it over.
+  if ('source' in def && typeof def.source === 'string') {
+    clauses.unshift({ text: def.source });
+  }
   // What it pays, in the words the Beads screen prints; then the halves of the
   // ratified card this build has not made, and the reason a row is unreachable.
   // Spread rather than rebuilt: a `CardClause` *is* a `CompendiumClause` minus
@@ -1305,6 +1334,7 @@ const BEAD_KIND_WORD: Record<string, string> = {
   endeavour: 'a race project',
   quest: 'a deed',
   reckoning: 'the age’s snapshot',
+  grant: 'a reward, once per empire',
 };
 
 function beadEntries(): CompendiumEntry[] {
@@ -1314,6 +1344,10 @@ function beadEntries(): CompendiumEntry[] {
     ...BEAD_ENDEAVOUR_IDS.map(beadEntry),
     ...BEAD_QUEST_IDS.map(beadEntry),
     ...BEAD_RECKONING_IDS.map(beadEntry),
+    // The fifth class (Entry LVIII): the beads a thing hands over. Last, because
+    // they are never dealt and a reader looking for the table's cards wants the
+    // four that are.
+    ...BEAD_GRANT_IDS.map(beadEntry),
   ];
 }
 

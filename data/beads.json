@@ -117,6 +117,38 @@
       "dormant": "The Engine has no row in the tree yet."
     }
   },
+  "grants": {
+    "theGoldenBead": {
+      "name": "The Golden Bead",
+      "family": "culture",
+      "source": "Raising the Magnum Opus.",
+      "text": "The last bead on the rod. Only the empire that finishes the Magnum Opus mints it, and finishing the Opus closes the age."
+    },
+    "theClosingWork": {
+      "name": "The Closing Work",
+      "family": "science",
+      "source": "Completing Alchemy, the last technology of the age.",
+      "text": "Every empire that reaches the end of the chart is paid for the journey."
+    },
+    "theStarChart": {
+      "name": "The Star Chart",
+      "family": "science",
+      "source": "Raising Chart the Stars.",
+      "text": "The sky written down, and every ship of the realm sailing by it."
+    },
+    "theTurningHeavens": {
+      "name": "The Turning Heavens",
+      "family": "science",
+      "source": "Raising The Turning Heavens.",
+      "text": "The earth is not the centre of anything, and the scholars who proved it are famous for it."
+    },
+    "theCodex": {
+      "name": "The Codex",
+      "family": "science",
+      "source": "Raising The Alchemical Codex.",
+      "text": "Everything the workshops learned, bound in one book and issued to the army."
+    }
+  },
   "endeavours": {
     "censusOfTheWorld": {
       "name": "The Census of the World",

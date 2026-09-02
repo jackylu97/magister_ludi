@@ -101,7 +101,13 @@ import { type CardId, governmentDef } from './statecraftData';
 import { isBeadEndeavourId } from './beadData';
 import { CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religionData';
 import { nextInt } from './rng';
-import { claimEndeavour } from './beads';
+import { anyBeadDef } from './beadData';
+// The great-person draft a completion grant opens. This module and
+// `greatPeople.ts` already sit on one runtime cycle (`cities` → `beads` →
+// `greatPeople` → `cities`), so the direct edge adds no new one; the call is
+// inside a function body, which is what keeps a cycle harmless.
+import { drawGreatPersonOffer } from './greatPeople';
+import { awardBeadGrant, claimEndeavour, closeTheGreatWork } from './beads';
 import { settleRenownWindfall } from './renown';
 import { type CitizenWeights, RULES } from './rulesData';
 import {
@@ -4323,6 +4329,17 @@ export function realiseItem(
     const consecration = consecrateBuilding(state, city, item.id);
     const grants = payCompletionGrants(state, city, item.id);
     payCompletionRiders(state, city, 'building');
+    // **The finish line**, last and after the grants (design ledger Entry
+    // LVIII). The order is the rule: the row's golden bead is one of those
+    // grants, so a close that ran first would settle the race on a tally one
+    // bead short of the truth. Asked of the row's own marker
+    // (`BuildingDef.endsTheGame`), so nothing here names the Opus — and here, in
+    // the one routine that means "the city now has the thing", so an Opus
+    // hammered out, hurried by contributions or bought outright all close the
+    // age by this line. The reckonings it takes ride out on the ordinary bead
+    // diff and `state.winnerId` carries the rest, which is why it needs no field
+    // on `RealisedItem`.
+    if (buildingDef(item.id).endsTheGame === true) closeTheGreatWork(state, city);
     const realised: RealisedItem = {};
     if (wonder) realised.wonder = wonder;
     if (consecration) realised.consecration = consecration;
@@ -4532,6 +4549,39 @@ function payCompletionGrants(
       }
       realiseItem(state, city, { kind: 'building', id: grant.building });
       reports.push({ grant: 'building', name: buildingDef(grant.building).name, done: true });
+      continue;
+    }
+    if (grant.grant === 'bead') {
+      // **Through `awardBeadGrant`**, the beads system's own seam — so the bead
+      // is recorded, announced and diffed by exactly the machinery every other
+      // bead in the game goes through, and this routine learns nothing about
+      // rods or thresholds. A realm that already holds the row is refused there
+      // (a grant is once per empire) and answers `null`, which is a `done:
+      // false` here rather than a second bead.
+      const award = awardBeadGrant(state, player.id, grant.bead);
+      reports.push({
+        grant: 'bead',
+        name: award?.name ?? anyBeadDef(grant.bead).def.name,
+        done: award !== null,
+      });
+      continue;
+    }
+    if (grant.grant === 'greatPerson') {
+      // `doctrineDraft`'s arm one roster over, word for word: an offer is a
+      // decision the seat owes the game, so one already waiting is kept and this
+      // grant simply does not land. `family` narrows the draw and is otherwise
+      // the ordinary one.
+      if (player.greatPersonOffer !== undefined) {
+        reports.push({ grant: 'greatPerson', name: 'a great person', done: false });
+        continue;
+      }
+      const offer = drawGreatPersonOffer(state, player, grant.family);
+      if (offer.options.length === 0) {
+        reports.push({ grant: 'greatPerson', name: 'a great person', done: false });
+        continue;
+      }
+      player.greatPersonOffer = offer;
+      reports.push({ grant: 'greatPerson', name: 'a great person', done: true });
       continue;
     }
     // A Doctrine draft.

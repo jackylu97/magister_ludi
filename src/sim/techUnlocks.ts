@@ -41,6 +41,7 @@ import {
   chopYield,
   improvementDef,
 } from './improvementData';
+import { isBeadGrantId } from './beadData';
 import { type ProjectId, projectDef } from './projectData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from './resourceData';
 import type { CardEffect, TileCondition } from './statecraftData';
@@ -332,6 +333,12 @@ export function techGifts(id: TechId): TechGift[] {
  *     `resourceData` throw at load for their own dangling ids, and
  *     `buildingData` deliberately cannot: it may only import `TechId` as a type
  *     (see the note on that import), so the check lands here.
+ *   · **Every bead a row names is a real grant row.** The two tables that name
+ *     one — a node's `paysBead` and a building's `{ grant: 'bead' }` — both hold
+ *     `BeadGrantId` as a *type only*, for that same import reason one table
+ *     over, so neither can check it. This module already imports both and is
+ *     imported by neither, which is exactly what makes it the place a dangling
+ *     id is caught (Entry LVIII, the endgame).
  */
 export function unlockDataProblems(): string[] {
   const problems: string[] = [];
@@ -347,6 +354,24 @@ export function unlockDataProblems(): string[] {
       problems.push(
         `building "${building}" is renewed by "${String(upgrade.tech)}", which is not a tech`,
       );
+    }
+    for (const grant of buildingDef(building).onComplete ?? []) {
+      if (grant.grant !== 'bead' || isBeadGrantId(grant.bead)) continue;
+      problems.push(
+        `building "${building}" pays bead "${String(grant.bead)}", which is not a grant row`,
+      );
+    }
+    const world = buildingDef(building).worldUnlockTech;
+    if (world !== undefined && !isTechId(world)) {
+      problems.push(
+        `building "${building}" is opened by the world reaching "${String(world)}", which is not a tech`,
+      );
+    }
+  }
+  for (const id of TECH_IDS) {
+    const bead = techDef(id).paysBead;
+    if (bead !== undefined && !isBeadGrantId(bead)) {
+      problems.push(`tech "${id}" pays bead "${String(bead)}", which is not a grant row`);
     }
   }
   return problems;

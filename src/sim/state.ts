@@ -607,8 +607,37 @@ import {
  *
  *     The migration note: nothing to migrate — no field changed shape. What a
  *     v43 save cannot carry across is the tree its log was aimed at.
+ * 45: **The endgame of Entry LVIII** — the Magnum Opus, the bead-paying great
+ *     works, the Long Count's die and Alchemy's closing bead. A v44 log is
+ *     refused because the *game can now end a way it could not*, and because
+ *     four rows and two payouts move what a replay produces:
+ *       · **The Magnum Opus** is a row the world opens — buildable by every
+ *         empire the moment any seat completes Alchemy — and finishing it closes
+ *         the age: the final reckonings are taken across every seat at once and
+ *         the empire holding the most beads wins, ties going to whoever raised
+ *         it. A v44 log played out here reaches a `winnerId` on a turn it never
+ *         reached one before.
+ *       · **Three great works** (Chart the Stars, The Turning Heavens, The
+ *         Alchemical Codex) join the build lists off The Long Count, Education
+ *         and Alchemy, so the rows a city may queue at those nodes differ; each
+ *         pays a bead, and The Turning Heavens deals a scholars-only
+ *         great-person offer, which spends `state.rng` where a v44 game spent
+ *         nothing.
+ *       · **Alchemy pays a glass bead** to every empire that completes it, and
+ *         **The Long Count pays a die** for every age its holder enters
+ *         afterwards — two new payouts inside `settleResearch`, so a v44 log's
+ *         rods and dice do not match.
+ *       · **A fifth class of bead row** (`grants`) is in the catalogue. It is
+ *         never dealt and never shuffled, so no deck or hand moves; what changes
+ *         is that `Player.beads` may now hold an id a v44 build has never heard
+ *         of.
+ *
+ *     The migration note: nothing to migrate — no field changed shape, and a
+ *     game with none of the four rows built serialises exactly as a v44 one
+ *     did. What a v44 save cannot carry across is a finish line its log was
+ *     never played against.
  */
-export const SCHEMA_VERSION = 44;
+export const SCHEMA_VERSION = 45;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
