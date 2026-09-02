@@ -516,6 +516,22 @@ describe('the explorer lens', () => {
     layer.dispose();
   });
 
+  it('never rings a barrow the seat has no word for, and rings it once the word arrives', () => {
+    // The user's bug of 2026-09-02: the site layer gated the marker on the
+    // surveyor's technology and this lens did not, so the gold ring sent
+    // scouts to hexes where walking over did nothing. One gate, both surfaces.
+    const state = flatState();
+    at(state, 2, 2).discovery = 'antiquity';
+    const blind = build(state, grid(state, VISIBLE));
+    expect(countInstances(blind.group)).toBe(0);
+    blind.dispose();
+
+    state.players[0]!.techsResearched.push('prospecting');
+    const learned = build(state, grid(state, VISIBLE));
+    expect(countInstances(learned.group)).toBe(PER_MARK);
+    learned.dispose();
+  });
+
   it('draws nothing on a board with nothing left to find', () => {
     const state = flatState();
     const layer = build(state, grid(state, VISIBLE));

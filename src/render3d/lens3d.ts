@@ -134,6 +134,7 @@ import { playerColor } from './cities3d';
 import type { BoardGeometry } from './board3d';
 import { type FogLevels, knowsCell, seesCell } from './fog3d';
 import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instances';
+import { seatSeesKind } from './sites3d';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, mixColor } from './lookData';
 import type { MaterialLibrary } from './toon';
@@ -257,6 +258,7 @@ export class LensLayer {
         collector,
         geometry,
         levels,
+        lens.playerId,
       );
     }
     if (lens.resources && icons) {
@@ -799,6 +801,7 @@ export class LensLayer {
     collector: InstanceCollector,
     geometry: BoardGeometry,
     levels: FogLevels,
+    viewerId: number | null,
   ): void {
     const identity = new Quaternion();
     const unit = new Vector3(1, 1, 1);
@@ -822,6 +825,10 @@ export class LensLayer {
 
     for (const tile of tiles) {
       if (tile.discovery === undefined) continue;
+      // The site layer's gate, asked here too (the trap's own words: this lens
+      // must never ring a hex the board is not drawing the thing on) — a
+      // barrow the seat has no word for is not a place to send anybody.
+      if (!seatSeesKind(state, viewerId, tile.discovery)) continue;
       mark(tile, LENS.discoveryColor, LENS.discoveryOpacity, LENS.discoveryRingOpacity);
     }
 

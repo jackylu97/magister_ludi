@@ -150,7 +150,7 @@ const SITE_INDEX: Record<SiteKind, number> = {
  * baked once and hands to every seat (`reveal3d.ts`); this layer is rebuilt per
  * seat off the fog anyway, so the cheapest correct thing is to not draw it.
  */
-function seatSeesKind(state: GameState, seat: number | null, kind: DiscoveryKind): boolean {
+export function seatSeesKind(state: GameState, seat: number | null, kind: DiscoveryKind): boolean {
   const tech = discoveryKindTech(kind);
   if (tech === null) return true;
   if (seat === null) return true;

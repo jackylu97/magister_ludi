@@ -386,3 +386,23 @@ describe('determinism', () => {
     expect(JSON.stringify(replay(game.config, game.log))).toBe(JSON.stringify(game.state));
   });
 });
+
+describe('the gated layers and the explorer', () => {
+  it('never targets a barrow its owner has no word for, and targets it once the word arrives', () => {
+    // The map's second layer: a site the claim would refuse is a site the walk
+    // must not promise (the stuck-scout bug of 2026-09-02) — the same kind gate
+    // the claim and the marker read.
+    const state = flatState();
+    const scout = createUnit(state, 0, 'scout', 5, 5);
+    const start = getTileAt(state.map, 5, 5)!;
+    const frontier = exploreTarget(state, scout);
+    const ring = mapRange(state.map, tileHex(start), 1)
+      .filter((tile) => !(tile.col === 5 && tile.row === 5))
+      .sort((a, b) => tileIndex(state.map, a.col, a.row) - tileIndex(state.map, b.col, b.row));
+    const barrow = ring[ring.length - 1]!;
+    barrow.discovery = 'antiquity' as never;
+    expect(exploreTarget(state, scout)).toEqual(frontier);
+    state.players[0]!.techsResearched.push('prospecting' as never);
+    expect(exploreTarget(state, scout)).toEqual({ col: barrow.col, row: barrow.row });
+  });
+});

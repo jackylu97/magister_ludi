@@ -31,6 +31,8 @@ import {
 } from './pathfind';
 import { RULES } from './rulesData';
 import type { GameState, Unit } from './state';
+import { discoveryKindTech } from './discoveryData';
+import { hasTech } from './tech';
 import { isCombatant, isExplorer, unitDef } from './unitData';
 import { isExploredBy, sightOf } from './visibility';
 
@@ -121,7 +123,16 @@ function revealsAnything(state: GameState, unit: Unit, tile: Tile): boolean {
  * not — a seat cannot aim at ground it has never seen.
  */
 function isKnownDiscovery(state: GameState, ownerId: number, tile: Tile): boolean {
-  return tile.discovery !== undefined && isExploredBy(state, ownerId, tile.col, tile.row);
+  if (tile.discovery === undefined || !isExploredBy(state, ownerId, tile.col, tile.row)) {
+    return false;
+  }
+  // **And the seat could claim it.** The map's second layer (barrows, gated on
+  // the surveyor's technology) made this clause necessary: without it a scout
+  // beelines onto a site its owner has no word for, claims nothing, and then
+  // re-targets the same hex forever — a piece standing still on a promise the
+  // walk cannot keep. The same lookup the claim and the marker use.
+  const gate = discoveryKindTech(tile.discovery);
+  return gate === null || hasTech(state, ownerId, gate);
 }
 
 /**
