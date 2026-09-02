@@ -112,7 +112,7 @@ import {
   techAgeBands,
   techColumnCount,
   techDef,
-  techDepth,
+  techColumn,
   techRowCount,
 } from '../sim/techData';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
@@ -1428,7 +1428,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
 
     for (const id of TECH_IDS) {
       const card = renderNode(id);
-      card.style.gridColumn = String(techDepth(id) + 1);
+      card.style.gridColumn = String(techColumn(id) + 1);
       card.style.gridRow = String(techDef(id).row + 2); // past the age strip
       built.append(card);
     }
@@ -1651,9 +1651,9 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     for (const id of TECH_IDS) {
       const card = cards.get(id);
       if (!card || card.disabled) continue;
-      if (techDepth(id) >= bestColumn) continue;
+      if (techColumn(id) >= bestColumn) continue;
       best = card;
-      bestColumn = techDepth(id);
+      bestColumn = techColumn(id);
     }
     return best;
   }
@@ -1673,7 +1673,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     for (const id of TECH_IDS) {
       const card = cards.get(id);
       if (!card || card.disabled) continue;
-      const distance = Math.abs(techDepth(id) - wanted);
+      const distance = Math.abs(techColumn(id) - wanted);
       if (distance >= bestDistance) continue;
       best = card;
       bestDistance = distance;

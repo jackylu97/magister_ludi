@@ -45,6 +45,7 @@ import {
   UNIT_UNLOCK_TECH,
   isTechId,
   techAgeBands,
+  techColumn,
   techColumnCount,
   techDataProblems,
   techDef,
@@ -445,7 +446,9 @@ describe('star chart layout', () => {
     // seven, and two techs in one column may not share a lane), because eleven
     // lanes put half of Æra II under the bottom edge of an 827px window. Long,
     // not tall — see `TECH_LANE_LIMIT` and `test/ui/techChart.test.ts`.
-    expect(techColumnCount()).toBe(11);
+    // Re-based 2026-09-02: the ages own disjoint column runs (4+4+3+3), so the
+    // banners are exact — the overlap once filed half of Æra II under Æra I.
+    expect(techColumnCount()).toBe(14);
     expect(techRowCount()).toBe(8);
   });
 
@@ -455,13 +458,13 @@ describe('star chart layout', () => {
       const { row } = techDef(id);
       expect(Number.isInteger(row), id).toBe(true);
       expect(row, id).toBeGreaterThanOrEqual(0);
-      const cell = `${techDepth(id)},${row}`;
+      const cell = `${techColumn(id)},${row}`;
       expect(cells.has(cell), `${id} at ${cell}`).toBe(false);
       cells.add(cell);
     }
     // No column and no lane is left empty: an empty one is a hole in the chart
     // that the ages would then have to paint around.
-    const columns = new Set(TECH_IDS.map((id) => techDepth(id)));
+    const columns = new Set(TECH_IDS.map((id) => techColumn(id)));
     const rows = new Set(TECH_IDS.map((id) => techDef(id).row));
     expect(columns.size).toBe(techColumnCount());
     expect(rows.size).toBe(techRowCount());

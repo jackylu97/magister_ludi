@@ -586,9 +586,46 @@ export function techDepth(id: TechId): number {
   return depths.get(id) ?? 0;
 }
 
+/**
+ * The column a node is *drawn* in: its dependency depth, re-based so the ages
+ * occupy disjoint column ranges (each age's first column follows the previous
+ * age's last). `techDepth` alone let the ages overlap — Æra II ran depths 2–5
+ * while Æra I ended at 3 — and `techAgeBands`, which labels whole columns,
+ * then filed half an age under its neighbours' banners (the user counted five
+ * technologies in Æra II on a chart that holds ten). Banding keeps every edge
+ * pointing strictly rightward across an age seam even when the raw depths tie,
+ * because a child age's first column always follows its parent age's last.
+ */
+export function techColumn(id: TechId): number {
+  ageColumnStarts ??= computeAgeColumnStarts();
+  const def = techDef(id);
+  return ageColumnStarts.starts.get(def.age)! + (techDepth(id) - ageColumnStarts.minDepth.get(def.age)!);
+}
+
+let ageColumnStarts: { starts: Map<TechAge, number>; minDepth: Map<TechAge, number> } | null = null;
+
+function computeAgeColumnStarts(): { starts: Map<TechAge, number>; minDepth: Map<TechAge, number> } {
+  const minDepth = new Map<TechAge, number>();
+  const maxDepth = new Map<TechAge, number>();
+  for (const id of TECH_IDS) {
+    const { age } = techDef(id);
+    const depth = techDepth(id);
+    minDepth.set(age, Math.min(minDepth.get(age) ?? Infinity, depth));
+    maxDepth.set(age, Math.max(maxDepth.get(age) ?? -Infinity, depth));
+  }
+  const starts = new Map<TechAge, number>();
+  let next = 0;
+  for (const age of TECH_AGES) {
+    if (!minDepth.has(age)) continue;
+    starts.set(age, next);
+    next += maxDepth.get(age)! - minDepth.get(age)! + 1;
+  }
+  return { starts, minDepth };
+}
+
 /** How many columns the chart is wide. */
 export function techColumnCount(): number {
-  return TECH_IDS.reduce((widest, id) => Math.max(widest, techDepth(id) + 1), 0);
+  return TECH_IDS.reduce((widest, id) => Math.max(widest, techColumn(id) + 1), 0);
 }
 
 /** How many lanes the chart is deep, from the authored rows. */
@@ -824,31 +861,21 @@ export interface TechAgeBand {
  * what lets the chart paint them as background regions.
  */
 export function techAgeBands(): TechAgeBand[] {
-  const columns = techColumnCount();
+  // Exact by construction since the column banding: every age owns a disjoint
+  // run of columns, so a band is simply the min and max column its techs hold —
+  // no more majority vote over a shared column, which is what once filed half
+  // of Æra II under its neighbours' banners.
   const bands: TechAgeBand[] = [];
-  let previous: TechAge = 1;
-
-  for (let column = 0; column < columns; column++) {
-    const tally: Record<TechAge, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  for (const age of TECH_AGES) {
+    let from = Infinity;
+    let to = -Infinity;
     for (const id of TECH_IDS) {
-      if (techDepth(id) !== column) continue;
-      const { age } = techDef(id);
-      if (TECH_AGES.includes(age)) tally[age]++;
+      if (techDef(id).age !== age) continue;
+      const column = techColumn(id);
+      from = Math.min(from, column);
+      to = Math.max(to, column);
     }
-    // Ascending order plus a strict `>` is the tie-break: an even split stays
-    // with the earlier age. An empty column (only possible in a half-written
-    // file) inherits the column before it.
-    let best: TechAge | null = null;
-    for (const candidate of TECH_AGES) {
-      if (tally[candidate] === 0) continue;
-      if (best === null || tally[candidate] > tally[best]) best = candidate;
-    }
-    const age: TechAge = best === null || best < previous ? previous : best;
-    previous = age;
-
-    const last = bands[bands.length - 1];
-    if (last && last.age === age) last.to = column;
-    else bands.push({ age, from: column, to: column });
+    if (from <= to) bands.push({ age, from, to });
   }
   return bands;
 }
