@@ -4432,4 +4432,11 @@ has minted coin for 30 turns" nudge may be worth having.
 Next rung when wanted: the overnight optimizer (black-box search over the vector against
 arena fitness) — the surface is ready.
 
+**Playtest datum (user, 2026-09-02, t69 of a live run)**: 255🌾 · 72⚙ · 1,400 treasury at
+**121 gold/turn** · 187🔬 · 147🎵 · 27🕯 · 15 renown/turn · 26 happiness · 4 authority ·
+7 cities. Against the tier-1 bots' t83 (~break-even gold, ~20 techs), the human ceiling
+runs roughly 5–10× on the compounding yields — the gap is the case for the optimizer and
+tier 2, and simultaneously fresh evidence for the Entry LIV supply questions (gold and
+science especially). Recorded for the tuning pass; no numbers moved on it yet.
+
 ---
