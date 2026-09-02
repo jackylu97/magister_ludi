@@ -117,7 +117,7 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
     'Each entry below gives exactly what a belief does. The words these cards use are explained on the Orders shelf.',
   ]),
   rite: lead('rite', 'About rites', '☩', [
-    'A rite is a temporary blessing performed by an augur. Unlike adding a belief, a rite spends only one of the augur’s charges, so a single augur can perform several before it is used up.',
+    'A rite is a temporary blessing performed by an augur. An augur is one deed: it performs a single rite, or it names a belief for your pantheon, and either uses it up.',
     'Most rites are performed on one of your cities and last a stated number of turns; one is performed on a unit instead. The effect starts at once, and performing a rite uses up the augur’s movement for that turn.',
     'Each entry below gives what a rite is performed on, how long it lasts, what it does, and the technology that teaches it.',
   ]),

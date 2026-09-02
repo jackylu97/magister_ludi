@@ -332,6 +332,36 @@
         "perTurn": 1
       }
     },
+    "reliquary": {
+      "name": "The Reliquary",
+      "category": "faith",
+      "cost": 260,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 0,
+      "sciencePerPop": 0,
+      "happiness": 4,
+      "faithPurchases": true,
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "faith",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "reliquary"
+          }
+        }
+      ],
+      "note": "Units may be bought with faith in the city that holds it, at the same rate gold buys them elsewhere.",
+      "renown": {
+        "family": "artist",
+        "perTurn": 1
+      }
+    },
     "mint": {
       "name": "Mint",
       "category": "gold",

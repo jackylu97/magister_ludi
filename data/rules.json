@@ -273,6 +273,10 @@
     "templeForeignPercent": 75,
     "bombRange": 10,
     "bombLump": 60,
+    "purgeRange": 5,
+    "purgeLump": 60,
+    "inquisitorAuraStrength": 2,
+    "inquisitorAuraRange": 1,
     "maxReligions": {
       "numerator": 2,
       "denominator": 3

@@ -262,7 +262,8 @@ import {
  *     tide of belief. One register (`GameState.religions`), two optional fields
  *     on a city (`followers`, `pressureBank`), one on a player
  *     (`prophetsPurchased`), four commands (`plantHolySite`, `enhanceReligion`,
- *     `proclaim`, `redraftBeliefs`, plus `renameReligion`) and one phase
+ *     `proclaim`, `redraftBeliefs`, plus `renameReligion` — `enhanceReligion`
+ *     is gone as of v42, folded into `gainBelief`) and one phase
  *     (`spreadReligion`). A v25 log replayed here is a *different game* rather
  *     than an older one for a reason beyond the fields: the temple moved off
  *     Philosophy onto **The High Temple**, a technology that did not exist, so
@@ -530,8 +531,36 @@ import {
  *     The migration note: nothing to migrate, and nothing that *could* be. Every
  *     field a v40 save carries is still a field this version reads; what is gone
  *     is the tree and the map the log was played against.
+ * 42: **The faith rework** (2026-09-02, ledger Entry LVIII, phase 2 — the
+ *     one-charge agents and The Holy Office's tenants). Two commands change what
+ *     they mean, one is deleted, two are new, and a religious agent is worth a
+ *     third of what it was:
+ *       · **A prophet has one charge** and does exactly one deed — found,
+ *         proclaim, gain a belief, or give a pool back. A v41 log's prophet
+ *         planted a site and then went on to proclaim; here the same log's
+ *         second command names a piece that is no longer on the board.
+ *       · **An augur has one charge**: consecrate a god, or perform one rite.
+ *         Three rites out of one augur was the v41 reading and is now three
+ *         augurs' worth of faith.
+ *       · **`enhanceReligion` is gone.** Enhancing is the far end of one belief
+ *         ladder now (`gainBelief`, `nextBeliefPool`), so a v41 log carrying that
+ *         command names a verb this build has never heard of.
+ *       · **`plantHolySite` founds and only founds.** A prophet may no longer
+ *         raise a second site, so a v41 log's later plantings are refusals here.
+ *       · **Founding drafts twice** — one belief, then a second dealt the moment
+ *         the first is answered (`PlayerPantheon.owed`) — and the follower house
+ *         holds three where it held two, so the draws off `state.rng` differ in
+ *         number and in order from the first founding onward.
+ *       · **`purge` is new**, and with it the Inquisitor, the Reliquary and the
+ *         faith bank a town holding one opens for ordinary units.
+ *
+ *     The migration note: `PlayerPantheon.owed` absent means an empire owed
+ *     nothing, which is right for every v41 save. It is refused anyway, because
+ *     the board a v41 log produces here is not the board it produced there — the
+ *     agents it spent are worth less and the drafts it opened are dealt
+ *     differently.
  */
-export const SCHEMA_VERSION = 41;
+export const SCHEMA_VERSION = 42;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1917,6 +1946,35 @@ export function convertCitizen(
   }
   followers[to] = (followers[to] ?? 0) + 1;
   city.followers = followers;
+  return true;
+}
+
+/**
+ * Takes one citizen **off one named religion** and leaves them following
+ * nothing. Answers whether anybody actually stopped.
+ *
+ * `convertCitizen`'s inverse, and the Purge's half of it (`purgePressure`,
+ * `religion.ts`, ledger Entry LVIII): an inquisitor unmakes belief rather than
+ * preaching, so the citizen goes to *nobody* and no second faith is chosen here.
+ * That is what keeps the Purge and the Preaching two verbs instead of one verb
+ * with a sign.
+ *
+ * It is here rather than in `religion.ts` because `City.followers` has exactly
+ * three writers and they live together — this, `convertCitizen` and
+ * `shrinkFollowers` — which is the same discipline `captureUnit` keeps for
+ * `Unit.ownerId`. The key is deleted when a congregation empties and the map
+ * itself when the last key goes, so a town nobody follows serialises exactly
+ * like one nobody ever preached to.
+ */
+export function unconvertCitizen(city: City, from: ReligionId): boolean {
+  const followers = city.followers;
+  if (!followers) return false;
+  const held = followers[from] ?? 0;
+  if (held <= 0) return false;
+  const left = held - 1;
+  if (left <= 0) delete followers[from];
+  else followers[from] = left;
+  if (Object.keys(followers).length === 0) delete city.followers;
   return true;
 }
 

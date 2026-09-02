@@ -201,8 +201,8 @@ export function riteGrantWords(id: RiteId): string {
  * **enhancer** gate is the one literal in this file, and it is `religion.ts`'s
  * own `ENHANCER_TECH`, which is private to that module. A copy is a second
  * table, so `test/ui/religionScreen.test.ts` reads it back out of
- * `enhanceReligionError`'s own refusal sentence — the day the sim moves the
- * gate, the pane's word for it fails rather than quietly lying.
+ * `gainBeliefError`'s own refusal sentence — the day the sim moves the gate, the
+ * pane's word for it fails rather than quietly lying.
  */
 const ENHANCER_TECH: TechId = 'theology';
 
@@ -701,7 +701,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       element(
         'p',
         'sc-flavor',
-        `An augur carries three rites, or names one belief. ${
+        `An augur performs one rite, or names one belief. ${
           gate === null ? '' : `Called by those who have ${techDef(gate).name}.`
         }`,
       ),
@@ -989,7 +989,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       element(
         'p',
         'sc-flavor',
-        'An augur carries three rites. Naming a belief spends the whole augur, however many rites are left.',
+        'An augur is one deed: perform a rite, or name a belief. Either spends it.',
       ),
     );
     return block;

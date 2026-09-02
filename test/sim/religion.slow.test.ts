@@ -149,29 +149,38 @@ function playFaithful(maxTurns: number): {
       }
     }
 
-    // Spend the augurs, in the order a player weighing the two would: **one
-    // rite first** — an augur is worth more having done something than having
-    // done nothing — and then the whole of what is left on a god, while a slot
-    // is open. An augur with no slot to fill keeps working through its charges.
+    // Spend the augurs. **One charge, one deed** since Entry LVIII, so the
+    // "one rite first, then a god with what is left" policy this script used to
+    // run is no longer a thing a single piece can do: an augur is a rite *or* a
+    // god, and the price ladder is the whole of the question.
     //
-    // Since 2026-08-28 that is a **two-turn** plan rather than a same-turn one:
-    // a rite is the augur's whole turn (`augurHasActed`) and consecration is
-    // held to the same sentence, so the god is asked for on a *later* pass, off
-    // an augur that has already done a day's work. Asked first for that reason
-    // — after the rite below the piece has no day left — and gated on a spent
-    // charge so the "one rite first" reading survives the reordering.
-    const charges = unitDef('augur').charges ?? 0;
+    // The script therefore **alternates**, keeping the gods one behind the
+    // rites — the order a player weighing the two would take them in, and the
+    // one policy that guarantees the log this test replays contains both. The
+    // preference is a preference, not a rule: an augur that cannot do the
+    // preferred thing does the other rather than standing idle, which is what
+    // keeps a full pantheon from stalling the script.
     for (const unit of [...g.state.units]) {
       if (unit.ownerId !== 0 || !isAugur(unit)) continue;
-      if ((unit.chargesLeft ?? charges) < charges && consecrateError(g.state, 0, unit.id) === null) {
-        if (dispatch(g, { type: 'consecrate', playerId: 0, unitId: unit.id } as Command).ok) continue;
+      if (
+        player.pantheon.beliefs.length < ritesPerformed &&
+        consecrateError(g.state, 0, unit.id) === null &&
+        dispatch(g, { type: 'consecrate', playerId: 0, unitId: unit.id } as Command).ok
+      ) {
+        continue;
       }
+      let acted = false;
       for (const rite of availableRites(g.state, 0)) {
         if (riteError(g.state, 0, unit.id, rite) !== null) continue;
         if (dispatch(g, { type: 'performRite', playerId: 0, unitId: unit.id, rite } as Command).ok) {
           ritesPerformed += 1;
+          acted = true;
         }
         break;
+      }
+      if (acted) continue;
+      if (consecrateError(g.state, 0, unit.id) === null) {
+        dispatch(g, { type: 'consecrate', playerId: 0, unitId: unit.id } as Command);
       }
     }
 
@@ -224,7 +233,10 @@ describe('determinism', () => {
   it('round-trips a schema 40 save with augurs, rites and beliefs in the log', () => {
     // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
     // moved every replay that raised one.
-    expect(SCHEMA_VERSION).toBe(41);
+    // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
+    // double draft and The Holy Office's tenants move every replay with a
+    // prophet or an augur in it.
+    expect(SCHEMA_VERSION).toBe(42);
     const played = playFaithful(90);
     // The empire actually got there: an augur was bought out of faith it earned,
     // rites were performed, and a god was named. A determinism test over a log
@@ -325,9 +337,9 @@ function playTwoFaiths(maxTurns: number): {
         for (const item of [PROPHET, AUGUR]) {
           const price = explainPurchaseCost(g.state, seat, home.id, item, 'faith');
           // Save for the second prophet rather than spend the faith on augurs:
-          // since founding consumes the founder (2026-08-29), the bomb this
-          // test is about needs a prophet of its own, and a policy that bought
-          // an augur every time the prophet was out of reach never had one.
+          // founding consumes the founder, so the bomb this test is about needs
+          // a prophet of its own, and a policy that bought an augur every time
+          // the prophet was out of reach never had one.
           if (!price || player.faithPool < price.total) {
             if (item === PROPHET && player.prophetsPurchased < 2) break;
             continue;
@@ -343,11 +355,10 @@ function playTwoFaiths(maxTurns: number): {
         }
       }
 
-      // Spend the prophets: the site first (which founds), and the bomb after.
-      // Only the *founding* site is planted here — since 2026-08-29 founding
-      // spends the whole prophet and a later site costs a charge, so a policy
-      // that planted with every prophet would spend the second one on stones
-      // and never throw the bomb this test is about.
+      // Spend the prophets: the founding first, and the bomb after. There is no
+      // second site to plant any more (Entry LVIII — one prophet, one deed), so
+      // the `hasFaith` gate is now the *rule* rather than a policy: a seat that
+      // has founded is refused the ground and proclaims instead.
       const hasFaith = g.state.religions.some((religion) => religion.founderId === seat);
       for (const unit of [...g.state.units]) {
         if (unit.ownerId !== seat || unitDef(unit.type).prophesies !== true) continue;
@@ -378,16 +389,19 @@ function playTwoFaiths(maxTurns: number): {
         }
       }
 
-      const charges = unitDef('augur').charges ?? 0;
+      // **A god first, here.** This script is about founding, and a religion is
+      // founded out of the pantheon — so a seat with an open slot spends its
+      // augur on a god and only preaches with what is left over. Under the
+      // one-charge rule (Entry LVIII) that is a *choice between pieces* rather
+      // than a plan for one, which is exactly why the preference has to be
+      // stated: an augur spent on a rite is a god this seat will never have.
       for (const unit of [...g.state.units]) {
         if (unit.ownerId !== seat || !isAugur(unit)) continue;
         if (
-          (unit.chargesLeft ?? charges) < charges &&
-          consecrateError(g.state, seat, unit.id) === null
+          consecrateError(g.state, seat, unit.id) === null &&
+          dispatch(g, { type: 'consecrate', playerId: seat, unitId: unit.id } as Command).ok
         ) {
-          if (dispatch(g, { type: 'consecrate', playerId: seat, unitId: unit.id } as Command).ok) {
-            continue;
-          }
+          continue;
         }
         for (const rite of availableRites(g.state, seat)) {
           if (riteError(g.state, seat, unit.id, rite) !== null) continue;
@@ -466,7 +480,7 @@ describe('what an augur costs a real empire', () => {
     expect(played.firstAugurTurn!).toBeGreaterThan(10);
     expect(played.firstAugurTurn!).toBeLessThan(75);
     // And the agent is actually *spent* rather than accumulated: the whole
-    // anti-spam structure is that an augur is three rites or one god.
+    // anti-spam structure is that an augur is one rite or one god.
     expect(played.ritesPerformed + playerById(played.game.state, 0)!.pantheon.beliefs.length)
       .toBeGreaterThan(0);
   });

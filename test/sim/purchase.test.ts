@@ -26,6 +26,7 @@ import { describe, expect, it } from 'vitest';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { buildingDef } from '../../src/sim/buildingData';
 import {
+  cityYields,
   foundCityAt,
   queueItemName,
   unitProductionCost,
@@ -479,3 +480,105 @@ describe('every refusal, and each leaves the state byte-identical', () => {
 
 // --- determinism -------------------------------------------------------------
 
+// --- the Reliquary's faith bank ---------------------------------------------
+
+/**
+ * **The Reliquary** (ledger Entry LVIII, The Holy Office).
+ *
+ * The one marker on a building row that opens a *second bank* for the rows the
+ * treasury already sells. Three claims, and they are the three the docblock on
+ * `faithBankOpen` makes: units only, never a row that names its own bank, and
+ * the rate is the one a contribution already buys a hammer at.
+ */
+describe('a town holding a Reliquary sells its units for faith', () => {
+  const RELIQUARY: PurchasableItem = { kind: 'building', id: 'reliquary' };
+  const FAITH_RATE = RULES.production.faithPerHammer;
+
+  /** A town with the stones standing in it, and a full faith bank. */
+  function withReliquary() {
+    const g = game();
+    learn(g.state, 0, 'divination', 'theHighTemple', 'theology', 'theHolyOffice');
+    const city = found(g.state, 0);
+    city.buildings.push('reliquary');
+    playerById(g.state, 0)!.faithPool = 2000;
+    return { g, city };
+  }
+
+  it('refuses faith for an ordinary unit in a town without one', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    expect(explainPurchaseCost(g.state, 0, city.id, WARRIOR, 'faith')).toBeNull();
+    const blocked = applyCommand(g.state, buyCommand(city.id, WARRIOR, 'faith'));
+    expect(blocked.ok).toBe(false);
+    expect(blocked.ok === false && blocked.error).toMatch(/bought with gold, not faith/);
+  });
+
+  it('prices it out of the faith bank at the contribution rate', () => {
+    const { g, city } = withReliquary();
+    const price = explainPurchaseCost(g.state, 0, city.id, WARRIOR, 'faith')!;
+    expect(price.currency).toBe('faith');
+    // The **same production cost** gold converts, at faith's own rate — so the
+    // two banks disagree about the coin and never about the thing.
+    const hammers = unitProductionCost(g.state, 0, 'warrior');
+    expect(price.total).toBe(Math.floor(hammers * FAITH_RATE));
+    // Rule 5: the fold of the printed lines is the figure charged.
+    expect(price.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(price.total);
+    expect(price.lines.some((line) => line.source.includes('in faith'))).toBe(true);
+    // And gold still works in the same town: a Reliquary widens, never replaces.
+    expect(explainPurchaseCost(g.state, 0, city.id, WARRIOR, 'gold')?.currency).toBe('gold');
+  });
+
+  it('charges the faith bank and delivers the piece through the one routine', () => {
+    const { g, city } = withReliquary();
+    const player = playerById(g.state, 0)!;
+    const price = explainPurchaseCost(g.state, 0, city.id, WARRIOR, 'faith')!;
+    const bank = bankOf(player, 'faith');
+    const gold = player.gold;
+
+    expect(applyCommand(g.state, buyCommand(city.id, WARRIOR, 'faith')).ok).toBe(true);
+    expect(bankOf(player, 'faith')).toBe(bank - price.total);
+    expect(player.gold).toBe(gold);
+    expect(g.state.units.some((u) => u.ownerId === 0 && u.type === 'warrior')).toBe(true);
+    // One unit per city per turn, whichever bank paid for it.
+    expect(applyCommand(g.state, buyCommand(city.id, WARRIOR, 'faith')).ok).toBe(false);
+  });
+
+  it('sells no building out of it, and does not overrule the augur’s own bank', () => {
+    const { g, city } = withReliquary();
+    // Units only: a granary bought with faith would make the Reliquary a second,
+    // quieter treasury.
+    expect(explainPurchaseCost(g.state, 0, city.id, GRANARY, 'faith')).toBeNull();
+    expect(applyCommand(g.state, buyCommand(city.id, GRANARY, 'faith')).ok).toBe(false);
+    // The augur still names its own bank, and is still refused gold there.
+    expect(explainPurchaseCost(g.state, 0, city.id, AUGUR, 'faith')?.currency).toBe('faith');
+    const refused = applyCommand(g.state, buyCommand(city.id, AUGUR, 'gold'));
+    expect(refused.ok === false && refused.error).toMatch(/bought with faith, not gold/);
+  });
+
+  it('is a build row like any other, unlocked by The Holy Office', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    expect(isPurchaseOnly(RELIQUARY)).toBe(false);
+    expect(gatingTech('building', 'reliquary')).toBe('theHolyOffice');
+    expect(buildError(g.state, 0, 'building', 'reliquary', city)).not.toBeNull();
+    learn(g.state, 0, 'divination', 'theHighTemple', 'theology', 'theHolyOffice');
+    expect(buildError(g.state, 0, 'building', 'reliquary', city)).toBeNull();
+    // The happiness is the row's own plain field, like the cathedral's.
+    expect(buildingDef('reliquary').happiness).toBe(4);
+    expect(buildingDef('reliquary').faithPurchases).toBe(true);
+  });
+
+  it('pays a tenth more faith in the town it stands in', () => {
+    // The row's third clause, written as an ordinary `percentYields` scoped to
+    // the building — read through `liveCityEffects`' ordinary-building source,
+    // exactly as the observatory's science is, so nothing in the evaluator
+    // learned the Reliquary's name.
+    const g = game();
+    const city = found(g.state, 0);
+    city.buildings.push('shrine', 'temple');
+    const before = cityYields(g.state, city).faith;
+    expect(before).toBeGreaterThan(0);
+    city.buildings.push('reliquary');
+    expect(cityYields(g.state, city).faith).toBe(Math.floor((before * 110) / 100));
+  });
+});

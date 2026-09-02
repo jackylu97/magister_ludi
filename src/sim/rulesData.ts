@@ -1274,6 +1274,37 @@ export interface ReligionRules {
   bombRange: number;
   bombLump: number;
   /**
+   * An inquisitor's Purge: how far it reaches, and what it strips **once**
+   * (design ledger Entry LVIII, The Holy Office).
+   *
+   * The proclamation's two numbers read backwards, and deliberately quoted in
+   * the same currency: a bomb banks `bombLump` *for* one faith on every town in
+   * range, a purge takes `purgeLump` *away from* every other faith on every town
+   * in range. Same bank (`City.pressureBank`), same convert price
+   * (`pressurePerConvert`), opposite sign — which is what lets the two share one
+   * converter (`purgePressure` beside `bankPressure`) rather than growing a
+   * second theory of what banked faith is worth.
+   *
+   * The reach is deliberately **half** the bomb's. A proclamation is a thing you
+   * do to a region from outside it; a purge is a thing you do to your own realm,
+   * and an inquisitor that could sterilise ten hexes from the capital would
+   * never have to march.
+   */
+  purgeRange: number;
+  purgeLump: number;
+  /**
+   * What a standing inquisitor is worth to a friendly soldier beside it, and how
+   * far "beside" reaches.
+   *
+   * `greatPeople.generalAuraStrength`'s twin one agent over, and two numbers for
+   * that pair's reason: the aura and the act are the two halves of the decision a
+   * player makes about the piece, and a designer sharpening one must be able to
+   * leave the other alone. Radius one, so it is a bodyguard rather than a
+   * general.
+   */
+  inquisitorAuraStrength: number;
+  inquisitorAuraRange: number;
+  /**
    * The most religions this world will hold, as a **share of the real seats**,
    * rounded up — two integers rather than a fraction so the ceiling is exact
    * arithmetic on whole numbers. Two thirds (user, 2026-08-27).

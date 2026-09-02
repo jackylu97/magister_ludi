@@ -87,7 +87,7 @@ import {
 } from '../sim/purchase';
 import {
   consecrateError,
-  enhanceReligionError,
+  gainBeliefError,
   plantHolySiteError,
   riteError,
 } from '../sim/religion';
@@ -1186,8 +1186,8 @@ function prophetCommand(state: GameState, player: Player, unit: Unit): Command |
   if (plantHolySiteError(state, player.id, unit.id) === null) {
     return { type: 'plantHolySite', playerId: player.id, unitId: unit.id };
   }
-  if (enhanceReligionError(state, player.id, unit.id) === null) {
-    return { type: 'enhanceReligion', playerId: player.id, unitId: unit.id };
+  if (gainBeliefError(state, player.id, unit.id) === null) {
+    return { type: 'gainBelief', playerId: player.id, unitId: unit.id };
   }
   const step = holySiteStep(state, player, unit);
   if (step !== null) {

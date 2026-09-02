@@ -283,6 +283,14 @@ export function badgeClassFor(type: UnitTypeId): BadgeClass {
   if (def.greatWork) return 'greatPerson';
   if (def.prophesies) return 'prophet';
   if (def.consecrates) return 'religious';
+  // **The inquisitor wears the candle** (Entry LVIII). A third religious agent,
+  // sculpted as a `worker` like the other two, and "worker" floating over the
+  // piece that empties a province of rival faith is the wrong sentence for the
+  // same reason it was wrong over an augur. It takes the family's mark rather
+  // than a drawing of its own, which is the honest thing to say until the art
+  // table has one: the candle means *this is a religious agent*, and it is what
+  // `badgeClassFor` falls back to for a line's unnamed rows everywhere else.
+  if (def.purges) return 'religious';
   /**
    * **A ship's badge is composed**, and that is the fourth rules clause.
    *

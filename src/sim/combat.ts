@@ -855,6 +855,52 @@ export function generalAuraLines(state: GameState, unit: Unit): CombatStrengthLi
   return [];
 }
 
+/**
+ * What a **standing inquisitor** is worth to this piece, as the one labelled line
+ * it adds — or nothing (Entry LVIII, The Holy Office: "+2 combat strength to
+ * adjacent units").
+ *
+ * `generalAuraLines` one agent over, deliberately built as its twin rather than
+ * as a variation, so the two auras cannot drift into two theories of what an
+ * aura is. It keeps all four of that function's rules:
+ *
+ *   · **Soldiers only** (`isCombatant`), which is also why an inquisitor never
+ *     stiffens itself — it is a civilian, and an aura that made the aura-bearer
+ *     harder to kill would be a rule about hiding rather than about leading;
+ *   · **one's own side**, friendly by owner;
+ *   · **auras do not stack** — the sweep returns at the first inquisitor in
+ *     reach, so a second one beside the same column is worth nothing;
+ *   · **`state.units` in array order**, never a `Map`, because "the first
+ *     inquisitor in reach" is an outcome and outcomes are settled by sweep order.
+ *
+ * The one rule it does *not* share is the radius: `religion.inquisitorAuraRange`
+ * is one hex where a general's is two. An inquisitor is a bodyguard walking with
+ * a column, not a commander behind it — and a piece that had to be *adjacent*
+ * is a piece that can be killed by getting to it.
+ *
+ * It reads `UnitDef.purges`, never a type name, and never `religion.ts` — which
+ * is what keeps this module out of a cycle with it. Read on **both sides** by
+ * `planCombat`, like every other flat line.
+ */
+export function inquisitorAuraLines(state: GameState, unit: Unit): CombatStrengthLine[] {
+  const amount = RULES.religion.inquisitorAuraStrength;
+  if (amount === 0) return [];
+  if (!isCombatant(unitDef(unit.type))) return [];
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here) return [];
+  const range = RULES.religion.inquisitorAuraRange;
+  const eye = tileHex(here);
+  for (const other of state.units) {
+    if (other.ownerId !== unit.ownerId) continue;
+    if (unitDef(other.type).purges !== true) continue;
+    const stands = getTileAt(state.map, other.col, other.row);
+    if (!stands) continue;
+    if (wrappedDistance(state.map, eye, tileHex(stands)) > range) continue;
+    return [{ source: unitDef(other.type).name, amount }];
+  }
+  return [];
+}
+
 // --- the naval line ---------------------------------------------------------
 
 /**
@@ -1338,6 +1384,19 @@ function planCombat(
   }
   if (target.unit) {
     for (const line of generalAuraLines(state, target.unit)) {
+      bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
+    }
+  }
+  /**
+   * **The inquisitor's aura**, the general's read one agent over and folded in
+   * exactly the same way, on both sides, as one flat labelled line. See
+   * `inquisitorAuraLines` for the four rules it keeps and the one it does not.
+   */
+  for (const line of inquisitorAuraLines(state, attacker)) {
+    bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
+  }
+  if (target.unit) {
+    for (const line of inquisitorAuraLines(state, target.unit)) {
       bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
     }
   }

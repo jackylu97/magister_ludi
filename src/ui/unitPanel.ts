@@ -38,7 +38,7 @@
 import { fortifyBonus, isCivilian, isCombatant, isFortified, isRanged } from '../sim/combat';
 import type { ImprovementId } from '../sim/improvementData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
-import { isAugur, isProphet } from '../sim/religion';
+import { isAugur, isInquisitor, isProphet } from '../sim/religion';
 import { type ReligionBeliefPool, type RiteId, riteDef } from '../sim/religionData';
 import { describeCard, stripRefs } from '../sim/statecraft';
 import type { GreatPersonView, ProphetRow, ProphetVerb, RiteOption } from './controls';
@@ -373,8 +373,8 @@ interface UnitAction {
    * be, or absent for the rows whose whole meaning is their label.
    *
    * The rites' (user, 2026-08-27): "Rite of Plenty" says nothing at all about
-   * what a rite of plenty *does*, and the augur has three charges and five
-   * names to spend them on. A `title` was the wrong instrument — a native
+   * what a rite of plenty *does*, and the augur has one charge and five names to
+   * spend it on. A `title` was the wrong instrument — a native
    * tooltip arrives a second late, on top of whatever else is up, and cannot
    * rule a clause list — so the rows that need paragraphs get the same
    * `.info-card` the build list and the star chart raise, and the rest keep the
@@ -843,7 +843,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // reason: `plantingHandOf` gives it the holy site and nothing else, so six
     // greyed farm rows and an axe under its four ministries would be the sheet
     // offering spadework a prophet will never do.
-    if (isBuilder(unit) && !person && !isProphet(unit)) {
+    if (isBuilder(unit) && !person && !isProphet(unit) && !isInquisitor(unit)) {
       for (const option of improvementOptions()) {
         const delta = yieldDeltaNodes(option.delta);
         let label: string | DocumentFragment = option.name;
@@ -935,7 +935,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // separately — a faith holding a follower belief and no enhancer may give
     // the first back and not the second — so a single row with a hidden choice
     // would be a button whose sentence is right about only half of what it does.
-    if (isProphet(unit)) {
+    // The **inquisitor** shares this block rather than opening one of its own:
+    // its single act carries the same greyable, blocker-bearing row a prophet's
+    // deeds do (`ProphetVerb`), and `prophetRows` is what answers for both.
+    if (isProphet(unit) || isInquisitor(unit)) {
       for (const row of prophetRows()) {
         if (row.pools) {
           for (const pool of row.pools) {
@@ -952,12 +955,15 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
           label: row.name,
           blocked: row.blocked,
           hint: row.says,
-          // Proclaim alone raises a card, and it is the rite card's argument
-          // exactly: the other three prophet verbs are one legible act each
-          // ("raise a holy site here"), and this one converts a whole region at
-          // once out of a charge that is a third of the piece. A sentence that
-          // long has to be readable somewhere the row's width does not clip it.
-          card: row.verb === 'proclaim' ? () => prophetCard(row) : undefined,
+          // Proclaim and Purge raise a card, and it is the rite card's argument
+          // exactly: the other rows are one legible act each ("found your
+          // religion here"), and these two reach a whole region out of the whole
+          // piece. A sentence that long has to be readable somewhere the row's
+          // width does not clip it.
+          card:
+            row.verb === 'proclaim' || row.verb === 'purge'
+              ? () => prophetCard(row)
+              : undefined,
           run: () => onProphetAct(row.verb),
         });
       }
@@ -1090,9 +1096,9 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
    * it is here for the rite card's reason: this is the screen where a player
    * decides what to do with the most expensive piece a faith buys, and the row
    * itself now spends its whole width on what the act *does*. It is
-   * `ProphetRow.cost` rather than a sentence written here, because two of the
-   * four verbs use the piece up outright (user, 2026-08-29) and which two is the
-   * simulation's answer (`prophetPrice`), not this card's.
+   * `ProphetRow.cost` rather than a sentence written here, because the price is
+   * one word for the whole agent (Entry LVIII) and the sheet is the one surface
+   * that has to say it before the piece is spent.
    */
   function prophetCard(row: ProphetRow): Node {
     const card = element('div', 'unit-card');
@@ -1296,7 +1302,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       // spadework, an augur's are rites, a prophet's are *ministries* — the four
       // things one charge does to a faith — and a great person's is the one
       // thing they are, spent on the act or on the work and then gone.
-      const ministry = isProphet(unit);
+      const ministry = isProphet(unit) || isInquisitor(unit);
       const label = person ? 'Service' : rites ? 'Rites' : ministry ? 'Ministry' : 'Charges';
       const mark = person ? '✦' : rites ? '✧' : ministry ? '☩' : '⚒';
       stats.append(stat(label, `${mark} ${left}/${def.charges ?? left}`, left <= 1));

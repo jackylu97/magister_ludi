@@ -299,6 +299,25 @@ export interface PlayerPantheon {
   beliefs: BeliefId[];
   /** A Consecrate awaiting a pick, or the key is absent. Blocks End Turn. */
   pending?: BeliefOffer;
+  /**
+   * How many further belief drafts this empire is **owed**, or the key is
+   * absent — the founding's second offer, and nothing else today (Entry LVIII).
+   *
+   * A debt rather than a queue of dealt hands, and the distinction is the whole
+   * of why this field is a number. A founding opens *two* drafts off one
+   * prophet, and both are drawn from the same follower bag: two hands dealt at
+   * the same instant could offer the same belief twice, and the second would
+   * still be on the table after the first was taken. So the second hand is
+   * **drawn at the moment it opens**, which is the moment the first is answered
+   * (`settleBeliefChoice`), and the drawn-once doctrine is kept exactly — an
+   * offer is still a function of the log and never of when somebody looked at a
+   * screen.
+   *
+   * Presence is the state, like `path` and `chargesLeft`: the key is deleted the
+   * moment the debt is paid, so an empire that has answered everything
+   * serialises exactly like one that was never asked.
+   */
+  owed?: number;
 }
 
 /** A brand-new empire's pantheon: no gods, no offer. */
@@ -319,12 +338,17 @@ export interface PantheonConfig {
 /**
  * How many beliefs of each drawable pool a religion may hold at once.
  *
- * A data dial rather than a constant, and the honest home for the one number the
- * design has not settled: `docs/religion-v2.md`'s body says two of each and its
- * Revisions say one follower at founding and the enhancer at Theology. It ships
- * at one and one, and raising `followerSlots` is all it takes — a prophet's
- * later charge opens a second draft with nothing here or in `religion.ts`
- * changed (`plantHolySiteAt` asks whether a slot is open, never how many).
+ * A data dial rather than a constant, and the two figures the ruled faith rework
+ * of Entry LVIII settled: **three follower beliefs, two enhancer beliefs, in
+ * total, across the whole game**.
+ *
+ * They are a *ladder* rather than two independent allowances, and the ladder is
+ * `nextBeliefPool` in `religion.ts`: a prophet spent on a belief fills the
+ * follower house first and moves to the enhancer house when it is full. So
+ * raising `followerSlots` costs another prophet before an enhancer is ever
+ * offered, which is exactly the pacing decision these two numbers are for.
+ * Nothing in `religion.ts` counts them by hand — the drafts ask whether a rung
+ * is open, never how many there are.
  */
 export interface ReligionPoolsConfig {
   followerSlots: number;

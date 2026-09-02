@@ -196,7 +196,9 @@ describe('the model-class roster', () => {
     // save the rows the art table names (`badges.byUnitType`).
     for (const type of UNIT_TYPE_IDS) {
       const def = unitDef(type);
-      if (def.greatWork || def.prophesies || def.consecrates) continue;
+      // The four rules clauses, in `badgeClassFor`'s own order — the fourth is
+      // the inquisitor's candle (Entry LVIII).
+      if (def.greatWork || def.prophesies || def.consecrates || def.purges) continue;
       // A hull's badge is composed from its rig and canton, which is the fourth
       // rules clause and not the art table's — see `badgeClassFor`.
       if (def.masts !== undefined && def.canton !== undefined) continue;
@@ -246,17 +248,27 @@ describe('the model-class roster', () => {
     // that spends faith invites the player to send it at a hill and build a
     // mine. Read off `consecrates` rather than the id, so the prophet the High
     // Temple brings is a data row and `badgeClassFor` does not move.
-    const clergy = UNIT_TYPE_IDS.filter((type) => unitDef(type).consecrates);
-    expect(clergy.length).toBeGreaterThan(0);
+    //
+    // **The candle is the family's mark, not the augur's** (Entry LVIII): the
+    // Holy Office's inquisitor is the third religious agent, sculpted as a
+    // worker like the other two, and it takes the same cell off its own marker
+    // (`purges`) until the art table has a drawing of its own for it. So the
+    // set this pins is *markers*, plural — and the closed half below still
+    // holds, which is the half that would rot silently.
+    const clergy = UNIT_TYPE_IDS.filter(
+      (type) => unitDef(type).consecrates === true || unitDef(type).purges === true,
+    );
+    expect(clergy.length).toBeGreaterThan(1);
     for (const type of clergy) {
       expect(modelClassFor(type)).toBe('worker');
       expect(badgeClassFor(type)).toBe('religious');
     }
-    // Nothing else takes it, which is the half that would rot silently: a
-    // `religious` badge on a row that cannot perform a rite is a lie the board
-    // tells once per piece and nobody can trace back to a table.
+    // Nothing else takes it: a `religious` badge on a row that performs no rite
+    // and no purge is a lie the board tells once per piece and nobody can trace
+    // back to a table. The prophet is excluded by its own earlier clause, which
+    // is why it is not in the set above.
     for (const type of UNIT_TYPE_IDS) {
-      if (unitDef(type).consecrates) continue;
+      if (unitDef(type).consecrates === true || unitDef(type).purges === true) continue;
       expect(badgeClassFor(type)).not.toBe('religious');
     }
   });

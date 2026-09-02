@@ -277,6 +277,9 @@ export type BuildingId =
   | 'bank'
   | 'bastion'
   | 'alchemicalSociety'
+  // The Holy Office's tenant (Entry LVIII, the faith rework): the tier-4 faith
+  // building, and the one row that opens a bank (`faithPurchases`).
+  | 'reliquary'
   // --- the wonders ---------------------------------------------------------
   //
   // Twenty-seven, ratified from `docs/wonders.md` and homed on the tree as it
@@ -665,6 +668,24 @@ export interface BuildingDef {
    * part-paid out of a bank.
    */
   acceptsContributions?: boolean;
+  /**
+   * **Units may be bought with faith in the town this stands in** — the
+   * Reliquary's third clause (Entry LVIII, The Holy Office). Absent means a town
+   * that sells its soldiers for coin like every other.
+   *
+   * A **marker**, exactly as `acceptsContributions` and `purchaseOnly` are:
+   * `purchase.ts` asks whether *this town holds a building that says so*, never
+   * whether it holds the Reliquary, so a second such row is one flag. It opens a
+   * bank rather than changing a price — the faith figure is the ordinary
+   * production cost converted at `production.faithPerHammer`, which is the rate
+   * a contribution already buys a hammer at, so the two ways faith reaches a
+   * queue agree by construction.
+   *
+   * It does **not** touch a row that names its own bank (`UnitDef.purchase`):
+   * the augur is still sold out of faith and out of nothing else, in every town,
+   * which is the rule this marker widens rather than replaces.
+   */
+  faithPurchases?: boolean;
   /**
    * A half of this row's ratified text that is **deliberately not built**, in
    * the words a player reads, struck through on the card.

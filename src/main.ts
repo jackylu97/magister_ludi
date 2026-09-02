@@ -2354,6 +2354,16 @@ async function boot(initial: Game | null): Promise<void> {
         }
         controls.refresh();
         religion?.refresh();
+        // **The founding's second draft.** A prophet spent on founding opens two
+        // belief drafts, and the second is *drawn* the moment the first is
+        // answered (`PlayerPantheon.owed`, `payBeliefDebt`) — so by the time the
+        // pick above returns there may already be another hand on the seat. The
+        // card is raised again off the state rather than off a flag, which is
+        // the same reading `prophetAct` and the End Turn blocker take, so a
+        // debt that could not be paid simply raises nothing.
+        if (playerById(game.state, seat)?.pantheon.pending !== undefined) {
+          showReligionOffer();
+        }
       },
     );
   }

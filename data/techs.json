@@ -875,14 +875,15 @@
         "theology"
       ],
       "unlocks": {
+        "units": [
+          "inquisitor"
+        ],
         "buildings": [
+          "reliquary",
           "notreDame"
         ]
       },
-      "flavor": "The question is asked, and it is not really a question.",
-      "deferred": [
-        "The Inquisitor and the Reliquary are written and wait for the faith pass that gives an inquisitor something to strip."
-      ]
+      "flavor": "The question is asked, and it is not really a question."
     },
     "steel": {
       "name": "Steel",

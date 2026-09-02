@@ -730,7 +730,10 @@ describe('a captured city, end to end', () => {
   it('round-trips a schema 40 save with a captured city in it', () => {
     // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
     // moved every replay that raised one.
-    expect(SCHEMA_VERSION).toBe(41);
+        // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
+    // double draft and The Holy Office's tenants move every replay with a
+    // prophet or an augur in it.
+    expect(SCHEMA_VERSION).toBe(42);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

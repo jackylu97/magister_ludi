@@ -24,15 +24,14 @@ import {
   type Religion,
   createUnit,
   newGame,
-  playerById,
 } from '../../src/sim/state';
 import {
-  enhanceReligionError,
   foundReligion,
+  gainBeliefError,
   plantHolySiteError,
   proclaimError,
-  prophetPrice,
   redraftError,
+  religionBeliefPool,
 } from '../../src/sim/religion';
 import {
   ALL_BELIEF_IDS,
@@ -60,7 +59,8 @@ import {
   religionReading,
   riteGrantWords,
 } from '../../src/ui/religionScreen';
-import { PROPHET_PRICE_WORD, proclaimSays } from '../../src/ui/controls';
+import { AGENT_PRICE_WORD, proclaimSays } from '../../src/ui/controls';
+import { unitDef } from '../../src/sim/unitData';
 
 const SOURCE = {
   ...(import.meta.glob('../../src/ui/*.ts', {
@@ -295,7 +295,7 @@ describe('the pressure ledger a hover prints', () => {
 
 // --- the prophet's sheet ----------------------------------------------------
 
-describe('the prophet’s four ministries', () => {
+describe('the religious agents’ sheet', () => {
   const rows = fn('controls.ts', 'prophetRows');
 
   it('greys each row with the reducer’s own gate and no other sentence', () => {
@@ -305,9 +305,10 @@ describe('the prophet’s four ministries', () => {
     // interface writing a second rulebook.
     for (const gate of [
       'plantHolySiteError(state, localPlayerId, unit.id)',
-      'enhanceReligionError(state, localPlayerId, unit.id)',
+      'gainBeliefError(state, localPlayerId, unit.id)',
       'proclaimError(state, localPlayerId, unit.id)',
       'redraftError(state, localPlayerId, unit.id, pool)',
+      'purgeError(state, localPlayerId, unit.id)',
     ]) {
       expect(`${gate}: ${rows.includes(gate)}`).toBe(`${gate}: true`);
     }
@@ -315,60 +316,52 @@ describe('the prophet’s four ministries', () => {
 
   it('asks the seat’s own question in front of every one of them', () => {
     // `chopBlocker`'s split: this client's question first, the act's delegated
-    // whole. Four rows, four `ended ??`.
-    expect(rows.match(/ended \?\?/g) ?? []).toHaveLength(5);
+    // whole. Four prophet rows plus the redraft's two sub-rows, plus the
+    // inquisitor's one — every row, one `ended ??`.
+    expect(rows.match(/ended \?\?/g) ?? []).toHaveLength(6);
   });
 
-  it('is offered only to a prophet, and asked of the marker rather than the name', () => {
+  it('is offered only to the two agents, and asked of the markers rather than names', () => {
+    expect(rows).toContain('isInquisitor(unit)');
     expect(rows).toContain('!isProphet(unit)');
     expect(sourceOf('controls.ts')).not.toContain("'prophet'");
+    expect(sourceOf('controls.ts')).not.toContain("'inquisitor'");
   });
 
-  it('says the first planting founds the religion, and only while none exists', () => {
-    // The verb is one verb and two acts (`plantHolySiteAt`), so the row is one
-    // row whose sentence changes — two rows for one command would be the
-    // interface inventing a verb.
+  it('says the planting founds, and says it always', () => {
+    // Entry LVIII: planting IS founding and there is no later planting, so the
+    // row no longer changes its name with the state. One command, one row, one
+    // sentence — an empire that already has a faith is greyed with
+    // `foundReligionError`'s own words rather than shown a second verb.
     expect(rows).toContain('found your religion here');
-    expect(rows).toContain('mine === undefined');
+    expect(rows).toContain("name: 'Found religion',");
+    expect(rows).not.toContain('Plant holy site');
     expect((rows.match(/verb: 'plantHolySite'/g) ?? []).length).toBe(1);
   });
 
-  it('names itself “Found religion” before there is one to plant a site for', () => {
-    // The user only realised planting founds after asking (2026-08-28): a
-    // prophet's first row read "Plant Holy Site" whether or not the empire
-    // had a religion yet, and nothing on the sheet said the charge would
-    // found one. The row's own name now carries that, not only its `says`
-    // line — pinned as the exact strings a player reads.
-    expect(rows).toContain("name: mine === undefined ? 'Found religion' : 'Plant holy site',");
+  it('offers one belief row where there were two, and lets the ladder pick the house', () => {
+    // The `enhanceReligion` verb is gone: a player pressing "Draw belief" no
+    // longer has to know which house is open (`nextBeliefPool`).
+    expect((rows.match(/verb: 'gainBelief'/g) ?? []).length).toBe(1);
+    expect(rows).toContain("name: 'Draw belief',");
+    expect(rows).not.toContain('enhanceReligion');
   });
 
-  it('says what each verb costs, in the two words the ruling left', () => {
-    // The user's ruling of 2026-08-29: founding and enhancing consume the
-    // prophet; a proclamation and a redraft cost one charge. The row prints the
-    // *simulation's* answer through one word table, so a price that moved in
-    // the reducer moves the sentence with it.
-    expect(PROPHET_PRICE_WORD.whole).toBe('Uses the prophet');
-    expect(PROPHET_PRICE_WORD.charge).toBe('Uses one charge');
-    expect(rows).toContain('PROPHET_PRICE_WORD[prophetPrice(state, localPlayerId, verb)]');
-    for (const verb of [
-      'plantHolySite',
-      'enhanceReligion',
-      'proclaim',
-      'redraftBeliefs',
-    ] as const) {
-      expect(`${verb}: ${rows.includes(`cost: priced('${verb}')`)}`).toBe(`${verb}: true`);
-    }
-    // Driven, so the two sentences a player actually reads are pinned as
-    // sentences: no religion yet ⇒ the planting row is the whole piece; once
-    // one stands ⇒ a charge.
-    const state = world();
-    expect(PROPHET_PRICE_WORD[prophetPrice(state, 0, 'plantHolySite')]).toBe('Uses the prophet');
-    expect(PROPHET_PRICE_WORD[prophetPrice(state, 0, 'enhanceReligion')]).toBe('Uses the prophet');
-    expect(PROPHET_PRICE_WORD[prophetPrice(state, 0, 'proclaim')]).toBe('Uses one charge');
-    expect(PROPHET_PRICE_WORD[prophetPrice(state, 0, 'redraftBeliefs')]).toBe('Uses one charge');
-    playerById(state, 0)!.pantheon.beliefs.push('keeperOfTheHearth');
-    foundReligion(state, playerById(state, 0)!);
-    expect(PROPHET_PRICE_WORD[prophetPrice(state, 0, 'plantHolySite')]).toBe('Uses one charge');
+  it('says what a verb costs — one word per agent, because the piece is the price', () => {
+    // Entry LVIII: every agent carries one charge, so every deed ends the
+    // piece and the rule that used to pick between two answers has one. What is
+    // left is the sentence, and it is still printed on every row, because "this
+    // is the whole of the most expensive thing your faith buys" is the fact a
+    // player is deciding against.
+    expect(AGENT_PRICE_WORD.prophet).toBe('Uses the prophet');
+    expect(AGENT_PRICE_WORD.inquisitor).toBe('Uses the inquisitor');
+    expect(rows).toContain('const price = AGENT_PRICE_WORD.prophet;');
+    expect((rows.match(/cost: price,/g) ?? []).length).toBe(4);
+    expect(rows).toContain('cost: AGENT_PRICE_WORD.inquisitor,');
+    // Driven: one charge on the roster is what makes the one word true.
+    expect(unitDef('prophet').charges).toBe(1);
+    expect(unitDef('augur').charges).toBe(1);
+    expect(unitDef('inquisitor').charges).toBe(1);
   });
 
   it('gives Redraft one sub-row per pool, each with its own refusal', () => {
@@ -381,8 +374,8 @@ describe('the prophet’s four ministries', () => {
     // rather than only as call sites.
     const state = world();
     const prophet = createUnit(state, 0, 'prophet', 4, 4);
-    expect(enhanceReligionError(state, 0, prophet.id)).toBe(
-      'You have founded no religion to enhance',
+    expect(gainBeliefError(state, 0, prophet.id)).toBe(
+      'You have founded no religion to teach',
     );
     expect(proclaimError(state, 0, prophet.id)).toBe('You have founded no religion to proclaim');
     expect(redraftError(state, 0, prophet.id, 'follower')).toBe(
@@ -400,26 +393,31 @@ describe('the prophet’s four ministries', () => {
     // back out of the sim's own sentence so a moved gate fails here rather than
     // quietly printing the wrong node in an empty house.
     const state = world();
-    found(state, 0);
+    const religion = found(state, 0);
+    // The follower house has to be full before the gated rung is reached, which
+    // is the ladder rather than a verb of its own (`nextBeliefPool`).
+    religion.follower = religionBeliefPool(religion, 'follower').slice(0, 3);
     const prophet = createUnit(state, 0, 'prophet', 4, 4);
-    const refusal = enhanceReligionError(state, 0, prophet.id);
-    expect(refusal).toBe(`Enhancing a religion needs ${poolTechName('enhancer')}`);
+    const refusal = gainBeliefError(state, 0, prophet.id);
+    expect(refusal).toBe(`Deepening a religion needs ${poolTechName('enhancer')}`);
   });
 
   it('is the panel’s own list, drawn as rows and greyed with what it carries', () => {
     const sheet = fn('unitPanel.ts', 'actionsFor');
-    expect(sheet).toContain('isProphet(unit)');
+    expect(sheet).toContain('isProphet(unit) || isInquisitor(unit)');
     expect(sheet).toContain('prophetRows()');
     expect(sheet).toContain('blocked: pool.blocked');
     expect(sheet).toContain('blocked: row.blocked');
     // And a prophet is excused the worker's six improvement rows and the axe:
     // `plantingHandOf` gives it the holy site and nothing else.
-    expect(sheet).toContain('isBuilder(unit) && !person && !isProphet(unit)');
+    expect(sheet).toContain(
+      'isBuilder(unit) && !person && !isProphet(unit) && !isInquisitor(unit)',
+    );
   });
 
   it('shows a prophet’s charges the way the augur’s rites are shown', () => {
     const sheet = sourceOf('unitPanel.ts');
-    expect(sheet).toContain('const ministry = isProphet(unit);');
+    expect(sheet).toContain('const ministry = isProphet(unit) || isInquisitor(unit);');
     expect(sheet).toContain("ministry ? 'Ministry' : 'Charges'");
   });
 });
@@ -484,11 +482,9 @@ describe('what the Proclaim row says', () => {
     // exactly as a rite's is.
     expect(fn('controls.ts', 'prophetRows')).toContain('says: proclaimSays(state, unit.id)');
     const sheet = sourceOf('unitPanel.ts');
-    expect(sheet).toContain("row.verb === 'proclaim' ? () => prophetCard(row) : undefined");
+    expect(sheet).toContain("row.verb === 'proclaim' || row.verb === 'purge'");
     expect(fn('unitPanel.ts', 'prophetCard')).toContain('row.says');
-    // The price line is the row's own, never a sentence written on the card:
-    // two of the four verbs use the piece up (user, 2026-08-29) and which two
-    // is `prophetPrice`'s answer.
+    // The price line is the row's own, never a sentence written on the card.
     expect(fn('unitPanel.ts', 'prophetCard')).toContain('row.cost');
   });
 });
@@ -803,7 +799,7 @@ describe('the Compendium’s religion rows', () => {
   it('says what a prophet’s charges do, and never that they dig', () => {
     const clauses = entry('unit:prophet')!.clauses.map((clause) => clause.text);
     expect(clauses.some((text) => text.includes('holy site'))).toBe(true);
-    expect(clauses.some((text) => text.includes('founds your religion'))).toBe(true);
+    expect(clauses.some((text) => text.includes('found your religion'))).toBe(true);
     // The worker's sentence would otherwise fire on a piece with charges and no
     // other marker.
     expect(clauses.some((text) => text.includes('work charge'))).toBe(false);
@@ -960,9 +956,9 @@ describe('the Faith concept’s prose', () => {
     expect(all).toContain('enhancer belief');
   });
 
-  it('names all four of a prophet’s charges', () => {
+  it('names all four of the things a prophet’s one deed can be', () => {
     const all = prose.join(' ');
-    for (const act of ['plants a holy site', 'draws a belief', 'proclaims', 'gives a pool']) {
+    for (const act of ['founds your religion', 'draws another belief', 'proclaims', 'gives a pool']) {
       expect(`${act}: ${all.includes(act)}`).toBe(`${act}: true`);
     }
   });

@@ -11,9 +11,15 @@
  *     or unbuilt building — at `goldPerHammer` coin per hammer of its **full**
  *     production cost. Not a project (a conversion is not a thing), and not
  *     anything whose roster row names a different bank.
- *   · **Faith** buys exactly what the table prices in faith, which today is the
- *     augur and tomorrow the prophet. That price is the roster's own figure plus
- *     its escalation ladder, and it has nothing to do with hammers.
+ *   · **Faith** buys exactly what the table prices in faith — the augur, the
+ *     prophet, the inquisitor. That price is the roster's own figure plus its
+ *     escalation ladder, and it has nothing to do with hammers.
+ *   · **Faith, again, where a town has earned it** (Entry LVIII): a city holding
+ *     a building marked `faithPurchases` — the Reliquary — sells *ordinary*
+ *     units out of the faith bank too, at `faithPerHammer` per hammer of the
+ *     same production cost gold converts. It is the treasury's branch with one
+ *     number swapped, not a third kind of transaction, and it widens which bank
+ *     may pay rather than what may be bought.
  *
  * The shape is `explainUnitCost`'s, in a bank instead of a basket: an ordered
  * list of labelled lines whose **fold is the price** (hard rule 5), so the
@@ -242,26 +248,64 @@ export function explainPurchaseCost(
     return { currency: bank, lines, total: foldUnitCost(lines) };
   }
 
-  if (currency !== 'gold') return null;
+  // The treasury's bank, **or the faith bank a Reliquary opens in this town**
+  // (Entry LVIII). Both convert the same production cost at their own rate, so
+  // the two are one branch with one number swapped rather than two prices.
+  if (currency !== 'gold' && !faithBankOpen(state, cityId, item, currency)) return null;
   const hammers: UnitCostLine[] =
     item.kind === 'unit'
       ? explainUnitCost(state, playerId, item.id)
       : [{ source: buildingDef(item.id).name, amount: buildingDef(item.id).cost }];
   const cost = foldUnitCost(hammers);
-  const rate = RULES.production.goldPerHammer;
+  const rate = hammerRate(currency);
   const lines = [...hammers];
   // The conversion carries the **difference** it makes to the running figure,
   // exactly as `explainUnitCost`'s own lines do, so the list sums to the price
   // however the rounding falls. `Math.floor` once, at the end, for the same
   // reason Entry XVII floors once.
-  lines.push({ source: `×${rate} in gold`, amount: Math.floor(cost * rate) - cost });
+  lines.push({ source: `×${rate} in ${currency}`, amount: Math.floor(cost * rate) - cost });
   // **After** the conversion, so the discount is off the price and not off the
   // hammers: a quarter off a warrior is a quarter off the coin, whatever the
   // rate happens to be. Asked for a **building** too since 2026-08-28 — Crassus
   // and Jakob Fugger both discount "units and buildings", and the building half
   // of that was the deferred sentence on both rows.
   applyRiders(state, playerId, item, lines);
-  return { currency: 'gold', lines, total: foldUnitCost(lines) };
+  return { currency, lines, total: foldUnitCost(lines) };
+}
+
+/**
+ * Does **this town** sell ordinary units out of the faith bank? The Reliquary's
+ * third clause, and the one question it asks (Entry LVIII).
+ *
+ * **Presence of the marker on a building this city holds is the answer**
+ * (`BuildingDef.faithPurchases`) — nothing here compares a building id against
+ * `"reliquary"`, exactly as `acceptsContributions` compares nothing against
+ * `"cathedral"`. So a second such row is one flag on one JSON row.
+ *
+ * Three narrowings, each a decision:
+ *
+ *   · **Units only.** The ruled text is "units may be purchased with faith in
+ *     this city". A building bought with faith would make the Reliquary a
+ *     second, quieter treasury, and the town that had one would build nothing
+ *     with hammers again.
+ *   · **Never a row that names its own bank.** This branch is only reached when
+ *     `rosterBank` said nothing, so the augur is still sold out of faith and out
+ *     of nothing else, everywhere. The marker widens the ordinary bank; it does
+ *     not overrule a roster row.
+ *   · **The rate is `faithPerHammer`**, which is the rate a contribution already
+ *     buys a hammer at, so the two ways faith reaches a city's production agree
+ *     by construction and neither is the cheap one.
+ */
+function faithBankOpen(
+  state: GameState,
+  cityId: number,
+  item: PurchasableItem,
+  currency: PurchaseCurrency,
+): boolean {
+  if (currency !== 'faith' || item.kind !== 'unit') return false;
+  const city = cityById(state, cityId);
+  if (!city) return false;
+  return city.buildings.some((id) => buildingDef(id).faithPurchases === true);
 }
 
 /**
@@ -415,11 +459,18 @@ export function purchaseError(
     // told which bank the thing is priced in.
     return `A ${name} is bought with ${bank}, not ${currency}`;
   }
-  if (bank === undefined && currency !== 'gold') {
+  if (bank === undefined && currency !== 'gold' && !faithBankOpen(state, cityId, bought, currency)) {
+    // A town holding a Reliquary sells its units for faith too, which is the one
+    // way this sentence can be wrong — so it is asked before the sentence is
+    // said, in the same function the price asks it in.
     return `A ${name} is bought with gold, not ${currency}`;
   }
 
   if (bank === undefined) {
+    // The ordinary bank, whichever coin it is paid in: a Reliquary opens faith
+    // for the rows the treasury already sells, and it changes *which bank*
+    // rather than *what may be bought*, so every gate below is asked unchanged.
+    //
     // Gold buys what the city could build, by production's own rules — **except
     // the one thing production refuses for being for sale**. `buildError` is
     // still the gate for everything else it asks (the tree, the resource, the

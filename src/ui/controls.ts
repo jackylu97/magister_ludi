@@ -245,19 +245,25 @@ import {
 } from '../sim/state';
 import {
   consecrateError,
-  enhanceReligionError,
+  gainBeliefError,
   isAugur,
+  isInquisitor,
   isProphet,
   plantHolySiteError,
   proclaimError,
-  prophetPrice,
+  purgeError,
   redraftError,
   ritePreview,
   riteCityTarget,
   riteError,
   riteUnitTarget,
 } from '../sim/religion';
-import { type ProclamationReport, type ProphetPrice, proclaimPreview } from '../sim/religion';
+import {
+  type ProclamationReport,
+  type PurgeReport,
+  proclaimPreview,
+  purgePreview,
+} from '../sim/religion';
 import {
   type BeliefId,
   type ReligionBeliefPool,
@@ -540,14 +546,27 @@ export interface RiteOption {
 }
 
 /**
- * The four things a prophet's charges do (`docs/religion-v2.md`).
+ * The deeds a prophet's one charge may be spent on, plus the inquisitor's Purge
+ * — the acts this sheet offers a **religious agent** (`docs/religion-v2.md`,
+ * ledger Entry LVIII).
  *
  * The command names, verbatim, because that is what the sheet's row *is*: a row
- * a player can press is one of these four commands with the piece's id on it,
- * and a fifth verb would fail to compile here before it could fail silently in
- * the panel.
+ * a player can press is one of these commands with the piece's id on it, and a
+ * new verb would fail to compile here before it could fail silently in the
+ * panel.
+ *
+ * `purge` rides this list rather than opening a sheet of its own, and that is a
+ * judgement about the *shape* of the thing rather than about the piece: an
+ * inquisitor is a bought civilian whose whole existence is one greyable,
+ * blocker-carrying row, which is exactly what a `ProphetRow` is. A second
+ * accessor and a second panel block would have been two copies of one contract.
  */
-export type ProphetVerb = 'plantHolySite' | 'enhanceReligion' | 'proclaim' | 'redraftBeliefs';
+export type ProphetVerb =
+  | 'plantHolySite'
+  | 'gainBelief'
+  | 'proclaim'
+  | 'redraftBeliefs'
+  | 'purge';
 
 /**
  * One row of the prophet's sheet, with everything that row needs.
@@ -576,13 +595,13 @@ export interface ProphetRow {
   /** What it would do, in one line. Never `null` — a verb always has an answer. */
   says: string;
   /**
-   * What it costs, in plain words — "Uses the prophet" or "Uses one charge".
+   * What it costs, in plain words — "Uses the prophet", "Uses the inquisitor".
    *
-   * The *price* is the simulation's (`prophetPrice`) and only the wording is
-   * this file's, which is `proclaimSays`' bargain one field over: two of the
-   * four verbs end the piece outright (user, 2026-08-29) and a player deciding
-   * between them has to be told which, before spending the most expensive thing
-   * a faith buys.
+   * There is no price *function* behind it any more (Entry LVIII): every agent
+   * carries one charge and every deed ends the piece, so the rule that used to
+   * pick between two answers has one, and what is left is the sentence. It is
+   * still printed on every row, because "this is the whole of the most expensive
+   * thing your faith buys" is the fact a player is deciding against.
    */
   cost: string;
   /** Redraft's two sub-rows, or absent. */
@@ -590,14 +609,18 @@ export interface ProphetRow {
 }
 
 /**
- * The two prices a prophet's verb can carry, said in a first-time player's words
+ * What spending one of these agents costs, said in a first-time player's words
  * (hard rule 7) — one table, so the sheet, the hover card and any surface after
  * them read the same sentence.
+ *
+ * One entry per **agent** rather than per verb, which is the whole of what the
+ * one-charge rework did to this: the piece is the price, whatever it is spent
+ * on.
  */
-export const PROPHET_PRICE_WORD: Record<ProphetPrice, string> = {
-  whole: 'Uses the prophet',
-  charge: 'Uses one charge',
-};
+export const AGENT_PRICE_WORD = {
+  prophet: 'Uses the prophet',
+  inquisitor: 'Uses the inquisitor',
+} as const;
 
 /**
  * What Proclaim does, in a first-time player's words (hard rule 7).
@@ -2363,6 +2386,30 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         ? `Your prophet proclaims ${name} — nothing turned`
         : `Your prophet proclaims ${name} — ${said.join(', ')}`,
       { cell },
+    );
+  }
+
+  /**
+   * Says what an inquisitor's purge took away — `reportProclamation`'s mirror.
+   *
+   * The same three facts in the same order: which faith was spared, which towns
+   * were touched, and what actually happened in them. A purge that emptied a few
+   * banks and turned nobody is the ordinary outcome and says so, because "the
+   * pressure is off you for a while" is the point of the act and a silent toast
+   * would read as a wasted piece.
+   */
+  function reportPurge(report: PurgeReport): void {
+    const { state } = getGame();
+    const name = state.religions[report.religionId]?.name ?? 'your faith';
+    const turned = report.cities.filter((town) => town.unfollowed > 0);
+    const said = turned.map((town) => {
+      const city = cityById(state, town.cityId);
+      return `${town.unfollowed} in ${city?.name ?? 'a town'}`;
+    });
+    announce(
+      turned.length === 0
+        ? `Your inquisitor purges for ${name} — the rival faiths lose what they had banked`
+        : `Your inquisitor purges for ${name} — ${said.join(', ')} turned away`,
     );
   }
 
@@ -4523,77 +4570,80 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   // --- the prophet ---------------------------------------------------------
 
   /**
-   * The four rows a prophet's sheet offers, each with the reducer's own refusal.
+   * The rows a religious agent's sheet offers, each with the reducer's own
+   * refusal — a prophet's deeds, or an inquisitor's one.
    *
    * `riteOptions`' shape one agent over, and the same contract: the seat's
    * question is asked here (has this player ended their turn) and everything
-   * about the *act* is delegated whole to the sim's four gates, so a row a
-   * player can press is a command `commit` will have taken.
+   * about the *act* is delegated whole to the sim's gates, so a row a player can
+   * press is a command `commit` will have taken.
    *
-   * **Plant Holy Site says it founds**, and it says so because the verb does: an
-   * empire with no religion founds one where the stones go up
-   * (`plantHolySiteAt`), which is also why all three founding refusals reach the
-   * player on this row rather than in a gate nothing asks. Both the row's
-   * *name* and its `says` line change with the state — "Found religion" while
-   * none exists, "Plant holy site" once one does (user, 2026-08-28: a player
-   * who only reads titles has no way to learn that planting founds) — and the
-   * row itself does not multiply: two rows for one command would be the
-   * interface inventing a verb.
+   * **Found religion is the whole of what a prophet does with the ground**
+   * (Entry LVIII). Planting a second holy site is gone, so the row no longer
+   * changes its name with the state: it says "Found religion", it says so
+   * always, and an empire that already has one is greyed with
+   * `foundReligionError`'s own sentence rather than shown a second verb that
+   * was really the same one.
    *
-   * **Redraft carries its pools.** It is the one prophet verb that names
-   * something besides the piece, and the two pools are refused separately, so
-   * each is a sub-row with its own `redraftError`.
+   * **Draw belief is one row where there were two.** Which house it draws from
+   * is the ladder's answer (`nextBeliefPool`), so a player presses one button
+   * and the rules decide whether the belief is a follower's or an enhancer's —
+   * which is what a verb called "Enhance" was making the player work out.
+   *
+   * **Redraft carries its pools.** It is the one verb that names something
+   * besides the piece, and the two pools are refused separately, so each is a
+   * sub-row with its own `redraftError`.
    */
   function prophetRows(): ProphetRow[] {
     const unit = selectedUnit();
-    if (!unit || !isProphet(unit)) return [];
+    if (!unit) return [];
     const { state } = getGame();
     const ended = !canOrder() ? `You have ended turn ${state.turn}` : null;
+    // The inquisitor's sheet is one row, and it is this list's because the row
+    // has the same shape every other one here has. See `ProphetVerb`.
+    if (isInquisitor(unit)) {
+      return [
+        {
+          verb: 'purge',
+          name: 'Purge',
+          blocked: ended ?? purgeError(state, localPlayerId, unit.id),
+          says: purgeSays(state, unit.id),
+          cost: AGENT_PRICE_WORD.inquisitor,
+        },
+      ];
+    }
+    if (!isProphet(unit)) return [];
     const mine = foundedReligion(state, localPlayerId);
     const faith = mine?.name ?? 'your faith';
-    // The price is asked of the simulation, verb by verb, and never guessed
-    // here: founding and enhancing end the piece (user, 2026-08-29) and the
-    // other two are a charge, which is a rule `prophetPrice` states once.
-    const priced = (verb: ProphetVerb): string =>
-      PROPHET_PRICE_WORD[prophetPrice(state, localPlayerId, verb)];
+    // One price, one word: a prophet carries one charge, so every row on this
+    // sheet is the end of the piece and the sentence is a constant.
+    const price = AGENT_PRICE_WORD.prophet;
     return [
       {
         verb: 'plantHolySite',
-        // The row's own name changes with the state, not only its sentence
-        // (user, 2026-08-28: the first prophet founds and nobody reading
-        // "Plant Holy Site" would guess that): while the seat has founded no
-        // religion this charge founds one on the way, so the row says what it
-        // is about to do rather than what it always does once one exists.
-        name: mine === undefined ? 'Found religion' : 'Plant holy site',
+        name: 'Found religion',
         blocked: ended ?? plantHolySiteError(state, localPlayerId, unit.id),
-        // The sentence opens with the price rather than repeating "Spend a
-        // charge" at every row, because the price is now the thing that differs
-        // between them: founding here is the end of the piece and a second site
-        // is not.
-        says:
-          mine === undefined
-            ? `${priced('plantHolySite')}: found your religion here, and raise its first holy site`
-            : `${priced('plantHolySite')}: raise a holy site of ${faith} on this hex`,
-        cost: priced('plantHolySite'),
+        says: `${price}: found your religion here, and raise its holy site`,
+        cost: price,
       },
       {
-        verb: 'enhanceReligion',
-        name: 'Enhance',
-        blocked: ended ?? enhanceReligionError(state, localPlayerId, unit.id),
-        says: `${priced('enhanceReligion')}: draw an enhancer belief for ${faith}`,
-        cost: priced('enhanceReligion'),
+        verb: 'gainBelief',
+        name: 'Draw belief',
+        blocked: ended ?? gainBeliefError(state, localPlayerId, unit.id),
+        says: `${price}: draw another belief for ${faith}`,
+        cost: price,
       },
       {
         verb: 'proclaim',
         name: 'Proclaim',
         blocked: ended ?? proclaimError(state, localPlayerId, unit.id),
-        // The one prophet row whose sentence does not open with its price, and
-        // deliberately (user, 2026-08-28): the other three do one small legible
-        // thing and this one converts a region, so the row is the *description*
-        // and the charge it costs is said on the hover card beside it, exactly
-        // as a rite's is. See `proclaimSays`.
+        // The one row whose sentence does not open with its price, and
+        // deliberately (user, 2026-08-28): the others do one small legible thing
+        // and this one converts a region, so the row is the *description* and
+        // the price it costs is said on the hover card beside it, exactly as a
+        // rite's is. See `proclaimSays`.
         says: proclaimSays(state, unit.id),
-        cost: priced('proclaim'),
+        cost: price,
       },
       {
         verb: 'redraftBeliefs',
@@ -4603,8 +4653,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // to give back is refused on its own sub-row rather than greying the
         // whole verb.
         blocked: ended ?? redraftError(state, localPlayerId, unit.id, 'follower'),
-        says: `${priced('redraftBeliefs')}: give one of ${faith}'s pools back and draw again`,
-        cost: priced('redraftBeliefs'),
+        says: `${price}: give one of ${faith}'s pools back and draw again`,
+        cost: price,
         pools: RELIGION_BELIEF_POOLS.map((pool) => ({
           pool,
           name: POOL_WORD[pool].name,
@@ -4615,7 +4665,31 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
-   * Sends one of a prophet's four verbs, and lets go of a piece it emptied.
+   * What a purge would do, in the interface's own sentence over the simulation's
+   * facts — `proclaimSays`' bargain one agent over.
+   *
+   * Every figure is `purgePreview`'s, which is the function whose arithmetic the
+   * command will actually perform. A forecast, and it says so by naming what is
+   * in reach *now*.
+   */
+  function purgeSays(state: GameState, unitId: number): string {
+    const preview = purgePreview(state, unitId);
+    if (!preview) return 'Strips every rival faith from the towns around it';
+    const towns = preview.cities.length;
+    if (towns === 0) {
+      return `${AGENT_PRICE_WORD.inquisitor}: no town stands within ${preview.range} hexes`;
+    }
+    let turned = 0;
+    for (const city of preview.cities) turned += city.unfollowed;
+    const said =
+      turned === 0
+        ? 'empties what every rival faith has banked'
+        : `turns ${turned} ${turned === 1 ? 'believer' : 'believers'} away from every rival faith`;
+    return `${AGENT_PRICE_WORD.inquisitor}: on ${towns} ${towns === 1 ? 'town' : 'towns'} within ${preview.range} hexes, ${said}`;
+  }
+
+  /**
+   * Sends one of a religious agent's verbs, and lets go of the piece it spent.
    *
    * `performRite`'s shape exactly, and for its two reasons: a charge is the
    * prophet's whole turn and the last one takes the piece off the board, so the
@@ -4649,6 +4723,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // prophet to ask where it stood.
     if (result.proclaimed) {
       reportProclamation(result.proclaimed, { col: unit.col, row: unit.row });
+    }
+    // The purge's own news, and it is read the same way and for the same reason:
+    // the strip is a difference that stops existing when the command returns.
+    if (result.purged) {
+      reportPurge(result.purged);
     }
     renderer.invalidate();
     refreshOverlays();

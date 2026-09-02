@@ -106,16 +106,19 @@ import { advanceAlongPath } from './movement';
 import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
 import {
   type ProclamationReport,
+  type PurgeReport,
   beliefChoiceError,
   consecrateAt,
   consecrateError,
-  enhanceReligionAt,
-  enhanceReligionError,
+  gainBeliefAt,
+  gainBeliefError,
   performRiteAt,
   plantHolySiteAt,
   plantHolySiteError,
   proclaimAt,
   proclaimError,
+  purgeAt,
+  purgeError,
   redraftAt,
   redraftError,
   renameReligionAt,
@@ -920,20 +923,23 @@ export interface PerformRiteCommand extends PlayerCommand {
 }
 
 /**
- * Spends **one** of a prophet's charges on a holy site — and founds the religion
- * if this empire has none.
+ * Spends the prophet on **founding a religion** — the stones and the faith in
+ * one deed.
  *
  * `foundCity`'s shape: it names the piece and nothing else, because the piece is
  * what authorises it and the hex it stands on is where the stones go. **One
- * verb, two acts**, and that is the design rather than a saving: a holy site
- * presses for a faith, so the first one a realm plants is necessarily the moment
- * its faith exists. An empire that cannot found (no gods, or the world already
- * holds every religion it will) is refused here, at the ground, rather than
- * discovering it in a screen somewhere else.
+ * verb, one act**, since Entry LVIII: a prophet carries one charge, planting is
+ * founding, and there is no such thing as a second holy site any more. An empire
+ * that cannot found (no gods, already founded, or the world already holds every
+ * religion it will) is refused here, at the ground, rather than discovering it
+ * in a screen somewhere else.
  *
- * Founding opens a **follower** belief draft, answered by `chooseBelief` — Entry
+ * Founding opens **two** belief drafts, each answered by `chooseBelief` — Entry
  * XV's shape for the fourth time, both halves in the log, and a pick that names
- * an index rather than an id.
+ * an index rather than an id. The second hand is *drawn when the first is
+ * answered* (`PlayerPantheon.owed`) rather than dealt alongside it, because both
+ * come out of the same bag and two simultaneous hands could offer the same
+ * belief twice.
  *
  * Turn-gated like every other act.
  */
@@ -943,16 +949,37 @@ export interface PlantHolySiteCommand extends PlayerCommand {
 }
 
 /**
- * Spends a charge on an **enhancer** belief — the half of a religion that is
- * about how belief travels rather than about what it pays.
+ * Spends the prophet on **one more belief** for its religion.
  *
- * `consecrate`'s shape one pool over: it names the piece, it opens an offer, and
- * the offer blocks End Turn until it is answered. Theology is the gate.
+ * `consecrate`'s shape one shelf over: it names the piece, it opens an offer,
+ * and the offer blocks End Turn until it is answered. Which bag it draws from is
+ * the *ladder's* answer and never the command's (`nextBeliefPool`) — the
+ * follower house until it is full, the enhancer house after that, and Theology
+ * still gates the second. That is why this is one verb where there were two: an
+ * `enhanceReligion` that a player had to know to press was a verb that answered
+ * a question the rules already knew.
  *
  * Turn-gated like every other act.
  */
-export interface EnhanceReligionCommand extends PlayerCommand {
-  type: 'enhanceReligion';
+export interface GainBeliefCommand extends PlayerCommand {
+  type: 'gainBelief';
+  unitId: number;
+}
+
+/**
+ * Spends the inquisitor on the **Purge** — every rival faith's banked pressure
+ * stripped off every town within reach, and the congregations the deficit
+ * reaches turned back to following nothing.
+ *
+ * `proclaim`'s shape and its mirror: it names the piece and nothing else,
+ * because the hex the inquisitor stands on is where it happens. The faith it
+ * spares is its empire's own (`servedReligion`) and is never named by the
+ * command — an inquisitor does not choose a side.
+ *
+ * Turn-gated like every other act.
+ */
+export interface PurgeCommand extends PlayerCommand {
+  type: 'purge';
   unitId: number;
 }
 
@@ -1195,7 +1222,8 @@ export type Command =
   | ChooseBeliefCommand
   | PerformRiteCommand
   | PlantHolySiteCommand
-  | EnhanceReligionCommand
+  | GainBeliefCommand
+  | PurgeCommand
   | ProclaimCommand
   | RedraftBeliefsCommand
   | RenameReligionCommand
@@ -1249,6 +1277,7 @@ export type CommandResult =
       starved?: StarvationReport[];
       guilds?: GuildReport[];
       proclaimed?: ProclamationReport;
+      purged?: PurgeReport;
       campBounties?: { ownerId: number; col: number; row: number; bounty: CampBounty }[];
       beads?: BeadAward[];
       beadAgeOpened?: BeadAge;
@@ -1351,6 +1380,13 @@ export type CommandResult =
  * by the time this returns the flag is simply gone from the unit, and no diff
  * of two boards can say the search came back empty rather than never having
  * run.
+ *
+ * `purged` is the fifteenth and `proclaimed`'s mirror, from `purge` alone
+ * (Entry LVIII): what an inquisitor stripped off the towns around it. Set beside
+ * the helper for `proclaimed`'s reason exactly — it is one act on one board, not
+ * a list of them — and carried out for `arrivals`' reason: by the time this
+ * returns the banks are empty and the congregations are smaller, and no diff of
+ * two boards could tell an inquisitor's work from a rival's bad turn.
  */
 function ok(
   arrivals?: readonly ArrivalReport[],
@@ -2666,19 +2702,40 @@ function applyPlantHolySite(state: GameState, command: PlantHolySiteCommand): Co
   return ok();
 }
 
-/** Draws an enhancer belief. See `EnhanceReligionCommand`. */
-function applyEnhanceReligion(state: GameState, command: EnhanceReligionCommand): CommandResult {
+/** Draws one more belief for this religion. See `GainBeliefCommand`. */
+function applyGainBelief(state: GameState, command: GainBeliefCommand): CommandResult {
   const actor = resolveActor(state, command.playerId);
   if (typeof actor === 'string') return fail(actor);
   if (hasEndedTurn(state, actor.id)) {
-    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot enhance a religion`);
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot draw a belief`);
   }
 
-  const problem = enhanceReligionError(state, actor.id, command.unitId);
+  const problem = gainBeliefError(state, actor.id, command.unitId);
   if (problem) return fail(problem);
 
-  enhanceReligionAt(state, actor, unitById(state, command.unitId)!);
+  gainBeliefAt(state, actor, unitById(state, command.unitId)!);
   return ok();
+}
+
+/** Strips every rival faith off the towns around an inquisitor. See `PurgeCommand`. */
+function applyPurge(state: GameState, command: PurgeCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot purge`);
+  }
+
+  const problem = purgeError(state, actor.id, command.unitId);
+  if (problem) return fail(problem);
+
+  // **The strip happens inside the command**, the proclamation's rule mirrored:
+  // what it took away is a difference that stops existing the moment this
+  // returns, so it is carried out rather than re-derived. Always present on a
+  // success, even when every town in range held nothing.
+  const done = purgeAt(state, actor, unitById(state, command.unitId)!);
+  const result = ok();
+  if (result.ok) result.purged = done;
+  return result;
 }
 
 /** Presses a lump of faith on every town in range. See `ProclaimCommand`. */
@@ -3103,9 +3160,11 @@ function orderedUnitId(command: Command): number | undefined {
     // given an order, so it wakes like anybody else — even though every one of
     // the four may spend it.
     case 'plantHolySite':
-    case 'enhanceReligion':
+    case 'gainBelief':
     case 'proclaim':
     case 'redraftBeliefs':
+    // An inquisitor told to purge is a piece given an order, like every other.
+    case 'purge':
     // A great person told to act or to plant is a piece given an order, so it
     // wakes like anybody else — even though both verbs spend it.
     case 'greatPersonAct':
@@ -3291,8 +3350,10 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyPerformRite(state, command);
     case 'plantHolySite':
       return applyPlantHolySite(state, command);
-    case 'enhanceReligion':
-      return applyEnhanceReligion(state, command);
+    case 'gainBelief':
+      return applyGainBelief(state, command);
+    case 'purge':
+      return applyPurge(state, command);
     case 'proclaim':
       return applyProclaim(state, command);
     case 'redraftBeliefs':

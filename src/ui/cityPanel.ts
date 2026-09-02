@@ -1912,13 +1912,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
      * it, because a button inside a button is not a thing the platform will
      * draw, and because the two are genuinely different verbs: one spends the
      * next few turns, the other spends the treasury.
+     *
+     * **A second tag appears where the faith bank is open** — a town holding a
+     * Reliquary (Entry LVIII). It is not a clause here: `priceTag` answers
+     * `null` for a bank that does not sell the row, and `explainPurchaseCost` is
+     * the one place that question is decided, so this line is simply "ask both
+     * banks" and the table decides which of them speaks.
      */
     const row = (build: HTMLElement, item?: PurchasableItem): void => {
       const line = element('div', 'city-buildable-row');
       line.append(build);
       if (item) {
-        const tag = priceTag(city, item, 'gold', locked);
-        if (tag) line.append(tag);
+        for (const currency of ['gold', 'faith'] as const) {
+          const tag = priceTag(city, item, currency, locked);
+          if (tag) line.append(tag);
+        }
       }
       grid.append(line);
     };

@@ -30,14 +30,14 @@ import {
   nextBorderCost,
   yieldContextFor,
 } from '../../src/sim/cities';
-import { previewCombat } from '../../src/sim/combat';
+import { inquisitorAuraLines, previewCombat } from '../../src/sim/combat';
 import { createGame, dispatch, snapshotState } from '../../src/sim/game';
 import { getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { improvementError, improvementErrorAt } from '../../src/sim/improvements';
 import {
   availableRites,
   beliefPool,
-  enhanceReligionError,
+  gainBeliefError,
   explainPressure,
   proclaimError,
   proclaimPreview,
@@ -55,7 +55,9 @@ import {
   pantheonSlots,
   performRiteAt,
   plantHolySiteError,
-  prophetPrice,
+  nextBeliefPool,
+  purgeError,
+  purgePreview,
   pruneTimedEffects,
   religionBlocker,
   riteError,
@@ -117,7 +119,7 @@ import {
 import { RULES } from '../../src/sim/rulesData';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { hasAbility } from '../../src/sim/tech';
-import { unitDef } from '../../src/sim/unitData';
+import { isCombatant, unitDef } from '../../src/sim/unitData';
 import { buildingDef } from '../../src/sim/buildingData';
 
 // --- harness ----------------------------------------------------------------
@@ -806,7 +808,7 @@ describe('rites', () => {
     // An empty augur.
     augur.chargesLeft = 0;
     expect(riteError(g.state, 0, augur.id, 'riteOfTheHarvest')).toMatch(/no rites left/);
-    augur.chargesLeft = 3;
+    augur.chargesLeft = 1;
 
     const before = snapshotState(g.state);
     const result = applyCommand(g.state, {
@@ -819,17 +821,16 @@ describe('rites', () => {
     expect(snapshotState(g.state)).toEqual(before);
   });
 
-  it('are the augur’s whole turn: a second one is refused, byte-identically', () => {
-    // User, 2026-08-28: "performing a rite should end the augur's turn". The
-    // *spending* half has been in `performRiteAt` since the rule was stated —
-    // `movesLeft` to zero — but the refusal that makes it bite was missing, so
-    // a three-charge augur could bless three towns in one resolution and the
-    // charge ladder bought nothing. Both halves now read `augurHasActed`.
+  it('is the augur’s one deed: the piece is spent, and a second rite has nobody to ask', () => {
+    // Entry LVIII: an augur carries **one** charge, so a rite is not merely the
+    // piece's turn — it is the piece. What used to be "three blessings over
+    // three turns" is three augurs' worth of faith, which is the whole of what
+    // the price ladder was built to ask.
     const g = game();
     learn(g.state, 0, 'divination');
     const city = found(g.state, 0);
     const augur = augurAt(g.state, 0, city.col, city.row);
-    expect(augur.chargesLeft ?? 0).toBeGreaterThan(1);
+    expect(augur.chargesLeft).toBe(1);
     expect(augur.movesLeft).toBeGreaterThan(0);
 
     const rite = {
@@ -839,23 +840,44 @@ describe('rites', () => {
       rite: 'riteOfTheHarvest',
     } as Command;
     expect(applyCommand(g.state, rite).ok).toBe(true);
-    // Still standing, still holding charges — and out of day.
-    expect(augur.chargesLeft).toBe(2);
-    expect(augur.movesLeft).toBe(0);
-
-    expect(riteError(g.state, 0, augur.id, 'riteOfTheHarvest')).toMatch(/acted this turn/);
-    // And the *other* act an augur can take is held to the same sentence: a
-    // blessing does not leave enough of the afternoon to found a god.
-    expect(consecrateError(g.state, 0, augur.id)).toMatch(/acted this turn/);
+    // Gone from the board, exactly as a worker that spends its last charge is.
+    expect(g.state.units.find((u) => u.id === augur.id)).toBeUndefined();
 
     const before = snapshotState(g.state);
     const second = applyCommand(g.state, rite);
     expect(second.ok).toBe(false);
-    expect(second.ok === false && second.error).toMatch(/acted this turn/);
+    expect(second.ok === false && second.error).toMatch(/No unit with id/);
+    expect(snapshotState(g.state)).toEqual(before);
+  });
+
+  it('holds an augur that spent its day to the *next* turn, both acts alike', () => {
+    // The half of `augurHasActed` the one-charge rework did not delete: an augur
+    // that walked its whole allowance to reach a town blesses it next turn. It
+    // is the bargain every other piece makes with its movement, and it is what
+    // keeps a bought augur from being walked to a front and spent in one breath.
+    const g = game();
+    learn(g.state, 0, 'divination');
+    const city = found(g.state, 0);
+    const augur = augurAt(g.state, 0, city.col, city.row);
+    augur.movesLeft = 0;
+
+    expect(riteError(g.state, 0, augur.id, 'riteOfTheHarvest')).toMatch(/acted this turn/);
+    // And the *other* act an augur can take is held to the same sentence.
+    faith(g.state, 0, 'starReaders');
+    expect(consecrateError(g.state, 0, augur.id)).toMatch(/acted this turn/);
+
+    const before = snapshotState(g.state);
+    const refused = applyCommand(g.state, {
+      type: 'performRite',
+      playerId: 0,
+      unitId: augur.id,
+      rite: 'riteOfTheHarvest',
+    } as Command);
+    expect(refused.ok).toBe(false);
     expect(snapshotState(g.state)).toEqual(before);
 
-    // Next turn it may act again: nothing counted down, `resetMovement` simply
-    // gave the piece its day back.
+    // Next turn it may act: nothing counted down, `resetMovement` simply gave
+    // the piece its day back.
     for (const player of g.state.players) {
       dispatch(g, { type: 'endTurn', playerId: player.id });
     }
@@ -896,8 +918,8 @@ describe('rites', () => {
     // The citizen is *placed*, not merely counted: the mid-turn register's whole
     // point (`refreshCityDerived`).
     expect(city.workedTiles.length).toBe(worked + 1);
-    // One charge, not the whole augur.
-    expect(g.state.units.find((u) => u.id === augur.id)!.chargesLeft).toBe(2);
+    // The one charge, which is the whole augur (Entry LVIII).
+    expect(g.state.units.find((u) => u.id === augur.id)).toBeUndefined();
   });
 
   it('Omen Reading banks beakers now and sharpens the scribes for twenty turns', () => {
@@ -1002,10 +1024,10 @@ describe('rites', () => {
     expect(city.culture).toBe(15);
   });
 
-  it('ends the augur’s turn, the way an attack spends an attacker', () => {
-    // User, 2026-08-27: "the rite should end the augur's turn". A rite is the
-    // day's work, not a thing a piece does on its way past — so a march after
-    // one is refused this turn and allowed the next.
+  it('takes the augur off the board, so there is nothing left to march', () => {
+    // User, 2026-08-27: "the rite should end the augur's turn" — and since Entry
+    // LVIII it ends rather more than that. A rite is the day's work *and* the
+    // piece, so the march after one is refused because there is nobody to order.
     const g = game();
     learn(g.state, 0, 'husbandry', 'earthenware', 'stonecraft');
     const city = found(g.state, 0);
@@ -1019,8 +1041,7 @@ describe('rites', () => {
       rite: 'consecrationOfTheBounds',
     } as Command);
 
-    expect(augur.chargesLeft).toBe(2);
-    expect(augur.movesLeft).toBe(0);
+    expect(g.state.units.find((u) => u.id === augur.id)).toBeUndefined();
     expect(
       applyCommand(g.state, {
         type: 'moveUnit',
@@ -1147,7 +1168,7 @@ describe('recasting the omens', () => {
   const RECAST = 'recastingTheOmens' as const;
   const GODS = BELIEF_IDS.filter(isPantheonBeliefId);
 
-  it('gives the god back, deals a hand without it, and spends one charge', () => {
+  it('gives the god back, deals a hand without it, and spends the augur', () => {
     const { g, augur, player } = ready();
     const given = GODS[0]!;
     const rival = GODS[1]!;
@@ -1172,11 +1193,9 @@ describe('recasting the omens', () => {
     expect(offer.options).not.toContain(rival);
     // The offer says what it was dealt in place of, so the card has a line.
     expect(offer.givenBack).toBe(given);
-    // One charge, and the augur's day.
-    expect(g.state.units.find((u) => u.id === augur.id)?.chargesLeft).toBe(
-      (unitDef('augur').charges ?? 0) - 1,
-    );
-    expect(g.state.units.find((u) => u.id === augur.id)?.movesLeft).toBe(0);
+    // The one charge, which is the whole augur — and the hand is still on the
+    // seat: the piece paying for it is gone and the decision is not.
+    expect(g.state.units.some((u) => u.id === augur.id)).toBe(false);
   });
 
   it('takes the augur’s last charge like every other rite', () => {
@@ -1461,9 +1480,14 @@ function siteAt(state: GameState, city: { id: number }, col: number, row: number
  * and inside the town's own bounds. A holy site is an improvement like any
  * other, so the fixture has to find ground the way a player would.
  */
-function landBeside(state: GameState, city: { col: number; row: number }) {
+function landBeside(
+  state: GameState,
+  city: { col: number; row: number },
+  ...avoid: { col: number; row: number }[]
+) {
   for (const tile of mapRange(state.map, tileHex(getTileAt(state.map, city.col, city.row)!), 1)) {
     if (tile.col === city.col && tile.row === city.row) continue;
+    if (avoid.some((hex) => hex.col === tile.col && hex.row === tile.row)) continue;
     if (improvementErrorAt(state, 0, tile, 'holySite') === null) return tile;
   }
   throw new Error('no ground beside the town');
@@ -1652,7 +1676,11 @@ describe('founding a religion', () => {
     expect(one.pantheon).toEqual(['keeperOfTheHearth']);
   });
 
-  it('founds, plants and opens a follower draft in one act — and blocks End Turn', () => {
+  it('founds, plants and opens TWO drafts in one act — and blocks End Turn', () => {
+    // Entry LVIII's founding: one prophet, one deed, **two** beliefs. The second
+    // hand is *drawn when the first is answered* rather than dealt alongside it,
+    // because both come out of the same bag — so the pin worth having is that
+    // the second offer never re-offers what the first pick took.
     const g = game();
     learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple');
     found(g.state, 0);
@@ -1674,13 +1702,53 @@ describe('founding a religion', () => {
     expect(ground.improvement).toBe('holySite');
     const player = playerById(g.state, 0)!;
     expect(player.pantheon.pending?.pool).toBe('follower');
+    expect(player.pantheon.owed).toBe(1);
     expect(religionBlocker(player)).toBe('a belief is waiting to be chosen');
-    // Taking it puts the belief on the **religion**, never on the pantheon.
-    const chosen = player.pantheon.pending!.options[0]!;
+
+    // The first pick puts the belief on the **religion**, never on the pantheon
+    // — and opens the second hand on the spot.
+    const first = player.pantheon.pending!.options[0]!;
     applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
-    expect(religion.follower).toEqual([chosen]);
+    expect(religion.follower).toEqual([first]);
     expect(player.pantheon.beliefs).toEqual(['keeperOfTheHearth']);
+    // Owed nothing more, and holding the second hand.
+    expect(player.pantheon.owed).toBeUndefined();
+    const second = player.pantheon.pending!;
+    expect(second.pool).toBe('follower');
+    expect(second.options).not.toContain(first);
+    expect(religionBlocker(player)).toBe('a belief is waiting to be chosen');
+
+    const taken = second.options[0]!;
+    applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
+    expect(religion.follower).toEqual([first, taken]);
     expect(religionBlocker(player)).toBeNull();
+    // And the prophet is gone: one charge, one deed, two beliefs.
+    expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
+  });
+
+  it('refuses a second founding, so a prophet can never raise a second site', () => {
+    // Entry LVIII: planting IS founding, and there is no later planting. The
+    // refusal is `foundReligionError`'s own sentence, asked unconditionally.
+    const g = game();
+    learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple');
+    found(g.state, 0);
+    keep(g.state, 0, 'keeperOfTheHearth');
+    const seat = g.state.cities.find((city) => city.ownerId === 0)!;
+    const ground = landBeside(g.state, seat);
+    const first = prophetAt(g.state, 0, ground.col, ground.row);
+    expect(applyCommand(g.state, { type: 'plantHolySite', playerId: 0, unitId: first.id } as Command).ok).toBe(true);
+    // Both of the founding's drafts answered, so the refusal below is the
+    // *founding* one rather than the pending-offer one every prophet verb
+    // shares.
+    applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
+    applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
+
+    const elsewhere = landBeside(g.state, seat, ground);
+    const second = prophetAt(g.state, 0, elsewhere.col, elsewhere.row);
+    expect(plantHolySiteError(g.state, 0, second.id)).toMatch(/already founded a religion/);
+    const before = snapshotState(g.state);
+    expect(applyCommand(g.state, { type: 'plantHolySite', playerId: 0, unitId: second.id } as Command).ok).toBe(false);
+    expect(snapshotState(g.state)).toEqual(before);
   });
 
   it('tells a bought prophet standing on the city centre to move, not the ground’s own sentence', () => {
@@ -2074,6 +2142,20 @@ describe('the pressure ledger', () => {
     expect(body('convertCitizens')).toContain('convertCitizen(');
     // And the temple is one rule too, for the same reason.
     expect(source.match(/\btempleShare\(/g)?.length).toBe(3);
+
+    // **The Purge is deliberately not a third caller** (Entry LVIII). It is the
+    // mirror act, and a signed `amount` through `bankPressure` would have been
+    // two functions sharing a name — the carry, the cap and the convert loop all
+    // read the wrong way round under a negative lump. What the two genuinely
+    // share is the *bank's own bookkeeping*, so `writeBank` is what is declared
+    // once and called from both, and `unconvertCitizen` is `convertCitizen`'s
+    // sibling in `state.ts` for the same reason `convertCitizen` lives there.
+    expect(source.match(/\bpurgePressure\(/g)?.length).toBe(2);
+    expect(body('purgeAt')).toContain('purgePressure(');
+    expect(body('bankPressure')).toContain('writeBank(');
+    expect(body('purgePressure')).toContain('writeBank(');
+    expect(source.match(/\bunconvertCitizen\(/g)?.length).toBe(1);
+    expect(body('purgePressure')).toContain('unconvertCitizen(');
   });
 
   it('lets a wonder press for the empire that holds the stones', () => {
@@ -2376,7 +2458,7 @@ describe('the prophet’s four verbs', () => {
   it('refuses every verb to a piece that is not a prophet, byte-identically', () => {
     const { g } = readyProphet();
     const augur = augurAt(g.state, 0, 6, 6);
-    for (const type of ['plantHolySite', 'enhanceReligion', 'proclaim'] as const) {
+    for (const type of ['plantHolySite', 'gainBelief', 'proclaim'] as const) {
       const before = snapshotState(g.state);
       const result = applyCommand(g.state, { type, playerId: 0, unitId: augur.id } as Command);
       expect(result.ok, type).toBe(false);
@@ -2384,12 +2466,10 @@ describe('the prophet’s four verbs', () => {
     }
   });
 
-  it('is used up entirely by the founding, whatever charges it was carrying', () => {
-    // The user's ruling of 2026-08-29: founding a religion consumes the
-    // prophet. A piece with both charges in hand is still gone the moment the
-    // first stones go up — the price is the *act*, not what is left over.
+  it('is used up entirely by the founding — one charge, one deed', () => {
+    // Entry LVIII: a prophet carries one charge and founding spends the piece.
     const { g, prophet } = readyProphet();
-    expect(prophet.chargesLeft).toBe(2);
+    expect(prophet.chargesLeft).toBe(1);
     const result = applyCommand(g.state, {
       type: 'plantHolySite',
       playerId: 0,
@@ -2398,71 +2478,79 @@ describe('the prophet’s four verbs', () => {
     expect(result.ok).toBe(true);
     expect(foundedReligion(g.state, 0)).toBeDefined();
     expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
-    // Everything else the founding owed still happened: the stones and the
-    // draft the religion is still due.
+    // Everything else the founding owed still happened: the stones, the first
+    // draft, and the debt for the second.
     expect(playerById(g.state, 0)!.pantheon.pending?.pool).toBe('follower');
+    expect(playerById(g.state, 0)!.pantheon.owed).toBe(1);
   });
 
-  it('spends one charge on a later holy site, and never moves the seat of the faith', () => {
-    const { g, prophet } = readyProphet();
-    applyCommand(g.state, { type: 'plantHolySite', playerId: 0, unitId: prophet.id } as Command);
-    applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
-    const religion = foundedReligion(g.state, 0)!;
-    const seat = { ...religion.holySite! };
-    // A second prophet, on other ground of the same town: planting is a
-    // standing option once a religion exists, and it costs a charge.
-    const town = g.state.cities.find((city) => city.ownerId === 0)!;
-    const ground = landBeside(g.state, town);
-    const second = prophetAt(g.state, 0, ground.col, ground.row);
-    expect(second.chargesLeft).toBe(2);
-    expect(
-      applyCommand(g.state, { type: 'plantHolySite', playerId: 0, unitId: second.id } as Command)
-        .ok,
-    ).toBe(true);
-    const standing = g.state.units.find((u) => u.id === second.id)!;
-    expect(standing.chargesLeft).toBe(1);
-    expect(ground.improvement).toBe('holySite');
-    // The anchor is the *first* stones and only ever those — `religionFounder`
-    // reads it, so a site on a frontier must not hand the founder's pay to
-    // whoever takes that frontier.
-    expect(religion.holySite).toEqual(seat);
-  });
-
-  it('is used up entirely by an enhancement, and a proclamation costs one charge', () => {
+  it('walks one belief ladder: three follower beliefs, then two enhancers', () => {
+    // The ruled caps of Entry LVIII, and the interpretation `nextBeliefPool`
+    // carries: one verb, and the ladder decides which house it draws from.
     const { g, prophet } = readyProphet();
     const religion = faith(g.state, 0, 'starReaders');
+    expect(RELIGION.pools.followerSlots).toBe(3);
+    expect(RELIGION.pools.enhancerSlots).toBe(2);
+    expect(nextBeliefPool(religion)).toBe('follower');
+
+    /** One prophet, one belief — spent from the seat, answered on the spot. */
+    const drawOne = (): void => {
+      const seat = g.state.cities.find((city) => city.ownerId === 0)!;
+      const piece = prophetAt(g.state, 0, seat.col, seat.row);
+      expect(gainBeliefError(g.state, 0, piece.id), String(religion.follower.length)).toBeNull();
+      expect(
+        applyCommand(g.state, { type: 'gainBelief', playerId: 0, unitId: piece.id } as Command).ok,
+      ).toBe(true);
+      expect(g.state.units.find((u) => u.id === piece.id)).toBeUndefined();
+      applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
+    };
+
+    // Three follower beliefs, one prophet each — and the enhancer house is not
+    // reached while the follower house has room, whatever the tree says.
     learn(g.state, 0, 'philosophy', 'drama', 'theology');
-    // **A charge is the prophet's whole turn** — the augur's rule, one agent
-    // over — so a second verb waits for the movement a resolution refills.
+    drawOne();
+    drawOne();
+    drawOne();
+    expect(religion.follower.length).toBe(3);
+    expect(religion.enhancer.length).toBe(0);
+    expect(nextBeliefPool(religion)).toBe('enhancer');
+
+    // Then two enhancers, by the same verb.
+    drawOne();
+    drawOne();
+    expect(religion.enhancer.length).toBe(2);
+    expect(new Set([...religion.follower, ...religion.enhancer]).size).toBe(5);
+
+    // And the ladder is finished: the sixth prophet is refused by the cap.
+    expect(nextBeliefPool(religion)).toBeNull();
+    const seat = g.state.cities.find((city) => city.ownerId === 0)!;
+    const spare = prophetAt(g.state, 0, seat.col, seat.row);
+    expect(gainBeliefError(g.state, 0, spare.id)).toBe(
+      `${religion.name} has all the beliefs it will hold`,
+    );
+    const before = snapshotState(g.state);
+    expect(
+      applyCommand(g.state, { type: 'gainBelief', playerId: 0, unitId: spare.id } as Command).ok,
+    ).toBe(false);
+    expect(snapshotState(g.state)).toBe(before);
+    void prophet;
+  });
+
+  it('is used up by a proclamation, and the report says what it did', () => {
+    const { g, prophet } = readyProphet();
+    const religion = faith(g.state, 0, 'starReaders');
     const spoke = applyCommand(g.state, {
       type: 'proclaim',
       playerId: 0,
       unitId: prophet.id,
     } as Command);
-    const standing = g.state.units.find((u) => u.id === prophet.id)!;
-    expect(standing.chargesLeft).toBe(1);
     // The proclamation is an *act*, not a thing left on the board: what it did
     // comes back on the result and nothing on the religion records it.
     expect(spoke.ok && spoke.proclaimed?.religionId).toBe(religion.id);
-    expect(proclaimError(g.state, 0, prophet.id)).toBe(`Unit ${prophet.id} has no movement left`);
-    standing.movesLeft = 2;
-    // And the enhancement takes the piece, last charge or not — here it is the
-    // last one anyway, which is the case the two rules agree on.
-    applyCommand(g.state, { type: 'enhanceReligion', playerId: 0, unitId: prophet.id } as Command);
+    // One charge, one deed: the piece is gone, so there is no second verb to
+    // refuse — the refusal is simply that there is no such unit.
     expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
-    expect(playerById(g.state, 0)!.pantheon.pending?.pool).toBe('enhancer');
-  });
-
-  it('is used up by an enhancement even with a charge still in hand', () => {
-    const { g, prophet } = readyProphet();
-    faith(g.state, 0, 'starReaders');
-    learn(g.state, 0, 'philosophy', 'drama', 'theology');
-    expect(prophet.chargesLeft).toBe(2);
-    expect(
-      applyCommand(g.state, { type: 'enhanceReligion', playerId: 0, unitId: prophet.id } as Command)
-        .ok,
-    ).toBe(true);
-    expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
+    expect(proclaimError(g.state, 0, prophet.id)).toBe(`No unit with id ${prophet.id}`);
   });
 
   it('leaves the board when a proclamation takes its last charge', () => {
@@ -2473,21 +2561,6 @@ describe('the prophet’s four verbs', () => {
       applyCommand(g.state, { type: 'proclaim', playerId: 0, unitId: prophet.id } as Command).ok,
     ).toBe(true);
     expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
-  });
-
-  it('prices each verb once, for the row that has to say what it costs', () => {
-    // The interface's sentence is `PROPHET_PRICE_WORD` of this, so what the
-    // sheet promises and what the reducer charges are one answer.
-    const { g, prophet } = readyProphet();
-    expect(prophetPrice(g.state, 0, 'plantHolySite')).toBe('whole');
-    expect(prophetPrice(g.state, 0, 'enhanceReligion')).toBe('whole');
-    expect(prophetPrice(g.state, 0, 'proclaim')).toBe('charge');
-    expect(prophetPrice(g.state, 0, 'redraftBeliefs')).toBe('charge');
-    faith(g.state, 0, 'starReaders');
-    // Only planting's price moves, and it moves with the religion existing.
-    expect(prophetPrice(g.state, 0, 'plantHolySite')).toBe('charge');
-    expect(prophetPrice(g.state, 0, 'enhanceReligion')).toBe('whole');
-    void prophet;
   });
 
   it('refuses a proclamation from an empire with no religion', () => {
@@ -2502,48 +2575,37 @@ describe('the prophet’s four verbs', () => {
     expect(snapshotState(g.state)).toBe(before);
   });
 
-  it('needs Theology to enhance, and gates on enhancerSlots', () => {
-    const { g, prophet } = readyProphet();
-    faith(g.state, 0, 'starReaders');
-    expect(enhanceReligionError(g.state, 0, prophet.id)).toContain('Theology');
-    learn(g.state, 0, 'philosophy', 'drama', 'theology');
-    expect(enhanceReligionError(g.state, 0, prophet.id)).toBeNull();
-    applyCommand(g.state, { type: 'enhanceReligion', playerId: 0, unitId: prophet.id } as Command);
-    expect(playerById(g.state, 0)!.pantheon.pending?.pool).toBe('enhancer');
-    applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
-    const religion = foundedReligion(g.state, 0)!;
-    // **A list, and it accumulates.** `Religion.enhancer` was a scalar until the
-    // 2026-08-28 pass, and with `enhancerSlots` at two a second pick silently
-    // overwrote the first.
-    expect(religion.enhancer.length).toBe(1);
-    const first = religion.enhancer[0]!;
+  it('still gates the enhancer rung on Theology, and says so on the ladder', () => {
+    // Unchanged by the rework (Entry LVIII): the enhancer pool opens at
+    // `ENHANCER_TECH`. What changed is *when the rung is reached* — the follower
+    // house has to be full first — so the gate is asked of the rung rather than
+    // of a verb of its own.
+    const { g } = readyProphet();
+    const religion = faith(g.state, 0, 'starReaders');
+    // Fill the follower house by hand, so the ladder's next rung is the gated
+    // one and nothing else is in the way.
+    religion.follower = religionBeliefPool(religion, 'follower').slice(0, 3);
+    expect(religion.follower.length).toBe(3);
+    expect(nextBeliefPool(religion)).toBe('enhancer');
 
-    // The second is accepted — there is room for two — but it takes a second
-    // prophet: an enhancement uses the piece up (user, 2026-08-29).
-    expect(RELIGION.pools.enhancerSlots).toBe(2);
-    expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
-    const home = g.state.cities.find((city) => city.ownerId === 0)!;
-    const another = prophetAt(g.state, 0, home.col, home.row);
-    expect(enhanceReligionError(g.state, 0, another.id)).toBeNull();
-    applyCommand(g.state, { type: 'enhanceReligion', playerId: 0, unitId: another.id } as Command);
-    applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
-    expect(religion.enhancer.length).toBe(2);
-    // The first pick is still held, which is the whole of what the scalar broke.
-    expect(religion.enhancer[0]).toBe(first);
-    expect(new Set(religion.enhancer).size).toBe(2);
-
-    // The third is refused at the cap, with the sentence that says why.
     const seat = g.state.cities.find((city) => city.ownerId === 0)!;
-    const third = prophetAt(g.state, 0, seat.col, seat.row);
-    expect(enhanceReligionError(g.state, 0, third.id)).toBe(
-      `${religion.name} has all the enhancements it will hold`,
-    );
+    const piece = prophetAt(g.state, 0, seat.col, seat.row);
+    expect(gainBeliefError(g.state, 0, piece.id)).toContain('Theology');
     const before = snapshotState(g.state);
     expect(
-      applyCommand(g.state, { type: 'enhanceReligion', playerId: 0, unitId: third.id } as Command)
-        .ok,
+      applyCommand(g.state, { type: 'gainBelief', playerId: 0, unitId: piece.id } as Command).ok,
     ).toBe(false);
     expect(snapshotState(g.state)).toBe(before);
+
+    learn(g.state, 0, 'philosophy', 'drama', 'theology');
+    expect(gainBeliefError(g.state, 0, piece.id)).toBeNull();
+    applyCommand(g.state, { type: 'gainBelief', playerId: 0, unitId: piece.id } as Command);
+    expect(playerById(g.state, 0)!.pantheon.pending?.pool).toBe('enhancer');
+    applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
+    // **A list, and it accumulates.** `Religion.enhancer` was a scalar until the
+    // 2026-08-28 pass, and with two slots a second pick silently overwrote the
+    // first.
+    expect(religion.enhancer.length).toBe(1);
   });
 
   it('replays a prophet’s charges byte for byte', () => {
@@ -2560,10 +2622,14 @@ describe('the prophet’s four verbs', () => {
       const prophet = prophetAt(g.state, 0, ground.col, ground.row);
       dispatch(g, { type: 'plantHolySite', playerId: 0, unitId: prophet.id } as Command);
       dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
-      // The founding took the first prophet with it, so the enhancement is a
-      // second one's — which is the shape of the log this now replays.
+      // The founding's *second* draft opened the moment the first was answered
+      // (`payBeliefDebt`), so this pick is the debt being paid — and it is part
+      // of what has to replay identically.
+      dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
+      // The founding took the first prophet with it, so a third belief is a
+      // second prophet's — which is the shape of the log this now replays.
       const second = prophetAt(g.state, 0, seat.col, seat.row);
-      dispatch(g, { type: 'enhanceReligion', playerId: 0, unitId: second.id } as Command);
+      dispatch(g, { type: 'gainBelief', playerId: 0, unitId: second.id } as Command);
       dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
       return g;
     };
@@ -2577,8 +2643,10 @@ describe('the prophet’s four verbs', () => {
     const stones = getTileAt(first.state.map, religion.holySite!.col, religion.holySite!.row)!;
     expect(stones.improvement).toBe('holySite');
     expect(religionFounder(first.state, religion)).toBe(0);
-    expect(religion.follower.length).toBe(1);
-    expect(religion.enhancer.length).toBe(1);
+    // Two from the founding, one from the second prophet — and none of them an
+    // enhancer, because the follower house was not full.
+    expect(religion.follower.length).toBe(3);
+    expect(religion.enhancer.length).toBe(0);
   });
 
   it('redrafts a pool, returns what it held, and never touches the pantheon', () => {
@@ -2601,9 +2669,8 @@ describe('the prophet’s four verbs', () => {
       pool: 'follower',
     } as Command);
     expect(religion.follower).toEqual([]);
-    // A redraft is one charge and no more (user, 2026-08-29): the prophet is
-    // still standing with the other one.
-    expect(g.state.units.find((u) => u.id === prophet.id)!.chargesLeft).toBe(1);
+    // One charge, one deed (Entry LVIII): a redraft takes the prophet too.
+    expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
     const offer = playerById(g.state, 0)!.pantheon.pending!;
     expect(offer.pool).toBe('follower');
     // The belief given back is in the bag again — a declined god's rule.
@@ -2657,5 +2724,152 @@ describe('the prophet’s four verbs', () => {
     });
     // Nothing is left standing on the board.
     expect(seat.pressureBank).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+/**
+ * **The Holy Office's inquisitor** (ledger Entry LVIII, phase 2).
+ *
+ * Three claims, and each is the mirror of something the prophet already does:
+ * the Purge is a lump like a proclamation and takes where that gives; the piece
+ * is one charge like every other religious agent; and the aura is the general's
+ * read one agent over, folded into `planCombat` as a flat labelled line.
+ */
+describe('the inquisitor', () => {
+  /** A seat with a faith, a rival's faith, and an inquisitor between them. */
+  function ready(seed = 5) {
+    const g = game(seed);
+    const mine = town(g.state, 0, 6, 6);
+    const theirs = town(g.state, 1, 8, 6);
+    const ours = faith(g.state, 0, 'keeperOfTheHearth');
+    const rival = faith(g.state, 1, 'starReaders');
+    const piece = createUnit(g.state, 0, 'inquisitor', 7, 6);
+    return { g, mine, theirs, ours, rival, piece };
+  }
+
+  it('carries one charge and is bought out of the faith bank', () => {
+    expect(unitDef('inquisitor').charges).toBe(1);
+    expect(unitDef('inquisitor').purges).toBe(true);
+    expect(unitDef('inquisitor').purchase?.currency).toBe('faith');
+    expect(unitDef('inquisitor').purchase?.exclusive).toBe(true);
+    // A civilian, like the other two agents: it does not fight, it stiffens.
+    expect(isCombatant(unitDef('inquisitor'))).toBe(false);
+  });
+
+  it('strips every rival faith’s bank, spares its own, and spends the piece', () => {
+    const { g, mine, theirs, ours, rival, piece } = ready();
+    // Both faiths have banked something on both towns.
+    mine.pressureBank = { [ours.id]: 7, [rival.id]: 9 };
+    theirs.pressureBank = { [rival.id]: 30 };
+
+    const result = applyCommand(g.state, { type: 'purge', playerId: 0, unitId: piece.id } as Command);
+    expect(result.ok).toBe(true);
+    // The rival's banks are gone from every town in reach; ours is untouched.
+    expect(mine.pressureBank?.[ours.id]).toBe(7);
+    expect(mine.pressureBank?.[rival.id]).toBeUndefined();
+    expect(theirs.pressureBank?.[rival.id]).toBeUndefined();
+    // One charge, one deed.
+    expect(g.state.units.find((u) => u.id === piece.id)).toBeUndefined();
+    // And the report names the faith it spared and every town it reached.
+    expect(result.ok && result.purged?.religionId).toBe(ours.id);
+    expect(result.ok && result.purged?.cities.map((city) => city.cityId).sort()).toEqual(
+      [mine.id, theirs.id].sort(),
+    );
+  });
+
+  it('turns believers back to nobody when the bank does not cover the lump', () => {
+    const { g, theirs, rival, piece } = ready();
+    theirs.population = 8;
+    theirs.followers = { [rival.id]: 8 };
+    // Nothing banked, so the whole lump is a deficit: 60 against 10 a convert.
+    expect(RULES.religion.purgeLump).toBe(60);
+    expect(RULES.religion.pressurePerConvert).toBe(10);
+
+    const result = applyCommand(g.state, { type: 'purge', playerId: 0, unitId: piece.id } as Command);
+    expect(result.ok).toBe(true);
+    // Six of the eight, and they follow **nothing** — an inquisitor unmakes
+    // belief, it does not preach, which is what keeps this and the Preaching
+    // two verbs.
+    expect(theirs.followers?.[rival.id]).toBe(2);
+    expect(unconvertedCitizens(theirs)).toBe(6);
+    expect(result.ok && result.purged?.cities).toContainEqual({
+      cityId: theirs.id,
+      unfollowed: 6,
+    });
+    // And nothing is left standing: no negative bank to carry.
+    expect(theirs.pressureBank).toBeUndefined();
+  });
+
+  it('reaches half as far as a proclamation, and the preview promises what it pays', () => {
+    const { g, theirs, rival, piece } = ready();
+    expect(RULES.religion.purgeRange).toBe(5);
+    expect(RULES.religion.purgeRange * 2).toBe(RULES.religion.bombRange);
+    theirs.population = 8;
+    theirs.followers = { [rival.id]: 8 };
+
+    const preview = purgePreview(g.state, piece.id)!;
+    expect(preview.range).toBe(5);
+    const promised = preview.cities.find((city) => city.cityId === theirs.id)!;
+    applyCommand(g.state, { type: 'purge', playerId: 0, unitId: piece.id } as Command);
+    // The promise on the row is kept by the function that keeps it.
+    expect(unconvertedCitizens(theirs)).toBe(promised.unfollowed);
+  });
+
+  it('refuses a purge from an empire with no faith to purge for, byte-identically', () => {
+    const g = game();
+    town(g.state, 0, 6, 6);
+    const piece = createUnit(g.state, 0, 'inquisitor', 7, 6);
+    expect(purgeError(g.state, 0, piece.id)).toMatch(/no faith to purge for/);
+    const before = snapshotState(g.state);
+    expect(applyCommand(g.state, { type: 'purge', playerId: 0, unitId: piece.id } as Command).ok).toBe(
+      false,
+    );
+    expect(snapshotState(g.state)).toBe(before);
+  });
+
+  it('stiffens the soldiers beside it, on both sides and never itself', () => {
+    const g = game();
+    const soldier = createUnit(g.state, 0, 'warrior', 6, 6);
+    const piece = createUnit(g.state, 0, 'inquisitor', 7, 6);
+    const amount = RULES.religion.inquisitorAuraStrength;
+    expect(amount).toBe(2);
+
+    expect(inquisitorAuraLines(g.state, soldier)).toEqual([
+      { source: unitDef('inquisitor').name, amount },
+    ]);
+    // A civilian gets nothing, the inquisitor included — an aura that made the
+    // bearer harder to kill would be a rule about hiding.
+    expect(inquisitorAuraLines(g.state, piece)).toEqual([]);
+    // One's own side only.
+    const foreign = createUnit(g.state, 1, 'warrior', 7, 7);
+    expect(inquisitorAuraLines(g.state, foreign)).toEqual([]);
+    // Radius one: two hexes away is out of reach, where a general's is not.
+    const far = createUnit(g.state, 0, 'warrior', 9, 6);
+    expect(inquisitorAuraLines(g.state, far)).toEqual([]);
+    // Auras do not stack: a second inquisitor is worth nothing.
+    createUnit(g.state, 0, 'inquisitor', 6, 5);
+    expect(inquisitorAuraLines(g.state, soldier)).toHaveLength(1);
+  });
+
+  it('folds that aura into the forecast on whichever side is standing beside it', () => {
+    const g = game();
+    const attacker = createUnit(g.state, 0, 'warrior', 6, 6);
+    createUnit(g.state, 1, 'warrior', 7, 6);
+    const plain = previewCombat(g.state, attacker.id, { col: 7, row: 6 });
+    expect(plain.ok).toBe(true);
+    const before = plain.ok ? plain.attackerStrength : 0;
+
+    createUnit(g.state, 0, 'inquisitor', 6, 5);
+    const guarded = previewCombat(g.state, attacker.id, { col: 7, row: 6 });
+    expect(guarded.ok).toBe(true);
+    if (!guarded.ok) return;
+    // A flat labelled point total, folded into the strength like every other —
+    // never a term in a multiplier (Entry XXXVII).
+    expect(guarded.attackerStrength - before).toBe(RULES.religion.inquisitorAuraStrength);
+    expect(
+      guarded.bonuses.some((line) => line.source === 'Inquisitor' && line.side === 'attacker'),
+    ).toBe(true);
   });
 });

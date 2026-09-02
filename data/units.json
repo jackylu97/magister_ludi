@@ -615,7 +615,7 @@
       "maxHp": 100,
       "combatStrength": 0,
       "cost": 0,
-      "charges": 3,
+      "charges": 1,
       "consecrates": true,
       "purchase": {
         "currency": "faith",
@@ -638,7 +638,7 @@
       "maxHp": 100,
       "combatStrength": 0,
       "cost": 0,
-      "charges": 2,
+      "charges": 1,
       "prophesies": true,
       "purchase": {
         "currency": "faith",
@@ -652,6 +652,28 @@
       "minCityPop": 0,
       "modelClass": "worker",
       "glyph": "P"
+    },
+    "inquisitor": {
+      "name": "Inquisitor",
+      "category": "civilian",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 0,
+      "cost": 0,
+      "charges": 1,
+      "purges": true,
+      "purchase": {
+        "currency": "faith",
+        "cost": 200,
+        "exclusive": true,
+        "verb": "Call an inquisitor"
+      },
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "worker",
+      "glyph": "I"
     },
     "greatPerson": {
       "name": "Great Person",

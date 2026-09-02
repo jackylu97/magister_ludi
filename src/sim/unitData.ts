@@ -83,6 +83,9 @@ export type UnitTypeId =
   | 'fireLance'
   | 'augur'
   | 'prophet'
+  // The Holy Office's agent (Entry LVIII): the faith rework's third religious
+  // piece, bought out of the faith bank and spent on one Purge.
+  | 'inquisitor'
   | 'greatPerson';
 
 /**
@@ -378,6 +381,24 @@ export interface UnitDef {
    * holy site (`improvementError`).
    */
   prophesies?: boolean;
+  /**
+   * True when this unit's charge is an **inquisitor's** — the Purge, which
+   * strips every rival faith's banked pressure off the towns around it — or the
+   * field is **absent** for everything that digs, prays, prophesies or leaves a
+   * work.
+   *
+   * Presence is the marker, exactly as with `foundsCity`, `charges`,
+   * `consecrates`, `greatWork` and `prophesies`: nothing in `src/sim/` asks
+   * whether a type is `"inquisitor"`, so the Holy Office's third agent is one
+   * data row. It is the fifth reading of one charge counter — one act in a box,
+   * and *which* act is this flag.
+   *
+   * The **aura is bound to it too** (`inquisitorAuraLines`, `combat.ts`): a
+   * standing inquisitor stiffens the soldiers beside it, which is a fact about
+   * the type rather than about the charge, and it is read off this marker for
+   * the reason every other rule here is — a second such piece is a data row.
+   */
+  purges?: boolean;
   /**
    * True when this unit may be **sent** — it carries a trade route between two
    * cities and lays road under its feet — or the field is **absent** for

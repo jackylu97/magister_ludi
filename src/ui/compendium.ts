@@ -370,7 +370,7 @@ function eitherWords(parts: readonly string[]): string {
  */
 function badgeClassOf(def: UnitDef): string {
   if (def.greatWork === true) return 'greatPerson';
-  if (def.consecrates === true) return 'religious';
+  if (def.consecrates === true || def.purges === true) return 'religious';
   return def.modelClass;
 }
 
@@ -421,16 +421,16 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
     def.charges !== undefined &&
     def.consecrates !== true &&
     def.greatWork !== true &&
-    def.prophesies !== true
+    def.prophesies !== true &&
+    def.purges !== true
   ) {
     out.push({
       text: `Carries ${def.charges} work ${plural(def.charges, 'charge')}. Building an improvement spends one or more of them, and the unit is used up when they run out.`,
     });
   }
   if (def.consecrates === true) {
-    const charges = def.charges ?? 0;
     out.push({
-      text: `Carries ${charges} ${plural(charges, 'charge')}. Performing a rite on a city spends one of them; adding a belief to your pantheon uses up the whole unit.`,
+      text: 'One deed, and it uses up the whole unit: perform a rite on a city, or add a belief to your pantheon. Whichever it is, it spends the augur’s whole turn as well.',
     });
   }
   // The **prophet**, and it is `consecrates`' sibling in every respect: a marker
@@ -438,12 +438,21 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
   // that has to be said in its own vocabulary or it reads as spadework — the
   // clause above it would otherwise claim a prophet digs mines.
   if (def.prophesies === true) {
-    const charges = def.charges ?? 0;
     out.push({
-      text: `Carries ${charges} ${plural(charges, 'charge')}, and each act spends the whole turn. A charge proclaims your faith over the land around it, gives one of your religion's drafts back to be drawn again, or raises a holy site once your religion stands.`,
+      text: 'One deed, and it uses up the whole unit: found your religion where it stands, draw another belief for a religion you already have, proclaim your faith over the land around it, or give one of your religion’s pools back to be drawn again.',
     });
     out.push({
-      text: 'The first holy site a prophet plants founds your religion, out of the gods you already keep. Founding a religion uses up the whole unit, and so does drawing an enhancer belief for it.',
+      text: 'Founding raises the holy site that anchors the faith, out of the gods you already keep, and opens two belief drafts — the second offered the moment the first is answered. Later prophets fill the follower beliefs first and the enhancer beliefs after them, and the enhancers wait on a technology.',
+    });
+  }
+  // The **inquisitor**, `prophesies`' third sibling: a marker on the row, and a
+  // charge that is neither spadework nor a rite.
+  if (def.purges === true) {
+    out.push({
+      text: 'One deed, and it uses up the whole unit: the purge. Every rival faith loses the pressure it has banked on every town nearby, and where that is not enough, believers of those faiths are turned back to following nothing at all. The faith your own realm keeps is spared.',
+    });
+    out.push({
+      text: 'While it stands, friendly units on the hexes beside it fight harder. A second inquisitor beside the same soldiers adds nothing.',
     });
   }
   if (def.greatWork === true) {

@@ -5,9 +5,17 @@
  * Faith is the **third draft currency**. Culture drafts Orders (slottable
  * posture), faith drafts **beliefs** (permanent identity) — and, unlike culture,
  * it does not draft directly: it buys the *agent* who does the drafting. That
- * one indirection is the whole design. An augur is three rites or one god, and
- * it costs more every time, so "when do I spend faith on a god rather than on
- * three good turns" is a real question with no dominant answer.
+ * one indirection is the whole design. **An agent is one deed** (Entry LVIII,
+ * the faith rework of 2026-09-02) — an augur is one rite *or* one god, a prophet
+ * is a founding *or* a proclamation *or* a belief — and every one of them costs
+ * more faith than the last, so "what is this prophet for" is a question asked
+ * once, answered once, and never taken back.
+ *
+ * That one-charge rule replaced a ladder of partial spends (three rites out of
+ * an augur, two acts out of a prophet) and it is worth saying why: a piece with
+ * three charges makes the *first* act nearly free and the last one agonising,
+ * which is the opposite of the decision the price ladder was built to pose. One
+ * charge puts the whole price on every deed.
  *
  * What this module is, and what it deliberately is not
  * ----------------------------------------------------
@@ -69,6 +77,7 @@ import {
   playerById,
   realPlayers,
   removeUnit,
+  unconvertCitizen,
   unitById,
 } from './state';
 import {
@@ -228,12 +237,13 @@ export function isAugur(unit: Unit): boolean {
  * the augur's whole turn" (user, 2026-08-27, restated in the 8/28 playtest as
  * "performing a rite should end the augur's turn").
  *
- * `performRiteAt` has zeroed `movesLeft` since the rule was first stated, but
- * *spending* the turn and *refusing the next act* are two halves of one rule and
- * only the first half had been written: an augur with two charges could perform
- * two rites in one resolution, which is precisely the sprint the charge ladder
- * exists to prevent. Both gates below ask this, so the second rite and the
- * consecration after a rite are refused by the same sentence.
+ * Since the one-charge rework (Entry LVIII) an augur that has *acted* is an
+ * augur that has left the board, so this no longer stands between two acts of
+ * the same piece. What it still says is the half that was always about the
+ * board: **an augur that walked its whole allowance to reach a town blesses it
+ * next turn.** That is the bargain every other piece makes with its movement,
+ * and it is the only thing keeping a bought augur from being teleported to a
+ * front and spent in the same breath.
  *
  * `movesLeft`, rather than a flag of its own, because that is already the
  * game's word for "this piece has acted": a worker's verbs refuse on it
@@ -250,12 +260,11 @@ export function augurHasActed(unit: Unit): boolean {
 /**
  * Why this augur cannot consecrate, or `null` when it can.
  *
- * **Consecrate spends the whole unit, whatever it has left.** That is the
- * anti-spam structure (`docs/deprecated/religion.md`): an augur is *either* three rites *or*
- * one god, so a player who has already spent two charges is giving up much less
- * than one who has spent none, and the choice is a real one at every point on
- * that curve. There is therefore no charge clause here at all — only a slot one,
- * and the turn clause every act of an augur's now shares (`augurHasActed`).
+ * **Consecrate spends the whole unit**, which since Entry LVIII is what every
+ * act of an augur's does: an augur is *either* one rite *or* one god, and the
+ * price ladder makes the second augur dearer whichever of the two the first was
+ * spent on. There is therefore no charge clause here at all — only a slot one,
+ * and the turn clause every act of an augur's shares (`augurHasActed`).
  *
  * The blocker sentence for a full pantheon is the one the unit panel prints, so
  * a greyed row and a refused command say the same thing.
@@ -391,6 +400,7 @@ export function settleBeliefChoice(
     if (pool === 'follower') religion.follower.push(id);
     else religion.enhancer.push(id);
     refreshBeliefDerived(state, player);
+    payBeliefDebt(state, player);
     return { id, name: beliefDef(id).name };
   }
   player.pantheon.beliefs.push(id);
@@ -400,7 +410,48 @@ export function settleBeliefChoice(
   // triumph in the mechanism rather than in the reducer, where an AI naming a
   // god would earn nothing.
   awardOccasion(state, player.id, 'beliefConsecrated');
+  payBeliefDebt(state, player);
   return { id, name: beliefDef(id).name };
+}
+
+/**
+ * Deals the next draft an empire is **owed**, if it is owed one — the founding's
+ * second offer, and nothing else today (Entry LVIII).
+ *
+ * **The moment an offer opens is the moment it is drawn**, and this function is
+ * that doctrine applied to a debt. A founding grants two belief drafts off one
+ * prophet; both come out of the same bag, so dealing them together would put the
+ * same belief on two tables and leave the second hand offering a belief the
+ * religion had already taken. The second hand therefore opens the instant the
+ * first is answered — which is a *command*, so the draw is as log-determined as
+ * every other draft in the game and no seat can affect it by when it looks at a
+ * screen.
+ *
+ * Three ways the debt is simply forgiven rather than carried, all of them the
+ * same condition read through `drawableBeliefPool`: the religion is gone, the
+ * ladder has no rung open, or the bag for that rung is empty. A debt that
+ * outlived its ability to be paid would be a `pending` offer nobody could ever
+ * deal and an End Turn blocker nobody could ever clear — `riteError`'s
+ * empty-hand refusal, one system over.
+ *
+ * The key is deleted the moment the debt reaches zero, so an empire that has
+ * answered everything serialises exactly like one that was never asked.
+ */
+function payBeliefDebt(state: GameState, player: Player): void {
+  const owed = player.pantheon.owed ?? 0;
+  if (owed <= 0) {
+    delete player.pantheon.owed;
+    return;
+  }
+  const religion = foundedReligion(state, player.id);
+  const pool = religion === undefined ? null : drawableBeliefPool(state, player.id, religion);
+  if (religion === undefined || pool === null) {
+    delete player.pantheon.owed;
+    return;
+  }
+  player.pantheon.pending = drawPoolBeliefOffer(state, player, religion, pool);
+  if (owed > 1) player.pantheon.owed = owed - 1;
+  else delete player.pantheon.owed;
 }
 
 /**
@@ -1374,6 +1425,60 @@ export function poolHeld(religion: Religion, pool: ReligionBeliefPool): number {
 }
 
 /**
+ * The next rung of a religion's belief **ladder**, or `null` when it is full —
+ * the one rule the ruled caps of Entry LVIII are stated as.
+ *
+ * The ruling is "three follower beliefs, two enhancer beliefs, in total". The
+ * shape it is built in is a *ladder* rather than two independent allowances:
+ * every prophet spent on a belief fills the follower house first, and only when
+ * that house is full does the same act start drawing enhancers. So there is one
+ * verb (`gainBelief`), one question ("is a rung open"), and the whole of the
+ * pacing lives in two numbers in `data/religion.json`.
+ *
+ * **This is an interpretation, and it is written here so it can be re-ruled in
+ * one place.** The user ruled the caps and ruled that a founding drafts twice
+ * and that a later prophet drafts a follower belief; what happens *after* the
+ * third follower was left unstated. This is the reading: the same act keeps
+ * going, one house along. The alternatives are a second verb for enhancers
+ * (which is the verb this rework deleted) and an enhancer draft available from
+ * the start (which would strand the Theology gate). Changing the reading means
+ * changing this function and the two sentences `gainBeliefError` prints.
+ *
+ * Deliberately a **pure function of the religion**: the technology gate belongs
+ * to the *draft*, not to the ladder, and keeping it out of here is what lets one
+ * function answer for the offer, the refusal sentence and the screen alike.
+ */
+export function nextBeliefPool(religion: Religion): ReligionBeliefPool | null {
+  if (poolHeld(religion, 'follower') < poolSlots('follower')) return 'follower';
+  if (poolHeld(religion, 'enhancer') < poolSlots('enhancer')) return 'enhancer';
+  return null;
+}
+
+/**
+ * The next rung a draft could actually be **dealt from**, or `null`.
+ *
+ * `nextBeliefPool` plus the two things that are about the world rather than
+ * about the religion: the enhancer house waits on Theology (`ENHANCER_TECH`,
+ * unchanged by this rework), and a bag with nothing left in it deals no hand.
+ *
+ * Asked by everything that opens one of these drafts — the founding, its second
+ * offer, and `gainBeliefAt` — so an offer that opens is an offer with cards on
+ * it. `gainBeliefError` asks the same three questions separately, because a
+ * refusal owes the player *which* of them it was.
+ */
+function drawableBeliefPool(
+  state: GameState,
+  playerId: number,
+  religion: Religion,
+): ReligionBeliefPool | null {
+  const pool = nextBeliefPool(religion);
+  if (pool === null) return null;
+  if (pool === 'enhancer' && !hasTech(state, playerId, ENHANCER_TECH)) return null;
+  if (religionBeliefPool(religion, pool).length === 0) return null;
+  return pool;
+}
+
+/**
  * Deals one offer from a religion's pool.
  *
  * `drawBeliefOffer`'s twin, one bag over and with the bag written on the offer
@@ -1424,42 +1529,16 @@ function prophetProblem(state: GameState, playerId: number, unitId: number): str
 }
 
 /**
- * What one of a prophet's verbs costs: the **whole piece**, or **one charge**.
+ * The verbs a prophet's one charge may be spent on, named as the interface names
+ * them, so a row and a command cannot drift apart by a typo.
  *
- * The user's ruling of 2026-08-29: "prophets should be entirely consumed by
- * starting a religion or enhancing. proclamations and redrafting should still
- * only consume 1 charge as usual." So two of the four acts are the end of the
- * prophet whatever it is still carrying, and the other two are the charge they
- * always were.
+ * **There is no price function any more** (Entry LVIII). A prophet carries one
+ * charge, so every one of these ends the piece, and `prophetPrice` — which
+ * existed to say which two of four acts consumed it — became a function with one
+ * possible answer. A rule with one answer is a sentence, and the sentence lives
+ * on the interface's rows.
  */
-export type ProphetPrice = 'whole' | 'charge';
-
-/**
- * The four verbs, named as the interface names them, so the price below and the
- * row that prints it cannot drift apart by a typo.
- */
-export type ProphetVerbName = 'plantHolySite' | 'enhanceReligion' | 'proclaim' | 'redraftBeliefs';
-
-/**
- * What this verb would cost this seat's prophet, right now — **the one rule**,
- * asked by the reducer that charges it and by the sheet that prints it.
- *
- * Only planting has a price that moves, and it moves for the reason the row's
- * own *name* moves (`prophetRows`): the first stones are also the founding, and
- * founding is what ends the prophet. A later site is a charge, exactly like the
- * two acts that never founded anything.
- */
-export function prophetPrice(
-  state: GameState,
-  playerId: number,
-  verb: ProphetVerbName,
-): ProphetPrice {
-  if (verb === 'enhanceReligion') return 'whole';
-  if (verb === 'plantHolySite') {
-    return foundedReligion(state, playerId) === undefined ? 'whole' : 'charge';
-  }
-  return 'charge';
-}
+export type ProphetVerbName = 'plantHolySite' | 'gainBelief' | 'proclaim' | 'redraftBeliefs';
 
 /**
  * Spends the whole prophet on the act it just performed, and the piece leaves
@@ -1502,13 +1581,21 @@ function spendCharge(state: GameState, unit: Unit): boolean {
 }
 
 /**
- * Why this prophet cannot plant a holy site here, or `null` when it can.
+ * Why this prophet cannot found a religion here, or `null` when it can.
  *
- * **A holy site needs a religion**, so an empire that has founded none is asked
- * `foundReligionError` instead — the verb founds one on the way. That is what
- * puts all three founding refusals ("no gods", "the world is full") in front of
- * a player who reaches for the ground, rather than leaving them in a gate the
- * command never asks.
+ * **Planting IS founding, and it is now the only planting there is** (Entry
+ * LVIII). A prophet has one charge and one deed; raising a *second* holy site
+ * was the deed that made the piece feel like a tool with a spare, and it is gone
+ * — so this gate asks `foundReligionError` unconditionally rather than only when
+ * the empire has founded nothing, and an empire that already has a faith is
+ * refused in that function's own sentence.
+ *
+ * That puts all three founding refusals ("no gods", "already founded", "the
+ * world is full") in front of a player who reaches for the ground, rather than
+ * leaving them in a gate the command never asks.
+ *
+ * The holy sites an empire ends up with are therefore exactly one, plus whatever
+ * it takes off somebody else — which is what makes the stones worth defending.
  *
  * The ground's half is delegated whole to `improvementErrorAt`, exactly as
  * `greatPersonWorkError` delegates it: a work stands anywhere its planter can
@@ -1522,10 +1609,8 @@ export function plantHolySiteError(
 ): string | null {
   const problem = prophetProblem(state, playerId, unitId);
   if (problem !== null) return problem;
-  if (foundedReligion(state, playerId) === undefined) {
-    const cannot = foundReligionError(state, playerId);
-    if (cannot !== null) return cannot;
-  }
+  const cannot = foundReligionError(state, playerId);
+  if (cannot !== null) return cannot;
   const unit = unitById(state, unitId)!;
   const tile = getTileAt(state.map, unit.col, unit.row);
   if (!tile) return `Unit ${unit.id} is not on the map`;
@@ -1544,23 +1629,27 @@ export function plantHolySiteError(
 /** The improvement a prophet plants, read off the table's own inverse. */
 const HOLY_SITE: ImprovementId = workForFamily('prophet') ?? 'holySite';
 
-/** What planting a holy site did, for the announcement. */
+/** What founding a religion did, for the announcement. */
 export interface HolySitePlanting {
   religion: Religion;
-  /** True when this charge founded the religion as well as planting the stones. */
+  /**
+   * Always true since Entry LVIII, and kept rather than deleted because every
+   * surface that reads this report is *about* the founding — the toast, the
+   * chronicle line, the world's watcher. A field that can only say one thing is
+   * cheaper than four callers each re-deriving that a planting founds.
+   */
   founded: boolean;
-  /** The draft this opened, or `null`. */
+  /** The first of the founding's two drafts, or `null` if none could be dealt. */
   offer: BeliefOffer | null;
   col: number;
   row: number;
-  /** True when the prophet was spent by this charge. */
+  /** True when the prophet was spent — always, now that it carries one charge. */
   prophetSpent: boolean;
 }
 
 /**
- * Founds a religion where there is none, plants the stones, and opens whatever
- * draft the religion is still owed. Validates nothing — `plantHolySiteError` is
- * the rule.
+ * Founds a religion, plants its stones, and opens the founding's **two** drafts.
+ * Validates nothing — `plantHolySiteError` is the rule.
  *
  * The order is the arithmetic and each step is a rule:
  *
@@ -1569,20 +1658,24 @@ export interface HolySitePlanting {
  *   2. **the stones**, through `tile.improvement` and `refreshTileDerived` — the
  *      same two lines `buildImprovementAt` and `greatPersonWorkAt` write, so a
  *      holy site pays its faith into the panel this instant;
- *   3. **the draft**, if a follower slot is open. It is dealt *after* the stones
- *      for `consecrateAt`'s reason exactly — the draw advances `state.rng`, and
- *      anything that could throw between the two would leave a prophet able to
- *      deal a second hand from a moved generator;
- *   4. **the price**, which is the *whole prophet* when this planting founded
- *      the religion and one charge when it did not (user, 2026-08-29) — and a
- *      prophet that empties its last charge leaves the board exactly as a
- *      worker does;
- *   5. **the day**, spent whole. Planting is the turn's work.
+ *   3. **the first draft**, dealt *after* the stones for `consecrateAt`'s reason
+ *      exactly — the draw advances `state.rng`, and anything that could throw
+ *      between the two would leave a prophet able to deal a second hand from a
+ *      moved generator;
+ *   4. **the debt for the second**, which is a *number* rather than a second
+ *      dealt hand (user's ruling: "founding drafts a founder belief and one
+ *      follower belief"). Both come out of the same bag at this stage of the
+ *      ladder, so two hands dealt now would put the same belief on both tables;
+ *      the second opens the instant the first is answered (`payBeliefDebt`).
+ *      Owed only when a first was actually dealt — an empire that could not be
+ *      offered one belief is not owed two.
+ *   5. **the prophet**, whole. One charge, one deed (Entry LVIII), so there is
+ *      no day left to spend because there is no prophet left to spend it.
  *
- * **A later holy site never moves the seat of the faith.** The `??=` above is
- * the whole of that rule and it is a rule, not an accident: a prophet may raise
- * as many sites as an empire can pay for, and every one of them presses for the
- * faith, but the first stones stay the anchor `religionFounder` reads.
+ * **The stones are the seat of the faith.** The `??=` is kept although a prophet
+ * can no longer raise a second site: what `religionFounder` reads is *this* hex,
+ * and the guard says out loud that nothing later moves it — a captured holy city
+ * changes who a faith pays, never where its seat is.
  */
 export function plantHolySiteAt(
   state: GameState,
@@ -1590,43 +1683,46 @@ export function plantHolySiteAt(
   unit: Unit,
   tile: Tile,
 ): HolySitePlanting {
-  const existing = foundedReligion(state, player.id);
-  const founded = existing === undefined;
-  const religion = existing ?? foundReligion(state, player);
+  const religion = foundReligion(state, player);
 
   tile.improvement = HOLY_SITE;
   refreshTileDerived(state, tile);
-  // **The first stones are the seat of the faith, and only the first.** The hex
-  // is recorded once and never moved: who a religion pays is the owner of the
-  // town whose territory holds *this* hex (`religionFounder`), so a prophet
-  // planting a second site out on a frontier extends the tide without handing
-  // the trickle to whoever takes that frontier. Written after the improvement,
-  // because the derivation asks the board whether the stones are still standing.
   religion.holySite ??= { col: tile.col, row: tile.row };
 
   let offer: BeliefOffer | null = null;
-  if (poolHeld(religion, 'follower') < poolSlots('follower')) {
-    offer = drawPoolBeliefOffer(state, player, religion, 'follower');
+  const pool = drawableBeliefPool(state, player.id, religion);
+  if (pool !== null) {
+    offer = drawPoolBeliefOffer(state, player, religion, pool);
     player.pantheon.pending = offer;
+    player.pantheon.owed = 1;
   }
 
-  // **The founding is the end of the prophet** (user, 2026-08-29); a later site
-  // is one charge like any other act. `founded` is the same question
-  // `prophetPrice` asks the moment before the verb runs — it cannot be asked
-  // again *here*, because by now the religion exists.
-  let prophetSpent = true;
-  if (founded) spendProphet(state, unit);
-  else prophetSpent = spendCharge(state, unit);
-  return { religion, founded, offer, col: tile.col, row: tile.row, prophetSpent };
+  spendProphet(state, unit);
+  return { religion, founded: true, offer, col: tile.col, row: tile.row, prophetSpent: true };
 }
 
 /**
- * Why this prophet cannot draw an enhancer belief, or `null` when it can.
+ * Why this prophet cannot draw another belief for its faith, or `null` when it
+ * can — **the one belief-gaining verb** (Entry LVIII).
  *
- * Theology is the gate the design names, asked of the tree rather than of a
- * constant here — `hasTech`, so a retuned tree moves the verb with it.
+ * It replaced `enhanceReligion`, and the deletion is the point: there were two
+ * verbs for "give this religion another belief", one per house, and a player had
+ * to know which house was open before pressing either. There is one now, and the
+ * ladder decides which bag it draws from (`nextBeliefPool`).
+ *
+ * The refusals in the order a player would think of them, and each names *which*
+ * rung it failed on, because "your faith is full" and "you need Theology" are
+ * entirely different pieces of news for somebody holding an expensive prophet:
+ *
+ *   · is this my prophet, and has it a deed left (`prophetProblem`);
+ *   · have I a religion at all;
+ *   · is any rung open — the ladder, and nothing about the world;
+ *   · if the rung is the enhancer house, do I hold Theology. **Unchanged by this
+ *     rework**: the enhancer pool opens at `ENHANCER_TECH` exactly as it did,
+ *     asked of the tree rather than of a constant, so a retuned tree moves it;
+ *   · is the bag for that rung empty.
  */
-export function enhanceReligionError(
+export function gainBeliefError(
   state: GameState,
   playerId: number,
   unitId: number,
@@ -1634,15 +1730,16 @@ export function enhanceReligionError(
   const problem = prophetProblem(state, playerId, unitId);
   if (problem !== null) return problem;
   const religion = foundedReligion(state, playerId);
-  if (!religion) return 'You have founded no religion to enhance';
-  if (!hasTech(state, playerId, ENHANCER_TECH)) {
-    return `Enhancing a religion needs ${techDef(ENHANCER_TECH).name}`;
+  if (!religion) return 'You have founded no religion to teach';
+  const pool = nextBeliefPool(religion);
+  if (pool === null) return `${religion.name} has all the beliefs it will hold`;
+  if (pool === 'enhancer' && !hasTech(state, playerId, ENHANCER_TECH)) {
+    return `Deepening a religion needs ${techDef(ENHANCER_TECH).name}`;
   }
-  if (poolHeld(religion, 'enhancer') >= poolSlots('enhancer')) {
-    return `${religion.name} has all the enhancements it will hold`;
-  }
-  if (religionBeliefPool(religion, 'enhancer').length === 0) {
-    return 'There are no enhancements left to choose';
+  if (religionBeliefPool(religion, pool).length === 0) {
+    return pool === 'follower'
+      ? 'There are no beliefs left to choose'
+      : 'There are no enhancements left to choose';
   }
   return null;
 }
@@ -1651,22 +1748,18 @@ export function enhanceReligionError(
 const ENHANCER_TECH: TechId = 'theology';
 
 /**
- * Spends the whole prophet on an enhancer draft. Validates nothing —
- * `enhanceReligionAt`'s gate is `enhanceReligionError`.
+ * Spends the whole prophet on one belief draft. Validates nothing —
+ * `gainBeliefAt`'s gate is `gainBeliefError`.
  *
  * `plantHolySiteAt`'s closing steps in the same order and for the same reasons —
- * the draw, then the price — and the price is the **piece** (user, 2026-08-29).
- * An enhancement is the second thing a faith can only be given once, so it costs
- * what the founding costs; there is no day left to spend because there is no
- * prophet left to spend it.
+ * the draw, then the piece. **Which house it draws from is the ladder's answer**
+ * and never the caller's: one verb, one rung, so the interface has one row and
+ * `commands.ts` has one arm.
  */
-export function enhanceReligionAt(
-  state: GameState,
-  player: Player,
-  unit: Unit,
-): BeliefOffer {
+export function gainBeliefAt(state: GameState, player: Player, unit: Unit): BeliefOffer {
   const religion = foundedReligion(state, player.id)!;
-  const offer = drawPoolBeliefOffer(state, player, religion, 'enhancer');
+  const pool = drawableBeliefPool(state, player.id, religion)!;
+  const offer = drawPoolBeliefOffer(state, player, religion, pool);
   player.pantheon.pending = offer;
   spendProphet(state, unit);
   return offer;
@@ -1845,6 +1938,213 @@ export function redraftAt(
   player.pantheon.pending = offer;
   spendCharge(state, unit);
   return offer;
+}
+
+// --- the inquisitor ---------------------------------------------------------
+
+/** Is this piece an inquisitor — a unit whose one charge is the Purge? */
+export function isInquisitor(unit: Unit): boolean {
+  return unitDef(unit.type).purges === true;
+}
+
+/**
+ * The faith an empire's inquisitor **serves**, and therefore the one faith a
+ * Purge spares — or `null` when the realm believes nothing.
+ *
+ * Two readings, in precedence, and the order is the ruling: the religion this
+ * empire *founded*, and failing that the religion most of its towns *follow*
+ * (`majorityReligion`). A realm that founded nothing and converted wholesale to
+ * a neighbour's faith still has something to defend, and an inquisitor that
+ * could not tell which faith that was would purge its own people.
+ *
+ * Derived every time it is asked, never stored — `majorityReligion`'s own rule,
+ * for its reason: what a realm believes is a fact about the map this turn.
+ */
+export function servedReligion(state: GameState, playerId: number): ReligionId | null {
+  const founded = foundedReligion(state, playerId);
+  if (founded !== undefined) return founded.id;
+  return majorityReligion(state, playerId);
+}
+
+/**
+ * Why this inquisitor cannot purge here, or `null` when it can.
+ *
+ * **The** gate — the `purge` command refuses with this sentence and the panel
+ * greys the row with exactly it. The refusals in the order a player would think
+ * of them: is this my piece, is it an inquisitor, has it a charge left, has it a
+ * day left, and is there a faith of mine to purge *for*.
+ *
+ * There is deliberately **no clause about what is in range**. A purge that
+ * reached nothing is a wasted inquisitor, exactly as a proclamation that reached
+ * nothing is a wasted prophet, and a refusal there would be the interface
+ * playing the turn for the player. The preview says what it would touch.
+ */
+export function purgeError(state: GameState, playerId: number, unitId: number): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  const unit = unitById(state, unitId);
+  if (!unit) return `No unit with id ${String(unitId)}`;
+  if (unit.ownerId !== playerId) return `Unit ${unit.id} does not belong to player ${playerId}`;
+  if (!isInquisitor(unit)) return `A ${unitDef(unit.type).name} cannot purge`;
+  if ((unit.chargesLeft ?? 0) < 1) return `That inquisitor has nothing left to give`;
+  if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
+  if (servedReligion(state, playerId) === null) {
+    return `${player.name} follows no faith to purge for`;
+  }
+  return null;
+}
+
+/** One town a purge landed on. See `PurgeReport`. */
+export interface PurgeStrip {
+  cityId: number;
+  /** Citizens who stopped following anything at all here. Zero is ordinary. */
+  unfollowed: number;
+}
+
+/**
+ * What a purge did, for the announcement — `CommandResult.purged`.
+ *
+ * `ProclamationReport`'s twin and it is carried out of the reducer for that
+ * type's reason exactly: a strip is a **difference** that stops existing the
+ * instant the command returns. By then the banks are empty and the
+ * congregations are smaller, and a diff of two states could not tell an
+ * inquisitor's work from a rival's bad turn.
+ *
+ * Every town in range is listed, including the ones that lost nobody, because
+ * "Nippur held" is exactly the news a player who spent an inquisitor needs.
+ */
+export interface PurgeReport {
+  /** The faith spared — the one this empire serves. See `servedReligion`. */
+  religionId: ReligionId;
+  cities: PurgeStrip[];
+}
+
+/**
+ * The reach and the weight of a purge. `bombFigures`' twin, out of
+ * `rules.religion`'s own pair.
+ *
+ * **No card rider reads these yet**, and that is a statement rather than an
+ * omission: `cardPressureRule` names `bombRange` and `bombLump` because cards in
+ * the table bend them, and a `PressureRuleId` nothing supplies would be a dial
+ * with nothing on the other end. The day an Order sharpens the Holy Office, the
+ * two ids join that union and this function grows the same `rule()` line
+ * `bombFigures` has.
+ */
+function purgeFigures(): BombFigures {
+  const rules = RULES.religion;
+  return {
+    range: Math.max(0, Math.floor(rules.purgeRange)),
+    lump: Math.max(0, Math.floor(rules.purgeLump)),
+  };
+}
+
+/**
+ * Strips every **rival** faith off every town within reach, and spends the
+ * inquisitor. Validates nothing — `purgeError` is the rule.
+ *
+ * The proclamation read backwards, and deliberately built out of the same three
+ * parts so the two can never disagree about what banked faith is worth: the same
+ * bank (`City.pressureBank`), the same convert price
+ * (`religion.pressurePerConvert`), and one shared piece of bookkeeping
+ * (`writeBank`). Where a bomb banks *for* one faith, this takes *from* every
+ * other.
+ *
+ * Three rules, each a decision:
+ *
+ *   · **Every town in range, not only your own.** The bomb's rule, mirrored: an
+ *     inquisitor walked to a rival's border town and emptied of every faith is
+ *     the aggressive half of the Holy Office, and the piece that only ever
+ *     tidied its own realm would be a chore rather than a march.
+ *   · **A temple does not resist it.** `templeShare` is the defence against
+ *     *pressure arriving*; a purge takes away what is already banked and turns
+ *     back people who already believe. The building that answers an inquisitor
+ *     is the one your own inquisitor is standing in.
+ *   · **`state.cities` in array order**, never a distance sort, because an
+ *     outcome may only depend on an order the state carries (hard rule 2).
+ *
+ * The town is re-seated through `refreshCityDerived` wherever a citizen actually
+ * turned, for `pressLump`'s reason exactly — follower beliefs apply city-locally,
+ * so a congregation that shrank at noon changes the panel before the turn ends.
+ * Register entry 16's sibling, and it is asked of foreign towns too, which is
+ * fine because the helper is idempotent and derived.
+ */
+export function purgeAt(state: GameState, player: Player, unit: Unit): PurgeReport {
+  const spared = servedReligion(state, player.id)!;
+  const { range, lump } = purgeFigures();
+  const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
+  const cities: PurgeStrip[] = [];
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (here) {
+    const eye = tileHex(here);
+    for (const city of state.cities) {
+      const tile = getTileAt(state.map, city.col, city.row);
+      if (!tile) continue;
+      if (wrappedDistance(state.map, eye, tileHex(tile)) > range) continue;
+      let unfollowed = 0;
+      for (const religion of state.religions) {
+        if (religion.id === spared) continue;
+        unfollowed += purgePressure(city, religion.id, lump, perConvert);
+      }
+      if (unfollowed > 0) refreshCityDerived(state, city);
+      cities.push({ cityId: city.id, unfollowed });
+    }
+  }
+  // One charge, so the piece goes with the act — the routine all three agents
+  // share (`spendCharge`), rather than a fourth statement of the same rule.
+  spendCharge(state, unit);
+  return { religionId: spared, cities };
+}
+
+/**
+ * What this inquisitor's purge would do, town by town — the facts the
+ * interface's sentence is made of.
+ *
+ * `proclaimPreview`'s bargain: the *sentence* is the interface's and the *facts*
+ * are the simulation's, and every figure comes from the function that will pay
+ * it. It is a forecast and says so — an inquisitor that walks a hex before
+ * speaking gets a different list.
+ *
+ * `null` when there is no inquisitor or no faith to purge for; the panel prints
+ * `purgeError`'s blocker instead.
+ */
+export interface PurgePreview {
+  range: number;
+  lump: number;
+  /** Towns in reach, each with what it would lose. `PurgeStrip`'s shape. */
+  cities: PurgeStrip[];
+}
+
+export function purgePreview(state: GameState, unitId: number): PurgePreview | null {
+  const unit = unitById(state, unitId);
+  if (!unit) return null;
+  const spared = servedReligion(state, unit.ownerId);
+  if (spared === null) return null;
+  const { range, lump } = purgeFigures();
+  const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
+  const here = getTileAt(state.map, unit.col, unit.row);
+  const cities: PurgeStrip[] = [];
+  if (!here) return { range, lump, cities };
+  const eye = tileHex(here);
+  for (const city of state.cities) {
+    const tile = getTileAt(state.map, city.col, city.row);
+    if (!tile) continue;
+    if (wrappedDistance(state.map, eye, tileHex(tile)) > range) continue;
+    let unfollowed = 0;
+    for (const religion of state.religions) {
+      if (religion.id === spared) continue;
+      // The same arithmetic `purgePressure` performs, read rather than done: the
+      // deficit past the bank, divided by the convert price, capped by the
+      // citizens there actually are to take off that congregation.
+      const deficit = lump - (city.pressureBank?.[religion.id] ?? 0);
+      if (deficit <= 0) continue;
+      unfollowed += Math.min(
+        Math.floor(deficit / perConvert),
+        followerCount(city, religion.id),
+      );
+    }
+    cities.push({ cityId: city.id, unfollowed });
+  }
+  return { range, lump, cities };
 }
 
 // --- the tide ---------------------------------------------------------------
@@ -2165,7 +2465,14 @@ export function convertCitizens(
  *
  * The key is **deleted** when a religion's bank empties, and the bank itself
  * when the last key goes, so a town nothing presses on serialises exactly like
- * one from before any of this existed.
+ * one from before any of this existed. That bookkeeping is `writeBank`, which
+ * the Purge shares — see `purgePressure`.
+ *
+ * The **inquisitor's Purge is deliberately not a third caller here** (Entry
+ * LVIII). It is the mirror act, and folding it in as a signed `amount` would
+ * have been two functions sharing a name: the carry, the cap and the convert
+ * loop all read the wrong way round under a negative lump. What the two acts
+ * genuinely share is the bank's bookkeeping, and that is what they share.
  */
 function bankPressure(
   city: City,
@@ -2174,15 +2481,71 @@ function bankPressure(
   amount: number,
   perConvert: number,
 ): number {
-  const bank = city.pressureBank ?? {};
-  const banked = (bank[religion] ?? 0) + amount;
+  const banked = (city.pressureBank?.[religion] ?? 0) + amount;
   const wanted = Math.floor(banked / perConvert);
   const turned = convertCitizens(city, religion, order, wanted);
-  const left = turned < wanted ? perConvert - 1 : banked - turned * perConvert;
+  writeBank(city, religion, turned < wanted ? perConvert - 1 : banked - turned * perConvert);
+  return turned;
+}
+
+/**
+ * Writes one religion's banked pressure on one town — **the one place
+ * `City.pressureBank` is shaped**, and the whole of what the tide and the Purge
+ * share.
+ *
+ * The key is deleted when a religion's bank empties and the bank itself when the
+ * last key goes, so a town nothing presses on serialises exactly like one from
+ * before any of this existed. Floored at zero: a bank is a count of faith
+ * *toward* a convert, and a negative one would be a debt no rule reads.
+ */
+function writeBank(city: City, religion: ReligionId, left: number): void {
+  const bank = city.pressureBank ?? {};
   if (left > 0) bank[religion] = left;
   else delete bank[religion];
   if (Object.keys(bank).length > 0) city.pressureBank = bank;
   else delete city.pressureBank;
+}
+
+/**
+ * Takes one lump of banked pressure away from one religion on one town, and
+ * turns back whoever the deficit reaches. Answers how many citizens stopped
+ * following.
+ *
+ * `bankPressure`'s mirror and the Purge's whole arithmetic (Entry LVIII, The
+ * Holy Office). Said in the order it happens: the lump comes off the bank; if
+ * the bank covered it there is nothing more to do, and if it did not, every
+ * `pressurePerConvert` of the **deficit** takes one citizen off that
+ * congregation and leaves them following nothing at all.
+ *
+ * Three rules, each a decision rather than an accident:
+ *
+ *   · **The citizen goes to nobody, not to the purger's faith.** An inquisitor
+ *     unmakes belief; it does not preach. That is what keeps the Purge and the
+ *     Preaching two different verbs — one clears the ground, the other takes it
+ *     — and it is why the Holy Office is worth marching *before* a prophet
+ *     rather than instead of one.
+ *   · **The remainder does not carry.** A purge is an event, exactly as a
+ *     proclamation is: nothing is left standing on the board when it returns,
+ *     and a negative bank would be a debt every other reader would have to learn
+ *     about. The bank is simply emptied.
+ *   · **The spared faith is never touched**, which is the caller's loop rather
+ *     than a clause here — this function is told one religion and strips it.
+ */
+function purgePressure(
+  city: City,
+  religion: ReligionId,
+  lump: number,
+  perConvert: number,
+): number {
+  const banked = (city.pressureBank?.[religion] ?? 0) - lump;
+  if (banked >= 0) {
+    writeBank(city, religion, banked);
+    return 0;
+  }
+  writeBank(city, religion, 0);
+  const wanted = Math.floor(-banked / perConvert);
+  let turned = 0;
+  while (turned < wanted && unconvertCitizen(city, religion)) turned += 1;
   return turned;
 }
 
