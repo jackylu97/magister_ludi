@@ -4482,3 +4482,20 @@ is where the correction goes.
 
 The Entry LIV band multipliers are superseded by the table (their test replaced
 by the formula pin). `docs/tech-tree.md` Part 2 is regenerated from the rows.
+
+### LXI.a — the correction: the root is not a tier (2026-09-02, schema 49)
+
+The user, on reading the shipped ladder: the first tier is
+fletching/mining/earthenware/husbandry at 13, the bronze row at 30 — the
+formula had anchored at column 0, which holds only Agriculture, the
+pre-granted start tech nobody ever pays. The whole ladder shifts one column
+left: cost(1)=13, the old top figure falls off the end, Agriculture takes a
+nominal 5 (below the first tier, so the monotone-edge pin holds *without* its
+Agriculture exemption — the exemption is deleted, not kept). Ages now close
+**46 / 91 / 200 / 273** — further in than a one-rung shift predicts, because
+pop-based science compounds a cheaper opening (earlier techs → earlier
+buildings → more citizens → more beakers). The curtain lands within a hand of
+Entry LIV's old hand-tuned ~t265. Chart pins moved not at all: every claim
+there is a relation between a column and its price, which a pure shift
+preserves — the strongest evidence the reshape and the pricing are properly
+separate decisions.

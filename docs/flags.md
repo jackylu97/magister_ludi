@@ -54,9 +54,10 @@ where the story lives.
 ### The tree and pacing
 
 - **The cost knob** — after your nerf round settles in playtests, the age
-  closes should be re-measured; the whole late game re-tunes with the 0.72 in
-  `cost(n) = cost(n−1) × (1 + 1.3 × 0.72^max(0,n−2))` (0.75 ⇒ 33.8k tree,
-  0.70 ⇒ 22.0k, shipped 26.1k). Entry LXI.
+  closes should be re-measured; the whole late game re-tunes with the 0.72
+  taper in the column formula (`src/sim/tech.ts`). Shipped tree 22.5k beakers,
+  closes 46/91/200/273 after the first-paid-tier re-anchor (schema 49).
+  Entry LXI.
 - **Renewals axe** — ruled 2026-09-02, not yet implemented: the tech-gated
   free building upgrades (granary/monument/barracks/library/market/workshop
   rows) go. Say when.
