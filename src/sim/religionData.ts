@@ -66,8 +66,8 @@ export type RiteId = keyof typeof religionJson.rites & string;
  * `CardId`'s eleventh class, and the shallowest: a consecration is never
  * drafted, never slotted, never upgradable and never chosen — it is **rolled**
  * off `state.rng` at the moment the stones are topped out, and it is then a fact
- * about that town for as long as the town stands. So its level is always one and
- * `scaleByLevel` has nothing to say about it.
+ * about that town for as long as the town stands. So it has no authored
+ * increment and its level is always one.
  *
  * It is a `CardDefBase` with nothing added, which is the whole architectural
  * claim: five rows of the ordinary effect vocabulary, read by the one evaluator

@@ -1071,7 +1071,7 @@ describe('research in the log', () => {
     // prerequisite edges moved so every column earns its width, and every cost
     // is rewritten off the node's own column. A v46 log aims research at a tree
     // this build does not have, and pays prices it never paid.
-    expect(SCHEMA_VERSION).toBe(47);
+    expect(SCHEMA_VERSION).toBe(48);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1586,7 +1586,6 @@ describe('the shape of the tree', () => {
       (techDef(id).effects ?? []).map((effect) => ({
         source: `Technology · ${techDef(id).name}`,
         card: id,
-        level: 1,
         effect,
       })),
     );

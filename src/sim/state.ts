@@ -684,8 +684,39 @@ import {
  *     The migration note: nothing to migrate — no field changed shape. What a
  *     v46 save cannot carry across is the tree its log was aimed at, and the
  *     prices it was paying.
+ * 48: **The user's balance pass** (2026-09-02) — the Order deepening ladder, the
+ *     Order and Doctrine retunes, and the luxury signature rework that landed
+ *     beside it. A v47 log is refused because *the deck it was drafting from is
+ *     not this deck, and what it drafted does not deepen the way it did*:
+ *       · **Deepening is authored now.** `scaleByLevel`'s blanket ×1.5 on every
+ *         printed figure is gone; a level-N Order is its printed effects plus
+ *         N−1 copies of the increment written on its row (`OrderDef.upgrade`),
+ *         capped at `maxOrderLevel` (3) or the row's own `maxLevel`. Every
+ *         deepened holding in a v47 save therefore pays different numbers, and
+ *         sixty-two rows are no longer offered as an upgrade at all.
+ *       · **The rows are retuned** — Border Wardens and Vanguard from +3 to +2,
+ *         Siege Doctrine 5 to 4, Public Granaries 25% to 15%, Weights & Measures
+ *         2 gold to 1, The Tax Farm and Statute Labour from every third citizen
+ *         to every fourth, Master Masons and Rites of Passage doubled, and a
+ *         dozen more. A v47 replay banks different yields from the first turn a
+ *         card is slotted.
+ *       · **Four cards were reworked and two changed pool.** The Salt Road pays
+ *         on strategic seams rather than improved bonus ones, Quarrymen's Guild
+ *         asks for a quarry rather than for stone, River Wardens asks for a
+ *         garrison, The Old Ways is un-retired and doubles what unimproved
+ *         ground pays; Foreign Quarters is withdrawn and The Great Warring
+ *         Tribes moved from the first Doctrine pool to the second, which changes
+ *         what every draft after it deals.
+ *       · **Three Doctrines were rewritten** — The Gentle Yoke, Manifest of the
+ *         Steppe, The Gilded Court — and two replaced outright: Cuius Regio now
+ *         converts a following city's faith into science, and The Academy of
+ *         Deeds is The Academy and no longer doubles a Triumph's renown.
+ *
+ *     The migration note: nothing to migrate — no field changed shape. What a
+ *     v47 save cannot carry across is the deck, the numbers on it, and the
+ *     ladder its holdings were climbing.
  */
-export const SCHEMA_VERSION = 47;
+export const SCHEMA_VERSION = 48;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -131,6 +131,7 @@ import {
   timedCityTileLines,
   foldCardRulePercent,
   foldCardYields,
+  heldReligions,
   payWindfallGrants,
   settleCultureWindfall,
   tileConditionHolds,
@@ -144,6 +145,7 @@ import {
   type Unit,
   capitalCityOf,
   cityById,
+  cityReligion,
   claimWonder,
   createCity,
   createUnit,
@@ -549,6 +551,19 @@ export function explainTileYield(
   }
   const worksTo = list.length;
 
+  // **What the hex has been reckoned to pay so far**, for the one condition that
+  // asks about worth rather than about substance (`TileCondition`'s `yields`,
+  // The Gilded Court's hexes that yield gold). It is the fold of the entries
+  // above — the ground, the seam, the works — through the *one* fold there is,
+  // so "yields gold" means here exactly what the hover card says the hex pays
+  // and no second reading of the ground comes into existence (rule 5).
+  //
+  // Computed **lazily and once**: this function is asked millions of times a
+  // turn and the overwhelming majority of games hold no card that asks, so the
+  // reading is taken on the first condition that wants it and never otherwise.
+  let paid: TileYield | undefined;
+  const paidSoFar = (): TileYield => (paid ??= foldTileYield(list));
+
   // The empire's law, holdings and works, last, and as ordinary `add` entries:
   // Common Granary's food on a resource hex, a granary's food on water, tyrian's
   // culture on a fishing boat — each a line in this breakdown exactly as the
@@ -571,7 +586,7 @@ export function explainTileYield(
   // to pick between in the first place.
   const sourceIndex = new Map<string, number>();
   for (const line of ctx?.lines ?? []) {
-    if (!tileConditionHolds(tile, line.on)) continue;
+    if (!tileConditionHolds(tile, line.on, paidSoFar)) continue;
     // A line that is **only** a percentage carries no bag at all (The
     // Commonwealth's works). It is paid by the pass at the foot of this
     // function, and a zero-in-every-voice entry pushed here would be a row in
@@ -614,13 +629,32 @@ export function explainTileYield(
   // Riders **sum before one multiplication** and the result is floored per
   // voice, which is Entry XVII's discipline read at the scale of a hex: two
   // cards that each say +50% are worth +100% rather than ×2.25.
+  //
+  // **And a percentage on the ground, which is its opposite number** — The Old
+  // Ways' doubling of what an unimproved hex pays (`TileLine.basePercent`). It
+  // is taken off the entries *before* the works (`0` … `worksFrom`: the terrain,
+  // the hill or canopy over it, and the seam in it) through `foldTileYield`,
+  // which is the one place a `base`/`override` list becomes a number — so the
+  // hill under a jungle is counted the way the hover card counts it and not by
+  // a second sum that could disagree. The two shares never overlap and neither
+  // reaches a card's own line, so two cards cannot pay each other interest.
   let worksPercent = 0;
   const worksSources: string[] = [];
+  let groundPercent = 0;
+  const groundSources: string[] = [];
   for (const line of ctx?.lines ?? []) {
-    if (line.percent === undefined || line.percent === 0) continue;
-    if (!tileConditionHolds(tile, line.on)) continue;
-    worksPercent += line.percent;
-    if (!worksSources.includes(line.source)) worksSources.push(line.source);
+    const works = line.percent ?? 0;
+    const ground = line.basePercent ?? 0;
+    if (works === 0 && ground === 0) continue;
+    if (!tileConditionHolds(tile, line.on, paidSoFar)) continue;
+    if (works !== 0) {
+      worksPercent += works;
+      if (!worksSources.includes(line.source)) worksSources.push(line.source);
+    }
+    if (ground !== 0) {
+      groundPercent += ground;
+      if (!groundSources.includes(line.source)) groundSources.push(line.source);
+    }
   }
   if (worksPercent !== 0 && worksTo > worksFrom) {
     const share: TileYieldContribution = {
@@ -640,6 +674,25 @@ export function explainTileYield(
     let pays = false;
     for (const voice of TILE_YIELD_KEYS) {
       share[voice] = Math.floor((share[voice] * worksPercent) / 100);
+      if (share[voice] !== 0) pays = true;
+    }
+    if (pays) list.push(share);
+  }
+  if (groundPercent !== 0 && worksFrom > 0) {
+    const ground = foldTileYield(list.slice(0, worksFrom));
+    const share: TileYieldContribution = {
+      source: groundSources.join(' + '),
+      kind: 'add',
+      food: 0,
+      production: 0,
+      gold: 0,
+      science: 0,
+      culture: 0,
+      faith: 0,
+    };
+    let pays = false;
+    for (const voice of TILE_YIELD_KEYS) {
+      share[voice] = Math.floor((ground[voice] * groundPercent) / 100);
       if (share[voice] !== 0) pays = true;
     }
     if (pays) list.push(share);
@@ -3387,12 +3440,14 @@ function empireRates(state: GameState, playerId: number): {
   culturePerTurn: number;
   goldPerTurn: number;
   capitalFaithPerTurn: number;
+  followingFaithPerTurn: number;
 } {
   const rates = {
     faithPerTurn: 0,
     culturePerTurn: 0,
     goldPerTurn: 0,
     capitalFaithPerTurn: 0,
+    followingFaithPerTurn: 0,
   };
   // Theocracy's tithe reads **one town's** faith, and it is read off the same
   // sweep rather than by a second pass: the capital's yields are already in
@@ -3408,6 +3463,9 @@ function empireRates(state: GameState, playerId: number): {
   // figure is unchanged by construction: `empirePercents` is a pure function of
   // `(state, playerId)` and this is the very call the default would have made.
   const percents = empirePercents(state, playerId);
+  // Which faiths this empire is *paid by* — the holy cities it holds — hoisted
+  // once for the loop below, `zocField`'s bargain at the scale of a sweep.
+  const held = heldReligions(state, playerId).map((religion) => religion.id);
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     const yields = cityYields(state, city, [], city.queue[0], cityQuote(state, city, [], percents));
@@ -3415,6 +3473,14 @@ function empireRates(state: GameState, playerId: number): {
     rates.culturePerTurn += yields.culture;
     rates.goldPerTurn += yields.gold;
     if (capital && city.id === capital.id) rates.capitalFaithPerTurn += yields.faith;
+    // Cuius Regio's congregation, off the same sweep for the capital's reason:
+    // the town's yields are already in hand, so "what did my faithful towns
+    // bank" costs one comparison. The banner is the town's own derived reading
+    // (`cityReligion`) against the faiths this empire is *paid by*
+    // (`heldReligions` — the holy city's), so a conquered shrine moves the
+    // sentence with it and nothing here can disagree with what the town flies.
+    const kept = cityReligion(city);
+    if (kept !== null && held.includes(kept)) rates.followingFaithPerTurn += yields.faith;
   }
   const empire = foldResourceYields(empireResourceYields(state, playerId));
   rates.faithPerTurn += empire.faith;

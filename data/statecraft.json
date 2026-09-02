@@ -5,7 +5,7 @@
     "costExponent": 2.25,
     "sealTurns": 5
   },
-  "upgradeMultiplier": 1.5,
+  "maxOrderLevel": 3,
   "governments": {
     "chiefdom": {
       "name": "Chiefdom",
@@ -554,7 +554,7 @@
     },
     "greatWarringTribes": {
       "name": "The Great Warring Tribes",
-      "tier": 4,
+      "tier": 10,
       "line": "forge",
       "flavor": "No writ runs faster than a horse.",
       "text": "Negative authority no longer slows production toward units · +10% production toward mounted units · captured cities pay +5 science and +5 culture.",
@@ -821,7 +821,7 @@
       "tier": 18,
       "line": "none",
       "flavor": "There is always more land. There is never enough rest.",
-      "text": "Settlers cost 40% less and never cost more than the first · every city demands +1 happiness.",
+      "text": "Settlers cost 40% less to train and have +2 movement · every city demands +1 happiness.",
       "effects": [
         {
           "kind": "rulePercent",
@@ -829,8 +829,12 @@
           "percent": -40
         },
         {
-          "kind": "actionRule",
-          "rule": "noSettlerEscalation"
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 2,
+          "class": {
+            "modelClass": "settler"
+          }
         },
         {
           "kind": "meterRule",
@@ -844,15 +848,24 @@
       "tier": 18,
       "line": "caravan",
       "flavor": "Gold on the walls, gold in the words, gold under the throne.",
-      "text": "Unlocks the Gilded Hall, a building that is bought with gold and never built. +3 authority capacity.",
+      "text": "Unlocks the Gilded Hall, a building that is bought with gold and never built. +1 science and +1 culture on every hex that yields gold. +1 authority capacity.",
       "effects": [
         {
           "kind": "unlocksBuilding",
           "building": "gildedHall"
         },
         {
+          "kind": "tileYield",
+          "on": {
+            "test": "yields",
+            "yield": "gold"
+          },
+          "science": 1,
+          "culture": 1
+        },
+        {
           "kind": "authority",
-          "amount": 3
+          "amount": 1
         }
       ]
     },
@@ -975,19 +988,26 @@
       "effects": []
     },
     "theAcademyOfDeeds": {
-      "name": "The Academy of Deeds",
+      "name": "The Academy",
       "tier": 29,
       "flavor": "A deed unrecorded is a deed undone.",
-      "text": "Every Triumph pays its renown twice over. A Triumph missed in one age can still be earned in the next.",
-      "note": "A Triumph missed in one age is still closed for good; only the doubling is in effect.",
+      "text": "−10% culture and +20% science. Great scholar drafts can be bought with faith.",
+      "note": "The purchase is not built: a great person is recruited out of one bank at one price, and buying only the scholars, at a price of their own, is a second way to open that offer.",
       "deferred": [
-        "Triumphs you missed by one age can still be earned in the next"
+        "great scholar drafts bought with faith"
       ],
       "effects": [
         {
-          "kind": "effectAmplifier",
-          "target": "triumphRenown",
-          "percent": 100
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": -10,
+          "stage": "empire"
+        },
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 20,
+          "stage": "empire"
         }
       ]
     },
@@ -1059,21 +1079,17 @@
       "tier": 29,
       "line": "procession",
       "flavor": "Whose realm, his religion; whose religion, his realm.",
-      "text": "In cities that follow your religion, augurs are trained with +1 charge.",
-      "note": "Nothing yet makes a rite itself stronger, so only the extra charge is in effect. The charge is decided in the city the augur is trained in.",
-      "deferred": [
-        "their rites are 30% more effective"
-      ],
+      "text": "In cities that follow your religion, 15% of the faith they gain is gained again as science.",
       "effects": [
         {
-          "kind": "unitStat",
-          "stat": "charges",
-          "amount": 1,
-          "class": {
-            "consecrates": true
-          },
-          "scope": {
-            "test": "follows"
+          "kind": "rateConversion",
+          "from": "followingFaithPerTurn",
+          "per": 20,
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 3,
+            "where": "empire"
           }
         }
       ]
@@ -1264,22 +1280,23 @@
       "tier": 10,
       "line": "green",
       "flavor": "Ask little of them and they will not notice the asking.",
-      "text": "−15% happiness demanded per citizen · every city costs 2 more authority.",
+      "text": "−20% happiness demanded per citizen · every city costs 3 more authority.",
       "effects": [
         {
           "kind": "rulePercent",
           "rule": "happinessDemand",
-          "percent": -15
+          "percent": -20
         },
         {
           "kind": "countScaled",
           "count": "cities",
           "pays": {
             "to": "authority",
-            "amount": -2
+            "amount": -3
           }
         }
-      ]
+      ],
+      "note": "The extra authority is asked of every city you hold, not only of the ones you found after taking this Doctrine."
     },
     "theScatteredHearths": {
       "name": "The Scattered Hearths",
@@ -1403,6 +1420,16 @@
             "test": "vsBarbarians"
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "vsBarbarians"
+          }
+        }
       ]
     },
     "campFollowers": {
@@ -1426,6 +1453,16 @@
           "occasion": "camp",
           "grant": {
             "unit": "randomMilitary"
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "windfallRider",
+          "occasion": "camp",
+          "grant": {
+            "yield": "food",
+            "amount": 15
           }
         }
       ]
@@ -1472,7 +1509,8 @@
           },
           "where": "embarked"
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theLongWatch": {
       "name": "The Long Watch",
@@ -1498,7 +1536,8 @@
             "amount": 1
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theWidowsLevy": {
       "name": "The Widow's Levy",
@@ -1524,6 +1563,24 @@
             "amount": 40
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": {
+            "yield": "production",
+            "amount": 5
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": {
+            "yield": "gold",
+            "amount": 10
+          }
+        }
       ]
     },
     "militiaLevies": {
@@ -1545,7 +1602,8 @@
           "stat": "sight",
           "amount": 1
         }
-      ]
+      ],
+      "upgradable": false
     },
     "commonGranary": {
       "name": "Common Granary",
@@ -1555,6 +1613,16 @@
       "flavor": "One store, one hunger, one answer.",
       "text": "+1 food in every city holding an improved luxury resource.",
       "effects": [
+        {
+          "kind": "cityYields",
+          "food": 1,
+          "scope": {
+            "test": "holdingCategory",
+            "category": "luxury"
+          }
+        }
+      ],
+      "upgrade": [
         {
           "kind": "cityYields",
           "food": 1,
@@ -1583,6 +1651,18 @@
             "where": "empire"
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "countScaled",
+          "count": "uniqueLuxuries",
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
       ]
     },
     "boundaryStones": {
@@ -1599,7 +1679,14 @@
           "percent": 30
         }
       ],
-      "note": "Border culture is the culture a city puts toward its own borders, not the culture your empire saves toward its next draft. This hurries your borders only."
+      "note": "Border culture is the culture a city puts toward its own borders, not the culture your empire saves toward its next draft. This hurries your borders only.",
+      "upgrade": [
+        {
+          "kind": "rulePercent",
+          "rule": "borderCulture",
+          "percent": 5
+        }
+      ]
     },
     "firstRites": {
       "name": "First Rites",
@@ -1616,6 +1703,15 @@
             "test": "capital"
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "cityYields",
+          "faith": 1,
+          "scope": {
+            "test": "capital"
+          }
+        }
       ]
     },
     "borderBallads": {
@@ -1624,7 +1720,7 @@
       "slot": "wildcard",
       "line": "hunt",
       "flavor": "Fear, set to a tune, becomes a people.",
-      "text": "+2 culture for each barbarian camp you have found, and +4 culture for each barbarian unit you kill.",
+      "text": "+2 culture for each barbarian camp you have found, and +10 culture for each barbarian unit you kill.",
       "effects": [
         {
           "kind": "countScaled",
@@ -1642,7 +1738,18 @@
           "vsBarbarians": true,
           "grant": {
             "yield": "culture",
-            "amount": 4
+            "amount": 10
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "vsBarbarians": true,
+          "grant": {
+            "yield": "culture",
+            "amount": 10
           }
         }
       ]
@@ -1653,11 +1760,21 @@
       "slot": "military",
       "line": "none",
       "flavor": "Home ground fights beside you.",
-      "text": "+3 combat strength inside your territory.",
+      "text": "+2 combat strength inside your territory.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 2,
+          "side": "both",
+          "when": {
+            "test": "ownTerritory"
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
           "side": "both",
           "when": {
             "test": "ownTerritory"
@@ -1671,11 +1788,21 @@
       "slot": "military",
       "line": "forge",
       "flavor": "Strangers' ground fights harder — so must we.",
-      "text": "+3 combat strength outside your territory.",
+      "text": "+2 combat strength outside your territory.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 2,
+          "side": "both",
+          "when": {
+            "test": "foreignTerritory"
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
           "side": "both",
           "when": {
             "test": "foreignTerritory"
@@ -1700,7 +1827,8 @@
           "kind": "happiness",
           "amount": -2
         }
-      ]
+      ],
+      "upgradable": false
     },
     "spoilsOfTheWild": {
       "name": "Spoils of the Wild",
@@ -1708,14 +1836,15 @@
       "slot": "military",
       "line": "hunt",
       "flavor": "Their plunder was ours all along.",
-      "text": "Clearing a barbarian camp pays +100%. Adds to Camp Followers.",
+      "text": "Clearing a barbarian camp pays +100%.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "camp",
           "percent": 100
         }
-      ]
+      ],
+      "upgradable": false
     },
     "horseLords": {
       "name": "Horse Lords",
@@ -1733,7 +1862,8 @@
             "modelClass": "mounted"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "weightsAndMeasures": {
       "name": "Weights & Measures",
@@ -1741,13 +1871,14 @@
       "slot": "economic",
       "line": "caravan",
       "flavor": "An honest scale is the first tax.",
-      "text": "+2 gold in every city.",
+      "text": "+1 gold in every city.",
       "effects": [
         {
           "kind": "cityYields",
-          "gold": 2
+          "gold": 1
         }
-      ]
+      ],
+      "upgradable": false
     },
     "silkRoads": {
       "name": "Silk Roads",
@@ -1767,7 +1898,20 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "upgrade": [
+        {
+          "kind": "countScaled",
+          "count": "tradeRoutes",
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ],
+      "maxLevel": 4
     },
     "theSaltRoad": {
       "name": "The Salt Road",
@@ -1775,17 +1919,25 @@
       "slot": "economic",
       "line": "caravan",
       "flavor": "Every field pays a toll on its way to market.",
-      "text": "+1 gold for each improved bonus resource you hold.",
+      "text": "+1 gold on every hex carrying a strategic resource.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "improvedBonusResources",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "tileYield",
+          "on": {
+            "test": "resourceKind",
+            "kind": "strategic"
+          },
+          "gold": 1
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "resourceKind",
+            "kind": "strategic"
+          },
+          "gold": 1
         }
       ]
     },
@@ -1795,12 +1947,12 @@
       "slot": "economic",
       "line": "caravan",
       "flavor": "Count the people, and the coin counts itself.",
-      "text": "+1 gold for each 3 population in your empire.",
+      "text": "+1 gold for each 4 population in your empire.",
       "effects": [
         {
           "kind": "countScaled",
           "count": "population",
-          "per": 3,
+          "per": 4,
           "pays": {
             "to": "yield",
             "yield": "gold",
@@ -1808,7 +1960,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "harbourDues": {
       "name": "Harbour Dues",
@@ -1826,7 +1979,17 @@
             "test": "coastal"
           }
         }
-      ]
+      ],
+      "upgrade": [
+        {
+          "kind": "cityYields",
+          "gold": 1,
+          "scope": {
+            "test": "coastal"
+          }
+        }
+      ],
+      "maxLevel": 3
     },
     "landGrants": {
       "name": "Land Grants",
@@ -1846,6 +2009,13 @@
           "rule": "borderCulture",
           "percent": 40
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "rulePercent",
+          "rule": "tilePurchase",
+          "percent": -5
+        }
       ]
     },
     "homesteadCharters": {
@@ -1860,7 +2030,8 @@
           "kind": "foundingRider",
           "population": 1
         }
-      ]
+      ],
+      "upgradable": false
     },
     "granaryLevies": {
       "name": "Granary Levies",
@@ -1870,6 +2041,16 @@
       "flavor": "A new mouth is a new pair of hands.",
       "text": "When a city grows, it gains +10 production.",
       "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "growth",
+          "grant": {
+            "yield": "production",
+            "amount": 10
+          }
+        }
+      ],
+      "upgrade": [
         {
           "kind": "windfallRider",
           "occasion": "growth",
@@ -1897,7 +2078,8 @@
             "amount": 1
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "tinkersGuild": {
       "name": "Tinkers' Guild",
@@ -1916,7 +2098,8 @@
             "modelClass": "worker"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "publicGranaries": {
       "name": "Public Granaries",
@@ -1925,14 +2108,22 @@
       "line": "none",
       "neutral": true,
       "flavor": "The city eats slowly, and stays fed.",
-      "text": "Cities keep 25% of their stored food when they grow.",
+      "text": "Cities keep 15% of their stored food when they grow.",
       "effects": [
         {
           "kind": "rulePercent",
           "rule": "growthCarryover",
-          "percent": 25
+          "percent": 15
         }
-      ]
+      ],
+      "upgrade": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthCarryover",
+          "percent": 5
+        }
+      ],
+      "maxLevel": 5
     },
     "festivalDays": {
       "name": "Festival Days",
@@ -1946,7 +2137,14 @@
           "kind": "happiness",
           "amount": 4
         }
-      ]
+      ],
+      "upgrade": [
+        {
+          "kind": "happiness",
+          "amount": 2
+        }
+      ],
+      "maxLevel": 3
     },
     "curiousElders": {
       "name": "Curious Elders",
@@ -1964,7 +2162,8 @@
             "amount": 5
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "ritesOfPassage": {
       "name": "Rites of Passage",
@@ -1972,8 +2171,19 @@
       "slot": "wildcard",
       "line": "procession",
       "flavor": "A sword blessed is a soul enlisted.",
-      "text": "Buying or completing a unit grants +5 faith.",
+      "text": "Buying or completing a unit grants +10 faith.",
       "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "unitCompletion",
+          "grant": {
+            "yield": "faith",
+            "amount": 10
+          }
+        }
+      ],
+      "note": "A unit bought with gold counts as completed, so it pays this too — but only once.",
+      "upgrade": [
         {
           "kind": "windfallRider",
           "occasion": "unitCompletion",
@@ -1982,8 +2192,7 @@
             "amount": 5
           }
         }
-      ],
-      "note": "A unit bought with gold counts as completed, so it pays this too — but only once."
+      ]
     },
     "theLooseRein": {
       "name": "The Loose Rein",
@@ -2017,7 +2226,8 @@
           "stat": "heal",
           "amount": 10
         }
-      ]
+      ],
+      "upgradable": false
     },
     "marchDiscipline": {
       "name": "March Discipline",
@@ -2054,6 +2264,16 @@
             "test": "onHills"
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "onHills"
+          }
+        }
       ]
     },
     "siegeDoctrine": {
@@ -2062,11 +2282,21 @@
       "slot": "military",
       "line": "forge",
       "flavor": "Walls are patient. We are less so.",
-      "text": "+5 combat strength when attacking cities.",
+      "text": "+4 combat strength when attacking cities.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 4,
+          "side": "attack",
+          "when": {
+            "test": "vsCity"
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
           "side": "attack",
           "when": {
             "test": "vsCity"
@@ -2097,6 +2327,16 @@
             "amount": 10
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": {
+            "yield": "gold",
+            "amount": 15
+          }
+        }
       ]
     },
     "sumptuaryLaws": {
@@ -2115,7 +2355,8 @@
             "amount": 1
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "publicani": {
       "name": "Publicani",
@@ -2133,6 +2374,19 @@
             "to": "yield",
             "yield": "gold",
             "amount": 2,
+            "where": "empire"
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "rateConversion",
+          "from": "authority",
+          "per": 1,
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 1,
             "where": "empire"
           }
         }
@@ -2159,6 +2413,21 @@
           "rule": "tilePurchase",
           "percent": -15
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tilePurchase",
+          "grant": {
+            "yield": "science",
+            "amount": 5
+          }
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "tilePurchase",
+          "percent": -5
+        }
       ]
     },
     "foreignQuarters": {
@@ -2177,7 +2446,10 @@
             "test": "frontier"
           }
         }
-      ]
+      ],
+      "retired": true,
+      "upgradable": false,
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it."
     },
     "oreTithes": {
       "name": "Ore Tithes",
@@ -2195,7 +2467,8 @@
             "kind": "strategic"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "terracedHillsides": {
       "name": "Terraced Hillsides",
@@ -2212,7 +2485,8 @@
             "test": "hills"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "masterMasons": {
       "name": "Master Masons",
@@ -2220,8 +2494,18 @@
       "slot": "economic",
       "line": "forge",
       "flavor": "Every finished wall is a song about itself.",
-      "text": "Completing a building grants +5 culture.",
+      "text": "Completing a building grants +10 culture.",
       "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "grant": {
+            "yield": "culture",
+            "amount": 10
+          }
+        }
+      ],
+      "upgrade": [
         {
           "kind": "windfallRider",
           "occasion": "buildingCompletion",
@@ -2250,7 +2534,8 @@
           "rule": "tilePurchase",
           "percent": -25
         }
-      ]
+      ],
+      "upgradable": false
     },
     "provincialGovernors": {
       "name": "Provincial Governors",
@@ -2263,6 +2548,12 @@
         {
           "kind": "authority",
           "amount": 3
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "authority",
+          "amount": 1
         }
       ]
     },
@@ -2296,7 +2587,8 @@
             }
           ]
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theCommonPurse": {
       "name": "The Common Purse",
@@ -2343,7 +2635,12 @@
             "amount": 1
           }
         }
-      ]
+      ],
+      "upgradable": false,
+      "deferred": [
+        "deepening this Order raising the happiness it may pay by 2"
+      ],
+      "note": "This Order cannot be deepened. Its second face raises a cap rather than a figure, and a card in this game says what it adds, never what it lifts."
     },
     "lamplighters": {
       "name": "Lamplighters",
@@ -2364,7 +2661,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "scholarsStipend": {
       "name": "Scholars' Stipend",
@@ -2377,6 +2675,16 @@
         {
           "kind": "cityYields",
           "science": 2,
+          "scope": {
+            "test": "populationAtLeast",
+            "value": 5
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "cityYields",
+          "science": 1,
           "scope": {
             "test": "populationAtLeast",
             "value": 5
@@ -2405,7 +2713,8 @@
             "max": 4
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "garrisonState": {
       "name": "Garrison State",
@@ -2423,6 +2732,19 @@
             "to": "yield",
             "yield": "production",
             "amount": 3,
+            "where": "city"
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "countScaled",
+          "count": "garrison",
+          "max": 2,
+          "pays": {
+            "to": "yield",
+            "yield": "production",
+            "amount": 1,
             "where": "city"
           }
         }
@@ -2463,7 +2785,8 @@
             "test": "targetBelowHalf"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "frontierForts": {
       "name": "Frontier Forts",
@@ -2481,7 +2804,8 @@
             "test": "frontier"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "triumphs": {
       "name": "Triumphs",
@@ -2503,7 +2827,8 @@
       "note": "The renown a capture pays is not built: a windfall's grants are banked by a routine that cannot reach the renown ladder, so only the culture arrives.",
       "deferred": [
         "capturing a city also grants 5 renown"
-      ]
+      ],
+      "upgradable": false
     },
     "theStandingLevy": {
       "name": "The Standing Levy",
@@ -2512,16 +2837,20 @@
       "line": "none",
       "neutral": true,
       "flavor": "The spear is always first in line.",
-      "text": "Every 10 turns, a free melee unit musters in your capital.",
+      "text": "Every 12 turns, a free melee unit musters in your capital.",
       "upgradable": false,
       "effects": [
         {
           "kind": "periodicMuster",
-          "every": 10,
+          "every": 12,
           "unit": "bestMelee",
           "where": "capital"
         }
-      ]
+      ],
+      "deferred": [
+        "deepening this Order bringing the muster 2 turns sooner"
+      ],
+      "note": "This Order cannot be deepened. Its second face shortens the wait rather than adding to what arrives, and a card in this game says what it adds."
     },
     "clientKings": {
       "name": "Client Kings",
@@ -2539,6 +2868,12 @@
           "kind": "meterRule",
           "rule": "capturedCityCost",
           "delta": -1
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "authority",
+          "amount": 1
         }
       ]
     },
@@ -2560,7 +2895,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "quarrymensGuild": {
       "name": "Quarrymen's Guild",
@@ -2568,17 +2904,24 @@
       "slot": "economic",
       "line": "forge",
       "flavor": "Stone remembers; marble boasts.",
-      "text": "+5 production in every city holding Stone or Marble.",
+      "text": "+4 production in every city with a quarry.",
       "effects": [
         {
           "kind": "cityYields",
-          "production": 5,
+          "production": 4,
           "scope": {
-            "test": "holding",
-            "resources": [
-              "stone",
-              "marble"
-            ]
+            "test": "hasImprovement",
+            "improvement": "quarry"
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "cityYields",
+          "production": 1,
+          "scope": {
+            "test": "hasImprovement",
+            "improvement": "quarry"
           }
         }
       ]
@@ -2600,7 +2943,8 @@
             "value": 6
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "mandateOfHeaven": {
       "name": "Mandate of Heaven",
@@ -2608,7 +2952,7 @@
       "slot": "wildcard",
       "line": "procession",
       "flavor": "The pious are easy to govern, and they know it.",
-      "text": "The science and culture your happy cities pay rises from 10% to 15% · +1 happiness for each 200 banked faith.",
+      "text": "The science and culture your happy cities pay rises 5 percentage points · +1 happiness for each 200 banked faith.",
       "effects": [
         {
           "kind": "happinessTierBoost",
@@ -2623,7 +2967,8 @@
             "amount": 1
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theLyceum": {
       "name": "The Lyceum",
@@ -2642,7 +2987,8 @@
             "fromRate": "culturePerTurn"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "censusOfSouls": {
       "name": "Census of Souls",
@@ -2662,7 +3008,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "tolerationEdicts": {
       "name": "Toleration Edicts",
@@ -2676,6 +3023,13 @@
           "kind": "rulePercent",
           "rule": "happinessDemand",
           "percent": -10
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "rulePercent",
+          "rule": "happinessDemand",
+          "percent": -2
         }
       ]
     },
@@ -2732,7 +3086,13 @@
           }
         }
       ],
-      "line": "court"
+      "line": "court",
+      "upgrade": [
+        {
+          "kind": "renown",
+          "amount": 1
+        }
+      ]
     },
     "theLegion": {
       "name": "The Legion",
@@ -2767,6 +3127,14 @@
           "percent": 15,
           "modelClass": "melee"
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 10,
+          "modelClass": "melee"
+        }
       ]
     },
     "fireKeepers": {
@@ -2792,6 +3160,16 @@
             "test": "capital"
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "capital"
+          }
+        }
       ]
     },
     "wolfRunners": {
@@ -2800,7 +3178,7 @@
       "slot": "military",
       "line": "hunt",
       "flavor": "They come back with the country in their heads.",
-      "text": "Scouts gain +1 movement, and claiming a ruin grants +10 gold.",
+      "text": "Scouts gain +1 movement, and claiming a ruin grants +15 gold.",
       "effects": [
         {
           "kind": "unitStat",
@@ -2810,6 +3188,16 @@
             "explores": true
           }
         },
+        {
+          "kind": "windfallRider",
+          "occasion": "discovery",
+          "grant": {
+            "yield": "gold",
+            "amount": 15
+          }
+        }
+      ],
+      "upgrade": [
         {
           "kind": "windfallRider",
           "occasion": "discovery",
@@ -2836,6 +3224,16 @@
             "value": 4
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "cityYields",
+          "culture": 1,
+          "scope": {
+            "test": "populationAtMost",
+            "value": 4
+          }
+        }
       ]
     },
     "statuteLabour": {
@@ -2844,12 +3242,12 @@
       "slot": "economic",
       "line": "forge",
       "flavor": "Every third back is owed to the road.",
-      "text": "+1 production in every city for each 3 citizens living there.",
+      "text": "+1 production in every city for each 4 citizens living there.",
       "effects": [
         {
           "kind": "countScaled",
           "count": "population",
-          "per": 3,
+          "per": 4,
           "within": "city",
           "pays": {
             "to": "yield",
@@ -2858,7 +3256,8 @@
             "where": "city"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "riverWardens": {
       "name": "River Wardens",
@@ -2866,11 +3265,10 @@
       "slot": "economic",
       "line": "ploughshare",
       "flavor": "The water is watched, so the water is shared.",
-      "text": "+1 food on every farm beside fresh water.",
+      "text": "When a unit is standing in one of your cities, that city gains +1 food on every farm beside fresh water.",
       "effects": [
         {
           "kind": "tileYield",
-          "food": 1,
           "on": {
             "test": "all",
             "of": [
@@ -2882,9 +3280,14 @@
                 "test": "freshwater"
               }
             ]
+          },
+          "food": 1,
+          "scope": {
+            "test": "garrisoned"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theAlmanac": {
       "name": "The Almanac",
@@ -2909,6 +3312,15 @@
             "building": "library"
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "cityYields",
+          "science": 1,
+          "scope": {
+            "test": "capital"
+          }
+        }
       ]
     },
     "villageFairs": {
@@ -2919,6 +3331,16 @@
       "flavor": "What the second cart carries is bought for pleasure.",
       "text": "+1 happiness for each luxury you hold two or more copies of.",
       "effects": [
+        {
+          "kind": "countScaled",
+          "count": "duplicateLuxuries",
+          "pays": {
+            "to": "happiness",
+            "amount": 1
+          }
+        }
+      ],
+      "upgrade": [
         {
           "kind": "countScaled",
           "count": "duplicateLuxuries",
@@ -2941,7 +3363,8 @@
           "kind": "unitStamp",
           "hp": 10
         }
-      ]
+      ],
+      "upgradable": false
     },
     "hillForts": {
       "name": "Hill Forts",
@@ -2964,6 +3387,16 @@
           "rule": "hillCityCost",
           "delta": -1
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "defend",
+          "when": {
+            "test": "onHills"
+          }
+        }
       ]
     },
     "thePilgrimsPurse": {
@@ -2977,6 +3410,16 @@
         {
           "kind": "cityYields",
           "faith": 5,
+          "scope": {
+            "test": "adjacentImprovement",
+            "improvement": "holySite"
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "cityYields",
+          "faith": 2,
           "scope": {
             "test": "adjacentImprovement",
             "improvement": "holySite"
@@ -3039,6 +3482,16 @@
             "building": "temple"
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "cityYields",
+          "culture": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        }
       ]
     },
     "starGazers": {
@@ -3052,6 +3505,16 @@
         {
           "kind": "cityYields",
           "science": 2,
+          "scope": {
+            "test": "terrainInBorders",
+            "terrain": "mountain"
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "cityYields",
+          "science": 1,
           "scope": {
             "test": "terrainInBorders",
             "terrain": "mountain"
@@ -3095,6 +3558,16 @@
           "kind": "routeRider",
           "extra": 1
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "cityYields",
+          "gold": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "market"
+          }
+        }
       ]
     },
     "drumsOfWar": {
@@ -3103,13 +3576,14 @@
       "slot": "military",
       "line": "forge",
       "flavor": "They learn the step before they learn the spear.",
-      "text": "Units created from now on are born with +1 combat strength, and keep it for life.",
+      "text": "While this Order is in a slot, units created from now on are born with +2 combat strength, and keep it for life.",
       "effects": [
         {
           "kind": "unitStamp",
-          "strength": 1
+          "strength": 2
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theCartographers": {
       "name": "The Cartographers",
@@ -3130,7 +3604,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theMasonsLodge": {
       "name": "The Masons' Lodge",
@@ -3144,6 +3619,17 @@
           "kind": "productionBonus",
           "category": "building",
           "percent": 10,
+          "scope": {
+            "test": "populationAtLeast",
+            "value": 6
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 5,
           "scope": {
             "test": "populationAtLeast",
             "value": 6
@@ -3166,7 +3652,8 @@
             "heal": 15
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "sanctuary": {
       "name": "Sanctuary",
@@ -3195,7 +3682,8 @@
           "kind": "cityYields",
           "faith": 1
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theOrchardTithe": {
       "name": "The Orchard Tithe",
@@ -3213,7 +3701,8 @@
             "kind": "luxury"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theUnbrokenLand": {
       "name": "The Unbroken Land",
@@ -3230,6 +3719,15 @@
           "on": {
             "test": "unimproved"
           }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "unimproved"
+          },
+          "faith": 1
         }
       ]
     },
@@ -3249,6 +3747,15 @@
             "test": "unimproved"
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "unimproved"
+          },
+          "faith": 2
+        }
       ]
     },
     "theQuietFields": {
@@ -3267,7 +3774,8 @@
             "amount": 1
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theOldWays": {
       "name": "The Old Ways",
@@ -3277,12 +3785,15 @@
       "flavor": "They farmed here once. It has been better since they stopped.",
       "text": "The yields of unimproved hexes are doubled.",
       "upgradable": false,
-      "effects": [],
-      "deferred": [
-        "the yields of every unimproved hex are doubled"
-      ],
-      "note": "Not built: a percentage in this game lands on a whole city or on the whole empire, never on one hex. Doubling what a single hex pays is a new kind of arithmetic and is a design decision, not a number. Retired until it is made.",
-      "retired": true
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "unimproved"
+          },
+          "basePercent": 100
+        }
+      ]
     },
     "firstFruits": {
       "name": "First Fruits",
@@ -3299,7 +3810,8 @@
             "test": "hasResource"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theQuartermasters": {
       "name": "The Quartermasters",
@@ -3316,7 +3828,8 @@
             "category": "military"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theWarChest": {
       "name": "The War Chest",
@@ -3333,7 +3846,8 @@
             "category": "military"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "forcedMarches": {
       "name": "Forced Marches",
@@ -3360,7 +3874,8 @@
           },
           "where": "ownTerritory"
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theEscortedRoads": {
       "name": "The Escorted Roads",
@@ -3378,7 +3893,8 @@
           "target": "routeYields",
           "percent": 30
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theLastHunt": {
       "name": "The Last Hunt",
@@ -3398,7 +3914,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theSaintsFields": {
       "name": "The Saints' Fields",
@@ -3416,7 +3933,8 @@
             "test": "greatWork"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theWayhouses": {
       "name": "The Wayhouses",
@@ -3446,6 +3964,18 @@
             "where": "empire"
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "countScaled",
+          "count": "tradeRoutes",
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
       ]
     },
     "theProvisioners": {
@@ -3464,7 +3994,8 @@
             "amount": 1
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "thePrizeGrounds": {
       "name": "The Prize Grounds",
@@ -3477,6 +4008,17 @@
         {
           "kind": "happiness",
           "amount": 2,
+          "per": "city",
+          "scope": {
+            "test": "onResourceKind",
+            "kind": "luxury"
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "happiness",
+          "amount": 1,
           "per": "city",
           "scope": {
             "test": "onResourceKind",
@@ -3504,7 +4046,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theGroundskeepers": {
       "name": "The Groundskeepers",
@@ -3523,7 +4066,8 @@
             "test": "greatWork"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theMastersPresence": {
       "name": "The Master's Presence",
@@ -3542,7 +4086,8 @@
             "test": "adjacentGreatWork"
           }
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theWonderFeasts": {
       "name": "The Wonder-Feasts",
@@ -3565,6 +4110,21 @@
           "category": "wonder",
           "percent": 10
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "cityYields",
+          "food": 1,
+          "scope": {
+            "test": "queueHolds",
+            "category": "wonder"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 5
+        }
       ]
     },
     "theMasterBuilders": {
@@ -3586,6 +4146,20 @@
           "category": "building",
           "building": "cathedral",
           "percent": -15
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": -5,
+          "building": "theMagnumOpus"
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": -5,
+          "building": "cathedral"
         }
       ]
     },
@@ -3615,6 +4189,15 @@
             "test": "coastal"
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "cityYields",
+          "production": 1,
+          "scope": {
+            "test": "coastal"
+          }
+        }
       ]
     },
     "theDryDocks": {
@@ -3640,6 +4223,20 @@
             "building": "harbour"
           }
         }
+      ],
+      "upgrade": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 5,
+          "class": {
+            "category": "naval"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "harbour"
+          }
+        }
       ]
     },
     "theWinteringGrounds": {
@@ -3648,20 +4245,15 @@
       "slot": "military",
       "line": "none",
       "flavor": "Home is wherever the horses have stopped.",
-      "text": "Your units cost no gold in maintenance outside your territory, and heal 5 more per turn there.",
+      "text": "Your units cost no gold in maintenance outside your territory.",
       "effects": [
         {
           "kind": "upkeepRebate",
           "free": true,
           "where": "foreignTerritory"
-        },
-        {
-          "kind": "unitStat",
-          "stat": "heal",
-          "amount": 5,
-          "where": "foreignTerritory"
         }
-      ]
+      ],
+      "upgradable": false
     },
     "theArchives": {
       "name": "The Archives",
@@ -3671,6 +4263,18 @@
       "flavor": "Every law ever passed, in order, in a room nobody is allowed to leave.",
       "text": "+1 culture for each level of the Orders you have placed in a slot.",
       "effects": [
+        {
+          "kind": "countScaled",
+          "count": "slottedOrderLevels",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ],
+      "upgrade": [
         {
           "kind": "countScaled",
           "count": "slottedOrderLevels",
@@ -3698,6 +4302,18 @@
             "to": "yield",
             "yield": "culture",
             "amount": 2,
+            "where": "empire"
+          }
+        }
+      ],
+      "upgrade": [
+        {
+          "kind": "countScaled",
+          "count": "unslottedOrders",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
             "where": "empire"
           }
         }

@@ -639,7 +639,7 @@ export function describeBeadBoon(boon: BeadBoon): CardClause[] {
   // bead grants and a step an Order grants are the same effect, so they are
   // described by the same function. Prefixed rather than reworded, because what
   // makes a bead's version different is only that it is permanent and unslotted.
-  for (const clause of describeEffects(boon.effects ?? [], 1)) {
+  for (const clause of describeEffects(boon.effects ?? [])) {
     const lasting: CardClause = { text: `a lasting step: ${clause.text}` };
     if (clause.deferred === true) lasting.deferred = true;
     clauses.push(lasting);

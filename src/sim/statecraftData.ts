@@ -30,16 +30,21 @@
  * Levels
  * ------
  * An Order drafted twice is *deepened* rather than duplicated (Entry XV's
- * upgrade slot). A level-2 card's numbers are its printed numbers scaled by
- * `upgradeMultiplier` (1.5), floored per figure — and **advanced by at least one
- * whole point per level**, which is the clause that makes a card printing a
- * single point upgradable at all (`scaleByLevel`, fixed 2026-08-26; a third of
- * the table had been offerable as an upgrade that did nothing). Scaling lives in
- * the evaluator rather than in the data, so a retune is one number and not
- * sixty-five.
+ * upgrade slot), and since the user's ruling of 2026-09-02 the deepening is
+ * **authored on the row**: `OrderDef.upgrade` is the list of effects one level
+ * adds, and the face at level N is the printed effects plus N−1 copies of it
+ * (`orderEffectsAtLevel`, `statecraft.ts`). Three levels deep at most, or the
+ * row's own `maxLevel` where the ratified text quotes a ceiling.
  *
- * A card with **no figure at all** is the one thing that rule cannot reach, and
- * it says so on its row: see `CardDefBase.upgradable`.
+ * It replaced a blanket ×1.5 on every printed figure, for a design reason
+ * rather than an arithmetic one: that rule deepened every clause of a card at
+ * once, so nobody was ever deciding *which* clause a second draft made
+ * stronger. Now the increment says so, in the ordinary vocabulary, read by the
+ * ordinary evaluators — which is why no consumer of this table knows a level
+ * exists at all.
+ *
+ * A card with no authored increment does not deepen, and says so on its row:
+ * see `CardDefBase.upgradable`.
  */
 
 import statecraftJson from '../../data/statecraft.json';
@@ -108,8 +113,8 @@ export type OrderId = keyof typeof statecraftJson.orders & string;
  * bead's boon may carry a *cap* — a permanent step in contentment, in authority
  * capacity, in route capacity — written in this vocabulary on a row of
  * `beads.json` and read by this evaluator through `liveEffects`' ninth source.
- * A bead is not drafted, not slotted and not upgradable, so its level is always
- * one and `scaleByLevel` has nothing to say about it.
+ * A bead is not drafted, not slotted and not upgradable, so it has no authored
+ * increment and its level is always one.
  *
  * **Nine classes since the tree pass of 2026-08-30**, and the ninth is held for
  * as long as the game lasts: a *technology* may carry `effects` in this
@@ -250,6 +255,36 @@ export type CityScope =
   | { test: 'holding'; resources: ResourceId[] }
   /** The town controls any resource of this kind. */
   | { test: 'holdingCategory'; category: ResourceKind }
+  /**
+   * A hex **inside the town's own borders** carries this improvement —
+   * Quarrymen's Guild, whose masons are paid for the quarry in the hills the
+   * city works.
+   *
+   * `terrainInBorders` asked of what has been *built* rather than of the ground,
+   * and it is a member of its own for that scope's reason exactly: what the
+   * borders have taken in is a different question from what touches the centre
+   * (`adjacentImprovement`, the ring of six) and from what the centre stands on.
+   * A quarry three hexes out is the city's quarry; a quarry over the border is
+   * somebody else's. Read over `ownedTiles`, the board's own answer, so a hex a
+   * rival's culture swallows stops paying the turn it changes hands.
+   */
+  | { test: 'hasImprovement'; improvement: ImprovementId }
+  /**
+   * A combat unit of this town's owner is **standing in it** — River Wardens,
+   * whose wardens have to actually be there.
+   *
+   * The first scope in the union whose answer is a fact about *the pieces on the
+   * board* rather than about the ground or the ledger, and it is read through
+   * the one sweep that already answers it (`garrisonOf`, which `CountKind`'s
+   * `garrison` counts): a garrison is a garrison whether a card counts it or
+   * asks whether there is one, and two answers to "who is standing here" is
+   * exactly the drift the one-evaluator rule exists to prevent.
+   *
+   * A boolean question, so it **cannot stack**: three spearmen in the town admit
+   * it once, which is what "when a unit is stationed in a city" says. A card
+   * that wants the count says `countScaled` with `garrison`.
+   */
+  | { test: 'garrisoned' }
   /**
    * The town has finished this building.
    *
@@ -710,6 +745,28 @@ export type TileCondition =
    */
   | { test: 'freshwater' }
   /**
+   * The hex **pays this voice at all**, off its own ground — The Gilded Court's
+   * "+1 science and +1 culture on every hex that yields gold".
+   *
+   * The one condition in the union that is not a fact about *what is on* the hex
+   * but about *what the hex is worth*, and it is answered the only honest way
+   * there is: by the breakdown the tile chain has already built. `explainTileYield`
+   * hands its own entries in (`tileConditionHolds`' third argument, folded once
+   * per hex and only when a condition asks), so "yields gold" means here exactly
+   * what the hover card says the hex pays — terrain, hills, canopy, seam and
+   * works — and a second implementation of the ground's arithmetic never comes
+   * into existence. Rule 5 read at the scale of a question.
+   *
+   * **A caller that hands in no reading answers false**, which is
+   * `CardRulePercentEffect.scope`'s bargain: a building's `tileYields` and a
+   * luxury's `improvementYields` ask this predicate about a bare hex with no
+   * breakdown behind them, and a condition nobody can be the subject of admits
+   * nothing. That is the honest reading rather than an omission — a granary
+   * cannot ask what a hex is worth, because what a hex is worth is partly the
+   * granary.
+   */
+  | { test: 'yields'; yield: CityYieldKey }
+  /**
    * The hex carries a **great person's work** — an academy, a landmark, a
    * manufactory, a customs house, a citadel.
    *
@@ -1069,6 +1126,20 @@ export type RateSource =
    * capital's total, exactly as the empire-wide rates are.
    */
   | 'capitalFaithPerTurn'
+  /**
+   * Faith banked this turn by the towns that **keep this empire's faith** —
+   * Cuius Regio's, *cuius regio, eius religio*: whose realm, his religion.
+   *
+   * `capitalFaithPerTurn`'s sibling one congregation wider, and a source of its
+   * own for that member's reason exactly: a rate is a fact about the empire's
+   * books, and "what did my faithful towns bank" is a third reading of the
+   * calendar beside "what did I bank" and "what did the capital bank". Summed
+   * off the same sweep `collectYields` is already making, over the towns this
+   * empire owns whose derived `cityReligion` is one of the faiths it is paid by
+   * (`heldReligions` — the holy city's, so a conquered shrine moves the sentence
+   * with it), so nothing here can disagree with the banner a town flies.
+   */
+  | 'followingFaithPerTurn'
   /** Culture the empire banked this turn. */
   | 'culturePerTurn'
   /** Gold the empire banked this turn. */
@@ -1446,10 +1517,9 @@ export interface WindfallGrantSpec {
    * technology grants an extra turn of culture"*.
    *
    * `amount` stops being coins and becomes **turns**: one turn of culture is
-   * `amount: 1` with `fromRate: 'culturePerTurn'`, and an Order deepened to
-   * level 2 pays two turns because `scaleByLevel` reaches the turns exactly as
-   * it reaches every other figure in the vocabulary. So one field carries the
-   * upgrade rather than a second, quieter rule about what a deeper Lyceum means.
+   * `amount: 1` with `fromRate: 'culturePerTurn'`, and an Order whose authored
+   * increment carries a second such rider pays two turns — one more ordinary
+   * line of the same kind, exactly as every other deepening reads.
    *
    * It is still an Entry XVIII.5 **printed number**: the rate is read once, in
    * `windfallPayout`, before anything is banked — so the preview, the basket and
@@ -1968,9 +2038,10 @@ export interface CardRateConversionEffect {
  * second `kind` would have been a second thing for `liveEffects` consumers to
  * remember to read.
  *
- * `extra` is scaled by an Order's level like every other figure in the
- * vocabulary (`scaleByLevel`), and the cap in `rules.offers.max` is what keeps a
- * deeply drafted card from dealing a spread nobody can see.
+ * A deepened Order widens an offer by carrying a second rider in its authored
+ * increment — one more line of the same kind, folded by `explainOfferSize` like
+ * any other — and the cap in `rules.offers.max` is what keeps a deeply drafted
+ * card from dealing a spread nobody can see.
  */
 export interface CardOfferRiderEffect {
   kind: 'offerRider';
@@ -2102,6 +2173,24 @@ export interface CardTileYieldEffect extends CardYieldBag {
    * on itself.
    */
   percent?: number;
+  /**
+   * A percentage on what the hex's **own ground** already pays — its terrain,
+   * the hill or canopy over it, and the seam in it. The Old Ways' doubling.
+   *
+   * `percent`'s opposite number, and the pair is the whole of what a percentage
+   * on a hex may say. That one reaches the *works* — the improvement and its
+   * renewals — and this one reaches everything that was there before anybody
+   * built anything, which is exactly the half The Old Ways is about: *leave the
+   * land alone and it pays you*. Neither reaches the other, and neither reaches
+   * another card's line, so two cards cannot pay each other interest.
+   *
+   * Read as one more labelled `add` in `explainTileYield`, computed off the
+   * entries that came before the works (rule 5 at the hex: the breakdown still
+   * sums to the total, and a player can see which half was raised). Riders sum
+   * before one multiplication and the share is floored per voice, exactly as the
+   * works' percentage is.
+   */
+  basePercent?: number;
   /**
    * Whose ground it lands on: the hex pays only if its **owning city** is
    * admitted. Absent means every hex this empire works.
@@ -2507,28 +2596,21 @@ export interface CardDefBase {
   /**
    * False for a card the upgrade slot must never roll. **Absent means yes.**
    *
-   * The second half of the 2026-08-26 upgrade fix (user: "some cards don't have
-   * an upgrade"). `scaleByLevel` now guarantees that any *figure* advances by at
-   * least a point per level, which reaches every card that prints a number. It
-   * cannot reach a card that prints none — an `actionRule` is a switch, and a
-   * switch has no louder setting — and an offer that deepened one would be a
-   * draft option that changed nothing, which is the one thing a draft may never
-   * be.
+   * Since the 2026-09-02 ladder the flag says exactly one thing and says it
+   * plainly: *this card has no authored second face*. It used to be a hedge
+   * against `scaleByLevel` — a switch has no louder setting, so a card printing
+   * no figure had to be marked or it would be offered as an upgrade that
+   * changed nothing. The increment is now authored (`OrderDef.upgrade`), so the
+   * two are one decision: a row with no `upgrade` list is a row that is not
+   * upgradable, and `test/sim/statecraft.test.ts` refuses the pair coming
+   * apart in either direction.
    *
-   * So such a card says so on its row and `drawOrderOffer` skips it. It is a
-   * **declaration, not a shrug**: a card marked this way is a card somebody has
-   * decided has no second face, and giving it one later is deleting this field
-   * and writing the clause.
-   *
-   * **Two readings since 2026-08-28**, and the second is the designer's rather
-   * than the vocabulary's: a card may print a perfectly scalable figure and
-   * still be declared flat because *the design says so* — March Discipline and
-   * Skirmishers' Creed each hand a whole point of a scarce thing (a march, a
-   * bowshot) and a second point of either is a different card. Those two are
-   * named in `test/sim/statecraft.test.ts`, which is what keeps the flag from
-   * becoming an escape hatch: the test still refuses a marked card that both
-   * deepens and is not on that list, so silencing a row that simply needs a
-   * bigger number costs a deliberate edit to a named register.
+   * It is a **declaration, not a shrug**. A card marked this way is a card
+   * somebody has decided has no second face — including two whose ratified
+   * deepening changes a *parameter* rather than a line (The Standing Levy's
+   * cadence, Pilgrim Roads' cap), which the vocabulary cannot say and which
+   * therefore ship marked, with the ratified words in `deferred`, rather than
+   * bent into a shape that nearly fits.
    */
   upgradable?: boolean;
   effects: CardEffect[];
@@ -2580,6 +2662,39 @@ export interface OrderSlotGrant {
 export interface OrderDef extends CardDefBase {
   pool: OrderPool;
   slot: SlotType;
+  /**
+   * **What one deepening adds** — the authored increment of the 2026-09-02
+   * ladder (user: *"orders can only be deepened up to level 3. Some cannot be
+   * upgraded"*).
+   *
+   * An ordinary `CardEffect[]`, in the ordinary vocabulary, read by the ordinary
+   * evaluators: the face at level *N* is `effects` followed by *N−1* copies of
+   * this list (`orderEffectsAtLevel`, `statecraft.ts`). Nothing downstream knows
+   * a level exists — a deeper card is *more lines of the same kinds*, which is
+   * why the whole consumer register survived the change untouched.
+   *
+   * It replaced `scaleByLevel`'s blanket ×1.5 on every printed figure, and the
+   * reason is a design one rather than an arithmetic one: that rule deepened
+   * every clause on a card at once, so Blooded Spears' point against everybody
+   * grew with its point against the wild and The Almanac's library clause grew
+   * with its capital's. The increment says **which clause deepens**, because
+   * that was always a decision somebody should have been making.
+   *
+   * Absent means the card does not deepen, and such a row says so out loud with
+   * `upgradable: false` — the two are one decision and a source test pins them
+   * together.
+   */
+  upgrade?: CardEffect[];
+  /**
+   * How deep this card may be drafted. Absent means `maxOrderLevel` (3).
+   *
+   * Written only where the ratified text states its **own** ceiling — Silk
+   * Roads' "up to +6" from a base of +3 and an increment of +1 is four levels,
+   * Public Granaries' "up to 35%" from 15% by 5s is five. So the field is the
+   * designer's sentence rather than a second dial: a row that says nothing takes
+   * the table's rung, and a row that says something is quoting its own words.
+   */
+  maxLevel?: number;
   /** True for a card with no archetype thread. Presentation only. */
   neutral?: boolean;
   /** What slotting this hands over, once per game. See `OrderSlotGrant`. */
@@ -2612,8 +2727,17 @@ export interface StatecraftMeterConfig {
 
 export interface StatecraftConfig {
   meter: StatecraftMeterConfig;
-  /** What a level-2 face multiplies its printed numbers by. */
-  upgradeMultiplier: number;
+  /**
+   * How deep an Order may be drafted when its row names no ceiling of its own —
+   * three, by the user's ruling of 2026-09-02.
+   *
+   * It replaced `upgradeMultiplier`, which is **gone from the table** rather
+   * than left at 1.5 for nobody: the ladder is authored per row now
+   * (`OrderDef.upgrade`), so a multiplier here would be a dial a designer will
+   * one day turn expecting something to happen — the same argument that deleted
+   * the `offer` block.
+   */
+  maxOrderLevel: number;
   // There is deliberately **no `offer` block**. How many cards a draft deals was
   // moved to `rules.offers` by the offer-size pass (Entry XXXI) and folded by
   // `explainOfferSize`, because a wonder, a belief or a great person may widen

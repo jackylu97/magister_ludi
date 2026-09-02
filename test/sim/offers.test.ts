@@ -71,13 +71,21 @@ function rider(
  * the restore is not politeness — a leaked rider is a card that quietly widens
  * every draft in every other file.
  */
-function withEffects(def: { effects?: readonly CardEffect[] }, effects: CardEffect[], body: () => void): void {
+function withEffects(
+  def: { effects?: readonly CardEffect[]; upgrade?: CardEffect[] },
+  effects: CardEffect[],
+  body: () => void,
+  upgrade?: CardEffect[],
+): void {
   const before = def.effects;
+  const beforeUpgrade = def.upgrade;
   (def as { effects?: readonly CardEffect[] }).effects = effects;
+  if (upgrade !== undefined) def.upgrade = upgrade;
   try {
     body();
   } finally {
     (def as { effects?: readonly CardEffect[] }).effects = before;
+    if (upgrade !== undefined) def.upgrade = beforeUpgrade;
   }
 }
 
@@ -146,15 +154,46 @@ describe('a rider widens the offer it names', () => {
   it('reads one off an Order, and deepens with the holding', () => {
     const g = game();
     const id = ORDER_IDS[0]!;
-    withEffects(orderDef(id), [rider('belief', 1)], () => {
-      const sc = g.state.players[0]!.statecraft;
-      sc.orders.push({ id, level: 1 });
-      sc.slots[0] = { card: id, sealedUntil: 0 };
-      expect(offerSize(g.state, 0, 'belief')).toBe(4);
-      // A level is a figure scaled like every other figure in the vocabulary.
-      sc.orders[0]!.level = 2;
-      expect(offerSize(g.state, 0, 'belief')).toBe(5);
-    });
+    // The 2026-09-02 ladder: a level adds the row's **authored increment**
+    // rather than scaling every figure on the card, so a deepening widens an
+    // offer exactly when the increment says another card — which is one more
+    // ordinary line of the same kind, read by the same fold.
+    withEffects(
+      orderDef(id),
+      [rider('belief', 1)],
+      () => {
+        const sc = g.state.players[0]!.statecraft;
+        sc.orders.push({ id, level: 1 });
+        sc.slots[0] = { card: id, sealedUntil: 0 };
+        expect(offerSize(g.state, 0, 'belief')).toBe(4);
+        sc.orders[0]!.level = 2;
+        expect(offerSize(g.state, 0, 'belief')).toBe(5);
+        // And the cap still holds over the deeper hand: a third level asks for
+        // six and `rules.offers.max` says five, which is the negative line the
+        // fold prints rather than a clamp somebody remembered to write.
+        sc.orders[0]!.level = 3;
+        expect(offerSize(g.state, 0, 'belief')).toBe(RULES.offers.max);
+      },
+      [rider('belief', 1)],
+    );
+  });
+
+  it('does not deepen a rider the increment says nothing about', () => {
+    const g = game();
+    const id = ORDER_IDS[0]!;
+    // The other half of the ladder's bargain, and the reason it replaced the
+    // multiplier: a card's *other* clauses do not grow because one of them did.
+    withEffects(
+      orderDef(id),
+      [rider('belief', 1)],
+      () => {
+        const sc = g.state.players[0]!.statecraft;
+        sc.orders.push({ id, level: 3 });
+        sc.slots[0] = { card: id, sealedUntil: 0 };
+        expect(offerSize(g.state, 0, 'belief')).toBe(4);
+      },
+      [],
+    );
   });
 
   it('reads one off a belief', () => {

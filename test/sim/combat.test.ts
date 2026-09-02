@@ -2365,17 +2365,17 @@ describe('cards and stamps on the strength ledger', () => {
     // Created *after* the card is slotted, so the stamp is written at the birth.
     const a = createUnit(state, 0, 'warrior', 3, 3);
     const d = createUnit(state, 1, 'warrior', 4, 3);
-    expect(a.stamp).toEqual({ strength: 1 });
+    expect(a.stamp).toEqual({ strength: 2 });
 
     const attacking = forecast(state, a.id, 4, 3);
     const mine = attacking.attackerLines.find((l) => l.source === 'Veteran')!;
-    expect(mine.amount).toBe(1);
+    expect(mine.amount).toBe(2);
     expect(attacking.defenderLines.some((l) => l.source === 'Veteran')).toBe(false);
     expect(attacking.attackerStrength).toBe(foldCombatStrength(attacking.attackerLines));
 
     // The same point defends. `d` swings at the veteran and finds it steadier.
     const defending = forecast(state, d.id, 3, 3);
-    expect(defending.defenderLines.find((l) => l.source === 'Veteran')!.amount).toBe(1);
+    expect(defending.defenderLines.find((l) => l.source === 'Veteran')!.amount).toBe(2);
   });
 
   it('The Muster Roll raises the bar a heal fills, not just the number on it', () => {

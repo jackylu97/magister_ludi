@@ -575,7 +575,6 @@ describe('a belief is an effect source, not a second evaluator', () => {
     const line = live.find((entry) => entry.card === 'sacredFire');
     expect(line).toBeDefined();
     expect(line!.source).toBe('Belief · Sacred Fire');
-    expect(line!.level).toBe(1);
   });
 
   it('pays a flat city yield through cityYields (Sacred Fire)', () => {

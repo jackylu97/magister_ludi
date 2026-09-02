@@ -747,7 +747,7 @@ describe('a captured city, end to end', () => {
     // prerequisite edges moved so every column earns its width, and every cost
     // is rewritten off the node's own column. A v46 log aims research at a tree
     // this build does not have, and pays prices it never paid.
-    expect(SCHEMA_VERSION).toBe(47);
+    expect(SCHEMA_VERSION).toBe(48);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

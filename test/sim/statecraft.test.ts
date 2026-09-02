@@ -49,6 +49,9 @@ import {
   type PlayerStatecraft,
   cardActionRule,
   cardEmpireYields,
+  cardPercentYields,
+  scopedCardTileLines,
+  tileConditionHolds,
   cardBehaviorRule,
   cardCityStat,
   cityScopeAdmits,
@@ -71,7 +74,9 @@ import {
   newPlayerStatecraft,
   orderChoiceError,
   planDraft,
-  scaleByLevel,
+  canDeepen,
+  maxLevelOf,
+  orderEffectsAtLevel,
   sealRemaining,
   sealTurnsFor,
   settleCultureWindfall,
@@ -460,14 +465,20 @@ describe('the draft', () => {
     expect(sc.orders).toEqual([{ id: 'firstRites', level: 2 }]);
   });
 
-  it('scales an upgraded face by the multiplier, flooring per figure', () => {
-    expect(scaleByLevel(2, 1)).toBe(2);
-    expect(scaleByLevel(2, 2)).toBe(3);
-    expect(scaleByLevel(3, 2)).toBe(4);
-    expect(scaleByLevel(10, 3)).toBe(22);
-    // Magnitude-preserving on a malus: a tradeoff sharpens as the card deepens.
-    expect(scaleByLevel(-2, 2)).toBe(-3);
-    expect(scaleByLevel(0, 5)).toBe(0);
+  it('refuses a pick that would take a holding past its ceiling', () => {
+    const g = game();
+    const player = g.state.players[0]!;
+    const sc = player.statecraft;
+    // The offer is where the cap bites (`canDeepen`), so a card at its ceiling
+    // is never dealt as the upgrade face in the first place — see the ladder's
+    // own block. Here: the pick that *is* dealt lands exactly one level deeper.
+    sc.orders = [{ id: 'bloodedSpears', level: maxLevelOf('bloodedSpears') - 1 }];
+    sc.pendingOrder = { options: [], upgrade: 'bloodedSpears' };
+    expect(dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command).ok).toBe(
+      true,
+    );
+    expect(sc.orders).toEqual([{ id: 'bloodedSpears', level: maxLevelOf('bloodedSpears') }]);
+    expect(canDeepen(sc.orders[0]!)).toBe(false);
   });
 });
 
@@ -759,10 +770,31 @@ describe('every hook family, end to end', () => {
     const before = cityYields(g.state, city).faith;
     slot(g.state, 0, 'waysideShrines');
     expect(cityYields(g.state, city).faith).toBe(before + 1);
-    // Levels scale the printed number, through the one scaler.
-    slot(g.state, 0, 'waysideShrines', 2);
-    g.state.players[0]!.statecraft.slots = [{ card: 'waysideShrines', sealedUntil: 0 }];
-    expect(cityYields(g.state, city).faith).toBe(before + scaleByLevel(1, 2));
+    // Wayside Shrines has no second face at all (the 2026-09-02 ladder), so a
+    // level written into a save changes nothing — the reading clamps to the
+    // printed row rather than inventing a number for it.
+    g.state.players[0]!.statecraft.orders = [{ id: 'waysideShrines', level: 2 }];
+    expect(cityYields(g.state, city).faith).toBe(before + 1);
+  });
+
+  it('cityYields — a deepened Order pays its printed line and its increment, as two lines', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const before = cityYields(g.state, city).faith;
+    // First Rites prints +2 faith in the capital and its authored increment is
+    // +1 more of the same. Level 2 is 3, level 3 is 4 — and each level is one
+    // more ordinary line in the breakdown rather than a bigger number.
+    slot(g.state, 0, 'firstRites');
+    expect(cityYields(g.state, city).faith).toBe(before + 2);
+    const sc = g.state.players[0]!.statecraft;
+    sc.orders = [{ id: 'firstRites', level: 2 }];
+    expect(cityYields(g.state, city).faith).toBe(before + 3);
+    sc.orders = [{ id: 'firstRites', level: 3 }];
+    expect(cityYields(g.state, city).faith).toBe(before + 4);
+    // The cap clamps rather than throwing: a save from before the ceiling reads
+    // as the deepest face the row allows.
+    sc.orders = [{ id: 'firstRites', level: 9 }];
+    expect(cityYields(g.state, city).faith).toBe(before + 4);
   });
 
   it('percentYields — a card joins the city stage rather than multiplying afterwards', () => {
@@ -1009,9 +1041,22 @@ describe('every hook family, end to end', () => {
     player.statecraft.doctrines.push('manifestOfTheSteppe');
     const after = unitProductionCost(g.state, 0, 'settler');
     expect(after).toBeLessThan(before);
-    // No escalation *and* the discount, composed without either knowing about
-    // the other: base cost only, at 60%.
-    expect(after).toBe(Math.max(1, Math.floor((unitDef('settler').cost * 60) / 100)));
+    // The ladder is **not** stopped any more (the 2026-09-02 pass dropped that
+    // clause for two points of settler movement), so the discount lands on the
+    // escalated price rather than on the base one.
+    expect(after).toBe(Math.max(1, Math.floor((before * 60) / 100)));
+  });
+
+  it('unitStat — Manifest of the Steppe puts two points of movement under a settler', () => {
+    const g = game();
+    const seat = g.state.units[0]!;
+    const settler = createUnit(g.state, 0, 'settler', seat.col, seat.row);
+    const warrior = createUnit(g.state, 0, 'warrior', seat.col, seat.row);
+    const before = fullMovement(settler, g.state);
+    g.state.players[0]!.statecraft.doctrines.push('manifestOfTheSteppe');
+    expect(fullMovement(settler, g.state)).toBe(before + 2);
+    // And nothing else: the filter names the settler's own silhouette.
+    expect(cardUnitStat(g.state, warrior, 'movement')).toBe(0);
   });
 });
 
@@ -1040,7 +1085,7 @@ describe('determinism', () => {
     // prerequisite edges moved so every column earns its width, and every cost
     // is rewritten off the node's own column. A v46 log aims research at a tree
     // this build does not have, and pays prices it never paid.
-    expect(SCHEMA_VERSION).toBe(47);
+    expect(SCHEMA_VERSION).toBe(48);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1425,8 +1470,9 @@ describe('the behavioural hooks, in the verbs they change', () => {
     musterPeriodicUnits(g.state);
     expect(mine()).toBe(quiet);
 
-    // The tenth turn raises exactly one, in the seat of government.
-    g.state.turn = 20;
+    // The twelfth turn raises exactly one, in the seat of government (the
+    // cadence went 10 → 12 in the balance pass of 2026-09-02).
+    g.state.turn = 24;
     musterPeriodicUnits(g.state);
     expect(mine()).toBe(quiet + 1);
     const levied = g.state.units[g.state.units.length - 1]!;
@@ -1525,48 +1571,61 @@ describe('the behavioural hooks, in the verbs they change', () => {
 });
 
 /**
- * **An upgrade always changes something** (user, 2026-08-26: "some cards don't
- * have an upgrade").
+ * **The deepening ladder** (user, 2026-09-02: *"orders can only be deepened up
+ * to level 3. Some cannot be upgraded"*).
  *
- * A third of the table was offerable as an upgrade that did nothing at all:
- * `floor(1 × 1.5)` is `1`, so the multiplier swallowed itself on every card
- * whose printed figure was a single point — nineteen of the sixty-five Orders.
- * The fix is two halves and this block holds them together, because either half
- * alone is a way to hide the other:
+ * `scaleByLevel`'s blanket ×1.5 is gone and the increment is authored on the
+ * row (`OrderDef.upgrade`), so the promise this block used to hold together —
+ * *an upgrade always changes something* — is now a promise about **data**
+ * rather than about arithmetic. It is asserted in both directions, because
+ * either half alone is a way to hide the other:
  *
- *   1. **`scaleByLevel` advances the magnitude by at least a point per level**,
- *      which reaches every card that prints a number.
- *   2. **`upgradable: false`** on a card that prints none, which the upgrade
- *      draw then never rolls.
+ *   1. a row carrying an increment must actually read differently at level 2;
+ *   2. a row marked `upgradable: false` must carry no increment, and one
+ *      carrying an increment must not be marked.
  *
- * The trap the second half opens is that it can be used to paper over a row
- * that simply needed a bigger number — so it is asserted in *both* directions:
- * an upgradable card must actually deepen, and a non-upgradable one must have
- * genuinely nothing to scale.
+ * The cap is the third leg: a card at its ceiling is not in the bag the upgrade
+ * face is drawn from, so a draft can never offer a deepening the reading would
+ * clamp away.
  */
-describe('every upgrade is a real upgrade', () => {
+describe('the deepening ladder', () => {
   /** True when this card's level-2 face reads differently from its level-1 face. */
   function deepens(id: OrderId): boolean {
     return JSON.stringify(describeCard(id, 1)) !== JSON.stringify(describeCard(id, 2));
   }
 
-  it('advances a single point rather than flooring it away', () => {
-    // The exact case that shipped: one point, one level, and nothing happened.
-    expect(scaleByLevel(1, 2)).toBe(2);
-    expect(scaleByLevel(-1, 2)).toBe(-2);
-    // Two levels deep advances twice, and the multiplier takes over the moment
-    // it is worth more than the floor.
-    expect(scaleByLevel(1, 3)).toBe(3);
-    expect(scaleByLevel(4, 3)).toBe(9);
-    // Nothing that already deepened deepens differently: only ±1 moved.
-    for (const value of [2, 3, 4, 6, 10, 25, -2, -3, -10]) {
-      const factor = STATECRAFT.upgradeMultiplier;
-      const raw = value * factor;
-      const floored = raw < 0 ? -Math.floor(-raw) : Math.floor(raw);
-      expect(scaleByLevel(value, 2), String(value)).toBe(floored);
-    }
-    // Zero stays zero: a clause that pays nothing is not a clause.
-    expect(scaleByLevel(0, 5)).toBe(0);
+  it('reads level N as the printed face plus N−1 copies of the increment', () => {
+    // Blooded Spears prints a point for everybody and two more against the
+    // wild; its authored increment is the vs-barbarian point **alone**, which
+    // is the whole reason the ladder was rewritten — the old multiplier grew
+    // both clauses at once.
+    const base = orderEffectsAtLevel('bloodedSpears', 1);
+    expect(base).toEqual(orderDef('bloodedSpears').effects);
+    const two = orderEffectsAtLevel('bloodedSpears', 2);
+    expect(two).toHaveLength(base.length + 1);
+    expect(two.slice(0, base.length)).toEqual(base);
+    expect(two[base.length]).toEqual(orderDef('bloodedSpears').upgrade![0]);
+    expect(orderEffectsAtLevel('bloodedSpears', 3)).toHaveLength(base.length + 2);
+  });
+
+  it('clamps a level above the ceiling rather than throwing', () => {
+    const three = orderEffectsAtLevel('bloodedSpears', 3);
+    expect(orderEffectsAtLevel('bloodedSpears', 4)).toEqual(three);
+    expect(orderEffectsAtLevel('bloodedSpears', 99)).toEqual(three);
+    // And below it: a save carrying 0 or a fraction reads as the printed face.
+    expect(orderEffectsAtLevel('bloodedSpears', 0)).toEqual(orderDef('bloodedSpears').effects);
+  });
+
+  it('caps at three unless the row quotes its own ceiling', () => {
+    expect(STATECRAFT.maxOrderLevel).toBe(3);
+    for (const id of ORDER_IDS) expect(maxLevelOf(id), id).toBe(orderDef(id).maxLevel ?? 3);
+    // The four rows whose ratified text states a ceiling of its own, derived
+    // from the base, the increment and the words: "+1 gold, up to +6" from a
+    // base of +3 is four levels; "+5%, up to 35%" from 15% is five.
+    expect(maxLevelOf('silkRoads')).toBe(4);
+    expect(maxLevelOf('publicGranaries')).toBe(5);
+    expect(maxLevelOf('festivalDays')).toBe(3);
+    expect(maxLevelOf('harbourDues')).toBe(3);
   });
 
   it('deepens every Order that is offerable as an upgrade', () => {
@@ -1574,30 +1633,34 @@ describe('every upgrade is a real upgrade', () => {
     expect(flat, `these read the same at level 2: ${flat.join(', ')}`).toEqual([]);
   });
 
-  /**
-   * The rows the **designer** declared flat, master-list cut of 2026-08-28.
-   *
-   * Each prints a perfectly scalable figure and is still marked, because a
-   * second helping of what it hands over is a different card rather than a
-   * deeper one: a march and a bowshot are whole points of a scarce thing. The
-   * register is written down here rather than inferred, which is what keeps the
-   * flag from becoming an escape hatch — a row that simply needed a bigger
-   * number cannot be silenced without a deliberate edit to this list.
-   */
-  const DESIGNED_FLAT: readonly string[] = ['marchDiscipline', 'skirmishersCreed'];
-
-  it('marks as unupgradable only cards with no figure to advance', () => {
-    const marked = ORDER_IDS.filter((id) => !isUpgradable(id));
-    // The flag is a declaration about switches, not an escape hatch.
-    expect(marked.length).toBeGreaterThan(0);
-    for (const id of marked) {
-      if (DESIGNED_FLAT.includes(id)) continue;
-      expect(deepens(id), `${id} has a number and does not need the flag`).toBe(false);
+  it('keeps the flag and the increment one decision', () => {
+    for (const id of ORDER_IDS) {
+      const def = orderDef(id);
+      const authored = (def.upgrade ?? []).length > 0;
+      expect(isUpgradable(id), `${id}: the flag and the increment disagree`).toBe(authored);
     }
-    // The register is exact in the other direction too: a name left on this list
-    // after its row lost the flag is a declaration about nothing.
-    for (const id of DESIGNED_FLAT) {
-      expect(marked.includes(id as never), `${id} is listed but is upgradable`).toBe(true);
+    // Both halves of the table are real: nobody has quietly marked everything.
+    expect(ORDER_IDS.filter((id) => isUpgradable(id)).length).toBeGreaterThan(0);
+    expect(ORDER_IDS.filter((id) => !isUpgradable(id)).length).toBeGreaterThan(0);
+  });
+
+  /**
+   * The rows whose ratified deepening changes a **parameter** rather than a
+   * line — The Standing Levy's cadence, Pilgrim Roads' cap on what it may pay.
+   *
+   * Neither can be said as an increment: a second `periodicMuster` musters
+   * twice rather than sooner, and a second capped `countScaled` pays past its
+   * own cap. So they ship marked, with the ratified words in `deferred` rather
+   * than bent into a shape that nearly fits (Entry XV.b) — and the register is
+   * written down here so that giving one of them a face later costs a
+   * deliberate edit to this list.
+   */
+  const PARAMETER_DEEPENERS: readonly string[] = ['theStandingLevy', 'pilgrimRoads'];
+
+  it('says out loud which rows deepen a parameter it cannot say', () => {
+    for (const id of PARAMETER_DEEPENERS) {
+      expect(isUpgradable(id as OrderId), id).toBe(false);
+      expect((orderDef(id as OrderId).deferred ?? []).length, id).toBeGreaterThan(0);
     }
   });
 
@@ -1623,6 +1686,26 @@ describe('every upgrade is a real upgrade', () => {
     for (let draw = 0; draw < 40; draw++) {
       expect(drawOrderOffer(game.state, player).upgrade).toBe(deepenable);
     }
+  });
+
+  it('never rolls a card that has reached its ceiling', () => {
+    const game = createGame({
+      seed: 7,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#a00', isHuman: true }],
+    });
+    const player = game.state.players[0]!;
+    const sc = newPlayerStatecraft();
+    player.statecraft = sc;
+    // One card, held at its ceiling: there is nothing left to deepen, and the
+    // offer says so rather than dealing a face the reading would clamp away.
+    sc.orders = [{ id: 'bloodedSpears', level: maxLevelOf('bloodedSpears') }];
+    expect(canDeepen(sc.orders[0]!)).toBe(false);
+    expect(drawOrderOffer(game.state, player).upgrade).toBeUndefined();
+    // One level short of it, and it is the only thing in the bag.
+    sc.orders = [{ id: 'bloodedSpears', level: maxLevelOf('bloodedSpears') - 1 }];
+    expect(canDeepen(sc.orders[0]!)).toBe(true);
+    expect(drawOrderOffer(game.state, player).upgrade).toBe('bloodedSpears');
   });
 });
 
@@ -1758,7 +1841,7 @@ describe('the master-list cut of 2026-08-28', () => {
     // The kill rider fires only against the wild.
     expect(windfallPayout(g.state, 0, 'kill').grants).toEqual([]);
     expect(windfallPayout(g.state, 0, 'kill', 0, 0, { vsBarbarians: true }).grants).toEqual([
-      { card: 'borderBallads', source: 'Order · Border Ballads', yield: 'culture', amount: 4 },
+      { card: 'borderBallads', source: 'Order · Border Ballads', yield: 'culture', amount: 10 },
     ]);
   });
 
@@ -1781,7 +1864,7 @@ describe('the master-list cut of 2026-08-28', () => {
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
     slot(g.state, 0, 'ritesOfPassage');
-    expect(windfallPayout(g.state, 0, 'unitCompletion').grants[0]?.amount).toBe(5);
+    expect(windfallPayout(g.state, 0, 'unitCompletion').grants[0]?.amount).toBe(10);
     // **One row covers both halves of the card**, because a bought thing is
     // realised through `realiseItem` exactly as a built one is and the
     // completion riders live inside that routine. A second `purchase` occasion
@@ -1796,7 +1879,7 @@ describe('the master-list cut of 2026-08-28', () => {
       currency: 'gold',
     } as unknown as Command);
     expect(bought.ok).toBe(true);
-    expect(player.faithPool).toBe(faith + 5);
+    expect(player.faithPool).toBe(faith + 10);
   });
 
   it('randomMilitary — Camp Followers gifts a piece, and the same piece on a replay', () => {
@@ -2082,7 +2165,14 @@ describe('the master-list cut of 2026-08-28', () => {
       // name — so the half is deferred on the row and printed as such.
       'an amphitheatre instead of the Monument, once one is unlocked — not built yet',
     ]);
-    expect(said('gildedCourt')).toEqual(['unlocks the Gilded Hall', '+3 authority capacity']);
+    expect(said('gildedCourt')).toEqual([
+      'unlocks the Gilded Hall',
+      // The 2026-09-02 rework: the writ dropped to one point and the card bought
+      // a hex clause with the difference — the first `yields` condition, asked
+      // of the breakdown the hex has already been reckoned to pay.
+      '+1 science, +1 culture on every hex that yields gold',
+      '+1 authority capacity',
+    ]);
     // The pillage heal was Scorched Earth's all along, and the balance pass of
     // 2026-08-31 gave the second half back to the doc's own sentence — which the
     // board cannot answer, so it is deferred rather than approximated.
@@ -2130,11 +2220,11 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(said('saltTithes')).toEqual(['+2 gold per unique luxury']);
     expect(said('borderBallads')).toEqual([
       '+2 culture per barbarian camp you have found',
-      'killing a barbarian unit grants +4 culture',
+      'killing a barbarian unit grants +10 culture',
     ]);
     expect(said('silkRoads')).toEqual(['+3 gold per trade route you run']);
     expect(said('festivalDays')).toEqual(['+4 happiness']);
-    expect(said('ritesOfPassage')).toEqual(['completing a unit grants +5 faith']);
+    expect(said('ritesOfPassage')).toEqual(['completing a unit grants +10 faith']);
     // The Themes Build's rework (sheet 09, the user): the trickle replaces the
     // one-off laureate, and the five works are untouched.
     expect(said('theLaureate')).toEqual([
@@ -2337,22 +2427,30 @@ describe('the doctrines’ deferred halves, built', () => {
     expect(foldCardYields(cardEmpireYields(g.state, 0)).culture).toBe(1);
   });
 
-  it('The Academy of Deeds doubles a Triumph before anything is banked', () => {
+  it('The Academy trades culture for science, both at the empire stage', () => {
+    // The 2026-09-02 rework: the row kept its id and lost its Triumph doubling
+    // outright, so nothing amplifies a Triumph's renown any more. What is left
+    // is a plain bargain, and both halves are **empire**-stage percentages —
+    // one sum, applied once, exactly as Entry XVII asks.
+    const g = game(337);
+    const city = found(g.state, 0);
+    expect(cardPercentYields(g.state, city).some((l) => l.card === 'theAcademyOfDeeds')).toBe(false);
+    playerById(g.state, 0)!.statecraft.doctrines.push('theAcademyOfDeeds' as never);
+    const lines = cardPercentYields(g.state, city).filter((l) => l.card === 'theAcademyOfDeeds');
+    expect(lines.map((l) => [l.yield, l.percent, l.stage])).toEqual([
+      ['culture', -10, 'empire'],
+      ['science', 20, 'empire'],
+    ]);
+    // And the doubling is gone with the rework: a Triumph pays its printed
+    // renown and nothing folds onto it.
+    const before = playerById(g.state, 0)!.renownPool;
+    awardOccasion(g.state, 0, 'campCleared');
+    const paid = playerById(g.state, 0)!.renownPool - before;
     const plain = game(337);
     found(plain.state, 0);
-    const doubled = game(337);
-    found(doubled.state, 0);
-    playerById(doubled.state, 0)!.statecraft.doctrines.push('theAcademyOfDeeds' as never);
-    const claim = (g: ReturnType<typeof game>): number => {
-      const before = playerById(g.state, 0)!.renownPool;
-      awardOccasion(g.state, 0, 'campCleared');
-      return playerById(g.state, 0)!.renownPool - before;
-    };
-    const flat = claim(plain);
-    expect(flat).toBeGreaterThan(0);
-    // The announcement and the pool are one figure — the amplifier folds into
-    // the printed number, never onto the settlement afterwards.
-    expect(claim(doubled)).toBe(flat * 2);
+    const was = playerById(plain.state, 0)!.renownPool;
+    awardOccasion(plain.state, 0, 'campCleared');
+    expect(paid).toBe(playerById(plain.state, 0)!.renownPool - was);
   });
 });
 
@@ -2393,37 +2491,25 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     expect(gold.gold).toBe(-1);
   });
 
-  it('unitStat scope — Cuius Regio charges the augurs its own faith raised', () => {
+  it('followingFaithPerTurn — Cuius Regio reads the faith of the towns that follow him', () => {
+    // Replaced outright in the balance pass of 2026-09-02: the extra augur
+    // charge is gone and the card is a **rate**, on Theocracy's precedent — 15%
+    // of what the faithful towns bank, gained again as science, with the faith
+    // itself untouched. The rate is a third reading of the calendar beside
+    // `faithPerTurn` and `capitalFaithPerTurn`, so it earns a source of its own.
     const g = game(403);
-    const city = found(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('cuiusRegio' as never);
-    const plain = unitDef('augur').charges ?? 1;
-
-    // A town that keeps no faith at all raises an ordinary augur: the scope is
-    // silent rather than generous when it cannot be satisfied.
-    const before = createUnit(g.state, 0, 'augur', city.col, city.row);
-    expect(before.chargesLeft).toBe(plain);
-
-    // Give the empire a religion and hand the town to it, and the same city
-    // raises a charged one.
-    const religion = {
-      id: 1 as never,
-      founderId: 0,
-      name: 'The Way',
-      pantheon: [],
-      follower: [],
-      enhancer: [],
-      foundedTurn: 1,
-    } as never;
-    g.state.religions.push(religion);
-    city.followers = { 1: city.population } as never;
-    const after = createUnit(g.state, 0, 'augur', city.col, city.row);
-    expect(after.chargesLeft).toBe(plain + 1);
-
-    // And a piece born on open ground — no town at all — is untouched, which is
-    // the scoped line's documented silence.
-    const wild = getTileAt(g.state.map, (city.col + 6) % g.state.map.width, city.row)!;
-    expect(createUnit(g.state, 0, 'augur', wild.col, wild.row).chargesLeft).toBe(plain);
+    const rate = (following: number): number =>
+      foldCardYields(cardEmpireYields(g.state, 0, { followingFaithPerTurn: following })).science;
+    // Below one helping it pays nothing, which is `helpings`' own reading and
+    // not a clause of this card's.
+    expect(rate(0)).toBe(0);
+    expect(rate(19)).toBe(0);
+    expect(rate(20)).toBe(3);
+    expect(rate(60)).toBe(9);
+    // Nothing else in the ledger moves: "converted" is read as *gained as*, so
+    // the faith the towns banked is still theirs.
+    expect(foldCardYields(cardEmpireYields(g.state, 0, { followingFaithPerTurn: 60 })).faith).toBe(0);
   });
 
   it('capturedCityCost is a delta now, and two of them floor at one', () => {
@@ -2510,7 +2596,8 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
       '-2 combat strength',
     ]);
     expect(said('theStandingLevy')).toEqual([
-      'every 10 turns, the best melee unit you can build musters in your capital',
+      'every 12 turns, the best melee unit you can build musters in your capital',
+      'deepening this Order bringing the muster 2 turns sooner — not built yet',
     ]);
     expect(said('theLegion')).toEqual([
       'melee units: +1 movement',
@@ -2778,12 +2865,16 @@ describe('the Orders pass of 2026-08-29', () => {
     ]);
     expect(said('wolfRunners')).toEqual([
       'scouts: +1 movement',
-      'claiming a ruin grants +10 gold',
+      'claiming a ruin grants +15 gold',
     ]);
     expect(said('hearthSongs')).toEqual(['+1 culture in every city of 4 or less']);
-    expect(said('statuteLabour')).toEqual(['+1 production per 3 population in this city']);
+    expect(said('statuteLabour')).toEqual(['+1 production per 4 population in this city']);
     expect(said('riverWardens')).toEqual([
-      '+1 food on every hex with a Farm beside fresh water',
+      // Reworked 2026-09-02: the wardens have to actually be there, which is
+      // the first `garrisoned` scope and the first fact about the *pieces* a
+      // city scope ever asked for.
+      '+1 food on every hex with a Farm beside fresh water, ' +
+        'in every city with a unit standing in it',
     ]);
     expect(said('theAlmanac')).toEqual([
       '+2 science in your capital',
@@ -2813,7 +2904,7 @@ describe('the Orders pass of 2026-08-29', () => {
       '+1 gold in every city with a Market',
       '+1 trade route',
     ]);
-    expect(said('drumsOfWar')).toEqual(['newly created units gain +1 combat strength']);
+    expect(said('drumsOfWar')).toEqual(['newly created units gain +2 combat strength']);
     expect(said('theCartographers')).toEqual(['+1 science per 40 hexes you have revealed']);
     expect(said('theMasonsLodge')).toEqual([
       '+10% production toward buildings, in every city of 6+',
@@ -2987,11 +3078,11 @@ describe('the balance pass of 2026-08-31', () => {
     // The occasion is the whole of the gate: nothing else pays a turn of
     // anything.
     expect(windfallPayout(g.state, 0, 'kill').grants).toEqual([]);
-    // The **turns** are what an upgrade deepens, which is what keeps one field
-    // carrying the level rather than a second rule about a deeper Lyceum.
-    slot(g.state, 0, 'theLyceum', 2);
-    g.state.players[0]!.statecraft.slots = [{ card: 'theLyceum', sealedUntil: 0 }];
-    expect(windfallPayout(g.state, 0, 'tech').grants[0]!.amount).toBe(scaleByLevel(1, 2) * rate);
+    // The Lyceum has no second face since the 2026-09-02 ladder, so a level
+    // written into a save changes nothing: the reading clamps to the printed
+    // row rather than inventing a deeper Lyceum for it.
+    g.state.players[0]!.statecraft.orders = [{ id: 'theLyceum', level: 2 }];
+    expect(windfallPayout(g.state, 0, 'tech').grants[0]!.amount).toBe(rate);
   });
 
   it('reads every member this pass declared from at least one live card', () => {
@@ -3031,8 +3122,12 @@ describe('the balance pass of 2026-08-31', () => {
     // Religious Mandate's rung, which is not a live pool — rather than being
     // dealt into Pool IV as a card that does nothing.
     expect(doctrineDef('theClosedRealm').tier).toBe(0);
-    // A retired row keeps its row so a save replays and leaves every pool.
-    expect(poolOrders('governmentIII').includes('theOldWays' as never)).toBe(false);
+    // The Old Ways is **un-retired** by the balance pass of 2026-09-02 (the
+    // user: "this is the payoff card"), so it is back in the bag — and Foreign
+    // Quarters took its place as the withdrawn row, which keeps its row so a
+    // save replays and leaves every pool.
+    expect(poolOrders('governmentIII').includes('theOldWays' as never)).toBe(true);
+    expect(poolOrders('governmentII').includes('foreignQuarters' as never)).toBe(false);
   });
 
   it('prints every changed and new row in the words the doc ratified', () => {
@@ -3057,6 +3152,9 @@ describe('the balance pass of 2026-08-31', () => {
     expect(said('pilgrimRoads')).toEqual([
       '+1 faith per 3 population in your capital',
       '+1 happiness per 50 banked faith (at most +5 happiness)',
+      // The ratified deepening raises a *cap*, which the vocabulary cannot say —
+      // so the row is marked flat and says what it owes in its own words.
+      'deepening this Order raising the happiness it may pay by 2 — not built yet',
     ]);
     expect(said('theLyceum')).toEqual([
       'completing a technology grants an extra turn of culture',
@@ -3075,11 +3173,14 @@ describe('the balance pass of 2026-08-31', () => {
     ]);
     expect(said('firstFruits')).toEqual(['+1 food on every hex carrying a resource']);
     expect(said('theOldWays')).toEqual([
-      'the yields of every unimproved hex are doubled — not built yet',
+      // Built 2026-09-02 (the user: "this is the payoff card"): a percentage on
+      // the hex's **own ground** rather than on its works, computed off the
+      // breakdown the tile chain already has — rule 5 at the scale of a hex.
+      'the ground of every unimproved hex pays double',
     ]);
     expect(said('theGentleYoke')).toEqual([
-      '-15% happiness demanded per citizen',
-      '-2 authority capacity per city you hold',
+      '-20% happiness demanded per citizen',
+      '-3 authority capacity per city you hold',
     ]);
     expect(said('theScatteredHearths')).toEqual([
       'the citizens in every city who demand no happiness rises by 3',
@@ -3148,8 +3249,10 @@ describe('the ratified cards of the Themes Build', () => {
     expect(cardUnitStat(g.state, away, 'heal')).toBe(0);
 
     slot(g.state, 0, 'theWinteringGrounds');
+    // The mending half was dropped in the balance pass of 2026-09-02: the card
+    // is the payroll and nothing else now.
     expect(cardUnitStat(g.state, home, 'heal')).toBe(0);
-    expect(cardUnitStat(g.state, away, 'heal')).toBe(5);
+    expect(cardUnitStat(g.state, away, 'heal')).toBe(0);
     // The payroll: only the piece standing abroad is forgiven, and it is
     // forgiven **whole**.
     const rebate = explainUnitUpkeepRebate(g.state, 0);
@@ -3428,7 +3531,6 @@ describe('the ratified cards of the Themes Build', () => {
     ]);
     expect(said('theWinteringGrounds')).toEqual([
       'all units cost no gold in maintenance outside your territory',
-      'all units: +5 healing per turn outside your territory',
     ]);
     expect(said('theArchives')).toEqual([
       '+1 culture per level of the Orders you have placed in a slot',
@@ -3442,5 +3544,133 @@ describe('the ratified cards of the Themes Build', () => {
     expect(said('theTriumphalWay')).toEqual([
       'capturing a city grants +5 happiness in every city for 10 turns',
     ]);
+  });
+});
+
+// --- the balance pass of 2026-09-02 -----------------------------------------
+
+/**
+ * The user's balance pass over `docs/orders-and-doctrines.md`: the deepening
+ * ladder (its own block, above), the retunes, and the four shapes the reworked
+ * rows needed.
+ *
+ * One behavioural test per **new shape**, because the register test only proves
+ * a shape is *named* by a row and a shape that is named and unread is exactly
+ * the failure the vocabulary exists to prevent — plus the numbers that moved
+ * and can only be checked by reading the ledger they land in.
+ */
+describe('the balance pass of 2026-09-02', () => {
+  it('hasImprovement — Quarrymen\u2019s Guild asks for the quarry, not for the stone', () => {
+    const g = game(902);
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'quarrymensGuild');
+    // Nothing has been dug: the scope is silent rather than generous.
+    expect(cardCityYields(g.state, city).some((l) => l.card === 'quarrymensGuild')).toBe(false);
+    // A quarry **inside the borders** — the sweep `terrainInBorders` takes,
+    // asked of what has been built rather than of the ground. The centre's own
+    // hex is the town's, so it is the one hex a test can be sure of.
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    tile.improvement = 'quarry';
+    const line = cardCityYields(g.state, city).find((l) => l.card === 'quarrymensGuild')!;
+    expect(line.production).toBe(4);
+  });
+
+  it('garrisoned — River Wardens want the wardens actually standing there', () => {
+    const g = game(903);
+    const city = found(g.state, 0);
+    // Clear the seat's opening pieces off the centre so the town is empty.
+    g.state.units = g.state.units.filter((u) => u.col !== city.col || u.row !== city.row);
+    slot(g.state, 0, 'riverWardens');
+    const named = (): boolean =>
+      scopedCardTileLines(g.state, city).some((line) => line.source.includes('River Wardens'));
+    expect(named()).toBe(false);
+    // A civilian is not a garrison — the scope reads the same sweep the
+    // `garrison` count reads, and that one counts combatants.
+    createUnit(g.state, 0, 'settler', city.col, city.row);
+    expect(named()).toBe(false);
+    createUnit(g.state, 0, 'warrior', city.col, city.row);
+    expect(named()).toBe(true);
+  });
+
+  it('yields — The Gilded Court reads what the hex has been reckoned to pay', () => {
+    const g = game(904);
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('gildedCourt' as never);
+    const ctx = yieldContextFor(g.state, 0);
+    const paid = (tile: ReturnType<typeof getTileAt>): number =>
+      explainTileYield(tile!, ctx).filter((l) => l.source.includes('Gilded Court')).length;
+
+    // Grassland pays no gold, so the clause is silent on it.
+    const dry = getTileAt(g.state.map, city.col, city.row)!;
+    dry.terrain = 'grassland';
+    dry.hills = false;
+    dry.feature = 'none';
+    delete dry.resource;
+    expect(paid(dry)).toBe(0);
+
+    // Coast pays a gold off its own terrain row, and the clause lands — off the
+    // breakdown the chain has already built, never off a second reading.
+    const wet = getTileAt(g.state.map, (city.col + 1) % g.state.map.width, city.row)!;
+    wet.terrain = 'coast';
+    wet.hills = false;
+    wet.feature = 'none';
+    delete wet.resource;
+    expect(paid(wet)).toBe(1);
+    const line = explainTileYield(wet, ctx).find((l) => l.source.includes('Gilded Court'))!;
+    expect([line.science, line.culture, line.gold]).toEqual([1, 1, 0]);
+
+    // A caller with no breakdown behind it answers no, which is the shape's
+    // documented silence: a granary cannot ask what a hex is worth.
+    expect(tileConditionHolds(wet, { test: 'yields', yield: 'gold' })).toBe(false);
+  });
+
+  it('basePercent — The Old Ways doubles the ground and never the works', () => {
+    const g = game(905);
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    tile.terrain = 'grassland';
+    tile.hills = false;
+    tile.feature = 'none';
+    delete tile.resource;
+    delete tile.improvement;
+
+    const bare = foldTileYield(explainTileYield(tile, yieldContextFor(g.state, 0)));
+    slot(g.state, 0, 'theOldWays');
+    const lines = explainTileYield(tile, yieldContextFor(g.state, 0));
+    const doubled = foldTileYield(lines);
+    // The share is **one labelled line**, and the list still folds to the total
+    // (rule 5): what the hex pays is the sum of what the breakdown says.
+    const share = lines.find((l) => l.source.includes('The Old Ways'))!;
+    expect(share.food).toBe(bare.food);
+    expect(doubled.food).toBe(bare.food * 2);
+    expect(doubled.production).toBe(bare.production * 2);
+
+    // Build anything at all and the clause stops: the condition is `unimproved`
+    // and presence is the state, exactly as the rest of the ladder reads it.
+    tile.improvement = 'farm';
+    expect(
+      explainTileYield(tile, yieldContextFor(g.state, 0)).some((l) =>
+        l.source.includes('The Old Ways'),
+      ),
+    ).toBe(false);
+  });
+
+  it('moves every number the doc moved', () => {
+    const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    const amountOf = (id: OrderId): number =>
+      (orderDef(id).effects[0] as { amount: number }).amount;
+    expect(amountOf('borderWardens')).toBe(2);
+    expect(amountOf('vanguard')).toBe(2);
+    expect(amountOf('siegeDoctrine')).toBe(4);
+    expect(said('weightsAndMeasures')).toEqual(['+1 gold in every city']);
+    expect(said('theTaxFarm')).toEqual(['+1 gold per 4 population']);
+    expect(said('publicGranaries')).toEqual(['+15% of the stored food kept when a city grows']);
+    expect(said('masterMasons')).toEqual(['completing a building grants +10 culture']);
+    expect(said('theSaltRoad')).toEqual(['+1 gold on every hex carrying a strategic resource']);
+    expect(said('spoilsOfTheWild')).toEqual(['clearing a barbarian camp pays +100%']);
+    // Foreign Quarters is withdrawn and The Great Warring Tribes changed pool.
+    expect(orderDef('foreignQuarters').retired).toBe(true);
+    expect(doctrineDef('greatWarringTribes').tier).toBe(10);
+    expect(doctrineDef('theAcademyOfDeeds').name).toBe('The Academy');
   });
 });
