@@ -4372,3 +4372,37 @@ orchestrator gates (typecheck + core + build per batch; test:all before every pu
 deferred rows keep player-plain prose; a shape is never bent to nearly fit.
 
 ---
+
+## Entry LIX — The Themes Build shipped, and what the arena says (**milestone close**, 2026-09-02)
+
+Entry LVIII's four phases are on `main` (schemas 41→46, ~4,040 tests): the 50-node tree
+with Æra I restored and cost-ordered columns · the siege gate and shore-crossing costs ·
+the one-charge prophet and augur, the Inquisitor and the Reliquary · veins, barrows and
+sea-wrecks · **the Magnum Opus endgame** (world-unlock at the first Alchemy, contribution-
+funded, completion → golden bead → final reckonings → most beads wins) · the Long Count's
+die, Alchemy's closing bead, the three Observatory capstones · twenty-six ratified cards
+on nine new generic shapes. Every unshipped ratified sentence carries deferred prose.
+
+**The arena (three seeds, bot v bot, standard maps): every game DECIDED, at t169 / t181 /
+t196, all via the Opus.** The two-clock problem is closed — one finish line, and the bots
+race it. Findings, in tuning-priority order (proposals, not applied — Entry LIV's trim was
+deliberately not executed on autopilot):
+1. **Late gold collapses**: by t160 both seats run negative gold (worst −125/turn,
+   treasury −1,642) — late upkeep outruns supply and the arrears sweep does not right it.
+   The first thing playtest will feel; candidate levers: building maintenance curve, the
+   arrears rule, the flat-gold trim reinvested as late supply.
+2. **Culture floods late** (200–400/turn): the draft cadence saturates; candidate levers:
+   a third meter exponent step, or late culture wants its own sink (the deferred Opus
+   culture pillar is the natural one).
+3. **The bead threshold (20) never decides** — winners held 7–10; the Opus is the real
+   curtain. Either lower the threshold into relevance or retire it as a second finish line.
+4. The full chart closes ~t160–195 with bots — earlier than the t265 estimate; acceptable,
+   but the Æra IV band could stretch if the last age feels short.
+
+Standing flags awaiting the user (gathered from all phases): settler −33% vs −50% ·
+temple −25% semantics · iron's later reveal · the founder-belief interpretation ·
+redraftBeliefs kept · the enhancer-path ladder · the Codex behind the Alchemical Society ·
+the culture pillar · the Entry LIV supply-trim table (to be tuned against finding 1) ·
+star-chart vertical scroll on short windows · inquisitor badge art.
+
+---
