@@ -81,11 +81,12 @@ are held live by an overridden row in `test/resourceEffects.test.ts`.
 
 ### Faith
 
-Faith is a **new yield, and it is accumulate-only**. Tiles pay it (incense, jade),
-signatures pay it (incense's per-city line), cities collect it, and it lands in
-`Player.faithPool` every turn. **Nothing spends it.** The top bar shows the pool
-with a candle glyph and its hover card says so out loud: *"The faithful gather.
-Their purpose comes later."*
+Faith is a yield like the others. Tiles pay it (incense, jade), signatures pay
+it (incense's per-city line), cities collect it, and it lands in
+`Player.faithPool` every turn. When this section was written nothing spent it;
+that is long superseded (ledger Entry XXVIII and after): **augurs and prophets
+spend it**, rites cost it, and with a Reliquary standing it buys units outright
+(`faithPurchases`, `purchase.ts`). The candle glyph stayed.
 
 It ships now rather than later because four ratified rows put faith on a *tile*,
 so either the yield algebra carries it or those rows ship with their signature
@@ -120,6 +121,15 @@ it is the more specific fact and the one a pillage can take away.
 ---
 
 ## Balance flags from play
+
+- **Per-city happiness luxuries (2026-09-02): too strong as a class** — the user’s
+  ruling from the pacing review: “the luxuries that give +1 happiness per city are
+  way too strong.” The class is everything carrying `extraHappiness per: "city"`:
+  **amber, sugar, gold, honey, pearls** (pearls adds +3 per *coastal* city at
+  Æra III; gold adds +2 per copy at Æra III). A flat +1/city outgrows every
+  fixed-amount luxury the moment the empire passes a handful of towns, which is
+  exactly the wide-snowball this class feeds. Slated for the user’s nerf round —
+  numbers not yet ruled.
 
 - **Honey (2026-08-26): too strong as ratified** — the user is rethinking its effect; the
   row stands until a replacement is designed. (Not a bug — the farm-overwrites-seam problem
@@ -420,11 +430,17 @@ against the list: only **fish** changed (`+1🌾` → `+2🌾`).
 | Reeds | +1🌾 +1🔬 | flat grassland/plains |
 | Crabs | +1🌾 +1🪙 | coast · **fishing boats** |
 | Bison | +1🌾 | flat plains |
+| Rich Ore | +2⚙ +1🪙 | **buried** — a vein, revealed only by a worker/explorer's Prospect (`docs/mapgen.md`, pass 8) |
 
 Reeds is the first bonus resource to pay **science** off a tile, which is one of
 the three reasons `TileYield` widened.
 
 There is no sheep row: the candidate menu had one, the ratified list does not.
+
+**Rich Ore (2026-08-31, the veins pass)** is the fifteenth bonus row and the odd
+one out: `frequency: 0` — the ordinary scatter never places it. It exists only as
+a **vein** (`Tile.vein`, mapgen pass 8, ~62% of veins) and surfaces when a unit
+prospects the hex. The `buried` marker is what keeps it off the open map.
 
 ---
 
@@ -443,6 +459,16 @@ Everything above, in one place, by what it waits on.
 | ~~Fishing boats / work boats~~ | ~~whales Æra III (part), tyrian's base line; **and every signature of all four sea luxuries**~~ — **all landed 2026-08-26**, Entry XXVII |
 | Unique units | ivory (war elephants, and its Æra III combat tier) |
 | A building classification | jade's base line, tea Æra III, coffee Æra III, cotton Æra III |
+
+**Re-read 2026-09-02.** Most of the systems this table waits on have since been
+built — trade routes and connected cities (Entry XXXV), unit upkeep (Entry XLI),
+great people (Entry XXXII), faith spending (Entry XXVIII), Statecraft itself.
+**The rows above are still deferred**: the systems landed, the effects were never
+wired to them. Each is now a candidate to light rather than a hole with no wall
+to hang on — spices’/furs’ route tiers, salt’s −10% upkeep, incense’s faith‑purchase
+discount, lapis’s great‑person rate, jade’s/tyrian’s civic‑cost halves (a draft has
+no cost to discount yet — the nearest true shape is an `offerRider`). Only the
+building classification and unique units remain genuinely systemless.
 
 The last row is the only one where a shape was *considered and refused*. Tagging
 buildings with a class (`science`, `production`) and adding two shapes on top of
