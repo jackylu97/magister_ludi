@@ -57,47 +57,62 @@
     "tradersPerCity": 1,
     "traderCap": 4
   },
-  "build": {
-    "buildings": [
-      "monument",
-      "granary",
-      "shrine",
-      "library",
-      "barracks",
-      "watermill",
-      "market",
-      "temple",
-      "workshop",
-      "amphitheater",
-      "aqueduct",
-      "harbour",
-      "forum",
-      "baths",
-      "bazaar",
-      "forge",
-      "courthouse",
-      "caravanserai",
-      "monastery",
-      "university",
-      "castle",
-      "observatory",
-      "printingHouse",
-      "examinationHall",
-      "shipyard",
-      "palisade",
-      "funeralGames",
-      "steleOfLaws",
-      "hallOfDeeds"
-    ]
+  "weights": {
+    "food": [6, 5, 4, 3],
+    "production": [5, 5, 5, 5],
+    "gold": [3, 3, 4, 5],
+    "science": [4, 5, 5, 4],
+    "culture": [3, 3, 2, 2],
+    "faith": [3, 4, 3, 2],
+    "bead": 250,
+    "victory": 1500,
+    "die": 60,
+    "tech": 14,
+    "citizen": 22,
+    "city": 110,
+    "military": 5,
+    "happiness": 12,
+    "authority": 10,
+    "renown": 2,
+    "worker": 80,
+    "trader": 70,
+    "debtAversion": 4
   },
-  "statecraft": {
-    "preferredEffectKinds": [
-      "cityYields",
-      "tileYield",
-      "countScaled",
-      "empireYields",
-      "percentYields",
-      "productionBonus"
-    ]
+  "solvency": {
+    "healthyIncome": 6,
+    "strainSpan": 20,
+    "stopMaintainedBelow": 1,
+    "arrearsTreasury": 40,
+    "reserveTurnsOfUpkeep": 3,
+    "minArmy": 2,
+    "disbandBelowIncome": 0
+  },
+  "score": {
+    "maxTurns": 40,
+    "unknownEffect": 2,
+    "nominalYield": 6,
+    "nominalCount": 3,
+    "nominalTiles": 3,
+    "cityCap": 6,
+    "synergyBonus": 14,
+    "combatScale": 3
+  },
+  "threat": {
+    "radius": 4,
+    "militaryBonus": 60,
+    "garrisonValue": 140,
+    "extraArmyPerThreat": 1,
+    "techMilitaryFactor": 3
+  },
+  "research": {
+    "goalHorizon": 6,
+    "abilityValue": 20,
+    "projectValue": 10,
+    "costDivisor": 40
+  },
+  "religion": {
+    "pantheonSpendAbove": 0,
+    "prophetSpendAbove": 10,
+    "prophetTechValue": 600
   }
 }
