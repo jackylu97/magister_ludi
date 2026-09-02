@@ -4406,3 +4406,30 @@ the culture pillar · the Entry LIV supply-trim table (to be tuned against findi
 star-chart vertical scroll on short windows · inquisitor badge art.
 
 ---
+
+## Entry LX — Tier 1: the bot learns to count (**built**, 2026-09-02)
+
+Entry LIII's ladder, second rung. The bot's fixed lists are gone; in their place a
+per-age **value vector** in `data/ai.json` (the future optimizer's whole surface) and an
+appraisal leaf (`src/ai/value.ts`) where every number is the sim's own arithmetic — a
+building's worth is the staged `cityYields` hypothetical, upkeep is the real bill, and a
+**gold-pressure** multiplier read off `empireRateReading` makes the same scarcity dear on
+both sides of the ledger. Solvency: a floor under maintained rows, arrears met by
+worst-gold-per-strength disbands behind garrison guards. The five basics are behaviors
+with named tests: threat-aware defense, town-proximate camp hunts, research **beelines**
+sent as whole queues and re-aimed by idempotence, line-synergy drafting, and a religion
+appetite that saves for the prophet instead of hoarding augurs.
+
+**Entry LIX's findings, re-measured**: worst net gold **−125 → −10 per turn**, worst
+treasury **−1,642 → +107**; still decided via the Opus (t181); a faith founded. Finding 1
+is closed as a bot defect — whether the human-facing economy still wants the supply trim
+is now a cleaner question for playtest. The pass also caught a real design edge: **a
+project-headed town never re-decides** (Entry XXVI's row never leaves the queue, so the
+production blocker never fires again); the bot's `projectIdleCommand` works around it via
+`insertionIndex`, and the same edge deserves a thought for human players — a "your town
+has minted coin for 30 turns" nudge may be worth having.
+
+Next rung when wanted: the overnight optimizer (black-box search over the vector against
+arena fitness) — the surface is ready.
+
+---
