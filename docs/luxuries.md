@@ -45,8 +45,9 @@ certain it is a bug.
 
 ### The vocabulary
 
-Nine shapes. One evaluator reads all of them; nothing else in the game switches
-on `effect.kind`.
+One evaluator reads every shape (`resourceEffects.ts`); nothing else in the
+game switches on `effect.kind`. The schema-48 rework added five: see the rows
+below the original table.
 
 | Shape | What it does |
 |---|---|
@@ -58,6 +59,13 @@ on `effect.kind`.
 | `authoritySupply` | Authority **capacity**, optionally `per: "city"`. Never a discount on what a city costs. |
 | `productionBonus` | A percentage of hammers behind one category, in the owning city or (`scope: "empire"`) every city. |
 | `percentYields` | A percentage of one yield, empire-wide or in each coastal city. |
+| `buildingCategoryYields` | Flat yields (and/or happiness) per building of a category — or per wonder (`wonders: true`). Yields land in the building's own city. |
+| `connectionPercent` | A percent of the empire fold's City-connections line (spices). |
+| `routeYields` | Flat yields per trade route, in the route fold (furs). |
+| `unitUpkeepRebate` | Per-unit maintenance relief, in upkeep's shared give-back list (salt). |
+| `renownPerCity` | Renown per city per turn, family-less by construction (lapis). |
+
+`perCityYields` also takes `scope: 'capital'` since the rework.
 | `rulePercent` | A signed percentage on a named rule: `happinessDemand`, `borderCost`, `growthCarryover`. |
 | `happinessTierBoost` | Raises the *positive* happiness tiers by percentage points. Amber, and nothing else. |
 
@@ -168,20 +176,7 @@ gold and lapis are all hills, so all are mined.
 
 ## Frequencies
 
-The scatter's budget (`countPer1000LandTiles`) is unchanged, so the *number* of
-resource tiles on a map is what it always was — going from seventeen kinds to
-forty-one spreads the same budget wider rather than flooding anything. Weights
-were rescaled to hold the old proportions: roughly **50% bonus, 15% strategic,
-35% luxury**. Measured on seed 4242: a duel map carries 64 resource tiles across
-22 kinds, a standard map 216 across 30.
-
-`luxuryKindsPerRegion` rose from 4 to 6, because a hand of four out of
-twenty-five would have made every continent read the same way. The two-distinct-
-luxuries-per-start guarantee is untouched and still green.
-
-**Amended 2026-08-24 — the distribution survey.** Both numbers above have since
-been superseded and the section is kept for the record. The single scatter purse
-is gone (three budgets now: `bonusPer1000LandTiles`, `strategicPer1000LandTiles`
+Three budgets ( `bonusPer1000LandTiles`, `strategicPer1000LandTiles`
 and, new with this pass, `luxuryPer1000LandTiles`), and hands are dealt to carved
 continents rather than to landmasses at `luxuryKindsPerContinent` (4). What
 changed in *this* pass, all in `data/mapgen.json`:

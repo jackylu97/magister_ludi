@@ -1,259 +1,42 @@
-# Beads — the win condition's catalogue (working doc, 2026-08-29)
+# The Bead Race — reference
 
-The Bead Race is the ruling (design-notes Entry VI: one unified condition, glass beads across
-four families, ~30 in a game, every bead an announced event; first to N wins, otherwise most
-at the curtain; the last bead is **golden** and only the Magnum Opus mints it). This doc is
-the *content* — what a bead can be — and the drafting model the user asked for on
-2026-08-29. Companions: `docs/tech-tree.md` Part 6 (where the ages put victory) and Part 3
-(the Æra V accelerants that name beads). **Nothing here is scheduled**; `data/beads.json` does
-not exist yet. The user's rulings are in **bold** the first time they appear.
+The win condition (Entry VI + the Bead Race build, Entry L; endgame Entry
+LIX). The cards themselves live in `data/beads.json` and print in the
+Compendium/deed sheets — this file is the model. Candidate catalogues and
+cut lists: `docs/design-history.md`.
 
 ## The model
 
-**Three kinds of bead** — feats, dealt objectives, and the age reckonings — and, after the
-user's cut of 2026-08-29, **no "hold X for N turns" cards at all**: holding something for the
-sake of a card is tedious (the user), so every dealt objective is either a **race** you can
-see other seats running, a **quest** you complete with a decision, or a **reckoning** the age
-takes of everyone at once.
+- One unified condition: glass beads, ~30 minted a game, every bead an
+  announced event. Most beads at the curtain wins; the **golden bead** is
+  minted only by the Magnum Opus, whose completion closes the age →
+  `takeReckonings` → `winnerId` (tie to the builder). The 20-bead instant
+  threshold never fires in practice — flagged (`docs/flags.md`).
+- **Card kinds**: `feat` (world firsts, always in play) · `endeavour` (a
+  race with one winner — first completer takes bead + boon; oncePerEmpire
+  building rows carry the shipped ones) · `quest` (a deed, Triumph-shaped
+  occasion) · `reckoning` (the age's snapshot, taken the moment the FIRST
+  seat enters the next age — measured across `realPlayers` at once, ties pay
+  nobody) · `grants` (per-empire completion grants).
+- **The deck**: one per age (III and IV), shuffled from `state.rng` (a seed
+  is a deal); drawn face down into the age's hand each turn; the whole hand
+  turns face up when the age opens (an age begins when the FIRST seat
+  reaches it — one world clock). Objectives persist; a new age never closes
+  the last age's table.
+- **Two rules every card obeys**: a bead is a claim on the world, never a
+  bank statement (nothing private, nothing accumulated unseen); every card
+  names one family (D domination · C culture · S science · E economic).
+- **No hold-X-for-N-turns cards** (ruled: tedious). Magister's Dice are
+  uncapped.
+- Contested claims resolve through `state.contested` keyed `(id, age)`,
+  first by log order — the wonder register's pattern.
 
-| kind | what | how it scores |
-|---|---|---|
-| **feat** | a first in the world, always in play | the first seat to do it, once per game (or per age where marked) |
-| **endeavour** | a *race project* dealt from the deck — a queue row every empire can build | **the first empire to complete it** clacks the bead and takes the boon (user, 2026-08-29 — first only, for both); everyone else's hammers are spent |
-| **quest** | a deed dealt from the deck — something you *do*, in Statecraft, religion, war, exploration | the first seat to do it, once; a few pay every seat that does it (marked ∗) |
-| **reckoning** | the age's snapshot | **taken the moment the first seat enters the next age** (user): every seat is measured at once and a victor named per card; ties pay nobody |
+## Code shapes
 
-**The deck, and how it deals** (user, 2026-08-29):
-
-1. **Objectives are drafted every turn and revealed per age.** One deck per age (III, IV, V;
-   Æra I–II have feats and reckonings only), shuffled from `state.rng` so a seed is a deal.
-   Each turn the world draws one card off the current age's deck into that age's hand, face
-   down; the hand fills over the age (`handSize` per age, 4 / 5 / 5 first guess). Every seat
-   sees the same cards — Entry II's fairness.
-2. **An age begins when the first seat reaches it** (user) — the world's clock, one clock
-   for everyone. The turn it opens, every card in that age's hand turns face up, and each card
-   drawn after turns face up as it is drawn.
-3. **Objectives persist for the rest of the game** (user) — a new age unlocks more and never
-   closes the last age's. A race or a quest stays on the table until claimed; a reckoning
-   card is **taken once, at the moment the *next* age begins** (the user's rule: "calculated
-   once one player advances to the next age, snapshot all players and assign a victor"), so
-   rushing the tree never forfeits a table — it *calls* the reckoning.
-4. **Two rules every card obeys** (Entry VI.5): a bead is a **claim on the world, never a
-   bank statement** — nothing private, nothing you accumulate unseen; and a card names one
-   family (**D** domination · **C** culture · **S** science · **E** economic).
-
-**What the code needs, by kind** — an endeavour is a `project` queue row that *finishes*
-(unlike Tithes and Scholarship it leaves the queue) and a world register keyed `(id, age)`
-holding one claimant (the wonder register, exactly); a quest is a Triumph-shaped
-occasion hooked at the seam it names, world-contested through `state.contested`; a reckoning
-is a standing count read once, in the `renown` phase of the turn the first seat's age
-advances, across `realPlayers`. **The Long Count** (Æra II) shows the next hand a turn early;
-**The Obsidian Mirror** (Æra V) shows every seat's progress on every card.
-
-## Feats (always in play, not dealt)
-
-| feat | family | once per |
-|---|---|---|
-| first to enter each age | S | age |
-| first wonder of each age | C | age |
-| first religion founded | C | game |
-| every capital captured (user) | D | game |
-| first to circumnavigate (ocean at The Astrolabe) | E | game |
-| first great person of each family recruited | C | family |
-| first to complete the Engine | S | game |
-| first to found a city of size 15 | C | game |
-
-Eight feats, ~12 beads. Removed by the user's cut: a city on another continent, every
-strategic kind.
-
-## Endeavours — the race projects (the user's mechanic, reworked 2026-08-29)
-
-A dealt endeavour puts a **project row** in every empire's build list the turn it is revealed
-(projects sort at the back of the queue by `insertionIndex`). Each has a **prerequisite** on
-the empire — a condition you can see and plan toward — a hammer cost that climbs by age, and
-a **boon** beside the bead. **The first empire to finish takes the bead and the boon; nobody
-else gets either** (user, 2026-08-29) — a race with one winner, which is what makes it a
-race. Boons are **one-time** — a windfall, a grant, a permanent step in a *cap* (authority,
-happiness) — never a standing rate. A later finisher's hammers are spent for the row's
-fallback `pays` alone, so a seat that sees the race lost should drop the row — the queue's
-remove is the fold.
-
-| endeavour | age | ⚙ | family | prerequisite (user) | boon (bead and boon to the first finisher only) |
-|---|---|---|---|---|---|
-| **The Census of the World** | III | 120 | S | built in a city of size 15+ | +1 population in every city, once |
-| **The Great Games** | III | 150 | C | Funeral Games in every city | +5 happiness, permanent (a cap, not a rate) |
-| **The Grand Caravan** | III | 180 | E | ten active trade routes | +2 route capacity, permanent |
-| **The Grand Satrapy** | III | 200 | D | ten or more cities | +5 happiness and +10 authority capacity, permanent (the signature one) |
-| **The Cathedral of the Age** | IV | 260 | C | a cathedral in every city | +1 follower slot; with no religion: a free prophet and the right to found one |
-| **The Encyclopaedia** | IV | 280 | S | a House of Wisdom (the university's successor building) in every city | a free technology of the current age, once |
-| **The Mint** | IV | 240 | E | a mint in every city | purchases −25% for 20 turns (timed) |
-| **The Muster of the Realm** | IV | 220 | D | a barracks and an armoury (the Æra IV military building) in every city | every unit you hold gains the +2 strength veteran stamp, once |
-| **The Grand Orrery** | V | 400 | S | an observatory in three cities | two Magister's Dice |
-| **The Exposition** | V | 380 | C | six wonders held | a one-time windfall of 20🎵 per wonder held |
-| **The Armada** | V | 360 | D | 15 naval units at once | naval units +5 combat strength for 20 turns |
-
-## Quests — deeds dealt from the deck, by age
-
-A quest is dealt from its age's deck and **persists** after (the model, rule 3). Its age is
-the earliest the deed is plausible — the deck it lives in — so a quest that needs a Cathedral
-is Æra IV's even though a fast seat could finish it in III. Each row: quest · the system it
-plays into · family · the deed · the one-time boon (a **die** is a Magister's Die (uncapped — the user, 2026-08-30; Entry XV's "cap 3 held" is superseded); a
-**cap** is a permanent step in authority capacity or happiness; everything else is a windfall
-or a grant through built seams). ∗ pays every seat that does it, once. **Never** the map's
-luck, an opponent's choice, or a draw. The user filters; the counts are a pool, not a hand.
-
-### Æra III deck (Empire) — 29 candidates
-
-| quest | system | family | the deed | boon |
-|---|---|---|---|---|
-| **The Long Reign** | Statecraft | C | hold one government with combined 15 levels for 10 turns without adopting another | a free order draft |
-| **The Deepening** (kept) | Statecraft | C | raise an Order to its third level and keep it slotted 10 turns | a die |
-| **The Apostle** | religion | C | have your religion followed by twenty foreign citizens | a die · +2 happiness (cap) |
-| **The Hierophant** | religion | C | spend 1500 faith on augurs and prophets across the game | a free prophet |
-| **The Patron** (kept, user) | great people | S | three great works planted adjacent to one another | a die |
-| **The School** | great people | S | earn 200 renown in one family | a free great person of that family |
-| **The Breadbasket** | cities | E | one city has a food yield of 100+ for 10 turns | +1 population in that city and every city beside fresh water, once |
-| **The Forge-City** | cities | E | one city has a production yield of 100+ for 10 turns | a one-time windfall of 200⚙ in that city |
-| **The Founder** | cities | E | found eight cities yourself (captures do not count) | a free settler at the capital |
-| **The Surveyor** | cities | E | buy twenty tiles across the game | every city claims one more tile |
-| **The Waterworks** | cities | E | an aqueduct in 4 cities of size 10+ | +1 population in every city with an aqueduct, once |
-| **Three of the Age** (kept) | wonders | C | hold three wonders of the current age | a die |
-| **The Library of the Realm** | buildings | S | a library and university built in 4 cities | a one-time windfall of 300🔬 |
-| **The Market Town** | buildings | E | a market and a harbour (or a bazaar) in one city with four routes ending there | a one-time treasury of 200 gold |
-| **The Bulwark** | buildings | D | palisades and castle in 4 cities | a die |
-| **The Road-Builder** (kept) | trade | E | eight cities connected to your capital by road | +4 authority capacity (cap) |
-| **The Exchange** | trade | E | routes to foreign cities accumulate 250 gold | a one-time treasury of 150 gold |
-| **The Ledger** ∗ | trade | E | 600 cumulative yields from routes | a die |
-| **The Scholar's Wager** (kept) | science | S | complete a technology two ages above the world's lowest seat | a die |
-| **The Star-Reader** | science | S | complete three technologies in five turns | a one-time windfall of 200🔬 |
-| **The Wall-Breaker** (kept, user) | war | D | raze five cities *(needs the raze-or-keep choice on capture)* | a one-time treasury of 300 gold |
-| **The Conqueror** | war | D | capture three cities | +4 authority capacity (cap) |
-| **The Siege Master** | war | D | take a city while it stands under siege (every neighbour hex yours) | a free unit of your best type at that city |
-| **The General's Brilliance** | war | D | a great general's aura covers a fight that kills a unit with greater base strength | a free great general |
-| **The Fleet** | war | D | nine embarked units at once *(there are no naval units yet; embarked is the reading until there are)* | a die |
-| **The Wayfarer** | exploration | S | reveal 40% of the world | a one-time windfall of 100🔬 |
-| **The Tithe** | projects | E | gain 600 cumulative gold from tithes| a one-time treasury of 200 gold |
-| **The Scholarship** | projects | S | gain 600 cumulative science from Scholarship | a one-time windfall of 200🔬 |
-| **The Overflow** | projects | E | complete three items in one city in three turns (chops and windfalls count) | a one-time windfall of 100⚙ in that city |
-
-### Æra IV deck (Cathedrals) — 13 candidates
-
-| quest | system | family | the deed | boon |
-|---|---|---|---|---|
-| **The Full Bench** | Statecraft | C | hold one tier-IV or later government filled by combined level of (number of slots * 2) for 10 turns | a free Order draft, now |
-| **The Enhancer** (kept) | religion | C | enhance your religion, then convert a foreign capital | a free prophet |
-| **The Cloister** | religion | C | hold a temple, a monastery and a cathedral in four cities | a one-time windfall of 150🕯 |
-| **The Laureate's Court** (kept) | great people | C | plant a great work of every family in one city | a free great person of your choice of family |
-| **The Dynasty** | great people | C | recruit six great people in this age | a one-time windfall of renown equal to the next recruitment's price |
-| **The Legacy** | great people | C | hold fifteen legacies unrevoked at once | every revoked legacy of yours is restored, once |
-| **The Metropolis** | cities | C | grow a city to size 20 | +3 happiness (cap) |
-| **The Twelve** | cities | E | hold twelve cities of size 6 or more | +6 authority capacity (cap) |
-| **The Builder** | wonders | C | complete ten wonders across the game | a die |
-| **The Long Haul** | trade | E | accumulate 150 yields in one trade route this age | +1 route capacity (cap) |
-| **The Caravanserai** | trade | E | ten routes originating from one city during the age | +1 route capacity |
-| **The Encyclopaedist** (kept) | science | S | complete a technology of the next age before anyone completes the current age's last | a free technology of the current age |
-| **The Standing Army** | war | D | hold twenty combat units at once for ten turns | +2 happiness (cap) |
-
-### Æra V deck (Magister) — **deferred** (user, 2026-08-29: until the age-V loop is known; kept as candidates, none dealt)
-
-| quest | system | family | the deed | boon |
-|---|---|---|---|---|
-| **The Grand Doctrine** | Statecraft | C | hold five Doctrines (the fifth government's) | a die · +2 authority capacity (cap) |
-| **The Magister's Table** | Statecraft | C | hold three Magister's Dice at once and spend one on a seal | a free Order draft, now |
-| **The Polymath** | science | S | hold a mastery from every thread | two dice |
-| **The Engine** (the tree's card) | science | S | complete the Engine first | a die |
-| **The Mirror** | science | S | complete The Obsidian Mirror, then see every seat's capital | a die |
-| **The Alchemist** | buildings | E | a Distillery in every city | a one-time treasury of 400 gold |
-| **The Clockwork Host** | buildings | E | hold five Clockwork Workers | every worker of yours gains a charge, once |
-| **The Porcelain Trade** | trade | E | hold the most copies of a manufactured luxury at the reckoning | two dice |
-| **The Aeronaut** | war | D | field an aerostat over a foreign capital | a free aerostat |
-| **The Usurper** | war | D | hold an enemy capital at the reckoning | +4 authority capacity (cap) |
-| **The Entranced** | projects | C | run The Entranced Workforce in three cities at once | a one-time windfall of 300⚙ in the capital |
-| **The Exposition** | wonders | C | hold six wonders of any age at once | a one-time windfall of 20🎵 per wonder held |
-| **The Magnum Opus** | — | all | the golden bead | Part 6 |
-
-*Removed as map-dependent: The Marches, The Chronicler. The Circumnavigator is a feat.
-Standing modifiers across all three decks: nine, every one a cap; the rest are dice,
-windfalls and grants through built seams.*
-
-## Reckonings — the age's snapshot
-
-Taken the moment the first seat enters the next age (user): every seat measured at once, a
-victor per card, ties pay nobody. One per family per age is *dealt* (so the four below are a
-pool, not a fixed set); the two the user wrote are the first two.
-
-| reckoning | family |
-|---|---|
-| the most cities under your control (user) | D |
-| the most great people recruited during the age (user) | C |
-| the highest-population city of the age (user) | C |
-| the most cumulative yields from trade routes over the age (user) | E |
-| the most technologies of the age completed | S |
-| the most followers of your religion in foreign cities | C |
-| the most wonders of the age | C |
-| the most unit strength in the world | D |
-
-## The count
-
-Feats ~12 · endeavours 3 per age dealt of 9 written (9 beads a game, one seat each) · quests ~2 per age dealt of ~30 written · reckonings 4 per age from Æra II. A busy
-winner reaches ~20; N ≈ 20 on Quick is the first guess, and it is Entry VI's pacing knob.
-
-## As built (2026-08-30, sim half; the interface follows)
-
-- **Data**: `data/beads.json` — 10 feats, 9 endeavours, 25 quests (Æra III 17, IV 8), 8
-  reckonings; `threshold 20` (one number — there is no speed table), `handSize {3: 4, 4: 5}`,
-  one card dealt a turn. A deed is one of three shapes — `occasion` (hooked at a seam),
-  `count` (swept), `streak` (swept, held N turns); a boon is one vocabulary — `dice` (uncapped,
-  user 2026-08-30; nothing spends them yet), a `windfall` through the Entry XVIII seams, a
-  `grant` through the free-unit paths, or `effects` (the caps — `liveEffects`' ninth source).
-- **State**: decks shuffled from the seed in `newGame` (every seeded roll in a game moved —
-  schema 37); hands dealt face down until the **world clock** opens the age (the first seat's
-  entry); the register `(id, age)`; per-seat streaks; `Player.beads` append-only and
-  turn-stamped; the counters the deeds needed (cities founded and captured, tiles bought, faith
-  spent on augurs and prophets, Tithes' gold, Scholarship's science, route yields and great
-  people this age).
-- **A hand is a set of open slots** (ruled 2026-08-30 after the first count model showed a
-  4/5-card hand dealt once puts only nine cards on the table in a whole game — a ceiling
-  below the threshold): `handSize` is the number of cards face up at once; a claimed card frees
-  its slot and the deck deals into it, so the whole deck flows through the age. Reckoning cards
-  hold their slot until the next opening.
-- **The decks are keyed 3 | 4** (the tree pass of 2026-08-30 renumbered them with the ages,
-  as promised): the first hand opens when the first seat enters Æra III (~t64 on the pacing
-  seed), the second at Æra IV; The Long Count reads the next hand a turn early.
-- **Reckonings are dealt**: four per age deck (one per family) drawn from the pool of eight,
-  face up with the hand, taken at the next age's opening — a victor each, ties pay nobody.
-  (The first build took all eight at every opening; corrected the same day.)
-- **Endeavours are projects that finish**: offered in the build list only while face up,
-  unclaimed and the empire meets the prerequisite; the first finisher takes bead and boon; a
-  later finisher's hammers buy the row's fallback alone. **Cathedral, Mint and Armoury exist as
-  rows with `awaitsTech`** (not buildable, not in the tree) so their three endeavours are
-  *dormant* — never dealt — until the tree pass places them. The Encyclopaedia reads
-  "a university in every city"; The Grand Orrery waits for an observatory; The Exposition
-  moved into the IV deck (Æra V has none).
-- **Feats** ride `awardOccasion`; three occasions the Triumph table lacked are hooked in their
-  own mechanisms (a religion founded, a city captured, a great person chosen). "Every capital
-  captured" became "a capital captured" — nothing records a city's founder once it changes
-  hands. The Engine's feat is dormant; circumnavigation waits for the ocean rule.
-- **Deferred** (needs history the game does not keep, or a shape it lacks): The Star-Reader,
-  The Overflow, The Exchange, The Long Haul, The Caravanserai, The Encyclopaedist, The Full
-  Bench, The Wall-Breaker (no raze), The Fleet / Siege Master / General's Brilliance, The
-  Market Town, The Bulwark, The Cloister, The School, The Wayfarer; and four boons without a
-  shape yet (a free Order draft, a free technology, a timed purchase discount, restoring
-  revoked legacies).
-- **Streaks**: five quests are "held for N turns" by the user's own rewrites (The Long Reign,
-  The Deepening, The Breadbasket, The Forge-City, The Standing Army) — they are about keeping a
-  bench or a yield, not a map state, and stand.
-- **The win**: first to the threshold sets `winnerId` (one field with conquest). The golden
-  bead and the Opus wait for Æra V; the curtain with it.
-
-## Open questions
-
-- Hand sizes; how many endeavours per age hand (one at a time, so the race is *the* race?).
-- The endeavour's ⚙ scale by speed and seat count; whether a losing seat is warned when another finishes (the announcement is the warning).
-- Whether a quest marked ∗ (pays everyone) dilutes the race — or is the comeback structure.
-- N by speed and seat count; whether a solo game can win by threshold.
-- The Opus: hammers + science + culture in what proportion; halved on interruption (proposed).
-
-## Revisions
-
-*(yours — edit away)*
+- Endeavour = a completable row (the project/oncePerEmpire machinery);
+  quest = an occasion hooked at the seam it names; reckoning = a standing
+  count read once in the `renown` phase of the age-advance turn.
+- `CompletionGrant` includes `bead` and `greatPerson(family)`;
+  `TechDef.paysBead` (Alchemy) and `ageEntryDice` ride tech rows.
+- UI: the abacus flip modal per award; the age-opening deed sheet shows the
+  revealed table to everyone at world-first.

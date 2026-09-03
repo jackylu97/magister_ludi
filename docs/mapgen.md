@@ -13,7 +13,7 @@ See [The experimental loop](#the-experimental-loop).
 
 Companion files: `data/mapgen.json` (the numbers), `src/sim/mapgenData.ts` (their
 types and the override seam), `docs/luxuries.md` (the resource table itself),
-`docs/design-notes.md` (why any of it is the way it is).
+`docs/design-history.md` and git (why any of it is the way it is).
 
 ---
 
@@ -315,52 +315,6 @@ tributaries, which is what a mountain range should shed.
 
 Rivers are the generator's **first dice**, rolled after every noise field, so
 terrain on a given seed is exactly what it was before rivers existed.
-
-### Backtracking, and why the quota used to be a lie
-
-`rivers.backtrackSteps` is how many times one trace may **unsay a step** — pop
-back to the fork it came from and take the next way down there — before it is
-abandoned. At 0 it is the plain greedy walk this began as, and the difference
-between 0 and the shipped 64 is the largest single thing about how much fresh
-water a map has.
-
-The measurement that found it, over ten standard seeds: **989 corners cleared
-`minSpringElevation`, every one of them was tried, and 55% of the traces died in
-a local pit.** The quota could therefore be raised as high as anybody liked and
-the map still came back with twenty-nine rivers — the tunable that was supposed
-to control river count had been saturated for as long as it had existed, and the
-real constraint was the search. A pit is not a statement about the geography
-either; it is an artefact of reading a valley off the mean of three ranked hexes,
-and the valley usually continues one fork back.
-
-Nothing about descent is relaxed to buy that. Every step of a surviving path is
-still to a corner no higher than the one before it — the backtrack only ever
-removes a step and takes the next-lowest alternative at the same fork — and a
-corner is unmarked on the way back out, so the path stays simple and loops stay
-impossible. `traceRiver` defaults the budget to 0, so the knob is opt-in rather
-than a behaviour change hiding in a signature.
-
-### What the water pass moved (2026-08-24)
-
-Ten standard seeds, before and after `countPer1000Tiles` 7 → 14, `minLength`
-3 → 4, `minSpringElevation` 0.86 → 0.84 and `backtrackSteps` 0 → 64:
-
-| | before | after |
-|---|---|---|
-| rivers per map | 29.0 | **58.0** |
-| mean length (edges) | 6.2 | **6.6** |
-| longest river | 18 | **21** |
-| land that can drink | 12.3% | **25.5%** |
-| possible starts on fresh water or coast | 80.0% | **91.7%** |
-
-`minLength` is the one number that went the *unheroic* way, and it is worth
-saying why: at 5 the mean length reached 7.2 and the sweep looked better, but a
-**giant** map could no longer seat its own river quota (789 of 846) because the
-longer floor rejected more traces than its spring pool could replace. Meeting the
-quota on every size is the harder promise and the one `water.test.ts` already
-held, so length gave way. The extra rivers are worth more than the extra edges.
-
----
 
 ## The arid features: oasis and floodplain
 
@@ -801,40 +755,6 @@ inspection report — are handed a map and nothing else; they ask `mapgenFor(map
 The invariant, which is the whole point: **a tuned map is still a legitimate
 deterministic `{config, log}`.** Same config and seed, same world, on reload and
 on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
-
----
-
-## Considered: other ways to take the variance out of a settle location
-
-*A design note, not a commitment.* Rivers and oases moved the share of possible
-starts with fresh water or coast from 80% to about 92%, and the sweep above says
-the last stretch is not a weighting problem — it is that some neighbourhoods have
-no water in them at all. Four ways out, in rough order of how much they change:
-
-**Lakes**, which already exist, are the cheapest dial in the file: `lakes.maxSize`
-decides how much of the small inland water becomes fresh rather than sea, and
-raising it waters more ground at the cost of turning genuine bays into ponds.
-**Oases** are the same lever aimed at the driest ground specifically, and
-`moisture.oasisShare` can go up — though an oasis is a strong tile (3🌾 1⚙) and
-dealing them freely to fix a water problem would be paying for water in food.
-Both are tuning, and both have the same ceiling: they can only water ground that
-already has the terrain for them.
-
-**Springs at the foot of a mountain** would be new geography and the most
-in-keeping of the four — every mountain range would shed a little fresh water
-onto its own foothills, derived exactly as floodplains are derived, with no new
-tunable beyond a radius. It would put water where the map is currently driest for
-structural reasons (the interior high ground, which is also where the rain shadow
-lands) and it costs one pass and no dice. It is the option this note would pick.
-
-**A well or qanat building** is the one that changes the *game* rather than the
-map: a cheap, early, tech-gated building granting freshwater-equivalent to its own
-city, in the aqueduct family. It is the most powerful answer because it makes a
-dry start a *choice* — you pay hammers for the water somebody else got free — and
-for exactly that reason it is the one that needs the most design: it interacts
-with the growth site bonus (Entry I.b), with the aqueduct it would sit next to,
-and with whether "fresh water" should stay a fact about a hex or become a fact
-about a city. Parked, not planned.
 
 ---
 
