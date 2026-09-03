@@ -215,6 +215,18 @@ is its own knob, one edit flips the interpretation).
   peace + trade acceptance · puppet auto-production · scored order slotting ·
   adoption face comparison · site scorer ring 2 + luxury-kind awareness.
 
+### From war P3 (2026-09-03, schema 58)
+
+- **Puppet `contribute` still legal** — the ruling named purchases and
+  tiles; one clause closes gold-pouring into a puppet's basket if wanted.
+- **Warscore wants a loss register** — losses/captures since declaredTurn
+  are lifetime proxies today; a real register is a schema decision.
+- **Balanced seats can declare at 4.5×** — the (1 + aggression) reading;
+  intended for wide, worth confirming for balanced.
+- **The balanced endgame slowed** — undecided at t200 where brain v1 decided
+  at t182; first knobs: site.ringFalloff, war.escortRadius. The playtest and
+  the next arena pass judge.
+
 ## C. Open threads
 
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture

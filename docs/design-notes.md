@@ -262,3 +262,23 @@ bots that declare by advantage, sue by warscore, answer bargains, escort
 settlers, open with a scout, run their puppets (which now buy nothing,
 schema 58), slot by fit, compare charter faces, and settle by a two-ring
 kind-aware score.
+
+## Entry LXVIII — the milestone closes: the game is playtest-complete (2026-09-03, schema 58)
+
+War & Diplomacy P3, and with it the last core system. Puppets buy nothing
+and build gold-leaning through their owner's own appraisal; seats declare by
+advantage with the ratio printed, sue by a six-line warscore with tribute
+sized to the losing, and answer bargains by a price — except an only copy,
+which is never for sale at any price, a clause and not a number. The opening
+book ranges a scout first (the first cut counted a ladder scouts do not
+climb and built scouts forever — caught in the arena); settlers refuse to
+march past hostiles and walk escorted, which fixed a seat that had spent two
+hundred turns feeding its settlers to the same raiders. Slotting is scored,
+charter faces compared, the settle scorer reads two rings and craves kinds
+it lacks. The arena now contains a real war story — declared at t115 when
+reach allowed, fought, peace signed, re-declared the turn the truce lapsed,
+byte-identical on replay. Two honest debts recorded: the warscore differences
+lifetime proxies because the state keeps no loss register (a schema decision
+when wanted), and the balanced endgame SLOWED (undecided at t200 where brain
+v1 decided at t182; ringFalloff and escortRadius named first). The playtest
+is now the judge of everything.
