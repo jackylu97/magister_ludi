@@ -1,8 +1,7 @@
-# Doctrine & order ideas (brainstorm, 2026-09-03)
+# Doctrine, order & great-people ideas (brainstorm, 2026-09-03)
 
-Two pitch sheets: early-game doctrines (first half) and pool orders (second
-half, added same day on your ask — "interesting / holes in our current set,
-but not very strong").
+Three pitch sheets: early-game doctrines, pool orders, and great people —
+each added on your ask, each pitched "interesting, not very strong".
 
 ## Part I — Doctrine ideas, the early game
 
@@ -139,3 +138,61 @@ decision first.
 - Deliberately absent: anything paying happiness (the nerf round is going
   the other way), anything empire-wide-per-city flat (the shape being
   nerfed), and espionage (a system, not an order).
+
+## Part III — Great-people ideas (interesting, deliberately modest)
+
+Where the design space actually is: a person is one charge spent on an act
+or a work, so the *legacy* is the whole personality. The nerf pass is
+cutting numbers; these pitches trade numbers for texture — conditional,
+one-time, informational, or place-bound legacies. Names are placeholders in
+the roster's register (rename freely); the worksheet doc stays data-only,
+so these live here until drafted. Shape key as before: ✔ = the legacy is an
+ordinary effect row; NEW = a new shape, design decision first.
+
+### New people on existing families
+
+| Person (age) | Family | Legacy pitch | Shape |
+|---|---|---|---|
+| Pytheas (II) | scholar | The whole coastline of your continent is revealed the day he is called. Legacy: +1 sight on ships. | NEW (one-time reveal) / ✔ the sight |
+| Deborah (II) | general | Legacy: your units defending inside your own borders heal +5 per turn. No aura, no citadel change. | ✔ |
+| Ea-nāṣir's Rival (II) | merchant | Legacy: each trade route's *origin* city gains +1 gold. The act pays standard merchant gold. | ✔ countScaled-ish per route |
+| Lady Murasaki (III) | artist | Legacy: +1 culture in every city with a Library (writing begets writing). | ✔ scoped line |
+| Zhang Heng (III) | scholar | Legacy: veins and buried bonuses within your borders are revealed (the seismograph reads the ground; access still needs the improvement). | NEW (a reveal rule, close to prospect) |
+| Apollodorus (III) | engineer | Legacy: your roads through hills cost no maintenance; workers pave hills one third cheaper. | NEW-ish (maintenance filter) |
+| Benedict of Nursia (IV) | scholar | Legacy: a city with a Temple AND a Library gains +2 faith (ora et labora — the pairing is the point). | ✔ (needs an AND scope or two scoped lines — check vocabulary) |
+| Margery Kempe (IV) | artist | Legacy: completing a rite pays +10 culture (the account of the thing outlives the thing). | ✔ windfallRider if rites are an occasion |
+| Ibn Battuta (IV) | merchant | Legacy: your traders may path through foreign land at peace even without open borders (they alone). | NEW (a MoveProfile carve-out) |
+| Trotula (IV) | scholar | Legacy: growth surplus +5% in every city (a small number on the least-fed channel). | ✔ rulePercent growthSurplus |
+| The Winged Hussar (V) | general | Legacy: your mounted units ignore zone-of-control tolls. | NEW (a zoc exemption class) |
+| Aldus Manutius (V) | artist | Legacy: adopting an order refunds 15 culture (the pamphlet spreads the law). | ✔ windfallRider on adoption |
+
+### One structural pitch — the modest work
+
+A second, cheaper verb shared by every family: **the Memorial** — the
+person may found a *lesser* work (+1 of their yield, no seam opened, no
+resource access) anywhere including inside a city's first ring. The full
+work stays what it is; the memorial is what you spend a person on when the
+map has no good seam — it converts "this draw is useless here" into "this
+draw is small but placeable". NEW (one verb, all families), and it is a
+*buff to flexibility while nerfing numbers elsewhere* — which is exactly
+the trade the nerf pass wants.
+
+### A possible sixth family (only if the draw wants more variety)
+
+**The Navigator** — acts: reveal a radius of coast + the nearest island
+chain; work: the Beacon (+2 gold on its hex, ships passing adjacent gain
++1 movement that turn — NEW). Weak on land maps by construction, strong
+exactly where the new pangaea islands are. If a sixth family is too much,
+fold the navigator acts into merchant rows.
+
+### Notes for the cut
+
+- Nothing above touches renown prices, offer sizes, or the ladder — those
+  are the nerf worksheet's dials, kept separate on purpose.
+- The two reveal legacies (Pytheas, Zhang Heng) are one NEW mechanism
+  (a seeded, one-time map reveal scoped to a predicate) wearing two hats —
+  same rule as the movement clauses in Part II: take the mechanism or cut
+  both.
+- Benedict's AND-scope: check `cityScopeAdmits` before pricing it ✔ — if
+  scopes don't compose, two single-building lines at +1 each say nearly
+  the same thing and need nothing new.
