@@ -2604,7 +2604,7 @@ describe('determinism with cities', () => {
     // `chivalry`, `fortification`) and three added, almost every prerequisite
     // re-hung, twelve columns and a truncated cost ladder — and, beside it, the
     // one-unit-a-turn purchase rule widened to one *per class*.
-    expect(SCHEMA_VERSION).toBe(52);
+    expect(SCHEMA_VERSION).toBe(53);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

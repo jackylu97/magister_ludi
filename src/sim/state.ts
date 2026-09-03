@@ -802,8 +802,12 @@ import {
  * v52: Curious Elders and Triumphs retired by the user's word — both leave the
  * draft pools (rows kept so a save that holds them replays), which moves every
  * draw after the first affected draft.
+ *
+ * v53: tree revision 4.1 — the user's arrows verbatim (edges, columns and the
+ * fourteen-figure ladder all moved), so a v52 log replays into a different
+ * world and is refused.
  */
-export const SCHEMA_VERSION = 52;
+export const SCHEMA_VERSION = 53;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
