@@ -319,89 +319,197 @@ export function drawGreatPersonOffer(
  */
 export type OfferCurrency = 'gold' | 'faith';
 
-/** Which action rule each bank is gated by, and what it costs. One table. */
-const OFFER_BANKS: Record<OfferCurrency, { rule: ActionRuleId; price: () => number }> = {
-  gold: { rule: 'buyGreatPersonWithGold', price: () => PEOPLE.offerPriceGold },
-  faith: { rule: 'buyGreatPersonWithFaith', price: () => PEOPLE.offerPriceFaith },
+/**
+ * **What may be bought at the offer.** Two of them buy a rung of the ladder and
+ * are named for the bank that pays; the third buys a narrowed draft outright and
+ * is named for what it is.
+ *
+ * One union rather than a currency plus a flag, because these are three
+ * *purchases* a law may open and only the register below knows what each one
+ * costs, which bank it charges and what it deals. The command names one of them
+ * (`purchaseGreatPersonOffer`), and a fourth is a row here plus an
+ * `ActionRuleId` — no second command and no second draft path.
+ */
+export type OfferPurchaseId = 'gold' | 'faith' | 'scholarDraft';
+
+/** Every purchase in `OfferPurchaseId`, for validation and for the tests. */
+export const OFFER_PURCHASE_IDS: readonly OfferPurchaseId[] = ['gold', 'faith', 'scholarDraft'];
+
+interface OfferPurchaseDef {
+  /** Which bank pays. */
+  currency: OfferCurrency;
+  /** The card clause that opens this purchase. */
+  rule: ActionRuleId;
+  price: () => number;
+  /** Narrows the draw to one family. Absent deals from the whole roster. */
+  family?: Family;
+  /**
+   * True when what is bought is a **rung of the ladder**: renown is poured to
+   * the threshold through `settleRenownWindfall`, the pool is spent down to the
+   * overflow, and the next recruitment is dearer for it.
+   *
+   * False when what is bought is the **draft itself** — The Academy's scholars,
+   * the user's ruling of 2026-09-03 (*"shouldn't scale the renown costs"*): the
+   * hand is dealt on the spot, the pool is not touched and the threshold does
+   * not move. What a *pick* costs is unchanged either way, because that is the
+   * pick's own arithmetic (`settleGreatPersonChoice` climbs
+   * `greatPeopleRecruited` for every name anybody takes, however the offer was
+   * opened) — a purchase that also rewrote the pick would be a second
+   * recruitment rule.
+   */
+  ladder: boolean;
+}
+
+/** What each purchase is gated by, what it costs and what it deals. One table. */
+const OFFER_PURCHASES: Record<OfferPurchaseId, OfferPurchaseDef> = {
+  gold: {
+    currency: 'gold',
+    rule: 'buyGreatPersonWithGold',
+    price: () => PEOPLE.offerPriceGold,
+    ladder: true,
+  },
+  faith: {
+    currency: 'faith',
+    rule: 'buyGreatPersonWithFaith',
+    price: () => PEOPLE.offerPriceFaith,
+    ladder: true,
+  },
+  scholarDraft: {
+    currency: 'faith',
+    rule: 'buyScholarDraftWithFaith',
+    price: () => PEOPLE.scholarDraftFaith,
+    family: 'scholar',
+    ladder: false,
+  },
 };
 
-/** What buying an early recruitment costs this empire out of this bank. */
-export function greatPersonOfferPrice(currency: OfferCurrency): number {
-  return Math.max(0, Math.floor(OFFER_BANKS[currency].price()));
+/** Is this one of the three purchases? The reducer's and the gate's question. */
+export function isOfferPurchaseId(value: unknown): value is OfferPurchaseId {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(OFFER_PURCHASES, value);
+}
+
+/** What this purchase costs this empire, out of the bank its row names. */
+export function greatPersonOfferPrice(purchase: OfferPurchaseId): number {
+  return Math.max(0, Math.floor(OFFER_PURCHASES[purchase].price()));
+}
+
+/** Which bank this purchase charges. The interface's coin, and the refusal's. */
+export function greatPersonOfferBank(purchase: OfferPurchaseId): OfferCurrency {
+  return OFFER_PURCHASES[purchase].currency;
 }
 
 /**
- * Why this empire cannot buy its next great person out of this bank, or `null`.
+ * Why this empire cannot make this purchase at the offer, or `null`.
  *
  * **A great person is neither built nor bought — it is *called*** (CLAUDE.md),
  * and this does not change that by a word: `UnitDef.greatWork` is still refused
  * by `buildError` and by `purchaseError`, and no coin anywhere puts a piece on
  * the board. What is for sale is the **recruitment** — the moment the ladder
- * would have opened an offer — which is why the settlement below pours renown
- * rather than minting anybody, and why a seat that already holds an offer is
- * refused: it has nothing to buy.
+ * would have opened an offer, or the draft that moment deals — which is why the
+ * settlement below opens an offer rather than minting anybody, and why a seat
+ * that already holds one is refused: it has nothing to buy.
  *
  * The gate is an `actionRule` and therefore a *card's* to grant, which is the
- * whole of The Commonwealth and The Magisterium. Refusals in precedence, each a
- * different sentence: who you are, what your law allows, what you already owe
- * the game, whether the roster has anybody left, and only then the money.
+ * whole of The Commonwealth, The Magisterium and now The Academy. Refusals in
+ * precedence, each a different sentence: who you are, what your law allows, what
+ * you already owe the game, whether the roster has anybody left **to deal from
+ * under this purchase's own narrowing**, and only then the money.
+ *
+ * Nothing here mutates, the spent-roster clause included — the pool is read, not
+ * drawn from — so a refusal leaves the state byte-identical, which is what lets
+ * the reducer ask this before the bank is charged.
  */
 export function greatPersonPurchaseError(
   state: GameState,
   playerId: number,
-  currency: unknown,
+  purchase: unknown,
 ): string | null {
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
-  if (currency !== 'gold' && currency !== 'faith') {
-    return `purchaseGreatPersonOffer needs a currency of gold or faith, got ${String(currency)}`;
+  if (!isOfferPurchaseId(purchase)) {
+    return `purchaseGreatPersonOffer needs one of ${OFFER_PURCHASE_IDS.join(', ')}, got ${String(purchase)}`;
   }
-  const bank = OFFER_BANKS[currency];
-  if (!cardActionRule(state, playerId, bank.rule)) {
-    return `${player.name}'s law does not let a great person be bought with ${currency}`;
+  const def = OFFER_PURCHASES[purchase];
+  if (!cardActionRule(state, playerId, def.rule)) {
+    return `${player.name}'s law does not let ${purchaseWords(purchase)} be bought with ${def.currency}`;
   }
   if (player.greatPersonOffer !== undefined) {
     return `${player.name} already has a great person waiting to be chosen`;
   }
   // The honest refusal rather than a silent purchase of nothing: a spent roster
   // is `settleRenownWindfall`'s "bank rather than block", asked *before* the
-  // money changes hands instead of after.
-  if (greatPersonPool(state, player, 1).length === 0) {
-    return 'every great person in the world has already been called';
+  // money changes hands instead of after. A narrowed purchase asks it of its own
+  // family, because a world with nobody but generals left has nothing to sell
+  // The Academy either.
+  if (greatPersonPool(state, player, 1, def.family).length === 0) {
+    return def.family === undefined
+      ? 'every great person in the world has already been called'
+      : `every great ${def.family} in the world has already been called`;
   }
-  const price = greatPersonOfferPrice(currency);
-  const held = currency === 'gold' ? player.gold : player.faithPool;
+  const price = greatPersonOfferPrice(purchase);
+  const held = def.currency === 'gold' ? player.gold : player.faithPool;
   if (held < price) {
-    return `${player.name} needs ${price} ${currency} and has ${held}`;
+    return `${player.name} needs ${price} ${def.currency} and has ${held}`;
   }
   return null;
 }
 
+/** What each purchase is called in a refusal. Plain words, never an id. */
+function purchaseWords(purchase: OfferPurchaseId): string {
+  const family = OFFER_PURCHASES[purchase].family;
+  return family === undefined
+    ? 'a great person waiting to be called'
+    : `a draft of great ${family}s`;
+}
+
 /**
- * Buys the recruitment. Validates nothing — `greatPersonPurchaseError` is the
- * rule and the command asks it first.
+ * Makes the purchase. Validates nothing — `greatPersonPurchaseError` is the rule
+ * and the command asks it first.
  *
- * **One draft path.** The bank is charged and the ladder is then covered through
- * `settleRenownWindfall` — the fifth Entry XVIII seam and the only way renown is
- * ever added — with exactly what the threshold still wants, so the offer opens
- * by the same code an end-of-turn trickle opens one by, blocks End Turn the same
- * way, and is answered by the same `chooseGreatPerson`. Nothing here draws a
- * hand, spends the roster or touches `state.recruited`.
+ * **One draft path, and two ways of paying for it.** A *ladder* purchase charges
+ * the bank and then covers the threshold through `settleRenownWindfall` — the
+ * fifth Entry XVIII seam and the only way renown is ever added — with exactly
+ * what it still wants, so the offer opens by the same code an end-of-turn
+ * trickle opens one by. A *draft* purchase (The Academy's scholars) charges the
+ * bank and deals the hand itself, through the same `drawGreatPersonOffer` every
+ * other offer in the game comes out of, with the renown pool and the threshold
+ * untouched: it is buying the hand, not the rung, so pouring renown into the
+ * pool would be the game charging for it twice.
  *
- * The grant names **no family**, which is deliberate: gold buys a hearing, not a
- * reputation, so the feed record — and therefore the weighting of the draw — is
- * left exactly as the empire's own buildings made it.
+ * Both end in the same place — an offer on the player, blocking End Turn, spent
+ * by `chooseGreatPerson` — and neither spends the roster or touches
+ * `state.recruited`, which is still the pick's own business.
+ *
+ * The ladder grant names **no family**, which is deliberate: gold buys a
+ * hearing, not a reputation, so the feed record — and therefore the weighting of
+ * the draw — is left exactly as the empire's own buildings made it. A narrowed
+ * draft names one only to *pick the bag*, and likewise feeds nothing.
  */
 export function purchaseGreatPersonOfferAt(
   state: GameState,
   player: Player,
-  currency: OfferCurrency,
+  purchase: OfferPurchaseId,
 ): GreatPersonOffer | null {
-  const price = greatPersonOfferPrice(currency);
-  if (currency === 'gold') player.gold -= price;
-  else player.faithPool -= price;
+  const def = OFFER_PURCHASES[purchase];
+  if (!def.ladder) {
+    // Dealt before the bank is charged so that the one unreachable outcome — a
+    // hand of nobody, which `greatPersonPurchaseError`'s own clause has already
+    // refused — costs an empire nothing rather than everything.
+    const offer = drawGreatPersonOffer(state, player, def.family);
+    if (offer.options.length === 0) return null;
+    chargeBank(player, def.currency, greatPersonOfferPrice(purchase));
+    player.greatPersonOffer = offer;
+    return offer;
+  }
+  chargeBank(player, def.currency, greatPersonOfferPrice(purchase));
   const owed = Math.max(0, renownThreshold(player) - player.renownPool);
   return settleRenownWindfall(state, player, [{ family: null, amount: owed }]);
+}
+
+/** Takes the price out of one of the two banks. The only subtraction here. */
+function chargeBank(player: Player, currency: OfferCurrency, price: number): void {
+  if (currency === 'gold') player.gold -= price;
+  else player.faithPool -= price;
 }
 
 // --- taking a name ----------------------------------------------------------

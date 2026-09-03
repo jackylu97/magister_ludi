@@ -1270,7 +1270,7 @@ describe('trade in the log', () => {
     // `chivalry`, `fortification`) and three added, almost every prerequisite
     // re-hung, twelve columns and a truncated cost ladder — and, beside it, the
     // one-unit-a-turn purchase rule widened to one *per class*.
-    expect(SCHEMA_VERSION).toBe(50);
+    expect(SCHEMA_VERSION).toBe(51);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

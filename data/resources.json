@@ -998,9 +998,13 @@
         {
           "kind": "empireYields",
           "culture": 2
+        },
+        {
+          "kind": "renownPerCity",
+          "amount": 1,
+          "fromAge": 3
         }
       ],
-      "deferred": "Its second age was ratified as renown in every city. Renown exists now, and what a luxury may pay into it has not been ruled on, so the row waits rather than guessing.",
       "emoji": "🔷"
     },
     "silver": {

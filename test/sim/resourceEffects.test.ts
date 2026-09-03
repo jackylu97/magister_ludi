@@ -52,6 +52,8 @@ import {
   resourceHappiness,
   resourcePercentYields,
   resourceProduction,
+  type ResourceRenownLine,
+  resourceRenown,
   resourceRouteYields,
   resourceRulePercent,
   resourceTierBoost,
@@ -640,6 +642,68 @@ describe('authoritySupply: capacity, never a discount', () => {
       growTerritory(state, second);
       expect(line()).toBe(2);
     });
+  });
+});
+
+/**
+ * `renownPerCity`: the fifth bucket's line, and the family it does not feed.
+ *
+ * Lapis lazuli's Æra III, ruled 2026-09-03 (*"just add renown that doesn't
+ * factor into the calculation"*). Two claims, and the second is the ruling: the
+ * lines multiply by the empire's towns like every other per-city reading, and
+ * the shape has **no family field at all** — so a stone can fill the pool and
+ * can never tilt `drawGreatPersonOffer`'s weighting, which reads the feed record
+ * alone.
+ */
+describe('renownPerCity: the ladder, never the bias', () => {
+  it('pays per city, and only to the empire that holds the seam', () => {
+    const found = luxuryWith('renownPerCity');
+    expect(found, 'no row declares the shape').toBeDefined();
+    const state = flatState();
+    // The stone's own tier is Æra III; the fixture opens in Æra I.
+    standIn(state, 0, 3);
+    const first = foundCityAt(state, 0, at(state.map, 6, 5));
+    growTerritory(state, first);
+    at(state.map, 7, 5).hills = true;
+    plant(state, first, 7, 5, found!.id);
+
+    const line = (playerId: number): ResourceRenownLine | undefined =>
+      resourceRenown(state, playerId).find((entry) => entry.resource === found!.id);
+    expect(line(0)!.amount).toBe(found!.effect.amount);
+    expect(line(0)!.source).toContain('cities ×1');
+    // Nobody else's: a seam pays the empire that holds it.
+    expect(line(1)).toBeUndefined();
+
+    const second = foundCityAt(state, 0, at(state.map, 20, 5));
+    growTerritory(state, second);
+    expect(line(0)!.amount).toBe(found!.effect.amount * 2);
+    expect(line(0)!.source).toContain('cities ×2');
+  });
+
+  it('waits for the age its tier names', () => {
+    const found = luxuryWith('renownPerCity', (effect) => effect.fromAge !== undefined);
+    expect(found).toBeDefined();
+    const state = flatState();
+    const city = foundCityAt(state, 0, at(state.map, 6, 5));
+    growTerritory(state, city);
+    at(state.map, 7, 5).hills = true;
+    plant(state, city, 7, 5, found!.id);
+    // Æra I: the stone is held, the tier is not open.
+    expect(resourceRenown(state, 0)).toEqual([]);
+    standIn(state, 0, found!.effect.fromAge!);
+    expect(resourceRenown(state, 0)).toHaveLength(1);
+  });
+
+  it('names no family anywhere in the shape', () => {
+    // The ruling as a property of the *vocabulary* rather than of one row: there
+    // is nowhere on this effect to write a family, so no row can ever tilt the
+    // draw with one.
+    for (const id of RESOURCE_IDS) {
+      for (const effect of resourceEffects(id)) {
+        if (effect.kind !== 'renownPerCity') continue;
+        expect((effect as unknown as Record<string, unknown>)['family']).toBeUndefined();
+      }
+    }
   });
 });
 

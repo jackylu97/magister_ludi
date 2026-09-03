@@ -1079,26 +1079,29 @@ export interface ChooseGreatPersonCommand extends PlayerCommand {
 
 /**
  * Buys the **recruitment** a filled renown bucket would have opened — The
- * Commonwealth's gold, The Magisterium's faith.
+ * Commonwealth's gold, The Magisterium's faith — or the **draft** itself, which
+ * is The Academy's scholars.
  *
  * It is emphatically not `purchaseItem`. A great person is *called* rather than
  * built or bought (CLAUDE.md; `buildError` and `purchaseError` both still refuse
- * `UnitDef.greatWork`), so what changes hands here is a moment on the ladder and
- * not a piece: the bank is charged, `settleRenownWindfall` is poured exactly the
- * renown the threshold still wants, and the offer opens by the same code an
- * end-of-turn trickle opens one by — one draft path, one place a name is taken,
- * and `chooseGreatPerson` still answers it.
+ * `UnitDef.greatWork`), so what changes hands here is a moment on the ladder or
+ * a hand of names, never a piece: the bank is charged and the offer opens by the
+ * same code an end-of-turn trickle opens one by — one draft path, one place a
+ * name is taken, and `chooseGreatPerson` still answers it.
  *
- * The bank is a **currency**, not an item, which is why it carries no `cityId`:
- * a recruitment belongs to the empire and lands in its capital the way every
- * other one does. Gated by an `actionRule` only two governments grant, so an
- * empire under any other law is refused with a sentence.
+ * `buys` names one of the three purchases (`OfferPurchaseId`, `greatPeople.ts`)
+ * rather than a currency, because the third is not one: the register there says
+ * which bank each charges, what it costs, whose names it deals and whether it
+ * moves the ladder. It carries no `cityId` for the reason it carries no unit — a
+ * recruitment belongs to the empire and lands in its capital the way every other
+ * one does. Each purchase is gated by its own `actionRule`, so an empire under
+ * any other law is refused with a sentence.
  *
  * Turn-gated like every other act.
  */
 export interface PurchaseGreatPersonOfferCommand extends PlayerCommand {
   type: 'purchaseGreatPersonOffer';
-  currency: 'gold' | 'faith';
+  buys: 'gold' | 'faith' | 'scholarDraft';
 }
 
 /**
@@ -2939,12 +2942,14 @@ function applyChooseGreatPerson(
 }
 
 /**
- * Buys the recruitment. See `PurchaseGreatPersonOfferCommand`.
+ * Buys the recruitment, or the draft. See `PurchaseGreatPersonOfferCommand`.
  *
  * `applyChooseGreatPerson`'s shape minus its one oddity: the whole rule is
  * `greatPersonPurchaseError`'s — which is also what the interface greys the
- * button with — and a refusal leaves the state byte-identical, because nothing
- * here draws a hand until the money has changed hands.
+ * button with — and a refusal leaves the state byte-identical, because that gate
+ * only ever *reads* the roster. The narrowed draft deals its hand inside the
+ * mechanism, on the far side of the gate, so a refused purchase still spends no
+ * roll of `state.rng`.
  */
 function applyPurchaseGreatPersonOffer(
   state: GameState,
@@ -2956,10 +2961,10 @@ function applyPurchaseGreatPersonOffer(
     return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot call anybody`);
   }
 
-  const problem = greatPersonPurchaseError(state, actor.id, command.currency);
+  const problem = greatPersonPurchaseError(state, actor.id, command.buys);
   if (problem) return fail(problem);
 
-  purchaseGreatPersonOfferAt(state, actor, command.currency);
+  purchaseGreatPersonOfferAt(state, actor, command.buys);
   return ok();
 }
 

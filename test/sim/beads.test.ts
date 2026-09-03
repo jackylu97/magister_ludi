@@ -186,7 +186,7 @@ describe('the bead catalogue', () => {
     // `chivalry`, `fortification`) and three added, almost every prerequisite
     // re-hung, twelve columns and a truncated cost ladder — and, beside it, the
     // one-unit-a-turn purchase rule widened to one *per class*.
-    expect(SCHEMA_VERSION).toBe(50);
+    expect(SCHEMA_VERSION).toBe(51);
   });
 
   it('puts the beads phase directly after renown', () => {

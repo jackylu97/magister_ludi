@@ -1183,6 +1183,18 @@ export interface GreatPeopleRules {
   offerPriceGold: number;
   /** The same out of the faith bank — The Magisterium's. */
   offerPriceFaith: number;
+  /**
+   * What a **draft of great scholars** costs in faith — The Academy's, and the
+   * user's ruling of 2026-09-03.
+   *
+   * Far dearer than either price above, and it buys something else: those two
+   * cover the *ladder's* threshold, so the pool is spent and the next
+   * recruitment is dearer, while this one deals a narrowed hand and leaves the
+   * ladder exactly where it stood. A realm that can raise this much faith is
+   * buying its scholars beside its ordinary recruitments rather than instead of
+   * them, which is what the figure is priced against.
+   */
+  scholarDraftFaith: number;
 }
 
 /**

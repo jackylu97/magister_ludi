@@ -1259,8 +1259,6 @@ export type ActionRuleId =
   | 'doubleOverflow'
   /** A unit further down the queue completes ahead of an unaffordable building. */
   | 'unitJumpsQueue'
-  /** Settlers stop getting dearer. */
-  | 'noSettlerEscalation'
   /**
    * A great person waiting in the offer may be **bought outright with gold** —
    * The Commonwealth's, and the honest reading of "great people can be purchased
@@ -1275,7 +1273,22 @@ export type ActionRuleId =
    */
   | 'buyGreatPersonWithGold'
   /** The same, out of the faith bank — The Magisterium's. */
-  | 'buyGreatPersonWithFaith';
+  | 'buyGreatPersonWithFaith'
+  /**
+   * A draft of great **scholars** may be bought with faith — The Academy's, and
+   * the user's ruling of 2026-09-03 (*"you could spend faith for a great person
+   * draft that only contained scholar. Shouldn't scale the renown costs"*).
+   *
+   * Its sibling above buys a **rung of the ladder**: renown is poured to the
+   * threshold, the pool is spent and the next recruitment is dearer. This buys
+   * the **draft itself** — a hand of scholars dealt on the spot at a flat price,
+   * with the renown pool and the threshold untouched — which is why it is a
+   * third entry in `OFFER_PURCHASES` rather than a second price on the faith
+   * bank. Still one draft path: the offer it opens is the offer the ladder would
+   * have opened, blocks End Turn the same way, and `chooseGreatPerson` answers
+   * it. See `greatPeople.ts`.
+   */
+  | 'buyScholarDraftWithFaith';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -2677,32 +2690,107 @@ export interface OrderSlotGrant {
   grant: 'greatPerson' | 'die';
 }
 
+/**
+ * The number a `deepen` entry may move, and the only two the vocabulary has.
+ *
+ * A **closed** pair rather than "any numeric field", for the reason every other
+ * union in this file is closed: a deepening that could name any key would be a
+ * table where a typo pays nothing and says nothing. Each is a number that exists
+ * on exactly one shape and means one thing —
+ *
+ *   · `every`, a `periodicMuster`'s cadence (The Standing Levy's wait);
+ *   · `max`, a `countScaled`'s ceiling on helpings (Pilgrim Roads' cap).
+ *
+ * A third belongs here the day a ratified deepening moves a third number, and
+ * adding one is a design decision with a place to be argued about.
+ */
+export type DeepenableParameter = 'every' | 'max';
+
+/**
+ * **A deepening that moves a printed number instead of adding a line** — the
+ * user's flag ruling of 2026-09-03 (*"standing levy being able to upgrade is a
+ * cool mechanic"*).
+ *
+ * The second thing a level may do, and it exists because two ratified cards say
+ * something the additive increment cannot say honestly: The Standing Levy's
+ * second face brings the muster *sooner* (12 → 10 → 8) and Pilgrim Roads' raises
+ * the happiness it *may* pay (5 → 7 → 9). A second `periodicMuster` musters
+ * twice rather than sooner, and a second capped `countScaled` pays past its own
+ * cap, so those two shipped `upgradable: false` for three passes rather than be
+ * bent into a shape that nearly fits (Entry XV.b). This is the shape that fits.
+ *
+ * It names a **kind and a parameter**, and the parameter is what picks the line:
+ * the deepening moves the first printed effect of that kind which *carries* that
+ * number. Pilgrim Roads prints two `countScaled`s and only the second is capped,
+ * so "the capped one" needs no index to say. A deepening can therefore only move
+ * a number the card already prints — it cannot invent a cap the base face does
+ * not have, which is what keeps the printed text and the deepened reading the
+ * same sentence with one figure changed.
+ *
+ * It is an **entry in `upgrade`** rather than a field of its own, because it is
+ * one of the things one level does and a level may do several: the list is the
+ * whole of a deepening, entry by entry. It is not a `CardEffect` and must never
+ * become one — every member of that union is a standing reading of the board,
+ * while this is an instruction about how to *read another effect*, and nothing
+ * outside `orderEffectsAtLevel` ever sees one (the face it hands back is
+ * `CardEffect[]`, exactly as it always was).
+ */
+export interface OrderDeepening {
+  /** Which printed effect it deepens. See the docblock for the reading. */
+  deepens: CardEffectKind;
+  /** Which number on that effect moves. */
+  parameter: DeepenableParameter;
+  /** How far it moves per level above the first. Signed. */
+  by: number;
+}
+
+/** One entry of an Order's authored deepening. See `OrderDef.upgrade`. */
+export type OrderUpgrade = CardEffect | OrderDeepening;
+
+/** Is this entry the parameter half rather than a line the level adds? */
+export function isOrderDeepening(entry: OrderUpgrade): entry is OrderDeepening {
+  return (entry as OrderDeepening).deepens !== undefined;
+}
+
 export interface OrderDef extends CardDefBase {
   pool: OrderPool;
   slot: SlotType;
   /**
-   * **What one deepening adds** — the authored increment of the 2026-09-02
+   * **What one deepening does** — the authored increment of the 2026-09-02
    * ladder (user: *"orders can only be deepened up to level 3. Some cannot be
    * upgraded"*).
    *
-   * An ordinary `CardEffect[]`, in the ordinary vocabulary, read by the ordinary
-   * evaluators: the face at level *N* is `effects` followed by *N−1* copies of
-   * this list (`orderEffectsAtLevel`, `statecraft.ts`). Nothing downstream knows
-   * a level exists — a deeper card is *more lines of the same kinds*, which is
-   * why the whole consumer register survived the change untouched.
+   * A list, applied once per level above the first (`orderEffectsAtLevel`,
+   * `statecraft.ts`), whose entries say one of **two** things:
    *
-   * It replaced `scaleByLevel`'s blanket ×1.5 on every printed figure, and the
-   * reason is a design one rather than an arithmetic one: that rule deepened
-   * every clause on a card at once, so Blooded Spears' point against everybody
-   * grew with its point against the wild and The Almanac's library clause grew
-   * with its capital's. The increment says **which clause deepens**, because
-   * that was always a decision somebody should have been making.
+   *   · **an ordinary `CardEffect` adds a line** — the default, and what fifty-
+   *     three rows say. The face at level *N* is `effects` followed by *N−1*
+   *     copies of it, in the ordinary vocabulary read by the ordinary
+   *     evaluators. Nothing downstream knows a level exists: a deeper card is
+   *     *more lines of the same kinds*, which is why the whole consumer register
+   *     survived the ladder untouched.
+   *   · **an `OrderDeepening` moves a printed number** — the parameter half,
+   *     added by the 2026-09-03 flag ruling. It names a kind and a number and
+   *     *replaces* that number on the printed effect that carries it, once per
+   *     level: The Standing Levy's cadence 12 → 10 → 8, Pilgrim Roads' cap
+   *     5 → 7 → 9. Every other row deals in lines, so the two never meet by
+   *     accident — the entry says which it is, rather than a rule inferring it
+   *     from a matching `kind` (every additive row's increment matches a kind it
+   *     prints, so kind alone would rewrite all fifty-three).
+   *
+   * The increment replaced `scaleByLevel`'s blanket ×1.5 on every printed
+   * figure, and the reason is a design one rather than an arithmetic one: that
+   * rule deepened every clause on a card at once, so Blooded Spears' point
+   * against everybody grew with its point against the wild and The Almanac's
+   * library clause grew with its capital's. An entry says **which clause
+   * deepens**, because that was always a decision somebody should have been
+   * making.
    *
    * Absent means the card does not deepen, and such a row says so out loud with
    * `upgradable: false` — the two are one decision and a source test pins them
    * together.
    */
-  upgrade?: CardEffect[];
+  upgrade?: OrderUpgrade[];
   /**
    * How deep this card may be drafted. Absent means `maxOrderLevel` (3).
    *

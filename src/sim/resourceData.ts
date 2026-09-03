@@ -278,6 +278,16 @@ type Signature<T> = T & ResourceEffectModifiers;
  *                       rather than a city's totals, `improvementYields`' bargain
  *                       one ledger over: a route's figure is the fold of the
  *                       lines the destination's sheet prints.
+ *   · `renownPerCity`    flat **renown a turn, per city the empire holds** —
+ *                       lapis lazuli's Æra III, and the user's ruling of
+ *                       2026-09-03 (*"just add renown that doesn't factor into
+ *                       the calculation"*). It joins `explainRenown`'s ordered
+ *                       list (`renown.ts`) as its own line, folded by the bucket
+ *                       like every other, and names **no family**: the feed
+ *                       record is what biases the draw, so a line that fed one
+ *                       would be a luxury quietly choosing which great people an
+ *                       empire sees. A stone pays for the *ladder*, not for a
+ *                       reputation.
  *   · `unitUpkeepRebate`  a flat number of gold off **each unit's own
  *                       maintenance**, floored at what that unit costs (salt).
  *                       It lands as a labelled line in `explainUnitUpkeepRebate`
@@ -334,6 +344,7 @@ export type ResourceEffect =
       } & ResourceYieldBag
     >
   | Signature<{ kind: 'routeYields' } & ResourceYieldBag>
+  | Signature<{ kind: 'renownPerCity'; amount: number }>
   | Signature<{ kind: 'unitUpkeepRebate'; amount: number }>
   | Signature<{ kind: 'connectionPercent'; percent: number }>;
 
@@ -351,6 +362,7 @@ export const RESOURCE_EFFECT_KINDS: readonly ResourceEffect['kind'][] = [
   'improvementYields',
   'buildingCategoryYields',
   'routeYields',
+  'renownPerCity',
   'unitUpkeepRebate',
   'connectionPercent',
 ];
@@ -661,6 +673,7 @@ function validateEffect(where: string, effect: ResourceEffect): void {
   if (
     effect.kind === 'extraHappiness' ||
     effect.kind === 'authoritySupply' ||
+    effect.kind === 'renownPerCity' ||
     effect.kind === 'unitUpkeepRebate'
   ) {
     if (!Number.isFinite(effect.amount)) throw new Error(`${where} has a non-numeric amount`);

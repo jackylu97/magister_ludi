@@ -992,10 +992,6 @@
       "tier": 29,
       "flavor": "A deed unrecorded is a deed undone.",
       "text": "−10% culture and +20% science. Great scholar drafts can be bought with faith.",
-      "note": "The purchase is not built: a great person is recruited out of one bank at one price, and buying only the scholars, at a price of their own, is a second way to open that offer.",
-      "deferred": [
-        "great scholar drafts bought with faith"
-      ],
       "effects": [
         {
           "kind": "percentYields",
@@ -1008,6 +1004,10 @@
           "yield": "science",
           "percent": 20,
           "stage": "empire"
+        },
+        {
+          "kind": "actionRule",
+          "rule": "buyScholarDraftWithFaith"
         }
       ]
     },
@@ -1280,7 +1280,7 @@
       "tier": 10,
       "line": "green",
       "flavor": "Ask little of them and they will not notice the asking.",
-      "text": "−20% happiness demanded per citizen · every city costs 3 more authority.",
+      "text": "−20% happiness demanded per citizen · every city costs 2 more authority.",
       "effects": [
         {
           "kind": "rulePercent",
@@ -1292,11 +1292,14 @@
           "count": "cities",
           "pays": {
             "to": "authority",
-            "amount": -3
+            "amount": -2
           }
         }
       ],
-      "note": "The extra authority is asked of every city you hold, not only of the ones you found after taking this Doctrine."
+      "note": "The extra authority is asked of every city you hold, not only of the ones you found after taking this Doctrine.",
+      "deferred": [
+        "asking the extra authority only of the cities you found after taking this Doctrine"
+      ]
     },
     "theScatteredHearths": {
       "name": "The Scattered Hearths",
@@ -1590,12 +1593,12 @@
       "line": "none",
       "neutral": true,
       "flavor": "Every farmer a spear, every roof a watchtower.",
-      "text": "All your cities gain +5 defense and +1 sight radius.",
+      "text": "All your cities gain +4 defense and +1 sight radius.",
       "effects": [
         {
           "kind": "cityStat",
           "stat": "defense",
-          "amount": 5
+          "amount": 4
         },
         {
           "kind": "cityStat",
@@ -1603,7 +1606,13 @@
           "amount": 1
         }
       ],
-      "upgradable": false
+      "upgrade": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 2
+        }
+      ]
     },
     "commonGranary": {
       "name": "Common Granary",
@@ -2636,11 +2645,13 @@
           }
         }
       ],
-      "upgradable": false,
-      "deferred": [
-        "deepening this Order raising the happiness it may pay by 2"
-      ],
-      "note": "This Order cannot be deepened. Its second face raises a cap rather than a figure, and a card in this game says what it adds, never what it lifts."
+      "upgrade": [
+        {
+          "deepens": "countScaled",
+          "parameter": "max",
+          "by": 2
+        }
+      ]
     },
     "lamplighters": {
       "name": "Lamplighters",
@@ -2838,7 +2849,6 @@
       "neutral": true,
       "flavor": "The spear is always first in line.",
       "text": "Every 12 turns, a free melee unit musters in your capital.",
-      "upgradable": false,
       "effects": [
         {
           "kind": "periodicMuster",
@@ -2847,10 +2857,13 @@
           "where": "capital"
         }
       ],
-      "deferred": [
-        "deepening this Order bringing the muster 2 turns sooner"
-      ],
-      "note": "This Order cannot be deepened. Its second face shortens the wait rather than adding to what arrives, and a card in this game says what it adds."
+      "upgrade": [
+        {
+          "deepens": "periodicMuster",
+          "parameter": "every",
+          "by": -2
+        }
+      ]
     },
     "clientKings": {
       "name": "Client Kings",
@@ -3261,7 +3274,7 @@
     },
     "riverWardens": {
       "name": "River Wardens",
-      "pool": "governmentI",
+      "pool": "governmentII",
       "slot": "economic",
       "line": "ploughshare",
       "flavor": "The water is watched, so the water is shared.",

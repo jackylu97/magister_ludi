@@ -142,6 +142,21 @@ export interface ResourceAuthorityLine {
   amount: number;
 }
 
+/**
+ * One line of renown a turn a luxury supplies — lapis lazuli's Æra III.
+ *
+ * `ResourceAuthorityLine`'s shape one bucket over, and deliberately not
+ * `RenownLine`: this module may not import `renown.ts`, so it hands back its own
+ * lines and the bucket's own ledger adapts them (`explainRenown`) — the same
+ * bargain `resourceRouteYields` keeps with `routeYields.ts`. The **family** is
+ * not on the line at all, because a stone has none: see `renownPerCity`.
+ */
+export interface ResourceRenownLine {
+  resource: ResourceId;
+  source: string;
+  amount: number;
+}
+
 /** One line of hammers behind a category, as a signed whole percent. */
 export interface ResourceProductionLine {
   resource: ResourceId;
@@ -745,6 +760,34 @@ export function resourceAuthority(state: GameState, playerId: number): ResourceA
 }
 
 /**
+ * The renown this empire's luxuries pay **every turn**, in table order.
+ *
+ * `resourceAuthority`'s shape one bucket over, and one rule of its own: the
+ * lines name **no family**, so the pool grows and `Player.renownByFamily` does
+ * not. That is the user's ruling of 2026-09-03 read exactly (*"just add renown
+ * that doesn't factor into the calculation"*) — the feed record is the only
+ * thing weighting `drawGreatPersonOffer`, so a stone that fed one would be a
+ * luxury quietly deciding which great people an empire is shown. It pays for the
+ * ladder and argues with nobody about who climbs it.
+ *
+ * A count of cities rather than a payment *in* each city, for `resourceHappiness`'
+ * reason: renown is an empire's, like happiness, and there is no city-scale
+ * reading of it to land in.
+ */
+export function resourceRenown(state: GameState, playerId: number): ResourceRenownLine[] {
+  const list: ResourceRenownLine[] = [];
+  for (const { id, effect } of liveEffects(state, playerId)) {
+    if (effect.kind !== 'renownPerCity') continue;
+    const copies = copiesFor(state, playerId, id, effect);
+    const towns = cityCount(state, playerId, false);
+    const amount = effect.amount * copies * towns;
+    if (amount === 0) continue;
+    list.push({ resource: id, source: label(id, `cities ×${towns}`, copies), amount });
+  }
+  return list;
+}
+
+/**
  * The percentage points this player's luxuries add to the **positive** happiness
  * tiers, and the lines that say why.
  *
@@ -965,6 +1008,9 @@ function describeOne(effect: ResourceEffect): string | null {
   }
   if (effect.kind === 'unitUpkeepRebate') {
     return `${effect.amount} less gold to keep each soldier${each}`;
+  }
+  if (effect.kind === 'renownPerCity') {
+    return `${signed(effect.amount)} renown a turn per city${each}`;
   }
   if (effect.kind === 'productionBonus') {
     const category =

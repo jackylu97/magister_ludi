@@ -87,6 +87,7 @@ import {
   windfallPayout,
 } from '../../src/sim/statecraft';
 import {
+  type CardEffect,
   type CardEffectKind,
   type CardWindfallRiderEffect,
   type OrderId,
@@ -102,6 +103,7 @@ import {
   doctrineDef,
   governmentDef,
   governmentsAtTier,
+  isOrderDeepening,
   orderDef,
   poolDoctrines,
   poolOfGovernment,
@@ -119,6 +121,7 @@ import {
   greatPersonOfferPrice,
   greatPersonPurchaseError,
 } from '../../src/sim/greatPeople';
+import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
 import {
   explainUnitUpkeep,
   explainUnitUpkeepRebate,
@@ -900,9 +903,17 @@ describe('every hook family, end to end', () => {
     expect(cardCityStat(g.state, city, 'defense')).toEqual([]);
     slot(g.state, 0, 'militiaLevies');
     expect(cardCityStat(g.state, city, 'defense')).toEqual([
-      { card: 'militiaLevies', source: 'Order · Militia Levies', amount: 5 },
+      { card: 'militiaLevies', source: 'Order · Militia Levies', amount: 4 },
     ]);
     expect(cardCityStat(g.state, city, 'sight')).toHaveLength(1);
+    // And a deepening is one more line of the same kind, folded by the same
+    // reader — the additive half of the ladder, from the flag ruling that gave
+    // this row a second face (5 flat became 4 and +2 a level).
+    playerById(g.state, 0)!.statecraft.orders.find((o) => o.id === 'militiaLevies')!.level = 2;
+    expect(cardCityStat(g.state, city, 'defense')).toEqual([
+      { card: 'militiaLevies', source: 'Order · Militia Levies', amount: 4 },
+      { card: 'militiaLevies', source: 'Order · Militia Levies', amount: 2 },
+    ]);
   });
 
   it('renown — the Council of Elders is a line per empire, with its arithmetic shown', () => {
@@ -1099,7 +1110,7 @@ describe('determinism', () => {
     // `chivalry`, `fortification`) and three added, almost every prerequisite
     // re-hung, twelve columns and a truncated cost ladder — and, beside it, the
     // one-unit-a-turn purchase rule widened to one *per class*.
-    expect(SCHEMA_VERSION).toBe(50);
+    expect(SCHEMA_VERSION).toBe(51);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1659,22 +1670,99 @@ describe('the deepening ladder', () => {
   });
 
   /**
-   * The rows whose ratified deepening changes a **parameter** rather than a
-   * line — The Standing Levy's cadence, Pilgrim Roads' cap on what it may pay.
+   * **The parameter half of the ladder** — the user's flag ruling of 2026-09-03
+   * (*"standing levy being able to upgrade is a cool mechanic"*), and the edit
+   * the `PARAMETER_DEEPENERS` register that used to sit here was holding the
+   * place for.
    *
-   * Neither can be said as an increment: a second `periodicMuster` musters
-   * twice rather than sooner, and a second capped `countScaled` pays past its
-   * own cap. So they ship marked, with the ratified words in `deferred` rather
-   * than bent into a shape that nearly fits (Entry XV.b) — and the register is
-   * written down here so that giving one of them a face later costs a
-   * deliberate edit to this list.
+   * Two rows deepen a *number* rather than a line: The Standing Levy's cadence
+   * and Pilgrim Roads' cap on what its second clause may pay. A second copy of
+   * either effect says the wrong thing (a second `periodicMuster` musters twice
+   * rather than sooner; a second capped `countScaled` pays past its own cap), so
+   * the increment list gained an entry that names a kind and a number and moves
+   * it — read at the one expansion point, `orderEffectsAtLevel`.
+   *
+   * Both are asserted **through the reading**, never against the row: what
+   * matters is that the face at each level says the ratified figure.
    */
-  const PARAMETER_DEEPENERS: readonly string[] = ['theStandingLevy', 'pilgrimRoads'];
+  it('moves a printed number one level at a time — the cadence', () => {
+    const every = (level: number): number => {
+      const effects = orderEffectsAtLevel('theStandingLevy', level);
+      const muster = effects.find((effect) => effect.kind === 'periodicMuster');
+      expect(muster, `level ${level} lost its muster`).toBeDefined();
+      return (muster as { every: number }).every;
+    };
+    // 12 → 10 → 8, and the row is one line at every level: a deepening replaces
+    // the effect rather than adding beside it, which is the whole difference
+    // between this half and the additive one.
+    expect(every(1)).toBe(12);
+    expect(every(2)).toBe(10);
+    expect(every(3)).toBe(8);
+    for (const level of [1, 2, 3]) {
+      expect(orderEffectsAtLevel('theStandingLevy', level)).toHaveLength(1);
+    }
+    // The ceiling clamps rather than throwing, exactly as it does for a line.
+    expect(every(4)).toBe(8);
+    expect(every(99)).toBe(8);
+    // And the **table is not written to**: level 1 still reads the printed face
+    // after every deeper face has been asked for.
+    expect(orderEffectsAtLevel('theStandingLevy', 1)).toEqual(
+      orderDef('theStandingLevy').effects,
+    );
+    expect((orderDef('theStandingLevy').effects[0] as { every: number }).every).toBe(12);
+  });
 
-  it('says out loud which rows deepen a parameter it cannot say', () => {
-    for (const id of PARAMETER_DEEPENERS) {
-      expect(isUpgradable(id as OrderId), id).toBe(false);
-      expect((orderDef(id as OrderId).deferred ?? []).length, id).toBeGreaterThan(0);
+  it('moves a printed number one level at a time — the cap', () => {
+    // Pilgrim Roads prints two `countScaled`s and only the second carries a cap,
+    // so the deepening names the *number* and needs no index: it moves the line
+    // that actually has one, and the uncapped faith clause is untouched.
+    const capped = (level: number): { per?: number; max?: number } => {
+      const effects = orderEffectsAtLevel('pilgrimRoads', level);
+      expect(effects).toHaveLength(2);
+      const first = effects[0] as { max?: number };
+      expect(first.max, `level ${level} moved the wrong line`).toBeUndefined();
+      return effects[1] as { per?: number; max?: number };
+    };
+    expect(capped(1).max).toBe(5);
+    expect(capped(2).max).toBe(7);
+    expect(capped(3).max).toBe(9);
+    // Everything else on the deepened line is the row's own: only the named
+    // number moved.
+    expect(capped(3).per).toBe(50);
+  });
+
+  it('leaves every additive row byte-identical', () => {
+    // The pin the mechanism is worth having: fifty-three rows carry an increment
+    // whose `kind` also appears on their printed face (Blooded Spears' second
+    // combat line, Silk Roads' second countScaled), so a rule that replaced *by
+    // kind* would have rewritten all of them. The entry says which it is, and
+    // this reads every row at every level to prove nothing else moved.
+    let additive = 0;
+    for (const id of ORDER_IDS) {
+      const def = orderDef(id);
+      const increment = (def.upgrade ?? []).filter((entry) => !isOrderDeepening(entry));
+      if (increment.length === 0 || increment.length !== (def.upgrade ?? []).length) continue;
+      additive += 1;
+      for (let level = 1; level <= maxLevelOf(id); level++) {
+        const expected = [...def.effects];
+        for (let i = 1; i < level; i++) expected.push(...(increment as CardEffect[]));
+        expect(orderEffectsAtLevel(id, level), `${id} at level ${level}`).toEqual(expected);
+      }
+    }
+    expect(additive).toBeGreaterThan(40);
+  });
+
+  it('keeps a deepening out of the face it hands back', () => {
+    // Nothing downstream may ever see an `OrderDeepening`: the face is
+    // `CardEffect[]`, exactly as it was before the shape existed, and every
+    // consumer in the register goes on switching on `kind` alone.
+    for (const id of ORDER_IDS) {
+      for (let level = 1; level <= maxLevelOf(id); level++) {
+        for (const effect of orderEffectsAtLevel(id, level)) {
+          expect(effect.kind, `${id} at level ${level}`).toBeTruthy();
+          expect(isOrderDeepening(effect as never), id).toBe(false);
+        }
+      }
     }
   });
 
@@ -2387,7 +2475,7 @@ describe('the governments’ deferred halves, built', () => {
     expect(applyCommand(g.state, {
       type: 'purchaseGreatPersonOffer',
       playerId: 0,
-      currency: 'gold',
+      buys: 'gold',
     }).ok).toBe(true);
     expect(player.gold).toBe(before - price);
     // **One draft path**: the offer opened by exactly the code the ladder opens
@@ -2400,6 +2488,85 @@ describe('the governments’ deferred halves, built', () => {
     expect(greatPersonPurchaseError(g.state, 0, 'gold')).toContain('already has');
   });
 
+  it('The Academy sells a draft of scholars for faith, and moves no renown', () => {
+    const g = game(321);
+    found(g.state, 0);
+    keepTheRites(g.state);
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 10_000;
+    // Under the opening law there is no such verb, and the two ladder purchases
+    // are somebody else's law again — three purchases, three clauses.
+    expect(greatPersonPurchaseError(g.state, 0, 'scholarDraft')).toContain('law does not let');
+    player.statecraft.doctrines.push('theAcademyOfDeeds' as never);
+    expect(greatPersonPurchaseError(g.state, 0, 'scholarDraft')).toBeNull();
+    expect(greatPersonPurchaseError(g.state, 0, 'faith')).toContain('law does not let');
+    // And an id nobody sells is refused by name rather than by a cast.
+    expect(greatPersonPurchaseError(g.state, 0, 'silver')).toContain('purchaseGreatPersonOffer needs');
+
+    const price = greatPersonOfferPrice('scholarDraft');
+    expect(price).toBe(RULES.greatPeople.scholarDraftFaith);
+    const faith = player.faithPool;
+    const renown = player.renownPool;
+    const fed = { ...player.renownByFamily };
+    const recruited = player.greatPeopleRecruited;
+    expect(applyCommand(g.state, {
+      type: 'purchaseGreatPersonOffer',
+      playerId: 0,
+      buys: 'scholarDraft',
+    }).ok).toBe(true);
+
+    // The faith bank pays, and **nothing on the ladder moves**: no renown
+    // deducted, no threshold climbed, no family fed (the user, 2026-09-03:
+    // "shouldn't scale the renown costs").
+    expect(player.faithPool).toBe(faith - price);
+    expect(player.gold).toBe(playerById(g.state, 1)!.gold);
+    expect(player.renownPool).toBe(renown);
+    expect(player.renownByFamily).toEqual(fed);
+    expect(player.greatPeopleRecruited).toBe(recruited);
+
+    // **A draft of scholars alone**, dealt where every other offer is dealt and
+    // answered by the same command.
+    const offer = player.greatPersonOffer!;
+    expect(offer.options.length).toBeGreaterThan(0);
+    for (const id of offer.options) expect(greatPersonDef(id).family).toBe('scholar');
+    expect(greatPersonBlocker(player)).not.toBeNull();
+    expect(g.state.units.some((u) => u.person !== undefined)).toBe(false);
+    // One offer at a time, exactly as for the two ladder purchases.
+    expect(greatPersonPurchaseError(g.state, 0, 'scholarDraft')).toContain('already has');
+  });
+
+  it('refuses a scholar draft nobody can pay for, byte-identically', () => {
+    const g = game(323);
+    found(g.state, 0);
+    keepTheRites(g.state);
+    const player = playerById(g.state, 0)!;
+    player.statecraft.doctrines.push('theAcademyOfDeeds' as never);
+    player.faithPool = greatPersonOfferPrice('scholarDraft') - 1;
+    const before = snapshotState(g.state);
+    expect(applyCommand(g.state, {
+      type: 'purchaseGreatPersonOffer',
+      playerId: 0,
+      buys: 'scholarDraft',
+    }).ok).toBe(false);
+    // Not a roll of the rng spent, not a coin of faith: the gate only reads.
+    expect(snapshotState(g.state)).toBe(before);
+
+    // And the same when the family itself is spent — refused before the money,
+    // which is the clause a narrowed draft needed of its own.
+    player.faithPool = 10_000;
+    for (const id of GREAT_PERSON_IDS) {
+      if (greatPersonDef(id).family === 'scholar') g.state.recruited.push(id);
+    }
+    const spent = snapshotState(g.state);
+    expect(greatPersonPurchaseError(g.state, 0, 'scholarDraft')).toContain('great scholar');
+    expect(applyCommand(g.state, {
+      type: 'purchaseGreatPersonOffer',
+      playerId: 0,
+      buys: 'scholarDraft',
+    }).ok).toBe(false);
+    expect(snapshotState(g.state)).toBe(spent);
+  });
+
   it('refuses the purchase to an empty treasury, byte-identically', () => {
     const g = game(319);
     found(g.state, 0);
@@ -2409,7 +2576,7 @@ describe('the governments’ deferred halves, built', () => {
     expect(applyCommand(g.state, {
       type: 'purchaseGreatPersonOffer',
       playerId: 0,
-      currency: 'gold',
+      buys: 'gold',
     }).ok).toBe(false);
     expect(snapshotState(g.state)).toBe(before);
   });
@@ -2611,7 +2778,6 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     ]);
     expect(said('theStandingLevy')).toEqual([
       'every 12 turns, the best melee unit you can build musters in your capital',
-      'deepening this Order bringing the muster 2 turns sooner — not built yet',
     ]);
     expect(said('theLegion')).toEqual([
       'melee units: +1 movement',
@@ -2647,7 +2813,9 @@ describe('the Orders pass of 2026-08-29', () => {
     ['wolfRunners', 'chiefdom', 'military'],
     ['hearthSongs', 'chiefdom', 'wildcard'],
     ['statuteLabour', 'governmentI', 'economic'],
-    ['riverWardens', 'governmentI', 'economic'],
+    // Moved to the second pool by the flag ruling of 2026-09-03 (the user:
+    // "too strong in government 1").
+    ['riverWardens', 'governmentII', 'economic'],
     ['theAlmanac', 'governmentI', 'wildcard'],
     ['villageFairs', 'governmentI', 'wildcard'],
     ['theMusterRoll', 'governmentI', 'military'],
@@ -3166,9 +3334,6 @@ describe('the balance pass of 2026-08-31', () => {
     expect(said('pilgrimRoads')).toEqual([
       '+1 faith per 3 population in your capital',
       '+1 happiness per 50 banked faith (at most +5 happiness)',
-      // The ratified deepening raises a *cap*, which the vocabulary cannot say —
-      // so the row is marked flat and says what it owes in its own words.
-      'deepening this Order raising the happiness it may pay by 2 — not built yet',
     ]);
     expect(said('theLyceum')).toEqual([
       'completing a technology grants an extra turn of culture',
@@ -3194,7 +3359,12 @@ describe('the balance pass of 2026-08-31', () => {
     ]);
     expect(said('theGentleYoke')).toEqual([
       '-20% happiness demanded per citizen',
-      '-3 authority capacity per city you hold',
+      // Back to 2 by the flag ruling of 2026-09-03: the ratified card asks it of
+      // every *new* city, and until a town remembers when it was founded the
+      // honest reading is the cheaper one asked of all of them — said out loud
+      // in the row's own deferred words below.
+      '-2 authority capacity per city you hold',
+      'asking the extra authority only of the cities you found after taking this Doctrine — not built yet',
     ]);
     expect(said('theScatteredHearths')).toEqual([
       'the citizens in every city who demand no happiness rises by 3',

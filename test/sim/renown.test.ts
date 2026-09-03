@@ -26,12 +26,15 @@ import {
   renownThreshold,
   settleRenownWindfall,
 } from '../../src/sim/renown';
+import { improvementForResource } from '../../src/sim/improvementData';
+import { tileIndex } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, claimWonder } from '../../src/sim/state';
 import { offerSize } from '../../src/sim/statecraft';
 import { isWaterTerrain } from '../../src/sim/terrainData';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { game, found, keepTheRites } from './statecraftHelpers';
+import { plainTechs } from './techHelpers';
 
 const LADDER = RULES.renown;
 
@@ -148,6 +151,38 @@ describe('the ledger', () => {
       },
     ]);
     expect(renownPerTurn(g.state, 0)).toBe(2);
+  });
+
+  it('takes a luxury’s standing trickle as a line, feeding nobody (lapis)', () => {
+    const g = game();
+    const city = town(g.state, 0);
+    const player = g.state.players[0]!;
+    // Æra III, which is the tier the stone's renown waits for.
+    player.techsResearched = plainTechs(3);
+    expect(explainRenown(g.state, 0).filter((line) => line.perTurn)).toEqual([]);
+
+    const seam = g.state.map.tiles.find(
+      (tile) => g.state.tileOwner[tileIndex(g.state.map, tile.col, tile.row)] === city.id,
+    )!;
+    seam.resource = 'lapis';
+    seam.improvement = improvementForResource('lapis')!;
+
+    // One line, on the recurring half, naming its arithmetic — and **no family**,
+    // which is the ruling: the pool grows, the feed record does not.
+    expect(explainRenown(g.state, 0).filter((line) => line.perTurn)).toEqual([
+      { source: 'Lapis Lazuli · cities ×1', family: null, amount: 1, perTurn: true },
+    ]);
+    expect(renownPerTurn(g.state, 0)).toBe(1);
+
+    // And the phase banks it through the one seam, leaving every family's feed
+    // exactly as the empire's own buildings made it — so the weighting in
+    // `drawGreatPersonOffer` never learns the stone exists.
+    keepTheRites(g.state);
+    const fed = { ...player.renownByFamily };
+    const pool = player.renownPool;
+    runEndOfTurn(g.state);
+    expect(player.renownPool).toBe(pool + 1);
+    expect(player.renownByFamily).toEqual(fed);
   });
 });
 

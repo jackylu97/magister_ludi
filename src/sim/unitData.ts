@@ -313,9 +313,11 @@ export interface UnitDef {
    * this field once described, **the counter is per type**: a settler and a
    * worker each climb their own ladder, keyed by `unitDef` id in
    * `Player.unitsBuilt`, so pricing one out of a city never dents the other's
-   * count. The two cards that predate the generalisation (`settlerCost`,
-   * `noSettlerEscalation`) still name the settler by id and are not asked of a
-   * second escalating type — see `explainUnitCost` in `cities.ts`.
+   * count. The one card rule that predates the generalisation (`settlerCost`)
+   * still names the settler by id and is not asked of a second escalating type
+   * — see `explainUnitCost` in `cities.ts`. Its sibling `noSettlerEscalation`,
+   * which could stop the ladder outright, was retired on 2026-09-03 once no card
+   * carried it: the ladder always climbs now.
    */
   escalation?: number;
   /**

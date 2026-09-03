@@ -3075,11 +3075,12 @@ function unitCostFactor(type: UnitTypeId): { age: number; factor: number } {
  *      a late-age escalating unit climbs in the money of its own era; the
  *      settler itself is Age I and multiplies by one, so nothing about the
  *      opening moved. See `ProductionRules`.
- *   4. **the empire's law** — `settlerCost`, asked only of the **settler**: that
- *      rule and its sibling `noSettlerEscalation` name the settler by id and
- *      predate the ladder's generalisation, so they are not widened to any
- *      other escalating type — a card that cheapens settlers touches settlers
- *      and nothing else.
+ *   4. **the empire's law** — `settlerCost`, asked only of the **settler**: the
+ *      rule names the settler by id and predates the ladder's generalisation, so
+ *      it is not widened to any other escalating type — a card that cheapens
+ *      settlers touches settlers and nothing else. It is the last of that pair:
+ *      `noSettlerEscalation` was retired on 2026-09-03 once no card carried it,
+ *      so the ladder in line 2 now always climbs.
  *
  * Every step floors, and the fold is exact by construction: each line carries
  * the *difference* it makes to the running figure, so the list sums to the
@@ -3101,14 +3102,13 @@ export function explainUnitCost(
   const increment = def.escalation;
   if (increment !== undefined) {
     const player = playerById(state, playerId);
-    // Manifest of the Steppe's second clause: the ladder stops climbing. Named
-    // for the settler and asked only of it — see the docblock's fourth line.
-    // Read as a multiplier of zero on the built count rather than as a branch,
-    // so the two clauses compose without either knowing about the other.
-    const built =
-      type === 'settler' && cardActionRule(state, playerId, 'noSettlerEscalation')
-        ? 0
-        : (player?.unitsBuilt?.[type] ?? 0);
+    // **The ladder always climbs** (the user's flag ruling of 2026-09-03,
+    // retiring `noSettlerEscalation`). Manifest of the Steppe dropped the clause
+    // in the balance pass, which left a rule id no card carried and a branch
+    // here nothing could take; both are gone rather than kept warm for a card
+    // that may never be written. A law that cheapens settlers still can —
+    // `settlerCost` is the fourth line below — it simply cannot stop the count.
+    const built = player?.unitsBuilt?.[type] ?? 0;
     if (built > 0) {
       lines.push({ source: `${built} already built`, amount: increment * built });
       running += increment * built;

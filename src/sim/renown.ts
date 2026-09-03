@@ -13,10 +13,12 @@
  *
  * What fills it, and why the answer is a list
  * -------------------------------------------
- * Five sources: a **trickle** from buildings, a lump and a trickle from
+ * Six sources: a **trickle** from buildings, a lump and a trickle from
  * **wonders**, a trickle from whatever **cards** say so (the Council of Elders'
  * counsel — `CardRenownEffect`, read by the one evaluator like every other
- * clause), lumps from **Triumphs**, and — since Entry XLVIII — a point a turn
+ * clause), a trickle from whatever **luxuries** say so (lapis lazuli's Æra III,
+ * `renownPerCity`, read by that vocabulary's one evaluator), lumps from
+ * **Triumphs**, and — since Entry XLVIII — a point a turn
  * from every **specialist**, into its own family's feed. That last one is the
  * loop the guild system was built to close: a scholarly city recruits great
  * scholars faster because its scholars say so. Rule 5 applies to a count exactly as it
@@ -54,6 +56,7 @@
 import { BUILDING_IDS, buildingDef } from './buildingData';
 import type { Family } from './greatPeopleData';
 import { drawGreatPersonOffer } from './greatPeople';
+import { resourceRenown } from './resourceEffects';
 import { RULES } from './rulesData';
 import { techsGrant } from './techData';
 import { citySpecialistYields } from './specialists';
@@ -136,6 +139,16 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
   }
   for (const line of cardRenownLines(state, playerId)) {
     lines.push({ source: line.source, family: line.family, amount: line.amount, perTurn: true });
+  }
+  // And what the empire's **luxuries** pay — lapis lazuli's Æra III, the user's
+  // ruling of 2026-09-03. Beside the card lines because it is the same kind of
+  // fact (something the empire holds, paying every turn) asked of the other
+  // vocabulary, and folded here rather than in `resourceEffects.ts` for the
+  // reason that module hands back lines at all: it may not import this one.
+  // Every such line names **no family** by construction, so the pool grows and
+  // the feed record that weights the draw does not — see `resourceRenown`.
+  for (const line of resourceRenown(state, playerId)) {
+    lines.push({ source: line.source, family: null, amount: line.amount, perTurn: true });
   }
   const player = state.players[playerId];
   for (const earned of player?.triumphs ?? []) {

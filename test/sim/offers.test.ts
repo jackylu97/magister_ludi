@@ -44,6 +44,7 @@ import {
 import {
   type CardEffect,
   type CardOfferRiderEffect,
+  type OrderUpgrade,
   GOVERNMENT_TIERS,
   ORDER_IDS,
   orderDef,
@@ -72,7 +73,10 @@ function rider(
  * every draft in every other file.
  */
 function withEffects(
-  def: { effects?: readonly CardEffect[]; upgrade?: CardEffect[] },
+  // `upgrade` is `OrderUpgrade[]` since the parameter-deepening ruling — a list
+  // that may hold an instruction as well as an effect — and this helper installs
+  // ordinary effects, which are a subset of it.
+  def: { effects?: readonly CardEffect[]; upgrade?: OrderUpgrade[] },
   effects: CardEffect[],
   body: () => void,
   upgrade?: CardEffect[],

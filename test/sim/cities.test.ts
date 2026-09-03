@@ -2147,9 +2147,10 @@ describe('escalating worker cost', () => {
   });
 
   it('is not touched by the settler-named cards', () => {
-    // `settlerCost` and `noSettlerEscalation` name the settler by id and are
-    // not widened to the second escalating type (CLAUDE.md, "the ladder
-    // generalises").
+    // `settlerCost` names the settler by id and is not widened to the second
+    // escalating type (CLAUDE.md, "the ladder generalises"). Its old sibling
+    // `noSettlerEscalation` was retired with the flag rulings of 2026-09-03, so
+    // the ladder itself now always climbs, for every escalating row.
     const state = flatState();
     state.players[0]!.unitsBuilt.worker = 3;
     const before = unitProductionCost(state, 0, 'worker');
@@ -2603,7 +2604,7 @@ describe('determinism with cities', () => {
     // `chivalry`, `fortification`) and three added, almost every prerequisite
     // re-hung, twelve columns and a truncated cost ladder — and, beside it, the
     // one-unit-a-turn purchase rule widened to one *per class*.
-    expect(SCHEMA_VERSION).toBe(50);
+    expect(SCHEMA_VERSION).toBe(51);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

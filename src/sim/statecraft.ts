@@ -146,6 +146,7 @@ import {
   type MeterRuleId,
   type OfferRiderScope,
   type OfferRuleId,
+  type OrderDeepening,
   type OrderId,
   type OrderPool,
   type OrderSlotGrant,
@@ -164,6 +165,7 @@ import {
   governmentsAtTier,
   isDoctrineId,
   isGovernmentId,
+  isOrderDeepening,
   isOrderId,
   orderDef,
   orderFitsSlot,
@@ -236,8 +238,9 @@ export function nextDraftCost(player: Player): number {
  * only dial was one number in a JSON file.
  *
  * So the increment is **authored**, in the ordinary vocabulary, on the row:
- * `OrderDef.upgrade` is the list of `CardEffect`s **one deepening adds**, and
- * the face at level *N* is
+ * `OrderDef.upgrade` is the list of what **one deepening does**, and for the
+ * fifty-three rows whose entries are all ordinary `CardEffect`s the face at
+ * level *N* is
  *
  *     def.effects ++ (N − 1) copies of def.upgrade
  *
@@ -254,11 +257,19 @@ export function nextDraftCost(player: Player): number {
  *     arithmetic sees *why* the number moved.
  *
  * A row that deepens a **parameter** rather than a line — The Standing Levy's
- * cadence, Pilgrim Roads' cap — cannot be said this way at all: a second copy of
- * a `periodicMuster` musters twice rather than sooner, and a second capped
- * `countScaled` pays past its cap. Those two ship `upgradable: false` with the
- * ratified deepening in `deferred`, which is Entry XV.b's rule (*a shape is
- * never bent to nearly fit*) rather than a special case per row.
+ * cadence, Pilgrim Roads' cap — cannot be said by a second copy of anything: a
+ * second `periodicMuster` musters twice rather than sooner, and a second capped
+ * `countScaled` pays past its cap. Those two shipped `upgradable: false` with
+ * the ratified deepening in `deferred` for three passes, which was Entry XV.b's
+ * rule working (*a shape is never bent to nearly fit*) — and the user's flag
+ * ruling of 2026-09-03 (*"standing levy being able to upgrade is a cool
+ * mechanic"*) is the edit that rule was holding the place for. So the increment
+ * list gained a **second kind of entry**: an `OrderDeepening` names a printed
+ * effect's kind and one of its numbers and *moves* that number once per level,
+ * where an ordinary effect adds a line. Two things a level may do, one list, one
+ * expansion point — below — and the additive rows read byte-identically, because
+ * the entry says which it is instead of a rule inferring it from a matching
+ * `kind` (every one of the fifty-three prints a kind its increment repeats).
  */
 
 /** How deep a card may be drafted, in levels. The row's own ceiling, or 3. */
@@ -267,8 +278,23 @@ export function maxLevelOf(id: OrderId): number {
 }
 
 /**
- * The face of one Order at one level: its printed effects, plus one copy of its
- * authored increment per level above the first.
+ * The face of one Order at one level: its printed effects, with one application
+ * of its authored increment per level above the first.
+ *
+ * **The expansion point**, and the only place a level is anything but a number.
+ * Each entry of `upgrade` is applied once per level above the first, in list
+ * order, and does one of two things (`OrderDef.upgrade`):
+ *
+ *   · an ordinary `CardEffect` is **appended** — the additive default, and what
+ *     every row but two says;
+ *   · an `OrderDeepening` **moves a printed number** on the first effect of its
+ *     kind that carries that number, replacing the line with a copy. Applied
+ *     once per level, so The Standing Levy reads 12, 10, 8 and Pilgrim Roads'
+ *     cap reads 5, 7, 9 rather than sticking at the second face.
+ *
+ * A deepening that names a number the card does not print moves nothing, which
+ * is the same silence a missing `upgrade` keeps: the reading is always the
+ * printed face plus what the row could actually say.
  *
  * **The reading clamps and never throws.** A save taken before a ceiling was
  * written down may hold a card above it, and a row whose `upgrade` was deleted
@@ -281,9 +307,45 @@ export function orderEffectsAtLevel(id: OrderId, level: number): CardEffect[] {
   const capped = Math.min(Math.max(1, Math.floor(level)), maxLevelOf(id));
   const upgrade = def.upgrade ?? [];
   if (capped <= 1 || upgrade.length === 0) return [...def.effects];
-  const list: CardEffect[] = [...def.effects];
-  for (let i = 1; i < capped; i++) list.push(...upgrade);
+  let list: CardEffect[] = [...def.effects];
+  for (let i = 1; i < capped; i++) {
+    for (const entry of upgrade) {
+      if (isOrderDeepening(entry)) list = deepenParameter(list, entry);
+      else list.push(entry);
+    }
+  }
   return list;
+}
+
+/**
+ * One application of a parameter deepening: the same list with one line
+ * replaced by a copy whose named number has moved.
+ *
+ * A **copy**, never a write, and that is load-bearing twice over: `def.effects`
+ * is the table's own array — the row every empire in the world reads — so
+ * mutating it would deepen a card for everybody the first time anybody drafted
+ * it, and the level-1 face has to keep reading as the printed one however many
+ * deeper faces have been asked for since.
+ *
+ * The line is found by kind **and** by carrying the number, which is what lets
+ * Pilgrim Roads name its capped `countScaled` without an index — see
+ * `OrderDeepening`. A cadence is floored at one turn: a muster every no turns is
+ * not a reading of anything, and `musterPeriodicUnits` would divide by it.
+ */
+function deepenParameter(list: readonly CardEffect[], entry: OrderDeepening): CardEffect[] {
+  const at = list.findIndex(
+    (effect) =>
+      effect.kind === entry.deepens &&
+      (entry.parameter in effect) &&
+      typeof (effect as unknown as Record<string, unknown>)[entry.parameter] === 'number',
+  );
+  if (at < 0) return [...list];
+  const target = list[at]!;
+  const was = (target as unknown as Record<string, number>)[entry.parameter]!;
+  const now = entry.parameter === 'every' ? Math.max(1, was + entry.by) : was + entry.by;
+  const next = [...list];
+  next[at] = { ...target, [entry.parameter]: now } as CardEffect;
+  return next;
 }
 
 // --- what a player holds ----------------------------------------------------
@@ -6208,9 +6270,9 @@ const ACTION_WORDS: Record<ActionRuleId, string> = {
   freeChop: 'clearing a forest or jungle costs no worker charge',
   doubleOverflow: 'leftover production from a completed item is doubled',
   unitJumpsQueue: 'a unit that would finish sooner jumps ahead of a building in the queue',
-  noSettlerEscalation: 'settlers never cost more than the first',
   buyGreatPersonWithGold: 'a great person waiting to be called may be bought with gold',
   buyGreatPersonWithFaith: 'a great person waiting to be called may be bought with faith',
+  buyScholarDraftWithFaith: 'a draft of great scholars may be bought with faith',
 };
 
 /**

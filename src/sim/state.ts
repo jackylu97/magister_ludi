@@ -764,8 +764,42 @@ import {
  *     moment the turn rolls over — so there is nothing in it worth carrying, and
  *     a save is `{config, log}` regardless: what replays is the log, against
  *     this tree and this rule.
+ * 51: **The flag rulings — parameter deepening, the scholar draft, the lapis
+ *     trickle, retunes** (`docs/flags.md` section A, answered 2026-09-03). Five
+ *     changes, any one of which would be a bump:
+ *
+ *       · **An Order's deepening may move a printed number.** `OrderDef.upgrade`
+ *         takes a second kind of entry (`OrderDeepening`), so The Standing Levy
+ *         musters every 12 / 10 / 8 turns and Pilgrim Roads' happiness cap reads
+ *         5 / 7 / 9 — both were `upgradable: false` in v50 and are drafted as
+ *         upgrades now, which changes what every Statecraft offer holding one
+ *         deals. The fifty-three additive rows are byte-identical, and a test
+ *         pins that.
+ *       · **The Academy sells a draft of scholars for 1000🕯.** A third entry in
+ *         the great-person purchase register, gated by a new
+ *         `buyScholarDraftWithFaith` action rule, and the command's field is
+ *         `buys` where it was `currency` — a v50 log naming `currency` no longer
+ *         resolves to a purchase, so it is refused.
+ *       · **`noSettlerEscalation` is retired**, the id and its clause: no card
+ *         has carried it since the balance pass, and the settler ladder now
+ *         always climbs.
+ *       · **Three retunes.** The Gentle Yoke asks 2 authority a city where it
+ *         asked 3, Militia Levies gives 4 defense (deepening by 2) where it gave
+ *         5, and River Wardens moved from the first Order pool to the second —
+ *         which changes what every draft after it deals.
+ *       · **Lapis lazuli pays renown.** A new resource-effect shape
+ *         (`renownPerCity`, +1 a city a turn from Æra III) joins
+ *         `explainRenown`'s list, so a realm holding the stone recruits sooner.
+ *
+ *     The migration note: nothing to migrate — no field changed shape. What a
+ *     v50 save cannot carry across is one command's spelling and four cards'
+ *     arithmetic. The Gentle Yoke's ratified reading — the extra authority asked
+ *     only of cities founded *after* it is taken — is still deferred on its row
+ *     and still wants the same field the King List wants: a founding turn on
+ *     `City`, which nothing in this state keeps. Add that field and both are one
+ *     comparison each.
  */
-export const SCHEMA_VERSION = 50;
+export const SCHEMA_VERSION = 51;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
