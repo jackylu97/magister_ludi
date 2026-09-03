@@ -37,7 +37,13 @@
 import { arriveOnTile } from './arrival';
 import { type City, allocateEntityId, cityById, playerById, realPlayers } from './state';
 import type { GameState, Unit } from './state';
-import { capitalCityOf, hasResource, refreshCityDerived, tileOwnerPlayerId } from './cities';
+import {
+  capitalCityOf,
+  hasResource,
+  refreshCityDerived,
+  tileOwnerField,
+  tileOwnerPlayerId,
+} from './cities';
 import { handOverCity, updateElimination } from './combat';
 import {
   type DealEndReport,
@@ -45,6 +51,7 @@ import {
   type DealTerms,
   cancelDealsBetween,
   dealIsOngoing,
+  dealsBetween,
   isLendableResource,
   openDeal,
   proposalById,
@@ -61,7 +68,12 @@ import { getTileAt, tileIndex, tileNeighbors } from './map';
 import type { Tile } from './map';
 import { type RouteEndReport, cancelRoutesAt, cancelRoutesBetween } from './trade';
 import { isCivilian, unitDef } from './unitData';
-import { recomputeAllVisibility, recomputeVisibilityFor } from './visibility';
+import {
+  HIDDEN,
+  isVisibleTo,
+  recomputeAllVisibility,
+  recomputeVisibilityFor,
+} from './visibility';
 import {
   atWar,
   closeWar,
@@ -1103,4 +1115,93 @@ export function diplomaticSeats(state: GameState, playerId: number): number[] {
     seats.push(player.id);
   }
   return seats;
+}
+
+/**
+ * Has this seat **met** that one — is there anything in the world it knows them
+ * by? (The user's ruling, 2026-09-03: *"the diplomacy screen should only show
+ * players once you've met them (gain visibility of one of their units or their
+ * land)"*.)
+ *
+ * **Derived, never stored.** There is no meeting register and no `met` flag on a
+ * player — a flag would be a second copy of a fact the board already draws, and
+ * it would have to be written at every seam an empire can be glimpsed from. So
+ * this asks the four things that *are* remembered, and each one is something the
+ * player can point at on their own chart:
+ *
+ *   · **a standing relation** — a war row, a truce, a bargain running, a paper
+ *     on the table. Two empires that have signed anything have met, and this
+ *     clause is the load-bearing one rather than a nicety: a seat declared upon
+ *     by an empire it never scouted must still be able to open the sheet and sue
+ *     for peace, and a roster that hid the declarer would hide the peace with it;
+ *   · **a remembered town of theirs** (`citySightings`) — the one memory of
+ *     another empire this simulation keeps, and it carries `ownerId`, which is a
+ *     recognition of an empire and not merely of a place;
+ *   · **their land on your chart** — a tile you have explored that their towns
+ *     own now. That is exactly what the board paints for you: the territory
+ *     layer draws the *current* owner on any explored hex (`TerritoryLayer`,
+ *     `cities3d.ts`), so this clause says "you have seen their border" in the
+ *     same words the renderer does;
+ *   · **one of their pieces under your eye**, right now.
+ *
+ * **The stated gap.** "You once saw a unit of theirs" is not derivable: fog
+ * memory remembers terrain and towns, and nothing at all remembers a column that
+ * walked past a scout and walked away. A meeting made by a fleeting sighting
+ * therefore lasts as long as the sighting does, unless it left one of the other
+ * three marks. Closing it honestly means a stored, per-seat met set — new state,
+ * a schema bump, and a save-format decision — and that is a ruling, not a patch
+ * (`docs/flags.md`).
+ *
+ * **This is not a rule of war.** The verbs stay unrestricted: `declareWarError`
+ * has deliberately no met-ness clause (see its docblock), a bot may know things
+ * a human has not scouted, and nothing in the reducer asks this question. It is
+ * a reading a *screen* takes, the way `localPlayerId` is.
+ */
+export function hasMetSeat(state: GameState, playerId: number, otherId: number): boolean {
+  if (playerId === otherId) return true;
+  const seat = playerById(state, playerId);
+  const other = playerById(state, otherId);
+  if (!seat || !other) return false;
+
+  // 1 · anything signed, offered or fought between the two.
+  if (warBetween(state, playerId, otherId) !== undefined) return true;
+  if (truceTurnsLeft(state, playerId, otherId) > 0) return true;
+  if (dealsBetween(state, playerId, otherId).length > 0) return true;
+  for (const proposal of state.dealProposals) {
+    if (proposal.by === playerId && proposal.to === otherId) return true;
+    if (proposal.by === otherId && proposal.to === playerId) return true;
+  }
+
+  // 2 · a town of theirs this seat remembers, under whatever flag it last flew.
+  for (const sighting of state.citySightings[playerId] ?? []) {
+    if (sighting.ownerId === otherId) return true;
+  }
+
+  // 3 · one of their pieces standing where this seat can see it now.
+  for (const unit of state.units) {
+    if (unit.ownerId !== otherId) continue;
+    if (isVisibleTo(state, playerId, unit.col, unit.row)) return true;
+  }
+
+  // 4 · their border on this seat's chart. A map-wide loop asks the field (the
+  // standing rule), hoisted here for the one sweep it lives in.
+  const grid = state.visibility[playerId];
+  if (!grid) return false;
+  const owners = tileOwnerField(state);
+  for (let index = 0; index < grid.length; index++) {
+    if ((grid[index] ?? HIDDEN) === HIDDEN) continue;
+    if (owners.at(index) === otherId) return true;
+  }
+  return false;
+}
+
+/**
+ * Every empire at the table this seat has met, in seat order.
+ *
+ * `diplomaticSeats` narrowed by `hasMetSeat` — the register a *screen* draws,
+ * where `diplomaticSeats` stays the register of who exists. Two readings rather
+ * than one filter written twice.
+ */
+export function metSeats(state: GameState, playerId: number): number[] {
+  return diplomaticSeats(state, playerId).filter((id) => hasMetSeat(state, playerId, id));
 }

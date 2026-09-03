@@ -47,7 +47,13 @@ this list.
 - **Batch: diplomacy** — players appear on the Diplomacy screen only once
   met (met = you have seen one of their units or their land — derived from
   sightings, not stored); screen layout borrows Civ's trade-table shape in
-  the specimen language.
+  the specimen language. **BUILT** (`hasMetSeat`, `metDiplomacyRows`;
+  `docs/war-diplomacy.md` §9a). **One gap awaiting your ruling**: nothing
+  persisted answers "I once saw a unit of theirs" — fog remembers terrain
+  and towns only — so a meeting made by a passing sighting lapses when the
+  piece leaves, unless their land, their town, or a signed paper also stands.
+  Closing it honestly = a stored per-seat met set (new state, schema bump).
+  Say the word and it becomes a field; otherwise the derived reading ships.
 - **Batch: economy** (after the card batch lands) — palace happiness 9 → 6;
   crowding ON: targets ≈ +3–5 demand at pop 15, +10–15 at pop 20, +35–45 at
   pop 30 (tune `crowdingFrom`/`Weight`/`Exponent` to the band, print the

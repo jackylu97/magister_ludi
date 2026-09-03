@@ -113,17 +113,18 @@ describe('the Religion sheet is a split', () => {
     // The cap is what makes a pane scroll instead of the page: without it the
     // sheet grows and the "fixed" column leaves with it.
     //
-    // **Five ids now, and still one rule** — the block's own comment asks a
+    // **Six ids now, and still one rule** — the block's own comment asks a
     // later overlay borrowing this paper to name itself here, and the Trade
-    // screen, the Compendium (2026-08-27) and the Bead Race (2026-08-30) have.
-    // What is pinned is that the list is one rule with all five in it: a second
-    // block that agreed today would be two blocks the first time either was
-    // touched.
+    // screen, the Compendium (2026-08-27), the Bead Race (2026-08-30) and the
+    // Diplomacy table (2026-09-03) have. What is pinned is that the list is
+    // one rule with all six in it: a second block that agreed today would be
+    // two blocks the first time either was touched.
     const SHEETS = [
       '#statecraft-overlay',
       '#religion-overlay',
       '#trade-overlay',
       '#compendium-overlay',
+      '#diplomacy-overlay',
       '#beads-overlay',
     ];
     expect(declaration(SHEETS.join(',\n'), 'overflow')).toBe('hidden');

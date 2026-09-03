@@ -12,17 +12,37 @@
  * popover: *"lets have it be a new menu, it can sit alongside the statecraft/
  * religion icons"* — so the third door on the HUD dock opens this.
  *
- * One row per empire, and the row is the relation
- * -----------------------------------------------
- * A seat's row says exactly one of three things — at peace, at war since a
- * named turn, or bound by a truce with a countdown — and carries the verbs that
- * are legal from where you stand. Since P2 it also opens a **Deal panel** in
- * place: two columns of what each empire may put on the table, the papers
- * standing between the two, and the bargains already running. It opens inside
- * the row rather than beside the sheet because a bargain is a fact about one
- * relationship, and that is what a row is. There is no relation *meter* and no
- * opinion: v1 has none (`docs/war-diplomacy.md`, section 6), and a screen that
- * implied one would be promising a system nobody has built.
+ * The roster, and the table beside it
+ * -----------------------------------
+ * A seat's card says exactly one of three things — at peace, at war since a
+ * named turn, or bound by a truce with a countdown — and choosing it puts that
+ * empire's **table** in the pane beside the roster. The table is the shape the
+ * user asked for on 2026-09-03 (*"steal inspiration from civ and make our trade
+ * screen a bit more similar"*): what you may offer on the left, what they may
+ * offer on the right, and the paper being written between them, with the verbs
+ * that change the relation itself over the top and the standing papers and
+ * running bargains under it.
+ *
+ * That replaced a panel that unfolded *inside* a row. The old shape's argument
+ * was that a bargain is a fact about one relationship — which is still true, and
+ * is now said by the roster's selection instead of by nesting: one empire is on
+ * the table at a time, and the two columns get the width a treaty needs. What
+ * the old shape could not do at all was show a player the paper they were
+ * building; the middle column is that.
+ *
+ * There is no relation *meter* and no opinion: v1 has none
+ * (`docs/war-diplomacy.md`, section 6), and a screen that implied one would be
+ * promising a system nobody has built.
+ *
+ * Only empires you have met
+ * -------------------------
+ * The other half of the same ruling: an empire appears here once you have seen
+ * its land, its town or its pieces — or signed something with it. That reading
+ * is `hasMetSeat` in `src/sim/diplomacy.ts`, derived from what the fog already
+ * remembers and stored nowhere, and this sheet applies it through
+ * `metDiplomacyRows`. It is a **UI gate**, exactly as `localPlayerId` is: the
+ * reducer refuses nothing on met-ness, because a bot may know things a human has
+ * not scouted.
  *
  * Nothing here is a new rule
  * --------------------------
@@ -54,6 +74,7 @@ import {
   bargainSeatError,
   declareWarError,
   diplomaticSeats,
+  hasMetSeat,
   openBordersError,
   proposePeaceError,
   withdrawDealError,
@@ -107,6 +128,18 @@ export interface DiplomacyRow {
   declareError: string | null;
   /** Why the peace offer (or its withdrawal) is refused, or `null`. */
   peaceError: string | null;
+  /** Bargains running with them right now — the roster's own clock. */
+  bargains: number;
+  /** Papers standing on the table between you, written by either hand. */
+  papers: number;
+  /**
+   * You have met them: seen their land, their town or their pieces, or signed
+   * something with them (`hasMetSeat`, `src/sim/diplomacy.ts`).
+   *
+   * On the row rather than a filter of its own, so the sheet's register
+   * (`metDiplomacyRows`) is one reading of this list and not a second rule.
+   */
+  met: boolean;
 }
 
 /**
@@ -141,9 +174,50 @@ export function diplomacyRows(state: GameState, seat: number): DiplomacyRow[] {
       peaceError: hasPeaceOffer(state, seat, id)
         ? withdrawPeaceError(state, seat, id)
         : proposePeaceError(state, seat, id),
+      bargains: dealsBetween(state, seat, id).length,
+      papers: state.dealProposals.filter(
+        (paper) =>
+          (paper.by === seat && paper.to === id) || (paper.by === id && paper.to === seat),
+      ).length,
+      met: hasMetSeat(state, seat, id),
     });
   }
   return rows;
+}
+
+/**
+ * The rows the **sheet** draws: every empire this seat has met.
+ *
+ * The user's ruling, 2026-09-03 — an empire you have never seen is not on the
+ * screen. One line rather than a filter written into the DOM half, because it is
+ * exactly the kind of decision a panel can be quietly wrong about (this file's
+ * docblock), and `diplomacyRows` stays the whole world so a test, a chronicle or
+ * a spectator's feed can still read a relation nobody has met.
+ *
+ * A **UI gate and only that**, the way `localPlayerId` is: the reducer refuses
+ * nothing on met-ness (`declareWarError`), and a bot may know what a human has
+ * not scouted.
+ */
+export function metDiplomacyRows(state: GameState, seat: number): DiplomacyRow[] {
+  return diplomacyRows(state, seat).filter((row) => row.met);
+}
+
+/**
+ * The second line on a roster card: the one thing about this relation a player
+ * must not have to open the row to find out.
+ *
+ * In the order a player would want to be told, and never more than one: their
+ * standing peace offer first (it is the button that ends a war), then a paper
+ * waiting for an answer, then a bargain quietly running. No figures — the counts
+ * are drawn as their own marks beside the name (hard rule 7).
+ */
+export function rosterNote(row: DiplomacyRow): string | null {
+  if (row.relation === 'war' && row.theyOffered && !row.weOffered) {
+    return 'They have offered peace.';
+  }
+  if (row.papers > 0) return 'A paper waits on the table.';
+  if (row.bargains > 0) return 'A bargain is running.';
+  return null;
 }
 
 /**
@@ -562,12 +636,13 @@ function button(className: string, label: string): HTMLButtonElement {
  *
  * The panel's only state, and it is deliberately **the interface's own**: a
  * draft is not a command, nothing in the simulation has heard of it, and it
- * lives exactly as long as the sheet does. `open` is the disclosure, so a
- * player who opens the panel, scrolls, and comes back finds their half-written
- * paper where they left it — `draw()` replaces every child on every refresh.
+ * lives exactly as long as the sheet does. It is held per empire, so a player
+ * who writes half a bargain, looks at another seat's row and comes back finds
+ * their paper where they left it — `draw()` replaces every child on every
+ * refresh, and a draft that lived in the DOM would be swept away by the
+ * acceptance of an unrelated bargain.
  */
 interface DealDraft {
-  open: boolean;
   give: DealTerms;
   take: DealTerms;
 }
@@ -581,19 +656,22 @@ function readAmount(value: string): number {
 export function createDiplomacyScreen(options: DiplomacyScreenOptions): DiplomacyScreen {
   const { overlay, body, closeButton, trigger } = options;
 
-  /**
-   * The half-written papers, one per empire, by seat id.
-   *
-   * Outside `draw` because `draw` replaces the whole sheet on every refresh —
-   * an accepted command, a reopened screen — and a draft that lived in the DOM
-   * would be swept away by the acceptance of an unrelated bargain.
-   */
+  /** The half-written papers, one per empire, by seat id. See `DealDraft`. */
   const drafts = new Map<number, DealDraft>();
+
+  /**
+   * Which empire's table the right-hand pane is showing.
+   *
+   * A fact about *this* opening, exactly as the Trade sheet's chooser and sort
+   * are: a sheet opened tomorrow starts on the first empire on the roster rather
+   * than on whoever the player last argued with.
+   */
+  let selectedId: number | null = null;
 
   function draftFor(playerId: number): DealDraft {
     let draft = drafts.get(playerId);
     if (!draft) {
-      draft = { open: false, give: {}, take: {} };
+      draft = { give: {}, take: {} };
       drafts.set(playerId, draft);
     }
     return draft;
@@ -607,18 +685,35 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     trigger?.setAttribute('aria-expanded', String(isOpen()));
   }
 
-  /**
-   * One empire's card: the swatch and the name, the relation, and the verbs.
-   *
-   * A refused verb is **drawn and disabled with its reason on the hover**
-   * rather than hidden, which is this interface's rule everywhere a gate exists
-   * (the Trade sheet's greyed rows, the city panel's greyed buys): a button
-   * that vanishes is a rule a player cannot learn.
-   */
-  function drawRow(row: DiplomacyRow): HTMLElement {
-    const card = element('article', `diplo-row is-${row.relation}`);
+  /** The empire the pane is drawing: the chosen one, or the first on the sheet. */
+  function chosenRow(rows: DiplomacyRow[]): DiplomacyRow | null {
+    return rows.find((row) => row.playerId === selectedId) ?? rows[0] ?? null;
+  }
 
-    const head = element('div', 'diplo-row-head');
+  /** A small counted mark — a figure and what it counts. Never a sentence. */
+  function countMark(count: number, label: string): HTMLElement {
+    const chip = element('span', 'diplo-mark');
+    chip.append(element('span', 'diplo-mark-figure', figure(count)));
+    chip.append(element('span', 'diplo-mark-label', label));
+    return chip;
+  }
+
+  /**
+   * One empire's card in the roster: the swatch and the name, where you stand,
+   * and the one thing about the relation a player must not have to click to
+   * find out (`rosterNote`).
+   *
+   * A button rather than an article, because the roster's whole job in the new
+   * shape is to choose whose table is on the right — the Civ trade sheet's
+   * bones, where the seat you are treating with is picked once and the paper is
+   * written beside it, instead of a bargain unfolding inside a row and pushing
+   * every other empire down the page.
+   */
+  function drawSeatCard(row: DiplomacyRow, active: boolean): HTMLElement {
+    const card = button(`diplo-seat is-${row.relation}${active ? ' is-active' : ''}`, '');
+    card.setAttribute('aria-pressed', String(active));
+
+    const head = element('span', 'diplo-row-head');
     const swatch = element('span', 'diplo-swatch');
     swatch.style.background = row.color;
     swatch.setAttribute('aria-hidden', 'true');
@@ -627,8 +722,88 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     head.append(element('span', 'diplo-status', row.status));
     card.append(head);
 
-    const note = offerSentence(row);
-    if (note !== null) card.append(element('p', 'hint diplo-note', note));
+    const note = rosterNote(row);
+    if (note !== null) card.append(element('span', 'hint diplo-note', note));
+
+    if (row.papers > 0 || row.bargains > 0) {
+      const marks = element('span', 'diplo-marks');
+      if (row.papers > 0) marks.append(countMark(row.papers, 'on the table'));
+      if (row.bargains > 0) marks.append(countMark(row.bargains, 'running'));
+      card.append(marks);
+    }
+
+    card.addEventListener('click', () => {
+      selectedId = row.playerId;
+      draw();
+    });
+    return card;
+  }
+
+  /**
+   * The left column: every empire this seat has **met**, and nobody else.
+   *
+   * `metDiplomacyRows` is the whole of that gate (the user's ruling,
+   * 2026-09-03) and it is a reading rather than a rule — see its docblock.
+   */
+  function drawRoster(rows: DiplomacyRow[], chosen: DiplomacyRow | null): HTMLElement {
+    const column = element('section', 'sc-column diplo-column');
+    column.append(element('p', 'eyebrow sc-eyebrow', 'the world'));
+
+    const scroller = element('div', 'sc-column-body');
+    if (rows.length === 0) {
+      scroller.append(
+        element(
+          'p',
+          'sc-none',
+          'You have met nobody yet. Send somebody out to look: an empire whose land, ' +
+            'town or people you find appears here.',
+        ),
+      );
+    }
+    for (const row of rows) {
+      scroller.append(drawSeatCard(row, row.playerId === chosen?.playerId));
+    }
+    column.append(scroller);
+
+    // The sheet's one standing sentence: what a war costs and what a peace
+    // takes. Said once at the foot rather than on every row, for the Trade
+    // sheet's reason — a rule repeated per row is a rule the eye skips.
+    const foot = element('div', 'diplo-foot');
+    foot.append(
+      element(
+        'p',
+        'hint',
+        'At peace your soldiers may not enter another empire’s land, and may not strike ' +
+          'its people or burn its works. A war opens both. A peace closes them again and walks ' +
+          'every army home.',
+      ),
+    );
+    column.append(foot);
+    return column;
+  }
+
+  /**
+   * The head of the right pane: whose table this is, and the two verbs that
+   * change the relation itself.
+   *
+   * A refused verb is **drawn and disabled with its reason on the hover**
+   * rather than hidden, which is this interface's rule everywhere a gate exists
+   * (the Trade sheet's greyed rows, the city panel's greyed buys): a button
+   * that vanishes is a rule a player cannot learn.
+   */
+  function drawTableHead(row: DiplomacyRow): HTMLElement {
+    const head = element('header', `diplo-head is-${row.relation}`);
+
+    const titles = element('div', 'diplo-head-titles');
+    const line = element('p', 'diplo-head-line');
+    const swatch = element('span', 'diplo-swatch');
+    swatch.style.background = row.color;
+    swatch.setAttribute('aria-hidden', 'true');
+    line.append(swatch);
+    line.append(element('span', 'diplo-head-name', row.name));
+    titles.append(line);
+    titles.append(element('p', 'diplo-head-status', row.status));
+    head.append(titles);
 
     const verbs = element('div', 'diplo-row-verbs');
 
@@ -665,43 +840,168 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       });
     }
     verbs.append(peace);
-
-    const draft = draftFor(row.playerId);
-    const dealToggle = button('btn btn-quiet btn-tiny', draft.open ? 'Close terms' : 'Deal…');
-    dealToggle.title = row.relation === 'war'
-      ? 'Write terms into a peace'
-      : 'Put a bargain to them';
-    dealToggle.setAttribute('aria-expanded', String(draft.open));
-    dealToggle.addEventListener('click', () => {
-      draft.open = !draft.open;
-      draw();
-    });
-    verbs.append(dealToggle);
-
-    card.append(verbs);
-    if (draft.open) card.append(drawDealPanel(row, draft));
-    return card;
+    head.append(verbs);
+    return head;
   }
 
   /**
-   * The Deal panel under one empire's row: two columns, the standing papers,
-   * and the bargains already running.
+   * The right pane: one empire's table, in three columns.
+   *
+   * The shape the user asked for (2026-09-03: *"steal inspiration from civ and
+   * make our trade screen a bit more similar"*): what you may offer on the left,
+   * what they may offer on the right, and **the paper being written between
+   * them** — which is the half the old panel did not draw at all. A player
+   * ticking boxes in two columns could not read back what they had built until
+   * they had sent it.
    *
    * Every greyed control carries the simulation's own sentence on its hover
-   * (`dealPanel`), and every write is a command handed out through
-   * `options` — this file never touches the state, which is the bargain
+   * (`dealPanel`), and every write is a command handed out through `options` —
+   * this file never touches the state, which is the bargain
    * `diplomacyScreen.test.ts` pins by reading the source.
    */
-  function drawDealPanel(row: DiplomacyRow, draft: DealDraft): HTMLElement {
+  function drawTable(row: DiplomacyRow | null): HTMLElement {
+    const pane = element('div', 'sc-pane diplo-table');
+    if (row === null) {
+      pane.append(element('p', 'sc-none', 'There is nobody to bargain with yet.'));
+      return pane;
+    }
     const state = options.getState();
     const seat = options.getPlayerId();
     const model = dealPanel(state, seat, row.playerId);
-    const panel = element('div', 'diplo-deal');
+    const draft = draftFor(row.playerId);
 
-    const columns = element('div', 'diplo-deal-columns');
-    columns.append(drawDealColumn(model, model.yours, draft, 'give', 'You give'));
-    columns.append(drawDealColumn(model, model.theirs, draft, 'take', `The ${row.name} give`));
-    panel.append(columns);
+    pane.append(drawTableHead(row));
+    const note = offerSentence(row);
+    if (note !== null) pane.append(element('p', 'hint diplo-note', note));
+
+    const board = element('div', 'diplo-board');
+    board.append(drawSide(model, model.yours, draft, 'give', 'You offer'));
+    board.append(drawMiddle(state, model, draft, row));
+    board.append(drawSide(model, model.theirs, draft, 'take', `The ${row.name} offer`));
+    pane.append(board);
+
+    pane.append(drawPapers(model, row));
+    pane.append(element('p', 'hint diplo-note', dealFootSentence()));
+    return pane;
+  }
+
+  /** A titled block inside one side of the table. */
+  function group(title: string): HTMLElement {
+    const block = element('section', 'diplo-group');
+    block.append(element('p', 'eyebrow diplo-group-head', title));
+    return block;
+  }
+
+  /**
+   * One side of the table: everything that empire may put on it, in the order a
+   * treaty is read out — coin, then seams, then rights, then towns.
+   *
+   * Every group is drawn even when it is empty, and an empty one says why. A
+   * column that dropped its own headings would be a different shape on every
+   * relation, and a player could never learn where to look for a thing.
+   */
+  function drawSide(
+    model: DealPanelModel,
+    side: DealSideModel,
+    draft: DealDraft,
+    half: 'give' | 'take',
+    heading: string,
+  ): HTMLElement {
+    const terms = draft[half];
+    const column = element('div', 'diplo-side');
+
+    const head = element('div', 'diplo-side-head');
+    head.append(element('span', 'diplo-side-name', heading));
+    head.append(element('span', 'diplo-side-purse', `${figure(side.gold)} in hand`));
+    column.append(head);
+
+    const coin = group('coin');
+    coin.append(
+      amountField('Gold', terms.gold ?? 0, (value) => {
+        // Presence is the state on a term, exactly as it is in the register:
+        // a zero is *deleted* rather than written, so a paper with nothing on
+        // this line is the empty object it would have been.
+        if (value > 0) terms.gold = value;
+        else delete terms.gold;
+      }),
+    );
+    coin.append(
+      amountField('Gold a turn', terms.goldPerTurn ?? 0, (value) => {
+        if (value > 0) terms.goldPerTurn = value;
+        else delete terms.goldPerTurn;
+      }),
+    );
+    column.append(coin);
+
+    const seams = group('luxuries');
+    if (side.luxuries.length === 0) {
+      seams.append(element('p', 'hint diplo-none', 'Nothing spare to send.'));
+    }
+    for (const choice of side.luxuries) {
+      const id = choice.id;
+      if (id === undefined) continue;
+      seams.append(
+        checkRow(choice, (terms.luxuries ?? []).includes(id), (on) => {
+          const held = (terms.luxuries ?? []).filter((held) => held !== id);
+          if (on) held.push(id);
+          if (held.length > 0) terms.luxuries = held;
+          else delete terms.luxuries;
+        }),
+      );
+    }
+    column.append(seams);
+
+    const rights = group('rights');
+    rights.append(
+      checkRow(side.openBorders, terms.openBorders === true, (on) => {
+        if (on) terms.openBorders = true;
+        else delete terms.openBorders;
+      }),
+    );
+    column.append(rights);
+
+    const towns = group('towns');
+    if (!model.peace) {
+      towns.append(element('p', 'hint diplo-none', 'Towns change hands only in a peace.'));
+    } else if (side.cities.length === 0) {
+      towns.append(element('p', 'hint diplo-none', 'There is no town to give.'));
+    }
+    for (const choice of side.cities) {
+      const cityId = choice.cityId;
+      if (cityId === undefined) continue;
+      towns.append(
+        checkRow(choice, (terms.cities ?? []).includes(cityId), (on) => {
+          const held = (terms.cities ?? []).filter((kept) => kept !== cityId);
+          if (on) held.push(cityId);
+          if (held.length > 0) terms.cities = held;
+          else delete terms.cities;
+        }),
+      );
+    }
+    column.append(towns);
+    return column;
+  }
+
+  /**
+   * The middle column: the paper as it stands, and the button that sends it.
+   *
+   * `termLines` is the same function the standing papers and the running
+   * bargains are printed with, so what a player reads while writing a bargain is
+   * word for word what the other seat will read when it lands.
+   */
+  function drawMiddle(
+    state: GameState,
+    model: DealPanelModel,
+    draft: DealDraft,
+    row: DiplomacyRow,
+  ): HTMLElement {
+    const middle = element('div', 'diplo-middle');
+    middle.append(element('p', 'eyebrow diplo-group-head', 'on the table'));
+
+    const paper = element('article', 'diplo-paper is-draft');
+    paper.append(drawHalf('You give', termLines(state, draft.give)));
+    paper.append(drawHalf(`The ${row.name} give`, termLines(state, draft.take)));
+    middle.append(paper);
 
     const empty = termsAreEmpty(draft.give) && termsAreEmpty(draft.take);
     const send = button('btn btn-primary btn-tiny', dealButtonLabel(model, empty));
@@ -720,9 +1020,23 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         draw();
       });
     }
-    panel.append(send);
+    middle.append(send);
+
+    // Clearing is the interface's own verb and the only one on this sheet that
+    // is: the draft is not a command and nothing in the simulation has heard of
+    // it, so taking it back off the table asks nobody's permission.
+    if (!empty) {
+      const clear = button('btn btn-quiet btn-tiny', 'Clear the table');
+      clear.addEventListener('click', () => {
+        draft.give = {};
+        draft.take = {};
+        draw();
+      });
+      middle.append(clear);
+    }
+
     if (model.peace) {
-      panel.append(
+      middle.append(
         element(
           'p',
           'hint diplo-note',
@@ -731,10 +1045,31 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         ),
       );
     }
+    return middle;
+  }
 
-    // The peace paper first, when there is one: it is what the row's own
-    // "Accept peace" button would be signing, and a player must be able to read
-    // it before they press that.
+  /** One half of the paper in the middle: a heading and its promises. */
+  function drawHalf(heading: string, lines: string[]): HTMLElement {
+    const half = element('div', 'diplo-half');
+    half.append(element('p', 'diplo-half-head', heading));
+    const list = element('ul', 'diplo-half-lines');
+    for (const line of lines) list.append(element('li', 'diplo-half-line', line));
+    half.append(list);
+    return half;
+  }
+
+  /**
+   * The papers under the table: the peace being signed, whatever either seat has
+   * proposed, and the bargains already running with their clocks.
+   *
+   * The peace paper comes first when there is one: it is what the row's own
+   * "Accept peace" button would be signing, and a player must be able to read it
+   * before they press that.
+   */
+  function drawPapers(model: DealPanelModel, row: DiplomacyRow): HTMLElement {
+    const block = element('section', 'diplo-papers');
+    block.append(element('p', 'eyebrow diplo-group-head', 'the papers'));
+
     if (model.peacePaper !== null) {
       const paper = element('article', 'diplo-paper');
       paper.append(element('p', 'diplo-paper-head', model.peacePaper.heading));
@@ -746,83 +1081,20 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
           'hint',
           model.peacePaper.mine
             ? 'Your terms stand. The war ends on the turn they sign them.'
-            : 'Answer these terms with the peace button above, or write your own below.',
+            : 'Answer these terms with the peace button above, or write your own on the table.',
         ),
       );
-      panel.append(paper);
+      block.append(paper);
     }
-    for (const proposal of model.proposals) panel.append(drawProposal(proposal));
-    for (const deal of model.active) panel.append(drawActiveDeal(deal));
-    panel.append(element('p', 'hint diplo-note', dealFootSentence()));
-    return panel;
-  }
+    for (const proposal of model.proposals) block.append(drawProposal(proposal));
+    for (const deal of model.active) block.append(drawActiveDeal(deal));
 
-  /** One column of the panel: what one empire is putting on the table. */
-  function drawDealColumn(
-    model: DealPanelModel,
-    side: DealSideModel,
-    draft: DealDraft,
-    half: 'give' | 'take',
-    heading: string,
-  ): HTMLElement {
-    const terms = draft[half];
-    const column = element('div', 'diplo-deal-column');
-    column.append(element('p', 'eyebrow', heading));
-
-    column.append(
-      amountField(`Gold (${figure(side.gold)} in hand)`, terms.gold ?? 0, (value) => {
-        // Presence is the state on a term, exactly as it is in the register:
-        // a zero is *deleted* rather than written, so a paper with nothing on
-        // this line is the empty object it would have been.
-        if (value > 0) terms.gold = value;
-        else delete terms.gold;
-      }),
-    );
-    column.append(
-      amountField('Gold a turn', terms.goldPerTurn ?? 0, (value) => {
-        if (value > 0) terms.goldPerTurn = value;
-        else delete terms.goldPerTurn;
-      }),
-    );
-
-    for (const choice of side.luxuries) {
-      const id = choice.id;
-      if (id === undefined) continue;
-      column.append(
-        checkRow(choice, (terms.luxuries ?? []).includes(id), (on) => {
-          const held = (terms.luxuries ?? []).filter((held) => held !== id);
-          if (on) held.push(id);
-          if (held.length > 0) terms.luxuries = held;
-          else delete terms.luxuries;
-        }),
+    if (model.peacePaper === null && model.proposals.length === 0 && model.active.length === 0) {
+      block.append(
+        element('p', 'hint diplo-none', `Nothing stands between you and the ${row.name}.`),
       );
     }
-
-    column.append(
-      checkRow(side.openBorders, terms.openBorders === true, (on) => {
-        if (on) terms.openBorders = true;
-        else delete terms.openBorders;
-      }),
-    );
-
-    for (const choice of side.cities) {
-      const cityId = choice.cityId;
-      if (cityId === undefined) continue;
-      column.append(
-        checkRow(choice, (terms.cities ?? []).includes(cityId), (on) => {
-          const held = (terms.cities ?? []).filter((kept) => kept !== cityId);
-          if (on) held.push(cityId);
-          if (held.length > 0) terms.cities = held;
-          else delete terms.cities;
-        }),
-      );
-    }
-    if (!model.peace) {
-      column.append(
-        element('p', 'hint diplo-none', 'Towns change hands only in a peace.'),
-      );
-    }
-    return column;
+    return block;
   }
 
   /** A labelled whole-number field. Writes on every keystroke; never redraws. */
@@ -942,32 +1214,21 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     const seat = options.getPlayerId();
     body.replaceChildren();
 
-    const column = element('section', 'sc-column diplo-column');
-    column.append(element('p', 'eyebrow sc-eyebrow', 'the world'));
-    const scroller = element('div', 'sc-column-body');
-    column.append(scroller);
+    // Only the empires this seat has met (the ruling). The roster and the table
+    // read the same list, so the pane can never be drawing a relation the
+    // column beside it is hiding.
+    const rows = metDiplomacyRows(state, seat);
+    const chosen = chosenRow(rows);
+    selectedId = chosen?.playerId ?? null;
 
-    const rows = diplomacyRows(state, seat);
-    if (rows.length === 0) {
-      scroller.append(element('p', 'sc-none', 'There is no other empire left in the world.'));
-    }
-    for (const row of rows) scroller.append(drawRow(row));
-
-    // The sheet's one standing sentence: what a war costs and what a peace
-    // takes. Said once at the foot rather than on every row, for the Trade
-    // sheet's reason — a rule repeated per row is a rule the eye skips.
-    const foot = element('div', 'diplo-foot');
-    foot.append(
-      element(
-        'p',
-        'hint',
-        'At peace your soldiers may not enter another empire’s land, and may not strike ' +
-          'its people or burn its works. A war opens both. A peace closes them again and walks ' +
-          'every army home.',
-      ),
-    );
-    column.append(foot);
-    body.append(column);
+    // The split is an element *inside* the sheet's body rather than the body
+    // itself — the Trade and Statecraft sheets' own shape, and not a stylistic
+    // echo: `.statecraft-body` is a column, and a `.sc-split` worn by the body
+    // would inherit that and stack the two panes.
+    const split = element('div', 'sc-split');
+    split.append(drawRoster(rows, chosen));
+    split.append(drawTable(chosen));
+    body.append(split);
   }
 
   function open(): void {
@@ -979,6 +1240,11 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
 
   function close(): void {
     overlay.hidden = true;
+    // Which empire was on the table is a fact about *this* opening (the Trade
+    // sheet's rule for its own chooser): a sheet opened tomorrow starts at the
+    // top of the roster. The half-written papers are not — a draft is the
+    // player's own work and outlives the screen.
+    selectedId = null;
     setExpanded();
   }
 

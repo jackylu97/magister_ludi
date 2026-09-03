@@ -17,6 +17,14 @@
  *      the one place the screen has to *explain* rather than report.
  *   4. **Who is on the sheet at all**: `diplomaticSeats`, so the wild and the
  *      fallen are not, and this file has no roster filter of its own.
+ *   5. **Who you have met.** The user's ruling of 2026-09-03: an empire appears
+ *      only once you have seen its land, its town or its pieces — or signed
+ *      something with it. The reading is `hasMetSeat` (`src/sim/diplomacy.ts`),
+ *      derived and stored nowhere, and the sheet applies it through
+ *      `metDiplomacyRows`. A gate this quiet is exactly the kind a surface can
+ *      be wrong about in both directions: an empire nobody has met on the sheet
+ *      is a leak, and an empire that has declared war left off it is a peace a
+ *      player cannot sue for.
  *
  * No jsdom in this suite (see `controls.test.ts`), so the sheet itself is not
  * rendered: what is covered is the pure half — every decision above is a
@@ -27,17 +35,21 @@
 import { describe, expect, it } from 'vitest';
 
 import { applyCommand } from '../../src/sim/commands';
-import { createMap } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { foundCityAt } from '../../src/sim/cities';
+import { hasMetSeat } from '../../src/sim/diplomacy';
+import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
+import { type City, type GameState, createUnit, newGame } from '../../src/sim/state';
 import { closeWar, openWar } from '../../src/sim/wars';
-import { resetVisibility } from '../../src/sim/visibility';
+import { EXPLORED, recomputeVisibility, resetVisibility } from '../../src/sim/visibility';
 import { RULES } from '../../src/sim/rulesData';
 import {
   declareConfirm,
   diplomacyRows,
+  metDiplomacyRows,
   offerSentence,
   peaceButtonLabel,
   relationSentence,
+  rosterNote,
 } from '../../src/ui/diplomacyScreen';
 
 function bench(seats = 2, wild = false): GameState {
@@ -134,6 +146,121 @@ describe('the sheet’s rows', () => {
   it('says nothing about offers on a row that is not a war', () => {
     const state = bench();
     expect(offerSentence(diplomacyRows(state, 0)[0]!)).toBeNull();
+  });
+});
+
+describe('the met gate', () => {
+  function town(state: GameState, seat: number, col: number, row: number): City {
+    const tile = getTileAt(state.map, col, row);
+    if (!tile) throw new Error('no tile');
+    return foundCityAt(state, seat, tile);
+  }
+
+  /** One of that empire's owned hexes that is not the town square itself. */
+  function ownedTileOf(state: GameState, city: City): number {
+    const centre = tileIndex(state.map, city.col, city.row);
+    const index = state.tileOwner.findIndex(
+      (owner, at) => owner === city.id && at !== centre,
+    );
+    if (index < 0) throw new Error('the town claimed nothing');
+    return index;
+  }
+
+  it('leaves an empire nobody has seen off the sheet, while the world still knows it', () => {
+    const state = bench();
+    town(state, 1, 10, 4);
+    // The world's own list is unchanged — the gate is a *reading* of it, so a
+    // test, a spectator or a bot can still ask about a relation nobody has met.
+    expect(diplomacyRows(state, 0).map((row) => row.playerId)).toEqual([1]);
+    expect(diplomacyRows(state, 0)[0]!.met).toBe(false);
+    expect(metDiplomacyRows(state, 0)).toEqual([]);
+    expect(hasMetSeat(state, 0, 1)).toBe(false);
+  });
+
+  it('meets an empire whose land is on your chart', () => {
+    const state = bench();
+    const theirs = town(state, 1, 10, 4);
+    const index = ownedTileOf(state, theirs);
+    state.visibility[0]![index] = EXPLORED;
+    // Remembered ground, not watched ground: the territory layer draws the
+    // current owner on any explored hex, so this is what the player can see.
+    expect(hasMetSeat(state, 0, 1)).toBe(true);
+    expect(metDiplomacyRows(state, 0).map((row) => row.playerId)).toEqual([1]);
+  });
+
+  it('meets an empire whose town you remember, and keeps it after the scout goes home', () => {
+    const state = bench();
+    town(state, 1, 10, 4);
+    createUnit(state, 0, 'warrior', 9, 4);
+    recomputeVisibility(state, 0);
+    expect(state.citySightings[0]!.some((sighting) => sighting.ownerId === 1)).toBe(true);
+
+    // The scout is recalled and every hex it lit is forgotten — the memory of
+    // the town is the one thing that survives, and it is enough.
+    state.units = [];
+    recomputeVisibility(state, 0);
+    state.visibility[0] = state.visibility[0]!.map(() => 0);
+    expect(hasMetSeat(state, 0, 1)).toBe(true);
+  });
+
+  it('meets an empire whose piece is under your eye — and forgets it when it goes', () => {
+    const state = bench();
+    createUnit(state, 0, 'warrior', 4, 4);
+    const theirs = createUnit(state, 1, 'warrior', 5, 4);
+    recomputeVisibility(state, 0);
+    expect(hasMetSeat(state, 0, 1)).toBe(true);
+
+    // The stated gap (`hasMetSeat`'s docblock): nothing in this simulation
+    // remembers a column that walked past and walked away, so a meeting made by
+    // a fleeting sighting lasts as long as the sighting. Closing it honestly
+    // means new state and a schema bump — a ruling, not a patch.
+    theirs.col = 11;
+    recomputeVisibility(state, 0);
+    expect(hasMetSeat(state, 0, 1)).toBe(false);
+  });
+
+  it('meets an empire that has declared war, so the peace can be sued for', () => {
+    const state = bench();
+    // Nothing seen, nothing owned: only the war row stands between them.
+    openWar(state, 1, 0);
+    const rows = metDiplomacyRows(state, 0);
+    expect(rows.map((row) => row.playerId)).toEqual([1]);
+    expect(rows[0]!.relation).toBe('war');
+    expect(rows[0]!.peaceError).toBeNull();
+  });
+
+  it('meets an empire that has put a paper on the table', () => {
+    const state = bench();
+    town(state, 0, 3, 4);
+    town(state, 1, 10, 4);
+    expect(metDiplomacyRows(state, 0)).toEqual([]);
+    state.players[1]!.gold = 50;
+    applyCommand(state, {
+      type: 'proposeDeal',
+      playerId: 1,
+      targetId: 0,
+      give: { gold: 20 },
+      take: {},
+    } as never);
+    expect(state.dealProposals).toHaveLength(1);
+    expect(metDiplomacyRows(state, 0).map((row) => row.playerId)).toEqual([1]);
+  });
+});
+
+describe('the roster’s second line', () => {
+  it('says the one thing that must not need a click, and never a figure', () => {
+    const state = bench();
+    openWar(state, 0, 1);
+    applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
+    const row = diplomacyRows(state, 0)[0]!;
+    expect(rosterNote(row)).toBe('They have offered peace.');
+    // Counts are marks beside the name, never words in a sentence (rule 7).
+    expect(/\d/.test(rosterNote(row) ?? '')).toBe(false);
+  });
+
+  it('says nothing at all about a quiet peace', () => {
+    const state = bench();
+    expect(rosterNote(diplomacyRows(state, 0)[0]!)).toBeNull();
   });
 });
 

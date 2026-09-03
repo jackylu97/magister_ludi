@@ -2787,6 +2787,29 @@ kbd {
   font-variant-numeric: tabular-nums;
 }
 
+/* The growth countdown, beside the size it belongs with (`cityBanners.ts`, "The
+   growth countdown"). The food voice *lifted*, for the reason the top bar's
+   meters are: this chip sits on ink, where the parchment green goes muddy.
+
+   No `display` of its own, deliberately — the span is hidden with the `hidden`
+   attribute on the banners that have no countdown (a rival's, a memory), and a
+   `display` here would out-specify the platform's `[hidden]` rule and print an
+   empty chip's gap on every one of them. */
+.city-banner-growth {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--y-food-lit);
+}
+
+/* A falling basket, in the alarm this bar's ground takes. The only state on a
+   banner that shouts, and it shouts about the one thing a player can still act
+   on before a citizen is lost. */
+.city-banner-growth.is-bad {
+  color: var(--vermilion-lit);
+}
+
 .city-banner-name {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 90;
@@ -6579,6 +6602,7 @@ kbd {
 #religion-overlay,
 #trade-overlay,
 #compendium-overlay,
+#diplomacy-overlay,
 #beads-overlay {
   overflow: hidden;
 }
@@ -6587,6 +6611,7 @@ kbd {
 #religion-overlay .statecraft-sheet,
 #trade-overlay .statecraft-sheet,
 #compendium-overlay .statecraft-sheet,
+#diplomacy-overlay .statecraft-sheet,
 #beads-overlay .statecraft-sheet {
   display: flex;
   flex-direction: column;
@@ -6599,6 +6624,7 @@ kbd {
 #religion-overlay .statecraft-body,
 #trade-overlay .statecraft-body,
 #compendium-overlay .statecraft-body,
+#diplomacy-overlay .statecraft-body,
 #beads-overlay .statecraft-body {
   flex: 1 1 auto;
   min-height: 0;
@@ -6665,6 +6691,7 @@ kbd {
   #religion-overlay,
   #trade-overlay,
   #compendium-overlay,
+  #diplomacy-overlay,
   #beads-overlay {
     overflow-y: auto;
   }
@@ -6673,8 +6700,16 @@ kbd {
   #religion-overlay .statecraft-sheet,
   #trade-overlay .statecraft-sheet,
   #compendium-overlay .statecraft-sheet,
+  #diplomacy-overlay .statecraft-sheet,
   #beads-overlay .statecraft-sheet {
     max-height: none;
+  }
+
+  /* And the treaty table folds to one column with it: three columns of terms
+     in a stacked pane is three columns nobody can read. Same breakpoint,
+     deliberately — see the note above. */
+  .diplo-board {
+    grid-template-columns: 1fr;
   }
 
   .bead-body {
@@ -9424,42 +9459,63 @@ kbd {
 }
 
 /* ================= the Diplomacy screen ==================================
-   Trade's sibling on the same sheet bones: one column of empires, each a card
-   saying where you stand and carrying the verbs that are legal from there.
-   Deliberately one column rather than a split, and it stayed one when deals
-   arrived: a bargain opens *inside* the row it is about (`.diplo-deal` below),
-   because the sheet's whole shape is one row per relationship and a panel
-   across the sheet would make the reader hold "which empire is this about" in
-   their head.
+   Trade's sibling on the same sheet bones, and now on the same split: a column
+   of empires you have met on the left, and the chosen one's **table** in the
+   pane beside it.
+
+   The sheet was one column while a bargain unfolded inside the row it was
+   about. The user's ruling of 2026-09-03 ("steal inspiration from civ and make
+   our trade screen a bit more similar") moved it: a treaty is two sides and a
+   paper between them, and that wants the width of a pane rather than the
+   inside of a row. "Which empire is this about" is now answered by the roster's
+   own selection — one card lit at a time, and its name over the table.
    ------------------------------------------------------------------------- */
 
+/* Narrower than the other sheets' 320px column: a seat card is a swatch, a
+   name and a clock, and every pixel it does not take is a term the table can
+   print in full. */
 .diplo-column {
-  flex: 1 1 auto;
-  padding-right: 0;
-  border-right: 0;
+  flex: 0 0 250px;
 }
 
-.diplo-row {
+/* --- the roster ----------------------------------------------------------
+   Each card is a *button*, because its whole job is to choose whose table is
+   on the right. It wears the row dress it wore as an article; the lit one
+   wears the ink border the sheet uses for a thing that is current. */
+.diplo-seat {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  width: 100%;
   padding: 8px 10px;
   border: var(--border-thin) solid var(--ink-faint);
   border-radius: var(--radius-sm);
   background: var(--parchment);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.diplo-seat:hover {
+  border-color: var(--ink-soft);
+}
+
+.diplo-seat.is-active {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
 }
 
 /* A war is the one relation the sheet raises its voice about: a heavier rule
    on the left edge, in the same war red the board rims an enemy's pieces with
    (`units.hostileGlow` in `data/view3d.json`). One colour, two surfaces. */
-.diplo-row.is-war {
+.diplo-seat.is-war {
   border-left: 4px solid var(--war-red);
 }
 
 /* A truce is a war that is over and a peace that is not yet free: dashed, the
    way a lapsed trade route is, because there is nothing to decide about it
    until the count runs out. */
-.diplo-row.is-truce {
+.diplo-seat.is-truce {
   border-style: dashed;
 }
 
@@ -9496,8 +9552,34 @@ kbd {
   margin: 0;
 }
 
+/* The counted marks on a seat card: how many papers wait, how many bargains
+   run. A figure and its word, never a sentence — prose carries no numbers. */
+.diplo-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.diplo-mark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 0 5px;
+  border: var(--border-thin) solid var(--ink-faint);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+.diplo-mark-figure {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
 .diplo-row-verbs {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -9506,34 +9588,103 @@ kbd {
   border-top: var(--border-thin) solid var(--ink-faint);
 }
 
-/* --- the Deal panel (P2) --------------------------------------------------
-   The half the column above was left one-wide for. It opens *inside* a row
-   rather than in a second pane, because a bargain is a fact about one
-   relationship and the sheet's whole shape is one row per relationship — a
-   panel across the sheet would make the reader hold "which empire is this
-   about" in their head.
+/* --- the table -----------------------------------------------------------
+   The right pane: whose table this is, the three columns of the treaty, and
+   the papers standing under it. */
+.diplo-table {
+  gap: 12px;
+}
 
-   Two columns, and the split is the paper: what you give on the left, what
-   they give on the right, in the order a treaty is read out. */
-.diplo-deal {
+.diplo-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: var(--border-thin) solid var(--ink-faint);
+}
+
+.diplo-head.is-war {
+  border-bottom-color: var(--war-red);
+}
+
+.diplo-head-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.diplo-head-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.diplo-head-name {
+  font-family: var(--face-display);
+  font-size: 20px;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.diplo-head-status {
+  margin: 0;
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* Two sides and the paper between them, in the order a treaty is read out.
+   The middle is narrower than the sides on purpose: it holds promises already
+   made into words, not the lists you pick them from. */
+.diplo-board {
+  display: grid;
+  grid-template-columns: 1fr minmax(150px, 0.8fr) 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.diplo-side {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 4px;
-  padding-top: 8px;
-  border-top: var(--border-thin) dashed var(--ink-faint);
+  min-width: 0;
 }
 
-.diplo-deal-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+.diplo-side-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  padding-bottom: 4px;
+  border-bottom: var(--border-thin) solid var(--ink-faint);
 }
 
-.diplo-deal-column {
+.diplo-side-name {
+  font-family: var(--face-name);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.diplo-side-purse {
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.diplo-group {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.diplo-group-head {
+  margin: 0;
 }
 
 .diplo-field {
@@ -9584,9 +9735,56 @@ kbd {
   color: var(--ink-soft);
 }
 
-/* A paper: one standing offer, or one bargain already running. The live one
-   wears the solid edge because it is a fact, and the standing one the dashed,
-   because it is a question. */
+/* --- the middle: the paper being written --------------------------------- */
+
+.diplo-middle {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.diplo-half + .diplo-half {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: var(--border-thin) dashed var(--ink-faint);
+}
+
+.diplo-half-head {
+  margin: 0 0 2px;
+  font-family: var(--face-name);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.diplo-half-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A promise is a figure and a thing, so the whole line is set in the numeral
+   face: "40 gold" reads as one term rather than as a number beside a word. */
+.diplo-half-line {
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* --- the papers ----------------------------------------------------------
+   A paper: the draft on the table, one standing offer, or one bargain already
+   running. The live one wears the solid edge because it is a fact, and the
+   standing one the dashed, because it is a question. */
+.diplo-papers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: var(--border-thin) solid var(--ink-faint);
+}
+
 .diplo-paper {
   display: flex;
   flex-direction: column;
@@ -9598,6 +9796,12 @@ kbd {
 
 .diplo-paper.is-live {
   border-style: solid;
+}
+
+/* The draft is the one paper nobody has signed and nobody has been shown, so
+   it sits on the ground the sheet uses for a thing in hand. */
+.diplo-paper.is-draft {
+  background: var(--parchment);
 }
 
 .diplo-paper-head {
