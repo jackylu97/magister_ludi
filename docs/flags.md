@@ -200,8 +200,11 @@ is its own knob, one edit flips the interpretation).
 
 ### From war P1 (2026-09-03, schema 56)
 
-- **Puppet purchases are unruled** — the reducer accepts gold/faith purchases
-  in a puppet city; say if a puppet may buy.
+- ~~Puppet purchases~~ — RULED 2026-09-03: a puppet may buy NOTHING (units,
+  buildings, tiles) — Civ 5's rule; annex is the verb that buys investment.
+  One purchaseError/tile-purchase clause; lands with P3 (sim owned by P2).
+- **Puppet auto-picker rules** (RULED, P3): never wonders, settlers, or
+  units; gold-leaning build weights — a puppet persona profile.
 - **A unit engulfed by border growth at peace can be stuck** (expulsion fires
   only at peace resolution) — rare; needs a ruling on mid-peace expulsion.
 - **Barbarian pieces now wear the war-red rim** (consistency fallout of the
