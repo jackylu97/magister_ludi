@@ -180,7 +180,7 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | Camp Followers | M | 🏹 | ◆ | Clearing a barbarian camp grants +25 food and a random military unit. | upgrade: +15 food
 | Far Runners | M | 🧭 | ● | Scouts +1 movement and +1 sight. Civilians +2 movement while embarked. | cannot be upgraded
 | The Widow's Levy | M | — | ◆ | When a unit of yours dies, its nearest city gains +10 production and you gain +40 gold. | upgrade: +5 production +10 gold
-| Militia Levies | M | — | ● | All your cities gain +5 defense and +1 sight radius. · *neutral* |
+| Militia Levies | M | — | ● | All your cities gain +4 defense and +1 sight radius. · *neutral* | upgrade: +2 defense
 | Common Granary | E | 🌱 | ● | +1 food in every city holding an improved luxury resource. | upgrade: +1 food
 | Salt Tithes | E | 🐫 | ● | +2 gold for each unique luxury. | upgrade: +1 gold
 | Boundary Stones | E | — | ● | +30% border culture in every city. | upgrade: +5%
@@ -244,8 +244,8 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | Master Masons | E | ⚒ | ◆ | Completing a building grants +10 culture. | upgrade: +5 culture
 | Royal Surveyors | E | — | ● | +50% border culture · buying a hex costs 25% less. | cannot be upgraded
 | Provincial Governors | E | — | ● | +3 authority capacity. | upgrade: +1 authority
-| Emergency Powers | E | — | ○ | While your authority is negative: capital +25% production, and borders do not freeze. |
-| The Common Purse | E | — | ○ | Leftover production from a completed item is doubled. · *neutral* |
+| Emergency Powers | E | — | ○ | While your authority is negative: capital +25% production, and borders do not freeze. | cannot be upgraded
+| The Common Purse | E | — | ○ | Leftover production from a completed item is doubled. · *neutral* | cannot be upgraded
 | Pilgrim Roads | W | 🕯 | ◆ | +1 faith for every 3 citizens in your capital · +1 happiness for each 50 banked faith (at most +5). | upgrade: increases cap on happiness +2
 | Lamplighters | W | 🕯 | ◆ | +1 culture for each 5 faith you gain per turn. | cannot be upgraded
 | Scholars' Stipend | W | ✶ | ● | +2 science in every city of 5 or more population. | upgrade: +1 science
@@ -283,11 +283,11 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | The Lyceum | W | ✶ | ◆ | Completing a technology grants an extra turn of culture. | cannot be upgraded
 | Census of Souls | W | 🕯 | ◆ | +1 faith for each citizen in your capital. | cannot be upgraded
 | Toleration Edicts | W | — | ● | −10% happiness demanded per citizen. | upgrade: additional -2%
-| The Old Ways | W | 🌱 | ◆ | The yields of unimproved hexes are doubled. [lets keep this, this is the payoff card]
+| The Old Ways | W | 🌱 | ◆ | The yields of unimproved hexes are doubled. [lets keep this, this is the payoff card] cannot be upgraded
 | First Fruits | E | 🌱 | ● | +1 food on every hex carrying a resource. cannot be upgraded
 | The War Chest | E | ⚒ |   | Military units cost 3 less gold in maintenance. | cannot be upgraded
 | Forced Marches | M | ⚒ |   | Melee units gain +1 movement, and +2 instead inside your own territory. | cannot be upgraded
-| The Escorted Roads | E | 🐫 |   | Trade routes pay 30% more. · †deferred | [lets implement this]
+| The Escorted Roads | E | 🐫 |   | Trade routes pay 30% more. · †deferred | [lets implement this] upgrade: +10% per upgrade
 | The Saints' Fields | W | 🕯 |   | +3 faith on every great-person improvement. | cannot be upgraded
 | The Wayhouses | E | 🐫 |   | +2 gold and +1 culture for each trade route you run. | upgrade: +1 gold
 | The Provisioners | E | 🐫 |   | +1 happiness for each trade route between your own cities. | cannot be upgraded
