@@ -1139,12 +1139,12 @@ describe('a completion grant', () => {
     const done = finish(g.state, city, 'statueOfZeus');
     expect(done?.grants).toHaveLength(1);
     const [grant] = done!.grants!;
-    // The Halberd, not the legionary — and that is the rule working rather than
+    // The Spear Wall, not the legionary — and that is the rule working rather than
     // a weak answer: "can build" is `buildError`'s whole question, and this seat
     // holds Iron Working but no improved iron. So the free sword obeys the
     // resource gate exactly as a built one does, read off the roster and never
     // named on the row. (It was the spearman before the re-cut of 2026-09-02
-    // put the Halberd on this node; what is on trial is the gate, not the name.)
+    // put the Spear Wall on this node; what is on trial is the gate, not the name.)
     expect(grant).toMatchObject({ grant: 'unit', name: unitDef('spearWall').name, done: true });
     expect(g.state.units).toHaveLength(before + 1);
     const born = g.state.units.find((u) => u.id === grant!.unitId)!;

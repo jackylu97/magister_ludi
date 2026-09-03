@@ -26,7 +26,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { BUILDING_IDS, isWonder } from '../../src/sim/buildingData';
+import { BUILDING_IDS, buildingDef, isWonder } from '../../src/sim/buildingData';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
 import { IMPROVEMENT_IDS } from '../../src/sim/improvementData';
 import {
@@ -40,7 +40,7 @@ import {
 import { RESOURCE_IDS } from '../../src/sim/resourceData';
 import { DOCTRINE_IDS, ORDER_IDS } from '../../src/sim/statecraftData';
 import { newGame } from '../../src/sim/state';
-import { TECH_IDS, techDef } from '../../src/sim/techData';
+import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { TRIUMPH_IDS, triumphDef } from '../../src/sim/triumphData';
 import {
   BEAD_DECK_AGES,
@@ -65,6 +65,7 @@ import {
 } from '../../src/ui/compendium';
 import { SHELF_INTRO_KEY, SHELF_INTROS } from '../../src/ui/compendiumShelves';
 import { CONCEPT_ENTRIES, INTRO_ENTRIES } from '../../src/ui/compendiumText';
+import { techRuleClauses, techsAwaitingRuleNotes } from '../../src/ui/techRuleWords';
 
 const BOOK = compendiumSections();
 
@@ -725,5 +726,108 @@ describe('never hand-written prose about a number', () => {
     expect(prose).toContain('great general');
     expect(prose).toContain('left standing on the map');
     expect(prose).toContain('does not stack with a second general');
+  });
+});
+
+/**
+ * **The card and the book say the same words** (the playtest notes, 2026-09-03).
+ *
+ * The user's complaint was that a node's effects were unreadable — "I'm having
+ * trouble understanding what the effects are and I designed the technologies" —
+ * and the fix was to prefer the row's own hand-written `note` over
+ * `describeCard`'s generated sentences. What makes that a *fix* rather than a
+ * second wording is that both surfaces read one function, which is what this
+ * block holds.
+ */
+describe('a technology says its rules once', () => {
+  /** Every node that carries rules at all — the only ones with a clause here. */
+  function ruleNodes(): TechId[] {
+    return TECH_IDS.filter((id) => (techDef(id).effects ?? []).length > 0);
+  }
+
+  it('prints the row\u2019s own note, one sentence per clause', () => {
+    const nodes = ruleNodes();
+    expect(nodes.length, 'the sweep is not vacuous').toBeGreaterThan(0);
+    for (const id of nodes) {
+      const note = techDef(id).note;
+      if (note === undefined) continue;
+      const said = techRuleClauses(id);
+      // Every sentence of the note is a clause of its own, and nothing has been
+      // added to it or taken away: the join is the note back again.
+      expect(said.length, id).toBeGreaterThan(0);
+      expect(said.join(' '), id).toBe(note.trim());
+      for (const clause of said) expect(clause, id).not.toContain('[[');
+    }
+  });
+
+  it('lays those clauses out one to a line on the shelf', () => {
+    const entries = shelf('tech').entries;
+    for (const id of ruleNodes()) {
+      const entry = entries.find((row) => row.id === compendiumId('tech', id));
+      expect(entry, id).toBeDefined();
+      const texts = entry!.clauses.map((clause) => clause.text);
+      // The book carries each of the card's lines as its own clause rather than
+      // joining them into a paragraph — the same shape, so a reader moving from
+      // the hover card to the shelf is reading the identical sentences.
+      for (const clause of techRuleClauses(id)) {
+        expect(texts, `${id}: ${clause}`).toContain(clause);
+      }
+    }
+  });
+
+  it('has a written note for every node that carries rules', () => {
+    // The fallback exists and is correct, but a generated sentence is what the
+    // user could not read — so a row landing here is a paragraph somebody owes,
+    // and the list is how that stays visible instead of being found in play.
+    expect(techsAwaitingRuleNotes(TECH_IDS)).toEqual([]);
+  });
+});
+
+/**
+ * **What later technologies do for a building, told on the building's shelf.**
+ *
+ * The other half of the same playtest ruling: the star chart stopped printing
+ * "Buildings pay new ground" — a fact about a granary filed under a technology —
+ * and this is where that information went instead.
+ */
+describe('a building carries its own later gifts', () => {
+  it('names the technology and says what it changes', () => {
+    const entries = [...shelf('building').entries, ...shelf('wonder').entries];
+    let checked = 0;
+    for (const id of BUILDING_IDS) {
+      const upgrades = buildingDef(id).upgrades ?? [];
+      const gated = (buildingDef(id).tileYields ?? []).filter(
+        (line) => line.requiresTech !== undefined,
+      );
+      if (upgrades.length === 0 && gated.length === 0) continue;
+      const entry = entries.find(
+        (row) => row.id === compendiumId(isWonder(id) ? 'wonder' : 'building', id),
+      );
+      expect(entry, id).toBeDefined();
+      const said = entry!.clauses.map((clause) => clause.text).join(' ');
+      for (const upgrade of upgrades) {
+        expect(said, `${id} ← ${upgrade.tech}`).toContain(techDef(upgrade.tech).name);
+        checked += 1;
+      }
+      for (const line of gated) {
+        expect(said, `${id} ← ${line.requiresTech!}`).toContain(techDef(line.requiresTech!).name);
+        checked += 1;
+      }
+    }
+    // The sweep is not vacuous: the table has renewed buildings in it.
+    expect(checked).toBeGreaterThan(0);
+  });
+
+  it('states an ungated tile line too, naming the hexes it lands on', () => {
+    // The Lighthouse's food on water was a sentence in its `note` and a number
+    // in the simulation with nothing joining them — no technology hands it over,
+    // so `techGifts` never saw it. Now the shelf says the figure and says which
+    // ground, in the card describer\u2019s own words for that condition.
+    const entry = shelf('building').entries.find(
+      (row) => row.id === compendiumId('building', 'lighthouse'),
+    );
+    expect(entry).toBeDefined();
+    const said = entry!.clauses.map((clause) => clause.text).join(' ');
+    expect(said).toContain('water hex');
   });
 });

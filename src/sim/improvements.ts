@@ -75,7 +75,7 @@ import {
   isImprovementId,
   prospectDef,
 } from './improvementData';
-import { type Tile, getTileAt, tileIndex } from './map';
+import { type Tile, getTileAt, tileIndex, tileNeighbors } from './map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
 import { type FeatureId } from './terrainData';
@@ -156,6 +156,11 @@ export function chargesLeft(unit: Unit): number {
  *     second seam, and the only reason a farm reaches a hill. See
  *     `hillsWaived`; the refusal a dry, bare hill gets is the one it always
  *     got.
+ *   · **`adjacentImprovement` widens `validTerrain` on ground whose neighbour
+ *     has been worked** — the third seam, and the only reason floating gardens
+ *     reach the sea. See `hasAdjacentImprovement`; a bare coast is refused by
+ *     the missing boat rather than by the terrain, because that is the sentence
+ *     a player can act on.
  *   · **A seam claims its own hex.** A resource some improvement opens will take
  *     that improvement and no other, so the wrong one is refused by name. See
  *     the clause; it is `chopErrorAt`'s protection rule read forwards.
@@ -216,15 +221,31 @@ export function improvementErrorAt(
     }
   }
   if (!anywhere && def.validTerrain !== undefined && !def.validTerrain.includes(tile.terrain)) {
-    // The one seam in the AND: `freshwaterTerrain` *widens* the list on ground
-    // that can drink (user, 2026-08-26 — a riverside desert or tundra takes a
-    // farm; grassland and plains never needed the water). Two refusals, and the
-    // difference between them is what a player does next: dry ground the row
-    // will never accept, against ground it would accept if it were watered.
-    if (!(def.freshwaterTerrain ?? []).includes(tile.terrain)) {
+    // The two widening seams, asked in the order a player would: is this ground
+    // the row takes outright, ground it takes when watered, or ground it takes
+    // when a neighbour has already been worked?
+    //
+    // `freshwaterTerrain` *widens* the list on ground that can drink (user,
+    // 2026-08-26 — a riverside desert or tundra takes a farm; grassland and
+    // plains never needed the water). `adjacentImprovement` widens it on ground
+    // whose neighbourhood gives it a reason (the playtest notes, 2026-09-03 —
+    // a coast beside a fishing boat takes floating gardens). Each answers with
+    // its own refusal, and the difference between them is what a player does
+    // next: ground the row will never accept, against ground it would accept if
+    // one more thing were true.
+    const widened = def.adjacentImprovement;
+    const byNeighbour = widened !== undefined && widened.terrain.includes(tile.terrain);
+    if (!(def.freshwaterTerrain ?? []).includes(tile.terrain) && !byNeighbour) {
       return `A ${def.name.toLowerCase()} cannot be built on ${tile.terrain}`;
     }
-    if (!hasFreshWater(tile)) {
+    if (byNeighbour) {
+      if (!hasAdjacentImprovement(state, tile, widened!.improvement)) {
+        return (
+          `A ${def.name.toLowerCase()} on ${tile.terrain} needs a ` +
+          `${improvementDef(widened!.improvement).name.toLowerCase()} beside it`
+        );
+      }
+    } else if (!hasFreshWater(tile)) {
       return `A ${def.name.toLowerCase()} on ${tile.terrain} needs fresh water`;
     }
   }
@@ -296,6 +317,31 @@ export function improvementErrorAt(
   // "the only thing refusing this is the technology" is exactly
   // `improvementErrorAt(…) === improvementTechError(…)`.
   return improvementTechError(state, ownerId, improvementId);
+}
+
+/**
+ * Does a hex touching this one carry that improvement? The third seam in the AND.
+ *
+ * The ring of six and **not** the tile itself, which is the one place this
+ * differs from `hasAdjacentImprovement` in `statecraft.ts` (whose reach includes
+ * the town's own centre, because a town founded *on* a shrine is not further
+ * from it than its neighbour is). Two improvements never stand on one hex, so
+ * "beside" is the only reading available here and including the tile would be a
+ * clause that can never fire.
+ *
+ * The improvement is named by the *row* (`AdjacentImprovement.improvement`),
+ * never spelled into this function, so a second row that wants a neighbour is a
+ * JSON edit.
+ */
+function hasAdjacentImprovement(
+  state: GameState,
+  tile: Tile,
+  improvement: ImprovementId,
+): boolean {
+  for (const neighbour of tileNeighbors(state.map, tile)) {
+    if (neighbour.improvement === improvement) return true;
+  }
+  return false;
 }
 
 /**

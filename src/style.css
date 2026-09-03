@@ -4187,10 +4187,18 @@ kbd {
    with half the gutter added each side so the wash meets its neighbour's exactly
    and the seam falls between the columns rather than beside one. */
 .tech-age {
+  /* The wash breathes past the cards it stands behind (the playtest notes,
+     2026-09-03). Packing the chart put the lowest card's edge exactly on the
+     field's, so the stripe stopped dead against it; this bleeds it a little
+     above the era caption and below the last row, which is the air the old
+     unpacked grid had by accident. Bled rather than added to the field's
+     measured height, because that height is what `layoutField` fits the chart
+     into — growing it would shrink the cards to make room for the margin. */
+  --tech-age-air: 14px;
   z-index: 0;
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: calc(-1 * var(--tech-age-air));
+  bottom: calc(-1 * var(--tech-age-air));
   padding: 0;
   border-radius: var(--radius-sm);
   background: rgba(247, 242, 225, 0.022);

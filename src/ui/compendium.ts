@@ -99,7 +99,8 @@ import {
 } from '../sim/resourceData';
 import { describeResourceSignature } from '../sim/resourceEffects';
 import { RULES } from '../sim/rulesData';
-import { describeCard, stripRefs } from '../sim/statecraft';
+import { describeCard, stripRefs, tileConditionWords } from '../sim/statecraft';
+import { techRuleClauses } from './techRuleWords';
 import {
   type CityScope,
   DOCTRINE_IDS,
@@ -677,6 +678,53 @@ function siteRequirement(def: BuildingDef): string {
   return def.requiresSite === undefined ? '' : scopeWords(def.requiresSite);
 }
 
+/**
+ * Every technology that later improves **this building**, said in the star
+ * chart's own words and named by the node that hands it over.
+ *
+ * The inverse of `techGifts`, walked rather than kept in a second table: the
+ * tree is written forwards because that is how a designer reads it, and the
+ * question a building's shelf asks ("what does anybody ever do for me?") is the
+ * other way round. `TECH_IDS` order, so two buildings improved by the same node
+ * list it at the same point and a reader comparing them is comparing like with
+ * like.
+ *
+ * Two gift kinds qualify and they are deliberately not merged: a renewal pays
+ * the *city* more, and a tile line pays the *ground the city works* more. Both
+ * are `giftWords`' sentences with the naming technology in front, because "when"
+ * is the whole of what a reader wants and the gift itself cannot say it.
+ */
+function laterGifts(id: BuildingId): CompendiumClause[] {
+  const clauses: CompendiumClause[] = [];
+  // The lines this building pays on the ground **from the day it is raised**.
+  // No technology hands these over, so `techGifts` never sees them and nothing
+  // anywhere printed the figure — the Lighthouse's food on water was a sentence
+  // in its `note` and a number in the simulation, with nothing joining them.
+  // Worded through the same describer the gated ones use, by handing it the
+  // gift shape it already words.
+  for (const line of buildingDef(id).tileYields ?? []) {
+    if (line.requiresTech !== undefined) continue;
+    clauses.push({
+      text: giftWords({
+        kind: 'buildingTileYield',
+        id,
+        name: buildingDef(id).name,
+        glyph: '▣',
+        add: line.add,
+        on: line.on,
+      }),
+    });
+  }
+  for (const tech of TECH_IDS) {
+    for (const gift of techGifts(tech)) {
+      if (gift.kind !== 'buildingRenewal' && gift.kind !== 'buildingTileYield') continue;
+      if (gift.id !== id) continue;
+      clauses.push({ text: `${techDef(tech).name}: ${giftWords(gift)}` });
+    }
+  }
+  return clauses;
+}
+
 function buildingEntry(id: BuildingId): CompendiumEntry {
   const def = buildingDef(id);
   const wonder = isWonder(id);
@@ -730,6 +778,14 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
           : `${signedFigure(stat.amount)} to how far the city sees`,
     });
   }
+  // **What technologies later do for this building**, which is the half of a
+  // building the tech card stopped telling (the playtest notes, 2026-09-03: the
+  // star chart's "Buildings pay new ground" heading was a fact about a granary
+  // filed under a technology). Both kinds of later gift — the renewal that pays
+  // the city more and the line that pays its *ground* more — are read out of
+  // `techGifts` and worded by `giftWords`, the star chart's own describer, so
+  // this shelf cannot come to disagree with that card about the same row.
+  clauses.push(...laterGifts(id));
   if (def.note !== undefined) clauses.push({ text: def.note, note: true });
   if (wonder) {
     clauses.push({
@@ -820,6 +876,12 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
       )}.`,
     });
   }
+  if (def.adjacentImprovement !== undefined) {
+    const near = def.adjacentImprovement;
+    clauses.push({
+      text: `Can also be built on ${eitherWords(near.terrain.map((terrain) => terrain))} when a hex next to it already has ${withArticle(improvementDef(near.improvement).name)}.`,
+    });
+  }
   if (def.clearsClutter) {
     clauses.push({ text: 'Clears the loose plants and stones drawn on the hex.' });
   }
@@ -840,6 +902,10 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
       note: true,
     });
   }
+  // The halves this row's design has and the game does not, struck through, the
+  // way a card's are (`CardDefBase.deferred`). Last, because a reader wants what
+  // the thing *does* before what it does not do yet.
+  for (const waiting of def.deferred ?? []) clauses.push({ text: waiting, deferred: true });
   return {
     id: compendiumId('improvement', id),
     section: 'improvement',
@@ -941,6 +1007,10 @@ function giftWords(gift: TechGift): string {
     })}`;
   }
   if (gift.kind === 'buildingTileYield') {
+    // **Which** hexes, said by the card's own describer (`tileConditionWords`,
+    // `statecraft.ts`) rather than as "certain hexes" — the reader of a
+    // building's shelf is asking exactly that question, and a second wording of
+    // the same conditions is the drift this module exists to avoid.
     return `${gift.name} buildings now add ${tileYieldFigures({
       food: gift.add.food ?? 0,
       production: gift.add.production ?? 0,
@@ -948,7 +1018,7 @@ function giftWords(gift: TechGift): string {
       science: gift.add.science,
       culture: gift.add.culture,
       faith: gift.add.faith,
-    })} to certain hexes the city works`;
+    })} to every ${tileConditionWords(gift.on)} the city works`;
   }
   if (gift.kind === 'project') return `New city project: ${gift.name}`;
   // A node's own rules (`TechDef.effects`, the tree pass of 2026-08-30). Said in
@@ -956,10 +1026,14 @@ function giftWords(gift: TechGift): string {
   // technology now, because a technology **is** a card — rather than in a second
   // table of words that could disagree with the star chart's.
   if (gift.kind === 'techEffect') {
-    const said = describeCard(gift.id)
-      .map((clause) => stripRefs(clause.text))
-      .filter((text) => text.length > 0);
-    return said.length > 0 ? said.join('. ') : `Changes the rules: ${gift.name}`;
+    // **The same words the star chart's card prints**, from the same function
+    // (`techRuleClauses`), which is the whole reason that function is not
+    // written inside either surface: a node whose rules read one way on the
+    // hover card and another way on this shelf is the second vocabulary this
+    // module exists to prevent. One clause per entry — the caller splits them
+    // into their own lines, exactly as the card does.
+    const said = techRuleClauses(gift.id);
+    return said.length > 0 ? said.join(' ') : `Changes the rules: ${gift.name}`;
   }
   return `New ability: ${gift.name}`;
 }
@@ -970,7 +1044,16 @@ function techEntry(id: TechId): CompendiumEntry {
     ...row('Research cost', `${figure(def.cost)}${YIELD_GLYPH.science}`),
     ...row('Requires first', words(def.prereqs.map((prereq) => techDef(prereq).name))),
   ];
-  const clauses: CompendiumClause[] = techGifts(id).map((gift) => ({ text: giftWords(gift) }));
+  // **A node's own rules are one clause each**, exactly as they are on the star
+  // chart's card (the playtest notes, 2026-09-03). `techRuleClauses` already
+  // returns them split at the boundaries their author wrote, so the shelf lays
+  // them out rather than joining them back into a paragraph the card refuses to
+  // print. Every other gift is one clause, as it always was.
+  const clauses: CompendiumClause[] = techGifts(id).flatMap((gift) =>
+    gift.kind === 'techEffect'
+      ? techRuleClauses(gift.id).map((text) => ({ text }))
+      : [{ text: giftWords(gift) }],
+  );
   if (clauses.length === 0) {
     clauses.push({ text: 'Unlocks nothing by itself. It is a step toward later technologies.' });
   }

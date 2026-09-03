@@ -442,6 +442,38 @@ describe('authority: what a city costs', () => {
     expect(lineFor(explainAuthority(state, 1), monument.name)).toBeUndefined();
   });
 
+  /**
+   * The claim the paragraph above makes, cashed by a **second** such building.
+   *
+   * The Stele of Laws was retuned on 2026-09-03 (the user: "+3 culture +1
+   * authority capacity") and the whole of that landing was two numbers on a JSON
+   * row — no line in `meters.ts`, no case anywhere. This is the test that says
+   * so, because "a second such building would need no code at all" is a promise
+   * nobody has to keep until somebody checks.
+   */
+  it('grows the same line for a second building that declares capacity', () => {
+    const state = flatState();
+    const city = foundCityAt(state, 0, at(state.map, 4, 4));
+    const stele = buildingDef('steleOfLaws');
+    const capacity = stele.authorityCapacity!;
+    expect(capacity, 'the row declares one').toBeGreaterThan(0);
+    const bare = meterStanding(explainAuthority(state, 0)).gain;
+
+    city.buildings.push('steleOfLaws');
+    expect(lineFor(explainAuthority(state, 0), stele.name)).toBe(capacity);
+    expect(meterStanding(explainAuthority(state, 0)).gain).toBe(bare + capacity);
+
+    // Two kinds of building are two lines, each counting its own type — which is
+    // what makes "Monuments ×3" a reading of the monuments rather than of the
+    // whole shelf.
+    city.buildings.push('monument');
+    const entries = explainAuthority(state, 0);
+    expect(lineFor(entries, stele.name)).toBe(capacity);
+    expect(lineFor(entries, buildingDef('monument').name)).toBe(
+      buildingDef('monument').authorityCapacity!,
+    );
+  });
+
   it('prices a city that does not exist yet, discount included', () => {
     const state = flatState();
     foundCityAt(state, 0, at(state.map, 4, 4));
@@ -761,7 +793,10 @@ describe('a captured city, end to end', () => {
     // `chivalry`, `fortification`) and three added, almost every prerequisite
     // re-hung, twelve columns and a truncated cost ladder — and, beside it, the
     // one-unit-a-turn purchase rule widened to one *per class*.
-    expect(SCHEMA_VERSION).toBe(54);
+    // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
+    // Stones improvement and the Terraces — so a v54 log that built either has
+    // no row to replay into.
+    expect(SCHEMA_VERSION).toBe(55);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

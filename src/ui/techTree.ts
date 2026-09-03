@@ -100,7 +100,7 @@ import { type Game, dispatch } from '../sim/game';
 import { improvementDef } from '../sim/improvementData';
 import { projectDef, projectRate } from '../sim/projectData';
 import { type GameState, type Player, hasEndedTurn } from '../sim/state';
-import { describeCard, stripRefs } from '../sim/statecraft';
+import { techRuleClauses } from './techRuleWords';
 import {
   type CityBaselines,
   availableTechs,
@@ -117,9 +117,12 @@ import {
 } from '../sim/tech';
 import {
   TECH_IDS,
+  type AbilityBearer,
   type TechAge,
   type TechAgeBand,
   type TechId,
+  abilityDef,
+  isAbilityId,
   techAgeBands,
   techColumnCount,
   techDef,
@@ -240,27 +243,80 @@ function nameKeyword(entryId: string, name: string): HTMLElement {
   return node;
 }
 
-/** The sentence each kind of gift is introduced by, in the card's list. */
-const GIFT_HEADING: Record<TechGift['kind'], string> = {
+/**
+ * The sentence each kind of gift is introduced by, in the card's list, or
+ * `null` for a kind this card **does not print at all**.
+ *
+ * `null` is one entry today and it is a decision rather than a gap (the playtest
+ * notes, 2026-09-03): "Buildings pay new ground" was a heading over a fact about
+ * a *building*, told on the card of a technology, where the building's own
+ * Compendium entry is the shelf a player goes to when they want to know what a
+ * granary does. So the tech card stops saying it and the book says it instead;
+ * the gift kind itself stays, because the book reads the same list.
+ *
+ * An `ability` heading is `null` here for a different reason — it is not fixed.
+ * See `giftHeading`, which is the one reader of this table.
+ */
+const GIFT_HEADING: Record<TechGift['kind'], string | null> = {
   unit: 'Units',
   building: 'Buildings',
   project: 'Repeating projects',
   improvement: 'Workers may build',
-  // Deliberately not "Workers may clear": the kind is a *verb* gained, and the
-  // gift's own name ("Clear Forest") is where the specifics belong.
-  ability: 'Workers may also',
+  // Written by `giftHeading` off the ability's *bearer*, because a verb's
+  // heading is a fact about who gains it and not about the kind of gift it is.
+  ability: null,
   reveal: 'Reveals on the map',
   renewal: 'Improvements renewed',
   buildingRenewal: 'Buildings renewed',
-  // Deliberately not folded in with the line above: a renewed building pays its
-  // city more, and this one pays its city's *ground* more. The heading is what
-  // tells a player to go and look at the map rather than at the panel.
-  buildingTileYield: 'Buildings pay new ground',
+  // Told by the building's own entry in the Compendium instead. See above.
+  buildingTileYield: null,
   // The rules the node hands over. Deliberately not "Effects": what a player
   // gains is a change in how the world works, and `describeCard`'s own sentences
   // are what follow the heading.
   techEffect: 'Changes the rules',
 };
+
+/**
+ * The words that introduce **one ability**, by who gains it.
+ *
+ * The heading follows the *bearer* (`AbilityDef.bearer`) rather than the gift's
+ * kind, and the whole of why is a mislabelling a playtest turned up
+ * (2026-09-03): every rite an augur may spend was being introduced by "Workers
+ * may also", which is the one thing an augur is not. A chop and a consecration
+ * are the same *kind* of news — a verb somebody gained — and they are not the
+ * same news.
+ *
+ * Named the way the game names the bearer out loud, and in the grammar the
+ * sentence needs: one augur against a shelf of soldiers, which is why the first
+ * takes the definite article and the second the bare plural.
+ */
+const BEARER_HEADING: Record<AbilityBearer, string> = {
+  worker: 'Workers may also',
+  civilian: 'Workers and settlers may',
+  military: 'Soldiers may',
+  augur: 'The augur may',
+  // A verb nobody carries: the deep ocean opening, the next age's beads shown
+  // early. "The empire may" would be a piece that does not exist, so the heading
+  // says what actually changed.
+  empire: 'Your empire may',
+};
+
+/**
+ * How this gift is introduced, or `null` when the card does not print it.
+ *
+ * One function so the *grouping* and the heading are one decision: the card
+ * opens a new shelf whenever this sentence changes (see `techCard`), which is
+ * what lets a node handing over a clearing and a rite print two headings
+ * without the loop knowing why.
+ */
+function giftHeading(gift: TechGift): string | null {
+  if (gift.kind !== 'ability') return GIFT_HEADING[gift.kind];
+  // Two tables, one kind. A clearing's id is a `FeatureId` and has no row in
+  // the abilities block at all, so it is the spade's by default — which is
+  // exactly what a chop is.
+  const bearer = isAbilityId(gift.id) ? (abilityDef(gift.id).bearer ?? 'worker') : 'worker';
+  return BEARER_HEADING[bearer];
+}
 
 // --- the plan, read four ways ------------------------------------------------
 //
@@ -945,21 +1001,18 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   }
 
   /**
-   * What a node's own rules do, in the vocabulary the rest of the game already
-   * words cards in.
+   * What a node's own rules do, in the words the row itself was written in.
    *
-   * `describeCard` (`statecraft.ts`) is the one describer for a card, and a
-   * technology **is** a card now (`CardId`'s ninth class), so the node's rules
-   * are asked of it by id rather than a second table being written — the same
-   * bargain every card screen keeps: a shape that grows a clause grows it once.
-   * `stripRefs` because this is a plain span and not a `setDescriptorText`
-   * surface, and a raw `[[` on any surface is what the sweep forbids.
+   * One line of delegation, and the module it delegates to is the point:
+   * `techRuleClauses` is the *one* answer to this question, and the Compendium's
+   * technology shelf asks the same function — so the card and the book cannot
+   * come to say different things about the same node. It prefers the row's own
+   * `note` over `describeCard`'s generated sentences, which is the playtest
+   * ruling of 2026-09-03; see that module's docblock for why a generated clause
+   * is the wrong shape for a paragraph somebody wrote first.
    */
-  function techEffectNote(gift: TechGift & { kind: 'techEffect' }): string {
-    return describeCard(gift.id)
-      .map((clause) => stripRefs(clause.text))
-      .filter((text) => text.length > 0)
-      .join(' · ');
+  function techEffectClauses(gift: TechGift & { kind: 'techEffect' }): string[] {
+    return techRuleClauses(gift.id);
   }
 
   /**
@@ -1041,18 +1094,47 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       }
     }
 
-    const gifts = techGifts(id);
+    // **What the node hands over, minus what the book says better.** A gift
+    // whose heading is `null` is one this card deliberately does not carry (see
+    // `GIFT_HEADING`), and it is filtered here rather than skipped inside the
+    // loop so that "hands over nothing on its own" is asked of what will
+    // actually be printed.
+    const gifts = techGifts(id).filter((gift) => giftHeading(gift) !== null);
     if (gifts.length === 0) {
       box.append(element('p', 'info-card-state', 'Hands over nothing on its own'));
     }
-    let heading: TechGift['kind'] | null = null;
+    let heading: string | null = null;
     let list: HTMLElement | null = null;
     for (const gift of gifts) {
-      if (gift.kind !== heading) {
-        heading = gift.kind;
-        box.append(element('p', 'info-card-heading', GIFT_HEADING[gift.kind]));
+      // The heading is compared as a *sentence* and not as a kind, which is what
+      // lets one kind open two shelves: the augur's rites and the worker's
+      // clearings are both `ability` gifts and are introduced by different
+      // words (see `giftHeading`), so a node handing over both prints two
+      // headings rather than filing the rites under the spade.
+      const said = giftHeading(gift)!;
+      if (said !== heading) {
+        heading = said;
+        box.append(element('p', 'info-card-heading', said));
         list = element('ul', 'info-card-gifts');
         box.append(list);
+      }
+      // **A node's own rules are one line each** (the playtest notes,
+      // 2026-09-03). `describeCard`'s clauses are already the sentences a player
+      // reads one at a time, so they become list items on the card's own list
+      // rather than a run-on note joined with separators — which is what made
+      // Daughter Cities overflow its card. Nothing else about the row changes:
+      // the same mark opens each line, because each line is a rule this node
+      // hands over.
+      if (gift.kind === 'techEffect') {
+        for (const clause of techEffectClauses(gift)) {
+          const ruleRow = element('li');
+          const ruleMark = element('span', `info-card-mark ${GIFT_MARK[gift.kind]}`);
+          setYieldText(ruleMark, gift.glyph);
+          ruleRow.append(ruleMark);
+          ruleRow.append(element('span', 'info-card-gift-note', clause));
+          list?.append(ruleRow);
+        }
+        continue;
       }
       const row = element('li');
       // A reveal names a *resource*, and this interface draws its resources
@@ -1096,9 +1178,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
                   ? renewalNote(gift)
                   : gift.kind === 'buildingRenewal'
                     ? buildingRenewalNote(gift)
-                    : gift.kind === 'techEffect'
-                      ? techEffectNote(gift)
-                      : '';
+                    : '';
       if (note) row.append(element('span', 'info-card-gift-note', note));
       list?.append(row);
     }

@@ -431,11 +431,46 @@ export type AbilityId =
    */
   | 'oceanGoing';
 
+/**
+ * **Who gains the verb** — the half of an ability that decides how the tech
+ * card introduces it.
+ *
+ * A closed union rather than a free string, so a typo in the JSON is a load
+ * error and not a heading that quietly falls back. The words are the *bearer*
+ * as a player would name them, never a `UnitCategory` or a type id: an augur is
+ * one silhouette and a soldier is a whole shelf, and the card wants the noun it
+ * would say out loud ("The augur may", "Soldiers may").
+ *
+ * `empire` is the honest answer for a verb nobody carries — Chronology's early
+ * sight of the beads, the deep ocean opening — and it is what stops those being
+ * filed under a piece that has nothing to do with them.
+ */
+export type AbilityBearer = 'worker' | 'civilian' | 'military' | 'augur' | 'empire';
+
+/** Every bearer word, for the load validator. Iteration order is the union's. */
+export const ABILITY_BEARERS: readonly AbilityBearer[] = [
+  'worker',
+  'civilian',
+  'military',
+  'augur',
+  'empire',
+];
+
 /** What an ability is *called*, for the surfaces that print it. Flavour only. */
 export interface AbilityDef {
   name: string;
   /** The mark the star chart centres it on, like a tech's own `glyph`. */
   glyph: string;
+  /**
+   * Who gains it. The tech card's heading follows this rather than the gift's
+   * *kind* (the playtest notes, 2026-09-03: the rites were being introduced by
+   * "Workers may also", which is the one thing an augur is not).
+   *
+   * Absent means `worker`, which is what the chop table's entries are — they
+   * are abilities with no row in this block at all, so the default has to be
+   * the verb a spade gains.
+   */
+  bearer?: AbilityBearer;
   /** One line of what it lets an empire do. */
   summary: string;
 }
@@ -630,6 +665,20 @@ export const ABILITY_IDS = Object.keys(TECH_DATA.abilities) as AbilityId[];
 
 export function abilityDef(id: AbilityId): AbilityDef {
   return TECH_DATA.abilities[id];
+}
+
+/**
+ * Is this one of the verbs the abilities block names? `isTechId`'s sibling.
+ *
+ * It exists because a `TechGift` of kind `ability` carries **two tables' ids**:
+ * a clearing's is a `FeatureId` and has no row here at all (see `techGifts`),
+ * so a surface asking a gift what its row says has to ask this first.
+ */
+export function isAbilityId(value: unknown): value is AbilityId {
+  return (
+    typeof value === 'string' &&
+    Object.prototype.hasOwnProperty.call(TECH_DATA.abilities, value)
+  );
 }
 
 /**
@@ -1100,6 +1149,11 @@ export function techDataProblems(): string[] {
     const def = abilityDef(ability);
     if (typeof def.glyph !== 'string' || def.glyph.length === 0) {
       problems.push(`ability "${ability}" has no glyph`);
+    }
+    // A bearer word nobody can read is a heading that silently falls back to the
+    // spade — which is exactly the mislabelling the field was added to fix.
+    if (def.bearer !== undefined && !ABILITY_BEARERS.includes(def.bearer)) {
+      problems.push(`ability "${ability}" is borne by unknown "${String(def.bearer)}"`);
     }
   }
 

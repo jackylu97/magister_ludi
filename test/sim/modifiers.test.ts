@@ -555,3 +555,63 @@ describe('Entry XVIII.5: a windfall is modifier-immune', () => {
     expect(modified.city.hammerBasket).toBe(bankedAfterSettling(modified.state));
   });
 });
+
+/**
+ * **The workshop's hammers** (the playtest notes, 2026-09-03: "+3 production,
+ * +10% production towards buildings and wonders").
+ *
+ * It is here rather than in a workshop test of its own because the interesting
+ * claim is a *register* claim: the two percentages are card effects on an
+ * ordinary building's row (`BuildingDef.effects`, read by `cityBuildingEffects`
+ * and folded by `cardProduction`), not a second building-shaped shape beside
+ * `productionBonus`. So they arrive in `productionModifiers`' list as labelled
+ * lines like every other percentage, and Entry XVII's two stages are untouched.
+ */
+describe('the workshop', () => {
+  function workshopCity(): { state: GameState; city: City } {
+    const state = bareState();
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    city.population = 4;
+    city.buildings = ['workshop'];
+    return { state, city };
+  }
+
+  it('puts its percentage behind a building and behind a wonder, and nothing else', () => {
+    const { state, city } = workshopCity();
+    const declared = buildingDef('workshop').effects ?? [];
+    expect(declared.length, 'two rows, one per category').toBe(2);
+
+    const building = productionModifiers(state, city, { kind: 'building', id: 'granary' });
+    const wonder = productionModifiers(state, city, { kind: 'building', id: 'pyramids' });
+    const unit = productionModifiers(state, city, UNIT);
+    expect(building.length).toBe(1);
+    expect(wonder.length).toBe(1);
+    // A wonder is its own `ProductionCategory`, so the building line does not
+    // quietly ride on one — the workshop names both because the user's ruling
+    // named both, and that is two data rows rather than a widened category.
+    expect(unit).toEqual([]);
+    // Both are city-stage: a workshop is a fact about this town's build.
+    expect(building[0]!.stage).toBe('city');
+    expect(wonder[0]!.stage).toBe('city');
+    expect(building[0]!.percent).toBe(wonder[0]!.percent);
+  });
+
+  it('is one labelled line, folded like every other percentage', () => {
+    const { state, city } = workshopCity();
+    const list = productionModifiers(state, city, { kind: 'building', id: 'granary' });
+    // Rule 5: the line says *what* put the hammers there. A bare percentage in
+    // the panel with no source beside it is what a breakdown exists to prevent.
+    expect(list[0]!.source.length).toBeGreaterThan(0);
+    expect(list[0]!.source).toContain(buildingDef('workshop').name);
+    // And the fold is the sum of the list, never a number computed beside it.
+    expect(modifierPercent(list)).toBe(list[0]!.percent);
+  });
+
+  it('no longer waits on Machinery for its hammers', () => {
+    // The renewal was deleted with the rework: the workshop's production is on
+    // the row from the day it is raised, and the percentages are what a later
+    // age used to buy. A renewal left behind would have paid twice.
+    expect(buildingDef('workshop').upgrades).toBeUndefined();
+    expect(buildingDef('workshop').production).toBe(3);
+  });
+});

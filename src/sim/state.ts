@@ -813,8 +813,16 @@ import {
  * Æra III), and Alchemy takes all five closing lines as parents. Costs and
  * ages both moved, so a v53 log replays into a different world and is
  * refused.
+ *
+ * v55: the playtest notes (2026-09-03) — plantations move to the Calendar,
+ * the Standing Stones improvement is deleted, Raised Fields drops the
+ * Terraces for a mountain-side farm renewal and the floating gardens, the
+ * workshop and the Stele of Laws are retuned. Two of those are *table*
+ * deletions (an improvement id and a building id), so a v54 log that laid a
+ * ring of stones or raised the Terraces has no row to replay into and is
+ * refused rather than quietly dropping the thing it built.
  */
-export const SCHEMA_VERSION = 54;
+export const SCHEMA_VERSION = 55;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -45,7 +45,8 @@
       "plantation",
       "quarry",
       "fishingBoats",
-      "lumbermill"
+      "lumbermill",
+      "floatingGardens"
     ]
   },
   "military": {
@@ -58,12 +59,42 @@
     "traderCap": 4
   },
   "weights": {
-    "food": [6, 5, 4, 3],
-    "production": [5, 5, 5, 5],
-    "gold": [3, 3, 4, 5],
-    "science": [4, 5, 5, 4],
-    "culture": [3, 3, 2, 2],
-    "faith": [3, 4, 3, 2],
+    "food": [
+      6,
+      5,
+      4,
+      3
+    ],
+    "production": [
+      5,
+      5,
+      5,
+      5
+    ],
+    "gold": [
+      3,
+      3,
+      4,
+      5
+    ],
+    "science": [
+      4,
+      5,
+      5,
+      4
+    ],
+    "culture": [
+      3,
+      3,
+      2,
+      2
+    ],
+    "faith": [
+      3,
+      4,
+      3,
+      2
+    ],
     "bead": 250,
     "victory": 1500,
     "die": 60,

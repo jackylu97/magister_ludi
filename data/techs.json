@@ -244,6 +244,9 @@
         ],
         "abilities": [
           "siege"
+        ],
+        "buildings": [
+          "stoneWalls"
         ]
       },
       "flavor": "A wall is only a promise about time."
@@ -809,12 +812,27 @@
       "prereqs": [
         "wayfinding"
       ],
-      "unlocks": {
-        "buildings": [
-          "terraces"
-        ]
-      },
-      "flavor": "The field is lifted above the flood, and the flood is made to feed it."
+      "unlocks": {},
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "farm"
+              },
+              {
+                "test": "adjacentMountain"
+              }
+            ]
+          },
+          "food": 1
+        }
+      ],
+      "flavor": "The field is lifted above the flood, and the flood is made to feed it.",
+      "note": "A farm on a hex touching a mountain feeds its city better than it did. It is the field that changes, not the peak: nothing is grown on the mountain itself."
     },
     "banking": {
       "name": "The Counting Houses",
@@ -1070,66 +1088,79 @@
     "embark": {
       "name": "Embark",
       "glyph": "⛵",
-      "summary": "Workers and settlers may cross coastal water."
+      "bearer": "civilian",
+      "summary": "Workers, settlers and scouts may cross coastal water. Soldiers cannot, until Wayfinding."
     },
     "riteOfTheHarvest": {
       "name": "Rite of the Harvest",
       "glyph": "🌾",
+      "bearer": "augur",
       "summary": "An augur may spend a rite to give a city a citizen."
     },
     "recastingTheOmens": {
       "name": "Recasting the Omens",
       "glyph": "🎲",
+      "bearer": "augur",
       "summary": "An augur may spend a rite to give back one belief and choose another."
     },
     "omenReading": {
       "name": "Omen Reading",
       "glyph": "🔮",
+      "bearer": "augur",
       "summary": "An augur may spend a rite for beakers now and sharper scribes after."
     },
     "consecrationOfTheBounds": {
       "name": "Consecration of the Bounds",
       "glyph": "🗿",
+      "bearer": "augur",
       "summary": "An augur may spend a rite to walk a city’s borders outward."
     },
     "blessingOfArms": {
       "name": "Blessing of Arms",
       "glyph": "⚔",
+      "bearer": "augur",
       "summary": "An augur may spend a rite to heal a unit whole and send it out stronger."
     },
     "thePreaching": {
       "name": "The Preaching",
       "glyph": "📯",
+      "bearer": "augur",
       "summary": "An augur may spend a rite to preach, spreading your religion for a while."
     },
     "riteOfPlenty": {
       "name": "Rite of Plenty",
       "glyph": "🍷",
+      "bearer": "augur",
       "summary": "An augur may spend a rite for coin now and richer seams after."
     },
     "ancestorRites": {
       "name": "Ancestor Rites",
       "glyph": "🕯",
+      "bearer": "empire",
       "summary": "Great people will answer your renown and come to serve."
     },
     "militaryEmbark": {
       "name": "Sea Legs",
       "glyph": "🚣",
-      "summary": "Soldiers may cross coastal water as workers and scouts do."
+      "bearer": "military",
+      "summary": "Your soldiers may cross coastal water, walking out onto the shallows and back onto land further along. Workers, settlers and scouts learned to do it at Sailing; this is the same crossing, opened to the army."
     },
     "siege": {
       "name": "Siege",
       "glyph": "⛺",
+      "bearer": "military",
       "summary": "Your armies that surround a town cut it off: it cannot heal, and it loses a little health each turn."
     },
     "theLongCount": {
       "name": "The Long Count",
       "glyph": "📿",
+      "bearer": "empire",
       "summary": "The next age’s glass beads are shown a turn before that age opens."
     },
     "oceanGoing": {
       "name": "Open Ocean",
       "glyph": "🌐",
+      "bearer": "empire",
       "summary": "Ships and embarked units may cross the deep ocean."
     }
   }

@@ -695,6 +695,12 @@
         "size": 0.46,
         "jitter": 0.2
       },
+      "floatingGardens": {
+        "color": "brook",
+        "shade": 0.24,
+        "size": 0.5,
+        "jitter": 0.08
+      },
       "academy": {
         "color": "bone",
         "shade": -0.04,
@@ -736,12 +742,6 @@
         "size": 0.72,
         "jitter": 0.0,
         "gilt": "gilt"
-      },
-      "standingStones": {
-        "color": "bone",
-        "shade": -0.08,
-        "size": 0.66,
-        "jitter": 0.0
       }
     }
   },

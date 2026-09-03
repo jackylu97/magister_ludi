@@ -702,14 +702,14 @@ export const IMPROVEMENT_PROPS: Record<ImprovementId, (size: number) => BufferGe
   fishingBoats: fishingBoat,
   lumbermill: sawPit,
   plantation: trellisRows,
-  // **Reuses the holy site's ring of monoliths** (the tree pass of 2026-08-30),
-  // and it is an honest placeholder rather than a coincidence: the two are the
-  // same thing seen from two sides — a ring of raised stones, one consecrated by
-  // a prophet and one raised by a village. It is the *sculpt* that is shared and
-  // not the row, so the art pass can give the worker's ring its own leaning,
-  // rougher stones without touching anything else. Marked for that pass in
+  // **Reuses the farm's furrows** (the playtest notes, 2026-09-03), and it is an
+  // honest placeholder of the kind the Standing Stones' ring was before it: a
+  // floating garden *is* a field, laid in rows, and the only thing the sculpt
+  // gets wrong is what is under it. It is the sculpt that is shared and not the
+  // row, so the art pass can float the beds properly — reed rafts, a darker
+  // water line — without touching anything else. Marked for that pass in
   // `flair.html`.
-  standingStones: standingStones,
+  floatingGardens: furrowRows,
   academy: academyHall,
   landmark: landmarkStele,
   manufactory: manufactoryHall,

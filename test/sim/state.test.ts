@@ -626,7 +626,10 @@ describe('the research queue field', () => {
     // prerequisite re-hung, twelve columns and a truncated cost ladder), plus
     // the one-unit-a-turn rule widened to one per class, which replaces
     // `City.purchasedUnitTurn` with `City.purchasedUnitTurns`.
-    expect(SCHEMA_VERSION).toBe(54);
+    // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
+    // Stones improvement and the Terraces — so a v54 log that built either has
+    // no row to replay into.
+    expect(SCHEMA_VERSION).toBe(55);
   });
 });
 

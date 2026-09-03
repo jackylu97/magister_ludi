@@ -715,6 +715,31 @@ function assignOases(map: GameMap, config: MapgenConfig, fields: TerrainFields):
   }
 }
 
+/**
+ * Marks every tile that has a mountain for a neighbour. Idempotent, rolls
+ * nothing.
+ *
+ * `computeFreshwater`'s sibling one terrain over (see `water.ts`), and written
+ * here rather than there for the honest reason that it is not about water. The
+ * whole of the derivation is the ring of six: a mountain hex is **not** marked
+ * for itself, because "a farm beside a mountain" is a sentence about the field
+ * and nothing grows on the peak.
+ *
+ * The mark is written only where it is true (`Tile.mountainAdjacent` is absent
+ * otherwise, `resource`'s convention), so a map with no mountains carries no
+ * flags at all — and re-running this on a map that already has them clears the
+ * stale ones, which is what makes it idempotent rather than merely repeatable.
+ */
+export function markMountainAdjacency(map: GameMap): void {
+  for (const tile of map.tiles) {
+    const beside = tileNeighbors(map, tile).some(
+      (neighbour) => neighbour.terrain === 'mountain',
+    );
+    if (beside) tile.mountainAdjacent = true;
+    else delete tile.mountainAdjacent;
+  }
+}
+
 /** A generated map together with the working data it does not keep. */
 export interface MapDetail {
   map: GameMap;
@@ -891,6 +916,13 @@ export function generateMapDetail(
 
   // Pass 5: who can drink. Derived from everything above, and rolls nothing.
   computeFreshwater(map);
+
+  // Pass 5b: who has a mountain for a neighbour. `computeFreshwater`'s sibling
+  // in every respect that matters — derived from the terrain above it, rolls
+  // nothing, costs the dice stream nothing — and here for the reason that one
+  // is here: the answer is wanted by a predicate that holds a tile and no map
+  // (see `Tile.mountainAdjacent`).
+  markMountainAdjacency(map);
 
   // Pass 6: resources. The generator's *second* set of dice, and they are rolled
   // after the rivers' for exactly the reason the rivers' were rolled after the

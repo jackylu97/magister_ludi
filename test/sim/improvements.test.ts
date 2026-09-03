@@ -76,6 +76,7 @@ import {
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 import { at, bareState, woodedWorker } from './improvementHelpers';
+import { markMountainAdjacency } from '../../src/sim/mapgen';
 import { unitAwaitsOrders } from '../../src/sim/units';
 
 /**
@@ -136,10 +137,12 @@ describe('the improvement table', () => {
       'fishingBoats',
       'plantation',
       'lumbermill',
-      // The ninth worker improvement (the tree pass of 2026-08-30): a ring of
-      // raised stones, and the first row a worker may lay that pays in culture
-      // and faith rather than in food, hammers or coin.
-      'standingStones',
+      // The ninth worker improvement (the playtest notes, 2026-09-03): beds
+      // floated on still water, and the row that replaced the Standing Stones
+      // the tree pass had put here. The first improvement that stands on water
+      // with no seam under it — see `adjacentImprovement`, the third seam in
+      // the constraint shape and the only reason it reaches the coast.
+      'floatingGardens',
       'academy',
       'landmark',
       'manufactory',
@@ -695,6 +698,99 @@ describe('buildImprovement', () => {
 
         state.players[0]!.techsResearched = TECH_IDS.filter((id) => id !== 'husbandry');
         expect(improvementError(state, worker.id, 'farm')).toBeNull();
+      });
+    });
+
+    /**
+     * **The third seam in the constraint shape** (`adjacentImprovement`), which
+     * is the floating gardens' whole placement rule and the only widening in the
+     * table that asks about a hex the worker is *not* standing on.
+     *
+     * The claims are the two halves of a widening: `validTerrain` still says
+     * outright where the row goes, and the seam only ever *adds* ground — never
+     * refuses ground the list already took, and never opens ground without the
+     * neighbour that is the reason for it.
+     */
+    describe('the floating gardens and their neighbour', () => {
+      /**
+       * A worker on the coast at (5, 4), with the shore two columns wide.
+       *
+       * Raised Fields is granted by hand because the shared fixture withholds
+       * every node that carries a *rule* (`bareState`, and its docblock says
+       * why) — and Raised Fields is one of those now: its farm renewal is a card
+       * effect. The gardens' gate is the thing under test here, so it is opened
+       * deliberately rather than by widening a fixture six files share.
+       */
+      function shore(): { state: GameState; worker: Unit } {
+        const built = workerState();
+        for (const tile of built.state.map.tiles) {
+          if (tile.col === 4 || tile.col === 5) tile.terrain = 'coast';
+        }
+        for (const player of built.state.players) player.techsResearched.push('raisedFields');
+        return built;
+      }
+
+      it('takes a lake outright, with nothing beside it', () => {
+        // The row's own `validTerrain`, untouched by the seam: a lake needs no
+        // reason. (That the game cannot yet *put* a worker on one is the row's
+        // stated `deferred` half, and it is a fact about movement rather than
+        // about the ground — which is why the ground rule is written and right.)
+        const { state, worker } = shore();
+        at(state, 5, 4).terrain = 'lake';
+        expect(improvementError(state, worker.id, 'floatingGardens')).toBeNull();
+      });
+
+      it('refuses bare coast by naming the boat, not the terrain', () => {
+        const { state, worker } = shore();
+        // The sentence a player can act on. "Cannot be built on coast" would be
+        // a lie — it can, next to a fishery — so the refusal names what is
+        // missing instead of what the hex is.
+        expect(improvementError(state, worker.id, 'floatingGardens')).toBe(
+          'A floating gardens on coast needs a fishing boat beside it',
+        );
+      });
+
+      it('opens the coast the moment a boat stands next to it', () => {
+        const { state, worker } = shore();
+        const neighbour = at(state, 4, 4);
+        neighbour.improvement = 'fishingBoats';
+        expect(improvementError(state, worker.id, 'floatingGardens')).toBeNull();
+        // And it is the *ring*, not the hex: a boat cannot be on the same hex
+        // the gardens are going on, so a rule that counted the tile itself would
+        // be a clause that never fires.
+        delete neighbour.improvement;
+        expect(improvementError(state, worker.id, 'floatingGardens')).not.toBeNull();
+      });
+
+      it('never widens onto ground the row does not name', () => {
+        const { state, worker } = shore();
+        const tile = at(state, 5, 4);
+        at(state, 4, 4).improvement = 'fishingBoats';
+        // A boat beside dry land opens nothing: the seam widens `validTerrain`
+        // by the terrains it names and by no others, which is what makes it a
+        // widening rather than a second rule.
+        tile.terrain = 'grassland';
+        expect(improvementError(state, worker.id, 'floatingGardens')).toBe(
+          'A floating gardens cannot be built on grassland',
+        );
+        tile.terrain = 'ocean';
+        expect(improvementError(state, worker.id, 'floatingGardens')).toBe(
+          'A floating gardens cannot be built on ocean',
+        );
+      });
+
+      it('is declared on the row, so a second user of the seam is a JSON edit', () => {
+        const def = improvementDef('floatingGardens');
+        expect(def.adjacentImprovement).toEqual({
+          improvement: 'fishingBoats',
+          terrain: ['coast'],
+        });
+        // The widening is a widening: the row still names its own ground, which
+        // is the invariant the load validator holds every future user to.
+        expect(def.validTerrain).toEqual(['lake']);
+        // And the half the design has that the game does not, said on the row in
+        // a player's words rather than bent into a shape that nearly fits.
+        expect(def.deferred?.length).toBeGreaterThan(0);
       });
     });
 
@@ -2020,7 +2116,10 @@ describe('improvements in the log', () => {
     // `chivalry`, `fortification`) and three added, almost every prerequisite
     // re-hung, twelve columns and a truncated cost ladder — and, beside it, the
     // one-unit-a-turn purchase rule widened to one *per class*.
-    expect(SCHEMA_VERSION).toBe(54);
+    // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
+    // Stones improvement and the Terraces — so a v54 log that built either has
+    // no row to replay into.
+    expect(SCHEMA_VERSION).toBe(55);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;
@@ -2124,5 +2223,70 @@ describe('the works pay instantly', () => {
     raider.movesLeft = 2;
     expect(applyCommand(state, { type: 'pillage', playerId: 0, unitId: raider.id }).ok).toBe(true);
     expect(at(state, 8, 8).improvement).toBeUndefined();
+  });
+});
+
+/**
+ * **Raised Fields' mountain-side farm** (the playtest notes, 2026-09-03: the
+ * node stopped unlocking a building and started paying a hex).
+ *
+ * The claim under test is the new *shape* rather than the number: mountain
+ * adjacency is a `TileCondition` (`adjacentMountain`) read off ground the
+ * generator already marked (`Tile.mountainAdjacent`), so the clause lands in
+ * `explainTileYield`'s card lines as one more labelled entry and the fold is
+ * still the fold of the list. Nothing computes a total beside it (hard rule 5),
+ * and nothing walks the map inside the predicate.
+ */
+describe('a farm beside a mountain', () => {
+  /** A worker's board with a peak at (6, 4) and every neighbour marked. */
+  function withPeak(): { state: GameState; tile: Tile } {
+    const state = bareState();
+    foundCityAt(state, 0, at(state, 5, 5));
+    at(state, 6, 4).terrain = 'mountain';
+    markMountainAdjacency(state.map);
+    const tile = at(state, 5, 4);
+    tile.improvement = 'farm';
+    for (const player of state.players) player.techsResearched.push('raisedFields');
+    return { state, tile };
+  }
+
+  it('adds one labelled line to the hex, and folds into the total', () => {
+    const { state, tile } = withPeak();
+    expect(tile.mountainAdjacent, 'the ground was marked').toBe(true);
+    const ctx = yieldContextFor(state, 0);
+    const list = explainTileYield(tile, ctx);
+    const named = list.filter((entry) => entry.source.includes(techDef('raisedFields').name));
+    expect(named).toHaveLength(1);
+    expect(named[0]!.food).toBe(1);
+    // The total is the fold of the list and never a second sum beside it.
+    expect(tileYieldOf(tile, ctx)).toEqual(foldTileYield(list));
+  });
+
+  it('pays a farm, and only where a mountain actually stands next door', () => {
+    const { state, tile } = withPeak();
+    const ctx = yieldContextFor(state, 0);
+    const beside = tileYieldOf(tile, ctx).food;
+
+    // Away from the peak, the same farm on the same ground pays the ordinary
+    // amount: the clause is `all` of two conditions and both have to hold.
+    const away = at(state, 2, 8);
+    away.improvement = 'farm';
+    expect(away.mountainAdjacent).toBeUndefined();
+    expect(tileYieldOf(away, ctx).food).toBe(beside - 1);
+
+    // And it is the *farm*: bare ground beside the peak gets nothing, which is
+    // the improvement half of the condition doing its work.
+    delete tile.improvement;
+    const bare = explainTileYield(tile, ctx);
+    expect(bare.some((entry) => entry.source.includes(techDef('raisedFields').name))).toBe(false);
+  });
+
+  it('is the empire\u2019s law, so an empire without the node is paid nothing', () => {
+    const { state, tile } = withPeak();
+    state.players[0]!.techsResearched = state.players[0]!.techsResearched.filter(
+      (id) => id !== 'raisedFields',
+    );
+    const list = explainTileYield(tile, yieldContextFor(state, 0));
+    expect(list.some((entry) => entry.source.includes(techDef('raisedFields').name))).toBe(false);
   });
 });

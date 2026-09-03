@@ -25,7 +25,14 @@ import {
   improvementDef,
 } from '../../src/sim/improvementData';
 import { RESOURCE_IDS, resourceDef } from '../../src/sim/resourceData';
-import { TECH_IDS, techDef } from '../../src/sim/techData';
+import {
+  ABILITY_BEARERS,
+  ABILITY_IDS,
+  TECH_IDS,
+  abilityDef,
+  isAbilityId,
+  techDef,
+} from '../../src/sim/techData';
 import { featureDef, readTileYield } from '../../src/sim/terrainData';
 import { techGifts, unlockDataProblems } from '../../src/sim/techUnlocks';
 import { unitDef } from '../../src/sim/unitData';
@@ -49,17 +56,17 @@ describe('techGifts', () => {
       'unit',
       'improvement',
     ]);
-    // Earthenware is the jar and nothing else again after the age-1 restoration
-    // of 2026-09-02: the granary, and the plantation a worker may lay. The
-    // Hanging Gardens and the tithes conversion went back to the Calendar the
-    // re-cut had pruned, which is what "keep what we had before" restored.
+    // Earthenware is the jar and nothing else after the playtest notes of
+    // 2026-09-03: the plantation moved to the Calendar, where the year being cut
+    // into pieces is what a crop that ripens on a date wants, and the granary is
+    // all the jar hands over.
     expect(techGifts('earthenware').map((gift) => [gift.kind, gift.id])).toEqual([
       ['building', 'granary'],
-      ['improvement', 'plantation'],
     ]);
     expect(techGifts('calendar').map((gift) => [gift.kind, gift.id])).toEqual([
       ['building', 'hangingGardens'],
       ['project', 'tithes'],
+      ['improvement', 'plantation'],
     ]);
   });
 
@@ -288,6 +295,72 @@ describe('techGifts', () => {
       for (const upgrade of buildingDef(building).upgrades ?? []) {
         expect(techGifts(upgrade.tech).some((gift) => gift.id === building)).toBe(true);
       }
+    }
+  });
+});
+
+/**
+ * **Who gains the verb** (`AbilityDef.bearer`, the playtest notes of
+ * 2026-09-03).
+ *
+ * The user's report was that every rite an augur may spend was introduced on the
+ * tech card by "Workers may also", which is the one thing an augur is not. The
+ * fix is a field on the row, and the register test is here rather than in a UI
+ * suite for the reason this whole file exists: the star chart's heading is one
+ * lookup off this data, so the data is what can be wrong.
+ */
+describe('an ability names its bearer', () => {
+  it('gives every verb in the table a bearer the union knows', () => {
+    for (const ability of ABILITY_IDS) {
+      const bearer = abilityDef(ability).bearer;
+      expect(bearer, ability).toBeDefined();
+      expect(ABILITY_BEARERS, ability).toContain(bearer!);
+    }
+  });
+
+  it('files the rites under the augur and the crossings under who may cross', () => {
+    // The rows the mislabelling was actually about. Named here rather than
+    // derived, because "which of these is a rite" is a design fact about the
+    // religion pass and not something the table can be asked.
+    for (const rite of [
+      'riteOfTheHarvest',
+      'recastingTheOmens',
+      'omenReading',
+      'consecrationOfTheBounds',
+      'blessingOfArms',
+      'thePreaching',
+      'riteOfPlenty',
+    ] as const) {
+      expect(abilityDef(rite).bearer, rite).toBe('augur');
+    }
+    // The two crossings are the pair the tree deliberately splits: civilians at
+    // Sailing, soldiers at Wayfinding. A heading that filed the second under the
+    // spade is what made Sea Legs unreadable.
+    expect(abilityDef('embark').bearer).toBe('civilian');
+    expect(abilityDef('militaryEmbark').bearer).toBe('military');
+    expect(abilityDef('siege').bearer).toBe('military');
+    // And a verb nobody carries says so, rather than being filed under a piece
+    // that has nothing to do with it.
+    expect(abilityDef('oceanGoing').bearer).toBe('empire');
+    expect(abilityDef('theLongCount').bearer).toBe('empire');
+  });
+
+  it('says what Sea Legs actually does, in a first-time player\u2019s words', () => {
+    // The user could not tell what the row was for. A name is not a rule, so the
+    // summary states the crossing and says where civilians got it — and, hard
+    // rule 7, it carries no figure and no identifier.
+    const summary = abilityDef('militaryEmbark').summary;
+    expect(summary).toContain('coastal water');
+    expect(summary).toContain('Sailing');
+    expect(summary).not.toMatch(/[0-9]/);
+  });
+
+  it('leaves a clearing to the spade, with no row in the block at all', () => {
+    // A chop's gift id is a `FeatureId`, so it has no ability row — which is why
+    // the heading falls back to the worker's rather than being written on every
+    // feature. `isAbilityId` is the guard that keeps the two tables apart.
+    for (const feature of CHOPPABLE_FEATURES) {
+      expect(isAbilityId(feature), feature).toBe(false);
     }
   });
 });

@@ -774,7 +774,7 @@
       "upgradesTo": "knight"
     },
     "spearWall": {
-      "name": "Halberd",
+      "name": "Spear Wall",
       "category": "military",
       "movement": 2,
       "sight": 2,

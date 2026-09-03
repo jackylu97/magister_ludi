@@ -36,17 +36,7 @@
           }
         }
       ],
-      "tileYields": [
-        {
-          "on": {
-            "test": "water"
-          },
-          "requiresTech": "sailing",
-          "add": {
-            "food": 1
-          }
-        }
-      ]
+      "note": "What the jar keeps, the year forgets."
     },
     "shrine": {
       "name": "Shrine",
@@ -108,6 +98,22 @@
         "amount": 5
       },
       "cityHp": 15
+    },
+    "stoneWalls": {
+      "name": "Stone Walls",
+      "category": "military",
+      "cost": 55,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "cityStat": {
+        "stat": "defense",
+        "amount": 4
+      },
+      "cityHp": 25
     },
     "funeralGames": {
       "name": "Funeral Games",
@@ -223,7 +229,7 @@
       "category": "production",
       "cost": 69,
       "food": 0,
-      "production": 2,
+      "production": 3,
       "gold": 0,
       "science": 0,
       "culture": 0,
@@ -232,14 +238,19 @@
         "family": "engineer",
         "perTurn": 1
       },
-      "upgrades": [
+      "effects": [
         {
-          "tech": "machinery",
-          "add": {
-            "production": 2
-          }
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 10
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 10
         }
-      ]
+      ],
+      "note": "The town’s own joiners and masons. What they raise, they raise faster."
     },
     "watermill": {
       "name": "Watermill",
@@ -1361,14 +1372,14 @@
     "steleOfLaws": {
       "name": "Stele of Laws",
       "category": "culture",
-      "cost": 36,
+      "cost": 50,
       "food": 0,
       "production": 0,
       "gold": 0,
       "science": 0,
-      "culture": 1,
+      "culture": 3,
       "sciencePerPop": 0,
-      "authorityCapacity": 2,
+      "authorityCapacity": 1,
       "note": "The law, cut in stone where anyone may read it."
     },
     "bazaar": {
@@ -1688,22 +1699,6 @@
       "culture": 2,
       "sciencePerPop": 0,
       "note": "The writ a chartered city is founded with: land granted, market days set, and a name on a list somewhere."
-    },
-    "terraces": {
-      "name": "The Terraces",
-      "category": "food",
-      "cost": 75,
-      "food": 2,
-      "production": 1,
-      "gold": 0,
-      "science": 0,
-      "culture": 0,
-      "sciencePerPop": 0,
-      "renown": {
-        "family": "engineer",
-        "perTurn": 1
-      },
-      "note": "The hillside is cut into steps, and every step is a field that will not wash away."
     },
     "clocktower": {
       "name": "Clocktower",

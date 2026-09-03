@@ -186,7 +186,10 @@ describe('the bead catalogue', () => {
     // `chivalry`, `fortification`) and three added, almost every prerequisite
     // re-hung, twelve columns and a truncated cost ladder — and, beside it, the
     // one-unit-a-turn purchase rule widened to one *per class*.
-    expect(SCHEMA_VERSION).toBe(54);
+    // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
+    // Stones improvement and the Terraces — so a v54 log that built either has
+    // no row to replay into.
+    expect(SCHEMA_VERSION).toBe(55);
   });
 
   it('puts the beads phase directly after renown', () => {

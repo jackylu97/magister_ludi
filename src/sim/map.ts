@@ -99,6 +99,25 @@ export interface Tile {
    */
   freshwater: boolean;
   /**
+   * True when one of this tile's six neighbours is a mountain, or the key is
+   * **absent** — which it is on most of the map. Computed once at the end of
+   * generation by `markMountainAdjacency` (`mapgen.ts`).
+   *
+   * `freshwater`'s sibling exactly, and it exists for that field's reason read
+   * at a different scale: "is there a mountain next door" is a question about
+   * the *neighbourhood*, and the one place that asks it is
+   * `tileConditionHolds` (`statecraft.ts`) — a predicate with a tile in hand,
+   * no map, and millions of calls a turn behind it. Baking the answer onto the
+   * ground is what lets Raised Fields' clause be a card like every other card
+   * rather than a second reading of the board.
+   *
+   * Safe to bake because **mountains never move**: nothing in the game writes
+   * `Tile.terrain` after generation, so this is derived output that is correct
+   * for the life of the map. Absence rather than a stored `false`, which is
+   * `resource`'s convention and keeps a bare hex bare.
+   */
+  mountainAdjacent?: boolean;
+  /**
    * The resource sitting on this tile, or the key is **absent** when there is
    * none. Placed once, at the end of generation, by `placeResources`
    * (`resources.ts`); read through `tileYieldOf` for what it pays and through

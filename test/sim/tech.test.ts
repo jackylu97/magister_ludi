@@ -1118,7 +1118,10 @@ describe('research in the log', () => {
     // re-hung, the chart down to twelve columns and every cost re-read off the
     // truncated ladder. And, beside it, the one-unit-a-turn rule widened to one
     // *per class*, which is a reducer that accepts what v49's refused.
-    expect(SCHEMA_VERSION).toBe(54);
+    // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
+    // Stones improvement and the Terraces — so a v54 log that built either has
+    // no row to replay into.
+    expect(SCHEMA_VERSION).toBe(55);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1615,7 +1618,7 @@ describe('the shape of the tree', () => {
     // hole in it is a unit that stops improving.
     expect(unitDef('spearman').upgradesTo).toBe('phalanx');
     expect(unitDef('phalanx').upgradesTo).toBe('spearWall');
-    expect(unitDef('spearWall').name).toBe('Halberd');
+    expect(unitDef('spearWall').name).toBe('Spear Wall');
     expect(unitDef('spearWall').upgradesTo).toBe('pikeman');
     expect(unitDef('pikeman').upgradesTo).toBeUndefined();
     expect(unitDef('warrior').upgradesTo).toBe('swordsman');

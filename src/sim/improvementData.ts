@@ -18,11 +18,13 @@
  *     requiresHills    the tile's `hills` flag must equal this      (optional)
  *     requiresResource the tile must carry one of these resources   (optional)
  *
- * with **two** seams in the AND, and both of them *widen* a filter rather than
- * add one: `freshwaterTerrain`, which widens `validTerrain` on ground that can
- * drink, and `hillsIf`, which waives `requiresHills` on ground that has a reason.
- * See the fields; the farm is the only user of either and the reason both
- * exist.
+ * with **three** seams in the AND, and every one of them *widens* a filter
+ * rather than adding one: `freshwaterTerrain`, which widens `validTerrain` on
+ * ground that can drink; `hillsIf`, which waives `requiresHills` on ground that
+ * has a reason; and `adjacentImprovement`, which widens `validTerrain` on ground
+ * whose *neighbour* gives it a reason. See the fields — the farm is the only
+ * user of the first two and the reason both exist, and the floating gardens are
+ * the third's.
  *
  * `requiresTech` sits beside them and is the one filter that is *not* about the
  * ground: it asks the worker's owner rather than the hex, which is why it is
@@ -169,11 +171,12 @@ export type ImprovementId =
   | 'fishingBoats'
   | 'plantation'
   | 'lumbermill'
-  // A ring of raised stones — the tree pass of 2026-08-30, and the temple that
-  // stood before the field did. An ordinary worker's improvement in every
-  // respect; what is unusual is only that it pays in culture and faith rather
-  // than in food, hammers or coin, which the yield type has always allowed.
-  | 'standingStones'
+  // Beds of reed and silt floated on still water — Raised Fields' own row (the
+  // playtest notes, 2026-09-03). The first improvement that stands on water
+  // without a seam under it: the fishing boat needs its fish, and this needs
+  // only a lake, or a coast a boat is already working. See `adjacentImprovement`
+  // for the half of that rule the ground cannot state by itself.
+  | 'floatingGardens'
   // The five **great-person works** (`docs/great-people.md`). Ordinary rows in
   // every respect but one: `greatPerson` names the family whose piece plants
   // them, which is what a worker is refused by and what a great person is
@@ -241,6 +244,31 @@ export type HillsWaiver = 'freshwater' | 'ownResource';
 
 /** Every waiver word, for the load validator. Iteration order is the union's. */
 export const HILLS_WAIVERS: readonly HillsWaiver[] = ['freshwater', 'ownResource'];
+
+/**
+ * The **third seam** in the constraint shape: terrains a row may *also* be built
+ * on when a hex touching the tile already carries a named improvement.
+ *
+ * A widening, exactly like `freshwaterTerrain` and `hillsIf`, and it is a
+ * widening for their reason: it never refuses ground `validTerrain` would take,
+ * it only forgives ground the row asked not to be on when the neighbourhood
+ * gives it a reason. Read as one sentence off the floating gardens' row — "on a
+ * lake, and on any coast beside a fishing boat" (the playtest notes,
+ * 2026-09-03).
+ *
+ * `improvement` is asked of the *table* rather than of a string in the
+ * evaluator, so the day a second row wants a neighbour it names one here and
+ * `improvementErrorAt` is not touched. The reach is the ring of six — the same
+ * reach `hasAdjacentImprovement` (`statecraft.ts`) gives a town, one scale down
+ * — and deliberately not the tile itself: two improvements never stand on one
+ * hex, so "beside" is the only reading available.
+ */
+export interface AdjacentImprovement {
+  /** The improvement a neighbouring hex must carry. */
+  improvement: ImprovementId;
+  /** Terrains this widens `validTerrain` by, on a hex with such a neighbour. */
+  terrain: TerrainId[];
+}
 
 export interface ImprovementDef {
   name: string;
@@ -316,6 +344,14 @@ export interface ImprovementDef {
    *     bug the user hit.
    */
   hillsIf?: HillsWaiver[];
+  /**
+   * Terrains this may **also** be built on when a neighbouring hex carries a
+   * named improvement, or absent for "the neighbourhood changes nothing".
+   *
+   * The third seam in the AND. See `AdjacentImprovement`; the floating gardens
+   * are the only user and the reason it exists.
+   */
+  adjacentImprovement?: AdjacentImprovement;
   /** Resources it may be built on, or absent for "bare ground is fine". */
   requiresResource?: ResourceId[];
   /** Resources this improvement grants *access* to. See the docblock. */
@@ -366,6 +402,18 @@ export interface ImprovementDef {
    * so an AI that plants one takes the ground without knowing it should.
    */
   claimsNeighbours?: boolean;
+  /**
+   * Halves of this row's ratified design that the game **cannot do yet**, in a
+   * first-time player's words and with no identifier in them.
+   *
+   * `CardDefBase.deferred`'s field a third table over (`buildingData.ts` carries
+   * the second), and it keeps that field's whole bargain: a row whose design
+   * outruns the machinery says so on its own card, struck through, rather than
+   * being quietly bent into a shape that nearly fits. The floating gardens are
+   * why it exists here — their lake clause is written, correct and inert,
+   * because nothing may stand on a lake — and the Compendium prints it.
+   */
+  deferred?: string[];
 }
 
 /**
@@ -602,6 +650,29 @@ function validateTable(): void {
     }
     if (def.hillsIf !== undefined && def.requiresHills === undefined) {
       throw new Error(`${where} has hillsIf but no requiresHills to waive`);
+    }
+    // The third seam, held to the two things it cannot get wrong. A widening
+    // with nothing to widen reads as a *narrowing* while meaning the opposite —
+    // the failure `freshwaterTerrain` is held to a few lines up — and a
+    // neighbour nothing in the table can be is a rule that never fires.
+    const neighbour = def.adjacentImprovement;
+    if (neighbour !== undefined) {
+      if (def.validTerrain === undefined) {
+        throw new Error(`${where} has adjacentImprovement but no validTerrain to widen`);
+      }
+      if (!Object.prototype.hasOwnProperty.call(IMPROVEMENT_DATA.improvements, neighbour.improvement)) {
+        throw new Error(
+          `${where} wants a neighbouring "${String(neighbour.improvement)}", which is not an improvement`,
+        );
+      }
+      if (neighbour.terrain.length === 0) {
+        throw new Error(`${where} has an adjacentImprovement that widens nothing`);
+      }
+      for (const terrain of neighbour.terrain) {
+        if (!TERRAIN_IDS.includes(terrain)) {
+          throw new Error(`${where} names unknown terrain "${terrain}"`);
+        }
+      }
     }
     if (def.requiresTech !== undefined && !TECH_IDS.includes(def.requiresTech)) {
       throw new Error(`${where} needs unknown technology "${def.requiresTech}"`);

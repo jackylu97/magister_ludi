@@ -108,10 +108,11 @@ function seaState(width = 14, height = 10): GameState {
   // below. A blanket grant would have quietly turned every "and nobody else may"
   // assertion here into a test of the wrong age.
   // `colonialCharters` is in the list for a different reason and it is worth
-  // stating: it founds every city **with a granary**, and a granary pays a point
-  // of food on water — so a blanket grant would have put a citizen on the
-  // fishery before the boats were ever built, which is the premise two of the
-  // tests below rest on.
+  // stating: it founds every city with buildings already standing in it, so a
+  // blanket grant would have put a citizen on the fishery before the boats were
+  // ever built, which is the premise two of the tests below rest on. (Until
+  // 2026-09-03 the reason was sharper still — the free granary paid a point of
+  // food on water — and that line is the one the playtest notes deleted.)
   const SEA_WIDENERS = new Set<string>([
     'wayfinding',
     'theAstrolabe',
@@ -166,10 +167,10 @@ describe('the embark ability', () => {
     expect(hasAbility(state, 99, 'embark')).toBe(false);
   });
 
-  it('appears on Sailing beside the boats and the granary line', () => {
+  it('appears on Sailing beside the boats and the lighthouse', () => {
     // The three gifts of one node, and each comes from a *different* table:
     // `techs.json`'s own abilities block, `improvements.json`'s `requiresTech`,
-    // and `buildings.json`'s `tileYields`. Nothing in `techUnlocks.ts` names
+    // and `techs.json`'s `unlocks.buildings`. Nothing in `techUnlocks.ts` names
     // Sailing to make that happen.
     const gifts = techGifts('sailing');
     const ability = gifts.find((gift) => gift.kind === 'ability');
@@ -182,12 +183,22 @@ describe('the embark ability', () => {
     expect(improvement, 'the boats').toBeDefined();
     expect(improvement!.id).toBe('fishingBoats');
 
-    const line = gifts.find((gift) => gift.kind === 'buildingTileYield');
-    expect(line, 'the granary line').toBeDefined();
-    if (line?.kind !== 'buildingTileYield') throw new Error('expected a building tile yield');
-    expect(line.id).toBe('granary');
-    expect(line.on).toEqual({ test: 'water' });
-    expect(line.add.food).toBe(1);
+    // **The food on water is the lighthouse's, and only the lighthouse's** (the
+    // playtest notes, 2026-09-03). The granary used to carry a second, Sailing-
+    // gated copy of the same line; the user's ruling deleted it, because two
+    // buildings paying a coastline is a coastline that pays twice for reasons a
+    // player cannot see. So the node hands the *building* over and the line
+    // rides on it, rather than the node handing over a line on a building
+    // somebody may already have raised inland.
+    const lighthouse = gifts.find((gift) => gift.kind === 'building' && gift.id === 'lighthouse');
+    expect(lighthouse, 'the lighthouse').toBeDefined();
+    expect(buildingDef('lighthouse').tileYields).toEqual([
+      { on: { test: 'water' }, add: { food: 1 } },
+    ]);
+    expect(buildingDef('granary').tileYields).toBeUndefined();
+    // And nothing anywhere else pays the ground out of a building's row on this
+    // node, which is what "no double pay" means as an assertion.
+    expect(gifts.some((gift) => gift.kind === 'buildingTileYield')).toBe(false);
   });
 });
 
@@ -538,7 +549,19 @@ describe('the coast a citizen works', () => {
 
 // --- the granary's water line -----------------------------------------------
 
-describe('the granary on the water', () => {
+/**
+ * **The lighthouse on the water**, which is where this block used to be about
+ * the granary.
+ *
+ * The rework of 2026-09-03, and the coverage is deliberately the same three
+ * claims: a building's `tileYields` line lands on the *hex* rather than as a
+ * lump on the building (hard rule 5), it is the *city's* line and not the
+ * empire's, and it pays only the town that raised it. What changed is which row
+ * carries the line — the user deleted the granary's Sailing-gated copy because
+ * the lighthouse already paid the same food on the same water, and a coastline
+ * paying twice is a number no player can account for.
+ */
+describe('the lighthouse on the water', () => {
   /** A four-citizen town on the shore, so several water hexes are worked. */
   function shoreTown(state: GameState): City {
     const city = foundCityAt(state, 0, at(state, 3, 5));
@@ -553,39 +576,53 @@ describe('the granary on the water', () => {
     const land = at(state, 4, 5);
     const dry = tileYieldOf(land, yieldContextFor(state, 0));
 
+    // The citizens are *pinned* to the water, because the assigner is too good
+    // at its job to see the difference otherwise: it moves a citizen to whatever
+    // pays most, so a raised lighthouse changes the assignment and not just the
+    // arithmetic. Held still, the whole of the difference is the line.
+    city.lockedTiles = [{ col: 2, row: 5 }];
+    assignCitizens(state, city);
     const before = cityYields(state, city).food;
-    city.buildings.push('granary');
+    expect(city.workedTiles).toContainEqual({ col: 2, row: 5 });
+    city.buildings.push('lighthouse');
     assignCitizens(state, city);
     const after = cityYields(state, city).food;
-    // The granary's own three food plus a point for every water hex worked, so
-    // strictly more than the flat renewal alone would have been.
-    expect(after).toBeGreaterThan(before + buildingFood('granary'));
+    // The lighthouse's own flat food — none — plus a point for the pinned water
+    // hex, and nothing for the dry ones the other citizens are standing on.
+    expect(after).toBe(before + buildingFood('lighthouse') + 1);
 
     // Dry ground is untouched by it, and so is the empire's own context — the
     // line is the *city's*, which is why `yieldContextFor` cannot see it.
     expect(tileYieldOf(land, yieldContextFor(state, 0))).toEqual(dry);
     expect(
       explainTileYield(at(state, 2, 5), yieldContextFor(state, 0)).some(
-        (entry) => entry.source === 'Granary',
+        (entry) => entry.source === 'Lighthouse',
       ),
     ).toBe(false);
   });
 
-  it('waits for Sailing, and says so on Sailing’s card rather than the granary’s', () => {
-    // The citizen is *pinned* to the water, because otherwise the assigner is
-    // too good at its job to see the difference: take Sailing away and it simply
-    // walks the citizen back onto grassland, which pays the same two food. What
-    // is under test is the line, not the assigner, so the hex is held still.
+  it('needs no technology of its own: the building is the whole gate', () => {
+    // The granary's line waited for Sailing and said so on Sailing's card. The
+    // lighthouse's does not, and that is the honest shape: the *building* is
+    // already unlocked by Sailing and already refuses an inland site, so a
+    // second gate on the line would be the same rule written twice. Asserted off
+    // the row rather than by taking a technology away, because there is no
+    // technology left to take.
+    const line = buildingDef('lighthouse').tileYields![0]!;
+    expect(line.requiresTech).toBeUndefined();
+    expect(line.on).toEqual({ test: 'water' });
+    expect(line.add.food).toBe(1);
+
     const state = seaState();
     const city = shoreTown(state);
     city.lockedTiles = [{ col: 2, row: 5 }];
-    city.buildings.push('granary');
+    city.buildings.push('lighthouse');
     assignCitizens(state, city);
     expect(city.workedTiles).toContainEqual({ col: 2, row: 5 });
-    const withSail = cityYields(state, city).food;
-    forget(state, 0, 'sailing');
+    const withLight = cityYields(state, city).food;
+    city.buildings = city.buildings.filter((id) => id !== 'lighthouse');
     assignCitizens(state, city);
-    expect(cityYields(state, city).food).toBe(withSail - 1);
+    expect(cityYields(state, city).food).toBe(withLight - 1);
   });
 
   it('pays only the town that built it', () => {
@@ -597,14 +634,14 @@ describe('the granary on the water', () => {
     assignCitizens(state, north);
     assignCitizens(state, south);
     const before = cityYields(state, south).food;
-    north.buildings.push('granary');
+    north.buildings.push('lighthouse');
     assignCitizens(state, south);
     expect(cityYields(state, south).food).toBe(before);
   });
 });
 
-/** A building's own flat food, for the "strictly more than the renewal" claim. */
-function buildingFood(id: 'granary'): number {
+/** A building's own flat food, for the "the rest of the gain is the line" claim. */
+function buildingFood(id: 'lighthouse'): number {
   return buildingDef(id).food;
 }
 

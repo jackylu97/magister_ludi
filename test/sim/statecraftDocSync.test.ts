@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-
 import { describe, expect, it } from 'vitest';
 
 import { ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
@@ -17,7 +15,14 @@ import { ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
  * nothing yet and are not read.
  */
 describe('the orders doc mirrors the data', () => {
-  const DOC = readFileSync(new URL('../../docs/orders-and-doctrines.md', import.meta.url), 'utf8');
+  // The repo's source-reading pattern: Vite's raw import, so the test runs in
+  // the same loader as everything else and needs no node types.
+  const docFiles = import.meta.glob('../../docs/orders-and-doctrines.md', {
+    eager: true,
+    query: '?raw',
+    import: 'default',
+  });
+  const DOC = Object.values(docFiles)[0] as string;
 
   /** The doc's section heading for each built pool. */
   const POOL_HEADINGS: Record<string, string> = {
@@ -35,7 +40,7 @@ describe('the orders doc mirrors the data', () => {
     const section = DOC.slice(start, end === -1 ? undefined : end);
     const names = new Set<string>();
     for (const line of section.split('\n')) {
-      const cells = line.split('|').map((cell) => cell.trim());
+      const cells = line.split('|').map((cell: string) => cell.trim());
       if (cells.length < 4 || cells[0] !== '' || cells[1] === '') continue;
       if (cells[1] === 'Order' || /^-+$/.test(cells[1])) continue;
       names.add(cells[1]);

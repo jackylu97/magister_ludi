@@ -10,6 +10,7 @@ import {
   latitudeOf,
   rankAmong,
   rankNormalizeInPlace,
+  markMountainAdjacency,
   sampleCylinder,
   waterDistance,
 } from '../../src/sim/mapgen';
@@ -413,5 +414,65 @@ describe('noise primitives', () => {
   it('returns 0 for zero octaves', () => {
     const noise = createNoise3D(makeRng(1));
     expect(fbm3(noise, 1, 2, 3, { octaves: 0, lacunarity: 2, persistence: 0.5 })).toBe(0);
+  });
+});
+
+/**
+ * **The mountain mark** (the playtest notes, 2026-09-03).
+ *
+ * `computeFreshwater`'s sibling one terrain over, and it earns a test for that
+ * function's reason: it is *derived* output that nothing rolls for, read later
+ * by a predicate that holds a tile and no map (`Tile.mountainAdjacent`, and
+ * `TileCondition`'s `adjacentMountain` reading it). A derivation nobody checks
+ * is a card that quietly pays on the wrong hexes.
+ */
+describe('mountain adjacency', () => {
+  it('marks the ring of six and never the peak itself', () => {
+    const map = createMap({ width: 8, height: 8, terrain: 'grassland' });
+    const peak = getTileAt(map, 4, 4)!;
+    peak.terrain = 'mountain';
+    markMountainAdjacency(map);
+
+    // The peak is not beside itself. "A farm beside a mountain" is a sentence
+    // about the field, and nothing grows on the summit.
+    expect(peak.mountainAdjacent).toBeUndefined();
+    const ring = tileNeighbors(map, peak);
+    expect(ring.length).toBe(6);
+    for (const neighbour of ring) {
+      expect(neighbour.mountainAdjacent, `${neighbour.col},${neighbour.row}`).toBe(true);
+    }
+    // And nothing else on the board: absence is the state, so a map with no
+    // mountains carries no flags at all.
+    const marked = map.tiles.filter((tile) => tile.mountainAdjacent === true);
+    expect(marked.length).toBe(6);
+  });
+
+  it('is idempotent, and clears a mark the ground no longer earns', () => {
+    const map = createMap({ width: 8, height: 8, terrain: 'grassland' });
+    getTileAt(map, 4, 4)!.terrain = 'mountain';
+    markMountainAdjacency(map);
+    const once = map.tiles.map((tile) => tile.mountainAdjacent === true);
+    markMountainAdjacency(map);
+    expect(map.tiles.map((tile) => tile.mountainAdjacent === true)).toEqual(once);
+
+    // A broom rather than a one-way stamp: run it on ground that has lost its
+    // mountain and the stale marks go, which is what makes it safe to re-derive.
+    getTileAt(map, 4, 4)!.terrain = 'grassland';
+    markMountainAdjacency(map);
+    expect(map.tiles.some((tile) => tile.mountainAdjacent === true)).toBe(false);
+  });
+
+  it('is what a generated map arrives already carrying', () => {
+    const map = mapFor(1, 'duel');
+    let peaks = 0;
+    for (const tile of map.tiles) {
+      if (tile.terrain !== 'mountain') continue;
+      peaks += 1;
+      for (const neighbour of tileNeighbors(map, tile)) {
+        expect(neighbour.mountainAdjacent, `${neighbour.col},${neighbour.row}`).toBe(true);
+      }
+    }
+    // The sweep is not vacuous — a duel map has mountains on it.
+    expect(peaks).toBeGreaterThan(0);
   });
 });

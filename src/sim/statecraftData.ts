@@ -763,6 +763,24 @@ export type TileCondition =
    */
   | { test: 'freshwater' }
   /**
+   * A **mountain stands next door** — one of the hex's six neighbours is one.
+   * Raised Fields' half of "farms beside a mountain feed better", where the farm
+   * is an `improvement` condition and `all` is what makes them one line.
+   *
+   * `freshwater`'s exact shape and read the same way: off a **derived field on
+   * the ground** (`Tile.mountainAdjacent`, baked once at generation), never off
+   * a walk of the map here. That is not an optimisation dressed as a rule — this
+   * predicate is asked millions of times a turn and holds a tile with no map
+   * behind it, so a condition that needed the neighbours would have had to be a
+   * second kind of condition with a second kind of caller. Mountains never move,
+   * so the bake is correct for the life of the map.
+   *
+   * It is the tile scale of `CityScope`'s `mountainAdjacent`, and the two are
+   * deliberately separate questions rather than one with a radius: that one asks
+   * whether a *town* has a peak on its doorstep, and this asks it of a field.
+   */
+  | { test: 'adjacentMountain' }
+  /**
    * The hex **pays this voice at all**, off its own ground — The Gilded Court's
    * "+1 science and +1 culture on every hex that yields gold".
    *

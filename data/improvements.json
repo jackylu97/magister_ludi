@@ -228,7 +228,7 @@
       "name": "Plantation",
       "emoji": "🌿",
       "chargeCost": 1,
-      "requiresTech": "earthenware",
+      "requiresTech": "calendar",
       "yields": {
         "food": 1,
         "production": 0,
@@ -301,30 +301,29 @@
       ],
       "clearsClutter": false
     },
-    "standingStones": {
-      "name": "Standing Stones",
-      "emoji": "🗿",
+    "floatingGardens": {
+      "name": "Floating Gardens",
+      "emoji": "🪷",
       "chargeCost": 1,
-      "requiresTech": "stonecraft",
+      "requiresTech": "raisedFields",
       "yields": {
-        "food": 0,
+        "food": 1,
         "production": 0,
-        "gold": 0,
-        "culture": 1,
-        "faith": 1
+        "gold": 1
       },
       "validTerrain": [
-        "grassland",
-        "plains",
-        "desert",
-        "tundra",
-        "snow"
+        "lake"
       ],
-      "validFeatures": [
-        "none"
-      ],
-      "requiresHills": false,
-      "clearsClutter": true
+      "adjacentImprovement": {
+        "improvement": "fishingBoats",
+        "terrain": [
+          "coast"
+        ]
+      },
+      "clearsClutter": false,
+      "deferred": [
+        "Beds on open lake water wait for a way to work a lake at all: no boat crosses one and nobody may stand on one, so the only gardens anybody can lay today are the ones beside a fishing boat."
+      ]
     },
     "academy": {
       "name": "Academy",

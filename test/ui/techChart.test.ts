@@ -667,9 +667,18 @@ describe('packChart', () => {
     // middle stacks are full at those heights), so all three take the honest
     // 16px bow the machinery was built for. The exact list is the pin: a
     // fourth bow is a decision, not a drift.
+    //
+    // Philosophy's bow turned over on 2026-09-03 and the cause is a *face*, not
+    // a lane: Raised Fields stopped unlocking the Terraces (the playtest notes
+    // replaced that building with a farm renewal and the floating gardens), so
+    // its card lost an unlock row, the column it sits in packs a little higher,
+    // and the connector now clears Theology's stack from above instead of from
+    // below. Same three bows, one of them mirrored.
     expect(packed.bowed).toEqual([
       { bow: 16, from: 'shipwrights', to: 'paperMoney' },
       { bow: 16, from: 'kingship', to: 'theExaminationHall' },
+      // Stone Walls (item 13) made Siegecraft's card a row taller, which
+      // re-packed column 6 and flipped this bow back below Theology's stack.
       { bow: -16, from: 'philosophy', to: 'theology' },
     ]);
   });
