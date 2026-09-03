@@ -1068,7 +1068,7 @@ describe('chopBaseFor — the chop scales with what this empire has learned', ()
     expect(RULES.improvements.chopPerTech).toBe(0.05);
     const base = chopBaseFor(state, 0, 'forest');
     expect(base.production).toBe(26); // floor(20 × 1.3)
-    expect(base.label).toBe('Forest 20 · +30% for 6 technologies');
+    expect(base.label).toBe('Forest 20 · grown +30% by your 6 technologies');
   });
 
   it('at twelve technologies, +60% floored', () => {
@@ -1084,7 +1084,7 @@ describe('chopBaseFor — the chop scales with what this empire has learned', ()
     playerWith(state, 6);
     const base = chopBaseFor(state, 0, 'jungle');
     expect(base.production).toBe(Math.floor(chopYield('jungle').production * 1.3));
-    expect(base.label).toBe(`Jungle ${chopYield('jungle').production} · +30% for 6 technologies`);
+    expect(base.label).toBe(`Jungle ${chopYield('jungle').production} · grown +30% by your 6 technologies`);
   });
 
   it('an unknown player is priced off the raw table, like an unknown player’s unit cost', () => {

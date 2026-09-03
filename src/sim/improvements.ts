@@ -766,7 +766,9 @@ export function chopBaseFor(
   if (production === raw) return { production, label: `${noun} ${raw}` };
   const percent = Math.round(techs * RULES.improvements.chopPerTech * 100);
   const techWord = techs === 1 ? 'technology' : 'technologies';
-  return { production, label: `${noun} ${raw} · +${percent}% for ${techs} ${techWord}` };
+  // "for 6 technologies" read as a duration in play (the user heard "for 6
+  // turns"); "grown by" says what the aging actually is.
+  return { production, label: `${noun} ${raw} · grown +${percent}% by your ${techs} ${techWord}` };
 }
 
 /**
