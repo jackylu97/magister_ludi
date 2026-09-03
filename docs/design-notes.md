@@ -206,3 +206,19 @@ uncompared, ~17 of ~30 card-effect kinds scored as a guess, rites in roster
 order, first-legal trade routes, fixed worker preference list, great people
 asleep, one-ply combat. Next: personas (balanced/wide/tall/zealot/warmonger)
 and the leak-plugging pass the fruit ranking named.
+
+## Entry LXV — bot brain v1: the bot finishes games (2026-09-03)
+
+Personas (five, sparse config overrides, per-seat, a typo'd key fails the
+build), the improvement plan (workers priced by the actual ground; the flat
+80, the preference list and nearest-tile all deleted), wonder patience, the
+gold-pressure grace, great people that act or plant instead of sleeping, and
+the citizen priced as the next tile it would work plus its real science
+stream plus a small-city premium. The arena verdict, same seed both sides:
+an undecided 200-turn stalemate became a win at t182, 15 beads to 5, eight
+towns a side, worst late income −25/t → −7/t. The measured cost: a slower
+opening tree (spades before libraries, converged by t160) — the two dials
+are named in the arena docblock. The disband arm vanished from a healthy
+100-turn game and its register pin says so as a finding. Interpretation
+flag standing: growth.smallCityPop 9 = the threshold reading of the user's
+"start with a value of 9"; the premium is its own knob.
