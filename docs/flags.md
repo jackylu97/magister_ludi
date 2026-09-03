@@ -164,6 +164,12 @@ to press).
   (`ignoresTerrainCost`) stays for future pathfinder units — code keeps the
   marker, players hear the unit they actually have.
 
+- **Bot blind spot found while verifying the Lighthouse**: the hypothetical
+  path (`cityYields(state, city, [building])`) prices the quote but not the
+  building's own TILE lines, so the bot's what-if undervalues coastal
+  buildings with `tileYields` (Lighthouse). Real construction pays correctly;
+  only the appraisal is blind. Small fix in the ghost context when wanted.
+
 ## C. Open threads
 
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture
