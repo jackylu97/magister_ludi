@@ -29,7 +29,6 @@ into Orders generally.
 - luxury resources from captured cities supply +50% happiness
 - gain +1 happiness from each unique bonus resource improved in your lands (includes great people improvements)
 - gain +2 happiness from every unique luxury you've traded to another player.
-- Tech: The Bronze Mirror's trinkets *(deferred: a luxury not on the map is a new mechanism)*
 - Deeds: none needed for now
 
 ## Æra IV

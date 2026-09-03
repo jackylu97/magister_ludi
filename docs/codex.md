@@ -32,7 +32,7 @@ theme vocabulary (Entry LII) is the reorganisation. † marks a deferred row._
 
 ### star — 7 cards
 - **culture · Doctrine** (1): The Encyclopaedia
-- **culture · Order** (6): Curious Elders · Scholars' Stipend · Star-Gazers · The Almanac · The Bronze Mirror (retired) † · The Lyceum
+- **culture · Order** (5): Curious Elders · Scholars' Stipend · Star-Gazers · The Almanac · The Lyceum
 
 ### hunt — 6 cards
 - **culture · Doctrine** (1): Wolf-Mother's Pact

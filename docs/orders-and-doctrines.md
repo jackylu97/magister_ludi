@@ -380,7 +380,6 @@ pool and building the content are one decision.
 - **The Loose Rein** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
 - **Triumphs** — The renown a capture pays is not built: a windfall's grants are banked by a routine that cannot reach the renown ladder, so only the culture arrives. † capturing a city also grants 5 renown
 - **The Laureate** — The great-person improvements are the academy, landmark, manufactory, customs house and citadel.
-- **The Bronze Mirror** — Not built: every luxury in this game is a seam in the ground, held by working it. Nothing can hand an empire a luxury that is not anywhere on the map. Retired until one can. † a luxury of your own make — bronze trinkets — worth +1 happiness in every city, and +1 more for each copper or tin you hold
 - **Cistern Works** — It answers what is asked of a city — whether the town can drink. A hex out in the fields is still watered by the river or by nothing.
 - **Sanctuary** — Not built: a city can only be captured in this game, never sacked. Retired until sacking exists. † your holy city is sacked rather than captured while it keeps your religion
 - **The Greenwood Law** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.

@@ -1690,7 +1690,7 @@
           "percent": 30
         }
       ],
-      "note": "Border expansion is how fast a city claims its next hex, fed by that city\u2019s own culture \u2014 separate from the culture your empire saves toward its next draft. This hurries the borders only.",
+      "note": "Border expansion is how fast a city claims its next hex, fed by that city’s own culture — separate from the culture your empire saves toward its next draft. This hurries the borders only.",
       "upgrade": [
         {
           "kind": "rulePercent",
@@ -3459,21 +3459,6 @@
           "building": "granary"
         }
       ]
-    },
-    "theBronzeMirror": {
-      "name": "The Bronze Mirror",
-      "pool": "governmentI",
-      "slot": "wildcard",
-      "line": "star",
-      "flavor": "It shows the room, and one thing that is not in the room.",
-      "text": "You gain a luxury of your own make — bronze trinkets: +1 happiness in every city, and +1 more for each copper or tin you hold.",
-      "upgradable": false,
-      "effects": [],
-      "deferred": [
-        "a luxury of your own make — bronze trinkets — worth +1 happiness in every city, and +1 more for each copper or tin you hold"
-      ],
-      "note": "Not built: every luxury in this game is a seam in the ground, held by working it. Nothing can hand an empire a luxury that is not anywhere on the map. Retired until one can.",
-      "retired": true
     },
     "theChoir": {
       "name": "The Choir",

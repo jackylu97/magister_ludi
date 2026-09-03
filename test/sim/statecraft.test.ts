@@ -2837,7 +2837,6 @@ describe('the Orders pass of 2026-08-29', () => {
     ['hillForts', 'governmentI', 'military'],
     ['thePilgrimsPurse', 'governmentI', 'wildcard'],
     ['charterTowns', 'governmentI', 'economic'],
-    ['theBronzeMirror', 'governmentI', 'wildcard'],
     ['theChoir', 'governmentII', 'wildcard'],
     ['starGazers', 'governmentII', 'wildcard'],
     ['cisternWorks', 'governmentII', 'economic'],
@@ -2849,8 +2848,10 @@ describe('the Orders pass of 2026-08-29', () => {
     ['sanctuary', 'governmentII', 'wildcard'],
   ] as never;
 
-  /** The two rows that ship inert — a design decision, written on the row. */
-  const RETIRED: readonly string[] = ['theBronzeMirror', 'sanctuary'];
+  /** The row that ships inert — a design decision, written on the row. The
+   * Bronze Mirror was deleted outright on 2026-09-03 (user: "remove the
+   * bronze mirror from the game") — never offered, so no save can hold it. */
+  const RETIRED: readonly string[] = ['sanctuary'];
 
   it('seats every new row in its ratified pool and slot', () => {
     for (const [id, pool, slotType] of ADDED) {
@@ -3109,11 +3110,7 @@ describe('the Orders pass of 2026-08-29', () => {
     // "heals 15", not "heals a further 15": a kill pays no heal of its own, and
     // an increment on a number that does not exist is a card promising nothing.
     expect(said('theOathBound')).toEqual(['killing a unit heals 15']);
-    // The two deferred rows say what is missing and nothing else.
-    expect(said('theBronzeMirror')).toEqual([
-      'a luxury of your own make — bronze trinkets — worth +1 happiness in every city, ' +
-        'and +1 more for each copper or tin you hold — not built yet',
-    ]);
+    // The deferred row says what is missing and nothing else.
     expect(said('sanctuary')).toEqual([
       'your holy city is sacked rather than captured while it keeps your religion — not built yet',
     ]);

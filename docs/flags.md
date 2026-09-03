@@ -173,7 +173,7 @@ source. Regenerate this list with the scratchpad dump after any data pass.
 
 **Orders** — Pilgrim Roads (cap deepening) · Triumphs (renown grant: a
 windfall's grants can't reach the renown ladder) · The Standing Levy (cadence
-deepening) · The Bronze Mirror (a luxury not on the map; retired) · Sanctuary
+deepening) · Sanctuary
 (sacking doesn't exist; retired) · The Escorted Roads (route safety is
 placeless) · The Dry Docks (heal-in-port is a hex rule).
 
