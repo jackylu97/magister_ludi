@@ -118,6 +118,21 @@ const renderer = new Renderer3D(canvas);
 // No seat: the spectator board every gallery already draws. Nothing is fogged,
 // and the seat-filtered layers (units, cities, territory) draw everybody's.
 renderer.setFogSeat(null);
+// The spectator reads the whole ledger: yield glyphs and resource markers on
+// every hex (null cell lists = the whole board), resources revealed the way
+// the omniscient bots already see them. The yields lens prices through each
+// town's own context, so the glyphs match what the citizens are actually
+// paid.
+renderer.setLens({
+  mode: 'none',
+  cells: null,
+  resources: true,
+  resourceCells: null,
+  yields: true,
+  yieldCells: null,
+  playerId: 0,
+  revealResources: true,
+});
 
 // --- the game -----------------------------------------------------------------
 
