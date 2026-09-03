@@ -5,7 +5,7 @@
  * been answered by eye and both were wrong. *Is the chart legible* was measured
  * by squinting at it, so a re-lay had no way to prove it had helped; *does the
  * chart fit* was assumed, so the seventh lane went below the fold of a 900px
- * screen and stayed there. `chartCrossings` and `fitLanes` are the two pure
+ * screen and stayed there. `chartCrossings` and `packChart` are the two pure
  * answers, and this file pins both against the layout that shipped.
  *
  * The counter is deliberately fed layouts that are *not* the one in the file —
@@ -20,6 +20,7 @@ import {
   type ChartLayout,
   TECH_IDS,
   TECH_LANE_LIMIT,
+  type TechId,
   chartCrossings,
   chartFalseChains,
   techChartLayout,
@@ -29,12 +30,16 @@ import {
   techDepth,
 } from '../../src/sim/techData';
 import {
+  CHART_SCALE_MIN,
   COL_WIDTH_MAX,
   COL_WIDTH_MIN,
-  LANE_GAP_MAX,
-  LANE_GAP_MIN,
+  PACK_GAP_MAX,
+  PACK_GAP_MIN,
+  type PackCard,
+  type PackGeometry,
   fitColumns,
-  fitLanes,
+  fitPacked,
+  packChart,
 } from '../../src/ui/techFit';
 import { techColumnCount } from '../../src/sim/techData';
 
@@ -418,117 +423,358 @@ describe('a column is a price', () => {
   });
 });
 
-describe('fitLanes', () => {
-  it('spreads the slack when the lanes fit with room over', () => {
-    // 400px of lanes under a 520px stage, five gaps: 24px each would be 520, so
-    // the whole 120px of slack is available and the cap is what stops it.
-    expect(fitLanes(520, 400, 5)).toEqual({ gap: LANE_GAP_MAX, overflow: 0 });
-    // Less slack than the cap wants, so the gap is the slack divided out.
-    expect(fitLanes(460, 400, 5)).toEqual({ gap: 12, overflow: 0 });
+/**
+ * The packed columns, which replaced the lanes on 2026-09-03.
+ *
+ * The complaint was the plainest kind and the user drew the answer: the chart
+ * was one grid with eight full-width lane tracks, so **every column paid the
+ * height of all eight** and a column holding three cards drew five empty tracks
+ * of night under them. "Arrange the cards like in my image with less empty space
+ * — there's space for a node in between nodes in one column, because they're
+ * occupied in another column."
+ *
+ * So the row authored in `data/techs.json` stopped being a *position* and became
+ * an **order**, and `packChart` is what turns the one into the other. What is
+ * pinned here is the four properties that make the result reviewable rather than
+ * merely plausible — it is deterministic, it never reorders a column, it never
+ * lets two cards touch, and no connector runs through a card that is not its
+ * endpoint — and then the height, which is what the whole pass was for.
+ *
+ * The lane-based tests above are untouched on purpose: the *data* did not move.
+ * `techChartLayout` is still keyed on rows and still says what the drawing says.
+ */
+describe('packChart', () => {
+  /** The chart's own geometry at the drawn-for column width. */
+  const GEOMETRY: PackGeometry = { columnWidth: COL_WIDTH_MIN, columnGap: 52 };
+
+  /**
+   * What a node card measures, from its parts.
+   *
+   * There is no jsdom in this suite and there would be no type in it if there
+   * were, so the heights are **modelled** from the stylesheet rather than
+   * measured — the chrome, the title row, the figures row, and the unlock lines
+   * the face compaction left (at most two, then a counted line). The model is
+   * the honest one for the question being asked, which is about the *shape* of
+   * the packed chart: a card two pixels taller than this moves the total by a
+   * fraction and moves no conclusion.
+   *
+   * The figures are `style.css`'s, after the tightening that shipped with the
+   * pack: padding 6/7 and a 1.5px border either side, a 14px name, a 10px mono
+   * figures line, and a 15px mark box per unlock row at a 2px gap.
+   */
+  const CHROME = 6 + 7 + 1.5 * 2;
+  const TITLE = 18;
+  const FIGURES = 2 + 12;
+  const UNLOCKS_TOP = 5;
+  const UNLOCK_ROW = 15;
+  const UNLOCK_GAP = 2;
+  const MORE_ROW = 13;
+  /** The face's own budget — `FACE_UNLOCKS` in `techTree.ts`. */
+  const FACE_UNLOCKS = 2;
+
+  function faceHeight(id: TechId): number {
+    const { units = [], buildings = [] } = techDef(id).unlocks;
+    const listed = Math.min(FACE_UNLOCKS, units.length + buildings.length);
+    const more = units.length + buildings.length - listed;
+    let height = CHROME + TITLE + FIGURES;
+    const rows = listed + (more > 0 ? 1 : 0);
+    if (rows > 0) height += UNLOCKS_TOP + UNLOCK_GAP * (rows - 1);
+    height += UNLOCK_ROW * listed + (more > 0 ? MORE_ROW : 0);
+    return height;
+  }
+
+  /** The shipped tree, as the packer takes it. */
+  function shippedCards(): PackCard[] {
+    return TECH_IDS.map((id) => ({
+      id,
+      column: techColumn(id),
+      order: techDef(id).row,
+      height: faceHeight(id),
+    }));
+  }
+
+  function shippedEdges(): [string, string][] {
+    return TECH_IDS.flatMap((id) =>
+      techDef(id).prereqs.map((prereq) => [prereq, id] as [string, string]),
+    );
+  }
+
+  /** A hand-drawn one, so the invariants are asserted on arithmetic too. */
+  const MINI: PackCard[] = [
+    { id: 'a', column: 0, order: 3, height: 40 },
+    { id: 'b', column: 1, order: 0, height: 60 },
+    { id: 'c', column: 1, order: 1, height: 40 },
+    { id: 'd', column: 1, order: 2, height: 40 },
+    { id: 'e', column: 2, order: 1, height: 80 },
+  ];
+  const MINI_EDGES: [string, string][] = [
+    ['a', 'b'],
+    ['a', 'c'],
+    ['c', 'e'],
+    ['d', 'e'],
+  ];
+
+  it('is a pure function of the data and the measured heights', () => {
+    // The claim the whole layout rests on: a chart that laid out differently on
+    // the second open would be a chart nobody could review, and every connector
+    // in it is measured off where the cards ended up. No clock, no randomness,
+    // and no Map iteration deciding an outcome.
+    const once = packChart(shippedCards(), shippedEdges(), PACK_GAP_MAX, GEOMETRY);
+    const again = packChart(shippedCards(), shippedEdges(), PACK_GAP_MAX, GEOMETRY);
+    expect([...again.tops.entries()]).toEqual([...once.tops.entries()]);
+    expect(again.height).toBe(once.height);
+    expect(again.bowed).toEqual(once.bowed);
+
+    // And the input's own order does not decide it either: the cards are grouped
+    // by column and sorted by the authored row, so handing them over backwards
+    // is the same chart.
+    const backwards = packChart(
+      [...shippedCards()].reverse(),
+      [...shippedEdges()].reverse(),
+      PACK_GAP_MAX,
+      GEOMETRY,
+    );
+    for (const [id, top] of once.tops) expect(backwards.tops.get(id), id).toBeCloseTo(top, 6);
   });
 
-  it('closes up and reports what still overruns', () => {
-    // 600px of lanes under a 500px stage: nothing the gap can do saves it, so
-    // it goes to the floor and the remainder is the stage's cue to scroll.
-    const fit = fitLanes(500, 600, 5);
-    expect(fit.gap).toBe(LANE_GAP_MIN);
-    expect(fit.overflow).toBe(600 + LANE_GAP_MIN * 5 - 500);
-  });
-
-  it('measures the overrun at the gap it actually chose', () => {
-    // The trap this avoids: a chart that overruns by 3px at the closed-up gap
-    // must not be reported as fitting because the *wanted* gap was negative.
-    const content = 500;
-    const available = content + LANE_GAP_MIN * 4 - 3;
-    const fit = fitLanes(available, content, 4);
-    expect(fit.gap).toBe(LANE_GAP_MIN);
-    expect(fit.overflow).toBe(3);
-  });
-
-  it('never returns a fractional gap', () => {
-    // A fraction of a pixel per lane is a fraction of a pixel of rounding
-    // between the height measured and the height laid out, and the measurement
-    // is taken again on the next frame — so it would never settle.
-    for (let available = 300; available < 900; available += 7) {
-      const { gap } = fitLanes(available, 512, 5);
-      expect(Number.isInteger(gap), `available ${available}`).toBe(true);
+  it('never reorders a column — the drawing’s top-to-bottom is the user’s', () => {
+    // **The authored `row` is the law of order and not of position.** It is the
+    // one thing in the pack that is not the packer's to decide: the rows are the
+    // user's own drawing, and a smoothing pass that swapped two of them because
+    // it liked the lines better would be the layout overruling the designer.
+    const packed = packChart(shippedCards(), shippedEdges(), PACK_GAP_MAX, GEOMETRY);
+    const byColumn = new Map<number, PackCard[]>();
+    for (const card of shippedCards()) {
+      byColumn.set(card.column, [...(byColumn.get(card.column) ?? []), card]);
+    }
+    for (const [column, stack] of byColumn) {
+      const authored = [...stack].sort((a, b) => a.order - b.order);
+      for (let index = 1; index < authored.length; index += 1) {
+        const above = authored[index - 1]!;
+        const below = authored[index]!;
+        expect(
+          packed.tops.get(below.id)!,
+          `column ${column}: ${below.id} (row ${below.order}) must stay under ${above.id} (row ${above.order})`,
+        ).toBeGreaterThan(packed.tops.get(above.id)!);
+      }
     }
   });
 
-  it('answers a chart nobody has laid out yet without dividing by zero', () => {
-    expect(fitLanes(0, 0, 0)).toEqual({ gap: LANE_GAP_MIN, overflow: 0 });
-    expect(fitLanes(Number.NaN, 400, 5)).toEqual({ gap: LANE_GAP_MIN, overflow: 0 });
-    // A single-lane chart has no gap to size, and asking for one would be a
-    // division by zero dressed up as a layout.
-    expect(fitLanes(900, 100, 0).gap).toBe(LANE_GAP_MIN);
+  it('leaves at least the gap between two cards in a column', () => {
+    for (const gap of [PACK_GAP_MIN, PACK_GAP_MAX]) {
+      const cards = shippedCards();
+      const packed = packChart(cards, shippedEdges(), gap, GEOMETRY);
+      const height = new Map(cards.map((card) => [card.id, card.height]));
+      const byColumn = new Map<number, PackCard[]>();
+      for (const card of cards) {
+        byColumn.set(card.column, [...(byColumn.get(card.column) ?? []), card]);
+      }
+      for (const stack of byColumn.values()) {
+        const authored = [...stack].sort((a, b) => a.order - b.order);
+        for (let index = 1; index < authored.length; index += 1) {
+          const above = authored[index - 1]!;
+          const below = authored[index]!;
+          const clear =
+            packed.tops.get(below.id)! - (packed.tops.get(above.id)! + height.get(above.id)!);
+          // A hair of tolerance for the arithmetic, and nothing more: two cards
+          // a pixel apart is two cards touching.
+          expect(clear, `${above.id} → ${below.id} at gap ${gap}`).toBeGreaterThanOrEqual(
+            gap - 1e-6,
+          );
+        }
+      }
+      // And nothing leaves the field, in either direction.
+      for (const card of cards) {
+        expect(packed.tops.get(card.id)!, card.id).toBeGreaterThanOrEqual(-1e-6);
+        expect(packed.tops.get(card.id)! + card.height, card.id).toBeLessThanOrEqual(
+          packed.height + 1e-6,
+        );
+      }
+    }
+  });
+
+  it('holds both invariants on a hand-drawn chart too', () => {
+    // The shipped tree is one arrangement; the arithmetic has to be right on any
+    // of them. This one is deliberately lopsided — one card in a column beside
+    // three in the next — which is exactly the case the lanes could not draw.
+    const packed = packChart(MINI, MINI_EDGES, 10, GEOMETRY);
+    // The tallest column is b+c+d: 60 + 40 + 40 with two gaps.
+    expect(packed.height).toBe(160);
+    expect(packed.tops.get('b')!).toBeLessThan(packed.tops.get('c')!);
+    expect(packed.tops.get('c')!).toBeLessThan(packed.tops.get('d')!);
+    expect(packed.tops.get('c')! - packed.tops.get('b')!).toBeGreaterThanOrEqual(70);
+    // A single card in a column sits where what it is joined to is, not at the
+    // top of a track it happens to have been authored into: `a` feeds `b` and
+    // `c`, so it settles between them.
+    expect(packed.tops.get('a')! + 20).toBeGreaterThan(packed.tops.get('b')! + 30);
+    expect(packed.tops.get('a')! + 20).toBeLessThan(packed.tops.get('d')! + 20);
   });
 
   /**
-   * The pin the fold pass of 2026-09-02 added, and the thing it is guarding is a
-   * *silence*: eleven lanes overran the user's window by eight hundred pixels
-   * and nothing in the suite said so, because `fitLanes` was only ever asked
-   * about miniatures. Æra II read as five technologies for a week.
+   * The false-chain principle, which survived the loss of the lanes by becoming
+   * **geometric**.
    *
-   * So this asks the question at the size the game is actually played at. **The
-   * stage on a 1456×827 window measures 681px** — the viewport less the
-   * overlay's padding, the sheet's border and padding, the head and the flex gap
-   * — measured in Chrome at the shipped metrics rather than derived, which is
-   * why it is a constant here with its provenance written down.
-   *
-   * Two claims, and neither is "it fits":
-   *
-   *   · **the pitch is bounded by the stage** whenever the chart fits at all, so
-   *     a future lane count re-fits instead of re-clipping; and
-   *   · **an overrun is always reported**, at every content height, so the stage
-   *     stays scrollable rather than drawing lanes off the bottom edge.
-   *
-   * The chart at eight lanes is 1032px of cards with the epigrams dropped, which
-   * is the second case: it is 351px shorter than eleven lanes were and it still
-   * overruns. That is a fact about the *cards* — the shortest node in the set is
-   * 60px, and eight of those plus the closed-up gaps already pass 681 — so no
-   * lane count the graph permits can clear the fold, and the honest thing for
-   * this file to pin is the report rather than a fit that is not available.
+   * It used to be a claim about rows — `chartFalseChains` above, which is still
+   * the right question to ask of the *data* — and a chart with no rows left needs
+   * the same claim asked of the boxes: a line that enters one card and leaves the
+   * other side reads as a prerequisite nobody wrote, whether or not there is a
+   * lane involved. So this recomputes the bands from the packer's own answer
+   * rather than trusting its report, which is the only form of the assertion a
+   * bug in `clearChains` cannot quietly pass.
    */
-  it('bounds the pitch by the stage, and says so when it cannot', () => {
-    /** The user's window, measured: `chart.clientHeight` at 1456×827. */
-    const STAGE = 681;
-    const LANES = TECH_LANE_LIMIT;
-    expect(LANES).toBe(8);
+  it('never runs a connector through a card that is not its endpoint', () => {
+    const cards = shippedCards();
+    const packed = packChart(cards, shippedEdges(), PACK_GAP_MAX, GEOMETRY);
+    const height = new Map(cards.map((card) => [card.id, card.height]));
+    const column = new Map(cards.map((card) => [card.id, card.column]));
+    const pitch = GEOMETRY.columnWidth + GEOMETRY.columnGap;
+    const bowed = new Set(packed.bowed.map((edge) => `${edge.from}>${edge.to}`));
 
-    // A chart that fits: every lane's share of the stage — the pitch — is at
-    // most what the stage has to give, which is the whole of the fit rule.
-    for (let content = 120; content <= STAGE; content += 13) {
-      const { gap, overflow } = fitLanes(STAGE, content, LANES);
-      const drawn = content + gap * LANES;
-      if (overflow > 0) continue;
-      expect(drawn, `content ${content}`).toBeLessThanOrEqual(STAGE);
-      expect(drawn / LANES, `pitch at content ${content}`).toBeLessThanOrEqual(STAGE / LANES);
+    for (const [from, to] of shippedEdges()) {
+      const a = column.get(from)!;
+      const b = column.get(to)!;
+      if (b - a < 2) continue; // adjacent columns pass over nothing at all
+      const x1 = a * pitch + GEOMETRY.columnWidth;
+      const x2 = b * pitch;
+      const y1 = packed.tops.get(from)! + height.get(from)! / 2;
+      const y2 = packed.tops.get(to)! + height.get(to)! / 2;
+      for (const card of cards) {
+        if (card.column <= a || card.column >= b) continue;
+        const left = card.column * pitch;
+        const right = left + GEOMETRY.columnWidth;
+        const at = (x: number): number => y1 + ((y2 - y1) * (x - x1)) / (x2 - x1);
+        const low = Math.min(at(left), at(right));
+        const high = Math.max(at(left), at(right));
+        const top = packed.tops.get(card.id)!;
+        const through = high > top && low < top + card.height;
+        // Either the packer laid the card clear of the band, or it said so — and
+        // a connector it said so about is drawn bowed (`drawLines`), so the sky
+        // never *shows* a line through a card either way.
+        expect(
+          !through || bowed.has(`${from}>${to}`),
+          `${from} → ${to} runs through ${card.id} and was not reported`,
+        ).toBe(true);
+      }
     }
 
-    // And one that does not: the gap is at the floor and the remainder is
-    // handed back rather than swallowed. 1032 is the shipped chart's own lane
-    // height, epigrams dropped (`.is-compact`), measured in Chrome.
-    const shipped = fitLanes(STAGE, 1032, LANES);
-    expect(shipped.gap).toBe(LANE_GAP_MIN);
-    expect(shipped.overflow).toBe(1032 + LANE_GAP_MIN * LANES - STAGE);
-    expect(shipped.overflow).toBeGreaterThan(0);
+    // The shipped tree, at the shipped metrics, is laid clear outright: nothing
+    // has to be bowed at all. A future node that forces one is a change worth
+    // seeing in a diff rather than a silent bend.
+    expect(packed.bowed).toEqual([]);
+  });
 
-    // And the claim that this is the *cards* and not the lay. A lane is as tall
-    // as its tallest card, so the shortest chart any eight-lane arrangement of
-    // these fifty could draw is the one that sorts them by height and cuts every
-    // seven — the tallest seven sharing one lane, the next seven the next, and
-    // so on. Off the measured heights that comes to **845px**, and it overruns
-    // too. No re-lay reaches the fold from here; a card-metrics pass or a deeper
-    // tree does.
-    const BEST_PACKING = 845;
-    expect(BEST_PACKING).toBeLessThan(1032);
-    expect(fitLanes(STAGE, BEST_PACKING, LANES).overflow).toBeGreaterThan(0);
+  /**
+   * The height, which is what the whole pass was for.
+   *
+   * The lane grid drew the fifty-node tree at **1032px** with the epigrams
+   * already dropped — eight lanes, every column paying for all of them — against
+   * a 681px stage, and the file above used to pin that overrun as a fact nothing
+   * could be done about ("no lane count the graph permits can clear the fold").
+   * It was a fact about the *grid*, and the grid is gone.
+   *
+   * Two claims. The chart is now **about as tall as its tallest column**, which
+   * is the whole of the compaction and is stated as a bound rather than as a
+   * figure so a new node in a short column costs nothing; and it **fits the
+   * user's own window**, at the roomy gap, with no shrinking and no scroll.
+   */
+  it('draws the fifty-node tree in a little over its tallest column', () => {
+    const cards = shippedCards();
+    const packed = packChart(cards, shippedEdges(), PACK_GAP_MAX, GEOMETRY);
+    const tallest = Math.max(...cards.map((card) => card.height));
+    const deepest = Math.max(
+      ...[...new Set(cards.map((card) => card.column))].map(
+        (column) => cards.filter((card) => card.column === column).length,
+      ),
+    );
+    // Six nodes is the deepest column the tree has, and the packed chart is
+    // those six cards and the air between them and nothing else.
+    expect(deepest).toBe(6);
+    expect(packed.height).toBeLessThanOrEqual(6.5 * tallest + PACK_GAP_MAX * (deepest - 1));
+  });
+
+  it('fits the user’s window, which eight lanes never could', () => {
+    /** The user's window, measured: `chart.clientHeight` at 1456×827. */
+    const STAGE = 681;
+    /** The age-label strip above the cards, measured in Chrome. */
+    const STRIP = 22;
+    const packed = packChart(shippedCards(), shippedEdges(), PACK_GAP_MAX, GEOMETRY);
+    // The measured figure, pinned: **606px** of chart under a 22px strip, where
+    // the lanes drew 1032 and overran by 415. A change that moves it is a change
+    // to the card face or to the deepest column, and both are worth a diff.
+    expect(Math.round(packed.height)).toBe(606);
+    expect(STRIP + packed.height).toBeLessThanOrEqual(STAGE);
+    // So nothing is shrunk and nothing scrolls — the two fallbacks stay unused
+    // at the size the game is actually played at.
+    expect(fitPacked(STAGE, STRIP + packed.height)).toEqual({ scale: 1, overflow: 0 });
+  });
+
+  it('closes the gaps before it shrinks anything', () => {
+    // The order of the fallbacks, which is the cheapest first: air costs nothing
+    // to give up and type costs legibility. Closing up is worth five gaps of the
+    // deepest column, which is real height and is taken before a scale is.
+    const roomy = packChart(shippedCards(), shippedEdges(), PACK_GAP_MAX, GEOMETRY);
+    const tight = packChart(shippedCards(), shippedEdges(), PACK_GAP_MIN, GEOMETRY);
+    expect(tight.height).toBeLessThan(roomy.height);
+    expect(roomy.height - tight.height).toBe((PACK_GAP_MAX - PACK_GAP_MIN) * 5);
+  });
+
+  it('answers a chart nobody has laid out yet without dividing by zero', () => {
+    const empty = packChart([], [], PACK_GAP_MAX, GEOMETRY);
+    expect(empty.height).toBe(0);
+    expect([...empty.tops]).toEqual([]);
+    expect(empty.bowed).toEqual([]);
+    // An edge naming a card the layout does not hold is ignored rather than
+    // thrown on — the same forgiveness `chartCrossings` gives, and for the same
+    // reason: a filtered layout is a legitimate thing to pack.
+    const partial = packChart(MINI.slice(0, 3), MINI_EDGES, 10, GEOMETRY);
+    expect(partial.tops.size).toBe(3);
+  });
+});
+
+/**
+ * What to do when the packed chart still will not fit: `fitLanes`' successor,
+ * and the third of the three steps rather than the first.
+ *
+ * The caller closes the gaps itself (that is `packChart` at `PACK_GAP_MIN`, and
+ * it is the cheapest height there is because it costs nothing but air). This is
+ * asked afterwards and answers the two that are left, in order: **shrink** the
+ * whole chart, floored at `CHART_SCALE_MIN` because below it the node names stop
+ * being legible at the size their type was set for, and then **report what still
+ * overruns**, which is what leaves the stage scrollable rather than drawing cards
+ * off the bottom edge.
+ */
+describe('fitPacked', () => {
+  it('does nothing at all to a chart that fits', () => {
+    expect(fitPacked(681, 537)).toEqual({ scale: 1, overflow: 0 });
+    expect(fitPacked(681, 681)).toEqual({ scale: 1, overflow: 0 });
+  });
+
+  it('shrinks a chart that nearly fits, exactly onto the stage', () => {
+    const fit = fitPacked(681, 740);
+    expect(fit.scale).toBeCloseTo(681 / 740, 6);
+    expect(fit.scale).toBeGreaterThan(CHART_SCALE_MIN);
+    expect(fit.overflow).toBeCloseTo(0, 6);
+  });
+
+  it('stops shrinking at the floor and reports the rest', () => {
+    // Past the floor the names stop being readable, and an unreadable chart that
+    // fits is worse than a readable one that has to be dragged.
+    const fit = fitPacked(681, 1032);
+    expect(fit.scale).toBe(CHART_SCALE_MIN);
+    expect(fit.overflow).toBeCloseTo(1032 * CHART_SCALE_MIN - 681, 6);
+    expect(fit.overflow).toBeGreaterThan(0);
+  });
+
+  it('answers a stage nobody has laid out yet without dividing by zero', () => {
+    expect(fitPacked(0, 0)).toEqual({ scale: 1, overflow: 0 });
+    expect(fitPacked(Number.NaN, 500)).toEqual({ scale: 1, overflow: 0 });
+    expect(fitPacked(681, 0)).toEqual({ scale: 1, overflow: 0 });
   });
 });
 
 /**
  * The chart on a big display (user, 2026-08-27), which is the sideways half of
- * `fitLanes` and arrived for the same reason: a length that was a constant.
+ * `fitPacked` and arrived for the same reason: a length that was a constant.
  *
  * Eight columns at the drawn-for 214px with 52px gutters is a chart about 2080
  * wide, so past roughly 2100 the chart simply stopped growing — the age washes
@@ -820,16 +1066,16 @@ describe('clicking a star', () => {
 });
 
 describe('the strip at the foot', () => {
-  it('is laid out before the lanes are spaced', () => {
+  it('is laid out before the chart is packed', () => {
     // The load-bearing ordering. The strip is a flex sibling of the stage, so it
-    // appearing takes real height off `chart.clientHeight` — and `spaceLanes`
-    // spends exactly that height on the lanes. Measured the other way round, a
-    // chart gains a strip and keeps the gaps it had without one.
+    // appearing takes real height off `chart.clientHeight` — and `layoutField`
+    // spends exactly that height on the chart. Measured the other way round, a
+    // chart gains a strip and keeps the gap it had without one.
     const body = chartFunction('function renderChart(');
     const strip = body.indexOf('renderPlanStrip()');
-    const lanes = body.indexOf('spaceLanes(');
+    const packed = body.indexOf('layoutField(');
     expect(strip).toBeGreaterThanOrEqual(0);
-    expect(lanes).toBeGreaterThan(strip);
+    expect(packed).toBeGreaterThan(strip);
   });
 
   it('quotes the cumulative schedule, not each node against the pool', () => {

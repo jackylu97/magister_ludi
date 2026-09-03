@@ -3841,7 +3841,7 @@ kbd {
    `height` rather than `max-height`, which it was until the lanes learnt to
    space themselves: a sheet that hugged its content made the stage's height a
    function of the chart's, and the chart's height a function of the stage's —
-   so `spaceLanes` read back the height it had just caused and never found any
+   so `layoutField` read back the height it had just caused and never found any
    slack to spread. A screen fills the window; only then is "how much room is
    there" a question with an answer. */
 .tech-sheet {
@@ -3954,6 +3954,13 @@ kbd {
   position: relative;
   flex: 1;
   min-height: 0;
+  /* A flex container so a packed chart shorter than the stage sits in the middle
+     of it rather than hanging from the top — the job the grid's
+     `align-content: safe center` used to do. `safe` for the same reason it was
+     there: a chart taller than the stage must start at the top, or its first row
+     is scrolled off the edge with no way back to it. */
+  display: flex;
+  align-items: safe center;
   overflow: auto;
   overscroll-behavior: contain;
   cursor: grab;
@@ -3971,7 +3978,7 @@ kbd {
    The research plan along the foot of the sheet, head first. A flex sibling of
    the stage rather than something floating over it, which is the load-bearing
    part: `flex: none` here means the stage's `flex: 1` measures the height that
-   is actually left, and `spaceLanes` spends exactly that on the lanes. Hidden
+   is actually left, and `layoutField` spends exactly that on the chart. Hidden
    (the attribute, set by `renderPlanStrip`) whenever the plan is a single
    research and there is no queue to lay out. */
 .tech-plan {
@@ -4124,11 +4131,17 @@ kbd {
    in this screen is measured in. `position: relative` is load-bearing twice
    over: the connector SVG is sized and placed against this element's padding
    box, and every card's `offsetLeft` is read against it (see `drawLines` in
-   techTree.ts). `width: max-content` lets the tracks decide how wide the chart
-   is instead of the window — which is what makes it a chart you travel along.
+   techTree.ts).
 
-   Column = dependency depth, row = the lane authored in data/techs.json; the
-   track lists themselves are written by techTree.ts from that data. */
+   It used to be a grid of eight full-width lane tracks, and that was the whole
+   of the vertical-space complaint: every column paid the height of all eight, so
+   a column holding three cards drew five empty tracks of night under them. It is
+   a **positioned stage** now (2026-09-03). Column = dependency depth; the row
+   authored in data/techs.json is the *order* a column stacks in and no longer a
+   track. Where a card actually sits is `packChart`'s answer (`techFit.ts`),
+   written onto the card as a `left`/`top` by `layoutField` along with the field's
+   own width and height. Nothing in this rule lays anything out — the
+   stylesheet's job on this element is the pitch, the washes and the scale. */
 .tech-field {
   /* A card fills its column, so the *gap* is the entire visible run of every
      connector — at the old 30px a sight-line was a 30px stub between two cards
@@ -4140,49 +4153,44 @@ kbd {
      chart is drawn with before it is measured, and it is the floor. */
   --tech-col-w: 214px;
   --tech-col-gap: 52px;
-  /* Written by `spaceLanes` (techTree.ts) from the height actually available;
-     the value here is only what the chart is drawn with before it is measured. */
-  --tech-row-gap: 12px;
   position: relative;
-  display: grid;
-  width: max-content;
-  min-width: 100%;
-  /* The vertical half of the high-resolution fix. The lanes are `min-content`
-     tracks and the gap between them is capped (`LANE_GAP_MAX` — past it they
-     stop reading as one chart), so on a 1440-tall window the whole chart used to
-     huddle against the top with six hundred pixels of night under it. Centred
-     instead, and `safe` is load-bearing: a chart taller than the stage must
-     start at the top, or the first lane is scrolled off the top edge with no
-     way back to it. */
-  min-height: 100%;
-  align-content: safe center;
-  align-items: start;
-  gap: var(--tech-row-gap) var(--tech-col-gap);
-  /* The two-pixel band top and bottom is the age wash's bleed, and nothing
-     else: it keeps the region from being clipped at the scroll origin without
-     making the field taller than the lanes in it. */
-  padding: 2px 22px 2px 0;
+  /* Sized by `layoutField`; the field never derives its own extent, because the
+     cards on it are out of flow and would report none. `flex: none` because the
+     stage is a flex container now (see `.tech-chart`) and a shrinkable chart is
+     a chart whose columns stop lining up with its washes. */
+  flex: none;
+  /* Written by `layoutField` from the pack. Here so a field that is measured
+     before it is laid out has an extent rather than a collapse. */
+  width: 100%;
+  height: 100%;
+  /* `layoutField` writes a `scale()` here when the packed chart still overruns
+     the stage, and the origin is load-bearing: the negative margins it writes
+     with it assume the shrink happens toward the top-left corner. */
+  transform-origin: 0 0;
 }
 
 /* The sideways half: a chart that has hit `COL_WIDTH_MAX` and still has room to
    spare sits in the middle of it rather than against the left edge. Set by
    `spaceColumns` off `fitColumns`' own slack, so the class is on exactly when
-   there is air — and `safe` again, so a chart wider than the stage still starts
-   at column zero, where the player's first technology is. */
+   there is air. Auto margins on a flex item resolve to zero the moment the item
+   is larger than the line, which is the old `safe` keyword's guarantee: a chart
+   wider than the stage still starts at column zero, where the player's first
+   technology is. */
 .tech-field.is-roomy {
-  justify-content: safe center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* An age, painted behind its columns: a wash, a seam where the age changes,
-   and the numeral itself set enormous and nearly out. */
+   and the numeral itself set enormous and nearly out. Positioned rather than
+   spanned — `layoutField` writes its `left` and `width` from the column pitch,
+   with half the gutter added each side so the wash meets its neighbour's exactly
+   and the seam falls between the columns rather than beside one. */
 .tech-age {
   z-index: 0;
-  position: relative;
-  align-self: stretch;
-  /* Half the gutter each side, so the wash meets its neighbour's exactly and
-     the seam falls between the columns rather than beside one. Derived rather
-     than typed, because the gutter is now a variable that gets tuned. */
-  margin: -2px calc(var(--tech-col-gap) / -2);
+  position: absolute;
+  top: 0;
+  bottom: 0;
   padding: 0;
   border-radius: var(--radius-sm);
   background: rgba(247, 242, 225, 0.022);
@@ -4212,6 +4220,8 @@ kbd {
    rather than a heading — no rule under it, nothing to click. */
 .tech-age-label {
   z-index: 1;
+  position: absolute;
+  top: 0;
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -4322,12 +4332,17 @@ kbd {
    read in negative. */
 .tech-node {
   /* Above the age wash and the connectors, always: a card is the thing that is
-     read and pressed, and both of those are painted to sit under it. */
-  position: relative;
+     read and pressed, and both of those are painted to sit under it. Absolute
+     since the pack landed — `layoutField` writes the `left` and the `top`, and
+     the width is the column's, because a card is its column. */
+  position: absolute;
   z-index: 1;
   display: block;
-  width: 100%;
-  padding: 8px 10px 9px;
+  width: var(--tech-col-w);
+  /* Tightened with the face compaction: two unlock lines and no epigram is a
+     card read at a glance, and fifty of them at the old 8/10/9 was a hundred
+     pixels of padding down the tallest column. */
+  padding: 6px 8px 7px;
   border: 1.5px solid rgba(247, 242, 225, 0.28);
   border-radius: var(--radius-sm);
   background: #1e1b22;
@@ -4455,14 +4470,15 @@ kbd {
   color: rgba(247, 242, 225, 0.7);
 }
 
-/* What the node hands over. Two lines at most in practice, so a list rather
-   than a grid: the marks line up because the mark box is fixed. */
+/* What the node hands over. **Two lines at most, by rule** (`FACE_UNLOCKS` in
+   techTree.ts) and then a count — so a list rather than a grid: the marks line
+   up because the mark box is fixed. */
 .tech-unlocks {
-  margin: 7px 0 0;
+  margin: 5px 0 0;
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
 .tech-unlocks li {
@@ -4513,21 +4529,20 @@ kbd {
   color: var(--y-food-lit);
 }
 
-/* The short-window chart (`spaceLanes`, techTree.ts) drops its epigrams rather
-   than its bottom lane. The line is on the hover card as well; the name, the
-   cost and the unlocks above it are not. */
-.tech-field.is-compact .tech-node-flavor {
-  display: none;
+/* "▸ +3 more" — the rest of the unlock list, counted. It is a pointer at the
+   hover card rather than a disclosure (a card that grew when it was clicked
+   would move every connector measured off it), so it wears no mark and sits
+   where a third row would have been. */
+.tech-unlocks-more {
+  padding-left: 21px;
 }
 
-.tech-node-flavor {
-  margin: 7px 0 0;
-  font-family: var(--face-display);
-  font-style: italic;
-  font-size: 12px;
-  line-height: 1.3;
-  color: rgba(247, 242, 225, 0.55);
-}
+/* The epigram is not on a node card at all any more (2026-09-03): it was two or
+   three italic lines on each of fifty and the single largest reason the sky was
+   taller than the window, and it is the one line a node said twice — `techCard`
+   prints it on hover, where there is room to read it. The `.is-compact` rule
+   that used to drop it on a short window went with it; there was nothing left
+   for it to drop. */
 
 .tech-overlay :focus-visible {
   outline: 2px solid var(--gilt);

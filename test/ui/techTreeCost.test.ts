@@ -194,13 +194,14 @@ describe('a click repaints the chart rather than rebuilding it', () => {
     expect(chartFunction('function paintNode(')).toContain('face.choosable = choosable;');
   });
 
-  it('re-lights the connectors and re-spaces the lanes, because a bar moves', () => {
+  it('re-lights the connectors and re-packs the chart, because a bar moves', () => {
     // The one thing a repaint really does change the *height* of: the progress
     // bar leaves the star that was being researched and joins the one that now
     // is. One pass, not the two-with-a-frame a fresh chart needs — nothing is
-    // being waited on.
+    // being waited on. A card whose height moved is a card the pack has to place
+    // again, which is why this is the whole layout and not just the lines.
     const body = chartFunction('function refreshNodes(');
-    expect(body).toContain('spaceLanes(field, techRowCount())');
+    expect(body).toContain('layoutField(field)');
     expect(body).toContain('drawLines(lines)');
     expect(body).not.toContain('requestAnimationFrame');
     expect(body).not.toContain('spaceColumns');

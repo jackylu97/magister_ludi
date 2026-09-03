@@ -36,11 +36,21 @@
  * -----------------------------
  * The screen is a dependency chart on a horizontally scrolling stage, not a
  * list of ages: a node's column is `techColumn` — `techDepth` re-based so
- * prerequisites behind it — and its row is the lane hand-authored in
- * `data/techs.json` (the lane principle is written down in `techData.ts`). So a
- * chain reads as a chain, left to right, and the ages are demoted to what they
- * always were: an annotation, painted as dim gilt numerals behind the columns
- * they happen to own (`techAgeBands`).
+ * prerequisites behind it — and the row hand-authored in `data/techs.json` (the
+ * lane principle is written down in `techData.ts`) is the **order** it stacks in
+ * inside that column. So a chain reads as a chain, left to right, and the ages
+ * are demoted to what they always were: an annotation, painted as dim gilt
+ * numerals behind the columns they happen to own (`techAgeBands`).
+ *
+ * The rows used to be *lanes* — one full-width grid track each — and that is
+ * what the compaction of 2026-09-03 undid. Every column paid the height of every
+ * lane, so a column holding three cards drew five empty tracks under them and
+ * the sky was twelve hundred pixels tall to hold six. The user's drawing packs
+ * each column instead and aligns only loosely across them ("there's space for a
+ * node in between nodes in one column, because they're occupied in another
+ * column"), so the field is now a positioned stage and `packChart` (`techFit.ts`)
+ * decides where every card goes — pure arithmetic over the data and the measured
+ * card heights, so the same tree lays out the same way every open.
  *
  * Travel is by drag, by wheel and by the arrow keys. On opening, the stage
  * jumps — no tween; the player asked to see the chart, not to watch it arrive —
@@ -54,9 +64,9 @@
  * would reach it. So the rule now asks the stage rather than assuming: the wheel
  * goes **down while there is down to go** and sideways otherwise, drag has
  * always moved both axes, `↑`/`↓` join `←`/`→`, and `centreOn` travels in both.
- * What made that livable is `fitLanes` (`techFit.ts`) — the lanes are spaced
- * from the height actually available, so a five-lane chart usually has no down
- * to go and the wheel behaves exactly as it always did.
+ * What made that livable is `fitPacked` (`techFit.ts`) — the chart is packed and
+ * then, if it still overruns, shrunk toward `CHART_SCALE_MIN` — so the sky
+ * usually has no down to go and the wheel behaves exactly as it always did.
  *
  * Reading one node's dependencies (the focus mode)
  * -----------------------------------------------
@@ -108,12 +118,12 @@ import {
 import {
   TECH_IDS,
   type TechAge,
+  type TechAgeBand,
   type TechId,
   techAgeBands,
   techColumnCount,
   techDef,
   techColumn,
-  techRowCount,
 } from '../sim/techData';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
 import type { TileYield } from '../sim/terrainData';
@@ -122,7 +132,15 @@ import { HAMMER, PROJECT_GLYPHS, YIELD_GLYPH, turnsLabel } from './figures';
 import { setYieldText } from './yieldMark';
 import { createInfoCard } from './infoCard';
 import { keywordNode } from './keywords';
-import { LANE_GAP_MIN, fitColumns, fitLanes } from './techFit';
+import {
+  PACK_GAP_MAX,
+  PACK_GAP_MIN,
+  type PackCard,
+  type PackedChart,
+  fitColumns,
+  fitPacked,
+  packChart,
+} from './techFit';
 import { BEAKER, researchProgress } from './researchProgress';
 import { resourceMarkNode } from './resourceMark';
 
@@ -371,8 +389,8 @@ export interface TechTreeOptions {
    * Emptied and rebuilt per render, and `hidden` while the plan is one node
    * long — a strip that said "① Pottery" and nothing else would be the research
    * card's job done worse. A *sibling* of the stage rather than something
-   * floating over it, so `spaceLanes` measures the height the lanes actually
-   * have left; see `renderPlanStrip`.
+   * floating over it, so `layoutField` measures the height the chart actually
+   * has left; see `renderPlanStrip`.
    */
   planStrip: HTMLElement;
   /**
@@ -461,6 +479,16 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  * overlay depending on the surface it is drawn over.
  */
 const REFUSAL_MS = 1800;
+
+/**
+ * Night at the right-hand end of the chart, in pixels.
+ *
+ * The field's own trailing padding when it was a grid, kept as a length now that
+ * the field is sized by arithmetic: without it the last column ends flush with
+ * the scroll extent and the deepest technology in the tree reads as clipped
+ * rather than as the end of the chart.
+ */
+const TRAILING_AIR = 22;
 
 /**
  * The parts of a node card that the *state* decides, kept so that a render can
@@ -762,18 +790,45 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   // --- one node ------------------------------------------------------------
 
   /**
-   * The small marks under a node's name: what it hands over.
+   * How many unlock rows a node card shows before it stops listing and counts.
+   *
+   * **Two**, since the compaction of 2026-09-03. The face used to print every
+   * unlock a technology had, which is what made the cards tall enough that eight
+   * lanes of them could not fit any window — and most of that list was not being
+   * read on the card anyway: a player scanning the sky is deciding *which star*,
+   * and the full ledger with live prices is one hover away on the info card
+   * (`techCard`), which prints the units, the buildings, the reveals, the
+   * renewals and the epigram. So the face keeps the two lines that answer "what
+   * is this for" and the rest becomes a count.
+   */
+  const FACE_UNLOCKS = 2;
+
+  /**
+   * The small marks under a node's name: what it hands over, in at most two
+   * lines and then a count.
    *
    * A unit wears its own glyph — the same letter the board draws on its disc —
    * and a building wears the voice it speaks in, followed by what it would be
    * worth to this empire right now.
+   *
+   * **Units first, and that is the ranking rather than the file's order**: a
+   * unit is the decision a technology is usually being taken *for*, and a card
+   * that spent both its lines on granaries while a swordsman went into "+3 more"
+   * would be hiding the answer. Everything the trim leaves out is on the hover
+   * card, in full and with the same live prices.
    */
   function renderUnlocks(id: TechId): HTMLElement {
     const { state, playerId } = passNow();
     const list = element('ul', 'tech-unlocks');
     const { units = [], buildings = [] } = techDef(id).unlocks;
+    // The face's budget, spent on units before buildings. `more` is what the
+    // count line says and is a fact about the *whole* list, not about whichever
+    // half was reached first.
+    const shownUnits = units.slice(0, FACE_UNLOCKS);
+    const shownBuildings = buildings.slice(0, Math.max(0, FACE_UNLOCKS - shownUnits.length));
+    const more = units.length + buildings.length - (shownUnits.length + shownBuildings.length);
 
-    for (const unit of units) {
+    for (const unit of shownUnits) {
       const def = unitDef(unit);
       const row = element('li');
       row.append(element('span', 'tech-mark is-unit', def.glyph));
@@ -790,7 +845,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       list.append(row);
     }
 
-    for (const building of buildings) {
+    for (const building of shownBuildings) {
       const def = buildingDef(building);
       const row = element('li');
       row.append(element('span', 'tech-mark is-building', '▣'));
@@ -809,6 +864,15 @@ export function createTechTree(options: TechTreeOptions): TechTree {
           parts.length > 0 ? `${parts.join(' ')} now` : `${def.cost}${HAMMER}`,
         ),
       );
+      list.append(row);
+    }
+
+    // "▸ +3 more" — one line, no marks, and deliberately not a control: it is a
+    // pointer at the hover card rather than a disclosure, because a card that
+    // grew when it was clicked would move every connector measured off it.
+    if (more > 0) {
+      const row = element('li', 'tech-unlocks-more');
+      row.append(element('span', 'tech-unlock-note', `▸ +${more} more`));
       list.append(row);
     }
     return list;
@@ -1203,7 +1267,12 @@ export function createTechTree(options: TechTreeOptions): TechTree {
 
     const unlocks = renderUnlocks(id);
     card.append(unlocks);
-    if (def.flavor) card.append(element('p', 'tech-node-flavor', def.flavor));
+    // **The epigram is not on the face** (2026-09-03). It was two or three lines
+    // of italic on every one of fifty cards — the single largest thing making
+    // the sky taller than the window — and it is the one line on a node that was
+    // said twice: `techCard` prints it on hover, where there is room for it to be
+    // read rather than skimmed. The short-window rule that used to drop it
+    // (`.is-compact`) went with it; there is nothing left for it to drop.
 
     const face: NodeFace = {
       card,
@@ -1270,6 +1339,18 @@ export function createTechTree(options: TechTreeOptions): TechTree {
 
   /** The field the cards are placed on, kept so measurement has an origin. */
   let field: HTMLElement | null = null;
+  /**
+   * The age washes and their labels, kept because they are positioned rather
+   * than laid out: with the lane grid gone there is no track for a `1 / -1` span
+   * to stretch across, so `layoutField` writes each band's left and width from
+   * the column pitch every time that pitch moves.
+   */
+  const ages: { band: TechAgeBand; region: HTMLElement; label: HTMLElement }[] = [];
+  /**
+   * The last packed layout, kept for the one reader outside the packer:
+   * `drawLines` bows the connectors `packChart` could not lay a card clear of.
+   */
+  let layout: PackedChart | null = null;
 
   // --- the plan strip ------------------------------------------------------
 
@@ -1294,7 +1375,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * starts in and returns to: a strip holding only what the research card at
    * the top-left already says would be a second readout of one fact. Hiding is
    * the `hidden` attribute on a flex sibling of the stage, so the height goes
-   * back to the lanes — which is why this is called *before* `spaceLanes` runs.
+   * back to the chart — which is why this is called *before* `layoutField` runs.
    */
   function renderPlanStrip(): void {
     const { state, playerId, rate, plan, ended } = passNow();
@@ -1371,7 +1452,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
 
     // Before anything is measured. The strip is a flex sibling of the stage, so
     // it appearing or going takes real height off `chart.clientHeight` — and
-    // `spaceLanes` below spends exactly that height on the lanes.
+    // `layoutField` below spends exactly that height on the chart.
     renderPlanStrip();
 
     // Every node is about to be replaced, so an open card would be left
@@ -1385,39 +1466,34 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // `readNode(null)`, which would spend three passes tidying the dead.
     connectors.length = 0;
     reading = null;
+    ages.length = 0;
     const columns = techColumnCount();
-    const rows = techRowCount();
 
     const built = element('div', 'tech-field');
-    // The tracks are written from the data rather than from CSS: the chart is
-    // exactly as wide as the deepest chain and as deep as the lanes in use, and
-    // both are facts `techData` owns.
-    built.style.gridTemplateColumns = `repeat(${columns}, var(--tech-col-w))`;
-    // The first track is the age strip; the lanes follow it.
-    built.style.gridTemplateRows = `min-content repeat(${rows}, min-content)`;
 
     // ÆRA I/II/III, painted behind whichever columns their techs settled in.
-    // Each age is two pieces: a region spanning every lane, which carries the
-    // watermark numeral and the hairline seam where the age changes, and a
-    // label in the strip along the top. The age no longer says where a tech
-    // goes — it says what to call the ground the tech ended up on.
+    // Each age is two pieces: a region running the full height of the field,
+    // which carries the watermark numeral and the hairline seam where the age
+    // changes, and a label in the strip along the top. The age no longer says
+    // where a tech goes — it says what to call the ground the tech ended up on.
+    //
+    // Both are **absolute** now, like everything else on this stage: with the
+    // lane tracks gone there is no grid for a `1 / -1` span to be measured
+    // against, so the band's left and width are arithmetic on the column pitch
+    // and `layoutField` writes them whenever that pitch moves.
     for (const [index, band] of techAgeBands().entries()) {
-      const span = `${band.from + 1} / ${band.to + 2}`;
-
       const region = element('div', 'tech-age');
       region.classList.toggle('is-seam', index > 0);
-      region.style.gridColumn = span;
-      region.style.gridRow = '1 / -1';
       region.setAttribute('aria-hidden', 'true');
       region.append(element('span', 'tech-age-numeral', AGE_NUMERALS[band.age]));
       built.append(region);
 
       const label = element('div', 'tech-age-label');
-      label.style.gridColumn = span;
-      label.style.gridRow = '1';
       label.append(element('span', 'tech-era', `ÆRA ${AGE_NUMERALS[band.age]}`));
       label.append(element('span', 'tech-era-name', AGE_NAMES[band.age]));
       built.append(label);
+
+      ages.push({ band, region, label });
     }
 
     const drawn = document.createElementNS(SVG_NS, 'svg');
@@ -1428,15 +1504,15 @@ export function createTechTree(options: TechTreeOptions): TechTree {
 
     for (const id of TECH_IDS) {
       const card = renderNode(id);
-      card.style.gridColumn = String(techColumn(id) + 1);
-      card.style.gridRow = String(techDef(id).row + 2); // past the age strip
+      // The column is written down where the keyboard can read it back
+      // (`nearestChoosable`); it used to read `style.gridColumn`, which the
+      // positioned stage no longer sets.
+      card.dataset.column = String(techColumn(id));
       built.append(card);
     }
 
     field = built;
     chart.replaceChildren(built);
-    chart.scrollLeft = wasAt.left;
-    chart.scrollTop = wasAt.top;
 
     // Measured twice, and both are deliberate. Reading `offsetLeft` flushes
     // layout, so the first pass draws lines that are already correct for this
@@ -1445,18 +1521,24 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // second, which is exactly right — and why the first is not an animation
     // frame: `requestAnimationFrame` does not fire in a hidden tab at all.)
     //
-    // The columns are sized before the lanes are spaced, and the lanes before
+    // The columns are sized before the chart is packed, and the chart before
     // the lines are drawn, in both passes and in that order. Each step moves
     // what the next one measures: a wider column re-wraps every card's title and
-    // therefore changes how tall the lanes are, and the gap between lanes moves
-    // every card, so a connector measured before either would be drawn to where
-    // the card used to be.
+    // therefore changes how tall the cards are, and the pack moves every card,
+    // so a connector measured before either would be drawn to where the card
+    // used to be.
     spaceColumns(built, columns);
-    spaceLanes(built, rows);
+    layoutField(built);
     drawLines(drawn);
+    // **After** the field has been sized and not before. A fresh field is the
+    // stage's own width until `layoutField` gives it the chart's, so a scroll
+    // offset written first is clamped to zero and the player is put back at
+    // column zero — which is precisely the journey this is here to save them.
+    chart.scrollLeft = wasAt.left;
+    chart.scrollTop = wasAt.top;
     requestAnimationFrame(() => {
       spaceColumns(built, columns);
-      spaceLanes(built, rows);
+      layoutField(built);
       drawLines(drawn);
     });
     // The unlock lines under these cards are priced for the state that built
@@ -1496,14 +1578,14 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       face.unlocks = list;
     }
     if (reprice) markUnlocksPriced();
-    if (field) spaceLanes(field, techRowCount());
+    if (field) layoutField(field);
     if (lines) drawLines(lines);
   }
 
   /**
    * Fit the columns to the window: `fitColumns` decides, this measures for it.
    *
-   * The sideways half of `spaceLanes`, and it landed for the same kind of report
+   * The sideways half of `layoutField`, and it landed for the same kind of report
    * — the chart looked wrong on a big display (user, 2026-08-27) because the
    * column width was a constant in the stylesheet and eight of them stopped
    * short of a 2560px window by four hundred pixels, leaving the age washes
@@ -1522,7 +1604,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    */
   function spaceColumns(built: HTMLElement, columns: number): void {
     const style = window.getComputedStyle(built);
-    const gap = Number.parseFloat(style.columnGap) || 0;
+    // `--tech-col-gap` and not the computed `column-gap`: the field stopped
+    // being a grid when the lanes went, so there is no laid-out gap to read back
+    // — the gutter is a length the stylesheet declares and this arithmetic
+    // spends, which is where it always belonged.
+    const gap = Number.parseFloat(style.getPropertyValue('--tech-col-gap')) || 0;
     const padding =
       (Number.parseFloat(style.paddingLeft) || 0) + (Number.parseFloat(style.paddingRight) || 0);
     const fit = fitColumns(chart.clientWidth - padding, columns, gap);
@@ -1531,43 +1617,118 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   }
 
   /**
-   * Fit the lanes to the window: `fitLanes` decides, this measures for it.
+   * Pack the cards and fit the result to the window: `packChart` decides where
+   * everything goes, this measures for it and writes the answer down.
    *
-   * The lanes' own height is taken with the gaps closed to their minimum, which
-   * is the only way to ask "how tall are the cards" of a grid whose gaps are
-   * the thing being chosen. Reading `scrollHeight` flushes layout, so this is
-   * one forced reflow rather than a frame's wait — the same bargain `drawLines`
-   * makes, and for the same reason: the chart must be right on the paint the
-   * player is already looking at.
+   * The DOM half of the compaction, and it is deliberately thin — every decision
+   * in here is `techFit.ts`'s, because a layout a test cannot reach without a
+   * browser is a layout nobody can review. What is left is the three things only
+   * a laid-out document knows: **how tall each card measured**, **how much stage
+   * there is**, and **where the answer gets written**.
    *
-   * `gaps` is the lane count, not one less: the age strip is a track too, so a
-   * five-lane chart has five gaps under six tracks.
+   * The order of the three steps is load-bearing, same as it was for the lanes:
+   *
+   *   · the cards are measured at the width `spaceColumns` has already chosen,
+   *     because a title wraps differently in a 214px card than in a 300px one;
+   *   · the chart is packed at the roomy gap first and re-packed closed-up only
+   *     if that overran, which is the cheapest height there is — it costs air
+   *     and nothing else;
+   *   · and only then is `fitPacked` asked, which shrinks and then reports the
+   *     overrun. The report is what leaves the stage scrollable.
+   *
+   * Reading `offsetHeight` flushes layout, so this is one forced reflow rather
+   * than a frame's wait — the same bargain `drawLines` makes, and for the same
+   * reason: the chart must be right on the paint the player is already looking
+   * at.
    */
-  function spaceLanes(built: HTMLElement, rows: number): void {
-    const lanesOnly = (): number => {
-      built.style.setProperty('--tech-row-gap', `${LANE_GAP_MIN}px`);
-      // `offsetHeight` and not `scrollHeight`: the connector SVG is an absolute
-      // child of this element and is sized *from* the field's own extent, so
-      // asking for the scroll extent asks a question whose answer includes last
-      // frame's answer — the chart would climb a little every time it was
-      // measured and talk itself into a scrollbar it did not need.
-      return built.offsetHeight - LANE_GAP_MIN * rows;
-    };
+  function layoutField(built: HTMLElement): void {
+    const style = window.getComputedStyle(built);
+    const columnGap = Number.parseFloat(style.getPropertyValue('--tech-col-gap')) || 0;
+    const columnWidth = Number.parseFloat(style.getPropertyValue('--tech-col-w')) || 0;
+    const geometry = { columnWidth, columnGap };
 
-    // Closed up first, then — only if that was not enough — the epigrams go.
-    // A chart that will not fit gives up its flavour before it gives up a lane:
-    // the epigram is on the hover card too and the name, the cost and the
-    // unlocks are not, so it is the one line on a node that is said twice. On a
-    // tall window the class comes straight back off, which is why the state is
-    // recomputed from scratch here rather than latched.
-    built.classList.remove('is-compact');
-    let content = lanesOnly();
-    if (fitLanes(chart.clientHeight, content, rows).overflow > 0) {
-      built.classList.add('is-compact');
-      content = lanesOnly();
+    // Unscaled while it is measured: a card inside a scaled field still reports
+    // its own untransformed `offsetHeight`, but the *stage* comparison below is
+    // in real pixels, so the scale is taken off and worked out again from
+    // scratch. Latching it would compound a shrink every time the window moved.
+    built.style.transform = '';
+    built.style.marginRight = '';
+    built.style.marginBottom = '';
+
+    const measured: PackCard[] = [];
+    for (const id of TECH_IDS) {
+      const card = cards.get(id);
+      if (!card) continue;
+      measured.push({
+        id,
+        column: techColumn(id),
+        // **The authored row is the order and not the position.** `packChart`
+        // stacks a column in ascending `row` and never reorders it; where the
+        // card actually lands is the packer's, and the drawing's top-to-bottom
+        // is the user's.
+        order: techDef(id).row,
+        height: card.offsetHeight,
+      });
     }
-    const { gap } = fitLanes(chart.clientHeight, content, rows);
-    built.style.setProperty('--tech-row-gap', `${gap}px`);
+    const edges: [string, string][] = [];
+    for (const id of TECH_IDS) {
+      for (const prereq of techDef(id).prereqs) edges.push([prereq, id]);
+    }
+
+    // The strip of age labels stands above the cards rather than over them, so
+    // it is measured and every card's top is offset past it. One label is as
+    // tall as another — they are the same two spans — so the first is the strip.
+    const strip = ages[0]?.label.offsetHeight ?? 0;
+
+    let packed: PackedChart = packChart(measured, edges, PACK_GAP_MAX, geometry);
+    if (strip + packed.height > chart.clientHeight) {
+      packed = packChart(measured, edges, PACK_GAP_MIN, geometry);
+    }
+    layout = packed;
+
+    for (const id of TECH_IDS) {
+      const card = cards.get(id);
+      const top = packed.tops.get(id);
+      if (!card || top === undefined) continue;
+      card.style.left = `${(techColumn(id) * (columnWidth + columnGap)).toFixed(2)}px`;
+      card.style.top = `${(strip + top).toFixed(2)}px`;
+    }
+
+    // The chart is exactly as wide as its deepest chain, plus a hand's width of
+    // night at the right-hand end so the last column is not flush against the
+    // scroll extent — the trailing padding the field used to carry.
+    const span = techColumnCount() * (columnWidth + columnGap) - columnGap;
+
+    // The washes run the whole field and meet each other exactly halfway across
+    // the gutter, which is what the old grid's negative margin bought and what
+    // this arithmetic buys back. Clamped at the two ends, because half a gutter
+    // outside the field is half a gutter of scroll extent nobody asked for.
+    for (const { band, region, label } of ages) {
+      const left = band.from * (columnWidth + columnGap);
+      const width = (band.to - band.from) * (columnWidth + columnGap) + columnWidth;
+      const from = Math.max(0, left - columnGap / 2);
+      const to = Math.min(span, left + width + columnGap / 2);
+      region.style.left = `${from.toFixed(2)}px`;
+      region.style.width = `${(to - from).toFixed(2)}px`;
+      label.style.left = `${left.toFixed(2)}px`;
+      label.style.width = `${width.toFixed(2)}px`;
+    }
+
+    const content = strip + packed.height;
+    built.style.height = `${content.toFixed(2)}px`;
+    built.style.width = `${(span + TRAILING_AIR).toFixed(2)}px`;
+
+    // A transform does not shrink the box it is applied to, so the field would
+    // keep reserving its full height inside the scroller and the chart would
+    // sit in a pool of night it had just stopped using. The negative margins are
+    // the layout box catching up with what is drawn.
+    const fit = fitPacked(chart.clientHeight, content);
+    if (fit.scale < 1) {
+      const width = built.offsetWidth;
+      built.style.transform = `scale(${fit.scale.toFixed(4)})`;
+      built.style.marginRight = `${(-(1 - fit.scale) * width).toFixed(2)}px`;
+      built.style.marginBottom = `${(-(1 - fit.scale) * content).toFixed(2)}px`;
+    }
   }
 
   /**
@@ -1575,11 +1736,20 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * node to the left edge of the later one.
    *
    * The curve is a cubic with horizontal handles, so it leaves and arrives flat
-   * and a node on the same lane as its prerequisite gets a straight sight-line;
-   * the handles are capped, so a connector that spans four columns bends near
-   * its ends rather than sagging through the middle of the chart. Because
+   * and a node level with its prerequisite gets a straight sight-line; the
+   * handles are capped, so a connector that spans four columns bends near its
+   * ends rather than sagging through the middle of the chart. Because
    * `techColumn` puts every prerequisite in a strictly earlier column, `x2` is
    * always to the right of `x1` and no connector ever doubles back.
+   *
+   * **The false-chain principle is now geometric**, and this is the second half
+   * of it: a line that enters one card and leaves the other side reads as a
+   * prerequisite nobody wrote, so `packChart` first tries to lay the intervening
+   * card clear of the band and reports whatever would not go. Those connectors
+   * are **bowed** — the two control points pushed to the side the card is not on
+   * — so the sight-line goes *around* a card it cannot go between. It is a small
+   * push and it only ever lands on the handful of connectors that need it, which
+   * is why the rest of the sky stays a set of flat sight-lines.
    *
    * The SVG sits *behind* the cards, so a line disappears under the two nodes
    * it joins and reads as a sight-line between stars rather than as an arrow.
@@ -1603,6 +1773,10 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // twice per render (see `renderChart`), and an index that grew would light
     // each line twice and leak the first pass's dead nodes.
     connectors.length = 0;
+    // The packer's own report, keyed for the lookup below: a connector in here
+    // is one it could not clear a card out of, and the sign says which way round
+    // the card is.
+    const bows = new Map((layout?.bowed ?? []).map((edge) => [`${edge.from}>${edge.to}`, edge.bow]));
     for (const id of TECH_IDS) {
       const to = cards.get(id);
       if (!to) continue;
@@ -1614,12 +1788,13 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         const x1 = from.offsetLeft + from.offsetWidth;
         const y1 = from.offsetTop + from.offsetHeight / 2;
         const reach = Math.max(24, Math.min(90, (x2 - x1) * 0.45));
+        const bow = bows.get(`${prereq}>${id}`) ?? 0;
         const path = document.createElementNS(SVG_NS, 'path');
         path.setAttribute(
           'd',
           `M ${x1.toFixed(1)} ${y1.toFixed(1)} ` +
-            `C ${(x1 + reach).toFixed(1)} ${y1.toFixed(1)}, ` +
-            `${(x2 - reach).toFixed(1)} ${y2.toFixed(1)}, ` +
+            `C ${(x1 + reach).toFixed(1)} ${(y1 + bow).toFixed(1)}, ` +
+            `${(x2 - reach).toFixed(1)} ${(y2 + bow).toFixed(1)}, ` +
             `${x2.toFixed(1)} ${y2.toFixed(1)}`,
         );
         // A line out of ground the player has already covered is lit; the rest
@@ -1667,7 +1842,10 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * three columns off the left edge of what the player is looking at.
    */
   function nearestChoosable(anchor: HTMLElement | null): HTMLButtonElement | null {
-    const wanted = anchor?.style.gridColumn ? Number(anchor.style.gridColumn) - 1 : 0;
+    // Read off the card's own `data-column`, written where the grid's
+    // `style.gridColumn` used to be: the positioned stage sets a `left`, and a
+    // pixel offset is not a column.
+    const wanted = Number(anchor?.dataset.column ?? 0);
     let best: HTMLButtonElement | null = null;
     let bestDistance = Number.POSITIVE_INFINITY;
     for (const id of TECH_IDS) {
@@ -1786,7 +1964,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * window: a sky taller than the stage had a bottom lane no gesture could
    * reach, because the one gesture that would have reached it had been taken.
    * So the stage is asked rather than assumed, and the answer is nearly always
-   * "sideways" anyway, `fitLanes` having spent the height first.
+   * "sideways" anyway, `layoutField` having spent the height first.
    *
    * A trackpad's horizontal gesture (and the shift-wheel most browsers turn into
    * one) arrives as `deltaX` and is left to the browser; shift is honoured here
@@ -2058,13 +2236,13 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     if (event.target === overlay) setOpen(false);
   });
 
-  // A resize changes the height the lanes were spaced for as readily as the
+  // A resize changes the height the chart was packed for as readily as the
   // width the lines were measured in, so both are redone, in the same order
   // renderChart does them.
   const onWindowResize = (): void => {
     if (!open || !field || !lines) return;
     spaceColumns(field, techColumnCount());
-    spaceLanes(field, techRowCount());
+    layoutField(field);
     drawLines(lines);
   };
   window.addEventListener('resize', onWindowResize);
