@@ -674,6 +674,24 @@ export interface UnitFilter {
    * touched.
    */
   explores?: boolean;
+  /**
+   * One **named** roster row, and nothing else — State Workforce's cheaper
+   * worker (tree revision 4, 2026-09-02).
+   *
+   * The narrowest member of the filter and deliberately the last resort: every
+   * other field asks what a piece *is*, so a card written against one of them
+   * keeps meaning what it said when the roster grows. This one does not, which
+   * is why it exists only for the case none of the others can reach — "workers"
+   * as a *purchase* class is `{ modelClass: 'worker', consecrates: false }`
+   * everywhere else in the game, and that phrase also admits the caravan, the
+   * prophet and the inquisitor, three rows a discount on the spade has no
+   * business touching.
+   *
+   * A card that could have used a silhouette and named a row instead is a card
+   * that will quietly stop applying to the unit that replaces it; prefer the
+   * fields above whenever one of them says the thing.
+   */
+  type?: UnitTypeId;
 }
 
 /**

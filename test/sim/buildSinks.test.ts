@@ -373,8 +373,12 @@ describe('the roster is priced in the money of its own age', () => {
     expect(unitProductionCost(state, 0, 'spearman')).toBe(11);
     expect(unitProductionCost(state, 0, 'archer')).toBe(11);
     // The mounted premium, which is the earlier pass's second half: a horse is
-    // a decision arrived at sooner and now priced like one, ×1.4 again.
-    expect(unitProductionCost(state, 0, 'horseman')).toBe(17);
+    // a decision arrived at sooner and now priced like one, ×1.4 again. The
+    // chariot is still Æra I's (The Wheel); **the horseman moved to Æra III**
+    // when tree revision 4 (2026-09-02) gave it to The Saddle, so its printed
+    // 17 now carries the third rung of the band — the band is read off the
+    // unlocking node and nothing on the row changed.
+    expect(unitProductionCost(state, 0, 'horseman')).toBe(34);
     expect(unitProductionCost(state, 0, 'chariot')).toBe(24);
     expect(unitProductionCost(state, 0, 'chariotArcher')).toBe(20);
     // Æra II at ×1.5, III at ×2, **IV at ×2.5**, off the printed (already ×1.4)

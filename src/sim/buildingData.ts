@@ -308,6 +308,10 @@ export type BuildingId =
   | 'bank'
   | 'bastion'
   | 'alchemicalSociety'
+  // Tree revision 4's own row (2026-09-02): Raised Fields' terraces, the food
+  // building that pays a hammer as well — the whole of what the new Æra III
+  // node hands over.
+  | 'terraces'
   // The Holy Office's tenant (Entry LVIII, the faith rework): the tier-4 faith
   // building, and the one row that opens a bank (`faithPurchases`).
   | 'reliquary'

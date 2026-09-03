@@ -76,10 +76,20 @@
  * `friendly` rounds to the nearest 1 below a hundred, the nearest 5 below a
  * thousand and the nearest 50 above. The first two steps are flat at 2.3×,
  * which is the user's own anchor (13 → 30 → 69, "and on and on"), and the ratio
- * then decays geometrically toward 1, reaching 1.05 by the last column. The
- * fourteen figures are
+ * then decays geometrically toward 1, reaching 1.09 by the last column. **Tree
+ * revision 4 (2026-09-02) shortened the chart from fourteen columns to twelve**,
+ * and the ladder was *truncated* rather than re-fitted — the formula is
+ * unchanged, so every column keeps the price it already carried and the top two
+ * figures (875, 920) simply fall off the end, exactly as 950 fell off it when
+ * the anchor moved. The twelve figures are
  *
- *     5 · 13 · 30 · 69 · 135 · 225 · 335 · 450 · 565 · 665 · 750 · 820 · 875 · 920
+ *     5 · 13 · 30 · 69 · 135 · 225 · 335 · 450 · 565 · 665 · 750 · 820
+ *
+ * Truncation rather than a re-fit is the ruling that keeps the taper honest: the
+ * decay is a statement about how fast a *step* should grow, and re-fitting the
+ * same fourteen figures into twelve columns would silently steepen every one of
+ * them because the chart got shorter. A thirteenth column, if Æra V ever adds
+ * one, takes 875 back off the formula without anything else moving.
  *
  * **The first tier is the first *paid* tier — the root is not a tier** (the
  * user, 2026-09-02). The table above used to be anchored one column to the
@@ -98,16 +108,27 @@
  * invariant); no seat ever spends it, because the only node in that column is
  * in every empire's hand on turn one.
  *
- * The shift prices the four ages at **384 / 2310 / 9435 / 10415** — 22544 for
+ * The shift priced the four ages at **384 / 2310 / 9435 / 10415** — 22544 for
  * the whole tree, against 26089 for the one-column-higher ladder and 20354 for
- * the hand-tuned table before that. The shape of the change from the hand-tuned
- * table is still the point rather than the total: Æra I costs more than twice
- * what it did, Æra II nearly twice, and the two late ages are within a fifth of
- * where they were. So the opening is a real ramp instead of four techs a player
- * sweeps before their second city, and the scripted empire's closes move from
- * 34 / 71 / 177 / 265 (hand-tuned) through 74 / 128 / 252 / 334 (the
- * mis-anchored ladder) to **46 / 91 / 200 / 273** — which is also closer to
- * the era proportions Civ itself uses than the hand-tuned table was.
+ * the hand-tuned table before that.
+ *
+ * **Tree revision 4 re-prices them again, and only by re-shaping the graph**
+ * (the user's own redraw, 2026-09-02). Nothing about the ladder moved; what
+ * moved is which column each node sits in, because almost every prerequisite
+ * did. The four ages now cost **345 / 1890 / 7650 / 8035** — 17920 for the whole
+ * tree — and the populations are 1·4·5·2 / 4·6 / 6·5·6 / 5·3·3 across twelve
+ * columns. Æra III is the age that grew (seventeen nodes over three columns),
+ * and Æra IV shrank to eleven over three; the two late ages together are a fifth
+ * cheaper than they were, which is the whole of why the finale arrives.
+ *
+ * The shape of the change from the hand-tuned table is still the point rather
+ * than the total: Æra I costs more than twice what it did, Æra II nearly twice,
+ * and the two late ages are within a fifth of where they were. So the opening is
+ * a real ramp instead of four techs a player sweeps before their second city.
+ * The scripted empire's closes move from 34 / 71 / 177 / 265 (hand-tuned)
+ * through 74 / 128 / 252 / 334 (the mis-anchored ladder) and 46 / 91 / 200 / 273
+ * (the re-anchored one) to **the figures pinned in `tech.slow.test.ts`** for the
+ * revision-4 tree — measured, as every one of these was.
  *
  * **The taper is decaying rather than linear, and that was a measurement.** A
  * linear taper from 2.3 to 1.5 over the thirteen steps — the shape this pass

@@ -181,7 +181,12 @@ describe('the bead catalogue', () => {
     // so every column now takes the price the column to its left used to carry
     // (Fletching 13 where it was 30) and a v48 log pays the wrong beakers from
     // the first technology anybody researches.
-    expect(SCHEMA_VERSION).toBe(49);
+    // v50: tree revision 4 — the user's hand-drawn tree transcribed. Fourteen
+    // nodes renamed with their ids kept, three ids cut (`ancestorRites`,
+    // `chivalry`, `fortification`) and three added, almost every prerequisite
+    // re-hung, twelve columns and a truncated cost ladder — and, beside it, the
+    // one-unit-a-turn purchase rule widened to one *per class*.
+    expect(SCHEMA_VERSION).toBe(50);
   });
 
   it('puts the beads phase directly after renown', () => {
@@ -650,7 +655,13 @@ describe('a building shipped ahead of its age', () => {
    */
   it('names every row no technology opens', () => {
     const dormant = BUILDING_IDS.filter((id) => buildingDef(id).awaitsTech === true);
-    expect(dormant).toEqual(['hallOfDeeds']);
+    // The Bastion joined the Hall of Deeds on 2026-09-02: tree revision 4 cut
+    // Fortification, the node that opened it, and the user's ruling was to keep
+    // the row as an Æra V candidate rather than re-home it. Same shape as the
+    // Hall's — no node names it, and `buildError` and `purchaseError` refuse it
+    // outright, which is what stops "no tech gates it" reading as "available on
+    // turn one".
+    expect(dormant).toEqual(['hallOfDeeds', 'bastion']);
   });
 
   it('is still refused by both the queue and the treasury when a row asks for it', () => {

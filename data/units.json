@@ -137,9 +137,10 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "requiresResource": "horses",
-      "upgradesTo": "cataphract",
+      "upgradesTo": "knight",
       "modelClass": "mounted",
-      "glyph": "H"
+      "glyph": "H",
+      "note": "Light shock cavalry, and the rung The Saddle hands over. It climbs to the knight: the cataphract that used to stand between the two is a row no node opens any more."
     },
     "chariot": {
       "name": "War Chariot",
@@ -764,7 +765,8 @@
       ],
       "requiresResource": "horses",
       "modelClass": "mounted",
-      "note": "Rides where there are horses. The doc asks for iron as well; a unit row names one resource.",
+      "awaitsTech": true,
+      "note": "Rides where there are horses. No technology opens it: tree revision 4 gave The Saddle the horseman instead, and this row is kept so a save that trained one replays.",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,

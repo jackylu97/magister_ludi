@@ -10,16 +10,7 @@
       "science": 0,
       "culture": 2,
       "sciencePerPop": 0,
-      "authorityCapacity": 1,
-      "upgrades": [
-        {
-          "tech": "ancestorRites",
-          "add": {
-            "culture": 1,
-            "faith": 1
-          }
-        }
-      ]
+      "authorityCapacity": 1
     },
     "granary": {
       "name": "Granary",
@@ -98,13 +89,6 @@
           "tech": "ironWorking",
           "add": {
             "production": 1
-          }
-        },
-        {
-          "tech": "chivalry",
-          "add": {
-            "production": 1,
-            "culture": 1
           }
         }
       ]
@@ -1705,6 +1689,22 @@
       "sciencePerPop": 0,
       "note": "The writ a chartered city is founded with: land granted, market days set, and a name on a list somewhere."
     },
+    "terraces": {
+      "name": "The Terraces",
+      "category": "food",
+      "cost": 75,
+      "food": 2,
+      "production": 1,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "engineer",
+        "perTurn": 1
+      },
+      "note": "The hillside is cut into steps, and every step is a field that will not wash away."
+    },
     "clocktower": {
       "name": "Clocktower",
       "category": "science",
@@ -1755,11 +1755,12 @@
         "amount": 10
       },
       "cityHp": 30,
+      "awaitsTech": true,
       "renown": {
         "family": "engineer",
         "perTurn": 1
       },
-      "note": "A wall with corners, so that nobody may stand anywhere it cannot be shot at."
+      "note": "A wall with corners, so that nobody may stand anywhere it cannot be shot at. No technology opens it yet: the age that does has not been written."
     },
     "alchemicalSociety": {
       "name": "The Alchemical Society",

@@ -344,6 +344,30 @@ describe('pacing', () => {
     //
     // Bands keep the widths above (±10 / ±15 / ±25 / ±30) and are re-centred on
     // the new measurements.
+    //
+    // **Re-pinned 2026-09-02, tree revision 4 — the user's own redraw.** Not a
+    // retune: the ladder is untouched (truncated at the top, because the chart
+    // is twelve columns rather than fourteen) and every figure moved because the
+    // *shape* did. Æra III grew to seventeen nodes and Æra IV shrank to eleven,
+    // and the whole tree costs 17920 beakers where the timeline pass's did
+    // 22544 — 345 / 1890 / 7650 / 8035 by age.
+    //
+    // This seed closes at **44 / 84 / 175 / 236** against 46 / 91 / 200 / 273.
+    // What that pair says:
+    //
+    //   · **The opening is where the redraw was gentlest** (46 → 44). Æra I is
+    //     the same twelve nodes, and only the Calendar and Divination came down
+    //     a column, so the age costs 345 rather than 384.
+    //   · **The middle is a little quicker and the finale a lot** (Æra III is a
+    //     ninety-one-turn band against a hundred and nine, Æra IV sixty-one
+    //     against seventy-three). Æra III holds a node more and still costs less
+    //     because the age is three columns wide rather than four; Æra IV holds a
+    //     node fewer over three columns rather than three of a longer ladder.
+    //   · **The curtain lands around t236**, which is the earliest the four-age
+    //     tree has closed since Entry LIV put the walls up, and inside the
+    //     ~t265 the hand-tuning had settled on rather than past it.
+    //
+    // Bands keep the same widths again (±10 / ±15 / ±25 / ±30), re-centred.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -353,14 +377,14 @@ describe('pacing', () => {
     expect(third, `age III: ${String(third)}`).toBeDefined();
     expect(fourth, `age IV: ${String(fourth)}`).toBeDefined();
 
-    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(36);
-    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(56);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(76);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(106);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(175);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(225);
-    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(243);
-    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(303);
+    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(34);
+    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(54);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(69);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(99);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(150);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(200);
+    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(206);
+    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(266);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 120_000);
 

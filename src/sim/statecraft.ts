@@ -3596,6 +3596,10 @@ function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
   // name — Wolf-Runners reaches the commando a later age adds without its row
   // being touched, exactly as `consecrates` reaches the prophet.
   if (filter.explores !== undefined && isExplorer(def) !== filter.explores) return false;
+  // The named row, asked last because it is the narrowest thing the filter can
+  // say — see `UnitFilter.type`. The *data* names a type here; no rule in
+  // `src/sim/` does, which is the claim that has never moved.
+  if (filter.type !== undefined && type !== filter.type) return false;
   return true;
 }
 
@@ -5699,6 +5703,11 @@ function scopeWords(scope?: CityScope): string {
 }
 
 function filterWords(filter: UnitFilter): string {
+  // The named row first, because it is the *narrowest* clause and a phrase that
+  // said "workers" when the filter means one row would be a promise the price
+  // does not keep. Pluralised off the roster's own name (hard rule 7: the
+  // player is told "workers", never `worker`).
+  if (filter.type !== undefined) return `${unitDef(filter.type).name.toLowerCase()}s`;
   // The religious clause is asked **first** and reads as a whole noun phrase,
   // because it is the one filter that names a *vocation* rather than a
   // silhouette: an augur is a `worker` by model, and "worker units" is exactly

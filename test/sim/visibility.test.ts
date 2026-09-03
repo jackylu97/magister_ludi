@@ -135,7 +135,12 @@ describe('the visibility grid', () => {
     // so every column now takes the price the column to its left used to carry
     // (Fletching 13 where it was 30) and a v48 log pays the wrong beakers from
     // the first technology anybody researches.
-    expect(SCHEMA_VERSION).toBe(49);
+    // v50: tree revision 4 — the user's hand-drawn tree transcribed. Fourteen
+    // nodes renamed with their ids kept, three ids cut (`ancestorRites`,
+    // `chivalry`, `fortification`) and three added, almost every prerequisite
+    // re-hung, twelve columns and a truncated cost ladder — and, beside it, the
+    // one-unit-a-turn purchase rule widened to one *per class*.
+    expect(SCHEMA_VERSION).toBe(50);
   });
 
   it('survives a JSON round trip as plain data', () => {

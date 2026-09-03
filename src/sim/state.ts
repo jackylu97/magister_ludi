@@ -732,8 +732,40 @@ import {
  *     prerequisite moved. What a v48 save cannot carry across is the beaker
  *     schedule, which parts company with the replay on the first technology
  *     anybody researches.
+ * 50: **Tree revision 4 — the user's own redraw**, and the per-class purchase
+ *     stamps beside it. Four changes, any one of which would be a bump:
+ *
+ *       · **Fourteen nodes were renamed** (Pottery, Writing, Chronology, Code
+ *         of Laws, The Saddle, Guildhalls, Satrapies, Daughter Cities,
+ *         Geomancy, Divine Right, Scholarship, Natural Philosophy, The Golden
+ *         Roads, The Counting Houses). Ids are forever, so a v49 log naming one
+ *         still names the same node — this half migrates perfectly and is the
+ *         reason none of them was given a new id.
+ *       · **Three ids were deleted** — `ancestorRites`, `chivalry`,
+ *         `fortification` — and three added: `stateWorkforce` (Æra II),
+ *         `raisedFields` (Æra III), `militantOrders` (Æra IV). A v49 log that
+ *         researched one of the three is dead, exactly as the Wave-1 cuts were.
+ *       · **Almost every prerequisite moved**, so the chart is twelve columns
+ *         where it was fourteen and every cost is re-read off the shortened
+ *         ladder (5 · 13 · 30 · 69 · 135 · 225 · 335 · 450 · 565 · 665 · 750 ·
+ *         820). The tree costs 17920 against 22544 and the ages close later or
+ *         earlier accordingly; a v49 replay parts company on the first node.
+ *       · **The one-unit-a-turn rule is now one per class.**
+ *         `City.purchasedUnitTurn` — a single stamp — is replaced by
+ *         `City.purchasedUnitTurns`, a stamp per `UnitPurchaseBucket`
+ *         (military-with-gold, civilian-with-gold, anything out of the faith
+ *         bank). A v49 log is a *different game* rather than an older one for
+ *         v25's reason in reverse: it was written against a reducer that
+ *         refused a second purchase this one accepts, so a seat that gave up
+ *         and did something else would, replayed here, have been allowed to buy.
+ *
+ *     The migration note: one field changed shape and it is deliberately not
+ *     migrated. `purchasedUnitTurn` is stale by itself — it is meaningless the
+ *     moment the turn rolls over — so there is nothing in it worth carrying, and
+ *     a save is `{config, log}` regardless: what replays is the log, against
+ *     this tree and this rule.
  */
-export const SCHEMA_VERSION = 49;
+export const SCHEMA_VERSION = 50;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1759,6 +1791,28 @@ export type QueueKind = QueueItem['kind'];
  * input `assignCitizens` cannot recompute. See `setLockedTiles` in `commands.ts`
  * and the assignment rules in `cities.ts`.
  */
+
+/**
+ * Which "one a turn" a bought unit spends (`City.purchasedUnitTurns`).
+ *
+ * The user's widening of the one-unit-a-turn rule (2026-09-02): *faith buying,
+ * buying a civilian unit, and buying a military unit all counted separately*. So
+ * the bucket is a pair of questions asked in order — **which bank paid**, and
+ * then **is the piece a combatant** — because the faith bank is the one a town
+ * calls an augur or a prophet out of and that call has never competed with a
+ * garrison for the same afternoon.
+ *
+ * Read off `UnitDef` through `isCivilian` rather than off a name, exactly as
+ * every other class question in this codebase is: nothing here compares a type
+ * against `"settler"`, so a caravan is bought out of the civilian bucket for
+ * being a non-combatant and not for being called a trader.
+ *
+ * Declared here beside `City` rather than in `purchase.ts` because the field is
+ * the city's; `purchase.ts` imports this module and an import the other way
+ * would be the runtime cycle `moduleCycles.test.ts` exists to catch.
+ */
+export type UnitPurchaseBucket = 'militaryGold' | 'civilianGold' | 'faith';
+
 export interface City {
   id: number;
   ownerId: number;
@@ -1848,17 +1902,24 @@ export interface City {
    */
   tradingPost?: boolean;
   /**
-   * The turn this town last bought a **unit**, or the key is **absent** on a
-   * town that never has (user, 2026-08-28 playtest: "cities can only purchase a
-   * single unit per turn").
+   * The turn this town last bought a unit **of each class**, or the key is
+   * **absent** on a town that never has (user, 2026-08-28 playtest: "cities can
+   * only purchase a single unit per turn"; widened 2026-09-02: "cities should be
+   * able to only buy one unit of each *type* — faith buying, buying a civilian
+   * unit, and buying a military unit all counted separately").
    *
-   * An **absolute** turn compared against `state.turn`, never a countdown —
-   * `TimedEffect`'s rule and `SlottedOrder.sealedUntil`'s, applied to the
-   * shortest-lived fact in the game. The whole reading is
-   * `city.purchasedUnitTurn === state.turn`, so nothing decrements it, no phase
-   * clears it and the field is *already* meaningless the moment the turn rolls
-   * over. That is what makes the rule safe under simultaneous turns: there is no
-   * moment in the pipeline where it has to have been reset.
+   * One record with one stamp per `UnitPurchaseBucket` rather than three fields,
+   * because the rule is one rule asked of three buckets: `purchaseError` looks up
+   * the bucket the thing being bought falls in and `purchaseItemAt` writes the
+   * same one, so a fourth class is a member of that union and nothing else.
+   *
+   * Each entry is an **absolute** turn compared against `state.turn`, never a
+   * countdown — `TimedEffect`'s rule and `SlottedOrder.sealedUntil`'s, applied to
+   * the shortest-lived fact in the game. The whole reading is
+   * `city.purchasedUnitTurns?.[bucket] === state.turn`, so nothing decrements it,
+   * no phase clears it and the entry is *already* meaningless the moment the turn
+   * rolls over. That is what makes the rule safe under simultaneous turns: there
+   * is no moment in the pipeline where it has to have been reset.
    *
    * **Units only.** A treasury that can turn coin into a garrison as fast as it
    * can click is the thing the note is about; a town that buys a granary and a
@@ -1866,7 +1927,7 @@ export interface City {
    * Written by `purchaseItemAt` and read by `purchaseError`, and by nothing
    * else.
    */
-  purchasedUnitTurn?: number;
+  purchasedUnitTurns?: Partial<Record<UnitPurchaseBucket, number>>;
   /**
    * How many of this town's citizens follow each religion, or the key is
    * **absent** on a town nobody has preached to — which is every town for most

@@ -94,14 +94,15 @@
  *      moving it is a decision about the window, not about the graph.
  *   2. **A tech sits in the lane of the prerequisite whose line it continues.**
  *      Usually the first one listed, which is why `prereqs` order is display
- *      order. Iron Working continues Bronzeworking's line; Chivalry continues
- *      Feudalism's.
+ *      order. Iron Working continues Siegecraft's line; Militant Orders
+ *      continues Castellany's.
  *   3. **A tech with two prerequisites in different lanes sits between them**,
  *      so the two connectors fan in symmetrically rather than one running flat
- *      and the other diving. Stonecraft sits between Husbandry and Earthenware;
- *      Mathematics between Letters and The Wheel.
- *   4. **A leaf goes wherever it keeps the fan even.** Sailing and Calendar hand
- *      nothing on, so they are the free pieces that let the rest sit straight.
+ *      and the other diving. Writing sits between Divination and the Calendar;
+ *      The Wheel between Bronzeworking and Stonecraft.
+ *   4. **A leaf goes wherever it keeps the fan even.** Raised Fields and The
+ *      Saddle hand nothing on, so they are the free pieces that let the rest sit
+ *      straight.
  *
  * And one prohibition that outranks a crossing: **never let a connector run flat
  * through a node that is not on the path it joins.** Two techs a lane apart
@@ -148,9 +149,10 @@
  * **ten crossings became fourteen**, against the same naive baseline of 113, and
  * the lanes read as lines *better* than before (thirty of the thirty-nine nodes
  * that can continue a parent's lane do, where eleven lanes managed twenty-nine).
- * Zero false chains did not move, and Æra I still draws at its proven floor of
- * one. A tree three lanes shorter that crosses four more times is the trade Civ
- * itself makes: long, not tall.
+ * Zero false chains did not move, and Æra I still drew at its then-proven floor
+ * of one (tree revision 4 has since taken two of that corner's four gates away,
+ * so the floor there is zero now — see below). A tree three lanes shorter that
+ * crosses four more times is the trade Civ itself makes: long, not tall.
  *
  * **Eight lanes is shorter, and it is still taller than an 827px window.** That
  * is arithmetic about the *cards*, not about the lay: measured in Chrome at the
@@ -168,26 +170,46 @@
  * prerequisites, with a handful of nodes a dependency dragged out of order
  * pinned as exceptions; now every cost is written from the node's own
  * `techColumn` by one tapered table (the pacing note in `tech.ts` carries the
- * formula and the fourteen figures), so the reading holds exactly, in every
- * age, with no exceptions left to pin. There is still no cost term anywhere in
- * the *layout* — the arrow points the other way, from the shape to the price,
- * which is why this pass reshaped the tree before it repriced it.
+ * formula and the twelve figures), so the reading holds exactly, in every age,
+ * with no exceptions left to pin. There is still no cost term anywhere in the
+ * *layout* — the arrow points the other way, from the shape to the price, which
+ * is why that pass reshaped the tree before it repriced it.
  *
- * The timeline pass of 2026-09-02 (this file's shape today)
- * ---------------------------------------------------------
- * The user's read of the banded chart was that it should look like Civ V's:
- * every column earning its width, edges reading as a timeline. Two measures
- * came out of it and both are pinned in `test/sim/tech.test.ts`:
+ * Tree revision 4, the user's own redraw (2026-09-02; this file's shape today)
+ * ----------------------------------------------------------------------------
+ * Every pass above was an agent re-deriving a shape from a rule. This one is a
+ * chart the **user drew by hand** and ratified, and the whole of the job was to
+ * transcribe it: fourteen nodes renamed with their ids kept, three ids cut
+ * (`ancestorRites`, `chivalry`, `fortification`) and three added (State
+ * Workforce, Raised Fields, Militant Orders), and almost every prerequisite
+ * re-hung. Fifty nodes still, distributed **12 · 10 · 17 · 11** across the ages
+ * where the timeline pass had 12 · 10 · 16 · 12 — Æra III is the age that grew.
  *
- *   - **no column holds fewer than three nodes** (bar column 0, which is the
- *     single root and always will be) **and none holds more than seven**. The
- *     populations are 1·4·4·3 / 3·4·3 / 4·6·3·3 / 4·5·3 across the four ages.
- *   - **an edge is short**: 42 of the 74 connectors span one column, 22 span
- *     two, and only four span four or more. Those four are named and kept on
- *     purpose — Wayfinding → Shipwrights, Shipwrights → The Astrolabe, Iron
- *     Working → Steel, The Cataphract → Chivalry — because each is the spine of
- *     a line of work whose next node is genuinely an age away, and the standing
- *     rule is that thematic sensibility beats crossing-optimal nonsense.
+ * What the redraw did to the geometry, all of it measured rather than intended:
+ *
+ *   - **Twelve columns where there were fourteen**, populations
+ *     1·4·5·2 / 4·6 / 6·5·6 / 5·3·3. The shortened chart is why the cost ladder
+ *     was truncated rather than re-fitted (see `tech.ts`).
+ *   - **Two columns hold fewer than three**, and both are named exceptions
+ *     rather than a rule that stopped holding: column 0 is Agriculture alone and
+ *     always will be, and column 3 is Writing and The Wheel — Æra I's closing
+ *     pair, which is exactly what the user's own edge list produces (five nodes
+ *     in column 2 fan into two gates). The pin in `test/sim/tech.test.ts` names
+ *     both.
+ *   - **An edge is shorter than it has ever been**: 57 of the 65 connectors span
+ *     one column, four span two, and only four span three or more — Sailing →
+ *     Wayfinding, Irrigation → Engineering, Iron Working → Steel and Shipwrights
+ *     → The Astrolabe. Each is the spine of a line of work whose next node is
+ *     genuinely an age away, and the standing rule is that thematic sensibility
+ *     beats crossing-optimal nonsense.
+ *
+ * **Two edges are the transcriber's and are marked as such**, because the user's
+ * list left exactly two pressure points open and asked for at most one move at
+ * each. Geomancy's second parent is **Mathematics** rather than Horology, which
+ * pulls it back one column and collapses an Æra III closer that would otherwise
+ * have held one node; and Militant Orders takes **Steel** as a second parent
+ * beside Castellany, which fills a closing column that would otherwise have held
+ * two. Neither changes what any node hands over.
  *
  * **Adding a technology later is placement, not archaeology.** Two decisions,
  * in this order:
@@ -205,19 +227,34 @@
  *      figures in `test/ui/techChart.test.ts`) and write the rows it returns.
  *      The lanes the search settled into are readable lines of work, which is
  *      where a new node should be *offered* before the annealer is allowed to
- *      move it: **0–1 the war lane** (Fletching, Siegecraft; Bronze Panoply,
- *      Iron Working, The Cataphract, Chivalry), **2 the sea lane** (Wayfinding,
- *      Shipwrights), **3 the metal-and-coin lane** (Mining, Bronzeworking, The
- *      Wheel, Currency, Artisanry, running out through The Qadi's Court,
- *      Castellany and Fortification), **4 the measuring lane** (Agriculture at
- *      the root, then Earthenware, Sailing, Irrigation, Mathematics, Horology,
- *      Physics, The Astrolabe), **5 the letters lane** (Stonecraft, Letters,
- *      Kingship, Epic Poetry, Rhetoric, Theology, Education, and the late
- *      makers Machinery, Steel, Alchemy), **6 the clerks' lane** (Ancestor
- *      Rites, The Examination Hall, Colonial Charters, Empire-Building, Paper
- *      Money, Movable Type, The Holy Office) and **7 the sky lane** (Husbandry,
- *      Divination, Calendar, The Long Count, The High Temple, then Engineering,
- *      Prospecting, The Silk Road, Banking).
+ *      move it. **The identity of each lane under tree revision 4**, left to
+ *      right:
+ *
+ *        · **0, the sea-and-coin lane** — Sailing, Wayfinding, Shipwrights,
+ *          Paper Money, The Golden Roads, The Counting Houses. The one line
+ *          that runs the whole width of the chart, hull to counting house.
+ *        · **1, the state's lane** — Currency, State Workforce, Satrapies,
+ *          Guildhalls. Four rungs of one idea: coin, corvée, province, guild.
+ *        · **2, the potter's lane** — Pottery and Stonecraft, and nothing else.
+ *          Two nodes, because both of them hand their line on to somebody
+ *          else's lane immediately.
+ *        · **3, the forge lane** — Mining, Bronzeworking, The Wheel, Bronze
+ *          Panoply, Siegecraft, Iron Working, The Saddle, and then Divine Right
+ *          and The Holy Office, where metal turns into magistracy.
+ *        · **4, the letters-and-faith lane, and the root's own** — Agriculture,
+ *          Husbandry, Divination, Writing, Epic Poetry, The High Temple,
+ *          Rhetoric, Theology, Scholarship, Natural Philosophy, The Astrolabe.
+ *          Eleven nodes in one unbroken line, which is the longest the chart
+ *          has ever drawn.
+ *        · **5, the builder's lane** — Engineering and Castellany.
+ *        · **6, the measuring lane** — Chronology, Irrigation, Raised Fields,
+ *          Mathematics, Horology, and then Machinery, Movable Type, Alchemy.
+ *        · **7, the clerks' lane** — Fletching, the Calendar, Code of Laws, The
+ *          Examination Hall, Daughter Cities, Geomancy, Steel, Militant Orders.
+ *
+ *      Nine crossings, zero false chains, and thirty-seven of the forty-two
+ *      nodes that *can* continue a parent's lane do — the chart's best figures
+ *      to date, and mostly the graph's doing rather than the search's.
  *
  * `techDataProblems` insists every tech has a row inside `TECH_LANE_LIMIT` and
  * that no two share a (column, row) cell, which is the whole failure mode
@@ -265,7 +302,9 @@ export type TechId =
   | 'irrigation'
   | 'kingship'
   | 'epicPoetry'
-  | 'ancestorRites'
+  // The corvée gangs (tree revision 4, 2026-09-02). One of the three ids the
+  // user's redraw added, and the eighth node whose whole gift is a *rule*.
+  | 'stateWorkforce'
   | 'theHighTemple'
   | 'theLongCount'
   | 'currency'
@@ -287,19 +326,30 @@ export type TechId =
   | 'paperMoney'
   | 'horology'
   | 'shipwrights'
+  // The terraced hillside (tree revision 4). Æra III's addition.
+  | 'raisedFields'
   // Æra IV — The Age of Cathedrals
   | 'feudalism'
   | 'steel'
-  | 'chivalry'
+  // The knightly orders (tree revision 4). Æra IV's addition, and the home
+  // Chivalry's knight and Alhambra moved to when Chivalry was cut.
+  | 'militantOrders'
   | 'machinery'
   | 'physics'
   | 'movableType'
   | 'theAstrolabe'
   | 'theSilkRoad'
   | 'banking'
-  | 'fortification'
   | 'theHolyOffice'
   | 'alchemy';
+
+// Cut by tree revision 4 (2026-09-02, the user's redraw), and named here rather
+// than silently absent: `ancestorRites`, `chivalry` and `fortification`. The
+// Wave-1 precedent — an id leaves the union, the schema bump refuses the logs
+// that named it, and their rows were re-homed rather than lost (the great-person
+// gate to The High Temple; the knight and the Alhambra to Militant Orders; the
+// Great Wall to Satrapies; the bastion to nothing, `awaitsTech`, an Æra V
+// candidate). `calendar` is still the only id this union has ever handed back.
 
 /**
  * Omens, Heroes, Empire, Cathedrals. The fifth age (Magister) arrives with its

@@ -266,11 +266,12 @@ describe('buying a unit', () => {
     expect(city.hammerBasket).toBe(9);
   });
 
-  it('sells one unit a turn and no more, byte-identically, and buildings anyway', () => {
-    // User, 2026-08-28: "cities can only purchase a single unit per turn". A
-    // treasury that can turn coin into a garrison as fast as a player can click
-    // is the thing being refused; a town that buys a granary and a library on
-    // one afternoon has bought two things it then has to feed.
+  it('sells one soldier a turn and no more, byte-identically, and buildings anyway', () => {
+    // User, 2026-08-28: "cities can only purchase a single unit per turn",
+    // widened 2026-09-02 to one *of each class*. A treasury that can turn coin
+    // into a garrison as fast as a player can click is the thing being refused;
+    // a town that buys a granary and a library on one afternoon has bought two
+    // things it then has to feed.
     const g = game();
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
@@ -278,16 +279,17 @@ describe('buying a unit', () => {
     const gate = gatingTech('building', 'granary');
     if (gate) learn(g.state, 0, gate);
 
-    expect(city.purchasedUnitTurn).toBeUndefined();
+    expect(city.purchasedUnitTurns).toBeUndefined();
     expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
-    // An absolute turn, stamped — never a countdown.
-    expect(city.purchasedUnitTurn).toBe(g.state.turn);
+    // An absolute turn, stamped into the bucket the purchase fell in — never a
+    // countdown, and never a stamp on the town as a whole.
+    expect(city.purchasedUnitTurns).toEqual({ militaryGold: g.state.turn });
 
     const goldAfterOne = player.gold;
     const before = snapshotState(g.state);
     const second = dispatch(g, buyCommand(city.id, WARRIOR));
     expect(second.ok).toBe(false);
-    expect(second.ok === false && second.error).toMatch(/already bought a unit this turn/);
+    expect(second.ok === false && second.error).toMatch(/already bought a military unit this turn/);
     expect(snapshotState(g.state)).toEqual(before);
     expect(player.gold).toBe(goldAfterOne);
 
@@ -298,26 +300,47 @@ describe('buying a unit', () => {
     // And the day rolls over on its own: nothing clears the stamp, the
     // comparison simply stops matching.
     for (const seat of g.state.players) dispatch(g, { type: 'endTurn', playerId: seat.id });
-    expect(city.purchasedUnitTurn).toBeLessThan(g.state.turn);
+    expect(city.purchasedUnitTurns!.militaryGold).toBeLessThan(g.state.turn);
     expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
-    expect(city.purchasedUnitTurn).toBe(g.state.turn);
+    expect(city.purchasedUnitTurns!.militaryGold).toBe(g.state.turn);
   });
 
-  it('counts a faith purchase against the same one-a-turn allowance', () => {
-    // The rule is about how fast a town can be reinforced, not about which bank
-    // paid — so the augur spends the day exactly as a warrior does.
+  it('keeps the three classes on their own allowances', () => {
+    // The user's widening, 2026-09-02: "cities should be able to only buy one
+    // unit of each *type* — faith buying, buying a civilian unit, and buying a
+    // military unit all counted separately". A town calling an augur has not
+    // spent the afternoon it would have given a spearman, and a worker is not a
+    // garrison. Three buckets, one apiece, all on the same day.
     const g = game();
     learn(g.state, 0, 'divination');
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
     player.faithPool = 500;
-    player.gold = 2000;
+    player.gold = 4000;
 
+    expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
+    expect(dispatch(g, buyCommand(city.id, WORKER)).ok).toBe(true);
     expect(dispatch(g, buyCommand(city.id, AUGUR, 'faith')).ok).toBe(true);
-    expect(city.purchasedUnitTurn).toBe(g.state.turn);
-    const blocked = dispatch(g, buyCommand(city.id, WARRIOR));
-    expect(blocked.ok).toBe(false);
-    expect(blocked.ok === false && blocked.error).toMatch(/already bought a unit this turn/);
+    expect(city.purchasedUnitTurns).toEqual({
+      militaryGold: g.state.turn,
+      civilianGold: g.state.turn,
+      faith: g.state.turn,
+    });
+
+    // And each bucket is now spent, in its own words.
+    for (const [item, words] of [
+      [WARRIOR, /already bought a military unit this turn/],
+      [WORKER, /already bought a civilian unit this turn/],
+    ] as const) {
+      const blocked = dispatch(g, buyCommand(city.id, item));
+      expect(blocked.ok).toBe(false);
+      expect(blocked.ok === false && blocked.error).toMatch(words);
+    }
+    const prophetBlocked = dispatch(g, buyCommand(city.id, AUGUR, 'faith'));
+    expect(prophetBlocked.ok).toBe(false);
+    expect(prophetBlocked.ok === false && prophetBlocked.error).toMatch(
+      /already bought a unit with faith this turn/,
+    );
   });
 
   it('still buys an augur with faith, into the same routine', () => {

@@ -530,25 +530,25 @@ describe('the research queue field', () => {
     expect('researchQueue' in player).toBe(false);
     expect(researchPlan(player)).toEqual(['mining']);
 
-    // A locked node fills it: the Bronze Panoply wants Bronzeworking and The
-    // Wheel, and those two want four nodes between them — the age-1 restoration
-    // of 2026-09-02 put the old two-parent gates back under the bronze line, so
-    // the plan is a lattice flattened by depth and then by roster order.
+    // A locked node fills it: the Bronze Panoply wants The Wheel, which wants
+    // Bronzeworking *and* Stonecraft, which want Mining and Pottery — tree
+    // revision 4 closes Æra I on two gates, so the plan under the Panoply is a
+    // lattice flattened by depth and then by roster order.
     expect(
       applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: 'bronzePanoply' }),
     ).toEqual({ ok: true });
     expect(researchPlan(player)).toEqual([
-      'husbandry',
       'mining',
       'earthenware',
       'bronzeWorking',
+      'stonecraft',
       'theWheel',
       'bronzePanoply',
     ]);
     expect(player.researchQueue).toEqual([
-      'mining',
       'earthenware',
       'bronzeWorking',
+      'stonecraft',
       'theWheel',
       'bronzePanoply',
     ]);
@@ -559,11 +559,11 @@ describe('the research queue field', () => {
     expect(
       applyCommand(state, { type: 'dequeueResearch', playerId: 0, techId: 'mining' }),
     ).toEqual({ ok: true });
-    expect(researchPlan(player)).toEqual(['husbandry', 'earthenware']);
+    expect(researchPlan(player)).toEqual(['earthenware', 'stonecraft']);
 
     // And dropping the rest empties the plan — the key is deleted rather than
     // left as `[]`.
-    for (const techId of ['earthenware', 'husbandry'] as const) {
+    for (const techId of ['stonecraft', 'earthenware'] as const) {
       expect(applyCommand(state, { type: 'dequeueResearch', playerId: 0, techId })).toEqual({
         ok: true,
       });
@@ -621,7 +621,12 @@ describe('the research queue field', () => {
     // so every column now takes the price the column to its left used to carry
     // (Fletching 13 where it was 30) and a v48 log pays the wrong beakers from
     // the first technology anybody researches.
-    expect(SCHEMA_VERSION).toBe(49);
+    // v50: tree revision 4 — the user's hand-drawn tree transcribed (fourteen
+    // renames with the ids kept, three ids cut and three added, almost every
+    // prerequisite re-hung, twelve columns and a truncated cost ladder), plus
+    // the one-unit-a-turn rule widened to one per class, which replaces
+    // `City.purchasedUnitTurn` with `City.purchasedUnitTurns`.
+    expect(SCHEMA_VERSION).toBe(50);
   });
 });
 

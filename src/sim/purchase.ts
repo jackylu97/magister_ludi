@@ -62,6 +62,7 @@ import {
   type GameState,
   type Player,
   type QueueItem,
+  type UnitPurchaseBucket,
   cityById,
   playerById,
 } from './state';
@@ -89,10 +90,46 @@ import {
 } from './statecraft';
 import { buildError, gatingTech, hasTech, isUnlocked, settleResearchWindfall } from './tech';
 import { techDef } from './techData';
-import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
+import { type UnitTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
 
 /** The banks a thing may be priced in. */
 export type PurchaseCurrency = 'faith' | 'gold';
+
+/**
+ * Which "one a turn" this purchase spends — **the** rule, asked in exactly two
+ * places (`purchaseError` reads the bucket, `purchaseItemAt` writes it).
+ *
+ * Two questions in order, which is the user's own sentence read literally
+ * (2026-09-02: "faith buying, buying a civilian unit, and buying a military
+ * unit all counted separately"):
+ *
+ *   1. **which bank paid** — everything out of faith is one bucket, because a
+ *      town calling an augur or a prophet has not spent the afternoon it would
+ *      otherwise have given a garrison, and the two banks never compete; then
+ *   2. **is the piece a combatant** — `isCivilian`, the roster's own reading,
+ *      so a caravan is bought out of the civilian bucket for being a
+ *      non-combatant and not for being called a trader. Nothing here compares a
+ *      type against a name.
+ *
+ * A fourth class is a member of `UnitPurchaseBucket` and one more clause here;
+ * there is deliberately nowhere else the question is asked.
+ */
+export function unitPurchaseBucket(
+  type: UnitTypeId,
+  currency: PurchaseCurrency,
+): UnitPurchaseBucket {
+  if (currency === 'faith') return 'faith';
+  return isCivilian(unitDef(type)) ? 'civilianGold' : 'militaryGold';
+}
+
+/**
+ * What a spent bucket is called in the refusal. Plain words (hard rule 7): a
+ * player is told what they have already done, not which field holds it.
+ */
+function bucketWords(bucket: UnitPurchaseBucket): string {
+  if (bucket === 'faith') return 'a unit with faith';
+  return bucket === 'civilianGold' ? 'a civilian unit' : 'a military unit';
+}
 
 /**
  * A thing that can be bought: `QueueItem` minus the project.
@@ -513,19 +550,30 @@ export function purchaseError(
     }
   }
 
-  // **One unit per city per turn** (user, 2026-08-28: "cities can only purchase
-  // a single unit per turn"). Asked here rather than of the price, because it is
-  // not about affordability at all: an empire with the coin for four warriors
-  // may still only take delivery of one in this town today, and the other three
-  // are a decision about *where*. The reading is a comparison against an
-  // absolute turn (`City.purchasedUnitTurn`) — nothing counts down, so there is
-  // no phase that has to clear it before the next resolution.
+  // **One unit *of each class* per city per turn** (user, 2026-08-28: "cities
+  // can only purchase a single unit per turn"; widened 2026-09-02: "faith
+  // buying, buying a civilian unit, and buying a military unit all counted
+  // separately"). Asked here rather than of the price, because it is not about
+  // affordability at all: an empire with the coin for four warriors may still
+  // only take delivery of one in this town today, and the other three are a
+  // decision about *where*. The reading is a comparison against an absolute
+  // turn (`City.purchasedUnitTurns`) — nothing counts down, so there is no phase
+  // that has to clear it before the next resolution.
+  //
+  // Three buckets rather than one, and the widening is the whole of the change:
+  // a town calling an augur has not spent the afternoon it would have given a
+  // spearman, and a worker is not a garrison. `unitPurchaseBucket` is the one
+  // place that decision is made, and `purchaseItemAt` writes the bucket this
+  // clause read.
   //
   // Buildings are deliberately untouched: a granary and a library bought on one
   // afternoon are two things the town then has to justify, where two bought
   // soldiers are an army that skipped the queue.
-  if (bought.kind === 'unit' && city.purchasedUnitTurn === state.turn) {
-    return `${city.name} has already bought a unit this turn`;
+  if (bought.kind === 'unit') {
+    const bucket = unitPurchaseBucket(bought.id, currency);
+    if (city.purchasedUnitTurns?.[bucket] === state.turn) {
+      return `${city.name} has already bought ${bucketWords(bucket)} this turn`;
+    }
   }
   if (bought.kind === 'unit' && spawnTileFor(state, city, bought.id) === null) {
     return `${city.name} has nowhere to put a ${name}`;
@@ -593,9 +641,14 @@ export function purchaseItemAt(
   }
   // The town's day is spent on units, and stamped as an absolute turn so nothing
   // has to unstamp it. Written for every unit including the augur — a faith
-  // purchase is still a purchase, and the rule is about how fast a town can be
-  // reinforced rather than about which bank paid.
-  if (item.kind === 'unit') city.purchasedUnitTurn = state.turn;
+  // purchase is still a purchase — but into the **bucket** the purchase falls
+  // in, which is the one `purchaseError` compared against. The record is created
+  // on first use so a town that has never bought anything serialises like one
+  // that never will.
+  if (item.kind === 'unit') {
+    const bucket = unitPurchaseBucket(item.id, price.currency);
+    (city.purchasedUnitTurns ??= {})[bucket] = state.turn;
+  }
 
   const born =
     item.kind === 'building'

@@ -333,7 +333,13 @@ describe('a row shipped ahead of its age', () => {
     const port = foundCityAt(state, 0, at(state, 5, 4));
     state.players[0]!.gold = 9999;
     const waiting = UNIT_TYPE_IDS.filter((id) => unitDef(id).awaitsTech === true);
-    expect(waiting.sort()).toEqual(['corvette', 'frigate', 'shipOfTheLine'].sort());
+    // Four now, and the fourth is not a hull: tree revision 4 (2026-09-02) gave
+    // The Saddle the *horseman* and left the cataphract with no node at all, so
+    // the row wears the same marker the Æra V hulls do. It is a genuine orphan
+    // rather than a row waiting for an age, and the marker is what makes it a
+    // safe one — without it, "no tech gates it" would have put a cataphract in
+    // every opening build list.
+    expect(waiting.sort()).toEqual(['cataphract', 'corvette', 'frigate', 'shipOfTheLine'].sort());
     for (const id of waiting) {
       expect(buildError(state, 0, 'unit', id, port), id).toBe(
         `${unitDef(id).name} waits on a technology this age has not reached`,

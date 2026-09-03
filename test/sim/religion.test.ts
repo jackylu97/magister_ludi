@@ -1566,18 +1566,21 @@ describe('The High Temple', () => {
   it('is the node that hands over the prophet, the temple and a third god', () => {
     const def = techDef('theHighTemple' as never);
     expect(def.age).toBe(2);
-    // Re-cut again on 2026-09-02: Standing Stones is pruned and the faith line
-    // hangs off itself — Divination → Ancestor Rites → The High Temple, the
-    // middle rung added by the chain pass so the line lays out as a line rather
-    // than as three siblings sharing one column. The timeline pass of the same
-    // day swapped the temple's *second* parent from Divination (three columns
-    // back, and already behind Ancestor Rites) to The Long Count one column
-    // back: the feast days a high temple keeps are the ones the count fixes,
-    // and the connector is now a step rather than a reach.
-    expect(def.prereqs).toEqual(['ancestorRites', 'theLongCount']);
+    // **Tree revision 4 (2026-09-02, the user's redraw) cut Ancestor Rites**,
+    // and the temple is what caught what fell: it hangs off Epic Poetry alone
+    // now — the verse a people keeps and the roof they keep it under — and it
+    // has taken the great-person gate the cut node used to carry. So the faith
+    // line still runs off itself, one rung shorter: Divination → … → The High
+    // Temple → Rhetoric → Theology.
+    expect(def.prereqs).toEqual(['epicPoetry']);
     expect(def.unlocks.units ?? []).toContain('prophet');
     expect(def.unlocks.buildings ?? []).toContain('temple');
     expect(def.unlocks.abilities ?? []).toContain('thePreaching');
+    // The orphaned gate, re-homed rather than lost: until the rites are kept
+    // renown gathers and nobody answers it, and this is the node that keeps
+    // them now (`settleRenownWindfall` asks `ABILITY_TECH`, so the move is one
+    // JSON row).
+    expect(def.unlocks.abilities ?? []).toContain('ancestorRites');
     // The temple **moved**: Philosophy was where it stood on the shipped tree,
     // and a building unlocked twice would be a building whose gate depends on
     // which node the player happened to take first.
