@@ -588,11 +588,21 @@ function code(text: string): string {
 describe('the bot module', () => {
   it('is there to be read', () => {
     const files = Object.keys(AI_SOURCE).map((path) => path.slice(path.lastIndexOf('/') + 1));
-    // Four modules since tier 1, and the split is the point: `aiConfig.ts` is the
-    // leaf holding the tuning surface, `value.ts` is the appraisal (every
-    // function ends in a number), `bot.ts` is the policy (every function ends in
-    // a `Command`), `driver.ts` is the loop.
-    expect(files.sort()).toEqual(['aiConfig.ts', 'bot.ts', 'driver.ts', 'value.ts']);
+    // Six modules since the spectate pass, and the split is the point:
+    // `aiConfig.ts` is the leaf holding the tuning surface, `decision.ts` is the
+    // second leaf — the vocabulary a decision and its arithmetic are said in —
+    // `value.ts` is the appraisal (every function ends in a number or the terms
+    // that fold to one), `bot.ts` is the policy (every function ends in a
+    // `BotDecision`), `driver.ts` is the loop and `stepper.ts` is that same loop
+    // unrolled one decision at a time.
+    expect(files.sort()).toEqual([
+      'aiConfig.ts',
+      'bot.ts',
+      'decision.ts',
+      'driver.ts',
+      'stepper.ts',
+      'value.ts',
+    ]);
   });
 
   it('rolls no dice of its own, and takes none out of the simulation', () => {

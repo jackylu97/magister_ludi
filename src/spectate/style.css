@@ -1,0 +1,422 @@
+/*
+ * The spectate page's chrome: a board on the left, a decision feed on the right.
+ *
+ * Its own stylesheet rather than a slice of `src/style.css`, for the reason the
+ * mapgen page's is: that file is the game's interface and is owned by the
+ * interface work. What this borrows is the *language* — ink on vellum,
+ * Instrument Serif to announce, Fraunces to name, Instrument Sans to work, mono
+ * for anything countable — and the panel recipe (hard 2px rule, hard offset
+ * shadow, no blur), not the cascade.
+ *
+ * The page is deliberately plain. It is a reading surface for one person: the
+ * only visual work that earns its place is what makes a table of forty scores
+ * readable down a column — tabular mono, right-aligned figures, and a rule
+ * between a candidate and its arithmetic.
+ */
+
+:root {
+  --ink: #1d1a20;
+  --ink-soft: #56505a;
+  --ink-faint: #8b8490;
+  --vellum: #dbcfb0;
+  --vellum-deep: #c2b18c;
+  --parchment: #f7f2e1;
+  --rule: rgba(29, 26, 32, 0.14);
+  --chosen: #1f8a85;
+  --refused: #a4522e;
+
+  --sidebar: 470px;
+
+  --face-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --face-name: Fraunces, Georgia, 'Iowan Old Style', serif;
+  --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --face-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--vellum);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 13px;
+}
+
+/*
+ * The canvas stops at the sidebar, and its size is stated rather than inferred —
+ * the mapgen page's note applies verbatim: a canvas is a replaced element, so
+ * `width: auto` between two insets resolves from the drawing buffer and
+ * `Renderer3D.resize` writes that buffer from `clientWidth`, which closes a
+ * feedback loop that doubles the canvas on every resize.
+ */
+#gl {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: calc(100vw - var(--sidebar));
+  height: 100vh;
+  display: block;
+}
+
+#masthead {
+  position: fixed;
+  left: 18px;
+  top: 16px;
+  max-width: 380px;
+  padding: 10px 14px 12px;
+  background: var(--parchment);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 rgba(29, 26, 32, 0.22);
+}
+
+#masthead h1 {
+  margin: 0;
+  font-family: var(--face-display);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+#masthead .sub {
+  margin: 6px 0 0;
+  color: var(--ink-soft);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+#panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: var(--sidebar);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--parchment);
+  border-left: 2px solid var(--ink);
+}
+
+#setup,
+#transport,
+#seats-strip,
+#feed-head {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule);
+  flex: 0 0 auto;
+}
+
+.row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.row:last-child {
+  margin-bottom: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+input,
+select {
+  font-family: var(--face-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  padding: 5px 7px;
+  border: 1px solid var(--ink);
+  background: #fffdf6;
+  color: var(--ink);
+  width: 100%;
+}
+
+button {
+  font-family: var(--face-ui);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--parchment);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button.quiet {
+  background: var(--parchment);
+  color: var(--ink);
+}
+
+button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+#transport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#clock {
+  margin-left: auto;
+  font-family: var(--face-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* --- the seat strip ------------------------------------------------------- */
+
+.seat {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 2px 0;
+  font-family: var(--face-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+
+.seat .swatch {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--ink);
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.seat .who {
+  font-family: var(--face-name);
+  font-size: 12px;
+  min-width: 74px;
+}
+
+.seat .stat {
+  color: var(--ink-soft);
+}
+
+.seat.out .who {
+  text-decoration: line-through;
+  color: var(--ink-faint);
+}
+
+/* --- the feed ------------------------------------------------------------- */
+
+#feed-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+#feed-head h2 {
+  margin: 0;
+  font-family: var(--face-name);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#feed-count {
+  margin-left: auto;
+  font-family: var(--face-mono);
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+#feed {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
+.entry {
+  border-bottom: 1px solid var(--rule);
+}
+
+.entry > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  padding: 7px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.entry > summary::-webkit-details-marker {
+  display: none;
+}
+
+.entry:hover > summary {
+  background: rgba(29, 26, 32, 0.04);
+}
+
+.entry .turn {
+  font-family: var(--face-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--ink-faint);
+  flex: 0 0 34px;
+}
+
+.entry .swatch {
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--ink);
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.entry .subject {
+  font-family: var(--face-name);
+  font-size: 12px;
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+
+.entry .kind {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.entry .score {
+  margin-left: auto;
+  font-family: var(--face-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--chosen);
+  flex: 0 0 auto;
+}
+
+.entry .why {
+  margin: 0;
+  padding: 0 14px 8px 55px;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.entry.refused .why {
+  color: var(--refused);
+}
+
+.entry .body {
+  padding: 0 14px 10px 14px;
+}
+
+/* --- the candidate table -------------------------------------------------- */
+
+table.candidates {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+table.candidates th {
+  text-align: left;
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 600;
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--ink);
+}
+
+table.candidates th.num,
+table.candidates td.num {
+  text-align: right;
+  font-family: var(--face-mono);
+  font-variant-numeric: tabular-nums;
+  width: 68px;
+}
+
+table.candidates td {
+  padding: 3px 4px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--rule);
+}
+
+table.candidates tr.picked td {
+  background: rgba(31, 138, 133, 0.12);
+  font-weight: 600;
+}
+
+table.candidates tr.struck td {
+  color: var(--ink-faint);
+}
+
+.mark {
+  color: var(--chosen);
+  font-weight: 700;
+}
+
+.terms {
+  margin: 3px 0 0;
+  padding: 0 0 0 10px;
+  list-style: none;
+  border-left: 1px solid var(--rule);
+}
+
+.terms li {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  line-height: 1.5;
+}
+
+.terms li .t-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.terms li .t-value {
+  font-family: var(--face-mono);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+.terms details > summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.terms details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.reason {
+  color: var(--refused);
+  font-style: italic;
+}
+
+.note {
+  margin: 6px 0 0;
+  color: var(--ink-faint);
+  font-size: 11px;
+  line-height: 1.4;
+}

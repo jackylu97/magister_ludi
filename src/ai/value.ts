@@ -40,9 +40,23 @@
  * and every function in it ends in a `Command`. This is an *appraisal*, and
  * every function in it ends in a number. The seam is also what makes the
  * scoring testable without playing a game.
+ *
+ * **Every appraisal returns its arithmetic** (the spectate pass)
+ * ---------------------------------------------------------------
+ * Each fold below comes in two forms: an `explain…` that returns an `Appraisal`
+ * — a labelled term list and the number it folds to — and the plain
+ * `valueOf…`/`score…` name, which is that appraisal's `.total` and nothing else.
+ * The number is **computed by folding the terms** (`foldTerms`), not computed
+ * separately and described afterwards, so a printed breakdown and the bot's
+ * actual comparison can never disagree. The fold walks the list in the order the
+ * clauses were written, which is why the totals are bit-for-bit what they were
+ * before the terms existed: a regrouped floating-point sum is a different
+ * number, and the bot's contract is that the same board produces the same
+ * command.
  */
 
 import { AI } from './aiConfig';
+import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
 
 import { type BuildingId, buildingDef } from '../sim/buildingData';
 import type { CardEffect } from '../sim/statecraftData';
@@ -112,15 +126,33 @@ export function yieldWeight(voice: Voice, age: TechAge): number {
  * moves here rather than in the table so the table stays a plain statement of
  * taste. See `ValueContext.goldPressure`.
  */
-export function valueOfYields(bag: YieldBag, ctx: ValueContext): number {
-  let total = 0;
+export function explainYields(bag: YieldBag, ctx: ValueContext): Appraisal {
+  const terms: ValueTerm[] = [];
   for (const voice of VOICES) {
     const amount = bag[voice];
     if (amount === undefined || amount === 0) continue;
     const weight = yieldWeight(voice, ctx.age) * (voice === 'gold' ? ctx.goldPressure : 1);
-    total += amount * weight;
+    const pressure = voice === 'gold' && ctx.goldPressure !== 1 ? ` × ${round(ctx.goldPressure)} gold pressure` : '';
+    terms.push({
+      label: `${voice} ${signed(amount)} × ${round(yieldWeight(voice, ctx.age))} age weight${pressure}`,
+      value: amount * weight,
+    });
   }
-  return total;
+  return appraise(terms);
+}
+
+export function valueOfYields(bag: YieldBag, ctx: ValueContext): number {
+  return explainYields(bag, ctx).total;
+}
+
+/** One decimal place, and no trailing `.0` — a label is read, not parsed. */
+function round(value: number): string {
+  const fixed = Math.round(value * 10) / 10;
+  return Number.isInteger(fixed) ? String(fixed) : fixed.toFixed(1);
+}
+
+function signed(value: number): string {
+  return value >= 0 ? `+${round(value)}` : round(value);
 }
 
 /** `after − before`, voice by voice. The shape every hypothetical produces. */
@@ -139,9 +171,17 @@ export function yieldDelta(after: Record<Voice, number>, before: Record<Voice, n
  * paying 4💰 and a library costing 2💰 to keep are one subtraction apart, in
  * every state of the treasury.
  */
+export function explainUpkeepCost(gold: number, ctx: ValueContext): Appraisal {
+  if (gold <= 0) return appraise([]);
+  return appraise([
+    { label: `${round(gold)} gold a turn`, value: gold },
+    { label: `× ${round(yieldWeight('gold', ctx.age))} age weight`, value: yieldWeight('gold', ctx.age), op: 'mul' },
+    { label: `× ${round(ctx.goldPressure)} gold pressure`, value: ctx.goldPressure, op: 'mul' },
+  ]);
+}
+
 export function costOfUpkeep(gold: number, ctx: ValueContext): number {
-  if (gold <= 0) return 0;
-  return gold * yieldWeight('gold', ctx.age) * ctx.goldPressure;
+  return explainUpkeepCost(gold, ctx).total;
 }
 
 // --- the rows ---------------------------------------------------------------
@@ -167,29 +207,53 @@ export function costOfUpkeep(gold: number, ctx: ValueContext): number {
  * the row, which is the discipline `src/sim/` keeps and a reader of the same
  * tables has no business breaking.
  */
-export function valueOfBuildingRow(id: BuildingId, ctx: ValueContext): number {
+export function explainBuildingRow(id: BuildingId, ctx: ValueContext): Appraisal {
   const def = buildingDef(id);
-  let value = 0;
-  if (def.happiness !== undefined) value += def.happiness * AI.weights.happiness;
-  if (def.authorityCapacity !== undefined) value += def.authorityCapacity * AI.weights.authority;
+  const terms: ValueTerm[] = [];
+  if (def.happiness !== undefined) {
+    terms.push({
+      label: `${signed(def.happiness)} happiness × ${AI.weights.happiness}`,
+      value: def.happiness * AI.weights.happiness,
+    });
+  }
+  if (def.authorityCapacity !== undefined) {
+    terms.push({
+      label: `${signed(def.authorityCapacity)} authority × ${AI.weights.authority}`,
+      value: def.authorityCapacity * AI.weights.authority,
+    });
+  }
   if (def.cityStat !== undefined) {
     // A wall is worth what a soldier's worth of strength is worth, scaled by how
     // much this empire currently minds being attacked.
-    value += def.cityStat.amount * AI.weights.military * (1 + ctx.threat);
+    terms.push({
+      label: `${signed(def.cityStat.amount)} town strength × ${AI.weights.military} × ${1 + ctx.threat} threat`,
+      value: def.cityStat.amount * AI.weights.military * (1 + ctx.threat),
+    });
   }
   if (def.renown !== undefined) {
-    value += def.renown.perTurn * AI.weights.renown;
-    value += (def.renown.onComplete ?? 0) * AI.weights.renown;
+    terms.push({
+      label: `${signed(def.renown.perTurn)} renown a turn × ${AI.weights.renown}`,
+      value: def.renown.perTurn * AI.weights.renown,
+    });
+    terms.push({
+      label: `${signed(def.renown.onComplete ?? 0)} renown on completion × ${AI.weights.renown}`,
+      value: (def.renown.onComplete ?? 0) * AI.weights.renown,
+    });
   }
   for (const grant of def.onComplete ?? []) {
-    if (grant.grant === 'bead') value += AI.weights.bead;
-    else if (grant.grant === 'unit') value += AI.weights.military * AI.score.combatScale;
-    else if (grant.grant === 'tech') value += AI.weights.tech;
-    else value += AI.score.unknownEffect;
+    if (grant.grant === 'bead') terms.push({ label: 'a glass bead on completion', value: AI.weights.bead });
+    else if (grant.grant === 'unit')
+      terms.push({ label: 'a free piece on completion', value: AI.weights.military * AI.score.combatScale });
+    else if (grant.grant === 'tech') terms.push({ label: 'a free technology', value: AI.weights.tech });
+    else terms.push({ label: `a grant this bot cannot read (${grant.grant})`, value: AI.score.unknownEffect });
   }
-  if (def.endsTheGame === true) value += AI.weights.victory;
-  value += scoreEffects(def.effects ?? [], ctx);
-  return value;
+  if (def.endsTheGame === true) terms.push({ label: 'it ends the game', value: AI.weights.victory });
+  terms.push(nest('its written effects', explainEffects(def.effects ?? [], ctx)));
+  return appraise(terms);
+}
+
+export function valueOfBuildingRow(id: BuildingId, ctx: ValueContext): number {
+  return explainBuildingRow(id, ctx).total;
 }
 
 /**
@@ -201,16 +265,20 @@ export function valueOfBuildingRow(id: BuildingId, ctx: ValueContext): number {
  * this pay" rather than "when is this done", and the two questions being one is
  * exactly what lets a conversion sit in the same scored list as a granary.
  */
-export function valueOfProjectRow(id: ProjectId, ctx: ValueContext): number {
+export function explainProjectRow(id: ProjectId, ctx: ValueContext): Appraisal {
   const def = projectDef(id);
   const bag: YieldBag = {
     gold: def.pays.gold ?? 0,
     science: def.pays.science ?? 0,
     faith: def.pays.faith ?? 0,
   };
-  let value = valueOfYields(bag, ctx);
-  if (def.bead !== undefined) value += AI.weights.bead;
-  return value;
+  const terms: ValueTerm[] = [nest('what one turn of it pays', explainYields(bag, ctx))];
+  if (def.bead !== undefined) terms.push({ label: 'a glass bead', value: AI.weights.bead });
+  return appraise(terms);
+}
+
+export function valueOfProjectRow(id: ProjectId, ctx: ValueContext): number {
+  return explainProjectRow(id, ctx).total;
 }
 
 /**
@@ -224,11 +292,21 @@ export function valueOfProjectRow(id: ProjectId, ctx: ValueContext): number {
  * turn the column is gone (design addendum 1). `threat.militaryBonus` is the
  * whole of that opinion and it is a number in the data file.
  */
-export function valueOfSoldier(id: UnitTypeId, ctx: ValueContext): number {
+export function explainSoldier(id: UnitTypeId, ctx: ValueContext): Appraisal {
   const def = unitDef(id);
-  if (!isCombatant(def)) return 0;
+  if (!isCombatant(def)) return appraise([]);
   const strength = Math.max(def.combatStrength, def.rangedStrength ?? 0);
-  return strength * AI.weights.military + ctx.threat * AI.threat.militaryBonus;
+  return appraise([
+    { label: `${strength} strength × ${AI.weights.military}`, value: strength * AI.weights.military },
+    {
+      label: `${ctx.threat} enemy pieces near a town × ${AI.threat.militaryBonus}`,
+      value: ctx.threat * AI.threat.militaryBonus,
+    },
+  ]);
+}
+
+export function valueOfSoldier(id: UnitTypeId, ctx: ValueContext): number {
+  return explainSoldier(id, ctx).total;
 }
 
 // --- cards ------------------------------------------------------------------
@@ -255,10 +333,14 @@ export function valueOfSoldier(id: UnitTypeId, ctx: ValueContext): number {
  * reads. It reads a magnitude off a row to form an opinion, which is what a
  * player does looking at a card, and the opinion never leaves this file.
  */
+export function explainEffects(effects: readonly CardEffect[], ctx: ValueContext): Appraisal {
+  const terms: ValueTerm[] = [];
+  for (const effect of effects) terms.push({ label: effect.kind, value: scoreEffect(effect, ctx) });
+  return appraise(terms);
+}
+
 export function scoreEffects(effects: readonly CardEffect[], ctx: ValueContext): number {
-  let total = 0;
-  for (const effect of effects) total += scoreEffect(effect, ctx);
-  return total;
+  return explainEffects(effects, ctx).total;
 }
 
 function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
