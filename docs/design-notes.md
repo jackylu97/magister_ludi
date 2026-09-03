@@ -166,3 +166,21 @@ register their window listeners in `gameDisposers`.
 7. **Explainable folds** (rule 5 of CLAUDE.md): every total is the fold of a
    printed list.
 8. **The drawn chart is the user's**; deviations are decisions, pinned.
+
+## Entry LXIII — the playtest-notes batch (2026-09-03, schema 55)
+
+Thirteen of the user's live-play notes in one pass: plantations follow the
+Calendar; Standing Stones leaves the ground (the belief keeps the name);
+Raised Fields becomes mountain-side farming plus the Floating Gardens (whose
+lake half waits on lakes anyone can reach — the honest hole is on the row);
+the Workshop and the Stele of Laws reworked to the user's numbers; Stone
+Walls joins the wall family at Siegecraft; the Spear Wall takes its
+age-appropriate name. The tooltip half is the bigger deal: ability gifts
+head by their BEARER (the augur's rites stop hiding under "Workers may
+also"), effect-techs print their own hand-written notes — one clause per
+line, the card and the Compendium reading identical words through one
+function — and "buildings pay new ground" moves to the building entries
+where a builder actually looks. A register test now refuses a new
+effect-tech that ships without a note. Two addenda were lost in the message
+queue and hand-finished; the lesson is already law in CLAUDE.md — rulings
+land in files, and mid-flight messages are the exception that proves it.

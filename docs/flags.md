@@ -142,7 +142,16 @@ strength).
 (claims on followers) · The Promised Land (faith at a founding is a third way
 to press).
 
-### Ruled 2026-09-03, next pass (after the v55 batch lands)
+### From the v55 batch (2026-09-03)
+
+- **Lakes exist but nothing can stand on one** — Floating Gardens' lake half
+  ships as deferred prose; making lakes workable is a movement ruling.
+- **New numbers to tune**: Stele of Laws (50⚙, +3🎵, +1 authority capacity —
+  note: strictly worse per hammer than the Monument today), Stone Walls
+  (55⚙, +4 defense, +25 hp), Workshop (3⚙ base + the two 10% lines; net −1
+  late production vs the old renewal path), Floating Gardens (+1🌾+1💰).
+
+### Ruled 2026-09-03, next pass (spawning now)
 
 - **Geomancy option 1**: holding Geomancy reveals a faint *sleeping-vein
   marker* on hills that carry one (per seat, no kind named — the reveal gate

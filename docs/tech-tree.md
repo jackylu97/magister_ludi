@@ -68,7 +68,7 @@ while they stand.*
 | Epic Poetry † | 135 | Writing | — | Amphitheater, **The Theatre of Dionysus** | — |
 | Code of Laws † | 225 | Chronology | — | Stele of Laws | — |
 | Irrigation | 225 | Chronology, Bronze Panoply | — | — | renewals: Granary +1🌾 |
-| Siegecraft | 225 | Bronze Panoply | Bowman | — | Siege |
+| Siegecraft | 225 | Bronze Panoply | Bowman | Stone Walls | Siege |
 | The High Temple | 225 | Epic Poetry | Prophet | Temple | The Preaching · Ancestor Rites |
 | Wayfinding | 225 | Sailing, Currency | Bireme, War Galley | Harbour, **The Colossus** | Sea Legs |
 
@@ -85,8 +85,8 @@ What the effect rows say (player prose from the data):
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Iron Working | 335 | Irrigation, Siegecraft | Legionary, Halberd | **The Terracotta Army**, **The Statue of Zeus** | reveals **Iron** · renewals: Barracks +1⚙ |
-| Raised Fields | 335 | Wayfinding | — | — | carries card effects |
+| Iron Working | 335 | Irrigation, Siegecraft | Legionary, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | reveals **Iron** · renewals: Barracks +1⚙ |
+| Raised Fields | 335 | Wayfinding | — | — | — |
 | Rhetoric | 335 | The High Temple | — | Forum, **The Great Library** | — |
 | State Workforce | 335 | Currency | — | — | — |
 | Mathematics | 450 | Iron Working | Catapult, Composite Bowman | **Petra** | renewals: Library +1🔬 |
@@ -103,6 +103,7 @@ What the effect rows say (player prose from the data):
 What the effect rows say (player prose from the data):
 
 - **Iron Working** — Iron is named at last, and every warrior of yours retools into a sword the moment a seam of it is yours.
+- **Raised Fields** — A farm on a hex touching a mountain feeds its city better than it did. It is the field that changes, not the peak: nothing is grown on the mountain itself.
 - **State Workforce** — Every worker you train has one more season of work in it, and the treasury hires one at a quarter off.
 - **Satrapies** — Roads near your cities cost nothing to keep, every city joined to your capital pays one more gold, and a joined city is a contented one.
 - **Satrapies** † Hammers toward a building your capital already keeps waits until a one-time grant can look at what stands in another town.
