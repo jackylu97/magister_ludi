@@ -152,6 +152,7 @@ import {
 } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, playerPieceColor, shade } from './lookData';
+import { atWar } from '../sim/wars';
 import type { BadgeAnchor } from './picking';
 import type { UnitSprites } from './sprites3d';
 import { type MaterialLibrary, computeHullNormals } from './toon';
@@ -618,6 +619,60 @@ export function badgeAnchors(
 const ROUTED_WASH_TARGET = VIEW3D.fog.exploredWash;
 
 /**
+ * The ink an enemy's piece is rimmed and ghosted in — `units.hostileGlow`, a
+ * red of the board's own that is deliberately no seat's colour.
+ */
+const HOSTILE_GLOW = VIEW3D.units.hostileGlow;
+
+/**
+ * The seats this board's viewer is at war with, resolved once per build.
+ *
+ * Empty for the omniscient board (`seat === null`, which is every gallery and
+ * both frozen 2D pipelines) and for a seat that has declared on nobody, which
+ * is every game until somebody does. The **wild is in it** without a row, for
+ * the reason `atWar` answers *true* for a barbarian without reading the
+ * register: a raider has always been something you may hit, and the glow is the
+ * board finally saying so.
+ *
+ * A `Set` is only ever asked `.has`, so nothing about the picture can depend on
+ * its order.
+ */
+function hostileOwners(state: GameState, seat: number | null): ReadonlySet<number> {
+  if (seat === null) return EMPTY_SEATS;
+  const hostile = new Set<number>();
+  for (const player of state.players) {
+    if (player.id === seat) continue;
+    if (atWar(state, seat, player.id)) hostile.add(player.id);
+  }
+  return hostile;
+}
+
+const EMPTY_SEATS: ReadonlySet<number> = new Set<number>();
+
+/**
+ * The war register's own fingerprint, folded into `signUnits`.
+ *
+ * A war changes how a piece is *drawn* without changing anything about the
+ * piece, so without this the layer would keep the old rims until the next time
+ * somebody moved — CLAUDE.md's fingerprint rule, met deliberately: a new
+ * visual-affecting fact joins the hash on purpose, and this one is a fact about
+ * the world rather than about a unit, so it is mixed in once beside the roster
+ * length rather than per piece.
+ *
+ * The truces are **not** in it and must not be: a truce changes no rim (the war
+ * is already over the moment the row leaves `state.wars`), and hashing an
+ * expiry would rebuild every unit on the board once a turn for nothing.
+ */
+function signWars(state: GameState): number {
+  let h = 2166136261 ^ state.wars.length;
+  for (const war of state.wars) {
+    h = Math.imul(h ^ war.a, 16777619);
+    h = Math.imul(h ^ war.b, 16777619);
+  }
+  return h >>> 0;
+}
+
+/**
  * Is this piece busy running itself — a caravan carrying a route, or a unit
  * ranging ahead on auto-explore (2026-08-30)? The board's one reading of
  * *busy* rather than *orderable* (ruling, 2026-08-28), and both flags join it
@@ -737,6 +792,21 @@ export class UnitLayer {
    * fog-aware rebuild costs nothing that was not already being spent. The
    * constraint is about the **board**, which is thirty times larger and built
    * once per map (see `fog3d.ts`).
+   *
+   * The enemy glow
+   * --------------
+   * `seat` is the seat whose board this is — the same `localPlayerId` the fog
+   * grid above belongs to, or null for the omniscient board the galleries draw.
+   * Every piece belonging to a seat that seat is at war with is outlined and
+   * ghosted in `units.hostileGlow` instead of its owner's ink, which is the
+   * user's ruling of 2026-09-03 (see the field's docblock in `lookData.ts`).
+   *
+   * It is a **fact about the viewer**, not about the piece, and that is why it
+   * is a parameter rather than something `unitColor` could answer: the same
+   * warrior is hostile on one seat's screen and an ally's on another's. The
+   * hostility is resolved once per build into a set of owner ids, `zocField`'s
+   * bargain — the answer is a walk of the war register and asking it per piece
+   * would be that walk per unit.
    */
   build(
     state: GameState,
@@ -749,6 +819,7 @@ export class UnitLayer {
     selectedUnitId: number | null = null,
     levels: FogLevels = null,
     icons: TileIcons | null = null,
+    seat: number | null = null,
   ): void {
     this.disposeGroup();
 
@@ -777,6 +848,12 @@ export class UnitLayer {
     // by the ink alone.
     const routedShellHandles: InstanceHandle[] = [];
     const routedBarHandles: InstanceHandle[] = [];
+    // The enemy glow's own list, and the seat's enemies resolved once for the
+    // whole build. See the docblock; `hostileSeats` is empty for the
+    // omniscient board and for a seat that has declared on nobody, which is the
+    // common case and costs one `Set.has` per piece.
+    const hostileSeats = hostileOwners(state, seat);
+    const hostileShellHandles: InstanceHandle[] = [];
 
     for (const unit of state.units) {
       // Out of sight. The stack tally above still counted it, and that is right:
@@ -813,17 +890,27 @@ export class UnitLayer {
         // re-sculpts with no new hash member).
         const piece = geometry.pieces[unitSculpt(unit, terrainUnder(map, unit))];
         const ink = unitColor(state, unit);
+        const hostile = hostileSeats.has(unit.ownerId);
         const pieceHandle = collector.add(
           piece.geometry,
           pieceColors(piece, ink),
           new Matrix4().compose(placement.position, placement.quaternion, scale),
           // The x-ray ghost, over these very matrices. Keyed on the player's
-          // own ink, which is already part of the bucket key, so it batches
-          // exactly as the piece does. See the module docblock.
-          { ghost: materials.silhouette(ink) },
+          // own ink — or on the war red, for a piece belonging to somebody this
+          // seat has declared on — and either way the ghost material joins the
+          // bucket key by identity, so a hostile piece batches into its own
+          // bucket exactly as cleanly as a friendly one does.
+          { ghost: materials.silhouette(hostile ? HOSTILE_GLOW : ink) },
         );
         slots.push(pieceHandle);
         if (unitIsRouted(unit)) routedShellHandles.push(pieceHandle);
+        // The other half of the mark: the outline shell, which is one shared
+        // material for every piece on the board and can therefore only be
+        // reddened per instance, once the buffers exist. Exclusive with the
+        // routed wash by construction — a caravan is a civilian and reads as
+        // busy; a hostile *soldier* reads as dangerous — so the two lists never
+        // hold the same handle and neither overwrites the other.
+        if (hostile && !unitIsRouted(unit)) hostileShellHandles.push(pieceHandle);
       }
 
       const visualHeight = unitVisualHeight(unit.type, sprites);
@@ -875,6 +962,13 @@ export class UnitLayer {
     }
     for (const handle of routedBarHandles) {
       InstanceCollector.setWash(handle, ROUTED_WASH_TARGET, PIECES.routedWash);
+    }
+    // And the enemy glow's shell half, on the same seam and for the same
+    // reason: the outline is one material shared by every outlined piece, so a
+    // rim of a different colour is a per-instance write that has to wait for
+    // `flush` to have built the buffers.
+    for (const handle of hostileShellHandles) {
+      InstanceCollector.setShellWash(handle, HOSTILE_GLOW, VIEW3D.units.hostileGlowMix);
     }
     for (const unitId of this.hidden) this.applyHide(unitId);
   }
@@ -1247,7 +1341,7 @@ export class UnitLayer {
  * decision because the source test will stop compiling until it is.
  */
 export function signUnits(state: GameState): number {
-  let h = 2166136261 ^ state.units.length;
+  let h = Math.imul(2166136261 ^ state.units.length, 16777619) ^ signWars(state);
   for (const unit of state.units) {
     h = Math.imul(h ^ unit.id, 16777619);
     h = Math.imul(h ^ unit.col, 16777619);

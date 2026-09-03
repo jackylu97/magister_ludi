@@ -94,6 +94,7 @@ import { eraNumeral, highestAge } from './techData';
 import { isCoastal } from './water';
 
 const METERS = RULES.meters;
+const WAR = RULES.war;
 
 // --- the breakdown ----------------------------------------------------------
 
@@ -310,6 +311,29 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
     if (perCity > 0) {
       list.push({ source: `${city.name} · cost of governing`, part: 'cost', value: -perCity });
     }
+    /**
+     * **A puppet's citizens ask for less** (`rules.war.puppetHappinessPercent`,
+     * Civ V's rule).
+     *
+     * Written as a **gain line** against the full demand rather than as a
+     * quieter cost line, and that is hard rule 5 rather than a stylistic
+     * choice: a player who is being charged less is entitled to see the
+     * discount and to find out which town it came from. The alternative — two
+     * cost lines priced off a different factor — would print a smaller number
+     * with no explanation anywhere for why it was smaller.
+     *
+     * It relieves the citizens *and* the crowding, because both are what the
+     * town's own population asks for; the cost of governing is untouched, for
+     * the same reason the demand factor does not touch it — that is the price
+     * of holding one more town at all, and a puppet is still a town you hold.
+     */
+    if (city.puppet === true) {
+      const share = Math.max(0, Math.min(100, WAR.puppetHappinessPercent)) / 100;
+      const relief = (rules.demandPerPop * charged * demand + crowding) * (1 - share);
+      if (relief > 0) {
+        list.push({ source: `${city.name} · puppet`, part: 'gain', value: relief });
+      }
+    }
   }
 
   return list;
@@ -374,6 +398,15 @@ function cityAuthorityCost(
   coastal: boolean,
   capital: boolean,
   /**
+   * The town is a **puppet** — taken and not yet annexed (`City.puppet`).
+   *
+   * Read strictly *before* `captured`, which is the same precedence rule the
+   * rest of this ladder keeps: a puppet is a seizure the captor has not
+   * digested, so it is priced as a puppet and not as a conquest. Every puppet
+   * is captured, so the two arms can never both be the answer.
+   */
+  puppet = false,
+  /**
    * What a captured, a coastal and a **hill** city cost *this empire*, after
    * whatever its Statecraft rewrote (`meterRule`). Passed in rather than looked
    * up, because this function is deliberately free of the state — it prices a
@@ -383,14 +416,19 @@ function cityAuthorityCost(
     captured: METERS.authority.capturedCity,
     coastal: METERS.authority.coastalCity,
     hills: METERS.authority.foundedCity,
+    puppet: Math.max(0, METERS.authority.capturedCity - RULES.war.puppetAuthorityRelief),
   },
   /** The town's own hex is hills. Hill Forts' half of the ground. */
   hills = false,
 ): MeterContribution {
   const rules = METERS.authority;
-  // Captured first, and that is the precedence rule: a seized coastal city is
-  // priced as a seizure, not as a harbour. The discount is for building a port,
-  // not for taking one (design ledger, Entry XIV.D.2).
+  // A **puppet** first, and then captured: that is the precedence rule, and a
+  // seized coastal city is priced as a seizure rather than as a harbour. The
+  // discount is for building a port, not for taking one (Entry XIV.D.2); the
+  // puppet's own relief is for not having digested the thing you took.
+  if (puppet) {
+    return { source: `${name} · puppet`, part: 'cost', value: -costs.puppet };
+  }
   if (captured) {
     return { source: `${name} · captured`, part: 'cost', value: -costs.captured };
   }
@@ -497,6 +535,7 @@ export function explainAuthority(
         city.captured,
         isCoastalCity(state, city),
         city.id === capital?.id,
+        city.puppet === true,
         costs,
         cityTile(state.map, city).hills,
       ),
@@ -543,6 +582,24 @@ function cityCosts(state: GameState, playerId: number): CityCosts {
     // its job, and the floor is only here because a delta plus an upgrade level
     // can otherwise turn a cost into a gain.
     hills: Math.max(0, cardMeterRule(state, playerId, 'hillCityCost', rules.foundedCity)),
+    /**
+     * **A puppet is the captured price, relieved** (`rules.war
+     * .puppetAuthorityRelief`) — a relief off whatever a conquest costs this
+     * empire *after* its own cards, never a price of its own. So Hegemony makes
+     * puppets cheaper in the same breath it makes annexations cheaper, and the
+     * *difference* between the two — which is the whole of the decision a captor
+     * is being offered — stays the one number the rule book names.
+     *
+     * Floored at nothing rather than at one, unlike the captured price above:
+     * the floor there exists because two card deltas plus an upgrade could turn
+     * a cost into a gain, and this reading inherits that floor already. A puppet
+     * that costs a conqueror nothing at all is the relief doing its job.
+     */
+    puppet: Math.max(
+      0,
+      Math.max(1, cardMeterRule(state, playerId, 'capturedCityCost', rules.capturedCity)) -
+        RULES.war.puppetAuthorityRelief,
+    ),
   };
 }
 
@@ -551,6 +608,8 @@ interface CityCosts {
   captured: number;
   coastal: number;
   hills: number;
+  /** What a seized town that has not been annexed costs. See `cityCosts`. */
+  puppet: number;
 }
 
 /**
@@ -579,6 +638,8 @@ function prospectAuthorityCost(
     false,
     isCoastal(state.map, site),
     capitalCityOf(state, playerId) === undefined,
+    // A city nobody has founded yet is nobody's puppet.
+    false,
     cityCosts(state, playerId),
     site.hills,
   );

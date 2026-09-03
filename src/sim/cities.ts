@@ -1767,6 +1767,14 @@ function chooseCitizens(
  *      bucket. It is in this list anyway so the register stays the complete
  *      answer to "what settles".
  *
+ *  19. **An annexation** (`annexCityAt` in `diplomacy.ts`, the war ruling of
+ *      2026-09-03) — a puppet taken into the empire proper. It is here for
+ *      entry 18's reason turned round: what it changes is not a *yield* but the
+ *      two empire meters (a puppet asks less writ and less contentment), and
+ *      happiness reaches `cityYields` through `meterEffects`, so the town's own
+ *      assignment is judged against a factor that has just moved. It costs one
+ *      re-seat on a verb a player issues by hand.
+ *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
  * asserts that, because it is the one property a new mutation can break while

@@ -67,6 +67,7 @@ import { type GameState, newGame } from '../../src/sim/state';
 import { isEmbarkableTerrain } from '../../src/sim/terrainData';
 import { UNIT_TYPE_IDS, type ModelClass, type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
+import { closeWar, openWar } from '../../src/sim/wars';
 
 /**
  * The sculpted miniatures: one board model per *class* of unit, all standing on
@@ -1496,6 +1497,44 @@ describe('the worker charge badge', () => {
    * field to the hash that moves on every step of every march — the one thing
    * the movement-allowance test above is about, generalised.
    */
+  /**
+   * The eleventh member, and it is not a property of a piece at all.
+   *
+   * A declaration changes how every one of an enemy's pieces is *drawn* — the
+   * rim and the ghost take the war red — without changing anything about any of
+   * them, so without the war register in the hash the board would keep the old
+   * rims until the next time somebody happened to move. CLAUDE.md's fingerprint
+   * rule met deliberately: a new visual-affecting fact joins the hash on
+   * purpose. It is mixed in once, beside the roster length, because it is a fact
+   * about the world rather than about a unit.
+   */
+  it('moves when a war opens, and again when the peace comes', () => {
+    const before = state([{ type: 'warrior' }]);
+    const after = state([{ type: 'warrior' }]);
+    expect(signUnits(after)).toBe(signUnits(before));
+    openWar(after, 0, 1);
+    expect(signUnits(after)).not.toBe(signUnits(before));
+    // And back: closing the war leaves the board reading exactly as it did
+    // before anybody declared, which is what makes the rim a function of the
+    // register rather than of history.
+    closeWar(after, 0, 1);
+    expect(signUnits(after)).toBe(signUnits(before));
+  });
+
+  it('does not move when a truce merely runs down', () => {
+    // A truce changes no rim — the war is already over the moment the row
+    // leaves `state.wars` — so hashing an expiry would rebuild every piece on
+    // the board once a turn for nothing. See `signWars`.
+    const a = state([{ type: 'warrior' }]);
+    const b = state([{ type: 'warrior' }]);
+    openWar(b, 0, 1);
+    closeWar(b, 0, 1);
+    const quiet = signUnits(b);
+    b.turn += 3;
+    expect(signUnits(b)).toBe(quiet);
+    expect(signUnits(b)).toBe(signUnits(a));
+  });
+
   it('hashes exactly the ten properties the trap names', () => {
     // Read through Vite's raw glob rather than `node:fs` — the pattern
     // `test/sim/cities.test.ts` set for the same kind of assertion, and for the
@@ -1666,6 +1705,112 @@ describe('the x-ray silhouette', () => {
     }
     layer.dispose();
     board.dispose();
+  });
+
+  it('ghosts an enemy piece in the war red rather than in its owner\u2019s ink', () => {
+    // The user's ruling of 2026-09-03. The seat looking at this board is at war
+    // with player 1, so player 1's warrior reads hostile — on the *rim* and the
+    // ghost, never on the body, because "whose is it" is still the first
+    // question and the glow answers the second.
+    const game = seatedState(['warrior']);
+    game.units.push({
+      id: 99,
+      type: 'warrior',
+      ownerId: 1,
+      col: 8,
+      row: 3,
+      hp: unitDef('warrior').maxHp,
+      movesLeft: 2,
+      hasAttacked: false,
+    });
+    resetVisibility(game);
+    openWar(game, 0, 1);
+
+    const board = geometry();
+    const materials = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    const layer = new UnitLayer();
+    layer.build(game, board, materials, new Quaternion(), false, null, null, null, null, null, 0);
+    const meshes = layer.group.children.filter(
+      (c): c is InstancedMesh => c instanceof InstancedMesh,
+    );
+    const inks = ghosts(meshes).map((mesh) => (mesh.material as MeshBasicMaterial).color.getHex());
+    // Two ghost buckets: the seat's own piece in its own ink, the enemy's in the
+    // war red — which is deliberately no seat's colour.
+    expect(inks).toContain(VIEW3D.units.hostileGlow);
+    expect(inks).toContain(playerPieceColor(game.players[0]!.color, 0));
+    expect(VIEW3D.units.hostileGlow).not.toBe(playerPieceColor(game.players[1]!.color, 1));
+    layer.dispose();
+    board.dispose();
+    materials.dispose();
+  });
+
+  it('leaves every piece in its owner\u2019s ink while the peace holds', () => {
+    const game = seatedState(['warrior']);
+    game.units.push({
+      id: 99,
+      type: 'warrior',
+      ownerId: 1,
+      col: 8,
+      row: 3,
+      hp: unitDef('warrior').maxHp,
+      movesLeft: 2,
+      hasAttacked: false,
+    });
+    resetVisibility(game);
+
+    const board = geometry();
+    const materials = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    const layer = new UnitLayer();
+    layer.build(game, board, materials, new Quaternion(), false, null, null, null, null, null, 0);
+    const meshes = layer.group.children.filter(
+      (c): c is InstancedMesh => c instanceof InstancedMesh,
+    );
+    const inks = ghosts(meshes).map((mesh) => (mesh.material as MeshBasicMaterial).color.getHex());
+    expect(inks).not.toContain(VIEW3D.units.hostileGlow);
+    layer.dispose();
+    board.dispose();
+    materials.dispose();
+  });
+
+  it('reads the glow off the *viewer*, so the same piece is hostile to one seat and not the other', () => {
+    const game = seatedState(['warrior']);
+    game.units.push({
+      id: 99,
+      type: 'warrior',
+      ownerId: 1,
+      col: 8,
+      row: 3,
+      hp: unitDef('warrior').maxHp,
+      movesLeft: 2,
+      hasAttacked: false,
+    });
+    resetVisibility(game);
+    openWar(game, 0, 1);
+
+    const inksFor = (seat: number | null): number[] => {
+      const board = geometry();
+      const materials = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+      const layer = new UnitLayer();
+      // Every seat sees the whole board here: the fog grid is deliberately null,
+      // so the only thing that differs between the two builds is who is looking.
+      layer.build(game, board, materials, new Quaternion(), false, null, null, null, null, null, seat);
+      const meshes = layer.group.children.filter(
+        (c): c is InstancedMesh => c instanceof InstancedMesh,
+      );
+      const inks = ghosts(meshes).map(
+        (mesh) => (mesh.material as MeshBasicMaterial).color.getHex(),
+      );
+      layer.dispose();
+      board.dispose();
+      materials.dispose();
+      return inks;
+    };
+
+    // The same warrior, two screens. And the omniscient board — the galleries
+    // and the frozen 2D pipelines — glows for nobody.
+    expect(inksFor(0)).toContain(VIEW3D.units.hostileGlow);
+    expect(inksFor(1)).toContain(VIEW3D.units.hostileGlow);
+    expect(inksFor(null)).not.toContain(VIEW3D.units.hostileGlow);
   });
 
   it('shares one ghost material per player colour', () => {

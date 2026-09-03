@@ -1,19 +1,24 @@
 /**
- * The HUD dock's own mark: Statecraft's scroll.
+ * The HUD dock's own marks: Statecraft's scroll and Diplomacy's banner.
  *
- * A fourth vendored set, one icon deep
+ * A fourth vendored set, two icons deep
  * -------------------------------------
  * `yieldMarks.ts` and `meterMarks.ts` each carry a closed, exhaustive table
  * because each keys off a closed union the sim declares (`YieldKey`,
- * `MeterId`). The HUD dock's two buttons are not that: Statecraft is a screen,
- * not a meter, and Religion's button is the faith **yield**'s own mark worn at
- * dock scale — see `src/ui/hudDock.ts` for why that one is a reuse rather than
- * a second drawing of the same flame. So there is exactly one icon to vendor
- * here, not a table shaped to hold more; a third dock button would earn this
- * file a table the way the second one did not.
+ * `MeterId`). The HUD dock's three buttons are not that: Statecraft and
+ * Diplomacy are screens, not meters, and Religion's button is the faith
+ * **yield**'s own mark worn at dock scale — see `src/ui/hudDock.ts` for why
+ * that one is a reuse rather than a second drawing of the same flame. So this
+ * file holds the two the dock had to have drawn and no table shaped to hold
+ * more.
  *
  *   statecraft  Lucide `scroll-text`  (ISC) — a scroll: an Order is a writ,
  *               and the dock's button opens the screen that reads them
+ *   diplomacy   Lucide `flag`         (ISC) — a herald's banner: the mark an
+ *               envoy carries, and the one thing a declaration and a peace
+ *               have in common. Deliberately **not** crossed swords: the
+ *               screen behind it is where a war is ended as well as begun,
+ *               and an icon that only meant war would be lying half the time
  *
  * Same grid, same weight, same two printers
  * ------------------------------------------
@@ -49,6 +54,16 @@ export const STATECRAFT_MARK: { note: string; credit: string; paths: readonly Ma
   ],
 };
 
+/** The banner: a herald's flag on its staff. */
+export const DIPLOMACY_MARK: { note: string; credit: string; paths: readonly MarkPath[] } = {
+  note: "a herald's banner on its staff",
+  credit: 'Lucide `flag` (ISC)',
+  paths: [
+    stroke('M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z'),
+    stroke('M4 22v-7'),
+  ],
+};
+
 /** The scroll as a standalone SVG document, inked in `color`. */
 export function statecraftMarkSvg(color = '#000'): string {
   return markSvg(STATECRAFT_MARK.paths, YIELD_MARK_BOX, YIELD_MARK_STROKE, color);
@@ -62,9 +77,23 @@ export function statecraftMarkSvg(color = '#000'): string {
 const uriCache = new Map<string, string>();
 
 export function statecraftMarkDataUri(color = '#000'): string {
-  const cached = uriCache.get(color);
+  const cached = uriCache.get(`statecraft:${color}`);
   if (cached !== undefined) return cached;
   const uri = `data:image/svg+xml,${encodeURIComponent(statecraftMarkSvg(color))}`;
-  uriCache.set(color, uri);
+  uriCache.set(`statecraft:${color}`, uri);
+  return uri;
+}
+
+/** The banner as a standalone SVG document, inked in `color`. */
+export function diplomacyMarkSvg(color = '#000'): string {
+  return markSvg(DIPLOMACY_MARK.paths, YIELD_MARK_BOX, YIELD_MARK_STROKE, color);
+}
+
+/** The banner as a `data:` URI. `statecraftMarkDataUri`'s twin, same cache. */
+export function diplomacyMarkDataUri(color = '#000'): string {
+  const cached = uriCache.get(`diplomacy:${color}`);
+  if (cached !== undefined) return cached;
+  const uri = `data:image/svg+xml,${encodeURIComponent(diplomacyMarkSvg(color))}`;
+  uriCache.set(`diplomacy:${color}`, uri);
   return uri;
 }

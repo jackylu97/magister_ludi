@@ -95,6 +95,7 @@ import {
   removeUnit,
   unitById,
 } from './state';
+import { atWar } from './wars';
 import { hasTech } from './tech';
 import { techDef } from './techData';
 import {
@@ -1118,6 +1119,23 @@ export function pillageError(state: GameState, unitId: number): string | null {
   const owner = tileOwnerPlayerId(state, tile.col, tile.row);
   if (owner === unit.ownerId) {
     return `(${tile.col}, ${tile.row}) is your own ground`;
+  }
+  /**
+   * **Burning another empire's works is an act of war** (the war ruling,
+   * section 5). The combat clause's twin, said in the same words for the same
+   * reason: a raid is violence and the only thing that makes violence legal is
+   * a declaration.
+   *
+   * Asked of the *ground's owner* rather than of anybody standing on it,
+   * because that is who the farm belongs to — and only when the hex is owned at
+   * all: nobody's ground is nobody's business, so a road across the wilderness
+   * and a camp's own works stay pillageable by anyone, exactly as they were.
+   * `atWar` answers *true* for the wild on both sides, so the raiders' own
+   * burning pass is untouched.
+   */
+  if (owner !== null && !atWar(state, unit.ownerId, owner)) {
+    const them = playerById(state, owner)?.name ?? 'that empire';
+    return `You are not at war with the ${them}`;
   }
   return null;
 }

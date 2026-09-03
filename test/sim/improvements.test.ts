@@ -1921,7 +1921,9 @@ describe('improvements in the log', () => {
     const worker = state.units[state.units.length - 1]!;
     expect(dispatch(game, build(0, worker.id, id)).ok).toBe(true);
 
-    // A rival rides in and burns it.
+    // A rival declares — a logged command, so the war replays with everything
+    // else — and rides in to burn it.
+    expect(dispatch(game, { type: 'declareWar', playerId: 1, targetId: 0 }).ok).toBe(true);
     dispatch(game, {
       type: 'spawnUnit',
       playerId: 1,
@@ -2119,7 +2121,7 @@ describe('improvements in the log', () => {
     // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
     // Stones improvement and the Terraces — so a v54 log that built either has
     // no row to replay into.
-    expect(SCHEMA_VERSION).toBe(55);
+    expect(SCHEMA_VERSION).toBe(56);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

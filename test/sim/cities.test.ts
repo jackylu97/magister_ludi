@@ -73,6 +73,7 @@ import {
   createUnit,
   newGame,
 } from '../../src/sim/state';
+import { openWar } from '../../src/sim/wars';
 import { chopBaseFor } from '../../src/sim/improvements';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { TECH_IDS, UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
@@ -115,6 +116,13 @@ function flatState(width = 16, height = 12, terrain: 'desert' | 'grassland' = 'd
   state.tileOwner = new Array<number | null>(width * height).fill(null);
   state.units = [];
   state.nextEntityId = 1;
+  // **The two seats are at war** (schema 56). A handful of questions in this
+  // file are about what happens when somebody takes something — a settler
+  // caught in the open, a captured worker's ladder — and since the war ruling a
+  // blow between two empires at peace is refused before anything is computed.
+  // Written into the register rather than issued as a command, because this
+  // file's subject is cities and `test/sim/war.test.ts` owns the verb.
+  openWar(state, 0, 1);
   return state;
 }
 
@@ -2607,7 +2615,7 @@ describe('determinism with cities', () => {
     // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
     // Stones improvement and the Terraces — so a v54 log that built either has
     // no row to replay into.
-    expect(SCHEMA_VERSION).toBe(55);
+    expect(SCHEMA_VERSION).toBe(56);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

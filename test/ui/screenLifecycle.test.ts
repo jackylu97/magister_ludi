@@ -40,6 +40,11 @@ describe('the game-screen disposal register', () => {
       'victory?.dispose()',
       'techTree?.dispose()',
       'beads?.dispose()',
+      // The Diplomacy sheet, third door on the HUD dock (schema 56). It binds a
+      // capturing `keydown` on the window like every other parchment screen, so
+      // it joins the register the pass that ships it — which is the whole point
+      // of this pin.
+      'diplomacy?.dispose()',
     ]) {
       expect(main, call).toContain(`gameDisposers.push(() => ${call});`);
     }

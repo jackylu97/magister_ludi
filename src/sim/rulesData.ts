@@ -419,6 +419,55 @@ export interface TradeRules {
 }
 
 /**
+ * War: the peace that follows one, and what a town taken in one costs its
+ * captor (`docs/war-diplomacy.md`, ruled 2026-09-03).
+ *
+ * Three numbers, and every one of them is a *duration or a share* rather than a
+ * threshold — there is nothing here for a bot to clear or a player to reach,
+ * because declaring is free in v1 and the only price of a war is the war. The
+ * two puppet figures are Civ V's, said in this game's own currencies: a seized
+ * town that has not been annexed asks its captor a little less writ and a
+ * little less contentment, and it is a *relief* and a *share* rather than two
+ * flat costs so that a designer retuning what a captured city costs at all
+ * (`meters.authority.capturedCity`) moves both readings at once.
+ */
+export interface WarRules {
+  /**
+   * Turns of truce a peace deal buys, counted from the turn the peace resolved
+   * — an **absolute** expiry once it is written down (`Truce.untilTurn`, the
+   * timed-effect rule: nothing counts down).
+   *
+   * The whole of "you may not re-declare on the empire you just made peace
+   * with", and the whole of what a finished war leaves behind: there is no
+   * grudge, no memory and no reputation in v1 (the worksheet, section 1).
+   */
+  truceTurns: number;
+  /**
+   * Authority a **puppet** is spared against what a kept conquest costs
+   * (`meters.authority.capturedCity`).
+   *
+   * A relief rather than a price of its own, so that the ladder of returns
+   * stays one ladder: a designer who makes conquest dearer makes puppetry
+   * dearer in the same breath, and the *difference* between the two — which is
+   * the whole of the decision a captor is being offered — stays exactly this
+   * number. Floored at nothing where the two meet, like every other authority
+   * reading.
+   */
+  puppetAuthorityRelief: number;
+  /**
+   * What a puppet's citizens ask for, as a percentage of what the same citizens
+   * would ask for in an annexed town.
+   *
+   * A share rather than a second demand curve, for `puppetAuthorityRelief`'s
+   * reason: the curve is `meters.happiness`' and a puppet simply pays less of
+   * it. It reaches the meter as a **gain line** ("Uruk · puppet") rather than
+   * as a quieter cost line, because hard rule 5 says a player who is charged
+   * less is entitled to see the discount.
+   */
+  puppetHappinessPercent: number;
+}
+
+/**
  * The wild: how often camps appear, where they may stand, what comes out of
  * them, and what clearing one is worth (design ledger, Entry XX).
  *
@@ -1351,6 +1400,7 @@ export interface RulesConfig {
   naval: NavalRules;
   improvements: ImprovementRules;
   trade: TradeRules;
+  war: WarRules;
   barbarians: BarbarianRules;
   cities: CityRules;
   meters: MeterRules;

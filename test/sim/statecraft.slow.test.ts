@@ -71,9 +71,14 @@ describe('determinism', () => {
 
   it('replays a logged game with Statecraft commands in it', () => {
     const g = game(23);
-    const log: Command[] = [];
+    // `game`'s own log, not a second one: the bench opens the two seats' war
+    // with a dispatched `declareWar` (schema 56 — see `statecraftHelpers.ts`),
+    // so a list started empty here would replay a world that never declared.
+    // `dispatch` already appends every accepted command, which is what this
+    // list has always been.
+    const log = g.log;
     const send = (command: Command): void => {
-      if (dispatch(g, command).ok) log.push(command);
+      dispatch(g, command);
     };
     const player = g.state.players[0]!;
     // Reach a draft the honest way, so the replay can reproduce it.

@@ -21,7 +21,7 @@
  * is what the game does and a mask keeps only the alpha.
  */
 
-import { statecraftMarkDataUri } from '../art/dockMarks';
+import { diplomacyMarkDataUri, statecraftMarkDataUri } from '../art/dockMarks';
 import { type HeraldryId, HERALDRY_IDS, heraldryMarkDataUri } from '../art/heraldryMarks';
 import { CARD_LINE_MARKS, SLOT_MARKS, cardLineMarkDataUri, slotMarkDataUri } from '../art/lineMarks';
 import {
@@ -165,6 +165,7 @@ function dockFamily(into: HTMLElement): void {
     ),
   );
   markCell(grid, 'statecraft', statecraftMarkDataUri(), 'the Orders & Doctrines dock button');
+  markCell(grid, 'diplomacy', diplomacyMarkDataUri(), 'the war & peace dock button');
 }
 
 function lineFamily(into: HTMLElement): void {

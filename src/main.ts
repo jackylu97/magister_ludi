@@ -135,6 +135,7 @@ import { createPopover } from './ui/popover';
 import { type HudDock, createHudDock } from './ui/hudDock';
 import { type ToastStack, createToastStack } from './ui/toasts';
 import { type StatecraftScreen, createStatecraftScreen } from './ui/statecraftScreen';
+import { type DiplomacyScreen, createDiplomacyScreen } from './ui/diplomacyScreen';
 import { type ReligionScreen, createReligionScreen } from './ui/religionScreen';
 import { type TechTree, createTechTree } from './ui/techTree';
 import { type MapPlates, type TilePriceTags, createMapPlates, createTilePriceTags } from './ui/tilePriceTags';
@@ -316,11 +317,12 @@ const researchTurnsEl = requireElement<HTMLElement>('research-turns');
 const researchFiguresEl = requireElement<HTMLElement>('research-figures');
 const techOverlayEl = requireElement<HTMLElement>('tech-overlay');
 const techChartEl = requireElement<HTMLElement>('tech-chart');
-/* The HUD dock, directly under the research card: Statecraft and Religion. Its
-   two buttons are runtime `data:` URIs, so `createHudDock` builds them into
-   this container rather than index.html holding them static — see
-   `src/ui/hudDock.ts`. Both are bare triggers now; the Faith popover they used
-   to sit beside became the Religion screen (ledger Entry XXVIII). */
+/* The HUD dock, directly under the research card: Statecraft, Religion and
+   Diplomacy. Its buttons are runtime `data:` URIs, so `createHudDock` builds
+   them into this container rather than index.html holding them static — see
+   `src/ui/hudDock.ts`. All three are bare triggers; the Faith popover they used
+   to sit beside became the Religion screen (ledger Entry XXVIII), and the
+   banner is the war ruling's own door (2026-09-03). */
 const hudDockEl = requireElement<HTMLElement>('hud-dock');
 /* The Abacus: the bar button that opens it, and the screen it opens. Its canvas
    is not here — `abacusScreen.ts` builds one into the stage on the first open. */
@@ -339,6 +341,8 @@ const religionBodyEl = requireElement<HTMLElement>('religion-body');
    Routes row. */
 const tradeOverlayEl = requireElement<HTMLElement>('trade-overlay');
 const tradeBodyEl = requireElement<HTMLElement>('trade-body');
+const diplomacyOverlayEl = requireElement<HTMLElement>('diplomacy-overlay');
+const diplomacyBodyEl = requireElement<HTMLElement>('diplomacy-body');
 /* The Compendium: the bar's book button, the overlay, and the body the same
    module the standalone `compendium.html` page mounts is rendered into. It is
    the one screen with no game behind it — see `src/ui/compendium.ts` — so it is
@@ -706,6 +710,8 @@ let religion: ReligionScreen | null = null;
 /* Trade's screen, built in `boot` for `religion`'s reason: it asks whose seat
    this is, and `closePopovers` is declared before there is one. */
 let trade: TradeScreen | null = null;
+/* Diplomacy's screen, built in `boot` for `trade`'s reason exactly. */
+let diplomacy: DiplomacyScreen | null = null;
 
 /**
  * The top bar's meter chips, once `boot` has built them. A holder for the same
@@ -816,6 +822,7 @@ const compendium: Compendium = createCompendium({
     statecraft?.close();
     religion?.close();
     trade?.close();
+    diplomacy?.close();
   },
 });
 /* **Where every keyword in the interface goes** (`src/ui/keywords.ts`). Handed
@@ -846,6 +853,7 @@ function closePopovers(): boolean {
     (statecraft?.isOpen ?? false) ||
     (religion?.isOpen ?? false) ||
     (trade?.isOpen ?? false) ||
+    (diplomacy?.isOpen ?? false) ||
     compendium.isOpen ||
     savesPanel.isOpen ||
     // Escape never actually arrives here while the card is up — it answers its
@@ -864,6 +872,7 @@ function closePopovers(): boolean {
   statecraft?.close();
   religion?.close();
   trade?.close();
+  diplomacy?.close();
   compendium.close();
   savesPanel.close();
   confirmCard.close();
@@ -929,6 +938,7 @@ function showLanding(): void {
   statecraft?.dispose();
   religion?.dispose();
   trade?.dispose();
+  diplomacy?.dispose();
   // And every per-game window listener this boot hung (Entry LVII) — the four
   // above dispose more than listeners, these seven dispose exactly that.
   disposeGameScreens();
@@ -3473,6 +3483,53 @@ async function boot(initial: Game | null): Promise<void> {
   gameDisposers.push(() => beads?.dispose());
 
   /**
+   * The Diplomacy screen: every empire, where this seat stands with each, and
+   * the two verbs that change it.
+   *
+   * Trade's sibling in every respect that matters — declared here beside it,
+   * reached back through the `diplomacy` holder, and every write it makes is a
+   * **command**, sent through `controls`' own two diplomacy verbs. So a war
+   * declared from this sheet is declared the same way a network peer or a
+   * future AI would declare one, and the sentence a greyed button shows is the
+   * reducer's own (`declareWarError`).
+   *
+   * `askConfirm` is the interface's own confirm card, handed in rather than
+   * reached for: a declaration cannot be taken back for ten turns, and the
+   * ruling asks for the step by name.
+   */
+  diplomacy = createDiplomacyScreen({
+    overlay: diplomacyOverlayEl,
+    body: diplomacyBodyEl,
+    closeButton: requireElement('diplomacy-close'),
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    declareWar: (targetId) => {
+      controls.declareWarOn(targetId);
+      controls.refresh();
+    },
+    offerPeace: (targetId, standing) => {
+      controls.offerPeaceTo(targetId, standing);
+      controls.refresh();
+    },
+    askConfirm: (request, run) => confirmCard.ask(request, run),
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      meterCards?.close();
+      techTree?.close();
+      abacus?.close();
+      beads?.close();
+      statecraft?.close();
+      religion?.close();
+      trade?.close();
+      compendium.close();
+    },
+  });
+  gameDisposers.push(() => diplomacy?.dispose());
+
+  /**
    * The empire's per-turn totals, at the left end of the top bar. A pure sum
    * over the local seat's cities, refreshed with everything else.
    */
@@ -3543,7 +3600,7 @@ async function boot(initial: Game | null): Promise<void> {
   meterCards = civYields;
 
   /**
-   * The HUD dock: Statecraft and Religion, under the research card. See
+   * The HUD dock: Statecraft, Religion and Diplomacy, under the research card. See
    * `src/ui/hudDock.ts` for the design; this is only wiring — the Statecraft
    * button is a bare trigger (its click mirrors the culture chip's own
    * `onOpenStatecraft` above and the ☰ menu's door to the same screen), and
@@ -3577,6 +3634,11 @@ async function boot(initial: Game | null): Promise<void> {
   hudDock.religionButton.addEventListener('click', () => {
     openScreen(() => religion?.open());
   });
+  /* The third door, and the same wiring: a bare trigger that shuts every other
+     HUD surface and opens a parchment screen (the user's ruling, 2026-09-03). */
+  hudDock.diplomacyButton.addEventListener('click', () => {
+    openScreen(() => diplomacy?.open());
+  });
 
   // `H` opens the Religion screen — the dock's own hotkey, and deliberately its
   // own small listener rather than one more branch in `controls.ts`'s keydown
@@ -3602,6 +3664,28 @@ async function boot(initial: Game | null): Promise<void> {
     event.preventDefault();
     if (religion?.isOpen === true) religion.close();
     else openScreen(() => religion?.open());
+  });
+
+  // `W` opens the Diplomacy screen — the third dock button's hotkey, wired here
+  // beside `H` and for its stated reason exactly: a screen with no unit and no
+  // tile behind it belongs where its screen is built, not in `controls.ts`'s
+  // board switch. `D` reads as a direction and `G` is the 2D grid's already;
+  // `W` reads as "war" and was free. See `index.html`'s help sheet, where it is
+  // documented alongside the rest.
+  window.addEventListener('keydown', (event) => {
+    if (event.key !== 'w' && event.key !== 'W') return;
+    if (isInputBlocked()) return;
+    const target = event.target as HTMLElement | null;
+    const typing =
+      target !== null &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable);
+    if (typing) return;
+    event.preventDefault();
+    if (diplomacy?.isOpen === true) diplomacy.close();
+    else openScreen(() => diplomacy?.open());
   });
 
   /**

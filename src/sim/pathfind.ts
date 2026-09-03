@@ -91,6 +91,7 @@ import { type GameMap, type Tile, getTile, getTileAt, mapNeighbors, tileHex, til
 import { RULES } from './rulesData';
 import { cardBorderZoc } from './statecraft';
 import { type GameState, type Unit, playerById } from './state';
+import { atWar } from './wars';
 import { techsGrant } from './techData';
 import {
   type TerrainId,
@@ -345,6 +346,38 @@ export interface MoveProfile {
    * with no navy in it.
    */
   ports?: ReadonlySet<Tile>;
+  /**
+   * The territory this mover is **barred from at peace** — another empire's
+   * ground, when the two are not at war (`docs/war-diplomacy.md`, section 3).
+   *
+   * `ports`' opposite number: that one widens where a hull may stand, this one
+   * narrows where an army may go, and both are facts about *the mover's
+   * empire* resolved once for the whole sweep. Hoisted for `zocField`'s
+   * bargain exactly — the answer is a walk of `state.cities` plus a walk of the
+   * roster, and asking it per edge would be both of those tens of thousands of
+   * times inside one search. Its lifetime is that one sweep, for
+   * `tileOwnerField`'s stated reason.
+   *
+   * **Absent for every mover it does not bind**, which is nearly all of them: a
+   * civilian (a caravan included — a trader is a civilian in combat terms, and
+   * "traders free" is that fact rather than a rule of its own), the wild, a
+   * seat at war with everybody it has a border with, and every game that has
+   * never declared anything. Absence is the fast path and it is the common one.
+   */
+  closed?: ClosedBorders;
+}
+
+/**
+ * Which hexes a mover may not enter because somebody else holds them and
+ * nobody has declared anything. See `MoveProfile.closed`.
+ *
+ * A field rather than a predicate over the state for `ZocField`'s reason: it is
+ * asked per edge and its answer changes only when a border moves or a war
+ * starts.
+ */
+export interface ClosedBorders {
+  /** True when this hex is foreign ground this mover may not set foot on. */
+  bars(tile: Tile): boolean;
 }
 
 /**
@@ -383,9 +416,61 @@ export function navalPorts(state: GameState): ReadonlySet<Tile> {
  * (impossible in play, reachable from a hand-edited save) simply cannot embark,
  * which is the strictest honest answer.
  */
+/**
+ * The borders this piece may not cross, or `undefined` when none bind it.
+ *
+ * **THE** implementation of "civilians pass, military blocked, traders free"
+ * (the war ruling, section 3), and it is deliberately written as three
+ * questions about the *mover* and one about the *ground*:
+ *
+ *   · a **civilian** is never bound. `isCivilian` is the same predicate the
+ *     capture rule and the stacking rules read, and a caravan is one by
+ *     construction (`trades` implies no combat strength), so "traders free" is
+ *     a consequence rather than a clause somebody has to remember;
+ *   · the **wild** is never bound. It has no diplomacy and every border is open
+ *     to it, which is the game the barbarians have always played;
+ *   · a seat with **nobody to be barred by** gets `undefined`, so the whole
+ *     mechanism costs one `Set.size` check in every game that has not declared
+ *     anything.
+ *
+ * The scout is bound, and that is the ruling read plainly rather than an
+ * oversight: a scout is a combat unit (`isCombatant` — it is the one that may
+ * embark), it is "military" in every other rule in this simulation, and Civ V
+ * turns it back at a closed border exactly like a warrior. An empire that wants
+ * to see what is behind a neighbour's fields buys Open Borders (P2) or declares.
+ *
+ * The barred set is built from `state.players` order and read only by `.has`,
+ * so nothing about an outcome can depend on it.
+ */
+function closedBordersFor(state: GameState, unit: Unit, def: UnitDef): ClosedBorders | undefined {
+  if (isCivilian(def)) return undefined;
+  const owner = playerById(state, unit.ownerId);
+  if (owner === undefined || owner.barbarian === true) return undefined;
+  const barred = new Set<number>();
+  for (const other of state.players) {
+    if (other.id === owner.id || other.barbarian === true) continue;
+    if (atWar(state, owner.id, other.id)) continue;
+    barred.add(other.id);
+  }
+  if (barred.size === 0) return undefined;
+  const field = tileOwnerField(state);
+  const { map } = state;
+  return {
+    bars(tile: Tile): boolean {
+      const holder = field.at(tileIndex(map, tile.col, tile.row));
+      return holder !== null && barred.has(holder);
+    },
+  };
+}
+
 export function moveProfile(state: GameState, unit: Unit): MoveProfile {
   const def = unitDef(unit.type);
   const owner = playerById(state, unit.ownerId);
+  // The borders this piece may not cross, hoisted here beside the embark and
+  // port lookups and for their reason: a fact about the mover's *empire*, asked
+  // of the state exactly once for the sweep. `undefined` for everything it does
+  // not bind, which is the common case — see `closedBordersFor`.
+  const closed = closedBordersFor(state, unit, def);
   // A ship is answered first and separately, because the two abilities are not
   // degrees of one thing: a hull does not embark onto the water, it is refused
   // the land. Its ports are hoisted here for the sweep, beside the embark
@@ -396,7 +481,17 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
   // for the reason on the field.
   const full = fullMovement(unit, state);
   if (isNaval(def)) {
-    return { def, embarks: false, naval: true, ocean, full, ports: navalPorts(state) };
+    // Spread rather than assigned, so a mover nothing bars has *no key* and a
+    // profile from a world with no diplomacy in it is the object it always was.
+    return {
+      def,
+      embarks: false,
+      naval: true,
+      ocean,
+      full,
+      ports: navalPorts(state),
+      ...(closed === undefined ? {} : { closed }),
+    };
   }
   // A civilian, or the explorer (user, 2026-08-29: "sailing should also allow
   // scouts to embark") — the one combat unit that may take to the water, read
@@ -412,7 +507,7 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     (owner !== undefined && techsGrant(owner.techsResearched, 'militaryEmbark'));
   const embarks =
     mayEmbark && owner !== undefined && techsGrant(owner.techsResearched, 'embark');
-  return { def, embarks, naval: false, ocean, full };
+  return { def, embarks, naval: false, ocean, full, ...(closed === undefined ? {} : { closed }) };
 }
 
 /**
@@ -533,6 +628,25 @@ export function canTransit(
   if (tileMoveCost(tile, mover) === null) return false;
   const city = cityAt(state, tile.col, tile.row);
   if (city !== undefined && city.ownerId !== unit.ownerId) return false;
+  /**
+   * **A closed border is a wall, not a toll** (the war ruling, section 3).
+   *
+   * It is one clause *here* rather than a gate of its own, and that is the whole
+   * design: everything downstream of `canTransit` inherits it by construction —
+   * `findPath` will not route through it, `reachableTiles` will not highlight
+   * it, `canStopOn` refuses a march that would end there, and `moveUnit` is
+   * refused with the same reading the highlight drew. A parallel gate would be
+   * the one thing the movement rules cannot afford: a promise the board breaks.
+   *
+   * It is a wall rather than a `zocExtraCost`-style toll because it is not a
+   * price at all — there is no amount of movement that buys passage — and it
+   * therefore belongs with impassability rather than in `stepCost`.
+   *
+   * Asked of the mover's hoisted `closed` field, which is absent for a
+   * civilian, for a caravan, for the wild, and for every seat with nobody to be
+   * barred by. See `closedBordersFor`.
+   */
+  if (mover.closed?.bars(tile) === true) return false;
   return !hasForeignUnit(state, tile.col, tile.row, unit.ownerId);
 }
 

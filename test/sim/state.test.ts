@@ -387,9 +387,9 @@ describe('applyCommand contract', () => {
     const state = newGame(config());
     const before = clone(state);
     // `foundCity` used to stand in for "not a command yet"; it is one now.
-    const result = applyCommand(state, { type: 'razeCity', tile: 3 } as unknown as Command);
+    const result = applyCommand(state, { type: 'gildRoof', tile: 3 } as unknown as Command);
     expect(result.ok).toBe(false);
-    expect(result).toEqual({ ok: false, error: 'Unknown command type "razeCity"' });
+    expect(result).toEqual({ ok: false, error: 'Unknown command type "gildRoof"' });
     expect(state).toEqual(before);
   });
 
@@ -414,7 +414,13 @@ describe('applyCommand contract', () => {
 describe('end-of-turn pipeline', () => {
   it('runs a fixed, named, ordered set of phases', () => {
     expect(END_OF_TURN_PHASES.map((phase) => phase.name)).toEqual([
-      // First, and a broom rather than a clock: an expired rite is already
+      // First, and two brooms in one beat: the spent truces are swept out and
+      // every war both sides have signed is closed — so the turn resolves in a
+      // world whose relations are settled, and the columns a peace sends home
+      // are walked out before any standing order resumes. See `settlePeace`
+      // (`src/sim/diplomacy.ts`).
+      'settleDiplomacy',
+      // Then the other broom: an expired rite is already
       // inert (every reader compares turns), so this only stops dead paper
       // accumulating. See `pruneTimedEffects` (ledger Entry XXVIII).
       'pruneTimedEffects',
@@ -629,7 +635,11 @@ describe('the research queue field', () => {
     // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
     // Stones improvement and the Terraces — so a v54 log that built either has
     // no row to replay into.
-    expect(SCHEMA_VERSION).toBe(55);
+    // v56 (war & diplomacy, phase one): the one bump that refuses an old log
+    // for a *legality reversal* rather than a table that moved — combat,
+    // pillage and border-crossing between two empires are illegal at peace, so
+    // a v55 log may contain an attack or a march this reducer refuses.
+    expect(SCHEMA_VERSION).toBe(56);
   });
 });
 

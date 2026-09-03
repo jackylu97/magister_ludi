@@ -698,6 +698,10 @@ describe('a captured city, end to end', () => {
     );
     const city = game.state.cities.find((entry) => entry.col === site!.col)!;
     expect(city.captured).toBe(false);
+    // The war is declared by a **logged command**, so the conquest replays from
+    // `{config, log}` exactly as it always did (schema 56: a blow between two
+    // empires at peace is refused).
+    expect(dispatch(game, { type: 'declareWar', playerId: 0, targetId: 1 }).ok).toBe(true);
 
     // An army, one swordsman per hex that actually touches the city — melee
     // needs adjacency, and stacking allows one soldier per tile.
@@ -738,11 +742,40 @@ describe('a captured city, end to end', () => {
     return { game, cityId: city.id };
   }
 
-  it('raises the flag the meter prices, and prices it', () => {
+  it('raises the flag the meter prices, and prices the puppet it starts as', () => {
     const { game, cityId } = conquest();
     const city = game.state.cities.find((entry) => entry.id === cityId)!;
     expect(city.captured).toBe(true);
+    // A town taken by force is a **puppet** until it is annexed (schema 56), so
+    // the line it adds is the puppet's — the captured price, relieved by
+    // `rules.war.puppetAuthorityRelief`.
+    expect(city.puppet).toBe(true);
+    expect(lineFor(explainAuthority(game.state, 0), 'puppet')).toBe(
+      -(WRIT.capturedCity - RULES.war.puppetAuthorityRelief),
+    );
+    expect(lineFor(explainAuthority(game.state, 0), 'captured')).toBeUndefined();
+  });
+
+  it('prices the same town as a conquest once its captor annexes it', () => {
+    const { game, cityId } = conquest();
+    expect(dispatch(game, { type: 'annexCity', playerId: 0, cityId }).ok).toBe(true);
+    const city = game.state.cities.find((entry) => entry.id === cityId)!;
+    expect(city.puppet).toBeUndefined();
     expect(lineFor(explainAuthority(game.state, 0), 'captured')).toBe(-WRIT.capturedCity);
+    expect(lineFor(explainAuthority(game.state, 0), 'puppet')).toBeUndefined();
+  });
+
+  it('relieves a puppet\u2019s citizens and says so on its own line', () => {
+    const { game, cityId } = conquest();
+    const city = game.state.cities.find((entry) => entry.id === cityId)!;
+    const entries = explainHappiness(game.state, 0);
+    const relief = lineFor(entries, `${city.name} \u00b7 puppet`);
+    expect(relief).toBeDefined();
+    // The line is a **gain** — the discount said out loud — and it is exactly
+    // the share of what the town's own citizens are being charged.
+    const charged = lineFor(entries, `${city.name} \u00b7 ${city.population} citizens`);
+    expect(charged).toBeDefined();
+    expect(relief!).toBeCloseTo(-charged! * (1 - RULES.war.puppetHappinessPercent / 100), 6);
   });
 
   it('leaves the conqueror’s settler ladder exactly where it was', () => {
@@ -796,7 +829,7 @@ describe('a captured city, end to end', () => {
     // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
     // Stones improvement and the Terraces — so a v54 log that built either has
     // no row to replay into.
-    expect(SCHEMA_VERSION).toBe(55);
+    expect(SCHEMA_VERSION).toBe(56);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

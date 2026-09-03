@@ -73,6 +73,7 @@ import {
   purchaseTileAt,
   refreshCityDerived,
   settleProductionWindfall,
+  tileOwnerPlayerId,
   tilePurchaseError,
 } from './cities';
 import { type CombatOutcome, type SiegeReport, applyCombat, fortifyError } from './combat';
@@ -189,10 +190,25 @@ import { type BeadAward, beadMarks, beadsSince } from './beads';
 import type { BeadAge } from './beadData';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
+import { atWar } from './wars';
+import {
+  type PeaceOutcome,
+  type RazeReport,
+  type WarDeclaredReport,
+  annexCityAt,
+  annexCityError,
+  declareWarAt,
+  declareWarError,
+  proposePeaceError,
+  razeCityAt,
+  razeCityError,
+  setPeaceOfferAt,
+  withdrawPeaceError,
+} from './diplomacy';
 import type { CampBounty } from './camps';
 import { type GuildReport, dismissSpecialistAt, dismissSpecialistError } from './guilds';
 import { type SpecialistFamily, isSpecialistFamily } from './greatPeopleData';
-import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
+import { type UnitTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom, sleepError } from './units';
 import { recomputeVisibility } from './visibility';
 
@@ -1223,6 +1239,79 @@ export interface DisbandUnitCommand extends PlayerCommand {
   unitId: number;
 }
 
+/**
+ * Declares war on another empire (`docs/war-diplomacy.md`, section 2).
+ *
+ * An ordinary command in every respect — validated in full, logged, replayed —
+ * and free: there is no authority price, no happiness toll and no casus belli
+ * in v1. What it changes is a *legality*: from the moment the row is written,
+ * blows, raids and border crossings between the two are legal, and the trade
+ * running between them stops.
+ *
+ * **A surprise war is legal**, and it needs no rule of its own: this command
+ * and the attacks that follow it are separate entries in the same turn's log,
+ * resolved in log order like everything else, so declaring and striking in one
+ * window is simply two commands (the user's ruling, section 2).
+ *
+ * Turn-gated like every other order: a seat that has ended its turn is not
+ * acting, and a declaration is an act.
+ */
+export interface DeclareWarCommand extends PlayerCommand {
+  type: 'declareWar';
+  /** The empire to declare on. Never yourself, never the wild. */
+  targetId: number;
+}
+
+/**
+ * Puts a standing white-peace offer on a war (`docs/war-diplomacy.md`,
+ * section 4; 9b's "empty proposal = white peace").
+ *
+ * It resolves nothing by itself. Turns are simultaneous, so agreement cannot be
+ * a handshake inside one command — the flag stands until it is withdrawn or the
+ * war ends, and `settleDiplomacy` (`turn.ts`) closes every war *both* sides have
+ * signed at the end of the turn. See `diplomacy.ts` for why that is the shape.
+ *
+ * Terms are P2's (cities, gold, luxuries); this carries none, so every peace in
+ * P1 is a white one.
+ */
+export interface ProposePeaceCommand extends PlayerCommand {
+  type: 'proposePeace';
+  targetId: number;
+}
+
+/** Takes a standing peace offer back off the table. `proposePeace`'s mirror. */
+export interface WithdrawPeaceCommand extends PlayerCommand {
+  type: 'withdrawPeace';
+  targetId: number;
+}
+
+/**
+ * Takes a puppet into the empire proper — full authority, full contentment,
+ * and a queue its owner may set (`docs/war-diplomacy.md`, 9b).
+ *
+ * **Anytime and irreversible**: there is no window, no cost and no verb that
+ * turns it back. A captured town starts as a puppet (`captureCity`), and this
+ * is the one decision a captor is offered about it.
+ */
+export interface AnnexCityCommand extends PlayerCommand {
+  type: 'annexCity';
+  cityId: number;
+}
+
+/**
+ * Pulls a town down. Immediate, and there is no window in which it is offered:
+ * a captor may raze anything they hold except a seat of government
+ * (`razeCityError` names the rule).
+ *
+ * The site keeps whatever was built on the ground around it — nothing
+ * regenerates a tile mid-game — and the hexes go back to nobody's. See
+ * `razeCityAt` for the whole of what it takes with it.
+ */
+export interface RazeCityCommand extends PlayerCommand {
+  type: 'razeCity';
+  cityId: number;
+}
+
 /** Every legal mutation of the game, as serializable data. */
 export type Command =
   | EndTurnCommand
@@ -1268,7 +1357,12 @@ export type Command =
   | StartRouteCommand
   | SetAutoResendCommand
   | CancelRouteCommand
-  | DisbandUnitCommand;
+  | DisbandUnitCommand
+  | DeclareWarCommand
+  | ProposePeaceCommand
+  | WithdrawPeaceCommand
+  | AnnexCityCommand
+  | RazeCityCommand;
 
 /** Convenience alias for the discriminant. */
 export type CommandType = Command['type'];
@@ -1335,6 +1429,35 @@ export type CommandResult =
        * about.
        */
       opusOpened?: boolean;
+      /**
+       * A war opening, from `declareWar` alone (`WarDeclaredReport`).
+       *
+       * `wonders`' kind of news: **not filtered by seat**, because a
+       * declaration is public and everybody hears it (`docs/war-diplomacy.md`,
+       * section 1). It is a *difference* like every other field on this shape —
+       * by the time this returns there is simply a row in `state.wars`, and
+       * nothing on the board says it was written this command rather than nine
+       * turns ago.
+       */
+      warDeclared?: WarDeclaredReport;
+      /**
+       * Every war that ended, and the armies each peace sent home
+       * (`PeaceOutcome`). From `endTurn` alone: peace is resolved by the
+       * `settleDiplomacy` phase, because both sides have to have signed and
+       * turns are simultaneous.
+       *
+       * `warDeclared`'s sibling and public for its reason exactly.
+       */
+      peaces?: PeaceOutcome[];
+      /**
+       * A town pulled down, from `razeCity` alone (`RazeReport`).
+       *
+       * `proclaimed`'s kind of field — one act on one board, so not a list —
+       * and `arrivals`' argument in a fourth currency: by the time this returns
+       * the city is not in `state.cities`, its ground is unclaimed, and no diff
+       * of two boards can say what stood there.
+       */
+      razed?: RazeReport;
     }
   | { ok: false; error: string };
 
@@ -1586,6 +1709,9 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   if (result.ok && report.beadAgeOpened !== undefined) {
     result.beadAgeOpened = report.beadAgeOpened;
   }
+  // Every war the resolution ended, with the columns each peace walked home.
+  // Set beside the helper for `beads`' stated reason exactly.
+  if (result.ok && report.peaces.length > 0) result.peaces = [...report.peaces];
   return result;
 }
 
@@ -1651,6 +1777,26 @@ function applyMoveUnit(state: GameState, command: MoveUnitCommand): CommandResul
     const blockedBy = cityAt(state, tile.col, tile.row);
     if (blockedBy !== undefined && blockedBy.ownerId !== unit.ownerId) {
       return fail(`${blockedBy.name} is another empire's city — take it by force`);
+    }
+    /**
+     * **A closed border gets its own sentence too**, for the foreign city's
+     * reason exactly (the war ruling, section 3): the refusal is a *rule* a
+     * player is meant to learn, and a coordinate reads like a pathing failure.
+     *
+     * Asked only when the hex is somebody else's and the mover is one the rule
+     * binds, so the sentence is never printed about ground the piece was
+     * refused for some other reason — the ordinary default still covers water,
+     * mountains, a full stack and a foreign unit standing there.
+     */
+    const holder = tileOwnerPlayerId(state, tile.col, tile.row);
+    if (
+      holder !== null &&
+      holder !== unit.ownerId &&
+      !isCivilian(unitDef(unit.type)) &&
+      !atWar(state, unit.ownerId, holder)
+    ) {
+      const them = playerById(state, holder)?.name ?? 'that empire';
+      return fail(`You are not at war with the ${them} — their land is closed to your armies`);
     }
     return fail(`Unit ${unit.id} cannot stop on (${tile.col}, ${tile.row})`);
   }
@@ -3149,6 +3295,104 @@ function applyCancelRoute(state: GameState, command: CancelRouteCommand): Comman
 }
 
 /**
+ * Declares war.
+ *
+ * `declareWarError` is the whole rule, so the greyed button on the Diplomacy
+ * screen and this refusal are one sentence. What lands beyond the row is the
+ * trade between the two: `declareWarAt` drops every route spanning the pair and
+ * reports them through `routesEnded`, the same field a route that lapses of its
+ * own accord comes home on — a route ended by a phase and a route ended by a
+ * declaration are the same kind of news, and neither has a verb of the owner's
+ * behind it.
+ *
+ * **Nobody is expelled**, which is the ruling: a declaration opens the borders
+ * (see `declareWarAt`). The peace closes them again and sends the columns home.
+ */
+function applyDeclareWar(state: GameState, command: DeclareWarCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot declare war`);
+  }
+  const targetId = command.targetId;
+  if (typeof targetId !== 'number' || !Number.isInteger(targetId)) {
+    return fail(`declareWar needs an integer targetId, got ${String(targetId)}`);
+  }
+  const refusal = declareWarError(state, actor.id, targetId);
+  if (refusal !== null) return fail(refusal);
+
+  const outcome = declareWarAt(state, actor.id, targetId);
+  const result = ok(undefined, undefined, undefined, undefined, undefined, outcome.routesEnded);
+  if (result.ok) result.warDeclared = outcome.report;
+  return result;
+}
+
+/**
+ * Puts a standing white-peace offer on the table, or takes one back.
+ *
+ * One handler for two verbs, because they are one write with a sign
+ * (`setPeaceOffer` in `wars.ts`) and the only difference between them is which
+ * gate is asked. Neither ends a war: `settleDiplomacy` does that at the end of
+ * the turn, when both sides' flags stand.
+ */
+function applyPeaceOffer(
+  state: GameState,
+  command: ProposePeaceCommand | WithdrawPeaceCommand,
+  standing: boolean,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot talk terms`);
+  }
+  const targetId = command.targetId;
+  if (typeof targetId !== 'number' || !Number.isInteger(targetId)) {
+    return fail(`${command.type} needs an integer targetId, got ${String(targetId)}`);
+  }
+  const refusal = standing
+    ? proposePeaceError(state, actor.id, targetId)
+    : withdrawPeaceError(state, actor.id, targetId);
+  if (refusal !== null) return fail(refusal);
+
+  setPeaceOfferAt(state, actor.id, targetId, standing);
+  return ok();
+}
+
+/** Takes a puppet into the empire. `annexCityError` is the whole rule. */
+function applyAnnexCity(state: GameState, command: AnnexCityCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot annex`);
+  }
+  const refusal = annexCityError(state, actor.id, command.cityId);
+  if (refusal !== null) return fail(refusal);
+  annexCityAt(state, cityById(state, command.cityId)!);
+  return ok();
+}
+
+/**
+ * Pulls a town down. `razeCityError` is the whole rule.
+ *
+ * The caravans whose route had an end here come home on `routesEnded`, for
+ * `applyDeclareWar`'s reason exactly; the town itself is reported on `razed`,
+ * because by the time this returns there is nothing on the board to ask.
+ */
+function applyRazeCity(state: GameState, command: RazeCityCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot raze`);
+  }
+  const refusal = razeCityError(state, actor.id, command.cityId);
+  if (refusal !== null) return fail(refusal);
+  const outcome = razeCityAt(state, cityById(state, command.cityId)!);
+  const result = ok(undefined, undefined, undefined, undefined, undefined, outcome.routesEnded);
+  if (result.ok) result.razed = outcome.report;
+  return result;
+}
+
+/**
  * Why this seat cannot let that piece go, or `null` when it can.
  *
  * **The** gate: `applyDisbandUnit` refuses with this sentence and the unit
@@ -3335,6 +3579,14 @@ function orderedUnitId(command: Command): number | undefined {
     // Buying the recruitment names a bank. There is no piece to wake — the
     // offer it opens does not name anybody yet.
     case 'purchaseGreatPersonOffer':
+    // The five diplomacy verbs name an *empire* or a *town*, never a piece: a
+    // declaration is not an order to a warrior, and neither is a peace offer,
+    // an annexation or a razing. Nothing on the board wakes.
+    case 'declareWar':
+    case 'proposePeace':
+    case 'withdrawPeace':
+    case 'annexCity':
+    case 'razeCity':
       return undefined;
     default: {
       const unhandled: never = kind;
@@ -3496,6 +3748,16 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyCancelRoute(state, command);
     case 'disbandUnit':
       return applyDisbandUnit(state, command);
+    case 'declareWar':
+      return applyDeclareWar(state, command);
+    case 'proposePeace':
+      return applyPeaceOffer(state, command, true);
+    case 'withdrawPeace':
+      return applyPeaceOffer(state, command, false);
+    case 'annexCity':
+      return applyAnnexCity(state, command);
+    case 'razeCity':
+      return applyRazeCity(state, command);
     default:
       return unhandledCommand(kind, type);
   }

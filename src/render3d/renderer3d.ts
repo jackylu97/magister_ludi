@@ -779,6 +779,10 @@ export class Renderer3D implements MapView {
       // The tile atlas, for the worker charge badge's numeral boss — the same
       // atlas and the same loading rhythm as the lens's yield glyphs.
       this.icons,
+      // And the seat whose board this is, for the enemy glow: the same seat the
+      // fog grid above belongs to, so the pieces a player may hit and the
+      // pieces a player can see are answered for one empire.
+      this.fogSeat,
     );
     // A walk in flight keeps its piece hidden across the rebuild; the sample
     // loop restores it when the animation ends.

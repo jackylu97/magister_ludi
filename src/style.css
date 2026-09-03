@@ -36,6 +36,12 @@
 
   /* --- accents ---------------------------------------------------------- */
   --vermilion: #d4502e;
+  /* **War**, and deliberately not vermilion. The board rims an enemy's pieces
+     in `units.hostileGlow` (`data/view3d.json`, the palette's `warRed`), and
+     the user's ruling asked for a red that is *not* the crimson a seat can
+     wear. The two surfaces carry the same value so a war reads the same on the
+     board and on the sheet. */
+  --war-red: #9b1b3a;
   /* Vermilion is a parchment ink and goes muddy on the bar's dark ground; this
      is the same alarm lifted the way the yield voices are (see below), for the
      one thing on ink that has to shout — a meter in deficit. */
@@ -9404,6 +9410,96 @@ kbd {
 }
 
 .trade-foot {
+  padding-top: 10px;
+  border-top: var(--border-thin) solid var(--ink-faint);
+}
+
+/* A conquered town's block on the city panel: what a puppet is, and the two
+   decisions its captor may make about it. `.city-built`'s bones (every named
+   block in that panel wears them); this only lays out the pair of verbs. */
+.city-puppet-verbs {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+/* ================= the Diplomacy screen ==================================
+   Trade's sibling on the same sheet bones: one column of empires, each a card
+   saying where you stand and carrying the verbs that are legal from there.
+   Deliberately one column rather than a split — there is nothing on the right
+   half to put, and a pane of empty parchment would be the interface implying a
+   system that does not exist yet (deals are P2).
+   ------------------------------------------------------------------------- */
+
+.diplo-column {
+  flex: 1 1 auto;
+  padding-right: 0;
+  border-right: 0;
+}
+
+.diplo-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: var(--border-thin) solid var(--ink-faint);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+}
+
+/* A war is the one relation the sheet raises its voice about: a heavier rule
+   on the left edge, in the same war red the board rims an enemy's pieces with
+   (`units.hostileGlow` in `data/view3d.json`). One colour, two surfaces. */
+.diplo-row.is-war {
+  border-left: 4px solid var(--war-red);
+}
+
+/* A truce is a war that is over and a peace that is not yet free: dashed, the
+   way a lapsed trade route is, because there is nothing to decide about it
+   until the count runs out. */
+.diplo-row.is-truce {
+  border-style: dashed;
+}
+
+.diplo-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.diplo-swatch {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 3px;
+}
+
+.diplo-name {
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.diplo-status {
+  margin-left: auto;
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.diplo-note {
+  margin: 0;
+}
+
+.diplo-row-verbs {
+  display: flex;
+  gap: 6px;
+}
+
+.diplo-foot {
   padding-top: 10px;
   border-top: var(--border-thin) solid var(--ink-faint);
 }

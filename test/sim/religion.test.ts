@@ -124,11 +124,12 @@ import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { hasAbility } from '../../src/sim/tech';
 import { isCombatant, unitDef } from '../../src/sim/unitData';
 import { buildingDef } from '../../src/sim/buildingData';
+import { openEveryWar } from './warHelpers';
 
 // --- harness ----------------------------------------------------------------
 
 function game(seed = 7) {
-  return createGame({
+  const made = createGame({
     seed,
     sizeName: 'duel',
     players: [
@@ -136,6 +137,12 @@ function game(seed = 7) {
       { name: 'Bors', color: '#3a7fe8' },
     ],
   });
+  // The two seats are at war from the first turn (schema 56): several rows here
+  // — God of the Forge, Blessing of Arms, The Crusade, the inquisitor's aura —
+  // are strength lines, and since the war ruling a blow between two empires at
+  // peace is refused before a strength is folded. See `test/sim/warHelpers.ts`.
+  openEveryWar(made.state);
+  return made;
 }
 
 /** A city for a player, on the tile their first unit is standing on. */

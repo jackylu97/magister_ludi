@@ -37,6 +37,7 @@ import { runEndOfTurn } from '../../src/sim/turn';
 import { sleepError, sleepingSnapshot, unitAwaitsOrders, wakesSince } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
 import { firstBlocker } from '../../src/ui/turnBlockers';
+import { openEveryWar } from './warHelpers';
 
 /**
  * A blank three-seat state on flat grassland: two empires and the wild, so a
@@ -57,6 +58,10 @@ function flatState(): GameState {
   state.units = [];
   state.cities = [];
   state.nextEntityId = 1;
+  // Every pair of real seats declares (schema 56): a blow between two empires
+  // at peace is refused, and this bench is not about the refusal. See
+  // `test/sim/warHelpers.ts`.
+  openEveryWar(state);
   return state;
 }
 

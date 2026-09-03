@@ -268,7 +268,7 @@
            top-centre   #toasts         news, for five seconds each
            top-left     #hud-research   what the empire is learning, and the way
                                         into the star chart
-           under it     #hud-dock       Statecraft and Religion, front and
+           under it     #hud-dock       Statecraft, Religion and Diplomacy,
                                         centre — see the dock's own comment
            bottom-left  #hud-context    what is under the cursor, and refusals
            right        #city-panel / #unit-panel — one at a time
@@ -682,7 +682,7 @@
             lists them · <kbd>0</kbd> clears it
           </li>
           <li>
-            <kbd>C</kbd> Statecraft · <kbd>H</kbd> Religion · <kbd>A</kbd> the
+            <kbd>C</kbd> Statecraft · <kbd>H</kbd> Religion · <kbd>W</kbd> Diplomacy · <kbd>A</kbd> the
             Abacus · <kbd>V</kbd> the Bead Race · <b>❧</b> in the bar keeps the
             chronicle
           </li>
@@ -767,7 +767,7 @@
          `createHudDock`, called from `main.ts`; nothing here is static
          beyond the container, because both buttons' icons are runtime
          `data:` URIs. -->
-    <div id="hud-dock" class="hud-dock" aria-label="Statecraft and Religion"></div>
+    <div id="hud-dock" class="hud-dock" aria-label="Statecraft, Religion and Diplomacy"></div>
 
     <!-- ================= the star chart =========================
          The tech tree, as a full-screen overlay over the whole board — and the
@@ -960,6 +960,42 @@
           </button>
         </header>
         <div id="trade-body" class="statecraft-body"></div>
+      </div>
+    </div>
+
+    <!-- ================= the Diplomacy screen ==================
+         Every empire in the world, where this seat stands with each, and the
+         two verbs that change it: declare, and offer peace. The third door on
+         the HUD dock (the user's ruling, 2026-09-03: "lets have it be a new
+         menu, it can sit alongside the statecraft/religion icons").
+
+         Trade's sibling and deliberately the same sheet, for the reason the
+         Religion overlay gives: systems that ask a player for one decision at a
+         time must not look like different games. Built by
+         `src/ui/diplomacyScreen.ts`.
+         ============================================================ -->
+    <div
+      id="diplomacy-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Diplomacy"
+      hidden
+    >
+      <div class="statecraft-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <p class="eyebrow statecraft-eyebrow">the magister&rsquo;s word</p>
+            <h2 class="statecraft-title">War &amp; <em>Peace</em></h2>
+          </div>
+          <p class="statecraft-hint">
+            a peace needs both sides &mdash; <kbd>Esc</kbd> to close
+          </p>
+          <button id="diplomacy-close" class="statecraft-close" type="button" aria-label="Close">
+            &times;
+          </button>
+        </header>
+        <div id="diplomacy-body" class="statecraft-body"></div>
       </div>
     </div>
 

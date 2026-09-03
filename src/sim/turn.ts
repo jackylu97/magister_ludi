@@ -121,6 +121,8 @@ import {
   musterPeriodicUnits,
   runStatecraft,
 } from './statecraft';
+import { type PeaceOutcome, settlePeace } from './diplomacy';
+import { pruneTruces } from './wars';
 import { reviewLegacies } from './greatPeople';
 import { type GuildReport, runGuilds } from './guilds';
 import { type BeadAward, beadMarks, beadsSince, runBeads } from './beads';
@@ -362,6 +364,28 @@ export interface TurnReport {
    * it is the interface's business.
    */
   beadAgeOpened?: BeadAge;
+  /**
+   * Every war that ended during the resolution, in `state.wars` order, with the
+   * truce it bought and the armies it sent home (`PeaceOutcome`).
+   *
+   * `sieges`' sibling and a *difference* for its exact reason: peace is
+   * resolved by the `settleDiplomacy` phase, so by the time this returns the war
+   * row is simply gone, the truce is written and the columns are standing
+   * somewhere else — no diff of two boards can say that the quiet started *this*
+   * turn rather than nine turns ago. News to **every** seat, like a wonder: a
+   * declaration is public (the worksheet, section 1) and so is what ends it.
+   */
+  peaces: PeaceOutcome[];
+}
+
+/**
+ * The diplomacy beat: sweep the spent truces, then close every war both sides
+ * have signed. See the phase's own entry in `END_OF_TURN_PHASES` for why it
+ * runs first, and `settlePeace` (`diplomacy.ts`) for what a peace does.
+ */
+function settleDiplomacy(state: GameState, report: TurnReport): void {
+  pruneTruces(state);
+  report.peaces.push(...settlePeace(state));
 }
 
 /** A fresh, empty report. The one place its shape is written. */
@@ -381,6 +405,7 @@ export function emptyTurnReport(): TurnReport {
     guilds: [],
     campBounties: [],
     beads: [],
+    peaces: [],
   };
 }
 
@@ -395,6 +420,24 @@ export interface TurnPhase {
  * position of a phase in this array is a rules decision.
  */
 export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
+  {
+    name: 'settleDiplomacy',
+    // **First, beside the other broom**, and it is two things in one beat: the
+    // spent truces are swept out (`pruneTruces` — a broom rather than a clock,
+    // exactly like the phase below it: every reader compares an absolute turn,
+    // so a spent row is already inert and deleting it changes no outcome), and
+    // then every war both sides have signed is closed.
+    //
+    // Its position is the usual rules decision, and it is the top of the
+    // resolution for one sentence: the turn should be resolved in a world whose
+    // *relations* are settled. A peace signed during this turn's window means
+    // the two empires are not at war while their armies heal, their cities
+    // build and their caravans walk — and the columns it sends home are walked
+    // out before `spendLeftoverMovement` and `resetMovement` resume anybody's
+    // standing orders, which is what stops an expelled piece marching straight
+    // back in on the same resolution. See `settlePeace` (`diplomacy.ts`).
+    run: settleDiplomacy,
+  },
   {
     name: 'pruneTimedEffects',
     // **First**, and it is a broom rather than a clock (ledger Entry XXVIII).

@@ -28,7 +28,8 @@
     "lapis": "#3f639f",
     "gilt": "#c08a2b",
     "brass": "#c2a35c",
-    "chartWash": "#b3ab99"
+    "chartWash": "#b3ab99",
+    "warRed": "#9b1b3a"
   },
   "terrainColor": {
     "ocean": "lagoon",
@@ -942,6 +943,8 @@
   "units": {
     "style": "pieces",
     "silhouetteAlpha": 0.35,
+    "hostileGlow": "warRed",
+    "hostileGlowMix": 0.85,
     "sprite": {
       "heightInHexWidths": 0.58,
       "lift": 0.055,

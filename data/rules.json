@@ -67,6 +67,11 @@
     },
     "postRange": 3
   },
+  "war": {
+    "truceTurns": 10,
+    "puppetAuthorityRelief": 1,
+    "puppetHappinessPercent": 75
+  },
   "barbarians": {
     "firstCampTurn": 6,
     "campEveryTurns": 2,

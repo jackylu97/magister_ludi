@@ -1,7 +1,7 @@
 /**
- * The HUD dock: two square buttons under the research card, top-left, in the
- * same ink/parchment lozenge language — the front door to Statecraft and to
- * Religion.
+ * The HUD dock: three square buttons under the research card, top-left, in the
+ * same ink/parchment lozenge language — the front door to Statecraft, to
+ * Religion and to Diplomacy.
  *
  * Why a dock and not two more chips
  * ----------------------------------
@@ -53,7 +53,7 @@
  * scroll is vendored fresh beside it in `src/art/dockMarks.ts`.
  */
 
-import { statecraftMarkDataUri } from '../art/dockMarks';
+import { diplomacyMarkDataUri, statecraftMarkDataUri } from '../art/dockMarks';
 import type { Game } from '../sim/game';
 import { hasReligionOffer } from '../sim/religion';
 import { hasStatecraftOffer } from '../sim/statecraft';
@@ -98,17 +98,29 @@ export function religionBadgeWaiting(player: Player | undefined): boolean {
 }
 
 export interface HudDockOptions {
-  /** The dock's own element — two buttons, built once and never rebuilt. */
+  /** The dock's own element — three buttons, built once and never rebuilt. */
   container: HTMLElement;
   getGame: () => Game;
   localPlayerId: () => number;
 }
 
 export interface HudDock {
-  /** The two bare triggers. `main.ts` wires their clicks — see the docblock. */
+  /** The three bare triggers. `main.ts` wires their clicks — see the docblock. */
   readonly statecraftButton: HTMLButtonElement;
   readonly religionButton: HTMLButtonElement;
-  /** Refreshes both badges. */
+  /**
+   * The war-and-peace door (the user's ruling, 2026-09-03: *"lets have it be a
+   * new menu, it can sit alongside the statecraft/religion icons"*).
+   *
+   * It wears **no waiting badge**, and that is a decision rather than an
+   * omission: the other two pulse when the empire owes the game an answer — a
+   * draft to pick, a god to name — and diplomacy owes nothing. A war is
+   * announced by a toast and drawn on the board in red; a standing peace offer
+   * from a rival is news the same way. A dot that pulsed for the mere existence
+   * of a war would be pulsing for the rest of the game.
+   */
+  readonly diplomacyButton: HTMLButtonElement;
+  /** Refreshes the badges. */
   render(): void;
 }
 
@@ -150,11 +162,20 @@ export function createHudDock(options: HudDockOptions): HudDock {
     'Religion (H)',
     yieldMarkDataUri('faith'),
   );
-  container.append(statecraftButton, religionButton);
+  // The banner, third and last — the order the doors were built in, which is
+  // also the order a player meets the systems.
+  const diplomacyButton = buildButton(
+    'hud-dock-diplomacy',
+    'Diplomacy',
+    'Diplomacy (W)',
+    diplomacyMarkDataUri(),
+  );
+  container.append(statecraftButton, religionButton, diplomacyButton);
 
   return {
     statecraftButton,
     religionButton,
+    diplomacyButton,
     render(): void {
       const { state } = getGame();
       const player = playerById(state, localPlayerId());

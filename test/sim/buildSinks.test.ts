@@ -50,6 +50,7 @@ import { buildError, gatingTech, isUnlocked } from '../../src/sim/tech';
 import { techGifts } from '../../src/sim/techUnlocks';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
+import { openEveryWar } from './warHelpers';
 
 // --- the bench --------------------------------------------------------------
 
@@ -67,6 +68,10 @@ function flatState(width = 16, height = 12): GameState {
   state.tileOwner = new Array<number | null>(width * height).fill(null);
   state.units = [];
   state.nextEntityId = 1;
+  // Every pair of real seats declares (schema 56): a blow between two empires
+  // at peace is refused, and this bench is not about the refusal. See
+  // `test/sim/warHelpers.ts`.
+  openEveryWar(state);
   return state;
 }
 

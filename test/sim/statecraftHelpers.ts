@@ -10,13 +10,13 @@
  * would count them twice.
  */
 import { foundCityAt } from '../../src/sim/cities';
-import { createGame } from '../../src/sim/game';
+import { createGame, dispatch } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
 import type { GameState } from '../../src/sim/state';
 import { ABILITY_TECH } from '../../src/sim/techData';
 
 export function game(seed = 7) {
-  return createGame({
+  const made = createGame({
     seed,
     sizeName: 'duel',
     players: [
@@ -24,6 +24,18 @@ export function game(seed = 7) {
       { name: 'Bors', color: '#3a7fe8' },
     ],
   });
+  // The two seats are at war from the first turn (schema 56). Several files
+  // sharing this bench ask what a card, a legacy or a Triumph is worth *in a
+  // fight*, and since the war ruling a blow between two empires at peace is
+  // refused before a strength is folded.
+  //
+  // **Dispatched, not written.** This bench is handed to tests that replay
+  // `{config, log}` and compare snapshots (`guilds.test.ts`), so a war written
+  // straight into the register would be a fact the log does not carry and the
+  // replay would part company with the game on the first byte. A declaration
+  // rolls no dice, so it costs the seeded world nothing.
+  dispatch(made, { type: 'declareWar', playerId: 0, targetId: 1 });
+  return made;
 }
 
 /**

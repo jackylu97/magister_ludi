@@ -39,6 +39,7 @@ import { type Game, createGame, dispatch, snapshotState } from '../../src/sim/ga
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import type { City, GameConfig, GameState, Player } from '../../src/sim/state';
 import { createUnit, playerById, realPlayers } from '../../src/sim/state';
+import { openEveryWar } from './warHelpers';
 
 const CONFIG: GameConfig = {
   seed: 20260831,
@@ -362,7 +363,9 @@ describe('the opening grace', () => {
 describe('the warmonger’s one capability', () => {
   it('leaves a peaceful seat unable to strike a nation', () => {
     // The promise the default bot is still keeping. A rival's warrior parked
-    // beside a spare piece, and the balanced seat does not swing at it.
+    // beside a spare piece, and the balanced seat does not swing at it — and
+    // since schema 56 it could not swing anyway without a declaration, which
+    // makes this the *stronger* statement rather than a weaker one.
     const game = grownGame(12);
     const city = firstCity(game.state, 0);
     // Solvent, so the arrears arm is not what answers instead of the soldier.
@@ -378,6 +381,12 @@ describe('the warmonger’s one capability', () => {
 
   it('strikes and marches once the appetite is set', () => {
     const game = grownGame(12);
+    // **The war is declared for it** (schema 56, the war ruling). A bot does
+    // not declare yet — that is P3, the warmonger's declaration policy — so the
+    // appetite this test is about would otherwise be measured against a
+    // reducer that refuses every blow. The frame is scenery here; the appetite
+    // is the subject. See `test/sim/warHelpers.ts`.
+    openEveryWar(game.state);
     seat(game.state, 0).persona = 'warmonger';
     seat(game.state, 0).gold = 500;
     const city = firstCity(game.state, 0);

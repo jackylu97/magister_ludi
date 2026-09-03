@@ -23,6 +23,7 @@ import {
   sightOf,
   visibilityAt,
 } from '../../src/sim/visibility';
+import { openEveryWar } from './warHelpers';
 
 /**
  * Fog of war, from the simulation's side.
@@ -53,6 +54,10 @@ function flatState(width = 16, height = 8): GameState {
   state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
   resetVisibility(state);
   state.nextEntityId = 1;
+  // Every pair of real seats declares (schema 56): a blow between two empires
+  // at peace is refused, and this bench is not about the refusal. See
+  // `test/sim/warHelpers.ts`.
+  openEveryWar(state);
   return state;
 }
 
@@ -143,7 +148,7 @@ describe('the visibility grid', () => {
     // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
     // Stones improvement and the Terraces — so a v54 log that built either has
     // no row to replay into.
-    expect(SCHEMA_VERSION).toBe(55);
+    expect(SCHEMA_VERSION).toBe(56);
   });
 
   it('survives a JSON round trip as plain data', () => {

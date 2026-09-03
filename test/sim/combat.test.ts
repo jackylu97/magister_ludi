@@ -38,7 +38,8 @@ import {
 } from '../../src/sim/map';
 import { type Rng, cloneRng, makeRng, nextRange } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameState, createUnit, newGame } from '../../src/sim/state';
+import { type GameState, createUnit, newGame, realPlayers } from '../../src/sim/state';
+import { openWar } from '../../src/sim/wars';
 import { techDef } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
@@ -56,6 +57,15 @@ const COMBAT = RULES.combat;
  * where two besiegers ring one town and only one of them holds Siegecraft — and
  * `wild` seats the barbarians, for the question of what a raiding band may do to
  * a town it has surrounded.
+ *
+ * **Every pair of real seats is at war** (schema 56). Since the war ruling a
+ * blow between two empires at peace is refused before a single strength is
+ * folded, so a combat fixture that did not declare would be testing the refusal
+ * over and over rather than the fight. The declaration is written straight into
+ * the register rather than issued as a command for the same reason every other
+ * line here writes the board directly: this file's subject is what a blow does,
+ * not how a war is opened, and `test/sim/war.test.ts` owns the verb. The wild
+ * is deliberately left out — it needs no row and `atWar` answers for it.
  */
 function flatState(width = 16, height = 8, seats = 2, wild = false): GameState {
   const colors = ['#a00', '#00a', '#0a0', '#aa0'];
@@ -82,7 +92,24 @@ function flatState(width = 16, height = 8, seats = 2, wild = false): GameState {
   state.camps = [];
   state.nextEntityId = 1;
   state.rng = makeRng(12345);
+  declareEveryWar(state);
   return state;
+}
+
+/**
+ * Opens a war between every pair of real seats. See `flatState`.
+ *
+ * Exported-in-spirit and duplicated nowhere: the two other fixtures in this
+ * file that build a state of their own call it too, so "the fixture is a world
+ * at war" is one line rather than a fact each test has to remember.
+ */
+function declareEveryWar(state: GameState): void {
+  const seats = realPlayers(state);
+  for (let i = 0; i < seats.length; i++) {
+    for (let j = i + 1; j < seats.length; j++) {
+      openWar(state, seats[i]!.id, seats[j]!.id);
+    }
+  }
 }
 
 function at(map: GameMap, col: number, row: number): Tile {
@@ -1578,6 +1605,11 @@ describe('a war replays exactly', () => {
         { name: 'B', color: '#00a', isHuman: true },
       ],
     });
+    // The declaration is a **command**, so the war is part of the log this
+    // suite replays — which is the whole point of the block: a war that was
+    // written straight into the register would replay from a config that never
+    // had one, and the first blow would be refused.
+    expect(dispatch(game, { type: 'declareWar', playerId: 0, targetId: 1 }).ok).toBe(true);
     const home = game.state.units.find((unit) => unit.ownerId === 0)!;
     // Two passable tiles beside the opening position, found by walking the map
     // rather than assumed: the generator owns where the start is.
@@ -1643,6 +1675,8 @@ describe('a war replays exactly', () => {
       true,
     );
     const city = game.state.cities.find((one) => one.ownerId === 1)!;
+    // A logged declaration, so the siege replays from `{config, log}` alone.
+    expect(dispatch(game, { type: 'declareWar', playerId: 0, targetId: 1 }).ok).toBe(true);
 
     // Two besiegers and a garrison, all placed by logged commands so the whole
     // thing replays from `{config, log}`.

@@ -2075,6 +2075,23 @@ export interface GameControls {
   startRouteFrom(unitId: number, fromCityId: number, toCityId: number): void;
   setAutoResendOf(unitId: number, on: boolean): void;
   cancelRouteOf(unitId: number): void;
+
+  /**
+   * The two diplomacy verbs, naming the other empire by **seat id**.
+   *
+   * The Diplomacy screen's own doors, and the route verbs' shape one system
+   * over: the screen acts on a *row*, there is no piece and no tile behind
+   * either of them, and both go through the same `commit` funnel every order
+   * does — so a war declared from the sheet is announced, chronicled and
+   * reported outward exactly as a march is. A refusal is the reducer's own
+   * sentence, flashed in the bottom-left slot like any other.
+   *
+   * `offerPeaceTo(id, true)` puts a standing white-peace offer on the table and
+   * `false` takes it back; nothing resolves until both sides' offers stand and
+   * the turn ends (`settleDiplomacy`, `turn.ts`).
+   */
+  declareWarOn(targetId: number): void;
+  offerPeaceTo(targetId: number, standing: boolean): void;
   /** "2 of 3 routes" for the local seat, for the sheet and the city panel. */
   routeSlotsLine(): string;
 
@@ -2472,6 +2489,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportGrants(result);
       reportConsecrations(result);
       reportRoutes(result);
+      reportDiplomacy(result);
       reportExplorers(result);
       reportSieges(result);
       reportCampNews(result);
@@ -2651,6 +2669,68 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * apart — a caravan come home is a slot to spend and a piece to give an order
    * to, and one that set out again is neither.
    */
+  /**
+   * **A war opened, a war ended, an army sent home, a town pulled down.**
+   *
+   * `reportRoutes`' shape and reason, four kinds of news at once because they
+   * are one system's and every one of them is a *difference* the board cannot
+   * be asked about afterwards: by the time this runs the register has the row
+   * (or has lost it), the truce is written, the columns are standing somewhere
+   * else and the city is not in `state.cities`.
+   *
+   * **A declaration and a peace are not seat-filtered.** The worksheet settles
+   * that in section 1 — the relation is public and everybody hears it — so the
+   * sentence names both empires rather than a "you" and a "them", and a seat
+   * watching two neighbours go to war is told about it in the same words they
+   * are. The *expulsions* are filtered, because those are one empire's columns
+   * and nobody else's business.
+   */
+  function reportDiplomacy(result: CommandResult): void {
+    if (!result.ok) return;
+    const { state } = getGame();
+    const nameOf = (id: number): string => playerById(state, id)?.name ?? 'an empire';
+    if (result.warDeclared) {
+      const { byId, onId } = result.warDeclared;
+      announce(
+        byId === localPlayerId
+          ? `⚔ You have declared war on the ${nameOf(onId)}.`
+          : onId === localPlayerId
+            ? `⚔ The ${nameOf(byId)} have declared war on you.`
+            : `⚔ The ${nameOf(byId)} have declared war on the ${nameOf(onId)}.`,
+      );
+    }
+    for (const outcome of result.peaces ?? []) {
+      const { a, b } = outcome.peace;
+      const mine = a === localPlayerId || b === localPlayerId;
+      const other = a === localPlayerId ? b : a;
+      announce(
+        mine
+          ? `☮ Peace with the ${nameOf(other)}.`
+          : `☮ The ${nameOf(a)} and the ${nameOf(b)} have made peace.`,
+      );
+      for (const expulsion of outcome.expulsions) {
+        if (expulsion.ownerId !== localPlayerId) continue;
+        const unit = unitById(state, expulsion.unitId);
+        const what = unit ? unitDef(unit.type).name : 'army';
+        announce(
+          expulsion.stranded
+            ? `Your ${what} has nowhere to withdraw to and stands where it was.`
+            : `Your ${what} has withdrawn from their land.`,
+          { cell: { col: expulsion.to.col, row: expulsion.to.row } },
+        );
+      }
+    }
+    if (result.razed) {
+      const razed = result.razed;
+      announce(
+        razed.ownerId === localPlayerId
+          ? `${razed.name} is pulled down.`
+          : `${razed.name} has been pulled down.`,
+        { cell: { col: razed.col, row: razed.row } },
+      );
+    }
+  }
+
   function reportRoutes(result: CommandResult): void {
     if (!result.ok || !result.routesEnded) return;
     for (const report of result.routesEnded) {
@@ -3389,6 +3469,63 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const unit = selectedUnit();
     if (!unit) return;
     cancelRouteWith(unit);
+  }
+
+  /**
+   * Declares war, through the ordinary funnel.
+   *
+   * `declareWarError` is the whole rule and the Diplomacy screen has already
+   * greyed the button with the same sentence, so a refusal here means the board
+   * changed under the sheet — which is exactly when a player needs to be told.
+   * The confirm step lives on the screen (`diplomacyScreen.ts`), because it is a
+   * question about the *gesture* rather than about the command.
+   */
+  function declareWarOn(targetId: number): void {
+    const { state } = getGame();
+    if (!canOrder()) {
+      reject(`You have ended turn ${state.turn}`);
+      return;
+    }
+    const result = commit({ type: 'declareWar', playerId: localPlayerId, targetId });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    // The board's rims have just changed colour for every piece this empire may
+    // now strike, and the layer that draws them keys off the war register.
+    renderer.invalidate();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
+   * Puts a standing white-peace offer on the table, or takes it back.
+   *
+   * One function for two commands, because they are one flag with a sign — the
+   * reducer's own split (`proposePeace`/`withdrawPeace`), and the screen's
+   * button is the same button either way.
+   */
+  function offerPeaceTo(targetId: number, standing: boolean): void {
+    const { state } = getGame();
+    if (!canOrder()) {
+      reject(`You have ended turn ${state.turn}`);
+      return;
+    }
+    const result = commit({
+      type: standing ? 'proposePeace' : 'withdrawPeace',
+      playerId: localPlayerId,
+      targetId,
+    });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    const them = playerById(getGame().state, targetId)?.name ?? 'them';
+    announce(
+      standing
+        ? `Your offer of peace to the ${them} stands.`
+        : `Your offer of peace to the ${them} is withdrawn.`,
+    );
+    onUpdate(selectedUnit(), renderer.getHover());
   }
 
   /** `cancelRoute` by id. See `startRouteFrom`. */
@@ -6583,6 +6720,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     setAutoResend,
     cancelRoute,
     startRouteFrom,
+    declareWarOn,
+    offerPeaceTo,
     setAutoResendOf,
     cancelRouteOf,
     routeSlotsLine: () => routeSlotsLineOf(getGame().state, localPlayerId),

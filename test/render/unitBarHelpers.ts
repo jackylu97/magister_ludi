@@ -39,6 +39,7 @@ import { makeRng } from '../../src/sim/rng';
 import { type GameState, newGame } from '../../src/sim/state';
 import { unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
+import { openEveryWar } from '../sim/warHelpers';
 
 const HP = VIEW3D.hpBar;
 
@@ -91,6 +92,11 @@ export function flatState(seed = 1, width = 16, height = 8): GameState {
   state.cities = [];
   state.nextEntityId = 1;
   state.rng = makeRng(seed * 7919 + 3);
+  // Every pair of real seats declares (schema 56): this bench is about the
+  // health bar after a blow, and since the war ruling a blow between two
+  // empires at peace is refused. The wild needs no row — see
+  // `test/sim/warHelpers.ts`.
+  openEveryWar(state);
   return state;
 }
 

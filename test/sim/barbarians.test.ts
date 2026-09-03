@@ -63,6 +63,7 @@ import {
 } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
 import { firstBlocker } from '../../src/ui/turnBlockers';
+import { openEveryWar } from './warHelpers';
 
 /**
  * The wild (playable.md item 3, ledger Entry XX).
@@ -104,6 +105,10 @@ function wildState(width = 16, height = 14, seats = 2): GameState {
   state.nextEntityId = 1;
   computeFreshwater(state.map);
   recomputeAllVisibility(state);
+  // Every pair of real seats declares (schema 56): a blow between two empires
+  // at peace is refused, and this bench is not about the refusal. See
+  // `test/sim/warHelpers.ts`.
+  openEveryWar(state);
   return state;
 }
 

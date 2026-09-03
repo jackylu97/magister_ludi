@@ -33,6 +33,7 @@ import { UNIT_TYPE_IDS, isNaval, unitDef } from '../../src/sim/unitData';
 import { fullMovement, hasStackingRoom } from '../../src/sim/units';
 import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
+import { openEveryWar } from './warHelpers';
 
 /**
  * The naval line (`docs/tech-tree.md`, ruled 2026-08-29): three classes, one
@@ -84,6 +85,10 @@ function seaState(width = 14, height = 10): GameState {
   state.nextEntityId = 1;
   for (const player of state.players) player.techsResearched = plainTechs();
   computeFreshwater(state.map);
+  // Every pair of real seats declares (schema 56): a blow between two empires
+  // at peace is refused, and this bench is not about the refusal. See
+  // `test/sim/warHelpers.ts`.
+  openEveryWar(state);
   return state;
 }
 
@@ -900,6 +905,10 @@ describe('a naval fight replays byte for byte', () => {
       for (const player of state.players) player.techsResearched = plainTechs();
       computeFreshwater(state.map);
       seeEverything(state);
+      // The fixture's own declaration, written the same way both times: the
+      // bench is part of the log's *world*, not part of the log, so the war
+      // goes here beside the hulls rather than into `orders` below.
+      openEveryWar(state);
       createUnit(state, 0, 'galley', 1, 4);
       createUnit(state, 1, 'gunGalley', 3, 4);
       createUnit(state, 1, 'carrack', 3, 5);

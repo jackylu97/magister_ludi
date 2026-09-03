@@ -811,6 +811,36 @@ export interface UnitStyleSpec {
    * clear of the canopy anyway.
    */
   silhouetteAlpha: number;
+  /**
+   * The ink an **enemy's** piece is outlined and ghosted in — a red of the
+   * board's own that is deliberately no seat's colour (`warRed`).
+   *
+   * The user's ruling of 2026-09-03: *"units that belong to players you're at
+   * war with should glow red. Please use a red that's different from the
+   * current crimson player type."* So it is a palette entry rather than a reuse
+   * of `crimson` or `oxblood` — the first is a seat may wear, the second is the
+   * wild's — and it is a *hostility* mark rather than a seat mark: the wild has
+   * always read as dangerous and every empire you have declared on now reads
+   * the same way.
+   *
+   * It reaches exactly two of the three meshes a piece is drawn from: the
+   * outline shell and the x-ray ghost. The sculpt's body keeps the owner's own
+   * colour, because the question a player asks first is still *whose is it* —
+   * the glow answers *may I hit it*, which is the second question and belongs
+   * on the rim.
+   */
+  hostileGlow: number;
+  /**
+   * How far the outline shell's ink is mixed toward `hostileGlow`.
+   *
+   * `pieces.routedWash`' twin one layer over and spent through the same
+   * machinery (`InstanceCollector.setShellWash`). High by design: a rim that is
+   * *slightly* redder than the ordinary outline is a rim nobody notices, and
+   * the whole point of the mark is that a board full of pieces reads at a
+   * glance. 0 turns the glow off without deleting it; 1 replaces the outline's
+   * ink outright.
+   */
+  hostileGlowMix: number;
   sprite: SpriteSpec;
 }
 
@@ -2390,6 +2420,10 @@ export const VIEW3D: View3DData = {
     // in front of it — read as the renderer being broken rather than as a bad
     // number.
     silhouetteAlpha: Math.max(0, Math.min(1, viewJson.units.silhouetteAlpha)),
+    hostileGlow: named(viewJson.units.hostileGlow, 'units.hostileGlow'),
+    // Clamped for `pieces.routedWash`' reason exactly: outside [0, 1] is a typo
+    // and both failure modes read as the renderer being broken.
+    hostileGlowMix: Math.max(0, Math.min(1, viewJson.units.hostileGlowMix)),
     sprite: {
       heightInHexWidths: viewJson.units.sprite.heightInHexWidths,
       lift: viewJson.units.sprite.lift,

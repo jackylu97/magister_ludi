@@ -192,6 +192,88 @@ export function endRoute(state: GameState, unit: Unit): void {
 }
 
 /**
+ * Ends every route running **between these two empires**, in `state.units`
+ * order, and says which ones it dropped.
+ *
+ * The trade half of a declaration (`docs/war-diplomacy.md`, section 5: "trade
+ * routes between the two empires cancel on declaration"). It goes through
+ * `endRoute` rather than deleting keys itself, so the destination is re-seated
+ * exactly as it is when a route lapses of its own accord and there is one
+ * implementation of "this route is over".
+ *
+ * A route is *between* the two empires when its two ends are held one by each,
+ * **read as the board stands now** rather than as it stood when the caravan set
+ * out. That is deliberate and it is the case that fires today: a seat may not
+ * start a foreign route in v1 (`routeStartable` refuses it, and says why), so
+ * the only way a route comes to span two empires is for one of its ends to
+ * *change hands* — which is exactly the moment the two are most likely to
+ * declare. The clause is written for the pair rather than for that one story so
+ * that P2's foreign routes need no second rule.
+ *
+ * An end whose city has vanished is left alone: a route describing a city that
+ * is not there is `marchTraders`' to drop, and dropping it here would be a
+ * second answer to a question that already has one.
+ */
+export function cancelRoutesBetween(
+  state: GameState,
+  x: number,
+  y: number,
+): RouteEndReport[] {
+  const dropped: RouteEndReport[] = [];
+  if (x === y) return dropped;
+  for (const unit of state.units) {
+    const route = unit.trade;
+    if (route === undefined) continue;
+    // `cityById` rather than `routeCities`, deliberately: that reader refuses a
+    // pair whose two ends are not both the caravan's owner's — it is the
+    // *yield* question, and a route spanning two empires pays nobody — which is
+    // precisely the shape this function is looking for.
+    const from = cityById(state, route.from);
+    const to = cityById(state, route.to);
+    if (!from || !to) continue;
+    const spans =
+      (from.ownerId === x && to.ownerId === y) || (from.ownerId === y && to.ownerId === x);
+    if (!spans) continue;
+    dropped.push({
+      unitId: unit.id,
+      ownerId: unit.ownerId,
+      from: route.from,
+      to: route.to,
+      renewed: false,
+    });
+    endRoute(state, unit);
+  }
+  return dropped;
+}
+
+/**
+ * Every route with an end in this city, ended — the razing half of the same
+ * rule, and `cancelRoutesBetween`'s sibling.
+ *
+ * A town that is pulled down stops being an end of anything, and the caravan
+ * walking to it has nowhere to arrive. It is a separate function rather than a
+ * clause because the question is about *one city* rather than about a pair, and
+ * folding them would mean passing a city id where a player id goes.
+ */
+export function cancelRoutesAt(state: GameState, cityId: number): RouteEndReport[] {
+  const dropped: RouteEndReport[] = [];
+  for (const unit of state.units) {
+    const route = unit.trade;
+    if (route === undefined) continue;
+    if (route.from !== cityId && route.to !== cityId) continue;
+    dropped.push({
+      unitId: unit.id,
+      ownerId: unit.ownerId,
+      from: route.from,
+      to: route.to,
+      renewed: false,
+    });
+    endRoute(state, unit);
+  }
+  return dropped;
+}
+
+/**
  * One caravan's route coming home — dropped, or renewed for another leg.
  *
  * `marchTraders`' own news (`turn.ts`): a route that lapses is otherwise

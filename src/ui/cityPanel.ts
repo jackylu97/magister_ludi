@@ -80,6 +80,7 @@ import {
 } from '../sim/purchase';
 import type { Command, CommandResult } from '../sim/commands';
 import type { ConfirmRequest } from './confirmCard';
+import { annexCityError, razeCityError } from '../sim/diplomacy';
 import { type Game, dispatch } from '../sim/game';
 import { growthPercent, meterEffects } from '../sim/meters';
 import {
@@ -760,6 +761,104 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     };
     if (!report(command, dispatch(getGame(), command)).ok) return;
     onChanged();
+  }
+
+  /**
+   * Sends `annexCity` or `razeCity` and repaints. `give`'s twin, and the same
+   * contract: the button was only enabled because the gate said the reducer
+   * would take it, and a refused command changes nothing at all.
+   *
+   * Both are the war ruling's (`docs/war-diplomacy.md`, 9b) and both are about
+   * a town somebody *took*: a conquest arrives as a puppet, and these are the
+   * only two things its captor may decide about it. Razing goes through the
+   * confirm card — it cannot be taken back, and there is not even a piece left
+   * to regret it over.
+   */
+  function decide(city: City, type: 'annexCity' | 'razeCity'): void {
+    const command: Command = { type, playerId: localPlayerId(), cityId: city.id };
+    if (!report(command, dispatch(getGame(), command)).ok) return;
+    onChanged();
+  }
+
+  /**
+   * The puppet block: what a seized town is, and the two decisions about it.
+   *
+   * Absent for every town that is not one, which is every town anybody founded
+   * and every conquest already annexed — so the panel a player sees for their
+   * own cities is byte-identical to the one before this shipped.
+   *
+   * The words are the ruling's said plainly and with no numbers in them (hard
+   * rule 7): a puppet asks its captor for less, and it decides for itself what
+   * to build. The *figures* are on the authority and happiness ledgers, where
+   * every other figure of theirs is.
+   */
+  function renderPuppet(city: City): HTMLElement | null {
+    if (city.puppet !== true) return null;
+    if (city.ownerId !== localPlayerId()) return null;
+    // `city-built`'s bones, which is what every named block in this panel wears.
+    const box = element('div', 'city-built city-puppet');
+    box.append(element('h3', undefined, 'A conquered town'));
+    box.append(
+      element(
+        'p',
+        'hint',
+        'This town is held rather than governed. It asks less of your writ and ' +
+          'less of your people\u2019s patience, and it chooses for itself what to ' +
+          'build. Annex it to govern it as your own \u2014 and to pay for it in full.',
+      ),
+    );
+    const verbs = element('div', 'city-puppet-verbs');
+    const annex = element('button', 'btn btn-second btn-tiny', 'Annex');
+    (annex as HTMLButtonElement).type = 'button';
+    const annexRefusal = annexCityError(getGame().state, localPlayerId(), city.id);
+    if (annexRefusal !== null) {
+      (annex as HTMLButtonElement).disabled = true;
+      annex.title = annexRefusal;
+    } else {
+      annex.title = 'Govern this town as one of your own. This cannot be undone.';
+      annex.addEventListener('click', () => {
+        askConfirm(
+          {
+            title: `Annex ${cityDisplayName(getGame().state, city)}?`,
+            body:
+              'It becomes an ordinary town of your empire: you set what it builds, ' +
+              'and it costs your writ and your people what any of your cities does. ' +
+              'This cannot be undone.',
+            confirmLabel: 'Annex',
+            cancelLabel: 'Leave it held',
+          },
+          () => decide(city, 'annexCity'),
+        );
+      });
+    }
+    verbs.append(annex);
+
+    const raze = element('button', 'btn btn-quiet btn-tiny', 'Raze');
+    (raze as HTMLButtonElement).type = 'button';
+    const razeRefusal = razeCityError(getGame().state, localPlayerId(), city.id);
+    if (razeRefusal !== null) {
+      (raze as HTMLButtonElement).disabled = true;
+      raze.title = razeRefusal;
+    } else {
+      raze.title = 'Pull the town down. Its land goes back to nobody\u2019s.';
+      raze.addEventListener('click', () => {
+        askConfirm(
+          {
+            title: `Pull down ${cityDisplayName(getGame().state, city)}?`,
+            body:
+              'The town is gone at once and its people with it. The land around it ' +
+              'goes back to nobody\u2019s, and what was built on the fields stays ' +
+              'where it is. This cannot be undone.',
+            confirmLabel: 'Raze',
+            cancelLabel: 'Spare it',
+          },
+          () => decide(city, 'razeCity'),
+        );
+      });
+    }
+    verbs.append(raze);
+    box.append(verbs);
+    return box;
   }
 
   /** A copy of the city's queue: the panel edits a draft, never the state. */
@@ -2419,7 +2518,15 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const { state } = getGame();
     // A finished seat may read its cities but not re-plan them; the reducer
     // would refuse, so the buttons say so first.
-    const locked = hasEndedTurn(state, localPlayerId());
+    //
+    // **A puppet is locked the same way, and for a different reason** (the war
+    // ruling, 9b: production visible but uncontrollable). It is a lock of the
+    // *interface's* alone — the reducer deliberately accepts a queue for a
+    // puppet, because under the ruling a puppet builds what the seat's own
+    // appraisal picks and that arrives as an ordinary logged command. So the
+    // one flag covers both, and the hint below says which of the two it is.
+    const puppet = city.puppet === true && city.ownerId === localPlayerId();
+    const locked = hasEndedTurn(state, localPlayerId()) || puppet;
 
     const header = element('div', 'city-header');
     const title = element('div', 'city-title');
@@ -2487,6 +2594,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // is a standing fact about it, not a plan a player is editing.
     container.append(renderDefense(city));
     container.append(renderQueue(city, locked, quote));
+    // What a seized town is, and the two decisions about it — directly under
+    // the queue it explains being locked.
+    const held = renderPuppet(city);
+    if (held) container.append(held);
     const built = renderBuilt(city);
     if (built) container.append(built);
     // Under the buildings, because a route's slots are a fold over them — see
@@ -2495,7 +2606,15 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     if (routes) container.append(routes);
     container.append(renderBuildables(city, locked, quote));
 
-    if (locked) {
+    if (puppet) {
+      container.append(
+        element(
+          'p',
+          'hint',
+          'A conquered town chooses for itself what to build. Annex it to set its work.',
+        ),
+      );
+    } else if (locked) {
       container.append(
         element('p', 'hint', `You have ended turn ${state.turn}; production is locked.`),
       );

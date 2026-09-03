@@ -13,6 +13,7 @@ import type { Tile } from '../../src/sim/map';
 import { type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
 import type { UnitTypeId } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
+import { openEveryWar } from './warHelpers';
 
 /** A blank state on flat grassland, with a second seat to be hostile with. */
 export function flatState(width = 12, height = 10): GameState {
@@ -29,6 +30,10 @@ export function flatState(width = 12, height = 10): GameState {
   state.units = [];
   state.cities = [];
   state.nextEntityId = 1;
+  // Every pair of real seats declares (schema 56): a blow between two empires
+  // at peace is refused, and this bench is not about the refusal. See
+  // `test/sim/warHelpers.ts`.
+  openEveryWar(state);
   return state;
 }
 

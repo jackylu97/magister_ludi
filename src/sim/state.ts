@@ -85,6 +85,11 @@ import {
 } from './religionData';
 import { type Rng, hashSeed, makeRng, shuffle } from './rng';
 import { RULES } from './rulesData';
+// Type-only, and deliberately: `wars.ts` imports *values* from this module, so
+// an ordinary import here would be a runtime cycle. Nothing runs across this
+// arrow — the two shapes are declarations — which is the documented exception
+// (`statecraft.ts`/`religionData.ts` keep the same bargain).
+import type { Truce, WarState } from './wars';
 import {
   type PlayerStatecraft,
   cardExtraCharges,
@@ -821,8 +826,47 @@ import {
  * deletions (an improvement id and a building id), so a v54 log that laid a
  * ring of stones or raised the Terraces has no row to replay into and is
  * refused rather than quietly dropping the thing it built.
+ *
+ * v56: **war and diplomacy, phase one** (`docs/war-diplomacy.md`, ruled
+ * 2026-09-03) — and it is the one bump in this list that refuses an old log for
+ * a *legality reversal* rather than for a table that moved. Everything else
+ * here changed what a command produced; this changes which commands are
+ * commands at all.
+ *
+ *   · **Violence against another empire is illegal at peace.** Combat, pillage
+ *     and the plunder that rides an advance all gained one `atWar` clause, so a
+ *     v55 log — written against a reducer in which any blow between any two
+ *     seats was simply legal — may contain an attack this one refuses. Replayed
+ *     here it would leave the defender alive, the raider unpaid and every
+ *     seeded thing after it shifted, which is precisely the case a bump exists
+ *     for. The wild is untouched on both sides: it has no row in the register
+ *     and `atWar` answers *true* for it without looking.
+ *   · **Borders close at peace.** A military piece may not enter another
+ *     empire's territory unless the two are at war; civilians and caravans pass
+ *     as they always did. One clause in `canTransit`, so the four readers of
+ *     `stepCost` inherit it — which means a v55 march that crossed a neighbour's
+ *     fields is refused here, and every standing order behind it arrives
+ *     somewhere else.
+ *   · **Two registers and five verbs.** `GameState.wars` and `GameState.truces`
+ *     (`wars.ts`), and `declareWar`, `proposePeace`, `withdrawPeace`,
+ *     `annexCity` and `razeCity`. A v55 log naming none of them replays
+ *     byte-identically *as a log*; what it cannot replay is the world, for the
+ *     two reasons above.
+ *   · **A captured town is a puppet.** `City.puppet` and `City.wasCapital`,
+ *     both presence-is-the-state, so a game with neither serialises exactly as
+ *     a v55 one did — but a v55 capture priced its authority and its
+ *     contentment at the full rate from the turn it happened, and this one does
+ *     not.
+ *
+ *     The migration note, said plainly because it cannot be fixed: *absent
+ *     means "annexed"*, which is right for every town in an old save except the
+ *     ones that had just been taken — v55 recorded no reason to mark them — and
+ *     `wasCapital` could not be inferred from a board at all, since
+ *     `capitalCityOf` is derived and a seized palace stops reading as one the
+ *     instant it changes hands. A replay of the log re-derives both; the bump
+ *     refuses the snapshot and keeps the log honest.
  */
-export const SCHEMA_VERSION = 55;
+export const SCHEMA_VERSION = 56;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1942,6 +1986,47 @@ export interface City {
    * its owner actually founded.
    */
   captured: boolean;
+  /**
+   * True while this town is a **puppet** — taken by force and not yet annexed
+   * (`docs/war-diplomacy.md`, 9b; Civ V's rule).
+   *
+   * The key is **absent** for every town that is not one, which is every town
+   * anybody founded and every conquest its captor has annexed: presence is the
+   * state, so a game with no puppets in it serialises exactly as one from
+   * before the field existed. `captureCity` writes it and `annexCity` deletes
+   * it, and those are the only two.
+   *
+   * It is a second field beside `captured` rather than a reading of it because
+   * they say different things and both are needed: `captured` is *sticky and
+   * forever* — a town that has changed hands is a seized town for the rest of
+   * the game, including for the empire that founded it and won it back — while
+   * this is a **standing arrangement** the captor may end at any time and never
+   * resume. What a puppet is worth is two readings and no more: it asks its
+   * captor less writ (`cityAuthorityCost`) and its citizens ask for less
+   * contentment (`explainHappiness`), both off `rules.war`.
+   *
+   * A puppet's production queue is deliberately **not** refused by the reducer.
+   * The town is uncontrollable from the *interface* (the city panel locks it),
+   * because under the ruling a puppet builds what the seat's own appraisal
+   * picks — issued as ordinary logged commands by whichever client drives the
+   * seat — and a reducer that refused them would be refusing the mechanism.
+   */
+  puppet?: true;
+  /**
+   * True once this town has been somebody's **seat of government** — written at
+   * the moment it is taken from an empire whose capital it was.
+   *
+   * The one thing about a captured capital that cannot be recomputed
+   * afterwards, and it is here for `captured`'s exact reason: `capitalCityOf`
+   * is derived and prefers a town its owner actually *founded*, so the instant
+   * a palace changes hands nothing on the board says it was ever one. Razing
+   * reads it — a capital is never razeable (the orchestrator's default, ruled
+   * 2026-09-03) — and nothing else does.
+   *
+   * Absent on every ordinary town, presence-is-the-state, and never cleared: a
+   * palace pulled down is still a palace that stood.
+   */
+  wasCapital?: true;
   /** Production queue, front first. Replaced wholesale by `setCityProduction`. */
   queue: QueueItem[];
   /** Production banked toward the front of the queue. */
@@ -2588,6 +2673,33 @@ export interface GameState {
    */
   religions: Religion[];
   /**
+   * Every live war, one row per pair, in declaration order
+   * (`docs/war-diplomacy.md`, section 1).
+   *
+   * `GameState.wonders`' twin one system over and the register in the same
+   * sense: two empires are at war iff there is a row here naming them, and
+   * every gate in the simulation — the combat planner, the raid, the border —
+   * asks one reader (`atWar`, `wars.ts`) rather than keeping an opinion. The
+   * wild is **never** in it; see that module's docblock for why a barbarian
+   * needs no row to fight.
+   *
+   * An **array in declaration order** rather than a record keyed by pair, for
+   * `camps`' stated reason: an outcome that depends on iteration order must
+   * depend on an order the state itself carries. It is short — a handful of
+   * rows in a whole game — so the linear lookup costs nothing.
+   */
+  wars: WarState[];
+  /**
+   * Every truce still standing: this pair may not go to war again until the
+   * turn named on the row.
+   *
+   * `wars`' opposite number and a separate array for the plainest reason — a
+   * truce exists exactly when a war does not, so one row could never carry
+   * both. The expiry is **absolute** and nothing ticks it (the timed-effect
+   * rule); `pruneTruces` is a broom.
+   */
+  truces: Truce[];
+  /**
    * The Bead Race — the decks, the hands, the world's register and its clock.
    * See `BeadTable`, and design ledger Entry VI for why there is one victory
    * condition rather than four.
@@ -2817,6 +2929,10 @@ export function newGame(config: GameConfig): GameState {
     contested: [],
     // Nobody has founded anything, which is what an empty register means.
     religions: [],
+    // Nobody is at war and nobody owes anybody peace. Two empty registers, and
+    // a world that never fights serialises with both of them empty forever.
+    wars: [],
+    truces: [],
     // **The deal is the seed.** Both decks are shuffled here, before a single
     // piece is placed, so that a config alone determines every card and the
     // order it comes off — Entry II's fairness, and the reason no generator ever

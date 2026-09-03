@@ -13,6 +13,7 @@ import { foundCityAt } from '../../src/sim/cities';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { type City, type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
 import { ABILITY_TECH, TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
+import { openWar } from '../../src/sim/wars';
 import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -57,6 +58,13 @@ export function bareState(width = 12, height = 10): GameState {
     player.techsResearched = TECH_IDS.filter((id) => !ruleNodes.has(id));
   }
   computeFreshwater(state.map);
+  // **The two seats are at war** (schema 56). Raiding is the second half of
+  // what this file is about and since the war ruling a raid on another empire's
+  // ground at peace is refused, so a bench that did not declare would be
+  // testing the refusal rather than the torch. Written into the register rather
+  // than issued as a command: this file's subject is what a raid *does*, and
+  // `test/sim/war.test.ts` owns the verb.
+  openWar(state, 0, 1);
   return state;
 }
 

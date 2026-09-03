@@ -15,6 +15,7 @@ import { type Command, applyCommand } from '../../src/sim/commands';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { type GameState, createUnit, newGame } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
+import { openWar } from '../../src/sim/wars';
 
 /** A blank two-player state on a flat grassland rectangle. */
 function flatState(width = 10, height = 8): GameState {
@@ -34,6 +35,11 @@ function flatState(width = 10, height = 8): GameState {
   state.units = [];
   state.cities = [];
   state.nextEntityId = 1;
+  // **The two seats are at war** (schema 56): this file asks what a *march*
+  // does, and at peace a soldier may not enter another empire's fields at all —
+  // so a bench at peace would be testing the border rule over and over instead.
+  // The border rule has its own file (`test/sim/war.test.ts`).
+  openWar(state, 0, 1);
   return state;
 }
 

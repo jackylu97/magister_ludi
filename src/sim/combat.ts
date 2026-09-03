@@ -260,6 +260,7 @@ import {
   removeUnit,
   unitById,
 } from './state';
+import { atWar } from './wars';
 import { buildError, settleResearchWindfall } from './tech';
 import { techsGrant } from './techData';
 import { type TraderPlunder, settleTraderPlunder } from './trade';
@@ -1197,6 +1198,28 @@ function planCombat(
   if (!target) {
     return { ok: false, error: `Nothing to attack on (${tile.col}, ${tile.row})` };
   }
+
+  /**
+   * **The one big reversal**: an empire may not strike another empire it is not
+   * at war with (`docs/war-diplomacy.md`, section 5).
+   *
+   * One clause, in the one evaluator every blow is planned by, so the reducer,
+   * the forecast card and the attackable-tile tint refuse it as one — exactly
+   * the way the fog clause below is a single rule with three readers. It is
+   * asked *after* the target is known, because the sentence names the empire
+   * and there is no empire to name until something is being aimed at; and it is
+   * asked before any strength is folded, because a fight that may not happen
+   * has no numbers.
+   *
+   * `atWar` answers *true* for the wild without reading the register (see
+   * `wars.ts`), so a raider still raids and a column still storms a camp: this
+   * clause is invisible to every game that has never declared anything.
+   */
+  const defenderId = target.city ? target.city.ownerId : target.unit!.ownerId;
+  if (!atWar(state, attacker.ownerId, defenderId)) {
+    const them = playerById(state, defenderId)?.name ?? 'that empire';
+    return { ok: false, error: `You are not at war with the ${them}` };
+  }
   // Which beat of the siege this is, read off the same board `attackTargetAt`
   // just read — the two cannot disagree, because the second is written in terms
   // of the first (`cityAttackPhase`). `undefined` on open ground, and that
@@ -1269,7 +1292,7 @@ function planCombat(
    * the wild, and am I not". The barbarian never gets it — against another
    * empire's raider there is nothing to be steadier than.
    */
-  const defenderOwnerId = target.city ? target.city.ownerId : target.unit!.ownerId;
+  const defenderOwnerId = defenderId;
   const bonuses: CombatBonusLine[] = [];
   const wildBonus = RULES.barbarians.combatBonus;
   if (wildBonus !== 0) {
@@ -2239,6 +2262,23 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   const wasCapital = capitalCityOf(state, loser)?.id === city.id;
   city.ownerId = ownerId;
   city.captured = true;
+  /**
+   * **A town taken by force is a puppet until its captor annexes it** (the war
+   * ruling of 2026-09-03, 9b). Written here rather than in the verb, because
+   * this is the one place a city changes hands by force and a default that had
+   * to be applied by a caller is a default somebody forgets: a puppet is what a
+   * conquest *is*, and annexing is the decision.
+   *
+   * The wild never reaches this line — `canAdvanceOnto` and the capture rule
+   * refuse a barbarian the ground (the wild never captures) — so there is no
+   * seat here without a screen to annex from.
+   */
+  city.puppet = true;
+  // And the one fact about a seized palace that cannot be recomputed
+  // afterwards: `capitalCityOf` prefers a founded town, so the instant this
+  // flag changes hands nothing on the board says this was ever a capital. Read
+  // above, before the flag moved, for the same reason it is read at all.
+  if (wasCapital && loser !== ownerId) city.wasCapital = true;
   // A fraction of the **new** maximum, which is the same maximum as the old one
   // — buildings survive a capture, so the walls a conqueror inherits are the
   // walls the town was defended with. Clamped afterwards anyway, because the
