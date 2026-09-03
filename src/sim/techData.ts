@@ -159,7 +159,7 @@
  * shipped metrics the stage is 681px and eight lanes of node cards are 1032 with
  * their epigrams dropped, so no arrangement of them fits — the shortest card in
  * the set is 60px and eight of those plus the closed-up gaps already overrun. The
- * chart handles the remainder the way it always has: `fitLanes` closes the gaps
+ * chart handles the remainder the way it always has: the packer closes gaps
  * to their minimum and *reports the overrun* rather than drawing off the bottom,
  * which is the whole reason it returns `overflow`. Getting the fold out of the
  * way entirely is a card-metrics pass or a deeper tree, and both are decisions

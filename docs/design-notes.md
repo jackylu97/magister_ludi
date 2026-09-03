@@ -4542,3 +4542,22 @@ back (tree 18980; ages 345 / 1890 / 7865 / 8880; Alchemy closes alone at 920).
 The number worth framing: with the user's lanes AND the user's edges, the
 chart draws at **one crossing** — the annealer's best on any tree was nine.
 The drawing knew something the search didn't.
+
+### LXII.b — the chart packs like the drawing (2026-09-03)
+
+The eight full-width lane tracks are gone. The user, looking at the dead air:
+"there's space for a node in between nodes in one column, because they're
+occupied in another column — I don't understand why those offsets exist."
+They existed because a CSS grid bought straight lanes and free collision
+avoidance by charging every column for all eight tracks. The drawing never
+paid that price, and now the chart doesn't either: columns pack their own
+cards in the authored row *order* (the drawing's top-to-bottom, never
+revisited), centre against the tallest stack, and relax toward their
+neighbours through an isotonic projection that keeps order, separation and
+bounds true at every intermediate state. The no-connector-through-a-card rule
+survives in geometric form, and the shipped tree needs zero bowed curves —
+asserted as an empty list, with the bow machinery kept as the honest fallback
+for a future node. With the compact face (two unlock rows + "+N more",
+flavour to the hover card), 1032px of lanes became **606px** — under the
+681px fold that Entry LX's measurement called unreachable by layout alone.
+It was unreachable by *lanes* alone; the drawing knew the other way.
