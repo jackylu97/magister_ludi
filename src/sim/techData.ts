@@ -222,39 +222,36 @@
  *      hangs only on the age before it lands in its age's *first* column, and a
  *      whole age hung that way is one column wide. That is the failure this
  *      pass exists to prevent: chain inside the age.
- *   2. **Its lane is the annealer's**, not a taste. Re-run the search
- *      (crossings, false chains and lane-continuation measured together, the
- *      figures in `test/ui/techChart.test.ts`) and write the rows it returns.
- *      The lanes the search settled into are readable lines of work, which is
- *      where a new node should be *offered* before the annealer is allowed to
- *      move it. **The identity of each lane under tree revision 4**, left to
- *      right:
+ *   2. **Its lane is the user's chart** (re-authored 2026-09-03): the user
+ *      drew the tree by hand and the rows in `data/techs.json` are that
+ *      drawing's geography, pinned in `test/ui/techChart.test.ts` (19
+ *      crossings, zero false chains — the false-chain rule is still absolute).
+ *      The annealer is demoted to advisor: when a NEW node needs a lane, run
+ *      the search for a suggestion, then place the node where its line of work
+ *      lives and re-pin the crossing count deliberately. The lanes, top to
+ *      bottom:
  *
- *        · **0, the sea-and-coin lane** — Sailing, Wayfinding, Shipwrights,
- *          Paper Money, The Golden Roads, The Counting Houses. The one line
- *          that runs the whole width of the chart, hull to counting house.
- *        · **1, the state's lane** — Currency, State Workforce, Satrapies,
- *          Guildhalls. Four rungs of one idea: coin, corvée, province, guild.
- *        · **2, the potter's lane** — Pottery and Stonecraft, and nothing else.
- *          Two nodes, because both of them hand their line on to somebody
- *          else's lane immediately.
- *        · **3, the forge lane** — Mining, Bronzeworking, The Wheel, Bronze
- *          Panoply, Siegecraft, Iron Working, The Saddle, and then Divine Right
- *          and The Holy Office, where metal turns into magistracy.
- *        · **4, the letters-and-faith lane, and the root's own** — Agriculture,
- *          Husbandry, Divination, Writing, Epic Poetry, The High Temple,
- *          Rhetoric, Theology, Scholarship, Natural Philosophy, The Astrolabe.
- *          Eleven nodes in one unbroken line, which is the longest the chart
- *          has ever drawn.
- *        · **5, the builder's lane** — Engineering and Castellany.
- *        · **6, the measuring lane** — Chronology, Irrigation, Raised Fields,
- *          Mathematics, Horology, and then Machinery, Movable Type, Alchemy.
- *        · **7, the clerks' lane** — Fletching, the Calendar, Code of Laws, The
- *          Examination Hall, Daughter Cities, Geomancy, Steel, Militant Orders.
- *
- *      Nine crossings, zero false chains, and thirty-seven of the forty-two
- *      nodes that *can* continue a parent's lane do — the chart's best figures
- *      to date, and mostly the graph's doing rather than the search's.
+ *        · **0, the faith-and-letters line** — Husbandry, Divination, Epic
+ *          Poetry, The High Temple, Rhetoric, Theology, Scholarship, The Holy
+ *          Office. The drawing's top edge: omens to inquisition, unbroken.
+ *        · **1, the clerks' line** — Fletching, Calendar, Writing, Chronology,
+ *          Code of Laws, The Examination Hall, Daughter Cities, Geomancy,
+ *          Natural Philosophy, The Astrolabe. Record-keeping widening into
+ *          science.
+ *        · **2, the measuring line** — Irrigation, Raised Fields, Mathematics,
+ *          Horology, Machinery, Steel. Water, number, clockwork, metallurgy.
+ *        · **3, the forge line** — Mining, Bronzeworking, The Wheel, Bronze
+ *          Panoply, Iron Working, The Saddle, Alchemy.
+ *        · **4, the works-and-war line, and the root's own** — Agriculture,
+ *          Stonecraft, Siegecraft, Engineering, Militant Orders.
+ *        · **5, the state's ladder** — Currency, State Workforce, Satrapies,
+ *          Guildhalls, Divine Right, Castellany, Movable Type. Coin, corvée,
+ *          province, guild, law, castle, press.
+ *        · **6, Pottery's own lane** — one node; it hands its line to
+ *          Stonecraft and Sailing at once and the drawing gives it room.
+ *        · **7, the sea line** — Sailing, Wayfinding, Shipwrights, Paper
+ *          Money, The Golden Roads, The Counting Houses. Hull to counting
+ *          house along the bottom edge, the drawing's other unbroken line.
  *
  * `techDataProblems` insists every tech has a row inside `TECH_LANE_LIMIT` and
  * that no two share a (column, row) cell, which is the whole failure mode

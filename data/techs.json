@@ -21,7 +21,7 @@
       "name": "Husbandry",
       "glyph": "🐄",
       "age": 1,
-      "row": 4,
+      "row": 0,
       "cost": 13,
       "prereqs": [
         "agriculture"
@@ -37,7 +37,7 @@
       "name": "Fletching",
       "glyph": "🏹",
       "age": 1,
-      "row": 7,
+      "row": 1,
       "cost": 13,
       "prereqs": [
         "agriculture"
@@ -53,7 +53,7 @@
       "name": "Sailing",
       "glyph": "⛵",
       "age": 1,
-      "row": 0,
+      "row": 7,
       "cost": 30,
       "prereqs": [
         "earthenware"
@@ -88,7 +88,7 @@
       "name": "Pottery",
       "glyph": "⚱",
       "age": 1,
-      "row": 2,
+      "row": 6,
       "cost": 13,
       "prereqs": [
         "agriculture"
@@ -128,7 +128,7 @@
       "name": "Stonecraft",
       "glyph": "🧱",
       "age": 1,
-      "row": 2,
+      "row": 4,
       "cost": 30,
       "prereqs": [
         "earthenware"
@@ -150,7 +150,7 @@
       "name": "Calendar",
       "glyph": "🌙",
       "age": 1,
-      "row": 7,
+      "row": 1,
       "cost": 30,
       "prereqs": [
         "fletching"
@@ -169,7 +169,7 @@
       "name": "Divination",
       "glyph": "🔮",
       "age": 1,
-      "row": 4,
+      "row": 0,
       "cost": 30,
       "prereqs": [
         "husbandry"
@@ -194,7 +194,7 @@
       "name": "Writing",
       "glyph": "📜",
       "age": 1,
-      "row": 4,
+      "row": 1,
       "cost": 69,
       "prereqs": [
         "divination",
@@ -233,7 +233,7 @@
       "name": "Siegecraft",
       "glyph": "🎯",
       "age": 2,
-      "row": 3,
+      "row": 4,
       "cost": 225,
       "prereqs": [
         "bronzePanoply"
@@ -252,7 +252,7 @@
       "name": "Irrigation",
       "glyph": "💧",
       "age": 2,
-      "row": 6,
+      "row": 2,
       "cost": 225,
       "prereqs": [
         "theLongCount"
@@ -265,7 +265,7 @@
       "name": "Wayfinding",
       "glyph": "🧭",
       "age": 2,
-      "row": 0,
+      "row": 7,
       "cost": 225,
       "prereqs": [
         "sailing",
@@ -290,7 +290,7 @@
       "name": "Epic Poetry",
       "glyph": "🎼",
       "age": 2,
-      "row": 4,
+      "row": 0,
       "cost": 135,
       "prereqs": [
         "letters"
@@ -321,7 +321,7 @@
       "name": "Currency",
       "glyph": "💰",
       "age": 2,
-      "row": 1,
+      "row": 5,
       "cost": 135,
       "prereqs": [
         "theWheel"
@@ -344,7 +344,7 @@
       "name": "Code of Laws",
       "glyph": "👑",
       "age": 2,
-      "row": 7,
+      "row": 1,
       "cost": 225,
       "prereqs": [
         "theLongCount"
@@ -363,7 +363,7 @@
       "name": "Chronology",
       "glyph": "📿",
       "age": 2,
-      "row": 6,
+      "row": 1,
       "cost": 135,
       "prereqs": [
         "letters"
@@ -384,7 +384,7 @@
       "name": "State Workforce",
       "glyph": "🏗",
       "age": 2,
-      "row": 1,
+      "row": 5,
       "cost": 225,
       "prereqs": [
         "currency"
@@ -415,7 +415,7 @@
       "name": "The High Temple",
       "glyph": "🕌",
       "age": 2,
-      "row": 4,
+      "row": 0,
       "cost": 225,
       "prereqs": [
         "epicPoetry"
@@ -456,7 +456,7 @@
       "name": "Shipwrights",
       "glyph": "🛠",
       "age": 3,
-      "row": 0,
+      "row": 7,
       "cost": 335,
       "prereqs": [
         "wayfinding"
@@ -477,7 +477,7 @@
       "name": "Rhetoric",
       "glyph": "🦉",
       "age": 3,
-      "row": 4,
+      "row": 0,
       "cost": 335,
       "prereqs": [
         "theHighTemple"
@@ -494,7 +494,7 @@
       "name": "Paper Money",
       "glyph": "🧾",
       "age": 3,
-      "row": 0,
+      "row": 7,
       "cost": 565,
       "prereqs": [
         "artisanry",
@@ -515,7 +515,7 @@
       "name": "Guildhalls",
       "glyph": "🔨",
       "age": 3,
-      "row": 1,
+      "row": 5,
       "cost": 450,
       "prereqs": [
         "theImperialPost"
@@ -531,7 +531,7 @@
       "name": "Mathematics",
       "glyph": "📐",
       "age": 3,
-      "row": 6,
+      "row": 2,
       "cost": 450,
       "prereqs": [
         "ironWorking"
@@ -551,7 +551,7 @@
       "name": "Satrapies",
       "glyph": "📯",
       "age": 3,
-      "row": 1,
+      "row": 5,
       "cost": 335,
       "prereqs": [
         "stateWorkforce"
@@ -591,7 +591,7 @@
       "name": "The Examination Hall",
       "glyph": "🏛",
       "age": 3,
-      "row": 7,
+      "row": 1,
       "cost": 335,
       "prereqs": [
         "kingship"
@@ -614,7 +614,7 @@
       "name": "Daughter Cities",
       "glyph": "📋",
       "age": 3,
-      "row": 7,
+      "row": 1,
       "cost": 450,
       "prereqs": [
         "theExaminationHall"
@@ -645,7 +645,7 @@
       "name": "Divine Right",
       "glyph": "⚖",
       "age": 3,
-      "row": 3,
+      "row": 5,
       "cost": 565,
       "prereqs": [
         "artisanry"
@@ -669,7 +669,7 @@
       "name": "Theology",
       "glyph": "⛪",
       "age": 3,
-      "row": 4,
+      "row": 0,
       "cost": 450,
       "prereqs": [
         "philosophy"
@@ -714,7 +714,7 @@
       "name": "Scholarship",
       "glyph": "🎓",
       "age": 3,
-      "row": 4,
+      "row": 0,
       "cost": 565,
       "prereqs": [
         "theology"
@@ -732,7 +732,7 @@
       "name": "Horology",
       "glyph": "⏳",
       "age": 3,
-      "row": 6,
+      "row": 2,
       "cost": 565,
       "prereqs": [
         "mathematics"
@@ -749,7 +749,7 @@
       "name": "Engineering",
       "glyph": "🔩",
       "age": 3,
-      "row": 5,
+      "row": 4,
       "cost": 565,
       "prereqs": [
         "mathematics",
@@ -787,7 +787,7 @@
       "name": "Geomancy",
       "glyph": "🪨",
       "age": 3,
-      "row": 7,
+      "row": 1,
       "cost": 565,
       "prereqs": [
         "colonialCharters",
@@ -801,7 +801,7 @@
       "name": "Raised Fields",
       "glyph": "🌱",
       "age": 3,
-      "row": 6,
+      "row": 2,
       "cost": 335,
       "prereqs": [
         "irrigation"
@@ -817,7 +817,7 @@
       "name": "The Counting Houses",
       "glyph": "🏦",
       "age": 4,
-      "row": 0,
+      "row": 7,
       "cost": 820,
       "prereqs": [
         "theSilkRoad",
@@ -834,7 +834,7 @@
       "name": "Machinery",
       "glyph": "🔧",
       "age": 4,
-      "row": 6,
+      "row": 2,
       "cost": 665,
       "prereqs": [
         "education",
@@ -854,7 +854,7 @@
       "name": "The Astrolabe",
       "glyph": "🌐",
       "age": 4,
-      "row": 4,
+      "row": 1,
       "cost": 750,
       "prereqs": [
         "physics",
@@ -879,7 +879,7 @@
       "name": "The Golden Roads",
       "glyph": "🧵",
       "age": 4,
-      "row": 0,
+      "row": 7,
       "cost": 665,
       "prereqs": [
         "paperMoney"
@@ -925,7 +925,7 @@
       "name": "The Holy Office",
       "glyph": "🕊",
       "age": 4,
-      "row": 3,
+      "row": 0,
       "cost": 665,
       "prereqs": [
         "education",
@@ -946,7 +946,7 @@
       "name": "Steel",
       "glyph": "🗡",
       "age": 4,
-      "row": 7,
+      "row": 2,
       "cost": 750,
       "prereqs": [
         "machinery",
@@ -977,7 +977,7 @@
       "name": "Alchemy",
       "glyph": "⚗",
       "age": 4,
-      "row": 6,
+      "row": 3,
       "cost": 820,
       "prereqs": [
         "steel",
@@ -1000,7 +1000,7 @@
       "name": "Movable Type",
       "glyph": "🔠",
       "age": 4,
-      "row": 6,
+      "row": 5,
       "cost": 750,
       "prereqs": [
         "paperMoney",
@@ -1028,7 +1028,7 @@
       "name": "Natural Philosophy",
       "glyph": "☄",
       "age": 4,
-      "row": 4,
+      "row": 1,
       "cost": 665,
       "prereqs": [
         "education"
@@ -1047,7 +1047,7 @@
       "name": "Militant Orders",
       "glyph": "🐴",
       "age": 4,
-      "row": 7,
+      "row": 4,
       "cost": 820,
       "prereqs": [
         "feudalism",

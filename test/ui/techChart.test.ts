@@ -190,8 +190,18 @@ describe('the shipped lanes', () => {
     //
     // **Zero false chains is the claim that did not move** — see the test
     // below — and it is the one the lane principle ranks above a crossing.
+    //
+    // **Re-authored 2026-09-03: the lanes are the user's chart now, not the
+    // annealer's.** The user drew the tree by hand and asked the game to match
+    // the drawing, so the rows in the file are their geography — the faith
+    // line along the top, the sea along the bottom, the state's ladder between
+    // — and the crossing count is what that geography costs: **19**, against
+    // the search's 9 on the same graph. A pin rather than a bound, so a future
+    // hand that "fixes" a crossing knows it is editing the user's drawing; the
+    // annealer survives as the advisor for where a NEW node should sit, never
+    // as the authority over an authored row.
     expect(before).toBe(100);
-    expect(after).toBe(9);
+    expect(after).toBe(19);
     expect(after).toBeLessThan(before);
   });
 
