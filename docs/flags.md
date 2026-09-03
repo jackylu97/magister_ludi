@@ -29,6 +29,8 @@ Ruled and BUILT (schema 59, committed) — kept for the record:
   test if absent). User's reason: by the time it's drafted the nearby
   discoveries are claimed, and a far-off worker is inconsequential.
 
+confirmed
+
 ### Playtest notes 9/3 — ruled in docs/playtest_notes.md, batched here
 
 The notes doc is the spec of record; these are the orchestrator's
@@ -37,7 +39,9 @@ this list.
 
 - **Batch: trade & roads** — routes never lay road over water; a route is
   entirely land or entirely sea (a sea route lays no road); where both paths
-  exist the route command carries the choice.
+  exist the route command carries the choice. Ruled in chat 2026-09-03,
+  follow-up: a route one way must not block the opposite direction —
+  Brightwater→Aldermarch and Aldermarch→Brightwater may both run.
 - **Batch: mapgen pangaea** — default map: one large continent + medium
   islands reachable by coast (island hops within coastal-water sailing).
 - **Batch: diplomacy** — players appear on the Diplomacy screen only once
@@ -67,6 +71,14 @@ this list.
   on-map city banner shows how many turns until the city grows (the Civ
   staple). Turns-to-grow is derived from the growth surplus; a stagnant or
   starving city says so rather than printing a number.
+- **Batch: late tech costs** (your 2026-09-03 note on the cost-knob flag:
+  "technologies should keep the same scaling they had in age 1-2.
+  Technologies should be extremely expensive in age 4-5.") — queued to land
+  after the economy batch (one writer for the regenerated tech doc).
+  Proposed table: columns 0–5 untouched (5→225); Æra III columns 6–8
+  335/450/565 → 400/540/680; Æra IV columns 9–12 665/750/820/875 →
+  **1450/1700/1950/2200** (≈2.3× the age; the whole tree ~19.7k → ~35.7k
+  beakers). Edit these numbers here to veto before it lands.
 - User handles: happiness order/doctrine nerfs (will say when ready).
 
 Open (proposals drafted, awaiting your numbers — see the session report):
@@ -127,17 +139,14 @@ Open (proposals drafted, awaiting your numbers — see the session report):
   taper in the column formula (`src/sim/tech.ts`). Shipped tree 22.5k beakers,
   closes 46/91/200/273 after the first-paid-tier re-anchor (schema 49).
   Entry LXI.
+  
+  technologies should keep the same scaling they had in age 1-2. Technologies should be extremely expensive in age 4-5.
+
 - **Renewals axe** — ruled 2026-09-02, not yet implemented: the tech-gated
   free building upgrades (granary/monument/barracks/library/market/workshop
-  rows) go. Say when.
-- **More Æra II/III techs** — the pacing goal (III longest); late additions
-  should scale (percents, per-city, verbs), not flat-pay. Placement is cheap
-  now (a column is a price).
-- **Chart fold** — the 8-lane chart cannot clear a 681px stage by layout alone
-  (845px best packing): (a) compact-card pass (truncate unlock lists to the
-  hover card — recommended) or (b) accept vertical scroll.
-- **Your redraw** — you're sketching a rearrangement (visual + dependencies);
-  a photo works, I transcribe and confirm before implementing.
+  rows) go. Say when. 
+  
+  lets do this now. This is part of the problem
 
 ### Standing from earlier passes (Entries LIII–LX)
 
