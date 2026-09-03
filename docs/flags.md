@@ -198,6 +198,20 @@ is its own knob, one edit flips the interpretation).
   coordination, no war economy); the spectate page is where it gets tuned.
 - Seat picker + spectate setup strip gain the persona dropdown.
 
+### From war P1 (2026-09-03, schema 56)
+
+- **Puppet purchases are unruled** — the reducer accepts gold/faith purchases
+  in a puppet city; say if a puppet may buy.
+- **A unit engulfed by border growth at peace can be stuck** (expulsion fires
+  only at peace resolution) — rare; needs a ruling on mid-peace expulsion.
+- **Barbarian pieces now wear the war-red rim** (consistency fallout of the
+  glow) — flag if you want the wild visually distinct from declared enemies.
+- **The user's bot notes** (docs/bot-notes.md → P3): early scouts
+  prioritized; the first build of the first city hard-coded to a scout.
+- P3 queue additionally: settler escorts · warmonger declarations + warscore
+  peace + trade acceptance · puppet auto-production · scored order slotting ·
+  adoption face comparison · site scorer ring 2 + luxury-kind awareness.
+
 ## C. Open threads
 
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture

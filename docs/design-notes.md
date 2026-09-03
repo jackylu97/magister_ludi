@@ -222,3 +222,25 @@ are named in the arena docblock. The disband arm vanished from a healthy
 100-turn game and its register pin says so as a finding. Interpretation
 flag standing: growth.smallCityPop 9 = the threshold reading of the user's
 "start with a value of 9"; the premium is its own knob.
+
+## Entry LXVI — war exists (2026-09-03, schema 56)
+
+The war core, whole: `wars` and `truces` registers, five verbs, and the one
+big reversal — combat, pillage and border entry against a real player now ask
+`atWar`, one clause in each existing refusal so the reducer, the forecast and
+the highlights refuse as one voice. `settleDiplomacy` leads the turn phases:
+truce broom, both-signed peace, and expulsion at PEACE (the ruled inversion —
+war does not evict, peace does) through the one arrival seam before movement
+resets. Capture makes a puppet (authority relief; the happiness relief is a
+gain line said out loud, rule 5 over a quieter cost); annex is anytime and
+irreversible; raze is immediate and refused for anything that was ever a
+capital (`wasCapital`, one bit, because the palace stops being derivable the
+instant it changes hands). The Diplomacy screen is the hud dock's third door;
+enemies wear a war-red rim on ghost and outline while the sculpt keeps the
+owner's ink, and the wild wears it too — consistent, and the first visible
+change barbarians have had from a diplomacy pass. Chosen defaults recorded in
+the agent's report: no met-ness gate (nothing to gate on), scouts blocked at
+closed borders (Civ's rule — Open Borders is P2's answer), peace as two verbs.
+Staging gaps, honestly: bots neither declare nor answer peace (P3), the
+puppet auto-picker is P3, puppet purchases are unruled, and a unit engulfed
+by border growth at peace can be stuck. P2 is deals; P3 is bots at war.
