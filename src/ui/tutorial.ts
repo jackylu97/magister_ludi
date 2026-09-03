@@ -136,7 +136,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: '#abacus-button',
     title: 'Welcome',
     body:
-      'You lead one people, from a single wagon to an empire. The game is won by the Bead Race: every player has a rod, a bead is threaded onto it for a first in the world, and the first rod to twenty beads wins. Nothing is scored in secret — every bead is announced, so a rival can always see you coming and race you to it. The Abacus, on the bar above, keeps the count for everyone at the table.',
+      'You lead a small people. Settle cities, learn ideas, and earn beads — the game\'s points, won by doing things first in the world. Everyone\'s beads are public, on the Abacus above. Most beads when the game ends wins.',
     advance: { kind: 'next' },
   },
   {
@@ -145,7 +145,7 @@ export const STEPS: readonly TutorialStep[] = [
     board: 'settler',
     title: 'Select your settler',
     body:
-      'Your first piece is a settler: a wagon of people looking for somewhere to stop. Left click it on the board. Its sheet opens on the right and lists everything it can do — that sheet is where every piece in this game is given its orders.',
+      'Left-click the settler on the board — the wagon. Its panel opens on the right. Every unit gets its orders from that panel.',
     advance: { kind: 'select', unit: 'settler' },
   },
   {
@@ -153,7 +153,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: '#unit-panel',
     title: 'Found your capital',
     body:
-      'Press Found City on the sheet. The wagon becomes a city, the hexes around it become yours, and its people start working the land straight away. Grass and fresh water feed a city best, but anywhere green will do — a first city founded now is worth more than a perfect one founded in five turns.',
+      'Press Found City. The wagon becomes your capital and starts working the land around it. Grass and fresh water are best, but don\'t overthink it — settling now beats searching for the perfect spot.',
     advance: { kind: 'command', command: 'foundCity' },
   },
   {
@@ -161,7 +161,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: '#hud-research',
     title: 'Open the star chart',
     body:
-      'This card is what your people are learning, and right now that is nothing at all. Click it. The star chart opens over the board: every idea your people could have, and the order they have to come in.',
+      'Click this card to open the star chart — the game\'s technology tree. It shows every idea you can learn and the order they come in.',
     advance: { kind: 'event', event: 'techChartOpened' },
   },
   {
@@ -170,7 +170,7 @@ export const STEPS: readonly TutorialStep[] = [
     place: 'corner',
     title: 'Aim at a star',
     body:
-      'Click any star to start learning it. A star further out needs the ones before it and the chart lines those up for you; hold Shift and click to queue more behind what you have chosen. Learning is what unlocks new pieces, new buildings and new ways to work the land, and it is what carries you into the next age.',
+      'Click any star to start learning it. Later stars need the earlier ones first. Hold Shift and click to queue several. Technologies unlock new units, buildings, and improvements.',
     advance: { kind: 'command', command: 'chooseResearch' },
   },
   {
@@ -179,7 +179,7 @@ export const STEPS: readonly TutorialStep[] = [
     place: 'corner',
     title: 'Fold the chart away',
     body:
-      'The stars will keep. Press Escape, or the cross in the corner, and the study comes back to the table — the card you opened it from now shows what your people are working on and how long it has left.',
+      'Press Escape, or the cross in the corner, to close the chart. The card now shows what you are learning and how many turns it will take.',
     advance: { kind: 'event', event: 'techChartClosed' },
   },
   {
@@ -187,7 +187,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: '#city-panel',
     title: 'Give the city something to build',
     body:
-      'Click your city to open it. Its screen lists everything it could make, with what each would cost and how long it would take. Pick one and it joins the build list. A warrior to keep the raiders off, a scout to see what is out there, or a worker to improve your land are all sound first choices.',
+      'Click your city to open it, and pick something to build. A warrior for safety, a scout to explore, or a worker to improve your land are all good first choices.',
     advance: { kind: 'command', command: 'setCityProduction' },
   },
   {
@@ -196,7 +196,7 @@ export const STEPS: readonly TutorialStep[] = [
     board: 'mover',
     title: 'Move your starting unit',
     body:
-      'This one is your other piece. Select it, then right click a hex to send it there. Rough ground costs more to cross, and a piece ordered further than it can walk today keeps walking by itself tomorrow. Go and see what you have been given — every hex nobody has stood near is blank until somebody looks at it.',
+      'Your other unit is the scout, standing on your new city. Select it, then right-click a faraway hex to send it exploring — it keeps walking by itself each turn. The map stays dark until one of your units sees it.',
     advance: { kind: 'command', command: 'moveUnit' },
   },
   {
@@ -204,7 +204,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: '#end-turn',
     title: 'End the turn',
     body:
-      'When you have nothing left to do, press this. Everyone plays at once: nothing moves in the world until every player has ended, and then the whole turn resolves together. If something still wants an answer the button says so and takes you to it first. Watch the hand-over — the pieces under standing orders march, the new turn is announced, and then you are put in front of the first piece with nothing to do.',
+      'Press this when you are done. All players move at once — the world updates only when everyone has ended their turn. If something still needs your answer, this button takes you to it first.',
     advance: { kind: 'command', command: 'endTurn' },
   },
   {
@@ -214,7 +214,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: '.civ-meters',
     title: 'Happiness and authority',
     body:
-      'These two, on the bar, are the limits on growing. Happiness is about how big your cities are; authority is about how many you have. Neither is a wall — go over and you pay for it, in slower growth or in less learning. Hover either one to see every source that fed it, and click for the whole list. Almost every number in this game answers a hover like that, and it is the fastest way to learn what is going on.',
+      'These two numbers limit growth. Happiness: how big your cities can get. Authority: how many cities you can hold. Going over is not fatal — it just slows you down. Hover any number in this game to see exactly where it comes from; that works almost everywhere and is the fastest way to learn.',
     advance: { kind: 'next' },
   },
   {
@@ -222,7 +222,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: null,
     title: 'The rest arrives as you reach it',
     body:
-      'You will be told about each new thing the first time it happens, and then left alone. Watch the bar for the bead chip and press V when the first cards hit the table. The question mark lists every control, and the book beside it holds every rule, table and card in the game, read straight off what the game is actually using.',
+      'That is the basics. Each new mechanic explains itself the first time it appears, then leaves you alone. The question mark lists every control; the book beside it holds every rule in the game.',
     advance: { kind: 'next' },
   },
 ];
@@ -259,7 +259,7 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'A draft is ready',
         body:
-          'Culture fills a draft, and a draft deals you a choice of Orders. An Order is a standing law — cheaper land, harder soldiers, happier towns — and it only does anything while it sits in one of your government\'s slots. Take one now. The Statecraft screen is where the slots are arranged, and a newly placed card is sealed in for a few turns before it can be moved again.',
+          'Your culture has earned a draft: pick one of these cards. A card is a standing law, but it does nothing until you place it in one of your government\'s slots, on the Statecraft screen. A placed card is locked in for a few turns.',
       },
     ],
   },
@@ -270,7 +270,7 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'Something is waiting in the stones',
         body:
-          'A ruin or a friendly village pays whoever walks into it first, and only once. Choose what it hands over. There is no coming back to this card by any other route, which is why nothing else on the screen will move until you have answered it.',
+          'Your unit found something. Pick one of the rewards — this choice will not come back. The game waits until you answer.',
       },
     ],
   },
@@ -281,7 +281,7 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'Look before you strike',
         body:
-          'With a piece selected, hovering an enemy tells you what would happen before you commit any of it: both sides\' strength, every line that went into each, and the damage both would take. High ground, digging in and a great general standing nearby all count, and they are all listed. Right click when you like the odds.',
+          'With a unit selected, hover an enemy to preview the fight: both sides\' strength and the damage each would take. Hills and fortifying make defenders stronger. Right-click to attack when you like the odds.',
       },
     ],
   },
@@ -292,7 +292,7 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'A god to keep',
         body:
-          'Faith buys augurs and prophets, and that is the whole of what faith does. An augur can add a god to your pantheon: a bonus in every city you own, for the rest of the game. A prophet founds a religion out of the gods you already keep. A faith spreads to people rather than to places, one citizen at a time, and a city follows whichever faith more than half its people do.',
+          'Faith pays for augurs and prophets — the religious units. An augur adds a god to your pantheon: a permanent bonus for your whole empire. A prophet later turns your gods into a religion, which spreads to citizens one at a time.',
       },
     ],
   },
@@ -303,7 +303,7 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'A caravan is a route, not a piece you steer',
         body:
-          'Do not walk this one anywhere. Choose Start route, pick the pair of cities you want on the Trade screen, and the caravan takes itself to the first of them and begins. It pays the far city every turn for as long as it runs, and it lays road behind it as it travels — and road is what makes everything else you own move faster.',
+          'Do not move the caravan yourself. Press Start Route and pick two cities — it walks there on its own, pays the destination city every turn, and builds a road as it goes.',
       },
     ],
   },
@@ -314,7 +314,7 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'A name the age offers you',
         body:
-          'Renown attracts great people. Take one and they arrive in your capital, where you either spend them at once for something immediate, or send them out to plant a great work on a hex that stands there for the rest of the game. Either way their legacy stays with your government afterwards. Each name can be taken by only one player in the world, so a name left on the table is a name a rival may take.',
+          'Your renown has attracted a great person. Spend them at once for a burst, or plant them on a hex as a permanent improvement — their bonus stays with you either way. Each name exists once in the whole world; hesitate and a rival may take it.',
       },
     ],
   },
@@ -325,17 +325,17 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'The Bead Race',
         body:
-          'This is the only way the game is won, and it is one race rather than several — there is no separate path for war or for learning. Every player has a rod on the Abacus, everyone can see every rod, and the first to twenty beads takes the game. If nobody gets there, the fullest rod wins when the last age closes.',
+          'Beads are the game\'s only points. Do something first in the world and the bead is yours — every player\'s beads are public, on the Abacus. Reaching twenty beads wins at once; otherwise, most beads when the last age closes wins.',
       },
       {
         title: 'Four kinds of bead',
         body:
-          'A feat is a first in the world — the first faith founded, the first empire into a new age — and it is always in play whether or not anybody is looking for it. A race project is a card that puts a row in every empire\'s build list at once; the first to finish takes the bead and the reward, and everyone else\'s work is spent for nothing. A quest is a deed you go and do. A reckoning is the age measuring everybody at the same moment and naming one winner, and a tie pays nobody.',
+          'Beads come four ways. Feats: world firsts, always in play. Races: a project every empire can build — only the first to finish wins it. Quests: deeds you go and do. Reckonings: when a new age begins, everyone is measured at once and one winner is named.',
       },
       {
         title: 'The table',
         body:
-          'Cards are dealt face down through an age and turn face up the moment the first empire reaches that age, so everyone gets the same table at the same time. Press V to see it: what is on offer, what has been claimed, and by whom. Most beads pay something once as well — a windfall, a free piece, a permanent step in one of the meters, or a die. The last slot on every rod is golden, it sits empty from the first turn, and only the Magnum Opus fills it.',
+          'Press V to see the bead table: what is on offer, what has been claimed, and by whom. Most beads also pay a one-time reward. The golden bead at the end is earned only by building the Magnum Opus, the game\'s final project.',
       },
     ],
   },
@@ -346,7 +346,7 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'Somebody else is out there',
         body:
-          'That piece is not yours. Nobody declares war in this game — anyone may attack anyone, on any turn, so a border is only as quiet as the soldiers standing on it. Keep one in each city, heal the hurt ones on ground of your own, and read the forecast before you start anything.',
+          'That unit belongs to another empire. You are at peace until someone declares war — at peace their soldiers cannot enter your land, and you cannot attack them. Declaring happens on the Diplomacy screen (the flag button). Barbarians follow no rules and attack anyone, so keep a soldier in each city.',
       },
     ],
   },
@@ -357,7 +357,7 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'A city is going hungry',
         body:
-          'It is eating more than it grows, and it will lose one of its people if that stays true. Open it and look at where they are working: a farm on grass, a hex beside fresh water, or locking a citizen onto the best food hex will all turn it round. A city building a settler also stops growing until the settler is done, which is usually the answer.',
+          'This city is eating more food than it makes and will shrink if that continues. Open it and check the hexes it works — farms and fresh water fix hunger. Note: a city building a settler pauses its growth; when the settler finishes, growth resumes.',
       },
     ],
   },
