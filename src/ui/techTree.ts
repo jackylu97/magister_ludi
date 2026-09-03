@@ -968,9 +968,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * and the card would otherwise read as though the forest paid every turn.
    */
   function abilityNote(gift: TechGift & { kind: 'ability' }): string {
-    // A verb that banks nothing says nothing about banking: Sailing's embark
-    // gift has no `pays`, and the card's own name ("Embark") is the sentence.
-    return gift.pays ? `${tileYieldNote(gift.pays)} once` : '';
+    if (gift.pays) return `${tileYieldNote(gift.pays)} once`;
+    // A verb that banks nothing prints its own summary instead — "Ancestor
+    // Rites" alone told a player nothing about great people (found in live
+    // play, 2026-09-03), and the summary is the data's own plain sentence.
+    return isAbilityId(gift.id) ? abilityDef(gift.id).summary : '';
   }
 
   /**

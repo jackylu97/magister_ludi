@@ -100,7 +100,7 @@ import { explainRenown, foldRenown, renownPerTurn, renownThreshold } from '../si
 import { TRIUMPH_IDS, type TriumphScope, triumphDef } from '../sim/triumphData';
 import { BEAD_RULES, anyBeadDef } from '../sim/beadData';
 import { BEAD_FAMILY_MARK } from './beadsScreen';
-import { highestAge } from '../sim/techData';
+import { ABILITY_TECH, highestAge, techDef, techsGrant } from '../sim/techData';
 import { createInfoCard } from './infoCard';
 import { foldCityHappiness, meterGroups } from './meterBreakdown';
 import { meterMarkNode, renownMarkNode } from './meterMark';
@@ -910,6 +910,23 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       ),
     );
     box.append(head);
+
+    // The pool banks before the door is open, and a full meter with no offer
+    // reads as a bug (found in live play, 2026-09-03) — so the closed gate is
+    // said out loud, named off the ability's own home so a tree move cannot
+    // strand the sentence.
+    if (player && !techsGrant(player.techsResearched, 'ancestorRites')) {
+      const gate = ABILITY_TECH.get('ancestorRites');
+      if (gate !== undefined) {
+        box.append(
+          element(
+            'p',
+            'hint',
+            `Great people arrive once you have learned ${techDef(gate).name}. Renown banks until then.`,
+          ),
+        );
+      }
+    }
 
     const lines = explainRenown(state, playerId);
     if (lines.length === 0) {
