@@ -346,12 +346,14 @@ describe('an ability names its bearer', () => {
   });
 
   it('says what Sea Legs actually does, in a first-time player\u2019s words', () => {
-    // The user could not tell what the row was for. A name is not a rule, so the
-    // summary states the crossing and says where civilians got it — and, hard
-    // rule 7, it carries no figure and no identifier.
+    // The user could not tell what the row was for. A name is not a rule, so
+    // the summary states the crossing plainly — and since the encyclopedic
+    // rewrite (2026-09-03) it states ONLY the crossing: the bearer heading
+    // carries the who, and the Sailing cross-reference lives in the
+    // Compendium rather than a one-line note. Hard rule 7 still: no figure,
+    // no identifier.
     const summary = abilityDef('militaryEmbark').summary;
     expect(summary).toContain('coastal water');
-    expect(summary).toContain('Sailing');
     expect(summary).not.toMatch(/[0-9]/);
   });
 
