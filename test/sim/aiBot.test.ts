@@ -588,11 +588,13 @@ function code(text: string): string {
 describe('the bot module', () => {
   it('is there to be read', () => {
     const files = Object.keys(AI_SOURCE).map((path) => path.slice(path.lastIndexOf('/') + 1));
-    // Six modules since the spectate pass, and the split is the point:
-    // `aiConfig.ts` is the leaf holding the tuning surface, `decision.ts` is the
-    // second leaf — the vocabulary a decision and its arithmetic are said in —
-    // `value.ts` is the appraisal (every function ends in a number or the terms
-    // that fold to one), `bot.ts` is the policy (every function ends in a
+    // Seven modules since the brain-v1 pass, and the split is the point:
+    // `aiConfig.ts` is the leaf holding the tuning surface (and the persona
+    // merge), `decision.ts` is the second leaf — the vocabulary a decision and
+    // its arithmetic are said in — `value.ts` is the appraisal (every function
+    // ends in a number or the terms that fold to one), `plan.ts` is the reading
+    // of the board a worker and a great person both consult (every function
+    // ends in a table), `bot.ts` is the policy (every function ends in a
     // `BotDecision`), `driver.ts` is the loop and `stepper.ts` is that same loop
     // unrolled one decision at a time.
     expect(files.sort()).toEqual([
@@ -600,6 +602,7 @@ describe('the bot module', () => {
       'bot.ts',
       'decision.ts',
       'driver.ts',
+      'plan.ts',
       'stepper.ts',
       'value.ts',
     ]);
@@ -657,7 +660,12 @@ describe('the bot module', () => {
     expect(Object.keys(config).sort()).toEqual([
       'driver',
       'expansion',
+      'growth',
       'military',
+      // The persona sheet: sparse deep-overrides of every block above it, which
+      // is why it is a key of the same file rather than a file of its own — a
+      // persona that lived elsewhere would drift from the knobs it overrides.
+      'personas',
       'religion',
       'research',
       'score',

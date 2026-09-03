@@ -113,6 +113,54 @@ describe('the decision path and the driver play the same game', () => {
   );
 });
 
+describe('the two loops agree about a persona too', () => {
+  it(
+    'plays a persona’d game to a byte-identical board either way',
+    () => {
+      // The stepper reads the *seat's* driver block now (a persona may override
+      // the budget), and so does `driveSeat`. Two readings of one sheet is
+      // exactly the drift this pin exists to catch, so it is asked again of a
+      // game where the two seats disagree about everything.
+      const config: GameConfig = {
+        ...CONFIG,
+        players: [
+          { name: 'Crimson', color: '#d4502e', persona: 'warmonger' },
+          { name: 'Teal', color: '#1f8a85', persona: 'tall' },
+        ],
+      };
+      const turns = 60;
+      const driven = createGame(config);
+      const warnings: string[] = [];
+      for (let turn = 0; turn < turns; turn++) {
+        driveBots(driven, { warn: (message) => warnings.push(message) });
+        if (driven.state.winnerId !== null) break;
+      }
+      const walked = createGame(config);
+      const stepper = createBotStepper(walked, { warn: (message) => warnings.push(message) });
+      const steps: BotStep[] = [];
+      for (let turn = 0; turn < turns; turn++) {
+        for (const step of stepper.playTurn()) steps.push(step);
+        if (walked.state.winnerId !== null) break;
+      }
+      expect(warnings).toEqual([]);
+      expect(JSON.stringify(walked.log)).toBe(JSON.stringify(driven.log));
+      expect(snapshotState(walked.state)).toBe(snapshotState(driven.state));
+
+      // And the arithmetic holds over the arms only a persona reaches — the
+      // aggressive blow, the tall seat's citizen, the plan's own entries.
+      const failures: string[] = [];
+      for (const step of steps) {
+        failures.push(
+          ...foldFailures(step.decision.candidates, `t${step.turn} ${step.decision.kind}/${step.decision.subject}`),
+        );
+      }
+      expect(failures).toEqual([]);
+      expect(steps.length).toBeGreaterThan(200);
+    },
+    PATIENCE,
+  );
+});
+
 describe('a hundred turns of arithmetic', () => {
   it(
     'folds every candidate’s terms back to its own score, exactly',
@@ -138,12 +186,25 @@ describe('a hundred turns of arithmetic', () => {
     () => {
       const walked = theSteppedGame();
       const kinds = new Set(walked.steps.map((step) => step.decision.kind));
-      // The register in `decision.ts`, minus nothing: a kind that a hundred turns
-      // of a real game never reaches is a kind that is not being tested at all,
-      // and this is where that would be noticed.
+      // The register in `decision.ts`, minus **one** — and the exception is a
+      // finding rather than a gap (measured 2026-09-03, the brain-v1 pass).
+      //
+      // `disband` is the arrears arm: a seat only ever lets a piece go when its
+      // treasury is under `solvency.arrearsTreasury` *and* its income is under
+      // water. A hundred turns of this bot no longer produces that state at all
+      // — the gold-pressure grace stops the opening being appraised by a
+      // bankrupt, and the improvement plan and the citizen valuation between
+      // them keep the books positive for the rest of the game (the arena's
+      // worst late rate moved from −25💰/turn to −7💰/turn over the same pass).
+      // An empire that never goes broke never disbands, which is the outcome
+      // wanted; so the arm is pinned where it can be *provoked* instead, in
+      // `aiBot.test.ts`' "lets a redundant piece go when it is actually in
+      // arrears".
+      //
+      // If a later pass makes the economy bleed again this list grows back, and
+      // that is worth noticing too.
       expect([...kinds].sort()).toEqual([
         'build',
-        'disband',
         'draft',
         'endTurn',
         'purchase',

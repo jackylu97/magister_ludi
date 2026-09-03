@@ -42,10 +42,11 @@
  * a bot's whole game is in the file exactly as a human's is.
  */
 
-import { AI, nextBotCommand } from './bot';
+import { aiConfigFor } from './aiConfig';
+import { nextBotCommand } from './bot';
 import type { Command, CommandResult } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
-import { hasEndedTurn, realPlayers } from '../sim/state';
+import { hasEndedTurn, playerById, realPlayers } from '../sim/state';
 
 /**
  * What a bot's accepted command is reported to, and it is one function on
@@ -119,6 +120,10 @@ export function driveBots(game: Game, options: DriveOptions = {}): SeatDriveRepo
 export function driveSeat(game: Game, playerId: number, options: DriveOptions = {}): SeatDriveReport {
   const warn = options.warn ?? ((message: string, detail?: unknown) => console.warn(message, detail));
   const report: SeatDriveReport = { playerId, accepted: 0, refused: 0, ended: false };
+  // **The seat's own sheet**, not a module global: a persona is a sparse
+  // override of the whole configuration, the `driver` block included, so two
+  // seats may be allowed different budgets in the same pass.
+  const ai = aiConfigFor(playerById(game.state, playerId)?.persona);
 
   // Keyed by the command's own JSON, which is exactly "the identical command":
   // two `moveUnit`s to different hexes are two commands, and the same one twice
@@ -126,8 +131,8 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
   const refusedCommands = new Set<string>();
   let redraws = 0;
 
-  for (let attempt = 0; attempt < Math.max(1, AI.driver.endTurnAttempts); attempt++) {
-    while (report.accepted + report.refused < AI.driver.commandsPerSeat) {
+  for (let attempt = 0; attempt < Math.max(1, ai.driver.endTurnAttempts); attempt++) {
+    while (report.accepted + report.refused < ai.driver.commandsPerSeat) {
       const command = nextBotCommand(game.state, playerId);
       if (command === null) break;
       const key = JSON.stringify(command);
@@ -145,7 +150,7 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
       }
       // The one refusal that is not a bug: a great-person hand another seat has
       // emptied is refused *and redrawn*, so asking again asks about a new hand.
-      if (command.type === 'chooseGreatPerson' && redraws < AI.driver.greatPersonRedraws) {
+      if (command.type === 'chooseGreatPerson' && redraws < ai.driver.greatPersonRedraws) {
         redraws += 1;
         continue;
       }
@@ -163,7 +168,7 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
     }
     // Refused: something is still owed. One more pass of the loop above is the
     // answer, because `nextBotCommand` reads the very blocker that refused this.
-    if (attempt + 1 >= Math.max(1, AI.driver.endTurnAttempts)) {
+    if (attempt + 1 >= Math.max(1, ai.driver.endTurnAttempts)) {
       warn(`[ai] seat ${playerId}: could not end its turn — ${ended.error}`);
     }
   }

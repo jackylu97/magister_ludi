@@ -95,6 +95,16 @@
             <select id="seats"></select>
           </div>
 
+          <!-- How the seat nobody is sitting in plays. It is config, not a
+               setting: it rides into the save with the roster, so a game
+               reloaded next year is played by the same opponent rather than
+               by whatever the default has become. Hidden in the modes that
+               seat no bot. -->
+          <div class="row" id="persona-row">
+            <label for="bot-persona">Opponent</label>
+            <select id="bot-persona"></select>
+          </div>
+
           <!-- The guide. On for a browser that has never been here, remembered
                after that in localStorage and nowhere else — it is never in a
                save (see src/ui/tutorial.ts). Unchecking it here is the whole of

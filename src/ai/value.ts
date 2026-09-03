@@ -55,7 +55,7 @@
  * command.
  */
 
-import { AI } from './aiConfig';
+import type { AiConfig } from './aiConfig';
 import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
 
 import { type BuildingId, buildingDef } from '../sim/buildingData';
@@ -83,6 +83,18 @@ export type YieldBag = Partial<Record<Voice, number>>;
  * appraise against a treasury the state has moved past.
  */
 export interface ValueContext {
+  /**
+   * **The seat's own configuration** — `aiConfigFor(player.persona)`, which is
+   * the balanced sheet for most seats and a sparse override of it for the rest.
+   *
+   * It rides in the context rather than being swapped into a module global for
+   * one reason, and it is the reason two personas are a feature at all: two
+   * seats appraise *in the same turn*, and a global swapped between them would
+   * make a decision a function of whichever seat asked last. A context is
+   * already the thing whose lifetime is one decision (see below), so the seat's
+   * taste belongs in it beside the seat's treasury.
+   */
+  ai: AiConfig;
   /** The empire's age, from `highestAge`. Indexes every yield weight. */
   age: TechAge;
   /** Towns held, capped at `score.cityCap` so a wide empire cannot dominate. */
@@ -99,6 +111,15 @@ export interface ValueContext {
    */
   goldPressure: number;
   /**
+   * Why the pressure reads what it does, when the reason is not simply the
+   * books — today only the opening grace (`solvency.graceTreasury`). Empty
+   * otherwise, and appended to every printed pressure so a reader of the feed
+   * can see a 1 that was *decided* rather than merely arrived at.
+   *
+   * A label, never a number: it changes no fold, so no pin moves.
+   */
+  pressureNote: string;
+  /**
    * Enemy combat pieces standing within `threat.radius` of one of this empire's
    * towns, capped. Zero in a quiet world.
    */
@@ -112,9 +133,15 @@ export interface ValueContext {
   faithAppetite: number;
 }
 
-/** What one per-turn point of a voice is worth in this age. */
-export function yieldWeight(voice: Voice, age: TechAge): number {
-  const row = AI.weights[voice];
+/**
+ * What one per-turn point of a voice is worth in this age, **to this seat**.
+ *
+ * The configuration is a parameter rather than a global because a persona is a
+ * different weight table and two seats appraise in the same turn — see
+ * `ValueContext.ai`.
+ */
+export function yieldWeight(ai: AiConfig, voice: Voice, age: TechAge): number {
+  const row = ai.weights[voice];
   const index = Math.min(row.length - 1, Math.max(0, age - 1));
   return row[index] ?? 0;
 }
@@ -131,10 +158,10 @@ export function explainYields(bag: YieldBag, ctx: ValueContext): Appraisal {
   for (const voice of VOICES) {
     const amount = bag[voice];
     if (amount === undefined || amount === 0) continue;
-    const weight = yieldWeight(voice, ctx.age) * (voice === 'gold' ? ctx.goldPressure : 1);
-    const pressure = voice === 'gold' && ctx.goldPressure !== 1 ? ` × ${round(ctx.goldPressure)} gold pressure` : '';
+    const weight = yieldWeight(ctx.ai, voice, ctx.age) * (voice === 'gold' ? ctx.goldPressure : 1);
+    const pressure = voice === 'gold' ? goldPressureLabel(ctx) : '';
     terms.push({
-      label: `${voice} ${signed(amount)} × ${round(yieldWeight(voice, ctx.age))} age weight${pressure}`,
+      label: `${voice} ${signed(amount)} × ${round(yieldWeight(ctx.ai, voice, ctx.age))} age weight${pressure}`,
       value: amount * weight,
     });
   }
@@ -143,6 +170,36 @@ export function explainYields(bag: YieldBag, ctx: ValueContext): Appraisal {
 
 export function valueOfYields(bag: YieldBag, ctx: ValueContext): number {
   return explainYields(bag, ctx).total;
+}
+
+/**
+ * How the gold pressure prints beside a coin. Silent in a healthy empire with
+ * nothing to explain; loud when the books are bleeding, and loud in the other
+ * direction when a 1 was *decided* by the opening grace rather than earned.
+ */
+function goldPressureLabel(ctx: ValueContext): string {
+  if (ctx.goldPressure === 1 && ctx.pressureNote === '') return '';
+  const note = ctx.pressureNote === '' ? '' : ` (${ctx.pressureNote})`;
+  return ` × ${round(ctx.goldPressure)} gold pressure${note}`;
+}
+
+/**
+ * What a **one-time gift** of a bag of yields is worth beside a per-turn one.
+ *
+ * A farm pays every turn until the world ends; a merchant's purse pays once.
+ * Everything else in this file is a rate, so a lump has to be converted into one
+ * before it can be compared — `score.lumpTurns` is that exchange rate, and it is
+ * the only reason "act now" and "plant the work" can sit in one scored table
+ * (see the great person's arm in `bot.ts`).
+ */
+export function explainLump(bag: YieldBag, ctx: ValueContext): Appraisal {
+  const turns = Math.max(1, ctx.ai.score.lumpTurns);
+  const weighted = explainYields(bag, ctx);
+  if (weighted.terms.length === 0) return appraise([]);
+  return appraise([
+    nest('what it pays, weighted', weighted),
+    { label: `÷ ${round(turns)} — a gift paid once, not every turn`, value: turns, op: 'div' },
+  ]);
 }
 
 /** One decimal place, and no trailing `.0` — a label is read, not parsed. */
@@ -173,10 +230,15 @@ export function yieldDelta(after: Record<Voice, number>, before: Record<Voice, n
  */
 export function explainUpkeepCost(gold: number, ctx: ValueContext): Appraisal {
   if (gold <= 0) return appraise([]);
+  const note = ctx.pressureNote === '' ? '' : ` (${ctx.pressureNote})`;
   return appraise([
     { label: `${round(gold)} gold a turn`, value: gold },
-    { label: `× ${round(yieldWeight('gold', ctx.age))} age weight`, value: yieldWeight('gold', ctx.age), op: 'mul' },
-    { label: `× ${round(ctx.goldPressure)} gold pressure`, value: ctx.goldPressure, op: 'mul' },
+    {
+      label: `× ${round(yieldWeight(ctx.ai, 'gold', ctx.age))} age weight`,
+      value: yieldWeight(ctx.ai, 'gold', ctx.age),
+      op: 'mul',
+    },
+    { label: `× ${round(ctx.goldPressure)} gold pressure${note}`, value: ctx.goldPressure, op: 'mul' },
   ]);
 }
 
@@ -212,42 +274,42 @@ export function explainBuildingRow(id: BuildingId, ctx: ValueContext): Appraisal
   const terms: ValueTerm[] = [];
   if (def.happiness !== undefined) {
     terms.push({
-      label: `${signed(def.happiness)} happiness × ${AI.weights.happiness}`,
-      value: def.happiness * AI.weights.happiness,
+      label: `${signed(def.happiness)} happiness × ${ctx.ai.weights.happiness}`,
+      value: def.happiness * ctx.ai.weights.happiness,
     });
   }
   if (def.authorityCapacity !== undefined) {
     terms.push({
-      label: `${signed(def.authorityCapacity)} authority × ${AI.weights.authority}`,
-      value: def.authorityCapacity * AI.weights.authority,
+      label: `${signed(def.authorityCapacity)} authority × ${ctx.ai.weights.authority}`,
+      value: def.authorityCapacity * ctx.ai.weights.authority,
     });
   }
   if (def.cityStat !== undefined) {
     // A wall is worth what a soldier's worth of strength is worth, scaled by how
     // much this empire currently minds being attacked.
     terms.push({
-      label: `${signed(def.cityStat.amount)} town strength × ${AI.weights.military} × ${1 + ctx.threat} threat`,
-      value: def.cityStat.amount * AI.weights.military * (1 + ctx.threat),
+      label: `${signed(def.cityStat.amount)} town strength × ${ctx.ai.weights.military} × ${1 + ctx.threat} threat`,
+      value: def.cityStat.amount * ctx.ai.weights.military * (1 + ctx.threat),
     });
   }
   if (def.renown !== undefined) {
     terms.push({
-      label: `${signed(def.renown.perTurn)} renown a turn × ${AI.weights.renown}`,
-      value: def.renown.perTurn * AI.weights.renown,
+      label: `${signed(def.renown.perTurn)} renown a turn × ${ctx.ai.weights.renown}`,
+      value: def.renown.perTurn * ctx.ai.weights.renown,
     });
     terms.push({
-      label: `${signed(def.renown.onComplete ?? 0)} renown on completion × ${AI.weights.renown}`,
-      value: (def.renown.onComplete ?? 0) * AI.weights.renown,
+      label: `${signed(def.renown.onComplete ?? 0)} renown on completion × ${ctx.ai.weights.renown}`,
+      value: (def.renown.onComplete ?? 0) * ctx.ai.weights.renown,
     });
   }
   for (const grant of def.onComplete ?? []) {
-    if (grant.grant === 'bead') terms.push({ label: 'a glass bead on completion', value: AI.weights.bead });
+    if (grant.grant === 'bead') terms.push({ label: 'a glass bead on completion', value: ctx.ai.weights.bead });
     else if (grant.grant === 'unit')
-      terms.push({ label: 'a free piece on completion', value: AI.weights.military * AI.score.combatScale });
-    else if (grant.grant === 'tech') terms.push({ label: 'a free technology', value: AI.weights.tech });
-    else terms.push({ label: `a grant this bot cannot read (${grant.grant})`, value: AI.score.unknownEffect });
+      terms.push({ label: 'a free piece on completion', value: ctx.ai.weights.military * ctx.ai.score.combatScale });
+    else if (grant.grant === 'tech') terms.push({ label: 'a free technology', value: ctx.ai.weights.tech });
+    else terms.push({ label: `a grant this bot cannot read (${grant.grant})`, value: ctx.ai.score.unknownEffect });
   }
-  if (def.endsTheGame === true) terms.push({ label: 'it ends the game', value: AI.weights.victory });
+  if (def.endsTheGame === true) terms.push({ label: 'it ends the game', value: ctx.ai.weights.victory });
   terms.push(nest('its written effects', explainEffects(def.effects ?? [], ctx)));
   return appraise(terms);
 }
@@ -273,7 +335,7 @@ export function explainProjectRow(id: ProjectId, ctx: ValueContext): Appraisal {
     faith: def.pays.faith ?? 0,
   };
   const terms: ValueTerm[] = [nest('what one turn of it pays', explainYields(bag, ctx))];
-  if (def.bead !== undefined) terms.push({ label: 'a glass bead', value: AI.weights.bead });
+  if (def.bead !== undefined) terms.push({ label: 'a glass bead', value: ctx.ai.weights.bead });
   return appraise(terms);
 }
 
@@ -297,10 +359,10 @@ export function explainSoldier(id: UnitTypeId, ctx: ValueContext): Appraisal {
   if (!isCombatant(def)) return appraise([]);
   const strength = Math.max(def.combatStrength, def.rangedStrength ?? 0);
   return appraise([
-    { label: `${strength} strength × ${AI.weights.military}`, value: strength * AI.weights.military },
+    { label: `${strength} strength × ${ctx.ai.weights.military}`, value: strength * ctx.ai.weights.military },
     {
-      label: `${ctx.threat} enemy pieces near a town × ${AI.threat.militaryBonus}`,
-      value: ctx.threat * AI.threat.militaryBonus,
+      label: `${ctx.threat} enemy pieces near a town × ${ctx.ai.threat.militaryBonus}`,
+      value: ctx.threat * ctx.ai.threat.militaryBonus,
     },
   ]);
 }
@@ -344,7 +406,7 @@ export function scoreEffects(effects: readonly CardEffect[], ctx: ValueContext):
 }
 
 function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
-  const nominal = AI.score.nominalYield;
+  const nominal = ctx.ai.score.nominalYield;
   switch (effect.kind) {
     case 'cityYields':
       // Paid in every town the scope admits; the scope is not evaluated, so the
@@ -356,48 +418,48 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       const percent = effect.percent / 100;
       if (effect.yield === 'all') {
         let sum = 0;
-        for (const voice of VOICES) sum += yieldWeight(voice, ctx.age) * percent * nominal;
+        for (const voice of VOICES) sum += yieldWeight(ctx.ai, voice, ctx.age) * percent * nominal;
         return sum * ctx.cities;
       }
-      return yieldWeight(effect.yield as Voice, ctx.age) * percent * nominal * ctx.cities;
+      return yieldWeight(ctx.ai, effect.yield as Voice, ctx.age) * percent * nominal * ctx.cities;
     }
     case 'productionBonus':
-      return yieldWeight('production', ctx.age) * (effect.percent / 100) * nominal * ctx.cities;
+      return yieldWeight(ctx.ai, 'production', ctx.age) * (effect.percent / 100) * nominal * ctx.cities;
     case 'tileYield':
       // A `CardYieldBag` on the row, plus an optional percentage on whatever the
       // hex's improvement already pays; the bag is the legible half and the
       // percentage is priced against the nominal yield like every other rate.
       return (
         (valueOfYields(bagOf(effect), ctx) +
-          ((effect.percent ?? 0) / 100) * nominal * yieldWeight('production', ctx.age)) *
-        AI.score.nominalTiles
+          ((effect.percent ?? 0) / 100) * nominal * yieldWeight(ctx.ai, 'production', ctx.age)) *
+        ctx.ai.score.nominalTiles
       );
     case 'countScaled':
-      return scorePayout(effect.pays, ctx) * AI.score.nominalCount;
+      return scorePayout(effect.pays, ctx) * ctx.ai.score.nominalCount;
     case 'happiness':
-      return effect.amount * AI.weights.happiness * (effect.per === 'city' ? ctx.cities : 1);
+      return effect.amount * ctx.ai.weights.happiness * (effect.per === 'city' ? ctx.cities : 1);
     case 'authority':
-      return effect.amount * AI.weights.authority * (effect.per === 'city' ? ctx.cities : 1);
+      return effect.amount * ctx.ai.weights.authority * (effect.per === 'city' ? ctx.cities : 1);
     case 'happinessTierBoost':
-      return effect.points * AI.weights.happiness;
+      return effect.points * ctx.ai.weights.happiness;
     case 'combatLine':
-      return effect.amount * AI.weights.military * (1 + ctx.threat);
+      return effect.amount * ctx.ai.weights.military * (1 + ctx.threat);
     case 'unitStat':
-      return effect.amount * AI.weights.military * (1 + ctx.threat);
+      return effect.amount * ctx.ai.weights.military * (1 + ctx.threat);
     case 'renown':
-      return effect.amount * AI.weights.renown;
+      return effect.amount * ctx.ai.weights.renown;
     case 'upkeepRebate':
       // A rebate is gold that never leaves, priced at the same pressure-adjusted
       // rate the bill is charged at — so a card that pays the army's wages
       // becomes the best card in the hand exactly when the treasury is bleeding.
-      return costOfUpkeep((effect.amount ?? 1) * AI.score.nominalCount, ctx);
+      return costOfUpkeep((effect.amount ?? 1) * ctx.ai.score.nominalCount, ctx);
     case 'offerRider':
-      return AI.score.unknownEffect * AI.score.nominalCount;
+      return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
     default:
       // **Never zero.** A shape this bot cannot read is a shape whose card is
       // still worth more than a blank one, and a card whose whole text is
       // unreadable must not sort below an empty offer.
-      return AI.score.unknownEffect;
+      return ctx.ai.score.unknownEffect;
   }
 }
 
@@ -410,13 +472,13 @@ function scorePayout(pays: PayoutShape, ctx: ValueContext): number {
       return valueOfYields(bag, ctx);
     }
     case 'happiness':
-      return pays.amount * AI.weights.happiness;
+      return pays.amount * ctx.ai.weights.happiness;
     case 'authority':
-      return pays.amount * AI.weights.authority;
+      return pays.amount * ctx.ai.weights.authority;
     case 'percent':
-      return yieldWeight(pays.yield as Voice, ctx.age) * (pays.percent / 100) * AI.score.nominalYield;
+      return yieldWeight(ctx.ai, pays.yield as Voice, ctx.age) * (pays.percent / 100) * ctx.ai.score.nominalYield;
     default:
-      return AI.score.unknownEffect;
+      return ctx.ai.score.unknownEffect;
   }
 }
 

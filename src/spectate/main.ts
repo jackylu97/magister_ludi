@@ -29,7 +29,7 @@
 
 import './style.css';
 
-import { type BotStep, createBotStepper } from '../ai/stepper';
+import { DEFAULT_PERSONA, PERSONA_IDS, type BotStep, createBotStepper, personaLabel } from '../ai/stepper';
 import { type BotCandidate, type ValueTerm, rankedCandidates } from '../ai/decision';
 import { type Game, createGame } from '../sim/game';
 import { MAP_SIZE_NAMES } from '../sim/mapgenData';
@@ -52,6 +52,7 @@ const seedInput = need<HTMLInputElement>('seed');
 const seedRandom = need<HTMLButtonElement>('seed-random');
 const sizeSelect = need<HTMLSelectElement>('size');
 const seatsSelect = need<HTMLSelectElement>('seats');
+const personaSelect = need<HTMLSelectElement>('persona');
 const startButton = need<HTMLButtonElement>('start');
 const nextButton = need<HTMLButtonElement>('next-action');
 const playTurnButton = need<HTMLButtonElement>('play-turn');
@@ -101,6 +102,18 @@ for (let seats = Math.max(2, RULES.game.minPlayers); seats <= Math.min(4, RULES.
 }
 seatsSelect.value = '2';
 
+// The personas, in the data file's own order. The names come through the
+// stepper rather than off the tuning surface — see its re-export's docblock:
+// this page may know what a persona is *called* and must never know what it is
+// worth.
+for (const id of PERSONA_IDS) {
+  const option = document.createElement('option');
+  option.value = id;
+  option.textContent = personaLabel(id);
+  personaSelect.append(option);
+}
+personaSelect.value = DEFAULT_PERSONA;
+
 const renderer = new Renderer3D(canvas);
 // No seat: the spectator board every gallery already draws. Nothing is fogged,
 // and the seat-filtered layers (units, cities, territory) draw everybody's.
@@ -121,10 +134,18 @@ let taken = 0;
  */
 function start(): void {
   const seed = Number.parseInt(seedInput.value, 10);
+  // The persona rides on every seat's spec, which is where it belongs: it is
+  // config, so the save this page's game would write replays with the same
+  // seats playing the same way. Balanced is written as *no key at all*, so a
+  // balanced spectacle is byte-identical to one from before personas existed.
+  const persona = personaSelect.value;
+  const seated = ROSTER.slice(0, Number(seatsSelect.value) || 2).map((spec) =>
+    persona === DEFAULT_PERSONA ? spec : { ...spec, persona },
+  );
   const config = {
     seed: Number.isFinite(seed) ? seed : 1,
     sizeName: sizeSelect.value,
-    players: ROSTER.slice(0, Number(seatsSelect.value) || 2),
+    players: seated,
     barbarians: true,
   };
   const session = createGame(config);

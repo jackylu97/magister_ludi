@@ -31,12 +31,27 @@
  * replays exactly as a game played by the driver does.
  */
 
-import { AI } from './aiConfig';
+import { aiConfigFor } from './aiConfig';
 import { nextBotDecision } from './bot';
 import type { BotDecision } from './decision';
 import type { CommandResult } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { hasEndedTurn, playerById, realPlayers } from '../sim/state';
+
+/**
+ * **The roster of personas, re-exported for the page that seats them.**
+ *
+ * The spectate page may not import the tuning surface — a page that read a
+ * weight could print a number the seat never used, and its whole value is that
+ * it cannot (`test/ui/spectatePage.test.ts`). A persona *name* is not a weight:
+ * it is a roster entry, the same kind of thing a seat's colour is, and a
+ * dropdown that could not list them would have to hard-code four strings that
+ * drift from the data file the day a fifth is added.
+ *
+ * So the names come through the module the page already speaks to, and the
+ * numbers behind them stay where they are.
+ */
+export { DEFAULT_PERSONA, PERSONA_IDS, personaLabel } from './aiConfig';
 
 /** One decision, dispatched. What the spectate feed prints a row from. */
 export interface BotStep {
@@ -106,8 +121,12 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
    * written as a state rather than as control flow.
    */
   function pending(seat: SeatRun): BotDecision {
+    // The seat's own sheet, exactly as `driveSeat` reads it — a persona may
+    // override the `driver` block, and the two loops have to agree or the pin
+    // that says they play the same game would fail.
+    const ai = aiConfigFor(playerById(game.state, seat.playerId)?.persona);
     if (seat.asking) {
-      if (seat.accepted + seat.refused < AI.driver.commandsPerSeat) {
+      if (seat.accepted + seat.refused < ai.driver.commandsPerSeat) {
         const decision = nextBotDecision(game.state, seat.playerId);
         if (decision !== null) {
           if (!seat.refusedCommands.has(JSON.stringify(decision.command))) return decision;
@@ -140,6 +159,7 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
     const result = dispatch(game, decision.command);
     const turnResolved = game.state.turn > turn;
 
+    const ai = aiConfigFor(playerById(game.state, seat.playerId)?.persona);
     if (decision.kind === 'endTurn') {
       if (result.ok) {
         seat.accepted += 1;
@@ -149,7 +169,7 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
         // blocker that refused this. One more pass of the asking loop is the
         // answer — a bounded number of times.
         seat.attempt += 1;
-        if (seat.attempt >= Math.max(1, AI.driver.endTurnAttempts)) {
+        if (seat.attempt >= Math.max(1, ai.driver.endTurnAttempts)) {
           warn(`[ai] seat ${seat.playerId}: could not end its turn — ${result.error}`);
           seat.finished = true;
         } else {
@@ -158,7 +178,7 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
       }
     } else if (result.ok) {
       seat.accepted += 1;
-    } else if (decision.command.type === 'chooseGreatPerson' && seat.redraws < AI.driver.greatPersonRedraws) {
+    } else if (decision.command.type === 'chooseGreatPerson' && seat.redraws < ai.driver.greatPersonRedraws) {
       // The one refusal that is not a bug: a hand another seat has emptied is
       // refused *and redrawn*, so asking again asks about a new hand.
       seat.redraws += 1;

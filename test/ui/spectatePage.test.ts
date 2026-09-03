@@ -100,6 +100,14 @@ describe('the page never plays the game itself', () => {
     for (const banned of ["from '../ai/value'", "from '../ai/aiConfig'", "from '../ai/bot'"]) {
       expect(text).not.toContain(banned);
     }
+    // A **persona** is the exception that proves the rule, and it is not one: a
+    // name is a roster entry, not a weight. The names come through the stepper
+    // (which the page already speaks to about bots), and no number behind them
+    // is ever reachable from here — nothing on this page reads `weights`,
+    // `score`, `solvency` or any other block of the sheet.
+    for (const knob of ['weights', 'solvency', 'aiConfigFor', 'yieldWeight']) {
+      expect(text).not.toContain(knob);
+    }
     // The one sort it does is a declared reading order, and it comes from the
     // vocabulary module rather than being written here.
     expect(text).toContain('rankedCandidates');
@@ -129,5 +137,18 @@ describe('the feed prints the decision rather than a paraphrase of it', () => {
     expect(html).toContain('id="next-action"');
     expect(html).toContain('id="play-turn"');
     expect(code(main)).toContain('turnResolved');
+  });
+
+  it('seats a persona, and writes balanced as no key at all', () => {
+    // The tuning surface the user actually turns: a way of playing, chosen on
+    // the setup strip and carried into the game's config so a seed and a persona
+    // reproduce the same spectacle.
+    expect(html).toContain('id="persona"');
+    const text = code(main);
+    expect(text).toContain('PERSONA_IDS');
+    expect(text).toContain('personaLabel');
+    // Balanced leaves no key behind, which is what keeps a default game's config
+    // byte-identical to one from before personas existed.
+    expect(text).toContain('DEFAULT_PERSONA');
   });
 });

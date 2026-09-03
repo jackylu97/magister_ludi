@@ -44,6 +44,7 @@ import { hashSeed } from './sim/rng';
 import { RULES } from './sim/rulesData';
 import { type Game, createGame, dispatch } from './sim/game';
 import { driveBots } from './ai/driver';
+import { DEFAULT_PERSONA, PERSONA_IDS, personaLabel } from './ai/stepper';
 import {
   type GameConfig,
   type GameState,
@@ -196,6 +197,8 @@ createStaleDeployNotice();
 const seedInput = requireElement<HTMLInputElement>('seed');
 const sizeSelect = requireElement<HTMLSelectElement>('size');
 const seatsSelect = requireElement<HTMLSelectElement>('seats');
+const personaSelect = requireElement<HTMLSelectElement>('bot-persona');
+const personaRow = requireElement<HTMLElement>('persona-row');
 const randomSeedButton = requireElement<HTMLButtonElement>('random-seed');
 const endTurnButton = requireElement<HTMLButtonElement>('end-turn');
 const endTurnLabelEl = requireElement<HTMLElement>('end-turn-label');
@@ -465,6 +468,35 @@ for (const mode of SEAT_MODES) {
 seatsSelect.value = DEFAULT_SEAT_MODE;
 
 /**
+ * **How the seat nobody is sitting in plays.**
+ *
+ * The names come off `data/ai.json`'s own persona sheet (through `stepper.ts`,
+ * which is the module this file already speaks to about bots), so a fifth
+ * persona appears in the dropdown the day it appears in the data and no string
+ * is spelled twice.
+ *
+ * It is `PlayerSpec.persona`, which is **config**: it rides into the save with
+ * the roster, so a game reloaded a year from now is played by the opponent it
+ * was started against. Balanced is written as *no key at all*, so the default
+ * game's config is byte-identical to one from before personas existed — the
+ * same bargain `charge` makes.
+ */
+for (const id of PERSONA_IDS) {
+  const option = document.createElement('option');
+  option.value = id;
+  option.textContent = personaLabel(id);
+  personaSelect.append(option);
+}
+personaSelect.value = DEFAULT_PERSONA;
+
+/** The picker is only a question in the modes that actually seat a bot. */
+function refreshPersonaRow(): void {
+  personaRow.hidden = rosterFor(seatsSelect.value).every((spec) => spec.isHuman === true);
+}
+seatsSelect.addEventListener('change', () => refreshPersonaRow());
+refreshPersonaRow();
+
+/**
  * The roster one mode seats.
  *
  * Seat 0 is always Crimson and always the person at the keyboard, so a bot game
@@ -475,7 +507,12 @@ seatsSelect.value = DEFAULT_SEAT_MODE;
 function rosterFor(mode: string): PlayerSpec[] {
   if (mode === 'solo') return PLAYERS.slice(0, 1);
   if (mode === 'sandbox') return PLAYERS.slice(0, PLAYERS.length);
-  return [PLAYERS[0]!, { ...PLAYERS[1]!, isHuman: false }];
+  const rival: PlayerSpec = { ...PLAYERS[1]!, isHuman: false };
+  // Written only when it is not the default, exactly as `normalizeConfig`
+  // writes a charge: a balanced opponent leaves no key behind.
+  const persona = personaSelect.value;
+  if (persona !== DEFAULT_PERSONA) rival.persona = persona;
+  return [PLAYERS[0]!, rival];
 }
 
 // --- the HUD's transient cards ---------------------------------------------

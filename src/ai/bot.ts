@@ -38,14 +38,25 @@
  *     treasury by t160 — is the whole reason this clause exists; `goldPressure`
  *     is the soft half of the answer, `maintenanceAffordable` and
  *     `disbandCommand` the hard halves.
- *   · **Peaceful toward real players — but not blind.** It hunts the wild,
- *     garrisons its towns and never once attacks another nation's unit or city.
- *     It does *defend* against one: a rival's column standing near a town raises
- *     the threat term like a raider's would (`threatLevel`), because declining
- *     to notice an army is not diplomacy, it is negligence. There is no
- *     diplomacy state in this game yet, so a bot that attacked would be a bot
- *     declaring a war nobody could end. The successor is diplomacy state, and
- *     the whole military branch is written to grow into it.
+ *   · **Peaceful toward real players by default, and hostile only when a seat
+ *     says so.** At `military.aggression` 0 — which is every persona but one —
+ *     it hunts the wild, garrisons its towns and never once attacks another
+ *     nation's unit or city. It does *defend* against one: a rival's column
+ *     standing near a town raises the threat term like a raider's would
+ *     (`threatLevel`), because declining to notice an army is not diplomacy, it
+ *     is negligence. Above zero, the warmonger's arm wakes: soldiers hunt a
+ *     rival's pieces and push at their towns inside `military.huntRadius`, at
+ *     exchanges loosened by the appetite (`favourableBlow`, `warMarch`). There
+ *     is still no diplomacy state in this game, so that seat is declaring a war
+ *     nobody can end — which is why it is a *chosen* persona rather than the
+ *     default, and why the whole military branch is still written to grow into
+ *     diplomacy when it arrives.
+ *   · **One seat, one sheet.** Every tuned number is read through
+ *     `aiConfigFor(player.persona)` (`aiFor`, and `ValueContext.ai` for every
+ *     appraisal), never off a module global — so two seats with two personas
+ *     appraise differently *in the same turn*. A persona is config, rides in the
+ *     save, and drives the bot rather than the reducer, so an old log replays
+ *     without one.
  *
  * It never reimplements a rule
  * ----------------------------
@@ -65,7 +76,7 @@
  * and nothing else.
  */
 
-import { AI } from './aiConfig';
+import { AI, type AiConfig, aiConfigFor } from './aiConfig';
 import {
   type Appraisal,
   type BotCandidate,
@@ -76,10 +87,19 @@ import {
   nest,
 } from './decision';
 import {
+  type ImprovementPlan,
+  buildImprovementPlan,
+  explainWorkerCraving,
+  rankPlanFor,
+  rankWorkSites,
+} from './plan';
+import {
   type ValueContext,
+  type YieldBag,
   costOfUpkeep,
   explainBuildingRow,
   explainEffects,
+  explainLump,
   explainProjectRow,
   explainSoldier,
   explainUpkeepCost,
@@ -103,6 +123,7 @@ import {
 } from '../sim/state';
 import type { City, GameState, Player, Unit } from '../sim/state';
 import {
+  assignableTiles,
   cityQuote,
   cityYields,
   empirePercents,
@@ -111,18 +132,30 @@ import {
   foldTileYield,
   foundingError,
   foundingErrorAt,
+  tileContextAt,
   tileOwnerPlayerId,
+  tileYieldOf,
   turnsToBuild,
+  yieldScore,
 } from '../sim/cities';
 import { fortifyError, previewCombat } from '../sim/combat';
 import type { Command } from '../sim/commands';
 import { disbandError } from '../sim/commands';
 import { explainEmpireGold } from '../sim/empireGold';
 import { autoExploreError, exploreTarget } from '../sim/explore';
-import { greatPersonChoiceError } from '../sim/greatPeople';
+import {
+  agedActFactor,
+  familyOf,
+  greatPersonActError,
+  greatPersonChoiceError,
+  greatPersonWorkError,
+  workOf,
+} from '../sim/greatPeople';
 import { improvementError, improvementErrorAt, prospectError } from '../sim/improvements';
-import { type ImprovementId, isImprovementId, workForFamily } from '../sim/improvementData';
+import { type ImprovementId, workForFamily } from '../sim/improvementData';
 import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim/map';
+import { RULES } from '../sim/rulesData';
+import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
 import { authorityOf } from '../sim/meters';
 import { findPath } from '../sim/pathfind';
 import { PROJECT_IDS } from '../sim/projectData';
@@ -170,17 +203,30 @@ export { type AiConfig } from './aiConfig';
 export { AI };
 export type { BotCandidate, BotDecision, BotDecisionKind, ValueTerm } from './decision';
 
-/** The improvements a worker will lay, in preference order. */
-const WORK_ORDER: ImprovementId[] = AI.workers.improvements.filter((id): id is ImprovementId =>
-  isImprovementId(id),
-);
+/**
+ * **The seat's own tuning sheet.**
+ *
+ * A persona (`PlayerSpec.persona`, riding in the save's config) is a sparse
+ * override of the whole configuration, merged and memoised by `aiConfigFor`. It
+ * is asked *per seat* rather than swapped into a global for the reason two
+ * personas exist at all: two seats appraise in the same turn, and a global would
+ * make a decision a function of whichever seat asked last.
+ *
+ * Every function below that has an opinion reads this, and every appraisal reads
+ * `ValueContext.ai`, which is this. There is no other door to a tuned number.
+ */
+function aiFor(player: Player): AiConfig {
+  return aiConfigFor(player.persona);
+}
 
 /**
- * Four appraisals are exported for the tests and for nothing else: they are the
- * *decisions* this pass added, and every one of them is a pure function whose
- * behaviour a played game can only demonstrate statistically. `valueContext`,
- * `bestTechGoal`, `scoreCard` and `chooseProduction` are pinned directly in
- * `test/sim/aiBot.test.ts`; nothing in `src/` calls them from outside this file.
+ * A handful of appraisals are exported for the tests and for nothing else: they
+ * are the *decisions* each pass added, and every one of them is a pure function
+ * whose behaviour a played game can only demonstrate statistically.
+ * `valueContext`, `bestTechGoal`, `scoreCard`, `chooseProduction`,
+ * `explainCitizen`, `explainNextTown` and `isPatientRow` are pinned directly in
+ * `test/sim/aiBot.test.ts` and `test/sim/aiPersona.test.ts`; nothing in `src/`
+ * calls them from outside this file.
  */
 
 // --- the appraisal's context ------------------------------------------------
@@ -198,10 +244,14 @@ const WORK_ORDER: ImprovementId[] = AI.workers.improvements.filter((id): id is I
  * has moved past.
  */
 export function valueContext(state: GameState, player: Player): ValueContext {
+  const ai = aiFor(player);
+  const pressure = goldPressure(state, player);
   return {
+    ai,
     age: highestAge(player.techsResearched),
-    cities: Math.min(AI.score.cityCap, countCities(state, player.id)),
-    goldPressure: goldPressure(state, player),
+    cities: Math.min(ai.score.cityCap, countCities(state, player.id)),
+    goldPressure: pressure.value,
+    pressureNote: pressure.note,
     threat: threatLevel(state, player),
     // A god held and no religion founded: the one window in which the road to a
     // prophet is the most valuable thing on the chart. It closes itself.
@@ -256,16 +306,41 @@ function upkeepBill(state: GameState, playerId: number): number {
  * The ramp is linear over `solvency.strainSpan` below `healthyIncome`, and an
  * empire actually in arrears is pinned at full aversion however its income
  * reads — a treasury below the floor is not a trade-off, it is a fact.
+ *
+ * **The opening grace.** A fresh empire has one town, no market, no caravan and
+ * no roads to maintain: its net gold reads as a deficit because *nothing has
+ * been built yet*, not because anything is wrong, and the ramp pinned every seat
+ * at full aversion by turn six of every game — twenty turns of a bot appraising
+ * like a bankrupt. So while the treasury is at or above `solvency.graceTreasury`
+ * **and** the game is younger than `solvency.graceTurns` **and** the books are
+ * not actually falling, the pressure is 1.
+ *
+ * "Not actually falling" is read off the one cheap trajectory the bot honestly
+ * has: `netGoldPerTurn ≥ 0`. A bot has no memory between calls (the creed's
+ * first clause) and cannot difference the treasury across turns without one, so
+ * a *rate* is the reading — and it is the right one anyway, because a
+ * non-negative rate is exactly the statement "the treasury is not falling".
+ *
+ * It answers a **note beside the number** rather than a bare number, so the feed
+ * can print a 1 that was decided rather than merely arrived at. The note changes
+ * no fold: it is a label.
  */
-function goldPressure(state: GameState, player: Player): number {
-  const { healthyIncome, strainSpan, arrearsTreasury } = AI.solvency;
-  const aversion = Math.max(1, AI.weights.debtAversion);
-  if (player.gold < arrearsTreasury) return aversion;
+function goldPressure(state: GameState, player: Player): { value: number; note: string } {
+  const ai = aiFor(player);
+  const { healthyIncome, strainSpan, arrearsTreasury, graceTreasury, graceTurns } = ai.solvency;
+  const aversion = Math.max(1, ai.weights.debtAversion);
+  if (player.gold < arrearsTreasury) return { value: aversion, note: '' };
   const net = netGoldPerTurn(state, player.id);
-  if (net >= healthyIncome) return 1;
+  if (net >= healthyIncome) return { value: 1, note: '' };
+  if (player.gold >= graceTreasury && state.turn < graceTurns && net >= 0) {
+    return {
+      value: 1,
+      note: `early grace: ${player.gold} in hand at turn ${state.turn}, and the books are not falling`,
+    };
+  }
   const span = Math.max(1, strainSpan);
   const strain = Math.min(1, (healthyIncome - net) / span);
-  return 1 + (aversion - 1) * strain;
+  return { value: 1 + (aversion - 1) * strain, note: '' };
 }
 
 /**
@@ -284,7 +359,7 @@ function goldPressure(state: GameState, player: Player): number {
  * `chooseProduction`).
  */
 function maintenanceAffordable(state: GameState, player: Player): boolean {
-  return netGoldPerTurn(state, player.id) >= AI.solvency.stopMaintainedBelow;
+  return netGoldPerTurn(state, player.id) >= aiFor(player).solvency.stopMaintainedBelow;
 }
 
 /**
@@ -297,9 +372,10 @@ function maintenanceAffordable(state: GameState, player: Player): boolean {
  * `solvency.reserveTurnsOfUpkeep` turns of the real maintenance bill, so cover
  * grows with what there is to cover.
  */
-function goldReserveFor(state: GameState, playerId: number): number {
-  const turns = Math.max(0, AI.solvency.reserveTurnsOfUpkeep);
-  return AI.spending.goldReserve + Math.floor(turns * upkeepBill(state, playerId));
+function goldReserveFor(state: GameState, player: Player): number {
+  const ai = aiFor(player);
+  const turns = Math.max(0, ai.solvency.reserveTurnsOfUpkeep);
+  return ai.spending.goldReserve + Math.floor(turns * upkeepBill(state, player.id));
 }
 
 /**
@@ -317,14 +393,15 @@ function goldReserveFor(state: GameState, playerId: number): number {
  * up to its capital and started a library.
  */
 function threatLevel(state: GameState, player: Player): number {
+  const ai = aiFor(player);
   let threats = 0;
   for (const unit of state.units) {
     if (unit.ownerId === player.id) continue;
     if (!isCombatant(unitDef(unit.type))) continue;
-    if (nearOwnCity(state, player, unit.col, unit.row) === null) continue;
+    if (nearOwnCity(state, player, unit.col, unit.row, ai.threat.radius) === null) continue;
     threats += 1;
   }
-  return Math.min(AI.score.cityCap, threats);
+  return Math.min(ai.score.cityCap, threats);
 }
 
 /**
@@ -335,13 +412,17 @@ function threatLevel(state: GameState, player: Player): number {
  * are the same fact read twice. The two ask it at different reaches — a raider
  * inside `threat.radius` is an emergency, a camp inside `military.campHuntRadius`
  * is an errand — so the reach is the caller's and the *question* is shared.
+ *
+ * The reach is a required parameter rather than a default now that it is a
+ * *seat's* number: a default read off a module global would be the balanced
+ * seat's radius applied to a warmonger's question.
  */
 function nearOwnCity(
   state: GameState,
   player: Player,
   col: number,
   row: number,
-  within: number = AI.threat.radius,
+  within: number,
 ): { city: City; distance: number } | null {
   const from = getTileAt(state.map, col, row);
   if (!from) return null;
@@ -804,8 +885,8 @@ export function explainCard(player: Player, id: CardId, ctx: ValueContext) {
   if (line !== undefined) {
     const held = heldOnLine(player, line);
     terms.push({
-      label: `${held} card${held === 1 ? '' : 's'} already held on the ${line} thread × ${AI.score.synergyBonus}`,
-      value: AI.score.synergyBonus * held,
+      label: `${held} card${held === 1 ? '' : 's'} already held on the ${line} thread × ${ctx.ai.score.synergyBonus}`,
+      value: ctx.ai.score.synergyBonus * held,
     });
   }
   return appraise(terms);
@@ -880,9 +961,10 @@ function heldOnLine(player: Player, line: CardLine): number {
  * twice.
  */
 function disbandCommand(state: GameState, player: Player): BotDecision | null {
-  if (player.gold >= AI.solvency.arrearsTreasury) return null;
-  if (netGoldPerTurn(state, player.id) >= AI.solvency.disbandBelowIncome) return null;
-  if (countSoldiers(state, player.id) <= Math.max(0, AI.solvency.minArmy)) return null;
+  const ai = aiFor(player);
+  if (player.gold >= ai.solvency.arrearsTreasury) return null;
+  if (netGoldPerTurn(state, player.id) >= ai.solvency.disbandBelowIncome) return null;
+  if (countSoldiers(state, player.id) <= Math.max(0, ai.solvency.minArmy)) return null;
 
   const candidates: BotCandidate[] = [];
   let worst: Unit | null = null;
@@ -953,7 +1035,7 @@ function isRedundant(state: GameState, player: Player, unit: Unit): boolean {
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
     if (city.col !== unit.col || city.row !== unit.row) continue;
-    if (garrisonAt(state, player.id, city) - 1 < AI.military.garrisonPerCity) return false;
+    if (garrisonAt(state, player.id, city) - 1 < aiFor(player).military.garrisonPerCity) return false;
     if (cityIsThreatened(state, player, city)) return false;
   }
   return true;
@@ -969,7 +1051,7 @@ function cityIsThreatened(state: GameState, player: Player, city: City): boolean
     if (!isCombatant(unitDef(unit.type))) continue;
     const at = getTileAt(state.map, unit.col, unit.row);
     if (!at) continue;
-    if (wrappedDistance(state.map, here, tileHex(at)) <= AI.threat.radius) return true;
+    if (wrappedDistance(state.map, here, tileHex(at)) <= aiFor(player).threat.radius) return true;
   }
   return false;
 }
@@ -1098,6 +1180,7 @@ function techGoalTable(
   player: Player,
 ): { goal: TechId | null; candidates: BotCandidate[] } {
   const ctx = valueContext(state, player);
+  const ai = ctx.ai;
   const candidates: BotCandidate[] = [];
   let best: TechId | null = null;
   let bestScore = -Infinity;
@@ -1106,17 +1189,17 @@ function techGoalTable(
     if (player.techsResearched.includes(id)) continue;
     const road = researchExpansion(state, player.id, id);
     if (road.length === 0) continue;
-    if (road.length > AI.research.goalHorizon) {
+    if (road.length > ai.research.goalHorizon) {
       // Not a rejection by the rules — a rejection by this bot's own horizon,
       // which is the difference between a beeline and a hundred-turn ambition.
       candidates.push(
-        refused(techDef(id).name, `${road.length} nodes away; the beeline looks ${AI.research.goalHorizon} ahead`),
+        refused(techDef(id).name, `${road.length} nodes away; the beeline looks ${ai.research.goalHorizon} ahead`),
       );
       continue;
     }
     let beakers = 0;
     for (const step of road) beakers += techDef(step).cost;
-    const denominator = beakers / Math.max(1, AI.research.costDivisor) + 1;
+    const denominator = beakers / Math.max(1, ai.research.costDivisor) + 1;
     const gifts = explainTechGifts(id, ctx);
     const candidate: BotCandidate = {
       label: techDef(id).name,
@@ -1124,9 +1207,9 @@ function techGoalTable(
       chosen: false,
       terms: [
         nest('what the node unlocks', gifts),
-        { label: 'holding one more technology', value: AI.weights.tech },
+        { label: 'holding one more technology', value: ai.weights.tech },
         {
-          label: `÷ ${beakers} beakers over ${road.length} node${road.length === 1 ? '' : 's'} (${beakers} ÷ ${AI.research.costDivisor} + 1)`,
+          label: `÷ ${beakers} beakers over ${road.length} node${road.length === 1 ? '' : 's'} (${beakers} ÷ ${ai.research.costDivisor} + 1)`,
           value: denominator,
           op: 'div',
         },
@@ -1174,6 +1257,7 @@ function techGoalTable(
  * yields is the honest cheap reading, and it is the same weights either way.
  */
 function explainTechGifts(id: TechId, ctx: ValueContext) {
+  const ai = ctx.ai;
   const unlocks = techDef(id).unlocks;
   const terms: ValueTerm[] = [];
   for (const unit of unlocks.units ?? []) {
@@ -1181,7 +1265,7 @@ function explainTechGifts(id: TechId, ctx: ValueContext) {
     if (isCombatant(def) && !isExplorer(def)) {
       // The threat swing (addendum 1): a spear is worth several libraries while
       // there is a column beside the capital, and one library when there is not.
-      const factor = ctx.threat > 0 ? Math.max(1, AI.threat.techMilitaryFactor) : 1;
+      const factor = ctx.threat > 0 ? Math.max(1, ai.threat.techMilitaryFactor) : 1;
       const soldier = explainSoldier(unit, ctx).terms;
       if (factor !== 1) soldier.push({ label: `× ${factor} (a column is near a town)`, value: factor, op: 'mul' });
       terms.push({
@@ -1190,9 +1274,9 @@ function explainTechGifts(id: TechId, ctx: ValueContext) {
         parts: soldier,
       });
     } else if (def.foundsCity) {
-      terms.push({ label: `${def.name} — one more town`, value: AI.weights.city });
+      terms.push({ label: `${def.name} — one more town`, value: ai.weights.city });
     } else if (trades(def)) {
-      terms.push({ label: `${def.name} — a caravan`, value: AI.weights.trader });
+      terms.push({ label: `${def.name} — a caravan`, value: ai.weights.trader });
     } else if (def.prophesies === true) {
       // **The appetite's beeline** (design addendum 5). A seat that has
       // consecrated a god and founded no faith wants this door open above almost
@@ -1203,10 +1287,10 @@ function explainTechGifts(id: TechId, ctx: ValueContext) {
         label:
           `${def.name} — the door to a religion` +
           (ctx.faithAppetite > 0 ? ' (this empire holds a god and has founded no faith)' : ''),
-        value: AI.weights.worker + AI.religion.prophetTechValue * ctx.faithAppetite,
+        value: ai.weights.worker + ai.religion.prophetTechValue * ctx.faithAppetite,
       });
     } else {
-      terms.push({ label: `${def.name} — a civilian`, value: AI.weights.worker });
+      terms.push({ label: `${def.name} — a civilian`, value: ai.weights.worker });
     }
   }
   for (const building of unlocks.buildings ?? []) {
@@ -1230,8 +1314,8 @@ function explainTechGifts(id: TechId, ctx: ValueContext) {
   }
   const projects = (unlocks.projects ?? []).length;
   const abilities = (unlocks.abilities ?? []).length;
-  terms.push({ label: `${projects} conversion project${projects === 1 ? '' : 's'}`, value: projects * AI.research.projectValue });
-  terms.push({ label: `${abilities} ability${abilities === 1 ? '' : 'ies'}`, value: abilities * AI.research.abilityValue });
+  terms.push({ label: `${projects} conversion project${projects === 1 ? '' : 's'}`, value: projects * ai.research.projectValue });
+  terms.push({ label: `${abilities} ability${abilities === 1 ? '' : 'ies'}`, value: abilities * ai.research.abilityValue });
   return appraise(terms);
 }
 
@@ -1279,7 +1363,8 @@ function spendCommand(state: GameState, player: Player): BotDecision | null {
  * press per command like every other arm.
  */
 function contributionCommand(state: GameState, player: Player): BotDecision | null {
-  const spend = AI.spending;
+  const ai = aiFor(player);
+  const spend = ai.spending;
   for (const currency of ['gold', 'faith'] as const) {
     const above = currency === 'gold' ? spend.goldSpendAbove : spend.faithSpendAbove;
     for (const city of state.cities) {
@@ -1298,7 +1383,7 @@ function contributionCommand(state: GameState, player: Player): BotDecision | nu
           ? spend.faithReserve
           : frontRowEndsTheGame(city)
             ? spend.goldReserve
-            : goldReserveFor(state, player.id);
+            : goldReserveFor(state, player);
       if (bankOf(player, currency) <= above + reserve) continue;
       if (bankOf(player, currency) - offer.spend < reserve) continue;
       return {
@@ -1355,8 +1440,9 @@ function hasFoundedReligion(state: GameState, playerId: number): boolean {
  * libraries, which is the same order the queue builds them in.
  */
 function goldPurchase(state: GameState, player: Player): BotDecision | null {
-  const spend = AI.spending;
-  if (player.gold <= spend.goldSpendAbove + goldReserveFor(state, player.id)) return null;
+  const ai = aiFor(player);
+  const spend = ai.spending;
+  if (player.gold <= spend.goldSpendAbove + goldReserveFor(state, player)) return null;
 
   // **The hard floor reaches the purse too** (design ledger Entry LIX, finding
   // 1). Buying a library outright is exactly as ruinous as building one — the
@@ -1409,7 +1495,7 @@ function goldPurchase(state: GameState, player: Player): BotDecision | null {
       subject: taken.name,
       summary:
         `Buys ${def.name} at ${taken.name} for ${price?.total ?? '?'} gold — the best-scoring row the purse can ` +
-        `reach with ${player.gold} in hand and ${goldReserveFor(state, player.id)} kept back.`,
+        `reach with ${player.gold} in hand and ${goldReserveFor(state, player)} kept back.`,
       candidates,
       focus: { col: taken.col, row: taken.row },
     };
@@ -1420,7 +1506,7 @@ function goldPurchase(state: GameState, player: Player): BotDecision | null {
   // simply skipped rather than fought with.
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
-    if (garrisonAt(state, player.id, city) >= AI.military.garrisonPerCity) continue;
+    if (garrisonAt(state, player.id, city) >= ai.military.garrisonPerCity) continue;
     const soldier = bestPurchasableSoldier(state, player, city);
     if (soldier === null) continue;
     const def = unitDef(soldier);
@@ -1460,7 +1546,8 @@ function goldPurchase(state: GameState, player: Player): BotDecision | null {
  * order puts the cheap one first.
  */
 function faithPurchase(state: GameState, player: Player): BotDecision | null {
-  const spend = AI.spending;
+  const ai = aiFor(player);
+  const spend = ai.spending;
   const noPantheon = player.pantheon.beliefs.length === 0;
   const unfounded = !hasFoundedReligion(state, player.id);
   const candidates: BotCandidate[] = [];
@@ -1492,10 +1579,10 @@ function faithPurchase(state: GameState, player: Player): BotDecision | null {
     // `spending.faithSpendAbove` applies again.
     let above = spend.faithSpendAbove;
     if (def.consecrates === true && noPantheon) {
-      above = Math.min(above, AI.religion.pantheonSpendAbove);
+      above = Math.min(above, ai.religion.pantheonSpendAbove);
     }
     if (def.prophesies === true && unfounded) {
-      above = Math.min(above, AI.religion.prophetSpendAbove);
+      above = Math.min(above, ai.religion.prophetSpendAbove);
     }
     if (player.faithPool <= above + spend.faithReserve) {
       candidates.push(
@@ -1614,7 +1701,7 @@ function affordable(
   const price = explainPurchaseCost(state, player.id, city.id, item, currency);
   if (price === null) return false;
   const reserve =
-    currency === 'gold' ? goldReserveFor(state, player.id) : AI.spending.faithReserve;
+    currency === 'gold' ? goldReserveFor(state, player) : aiFor(player).spending.faithReserve;
   return bankOf(player, currency) - price.total >= reserve;
 }
 
@@ -1740,7 +1827,11 @@ function productionTable(
   city: City,
 ): { best: QueueItem | null; candidates: BotCandidate[] } {
   const ctx = valueContext(state, player);
-  const candidates = buildCandidates(state, player, city, ctx);
+  // The improvement plan, hoisted for this decision exactly as the context is:
+  // the worker candidate reads it, and it walks every owned hex against every
+  // improvement on the roster once rather than once per candidate.
+  const plan = buildImprovementPlan(state, player, ctx);
+  const candidates = buildCandidates(state, player, city, ctx, plan);
   if (candidates.length === 0) return { best: null, candidates: [] };
 
   const maintained = maintenanceAffordable(state, player);
@@ -1806,6 +1897,7 @@ function buildCandidates(
   player: Player,
   city: City,
   ctx: ValueContext,
+  plan: ImprovementPlan,
 ): BuildCandidate[] {
   const candidates: BuildCandidate[] = [];
   // The empire's half of every town's percentages, taken **once** for the whole
@@ -1828,7 +1920,7 @@ function buildCandidates(
 
   for (const id of UNIT_TYPE_IDS) {
     if (!canQueueUnit(state, player, city, id)) continue;
-    const role = unitRoleValue(state, player, city, id, ctx);
+    const role = unitRoleValue(state, player, city, id, ctx, plan);
     if (role === null) continue;
     push(candidates, state, city, { kind: 'unit', id }, role.value, unitUpkeep(id), role.essential, ctx, role.terms);
   }
@@ -1854,18 +1946,29 @@ function push(
   ctx: ValueContext,
   valueTerms: ValueTerm[],
 ): void {
+  const ai = ctx.ai;
   // `null` is "this town will never finish it" — no production at all — and a
   // candidate that never finishes has no score, not a bad one.
   const turns = turnsToBuild(state, city, item, 0);
   if (turns === null) return;
-  const effort = Math.max(1, Math.min(AI.score.maxTurns, turns));
+  const capped = Math.max(1, Math.min(ai.score.maxTurns, turns));
+  // **Wonder patience.** See `isPatientRow`: a row there is only one of is
+  // amortised over at most `score.patienceTurns`, because dividing a
+  // hundred-and-nine-point capstone by thirty-two turns is how the endgame rows
+  // came to lose to an eighty-point worker over six, every time, for ever.
+  const patient = isPatientRow(item);
+  const effort = patient ? Math.min(capped, Math.max(1, ai.score.patienceTurns)) : capped;
   const terms: ValueTerm[] = [
     ...valueTerms,
     nest('its standing maintenance', explainUpkeepCost(upkeep, ctx), 'sub'),
     {
       label:
         `÷ ${effort} turn${effort === 1 ? '' : 's'} of build effort` +
-        (turns > effort ? ` (${turns} turns, capped at ${AI.score.maxTurns})` : ''),
+        (patient && effort < capped
+          ? ` (patience: there is only one of it, so ${capped} turns is read as ${effort})`
+          : turns > effort
+            ? ` (${turns} turns, capped at ${ai.score.maxTurns})`
+            : ''),
       value: effort,
       op: 'div',
     },
@@ -1881,12 +1984,19 @@ function push(
  * charges, trades, fights — never on a type name, which is the discipline
  * `src/sim/` keeps and a reader of the same tables has no business breaking.
  *
- * A **settler** is a town minus the citizen it costs, which is the trade
- * honestly stated. A **worker** and a **caravan** are flat figures in the
- * weights, and the caravan's is multiplied by the gold pressure: a broke empire
- * builds trade, which is the one production decision that answers a deficit
- * directly. A **soldier** carries `essential` when its town is standing empty,
- * which is the one candidate the solvency floor may never filter away.
+ * A **settler** is a town, worth less for every town already held
+ * (`expansion.cityValueFalloff`), minus the citizen it costs — and a citizen is
+ * no longer a flat number either (`explainCitizen`). Those two changes are what
+ * make "wide" and "tall" real preferences rather than two settings of a cap.
+ *
+ * A **worker** is no longer flat: it is worth the ground its town actually has
+ * waiting for a spade (`explainWorkerCraving` over the improvement plan), so a
+ * capital ringed by unploughed wheat wants workers and a town whose every hex is
+ * finished stops. A **caravan** is still a flat figure multiplied by the gold
+ * pressure: a broke empire builds trade, which is the one production decision
+ * that answers a deficit directly. A **soldier** carries `essential` when its
+ * town is standing empty, which is the one candidate the solvency floor may
+ * never filter away.
  */
 function unitRoleValue(
   state: GameState,
@@ -1894,44 +2004,52 @@ function unitRoleValue(
   city: City,
   id: UnitTypeId,
   ctx: ValueContext,
+  plan: ImprovementPlan,
 ): { value: number; essential: boolean; terms: ValueTerm[] } | null {
+  const ai = ctx.ai;
   const def = unitDef(id);
 
   if (def.foundsCity === true) {
-    if (city.population < AI.expansion.settlerCityPop) return null;
-    if (authorityOf(state, player.id) < AI.expansion.settlerAuthorityFloor) return null;
-    if (countOwnedAndQueued(state, player.id, id) >= AI.expansion.settlerCap) return null;
+    if (city.population < ai.expansion.settlerCityPop) return null;
+    if (authorityOf(state, player.id) < ai.expansion.settlerAuthorityFloor) return null;
+    if (countOwnedAndQueued(state, player.id, id) >= ai.expansion.settlerCap) return null;
+    const town = explainNextTown(state, player, ctx);
+    const citizen = explainCitizen(state, city, ctx);
     return {
-      value: AI.weights.city - AI.weights.citizen,
+      value: town.total - citizen.total,
       essential: false,
       terms: [
-        { label: 'one more town', value: AI.weights.city },
-        { label: 'the citizen it costs this town', value: AI.weights.citizen, op: 'sub' },
+        nest('one more town', town),
+        nest('the citizen it costs this town', citizen, 'sub'),
       ],
     };
   }
 
   if (isPlainBuilder(def)) {
     const towns = countCities(state, player.id);
-    const wanted = Math.min(AI.workers.cap, Math.floor(towns * AI.workers.perCity));
+    // **The cap is a safety, not the policy.** It says "this empire will not
+    // keep nine spades whatever the ground looks like"; what it no longer does
+    // is decide how badly a town wants the first one.
+    const wanted = Math.min(ai.workers.cap, Math.floor(towns * ai.workers.perCity));
     if (countOwnedAndQueued(state, player.id, id) >= wanted) return null;
+    const craving = explainWorkerCraving(plan, state, city, ctx);
     return {
-      value: AI.weights.worker,
+      value: craving.total,
       essential: false,
-      terms: [{ label: 'a worker, flat — the improvements it will lay, priced as one number', value: AI.weights.worker }],
+      terms: [nest('the ground around this town that is waiting for a spade', craving)],
     };
   }
 
   if (trades(def)) {
     if (countCities(state, player.id) < 2) return null;
     const towns = countCities(state, player.id);
-    const wanted = Math.min(AI.trade.traderCap, Math.floor(towns * AI.trade.tradersPerCity));
+    const wanted = Math.min(ai.trade.traderCap, Math.floor(towns * ai.trade.tradersPerCity));
     if (countOwnedAndQueued(state, player.id, id) >= wanted) return null;
     return {
-      value: AI.weights.trader * ctx.goldPressure,
+      value: ai.weights.trader * ctx.goldPressure,
       essential: false,
       terms: [
-        { label: 'a caravan, flat', value: AI.weights.trader },
+        { label: 'a caravan, flat', value: ai.weights.trader },
         { label: `× ${ctx.goldPressure} gold pressure — a broke empire trades`, value: ctx.goldPressure, op: 'mul' },
       ],
     };
@@ -1942,16 +2060,16 @@ function unitRoleValue(
     // that queued one would build a hull it can never use.
     if (def.category === 'naval') return null;
     const held = garrisonAt(state, player.id, city);
-    const empty = held < AI.military.garrisonPerCity;
+    const empty = held < ai.military.garrisonPerCity;
     const wanted =
-      countCities(state, player.id) * AI.military.armyPerCity +
-      ctx.threat * AI.threat.extraArmyPerThreat;
+      countCities(state, player.id) * ai.military.armyPerCity +
+      ctx.threat * ai.threat.extraArmyPerThreat;
     if (!empty && countSoldiers(state, player.id) >= wanted) return null;
     let value = valueOfSoldier(id, ctx);
     const terms: ValueTerm[] = [nest('what this soldier is worth', explainSoldier(id, ctx))];
     if (empty) {
-      value += AI.threat.garrisonValue;
-      terms.push({ label: 'its town is standing empty', value: AI.threat.garrisonValue });
+      value += ai.threat.garrisonValue;
+      terms.push({ label: 'its town is standing empty', value: ai.threat.garrisonValue });
     }
     return { value, essential: empty, terms };
   }
@@ -1961,6 +2079,156 @@ function unitRoleValue(
   // own currency. Anything else the roster grows is worth deciding about before
   // it is queued, so it is not queued.
   return null;
+}
+
+/**
+ * **What the next town is worth to an empire that already holds some.**
+ *
+ * `weights.city × cityValueFalloff^towns`, and the falloff is the honest tall
+ * lever: before it, a settler was a flat eighty-eight points for every empire on
+ * every board, so "tall" could only ever be spelled as a *cap* — which says
+ * *this empire does not want a sixth town at all* rather than *a sixth town is
+ * worth less to this empire than a library*. Those are different sentences and
+ * only the second one is a preference.
+ *
+ * Towns are counted uncapped (not `ctx.cities`, which is clipped at
+ * `score.cityCap` for the "in every town" scalings): the fourth town's discount
+ * has to keep biting at the tenth, or the falloff stops being a curve and
+ * becomes a step.
+ */
+export function explainNextTown(state: GameState, player: Player, ctx: ValueContext): Appraisal {
+  const held = countCities(state, player.id);
+  const falloff = ctx.ai.expansion.cityValueFalloff;
+  const terms: ValueTerm[] = [{ label: 'a town, before what this empire already holds', value: ctx.ai.weights.city }];
+  for (let index = 0; index < held; index++) {
+    terms.push({
+      label: `× ${round1(falloff)} — the ${ordinal(index + 1)} town this empire already holds`,
+      value: falloff,
+      op: 'mul',
+    });
+  }
+  return appraise(terms);
+}
+
+/**
+ * **What one citizen of this town is worth** — the user's ruling, 2026-09-03:
+ * *"a citizen should be valued as a science yield too. Weight a citizen based on
+ * the next potential tile that can be worked, the science that citizen would
+ * produce, alongside a premium (citizens compound over time), so cities with
+ * fewer than some X citizens weight citizens more heavily."*
+ *
+ * Three lines, and each is somebody else's number:
+ *
+ *   · **the ground it would work.** The best hex this town could assign a
+ *     citizen to that nobody is standing on — `assignableTiles` and `yieldScore`
+ *     are the simulation's own seating, so the tile named here is the tile the
+ *     greedy would actually pick — priced through the town's own context and
+ *     weighted like any other yield.
+ *   · **the science it makes by existing.** `RULES.cities.sciencePerPop` plus
+ *     every `sciencePerPop` line the town's buildings carry, which is the real
+ *     per-pop rate `cityYields` bank — never a rate invented here.
+ *   · **the premium**, for a town under `growth.smallCityPop`: citizens
+ *     compound, so the second citizen of a hamlet is worth more than the ninth
+ *     of a metropolis.
+ *
+ * It replaces the flat `weights.citizen`, which was one number for a starving
+ * hamlet on tundra and a metropolis beside three wheat fields.
+ */
+export function explainCitizen(state: GameState, city: City, ctx: ValueContext): Appraisal {
+  const terms: ValueTerm[] = [];
+  const next = nextWorkableTile(state, city);
+  if (next !== null) {
+    terms.push(
+      nest(
+        `the ground it would work — (${next.tile.col},${next.tile.row})`,
+        explainYields(bagOfTileYield(next.yields), ctx),
+      ),
+    );
+  }
+  const perPop = sciencePerPopOf(city);
+  if (perPop > 0) {
+    terms.push(nest('the science it makes by existing', explainYields({ science: perPop }, ctx)));
+  }
+  const { smallCityPop, smallCityPremium } = ctx.ai.growth;
+  if (city.population < smallCityPop) {
+    terms.push({
+      label: `a small town's premium — ${city.population} citizens, under the ${smallCityPop} this seat calls small`,
+      value: smallCityPremium,
+    });
+  }
+  return appraise(terms);
+}
+
+/**
+ * The best hex this town could seat a *new* citizen on, with what it pays.
+ *
+ * Asked of the simulation's own seating — `assignableTiles` is the candidate
+ * list `chooseCitizens` walks and `yieldScore` is the key it sorts by — so the
+ * hex named is the hex the greedy would actually take next. Hexes the town is
+ * already working are skipped, which is what makes this the *next* one.
+ */
+function nextWorkableTile(state: GameState, city: City): { tile: Tile; yields: TileYield } | null {
+  const worked = new Set(city.workedTiles.map((cell) => `${cell.col},${cell.row}`));
+  let best: { tile: Tile; yields: TileYield; score: number } | null = null;
+  for (const tile of assignableTiles(state, city)) {
+    if (worked.has(`${tile.col},${tile.row}`)) continue;
+    const yields = tileYieldOf(tile, tileContextAt(state, city.ownerId, tile));
+    const score = yieldScore(yields);
+    if (best === null || score > best.score) best = { tile, yields, score };
+  }
+  return best === null ? null : { tile: best.tile, yields: best.yields };
+}
+
+/**
+ * The science one more citizen makes in this town, at the simulation's own rate.
+ *
+ * `RULES.cities.sciencePerPop` is the standing rate every citizen pays, and a
+ * building's `sciencePerPop` rides on top of it — the same two sources
+ * `cityYields` folds. Nothing here invents a rate; a library that changed what a
+ * citizen was worth would change it here the same turn it changed it there.
+ */
+function sciencePerPopOf(city: City): number {
+  let rate = RULES.cities.sciencePerPop;
+  for (const id of city.buildings) rate += buildingDef(id).sciencePerPop;
+  return rate;
+}
+
+/** A tile yield as a bag the appraisal weights. The keys are the six voices. */
+function bagOfTileYield(yields: TileYield): YieldBag {
+  const bag: YieldBag = {};
+  for (const key of TILE_YIELD_KEYS) bag[key] = yields[key];
+  return bag;
+}
+
+/**
+ * Is this a row the empire should be **patient** about?
+ *
+ * A row there is only one of — `oncePerEmpire`, or a wonder, which is once per
+ * *world* — or one that carries a bead or the curtain. Read off the row's own
+ * markers, never against a name, which is the discipline `src/sim/` keeps and a
+ * reader of the same tables has no business breaking.
+ *
+ * The reason it exists: the amortiser divides by `turnsToBuild`, and a capstone
+ * takes thirty-two turns where a worker takes six — so a hundred-and-nine-point
+ * wonder scored 3.4 against an eighty-point worker's 13.3 and *never started*,
+ * however much the vector said a bead was worth. Patience says: for the things
+ * there is only one of, read the wait as at most `score.patienceTurns`.
+ */
+export function isPatientRow(item: QueueItem): boolean {
+  if (item.kind !== 'building') return false;
+  const def = buildingDef(item.id);
+  if (def.wonder === true) return true;
+  if (def.oncePerEmpire === true) return true;
+  if (def.endsTheGame === true) return true;
+  return (def.onComplete ?? []).some((grant) => grant.grant === 'bead');
+}
+
+/** "first", "second", … for a term label. Falls back to the figure past three. */
+function ordinal(n: number): string {
+  if (n === 1) return 'first';
+  if (n === 2) return 'second';
+  if (n === 3) return 'third';
+  return `${n}th`;
 }
 
 /**
@@ -2083,12 +2351,8 @@ function unitCommand(state: GameState, player: Player, unitId: number): BotDecis
     if (isPlainBuilder(def)) return workerCommand(state, player, unit);
     if (isExplorer(def)) return scoutCommand(state, player, unit);
     if (isCombatant(def)) return soldierCommand(state, player, unit);
-    // **A great person sleeps**, and that is the v0 deferral said out loud: a
-    // work is a once-per-game hand, and a bot that spent one on the first legal
-    // hex would be worse than one that keeps it. The successor is a valuation of
-    // what a work is worth on a hex, which is the same missing machinery the
-    // drafting heuristic waits on.
-    return standDown(unit, 'A great person is never spent by this bot — a work is a once-per-game hand.');
+    if (def.greatWork === true) return greatPersonCommand(state, player, unit);
+    return standDown(unit, 'Nothing this bot knows how to do with this piece.');
   })();
   if (choice === null) return null;
   const decision: BotDecision = {
@@ -2169,11 +2433,12 @@ function standDown(unit: Unit, why = 'Nothing better to do where it stands.'): U
  * nobody's yet, so there is no owner whose technologies would gate it.
  */
 function settlerCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
+  const ai = aiFor(player);
   const here = getTileAt(state.map, unit.col, unit.row);
   const standing =
     here === undefined
       ? null
-      : { tile: here, appraisal: explainSite(state, here), legal: foundingError(state, unit) };
+      : { tile: here, appraisal: explainSite(state, ai, here), legal: foundingError(state, unit) };
   const foundHere = (why: string): UnitChoice => ({
     command: { type: 'foundCity', playerId: player.id, settlerUnitId: unit.id },
     summary: why,
@@ -2188,10 +2453,10 @@ function settlerCommand(state: GameState, player: Player, unit: Unit): UnitChoic
   });
 
   if (standing !== null && standing.legal === null) {
-    if (standing.appraisal.total >= AI.expansion.siteScoreMin) {
+    if (standing.appraisal.total >= ai.expansion.siteScoreMin) {
       return foundHere(
         `The ground it stands on scores ${round1(standing.appraisal.total)}, over the ` +
-          `${AI.expansion.siteScoreMin} it asks for. Founds here.`,
+          `${ai.expansion.siteScoreMin} it asks for. Founds here.`,
       );
     }
   }
@@ -2202,7 +2467,7 @@ function settlerCommand(state: GameState, player: Player, unit: Unit): UnitChoic
   // sleep and let the next turn's board be a different question.
   if (standing !== null && standing.legal === null) {
     return foundHere(
-      `Nowhere better within ${AI.expansion.siteSearchRadius} hexes it can walk to; founds on ` +
+      `Nowhere better within ${ai.expansion.siteSearchRadius} hexes it can walk to; founds on ` +
         `${round1(standing.appraisal.total)} ground anyway rather than wander.`,
     );
   }
@@ -2216,13 +2481,14 @@ function marchToSite(
   unit: Unit,
   here: Appraisal | null,
 ): UnitChoice | null {
+  const ai = aiFor(player);
   const candidates: { tile: Tile; score: number; distance: number; terms: ValueTerm[] }[] = [];
   const from = tileHex(getTileAt(state.map, unit.col, unit.row) ?? state.map.tiles[0]!);
-  for (const tile of mapRange(state.map, from, AI.expansion.siteSearchRadius)) {
+  for (const tile of mapRange(state.map, from, ai.expansion.siteSearchRadius)) {
     if (tile.col === unit.col && tile.row === unit.row) continue;
     if (foundingErrorAt(state, player.id, tile) !== null) continue;
-    const appraisal = explainSite(state, tile);
-    if (appraisal.total < AI.expansion.siteScoreMin) continue;
+    const appraisal = explainSite(state, ai, tile);
+    if (appraisal.total < ai.expansion.siteScoreMin) continue;
     candidates.push({
       tile,
       score: appraisal.total,
@@ -2233,7 +2499,7 @@ function marchToSite(
   // Best first, nearest on a tie, then map order — all three are facts about the
   // board rather than about the order a loop happened to visit hexes in.
   candidates.sort((a, b) => b.score - a.score || a.distance - b.distance);
-  const probes = candidates.slice(0, AI.search.pathProbes);
+  const probes = candidates.slice(0, ai.search.pathProbes);
   const hereScore = here?.total ?? 0;
   const rows: BotCandidate[] = [
     {
@@ -2260,7 +2526,7 @@ function marchToSite(
       summary:
         `Marches ${candidate.distance} hexes to (${candidate.tile.col},${candidate.tile.row}), which scores ` +
         `${round1(candidate.score)} against ${round1(hereScore)} where it stands. ` +
-        `${candidates.length} legal sites in range; the ${AI.search.pathProbes} best were asked for a route.`,
+        `${candidates.length} legal sites in range; the ${ai.search.pathProbes} best were asked for a route.`,
       candidates: rows,
       focus: { col: candidate.tile.col, row: candidate.tile.row },
     };
@@ -2277,11 +2543,11 @@ function marchToSite(
  * the arithmetic rather than a presentation choice: regrouping the sum would
  * move the last bits and a settler would walk somewhere else.
  */
-function explainSite(state: GameState, tile: Tile) {
+function explainSite(state: GameState, ai: AiConfig, tile: Tile) {
   const ring: ValueTerm[] = [];
-  for (const near of mapRange(state.map, tileHex(tile), AI.site.ringRadius)) {
+  for (const near of mapRange(state.map, tileHex(tile), ai.site.ringRadius)) {
     const yields = foldTileYield(explainTileYield(near));
-    for (const [voice, weight] of Object.entries(AI.site.yieldWeights)) {
+    for (const [voice, weight] of Object.entries(ai.site.yieldWeights) as [string, number][]) {
       const value = (yields as unknown as Record<string, number>)[voice];
       if (typeof value === 'number') {
         ring.push({ label: `(${near.col},${near.row}) ${voice} ${value} × ${weight}`, value: value * weight });
@@ -2291,105 +2557,140 @@ function explainSite(state: GameState, tile: Tile) {
   const terms: ValueTerm[] = [
     { label: `the hex and its ring, weighted`, value: foldOf(ring), parts: ring },
   ];
-  if (hasFreshWater(tile)) terms.push({ label: 'fresh water', value: AI.site.freshWaterBonus });
-  if (isCoastal(state.map, tile)) terms.push({ label: 'a coast', value: AI.site.coastBonus });
+  if (hasFreshWater(tile)) terms.push({ label: 'fresh water', value: ai.site.freshWaterBonus });
+  if (isCoastal(state.map, tile)) terms.push({ label: 'a coast', value: ai.site.coastBonus });
   return appraise(terms);
 }
 
 
 /**
- * A worker improves the ground it is standing on, else walks to ground that
- * wants improving, else sleeps.
+ * **A worker reads the plan.**
  *
- * `improvementError` is the whole gate for the standing case — it asks the
- * unit's charges, its movement, the ground, the seam and the technology — and
- * `improvementErrorAt` is its ground-only half, which is what a search over
- * hexes with no worker on them needs.
+ * The v1 answered two questions with two fixed lists: *what to lay* was the
+ * first row of `ai.workers.improvements` the rules would accept — so a hex that
+ * wanted a mine got a farm whenever a farm was legal — and *where to walk* was
+ * `nearestWorkableTile`, which sorted by distance alone and sent a spade past a
+ * wheat field to reach a nearer patch of tundra.
+ *
+ * Both are one scored table now (`plan.ts`): every legal pairing of a hex and an
+ * improvement, priced by the simulation's own `improvementYieldDelta` through
+ * the **owning town's** context, weighted in the one currency, discounted by the
+ * walk. The piece walks that table and takes the first row the rules will let it
+ * act on — which is the same shape every other arm has, with a real appraisal
+ * where the preference order used to be.
+ *
+ * `improvementError` is still the whole gate for the standing case (charges,
+ * movement, the ground, the seam, the technology); the plan's own gate is
+ * `improvementErrorAt`, its ground-only half, which is what a search over hexes
+ * with no worker on them needs. So a row this arm proposes is a row the reducer
+ * takes.
  */
 function workerCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
-  // **The preference order is the whole appraisal here.** A worker does not
-  // score a farm against a mine: it takes the first improvement on
-  // `ai.workers.improvements` the rules will accept, so the candidate table is
-  // that list with the simulation's own refusal beside each row it passed over.
+  const ai = aiFor(player);
+  const ctx = valueContext(state, player);
+  // Built here rather than hoisted for the whole turn because it is only these
+  // few pieces that ask: a plan walked for every settler and scout as well would
+  // be the map swept a dozen times a turn for nothing.
+  const plan = buildImprovementPlan(state, player, ctx);
+  const ranked = rankPlanFor(plan, state, unit, ctx);
+  // The shortlist is two data numbers rather than a constant: how many entries a
+  // town's craving folds, plus how many routes this bot will ever pay for.
+  const shortlist = ranked.slice(0, Math.max(1, ai.workers.planTopN + ai.search.pathProbes));
+
   const tried: BotCandidate[] = [];
-  for (let rank = 0; rank < WORK_ORDER.length; rank++) {
-    const improvement = WORK_ORDER[rank]!;
-    const refusal = improvementError(state, unit.id, improvement);
-    if (refusal === null) {
-      tried.push(chosenAt(improvementDef(improvement).name, rank));
-      return {
-        command: { type: 'buildImprovement', playerId: player.id, unitId: unit.id, improvement },
-        summary: `Lays ${improvementDef(improvement).name} where it stands — first on the preference order the ground will take.`,
-        candidates: tried,
-      };
+  let taken: { command: Command; summary: string; focus?: { col: number; row: number } } | null = null;
+  let probes = 0;
+
+  for (const row of shortlist) {
+    const label = row.entry.label;
+    if (taken !== null) {
+      tried.push({ label, score: row.score, chosen: false, terms: row.terms });
+      continue;
     }
-    tried.push(refused(improvementDef(improvement).name, refusal));
+    const standing = row.entry.col === unit.col && row.entry.row === unit.row;
+    if (standing) {
+      const improvement = row.entry.improvement;
+      const refusal =
+        improvement === null ? prospectError(state, unit.id) : improvementError(state, unit.id, improvement);
+      if (refusal !== null) {
+        tried.push(refused(label, refusal));
+        continue;
+      }
+      tried.push({ label, score: row.score, chosen: true, terms: row.terms });
+      taken =
+        improvement === null
+          ? {
+              command: { type: 'prospect', playerId: player.id, unitId: unit.id },
+              summary:
+                `Asks the hill it is standing on — the best thing on this ground at ${round1(row.score)}, ` +
+                'the assay and whatever sleeps under it.',
+            }
+          : {
+              command: { type: 'buildImprovement', playerId: player.id, unitId: unit.id, improvement },
+              summary:
+                `Lays ${improvementDef(improvement).name} where it stands — the best-scoring hex in reach at ` +
+                `${round1(row.score)} a turn, and it is under its feet.`,
+            };
+      continue;
+    }
+    // A route is the most expensive question this bot asks (`search.pathProbes`),
+    // so the walk is only priced for the few best rows.
+    if (probes >= ai.search.pathProbes) {
+      tried.push(refused(label, `beyond the ${ai.search.pathProbes} routes this bot will pay to ask about`));
+      continue;
+    }
+    probes += 1;
+    const tile = getTileAt(state.map, row.entry.col, row.entry.row);
+    if (!tile || findPath(state, unit, tile) === null) {
+      tried.push(refused(label, 'no route to it'));
+      continue;
+    }
+    tried.push({ label, score: row.score, chosen: true, terms: row.terms });
+    taken = {
+      command: {
+        type: 'moveUnit',
+        playerId: player.id,
+        unitId: unit.id,
+        target: { col: row.entry.col, row: row.entry.row },
+      },
+      summary:
+        `Walks ${row.distance} hexes to (${row.entry.col},${row.entry.row}) for ${row.entry.label} — ` +
+        `${round1(row.score)} a turn after the walk, the best of ${ranked.length} hexes the plan holds.`,
+      focus: { col: row.entry.col, row: row.entry.row },
+    };
   }
+
+  if (taken !== null) {
+    const choice: UnitChoice = { command: taken.command, summary: taken.summary, candidates: tried };
+    if (taken.focus !== undefined) choice.focus = taken.focus;
+    return choice;
+  }
+
   /**
-   * **The survey, after the spade and only where the worker already stands.**
+   * **The survey, kept as the free fallback it always was.**
    *
-   * Deliberately the smallest possible arm: no search, no scoring, no walking
-   * to a hill. A worker with nothing to build under it that happens to be
-   * standing on unasked high ground inside its own borders spends the turn
-   * asking, because the alternative on that hex is `standDown` — so the survey
-   * costs the bot nothing it was going to do anyway and the assay is free money.
+   * A marked seam is a plan entry now and is compared against the spade like
+   * everything else. This is the other case: a worker with nothing in the plan
+   * it can reach, standing on unasked high ground inside its own borders. The
+   * alternative on that hex is `standDown`, so the survey costs the bot nothing
+   * it was going to do anyway — and once in a while the hill is not barren.
    *
    * The territory clause is the bot's own, not the rule's (`prospectError` lets
    * anybody survey anywhere): a bot that wandered off to read hills in the wild
-   * would be an exploration policy wearing a worker, and `nearestWorkableTile`
-   * below is the policy this piece actually has.
+   * would be an exploration policy wearing a worker.
    */
   if (
     prospectError(state, unit.id) === null &&
     tileOwnerPlayerId(state, unit.col, unit.row) === player.id
   ) {
-    tried.push(chosenAt('survey the ground it stands on', WORK_ORDER.length));
+    tried.push(chosenAt('survey the ground it stands on', tried.length));
     return {
       command: { type: 'prospect', playerId: player.id, unitId: unit.id },
-      summary: 'Nothing to build under it: surveys the high ground it is standing on instead, which is free.',
+      summary: 'Nothing in the plan it can reach: surveys the high ground it is standing on instead, which is free.',
       candidates: tried,
     };
   }
-  const target = nearestWorkableTile(state, player, unit);
-  if (target !== null) {
-    tried.push(chosenAt(`walk to (${target.col},${target.row})`, WORK_ORDER.length + 1));
-    return {
-      command: {
-        type: 'moveUnit',
-        playerId: player.id,
-        unitId: unit.id,
-        target: { col: target.col, row: target.row },
-      },
-      summary: `Nothing to build under it: walks to the nearest owned hex some improvement will take, (${target.col},${target.row}).`,
-      candidates: tried,
-      focus: { col: target.col, row: target.row },
-    };
-  }
-  return standDown(unit, 'No improvement is legal under it and no workable hex is in reach.');
-}
-
-/** The nearest owned, unimproved hex some improvement would take, or `null`. */
-function nearestWorkableTile(state: GameState, player: Player, unit: Unit): Tile | null {
-  const from = tileHex(getTileAt(state.map, unit.col, unit.row) ?? state.map.tiles[0]!);
-  const found: { tile: Tile; distance: number }[] = [];
-  for (const tile of mapRange(state.map, from, AI.workers.searchRadius)) {
-    if (tile.col === unit.col && tile.row === unit.row) continue;
-    if (tileOwnerPlayerId(state, tile.col, tile.row) !== player.id) continue;
-    let wanted = false;
-    for (const improvement of WORK_ORDER) {
-      if (improvementErrorAt(state, player.id, tile, improvement) === null) {
-        wanted = true;
-        break;
-      }
-    }
-    if (!wanted) continue;
-    found.push({ tile, distance: wrappedDistance(state.map, from, tileHex(tile)) });
-  }
-  found.sort((a, b) => a.distance - b.distance);
-  for (const entry of found.slice(0, AI.search.pathProbes)) {
-    if (findPath(state, unit, entry.tile) !== null) return entry.tile;
-  }
-  return null;
+  return standDown(unit, 'The plan has nothing this piece can reach, and no hill under it to ask.');
 }
 
 /**
@@ -2428,7 +2729,8 @@ function scoutCommand(state: GameState, player: Player, unit: Unit): UnitChoice 
  * is the v0 creed's fourth clause and the successor is diplomacy state.
  */
 function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
-  const blow = favourableBlow(state, player, unit);
+  const ai = aiFor(player);
+  const blow = favourableBlow(state, player, unit, holdsWild, 0);
   if (blow !== null) {
     return {
       command: { type: 'attack', playerId: player.id, unitId: unit.id, target: blow.at },
@@ -2436,6 +2738,21 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
       candidates: blow.candidates,
       focus: blow.at,
     };
+  }
+  // **The warmonger's arm, and it is silent at aggression 0.** Everything above
+  // and below this block is the peaceful bot exactly as it was; a seat whose
+  // configuration says nothing about aggression never enters here, so the
+  // default seat still cannot target a nation.
+  if (ai.military.aggression > 0) {
+    const strike = favourableBlow(state, player, unit, holdsRival, ai.military.aggression);
+    if (strike !== null) {
+      return {
+        command: { type: 'attack', playerId: player.id, unitId: unit.id, target: strike.at },
+        summary: strike.summary,
+        candidates: strike.candidates,
+        focus: strike.at,
+      };
+    }
   }
   const camp = campMarch(state, player, unit);
   if (camp !== null) {
@@ -2455,6 +2772,20 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
       focus: home.at,
     };
   }
+  // The march on a rival comes **after** the towns are seen to, which is the
+  // whole of the restraint an aggressive seat still keeps: `warMarch` asks the
+  // same two guards the camp hunt does.
+  if (ai.military.aggression > 0) {
+    const push = warMarch(state, player, unit);
+    if (push !== null) {
+      return {
+        command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: push.at },
+        summary: push.summary,
+        candidates: push.candidates,
+        focus: push.at,
+      };
+    }
+  }
   return standDown(
     unit,
     'No favourable blow next door, no camp near a town worth marching on, and every town is held.',
@@ -2469,22 +2800,40 @@ interface UnitTarget {
 }
 
 /**
- * An adjacent hex holding one of the wild's pieces that this unit would come
- * off better against, or `null`.
+ * An adjacent hex holding a target this piece would come off better against, or
+ * `null`.
  *
  * The whole exchange is asked of `previewCombat`, which is the *same* plan the
  * reducer resolves — so the movement, the one-blow-a-turn rule, the range, the
  * terrain and the fortification are all already in the answer and none of them
  * is restated here. "Better off" is the naive reading: the defender dies, or the
  * midpoint roll hurts them more than it hurts us.
+ *
+ * **Who counts as a target is the caller's**, and that is the whole of how the
+ * peaceful bot and the warmonger share one function: `holdsWild` is the standing
+ * arm and can never name a nation, `holdsRival` is the aggressive one and is
+ * only ever passed by a seat whose `military.aggression` is above zero.
+ *
+ * `aggression` loosens the exchange the piece will accept, and nothing else. At
+ * 0 the rule is the one it always was — deal more than you take. At 1 any blow
+ * that deals anything is taken. In between, the blow must deal more than
+ * `(1 − aggression)` of what it takes, which is a seat that is willing to trade
+ * down to break a line.
  */
-function favourableBlow(state: GameState, player: Player, unit: Unit): UnitTarget | null {
+function favourableBlow(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  holds: (state: GameState, player: Player, tile: Tile) => boolean,
+  aggression: number,
+): UnitTarget | null {
   const here = getTileAt(state.map, unit.col, unit.row);
   if (!here) return null;
   const tried: BotCandidate[] = [];
+  const appetite = Math.max(0, Math.min(1, aggression));
   for (const near of mapRange(state.map, tileHex(here), unitDef(unit.type).range ?? 1)) {
     if (near.col === unit.col && near.row === unit.row) continue;
-    if (!holdsWild(state, player, near)) continue;
+    if (!holds(state, player, near)) continue;
     const label = `strike (${near.col},${near.row})`;
     const preview = previewCombat(state, unit.id, { col: near.col, row: near.row });
     if (!preview.ok) {
@@ -2504,14 +2853,21 @@ function favourableBlow(state: GameState, player: Player, unit: Unit): UnitTarge
         { label: `${preview.damageToAttacker} damage taken`, value: preview.damageToAttacker, op: 'sub' },
       ],
     };
-    if (kills || preview.damageToDefender > preview.damageToAttacker) {
+    // The bar the exchange has to clear, loosened by the seat's appetite. At
+    // appetite 0 this is exactly `taken`, which is the rule the peaceful bot has
+    // always used.
+    const bar = preview.damageToAttacker * (1 - appetite);
+    if (kills || preview.damageToDefender > bar) {
       exchange.chosen = true;
       tried.push(exchange);
       return {
         at: { col: near.col, row: near.row },
         summary: kills
           ? `The blow kills: ${preview.damageToDefender} damage against ${preview.defenderHp} hit points left.`
-          : `A favourable exchange: ${preview.damageToDefender} dealt against ${preview.damageToAttacker} taken.`,
+          : appetite > 0
+            ? `An exchange this seat will take: ${preview.damageToDefender} dealt against ${preview.damageToAttacker} ` +
+              `taken, and its appetite of ${round1(appetite)} asks only for more than ${round1(bar)}.`
+            : `A favourable exchange: ${preview.damageToDefender} dealt against ${preview.damageToAttacker} taken.`,
         candidates: tried,
       };
     }
@@ -2528,6 +2884,99 @@ function holdsWild(state: GameState, player: Player, tile: Tile): boolean {
     if (playerById(state, other.ownerId)?.barbarian === true) return true;
   }
   return false;
+}
+
+/**
+ * Does **another nation** have a piece or a town standing here?
+ *
+ * `holdsWild`'s twin and the one place this bot admits a rival exists as a
+ * target. A town counts: `previewCombat` prices a blow against a city's walls
+ * exactly as it prices one against a spearman (the three beats are the
+ * reducer's), so an aggressive seat pushes at a town through the same door it
+ * strikes a column through.
+ *
+ * The wild is excluded here rather than included, so the two predicates
+ * partition what stands on a hex instead of overlapping: a raider is
+ * `holdsWild`'s business and a rival's warrior is this one's.
+ */
+function holdsRival(state: GameState, player: Player, tile: Tile): boolean {
+  for (const other of state.units) {
+    if (other.ownerId === player.id) continue;
+    if (other.col !== tile.col || other.row !== tile.row) continue;
+    const owner = playerById(state, other.ownerId);
+    if (owner !== undefined && !owner.barbarian && !owner.eliminated) return true;
+  }
+  for (const city of state.cities) {
+    if (city.ownerId === player.id) continue;
+    if (city.col !== tile.col || city.row !== tile.row) continue;
+    const owner = playerById(state, city.ownerId);
+    if (owner !== undefined && !owner.barbarian && !owner.eliminated) return true;
+  }
+  return false;
+}
+
+/**
+ * The rival's piece or town this seat marches on, or `null` — the warmonger's
+ * half of the hunt, and it is `campMarch` with a different quarry.
+ *
+ * The two guards are the camp hunt's, word for word and for its reasons: every
+ * town of this empire must be held before anybody goes hunting, **and** this
+ * particular piece must not be the thing holding the town it stands in. An
+ * aggressive seat that emptied its capital to chase a column is how a bot loses
+ * a capital, and aggression is not permission to be stupid.
+ *
+ * Nearest quarry first, then map order. There is no operational plan here at
+ * all — no siege stack, no line, no war economy — and that is v1 said out loud:
+ * this is a piece walking toward the nearest enemy thing until it is adjacent to
+ * it, at which point `favourableBlow` decides whether to swing.
+ */
+function warMarch(state: GameState, player: Player, unit: Unit): UnitTarget | null {
+  if (!townsAreHeld(state, player)) return null;
+  if (!isRedundant(state, player, unit)) return null;
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here) return null;
+  const ai = aiFor(player);
+  const from = tileHex(here);
+  const quarry: { at: { col: number; row: number }; distance: number; what: string }[] = [];
+  for (const tile of mapRange(state.map, from, ai.military.huntRadius)) {
+    if (!holdsRival(state, player, tile)) continue;
+    const distance = wrappedDistance(state.map, from, tileHex(tile));
+    if (distance === 0) continue;
+    quarry.push({ at: { col: tile.col, row: tile.row }, distance, what: `(${tile.col},${tile.row})` });
+  }
+  quarry.sort((a, b) => a.distance - b.distance);
+  const tried: BotCandidate[] = [];
+  for (const entry of quarry.slice(0, ai.search.pathProbes)) {
+    const tile = getTileAt(state.map, entry.at.col, entry.at.row);
+    if (!tile) continue;
+    const label = `march on ${entry.what}`;
+    if (findPath(state, unit, tile) === null) {
+      tried.push(refused(label, 'no route to it'));
+      continue;
+    }
+    // **The lowest score marches**, as in the camp hunt: the key is hexes to the
+    // quarry, so the nearest enemy thing is the one walked at.
+    tried.push({
+      label,
+      score: entry.distance,
+      chosen: true,
+      terms: [
+        { label: `${entry.distance} hexes to the nearest rival piece or town`, value: entry.distance },
+        {
+          label: `(this seat's appetite for a fight is ${round1(ai.military.aggression)} — the tie-break is distance)`,
+          value: 0,
+        },
+      ],
+    });
+    return {
+      at: entry.at,
+      summary:
+        `Marches ${entry.distance} hexes on ${entry.what} — every town of this empire is held and this piece ` +
+        'is not the thing holding one.',
+      candidates: tried,
+    };
+  }
+  return null;
 }
 
 /**
@@ -2561,6 +3010,7 @@ function campMarch(state: GameState, player: Player, unit: Unit): UnitTarget | n
   if (!isRedundant(state, player, unit)) return null;
   const here = getTileAt(state.map, unit.col, unit.row);
   if (!here) return null;
+  const ai = aiFor(player);
   const from = tileHex(here);
   const reachable: {
     camp: { col: number; row: number };
@@ -2571,11 +3021,11 @@ function campMarch(state: GameState, player: Player, unit: Unit): UnitTarget | n
     const tile = getTileAt(state.map, camp.col, camp.row);
     if (!tile) continue;
     const distance = wrappedDistance(state.map, from, tileHex(tile));
-    if (distance === 0 || distance > AI.military.campHuntRadius) continue;
+    if (distance === 0 || distance > ai.military.campHuntRadius) continue;
     // The camp has to threaten *something of ours*. `nearOwnCity` answers with
     // the nearest town inside `threat.radius`; a camp with no town near it is
     // somebody else's problem.
-    const near = nearOwnCity(state, player, camp.col, camp.row, AI.military.campHuntRadius);
+    const near = nearOwnCity(state, player, camp.col, camp.row, ai.military.campHuntRadius);
     if (near === null) continue;
     reachable.push({ camp: { col: camp.col, row: camp.row }, toTown: near.distance, distance });
   }
@@ -2584,7 +3034,7 @@ function campMarch(state: GameState, player: Player, unit: Unit): UnitTarget | n
   // happened to visit `state.camps` in.
   reachable.sort((a, b) => a.toTown - b.toTown || a.distance - b.distance);
   const tried: BotCandidate[] = [];
-  for (const entry of reachable.slice(0, AI.search.pathProbes)) {
+  for (const entry of reachable.slice(0, ai.search.pathProbes)) {
     const tile = getTileAt(state.map, entry.camp.col, entry.camp.row)!;
     const label = `camp at (${entry.camp.col},${entry.camp.row})`;
     // **The lowest score marches**: the key is hexes from the nearest of this
@@ -2612,9 +3062,10 @@ function campMarch(state: GameState, player: Player, unit: Unit): UnitTarget | n
 
 /** Does every town of this empire have at least its garrison standing in it? */
 function townsAreHeld(state: GameState, player: Player): boolean {
+  const ai = aiFor(player);
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
-    if (garrisonAt(state, player.id, city) < AI.military.garrisonPerCity) return false;
+    if (garrisonAt(state, player.id, city) < ai.military.garrisonPerCity) return false;
   }
   return true;
 }
@@ -2624,6 +3075,7 @@ function townsAreHeld(state: GameState, player: Player): boolean {
  * that this piece can reach, or `null` when it is already standing in one.
  */
 function undefendedCity(state: GameState, player: Player, unit: Unit): UnitTarget | null {
+  const ai = aiFor(player);
   const here = getTileAt(state.map, unit.col, unit.row);
   if (!here) return null;
   const from = tileHex(here);
@@ -2631,12 +3083,12 @@ function undefendedCity(state: GameState, player: Player, unit: Unit): UnitTarge
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
     if (city.col === unit.col && city.row === unit.row) return null;
-    if (garrisonAt(state, player.id, city) >= AI.military.garrisonPerCity) continue;
+    if (garrisonAt(state, player.id, city) >= ai.military.garrisonPerCity) continue;
     wanted.push({ city, distance: wrappedDistance(state.map, from, tileHex(getTileAt(state.map, city.col, city.row)!)) });
   }
   wanted.sort((a, b) => a.distance - b.distance);
   const tried: BotCandidate[] = [];
-  for (const entry of wanted.slice(0, AI.search.pathProbes)) {
+  for (const entry of wanted.slice(0, ai.search.pathProbes)) {
     const tile = getTileAt(state.map, entry.city.col, entry.city.row);
     if (!tile) continue;
     const label = `${entry.city.name}, ${entry.distance} hexes off`;
@@ -2667,6 +3119,200 @@ function garrisonAt(state: GameState, playerId: number, city: City): number {
     if (unit.ownerId !== playerId) continue;
     if (unit.col !== city.col || unit.row !== city.row) continue;
     if (isCombatant(unitDef(unit.type))) count += 1;
+  }
+  return count;
+}
+
+/**
+ * **A great person no longer sleeps.**
+ *
+ * The v1 stood every one of them down with an honest deferral — *"a work is a
+ * once-per-game hand, and a bot that spent one on the first legal hex would be
+ * worse than one that keeps it"* — and then kept them for ever, which is worse
+ * than either. A person who never acts and never plants is renown spent on a
+ * piece that stands in a field.
+ *
+ * So the two verbs are put in one scored table, in the one currency:
+ *
+ *   · **acting** pays a lump — a scholar's beakers, an engineer's hammers, a
+ *     merchant's purse, an artist's culture and calm, a general's aura — and a
+ *     lump is converted to a per-turn figure by `score.lumpTurns` so it can be
+ *     compared with anything else at all (`explainLump`);
+ *   · **planting** pays for ever: the family's work on a hex, priced by the very
+ *     same `improvementYieldDelta` the improvement plan prices a farm with
+ *     (`rankWorkSites`), discounted by the walk.
+ *
+ * Both gates are the simulation's — `greatPersonActError` and
+ * `greatPersonWorkError` — so a verb this arm proposes is a verb the reducer
+ * takes. Crude is allowed here and is written down as crude: the act's figures
+ * are read off `RULES.greatPeople` without Leonardo's amplifier (a card the bot
+ * cannot ask hypothetically), and a work's second-order gifts — the seam an
+ * academy opens, the ring a citadel claims — are not priced at all. What is no
+ * longer true is that the piece does nothing.
+ */
+function greatPersonCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
+  const ai = aiFor(player);
+  const ctx = valueContext(state, player);
+  const tried: BotCandidate[] = [];
+
+  const actRefusal = greatPersonActError(state, player.id, unit.id);
+  const act = actRefusal === null ? explainAct(state, player, unit, ctx) : null;
+  if (act === null) tried.push(refused('act now', actRefusal ?? 'this piece has no boon to spend'));
+
+  const work = workOf(unit);
+  const sites =
+    work === null ? [] : rankWorkSites(state, player, ctx, work, unit, ai.workers.searchRadius);
+  const best = sites[0] ?? null;
+
+  // **The act wins a tie**, and deliberately: a lump banked this turn is a lump
+  // that cannot be taken off the board, while a work planted on a border hex can
+  // be pillaged the turn after.
+  if (act !== null && (best === null || act.total >= best.score)) {
+    tried.push({ label: 'act now', score: act.total, chosen: true, terms: act.terms });
+    if (best !== null) tried.push({ label: best.entry.label, score: best.score, chosen: false, terms: best.terms });
+    return {
+      command: { type: 'greatPersonAct', playerId: player.id, unitId: unit.id },
+      summary:
+        `Spends itself now for ${round1(act.total)} a turn's worth of one-time boon` +
+        (best === null ? '.' : `, against ${round1(best.score)} for planting its work.`),
+      candidates: tried,
+    };
+  }
+
+  if (act !== null) tried.push({ label: 'act now', score: act.total, chosen: false, terms: act.terms });
+
+  let probes = 0;
+  for (const site of sites) {
+    const standing = site.entry.col === unit.col && site.entry.row === unit.row;
+    if (standing) {
+      const refusal = greatPersonWorkError(state, player.id, unit.id);
+      if (refusal !== null) {
+        tried.push(refused(site.entry.label, refusal));
+        continue;
+      }
+      tried.push({ label: site.entry.label, score: site.score, chosen: true, terms: site.terms });
+      return {
+        command: { type: 'greatPersonWork', playerId: player.id, unitId: unit.id },
+        summary:
+          `Plants its work where it stands — ${round1(site.score)} a turn on this hex, the best ground in reach.`,
+        candidates: tried,
+      };
+    }
+    if (probes >= ai.search.pathProbes) {
+      tried.push(refused(site.entry.label, `beyond the ${ai.search.pathProbes} routes this bot will pay to ask about`));
+      continue;
+    }
+    probes += 1;
+    const tile = getTileAt(state.map, site.entry.col, site.entry.row);
+    if (!tile || findPath(state, unit, tile) === null) {
+      tried.push(refused(site.entry.label, 'no route to it'));
+      continue;
+    }
+    tried.push({ label: site.entry.label, score: site.score, chosen: true, terms: site.terms });
+    return {
+      command: {
+        type: 'moveUnit',
+        playerId: player.id,
+        unitId: unit.id,
+        target: { col: site.entry.col, row: site.entry.row },
+      },
+      summary:
+        `Walks ${site.distance} hexes to (${site.entry.col},${site.entry.row}) to plant its work — ` +
+        `${round1(site.score)} a turn after the walk.`,
+      candidates: tried,
+      focus: { col: site.entry.col, row: site.entry.row },
+    };
+  }
+  return standDown(unit, 'Nothing to act on and nowhere its work would pay.');
+}
+
+/**
+ * What spending this person **now** is worth, per turn, in the one currency.
+ *
+ * Every figure is `greatPersonActAt`'s own — the same `RULES.greatPeople` rows,
+ * the same era multiplier, the same `agedActFactor` — read rather than
+ * reinvented, so the bot's expectation and the reducer's payout are the same
+ * arithmetic minus one term it cannot ask for (Leonardo's amplifier, which is a
+ * card evaluated hypothetically and `statecraft.ts` does not answer that).
+ *
+ * The two **timed** families are honest about being timed: an artist's calm and
+ * a general's aura are per-turn effects that run out, so they are priced as
+ * their per-turn worth times their share of `score.lumpTurns` — the same
+ * exchange rate a lump goes through, applied from the other end.
+ */
+function explainAct(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  ctx: ValueContext,
+): Appraisal | null {
+  const family = familyOf(unit);
+  if (family === null) return null;
+  const people = RULES.greatPeople;
+  const era = highestAge(player.techsResearched);
+  const aged = agedActFactor(player);
+  const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
+
+  switch (family) {
+    case 'scholar': {
+      const aim = player.researching;
+      if (aim === null) return null;
+      // Deliberately un-aged, exactly as the reducer's scholar arm is: a share of
+      // the aimed technology's cost already grows with the tree.
+      const beakers = Math.floor(techDef(aim).cost * people.scholarShare);
+      return appraise([nest(`${beakers} beakers toward ${techDef(aim).name}`, explainLump({ science: beakers }, ctx))]);
+    }
+    case 'engineer': {
+      const hammers = Math.floor(people.engineerHammers * era * aged);
+      return appraise([nest(`${hammers} hammers into a basket`, explainLump({ production: hammers }, ctx))]);
+    }
+    case 'merchant': {
+      const gold = Math.floor(people.merchantGold * era * aged);
+      return appraise([nest(`${gold} gold into the treasury`, explainLump({ gold }, ctx))]);
+    }
+    case 'artist': {
+      const culture = Math.floor(people.artistCulture * aged);
+      const calm = (people.artistHappiness * ctx.ai.weights.happiness * people.artistTurns) / lumpTurns;
+      return appraise([
+        nest(`${culture} culture into the basket`, explainLump({ culture }, ctx)),
+        {
+          label: `${people.artistHappiness} happiness for ${people.artistTurns} turns`,
+          value: calm,
+        },
+      ]);
+    }
+    case 'general': {
+      const blessed = friendlyPiecesWithin(state, unit, people.generalRadius);
+      const aura =
+        (people.generalCombat * ctx.ai.weights.military * blessed * people.generalTurns) / lumpTurns;
+      return appraise([
+        {
+          label:
+            `${people.generalCombat} strength on ${blessed} piece${blessed === 1 ? '' : 's'} ` +
+            `for ${people.generalTurns} turns`,
+          value: aura,
+        },
+      ]);
+    }
+    default: {
+      // No `never` check: a sixth family is a design decision in `src/sim/`, and
+      // a bot that failed to compile over one would be the wrong module refusing.
+      return null;
+    }
+  }
+}
+
+/** How many of this empire's pieces stand within a radius, this one included. */
+function friendlyPiecesWithin(state: GameState, unit: Unit, radius: number): number {
+  const from = getTileAt(state.map, unit.col, unit.row);
+  if (!from) return 0;
+  const here = tileHex(from);
+  let count = 0;
+  for (const other of state.units) {
+    if (other.ownerId !== unit.ownerId) continue;
+    const at = getTileAt(state.map, other.col, other.row);
+    if (!at) continue;
+    if (wrappedDistance(state.map, here, tileHex(at)) <= radius) count += 1;
   }
   return count;
 }

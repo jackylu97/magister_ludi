@@ -13,6 +13,14 @@
  * both of them stand on, which is `roads.ts`' bargain one system over.
  *
  * `bot.ts` re-exports `AI`, so every existing reader keeps its import site.
+ *
+ * **Personas** (ruled 2026-09-03) sit at the bottom of the file: `data/ai.json`
+ * carries a `personas` sheet of *sparse deep-overrides* of everything above, and
+ * `aiConfigFor(persona)` merges one and memoises it. A seat names its persona in
+ * the game's config (`PlayerSpec.persona`), every reader takes the merged view
+ * through `ValueContext.ai` or `aiFor`, and nothing anywhere swaps a global —
+ * two seats appraise in the same turn, and whichever asked last must not be able
+ * to change what the other decided.
  */
 
 import aiJson from '../../data/ai.json';
@@ -71,6 +79,16 @@ export interface AiConfig {
     settlerAuthorityFloor: number;
     siteSearchRadius: number;
     siteScoreMin: number;
+    /**
+     * **The honest tall lever.** Each town already held multiplies what the next
+     * one is worth: a settler is `weights.city × falloff^towns`, so a wide
+     * empire at 1 never tires of expanding, a balanced one at 0.9 slows, and a
+     * tall one at 0.6 stops wanting a fourth town long before the cap would stop
+     * it. Before this the settler was a flat 88 for every empire on every board,
+     * and "tall" could only be spelled as a cap — which is a *feasibility*
+     * sentence, not a preference (see `buildCandidates`).
+     */
+    cityValueFalloff: number;
   };
   site: {
     ringRadius: number;
@@ -78,16 +96,66 @@ export interface AiConfig {
     coastBonus: number;
     yieldWeights: Record<string, number>;
   };
+  /**
+   * What a worker is for, and how far ahead the **improvement plan** looks.
+   *
+   * `improvements` is still the roster of what a spade may lay; what changed
+   * with the plan (`plan.ts`) is that it is no longer a *preference order* — the
+   * plan scores every legal pairing of a workable hex and a row in this list
+   * through the simulation's own `improvementYieldDelta`, and the order of the
+   * list decides nothing but a tie.
+   */
   workers: {
     perCity: number;
     cap: number;
     searchRadius: number;
     improvements: string[];
+    /** How many unclaimed plan entries near a town its craving for workers folds. */
+    planTopN: number;
+    /** Each further entry in that fold is worth this much of the one before it. */
+    planFalloff: number;
+    /** Hexes from a town an entry has to be inside to count toward its craving. */
+    planRadius: number;
+    /** How much a hex of walking discounts an entry: `value / (1 + d × this)`. */
+    walkDiscount: number;
+    /**
+     * What an unread seam under a marked hill is worth per turn, as a stand-in
+     * for the resource nobody has named yet. The assay is priced separately and
+     * exactly (`RULES.improvements.assayGold`); this is the *seam*.
+     */
+    veinValue: number;
+  };
+  /**
+   * What a citizen is worth beyond the ground it works — the compounding half.
+   *
+   * The user's ruling (2026-09-03): *"a citizen should be valued as a science
+   * yield too … alongside a premium (citizens compound over time), so cities
+   * with fewer than some X citizens weight citizens more heavily. Maybe start
+   * with a value of 9."* The 9 is read here as the **threshold** and the premium
+   * is a knob of its own, so the other reading is one edit away.
+   */
+  growth: {
+    /** Towns below this population pay the premium. */
+    smallCityPop: number;
+    /** What that premium is worth, in the one currency. */
+    smallCityPremium: number;
   };
   military: {
     campHuntRadius: number;
     garrisonPerCity: number;
     armyPerCity: number;
+    /**
+     * **The warmonger's one capability.** Zero is the peaceful bot this file
+     * shipped with: it hunts the wild, garrisons its towns and never once
+     * targets another nation. Above zero a soldier will hunt a rival's pieces
+     * and push at their cities inside `huntRadius`, and the exchange it will
+     * accept loosens with the number — at 1 any blow that deals more than
+     * nothing, at 0.5 only a blow that deals half again what it takes. See
+     * `soldierCommand`.
+     */
+    aggression: number;
+    /** Hexes an aggressive seat will look for a rival's piece or town in. */
+    huntRadius: number;
   };
   trade: {
     tradersPerCity: number;
@@ -127,9 +195,10 @@ export interface AiConfig {
     die: number;
     /** Holding one more technology, over and above what it unlocks. */
     tech: number;
-    /** One citizen — what a settler costs its town, and what a rite grants. */
-    citizen: number;
-    /** One more town. */
+    /**
+     * One more town, **before** `expansion.cityValueFalloff` is applied for the
+     * towns this empire already holds.
+     */
     city: number;
     /** One point of combat strength. */
     military: number;
@@ -182,6 +251,18 @@ export interface AiConfig {
     minArmy: number;
     /** Net gold per turn below which a redundant piece may be let go. */
     disbandBelowIncome: number;
+    /**
+     * **The opening grace.** A fresh empire has one town, no market and no
+     * caravan, so its net gold reads as a deficit long before it means anything
+     * — the pressure pinned at full aversion by turn six of every game, which
+     * made the first twenty turns of every seat a bookkeeper's. While the
+     * treasury is at or above this figure *and* the game is younger than
+     * `graceTurns` *and* the books are not actually falling (net ≥ 0), the
+     * pressure is 1. See `goldPressure`.
+     */
+    graceTreasury: number;
+    /** Turns of a game the grace applies for. Absolute, never a countdown. */
+    graceTurns: number;
   };
   /** The nominal stand-ins an appraisal uses where a row states a rate. */
   score: {
@@ -201,6 +282,22 @@ export interface AiConfig {
     synergyBonus: number;
     /** Soldiers a completion grant of one unit is worth. */
     combatScale: number;
+    /**
+     * **Wonder patience.** The amortiser (`÷ turnsToBuild`) buries a row that
+     * cannot be finished this decade: a 109-point wonder over 32 turns loses to
+     * an 80-point worker over 6, so the endgame rows never started. A row that
+     * is one-of-a-kind, or that carries a bead or the curtain, is amortised over
+     * `min(turnsToBuild, this)` instead — the empire is *patient* about the
+     * things there is only one of. Ordinary rows are untouched.
+     */
+    patienceTurns: number;
+    /**
+     * What a **one-time lump** is worth against a per-turn point of the same
+     * voice. A great person's act pays once; a farm pays forever. Dividing the
+     * lump by this is the exchange rate between the two, and it is the only
+     * thing that lets "act now" and "plant the work" sit in one scored table.
+     */
+    lumpTurns: number;
   };
   /** What "an enemy is near my towns" means, and what it is worth. */
   threat: {
@@ -256,4 +353,113 @@ export interface AiConfig {
   };
 }
 
-export const AI: AiConfig = aiJson as AiConfig;
+// --- personas ---------------------------------------------------------------
+
+/**
+ * A **sparse deep-override of the whole configuration**: every key optional, at
+ * every depth, and an array or a scalar replaces rather than merges.
+ *
+ * Sparse is the whole point. A persona that had to restate the config would be
+ * five copies of one file drifting apart the first time a knob was retuned; this
+ * way `tall` says *settler cap two, city weight eighty, hold the citizens dear*
+ * and inherits every other opinion the balanced seat has, including the ones
+ * added after it was written.
+ *
+ * An **array replaces wholesale** because the arrays here are the age-banded
+ * weight rows, and half a row is not a weight table. A scalar replaces for the
+ * obvious reason. Only a plain object merges.
+ */
+export type PersonaOverride = DeepPartial<AiConfig>;
+
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends readonly unknown[]
+    ? T[K]
+    : T[K] extends object
+      ? DeepPartial<T[K]>
+      : T[K];
+};
+
+/** The JSON as it is on disk: the balanced config, plus the persona sheet. */
+interface AiData extends AiConfig {
+  personas: Record<string, PersonaOverride>;
+}
+
+const DATA = aiJson as unknown as AiData;
+
+const { personas: PERSONAS, ...BASE } = DATA;
+
+/**
+ * The balanced configuration — what a seat with no persona plays, and the base
+ * every persona is a sparse override of.
+ *
+ * It is `BASE` rather than the raw import so that the `personas` sheet is not
+ * hanging off the object every appraisal reads: a config is a page of numbers,
+ * and a page of numbers carrying four other pages of numbers is a shape
+ * somebody would eventually read the wrong one out of.
+ *
+ * `bot.ts` re-exports it, so every existing reader keeps its import site.
+ */
+export const AI: AiConfig = BASE as AiConfig;
+
+/** What a seat with nothing said about it plays as. */
+export const DEFAULT_PERSONA = 'balanced';
+
+/**
+ * Every persona the sheet declares, in file order — which is data order and
+ * therefore the order a dropdown lists them in on every machine.
+ */
+export const PERSONA_IDS: readonly string[] = Object.keys(PERSONAS);
+
+export function isPersonaId(value: unknown): value is string {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(PERSONAS, value);
+}
+
+/** A persona's name as a dropdown prints it. The id, capitalised — no second table. */
+export function personaLabel(id: string): string {
+  return id.length === 0 ? id : id[0]!.toUpperCase() + id.slice(1);
+}
+
+/**
+ * `base` with `override` folded into it — a fresh object, nothing mutated.
+ *
+ * Plain objects merge key by key; arrays and scalars replace. The result keeps
+ * **the base's key order**, with any key the override invents appended, which is
+ * what makes a merged config's own iteration order (`site.yieldWeights` is
+ * walked by `explainSite`) a fact about the data file rather than about which
+ * persona is playing.
+ */
+function deepMerge<T>(base: T, override: unknown): T {
+  if (override === undefined) return base;
+  if (!isPlainObject(base) || !isPlainObject(override)) return override as T;
+  const merged: Record<string, unknown> = { ...base };
+  for (const key of Object.keys(override)) {
+    merged[key] = deepMerge((base as Record<string, unknown>)[key], override[key]);
+  }
+  return merged as T;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * The configuration one seat appraises with — **memoised**, because two seats
+ * with two personas ask for theirs on every candidate of every decision.
+ *
+ * The cache is a pure function's table, not state: `aiConfigFor('tall')` is the
+ * same object every time in a process and the same *numbers* in every process,
+ * so nothing about a replay turns on whether it was warm. An unknown persona
+ * falls back to balanced rather than throwing — a save from a build that knew a
+ * persona this one does not must still replay, and a persona drives the bot
+ * rather than the reducer, so the fallback costs a replay nothing.
+ */
+const MERGED = new Map<string, AiConfig>();
+
+export function aiConfigFor(persona?: string): AiConfig {
+  if (persona === undefined || persona === DEFAULT_PERSONA || !isPersonaId(persona)) return AI;
+  const held = MERGED.get(persona);
+  if (held !== undefined) return held;
+  const merged = deepMerge(BASE as AiConfig, PERSONAS[persona]);
+  MERGED.set(persona, merged);
+  return merged;
+}

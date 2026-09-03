@@ -237,6 +237,36 @@ describe('a hundred and twenty turns of bots', () => {
  * The curves are printed on failure rather than asserted line by line: what a
  * seat's gold looked like at t83 and t160 is the *diagnosis*, and pinning it
  * would be pinning the tuning rather than the property.
+ *
+ * **Measured 2026-09-03, before and after the brain-v1 pass** (personas, the
+ * improvement plan, wonder patience, the gold-pressure grace, great people that
+ * act, and a citizen priced off the next tile). Same seed, same map, same two
+ * balanced seats:
+ *
+ *              before                                after
+ *   t83   s0   276💰 (+5/t)  3 towns 19 tech  5 beads  272💰 (−3/t)  4 towns 13 tech  1 bead
+ *         s1   347💰 (+8/t)  6 towns 17 tech  0 beads  263💰 (+12/t) 3 towns 14 tech  2 beads
+ *   t160  s0   316💰 (−5/t)  6 towns 35 tech  9 beads  734💰 (+216/t) 8 towns 32 tech  4 beads
+ *         s1   277💰 (+8/t)  7 towns 34 tech  5 beads  490💰 (+13/t) 8 towns 35 tech 15 beads
+ *   t200  s0   266💰 (−9/t)  6 towns 44 tech  9 beads  — decided at t182
+ *         s1   579💰 (−25/t) 9 towns 45 tech  5 beads
+ *   net gold after t60:  worst −25/t, best +17/t   →   worst −7/t, best +242/t
+ *   outcome:             undecided at t200          →   **won at t182**
+ *
+ * The headline is the last line: two hundred turns used to end with nobody
+ * having closed the Great Work, and now a seat wins with eighteen turns to
+ * spare. The rest reads as one story — patience gets the capstones started
+ * (fifteen beads against five), the plan and the citizen get the towns founded
+ * and improved (eight apiece against six and seven), and the grace stops the
+ * opening being appraised by a bankrupt (the treasury and the rate at t160 are
+ * a different empire's).
+ *
+ * The one cost, and it is a real one to watch: **the early tree is slower** —
+ * thirteen and fourteen technologies at t83 against nineteen and seventeen.
+ * A worker is worth what the ground is worth now, so the first thirty turns buy
+ * more spades and fewer libraries; by t160 the two curves have converged (32/35
+ * against 35/34). If that opening ever costs a game it is `workers.planTopN` and
+ * `workers.planFalloff` that are too generous, and both are one edit away.
  */
 const ARENA_TURNS = 200;
 const ARENA_PATIENCE = 300_000;

@@ -882,6 +882,24 @@ export interface PlayerSpec {
    * turn on it.
    */
   charge?: string;
+  /**
+   * Which way a seat *nobody is sitting in* plays — `'wide'`, `'tall'`,
+   * `'zealot'`, `'warmonger'`, or absent for the balanced default.
+   *
+   * `charge`'s sibling in every respect, and for `charge`'s reasons. It is
+   * **config**, so a game saved today replays a year from now with the same
+   * seats playing the same way rather than whatever the default has become; it
+   * is an **uninterpreted string** here, because the simulation must never read
+   * it — the roster of personas lives in `data/ai.json` and is `src/ai/`'s
+   * business alone (`aiConfigFor`).
+   *
+   * **No schema bump**, and the argument is exact: a persona drives the *bot*,
+   * not the reducer, and an old save replays its command log without ever
+   * running one. `normalizeConfig` writes the key only when it is there, so a
+   * config that never heard of personas normalises byte-identically to one from
+   * before they existed.
+   */
+  persona?: string;
   /** Defaults to false — the caller decides who sits at the keyboard. */
   isHuman?: boolean;
 }
@@ -928,6 +946,15 @@ export interface Player {
    * bump.
    */
   charge?: string;
+  /**
+   * The seat's bot persona, copied from its spec. Absent means balanced — see
+   * `PlayerSpec.persona`, which carries the whole argument.
+   *
+   * Uninterpreted here for `charge`'s reason, and it must stay that way: the day
+   * a *rule* reads this field the bot stops being a reader of the state and
+   * starts being part of it, and that is a schema bump.
+   */
+  persona?: string;
   isHuman: boolean;
   /** Treasury. Every city's gold lands here; nothing spends it yet. */
   gold: number;
@@ -2606,6 +2633,9 @@ export function normalizeConfig(config: GameConfig): GameConfig {
       // sheet are: a seat that took its charge by seat order normalises to *no*
       // key at all and is byte-identical to a spec from before heraldry existed.
       if (spec.charge !== undefined) player.charge = spec.charge;
+      // The persona, on exactly the same terms: written only when it is named,
+      // so a roster from before personas existed normalises byte-identically.
+      if (spec.persona !== undefined) player.persona = spec.persona;
       return player;
     }),
   };
@@ -2716,6 +2746,7 @@ export function newGame(config: GameConfig): GameState {
       // same shape `normalizeConfig` just produced, and the reason a state from
       // a charge-less config serialises identically to one from before the field.
       ...(spec.charge === undefined ? {} : { charge: spec.charge }),
+      ...(spec.persona === undefined ? {} : { persona: spec.persona }),
       isHuman: spec.isHuman ?? false,
       gold: 0,
       sciencePool: 0,
