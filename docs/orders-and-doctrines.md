@@ -238,7 +238,6 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | Sumptuary Laws | E | 🐫 | ● | +1 happiness for each unique luxury. | cannot be upgraded
 | Publicani | E | 🐫 | ◆ | +2 gold for each point of positive authority. | upgrade: +1 gold
 | Chartered Companies | E | 🐫 | ◆ | Buying a hex pays +5 science · buying a hex costs 15% less. | upgrade: +5 science, +5% cost reduction
-| Foreign Quarters | E | 🐫 | ◆ | +1 gold and +1 science in every city near another empire's territory. | [remove]
 | Ore Tithes | E | ⚒ | ● | +1 production on every hex carrying a strategic resource. | cannot be upgraded
 | Terraced Hillsides | E | 🌱 | ● | +1 food on every hill hex. | cannot be upgraded
 | Master Masons | E | ⚒ | ◆ | Completing a building grants +10 culture. | upgrade: +5 culture

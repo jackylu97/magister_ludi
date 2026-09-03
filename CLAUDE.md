@@ -10,6 +10,18 @@ UI language: `docs/design-specimen.html` (ink/parchment; every number tabular mo
 The RNG separator `hashSeed('webciv:gameplay:…')` (`src/sim/state.ts`) must NEVER
 be renamed — it would change every seeded outcome. No further rename passes.
 
+## Spec workflow (how rulings become code)
+- A user ruling lands in a FILE before any agent flies: `docs/flags.md` for
+  open/resolved rulings, or the system's reference doc. Agent briefs point at
+  files; chat paraphrase is never the spec.
+- The user's hand-drawn charts are specs of record — agents read the image
+  file directly. An ambiguous stroke is a question for the user, not a guess.
+- A doc table that mirrors data carries a sync test (the
+  `test/sim/statecraftDocSync.test.ts` pattern): doc rows ↔ data rows, retired
+  rows excluded. A row edited in one place and not the other fails core.
+- Reference docs read as technical documents: bulleted, concise, current-state;
+  history lives in `docs/design-history.md` and git.
+
 ## Commands & test discipline
 - `npm run dev` · `npm run typecheck` · `npm run test` (core tier) · `npm run build`.
 - Two tiers: a test is *core* or *slow*; slow lives in `<concern>.slow.test.ts`
