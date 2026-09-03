@@ -429,7 +429,19 @@ export type AbilityId =
    * inherit it by construction and no highlight can promise a crossing the
    * walk will not make.
    */
-  | 'oceanGoing';
+  | 'oceanGoing'
+  /**
+   * Two empires may **write a right of way** into a bargain: open borders, so
+   * that soldiers cross a border the peace would otherwise close
+   * (`docs/war-diplomacy.md`, section 3).
+   *
+   * The gate is **mutual** — both empires must hold it, which is the one
+   * ability in this block that asks about somebody else's tech list as well as
+   * your own — because a treaty is a document and it takes scribes on both
+   * sides of the table. Read in exactly one place, `openBordersError`
+   * (`diplomacy.ts`), so no rule anywhere names the technology.
+   */
+  | 'openBorders';
 
 /**
  * **Who gains the verb** — the half of an ability that decides how the tech

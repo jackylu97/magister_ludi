@@ -33,6 +33,10 @@ import type { GameState } from './state';
 // `statecraft.ts`. Re-exported below, so a screen that reads the ledger and the
 // connections together still has one import site.
 import { type ConnectedCity, connectedCities } from './roads';
+// The treaty side of the ledger (schema 57): a tribute is a recurring line, so
+// it joins this fold rather than opening a second one (CLAUDE.md's rule for
+// exactly this). `deals.ts` is a leaf, like `roads.ts` beside it.
+import { tributeLines } from './deals';
 // The luxury side of the connections line — spices' Æra III share. Read through
 // the one evaluator like every other signature; this module already imports
 // `statecraft.ts`, which reads `cities.ts`, so the import adds no shape of cycle
@@ -260,6 +264,20 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
         `${buildings.length === 1 ? 'building' : 'buildings'}`,
       gold: -gold,
     });
+  }
+
+  // **What the treaties cost and pay**, last, and one line per bargain per
+  // direction rather than a fold ("Tribute to the Crimson Banner −4💰").
+  //
+  // At the foot rather than beside the connections, because a tribute is not
+  // maintenance and not trade: it is neither what this empire built nor what it
+  // keeps up, it is what it *agreed to*, and a player scanning for why the
+  // treasury moved should find the promises together and at the end. Per deal
+  // rather than per neighbour for the same reason the road line prints its own
+  // hex count — a player who cannot see which bargain is charging them cannot
+  // decide which one to let lapse.
+  for (const tribute of tributeLines(state, playerId)) {
+    lines.push({ source: tribute.source, gold: tribute.gold });
   }
 
   return lines;

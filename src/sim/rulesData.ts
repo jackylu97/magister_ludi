@@ -443,6 +443,18 @@ export interface WarRules {
    */
   truceTurns: number;
   /**
+   * Turns a signed bargain runs for, counted from the turn it was signed — an
+   * **absolute** expiry once written (`DealState.untilTurn`, the timed-effect
+   * rule: nothing counts down).
+   *
+   * One duration for every kind of term, and that is the design rather than a
+   * simplification: a tribute, a lent seam and a right of way all lapse at the
+   * same age, so "what have we agreed" is one countdown a player can hold in
+   * their head, and a deal is re-struck rather than renegotiated. Twenty turns
+   * (the ruling, 9b).
+   */
+  dealTurns: number;
+  /**
    * Authority a **puppet** is spared against what a kept conquest costs
    * (`meters.authority.capturedCity`).
    *

@@ -194,7 +194,11 @@ describe('the bead catalogue', () => {
     // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
     // Stones improvement and the Terraces — so a v54 log that built either has
     // no row to replay into.
-    expect(SCHEMA_VERSION).toBe(56);
+    // v57 (war & diplomacy, phase two): deals exist. Two registers, four
+    // verbs and a widened `proposePeace`, a luxury that may be lent across a
+    // table, and one technology that hands over a verb it did not — so a v56
+    // log knows no deal commands and replays into a different world.
+    expect(SCHEMA_VERSION).toBe(57);
   });
 
   it('puts the beads phase directly after renown', () => {

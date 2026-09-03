@@ -69,6 +69,7 @@
   },
   "war": {
     "truceTurns": 10,
+    "dealTurns": 20,
     "puppetAuthorityRelief": 1,
     "puppetHappinessPercent": 75
   },

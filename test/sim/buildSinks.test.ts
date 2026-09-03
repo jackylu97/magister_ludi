@@ -320,11 +320,14 @@ describe('a project is gated, once, by the tree', () => {
     // Great Ziggurat standing on the same node — a wonder is an ordinary
     // `unlocks.buildings` entry, which is the whole of how it is homed. The
     // rites moved to Divination with the re-cut of 2026-09-02, so scholarship
-    // is the last thing the node hands over.
+    // was the last thing the node handed over until deals arrived (schema 57):
+    // Writing now also hands over the *verb* two empires need to write a right
+    // of way into a bargain, which is an `ability` gift like embarkation's.
     expect(techGifts('letters').map((gift) => gift.kind)).toEqual([
       'building',
       'building',
       'project',
+      'ability',
     ]);
   });
 

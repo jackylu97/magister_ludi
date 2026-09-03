@@ -40,6 +40,11 @@
 
 import { RULES } from './rulesData';
 import { type GameState, isBarbarian, playerById } from './state';
+// Type-only in one direction, values in the other: `deals.ts` is the leaf that
+// owns the terms vocabulary and imports nothing from here, so naming its shapes
+// costs this file nothing at load. `termsKey` is a value and is imported as
+// one — it is `deals.ts`' own comparison, not a second implementation here.
+import { type DealTerms, type PeaceTerms, termsKey } from './deals';
 
 /**
  * One live war, as the unordered pair it is.
@@ -66,6 +71,24 @@ export interface WarState {
   b: number;
   declaredTurn: number;
   offers?: number[];
+  /**
+   * The **paper on the table**, when somebody has put one there: what each side
+   * hands over if this peace is signed (`PeaceTerms` in `deals.ts`).
+   *
+   * Absent for a white peace, which is every peace P1 could make and still the
+   * common one — so a war nobody is bargaining over serialises exactly as it
+   * did before terms existed.
+   *
+   * One paper per war and not one per seat, and that is the whole shape of
+   * peace-with-terms: a white peace is symmetric (two flags, and the sorted
+   * list above deliberately forgets who spoke first), but a bargain is not —
+   * one empire writes it and the other signs it. So the row records *whose*
+   * paper it is, a bare offer means "I sign what is on the table", and a
+   * counter-offer replaces the paper and voids the signature that was on it
+   * (`setPeaceOffer`). Nothing about the *order* of two signatures is read;
+   * what is read is which paper they are both on.
+   */
+  terms?: PeaceTerms;
 }
 
 /**
@@ -166,10 +189,21 @@ export function enemiesOf(state: GameState, playerId: number): number[] {
   return list;
 }
 
-/** Has this seat put a standing white-peace offer on this war? */
+/** Has this seat put a standing peace offer on this war? */
 export function hasPeaceOffer(state: GameState, from: number, to: number): boolean {
   const war = warBetween(state, from, to);
   return war?.offers?.includes(from) === true;
+}
+
+/**
+ * The terms standing on this war, or `null` when the only peace on offer is a
+ * white one.
+ *
+ * The reading both the Diplomacy screen and the settlement ask, so the sentence
+ * a player signs and the terms that execute cannot be two different papers.
+ */
+export function peaceTermsOn(state: GameState, x: number, y: number): PeaceTerms | null {
+  return warBetween(state, x, y)?.terms ?? null;
 }
 
 // --- the writers ------------------------------------------------------------
@@ -230,15 +264,76 @@ export function setPeaceOffer(
   from: number,
   to: number,
   standing: boolean,
+  /**
+   * The paper this seat is putting on the table, from **its own side** —
+   * `give` is what it hands over, `take` what it asks for.
+   *
+   * Absent means *sign whatever is already on the table*, which with nothing
+   * there is P1's white peace exactly and is why every peace from before terms
+   * existed still reads the same. Present-and-empty is the third thing a player
+   * may mean — "I want a white peace, not that" — and it clears the paper.
+   */
+  offered?: { give: DealTerms; take: DealTerms },
 ): boolean {
   const war = warBetween(state, from, to);
   if (!war) return false;
   const held = war.offers ?? [];
   const has = held.includes(from);
-  if (has === standing) return false;
-  const next = standing ? [...held, from].sort((p, q) => p - q) : held.filter((id) => id !== from);
-  if (next.length === 0) delete war.offers;
-  else war.offers = next;
+
+  if (!standing) {
+    if (!has) return false;
+    // **Withdrawing a paper voids every signature on it.** The other seat did
+    // not sign a white peace, it signed *this* bargain, so leaving its flag
+    // standing over a table with nothing on it would turn its acceptance of a
+    // tribute into an acceptance of nothing. A plain white-peace offer takes
+    // only its own flag, which is the same rule read where there is no paper.
+    if (war.terms?.by === from) {
+      delete war.terms;
+      delete war.offers;
+      return true;
+    }
+    const next = held.filter((id) => id !== from);
+    if (next.length === 0) delete war.offers;
+    else war.offers = next;
+    return true;
+  }
+
+  if (offered === undefined) {
+    // Signing what is there. Idempotent, so a second identical offer is refused
+    // rather than logged — the bargain every verb in this codebase makes.
+    if (has) return false;
+    war.offers = [...held, from].sort((p, q) => p - q);
+    return true;
+  }
+
+  const paper: PeaceTerms = {
+    by: from,
+    ...(war.a === from ? { a: offered.give, b: offered.take } : { a: offered.take, b: offered.give }),
+  };
+  const blank = termsKey(paper.a) === termsKey({}) && termsKey(paper.b) === termsKey({});
+  const standingPaper = war.terms;
+  if (blank) {
+    // "A white peace, not that." Clears the paper and stands alone on the
+    // table, so the other seat has to sign the *new* nothing.
+    if (standingPaper === undefined && has) return false;
+    delete war.terms;
+    war.offers = [from];
+    return true;
+  }
+  if (
+    standingPaper !== undefined &&
+    standingPaper.by === from &&
+    termsKey(standingPaper.a) === termsKey(paper.a) &&
+    termsKey(standingPaper.b) === termsKey(paper.b) &&
+    has
+  ) {
+    return false;
+  }
+  // A new paper — or somebody else's paper answered with one's own, which is a
+  // counter-offer. Either way the signatures that were on the old one are void:
+  // nobody has signed this.
+  war.terms = paper;
+  war.offers = [from];
   return true;
 }
 

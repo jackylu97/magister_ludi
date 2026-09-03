@@ -2255,40 +2255,68 @@ function payBattleRiders(
   settleResearchWindfall(state, player);
 }
 
-function captureCity(state: GameState, city: City, ownerId: number): void {
-  // Read **before** the flag changes hands, because "was this the seat of their
-  // government" is a question about the empire that is losing it.
+/**
+ * A town changes hands — the half that is true however it changed them.
+ *
+ * Split out of `captureCity` when towns became tradeable (schema 57): a city
+ * ceded across a table and a city stormed are the same *handover* and two
+ * different occasions, so what they share lives here and what only a conquest
+ * does stays below. `cedeCityAt` (`diplomacy.ts`) is the second caller and the
+ * only other one there will be — a third way to change a flag calls this, or it
+ * is a second implementation of what a city *is* after it changes hands.
+ *
+ * What the two share, and why each line is here rather than at a call site:
+ *
+ *   · **the flag, and `captured`.** The mark is about who *grew* the town, not
+ *     about how it was taken — it is what makes the authority meter charge
+ *     `rules.authority.capturedCity` for somebody else's work (Entry XIV.D.2) —
+ *     and a town handed over in a treaty was grown by its old owner exactly as
+ *     a stormed one was;
+ *   · **the puppet default.** A town that changes hands is a puppet until its
+ *     new owner annexes it (the ruling, 9b), and it is written here for the
+ *     reason it was written in the capture: a default a caller has to remember
+ *     is a default somebody forgets. Ceded towns arrive as puppets *because*
+ *     captured ones do — the captor's decision is the same decision either way;
+ *   · **`wasCapital`**, the one fact about a seized palace that cannot be
+ *     recomputed afterwards (`capitalCityOf` prefers a founded town, so the
+ *     instant the flag moves nothing on the board says this was ever a seat of
+ *     government). Read before the flag changes, which is why it is read at all;
+ *   · **the old owner's intent, cleared**: the queue (which may name units the
+ *     new owner has no technology for), the hammers banked toward it, and the
+ *     pinned citizens. Buildings, population, food and culture stay — they are
+ *     the city, and the city survived — and the citizens are re-assigned on the
+ *     spot so no panel shows the old owner's dots.
+ *
+ * What it deliberately does **not** do: the hit points (a treaty batters no
+ * walls), the triumph, the bead and the captor's own counters. Those are the
+ * conquest, and they stay in `captureCity`.
+ */
+export function handOverCity(state: GameState, city: City, ownerId: number): void {
   const loser = city.ownerId;
   const wasCapital = capitalCityOf(state, loser)?.id === city.id;
   city.ownerId = ownerId;
   city.captured = true;
-  /**
-   * **A town taken by force is a puppet until its captor annexes it** (the war
-   * ruling of 2026-09-03, 9b). Written here rather than in the verb, because
-   * this is the one place a city changes hands by force and a default that had
-   * to be applied by a caller is a default somebody forgets: a puppet is what a
-   * conquest *is*, and annexing is the decision.
-   *
-   * The wild never reaches this line — `canAdvanceOnto` and the capture rule
-   * refuse a barbarian the ground (the wild never captures) — so there is no
-   * seat here without a screen to annex from.
-   */
   city.puppet = true;
-  // And the one fact about a seized palace that cannot be recomputed
-  // afterwards: `capitalCityOf` prefers a founded town, so the instant this
-  // flag changes hands nothing on the board says this was ever a capital. Read
-  // above, before the flag moved, for the same reason it is read at all.
   if (wasCapital && loser !== ownerId) city.wasCapital = true;
+  city.queue = [];
+  city.hammerBasket = 0;
+  city.lockedTiles = [];
+  assignCitizens(state, city);
+}
+
+function captureCity(state: GameState, city: City, ownerId: number): void {
+  // Read **before** the flag changes hands, because "was this the seat of their
+  // government" is a question about the empire that is losing it — and the
+  // handover below is about to move it.
+  const loser = city.ownerId;
+  const wasCapital = capitalCityOf(state, loser)?.id === city.id;
+  handOverCity(state, city, ownerId);
   // A fraction of the **new** maximum, which is the same maximum as the old one
   // — buildings survive a capture, so the walls a conqueror inherits are the
   // walls the town was defended with. Clamped afterwards anyway, because the
   // fraction is data and a designer may set it above 1.
   city.hp = Math.max(1, Math.round(cityMaxHp(city) * COMBAT.cityCaptureHpFraction));
   clampCityHp(city);
-  city.queue = [];
-  city.hammerBasket = 0;
-  city.lockedTiles = [];
-  assignCitizens(state, city);
   // The Taken. In the mechanism beside the change of hands, for
   // `awardFoundingTriumphs`' reason: capturing a town is one thing that happens
   // in one place, and an AI that storms a city earns what a player would.

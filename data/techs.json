@@ -207,6 +207,9 @@
         ],
         "projects": [
           "scholarship"
+        ],
+        "abilities": [
+          "openBorders"
         ]
       },
       "flavor": "A thought that outlives the mouth it came from."
@@ -1162,6 +1165,12 @@
       "glyph": "🌐",
       "bearer": "empire",
       "summary": "Ships and embarked units may cross the deep ocean."
+    },
+    "openBorders": {
+      "name": "Open Borders",
+      "glyph": "🛣",
+      "bearer": "empire",
+      "summary": "You and another empire may agree to let each other’s armies cross your land. Both of you must have learned to write."
     }
   }
 }

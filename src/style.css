@@ -9426,9 +9426,11 @@ kbd {
 /* ================= the Diplomacy screen ==================================
    Trade's sibling on the same sheet bones: one column of empires, each a card
    saying where you stand and carrying the verbs that are legal from there.
-   Deliberately one column rather than a split — there is nothing on the right
-   half to put, and a pane of empty parchment would be the interface implying a
-   system that does not exist yet (deals are P2).
+   Deliberately one column rather than a split, and it stayed one when deals
+   arrived: a bargain opens *inside* the row it is about (`.diplo-deal` below),
+   because the sheet's whole shape is one row per relationship and a panel
+   across the sheet would make the reader hold "which empire is this about" in
+   their head.
    ------------------------------------------------------------------------- */
 
 .diplo-column {
@@ -9502,6 +9504,111 @@ kbd {
 .diplo-foot {
   padding-top: 10px;
   border-top: var(--border-thin) solid var(--ink-faint);
+}
+
+/* --- the Deal panel (P2) --------------------------------------------------
+   The half the column above was left one-wide for. It opens *inside* a row
+   rather than in a second pane, because a bargain is a fact about one
+   relationship and the sheet's whole shape is one row per relationship — a
+   panel across the sheet would make the reader hold "which empire is this
+   about" in their head.
+
+   Two columns, and the split is the paper: what you give on the left, what
+   they give on the right, in the order a treaty is read out. */
+.diplo-deal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: var(--border-thin) dashed var(--ink-faint);
+}
+
+.diplo-deal-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.diplo-deal-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.diplo-field {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.diplo-field-label {
+  flex: 1 1 auto;
+}
+
+/* Every number on every surface in this game is tabular mono (the specimen's
+   rule), and a field a player types a figure into is no exception. */
+.diplo-field-input {
+  flex: 0 0 5.5em;
+  padding: 1px 4px;
+  border: var(--border-thin) solid var(--ink-faint);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.diplo-check {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--ink);
+}
+
+/* A refused row is drawn and dimmed rather than hidden — the sheet's rule
+   everywhere a gate exists — and its reason is on the hover. */
+.diplo-check input:disabled + .diplo-check-label {
+  color: var(--ink-faint);
+}
+
+.diplo-check-note {
+  margin-left: auto;
+  font-family: var(--face-num);
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+/* A paper: one standing offer, or one bargain already running. The live one
+   wears the solid edge because it is a fact, and the standing one the dashed,
+   because it is a question. */
+.diplo-paper {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 8px;
+  border: var(--border-thin) dashed var(--ink-faint);
+  border-radius: var(--radius-sm);
+}
+
+.diplo-paper.is-live {
+  border-style: solid;
+}
+
+.diplo-paper-head {
+  margin: 0;
+  font-family: var(--face-name);
+  font-size: 12px;
+  color: var(--ink);
+}
+
+.diplo-none {
+  margin: 0;
 }
 
 /* --- the right pane's two controls ---------------------------------------

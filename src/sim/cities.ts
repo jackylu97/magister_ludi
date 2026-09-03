@@ -59,6 +59,10 @@ import {
   isBuildingId,
   isWonder,
 } from './buildingData';
+// The two sides of the lending rule (schema 57). `deals.ts` is a leaf — it
+// imports `state.ts`, the resource table and the rule book and stops there — so
+// the largest module in the simulation may read it without a shape of cycle.
+import { lentAwayBy, lentToPlayer } from './deals';
 import { discoveryKindTech } from './discoveryData';
 import type { Hex } from './hex';
 import {
@@ -737,8 +741,11 @@ export function tileYieldOf(tile: Tile, ctx?: TileYieldContext): TileYield {
  *     whatever it was planted on.
  *   · `city` — the player's **city stands on the seam**, and its owner knows
  *     how to work it. A town quarries the marble it was built on.
+ *   · `lent` — **another empire lent it** under a live deal. Not a fact about
+ *     any tile at all, which is why this one arrives at empire scale rather
+ *     than out of `openedResource`; see `lentToPlayer` (`deals.ts`).
  */
-export type ResourceVia = 'improvement' | 'city';
+export type ResourceVia = 'improvement' | 'city' | 'lent';
 
 /** A resource in somebody's hands, and the reason it is there. */
 export interface ResourceHolding {
@@ -810,6 +817,25 @@ function openedResource(
   if (!player) return null;
   if (!resourceIsVisibleTo(id, player.techsResearched)) return null;
 
+  /**
+   * **A seam this empire has lent away is not in its hands** (the deal
+   * vocabulary, schema 57 — `DealTerms.luxuries`).
+   *
+   * Placed **second**, immediately after the reveal gate and before every
+   * clause about ground, and the position is the ruling: the other three ask
+   * *how* a tile is worked, and this asks whether the empire is entitled to
+   * what it works at all. A citadel standing on lent silk must not hand it
+   * back, and neither must a town founded on it — so nothing below this line
+   * can reach a resource that has been promised across a table.
+   *
+   * It lends the **kind**, not the tile: two improved silk seams are one silk
+   * in anybody's hands (`controlledHoldings`), so an empire that lends silk
+   * lends all of it, and `resourceCopies` falls to nothing with it. The
+   * receiver's half cannot live here — they own no tile carrying the seam —
+   * and joins the three empire-scale readings below.
+   */
+  if (lentAwayBy(state, playerId).includes(id)) return null;
+
   // **A work opens whatever it stands on** (user, 2026-08-27), and it is read
   // *before* the table because the table cannot answer for it: a citadel is not
   // any resource's improvement and never will be. Asked of the marker
@@ -865,7 +891,41 @@ export function hasResource(
     if (owner.at(index) !== playerId) continue;
     if (openedResource(state, tile, playerId) !== null) return true;
   }
-  return false;
+  // And a seam somebody lent this empire, which is in its hands without being
+  // on its ground. See `lentHoldings` for the whole of the asymmetry.
+  return lentHoldings(state, playerId).some((holding) => holding.id === resourceId);
+}
+
+/**
+ * Every luxury lent **to** this empire under a live deal, as holdings.
+ *
+ * The receiver's half of the lending rule, and the reason it cannot be a clause
+ * in `openedResource`: that rule answers about a *tile*, and the empire being
+ * paid owns no tile carrying the seam. So the giver's side is a clause there
+ * and this is the same fact said at empire scale, read by the three questions
+ * that are asked of an empire — `hasResource`, `resourceCopies` and
+ * `controlledHoldings`.
+ *
+ * **The reveal gate still binds the receiver** (`resourceIsVisibleTo`), the
+ * same first clause `openedResource` opens with: a people with no word for
+ * silk draw nothing from a caravan of it, whoever sent it.
+ *
+ * `cityResources` is deliberately **not** a reader, and that is a stated cut
+ * rather than an omission: a lent seam is held by no town, so the part of the
+ * luxury vocabulary that is local — a signature paying "in the city that owns
+ * the improved tile" (`resourceEffects.ts`) — has no city to pay in. What
+ * moves across a table is the empire-scale half: the contentment, the
+ * empire-scoped signatures, and the copies.
+ */
+function lentHoldings(state: GameState, playerId: number): ResourceHolding[] {
+  const player = playerById(state, playerId);
+  if (!player) return [];
+  const list: ResourceHolding[] = [];
+  for (const id of lentToPlayer(state, playerId)) {
+    if (!resourceIsVisibleTo(id, player.techsResearched)) continue;
+    list.push({ id, via: 'lent', improvement: null });
+  }
+  return list;
 }
 
 /**
@@ -890,6 +950,12 @@ export function resourceCopies(
     if (owner.at(index) !== playerId) continue;
     if (openedResource(state, tile, playerId) !== null) copies += 1;
   }
+  // **A lent seam is one copy**, whatever the lender had of it. The giver's
+  // count falls to nothing (the clause in `openedResource` is about the kind,
+  // not the tile) and the receiver gains exactly one, which is the reading that
+  // makes lending a *transfer* rather than a multiplication: two empires can
+  // never hold three copies between them where there were two.
+  if (lentHoldings(state, playerId).some((holding) => holding.id === resourceId)) copies += 1;
   return copies;
 }
 
@@ -938,6 +1004,14 @@ export function controlledHoldings(
     if (holding === null || resourceDef(holding.id).kind !== kind) continue;
     if (held.get(holding.id)?.via === 'improvement') continue;
     held.set(holding.id, holding);
+  }
+  // A seam another empire lent, added **after** the sweep and only where the
+  // empire holds none of its own: your own silk is the more specific fact, the
+  // same precedence the improved reading already wins by above, and it is the
+  // one a pillage or an expiry can take away separately.
+  for (const lent of lentHoldings(state, playerId)) {
+    if (resourceDef(lent.id).kind !== kind || held.has(lent.id)) continue;
+    held.set(lent.id, lent);
   }
   return RESOURCE_IDS.filter((id) => held.has(id)).map((id) => held.get(id)!);
 }
@@ -1774,6 +1848,17 @@ function chooseCitizens(
  *      happiness reaches `cityYields` through `meterEffects`, so the town's own
  *      assignment is judged against a factor that has just moved. It costs one
  *      re-seat on a verb a player issues by hand.
+ *
+ *  20. **The deal verbs** (`reseatEmpire` in `diplomacy.ts`, schema 57) —
+ *      `settleResearchWindfall`'s shape a third time, and for its argument
+ *      exactly: a lent luxury is an empire-wide fact about what ground is worth
+ *      (a signature that pays a hex, a happiness factor `meterEffects` folds
+ *      into `cityYields`), and it moves *both* empires at once, so both are
+ *      re-seated. Four moments reach it — a bargain signed, a peace whose terms
+ *      executed, a declaration that cancelled one, and the broom that swept a
+ *      lapsed one out (`settleDiplomacy`, `turn.ts`) — which is every moment a
+ *      row enters or leaves `state.deals`. A future term that changes what a hex
+ *      pays joins by being a term; it needs nothing new here.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`

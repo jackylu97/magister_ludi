@@ -92,6 +92,9 @@ import { RULES } from './rulesData';
 import { cardBorderZoc } from './statecraft';
 import { type GameState, type Unit, playerById } from './state';
 import { atWar } from './wars';
+// Open borders, read at the same seam and for the same reason `atWar` is: one
+// clause in `closedBordersFor`, so the four readers of `stepCost` inherit it.
+import { bordersOpenTo } from './deals';
 import { techsGrant } from './techData';
 import {
   type TerrainId,
@@ -437,7 +440,15 @@ export function navalPorts(state: GameState): ReadonlySet<Tile> {
  * oversight: a scout is a combat unit (`isCombatant` — it is the one that may
  * embark), it is "military" in every other rule in this simulation, and Civ V
  * turns it back at a closed border exactly like a warrior. An empire that wants
- * to see what is behind a neighbour's fields buys Open Borders (P2) or declares.
+ * to see what is behind a neighbour's fields buys Open Borders or declares.
+ *
+ * **Open borders is the fourth question and it is about the ground's owner**
+ * (schema 57): a border the holder has opened in a live bargain bars nobody,
+ * so the clause sits beside `atWar` and reads the same way — one register, one
+ * function, no second gate. It is asked of the *holder's* half of the deal,
+ * because that is who granted the passage; a one-sided right of way is a
+ * bargain this vocabulary can express, and both empires having signed one is
+ * simply two clauses answering true.
  *
  * The barred set is built from `state.players` order and read only by `.has`,
  * so nothing about an outcome can depend on it.
@@ -450,6 +461,7 @@ function closedBordersFor(state: GameState, unit: Unit, def: UnitDef): ClosedBor
   for (const other of state.players) {
     if (other.id === owner.id || other.barbarian === true) continue;
     if (atWar(state, owner.id, other.id)) continue;
+    if (bordersOpenTo(state, other.id, owner.id)) continue;
     barred.add(other.id);
   }
   if (barred.size === 0) return undefined;

@@ -90,6 +90,9 @@ import { RULES } from './rulesData';
 // arrow — the two shapes are declarations — which is the documented exception
 // (`statecraft.ts`/`religionData.ts` keep the same bargain).
 import type { Truce, WarState } from './wars';
+// `deals.ts` keeps the same bargain, and for the same reason: it imports values
+// from this module, so the two shapes it names here arrive type-only.
+import type { DealProposal, DealState } from './deals';
 import {
   type PlayerStatecraft,
   cardExtraCharges,
@@ -865,8 +868,40 @@ import {
  *     `capitalCityOf` is derived and a seized palace stops reading as one the
  *     instant it changes hands. A replay of the log re-derives both; the bump
  *     refuses the snapshot and keeps the log honest.
+ *
+ * v57: **war and diplomacy, phase two — deals exist** (`docs/war-diplomacy.md`,
+ * section 7). A v56 log knows no deal commands, so it replays as a log; what it
+ * cannot replay is a world in which the four verbs below were available and one
+ * technology hands over a verb it did not hand over before.
+ *
+ *   · **Two registers and four verbs.** `GameState.deals` and
+ *     `GameState.dealProposals` (`deals.ts`), and `proposeDeal`, `acceptDeal`,
+ *     `declineDeal` and `withdrawDeal`. Both serialise as empty arrays in a
+ *     game nobody has bargained in, so a world with no diplomacy in it reads
+ *     exactly as a v56 one did.
+ *   · **`proposePeace` widened.** It carries optional `give`/`take` terms, and
+ *     a bare offer now means *sign whatever paper is on the table* rather than
+ *     "white peace" flatly — with no terms standing the two readings are the
+ *     same command, which is why every v56 peace still replays, but a peace can
+ *     now hand over coin, seams, a right of way and towns.
+ *   · **A luxury may be lent.** `openedResource` gained a clause between the
+ *     reveal gate and the works: a seam an empire has lent out is not in its
+ *     hands, and one lent to it is (`controlledHoldings` at empire scale). The
+ *     happiness, the signatures and the copies all follow, so a v56 board with
+ *     the same tiles on it can be worth different meters here.
+ *   · **Writing hands over a verb.** `letters` grants the `openBorders`
+ *     ability, which is a row in `data/techs.json` and therefore a change to
+ *     what the tech screen shows and what the compendium generates.
+ *   · **A city may change hands without a battle.** `handOverCity` is the
+ *     shared half of `captureCity`, and a ceded town arrives a **puppet** with
+ *     `captured` raised — but with none of the conquest's riders, no triumph,
+ *     no bead and no battered walls.
+ *
+ *     The migration note: nothing to migrate — no field changed shape, and both
+ *     new arrays default empty. What a v56 save cannot carry across is the
+ *     world its log would build, for the two rule changes above.
  */
-export const SCHEMA_VERSION = 56;
+export const SCHEMA_VERSION = 57;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2700,6 +2735,33 @@ export interface GameState {
    */
   truces: Truce[];
   /**
+   * Every bargain two empires have signed and that has not run out
+   * (`docs/war-diplomacy.md`, section 7; `deals.ts`).
+   *
+   * `wars`' third sibling and the register in the same sense: an empire lends a
+   * luxury, pays a tribute or opens a border iff there is a row here saying so,
+   * and the three readers — `openedResource`, `explainEmpireGold`,
+   * `closedBordersFor` — each ask one function rather than keeping an opinion.
+   * Unlike a war there may be **several** rows for one pair, each with its own
+   * absolute expiry, so an array in signing order rather than a record keyed by
+   * pair; the ordering is `camps`' argument exactly.
+   *
+   * Only signed bargains are here. A proposal nobody has answered lives in
+   * `dealProposals`, and the two are separate arrays precisely so that no
+   * reading of this one has to remember to filter.
+   */
+  deals: DealState[];
+  /**
+   * Bargains one empire has put to another and nobody has signed.
+   *
+   * `deals`' antechamber, in **log order**, which is the order a contention
+   * resolves by: two proposals accepted in the same window resolve in the order
+   * their acceptances were logged, and nothing about a proposal's own age is
+   * ever read for an outcome. A declaration between the pair sweeps theirs away
+   * (`cancelDealsBetween`) for the reason a war takes its peace offers with it.
+   */
+  dealProposals: DealProposal[];
+  /**
    * The Bead Race — the decks, the hands, the world's register and its clock.
    * See `BeadTable`, and design ledger Entry VI for why there is one victory
    * condition rather than four.
@@ -2933,6 +2995,8 @@ export function newGame(config: GameConfig): GameState {
     // a world that never fights serialises with both of them empty forever.
     wars: [],
     truces: [],
+    deals: [],
+    dealProposals: [],
     // **The deal is the seed.** Both decks are shuffled here, before a single
     // piece is placed, so that a config alone determines every card and the
     // order it comes off — Entry II's fairness, and the reason no generator ever

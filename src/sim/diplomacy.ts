@@ -35,10 +35,27 @@
  */
 
 import { arriveOnTile } from './arrival';
-import { type City, cityById, playerById, realPlayers } from './state';
+import { type City, allocateEntityId, cityById, playerById, realPlayers } from './state';
 import type { GameState, Unit } from './state';
-import { capitalCityOf, refreshCityDerived, tileOwnerPlayerId } from './cities';
-import { updateElimination } from './combat';
+import { capitalCityOf, hasResource, refreshCityDerived, tileOwnerPlayerId } from './cities';
+import { handOverCity, updateElimination } from './combat';
+import {
+  type DealEndReport,
+  type DealProposal,
+  type DealTerms,
+  cancelDealsBetween,
+  dealIsOngoing,
+  isLendableResource,
+  openDeal,
+  proposalById,
+  seatsMayBargain,
+  termsAreEmpty,
+} from './deals';
+import { isResourceId, resourceDef } from './resourceData';
+// The ability register, asked rather than a technology named: `openBordersError`
+// is the one reader of the `openBorders` verb, and it prints the tech's own name
+// so a greyed row says what would ungrey it.
+import { ABILITY_TECH, techDef, techsGrant } from './techData';
 import { type Cell, canStopOn, moveProfile } from './pathfind';
 import { getTileAt, tileIndex, tileNeighbors } from './map';
 import type { Tile } from './map';
@@ -115,6 +132,16 @@ export interface ExpulsionReport {
 export interface PeaceOutcome {
   peace: PeaceReport;
   expulsions: ExpulsionReport[];
+  /**
+   * What the terms on the paper moved, when there was a paper.
+   *
+   * Absent for a white peace, which is what P1 could make and still the common
+   * one — so a peace with nothing on the table reports exactly what it always
+   * did. `ExpulsionReport`'s argument in a second currency: the coin is spent,
+   * the town has changed hands and the row is open by the time anybody reads
+   * this, and no diff of two boards could say which peace did it.
+   */
+  execution?: DealExecution;
 }
 
 // --- declaring --------------------------------------------------------------
@@ -195,18 +222,442 @@ export function declareWarAt(
   state: GameState,
   playerId: number,
   targetId: number,
-): { report: WarDeclaredReport; routesEnded: RouteEndReport[] } {
+): { report: WarDeclaredReport; routesEnded: RouteEndReport[]; dealsEnded: DealEndReport[] } {
   openWar(state, playerId, targetId);
+  // **Every bargain between the two goes with the caravans** (the ruling, 9b:
+  // deals auto-cancel on declaration), in the same breath and for the same
+  // reason: this is the one place a war starts, and a consequence a caller had
+  // to remember is a consequence somebody forgets. The standing proposals go
+  // too — a paper nobody may sign is not a paper.
+  const dealsEnded = cancelDealsBetween(state, playerId, targetId);
+  // The lent seams have just gone home and the tributes have just stopped, so
+  // both empires' towns are being priced off a different list of luxuries than
+  // they were a line ago — the mid-turn register's entry for the deal verbs.
+  if (dealsEnded.length > 0) {
+    reseatEmpire(state, playerId);
+    reseatEmpire(state, targetId);
+  }
   return {
     report: { byId: playerId, onId: targetId, turn: state.turn },
     routesEnded: cancelRoutesBetween(state, playerId, targetId),
+    dealsEnded,
   };
+}
+
+/**
+ * Re-seats every town of one empire, because something empire-wide has just
+ * changed what its hexes are worth.
+ *
+ * The **17th entry in the mid-turn register** (`refreshCityDerived`), and the
+ * one whose subject is neither a city nor a tile: a lent luxury moves a
+ * signature that pays across a whole empire, so the towns that have to be told
+ * are all of them and on both sides of the table. `settleResearchWindfall`
+ * takes the same shape one system over and for the same reason — a technology
+ * is not a city either.
+ *
+ * Every deal verb calls it for both seats: acceptance, expiry, and the
+ * declaration that cancels one.
+ */
+function reseatEmpire(state: GameState, playerId: number): void {
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    refreshCityDerived(state, city);
+  }
+}
+
+// --- the terms vocabulary ---------------------------------------------------
+
+/**
+ * Why this empire cannot hand over this half of a bargain, or `null` when it
+ * can.
+ *
+ * **THE** gate on a set of terms, asked twice for every bargain — once of each
+ * side — and asked again at acceptance, because a paper written six turns ago
+ * may name a mine that has since been pillaged or coin that has since been
+ * spent. That double asking is the whole reason this is a function rather than
+ * five clauses inside a verb: the proposal's refusal, the acceptance's refusal
+ * and the screen's greyed row are one sentence from one place.
+ *
+ * The clauses, in the order a player meets them:
+ *
+ *   · **coin they have** — a lump is checked against the treasury *now*, and
+ *     again at acceptance, because that is the only moment it actually moves.
+ *     A tribute is not: an empire may promise more per turn than it earns and
+ *     go into arrears for it, which is a real decision the creditors already
+ *     price (`upkeep.ts`);
+ *   · **seams they hold** — a luxury, named once each, that this empire
+ *     actually controls (`hasResource`, which already answers *false* for
+ *     anything it has lent to somebody else, so a seam cannot be promised
+ *     twice). Only luxuries: iron and horses are what an army is made of, and
+ *     trading the strategic table is a design decision nobody has taken;
+ *   · **a right of way both may write** — the mutual technology gate below;
+ *   · **towns they own, in a peace** — a city may change hands only in a peace
+ *     deal (the ruling, 9b), never in an ordinary bargain, and never a seat of
+ *     government: an empire that could sign its own palace away could sign
+ *     itself out of existence at the table.
+ */
+export function dealSideError(
+  state: GameState,
+  giverId: number,
+  receiverId: number,
+  terms: DealTerms,
+  /** True in a peace deal, where towns may be ceded. See the clause. */
+  citiesAllowed: boolean,
+): string | null {
+  const giver = playerById(state, giverId);
+  if (!giver) return `No player with id ${String(giverId)}`;
+  const receiver = playerById(state, receiverId);
+  if (!receiver) return `No player with id ${String(receiverId)}`;
+
+  const gold = terms.gold ?? 0;
+  if (!Number.isInteger(gold) || gold < 0) return 'A payment must be a whole number of coins';
+  // Asked only of a payment that exists. A treasury may be *in arrears* — the
+  // creditors are already taking pieces off it (`upkeep.ts`) — and a clause
+  // that compared a zero against a negative balance would refuse a side of a
+  // bargain that promises no coin at all.
+  if (gold > 0 && gold > giver.gold) {
+    return giverId === receiverId
+      ? 'There is not that much in the treasury'
+      : `The ${giver.name} do not have that much coin`;
+  }
+  const perTurn = terms.goldPerTurn ?? 0;
+  if (!Number.isInteger(perTurn) || perTurn < 0) {
+    return 'A tribute must be a whole number of coins a turn';
+  }
+
+  const named = terms.luxuries ?? [];
+  const seen: string[] = [];
+  for (const id of named) {
+    if (!isResourceId(id)) return `There is no such thing as ${String(id)}`;
+    if (!isLendableResource(id)) {
+      return `${resourceDef(id).name} is not a luxury and cannot be lent`;
+    }
+    if (seen.includes(id)) return `${resourceDef(id).name} is named twice`;
+    seen.push(id);
+    if (!hasResource(state, giverId, id)) {
+      return `The ${giver.name} have no ${resourceDef(id).name.toLowerCase()} to lend`;
+    }
+  }
+
+  if (terms.openBorders === true) {
+    const refusal = openBordersError(state, giverId, receiverId);
+    if (refusal !== null) return refusal;
+  }
+
+  const towns = terms.cities ?? [];
+  if (towns.length > 0 && !citiesAllowed) {
+    return 'Towns change hands only in a peace';
+  }
+  const capital = capitalCityOf(state, giverId);
+  const namedTowns: number[] = [];
+  for (const cityId of towns) {
+    const city = cityById(state, cityId);
+    if (!city) return `No city with id ${String(cityId)}`;
+    if (city.ownerId !== giverId) return `${city.name} is not theirs to give`;
+    if (namedTowns.includes(cityId)) return `${city.name} is named twice`;
+    namedTowns.push(cityId);
+    if (capital?.id === city.id) return `${city.name} is a seat of government and cannot be given`;
+  }
+  return null;
+}
+
+/**
+ * Why these two empires may not write a right of way, or `null`.
+ *
+ * The **one** reader of the `openBorders` ability, so no rule in the simulation
+ * names the technology (`ABILITY_TECH`, `techData.ts`). The gate is **mutual**
+ * and that is the ruling read plainly: a treaty is a document, and it takes
+ * scribes on both sides of the table — so an empire that has learned to write
+ * still cannot open its border to one that has not, whichever way the passage
+ * runs.
+ *
+ * The sentence names the technology, because a greyed row that does not say
+ * what would ungrey it is a rule a player cannot learn.
+ */
+export function openBordersError(
+  state: GameState,
+  x: number,
+  y: number,
+): string | null {
+  const one = playerById(state, x);
+  const two = playerById(state, y);
+  if (!one || !two) return 'There is nobody to open a border with';
+  const gate = ABILITY_TECH.get('openBorders');
+  const named = gate === undefined ? 'the writing of treaties' : techDef(gate).name;
+  if (!techsGrant(one.techsResearched, 'openBorders')) {
+    return `Open borders are written down, and the ${one.name} have not learned ${named}`;
+  }
+  if (!techsGrant(two.techsResearched, 'openBorders')) {
+    return `Open borders are written down, and the ${two.name} have not learned ${named}`;
+  }
+  return null;
+}
+
+/** What executing a bargain actually moved, for the sentences that report it. */
+export interface DealExecution {
+  /** Every lump of coin that changed hands, in the order it moved. */
+  payments: { fromId: number; toId: number; gold: number }[];
+  /** Every town that changed hands. */
+  cededCities: { cityId: number; name: string; fromId: number; toId: number }[];
+  /** The row this bargain opened, or `null` when nothing was left standing. */
+  dealId: number | null;
+}
+
+/**
+ * Moves everything a bargain moves **once**, and opens the row for everything
+ * it leaves standing. Validates nothing — the gates are above, asked in full.
+ *
+ * The order is the ruling and not a convenience: coin, then towns, then the
+ * row. The coin first because a treasury is the simplest thing on the table and
+ * a town changing hands cannot alter it; the towns before the row because a
+ * lent seam is priced off ground somebody owns, and the empire that is about to
+ * receive one may be about to receive the hill it stands on as well.
+ *
+ * Both empires are re-seated at the end, once, however many terms moved — the
+ * mid-turn register's rule (`reseatEmpire`).
+ */
+export function settleDealAt(
+  state: GameState,
+  byId: number,
+  toId: number,
+  give: DealTerms,
+  take: DealTerms,
+): DealExecution {
+  const execution: DealExecution = { payments: [], cededCities: [], dealId: null };
+  payLump(state, byId, toId, give.gold ?? 0, execution);
+  payLump(state, toId, byId, take.gold ?? 0, execution);
+  cedeTowns(state, byId, toId, give.cities ?? [], execution);
+  cedeTowns(state, toId, byId, take.cities ?? [], execution);
+  if (dealIsOngoing(give, take)) {
+    execution.dealId = openDeal(state, allocateEntityId(state), byId, toId, give, take).id;
+  }
+  reseatEmpire(state, byId);
+  reseatEmpire(state, toId);
+  // **Only when a town actually moved.** A ceded city can be the last one an
+  // empire had, and that verdict has exactly one implementation wherever it is
+  // reached from — but a bargain of coin and seams moves nobody off the board,
+  // and asking the question anyway would let a treaty close a seat that a
+  // fixture, a scenario or a hand-edited save happened to leave empty.
+  if (execution.cededCities.length > 0) updateElimination(state);
+  return execution;
+}
+
+/** One lump across the table, through the treasuries and nothing else. */
+function payLump(
+  state: GameState,
+  fromId: number,
+  toId: number,
+  gold: number,
+  execution: DealExecution,
+): void {
+  if (gold <= 0) return;
+  const from = playerById(state, fromId);
+  const to = playerById(state, toId);
+  if (!from || !to) return;
+  from.gold -= gold;
+  to.gold += gold;
+  execution.payments.push({ fromId, toId, gold });
+}
+
+/**
+ * Hands towns over, in the order the paper named them.
+ *
+ * The handover is the **capture machinery's own** (`handOverCity`, `combat.ts`)
+ * with the combat half left behind: the flag moves, the territory follows it
+ * for free (`state.tileOwner` holds city ids), the queue and the pinned
+ * citizens go with the old owner's intent, and the town arrives a **puppet** —
+ * consistent with a conquest, and the same decision its new owner is offered
+ * there. What a treaty does not do is batter the walls, earn a triumph, raise a
+ * bead or count toward anybody's conquests: nobody stormed anything.
+ *
+ * Routes and sightings are treated exactly as a capture treats them — which is
+ * to say left alone. A caravan whose road ends in a town that has changed hands
+ * is running to a foreign city, and that is as true of a ceded town as of a
+ * stormed one; a rule that dropped it here and not there would be two answers
+ * to one question.
+ *
+ * Both seats' eyes move, so both are named — `recomputeVisibilityFor`'s own
+ * argument, the same one `expelFrom` makes two functions down.
+ */
+function cedeTowns(
+  state: GameState,
+  fromId: number,
+  toId: number,
+  cityIds: readonly number[],
+  execution: DealExecution,
+): void {
+  let moved = false;
+  for (const cityId of cityIds) {
+    const city = cityById(state, cityId);
+    if (!city || city.ownerId !== fromId) continue;
+    handOverCity(state, city, toId);
+    execution.cededCities.push({ cityId: city.id, name: city.name, fromId, toId });
+    moved = true;
+  }
+  if (moved) recomputeVisibilityFor(state, [fromId, toId]);
+}
+
+// --- bargains outside a war -------------------------------------------------
+
+/**
+ * Why these two empires cannot bargain **at all** right now, or `null`.
+ *
+ * The seat half of `proposeDealError`, split out because the Diplomacy screen
+ * needs exactly this and not the rest: a panel with nothing typed into it yet
+ * must be able to say "you are at war with them" without also saying "there is
+ * nothing on the table", which is a note about the player's own half-written
+ * paper rather than about whether a table exists.
+ *
+ * Two of the five clauses are this system's own: a bargain is refused while
+ * there is a war on (terms belong in a peace — section 4), and one paper at a
+ * time, so the other side is never answering a question that has changed under
+ * them.
+ */
+export function bargainSeatError(
+  state: GameState,
+  playerId: number,
+  targetId: number,
+): string | null {
+  const actor = playerById(state, playerId);
+  if (!actor) return `No player with id ${String(playerId)}`;
+  const target = playerById(state, targetId);
+  if (!target) return `No player with id ${String(targetId)}`;
+  if (target.id === actor.id) return 'You cannot bargain with yourself';
+  if (!seatsMayBargain(state, actor.id, target.id)) {
+    return 'The wild keeps no treaties — there is nobody to talk to';
+  }
+  if (target.eliminated) return `The ${target.name} are gone`;
+  if (atWar(state, actor.id, target.id)) {
+    return `You are at war with the ${target.name} — terms belong in a peace`;
+  }
+  if (state.dealProposals.some((row) => row.by === actor.id && row.to === target.id)) {
+    return `You already have an offer standing with the ${target.name}`;
+  }
+  return null;
+}
+
+/**
+ * Why this empire cannot put this bargain to that one, or `null` when it can.
+ *
+ * A proposal is a **standing, revocable paper** rather than an act, exactly as
+ * a peace offer is: nothing moves until the other seat accepts, and the seat
+ * that wrote it may take it back. So the gate asks who may bargain at all, and
+ * then asks `dealSideError` of each half — which is where every rule about what
+ * a term may contain lives, once.
+ *
+ * Two clauses are this verb's own:
+ *
+ *   · **not at war.** Terms belong in a peace while there is a war on (section
+ *     4), and an ordinary bargain struck across a battle line would be a second
+ *     way to write the same paper with none of the peace's consequences;
+ *   · **one paper at a time.** A second standing proposal from the same seat to
+ *     the same seat is refused rather than silently replacing the first, so the
+ *     other side is never answering a question that has changed under them.
+ */
+export function proposeDealError(
+  state: GameState,
+  playerId: number,
+  targetId: number,
+  give: DealTerms,
+  take: DealTerms,
+): string | null {
+  const seats = bargainSeatError(state, playerId, targetId);
+  if (seats !== null) return seats;
+  const actor = playerById(state, playerId)!;
+  const target = playerById(state, targetId)!;
+  if (termsAreEmpty(give) && termsAreEmpty(take)) return 'There is nothing on the table';
+  const mine = dealSideError(state, actor.id, target.id, give, false);
+  if (mine !== null) return mine;
+  return dealSideError(state, target.id, actor.id, take, false);
+}
+
+/** Writes the proposal. Validates nothing — `proposeDealError` is the gate. */
+export function proposeDealAt(
+  state: GameState,
+  playerId: number,
+  targetId: number,
+  give: DealTerms,
+  take: DealTerms,
+): DealProposal {
+  const row: DealProposal = {
+    id: allocateEntityId(state),
+    by: playerId,
+    to: targetId,
+    give,
+    take,
+    turn: state.turn,
+  };
+  state.dealProposals.push(row);
+  return row;
+}
+
+/**
+ * Why this seat cannot answer that proposal, or `null` when it can.
+ *
+ * `accepting` decides which half of the question is asked: **declining is
+ * always legal** for the seat that was asked — a paper you did not write can be
+ * refused whatever has happened to the board since — while accepting
+ * re-validates *both* halves from scratch. That second reading is the whole
+ * point of the gate: the coin may have been spent, the mine may have been
+ * pillaged, the town may have fallen, and a bargain that is no longer possible
+ * must be refused rather than half-executed. Hard rule 1 read at its plainest.
+ */
+export function answerDealError(
+  state: GameState,
+  playerId: number,
+  proposalId: number,
+  accepting: boolean,
+): string | null {
+  const actor = playerById(state, playerId);
+  if (!actor) return `No player with id ${String(playerId)}`;
+  const row = proposalById(state, proposalId);
+  if (!row) return 'That offer is no longer on the table';
+  if (row.to !== actor.id) return 'That offer was not put to you';
+  if (!accepting) return null;
+  if (atWar(state, row.by, row.to)) {
+    const them = playerById(state, row.by)?.name ?? 'them';
+    return `You are at war with the ${them} — terms belong in a peace`;
+  }
+  const theirs = dealSideError(state, row.by, row.to, row.give, false);
+  if (theirs !== null) return theirs;
+  return dealSideError(state, row.to, row.by, row.take, false);
+}
+
+/** Why this seat cannot take its own paper back, or `null`. */
+export function withdrawDealError(
+  state: GameState,
+  playerId: number,
+  proposalId: number,
+): string | null {
+  const actor = playerById(state, playerId);
+  if (!actor) return `No player with id ${String(playerId)}`;
+  const row = proposalById(state, proposalId);
+  if (!row) return 'That offer is no longer on the table';
+  if (row.by !== actor.id) return 'That offer is not yours to withdraw';
+  return null;
+}
+
+/** Takes a proposal off the table, whoever ended it. Validates nothing. */
+export function dropProposal(state: GameState, proposalId: number): void {
+  state.dealProposals = state.dealProposals.filter((row) => row.id !== proposalId);
+}
+
+/**
+ * Signs a proposal: executes it, opens the row, and takes the paper off the
+ * table. Validates nothing — `answerDealError` is the gate.
+ *
+ * The paper is dropped **first**, so nothing downstream can see a proposal and
+ * the bargain it became standing at the same moment.
+ */
+export function acceptDealAt(state: GameState, row: DealProposal): DealExecution {
+  dropProposal(state, row.id);
+  return settleDealAt(state, row.by, row.to, row.give, row.take);
 }
 
 // --- suing for peace --------------------------------------------------------
 
 /**
- * Why this empire cannot put a white-peace offer on the table, or `null`.
+ * Why this empire cannot put a peace offer on the table, or `null`.
  *
  * The offer is a **standing, revocable flag** and not an act: it says "we would
  * stop", it stands until it is withdrawn or the war ends, and nothing happens
@@ -218,11 +669,21 @@ export function declareWarAt(
  * bargain every idempotent verb in this codebase makes: a command that provably
  * does nothing is a command that should never have been sent, and refusing it
  * keeps the log a record of *changes*.
+ *
+ * **Terms are optional and change what "already standing" means** (schema 57).
+ * A bare offer signs whatever paper is on the table — with nothing there, P1's
+ * white peace exactly — so it is refused only when this seat has already signed.
+ * An offer *with* terms is a new paper, and a new paper is always a change:
+ * writing it voids every signature on the old one (`setPeaceOffer`), so it is
+ * refused only when it is byte-for-byte the paper this seat already put up.
+ * A peace is the one bargain where **towns may be ceded** (the ruling, 9b),
+ * which is the single difference between this gate and `proposeDealError`'s.
  */
 export function proposePeaceError(
   state: GameState,
   playerId: number,
   targetId: number,
+  offered?: { give: DealTerms; take: DealTerms },
 ): string | null {
   const actor = playerById(state, playerId);
   if (!actor) return `No player with id ${String(playerId)}`;
@@ -235,10 +696,43 @@ export function proposePeaceError(
   if (warBetween(state, actor.id, target.id) === undefined) {
     return `You are not at war with the ${target.name}`;
   }
-  if (hasPeaceOffer(state, actor.id, target.id)) {
+  if (offered !== undefined) {
+    const mine = dealSideError(state, actor.id, target.id, offered.give, true);
+    if (mine !== null) return mine;
+    const theirs = dealSideError(state, target.id, actor.id, offered.take, true);
+    if (theirs !== null) return theirs;
+  }
+  // The idempotence clause, asked last because the two above are about the
+  // paper and this one is about the signature. `setPeaceOffer` answers whether
+  // the write would change anything, so the gate and the writer cannot disagree
+  // about what "already standing" means — it is asked of a throwaway copy of
+  // the state so that a refusal leaves the board byte-identical (hard rule 1).
+  if (!wouldChangePeaceOffer(state, actor.id, target.id, offered)) {
     return `Your offer to the ${target.name} already stands`;
   }
   return null;
+}
+
+/**
+ * Would this offer actually change the table?
+ *
+ * Asked of a **copy** of the two rows the write touches rather than of the real
+ * state, because `setPeaceOffer` is the one place the answer lives and hard
+ * rule 1 says a refused command leaves the state byte-identical. Copying one
+ * war row is cheap — there are a handful in a whole game — and the alternative
+ * is a second implementation of "is this the same paper" that could drift from
+ * the writer it is guarding.
+ */
+function wouldChangePeaceOffer(
+  state: GameState,
+  playerId: number,
+  targetId: number,
+  offered?: { give: DealTerms; take: DealTerms },
+): boolean {
+  const war = warBetween(state, playerId, targetId);
+  if (!war) return false;
+  const probe: GameState = { ...state, wars: state.wars.map((row) => ({ ...row })) };
+  return setPeaceOffer(probe, playerId, targetId, true, offered);
 }
 
 /** `proposePeaceError`'s mirror: why the offer cannot be taken back. */
@@ -266,8 +760,9 @@ export function setPeaceOfferAt(
   playerId: number,
   targetId: number,
   standing: boolean,
+  offered?: { give: DealTerms; take: DealTerms },
 ): void {
-  setPeaceOffer(state, playerId, targetId, standing);
+  setPeaceOffer(state, playerId, targetId, standing, offered);
 }
 
 /**
@@ -287,6 +782,22 @@ export function setPeaceOfferAt(
  * ordering is the rule rather than a convenience: `moveProfile` reads `atWar`
  * to decide which borders bar a piece, so a column walked out while the war was
  * still open would be walked out into ground it is about to be barred from.
+ *
+ * **The terms execute before any of that**, and the whole sequence is a ruling:
+ * the paper is honoured while the war is still on, the war is then closed and
+ * the truce written, the row (if the bargain left anything standing) is opened,
+ * and only then are the armies walked home. Two of those orderings are
+ * load-bearing —
+ *
+ *   · a **town ceded** must change hands before the expulsion, or the column
+ *     standing in it would be walked out of ground its own empire is about to
+ *     hold;
+ *   · a **right of way** must be open before the expulsion, or a peace that
+ *     bought passage would begin by sending home the very armies it just
+ *     granted a road to.
+ *
+ * — and the third is the plain reading of what a peace deal is: you pay, and
+ * then it is peace.
  */
 export function settlePeace(state: GameState): PeaceOutcome[] {
   const signed = state.wars.filter(
@@ -295,9 +806,20 @@ export function settlePeace(state: GameState): PeaceOutcome[] {
   const outcomes: PeaceOutcome[] = [];
   for (const war of signed) {
     const { a, b } = war;
+    const paper = war.terms;
+    // The terms are executed from `a`'s side, which is the register's own key
+    // and not a proposer's — the paper is keyed to the pair (`PeaceTerms`), so
+    // the settlement never has to know who wrote it.
+    const execution = paper === undefined
+      ? undefined
+      : settleDealAt(state, a, b, paper.a, paper.b);
     const truceUntilTurn = closeWar(state, a, b);
     const expulsions = [...expelFrom(state, a, b), ...expelFrom(state, b, a)];
-    outcomes.push({ peace: { a, b, truceUntilTurn }, expulsions });
+    outcomes.push({
+      peace: { a, b, truceUntilTurn },
+      expulsions,
+      ...(execution === undefined ? {} : { execution }),
+    });
   }
   return outcomes;
 }

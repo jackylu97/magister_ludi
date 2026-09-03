@@ -349,6 +349,10 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
  * (`ResourceHolding.improvement`); this only lowercases it.
  */
 function viaWord(holding: ResourceHolding): string {
+  // A seam another empire lent says so, and it is the one word on this line
+  // that names a *relationship* rather than a thing standing on a hill —
+  // which is exactly what a player about to let a bargain lapse needs to read.
+  if (holding.via === 'lent') return 'lent';
   if (holding.via === 'city' || holding.improvement === null) return 'city';
   return improvementDef(holding.improvement).name.toLowerCase();
 }

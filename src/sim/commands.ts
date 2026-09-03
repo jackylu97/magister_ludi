@@ -192,19 +192,27 @@ import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
 import { atWar } from './wars';
 import {
+  type DealExecution,
   type PeaceOutcome,
   type RazeReport,
   type WarDeclaredReport,
+  acceptDealAt,
   annexCityAt,
   annexCityError,
+  answerDealError,
   declareWarAt,
   declareWarError,
+  dropProposal,
+  proposeDealAt,
+  proposeDealError,
   proposePeaceError,
   razeCityAt,
   razeCityError,
   setPeaceOfferAt,
+  withdrawDealError,
   withdrawPeaceError,
 } from './diplomacy';
+import { type DealEndReport, type DealTerms, proposalById } from './deals';
 import type { CampBounty } from './camps';
 import { type GuildReport, dismissSpecialistAt, dismissSpecialistError } from './guilds';
 import { type SpecialistFamily, isSpecialistFamily } from './greatPeopleData';
@@ -1271,18 +1279,76 @@ export interface DeclareWarCommand extends PlayerCommand {
  * war ends, and `settleDiplomacy` (`turn.ts`) closes every war *both* sides have
  * signed at the end of the turn. See `diplomacy.ts` for why that is the shape.
  *
- * Terms are P2's (cities, gold, luxuries); this carries none, so every peace in
- * P1 is a white one.
+ * **The terms are optional** (schema 57). With neither `give` nor `take` this
+ * is the P1 command byte for byte, and it means *sign whatever paper is on the
+ * table* — which, with nothing on it, is the white peace it always was. With
+ * terms it is a new paper: coin, tribute, lent seams, a right of way and
+ * **towns**, which change hands in a peace and nowhere else (the ruling, 9b).
+ * Writing a paper voids the signatures on the last one, so a counter-offer is
+ * this same command (see `setPeaceOffer` in `wars.ts`).
  */
 export interface ProposePeaceCommand extends PlayerCommand {
   type: 'proposePeace';
   targetId: number;
+  /** What this empire hands over. Absent means "sign what is on the table". */
+  give?: DealTerms;
+  /** What this empire asks for. Absent with `give` present means "nothing". */
+  take?: DealTerms;
 }
 
 /** Takes a standing peace offer back off the table. `proposePeace`'s mirror. */
 export interface WithdrawPeaceCommand extends PlayerCommand {
   type: 'withdrawPeace';
   targetId: number;
+}
+
+/**
+ * Puts a bargain to another empire (`docs/war-diplomacy.md`, section 7).
+ *
+ * It moves nothing. A proposal is a standing, revocable paper — `acceptDeal`
+ * is what executes it, and it is the other seat's command, so nothing about a
+ * bargain happens without both empires having issued one. Terms are named from
+ * the **proposer's** side: `give` is what they hand over, `take` what they ask
+ * for.
+ *
+ * Towns are refused here in plain words: a city changes hands in a peace deal
+ * and nowhere else (the ruling, 9b), and so is a bargain with an empire this
+ * seat is at war with — terms belong on the peace paper while there is a war on.
+ *
+ * Turn-gated like every other order.
+ */
+export interface ProposeDealCommand extends PlayerCommand {
+  type: 'proposeDeal';
+  targetId: number;
+  give: DealTerms;
+  take: DealTerms;
+}
+
+/**
+ * Signs a bargain put to this empire, executing it **immediately** and in
+ * command order — the deterministic half, and the reason acceptance is a
+ * command rather than a phase: two seats accepting in the same window resolve
+ * in the order their commands were logged, like every other contention.
+ *
+ * Both halves are re-validated from scratch (`answerDealError`), because the
+ * coin may have been spent and the mine may have been pillaged since the paper
+ * was written. The deal's twenty turns start the turn it is signed.
+ */
+export interface AcceptDealCommand extends PlayerCommand {
+  type: 'acceptDeal';
+  dealId: number;
+}
+
+/** Refuses a bargain put to this empire. Always legal for the seat that was asked. */
+export interface DeclineDealCommand extends PlayerCommand {
+  type: 'declineDeal';
+  dealId: number;
+}
+
+/** Takes back a bargain this empire put to another. `proposeDeal`'s mirror. */
+export interface WithdrawDealCommand extends PlayerCommand {
+  type: 'withdrawDeal';
+  dealId: number;
 }
 
 /**
@@ -1362,7 +1428,11 @@ export type Command =
   | ProposePeaceCommand
   | WithdrawPeaceCommand
   | AnnexCityCommand
-  | RazeCityCommand;
+  | RazeCityCommand
+  | ProposeDealCommand
+  | AcceptDealCommand
+  | DeclineDealCommand
+  | WithdrawDealCommand;
 
 /** Convenience alias for the discriminant. */
 export type CommandType = Command['type'];
@@ -1458,6 +1528,21 @@ export type CommandResult =
        * of two boards can say what stood there.
        */
       razed?: RazeReport;
+      /**
+       * A bargain that was signed and what it moved (`DealExecution`), from
+       * `acceptDeal` alone.
+       *
+       * `arrivals`' argument once more: the coin is spent, the towns have
+       * changed hands and the row is open by the time this returns, and no diff
+       * of two boards could say which paper did it.
+       */
+      dealSigned?: DealExecution;
+      /**
+       * Bargains that stopped standing (`DealEndReport`). Two commands produce
+       * it: `declareWar`, which cancels every deal between the pair, and
+       * `endTurn`, whose broom sweeps the ones that have run out.
+       */
+      dealsEnded?: DealEndReport[];
     }
   | { ok: false; error: string };
 
@@ -1712,6 +1797,9 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   // Every war the resolution ended, with the columns each peace walked home.
   // Set beside the helper for `beads`' stated reason exactly.
   if (result.ok && report.peaces.length > 0) result.peaces = [...report.peaces];
+  // The bargains the broom swept out — `peaces`' sibling, and reported for its
+  // reason: a moment later there is simply no row to ask.
+  if (result.ok && report.dealsEnded.length > 0) result.dealsEnded = [...report.dealsEnded];
   return result;
 }
 
@@ -3323,8 +3411,101 @@ function applyDeclareWar(state: GameState, command: DeclareWarCommand): CommandR
 
   const outcome = declareWarAt(state, actor.id, targetId);
   const result = ok(undefined, undefined, undefined, undefined, undefined, outcome.routesEnded);
-  if (result.ok) result.warDeclared = outcome.report;
+  if (result.ok) {
+    result.warDeclared = outcome.report;
+    // The bargains between the two went with the caravans (the ruling, 9b), on
+    // the same field an expiry comes home on: a deal ended by a declaration and
+    // a deal ended by its own clock are the same kind of news.
+    if (outcome.dealsEnded.length > 0) result.dealsEnded = outcome.dealsEnded;
+  }
   return result;
+}
+
+/**
+ * Puts a bargain to another empire. `proposeDealError` is the whole rule, so
+ * the greyed row on the Diplomacy screen and this refusal are one sentence.
+ *
+ * It moves nothing — see `ProposeDealCommand`.
+ */
+function applyProposeDeal(state: GameState, command: ProposeDealCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot talk terms`);
+  }
+  const targetId = command.targetId;
+  if (typeof targetId !== 'number' || !Number.isInteger(targetId)) {
+    return fail(`proposeDeal needs an integer targetId, got ${String(targetId)}`);
+  }
+  const give = readTerms(command.give);
+  const take = readTerms(command.take);
+  if (give === null || take === null) return fail('A bargain needs two sides, each an object');
+  const refusal = proposeDealError(state, actor.id, targetId, give, take);
+  if (refusal !== null) return fail(refusal);
+  proposeDealAt(state, actor.id, targetId, give, take);
+  return ok();
+}
+
+/**
+ * Signs, refuses or takes back a bargain — one handler for three verbs, because
+ * all three name a paper by id and differ only in which gate is asked and what
+ * happens after it.
+ *
+ * A signature is the only one that moves anything, and it moves everything at
+ * once: `acceptDealAt` executes both halves, opens the row for whatever is left
+ * standing and drops the paper. The other two only drop the paper.
+ */
+function applyAnswerDeal(
+  state: GameState,
+  command: AcceptDealCommand | DeclineDealCommand | WithdrawDealCommand,
+  verb: 'accept' | 'decline' | 'withdraw',
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot talk terms`);
+  }
+  const dealId = command.dealId;
+  if (typeof dealId !== 'number' || !Number.isInteger(dealId)) {
+    return fail(`${command.type} needs an integer dealId, got ${String(dealId)}`);
+  }
+  const refusal =
+    verb === 'withdraw'
+      ? withdrawDealError(state, actor.id, dealId)
+      : answerDealError(state, actor.id, dealId, verb === 'accept');
+  if (refusal !== null) return fail(refusal);
+  const row = proposalById(state, dealId)!;
+  if (verb !== 'accept') {
+    dropProposal(state, dealId);
+    return ok();
+  }
+  const execution = acceptDealAt(state, row);
+  const result = ok();
+  if (result.ok) result.dealSigned = execution;
+  return result;
+}
+
+/**
+ * One half of a bargain off the wire, or `null` when it is not an object.
+ *
+ * A command is plain JSON and may arrive from a save or a socket, so the two
+ * halves are guarded here before either gate reads them; everything *inside*
+ * them is `dealSideError`'s business, which is where each term's rule lives.
+ * Absent is `{}` — a side that gives nothing — so a proposal naming one
+ * direction only is the ordinary shape rather than a special case.
+ */
+function readTerms(value: unknown): DealTerms | null {
+  if (value === undefined) return {};
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
+  const terms = value as Record<string, unknown>;
+  // The two lists are checked for *shape* here and for contents in
+  // `dealSideError`, and the split is the one that matters: a refusal must
+  // still be a refusal, and a `for…of` over a number would throw rather than
+  // return, which is the one thing hard rule 1 cannot survive.
+  for (const key of ['luxuries', 'cities']) {
+    if (terms[key] !== undefined && !Array.isArray(terms[key])) return null;
+  }
+  return value as DealTerms;
 }
 
 /**
@@ -3349,12 +3530,24 @@ function applyPeaceOffer(
   if (typeof targetId !== 'number' || !Number.isInteger(targetId)) {
     return fail(`${command.type} needs an integer targetId, got ${String(targetId)}`);
   }
+  // The paper, when there is one. `undefined` means "sign what is on the
+  // table", which is the P1 command and still the common one; a command naming
+  // one direction only is the ordinary shape (`readTerms`).
+  let offered: { give: DealTerms; take: DealTerms } | undefined;
+  if (standing && command.type === 'proposePeace') {
+    if (command.give !== undefined || command.take !== undefined) {
+      const give = readTerms(command.give);
+      const take = readTerms(command.take);
+      if (give === null || take === null) return fail('A bargain needs two sides, each an object');
+      offered = { give, take };
+    }
+  }
   const refusal = standing
-    ? proposePeaceError(state, actor.id, targetId)
+    ? proposePeaceError(state, actor.id, targetId, offered)
     : withdrawPeaceError(state, actor.id, targetId);
   if (refusal !== null) return fail(refusal);
 
-  setPeaceOfferAt(state, actor.id, targetId, standing);
+  setPeaceOfferAt(state, actor.id, targetId, standing, offered);
   return ok();
 }
 
@@ -3587,6 +3780,12 @@ function orderedUnitId(command: Command): number | undefined {
     case 'withdrawPeace':
     case 'annexCity':
     case 'razeCity':
+    // And neither is a bargain: the four deal verbs name an *empire* or a
+    // paper, and a treaty is not an order to a warrior.
+    case 'proposeDeal':
+    case 'acceptDeal':
+    case 'declineDeal':
+    case 'withdrawDeal':
       return undefined;
     default: {
       const unhandled: never = kind;
@@ -3758,6 +3957,14 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyAnnexCity(state, command);
     case 'razeCity':
       return applyRazeCity(state, command);
+    case 'proposeDeal':
+      return applyProposeDeal(state, command);
+    case 'acceptDeal':
+      return applyAnswerDeal(state, command, 'accept');
+    case 'declineDeal':
+      return applyAnswerDeal(state, command, 'decline');
+    case 'withdrawDeal':
+      return applyAnswerDeal(state, command, 'withdraw');
     default:
       return unhandledCommand(kind, type);
   }

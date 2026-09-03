@@ -800,6 +800,10 @@ describe('the schema witness', () => {
     // at peace, and two registers plus five verbs joined the state. A v55 log
     // may contain an attack or a march this reducer refuses, so it is a
     // different game rather than an older one.
-    expect(SCHEMA_VERSION).toBe(56);
+    // v57 (phase two): deals exist — `state.deals` and `state.dealProposals`,
+    // four verbs, a `proposePeace` that carries terms, a lending clause in
+    // `openedResource` and a right of way Writing hands over. A v56 log knows
+    // no deal commands and replays into a different world.
+    expect(SCHEMA_VERSION).toBe(57);
   });
 });

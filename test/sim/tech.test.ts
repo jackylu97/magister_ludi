@@ -1121,7 +1121,11 @@ describe('research in the log', () => {
     // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
     // Stones improvement and the Terraces — so a v54 log that built either has
     // no row to replay into.
-    expect(SCHEMA_VERSION).toBe(56);
+    // v57 (war & diplomacy, phase two): deals exist. Two registers, four
+    // verbs and a widened `proposePeace`, a luxury that may be lent across a
+    // table, and one technology that hands over a verb it did not — so a v56
+    // log knows no deal commands and replays into a different world.
+    expect(SCHEMA_VERSION).toBe(57);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1569,7 +1573,10 @@ describe('the shape of the tree', () => {
     // the rest of the faith door. A restoration that moved them would be the
     // tree quietly re-homing another table's rows.
     expect(techDef('calendar').unlocks.abilities).toBeUndefined();
-    expect(techDef('letters').unlocks.abilities).toBeUndefined();
+    // Writing carries exactly one verb, and it is not a rite: the right of way
+    // two empires may write into a bargain (schema 57). Pinned by name rather
+    // than by "none", so a rite re-homed here would still fail this line.
+    expect(techDef('letters').unlocks.abilities).toEqual(['openBorders']);
     expect(techDef('divination').unlocks.abilities).toEqual([
       'riteOfTheHarvest',
       'recastingTheOmens',

@@ -639,7 +639,11 @@ describe('the research queue field', () => {
     // for a *legality reversal* rather than a table that moved — combat,
     // pillage and border-crossing between two empires are illegal at peace, so
     // a v55 log may contain an attack or a march this reducer refuses.
-    expect(SCHEMA_VERSION).toBe(56);
+    // v57 (war & diplomacy, phase two): deals exist. Two registers, four
+    // verbs and a widened `proposePeace`, a luxury that may be lent across a
+    // table, and one technology that hands over a verb it did not — so a v56
+    // log knows no deal commands and replays into a different world.
+    expect(SCHEMA_VERSION).toBe(57);
   });
 });
 

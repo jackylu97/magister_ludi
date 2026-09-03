@@ -3507,8 +3507,23 @@ async function boot(initial: Game | null): Promise<void> {
       controls.declareWarOn(targetId);
       controls.refresh();
     },
-    offerPeace: (targetId, standing) => {
-      controls.offerPeaceTo(targetId, standing);
+    offerPeace: (targetId, standing, offered) => {
+      controls.offerPeaceTo(targetId, standing, offered);
+      controls.refresh();
+    },
+    // The three bargain verbs, wired exactly as the two above are: the screen
+    // acts on a row or a paper, `controls` owns the funnel, and every one of
+    // them is an ordinary logged command.
+    proposeDeal: (targetId, give, take) => {
+      controls.proposeDealWith(targetId, give, take);
+      controls.refresh();
+    },
+    answerDeal: (dealId, accept) => {
+      controls.answerDealOf(dealId, accept);
+      controls.refresh();
+    },
+    withdrawDeal: (dealId) => {
+      controls.withdrawDealOf(dealId);
       controls.refresh();
     },
     askConfirm: (request, run) => confirmCard.ask(request, run),

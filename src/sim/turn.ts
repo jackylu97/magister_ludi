@@ -105,6 +105,7 @@ import {
   collectYields,
   expandBorders,
   growCities,
+  refreshCityDerived,
   tileOwnerPlayerId,
 } from './cities';
 import { type CombatOutcome, type SiegeReport, advanceFortify, healCities } from './combat';
@@ -123,6 +124,9 @@ import {
 } from './statecraft';
 import { type PeaceOutcome, settlePeace } from './diplomacy';
 import { pruneTruces } from './wars';
+// The bargains' own broom, beside the truces': both sweep rows whose absolute
+// expiry has arrived, and neither changes an outcome by doing it.
+import { type DealEndReport, pruneDeals } from './deals';
 import { reviewLegacies } from './greatPeople';
 import { type GuildReport, runGuilds } from './guilds';
 import { type BeadAward, beadMarks, beadsSince, runBeads } from './beads';
@@ -376,6 +380,17 @@ export interface TurnReport {
    * declaration is public (the worksheet, section 1) and so is what ends it.
    */
   peaces: PeaceOutcome[];
+  /**
+   * Every bargain that ran out during the resolution, in the register's own
+   * order (`DealEndReport`).
+   *
+   * `peaces`' sibling and a *difference* for its exact reason: the broom is the
+   * only moment anything can say a treaty has lapsed, because a moment later
+   * there is simply no row. Reported to **both** parties and to nobody else — a
+   * bargain is between two empires, unlike a declaration, which the world
+   * hears.
+   */
+  dealsEnded: DealEndReport[];
 }
 
 /**
@@ -385,6 +400,18 @@ export interface TurnReport {
  */
 function settleDiplomacy(state: GameState, report: TurnReport): void {
   pruneTruces(state);
+  // The third broom in the beat, and the one that has something to say: a
+  // bargain that has run out takes a lent seam home and stops a tribute, so
+  // both empires' towns are priced off a different list from this line on.
+  const lapsed = pruneDeals(state);
+  report.dealsEnded.push(...lapsed);
+  for (const ended of lapsed) {
+    for (const seat of [ended.a, ended.b]) {
+      for (const city of state.cities) {
+        if (city.ownerId === seat) refreshCityDerived(state, city);
+      }
+    }
+  }
   report.peaces.push(...settlePeace(state));
 }
 
@@ -406,6 +433,7 @@ export function emptyTurnReport(): TurnReport {
     campBounties: [],
     beads: [],
     peaces: [],
+    dealsEnded: [],
   };
 }
 

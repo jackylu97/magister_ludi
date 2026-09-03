@@ -306,7 +306,12 @@ import {
 import { isExploredBy } from '../sim/visibility';
 import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
-import { HAMMER, YIELD_GLYPH, percentFigure, signedFigure } from './figures';
+import { HAMMER, YIELD_GLYPH, figure, percentFigure, signedFigure } from './figures';
+// The bargain vocabulary: the terms a Deal panel writes and what signing one
+// moved. Type-only — this module sends commands and reads reports, and every
+// rule about a term lives in `diplomacy.ts`.
+import type { DealTerms } from '../sim/deals';
+import type { DealExecution } from '../sim/diplomacy';
 import {
   type CellRef,
   type FallenUnit,
@@ -2091,7 +2096,23 @@ export interface GameControls {
    * the turn ends (`settleDiplomacy`, `turn.ts`).
    */
   declareWarOn(targetId: number): void;
-  offerPeaceTo(targetId: number, standing: boolean): void;
+  offerPeaceTo(
+    targetId: number,
+    standing: boolean,
+    offered?: { give: DealTerms; take: DealTerms },
+  ): void;
+  /**
+   * The three bargain verbs, naming an empire or a paper.
+   *
+   * The diplomacy verbs' own shape one system over: the Deal panel acts on a
+   * row it drew from the simulation's gates, there is no piece and no tile
+   * behind any of them, and all three go through `commit` — so a treaty signed
+   * from the sheet is announced, chronicled and reported outward exactly as a
+   * march is.
+   */
+  proposeDealWith(targetId: number, give: DealTerms, take: DealTerms): void;
+  answerDealOf(dealId: number, accept: boolean): void;
+  withdrawDealOf(dealId: number): void;
   /** "2 of 3 routes" for the local seat, for the sheet and the city panel. */
   routeSlotsLine(): string;
 
@@ -2729,6 +2750,52 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         { cell: { col: razed.col, row: razed.row } },
       );
     }
+    // A bargain signed, and what it actually moved. **Seat-filtered**, unlike a
+    // declaration: a treaty is between two empires and the rest of the world
+    // has not been told (`docs/war-diplomacy.md`, section 1 is about wars).
+    for (const execution of dealExecutions(result)) {
+      for (const payment of execution.payments) {
+        if (payment.fromId === localPlayerId) {
+          announce(`You have paid the ${nameOf(payment.toId)} ${figure(payment.gold)}💰.`);
+        } else if (payment.toId === localPlayerId) {
+          announce(`The ${nameOf(payment.fromId)} have paid you ${figure(payment.gold)}💰.`);
+        }
+      }
+      for (const ceded of execution.cededCities) {
+        if (ceded.toId === localPlayerId) {
+          announce(`${ceded.name} is yours, and holds as a puppet until you annex it.`);
+        } else if (ceded.fromId === localPlayerId) {
+          announce(`${ceded.name} has passed to the ${nameOf(ceded.toId)}.`);
+        }
+      }
+    }
+    for (const ended of result.dealsEnded ?? []) {
+      if (ended.a !== localPlayerId && ended.b !== localPlayerId) continue;
+      const them = nameOf(ended.a === localPlayerId ? ended.b : ended.a);
+      announce(
+        ended.reason === 'war'
+          ? `Every bargain with the ${them} is void.`
+          : `Your bargain with the ${them} has lapsed.`,
+      );
+    }
+  }
+
+  /**
+   * Every bargain a result signed, from wherever it signed one.
+   *
+   * Two seams produce one: `acceptDeal`'s own `dealSigned`, and the terms a
+   * peace executed inside the resolution (`PeaceOutcome.execution`). Folded
+   * here rather than announced twice, so the sentence a player reads about a
+   * town changing hands is one sentence however the paper was signed.
+   */
+  function dealExecutions(result: CommandResult): DealExecution[] {
+    if (!result.ok) return [];
+    const list: DealExecution[] = [];
+    if (result.dealSigned) list.push(result.dealSigned);
+    for (const outcome of result.peaces ?? []) {
+      if (outcome.execution) list.push(outcome.execution);
+    }
+    return list;
   }
 
   function reportRoutes(result: CommandResult): void {
@@ -3504,7 +3571,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * reducer's own split (`proposePeace`/`withdrawPeace`), and the screen's
    * button is the same button either way.
    */
-  function offerPeaceTo(targetId: number, standing: boolean): void {
+  function offerPeaceTo(
+    targetId: number,
+    standing: boolean,
+    offered?: { give: DealTerms; take: DealTerms },
+  ): void {
     const { state } = getGame();
     if (!canOrder()) {
       reject(`You have ended turn ${state.turn}`);
@@ -3514,6 +3585,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       type: standing ? 'proposePeace' : 'withdrawPeace',
       playerId: localPlayerId,
       targetId,
+      // The paper, when the player wrote one. Spread rather than assigned, so a
+      // white-peace offer is the command it has always been — byte for byte.
+      ...(standing && offered !== undefined ? { give: offered.give, take: offered.take } : {}),
     });
     if (!result.ok) {
       reject(result.error);
@@ -3522,9 +3596,81 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const them = playerById(getGame().state, targetId)?.name ?? 'them';
     announce(
       standing
-        ? `Your offer of peace to the ${them} stands.`
+        ? offered === undefined
+          ? `Your offer of peace to the ${them} stands.`
+          : `Your terms of peace are on the table before the ${them}.`
         : `Your offer of peace to the ${them} is withdrawn.`,
     );
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
+   * Puts a bargain to another empire, through the ordinary funnel.
+   *
+   * `proposeDealError` is the whole rule and the Deal panel has already greyed
+   * the button with the same sentence, so a refusal here means the board
+   * changed under the sheet — which is exactly when a player needs to be told.
+   */
+  function proposeDealWith(targetId: number, give: DealTerms, take: DealTerms): void {
+    const { state } = getGame();
+    if (!canOrder()) {
+      reject(`You have ended turn ${state.turn}`);
+      return;
+    }
+    const result = commit({ type: 'proposeDeal', playerId: localPlayerId, targetId, give, take });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    const them = playerById(getGame().state, targetId)?.name ?? 'them';
+    announce(`Your offer stands before the ${them}.`);
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
+   * Signs or refuses a bargain put to this empire.
+   *
+   * One function for two commands, because they are one answer with a sign —
+   * the reducer's own split (`acceptDeal`/`declineDeal`), and the panel draws
+   * them as two faces of one paper. A signature is the one that moves
+   * something, and `reportDiplomacy` says what it moved.
+   */
+  function answerDealOf(dealId: number, accept: boolean): void {
+    const { state } = getGame();
+    if (!canOrder()) {
+      reject(`You have ended turn ${state.turn}`);
+      return;
+    }
+    const result = commit({
+      type: accept ? 'acceptDeal' : 'declineDeal',
+      playerId: localPlayerId,
+      dealId,
+    });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    if (!accept) announce('You have refused their offer.');
+    // The board's rims may have changed — a right of way opens a border, a
+    // ceded town moves a flag — and the layers that draw them key off the
+    // registers.
+    renderer.invalidate();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /** Takes back a bargain this empire put to another. `proposeDealWith`'s mirror. */
+  function withdrawDealOf(dealId: number): void {
+    const { state } = getGame();
+    if (!canOrder()) {
+      reject(`You have ended turn ${state.turn}`);
+      return;
+    }
+    const result = commit({ type: 'withdrawDeal', playerId: localPlayerId, dealId });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    announce('Your offer is withdrawn.');
     onUpdate(selectedUnit(), renderer.getHover());
   }
 
@@ -6722,6 +6868,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     startRouteFrom,
     declareWarOn,
     offerPeaceTo,
+    proposeDealWith,
+    answerDealOf,
+    withdrawDealOf,
     setAutoResendOf,
     cancelRouteOf,
     routeSlotsLine: () => routeSlotsLineOf(getGame().state, localPlayerId),
