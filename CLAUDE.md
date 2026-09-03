@@ -57,7 +57,8 @@ be renamed — it would change every seeded outcome. No further rename passes.
   interface (`mapView.ts`).
 - `data/*.json` — every balance number, cost, curve, mapping. Code holds
   algorithms, never tuned constants. `docs/mapgen.md` documents `data/mapgen.json`.
-- Six root pages, all named in `vite.config.ts` inputs: the game, `pieces.html`,
+- Seven root pages, all named in `vite.config.ts` inputs: the game, `spectate.html`
+  (bot spectator: decision feed with the appraisal's own terms), `pieces.html`,
   `mapgen.html`, `abacus.html`, `flair.html` (+`src/flairGallery/` — every drawn
   mark/flourish with live sliders; **a new visual asset joins it in the same pass
   that ships it**), and `compendium.html` + `src/ui/compendium.ts` — every entry

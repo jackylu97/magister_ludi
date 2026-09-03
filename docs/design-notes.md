@@ -184,3 +184,25 @@ where a builder actually looks. A register test now refuses a new
 effect-tech that ships without a note. Two addenda were lost in the message
 queue and hand-finished; the lesson is already law in CLAUDE.md — rulings
 land in files, and mid-flight messages are the exception that proves it.
+
+## Entry LXIV — the bot shows its work (2026-09-03)
+
+The spectate page (`spectate.html`, the seventh root page) and the discipline
+under it: every bot choice point emits its command, a plain sentence, and
+every candidate it weighed as labelled arithmetic — and the fold IS the
+computation (`foldTerms(terms) === score`, strict equality, pinned across a
+whole game; the arena replays byte-identical through the decision path, so
+the spectacle can never drift from the play). Rejected candidates carry the
+reducer's own refusal, which turns out to be the most informative column.
+The page's first session already paid for it twice: **gold pressure pins at
+full debt-aversion by turn 6** of a fresh game (a young empire with no income
+reads as bleeding, quadrupling every upkeep line before there is anything to
+be solvent about), and **turns-amortisation structurally buries wonders**
+(a 109-point temple loses to an 80-point worker 3.41 to 13.33 on the divide
+alone — the formula working as designed, and the design therefore never
+starting a long row from an empty queue). Blind-spot roster for the
+improvement queue: ruins take option 0 unappraised, charter faces
+uncompared, ~17 of ~30 card-effect kinds scored as a guess, rites in roster
+order, first-legal trade routes, fixed worker preference list, great people
+asleep, one-ply combat. Next: personas (balanced/wide/tall/zealot/warmonger)
+and the leak-plugging pass the fruit ranking named.
