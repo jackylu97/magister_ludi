@@ -2724,6 +2724,11 @@ export function tileConditionHolds(
       return tile.resource !== undefined && on.resources.includes(tile.resource);
     case 'freshwater':
       return tile.freshwater;
+    case 'adjacentMountain':
+      // Off the ground's own baked answer (`Tile.mountainAdjacent`), never off a
+      // walk of the neighbours: this predicate has a tile and no map, which is
+      // exactly why the mark exists. Absence is `false`, `resource`'s reading.
+      return tile.mountainAdjacent === true;
     case 'yields':
       // **Off the breakdown the caller already built**, never off a second
       // reading of the ground. A caller with nothing to hand in answers no —
@@ -5893,6 +5898,9 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
     case 'freshwater':
       into.qualifiers.push('beside fresh water');
       return;
+    case 'adjacentMountain':
+      into.qualifiers.push('beside a mountain');
+      return;
     case 'yields':
       into.qualifiers.push(`that yields ${on.yield}`);
       return;
@@ -5907,7 +5915,18 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
   }
 }
 
-function tileConditionWords(on: TileCondition): string {
+/**
+ * What kind of hex a tile condition admits, in the words every card already
+ * uses for it — "water hex", "hill hex beside fresh water".
+ *
+ * Exported for the Compendium, which prints a *building's* tile lines on the
+ * building's own shelf (the playtest notes, 2026-09-03) and would otherwise
+ * have had to say "certain hexes" or write a second vocabulary for the same
+ * conditions. It is the describer, not a paraphrase of it: the same function the
+ * card text is built out of, so the two can never disagree about what a granary
+ * pays on.
+ */
+export function tileConditionWords(on: TileCondition): string {
   const phrase: TilePhrase = { adjectives: [], qualifiers: [] };
   tilePhrase(on, phrase);
   return [...phrase.adjectives, 'hex', ...phrase.qualifiers].join(' ');
@@ -5918,7 +5937,7 @@ const RULE_WORDS: Record<CardRule, string> = {
   borderCost: 'culture for the next border hex',
   growthCarryover: 'of the stored food kept when a city grows',
   tilePurchase: 'the price of buying a hex',
-  borderCulture: 'border culture',
+  borderCulture: 'border expansion',
   settlerCost: 'the production a settler costs',
   growthSurplus: 'food surplus stored toward growth',
   unitUpkeep: 'the gold your units cost in maintenance',

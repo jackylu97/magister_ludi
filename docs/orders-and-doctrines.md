@@ -183,7 +183,7 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | Militia Levies | M | — | ● | All your cities gain +4 defense and +1 sight radius. · *neutral* | upgrade: +2 defense
 | Common Granary | E | 🌱 | ● | +1 food in every city holding an improved luxury resource. | upgrade: +1 food
 | Salt Tithes | E | 🐫 | ● | +2 gold for each unique luxury. | upgrade: +1 gold
-| Boundary Stones | E | — | ● | +30% border culture in every city. | upgrade: +5%
+| Boundary Stones | E | — | ● | +30% border expansion in every city. | upgrade: +5%
 | First Rites | W | 🕯 | ● | +2 faith in your capital. | upgrade: +1 faith
 | Border Ballads | W | 🏹 | ◆ | +2 culture for each barbarian camp you have found, and +10 culture for each barbarian unit you kill. | +10 culture per barb kill
 | Fire-Keepers | W | 🕯 | ● | +1 faith in your capital, and +1 happiness there. | upgrade: +1 happiness
@@ -205,7 +205,7 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | The Salt Road | E | 🐫 | ● | strategic resources yield +1 gold | upgrade +1 gold.
 | The Tax Farm | E | 🐫 | ● | +1 gold for each 4 population in your empire. | cannot be upgraded
 | Harbour Dues | E | 🐫 | ● | Coastal cities gain +2 gold and +1 culture. | upgrade: +1 gold, up to +4
-| Land Grants | E | — | ◆ | Buying a hex costs 25% less · +40% border culture. | upgrade: +5% hex cost reduction
+| Land Grants | E | — | ◆ | Buying a hex costs 25% less · +40% border expansion. | upgrade: +5% hex cost reduction
 | Homestead Charters | E | — | ◆ | Newly founded cities start with 1 more population. | cannot be upgraded
 | Granary Levies | E | 🌱 | ◆ | When a city grows, it gains +10 production. | upgrade: +10 production
 | The King's Table | E | 🌱 | ● | +1 happiness for every 2 citizens in your capital. | cannot be upgraded
@@ -241,7 +241,7 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | Ore Tithes | E | ⚒ | ● | +1 production on every hex carrying a strategic resource. | cannot be upgraded
 | Terraced Hillsides | E | 🌱 | ● | +1 food on every hill hex. | cannot be upgraded
 | Master Masons | E | ⚒ | ◆ | Completing a building grants +10 culture. | upgrade: +5 culture
-| Royal Surveyors | E | — | ● | +50% border culture · buying a hex costs 25% less. | cannot be upgraded
+| Royal Surveyors | E | — | ● | +50% border expansion · buying a hex costs 25% less. | cannot be upgraded
 | Provincial Governors | E | — | ● | +3 authority capacity. | upgrade: +1 authority
 | Emergency Powers | E | — | ○ | While your authority is negative: capital +25% production, and borders do not freeze. | cannot be upgraded
 | The Common Purse | E | — | ○ | Leftover production from a completed item is doubled. · *neutral* | cannot be upgraded

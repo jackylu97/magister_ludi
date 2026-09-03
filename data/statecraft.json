@@ -1680,7 +1680,7 @@
       "slot": "economic",
       "line": "none",
       "flavor": "A stone that says *ours* says it forever.",
-      "text": "+30% border culture in every city.",
+      "text": "+30% border expansion in every city.",
       "effects": [
         {
           "kind": "rulePercent",
@@ -1688,7 +1688,7 @@
           "percent": 30
         }
       ],
-      "note": "Border culture is the culture a city puts toward its own borders, not the culture your empire saves toward its next draft. This hurries your borders only.",
+      "note": "Border expansion is how fast a city claims its next hex, fed by that city\u2019s own culture \u2014 separate from the culture your empire saves toward its next draft. This hurries the borders only.",
       "upgrade": [
         {
           "kind": "rulePercent",
@@ -2006,7 +2006,7 @@
       "slot": "economic",
       "line": "none",
       "flavor": "Land, given freely, is land that was owed.",
-      "text": "Buying a hex costs 25% less · +40% border culture.",
+      "text": "Buying a hex costs 25% less · +40% border expansion.",
       "effects": [
         {
           "kind": "rulePercent",
@@ -2533,7 +2533,7 @@
       "slot": "economic",
       "line": "none",
       "flavor": "The chain and the plumb line, quietly annexing.",
-      "text": "+50% border culture · buying a hex costs 25% less.",
+      "text": "+50% border expansion · buying a hex costs 25% less.",
       "effects": [
         {
           "kind": "rulePercent",
