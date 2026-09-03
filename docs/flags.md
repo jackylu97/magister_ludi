@@ -11,58 +11,31 @@ where the story lives.
 
 ## A. Awaiting your ruling
 
-### From the balance pass (2026-09-02, schema 48)
+### From the balance pass — resolved 2026-09-03 (schema 51) except where marked
 
-- **Order upgrade marks missing** — these ship *non-upgradable* until you mark
-  them: Militia Levies · Emergency Powers · The Common Purse · The Old Ways ·
-  The Escorted Roads · Curious Elders · Triumphs (the last two were absent from
-  your doc pass entirely).
-
-  Updated, I couldn't find curious elders or triumphs, what do you mean? 
-
-
-- **Parameter deepeners** — The Standing Levy (−2 turns per level) and Pilgrim
-  Roads (+2 happiness cap) deepen a *parameter*, not a line; the authored-
-  increment ladder can't express that honestly. They ship non-upgradable,
-  pinned in `PARAMETER_DEEPENERS`. Needs a mechanism ruling.
-
-How difficult would this be to implement? Don't we already have functionality for reduced turns (doctrines/orders do this already?) Pilgrim roads is not a big deal, but standing levy being able to upgrade is a cool mechanic.
-
-- **The Academy's faith purchase** — "great scholar drafts with 1000🕯" bends
-  the one-draft-path rule (a family-restricted, price-overridden recruitment).
-  The two percents shipped; this clause is deferred. Say how you want it.
-
-my intention was, you could spend faith for a great person draft that only contained scholar. Shouldn't scale the renown costs.
-
-- **The Gentle Yoke** — "every *new* city costs 3 more authority" ships as
-  *every* city (+3): prospective-only needs state the game doesn't keep.
-
-Is this due to limitations in game logic? I wanted this to not apply retro-actively to cities. Otherwise, we should change this back to 2 authority.
-
-- **Cuius Regio** — "converted into science" ships as *gained again as*
-  science (faith untouched), the Theocracy precedent. Confirm the word.
-
-Yup, thats correct. No faith deduction from the ability
-
-- **River Wardens' pool** — your doc lists it under Government II; the data
-  row says Government I. A pool move wasn't in the spec, so it stayed.
-
-I meant to move it, its too strong in government 1.
-
-- **`noSettlerEscalation`** — Manifest of the Steppe dropped it; the rule id
-  is now carried by no card. Retire the member or re-home it.
-
-Yup, dropped.
-
-- **Tyrian's Æra III** — the doc said Deferred but the shape existed, so it's
-  built (+1🎵 on fishing boats). Confirm or revert.
-
-Confirm. +1 culture on fishing boats.
-
-- **Lapis's Æra III** — "+1 renown in every city": renown exists; what a
-  luxury may pay into it hasn't been ruled. Waiting on your word.
-
-No lean, just add renown that doesn't factor into the calculation.
+- **Order upgrade marks still missing** — awaiting your marks (they ship
+  non-upgradable meanwhile): Far Runners aside, the open ones are **The Old
+  Ways**, **The Escorted Roads**, **Curious Elders** and **Triumphs**. On the
+  last two ("couldn't find them"): they are live data rows that fell out of the
+  doc's tables during your edit pass — now restored to the Government I / III
+  tables below with their old rarity marks, upgrade cells blank for you.
+- ~~Parameter deepeners~~ — **built**: an upgrade entry is either an ordinary
+  effect (appends a line) or an `OrderDeepening` (moves a printed number once
+  per level). The Standing Levy musters every 12 → 10 → 8; Pilgrim Roads caps
+  at 5 → 7 → 9. `PARAMETER_DEEPENERS` deleted.
+- ~~The Academy's faith purchase~~ — **built** per your ruling: 1000🕯 buys a
+  scholar-only great-person draft through the one draw path; no renown moved,
+  no ladder scaling; refusals byte-identical.
+- ~~The Gentle Yoke~~ — reverted to **+2 authority per city** per your
+  fallback. The prospective-only version is deferred on the row: it waits on
+  `City.foundedTurn`, the same field the King List's mechanic wants — one
+  future edit unlocks both.
+- ~~Cuius Regio~~ — confirmed as built (gained-again, no faith deduction).
+- ~~River Wardens~~ — moved to Government II per your ruling.
+- ~~`noSettlerEscalation`~~ — retired; the settler ladder always climbs.
+- ~~Tyrian's Æra III~~ — confirmed (+1🎵 on fishing boats).
+- ~~Lapis's Æra III~~ — **built** per your ruling: +1 renown per city at
+  Æra III through a family-less shape — it can never tilt the weighted draw.
 
 ### The proposed pools (docs/orders-and-doctrines.md)
 
