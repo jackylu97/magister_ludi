@@ -2771,13 +2771,17 @@ kbd {
   box-shadow: 3px 3px 0 rgba(29, 26, 32, 0.4);
 }
 
+/* The size, inside its ring: a hair smaller than it used to be and rimmed a
+   hair thinner, so the ring stands clear of the badge instead of reading as a
+   second border around it. The parchment rim stays — it is what holds the seat
+   colour off the banner's own ink ground. */
 .city-banner-pop {
   display: inline-grid;
   place-items: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 4px;
-  border: 2px solid var(--parchment);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 2px;
+  border: 1.5px solid var(--parchment);
   border-radius: 999px;
   background: var(--banner-color);
   color: var(--parchment);
@@ -2787,27 +2791,56 @@ kbd {
   font-variant-numeric: tabular-nums;
 }
 
-/* The growth countdown, beside the size it belongs with (`cityBanners.ts`, "The
-   growth countdown"). The food voice *lifted*, for the reason the top bar's
-   meters are: this chip sits on ink, where the parchment green goes muddy.
-
-   No `display` of its own, deliberately — the span is hidden with the `hidden`
-   attribute on the banners that have no countdown (a rival's, a memory), and a
-   `display` here would out-specify the platform's `[hidden]` rule and print an
-   empty chip's gap on every one of them. */
-.city-banner-growth {
-  font-family: var(--face-num);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.02em;
-  color: var(--y-food-lit);
+/* The size badge and its growth ring share one box and one centre
+   (`cityBanners.ts`, "The growth ring"): the ring is a reading *of* the size
+   figure, not a second chip beside it. A grid of one cell rather than a
+   position/inset pair, so the badge is centred by the same rule that stacks
+   them and a two-digit town cannot push its own ring off true. */
+.city-banner-size {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
 }
 
-/* A falling basket, in the alarm this bar's ground takes. The only state on a
-   banner that shouts, and it shouts about the one thing a player can still act
-   on before a citizen is lost. */
-.city-banner-growth.is-bad {
-  color: var(--vermilion-lit);
+.city-banner-size > * {
+  grid-area: 1 / 1;
+}
+
+/* The ring fills the box the badge sits in the middle of, and starts at twelve
+   o'clock: an arc that began at three would be read as already part-grown. */
+.city-banner-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+/* The unbanked remainder: parchment at a whisper, so the ring reads as a dial
+   with a course to run rather than as a mark that appears from nowhere. */
+.city-banner-ring-track {
+  stroke: rgba(247, 242, 225, 0.22);
+}
+
+/* What is banked, in the food voice *lifted* — for the reason the top bar's
+   meters are lifted: this sits on ink, where the parchment green goes muddy. */
+.city-banner-ring-fill {
+  stroke: var(--y-food-lit);
+}
+
+/* And what this turn adds on top of it: the same green, held back, because it
+   has not happened yet. A tense, not a second colour. */
+.city-banner-ring-ahead {
+  stroke: var(--y-food-lit);
+  opacity: 0.4;
+}
+
+/* A falling basket, in the alarm this ground takes. The only state on a banner
+   that shouts, and it shouts about the one thing a player can still act on
+   before a citizen is lost. (There is no pale arc to recolour: a starving town
+   has no step forward to draw — see `growthRing`.) */
+.city-banner-size.is-bad .city-banner-ring-fill {
+  stroke: var(--vermilion-lit);
 }
 
 .city-banner-name {

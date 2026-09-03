@@ -1,5 +1,6 @@
 /**
- * The city labels floating over the board: name, size, and what is being built.
+ * The city labels floating over the board: name, size, when it grows, and what
+ * is being built.
  *
  * DOM elements rather than geometry, and the reasons are the ones that always
  * decide this: text in WebGL means a font atlas, a texture upload per string and
@@ -25,6 +26,48 @@
  * -------------------
  * Your own cities are buttons: clicking one opens its panel. Everybody else's
  * are labels — name and size only, no production, no click.
+ *
+ * The growth ring
+ * ---------------
+ * The Civ staple, and the user's ruling of 2026-09-03 (`docs/flags.md`, "Batch:
+ * city banner growth countdown", look re-ruled the same day): a town shows how
+ * close its next citizen is as a **circular bar around the size figure** it
+ * already prints. No icon and no second figure — the ring is drawn on the badge
+ * that was already there, so the banner gains a reading and not a chip.
+ *
+ * Two arcs, and they are two different tenses:
+ *
+ *   the fill    the basket against the threshold — *what has been banked*, a
+ *               fact about now, in the lifted food green.
+ *   the ahead   what this turn's surplus would add on top of it, in the same
+ *               green at low opacity — *what the next resolution does*, drawn
+ *               beyond the fill and clamped at the rim, because a ring that
+ *               wrapped would say a town is further from growing than it is.
+ *
+ * Three states fall out of the two arcs and one colour:
+ *
+ *   growing    both arcs, green. The pale one is the step the town takes when
+ *              End Turn lands.
+ *   stalled    the fill alone: nothing is being banked (a settler at the front
+ *              of the queue, or a happiness deficit at the bottom of the
+ *              ladder), so there is no step to draw. The ring simply stops.
+ *   starving   the fill in the alarm ink, and no pale arc — the basket is
+ *              *falling*, which is not a slower version of stalled but the
+ *              opposite direction, and the one state on this banner worth
+ *              flinching at.
+ *
+ * The turn count did not go away, it moved off the glass: `GrowthRing.label`
+ * carries "grows in 3 turns" / "growth stalled" / "starving" as the badge's
+ * tooltip and its accessible name. A ring is a *glance*, and the exact figure is
+ * one hover (or one screen reader) away — which is also why the ring is drawn
+ * with no text of its own to read out.
+ *
+ * It is your own cities' ring and nobody else's, which is production's rule
+ * rather than the size's, and for production's reason: a rival's countdown is
+ * that empire's food surplus read off tiles this seat cannot see, and a banner
+ * is not a place to hand one seat another's ledger. The size on a rival's
+ * banner is a thing you can *count* by looking; the turn to its next citizen is
+ * not.
  *
  * Three states, since fog of war
  * ------------------------------
@@ -66,7 +109,13 @@
  * truth cannot.
  */
 
-import { queueItemName, turnsToBuild } from '../sim/cities';
+import {
+  growthSurplus,
+  growthThreshold,
+  queueItemName,
+  turnsToBuild,
+  turnsToFill,
+} from '../sim/cities';
 import type { Game } from '../sim/game';
 import type { City, GameState } from '../sim/state';
 import { type CitySighting, isExploredBy, isVisibleTo } from '../sim/visibility';
@@ -122,7 +171,10 @@ export interface CityBanners {
 interface Banner {
   root: HTMLElement;
   name: HTMLElement;
+  /** The badge and its ring, one box: what carries the growth tooltip. */
+  size: HTMLElement;
   pop: HTMLElement;
+  ring: RingParts;
   production: HTMLElement;
   /** Last text written, so an unchanged banner is not rewritten every frame. */
   signature: string;
@@ -146,10 +198,125 @@ interface BannerFacts {
   ownerId: number;
   /** Empty on a remembered city: population is not something memory keeps. */
   pop: string;
+  /**
+   * When the next citizen arrives, or `null` on a banner that has no business
+   * saying — a rival's, and a memory of your own. See "The growth ring".
+   */
+  growth: GrowthRing | null;
   production: string;
   mine: boolean;
   /** Drawn from `citySightings` rather than from the city itself. */
   stale: boolean;
+}
+
+/**
+ * The ring's own geometry, in the units of its `viewBox`.
+ *
+ * Here rather than in the stylesheet because the arcs are *drawn* from it — a
+ * dash length is a fraction of the circumference, so JavaScript has to know the
+ * radius — and a second copy in CSS is how a ring ends up with its stroke on a
+ * different circle than its dashes were cut for. The stylesheet keeps the inks
+ * and nothing else.
+ *
+ * The box is a hair wider than the size badge inside it (see
+ * `.city-banner-size`), so the ring stands clear of the badge's rim rather than
+ * doubling it. Exported for the one thing no assertion about either half alone
+ * can catch: that the badge still *fits* inside the ring drawn around it.
+ */
+export const RING = { box: 26, radius: 11.5, width: 2.5 } as const;
+
+/** The circumference the two dash patterns are cut from. */
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING.radius;
+
+/** What a banner says about a town's next citizen. See "The growth ring". */
+export interface GrowthRing {
+  /** 0…1 of the circle: the basket against the threshold, banked. */
+  filled: number;
+  /** 0…1 of the circle beyond `filled`: what this turn adds. Zero when nothing is. */
+  ahead: number;
+  /** The one state that takes the alarm ink. */
+  starving: boolean;
+  /** The turn count in plain words, for the tooltip and the screen reader. */
+  label: string;
+}
+
+/**
+ * The ring from what a town has banked, what it banks this turn and what it
+ * owes: the arithmetic half, with no state and no DOM in it.
+ *
+ * Split from `cityGrowthRing` for `visibleCityBanners`' reason — the three
+ * states are the part that can be quietly wrong on every banner at once, and
+ * this way each of them is one assertion rather than a manufactured empire.
+ *
+ * Two rules do the work, and both are about not lying at the rim:
+ *
+ *   · **the ahead arc is clamped, not wrapped.** A town one turn from growing
+ *     often banks more than it owes; drawn honestly that arc would run past
+ *     twelve o'clock and start again, which reads as *further away*. It stops
+ *     at the rim, and the tooltip says `Grows next turn`.
+ *   · **a deficit draws no ahead arc at all.** There is no step forward to
+ *     draw. The fill turns vermilion instead, which is the whole of the alarm.
+ *
+ * `turnsToFill` is the sim's own estimate and is asked rather than divided here,
+ * exactly as the city panel's Growth line asks it: a ring promising a turn count
+ * the panel disagrees with is worse than a ring with no count behind it. Its two
+ * honest answers do the work — `0` when the basket already covers the threshold
+ * (the citizen lands at the next resolution, whatever the surplus is doing),
+ * `null` when nothing is being banked.
+ */
+export function growthRing(surplus: number, basket: number, threshold: number): GrowthRing {
+  // A threshold of nothing is not reachable through `growthThreshold`, but a
+  // hand-edited save is a thing and a division by zero would paint `NaN` dashes
+  // — which SVG renders as no ring at all, silently, on every town.
+  const filled = threshold <= 0 ? 1 : clamp01(basket / threshold);
+  if (surplus < 0) return { filled, ahead: 0, starving: true, label: 'Starving' };
+  const reached = threshold <= 0 ? 1 : clamp01((basket + surplus) / threshold);
+  return {
+    filled,
+    ahead: Math.max(0, reached - filled),
+    starving: false,
+    label: growthWords(turnsToFill(threshold - basket, surplus)),
+  };
+}
+
+/** A fraction of the circle: nothing before the start, nothing past the rim. */
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+/**
+ * The countdown's words as the second clause of a sentence.
+ *
+ * `GrowthRing.label` is written as a line on its own — it is a tooltip, and a
+ * tooltip is a sentence — so the badge's accessible name, which reads "Size 4 ·
+ * grows in 3 turns", lowers its first letter rather than keeping a second
+ * capital mid-line. One helper so the two readings cannot drift.
+ */
+function lower(words: string): string {
+  return words.charAt(0).toLowerCase() + words.slice(1);
+}
+
+/** The countdown spoken: what the tooltip and the screen reader get. */
+function growthWords(turns: number | null): string {
+  if (turns === null) return 'Growth stalled';
+  if (turns === 0) return 'Grows next turn';
+  return `Grows in ${turns} ${turns === 1 ? 'turn' : 'turns'}`;
+}
+
+/**
+ * One town's ring, read off the simulation.
+ *
+ * `growthSurplus` and not the subtraction, for the city panel's stated reason:
+ * what a town banks is its harvest less what its citizens eat, less a settler at
+ * the front of the queue, less whatever a happiness deficit takes — and the ring
+ * must show the step the basket will actually take.
+ */
+export function cityGrowthRing(state: GameState, city: City): GrowthRing {
+  return growthRing(
+    growthSurplus(state, city),
+    city.foodBasket,
+    growthThreshold(city.population),
+  );
 }
 
 /**
@@ -167,12 +334,16 @@ function watchedFacts(state: GameState, city: City, mine: boolean): BannerFacts 
     name: cityDisplayName(state, city),
     ownerId: city.ownerId,
     pop: `${city.population}`,
+    growth: null,
     production: '',
     mine,
     stale: false,
   };
   if (!mine) return facts;
 
+  // Yours only, on the far side of the `mine` gate it shares with production —
+  // see "The growth ring".
+  facts.growth = cityGrowthRing(state, city);
   const item = city.queue[0];
   if (item) {
     // `turnsToBuild` at the front of the queue rather than the subtraction
@@ -192,10 +363,12 @@ function watchedFacts(state: GameState, city: City, mine: boolean): BannerFacts 
  * What a remembered city's banner says: its name and its flag as they were,
  * and nothing else.
  *
- * No population and no production even on your own city, because neither is a
- * thing a chart remembers — a size on a banner over ground nobody is watching
- * would be the interface quoting a number twenty turns stale as though it were
- * current. The name and the flag are exactly what a paper map keeps.
+ * No population, no growth and no production even on your own city, because
+ * none of the three is a thing a chart remembers — a size on a banner over
+ * ground nobody is watching would be the interface quoting a number twenty
+ * turns stale as though it were current, and a countdown there would be worse:
+ * it would be counting. The name and the flag are exactly what a paper map
+ * keeps.
  */
 function rememberedFacts(state: GameState, sighting: CitySighting, mine: boolean): BannerFacts {
   return {
@@ -212,6 +385,7 @@ function rememberedFacts(state: GameState, sighting: CitySighting, mine: boolean
     }),
     ownerId: sighting.ownerId,
     pop: '',
+    growth: null,
     production: '',
     mine,
     stale: true,
@@ -256,6 +430,70 @@ export function visibleCityBanners(
   return facts;
 }
 
+/** The three circles of one ring, kept so a repaint is two attribute writes. */
+interface RingParts {
+  svg: SVGSVGElement;
+  ahead: SVGCircleElement;
+  fill: SVGCircleElement;
+}
+
+/**
+ * The ring as elements: a track, the pale arc, the banked arc — in that order,
+ * so the fill is painted last and a rounding overlap never eats into it.
+ *
+ * SVG rather than a conic gradient, for two reasons that both come from what
+ * this has to do: an arc that *starts* partway round the circle (the pale one
+ * begins where the fill ends) is one `stroke-dashoffset` here and a hand-built
+ * multi-stop gradient string there, and a stroked circle is antialiased on a
+ * curve while a conic gradient's edges stair-step at this size.
+ *
+ * Built once per banner and never rebuilt: a repaint writes dash lengths onto
+ * the two circles, which is the same discipline the text half of this module
+ * has always kept.
+ */
+function buildRing(): RingParts {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('class', 'city-banner-ring');
+  svg.setAttribute('viewBox', `0 0 ${RING.box} ${RING.box}`);
+  // Decoration: the words it stands for are the badge's accessible name, and a
+  // reader that announced the drawing too would say the town twice.
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+
+  const circle = (role: string): SVGCircleElement => {
+    const node = document.createElementNS(NS, 'circle');
+    node.setAttribute('class', `city-banner-ring-${role}`);
+    node.setAttribute('cx', `${RING.box / 2}`);
+    node.setAttribute('cy', `${RING.box / 2}`);
+    node.setAttribute('r', `${RING.radius}`);
+    node.setAttribute('fill', 'none');
+    node.setAttribute('stroke-width', `${RING.width}`);
+    return node;
+  };
+
+  const track = circle('track');
+  const ahead = circle('ahead');
+  const fill = circle('fill');
+  svg.append(track, ahead, fill);
+  return { svg, ahead, fill };
+}
+
+/**
+ * Paints one arc: `span` of the circle, starting `from` (both 0…1).
+ *
+ * A dash pattern of "as much as the arc, then the whole circle" leaves exactly
+ * one run of ink; a negative offset walks its start round to where the previous
+ * arc stopped. Rounded to a hundredth of a unit, because a dash length carried
+ * to the fifteenth decimal place is a longer attribute string than the whole
+ * element and moves nothing.
+ */
+function paintArc(circle: SVGCircleElement, span: number, from: number): void {
+  const length = span * RING_CIRCUMFERENCE;
+  circle.setAttribute('stroke-dasharray', `${length.toFixed(2)} ${RING_CIRCUMFERENCE.toFixed(2)}`);
+  circle.setAttribute('stroke-dashoffset', `${(-from * RING_CIRCUMFERENCE).toFixed(2)}`);
+}
+
 export function createCityBanners(options: CityBannersOptions): CityBanners {
   const { container, renderer, getGame, localPlayerId, onOpenCity, openCity, onHoverCity } =
     options;
@@ -269,10 +507,16 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     name.className = 'city-banner-name';
     const pop = document.createElement('span');
     pop.className = 'city-banner-pop';
+    // The badge and the ring share one box and one centre — the ring is *about*
+    // the size figure, so it is drawn on it rather than beside it.
+    const size = document.createElement('span');
+    size.className = 'city-banner-size';
+    const ring = buildRing();
+    size.append(ring.svg, pop);
     const production = document.createElement('span');
     production.className = 'city-banner-production';
 
-    root.append(pop, name, production);
+    root.append(size, name, production);
     // The banner sits inside the viewport, and the viewport turns a pointer
     // press into a pan or a move order. Without this, clicking a banner would
     // also send the selected unit to whichever tile happened to be under the
@@ -286,7 +530,17 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     root.addEventListener('pointerenter', () => onHoverCity?.(cityId));
     root.addEventListener('pointerleave', () => onHoverCity?.(null));
     container.append(root);
-    return { root, name, pop, production, signature: '', col: 0, row: 0 };
+    return {
+      root,
+      name,
+      size,
+      pop,
+      ring,
+      production,
+      signature: '',
+      col: 0,
+      row: 0,
+    };
   }
 
   /**
@@ -326,11 +580,50 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       banner.root.classList.toggle('is-stale', facts.stale);
       banner.root.style.setProperty('--banner-color', player?.color ?? '#9fb0c2');
 
-      const signature = `${facts.pop}|${facts.name}|${facts.production}|${facts.stale ? 1 : 0}`;
+      // The alarm ink is a class and is toggled outside the signature gate,
+      // beside the other two: a class costs nothing to re-apply and a flag that
+      // only *sometimes* took part in the signature is exactly how a starving
+      // town keeps its calm colour until its arc happens to move.
+      banner.size.classList.toggle('is-bad', facts.growth?.starving === true);
+
+      const growth = facts.growth;
+      // **The ring's two arcs are signature terms**, at the precision a dash is
+      // actually cut to (`paintArc` rounds a length to the hundredth of a unit,
+      // which is about the fourth decimal of a fraction) rather than raw: the
+      // module's rule is that a banner is rewritten when what it says changes,
+      // and a basket filling is a thing it says. Without them a town's ring
+      // would sit still until its name, size or queue happened to move.
+      const arcs = growth === null ? '' : `${growth.filled.toFixed(4)}/${growth.ahead.toFixed(4)}`;
+      const signature = `${facts.pop}|${arcs}|${growth?.label ?? ''}|${facts.name}|${
+        facts.production
+      }|${facts.stale ? 1 : 0}`;
       if (signature !== banner.signature) {
         banner.signature = signature;
         banner.pop.textContent = facts.pop;
         banner.pop.hidden = facts.pop === '';
+        // A memory keeps neither figure, so the whole box goes rather than
+        // leaving the banner with a hole where a badge used to be. Hidden with
+        // `display` and not the attribute, because the rules below give this
+        // box a `display` of its own and an author rule outranks `[hidden]`.
+        banner.size.style.display = facts.pop === '' && growth === null ? 'none' : '';
+        // The words the ring stands for, on the box that holds it: the drawing
+        // is `aria-hidden` and a bare size figure read aloud says nothing about
+        // growth. `role="img"` is what makes a label on a span reliably the
+        // element's accessible *name* rather than a hint some readers drop.
+        if (growth) {
+          banner.size.title = growth.label;
+          banner.size.setAttribute('role', 'img');
+          banner.size.setAttribute('aria-label', `Size ${facts.pop} · ${lower(growth.label)}`);
+        } else {
+          banner.size.removeAttribute('title');
+          banner.size.removeAttribute('role');
+          banner.size.removeAttribute('aria-label');
+        }
+        // The pale arc starts where the banked one stops, which is the whole of
+        // "what this turn adds *on top of* what is already in".
+        paintArc(banner.ring.fill, growth?.filled ?? 0, 0);
+        paintArc(banner.ring.ahead, growth?.ahead ?? 0, growth?.filled ?? 0);
+        banner.ring.svg.style.display = growth === null ? 'none' : '';
         banner.name.textContent = facts.name;
         banner.production.textContent = facts.production;
         banner.production.hidden = facts.production === '';
