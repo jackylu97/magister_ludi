@@ -345,6 +345,19 @@ function drainBot(state: GameState): Command[] {
   return issued;
 }
 
+/**
+ * Brain v1 gave the worker an improvement plan: on bare grassland it now
+ * rightly walks off to farm rather than surveying an empty hill, so these two
+ * tests saturate the ground — every other hex already improved — to recreate
+ * "nothing else to do", which is the case the survey arm was always for.
+ */
+function saturate(state: GameState): void {
+  for (const tile of state.map.tiles) {
+    if (tile.col === 5 && tile.row === 4) continue;
+    if (tile.improvement === undefined) tile.improvement = 'farm';
+  }
+}
+
 describe('the bot’s one arm', () => {
   it('surveys the hill it is standing on rather than standing down', () => {
     // The arm applies exactly where the worker had nothing else to do: its own
@@ -352,6 +365,7 @@ describe('the bot’s one arm', () => {
     // empty and the alternative is `standDown`.
     const { state } = hillWorker();
     at(state, 5, 4).improvement = 'mine';
+    saturate(state);
     const commands = drainBot(state);
     expect(commands.some((command) => command.type === 'prospect')).toBe(true);
   });
@@ -360,6 +374,7 @@ describe('the bot’s one arm', () => {
     const build = () => {
       const { state } = hillWorker();
       at(state, 5, 4).improvement = 'mine';
+      saturate(state);
       return JSON.stringify(drainBot(state));
     };
     expect(build()).toBe(build());
