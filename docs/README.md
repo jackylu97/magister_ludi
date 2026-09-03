@@ -21,6 +21,7 @@ data-pointing; each says what it is at the top):
 | `trade.md` | caravans, roads, connections — the machinery |
 | `luxuries.md` | the resource table and its effect vocabulary |
 | `mapgen.md` | the generator, pass by pass, every tunable |
+| `war-diplomacy.md` | the war/diplomacy v1 worksheet (in design) |
 | `codex.md` | generated card-pool grid (`npm run codex`; never hand-edit) |
 | `art-pass.md` · `splash-art.md` | art direction |
 | `playtest_notes.md` | the user's running playtest notes |
