@@ -161,6 +161,79 @@ describe('the two loops agree about a persona too', () => {
   );
 });
 
+/**
+ * **The war pass's own identity pin** (P3).
+ *
+ * The two loops agreeing about a persona is asserted above; this asks the same
+ * thing of a game that actually *contains* a war, because the decisions the war
+ * policy adds are the ones the two loops had never both walked. Three claims in
+ * one game, for the reason every long game in this suite is shared:
+ *
+ *   · the stepper and the driver reach the same board and write the same log;
+ *   · every candidate of every decision folds to its own score, exactly —
+ *     including the warscore's six lines, a peace paper's two halves and a
+ *     bargain's;
+ *   · the feed actually reaches the new kinds, so the arithmetic above is being
+ *     asserted about something rather than about an empty list.
+ */
+describe('a war is a decision like any other', () => {
+  const WAR_CONFIG: GameConfig = {
+    seed: 20260903,
+    sizeName: 'duel',
+    players: [
+      { name: 'Crimson', color: '#d4502e', persona: 'warmonger' },
+      { name: 'Teal', color: '#1f8a85' },
+    ],
+    barbarians: true,
+  };
+
+  it(
+    'reaches the war kinds, folds their arithmetic, and plays the same game either way',
+    () => {
+      // Past the turn the warmonger's policy actually finds its neighbour on
+      // this seed (t115): a declaration needs a piece of its own within
+      // `war.reachRadius` of a town of theirs, and on a duel map that takes a
+      // while to happen by accident.
+      const turns = 130;
+      const warnings: string[] = [];
+      const driven = createGame(WAR_CONFIG);
+      for (let turn = 0; turn < turns; turn++) {
+        driveBots(driven, { warn: (message) => warnings.push(message) });
+        if (driven.state.winnerId !== null) break;
+      }
+      const walked = createGame(WAR_CONFIG);
+      const stepper = createBotStepper(walked, { warn: (message) => warnings.push(message) });
+      const steps: BotStep[] = [];
+      for (let turn = 0; turn < turns; turn++) {
+        for (const step of stepper.playTurn()) steps.push(step);
+        if (walked.state.winnerId !== null) break;
+      }
+      expect(warnings).toEqual([]);
+      expect(JSON.stringify(walked.log)).toBe(JSON.stringify(driven.log));
+      expect(snapshotState(walked.state)).toBe(snapshotState(driven.state));
+
+      const failures: string[] = [];
+      for (const step of steps) {
+        failures.push(
+          ...foldFailures(step.decision.candidates, `t${step.turn} ${step.decision.kind}/${step.decision.subject}`),
+        );
+      }
+      expect(failures).toEqual([]);
+
+      // The kinds the war pass added, and the proof that the fold above walked
+      // some of them. `deal` is not asserted: whether two empires ever hold the
+      // seams a swap needs is a fact about the map, not about the policy — it is
+      // pinned on an arranged board in `test/sim/aiWar.test.ts`.
+      const kinds = new Set(steps.map((step) => step.decision.kind));
+      expect(kinds.has('war')).toBe(true);
+      const wars = steps.filter((step) => step.decision.kind === 'war');
+      expect(wars.every((step) => step.decision.summary.length > 0)).toBe(true);
+      expect(wars.every((step) => step.result.ok)).toBe(true);
+    },
+    PATIENCE,
+  );
+});
+
 describe('a hundred turns of arithmetic', () => {
   it(
     'folds every candidate’s terms back to its own score, exactly',
@@ -201,6 +274,17 @@ describe('a hundred turns of arithmetic', () => {
       // `aiBot.test.ts`' "lets a redundant piece go when it is actually in
       // arrears".
       //
+      // **`war` is in the list, and from two balanced seats** — which is worth
+      // reading twice. A peaceful seat's bar is `war.declareThresholdPeaceful`,
+      // deliberately high rather than unreachable (the flags' recommendation:
+      // opportunistic declarations at overwhelming advantage), and on this map
+      // one of these two clears it. Tall and zealot put it out of reach in their
+      // own sheets; balanced does not, and this is where that shows.
+      //
+      // `deal` is absent for a different reason and it is not a gap either:
+      // whether two empires ever hold the seams a 1:1 swap needs is a fact about
+      // the map. It is pinned on an arranged board in `test/sim/aiWar.test.ts`.
+      //
       // If a later pass makes the economy bleed again this list grows back, and
       // that is worth noticing too.
       expect([...kinds].sort()).toEqual([
@@ -210,6 +294,7 @@ describe('a hundred turns of arithmetic', () => {
         'purchase',
         'research',
         'unitOrder',
+        'war',
       ]);
       for (const step of walked.steps) {
         if (step.decision.kind === 'endTurn') continue;

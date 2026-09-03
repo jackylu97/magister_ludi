@@ -804,6 +804,9 @@ describe('the schema witness', () => {
     // four verbs, a `proposePeace` that carries terms, a lending clause in
     // `openedResource` and a right of way Writing hands over. A v56 log knows
     // no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(57);
+    // v58 (phase three): a puppet buys nothing — units, buildings and ground
+    // are all refused until it is annexed, so a v57 log's puppet purchase is
+    // refused here. See `test/sim/purchase.test.ts` for the clause itself.
+    expect(SCHEMA_VERSION).toBe(58);
   });
 });

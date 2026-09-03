@@ -46,11 +46,15 @@
  *     (`threatLevel`), because declining to notice an army is not diplomacy, it
  *     is negligence. Above zero, the warmonger's arm wakes: soldiers hunt a
  *     rival's pieces and push at their towns inside `military.huntRadius`, at
- *     exchanges loosened by the appetite (`favourableBlow`, `warMarch`). There
- *     is still no diplomacy state in this game, so that seat is declaring a war
- *     nobody can end — which is why it is a *chosen* persona rather than the
- *     default, and why the whole military branch is still written to grow into
- *     diplomacy when it arrives.
+ *     exchanges loosened by the appetite (`favourableBlow`, `warMarch`).
+ *
+ *     **Since P3 that appetite is gated by an actual war.** A blow against a
+ *     nation this seat is at peace with is refused by `previewCombat` and a
+ *     march into its fields by `moveProfile`, so the aggressive arms below only
+ *     ever fire inside a war somebody declared — and who declares, who sues and
+ *     who signs is `src/ai/diplomacy.ts`. The old note here said the warmonger
+ *     was starting a war nobody could end; it can now be ended, on terms, by
+ *     either side.
  *   · **One seat, one sheet.** Every tuned number is read through
  *     `aiConfigFor(player.persona)` (`aiFor`, and `ValueContext.ai` for every
  *     appraisal), never off a module global — so two seats with two personas
@@ -76,7 +80,8 @@
  * and nothing else.
  */
 
-import { AI, type AiConfig, aiConfigFor } from './aiConfig';
+import { AI, type AiConfig, aiConfigFor, aiConfigForPuppet } from './aiConfig';
+import { diplomacyDecision } from './diplomacy';
 import {
   type Appraisal,
   type BotCandidate,
@@ -130,6 +135,7 @@ import {
   empireRateReading,
   explainTileYield,
   foldTileYield,
+  controlledResources,
   foundingError,
   foundingErrorAt,
   tileContextAt,
@@ -154,6 +160,7 @@ import {
 import { improvementError, improvementErrorAt, prospectError } from '../sim/improvements';
 import { type ImprovementId, workForFamily } from '../sim/improvementData';
 import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim/map';
+import { type ResourceId, resourceDef } from '../sim/resourceData';
 import { RULES } from '../sim/rulesData';
 import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
 import { authorityOf } from '../sim/meters';
@@ -175,8 +182,24 @@ import {
   riteError,
 } from '../sim/religion';
 import { RITE_IDS } from '../sim/religionData';
-import { anyCardDef, isUpgradeIndex, orderOfferSize, slotOrderError } from '../sim/statecraft';
-import { type CardId, type CardLine, type DoctrineId, type OrderId } from '../sim/statecraftData';
+import {
+  SLOT_WORDS,
+  anyCardDef,
+  isUpgradeIndex,
+  orderOfferSize,
+  slotOrderError,
+  slotTypesOf,
+} from '../sim/statecraft';
+import {
+  type CardId,
+  type CardLine,
+  type DoctrineId,
+  type GovernmentId,
+  type OrderId,
+  type SlotType,
+  orderFitsSlot,
+  slotLayout,
+} from '../sim/statecraftData';
 import { type BeliefId } from '../sim/religionData';
 import { TECH_IDS, UNIT_UNLOCK_TECH, type TechId, highestAge, techDef } from '../sim/techData';
 import { availableTechs, buildError, researchExpansion, researchPlan } from '../sim/tech';
@@ -191,6 +214,7 @@ import {
   unitDef,
 } from '../sim/unitData';
 import { sleepError } from '../sim/units';
+import { atWar } from '../sim/wars';
 import { hasFreshWater, isCoastal } from '../sim/water';
 import { type TurnBlocker, firstBlocker } from '../ui/turnBlockers';
 
@@ -522,6 +546,15 @@ export function nextBotDecision(state: GameState, playerId: number): BotDecision
   const purchase = spendCommand(state, player);
   if (purchase !== null) return purchase;
 
+  // **What this seat has to say to somebody else**, and it is asked *before* the
+  // board for one reason: a surprise war is legal (the ruling, section 2), so a
+  // declaration taken now is a declaration this turn's soldiers get to act on.
+  // Every arm of it is monotone — a war cannot be declared twice, an offer that
+  // already stands is refused, an answered paper leaves the table — which is
+  // what lets it sit ahead of the blockers without threatening the driver's
+  // loop. See `src/ai/diplomacy.ts`.
+  const abroad = diplomacyDecision(state, player, valueContext(state, player));
+  if (abroad !== null) return abroad;
 
   if (blocker !== null) {
     const answer = answerBlocker(state, player, blocker);
@@ -596,16 +629,15 @@ function answerBlocker(state: GameState, player: Player, blocker: TurnBlocker): 
 function housekeeping(state: GameState, player: Player): BotDecision | null {
   const sc = player.statecraft;
   if (sc.pendingGovernment !== undefined) {
-    // The tier is the offer's; within it, the first option. A charter's three
-    // faces differ by slot layout, and comparing layouts is a valuation of a
-    // whole empire's card collection — the successor's job.
+    const faces = adoptionTable(state, player, sc.pendingGovernment.options);
     return {
       kind: 'draft',
-      command: { type: 'adoptGovernment', playerId: player.id, choiceIndex: 0 },
+      command: { type: 'adoptGovernment', playerId: player.id, choiceIndex: faces.index },
       subject: player.name,
       summary:
-        'Claims the charter it has banked, taking the first of its faces — it does not compare slot layouts.',
-      candidates: unweighed(sc.pendingGovernment.options.map((id) => String(id))),
+        `Claims the charter it has banked as ${cardName(sc.pendingGovernment.options[faces.index]!)} — ` +
+        'its own signature, plus what this empire’s held cards would be worth in the slots it opens.',
+      candidates: faces.candidates,
     };
   }
   // **A town idling on a conversion**, which blocks nothing at all and is the
@@ -623,28 +655,173 @@ function housekeeping(state: GameState, player: Player): BotDecision | null {
   const beeline = researchCommand(state, player.id);
   if (beeline !== null) return beeline;
 
-  // In collection order against slot order, both of which are state, and the
-  // gate is the reducer's own: a pair `slotOrderError` accepts is a pair the
-  // command accepts.
-  const tried: BotCandidate[] = [];
+  return slottingDecision(state, player);
+}
+
+/**
+ * **The best held card into the scarcest office it fits** — the scored slotting
+ * (P3), where the v1 took the first pair the rules would accept.
+ *
+ * First-fit is wrong in exactly one way, and it is the way that costs an empire
+ * its whole deck: a wildcard office takes *any* card, so a first-fit walk put
+ * the first Order it held into the wildcard and then had nowhere to put the
+ * military card it drew next. Two decisions come out of that:
+ *
+ *   · **the office's scarcity** — how many cards this empire holds that could go
+ *     in an office of that type. A wildcard fits everything, so it is the least
+ *     scarce office there is and it is spent **last**; a military office that
+ *     only one held card fits is spent first, because nothing else can use it;
+ *   · **the card's worth** — `scoreCard`, the same appraisal the drafts use, so
+ *     a slotting and a draft cannot disagree about what a card is worth.
+ *
+ * One command per call, like every other arm: the best pair goes in, and the
+ * next call re-asks the question on a board where that office is full. That is
+ * what keeps it monotone (a slot that was empty is not), and it is also what
+ * makes it *correct* — the second-best pair is re-scored against the deck the
+ * first one left behind rather than fixed in advance.
+ *
+ * `slotOrderError` is the whole gate. A pair it accepts is a pair the command
+ * accepts, and the refusals it gives (sealed, already slotted, wrong office) are
+ * printed on the rows rather than restated as clauses here.
+ */
+function slottingDecision(state: GameState, player: Player): BotDecision | null {
+  const sc = player.statecraft;
+  const ctx = valueContext(state, player);
+  const layout = slotTypesOf(sc);
+  // How many held cards each office could take. Asked once for the whole table
+  // rather than per pair, and it is the *scarcity* the placement sorts on.
+  const fits = new Map<SlotType, number>();
+  for (const type of layout) {
+    if (fits.has(type)) continue;
+    fits.set(type, sc.orders.filter((owned) => orderFitsSlot(owned.id, type)).length);
+  }
+  const rows: BotCandidate[] = [];
+  let best: { cardId: OrderId; slot: number; row: number; score: number } | null = null;
+
   for (const owned of sc.orders) {
-    for (let slot = 0; slot < sc.slots.length; slot++) {
-      const label = `${cardName(owned.id)} → slot ${slot + 1}`;
+    for (let slot = 0; slot < layout.length; slot++) {
+      const type = layout[slot]!;
+      const label = `${cardName(owned.id)} → slot ${slot + 1} (${SLOT_WORDS[type]})`;
       const refusal = slotOrderError(state, player.id, owned.id, slot);
-      if (refusal === null) {
-        tried.push(chosenAt(label, tried.length));
-        return {
-          kind: 'draft',
-          command: { type: 'slotOrder', playerId: player.id, cardId: owned.id, slotIndex: slot },
-          subject: player.name,
-          summary: `Puts ${cardName(owned.id)} into slot ${slot + 1} — a card outside a slot is paying nothing.`,
-          candidates: tried,
-        };
+      if (refusal !== null) {
+        rows.push({ label, score: 0, chosen: false, terms: [], rejected: refusal });
+        continue;
       }
-      tried.push({ label, score: 0, chosen: false, terms: [], rejected: refusal });
+      const scarcity = Math.max(1, fits.get(type) ?? 1);
+      // **The scarcer office wins the card**, and it is a *division* rather than
+      // a penalty for a reason: what is being compared is value per contested
+      // office. A wildcard six of this empire's cards would fit is worth a sixth
+      // of what it looks like, because five other cards could have taken it; a
+      // military office only one card fits is worth the whole card. A card twice
+      // as good as anything else can still take the wildcard, which is right —
+      // scarcity is a tie-break with teeth, not a veto.
+      const terms: ValueTerm[] = [
+        nest('what the card is worth', explainCard(player, owned.id, ctx)),
+        {
+          label: `÷ ${scarcity} — cards of this empire's that would also fit a ${SLOT_WORDS[type]} office`,
+          value: scarcity,
+          op: 'div',
+        },
+      ];
+      const score = foldOf(terms);
+      rows.push({ label, score, chosen: false, terms });
+      if (best === null || score > best.score) {
+        best = { cardId: owned.id, slot, row: rows.length - 1, score };
+      }
     }
   }
-  return null;
+  if (best === null) return null;
+  rows[best.row]!.chosen = true;
+  const type = layout[best.slot]!;
+  return {
+    kind: 'draft',
+    command: { type: 'slotOrder', playerId: player.id, cardId: best.cardId, slotIndex: best.slot },
+    subject: player.name,
+    summary:
+      `Puts ${cardName(best.cardId)} into slot ${best.slot + 1}, the ${SLOT_WORDS[type]} office — ` +
+      'a card outside a slot is paying nothing, and the office fewest cards fit is filled first.',
+    candidates: rows,
+  };
+}
+
+/**
+ * **The charter's three faces, compared** (P3) — where the v1 took face zero and
+ * said so.
+ *
+ * A government is two things at once and both are scored: a **signature** (its
+ * own effects, through `scoreCard`, which is the same appraisal every other card
+ * class gets) and a **slot layout**, which is worth whatever this empire's held
+ * cards would pay from inside it. The second half is the whole reason the v1
+ * refused the comparison — "comparing layouts is a valuation of a whole empire's
+ * card collection" — and the answer is that the collection is right there and
+ * already priced: the layout is walked scarcest-office-first, greedily, and each
+ * office takes the best held card still unspent.
+ *
+ * Greedy rather than optimal, deliberately: an exact assignment is a matching
+ * problem over three offices and a handful of cards, and the difference between
+ * greedy and optimal there is smaller than the difference between either and the
+ * face-zero it replaces. The amnesty makes every held card available (adoption
+ * rebuilds the slots array — CLAUDE.md), so nothing has to be excluded for being
+ * already slotted.
+ */
+function adoptionTable(
+  state: GameState,
+  player: Player,
+  options: readonly GovernmentId[],
+): { index: number; candidates: BotCandidate[] } {
+  const ctx = valueContext(state, player);
+  const candidates: BotCandidate[] = [];
+  let index = 0;
+  let bestScore = -Infinity;
+  for (let option = 0; option < options.length; option++) {
+    const id = options[option]!;
+    const layout = slotLayout(id);
+    // Scarcest office first, so the wildcard is spent on whatever is left —
+    // `slottingDecision`'s rule, applied to a layout this empire does not have
+    // yet. Ties by the layout's own order, which is data order.
+    const offices = layout
+      .map((type, at) => ({
+        type,
+        at,
+        fits: player.statecraft.orders.filter((owned) => orderFitsSlot(owned.id, type)).length,
+      }))
+      .sort((a, b) => a.fits - b.fits || a.at - b.at);
+    const spent = new Set<OrderId>();
+    const slotTerms: ValueTerm[] = [];
+    for (const office of offices) {
+      let take: { id: OrderId; worth: number } | null = null;
+      for (const owned of player.statecraft.orders) {
+        if (spent.has(owned.id)) continue;
+        if (!orderFitsSlot(owned.id, office.type)) continue;
+        const worth = scoreCard(player, owned.id, ctx);
+        if (take === null || worth > take.worth) take = { id: owned.id, worth };
+      }
+      if (take === null) {
+        slotTerms.push({
+          label: `a ${SLOT_WORDS[office.type]} office with nothing held that fits it`,
+          value: 0,
+        });
+        continue;
+      }
+      spent.add(take.id);
+      slotTerms.push({
+        label: `a ${SLOT_WORDS[office.type]} office, which ${cardName(take.id)} would fill`,
+        value: take.worth,
+      });
+    }
+    const terms: ValueTerm[] = [
+      nest('the charter’s own signature', explainCard(player, id, ctx)),
+      { label: `what its ${layout.length} slot(s) would pay`, value: foldOf(slotTerms), parts: slotTerms },
+    ];
+    const score = foldOf(terms);
+    candidates.push({ label: cardName(id), score, chosen: false, terms });
+    if (score > bestScore) {
+      bestScore = score;
+      index = option;
+    }
+  }
+  if (candidates.length > 0) candidates[index]!.chosen = true;
+  return { index, candidates };
 }
 
 /**
@@ -701,7 +878,7 @@ function projectIdleCommand(state: GameState, player: Player): BotDecision | nul
         cityId: city.id,
         queue: [wanted, ...rest],
       },
-      subject: city.name,
+      subject: townSubject(city),
       summary:
         `${city.name} is idling on ${itemName(front)}, which never leaves the queue — ` +
         `${itemName(wanted)} goes in front of it.`,
@@ -1756,7 +1933,7 @@ function cityCommand(state: GameState, player: Player, cityId: number): BotDecis
   return {
     kind: 'build',
     command: { type: 'setCityProduction', playerId: player.id, cityId, queue: [item] },
-    subject: city.name,
+    subject: townSubject(city),
     summary:
       `${city.name} starts ${itemName(item)} — best value per turn of build effort of ` +
       `${table.candidates.filter((c) => c.rejected === undefined).length} legal candidates.`,
@@ -1814,6 +1991,32 @@ export function chooseProduction(state: GameState, player: Player, city: City): 
 }
 
 /**
+ * **What a puppet builds, for a seat a person is sitting in.**
+ *
+ * The ruling (9b): a puppet's production is *visible but uncontrollable*, and it
+ * is chosen by the seat's own appraisal and issued as an ordinary logged command
+ * by whichever client drives the seat. For a bot seat that client is
+ * `driver.ts`, and nothing extra is needed — the `cityProduction` blocker names
+ * the puppet like any other town and `cityCommand` answers it under the puppet
+ * profile. For a **human** seat there is no such loop, and without this the town
+ * would be a blocker its own owner is not allowed to answer: the city panel
+ * locks a puppet, so End Turn would stop on a decision with no door.
+ *
+ * So this is the door, and it is deliberately the same one: the same
+ * `productionTable`, the same profile, the same command. `controls.ts` issues it
+ * at the top of End Turn (see `autoPickPuppets` there), which keeps the choice
+ * inside the log and therefore inside the replay.
+ *
+ * It returns `null` for a town that is not a puppet, so a caller cannot use it
+ * to set a queue the player is entitled to set themselves.
+ */
+export function puppetProduction(state: GameState, player: Player, city: City): QueueItem | null {
+  if (city.puppet !== true) return null;
+  if (city.ownerId !== player.id) return null;
+  return productionTable(state, player, city).best;
+}
+
+/**
  * `chooseProduction`, with the whole scored table it decided on.
  *
  * The **solvency floor** shows up here as a rejection rather than as a silent
@@ -1826,12 +2029,36 @@ function productionTable(
   player: Player,
   city: City,
 ): { best: QueueItem | null; candidates: BotCandidate[] } {
-  const ctx = valueContext(state, player);
+  // **The opening book, ahead of the scoring** — the one hard-coded build in
+  // this bot. See `openingScout`.
+  const opening = openingScout(state, player, city);
+  if (opening !== null) {
+    return {
+      best: opening,
+      candidates: [
+        {
+          label: itemName(opening),
+          score: 0,
+          chosen: true,
+          terms: [
+            { label: 'Opening book: a scout ranges before anything else', value: 0 },
+            { label: '(nothing was weighed — this is a ruling, not an appraisal)', value: 0 },
+          ],
+        },
+      ],
+    };
+  }
+  const ctx = puppetAwareContext(state, player, city);
   // The improvement plan, hoisted for this decision exactly as the context is:
   // the worker candidate reads it, and it walks every owned hex against every
   // improvement on the roster once rather than once per candidate.
   const plan = buildImprovementPlan(state, player, ctx);
-  const candidates = buildCandidates(state, player, city, ctx, plan);
+  const restricted = buildCandidates(state, player, city, ctx, plan, city.puppet === true);
+  // A puppet the restrictions leave with nothing legal to start is a blocker
+  // nobody can answer, so it falls back to the unrestricted list — the solvency
+  // floor's escape hatch, and for its reason exactly.
+  const candidates =
+    restricted.length > 0 ? restricted : buildCandidates(state, player, city, ctx, plan, false);
   if (candidates.length === 0) return { best: null, candidates: [] };
 
   const maintained = maintenanceAffordable(state, player);
@@ -1862,6 +2089,72 @@ function productionTable(
     return row;
   });
   return { best: best.item, candidates: rows };
+}
+
+/**
+ * **The opening book, and it is one row long.**
+ *
+ * The user's ruling, verbatim (`docs/bot-notes.md`): *"my general build order is
+ * scout settler settler worker, that might not be optimal but first build being
+ * a scout should be hard-coded."* So it is hard-coded, ahead of the scoring,
+ * rather than expressed as a weight big enough to win — a weight that has to win
+ * on turn one is a weight that goes on winning on turn forty, and a ruling that
+ * says *first* is not a statement about how much a scout is worth.
+ *
+ * Three clauses, and each closes a way the book could go on firing after the
+ * opening: the empire holds **one** town (so it is the first city), that town's
+ * queue is **empty** (so nothing has been decided for it yet), and the empire
+ * **owns or has queued no ranging piece at all**. The third is what makes it an
+ * opening rather than a habit — and it is deliberately not "has this empire
+ * built anything", because `unitsBuilt` only counts rows that carry an
+ * `escalation` ladder (`realiseItem`) and a scout carries none, so a book asking
+ * that question would order a scout, watch the counter stay empty, and order
+ * another one for ever.
+ *
+ * `state.turn` bounds it too, with the same knob the early-scout weight uses: a
+ * one-town empire that loses its ranger in the first decade may well want
+ * another, and one that loses it in the fifth is not opening any more.
+ *
+ * `buildError` is still the gate: a roster with no ranging piece in it, or one
+ * gated behind a technology, simply falls through to the scored table. The piece
+ * is found by its **marker** (`isExplorer` — `ignoresTerrainCost`), never by the
+ * name "scout", which is the discipline `src/sim/` keeps.
+ */
+function openingScout(state: GameState, player: Player, city: City): QueueItem | null {
+  if (city.queue.length > 0) return null;
+  if (countCities(state, player.id) !== 1) return null;
+  if (state.turn >= aiFor(player).military.scoutEarlyTurns) return null;
+  for (const id of UNIT_TYPE_IDS) {
+    if (!isExplorer(unitDef(id))) continue;
+    if (countOwnedAndQueued(state, player.id, id) > 0) return null;
+  }
+  for (const id of UNIT_TYPE_IDS) {
+    if (!isExplorer(unitDef(id))) continue;
+    if (!canQueueUnit(state, player, city, id)) continue;
+    return { kind: 'unit', id };
+  }
+  return null;
+}
+
+/**
+ * The appraisal context this town builds under — **the seat's, unless the town
+ * is a puppet** (ruled 2026-09-03, `docs/flags.md`).
+ *
+ * A puppet's queue is chosen by the seat's own appraisal, leaning toward coin:
+ * `aiConfigForPuppet` folds the puppet profile over whatever persona this seat
+ * plays, so a warmonger's puppet is still a warmonger's town with a merchant's
+ * taste. What the profile *cannot* say is "never a wonder, never a settler,
+ * never a unit" — those are feasibility rather than preference and live in
+ * `buildCandidates` as filters, exactly where the settler cap does.
+ *
+ * The rest of the context is unchanged and deliberately so: the empire's age,
+ * its gold pressure and its threat count are facts about the empire, and a
+ * puppet is in the empire.
+ */
+function puppetAwareContext(state: GameState, player: Player, city: City): ValueContext {
+  const ctx = valueContext(state, player);
+  if (city.puppet !== true) return ctx;
+  return { ...ctx, ai: aiConfigForPuppet(player.persona) };
 }
 
 /** One thing a town could start, appraised. See `chooseProduction`. */
@@ -1898,6 +2191,21 @@ function buildCandidates(
   city: City,
   ctx: ValueContext,
   plan: ImprovementPlan,
+  /**
+   * **What an uncontrollable town will not raise** (ruled 2026-09-03): no
+   * wonders, no settlers, no units at all. Read off the rows' markers rather
+   * than off names, and written as a *filter* rather than as a weight for this
+   * function's own stated reason — a cap says "this empire does not want one at
+   * all", which is a different sentence from "it is worth less here", and
+   * scoring cannot express the first.
+   *
+   * A parameter rather than a reading of `city.puppet` so that the caller can
+   * ask the same town the question twice: a puppet the filters leave with
+   * nothing to build is a `cityProduction` blocker nobody can answer, and the
+   * answer to that is the unfiltered list — the same escape the solvency floor
+   * takes, for the same reason.
+   */
+  puppet: boolean,
 ): BuildCandidate[] {
   const candidates: BuildCandidate[] = [];
   // The empire's half of every town's percentages, taken **once** for the whole
@@ -1908,6 +2216,7 @@ function buildCandidates(
 
   for (const id of BUILDING_IDS) {
     if (!canQueueBuilding(state, player, city, id)) continue;
+    if (puppet && buildingDef(id).wonder === true) continue;
     if (buildingDef(id).endsTheGame === true && !isOpusTown(state, player, city)) continue;
     const after = cityYields(state, city, [id], null, cityQuote(state, city, [id], empire));
     const delta = yieldDelta(after, base);
@@ -1919,6 +2228,7 @@ function buildCandidates(
   }
 
   for (const id of UNIT_TYPE_IDS) {
+    if (puppet) break;
     if (!canQueueUnit(state, player, city, id)) continue;
     const role = unitRoleValue(state, player, city, id, ctx, plan);
     if (role === null) continue;
@@ -2053,6 +2363,28 @@ function unitRoleValue(
         { label: `× ${ctx.goldPressure} gold pressure — a broke empire trades`, value: ctx.goldPressure, op: 'mul' },
       ],
     };
+  }
+
+  // **The opening's scouts**, and this is the half that is a *weight* rather
+  // than a ruling: the first scout is the opening book's (`openingScout`), and
+  // this is what makes a second one compete honestly against a warrior or a
+  // granary while the map is still dark. It is a soldier's value plus a
+  // premium, and the premium switches itself off twice over — past
+  // `military.scoutEarlyTurns`, and past `military.scoutCap` rangers — because
+  // an empire in the classical age with four scouts is paying four wages to
+  // rediscover its own borders.
+  if (isExplorer(def) && isCombatant(def)) {
+    const ranging = countOwnedAndQueued(state, player.id, id);
+    const early = state.turn < ai.military.scoutEarlyTurns && ranging < ai.military.scoutCap;
+    const soldier = explainSoldier(id, ctx);
+    const terms: ValueTerm[] = [nest('what this piece is worth as a soldier', soldier)];
+    if (early) {
+      terms.push({
+        label: `${ranging} ranging already, and it is turn ${state.turn} — the opening wants eyes`,
+        value: ai.military.scoutBonus,
+      });
+    }
+    return { value: foldOf(terms), essential: false, terms };
   }
 
   if (isCombatant(def)) {
@@ -2434,11 +2766,16 @@ function standDown(unit: Unit, why = 'Nothing better to do where it stands.'): U
  */
 function settlerCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
   const ai = aiFor(player);
+  // Hoisted for this whole decision, `valueContext`'s bargain: the site scorer
+  // asks it per hex and there are two hundred hexes in a search radius.
+  const held = heldResources(state, player.id);
+  // Who is walking with it, asked once and read twice — here and by the march.
+  const escorted = escortWithin(state, player, unit);
   const here = getTileAt(state.map, unit.col, unit.row);
   const standing =
     here === undefined
       ? null
-      : { tile: here, appraisal: explainSite(state, ai, here), legal: foundingError(state, unit) };
+      : { tile: here, appraisal: explainSite(state, held, ai, here), legal: foundingError(state, unit) };
   const foundHere = (why: string): UnitChoice => ({
     command: { type: 'foundCity', playerId: player.id, settlerUnitId: unit.id },
     summary: why,
@@ -2459,8 +2796,23 @@ function settlerCommand(state: GameState, player: Player, unit: Unit): UnitChoic
           `${ai.expansion.siteScoreMin} it asks for. Founds here.`,
       );
     }
+    // **A settler does not march unescorted** (the user's notes, P3): a hostile
+    // inside `war.escortRadius` and nothing of ours walking with it, and the
+    // piece stops walking. What it does instead is *found where it stands*,
+    // below the score it would have asked for — a mediocre town is worth more
+    // than a settler captured in the open, and it is the one answer that cannot
+    // oscillate, because founding is terminal.
+    if (escorted === null) {
+      const danger = nearestHostile(state, player, unit.col, unit.row, ai.war.escortRadius);
+      if (danger !== null) {
+        return foundHere(
+          `There is ${danger.what} ${danger.distance} hexes off and nothing of ours walking with it: ` +
+            `founds on ${round1(standing.appraisal.total)} ground rather than march unescorted.`,
+        );
+      }
+    }
   }
-  const march = marchToSite(state, player, unit, standing?.appraisal ?? null);
+  const march = marchToSite(state, player, unit, held, escorted, standing?.appraisal ?? null);
   if (march !== null) return march;
   // Nowhere better within reach: found here anyway if the rules allow it — a
   // settler standing around forever is worth less than a mediocre town — else
@@ -2474,21 +2826,52 @@ function settlerCommand(state: GameState, player: Player, unit: Unit): UnitChoic
   return standDown(unit, 'Nowhere legal to found and nowhere better to walk.');
 }
 
-/** The best reachable site inside the search radius, as a march order. */
+/**
+ * The best reachable site inside the search radius, as a march order.
+ *
+ * **An unescorted settler will not walk to a hex something hostile is standing
+ * near** (the user's notes, P3). It is a filter on the *destination* rather than
+ * a refusal to march at all, and that is the honest reading of the ruling: a
+ * settler is almost never killed where it was built, it is killed on the road to
+ * the site nobody has taken yet — which is nobody's yet precisely because the
+ * wild is camped in it. Struck sites appear in the table with the rules'-style
+ * sentence saying what is standing near them, so the choice is readable.
+ *
+ * A settler with a soldier walking beside it (`escortWithin` — a garrison does
+ * not count) takes those sites like any other. That is the pair `escortMarch`
+ * completes from the soldier's end.
+ */
 function marchToSite(
   state: GameState,
   player: Player,
   unit: Unit,
+  /** The empire's seams, hoisted by the caller. See `explainSite`. */
+  held: ReadonlySet<ResourceId>,
+  /** The piece walking with it, or `null`. See `escortWithin`. */
+  escorted: Unit | null,
   here: Appraisal | null,
 ): UnitChoice | null {
   const ai = aiFor(player);
   const candidates: { tile: Tile; score: number; distance: number; terms: ValueTerm[] }[] = [];
+  const struck: BotCandidate[] = [];
   const from = tileHex(getTileAt(state.map, unit.col, unit.row) ?? state.map.tiles[0]!);
   for (const tile of mapRange(state.map, from, ai.expansion.siteSearchRadius)) {
     if (tile.col === unit.col && tile.row === unit.row) continue;
     if (foundingErrorAt(state, player.id, tile) !== null) continue;
-    const appraisal = explainSite(state, ai, tile);
+    const appraisal = explainSite(state, held, ai, tile);
     if (appraisal.total < ai.expansion.siteScoreMin) continue;
+    if (escorted === null) {
+      const danger = nearestHostile(state, player, tile.col, tile.row, ai.war.escortRadius);
+      if (danger !== null) {
+        struck.push(
+          refused(
+            `(${tile.col},${tile.row}), scoring ${round1(appraisal.total)}`,
+            `${danger.what} stands ${danger.distance} hexes from it and nothing of ours is walking with this settler`,
+          ),
+        );
+        continue;
+      }
+    }
     candidates.push({
       tile,
       score: appraisal.total,
@@ -2508,6 +2891,9 @@ function marchToSite(
       chosen: false,
       terms: here?.terms ?? [],
     },
+    // The sites the escort rule struck out, at most a handful of them so a
+    // reader sees the rule bite without reading a hundred rows of it.
+    ...struck.slice(0, ai.search.pathProbes),
   ];
   for (const candidate of probes) {
     const label = `(${candidate.tile.col},${candidate.tile.row}), ${candidate.distance} hexes off`;
@@ -2535,30 +2921,254 @@ function marchToSite(
 }
 
 /**
- * What a hex is worth as a city site: the weighted fold of its own yield and its
- * six neighbours', plus the two things a town cares about that no tile yield
- * says — fresh water, and a coast.
+ * Every resource kind this empire actually holds, as one set.
+ *
+ * Hoisted once per settler decision and handed to `explainSite` — see its
+ * docblock for why that matters. It asks `controlledResources`, the same reading
+ * the happiness meter and the deal table ask, so "this empire holds silk" means
+ * one thing across the whole program; lent seams are in it, which is right,
+ * because a signature on loan is a signature this empire is already paid for.
+ */
+function heldResources(state: GameState, playerId: number): Set<ResourceId> {
+  return new Set<ResourceId>([
+    ...controlledResources(state, playerId, 'luxury'),
+    ...controlledResources(state, playerId, 'strategic'),
+  ]);
+}
+
+/**
+ * **The nearest thing that would kill a civilian standing here**, or `null`.
+ *
+ * "Hostile" is the wild *or* an empire this seat is actually at war with
+ * (`atWar`, the simulation's own reading): since P1 a rival's column standing in
+ * its own fields at peace can do nothing to a settler at all, and treating one
+ * as a threat would be a bot that never expanded toward a neighbour.
+ *
+ * It answers about a **hex** rather than about a piece, because the settler asks
+ * it twice: once about where it is standing, and once about each site it is
+ * thinking of walking to. The second is the one that matters — a settler is
+ * almost never killed where it was built.
+ */
+function nearestHostile(
+  state: GameState,
+  player: Player,
+  col: number,
+  row: number,
+  within: number,
+): { what: string; distance: number } | null {
+  const here = getTileAt(state.map, col, row);
+  if (!here) return null;
+  const from = tileHex(here);
+  let nearest: { what: string; distance: number } | null = null;
+  for (const other of state.units) {
+    if (other.ownerId === player.id) continue;
+    if (!isCombatant(unitDef(other.type))) continue;
+    if (!atWar(state, player.id, other.ownerId)) continue;
+    const tile = getTileAt(state.map, other.col, other.row);
+    if (!tile) continue;
+    const distance = wrappedDistance(state.map, from, tileHex(tile));
+    if (distance > within) continue;
+    if (nearest !== null && distance >= nearest.distance) continue;
+    const owner = playerById(state, other.ownerId);
+    nearest = {
+      what: owner?.barbarian === true ? 'a raider' : `a ${owner?.name ?? 'foreign'} column`,
+      distance,
+    };
+  }
+  return nearest;
+}
+
+/**
+ * **The escort question**: is anything of ours walking with this civilian?
+ *
+ * A soldier **standing in one of this empire's towns does not count**, and that
+ * clause is the whole of what makes the rule work. A settler is built in a town
+ * and a town has a garrison, so a positional reading with no such clause would
+ * call every settler escorted at the moment it decides where to walk — and then
+ * it walks out of the gate alone, which is exactly how the arena lost its
+ * settlers to the wild. A garrison is not an escort; it is a garrison.
+ *
+ * The pair with `escortMarch` closes: an unescorted settler is what that arm
+ * looks for, and a soldier that has marched out to one is *not* standing in a
+ * town, so it counts here the moment it arrives.
+ */
+function escortWithin(state: GameState, player: Player, unit: Unit): Unit | null {
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here) return null;
+  const from = tileHex(here);
+  const within = Math.max(0, aiFor(player).war.escortRadius);
+  for (const other of state.units) {
+    if (other.ownerId !== player.id) continue;
+    if (!isCombatant(unitDef(other.type))) continue;
+    const tile = getTileAt(state.map, other.col, other.row);
+    if (!tile) continue;
+    if (wrappedDistance(state.map, from, tileHex(tile)) > within) continue;
+    const garrison = state.cities.some(
+      (city) => city.ownerId === player.id && city.col === other.col && city.row === other.row,
+    );
+    if (garrison) continue;
+    return other;
+  }
+  return null;
+}
+
+/**
+ * The settler this soldier walks with, or `null` — **the escort** (the user's
+ * notes, P3).
+ *
+ * Crude and visible, which is what was asked for: the nearest settler of this
+ * empire that is out in the open (not standing in one of its towns) with no
+ * soldier of ours inside `war.escortRadius`, and the order is a plain march to
+ * the hex it is standing on.
+ *
+ * Marching to the *settler* rather than to the site it is walking toward is the
+ * detail that makes this stable rather than clever. The escort's leash is the
+ * same radius the settler's own reading uses, so the pair walks: the settler
+ * marches, the distance opens past the radius, this arm fires again and the
+ * soldier closes it. Aiming at the site instead would have both pieces walking
+ * to a fixed point and arriving separately, which is a convoy only by
+ * coincidence.
+ *
+ * The two guards are the camp hunt's, word for word and for its reasons: every
+ * town held first, and this piece must not be the thing holding the town it
+ * stands in.
+ */
+function escortMarch(state: GameState, player: Player, unit: Unit): UnitTarget | null {
+  if (!townsAreHeld(state, player)) return null;
+  if (!isRedundant(state, player, unit)) return null;
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here) return null;
+  const from = tileHex(here);
+  const wanted: { settler: Unit; distance: number }[] = [];
+  for (const other of state.units) {
+    if (other.ownerId !== player.id) continue;
+    if (unitDef(other.type).foundsCity !== true) continue;
+    if (other.col === unit.col && other.row === unit.row) continue;
+    // A settler standing in one of its own towns is not in the open.
+    if (state.cities.some((city) => city.ownerId === player.id && city.col === other.col && city.row === other.row)) {
+      continue;
+    }
+    if (escortWithin(state, player, other) !== null) continue;
+    const tile = getTileAt(state.map, other.col, other.row);
+    if (!tile) continue;
+    wanted.push({ settler: other, distance: wrappedDistance(state.map, from, tileHex(tile)) });
+  }
+  wanted.sort((a, b) => a.distance - b.distance || a.settler.id - b.settler.id);
+  const tried: BotCandidate[] = [];
+  for (const entry of wanted.slice(0, aiFor(player).search.pathProbes)) {
+    const tile = getTileAt(state.map, entry.settler.col, entry.settler.row);
+    if (!tile) continue;
+    const label = `escort ${unitLabel(entry.settler)} at (${entry.settler.col},${entry.settler.row})`;
+    if (findPath(state, unit, tile) === null) {
+      tried.push(refused(label, 'no route to it'));
+      continue;
+    }
+    // **The lowest score marches**, as in the two hunts: the key is hexes to the
+    // piece being escorted.
+    tried.push({
+      label,
+      score: entry.distance,
+      chosen: true,
+      terms: [
+        { label: `${entry.distance} hexes to the nearest settler of ours walking alone`, value: entry.distance },
+        { label: '(a settler with nothing beside it does not march at all)', value: 0 },
+      ],
+    });
+    return {
+      at: { col: entry.settler.col, row: entry.settler.row },
+      summary:
+        `Marches ${entry.distance} hexes to walk with ${unitLabel(entry.settler)}, which is out in the open with ` +
+        'nothing of ours beside it.',
+      candidates: tried,
+    };
+  }
+  return null;
+}
+
+/**
+ * What a hex is worth as a city site: the weighted fold of its own yield and of
+ * every hex in its rings, plus the things a town cares about that no tile yield
+ * says — fresh water, a coast, and **a kind of resource this empire has none
+ * of**.
  *
  * The ring is one flat run of adds rather than a per-hex subtotal, and that is
  * the arithmetic rather than a presentation choice: regrouping the sum would
  * move the last bits and a settler would walk somewhere else.
+ *
+ * **Two rings, with a falloff** (P3). One ring was less ground than a town
+ * actually works, so a hill with three good neighbours outscored a river bend
+ * with nine; the second ring is folded at `site.ringFalloff` of the first, which
+ * is the honest statement that a town works its inner ring first and may never
+ * reach the outer one at all. The falloff is per *ring* rather than per hex, so
+ * every hex at the same distance is worth the same thing whatever order the
+ * range walk visits them in.
+ *
+ * **Kind awareness** is the other half, and it is what a settler is really for
+ * once an empire has any ground at all: a luxury is a *signature* and a second
+ * copy of one pays nothing new (`resourceEffects.ts`), so what makes a site
+ * valuable is a kind nobody in this empire holds. Read off the row's `kind` and
+ * asked of the empire (`hasResource`), never against a name.
+ *
+ * The reading is deliberately **omniscient** — `explainTileYield` with no
+ * context, mapgen's own start scorer, which CLAUDE.md allows exactly here — and
+ * `held` is a fact about the *empire*, so a seam a rival has revealed and this
+ * empire cannot name still counts. That is the creed's second clause, unchanged.
+ *
+ * `held` is **hoisted by the caller**, `tileOwnerField`'s bargain one system
+ * over and for exactly its reason: `hasResource` sweeps the whole map, and a
+ * settler prices two hundred candidate hexes in one decision. Asked per hex it
+ * would be two hundred map sweeps to choose where to walk.
  */
-function explainSite(state: GameState, ai: AiConfig, tile: Tile) {
+function explainSite(
+  state: GameState,
+  held: ReadonlySet<ResourceId>,
+  ai: AiConfig,
+  tile: Tile,
+) {
   const ring: ValueTerm[] = [];
-  for (const near of mapRange(state.map, tileHex(tile), ai.site.ringRadius)) {
+  const bonuses: ValueTerm[] = [];
+  const here = tileHex(tile);
+  const seen = new Set<ResourceId>();
+  for (const near of mapRange(state.map, here, Math.max(0, ai.site.ringRadius))) {
+    const steps = wrappedDistance(state.map, here, tileHex(near));
+    const falloff = Math.pow(ai.site.ringFalloff, steps);
     const yields = foldTileYield(explainTileYield(near));
     for (const [voice, weight] of Object.entries(ai.site.yieldWeights) as [string, number][]) {
       const value = (yields as unknown as Record<string, number>)[voice];
       if (typeof value === 'number') {
-        ring.push({ label: `(${near.col},${near.row}) ${voice} ${value} × ${weight}`, value: value * weight });
+        ring.push({
+          label:
+            `(${near.col},${near.row}) ${voice} ${value} × ${weight}` +
+            (steps === 0 ? '' : ` × ${round1(falloff)} (ring ${steps})`),
+          value: value * weight * falloff,
+        });
       }
+    }
+    // The seam itself, once per kind: a site with two silk hexes is still a
+    // site that opens silk, which is exactly what the signature pays for.
+    const resource = near.resource;
+    if (resource === undefined || seen.has(resource)) continue;
+    seen.add(resource);
+    if (held.has(resource)) continue;
+    const kind = resourceDef(resource).kind;
+    if (kind === 'luxury') {
+      bonuses.push({
+        label: `${resourceDef(resource).name} at (${near.col},${near.row}) — a luxury this empire holds none of`,
+        value: ai.site.newLuxuryBonus,
+      });
+    } else if (kind === 'strategic') {
+      bonuses.push({
+        label: `${resourceDef(resource).name} at (${near.col},${near.row}) — a strategic kind this empire cannot field`,
+        value: ai.site.newStrategicBonus,
+      });
     }
   }
   const terms: ValueTerm[] = [
-    { label: `the hex and its ring, weighted`, value: foldOf(ring), parts: ring },
+    { label: `the hex and its ${ai.site.ringRadius} ring(s), weighted`, value: foldOf(ring), parts: ring },
   ];
   if (hasFreshWater(tile)) terms.push({ label: 'fresh water', value: ai.site.freshWaterBonus });
   if (isCoastal(state.map, tile)) terms.push({ label: 'a coast', value: ai.site.coastBonus });
+  terms.push(...bonuses);
   return appraise(terms);
 }
 
@@ -2719,14 +3329,16 @@ function scoutCommand(state: GameState, player: Player, unit: Unit): UnitChoice 
 }
 
 /**
- * A soldier's four questions, in order: is there a favourable blow against the
- * wild next door, is there a camp to march on, am I standing in a town that
- * wants holding, and — failing all three — dig in where I am.
+ * A soldier's questions, in order: is there a favourable blow against the wild
+ * next door, is there one against a nation this seat is at war with, is there a
+ * camp to march on, am I standing in a town that wants holding, is there a
+ * settler of ours walking unescorted — and, failing all of them, dig in.
  *
- * **It never attacks another nation.** There is no diplomacy state in this
- * game, so a bot that opened fire would be starting a war that has no shape and
- * no end; the whole branch is gated on the target's owner being the wild. That
- * is the v0 creed's fourth clause and the successor is diplomacy state.
+ * **A peaceful seat still never attacks a nation**, and it is now belt and
+ * braces: the aggressive arms are behind `military.aggression`, and the blow
+ * itself is behind `previewCombat`, which refuses a strike on an empire this
+ * one is not at war with. So a seat with an appetite and no declaration gets a
+ * table full of the rules' own refusals rather than a war.
  */
 function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
   const ai = aiFor(player);
@@ -2739,20 +3351,21 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
       focus: blow.at,
     };
   }
-  // **The warmonger's arm, and it is silent at aggression 0.** Everything above
-  // and below this block is the peaceful bot exactly as it was; a seat whose
-  // configuration says nothing about aggression never enters here, so the
-  // default seat still cannot target a nation.
-  if (ai.military.aggression > 0) {
-    const strike = favourableBlow(state, player, unit, holdsRival, ai.military.aggression);
-    if (strike !== null) {
-      return {
-        command: { type: 'attack', playerId: player.id, unitId: unit.id, target: strike.at },
-        summary: strike.summary,
-        candidates: strike.candidates,
-        focus: strike.at,
-      };
-    }
+  // **A seat at war swings at what is beside it, whatever its temperament.**
+  // The appetite decides whether this empire goes *looking* for a fight
+  // (`warMarch`, below) and how bad an exchange it will accept — at zero the
+  // bar is the peaceful one, deal more than you take — but declining to hit an
+  // enemy column standing next to a piece is not pacifism, it is negligence.
+  // A seat with no war on has nothing to swing at: `holdsRival` is gated on
+  // `atWar`, and `previewCombat` refuses a peacetime blow besides.
+  const strike = favourableBlow(state, player, unit, holdsRival, ai.military.aggression);
+  if (strike !== null) {
+    return {
+      command: { type: 'attack', playerId: player.id, unitId: unit.id, target: strike.at },
+      summary: strike.summary,
+      candidates: strike.candidates,
+      focus: strike.at,
+    };
   }
   const camp = campMarch(state, player, unit);
   if (camp !== null) {
@@ -2770,6 +3383,17 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
       summary: home.summary,
       candidates: home.candidates,
       focus: home.at,
+    };
+  }
+  // **The escort**, after the towns are held and before anybody goes hunting: a
+  // settler walking alone is an empire's next town walking alone.
+  const escort = escortMarch(state, player, unit);
+  if (escort !== null) {
+    return {
+      command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: escort.at },
+      summary: escort.summary,
+      candidates: escort.candidates,
+      focus: escort.at,
     };
   }
   // The march on a rival comes **after** the towns are seen to, which is the
@@ -2887,30 +3511,40 @@ function holdsWild(state: GameState, player: Player, tile: Tile): boolean {
 }
 
 /**
- * Does **another nation** have a piece or a town standing here?
+ * Does **a nation this empire is at war with** have a piece or a town standing
+ * here?
  *
  * `holdsWild`'s twin and the one place this bot admits a rival exists as a
  * target. A town counts: `previewCombat` prices a blow against a city's walls
  * exactly as it prices one against a spearman (the three beats are the
- * reducer's), so an aggressive seat pushes at a town through the same door it
- * strikes a column through.
+ * reducer's), so a seat pushes at a town through the same door it strikes a
+ * column through.
  *
  * The wild is excluded here rather than included, so the two predicates
  * partition what stands on a hex instead of overlapping: a raider is
- * `holdsWild`'s business and a rival's warrior is this one's.
+ * `holdsWild`'s business and an enemy's warrior is this one's.
+ *
+ * **The war is a clause of the predicate** (P3), not of the callers. Before
+ * there was a war state a rival was simply "somebody else" and the appetite was
+ * the only thing standing between this bot and a blow; now `atWar` answers the
+ * question the reducer would answer anyway (`previewCombat` refuses a peacetime
+ * strike), so a neighbour at peace never even reaches the table — and neither
+ * `favourableBlow` nor `warMarch` needs a clause of its own about it.
  */
 function holdsRival(state: GameState, player: Player, tile: Tile): boolean {
   for (const other of state.units) {
     if (other.ownerId === player.id) continue;
     if (other.col !== tile.col || other.row !== tile.row) continue;
     const owner = playerById(state, other.ownerId);
-    if (owner !== undefined && !owner.barbarian && !owner.eliminated) return true;
+    if (owner === undefined || owner.barbarian || owner.eliminated) continue;
+    if (atWar(state, player.id, owner.id)) return true;
   }
   for (const city of state.cities) {
     if (city.ownerId === player.id) continue;
     if (city.col !== tile.col || city.row !== tile.row) continue;
     const owner = playerById(state, city.ownerId);
-    if (owner !== undefined && !owner.barbarian && !owner.eliminated) return true;
+    if (owner === undefined || owner.barbarian || owner.eliminated) continue;
+    if (atWar(state, player.id, owner.id)) return true;
   }
   return false;
 }
@@ -3508,6 +4142,18 @@ function unweighed(labels: readonly string[]): BotCandidate[] {
   return labels.map((label, index) =>
     index === 0 ? chosenAt(label, 0) : { label, score: -index, chosen: false, terms: rankTerms(index) },
   );
+}
+
+/**
+ * A town as a decision's subject — **"Uruk (puppet)" for one nobody controls**.
+ *
+ * The ruling asks a puppet's production to be *visible*, and the feed is where
+ * it is visible: a reader watching a seat build a market has to be able to tell
+ * whether that was the seat's choice or the arrangement the ruling describes.
+ * It is a label and nothing else — the decision is an ordinary `build`.
+ */
+function townSubject(city: City): string {
+  return city.puppet === true ? `${city.name} (puppet)` : city.name;
 }
 
 /** A queue row's printed name. */

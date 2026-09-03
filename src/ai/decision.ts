@@ -139,6 +139,12 @@ export interface BotCandidate {
  *   · `unitOrder` — one idle piece told what to do.
  *   · `purchase` — a bank spent: `purchaseItem`, `contribute`.
  *   · `disband` — a wage stopped.
+ *   · `war` — a declaration, or a peace put on the table or signed
+ *     (`declareWar`, `proposePeace`). Its candidate table carries **every** war
+ *     the seat is in, because declining a peace is not a command and the only
+ *     place a decline can be shown is beside the one it took.
+ *   · `deal` — a bargain offered or answered (`proposeDeal`, `acceptDeal`,
+ *     `declineDeal`). Both answers are commands, so both are printed.
  *   · `endTurn` — the hand-over. Emitted by the stepper rather than by the
  *     policy, because ending a turn is the *driver's* decision (`driver.ts`) and
  *     nothing is weighed.
@@ -150,6 +156,8 @@ export type BotDecisionKind =
   | 'unitOrder'
   | 'purchase'
   | 'disband'
+  | 'war'
+  | 'deal'
   | 'endTurn';
 
 export interface BotDecision {

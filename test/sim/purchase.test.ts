@@ -29,6 +29,7 @@ import {
   cityYields,
   foundCityAt,
   queueItemName,
+  tilePurchaseError,
   unitProductionCost,
 } from '../../src/sim/cities';
 import { dispatch, snapshotState } from '../../src/sim/game';
@@ -38,10 +39,11 @@ import {
   bankOf,
   explainPurchaseCost,
   isPurchaseOnly,
+  purchaseError,
   purchaseVerb,
 } from '../../src/sim/purchase';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, playerById } from '../../src/sim/state';
+import { type City, type GameState, SCHEMA_VERSION, playerById } from '../../src/sim/state';
 import { buildError, gatingTech } from '../../src/sim/tech';
 import { unitDef } from '../../src/sim/unitData';
 import { buyCommand, game } from './purchaseHelpers';
@@ -603,5 +605,95 @@ describe('a town holding a Reliquary sells its units for faith', () => {
     expect(before).toBeGreaterThan(0);
     city.buildings.push('reliquary');
     expect(cityYields(g.state, city).faith).toBe(Math.floor((before * 110) / 100));
+  });
+});
+
+// --- the puppet's purse -----------------------------------------------------
+
+/**
+ * **A puppet spends nothing** — ruled 2026-09-03 (Civ V's rule), schema 58.
+ *
+ * The ruling is one sentence and it is deliberately absolute: a town taken by
+ * force and not yet annexed may buy no unit, no building and no ground.
+ * Annexation is the verb that opens its purse, and it is the whole of the
+ * decision a captor is offered about a conquest — so the refusal is a *clause*
+ * in the two gates every surface already asks, and not a fourth gate somewhere.
+ *
+ * Two clauses, one voice, tested here together for that reason: the wording is
+ * the same in `purchaseError` and `tilePurchaseError` because a player meeting
+ * it in the city panel and a player meeting it in the Buy Tiles overlay are
+ * meeting the same rule.
+ */
+describe('a puppet spends nothing', () => {
+  /** A capital, and a puppet beside it — the shape `captureCity` leaves. */
+  function withPuppet(): { g: ReturnType<typeof game>; own: City; puppet: City } {
+    const g = game();
+    const own = found(g.state, 0);
+    const spot = g.state.map.tiles.find(
+      (tile) =>
+        wrappedDistance(
+          g.state.map,
+          tileHex(tile),
+          tileHex(getTileAt(g.state.map, own.col, own.row)!),
+        ) === 5 && tile.terrain === 'grassland',
+    )!;
+    const puppet = foundCityAt(g.state, 0, spot);
+    // Exactly what a capture writes (`captureCity`), and nothing else: the
+    // rule under test is the marker, not the way the town was taken.
+    puppet.puppet = true;
+    puppet.captured = true;
+    g.state.players[0]!.gold = 5000;
+    return { g, own, puppet };
+  }
+
+  it('refuses every unit and every building, in one sentence', () => {
+    const { g, own, puppet } = withPuppet();
+    for (const item of [WARRIOR, WORKER, GRANARY] as PurchasableItem[]) {
+      const refusal = applyCommand(g.state, buyCommand(puppet.id, item));
+      expect(refusal.ok).toBe(false);
+      expect(refusal.ok === false && refusal.error).toMatch(/puppet spends nothing/);
+      // And the price evaluator says the same thing, so no surface can offer a
+      // button the reducer would refuse.
+      expect(purchaseError(g.state, 0, puppet.id, item, 'gold')).toMatch(/annex it to invest/);
+    }
+    // The same empire's own town is untouched: this is about the *town*.
+    expect(purchaseError(g.state, 0, own.id, WARRIOR, 'gold')).toBeNull();
+  });
+
+  it('refuses ground, in the same sentence', () => {
+    const { g, puppet } = withPuppet();
+    const cell = { col: puppet.col + 2, row: puppet.row };
+    expect(tilePurchaseError(g.state, 0, puppet.id, cell)).toMatch(/puppet spends nothing/);
+    const before = snapshotState(g.state);
+    const refused = applyCommand(g.state, {
+      type: 'purchaseTile',
+      playerId: 0,
+      cityId: puppet.id,
+      ...cell,
+    } as Command);
+    expect(refused.ok).toBe(false);
+    // Hard rule 1: a refused command leaves the state byte-identical.
+    expect(snapshotState(g.state)).toBe(before);
+  });
+
+  it('opens the purse the moment the town is annexed', () => {
+    const { g, puppet } = withPuppet();
+    expect(purchaseError(g.state, 0, puppet.id, WARRIOR, 'gold')).not.toBeNull();
+    expect(applyCommand(g.state, { type: 'annexCity', playerId: 0, cityId: puppet.id }).ok).toBe(
+      true,
+    );
+    expect(puppet.puppet).toBeUndefined();
+    expect(purchaseError(g.state, 0, puppet.id, WARRIOR, 'gold')).toBeNull();
+  });
+});
+
+describe('the schema witness', () => {
+  it('carries the version that says a puppet buys nothing', () => {
+    // v58: two clauses, one in `purchaseError` and one in `tilePurchaseError`.
+    // A legality reversal rather than a table that moved — a v57 log may
+    // contain a puppet's purchase this reducer refuses, so it is a different
+    // game rather than an older one. The other eleven witnesses are listed in
+    // `test/sim/state.test.ts`'s own migration note.
+    expect(SCHEMA_VERSION).toBe(58);
   });
 });

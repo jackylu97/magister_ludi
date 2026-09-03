@@ -152,3 +152,25 @@ describe('the feed prints the decision rather than a paraphrase of it', () => {
     expect(text).toContain('DEFAULT_PERSONA');
   });
 });
+
+/**
+ * **A new decision kind costs this page nothing** (P3: `war` and `deal`).
+ *
+ * The feed prints `decision.kind` as a word and the candidate table as the
+ * decision's own rows, so the two kinds the war pass added — a declaration or a
+ * peace, and a bargain offered or answered — render the day they exist with
+ * nothing here to update. That is worth pinning rather than assuming: a page
+ * that grew a `switch` on the kind would be a page that silently omitted the
+ * next one, and the whole value of this feed is that it cannot omit anything.
+ */
+describe('the feed knows no kinds', () => {
+  it('prints the kind rather than branching on it', () => {
+    const text = code(main);
+    expect(text).toContain('decision.kind');
+    // No per-kind branch anywhere: not the six the brain shipped with, and not
+    // the two the war pass added.
+    for (const kind of ['build', 'research', 'draft', 'unitOrder', 'purchase', 'war', 'deal']) {
+      expect(text).not.toContain(`'${kind}'`);
+    }
+  });
+});

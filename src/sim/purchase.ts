@@ -448,6 +448,15 @@ export function purchaseError(
   const city = cityById(state, cityId);
   if (!city) return `No city with id ${String(cityId)}`;
   if (city.ownerId !== playerId) return `${city.name} does not belong to ${player.name}`;
+  // **A puppet spends nothing** (ruled 2026-09-03, Civ V's rule; schema 58).
+  // Asked before the item is even read, because it is not about what is for
+  // sale: a town taken by force and not yet taken *in* has no purse of its own
+  // at all, and annexation is the verb that opens one. The matching clause is
+  // `tilePurchaseError`'s, so units, buildings and ground are refused in one
+  // voice, and the city panel's lock is the same sentence said in the interface.
+  if (city.puppet === true) {
+    return `${city.name} is a puppet — a puppet spends nothing; annex it to invest`;
+  }
 
   const bought = readPurchasableItem(item);
   if (!bought) {

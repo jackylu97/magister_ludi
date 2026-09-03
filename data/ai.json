@@ -22,9 +22,12 @@
     "cityValueFalloff": 0.9
   },
   "site": {
-    "ringRadius": 1,
+    "ringRadius": 2,
+    "ringFalloff": 0.45,
     "freshWaterBonus": 6,
     "coastBonus": 3,
+    "newLuxuryBonus": 14,
+    "newStrategicBonus": 10,
     "yieldWeights": {
       "food": 3,
       "production": 2,
@@ -64,7 +67,25 @@
     "garrisonPerCity": 1,
     "armyPerCity": 2,
     "aggression": 0,
-    "huntRadius": 8
+    "huntRadius": 8,
+    "scoutCap": 2,
+    "scoutEarlyTurns": 40,
+    "scoutBonus": 55
+  },
+  "war": {
+    "declareThreshold": 1.4,
+    "declareThresholdPeaceful": 4.5,
+    "reachRadius": 12,
+    "escortRadius": 4,
+    "sueFloor": -12,
+    "acceptCeiling": 10,
+    "tributeFloor": -30,
+    "goldPerScorePoint": 4,
+    "unitLossWeight": 3,
+    "cityWeight": 25,
+    "strengthWeight": 0.4,
+    "luxuryGoldBaseline": 120,
+    "luxuryGptBaseline": 5
   },
   "trade": {
     "tradersPerCity": 1,
@@ -161,9 +182,34 @@
     "prophetSpendAbove": 10,
     "prophetTechValue": 600
   },
+  "puppetProfile": {
+    "weights": {
+      "gold": [
+        6,
+        6,
+        7,
+        8
+      ],
+      "science": [
+        3,
+        3,
+        3,
+        3
+      ],
+      "culture": [
+        1,
+        1,
+        1,
+        1
+      ]
+    }
+  },
   "personas": {
     "balanced": {},
     "wide": {
+      "war": {
+        "declareThresholdPeaceful": 3.2
+      },
       "expansion": {
         "settlerCap": 9,
         "settlerCityPop": 2,
@@ -184,6 +230,11 @@
       }
     },
     "tall": {
+      "war": {
+        "declareThresholdPeaceful": 999,
+        "sueFloor": -4,
+        "acceptCeiling": 60
+      },
       "expansion": {
         "settlerCap": 2,
         "settlerCityPop": 5,
@@ -211,6 +262,11 @@
       }
     },
     "zealot": {
+      "war": {
+        "declareThresholdPeaceful": 999,
+        "sueFloor": -4,
+        "acceptCeiling": 60
+      },
       "weights": {
         "faith": [
           6,
@@ -234,6 +290,11 @@
       }
     },
     "warmonger": {
+      "war": {
+        "sueFloor": -30,
+        "acceptCeiling": 25,
+        "tributeFloor": -55
+      },
       "weights": {
         "military": 9,
         "city": 125

@@ -900,8 +900,16 @@ import {
  *     The migration note: nothing to migrate — no field changed shape, and both
  *     new arrays default empty. What a v56 save cannot carry across is the
  *     world its log would build, for the two rule changes above.
+ *
+ * v58: **puppets buy nothing** (ruled 2026-09-03, Civ V's rule). One clause in
+ * `purchaseError` and one in `tilePurchaseError`: a town taken by force and not
+ * yet annexed has no purse — no unit, no building, no ground — and annexation
+ * is the verb that opens one. It is a **legality reversal** of v56's own making
+ * rather than a table that moved: a v57 log may contain a puppet's purchase
+ * this reducer refuses, so it is a different game rather than an older one.
+ * Nothing changed shape and there is nothing to migrate.
  */
-export const SCHEMA_VERSION = 57;
+export const SCHEMA_VERSION = 58;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

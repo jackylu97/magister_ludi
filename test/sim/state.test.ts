@@ -643,7 +643,11 @@ describe('the research queue field', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(57);
+    // v58 (war & diplomacy, phase three): **puppets buy nothing** — one clause
+    // in `purchaseError` and one in `tilePurchaseError`. A second legality
+    // reversal rather than a table that moved: a v57 log's puppet purchase is
+    // refused here, so it is a different game rather than an older one.
+    expect(SCHEMA_VERSION).toBe(58);
   });
 });
 

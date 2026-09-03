@@ -91,9 +91,34 @@ export interface AiConfig {
     cityValueFalloff: number;
   };
   site: {
+    /**
+     * How many rings of neighbours a site's appraisal folds. Two since P3: a
+     * town works a radius the first ring does not cover, and a bot that could
+     * only see one ring picked a hill with three good hexes over a river bend
+     * with nine.
+     */
     ringRadius: number;
+    /**
+     * What each further ring is worth against the one inside it — a hex two
+     * away is `ringFalloff` of a hex next door, and so on outward. It is a
+     * *falloff* rather than a second weight table because the honest statement
+     * is "further ground is worth less", not "further ground is worth
+     * differently": a town works its inner ring first and may never reach the
+     * outer one at all.
+     */
+    ringFalloff: number;
     freshWaterBonus: number;
     coastBonus: number;
+    /**
+     * A luxury **kind** this empire holds none of, standing in the site's rings.
+     * Read off the resource row's `kind` and never off a name, and asked of the
+     * kind rather than the tile: a second silk is worth what its yields are
+     * worth, and the *first* silk is worth a happiness signature nothing else
+     * on the board can pay.
+     */
+    newLuxuryBonus: number;
+    /** The same sentence for a strategic kind — iron an empire cannot field. */
+    newStrategicBonus: number;
     yieldWeights: Record<string, number>;
   };
   /**
@@ -156,6 +181,78 @@ export interface AiConfig {
     aggression: number;
     /** Hexes an aggressive seat will look for a rival's piece or town in. */
     huntRadius: number;
+    /**
+     * **The opening's scouts** (the user's notes, `docs/bot-notes.md`): *"ai
+     * needs to prioritize early scouts"*. Three knobs rather than a rule,
+     * because how many rangers an opening wants is a balance opinion: a seat
+     * pays `scoutBonus` on top of what the piece is worth as a soldier while
+     * the game is younger than `scoutEarlyTurns`, up to `scoutCap` of them.
+     * The **first** one is not decided here at all — it is the opening book
+     * (`openingScout`), which is a hard-coded ruling rather than a weight.
+     */
+    scoutCap: number;
+    scoutEarlyTurns: number;
+    scoutBonus: number;
+  };
+  /**
+   * **What a seat will go to war over, and what it will sign to stop.**
+   *
+   * Everything the diplomatic policy reads (`src/ai/diplomacy.ts`), and every
+   * figure here is a *tuning* opinion rather than a rule: the rules are
+   * `declareWarError`, `proposePeaceError`, `answerDealError` and
+   * `dealSideError`, and the bot never proposes anything one of them refuses.
+   */
+  war: {
+    /**
+     * The army ratio a **warlike** seat needs before it declares — its own
+     * strength over the target's, loosened by its appetite for a fight. 1.4
+     * says: a warmonger wants half again the army it is looking at.
+     */
+    declareThreshold: number;
+    /**
+     * The same bar for a seat with **no appetite** (`military.aggression` 0),
+     * which is every persona but one. High on purpose: a peaceful empire
+     * declares only at an advantage nobody could mistake for a fair fight, and
+     * `tall` and `zealot` set it out of reach entirely (the ruling: they never
+     * declare in v1).
+     */
+    declareThresholdPeaceful: number;
+    /** A target town has to stand this near one of this seat's pieces. */
+    reachRadius: number;
+    /**
+     * What "a hostile is about" means to a settler, and how near a soldier has
+     * to be to count as its escort. One radius for both halves deliberately:
+     * they are the same question asked of two different pieces.
+     */
+    escortRadius: number;
+    /** Warscore below which this seat starts putting peace on the table. */
+    sueFloor: number;
+    /**
+     * Warscore at or below which it will **sign** a fair paper. Above it the
+     * seat is winning enough to press on and declines. A warmonger's is high —
+     * it keeps fighting while it is ahead; a tall seat's is out of reach, which
+     * is to say it takes any fair peace it is offered.
+     */
+    acceptCeiling: number;
+    /** Warscore below which a suing seat offers **tribute** rather than a white peace. */
+    tributeFloor: number;
+    /** Coin a point of warscore is worth, both as tribute offered and as tribute accepted. */
+    goldPerScorePoint: number;
+    /** What one soldier raised and no longer standing is worth in the warscore. */
+    unitLossWeight: number;
+    /** What one town taken by force is worth in the warscore. */
+    cityWeight: number;
+    /** What one point of standing army strength is worth in the warscore. */
+    strengthWeight: number;
+    /**
+     * The coin a **lent luxury** is priced at — the baseline a gold-for-luxury
+     * offer has to clear, and the figure a peace paper's seams are valued with.
+     * Authored 2026-09-03 and flagged for tuning: nothing has played against a
+     * human yet.
+     */
+    luxuryGoldBaseline: number;
+    /** The same for a tribute: coin **a turn** a luxury is worth lending for. */
+    luxuryGptBaseline: number;
   };
   trade: {
     tradersPerCity: number;
@@ -379,14 +476,15 @@ type DeepPartial<T> = {
       : T[K];
 };
 
-/** The JSON as it is on disk: the balanced config, plus the persona sheet. */
+/** The JSON as it is on disk: the balanced config, plus the two override sheets. */
 interface AiData extends AiConfig {
   personas: Record<string, PersonaOverride>;
+  puppetProfile: PersonaOverride;
 }
 
 const DATA = aiJson as unknown as AiData;
 
-const { personas: PERSONAS, ...BASE } = DATA;
+const { personas: PERSONAS, puppetProfile: PUPPET, ...BASE } = DATA;
 
 /**
  * The balanced configuration — what a seat with no persona plays, and the base
@@ -461,5 +559,36 @@ export function aiConfigFor(persona?: string): AiConfig {
   if (held !== undefined) return held;
   const merged = deepMerge(BASE as AiConfig, PERSONAS[persona]);
   MERGED.set(persona, merged);
+  return merged;
+}
+
+/**
+ * **The puppet's sheet**: this seat's own configuration with the puppet profile
+ * folded over the top of it (ruled 2026-09-03, `docs/flags.md`).
+ *
+ * A puppet builds what the seat's own appraisal picks — that is the ruling — so
+ * it is emphatically *not* a sixth persona: a warmonger's puppet is still a
+ * warmonger's town, and the profile only leans it toward coin. It is a
+ * persona-shaped override applied on top of the seat's persona for that one
+ * city's `chooseProduction`, which is exactly the shape `PersonaOverride`
+ * already is, so there is one merge in this file and not two.
+ *
+ * What the profile cannot say is *never a wonder, never a settler, never a
+ * unit*: those are feasibility rather than preference (`buildCandidates`' own
+ * distinction), read off the rows' markers in the policy. A weight can only ever
+ * make something less attractive, and "an uncontrollable town does not raise
+ * armies" is not a matter of degree.
+ *
+ * Memoised on the persona's key like every other merged sheet, with the empty
+ * string standing for the balanced seat — a pure function's table, not state.
+ */
+const PUPPETS = new Map<string, AiConfig>();
+
+export function aiConfigForPuppet(persona?: string): AiConfig {
+  const key = persona !== undefined && isPersonaId(persona) ? persona : '';
+  const held = PUPPETS.get(key);
+  if (held !== undefined) return held;
+  const merged = deepMerge(aiConfigFor(persona), PUPPET);
+  PUPPETS.set(key, merged);
   return merged;
 }

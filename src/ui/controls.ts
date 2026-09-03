@@ -311,6 +311,11 @@ import { HAMMER, YIELD_GLYPH, figure, percentFigure, signedFigure } from './figu
 // moved. Type-only — this module sends commands and reads reports, and every
 // rule about a term lives in `diplomacy.ts`.
 import type { DealTerms } from '../sim/deals';
+// **The one thing this interface asks an appraisal for.** A puppet is
+// uncontrollable by ruling, so its queue is chosen by the seat's own appraisal
+// and issued as a logged command by whichever client drives the seat — for a
+// person's seat, that client is this file. See `autoPickPuppets`.
+import { puppetProduction } from '../ai/bot';
 import type { DealExecution } from '../sim/diplomacy';
 import {
   type CellRef,
@@ -6384,12 +6389,61 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * **Every puppet of this seat with an empty queue, given something to build.**
+   *
+   * The ruling (`docs/war-diplomacy.md`, 9b): a puppet's production is *visible
+   * but uncontrollable*, chosen by the seat's own appraisal and **issued as
+   * logged commands by whichever client drives the seat**. A bot seat's client
+   * is `driver.ts`, which already answers the blocker; a person's seat is this
+   * file, and this is the whole of that half.
+   *
+   * Three things make it honest rather than a special case:
+   *
+   *   · it is an **ordinary logged command**, sent through `commit` like a march
+   *     — so a save replays a puppet's whole production history, and every
+   *     listener that hears an order hears this one;
+   *   · it is the **same appraisal** a bot seat would use (`puppetProduction`),
+   *     under the same profile, so a puppet does not build differently
+   *     depending on who is sitting in the chair;
+   *   · it fires only for a town whose queue is **empty**, so it never overrides
+   *     a decision — least of all one the reducer accepted from somewhere else.
+   *
+   * Silent on refusal, deliberately: this is not the player's decision and a
+   * toast about it would be a sentence about a town they cannot act on. A
+   * refusal leaves the blocker standing, which is where a real bug would show.
+   */
+  function autoPickPuppets(): void {
+    const state = getGame().state;
+    const player = playerById(state, localPlayerId);
+    if (!player) return;
+    for (const city of state.cities) {
+      if (city.ownerId !== localPlayerId) continue;
+      if (city.puppet !== true) continue;
+      if (city.queue.length > 0) continue;
+      const item = puppetProduction(state, player, city);
+      if (item === null) continue;
+      commit({
+        type: 'setCityProduction',
+        playerId: localPlayerId,
+        cityId: city.id,
+        queue: [item],
+      });
+    }
+  }
+
+  /**
    * Ends the local seat's turn, or stops on the first thing it still owes.
    *
    * `force` is Shift. The gate is entirely local — see the module docblock: the
    * command is unchanged and nobody else at the table is held to this.
    */
   function endTurn(force = false): void {
+    // **Before the blockers**, and that ordering is the whole point: a puppet
+    // with an empty queue raises the `cityProduction` blocker like any other
+    // town, and its owner is not allowed to answer it (the city panel locks a
+    // puppet — the ruling: production visible, uncontrollable). Answered here,
+    // the blocker is gone by the time the gate below reads it.
+    autoPickPuppets();
     if (!force) {
       const blocker = endTurnBlocker();
       if (blocker) {

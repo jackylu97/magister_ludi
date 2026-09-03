@@ -5460,6 +5460,12 @@ export function tilePurchaseError(
   const city = cityById(state, cityId);
   if (!city) return `No city with id ${String(cityId)}`;
   if (city.ownerId !== playerId) return `${city.name} does not belong to player ${playerId}`;
+  // **A puppet spends nothing** (ruled 2026-09-03; schema 58) — `purchaseError`'s
+  // clause said about ground. Land follows the writ and a puppet's writ is not
+  // its captor's yet: annexation is the one verb that opens its purse.
+  if (city.puppet === true) {
+    return `${city.name} is a puppet — a puppet spends nothing; annex it to invest`;
+  }
 
   const { map } = state;
   const tile = getTileAt(map, cell.col, cell.row);

@@ -767,3 +767,62 @@ describe('a hover refreshes the readout, never the panels', () => {
     expect(body).toContain('updateContext(hover);');
   });
 });
+
+/**
+ * **The puppet's queue, for a seat a person is sitting in** (P3, the ruling in
+ * `docs/war-diplomacy.md` 9b: production visible, uncontrollable, *issued as
+ * logged commands by whichever client drives the seat*).
+ *
+ * A bot seat's client is `driver.ts` and it needs nothing extra — the
+ * `cityProduction` blocker names a puppet like any other town. A person's seat
+ * is `controls.ts`, and without this hook the town would be a blocker its owner
+ * is not allowed to answer: the city panel locks a puppet, so End Turn would
+ * stop on a decision with no door.
+ *
+ * By inspection, as the rest of this file's DOM glue is (no jsdom in this
+ * suite). What is pinned is the *shape*, and every clause of it is load-bearing:
+ * the hook runs before the blocker gate, it goes through `commit` so the choice
+ * is a logged command that replays, it asks the bot's own appraisal rather than
+ * inventing one, and it only ever touches a puppet whose queue is empty.
+ */
+describe('the human seat’s puppet hook', () => {
+  const SOURCE = (
+    import.meta.glob('../../src/ui/controls.ts', {
+      eager: true,
+      query: '?raw',
+      import: 'default',
+    }) as Record<string, string>
+  )['../../src/ui/controls.ts'];
+  const body = SOURCE.slice(
+    SOURCE.indexOf('function autoPickPuppets('),
+    SOURCE.indexOf('function endTurn('),
+  );
+
+  it('picks for a puppet with an empty queue, and for nothing else', () => {
+    expect(body.length).toBeGreaterThan(0);
+    expect(body).toContain('city.puppet !== true');
+    expect(body).toContain('city.queue.length > 0');
+    expect(body).toContain('city.ownerId !== localPlayerId');
+  });
+
+  it('issues an ordinary logged command through the funnel', () => {
+    // `commit`, not `dispatch`: a puppet's production is an order this seat
+    // gave, and everything hanging off an accepted command has to hear it.
+    expect(body).toContain('commit({');
+    expect(body).toContain("type: 'setCityProduction'");
+  });
+
+  it('asks the appraisal rather than holding an opinion of its own', () => {
+    // The same function a bot seat's driver would reach, under the same puppet
+    // profile — so a puppet does not build differently depending on who is
+    // sitting in the chair.
+    expect(body).toContain('puppetProduction(state, player, city)');
+    expect(SOURCE).toContain("import { puppetProduction } from '../ai/bot'");
+  });
+
+  it('runs before End Turn reads its blockers', () => {
+    const turn = SOURCE.slice(SOURCE.indexOf('function endTurn('));
+    expect(turn.indexOf('autoPickPuppets()')).toBeGreaterThan(-1);
+    expect(turn.indexOf('autoPickPuppets()')).toBeLessThan(turn.indexOf('endTurnBlocker()'));
+  });
+});

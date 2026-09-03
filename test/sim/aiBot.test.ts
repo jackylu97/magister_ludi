@@ -588,19 +588,21 @@ function code(text: string): string {
 describe('the bot module', () => {
   it('is there to be read', () => {
     const files = Object.keys(AI_SOURCE).map((path) => path.slice(path.lastIndexOf('/') + 1));
-    // Seven modules since the brain-v1 pass, and the split is the point:
+    // Eight modules since the war pass, and the split is the point:
     // `aiConfig.ts` is the leaf holding the tuning surface (and the persona
     // merge), `decision.ts` is the second leaf — the vocabulary a decision and
     // its arithmetic are said in — `value.ts` is the appraisal (every function
     // ends in a number or the terms that fold to one), `plan.ts` is the reading
     // of the board a worker and a great person both consult (every function
-    // ends in a table), `bot.ts` is the policy (every function ends in a
-    // `BotDecision`), `driver.ts` is the loop and `stepper.ts` is that same loop
-    // unrolled one decision at a time.
+    // ends in a table), `diplomacy.ts` is everything this seat has to say to
+    // *another* seat (declarations, warscore peace, bargains), `bot.ts` is the
+    // policy (every function ends in a `BotDecision`), `driver.ts` is the loop
+    // and `stepper.ts` is that same loop unrolled one decision at a time.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
       'decision.ts',
+      'diplomacy.ts',
       'driver.ts',
       'plan.ts',
       'stepper.ts',
@@ -666,6 +668,10 @@ describe('the bot module', () => {
       // is why it is a key of the same file rather than a file of its own — a
       // persona that lived elsewhere would drift from the knobs it overrides.
       'personas',
+      // The puppet profile: the *same* shape as a persona and for the same
+      // reason, but folded over whichever persona the seat already plays rather
+      // than chosen — a warmonger's puppet is still a warmonger's town.
+      'puppetProfile',
       'religion',
       'research',
       'score',
@@ -675,6 +681,8 @@ describe('the bot module', () => {
       'spending',
       'threat',
       'trade',
+      // The war block (P3): what a seat declares over, sues at, and signs.
+      'war',
       'weights',
       'workers',
     ]);

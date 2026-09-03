@@ -27,6 +27,7 @@ import { driveBots } from '../../src/ai/driver';
 import { type Game, createGame, replay, snapshotState } from '../../src/sim/game';
 import { empireRateReading } from '../../src/sim/cities';
 import { type GameConfig, realPlayers } from '../../src/sim/state';
+import { atWar } from '../../src/sim/wars';
 
 const TURNS = 120;
 
@@ -261,6 +262,29 @@ describe('a hundred and twenty turns of bots', () => {
  * opening being appraised by a bankrupt (the treasury and the rate at t160 are
  * a different empire's).
  *
+ * **Re-measured 2026-09-03 after the war pass (P3)**, same seed, same map, same
+ * two balanced seats. What moved is expansion and the endgame, and both moves
+ * come from the same three changes — the site scorer now reads two rings with a
+ * falloff and prices a *kind* the empire lacks, the opening book spends the
+ * first build on a scout, and an unescorted settler will not walk to a site
+ * something hostile is camped beside:
+ *
+ *              brain v1 (above)                    after the war pass
+ *   t83   s0   272💰 (−3/t)  4 towns 13 tech  1 bead   256💰 (+19/t) 5 towns 20 tech  6 beads
+ *         s1   263💰 (+12/t) 3 towns 14 tech  2 beads  211💰 (+10/t) 3 towns 15 tech  1 bead
+ *   t160  s0   734💰 (+216/t) 8 towns 32 tech 4 beads  403💰 (+25/t) 5 towns 38 tech 10 beads
+ *         s1   490💰 (+13/t)  8 towns 35 tech 15 beads 432💰 (+96/t) 6 towns 34 tech  3 beads
+ *   t200  —    decided at t182                        10 towns / 5 towns, 50 tech each, undecided
+ *   net gold after t60:  worst −7/t, best +242/t   →   worst +8/t, best +120/t
+ *
+ * The opening is *better* (five towns and twenty technologies at t83 against
+ * four and thirteen) and the game no longer closes inside two hundred turns on
+ * this seed. Both seats are still visibly racing — thirteen beads and six — so
+ * the "decided or racing" claim below still holds, and the honest reading is
+ * that the endgame is a little slower rather than that it is gone. If it stays
+ * slow it is `site.ringFalloff` and the escort's `war.escortRadius` to look at
+ * first: a settler that waits for company founds later.
+ *
  * The one cost, and it is a real one to watch: **the early tree is slower** —
  * thirteen and fourteen technologies at t83 against nineteen and seventeen.
  * A worker is worth what the ground is worth now, so the first thirty turns buy
@@ -411,6 +435,173 @@ describe('the arena: two hundred turns, two bots, one economy', () => {
       // eslint-disable-next-line no-console
       console.log(`[arena] decided at: ${played.decidedAt === null ? 'undecided' : `t${played.decidedAt}`}`);
       expect(played.curve.length).toBeGreaterThan(0);
+    },
+    ARENA_PATIENCE,
+  );
+});
+
+/**
+ * **The war arena** (P3): a warmonger and a balanced neighbour on one duel map,
+ * and the question is whether the whole diplomatic loop closes.
+ *
+ * The arena above is the *economy's* instrument and its two seats never fight —
+ * a balanced seat's bar is `war.declareThresholdPeaceful` and it is not meant to
+ * clear it. This is the other instrument, and it asserts the two events that
+ * only exist if every piece of P3 is wired to the next one:
+ *
+ *   · **a declaration** — the policy read a ratio, found a town in reach, and
+ *     the reducer took the command;
+ *   · **a peace** — a warscore fell past somebody's floor, a paper went on the
+ *     table, the other seat signed it, and `settleDiplomacy` closed the war and
+ *     wrote the truce. Nothing about that can be faked by one seat: peace needs
+ *     both flags, and the second one is the other empire's own decision.
+ *
+ * Plus the two properties every game in this file owes: nothing refused, and a
+ * log that replays byte for byte. A refusal here would mean the war policy
+ * proposed something the rules do not allow, which is the one failure mode the
+ * whole "never reimplement a rule" discipline exists to prevent.
+ */
+const WAR_CONFIG: GameConfig = {
+  seed: 20260903,
+  sizeName: 'duel',
+  players: [
+    { name: 'Crimson', color: '#d4502e', persona: 'warmonger' },
+    { name: 'Teal', color: '#1f8a85' },
+  ],
+  barbarians: true,
+};
+
+/**
+ * Long enough for the whole loop rather than for the declaration alone: a war
+ * has to be *fought* before a warscore falls past anybody's floor, and a peace
+ * needs a turn after that for the second signature.
+ */
+const WAR_TURNS = 170;
+
+interface WarStory {
+  played: Played;
+  declarations: { turn: number; by: number; on: number }[];
+  offers: number;
+  truces: number;
+  everAtWar: boolean;
+}
+
+let warGame: WarStory | null = null;
+function theWarArena(): WarStory {
+  if (warGame !== null) return warGame;
+  const game = createGame(WAR_CONFIG);
+  const warnings: string[] = [];
+  const curve: Reading[] = [];
+  const declarations: { turn: number; by: number; on: number }[] = [];
+  let stalls = 0;
+  let truces = 0;
+  let everAtWar = false;
+  for (let turn = 0; turn < WAR_TURNS; turn++) {
+    const before = game.log.length;
+    for (const report of driveBots(game, { warn: (message) => warnings.push(message) })) {
+      if (report.refused > 0) {
+        warnings.push(`seat ${report.playerId} had ${report.refused} refusals on turn ${game.state.turn}`);
+      }
+      if (!report.ended) stalls += 1;
+    }
+    for (const command of game.log.slice(before)) {
+      if (command.type === 'declareWar') {
+        declarations.push({ turn: game.state.turn, by: command.playerId, on: command.targetId });
+      }
+    }
+    if (atWar(game.state, 0, 1)) everAtWar = true;
+    truces = Math.max(truces, game.state.truces.length);
+    for (const player of realPlayers(game.state)) {
+      curve.push({
+        turn: game.state.turn,
+        playerId: player.id,
+        gold: player.gold,
+        netGold: empireRateReading(game.state, player.id).goldPerTurn ?? 0,
+        cities: game.state.cities.filter((city) => city.ownerId === player.id).length,
+        beads: player.beads.length,
+        techs: player.techsResearched.length,
+      });
+    }
+    if (game.state.winnerId !== null) break;
+  }
+  warGame = {
+    played: {
+      game,
+      warnings,
+      stalls,
+      curve,
+      decidedAt: game.state.winnerId !== null ? game.state.turn : null,
+    },
+    declarations,
+    offers: game.log.filter((command) => command.type === 'proposePeace').length,
+    truces,
+    everAtWar,
+  };
+  return warGame;
+}
+
+describe('the war arena: a warmonger and a neighbour', () => {
+  it(
+    'reaches a declaration, and the reducer takes every command of it',
+    () => {
+      const story = theWarArena();
+      expect(story.played.warnings).toEqual([]);
+      expect(story.played.stalls).toBe(0);
+      expect(story.declarations.length).toBeGreaterThan(0);
+      // The warmonger is the one who declares: the balanced seat's bar is the
+      // peaceful one and three warriors to two does not clear it.
+      expect(story.declarations[0]!.by).toBe(0);
+      expect(story.everAtWar).toBe(true);
+    },
+    ARENA_PATIENCE,
+  );
+
+  it(
+    'reaches a peace, which needs both empires to sign',
+    () => {
+      const story = theWarArena();
+      expect(story.offers).toBeGreaterThan(0);
+      // A truce exists only where a war was closed (`closeWar` writes it), so
+      // this is the whole loop asserted in one figure.
+      expect(story.truces).toBeGreaterThan(0);
+    },
+    ARENA_PATIENCE,
+  );
+
+  it(
+    'writes a log that replays byte for byte',
+    () => {
+      const story = theWarArena();
+      const rebuilt = replay(story.played.game.config, story.played.game.log);
+      expect(snapshotState(rebuilt)).toBe(snapshotState(story.played.game.state));
+    },
+    ARENA_PATIENCE,
+  );
+
+  it(
+    'reports the war story',
+    () => {
+      // A measurement rather than an assertion, exactly as the economy arena's
+      // curves are: who declared, when, and how it ended.
+      const story = theWarArena();
+      /* eslint-disable no-console */
+      console.log(
+        `[war] declarations: ${story.declarations
+          .map((row) => `t${row.turn} seat ${row.by} on seat ${row.on}`)
+          .join(' | ')}`,
+      );
+      console.log(`[war] peace offers logged: ${story.offers} · truces written: ${story.truces}`);
+      const last = story.played.curve.slice(-2);
+      console.log(
+        `[war] final: ${last
+          .map(
+            (reading) =>
+              `seat ${reading.playerId} ${reading.cities} cities · ${reading.techs} techs · ${reading.beads} beads`,
+          )
+          .join(' | ')}`,
+      );
+      /* eslint-enable no-console */
+      expect(story.played.curve.length).toBeGreaterThan(0);
     },
     ARENA_PATIENCE,
   );
