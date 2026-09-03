@@ -1,4 +1,10 @@
-# Doctrine ideas — the early game (brainstorm, 2026-09-03)
+# Doctrine & order ideas (brainstorm, 2026-09-03)
+
+Two pitch sheets: early-game doctrines (first half) and pool orders (second
+half, added same day on your ask — "interesting / holes in our current set,
+but not very strong").
+
+## Part I — Doctrine ideas, the early game
 
 A pitch sheet, not a spec: candidates for tiers 0–18, safe through wild, for
 your cut. Numbers are placeholders to argue with. Each row notes its **shape**:
@@ -69,3 +75,67 @@ Storm laws, CK-style court drama, Pharaoh/Caesar city-builders.
 - Anything marked NEW is a design decision first — say which ones earn it and
   they get specced properly before any agent flies.
 - Lines are guesses; rebalance freely. Nothing here is wired to data.
+
+## Part II — Order ideas (deliberately modest)
+
+The brief: fill the holes in the pools without adding another "+big number"
+row. The current set's gaps, read off the live pools: almost nothing
+**naval/coastal**, no **unit quality-of-life** (healing, sight, march),
+nothing that touches **ruins/discoveries after the opening**, little
+**border/culture utility**, no **defensive-war economy**, and very few
+orders that reward *doing* something rather than *having* something.
+Numbers pitched low on purpose; every row could carry an upgrade ladder
+later (the deepening vocabulary: a printed number moves per level).
+
+Same shape key: ✔ = existing effect vocabulary; NEW = new shape, a design
+decision first.
+
+### Chiefdom (the opening pool)
+
+| Order | Slot | Pitch | Shape |
+|---|---|---|---|
+| The Fordmasters | economic | Your units cross rivers without the crossing toll. | NEW (a MoveProfile clause — small, and the vocabulary wants it eventually) |
+| Tally Sticks | economic | +1 gold for every 2 improvements your workers have built (max +5). | ✔ countScaled, capped |
+| The Night Watch | military | Your cities see 1 hex further; barbarian camps within that sight are always marked. | half-✔ (sight stat) / NEW (the marking) |
+| First Fruits | wildcard | The first citizen born in each city pays +10 faith once. | ✔ windfallRider on growth |
+
+### Government I
+
+| Order | Slot | Pitch | Shape |
+|---|---|---|---|
+| The Ferrymen | economic | Embarking and disembarking cost no movement. | NEW (same MoveProfile family as the Fordmasters) |
+| Boundary Stones | economic | Border growth +10% in every city; +1 culture in cities that own 12+ hexes. | ✔ (border accrual % + countScaled-ish city line) |
+| The Remount Yards | military | Mounted units heal +5 extra per turn inside your borders. | ✔ unitStat-family if a heal stat exists; else NEW (small) |
+| The Bone-Setters | military | A unit that survives a combat heals 10 at once. | ✔ windfallRider (occasion: survived combat — check the kill occasion's sibling) |
+| Foundling Homes | wildcard | Every city of 4+ population: +1 faith. −1 gold in your capital. | ✔ |
+
+### Government II
+
+| Order | Slot | Pitch | Shape |
+|---|---|---|---|
+| The Coast Guard | military | +5 combat strength for units fighting on or beside your own coast hexes. | NEW (a combat `when` clause — coastal-adjacency) |
+| Harbour Dues | economic | +1 gold on every worked coast hex, but only in cities with a Lighthouse. | ✔ tileYield scoped hasBuilding |
+| The Surveyors' Guild | economic | Workers +1 movement; roads cost your workers nothing extra on hills. | ✔ unitStat / NEW (the hills half — cut it if not worth a shape) |
+| The Relic Roads | wildcard | Ruins claimed pay +15 faith extra; your explorers may still find ruins others have claimed once per era. | ✔ rider / NEW (the second half is probably too much machinery — cut to the rider alone) |
+| The Mourning Feasts | wildcard | Losing a unit pays +10 culture (grief made memory). | ✔ windfallRider (occasion: your unit dies — the kill occasion's mirror) |
+
+### Government III
+
+| Order | Slot | Pitch | Shape |
+|---|---|---|---|
+| The Sea Lanes | economic | Sea trade routes pay +2 gold; land routes +1 culture. | ✔ if routeYields carries mode terms (it does, post the land/sea batch) |
+| The Levelled Ways | economic | Roads through forest and jungle cost no maintenance. | NEW-ish (a maintenance filter — small) |
+| The Widows' Levy | military | When a war is declared ON you: +25% production toward units for 10 turns. | ✔ timed effect + NEW trigger (war-declared occasion — the war system wants this occasion anyway) |
+| The Chroniclers | wildcard | Each triumph you record pays +10 science. | ✔ (the Winter Count's smaller cousin; triumphs are hooked already) |
+
+### Notes for the cut
+
+- The three MoveProfile pitches (Fordmasters, Ferrymen, Surveyors) are one
+  design decision wearing three hats — if the clause family earns its place,
+  all three are cheap rows; if not, cut all three.
+- The two death/survival riders (Bone-Setters, Mourning Feasts) reuse the
+  kill occasion's machinery from the other side; check `windfallRider`'s
+  occasion list before pricing them as ✔.
+- Deliberately absent: anything paying happiness (the nerf round is going
+  the other way), anything empire-wide-per-city flat (the shape being
+  nerfed), and espionage (a system, not an order).

@@ -62,21 +62,47 @@ this list.
   rebalances the 8/29 tile 0.4× ruling — veto if tiles should stay cheap);
   yield conversions/windfalls stay 2:1 untouched. Lumbermill's
   `requiresTech` engineering → **siegecraft** (early Æra II, the
-  construction-flavoured column).
+  construction-flavoured column). **BUILT** — crowding 0.3/from 10/exp 1.6
+  (pop 15 → 3.9, pop 20 → 11.9, pop 30 → 36.2; the table prints in
+  `test/sim/meters.test.ts`); goldPerHammer 4; tile ring bases doubled
+  (net 0.8× of the pre-8/29 price). Two prices found and left, awaiting
+  your ruling: `greatPeople.offerPriceGold` 300 (a flat gold price beside
+  faith siblings — doubling it alone re-prices gold against faith at that
+  till) and `wonderRefundGoldPerHammer` 1 (a payout; used to be half the
+  purchase rate, now a quarter — say if it should be 2).
 - **Batch: worker verbs** — new worker action: remove an improvement on an
   owned tile (a charge? ruled: costs a charge like building; veto if free).
 - **4-player standard playtest** — setup path for a full game, 4 seats on
-  the standard map.
+  the standard map. **BUILT** — a fourth Seats option, "Full game (you and
+  three bots)", which seats the player plus three bots (wide, tall,
+  warmonger) and moves the Size picker to Standard. No schema change: a bot
+  seat is a roster row with `isHuman` left off, and the wild is appended by
+  `seatBarbarians` as always. The seat arithmetic is
+  `src/ui/gameSetup.ts`, pinned by `test/ui/gameSetup.test.ts`.
 - **Batch: obsolete units** (ruled in chat 2026-09-03) — a unit superseded
   by a stronger version through tech leaves the build list; the antiquated
   unit stays offered ONLY while the empire lacks the successor's required
   strategic resource (warrior stays until iron is improved). The same gate
   holds for whatever "upgrade" path exists: no upgrading into a unit whose
-  strategic resource the empire cannot access.
-- **Batch: city banner growth countdown** (ruled in chat 2026-09-03) — the
-  on-map city banner shows how many turns until the city grows (the Civ
-  staple). Turns-to-grow is derived from the growth surplus; a stagnant or
-  starving city says so rather than printing a number.
+  strategic resource the empire cannot access. **BUILT** — succession is the
+  roster's own `upgradesTo` chain, walked by `upgradeTargetForType`
+  (`src/sim/tech.ts`); `buildError` refuses a superseded row ("has been
+  replaced by the …") and the city panel drops it from the list. The upgrade
+  half was already gated on the resource (2026-08-29) and has grown the
+  matching `awaitsTech` stop. **One note for you**: the tree's iron rung is
+  the *legionary*, not the swordsman (revision 4), so a warrior becomes a
+  swordsman with no iron anywhere — the sword line's own iron gate lands one
+  rung later than the ruling's aside assumed. Say the word if the swordsman
+  should ask for iron; it is a data field, not code.
+- **Batch: city banner growth countdown** (ruled in chat 2026-09-03; look
+  re-ruled same day) — no food icon/chip ("looks awkward"). Instead: a
+  **circular bar around the population figure** — the filled arc in green =
+  current growth basket / threshold; a lighter low-opacity green arc beyond
+  it = what this turn's surplus adds. Stalled: no light arc. Starving: the
+  arc reads in the vermilion register. Turns-to-grow stays in the
+  title/aria words. Derivations unchanged (growthSurplus / growthThreshold
+  / turnsToFill — the panel's own readers). **BUILT and committed** (an
+  inline SVG ring on the size badge; own watched cities only).
 - **Batch: late tech costs** (your 2026-09-03 note on the cost-knob flag:
   "technologies should keep the same scaling they had in age 1-2.
   Technologies should be extremely expensive in age 4-5.") — queued to land
@@ -85,6 +111,14 @@ this list.
   335/450/565 → 400/540/680; Æra IV columns 9–12 665/750/820/875 →
   **1450/1700/1950/2200** (≈2.3× the age; the whole tree ~19.7k → ~35.7k
   beakers). Edit these numbers here to veto before it lands.
+- **Batch: dry-settle growth** (ruled in chat 2026-09-03) — a city NOT on
+  fresh water grows at **−30%** (a growth-surplus percentage, a labelled
+  line in the growth breakdown per rule 5) **until an Aqueduct stands in
+  that city**. The freshwater reading is the existing one-predicate
+  (`cityHasFreshwater` — a card granting freshwater satisfies it); the
+  number lives in `data/rules.json`, not code. Stacks multiplicatively-
+  by-sum with other growth percents the way the existing
+  `growthSurplus` rulePercent lines already fold.
 - User handles: happiness order/doctrine nerfs (will say when ready).
 
 Open (proposals drafted, awaiting your numbers — see the session report):
