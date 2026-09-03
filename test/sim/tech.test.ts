@@ -328,13 +328,14 @@ describe('tech data integrity', () => {
     //
     // **Tree revision 4 (2026-09-02, the user's redraw) shortened the chart to
     // twelve columns**, and the ladder was *truncated* rather than re-fitted:
-    // the formula is untouched, every column keeps the price it already carried,
-    // and 875 and 920 fall off the end exactly as 950 did when the anchor moved.
-    // Re-fitting fourteen figures into twelve columns would have steepened every
-    // step because the graph got shorter, which is a retune wearing a
-    // re-shaping's clothes. The tree is 17920 beakers where it was 22544; the
-    // ages are 345 / 1890 / 7650 / 8035.
-    const COLUMN_COSTS = [5, 13, 30, 69, 135, 225, 335, 450, 565, 665, 750, 820];
+    // the formula is untouched and every column keeps the price it already
+    // carried. **Revision 4.1 (2026-09-03, the user's arrow revision) deepened
+    // the late game again** — Engineering chains off The Saddle, the sea lane
+    // runs through Raised Fields, and Alchemy closes a fourth Æra IV column —
+    // so the chart is fourteen columns and 875/920 are back on the end of the
+    // same untouched table. The tree is 18980 beakers; the ages are
+    // 345 / 1890 / 7865 / 8880.
+    const COLUMN_COSTS = [5, 13, 30, 69, 135, 225, 335, 450, 565, 665, 750, 820, 875, 920];
     expect(COLUMN_COSTS).toHaveLength(techColumnCount());
     for (const id of TECH_IDS) {
       expect(techDef(id).cost, id).toBe(COLUMN_COSTS[techColumn(id)]);
@@ -345,8 +346,8 @@ describe('tech data integrity', () => {
     const bands: Record<number, [number, number]> = {
       1: [5, 69],
       2: [135, 225],
-      3: [335, 565],
-      4: [665, 820],
+      3: [335, 665],
+      4: [750, 920],
     };
     for (const id of TECH_IDS) {
       const def = techDef(id);
@@ -451,7 +452,8 @@ describe('star chart layout', () => {
       ['bronzeWorking', 'ironWorking', 'steel'],
       ['agriculture', 'earthenware', 'stonecraft', 'theWheel', 'currency', 'stateWorkforce', 'theImperialPost', 'artisanry'],
       ['letters', 'epicPoetry', 'theHighTemple', 'philosophy', 'theology', 'education'],
-      ['letters', 'theLongCount', 'kingship', 'theExaminationHall', 'colonialCharters', 'prospecting', 'machinery', 'steel', 'militantOrders'],
+      ['letters', 'theLongCount', 'kingship', 'theExaminationHall', 'colonialCharters', 'prospecting'],
+      ['theCataphract', 'engineering', 'machinery', 'steel', 'militantOrders', 'alchemy'],
     ];
     for (const chain of chains) {
       const columns = chain.map((id) => techDepth(id));
@@ -469,7 +471,7 @@ describe('star chart layout', () => {
     // settled at twelve**. The ages own disjoint column runs (4 + 2 + 3 + 3), so
     // the banners are exact; the lane budget did not move, because it is what
     // the stage was fitted for and the widest column still holds six.
-    expect(techColumnCount()).toBe(12);
+    expect(techColumnCount()).toBe(14);
     expect(techRowCount()).toBe(8);
   });
 
@@ -1593,7 +1595,7 @@ describe('the shape of the tree', () => {
     expect(techDef('philosophy').prereqs).toEqual(['theHighTemple']);
     expect(techDef('theology').prereqs).toEqual(['philosophy']);
     expect(techDef('theQadisCourt').prereqs).toEqual(['artisanry']);
-    expect(techDef('theHolyOffice').prereqs).toEqual(['education', 'theQadisCourt']);
+    expect(techDef('theHolyOffice').prereqs).toEqual(['education']);
     // The Hall of Deeds left the tree with the re-cut and kept its row, so a
     // save that raised one replays. Nothing unlocks it and nothing may build it.
     expect(BUILDING_UNLOCK_TECH.get('hallOfDeeds')).toBeUndefined();

@@ -193,15 +193,16 @@ describe('the shipped lanes', () => {
     //
     // **Re-authored 2026-09-03: the lanes are the user's chart now, not the
     // annealer's.** The user drew the tree by hand and asked the game to match
-    // the drawing, so the rows in the file are their geography — the faith
-    // line along the top, the sea along the bottom, the state's ladder between
-    // — and the crossing count is what that geography costs: **19**, against
-    // the search's 9 on the same graph. A pin rather than a bound, so a future
-    // hand that "fixes" a crossing knows it is editing the user's drawing; the
-    // annealer survives as the advisor for where a NEW node should sit, never
-    // as the authority over an authored row.
-    expect(before).toBe(100);
-    expect(after).toBe(19);
+    // the drawing — the faith line along the top, the sea along the bottom,
+    // the state's ladder between. Their first drawing cost 19 crossings on the
+    // v4 edges; **their arrow revision (v4.1) draws at ONE** — the drawn lanes
+    // and the drawn edges were made for each other, and together they beat
+    // everything the annealer ever found (its best was 9). A pin rather than a
+    // bound, so a future hand that moves a lane knows it is editing the user's
+    // drawing; the annealer survives as the advisor for where a NEW node
+    // should sit, never as the authority over an authored row.
+    expect(before).toBe(80);
+    expect(after).toBe(1);
     expect(after).toBeLessThan(before);
   });
 
@@ -336,16 +337,16 @@ describe('a column is a price', () => {
     // named exceptions written down below rather than smoothed away.
     expect(ageColumns(1).map((band) => band.column)).toEqual([0, 1, 2, 3]);
     expect(ageColumns(2).map((band) => band.column)).toEqual([4, 5]);
-    expect(ageColumns(3).map((band) => band.column)).toEqual([6, 7, 8]);
-    expect(ageColumns(4).map((band) => band.column)).toEqual([9, 10, 11]);
+    expect(ageColumns(3).map((band) => band.column)).toEqual([6, 7, 8, 9]);
+    expect(ageColumns(4).map((band) => band.column)).toEqual([10, 11, 12, 13]);
     const populations = [1, 2, 3, 4].flatMap((age) =>
       ageColumns(age).map(({ column, costs }) => [column, costs.length] as const),
     );
     expect(populations).toEqual([
       [0, 1], [1, 4], [2, 5], [3, 2],
       [4, 4], [5, 6],
-      [6, 6], [7, 5], [8, 6],
-      [9, 5], [10, 3], [11, 3],
+      [6, 5], [7, 6], [8, 5], [9, 1],
+      [10, 5], [11, 3], [12, 2], [13, 1],
     ]);
     // **Two columns hold fewer than three, and both are exceptions with a
     // reason rather than a rule that quietly stopped holding.** Column 0 is
@@ -354,7 +355,11 @@ describe('a column is a price', () => {
     // is exactly what the user's own edge list produces: four lines fan out of
     // the root, run one node each, and meet at two gates. Widening it would
     // mean adding an Æra I node the redraw does not have.
-    const SHORT: Record<number, number> = { 0: 1, 3: 2 };
+    // Revision 4.1 adds three more, all the user's own drawing: column 9 is
+    // Geomancy alone (the survey gets its own late step past Daughter Cities
+    // and Horology), column 12 is the war-and-press pair (Militant Orders,
+    // Movable Type), and column 13 is Alchemy — the closer closes alone.
+    const SHORT: Record<number, number> = { 0: 1, 3: 2, 9: 1, 12: 2, 13: 1 };
     for (const [column, held] of populations) {
       if (SHORT[column] !== undefined) {
         expect(held, `column ${column}`).toBe(SHORT[column]);
@@ -409,7 +414,7 @@ describe('a column is a price', () => {
     // longer argue with it.
     expect(techColumn('irrigation')).toBeGreaterThan(techColumn('currency'));
     expect(techDef('irrigation').cost).toBeGreaterThan(techDef('currency').cost);
-    expect(techDef('irrigation').prereqs).toEqual(['theLongCount']);
+    expect(techDef('irrigation').prereqs).toEqual(['theLongCount', 'bronzePanoply']);
   });
 });
 

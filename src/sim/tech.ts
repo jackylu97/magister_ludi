@@ -81,6 +81,9 @@
  * and the ladder was *truncated* rather than re-fitted — the formula is
  * unchanged, so every column keeps the price it already carried and the top two
  * figures (875, 920) simply fall off the end, exactly as 950 fell off it when
+ * (Revision 4.1, 2026-09-03: the arrow revision deepened the late game and
+ * the chart is fourteen columns again — 875 and 920 back on the end of the
+ * same table; tree 18980, ages 345/1890/7865/8880.)
  * the anchor moved. The twelve figures are
  *
  *     5 · 13 · 30 · 69 · 135 · 225 · 335 · 450 · 565 · 665 · 750 · 820

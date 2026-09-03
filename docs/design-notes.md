@@ -4524,3 +4524,21 @@ Ancestor Rites to The High Temple, the Great Wall stands on Satrapies, and
 civilian-with-gold, faith — three absolute stamps where one stood
 (`purchasedUnitTurns`, `unitPurchaseBucket`). Two renewal entries (monument,
 barracks) died with their techs, the first blood of the ruled renewals axe.
+
+### LXII.a — revision 4.1: the arrows are the user's too (2026-09-03)
+
+The shipped v4 edges diverged from the drawing where my transcription had
+guessed; the user re-drew with the three added nodes placed and ruled the
+ambiguous arrows by hand (Movable Type ← Steel + The Golden Roads; The
+Counting Houses ← The Golden Roads + Castellany; Irrigation ← Chronology +
+Bronze Panoply; Paper Money ← Shipwrights + Guildhalls). The revision moves
+real structure: **Raised Fields joins the sea lane** (Wayfinding → Raised
+Fields → Shipwrights), **Engineering chains off The Saddle** and feeds
+Machinery beside Horology, Geomancy becomes a leaf, The Holy Office hangs on
+Scholarship alone, and the closer runs Steel → Militant Orders → Alchemy —
+which deepens Æra IV to four columns and puts the full fourteen-figure ladder
+back (tree 18980; ages 345 / 1890 / 7865 / 8880; Alchemy closes alone at 920).
+
+The number worth framing: with the user's lanes AND the user's edges, the
+chart draws at **one crossing** — the annealer's best on any tree was nine.
+The drawing knew something the search didn't.

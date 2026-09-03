@@ -255,7 +255,8 @@
       "row": 2,
       "cost": 225,
       "prereqs": [
-        "theLongCount"
+        "theLongCount",
+        "bronzePanoply"
       ],
       "unlocks": {},
       "flavor": "Water is taught where to go.",
@@ -457,9 +458,9 @@
       "glyph": "🛠",
       "age": 3,
       "row": 7,
-      "cost": 335,
+      "cost": 450,
       "prereqs": [
-        "wayfinding"
+        "raisedFields"
       ],
       "unlocks": {
         "units": [
@@ -497,8 +498,8 @@
       "row": 7,
       "cost": 565,
       "prereqs": [
-        "artisanry",
-        "shipwrights"
+        "shipwrights",
+        "artisanry"
       ],
       "unlocks": {
         "buildings": [
@@ -694,8 +695,8 @@
       "row": 3,
       "cost": 335,
       "prereqs": [
-        "siegecraft",
-        "irrigation"
+        "irrigation",
+        "siegecraft"
       ],
       "unlocks": {
         "units": [
@@ -749,11 +750,10 @@
       "name": "Engineering",
       "glyph": "🔩",
       "age": 3,
-      "row": 4,
+      "row": 3,
       "cost": 565,
       "prereqs": [
-        "mathematics",
-        "irrigation"
+        "theCataphract"
       ],
       "unlocks": {
         "buildings": [
@@ -788,10 +788,10 @@
       "glyph": "🪨",
       "age": 3,
       "row": 1,
-      "cost": 565,
+      "cost": 665,
       "prereqs": [
         "colonialCharters",
-        "mathematics"
+        "horology"
       ],
       "unlocks": {},
       "flavor": "The hill is asked again, and this time it answers.",
@@ -801,10 +801,10 @@
       "name": "Raised Fields",
       "glyph": "🌱",
       "age": 3,
-      "row": 2,
+      "row": 7,
       "cost": 335,
       "prereqs": [
-        "irrigation"
+        "wayfinding"
       ],
       "unlocks": {
         "buildings": [
@@ -821,7 +821,7 @@
       "cost": 820,
       "prereqs": [
         "theSilkRoad",
-        "movableType"
+        "feudalism"
       ],
       "unlocks": {
         "buildings": [
@@ -835,10 +835,10 @@
       "glyph": "🔧",
       "age": 4,
       "row": 2,
-      "cost": 665,
+      "cost": 750,
       "prereqs": [
-        "education",
-        "prospecting"
+        "horology",
+        "engineering"
       ],
       "unlocks": {
         "units": [
@@ -855,10 +855,9 @@
       "glyph": "🌐",
       "age": 4,
       "row": 1,
-      "cost": 750,
+      "cost": 820,
       "prereqs": [
-        "physics",
-        "shipwrights"
+        "physics"
       ],
       "unlocks": {
         "units": [
@@ -880,7 +879,7 @@
       "glyph": "🧵",
       "age": 4,
       "row": 7,
-      "cost": 665,
+      "cost": 750,
       "prereqs": [
         "paperMoney"
       ],
@@ -903,10 +902,9 @@
       "glyph": "🏰",
       "age": 4,
       "row": 5,
-      "cost": 665,
+      "cost": 750,
       "prereqs": [
-        "theQadisCourt",
-        "engineering"
+        "theQadisCourt"
       ],
       "unlocks": {
         "units": [
@@ -926,10 +924,9 @@
       "glyph": "🕊",
       "age": 4,
       "row": 0,
-      "cost": 665,
+      "cost": 750,
       "prereqs": [
-        "education",
-        "theQadisCourt"
+        "education"
       ],
       "unlocks": {
         "units": [
@@ -947,10 +944,9 @@
       "glyph": "🗡",
       "age": 4,
       "row": 2,
-      "cost": 750,
+      "cost": 820,
       "prereqs": [
-        "machinery",
-        "ironWorking"
+        "machinery"
       ],
       "unlocks": {
         "units": [
@@ -978,9 +974,9 @@
       "glyph": "⚗",
       "age": 4,
       "row": 3,
-      "cost": 820,
+      "cost": 920,
       "prereqs": [
-        "steel",
+        "militantOrders",
         "movableType"
       ],
       "unlocks": {
@@ -1001,10 +997,10 @@
       "glyph": "🔠",
       "age": 4,
       "row": 5,
-      "cost": 750,
+      "cost": 875,
       "prereqs": [
-        "paperMoney",
-        "machinery"
+        "steel",
+        "theSilkRoad"
       ],
       "unlocks": {
         "buildings": [
@@ -1029,7 +1025,7 @@
       "glyph": "☄",
       "age": 4,
       "row": 1,
-      "cost": 665,
+      "cost": 750,
       "prereqs": [
         "education"
       ],
@@ -1047,10 +1043,9 @@
       "name": "Militant Orders",
       "glyph": "🐴",
       "age": 4,
-      "row": 4,
-      "cost": 820,
+      "row": 2,
+      "cost": 875,
       "prereqs": [
-        "feudalism",
         "steel"
       ],
       "unlocks": {

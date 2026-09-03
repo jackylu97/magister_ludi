@@ -194,7 +194,7 @@ while they stand.*
 | Currency | 135 | The Wheel | Trader | Market, **The Mausoleum** | Rite of Plenty |
 | Epic Poetry † | 135 | Writing | — | Amphitheater, **The Theatre of Dionysus** | — |
 | Code of Laws † | 225 | Chronology | — | Stele of Laws | — |
-| Irrigation | 225 | Chronology | — | — | renewals: Granary +1🌾 |
+| Irrigation | 225 | Chronology, Bronze Panoply | — | — | renewals: Granary +1🌾 |
 | Siegecraft | 225 | Bronze Panoply | Bowman | — | Siege |
 | State Workforce | 225 | Currency | — | — | — |
 | The High Temple | 225 | Epic Poetry | Prophet | Temple | The Preaching · Ancestor Rites |
@@ -210,27 +210,27 @@ What the effect rows say (player prose from the data):
 - **State Workforce** — Every worker you train has one more season of work in it, and the treasury hires one at a quarter off.
 - **The High Temple** — Until the rites are kept, renown gathers but no great person will come.
 
-### Æra III — The Age of Empire (17 nodes, 335–565🔬)
+### Æra III — The Age of Empire (17 nodes, 335–665🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Iron Working | 335 | Siegecraft, Irrigation | Legionary, Halberd | **The Terracotta Army**, **The Statue of Zeus** | reveals **Iron** · renewals: Barracks +1⚙ |
-| Raised Fields | 335 | Irrigation | — | The Terraces | — |
+| Iron Working | 335 | Irrigation, Siegecraft | Legionary, Halberd | **The Terracotta Army**, **The Statue of Zeus** | reveals **Iron** · renewals: Barracks +1⚙ |
+| Raised Fields | 335 | Wayfinding | — | The Terraces | — |
 | Rhetoric | 335 | The High Temple | — | Forum, **The Great Library** | — |
 | Satrapies † | 335 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
-| Shipwrights | 335 | Wayfinding | Galley, Tower Ship, Fire Ship | Shipyard | — |
 | The Examination Hall | 335 | Code of Laws | — | Examination Hall | — |
 | Daughter Cities † | 450 | The Examination Hall | — | Town Charter | — |
 | Guildhalls | 450 | Satrapies | — | Workshop | — |
 | Mathematics | 450 | Iron Working | Catapult, Composite Bowman | **Petra** | renewals: Library +1🔬 |
+| Shipwrights | 450 | Raised Fields | Galley, Tower Ship, Fire Ship | Shipyard | — |
 | The Saddle | 450 | Iron Working | Horseman, Horse Archer, War Elephant | — | — |
 | Theology | 450 | Rhetoric | — | Monastery, Cathedral, **Chichen Itza**, **Hagia Sophia**, **Angkor Wat**, **The Great Mosque of Djenné** | — |
 | Divine Right | 565 | Guildhalls | — | Courthouse | renewals: Library +1🔬 +1🕯 |
-| Engineering | 565 | Mathematics, Irrigation | — | Aqueduct, Baths, Watermill, **The Circus Maximus** | — |
-| Geomancy | 565 | Daughter Cities, Mathematics | — | — | — |
+| Engineering | 565 | The Saddle | — | Aqueduct, Baths, Watermill, **The Circus Maximus** | — |
 | Horology | 565 | Mathematics | — | **The Water Clock of Su Song**, Clocktower | — |
-| Paper Money † | 565 | Guildhalls, Shipwrights | — | Mint, Bazaar | renewals: Market +2💰 |
+| Paper Money † | 565 | Shipwrights, Guildhalls | — | Mint, Bazaar | renewals: Market +2💰 |
 | Scholarship | 565 | Theology | — | University, **The House of Wisdom**, **The Turning Heavens** | — |
+| Geomancy | 665 | Daughter Cities, Horology | — | — | — |
 
 What the effect rows say (player prose from the data):
 
@@ -242,31 +242,31 @@ What the effect rows say (player prose from the data):
 - **Daughter Cities** † A city planted far from the capital costing less authority waits for the writ to know how far from home a site is.
 - **Theology** — The enhancing beliefs open here: a faith may now be deepened as well as spread.
 - **Divine Right** — A city you have taken by force costs one less authority.
-- **Geomancy** — Every mine your cities work gives up a further hammer. Workers and explorers may survey a hill they stand on: a turn spent asking the ground what it hides. A rich seam, buried iron, or gems come up as a resource anyone can see; an empty hill is marked surveyed and stays answered. Every survey pays a small assay.
 - **Paper Money** † The Bourse, which would turn a city’s coin into culture every turn, waits for a building that spends gold rather than earning it.
+- **Geomancy** — Every mine your cities work gives up a further hammer. Workers and explorers may survey a hill they stand on: a turn spent asking the ground what it hides. A rich seam, buried iron, or gems come up as a resource anyone can see; an empty hill is marked surveyed and stays answered. Every survey pays a small assay.
 
-### Æra IV — The Age of Cathedrals (11 nodes, 665–820🔬)
+### Æra IV — The Age of Cathedrals (11 nodes, 750–920🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Castellany † | 665 | Divine Right, Engineering | Pikeman | Castle | — |
-| Machinery | 665 | Scholarship, Geomancy | Crossbowman | Armoury | renewals: Workshop +2⚙ |
-| Natural Philosophy | 665 | Scholarship | Trebuchet | **Machu Picchu** | — |
-| The Golden Roads | 665 | Paper Money | — | Caravanserai | — |
-| The Holy Office | 665 | Scholarship, Divine Right | Inquisitor | The Reliquary, **Notre-Dame** | — |
-| Movable Type | 750 | Paper Money, Machinery | — | Printing House | renewals: Library +1🎵 |
-| Steel | 750 | Machinery, Iron Working | Longswordsman | Forge | — |
-| The Astrolabe | 750 | Natural Philosophy, Shipwrights | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
-| Alchemy | 820 | Steel, Movable Type | The Fire Lance | The Alchemical Society, **The Alchemical Codex** | reveals **Niter** · pays a **bead** to every completer |
-| Militant Orders | 820 | Castellany, Steel | Knight | **The Alhambra** | — |
-| The Counting Houses | 820 | The Golden Roads, Movable Type | — | Bank | renewals: Market +2💰 |
+| Castellany † | 750 | Divine Right | Pikeman | Castle | — |
+| Machinery | 750 | Horology, Engineering | Crossbowman | Armoury | renewals: Workshop +2⚙ |
+| Natural Philosophy | 750 | Scholarship | Trebuchet | **Machu Picchu** | — |
+| The Golden Roads | 750 | Paper Money | — | Caravanserai | — |
+| The Holy Office | 750 | Scholarship | Inquisitor | The Reliquary, **Notre-Dame** | — |
+| Steel | 820 | Machinery | Longswordsman | Forge | — |
+| The Astrolabe | 820 | Natural Philosophy | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
+| The Counting Houses | 820 | The Golden Roads, Castellany | — | Bank | renewals: Market +2💰 |
+| Militant Orders | 875 | Steel | Knight | **The Alhambra** | — |
+| Movable Type | 875 | Steel, The Golden Roads | — | Printing House | renewals: Library +1🎵 |
+| Alchemy | 920 | Militant Orders, Movable Type | The Fire Lance | The Alchemical Society, **The Alchemical Codex** | reveals **Niter** · pays a **bead** to every completer |
 
 What the effect rows say (player prose from the data):
 
 - **Castellany** † Defenders shrugging off arrows waits until a strength line can be told which weapon it is answering.
 - **The Golden Roads** — One more caravan may be on the road at once.
-- **Movable Type** — A city joined to your capital is contented by the news that reaches it — and it is contented again if your roads were already famous.
 - **Steel** — Every soldier of the sword line marches one hex further.
+- **Movable Type** — A city joined to your capital is contented by the news that reaches it — and it is contented again if your roads were already famous.
 - **Alchemy** — Niter is named, and the first soldier who carries fire may be trained where it is dug. Completing this pays a glass bead, and the first empire in the world to complete it opens the Magnum Opus for everybody.
 
 ## Part 3 — The proposal, third pass (2026-08-29): one list, five ages, the naval line, guilds and beads folded in
