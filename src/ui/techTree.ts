@@ -1274,7 +1274,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   // --- the plan strip ------------------------------------------------------
 
   /**
-   * The plan along the foot of the sheet, head first: "① Earthenware ~3t ×".
+   * The plan along the foot of the sheet, head first: "① Pottery ~3t ×".
    *
    * The third fold of `researchPlan` on this screen, and the one that answers a
    * question the chart cannot: the numerals on the nodes say *which* order, and

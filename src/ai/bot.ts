@@ -1080,7 +1080,7 @@ function goldPurchase(state: GameState, player: Player): Command | null {
   }
   // A town with nobody standing in it is the one thing worth breaking the
   // building order for. `purchaseError` owns the one-unit-per-city stamp
-  // (`City.purchasedUnitTurn`), so a town that already took delivery today is
+  // (`City.purchasedUnitTurns`), so a town that already took delivery today is
   // simply skipped rather than fought with.
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;

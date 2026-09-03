@@ -4499,3 +4499,28 @@ Entry LIV's old hand-tuned ~t265. Chart pins moved not at all: every claim
 there is a relation between a column and its price, which a pure shift
 preserves — the strongest evidence the reshape and the pricing are properly
 separate decisions.
+
+## Entry LXII — tree revision 4: the user's redraw (2026-09-03, schema 50)
+
+The user drew the tree by hand — twice — and the second drawing is the law.
+Fourteen renames settle the voice ("vaguely alternate history… mythologized /
+renaissance-punk-ified"): Pottery · Writing · Chronology · Code of Laws · The
+Saddle · Guildhalls · Satrapies · Daughter Cities · Geomancy · Divine Right ·
+Scholarship · Natural Philosophy · The Golden Roads · The Counting Houses —
+ids frozen forever, names free. Three cuts (Ancestor Rites, Chivalry,
+Fortification), three additions (**State Workforce**: workers +1 charge and
+−25% to buy, the 8th effect-tech, designed for the save-your-improvements
+tempo game; **Raised Fields**, terracing generalized from the chinampas, with
+the Terraces; **Militant Orders**, Æra IV's war spike, Knight + Alhambra).
+Twelve columns now, 65 edges, lanes annealed to 9 crossings against a naive
+100 — Æra I draws at zero. The cost ladder truncated rather than refit; ages
+close **44 / 84 / 175 / 236**.
+
+The rulings that rode along: the horse line is de-anachronized (Horseman at
+The Saddle → Knight at Militant Orders; the cataphract unit parks behind
+`awaitsTech` beside the bastion), the great-person gate moved from the cut
+Ancestor Rites to The High Temple, the Great Wall stands on Satrapies, and
+**a city buys one unit per class per turn** — military-with-gold,
+civilian-with-gold, faith — three absolute stamps where one stood
+(`purchasedUnitTurns`, `unitPurchaseBucket`). Two renewal entries (monument,
+barracks) died with their techs, the first blood of the ruled renewals axe.
