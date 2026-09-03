@@ -223,7 +223,6 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | The Pilgrim's Purse | W | 🕯 | ◆ | +5 faith in every city standing beside a holy site. | upgrade: +2 faith
 | Charter Towns | E | 📜 | ◆ | Newly founded cities are founded with a Granary. | cannot be upgraded
 | Wayside Shrines | W | 🕯 | ● | +1 faith in every city. | cannot be upgraded
-| Curious Elders | W | ✶ | ◆ | +5 science whenever you claim a ruin. | (restored — fell out of the edit pass; mark me)
 | The Unbroken Land | E | 🌱 | ◆ | +1 food and +1 production on every unimproved hex. | upgrade: +1 faith on unimproved hexes
 
 ### Government II pool (35)
@@ -301,7 +300,6 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | The Dry Docks | E | 🐫 |   | +25% production toward ships in every city with a Harbour. · †deferred | [lets build this] upgrade: +5% production
 | The Wintering Grounds | M | — |   | Your units cost no gold in maintenance outside your territory | cannot be upgraded
 | The Annals of Law | W | — |   | +2 culture for each Order you hold but have not placed in a slot. | upgrade: +1 culture
-| Triumphs | M | ⚒ | ◆ | Capturing a city grants +30 culture. · †deferred (the 5 renown half) | (restored — fell out of the edit pass; mark me)
 | The Auspicious Seal | W | — |   | The first time this Order is placed in a slot, a die of the Magister is yours. | cannot be upgraded
 
 ### Government IV pool — PROPOSED (tier 29 adoption) (20)

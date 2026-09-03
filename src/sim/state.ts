@@ -798,8 +798,12 @@ import {
  *     and still wants the same field the King List wants: a founding turn on
  *     `City`, which nothing in this state keeps. Add that field and both are one
  *     comparison each.
+ *
+ * v52: Curious Elders and Triumphs retired by the user's word — both leave the
+ * draft pools (rows kept so a save that holds them replays), which moves every
+ * draw after the first affected draft.
  */
-export const SCHEMA_VERSION = 51;
+export const SCHEMA_VERSION = 52;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

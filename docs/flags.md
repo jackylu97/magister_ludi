@@ -14,11 +14,9 @@ where the story lives.
 ### From the balance pass — resolved 2026-09-03 (schema 51) except where marked
 
 - **Order upgrade marks still missing** — awaiting your marks (they ship
-  non-upgradable meanwhile): Far Runners aside, the open ones are **The Old
-  Ways**, **The Escorted Roads**, **Curious Elders** and **Triumphs**. On the
-  last two ("couldn't find them"): they are live data rows that fell out of the
-  doc's tables during your edit pass — now restored to the Government I / III
-  tables below with their old rarity marks, upgrade cells blank for you.
+  non-upgradable meanwhile): **The Old Ways** and **The Escorted Roads**.
+  ~~Curious Elders / Triumphs~~ — ruled 2026-09-03: intentionally deleted;
+  both retired (rows kept for saves), out of every pool and the doc tables.
 - ~~Parameter deepeners~~ — **built**: an upgrade entry is either an ordinary
   effect (appends a line) or an `OrderDeepening` (moves a printed number once
   per level). The Standing Levy musters every 12 → 10 → 8; Pilgrim Roads caps

@@ -1109,7 +1109,7 @@ describe('research in the log', () => {
     // re-hung, the chart down to twelve columns and every cost re-read off the
     // truncated ladder. And, beside it, the one-unit-a-turn rule widened to one
     // *per class*, which is a reducer that accepts what v49's refused.
-    expect(SCHEMA_VERSION).toBe(51);
+    expect(SCHEMA_VERSION).toBe(52);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

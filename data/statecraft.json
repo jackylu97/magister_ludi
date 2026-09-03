@@ -2172,7 +2172,9 @@
           }
         }
       ],
-      "upgradable": false
+      "upgradable": false,
+      "retired": true,
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it."
     },
     "ritesOfPassage": {
       "name": "Rites of Passage",
@@ -2835,11 +2837,12 @@
           }
         }
       ],
-      "note": "The renown a capture pays is not built: a windfall's grants are banked by a routine that cannot reach the renown ladder, so only the culture arrives.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "deferred": [
         "capturing a city also grants 5 renown"
       ],
-      "upgradable": false
+      "upgradable": false,
+      "retired": true
     },
     "theStandingLevy": {
       "name": "The Standing Levy",
