@@ -408,10 +408,12 @@ export interface TileYieldContext {
  *     simulation banking and spending real yields: a citizen that ignored a
  *     renewal would be sent to the wrong tile the turn Feudalism landed, and one
  *     that counted an unrevealed seam would be sent to a hill that pays nothing.
- *   · the hover readout (`tileReadout.ts`) passes the **local seat's** context,
- *     because the question it answers is "what would a city of mine collect
- *     here" — and a hover card that priced ore the seat cannot name would be
- *     giving away the one thing the reveal gate hides.
+ *   · the hover readout (`tileReadout.ts`) prices through `tileContextAt`:
+ *     inside a city's territory, that CITY's own context (so a lighthouse's
+ *     food on water prints where the citizen is paid — 2026-09-03); on wild
+ *     ground, the **local seat's** context, because the question is "what
+ *     would a city of mine collect here" — and a hover card that priced ore
+ *     the seat cannot name would give away what the reveal gate hides.
  *   · the yield glyphs (`lens3d.ts`) pass `LensView.playerId`, the seat the lens
  *     is drawn for, so the board and the hover card agree.
  *   · the improvement preview (`improvementYieldDelta`) takes an optional one
@@ -1013,6 +1015,31 @@ export function tileOwnerPlayerId(state: GameState, col: number, row: number): n
   const cityId = tileOwnerCityId(state, col, row);
   if (cityId === null) return null;
   return cityById(state, cityId)?.ownerId ?? null;
+}
+
+/**
+ * The context a map SURFACE prices one hex with — the tile readout and the
+ * yields lens. The standing rule ("an owned tile is always evaluated with its
+ * owner's ctx") gains its missing half here: a hex inside a city's territory
+ * is priced with that CITY's own context, so the one-town producers — a
+ * lighthouse's food on water, a rite's gold on a worked seam, Petra's desert
+ * — print on the map exactly where the citizen is paid. Before this, the
+ * readout priced through `yieldContextFor` alone and the Lighthouse paid a
+ * food the info card never showed (found in live play, 2026-09-03). Unowned
+ * ground falls back to the viewer's own empire context, so the reveal gate on
+ * wild seams stays the viewer's.
+ */
+export function tileContextAt(
+  state: GameState,
+  viewerId: number,
+  tile: Tile,
+): TileYieldContext | undefined {
+  const cityId = tileOwnerCityId(state, tile.col, tile.row);
+  if (cityId !== null) {
+    const city = cityById(state, cityId);
+    if (city) return cityContext(state, city);
+  }
+  return yieldContextFor(state, viewerId);
 }
 
 /** The city standing on a tile, if any. */

@@ -19,6 +19,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   foldTileYield,
+  refreshCityDerived,
   tileYieldOf,
   yieldContextFor,
 } from '../../src/sim/cities';
@@ -660,5 +661,39 @@ describe('the survey row', () => {
     expect(describeSurvey(tile({ hills: true, surveyed: true, resource: 'richOre' }))).toBe(
       'Surveyed',
     );
+  });
+});
+
+describe('the owning city\'s own lines reach the readout', () => {
+  it('prints the Lighthouse\'s food on this city\'s coast hex', () => {
+    // Found in live play (2026-09-03): the readout priced hexes with the
+    // empire context, which by design cannot carry a building's one-city tile
+    // lines — the Lighthouse paid food the info card never showed. The readout
+    // now prices owned ground through `tileContextAt` (the owning city's own
+    // context), and this pin is what keeps the surface honest.
+    const state = newGame({
+      seed: 4242,
+      sizeName: 'duel',
+      players: [
+        { name: 'A', color: '#a00', isHuman: true },
+        { name: 'B', color: '#0a0', isHuman: false },
+      ],
+    });
+    let cityTile: Tile | null = null;
+    let coast: Tile | null = null;
+    outer: for (const t of state.map.tiles) {
+      if (['coast', 'ocean', 'mountain', 'lake'].includes(t.terrain)) continue;
+      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, -1], [-1, 1]] as const) {
+        const n = getTileAt(state.map, t.col + dc, t.row + dr);
+        if (n && n.terrain === 'coast') { cityTile = t; coast = n; break outer; }
+      }
+    }
+    const city = foundCityAt(state, 0, cityTile!)!;
+    city.buildings.push('lighthouse');
+    refreshCityDerived(state, city);
+    const lines = tileYieldContributions(state, 0, coast!);
+    const lighthouse = lines.find((line) => line.source === 'Lighthouse');
+    expect(lighthouse, 'the Lighthouse line on the coast hex').toBeDefined();
+    expect(lighthouse!.food).toBe(1);
   });
 });

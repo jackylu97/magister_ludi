@@ -26,7 +26,7 @@ import {
   explainTileYield,
   foldTileYield,
   foundingErrorAt,
-  yieldContextFor,
+  tileContextAt,
 } from '../sim/cities';
 import { campAt } from '../sim/camps';
 import {
@@ -99,7 +99,7 @@ export function tileYieldContributions(
 ): TileYieldContribution[] {
   const city = cityAt(state, tile.col, tile.row);
   if (city && knowsCity(state, playerId, city.id, tile)) return explainCentreYield(state, city);
-  return explainTileYield(tile, yieldContextFor(state, playerId));
+  return explainTileYield(tile, tileContextAt(state, playerId, tile));
 }
 
 /**
