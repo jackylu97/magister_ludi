@@ -2258,13 +2258,29 @@ export function explainBuildingPreview(
   }
 
   // 2. The cards that woke up. Keyed by card **and** source, because one card
-  //    may pay a town twice under two labels (`countScaled`'s "×3" suffix), and
-  //    walked in the ghost's order so the list reads in the evaluator's order.
+  //    may pay a town twice under two labels, and walked in the ghost's order
+  //    so the list reads in the evaluator's order.
+  //
+  //    The `×N` suffix is stripped from the key, never from the label: a
+  //    `countScaled` line's printed source carries its count ("The Mausoleum
+  //    · ×19"), and a candidate building that feeds the count re-labels the
+  //    very line it changes ("· ×20"). Keyed raw, the two halves of that diff never
+  //    meet — `was` comes back empty and the preview prints the wonder's whole
+  //    standing line on every row of the build list (the 2026-09-03 playtest
+  //    report). Keyed stripped, the line previews as the +1 it is, and it is
+  //    printed under the *bare* source when the counts disagree — "+1 gold ·
+  //    The Mausoleum" is the change; the ×20 belongs to the city screen's own
+  //    breakdown, not to a diff.
+  const sourceKey = (source: string): string => source.replace(/ · ×\d+$/, '');
   const before = new Map<string, CardYieldLine>();
-  for (const line of cardCityYields(state, city)) before.set(`${line.card}\x00${line.source}`, line);
+  for (const line of cardCityYields(state, city)) {
+    before.set(`${line.card}\x00${sourceKey(line.source)}`, line);
+  }
   for (const after of cardCityYields(state, ghost)) {
-    const was = before.get(`${after.card}\x00${after.source}`);
-    const line = emptyPreviewLine(after.source);
+    const was = before.get(`${after.card}\x00${sourceKey(after.source)}`);
+    const line = emptyPreviewLine(
+      was !== undefined && was.source !== after.source ? sourceKey(after.source) : after.source,
+    );
     line.card = after.card;
     for (const key of CITY_YIELD_KEYS) line[key] = after[key] - (was?.[key] ?? 0);
     if (previewPays(line)) lines.push(line);

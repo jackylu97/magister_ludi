@@ -1175,6 +1175,11 @@ describe('city yields', () => {
     const state = flatState(16, 12, 'grassland');
     const city = plant(state, 0, 8, 5);
     city.population = 4;
+    // The Mausoleum pays per building in the town, so every candidate below
+    // moves a `countScaled` count — the diff that broke on 2026-09-03 (the
+    // `· ×N` label suffix keyed the two halves apart and the preview printed
+    // the wonder's whole standing line on every row of the build list).
+    city.buildings.push('mausoleum');
     assignCitizens(state, city);
     // Two gods, one on a granary and one on a monument, so the preview has to
     // pick the right one out for each row — and the granary's own tile line
@@ -1196,6 +1201,26 @@ describe('city yields', () => {
     // special case for it.
     city.buildings.push('granary');
     expect(explainBuildingPreview(state, city, 'granary')).toEqual([]);
+  });
+
+  /**
+   * The Mausoleum on the build list, pointed where the invariant test above is
+   * general: a `countScaled` that the candidate itself feeds previews as the
+   * *marginal* line, under the bare source — never as the standing "+19 · ×19"
+   * the 2026-09-03 playtest saw on every row.
+   */
+  it('previews a count the candidate feeds as its margin, not its standing line', () => {
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    city.buildings.push('mausoleum', 'granary', 'monument');
+    const lines = explainBuildingPreview(state, city, 'library');
+    const mausoleum = lines.filter((line) => line.card === 'mausoleum');
+    expect(mausoleum).toHaveLength(1);
+    // One more building is worth exactly one more gold…
+    expect(mausoleum[0]!.gold).toBe(1);
+    // …and the label is the wonder's bare name: the count suffix belongs to the
+    // city screen's standing breakdown, not to a difference.
+    expect(mausoleum[0]!.source).not.toMatch(/×\d+/);
   });
 
   /**
