@@ -244,3 +244,21 @@ closed borders (Civ's rule — Open Borders is P2's answer), peace as two verbs.
 Staging gaps, honestly: bots neither declare nor answer peace (P3), the
 puppet auto-picker is P3, puppet purchases are unruled, and a unit engulfed
 by border growth at peace can be stuck. P2 is deals; P3 is bots at war.
+
+## Entry LXVII — deals (2026-09-03, schema 57)
+
+The bargaining half: proposals written from the proposer's side of the table,
+acceptance in command order, twenty-turn clocks, declaration voiding every
+bargain between the pair. Every term is one labelled line in a fold that
+already existed — tribute at the foot of the empire ledger, a lent luxury as
+`openedResource`'s second clause (the KIND moves and the happiness follows;
+two empires never hold three where there were two), open borders beside
+`atWar` in the closed-borders read behind Writing on both sides, and a ceded
+city arriving as a puppet through the capture machinery's handover WITHOUT
+the conquest half — a treaty batters no walls and awards no Triumph. Peace
+papers carry terms; writing new terms voids every signature on the old
+paper. A capital is never on the table. P3 (in flight) closes the milestone:
+bots that declare by advantage, sue by warscore, answer bargains, escort
+settlers, open with a scout, run their puppets (which now buy nothing,
+schema 58), slot by fit, compare charter faces, and settle by a two-ring
+kind-aware score.
