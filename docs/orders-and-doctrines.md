@@ -98,7 +98,6 @@ Warring Tribes (the courthouse).
 | The Woodwrights | ⚒ | Clearing a forest or jungle pays +100% and grants +10 culture. |
 | The Great Litany | 🕯 | +1 culture for each 3 faith you gain per turn. |
 | Wolf-Mother's Pact | 🏹 | Barbarians never attack you and never steal from you. A barbarian you kill joins you instead of dying. You can no longer clear a barbarian camp. |
-| Athenaeum of the Road | 🧭 | A ruin you claim pays every option instead of one. |
 | The Founders' Road | — | Your first 5 cities are founded with a free Monument, and new cities are joined to your nearest city by road. · †deferred |
 
 ### Pool II (tier 10)
@@ -223,7 +222,7 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | The Pilgrim's Purse | W | 🕯 | ◆ | +5 faith in every city standing beside a holy site. | upgrade: +2 faith
 | Charter Towns | E | 📜 | ◆ | Newly founded cities are founded with a Granary. | cannot be upgraded
 | Wayside Shrines | W | 🕯 | ● | +1 faith in every city. | cannot be upgraded
-| The Unbroken Land | E | 🌱 | ◆ | +1 food and +1 production on every unimproved hex. | upgrade: +1 faith on unimproved hexes
+| The Unbroken Land | E | 🌱 | ◆ | +1 food and +1 production on every unimproved forest or jungle hex. | upgrade: +1 faith on those hexes
 
 ### Government II pool (35)
 
@@ -257,7 +256,6 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | The Masons' Lodge | E | ⚒ | ◆ | Cities of 6 population or more put 10% more production behind buildings. | upgrade: +5% production
 | The Oath-Bound | M | ⚒ | ○ | Killing a unit heals the unit that struck the blow by 15. | cannot be upgraded
 | The Orchard Tithe | E | 🌱 | ● | +1 food on every hex carrying a luxury resource. | cannot be upgraded
-| The Greenwood Law | E | 🌱 | ◆ | +2 food and +2 production on every unimproved hex. | upgrade: +2 faith
 | The Quiet Fields | W | 🌱 | ● | +1 happiness for each unimproved hex your cities work. | cannot be upgraded
 | The Quartermasters | M | ⚒ |   | Military units cost 1 less gold in maintenance. | cannot be upgraded
 | The Last Hunt | W | 🏹 |   | +2 culture for each barbarian camp you have cleared this game. | cannot be upgraded
@@ -385,6 +383,7 @@ pool and building the content are one decision.
 - **The Bronze Mirror** — Not built: every luxury in this game is a seam in the ground, held by working it. Nothing can hand an empire a luxury that is not anywhere on the map. Retired until one can. † a luxury of your own make — bronze trinkets — worth +1 happiness in every city, and +1 more for each copper or tin you hold
 - **Cistern Works** — It answers what is asked of a city — whether the town can drink. A hex out in the fields is still watered by the river or by nothing.
 - **Sanctuary** — Not built: a city can only be captured in this game, never sacked. Retired until sacking exists. † your holy city is sacked rather than captured while it keeps your religion
+- **The Greenwood Law** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
 - **The Old Ways** — Not built: a percentage in this game lands on a whole city or on the whole empire, never on one hex. Doubling what a single hex pays is a new kind of arithmetic and is a design decision, not a number. Retired until it is made. † the yields of every unimproved hex are doubled
 - **The Escorted Roads** — † trade routes within 3 hexes of your soldiers cannot be plundered — nothing in the game can say where a route is safe, only what it pays
 - **The Saints' Fields** — The great-person improvements are the academy, landmark, manufactory, customs house and citadel.
@@ -392,6 +391,7 @@ pool and building the content are one decision.
 - **The Master's Presence** — A city is beside a work when one stands on its own hex or on one of the six touching it. Two works never pay twice.
 - **The Dry Docks** — † ships mend completely in a port — a heal that depends on where a piece is standing is a rule about a hex, and healing is a rule about a turn
 - **The Great Warring Tribes** — The clause about courthouses does nothing: there is no courthouse in the game yet.
+- **Athenaeum of the Road** — Retired: this Doctrine is no longer offered in a draft. A saved game that already holds it keeps it.
 - **The Founders' Road** — The free hall is the Monument. A grander one is meant to take its place once the game has a hall to grow into. † an amphitheatre instead of the Monument, once one is unlocked
 - **Mountain Hold** — Built for a mountain **next to** the city. The ratified text says within two hexes, and the board can only be asked about the ring of six today. † the bonus reaching a city with a mountain two hexes away, rather than only one
 - **The Burning Way** — Not built: the board does not remember a clearing. A felled forest leaves bare ground that looks exactly like ground nothing ever grew on, so nothing can tell the two apart to pay for one of them. † +1 food on every hex you have cleared of forest or jungle

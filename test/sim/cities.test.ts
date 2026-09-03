@@ -2619,7 +2619,7 @@ describe('determinism with cities', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(58);
+    expect(SCHEMA_VERSION).toBe(59);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

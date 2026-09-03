@@ -908,8 +908,29 @@ import {
  * rather than a table that moved: a v57 log may contain a puppet's purchase
  * this reducer refuses, so it is a different game rather than an older one.
  * Nothing changed shape and there is nothing to migrate.
+ *
+ * v59: **the playtest nerf batch** (ruled 2026-09-03, `docs/flags.md`). Two
+ * cards leave the bags and one is narrowed, and all three are the same kind of
+ * break: a draft's options are *drawn* from a pool, so a hand dealt from a
+ * shorter bag is a different hand, and a v58 log names indices of triples this
+ * build does not deal.
+ *
+ *   · **The Greenwood Law is retired** — the Government II pool is one card
+ *     shorter. The row stays and its effects stay live for a save that already
+ *     holds it slotted.
+ *   · **Athenaeum of the Road is retired** — the first Doctrine ever withdrawn,
+ *     which is what put `retired` on `DoctrineDef` and the filter in
+ *     `poolDoctrines`. The tier-4 triple is drawn from six rows where it was
+ *     seven.
+ *   · **The Unbroken Land is narrowed** to unimproved forest and jungle, where
+ *     it paid on every unimproved hex. A v58 board with the same tiles on it is
+ *     worth different yields here, so it is not merely a shorter bag.
+ *
+ *     The migration note: nothing changed shape and there is nothing to
+ *     migrate. Every retired row is still readable by `anyCardDef`, which is
+ *     the whole reason a withdrawn card is marked rather than deleted.
  */
-export const SCHEMA_VERSION = 58;
+export const SCHEMA_VERSION = 59;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -709,6 +709,24 @@ export type TileCondition =
   | { test: 'hasResource' }
   | { test: 'hills' }
   | { test: 'feature'; feature: string }
+  /**
+   * **Any one of these features** stands here — The Unbroken Land's forest and
+   * jungle, after the narrowing of 2026-09-03.
+   *
+   * `resource`'s shape one field over, and here for `resource`'s reason exactly:
+   * the ratified text names *one* kind of ground ("the woods you have not
+   * cleared") that the feature table spells as two rows, and there is no `or`
+   * composite — `all` is the only one there is, deliberately, because a card
+   * whose condition could be any boolean tree is a card nobody can print. So a
+   * list is the smallest honest thing to say, and it composes under `all` with
+   * `unimproved` the way the Hanging Gardens' farm composes with its water.
+   *
+   * `feature` stays for the single-feature reading rather than being folded into
+   * a one-element list here: a row that means *one* feature says so, and the
+   * describer prints the two differently ("forest hex" against "forest or
+   * jungle hex").
+   */
+  | { test: 'anyFeature'; features: string[] }
   | { test: 'improved' }
   /**
    * **Nothing has been built here** — `improved`'s mirror, and the whole home of
@@ -2677,6 +2695,26 @@ export interface GovernmentDef extends CardDefBase {
 export interface DoctrineDef extends CardDefBase {
   /** Which adoption's pool this belongs to. 0 means *no live pool* — deferred. */
   tier: number;
+  /**
+   * **Withdrawn from the pool**: never dealt, and still fully readable.
+   * `OrderDef.retired` at the Doctrine's scale, and it is a second field rather
+   * than one on `CardDefBase` for the reason the pools are two functions: an
+   * Order leaves a *pool*, a Doctrine leaves a *tier*, and each is read by the
+   * one function that deals its own kind.
+   *
+   * The distinction it draws is `OrderDef.retired`'s exactly. A Doctrine the
+   * design has taken out (Athenaeum of the Road, 2026-09-03) is not a Doctrine
+   * that never existed: a save from before the cut may hold it adopted, and a
+   * row deleted outright would be a save that cannot be replayed — `anyCardDef`
+   * would throw on an id in the log. So the row stays, its effects stay live
+   * for whoever holds it, and `poolDoctrines` simply stops dealing it.
+   *
+   * A tier of 0 says something different and both are needed: that is a row
+   * *never finished*, waiting on a pool to be written for it, and it says so in
+   * `deferred`. This is a row that was finished, was dealt, and has been taken
+   * back out.
+   */
+  retired?: boolean;
 }
 
 /**
@@ -3011,10 +3049,20 @@ export function previousPool(pool: OrderPool): OrderPool | null {
   return index > 0 ? ORDER_POOLS[index - 1]! : null;
 }
 
-/** The Doctrines offered at one adoption tier, in file order. Never tier 0. */
+/**
+ * The Doctrines offered at one adoption tier, in file order — **retired rows
+ * excluded**. Never tier 0.
+ *
+ * `poolOrders`' opposite number, and the one reader of `DoctrineDef.retired`
+ * for the same reason: every draw and every screen that lists a tier comes
+ * through here, so a row taken out is out of all of them at once and still
+ * readable by a save that holds it.
+ */
 export function poolDoctrines(tier: number): DoctrineId[] {
   if (tier <= 0) return [];
-  return DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === tier);
+  return DOCTRINE_IDS.filter(
+    (id) => doctrineDef(id).tier === tier && doctrineDef(id).retired !== true,
+  );
 }
 
 /**

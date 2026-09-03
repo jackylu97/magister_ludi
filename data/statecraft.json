@@ -613,7 +613,9 @@
           "kind": "offerRider",
           "rule": "discoveryClaimAll"
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Retired: this Doctrine is no longer offered in a draft. A saved game that already holds it keeps it."
     },
     "foundersRoad": {
       "name": "The Founders' Road",
@@ -3726,14 +3728,26 @@
       "slot": "economic",
       "line": "green",
       "flavor": "Nothing was asked of this ground. It gave anyway.",
-      "text": "+1 food and +1 production on every unimproved hex.",
+      "text": "+1 food and +1 production on every unimproved forest or jungle hex.",
       "effects": [
         {
           "kind": "tileYield",
           "food": 1,
           "production": 1,
           "on": {
-            "test": "unimproved"
+            "test": "all",
+            "of": [
+              {
+                "test": "unimproved"
+              },
+              {
+                "test": "anyFeature",
+                "features": [
+                  "forest",
+                  "jungle"
+                ]
+              }
+            ]
           }
         }
       ],
@@ -3741,7 +3755,19 @@
         {
           "kind": "tileYield",
           "on": {
-            "test": "unimproved"
+            "test": "all",
+            "of": [
+              {
+                "test": "unimproved"
+              },
+              {
+                "test": "anyFeature",
+                "features": [
+                  "forest",
+                  "jungle"
+                ]
+              }
+            ]
           },
           "faith": 1
         }
@@ -3772,7 +3798,9 @@
           },
           "faith": 2
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it."
     },
     "theQuietFields": {
       "name": "The Quiet Fields",

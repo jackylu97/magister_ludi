@@ -2691,6 +2691,10 @@ export function tileConditionHolds(
       return tile.hills;
     case 'feature':
       return tile.feature === on.feature;
+    case 'anyFeature':
+      // The `or` the composite does not have, said as a list — `resource`'s
+      // reading one field over, asked of `Tile.feature`.
+      return on.features.includes(tile.feature);
     case 'improved':
       return tile.improvement !== undefined;
     case 'unimproved':
@@ -5882,6 +5886,13 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       return;
     case 'feature':
       into.adjectives.push(on.feature);
+      return;
+    case 'anyFeature':
+      // One adjective made of the whole list, not one adjective each: the
+      // pieces are alternatives, and two adjectives side by side would read as
+      // both at once ("unimproved forest jungle hex"). Same words the single
+      // `feature` arm uses, joined by the "or" the condition means.
+      into.adjectives.push(on.features.join(' or '));
       return;
     case 'resourceKind':
       into.qualifiers.push(

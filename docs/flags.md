@@ -11,6 +11,77 @@ where the story lives.
 
 ## A. Awaiting your ruling
 
+### Playtest nerf batch — ruled 2026-09-03 (turn-75 report: 320🌾 202⚙ 83💰 236🔬 145🎵, +27.8 happiness, +14 authority spare at 6 cities)
+
+Ruled and BUILT (schema 59, committed) — kept for the record:
+
+- **The Greenwood Law** (Government II order, +2🌾+2⚙ unimproved) — **axed**.
+  Retired per the Curious Elders pattern: row kept for saves, out of the pool
+  and the doc table.
+- **The Unbroken Land** (Government I order) — narrowed: **+1🌾+1⚙ on
+  unimproved forest and jungle** (was: all unimproved tiles). The `on` test
+  needs "unimproved AND (forest OR jungle)": extend the condition vocabulary
+  with the smallest honest shape (a features-list test composed under the
+  existing `all`), with describer support so the card prints its own words.
+- **Athenaeum of the Road** (doctrine, all-three-discovery-options offerRider)
+  — **axed**. First retired *doctrine*: the draft pool reads must honour
+  `retired` the way the order pools do (verify, add the filter + register
+  test if absent). User's reason: by the time it's drafted the nearby
+  discoveries are claimed, and a far-off worker is inconsequential.
+
+### Playtest notes 9/3 — ruled in docs/playtest_notes.md, batched here
+
+The notes doc is the spec of record; these are the orchestrator's
+interpretations where the note left a choice. Veto any of them by editing
+this list.
+
+- **Batch: trade & roads** — routes never lay road over water; a route is
+  entirely land or entirely sea (a sea route lays no road); where both paths
+  exist the route command carries the choice.
+- **Batch: mapgen pangaea** — default map: one large continent + medium
+  islands reachable by coast (island hops within coastal-water sailing).
+- **Batch: diplomacy** — players appear on the Diplomacy screen only once
+  met (met = you have seen one of their units or their land — derived from
+  sightings, not stored); screen layout borrows Civ's trade-table shape in
+  the specimen language.
+- **Batch: economy** (after the card batch lands) — palace happiness 9 → 6;
+  crowding ON: targets ≈ +3–5 demand at pop 15, +10–15 at pop 20, +35–45 at
+  pop 30 (tune `crowdingFrom`/`Weight`/`Exponent` to the band, print the
+  table in a test); **gold prices ×2** — interpreted as prices *paid in*
+  gold: `goldPerHammer` purchases and gold tile-buying (this partially
+  rebalances the 8/29 tile 0.4× ruling — veto if tiles should stay cheap);
+  yield conversions/windfalls stay 2:1 untouched. Lumbermill's
+  `requiresTech` engineering → **siegecraft** (early Æra II, the
+  construction-flavoured column).
+- **Batch: worker verbs** — new worker action: remove an improvement on an
+  owned tile (a charge? ruled: costs a charge like building; veto if free).
+- **4-player standard playtest** — setup path for a full game, 4 seats on
+  the standard map.
+- **Batch: obsolete units** (ruled in chat 2026-09-03) — a unit superseded
+  by a stronger version through tech leaves the build list; the antiquated
+  unit stays offered ONLY while the empire lacks the successor's required
+  strategic resource (warrior stays until iron is improved). The same gate
+  holds for whatever "upgrade" path exists: no upgrading into a unit whose
+  strategic resource the empire cannot access.
+- **Batch: city banner growth countdown** (ruled in chat 2026-09-03) — the
+  on-map city banner shows how many turns until the city grows (the Civ
+  staple). Turns-to-grow is derived from the growth surplus; a stagnant or
+  starving city says so rather than printing a number.
+- User handles: happiness order/doctrine nerfs (will say when ready).
+
+Open (proposals drafted, awaiting your numbers — see the session report):
+
+- **Happiness is too plentiful.** Biggest dials found: `perUniqueLuxury` 4,
+  `palace` 9, `crowdingWeight` 0 (crowding is built but switched OFF),
+  `demandPerPop` 1, Festival Days +4 flat, Bread and Circuses +3/city at
+  tier 10.
+- **Early doctrines to soften** — candidates: Bread and Circuses, The
+  Scattered Hearths (first 3 citizens free), The Gentle Yoke.
+- **Wolf-Mother's Pact** felt dead at peace (kills have no sink, camps
+  unclearable, converted units useless) — rework directions in the report.
+- **Authority too roomy at 6 cities** (+14 spare) — supply side is palace 4 +
+  2/age + buildings; costs verified correct (3 inland / 2 coast).
+
 ### From the balance pass — resolved 2026-09-03 (schema 51) except where marked
 
 - **Order upgrade marks still missing** — awaiting your marks (they ship

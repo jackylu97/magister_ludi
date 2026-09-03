@@ -64,6 +64,7 @@ import {
   cardRenownLines,
   describeCard,
   draftCost,
+  drawDoctrineOffer,
   drawOrderOffer,
   filledOrderSlots,
   isUpgradable,
@@ -83,6 +84,7 @@ import {
   slotOrderError,
   statecraftBlocker,
   stripRefs,
+  tileConditionWords,
   unslotOrderError,
   windfallPayout,
 } from '../../src/sim/statecraft';
@@ -90,6 +92,7 @@ import {
   type CardEffect,
   type CardEffectKind,
   type CardWindfallRiderEffect,
+  type TileCondition,
   type OrderId,
   DOCTRINE_IDS,
   GOVERNMENT_IDS,
@@ -1117,7 +1120,12 @@ describe('determinism', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(58);
+    // v59 (the playtest nerf batch, 2026-09-03): The Greenwood Law leaves the
+    // Government II pool and Athenaeum of the Road leaves tier 4 — the first
+    // Doctrine ever withdrawn — while The Unbroken Land narrows to unimproved
+    // forest and jungle. A v58 log names indices of triples dealt from bags
+    // this build no longer holds.
+    expect(SCHEMA_VERSION).toBe(59);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -3125,23 +3133,39 @@ describe('the Orders pass of 2026-08-29', () => {
  * declared, plus the printed sentence of every row that changed.
  */
 describe('the balance pass of 2026-08-31', () => {
-  it('unimproved — The Unbroken Land pays bare ground and stops when it is worked', () => {
+  it('unimproved + anyFeature — The Unbroken Land pays the standing woods and nothing else', () => {
+    // The card paid on **every** bare hex until the nerf batch of 2026-09-03
+    // narrowed it to the two wooded ones, which is `anyFeature` composed under
+    // `all` with `unimproved`. Both halves are pinned here: the list decides
+    // *which ground*, and `unimproved` still decides *whether anything stands
+    // on it*.
     const g = game();
     const city = found(g.state, 0);
     const tile = getTileAt(g.state.map, city.col, city.row)!;
-    const before = explainTileYield(tile, yieldContextFor(g.state, 0));
+    const paid = (): { food: number; production: number } => {
+      const lines = explainTileYield(tile, yieldContextFor(g.state, 0)).filter(
+        (entry) => entry.source === 'Order · The Unbroken Land',
+      );
+      // Rule 5: a fold of the list, never a figure computed beside it.
+      return {
+        food: lines.reduce((sum, entry) => sum + (entry.food ?? 0), 0),
+        production: lines.reduce((sum, entry) => sum + (entry.production ?? 0), 0),
+      };
+    };
     slot(g.state, 0, 'theUnbrokenLand');
-    const after = explainTileYield(tile, yieldContextFor(g.state, 0));
-    expect(after).toHaveLength(before.length + 1);
-    const line = after[after.length - 1]!;
-    expect(line.source).toBe('Order · The Unbroken Land');
-    expect(line.food).toBe(1);
-    expect(line.production).toBe(1);
+    tile.terrain = 'grassland';
+    // Bare ground is no longer enough — the canopy is what the card is about.
+    tile.feature = 'none';
+    expect(paid()).toEqual({ food: 0, production: 0 });
+    for (const feature of ['forest', 'jungle'] as const) {
+      tile.feature = feature;
+      expect(paid(), feature).toEqual({ food: 1, production: 1 });
+    }
     // **Presence is the state**: build anything at all and the ladder stops
     // paying for the hex, which is the whole bargain the 🌿 cards strike.
-    tile.improvement = 'farm';
-    const worked = explainTileYield(tile, yieldContextFor(g.state, 0));
-    expect(worked.some((entry) => entry.source === 'Order · The Unbroken Land')).toBe(false);
+    tile.feature = 'forest';
+    tile.improvement = 'lumbermill';
+    expect(paid()).toEqual({ food: 0, production: 0 });
   });
 
   it('connected — the road home is what Satrapies makes a town content about', () => {
@@ -3349,8 +3373,10 @@ describe('the balance pass of 2026-08-31', () => {
       '+1 happiness per 2 population in your capital',
     ]);
     expect(said('theUnbrokenLand')).toEqual([
-      '+1 food, +1 production on every unimproved hex',
+      '+1 food, +1 production on every unimproved forest or jungle hex',
     ]);
+    // Retired 2026-09-03 and still fully readable — the row stays for the saves
+    // that hold it, and it goes on saying what it does.
     expect(said('theGreenwoodLaw')).toEqual([
       '+2 food, +2 production on every unimproved hex',
     ]);
@@ -3863,5 +3889,96 @@ describe('the balance pass of 2026-09-02', () => {
     expect(orderDef('foreignQuarters').retired).toBe(true);
     expect(doctrineDef('greatWarringTribes').tier).toBe(10);
     expect(doctrineDef('theAcademyOfDeeds').name).toBe('The Academy');
+  });
+});
+
+// --- the playtest nerf batch of 2026-09-03 ----------------------------------
+
+/**
+ * The three rulings of the turn-75 playtest report (`docs/flags.md`, "Playtest
+ * nerf batch"): two cards withdrawn and one narrowed.
+ *
+ * Same discipline as the passes above — a behavioural test per thing changed,
+ * plus the member register, because the kind-level register cannot see a
+ * `TileCondition` value: `anyFeature` is a *value inside* `tileYield`, a shape
+ * that register already counts, so a list nobody wrote onto a row would be a
+ * switch arm nothing reaches.
+ */
+describe('the playtest nerf batch of 2026-09-03', () => {
+  it('retires The Greenwood Law from the Government II pool while keeping the row readable', () => {
+    expect(orderDef('theGreenwoodLaw').retired).toBe(true);
+    expect(orderDef('theGreenwoodLaw').note).toBeTruthy();
+    for (const pool of ORDER_POOLS) expect(poolOrders(pool)).not.toContain('theGreenwoodLaw');
+    // Still a card: a save that holds it slotted still replays, and it still
+    // pays what it says.
+    const g = game();
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    tile.improvement = undefined;
+    slot(g.state, 0, 'theGreenwoodLaw');
+    const line = explainTileYield(tile, yieldContextFor(g.state, 0)).find(
+      (entry) => entry.source === 'Order · The Greenwood Law',
+    );
+    expect(line?.food).toBe(2);
+    expect(line?.production).toBe(2);
+  });
+
+  it('retires Athenaeum of the Road — the first Doctrine ever withdrawn', () => {
+    expect(doctrineDef('athenaeumOfTheRoad').retired).toBe(true);
+    expect(doctrineDef('athenaeumOfTheRoad').note).toBeTruthy();
+    for (const tier of GOVERNMENT_TIERS) {
+      expect(poolDoctrines(tier), `tier ${tier}`).not.toContain('athenaeumOfTheRoad');
+    }
+    // The sharp reading: hold every *other* Doctrine of its tier and the draft
+    // has nothing left to deal. Were `poolDoctrines` still dealing the retired
+    // row, this offer would be exactly one card long.
+    const g = game();
+    const player = playerById(g.state, 0)!;
+    const tier = doctrineDef('athenaeumOfTheRoad').tier;
+    player.statecraft.doctrines = DOCTRINE_IDS.filter(
+      (id) => doctrineDef(id).tier === tier && id !== 'athenaeumOfTheRoad',
+    );
+    expect(drawDoctrineOffer(g.state, player, tier).options).toEqual([]);
+    // Still a card, and still says what it does — a save that adopted it
+    // replays, and `anyCardDef` never meets an id it does not know.
+    expect(describeCard('athenaeumOfTheRoad').map((clause) => stripRefs(clause.text))).toEqual([
+      'a ruin you claim pays every option instead of one',
+    ]);
+  });
+
+  it('reads the anyFeature list from a live row, and prints it in the card’s own words', () => {
+    // The member register, narrowed to what this pass declared.
+    const rows = [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS].map((id) => cardDef(id));
+    expect(JSON.stringify(rows)).toContain('"test":"anyFeature"');
+    // The describer says "or", because the list is alternatives — two adjectives
+    // side by side would have read as both at once.
+    expect(tileConditionWords({ test: 'anyFeature', features: ['forest', 'jungle'] })).toBe(
+      'forest or jungle hex',
+    );
+    expect(
+      tileConditionWords({
+        test: 'all',
+        of: [{ test: 'unimproved' }, { test: 'anyFeature', features: ['forest', 'jungle'] }],
+      }),
+    ).toBe('unimproved forest or jungle hex');
+  });
+
+  it('answers anyFeature off the hex’s own feature, and nothing else', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    const woods: TileCondition = { test: 'anyFeature', features: ['forest', 'jungle'] };
+    for (const feature of ['forest', 'jungle'] as const) {
+      tile.feature = feature;
+      expect(tileConditionHolds(tile, woods), feature).toBe(true);
+    }
+    for (const feature of ['none', 'oasis', 'floodplain'] as const) {
+      tile.feature = feature;
+      expect(tileConditionHolds(tile, woods), feature).toBe(false);
+    }
+    // An empty list admits nothing — a row that names no ground pays on none of
+    // it, which is the reading that keeps a typo silent rather than universal.
+    tile.feature = 'forest';
+    expect(tileConditionHolds(tile, { test: 'anyFeature', features: [] })).toBe(false);
   });
 });

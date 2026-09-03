@@ -82,3 +82,20 @@ wow honey is broken, probably needs a rework  [done 8/26 — it was the farm-ove
 - i think we need more orders in the pool, as you tend to see a lot of repeats currently. We may also want to introduce a rarity value for the better orders. Please draft some candidates for each age in a new document.
 - the prioritization for new tiles from border growth should weight more towards taking tiles with good yields, i notice coastal cities expanding to useless coastal tiles with no resources. Tiles 3 hexes away should be slightly more unfavored.
 - prophets should be entirely consumed by starting a religion or enhancing. proclomations and redrafting should still only consume 1 charge as usual. Building a holy site should be a persistent option (does not change the holy city on subsequent builds)
+
+9/3
+- too much happiness in the game, need to think about happiness pacing
+- too much authority in the game, you feel it early, and i like the feeling of having to build monuments to increase your authority, but by turn 50 it felt like i had too much authority that it didn't feel like a real limit anymore.
+- bug: trade routes shouldn't create roads over water, trade routes should stay entirely either land only routes or water only routes. For the purpose of building roads, we should have an option to go by sea or go by land when available.
+- diplomacy screen looks a bit too barebones, could we steal inspiration from civ and make our trade screen a bit more similar? Also, the diplomacy screen should only show players once you've met them (gain visibility of one of their units or their land)
+- next play test, could we add the ability to do a full game, im imagining 4 total players on the standard map.
+- Lets make the map by default a pangaea map (one large continent) with medium sized islands that spawn, reachable by coast (to enable maritime play). In normal civ, the game ends in the modern age, so the idea of having a 'new world' to explore is enticing, but i think that doesn't make sense for this game, as the game is almost over by the time we have ocean-going boats.
+- make palace start with 6 happiness
+- i'll go through and nerf happiness orders, will let you know when that's ready.
+- remove +2 food +2 prod on unimproved tiles card, way too strong
+- change card form +1food +1prod on unimproved tiles to +1 food +1 prod on unimproved forest and jungle tiles.
+- lumbermills need to be way earlier in the tech tree, early age 2 probably.
+- add action for workers to remove improvements.
+- turn crowding back on, the effect should be noticeable at 15 pop, something to overcome at 20 pop, and almost debilitating (but playable) at 30 pop.
+- gold is way too strong. Gold costs need to be 2x across the board. FOr the sake of bonuses, keep the conversion at 2:1 between gold and other yields, but becuase gold is so flexible we need to nerf it quite hard.
+- 

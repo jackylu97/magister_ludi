@@ -647,7 +647,12 @@ describe('the research queue field', () => {
     // in `purchaseError` and one in `tilePurchaseError`. A second legality
     // reversal rather than a table that moved: a v57 log's puppet purchase is
     // refused here, so it is a different game rather than an older one.
-    expect(SCHEMA_VERSION).toBe(58);
+    // v59 (the playtest nerf batch, 2026-09-03): The Greenwood Law and
+    // Athenaeum of the Road are retired and The Unbroken Land is narrowed to
+    // unimproved forest and jungle. Two bags are one card shorter, so a v58 log
+    // names indices of triples this build does not deal — and the narrowing
+    // makes the same board worth different yields besides.
+    expect(SCHEMA_VERSION).toBe(59);
   });
 });
 
