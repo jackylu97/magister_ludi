@@ -170,7 +170,19 @@ to press).
   buildings with `tileYields` (Lighthouse). Real construction pays correctly;
   only the appraisal is blind. Small fix in the ghost context when wanted.
 
-### Ruled 2026-09-03 — bot personas (queued behind the spectate pass; src/ai owned)
+### Bot brain v1 — IN FLIGHT (personas + five appraisal fixes)
+
+Riding with the personas below, all ruled 2026-09-03: the improvement plan
+(workers see the ground: build value from the top unclaimed tile deltas,
+lay/walk by best entry — replaces flat 80 + first-legal list + nearest tile);
+wonder patience (amortiser capped for one-of-a-kind/bead rows, ~10);
+gold-pressure grace (floor 1 while young + treasury sound); great people act
+v1 (act-or-plant, never sleep); citizen valuation (next-tile yields + the
+science stream + a small-city compounding premium; smallCityPop: 9 is the
+orchestrator's reading of the user's 'start with a value of 9' — the premium
+is its own knob, one edit flips the interpretation).
+
+### Ruled 2026-09-03 — bot personas (spawned with the above)
 
 - `data/ai.json` gains `personas`: sparse deep-overrides of the whole AI
   config, merged per seat (`persona` on the bot's config entry — in the save,
