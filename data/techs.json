@@ -1092,85 +1092,85 @@
       "name": "Embark",
       "glyph": "⛵",
       "bearer": "civilian",
-      "summary": "Workers, settlers and scouts may cross coastal water. Soldiers cannot, until Wayfinding."
+      "summary": "Cross coastal water."
     },
     "riteOfTheHarvest": {
       "name": "Rite of the Harvest",
       "glyph": "🌾",
       "bearer": "augur",
-      "summary": "An augur may spend a rite to give a city a citizen."
+      "summary": "A city gains a citizen."
     },
     "recastingTheOmens": {
       "name": "Recasting the Omens",
       "glyph": "🎲",
       "bearer": "augur",
-      "summary": "An augur may spend a rite to give back one belief and choose another."
+      "summary": "Swap one pantheon belief for a new draw."
     },
     "omenReading": {
       "name": "Omen Reading",
       "glyph": "🔮",
       "bearer": "augur",
-      "summary": "An augur may spend a rite for beakers now and sharper scribes after."
+      "summary": "A burst of science, then more for a while."
     },
     "consecrationOfTheBounds": {
       "name": "Consecration of the Bounds",
       "glyph": "🗿",
       "bearer": "augur",
-      "summary": "An augur may spend a rite to walk a city’s borders outward."
+      "summary": "A city’s borders grow at once."
     },
     "blessingOfArms": {
       "name": "Blessing of Arms",
       "glyph": "⚔",
       "bearer": "augur",
-      "summary": "An augur may spend a rite to heal a unit whole and send it out stronger."
+      "summary": "Fully heals a unit and strengthens it a while."
     },
     "thePreaching": {
       "name": "The Preaching",
       "glyph": "📯",
       "bearer": "augur",
-      "summary": "An augur may spend a rite to preach, spreading your religion for a while."
+      "summary": "Spreads your religion nearby."
     },
     "riteOfPlenty": {
       "name": "Rite of Plenty",
       "glyph": "🍷",
       "bearer": "augur",
-      "summary": "An augur may spend a rite for coin now and richer seams after."
+      "summary": "Gold now, and richer seams for a while."
     },
     "ancestorRites": {
       "name": "Ancestor Rites",
       "glyph": "🕯",
       "bearer": "empire",
-      "summary": "Great people will answer your renown and come to serve."
+      "summary": "Renown now earns great-person offers."
     },
     "militaryEmbark": {
       "name": "Sea Legs",
       "glyph": "🚣",
       "bearer": "military",
-      "summary": "Your soldiers may cross coastal water, walking out onto the shallows and back onto land further along. Workers, settlers and scouts learned to do it at Sailing; this is the same crossing, opened to the army."
+      "summary": "Soldiers may cross coastal water."
     },
     "siege": {
       "name": "Siege",
       "glyph": "⛺",
       "bearer": "military",
-      "summary": "Your armies that surround a town cut it off: it cannot heal, and it loses a little health each turn."
+      "summary": "Surrounded enemy cities cannot heal and lose health each turn."
     },
     "theLongCount": {
       "name": "The Long Count",
       "glyph": "📿",
       "bearer": "empire",
-      "summary": "The next age’s glass beads are shown a turn before that age opens."
+      "summary": "The next age’s beads are revealed a turn early."
     },
     "oceanGoing": {
       "name": "Open Ocean",
       "glyph": "🌐",
       "bearer": "empire",
-      "summary": "Ships and embarked units may cross the deep ocean."
+      "summary": "Ships and embarked units may cross deep ocean."
     },
     "openBorders": {
       "name": "Open Borders",
       "glyph": "🛣",
       "bearer": "empire",
-      "summary": "You and another empire may agree to let each other’s armies cross your land. Both of you must have learned to write."
+      "summary": "Open-borders treaties; both empires must know Writing."
     }
   }
 }
