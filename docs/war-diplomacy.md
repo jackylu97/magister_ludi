@@ -98,6 +98,34 @@ on the backburner: some kind of diplomacy meter that affects trade deals. Probab
 - Combat refusals name the rule; the declare button carries a confirm.
   - declare war should be an option in the diplomacy screen.
 
+## 9b. Late rulings (2026-09-03, chat)
+
+- AI escorts its settlers with military units (P3, bot brain).
+- Puppets: production VISIBLE but uncontrollable; chosen by the bot's own
+  appraisal, issued as logged commands by whichever client drives the seat
+  (deterministic). Annex anytime (full costs, irreversible). Raze immediate;
+  capitals never razeable (orchestrator default — overrule if wanted).
+- Peace proposals may carry deal terms; empty proposal = white peace.
+- City trading in PEACE DEALS ONLY (v1).
+- Deal durations: 20 turns, absolute expiry, auto-cancel on declaration.
+- No route-based resource access (the Silk Exchange order owns that space).
+- Losing-war happiness toll: parked in flags.
+
+## The milestone — three phases
+
+- **P1 (war core, spawns now — no src/ai)**: wars state + atWar + declareWar
+  · borders (civilians pass, military blocked at peace; traders free) ·
+  combat/pillage/plunder gated on war · expulsion at PEACE (not declaration)
+  · routes cancel on declaration · capture → puppet default / annex / raze ·
+  diplomacy screen (hud dock) + toasts + red glow for enemies · white-peace
+  proposal command (bots answer in P3) · schema 56.
+- **P2 (deals)**: open borders (both need Writing) · luxury / gold / gpt
+  trades · peace terms incl. cities · lent-access clause in openedResource ·
+  the deal state (20-turn expiry).
+- **P3 (bots at war, after brain v1 merges)**: declaration policy + warscore
+  peace + trade acceptance (1:1 duplicate luxuries, gold baselines) · puppet
+  auto-production wiring · settler escorts · spectate terms for all of it.
+
 ## 10. What this un-defers (the payoff shelf)
 
 Pax Magistri (no-declare clause) · The Levée en Masse (border-crossing
