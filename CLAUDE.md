@@ -1,8 +1,9 @@
 # Magister Ludi (repo `magister_ludi`; formerly "WebCiv")
 
 Browser Civ V-style 4X. TypeScript + Vite. Deterministic simulation, procedural
-toon-shaded 3D renderer, data-driven balance. Design ledger: `docs/design-notes.md`
-(the full history lives there, not here). Open rulings: `docs/flags.md`.
+toon-shaded 3D renderer, data-driven balance. Design state: `docs/design-notes.md`
+(condensed; the unabridged entry history is `docs/design-history.md` — cited
+entry numbers refer to it). Open rulings: `docs/flags.md`.
 UI language: `docs/design-specimen.html` (ink/parchment; every number tabular mono).
 
 "Magister Ludi" is the product name; internal code keeps "webciv" in identifiers.
