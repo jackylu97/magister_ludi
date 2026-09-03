@@ -170,6 +170,22 @@ to press).
   buildings with `tileYields` (Lighthouse). Real construction pays correctly;
   only the appraisal is blind. Small fix in the ghost context when wanted.
 
+### Ruled 2026-09-03 — bot personas (queued behind the spectate pass; src/ai owned)
+
+- `data/ai.json` gains `personas`: sparse deep-overrides of the whole AI
+  config, merged per seat (`persona` on the bot's config entry — in the save,
+  replays deterministically, absent = balanced, no schema bump).
+- Starting set: **balanced · wide · tall · zealot · warmonger** (the user's).
+- Same pass: `cityValueFalloff` (each further city worth less — the honest
+  tall lever; today a settler is a flat 88 for every empire) and per-persona
+  `siteScoreMin`.
+- **Warmonger needs one real capability, not just weights**: the bot is
+  peaceful by construction (it never targets a real player). Add an
+  `aggression` knob read by the unit-order chooser — hunt enemy units and
+  push captures within a radius when set. v1 will be crude (no siege
+  coordination, no war economy); the spectate page is where it gets tuned.
+- Seat picker + spectate setup strip gain the persona dropdown.
+
 ## C. Open threads
 
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture
