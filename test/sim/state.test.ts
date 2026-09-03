@@ -626,7 +626,7 @@ describe('the research queue field', () => {
     // prerequisite re-hung, twelve columns and a truncated cost ladder), plus
     // the one-unit-a-turn rule widened to one per class, which replaces
     // `City.purchasedUnitTurn` with `City.purchasedUnitTurns`.
-    expect(SCHEMA_VERSION).toBe(53);
+    expect(SCHEMA_VERSION).toBe(54);
   });
 });
 

@@ -480,6 +480,15 @@ export interface TechDef {
   cost: number;
   /** Every tech that must already be researched. Order is display order. */
   prereqs: TechId[];
+  /**
+   * Authored right-shift of the drawn column (default 0, never negative): the
+   * node sits this many columns deeper than its longest chain forces. The
+   * user's chart aligns related nodes past their chain minimum — Theology
+   * beside Horology, the Holy Office in the closers' column — and the shift is
+   * how the drawing's alignment is data rather than a second layout engine.
+   * Children inherit it through the chain, because the depth below includes it.
+   */
+  columnShift?: number;
   unlocks: TechUnlocks;
   /**
    * Card effects the empire holds for as long as it holds the technology —
@@ -662,6 +671,7 @@ function computeDepths(): Map<TechId, number> {
         if (!isTechId(prereq)) continue;
         want = Math.max(want, (depth.get(prereq) ?? 0) + 1);
       }
+      want += techDef(id).columnShift ?? 0;
       if (want === depth.get(id)) continue;
       depth.set(id, want);
       changed = true;

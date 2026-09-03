@@ -206,7 +206,7 @@ describe('the shipped lanes', () => {
     // bound, so a future hand that moves a lane knows it is editing the user's
     // drawing; the annealer survives as the advisor for where a NEW node
     // should sit, never as the authority over an authored row.
-    expect(before).toBe(80);
+    expect(before).toBe(60);
     expect(after).toBe(1);
     expect(after).toBeLessThan(before);
   });
@@ -342,16 +342,16 @@ describe('a column is a price', () => {
     // named exceptions written down below rather than smoothed away.
     expect(ageColumns(1).map((band) => band.column)).toEqual([0, 1, 2, 3]);
     expect(ageColumns(2).map((band) => band.column)).toEqual([4, 5]);
-    expect(ageColumns(3).map((band) => band.column)).toEqual([6, 7, 8, 9]);
-    expect(ageColumns(4).map((band) => band.column)).toEqual([10, 11, 12, 13]);
+    expect(ageColumns(3).map((band) => band.column)).toEqual([6, 7, 8]);
+    expect(ageColumns(4).map((band) => band.column)).toEqual([9, 10, 11, 12]);
     const populations = [1, 2, 3, 4].flatMap((age) =>
       ageColumns(age).map(({ column, costs }) => [column, costs.length] as const),
     );
     expect(populations).toEqual([
       [0, 1], [1, 4], [2, 5], [3, 2],
-      [4, 4], [5, 6],
-      [6, 5], [7, 6], [8, 5], [9, 1],
-      [10, 5], [11, 3], [12, 2], [13, 1],
+      [4, 4], [5, 5],
+      [6, 4], [7, 5], [8, 5], [9, 5],
+      [10, 4], [11, 5], [12, 1],
     ]);
     // **Two columns hold fewer than three, and both are exceptions with a
     // reason rather than a rule that quietly stopped holding.** Column 0 is
@@ -364,7 +364,7 @@ describe('a column is a price', () => {
     // Geomancy alone (the survey gets its own late step past Daughter Cities
     // and Horology), column 12 is the war-and-press pair (Militant Orders,
     // Movable Type), and column 13 is Alchemy — the closer closes alone.
-    const SHORT: Record<number, number> = { 0: 1, 3: 2, 9: 1, 12: 2, 13: 1 };
+    const SHORT: Record<number, number> = { 0: 1, 3: 2, 12: 1 };
     for (const [column, held] of populations) {
       if (SHORT[column] !== undefined) {
         expect(held, `column ${column}`).toBe(SHORT[column]);
@@ -660,7 +660,18 @@ describe('packChart', () => {
     // The shipped tree, at the shipped metrics, is laid clear outright: nothing
     // has to be bowed at all. A future node that forces one is a change worth
     // seeing in a diff rather than a silent bend.
-    expect(packed.bowed).toEqual([]);
+    // Revision 4.2's authored shifts created three connectors that span two
+    // columns and thread a packed middle stack — kingship reaching past the
+    // shifted Examination Hall's old column, philosophy past to the shifted
+    // Theology, shipwrights past to Paper Money. None can be nudged clear (the
+    // middle stacks are full at those heights), so all three take the honest
+    // 16px bow the machinery was built for. The exact list is the pin: a
+    // fourth bow is a decision, not a drift.
+    expect(packed.bowed).toEqual([
+      { bow: 16, from: 'shipwrights', to: 'paperMoney' },
+      { bow: 16, from: 'kingship', to: 'theExaminationHall' },
+      { bow: -16, from: 'philosophy', to: 'theology' },
+    ]);
   });
 
   /**
@@ -688,7 +699,7 @@ describe('packChart', () => {
     );
     // Six nodes is the deepest column the tree has, and the packed chart is
     // those six cards and the air between them and nothing else.
-    expect(deepest).toBe(6);
+    expect(deepest).toBe(5);
     expect(packed.height).toBeLessThanOrEqual(6.5 * tallest + PACK_GAP_MAX * (deepest - 1));
   });
 
@@ -701,7 +712,7 @@ describe('packChart', () => {
     // The measured figure, pinned: **606px** of chart under a 22px strip, where
     // the lanes drew 1032 and overran by 415. A change that moves it is a change
     // to the card face or to the deepest column, and both are worth a diff.
-    expect(Math.round(packed.height)).toBe(606);
+    expect(Math.round(packed.height)).toBe(524);
     expect(STRIP + packed.height).toBeLessThanOrEqual(STAGE);
     // So nothing is shrunk and nothing scrolls — the two fallbacks stay unused
     // at the size the game is actually played at.
@@ -710,12 +721,12 @@ describe('packChart', () => {
 
   it('closes the gaps before it shrinks anything', () => {
     // The order of the fallbacks, which is the cheapest first: air costs nothing
-    // to give up and type costs legibility. Closing up is worth five gaps of the
-    // deepest column, which is real height and is taken before a scale is.
+    // to give up and type costs legibility. Closing up is worth four gaps of the
+    // deepest column (five cards since revision 4.2), taken before a scale is.
     const roomy = packChart(shippedCards(), shippedEdges(), PACK_GAP_MAX, GEOMETRY);
     const tight = packChart(shippedCards(), shippedEdges(), PACK_GAP_MIN, GEOMETRY);
     expect(tight.height).toBeLessThan(roomy.height);
-    expect(roomy.height - tight.height).toBe((PACK_GAP_MAX - PACK_GAP_MIN) * 5);
+    expect(roomy.height - tight.height).toBe((PACK_GAP_MAX - PACK_GAP_MIN) * 4);
   });
 
   it('answers a chart nobody has laid out yet without dividing by zero', () => {

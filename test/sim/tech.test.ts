@@ -333,9 +333,13 @@ describe('tech data integrity', () => {
     // the late game again** — Engineering chains off The Saddle, the sea lane
     // runs through Raised Fields, and Alchemy closes a fourth Æra IV column —
     // so the chart is fourteen columns and 875/920 are back on the end of the
-    // same untouched table. The tree is 18980 beakers; the ages are
-    // 345 / 1890 / 7865 / 8880.
-    const COLUMN_COSTS = [5, 13, 30, 69, 135, 225, 335, 450, 565, 665, 750, 820, 875, 920];
+    // same untouched table. Revision 4.2 (2026-09-03, the user again): Machinery and
+    // State Workforce move to Æra III, four nodes carry an authored
+    // `columnShift` so the drawn alignment is data (Theology beside Horology,
+    // the Holy Office among the closers), and Alchemy takes all four closing
+    // lines as parents — thirteen columns, the tree at 19725 beakers, the ages
+    // 345 / 1665 / 6415 / 11300 (the user: columns 9-12 constitute Æra IV).
+    const COLUMN_COSTS = [5, 13, 30, 69, 135, 225, 335, 450, 565, 665, 750, 820, 875];
     expect(COLUMN_COSTS).toHaveLength(techColumnCount());
     for (const id of TECH_IDS) {
       expect(techDef(id).cost, id).toBe(COLUMN_COSTS[techColumn(id)]);
@@ -346,8 +350,8 @@ describe('tech data integrity', () => {
     const bands: Record<number, [number, number]> = {
       1: [5, 69],
       2: [135, 225],
-      3: [335, 665],
-      4: [750, 920],
+      3: [335, 565],
+      4: [665, 875],
     };
     for (const id of TECH_IDS) {
       const def = techDef(id);
@@ -427,7 +431,10 @@ describe('star chart layout', () => {
   it('gives every tech a column one past its deepest prerequisite', () => {
     for (const id of TECH_IDS) {
       const def = techDef(id);
-      const deepest = def.prereqs.reduce((deep, prereq) => Math.max(deep, techDepth(prereq) + 1), 0);
+      // Plus the authored right-shift: revision 4.2's `columnShift` is part of
+      // the depth by design, so the drawn alignment IS the derivation.
+      const chain = def.prereqs.reduce((deep, prereq) => Math.max(deep, techDepth(prereq) + 1), 0);
+      const deepest = chain + (def.columnShift ?? 0);
       expect(techDepth(id), id).toBe(deepest);
     }
   });
@@ -471,7 +478,7 @@ describe('star chart layout', () => {
     // settled at twelve**. The ages own disjoint column runs (4 + 2 + 3 + 3), so
     // the banners are exact; the lane budget did not move, because it is what
     // the stage was fitted for and the widest column still holds six.
-    expect(techColumnCount()).toBe(14);
+    expect(techColumnCount()).toBe(13);
     expect(techRowCount()).toBe(8);
   });
 
@@ -1111,7 +1118,7 @@ describe('research in the log', () => {
     // re-hung, the chart down to twelve columns and every cost re-read off the
     // truncated ladder. And, beside it, the one-unit-a-turn rule widened to one
     // *per class*, which is a reducer that accepts what v49's refused.
-    expect(SCHEMA_VERSION).toBe(53);
+    expect(SCHEMA_VERSION).toBe(54);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

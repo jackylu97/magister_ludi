@@ -4561,3 +4561,22 @@ for a future node. With the compact face (two unlock rows + "+N more",
 flavour to the hover card), 1032px of lanes became **606px** — under the
 681px fold that Entry LX's measurement called unreachable by layout alone.
 It was unreachable by *lanes* alone; the drawing knew the other way.
+
+### LXII.c — revision 4.2: the drawn columns are data (2026-09-03, schema 54)
+
+Three rulings in quick succession, all from the user reading their own photo
+against the shipped chart. First: **the drawn column is authoritative**, so
+`TechDef.columnShift` exists — an authored right-shift (Examination Hall,
+Theology, The Holy Office, State Workforce, +1 each) that makes the drawing's
+alignment part of the depth derivation rather than a second layout engine; the
+photo's whole geometry then falls out of the chains. Second: **the ages follow
+the columns** — "9, 10, 11 and alchemy constitute age 4" — so Scholarship,
+Geomancy, Machinery, Divine Right and Paper Money are Æra IV, State Workforce
+and the column-6 row are Æra III, Æra II thins to nine ("a bit shorter for
+now; the priority is getting this ready for playtest"). Third: **Alchemy takes
+every closing line** — all five column-11 nodes are its parents, the one
+sanctioned exception to the two-parent convention, because a Great Work is
+what everything converges on. Thirteen columns, tree 19725, ages 345 / 1665 /
+6415 / 11300. The three connectors the shifts stretched across two columns
+take honest 16px bows, pinned as an exact list — the bow machinery's first
+real customers.

@@ -384,9 +384,9 @@
     "stateWorkforce": {
       "name": "State Workforce",
       "glyph": "🏗",
-      "age": 2,
+      "age": 3,
       "row": 5,
-      "cost": 225,
+      "cost": 335,
       "prereqs": [
         "currency"
       ],
@@ -410,7 +410,8 @@
         }
       ],
       "flavor": "A season the realm owns, taken from each in turn.",
-      "note": "Every worker you train has one more season of work in it, and the treasury hires one at a quarter off."
+      "note": "Every worker you train has one more season of work in it, and the treasury hires one at a quarter off.",
+      "columnShift": 1
     },
     "theHighTemple": {
       "name": "The High Temple",
@@ -494,9 +495,9 @@
     "paperMoney": {
       "name": "Paper Money",
       "glyph": "🧾",
-      "age": 3,
+      "age": 4,
       "row": 7,
-      "cost": 565,
+      "cost": 665,
       "prereqs": [
         "shipwrights",
         "artisanry"
@@ -517,7 +518,7 @@
       "glyph": "🔨",
       "age": 3,
       "row": 5,
-      "cost": 450,
+      "cost": 565,
       "prereqs": [
         "theImperialPost"
       ],
@@ -553,7 +554,7 @@
       "glyph": "📯",
       "age": 3,
       "row": 5,
-      "cost": 335,
+      "cost": 450,
       "prereqs": [
         "stateWorkforce"
       ],
@@ -593,7 +594,7 @@
       "glyph": "🏛",
       "age": 3,
       "row": 1,
-      "cost": 335,
+      "cost": 450,
       "prereqs": [
         "kingship"
       ],
@@ -609,14 +610,15 @@
         }
       ],
       "flavor": "The clerk is chosen by the paper, not by the father.",
-      "note": "A realm that is content or well governed is rewarded more generously."
+      "note": "A realm that is content or well governed is rewarded more generously.",
+      "columnShift": 1
     },
     "colonialCharters": {
       "name": "Daughter Cities",
       "glyph": "📋",
       "age": 3,
       "row": 1,
-      "cost": 450,
+      "cost": 565,
       "prereqs": [
         "theExaminationHall"
       ],
@@ -645,9 +647,9 @@
     "theQadisCourt": {
       "name": "Divine Right",
       "glyph": "⚖",
-      "age": 3,
+      "age": 4,
       "row": 5,
-      "cost": 565,
+      "cost": 665,
       "prereqs": [
         "artisanry"
       ],
@@ -671,7 +673,7 @@
       "glyph": "⛪",
       "age": 3,
       "row": 0,
-      "cost": 450,
+      "cost": 565,
       "prereqs": [
         "philosophy"
       ],
@@ -686,7 +688,8 @@
         ]
       },
       "flavor": "The library, copied by candlelight, one page a day.",
-      "note": "The enhancing beliefs open here: a faith may now be deepened as well as spread."
+      "note": "The enhancing beliefs open here: a faith may now be deepened as well as spread.",
+      "columnShift": 1
     },
     "ironWorking": {
       "name": "Iron Working",
@@ -714,9 +717,9 @@
     "education": {
       "name": "Scholarship",
       "glyph": "🎓",
-      "age": 3,
+      "age": 4,
       "row": 0,
-      "cost": 565,
+      "cost": 665,
       "prereqs": [
         "theology"
       ],
@@ -786,7 +789,7 @@
     "prospecting": {
       "name": "Geomancy",
       "glyph": "🪨",
-      "age": 3,
+      "age": 4,
       "row": 1,
       "cost": 665,
       "prereqs": [
@@ -835,7 +838,7 @@
       "glyph": "🔧",
       "age": 4,
       "row": 2,
-      "cost": 750,
+      "cost": 665,
       "prereqs": [
         "horology",
         "engineering"
@@ -924,7 +927,7 @@
       "glyph": "🕊",
       "age": 4,
       "row": 0,
-      "cost": 750,
+      "cost": 820,
       "prereqs": [
         "education"
       ],
@@ -937,14 +940,15 @@
           "notreDame"
         ]
       },
-      "flavor": "The question is asked, and it is not really a question."
+      "flavor": "The question is asked, and it is not really a question.",
+      "columnShift": 1
     },
     "steel": {
       "name": "Steel",
       "glyph": "🗡",
       "age": 4,
       "row": 2,
-      "cost": 820,
+      "cost": 750,
       "prereqs": [
         "machinery"
       ],
@@ -974,10 +978,13 @@
       "glyph": "⚗",
       "age": 4,
       "row": 3,
-      "cost": 920,
+      "cost": 875,
       "prereqs": [
         "militantOrders",
-        "movableType"
+        "movableType",
+        "banking",
+        "theAstrolabe",
+        "theHolyOffice"
       ],
       "unlocks": {
         "units": [
@@ -997,7 +1004,7 @@
       "glyph": "🔠",
       "age": 4,
       "row": 5,
-      "cost": 875,
+      "cost": 820,
       "prereqs": [
         "steel",
         "theSilkRoad"
@@ -1044,7 +1051,7 @@
       "glyph": "🐴",
       "age": 4,
       "row": 2,
-      "cost": 875,
+      "cost": 820,
       "prereqs": [
         "steel"
       ],

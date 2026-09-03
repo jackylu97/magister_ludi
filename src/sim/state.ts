@@ -806,8 +806,15 @@ import {
  * v53: tree revision 4.1 — the user's arrows verbatim (edges, columns and the
  * fourteen-figure ladder all moved), so a v52 log replays into a different
  * world and is refused.
+ *
+ * v54: revision 4.2 — the drawn columns are data: authored columnShift on
+ * four nodes, columns 9-12 constitute Æra IV (Scholarship, Geomancy,
+ * Machinery, Divine Right and Paper Money re-aged; State Workforce joins
+ * Æra III), and Alchemy takes all five closing lines as parents. Costs and
+ * ages both moved, so a v53 log replays into a different world and is
+ * refused.
  */
-export const SCHEMA_VERSION = 53;
+export const SCHEMA_VERSION = 54;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

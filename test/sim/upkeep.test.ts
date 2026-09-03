@@ -129,11 +129,13 @@ describe('what a building costs to keep', () => {
     // printing house is the first Cathedrals row to draw a wage.
     expect(buildingUpkeep('market')).toBe(2);
     // The bazaar moved to Paper Money (Æra III) with the re-cut of 2026-09-02.
-    expect(buildingUpkeep('bazaar')).toBe(3);
+    // Paper Money is Æra IV since revision 4.2 (the user's column ruling).
+    expect(buildingUpkeep('bazaar')).toBe(4);
     expect(buildingUpkeep('workshop')).toBe(3);
     expect(buildingUpkeep('watermill')).toBe(3);
     expect(buildingUpkeep('amphitheater')).toBe(2);
-    expect(buildingUpkeep('university')).toBe(3);
+    // Scholarship is Æra IV since revision 4.2, and the university with it.
+    expect(buildingUpkeep('university')).toBe(4);
     expect(buildingUpkeep('printingHouse')).toBe(4);
   });
 
@@ -241,7 +243,8 @@ describe('the empire ledger', () => {
     // which is the list's own rule: a line worth nothing is never printed.
     expect(explainEmpireGold(state, 0)).toEqual([
       { source: 'Unit maintenance · 2 units', gold: -2 },
-      { source: 'Building maintenance · 1 building', gold: -3 },
+      // Revision 4.2 re-aged this building's unlocking tech to Æra IV.
+      { source: 'Building maintenance · 1 building', gold: -4 },
     ]);
   });
 
