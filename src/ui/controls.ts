@@ -217,6 +217,7 @@ import {
 } from '../sim/improvementData';
 import {
   type PillageReport,
+  barrenHillError,
   chopBaseFor,
   chopCity,
   chopError,
@@ -5114,12 +5115,25 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * Why the selected piece cannot survey where it stands. The seat's question
    * here, the act's delegated to `prospectError` — `chopBlocker`'s split, and
    * the same guarantee.
+   *
+   * With one clause the reducer does not have. Once an empire holds Geomancy the
+   * board tells it where every sleeping seam is (`seatSeesSleepingVein`), so a
+   * hill with no mark on it is a hill whose answer is already printed — and the
+   * row greys with the chart's own sentence rather than offering a turn spent
+   * confirming it. `prospectError` is deliberately untouched: surveying an
+   * unmarked hill stays legal, a replayed log still replays, and an empire
+   * without the technology still sees the tree's refusal and none of this. See
+   * `barrenHillError`, which is the interface's sentence and says so.
    */
   function prospectBlocker(): string | null | undefined {
     const unit = selectedUnit();
     if (!unit) return undefined;
     if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
-    return prospectError(getGame().state, unit.id);
+    const state = getGame().state;
+    const problem = prospectError(state, unit.id);
+    if (problem !== null) return problem;
+    const tile = getTileAt(state.map, unit.col, unit.row);
+    return tile ? barrenHillError(state, unit.ownerId, tile) : null;
   }
 
   /**

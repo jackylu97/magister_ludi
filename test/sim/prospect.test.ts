@@ -4,11 +4,17 @@ import { nextBotCommand } from '../../src/ai/bot';
 import { foundCityAt } from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { snapshotState } from '../../src/sim/game';
-import { prospectAt, prospectError, prospectTechError } from '../../src/sim/improvements';
+import {
+  barrenHillError,
+  prospectAt,
+  prospectError,
+  prospectTechError,
+  seatSeesSleepingVein,
+} from '../../src/sim/improvements';
 import { prospectDef } from '../../src/sim/improvementData';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, createUnit, newGame } from '../../src/sim/state';
-import { TECH_IDS } from '../../src/sim/techData';
+import { ABILITY_IDS, TECH_IDS, abilityDef, techDef } from '../../src/sim/techData';
 import { at, bareState } from './improvementHelpers';
 
 /**
@@ -371,5 +377,171 @@ describe('the bot’s one arm', () => {
     const text = Object.values(bot)[0]!;
     expect(text).toContain('prospectError(state, unit.id) === null');
     expect(text).not.toContain('vein');
+  });
+});
+
+/**
+ * **The Geomancy reveal** (ruled 2026-09-03): holding the survey's own
+ * technology shows an empire *where* the sleeping seams are and never *which*.
+ *
+ * Three separable claims, and they fail for different reasons:
+ *
+ *   1. **It is derived and per seat.** No field, no flag, no per-empire map — a
+ *      predicate over the tile and the seat's tree, so a rival without the node
+ *      sees nothing and a survey turns the mark off for free.
+ *   2. **It is kind-blind.** The predicate answers a boolean. The seam's *name*
+ *      is what the turn buys and it still comes through the ordinary reveal.
+ *   3. **The verb is unchanged.** `prospectError` still accepts an unmarked
+ *      hill; only the interface declines to offer the turn (`barrenHillError`).
+ */
+describe('what Geomancy shows', () => {
+  /** A hill at (5, 4) with a seam under it, and a worker standing on it. */
+  function sleepingHill(): { state: GameState; worker: ReturnType<typeof createUnit> } {
+    const made = hillWorker();
+    at(made.state, 5, 4).vein = 'iron';
+    return made;
+  }
+
+  it('marks an unsurveyed hill with a seam, for an empire that holds the node', () => {
+    const { state } = sleepingHill();
+    expect(seatSeesSleepingVein(state, 0, at(state, 5, 4))).toBe(true);
+  });
+
+  it('shows nothing at all to a seat without the node', () => {
+    const { state } = sleepingHill();
+    state.players[1]!.techsResearched = TECH_IDS.filter((id) => id !== GATE);
+    expect(seatSeesSleepingVein(state, 1, at(state, 5, 4))).toBe(false);
+    // …and the gate is the row's, never a tech id spelled into the rule.
+    expect(GATE).toBe(prospectDef().tech);
+  });
+
+  it('says nothing about a bare hill, a surveyed hill, or flat ground', () => {
+    const { state } = sleepingHill();
+    const tile = at(state, 5, 4);
+
+    tile.surveyed = true;
+    expect(seatSeesSleepingVein(state, 0, tile)).toBe(false);
+    delete tile.surveyed;
+
+    tile.hills = false;
+    expect(seatSeesSleepingVein(state, 0, tile)).toBe(false);
+    tile.hills = true;
+
+    delete tile.vein;
+    expect(seatSeesSleepingVein(state, 0, tile)).toBe(false);
+  });
+
+  it('goes out the moment the hill is asked, with nothing to clean up', () => {
+    // Derived off `Tile.surveyed` and `Tile.vein`, both of which `prospectAt`
+    // writes — so the mark leaving the board costs the survey no extra line.
+    const { state, worker } = sleepingHill();
+    expect(seatSeesSleepingVein(state, 0, at(state, 5, 4))).toBe(true);
+    prospectAt(state, worker, at(state, 5, 4));
+    expect(seatSeesSleepingVein(state, 0, at(state, 5, 4))).toBe(false);
+    // The seam itself surfaced through the ordinary field, which is where every
+    // rule that reads a resource was already looking.
+    expect(at(state, 5, 4).resource).toBe('iron');
+  });
+
+  it('is a boolean and never the seam’s name — the kind is what the turn buys', () => {
+    const { state } = sleepingHill();
+    const seen = seatSeesSleepingVein(state, 0, at(state, 5, 4));
+    expect(typeof seen).toBe('boolean');
+    // A gold seam and an iron seam are one mark. If this ever stops being true
+    // the reveal gate has been routed around.
+    at(state, 5, 4).vein = 'gold';
+    expect(seatSeesSleepingVein(state, 0, at(state, 5, 4))).toBe(seen);
+  });
+
+  it('greys an unmarked hill for the interface and for nobody else', () => {
+    // The ruling's split: the chart already answers this hill, so the sheet
+    // declines to sell the turn — but the rule is untouched, the reducer still
+    // takes the command, and an old log still replays.
+    const { state, worker } = hillWorker();
+    const tile = at(state, 5, 4);
+    expect(prospectError(state, worker.id)).toBeNull();
+    expect(barrenHillError(state, 0, tile)).toBe('Nothing sleeps under this hill');
+
+    tile.vein = 'iron';
+    expect(barrenHillError(state, 0, tile)).toBeNull();
+  });
+
+  it('greys nothing at all before the node — the hills all look alike', () => {
+    const { state } = hillWorker();
+    state.players[0]!.techsResearched = TECH_IDS.filter((id) => id !== GATE);
+    expect(barrenHillError(state, 0, at(state, 5, 4))).toBeNull();
+  });
+
+  it('greys nothing on ground the verb refuses for its own reasons', () => {
+    // Flat ground and an answered hill are `prospectError`'s refusals and stay
+    // its refusals: two sentences for one hex would be the sheet saying the
+    // quiet part instead of the rule.
+    const { state } = hillWorker();
+    const tile = at(state, 5, 4);
+    tile.hills = false;
+    expect(barrenHillError(state, 0, tile)).toBeNull();
+    tile.hills = true;
+    tile.surveyed = true;
+    expect(barrenHillError(state, 0, tile)).toBeNull();
+  });
+
+  it('leaves the reducer’s own gate exactly as it was', () => {
+    // A source read, because this is the one claim every behavioural test in
+    // the file would still pass while broken: the greying is the interface's
+    // and `prospectError` must not have grown a clause about a vein.
+    const sources = import.meta.glob('../../src/sim/improvements.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    const text = Object.values(sources)[0]!;
+    const gate = text.slice(
+      text.indexOf('export function prospectError'),
+      text.indexOf('export function prospectTechError'),
+    );
+    expect(gate.length).toBeGreaterThan(0);
+    expect(gate).not.toContain('vein');
+  });
+});
+
+/**
+ * **"Worker or scout", everywhere a player reads** (ruled 2026-09-03).
+ *
+ * The `isExplorer` marker is code vocabulary and stays — it is named for the
+ * *kind*, and the day a second pathfinder ships it will be one too. What a
+ * player hears is the unit they actually have, so no rules prose in the data
+ * says "explorer" while the roster has exactly one scout in it.
+ *
+ * A data sweep rather than a check of one string, because the failure this
+ * guards against is the *next* row: a node written up in six months that reaches
+ * for the word the code uses.
+ */
+describe('the word a player reads for the surveying hand', () => {
+  const EXPLORER = /\bexplorers?\b/i;
+
+  it('is never “explorer” in a technology’s rules', () => {
+    for (const id of TECH_IDS) {
+      const note = techDef(id).note;
+      if (note === undefined) continue;
+      expect(EXPLORER.test(note), `${id}: ${note}`).toBe(false);
+    }
+  });
+
+  it('is never “explorer” in an ability’s summary', () => {
+    for (const id of ABILITY_IDS) {
+      const { summary } = abilityDef(id);
+      expect(EXPLORER.test(summary), `${id}: ${summary}`).toBe(false);
+    }
+  });
+
+  it('says the survey is a worker’s or a scout’s, in the node that opens it', () => {
+    // The positive half, and it is asked of the gate's own row rather than of a
+    // spelled tech id: whichever node opens the survey is the node that has to
+    // say who may spend it.
+    const note = techDef(prospectDef().tech).note ?? '';
+    expect(note).toMatch(/worker or a scout/i);
+    // …and that it says what the empire is shown for free, which is the other
+    // half of the ruling: where a seam sleeps, never which seam it is.
+    expect(note).toMatch(/sleeps/i);
   });
 });

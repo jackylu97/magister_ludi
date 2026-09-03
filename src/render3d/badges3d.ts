@@ -114,6 +114,7 @@ import {
   resourceMark,
 } from '../art/resourceMarks';
 import { siteMark } from '../art/siteMarks';
+import { SURVEY_MARK_IDS, type SurveyMarkId, surveyMark } from '../art/surveyMarks';
 import {
   YIELD_MARK_BOX,
   YIELD_MARK_SCALE,
@@ -940,6 +941,19 @@ export const CHARGE_CELLS: readonly HeraldryId[] = HERALDRY_IDS;
 export const AXIS_CELLS: readonly BeliefAxis[] = BELIEF_AXES;
 
 /**
+ * The survey's notes: one cell per drawn survey mark
+ * (`src/art/surveyMarks.ts`), which is one today — the sleeping vein.
+ *
+ * Aliased from the art registry for `SITE_MARK_CELLS`' reason, and printed with
+ * **no disc under it** for the marginalia's: a survey note is not a token laid
+ * on the board and not a tablet standing on it. It is what a surveyor pencils
+ * onto his own chart over a hex he has an opinion about, so it is drawn into the
+ * vellum in the same faded hand the inscription is set in
+ * (`icons.inscriptionColor`; see `drawSurveyCell`).
+ */
+export const SURVEY_MARK_CELLS: readonly SurveyMarkId[] = SURVEY_MARK_IDS;
+
+/**
  * The discovery sites, in the order `DISCOVERY_KINDS` declares them.
  *
  * Aliased from the simulation's own list rather than written out again, because
@@ -957,7 +971,8 @@ export type TileIconCell =
   | { set: 'marginalia'; id: MarginaliaKey }
   | { set: 'site'; id: DiscoveryKind }
   | { set: 'charge'; id: HeraldryId }
-  | { set: 'axis'; id: BeliefAxis };
+  | { set: 'axis'; id: BeliefAxis }
+  | { set: 'survey'; id: SurveyMarkId };
 
 /**
  * Every cell of the tile atlas, in layout order: the resources, then the six
@@ -978,6 +993,7 @@ export const TILE_ICON_CELLS: readonly TileIconCell[] = [
   ...SITE_MARK_CELLS.map((id) => ({ set: 'site', id }) as TileIconCell),
   ...CHARGE_CELLS.map((id) => ({ set: 'charge', id }) as TileIconCell),
   ...AXIS_CELLS.map((id) => ({ set: 'axis', id }) as TileIconCell),
+  ...SURVEY_MARK_CELLS.map((id) => ({ set: 'survey', id }) as TileIconCell),
 ];
 
 /**
@@ -1583,6 +1599,39 @@ function drawMarginaliaCell(
 }
 
 /**
+ * Paints one survey note straight onto the atlas, with nothing behind it and in
+ * the chart's faded ink.
+ *
+ * `drawMarginaliaCell` with a second table, and the two are alike on purpose:
+ * both are marks drawn *into* the vellum rather than tokens laid on the board,
+ * so both decline the parchment disc every other set in this atlas sits on. The
+ * difference is what they are about — a marginale decorates the sea nobody has
+ * been to, while this says a specific, checkable thing about a specific hex.
+ *
+ * The ink is `icons.inscriptionColor`, which is the *faint* one, and that is the
+ * whole of "a faint marker" (ruled 2026-09-03). It is emphatically not an alpha:
+ * this atlas is alpha-tested, so a reduced `globalAlpha` would not pale the mark
+ * at all — it would chew the antialiased edge off it. See the trap written out
+ * at length on `IconsLook.inscriptionScale`.
+ */
+function drawSurveyCell(
+  context: CanvasRenderingContext2D,
+  index: number,
+  layout: AtlasLayout,
+  id: SurveyMarkId,
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  paintMarkPaths(
+    context,
+    surveyMark(id),
+    { x: origin.x + cell / 2, y: origin.y + cell / 2 },
+    Math.max(1, ICONS.surveyScale * cell),
+    ICONS.inscriptionColor,
+  );
+}
+
+/**
  * The inscription's fit step: how much to shrink `inscriptionScale` — a
  * *maximum*, never a promise — so the widest set line clears the cell.
  *
@@ -1979,8 +2028,14 @@ export class TileIcons {
         drawAxisCell(context, index, layout, cell.id);
         return;
       }
-      // Every `TileIconCell` variant is one of the seven branches above; this is
-      // the exhaustiveness check, not a reachable draw path — an eighth set
+      // Bare ink again, and faint: the surveyor's own note on his own chart.
+      // See `SURVEY_MARK_CELLS` and `drawSurveyCell`.
+      if (cell.set === 'survey') {
+        drawSurveyCell(context, index, layout, cell.id);
+        return;
+      }
+      // Every `TileIconCell` variant is one of the eight branches above; this is
+      // the exhaustiveness check, not a reachable draw path — a ninth set
       // added to the union without a painter here fails typecheck instead of
       // drawing a blank cell.
       const exhaustive: never = cell;

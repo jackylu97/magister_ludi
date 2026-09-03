@@ -909,6 +909,72 @@ export function prospectTechError(state: GameState, ownerId: number): string | n
   return `Surveying a hill needs ${techDef(tech).name}`;
 }
 
+/**
+ * Does this empire know that **something sleeps** under this hill?
+ *
+ * The whole of the Geomancy reveal (ruled 2026-09-03), and it is one derived
+ * reading in one place rather than a field, a flag or a per-seat map: an empire
+ * that holds the survey's own technology is shown *where* the seams are and
+ * never *which*, so the turn a worker spends still buys the only thing it ever
+ * bought — the name of the thing under the hill.
+ *
+ * The clauses, cheapest and rarest first, because this is asked once per tile
+ * per fingerprint on the render side:
+ *
+ *   · **a seam is actually there** (`Tile.vein`). Rare — a few dozen hexes on a
+ *     board — so it is asked first and every other clause is paid for only by
+ *     the hills that carry one.
+ *   · **nobody has asked yet** (`Tile.surveyed`). A surveyed hill has its answer
+ *     written on the map for everybody; the mark is for the question, not the
+ *     answer, and `prospectAt` deletes the vein on a strike anyway.
+ *   · **it is a hill.** Implied by the placement rule (`veinGroundAt`) and asked
+ *     anyway, because `prospectError` refuses on exactly this and a marker that
+ *     could appear where the verb refuses would be a promise the sheet breaks.
+ *   · **the empire holds the technology.** Asked of `prospectDef().tech` like
+ *     every other gate in this file, so nothing here spells a tech id.
+ *
+ * What it deliberately does **not** ask is the fog: that is the drawing layer's
+ * question and it has a rule for it already (a survey note follows the
+ * *improvement* rule — drawn on any hex the seat has ever charted — see
+ * `sites3d.ts`), exactly as `seatSeesKind` leaves the fog to the layer that
+ * knows what a fog level is.
+ *
+ * The kind is not returned and must not be: this answers "is there a question
+ * here", and the answer to the question is the resource itself, which surfaces
+ * through the ordinary reveal flow the moment a survey turns it over.
+ */
+export function seatSeesSleepingVein(state: GameState, playerId: number, tile: Tile): boolean {
+  if (tile.vein === undefined) return false;
+  if (tile.surveyed === true) return false;
+  if (!tile.hills) return false;
+  return hasTech(state, playerId, prospectDef().tech);
+}
+
+/**
+ * Why surveying this hill would tell this empire nothing it does not already
+ * know, or `null`.
+ *
+ * **Not a rule** — `prospectError` is unchanged and the reducer still takes the
+ * command, which is deliberate (ruled 2026-09-03): a survey of an unmarked hill
+ * is legal, it simply confirms what the chart already says. This is the
+ * *interface's* sentence, and it exists because once an empire holds Geomancy
+ * the board is telling it where every seam is: a Survey row still offered on
+ * the ninety hills in between would be an invitation to spend a turn on an
+ * answer already printed on the hex.
+ *
+ * So it fires only for an empire that can see the marks. Before Geomancy the
+ * row is greyed by the tree (`prospectTechError`) and the hills all look alike,
+ * which is the game the survey used to be and is still the game a replayed old
+ * log plays.
+ */
+export function barrenHillError(state: GameState, playerId: number, tile: Tile): string | null {
+  if (!hasTech(state, playerId, prospectDef().tech)) return null;
+  if (tile.surveyed === true) return null;
+  if (!tile.hills) return null;
+  if (seatSeesSleepingVein(state, playerId, tile)) return null;
+  return 'Nothing sleeps under this hill';
+}
+
 /** What asking a hill turned out to be worth. */
 export interface ProspectReport {
   /** The seam that came up, or `null` — the hill was barren. */

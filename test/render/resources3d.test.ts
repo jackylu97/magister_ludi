@@ -16,6 +16,7 @@ import {
   MARGINALIA_CELLS,
   NUMERAL_CELLS,
   SITE_MARK_CELLS,
+  SURVEY_MARK_CELLS,
   TILE_ICON_CELLS,
   type TileIcons,
   YIELD_COLORS,
@@ -50,6 +51,7 @@ import { type GameState, newGame } from '../../src/sim/state';
 import { visibleResourceAt } from '../../src/sim/tech';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { siteMark } from '../../src/art/siteMarks';
+import { SURVEY_MARK_IDS, surveyMark } from '../../src/art/surveyMarks';
 import { DISCOVERY_KINDS } from '../../src/sim/discoveryData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../../src/sim/resourceData';
 import { TECH_IDS } from '../../src/sim/techData';
@@ -335,6 +337,7 @@ describe('the tile-icon atlas', () => {
     const sites = TILE_ICON_CELLS.filter((cell) => cell.set === 'site').map((c) => c.id);
     const charges = TILE_ICON_CELLS.filter((cell) => cell.set === 'charge').map((c) => c.id);
     const axes = TILE_ICON_CELLS.filter((cell) => cell.set === 'axis').map((c) => c.id);
+    const surveys = TILE_ICON_CELLS.filter((cell) => cell.set === 'survey').map((c) => c.id);
     expect(resources).toEqual([...RESOURCE_IDS]);
     expect(yields).toEqual([...YIELD_KEYS]);
     expect(numerals).toEqual([...NUMERAL_CELLS]);
@@ -357,6 +360,12 @@ describe('the tile-icon atlas', () => {
     // threads it can be made of are exactly what is fixed.
     expect(axes).toEqual([...AXIS_CELLS]);
     expect(AXIS_CELLS).toEqual([...BELIEF_AXES]);
+    // And the eighth, appended by the Geomancy reveal: the survey's own notes,
+    // which are the only cells in the atlas that name *no* thing at all. A mark
+    // the board can plant with no cell here throws from inside the rasterisation
+    // exactly as a discovery kind would.
+    expect(surveys).toEqual([...SURVEY_MARK_CELLS]);
+    expect(SURVEY_MARK_CELLS).toEqual([...SURVEY_MARK_IDS]);
     expect(TILE_ICON_CELLS).toHaveLength(
       RESOURCE_IDS.length +
         6 +
@@ -364,7 +373,8 @@ describe('the tile-icon atlas', () => {
         MARGINALIA_CELLS.length +
         SITE_MARK_CELLS.length +
         CHARGE_CELLS.length +
-        AXIS_CELLS.length,
+        AXIS_CELLS.length +
+        SURVEY_MARK_CELLS.length,
     );
   });
 
@@ -385,6 +395,7 @@ describe('the tile-icon atlas', () => {
         SITE_MARK_CELLS.length -
         CHARGE_CELLS.length -
         AXIS_CELLS.length -
+        SURVEY_MARK_CELLS.length -
         MARGINALIA_CELLS.length,
     );
     // The inscription joined the marginalia *behind* the serpent, so the serpent
@@ -393,12 +404,17 @@ describe('the tile-icon atlas', () => {
       tileIconIndex({ set: 'marginalia', id: 'serpent' }) + 1,
     );
     expect(tileIconIndex({ set: 'charge', id: CHARGE_CELLS[CHARGE_CELLS.length - 1]! })).toBe(
-      TILE_ICON_CELLS.length - AXIS_CELLS.length - 1,
+      TILE_ICON_CELLS.length - AXIS_CELLS.length - SURVEY_MARK_CELLS.length - 1,
     );
-    // The axes are the newest set and are on the end, which is the whole rule.
+    // The axes kept their place when the survey notes arrived behind them, which
+    // is the property this suite is really about.
     expect(tileIconIndex({ set: 'axis', id: AXIS_CELLS[AXIS_CELLS.length - 1]! })).toBe(
-      TILE_ICON_CELLS.length - 1,
+      TILE_ICON_CELLS.length - SURVEY_MARK_CELLS.length - 1,
     );
+    // The survey notes are the newest set and are on the end, which is the rule.
+    expect(
+      tileIconIndex({ set: 'survey', id: SURVEY_MARK_CELLS[SURVEY_MARK_CELLS.length - 1]! }),
+    ).toBe(TILE_ICON_CELLS.length - 1);
   });
 
   /**
@@ -652,6 +668,30 @@ describe('discovery site markers', () => {
         .join('|'),
     );
     expect(new Set(drawings).size).toBe(DISCOVERY_KINDS.length);
+  });
+
+  it('draws the survey note in the same hand, and as nothing you could buy', () => {
+    // The one hard constraint on this drawing: it must not read as a commodity,
+    // because the whole promise of the Geomancy reveal is that the *kind* still
+    // costs a worker's turn. Asserted as far as a test can — same house grid and
+    // weight as every original mark, and no path shared with any resource mark,
+    // which is the mechanical half of "it is not a picture of iron".
+    const drawings = new Set<string>();
+    for (const [, mark] of Object.entries(RESOURCE_MARKS)) {
+      for (const path of mark.paths) drawings.add(path.d);
+    }
+    for (const id of SURVEY_MARK_IDS) {
+      const mark = surveyMark(id);
+      expect(mark.note.length, id).toBeGreaterThan(0);
+      expect(mark.paths.length, id).toBeGreaterThan(0);
+      for (const path of mark.paths) {
+        expect(path.d.length, id).toBeGreaterThan(0);
+        const width = path.width ?? MARK_STROKE;
+        expect(width, id).toBeGreaterThan(0);
+        expect(width, id).toBeLessThanOrEqual(MARK_STROKE);
+        expect(drawings.has(path.d), `${id} borrows a resource's stroke`).toBe(false);
+      }
+    }
   });
 
   it('is drawn in the same hand as the resource marks', () => {

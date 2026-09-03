@@ -54,6 +54,7 @@ import {
   NAVAL_RIGS,
 } from '../art/navalMarks';
 import { siteMark } from '../art/siteMarks';
+import { SURVEY_MARK_IDS, surveyMark, surveyMarkDataUri } from '../art/surveyMarks';
 import { YIELD_MARKS, yieldMarkDataUri } from '../art/yieldMarks';
 import {
   BADGE_ICON_FILES,
@@ -117,6 +118,7 @@ export function drawMarkFamilies(into: HTMLElement): void {
   lineFamily(into);
   resourceFamily(into);
   siteFamily(into);
+  surveyFamily(into);
   pantheonFamily(into);
   deviceFamily(into);
   badgeFamily(into);
@@ -228,6 +230,28 @@ function siteFamily(into: HTMLElement): void {
   for (const kind of DISCOVERY_KINDS) {
     const mark = siteMark(kind);
     markCell(grid, kind, uriOf(markSvg(mark.paths, MARK_BOX, MARK_STROKE)), mark.note);
+  }
+}
+
+/**
+ * The survey's notes.
+ *
+ * Shown in the page's own ink like every other family — `markCell` masks each
+ * swatch, so a mark's *drawn* colour never reaches this page anyway — and the
+ * one thing that costs is said out loud in the block instead: on the board this
+ * is the only family printed in the chart's faded hand rather than in ink,
+ * because "faint" in an alpha-tested atlas is a colour and never an opacity.
+ */
+function surveyFamily(into: HTMLElement): void {
+  const grid = markGrid(
+    block(
+      into,
+      'Survey notes — src/art/surveyMarks.ts',
+      `What an empire holding Geomancy sees over a hill with a seam still sleeping under it: the ground line, the hill on it, and two broken courses under both. Drawn bare into the vellum with no paper behind it — a note the surveyor pencilled on his own chart rather than a token laid on the board — and deliberately not a picture of any commodity, because which seam it is costs a worker’s turn. Printed on the hex in ${paletteNameOf(VIEW3D.icons.inscriptionColor)}, the chart’s remark ink, which it shares with the marginalia below.`,
+    ),
+  );
+  for (const id of SURVEY_MARK_IDS) {
+    markCell(grid, id, surveyMarkDataUri(id), surveyMark(id).note);
   }
 }
 

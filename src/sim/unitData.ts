@@ -660,6 +660,12 @@ export function isCivilian(def: UnitDef): boolean {
  * which the evaluator reads directly. It lives here because it is a question
  * about the unit *table*, and a copy of it in the UI would be a second opinion
  * about what a scout is.
+ *
+ * **"Explorer" is code vocabulary; the plain word is "scout"** (ruled
+ * 2026-09-03). The marker stays named for the *kind* because the day a second
+ * pathfinder ships it will be one too — but the roster has exactly one of these
+ * today, so every player-facing string says the unit a player actually has, and
+ * the surveying hand reads "a worker or a scout" wherever it is written down.
  */
 export function isExplorer(def: UnitDef): boolean {
   return def.ignoresTerrainCost === true;

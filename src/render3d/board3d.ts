@@ -43,6 +43,7 @@ import {
 } from 'three';
 
 import type { HeraldryId } from '../art/heraldryMarks';
+import type { SurveyMarkId } from '../art/surveyMarks';
 import type { DiscoveryKind } from '../sim/discoveryData';
 import { IMPROVEMENT_IDS, type ImprovementId } from '../sim/improvementData';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
@@ -61,6 +62,7 @@ import {
   CHARGE_CELLS,
   NUMERAL_CELLS,
   SITE_MARK_CELLS,
+  SURVEY_MARK_CELLS,
   YIELD_KEYS,
   type YieldKey,
   badgeCellRect,
@@ -911,6 +913,24 @@ function buildSiteMarkers(): Record<DiscoveryKind, BufferGeometry> {
 }
 
 /**
+ * The survey notes, standing up: `buildSiteMarkers` against one more set of
+ * atlas rectangles.
+ *
+ * `SURVEY_MARK_CELLS` is asked rather than the art module's own id list, for
+ * `buildSiteMarkers`' reason: the atlas's cell list is the authority on what has
+ * a rectangle, and a mark drawn but never given a cell would throw from inside
+ * `tileIconRect` rather than quietly printing somebody else's picture.
+ */
+function buildSurveyMarkers(): Record<SurveyMarkId, BufferGeometry> {
+  const out: Partial<Record<SurveyMarkId, BufferGeometry>> = {};
+  for (const id of SURVEY_MARK_CELLS) {
+    const rect = tileIconRect({ set: 'survey', id });
+    out[id] = atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
+  }
+  return out as Record<SurveyMarkId, BufferGeometry>;
+}
+
+/**
  * The ten numeral cells again, *standing up* — the same trick
  * `buildResourceMarkers` plays, one set over. This is what the worker's charge
  * badge (`pieces.ts`) is built from: a small camera-facing digit at a badge's
@@ -1117,6 +1137,15 @@ export class BoardGeometry {
    */
   readonly siteMarkers: Record<DiscoveryKind, BufferGeometry>;
   /**
+   * And once more for the **survey notes** — the faint mark an empire holding
+   * Geomancy sees over a hill with a seam still sleeping under it. Same quad,
+   * same pin, same atlas, one more set of rectangles; planted by `sites3d.ts`
+   * on the opposite shoulder of the hex from the site marker, because a ruin
+   * may stand on a hill that has something under it and the two pins must never
+   * be driven into the same spot.
+   */
+  readonly surveyMarkers: Record<SurveyMarkId, BufferGeometry>;
+  /**
    * The standing form of the ten numeral cells, for the worker's charge badge
    * — see `buildNumeralMarkers`. Indexed by digit, exactly as `numerals` is.
    */
@@ -1243,6 +1272,7 @@ export class BoardGeometry {
     this.numerals = icons.numerals;
     this.resourceMarkers = buildResourceMarkers();
     this.siteMarkers = buildSiteMarkers();
+    this.surveyMarkers = buildSurveyMarkers();
     this.resourceStem = markerPin(VIEW3D.lens.resourceStemTaper);
     this.numeralMarkers = buildNumeralMarkers();
     this.river = riverSegment();
@@ -1328,6 +1358,7 @@ export class BoardGeometry {
     for (const prop of Object.values(this.siteProps)) prop.dispose();
     for (const quad of Object.values(this.resourceMarkers)) quad.dispose();
     for (const quad of Object.values(this.siteMarkers)) quad.dispose();
+    for (const quad of Object.values(this.surveyMarkers)) quad.dispose();
     this.resourceStem.dispose();
     for (const quad of this.numeralMarkers) quad.dispose();
     for (const quad of Object.values(this.yieldGlyphs)) quad.dispose();

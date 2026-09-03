@@ -801,7 +801,7 @@
       ],
       "unlocks": {},
       "flavor": "The hill is asked again, and this time it answers.",
-      "note": "Every mine your cities work gives up a further hammer. Workers and explorers may survey a hill they stand on: a turn spent asking the ground what it hides. A rich seam, buried iron, or gems come up as a resource anyone can see; an empty hill is marked surveyed and stays answered. Every survey pays a small assay."
+      "note": "Every mine your cities work gives up a further hammer. Hills you have charted show a faint mark where something sleeps, though never what it is. A worker or a scout may survey a hill it stands on: a turn spent asking the ground what it hides. A rich seam, buried iron, or gems come up as a resource anyone can see; an unmarked hill comes up empty and is marked surveyed. Every survey pays a small assay."
     },
     "raisedFields": {
       "name": "Raised Fields",

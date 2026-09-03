@@ -260,7 +260,10 @@ export class Renderer3D implements MapView {
   private improvementsSignature = 0;
   /** The same for the roads. See `signRoadCells`. */
   private roadsSignature = 0;
-  /** The same for the ruins, the villages and the camps. See `signSites`. */
+  /**
+   * The same for the ruins, the villages, the camps and the seat's survey
+   * notes. See `signSites`.
+   */
   private sitesSignature = 0;
   /**
    * The same for the tide, and it drives **only** the faith lens. See
@@ -851,10 +854,12 @@ export class Renderer3D implements MapView {
       this.materials,
       this.shadows,
       this.fogLevels(),
-      // The layer plants a standing marker over every ruin and village, in the
-      // resource roundels' idiom and off the same atlas — so it wants the same
-      // two things the lens does, and for the same reasons. See `sites3d.ts` for
-      // why the marker belongs to this layer rather than to the lens.
+      // The layer plants a standing marker over every ruin and village — and,
+      // since the Geomancy reveal, a faint note over every hill with a seam
+      // still sleeping under it — in the resource roundels' idiom and off the
+      // same atlas, so it wants the same two things the lens does and for the
+      // same reasons. See `sites3d.ts` for why both belong to this layer rather
+      // than to the lens.
       this.icons,
       this.view.camera.quaternion.clone(),
       // The second wave's gate: a seat with no word for buried antiquities is
@@ -1974,7 +1979,9 @@ export class Renderer3D implements MapView {
     }
     // Sites are seat-filtered twice over — a ruin fades on remembered ground and
     // a camp is not drawn at all off it — so a fog move reaches this layer for
-    // both of its tenants. See `sites3d.ts`.
+    // both of its tenants. The survey notes ride the same trigger: the seat's
+    // own answer is inside the fingerprint, so the turn Geomancy lands the marks
+    // appear on the very next frame. See `sites3d.ts`.
     if (this.state && (fogMoved || signSites(this.state, this.fogSeat) !== this.sitesSignature)) {
       this.rebuildSites();
       // The explorer lens is a picture of exactly what that fingerprint counts —

@@ -511,6 +511,58 @@ describe('chopPreview reads chopBaseFor, not the unscaled table figure', () => {
 });
 
 /**
+ * The Survey row's **second** refusal (ruled 2026-09-03).
+ *
+ * Once an empire holds Geomancy the board tells it where every sleeping seam is,
+ * so a hill with no mark is a hill whose answer is already printed. The row greys
+ * with the chart's sentence rather than selling the turn — and the *rule* is
+ * untouched, which is the half a behavioural test cannot see: `prospectError`
+ * must still be the whole of what the reducer refuses with, so an old log
+ * replays and a survey of an unmarked hill is still legal.
+ *
+ * By inspection, as the rest of this file's DOM glue is: `prospectBlocker` is
+ * closed over `createGameControls` and there is no jsdom in this suite. What the
+ * two sentences actually *say* is pinned in `test/sim/prospect.test.ts`.
+ */
+describe('the greyed Survey row', () => {
+  const SOURCE = (
+    import.meta.glob('../../src/ui/controls.ts', {
+      eager: true,
+      query: '?raw',
+      import: 'default',
+    }) as Record<string, string>
+  )['../../src/ui/controls.ts'];
+  const body = SOURCE.slice(
+    SOURCE.indexOf('function prospectBlocker('),
+    SOURCE.indexOf('function prospectTechName('),
+  );
+
+  it('asks the rule first and the chart second', () => {
+    expect(body.length).toBeGreaterThan(0);
+    // The order is the claim: a ground refusal or the tree's is the reducer's
+    // own sentence, and only a hill the verb would actually accept is ever
+    // greyed for having nothing under it.
+    expect(body.indexOf('prospectError(')).toBeGreaterThan(-1);
+    expect(body.indexOf('barrenHillError(')).toBeGreaterThan(body.indexOf('prospectError('));
+    expect(body).toContain('if (problem !== null) return problem;');
+  });
+
+  it('leaves the reducer alone: the greying is the interface\'s and nobody else\'s', () => {
+    // A source read of the *sim*, from the surface that does the greying: if
+    // this sentence ever migrates into `prospectError` the command stops being
+    // takeable and every saved log full of surveys replays differently.
+    const sim = (
+      import.meta.glob('../../src/sim/commands.ts', {
+        eager: true,
+        query: '?raw',
+        import: 'default',
+      }) as Record<string, string>
+    )['../../src/sim/commands.ts'];
+    expect(sim).not.toContain('barrenHillError');
+  });
+});
+
+/**
  * End Turn's **soft** gate (user ruling, 2026-08-29: "'end turn' should pause
  * play when a new order or government has been drafted").
  *

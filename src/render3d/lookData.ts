@@ -1429,6 +1429,18 @@ export interface IconSpec {
   marginaliaScale: number;
   marginaliaColor: number;
   /**
+   * A survey note's size within its cell (`SURVEY_MARK_CELLS`).
+   *
+   * The marginalia's argument, one set over: the mark has no disc to sit inside,
+   * so it is sized against the cell rather than against a roundel. Its own knob
+   * rather than `marginaliaScale` because the two are drawn at different
+   * distances — a marginale is read on open water with nothing near it, a survey
+   * note is read on a hex that may also carry a ruin's tablet. Its **ink** is
+   * not a knob: it is `inscriptionColor`, the one faded hand the chart writes
+   * its own remarks in.
+   */
+  surveyScale: number;
+  /**
    * The inscription cell — *hic svnt dracones* — in the same faded marginalia
    * ink, since it is the same hand writing in the same margin.
    *
@@ -1625,6 +1637,29 @@ export interface SiteLookSpec {
   /** Lift above the tile's top face, in world units. */
   lift: number;
   props: Record<SiteKind, ImprovementPropSpec>;
+  /** How a survey note is planted over a hex. See `SurveyNoteSpec`. */
+  note: SurveyNoteSpec;
+}
+
+/**
+ * The survey note's standing mark: the pencilled remark an empire holding
+ * Geomancy sees over a hill with something sleeping under it.
+ *
+ * Two knobs, and both exist because the note is deliberately **quieter than a
+ * site's tablet** standing on the same board. Its stake is drawn in the chart's
+ * faded ink rather than in ink proper — a full-strength pin under a faint mark
+ * would be the loudest thing on the hex — and it prints a size smaller, which is
+ * what separates "somebody wrote this down" from "there is a thing here".
+ *
+ * Everything else about it is the resource marker's, read straight out of the
+ * lens block: same lift, same pin radius, same fixed facing. See `sites3d.ts` —
+ * one board, one way of planting a mark on a hex.
+ */
+export interface SurveyNoteSpec {
+  /** The stake's ink. Faded, for the reason above. */
+  stemColor: number;
+  /** The mark's size in world units, against `lens.resourceIconSize`. */
+  markSize: number;
 }
 
 /**
@@ -2278,6 +2313,7 @@ export const VIEW3D: View3DData = {
     yieldInkColor: named(viewJson.icons.yieldInkColor, 'icons.yieldInkColor'),
     marginaliaScale: viewJson.icons.marginaliaScale,
     marginaliaColor: named(viewJson.icons.marginaliaColor, 'icons.marginaliaColor'),
+    surveyScale: viewJson.icons.surveyScale,
     inscriptionScale: viewJson.icons.inscriptionScale,
     inscriptionTracking: viewJson.icons.inscriptionTracking,
     inscriptionLeading: viewJson.icons.inscriptionLeading,
@@ -2322,6 +2358,10 @@ export const VIEW3D: View3DData = {
         { ...spec, color: named(spec.color, `sites.props.${id}.color`) },
       ]),
     ) as Record<SiteKind, ImprovementPropSpec>,
+    note: {
+      stemColor: named(viewJson.sites.note.stemColor, 'sites.note.stemColor'),
+      markSize: viewJson.sites.note.markSize,
+    },
   },
   abacus: {
     frame: {

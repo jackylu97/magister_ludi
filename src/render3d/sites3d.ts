@@ -55,6 +55,25 @@
  * may put down (`LensView.resources`); a site is an event with a claimant, and
  * an interface that let you turn off the news is one that loses you the race.
  *
+ * The fourth tenant is a mark with nothing under it
+ * ---------------------------------------------------
+ * Since Geomancy learned to show its work (ruled 2026-09-03) this layer also
+ * plants the **survey note**: the faint mark an empire holding the survey's
+ * technology sees over a hill that still has a seam sleeping under it
+ * (`seatSeesSleepingVein`, `src/sim/improvements.ts`). It is the one tenant here
+ * with no prop — there is nothing standing on the hex, which is the whole point
+ * of it — and it belongs in this layer rather than in the lens for the site
+ * markers' own two reasons: it appears and disappears during play (a survey
+ * answers the hill and the mark goes), and it is **not a switch**. A player who
+ * turned it off would be turning off the only thing that tells them where to
+ * spend a worker's turn.
+ *
+ * It says *that* something is there and never *what*. The kind is the reveal
+ * gate's to give (`RevealView`), and it is what the turn actually buys — so the
+ * mark is deliberately kind-blind, drawn faint and bare into the vellum rather
+ * than printed on paper like the marks that name things. See
+ * `src/art/surveyMarks.ts`, and `SURVEY_MARK_CELLS` for why "faint" is a colour.
+ *
  * The paper says which kind and says it is not a commodity: both marks are
  * printed on the hex tablet in its own rim ink (`icons.sitePaper`), which is a
  * silhouette no resource wears — see `src/art/siteMarks.ts`. The anchor is the
@@ -91,6 +110,7 @@ import {
   type DiscoveryKind,
   discoveryKindTech,
 } from '../sim/discoveryData';
+import { seatSeesSleepingVein } from '../sim/improvements';
 import { type Tile, tileIndex } from '../sim/map';
 import type { GameState } from '../sim/state';
 import { hasTech } from '../sim/tech';
@@ -133,6 +153,14 @@ const SITE_INDEX: Record<SiteKind, number> = {
 };
 
 /**
+ * The survey note's own small integer, one past the site kinds, so a note and a
+ * camp on the same hex fold to different numbers. Appended for `SITE_INDEX`'s
+ * reason — the values are a fingerprint's alphabet and reordering one would make
+ * two different boards hash alike.
+ */
+const NOTE_INDEX = 5;
+
+/**
  * May this seat be shown this kind of site at all?
  *
  * The **second wave's gate**, read here off the same lookup the reducer refuses
@@ -157,11 +185,31 @@ export function seatSeesKind(state: GameState, seat: number | null, kind: Discov
   return hasTech(state, seat, tech);
 }
 
+/**
+ * Does this seat see a survey note over this hill *right now*?
+ *
+ * `seatSeesKind`'s shape, one tenant over, and the null seat is the one place
+ * the two disagree: an omniscient board sees every ruin and **no** survey notes
+ * at all. That is not an oversight, it is the layer's own rule read honestly —
+ * a note is an annotation on somebody's chart, and a board drawn for nobody has
+ * no chart to annotate. It also keeps the vein layer the secret it was built as
+ * (`veins.ts`): the galleries and the map inspection page have their own,
+ * deliberate reading of what is under the hills, and it is not this one.
+ *
+ * The rule itself is the simulation's — one derived predicate, no stored flag —
+ * so the mark, the greyed Survey row and the technology gate cannot drift.
+ */
+function seatSeesNote(state: GameState, seat: number | null, tile: Tile): boolean {
+  if (seat === null) return false;
+  return seatSeesSleepingVein(state, seat, tile);
+}
+
 export class SiteLayer {
   readonly group = new Group();
   private drawCallCount = 0;
   private instanceCount = 0;
   private markerCount = 0;
+  private noteCount = 0;
 
   /**
    * Rebuilds every site prop from scratch, then paints the result for the seat's
@@ -204,6 +252,7 @@ export class SiteLayer {
     const axis = new Vector3(0, 1, 0);
     let instances = 0;
     let markers = 0;
+    let notes = 0;
 
     const place = (col: number, row: number, kind: SiteKind): void => {
       const tile = map.tiles[tileIndex(map, col, row)];
@@ -279,6 +328,58 @@ export class SiteLayer {
       markers += 1;
     };
 
+    /**
+     * The survey note over one hill: the same pin, the same quad, the other
+     * shoulder of the hex.
+     *
+     * **Mirrored** off `plant`'s anchor rather than sharing it, and that is the
+     * one thing about this mark that is not the site marker's: a ruin may stand
+     * on a hill with a seam under it (`veinGroundAt` asks about resources and
+     * hills, not about discoveries), so the two pins would otherwise be driven
+     * into the same square inch of ground. The upper *left* belongs to the marks
+     * that name what is on the hex — resources and sites, one board, one anchor
+     * — and the surveyor's remark goes on the upper right, where nothing else
+     * will ever be planted.
+     *
+     * Faint in both halves: a faded stake under a faded mark
+     * (`sites.note.stemColor`), because a full-strength pin would make the
+     * quietest statement on the board the loudest object on the hex.
+     */
+    const annotate = (tile: Tile, atlas: TileIcons): void => {
+      const centre = cellCenter(tile.col, tile.row);
+      const x = centre.x + LENS.resourceMarkerOffsetX;
+      const z = centre.z - LENS.resourceMarkerOffset;
+      const ground = tileTopY(tile);
+      const cell = tileIndex(map, tile.col, tile.row);
+      collector.add(
+        geometry.resourceStem,
+        [SITES.note.stemColor],
+        new Matrix4().compose(
+          new Vector3(x, ground + LENS.glyphLift, z),
+          new Quaternion(),
+          new Vector3(
+            LENS.resourceStemRadius,
+            LENS.resourceMarkerLift,
+            LENS.resourceStemRadius,
+          ),
+        ),
+        { outlined: false, tile: cell },
+      );
+      collector.add(
+        geometry.surveyMarkers.sleepingVein,
+        // No ink of its own — the quad *is* the texture, and the mark's own
+        // faintness was decided in the atlas. See `drawSurveyCell`.
+        [],
+        new Matrix4().compose(
+          new Vector3(x, ground + LENS.resourceMarkerLift, z),
+          faceCamera,
+          new Vector3(SITES.note.markSize, SITES.note.markSize, 1),
+        ),
+        { material: atlas.standingMaterial, tile: cell },
+      );
+      notes += 1;
+    };
+
     // The ground's own sites: drawn on anything the seat has ever charted.
     // `icons` is null while the atlas is still rasterising — and forever in a
     // browser with no 2D context — and there the props stand markerless, exactly
@@ -295,6 +396,22 @@ export class SiteLayer {
       if (icons) plant(tile, kind, icons);
     }
 
+    // The survey notes: the improvement rule again, on the same charted ground
+    // the sites are drawn on — a seam does not walk off while nobody is looking,
+    // so a hex the seat merely remembers keeps its remark and fades with the
+    // rest of the hill. A separate walk from the loop above for the camps'
+    // reason: the two are asked different questions about a tile, and folding a
+    // second clause into one loop is how a rule ends up applying to the wrong
+    // tenant. Markerless until the atlas has rasterised, exactly as the sites
+    // are.
+    if (icons) {
+      for (const tile of map.tiles) {
+        if (!seatSeesNote(state, seat, tile)) continue;
+        if (levelAt(levels, map, tile.col, tile.row) === HIDDEN) continue;
+        annotate(tile, icons);
+      }
+    }
+
     // The camps: the same clause as the loop above, because they follow the same
     // rule (see the module docblock — a camp is ground, by ruling). Written out
     // rather than folded into that loop because the two are walked over different
@@ -307,6 +424,7 @@ export class SiteLayer {
     this.drawCallCount = collector.flush(this.group, materials, shadows);
     this.instanceCount = instances;
     this.markerCount = markers;
+    this.noteCount = notes;
     this.paintFog(collector, state, levels);
   }
 
@@ -357,6 +475,17 @@ export class SiteLayer {
     return this.markerCount;
   }
 
+  /**
+   * Survey notes drawn, before wrap copies. Its own counter rather than a share
+   * of `markers`, and for that getter's own reason: a note is not a site and not
+   * a label on one — it is a remark about a hex with nothing on it — so folding
+   * the two together would make "how many sites are on this board" a number that
+   * moved when somebody finished a technology.
+   */
+  get notes(): number {
+    return this.noteCount;
+  }
+
   dispose(): void {
     disposeInstancedGroup(this.group);
   }
@@ -365,7 +494,8 @@ export class SiteLayer {
 // --- fingerprints -----------------------------------------------------------
 
 /**
- * A cheap order-sensitive fingerprint of every site on the board.
+ * A cheap order-sensitive fingerprint of every site on the board — and of every
+ * survey note the seat is being shown over one.
  *
  * FNV-1a over integers, allocating nothing — `signImprovements`' trick, for the
  * same reason: the layer is instanced, so it has to be *told* when to rebuild,
@@ -391,7 +521,19 @@ export function signSites(state: GameState, seat: number | null = null): number 
     h = Math.imul(h ^ (seatSeesKind(state, seat, kind) ? 1 : 0), 16777619);
   }
   for (let i = 0; i < tiles.length; i++) {
-    const kind = tiles[i]!.discovery;
+    const tile = tiles[i]!;
+    // The survey notes ride in the same walk rather than in one of their own: it
+    // is the same traversal over the same array asking a second question about
+    // the same hex, and a note appearing is exactly as much a rebuild as a ruin
+    // disappearing. The seat's gate needs no bit of its own here (unlike
+    // `seatSeesKind` above) because it is *inside* the per-tile answer — before
+    // Geomancy no hill folds anything, the turn it lands every sleeping hill
+    // does, and the fingerprint moves on its own.
+    if (seatSeesNote(state, seat, tile)) {
+      h = Math.imul(h ^ i, 16777619);
+      h = Math.imul(h ^ NOTE_INDEX, 16777619);
+    }
+    const kind = tile.discovery;
     if (kind === undefined) continue;
     h = Math.imul(h ^ i, 16777619);
     h = Math.imul(h ^ SITE_INDEX[kind], 16777619);

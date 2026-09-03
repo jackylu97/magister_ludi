@@ -10,6 +10,7 @@ import { type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { type GameState, newGame } from '../../src/sim/state';
 import { TECH_IDS } from '../../src/sim/techData';
 import { DISCOVERY_KINDS, discoveryKindTech } from '../../src/sim/discoveryData';
+import { prospectDef } from '../../src/sim/improvementData';
 import { computeFreshwater } from '../../src/sim/water';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 
@@ -554,5 +555,195 @@ describe('the second wave and the seat that cannot name it', () => {
     // which is deliberate and costs one rebuild: what it hashes is the *seat's
     // answer*, so the layer cannot be left holding a picture drawn for an empire
     // that has since learned the word.
+  });
+});
+
+/**
+ * The **survey notes**: the fourth tenant of this layer, and the only one with
+ * nothing standing under it (ruled 2026-09-03).
+ *
+ * Four separable claims:
+ *
+ *   1. **Per seat, off the seat's own tree.** An empire holding Geomancy is
+ *      shown where the seams are; a rival is shown nothing, and neither is the
+ *      omniscient board, which has no chart to annotate.
+ *   2. **It follows the ground rule.** Drawn on remembered hexes, absent on
+ *      Terra Incognita — the improvement rule this layer's other tenants take.
+ *   3. **It is not a site.** Its own counter, its own anchor, and a hill may
+ *      carry both a ruin and a seam without the two pins colliding.
+ *   4. **It is in the fingerprint.** A note appearing or going out is a rebuild,
+ *      exactly as a ruin claimed is.
+ */
+describe('the survey notes', () => {
+  const SURVEY_GATE = prospectDef().tech;
+
+  /** A seat holding everything, which is what "holds Geomancy" needs here. */
+  function learned(state: GameState, seat = 0): void {
+    state.players[seat]!.techsResearched = [...TECH_IDS];
+  }
+
+  /** A hill at (3, 3) with a seam sleeping under it. */
+  function sleepingHill(state: GameState): Tile {
+    const tile = at(state, 3, 3);
+    tile.hills = true;
+    tile.vein = 'iron';
+    return tile;
+  }
+
+  /** Every instance's world position, as printable strings. */
+  function placements(layer: SiteLayer): string[] {
+    return meshesOf(layer.group).flatMap((mesh) => {
+      const out: string[] = [];
+      for (let i = 0; i < mesh.count; i++) {
+        const m = mesh.instanceMatrix.array;
+        const base = i * 16;
+        out.push(
+          `${m[base + 12]!.toFixed(4)},${m[base + 13]!.toFixed(4)},${m[base + 14]!.toFixed(4)}`,
+        );
+      }
+      return out;
+    });
+  }
+
+  it('plants one over a sleeping hill for a seat that holds the node', () => {
+    const state = flatState();
+    learned(state);
+    sleepingHill(state);
+
+    const layer = new SiteLayer();
+    layer.build(
+      state,
+      new BoardGeometry(),
+      materials(),
+      false,
+      levels(state, VISIBLE),
+      fakeIcons,
+      new Quaternion(),
+      0,
+    );
+    expect(layer.notes).toBe(1);
+    // And it is emphatically not a site: nothing stands on the hex, and the
+    // counter that answers "how many sites are on this board" did not move.
+    expect(layer.instances).toBe(0);
+    expect(layer.markers).toBe(0);
+    layer.dispose();
+  });
+
+  it('shows nothing to a seat without the node, and nothing to nobody', () => {
+    const state = flatState();
+    sleepingHill(state);
+    const layer = new SiteLayer();
+    const geometry = new BoardGeometry();
+
+    state.players[0]!.techsResearched = TECH_IDS.filter((id) => id !== SURVEY_GATE);
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons, new Quaternion(), 0);
+    expect(layer.notes).toBe(0);
+
+    // The omniscient board — the galleries and the map inspection page — where
+    // every other tenant draws everything. A note is somebody's annotation, and
+    // there is nobody here; the vein layer stays the secret it was built as.
+    learned(state);
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons, new Quaternion(), null);
+    expect(layer.notes).toBe(0);
+    layer.dispose();
+  });
+
+  it('keeps the note on remembered ground and none on Terra Incognita', () => {
+    const state = flatState();
+    learned(state);
+    sleepingHill(state);
+    const layer = new SiteLayer();
+    const geometry = new BoardGeometry();
+
+    layer.build(state, geometry, materials(), false, levels(state, EXPLORED), fakeIcons, new Quaternion(), 0);
+    expect(layer.notes).toBe(1);
+
+    layer.build(state, geometry, materials(), false, levels(state, HIDDEN), fakeIcons, new Quaternion(), 0);
+    expect(layer.notes).toBe(0);
+    layer.dispose();
+  });
+
+  it('draws no note until the icon atlas is ready', () => {
+    const state = flatState();
+    learned(state);
+    sleepingHill(state);
+    const layer = new SiteLayer();
+    layer.build(state, new BoardGeometry(), materials(), false, levels(state, VISIBLE), null, new Quaternion(), 0);
+    expect(layer.notes).toBe(0);
+    layer.dispose();
+  });
+
+  it('goes out when the hill is asked, whichever way it answers', () => {
+    const state = flatState();
+    learned(state);
+    const tile = sleepingHill(state);
+    const layer = new SiteLayer();
+    const geometry = new BoardGeometry();
+
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons, new Quaternion(), 0);
+    expect(layer.notes).toBe(1);
+
+    // What `prospectAt` does to the tile: the seam moves onto the surface and
+    // the hill is marked asked. Both halves are read, so either alone would end
+    // the mark — which is what makes the mark free to remove.
+    tile.resource = tile.vein;
+    delete tile.vein;
+    tile.surveyed = true;
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons, new Quaternion(), 0);
+    expect(layer.notes).toBe(0);
+    layer.dispose();
+  });
+
+  it('shares a hill with a ruin without sharing its pin', () => {
+    // `veinGroundAt` asks about hills and surface resources, never about
+    // discoveries, so a ruin may stand on a hill with a seam under it. The two
+    // marks are planted on opposite shoulders of the hex precisely so that pair
+    // is drawable — a shared anchor would print one mark through the other.
+    //
+    // Asserted as two boards rather than as one, because a sculpt and its
+    // outline legitimately share a matrix: what has to be disjoint is where the
+    // *site's* mark goes and where the *note* goes, and the honest way to ask is
+    // to draw each alone and intersect the answers.
+    const state = flatState();
+    learned(state);
+    const tile = sleepingHill(state);
+    const geometry = new BoardGeometry();
+    const layer = new SiteLayer();
+
+    tile.discovery = 'ruins';
+    delete tile.vein;
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons, new Quaternion(), 0);
+    expect(layer.markers).toBe(1);
+    const site = new Set(placements(layer));
+
+    delete tile.discovery;
+    tile.vein = 'iron';
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons, new Quaternion(), 0);
+    expect(layer.notes).toBe(1);
+    const note = placements(layer);
+
+    expect(note.length).toBeGreaterThan(0);
+    for (const spot of note) expect(site.has(spot), spot).toBe(false);
+
+    // And both are drawn at once when the hill carries both.
+    tile.discovery = 'ruins';
+    layer.build(state, geometry, materials(), false, levels(state, VISIBLE), fakeIcons, new Quaternion(), 0);
+    expect(layer.markers).toBe(1);
+    expect(layer.notes).toBe(1);
+    layer.dispose();
+  });
+
+  it('is in the fingerprint, so a note appearing or going out is a rebuild', () => {
+    const state = flatState();
+    const tile = sleepingHill(state);
+    state.players[0]!.techsResearched = TECH_IDS.filter((id) => id !== SURVEY_GATE);
+    const blind = signSites(state, 0);
+
+    learned(state);
+    const seeing = signSites(state, 0);
+    expect(seeing).not.toBe(blind);
+
+    tile.surveyed = true;
+    expect(signSites(state, 0)).not.toBe(seeing);
   });
 });

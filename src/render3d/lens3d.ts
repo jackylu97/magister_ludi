@@ -119,7 +119,8 @@ import {
   cityAt,
   foundingErrorAt,
   tileYieldOf,
-  yieldContextFor,
+  tileContextAt,
+  tileOwnerCityId,
 } from '../sim/cities';
 import { type GameMap, type Tile, getTileAt, tileIndex } from '../sim/map';
 import { holySites, pressureTotals } from '../sim/religion';
@@ -279,10 +280,13 @@ export class LensLayer {
         collector,
         geometry,
         icons,
-        // The seat the lens is drawn for. Its technologies decide whether a
-        // renewal is counted (see `explainTileYield`), so the glyphs on the
-        // board and the figures on the hover card are the same arithmetic.
-        yieldContextFor(state, lens.playerId),
+        // The seat the lens is drawn for — per TILE, through `tileContextAt`,
+        // so a hex inside a city's territory prices with that city's own
+        // context (a lighthouse's food on water shows on the glyphs exactly as
+        // it does on the info card — the 2026-09-03 surface fix). Contexts are
+        // cached per owning city inside, because building one is a fold.
+        state,
+        lens.playerId,
       );
     }
 
@@ -323,14 +327,27 @@ export class LensLayer {
     collector: InstanceCollector,
     geometry: BoardGeometry,
     icons: TileIcons,
-    ctx: TileYieldContext | undefined,
+    state: GameState,
+    playerId: number,
   ): void {
     const identity = new Quaternion();
     const glyph = new Vector3(LENS.glyphSize, 1, LENS.glyphSize);
     const numeral = new Vector3(LENS.numeralSize, 1, LENS.numeralSize);
 
+    // One context per owning city (or the viewer's own for wild ground),
+    // built lazily: `tileContextAt` folds a city's cards and a fold per hex
+    // would be the per-frame recomputation this layer exists to avoid.
+    const contexts = new Map<number | 'wild', TileYieldContext | undefined>();
+    const contextFor = (tile: Tile): TileYieldContext | undefined => {
+      const cityId = tileOwnerCityId(state, tile.col, tile.row) ?? 'wild';
+      if (!contexts.has(cityId)) {
+        contexts.set(cityId, tileContextAt(state, playerId, tile));
+      }
+      return contexts.get(cityId);
+    };
+
     for (const tile of tiles) {
-      const value = tileYieldOf(tile, ctx);
+      const value = tileYieldOf(tile, contextFor(tile));
       const rows = YIELD_KEYS.filter((key) => value[key] > 0);
       if (rows.length === 0) continue;
 

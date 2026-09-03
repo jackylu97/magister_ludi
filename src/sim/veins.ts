@@ -44,6 +44,15 @@
  * for the map inspection page and for tests — surfaces that are *about* the
  * generator rather than about a game — and `test/mapgen/veins.test.ts` reads the
  * sources to keep the list of readers at that.
+ *
+ * Since 2026-09-03 the survey has a **second** reading beside `prospectAt`, and
+ * it is in the same module for that reason: `seatSeesSleepingVein`
+ * (`improvements.ts`) tells an empire holding Geomancy *that* a hill has
+ * something under it, never which seam it is. That is the one thing the layer
+ * may say for free, and it is deliberately the half a worker's turn does not
+ * buy — the kind is still the answer, and it still costs the turn. The register
+ * is unchanged in shape: the field is written by the generator and read by the
+ * survey, which now answers two questions instead of one.
  */
 
 import { type GameMap, type Tile } from './map';

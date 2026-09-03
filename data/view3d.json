@@ -605,6 +605,7 @@
     "yieldInkColor": "ink",
     "marginaliaScale": 0.86,
     "marginaliaColor": "vellumDeep",
+    "surveyScale": 0.8,
     "inscriptionScale": 0.2,
     "inscriptionTracking": 0.22,
     "inscriptionLeading": 1.35,
@@ -1005,6 +1006,10 @@
         "size": 0.52,
         "jitter": 0.0
       }
+    },
+    "note": {
+      "stemColor": "vellumDeep",
+      "markSize": 0.44
     }
   }
 }

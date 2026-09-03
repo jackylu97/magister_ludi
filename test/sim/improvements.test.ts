@@ -1076,7 +1076,7 @@ describe('chopBaseFor — the chop scales with what this empire has learned', ()
     playerWith(state, 12);
     const base = chopBaseFor(state, 0, 'forest');
     expect(base.production).toBe(32); // floor(20 × 1.6)
-    expect(base.label).toBe('Forest 20 · +60% for 12 technologies');
+    expect(base.label).toBe('Forest 20 · grown +60% by your 12 technologies');
   });
 
   it('scales the jungle the same way, off its own table figure', () => {
