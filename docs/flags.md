@@ -142,6 +142,19 @@ strength).
 (claims on followers) · The Promised Land (faith at a founding is a third way
 to press).
 
+### Ruled 2026-09-03, next pass (after the v55 batch lands)
+
+- **Geomancy option 1**: holding Geomancy reveals a faint *sleeping-vein
+  marker* on hills that carry one (per seat, no kind named — the reveal gate
+  still owns the kind); surveying stays the verb that surfaces the seam and
+  pays the assay. Kills the blind hex-guessing, keeps the strike and the
+  scout's job. Render marker + per-seat gating + UI greying; no schema
+  (presentation + a derived reading).
+- **Say "scout", not "explorer"**: every player-facing string for the
+  surveying hand reads "worker or scout". The `isExplorer` marker
+  (`ignoresTerrainCost`) stays for future pathfinder units — code keeps the
+  marker, players hear the unit they actually have.
+
 ## C. Open threads
 
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture
