@@ -40,7 +40,7 @@ describe('the statecraft offer chain checks its results', () => {
  * adapter spread into the option beside `cardFace`, asked once when the offer
  * opens (`docs/doctrine-ideas.md` Part IV — the design of record).
  */
-describe('every offer carries a stamp', () => {
+describe('every statecraft offer carries a stamp', () => {
   it('weighs each class of card through the one evaluator', () => {
     for (const subject of [
       "{ kind: 'order', id }",
@@ -48,10 +48,36 @@ describe('every offer carries a stamp', () => {
       "{ kind: 'government', id }",
       "{ kind: 'doctrine', id }",
       "{ kind: 'belief', id }",
-      "{ kind: 'legacy', id }",
     ]) {
       expect(MAIN, subject).toContain(`...cardStamp(seat, ${subject})`);
     }
+  });
+
+  /**
+   * **And the great-person draft carries none** — the uniformity ruling
+   * (`docs/doctrine-ideas.md`, "recruit is a promise", 2026-09-03). It used to:
+   * the legacy subject was the sixth line of the list above, and it made the
+   * hand ragged in a way that read as a balance statement — a legacy written as
+   * flat yields showed a figure and a legacy written as a combat rule showed the
+   * flourish, so the first looked like the stronger card. A legacy reaches no
+   * ledger until the person is *spent*, turns later, on a verb the player has
+   * not chosen yet; the figure is counted at the ceremony
+   * (`greatPersonCeremony.ts`) instead, which is when it becomes true.
+   *
+   * Pinned as an absence because that is the only way an absence stays: the next
+   * pass adding a stamp to a new offer will copy the line above, and this is
+   * what says the great-person one is not an oversight.
+   */
+  it('deals every great-person card wearing the flourish, and none wearing a number', () => {
+    expect(MAIN).not.toContain("cardStamp(seat, { kind: 'legacy'");
+    const site = MAIN.indexOf('function showGreatPersonOffer(');
+    expect(site).toBeGreaterThan(-1);
+    const card = MAIN.slice(site, MAIN.indexOf('function announceRecruit(', site));
+    expect(card).not.toContain('cardStamp(');
+    // The words are what sell the name, and they are still all there.
+    expect(card).toContain('notes: describeCard(id).map');
+    expect(card).toContain('flavor: def.epigram');
+    expect(card).toContain('footnote: def.kernel');
   });
 
   /**

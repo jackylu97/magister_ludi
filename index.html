@@ -1039,6 +1039,63 @@
       </div>
     </div>
 
+    <!-- ================= the Reliquary =========================
+         The honored dead and what they still pay: every great person this
+         empire has spent, as a pile of tarot faces flipped through one at a
+         time. The seventh member of the parchment-sheet family and the
+         lightest — no split, no scrolling pane, ~30rem wide — because there is
+         only ever one card on it. Built by src/ui/reliquaryScreen.ts on each
+         open off Player.legacies; nothing on it is stored. Reached from the
+         renown chip in the top bar, and by the card that descends into it at
+         the end of a spend ceremony.
+         ============================================================ -->
+    <div
+      id="reliquary-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="The Reliquary"
+      hidden
+    >
+      <div class="statecraft-sheet reliquary-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <p class="eyebrow statecraft-eyebrow">they served you; their legacy remains</p>
+            <h2 class="statecraft-title">The <em>Reliquary</em></h2>
+          </div>
+          <p class="statecraft-hint">
+            &lsaquo; &rsaquo; to walk the pile &mdash; <kbd>Esc</kbd> to close
+          </p>
+          <button
+            id="reliquary-close"
+            class="statecraft-close"
+            type="button"
+            aria-label="Close"
+          >
+            &times;
+          </button>
+        </header>
+        <div id="reliquary-body" class="statecraft-body reliquary-body"></div>
+      </div>
+    </div>
+
+    <!-- ================= the spend ceremony ====================
+         A great person was spent: the card rises to centre over a dimmed
+         board, the LEGACY counts its figure (the inversion, 2026-09-03 — what
+         remains is the identity), the deed appears beneath without ceremony,
+         and the card descends into the renown chip, which is the Reliquary's
+         door. Built whole by src/ui/greatPersonCeremony.ts; a click anywhere
+         cuts it short.
+         ============================================================ -->
+    <div
+      id="ceremony-overlay"
+      class="gp-ceremony-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="A great person, spent"
+      hidden
+    ></div>
+
     <!-- ================= the victory sheet =====================
          The Triumph sheet's sibling (src/ui/victoryModal.ts): one seat has
          reached the threshold, and every seat is told, not only the winner.

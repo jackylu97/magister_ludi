@@ -275,6 +275,123 @@ is canonical. The binding points:
   zooming to centre for a slot, and a compact card raising the full face on
   hover); the lifetime tally, which is phase 2 and needs schema.
 
+#### As built (phase 1b — the great person's ceremony half)
+
+- **The great-person draft carries no stamp at all** (the uniformity ruling,
+  below). `main.ts`'s `cardStamp` spread now covers five offer paths, not six;
+  the absence is pinned in `test/ui/offerFlow.test.ts` so a later pass adding a
+  stamp to a new offer does not read the gap as an oversight.
+- The **ceremony** is the first surface to raise the full tarot face at a
+  MOMENT (`src/ui/greatPersonCeremony.ts`) — the two-card-sizes ruling's other
+  half, for a *spend* rather than a slot. It draws in the offer card's own
+  classes (`offer-option` inside an `offer-options[data-face='tarot']` host),
+  so the card dealt and the card spent are the same card; the two things a
+  standing card must not do (a pointer, a hover rise) are one small block in
+  `style.css`.
+- **Still not built**: the slot ceremony, the compact card raising the full face
+  on hover, and the lifetime tally (phase 2, needs schema).
+
+### The great person's three beats (proposed 2026-09-03, mocked, awaiting ruling)
+
+The mechanics already say it: a legacy reaches `liveEffects` only once the
+person is SPENT — so act, work, and legacy all pay at the spend, and the
+draft only decides who joins the court. The flow (mocked on the ceremony
+artifact, "A great person, spent"):
+
+1. **Recruit is a promise** — the GP draft deals tarot faces with the
+   flourish on EVERY card (no number is true yet; the epigram sells).
+   Dissolves the current asymmetry where some people show legacy stamps.
+2. **The spend, INVERTED** (re-ruled 2026-09-03): the LEGACY is the
+   card's prominent content and the animated reveal — "Forever: …" as the
+   main clause, its ghost-diff figure counting up. The act/work payout is
+   a SMALL subheading that simply appears beneath, no animation ("her act
+   paid +184🔬 · eight turns of your science"). The permanent effect is
+   the identity; the one-shot deed is the footnote. Fires immediately on
+   the command.
+3. **The pile remembers** — if a legacy exists, a second quieter beat:
+   the legacy line fades in and counts its ghost-diff figure ("and
+   forever: …"), then the card descends into the Reliquary.
+
+**The Reliquary is a SCREEN** (re-ruled 2026-09-03) — lighter than the
+Statecraft/Religion sheets but in that family: a narrow parchment sheet
+(≈30rem), its own header + close, Esc closes, joining the capped-overlay
+CSS rule as the seventh id. Inside: the flip-through browser — one full
+tarot face over a visible stack, ‹ › arrows, "N of M · the legacies in
+force". Each card: the legacy in words (the headline), the stamp's
+current per-turn figure, the deed as a small footnote line, and "has
+produced" ticking. A revoked legacy stays greyed with a vermilion
+REVOKED band — history, not deletion (`LegacyRecord.revoked`). A freshly
+spent person lands at the front with their tally at zero.
+
+**Access** (proposed): the renown chip on the top bar opens it (renown →
+great people → their legacies is the natural path, and the chip's hover
+already talks about great people); plus the ceremony's descending card
+lands "into" it. Alternative if a button is preferred: a fourth, smaller
+hud-dock glyph. The orchestrator recommends the renown chip — no new
+chrome, discoverable exactly when a player starts caring.
+
+#### As built (2026-09-03, derived only — no schema)
+
+**Beat 1 — recruit is a promise.** The GP draft passes no stamp; every card in
+the hand wears the flourish and the words sell the name (epigram, kernel, the
+legacy's clauses). See the card-stamp section's *As built (phase 1b)*.
+
+**Beats 2 and 3 — the ceremony** (`src/ui/greatPersonCeremony.ts`), raised from
+`controls.ts`'s new `onGreatPersonSpent` the instant a `greatPersonAct` or
+`greatPersonWork` command comes back **accepted** — the refusal returns before
+the line, so a refused command plays nothing. Presentation only: no command, no
+result read, no clock the reducer keeps.
+
+- The card rises to centre over a dimmed, blurred scrim as the full tarot face
+  in the tier's accent.
+- **Headline is the legacy** — `describeCard`'s clauses with `Forever:` on the
+  first live one, through `setDescriptorText` — with the ghost-diff figure
+  counting up. The figure is `explainCardImpact` + the `cardStamp` component,
+  reused whole: boxless, flourish-when-empty and the landing glow all come free.
+- **Subheading is the deed**, a small mono line that simply appears — no count,
+  no thunk. Its figure is the **preview** (`greatPersonActPreview` /
+  `greatPersonWorkPreview`), taken before the command: `greatPeople.ts` composes
+  an act's payout once before anything banks (Entry XVIII.5 — "the preview and
+  the payout are one number"), and the piece is gone by the time the result
+  returns. `CommandResult` carries no payout and gained none here.
+- A person whose legacy this build does not keep (`legacyIsSilent` — every
+  clause deferred, or none: Hero of Alexandria, Yi Sun-sin) gets the deed
+  **promoted into the headline**, arriving where the number would have been
+  weighed rather than at the deed's late beat. Deferred clauses still print
+  under it, struck through. The card is never empty.
+- Then the card descends toward the renown chip and the overlay closes.
+- **The beats** are `CEREMONY_TIMING` (ms, from the mock): rise 500 · stamp 550
+  · deed 1900 · descend 3600 (+600 to travel) · close 4300. The stylesheet owns
+  only the two *durations*, read back and pinned against the constant.
+- A click anywhere dismisses early. `prefers-reduced-motion` arrives **already
+  landed** — figure written, deed shown, nothing rises or descends — held
+  1600ms, then down. Every per-game listener goes into `gameDisposers`.
+
+**The Reliquary** (`src/ui/reliquaryScreen.ts`) is the seventh id on the
+capped-overlay rule and then narrows to ~30rem: no split, no scrolling pane,
+one card at a time. The roll is `Player.legacies` read **newest first**, each
+row through `greatPersonFace` — family + Æra eyebrow, tier mark (● ◆ ○), the
+emblem, the legacy as headline, the stamp's figure written **at rest**
+(`landCardStamp`, never replayed), the deed as a footnote, the flavour at the
+foot. `‹ ›` and the arrow keys walk the pile and wrap; Esc closes; "N of M ·
+the legacies in force" sits beneath. Empty state is one sentence, no numbers.
+
+- **The revoked decorator is built and dormant**: greyed card, vermilion REVOKED
+  band, and the stamp back to a dimmed **flourish** rather than a figure — a
+  revoked record contributes nothing, so `explainCardImpact` prices it as a card
+  *not held*, and printing that would print what it would pay if it came back.
+  No live row reaches a revocation today; a save can carry one, and a source
+  test pins the branch.
+- **No "has produced" line at all** — phase 2 needs the schema field, and a dash
+  standing in for it is a number printed as though the screen had it.
+- **Access**: the renown chip is a button in the strip's existing idiom (class,
+  role, click, Enter/Space), and the strip hands the chip out by name
+  (`CivYieldStrip.renownChip`) so the ceremony can aim its descent at it. The
+  chip's own card gains one manicule line, shown only once the empire has spent
+  somebody.
+- The three face tables (tier accent, tier name, family emblem) left `main.ts`'s
+  boot closure for `src/ui/greatPersonFace.ts`, which three surfaces now share.
+
 ### The skip-for-rarity fork (user's pitch, under discussion)
 
 "Instead of deepening: a skip, and consecutive skips raise rare odds next

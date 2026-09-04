@@ -7045,7 +7045,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
 #trade-overlay,
 #compendium-overlay,
 #diplomacy-overlay,
-#beads-overlay {
+#beads-overlay,
+#reliquary-overlay {
   overflow: hidden;
 }
 
@@ -7054,7 +7055,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
 #trade-overlay .statecraft-sheet,
 #compendium-overlay .statecraft-sheet,
 #diplomacy-overlay .statecraft-sheet,
-#beads-overlay .statecraft-sheet {
+#beads-overlay .statecraft-sheet,
+#reliquary-overlay .statecraft-sheet {
   display: flex;
   flex-direction: column;
   width: min(1240px, 100%);
@@ -7067,7 +7069,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
 #trade-overlay .statecraft-body,
 #compendium-overlay .statecraft-body,
 #diplomacy-overlay .statecraft-body,
-#beads-overlay .statecraft-body {
+#beads-overlay .statecraft-body,
+#reliquary-overlay .statecraft-body {
   flex: 1 1 auto;
   min-height: 0;
   gap: 14px;
@@ -7134,7 +7137,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
   #trade-overlay,
   #compendium-overlay,
   #diplomacy-overlay,
-  #beads-overlay {
+  #beads-overlay,
+  #reliquary-overlay {
     overflow-y: auto;
   }
 
@@ -7143,7 +7147,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
   #trade-overlay .statecraft-sheet,
   #compendium-overlay .statecraft-sheet,
   #diplomacy-overlay .statecraft-sheet,
-  #beads-overlay .statecraft-sheet {
+  #beads-overlay .statecraft-sheet,
+  #reliquary-overlay .statecraft-sheet {
     max-height: none;
   }
 
@@ -11687,4 +11692,335 @@ body.compendium-page {
 
 .sc-card .card-stamp-figure {
   font-size: 0.9rem;
+}
+
+/* ===========================================================================
+   THE RELIQUARY  —  the honored dead, and what they still pay
+   ===========================================================================
+   The seventh parchment sheet (`src/ui/reliquaryScreen.ts`), and the lightest:
+   it joins the capped-overlay rule above with the other six, and then narrows.
+   There is one thing on it and it is one card at a time, so 1240px of paper
+   would be a wide empty table with a tarot card in the middle of it. */
+/* Named through the overlay's id because the rule it is narrowing is
+   `#reliquary-overlay .statecraft-sheet` — an id in the selector, which a bare
+   class beside it loses to every time. This is the invitation the capped block
+   makes working as intended: borrow the paper, then say what is different. */
+#reliquary-overlay .reliquary-sheet {
+  width: min(30rem, 100%);
+}
+
+/* One column, centred, and it scrolls in itself the way `.sc-pane` does — the
+   sheet is capped at the viewport by the shared rule, so without this a short
+   window would clip the foot of the card rather than let it scroll. */
+#reliquary-overlay .reliquary-body {
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 6px;
+  overflow-y: auto;
+}
+
+/* Arrows on either side of the pile, and the pile between them. */
+.rel-browser {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+}
+
+.rel-arrow {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 999px;
+  background: var(--table);
+  font-family: var(--face-name);
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.rel-arrow:hover,
+.rel-arrow:focus-visible {
+  background: var(--parchment);
+}
+
+/* The stack: the face, and two under-cards peeking out from behind it. Drawn
+   rather than implied, because the count line alone does not say *pile*, and
+   the pile is the whole metaphor the ceremony's descent hands over to. */
+.rel-stack {
+  position: relative;
+  flex: 0 0 auto;
+  width: 250px;
+}
+
+.rel-under {
+  position: absolute;
+  inset: 0;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+}
+
+.rel-under-2 {
+  opacity: 0.3;
+  transform: translate(-6px, 5px) rotate(-1.1deg);
+}
+
+.rel-under-1 {
+  opacity: 0.5;
+  transform: translate(7px, 6px) rotate(1.4deg);
+}
+
+.rel-face {
+  position: relative;
+}
+
+/* A card **at rest**. The face is the offer card's own (`offer-option` inside
+   an `offer-options[data-face='tarot']` host — the card dealt and the card kept
+   are the same card), and the two things a standing card must not do are turned
+   off here rather than by forking the whole face: it is not pressable, so it
+   does not wear a pointer, and it does not rise to meet a hover. */
+.rel-card,
+.gp-ceremony-card {
+  cursor: default;
+}
+
+.rel-card:hover,
+.gp-ceremony-card:hover {
+  transform: none;
+  box-shadow: var(--shadow-sm);
+  background: var(--parchment);
+}
+
+/* The card's own height, said with the tarot face's specificity so it lands: the
+   spread's rule is `.offer-options[data-face='tarot'] .offer-option`, and a bare
+   class beside it would lose every time. */
+.rel-face[data-face='tarot'] .rel-card {
+  min-height: 380px;
+}
+
+/* The eyebrow and the tier mark on one line — the mark is the third channel the
+   worksheet's own notation uses (● ◆ ○), and it is drawn only where a card
+   stands alone. */
+.rel-card-head,
+.gp-ceremony-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rel-tier-mark,
+.gp-ceremony-mark {
+  font-family: var(--face-num);
+  font-size: 0.7rem;
+  line-height: 1;
+  color: currentcolor;
+}
+
+/* The deed, small and quiet under the number: what the charge was spent on. */
+.rel-deed,
+.gp-ceremony-deed {
+  font-family: var(--face-num);
+  font-size: 0.66rem;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+
+.rel-count {
+  margin: 0;
+  font-family: var(--face-num);
+  font-size: 0.7rem;
+  color: var(--ink-soft);
+}
+
+.rel-empty {
+  max-width: 26rem;
+  margin: 24px 0;
+  font-family: var(--face-ui);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+/* --- the revoked decorator ------------------------------------------------
+   **History, not deletion** (`LegacyRecord.revoked` — the record stays in spend
+   order and only `liveEffects` stops reading it). So the card stays in the pile,
+   greyed, with a vermilion band across it, and its figure goes back to the
+   flourish because a revoked legacy pays nothing at all. Dormant today: no live
+   row names a revocation the sweep can reach — the branch is built because a
+   save can carry one, and a screen that could not draw it would drop a card. */
+.rel-card.is-revoked {
+  filter: grayscale(0.75) brightness(0.95);
+}
+
+.rel-revoked-band {
+  position: absolute;
+  z-index: 2;
+  top: 46%;
+  right: -8px;
+  left: -8px;
+  padding: 3px 0;
+  background: var(--vermilion);
+  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.4);
+  font-family: var(--face-num);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--parchment);
+  transform: rotate(-7deg);
+}
+
+/* The struck card's stamp: the flourish, dimmed further. */
+.card-stamp.is-struck {
+  opacity: 0.4;
+}
+
+/* The flip: the next card turns up out of the pile. A rotation about the card's
+   own edge rather than a fade, because what is being said is "the one under it",
+   and a fade says "a different one". */
+.rel-card.is-flipping {
+  animation: rel-flip 320ms ease-out both;
+}
+
+@keyframes rel-flip {
+  from {
+    opacity: 0.2;
+    transform: perspective(900px) rotateY(64deg);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ===========================================================================
+   THE SPEND CEREMONY  —  they served you; their legacy remains
+   ===========================================================================
+   `src/ui/greatPersonCeremony.ts`. The card rises to centre over a dimmed,
+   blurred board; the LEGACY counts its figure (the inversion, 2026-09-03); the
+   deed appears beneath without ceremony; the card descends into the renown
+   chip, which is the Reliquary's door.
+
+   The durations here and the milliseconds in `CEREMONY_TIMING` are two halves
+   of one clock — see that constant's docblock for why the module owns the
+   schedule and the stylesheet owns only how long each movement takes. */
+.gp-ceremony-overlay {
+  position: fixed;
+  z-index: 45;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(29, 26, 32, 0.42);
+  backdrop-filter: blur(2px);
+  animation: offer-fade 200ms ease-out both;
+}
+
+.gp-ceremony-overlay[hidden] {
+  display: none;
+}
+
+.gp-ceremony-host {
+  display: block;
+  width: 270px;
+  max-width: 100%;
+}
+
+/* Taller than the Reliquary's, and said at the tarot face's own specificity for
+   that rule's reason: this is the one card on the screen and it may be read from
+   across the room. */
+.gp-ceremony-host[data-face='tarot'] .gp-ceremony-card {
+  min-height: 430px;
+  box-shadow: 8px 8px 0 var(--ink);
+}
+
+.gp-ceremony-card[data-phase='rising'],
+.gp-ceremony-card[data-phase='weighing'],
+.gp-ceremony-card[data-phase='read'] {
+  animation: gp-rise 500ms cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+@keyframes gp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(80px) scale(0.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Into the chip. The distance is measured at the moment the descent starts
+   (`aim`) and handed down as two custom properties, because where the renown
+   chip is depends on the window; with no chip to aim at both are zero and the
+   card simply shrinks away where it stands. */
+.gp-ceremony-card[data-phase='descending'] {
+  animation: gp-descend 600ms ease-in both;
+}
+
+@keyframes gp-descend {
+  to {
+    opacity: 0;
+    transform: translate(var(--gp-descend-x, 0px), var(--gp-descend-y, 0px))
+      scale(0.12) rotate(6deg);
+  }
+}
+
+/* The deed's arrival: it *appears*. A fade and nothing else — no count, no
+   thunk — because it is a figure the player already read on the button they
+   pressed, and animating it twice is the interface insisting on a fact nobody
+   disputed. */
+.gp-ceremony-deed {
+  animation: gp-deed 400ms ease-out both;
+}
+
+.gp-ceremony-card[data-phase='landed'] .gp-ceremony-deed {
+  animation: none;
+}
+
+@keyframes gp-deed {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* A person who leaves no legacy: the deed takes the headline's seat, in the
+   clause's own type rather than the deed's small mono, because it is the whole
+   of what the card has to say. */
+.gp-ceremony-promoted {
+  animation: gp-deed 400ms ease-out both;
+}
+
+/* Motion off: everything already landed. The card is simply there, the deed is
+   simply there, nothing rises and nothing descends — `cardStamp.ts`'s rule,
+   which is `damageNumbers.ts`' and `toasts.ts`' before it. The module holds the
+   other half: it lands the stamp, shows the deed on the first frame, and holds
+   the finished card briefly instead of playing four beats. */
+@media (prefers-reduced-motion: reduce) {
+  .gp-ceremony-overlay,
+  .gp-ceremony-card,
+  .gp-ceremony-card[data-phase='rising'],
+  .gp-ceremony-card[data-phase='weighing'],
+  .gp-ceremony-card[data-phase='read'],
+  .gp-ceremony-card[data-phase='descending'],
+  .gp-ceremony-deed,
+  .gp-ceremony-promoted,
+  .rel-card.is-flipping {
+    animation: none;
+  }
 }

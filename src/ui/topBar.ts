@@ -375,6 +375,17 @@ export interface CivYieldStrip {
   readonly isOpen: boolean;
   /** Shuts both breakdown cards and any hover card. Esc, a new game, a screen. */
   close(): void;
+  /**
+   * The renown chip itself — the one element on this strip anything outside it
+   * needs by name.
+   *
+   * The spend ceremony's card descends *into* it (`greatPersonCeremony.ts`), and
+   * a gesture aimed at a place has to be told where the place is. Exposed rather
+   * than looked up by class from `main.ts`, for the same reason every other
+   * handle in this interface is handed over: a selector in a second file is a
+   * class name that can be renamed without anything failing.
+   */
+  readonly renownChip: HTMLElement;
 }
 
 /** The three elements one meter's click-through breakdown card is made of. */
@@ -414,6 +425,18 @@ export interface CivYieldStripOptions {
    * to go than a hover card.
    */
   onOpenBeads?: () => void;
+  /**
+   * Opens the Reliquary — the legacies of the great people this empire has
+   * spent (`reliquaryScreen.ts`).
+   *
+   * The **fourth** chip that is also a button, and the door was chosen rather
+   * than added: renown → great people → their legacies is the path a player
+   * already walks, this chip's hover card already talks about great people, and
+   * a fourth glyph on the HUD dock would be new chrome for a screen nobody needs
+   * until their first person is spent. Discoverable exactly when it starts
+   * mattering.
+   */
+  onOpenReliquary?: () => void;
 }
 
 export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStrip {
@@ -427,6 +450,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     onOpenStatecraft,
     onOpenTrade,
     onOpenBeads,
+    onOpenReliquary,
   } = options;
   const values = new Map<YieldKey, HTMLElement>();
 
@@ -644,12 +668,29 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     const icon = element('span', 'civ-yield-icon');
     icon.append(renownMarkNode());
     renownItem.append(icon);
-    renownItem.title = `${RENOWN_GLYPH} Renown toward the next great person, per turn in parens`;
-    renownItem.setAttribute('aria-label', 'renown');
     renownItem.tabIndex = 0;
   }
   const renownValue = element('span', 'civ-yield-value', '0');
   renownItem.append(renownValue);
+  // The Reliquary's door, in the strip's existing idiom exactly — the culture,
+  // routes and bead chips' three lines, said a fourth time: the class that draws
+  // it as pressable, the button role, the click, and Enter/Space so it is
+  // reachable from the keyboard the way `tabIndex` above already promised.
+  if (onOpenReliquary) {
+    renownItem.classList.add('civ-yield-clickable');
+    renownItem.setAttribute('role', 'button');
+    renownItem.title = `${RENOWN_GLYPH} Renown toward the next great person — open the Reliquary`;
+    renownItem.setAttribute('aria-label', 'renown — open the Reliquary');
+    renownItem.addEventListener('click', () => onOpenReliquary());
+    renownItem.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      onOpenReliquary();
+    });
+  } else {
+    renownItem.title = `${RENOWN_GLYPH} Renown toward the next great person, per turn in parens`;
+    renownItem.setAttribute('aria-label', 'renown');
+  }
   container.append(renownItem);
   info.bind(renownItem, () => renownCard());
 
@@ -941,6 +982,13 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       total.append(element('span', 'meter-line-source', 'This turn'));
       total.append(element('span', 'meter-line-value', figure(foldRenown(lines))));
       box.append(total);
+    }
+
+    // The door, said once and only where it leads somewhere: an empire that has
+    // spent nobody opens an empty sheet, and a hint pointing at one is a hint
+    // that teaches the wrong thing on the turn a player first reads it.
+    if (onOpenReliquary && player && player.legacies.length > 0) {
+      box.append(element('p', 'hint', '☞ Click for the Reliquary — every legacy still in force.'));
     }
 
     box.append(element('p', 'eyebrow renown-heading', 'triumphs'));
@@ -1356,5 +1404,6 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       authorityCard.close();
       info.hide();
     },
+    renownChip: renownItem,
   };
 }

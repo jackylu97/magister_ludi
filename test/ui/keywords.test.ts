@@ -329,7 +329,20 @@ const DESCRIPTOR_SURFACES: readonly [string, string][] = [
   ['statecraftScreen.ts', 'the charter, the doctrines and the collection'],
   ['religionScreen.ts', 'the belief faces and the rites'],
   ['unitPanel.ts', 'the rite card and the caravan’s lines'],
+  ['reliquaryScreen.ts', 'the legacy on every card in the pile'],
+  ['greatPersonCeremony.ts', 'the legacy, as the spend ceremony’s headline'],
 ];
+
+/**
+ * The one file that **composes** clauses without printing any.
+ *
+ * `greatPersonFace.ts` puts `Forever:` on the head of a legacy's first clause
+ * and hands the list on; the two surfaces above are what draw it, and both are
+ * in the register. It is named here rather than exempted quietly, because the
+ * sweep below cannot tell composing from printing and a silent skip is how a
+ * real offender gets in wearing the same shape.
+ */
+const CLAUSE_COMPOSERS: readonly string[] = ['greatPersonFace.ts'];
 
 const PLAIN_SINKS: readonly [string, string][] = [
   ['controls.ts', 'the rite sentence — a chronicle line and a toast'],
@@ -351,6 +364,18 @@ describe('the descriptor register', () => {
     }
   });
 
+  it('lets a composer touch a clause without printing it, and names it', () => {
+    // The composer returns `CardClause[]` and draws nothing; what proves that is
+    // that it never reaches either printer, which is exactly what the sweep
+    // below would have flagged it for.
+    for (const name of CLAUSE_COMPOSERS) {
+      const text = source(name);
+      expect(text, name).toContain('CardClause[]');
+      expect(text, name).not.toContain('setDescriptorText(');
+      expect(text, name).not.toContain('stripRefs(');
+    }
+  });
+
   it('never prints a clause raw', () => {
     // The mechanical half, and the only one that catches a surface nobody
     // remembered to add above: every `clause.text` in `src/ui` sits within reach
@@ -358,6 +383,7 @@ describe('the descriptor register', () => {
     const offenders: string[] = [];
     for (const path of Object.keys(SOURCES)) {
       if (!path.includes('/src/ui/') || path.endsWith('keywords.ts')) continue;
+      if (CLAUSE_COMPOSERS.some((name) => path.endsWith(`/${name}`))) continue;
       const text = SOURCES[path]!;
       for (const match of text.matchAll(/clause\.text/g)) {
         const at = match.index ?? 0;

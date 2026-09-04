@@ -253,7 +253,16 @@ describe('the design of record, held at the source', () => {
 
   /** Motion off is *no* motion — every keyframe is switched off, not shortened. */
   it('turns the animation off rather than down under reduced motion', () => {
-    const media = STYLE.slice(STYLE.lastIndexOf('@media (prefers-reduced-motion: reduce)'));
+    // **The stamp's own** reduced-motion block, found by what it names rather
+    // than by being the last one in the file: the spend ceremony added a second
+    // (`greatPersonCeremony.ts`, 2026-09-03) and a later surface will add a
+    // third, and "the last block" would quietly start asserting somebody else's.
+    const at = STYLE.indexOf(
+      '@media (prefers-reduced-motion: reduce)',
+      STYLE.indexOf('.card-stamp-figure.is-tick') - 800,
+    );
+    expect(at).toBeGreaterThan(-1);
+    const media = STYLE.slice(at, STYLE.indexOf('\n}\n', at));
     expect(media).toContain('.card-stamp[data-phase=\'landed\'] .card-stamp-figure');
     expect(media).toContain('.offer-option.is-taken');
     expect(media).toContain('animation: none');

@@ -91,6 +91,20 @@ legacy.
   back to a row, or take the occasion and its hook out together.
 - Deferred rows (Dinocrates, Yi Sun-sin, Mimar Sinan's cathedral half)
   carry player-plain `deferred:` prose — see `docs/flags.md`.
+- **Where a legacy is read by the player**: the **Reliquary**
+  (`src/ui/reliquaryScreen.ts`), the seventh parchment sheet, opened from the
+  renown chip in the top bar. One tarot face at a time over a drawn stack,
+  newest first, `‹ ›` and the arrow keys to walk it; each card carries the
+  legacy in `describeCard`'s own words as its headline, its current per-turn
+  figure from `explainCardImpact` written at rest, and the deed as a footnote. A
+  revoked record stays in the pile, greyed under a vermilion band, its figure
+  back to the flourish. Nothing on the screen is stored.
+- **Spending a person plays a ceremony** (`src/ui/greatPersonCeremony.ts`),
+  raised on the accepted `greatPersonAct` / `greatPersonWork` command: the card
+  rises, the **legacy** counts its figure, the deed appears beneath as a small
+  line quoting the preview's own number, and the card descends into the renown
+  chip. Presentation only — the reducer is untouched. The great-person **draft**
+  carries no stamp at all: a legacy pays nothing until the person is spent.
 
 ## Triumphs
 

@@ -151,12 +151,13 @@ import { triumphDef } from './sim/triumphData';
 import { AXIS_MARK, beliefOfferEyebrow } from './ui/religionScreen';
 import { type BeliefId, beliefDef } from './sim/religionData';
 import { personOf } from './sim/greatPeople';
+import { greatPersonDef } from './sim/greatPeopleData';
+import { FAMILY_EMBLEM, TIER_ACCENT, TIER_NAME } from './ui/greatPersonFace';
+import { type ReliquaryScreen, createReliquaryScreen } from './ui/reliquaryScreen';
 import {
-  type Family,
-  type GreatPersonTier,
-  greatPersonDef,
-} from './sim/greatPeopleData';
-import type { CardLine } from './sim/statecraftData';
+  type GreatPersonCeremony,
+  createGreatPersonCeremony,
+} from './ui/greatPersonCeremony';
 import { CARD_LINE_NAME, cardLineMarkUrl, lineOf, slotMarkUrl } from './ui/cardLine';
 import { type OfferKind, SLOT_WORDS, describeCard, explainOfferSize } from './sim/statecraft';
 import {
@@ -364,6 +365,11 @@ const abacusStageEl = requireElement<HTMLElement>('abacus-stage');
 const abacusRegisterEl = requireElement<HTMLElement>('abacus-register');
 const beadsOverlayEl = requireElement<HTMLElement>('beads-overlay');
 const beadsBodyEl = requireElement<HTMLElement>('beads-body');
+/* The Reliquary sheet and the ceremony's own bare overlay — the second is built
+   whole by its module (`greatPersonCeremony.ts`), the triumph sheet's shape. */
+const reliquaryOverlayEl = requireElement<HTMLElement>('reliquary-overlay');
+const reliquaryBodyEl = requireElement<HTMLElement>('reliquary-body');
+const ceremonyOverlayEl = requireElement<HTMLElement>('ceremony-overlay');
 const victoryOverlayEl = requireElement<HTMLElement>('victory-overlay');
 /**
  * Saving and loading: the landing's resume row, the ☰ menu's four verbs, and the
@@ -699,6 +705,13 @@ let religion: ReligionScreen | null = null;
 let trade: TradeScreen | null = null;
 /* Diplomacy's screen, built in `boot` for `trade`'s reason exactly. */
 let diplomacy: DiplomacyScreen | null = null;
+/* The Reliquary and the spend ceremony, held here for `religion`'s reason: both
+   are built in `boot` off a seat, and `closePopovers` and `showLanding` are
+   written before there is one. The ceremony is not a screen the player opens —
+   it is raised by a command — but a card left rising over a game the player has
+   walked away from is exactly what those two sweeps exist to prevent. */
+let reliquary: ReliquaryScreen | null = null;
+let ceremony: GreatPersonCeremony | null = null;
 
 /**
  * The top bar's meter chips, once `boot` has built them. A holder for the same
@@ -841,6 +854,7 @@ function closePopovers(): boolean {
     (religion?.isOpen ?? false) ||
     (trade?.isOpen ?? false) ||
     (diplomacy?.isOpen ?? false) ||
+    (reliquary?.isOpen ?? false) ||
     compendium.isOpen ||
     savesPanel.isOpen ||
     // Escape never actually arrives here while the card is up — it answers its
@@ -860,6 +874,12 @@ function closePopovers(): boolean {
   religion?.close();
   trade?.close();
   diplomacy?.close();
+  reliquary?.close();
+  // The ceremony is not a popover and answers no key, but it is a card standing
+  // over the board on a timer, and Escape meaning "clear the screen" has to mean
+  // it here too. It is not counted in `wasOpen`: it takes itself down, so it is
+  // never the reason Escape had something to do.
+  ceremony?.close();
   compendium.close();
   savesPanel.close();
   confirmCard.close();
@@ -926,6 +946,7 @@ function showLanding(): void {
   religion?.dispose();
   trade?.dispose();
   diplomacy?.dispose();
+  reliquary?.dispose();
   // And every per-game window listener this boot hung (Entry LVII) — the four
   // above dispose more than listeners, these seven dispose exactly that.
   disposeGameScreens();
@@ -2502,6 +2523,19 @@ async function boot(initial: Game | null): Promise<void> {
    * prints, so a legacy reads identically on the card that dealt it and in the
    * ledger afterwards — and a **deferred** half prints struck through in its own
    * greyed line rather than being joined into a sentence that would claim it.
+   *
+   * **Every card here wears the flourish, and none wears a number** (the
+   * uniformity ruling, `docs/doctrine-ideas.md` — "recruit is a promise"). This
+   * is the one tarot offer in the game that passes no `cardStamp`, and it is
+   * deliberate rather than an omission: a great person's legacy does not reach
+   * any ledger until they are *spent*, which happens turns later on a verb the
+   * player has not chosen yet, so a per-turn figure printed at the deal would be
+   * a promise about a moment that has not been decided. It also dissolved a real
+   * asymmetry — a legacy written as flat yields showed a stamp while a legacy
+   * written as a combat rule showed the flourish, and the hand read as though
+   * the first were the stronger card. What sells a name is the epigram, the
+   * kernel and the clauses; the number arrives at the ceremony
+   * (`greatPersonCeremony.ts`), which is when it becomes true.
    */
   function showGreatPersonOffer(): void {
     const seat = controls.localPlayerId();
@@ -2538,12 +2572,8 @@ async function boot(initial: Game | null): Promise<void> {
             line: TIER_ACCENT[def.tier],
             lineName: TIER_NAME[def.tier],
             emblem: cardLineMarkUrl(FAMILY_EMBLEM[def.family]),
-            // **The legacy**, which is the half of a great person that outlives
-            // the choice — *they served you; their legacy remains*. The act is
-            // one charge spent once and is not a rate, so it is not on the
-            // stamp; a legacy that is a combat rule or a movement clause has no
-            // per-turn figure at all and simply keeps the flourish.
-            ...cardStamp(seat, { kind: 'legacy', id }),
+            // No stamp — see the docblock. Every card in this hand wears the
+            // flourish, and the legacy's figure is counted at the spend.
           };
           return option;
         }),
@@ -2591,54 +2621,12 @@ async function boot(initial: Game | null): Promise<void> {
     );
   }
 
-  /**
-   * The three tiers, as the accent keys `style.css` resolves.
-   *
-   * Reused from the Statecraft deck's own eight rather than added beside them,
-   * because the three gradings *are* the deck's own philosophy read one class
-   * over (`docs/deprecated/statecraft-cards.md`, applied to people by the 2026-08-27
-   * ruling) and a fourth palette would be the interface claiming they are a
-   * different kind of thing:
-   *
-   *   defining     the Wild Hunt's oxblood — blood, and the malice that comes
-   *                with a game-defining card;
-   *   strong       the Long Caravan's gilt — money, and the card that is never
-   *                the wrong pick;
-   *   situational  the Wayfarers' verdigris — distance, and the card that is
-   *                great for one map and harmless otherwise.
+  /*
+   * The tier accents, the tier names and the family emblems used to be three
+   * tables here. They are `src/ui/greatPersonFace.ts`'s now — the ceremony and
+   * the Reliquary print the same face, and "what colour is a defining person"
+   * may have exactly one answer.
    */
-  const TIER_ACCENT: Record<GreatPersonTier, CardLine> = {
-    defining: 'hunt',
-    strong: 'caravan',
-    situational: 'wayfarers',
-  };
-
-  /** What the accent *is*, in words. The card's `title`, as for a line. */
-  const TIER_NAME: Record<GreatPersonTier, string> = {
-    defining: 'Game-defining — and it costs you something',
-    strong: 'Strong, and never the wrong pick',
-    situational: 'Situational, and harmless otherwise',
-  };
-
-  /**
-   * The emblem each family wears: the Statecraft line whose drawing already
-   * means what the family means.
-   *
-   * A borrowing rather than five new marks, and the marks are borrowed for what
-   * they *depict* rather than for the thread they belong to — the star for a
-   * scholar, the candle for an artist, the anvil for an engineer, the road for a
-   * merchant, the bow for a general (see `src/art/lineMarks.ts`'s notes). The
-   * accent on the card is the tier, so nothing here is claiming a great person
-   * joins an archetype line; it is one picture, chosen because it is the right
-   * picture.
-   */
-  const FAMILY_EMBLEM: Record<Family, CardLine> = {
-    scholar: 'star',
-    artist: 'procession',
-    engineer: 'forge',
-    merchant: 'caravan',
-    general: 'hunt',
-  };
 
   /**
    * How a card is *drawn*: its accent key, its emblem and the line's name.
@@ -2809,6 +2797,14 @@ async function boot(initial: Game | null): Promise<void> {
       // up — each handles its own Escape — and neither has any business letting
       // `H`, `T` or End Turn through from underneath.
       (trade?.isOpen ?? false) ||
+      // The Reliquary owns its own Escape and its own arrow keys while it is up
+      // — the pile is what ‹ › mean there — so the board must not see either
+      // from underneath, and neither should `H`, `T` or End Turn.
+      (reliquary?.isOpen ?? false) ||
+      // The ceremony is a card on a timer over the board (`greatPersonCeremony.ts`).
+      // It answers no key at all, which is exactly why it is here: End Turn
+      // firing under it would resolve a turn the player is still watching.
+      (ceremony?.isOpen ?? false) ||
       compendium.isOpen ||
       // The load list is the third such screen, and the only one that can be
       // up while the landing is: it handles its own Escape (see
@@ -2985,6 +2981,20 @@ async function boot(initial: Game | null): Promise<void> {
     },
     onOfferReligion: showReligionOffer,
     onOfferGreatPerson: showGreatPersonOffer,
+    /**
+     * The spend ceremony — the card rises, the legacy counts, the deed appears,
+     * the card descends into the renown chip (`greatPersonCeremony.ts`).
+     *
+     * Raised on the accepted command and nowhere else, and it takes down the
+     * HUD's cards first for the reason every screen does: a breakdown left open
+     * under a card rising to centre is a card the player comes back to having
+     * lost their place.
+     */
+    onGreatPersonSpent: (spend) => {
+      meterCards?.close();
+      notifications?.close();
+      ceremony?.play(spend);
+    },
     /**
      * The Triumph sheet, over the awards this seat has just earned.
      *
@@ -3526,6 +3536,56 @@ async function boot(initial: Game | null): Promise<void> {
   gameDisposers.push(() => beads?.dispose());
 
   /**
+   * The Reliquary: every great person this empire has spent, and what their
+   * legacies still pay.
+   *
+   * The seventh parchment sheet and the lightest — see `reliquaryScreen.ts`. It
+   * is built on each open off `Player.legacies`, so a person spent while it was
+   * closed is simply there the next time it is opened, and it takes the one-card-
+   * at-a-time rule the other six keep.
+   */
+  reliquary = createReliquaryScreen({
+    overlay: reliquaryOverlayEl,
+    body: reliquaryBodyEl,
+    closeButton: requireElement('reliquary-close'),
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      meterCards?.close();
+      techTree?.close();
+      abacus?.close();
+      beads?.close();
+      statecraft?.close();
+      religion?.close();
+      trade?.close();
+      diplomacy?.close();
+      compendium.close();
+    },
+  });
+  gameDisposers.push(() => reliquary?.dispose());
+
+  /**
+   * The spend ceremony, raised by `controls`' `onGreatPersonSpent` and by
+   * nothing else — a refused command never reaches it.
+   *
+   * The card descends into the **renown chip**, which is the Reliquary's door,
+   * so the gesture and the way back are the same place; `civYields.renownChip`
+   * is asked for the element each time rather than captured, because the strip
+   * outlives no game and a stale node would aim the card at nowhere.
+   */
+  ceremony = createGreatPersonCeremony({
+    overlay: ceremonyOverlayEl,
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    target: () => civYields.renownChip,
+  });
+  gameDisposers.push(() => ceremony?.dispose());
+
+  /**
    * The Diplomacy screen: every empire, where this seat stands with each, and
    * the two verbs that change it.
    *
@@ -3651,6 +3711,18 @@ async function boot(initial: Game | null): Promise<void> {
       notifications?.close();
       techTree?.close();
       beads?.open();
+    },
+    // The renown chip's own door, the fourth on the same precedent: renown leads
+    // to great people and great people leave legacies, so the chip that counts
+    // the first is the honest way into the last.
+    onOpenReliquary: () => {
+      meterCards?.close();
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      techTree?.close();
+      reliquary?.open();
     },
   });
   // Escape and the landing screen reach these through `closePopovers`, which is

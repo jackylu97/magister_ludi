@@ -45,6 +45,15 @@ describe('the game-screen disposal register', () => {
       // it joins the register the pass that ships it — which is the whole point
       // of this pin.
       'diplomacy?.dispose()',
+      // The Reliquary, the seventh parchment sheet (2026-09-03). It binds a
+      // capturing `keydown` for Escape *and* for the ‹ › that walk the pile, so
+      // a leaked one would answer arrow keys for a game that is over.
+      'reliquary?.dispose()',
+      // The spend ceremony is not a screen the player opens — it is raised by an
+      // accepted command — but it holds a click listener on its overlay and a
+      // string of timers, and a timer left running against a torn-down tree is
+      // the bug every animation in this interface has already had once.
+      'ceremony?.dispose()',
     ]) {
       expect(main, call).toContain(`gameDisposers.push(() => ${call});`);
     }

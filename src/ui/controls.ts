@@ -192,6 +192,7 @@ import type {
 } from '../sim/commands';
 import { disbandError } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
+import type { GreatPersonSpend } from './greatPersonCeremony';
 import { agedActFactor,
   actCityFor,
   actGainOf,
@@ -1502,6 +1503,23 @@ export interface GameControlsOptions {
    */
   onOfferGreatPerson?: () => void;
   /**
+   * **A great person was spent** — the ceremony's cue (`greatPersonCeremony.ts`).
+   *
+   * Fired from `spendGreatPerson` *after* the result has been checked, so a
+   * refused command raises nothing: an offered button is a command this client's
+   * `commit` will have taken, and the one path that is not is the one that
+   * returns before this line.
+   *
+   * It carries its payload for `onTriumphs`' reason exactly, and one grade
+   * harder: the deed's figure is composed from the preview taken **before** the
+   * command, because by the time this fires the piece is off the board and the
+   * board cannot be asked what it was about to do (`spendGreatPerson`'s own
+   * argument, which is why its announcement is composed the same way). Who was
+   * spent is an id rather than a copy of the row, so the ceremony reads the
+   * roster itself.
+   */
+  onGreatPersonSpent?: (spend: GreatPersonSpend) => void;
+  /**
    * Raises the Triumph sheet over these awards — `main.ts`'s triumph modal
    * (`triumphModal.ts`). Local seat only; the caller queues them.
    *
@@ -2164,6 +2182,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onStatecraftPause,
     onOfferReligion,
     onOfferGreatPerson,
+    onGreatPersonSpent,
     onTriumphs,
     onBeadAwards,
     onBeadAgeOpened,
@@ -5239,6 +5258,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // line: the board decision was burst or ground, and the card is yours
     // whichever was taken (`docs/great-people.md`).
     announce(`✦ ${view.name}'s legacy stands with your government`);
+    // **The ceremony**, raised only on an accepted command — the refusal above
+    // returns before this line. The person is named by id so the sheet reads the
+    // roster itself, and the deed carries the preview's figure for the reason
+    // this whole function composes its announcement that way: the piece is gone.
+    const spent = personOf(unit);
+    if (spent !== null) onGreatPersonSpent?.({ id: spent, verb, deed: said });
     if (!unitById(getGame().state, unit.id)) {
       selectedId = null;
       setMoveMode(false);

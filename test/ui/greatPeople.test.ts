@@ -177,9 +177,16 @@ describe('the great-person offer card', () => {
   });
 
   it('names an accent for every tier the roster uses', () => {
-    const main = sourceOf('main.ts');
+    // The three tables moved out of `main.ts`'s boot closure the pass the
+    // ceremony and the Reliquary landed (2026-09-03): three surfaces print the
+    // same face now, and "what colour is a defining person" may have exactly one
+    // answer. The offer still spreads them by the same two expressions — pinned
+    // above — so the only thing that changed is where they live.
+    const face = sourceOf('greatPersonFace.ts');
     for (const tier of new Set(GREAT_PERSON_IDS.map((id) => greatPersonDef(id).tier))) {
-      expect(main).toMatch(new RegExp(`${tier}: '[a-z]+',`));
+      expect(face, tier).toMatch(new RegExp(`${tier}: '[a-z]+',`));
+      // And a mark for it, which is the notation `docs/great-people.md` uses.
+      expect(face, tier).toMatch(new RegExp(`${tier}: '[●◆○]',`));
     }
   });
 
