@@ -6,50 +6,50 @@ theme vocabulary (Entry LII) is the reorganisation. † marks a deferred row._
 
 | taxonomy | themes | cards |
 |---|---|---|
-| The Orders’ lines (`line`) | 11 | 125 |
+| The Orders’ lines (`line`) | 11 | 146 |
 | Religion’s axes (`axis`) | 9 | 40 |
 | Great-person families (`family`) | 5 | 80 |
-| Bead families (`family` + `system`) | 4 | 52 |
-| Unclaimed by any taxonomy | — | 99 |
+| Bead families (`family` + `system`) | 4 | 51 |
+| Unclaimed by any taxonomy | — | 104 |
 
 ## The Orders’ lines (`line`)
 
-### forge — 36 cards
-- **culture · Doctrine** (11): Blitz † · Hegemony · Mountain Hold (retired) † · The Burning Way † · The Great Warring Tribes · The Iron Price · The Levée en Masse † · The Sacred Path · The Standing Army · The Triumphal Way · The Woodwrights
-- **culture · Order** (25): Conscription · Drums of War · Field Surgeons · Forced Marches · Garrison State · Horse Lords · March Discipline · Master Masons · Ore Tithes · Quarrymen's Guild · Siege Doctrine · Skirmishers' Creed · Statute Labour · The Legion · The Marshals · The Masons' Lodge · The Master Builders · The Muster Roll · The Oath-Bound · The Quartermasters · The Shield Wall · The War Chest · The Wonder-Feasts · Triumphs (retired) † · Vanguard
+### forge — 40 cards
+- **culture · Doctrine** (11): Blitz † · Hegemony · Mountain Hold (retired) † · The Burning Way † · The Great Warring Tribes · The Iron Price · The Levée en Masse (retired) † · The Sacred Path · The Standing Army · The Triumphal Way · The Woodwrights
+- **culture · Order** (29): Conscription · Drums of War · Field Surgeons · Forced Marches · Garrison State · Horse Lords · March Discipline · Master Masons · Ore Tithes · Quarrymen's Guild · Siege Doctrine · Skirmishers' Creed · Statute Labour · The Arsenal Law · The Casus Belli · The Legion · The Marshals · The Masons' Lodge · The Master Builders · The Muster Roll · The Oath-Bound · The Quartermasters · The Shield Wall · The Toolmakers' Charter · The Vigil Charter · The War Chest · The Wonder-Feasts · Triumphs (retired) † · Vanguard
 
-### green — 23 cards
-- **culture · Doctrine** (9): Bread and Circuses · Pax Imperia · Pax Magistri † · River Kings · The Gentle Yoke † · The Hermit Crown · The Scattered Hearths · The Wandering Court · The Yeomanry
-- **culture · Order** (14): Common Granary · Festival Days · First Fruits · Granary Levies · Hearth Songs · Terraced Hillsides · The Grain Dole · The Greenwood Law (retired) · The King's Table · The Old Ways · The Orchard Tithe · The Quiet Fields · The Unbroken Land · Village Fairs
-
-### caravan — 22 cards
+### caravan — 26 cards
 - **culture · Doctrine** (5): Mare Nostrum · Thalassocracy · The Gilded Court · The Grand Bazaar · The Sea Charter †
-- **culture · Order** (17): Chartered Companies · Foreign Quarters (retired) · Harbour Dues · Ledger-Keepers · Provincial Mints · Publicani · Salt Tithes · Silk Roads · Sumptuary Laws · The Dry Docks † · The Escorted Roads † · The Provisioners · The Salt Road · The Shipwright Shores · The Tax Farm · The Wayhouses · Weights & Measures
+- **culture · Order** (21): Chartered Companies · Foreign Quarters (retired) · Harbour Dues · Ledger-Keepers · Provincial Mints · Publicani · Salt Tithes · Silk Roads · Sumptuary Laws · The Coin Charter · The Dry Docks † · The Escorted Roads † · The Golden Scales · The Mint Charter · The Provisioners · The Salt Road (retired) · The Salting Houses · The Shipwright Shores · The Tax Farm · The Wayhouses · Weights & Measures
 
-### procession — 18 cards
+### green — 24 cards
+- **culture · Doctrine** (9): Bread and Circuses · Pax Imperia · Pax Magistri † · River Kings · The Gentle Yoke † · The Hermit Crown · The Scattered Hearths · The Wandering Court · The Yeomanry
+- **culture · Order** (15): Common Granary · Festival Days · First Fruits · Granary Levies · Hearth Songs (retired) · Terraced Hillsides · The Grain Dole · The Greenwood Law (retired) · The Harvest Songs · The King's Table · The Old Ways · The Orchard Tithe · The Quiet Fields · The Unbroken Land · Village Fairs
+
+### procession — 20 cards
 - **culture · Doctrine** (5): Cuius Regio · Divine Inspiration · Religious Mandate † · The Great Litany · The Tithe
-- **culture · Order** (13): Census of Souls · Fire-Keepers · First Fruits · First Rites · Lamplighters · Mandate of Heaven · Pilgrim Roads · Rites of Passage · Sanctuary (retired) † · The Choir · The Pilgrim's Purse · The Saints' Fields · Wayside Shrines
+- **culture · Order** (15): Census of Souls · Fire-Keepers · First Fruits · First Rites · Lamplighters · Mandate of Heaven · Pilgrim Roads · Rites of Passage · Sanctuary (retired) † · The Almshouse Charter · The Choir · The Pilgrim's Purse · The Rites Charter · The Saints' Fields · Wayside Shrines
 
-### hunt — 7 cards
-- **culture · Doctrine** (1): Wolf-Mother's Pact
-- **culture · Order** (6): Blooded Spears · Border Ballads (retired) · Camp Followers · Spoils of the Wild · The Last Hunt · Wolf-Runners (retired)
-
-### star — 7 cards
+### star — 11 cards
 - **culture · Doctrine** (1): The Encyclopaedia
-- **culture · Order** (6): Curious Elders (retired) · Scholars' Stipend · Star-Gazers · The Almanac · The Census Eternal · The Lyceum
+- **culture · Order** (10): Curious Elders (retired) · Scholars' Stipend · Star-Gazers · The Almanac · The Almoners' Book · The Census Eternal · The Drafting Halls · The Lyceum · The Scriveners' Charter · The Stargazers' Charter
+
+### hunt — 8 cards
+- **culture · Doctrine** (1): Wolf-Mother's Pact
+- **culture · Order** (7): Blooded Spears · Border Ballads (retired) · Camp Followers · Spoils of the Wild · The Ballad-Weavers · The Last Hunt · Wolf-Runners (retired)
+
+### court — 5 cards
+- **culture · Order** (5): The Bell-Founders · The Groundskeepers · The Laureate · The Master's Presence · The Reliquary Rolls
 
 ### wayfarers — 4 cards
 - **culture · Doctrine** (2): Athenaeum of the Road (retired) · Master of Maps
 - **culture · Order** (2): Far Runners · The Cartographers
 
-### court — 3 cards
-- **culture · Order** (3): The Groundskeepers · The Laureate · The Master's Presence
+### charter — 4 cards
+- **culture · Order** (4): Charter Towns · The Charter of the Marches · The Prize Grounds · The Senatus
 
-### ploughshare — 2 cards
-- **culture · Order** (2): Cistern Works · River Wardens
-
-### charter — 2 cards
-- **culture · Order** (2): Charter Towns · The Prize Grounds
+### ploughshare — 3 cards
+- **culture · Order** (3): Cistern Works · River Wardens · The Waterwrights' Charter
 
 ### highlands — 1 cards
 - **culture · Order** (1): Hill Forts
@@ -126,16 +126,16 @@ theme vocabulary (Entry LII) is the reorganisation. † marks a deferred row._
 
 ### engineer — 15 cards
 - **renown · person (Æra 2)** (4): Amenhotep son of Hapu · Bezalel · Hemiunu · Senenmut
-- **renown · person (Æra 3)** (4): Eupalinos · Hero of Alexandria † · Li Bing · Vitruvius
+- **renown · person (Æra 3)** (4): Dinocrates † · Eupalinos · Li Bing · Vitruvius
 - **renown · person (Æra 4)** (3): Su Song · Villard de Honnecourt · al-Jazarī
 - **renown · person (Æra 5)** (4): Leonardo · Mimar Sinan † · Taqī al-Dīn · Vaucanson
 
 ## Bead families (`family` + `system`)
 
-### culture — 25 cards
+### culture — 24 cards
 - **beads · endeavour** (3): The Cathedral of the Age · The Exposition · The Great Games
 - **beads · feat** (7): The First Artist · The First Faith · The First General · The First Marvel · The First Merchant · The First Scholar · The Great City
-- **beads · quest** (11): The Apostle (religion) · The Builder (wonders) · The Deepening (Statecraft) · The Dynasty (great people) · The Enhancer (religion) · The Hierophant (religion) · The Laureate's Court (great people) · The Legacy † (great people) · The Long Reign † (Statecraft) · The Metropolis (cities) · Three of the Age (wonders)
+- **beads · quest** (10): The Apostle (religion) · The Builder (wonders) · The Dynasty (great people) · The Enhancer (religion) · The Hierophant (religion) · The Laureate's Court (great people) · The Legacy † (great people) · The Long Reign † (Statecraft) · The Metropolis (cities) · Three of the Age (wonders)
 - **beads · reckoning** (4): The Greatest City · The Most Called · The Most Marvels · The Widest Faith
 
 ### economic — 11 cards
@@ -157,10 +157,10 @@ theme vocabulary (Entry LII) is the reorganisation. † marks a deferred row._
 
 ## Unclaimed by any taxonomy
 
-### unclaimed — 99 cards
+### unclaimed — 104 cards
 - **culture · Doctrine** (8): Absolutism † · Manifest of the Steppe · The Academy · The Closed Realm † · The Founders' Road · The Grand Tour · The Philosopher's Stone † · The Renaissance Court †
 - **culture · government** (16): Chiefdom · Council of Elders · Divine Mandate · Imperium · Merchant League · Priest-King · Republic · The Commonwealth · The Curia † · The Empire · The Estates · The Magisterium · The Sultanate · Theocracy · Tyranny · War Chief
-- **culture · Order** (24): Border Wardens · Boundary Stones · Client Kings · Emergency Powers · Frontier Forts · Homestead Charters · Land Grants · Militia Levies · Provincial Governors · Public Granaries · Royal Surveyors · Scorched Earth · The Annals of Law · The Archives · The Auspicious Seal · The Common Purse · The Finisher's Art · The Long Watch · The Loose Rein (retired) · The Standing Levy · The Widow's Levy · The Wintering Grounds · Tinkers' Guild · Toleration Edicts
+- **culture · Order** (29): Border Wardens · Boundary Stones · Client Kings · Emergency Powers · Frontier Forts · Homestead Charters · Land Grants · Militia Levies · Provincial Governors · Public Granaries · Royal Surveyors · Scorched Earth · The Annals of Law · The Archives · The Auspicious Seal · The Chroniclers of the Fallen · The Common Purse · The Finisher's Art · The Guild Charter · The Justices' Charter · The Long Watch · The Loose Rein (retired) · The Standing Levy · The Synod · The War Council · The Widow's Levy · The Wintering Grounds · Tinkers' Guild · Toleration Edicts
 - **faith · enhancer** (3): Apostles · Theocratic Mandate † · World Church
 - **faith · follower** (2): Choirs · Tithe Houses
 - **faith · pantheon** (2): Court Augurs · Sacred Fire

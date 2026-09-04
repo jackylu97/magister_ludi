@@ -304,6 +304,8 @@ const COLUMN_LABELS: Record<ReadingColumn, string> = {
   science: 'sci',
   culture: 'cul',
   faith: 'faith',
+  happiness: 'happy',
+  authority: 'auth',
   units: 'units',
   soldiers: 'army',
   scouts: 'scouts',

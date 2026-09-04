@@ -28,6 +28,7 @@ import { driveBots } from '../ai/driver';
 import { type Game, createGame } from '../sim/game';
 import { type PlayerSpec, realPlayers } from '../sim/state';
 import { cityYields, empireRateReading } from '../sim/cities';
+import { authorityOf, happinessOf } from '../sim/meters';
 import { isCombatant, isExplorer, unitDef } from '../sim/unitData';
 
 /** What one seat is, as the page hands it over: a name, an ink, a persona. */
@@ -72,6 +73,8 @@ export interface SeatReading {
   science: number;
   culture: number;
   faith: number;
+  happiness: number;
+  authority: number;
   units: number;
   soldiers: number;
   scouts: number;
@@ -113,6 +116,8 @@ export const READING_COLUMNS = [
   'science',
   'culture',
   'faith',
+  'happiness',
+  'authority',
   'units',
   'soldiers',
   'scouts',
@@ -229,6 +234,10 @@ function readSeat(game: Game, playerId: number): SeatReading {
     science: rates.sciencePerTurn ?? 0,
     culture: rates.culturePerTurn ?? 0,
     faith: rates.faithPerTurn ?? 0,
+    // The two meters are standings, not rates — the same folds the top bar
+    // prints (`happinessOf`/`authorityOf`), asked once at the reading turn.
+    happiness: happinessOf(state, playerId),
+    authority: authorityOf(state, playerId),
     units,
     soldiers,
     scouts,
