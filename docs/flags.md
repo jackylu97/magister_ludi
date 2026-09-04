@@ -405,11 +405,72 @@ to press).
   (`ignoresTerrainCost`) stays for future pathfinder units — code keeps the
   marker, players hear the unit they actually have.
 
-- **Bot blind spot found while verifying the Lighthouse**: the hypothetical
-  path (`cityYields(state, city, [building])`) prices the quote but not the
-  building's own TILE lines, so the bot's what-if undervalues coastal
-  buildings with `tileYields` (Lighthouse). Real construction pays correctly;
-  only the appraisal is blind. Small fix in the ghost context when wanted.
+- ~~**Bot blind spot found while verifying the Lighthouse**~~ — RULED
+  2026-09-04, in flight with the appraisal batch below.
+
+### Ruled 2026-09-04 — bot appraisal batch (routes · great people · tile lines) — LANDED
+
+The user: "lets have the bot evaluate trade routes (should not necessarily
+opt for international routes, greedily choose the best yields). Lets
+implement 1,2,3." All three shipped same day (`explainRoutePay` scores every
+pair own-and-foreign in one table; `workGifts` prices the opened seam and the
+citadel's `workers.workDefenseValue`; the `hypothetical` list reaches
+`buildingTileLines` so a Lighthouse appraises true). Still unpriced, stated
+in the docblocks: a luxury's signature, the citadel's claimed ring, and
+percentages a candidate building would unlock (`cityYieldPercents` takes no
+hypothetical).
+
+### Ruled 2026-09-04 — bot batch 2 (scouts · tech riders · yield weights)
+
+The user, after the t75 diagnostics found 12–40 scouts per seat and 0–1
+workers: "lets sharply deprioritize having more than 3 scouts at a time,
+and deprioritize as turns go on. and then go for #2 [tech riders]. The bot
+should probably weight science and culture a bit more heavily, lets have
+it prioritize food, then science/culture, then production/gold. Food
+importance should decrease as time goes on."
+
+1. **Scouts** — the explorer branch of `unitRoleValue` currently returns a
+   scout's soldier value with NO army-size gate (the combatant branch's
+   `wanted` check never runs for explorers), which is the scouts-forever
+   regression. Fix: past 3 ranging scouts the candidate's value collapses
+   sharply (a steep negative/near-zero term, still reported honestly, not a
+   silent null), and the whole explorer value decays with `state.turn` so
+   even the first three fade as the map lights up. Knobs in `data/ai.json`
+   (`military` block), never literals; the 3 is a knob too.
+2. **Tech riders** — `explainTechGifts` prices two things it calls zero
+   today: improvement-upgrade riders (`ImprovementDef.upgrades` — Irrigation)
+   by the POTENTIAL reading — hexes this empire could build the improvement
+   on that would receive the rider (freshwater farmable hexes), counted
+   through the improvement plan's own validity readers, never the current
+   improvement count — and `TechDef.effects` card-effect techs, priced
+   through the same appraisal the slotting arm uses for a card.
+3. **Yield weights** — a data pass on `data/ai.json` `weights` (age-banded):
+   food 7/6/5/4 · science 5/6/6/6 · culture 5/5/5/5 · production 4/4/4/4 ·
+   gold 3/3/4/4. Food first and falling; science/culture above
+   production/gold throughout. Slow-tier fixture re-aims expected at the
+   push-gate (trajectories shift); the coverage claims never weaken.
+
+1. **The route scorer** — `traderCommand` stops taking the first legal
+   pair. Enumerate every legal (origin, partner) pair — own towns AND
+   foreign in ONE table, no pass privilege either way — price each by the
+   route's own yields (the sim's route-yield explainer, sender side; a
+   foreign partner's line is whatever international actually pays), weigh
+   through the bot's one weight vector, take the best. Deterministic
+   tie-break: iterate `state.cities` in array order, strictly-greater
+   replaces. Candidates report with terms that fold to the score (the
+   aiDecision fold test walks them). `startRouteError` stays the only
+   legality gate; `bestRouteMode` stays the mode answer.
+2. **Great-person second-order gifts** — the work appraisal prices what it
+   currently calls zero: an academy-family work opens the seam it covers
+   (price the covered resource's yield/access delta through the sim's own
+   readers), and a citadel is a flat defender line (a modest fixed value on
+   a knob in `data/ai.json`, not a guess in code). Still crude-and-written-
+   down-as-crude; the Leonardo-amplifier hypothetical stays out of scope.
+3. **The Lighthouse blind spot** — the hypothetical path
+   (`cityYields(state, city, [building])`) now prices the candidate
+   building's own TILE lines, so coastal `tileYields` buildings appraise
+   at their real worth. Real construction already paid correctly; this is
+   the ghost context only.
 
 ### Bot brain v1 — IN FLIGHT (personas + five appraisal fixes)
 

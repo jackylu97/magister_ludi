@@ -211,7 +211,15 @@ import {
   upgradeTargetForType,
 } from '../sim/tech';
 import { unitUpkeep, buildingUpkeep, unitUpkeepOf } from '../sim/upkeep';
-import { bestRouteMode, startRouteError } from '../sim/trade';
+import {
+  type RouteMode,
+  bestRouteMode,
+  explainRouteSenderYieldBetween,
+  explainRouteYieldBetween,
+  foldRouteYield,
+  routeIsInternational,
+  startRouteError,
+} from '../sim/trade';
 import {
   type UnitTypeId,
   UNIT_TYPE_IDS,
@@ -3798,9 +3806,18 @@ function garrisonAt(state: GameState, playerId: number, city: City): number {
  * `greatPersonWorkError` — so a verb this arm proposes is a verb the reducer
  * takes. Crude is allowed here and is written down as crude: the act's figures
  * are read off `RULES.greatPeople` without Leonardo's amplifier (a card the bot
- * cannot ask hypothetically), and a work's second-order gifts — the seam an
- * academy opens, the ring a citadel claims — are not priced at all. What is no
- * longer true is that the piece does nothing.
+ * cannot ask hypothetically).
+ *
+ * A work's **second-order gifts** are no longer zero (ruled 2026-09-04). Two of
+ * the three are priced, in `workGifts` (`plan.ts`) and off markers rather than
+ * names: the seam the work opens under itself, when the empire can be told about
+ * it and holds none of that kind — the compendium's "Iron · academy" — and the
+ * flat defender line a citadel plants, at `workers.workDefenseValue` a point.
+ * The seam is priced at its own yield row, a stand-in like the buried-seam
+ * knob in `workers`: a
+ * luxury's *signature* is a list only `resourceEffects.ts` may read and cannot be
+ * asked hypothetically, so a luxury is still worth more than this bot says. The
+ * ring a citadel claims is likewise still unpriced.
  */
 function greatPersonCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
   const ai = aiFor(player);
@@ -4096,11 +4113,12 @@ function holySiteStep(
 const HOLY_SITE: ImprovementId | null = workForFamily('prophet');
 
 /**
- * An idle caravan is sent on the first route the rules will take, else sleeps.
+ * An idle caravan is sent on **the best-paying route the rules will take**, else
+ * sleeps.
  *
- * The origin is named by the command rather than read off the board (the
- * caravan teleports into its gates), so this is a plain search over pairs of
- * this empire's towns in `state.cities` order, gated by `startRouteError`.
+ * The origin is named by the command rather than read off the board (the caravan
+ * teleports into its gates), so every ordered pair of a town of this empire's
+ * and a town anywhere is a candidate, gated by `startRouteError`.
  *
  * **The mode is named too** (`bestRouteMode`, the ruling of 2026-09-03): land
  * wherever a land route is legal, sea otherwise. Naming it rather than leaving
@@ -4108,56 +4126,119 @@ const HOLY_SITE: ImprovementId | null = workForFamily('prophet');
  * field's default is a fact about the *path* and would take the land answer
  * even when the land answer is out of range.
  *
- * **Foreign partners are searched second** (the international ruling of
- * 2026-09-03), and the two passes are the whole of this bot's opinion about
- * them: it does not price routes against each other at all — the summary says
- * so out loud — so "first legal" is the only ordering it has, and a bot that
- * met the world's towns in `state.cities` order would send its first caravan
- * abroad on nothing but the accident of who was founded first. Its own towns
- * first is the conservative reading of a rule it cannot weigh: the road home is
- * worth something to it afterwards. Everything about legality — at peace, met,
- * in range, a path in some mode — is `startRouteError`'s, asked identically in
- * both passes.
+ * **One table, no pass privilege** (ruled 2026-09-04). The v1 walked its own
+ * towns first and took the first legal pair, and said out loud that first-legal
+ * was the only ordering it had; the user's ruling is that a seat should *"not
+ * necessarily opt for international routes, greedily choose the best yields"*,
+ * which cuts both ways — a foreign partner is neither preferred nor avoided, and
+ * the only thing that decides is what the route pays. So own and foreign towns
+ * are enumerated in one sweep of `state.cities` and every legal pair is priced
+ * by `explainRoutePay`, which asks the simulation's own fold.
+ *
+ * Ties keep the pair the sweep met first (strictly-greater replaces), and the
+ * sweep is `state.cities` in array order twice over — founding order, a fact
+ * about the state — so two identical boards send the caravan the same way.
+ * Everything about legality — at peace, met, in range, a path in some mode —
+ * remains `startRouteError`'s, asked identically of every pair.
  */
 function traderCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
+  const ctx = valueContext(state, player);
   const tried: BotCandidate[] = [];
-  // Its own towns, then the world's — see the docblock. `pass` is the reading
-  // "is this partner somebody else's", so one sweep of `state.cities` answers
-  // each pass and the order stays a fact about the state.
-  for (const pass of [false, true]) {
-    for (const from of state.cities) {
-      if (from.ownerId !== player.id) continue;
-      for (const to of state.cities) {
-        if (to.id === from.id) continue;
-        if ((to.ownerId !== player.id) !== pass) continue;
-        const label = `${from.name} → ${to.name}`;
-        const mode = bestRouteMode(state, player.id, unit.id, from.id, to.id);
-        if (mode === null) {
-          // Land's own sentence, which `bestRouteMode` has just proved is a
-          // refusal — the feed says why the ordinary road was no good rather
-          // than reporting the sea to an empire with no coast.
-          const refusal = startRouteError(state, player.id, unit.id, from.id, to.id, 'land');
-          tried.push(refused(label, refusal ?? 'No route a caravan could take.'));
-          continue;
-        }
-        tried.push(chosenAt(label, tried.length));
-        return {
-          command: {
-            type: 'startRoute',
-            playerId: player.id,
-            unitId: unit.id,
-            fromCityId: from.id,
-            toCityId: to.id,
-            mode,
-          },
-          summary: `Opens the first route the rules will take, ${from.name} → ${to.name} by ${mode} — this bot does not price routes against each other.`,
-          candidates: tried,
-          focus: { col: to.col, row: to.row },
-        };
+  let best: { from: City; to: City; mode: RouteMode; score: number; at: number } | null = null;
+
+  for (const from of state.cities) {
+    if (from.ownerId !== player.id) continue;
+    for (const to of state.cities) {
+      if (to.id === from.id) continue;
+      // A foreign partner is named with its empire, because two seats may hold
+      // towns of the same name and "Aldermarch → Aldermarch" is a row nobody
+      // reading the feed could place.
+      const label =
+        to.ownerId === player.id
+          ? `${from.name} → ${to.name}`
+          : `${from.name} → ${to.name} (${playerById(state, to.ownerId)?.name ?? 'abroad'})`;
+      const mode = bestRouteMode(state, player.id, unit.id, from.id, to.id);
+      if (mode === null) {
+        // Land's own sentence, which `bestRouteMode` has just proved is a
+        // refusal — the feed says why the ordinary road was no good rather
+        // than reporting the sea to an empire with no coast.
+        const refusal = startRouteError(state, player.id, unit.id, from.id, to.id, 'land');
+        tried.push(refused(label, refusal ?? 'No route a caravan could take.'));
+        continue;
       }
+      const pay = explainRoutePay(state, from, to, ctx);
+      const at = tried.length;
+      tried.push({ label: `${label} by ${mode}`, score: pay.total, chosen: false, terms: pay.terms });
+      if (best === null || pay.total > best.score) best = { from, to, mode, score: pay.total, at };
     }
   }
-  return standDown(unit, 'No pair of towns will take a route from this empire.');
+
+  if (best === null) return standDown(unit, 'No pair of towns will take a route from this empire.');
+  tried[best.at]!.chosen = true;
+  const abroad = routeIsInternational(best.from, best.to);
+  return {
+    command: {
+      type: 'startRoute',
+      playerId: player.id,
+      unitId: unit.id,
+      fromCityId: best.from.id,
+      toCityId: best.to.id,
+      mode: best.mode,
+    },
+    summary:
+      `Opens ${best.from.name} → ${best.to.name} by ${best.mode} — worth ${round1(best.score)} a turn, the best of ` +
+      `${tried.length} pairs it weighed` +
+      (abroad ? ', and it happens to end abroad.' : ', and it happens to stay at home.'),
+    candidates: tried,
+    focus: { col: best.to.col, row: best.to.row },
+  };
+}
+
+/**
+ * **What one route would pay this empire**, per turn, in the one currency.
+ *
+ * The whole of the route scorer's opinion, and none of it is this bot's
+ * arithmetic: `routeYields.ts` already answers "what does a caravan between
+ * these two towns pay, as they stand", and the only thing a seat has to decide
+ * is *which side of it lands in its own books*. That is one clause and it is the
+ * international ruling read straight:
+ *
+ *   · a route between two of its own towns pays the **destination**
+ *     (`explainRouteYieldBetween` — the origin's shelves, the two populations, a
+ *     luxury's coin, the card's share), and the destination is this empire's, so
+ *     the whole fold is its own;
+ *   · a route ending abroad pays the **sender** a flat table
+ *     (`explainRouteSenderYieldBetween`), and pays the host a coin that lands in
+ *     somebody else's treasury. That coin is deliberately not counted — neither
+ *     as a gift nor as a cost. The ruling is greed, not diplomacy.
+ *
+ * So the two arms of the table are commensurable because the simulation itself
+ * says what each is worth, and a bot that preferred abroad (or shunned it) would
+ * be overriding a number it had already been handed.
+ *
+ * The blockade and the amplifier ride along for free, being lines of those same
+ * folds. Faith is the one voice no route pays, so it never appears in the bag.
+ */
+function explainRoutePay(state: GameState, from: City, to: City, ctx: ValueContext): Appraisal {
+  const abroad = routeIsInternational(from, to);
+  const paid = foldRouteYield(
+    abroad ? explainRouteSenderYieldBetween(state, from, to) : explainRouteYieldBetween(state, from, to),
+  );
+  const bag: YieldBag = {
+    food: paid.food,
+    production: paid.production,
+    gold: paid.gold,
+    science: paid.science,
+    culture: paid.culture,
+  };
+  return appraise([
+    nest(
+      abroad
+        ? `what a foreign market pays the seat that sent it, ${from.name} → ${to.name}`
+        : `what ${to.name} banks off ${from.name}'s shelves`,
+      explainYields(bag, ctx),
+    ),
+  ]);
 }
 
 // --- naming a decision ------------------------------------------------------

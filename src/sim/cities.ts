@@ -474,8 +474,22 @@ export function yieldContextFor(
  * stamp diffs what the worked hexes pay under this empire's law and under a
  * shallow copy of it, and there is no honest way to ask that question without
  * the very context the town's own yields are read through.
+ *
+ * `hypothetical` is `cityYields`' preview hook, carried this far in for one
+ * reason: a building's worth may be entirely a line on the ground. The what-if
+ * used to hand its candidate to `explainCityBuildings` and stop there, so a
+ * lighthouse — which pays *nothing* flat and +1🌾 on every coastal hex the town
+ * works — appraised at zero and the bot never built one (2026-09-04). It reaches
+ * only `buildingTileLines`, the one producer that is a fact about *this* town's
+ * shelves; the empire's law, its holdings and its faith are unmoved by a
+ * building that does not exist yet, and an empty list is byte-for-byte the
+ * reading every real caller had before.
  */
-export function cityContext(state: GameState, city: City): TileYieldContext | undefined {
+export function cityContext(
+  state: GameState,
+  city: City,
+  hypothetical: readonly BuildingId[] = [],
+): TileYieldContext | undefined {
   const ctx = yieldContextFor(state, city.ownerId);
   if (!ctx) return undefined;
   // Five producers are facts about *this town* rather than about the empire,
@@ -491,7 +505,7 @@ export function cityContext(state: GameState, city: City): TileYieldContext | un
   // Appended in that order, and the tile chain still cannot tell any producer
   // from another.
   const own = [
-    ...buildingTileLines(city, ctx.techs),
+    ...buildingTileLines(city, ctx.techs, hypothetical),
     ...timedCityTileLines(state, city),
     ...scopedCardTileLines(state, city),
     ...followerCardTileLines(state, city),
@@ -2173,8 +2187,12 @@ const INHERITED_PREFIX = 'Inherited';
  * banks (see `yieldContextFor`): the centre of a town on iron is worth the iron
  * only to an empire that has heard of it.
  */
-export function explainCentreYield(state: GameState, city: City): TileYieldContribution[] {
-  const ground = explainTileYield(cityTile(state.map, city), cityContext(state, city));
+export function explainCentreYield(
+  state: GameState,
+  city: City,
+  hypothetical: readonly BuildingId[] = [],
+): TileYieldContribution[] {
+  const ground = explainTileYield(cityTile(state.map, city), cityContext(state, city, hypothetical));
   const under = foldTileYield(ground);
   const base = readTileYield(CITIES.baseCityYields);
 
@@ -2239,8 +2257,12 @@ function inheritedSources(
  * What the city centre pays. The fold of `explainCentreYield`, and nothing
  * else — the number and the explanation cannot drift apart.
  */
-export function centreYield(state: GameState, city: City): TileYield {
-  return foldTileYield(explainCentreYield(state, city));
+export function centreYield(
+  state: GameState,
+  city: City,
+  hypothetical: readonly BuildingId[] = [],
+): TileYield {
+  return foldTileYield(explainCentreYield(state, city, hypothetical));
 }
 
 // --- what a building pays ---------------------------------------------------
@@ -3042,7 +3064,7 @@ export function cityQuote(
   hypothetical: readonly BuildingId[] = [],
   empire: EmpirePercents = empirePercents(state, city.ownerId),
 ): CityQuote {
-  const centre = centreYield(state, city);
+  const centre = centreYield(state, city, hypothetical);
   const total: CityYields = {
     food: centre.food,
     production: centre.production,
@@ -3054,7 +3076,11 @@ export function cityQuote(
     faith: centre.faith,
   };
 
-  const ctx = cityContext(state, city);
+  // The candidate reaches the *ground* as well as the shelves: a building whose
+  // whole worth is a tile line (a lighthouse's coastal food) is invisible to a
+  // what-if that only ghosts `explainCityBuildings`. Empty for every real
+  // reading, which is every caller but the two hypothetical ones.
+  const ctx = cityContext(state, city, hypothetical);
   for (const cell of city.workedTiles) {
     const tile = getTileAt(state.map, cell.col, cell.row);
     if (!tile) continue;

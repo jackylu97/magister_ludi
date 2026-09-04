@@ -27,7 +27,7 @@
  * the list they read last turn with one more line on it.
  */
 
-import { BUILDING_IDS, buildingDef } from './buildingData';
+import { BUILDING_IDS, type BuildingId, buildingDef } from './buildingData';
 import { CITY_YIELD_KEYS } from './resourceData';
 import type { City, GameState } from './state';
 import type { TileLine } from './statecraft';
@@ -165,11 +165,24 @@ export function foldBuildingCityStat(list: readonly BuildingCityStatLine[]): num
  * the line's own `requiresTech` and this module has no other reason to know what
  * research is. Buildings are walked in `BUILDING_IDS` order so two cities
  * holding the same granary itemise it identically.
+ *
+ * `hypothetical` is `cityYields`' preview hook reaching the *ground* — buildings
+ * the town does not have, counted as if it did. It exists because a lighthouse
+ * says nothing at all in a building's own flat yields: its whole worth is a line
+ * on every coastal hex the town works, and a what-if that could not see one
+ * appraised the Lighthouse at zero (the 2026-09-04 blind spot). The list is
+ * walked in `BUILDING_IDS` order like the built one, and a candidate the town
+ * already holds is counted once rather than twice — the loop is over the table,
+ * not over the two arrays.
  */
-export function buildingTileLines(city: City, techs: readonly TechId[]): TileLine[] {
+export function buildingTileLines(
+  city: City,
+  techs: readonly TechId[],
+  hypothetical: readonly BuildingId[] = [],
+): TileLine[] {
   const list: TileLine[] = [];
   for (const id of BUILDING_IDS) {
-    if (!city.buildings.includes(id)) continue;
+    if (!city.buildings.includes(id) && !hypothetical.includes(id)) continue;
     for (const line of buildingDef(id).tileYields ?? []) {
       if (line.requiresTech !== undefined && !techs.includes(line.requiresTech)) continue;
       const add = line.add;

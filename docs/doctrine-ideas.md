@@ -178,6 +178,17 @@ Design rule carried over: a growing card is WEAK on draft day — the floor
 is low, the ceiling is the player's own play. The counter prints on the
 card ("×7") and the stamp reads the counter, so the growth is legible.
 
+**RULED 2026-09-04 — a scaling card counts only while SLOTTED.** The slot
+is the price of the growth: slotting a weak card today for a ceiling
+tomorrow is the commitment decision, and it composes with the seals
+(statecraft pays those who hold a line). Benched cards grow nothing — the
+bench must never be productive — and nothing is retroactive: the counter
+is what the player watched happen. The counter lives on the owned order
+(the phase-2 schema field), survives adoption's slot rebuild, and simply
+pauses while benched; occasions missed while benched are missed forever,
+which is the point for the rare-occasion cards (The War Stones, The
+Bell-Founders): the card asks to be held, and holding it costs a slot.
+
 ### The card as the universal draw (user's pitch 2026-09-03, proposed)
 
 - **Every draw reads as cards** — discoveries, order/doctrine drafts, great

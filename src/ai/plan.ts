@@ -48,13 +48,14 @@
  */
 
 import type { AiConfig } from './aiConfig';
-import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
+import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
 import { type ValueContext, type YieldBag, explainLump, explainYields } from './value';
 
-import { tileContextAt, tileOwnerPlayerId } from '../sim/cities';
+import { hasResource, tileContextAt, tileOwnerPlayerId } from '../sim/cities';
 import { type ImprovementId, improvementDef, isImprovementId } from '../sim/improvementData';
 import { improvementErrorAt, improvementYieldDelta, seatSeesSleepingVein } from '../sim/improvements';
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
+import { type ResourceId, resourceDef, resourceIsVisibleTo, resourceYield } from '../sim/resourceData';
 import { RULES } from '../sim/rulesData';
 import type { City, GameState, Player, Unit } from '../sim/state';
 import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
@@ -385,6 +386,9 @@ export function rankPlanFor(
  * against "spend the person now" in one currency. The search is a ring around
  * the piece, because a great person walks like anything else and a work twenty
  * hexes away is a work in somebody else's empire.
+ *
+ * **Plus the two gifts a work makes that a spade does not** (`workGifts`), which
+ * the great person's arm used to price at nothing at all.
  */
 export function rankWorkSites(
   state: GameState,
@@ -397,28 +401,33 @@ export function rankWorkSites(
   const from = getTileAt(state.map, unit.col, unit.row);
   if (!from) return [];
   const here = tileHex(from);
+  // One reading of "is this seam already in our hands" per *kind*, not per hex:
+  // `hasResource` sweeps the whole map, and the answer is a fact about the
+  // empire that cannot change while this ring is being walked. A cache, never an
+  // iteration — nothing downstream reads its order.
+  const held = new Map<ResourceId, boolean>();
   const ranked: { entry: PlanEntry; score: number; distance: number; terms: ValueTerm[] }[] = [];
   for (const tile of mapRange(state.map, here, radius)) {
     const entry = improvementEntry(state, player, ctx, tile, improvement);
     if (entry === null) continue;
     const distance = wrappedDistance(state.map, here, tileHex(tile));
     const discount = 1 + distance * ctx.ai.workers.walkDiscount;
-    ranked.push({
-      entry,
-      score: entry.value / discount,
-      distance,
-      terms: [
-        ...entry.terms,
-        {
-          label:
-            distance === 0
-              ? 'under its feet — no walk to discount'
-              : `÷ ${round(discount)} — ${distance} hexes of walking`,
-          value: discount,
-          op: 'div',
-        },
-      ],
-    });
+    const terms: ValueTerm[] = [
+      ...entry.terms,
+      ...workGifts(state, player, ctx, tile, improvement, held),
+      {
+        label:
+          distance === 0
+            ? 'under its feet — no walk to discount'
+            : `÷ ${round(discount)} — ${distance} hexes of walking`,
+        value: discount,
+        op: 'div',
+      },
+    ];
+    // The fold **is** the score (`decision.ts`' first rule): the gifts are adds
+    // ahead of the walk's divide, so the discount reaches them exactly as it
+    // reaches the ground's own value.
+    ranked.push({ entry, score: foldTerms(terms), distance, terms });
   }
   ranked.sort(
     (a, b) =>
@@ -427,6 +436,86 @@ export function rankWorkSites(
       tileIndex(state.map, a.entry.col, a.entry.row) - tileIndex(state.map, b.entry.col, b.entry.row),
   );
   return ranked;
+}
+
+/**
+ * **What a work is worth over and above the ground it improves** — the two
+ * second-order gifts the great-person arm used to write down as zero.
+ *
+ * Both are read off *markers* rather than off a name, so a sixth work inherits
+ * whichever of them its row carries and nothing here has to learn about it:
+ *
+ *   · **the seam it opens.** A work opens whatever it stands on, whether or not
+ *     any improvement in the table would have (`openedResource`'s work clause in
+ *     `cities.ts` — the compendium's "Iron · academy"), so a citadel on an iron
+ *     hill hands its empire the iron. It is priced only where the empire would
+ *     actually gain something: past the reveal gate (`resourceIsVisibleTo` — an
+ *     empire with no word for the seam is handed nothing), for a kind
+ *     `hasResource` says is in nobody's hands today (a second copy of held silk
+ *     is a second copy of a signature that is already paying), and never for a
+ *     **bonus** seam at all — wheat's whole worth is the yield on its own hex,
+ *     which the delta above has already counted and which is paid to whoever
+ *     works the tile whether or not anybody "holds" it.
+ *
+ *     What it is priced *at* is the seam's own yield row, weighted like any
+ *     other bag — and that is **crude and written down as crude**: the tile's
+ *     own reading of the resource already stands in `improvementYieldDelta` on
+ *     both sides of the diff and cancels out of it, so this is not that number
+ *     twice; it is a stand-in for holding a copy at all, the way
+ *     `workers.veinValue` stands in for an unnamed seam. A luxury's *signature*
+ *     — its contentment, its per-city coin, its Æra III rider — is a list read
+ *     by one evaluator that cannot be asked hypothetically, and nothing here
+ *     switches on it (`CLAUDE.md`). It is therefore still unpriced, and a
+ *     luxury is worth strictly more to this bot than it says.
+ *   · **the defender line it plants** (`ImprovementDef.defense`, the citadel's
+ *     eight), at `workers.workDefenseValue` a point — a number in the data file
+ *     rather than an opinion in the code.
+ *
+ * Leonardo's amplifier stays out of scope, as it is for the act
+ * (`explainAct` in `bot.ts`): it is a card evaluated hypothetically and
+ * `statecraft.ts` does not answer that.
+ */
+function workGifts(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  tile: Tile,
+  improvement: ImprovementId,
+  held: Map<ResourceId, boolean>,
+): ValueTerm[] {
+  const def = improvementDef(improvement);
+  const terms: ValueTerm[] = [];
+
+  const seam = tile.resource;
+  if (
+    seam !== undefined &&
+    def.greatPerson !== undefined &&
+    resourceDef(seam).kind !== 'bonus' &&
+    resourceIsVisibleTo(seam, player.techsResearched)
+  ) {
+    let mine = held.get(seam);
+    if (mine === undefined) {
+      mine = hasResource(state, player.id, seam);
+      held.set(seam, mine);
+    }
+    if (!mine) {
+      terms.push(
+        nest(
+          `it opens the ${resourceDef(seam).name} under it — a seam this empire holds nowhere else`,
+          explainYields(bagOfTileYield(resourceYield(seam)), ctx),
+        ),
+      );
+    }
+  }
+
+  const defense = def.defense ?? 0;
+  if (defense !== 0) {
+    terms.push({
+      label: `${defense} strength for whoever holds the hex × ${round(ctx.ai.workers.workDefenseValue)}`,
+      value: defense * ctx.ai.workers.workDefenseValue,
+    });
+  }
+  return terms;
 }
 
 /** One decimal place, and no trailing `.0` — a label is read, not parsed. */

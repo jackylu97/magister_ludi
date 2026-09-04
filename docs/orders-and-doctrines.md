@@ -223,6 +223,11 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | Wayside Shrines | W | 🕯 | ● | +1 faith in every city. | cannot be upgraded
 | The Unbroken Land | E | 🌱 | ◆ | +1 food and +1 production on every unimproved forest or jungle hex. | upgrade: +1 faith on those hexes
 
+### Government I — proposed additions (no data rows yet; the sync test reads only the built table above)
+
+| The Rites Charter (W) | unlocks the chapel (same cost as temple) | +1🕯; each rite performed in this town pays +5🎵 (a growing building — see below) |
+| The Vigil Charter (M) | Unlocks the keep (same cost as walls) | +25 city hp; adjacent friendly units heal +5 |
+
 ### Government II pool (35)
 
 | Order | Slot | Line | Rarity | Effect |
@@ -261,6 +266,11 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | The Shipwright Shores | E | 🐫 |   | +1 production in every coastal city · +30% production toward ships there. | upgrade: +1 prod
 | The Archives | W | — |   | +1 culture for each level of the Orders you have placed in a slot. | upgrade: +1 culture
 
+### Government II — proposed additions (no data rows yet)
+
+| The Scriveners' Charter (W) | Allows building the scriptorium (same cost as university) | cities with an academy within its borders gain +10% science, +2 science |
+| The Coin Charter (E) | Allows building the assay house (same cost as bank) | +2💰; the town's gold purchases cost 5% less (a city-scoped price line) |
+
 ### Government III pool (33)
 
 | Order | Slot | Line | Rarity | Effect |
@@ -279,7 +289,7 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | The Lyceum | W | ✶ | ◆ | Completing a technology grants an extra turn of culture. | cannot be upgraded
 | Census of Souls | W | 🕯 | ◆ | +1 faith for each citizen in your capital. | cannot be upgraded
 | Toleration Edicts | W | — | ● | −10% happiness demanded per citizen. | upgrade: additional -2%
-| The Old Ways | W | 🌱 | ◆ | The yields of unimproved hexes are doubled. [lets keep this, this is the payoff card] cannot be upgraded
+| The Old Ways | W | 🌱 | ◆ | The yields of unimproved forests and jungles are doubled. [lets keep this, this is the payoff card] cannot be upgraded
 | First Fruits | E | 🌱 | ● | +1 food on every hex carrying a resource. cannot be upgraded
 | The War Chest | E | ⚒ |   | Military units cost 3 less gold in maintenance. | cannot be upgraded
 | Forced Marches | M | ⚒ |   | Melee units gain +1 movement, and +2 instead inside your own territory. | cannot be upgraded
@@ -297,6 +307,11 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | The Wintering Grounds | M | — |   | Your units cost no gold in maintenance outside your territory | cannot be upgraded
 | The Annals of Law | W | — |   | +2 culture for each Order you hold but have not placed in a slot. | upgrade: +1 culture
 | The Auspicious Seal | W | — |   | The first time this Order is placed in a slot, a die of the Magister is yours. | cannot be upgraded
+
+### Government III — proposed additions (no data rows yet)
+
+NEEDS NAME : upon declaring war, gain +2 combat strength on all units, and gain +10% production in all cities for 10 turns.
+
 
 ### Government IV pool — PROPOSED (tier 29 adoption) (20)
 

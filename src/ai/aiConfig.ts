@@ -149,6 +149,18 @@ export interface AiConfig {
      * exactly (`RULES.improvements.assayGold`); this is the *seam*.
      */
     veinValue: number;
+    /**
+     * What **one point** of a work's flat defender line is worth per turn — the
+     * citadel's eight, and whatever a second work with a `defense` on its row
+     * carries (`ImprovementDef.defense`, read off the marker rather than a name).
+     *
+     * Modest on purpose, and a good deal under `weights.military`: a citadel
+     * priced at what eight points of a soldier's strength are worth would beat
+     * every farm on the board, and a general's citadel is a *hex* that defends
+     * itself rather than an army. It is the same kind of stand-in `veinValue` is
+     * — a number nobody can derive, written down where a tuner can reach it.
+     */
+    workDefenseValue: number;
   };
   /**
    * What a citizen is worth beyond the ground it works — the compounding half.

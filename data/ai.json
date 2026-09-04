@@ -56,7 +56,8 @@
     "planFalloff": 0.6,
     "planRadius": 4,
     "walkDiscount": 0.12,
-    "veinValue": 6
+    "veinValue": 6,
+    "workDefenseValue": 0.6
   },
   "growth": {
     "smallCityPop": 9,
