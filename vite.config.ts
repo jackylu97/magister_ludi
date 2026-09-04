@@ -54,11 +54,17 @@ export default defineConfig({
       // pulling `node:path` into a config the tsconfig typechecks with only the
       // DOM and Vite client libs.
       //
-      // `spectate.html` is the seventh and the newest dev surface: an all-bot
-      // game stepped one decision at a time, with every candidate the policy
-      // weighed and the arithmetic that ranked them (see `src/spectate/`). It
-      // owns its own renderer the way `mapgen.html` does, and drives the game
-      // only through `createBotStepper` — the driver's own loop, unrolled.
+      // `spectate.html` is the seventh dev surface: an all-bot game stepped one
+      // decision at a time, with every candidate the policy weighed and the
+      // arithmetic that ranked them (see `src/spectate/`). It owns its own
+      // renderer the way `mapgen.html` does, and drives the game only through
+      // `createBotStepper` — the driver's own loop, unrolled.
+      //
+      // `arena.html` is the eighth and the newest: the bot's whole tuning sheet
+      // as a generated panel, and five headless games (one Web Worker each)
+      // averaged per seat position (see `src/arenaPage/`). It is the page the
+      // spectate page's questions get *answered* on — one decision explained
+      // there, five games of consequences measured here.
       //
       // `compendium.html` is the sixth, and the only one of the five extra pages
       // that is **not** a dev surface: it is the game's own reference, mounted
@@ -74,6 +80,7 @@ export default defineConfig({
         flair: 'flair.html',
         compendium: 'compendium.html',
         spectate: 'spectate.html',
+        arena: 'arena.html',
       },
     },
   },

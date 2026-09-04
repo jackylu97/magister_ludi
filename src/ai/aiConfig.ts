@@ -21,6 +21,12 @@
  * through `ValueContext.ai` or `aiFor`, and nothing anywhere swaps a global —
  * two seats appraise in the same turn, and whichever asked last must not be able
  * to change what the other decided.
+ *
+ * **The tuning seam** (`setAiTuning` / `withAiTuning`, at the foot of the file) is
+ * the one thing that may change what the *base* sheet says, and it exists for the
+ * arena page (`arena.html`): a sheet of edited knobs, folded under every persona,
+ * constant for a run and never written into a save. Untuned it is identity — see
+ * its docblock for why that is not the swap the paragraph above forbids.
  */
 
 import aiJson from '../../data/ai.json';
@@ -635,6 +641,16 @@ const { personas: PERSONAS, puppetProfile: PUPPET, ...BASE } = DATA;
  */
 export const AI: AiConfig = BASE as AiConfig;
 
+/**
+ * The sheet the arena page is currently trying, and `AI` with it folded in.
+ *
+ * `TUNED` is `AI` **by identity** while nothing is installed, which is what makes
+ * the untuned path byte-identical to the one that existed before the seam: every
+ * `aiConfigFor` below returns the very object it used to. See `setAiTuning`.
+ */
+let TUNING: PersonaOverride | null = null;
+let TUNED: AiConfig = AI;
+
 /** What a seat with nothing said about it plays as. */
 export const DEFAULT_PERSONA = 'balanced';
 
@@ -690,10 +706,10 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 const MERGED = new Map<string, AiConfig>();
 
 export function aiConfigFor(persona?: string): AiConfig {
-  if (persona === undefined || persona === DEFAULT_PERSONA || !isPersonaId(persona)) return AI;
+  if (persona === undefined || persona === DEFAULT_PERSONA || !isPersonaId(persona)) return TUNED;
   const held = MERGED.get(persona);
   if (held !== undefined) return held;
-  const merged = deepMerge(BASE as AiConfig, PERSONAS[persona]);
+  const merged = deepMerge(TUNED, PERSONAS[persona]);
   MERGED.set(persona, merged);
   return merged;
 }
@@ -727,4 +743,77 @@ export function aiConfigForPuppet(persona?: string): AiConfig {
   const merged = deepMerge(aiConfigFor(persona), PUPPET);
   PUPPETS.set(key, merged);
   return merged;
+}
+
+// --- the tuning seam ---------------------------------------------------------
+
+/**
+ * **What the arena page is trying instead of `data/ai.json`** — one sheet, folded
+ * under every persona, installed for the length of a run and never serialised.
+ *
+ * Why a module-level install rather than a parameter on `driveBots`
+ * ----------------------------------------------------------------
+ * The configuration is not read by the driver. It is read by the *appraisal*, at
+ * the bottom of a call graph five modules deep (`aiFor` in `bot.ts`,
+ * `ValueContext.ai` in `value.ts`, the plan, the diplomacy), and every one of
+ * those readers takes it through `aiConfigFor` here. Threading an override from
+ * `driveBots` would mean adding a parameter to every scoring function in
+ * `src/ai/` for the benefit of one dev page — the seam has to be where the
+ * *reading* is, and the reading is this file's two functions.
+ *
+ * Why swapping this global is safe, when the file's own docblock says nothing
+ * anywhere swaps one
+ * ------------------------------------------------------------------------
+ * That rule is about **per-seat** configuration: two seats appraise inside one
+ * turn, and whichever asked last must not be able to change what the other
+ * decided. This is the opposite shape and keeps that promise intact — it is a
+ * page-level dial that is *constant for a whole run*, applied identically to
+ * every seat, and folded **under** the personas, so the per-seat differences are
+ * still the persona sheets and still resolve independently. The arena runs each
+ * game in its own Web Worker, which is its own module instance, so two runs with
+ * two sheets never share this variable at all.
+ *
+ * Three properties keep it out of the game's way:
+ *
+ *   · **Untuned is identity.** With nothing installed `TUNED` *is* `AI`, so
+ *     `aiConfigFor(undefined) === AI` exactly as before (pinned by
+ *     `test/sim/aiPersona.test.ts`), and a run without a sheet replays
+ *     byte-for-byte.
+ *   · **It never reaches a save.** A save is `{config, log}`; a sheet is neither.
+ *     A tuned bot emits different commands, and *those* are in the log — so the
+ *     game a tuned run produced still replays from its own log on a build that
+ *     never heard of the sheet, exactly as a persona does.
+ *   · **The memo tables are the same pure function's table.** Both are cleared
+ *     when the sheet changes, so `aiConfigFor('tall')` is never a stale merge.
+ */
+export function setAiTuning(sheet: PersonaOverride | null): void {
+  const live = sheet !== null && Object.keys(sheet).length > 0 ? sheet : null;
+  TUNING = live;
+  TUNED = live === null ? AI : deepMerge(BASE as AiConfig, live);
+  MERGED.clear();
+  PUPPETS.clear();
+}
+
+/** The installed sheet, or `null` — which is what "the data file, untouched" is. */
+export function aiTuning(): PersonaOverride | null {
+  return TUNING;
+}
+
+/**
+ * `run` with `sheet` installed, and the previous sheet back afterwards whatever
+ * happens — the scoped form, and the one an in-process caller should reach for.
+ *
+ * `setAiTuning` on its own is for a worker that owns its whole module instance
+ * and exits when the game is over. Anything sharing a process with the rest of
+ * the product (a test, a headless bench, a page that also renders a live game)
+ * uses this instead, so a thrown exception cannot leave a dial turned.
+ */
+export function withAiTuning<T>(sheet: PersonaOverride | null, run: () => T): T {
+  const held = TUNING;
+  setAiTuning(sheet);
+  try {
+    return run();
+  } finally {
+    setAiTuning(held);
+  }
 }

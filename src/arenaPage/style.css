@@ -1,0 +1,535 @@
+/*
+ * The arena page's chrome: a ledger of readings on the left, the bot's whole
+ * tuning sheet down the right.
+ *
+ * Its own stylesheet rather than a slice of `src/style.css`, for the reason the
+ * mapgen page's is: that file is the game's interface and is owned by the
+ * interface work. What this borrows is the *language* — ink on vellum,
+ * Instrument Serif to announce, Fraunces to name, Instrument Sans to work, mono
+ * for anything countable — and the panel recipe (hard 2px rule, hard offset
+ * shadow, no blur), not the cascade.
+ *
+ * The one rule this page cannot bend: **every figure is tabular mono and
+ * right-aligned in its column**. The whole product of the page is a column of
+ * means read down against another column of means, and digits that change width
+ * cannot be read down.
+ */
+
+:root {
+  --ink: #1d1a20;
+  --ink-soft: #56505a;
+  --ink-faint: #8b8490;
+  --vellum: #dbcfb0;
+  --vellum-deep: #c2b18c;
+  --parchment: #f7f2e1;
+  --rule: rgba(29, 26, 32, 0.14);
+
+  --crimson: #d4502e;
+  --teal: #1f8a85;
+
+  --sidebar: 400px;
+
+  --face-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --face-name: Fraunces, Georgia, 'Iowan Old Style', serif;
+  --face-ui: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --face-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--vellum);
+  color: var(--ink);
+  font-family: var(--face-ui);
+}
+
+/* Two independent scrolls: a long run history must not push the panel off the
+   screen, and a hundred and forty knobs must not push the table off it. */
+#stage {
+  position: fixed;
+  inset: 0 var(--sidebar) 0 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 0 60px;
+}
+
+#panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--sidebar);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--parchment);
+  border-left: 2px solid var(--ink);
+  padding: 0 0 40px;
+}
+
+/* --- the masthead --------------------------------------------------------- */
+
+#masthead {
+  padding: 26px 30px 14px;
+}
+
+#masthead h1 {
+  margin: 0;
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 40px;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+#masthead .sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+  max-width: 56ch;
+}
+
+/* --- the run controls ----------------------------------------------------- */
+
+section {
+  padding: 14px 30px 10px;
+  border-top: 1px solid var(--rule);
+}
+
+section > h2 {
+  margin: 0 0 2px;
+  font-family: var(--face-name);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+section > .note,
+.note {
+  margin: 0 0 9px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 78ch;
+}
+
+code {
+  font-family: var(--face-mono);
+  font-size: 10.5px;
+  padding: 0 2px;
+  background: rgba(29, 26, 32, 0.06);
+  border-radius: 2px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.field-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* A seat's name in the run bar wears its ink, so the table's swatches and the
+   pickers above them are obviously the same two chairs. */
+.seat-label::before {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  background: var(--seat-ink, var(--crimson));
+  vertical-align: baseline;
+}
+
+input[type='number'],
+select {
+  font: inherit;
+  font-family: var(--face-mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  width: 84px;
+  padding: 5px 8px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--vellum-deep);
+  border-radius: 3px;
+}
+
+select {
+  width: auto;
+}
+
+button {
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 13px;
+  color: var(--ink);
+  background: var(--parchment);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer;
+}
+
+/* Pressed moves *into* its own shadow: the specimen's one motion idiom. */
+button:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+button.quiet {
+  font-weight: 500;
+  padding: 5px 9px;
+  border-width: 1px;
+  border-color: var(--vellum-deep);
+  box-shadow: none;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+}
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.switch input {
+  margin: 0;
+  width: auto;
+  accent-color: var(--crimson);
+}
+
+#run-status,
+#panel-status {
+  font-family: var(--face-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+#progress {
+  margin-top: 2px;
+}
+
+.progress-line {
+  margin: 0 0 2px;
+  font-family: var(--face-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.progress-line.is-bad {
+  color: var(--crimson);
+  font-weight: 600;
+}
+
+/* --- the edited-knob marker ----------------------------------------------- */
+
+#dirty {
+  margin: 0 0 12px;
+  padding: 8px 11px;
+  background: rgba(212, 80, 46, 0.06);
+  border-left: 3px solid var(--crimson);
+  border-radius: 0 3px 3px 0;
+}
+
+.dirty-head {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--crimson);
+}
+
+.dirty-list {
+  margin: 0;
+  padding-left: 16px;
+  font-family: var(--face-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+/* --- the readings --------------------------------------------------------- */
+
+.run-block {
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* The newest run is the one being read; the ones under it are the comparison. */
+.run-block:not(:first-child) {
+  opacity: 0.72;
+}
+
+.run-caption {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0 0 2px;
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.run-wall,
+.run-title {
+  font-variant-numeric: tabular-nums;
+}
+
+.run-wall {
+  font-family: var(--face-mono);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.run-sheet {
+  margin: 0 0 7px;
+  font-family: var(--face-mono);
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}
+
+.run-sheet.is-dirty {
+  color: var(--crimson);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th {
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 3px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+td {
+  padding: 3px 0;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+
+th + th,
+td + td {
+  padding-left: 12px;
+}
+
+/* Every number in the product is mono and tabular. This page is only numbers. */
+.num,
+th.num,
+.seed {
+  font-family: var(--face-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.seed {
+  text-align: left;
+  color: var(--ink-faint);
+  font-size: 11px;
+}
+
+.seat-cell {
+  font-size: 12px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(29, 26, 32, 0.35);
+  vertical-align: baseline;
+}
+
+.persona {
+  margin-left: 6px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* The mean is the row the page exists to print: a rule above it and the weight
+   of a sum, the same treatment the mapgen ledger gives a total. */
+tr.is-average td {
+  border-top: 1px solid var(--rule);
+  padding-top: 5px;
+  font-weight: 600;
+}
+
+tr.is-average .seed {
+  color: var(--ink);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+tr.is-out td {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+/* --- the generated panel -------------------------------------------------- */
+
+#panel-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 16px 18px 10px;
+  background: var(--parchment);
+  border-bottom: 2px solid var(--ink);
+}
+
+#panel-head h2 {
+  margin: 0 0 2px;
+  font-family: var(--face-name);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+#panel-head .row {
+  margin-bottom: 0;
+}
+
+#panel-groups {
+  padding: 12px 18px 0;
+}
+
+.knob-group {
+  margin-bottom: 12px;
+}
+
+.knob-group h3 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 7px;
+  margin: 0 0 3px;
+  padding-bottom: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom: 1px solid var(--rule);
+}
+
+.knob-count {
+  font-family: var(--face-mono);
+  font-size: 9.5px;
+  letter-spacing: 0;
+  color: var(--ink-faint);
+}
+
+.knob {
+  display: grid;
+  grid-template-columns: 1fr 172px;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0 2px 5px;
+  /* The edited marker's gutter, held open on every row so a marked row does not
+     shift its neighbours sideways. */
+  border-left: 3px solid transparent;
+}
+
+.knob-name {
+  font-family: var(--face-mono);
+  font-size: 11px;
+  color: var(--ink);
+  cursor: help;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.knob-values {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.knob-values input[type='number'] {
+  font-size: 11.5px;
+  width: 74px;
+  padding: 3px 5px;
+  text-align: right;
+}
+
+/* An age-banded row: four narrow boxes, one per age, in the file's own order. */
+.knob-values.is-row input[type='number'] {
+  width: 100%;
+  min-width: 0;
+  padding: 3px 2px;
+  text-align: center;
+}
+
+/* A list of ids, or a shape this panel cannot type into: shown, never edited. */
+.knob-fixed {
+  font-family: var(--face-mono);
+  font-size: 9.5px;
+  line-height: 1.4;
+  text-align: right;
+  color: var(--ink-faint);
+  white-space: normal;
+}
+
+.knob.is-dirty {
+  border-left-color: var(--crimson);
+  background: rgba(212, 80, 46, 0.05);
+}
+
+.knob.is-dirty .knob-name {
+  font-weight: 600;
+}
+
+.knob.is-dirty input {
+  border-color: var(--crimson);
+  color: var(--crimson);
+}
