@@ -652,7 +652,11 @@ describe('the research queue field', () => {
     // unimproved forest and jungle. Two bags are one card shorter, so a v58 log
     // names indices of triples this build does not deal — and the narrowing
     // makes the same board worth different yields besides.
-    expect(SCHEMA_VERSION).toBe(60);
+    // v61 (the card-shapes pass, 2026-09-04): nine Orders join the Government
+    // II and III pools, The Salt Road and Hearth Songs are retired, and The
+    // Last Hunt pays a second voice. Four bags changed size, so a v60 log's
+    // `chooseOrder` names indices into triples this build does not deal.
+    expect(SCHEMA_VERSION).toBe(61);
   });
 });
 

@@ -1957,7 +1957,9 @@
           },
           "gold": 1
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The Golden Scales stands in its place."
     },
     "theTaxFarm": {
       "name": "The Tax Farm",
@@ -3261,7 +3263,9 @@
             "value": 4
           }
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The Harvest Songs stands in its place."
     },
     "firstFruitsOffering": {
       "name": "First Fruits",
@@ -3960,7 +3964,7 @@
       "slot": "wildcard",
       "line": "hunt",
       "flavor": "They sing the old raids now. Nobody living remembers being afraid.",
-      "text": "+2 culture for each barbarian camp you have cleared this game.",
+      "text": "+2 culture and +2 science for each barbarian camp you have cleared this game.",
       "effects": [
         {
           "kind": "countScaled",
@@ -3968,6 +3972,16 @@
           "pays": {
             "to": "yield",
             "yield": "culture",
+            "amount": 2,
+            "where": "empire"
+          }
+        },
+        {
+          "kind": "countScaled",
+          "count": "clearedCamps",
+          "pays": {
+            "to": "yield",
+            "yield": "science",
             "amount": 2,
             "where": "empire"
           }
@@ -4391,6 +4405,233 @@
         }
       ],
       "effects": []
+    },
+    "theWarCouncil": {
+      "name": "The War Council",
+      "pool": "governmentII",
+      "slot": "military",
+      "line": "none",
+      "flavor": "Three old soldiers, one map, and a great deal of shouting.",
+      "text": "+1 combat strength for each military Order you have in a slot, at most +3.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "scaled": {
+            "count": "slottedOrdersOfSlot",
+            "slot": "military",
+            "per": 1,
+            "max": 3
+          }
+        }
+      ],
+      "upgradable": false
+    },
+    "theGuildCharter": {
+      "name": "The Guild Charter",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "none",
+      "flavor": "They asked for a seat at the table. They were given a page of it, and took the room.",
+      "text": "+2 gold for each economic Order you have in a slot, and +1 production in your capital for each.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "economic",
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 2,
+            "where": "empire"
+          }
+        },
+        {
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "economic",
+          "pays": {
+            "to": "yield",
+            "yield": "production",
+            "amount": 1,
+            "where": "capital"
+          }
+        }
+      ],
+      "upgradable": false
+    },
+    "theSynod": {
+      "name": "The Synod",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "none",
+      "flavor": "Everyone speaks, nobody presides, and a decision is written down regardless.",
+      "text": "+1 faith and +1 culture for each wildcard Order you have in a slot.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "wildcard",
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 1,
+            "where": "empire"
+          }
+        },
+        {
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "wildcard",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ],
+      "upgradable": false
+    },
+    "theHarvestSongs": {
+      "name": "The Harvest Songs",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "green",
+      "flavor": "The reaping song is older than the field, and older than the kingdom.",
+      "text": "Every city gains 10% of its food yield again as culture.",
+      "note": "It reads the whole harvest rather than what is left after the citizens eat: a city's surplus is decided after every percentage on it, and a card that read the surplus would be reading a figure that reads the card back.",
+      "effects": [
+        {
+          "kind": "yieldConversion",
+          "from": "food",
+          "to": "culture",
+          "percent": 10
+        }
+      ],
+      "upgradable": false
+    },
+    "theSaltingHouses": {
+      "name": "The Salting Houses",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "Salt keeps the fish, the fish keeps the town, and the town keeps the salt.",
+      "text": "Coastal cities gain 10% of their food yield again as production.",
+      "effects": [
+        {
+          "kind": "yieldConversion",
+          "from": "food",
+          "to": "production",
+          "percent": 10,
+          "scope": {
+            "test": "coastal"
+          }
+        }
+      ],
+      "upgradable": false
+    },
+    "theDraftingHalls": {
+      "name": "The Drafting Halls",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "star",
+      "flavor": "Every beam is drawn twice: once for the builder, once for the book.",
+      "text": "Cities with a Library gain 10% of their production again as science.",
+      "effects": [
+        {
+          "kind": "yieldConversion",
+          "from": "production",
+          "to": "science",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "library"
+          }
+        }
+      ],
+      "upgradable": false
+    },
+    "theGoldenScales": {
+      "name": "The Golden Scales",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "caravan",
+      "flavor": "What the counting-house learns about weight, the college learns about everything else.",
+      "text": "Every city gains 10% of its gold yield again as science.",
+      "effects": [
+        {
+          "kind": "yieldConversion",
+          "from": "gold",
+          "to": "science",
+          "percent": 10
+        }
+      ],
+      "upgradable": false
+    },
+    "theArsenalLaw": {
+      "name": "The Arsenal Law",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "forge",
+      "flavor": "In peace the yard is quiet. Nobody in it wants peace.",
+      "text": "While you are at war, cities with a Barracks gain 15% of their production again as gold.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atWar"
+          },
+          "then": [
+            {
+              "kind": "yieldConversion",
+              "from": "production",
+              "to": "gold",
+              "percent": 15,
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              }
+            }
+          ]
+        }
+      ],
+      "upgradable": false
+    },
+    "theCharterOfTheMarches": {
+      "name": "The Charter of the Marches",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "charter",
+      "flavor": "The furthest town is written the widest liberties, and keeps them until it is no longer the furthest.",
+      "text": "Your newest city gains +2 of every yield. Founding a city grants +30 culture.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "food": 2,
+          "production": 2,
+          "gold": 2,
+          "science": 2,
+          "culture": 2,
+          "faith": 2,
+          "scope": {
+            "test": "newest"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "found",
+          "grant": {
+            "yield": "culture",
+            "amount": 30
+          }
+        }
+      ],
+      "upgradable": false
     }
   },
   "tierLadder": [

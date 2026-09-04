@@ -1,8 +1,8 @@
 # Orders and Doctrines — the master list
 
 Every Order, Doctrine and government in one place, tables only. **Regenerated from
-`data/statecraft.json` 2026-09-03** — the Effect column is each row's own ratified `text`;
-counts and tiers are the data's (pools: Chiefdom 12 · Gov I 34 · Gov II 35 · Gov III 33;
+`data/statecraft.json` 2026-09-04** — the Effect column is each row's own ratified `text`;
+counts and tiers are the data's (pools: Chiefdom 11 · Gov I 29 · Gov II 37 · Gov III 37;
 doctrine tiers ride the ladder 4/10/18/29/45). Edit here; the two working docs (`deprecated/statecraft-cards.md`, `deprecated/statecraft-ages-3-5.md`) keep the commentary and are no longer the source. Tier: ● defining · ◆ strong · ○ situational (blank = not yet tiered).
 
 **As built, 2026-08-28 (second pass)** — six of those halves are built and the shapes are
@@ -36,6 +36,34 @@ generic:
 - **The Academy of Deeds** *(every Triumph pays its renown twice over)* —
   `AmplifierTarget.triumphRenown`, folded into the printed figure in `awardTriumph` before
   `settleRenownWindfall` banks it, so the annal and the pool are one number.
+
+**As built, 2026-09-04 (the card-shapes pass, `docs/card-shapes.md`)** — nine rows, two
+retirements and five small vocabulary additions, each read by a live row:
+
+- **The deck-readers** — The War Council · The Guild Charter · The Synod. One `CountKind`,
+  `slottedOrdersOfSlot`, plus its twin on `CombatScale`, both answered by one reading
+  (`slottedOrdersOfFlavour`): a card's **own** slot flavour, never the chair it sits in
+  (the user's Senatus, verbatim). A reader counts itself, so its floor is one helping and
+  its figure visibly moves when a card of its kind is slotted beside it.
+- **The conversions** — The Harvest Songs (food → culture) · The Salting Houses (coastal
+  food → production) · The Drafting Halls (production → science, in Library towns) · The
+  Golden Scales (gold → science). All Thalassocracy's `yieldConversion` with a different
+  pair and scope; no new shape at all. The building-scoped ones ride `CityScope`'s
+  `hasBuilding`, which already existed.
+- **The Arsenal Law** — `EmpireCondition`'s `atWar`, read off `state.wars` itself rather
+  than through `atWar(a, b)`: the wild is never in the register, so a realm that has
+  declared on nobody reads false however many camps it has burnt.
+- **The Charter of the Marches** — `CityScope`'s `newest` (the last entry of
+  `state.cities` this empire owns — founding order, the order every sweep walks) and
+  `WindfallOccasion`'s `found`, fired at the end of `foundCityAt`. That occasion and
+  `foundingRider` are two questions about one moment: the rider says what the **town** is
+  founded with, the occasion says what the **realm** is paid for founding it.
+- **`CardPayout`'s `capital`** — declared since the shape was written and read by nothing
+  until The Guild Charter's hammers. An empire line has no basket for food or production
+  (`collectYields` banks only gold, science, culture and faith), so a hammer counted across
+  the realm has to name a town to be built in.
+- **Retired**: The Salt Road (The Golden Scales stands in its place) and Hearth Songs (The
+  Harvest Songs). Both rows stay for saves, out of every pool and out of the tables above.
 
 **A deferred half still stands on**, and each waits on a system the game does not have: The
 Curia (the Cathedral) · The Academy of Deeds' second half (a missed Triumph is closed for
@@ -185,7 +213,6 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | Boundary Stones | E | — | ● | +30% border expansion in every city. | upgrade: +5%
 | First Rites | W | 🕯 | ● | +2 faith in your capital. | upgrade: +1 faith
 | Fire-Keepers | W | 🕯 | ● | +1 faith in your capital, and +1 happiness there. | upgrade: +1 happiness
-| Hearth Songs | W | 🌱 | ◆ | +2 culture in every city of 4 population or less. | upgrade: +1 culture
 | First Fruits | W | 🕯 | ◆ | The first citizen born in each city pays +10 faith once. | cannot be upgraded
 
 ### Government I pool (34)
@@ -200,7 +227,6 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | Horse Lords | M | ⚒ | ● | Mounted units gain +1 movement. | cannot be upgraded
 | Weights & Measures | E | 🐫 | ● | +1 gold in every city. | cannot be upgraded
 | Silk Roads | E | 🐫 | ◆ | +3 gold for each trade route you run. | upgrade: +1 gold, up to +6
-| The Salt Road | E | 🐫 | ● | strategic resources yield +1 gold | upgrade +1 gold.
 | The Tax Farm | E | 🐫 | ● | +1 gold for each 4 population in your empire. | cannot be upgraded
 | Harbour Dues | E | 🐫 | ● | Coastal cities gain +2 gold and +1 culture. | upgrade: +1 gold, up to +4
 | Land Grants | E | — | ◆ | Buying a hex costs 25% less · +40% border expansion. | upgrade: +5% hex cost reduction
@@ -264,9 +290,13 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | The Orchard Tithe | E | 🌱 | ● | +1 food on every hex carrying a luxury resource. | cannot be upgraded
 | The Quiet Fields | W | 🌱 | ● | +1 happiness for each unimproved hex your cities work. | cannot be upgraded
 | The Quartermasters | M | ⚒ |   | Military units cost 1 less gold in maintenance. | cannot be upgraded
-| The Last Hunt | W | 🏹 |   | +2 culture for each barbarian camp you have cleared this game. | cannot be upgraded
+| The Last Hunt | W | 🏹 | ○ | +2 culture and +2 science for each barbarian camp you have cleared this game. | cannot be upgraded
 | The Shipwright Shores | E | 🐫 |   | +1 production in every coastal city · +30% production toward ships there. | upgrade: +1 prod
 | The Archives | W | — |   | +1 culture for each level of the Orders you have placed in a slot. | upgrade: +1 culture
+| The War Council | M | — |   | +1 combat strength for each military Order you have in a slot, at most +3. | cannot be upgraded
+| The Guild Charter | E | — |   | +2 gold for each economic Order you have in a slot, and +1 production in your capital for each. | cannot be upgraded
+| The Synod | W | — |   | +1 faith and +1 culture for each wildcard Order you have in a slot. | cannot be upgraded
+| The Harvest Songs | W | 🌱 |   | Every city gains 10% of its food yield again as culture. | cannot be upgraded
 
 ### Government II — proposed additions (no data rows yet)
 
@@ -314,6 +344,11 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | The Wintering Grounds | M | — |   | Your units cost no gold in maintenance outside your territory | cannot be upgraded
 | The Annals of Law | W | — |   | +2 culture for each Order you hold but have not placed in a slot. | upgrade: +1 culture
 | The Auspicious Seal | W | — |   | The first time this Order is placed in a slot, a die of the Magister is yours. | cannot be upgraded
+| The Salting Houses | E | 🐫 |   | Coastal cities gain 10% of their food yield again as production. | cannot be upgraded
+| The Drafting Halls | E | ✶ |   | Cities with a Library gain 10% of their production again as science. | cannot be upgraded
+| The Golden Scales | E | 🐫 |   | Every city gains 10% of its gold yield again as science. | cannot be upgraded
+| The Arsenal Law | M | ⚒ | ○ | While you are at war, cities with a Barracks gain 15% of their production again as gold. | cannot be upgraded
+| The Charter of the Marches | E | 📜 | ○ | Your newest city gains +2 of every yield. Founding a city grants +30 culture. | cannot be upgraded
 
 ### Government III — proposed additions (no data rows yet)
 
@@ -352,7 +387,7 @@ enum value + `poolOfGovernment` mapping tier 29 here instead of Government III.
 | The Grain Fleet | E | 🌱 | ○ | coastal cities +2🌾 · +25% growth surplus in coastal cities |
 | Cathedral Chapters | E | 🕯 | ◆ | +1 happiness per Cathedral · Cathedrals +2🎵 · *(Cathedral is live — implementable)* |
 | Star Readers | W | ✶ | ◆ | +2🔬 per wonder you hold · completing a wonder grants +30🔬 |
-| The Synod | W | 🕯 | ◆ | rites last 25% longer · +1🕯 per temple · *(rites are one-shots now (one-charge augur) — "last 25% longer" needs a rework)* |
+| The Synod *(name taken)* | W | 🕯 | ◆ | rites last 25% longer · +1🕯 per temple · *(rites are one-shots now (one-charge augur) — "last 25% longer" needs a rework; **The Synod is a built Government II row since the card-shapes pass — this proposal needs a new name**)* |
 | Scholastics | W | ✶ | ◆ | +2🔬 per University · completing a technology grants +15🕯 |
 | Court Poets | W | 🏛 | ○ | every Triumph you earn grants +20🎵 · great people arrive with +1 charge |
 
@@ -371,7 +406,7 @@ late-game happiness and print culture. Same wiring as IV, for tier 45.
 | Printing Houses | E | ✶ | ◆ | +1🎵 per Library · the Printing House +2🔬 |
 | Tithe Barns | E | 🌱 | ○ | cities keep 50% of the basket on growth · −1🕯 per city |
 | The Provincial Estates | E | — | ◆ | +1 authority capacity per city of 8+ population |
-| Guild Charters | E | ⚒ | ○ | each Workshop / Forge grants +1 renown per turn to the Engineer family · +2% ⚙ per production building in that city (max +6%) · *(user deferred earlier ("too many mechanics") — re-cut before building)* |
+| Guild Charters *(name clashes)* | E | ⚒ | ○ | each Workshop / Forge grants +1 renown per turn to the Engineer family · +2% ⚙ per production building in that city (max +6%) · *(user deferred earlier ("too many mechanics") — re-cut before building; **The Guild Charter is a built Government II row since the card-shapes pass — this proposal needs a new name**)* |
 | Manufactories | E | ⚒ | ◆ | +2⚙ and 1 renown per Manufactory (the great work) in your empire · *(the manufactory great work is live — implementable)* |
 | The Inquisition | W | 🕯 | ● | cities with a Temple: +2 happiness and +2🕯 · cities without one: −2 happiness |
 | Pilgrimage | W | 🕯 | ○ | +2🎵 per wonder you hold · +1🕯 per Triumph earned |
@@ -404,6 +439,9 @@ pool and building the content are one decision.
 
 - **Boundary Stones** — Border culture is the culture a city puts toward its own borders, not the culture your empire saves toward its next draft. This hurries your borders only.
 - **Rites of Passage** — A unit bought with gold counts as completed, so it pays this too — but only once.
+- **The Harvest Songs** — It reads the whole harvest rather than what is left after the citizens eat: a city's surplus is decided after every percentage on it, and a card that read the surplus would be reading a figure that reads the card back.
+- **The Salt Road** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The Golden Scales stands in its place.
+- **Hearth Songs** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The Harvest Songs stands in its place.
 - **The Loose Rein** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
 - **Border Ballads** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
 - **Wolf-Runners** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.

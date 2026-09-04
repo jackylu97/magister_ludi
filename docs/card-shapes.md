@@ -1,5 +1,17 @@
 # The card-shapes pass — making the deck the identity (2026-09-04)
 
+> **BUILT 2026-09-04 (schema 61).** Every unstruck row below is in
+> `data/statecraft.json` and in the tables of `docs/orders-and-doctrines.md`;
+> the struck ones (The Standing Orders, The Perfect Court, The Single Purpose,
+> The Skin-Tribute, The Grand Survey) are not built and no shape was added for
+> them. Two departures, both flagged in `docs/flags.md` for a re-cut: **The
+> Golden Scales** went to Government III rather than "age 4", there being no
+> Government IV pool in the data; and **The Harvest Songs** converts the whole
+> food yield rather than the surplus, because the surplus is decided after
+> every percentage on the food channel and a conversion that read it would be
+> reading a figure that reads the card back. This doc stays as the pass's
+> record; the built tables are the master list.
+
 The brief (user, 2026-09-04): the Reckoning is out for the first cut — no new
 mechanics. Change the game's identity through the shape of the cards alone,
 working with the existing pools in `docs/orders-and-doctrines.md`. This doc is
@@ -35,10 +47,10 @@ One per slot flavour makes every draft ask "what does my government read?"
 
 | Row | Slot | Pool | Effect | Vocabulary |
 |---|---|---|---|---|
-| The War Council (NEW) | M | Gov II | +1 combat strength for every military card slotted (at most +3). | slotted-count × strength line |
-| The Guild Charter (NEW) | E | Gov II | +2 gold and +1 production for every economic card slotted. | slotted-count |
-| The Synod (NEW) | W | Gov II | +1 faith and +1 culture for every wildcard slotted. | Senatus, empire-wide and smaller |
-| The Standing Orders (NEW) | E | Gov III | +1% to every yield for each slotted card at level 3. | slotted-count over deepen level; rewards the deepening system nobody builds around |
+| The War Council (NEW) | M | Gov II | +1 combat strength for every military card slotted (at most +3). | slotted-count × strength line | [keep]
+| The Guild Charter (NEW) | E | Gov II | +2 gold and +1 production for every economic card slotted. | slotted-count | [keep]
+| The Synod (NEW) | W | Gov II | +1 faith and +1 culture for every wildcard slotted. | Senatus, empire-wide and smaller | [keep]
+| The Standing Orders (NEW) | E | Gov III | +1% to every yield for each slotted card at level 3. | slotted-count over deepen level; rewards the deepening system nobody builds around | [remove, we're axing levelling cards, remember?]
 
 And the two that make **composition itself** a strategy — a matched pair, both
 riding the existing condition harness plus a slotted-card test:
@@ -47,6 +59,8 @@ riding the existing condition harness plus a slotted-card test:
 |---|---|---|---|
 | The Perfect Court (NEW, ○) | W | Gov III | While every slot is filled and no two slotted cards share a line: +5% to every yield. |
 | The Single Purpose (NEW, ○) | W | Gov III | While three or more slotted cards share one line: +8% science and +8% culture. |
+
+[don't keep these, i think the lines are too hard to keep track of and explain to the player]
 
 These two are the identity move of this pass. The line glyphs (🏹 🐫 🌱 ⚒ …)
 stop being flavour and become the thing you draft toward or away from; the
@@ -61,10 +75,14 @@ reworks of flat ● rows at equal power so the pool doesn't grow:
 
 | Row | Slot | Pool | Effect | Rework of |
 |---|---|---|---|---|
-| The Drafting Halls (NEW) | E | Gov II | Cities with a Library pay 10% of their production again as science. | — (⚒→🔬, the missing pair) |
+| The Drafting Halls (NEW) | E | Gov II | Cities with a Library pay 10% of their production again as science. | — (⚒→🔬, the missing pair) | [move to age 3, too strong for age 2]
 | The Golden Scales (NEW) | E | Gov III | 10% of your gold yield pays again as science. | could REPLACE The Salt Road (flat) |
-| The Harvest Songs (REWORK) | W | Gov I | Each city pays 15% of its food surplus again as culture. | replaces Hearth Songs (+2🎵 small towns — same tall-early niche, now a decision: growth or songs, the same food twice) |
+[ move to age 4 ]
+| The Harvest Songs (REWORK) | W | Gov I | Each city pays 10% of its food surplus again as culture. | replaces Hearth Songs (+2🎵 small towns — same tall-early niche, now a decision: growth or songs, the same food twice) |
+[this isn't a decision though right, this just makes it good to get food early? move to age 2]
+
 | The Salting Houses (NEW) | E | Gov II | Coastal cities pay 10% of their food again as production. | the ⚓ Tide's working half; pairs with Thalassocracy — both want the same coastal food, drafting both is a build |
+[move to age 3, too strong]
 
 Conversions create decisions because they chain: Thalassocracy + Salting
 Houses + Harvest Songs all read the same food figure, and a player who sees
@@ -93,10 +111,10 @@ The four missing payoffs, each in existing vocabulary:
 
 | Row | Slot | Pool | Effect | Vocabulary |
 |---|---|---|---|---|
-| The Skin-Tribute (NEW, ○) | M | Gov II | 🏹 Every barbarian kill pays +10 gold and +5 science; camps you clear pay their windfall twice. | kill-windfall riders + amplifier (Academy of Deeds' shape) |
-| The Arsenal Law (NEW, ○) | M | Gov III | ⚒ Cities with a Barracks pay 15% of their production again as gold while you are at war. | conversion + condition (war state is testable — Publicani's harness) |
-| The Grand Survey (NEW, ○) | W | Gov III | 🧭 +1% science for every 30 hexes you have revealed (at most +10%). | Cartographers' count, percent instead of flat |
-| The Charter of the Marches (NEW, ○) | E | Gov III | 📜 Your newest city pays +2 of every yield; founding a city grants +30🎵. | needs a "newest town" scope — one small shape; the windfall half is stock |
+| The Skin-Tribute (NEW, ○) | M | Gov II | 🏹 Every barbarian kill pays +10 gold and +5 science; camps you clear pay their windfall twice. | kill-windfall riders + amplifier (Academy of Deeds' shape) | [not needed]
+| The Arsenal Law (NEW, ○) | M | Gov III | ⚒ Cities with a Barracks pay 15% of their production again as gold while you are at war. | conversion + condition (war state is testable — Publicani's harness) | [keep]
+| The Grand Survey (NEW, ○) | W | Gov III | 🧭 +1% science for every 30 hexes you have revealed (at most +10%). | Cartographers' count, percent instead of flat | [too strong, remove]
+| The Charter of the Marches (NEW, ○) | E | Gov III | 📜 Your newest city pays +2 of every yield; founding a city grants +30🎵. | needs a "newest town" scope — one small shape; the windfall half is stock | [great, keep]
 
 ## Rework list (the same pool, sharper — for your row-by-row ruling)
 
@@ -110,9 +128,10 @@ strike any line; unstruck = I build it in the data pass:
   needs vanilla floors; the fix is never converting everything.
 - **The Last Hunt** (🏹, +2🎵 per camp cleared): raise to "+2🎵 and +2🔬 per
   camp" and mark ○ — it is already the Wild Hunt's counter card; let it pay
-  like one.
+  like one. [confirmed, great]
 - **The Archives / The Annals of Law**: unchanged, but move both UP a rarity
   (◆→○) once the deck-reader family lands — they become its anchors.
+  [we need to actually remove archives once we remove levelling cards]
 
 ## Notes for the cut
 

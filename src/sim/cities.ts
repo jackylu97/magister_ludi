@@ -1395,6 +1395,25 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // news is a diff (`triumphsAwarded`), which is why this seam needed no new
   // parameter and no new return value.
   awardFoundingTriumphs(state, city);
+  // **What the empire is paid for having founded it** — The Charter of the
+  // Marches' bounty, and the other half of the sentence `cardFoundingRider`
+  // says above. That rider decides what the *town* is founded with and is read
+  // by the town; this is a windfall to the *realm*, so it goes through the one
+  // routine that banks one (Entry XVIII: the figure is composed once, before
+  // anything is banked, and the bucket settles the instant it lands).
+  //
+  // Fired **last**, after the borders, the citizens and the triumphs: a rider
+  // that gifts a piece places it through `realiseItem`, which wants a town that
+  // is already finished. Food or hammers land in the nearest town, which for a
+  // founding is this one — `settleGrowthWindfall` on whatever was touched, the
+  // register of mid-turn yield mutations' entry 7 paying entry 11's way.
+  if (founder) {
+    const payout = windfallPayout(state, founder.id, 'found');
+    for (const paid of payWindfallGrants(state, founder, payout, { col: city.col, row: city.row })) {
+      settleGrowthWindfall(state, paid);
+    }
+    settleCultureWindfall(state, founder);
+  }
   return city;
 }
 

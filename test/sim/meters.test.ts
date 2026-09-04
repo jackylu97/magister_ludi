@@ -909,7 +909,10 @@ describe('a captured city, end to end', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(60);
+    // v61 (2026-09-04, the card-shapes pass): nine Orders join the pools, two
+    // are retired and one pays a second voice — so a v60 log's `chooseOrder`
+    // names indices into triples this build does not deal.
+    expect(SCHEMA_VERSION).toBe(61);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

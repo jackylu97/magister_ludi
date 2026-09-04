@@ -30,6 +30,7 @@ already earned), reset every owned order to level 1, or delete the
 The sheet's "RULING: orders can only be deepened up to level 3", every
 "upgrade:" column, and the still-missing upgrade marks for The Old Ways /
 The Escorted Roads all follow the answer.
+No more upgrading altogether, all cards are as is. Players are given an option to skip and increase the rarity of their next draft.
 
 ### Pacing (measured 2026-09-03 post-wave; your call on all three)
 
@@ -45,6 +46,11 @@ The Escorted Roads all follow the answer.
   t20/40/60; five pieces at t40 against eleven.
   `test/sim/upkeep.slow.test.ts`, `test/sim/buildSinks.slow.test.ts`.
 
+the bot is a bad indicator for actual play, it needs significant improvement before we can make it a baseline.
+I'll need to test it, but currently the later era's feel to _fast_ based on how much snowball is in the game.
+We need to consider outrageous costs later in the game as part of the skill test for players.
+For now, only look to my playtests as the source of truth for pacing balance.
+
 ### The balance turn (direction agreed in chat, numbers not yet ruled)
 
 Buildings are the big non-card power block — direction: ordinary rows' flat
@@ -59,33 +65,45 @@ pass lands and the pacing questions above are ruled.
   the piece leaves (fog remembers terrain and towns only). Closing it
   honestly = a stored per-seat met set (schema bump). Say the word;
   otherwise the derived reading stands.
+  yup - meeting should be permanent, and only need to sight a unit or tile the player owns once.
 - **Two gold prices** — `greatPeople.offerPriceGold` 300 (beside the faith
   siblings) and `wonderRefundGoldPerHammer` 1 (now a quarter of the
   purchase rate; say if it should be 2).
+  what is the great people offer price? keep the wonder refund at 1.
 - **Swordsman and iron** — the tree's iron rung is the *legionary*, so a
   warrior becomes a swordsman with no iron anywhere. Say the word if the
   swordsman should ask for iron; it is a data field.
+  let's make the swordsman require iron.
 - **Early-worker onboarding gap** (seed 31337): a fresh worker can have NO
   legal action for ~10 turns (forest/desert ring, Mining unresearched, chop
   gated). Candidate fixes: chop legal from the start, a guaranteed farmable
   hex near starts, or the worker panel saying WHY nothing is legal.
+  Yeah, i've noticed that too in my playtesting. Let's not worry about this now, add a greyed out button of the possible improvements that can be built and explain why it can't be built in the worker panel.
 - **Mid-peace expulsion** — a unit engulfed by border growth at peace can
   be stuck (expulsion fires only at peace resolution). Rare; needs a rule.
+  Lets not worry about this for now.
 - **Barbarian red rim** — the wild wears the war-red rim since the glow
   pass; flag if it should look distinct from declared enemies.
+  Great.
 - **Puppet `contribute` still legal** — the ruling named purchases and
   tiles; one clause closes gold-pouring into a puppet's basket if wanted.
+  yeah turn off contribute. this is only relevant for projects and the magnum opus right?
 - **Balanced seats can declare at 4.5×** — the (1 + aggression) reading;
   intended for wide, worth confirming for balanced.
+  Lets tune this later with playtesting
 - **River quota on huge/giant maps** — fell to ~0.4–0.7 with the pangaea
   (standard unmoved); the real fix is depression-filling. Say if those
   sizes matter now.
+  yup, lets increase the number of rivers if it decreased, also adding lakes could help. Let me know if you meant something different by depression-filling.
 - **Project-headed towns** — a project row never leaves the queue, so End
   Turn never asks; the bot works around it, a human gets no nudge.
+  This is fine, this is the behavior in civ 5 right?
 - **City-mode camera** — opening a city still only frames the town; ruling
   wanted on easing the camera onto it and refusing pan until Leave.
+  Easing camera isn't needed for now, but refusing pan is good.
 - **Vignette strength under the mode** — a look decision with the app on
   screen (inner 1.05 / outer 1.6 / opacity 0.68).
+  Lets lighten the vignette slightly, maybe 25% less in visibility (not sure how that translates to numbers)
 
 ### Standing small items (earlier passes)
 
@@ -95,15 +113,22 @@ pass lands and the pacing questions above are ruled.
 - **`redraftBeliefs`** — kept through the faith rework; keep or retire.
 - **Bead threshold 20** — never decides a game (winners hold 7–10); lower
   it or retire the threshold.
+  Let's change the rules. You _need_ 20 beads to begin the magnum opus. We can play around with the number later. Let's say the magnum opus unlocks automatically at 20 beads.
 - **Entry LIV supply trim** — proposed with measurements, never applied;
   now a playtest question.
+  Please be more specific, what is this?
 - **The Sea Peoples** — waits on a plundering-costs-no-movement rule.
+  great, pillaging should cost 1 movement, and should be an option when a military unit is on a tile with an improvement of a player you're at war with.
 - **The Mint** — endeavour timing vs Paper Money's building (conflict).
+  please be more specific
 - **Inquisitor badge** — wears the augur's candle; own art owed.
+  please make art for this, or find an icon that fits with our current set.
 - **Rite windfall toast** — a rite's hammers can complete a wonder with no
   toast (`RiteResult` gap).
+  hm, wonder screen should always show after completion.
 - **Authority roominess** — +14 spare at 6 cities in your playtest; supply
   is palace 4 + 2/age + buildings. Playtest question.
+  defer to playtest
 
 ### The proposed pools (docs/orders-and-doctrines.md)
 
@@ -122,6 +147,7 @@ pass lands and the pacing questions above are ruled.
   Reliquary Rolls, Chroniclers of the Fallen, Almoners' Book, and the
   NEEDS-NAME war order — awaiting your "build it" (the growing cards also
   wait on the phase-2 counter schema decision).
+Add the proposed additions, let me playtest before we decide on the governement 4,5,6 orders.
 
 ## B. Deferred halves on the rows (regenerated from data)
 

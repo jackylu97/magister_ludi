@@ -1006,8 +1006,32 @@ import {
  *     read by nothing that keeps state (`Player.legacies` and
  *     `GameState.recruited` are both guarded by `isGreatPersonId`), so nothing
  *     else changed shape and there is nothing to migrate.
+ *
+ * v61: **the card-shapes pass** (ruled 2026-09-04, `docs/card-shapes.md`). Nine
+ * new Orders, two retired ones and a reworked third, which is v59's break at a
+ * larger scale: a draft's options are *drawn* from a pool, so a v60 log's
+ * `chooseOrder` names indices into triples this build does not deal.
+ *
+ *   · **Nine rows join the pools** — the deck-readers (The War Council, The
+ *     Guild Charter, The Synod) in Government II with The Harvest Songs, and
+ *     five in Government III (The Salting Houses, The Drafting Halls, The
+ *     Golden Scales, The Arsenal Law, The Charter of the Marches). Both bags
+ *     are four and five cards longer.
+ *   · **The Salt Road and Hearth Songs are retired** — Government I and the
+ *     chiefdom are one card shorter each. Both rows stay and stay live for a
+ *     save that already holds them slotted.
+ *   · **The Last Hunt pays twice** — the same count in a second voice, so a
+ *     v60 empire holding it is worth a different science figure here.
+ *   · **A founding pays the realm** — `foundCityAt` fires a new `found`
+ *     windfall occasion at the end of its work. No live row but The Charter of
+ *     the Marches rides it and it draws no dice, so a v60 log founds exactly
+ *     what it founded; what changes is what an empire holding that card banks.
+ *
+ *     The migration note: nothing changed shape and there is nothing to
+ *     migrate. The two retired rows are still readable by `anyCardDef`, which
+ *     is the whole reason a withdrawn card is marked rather than deleted.
  */
-export const SCHEMA_VERSION = 60;
+export const SCHEMA_VERSION = 61;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

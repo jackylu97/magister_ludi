@@ -451,6 +451,25 @@ export type CityScope =
    * it leaves the capital out of its own list.
    */
   | { test: 'connected' }
+  /**
+   * The **last town this empire came by** — The Charter of the Marches, whose
+   * whole point is that the frontier is wherever you last planted a flag.
+   *
+   * `capital`'s opposite number, and the second scope in the union that admits
+   * exactly **one** town rather than a class of them: a card written on it moves
+   * the moment a settler stops walking, which is the decision the row is about
+   * — keep expanding and the charter keeps travelling, stop and it settles on
+   * the last place you built.
+   *
+   * Read off `state.cities`, which is **founding order** and the same order
+   * every other sweep in the simulation walks: the last entry this empire owns
+   * is the newest town it holds. A town taken by force keeps the place in that
+   * order it was founded at, so a conqueror who storms a young capital really
+   * has come by a newer town than his own last colony — which is the honest
+   * reading of "newest" and the only one the board can answer without a second
+   * record. An empire holding nothing admits nothing.
+   */
+  | { test: 'newest' }
   | { test: 'all'; of: CityScope[] };
 
 /**
@@ -490,7 +509,23 @@ export type EmpireCondition =
    * sorted into a category — so a project, a wonder and a building are told
    * apart here by exactly the rule production tells them apart by.
    */
-  | { test: 'queueHolds'; category: ProductionCategory; where?: 'any' | 'capital' };
+  | { test: 'queueHolds'; category: ProductionCategory; where?: 'any' | 'capital' }
+  /**
+   * **There is a war on** — The Arsenal Law's forges, which only run while
+   * somebody is being shot at.
+   *
+   * Read off `state.wars`, the register itself (`wars.ts`), and that is the
+   * whole of why it is honest: the wild is **never** in the register — a
+   * barbarian has nothing to sign — so `atWar(state, x, y)` answering *true*
+   * against raiders forever cannot leak in here, and a realm that has never
+   * declared on anybody reads false however many camps it has burnt. A row per
+   * unordered pair, so the question is "does any row name me".
+   *
+   * A gate and not a scope, which is the distinction this union keeps: war is a
+   * fact about the *empire*, and the clause it opens lands wherever the clause
+   * says it lands.
+   */
+  | { test: 'atWar' };
 
 /**
  * When a strength line applies. The whole of `combatCardLine`'s generality.
@@ -626,7 +661,20 @@ export type CombatScaleCount =
    * every name it has ever been handed. A general who plants his citadel keeps
    * paying, which is what "earned this game" says.
    */
-  | 'greatPeopleOfFamily';
+  | 'greatPeopleOfFamily'
+  /**
+   * Orders in a chair whose own flavour is the one named in `CombatScale.slot` —
+   * The War Council, the deck-reader family's military member.
+   *
+   * `CountKind`'s member of the same name, asked of a *fight* rather than of a
+   * ledger: the two unions share nothing but the word "count" (see
+   * `combatScaleCount`), so a reader that pays strength and a reader that pays
+   * yields each name the question in their own table. The reading is identical
+   * and deliberately so — the card's own `OrderDef.slot`, never the chair's — so
+   * the council a player can see on the Statecraft screen is the council that
+   * shows up in the combat preview.
+   */
+  | 'slottedOrdersOfSlot';
 
 /** A strength line that scales with a count, capped where the design caps it. */
 export interface CombatScale {
@@ -637,6 +685,14 @@ export interface CombatScale {
   max?: number;
   /** Which family `greatPeopleOfFamily` counts. Ignored by the other counts. */
   family?: Family;
+  /**
+   * Which flavour `slottedOrdersOfSlot` counts. Ignored by the other counts.
+   *
+   * `family`'s sibling one count over, and on the scale for that field's reason:
+   * a count that needs an argument names it here rather than in the union, so
+   * the union stays a list of questions.
+   */
+  slot?: SlotType;
 }
 
 /**
@@ -854,6 +910,14 @@ export type TileCondition =
  * luxury" (once, to the empire) and "+2 production per garrison" (in each town,
  * counted in that town) — the same distinction `resourceEffects.ts` draws
  * between `empireYields` and `perCityYields`, said once here instead of twice.
+ *
+ * `'capital'` is the third reading and the narrowest: **once, in one town**. It
+ * exists because an empire line has no basket — `collectYields` banks a realm's
+ * gold, science, culture and faith and has nowhere to put food or production —
+ * so a card that pays a hammer for a thing counted across the whole realm (The
+ * Guild Charter's guilds) has to name a town for it to be built in. Read in
+ * `cardCityYields` beside the ordinary city lines, and skipped by the empire
+ * fold, so it is paid exactly once.
  */
 export type CardPayout =
   | { to: 'yield'; yield: CityYieldKey; amount: number; where: 'empire' | 'city' | 'capital' }
@@ -1101,6 +1165,27 @@ export type CountKind =
    * any of them was taken.
    */
   | 'unslottedOrders'
+  /**
+   * Orders sitting in a chair whose own **flavour** is the one named in
+   * `CardCountScaledEffect.slot` — the deck-readers (The Guild Charter's
+   * economic cards, The Synod's wildcards).
+   *
+   * `slottedOrderLevels` counts how *deep* the council sits and this counts what
+   * kind of council it is, which is the whole of what a deck-reader asks: a
+   * draft stops being a shopping trip the moment a card is worth more beside its
+   * own kind. It takes its argument on the effect exactly as `buildingsOfKind`
+   * does, so "per military Order" and "per wildcard Order" are one arm, one
+   * table entry and three data rows.
+   *
+   * **The card's own flavour, not the chair's** (the user's Senatus, verbatim:
+   * *"not a wildcard slot filled, a wildcard card that is active"*). A wildcard
+   * chair takes any card, so counting chairs would have paid a military empire
+   * for its spearmen under a wildcard heading. Read off `OrderDef.slot` for
+   * every card in `PlayerStatecraft.slots`, which means a deck-reader **counts
+   * itself** — that is deliberate, and it is what makes the floor of the card
+   * one helping rather than nothing at all.
+   */
+  | 'slottedOrdersOfSlot'
   /**
    * Barbarian camps this empire has **burnt out**, across the whole game — The
    * Last Hunt's tally.
@@ -1533,6 +1618,22 @@ export type WindfallOccasion =
   | 'camp'
   /** A city gained a citizen (`settleGrowth`). */
   | 'growth'
+  /**
+   * A city **founded** (`foundCityAt`) — The Charter of the Marches' bounty for
+   * planting another flag.
+   *
+   * `CardFoundingRiderEffect` and this occasion are two questions about the same
+   * moment and neither is the other, which is why both exist: that shape says
+   * what the new town is founded *with* — a citizen, a granary, a road home —
+   * and this says what the **empire** is paid for having founded it. A charter
+   * that granted culture through the rider would have had to invent a place to
+   * put it, because a rider is read by the town being built and culture belongs
+   * to the realm.
+   *
+   * It fires for the founding and not for a capture: a captured town is
+   * somebody else's founding, and `capture` is its own occasion.
+   */
+  | 'found'
   /** Any item completed. */
   | 'completion'
   // **There is deliberately no `purchase` occasion**, and finding out why is
@@ -2117,6 +2218,16 @@ export interface CardCountScaledEffect {
    * Absent counts every piece.
    */
   class?: UnitFilter;
+  /**
+   * Which flavour `slottedOrdersOfSlot` counts. Ignored by every other count.
+   *
+   * `building`'s and `category`'s sibling, and here for their reason exactly: a
+   * count that needs an argument names it on the effect, so the union stays a
+   * list of *questions* and the row says which one it is asking. Absent counts
+   * every slotted Order whatever its flavour, which is the honest reading of an
+   * unnamed argument rather than a guard.
+   */
+  slot?: SlotType;
   /**
    * Narrows an **empire** count to the town the line is being paid in.
    *

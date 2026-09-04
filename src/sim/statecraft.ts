@@ -1627,6 +1627,13 @@ function empireConditionHolds(
       }
       return false;
     }
+    case 'atWar':
+      // **The register itself**, and nothing derived from it. `atWar` answers
+      // *true* against the wild without looking (it has nothing to sign), so a
+      // sweep of the seats asking that question would have opened The Arsenal
+      // Law's forges on turn one and never closed them. A war is one row per
+      // unordered pair, so "am I at war" is "does a row name me".
+      return state.wars.some((war) => war.a === playerId || war.b === playerId);
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -1877,6 +1884,19 @@ export function cityScopeAdmits(
       // *to*, so it is never in the list and never admits — see the scope.
       return connectedCities(state, city.ownerId).some((entry) => entry.city.id === city.id);
     }
+    case 'newest': {
+      // **Founding order**, which is `state.cities`' own order and the order
+      // every other sweep in the simulation walks: the last entry this empire
+      // owns is the newest town it holds. Asked of the town's *owner* rather
+      // than of a viewer, exactly as `capital` is — a scope is a question about
+      // whose realm this town belongs to, and a card read of somebody else's
+      // city means that empire's newest.
+      let newest: number | null = null;
+      for (const town of state.cities) {
+        if (town.ownerId === city.ownerId) newest = town.id;
+      }
+      return newest !== null && newest === city.id;
+    }
     case 'follows': {
       // **"This town follows the religion this belief belongs to."** Since the
       // 2026-08-28 ruling a follower belief only ever reaches a town through
@@ -1968,6 +1988,8 @@ function scopeNote(scope?: CityScope): string | null {
       return `${improvementDef(scope.improvement).name.toLowerCase()} in its borders`;
     case 'garrisoned':
       return 'a unit stationed there';
+    case 'newest':
+      return 'newest city';
     case 'follows':
       return 'follows this faith';
     case 'all':
@@ -2328,6 +2350,13 @@ function countOf(
       }
       return total;
     }
+    case 'slottedOrdersOfSlot':
+      // The deck-readers' count. **The card's own flavour, never the chair's**
+      // — a wildcard chair takes any card, so counting chairs would pay The
+      // Synod for a spearman that happened to be sitting in one. Through
+      // `slottedOrdersOfFlavour`, the one reading, so the Order screen and the
+      // combat preview cannot disagree about what a council is made of.
+      return slottedOrdersOfFlavour(state, playerId, effect.slot);
     case 'clearedCamps':
       // The one count answered off a **record** rather than off the board: a
       // camp that has been burnt out leaves nothing to sweep, which is exactly
@@ -2615,7 +2644,16 @@ export function cardCityYields(state: GameState, city: City): CardYieldLine[] {
 
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'countScaled')) {
     const pays = effect.pays;
-    if (pays.to !== 'yield' || pays.where !== 'city') continue;
+    if (pays.to !== 'yield') continue;
+    if (pays.where === 'empire') continue;
+    // **`capital` is a city line that lands in one town**, and it is read here
+    // rather than in the empire fold because that is the only place a voice the
+    // empire has no bank for can be paid at all: `collectYields` banks an empire
+    // line as gold, science, culture or faith and drops food and production on
+    // the floor, having no basket to put them in. The Guild Charter's hammers
+    // are the first row to want one, so the seat of government is where they
+    // land — one town, counted once, exactly as the card's own words say.
+    if (pays.where === 'capital' && capitalCityOf(state, owner)?.id !== city.id) continue;
     const times = helpings(countOf(state, owner, effect, city), effect.per, effect.max);
     if (times === 0) continue;
     const line = emptyLine(card, label(source, `×${times}`));
@@ -2670,7 +2708,9 @@ export function cardEmpireYields(
 
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'countScaled')) {
     const pays = effect.pays;
-    if (pays.to !== 'yield' || pays.where === 'city') continue;
+    // `capital` is a **city** line (see `cardCityYields`), so it leaves here with
+    // `city`: an empire fold that also paid it would pay it twice.
+    if (pays.to !== 'yield' || pays.where === 'city' || pays.where === 'capital') continue;
     const times = helpings(countOf(state, playerId, effect), effect.per, effect.max);
     if (times === 0) continue;
     const line = emptyLine(card, label(source, `×${times}`));
@@ -3719,6 +3759,11 @@ function combatScaleCount(
       return adjacentFriendlies(state, unit);
     case 'greatPeopleOfFamily':
       return greatPeopleEarned(state, playerId, scale.family);
+    case 'slottedOrdersOfSlot':
+      // The War Council. Through the same reading the ledger's count takes
+      // (`slottedOrdersOfFlavour`), so the spears a fight is worth and the coin
+      // a Guild Charter pays are counting one council.
+      return slottedOrdersOfFlavour(state, playerId, scale.slot);
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -4268,6 +4313,41 @@ export function filledOrderSlots(state: GameState, playerId: number): number {
   let count = 0;
   for (const slot of sc.slots) {
     if (slot) count += 1;
+  }
+  return count;
+}
+
+/**
+ * **The deck-readers' reading**: how many Orders this empire has in a chair
+ * whose own flavour is `flavour`. Absent counts every one, which is
+ * `filledOrderSlots` and answered by it.
+ *
+ * The one place "what kind of council is this" is decided, because two readers
+ * ask it — `countOf`'s `slottedOrdersOfSlot` (The Guild Charter's coin, The
+ * Synod's candles) and `combatScaleCount`'s (The War Council's spears) — and two
+ * implementations of it would be two answers to the question a player is
+ * looking at on one screen.
+ *
+ * **`OrderDef.slot`, never the chair's type** (the user's Senatus, verbatim:
+ * *"not a wildcard slot filled, a wildcard card that is active"*). A wildcard
+ * chair takes any card, so the chair says nothing about what was put in it; the
+ * card's own flavour is the thing a player drafts toward. A reader therefore
+ * **counts itself**, which is deliberate — the floor of a deck-reader is one
+ * helping, and the card's whole promise is that the figure moves when a card
+ * beside it is slotted.
+ */
+export function slottedOrdersOfFlavour(
+  state: GameState,
+  playerId: number,
+  flavour?: SlotType,
+): number {
+  const sc = statecraftOf(state, playerId);
+  if (!sc) return 0;
+  let count = 0;
+  for (const slot of sc.slots) {
+    if (slot === null) continue;
+    if (flavour !== undefined && orderDef(slot.card).slot !== flavour) continue;
+    count += 1;
   }
   return count;
 }
@@ -5380,8 +5460,15 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       const here = effect.within === 'city' && !CITY_SCOPED_COUNTS.includes(effect.count)
         ? ' in this city'
         : '';
+      // **Where the figure lands**, printed where it is one town rather than the
+      // realm: a capital line said as a bare "+1 production" is a card that lies
+      // by omission, exactly as an unprinted `class` was. `empire` and `city`
+      // need no words — the first is what a payout says by default and the
+      // second is already carried by the town the line is printed beside.
+      const paidIn =
+        effect.pays.to === 'yield' && effect.pays.where === 'capital' ? ' in your capital' : '';
       out.push({
-        text: `${payoutWords(effect.pays)} per ${countWords(effect.per, words)}${here}${cap}`,
+        text: `${payoutWords(effect.pays)}${paidIn} per ${countWords(effect.per, words)}${here}${cap}`,
       });
       return;
     }
@@ -5685,6 +5772,23 @@ interface PluralWords {
 }
 
 /**
+ * "military Order you have in a slot" — one flavour of council, in both numbers.
+ *
+ * Written once because **two** tables print it: `countNoun` for the ledger's
+ * deck-readers and `scaleNoun` for the combat one, which are the same sentence
+ * about the same council and would otherwise be two. The words match the ones
+ * `perSlottedOrder` already prints ("for each Order you have in a slot"), so the
+ * War Chief's multiplier and The Guild Charter's count read as the same thing
+ * counted two ways.
+ */
+function slotFlavourWords(flavour: SlotType): PluralWords {
+  return {
+    one: `${flavour} Order you have in a slot`,
+    many: `${flavour} Orders you have in a slot`,
+  };
+}
+
+/**
  * What a `countScaled` is counting, as a noun in both numbers.
  *
  * `COUNT_WORDS` for every count whose noun is fixed, and the *building's own
@@ -5719,6 +5823,12 @@ function countNoun(effect: CardCountScaledEffect): PluralWords {
       many: `${effect.category} buildings`,
     };
   }
+  // The deck-readers' count, said as the flavour the player drafts by — "per
+  // economic Order you have in a slot". `buildingsOfKind`'s bargain a fourth
+  // time: the argument is printed here so the three rows are one table entry.
+  if (effect.count === 'slottedOrdersOfSlot' && effect.slot !== undefined) {
+    return slotFlavourWords(effect.slot);
+  }
   return COUNT_WORDS[effect.count];
 }
 
@@ -5730,6 +5840,9 @@ function countNoun(effect: CardCountScaledEffect): PluralWords {
  * "per great engineer" are one entry in `SCALE_WORDS` and two data rows.
  */
 function scaleNoun(scale: CombatScale): PluralWords {
+  if (scale.count === 'slottedOrdersOfSlot' && scale.slot !== undefined) {
+    return slotFlavourWords(scale.slot);
+  }
   if (scale.count === 'greatPeopleOfFamily') {
     const who = scale.family === undefined ? 'great person' : `great ${scale.family}`;
     const many = scale.family === undefined ? 'great people' : `great ${scale.family}s`;
@@ -5870,6 +5983,13 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // founded the faith.
       into.qualifiers.push('that follows the religion');
       return;
+    case 'newest':
+      // Only ever reached inside a composite — on its own the scope is one town
+      // and `scopeWords` says "your newest city", the sentence `capital` gets
+      // and for its reason: a scope that admits exactly one place does not read
+      // as "every …".
+      into.adjectives.push('newest');
+      return;
     case 'all':
       for (const inner of scope.of) scopePhrase(inner, into);
       return;
@@ -5932,6 +6052,9 @@ function scopeWords(scope?: CityScope): string {
   // The capital is a **single** town, and the one scope that does not read as
   // "every …". It is also the only one that can say "your".
   if (scope.test === 'capital') return 'your capital';
+  // The second scope that admits exactly one town, and the second that can say
+  // "your". See `CityScope`'s `newest`.
+  if (scope.test === 'newest') return 'your newest city';
   const phrase: ScopePhrase = { adjectives: [], qualifiers: [] };
   scopePhrase(scope, phrase);
   return ['every', ...phrase.adjectives, 'city', ...phrase.qualifiers].join(' ');
@@ -6160,6 +6283,12 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
   // great general" and "per great engineer" are one entry. `buildingsOfKind`'s
   // bargain, at the third scale.
   greatPeopleOfFamily: { one: 'earned this game', many: 'earned this game' },
+  // The flavour is printed by `scaleNoun`, exactly as the family is: "per
+  // military Order you have in a slot" and "per economic Order" are one entry.
+  slottedOrdersOfSlot: {
+    one: 'Order you have in a slot',
+    many: 'Orders you have in a slot',
+  },
 };
 
 /** Where a `unitStat` applies, in words. `'anywhere'` is the absent field. */
@@ -6203,6 +6332,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   chop: 'clearing a forest or jungle',
   camp: 'clearing a barbarian camp',
   growth: 'a city growing',
+  found: 'founding a city',
   completion: 'completing anything',
   buildingCompletion: 'completing a building',
   unitCompletion: 'completing a unit',
@@ -6345,6 +6475,13 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   unslottedOrders: {
     one: 'Order you hold but have not placed in a slot',
     many: 'Orders you hold but have not placed in a slot',
+  },
+  // The flavour is not in these words: `countNoun` prints it, so that "per
+  // military Order" and "per wildcard Order" are one entry — `buildingsOfKind`'s
+  // bargain. This is the reading of a row that names no flavour at all.
+  slottedOrdersOfSlot: {
+    one: 'Order you have in a slot',
+    many: 'Orders you have in a slot',
   },
   clearedCamps: {
     one: 'barbarian camp you have cleared',
@@ -6510,6 +6647,7 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   // The category and the town are printed by `conditionValue`, so that a wonder
   // in any city and a building in the capital are one entry and two rows.
   queueHolds: 'while',
+  atWar: 'while you are at war',
 };
 
 // --- the ladder -------------------------------------------------------------

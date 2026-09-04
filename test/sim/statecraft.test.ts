@@ -85,6 +85,7 @@ import {
   sealTurnsFor,
   settleCultureWindfall,
   slotOrderError,
+  slottedOrdersOfFlavour,
   statecraftBlocker,
   stripRefs,
   tileConditionWords,
@@ -119,6 +120,8 @@ import {
 import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
 import { isCoastal } from '../../src/sim/water';
 import { arriveOnTile } from '../../src/sim/arrival';
+import { closeWar, openWar } from '../../src/sim/wars';
+import type { CityYieldKey } from '../../src/sim/resourceData';
 import { foundCityAt } from '../../src/sim/cities';
 import { improvementDef } from '../../src/sim/improvementData';
 import { awardOccasion } from '../../src/sim/triumphs';
@@ -1156,7 +1159,12 @@ describe('determinism', () => {
     // Doctrine ever withdrawn — while The Unbroken Land narrows to unimproved
     // forest and jungle. A v58 log names indices of triples dealt from bags
     // this build no longer holds.
-    expect(SCHEMA_VERSION).toBe(60);
+    // v61 (the card-shapes pass, 2026-09-04): nine Orders join the Government
+    // II and III pools, The Salt Road and Hearth Songs are retired out of
+    // Government I and the chiefdom, and The Last Hunt pays a second voice —
+    // four bags changed size, so a v60 log's `chooseOrder` names indices into
+    // triples this build does not deal.
+    expect(SCHEMA_VERSION).toBe(61);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -3780,8 +3788,11 @@ describe('the ratified cards of the Themes Build', () => {
       'trade routes within 3 hexes of your soldiers cannot be plundered — nothing in the ' +
         'game can say where a route is safe, only what it pays — not built yet',
     ]);
+    // Raised by the card-shapes pass of 2026-09-04: the Wild Hunt's counter
+    // card now pays like the payoff it always was, in both voices.
     expect(said('theLastHunt')).toEqual([
       '+2 culture per barbarian camp you have cleared',
+      '+2 science per barbarian camp you have cleared',
     ]);
     expect(said('theSaintsFields')).toEqual([
       "+3 faith on every hex carrying a great person's work",
@@ -4352,5 +4363,364 @@ describe("the user's card pass of 2026-09-03", () => {
       '+1 culture on every jungle hex',
     ]);
     expect(said('firstFruitsOffering')).toEqual(['a city growing grants +10 faith']);
+  });
+});
+
+// --- the card-shapes pass of 2026-09-04 -------------------------------------
+
+/**
+ * The rows the user ruled in `docs/card-shapes.md` — the deck-readers, the four
+ * conversions, the two payoffs and the two retirements — and the five members of
+ * the vocabulary they needed.
+ *
+ * Same discipline as the four passes above: **one behavioural test per new
+ * member**, because the kind-level register only proves a *shape* is named by a
+ * row — a `CountKind`, an `EmpireCondition` or a `CityScope` nobody reads would
+ * sail straight through it — plus a register of its own naming exactly what this
+ * pass declared, plus the printed sentence of every row that is new or changed.
+ */
+describe('the card-shapes pass of 2026-09-04', () => {
+  /** The six voices, as a conversion reads them: a town's own fold of flats. */
+  function flats(over: Partial<Record<CityYieldKey, number>> = {}): Record<CityYieldKey, number> {
+    return { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0, ...over };
+  }
+
+  /** Empties the chair this card is sitting in, without touching the holding. */
+  function unslot(state: GameState, playerId: number, id: string): void {
+    const sc = playerById(state, playerId)!.statecraft;
+    const index = sc.slots.findIndex((entry) => entry?.card === id);
+    expect(index, id).toBeGreaterThanOrEqual(0);
+    sc.slots[index] = null;
+  }
+
+  /**
+   * What this card pays the empire in one voice, or null when it pays none.
+   *
+   * A card that pays two voices is two lines (rule 5), so the voice picks the
+   * line rather than being read off the first one that names the card.
+   */
+  function empireLine(state: GameState, playerId: number, name: string, voice: CityYieldKey) {
+    const lines = cardEmpireYields(state, playerId).filter((entry) => entry.source.includes(name));
+    if (lines.length === 0) return null;
+    return lines.reduce((sum, line) => sum + line[voice], 0);
+  }
+
+  it('slottedOrdersOfSlot — The Guild Charter counts economic cards, and counts itself', () => {
+    const g = game(940);
+    found(g.state, 0);
+    // Silent until it is in a chair — a card counts the council it sits on.
+    expect(empireLine(g.state, 0, 'The Guild Charter', 'gold')).toBeNull();
+
+    // **It counts itself**, which is the floor of every deck-reader and the
+    // reason the family is worth drafting at all on the turn it lands.
+    slot(g.state, 0, 'theGuildCharter');
+    expect(slottedOrdersOfFlavour(g.state, 0, 'economic')).toBe(1);
+    expect(empireLine(g.state, 0, 'The Guild Charter', 'gold')).toBe(2);
+
+    // A second economic card moves the figure; a military one does not, which
+    // is the whole of what "reads your deck" means.
+    slot(g.state, 0, 'boundaryStones');
+    expect(empireLine(g.state, 0, 'The Guild Charter', 'gold')).toBe(4);
+    slot(g.state, 0, 'farRunners');
+    expect(empireLine(g.state, 0, 'The Guild Charter', 'gold')).toBe(4);
+
+    // And it falls again the instant the chair is emptied: the count is derived
+    // from the slots every time it is asked, never banked.
+    unslot(g.state, 0, 'boundaryStones');
+    expect(empireLine(g.state, 0, 'The Guild Charter', 'gold')).toBe(2);
+  });
+
+  it('slottedOrdersOfSlot — The Synod reads wildcards, by the card and not the chair', () => {
+    const g = game(940);
+    found(g.state, 0);
+    slot(g.state, 0, 'theSynod');
+    expect(empireLine(g.state, 0, 'The Synod', 'faith')).toBe(1);
+    expect(empireLine(g.state, 0, 'The Synod', 'culture')).toBe(1);
+
+    // **The card's own flavour, never the chair's.** A military card put into a
+    // wildcard chair — which the slot rules allow — is still a military card,
+    // and The Synod does not read it.
+    const sc = playerById(g.state, 0)!.statecraft;
+    grant(sc, 'farRunners');
+    sc.slots.push({ card: 'farRunners', sealedUntil: g.state.turn });
+    expect(slottedOrdersOfFlavour(g.state, 0, 'wildcard')).toBe(1);
+    expect(empireLine(g.state, 0, 'The Synod', 'faith')).toBe(1);
+
+    slot(g.state, 0, 'firstRites');
+    expect(slottedOrdersOfFlavour(g.state, 0, 'wildcard')).toBe(2);
+    expect(empireLine(g.state, 0, 'The Synod', 'faith')).toBe(2);
+    expect(empireLine(g.state, 0, 'The Synod', 'culture')).toBe(2);
+    // An unnamed flavour counts the whole council — `filledOrderSlots`' answer.
+    expect(slottedOrdersOfFlavour(g.state, 0)).toBe(filledOrderSlots(g.state, 0));
+  });
+
+  it("capital — The Guild Charter's hammers land in one town, and only there", () => {
+    const g = game(942);
+    const capital = found(g.state, 0);
+    const second = foundCityAt(g.state, 0, getTileAt(g.state.map, capital.col + 4, capital.row)!);
+    slot(g.state, 0, 'theGuildCharter');
+
+    const hammers = (city: City): number => {
+      const line = cardCityYields(g.state, city).find((entry) =>
+        entry.source.includes('The Guild Charter'),
+      );
+      return line?.production ?? 0;
+    };
+    expect(hammers(capital)).toBe(1);
+    expect(hammers(second)).toBe(0);
+    // **Once**, which is the other half of the reading: the empire fold leaves
+    // a capital line alone, or the same hammer would be paid twice — and the
+    // empire has no basket for hammers anyway.
+    expect(cardEmpireYields(g.state, 0).some((line) => line.production !== 0)).toBe(false);
+  });
+
+  it('slottedOrdersOfSlot — The War Council is spears, capped at three', () => {
+    const g = game(941);
+    const mine =
+      g.state.units.find((u) => u.ownerId === 0 && u.type === 'warrior') ??
+      createUnit(g.state, 0, 'warrior', g.state.units[0]!.col, g.state.units[0]!.row);
+    const target = getTileAt(g.state.map, mine.col + 1, mine.row)!;
+    // The ground is scenery here — the card is the subject — so it is made
+    // passable rather than left to the seed.
+    target.terrain = 'grassland';
+    target.feature = 'none';
+    target.hills = false;
+    createUnit(g.state, 1, 'warrior', target.col, target.row);
+    const spears = (): number => {
+      const preview = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+      expect(preview.ok).toBe(true);
+      if (!preview.ok) return 0;
+      return preview.bonuses
+        .filter((b) => b.source.includes('The War Council'))
+        .reduce((sum, b) => sum + b.amount, 0);
+    };
+    expect(spears()).toBe(0);
+    // It counts itself, exactly as the ledger's readers do.
+    slot(g.state, 0, 'theWarCouncil');
+    expect(spears()).toBe(1);
+    slot(g.state, 0, 'farRunners');
+    expect(spears()).toBe(2);
+    slot(g.state, 0, 'theLongWatch');
+    expect(spears()).toBe(3);
+    // The cap is on the payout, so a fourth soldier on the council is a soldier
+    // on the council and nothing more.
+    slot(g.state, 0, 'militiaLevies');
+    expect(slottedOrdersOfFlavour(g.state, 0, 'military')).toBe(4);
+    expect(spears()).toBe(3);
+  });
+
+  it('atWar — The Arsenal Law opens the yards on a declaration and closes them on a peace', () => {
+    // A bench of its own, because the shared one declares war on the first turn
+    // and this card's whole face is the difference between war and peace.
+    const g = createGame({
+      seed: 944,
+      sizeName: 'duel',
+      players: [
+        { name: 'Ada', color: '#d4502e', isHuman: true },
+        { name: 'Bors', color: '#3a7fe8' },
+      ],
+    });
+    const city = found(g.state, 0);
+    city.buildings.push('barracks');
+    slot(g.state, 0, 'theArsenalLaw');
+    const paid = (): number => {
+      const lines = cardYieldConversions(g.state, city, flats({ production: 100 }));
+      return lines.find((line) => line.source.includes('The Arsenal Law'))?.gold ?? 0;
+    };
+
+    // At peace the clause is not in the live list at all.
+    expect(paid()).toBe(0);
+    openWar(g.state, 0, 1);
+    expect(paid()).toBe(15);
+    // **The wild is never in the register**, so a realm at peace with every
+    // empire reads peace however many raiders are on the board.
+    closeWar(g.state, 0, 1);
+    expect(paid()).toBe(0);
+
+    // And the building is the other half of it: a town with no barracks pays
+    // nothing even in the middle of a war.
+    openWar(g.state, 0, 1);
+    city.buildings = city.buildings.filter((id) => id !== 'barracks');
+    expect(paid()).toBe(0);
+  });
+
+  it('newest — The Charter of the Marches travels to the town you just founded', () => {
+    const g = game(945);
+    const capital = found(g.state, 0);
+    slot(g.state, 0, 'theCharterOfTheMarches');
+    const charter = (city: City): number => {
+      const line = cardCityYields(g.state, city).find((entry) =>
+        entry.source.includes('The Charter of the Marches'),
+      );
+      return line?.science ?? 0;
+    };
+    // One town in the realm: it is both the oldest and the newest.
+    expect(charter(capital)).toBe(2);
+
+    const tile = getTileAt(g.state.map, capital.col + 4, capital.row)!;
+    tile.terrain = 'grassland';
+    const march = foundCityAt(g.state, 0, tile);
+    // The liberties move with the frontier — which is the decision the card is
+    // about, and the reason it is a scope rather than a flag on a town.
+    expect(charter(march)).toBe(2);
+    expect(charter(capital)).toBe(0);
+    expect(cityScopeAdmits(g.state, march, { test: 'newest' })).toBe(true);
+    expect(cityScopeAdmits(g.state, capital, { test: 'newest' })).toBe(false);
+  });
+
+  it('found — founding a city pays the realm, through the one windfall routine', () => {
+    const g = game(946);
+    const capital = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    slot(g.state, 0, 'theCharterOfTheMarches');
+
+    // The printed figure, composed once before anything is banked (Entry XVIII).
+    expect(windfallPayout(g.state, 0, 'found').grants).toEqual([
+      {
+        card: 'theCharterOfTheMarches',
+        source: 'Order · The Charter of the Marches',
+        yield: 'culture',
+        amount: 30,
+      },
+    ]);
+    // And no other occasion carries it: the rider is written onto one moment.
+    expect(windfallPayout(g.state, 0, 'growth').grants).toEqual([]);
+
+    const before = player.culturePool;
+    const drafts = player.statecraft.drafts;
+    const tile = getTileAt(g.state.map, capital.col + 4, capital.row)!;
+    tile.terrain = 'grassland';
+    foundCityAt(g.state, 0, tile);
+    // The bucket settles the instant it lands, which for culture means a draft:
+    // the pool is what the thirty left after the ladder took its rung.
+    expect(player.statecraft.drafts).toBe(drafts + 1);
+    expect(player.culturePool).toBe(before + 30 - draftCost(drafts));
+  });
+
+  it('yieldConversion — the four new pairs, each with its own gate', () => {
+    // Seed 901's town is inland, which The Salting Houses' half needs — the
+    // same bench the Thalassocracy test uses, and for its reason.
+    const g = game(901);
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    const paid = (name: string, voice: CityYieldKey, over: Partial<Record<CityYieldKey, number>>) =>
+      cardYieldConversions(g.state, city, flats(over)).find((line) => line.source.includes(name))?.[
+        voice
+      ] ?? 0;
+
+    // The Harvest Songs: every town, the whole harvest. It reads the food the
+    // town makes rather than the surplus left after its citizens eat — the
+    // departure the row's own `note` states, and the reason is that a surplus is
+    // decided after every percentage that reads this line back.
+    slot(g.state, 0, 'theHarvestSongs');
+    expect(paid('The Harvest Songs', 'culture', { food: 40 })).toBe(4);
+    expect(paid('The Harvest Songs', 'culture', { food: 9 })).toBe(0);
+
+    // The Golden Scales: gold read again as science, everywhere.
+    slot(g.state, 0, 'theGoldenScales');
+    expect(paid('The Golden Scales', 'science', { gold: 40 })).toBe(4);
+
+    // The Drafting Halls: the same shape gated on a building the town has built.
+    slot(g.state, 0, 'theDraftingHalls');
+    expect(paid('The Drafting Halls', 'science', { production: 40 })).toBe(0);
+    city.buildings.push('library');
+    expect(paid('The Drafting Halls', 'science', { production: 40 })).toBe(4);
+
+    // The Salting Houses: Thalassocracy's exact shape, one voice over — and the
+    // coast is the whole of it.
+    slot(g.state, 0, 'theSaltingHouses');
+    expect(cityScopeAdmits(g.state, city, { test: 'coastal' })).toBe(false);
+    expect(paid('The Salting Houses', 'production', { food: 40 })).toBe(0);
+    getTileAt(g.state.map, city.col + 1, city.row)!.terrain = 'coast';
+    expect(paid('The Salting Houses', 'production', { food: 40 })).toBe(4);
+    // Two conversions on one town read the **same** handed-in fold, so neither
+    // is paid on the other's output and their order cannot change either.
+    expect(paid('The Harvest Songs', 'culture', { food: 40 })).toBe(4);
+    expect(player.statecraft.orders.length).toBeGreaterThan(0);
+  });
+
+  it('retires The Salt Road and Hearth Songs without deleting either row', () => {
+    for (const id of ['theSaltRoad', 'hearthSongs'] as OrderId[]) {
+      // Out of the draw, by the one clause that reads `retired`.
+      expect(orderDef(id).retired, id).toBe(true);
+      expect(poolOrders(orderDef(id).pool).includes(id), id).toBe(false);
+      const sc = newPlayerStatecraft();
+      expect(livePool(sc).includes(id), id).toBe(false);
+      // And still fully readable, which is what a save from before the cut
+      // needs: the row keeps its name, its face and its effects.
+      expect(cardDef(id).name, id).toBeTruthy();
+      expect(describeCard(id).length, id).toBeGreaterThan(0);
+    }
+    // The replacements stand in their place, in the pools the user ruled.
+    expect(orderDef('theGoldenScales').pool).toBe('governmentIII');
+    expect(orderDef('theHarvestSongs').pool).toBe('governmentII');
+  });
+
+  it('reads every member this pass declared from at least one live card', () => {
+    const scopes = new Set<string>();
+    const counts = new Set<string>();
+    const conditions = new Set<string>();
+    const occasions = new Set<string>();
+    const wheres = new Set<string>();
+    const scales = new Set<string>();
+    const walk = (effects: readonly CardEffect[]): void => {
+      for (const effect of effects) {
+        const scope = (effect as { scope?: { test?: string } }).scope;
+        if (scope?.test !== undefined) scopes.add(scope.test);
+        if (effect.kind === 'countScaled') {
+          counts.add(effect.count);
+          if (effect.pays.to === 'yield') wheres.add(effect.pays.where);
+        }
+        if (effect.kind === 'combatLine' && effect.scaled) scales.add(effect.scaled.count);
+        if (effect.kind === 'windfallRider') occasions.add(effect.occasion);
+        if (effect.kind === 'conditionRule') {
+          conditions.add(effect.when.test);
+          walk(effect.then);
+        }
+      }
+    };
+    for (const id of [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS]) walk(cardDef(id).effects);
+    expect(counts.has('slottedOrdersOfSlot')).toBe(true);
+    expect(scales.has('slottedOrdersOfSlot')).toBe(true);
+    expect(conditions.has('atWar')).toBe(true);
+    expect(scopes.has('newest')).toBe(true);
+    expect(occasions.has('found')).toBe(true);
+    // The payout member that was declared for three passes and read by nothing.
+    expect(wheres.has('capital')).toBe(true);
+  });
+
+  it('prints every new row in the words the pass ratified', () => {
+    const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    expect(said('theWarCouncil')).toEqual([
+      '+1 combat strength per military Order you have in a slot (at most +3)',
+    ]);
+    expect(said('theGuildCharter')).toEqual([
+      '+2 gold per economic Order you have in a slot',
+      '+1 production in your capital per economic Order you have in a slot',
+    ]);
+    expect(said('theSynod')).toEqual([
+      '+1 faith per wildcard Order you have in a slot',
+      '+1 culture per wildcard Order you have in a slot',
+    ]);
+    expect(said('theHarvestSongs')).toEqual([
+      '10% of the food in every city is gained again as culture',
+    ]);
+    expect(said('theSaltingHouses')).toEqual([
+      '10% of the food in every coastal city is gained again as production',
+    ]);
+    expect(said('theDraftingHalls')).toEqual([
+      '10% of the production in every city with a Library is gained again as science',
+    ]);
+    expect(said('theGoldenScales')).toEqual([
+      '10% of the gold in every city is gained again as science',
+    ]);
+    expect(said('theArsenalLaw')).toEqual([
+      'while you are at war: 15% of the production in every city with a Barracks is gained ' +
+        'again as gold',
+    ]);
+    expect(said('theCharterOfTheMarches')).toEqual([
+      '+2 food, +2 production, +2 gold, +2 science, +2 culture, +2 faith in your newest city',
+      'founding a city grants +30 culture',
+    ]);
   });
 });
