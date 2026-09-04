@@ -447,7 +447,7 @@
   "vignette": {
     "innerRadius": 1.05,
     "outerRadius": 1.6,
-    "opacity": 0.68,
+    "opacity": 0.51,
     "color": "ink",
     "fadeMs": 260
   },

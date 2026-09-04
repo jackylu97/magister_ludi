@@ -233,9 +233,13 @@ describe('an idle trader’s sheet', () => {
  * interface needed no pass at all for it: `improvementOptions` walks
  * `IMPROVEMENT_IDS` and gates every row on the reducer's own `improvementError`
  * / `improvementTechError`, so a new row appears the moment it is in the JSON,
- * greyed until its technology, and pressable exactly when the command would be
+ * greyed until it is legal, and pressable exactly when the command would be
  * accepted. What this pins is the *genericity* — a hand-written list of ids at
  * the surface, or one id skipped, is a verb the player can never reach.
+ *
+ * Since the 2026-09-04 onboarding ruling the list is the whole spade half of
+ * the table on every hex, so "every improvement the table names" is now literal
+ * rather than a claim about a particular tile.
  */
 describe('the worker offers every improvement the table names', () => {
   const controls = source('controls.ts');
@@ -244,17 +248,65 @@ describe('the worker offers every improvement the table names', () => {
 
   it('walks the table rather than a list of its own', () => {
     expect(body).toContain('for (const id of IMPROVEMENT_IDS)');
-    // No id is named at the surface: the two `continue`s below are the
-    // reducer's refusals, never "not this one".
+    // No id is named at the surface: the one `continue` below reads a marker,
+    // never "not this one".
     for (const id of IMPROVEMENT_IDS) {
       expect(body).not.toContain(`'${id}'`);
     }
   });
 
-  it('hides only what the ground refuses, and greys only what the tree does', () => {
-    expect(body).toContain('const blocked = improvementTechError(state, unit.ownerId, id);');
-    expect(body).toContain('const problem = improvementError(state, unit.id, id);');
-    expect(body).toContain('if (problem !== null && problem !== blocked) continue;');
+  /**
+   * The onboarding ruling (user, 2026-09-04: "add a greyed out button of the
+   * possible improvements that can be built and explain why it can't be built
+   * in the worker panel"). Nothing is hidden for a reason about the *hex* any
+   * more: every spade row is printed and greyed with `improvementError`'s own
+   * sentence, so the panel answers "why can I not build a mine here" instead of
+   * answering it by omission.
+   *
+   * The failure this guards is a quiet one in both directions — a `continue`
+   * added back for a ground refusal empties the sheet again, and a sentence
+   * written in the UI would drift from the rule the reducer enforces.
+   */
+  it("prints every spade row and greys it with the reducer's own sentence", () => {
+    expect(body).toContain("blocked: improvementError(state, unit.id, id),");
+    // The one exclusion, and it is a marker rather than a name: a great
+    // person's work is not a spade's row at all.
+    expect(body).toContain('if (def.greatPerson !== undefined) continue;');
+    // Exactly one `continue` — the works. A second is a hex the sheet went
+    // back to hiding.
+    expect((body.match(/continue;/g) ?? []).length).toBe(1);
+  });
+
+  it('names a technology only when the tree is what refused', () => {
+    // `improvementErrorAt` asks the tree last, so a tech sentence means the
+    // ground already said yes — which is what lets the sheet crown the row
+    // "Requires Mining" without ever crowning a ground refusal that way.
+    expect(body).toContain('const tech = improvementTechError(state, unit.ownerId, id);');
+    expect(body).toContain(
+      'requiredTechName: tech !== null && gate !== undefined ? techDef(gate).name : null,',
+    );
+  });
+
+  it('quotes the yield only where the player could collect it', () => {
+    // A hypothetical delta is real arithmetic about a tile that does not exist:
+    // "Mine +2⚙" beside "a mine needs hills" would advertise a payout this hex
+    // can never hand over. Pressable rows and tech-blocked rows keep the
+    // number, because there the number is the argument.
+    const panel = source('unitPanel.ts');
+    expect(panel).toContain(
+      'const quotesDelta = option.blocked === null || option.requiredTechName !== null;',
+    );
+    expect(panel).toContain('const delta = quotesDelta ? yieldDeltaNodes(option.delta) : null;');
+  });
+
+  it('leaves a great person’s work off the spade’s sheet', () => {
+    // The marker's half of the claim: the four works and the holy site are the
+    // rows carrying `greatPerson`, and nothing a worker can lay carries it.
+    const works = IMPROVEMENT_IDS.filter((id) => improvementDef(id).greatPerson !== undefined);
+    expect(works.length).toBeGreaterThan(0);
+    for (const id of ['farm', 'mine', 'lumbermill'] as const) {
+      expect(`${id}: ${works.includes(id)}`).toBe(`${id}: false`);
+    }
   });
 
   it('has the lumbermill in it, on the terrain and the technology the ruling named', () => {

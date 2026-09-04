@@ -95,8 +95,8 @@ button bottom centre. Implementation notes binding the build:
   of the ship.
 - Camera: with rails both sides the framing is roughly symmetric —
   `cityFrameBiasPx` re-tunes accordingly (its numeric pin follows).
-  The full camera seizure/pan-lock (idea #1) is NOT in this ship; flagged
-  as a follow-up ruling.
+  The full camera seizure/pan-lock (idea #1) was NOT in this ship; the
+  pan-lock half landed in revision 3.1 below.
 - The top bar yields to the band only while the mode holds; everything
   restores on leave. Esc = Leave the town.
 - The tutorial anchors a step at `#city-panel` — keep the id on the mode's
@@ -149,6 +149,23 @@ the exit rather than bottom-left, which `#hud-context` owns; the prototype's
 stand, and the 2026-08-27 ruling forbids reprinting the treasury under the
 build list.
 
+## Revision 3.1 — the camera and the wash (ruled 2026-09-04, shipped)
+
+The user's marginalia: "Easing camera isn't needed for now, but refusing pan
+is good" · "lighten the vignette slightly, maybe 25% less in visibility".
+Idea #1's second half only — no easing on open, no easing back on leave.
+
+- **Pan lock**: `panLocked()` in `controls.ts` is `openCity() !== null`, read
+  by the `pointermove` drag. Derived, no flag — every way out of the mode
+  (Leave, Escape, a seat change, a town captured under the panel) restores
+  the pan for free. The press, the click and the wheel are untouched:
+  clicking hexes is the mode's own input, and the zoom stays the player's.
+  A locked drag still accumulates `travelled`, so it is not read as a click.
+- **Vignette**: `vignette.opacity` 0.68 → **0.51** in `data/view3d.json`
+  (three quarters of what it was). Data-only; the wash's shape, its one mesh
+  and its `refreshCityFocus` seam are unchanged.
+- Pinned in `test/ui/cityScreen.test.ts` ("the city mode and the camera").
+
 ## Citizen focus pane (ruled 2026-09-03, shipped)
 
 The user: a Civ V/VI-style citizen management control — "default focus,
@@ -191,7 +208,8 @@ returns you. Candidate moves for us, cheapest first — they compose:
 1. **Camera seizure** — opening the screen eases the camera onto the town
    (the bias knob already half-does this) and locks free pan while open;
    Esc/Leave eases back to where you were. Biggest single "I am somewhere
-   else now" signal, no visual redesign.
+   else now" signal, no visual redesign. (Part-ruled 2026-09-04: the pan
+   lock shipped in revision 3.1, the easing is declined for now.)
 2. **Dim the world, light the ring** — strengthen the existing city-focus
    vignette: everything beyond the work radius drops toward the table
    colour (the fog wash's cousin), the workable ring reads bright, other

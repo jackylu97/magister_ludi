@@ -834,18 +834,25 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         run: onSkip,
       });
     }
-    // The builder's verbs, one per improvement this hex could take.
+    // The builder's verbs, one per improvement a spade can lay anywhere.
     //
     // Which rows are here and which are greyed is `improvementOptions`'s rule,
-    // not this panel's: a hex the ground refuses is absent, and a hex the *tree*
-    // refuses is present and greyed with the technology named. So the list is
-    // the shape of the ground the worker is standing on, plus the things a
-    // research choice away from being possible on it.
+    // not this panel's, and since 2026-09-04 the rule is *all of them*: the
+    // table's whole spade half is printed, pressable where the reducer would
+    // take the command and greyed with the reducer's own refusal where it would
+    // not. A worker's sheet is therefore the same shape on every hex, and the
+    // question "why can I not build a mine here" is answered on the row rather
+    // than by the row's absence. The refusal itself rides the hover card
+    // (`refusalCard`, one fallback for every greyed verb on this sheet), so
+    // nine rows cost nine words, not nine sentences.
     //
     // The label carries the delta, from the same evaluator the city banks with,
     // so a charge is spent against a number rather than against a hope — and a
-    // greyed row carries it too, because "the mine here would be worth 2⚙" is
-    // precisely the argument for going and researching Mining.
+    // *tech-blocked* row carries it too, because "the mine here would be worth
+    // 2⚙" is precisely the argument for going and researching Mining. A row the
+    // ground refuses carries no number at all (`quotesDelta` below): the yield
+    // is real arithmetic about a hypothetical tile, and printing it beside "a
+    // mine needs hills" would advertise a payout this hex can never hand over.
     // `isBuilder` is "this piece has charges", and a great person is the first
     // piece in the game that has them without being a worker. Its charge buys an
     // act or a work, not spadework, so the six improvement rows and the axe are
@@ -871,7 +878,13 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       !isInquisitor(unit);
     if (isBuilder(unit) && !person && !isProphet(unit) && !isInquisitor(unit)) {
       for (const option of improvementOptions()) {
-        const delta = yieldDeltaNodes(option.delta);
+        // Pressable, or refused by the tree alone — the two cases where the
+        // number is one the player can actually reach. `requiredTechName` is
+        // set exactly when the technology is what refused (see
+        // `ImprovementOption`), which is what makes this a reading of the
+        // rules rather than a second guess at them.
+        const quotesDelta = option.blocked === null || option.requiredTechName !== null;
+        const delta = quotesDelta ? yieldDeltaNodes(option.delta) : null;
         let label: string | DocumentFragment = option.name;
         if (delta) {
           const row = document.createDocumentFragment();

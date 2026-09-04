@@ -527,13 +527,16 @@ export interface ImprovementOption {
    * The reducer's own sentence about why this row is greyed rather than
    * pressable, or `null` when it is pressable.
    *
-   * Only ever a technology (`improvementTechError`). A row the *ground* refuses
-   * is not on the list at all — see `improvementOptions`.
+   * `improvementError`'s whole answer since 2026-09-04 — the ground, the
+   * borders, a seam that wants another improvement, the worker's own charges,
+   * or the technology — never a sentence written here. See
+   * `improvementOptions`: every row the table names is printed, so this field
+   * is what makes a greyed one worth printing.
    */
   blocked: string | null;
   /**
-   * The display name of the technology `blocked` is naming, or `null` exactly
-   * when `blocked` is `null`.
+   * The display name of the technology `blocked` is naming, or `null` whenever
+   * something other than the tree is what refused (a pressable row included).
    *
    * Read straight off `improvementDef(id).requiresTech` — the same field
    * `improvementTechError` reads to write `blocked`'s sentence — rather than
@@ -1863,24 +1866,29 @@ export interface GameControls {
   isUnitSkipped(): boolean;
 
   /**
-   * Every improvement the selected unit could build where it stands, with what
-   * each would add to the tile — the rows the unit sheet turns into buttons.
+   * Every improvement a spade can ever lay, with what each would add to this
+   * tile and — when it cannot be laid here — why not, in the simulation's own
+   * words. The rows the unit sheet turns into buttons.
    *
-   * Two refusals, shown two ways, and the split is the city panel's precedent
-   * rather than an inconsistency:
+   * **Nothing is hidden any more** (user, 2026-09-04: "add a greyed out button
+   * of the possible improvements that can be built and explain why it can't be
+   * built in the worker panel"). The list used to be the shape of the ground —
+   * a row the ground refused was simply absent — which reads well to somebody
+   * who already knows the table and tells a first-time player nothing at all:
+   * the mine they are looking for is missing, and the panel does not say
+   * whether that is the hill, the borders or Mining. So every row is printed,
+   * pressable exactly when `improvementError` says `null`, and greyed with that
+   * function's own sentence otherwise ("A mine needs hills", "Wheat wants a
+   * farm", "A mine needs Mining"). One rule, one sentence, no UI copy restating
+   * a rule the reducer already states.
    *
-   *   · **The ground says no** — "a mine needs hills", "that is not your land".
-   *     Absent from the list entirely. These are permanent facts about the hex,
-   *     and six greyed rows on a hex where one thing is legal would spend the
-   *     whole panel saying no. What the player sees instead is the shape of the
-   *     ground they are standing on.
-   *   · **The tree says no** — "a mine needs Mining". Present, greyed, with the
-   *     technology named (`ImprovementOption.blocked`). That is not a fact about
-   *     the hex, it is a thing this empire has not learnt yet, and it is exactly
-   *     the case a player wants told: the hill is good, go and research it.
-   *
-   * Fortify greys for a third reason again — a refusal that is over tomorrow —
-   * which is why it is a button and not a list.
+   * The one row kept off the list is a **great person's work**, and that is the
+   * `greatPerson` marker rather than a name: a worker cannot lay an academy in
+   * any circumstance whatsoever, so its refusal is about the *piece* rather
+   * than about the hex, and four permanently dead rows under a spade would be
+   * clutter carrying no argument. `ImprovementOption.requiredTechName` stays the
+   * narrower thing it always was — set only when the *tree* is the refusal — so
+   * the sheet's "Requires Mining" headline can never crown a ground refusal.
    *
    * Empty when there is no selection, when the selection is not a builder, or
    * when the seat has ended its turn — the panel then shows the charges line and
@@ -4714,23 +4722,27 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   // --- improvements --------------------------------------------------------
 
   /**
-   * Every improvement this hex could take, whether or not the player has
-   * researched it yet. See `GameControls.improvementOptions` for the two
-   * refusals and why they are shown differently.
+   * Every improvement a spade can lay, on this hex or not — see
+   * `GameControls.improvementOptions` for the ruling and the one exclusion.
    *
-   * The list is filtered by `improvementError` — the reducer's own gate — so a
-   * row that appears *pressable* is a command that will be accepted, and the
-   * delta beside it comes from the same evaluator the yields are banked with.
-   * Walked in `IMPROVEMENT_IDS` order, which is the table's order, so the
-   * buttons do not reshuffle themselves between renders.
+   * Each row's `blocked` is `improvementError` whole, the reducer's own gate, so
+   * a row that appears *pressable* is a command that will be accepted and a row
+   * that is greyed carries the exact sentence the command would have refused
+   * with. The delta beside it comes from the same evaluator the yields are
+   * banked with, and it is quoted on a greyed row too, for the reason a greyed
+   * Mine always quoted its 2⚙: the number is the argument for going and getting
+   * whatever is missing.
    *
-   * The one refusal that greys instead of hiding is the technology, and the
-   * comparison is what keeps that honest: `improvementErrorAt` asks the tree
-   * *last* (see its docblock), so an error equal to `improvementTechError`'s
-   * sentence means every question about the ground already said yes. A mine on
-   * grassland is still absent; a mine on a hill this empire has not learnt to
-   * dig is present, greyed, and says which technology would open it — the same
-   * bargain the city panel's build rows keep.
+   * Walked in `IMPROVEMENT_IDS` order — the table's own — so the buttons neither
+   * reshuffle between renders nor move under the player's hand as a hex becomes
+   * legal.
+   *
+   * `requiredTechName` is asked of `improvementTechError` separately rather than
+   * derived from `blocked`, and the comparison is what keeps the hover headline
+   * honest: `improvementErrorAt` asks the tree *last* (see its docblock), so a
+   * tech sentence means every question about the ground already said yes. A mine
+   * on grassland greys with the grassland; a mine on a hill this empire has not
+   * learnt to dig greys with Mining and says so.
    */
   function improvementOptions(): ImprovementOption[] {
     const unit = selectedUnit();
@@ -4742,16 +4754,19 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const ctx = yieldContextFor(state, unit.ownerId);
     const options: ImprovementOption[] = [];
     for (const id of IMPROVEMENT_IDS) {
-      const blocked = improvementTechError(state, unit.ownerId, id);
-      const problem = improvementError(state, unit.id, id);
-      if (problem !== null && problem !== blocked) continue;
-      const gate = improvementDef(id).requiresTech;
+      const def = improvementDef(id);
+      // The works are a great person's and no spade's — the `greatPerson`
+      // marker, never a name. Their refusal is about the piece rather than the
+      // hex, so they are the one thing this list still hides.
+      if (def.greatPerson !== undefined) continue;
+      const tech = improvementTechError(state, unit.ownerId, id);
+      const gate = def.requiresTech;
       options.push({
         id,
-        name: improvementDef(id).name,
+        name: def.name,
         delta: improvementYieldDelta(tile, id, ctx),
-        blocked,
-        requiredTechName: blocked !== null && gate !== undefined ? techDef(gate).name : null,
+        blocked: improvementError(state, unit.id, id),
+        requiredTechName: tech !== null && gate !== undefined ? techDef(gate).name : null,
       });
     }
     return options;
@@ -6656,14 +6671,41 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     viewport.setPointerCapture(event.pointerId);
   });
 
+  /**
+   * Is free panning refused right now? True while the city mode holds the
+   * screen (user, 2026-09-04: "Easing camera isn't needed for now, but refusing
+   * pan is good").
+   *
+   * The city mode is a mode rather than a sheet: it takes no pointer events
+   * itself, so the board underneath stays live and citizens are still pinned by
+   * clicking hexes. That is the whole point of it — and it is also why a drag
+   * used to slide the framed town out from behind the rails, leaving a screen
+   * that talks about a city nobody can see. The camera was *placed* by the mode
+   * (`setOpenCity` frames the work radius), so while the mode holds, the camera
+   * belongs to it.
+   *
+   * Only the pan. The press, the click and the wheel are untouched: clicking
+   * hexes is the mode's own input, and a player who wants a wider view of the
+   * work radius should have it. And it is derived from `openCity()` — the same
+   * question the vignette and the banner hide ask, never a second flag — so
+   * every way out of the mode (Leave, Escape, a seat change, a captured town)
+   * restores the pan without anybody remembering to.
+   */
+  function panLocked(): boolean {
+    return openCity() !== null;
+  }
+
   viewport.addEventListener('pointermove', (event) => {
     if (dragButton !== null) {
       const dx = event.clientX - pressX;
       const dy = event.clientY - pressY;
+      // Counted even when the pan is refused: the slop guard is about what the
+      // *hand* did, and a drag across the board is not a click on the hex it
+      // happened to end over, city mode or not.
       travelled += Math.abs(dx) + Math.abs(dy);
       pressX = event.clientX;
       pressY = event.clientY;
-      renderer.panByScreen(dx, dy);
+      if (!panLocked()) renderer.panByScreen(dx, dy);
     }
 
     const rect = viewport.getBoundingClientRect();

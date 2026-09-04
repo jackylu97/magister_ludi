@@ -363,7 +363,9 @@ describe('the city mode', () => {
     expect(text).toContain('strip.bind(chip, () => yieldLedger(city, quote));');
     for (const fold of [
       'cityResourceYields(state, city)',
-      'explainCityBuildings(state, city)',
+      // No `state` since the renewals axe (2026-09-04): a building is worth its
+      // own row, so the fold asks for the town and nothing else.
+      'explainCityBuildings(city)',
       'citySpecialistYields(city)',
       'cityRouteYields(state, city)',
       'stageRows(STAGE_LABEL[stage]',
@@ -589,6 +591,84 @@ describe('the vignette and the open city', () => {
     expect(calls.length).toBe(2);
     const focus = body('refreshCityFocus');
     expect((focus.match(/renderer\.setCityFocus\?\./g) ?? []).length).toBe(2);
+  });
+
+  it('washes a quarter lighter than it did', () => {
+    // User, 2026-09-04: "lighten the vignette slightly, maybe 25% less in
+    // visibility". Data-only — the wash's shape and its one mesh are untouched
+    // — and written as the arithmetic rather than as a bare number so the
+    // ruling stays legible: three quarters of the 0.68 it was.
+    expect(viewJson.vignette.opacity).toBeCloseTo(0.68 * 0.75, 6);
+  });
+});
+
+/**
+ * **The mode holds the camera.** While a city screen is up the board refuses a
+ * free pan (user, 2026-09-04: "Easing camera isn't needed for now, but refusing
+ * pan is good").
+ *
+ * The city mode takes no pointer events itself, which is the whole point of a
+ * mode — the board under it stays live, citizens are pinned by clicking hexes,
+ * tiles are bought off the price tags. The cost of that liveness was the drag:
+ * one hand movement slid the framed town out from behind the rails and left a
+ * screen talking about a city nobody could see. So the gesture is refused while
+ * the mode holds, and only that gesture.
+ *
+ * Read from the source for this file's usual reason — the claim is about *where
+ * a guard sits*, which no behavioural test can see — and pinned because the
+ * failure is silent in both directions: a guard dropped is a mode that wanders,
+ * and a guard widened is a board that stops answering the pointer.
+ */
+describe('the city mode and the camera', () => {
+  const controls = source('controls.ts');
+
+  /**
+   * One `viewport.addEventListener('<name>', …)` block, as written.
+   *
+   * The opener is matched loosely because the wheel's is broken across lines
+   * for its options object, and the block ends at whichever top-level close
+   * comes first — `});` for an inline handler, `);` for one with options after
+   * it.
+   */
+  function listener(name: string): string {
+    const opener = new RegExp(`viewport\\.addEventListener\\(\\s*'${name}'`);
+    const at = controls.search(opener);
+    if (at < 0) throw new Error(`controls.ts has no ${name} listener`);
+    const ends = ['\n  });', '\n  );']
+      .map((mark) => controls.indexOf(mark, at))
+      .filter((index) => index > 0);
+    if (ends.length === 0) throw new Error(`controls.ts: the ${name} listener never closes`);
+    return controls.slice(at, Math.min(...ends));
+  }
+
+  it('refuses the drag-pan while a city is open', () => {
+    expect(listener('pointermove')).toContain('if (!panLocked()) renderer.panByScreen(dx, dy);');
+    // The one free-pan call in the file, so there is no second, unguarded way
+    // for a drag to move the camera.
+    expect((controls.match(/renderer\.panByScreen\(/g) ?? []).length).toBe(1);
+  });
+
+  it('derives the lock from the open city rather than storing a flag', () => {
+    expect(fn('controls.ts', 'panLocked')).toContain('return openCity() !== null;');
+    // Nothing assigns it: every way out of the mode — Leave, Escape, a seat
+    // change, a town captured under the panel — restores the pan for free.
+    expect(controls).not.toContain('panLocked =');
+  });
+
+  it('still counts the travel, so a locked drag is not a click', () => {
+    // The slop guard is about what the hand did. A drag across the board that
+    // moved no camera is still not an order on the hex it ended over.
+    const move = listener('pointermove');
+    expect(move.indexOf('travelled +=')).toBeLessThan(move.indexOf('panLocked()'));
+  });
+
+  it('leaves the zoom and the click alone', () => {
+    // Only the pan is the mode's to refuse: clicking hexes is the mode's own
+    // input, and a player who wants a wider view of the work radius should
+    // have it.
+    expect(listener('wheel')).toContain('renderer.zoomBy(factor, pointer.x, pointer.y);');
+    expect(listener('wheel')).not.toContain('panLocked');
+    expect(listener('pointerdown')).not.toContain('panLocked');
   });
 });
 
