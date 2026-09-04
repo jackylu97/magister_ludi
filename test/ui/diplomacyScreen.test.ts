@@ -19,8 +19,10 @@
  *      fallen are not, and this file has no roster filter of its own.
  *   5. **Who you have met.** The user's ruling of 2026-09-03: an empire appears
  *      only once you have seen its land, its town or its pieces — or signed
- *      something with it. The reading is `hasMetSeat` (`src/sim/diplomacy.ts`),
- *      derived and stored nowhere, and the sheet applies it through
+ *      something with it; and, since 2026-09-04, a meeting is **permanent**
+ *      (`Player.metSeats`, written the first time a seat is seen). The reading
+ *      is `hasMetSeat` (`src/sim/diplomacy.ts`) — the register first, then the
+ *      four board clauses that backfill it — and the sheet applies it through
  *      `metDiplomacyRows`. A gate this quiet is exactly the kind a surface can
  *      be wrong about in both directions: an empire nobody has met on the sheet
  *      is a leak, and an empire that has declared war left off it is a peace a
@@ -40,7 +42,12 @@ import { hasMetSeat } from '../../src/sim/diplomacy';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { type City, type GameState, createUnit, newGame } from '../../src/sim/state';
 import { closeWar, openWar } from '../../src/sim/wars';
-import { EXPLORED, recomputeVisibility, resetVisibility } from '../../src/sim/visibility';
+import {
+  EXPLORED,
+  isVisibleTo,
+  recomputeVisibility,
+  resetVisibility,
+} from '../../src/sim/visibility';
 import { RULES } from '../../src/sim/rulesData';
 import {
   declareConfirm,
@@ -203,20 +210,23 @@ describe('the met gate', () => {
     expect(hasMetSeat(state, 0, 1)).toBe(true);
   });
 
-  it('meets an empire whose piece is under your eye — and forgets it when it goes', () => {
+  it('meets an empire whose piece is under your eye — and keeps it when it goes', () => {
     const state = bench();
     createUnit(state, 0, 'warrior', 4, 4);
     const theirs = createUnit(state, 1, 'warrior', 5, 4);
     recomputeVisibility(state, 0);
     expect(hasMetSeat(state, 0, 1)).toBe(true);
 
-    // The stated gap (`hasMetSeat`'s docblock): nothing in this simulation
-    // remembers a column that walked past and walked away, so a meeting made by
-    // a fleeting sighting lasts as long as the sighting. Closing it honestly
-    // means new state and a schema bump — a ruling, not a patch.
+    // The gap this docblock used to name is **closed** (user, 2026-09-04; schema
+    // 64): the sighting is written into `Player.metSeats` the turn it happens,
+    // so a column that walked past and walked away is still an introduction.
+    // The sim's own pins are `test/sim/visibility.test.ts`; this one is the
+    // screen's, because the roster is what the ruling was about.
     theirs.col = 11;
     recomputeVisibility(state, 0);
-    expect(hasMetSeat(state, 0, 1)).toBe(false);
+    expect(isVisibleTo(state, 0, theirs.col, theirs.row)).toBe(false);
+    expect(hasMetSeat(state, 0, 1)).toBe(true);
+    expect(metDiplomacyRows(state, 0).map((row) => row.playerId)).toEqual([1]);
   });
 
   it('meets an empire that has declared war, so the peace can be sued for', () => {

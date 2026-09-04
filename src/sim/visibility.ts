@@ -350,6 +350,7 @@ export function recomputeVisibility(state: GameState, playerId: number): Visibil
   }
 
   updateCitySightings(state, playerId, lit);
+  recordMeetings(state, playerId, lit);
   return { became, sources: sources.length, touched };
 }
 
@@ -430,6 +431,80 @@ function updateCitySightings(state: GameState, playerId: number, lit: Uint8Array
   // and insertion here depends on which entries survived — which is exactly the
   // kind of order that must never reach a snapshot.
   state.citySightings[playerId] = [...byId.values()].sort((a, b) => a.cityId - b.cityId);
+}
+
+/**
+ * Folds what is visible right now into this player's memory of **who they have
+ * met** (`Player.metSeats`; user, 2026-09-04, schema 64).
+ *
+ * The third thing a recompute remembers, beside the explored grid and the city
+ * memory, and it is here for their reason: `lit` is the one honest answer to
+ * "what can this seat see this instant", and a meeting is exactly that answer
+ * caught once and kept. Every mover in the game ends inside a recompute
+ * (`arriveOnTile`, the combat path, the turn's own sweep), so hanging the
+ * register here is what makes it impossible to add a way to move a unit that
+ * quietly skips an introduction.
+ *
+ * Two ways to meet, and each is a thing the player can point at on their chart:
+ *
+ *   · **a piece of theirs under this seat's eye** — the sighting that used to
+ *     lapse the moment the column walked on, and the whole reason this is
+ *     stored;
+ *   · **their ground under this seat's eye** — swept through the foreign towns'
+ *     claim radii rather than along `tileOwner` end to end, exactly as the owned
+ *     -ground pass above is, so the cost follows the world's cities and not the
+ *     size of the map.
+ *
+ * Never removes an id, and never writes one for the wild in either direction
+ * (the field's docblock says why). Sorted on the way in, so two seats met on one
+ * sweep serialise in seat order rather than in visiting order.
+ */
+function recordMeetings(state: GameState, playerId: number, lit: Uint8Array): void {
+  const seat = state.players[playerId];
+  if (!seat || seat.barbarian) return;
+  const met = seat.metSeats;
+
+  // **Everybody already met costs nothing.** A recompute runs on every step of
+  // every unit, and by the middle of a game this sweep would otherwise walk the
+  // unit list and every foreign town's claim to learn nothing at all. Counted
+  // here rather than asked of `realPlayers`, which lives in `state.ts` — that
+  // module imports this one, and a value import back would be a runtime cycle
+  // (`test/mapgen/moduleCycles.test.ts`).
+  let others = 0;
+  for (const player of state.players) {
+    if (player.barbarian || player.id === playerId) continue;
+    others += 1;
+  }
+  if (met.length >= others) return;
+
+  const introduce = (otherId: number): void => {
+    if (otherId === playerId) return;
+    const other = state.players[otherId];
+    if (!other || other.barbarian) return;
+    if (met.includes(otherId)) return;
+    met.push(otherId);
+    met.sort((a, b) => a - b);
+  };
+
+  const { map } = state;
+  for (const unit of state.units) {
+    if (unit.ownerId === playerId) continue;
+    if (!lit[tileIndex(map, unit.col, unit.row)]) continue;
+    introduce(unit.ownerId);
+  }
+  for (const city of state.cities) {
+    if (city.ownerId === playerId) continue;
+    if (met.includes(city.ownerId)) continue;
+    const centre = getTileAt(map, city.col, city.row);
+    if (!centre) continue;
+    for (const tile of mapRange(map, tileHex(centre), CITIES.claimRadius)) {
+      const index = tileIndex(map, tile.col, tile.row);
+      if (!lit[index]) continue;
+      if (state.tileOwner[index] !== city.id) continue;
+      introduce(city.ownerId);
+      break;
+    }
+  }
 }
 
 /** The city standing on a cell, by linear scan. Cities are few. */

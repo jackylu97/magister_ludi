@@ -256,7 +256,7 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
 
     const caption = document.createElement('p');
     caption.className = 'abacus-caption';
-    caption.textContent = `${figure(threshold)} beads win the game — the last is golden`;
+    caption.textContent = `${figure(threshold)} beads open the Magnum Opus — the last is golden`;
     register.append(caption);
 
     for (const row of table) {

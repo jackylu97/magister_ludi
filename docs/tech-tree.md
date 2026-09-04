@@ -80,7 +80,7 @@ while they stand.*
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Bronze Panoply | 135 | The Wheel | Phalanx, Swordsman | — | — |
+| Bronze Panoply | 135 | The Wheel | Phalanx, Swordsman *(needs improved Iron)* | — | — |
 | Chronology | 135 | Writing | — | **Chart the Stars** | The Long Count · +1 die on age entry · renewals: Plantation +1🎵 |
 | Currency | 135 | The Wheel | Trader | Market, **The Mausoleum** | Rite of Plenty · renewals: Plantation +1💰 |
 | Epic Poetry † | 135 | Writing | — | Amphitheater, **The Theatre of Dionysus** | — |

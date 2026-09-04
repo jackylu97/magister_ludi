@@ -28,6 +28,7 @@ import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { type Game, createGame, dispatch, loadGame, saveGame, snapshotState } from '../../src/sim/game';
 import { contributeError } from '../../src/sim/purchase';
+import { BEAD_RULES } from '../../src/sim/beadData';
 import { availableTechs, buildError, isUnlocked, opusOpen } from '../../src/sim/tech';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
@@ -79,6 +80,26 @@ function playToTheFinish(maxTurns: number): Played {
         (a, b) => techDef(a).cost - techDef(b).cost || TECH_IDS.indexOf(a) - TECH_IDS.indexOf(b),
       )[0];
       if (next) dispatch(game, { type: 'chooseResearch', playerId: 0, techId: next } as never);
+    }
+
+    // The bead gate (v64) would hold the door for ever on this seat: a solo
+    // capital banks ~4 beads by t1700, and whether twenty is reachable for a
+    // lone empire is the flags' open pacing datum, not this harness's claim.
+    // The rod is granted the moment the chart-side gate is met, so what stays
+    // pinned is the machinery — the chart runs out, the work is paid for, the
+    // race settles. (2026-09-04, the Opus bead gate.)
+    if (
+      player.techsResearched.includes(buildingDef(OPUS).worldUnlockTech!) &&
+      player.beads.length < BEAD_RULES.threshold
+    ) {
+      while (player.beads.length < BEAD_RULES.threshold) {
+        player.beads.push({
+          id: 'theFounder',
+          kind: 'quest',
+          family: 'economic',
+          turn: game.state.turn,
+        });
+      }
     }
 
     for (const city of game.state.cities) {

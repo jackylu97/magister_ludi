@@ -771,7 +771,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       onOpenBeads();
     });
   } else {
-    beadsItem.title = '◉ Beads earned, against the number that wins the game';
+    beadsItem.title = '◉ Beads earned, against the number that opens the Magnum Opus';
     beadsItem.setAttribute('aria-label', 'beads earned');
   }
   container.append(beadsItem);

@@ -5,8 +5,9 @@
  * mechanism seen from four sides:
  *
  *   · **The Magnum Opus.** A per-empire building the *world* opens — the moment
- *     any seat anywhere completes the closing technology, every seat may begin
- *     one — funded by the cathedral's `contribute` verb, and whose completion
+ *     any seat anywhere completes the closing technology, every seat with a full
+ *     rod of beads may begin one (the threshold's job since 2026-09-04, schema
+ *     64) — funded by the cathedral's `contribute` verb, and whose completion
  *     closes the age: the final reckonings are taken across every seat at once
  *     and the empire holding the most beads wins, ties going to the builder.
  *   · **A bead a thing hands over.** The fifth class of bead row (`grants`),
@@ -29,6 +30,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BEAD_GRANT_IDS,
+  BEAD_RULES,
   anyBeadDef,
   beadGrantDef,
   beadDataProblems,
@@ -93,6 +95,20 @@ function learn(state: GameState, playerId: number, tech: string): void {
   const player = playerById(state, playerId)!;
   if (!player.techsResearched.includes(tech as never)) {
     player.techsResearched.push(tech as never);
+  }
+}
+
+/**
+ * Fills a seat's rod, which is the *other* half of "may begin the Opus" since
+ * the ruling of 2026-09-04 (schema 64): the world's technology opens the row and
+ * the threshold opens it to an empire. Any bead row will do — the tally is the
+ * fact — and the count comes off `BEAD_RULES` so a retuned threshold moves every
+ * test in this file at once.
+ */
+function fillRod(state: GameState, playerId: number): void {
+  const player = playerById(state, playerId)!;
+  while (player.beads.length < BEAD_RULES.threshold) {
+    player.beads.push({ id: 'theFounder', kind: 'quest', family: 'economic', turn: state.turn });
   }
 }
 
@@ -180,8 +196,28 @@ describe('the Magnum Opus opens for the world, not for a seat', () => {
     const g = game();
     learn(g.state, 1, CLOSER);
     expect(opusOpen(g.state)).toBe(true);
-    // Seat 0 has researched nothing at all and may still begin the great work.
+    // Seat 0 has researched nothing at all and may still begin the great work —
+    // once its own rod is full, which is the empire's half of the gate.
     expect(playerById(g.state, 0)!.techsResearched).not.toContain(CLOSER);
+    fillRod(g.state, 0);
+    expect(buildError(g.state, 0, 'building', OPUS)).toBeNull();
+  });
+
+  it('asks the beginner for a full rod, and says how far off it is', () => {
+    // Ruled 2026-09-04 (schema 64): the world's technology opens the row, and
+    // the threshold — the number that used to win the game outright — opens it
+    // to an empire. Refused one bead short, taken on the last one.
+    const g = game();
+    learn(g.state, 1, CLOSER);
+    const player = playerById(g.state, 0)!;
+    fillRod(g.state, 0);
+    player.beads.pop();
+    expect(buildError(g.state, 0, 'building', OPUS)).toBe(
+      `${buildingDef(OPUS).name} asks for ${BEAD_RULES.threshold} beads; ${player.name} holds ${
+        BEAD_RULES.threshold - 1
+      }`,
+    );
+    fillRod(g.state, 0);
     expect(buildError(g.state, 0, 'building', OPUS)).toBeNull();
   });
 
@@ -310,6 +346,7 @@ describe('a capstone is one per realm', () => {
   it('refuses a second copy while another town of the realm is building one', () => {
     const g = game();
     learn(g.state, 1, CLOSER);
+    fillRod(g.state, 0);
     const first = found(g.state, 0);
     first.queue.length = 0;
     first.queue.push({ kind: 'building', id: OPUS });
@@ -326,6 +363,7 @@ describe('a capstone is one per realm', () => {
   it('does not refuse a rival for holding one — it is per realm, not per world', () => {
     const g = game();
     learn(g.state, 1, CLOSER);
+    fillRod(g.state, 0);
     const mine = found(g.state, 0);
     const theirs = found(g.state, 1);
     theirs.buildings.push(OPUS);
@@ -614,6 +652,10 @@ describe('the endgame is deterministic', () => {
     )!;
     dispatch(g, { type: 'foundCity', playerId: 0, settlerUnitId: settler.id } as Command);
     learn(g.state, 0, CLOSER);
+    // The empire's half of the gate (schema 64), written straight onto the state
+    // like the technology and the treasury beside it, and for the same reason:
+    // earning twenty beads is the slow sibling's job, not this one's.
+    fillRod(g.state, 0);
     const town = g.state.cities.find((c) => c.ownerId === 0)!;
     playerById(g.state, 0)!.gold =
       buildingDef(OPUS).cost * RULES.production.goldPerHammer;
@@ -656,6 +698,9 @@ describe('a bot reaches for the Opus', () => {
   it('queues it in its busiest town once the world has opened it', () => {
     const g = game();
     learn(g.state, 1, CLOSER);
+    // And the bot's own rod, since 2026-09-04: a seat short of beads is refused
+    // the row by `buildError`, and the bot never proposes a refused command.
+    fillRod(g.state, 0);
     const town = found(g.state, 0);
     town.queue.length = 0;
 

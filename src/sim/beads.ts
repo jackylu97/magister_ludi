@@ -1083,7 +1083,14 @@ export function closeTheGreatWork(state: GameState, city: City): GreatWorkClose 
  *      a hand that is not yet full. Face down until its age opens.
  *   3. **the sweep** — every face-up count and streak deed, and every feat whose
  *      trigger is a count, in seat order.
- *   4. **the threshold** — the first seat to `BEAD_RULES.threshold` beads wins.
+ *
+ * There is **no fourth beat**. Until 2026-09-04 there was one — the first seat
+ * to `BEAD_RULES.threshold` beads simply won — and it never once decided a game
+ * (`docs/beads.md` flagged it). The ruling moved that number one step earlier:
+ * the threshold now *opens the Magnum Opus* (`buildError`, `tech.ts`), and the
+ * game is still closed by the work being finished (`closeTheGreatWork`), which
+ * is where the beads are counted. One number, one reading, and the finish line
+ * is a thing somebody built rather than a tally quietly crossed in a phase.
  *
  * Seats are walked in `realPlayers` order throughout, so two seats that cross a
  * threshold on the same turn always resolve the same way, and the wild is
@@ -1096,7 +1103,6 @@ export function runBeads(state: GameState, report?: BeadReport): void {
   clearSpentCards(state);
   dealOneCard(state);
   sweepStandingBeads(state, awards);
-  namePossibleWinner(state);
 
   if (report) {
     report.beads.push(...awards);
@@ -1344,25 +1350,13 @@ function standingDeedHolds(
   return run >= deed.turns;
 }
 
-/**
- * Names the winner the moment a seat reaches the threshold.
- *
- * **One field, three ways to reach it** (Entry VI.3, and Entry LVIII's finish
- * line): this, `updateElimination`, and `closeTheGreatWork`. None of them ever
- * clears a winner another named — a game that has been won stays won — which is
- * why each only writes into a `null`.
- * Seats are walked in `realPlayers` order, so two empires that cross on the same
- * turn resolve by seat order like every other contention in the game.
+/*
+ * `namePossibleWinner` stood here until 2026-09-04 and is **retired**: crossing
+ * the threshold no longer wins the game, it opens the Magnum Opus (see
+ * `runBeads`, and `buildError` in `tech.ts`). `GameState.winnerId` therefore has
+ * two writers rather than three — `updateElimination` and `closeTheGreatWork` —
+ * and neither clears a winner the other named.
  */
-function namePossibleWinner(state: GameState): void {
-  if (state.winnerId !== null) return;
-  for (const player of realPlayers(state)) {
-    if (player.beads.length >= BEAD_RULES.threshold) {
-      state.winnerId = player.id;
-      return;
-    }
-  }
-}
 
 // --- the news ---------------------------------------------------------------
 

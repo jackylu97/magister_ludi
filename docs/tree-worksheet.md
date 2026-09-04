@@ -96,7 +96,7 @@ node · pruned first, shelf holds the rest · costs in Entry LIV's bands (I 8–
 
 ### Bronze Panoply ← Bronzeworking · 135 ★
 - Phalanx (unit) — 14 str · 2 mv · cost 14 · +5 str vs mounted · **replaces the Spearman** (user).
-- Swordsman (unit) — 16 str · 2 mv · cost 14 · **replaces the Warrior** (user). *(The melee line: Warrior → Swordsman → Legionary → Longswordsman.)*
+- Swordsman (unit) — 16 str · 2 mv · cost 14 · **needs improved Iron** (user, 2026-09-04) · **replaces the Warrior** (user). *(The melee line: Warrior → Swordsman → Legionary → Longswordsman. Note the standing consequence: iron is *revealed* by Iron Working an age above this node, so no empire holds the seam before the legionary that supersedes this row — the sword is fielded by the wild and reached by nobody's build list. Flagged for the user with the tree, not patched here.)*
 
 ### Siegecraft ← Fletching · 90 *(the user's new tech, named)*
 - Bowman (unit) — 9 str · rng 2 · 2 mv · cost 14 · **replaces the Archer** (user).

@@ -24,7 +24,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
-import { buildingDef } from '../../src/sim/buildingData';
+import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import {
   cityYields,
   foundCityAt,
@@ -37,6 +37,7 @@ import { getTileAt, tileHex, wrappedDistance } from '../../src/sim/map';
 import {
   type PurchasableItem,
   bankOf,
+  contributeError,
   explainPurchaseCost,
   isPurchaseOnly,
   purchaseError,
@@ -645,9 +646,10 @@ describe('a town holding a Reliquary sells its units for faith', () => {
  * decision a captor is offered about a conquest — so the refusal is a *clause*
  * in the two gates every surface already asks, and not a fourth gate somewhere.
  *
- * Two clauses, one voice, tested here together for that reason: the wording is
- * the same in `purchaseError` and `tilePurchaseError` because a player meeting
- * it in the city panel and a player meeting it in the Buy Tiles overlay are
+ * **Three** clauses since 2026-09-04 (schema 64), one voice, tested here
+ * together for that reason: the wording is the same in `purchaseError`,
+ * `tilePurchaseError` and `contributeError`, because a player meeting it in the
+ * city panel, in the Buy Tiles overlay and at the cathedral's own two buttons is
  * meeting the same rule.
  */
 describe('a puppet spends nothing', () => {
@@ -702,6 +704,42 @@ describe('a puppet spends nothing', () => {
     expect(snapshotState(g.state)).toBe(before);
   });
 
+  it('refuses a contribution too, in the same sentence', () => {
+    // Ruled 2026-09-04 (schema 64), the third clause of one rule: a pour into a
+    // puppet's basket is the same purse being opened as a purchase, and it is
+    // refused before the bank is even named. The row is found by its marker, so
+    // this test names no building.
+    const { g, puppet } = withPuppet();
+    const takesContributions = BUILDING_IDS.find(
+      (id) => buildingDef(id).acceptsContributions === true,
+    )!;
+    puppet.queue.length = 0;
+    puppet.queue.push({ kind: 'building', id: takesContributions });
+    puppet.hammerBasket = 0;
+    g.state.players[0]!.faithPool = 5000;
+
+    for (const currency of ['gold', 'faith'] as const) {
+      expect(contributeError(g.state, 0, puppet.id, currency)).toMatch(/puppet spends nothing/);
+      const before = snapshotState(g.state);
+      const refused = applyCommand(g.state, {
+        type: 'contribute',
+        playerId: 0,
+        cityId: puppet.id,
+        currency,
+      } as Command);
+      expect(refused.ok).toBe(false);
+      // Hard rule 1: a refused command leaves the state byte-identical.
+      expect(snapshotState(g.state)).toBe(before);
+    }
+
+    // And the moment it is annexed the pour is legal, which is the whole of the
+    // rule: the refusal is about the town, not about the coin.
+    expect(applyCommand(g.state, { type: 'annexCity', playerId: 0, cityId: puppet.id }).ok).toBe(
+      true,
+    );
+    expect(contributeError(g.state, 0, puppet.id, 'gold')).toBeNull();
+  });
+
   it('opens the purse the moment the town is annexed', () => {
     const { g, puppet } = withPuppet();
     expect(purchaseError(g.state, 0, puppet.id, WARRIOR, 'gold')).not.toBeNull();
@@ -720,6 +758,6 @@ describe('the schema witness', () => {
     // contain a puppet's purchase this reducer refuses, so it is a different
     // game rather than an older one. The other eleven witnesses are listed in
     // `test/sim/state.test.ts`'s own migration note.
-    expect(SCHEMA_VERSION).toBe(63);
+    expect(SCHEMA_VERSION).toBe(64);
   });
 });

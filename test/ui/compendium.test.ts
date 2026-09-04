@@ -635,8 +635,10 @@ describe('the Bead Race shelf', () => {
   it('prints the threshold and the hand sizes from the rules row', () => {
     const rules = shelf.entries.find((entry) => entry.id === 'bead:rules')!;
     const labels = rules.rows.map((row) => row.label);
-    expect(labels).toContain('Beads that win the game');
-    const winning = rules.rows.find((row) => row.label === 'Beads that win the game')!;
+    // The threshold's job changed on 2026-09-04 (schema 64) and the label
+    // followed it: a full rod opens the Magnum Opus, and the Opus wins the game.
+    expect(labels).toContain('Beads that open the Magnum Opus');
+    const winning = rules.rows.find((row) => row.label === 'Beads that open the Magnum Opus')!;
     expect(winning.figures).toBe(String(BEAD_RULES.threshold));
     // One row per deck, and each carries that deck's own hand size.
     for (const age of BEAD_DECK_AGES) {

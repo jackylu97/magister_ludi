@@ -87,6 +87,10 @@ describe('newGame', () => {
       // `Unit.path`, so an empire that never queued anything serialises as one
       // from before the field existed. See the suite at the bottom of this file.
       techsResearched: RULES.research.startingTechs,
+      // Nobody has met anybody on turn one (schema 64): the opening rosters are
+      // seated after the players are built, and the first recompute is what
+      // introduces two empires that started in sight of each other.
+      metSeats: [],
       // Presence is the state, `unitsBuilt`'s own docblock reason: nobody has
       // built or bought a settler or a worker yet, so the empty object is the
       // opening kit.
@@ -659,7 +663,13 @@ describe('the research queue field', () => {
     // v62 (the renewals axe, 2026-09-04): the tech-gated free building upgrades
     // are struck from the table, so a v61 empire holding The Wheel banked a
     // fourth point of food in every granary this build does not pay.
-    expect(SCHEMA_VERSION).toBe(63);
+    // v64 (the sim singles, 2026-09-04): the swordsman requires iron, a puppet
+    // takes no contributions, a meeting is permanent (`Player.metSeats`, the one
+    // new field) and the Magnum Opus opens at the bead threshold — whose old
+    // reading, first seat to it wins, is retired. A v63 log may contain a
+    // swordsman nobody could build and a pour into a puppet, and may be refused
+    // a foreign route this build allows.
+    expect(SCHEMA_VERSION).toBe(64);
   });
 });
 

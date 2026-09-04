@@ -78,8 +78,9 @@ History and the original proposal: `docs/design-history.md`.
   X"). No open-borders requirement (traders pass freely, the standing war
   ruling); a war between the two ends stops the route paying at once
   (`routeCities`) and `cancelRoutesBetween` ends it on the declaration;
-  plunder unchanged. Met-ness gates only the *opening* — a running route does
-  not lapse when a sighting does.
+  plunder unchanged. Met-ness gates only the *opening*; since 2026-09-04 a
+  meeting is stored and permanent (`Player.metSeats`), so it cannot lapse
+  under a running route either.
 - Pays the **sender**: +1🔬, +1🎵, +2💰 flat, +1💰 per 10 combined pop
   (`trade.international` in rules.json), banked into the sender's own pools
   and treasury by `collectYields`, never into a city. **No building lines** —

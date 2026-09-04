@@ -74,7 +74,7 @@ export const INTRO_ENTRIES: readonly CompendiumEntry[] = [
     [
       'The game ends when one civilisation is the last one left. To win, you need to survive — and, in a game with rivals, eventually to conquer them or be the only one still standing.',
       'In practice, most of the game is about building a strong empire: more cities, bigger cities, better technology, more culture, wonders, and great people. A strong empire is what lets you defend yourself and, when you choose, take cities from others.',
-      'Details: barbarians are not a civilisation and do not count — you do not have to clear the map of them to win. A game with only one player never declares a winner. The other way to win is the Bead Race: a race to earn beads, scored on the Abacus screen and finished by a final project called the Magnum Opus — the empire holding the most beads when the Great Work closes takes the game.',
+      'Details: barbarians are not a civilisation and do not count — you do not have to clear the map of them to win. A game with only one player never declares a winner. The other way to win is the Bead Race: a race to earn beads, scored on the Abacus screen. Fill your rod and you may begin the Magnum Opus, the final project; finishing it closes the Great Work, and the empire holding the most beads then takes the game.',
     ],
   ),
   written(

@@ -27,7 +27,11 @@ per-empire grants, Alchemy pays every completer. The endgame: first Alchemy
 world-unlocks the **Magnum Opus** (once-per-empire 1200⚙ building, accepts
 gold/faith contributions); completion → golden bead → the age closes →
 reckonings → most beads wins, tie to the builder. `opusOpen` is derived, never
-stored. Flagged: the 20-bead threshold never decides; winners hold 7–10.
+stored. **The 20-bead threshold opens the Opus** (ruled 2026-09-04, schema 64):
+an empire may begin the great work only while it holds that many, and the
+threshold's old reading — first seat to it wins outright, which never decided a
+game — is retired. Pacing note: a one-city bench holds four beads at t1700, so
+the gate is a real barrier, not a formality.
 
 ## Economy
 
@@ -116,7 +120,8 @@ multipliers (attacker-side percentages excepted). Cities fall in three beats
 (walls → garrison → capture); siege is ability-gated (`siege` via
 Siegecraft); ZoC is a toll; shore crossing is a pair-of-hexes price (ships
 exempt); the wild never captures. Melee on a trading unit plunders. Unit
-lines: Warrior → Swordsman → Legionary → Longswordsman; Spearman → Phalanx →
+lines: Warrior → Swordsman → Legionary → Longswordsman (every rung above the
+warrior needs improved iron since 2026-09-04); Spearman → Phalanx →
 Spear Wall → Pikeman; Bowman → Composite → Crossbowman; Horseman (The
 Saddle) → Knight (Militant Orders); the Fire Lance closes at Alchemy;
 cataphract and bastion park behind `awaitsTech`.

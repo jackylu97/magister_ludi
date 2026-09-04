@@ -80,8 +80,9 @@
  * `combat.cityMinStrength` for a seat that can build no soldier at all, plus its
  * walls, its cards and its buildings. `cityBaseStrength` is the helper and
  * `explainCityStrength` is the list it folds; "could train" is asked of
- * `buildError`, so a swordsman needs Iron Working *and* improved iron to be
- * standing on the parapet, and the answer moves the turn a mine finishes.
+ * `buildError`, so a sword needs its technology *and* improved iron (both of
+ * them do, since 2026-09-04) to be standing on the parapet, and the answer
+ * moves the turn a mine finishes.
  *
  * It takes **no** terrain bonus — the walls are the terrain, and stacking a hill
  * on top of them made the early game unattackable in play. Its hit points are

@@ -4,7 +4,8 @@
  *
  * A **bead** is the game's one currency of victory: glass counters across four
  * families, ~30 in a finished game, every one an announced event, and the first
- * empire to `rules.threshold` of them wins. This file only *types* the
+ * empire to `rules.threshold` of them may begin the Magnum Opus, and the Opus
+ * closes the age and counts the rods. This file only *types* the
  * catalogue; `beads.ts` is the evaluator and owns the only `switch` on a deed,
  * a count or a boon shape — the same bargain `triumphs.ts` makes for a trigger
  * kind and `statecraft.ts` for a `CardEffect.kind`, made once more, and it buys
@@ -452,7 +453,17 @@ export type BeadCardId =
   | BeadGrantId;
 
 export interface BeadRules {
-  /** Beads that win the game. Entry VI's pacing knob. */
+  /**
+   * Beads that **open the Magnum Opus**. Entry VI's pacing knob, re-aimed by the
+   * ruling of 2026-09-04 (schema 64).
+   *
+   * It named the seat that won outright until then, and that reading never once
+   * decided a game — the Opus always closed the age first. So the number stays
+   * and the rod stays as long as it ever was; what changed is what a full rod
+   * *buys*: the right to begin the great work (`buildError`, `tech.ts`). The
+   * game is still won by the Opus being finished and the beads being counted
+   * (`closeTheGreatWork`).
+   */
   threshold: number;
   /** Dice every real seat starts the game with (user, 2026-08-30). The wild gets none. */
   startingDice: number;

@@ -1094,8 +1094,39 @@ import {
  *     `{config, log}` and replay). `OrderDef.upgrade`, `maxLevel`,
  *     `upgradable` and `StatecraftConfig.maxOrderLevel` are gone from the data
  *     table with the machinery that read them.
+ *
+ * v64: **the sim singles** (ruled 2026-09-04, `docs/flags.md` queue item 5 —
+ * four small rulings that would each have earned a bump and land together).
+ *
+ *   · **The swordsman requires iron.** One field on one row
+ *     (`UnitDef.requiresResource`), and it moves three things at once: a v63 log
+ *     that queued or bought a swordsman with no mine working is refused here;
+ *     the warrior above it stays on the build list one age longer, because
+ *     `upgradeTargetForType` stops at a rung the empire cannot field; and a town
+ *     whose owner holds no iron defends with a weaker garrison, since "the
+ *     strongest unit its owner could train" asks `buildError`.
+ *   · **A puppet takes no contributions.** One clause in `contributeError`,
+ *     `purchaseError`'s own sentence — v58's legality reversal finished, so a
+ *     v63 log's pour into a puppet's basket is refused here.
+ *   · **A meeting is permanent.** `Player.metSeats` is new state: a sorted
+ *     per-seat register written by `recordMeetings` (`visibility.ts`) the first
+ *     time a seat sees a rival's piece or a rival's ground, and read as
+ *     `hasMetSeat`'s first clause. Meeting used to lapse with the sighting that
+ *     made it, so a v63 log's `startRoute` to a foreign town may be *accepted*
+ *     here where it was refused. The wild is never met, in either direction.
+ *   · **The Magnum Opus opens at 20 beads.** `buildError` refuses the row that
+ *     `endsTheGame` to an empire holding fewer than `BEAD_RULES.threshold`
+ *     beads, and the threshold's old reading — first seat to it wins outright,
+ *     which never once decided a game — is retired with `namePossibleWinner`.
+ *     `GameState.winnerId` has two writers now instead of three.
+ *
+ *     The migration note: one additive field (`Player.metSeats`, empty on every
+ *     seat a v63 game would have had — the derived clauses of `hasMetSeat`
+ *     backfill it, which is why they stayed) and nothing else changed shape.
+ *     What moves is what the same log is worth, and which commands it may
+ *     contain.
  */
-export const SCHEMA_VERSION = 63;
+export const SCHEMA_VERSION = 64;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1312,6 +1343,41 @@ export interface Player {
    * something on turn one.
    */
   techsResearched: TechId[];
+  /**
+   * Every seat this empire has **met**, in seat order — and it is a memory, not
+   * a reading of the board (user, 2026-09-04: *"meeting should be permanent, and
+   * only need to sight a unit or tile the player owns once"*; schema 64).
+   *
+   * This is the field `hasMetSeat`'s docblock said would have to exist. Meeting
+   * was derived from four things the board still draws, and the honest gap in
+   * that reading was written down beside it: nothing remembers a column that
+   * walked past a scout and walked away, so a meeting made by a fleeting
+   * sighting *lapsed* with the sighting. A meeting is not the kind of fact that
+   * can be un-happened, so it is stored.
+   *
+   * **Sorted ascending, and an array rather than a `Set`** — `techsResearched`'
+   * two reasons exactly: the state has to survive `JSON.stringify`, and an
+   * order that is part of the state is an order a replay has to reproduce. Sorted
+   * rather than in the order the meetings happened, because two seats met on one
+   * sweep would otherwise serialise in the order the sweep happened to visit
+   * them.
+   *
+   * **Written in one place** — `recordMeetings` (`visibility.ts`), off the same
+   * `lit` set the fog and the city memory are folded from, so a meeting happens
+   * exactly when a seat can *see* something: a piece of theirs, or ground their
+   * towns own. Every mover already ends inside a recompute, so there is no seam
+   * to remember to hook.
+   *
+   * **The wild is never met and never meets.** It is a seat, and it is nobody's
+   * acquaintance: `realPlayers` keeps it off every roster a screen draws, so a
+   * stored meeting with it would be a row nothing prints and a fact nothing
+   * asks. `hasMetSeat`'s live clauses still answer for a barbarian under your
+   * eye, which is what the combat forecast wants; this register simply never
+   * grows for it, on either side.
+   *
+   * Nothing ever removes an id. That is the whole of the ruling.
+   */
+  metSeats: number[];
   /**
    * How many of each escalating unit type — settler and worker, today — this
    * player has *completed from production or bought*, keyed by `UnitTypeId`.
@@ -3014,10 +3080,14 @@ export interface GameState {
    * The winner, once there is one; `null` while the game is live.
    *
    * **One field, two ways to reach it** (Entry VI.3): the last empire standing
-   * (`updateElimination`, `combat.ts`) and the first empire to
-   * `BEAD_RULES.threshold` beads (the `beads` phase). Whichever comes first
-   * writes it, and neither ever clears a winner the other named — a game that
-   * has been won stays won.
+   * (`updateElimination`, `combat.ts`) and the Great Work closing
+   * (`closeTheGreatWork`, `beads.ts`, which counts the rods). Whichever comes
+   * first writes it, and neither ever clears a winner the other named — a game
+   * that has been won stays won.
+   *
+   * There used to be a third: the first empire to `BEAD_RULES.threshold` beads
+   * won outright in the `beads` phase. That reading is **retired** (schema 64) —
+   * the threshold opens the Magnum Opus now, and the Opus closes the game.
    *
    * It is a *record*, not a gate: the reducer keeps accepting commands after it
    * is set, because refusing them would mean a replay of a finished game
@@ -3174,6 +3244,10 @@ export function newGame(config: GameConfig): GameState {
       // game in the process, and a player who researched something must not
       // write it into the rule book.
       techsResearched: [...RULES.research.startingTechs],
+      // Nobody has met anybody on turn one — the opening rosters are seated
+      // after this literal, and the first recompute below is what introduces
+      // two empires that started in sight of each other.
+      metSeats: [],
       // Presence is the state (see the field's docblock): nobody has built a
       // settler or a worker yet, so the empty object is the opening kit, same
       // as a fresh `researchQueue`-less player.
@@ -3313,6 +3387,10 @@ function seatBarbarians(state: GameState): void {
     // every time it musters (`barbarianTier`), so a starting-tech list here would
     // be a second, stale answer to the same question.
     techsResearched: [],
+    // **Empty forever.** The wild meets nobody and nobody meets the wild (see
+    // the field's docblock); present so every reader may index a seat without
+    // asking which kind it is, exactly as `beads` and `renownPool` are.
+    metSeats: [],
     unitsBuilt: {},
     tilesPurchased: 0,
     campsCleared: 0,

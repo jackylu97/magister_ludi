@@ -10,7 +10,8 @@
  * fires at its seam; a race project appears only under its prerequisite while
  * face up, is claimed by the first finisher, and pays the second nothing; every
  * boon shape settles through the seam that already exists; a dormant card is
- * never dealt; and the threshold names a winner.
+ * never dealt; and the threshold opens the Magnum Opus (schema 64 — it used to
+ * name a winner outright, and that reading is retired).
  *
  * The schema **pin** lives here (37) because this pass is what moved it.
  */
@@ -198,7 +199,7 @@ describe('the bead catalogue', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(63);
+    expect(SCHEMA_VERSION).toBe(64);
   });
 
   it('puts the beads phase directly after renown', () => {
@@ -705,23 +706,48 @@ describe('a building shipped ahead of its age', () => {
 });
 
 describe('the threshold', () => {
-  it('names a winner, and a game that has been won stays won', () => {
-    const state = flatState();
-    plant(state, 0, 4, 4);
-    const player = state.players[0]!;
-    for (let i = 0; i < BEAD_RULES.threshold; i++) {
+  /** Puts `count` beads on a seat's rod. Any row will do; the tally is the fact. */
+  const clack = (state: GameState, playerId: number, count: number): void => {
+    const player = state.players[playerId]!;
+    for (let i = 0; i < count; i++) {
       player.beads.push({ id: 'theFounder', kind: 'quest', family: 'economic', turn: 1 });
     }
+  };
+
+  /**
+   * The row that ends the game, read off the marker exactly as the rule does —
+   * so a second capstone joins this test without being named in it.
+   */
+  const opus = BUILDING_IDS.find((id) => buildingDef(id).endsTheGame === true)!;
+
+  it('opens the Magnum Opus, and nothing below it', () => {
+    // Ruled 2026-09-04 (schema 64): the threshold used to name a winner in the
+    // `beads` phase — a reading that never once fired, because the Opus always
+    // closed the age first — and now it opens the Opus instead.
+    const state = flatState();
+    const city = plant(state, 0, 4, 4);
+    // Everything else the row asks for: the world's technology, and the town.
+    for (const player of state.players) player.techsResearched = [...TECH_IDS];
+
+    clack(state, 0, BEAD_RULES.threshold - 1);
+    expect(buildError(state, 0, 'building', opus, city)).toBe(
+      `The Magnum Opus asks for ${BEAD_RULES.threshold} beads; ${state.players[0]!.name} holds ${
+        BEAD_RULES.threshold - 1
+      }`,
+    );
+
+    clack(state, 0, 1);
+    expect(buildError(state, 0, 'building', opus, city)).toBeNull();
+  });
+
+  it('no longer names a winner in the phase', () => {
+    // The retired reading, pinned so it cannot come back by accident: a rod that
+    // is full wins nothing until the great work is actually raised.
+    const state = flatState();
+    plant(state, 0, 4, 4);
+    clack(state, 0, BEAD_RULES.threshold + 5);
+    beat(state);
     expect(state.winnerId).toBeNull();
-    beat(state);
-    expect(state.winnerId).toBe(0);
-    // A second seat past the line does not take it away.
-    const rival = state.players[1]!;
-    for (let i = 0; i < BEAD_RULES.threshold; i++) {
-      rival.beads.push({ id: 'theFounder', kind: 'quest', family: 'economic', turn: 1 });
-    }
-    beat(state);
-    expect(state.winnerId).toBe(0);
   });
 });
 

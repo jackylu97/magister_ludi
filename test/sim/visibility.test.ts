@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { expandBorders, foundCityAt } from '../../src/sim/cities';
 import { applyCombat, blocksLineOfSight, hasLineOfSight } from '../../src/sim/combat';
 import { type Command, applyCommand } from '../../src/sim/commands';
+import { hasMetSeat } from '../../src/sim/diplomacy';
 import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { runEndOfTurn } from '../../src/sim/turn';
 import { type GameState, SCHEMA_VERSION, createUnit, newGame, removeUnit } from '../../src/sim/state';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
@@ -152,7 +154,10 @@ describe('the visibility grid', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(63);
+    // v64 (the sim singles, 2026-09-04): `Player.metSeats` — a meeting is
+    // stored and permanent, written by `recordMeetings` off the same `lit` set
+    // this file's recompute folds the fog and the city memory from.
+    expect(SCHEMA_VERSION).toBe(64);
   });
 
   it('survives a JSON round trip as plain data', () => {
@@ -612,6 +617,92 @@ describe('city memory', () => {
     const ids = (state.citySightings[0] ?? []).map((s) => s.cityId);
     expect(ids).toEqual([...ids].sort((a, b) => a - b));
     expect(ids).toHaveLength(2);
+  });
+});
+
+// --- meeting ----------------------------------------------------------------
+
+/**
+ * **A meeting is stored and permanent** (user, 2026-09-04: *"meeting should be
+ * permanent, and only need to sight a unit or tile the player owns once"*;
+ * schema 64).
+ *
+ * The register is `Player.metSeats` and the one writer is `recordMeetings`,
+ * folded off the same `lit` set the fog and the city memory are — so what this
+ * suite pins is that the write happens where sight is decided, that it survives
+ * the evidence walking away, and that it never learns the wild.
+ *
+ * The bench clears the war registers, because `hasMetSeat`'s first derived
+ * clause answers yes for two empires that have fought: a meeting that was really
+ * a war's shadow would pass every assertion below without the field existing.
+ */
+describe('meeting a seat', () => {
+  function quietState(width = 24, height = 12): GameState {
+    const state = flatState(width, height);
+    state.wars = [];
+    state.truces = [];
+    return state;
+  }
+
+  it('starts with nobody met', () => {
+    const state = quietState();
+    expect(state.players[0]!.metSeats).toEqual([]);
+    expect(hasMetSeat(state, 0, 1)).toBe(false);
+    // And a seat always knows itself.
+    expect(hasMetSeat(state, 0, 0)).toBe(true);
+  });
+
+  it('records a seat whose piece comes under the eye, and keeps it after it leaves', () => {
+    const state = quietState();
+    const theirs = createUnit(state, 1, 'warrior', 6, 6);
+    createUnit(state, 0, 'scout', 5, 6);
+    expect(state.players[0]!.metSeats).toEqual([1]);
+    expect(hasMetSeat(state, 0, 1)).toBe(true);
+
+    // The column walks off the far side of the map. Nothing on the board says
+    // it was ever there — no town was seen, no border was crossed, no paper was
+    // signed — and the meeting stands anyway. That is the whole ruling.
+    theirs.col = 22;
+    recomputeVisibility(state, 0);
+    recomputeVisibility(state, 1);
+    expect(isVisibleTo(state, 0, theirs.col, theirs.row)).toBe(false);
+    expect(state.players[0]!.metSeats).toEqual([1]);
+    expect(hasMetSeat(state, 0, 1)).toBe(true);
+
+    // And a whole resolution later it is still true: nothing prunes it.
+    runEndOfTurn(state);
+    expect(hasMetSeat(state, 0, 1)).toBe(true);
+  });
+
+  it('records a seat whose ground comes under the eye', () => {
+    const state = quietState();
+    foundCityAt(state, 1, getTileAt(state.map, 12, 6)!);
+    expect(state.players[0]!.metSeats).toEqual([]);
+    createUnit(state, 0, 'scout', 10, 6);
+    expect(state.players[0]!.metSeats).toEqual([1]);
+  });
+
+  it('leaves an empire nobody has run into unmet', () => {
+    const state = quietState();
+    createUnit(state, 0, 'scout', 2, 2);
+    createUnit(state, 1, 'warrior', 20, 6);
+    runEndOfTurn(state);
+    expect(state.players[0]!.metSeats).toEqual([]);
+    expect(state.players[1]!.metSeats).toEqual([]);
+    expect(hasMetSeat(state, 0, 1)).toBe(false);
+  });
+
+  it('never learns the wild, on either side', () => {
+    // The seat is nobody's acquaintance and appears on no roster, so the
+    // register skips it in both directions. Read off the flag, never a name.
+    const state = quietState();
+    state.players[1]!.barbarian = true;
+    createUnit(state, 1, 'warrior', 6, 6);
+    createUnit(state, 0, 'scout', 5, 6);
+    recomputeVisibility(state, 0);
+    recomputeVisibility(state, 1);
+    expect(state.players[0]!.metSeats).toEqual([]);
+    expect(state.players[1]!.metSeats).toEqual([]);
   });
 });
 

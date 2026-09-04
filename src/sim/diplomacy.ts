@@ -1123,11 +1123,22 @@ export function diplomaticSeats(state: GameState, playerId: number): number[] {
  * players once you've met them (gain visibility of one of their units or their
  * land)"*.)
  *
- * **Derived, never stored.** There is no meeting register and no `met` flag on a
- * player — a flag would be a second copy of a fact the board already draws, and
- * it would have to be written at every seam an empire can be glimpsed from. So
- * this asks the four things that *are* remembered, and each one is something the
- * player can point at on their own chart:
+ * **Remembered first, then read off the board.** A meeting is permanent (user,
+ * 2026-09-04: *"meeting should be permanent, and only need to sight a unit or
+ * tile the player owns once"*; schema 64), so the first clause is the stored
+ * register `Player.metSeats`, written by `recordMeetings` (`visibility.ts`) the
+ * first time this seat can see a piece or a hex of theirs. That closes the gap
+ * this docblock used to name below: a column that walked past a scout and walked
+ * away is an introduction, and it does not un-happen.
+ *
+ * The four derived clauses stay under it, and are not redundant. They are what
+ * makes the register **backfill**: a game in progress when this landed has an
+ * empty set and a board full of meetings, and each of these is a meeting the
+ * board can still prove. Between them the two halves answer "have we met" the
+ * same way in an old save and a new one, and the stored half is the only one
+ * that can answer after the evidence walks away.
+ *
+ * Each derived clause is something the player can point at on their own chart:
  *
  *   · **a standing relation** — a war row, a truce, a bargain running, a paper
  *     on the table. Two empires that have signed anything have met, and this
@@ -1144,13 +1155,10 @@ export function diplomaticSeats(state: GameState, playerId: number): number[] {
  *     same words the renderer does;
  *   · **one of their pieces under your eye**, right now.
  *
- * **The stated gap.** "You once saw a unit of theirs" is not derivable: fog
- * memory remembers terrain and towns, and nothing at all remembers a column that
- * walked past a scout and walked away. A meeting made by a fleeting sighting
- * therefore lasts as long as the sighting does, unless it left one of the other
- * three marks. Closing it honestly means a stored, per-seat met set — new state,
- * a schema bump, and a save-format decision — and that is a ruling, not a patch
- * (`docs/flags.md`).
+ * **The wild is the one seat the register never learns.** It is nobody's
+ * acquaintance and appears on no roster (`realPlayers`), so `recordMeetings`
+ * writes nothing for it in either direction; the derived clauses below still
+ * answer for a raider under your eye, which is what a combat forecast wants.
  *
  * **This is not a rule of war.** The verbs of war stay unrestricted:
  * `declareWarError` has deliberately no met-ness clause (see its docblock), and
@@ -1160,15 +1168,18 @@ export function diplomaticSeats(state: GameState, playerId: number): number[] {
  * reducer that asks it: a route may end in a foreign town only when the two
  * empires are at peace *and have met* (`routeStartable`, `trade.ts`). The
  * clause reads the same way it does on a screen — a partner you have never run
- * into is nobody you can send a caravan to — and it is deliberately not asked
- * of a route already running, because a meeting made by a fleeting sighting can
- * lapse (the stated gap above) and a caravan must not lapse with it.
+ * into is nobody you can send a caravan to — and it is still deliberately not
+ * asked of a route already running: a running caravan is not re-litigated by
+ * anything, and it was never the meeting that was fragile.
  */
 export function hasMetSeat(state: GameState, playerId: number, otherId: number): boolean {
   if (playerId === otherId) return true;
   const seat = playerById(state, playerId);
   const other = playerById(state, otherId);
   if (!seat || !other) return false;
+
+  // 0 · the register: met once, met for ever.
+  if (seat.metSeats.includes(otherId)) return true;
 
   // 1 · anything signed, offered or fought between the two.
   if (warBetween(state, playerId, otherId) !== undefined) return true;

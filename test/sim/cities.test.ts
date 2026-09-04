@@ -3212,7 +3212,7 @@ describe('determinism with cities', () => {
     // v62 (the renewals axe, 2026-09-04): nine building renewals struck, so a
     // v61 town's buildings pay figures this build does not — and the whole of
     // what a building is worth is now its own row, in every empire.
-    expect(SCHEMA_VERSION).toBe(63);
+    expect(SCHEMA_VERSION).toBe(64);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

@@ -337,12 +337,13 @@ describe('strategic resources gate production', () => {
     expect(requiredResource('unit', 'horseman')).toBe('horses');
     expect(requiredResource('unit', 'chariot')).toBe('horses');
     expect(requiredResource('unit', 'knight')).toBe('horses');
-    // The **legionary** is the melee line's iron rung since the re-cut of
-    // 2026-09-02: the Æra II swordsman is bronze and asks for nothing.
+    // The whole melee line above the warrior is iron since the ruling of
+    // 2026-09-04 ("let's make the swordsman require iron"): the Æra II sword
+    // asks for the seam its successors ask for.
+    expect(requiredResource('unit', 'swordsman')).toBe('iron');
     expect(requiredResource('unit', 'legionary')).toBe('iron');
     expect(requiredResource('unit', 'longswordsman')).toBe('iron');
     expect(requiredResource('unit', 'fireLance')).toBe('niter');
-    expect(requiredResource('unit', 'swordsman')).toBeNull();
     expect(requiredResource('unit', 'warrior')).toBeNull();
     expect(requiredResource('building', 'library')).toBeNull();
   });
@@ -498,8 +499,16 @@ describe('strategic resources gate production', () => {
     // which is a different sentence about a different rule.
     expect(unitDef('worker').upgradesTo).toBeUndefined();
     expect(buildError(state, 0, 'unit', 'worker')).toBeNull();
+    // And the warrior is the *other* control since 2026-09-04: every rung above
+    // it wants iron, and this fixture has none, so the antiquated row is still
+    // offered — the obsolescence ruling's own exception. Mine the seam and the
+    // same call flips to the replacement sentence, naming the rung the piece
+    // would actually reach.
+    expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
+    at(state, 5, 4).resource = 'iron';
+    at(state, 5, 4).improvement = 'mine';
     expect(buildError(state, 0, 'unit', 'warrior')).toBe(
-      'Warrior has been replaced by the Swordsman',
+      'Warrior has been replaced by the Longswordsman',
     );
     expect(buildError(state, 0, 'building', 'library')).toBeNull();
     expect(buildingDef('library').name).toBe('Library');

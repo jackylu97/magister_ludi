@@ -846,6 +846,13 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
     });
   }
   if (def.endsTheGame === true) {
+    // The bead gate is read off `BEAD_RULES` rather than written into the row's
+    // note, exactly as the world's technology clause above is read off the row:
+    // a retuned threshold rewrites this sentence and no prose anywhere.
+    clauses.push({
+      text: `You may begin it only while you hold ${figure(BEAD_RULES.threshold)} beads.`,
+      note: true,
+    });
     clauses.push({
       text: 'Finishing it ends the game: the last measures of the age are taken, and whoever holds the most beads wins — a tie going to whoever raised it.',
       note: true,
@@ -1396,7 +1403,7 @@ function beadRulesEntry(): CompendiumEntry {
     eyebrow: 'the reckoning',
     mark: { kind: 'glyph', glyph: '◉' },
     rows: [
-      { label: 'Beads that win the game', figures: figure(BEAD_RULES.threshold) },
+      { label: 'Beads that open the Magnum Opus', figures: figure(BEAD_RULES.threshold) },
       ...BEAD_DECK_AGES.map((age) => ({
         label: `Cards on the table in ${deckEraWord(age)}`,
         figures: figure(beadHandSize(age)),
@@ -1404,6 +1411,9 @@ function beadRulesEntry(): CompendiumEntry {
       { label: 'Turns between deals', figures: figure(BEAD_RULES.dealEveryTurns) },
     ],
     clauses: [
+      {
+        text: 'A full rod is what opens the Magnum Opus: until you hold that many beads, you cannot begin the great work that ends the game.',
+      },
       {
         text: 'The last bead of all is golden, and only the Magnum Opus mints it. Its slot sits empty on every rod for the whole game.',
       },

@@ -10,8 +10,13 @@ cut lists: `docs/design-history.md`.
 - One unified condition: glass beads, ~30 minted a game, every bead an
   announced event. Most beads at the curtain wins; the **golden bead** is
   minted only by the Magnum Opus, whose completion closes the age →
-  `takeReckonings` → `winnerId` (tie to the builder). The 20-bead instant
-  threshold never fires in practice — flagged (`docs/flags.md`).
+  `takeReckonings` → `winnerId` (tie to the builder).
+- **The threshold opens the Opus** (ruled 2026-09-04, schema 64):
+  `rules.threshold` beads is what an empire must hold before `buildError`
+  will let it begin the row that `endsTheGame`. Its old reading — first seat
+  to the threshold wins outright — never once fired and is retired with
+  `namePossibleWinner`; `winnerId` has two writers now (`updateElimination`,
+  `closeTheGreatWork`).
 - **Card kinds**: `feat` (world firsts, always in play) · `endeavour` (a
   race with one winner — first completer takes bead + boon; oncePerEmpire
   building rows carry the shipped ones) · `quest` (a deed, Triumph-shaped

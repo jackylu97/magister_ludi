@@ -265,7 +265,7 @@ import {
   techsGrant,
 } from './techData';
 import { awardOccasion } from './triumphs';
-import { isBeadEndeavourId } from './beadData';
+import { BEAD_RULES, isBeadEndeavourId } from './beadData';
 import { awardBeadGrant, endeavourError, endeavourIsOffered } from './beads';
 import { isProjectId, projectDef } from './projectData';
 import { type UnitTypeId, isNaval, isUnitTypeId, unitDef, unitMaxHp } from './unitData';
@@ -653,6 +653,37 @@ export function buildError(
       if (other.ownerId !== playerId || other.id === city?.id) continue;
       if (!other.queue.some((item) => item.kind === 'building' && item.id === id)) continue;
       return `${other.name} is already building ${itemName(kind, id)}`;
+    }
+  }
+  /**
+   * **The finish line asks for a full rod** (ruled 2026-09-04, `docs/flags.md`:
+   * *"the Magnum Opus opens at 20 beads"*; schema 64). An empire may begin the
+   * great work only while it holds `BEAD_RULES.threshold` beads.
+   *
+   * Asked of the marker `BuildingDef.endsTheGame`, never of a name, exactly as
+   * `opusOpen` asks it — a second capstone would be gated by the same line
+   * without anybody remembering to type it again.
+   *
+   * It is the **race's own number**, not a second one: `rules.threshold` in
+   * `data/beads.json` used to name the seat that won outright, and that reading
+   * never once decided a game (`docs/beads.md`). It decides one now, one step
+   * earlier: the rod fills, the Opus opens, and the Opus is still what closes
+   * the age and counts the beads.
+   *
+   * **After** "already stands in your realm" and before the site, because that
+   * is the order a player needs to hear them in: a work already raised is not a
+   * work they are short of beads for.
+   *
+   * It can go **backwards** only in the sense that nothing takes a bead away —
+   * `Player.beads` is append-only — so unlike the obsolescence clause below,
+   * this gate closes once and never reopens.
+   */
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).endsTheGame === true) {
+    const player = playerById(state, playerId);
+    const held = player?.beads.length ?? 0;
+    if (held < BEAD_RULES.threshold) {
+      const who = player?.name ?? `player ${playerId}`;
+      return `${itemName(kind, id)} asks for ${BEAD_RULES.threshold} beads; ${who} holds ${held}`;
     }
   }
   // **The site**, last of the building clauses and only when a town is in hand:

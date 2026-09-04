@@ -83,6 +83,27 @@ live in Order/Doctrine cards — a slot is an opportunity cost, so relief
 displaces something — with buildings/luxuries trimmed to match. Deferred on
 your word; revisit when you take the balance turn.
 
+### Findings from the sim singles (2026-09-04, need your eye)
+
+- **The swordsman is now a row no empire can build.** Your iron ruling
+  landed as a data field — but iron is REVEALED by Iron Working (Æra III),
+  the same rung whose legionary supersedes the swordsman, so no empire can
+  ever hold the sword's seam without already holding its replacement. (The
+  wild still fields swordsmen — barbarian tiers ask the technology, never
+  the seam.) The one-line fix, if you want a real Æra II sword window:
+  move iron's reveal to Bronze Panoply (`data/resources.json`) — a
+  reveal-placement change with mapgen/yield/city-strength consequences, so
+  it waits on your word. Side effect as shipped: an iron-less empire's
+  city strength drops and the warrior stays buildable a full age longer.
+- **Twenty beads is out of a lone capital's reach** — the solo endgame
+  harness banks ~4 beads by t1700, so the Opus gate would hold its door
+  for ever there (the harness now grants the rod once the chart-side gate
+  is met, pinning the machinery; the pacing is yours). Datum for the
+  20-bead interpretation you flagged for veto: a solitary empire cannot
+  start the Great Work at all under it. Wide empires bank beads from
+  firsts/quests; whether 20 is the right bar — or whether it should scale
+  with something — is a playtest call.
+
 ### Open singles (still yours)
 
 - **Gov IV/V/VI pools** — wait for your playtest (your ruling). Gov VI

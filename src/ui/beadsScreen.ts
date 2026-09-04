@@ -2,8 +2,9 @@
  * The Beads screen: **the one thing everybody is playing for, on one table.**
  *
  * Design ledger Entry VI and `docs/beads.md`. The Bead Race is the game's only
- * victory condition — glass beads across four families, a threshold that wins
- * outright, and a table of cards every seat can see. The Abacus is the *score*
+ * victory condition — glass beads across four families, a threshold that opens
+ * the Magnum Opus (schema 64; it used to win outright), and a table of cards
+ * every seat can see. The Abacus is the *score*
  * (the object, the rods, who is ahead); this is the **table**: what is on offer,
  * who has taken what, and what is still face down.
  *

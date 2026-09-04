@@ -101,22 +101,25 @@ on the backburner: some kind of diplomacy meter that affects trade deals. Probab
 ## 9a. The screen, as built (2026-09-03 playtest ruling)
 
 - **Only empires you have met.** A seat joins the roster once you have seen
-  its land, its town or its pieces — or signed anything with it. Derived,
-  never stored: `hasMetSeat` (`src/sim/diplomacy.ts`) reads a standing
-  relation (war row, truce, running bargain, paper on the table), a
-  remembered town (`citySightings`, which carries `ownerId`), an explored
-  hex their towns own now (what `TerritoryLayer` already draws), or one of
-  their pieces visible this instant. `metSeats`/`metDiplomacyRows` are the
-  drawn register; `diplomaticSeats` stays the whole world.
+  its land, its town or its pieces — or signed anything with it.
+  `hasMetSeat` (`src/sim/diplomacy.ts`) reads the **stored** register first
+  (`Player.metSeats`), then the four board clauses: a standing relation (war
+  row, truce, running bargain, paper on the table), a remembered town
+  (`citySightings`, which carries `ownerId`), an explored hex their towns own
+  now (what `TerritoryLayer` already draws), or one of their pieces visible
+  this instant. `metSeats`/`metDiplomacyRows` are the drawn register;
+  `diplomaticSeats` stays the whole world.
 - **A UI gate only**, like `localPlayerId`: no verb refuses on met-ness
   (`declareWarError` has no such clause), so a bot may act on what a human
   has not scouted. The relation clause is load-bearing — a seat declared
   upon by an empire it never scouted must still be able to sue for peace.
-- **Known gap**: "you once saw a unit of theirs" is not derivable. Fog
-  memory holds terrain and towns; nothing remembers a column that walked
-  past and away, so a meeting made by a fleeting sighting lapses with it
-  unless it left one of the other marks. Closing it means a stored per-seat
-  met set — new state and a schema bump (flagged in `docs/flags.md`).
+- **A meeting is permanent** (ruled 2026-09-04, schema 64 — closing the gap
+  this section used to name). `Player.metSeats` is a sorted per-seat register
+  written by `recordMeetings` (`visibility.ts`) off the same `lit` set the fog
+  and the city memory are folded from: sight a rival's piece or a rival's
+  ground once and the meeting stands for ever. The four derived clauses stay
+  as the backfill for a game that began before the field existed. **The wild
+  is never met**, in either direction — it is on no roster.
 - **Layout**: Civ's trade-table shape in the specimen language — a roster
   column of met empires (relation, clocks, counted marks) beside the chosen
   empire's table: your side | the paper being written | their side, with
@@ -130,6 +133,10 @@ on the backburner: some kind of diplomacy meter that affects trade deals. Probab
   appraisal, issued as logged commands by whichever client drives the seat
   (deterministic). Annex anytime (full costs, irreversible). Raze immediate;
   capitals never razeable (orchestrator default — overrule if wanted).
+- **A puppet spends nothing**: no unit, no building, no ground (schema 58) and
+  **no contribution** (ruled 2026-09-04, schema 64) — three clauses in one
+  voice, `purchaseError` / `tilePurchaseError` / `contributeError`. Annexation
+  is the verb that opens the purse.
 - Peace proposals may carry deal terms; empty proposal = white peace.
 - City trading in PEACE DEALS ONLY (v1).
 - Deal durations: 20 turns, absolute expiry, auto-cancel on declaration.

@@ -846,47 +846,61 @@ describe('obsolete units', () => {
     expect(buildError(state, 0, 'unit', 'swordsman')).toContain('needs');
   });
 
-  it('takes the warrior off the list the moment the swordsman can be built', () => {
+  it('keeps the warrior while the swords’ iron is out of reach', () => {
+    // The ruling of 2026-09-04 ("let's make the swordsman require iron") moves
+    // the exception a rung earlier: the **sword** wants a seam now, so Bronze
+    // Panoply alone offers nothing new and the warrior stays on the list.
+    //
+    // Note what the tree does with that, because it is the whole shape of the
+    // change: iron is *named* by Iron Working, an age above the sword's own
+    // node, so there is no board on which an empire holds the sword's seam
+    // without also holding the legionary that supersedes it. The Æra II sword
+    // is therefore a row no empire builds — the wild still fields them
+    // (`barbarianTier` asks the technology and never `hasResource`) — and the
+    // rung that actually retires the warrior is the legionary, below.
     const state = flatState();
     grantPrereqs(state, 0, 'bronzePanoply');
     grant(state, 0, 'bronzePanoply');
-    expect(buildError(state, 0, 'unit', 'swordsman')).toBeNull();
-    expect(buildError(state, 0, 'unit', 'warrior')).toBe(
-      'Warrior has been replaced by the Swordsman',
-    );
-    expect(upgradeTargetForType(state, 0, 'warrior')).toBe('swordsman');
+    expect(buildError(state, 0, 'unit', 'swordsman')).toBe('Swordsman needs improved Iron');
+    expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
+    expect(upgradeTargetForType(state, 0, 'warrior')).toBeNull();
   });
 
-  it('keeps the antiquated row while the successor’s iron is out of reach', () => {
-    // The ruling's exception, and the only rung on the roster that carries it:
-    // Iron Working opens the legionary, but a seamless empire cannot field one,
-    // so the swordsman it replaces stays on the list until the mine lands.
+  it('takes the warrior off the list the moment a sword can be built', () => {
+    // One seam opens both swords, so an empire that mines iron walks the
+    // warrior the whole chain in one step and an empire without it walks
+    // nothing. The message names the rung the piece would actually become.
     const state = flatState();
     grantPrereqs(state, 0, 'ironWorking');
     grant(state, 0, 'ironWorking');
     expect(buildError(state, 0, 'unit', 'legionary')).toBe('Legionary needs improved Iron');
-    expect(buildError(state, 0, 'unit', 'swordsman')).toBeNull();
+    expect(buildError(state, 0, 'unit', 'swordsman')).toBe('Swordsman needs improved Iron');
+    expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
+    expect(upgradeTargetForType(state, 0, 'warrior')).toBeNull();
 
     connectIron(state, 0, 8, 5);
     expect(buildError(state, 0, 'unit', 'legionary')).toBeNull();
     expect(buildError(state, 0, 'unit', 'swordsman')).toBe(
       'Swordsman has been replaced by the Legionary',
     );
-    // And the warrior below it walks the whole chain rather than one rung.
+    expect(buildError(state, 0, 'unit', 'warrior')).toBe(
+      'Warrior has been replaced by the Legionary',
+    );
     expect(upgradeTargetForType(state, 0, 'warrior')).toBe('legionary');
   });
 
   it('gives the row back when the iron is lost again', () => {
     // The one gate in `buildError` that goes backwards, and it must: a captured
-    // mine takes the legionary with it, and an empire that can field no
-    // legionary is an empire that had better be allowed its swords again.
+    // mine takes both swords with it, and an empire that can field neither is an
+    // empire that had better be allowed its warriors again.
     const state = flatState();
     grantPrereqs(state, 0, 'ironWorking');
     grant(state, 0, 'ironWorking');
     connectIron(state, 0, 8, 5);
-    expect(buildError(state, 0, 'unit', 'swordsman')).not.toBeNull();
+    expect(buildError(state, 0, 'unit', 'warrior')).not.toBeNull();
     at(state.map, 8, 5).resource = undefined;
-    expect(buildError(state, 0, 'unit', 'swordsman')).toBeNull();
+    expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
+    expect(buildError(state, 0, 'unit', 'swordsman')).toBe('Swordsman needs improved Iron');
   });
 
   it('never climbs into a row no technology reaches', () => {
@@ -921,12 +935,15 @@ describe('obsolete units', () => {
       } as Command);
 
     expect(send([{ kind: 'unit', id: 'warrior' }])).toEqual({ ok: true });
-    grantPrereqs(state, 0, 'bronzePanoply');
-    grant(state, 0, 'bronzePanoply');
+    // The seam as well as the node, since both swords took iron (2026-09-04):
+    // the successor that retires the warrior is the legionary.
+    grantPrereqs(state, 0, 'ironWorking');
+    grant(state, 0, 'ironWorking');
+    connectIron(state, 0, 4, 5);
 
     // The hammers already in it are real: the standing row survives, and the
     // queue around it stays editable.
-    expect(send([{ kind: 'unit', id: 'warrior' }, { kind: 'unit', id: 'swordsman' }])).toEqual({
+    expect(send([{ kind: 'unit', id: 'warrior' }, { kind: 'unit', id: 'legionary' }])).toEqual({
       ok: true,
     });
     expect(buildError(state, 0, 'unit', 'warrior', city)).toBeNull();
@@ -941,7 +958,7 @@ describe('obsolete units', () => {
     } as Command);
     expect(refusal.ok).toBe(false);
     expect(refusal.ok === false && refusal.error).toBe(
-      'Warrior has been replaced by the Swordsman',
+      'Warrior has been replaced by the Legionary',
     );
     expect(other.queue).toEqual([]);
   });
@@ -954,20 +971,22 @@ describe('auto-upgrade', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 8, 5);
     unit.hp = 60;
-    // The sword is Bronze Panoply's since the re-cut of 2026-09-02, and it asks
-    // for no iron: the melee ladder's iron rung is the legionary, an age later.
-    grantPrereqs(state, 0, 'bronzePanoply');
-    applyCommand(state, choose(0, 'bronzePanoply'));
-    state.players[0]!.sciencePool = techDef('bronzePanoply').cost;
+    // Both swords ask for iron since the ruling of 2026-09-04, and iron is named
+    // by Iron Working — so this is the node and the seam that retype a warrior,
+    // and the piece walks the whole chain to the legionary in one resolution.
+    connectIron(state, 0, 8, 5);
+    grantPrereqs(state, 0, 'ironWorking');
+    applyCommand(state, choose(0, 'ironWorking'));
+    state.players[0]!.sciencePool = techDef('ironWorking').cost;
 
     advanceResearch(state);
     const after = state.units[0]!;
     expect(after.id).toBe(unit.id);
-    expect(after.type).toBe('swordsman');
+    expect(after.type).toBe('legionary');
     expect(after.col).toBe(8);
     expect(after.row).toBe(5);
-    // 60% of a swordsman's 100 maximum.
-    expect(after.hp).toBe(60);
+    // 60% of a legionary's 110 maximum, rounded.
+    expect(after.hp).toBe(66);
     expect(state.units).toHaveLength(1);
   });
 
@@ -1028,13 +1047,13 @@ describe('auto-upgrade', () => {
     expect(state.units[0]!.type).toBe('longswordsman');
   });
 
-  it('waits for iron: Iron Working alone stops the walk at the swordsman', () => {
+  it('waits for iron: a seamless empire keeps its warriors', () => {
     // User, 2026-08-29: "iron working should only upgrade warriors when iron
     // is available". The walk in `upgradeTargetFor` stops at a rung whose
     // `requiresResource` the empire does not control — the same gate
-    // `buildError` keeps at the queue. Since the re-cut of 2026-09-02 that rung
-    // is the **legionary**, so a seamless empire gets the bronze sword and no
-    // further.
+    // `buildError` keeps at the queue. Since the ruling of 2026-09-04 that rung
+    // is the **swordsman**, so a seamless empire gets nothing at all out of the
+    // iron half of the tree and its warriors stay warriors.
     const state = flatState();
     const unit = createUnit(state, 0, 'warrior', 8, 5);
     grantPrereqs(state, 0, 'ironWorking');
@@ -1042,7 +1061,7 @@ describe('auto-upgrade', () => {
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
     advanceResearch(state);
     expect(state.players[0]!.techsResearched).toContain('ironWorking');
-    expect(state.units[0]!.type).toBe('swordsman');
+    expect(state.units[0]!.type).toBe('warrior');
     expect(upgradeTargetFor(state, unit)).toBeNull();
   });
 
@@ -1056,8 +1075,9 @@ describe('auto-upgrade', () => {
     grantPrereqs(state, 0, 'ironWorking');
     grant(state, 0, 'ironWorking');
     advanceResearch(state);
-    // The bronze rung is free; the walk halts at the legionary's seam.
-    expect(state.units[0]!.type).toBe('swordsman');
+    // Both swords stand behind one seam since 2026-09-04, so the walk halts at
+    // the warrior and the mine below finishes the whole chain in one sweep.
+    expect(state.units[0]!.type).toBe('warrior');
     connectIron(state, 0, 8, 5);
     expect(state.players[0]!.researching).toBeNull();
     advanceResearch(state);
@@ -1264,7 +1284,7 @@ describe('research in the log', () => {
     // v62 (the renewals axe, 2026-09-04): nine nodes stop renewing a building
     // already standing, so a v61 log researching any of them banks yields this
     // build does not pay.
-    expect(SCHEMA_VERSION).toBe(63);
+    expect(SCHEMA_VERSION).toBe(64);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1773,9 +1793,10 @@ describe('the shape of the tree', () => {
     expect(unitDef('archer').upgradesTo).toBe('bowman');
     expect(unitDef('bowman').upgradesTo).toBe('compositeBowman');
     expect(unitDef('compositeBowman').upgradesTo).toBe('crossbowman');
-    // The iron rung is the legionary, not the sword: the tree does not name iron
-    // until Iron Working, so the Æra II swordsman asks for none.
-    expect(unitDef('swordsman').requiresResource).toBeUndefined();
+    // **Both swords are iron rungs** since the ruling of 2026-09-04 ("let's make
+    // the swordsman require iron"): the Æra II sword asks for the seam its
+    // successor asks for, so an empire with no mine fights on with warriors.
+    expect(unitDef('swordsman').requiresResource).toBe('iron');
     expect(unitDef('legionary').requiresResource).toBe('iron');
     // And no chain loops: every ladder ends.
     for (const id of UNIT_TYPE_IDS) {

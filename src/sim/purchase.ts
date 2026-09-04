@@ -823,6 +823,13 @@ export function explainContribution(
  *
  * The **authority freeze is deliberately absent**, for the module docblock's
  * reason: a torn writ stops borders, not banks.
+ *
+ * **A puppet is refused** (ruled 2026-09-04; schema 64), in `purchaseError`'s
+ * own sentence and for its reason exactly: a town taken by force and not yet
+ * taken *in* has no purse of its own, and a contribution is a purse being
+ * opened — a narrower one than a purchase, but the same coin leaving the same
+ * treasury for the same town's basket. Refusing the buy and allowing the pour
+ * would have been the rule with a hole in it.
  */
 export function contributeError(
   state: GameState,
@@ -835,6 +842,11 @@ export function contributeError(
   const city = cityById(state, cityId);
   if (!city) return `No city with id ${String(cityId)}`;
   if (city.ownerId !== playerId) return `${city.name} does not belong to ${player.name}`;
+  // **A puppet spends nothing**, asked before the bank is even named — the
+  // clause is not about what is being poured, it is about the town.
+  if (city.puppet === true) {
+    return `${city.name} is a puppet — a puppet spends nothing; annex it to invest`;
+  }
   if (currency !== 'faith' && currency !== 'gold') {
     return `There is no bank called "${String(currency)}"`;
   }

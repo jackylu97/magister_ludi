@@ -1868,7 +1868,7 @@
         "onComplete": 25,
         "perTurn": 3
       },
-      "note": "The great work of the age. Nobody may begin one until some empire in the world has reached Alchemy, and every empire may begin one the moment somebody has. Gold and faith may be poured into it as well as production. The first one finished anywhere closes the age: the last measures are taken, and the empire holding the most beads wins.",
+      "note": "The great work of the age. Nobody may begin one until some empire in the world has reached Alchemy, and no empire may begin one until its own rod of beads is full. Gold and faith may be poured into it as well as production. The first one finished anywhere closes the age: the last measures are taken, and the empire holding the most beads wins.",
       "deferred": [
         "Pouring culture into it as well as gold and faith. Culture already fills the basket a draft comes out of, and spending it here needs its own ruling first."
       ]

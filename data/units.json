@@ -183,6 +183,7 @@
       "maxHp": 100,
       "combatStrength": 16,
       "cost": 14,
+      "requiresResource": "iron",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
