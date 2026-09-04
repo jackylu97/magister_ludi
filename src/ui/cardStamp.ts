@@ -80,8 +80,14 @@ export const STAMP_TIMING = {
   countMs: 750,
   /** The rubber-stamp drop, for a card that pays on an occasion. */
   thunkMs: 260,
-  /** How long a taken card stays on the table before the sheet leaves. */
-  exitMs: 2000,
+  /**
+   * How long a taken card stays on the table before the sheet leaves.
+   * Twinned with the `offer-taken` animation's duration in `style.css` — the
+   * flip lands exactly as the sheet goes. 2000 → 1450 on 2026-09-04 ("I want
+   * it to feel snappy"): the count still gets its full ~970ms; what was cut
+   * is the slow half of the flip that followed it.
+   */
+  exitMs: 1450,
   /**
    * The floor between two digit pops. Early ticks of the eased count arrive
    * faster than a 90ms pop can play, and a pop restarted on every one both

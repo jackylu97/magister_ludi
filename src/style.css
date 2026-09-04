@@ -11750,15 +11750,20 @@ body.compendium-page {
     filter 380ms ease-out;
 }
 
+/* 1450ms, twinned with STAMP_TIMING.exitMs (cardStamp.ts) — the sheet tears
+   down when the flip lands, so the two move together. The hold (0–72%,
+   ~1040ms) covers the stamp's anticipation + count (~970ms); the flip itself
+   is the last ~400ms — snappy by ruling (2026-09-04, "I want it to feel
+   snappy"), the reveal never rushed. */
 .offer-option.is-taken {
-  animation: offer-taken 2000ms ease-in-out forwards;
+  animation: offer-taken 1450ms ease-in-out forwards;
 }
 
 @keyframes offer-taken {
   0% {
     transform: translateY(0) scale(1) rotateY(0deg);
   }
-  60% {
+  72% {
     transform: translateY(-6px) scale(1.03) rotateY(0deg);
   }
   100% {

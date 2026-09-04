@@ -583,6 +583,16 @@ is its own knob, one edit flips the interpretation).
   at t182; first knobs: site.ringFalloff, war.escortRadius. The playtest and
   the next arena pass judge.
 
+### The levelling axe (user, 2026-09-04, in card-shapes.md margin) — SCOPE WANTED
+
+"[remove, we're axing levelling cards, remember?]" — taken as the ruling that
+deepening/levels are leaving the game. What needs your scope before it flies:
+does the axe remove the UPGRADE OPTION from drafts only (rows keep their
+levels already earned), or reset every owned order to level 1, or delete the
+`OrderUpgrade` machinery outright (a schema decision — saves hold levels)?
+The sheet's own "RULING: orders can only be deepened up to level 3" and every
+"upgrade:" column would follow the answer. One line here settles it.
+
 ## C. Open threads
 
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture
