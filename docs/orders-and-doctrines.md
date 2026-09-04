@@ -2,7 +2,7 @@
 
 Every Order, Doctrine and government in one place, tables only. **Regenerated from
 `data/statecraft.json` 2026-09-04** — the Effect column is each row's own ratified `text`;
-counts and tiers are the data's (pools: Chiefdom 11 · Gov I 29 · Gov II 37 · Gov III 37;
+counts and tiers are the data's (pools: Chiefdom 11 · Gov I 31 · Gov II 39 · Gov III 39;
 doctrine tiers ride the ladder 4/10/18/29/45). Edit here; the two working docs (`deprecated/statecraft-cards.md`, `deprecated/statecraft-ages-3-5.md`) keep the commentary and are no longer the source. Tier: ● defining · ◆ strong · ○ situational (blank = not yet tiered).
 
 **As built, 2026-08-28 (second pass)** — six of those halves are built and the shapes are
@@ -64,6 +64,30 @@ retirements and five small vocabulary additions, each read by a live row:
   the realm has to name a town to be built in.
 - **Retired**: The Salt Road (The Golden Scales stands in its place) and Hearth Songs (The
   Harvest Songs). Both rows stay for saves, out of every pool and out of the tables above.
+
+**As built, 2026-09-04 (the growing cards and the war order, `docs/flags.md` queue item 6)**
+— six rows out of the proposed blocks and into the pools above, on one new schema field
+and no new effect shape:
+
+- **The growing cards** — The Ballad-Weavers · The Bell-Founders · The Reliquary Rolls ·
+  The Chroniclers of the Fallen · The Almoners' Book. One counter per **owned Order**
+  (`PlayerStatecraft.tallies`, schema 65), written in one place
+  (`recordScalingOccasion`) and **only while the card is in a slot** — the standing
+  ruling: the bench is never productive, nothing is retroactive, and a card benched at
+  seven resumes at seven. What it pays is an ordinary `countScaled` line reading
+  `CountKind`'s new `tally`, so the card face, the ledger's `×7` label and the stamp are
+  the ones every other counting card already uses.
+- **The occasions are the seams that already existed** — the battle riders (a barbarian
+  killed; one of yours fallen, in battle and not to famine or a disband), `claimWonderFor`
+  (a wonder finished *anywhere*, written into every realm's books — the one world
+  occasion the design allows), `spendGreatPerson`, and the gold branch of
+  `purchaseItemAt`. The Almoners' Book banks the **coin**, not the purchase, so its
+  divisor keeps the remainder and four small buys pay exactly as one large one.
+- **The Casus Belli** — `WindfallOccasion`'s new `declareWar`, fired for the declaring
+  seat in `declareWarAt`, hanging an ordinary `grant.timed` on the empire: a labelled
+  strength line on the combat ledger and a city-stage production percentage, both
+  expiring by comparison ten turns on. A benched Casus Belli sees the declaration and
+  pays nothing; one unslotted afterwards keeps what it already bought.
 
 **A deferred half still stands on**, and each waits on a system the game does not have: The
 Curia (the Cathedral) · The Academy of Deeds' second half (a missed Triumph is closed for
@@ -201,7 +225,7 @@ nought.
 RULING (2026-09-04): orders are never upgraded. A card is what it prints, held once; a draft
 is take one or pass.
 
-### Chiefdom pool (12)
+### Chiefdom pool (11)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
@@ -217,7 +241,7 @@ is take one or pass.
 | Fire-Keepers | W | 🕯 | ● | +1 faith in your capital, and +1 happiness there. |
 | First Fruits | W | 🕯 | ◆ | The first citizen born in each city pays +10 faith once. |
 
-### Government I pool (34)
+### Government I pool (31)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
@@ -250,15 +274,15 @@ is take one or pass.
 | Charter Towns | E | 📜 | ◆ | Newly founded cities are founded with a Granary. |
 | Wayside Shrines | W | 🕯 | ● | +1 faith in every city. |
 | The Unbroken Land | E | 🌱 | ◆ | +1 food and +1 production on every unimproved forest or jungle hex. |
+| The Ballad-Weavers | W | 🏹 | ◆ | +1 culture per turn for each barbarian you have killed while this Order stands in a slot. |
+| The Bell-Founders | W | 🏛 | ◆ | +1 culture per turn for each wonder finished anywhere in the world while this Order stands in a slot. |
 
 ### Government I — proposed additions (no data rows yet; the sync test reads only the built table above)
 
 | The Rites Charter (W) | unlocks the chapel (same cost as temple) | +1🕯; each rite performed in this town pays +5🎵 (a growing building — see below) |
 | The Vigil Charter (M) | Unlocks the keep (same cost as walls) | +25 city hp; adjacent friendly units heal +5 |
-| The Ballad-Weavers | a barbarian unit killed | +1🎵 per turn, forever |
-| The Bell-Founders (W) | ANY empire finishes a wonder | +1🎵 (jealousy pays) |
 
-### Government II pool (35)
+### Government II pool (39)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
@@ -299,6 +323,8 @@ is take one or pass.
 | The Guild Charter | E | — |   | +2 gold for each economic Order you have in a slot, and +1 production in your capital for each. |
 | The Synod | W | — |   | +1 faith and +1 culture for each wildcard Order you have in a slot. |
 | The Harvest Songs | W | 🌱 |   | Every city gains 10% of its food yield again as culture. |
+| The Reliquary Rolls | W | 🏛 | ◆ | +2 faith and +2 culture per turn for each great person you have spent while this Order stands in a slot. |
+| The Chroniclers of the Fallen | M | — | ◆ | +1 gold per turn for each unit you have lost in battle while this Order stands in a slot. |
 
 ### Government II — proposed additions (no data rows yet)
 
@@ -307,10 +333,8 @@ is take one or pass.
 - **The Waterwrights' Charter** (E) — unlocks the **Cistern** costs the same as an aqueduct: +2 food, city acts as a source of freshwater (no happiness penalty if settled off fresh, adjacent farms gain irrigation bonus). Desert tiles gain +1 food.
 - **The Senatus** (W) — allows building the assembly hall, costs the same as examination hall: can only be built in your capital, +2 authority, +1 science and +1 culture for every wildcard slotted in your government (not a wildcard slot filled, a wildcard card that is active)
 - **The Toolmakers' Charter** (E) — unlocks the **smithy**, same cost as workshop: +2 prod, gains +1 production for every military card slotted in your government
-| The Reliquary Rolls | a great person spent | +2🕯 +2🎵 |
-| The Chroniclers of the Fallen (M) | one of YOUR units dies | +1 gold per loss |
 
-### Government III pool (33)
+### Government III pool (39)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
@@ -351,16 +375,16 @@ is take one or pass.
 | The Golden Scales | E | 🐫 |   | Every city gains 10% of its gold yield again as science. |
 | The Arsenal Law | M | ⚒ | ○ | While you are at war, cities with a Barracks gain 15% of their production again as gold. |
 | The Charter of the Marches | E | 📜 | ○ | Your newest city gains +2 of every yield. Founding a city grants +30 culture. |
+| The Almoners' Book | W | ✶ | ◆ | +1 science per turn for each 400 gold you have spent buying while this Order stands in a slot. |
+| The Casus Belli | M | ⚒ | ○ | Declaring war grants +2 combat strength to all your units and +10% production in every city, for 10 turns. |
 
 ### Government III — proposed additions (no data rows yet)
 
-NEEDS NAME : upon declaring war, gain +2 combat strength on all units, and gain +10% production in all cities for 10 turns.
 - **The Mint Charter** (E) — unlocks the Mint: same price as bank; the town's
   gold yield also pays 10% as culture 
 - **The Almshouse Charter** (W) — unlocks the Almshouse, same price as monastery: civilian units + traders in this city can be purchased with faith.
 - **The Stargazers' Charter** (W) — unlocks the **Observatory** same price as university: +1🔬; +10% science in this city if there is a mountain within two tiles. 
 - **The Justices' Charter** (M) — unlocks the **Assize Court** costs the same as a courthouse: +1 authority; -15% happiness cost from crowding in this city
-| The Almoners' Book (W) | 400💰 spent on purchases, cumulative | +1 science |
 
 
 ### Government IV pool — PROPOSED (tier 29 adoption) (20)
@@ -373,7 +397,7 @@ enum value + `poolOfGovernment` mapping tier 29 here instead of Government III.
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
 | The King's Road | M | 🎖 | ◆ | units gain +1 movement when starting their turn in friendly territory. Roads are extra effective. |
-| Levies | M | 🎖 | ● | every city with a Barracks musters a free melee unit every 20 turns · −1 happiness per Barracks · *(note: The Levée en Masse (Pool V Doctrine) is the same idea — keep one)* |
+| ~~Levies~~ | M | 🎖 | ● | *Retired 2026-09-04 (queue item 6): the muster is already built as **The Standing Levy** (Government III), and the Levée en Masse proposal it doubled retires with it — its trigger, a border crossed, was never built.* |
 | Field Hospitals | M | 🎖 | ◆ | units inside your borders heal to full each turn they do not move (fortify counts) |
 | Decisive Blows | M | 🎖 | ○ | +15% damage dealt when attacking a unit already below full strength |
 | The Marshals' Purse | M | 🎖 | ○ | units cost −25% gold to purchase |

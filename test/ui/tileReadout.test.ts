@@ -35,6 +35,7 @@ import {
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { tileIndex } from '../../src/sim/map';
 import { foundCityAt } from '../../src/sim/cities';
+import { resourceDef } from '../../src/sim/resourceData';
 import { YIELD_GLYPH, type YieldKey } from '../../src/ui/figures';
 import {
   type TileYieldLine,
@@ -570,7 +571,9 @@ describe('what a seam still wants', () => {
     hex.resource = 'iron';
     expect(resourceRequirementOf(state, 0, hex)).toBeNull();
 
-    state.players[0]!.techsResearched.push('ironWorking');
+    // Re-aimed 2026-09-04 (the Bronze Panoply ruling): the reveal node is read
+    // off the **row**, so moving the seam's gate moves this with it.
+    state.players[0]!.techsResearched.push(resourceDef('iron').requiresTech!);
     expect(resourceRequirementOf(state, 0, hex)!.text).toBe('requires Mine (Mining)');
   });
 

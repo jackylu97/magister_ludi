@@ -144,6 +144,7 @@ import {
   foldCardYields,
   heldReligions,
   payWindfallGrants,
+  recordWorldScalingOccasion,
   settleCultureWindfall,
   tileConditionHolds,
   windfallPayout,
@@ -5219,6 +5220,12 @@ function payWonderRenown(state: GameState, city: City, building: BuildingId): vo
  */
 function claimWonderFor(state: GameState, city: City, building: BuildingId): WonderCompletion {
   const claim = claimWonder(state, building, city);
+  // **The world's one shared occasion** — The Bell-Founders' jealousy. A wonder
+  // is the one thing in this game that is news to people who had nothing to do
+  // with it (see the docblock above), so the counter it feeds is written into
+  // every realm's books and not only the builder's. Here rather than in
+  // `claimWonder`, which is `state.ts`' register and may not read the cards.
+  recordWorldScalingOccasion(state, 'wonderAnywhere');
   return {
     building,
     name: buildingDef(building).name,

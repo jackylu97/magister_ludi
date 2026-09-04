@@ -1125,8 +1125,42 @@ import {
  *     backfill it, which is why they stayed) and nothing else changed shape.
  *     What moves is what the same log is worth, and which commands it may
  *     contain.
+ *
+ * v65: **the growing cards, and the war order** (ruled 2026-09-04, `docs/flags.md`
+ * queue item 6 — the sheet's proposed additions, first half).
+ *
+ *   · **The scaling counter is new state.** `PlayerStatecraft.tallies` is a list
+ *     of `{card, count}`, one row per growing Order that has ever counted
+ *     anything, in the order each counter opened. It is written in exactly one
+ *     place (`recordScalingOccasion`) and only for cards **in a slot** at the
+ *     moment the occasion fires — the standing ruling of `docs/doctrine-ideas.md`:
+ *     the bench is never productive and nothing is retroactive. Five hooks feed
+ *     it, each at a seam that already existed: the battle riders (a barbarian
+ *     killed, one of yours fallen), `claimWonderFor` (a wonder finished
+ *     *anywhere*, written into every realm's books), `spendGreatPerson`, and the
+ *     gold branch of `purchaseItemAt`, which banks the coin itself so the card's
+ *     divisor keeps the remainder.
+ *   · **Six new Order rows** — The Ballad-Weavers · The Bell-Founders · The
+ *     Reliquary Rolls · The Chroniclers of the Fallen · The Almoners' Book · The
+ *     Casus Belli. Rows in a pool change what every draft deals, so a v64 log's
+ *     very first hand comes out different from the same seed.
+ *   · **One new occasion and one new count.** `WindfallOccasion`'s `declareWar`
+ *     fires for the declaring seat in `declareWarAt`, and The Casus Belli hangs
+ *     an ordinary `grant.timed` on the empire from it — a labelled strength line
+ *     and a staged production percentage, expiring by comparison ten turns on.
+ *     `CountKind`'s `tally` is the growing cards' reading of their own counter.
+ *   · **Iron reveals at Bronze Panoply** (the same day's ruling, landed
+ *     separately and riding this bump): the seam now surfaces on the swordsman's
+ *     own rung instead of arriving with the legionary that supersedes it. One
+ *     field on one row (`ResourceDef.requiresTech`), and it moves what a v64 log
+ *     is worth — a mine worked, a hex priced and a garrison's strength all read
+ *     the reveal.
+ *
+ *     The migration note: one additive field, and it is empty on every seat a
+ *     v64 game would have had — but the draws move, so there is no reading under
+ *     which a v64 log replays to the same board.
  */
-export const SCHEMA_VERSION = 64;
+export const SCHEMA_VERSION = 65;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

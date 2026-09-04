@@ -94,7 +94,13 @@ import {
 } from './state';
 import { happinessOf } from './meters';
 import { renownThreshold, settleRenownWindfall } from './renown';
-import { cardActionRule, cardAmplifier, offerSize, settleCultureWindfall } from './statecraft';
+import {
+  cardActionRule,
+  cardAmplifier,
+  offerSize,
+  recordScalingOccasion,
+  settleCultureWindfall,
+} from './statecraft';
 import type { ActionRuleId, CardEffect } from './statecraftData';
 import { settleResearchWindfall } from './tech';
 import { highestAge } from './techData';
@@ -985,6 +991,10 @@ function spendGreatPerson(
   if (!player.legacies.some((held) => held.id === id)) {
     player.legacies.push({ id, age: highestAge(player.techsResearched) });
   }
+  // The growing cards' occasion, written here because this is **the** one place
+  // a great person is spent — both verbs reach it, so The Reliquary Rolls counts
+  // a citadel exactly as it counts a boon, and neither caller has to remember.
+  recordScalingOccasion(state, player.id, 'greatPersonSpent');
   removeUnit(state, unit.id);
 }
 

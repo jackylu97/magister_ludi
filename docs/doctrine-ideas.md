@@ -178,6 +178,19 @@ Design rule carried over: a growing card is WEAK on draft day — the floor
 is low, the ceiling is the player's own play. The counter prints on the
 card ("×7") and the stamp reads the counter, so the growth is legible.
 
+**LANDED 2026-09-04 (schema 65, `docs/flags.md` queue item 6).** The
+phase-2 counter is `PlayerStatecraft.tallies` — one `{card, count}` row per
+owned Order, keyed by the card and never by the occasion, written only by
+`recordScalingOccasion`. The step is not a new shape: a growing card is an
+ordinary `countScaled` effect reading `CountKind`'s new `tally`, with the
+occasion named on the effect (`tally: 'barbarianKill'`) exactly as
+`building` and `slot` are named on their counts — so the counter prints as
+the same `×7` label every counting card already carries, and the stamp
+reads it for free. Five rows shipped (Ballad-Weavers · Bell-Founders ·
+Reliquary Rolls · Chroniclers of the Fallen · Almoners' Book); the rest of
+the tables below are still proposals, and each is now a JSON row plus, where
+its moment has no seam yet, one line at the seam.
+
 **RULED 2026-09-04 — a scaling card counts only while SLOTTED.** The slot
 is the price of the growth: slotting a weak card today for a ceiling
 tomorrow is the commitment decision, and it composes with the seals

@@ -4120,6 +4120,163 @@
           }
         }
       ]
+    },
+    "theBalladWeavers": {
+      "name": "The Ballad-Weavers",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "hunt",
+      "rarity": "uncommon",
+      "flavor": "Every raider who falls in the passes is worth a verse, and the verses outlast the passes.",
+      "text": "+1 culture per turn for each barbarian you have killed while this Order stands in a slot.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "tally",
+          "tally": "barbarianKill",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theBellFounders": {
+      "name": "The Bell-Founders",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "court",
+      "rarity": "uncommon",
+      "flavor": "A rival raises a dome; the foundry answers with a bell, and the town agrees it is the finer sound.",
+      "text": "+1 culture per turn for each wonder finished anywhere in the world while this Order stands in a slot.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "tally",
+          "tally": "wonderAnywhere",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theReliquaryRolls": {
+      "name": "The Reliquary Rolls",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "court",
+      "rarity": "uncommon",
+      "flavor": "They served, and then they were shelved: a knuckle, a brush, a name written large.",
+      "text": "+2 faith and +2 culture per turn for each great person you have spent while this Order stands in a slot.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "tally",
+          "tally": "greatPersonSpent",
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 2,
+            "where": "empire"
+          }
+        },
+        {
+          "kind": "countScaled",
+          "count": "tally",
+          "tally": "greatPersonSpent",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 2,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theChroniclersOfTheFallen": {
+      "name": "The Chroniclers of the Fallen",
+      "pool": "governmentII",
+      "slot": "military",
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The roll of the dead is read aloud on market day, and the market is fuller for it.",
+      "text": "+1 gold per turn for each unit you have lost in battle while this Order stands in a slot.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "tally",
+          "tally": "unitLost",
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theAlmonersBook": {
+      "name": "The Almoners' Book",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "star",
+      "rarity": "uncommon",
+      "flavor": "What the treasury spends, the almoners write down; what the almoners write down, the schools read.",
+      "text": "+1 science per turn for each 400 gold you have spent buying while this Order stands in a slot.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "tally",
+          "tally": "goldSpent",
+          "per": 400,
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theCasusBelli": {
+      "name": "The Casus Belli",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "forge",
+      "rarity": "rare",
+      "flavor": "The grievance is old, the parchment is new, and the smiths were told a week ago.",
+      "text": "Declaring war grants +2 combat strength to all your units and +10% production in every city, for 10 turns.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "declareWar",
+          "grant": {
+            "timed": {
+              "turns": 10,
+              "effects": [
+                {
+                  "kind": "combatLine",
+                  "amount": 2,
+                  "side": "both",
+                  "when": {
+                    "test": "always"
+                  }
+                },
+                {
+                  "kind": "percentYields",
+                  "yield": "production",
+                  "percent": 10
+                }
+              ]
+            }
+          }
+        }
+      ]
     }
   },
   "tierLadder": [

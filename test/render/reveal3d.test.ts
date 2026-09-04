@@ -19,6 +19,16 @@ import { visibleResourceAt } from '../../src/sim/tech';
 import { HIDDEN, resetVisibility } from '../../src/sim/visibility';
 
 /**
+ * The node that reveals iron, read off the **row**.
+ *
+ * Re-aimed 2026-09-04 (the Bronze Panoply ruling): every test below is about
+ * whether a *gated* seam is drawn, not about which node happens to gate it, so
+ * moving the gate in the data moves these with it rather than dimming five
+ * prisms nobody meant to hide.
+ */
+const IRON_GATE = resourceDef('iron').requiresTech!;
+
+/**
  * The reveal pass: props for resources a seat cannot name are taken off the
  * board, and put back the instant it can name them.
  *
@@ -160,7 +170,7 @@ describe('what a seat may be shown', () => {
     const { board, reveal } = rig(state);
     reveal.apply(state, 0);
 
-    state.players[0]!.techsResearched = ['ironWorking'];
+    state.players[0]!.techsResearched = [IRON_GATE];
     const stats = reveal.apply(state, 0);
     expect(stats.cells).toBe(1);
     expect(stats.matrixWrites).toBeGreaterThan(0);
@@ -192,7 +202,7 @@ describe('what a seat may be shown', () => {
   it('follows a seat change, both ways', () => {
     const state = flatState();
     const cell = put(state, 4, 4, 'iron');
-    state.players[1]!.techsResearched = ['ironWorking'];
+    state.players[1]!.techsResearched = [IRON_GATE];
     const { board, reveal } = rig(state);
 
     reveal.apply(state, 0);
@@ -236,7 +246,7 @@ describe('what a pass costs', () => {
     for (const handle of props) slots += handle.count;
 
     resetInstanceWrites();
-    state.players[0]!.techsResearched = ['ironWorking'];
+    state.players[0]!.techsResearched = [IRON_GATE];
     const stats = reveal.apply(state, 0);
     expect(stats.cells).toBe(2);
     // One write per instance slot the props own, and not one more — the board
@@ -274,7 +284,7 @@ describe('the three bits together', () => {
     const own = board.tiles.own.get(cell)!;
     expect(own.some((handle) => !isHidden(handle))).toBe(true);
 
-    state.players[0]!.techsResearched = ['ironWorking'];
+    state.players[0]!.techsResearched = [IRON_GATE];
     reveal.apply(s, 0);
     expect(isHidden(prop)).toBe(false);
     fog.dispose();
@@ -284,7 +294,7 @@ describe('the three bits together', () => {
   it('does not light a prop on ground nobody has charted', () => {
     const state = flatState();
     const cell = put(state, 4, 4, 'iron');
-    state.players[0]!.techsResearched = ['ironWorking'];
+    state.players[0]!.techsResearched = [IRON_GATE];
     const { geometry, mats, board, reveal } = rig(state);
     const fog = new FogView(state.map, board.tiles);
     fog.buildChart(geometry, mats, null);

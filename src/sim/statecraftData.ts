@@ -1265,7 +1265,87 @@ export type CountKind =
    * the honest answer rather than a guard — the banner is derived from the
    * citizens (`cityReligion`), so this cannot disagree with what the town flies.
    */
-  | 'followersHere';
+  | 'followersHere'
+  /**
+   * **What this card has watched happen** — the growing cards' counter
+   * (`docs/doctrine-ideas.md`, "Growing cards", ruled 2026-09-04).
+   *
+   * Every other member of this union is a question the board answers *now*: ask
+   * it twice and it says the same thing, because the luxuries, the citizens and
+   * the wonders are all still standing there to be counted. This one is the
+   * opposite kind of question — it counts **occasions**, which are moments and
+   * are gone — so what it reads is the tally the empire has been keeping for
+   * this very card (`PlayerStatecraft.tallies`, written by
+   * `recordScalingOccasion`).
+   *
+   * It is one member and not five because the difference between The
+   * Ballad-Weavers and The Bell-Founders is *which* occasion, and an occasion is
+   * an argument: `CardCountScaledEffect.tally` names it, exactly as `building`
+   * names a building and `slot` a flavour. So a sixth growing card is a JSON row.
+   *
+   * The counter belongs to the **card**, not to the occasion, which is what lets
+   * two cards watch one moment and each keep its own count — and it grows only
+   * while the card is in a slot (the standing ruling: the bench is never
+   * productive, and nothing is retroactive).
+   */
+  | 'tally';
+
+/**
+ * The moments a growing card can be counting. See `CountKind`'s `tally`.
+ *
+ * A **separate, small union** rather than a reuse of `WindfallOccasion`, and the
+ * distinction is the one that matters here: a windfall occasion pays *at* the
+ * moment, out of the empire's own cards, and a tally occasion is only ever
+ * written down. Some of these have no windfall twin at all (a wonder finished by
+ * somebody else is nobody's windfall), and some windfall occasions would be
+ * nonsense to count. Two vocabularies, each closed, each read in one place.
+ */
+export type TallyOccasion =
+  /** A barbarian unit killed in battle — The Ballad-Weavers. */
+  | 'barbarianKill'
+  /**
+   * A wonder finished **anywhere in the world**, by anybody — The Bell-Founders.
+   *
+   * The one occasion in this union whose subject is not the empire counting it,
+   * and the reason the design allows exactly one such card: jealousy pays, and a
+   * deck of world-watchers would play itself.
+   */
+  | 'wonderAnywhere'
+  /** A great person spent on a work or a boon — The Reliquary Rolls. */
+  | 'greatPersonSpent'
+  /**
+   * One of this empire's own units **died in battle** — The Chroniclers of the
+   * Fallen.
+   *
+   * Battle, and deliberately not every way a piece can leave the board: it is
+   * fired from the one seam that already means "somebody's soldier fell", the
+   * `death` battle rider, so a disbanded worker and a starved-out garrison are
+   * not deaths a chronicler writes down. That is the honest reading of "one of
+   * your units dies" and it is also the only one with a single hook.
+   */
+  | 'unitLost'
+  /**
+   * Gold paid out of the treasury by the **purchase verb** — The Almoners' Book.
+   *
+   * The amount is the coin itself rather than one, which is what
+   * `recordScalingOccasion`'s `amount` is for: the tally holds the raw sum spent
+   * and the card's `per` divides it, so the remainder is kept by the counter
+   * instead of being rounded away a purchase at a time.
+   *
+   * `purchaseItemAt` and nowhere else — the verb whose whole name is *purchase*.
+   * Buying a hex, recruiting a great person and paying a payroll all spend gold
+   * and none of them is a purchase in the sense the card's face uses the word.
+   */
+  | 'goldSpent';
+
+/** Every tally occasion, for the register test that pins the hooks. */
+export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
+  'barbarianKill',
+  'wonderAnywhere',
+  'greatPersonSpent',
+  'unitLost',
+  'goldSpent',
+];
 
 /** What a `rateConversion` reads. A *rate* or a meter standing, never a bank. */
 export type RateSource =
@@ -1701,7 +1781,25 @@ export type WindfallOccasion =
    * `unitCompletion` goes on firing for a bought unit exactly as it did (Rites
    * of Passage is still one row and still pays once).
    */
-  | 'purchase';
+  | 'purchase'
+  /**
+   * **This empire declared war** (`declareWarAt`, `diplomacy.ts`) — The Casus
+   * Belli's ten turns of fury.
+   *
+   * The declaring side only, and only against a real empire: `declareWarError`
+   * has already refused the wild by the time the war is opened, so there is no
+   * clause here about raiders. The seat declared upon is paid nothing — a card
+   * that fired for the defender would be a different card, and the design has
+   * not written one.
+   *
+   * It fires on the **declaration**, which is a moment, and what it hangs is a
+   * `grant.timed` — so a Casus Belli that was on the bench when the herald rode
+   * out sees nothing, and one unslotted the turn after keeps what it already
+   * bought. That is `windfallRider`'s ordinary reading of "while slotted" and it
+   * is why this is an occasion rather than a standing `atWar` condition: the
+   * card pays for *starting* a war, not for being in one.
+   */
+  | 'declareWar';
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
@@ -2252,6 +2350,17 @@ export interface CardCountScaledEffect {
    * the rest) already answer per town and ignore this.
    */
   within?: 'city';
+  /**
+   * Which moment `tally` counts. Ignored by every other count.
+   *
+   * `building`'s, `category`'s, `class`' and `slot`'s fifth sibling, and here for
+   * their reason exactly: a count that needs an argument names it on the effect,
+   * so the union stays a list of *questions* and the row says which one it is
+   * asking. A `tally` row that names no occasion counts nothing at all — the
+   * honest answer for a card that never said what it was watching, rather than a
+   * guard that would quietly count everything.
+   */
+  tally?: TallyOccasion;
 }
 
 /** A payout converted from a rate or a meter standing. See `RateSource`. */

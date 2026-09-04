@@ -280,7 +280,7 @@ describe('determinism', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(64);
+    expect(SCHEMA_VERSION).toBe(65);
     const played = playFaithful(200);
     // The empire actually got there: an augur was bought out of faith it earned,
     // rites were performed, and a god was named. A determinism test over a log

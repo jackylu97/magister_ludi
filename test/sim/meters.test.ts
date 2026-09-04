@@ -912,7 +912,7 @@ describe('a captured city, end to end', () => {
     // v61 (2026-09-04, the card-shapes pass): nine Orders join the pools, two
     // are retired and one pays a second voice — so a v60 log's `chooseOrder`
     // names indices into triples this build does not deal.
-    expect(SCHEMA_VERSION).toBe(64);
+    expect(SCHEMA_VERSION).toBe(65);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

@@ -1148,7 +1148,7 @@ describe('determinism', () => {
     // Government I and the chiefdom, and The Last Hunt pays a second voice —
     // four bags changed size, so a v60 log's `chooseOrder` names indices into
     // triples this build does not deal.
-    expect(SCHEMA_VERSION).toBe(64);
+    expect(SCHEMA_VERSION).toBe(65);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

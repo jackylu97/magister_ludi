@@ -152,6 +152,7 @@ import {
   type OrderSlotGrant,
   type RateSource,
   type SlotType,
+  type TallyOccasion,
   type TileCondition,
   type UnitFilter,
   type WindfallOccasion,
@@ -312,6 +313,21 @@ export interface OrderOffer {
   options: OrderId[];
 }
 
+/**
+ * One growing card's counter: what it is counting for, and how much.
+ *
+ * `count` is deliberately **raw** — the occasions themselves, or in The Almoners'
+ * Book's case the coin itself — and never the helpings it works out to. The
+ * card's own `per` does the dividing when the line is read (`helpings`), so a
+ * remainder is kept by the counter rather than rounded away an occasion at a
+ * time: four hundred gold spent in four purchases of a hundred pays the same as
+ * one purchase of four hundred, which is the only reading a player can check.
+ */
+export interface OrderTally {
+  card: OrderId;
+  count: number;
+}
+
 /** Three Doctrines from one adoption's pool, drawn without replacement. */
 export interface DoctrineOffer {
   options: DoctrineId[];
@@ -386,6 +402,34 @@ export interface PlayerStatecraft {
    * seat that has passed and then taken a card serialise identically.
    */
   orderSkips: number;
+  /**
+   * **What each growing card has watched happen** — the counters the scaling
+   * family reads (`docs/doctrine-ideas.md`, ruled 2026-09-04).
+   *
+   * A list of `{card, count}` rather than a map, for `Player.legacies`' reason
+   * and `grantedOnSlot`'s: iteration order that is part of the state is
+   * iteration order a replay reproduces, and a Map's order is the one thing
+   * CLAUDE.md's determinism rule forbids an outcome to depend on. The order is
+   * **the order each counter first opened**, which is history, and history is
+   * what a replay replays.
+   *
+   * Keyed by the **card** and never by the occasion, which is the whole of the
+   * standing ruling read as a shape: the counter lives on the owned order, so it
+   * survives being benched, survives adoption's total rebuild of `slots` (which
+   * touches this field not at all) and cannot be inherited by a second card that
+   * happens to watch the same moment.
+   *
+   * It grows in exactly one place (`recordScalingOccasion`) and only for cards
+   * that are **in a slot** at the moment the occasion fires. Nothing ever
+   * removes an entry: a card counted to seven, benched and re-slotted resumes at
+   * seven, because the tally is what the player watched happen and no part of it
+   * is retroactive in either direction.
+   *
+   * Always present, never optional — `orderSkips`' rule — so a seat that has
+   * counted nothing and a seat that has counted and been benched serialise
+   * identically.
+   */
+  tallies: OrderTally[];
   /** A draft awaiting a pick, or the key is absent. Blocks End Turn. */
   pendingOrder?: OrderOffer;
   /** A Doctrine draft awaiting a pick, or absent. Blocks End Turn. */
@@ -404,6 +448,7 @@ export function newPlayerStatecraft(): PlayerStatecraft {
     doctrines: [],
     grantedOnSlot: [],
     orderSkips: 0,
+    tallies: [],
   };
 }
 
@@ -428,6 +473,95 @@ export function slotOf(sc: PlayerStatecraft, id: OrderId): number {
 /** Is this card in a slot right now? */
 export function isSlotted(sc: PlayerStatecraft, id: OrderId): boolean {
   return slotOf(sc, id) >= 0;
+}
+
+/**
+ * What this card has counted for this empire so far. Nought for a card that has
+ * never counted anything, which is the same answer as an absent row.
+ */
+export function tallyOf(sc: PlayerStatecraft, id: OrderId): number {
+  for (const held of sc.tallies) {
+    if (held.card === id) return held.count;
+  }
+  return 0;
+}
+
+/**
+ * Writes down one occasion for every **slotted** growing card that was watching
+ * for it. **The** one writer of `PlayerStatecraft.tallies`.
+ *
+ * One helper and not five inline copies, which is the same bargain the whole
+ * evaluator is built on: a sixth growing card is a JSON row naming a
+ * `TallyOccasion`, and the only thing a *new* occasion costs is the one line at
+ * the seam that already knows the moment happened.
+ *
+ * Three properties, each of them the standing ruling said in code:
+ *
+ *   · **only while slotted.** The walk is over `sc.slots`, not over `sc.orders`,
+ *     so a benched card sees nothing and the bench is never productive. A card
+ *     slotted later resumes counting from where it stopped — the row is left
+ *     alone rather than reset — because the tally is what the player watched
+ *     happen and the slot is the price of watching.
+ *   · **once per card per occasion.** A row that says the same tally twice (two
+ *     voices paid off one counter, which is exactly what The Reliquary Rolls is)
+ *     is still one card watching one moment, so the card is counted and then
+ *     skipped.
+ *   · **the raw figure.** `amount` is the occasion's own size — one for a kill,
+ *     the coin itself for a purchase — and the dividing is the card's `per`, read
+ *     where the line is printed. See `OrderTally.count`.
+ *
+ * Nothing is written for an amount of nought or less, so a free purchase leaves
+ * the books exactly as they were.
+ */
+export function recordScalingOccasion(
+  state: GameState,
+  playerId: number,
+  occasion: TallyOccasion,
+  amount = 1,
+): void {
+  if (amount <= 0) return;
+  const sc = statecraftOf(state, playerId);
+  if (!sc) return;
+  for (const slot of sc.slots) {
+    const card = slot?.card;
+    if (card === undefined || !isOrderId(card)) continue;
+    if (!orderWatches(card, occasion)) continue;
+    const held = sc.tallies.find((row) => row.card === card);
+    if (held) held.count += amount;
+    else sc.tallies.push({ card, count: amount });
+  }
+}
+
+/**
+ * The **world's** occasions, written into every real empire's books at once —
+ * The Bell-Founders' jealousy.
+ *
+ * `realPlayers` order, which is seat order, because a sweep's outcome must
+ * depend on an order the state itself carries; the wild keeps no books and holds
+ * no cards, so it is out of this by the same clause that keeps it out of every
+ * other meter.
+ */
+export function recordWorldScalingOccasion(
+  state: GameState,
+  occasion: TallyOccasion,
+  amount = 1,
+): void {
+  for (const player of realPlayers(state)) {
+    recordScalingOccasion(state, player.id, occasion, amount);
+  }
+}
+
+/**
+ * Is this card watching for this moment? Read off the row's own effects, so what
+ * a card counts and what it pays for counting are one declaration.
+ */
+function orderWatches(id: OrderId, occasion: TallyOccasion): boolean {
+  for (const effect of orderDef(id).effects) {
+    if (effect.kind !== 'countScaled') continue;
+    if (effect.count !== 'tally') continue;
+    if (effect.tally === occasion) return true;
+  }
+  return false;
 }
 
 /** The slot types this government opens, military first. */
@@ -1968,10 +2102,17 @@ function label(source: string, note: string | null): string {
  * `city` is present for the city-scoped counts and ignored by the rest; a
  * city-scoped count asked with no city answers 0, which is the honest answer for
  * an empire-scale reader that has no town in hand.
+ *
+ * `card` is **whose** count this is, and it is here for exactly one member:
+ * `tally` is the only question in the union whose answer belongs to the card
+ * asking it rather than to the board, so the walk that already carries the card
+ * for the label hands it in rather than every arm re-deriving it. Every other
+ * arm ignores it.
  */
 function countOf(
   state: GameState,
   playerId: number,
+  card: CardId,
   effect: CardCountScaledEffect,
   city?: City,
 ): number {
@@ -2315,6 +2456,20 @@ function countOf(
       // camp that has been burnt out leaves nothing to sweep, which is exactly
       // what clearing one means. Written at the single seam that clears one.
       return Math.max(0, Math.floor(playerById(state, playerId)?.campsCleared ?? 0));
+    case 'tally': {
+      // **What this card has watched happen** — the growing cards' counter, and
+      // the one member of the union that is not a question about the board at
+      // all (see `CountKind`'s `tally`). Read off the empire's own books, for
+      // *this* card: two growing cards watching one moment each keep their own
+      // count, which is what makes the counter a fact about the holding.
+      //
+      // Raw, and divided by the row's own `per` in `helpings` where the line is
+      // printed, so the remainder is kept rather than rounded away — the whole
+      // point of storing the coin rather than the helpings.
+      if (!isOrderId(card)) return 0;
+      const sc = statecraftOf(state, playerId);
+      return sc ? tallyOf(sc, card) : 0;
+    }
     case 'followersHere': {
       // **The town's own congregation**, and the one count in the union that is
       // about a city's faith rather than about a founder's. `cityReligion` is
@@ -2607,7 +2762,7 @@ export function cardCityYields(state: GameState, city: City): CardYieldLine[] {
     // are the first row to want one, so the seat of government is where they
     // land — one town, counted once, exactly as the card's own words say.
     if (pays.where === 'capital' && capitalCityOf(state, owner)?.id !== city.id) continue;
-    const times = helpings(countOf(state, owner, effect, city), effect.per, effect.max);
+    const times = helpings(countOf(state, owner, card, effect, city), effect.per, effect.max);
     if (times === 0) continue;
     const line = emptyLine(card, label(source, `×${times}`));
     line[pays.yield] = pays.amount * times;
@@ -2664,7 +2819,7 @@ export function cardEmpireYields(
     // `capital` is a **city** line (see `cardCityYields`), so it leaves here with
     // `city`: an empire fold that also paid it would pay it twice.
     if (pays.to !== 'yield' || pays.where === 'city' || pays.where === 'capital') continue;
-    const times = helpings(countOf(state, playerId, effect), effect.per, effect.max);
+    const times = helpings(countOf(state, playerId, card, effect), effect.per, effect.max);
     if (times === 0) continue;
     const line = emptyLine(card, label(source, `×${times}`));
     line[pays.yield] = pays.amount * times;
@@ -3060,7 +3215,7 @@ export function cardPercentYields(state: GameState, city: City): CardPercentLine
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'countScaled')) {
     const pays = effect.pays;
     if (pays.to !== 'percent') continue;
-    const times = helpings(countOf(state, owner, effect, city), effect.per, effect.max);
+    const times = helpings(countOf(state, owner, card, effect, city), effect.per, effect.max);
     if (times === 0) continue;
     const percent = pays.percent * times;
     if (percent === 0) continue;
@@ -3299,10 +3454,10 @@ export function cardHappiness(state: GameState, playerId: number): CardMeterLine
     if (isCityScopedCount(effect)) {
       for (const city of state.cities) {
         if (city.ownerId !== playerId) continue;
-        times += helpings(countOf(state, playerId, effect, city), effect.per, effect.max);
+        times += helpings(countOf(state, playerId, card, effect, city), effect.per, effect.max);
       }
     } else {
-      times = helpings(countOf(state, playerId, effect), effect.per, effect.max);
+      times = helpings(countOf(state, playerId, card, effect), effect.per, effect.max);
     }
     if (times === 0) continue;
     list.push({ card, source: label(source, `×${times}`), amount: each * times });
@@ -3358,7 +3513,7 @@ function cityLocalHappiness(state: GameState, playerId: number): CardMeterLine[]
       if (effect.pays.to !== 'happiness') continue;
       const each = effect.pays.amount;
       if (each === 0) continue;
-      const times = helpings(countOf(state, playerId, effect, city), effect.per, effect.max);
+      const times = helpings(countOf(state, playerId, card, effect, city), effect.per, effect.max);
       if (times === 0) continue;
       add(card, source, each * times);
     }
@@ -3401,7 +3556,7 @@ export function cardAuthority(state: GameState, playerId: number): CardMeterLine
     if (effect.pays.to !== 'authority') continue;
     const each = effect.pays.amount;
     if (each === 0) continue;
-    const times = helpings(countOf(state, playerId, effect), effect.per, effect.max);
+    const times = helpings(countOf(state, playerId, card, effect), effect.per, effect.max);
     if (times === 0) continue;
     list.push({ card, source: label(source, `×${times}`), amount: each * times });
   }
@@ -4708,7 +4863,7 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
       per === 'city'
         ? cityCount(state, playerId)
         : per === 'wonder'
-          ? countOf(state, playerId, { kind: 'countScaled', count: 'wonders', pays: RENOWN_PROBE })
+          ? countOf(state, playerId, card, { kind: 'countScaled', count: 'wonders', pays: RENOWN_PROBE })
           : 1;
     const amount = each * helpings;
     if (amount === 0) continue;
@@ -5415,8 +5570,16 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       // second is already carried by the town the line is printed beside.
       const paidIn =
         effect.pays.to === 'yield' && effect.pays.where === 'capital' ? ' in your capital' : '';
+      // **The counter's one condition, printed once.** A growing card pays for
+      // what it has watched happen, and it only watches from a slot — so the
+      // clause belongs beside the count rather than folded into five nouns, and
+      // a card that left it unsaid would be a card that lies about its bench.
+      const counted =
+        effect.count === 'tally' ? ', counted while this Order stands in a slot' : '';
       out.push({
-        text: `${payoutWords(effect.pays)}${paidIn} per ${countWords(effect.per, words)}${here}${cap}`,
+        text:
+          `${payoutWords(effect.pays)}${paidIn} per ${countWords(effect.per, words)}` +
+          `${here}${cap}${counted}`,
       });
       return;
     }
@@ -5776,6 +5939,12 @@ function countNoun(effect: CardCountScaledEffect): PluralWords {
   // time: the argument is printed here so the three rows are one table entry.
   if (effect.count === 'slottedOrdersOfSlot' && effect.slot !== undefined) {
     return slotFlavourWords(effect.slot);
+  }
+  // The growing cards' count, said as the *moment* the card watches for — "per
+  // barbarian you have killed". `buildingsOfKind`'s bargain a sixth time: the
+  // argument is printed here, so five cards are one table entry.
+  if (effect.count === 'tally' && effect.tally !== undefined) {
+    return TALLY_WORDS[effect.tally];
   }
   return COUNT_WORDS[effect.count];
 }
@@ -6295,6 +6464,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   tilePurchase: 'buying a hex',
   rite: 'performing a rite',
   purchase: 'buying anything',
+  declareWar: 'declaring war',
 };
 
 /**
@@ -6450,6 +6620,37 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     many: 'following cities with the building',
   },
   followersHere: { one: 'follower in this city', many: 'followers in this city' },
+  // The occasion is not in these words: `countNoun` prints it off the row's own
+  // `tally`, so that "per barbarian you have killed" and "per wonder finished"
+  // are one entry — `buildingsOfKind`'s bargain a sixth time. This is the
+  // reading of a row that names no occasion at all, which counts nothing.
+  tally: { one: 'time it has counted', many: 'times it has counted' },
+};
+
+/**
+ * What each growing card is watching for, as a noun in both numbers.
+ *
+ * `COUNT_WORDS`' argument table, and the words are written in the **perfect**
+ * ("you have killed", "have been finished") because that is what a counter is: a
+ * card that pays for what has already happened, not for what is standing on the
+ * board. The clause that says the counting only runs while the card is in a slot
+ * is printed once, beside the count, rather than folded into five nouns.
+ */
+const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
+  barbarianKill: {
+    one: 'barbarian you have killed',
+    many: 'barbarians you have killed',
+  },
+  wonderAnywhere: {
+    one: 'wonder finished anywhere in the world',
+    many: 'wonders finished anywhere in the world',
+  },
+  greatPersonSpent: {
+    one: 'great person you have spent',
+    many: 'great people you have spent',
+  },
+  unitLost: { one: 'unit you have lost in battle', many: 'units you have lost in battle' },
+  goldSpent: { one: 'gold you have spent buying', many: 'gold you have spent buying' },
 };
 
 const RATE_WORDS: Record<RateSource, PluralWords> = {

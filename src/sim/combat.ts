@@ -245,6 +245,7 @@ import {
   cardCombatPercent,
   cardUnitStat,
   payWindfallGrants,
+  recordScalingOccasion,
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
@@ -2241,6 +2242,20 @@ function payBattleRiders(
 ): void {
   const player = playerById(state, playerId);
   if (!player) return;
+  // **The growing cards' two battle occasions**, written down before a single
+  // figure is composed — a counter is not a payout and must not be skipped by
+  // the early return below, which exists only to spare an empire whose cards
+  // grant nothing on this moment.
+  //
+  // They ride *this* function rather than the two call sites for the reason the
+  // riders do: this is where the game already says "somebody's soldier fell, and
+  // here is whose". `death` is the only death a chronicler writes down (see
+  // `TallyOccasion`'s `unitLost`), and the barbarian kill is the ordinary
+  // occasion narrowed by the fact the caller is the only thing that still knows.
+  if (occasion === 'kill' && facts.vsBarbarians === true) {
+    recordScalingOccasion(state, playerId, 'barbarianKill');
+  }
+  if (occasion === 'death') recordScalingOccasion(state, playerId, 'unitLost');
   const payout = windfallPayout(state, playerId, occasion, 0, 0, facts);
   if (payout.heal > 0 && healed) {
     // Capped at the **piece's** maximum, like every other heal in the game

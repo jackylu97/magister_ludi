@@ -41,9 +41,16 @@ import {
   capitalCityOf,
   hasResource,
   refreshCityDerived,
+  settleProductionWindfall,
   tileOwnerField,
   tileOwnerPlayerId,
 } from './cities';
+import {
+  payWindfallGrants,
+  settleCultureWindfall,
+  windfallPayout,
+} from './statecraft';
+import { settleResearchWindfall } from './tech';
 import { handOverCity, updateElimination } from './combat';
 import {
   type DealEndReport,
@@ -249,11 +256,54 @@ export function declareWarAt(
     reseatEmpire(state, playerId);
     reseatEmpire(state, targetId);
   }
+  // **The declaration is an occasion** (The Casus Belli, 2026-09-04), fired here
+  // and nowhere else, for the declaring seat alone: `WindfallOccasion`'s
+  // `declareWar` says why the card pays for *starting* a war rather than for
+  // being in one, and a rider read off `liveEffects` therefore sees exactly the
+  // cards that were in a slot when the herald rode out.
+  //
+  // Last, after the caravans and the bargains are gone, because a rider may hang
+  // a timed effect on the empire and the war it is a consequence of should be
+  // whole before the consequence arrives — `purchaseItemAt`'s ordering, for its
+  // reason.
+  payDeclarationRiders(state, playerId);
   return {
     report: { byId: playerId, onId: targetId, turn: state.turn },
     routesEnded: cancelRoutesBetween(state, playerId, targetId),
     dealsEnded,
   };
+}
+
+/**
+ * Pays one empire's riders on the moment it declared a war.
+ *
+ * `payBattleRiders`' twin one system over, and deliberately its shape rather
+ * than a line that only reads `payout.timed`: a declaration has no figure of its
+ * own (the base is nought), and everything a card may hang on the moment —
+ * coins, a gifted column, an army made whole, ten turns of fury — is composed by
+ * `windfallPayout` and delivered by `payWindfallGrants`. A second `declareWar`
+ * rider that granted culture or beakers would need no edit here, which is the
+ * whole reason it is written this way today.
+ */
+function payDeclarationRiders(state: GameState, playerId: number): void {
+  const player = playerById(state, playerId);
+  if (!player) return;
+  const payout = windfallPayout(state, playerId, 'declareWar');
+  if (
+    payout.grants.length === 0 &&
+    payout.units.length === 0 &&
+    !payout.healAll &&
+    payout.timed.length === 0
+  ) {
+    return;
+  }
+  const seat = capitalCityOf(state, playerId);
+  const at = seat ? { col: seat.col, row: seat.row } : undefined;
+  for (const city of payWindfallGrants(state, player, payout, at)) {
+    settleProductionWindfall(state, city);
+  }
+  settleCultureWindfall(state, player);
+  settleResearchWindfall(state, player);
 }
 
 /**

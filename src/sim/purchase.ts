@@ -85,6 +85,7 @@ import { RULES } from './rulesData';
 import {
   cardPurchaseRiders,
   payWindfallGrants,
+  recordScalingOccasion,
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
@@ -629,7 +630,14 @@ export function purchaseItemAt(
 ): RealisedItem {
   const price = explainPurchaseCost(state, player.id, city.id, item, currency)!;
   if (price.currency === 'faith') player.faithPool -= price.total;
-  else player.gold -= price.total;
+  else {
+    player.gold -= price.total;
+    // **The almoner's ledger** — the coin itself, not one purchase (see
+    // `TallyOccasion`'s `goldSpent`). Written where the money leaves, which is
+    // the only place the *figure* is in hand, and only for gold: a card that
+    // counted faith as well would be counting two banks under one word.
+    recordScalingOccasion(state, player.id, 'goldSpent', price.total);
+  }
   if (item.kind === 'unit' && unitDef(item.id).consecrates === true) {
     player.augursPurchased += 1;
   }

@@ -157,7 +157,7 @@ describe('the visibility grid', () => {
     // v64 (the sim singles, 2026-09-04): `Player.metSeats` — a meeting is
     // stored and permanent, written by `recordMeetings` off the same `lit` set
     // this file's recompute folds the fog and the city memory from.
-    expect(SCHEMA_VERSION).toBe(64);
+    expect(SCHEMA_VERSION).toBe(65);
   });
 
   it('survives a JSON round trip as plain data', () => {

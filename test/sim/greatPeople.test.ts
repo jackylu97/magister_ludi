@@ -52,6 +52,7 @@ import {
   rosterOfAge,
 } from '../../src/sim/greatPeopleData';
 import { improvementError } from '../../src/sim/improvements';
+import { resourceDef } from '../../src/sim/resourceData';
 import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
 import { isWaterTerrain } from '../../src/sim/terrainData';
 import { RULES } from '../../src/sim/rulesData';
@@ -553,8 +554,12 @@ describe('the work', () => {
   it('opens whatever seam it was planted on, once the empire has a word for it', () => {
     // The other half of the same note: "automatically gives strategic or luxury
     // resource if built on top of them". The reveal clause still binds and still
-    // comes first, so iron under an academy is worth nothing until Bronzeworking
-    // — and the ledger names the academy, not the mine nobody dug.
+    // comes first, so iron under an academy is worth nothing until the seam's own
+    // node — and the ledger names the academy, not the mine nobody dug.
+    //
+    // Re-aimed 2026-09-04: the gate is read off the **row** rather than spelled
+    // here, so moving it (Bronze Panoply, that day's ruling) moves this with it.
+    const ironGate = resourceDef('iron').requiresTech!;
     const g = game(83);
     const city = found(g.state, 0);
     const unit = call(g.state, 0, SAMPLE.scholar);
@@ -567,12 +572,12 @@ describe('the work', () => {
     tile.resource = 'iron';
 
     const player = g.state.players[0]!;
-    player.techsResearched = player.techsResearched.filter((id) => id !== 'ironWorking');
+    player.techsResearched = player.techsResearched.filter((id) => id !== ironGate);
     applyCommand(g.state, { type: 'greatPersonWork', playerId: 0, unitId: unit.id });
     expect(tile.improvement).toBe('academy');
     expect(hasResource(g.state, 0, 'iron')).toBe(false);
 
-    player.techsResearched.push('ironWorking');
+    player.techsResearched.push(ironGate);
     expect(hasResource(g.state, 0, 'iron')).toBe(true);
     const holding = controlledHoldings(g.state, 0, 'strategic').find((h) => h.id === 'iron')!;
     expect(holding.via).toBe('improvement');
@@ -835,8 +840,11 @@ describe('the legacies this pass built', () => {
     tile.hills = true;
     tile.resource = 'iron';
     const player = g.state.players[0]!;
-    if (!player.techsResearched.includes('ironWorking')) {
-      player.techsResearched.push('ironWorking');
+    // The seam's own reveal node, off the row (re-aimed 2026-09-04 with the
+    // Bronze Panoply ruling — see "opens whatever seam" above).
+    const ironGate = resourceDef('iron').requiresTech!;
+    if (!player.techsResearched.includes(ironGate)) {
+      player.techsResearched.push(ironGate);
     }
     applyCommand(g.state, { type: 'greatPersonWork', playerId: 0, unitId: unit.id });
     expect(hasResource(g.state, 0, 'iron')).toBe(true);
