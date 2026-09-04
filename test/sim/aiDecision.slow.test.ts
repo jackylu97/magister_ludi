@@ -66,6 +66,12 @@ const PATIENCE = 120_000;
  * below (`WAR_CONFIG`) still fights its whole war. If a later sweep finds no
  * declaring seed at all, that is the moment to move `war` out of this claim
  * and onto the warmonger's — deliberately, not by a quiet re-pin.
+ *
+ * **That moment came the same evening** (the levelling axe re-weighted every
+ * draft): a twelve-seed sweep found no balanced declaration inside a hundred
+ * turns at all, and seed 3 kept `deal` instead. The seed stays; `war` moved
+ * onto the warmonger's claim and `deal` into this one — see the coverage
+ * test's comment for the full record.
  */
 const CONFIG: GameConfig = {
   seed: 3,
@@ -310,29 +316,32 @@ describe('a hundred turns of arithmetic', () => {
       // `aiBot.test.ts`' "lets a redundant piece go when it is actually in
       // arrears".
       //
-      // **`war` is in the list, and from two balanced seats** — which is worth
-      // reading twice. A peaceful seat's bar is `war.declareThresholdPeaceful`,
-      // deliberately high rather than unreachable (the flags' recommendation:
-      // opportunistic declarations at overwhelming advantage), and on this map
-      // one of these two clears it. Tall and zealot put it out of reach in their
-      // own sheets; balanced does not, and this is where that shows. Measured
-      // 2026-09-04 on the re-seeded arena (see `CONFIG`): the first declaration
-      // lands on **turn 35**.
+      // **`war` moved off this claim on 2026-09-04**, exactly the way the
+      // CONFIG docblock said it would have to: after the military brain
+      // (sighted levies, the mix, the tactics) and the rarity-weighted draw, a
+      // sweep of TWELVE balanced seeds found none declaring inside the hundred
+      // turns — balanced seats got visibly more careful, which is those
+      // passes working, not the arm dying. War coverage now lives where the
+      // war is: the warmonger arena above (`WAR_CONFIG`) still declares,
+      // fights and folds every warscore line. Moving the kind between claims
+      // was deliberate; the union of the two lists never shrank.
       //
-      // `deal` is absent for a different reason and it is not a gap either:
-      // whether two empires ever hold the seams a 1:1 swap needs is a fact about
-      // the map. It is pinned on an arranged board in `test/sim/aiWar.test.ts`.
+      // **`deal` joined the same day**, from the same sweep: nine of the
+      // twelve seeds now strike one (the levy walks more pieces to more
+      // borders, so the seams a swap needs actually meet). Its arithmetic is
+      // still pinned on an arranged board in `test/sim/aiWar.test.ts`; here it
+      // is coverage.
       //
-      // If a later pass makes the economy bleed again this list grows back, and
-      // that is worth noticing too.
+      // If a later pass makes the economy bleed again `disband` grows back,
+      // and that is worth noticing too.
       expect([...kinds].sort()).toEqual([
         'build',
+        'deal',
         'draft',
         'endTurn',
         'purchase',
         'research',
         'unitOrder',
-        'war',
       ]);
       for (const step of walked.steps) {
         if (step.decision.kind === 'endTurn') continue;
