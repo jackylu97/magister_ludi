@@ -341,7 +341,7 @@ describe('buildImprovement', () => {
     worker.chargesLeft = 2;
     worker.movesLeft = 0;
     expect(improvementError(state, worker.id, 'farm')).toBe(
-      `Unit ${worker.id} has no movement left`,
+      'This worker has no movement left',
     );
   });
 
@@ -472,7 +472,7 @@ describe('buildImprovement', () => {
       }
       tile.feature = 'none';
       expect(improvementError(state, worker.id, 'lumbermill')).toBe(
-        'A lumbermill cannot be built in none',
+        'A lumbermill needs forest or jungle',
       );
       tile.feature = 'floodplain';
       expect(improvementError(state, worker.id, 'lumbermill')).toBe(
@@ -516,7 +516,7 @@ describe('buildImprovement', () => {
       expect(improvementTechError(state, 0, 'lumbermill')).toBe(said);
       tile.feature = 'none';
       expect(improvementError(state, worker.id, 'lumbermill')).toBe(
-        'A lumbermill cannot be built in none',
+        'A lumbermill needs forest or jungle',
       );
     });
 
@@ -747,7 +747,7 @@ describe('buildImprovement', () => {
         // a lie — it can, next to a fishery — so the refusal names what is
         // missing instead of what the hex is.
         expect(improvementError(state, worker.id, 'floatingGardens')).toBe(
-          'A floating gardens on coast needs a fishing boat beside it',
+          'Floating gardens on coast need a fishing boat beside it',
         );
       });
 
@@ -772,11 +772,11 @@ describe('buildImprovement', () => {
         // widening rather than a second rule.
         tile.terrain = 'grassland';
         expect(improvementError(state, worker.id, 'floatingGardens')).toBe(
-          'A floating gardens cannot be built on grassland',
+          'Floating gardens cannot be built on grassland',
         );
         tile.terrain = 'ocean';
         expect(improvementError(state, worker.id, 'floatingGardens')).toBe(
-          'A floating gardens cannot be built on ocean',
+          'Floating gardens cannot be built on ocean',
         );
       });
 
@@ -1186,7 +1186,7 @@ describe('chopFeature', () => {
 
       worker.chargesLeft = 3;
       worker.movesLeft = 0;
-      refuses(state, chop(0, worker.id), `Unit ${worker.id} has no movement left`);
+      refuses(state, chop(0, worker.id), 'This worker has no movement left');
     });
 
     it('refuses bare ground in its own words, and clears the jungle', () => {
@@ -1533,7 +1533,7 @@ describe('pillage', () => {
     expect(pillageError(state, worker.id)).toBe('A Worker cannot pillage');
 
     raider.movesLeft = 0;
-    expect(pillageError(state, raider.id)).toBe(`Unit ${raider.id} has no movement left`);
+    expect(pillageError(state, raider.id)).toBe('This warrior has no movement left');
 
     raider.movesLeft = 2;
     delete at(state, 2, 1).improvement;
@@ -2132,7 +2132,7 @@ describe('improvements in the log', () => {
     // v60 (the pangaea, 2026-09-03): the generator deals one continent now, so
     // the same seed lays down different ground — a v59 log walks units over
     // water and founds towns on hexes this build does not have.
-    expect(SCHEMA_VERSION).toBe(61);
+    expect(SCHEMA_VERSION).toBe(62);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

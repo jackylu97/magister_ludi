@@ -177,6 +177,28 @@ export function chargesLeft(unit: Unit): number {
  * citadel on an iron hill is not a mistake a player discovers three turns later,
  * it is a citadel on an iron hill, and `openedResource` hands over the iron.
  */
+/**
+ * The row as the noun of a refusal — "a lumbermill", but "floating gardens":
+ * a plural name takes no article. The test is grammar (the trailing s), never
+ * a row id, so a future plural row inherits it for free. `ARow` is the same
+ * phrase opening a sentence; `rowNeeds` is its verb ("needs"/"need").
+ * Found the day the worker panel started printing every refusal (2026-09-04):
+ * "A floating gardens cannot be built on grassland" had never been on screen.
+ */
+function aRow(def: { name: string }): string {
+  const noun = def.name.toLowerCase();
+  return noun.endsWith('s') ? noun : `a ${noun}`;
+}
+
+function ARow(def: { name: string }): string {
+  const phrase = aRow(def);
+  return phrase.charAt(0).toUpperCase() + phrase.slice(1);
+}
+
+function rowNeeds(def: { name: string }): string {
+  return def.name.toLowerCase().endsWith('s') ? 'need' : 'needs';
+}
+
 export function improvementErrorAt(
   state: GameState,
   ownerId: number,
@@ -200,7 +222,7 @@ export function improvementErrorAt(
   }
 
   if (tile.improvement === improvementId) {
-    return `${where} already has a ${def.name.toLowerCase()}`;
+    return `${where} already has ${aRow(def)}`;
   }
 
   // **The work's exemption**, asked once and read by every clause below. See the
@@ -215,10 +237,10 @@ export function improvementErrorAt(
     // question read off the terrain table rather than off a list here — the
     // mountain is the only one today and a second one inherits this for free.
     if (isWaterTerrain(tile.terrain)) {
-      return `A ${def.name.toLowerCase()} cannot be built on water`;
+      return `${ARow(def)} cannot be built on water`;
     }
     if (terrainDef(tile.terrain).moveCost === null) {
-      return `A ${def.name.toLowerCase()} cannot be built on ${tile.terrain}`;
+      return `${ARow(def)} cannot be built on ${tile.terrain}`;
     }
   }
   if (!anywhere && def.validTerrain !== undefined && !def.validTerrain.includes(tile.terrain)) {
@@ -237,21 +259,28 @@ export function improvementErrorAt(
     const widened = def.adjacentImprovement;
     const byNeighbour = widened !== undefined && widened.terrain.includes(tile.terrain);
     if (!(def.freshwaterTerrain ?? []).includes(tile.terrain) && !byNeighbour) {
-      return `A ${def.name.toLowerCase()} cannot be built on ${tile.terrain}`;
+      return `${ARow(def)} cannot be built on ${tile.terrain}`;
     }
     if (byNeighbour) {
       if (!hasAdjacentImprovement(state, tile, widened!.improvement)) {
         return (
-          `A ${def.name.toLowerCase()} on ${tile.terrain} needs a ` +
+          `${ARow(def)} on ${tile.terrain} ${rowNeeds(def)} a ` +
           `${improvementDef(widened!.improvement).name.toLowerCase()} beside it`
         );
       }
     } else if (!hasFreshWater(tile)) {
-      return `A ${def.name.toLowerCase()} on ${tile.terrain} needs fresh water`;
+      return `${ARow(def)} on ${tile.terrain} ${rowNeeds(def)} fresh water`;
     }
   }
   if (!anywhere && def.validFeatures !== undefined && !def.validFeatures.includes(tile.feature)) {
-    return `A ${def.name.toLowerCase()} cannot be built in ${tile.feature}`;
+    // A bare hex fails this clause as the feature "none", which is a word for
+    // the data and not for a player — so the refusal names what the row wants
+    // instead of what the hex lacks.
+    if (tile.feature === 'none') {
+      const wants = def.validFeatures.filter((feature) => feature !== 'none');
+      return `${ARow(def)} ${rowNeeds(def)} ${wants.join(' or ')}`;
+    }
+    return `${ARow(def)} cannot be built in ${tile.feature}`;
   }
   if (
     !anywhere &&
@@ -260,12 +289,12 @@ export function improvementErrorAt(
     !hillsWaived(state, ownerId, tile, improvementId)
   ) {
     return def.requiresHills
-      ? `A ${def.name.toLowerCase()} needs hills`
-      : `A ${def.name.toLowerCase()} needs flat ground`;
+      ? `${ARow(def)} ${rowNeeds(def)} hills`
+      : `${ARow(def)} ${rowNeeds(def)} flat ground`;
   }
   if (!anywhere && def.requiresResource !== undefined) {
     if (tile.resource === undefined || !def.requiresResource.includes(tile.resource)) {
-      return `A ${def.name.toLowerCase()} needs a resource it can work`;
+      return `${ARow(def)} ${rowNeeds(def)} a resource it can work`;
     }
   }
   // **The ground the seam is on belongs to the seam.** A resource that some
@@ -402,7 +431,7 @@ export function improvementTechError(
   const def = improvementDef(improvementId);
   const gate = def.requiresTech;
   if (gate === undefined || hasTech(state, ownerId, gate)) return null;
-  return `A ${def.name.toLowerCase()} needs ${techDef(gate).name}`;
+  return `${ARow(def)} ${rowNeeds(def)} ${techDef(gate).name}`;
 }
 
 /**
@@ -475,15 +504,15 @@ export function improvementError(
   const wanted = improvementDef(improvementId).greatPerson ?? null;
   if (planter !== wanted) {
     const what = improvementDef(improvementId).name.toLowerCase();
-    if (planter === undefined) return `A ${def.name.toLowerCase()} builds nothing`;
-    if (wanted !== null) return `A ${def.name.toLowerCase()} cannot build a ${what}`;
+    if (planter === undefined) return `${ARow(def)} builds nothing`;
+    if (wanted !== null) return `${ARow(def)} cannot build a ${what}`;
     return `${def.name}s leave a work behind, not a ${what}`;
   }
   const cost = improvementDef(improvementId).chargeCost;
   if (chargesLeft(unit) < cost) {
     return `This ${def.name.toLowerCase()} has no charges left`;
   }
-  if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
+  if (unit.movesLeft <= 0) return `This ${unitDef(unit.type).name.toLowerCase()} has no movement left`;
 
   const tile = getTileAt(state.map, unit.col, unit.row);
   if (!tile) return `Unit ${unit.id} is not on the map`;
@@ -719,7 +748,7 @@ export function chopError(state: GameState, unitId: number): string | null {
     if (chargesLeft(unit) < chop.chargeCost) {
       return `This ${def.name.toLowerCase()} has no charges left`;
     }
-    if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
+    if (unit.movesLeft <= 0) return `This ${unitDef(unit.type).name.toLowerCase()} has no movement left`;
   }
   return chopErrorAt(state, unit.ownerId, tile);
 }
@@ -880,7 +909,7 @@ export function prospectError(state: GameState, unitId: number): string | null {
 
   const def = unitDef(unit.type);
   if (!isBuilder(unit) && !isExplorer(def)) return `A ${def.name} cannot survey ground`;
-  if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
+  if (unit.movesLeft <= 0) return `This ${unitDef(unit.type).name.toLowerCase()} has no movement left`;
 
   const tile = getTileAt(state.map, unit.col, unit.row);
   if (!tile) return `Unit ${unit.id} is not on the map`;
@@ -1104,7 +1133,7 @@ export function pillageError(state: GameState, unitId: number): string | null {
 
   const def = unitDef(unit.type);
   if (def.category !== 'military') return `A ${def.name} cannot pillage`;
-  if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
+  if (unit.movesLeft <= 0) return `This ${unitDef(unit.type).name.toLowerCase()} has no movement left`;
 
   const tile = getTileAt(state.map, unit.col, unit.row);
   if (!tile) return `Unit ${unit.id} is not on the map`;
