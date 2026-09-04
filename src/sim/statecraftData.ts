@@ -233,8 +233,17 @@ export type CityScope =
   | { test: 'freshwater' }
   /** Its negation, which River Kings needs as its own line rather than as a sign. */
   | { test: 'notFreshwater' }
-  /** A mountain stands within one hex of the town. */
-  | { test: 'mountainAdjacent' }
+  /**
+   * A mountain stands within `radius` hexes of the town — one by default, which
+   * is the town's own hex plus the ring of six, the reach every other "beside
+   * this town" clause in the game takes.
+   *
+   * `radius` is `frontier`'s field one scope over and it arrived for the same
+   * reason: the Stargazers' Charter's observatory reads two hexes, and the row's
+   * own number is the honest place for a distance a card names out loud. Absent
+   * is the reading every row written before it had, so nothing moves.
+   */
+  | { test: 'mountainAdjacent'; radius?: number }
   /** Some tile within `radius` (default 3) belongs to another civilization. */
   | { test: 'frontier'; radius?: number }
   /** The town was taken by force, ever (`City.captured`). */

@@ -1228,6 +1228,7 @@
     },
     "theLeveeEnMasse": {
       "name": "The Levée en Masse",
+      "retired": true,
       "tier": 45,
       "line": "forge",
       "flavor": "Every hearth owes a son, and the ledger remembers which.",
@@ -4275,6 +4276,207 @@
               ]
             }
           }
+        }
+      ]
+    },
+    "ritesCharter": {
+      "name": "The Rites Charter",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "procession",
+      "rarity": "uncommon",
+      "flavor": "A room set aside, a lamp kept lit, and somewhere to put the singing.",
+      "text": "Unlocks the Chapel.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "chapel"
+        }
+      ]
+    },
+    "vigilCharter": {
+      "name": "The Vigil Charter",
+      "pool": "governmentI",
+      "slot": "military",
+      "line": "forge",
+      "rarity": "uncommon",
+      "flavor": "Somebody is awake. That is the whole of it.",
+      "text": "Unlocks the Keep.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "keep"
+        }
+      ]
+    },
+    "scrivenersCharter": {
+      "name": "The Scriveners' Charter",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "star",
+      "rarity": "uncommon",
+      "flavor": "Nothing is known until it has been written out twice.",
+      "text": "Unlocks the Scriptorium.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "scriptorium"
+        }
+      ]
+    },
+    "coinCharter": {
+      "name": "The Coin Charter",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "caravan",
+      "rarity": "uncommon",
+      "flavor": "Weigh it, bite it, write it down, and only then agree.",
+      "text": "Unlocks the Assay House.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "assayHouse"
+        }
+      ]
+    },
+    "waterwrightsCharter": {
+      "name": "The Waterwrights' Charter",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "ploughshare",
+      "rarity": "uncommon",
+      "flavor": "A winter under the square is worth two rivers a day's walk away.",
+      "text": "Unlocks the Cistern.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "cistern"
+        }
+      ]
+    },
+    "theSenatus": {
+      "name": "The Senatus",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "charter",
+      "rarity": "uncommon",
+      "flavor": "Everyone with something to lose, in one room, on the record.",
+      "text": "Unlocks the Assembly Hall.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "assemblyHall"
+        }
+      ]
+    },
+    "toolmakersCharter": {
+      "name": "The Toolmakers' Charter",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "forge",
+      "rarity": "uncommon",
+      "flavor": "First the tools, then the things the tools are for.",
+      "text": "Unlocks the Smithy.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "smithy"
+        }
+      ]
+    },
+    "mintCharter": {
+      "name": "The Mint Charter",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "caravan",
+      "rarity": "uncommon",
+      "flavor": "A face on the coin, and a song about the face.",
+      "text": "Unlocks the Mint early. Every city with a Mint gains 10% of its gold yield again as culture.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "mint"
+        },
+        {
+          "kind": "yieldConversion",
+          "from": "gold",
+          "to": "culture",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "mint"
+          }
+        }
+      ]
+    },
+    "almshouseCharter": {
+      "name": "The Almshouse Charter",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "procession",
+      "rarity": "uncommon",
+      "flavor": "Bread first. The sermon keeps.",
+      "text": "Unlocks the Almshouse.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "almshouse"
+        }
+      ]
+    },
+    "stargazersCharter": {
+      "name": "The Stargazers' Charter",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "star",
+      "rarity": "uncommon",
+      "flavor": "The sky is the one archive nobody has been able to edit.",
+      "text": "Unlocks the Observatory early. +1 science in every city with an Observatory, and 10% more science there when a mountain lies within two hexes.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "observatory"
+        },
+        {
+          "kind": "cityYields",
+          "science": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "observatory"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "hasBuilding",
+                "building": "observatory"
+              },
+              {
+                "test": "mountainAdjacent",
+                "radius": 2
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "justicesCharter": {
+      "name": "The Justices' Charter",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The circuit rides out twice a year, and the year is quieter for it.",
+      "text": "Unlocks the Assize Court.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "assizeCourt"
         }
       ]
     }

@@ -2132,7 +2132,7 @@ describe('improvements in the log', () => {
     // v60 (the pangaea, 2026-09-03): the generator deals one continent now, so
     // the same seed lays down different ground — a v59 log walks units over
     // water and founds towns on hexes this build does not have.
-    expect(SCHEMA_VERSION).toBe(65);
+    expect(SCHEMA_VERSION).toBe(66);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

@@ -59,7 +59,7 @@
  */
 
 import { BUILDING_IDS, buildingDef, buildingPlural } from './buildingData';
-import { buildingHappiness } from './buildingEffects';
+import { buildingCrowdingRelief, buildingHappiness } from './buildingEffects';
 import { improvementDef } from './improvementData';
 import {
   type ResourceHolding,
@@ -307,6 +307,26 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
     const crowding = crowdingDemand(city.population) * demand;
     if (crowding > 0) {
       list.push({ source: `${city.name} crowding`, part: 'cost', value: -crowding });
+    }
+    /**
+     * **The justices sit** (the charters, 2026-09-04): a building may forgive a
+     * share of its own town's crowding.
+     *
+     * Written as a **gain line** against the full crowding cost, which is the
+     * puppet's discipline four lines down and hard rule 5: a player charged less
+     * is entitled to see the discount and which town it came from, and a
+     * quieter cost line above would have printed a smaller number with nothing
+     * to point at. It relieves the *crowding* alone — the per-citizen demand is
+     * what households ask for and the cost of governing is the price of holding
+     * a town at all, and a court that discounted either would be discounting
+     * the wrong thing.
+     *
+     * Through the one evaluator that reads a building's non-yield fields, so
+     * this meter has still never heard of an assize court.
+     */
+    const relief = (crowding * buildingCrowdingRelief(city)) / 100;
+    if (relief > 0) {
+      list.push({ source: `${city.name} · the justices sit`, part: 'gain', value: relief });
     }
     if (perCity > 0) {
       list.push({ source: `${city.name} · cost of governing`, part: 'cost', value: -perCity });

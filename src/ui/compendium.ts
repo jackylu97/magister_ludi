@@ -839,6 +839,20 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
       note: true,
     });
   }
+  // **A row an Order opens** — the Gilded Hall, and the charters' nine
+  // (2026-09-04). Read off the row for the reason the watering clause above is:
+  // eleven charters is eleven rows that would otherwise each have to remember to
+  // type the same sentence, and the sentence a player actually needs is the one
+  // about what happens when the card comes back out of the slot.
+  if (def.unlockedByCard === true) {
+    clauses.push({
+      text:
+        gate === null
+          ? 'You can build this only while the Order that opens it is in one of your slots. Anything you have already built stays.'
+          : `You can build this while the Order that opens it is in one of your slots, or once you have researched ${techDef(gate).name}. Anything you have already built stays.`,
+      note: true,
+    });
+  }
   if (def.acceptsContributions === true) {
     clauses.push({
       text: 'While this is at the front of a city’s build list, you may pour gold or faith into it to hurry it along.',

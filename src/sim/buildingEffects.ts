@@ -1,8 +1,11 @@
 /**
- * What an empire's *buildings* are worth, for the four things a building says
- * that are not a flat city yield: the happiness it supplies, the stat it adds to
- * its own town, the hit points it adds to that town's walls, and (Entry XXVII)
- * what it pays on the **ground** that town works.
+ * What an empire's *buildings* are worth, for everything a building says that is
+ * not a flat city yield: the happiness it supplies, the stat it adds to its own
+ * town, the hit points it adds to that town's walls, (Entry XXVII) what it pays
+ * on the **ground** that town works, and — since the charters, 2026-09-04 — the
+ * crowding it forgives, the discount it puts on the town's purchases, what it
+ * mends on friendly pieces beside it, and what it pays for a rite performed
+ * here.
  *
  * `resourceEffects.ts`'s bargain one scale down, and for the same reason. A
  * building's flat yields are folded where yields are folded (`cityYields`), and
@@ -119,7 +122,8 @@ export function buildingCityHp(city: City): BuildingCityStatLine[] {
 }
 
 /**
- * **Does a building standing in this town water it** — an aqueduct, today?
+ * **Does a building standing in this town water it** — an aqueduct, or the
+ * charters' Cistern?
  *
  * The one reading of `BuildingDef.waters`, so that nothing anywhere compares a
  * building id against `"aqueduct"`, exactly as `isWonder` is the one reading of
@@ -142,6 +146,91 @@ export function cityIsWatered(city: City): boolean {
     if (buildingDef(id).waters === true) return true;
   }
   return false;
+}
+
+/**
+ * What **this city's own** buildings mend on friendly pieces resting in or
+ * beside it — the Keep's five (the charters, 2026-09-04).
+ *
+ * A list, like everything else here, because it lands in a sum a player is
+ * entitled to read a reason for: a warrior that mended fifteen instead of ten
+ * mended for a named thing standing in a named town.
+ *
+ * It answers about the **building** and says nothing about reach: how far
+ * "beside" goes, and which pieces are resting, are the board's questions and
+ * they belong to the one place a heal is decided (`healUnits`, `turn.ts`). This
+ * module has no map and wants none — a ring walk in here would be a second
+ * opinion about adjacency beside `isMountainAdjacent`'s.
+ */
+export function buildingAdjacentHeal(city: City): BuildingCityStatLine[] {
+  const list: BuildingCityStatLine[] = [];
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    const amount = buildingDef(id).healsAdjacent ?? 0;
+    if (amount === 0) continue;
+    list.push({ source: buildingDef(id).name, amount });
+  }
+  return list;
+}
+
+/**
+ * What **this city's own** buildings take off the price of anything it buys, as
+ * signed whole percents — the Assay House's five off.
+ *
+ * A list for `buildingCityStat`'s reason exactly: it is folded into
+ * `explainPurchaseCost`'s ordered lines beside the cards' own riders, summed
+ * with them and applied **once** (Entry XVII at the scale of a price tag), and
+ * the label on that line names every source that made it. A number here would
+ * have printed a cheaper settler with nothing to point at.
+ */
+export function buildingPurchaseDiscount(city: City): BuildingCityStatLine[] {
+  const list: BuildingCityStatLine[] = [];
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    const amount = buildingDef(id).purchaseDiscount ?? 0;
+    if (amount === 0) continue;
+    list.push({ source: buildingDef(id).name, amount });
+  }
+  return list;
+}
+
+/**
+ * What share of **this city's** crowding its own buildings forgive, as one whole
+ * percent — the Assize Court's fifteen.
+ *
+ * The one answer in this file that is summed here rather than by its consumer,
+ * and the reason is the meter's own shape: `explainHappiness` prints crowding as
+ * a single cost line per town, so the relief it prints is a single gain line per
+ * town, and two courts in one city (which no rule allows) would still be one
+ * discount rather than two multiplications. The percent is clamped to a share of
+ * the cost — a relief may forgive crowding and may not pay a town for being
+ * large.
+ */
+export function buildingCrowdingRelief(city: City): number {
+  let percent = 0;
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    percent += buildingDef(id).crowdingRelief ?? 0;
+  }
+  return Math.max(0, Math.min(100, percent));
+}
+
+/**
+ * What **this city's own** buildings pay their empire for a rite performed here
+ * — the Chapel's five culture.
+ *
+ * A number rather than a list, and it is `cityIsWatered`'s bargain rather than
+ * `buildingHappiness`': the consumer is an occasion, not a meter. What a player
+ * reads is the rite's own report, one line naming the town — so the reason is
+ * printed by the thing being paid rather than by a breakdown beside it.
+ */
+export function buildingRitePay(city: City): number {
+  let total = 0;
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    total += buildingDef(id).ritePays ?? 0;
+  }
+  return total;
 }
 
 /** The fold of a building city-stat list. The only sum of one. */

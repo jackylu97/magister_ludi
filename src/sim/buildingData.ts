@@ -53,6 +53,14 @@
  *     `cityMaxHp` (`combat.ts`). `cityStat`'s sibling: strength is what a
  *     defender fights with, hit points are what a besieger has to spend.
  *
+ * The charters added four more of the same kind (2026-09-04), and each is read
+ * in exactly one place through `buildingEffects.ts` like the three above it:
+ * `crowdingRelief` in `explainHappiness` (`meters.ts`), `purchaseDiscount` in
+ * `explainPurchaseCost` (`purchase.ts`), `healsAdjacent` in `healUnits`
+ * (`turn.ts`), `ritePays` in `performRiteAt` (`religion.ts`). Every one of them
+ * is a number the caller interprets; not one of them is a branch anybody has to
+ * grow a case in, which is the ceiling this table has kept since it was written.
+ *
  * The last three are read through `buildingEffects.ts` rather than from this
  * table directly, which is `resourceEffects.ts`'s bargain one scale down: the
  * *table* says what a building is, and one evaluator says what an empire's
@@ -297,6 +305,20 @@ export type BuildingId =
   // technology behind it (`unlockedByCard`, `purchaseOnly`). The Gilded Court
   // hands it over and the treasury is the only way to raise it.
   | 'gildedHall'
+  // **The charters' nine** (2026-09-04, `docs/orders-and-doctrines.md`), in the
+  // order their pools open: an Order in a slot is what opens each of them, no
+  // node names any of them, and what a town has already raised stays raised.
+  // The Mint and the Observatory are the two charter buildings *not* here —
+  // they are rows the tree already named, opened early rather than only.
+  | 'chapel'
+  | 'keep'
+  | 'scriptorium'
+  | 'assayHouse'
+  | 'cistern'
+  | 'assemblyHall'
+  | 'smithy'
+  | 'almshouse'
+  | 'assizeCourt'
   // The six rows the tree re-cut of 2026-09-02 adds (Entry LVIII), in the order
   // the ages open them: Sailing's lighthouse, the charter a chartered city is
   // founded with, Horology's clocktower, Banking's bank, Fortification's
@@ -507,6 +529,27 @@ export interface BuildingDef {
    * (`per`), rather than growing a case here.
    */
   happiness?: number;
+  /**
+   * **What share of its town's crowding this building forgives**, as a whole
+   * percent — the Assize Court's fifteen. Absent means a town that is as
+   * crowded as its size says.
+   *
+   * `happiness`' sibling and deliberately not the same field: happiness supplied
+   * is a *gain* a town pays its empire, and this is a *discount on one named
+   * cost line* — the crowding a big town charges on top of its per-citizen
+   * demand (`crowdingDemand`, `meters.ts`). A court that simply paid two points
+   * of contentment would be worth the same in a hamlet and in a capital of
+   * twelve, which is the opposite of what the row says.
+   *
+   * Read in exactly one place, `explainHappiness` (`meters.ts`), through
+   * `buildingCrowdingRelief` (`buildingEffects.ts`), and folded as a **gain
+   * line** against the full crowding cost rather than as a quieter cost line —
+   * the puppet's discipline three lines down, and hard rule 5: a player being
+   * charged less is entitled to see the discount and which town it came from.
+   * It relieves the crowding only; the per-citizen demand and the cost of
+   * governing are untouched.
+   */
+  crowdingRelief?: number;
   /**
    * A stat of **the city itself** — what it is worth to storm, and how far it
    * sees. Absent means none.
@@ -748,8 +791,69 @@ export interface BuildingDef {
    * It does **not** touch a row that names its own bank (`UnitDef.purchase`):
    * the augur is still sold out of faith and out of nothing else, in every town,
    * which is the rule this marker widens rather than replaces.
+   *
+   * **A word rather than a flag since the charters** (2026-09-04): the Almshouse
+   * opens the same bank for the town's *civilians* only — settlers, workers,
+   * caravans — and a second boolean beside this one would have been two markers
+   * answering one question, which is exactly how a town ends up selling a
+   * knight for faith because the wrong flag was read. `'all'` is the Reliquary's
+   * whole roster; `'civilian'` is `isCivilian` (`unitData.ts`), the same
+   * predicate `unitPurchaseBucket` sorts a purchase by, so the bank that opens
+   * and the bucket that is stamped can never disagree about what a civilian is.
    */
-  faithPurchases?: boolean;
+  faithPurchases?: 'all' | 'civilian';
+  /**
+   * **What this building takes off the price of anything its town buys**, as a
+   * signed whole percent — the Assay House's five off. Absent means a town that
+   * pays the list price.
+   *
+   * A number the caller interprets, `authorityCapacity`'s bargain one field
+   * over, and read in exactly one place: `explainPurchaseCost` (`purchase.ts`),
+   * through `buildingPurchaseDiscount` (`buildingEffects.ts`). It lands in the
+   * *same* fold the card riders land in — summed with them, applied once,
+   * carried as one labelled line holding the difference — because Entry XVII's
+   * discipline at the scale of a price tag is that percentages on one occasion
+   * add before they multiply. A discount applied afterwards would be a second
+   * multiplication nobody could check.
+   *
+   * It is a fact about the **town**, which is the whole reason it is here and
+   * not a `purchaseRider` on a card: a rider is the empire's law and reaches
+   * every market in the realm, and the charter's whole promise is that the
+   * assayers are somewhere in particular.
+   */
+  purchaseDiscount?: number;
+  /**
+   * **What this building mends on friendly units resting in or beside its town**
+   * — the Keep's five. Absent means a building that heals nobody.
+   *
+   * Read in exactly one place, `healUnits` (`turn.ts`), which is the one place
+   * a heal is decided — beside `cardUnitStat(state, unit, 'heal')` and folded
+   * into the same sum, so the ordinary rested rule still gates it: a Keep mends
+   * the garrison that stood still, never the column that marched past.
+   *
+   * The reach is the town's own hex and the ring of six, which is
+   * `isMountainAdjacent`'s reach and the reach every other "beside this town"
+   * clause in the game already uses. The sweep is `turn.ts`' because that module
+   * has the board in hand; this table only says what a Keep is worth, and
+   * `buildingAdjacentHeal` (`buildingEffects.ts`) is the one reading of it.
+   */
+  healsAdjacent?: number;
+  /**
+   * **What this building pays its empire when a rite is performed in its town**
+   * — the Chapel's five culture. Absent means a building the augurs pass by.
+   *
+   * A number rather than a `windfallRider`, because a rider is a card's and
+   * reaches the whole realm: an ordinary building's effects are read city-locally
+   * (`cityBuildingEffects`) and there is no occasion in that walk to hang one on.
+   * Read in exactly one place — `performRiteAt` (`religion.ts`), the one seam a
+   * rite resolves at — and paid through `settleCultureWindfall` like every other
+   * culture grant in the game, so it fills the draft basket by the ordinary path.
+   *
+   * "In its town" is the town the rite lands on, or — for a rite that blesses a
+   * piece rather than a place — the town the augur was standing in. See
+   * `riteTown` in `religion.ts`.
+   */
+  ritePays?: number;
   /**
    * **This building waters the town it stands in** — the aqueduct, today.
    * Absent means an ordinary building, which is every row but one.

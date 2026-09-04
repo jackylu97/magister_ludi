@@ -2,7 +2,7 @@
 
 Every Order, Doctrine and government in one place, tables only. **Regenerated from
 `data/statecraft.json` 2026-09-04** — the Effect column is each row's own ratified `text`;
-counts and tiers are the data's (pools: Chiefdom 11 · Gov I 31 · Gov II 39 · Gov III 39;
+counts and tiers are the data's (pools: Chiefdom 11 · Gov I 33 · Gov II 44 · Gov III 43;
 doctrine tiers ride the ladder 4/10/18/29/45). Edit here; the two working docs (`deprecated/statecraft-cards.md`, `deprecated/statecraft-ages-3-5.md`) keep the commentary and are no longer the source. Tier: ● defining · ◆ strong · ○ situational (blank = not yet tiered).
 
 **As built, 2026-08-28 (second pass)** — six of those halves are built and the shapes are
@@ -89,6 +89,44 @@ and no new effect shape:
   expiring by comparison ten turns on. A benched Casus Belli sees the declaration and
   pays nothing; one unslotted afterwards keeps what it already bought.
 
+**As built, 2026-09-04 (the eleven charters, `docs/flags.md` queue item 6)** — the second
+half of the sheet's proposed blocks, out of them and into the pools above. **A charter is an
+Order that opens a building while it is slotted** — the Gilded Court's mechanism
+(`cardUnlocksBuilding`), with the Gilded Court's standing rule: built copies stand for ever,
+and unslotting only stops you raising more. Nine of the eleven open a **new** row; two open
+a row the tree already names, *early*.
+
+| Charter | Pool · Slot | Opens | Cost | What the building does | Where the fact is read |
+|---|---|---|---|---|---|
+| The Rites Charter | I · W | **Chapel** | 53 (temple) | +1🕯; a rite performed here pays +5🎵 | `ritePays` → `performRiteAt` |
+| The Vigil Charter | I · M | **Keep** | 55 (stone walls) | +25 city hp; friendly units resting in or beside the town mend +5 | `cityHp` → `cityMaxHp`; `healsAdjacent` → `healUnits` |
+| The Scriveners' Charter | II · W | **Scriptorium** | 134 (university) | +2🔬; +10%🔬 with an academy inside the borders | `percentYields` + `hasImprovement` |
+| The Coin Charter | II · E | **Assay House** | 180 (bank) | +2💰; the town's **gold** purchases cost 5% less (the faith bank is untouched) | `purchaseDiscount` → `explainPurchaseCost` |
+| The Waterwrights' Charter | II · E | **Cistern** | 59 (aqueduct) | +2🌾; the town counts as watered; desert hexes +1🌾 | `waters` → `cityIsWatered`; `tileYields` |
+| The Senatus | II · W | **Assembly Hall** | 92 (examination hall) | capital only; +2 authority; +1🔬 +1🎵 per wildcard Order slotted | `requiresSite: capital`; `countScaled` · `slottedOrdersOfSlot` |
+| The Toolmakers' Charter | II · E | **Smithy** | 69 (workshop) | +2⚒; +1⚒ per military Order slotted | `countScaled` · `slottedOrdersOfSlot` |
+| The Mint Charter | III · E | **Mint** *(early)* | 150 (its own row) | the charter pays the 10% gold→culture | `unlockedByCard` beside its node |
+| The Almshouse Charter | III · W | **Almshouse** | 106 (monastery) | civilians and caravans may be bought with faith here | `faithPurchases: 'civilian'` |
+| The Stargazers' Charter | III · W | **Observatory** *(early)* | 175 (its own row) | the charter pays +1🔬 and the two-hex mountain share | `unlockedByCard`; `mountainAdjacent` radius |
+| The Justices' Charter | III · M | **Assize Court** | 100 (courthouse) | +1 authority; −15% of the town's crowding | `crowdingRelief` → `explainHappiness` |
+
+Three decisions worth the user's eye:
+
+- **The Mint and the Observatory already existed** as Æra IV rows (Paper Money, The
+  Astrolabe). Rather than ship a second building with the same name, the two charters open
+  the rows the tree already names — `isUnlocked`'s card clause stopped *replacing* the tree's
+  gate and started standing in front of it, so a charter is a way in **early** and the node
+  still opens the row in its own age. Both rows are otherwise untouched; the clauses the
+  sheet gave those two buildings ride the **Order** instead, scoped to towns holding one, so
+  an empire that researches the tech without the charter gets exactly what it always got.
+- **Everything else lives on the building**, not on the Order — including the two
+  slotted-Order counts, because `countScaled` paying `where: 'city'` is read city-locally off
+  a building's own `effects` (`cityBuildingEffects`), so the Senatus and the Smithy needed no
+  split at all.
+- **A charter building pays no maintenance**, because `buildingUpkeep` prices a row off the
+  age of the technology that names it and no technology names these. Deliberate for now and
+  the user's call: a charter that also cost coin per turn is a different card.
+
 **A deferred half still stands on**, and each waits on a system the game does not have: The
 Curia (the Cathedral) · The Academy of Deeds' second half (a missed Triumph is closed for
 good — reopening one is a change to `awardTriumph`'s `perAge` register) · The Sea Charter
@@ -96,7 +134,9 @@ good — reopening one is a change to `awardTriumph`'s `perAge` register) · The
 Absolutism (an extra Order office is a change to a *layout*, not a number) · Blitz (both) ·
 The Philosopher's Stone (both) · The Levée en Masse (nothing happens when a border is
 crossed) · Pax Magistri (no war to declare) · Religious Mandate (diplomacy) · The Great
-Warring Tribes (the courthouse).
+Warring Tribes (the courthouse) · **the Cistern's farms** (a building may water a *town* and
+nothing waters a *hex* — `cityIsWatered` and `TileCondition.freshwater` are two different
+questions, and the row ships the town's half with the field's half struck through).
 
 ## Themes (the archetype lines)
 
@@ -199,7 +239,6 @@ Warring Tribes (the courthouse).
 | The Philosopher's Stone | — | The Great Work costs −25% production. Every Distillery pays +5 gold. · †deferred |
 | The Grand Tour | — | +3 renown per turn for each wonder you hold. +1 culture for each wonder in the world, seen or not. |
 | Mare Nostrum | 🐫 | +1 food and +1 gold on every water hex you own. Coastal cities cost no authority. |
-| The Levée en Masse | ⚒ | When an enemy unit enters your borders, every city with a Barracks musters a militia unit (at most once every 10 turns). · †deferred |
 | Pax Magistri | 🌱 | +3 happiness in every city. +5 science and +5 culture in every city of 12 or more population. · †deferred |
 | The Encyclopaedia | ✶ | +1 science for each building in a city. Science buildings cost −50% production. |
 | The Triumphal Way | ⚒ | Capturing a city grants +5 happiness in every city for 10 turns. |
@@ -276,13 +315,10 @@ is take one or pass.
 | The Unbroken Land | E | 🌱 | ◆ | +1 food and +1 production on every unimproved forest or jungle hex. |
 | The Ballad-Weavers | W | 🏹 | ◆ | +1 culture per turn for each barbarian you have killed while this Order stands in a slot. |
 | The Bell-Founders | W | 🏛 | ◆ | +1 culture per turn for each wonder finished anywhere in the world while this Order stands in a slot. |
+| The Rites Charter | W | 🕯 | ◆ | Unlocks the Chapel. |
+| The Vigil Charter | M | ⚒ | ◆ | Unlocks the Keep. |
 
-### Government I — proposed additions (no data rows yet; the sync test reads only the built table above)
-
-| The Rites Charter (W) | unlocks the chapel (same cost as temple) | +1🕯; each rite performed in this town pays +5🎵 (a growing building — see below) |
-| The Vigil Charter (M) | Unlocks the keep (same cost as walls) | +25 city hp; adjacent friendly units heal +5 |
-
-### Government II pool (39)
+### Government II pool (44)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
@@ -325,16 +361,13 @@ is take one or pass.
 | The Harvest Songs | W | 🌱 |   | Every city gains 10% of its food yield again as culture. |
 | The Reliquary Rolls | W | 🏛 | ◆ | +2 faith and +2 culture per turn for each great person you have spent while this Order stands in a slot. |
 | The Chroniclers of the Fallen | M | — | ◆ | +1 gold per turn for each unit you have lost in battle while this Order stands in a slot. |
+| The Scriveners' Charter | W | ✶ | ◆ | Unlocks the Scriptorium. |
+| The Coin Charter | E | 🐫 | ◆ | Unlocks the Assay House. |
+| The Waterwrights' Charter | E | 🌾 | ◆ | Unlocks the Cistern. |
+| The Senatus | W | 📜 | ◆ | Unlocks the Assembly Hall. |
+| The Toolmakers' Charter | E | ⚒ | ◆ | Unlocks the Smithy. |
 
-### Government II — proposed additions (no data rows yet)
-
-| The Scriveners' Charter (W) | Allows building the scriptorium (same cost as university) | cities with an academy within its borders gain +10% science, +2 science |
-| The Coin Charter (E) | Allows building the assay house (same cost as bank) | +2💰; the town's gold purchases cost 5% less (a city-scoped price line) |
-- **The Waterwrights' Charter** (E) — unlocks the **Cistern** costs the same as an aqueduct: +2 food, city acts as a source of freshwater (no happiness penalty if settled off fresh, adjacent farms gain irrigation bonus). Desert tiles gain +1 food.
-- **The Senatus** (W) — allows building the assembly hall, costs the same as examination hall: can only be built in your capital, +2 authority, +1 science and +1 culture for every wildcard slotted in your government (not a wildcard slot filled, a wildcard card that is active)
-- **The Toolmakers' Charter** (E) — unlocks the **smithy**, same cost as workshop: +2 prod, gains +1 production for every military card slotted in your government
-
-### Government III pool (39)
+### Government III pool (43)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
@@ -377,14 +410,10 @@ is take one or pass.
 | The Charter of the Marches | E | 📜 | ○ | Your newest city gains +2 of every yield. Founding a city grants +30 culture. |
 | The Almoners' Book | W | ✶ | ◆ | +1 science per turn for each 400 gold you have spent buying while this Order stands in a slot. |
 | The Casus Belli | M | ⚒ | ○ | Declaring war grants +2 combat strength to all your units and +10% production in every city, for 10 turns. |
-
-### Government III — proposed additions (no data rows yet)
-
-- **The Mint Charter** (E) — unlocks the Mint: same price as bank; the town's
-  gold yield also pays 10% as culture 
-- **The Almshouse Charter** (W) — unlocks the Almshouse, same price as monastery: civilian units + traders in this city can be purchased with faith.
-- **The Stargazers' Charter** (W) — unlocks the **Observatory** same price as university: +1🔬; +10% science in this city if there is a mountain within two tiles. 
-- **The Justices' Charter** (M) — unlocks the **Assize Court** costs the same as a courthouse: +1 authority; -15% happiness cost from crowding in this city
+| The Mint Charter | E | 🐫 | ◆ | Unlocks the Mint early. Every city with a Mint gains 10% of its gold yield again as culture. |
+| The Almshouse Charter | W | 🕯 | ◆ | Unlocks the Almshouse. |
+| The Stargazers' Charter | W | ✶ | ◆ | Unlocks the Observatory early. +1 science in every city with an Observatory, and 10% more science there when a mountain lies within two hexes. |
+| The Justices' Charter | M | — | ◆ | Unlocks the Assize Court. |
 
 
 ### Government IV pool — PROPOSED (tier 29 adoption) (20)

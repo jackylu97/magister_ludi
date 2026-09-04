@@ -95,6 +95,7 @@
  */
 
 import { barbarianTurn } from './barbarians';
+import { buildingAdjacentHeal } from './buildingEffects';
 import type { CampBounty } from './camps';
 import {
   type CompletionGrantReport,
@@ -739,8 +740,49 @@ function healUnits(state: GameState): void {
     ) {
       continue;
     }
-    unit.hp = Math.min(maxHp, unit.hp + amount + cardUnitStat(state, unit, 'heal'));
+    // The Keep, through the same one place a heal is decided and folded into
+    // the same sum: a card's points and a building's points are two lines of
+    // one figure, and a second `unit.hp = …` beside this one is how a piece
+    // ends up healing past its cap.
+    unit.hp = Math.min(
+      maxHp,
+      unit.hp + amount + cardUnitStat(state, unit, 'heal') + keepHeal(state, unit),
+    );
   }
+}
+
+/**
+ * What friendly walls standing on this piece's hex or on one of the six touching
+ * it mend for it this turn — the Keep's five (the charters, 2026-09-04).
+ *
+ * The **town's** reach rather than the piece's, and the ring of six plus the
+ * centre because that is `isMountainAdjacent`'s reach and the reach every other
+ * "beside this town" clause in the game already takes. A wounded column camped
+ * against the walls is inside it; one a hex further out is not, which is the
+ * whole of what the row promises.
+ *
+ * Friendly means **the same seat**, asked of the town's owner: a Keep mends its
+ * own realm's soldiers and never an ally's, because there are no allies. Summed
+ * across towns rather than taken as the best of them — two Keeps a hex apart is
+ * a corner of the frontier somebody has paid twice to hold — and the sum is
+ * still capped by `unitMaxHp` where it lands, by the one line above.
+ *
+ * It reads `buildingAdjacentHeal` (`buildingEffects.ts`), so nothing here has
+ * heard of a keep, and it sweeps `state.cities` — founding order, the order
+ * every other sweep walks.
+ */
+function keepHeal(state: GameState, unit: Unit): number {
+  let total = 0;
+  const from = getTileAt(state.map, unit.col, unit.row);
+  if (!from) return 0;
+  const eye = tileHex(from);
+  for (const city of state.cities) {
+    if (city.ownerId !== unit.ownerId) continue;
+    const seat = getTileAt(state.map, city.col, city.row);
+    if (!seat || wrappedDistance(state.map, eye, tileHex(seat)) > 1) continue;
+    for (const line of buildingAdjacentHeal(city)) total += line.amount;
+  }
+  return total;
 }
 
 /**

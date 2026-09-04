@@ -130,6 +130,7 @@ import {
 import { hasAbility, hasTech, settleResearchWindfall } from './tech';
 import { type TechId, techDef } from './techData';
 import type { BuildingId } from './buildingData';
+import { buildingRitePay } from './buildingEffects';
 import type { PressureRuleId } from './statecraftData';
 import { type ImprovementId, workForFamily } from './improvementData';
 import { improvementErrorAt } from './improvements';
@@ -848,6 +849,13 @@ export function performRiteAt(
   }
   const wonders = payRiteRiders(state, player, unit);
   wonders.unshift(...paid.wonders);
+  // **The Chapel's culture** (the charters, 2026-09-04), after the grant and the
+  // riders because it is neither: a rider is the empire's law and reaches every
+  // rite in the realm, and this is a fact about one town that happened to be
+  // where the rite was said. It joins `paid.grants` rather than opening a field
+  // of its own, so the announcement folds one list exactly as it did before.
+  const chapel = payRiteBuildings(state, player, unit, city);
+  if (chapel > 0) paid.grants.push({ label: 'Culture', amount: chapel });
 
   // The fourth and fifth beats, in the routine both agents share
   // (`spendCharge`): the charge goes, an emptied piece leaves the board, and a
@@ -870,6 +878,49 @@ export function performRiteAt(
     wonders,
     proclaimed: paid.proclaimed,
   };
+}
+
+/**
+ * **The town the rite was performed in**, or `null`.
+ *
+ * The place it landed on when it named one, and otherwise the town the augur was
+ * standing in — which is the honest reading of "performed in this town" for a
+ * rite that blesses a *piece* and names no place at all. Two clauses rather than
+ * one because a rite reaches one hex ("a rite is a thing you walk up to"), so an
+ * augur outside the walls may still bless the town, and a rite said over a
+ * wounded column in the square is still said in the square.
+ *
+ * The one reading of it, so nothing anywhere asks the question twice.
+ */
+function riteTown(state: GameState, unit: Unit, city: City | null): City | null {
+  return city ?? cityAt(state, unit.col, unit.row) ?? null;
+}
+
+/**
+ * What the buildings of the town this rite was performed in pay their empire —
+ * the Chapel's five culture.
+ *
+ * Paid through `settleCultureWindfall`, the one settlement culture reaches the
+ * draft basket by, so a chapel's culture fills a pool and may open a draft
+ * exactly as a Rite of the Bounds' does. Read through `buildingEffects.ts`, so
+ * this module has never heard of a chapel; `refreshCityDerived` is not owed
+ * anything because culture is the realm's basket and no town's yield moved.
+ *
+ * Returns what was paid, for the report.
+ */
+function payRiteBuildings(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  city: City | null,
+): number {
+  const town = riteTown(state, unit, city);
+  if (!town || town.ownerId !== player.id) return 0;
+  const paid = buildingRitePay(town);
+  if (paid <= 0) return 0;
+  player.culturePool += paid;
+  settleCultureWindfall(state, player);
+  return paid;
 }
 
 /**

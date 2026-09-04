@@ -1284,7 +1284,7 @@ describe('research in the log', () => {
     // v62 (the renewals axe, 2026-09-04): nine nodes stop renewing a building
     // already standing, so a v61 log researching any of them banks yields this
     // build does not pay.
-    expect(SCHEMA_VERSION).toBe(65);
+    expect(SCHEMA_VERSION).toBe(66);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

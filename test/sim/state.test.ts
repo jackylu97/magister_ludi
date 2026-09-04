@@ -669,7 +669,7 @@ describe('the research queue field', () => {
     // reading, first seat to it wins, is retired. A v63 log may contain a
     // swordsman nobody could build and a pour into a puppet, and may be refused
     // a foreign route this build allows.
-    expect(SCHEMA_VERSION).toBe(65);
+    expect(SCHEMA_VERSION).toBe(66);
   });
 });
 

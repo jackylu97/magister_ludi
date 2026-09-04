@@ -15,11 +15,12 @@
  *     prophet, the inquisitor. That price is the roster's own figure plus its
  *     escalation ladder, and it has nothing to do with hammers.
  *   · **Faith, again, where a town has earned it** (Entry LVIII): a city holding
- *     a building marked `faithPurchases` — the Reliquary — sells *ordinary*
- *     units out of the faith bank too, at `faithPerHammer` per hammer of the
- *     same production cost gold converts. It is the treasury's branch with one
- *     number swapped, not a third kind of transaction, and it widens which bank
- *     may pay rather than what may be bought.
+ *     a building marked `faithPurchases` — the Reliquary, and since the charters
+ *     the Almshouse for its civilians alone — sells *ordinary* units out of the
+ *     faith bank too, at `faithPerHammer` per hammer of the same production cost
+ *     gold converts. It is the treasury's branch with one number swapped, not a
+ *     third kind of transaction, and it widens which bank may pay rather than
+ *     what may be bought.
  *
  * The shape is `explainUnitCost`'s, in a bank instead of a basket: an ordered
  * list of labelled lines whose **fold is the price** (hard rule 5), so the
@@ -81,6 +82,7 @@ import {
   spawnTileFor,
 } from './cities';
 import { type BuildingId, buildingDef, isBuildingId, isWonder } from './buildingData';
+import { buildingPurchaseDiscount } from './buildingEffects';
 import { RULES } from './rulesData';
 import {
   cardPurchaseRiders,
@@ -282,7 +284,7 @@ export function explainPurchaseCost(
         lines.push({ source: `${bought} already called`, amount: increment * bought });
       }
     }
-    applyRiders(state, playerId, item, lines);
+    applyRiders(state, playerId, cityId, item, currency, lines);
     return { currency: bank, lines, total: foldUnitCost(lines) };
   }
 
@@ -307,7 +309,7 @@ export function explainPurchaseCost(
   // rate happens to be. Asked for a **building** too since 2026-08-28 — Crassus
   // and Jakob Fugger both discount "units and buildings", and the building half
   // of that was the deferred sentence on both rows.
-  applyRiders(state, playerId, item, lines);
+  applyRiders(state, playerId, cityId, item, currency, lines);
   return { currency, lines, total: foldUnitCost(lines) };
 }
 
@@ -343,7 +345,20 @@ function faithBankOpen(
   if (currency !== 'faith' || item.kind !== 'unit') return false;
   const city = cityById(state, cityId);
   if (!city) return false;
-  return city.buildings.some((id) => buildingDef(id).faithPurchases === true);
+  // **A fourth narrowing since the charters** (2026-09-04): the marker is a word
+  // now, and the Almshouse's word is `'civilian'` — settlers, workers, caravans
+  // and nothing that fights. Asked of `isCivilian`, the same predicate
+  // `unitPurchaseBucket` sorts the purchase by, so the bank that opened and the
+  // bucket that gets stamped cannot disagree about what a civilian is. Any one
+  // building in the town may open the bank, which is why this is a walk and not
+  // a fold: a Reliquary beside an Almshouse sells everything, as both rows say.
+  for (const id of city.buildings) {
+    const opens = buildingDef(id).faithPurchases;
+    if (opens === undefined) continue;
+    if (opens === 'civilian' && !isCivilian(unitDef(item.id))) continue;
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -359,11 +374,23 @@ function faithBankOpen(
  * It takes the whole item rather than a unit type because a rider may now ride
  * on a building (`CardPurchaseRiderEffect.on`), and *which kind of thing is
  * being bought* is the one question a `UnitFilter` cannot answer.
+ *
+ * **And the town speaks too** (the charters, 2026-09-04). The Assay House is the
+ * first thing in the game that discounts a price because of where the purchase
+ * is being made, and it lands *in this fold* rather than as a second
+ * multiplication afterwards: the empire's law and the town's assayers are two
+ * riders on one occasion, they add before they multiply, and the one line they
+ * produce names both. That is the promise `explainPurchaseCost`'s docblock made
+ * about a per-city discount — it changes this function and nothing that calls
+ * it. Read through `buildingEffects.ts`, so nothing here has heard of an assay
+ * house.
  */
 function applyRiders(
   state: GameState,
   playerId: number,
+  cityId: number,
   item: PurchasableItem,
+  currency: PurchaseCurrency,
   lines: UnitCostLine[],
 ): void {
   const riders = cardPurchaseRiders(
@@ -372,15 +399,25 @@ function applyRiders(
     item.kind,
     item.kind === 'unit' ? item.id : undefined,
   );
-  if (riders.length === 0) return;
+  // **The treasury's bank only**, which is the row's own ratified words ("the
+  // town's *gold* purchases") and the one place this parts company with a card's
+  // rider. A rider is a law about a kind of thing and would be a strange rule
+  // that stopped at one bank's door; assayers weigh coin, and an augur called
+  // out of the faith pool never passes them.
+  const city = currency === 'gold' ? cityById(state, cityId) : undefined;
+  const built = city ? buildingPurchaseDiscount(city) : [];
+  if (riders.length === 0 && built.length === 0) return;
   let percent = 0;
   for (const rider of riders) percent += rider.percent;
+  for (const line of built) percent += line.amount;
   if (percent === 0) return;
   const running = foldUnitCost(lines);
   const priced = Math.max(0, Math.floor((running * (100 + percent)) / 100));
   if (priced === running) return;
   lines.push({
-    source: `${riders.map((rider) => rider.source).join(' + ')} (${percent > 0 ? '+' : ''}${percent}%)`,
+    source:
+      `${[...riders.map((rider) => rider.source), ...built.map((line) => line.source)].join(' + ')}` +
+      ` (${percent > 0 ? '+' : ''}${percent}%)`,
     amount: priced - running,
   });
 }

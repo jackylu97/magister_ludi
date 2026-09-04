@@ -373,7 +373,15 @@ export function isUnlocked(
   // Hall). One clause of the one availability question rather than a second gate
   // beside it — see `BuildingDef.unlockedByCard`.
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByCard === true) {
-    return cardUnlocksBuilding(state, playerId, id);
+    if (cardUnlocksBuilding(state, playerId, id)) return true;
+    // **A charter may open a row the tree also opens** (2026-09-04): the Mint
+    // Charter and the Stargazers' Charter hand over buildings a distant Æra IV
+    // node already names, so the card is a way in *early* rather than the only
+    // way in, and a card unslotted leaves the ordinary gate exactly where it
+    // was. A row no node names at all — the Gilded Hall, the nine charter
+    // buildings — has nothing to fall through to and is shut, which is the
+    // clause as it was originally written.
+    if (gatingTech(kind, id) === null) return false;
   }
   // **A race project is asked of the table**, before the tree, for the clause
   // above's reason exactly one kind over: an endeavour has no gate in the tree
@@ -443,6 +451,11 @@ function siteWords(site: CityScope): string {
       return 'fresh water';
     case 'mountainAdjacent':
       return 'a mountain within reach';
+    case 'capital':
+      // The Assembly Hall's. Named as the *place* like every arm here, so the
+      // refusal reads "wants the seat of your government; Lagash is not it"
+      // rather than naming a flag.
+      return 'the seat of your government';
     case 'onTerrain':
       return `${site.terrain} to stand on`;
     case 'holding':
@@ -546,6 +559,18 @@ export function buildError(
   }
   if (!isUnlocked(state, playerId, kind, id)) {
     const gate = gatingTech(kind, id);
+    // **A row an Order opens says so** (the charters, 2026-09-04). Nine of the
+    // charter buildings stand on no node at all, and "needs a technology you do
+    // not have" is not a vaguer sentence than the truth — it is a false one,
+    // and it sends a player to the tree for something the deck holds. Read off
+    // `unlockedByCard`, so a tenth charter building says it without anybody
+    // remembering to type it again; the two that *also* stand on a node name
+    // both ways in, because both are true.
+    if (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByCard === true) {
+      return gate === null
+        ? `${itemName(kind, id)} needs the Order that opens it in one of your slots`
+        : `${itemName(kind, id)} needs ${techDef(gate).name}, or the Order that opens it in one of your slots`;
+    }
     const needs = gate ? techDef(gate).name : 'a technology you do not have';
     return `${itemName(kind, id)} needs ${needs}`;
   }

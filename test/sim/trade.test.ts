@@ -1556,7 +1556,7 @@ describe('trade in the log', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(65);
+    expect(SCHEMA_VERSION).toBe(66);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

@@ -617,7 +617,9 @@ describe('a town holding a Reliquary sells its units for faith', () => {
     expect(buildError(g.state, 0, 'building', 'reliquary', city)).toBeNull();
     // The happiness is the row's own plain field, like the cathedral's.
     expect(buildingDef('reliquary').happiness).toBe(4);
-    expect(buildingDef('reliquary').faithPurchases).toBe(true);
+    // A **word** since the charters (2026-09-04): the Almshouse opens the same
+    // bank for civilians alone, so the marker names whose roster it sells.
+    expect(buildingDef('reliquary').faithPurchases).toBe('all');
   });
 
   it('pays a tenth more faith in the town it stands in', () => {
@@ -758,6 +760,6 @@ describe('the schema witness', () => {
     // contain a puppet's purchase this reducer refuses, so it is a different
     // game rather than an older one. The other eleven witnesses are listed in
     // `test/sim/state.test.ts`'s own migration note.
-    expect(SCHEMA_VERSION).toBe(65);
+    expect(SCHEMA_VERSION).toBe(66);
   });
 });

@@ -1159,8 +1159,45 @@ import {
  *     The migration note: one additive field, and it is empty on every seat a
  *     v64 game would have had — but the draws move, so there is no reading under
  *     which a v64 log replays to the same board.
+ *
+ * v66: **the eleven charters** (ruled 2026-09-04, `docs/flags.md` queue item 6 —
+ * the sheet's proposed additions, second half). A charter is an Order that opens
+ * a *building* while it is slotted; the mechanism is the Gilded Court's
+ * (`cardUnlocksBuilding`), and built copies stand for ever whatever the deck
+ * later does.
+ *
+ *   · **Eleven new Order rows** across three pools — The Rites Charter · The
+ *     Vigil Charter (Government I); The Scriveners' · The Coin · The
+ *     Waterwrights' Charter · The Senatus · The Toolmakers' Charter (Government
+ *     II); The Mint · The Almshouse · The Stargazers' · The Justices' Charter
+ *     (Government III). Rows in a pool change what every draft deals, so a v65
+ *     log's very first hand comes out different from the same seed.
+ *   · **Nine new building rows** — Chapel, Keep, Scriptorium, Assay House,
+ *     Cistern, Assembly Hall, Smithy, Almshouse, Assize Court. None is named by
+ *     any technology, so each is shut until its charter is in a slot.
+ *   · **Two rows the tree already named are opened *early*** — the Mint (Paper
+ *     Money) and the Observatory (The Astrolabe) both carry `unlockedByCard`
+ *     now, and `isUnlocked`'s card clause stopped *replacing* the tree's gate
+ *     and started standing in front of it: a card opens the row early, the node
+ *     still opens it in its own age, and a row no node names at all is shut as
+ *     before.
+ *   · **Four new building facts, each read in exactly one place**:
+ *     `crowdingRelief` (`explainHappiness`), `purchaseDiscount`
+ *     (`explainPurchaseCost`, folded into the rider sum so the price multiplies
+ *     once), `healsAdjacent` (`healUnits`), `ritePays` (`performRiteAt`, paid
+ *     through `settleCultureWindfall`). `faithPurchases` became a word —
+ *     `'all'` for the Reliquary, `'civilian'` for the Almshouse — rather than
+ *     growing a second boolean beside itself.
+ *   · **One widened scope.** `CityScope`'s `mountainAdjacent` takes an optional
+ *     `radius`, `frontier`'s field one scope over, for the Stargazers' two
+ *     hexes. Absent is the ring of six every row written before it reads.
+ *
+ *     The migration note: no field on the state changed shape at all — every
+ *     addition is on the data tables. What moves is what the same log is worth:
+ *     eleven rows in three pools redeal every draft, and a town that could not
+ *     buy a Mint in Æra III now can.
  */
-export const SCHEMA_VERSION = 65;
+export const SCHEMA_VERSION = 66;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

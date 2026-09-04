@@ -277,7 +277,7 @@
       "faith": 0,
       "sciencePerPop": 0,
       "happiness": 4,
-      "faithPurchases": true,
+      "faithPurchases": "all",
       "effects": [
         {
           "kind": "percentYields",
@@ -305,6 +305,7 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
+      "unlockedByCard": true,
       "renown": {
         "family": "merchant",
         "perTurn": 1
@@ -1577,11 +1578,12 @@
       "science": 3,
       "culture": 0,
       "sciencePerPop": 1,
+      "unlockedByCard": true,
       "renown": {
         "family": "scholar",
         "perTurn": 2
       },
-      "note": "The sky, written down night after night.",
+      "note": "The sky, written down night after night. A further share of the beakers for one raised in sight of a mountain is paid by The Stargazers' Charter.",
       "effects": [
         {
           "kind": "percentYields",
@@ -1592,9 +1594,6 @@
             "building": "observatory"
           }
         }
-      ],
-      "deferred": [
-        "A further share of the beakers for an observatory raised in sight of a mountain waits until a clause can measure how far a peak is from a town."
       ]
     },
     "lighthouse": {
@@ -1872,6 +1871,223 @@
       "deferred": [
         "Pouring culture into it as well as gold and faith. Culture already fills the basket a draft comes out of, and spending it here needs its own ruling first."
       ]
+    },
+    "chapel": {
+      "name": "Chapel",
+      "category": "faith",
+      "cost": 53,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 1,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "ritePays": 5,
+      "note": "Every rite an augur performs in this city pays a little culture as well."
+    },
+    "keep": {
+      "name": "Keep",
+      "category": "military",
+      "cost": 55,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "cityHp": 25,
+      "healsAdjacent": 5,
+      "note": "The town takes longer to empty, and your own units resting in it or beside it mend faster."
+    },
+    "scriptorium": {
+      "name": "Scriptorium",
+      "category": "science",
+      "cost": 134,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 2,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "renown": {
+        "family": "scholar",
+        "perTurn": 2
+      },
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "hasBuilding",
+                "building": "scriptorium"
+              },
+              {
+                "test": "hasImprovement",
+                "improvement": "academy"
+              }
+            ]
+          }
+        }
+      ],
+      "note": "Copies of everything, kept dry. It is worth more where a scholar's academy stands inside the town's borders."
+    },
+    "assayHouse": {
+      "name": "Assay House",
+      "category": "gold",
+      "cost": 180,
+      "food": 0,
+      "production": 0,
+      "gold": 2,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "purchaseDiscount": -5,
+      "renown": {
+        "family": "merchant",
+        "perTurn": 1
+      },
+      "note": "Coin weighed before it is spent. Anything this city buys with gold costs a little less."
+    },
+    "cistern": {
+      "name": "Cistern",
+      "category": "food",
+      "cost": 59,
+      "food": 2,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "waters": true,
+      "tileYields": [
+        {
+          "on": {
+            "test": "terrain",
+            "terrain": "desert"
+          },
+          "add": {
+            "food": 1
+          }
+        }
+      ],
+      "note": "The city counts as standing on fresh water, and every desert hex it works feeds it a little better.",
+      "deferred": [
+        "Farms out in the fields drawing their irrigation from this city as they would from a river. What waters a town and what waters a hex are two different questions today, and only the town's is answered."
+      ]
+    },
+    "assemblyHall": {
+      "name": "Assembly Hall",
+      "category": "culture",
+      "cost": 92,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "authorityCapacity": 2,
+      "requiresSite": {
+        "test": "capital"
+      },
+      "renown": {
+        "family": "scholar",
+        "perTurn": 1
+      },
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "wildcard",
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "city"
+          }
+        },
+        {
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "wildcard",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "city"
+          }
+        }
+      ],
+      "note": "Built in the seat of your government and nowhere else."
+    },
+    "smithy": {
+      "name": "Smithy",
+      "category": "production",
+      "cost": 69,
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "renown": {
+        "family": "engineer",
+        "perTurn": 1
+      },
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "military",
+          "pays": {
+            "to": "yield",
+            "yield": "production",
+            "amount": 1,
+            "where": "city"
+          }
+        }
+      ],
+      "note": "The hammers fall harder for every military Order standing in your government."
+    },
+    "almshouse": {
+      "name": "Almshouse",
+      "category": "faith",
+      "cost": 106,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 1,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "faithPurchases": "civilian",
+      "note": "Settlers, workers and caravans may be bought with faith in the city that holds it, at the same rate gold buys them elsewhere."
+    },
+    "assizeCourt": {
+      "name": "Assize Court",
+      "category": "culture",
+      "cost": 100,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "authorityCapacity": 1,
+      "crowdingRelief": 15,
+      "note": "A crowded town asks less of you while the justices sit."
     }
   },
   "projects": {

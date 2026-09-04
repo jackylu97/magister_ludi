@@ -1747,13 +1747,31 @@ function happinessReading(state: GameState, playerId: number): number {
 
 // --- city scopes ------------------------------------------------------------
 
-/** Is a mountain within one hex of this town? */
-function isMountainAdjacent(state: GameState, city: City): boolean {
+/**
+ * Is a mountain within `radius` hexes of this town? One hex by default — the
+ * town's own and the ring of six.
+ *
+ * The default keeps the ring walk it has always taken, and a named radius takes
+ * `isFrontierCity`'s walk instead (`wrappedDistance` over the board, so the seam
+ * of a wrapping map is not a wall). Two paths rather than one because the ring
+ * of six is what almost every caller asks for and a map sweep for it would be
+ * thirty-seven tiles of arithmetic per city per refresh to answer a question six
+ * lookups answer.
+ */
+function isMountainAdjacent(state: GameState, city: City, radius = 1): boolean {
   const tile = getTileAt(state.map, city.col, city.row);
   if (!tile) return false;
   if (tile.terrain === 'mountain') return true;
-  for (const neighbour of neighborTiles(state.map, tileHex(tile))) {
-    if (neighbour.terrain === 'mountain') return true;
+  if (radius <= 1) {
+    for (const neighbour of neighborTiles(state.map, tileHex(tile))) {
+      if (neighbour.terrain === 'mountain') return true;
+    }
+    return false;
+  }
+  const eye = tileHex(tile);
+  for (const other of state.map.tiles) {
+    if (other.terrain !== 'mountain') continue;
+    if (wrappedDistance(state.map, eye, tileHex(other)) <= radius) return true;
   }
   return false;
 }
@@ -1880,7 +1898,7 @@ export function cityScopeAdmits(
     case 'notFreshwater':
       return !cityHasFreshwater(state, city);
     case 'mountainAdjacent':
-      return isMountainAdjacent(state, city);
+      return isMountainAdjacent(state, city, scope.radius);
     case 'adjacentImprovement':
       return hasAdjacentImprovement(state, city, scope.improvement);
     case 'adjacentGreatWork':
@@ -2036,7 +2054,9 @@ function scopeNote(scope?: CityScope): string | null {
     case 'notFreshwater':
       return 'no fresh water';
     case 'mountainAdjacent':
-      return 'mountain hold';
+      return scope.radius !== undefined && scope.radius > 1
+        ? `mountain within ${scope.radius}`
+        : 'mountain hold';
     case 'adjacentImprovement':
       return `beside a ${improvementDef(scope.improvement).name.toLowerCase()}`;
     case 'adjacentGreatWork':
@@ -2108,8 +2128,16 @@ function label(source: string, note: string | null): string {
  * asking it rather than to the board, so the walk that already carries the card
  * for the label hands it in rather than every arm re-deriving it. Every other
  * arm ignores it.
+ *
+ * **Exported for one outside reader** (2026-09-04, the potential weight): the
+ * bot's appraisal (`src/ai/value.ts`) prices a counted card by what the empire
+ * *actually* counts today rather than by a nominal stand-in, and it asks this
+ * rather than re-deriving forty arms of its own. That is a *reading* and not a
+ * second evaluator — nothing outside this module switches on a `CountKind`, and
+ * nothing outside it may — which is the same licence `cardCityYields` and the
+ * rest of the exported folds already carry.
  */
-function countOf(
+export function countOf(
   state: GameState,
   playerId: number,
   card: CardId,
@@ -5999,7 +6027,13 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.qualifiers.push('without fresh water');
       return;
     case 'mountainAdjacent':
-      into.qualifiers.push('beside a mountain');
+      // A named radius says so in hexes; the default is "beside", which is the
+      // word the ring of six has always been printed as.
+      into.qualifiers.push(
+        scope.radius !== undefined && scope.radius > 1
+          ? `with a mountain within ${scope.radius} hexes`
+          : 'beside a mountain',
+      );
       return;
     case 'adjacentImprovement':
       // The works named the way a tile condition names them — article outside
