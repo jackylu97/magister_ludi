@@ -268,6 +268,17 @@ describe('the scored build list', () => {
     // treasury under it: something must go, and it must not be a garrison.
     const game = grownGame();
     const player = seat(game.state, 0);
+    // Workers silenced (charges spent) and every standing piece out of
+    // movement, so the one command under test is the one the bot answers with
+    // — on the pangaea (2026-09-03) the grown fixture leaves a worker with a
+    // live plan and a scout with somewhere to go, and both are honest
+    // higher-priority answers that are not what this test is about. The
+    // disband arm spends no movement, so nothing here touches the claim.
+    for (const u of game.state.units) {
+      if (u.ownerId !== 0) continue;
+      if (u.chargesLeft !== undefined) u.chargesLeft = 0;
+      u.movesLeft = 0;
+    }
     const city = firstCity(game.state, 0);
     // Five spare soldiers standing in the field, well away from the town so the
     // garrison guard is not what is being tested here.

@@ -51,6 +51,16 @@ import {
   tipFor,
   writeTutorialMemory,
 } from '../../src/ui/tutorial';
+import {
+  PAMPHLET_ENTRY_ID,
+  PAMPHLET_KEY,
+  PAMPHLET_PAGES,
+  pageStep,
+  readPamphletSeen,
+  shouldShowPamphlet,
+  writePamphletSeen,
+} from '../../src/ui/pamphlet';
+import { stripRefs } from '../../src/sim/statecraft';
 
 const SOURCES = import.meta.glob(
   ['../../src/ui/*.ts', '../../src/main.ts', '../../src/sim/commands.ts', '../../index.html'],
@@ -467,6 +477,23 @@ describe('the copy', () => {
   it('says what wins the game', () => {
     expect(prose().join(' ')).toContain('twenty beads');
   });
+
+  /**
+   * The pamphlet audit's ruled example (2026-09-03): the tech chart is **a tree
+   * with nodes** to a player who has not yet learned that the stars are the
+   * technologies. "Aim at a star" and "the star chart" shipped in exactly these
+   * tables, so the sweep is a hard pin rather than a review note.
+   */
+  it('never asks a first-time player to click a star', () => {
+    for (const line of prose()) {
+      expect(line, line).not.toMatch(/\bstars?\b/i);
+      expect(line, line).not.toContain('star chart');
+    }
+    const open = STEPS.find((step) => step.id === 'openChart')!;
+    const aim = STEPS.find((step) => step.id === 'research')!;
+    expect(open.body).toContain('node');
+    expect(aim.body).toContain('node on the tree');
+  });
 });
 
 describe('the wiring', () => {
@@ -574,8 +601,13 @@ describe('the wiring', () => {
         continue;
       }
       expect(anchor.startsWith('.'), `${step.id}: ${anchor}`).toBe(true);
+      // A compound selector (`.a.b`) is built as one two-class literal by
+      // `element('div', 'a b')` — the build step's `.city-rail.is-right`
+      // (2026-09-03, the city mode). Joined with a space, a single class is
+      // the old exact check unchanged.
+      const literal = anchor.slice(1).split('.').join(' ');
       const built = Object.keys(SOURCES).some((path) =>
-        SOURCES[path]?.includes(`'${anchor.slice(1)}'`),
+        SOURCES[path]?.includes(`'${literal}'`),
       );
       expect(built, `${step.id}: nothing builds ${anchor}`).toBe(true);
     }
@@ -605,5 +637,226 @@ describe('the wiring', () => {
     expect(text).toMatch(/rekindled\s*\?\s*\{ enabled: true, progress: FIRST_PROGRESS, seen: \[\] \}/);
     // And a loaded save never starts it — `resume` sets nothing running.
     expect(text).toMatch(/resume\(\) \{\s*running = false;/);
+  });
+});
+
+/**
+ * The two meter notes (the pamphlet ruling, 2026-09-03): the pamphlet gives the
+ * cursory version, and the guide says a word the FIRST time each meter bites —
+ * happiness below zero, authority over capacity. They ride the existing notes
+ * mechanism: a standing fact becomes an event at the one site that can read it
+ * (`main.ts`, off the meters' own folds), exactly as `enemySeen` does.
+ */
+describe('the meter notes', () => {
+  it('are one-time notes on the tips table, on their own triggers', () => {
+    expect(tipFor({ kind: 'event', event: 'happinessDeficit' }, [])?.id).toBe('unhappy');
+    expect(tipFor({ kind: 'event', event: 'authorityOverrun' }, [])?.id).toBe('overreach');
+    // Once ever, like every note: the seen list is the whole of the memory.
+    expect(tipFor({ kind: 'event', event: 'happinessDeficit' }, ['unhappy'])).toBeNull();
+    expect(tipFor({ kind: 'event', event: 'authorityOverrun' }, ['overreach'])).toBeNull();
+  });
+
+  it('is fired from the commit funnel off the meters’ own folds', () => {
+    const main = source('main.ts');
+    // Gated on the note still being wanted (the enemy sweep's economy), and
+    // read from `happinessOf`/`authorityOf` — the folds the chips print — so
+    // the note cannot disagree with the number it is explaining.
+    expect(main).toContain("tutorial.wantsTip('unhappy') && happinessOf(game.state, seat) < 0");
+    expect(main).toContain("tutorial.wantsTip('overreach') && authorityOf(game.state, seat) < 0");
+    expect(main).toContain("tutorial.note({ kind: 'event', event: 'happinessDeficit' })");
+    expect(main).toContain("tutorial.note({ kind: 'event', event: 'authorityOverrun' })");
+    expect(main).toContain('noteMeterPain();');
+  });
+});
+
+/**
+ * The pamphlet (`src/ui/pamphlet.ts`): the five-minute read shown once, before
+ * the tutorial's first step, and a Compendium page forever after. What is held
+ * here is the pure half — the table, the prose rules, the memory and the
+ * first-run decision — plus the wiring pins that keep the ordering in
+ * `main.ts` honest. The Compendium half (the anchor resolves, the refs point
+ * at real pages) lives in `compendium.test.ts`, beside the book it is about.
+ */
+describe('the pamphlet', () => {
+  it('gives every page a unique id, a title and words to say', () => {
+    const ids = PAMPHLET_PAGES.map((page) => page.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(PAMPHLET_PAGES.length).toBeGreaterThan(5);
+    for (const page of PAMPHLET_PAGES) {
+      expect(page.title.length, page.id).toBeGreaterThan(0);
+      expect(page.lines.length, page.id).toBeGreaterThan(0);
+      for (const text of page.lines) {
+        expect(text.length, page.id).toBeGreaterThan(20);
+      }
+    }
+  });
+
+  it('keeps every page at caption weight — the re-ruling’s budget', () => {
+    // "The screenshot is the hero, the text is caption-weight — a heading and
+    // at most two short sentences" (docs/pamphlet.md, re-ruling 2026-09-03).
+    // Pinned honestly off the table: two lines at most, one sentence per line,
+    // and no line running to a paragraph. A page that needs more prose than
+    // this belongs in the Compendium's ordinary entries instead.
+    for (const page of PAMPHLET_PAGES) {
+      expect(page.lines.length, page.id).toBeLessThanOrEqual(2);
+      for (const text of page.lines) {
+        const line = stripRefs(text);
+        expect(line.length, `${page.id}: ${line}`).toBeLessThanOrEqual(180);
+        // One sentence: a full stop may only end the line.
+        expect(line, `${page.id}: ${line}`).not.toMatch(/\.\s+\S/);
+      }
+    }
+  });
+
+  it('carries the ruled contents', () => {
+    // The spec's own headline items (docs/pamphlet.md), each pinned on one
+    // phrase distinctive enough to survive a wording pass: selection, orders,
+    // the tree, the draft, the win, the meters, the checklist.
+    const all = PAMPHLET_PAGES.flatMap((page) => [
+      page.title,
+      ...page.lines.map((text) => stripRefs(text)),
+    ]).join(' ');
+    expect(all).toContain('Left-click');
+    expect(all).toContain('right-click');
+    expect(all).toContain('technology tree');
+    expect(all).toContain('Statecraft');
+    expect(all).toContain('Religion');
+    expect(all).toContain('twenty beads');
+    expect(all).toContain('Magnum Opus');
+    expect(all).toContain('Happiness');
+    expect(all).toContain('found a second city');
+    expect(all).toContain('End Turn');
+    expect(all).toContain('barbarian camp');
+    expect(all).toContain('Compendium');
+  });
+
+  it('leads almost every page with a screenshot under public/pamphlet', () => {
+    // Re-ruled 2026-09-03: the heroes are photographs of the real game, marks
+    // baked into the captures (the shot list's "mark" column). The files land
+    // after the fact, so what the table owes is the address and the caption
+    // the frame degrades to while a file is missing.
+    let panels = 0;
+    for (const page of PAMPHLET_PAGES) {
+      if (page.panel === undefined) continue;
+      panels += 1;
+      expect(page.panel.image, page.id).toMatch(/^\/pamphlet\/[a-z-]+\.png$/);
+      expect(page.panel.caption.length, page.id).toBeGreaterThan(10);
+    }
+    expect(panels).toBeGreaterThanOrEqual(PAMPHLET_PAGES.length - 1);
+    // One file per hero: two pages sharing an address would rot together.
+    const images = PAMPHLET_PAGES.flatMap((p) => (p.panel ? [p.panel.image] : []));
+    expect(new Set(images).size).toBe(images.length);
+  });
+
+  it('keeps rule 7 in every sentence, refs stripped first', () => {
+    for (const page of PAMPHLET_PAGES) {
+      const lines = [page.title, ...(page.panel ? [page.panel.caption] : [])];
+      for (const text of page.lines) {
+        // A line may *carry* a keyword mark — the printer resolves it — but a
+        // stray bracket would reach the screen as plumbing.
+        expect(stripRefs(text), page.id).not.toContain('[[');
+        lines.push(stripRefs(text));
+      }
+      for (const line of lines) {
+        // No identifier and no digit: the one figure the pamphlet names is
+        // spelled ("twenty beads"), the tutorial's own bargain.
+        expect(line, line).not.toMatch(/[a-z][A-Z]/);
+        expect(line, line).not.toMatch(/\d/);
+      }
+    }
+  });
+
+  it('pages with clamped steps — a pamphlet has a first page and a last', () => {
+    const count = PAMPHLET_PAGES.length;
+    // The pure half of the pager: back stops at the front cover, next at the
+    // last page, and neither wraps.
+    expect(pageStep(0, -1, count)).toBe(0);
+    expect(pageStep(0, 1, count)).toBe(1);
+    expect(pageStep(count - 1, 1, count)).toBe(count - 1);
+    expect(pageStep(count - 1, -1, count)).toBe(count - 2);
+    expect(pageStep(3, 0, count)).toBe(3);
+    // Degenerate shelves answer rather than throw.
+    expect(pageStep(0, 1, 0)).toBe(0);
+    expect(pageStep(99, 1, count)).toBe(count - 1);
+  });
+
+  it('builds the pager off the table: one page, one dot, both steps through pageStep', () => {
+    const text = source('ui/pamphlet.ts');
+    // One `.pamphlet-page` per table row and one dot each — the DOM is the
+    // table's length, never a second count.
+    expect(text).toContain('for (const page of PAMPHLET_PAGES)');
+    expect(text).toContain('for (const [index, page] of PAMPHLET_PAGES.entries())');
+    expect(text).toContain("dot.className = 'pamphlet-dot'");
+    // Next and back both price their move through the one clamp.
+    expect(text).toContain('show(pageStep(current, -1, sheets.length))');
+    expect(text).toContain('show(pageStep(current, 1, sheets.length))');
+    expect(text).toContain('back.disabled = current === 0');
+    expect(text).toContain('next.disabled = current === sheets.length - 1');
+    // And the position is DOM state alone: the only storage writes in the
+    // module are the seen-memory's.
+    expect(text.match(/storage\.setItem/g)).toHaveLength(1);
+  });
+
+  it('remembers being read, and forgives a shelf that throws', () => {
+    const storage = fakeStorage();
+    expect(readPamphletSeen(storage)).toBe(false);
+    writePamphletSeen(storage);
+    expect(storage.map.has(PAMPHLET_KEY)).toBe(true);
+    expect(readPamphletSeen(storage)).toBe(true);
+
+    expect(readPamphletSeen(brokenStorage)).toBe(false);
+    expect(() => writePamphletSeen(brokenStorage)).not.toThrow();
+
+    const junk = fakeStorage();
+    junk.map.set(PAMPHLET_KEY, '{not json');
+    expect(readPamphletSeen(junk)).toBe(false);
+  });
+
+  it('shows for a new player only — a returning player sees neither showing', () => {
+    // The first-run decision, held still: a fresh browser with the guide on
+    // gets the pamphlet; a browser that has read it never sees the overlay
+    // again (the page stays in the Compendium); a player who switched the
+    // guide off has asked to be told nothing, front matter included.
+    expect(shouldShowPamphlet(false, true)).toBe(true);
+    expect(shouldShowPamphlet(true, true)).toBe(false);
+    expect(shouldShowPamphlet(false, false)).toBe(false);
+    expect(shouldShowPamphlet(true, false)).toBe(false);
+  });
+
+  it('opens before the tutorial’s first step, and dismissing it starts the sequence', () => {
+    const main = source('main.ts');
+    // One place owns the order: `beginOpening` asks the pure decision, shows
+    // the pamphlet, and hangs `tutorial.begin()` on its dismissal — so the
+    // first coach card can only ever rise after the pamphlet is put away.
+    expect(main).toContain('createPamphletOverlay({ storage: saveStorage, root: document.body })');
+    expect(main).toContain('shouldShowPamphlet(pamphlet.seen(), tutorial.enabled())');
+    expect(main).toContain('pamphlet.show(() => tutorial.begin())');
+    // Both new-game sites — boot and adoptGame — go through it; a loaded save
+    // takes `tutorial.resume()` and never meets either surface.
+    expect([...main.matchAll(/beginOpening\(\);/g)].length).toBe(2);
+    expect(main).toMatch(/if \(next === null\) beginOpening\(\);\s*else tutorial\.resume\(\);/);
+    expect(main).toMatch(/if \(initial === null\) beginOpening\(\);\s*else tutorial\.resume\(\);/);
+  });
+
+  it('marks itself read before handing over, and prints through the descriptor seam', () => {
+    const text = source('ui/pamphlet.ts');
+    // The memory is written first, so a dismissal that then throws still never
+    // shows the pamphlet twice; `onDone` is what raises the tutorial.
+    expect(text).toMatch(/function dismiss\(\): void \{\s*writePamphletSeen\(storage\);/);
+    // Escape is a dismissal too — same path, same memory, same hand-over.
+    expect(text).toMatch(/event\.key !== 'Escape'[\s\S]{0,500}dismiss\(\);/);
+    // Every line goes through `setDescriptorText` — the one printer that
+    // resolves a keyword mark — so a `[[` can never reach a reader raw.
+    expect(text).toContain('setDescriptorText(line, text)');
+    // And the missing-file path is designed: the image removes itself and the
+    // frame shows the caption; no broken-image glyph, ever.
+    expect(text).toContain("img.addEventListener('error'");
+  });
+
+  it('tells the reader where it lives afterwards', () => {
+    const text = source('ui/pamphlet.ts');
+    expect(text).toContain('stays in the Compendium');
+    // And the address it means is the entry the book actually shelves.
+    expect(PAMPHLET_ENTRY_ID).toBe('intro:pamphlet');
   });
 });

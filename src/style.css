@@ -144,9 +144,10 @@
   /* The whole bottom-right corner End Turn owns and the panels must clear:
      a gap above the button the same size as every other corner margin in
      this HUD, the button's own height, and the button's own offset from the
-     window edge. Read by #city-panel and #unit-panel's `max-height` — see
-     the right-hand slot below. */
+     window edge. Read by #unit-panel's `max-height` and by the city mode's
+     right-hand rail — see the right-hand slot below. */
   --end-turn-clearance: calc(14px + var(--end-turn-h) + 14px);
+
 
   /* Ink is the ground under the bar, so the usual ink border and ink shadow
      vanish into it. Anything drawn on ink outlines itself in parchment instead. */
@@ -2889,26 +2890,22 @@ kbd {
 }
 
 /* --- the right-hand slot --------------------------------------------------
-   One panel at a time, in one place: the city screen when a city is open, the
-   unit sheet when a unit is selected. They are exclusive in `controls.ts`, and
-   sharing the geometry here is what makes that promise visible — the same box
-   in the same corner, so the eye never has to find a second panel.
+   The unit sheet's dock, and **the city screen's no longer**: the city became a
+   full-screen mode on 2026-09-03 (`docs/city-screen.md`, revision 3) and its
+   two rails are laid out below, under `.city-mode`. The two used to share this
+   rule so the eye never had to find a second panel in a second place; the city
+   left the corner entirely rather than growing inside it, which keeps that
+   promise for the one panel still standing here.
 
-   Neither panel is ever tall enough to reach End Turn's corner: `bottom` is
-   `auto` and `max-height` stops the box the same distance above the button
-   that `#unit-panel` alone used to stop above the window edge — extended to
-   also clear `--end-turn-clearance`. A city panel long enough to hit that
-   ceiling scrolls internally (`overflow-y: auto`, already set below); the
-   unit sheet is short by nature and never approaches it, so it needs no rule
-   of its own any more — it simply inherits this slot's geometry.
+   The sheet is never tall enough to reach End Turn's corner: `bottom` is `auto`
+   and `max-height` stops the box the same distance above the button that it
+   used to stop above the window edge — extended to also clear
+   `--end-turn-clearance`. One long enough to hit that ceiling scrolls
+   internally.
 
    The whole box is the scroll region, name and all — there is no sticky
-   header. That is the pre-existing behaviour (this rule had `overflow-y:
-   auto` before this corner reservation existed, for the rare city already
-   tall enough to need it), and the smaller cap only makes it fire sooner, so
-   keeping it a plain scroll rather than inventing a pinned header is the
-   change that actually stays the same size everywhere else. */
-#city-panel,
+   header, which is the pre-existing behaviour and the change that stays the
+   same size everywhere else. */
 #unit-panel {
   position: fixed;
   top: calc(var(--topbar-h) + 14px);
@@ -2916,20 +2913,10 @@ kbd {
   bottom: auto;
   max-height: calc(100dvh - var(--topbar-h) - 14px - var(--end-turn-clearance));
   z-index: 12;
-  /* Widened from 286px in the 2026-08-27 legibility pass, and it is one number
-     three things depend on. The yield strip is six voices, and six chips in
-     286px came out at 40px each — narrower than the word "FAITH" is at the
-     chip's own 8px eyebrow. The build rows carry a price tag beside the build
-     button since the purchase pass, and a two-column grid of those left the
-     name about seventy pixels to live in. And the two panels share this rule on
-     purpose (see the note above), so the unit sheet moves with it rather than
-     becoming a second box in the same corner at a different size.
-
-     `camera.cityFrameBiasPx` in `data/view3d.json` is the fourth dependant and
-     is not in this file: it is roughly half this box's footprint (width plus
-     the 14px gutter), so a framed city clears the panel instead of landing
-     behind it. Changing this number without changing that one hides the thing
-     the panel is talking about. */
+  /* Widened from 286px in the 2026-08-27 legibility pass and kept at the
+     widened number when the city left: the sheet's own stat pairs, its order
+     buttons and its promotion rows were all laid out against it, and moving it
+     back would be re-tuning a panel this pass never touched. */
   width: 340px;
   padding: 11px 13px 13px;
   overflow-y: auto;
@@ -2949,23 +2936,23 @@ kbd {
   scrollbar-color: var(--ink-faint) transparent;
 }
 
-#city-panel::-webkit-scrollbar,
+.city-rail::-webkit-scrollbar,
 #unit-panel::-webkit-scrollbar {
   width: 7px;
 }
 
-#city-panel::-webkit-scrollbar-track,
+.city-rail::-webkit-scrollbar-track,
 #unit-panel::-webkit-scrollbar-track {
   background: transparent;
 }
 
-#city-panel::-webkit-scrollbar-thumb,
+.city-rail::-webkit-scrollbar-thumb,
 #unit-panel::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: var(--ink-faint);
 }
 
-#city-panel::-webkit-scrollbar-thumb:hover,
+.city-rail::-webkit-scrollbar-thumb:hover,
 #unit-panel::-webkit-scrollbar-thumb:hover {
   background: var(--ink-soft);
 }
@@ -2975,7 +2962,10 @@ kbd {
   display: none;
 }
 
-#city-panel h2,
+/* The sheet's name. The city mode's band sets its own (`.city-band h2`), and
+   this rule is scoped to the one panel again so the band can be answered with a
+   class rather than with a second id — an id beating a class is exactly the
+   kind of override that reads as a mystery six months later. */
 #unit-panel h2 {
   margin: 0;
   font-family: var(--face-name);
@@ -2986,8 +2976,10 @@ kbd {
   letter-spacing: -0.015em;
 }
 
-/* Section labels: the specimen's mono uppercase eyebrow. */
-#city-panel h3,
+/* Section labels: the specimen's mono uppercase eyebrow. Shared by the sheet
+   and by the mode's cards, which is the one thing about the two surfaces that
+   should never differ. */
+.city-mode h3,
 #unit-panel h3 {
   margin: 14px 0 6px;
   font-family: var(--face-num);
@@ -2998,13 +2990,506 @@ kbd {
   color: var(--vermilion);
 }
 
-.city-header {
+/* --- the city mode --------------------------------------------------------
+   The city screen is a MODE, not a panel (`docs/city-screen.md`, revision 3,
+   ruled 2026-09-03): the town's name band owns the top edge, two slim rails
+   carry the facts and the work, the board keeps the middle and stays live, and
+   one button at the bottom centre is the way out.
+
+   The container itself draws nothing and **takes no pointer events at all** —
+   that is the load-bearing declaration in this whole block. Everything the old
+   right-hand panel did was done *over* a board the player could not reach
+   through it; the mode's entire premise is that the board between the rails is
+   still the board, so citizens are still pinned by clicking ringed hexes and
+   tiles are still bought off the board's own price tags. Each mount inside
+   turns pointer events back on for itself. */
+.city-mode {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  /* **A column, and the rails' top is wherever the band actually ends.** The
+     first build hung the rails off a `--city-band-h` guess, which held at one
+     viewport width and put the work rail through the band's chips at every
+     other one (playtest, 2026-09-03). A height a stylesheet asserts about
+     content it does not control is a number waiting to be wrong; laying the
+     band out in flow and letting the row below take what is left is the same
+     fact measured instead of assumed.
+
+     The padding is the one thing still asserted, and it is asserted about the
+     *chrome*, which this file does own. Above: the empire bar's height, which
+     collapses to zero the moment the bar itself stands down (below) — so it is
+     the fallback for a browser without `:has` rather than the ordinary case.
+     Below (on `.city-body`): the taller of the two things the rails must clear,
+     the Leave button in the middle and End Turn in the corner. */
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  padding-top: var(--topbar-h);
+  pointer-events: none;
+  font-family: var(--face-ui);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+/* The row under the band: the two rails at its edges and the board between
+   them. Transparent to the pointer like its parent — only the rails take
+   events — so the whole middle of the screen is still the board. */
+.city-body {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 0;
+  padding: 12px 14px max(calc(14px + 46px), var(--end-turn-clearance));
+  pointer-events: none;
+}
+
+/* The band: the town's name across the whole top edge, and the mode's entire
+   top chrome. The empire's bar stands down beneath it (below) rather than
+   sitting above it half-emptied, so what a player sees at the top of the screen
+   while they are in a town is the town — which is what "the band owns the top
+   edge" meant in the ruling. Nothing the bar carries is more than one keystroke
+   away: Escape and Leave the town both bring it straight back. */
+.city-band {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  pointer-events: auto;
+  border-bottom: var(--border) solid var(--ink);
+  background: var(--parchment);
+  box-shadow: 0 4px 0 rgba(29, 26, 32, 0.18);
+}
+
+/* The name announces in the display face — the one place on the board's own
+   screen that a serif is allowed to be large. It overrides the panel's 21px
+   name voice deliberately: a band is a title, a panel had a heading. */
+.city-band h2 {
+  font-family: var(--face-display);
+  font-variation-settings: normal;
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+/* One row, at every width. The title's own contents used to wrap, which made
+   the band two rows tall on a narrow window and pushed everything under it
+   down — the thing the flow layout above exists to make impossible, so it must
+   not be reintroduced here. What gives instead is the *name* and the belief
+   line, both of which ellipsise and both of which repeat in full on hover; the
+   figures that must stay readable (Size, hit points, the siege badge) never
+   shrink at all. */
+.city-title {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.city-title > .city-size {
+  flex: 0 0 auto;
+}
+
+/* The two things in the band allowed to give: a long town name and a belief
+   line that names a faith, a congregation and a tide. Both ellipsise rather
+   than pushing the six chips off the edge, and both carry their whole text on
+   hover already (`renderBand`, `cityFaithHeadline`). */
+.city-band h2,
+.city-band .city-faith-head {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The six chips take the far end of the band, where the empire's six sit one
+   bar up — same order, same inks, same marks, so the eye does not relearn them
+   when the mode opens. */
+.city-band .city-yields {
+  margin-left: auto;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(6, minmax(46px, auto));
+}
+
+/* The six chips are the reason the band exists and are the last thing that may
+   be squeezed: below the fold breakpoint they lose the 46px floor rather than
+   the row. */
+@media (max-width: 860px) {
+  .city-band .city-yields {
+    grid-template-columns: repeat(6, minmax(38px, auto));
+  }
+}
+
+/* Every chip raises the breakdown that folds into it (`yieldLedger`), so the
+   pointer has to be told there is something to ask. */
+.city-band .city-yield {
+  cursor: help;
+}
+
+/* --- the chrome gives way -------------------------------------------------
+   **Everything the empire floats over the board stands down while the mode
+   holds**, and all of it through one derived mechanism: the container's own
+   `hidden` attribute. Every path that closes a city — Escape, the Leave button,
+   a seat change, a load, a town captured under the screen — already ends in a
+   render that hides it, so the chrome restores itself with no flag for anybody
+   to forget to clear. If `:has` is unavailable everything simply stays, which
+   is a crowded screen and not a broken one.
+
+   Two things stand down, and the second is the whole strip:
+
+   · the floating **cards** — the research dial, the screen dock, and the
+     popover columns that hang off them. These are what the playtest of
+     2026-09-03 named: the research card sat half-buried behind the band and the
+     dock's buttons floated over the town rail's ground. A card that is *there
+     but covered* is worse than one that is away, because it still takes the
+     pointer.
+   · **the empire bar itself**, all of it. The first build hid only its yield
+     chips, which the same playtest read exactly right: "it hides the yields at
+     the top bar, but oddly not all of the top bar items" — a strip half emptied
+     reads as a bug rather than as a mode. So the bar goes, the ☰ menu with it,
+     and the band sits flush at the top of the screen, which is what "the band
+     owns the top edge" was always meant to mean. Nothing is lost that is not
+     one keystroke away: Escape and Leave the town are the exits, and everything
+     the bar carries is there again the moment either is pressed.
+
+   The tile readout is the one card that stays. It is about the hex under the
+   cursor, which is exactly what a player in this mode is doing — so it slides
+   clear of the rail instead (below) rather than standing down. */
+body:has(.city-mode:not([hidden])) #topbar,
+body:has(.city-mode:not([hidden])) #hud-research,
+body:has(.city-mode:not([hidden])) #hud-dock,
+body:has(.city-mode:not([hidden])) #hud-dock-popovers,
+body:has(.city-mode:not([hidden])) #hud-meters,
+body:has(.city-mode:not([hidden])) #hud-popovers {
+  display: none;
+}
+
+/* And with the bar gone the band takes its place rather than sitting under a
+   42px strip of nothing. Written as an override of the padding rather than as
+   the padding itself, so the two facts share one condition: a browser without
+   `:has` keeps the bar *and* keeps the band below it, which is the layout this
+   screen had before the strip stood down — a duller screen, never a broken
+   one. */
+body:has(.city-mode:not([hidden])) .city-mode {
+  padding-top: 0;
+}
+
+/* The two rails. Translucent parchment so the ground reads through them — they
+   are over a live board, and a rail that looked like a wall would be claiming
+   the room the mode is trying to give away.
+
+   Neither carries a corner offset of its own: `.city-body` places them at the
+   edges of the row the band leaves, and its own bottom padding is what clears
+   the Leave button and End Turn. All either declares is how wide it is. */
+.city-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  pointer-events: auto;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-faint) transparent;
+}
+
+/* The town rail owns the top-left corner outright: the research card and the
+   dock stand down while the mode holds, so there is nothing above it to start
+   under. */
+.city-rail.is-left {
+  flex: 0 0 auto;
+  width: 230px;
+}
+
+.city-rail.is-right {
+  flex: 0 0 auto;
+  width: 264px;
+}
+
+/* The tile readout owns the bottom-left corner and the town rail runs down into
+   it. Slid clear for as long as the mode holds, and back on its own the moment
+   the panel is hidden — the chrome's rule, one corner over. The offset is the
+   rail's own gutter plus its width, written the way `.city-body` and
+   `.city-rail.is-left` write them, so the three move together. */
+body:has(.city-mode:not([hidden])) #hud-context {
+  left: calc(14px + 230px + 14px);
+}
+
+@media (max-width: 860px) {
+  body:has(.city-mode:not([hidden])) #hud-context {
+    left: calc(14px + 196px + 14px);
+  }
+}
+
+/* One card in a rail: the panel's parchment, thinner and quieter, because a
+   rail is a column of them rather than one sheet. */
+.city-card {
+  flex: 0 0 auto;
+  padding: 7px 9px 8px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--parchment) 93%, transparent);
+  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.35);
+}
+
+/* The eyebrow inside a card is the panel's own, with a card's air rather than a
+   section's. */
+.city-card h3 {
+  margin: 0 0 5px;
+}
+
+/* --- a meter: one clock, folded ------------------------------------------
+   Growth and Borders, and they are the same shape twice: a name, the rate, the
+   bar, and the two small figures under it. Every breakdown they used to print
+   as lines beneath is on the row's own `title` now (see `renderGrowth`) — one
+   hover deeper, never dropped. */
+.city-meter + .city-meter {
+  margin-top: 8px;
+}
+
+.city-meter-head {
+  display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  padding-bottom: 9px;
-  border-bottom: var(--border) solid var(--ink);
+}
+
+.city-meter-name {
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.city-meter-rate {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.city-meter-rate.is-bad {
+  color: var(--vermilion);
+}
+
+.city-meter-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* "5/7 working", "Next tile" — the qualifier under a bar. */
+.city-meter-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.city-meter-fig {
+  flex: none;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* --- a disclosure: a standing fact, folded ---------------------------------
+   Defence, Built, Routes and Faith. Closed by default with the fold in the
+   summary ("Built · 7"), and the section's whole contents inside — the
+   no-deletion rule's load-bearing case on this screen. The marker is the
+   house's own ▸ rather than the platform's triangle, which differs by browser
+   and is drawn in nobody's ink. */
+.city-discs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.city-disc > summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+  list-style: none;
+  cursor: pointer;
+}
+
+.city-disc > summary::-webkit-details-marker {
+  display: none;
+}
+
+.city-disc > summary::after {
+  content: '▸';
+  color: var(--ink-faint);
+  transition: transform 90ms ease-out;
+}
+
+.city-disc[open] > summary::after {
+  transform: rotate(90deg);
+}
+
+.city-disc > summary:hover {
+  color: var(--vermilion);
+}
+
+.city-disc-name {
+  flex: 1 1 auto;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.city-disc-fig {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.city-disc[open] > summary {
+  border-bottom: 1px solid var(--ink-faint);
+  margin-bottom: 3px;
+}
+
+/* --- the work rail's head: what is being built now ------------------------- */
+.city-prod-what {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.city-prod-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--face-display);
+  font-size: 17px;
+  line-height: 1.1;
+}
+
+.city-prod-turns {
+  flex: none;
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.city-prod-idle {
+  margin: 0;
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+/* --- the add-list's shelves ------------------------------------------------
+   Four tabs, in the order the one long list used to print its rows. Sentence
+   case at the panel's own control size: an eyebrow may shout, a control may
+   not (`cityScreen.test.ts`'s third promise). */
+.city-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+
+.city-tab {
+  padding: 2px 8px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 999px;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.city-tab:hover:not(.is-on) {
+  background: #fffdf4;
+}
+
+.city-tab.is-on {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+/* --- the way out ----------------------------------------------------------
+   One wide button, bottom centre, and the only exit the mode has. Escape does
+   the same thing and the key rides the label, which is how every other primary
+   verb on this page says so. */
+.city-leave {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 22px;
+  pointer-events: auto;
+  border: var(--border) solid var(--ink);
+  border-radius: 999px;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  box-shadow: 3px 3px 0 var(--ink);
+  cursor: pointer;
+}
+
+.city-leave:hover {
+  background: #fffdf4;
+}
+
+.city-leave:active {
+  transform: translateX(-50%) translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* The one instruction, and only while somebody is being taught or is shopping
+   for ground (`renderBoardCaption`). Above the exit rather than in the
+   bottom-left corner, which the tile readout owns. */
+.city-board-caption {
+  position: absolute;
+  left: 50%;
+  bottom: calc(14px + 46px);
+  transform: translateX(-50%);
+  max-width: 30rem;
+  margin: 0;
+  padding: 4px 10px;
+  pointer-events: none;
+  border: 1px dashed var(--ink-faint);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--parchment) 86%, transparent);
+  font-size: 11px;
+  text-align: center;
+  color: var(--ink-soft);
 }
 
 .city-size {
@@ -3025,7 +3510,7 @@ kbd {
 }
 
 .city-defense {
-  margin: 11px 0;
+  margin: 0;
 }
 
 .city-close {
@@ -3060,7 +3545,8 @@ kbd {
    chips — rule 5 at empire scale: a multiplied figure is never shown without
    the reason beside it. */
 .city-yields-box {
-  margin: 11px 0;
+  margin: 0;
+  min-width: 15rem;
 }
 
 .city-modifiers {
@@ -3174,29 +3660,6 @@ kbd {
   color: var(--y-faith);
 }
 
-/* The citizen line: a label and a count, on the rule under the yields. */
-.city-citizens {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 0 0 4px;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
-.city-citizens-count {
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  text-transform: none;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
-}
-
 /* The trades (ledger Entry XLVIII): the citizens' row's sibling, and set as one
    so a player reads "assigned" and "in the trades" as two halves of the same
    sentence. It wraps, because a late capital lists four families with a control
@@ -3259,47 +3722,6 @@ kbd {
 
 /* --- progress bars: chunky, ink-bordered, flat fills ---------------------- */
 
-.city-progress {
-  margin: 9px 0;
-}
-
-.city-progress-label {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
-.city-progress-rate {
-  font-family: var(--face-num);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
-  text-transform: none;
-  color: var(--ink);
-}
-
-.city-progress-label .is-bad {
-  color: var(--vermilion);
-}
-
-.city-progress-note {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  font-family: var(--face-num);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-soft);
-}
-
 /* The Cathedral's two banks, under the production bar (design ledger Entry LV).
    A pair rather than a column: gold and faith are the same offer twice and a
    player picks one, so they sit side by side and share the row's width. The
@@ -3347,18 +3769,6 @@ kbd {
   background: var(--table);
   box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.18);
   cursor: default;
-}
-
-/* The thing being built is a name, and the growth note has no name at all —
-   hence the flex row above holding one child or two equally well. */
-.city-progress-item {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: var(--face-ui);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ink);
 }
 
 .city-bar {
@@ -3444,10 +3854,13 @@ kbd {
 .city-queue-list {
   display: grid;
   gap: 4px;
-  margin: 0;
+  margin: 6px 0 0;
   padding: 0;
   list-style: none;
-  counter-reset: queue;
+  /* From two, not one: the front of the queue is the "Building now" card above
+     this list, so row one is already on screen and the list is what comes
+     after it. Numbering from one here would give a town two firsts. */
+  counter-reset: queue 1;
 }
 
 .city-queue-list li {
@@ -3459,11 +3872,6 @@ kbd {
   border-radius: var(--radius-sm);
   background: var(--parchment);
   counter-increment: queue;
-}
-
-/* The item at the head of the queue is the one being built right now. */
-.city-queue-list li:first-child {
-  box-shadow: inset 4px 0 0 var(--y-prod);
 }
 
 .city-queue-list li::before {
@@ -3553,12 +3961,13 @@ kbd {
   margin-top: 11px;
 }
 
-/* The panel's own closing caption — how the ring is worked, or how Buy Tiles
-   works — is a *different* paragraph from the build list's, and with the price
-   caption shortened the two abutted at zero and read as one run of prose. Same
-   air as the rule above, for the same reason. */
-#city-panel > .hint {
-  margin-top: 11px;
+/* A rail's own closing note — the puppet line, the locked-turn line — is a
+   *different* paragraph from the build list's caption, and at zero the two
+   abutted and read as one run of prose. Same air as the rule above, for the
+   same reason. */
+.city-rail > .hint {
+  margin-top: 4px;
+  padding: 0 2px;
 }
 
 /* One buildable: the button that queues it, and the tag that buys it. Two
@@ -6777,6 +7186,20 @@ kbd {
   .sc-column-body,
   .sc-pane {
     overflow-y: visible;
+  }
+
+  /* And the city mode's two rails narrow with them. The mode cannot stack —
+     the board it is framing is *between* the rails, and a stacked mode is a
+     panel again — so what gives is the width, in the one breakpoint this
+     stylesheet has. The camera's bias is half the difference between the two,
+     which the shrink keeps within a couple of pixels of the wide reading
+     (`cityScreen.test.ts` pins the relationship off the base rules). */
+  .city-rail.is-left {
+    width: 196px;
+  }
+
+  .city-rail.is-right {
+    width: 214px;
   }
 }
 
@@ -10810,4 +11233,210 @@ body.compendium-page {
 .landing-tutorial {
   margin-top: 11px;
   color: var(--ink-soft);
+}
+
+/* --- the pamphlet ---------------------------------------------------------
+   The five-minute read (src/ui/pamphlet.ts): a first-run overlay a brand-new
+   player skims before the tutorial's first card, and the same body mounted as
+   the Compendium's `intro:pamphlet` page (`.cmp-pamphlet`). One printer, one
+   recipe — only the wrapper differs.
+
+   It sits over everything (z 46): nothing under it has been introduced yet,
+   and the tutorial's own card (44) is raised only after this is dismissed. */
+
+.pamphlet-overlay {
+  position: fixed;
+  z-index: 46;
+  inset: 0;
+  display: grid;
+  place-items: start center;
+  padding: 24px;
+  overflow-y: auto;
+  background: rgba(29, 26, 32, 0.72);
+  animation: offer-fade 160ms ease-out both;
+}
+
+.pamphlet-overlay[hidden] {
+  display: none;
+}
+
+.pamphlet-sheet {
+  width: min(720px, 100%);
+  padding: 22px 26px 24px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--parchment);
+  box-shadow: 8px 8px 0 var(--ink);
+  animation: offer-rise 220ms cubic-bezier(0.2, 1.2, 0.4, 1) both;
+}
+
+.pamphlet-title {
+  margin: 2px 0 4px;
+  font-family: var(--face-display);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.pamphlet-lede {
+  margin: 0 0 14px;
+  padding-bottom: 12px;
+  border-bottom: var(--border-thin) solid var(--ink);
+  font-family: var(--face-name);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* The pager, in both mounts (re-ruled 2026-09-03, "pages, pictures first"):
+   one page up at a time, the hero shot leading it, the words caption-weight
+   under it, and the nav row — back, one dot per page, next — at the foot. */
+
+.pamphlet-pager {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pamphlet-page-title {
+  margin: 0 0 4px;
+  font-family: var(--face-display);
+  font-size: 19px;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+/* Caption weight — the re-ruling's whole point. The hero explains; these two
+   sentences annotate it. */
+.pamphlet-line {
+  margin: 0 0 6px;
+  font-family: var(--face-ui);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.pamphlet-line:last-child {
+  margin-bottom: 0;
+}
+
+/* The hero: a screenshot of the real game in an ink frame, marks baked into
+   the capture itself. The file may not exist yet (the shot list in
+   docs/pamphlet.md is captured after the fact), so `is-missing` is a designed
+   state: the <img> has removed itself and the frame shows the caption saying
+   what the shot will hold — never a broken-image glyph. */
+.pamphlet-figure {
+  margin: 0 0 10px;
+  padding: 6px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  box-shadow: var(--shadow-sm);
+}
+
+.pamphlet-figure img {
+  display: block;
+  width: 100%;
+  border-radius: calc(var(--radius-sm) - 2px);
+}
+
+.pamphlet-figure.is-missing {
+  border-style: dashed;
+  box-shadow: none;
+  min-height: 72px;
+  display: grid;
+  place-items: center;
+}
+
+/* The caption stands in for the missing shot and only then: with the hero
+   present the page's own lines are the words, and a second caption under the
+   picture would be the text-heaviness the re-ruling removed. */
+.pamphlet-caption {
+  display: none;
+  margin: 0;
+  padding: 12px 8px;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--ink-faint);
+}
+
+.pamphlet-figure.is-missing .pamphlet-caption {
+  display: block;
+}
+
+/* The nav row. The dots are the pager's own counter — mono-sized rounds, the
+   current one filled — and the two step buttons disable at the ends rather
+   than wrapping. */
+.pamphlet-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: var(--border-thin) solid var(--ink-faint);
+}
+
+.pamphlet-dots {
+  display: flex;
+  flex: 1 1 auto;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pamphlet-dot {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 50%;
+  background: var(--parchment);
+  cursor: pointer;
+}
+
+.pamphlet-dot.is-current {
+  background: var(--vermilion);
+  border-color: var(--ink);
+}
+
+.pamphlet-back:disabled,
+.pamphlet-next:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* The overlay's foot: the one plain way out, and the sentence saying where the
+   pamphlet lives afterwards. */
+.pamphlet-foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: var(--border-thin) solid var(--ink);
+}
+
+.pamphlet-note {
+  flex: 1 1 auto;
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.pamphlet-begin {
+  flex: 0 0 auto;
+}
+
+/* The Compendium mount: the same sections inside an entry card, which already
+   has its own head — so the body only adds its top margin. */
+.cmp-pamphlet {
+  margin-top: 8px;
 }

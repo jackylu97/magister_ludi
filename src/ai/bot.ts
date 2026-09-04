@@ -202,9 +202,15 @@ import {
 } from '../sim/statecraftData';
 import { type BeliefId } from '../sim/religionData';
 import { TECH_IDS, UNIT_UNLOCK_TECH, type TechId, highestAge, techDef } from '../sim/techData';
-import { availableTechs, buildError, researchExpansion, researchPlan } from '../sim/tech';
+import {
+  availableTechs,
+  buildError,
+  researchExpansion,
+  researchPlan,
+  upgradeTargetForType,
+} from '../sim/tech';
 import { unitUpkeep, buildingUpkeep, unitUpkeepOf } from '../sim/upkeep';
-import { startRouteError } from '../sim/trade';
+import { bestRouteMode, startRouteError } from '../sim/trade';
 import {
   type UnitTypeId,
   UNIT_TYPE_IDS,
@@ -2647,9 +2653,20 @@ function canQueueBuilding(
   return buildError(state, player.id, 'building', id, city) === null;
 }
 
-/** `validateQueue`'s unit clauses, likewise. */
+/**
+ * `validateQueue`'s unit clauses, likewise — **read strictly**.
+ *
+ * The one place this is deliberately harder on itself than the reducer is
+ * obsolescence (user, 2026-09-03). `buildError` excuses a superseded row this
+ * town is already building, so that a queue holding one stays editable; a bot
+ * asking "what should this town start next" is not editing anything, and a
+ * warrior proposed beside a warrior would be the excuse spent on the one thing
+ * it was not for. Asked of the same walk the gate asks (`upgradeTargetForType`),
+ * so the two cannot drift apart.
+ */
 function canQueueUnit(state: GameState, player: Player, city: City, id: UnitTypeId): boolean {
   if (city.population < unitDef(id).minCityPop) return false;
+  if (upgradeTargetForType(state, player.id, id) !== null) return false;
   return buildError(state, player.id, 'unit', id, city) === null;
 }
 
@@ -4082,35 +4099,63 @@ const HOLY_SITE: ImprovementId | null = workForFamily('prophet');
  * The origin is named by the command rather than read off the board (the
  * caravan teleports into its gates), so this is a plain search over pairs of
  * this empire's towns in `state.cities` order, gated by `startRouteError`.
+ *
+ * **The mode is named too** (`bestRouteMode`, the ruling of 2026-09-03): land
+ * wherever a land route is legal, sea otherwise. Naming it rather than leaving
+ * it out is what lets the bot reach a partner across a bay at all — the absent
+ * field's default is a fact about the *path* and would take the land answer
+ * even when the land answer is out of range.
+ *
+ * **Foreign partners are searched second** (the international ruling of
+ * 2026-09-03), and the two passes are the whole of this bot's opinion about
+ * them: it does not price routes against each other at all — the summary says
+ * so out loud — so "first legal" is the only ordering it has, and a bot that
+ * met the world's towns in `state.cities` order would send its first caravan
+ * abroad on nothing but the accident of who was founded first. Its own towns
+ * first is the conservative reading of a rule it cannot weigh: the road home is
+ * worth something to it afterwards. Everything about legality — at peace, met,
+ * in range, a path in some mode — is `startRouteError`'s, asked identically in
+ * both passes.
  */
 function traderCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
   const tried: BotCandidate[] = [];
-  for (const from of state.cities) {
-    if (from.ownerId !== player.id) continue;
-    for (const to of state.cities) {
-      if (to.ownerId !== player.id || to.id === from.id) continue;
-      const label = `${from.name} → ${to.name}`;
-      const refusal = startRouteError(state, player.id, unit.id, from.id, to.id);
-      if (refusal !== null) {
-        tried.push(refused(label, refusal));
-        continue;
+  // Its own towns, then the world's — see the docblock. `pass` is the reading
+  // "is this partner somebody else's", so one sweep of `state.cities` answers
+  // each pass and the order stays a fact about the state.
+  for (const pass of [false, true]) {
+    for (const from of state.cities) {
+      if (from.ownerId !== player.id) continue;
+      for (const to of state.cities) {
+        if (to.id === from.id) continue;
+        if ((to.ownerId !== player.id) !== pass) continue;
+        const label = `${from.name} → ${to.name}`;
+        const mode = bestRouteMode(state, player.id, unit.id, from.id, to.id);
+        if (mode === null) {
+          // Land's own sentence, which `bestRouteMode` has just proved is a
+          // refusal — the feed says why the ordinary road was no good rather
+          // than reporting the sea to an empire with no coast.
+          const refusal = startRouteError(state, player.id, unit.id, from.id, to.id, 'land');
+          tried.push(refused(label, refusal ?? 'No route a caravan could take.'));
+          continue;
+        }
+        tried.push(chosenAt(label, tried.length));
+        return {
+          command: {
+            type: 'startRoute',
+            playerId: player.id,
+            unitId: unit.id,
+            fromCityId: from.id,
+            toCityId: to.id,
+            mode,
+          },
+          summary: `Opens the first route the rules will take, ${from.name} → ${to.name} by ${mode} — this bot does not price routes against each other.`,
+          candidates: tried,
+          focus: { col: to.col, row: to.row },
+        };
       }
-      tried.push(chosenAt(label, tried.length));
-      return {
-        command: {
-          type: 'startRoute',
-          playerId: player.id,
-          unitId: unit.id,
-          fromCityId: from.id,
-          toCityId: to.id,
-        },
-        summary: `Opens the first route the rules will take, ${from.name} → ${to.name} — this bot does not price routes against each other.`,
-        candidates: tried,
-        focus: { col: to.col, row: to.row },
-      };
     }
   }
-  return standDown(unit, 'No pair of this empire’s towns will take a route.');
+  return standDown(unit, 'No pair of towns will take a route from this empire.');
 }
 
 // --- naming a decision ------------------------------------------------------

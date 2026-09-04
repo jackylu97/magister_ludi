@@ -162,7 +162,11 @@ export const SLOT_TYPES: readonly SlotType[] = ['military', 'economic', 'wildcar
  */
 export type OrderPool = 'chiefdom' | 'governmentI' | 'governmentII' | 'governmentIII';
 
-/** The pools in ladder order — which is also "which pool retires when". */
+/**
+ * The pools in ladder order — which is also "which pool retires when": since
+ * 2026-09-03 a pool retires whole the moment the next government opens, so this
+ * order is the order they go out in as well as the order they come in.
+ */
 export const ORDER_POOLS: readonly OrderPool[] = [
   'chiefdom',
   'governmentI',
@@ -1329,26 +1333,37 @@ export type ActionRuleId =
 /**
  * Something about the world that stops being true — or starts.
  *
- * Three now, and all three are Wolf-Mother's Pact, which is the shape working:
- * a doctrine that rewrites the wild's relationship with an empire says so in
- * three named rules that three verbs read, rather than in one clause the wild's
- * own module has to know about.
+ * Three of these were Wolf-Mother's Pact, which is the shape working: a
+ * doctrine that rewrites the wild's relationship with an empire says so in
+ * named rules that three verbs read, rather than in one clause the wild's own
+ * module has to know about. The user's card pass of 2026-09-03 cut that
+ * doctrine back to **one** of the three, and the other two are **held with no
+ * live row naming them** — the verbs go on asking, so restoring either clause
+ * to a card is a JSON row rather than a change to the wild's own module.
  */
 export type BehaviorRuleId =
-  /** The wild never attacks this empire. Theft continues. */
+  /**
+   * The wild never attacks this empire. Theft continues.
+   *
+   * Read at two seams — `nearestTarget` and `barbarianRoles` — and carried by
+   * no live row since 2026-09-03. See the union's docblock.
+   */
   | 'barbariansPassive'
   /**
-   * A barbarian **killed** by this empire changes sides instead of dying —
-   * handed over by `captureUnit` in `applyCombat`'s kill path, which is the one
-   * implementation of a change of hands and the reason this is a rule rather
-   * than a second way to acquire a piece.
+   * A barbarian **killed** by this empire changes sides instead of dying, **at
+   * full health** — handed over by `captureUnit` in `applyCombat`'s kill path,
+   * which is the one implementation of a change of hands and the reason this is
+   * a rule rather than a second way to acquire a piece. The health is the
+   * user's card pass of 2026-09-03: the pact lost its two other clauses and
+   * bought a whole soldier with the difference.
    */
   | 'barbarianKillsConvert'
   /**
    * This empire can no longer **clear a camp**: arriving on one burns nothing
-   * out and pays no bounty (`arriveOnTile`). Wolf-Mother's price for the
+   * out and pays no bounty (`arriveOnTile`). It was Wolf-Mother's price for the
    * conversion above — the wild is an ally, and you do not sack an ally's
-   * villages.
+   * villages — and is carried by no live row since 2026-09-03. See the union's
+   * docblock.
    */
   | 'noCampClearing'
   /**
@@ -2020,6 +2035,29 @@ export interface CardWindfallRiderEffect {
    * his. Meaningless on any other occasion, which is a fact about the row.
    */
   capturedWonder?: boolean;
+  /**
+   * The rider fires only when the town **grew to exactly this population** —
+   * First Fruits' "the first citizen born in each city pays +10 faith once".
+   *
+   * `vsBarbarians`' and `capturedWonder`'s third sibling, and a filter on the
+   * *occasion* for their reason exactly: a growth and a growth-to-two are one
+   * moment asked two ways, and the caller (`payGrowthRider`) is the only thing
+   * that knows which citizen this was. Read off
+   * `WindfallOccasionFacts.population`, so a rider that asks for a figure the
+   * occasion cannot supply is simply not on that payout — meaningless on any
+   * occasion but a growth, which is a fact about the row rather than a rule
+   * here.
+   *
+   * **"Once" is the board's word, not a ledger's.** Nothing is written down
+   * about a town that has already paid: the card fires whenever a town reaches
+   * the stated size, which for the only figure the design uses (two — the
+   * first citizen a town ever gains) is once in the life of every town that
+   * never starves. A town starved back to one and grown again pays a second
+   * time, and that is the honest reading of a rule made of comparisons rather
+   * than of a stamp on the city (the same discipline `TimedEffect` keeps one
+   * system over).
+   */
+  atPopulation?: number;
 }
 
 /** What a newly founded city is founded *with*. */
@@ -2040,7 +2078,13 @@ export interface CardFoundingRiderEffect {
    * the same field.
    */
   roads?: boolean;
-  /** Only the first N cities. Absent means all of them. */
+  /**
+   * Only the first N cities. Absent means all of them.
+   *
+   * Carried by no live row since the user's card pass of 2026-09-03 took The
+   * Founders' Road's free Monument away — read by `cardFoundingRider` exactly as
+   * it was, so a card that counts an empire's first towns again is a JSON row.
+   */
   maxCities?: number;
 }
 
@@ -2563,6 +2607,56 @@ export interface CardMirrorYieldEffect {
 }
 
 /**
+ * A **share of one voice a town already makes, paid again as another** —
+ * Thalassocracy's "coastal cities gain 10% of their food yield as gold".
+ *
+ * `mirrorYield`'s wider sibling and the second clause in the vocabulary whose
+ * subject is another line of the same ledger. That one sums what the *buildings
+ * of one category* pay and this one takes a share of the **whole town's** fold,
+ * which is the difference the two cards' sentences actually draw: "faith
+ * buildings supply science" names the buildings, and "10% of their food yield"
+ * names the harvest.
+ *
+ * The stage, which is the only thing about this shape that could be got wrong
+ * ------------------------------------------------------------------------
+ * It reads the town's own fold of **flats** — everything the ground, the seams,
+ * the buildings, the caravans, the guilds and the other cards pay it, before
+ * Entry XVII's two multiplications — and pays its share as one more flat line,
+ * which is then staged like every other flat.
+ *
+ * That is the honest reading of "their food yield" and the only one that is not
+ * a second arithmetic:
+ *
+ *   · **it cannot recur.** A conversion that read the *finished* number would
+ *     have to be computed after the multiplication that it then feeds, and a
+ *     second card converting gold back into food would be a loop with no
+ *     answer. Reading the flats keeps every conversion one pass over a list.
+ *   · **it is not staged twice.** The share is taken before the percentages, so
+ *     a coastal town under a +30% food doctrine does not sell that doctrine's
+ *     food a second time as coin, and the coin it does make is multiplied by
+ *     the gold percentages exactly as a market's is (`mirrorYield`'s rule, and
+ *     for its reason).
+ *   · **it is rule 5's list.** The line is labelled with both voices ("food →
+ *     gold") and joins `cityQuote`'s fold, so the town's coin is still the sum
+ *     of the reasons printed beside it.
+ *
+ * Floored **per city**, once, on the town's own share — never on an empire
+ * total divided out afterwards, which would pay a realm of five villages
+ * differently from the same five villages read one at a time.
+ */
+export interface CardYieldConversionEffect {
+  kind: 'yieldConversion';
+  /** The voice read: the town's own fold of it. */
+  from: CityYieldKey;
+  /** The voice paid. May be the same one — a card that says so is a bonus. */
+  to: CityYieldKey;
+  /** The share, in whole percent. Floored per city. */
+  percent: number;
+  /** Which towns it lands in. Absent means every one. */
+  scope?: CityScope;
+}
+
+/**
  * Gold off what **one piece** costs its empire every turn — The Quartermasters'
  * shilling, The War Chest's three, The Wintering Grounds' whole payroll.
  *
@@ -2641,6 +2735,7 @@ export type CardEffect =
   | CardPressureRuleEffect
   | CardPressureEffect
   | CardMirrorYieldEffect
+  | CardYieldConversionEffect
   | CardUpkeepRebateEffect;
 
 /** Every `kind` in the union, for the register test that pins the evaluator. */
@@ -3041,12 +3136,6 @@ export function poolOfGovernment(id: GovernmentId): OrderPool {
   if (tier <= 4) return 'governmentI';
   if (tier <= 10) return 'governmentII';
   return 'governmentIII';
-}
-
-/** The pool before this one, or `null` at the start of the ladder. */
-export function previousPool(pool: OrderPool): OrderPool | null {
-  const index = ORDER_POOLS.indexOf(pool);
-  return index > 0 ? ORDER_POOLS[index - 1]! : null;
 }
 
 /**

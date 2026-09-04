@@ -21,7 +21,7 @@ import { createMap, getTileAt } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { type City, type GameState, newGame } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
-import { defenseRows, maxHpLedger } from '../../src/ui/cityPanel';
+import { defenseRows, defenseTotal, maxHpLedger } from '../../src/ui/cityPanel';
 
 const SOURCES = import.meta.glob(
   ['../../src/ui/unitPanel.ts', '../../src/ui/cityPanel.ts', '../../src/ui/controls.ts'],
@@ -89,7 +89,11 @@ describe('defenseRows', () => {
     // No tech at all: the roster's own floor unit, the warrior, is exactly at
     // `combat.cityMinStrength` — deterministic without unlocking anything.
     const rows = defenseRows(state, city);
-    expect(rows).toEqual([{ label: 'Defends with · Warrior', figures: '8' }]);
+    expect(rows).toEqual([{ label: 'Defends with · Warrior', figures: '8', amount: 8 }]);
+    // The disclosure's summary is the fold of this list and never a second
+    // count — the mode collapsed the section behind "Defence · 8" and that
+    // figure has to be these rows added up (rule 5, one grade down).
+    expect(defenseTotal(rows)).toBe(8);
   });
 
   it('adds the wall as its own row, in points, beneath the garrison', () => {
@@ -98,9 +102,11 @@ describe('defenseRows', () => {
     city.buildings.push('palisade');
     const rows = defenseRows(state, city);
     expect(rows).toEqual([
-      { label: 'Defends with · Warrior', figures: '8' },
-      { label: 'Palisade', figures: '+5' },
+      { label: 'Defends with · Warrior', figures: '8', amount: 8 },
+      { label: 'Palisade', figures: '+5', amount: 5 },
     ]);
+    // And the fold moves with the wall, off the same list.
+    expect(defenseTotal(rows)).toBe(13);
   });
 });
 

@@ -128,6 +128,7 @@ import {
 import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
 import { CARD_LINE_NAME, lineOf } from './cardLine';
 import { setDescriptorText } from './keywords';
+import { renderPamphletBody } from './pamphlet';
 import { SHELF_INTROS } from './compendiumShelves';
 import { CONCEPT_ENTRIES, INTRO_ENTRIES } from './compendiumText';
 import { HAMMER, YIELD_GLYPH, eraWord, figure, percentFigure, signedFigure } from './figures';
@@ -226,6 +227,13 @@ export interface CompendiumEntry {
    * unset.
    */
   written?: boolean;
+  /**
+   * True for the printed pamphlet's one page (`pamphlet.ts`): `clauses` still
+   * carries every paragraph so the search reaches the prose, but the card is
+   * drawn by `renderPamphletBody` — sections, panels and captions — rather
+   * than as the flat paragraphs `written` prints.
+   */
+  pamphlet?: boolean;
 }
 
 export interface CompendiumSection {
@@ -531,6 +539,19 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
     out.push({
       text: `Upgrades to a ${unitDef(def.upgradesTo).name} once you research the technology that unlocks one.`,
     });
+    // The other half of the same rule, and the half a player planning a queue
+    // needs: the older piece is not merely surpassed, it leaves the build list
+    // the moment the better one can actually be fielded. Said in the successor's
+    // own terms rather than as a rule about lists, and the strategic-resource
+    // exception is said here too because it is the one thing that keeps the old
+    // row on offer (`buildError`, `upgradeTargetForType`).
+    const wants = unitDef(def.upgradesTo).requiresResource;
+    out.push({
+      text:
+        wants === undefined
+          ? `Once you can build the ${unitDef(def.upgradesTo).name}, this is no longer offered.`
+          : `Once you can build the ${unitDef(def.upgradesTo).name}, this is no longer offered — until then, with no improved ${resourceDef(wants).name} to hand, it stays on the list.`,
+    });
   }
   if (def.purchase !== undefined) {
     // `exclusive` is the clause `buildError` actually enforces ("not built —
@@ -802,6 +823,16 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   if (def.worldUnlockTech !== undefined) {
     clauses.push({
       text: `Nobody can begin one until some empire in the world has researched ${techDef(def.worldUnlockTech).name}. After that, everybody can.`,
+      note: true,
+    });
+  }
+  // The dry-settle ruling's other half, read off the row rather than written
+  // into the aqueduct's note: a town away from fresh water grows slowly until
+  // something waters it, and the day a second row waters one it says this
+  // without anybody remembering to type it again.
+  if (def.waters === true) {
+    clauses.push({
+      text: 'A city that is not beside fresh water grows more slowly until this is built in it.',
       note: true,
     });
   }
@@ -1461,9 +1492,10 @@ function meterEntries(): CompendiumEntry[] {
         {
           text: `Every citizen in every city demands ${figure(happiness.demandPerPop)}.`,
         },
-        // The crowding surcharge is disabled by data (Entry LVI — weight 0); its
-        // sentence returns with the number, so the book never describes a rule
-        // the ledger is not charging.
+        // The crowding surcharge is spoken for iff the ledger is charging it:
+        // the weight went to 0 on 2026-09-01 (Entry LVI) and back on with the
+        // 9/3 playtest ruling, and the sentence follows the number both ways,
+        // so the book never describes a rule the ledger is not charging.
         ...(happiness.crowdingWeight > 0
           ? [
               {
@@ -1890,7 +1922,14 @@ function entryNode(entry: CompendiumEntry): HTMLElement {
     card.append(list);
   }
 
-  if (entry.clauses.length > 0 && entry.written === true) {
+  if (entry.pamphlet === true) {
+    // The pamphlet's page is the leaflet itself, drawn by its own printer —
+    // sections, screenshots, captions. Its clauses are for the search alone;
+    // printing them here as well would say everything twice.
+    const leaf = element('div', 'cmp-pamphlet');
+    renderPamphletBody(leaf);
+    card.append(leaf);
+  } else if (entry.clauses.length > 0 && entry.written === true) {
     // The two written shelves' shape: prose, not the card vocabulary's marked
     // list, so a paragraph per clause rather than a bullet.
     const prose = element('div', 'cmp-written');

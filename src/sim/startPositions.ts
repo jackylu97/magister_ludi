@@ -21,12 +21,18 @@
  * makes anything of. Scoring what will be worked put the opening capital's
  * production back where the pacing tests had measured it.
  *
- * Five hard rejections back the score up, because a weighted sum will always
- * find a way to like somewhere unliveable: the site's own terrain, the share of
- * its rings that is cold or arid, the share that is water, and floors on the
- * food and production its rings carry *in total* (all of them, not the scored
- * six — a floor read off a set the score itself ordered would be a floor
- * measuring the weights it exists to backstop).
+ * Six hard rejections back the score up, because a weighted sum will always
+ * find a way to like somewhere unliveable: how much land the site's own landmass
+ * carries at all, the site's own terrain, the share of its rings that is cold or
+ * arid, the share that is water, and floors on the food and production its rings
+ * carry *in total* (all of them, not the scored six — a floor read off a set the
+ * score itself ordered would be a floor measuring the weights it exists to
+ * backstop).
+ *
+ * The landmass floor is the newest and the only one that looks past the two
+ * rings: the pangaea ruling (2026-09-03) puts islands off the shelf on every
+ * default map, and a lone capital on one is a player with nowhere to expand and
+ * nobody to meet. See `StartsConfig.minLandmassShare`.
  *
  * Every weight, both bonuses and all five rejections come from `mapgen.starts`,
  * so "no tundra starts" and "how much is a hill worth" are data edits.
@@ -100,7 +106,7 @@ import { RULES } from './rulesData';
 import { isWaterTerrain, isWorkableTerrain, moveCost, type TileYield } from './terrainData';
 import { type UnitCategory, type UnitTypeId, unitDef } from './unitData';
 import { stacksFreely } from './units';
-import { isCoastal } from './water';
+import { isCoastal, landmassSizes } from './water';
 
 /**
  * The start tunables **for this map**, not for the process.
@@ -137,6 +143,46 @@ export interface StartPlacement {
 export interface StartScoreContribution {
   source: string;
   value: number;
+}
+
+/**
+ * How much land each tile's own landmass carries, and how much the largest
+ * landmass carries — the two readings `minLandmassShare` compares.
+ *
+ * Precomputed and handed down for `groundYields`' reason: the sweep asks about
+ * every land tile, and a component walk per hex would be a map pass per hex.
+ */
+export interface LandmassFacts {
+  /** Tile index → land tiles on that tile's landmass; 0 on water. */
+  size: Int32Array;
+  /** The largest landmass on the map, in tiles. The share's denominator. */
+  largest: number;
+}
+
+/** One walk of the land, answering both halves. */
+export function landmassFacts(map: GameMap): LandmassFacts {
+  const size = landmassSizes(map);
+  let largest = 0;
+  for (const tiles of size) if (tiles > largest) largest = tiles;
+  return { size, largest };
+}
+
+/**
+ * Is a landmass of this many tiles somewhere a player may begin?
+ *
+ * The mainland, **or** big enough on its own — see `StartsConfig`. Written once
+ * here rather than inline in the refusal because the sweeps that check the rule
+ * ask exactly this question of exactly these two numbers, and a rule restated in
+ * a test is a rule that can drift.
+ */
+export function isHomeLandmass(
+  tiles: number,
+  facts: LandmassFacts,
+  starts: StartsConfig,
+): boolean {
+  if (tiles <= 0) return false;
+  if (starts.minLandmassShare > 0 && tiles >= starts.minLandmassShare * facts.largest) return true;
+  return starts.minLandmassTiles > 0 && tiles >= starts.minLandmassTiles;
 }
 
 /** A scored site: the ledger, its fold, and whether it is allowed at all. */
@@ -193,8 +239,9 @@ export function scoreStartSite(
   map: GameMap,
   tile: Tile,
   ground?: readonly TileYield[],
+  landmass?: LandmassFacts,
 ): StartSiteScore {
-  return scoreSite(map, startsFor(map), tile, ground);
+  return scoreSite(map, startsFor(map), tile, ground, landmass);
 }
 
 /**
@@ -209,6 +256,7 @@ function scoreSite(
   STARTS: StartsConfig,
   tile: Tile,
   ground?: readonly TileYield[],
+  landmass?: LandmassFacts,
 ): StartSiteScore {
   const yieldAt = (target: Tile): TileYield =>
     ground ? ground[tileIndex(map, target.col, target.row)]! : tileYieldOf(groundOf(target));
@@ -270,10 +318,24 @@ function scoreSite(
   let total = 0;
   for (const entry of entries) total += entry.value;
 
-  // The four hard rejections, in the order a player would say them: where the
-  // city stands, then what surrounds it, then whether it can feed and build.
+  // The five hard rejections, in the order a player would say them: what world
+  // this is, then where the city stands, then what surrounds it, then whether it
+  // can feed and build. The landmass floor is first because it is the only one a
+  // better neighbourhood cannot argue with — a perfect site on a twenty-hex
+  // island is still a player who has nowhere to go.
+  //
+  // Two clauses joined by **or**, and the or is the ruling: the mainland, or a
+  // landmass simply big enough to live on (`minLandmassShare` /
+  // `minLandmassTiles`). Either alone gets one of the two cases wrong — a share
+  // refuses the far lobe of a strait-split pangaea, which is a whole country,
+  // and a tile floor alone would seat a player on an island the day the belt
+  // grew one that size.
   let reject: string | null = null;
-  if (hostileTerrain.includes(tile.terrain)) reject = `site is ${tile.terrain}`;
+  const wanted = STARTS.minLandmassShare > 0 || STARTS.minLandmassTiles > 0;
+  const facts = wanted ? (landmass ?? landmassFacts(map)) : undefined;
+  if (facts && !isHomeLandmass(facts.size[tileIndex(map, tile.col, tile.row)]!, facts, STARTS)) {
+    reject = 'landmass is too small';
+  } else if (hostileTerrain.includes(tile.terrain)) reject = `site is ${tile.terrain}`;
   else if (ringTiles > 0 && hostile / ringTiles > STARTS.maxHostileRingShare) {
     reject = 'rings are cold or arid';
   } else if (ringTiles > 0 && water / ringTiles > STARTS.maxWaterRingShare) {
@@ -357,10 +419,14 @@ export function chooseStartPositions(map: GameMap, count: number): Tile[] {
 
   // The whole ranking is computed once, off one pass of ground yields.
   const ground = groundYields(map);
+  // One walk of the land for the whole sweep, for `groundYields`' reason: the
+  // landmass floor is a map-wide fact and computing it per candidate would be a
+  // component pass per hex.
+  const landmass = landmassFacts(map);
   const scores = new Map<number, StartSiteScore>();
   const candidates = map.tiles.filter(isStartCandidate);
   for (const tile of candidates) {
-    scores.set(tileIndex(map, tile.col, tile.row), scoreSite(map, STARTS, tile, ground));
+    scores.set(tileIndex(map, tile.col, tile.row), scoreSite(map, STARTS, tile, ground, landmass));
   }
   const byScore = (a: Tile, b: Tile): number => {
     const ia = tileIndex(map, a.col, a.row);

@@ -576,22 +576,28 @@ describe('the followers on a city sheet', () => {
     );
   });
 
-  it('is drawn under the citizens’ row and hovered with the ledger', () => {
+  it('keeps every claim on the town reachable, hovered with the ledger', () => {
+    // The claim survives the city mode (`docs/city-screen.md`, revision 3);
+    // where the block sits does not. It used to be a section under the
+    // citizens' row; it is now the fourth standing disclosure in the town rail,
+    // closed by default with the number of claims in its summary and **every
+    // word it had inside it** — which is the no-deletion rule this list is the
+    // hardest case of, because a faith pressing on a town with nobody converted
+    // yet is exactly the thing a player must not be able to miss.
     const panel = sourceOf('cityPanel.ts');
     expect(panel).toContain('renderFollowers(city)');
     expect(panel).toContain('pressureLedgerText(row.ledger)');
     expect(panel).toContain('unconvertedCitizens(city)');
-    // Order in the source is order in the DOM here: every one of these is an
-    // `append` onto the container built above it.
-    const render = fn('cityPanel.ts', 'render');
-    expect(render.indexOf('renderFollowers(city)')).toBeGreaterThan(
-      render.indexOf('renderCitizenFocus(city)'),
-    );
-    // The call's opening rather than the whole of it: the growth section takes
-    // the render's hoisted `CityQuote` now, and the claim here is about order.
-    expect(render.indexOf('renderFollowers(city)')).toBeLessThan(
-      render.indexOf('renderGrowth(city'),
-    );
+    // Drawn in the rail that carries the town's standing facts, behind a
+    // disclosure whose summary is the count of claims — never dropped, and
+    // never a fact the sheet invents beside the list.
+    const rail = fn('cityPanel.ts', 'renderTownRail');
+    expect(rail).toContain('renderFollowers(city)');
+    expect(rail).toContain("disclosure('Faith'");
+    expect(rail).toContain('cityFaithRows(state, city, localPlayerId())');
+    // And the header still carries the one-line answer the block is the
+    // argument for (the 2026-08-28 ruling), in the band now.
+    expect(fn('cityPanel.ts', 'renderBand')).toContain('renderFaithHeadline(city)');
   });
 });
 

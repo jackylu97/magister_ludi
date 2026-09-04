@@ -8,16 +8,17 @@ in it until it is moved there) and `docs/deprecated/statecraft-cards.md` (the ra
 
 ## Why the repeats happen
 
-`livePool` is the current government's pool plus the previous one, minus what the seat holds,
-and an offer is three cards drawn **uniformly without replacement** from it (`drawOrderOffer`).
-Two things make the same faces come round:
+*Updated 2026-09-03 for the draft ruling.* `livePool` is the **current government's pool
+alone**, minus what the seat holds (it carried the previous government's leftovers when this
+was written), and an offer is three cards drawn without replacement from it (`drawOrderOffer`)
+— uniformly, except that a hand of three or more takes one guaranteed card from each slot
+type first. Two things still make the same faces come round:
 
 1. **A declined card goes straight back.** Nothing remembers that you passed on Salt Tithes
    twice; on the third draft it has the same odds as a card you have never seen.
-2. **The pools are small at the point you draft most.** Chiefdom (11) + Government I (22)
-   is 33 live cards, and every card you *take* shrinks it. By tier 15 the live set is
-   Government I + II (41) minus your six or seven held, and the militaries you decline every
-   time are a third of it.
+2. **The pools are small at the point you draft most.** The chiefdom pool is thirteen rows,
+   and every card you *take* shrinks it; dropping the leftovers made each pool's own size the
+   whole story, so a thin pool is now thin on its own.
 
 More rows help the second; only a draw rule helps the first. Both are proposed below.
 

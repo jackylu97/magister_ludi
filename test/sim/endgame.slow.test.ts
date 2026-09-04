@@ -135,16 +135,28 @@ function playToTheFinish(maxTurns: number): Played {
 
 describe('the finish line in a played game', () => {
   it('opens, is paid for, and settles the race', () => {
-    const { game, opened, finished } = playToTheFinish(700);
+    const { game, opened, finished } = playToTheFinish(1700);
     const player = game.state.players[0]!;
 
     // **It arrives inside a game.** A gate that is correct and unreachable is
     // the regression this exists for, so `null` is the failure — the band is
     // deliberately loose on both sides, because what is pinned is that the
     // chart runs out at all rather than the turn it does.
+    //
+    // **Re-measured 2026-09-03, the late-cost ruling** (the user: "technologies
+    // should keep the same scaling they had in age 1-2. Technologies should be
+    // extremely expensive in age 4-5"). Æra IV went from 11300 beakers to
+    // 26000 and the whole tree from 19725 to 35710, so this **one-city** seat —
+    // the leanest science economy the suite plays, and deliberately so — now
+    // opens the Opus on turn **1515** and finishes it on 1516, against
+    // somewhere inside the old 650 ceiling. The horizon grows to 1700 with the
+    // band, because a harness that stops before the chart runs out measures
+    // nothing at all. The four-city empire in `tech.slow.test.ts` closes Æra IV
+    // on t443; the gap between the two is what a capital alone is worth, and it
+    // is the pacing question the ruling deliberately re-opened.
     expect(opened).not.toBeNull();
     expect(opened!).toBeGreaterThan(100);
-    expect(opened!).toBeLessThan(650);
+    expect(opened!).toBeLessThan(1650);
     expect(player.techsResearched).toContain(buildingDef(OPUS).worldUnlockTech!);
 
     // **It can be paid for**, out of hammers and a treasury the empire earned.

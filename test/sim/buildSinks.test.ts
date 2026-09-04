@@ -41,7 +41,7 @@ import {
   unitProductionCost,
 } from '../../src/sim/cities';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
-import { explainHappiness, happinessOf } from '../../src/sim/meters';
+import { explainHappiness, happinessOf, tierPercent } from '../../src/sim/meters';
 import { PROJECT_IDS, projectDef, projectRate } from '../../src/sim/projectData';
 import { RULES } from '../../src/sim/rulesData';
 import { type City, type GameState, createUnit, newGame } from '../../src/sim/state';
@@ -165,8 +165,12 @@ describe('a project is a queue row that never leaves', () => {
     // is immune to everything that stages a yield. Put the empire deep into a
     // happiness bonus — the empire-stage tier that multiplies science — and the
     // beakers must not move.
+    // Asked of the **rung** rather than of the total, because the rung is what
+    // multiplies a yield: a one-city empire clears the first bonus step by its
+    // palace alone, and how far past the step it stands is a playtest lever
+    // (the palace went 9 → 6 on 2026-09-03) rather than part of this claim.
     const contented = happinessOf(state, 0);
-    expect(contented).toBeGreaterThan(RULES.meters.tiers[0]!.whenAtOrAbove!);
+    expect(tierPercent(contented)).toBeGreaterThan(0);
     city.hammerBasket = projectDef('scholarship').cost;
     advanceProduction(state);
     expect(state.players[0]!.sciencePool).toBe(projectDef('scholarship').pays.science!);

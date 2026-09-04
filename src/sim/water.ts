@@ -343,6 +343,193 @@ export function classifyLakes(map: GameMap, maxSize: number): number {
   return count;
 }
 
+// --- landmasses and the shelf ------------------------------------------------
+
+/**
+ * Connected land, wrap-aware: tile index → landmass id, `-1` on water.
+ *
+ * Seeded in tile-index order, so a landmass's id is a fact about the map rather
+ * than about the order a traversal happened to run — which is what lets a
+ * continent's number be printed and compared. Ids ascend with the lowest member
+ * tile index, so landmass 0 always contains the map's first land tile.
+ *
+ * Lives here rather than beside its oldest caller (`carveContinents`,
+ * `resources.ts`) because it is a fact about which hexes are sea, and because
+ * three modules on either side of that one now need it: `resources.ts` still
+ * re-exports the name it always had, `startPositions.ts` asks it for the
+ * landmass floor, and `mapgen.ts` asks it for the shelf chains below. `water.ts`
+ * is a leaf — `hex`, `map`, `rng`, `terrainData` and nothing else — so every one
+ * of them can import it without closing a load-time cycle.
+ */
+export function landRegions(map: GameMap): Int32Array {
+  const regions = new Int32Array(map.tiles.length).fill(-1);
+  let next = 0;
+  for (const seed of map.tiles) {
+    if (isWaterTerrain(seed.terrain)) continue;
+    const seedIndex = tileIndex(map, seed.col, seed.row);
+    if (regions[seedIndex] !== -1) continue;
+    const id = next++;
+    regions[seedIndex] = id;
+    const frontier: Tile[] = [seed];
+    while (frontier.length > 0) {
+      const from = frontier.pop()!;
+      for (const near of tileNeighbors(map, from)) {
+        if (isWaterTerrain(near.terrain)) continue;
+        const index = tileIndex(map, near.col, near.row);
+        if (regions[index] !== -1) continue;
+        regions[index] = id;
+        frontier.push(near);
+      }
+    }
+  }
+  return regions;
+}
+
+/**
+ * How much land stands on each tile's own landmass. `0` on water.
+ *
+ * The reading "is this hex somewhere a civilisation could live", asked of the
+ * map and not of the neighbourhood — see `StartsConfig.minLandmassShare`.
+ */
+export function landmassSizes(map: GameMap): Int32Array {
+  const regions = landRegions(map);
+  let count = 0;
+  for (const id of regions) if (id + 1 > count) count = id + 1;
+  const size = new Int32Array(count);
+  for (const id of regions) if (id >= 0) size[id]! += 1;
+  const out = new Int32Array(map.tiles.length);
+  for (let i = 0; i < regions.length; i++) {
+    const id = regions[i]!;
+    out[i] = id < 0 ? 0 : size[id]!;
+  }
+  return out;
+}
+
+/** Land, or the shelf a coastal hull may sail — the graph a shelf chain walks. */
+function onTheShelf(tile: Tile): boolean {
+  return tile.terrain === 'coast' || !isWaterTerrain(tile.terrain);
+}
+
+/**
+ * Everything the mainland can reach without ever leaving the shelf.
+ *
+ * A multi-source flood from `sources` over tiles that are land or `coast`, which
+ * is exactly the set of hexes an embarked settler or a coastal hull may stand
+ * on. Deep ocean and lakes stop it.
+ */
+function shelfReach(map: GameMap, sources: readonly number[]): Uint8Array {
+  const seen = new Uint8Array(map.tiles.length);
+  const queue: number[] = [];
+  for (const index of sources) {
+    if (seen[index]) continue;
+    seen[index] = 1;
+    queue.push(index);
+  }
+  for (let head = 0; head < queue.length; head++) {
+    for (const near of tileNeighbors(map, map.tiles[queue[head]!]!)) {
+      const index = tileIndex(map, near.col, near.row);
+      if (seen[index] || !onTheShelf(near)) continue;
+      seen[index] = 1;
+      queue.push(index);
+    }
+  }
+  return seen;
+}
+
+/**
+ * Joins every island to the mainland's shelf, by promoting the ocean between
+ * them to `coast`. Returns how many hexes of ocean became shelf.
+ *
+ * The second half of the pangaea ruling (2026-09-03): an island the player can
+ * *see* and cannot *sail to* is worse than no island at all, because this game
+ * ends before ocean-going hulls exist. `coast.rings` already grows a two-hex
+ * shelf off every shore, so an island within four hexes of the mainland is
+ * joined for free; this pass is for the ones that are not, and it is what turns
+ * "islands usually reachable" into a guarantee the tests can hold.
+ *
+ * **It moves no land.** A land bridge would change the land fraction, the
+ * terrain census and every density budget counted per land tile; a *shelf* is
+ * the same continental shelf real islands sit on, costs the map nothing but a
+ * ribbon of shallow water, and is exactly the thing being promised — that a
+ * coastal hull can get there. The one thing it does widen is the pool of tiles a
+ * sea resource may land on, which the 8/27 note wanted anyway.
+ *
+ * Deterministic without dice: landmasses are numbered in tile-index order, they
+ * are joined in that order, and each bridge is the BFS-shortest ocean path from
+ * the island to the shelf — with the queue seeded and drained in tile-index
+ * order, so among equally short paths the same one is chosen every time.
+ *
+ * Runs after the coast pass and before the rivers, so it costs the rng stream
+ * nothing and every later pass reads a finished shelf.
+ */
+export function chainIslandShelves(map: GameMap): number {
+  const regions = landRegions(map);
+  const members: number[][] = [];
+  for (let i = 0; i < regions.length; i++) {
+    const id = regions[i]!;
+    if (id < 0) continue;
+    (members[id] ??= []).push(i);
+  }
+  if (members.length <= 1) return 0;
+
+  // The mainland is the largest landmass, ties by lowest member tile index —
+  // which is the id order, so a plain `>` over ids ascending picks the first.
+  let mainland = 0;
+  for (let id = 1; id < members.length; id++) {
+    if (members[id]!.length > members[mainland]!.length) mainland = id;
+  }
+
+  let paved = 0;
+  let reach = shelfReach(map, members[mainland]!);
+  for (let id = 0; id < members.length; id++) {
+    if (id === mainland) continue;
+    // A previous bridge may have swept this island in already — an island chain
+    // is joined by one ribbon, not by one ribbon per island.
+    if (reach[members[id]![0]!]) continue;
+
+    // Shortest way out across open ocean. The sources are the island's *own*
+    // shelf — its land and the two rings of coast pass 3 already gave it —
+    // because that is where a hull setting out from the island actually starts;
+    // seeding from the land alone would leave the walk unable to take its first
+    // step, its own shelf not being ocean. From there it steps through `ocean`
+    // only (never a lake, never somebody else's land) and stops the moment it
+    // touches the mainland's shelf.
+    const shore = shelfReach(map, members[id]!);
+    const from = new Int32Array(map.tiles.length).fill(-1);
+    const queue: number[] = [];
+    for (let index = 0; index < shore.length; index++) {
+      if (!shore[index]) continue;
+      from[index] = index;
+      queue.push(index);
+    }
+    let landed = -1;
+    for (let head = 0; head < queue.length && landed < 0; head++) {
+      for (const near of tileNeighbors(map, map.tiles[queue[head]!]!)) {
+        const index = tileIndex(map, near.col, near.row);
+        if (from[index]! >= 0) continue;
+        if (reach[index]) {
+          from[index] = queue[head]!;
+          landed = index;
+          break;
+        }
+        if (near.terrain !== 'ocean') continue;
+        from[index] = queue[head]!;
+        queue.push(index);
+      }
+    }
+    // No way through at all — an island ringed by lake, or a map with no ocean.
+    // Leaving it alone is the honest outcome; nothing here may invent water.
+    if (landed < 0) continue;
+
+    for (let at = from[landed]!; !shore[at]; at = from[at]!) {
+      map.tiles[at]!.terrain = 'coast';
+      paved += 1;
+    }
+    reach = shelfReach(map, members[mainland]!);
+  }
+  return paved;
+}
+
 // --- corners ----------------------------------------------------------------
 
 /**

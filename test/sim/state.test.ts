@@ -652,7 +652,7 @@ describe('the research queue field', () => {
     // unimproved forest and jungle. Two bags are one card shorter, so a v58 log
     // names indices of triples this build does not deal — and the narrowing
     // makes the same board worth different yields besides.
-    expect(SCHEMA_VERSION).toBe(59);
+    expect(SCHEMA_VERSION).toBe(60);
   });
 });
 

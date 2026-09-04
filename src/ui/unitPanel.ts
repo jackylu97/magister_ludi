@@ -1207,8 +1207,15 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     card.append(element('h4', 'unit-card-title', `${route.fromName} ⇄ ${route.toName}`));
     const payoff = element('p', 'unit-card-payoff');
     // Pays the **destination** (2026-08-27: the origin's buildings set the
-    // figure, the destination banks it) — "+3🌾 +2⚙ to Nippur".
-    setYieldText(payoff, `${route.figures} to ${route.toName}`);
+    // figure, the destination banks it) — "+3🌾 +2⚙ to Nippur". A route ending
+    // abroad turns the preposition round (2026-09-03): the figures are what this
+    // empire takes *from* the crossing, and the partner banks a coin of its own.
+    setYieldText(
+      payoff,
+      route.foreign
+        ? `${route.figures} from ${route.toName}`
+        : `${route.figures} to ${route.toName}`,
+    );
     card.append(payoff);
     for (const line of route.lines) {
       const clause = element('p', 'unit-card-clause');

@@ -44,6 +44,29 @@ this list.
   Brightwater→Aldermarch and Aldermarch→Brightwater may both run.
 - **Batch: mapgen pangaea** — default map: one large continent + medium
   islands reachable by coast (island hops within coastal-water sailing).
+  **BUILT** — a mask on the continental field (`data/mapgen.json`
+  `pangaea` block; §5c of docs/mapgen.md); island shelves chained to the
+  mainland deterministically; starts mainland-only. Preview seeds on
+  standard: 31337 (textbook), 2 (chains fire), 5/888 (strait-split).
+  Two priced-in regressions flagged: river quota on huge/giant maps falls
+  to ~0.4–0.7 (standard unmoved; the real fix is depression-filling —
+  say if those sizes matter now), and the rain-shadow bound moved 0.90 →
+  0.92 (geometry of gathered land). Follow-up ruled in chat ("mapgen looks
+  very promising"): **islands bigger and more frequent** — retune the belt
+  knobs (lift/spread/tile budget), connectivity guarantee unchanged. And
+  ruled same day: **mountain ridges less continuous** — break up long
+  unbroken mountain lines, slightly more scattered peaks; passes must stay
+  crossable-ish (no map-splitting walls was already the rule — keep
+  whatever guarantee exists, just noisier ridgelines). And ruled same day:
+  **starts on the mainland OR any landmass of ≥100 contiguous land tiles**
+  — nobody spawns isolated on a small island; the floor is an absolute
+  tile count beside the share knob (a data row), so a big second lobe
+  (the strait-split seeds) is a legal home. Round two ruled in chat
+  2026-09-03: **break the ridges up even further** (still too many
+  unbroken chains), and **raise total land on the map** (the island gain
+  came out of the mainland because seaLevel fixes the land fraction —
+  move seaLevel/its knob so the whole map holds more land, mainland
+  restored to roughly its pre-island footprint).
 - **Batch: diplomacy** — players appear on the Diplomacy screen only once
   met (met = you have seen one of their units or their land — derived from
   sightings, not stored); screen layout borrows Civ's trade-table shape in
@@ -110,7 +133,16 @@ this list.
   Proposed table: columns 0–5 untouched (5→225); Æra III columns 6–8
   335/450/565 → 400/540/680; Æra IV columns 9–12 665/750/820/875 →
   **1450/1700/1950/2200** (≈2.3× the age; the whole tree ~19.7k → ~35.7k
-  beakers). Edit these numbers here to veto before it lands.
+  beakers). Edit these numbers here to veto before it lands. **BUILT** at
+  exactly that table — 29 rows re-priced, the tree 35710🔬, ages
+  345 / 1665 / 7700 / 26000. Measured: the four-city harness closes its ages on
+  58 / 91 / 207 / **443** (was 44 / 84 / 175 / 236 — Æra I and II moved on
+  their own, with none of their prices touched), and the one-city endgame
+  harness opens the Opus on t1515 (was inside t650). Late columns are now an
+  authored ruling rather than a value of the taper: `test/sim/tech.test.ts`'s
+  `COLUMN_COSTS` is the table, the pricing note in `src/sim/tech.ts` the why.
+  **For you to weigh**: a lone capital taking fifteen hundred turns to reach
+  Alchemy is the pacing question this re-opens.
 - **Batch: dry-settle growth** (ruled in chat 2026-09-03) — a city NOT on
   fresh water grows at **−30%** (a growth-surplus percentage, a labelled
   line in the growth breakdown per rule 5) **until an Aqueduct stands in
@@ -118,8 +150,44 @@ this list.
   (`cityHasFreshwater` — a card granting freshwater satisfies it); the
   number lives in `data/rules.json`, not code. Stacks multiplicatively-
   by-sum with other growth percents the way the existing
-  `growthSurplus` rulePercent lines already fold.
-- User handles: happiness order/doctrine nerfs (will say when ready).
+  `growthSurplus` rulePercent lines already fold. **BUILT** —
+  `cities.drySettlePercent` (−30) is one line of `explainGrowthPercent`
+  (`src/sim/cities.ts`), the rule-5 list `growthSurplus` is now the fold of;
+  the line reads "No fresh water" and the city panel prints every line of that
+  list, so an aqueduct's and a wonder's own percentages show on the Growth line
+  for the first time. The aqueduct lifts it by a **marker**
+  (`BuildingDef.waters`, read only by `cityIsWatered`), never by its id — and
+  deliberately without satisfying `cityHasFreshwater`, so no `freshwater`-scoped
+  card or cistern renewal mistakes an aqueduct for a river.
+- **Batch: order drafts, current pool only + guaranteed spread** (ruled in
+  chat 2026-09-03) — (a) `livePool` draws from the CURRENT government's
+  pool alone; the previous government's unpicked cards no longer ride along
+  (they are gone for good — deepening what you hold is untouched). (b) Each
+  order draft of size ≥3 guarantees at least one military, one economic and
+  one wildcard: one uniform draw from each slot-type sub-bag in fixed slot
+  order, remainder uniform from the rest; an empty sub-bag falls through to
+  the open draw (one roll per draw, replay-honest). Lands in the v60 push
+  (migration note extended). **BUILT** — `livePool` reads
+  `poolOrders(poolOfGovernment(…))` (which also puts retired rows out of the
+  draw for the first time, the clause it had been bypassing); the spread is
+  `drawOrderOptions` in `statecraft.ts`, the one caller being `drawOrderOffer`.
+  The hand comes back in the pool's own file order so the guaranteed picks show
+  no military-economic-wildcard seam. `previousPool` had no other caller and is
+  deleted.
+- **Great-people nerf pass** (ruled in chat 2026-09-03: "unfortunately i
+  think we need to nerf great people") — `docs/great-people.md` becomes the
+  editable worksheet mirroring the data rows (the orders-doc pattern, sync
+  test included); the user writes nerfs there, then they fold in.
+- **Trade route nerf** (ruled in chat 2026-09-03: "too easy to spam…cut
+  their yields by ~half") — BUILT in the wave: the per-building lines pay
+  1 per TWO buildings of the category (new knobs
+  `trade.buildingsPerFood`/`buildingsPerProduction` = 2, floored), and
+  the population coin doubles its divisor (`goldPerCombinedPop` 10 → 20).
+  Luxury route lines and card shares untouched (they ride the flats).
+- User handles: happiness order/doctrine nerfs (will say when ready) — the
+  worksheet edits spotted in `docs/orders-and-doctrines.md` are treated as
+  in-progress, NOT folded until you say ready (the doc-sync test failing
+  locally is that gap, on purpose).
 
 Open (proposals drafted, awaiting your numbers — see the session report):
 
@@ -357,3 +425,16 @@ is its own knob, one edit flips the interpretation).
   the overnight optimizer over `data/ai.json` stands ready when wanted.
 - **Playtest questions now live** — do the luxury flats *feel* right; does
   Æra III hold its length under real play; where does the 0.72 knob land.
+- **The city mode's camera seizure** — the full-screen city mode shipped
+  2026-09-03 (`docs/city-screen.md`, revision 3) without idea #1: the camera
+  still merely frames the town (the bias knob) and free pan is not locked while
+  the mode holds. Ruling wanted on whether opening a city should ease the camera
+  onto it and refuse pan until Leave.
+- **The guide's `#city-panel` anchor** — the tutorial's "build" step anchors its
+  card at `#city-panel`, which is now the whole mode rather than a 340px panel,
+  so the card falls back to centred. It wants retargeting at the work rail
+  (`.city-rail.is-right`) or at the add-list. Tutorial fence; one line.
+- **The vignette's strength under the mode** — the dim beyond the work radius is
+  the mode's framing now rather than a hint (`data/view3d.json` `vignette`:
+  inner 1.05, outer 1.6, opacity 0.68, ink). Unchanged in the ship; whether it
+  wants to go darker or tighter is a look decision with the app on screen.

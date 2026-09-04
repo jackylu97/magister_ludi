@@ -127,6 +127,8 @@ import {
   cardProduction,
   cardRulePercent,
   cardTileLines,
+  cardYieldConversions,
+  cityHasFreshwater,
   consecrationCardTileLines,
   followerCardTileLines,
   cardProjectPays,
@@ -219,7 +221,7 @@ import {
   resourceRulePercent,
   resourceTileLines,
 } from './resourceEffects';
-import { buildingTileLines } from './buildingEffects';
+import { buildingTileLines, cityIsWatered } from './buildingEffects';
 // A leaf, like `roads.ts` and `routeYields.ts`, and imported for the same
 // reason: `guilds.ts` needs these answers too and must be free to import this
 // file. See `specialists.ts`.
@@ -233,7 +235,7 @@ import { citySpecialistYields, totalSpecialists } from './specialists';
 // nothing: `routeYields.ts` and `empireGold.ts` import neither this module nor
 // `trade.ts`, `trade.ts` re-exports them so no screen changed its import, and
 // `test/sim/cities.test.ts` reads this source and fails if `./trade` comes back.
-import { cityRouteYields } from './routeYields';
+import { cityRouteYields, foldRouteYield, senderRouteYields } from './routeYields';
 import { empireGold, explainEmpireGold } from './empireGold';
 // **A leaf, deliberately** (2026-08-28): the road writer and the roster's
 // caravan both moved out of `trade.ts` so that this file's *founding* verb — The
@@ -2922,6 +2924,20 @@ export function cityQuote(
     total.science += Math.floor(city.population * entry.sciencePerPop);
   }
 
+  // A share of what the town makes, paid again as another voice — Thalassocracy's
+  // tenth of the harvest, minted. **Last**, and that is the whole of its stage
+  // (`CardYieldConversionEffect`): it is the one card line whose subject is this
+  // very fold, so every flat above it is already in hand and the share it pays
+  // is itself an ordinary flat, staged by Entry XVII like a market's coin.
+  for (const line of cardYieldConversions(state, city, total)) {
+    total.food += line.food;
+    total.production += line.production;
+    total.gold += line.gold;
+    total.science += line.science;
+    total.culture += line.culture;
+    total.faith += line.faith;
+  }
+
   // The percentages are gathered, never applied: the multiplication is `cityYields`'
   // one line, and it is the only place in the simulation a yield meets a percentage.
   return { flats: total, percents: cityYieldPercents(state, city, empire), empire };
@@ -2970,6 +2986,64 @@ export interface StarvationReport {
   ejected: string[];
 }
 
+/** One labelled percentage on what a city banks toward growth. */
+export interface GrowthPercentLine {
+  /** "No fresh water", "Building · Aqueduct", "Happiness" — printed verbatim. */
+  source: string;
+  percent: number;
+}
+
+/**
+ * **Every percentage on a city's growth surplus, with its reason beside it.**
+ *
+ * Rule 5's list for the growth channel, and `growthSurplus` is its fold — the
+ * number and its parts are one sentence, so nothing may put a percentage on the
+ * basket without joining this. Until the dry-settle ruling (2026-09-03) there
+ * was no list at all: the surplus summed two sources inline and the city panel
+ * printed one of them, which is why an aqueduct's own +15% had never appeared on
+ * the line it modifies.
+ *
+ * Three sources, printed from the ground up — the site, then what the town
+ * built, then the mood of the empire — which is Entry XVII's direction read one
+ * channel over:
+ *
+ *   1. **the site.** A town that cannot drink banks `cities.drySettlePercent`
+ *      less until it is watered. `cityHasFreshwater` is the whole of "can it
+ *      drink" (a river, a lake, an oasis, or a card that declares the fact), and
+ *      `cityIsWatered` is the whole of "did it fix that" (a building whose row
+ *      says it waters the town — the aqueduct). Two readings, because they are
+ *      two questions: an aqueduct feeds people and no card's `freshwater` scope
+ *      ever notices it.
+ *   2. **the cards** — a wonder, a doctrine, a rite, and an ordinary building's
+ *      own effects (`cardRulePercent` with the town in hand reaches all four).
+ *   3. **the meters' stifle**, summed into one Happiness line as the panel has
+ *      always printed it.
+ *
+ * Summed and never compounded, exactly as Entry XVII's stages are additive
+ * within a stage: a −30% site and a +30% of anything have to read as nothing at
+ * all, which they do not if they are multiplied one after the other.
+ */
+export function explainGrowthPercent(state: GameState, city: City): GrowthPercentLine[] {
+  const lines: GrowthPercentLine[] = [];
+  const dry = !cityHasFreshwater(state, city) && !cityIsWatered(city);
+  if (dry && CITIES.drySettlePercent !== 0) {
+    lines.push({ source: 'No fresh water', percent: CITIES.drySettlePercent });
+  }
+  for (const line of cardRulePercent(state, city.ownerId, 'growthSurplus', city)) {
+    lines.push({ source: line.source, percent: line.percent });
+  }
+  const stifle = growthPercent(meterEffects(state, city.ownerId));
+  if (stifle !== 0) lines.push({ source: 'Happiness', percent: stifle });
+  return lines;
+}
+
+/** The fold of a growth-percentage list: summed, applied once. */
+export function foldGrowthPercent(lines: readonly GrowthPercentLine[]): number {
+  let percent = 0;
+  for (const line of lines) percent += line.percent;
+  return percent;
+}
+
 /**
  * What a city actually banks toward its next citizen this turn.
  *
@@ -2980,7 +3054,8 @@ export interface StarvationReport {
  *   1. the citizens eat (`foodUpkeep`), which is what makes this a *surplus*;
  *   2. a settler at the front of the queue eats the growth (`growthIsHalted`) —
  *      the city banks nothing positive, and a deficit still bites;
- *   3. a happiness deficit throttles what is left.
+ *   3. every percentage on the channel throttles what is left — the dry site,
+ *      the cards, the happiness stifle, folded once (`explainGrowthPercent`).
  *
  * The stifle multiplies the **surplus and only the surplus**, never the food
  * yield itself (design ledger, Entry XIV.D.4). That is the difference between an
@@ -3000,17 +3075,11 @@ export function growthSurplus(
   let surplus = yields.food - foodUpkeep(city);
   if (growthIsHalted(city)) surplus = Math.min(0, surplus);
   if (surplus <= 0) return surplus;
-  // **One channel, one sum, one multiplication.** The meters' stifle and every
-  // card that speaks to `growthSurplus` (the Hanging Gardens) are additive
-  // percentages on the same figure, exactly as Entry XVII's stages are additive
-  // within a stage — a −25% stifle and a +25% wonder have to read as nothing at
-  // all, which they do not if they are multiplied one after the other. Floored
-  // at zero for `growthFactor`'s reason: the worst any of this may do is stall a
-  // city, never eat it.
-  const percent =
-    growthPercent(meterEffects(state, city.ownerId)) +
-    foldCardRulePercent(cardRulePercent(state, city.ownerId, 'growthSurplus', city));
-  const factor = Math.max(0, 1 + percent / 100);
+  // **One channel, one sum, one multiplication**, and the sum is the fold of a
+  // *list* (hard rule 5) — see `explainGrowthPercent`, which the city panel
+  // prints line by line. Floored at zero for `growthFactor`'s reason: the worst
+  // any of this may do is stall a city, never eat it.
+  const factor = Math.max(0, 1 + foldGrowthPercent(explainGrowthPercent(state, city)) / 100);
   // Floored, so the basket stays whole: the panel prints it, the threshold is a
   // whole number, and a fraction of a bushel banked forever is a fraction that
   // eventually decides a growth turn nobody can account for. Applied **whatever
@@ -3484,6 +3553,28 @@ export function collectYields(state: GameState, report?: TurnReport): void {
     player.faithPool += empire.faith;
   }
 
+  // **The caravans abroad**, banked once per player on the luxuries' own seam and
+  // for the luxuries' own argument (the international ruling of 2026-09-03).
+  //
+  // A domestic route pays its *destination*, so every voice it carries lands in
+  // a town's fold and rides that town's percentages. A route ending abroad pays
+  // the empire that **sent** it, and there is no town to bank that in: the
+  // science and the culture are the seat's pools and the coin is the seat's
+  // treasury, exactly as an `empireYields` luxury's are. The **host's** coin is
+  // a city line and was already banked above, in the destination's own fold —
+  // which is the whole of why this loop pays one side and not both.
+  //
+  // Counted into `routeYieldsThisAge` here for the reason the city loop counts
+  // it there: this is the one place these figures are *banked* rather than
+  // previewed.
+  for (const player of state.players) {
+    const abroad = foldRouteYield(senderRouteYields(state, player.id));
+    player.gold += abroad.gold;
+    player.sciencePool += abroad.science;
+    player.culturePool += abroad.culture;
+    player.routeYieldsThisAge += abroad.gold + abroad.science + abroad.culture;
+  }
+
   // The empire-scale half of the treasury: the connection gold every town
   // joined to the capital by road pays, less what those roads cost to keep and
   // less what the army and the institutions cost to run (`explainEmpireGold`).
@@ -3629,6 +3720,12 @@ function empireRates(state: GameState, playerId: number): {
   // lines, maintenance included: a conversion reads what the treasury *made*,
   // and an empire whose upkeep eats its connections made less.
   for (const line of explainEmpireGold(state, playerId)) rates.goldPerTurn += line.gold;
+  // The caravans abroad, on the empire lines' own argument one system over: a
+  // route ending in a foreign town pays this seat's treasury and this seat's
+  // culture pool, so a card converting "per gold gained per turn" has to see it.
+  const abroad = foldRouteYield(senderRouteYields(state, playerId));
+  rates.goldPerTurn += abroad.gold;
+  rates.culturePerTurn += abroad.culture;
   return rates;
 }
 
@@ -3771,7 +3868,12 @@ export function settleGrowth(state: GameState, city: City): GrowthCompletion | n
 function payGrowthRider(state: GameState, city: City): void {
   const player = playerById(state, city.ownerId);
   if (!player) return;
-  const payout = windfallPayout(state, player.id, 'growth');
+  // The population the town **grew to**, carried as a fact about the occasion:
+  // First Fruits pays for the citizen that makes a town two people, and this is
+  // the only moment anything knows which citizen this was (`atPopulation`).
+  const payout = windfallPayout(state, player.id, 'growth', 0, 0, {
+    population: city.population,
+  });
   if (payout.grants.length === 0) return;
   payWindfallGrants(state, player, payout, { col: city.col, row: city.row });
 }

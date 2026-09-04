@@ -586,19 +586,11 @@
       "tier": 4,
       "line": "hunt",
       "flavor": "We are not their prey. We are their kin, and they take their share.",
-      "text": "Barbarians never attack you and never steal from you. A barbarian you kill joins you instead of dying. You can no longer clear a barbarian camp.",
+      "text": "Barbarians you kill join you at full health.",
       "effects": [
         {
           "kind": "behaviorRule",
-          "rule": "barbariansPassive"
-        },
-        {
-          "kind": "behaviorRule",
           "rule": "barbarianKillsConvert"
-        },
-        {
-          "kind": "behaviorRule",
-          "rule": "noCampClearing"
         }
       ]
     },
@@ -622,21 +614,16 @@
       "tier": 4,
       "line": "none",
       "flavor": "The first stone of every town is a monument to the road that brought it.",
-      "text": "Your first 5 cities are founded with a free Monument, and new cities are joined to your nearest city by road.",
+      "text": "Newly founded cities are joined to your nearest city by road · +1 culture in every city.",
       "effects": [
         {
           "kind": "foundingRider",
-          "building": "monument",
-          "maxCities": 5
+          "roads": true
         },
         {
-          "kind": "foundingRider",
-          "roads": true
+          "kind": "cityYields",
+          "culture": 1
         }
-      ],
-      "note": "The free hall is the Monument. A grander one is meant to take its place once the game has a hall to grow into.",
-      "deferred": [
-        "an amphitheatre instead of the Monument, once one is unlocked"
       ]
     },
     "thalassocracy": {
@@ -644,28 +631,16 @@
       "tier": 10,
       "line": "caravan",
       "flavor": "Our borders are wherever the tide reaches.",
-      "text": "+20% gold and +20% culture in every coastal city · a coastal city costs 1 less authority.",
+      "text": "Coastal cities gain 10% of their food yield as gold.",
       "effects": [
         {
-          "kind": "percentYields",
-          "yield": "gold",
-          "percent": 20,
+          "kind": "yieldConversion",
+          "from": "food",
+          "to": "gold",
+          "percent": 10,
           "scope": {
             "test": "coastal"
           }
-        },
-        {
-          "kind": "percentYields",
-          "yield": "culture",
-          "percent": 20,
-          "scope": {
-            "test": "coastal"
-          }
-        },
-        {
-          "kind": "meterRule",
-          "rule": "coastalCityCost",
-          "delta": -1
         }
       ]
     },
@@ -696,7 +671,33 @@
       "deferred": [
         "the bonus reaching a city with a mountain two hexes away, rather than only one"
       ],
-      "note": "Built for a mountain **next to** the city. The ratified text says within two hexes, and the board can only be asked about the ring of six today."
+      "retired": true,
+      "note": "Retired: this Doctrine is no longer offered in a draft. A saved game that already holds it keeps it. It was built for a mountain **next to** the city, where the ratified text said within two hexes."
+    },
+    "theSacredPath": {
+      "name": "The Sacred Path",
+      "tier": 10,
+      "line": "forge",
+      "flavor": "The old road runs under the trees, and it was not we who laid it.",
+      "text": "+1 faith on every forest hex · +1 culture on every jungle hex.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "faith": 1,
+          "on": {
+            "test": "feature",
+            "feature": "forest"
+          }
+        },
+        {
+          "kind": "tileYield",
+          "culture": 1,
+          "on": {
+            "test": "feature",
+            "feature": "jungle"
+          }
+        }
+      ]
     },
     "burningWay": {
       "name": "The Burning Way",
@@ -720,7 +721,7 @@
       "tier": 10,
       "line": "green",
       "flavor": "Feed them, amuse them, and they will sing for you.",
-      "text": "While your authority is positive: +3 happiness in every city. −1 gold in every city, always.",
+      "text": "While your authority is positive: +3 happiness in every city of 6 or more population. −2 gold in every city, always.",
       "effects": [
         {
           "kind": "conditionRule",
@@ -731,13 +732,17 @@
             {
               "kind": "happiness",
               "amount": 3,
-              "per": "city"
+              "per": "city",
+              "scope": {
+                "test": "populationAtLeast",
+                "value": 6
+              }
             }
           ]
         },
         {
           "kind": "cityYields",
-          "gold": -1
+          "gold": -2
         }
       ]
     },
@@ -1282,12 +1287,12 @@
       "tier": 10,
       "line": "green",
       "flavor": "Ask little of them and they will not notice the asking.",
-      "text": "−20% happiness demanded per citizen · every city costs 2 more authority.",
+      "text": "−15% happiness demanded per citizen · every city costs 2 more authority.",
       "effects": [
         {
           "kind": "rulePercent",
           "rule": "happinessDemand",
-          "percent": -20
+          "percent": -15
         },
         {
           "kind": "countScaled",
@@ -1763,7 +1768,9 @@
             "amount": 10
           }
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it."
     },
     "borderWardens": {
       "name": "Border Wardens",
@@ -3224,7 +3231,9 @@
             "amount": 10
           }
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it."
     },
     "hearthSongs": {
       "name": "Hearth Songs",
@@ -3232,11 +3241,11 @@
       "slot": "wildcard",
       "line": "green",
       "flavor": "Small places keep the tunes the big ones forget.",
-      "text": "+1 culture in every city of 4 population or less.",
+      "text": "+2 culture in every city of 4 population or less.",
       "effects": [
         {
           "kind": "cityYields",
-          "culture": 1,
+          "culture": 2,
           "scope": {
             "test": "populationAtMost",
             "value": 4
@@ -3253,6 +3262,26 @@
           }
         }
       ]
+    },
+    "firstFruitsOffering": {
+      "name": "First Fruits",
+      "pool": "chiefdom",
+      "slot": "wildcard",
+      "line": "procession",
+      "flavor": "The first child of the season is carried to the stone, and given back.",
+      "text": "The first citizen born in each city pays +10 faith once.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "growth",
+          "atPopulation": 2,
+          "grant": {
+            "yield": "faith",
+            "amount": 10
+          }
+        }
+      ],
+      "upgradable": false
     },
     "statuteLabour": {
       "name": "Statute Labour",

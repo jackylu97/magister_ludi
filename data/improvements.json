@@ -289,7 +289,7 @@
       "name": "Lumbermill",
       "emoji": "🪵",
       "chargeCost": 1,
-      "requiresTech": "engineering",
+      "requiresTech": "siegecraft",
       "yields": {
         "food": 0,
         "production": 1,

@@ -1807,13 +1807,16 @@ describe('a war replays exactly', () => {
    * disagree about.
    */
   it('reproduces an exchange that killed both sides, from the log', () => {
-    // Seed 1 rather than the suite's usual 4242: whether two even warriors
+    // Seed 2 rather than the suite's usual 4242: whether two even warriors
     // grind all the way down to a mutual kill depends on the defence bonus of
     // the two hexes they happen to be standing on, and the elevation/moisture
     // rework moved the ground under 4242's opening. The fixture has to *produce*
     // the clamp for the replay below to be testing it, and the assertion two
     // lines down is what says so out loud.
-    const { game, ids } = warGame('warrior', 'warrior', 1);
+    //
+    // Re-aimed from seed 1 on 2026-09-03: the default map became a pangaea, so
+    // seed 1's opening pair now stand on ground that ends the grind early.
+    const { game, ids } = warGame('warrior', 'warrior', 2);
 
     let mutualKill: { attacker: number; hp: number } | null = null;
     const swing = (playerId: number, attackerId: number, defenderId: number): void => {

@@ -218,6 +218,7 @@ const TUNING: TuneGroup[] = [
     fields: [
       { path: ['elevation', 'mountainShare'], places: 3, hint: 'share of land that is mountain' },
       { path: ['elevation', 'hillShare'], places: 3, hint: 'the flank band below it' },
+      { path: ['elevation', 'ridgeBreakStrength'], places: 2, hint: 'gaps in a range; 0 is one wall' },
       { path: ['moisture', 'forestShare'], places: 3, hint: 'share of *eligible* ground wooded' },
       { path: ['moisture', 'jungleShare'], places: 3, hint: 'the same inside the tropics' },
       { path: ['moisture', 'oasisShare'], places: 3, hint: 'share of flat desert with a pool' },
@@ -242,6 +243,27 @@ const TUNING: TuneGroup[] = [
       { path: ['rivers', 'minSpringElevation'], places: 2, hint: 'how high a spring must sit' },
       { path: ['rivers', 'backtrackSteps'], places: 0, hint: 'forks a trace may retry' },
       { path: ['lakes', 'maxSize'], places: 0, hint: 'water bodies up to this are lakes' },
+    ],
+  },
+  {
+    /**
+     * The world's *shape*, which is the one group here that changes what the
+     * map is rather than what is on it. The three rows are the three questions
+     * the pangaea ruling raised — how hard is the ocean pushed out, how far
+     * offshore do the islands sit, and how much land do they get — and the
+     * census beside them answers all three at a glance.
+     */
+    title: 'Pangaea',
+    under: 'pangaea',
+    fields: [
+      { path: ['pangaea', 'enabled'], hint: 'one continent, or the old scatter' },
+      { path: ['pangaea', 'eastWestStrength'], places: 2, hint: 'how hard the rims are sunk' },
+      { path: ['pangaea', 'coreShare'], places: 2, hint: 'half-width the mask leaves alone' },
+      { path: ['pangaea', 'polarStrength'], places: 2, hint: 'the same, pole-ward' },
+      { path: ['pangaea', 'islandShelfTiles'], places: 0, hint: 'hexes offshore the islands sit' },
+      { path: ['pangaea', 'islandShelfSpread'], places: 1, hint: 'how far either side of that' },
+      { path: ['pangaea', 'islandShelfLift'], places: 2, hint: 'height the belt hands back' },
+      { path: ['pangaea', 'shelfChains'], hint: 'run shelf out to every island' },
     ],
   },
   {
@@ -275,6 +297,8 @@ const TUNING: TuneGroup[] = [
       { path: ['starts', 'minRingFood'], places: 0, hint: 'ring floor: food' },
       { path: ['starts', 'minRingProduction'], places: 0, hint: 'ring floor: production' },
       { path: ['starts', 'productionWeight'], places: 2, hint: 'what a hammer is worth to a site' },
+      { path: ['starts', 'minLandmassShare'], places: 2, hint: 'landmass floor, × the largest' },
+      { path: ['starts', 'minLandmassTiles'], places: 0, hint: '…or this many tiles of its own' },
     ],
   },
 ];

@@ -44,7 +44,9 @@ describe('a caravan, from the treasury to the ledger', () => {
     const partner = foundCityAt(state, 0, at(state, 10, 4));
     home.buildings.push('market');
     // Read off the **origin** now (2026-08-27) — see `test/sim/trade.test.ts`.
-    home.buildings.push('granary', 'barracks');
+    // Two food-side buildings: the 2026-09-03 nerf pays a food per two, and
+    // the walkthrough's inbound row wants a 🌾 figure to read.
+    home.buildings.push('granary', 'library', 'barracks');
     home.population = 6;
     partner.population = 6;
     state.players[0]!.gold = 900;
@@ -75,8 +77,13 @@ describe('a caravan, from the treasury to the ledger', () => {
     expect(row.figures).not.toBe('nothing yet');
     const chosen = startingTrader(state, 0, trader.id);
     expect(chosen?.id).toBe(trader.id);
-    const command = startCommandFor(origin, row, chosen)!;
-    expect(command).toEqual({ unitId: trader.id, fromCityId: home.id, toCityId: partner.id });
+    const command = startCommandFor(origin, row, chosen, 'land')!;
+    expect(command).toEqual({
+      unitId: trader.id,
+      fromCityId: home.id,
+      toCityId: partner.id,
+      mode: 'land',
+    });
 
     // 4. Started from the screen. The piece is teleported to the origin and the
     //    sheet now reads as the route rather than as a march.
@@ -86,6 +93,7 @@ describe('a caravan, from the treasury to the ledger', () => {
       unitId: command.unitId,
       fromCityId: command.fromCityId,
       toCityId: command.toCityId,
+      mode: command.mode,
     });
     expect(started.ok, started.ok ? '' : started.error).toBe(true);
     expect({ col: trader.col, row: trader.row }).toEqual({ col: home.col, row: home.row });

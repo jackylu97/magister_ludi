@@ -41,14 +41,12 @@
 import './style.css';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES, getMapSize } from './sim/mapgen';
 import { hashSeed } from './sim/rng';
-import { RULES } from './sim/rulesData';
 import { type Game, createGame, dispatch } from './sim/game';
 import { driveBots } from './ai/driver';
 import { DEFAULT_PERSONA, PERSONA_IDS, personaLabel } from './ai/stepper';
 import {
   type GameConfig,
   type GameState,
-  type PlayerSpec,
   type Unit,
   foundedReligion,
   hasEndedTurn,
@@ -144,6 +142,8 @@ import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
 import { type TriumphModal, createTriumphModal } from './ui/triumphModal';
 import { type Rect as TutorialRect, createTutorial } from './ui/tutorial';
+import { createPamphletOverlay, shouldShowPamphlet } from './ui/pamphlet';
+import { authorityOf, happinessOf } from './sim/meters';
 import { type ConfirmCard, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
 import { AXIS_MARK, beliefOfferEyebrow } from './ui/religionScreen';
@@ -173,6 +173,13 @@ import { type UnitPanel, createUnitPanel, disbandPrompt } from './ui/unitPanel';
 import { YIELD_GLYPH } from './ui/figures';
 import type { HoverInfo, LensMode, MapView } from './ui/mapView';
 import { createInfoCard } from './ui/infoCard';
+import {
+  DEFAULT_SEAT_MODE,
+  FULL_GAME_SIZE,
+  availableSeatModes,
+  modeAsksPersona,
+  rosterFor,
+} from './ui/gameSetup';
 import { faithHoverCard, faithHoverReading } from './ui/faithHover';
 import { cityAt } from './sim/cities';
 import type { TurnBlocker } from './ui/turnBlockers';
@@ -412,58 +419,17 @@ for (const name of MAP_SIZE_NAMES) {
 sizeSelect.value = MAP_SIZE_NAMES.includes('standard') ? 'standard' : MAP_SIZE_NAMES[0]!;
 
 /**
- * The roster. Turns are simultaneous, so these are seats at one table rather
- * than a rotation: the game plays the local seat and the others will, in time,
- * be an AI or a remote peer. Until then the panel's seat chips let one tester
- * drive them all.
+ * The seats a new game can be dealt into. Turns are simultaneous, so these are
+ * chairs at one table rather than a rotation: the game plays the local seat, and
+ * the others are driven by a bot, by the seat chips, or — in time — by a remote
+ * peer.
  *
- * The colours are the only thing the simulation cannot make up for itself, so
- * they live here rather than in `data/`. Each renderer maps them onto its own
- * inks — `data/view.json` for the sprite pieces, `data/view3d.json` for the
- * diorama ones.
- *
- * The two hexes are the interface palette's vermilion and teal (see
- * `docs/design-specimen.html`), so a seat chip, a city banner roundel and the
- * status line all speak in the same accents as the rest of the chrome. They are
- * lookup keys as much as colours: both renderers map them to a named piece ink
- * (`pieces.byPlayerColor` in `data/view.json`, `players.byColor` in
- * `data/view3d.json`), and those tables were updated with them — the pieces on
- * the board are the same crimson and teal they always were, matched explicitly
- * rather than through either file's index fallback.
+ * The roster itself, the modes and the arithmetic that turns one into the other
+ * live in `src/ui/gameSetup.ts`, which is a leaf with no DOM in it and therefore
+ * the half a test can hold. What stays here is the picker: the options, the
+ * labels on them, and what changing one does to the rest of the card.
  */
-const PLAYERS: PlayerSpec[] = [
-  { name: 'Crimson', color: '#d4502e', isHuman: true },
-  { name: 'Teal', color: '#1f8a85', isHuman: true },
-];
-
-/**
- * The three shapes a new game can be seated in, and why the bot one is the
- * default.
- *
- * Single-player-against-an-AI is the product (CLAUDE.md, Direction), so from the
- * day a bot exists it is what the landing screen opens on. The other two stay
- * because both are still worth having: **Solo** is the quiet world a pacing
- * measurement or a look at the map wants, and **Sandbox** is the hot-seat dev
- * harness — one tester driving both chairs from the seat chips, and the shape
- * remote multiplayer will arrive in.
- *
- * A bot seat needs **no schema change and no new field**: `normalizeConfig`
- * already defaults `PlayerSpec.isHuman` to false, so "a seat nobody is sitting
- * in" is the roster entry with `isHuman` left off, and `driveBots`
- * (`src/ai/driver.ts`) is the only thing in the program that asks.
- */
-type SeatMode = 'bot' | 'solo' | 'sandbox';
-
-const SEAT_MODES: { value: SeatMode; label: string; seats: number }[] = [
-  { value: 'bot', label: 'You vs one bot', seats: 2 },
-  { value: 'solo', label: 'Solo (1 player)', seats: 1 },
-  { value: 'sandbox', label: `Sandbox (${PLAYERS.length} players, one tester)`, seats: PLAYERS.length },
-];
-
-const DEFAULT_SEAT_MODE: SeatMode = 'bot';
-
-for (const mode of SEAT_MODES) {
-  if (mode.seats < RULES.game.minPlayers || mode.seats > PLAYERS.length) continue;
+for (const mode of availableSeatModes()) {
   const option = document.createElement('option');
   option.value = mode.value;
   option.textContent = mode.label;
@@ -493,31 +459,26 @@ for (const id of PERSONA_IDS) {
 }
 personaSelect.value = DEFAULT_PERSONA;
 
-/** The picker is only a question in the modes that actually seat a bot. */
-function refreshPersonaRow(): void {
-  personaRow.hidden = rosterFor(seatsSelect.value).every((spec) => spec.isHuman === true);
-}
-seatsSelect.addEventListener('change', () => refreshPersonaRow());
-refreshPersonaRow();
-
 /**
- * The roster one mode seats.
+ * What changing the Seats picker does to the rest of the card.
  *
- * Seat 0 is always Crimson and always the person at the keyboard, so a bot game
- * is the two-seat game with the second chair *driven* rather than a different
- * game — which is what keeps the seat strip, the status line and every save
- * exactly as they were.
+ * Two answers, both `modeAsksPersona`'s and `FULL_GAME_SIZE`'s business rather
+ * than this listener's. The Opponent row is only a question where there is one
+ * opponent to ask about. And a full game moves the Size picker to the map it
+ * wants: four empires need room, and moving the visible control — rather than
+ * quietly overriding it at Start — leaves the player free to choose otherwise,
+ * which is the difference between a default and a rule.
  */
-function rosterFor(mode: string): PlayerSpec[] {
-  if (mode === 'solo') return PLAYERS.slice(0, 1);
-  if (mode === 'sandbox') return PLAYERS.slice(0, PLAYERS.length);
-  const rival: PlayerSpec = { ...PLAYERS[1]!, isHuman: false };
-  // Written only when it is not the default, exactly as `normalizeConfig`
-  // writes a charge: a balanced opponent leaves no key behind.
-  const persona = personaSelect.value;
-  if (persona !== DEFAULT_PERSONA) rival.persona = persona;
-  return [PLAYERS[0]!, rival];
+function refreshPersonaRow(): void {
+  personaRow.hidden = !modeAsksPersona(seatsSelect.value);
 }
+seatsSelect.addEventListener('change', () => {
+  refreshPersonaRow();
+  if (seatsSelect.value === 'full' && MAP_SIZE_NAMES.includes(FULL_GAME_SIZE)) {
+    sizeSelect.value = FULL_GAME_SIZE;
+  }
+});
+refreshPersonaRow();
 
 // --- the HUD's transient cards ---------------------------------------------
 
@@ -610,6 +571,30 @@ const tutorial = createTutorial({
 // for "has been shown", which is what `TutorialProgress` is.
 tutorialToggle.checked = tutorial.enabled();
 tutorialToggle.addEventListener('change', () => tutorial.setEnabled(tutorialToggle.checked));
+
+/**
+ * The pamphlet (`src/ui/pamphlet.ts`), the guide's front matter: a five-minute
+ * read shown once, before the tutorial's first step. Built at module level for
+ * the tutorial's own reason — it shares the same shelf and the same landing —
+ * and its overlay is only ever constructed the first time it actually shows.
+ */
+const pamphlet = createPamphletOverlay({ storage: saveStorage, root: document.body });
+
+/**
+ * A brand-new game's opening: the pamphlet first, then the tutorial.
+ *
+ * The one place the order lives. A browser that has read the pamphlet (or has
+ * the guide switched off) goes straight to `tutorial.begin()` — which itself
+ * draws nothing when the guide is off — so a returning player sees neither,
+ * and dismissing the pamphlet is what raises the tutorial's first card.
+ */
+function beginOpening(): void {
+  if (shouldShowPamphlet(pamphlet.seen(), tutorial.enabled())) {
+    pamphlet.show(() => tutorial.begin());
+    return;
+  }
+  tutorial.begin();
+}
 
 /**
  * Hides the ☰ menu's Save As field and its last message.
@@ -1076,7 +1061,7 @@ function currentConfig(): GameConfig {
     sizeName: sizeSelect.value,
     // Whose chairs are filled and which of them a person is sitting in. See
     // `rosterFor`: seat 0 is always Crimson and always the human.
-    players: rosterFor(seatsSelect.value),
+    players: rosterFor(seatsSelect.value, personaSelect.value),
     // **The game asks for the wild.** `GameConfig.barbarians` defaults to off so
     // that a fixture, an inspection page or a pacing measurement gets the quiet
     // world it always had (see that field); a real game played by a person is
@@ -1950,6 +1935,25 @@ async function boot(initial: Game | null): Promise<void> {
       if (!isVisibleTo(game.state, seat, unit.col, unit.row)) continue;
       tutorial.note({ kind: 'event', event: 'enemySeen' });
       return;
+    }
+  }
+
+  /**
+   * The two meter notes — taught the first time it hurts, never in advance
+   * (the pamphlet ruling, 2026-09-03; the pamphlet carries the cursory
+   * version). A meter in deficit is a standing fact about the empire, exactly
+   * as an enemy in sight is a standing fact about the board, so it takes
+   * `noteEnemySighting`'s shape: swept on the commit funnel, gated on the note
+   * still being wanted so a read note costs a boolean, and read off the
+   * meters' own folds so the card cannot disagree with the chip it explains.
+   */
+  function noteMeterPain(): void {
+    const seat = controls.localPlayerId();
+    if (tutorial.wantsTip('unhappy') && happinessOf(game.state, seat) < 0) {
+      tutorial.note({ kind: 'event', event: 'happinessDeficit' });
+    }
+    if (tutorial.wantsTip('overreach') && authorityOf(game.state, seat) < 0) {
+      tutorial.note({ kind: 'event', event: 'authorityOverrun' });
     }
   }
 
@@ -2899,6 +2903,7 @@ async function boot(initial: Game | null): Promise<void> {
         tutorial.note({ kind: 'event', event: 'starved' });
       }
       noteEnemySighting();
+      noteMeterPain();
     },
     /**
      * **Every seat nobody is sitting in takes its turn**, immediately before
@@ -3386,8 +3391,8 @@ async function boot(initial: Game | null): Promise<void> {
     closeButton: requireElement('trade-close'),
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
-    startRoute: (unitId, fromCityId, toCityId) => {
-      controls.startRouteFrom(unitId, fromCityId, toCityId);
+    startRoute: (unitId, fromCityId, toCityId, mode) => {
+      controls.startRouteFrom(unitId, fromCityId, toCityId, mode);
       updatePanel(null, renderer.getHover());
     },
     setAutoResend: (unitId, on) => {
@@ -3847,6 +3852,10 @@ async function boot(initial: Game | null): Promise<void> {
     isBuyMode: () => controls.isBuyMode(),
     setBuyMode: (on) => controls.setBuyMode(on),
     onOpenTrade: () => trade?.open(),
+    // The city mode prints its one board instruction while the guide is up (or
+    // while Buy Tiles is armed, which the panel knows for itself). The guide is
+    // this page's, exactly as the confirm card is.
+    isTutorialActive: () => tutorial.enabled(),
     // The **second** verb on any sheet that asks before it acts, and the asking
     // is here for `onDisband`'s reason exactly: the card is a surface this page
     // owns, and the act underneath it must stay reachable without one. Dismissing
@@ -4062,10 +4071,10 @@ async function boot(initial: Game | null): Promise<void> {
     updateMapInfo();
     updatePanel(null, null);
     // The guide, on the same two terms `boot` sets it on below: a fresh table
-    // gets the opening sequence, a resumed one never does (a save carries no
-    // tutorial state, so there is no way to know which of those steps were
-    // taken forty turns ago — see `Tutorial.resume`).
-    if (next === null) tutorial.begin();
+    // gets the pamphlet-then-sequence opening (`beginOpening`), a resumed one
+    // never does (a save carries no tutorial state, so there is no way to know
+    // which of those steps were taken forty turns ago — see `Tutorial.resume`).
+    if (next === null) beginOpening();
     else tutorial.resume();
     report();
     // The name follows the game, so an export straight after a load offers the
@@ -4215,7 +4224,8 @@ async function boot(initial: Game | null): Promise<void> {
   // refresh gave it (2026-08-30, the boot-camera ruling).
   if (initial === null) renderer.focusOpening?.(openingFocus(game.state, controls.localPlayerId()));
   // Last, after the camera has framed the board: the coach card is placed
-  // against elements the refresh above has just rebuilt.
-  if (initial === null) tutorial.begin();
+  // against elements the refresh above has just rebuilt. A brand-new player
+  // meets the pamphlet here first, and dismissing it begins the sequence.
+  if (initial === null) beginOpening();
   else tutorial.resume();
 }

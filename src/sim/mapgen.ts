@@ -94,6 +94,7 @@ import { placeVeins } from './veins';
 import { isWaterTerrain, type FeatureId, type TerrainId } from './terrainData';
 import {
   type RiverTrace,
+  chainIslandShelves,
   classifyLakes,
   computeFreshwater,
   deriveFloodplains,
@@ -199,7 +200,7 @@ export function latitudeOf(row: number, height: number): number {
  *
  * Rank normalisation is a monotone transform, so it preserves the shape of the
  * noise field exactly while making thresholds mean "a fraction of the map":
- * `seaLevel: 0.62` puts water on 62% of tiles on *every* seed. Plain min/max
+ * `seaLevel: 0.58` puts water on 58% of tiles on *every* seed. Plain min/max
  * normalisation left the land fraction swinging between 45% and 75% depending
  * on how extreme the field's outliers happened to be.
  */
@@ -262,10 +263,26 @@ function smoothstep(edge0: number, edge1: number, value: number): number {
  * than of the order a Set happened to iterate.
  */
 export function waterDistance(map: GameMap, land: Uint8Array): Int32Array {
-  const distance = new Int32Array(land.length).fill(-1);
+  return hexDistanceFrom(map, land, true);
+}
+
+/**
+ * Hexes from every tile to the nearest tile the mask marks, by a wrap-aware BFS.
+ * `-1` where the sources cannot reach and where there are no sources at all.
+ *
+ * `waterDistance`'s general form — pass `invert` to measure from the tiles the
+ * mask does *not* mark. Seeded and drained in tile-index order, so the answer is
+ * a pure function of the mask rather than of the order a queue happened to fill.
+ */
+export function hexDistanceFrom(
+  map: GameMap,
+  sources: Uint8Array,
+  invert = false,
+): Int32Array {
+  const distance = new Int32Array(sources.length).fill(-1);
   const queue: number[] = [];
-  for (let i = 0; i < land.length; i++) {
-    if (!land[i]) {
+  for (let i = 0; i < sources.length; i++) {
+    if (!sources[i] === invert) {
       distance[i] = 0;
       queue.push(i);
     }
@@ -345,6 +362,92 @@ export function crestLine(map: GameMap, field: Float64Array, land: Uint8Array): 
     }
   }
   return on;
+}
+
+/**
+ * How much the pangaea mask takes off each tile's continental height.
+ *
+ * The world's *shape*, as one number per hex, and it is deliberately a mask on
+ * the field the coastline is already read off rather than a landmass drawn
+ * beside it — see `PangaeaConfig` for the argument. Three terms, and each is a
+ * sentence a designer would say:
+ *
+ *   1. **the rims sink** — `eastWestStrength` of a shoulder that is flat across
+ *      `coreShare` of the half-width and rises to 1 at the edge, so the ocean
+ *      east and west of the continent is ocean because the mask emptied it;
+ *   2. **the poles sink a little** — the same shoulder read on latitude, at a
+ *      much smaller weight, because a continent that runs nearly to the caps is
+ *      what keeps tundra and snow on the map.
+ *
+ * The islands are not here. They are a *second* term, read off the coastline
+ * this one produces — see `islandShelfLift`.
+ *
+ * Rolls nothing, reads no rng, and is a pure function of `(map, config)`.
+ * Exported because the property tests assert things about the mask that no
+ * amount of staring at finished terrain can pin down.
+ */
+export function pangaeaPull(map: GameMap, config: MapgenConfig['pangaea']): Float64Array {
+  const { width, height } = map;
+  const pull = new Float64Array(width * height);
+  if (!config.enabled) return pull;
+
+  const centreCol = config.centreColumnShare * width;
+  const halfWidth = width / 2;
+  for (let row = 0; row < height; row++) {
+    // The pole-ward shoulder is read on latitude itself, which is already
+    // "share of the half-height" — the same units the east-west term uses.
+    const polar = config.polarStrength * smoothstep(config.coreShare, 1, latitudeOf(row, height));
+    for (let col = 0; col < width; col++) {
+      // Wrap-aware: the map is a cylinder, so the distance to the meridian is
+      // the shorter way round. Without this the mask would put a hard rim at
+      // column 0 and the seam the noise works so hard to hide would be visible
+      // as a coastline.
+      let offset = Math.abs(col - centreCol);
+      if (offset > halfWidth) offset = width - offset;
+      const dx = halfWidth <= 0 ? 0 : offset / halfWidth;
+      pull[row * width + col] =
+        config.eastWestStrength * smoothstep(config.coreShare, 1, dx) + polar;
+    }
+  }
+  return pull;
+}
+
+/**
+ * How much height the offshore belt hands back to each water tile, given the
+ * coastline the shoulders drew.
+ *
+ * The islands, and the reason they are a second pass rather than a third term in
+ * the shoulder above: an island belt written as a band of *longitude* lands
+ * inside the continent on one seed and out in the deep ocean on the next,
+ * because how wide the continent comes out is the noise's business and not the
+ * mask's. Measured from the finished shore instead, "four hexes out to sea" is
+ * four hexes out to sea on every seed, and four hexes is exactly the gap two
+ * rings of `coast` close from either side — so a belt island is on the shelf by
+ * construction rather than by a repair pass.
+ *
+ * It lifts **water only**. The continent the first pass drew keeps its own
+ * coastline; what the belt does is give the noise's offshore peaks enough height
+ * to surface, so an archipelago appears exactly where this seed's continental
+ * field was already high and reads as geography rather than as a stamp. The
+ * land it adds comes back out of the re-rank at the mainland's own thinnest
+ * margins, which is where a coastline should be losing hexes anyway.
+ */
+export function islandShelfLift(
+  map: GameMap,
+  land: Uint8Array,
+  config: MapgenConfig['pangaea'],
+): Float64Array {
+  const lift = new Float64Array(land.length);
+  if (!config.enabled || config.islandShelfLift <= 0) return lift;
+  const offshore = hexDistanceFrom(map, land);
+  for (let i = 0; i < land.length; i++) {
+    if (land[i]) continue;
+    // Unreachable water (a map with no land at all) keeps nothing.
+    if (offshore[i]! < 0) continue;
+    const t = (offshore[i]! - config.islandShelfTiles) / config.islandShelfSpread;
+    lift[i] = config.islandShelfLift * Math.exp(-t * t);
+  }
+  return lift;
 }
 
 /**
@@ -445,6 +548,32 @@ export function buildTerrainFields(
   }
   rankNormalizeInPlace(base);
 
+  // The pangaea mask, in two readings, and **the field is ranked again** after
+  // each. That re-rank is the whole trick: `seaLevel` is a quantile, so ranking
+  // a masked field leaves the map with exactly the water fraction it had before
+  // and only changes *where* that water is. A mask applied after the cut, or
+  // without the re-rank, would have been a sea-level change wearing a shape's
+  // clothes.
+  //
+  // First the shoulders draw one continent. Then the *islands* are read off the
+  // coastline that continent has — a belt cannot be written as a band of
+  // longitude, because how wide the continent came out is the noise's business
+  // (see `islandShelfLift`). So the cut is taken twice: a provisional one to
+  // find the shore, and the real one with the offshore belt lifted.
+  if (config.pangaea.enabled) {
+    const pull = pangaeaPull(map, config.pangaea);
+    for (let i = 0; i < count; i++) base[i] = base[i]! - pull[i]!;
+    rankNormalizeInPlace(base);
+
+    const provisional = new Uint8Array(count);
+    for (let i = 0; i < count; i++) {
+      provisional[i] = base[i]! >= config.elevation.seaLevel ? 1 : 0;
+    }
+    const lift = islandShelfLift(map, provisional, config.pangaea);
+    for (let i = 0; i < count; i++) base[i] = base[i]! + lift[i]!;
+    rankNormalizeInPlace(base);
+  }
+
   const land = new Uint8Array(count);
   for (let row = 0; row < height; row++) {
     const latitude = latitudeOf(row, height);
@@ -486,6 +615,31 @@ export function buildTerrainFields(
         inland,
       );
       crestRaw[i] = sharp * (config.elevation.spineFloor + (1 - config.elevation.spineFloor) * spine);
+    }
+  }
+
+  // The break field: a fine-scale fbm read off the ridge layer's own table (see
+  // `noise.ridgeBreak`), ranked among land so `ridgeBreakStrength` means an
+  // exact fraction of a crest's height rather than "however this field happened
+  // to scale". Skipped whole at strength 0, which leaves `crestRaw` — and so the
+  // whole relief mix — bit-identical to a build that never had the pass.
+  const breakStrength = config.elevation.ridgeBreakStrength;
+  if (breakStrength > 0) {
+    const breakRaw = new Float64Array(count);
+    for (let row = 0; row < height; row++) {
+      for (let col = 0; col < width; col++) {
+        const i = row * width + col;
+        if (!land[i]) continue;
+        breakRaw[i] = sampleCylinder(layers.ridge, config.noise.ridgeBreak, col, row, width);
+      }
+    }
+    const breakRank = rankAmong(breakRaw, land);
+    for (let i = 0; i < count; i++) {
+      if (!land[i]) continue;
+      // Low country in the break field takes the crest down to `1 - strength`;
+      // high country leaves it whole. The saddles this opens are what turn one
+      // long wall into a chain of massifs.
+      crestRaw[i] = crestRaw[i]! * (1 - breakStrength * (1 - breakRank[i]!));
     }
   }
 
@@ -902,6 +1056,14 @@ export function generateMapDetail(
   for (const tile of map.tiles) {
     if (reached[tileIndex(map, tile.col, tile.row)]) tile.terrain = 'coast';
   }
+
+  // Pass 3b: the shelf chains. Every island is joined to the mainland's shelf by
+  // a ribbon of `coast`, so "reachable by coast" is a guarantee rather than a
+  // hope about where the noise put things (the pangaea ruling's other half; see
+  // `chainIslandShelves`). It moves no land and rolls nothing, so the land
+  // fraction, every per-land-tile budget and the whole dice stream are exactly
+  // what they were with it switched off.
+  if (config.pangaea.shelfChains) chainIslandShelves(map);
 
   // Pass 4: rivers. The generator's only dice, and they are rolled *after* every
   // noise field has been drawn from `rng`, so every tile's terrain is exactly

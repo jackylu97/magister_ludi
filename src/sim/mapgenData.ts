@@ -113,6 +113,128 @@ export interface StartsConfig {
   maxHostileRingShare: number;
   /** Share of the scored rings that may be water before refusal. */
   maxWaterRingShare: number;
+  /**
+   * How large the site's own landmass must be, as a share of the **largest
+   * landmass on the map**, before anybody may start on it.
+   *
+   * The first refusal, and the only one that is about the *map* rather than
+   * about the neighbourhood: a seat on a twenty-hex island is a player who
+   * cannot expand, cannot meet anybody and cannot be met, and no amount of good
+   * ground in the two rings makes that a game. It arrived with the pangaea
+   * ruling (2026-09-03), whose whole point is that every seat is on the one
+   * continent — see `PangaeaConfig`.
+   *
+   * Measured against the largest landmass rather than against the map's total
+   * land, because the question is comparative: "is this somewhere a player would
+   * be stranded *relative to everybody else*". `1` is the shipped reading and
+   * says the mainland and nothing else, which is what makes "all starts on one
+   * continent" a guarantee rather than a tendency — a pangaea cut in two by a
+   * strait still seats everybody on the larger lobe. Below 1 admits a lobe that
+   * close to the mainland, so `0.5` would seat players on any half-sized second
+   * continent; `0` disables the refusal.
+   */
+  minLandmassShare: number;
+  /**
+   * …**or** this many contiguous land tiles, whatever the largest landmass has.
+   *
+   * The other half of the same refusal, and the two are an **or**: a site passes
+   * if its landmass is the mainland *or* it is simply big enough to live on.
+   * Ruled 2026-09-03, in the user's words — "all players spawn on the main
+   * landmass (or a landmass with at least 100 continuous tiles) so players
+   * aren't isolated on a small island" — and it says the thing a share cannot.
+   * A pangaea cut in two by a strait has a second lobe that is a perfectly good
+   * country; a thirty-hex island is not, however large or small the mainland it
+   * is measured against happens to be. An absolute floor is the only shape that
+   * tells those two apart, because what makes a home a home is how much of it
+   * there is.
+   *
+   * `0` switches this half off. Both at `0` disables the refusal whole.
+   */
+  minLandmassTiles: number;
+}
+
+/**
+ * The shape of the world: one dominant continent, with an offshore belt of
+ * islands a coastal ship can reach.
+ *
+ * The ruling of 2026-09-03 (`docs/flags.md`, "Batch: mapgen pangaea"): this game
+ * ends before ocean-going hulls exist, so a second landmass across deep water is
+ * ground nobody will ever stand on. The default map is therefore a **pangaea** —
+ * every seat on one continent — and the maritime half of the design is served by
+ * *islands off the shelf* instead of by a new world.
+ *
+ * It is a **mask on the continental field, not a second field**. The generator's
+ * whole architecture is "two geographies, everything derived" (see `mapgen.ts`),
+ * and a pangaea that drew its own landmass would be a third geography that the
+ * relief and moisture layers knew nothing about — mountains that stop at an
+ * invisible line, forests that ignore a coast. What this does instead is bias
+ * the field the coastline is already read off, and then let every later pass
+ * carry on reading it exactly as it did.
+ *
+ * The mask is applied to the **ranked** field and the field is ranked again
+ * afterwards, which is what keeps `elevation.seaLevel` meaning what it says: the
+ * map still has the same fraction of water it had before, arranged differently.
+ *
+ * Every number here is a share of a half-extent, so it means the same thing on
+ * a duel map and on a giant one.
+ */
+export interface PangaeaConfig {
+  /**
+   * `false` skips the mask whole and restores the pre-ruling scatter of
+   * continents, bit for bit — the `rainShadow.enabled` bargain, and for the same
+   * reason: a shaping that can be switched off is a shaping whose absence is
+   * still a legitimate, reproducible map (`test/mapgen/resources.slow.test.ts`
+   * pins the old worlds through it).
+   */
+  enabled: boolean;
+  /** Where the continent's meridian sits, as a share of the map's width. */
+  centreColumnShare: number;
+  /**
+   * How much of the half-extent keeps its noise untouched. Inside this the field
+   * is exactly what it was, so the continent's interior is generated country
+   * rather than a mask's idea of one.
+   */
+  coreShare: number;
+  /**
+   * How hard the field is pushed down at the eastern and western rims. This is
+   * the number that makes the world a pangaea: the ocean either side of the
+   * continent is ocean because the mask took the land out of it.
+   */
+  eastWestStrength: number;
+  /**
+   * The same pole-ward. Deliberately small: a continent that runs most of the
+   * way to the caps is what keeps tundra and snow on the map at all, and the
+   * ice caps are a latitude rule (`polarWaterLatitude`) rather than a shape.
+   */
+  polarStrength: number;
+  /**
+   * How many hexes off the shore the island belt sits.
+   *
+   * Measured from the **mainland's own coastline** rather than from a longitude,
+   * which is the whole reason the belt works: a fixed meridian band lands inside
+   * the continent on one seed and in the deep ocean on the next, but "four hexes
+   * out to sea" is four hexes out to sea on every map there is. Four is also
+   * exactly the gap `coast.rings` closes for free from both sides, so a belt
+   * island is on the shelf by construction and the chains below have almost
+   * nothing left to do.
+   */
+  islandShelfTiles: number;
+  /** How far either side of that the belt still reaches (the gaussian's sigma). */
+  islandShelfSpread: number;
+  /**
+   * How much continental height the belt hands back inside that band. The dial
+   * between "no islands at all" and "a second continent": too much and the belt
+   * fuses into a ring of land around the mainland, too little and it is a
+   * scatter of one-hex skerries.
+   */
+  islandShelfLift: number;
+  /**
+   * Guarantee that every landmass can be reached from the mainland without ever
+   * leaving the shelf — `chainIslandShelves` in `water.ts`, pass 3b. This is the
+   * half of the ruling that says *reachable by coast*; without it an island is
+   * a picture of maritime play rather than an invitation to it.
+   */
+  shelfChains: boolean;
 }
 
 export interface MapgenConfig {
@@ -130,6 +252,17 @@ export interface MapgenConfig {
   noise: {
     elevation: NoiseConfig;
     ridge: RidgedNoiseConfig;
+    /**
+     * The field that gaps the ranges — see `elevation.ridgeBreakStrength`.
+     *
+     * Sampled off the **ridge layer's own permutation table**, and that is a
+     * deliberate economy rather than a shortcut: a fifth table would have to be
+     * drawn from `rng`, and every draw made before the rivers moves every river
+     * and every resource on every seed. Read through plain fbm at a hex-scale
+     * `cycleTiles` instead of through `ridged3` at a range-scale one, the same
+     * table hands back a field with nothing in common with the crests it breaks.
+     */
+    ridgeBreak: NoiseConfig;
     moistureRegional: NoiseConfig;
     moistureLocal: NoiseConfig;
   };
@@ -161,7 +294,31 @@ export interface MapgenConfig {
     spineNearTiles: number;
     /** Hexes from water at which it is fully lifted. */
     spineFarTiles: number;
+    /**
+     * How much of its height a crest loses where the break field is at its
+     * lowest — the knob that stops a range being one unbroken wall.
+     *
+     * Ruled 2026-09-03, in the user's words: "make it so that the ridges of
+     * mountains aren't as continuous ... break up continuous lines of mountains
+     * a bit and have them be slightly more scattered".
+     *
+     * It multiplies the crest *before* the relief mix is ranked, which is what
+     * makes it a **scatter rather than a cull**: `mountainShare` is a quantile of
+     * the land, so the same number of hexes are mountain either way and all this
+     * decides is which ones. A range comes apart into a chain of massifs with
+     * saddles between them, and the hexes the saddles gave up surface as
+     * mountain somewhere else along the line.
+     *
+     * `1 - strength × (1 - rank)`, where rank is the break field's percentile
+     * among land: the field's high country keeps its crest whole, its low
+     * country keeps `1 - strength` of it. `0` skips the pass and leaves the
+     * relief bit-identical to a build that never had one — the
+     * `rainShadow.enabled` bargain, and the reason `OLD_FIXTURES` still
+     * reproduces the pre-ruling world.
+     */
+    ridgeBreakStrength: number;
   };
+  pangaea: PangaeaConfig;
   latitude: {
     snow: number;
     tundra: number;

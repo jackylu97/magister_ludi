@@ -65,9 +65,37 @@
  * **No cost in `data/techs.json` is hand-tuned any more.** A node's price is
  * read off one table indexed by its `techColumn`, so two technologies the chart
  * draws in the same column cost the same thing and the chart reads left to
- * right as a schedule. Everything below this paragraph is the history of the
- * table this replaced; it is kept because it is the record of what the science
- * economy was measured to bear, and the taper was tuned against exactly that.
+ * right as a schedule. The table itself lives in `tech.test.ts`'s
+ * `COLUMN_COSTS`, which is the witness that the data still agrees with it.
+ *
+ * The late columns are authored above the taper (the user, 2026-09-03)
+ * -------------------------------------------------------------------
+ * "Technologies should keep the same scaling they had in age 1-2. Technologies
+ * should be extremely expensive in age 4-5." So the ladder below is **no longer
+ * the whole of the table**. Columns 0–5 — the whole of Æra I and Æra II — are
+ * still the formula's own figures, untouched to the beaker, because the ruling
+ * says in as many words that the scaling a player learns the game on is right.
+ * Æra III's three columns lift a little over the taper (335/450/565 →
+ * 400/540/680) and Æra IV's four lift hard (665/750/820/875 →
+ * 1450/1700/1950/2200), which is roughly 2.3× the closing age.
+ *
+ * The four ages now cost **345 / 1665 / 7700 / 26000** — 35710 for the whole
+ * tree, against 19725 for the tapered ladder that priced every column. Æra IV
+ * alone is nearly three quarters of the chart, which is the ruling read
+ * literally: the last age is the game, not its formality. The scripted empire's
+ * closes move from 44 / 84 / 175 / 236 to **58 / 91 / 207 / 443**, and only the
+ * last two of those are this ruling's doing — see the pin in
+ * `tech.slow.test.ts`, which says what moved the other two.
+ *
+ * A late column is therefore a **ruling** rather than a value of the decay
+ * constant, and retuning one is editing two numbers (the row's data and the
+ * pin) rather than re-running a formula. The early columns keep the property
+ * the formula gave them, and that is the point: the two halves of the chart are
+ * priced by two different arguments on purpose.
+ *
+ * Everything below this paragraph is the history of the tables this replaced;
+ * it is kept because it is the record of what the science economy was measured
+ * to bear, and the taper was tuned against exactly that.
  *
  *     cost(1) = 13
  *     cost(n) = friendly(cost(n - 1) × r(n))
@@ -457,10 +485,13 @@ export function requiredResource(kind: QueueKind, id: string): ResourceId | null
  * function beside it, for exactly the reason `foundingError` swallowed
  * `foundingErrorAt`: two gates asked in two places is two gates that disagree.
  *
- * The order is technology first, then resource, and that is a message-quality
- * decision. A player without Iron Working looking at a swordsman should be told
- * about the technology — the resource is not their problem yet — and a player
- * who *has* the technology should be told about the iron.
+ * The order is technology first, then obsolescence, then resource, and that is
+ * a message-quality decision. A player without Iron Working looking at a
+ * swordsman should be told about the technology — the resource is not their
+ * problem yet — a player who *has* the technology should be told about the
+ * iron, and a player looking at a row a better one has replaced should be told
+ * that before either, because neither of the other two is their problem any
+ * more.
  *
  * It is deliberately not folded into `isUnlocked` itself. `isUnlocked` answers
  * "does this exist for me yet", which is a fact about the tree that only ever
@@ -633,6 +664,46 @@ export function buildError(
     const site = buildingDef(id).requiresSite;
     if (site !== undefined && !cityScopeAdmits(state, city, site)) {
       return `${itemName(kind, id)} wants ${siteWords(site)}; ${city.name} has none`;
+    }
+  }
+
+  /**
+   * **A row this empire has already outgrown** (user, 2026-09-03 — "once a unit
+   * is obsolete, please remove it from the build queue"). Asked of
+   * `upgradeTargetForType`, which is the same walk `upgradeUnits` marches the
+   * army up, so a piece a town could hammer out and then immediately retool is
+   * a piece the town is not offered: the barracks and the parade ground agree
+   * about which spear an age is owed, because they ask one function.
+   *
+   * It is deliberately **before** the resource clause, and the order is the
+   * message. A refusal a player can act on ("needs improved Iron") is worth
+   * printing; a refusal that has replaced the row entirely is worth printing
+   * *first*, because a player told to go and mine iron for a warrior has been
+   * sent after something that would not help.
+   *
+   * This is the one gate here that can go **backwards**: the successor's own
+   * strategic resource can be lost with the city that held it, and the warrior
+   * comes back the moment the swordsman is out of reach again — which is the
+   * whole of the ruling's exception ("only show the antiquated unit if the
+   * empire doesn't have access to a prerequisite strategic resource"). So it
+   * lives here rather than in `isUnlocked`, whose answer only ever improves.
+   *
+   * **A row this very town is already building is excused**, which is the
+   * wonder clause's `city` argument doing the same job one kind over: without
+   * it, a warrior that went obsolete while it stood in a queue would make every
+   * later edit of that queue illegal — `validateQueue` re-validates every row of
+   * the new queue, so a player adding a granary would be refused because of a
+   * warrior they were not touching, and the bot's own "put the conversion in
+   * front" command would be refused for ever. The hammers already in it are
+   * real: that row builds out (`planQueueItem` never asks this question), and it
+   * may still be hurried with coin, exactly as it may still be finished with
+   * hammers. What it may not be is *started again*.
+   */
+  if (kind === 'unit' && isUnitTypeId(id)) {
+    const standing = city?.queue.some((item) => item.kind === 'unit' && item.id === id) === true;
+    const better = standing ? null : upgradeTargetForType(state, playerId, id);
+    if (better !== null) {
+      return `${itemName(kind, id)} has been replaced by the ${unitDef(better).name}`;
     }
   }
 
@@ -1240,21 +1311,57 @@ export function upgradeUnits(state: GameState, player: Player): void {
  * there. Pure: the tech screen can ask what an upgrade *would* be.
  */
 export function upgradeTargetFor(state: GameState, unit: Unit): UnitTypeId | null {
-  let current = unit.type;
+  return upgradeTargetForType(state, unit.ownerId, unit.type);
+}
+
+/**
+ * The same walk asked of a **type** rather than of a piece: how far up its
+ * chain could this empire march one of these today, or `null` when this is
+ * already the best it could field.
+ *
+ * Two readings of one question, which is why there is one function. The piece's
+ * reading is `upgradeTargetFor` — *what does this warrior become*. The type's
+ * reading is **obsolescence** (user, 2026-09-03 — "once a unit is obsolete,
+ * please remove it from the build queue"): a row this empire could already
+ * replace has no business on a build list, and the answer is not "is there a
+ * better row in the data" but "would a piece of this type upgrade the moment it
+ * left the barracks". A town that hammered out a warrior it would immediately
+ * retool spent ten hammers on the retooling.
+ *
+ * The exception the ruling names is therefore not a clause of its own: the walk
+ * already stops at a rung the empire cannot field, so a warrior stays on the
+ * list exactly as long as the swordsman above it is out of reach — *"only show
+ * the antiquated unit if the empire doesn't have access to a prerequisite
+ * strategic resource"*. One walk, so the list and the army can never disagree
+ * about which piece an age is owed.
+ *
+ * The three ways the climb stops are the three `buildError` refuses on, asked
+ * of the **successor**: no technology names it yet (`isUnlocked`), no
+ * technology names it *at all* in this build of the data (`awaitsTech`, the
+ * Æra V hulls — a row nobody can reach is not a replacement for anything), and
+ * a strategic resource the empire does not control. It stops rather than skips,
+ * because a chain is a chain — nobody becomes a longswordsman without having
+ * been a swordsman.
+ */
+export function upgradeTargetForType(
+  state: GameState,
+  playerId: number,
+  type: UnitTypeId,
+): UnitTypeId | null {
+  let current = type;
   for (;;) {
     const next = unitDef(current).upgradesTo;
     if (next === undefined) break;
-    if (!isUnlocked(state, unit.ownerId, 'unit', next)) break;
-    // The same gate `buildError` keeps: a rung that needs iron is not climbed
-    // until the empire controls iron (user, 2026-08-29 — "iron working should
-    // only upgrade warriors when iron is available"). The walk stops rather
-    // than skips, because a chain is a chain — nobody becomes a longswordsman
-    // without having been a swordsman.
+    if (!isUnlocked(state, playerId, 'unit', next)) break;
+    if (unitDef(next).awaitsTech === true) break;
+    // The gate `buildError` keeps at the queue: a rung that needs iron is not
+    // climbed until the empire controls iron (user, 2026-08-29 — "iron working
+    // should only upgrade warriors when iron is available").
     const resource = unitDef(next).requiresResource;
-    if (resource !== undefined && !hasResource(state, unit.ownerId, resource)) break;
+    if (resource !== undefined && !hasResource(state, playerId, resource)) break;
     current = next;
   }
-  return current === unit.type ? null : current;
+  return current === type ? null : current;
 }
 
 /** Retypes a unit, keeping its health fraction and capping its movement. */

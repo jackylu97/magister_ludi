@@ -465,6 +465,36 @@ describe('what a tile costs', () => {
     );
   });
 
+  /**
+   * **Ground, at the doubled gold price** (user ruling, 2026-09-03: "gold is
+   * way too strong. Gold costs need to be 2x across the board").
+   *
+   * The one literal pin on this ladder, because the ruling is the number:
+   * buying a hex is a price *paid in* gold, so both the ring bases and the
+   * habit surcharge doubled — 20/20/20/30 → 40/40/40/60 and 2 → 4 — while the
+   * era term and the rounding, which are shapes rather than prices, did not
+   * move. This partially walks back the 8/29 "buying tiles need to be cheaper,
+   * like 0.4x" ruling by design: ground now sits at 0.8× what it cost before
+   * that pass.
+   */
+  it('charges the doubled ring prices the 9/3 ruling named', () => {
+    expect(BUY.ringBase).toEqual([40, 40, 40, 60]);
+    expect(BUY.perPriorPurchase).toBe(4);
+    // The shapes underneath are untouched: the era term is still a factor and
+    // the tag is still rounded to a tidy figure.
+    expect(BUY.progressFactor).toBe(2);
+    expect(BUY.roundTo).toBe(5);
+
+    // And the tag a player reads at the opening of a game is the base itself:
+    // a fresh empire has learned almost nothing, so the era line is small and
+    // the price is the doubled ring base, rounded.
+    const state = flatState();
+    const city = foundCityAt(state, 0, at(state.map, 8, 8));
+    const price = tilePurchasePrice(state, 0, city.id, { col: 9, row: 8 });
+    expect(price).toBeGreaterThanOrEqual(BUY.ringBase[1]!);
+    expect(price % BUY.roundTo).toBe(0);
+  });
+
   it('escalates per player, not per city, and only on tiles actually bought', () => {
     const state = flatState();
     const first = foundCityAt(state, 0, at(state.map, 6, 6));

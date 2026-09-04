@@ -262,7 +262,10 @@ describe('the worker offers every improvement the table names', () => {
     // claim — that the row is all there was to it.
     expect(IMPROVEMENT_IDS).toContain('lumbermill');
     const def = improvementDef('lumbermill');
-    expect(def.requiresTech).toBe('engineering');
+    // Moved to Siegecraft on 2026-09-03 (user: "lumbermills need to be way
+    // earlier in the tech tree, early age 2 probably") — the row is the whole
+    // of the change, and this is the interface's half of that claim.
+    expect(def.requiresTech).toBe('siegecraft');
     expect(def.yields.production).toBe(1);
     expect(def.validFeatures).toEqual(['forest', 'jungle']);
   });

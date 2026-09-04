@@ -30,17 +30,21 @@ import { describe, expect, it } from 'vitest';
 import { foundCityAt } from '../../src/sim/cities';
 import { type City, type GameState, type Unit, createUnit } from '../../src/sim/state';
 import {
+  explainRouteSenderYieldBetween,
   explainRouteYieldBetween,
   explainEmpireGold,
   foldRouteYield,
   routeSlots,
   routeStartable,
   empireGold,
+  startRouteError,
   usedRouteSlots,
 } from '../../src/sim/trade';
+import { hasMetSeat } from '../../src/sim/diplomacy';
+import { openWar } from '../../src/sim/wars';
 import { applyCommand } from '../../src/sim/commands';
 import { cityDisplayName } from '../../src/ui/cityDisplay';
-import { NO_ROUTE_CAPACITY, routeFigures } from '../../src/ui/tradeLines';
+import { NO_ROUTE_CAPACITY, routeFigures, routeReading } from '../../src/ui/tradeLines';
 import {
   type TradeRouteRow,
   filterRouteRows,
@@ -234,7 +238,11 @@ describe('the right pane', () => {
       food: candidate.food,
       production: candidate.production,
       gold: candidate.gold,
+      science: candidate.science,
+      culture: candidate.culture,
     }).toEqual(foldRouteYield(lines));
+    // A town of this seat's own: nothing to say about who holds it.
+    expect(candidate.ownerName).toBeNull();
     expect(candidate.figures).toBe(routeFigures(foldRouteYield(lines)));
   });
 
@@ -304,10 +312,11 @@ describe('the right pane', () => {
     const origin = tradeOrigins(state, 0).find((entry) => entry.cityId === near.id)!;
     const toHome = origin.candidates.find((entry) => entry.cityId === home.id)!;
     expect(toHome.error).toBeNull();
-    expect(startCommandFor(origin, toHome, startingTrader(state, 0, null))).toEqual({
+    expect(startCommandFor(origin, toHome, startingTrader(state, 0, null), 'land')).toEqual({
       unitId: state.units[0]!.id,
       fromCityId: near.id,
       toCityId: home.id,
+      mode: 'land',
     });
   });
 
@@ -363,15 +372,15 @@ describe('a full route ledger', () => {
     // It used to be a worker parked in the destination's gates, and the user's
     // stacking ruling of 2026-08-28 deleted that refusal outright — a trader has
     // its own slot on a hex now, so nothing standing in a town can turn a
-    // caravan away. The clause this reaches for instead is the deferred one, and
-    // it is the better example anyway: the surface rewords the two capacity
+    // caravan away. The clause it reaches for instead is the foreign one, which
+    // stopped being a deferral on 2026-09-03 and became two questions — and it
+    // is the better example still: the surface rewords the two capacity
     // sentences and passes every other one through untouched.
     const { state, home, far } = tradeWorld();
     far.ownerId = 1;
     const problem = routeStartable(state, 0, home.id, far.id);
-    expect(problem).toBe(
-      `${far.name} belongs to another empire — foreign routes wait on diplomacy`,
-    );
+    // `bareState` seats the two empires at war.
+    expect(problem).toBe('You are at war with B');
     expect(startableError(state, 0, home.id, far.id)).toBe(problem);
   });
 });
@@ -385,14 +394,17 @@ describe('Start', () => {
     expect(startingTrader(state, 0, second.id)?.id).toBe(second.id);
     const origin = tradeOrigins(state, 0).find((entry) => entry.cityId === near.id)!;
     const candidate = origin.candidates.find((entry) => entry.cityId === far.id)!;
-    expect(startCommandFor(origin, candidate, startingTrader(state, 0, second.id))).toEqual({
+    expect(
+      startCommandFor(origin, candidate, startingTrader(state, 0, second.id), 'land'),
+    ).toEqual({
       unitId: second.id,
       fromCityId: near.id,
       toCityId: far.id,
+      mode: 'land',
     });
 
     // And the command it names is one the reducer takes.
-    const command = startCommandFor(origin, candidate, startingTrader(state, 0, second.id))!;
+    const command = startCommandFor(origin, candidate, startingTrader(state, 0, second.id), 'land')!;
     const result = applyCommand(state, {
       type: 'startRoute',
       playerId: 0,
@@ -443,9 +455,99 @@ describe('Start', () => {
     const { state, home, near } = tradeWorld();
     const origin = tradeOrigins(state, 0).find((entry) => entry.cityId === home.id)!;
     const candidate = origin.candidates.find((entry) => entry.cityId === near.id)!;
-    expect(startCommandFor(origin, candidate, null)).toBeNull();
+    expect(startCommandFor(origin, candidate, null, 'land')).toBeNull();
     const refused = { ...candidate, error: 'nope' };
-    expect(startCommandFor(origin, refused, startingTrader(state, 0, null))).toBeNull();
+    expect(startCommandFor(origin, refused, startingTrader(state, 0, null), 'land')).toBeNull();
+    // And on no mode the row does not offer: a button is a command the reducer
+    // takes, so a mode absent from `modes` has none behind it.
+    expect(startCommandFor(origin, candidate, startingTrader(state, 0, null), 'sea')).toBeNull();
+  });
+});
+
+/**
+ * The choice the 2026-09-03 ruling added: *"we should have an option to go by
+ * sea or go by land when available"*.
+ *
+ * The screen's half of it is a row model question — how many ways this pair can
+ * be joined — and the buttons follow from it, so what is pinned here is the
+ * model and the one line of drawing that reads it.
+ */
+describe('by land or by sea', () => {
+  /** Two towns on a strip of land with open coast on either side of it. */
+  function coastalWorld(): { state: GameState; home: City; partner: City; trader: Unit } {
+    const state = bareState(16, 9);
+    for (const tile of state.map.tiles) tile.terrain = 'coast';
+    for (let col = 3; col <= 10; col++) at(state, col, 4).terrain = 'grassland';
+    const home = foundCityAt(state, 0, at(state, 3, 4));
+    const partner = foundCityAt(state, 0, at(state, 10, 4));
+    home.buildings.push('market');
+    const trader = createUnit(state, 0, 'trader', 3, 4);
+    return { state, home, partner, trader };
+  }
+
+  it('offers both ways on a row where both are legal, and one where one is', () => {
+    const { state, home, partner, trader } = coastalWorld();
+    const origin = tradeOrigins(state, 0).find((entry) => entry.cityId === home.id)!;
+    const row = origin.candidates.find((entry) => entry.cityId === partner.id)!;
+    expect(row.error).toBeNull();
+    expect(row.modes).toEqual(['land', 'sea']);
+
+    // A button the screen draws is a command the reducer takes — both of them.
+    for (const mode of row.modes) {
+      const command = startCommandFor(origin, row, startingTrader(state, 0, trader.id), mode)!;
+      expect(command.mode).toBe(mode);
+      expect(startRouteError(state, 0, command.unitId, command.fromCityId, command.toCityId, mode))
+        .toBeNull();
+    }
+
+    // The landlocked bench is unchanged: one way, one Start.
+    const dry = tradeWorld();
+    const inland = tradeOrigins(dry.state, 0).find((entry) => entry.cityId === dry.home.id)!;
+    expect(inland.candidates.find((entry) => entry.cityId === dry.near.id)!.modes).toEqual([
+      'land',
+    ]);
+  });
+
+  it('says “by sea” on the caravan’s own line, and nothing extra by land', () => {
+    const { state, home, partner, trader } = coastalWorld();
+    expect(
+      applyCommand(state, {
+        type: 'startRoute',
+        playerId: 0,
+        unitId: trader.id,
+        fromCityId: home.id,
+        toCityId: partner.id,
+        mode: 'sea',
+      }).ok,
+    ).toBe(true);
+    const sailing = routeReading(state, trader)!;
+    expect(sailing.sea).toBe(true);
+    expect(sailing.line).toContain('· by sea ·');
+
+    // By land is what a route has always been: no badge, and the sheet's line
+    // is the one every existing surface already prints.
+    const dry = tradeWorld();
+    expect(
+      applyCommand(dry.state, {
+        type: 'startRoute',
+        playerId: 0,
+        unitId: dry.trader.id,
+        fromCityId: dry.home.id,
+        toCityId: dry.near.id,
+      }).ok,
+    ).toBe(true);
+    const walking = routeReading(dry.state, dry.trader)!;
+    expect(walking.sea).toBe(false);
+    expect(walking.line).not.toContain('by sea');
+  });
+
+  it('labels the two-way row in plain words and keeps “Start” for the one-way row', () => {
+    const text = source('tradeScreen.ts');
+    expect(text).toContain("land: 'By land'");
+    expect(text).toContain("sea: 'By sea'");
+    // One line decides it, and it reads off the row's own modes rather than
+    // re-asking the simulation inside a click handler.
+    expect(text).toContain("const label = offered.length > 1 ? MODE_LABEL[mode] : 'Start';");
   });
 });
 
@@ -726,5 +828,116 @@ describe('the screen’s four doors and its one camera', () => {
     expect(body).toContain('chooserUnitId = null');
     expect(body).toContain('sortKey = null');
     expect(body).toContain('originFilter = null');
+  });
+});
+
+// --- partners abroad --------------------------------------------------------
+
+/**
+ * The screen's half of the international ruling (2026-09-03): a foreign town is
+ * a row like any other, wearing the name of the empire that holds it, quoting
+ * what pressing its button would pay **this** seat, and greying with the gate's
+ * own sentence when the gate refuses it.
+ *
+ * The one thing that is not a refusal is an empire nobody has met: its towns are
+ * not drawn at all, because a greyed row saying "you have not met Persia" would
+ * be the screen telling a player that Persia exists.
+ */
+function foreignTradeWorld(met = true): {
+  state: GameState;
+  home: City;
+  theirs: City;
+  trader: Unit;
+} {
+  const state = bareState(24, 9);
+  // `bareState` seats the two empires at war; peace is what the ruling is about.
+  state.wars = [];
+  const home = foundCityAt(state, 0, at(state, 3, 4));
+  const theirs = foundCityAt(state, 1, at(state, 9, 4));
+  home.buildings.push('market', 'market');
+  const trader = createUnit(state, 0, 'trader', 3, 4);
+  // **Met**, by the clause that needs no paper: a piece of theirs standing where
+  // this seat can see it. A worker, so no picket prices the caravan's march.
+  if (met) createUnit(state, 1, 'worker', 3, 3);
+  return { state, home, theirs, trader };
+}
+
+describe('a partner abroad', () => {
+  it('draws a foreign town as a row, named by the empire that holds it', () => {
+    const { state, home, theirs } = foreignTradeWorld();
+    home.population = 12;
+    theirs.population = 10;
+    const origin = tradeOrigins(state, 0).find((entry) => entry.cityId === home.id)!;
+    const candidate = origin.candidates.find((entry) => entry.cityId === theirs.id)!;
+    expect(candidate.ownerName).toBe('B');
+    // **What pressing the button pays you** — the sender's fold, not the
+    // destination's: the host's coin is the host's business.
+    const lines = explainRouteSenderYieldBetween(state, home, theirs);
+    expect(candidate.lines).toEqual(lines);
+    expect({
+      food: candidate.food,
+      production: candidate.production,
+      gold: candidate.gold,
+      science: candidate.science,
+      culture: candidate.culture,
+    }).toEqual(foldRouteYield(lines));
+    expect(candidate.figures).toBe(routeFigures(foldRouteYield(lines)));
+    expect(candidate.error).toBeNull();
+    expect(candidate.modes.length).toBeGreaterThan(0);
+    // The two voices only a foreign route pays reach the sheet, and the sortable
+    // total counts them.
+    expect(candidate.science).toBe(1);
+    expect(candidate.culture).toBe(1);
+    expect(routeRowValue({ origin, candidate }, 'total')).toBe(
+      candidate.food + candidate.production + candidate.gold + 2,
+    );
+  });
+
+  it('greys a foreign row with the gate’s own sentence when war stands', () => {
+    const { state, home, theirs } = foreignTradeWorld();
+    openWar(state, 0, 1);
+    const origin = tradeOrigins(state, 0).find((entry) => entry.cityId === home.id)!;
+    const candidate = origin.candidates.find((entry) => entry.cityId === theirs.id)!;
+    // The row keeps its place and its figures; only the verb is refused, in the
+    // reducer's words rather than the screen's.
+    expect(candidate.modes).toEqual([]);
+    expect(candidate.error).toBe('You are at war with B');
+    expect(candidate.error).toBe(routeStartable(state, 0, home.id, theirs.id));
+  });
+
+  it('draws no row at all for an empire nobody has met', () => {
+    const { state, home, theirs } = foreignTradeWorld(false);
+    // Nothing of theirs on this seat's chart, and no paper between them.
+    expect(hasMetSeat(state, 0, 1)).toBe(false);
+    const origin = tradeOrigins(state, 0).find((entry) => entry.cityId === home.id)!;
+    expect(origin.candidates.map((entry) => entry.cityId)).not.toContain(theirs.id);
+    // The sentence still exists — it is simply not a thing the screen says.
+    expect(routeStartable(state, 0, home.id, theirs.id)).toBe('You have not met B');
+  });
+
+  it('quotes a running foreign route by what this seat takes from it', () => {
+    const { state, home, theirs, trader } = foreignTradeWorld();
+    home.population = 12;
+    theirs.population = 10;
+    expect(
+      applyCommand(state, {
+        type: 'startRoute',
+        playerId: 0,
+        unitId: trader.id,
+        fromCityId: home.id,
+        toCityId: theirs.id,
+      }).ok,
+    ).toBe(true);
+    const [route] = runningRoutes(state, 0);
+    expect(route).toBeDefined();
+    expect(route!.lines).toEqual(explainRouteSenderYieldBetween(state, home, theirs));
+    expect(route!.gold).toBe(4);
+    // The hover ledger prints the two voices a domestic route never pays.
+    expect(routeLedgerTitle(route!.lines)).toContain('🔬');
+    expect(routeLedgerTitle(route!.lines)).toContain('🎭');
+    // And the unit sheet's reading says the same thing, the other way round.
+    const reading = routeReading(state, trader)!;
+    expect(reading.foreign).toBe(true);
+    expect(reading.figures).toBe(route!.figures);
   });
 });

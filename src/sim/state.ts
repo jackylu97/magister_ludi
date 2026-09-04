@@ -929,8 +929,57 @@ import {
  *     The migration note: nothing changed shape and there is nothing to
  *     migrate. Every retired row is still readable by `anyCardDef`, which is
  *     the whole reason a withdrawn card is marked rather than deleted.
+ *
+ * v60: **the 9/3 wave** (eight rulings in one push, `docs/flags.md`; each alone
+ * would have earned the bump, and they land together so they share one).
+ *
+ *   · **Routes are land or sea** — `startRoute` grew `mode`, a sea route lays
+ *     no road, and the pair gate went directional (the return leg is its own
+ *     route). A v59 log's absent-mode `startRoute` now takes the land path
+ *     where it may have paved a mixed one, and `TradeRoute.sea` is a new
+ *     optional field (absent = land, so an old route reads as what it was).
+ *   · **Obsolete units leave the list** — `buildError` refuses a superseded
+ *     row, so a v59 log's "build warrior" after Bronze Panoply is refused
+ *     here; the `awaitsTech` stop also retypes fewer pieces on upgrade.
+ *   · **The pangaea** — `generateMap` reads a new mask; every seeded map is a
+ *     different board, which is the deepest break of the five.
+ *   · **The late columns re-priced** — Æra III/IV costs roughly doubled and
+ *     tripled; a v59 log's research completions land on different turns.
+ *   · **Dry settles grow slower** — a −30% growth-surplus line on a city off
+ *     fresh water until a `waters` building stands; every dry town's growth
+ *     dates move. (The economy pass rode along: crowding on, palace 6,
+ *     gold prices ×2 — tables, not shapes.)
+ *   · **A route may end abroad** — `routeStartable` accepted only two towns of
+ *     one empire and now takes a foreign partner at peace with a met seat, so a
+ *     v59 log's `startRoute` to another empire's town was *refused* where this
+ *     build accepts it and pays for it. What such a route pays is its own table
+ *     (`trade.international`): no building lines, the sender's science, culture
+ *     and coin, the host's one coin.
+ *   · **The Order draft changed shape twice** — `livePool` is the current
+ *     government's pool alone (the previous government's leftovers no longer
+ *     ride along), and a hand of three or more now guarantees one card of each
+ *     slot type before it fills. Both move what the generator deals from a
+ *     given state, so a v59 log's `chooseOrder` picks name indices into hands
+ *     this build does not deal.
+ *   · **The card table itself changed** (the user's own pass over
+ *     `docs/orders-and-doctrines.md`) — three rows are **retired** and leave
+ *     every pool (Border Ballads, Wolf-Runners, Mountain Hold), two rows are
+ *     **new** (The Sacred Path, First Fruits), and six rows say something
+ *     different from what they said in v59: Thalassocracy is a yield conversion
+ *     rather than two percentages and a writ discount, Wolf-Mother's Pact is
+ *     its conversion clause alone and the convert arrives whole, The Founders'
+ *     Road founds no Monument and pays culture instead, Bread and Circuses asks
+ *     for six citizens and charges two coin, The Gentle Yoke softened to −15%,
+ *     and Hearth Songs pays two. Every one of those moves what a pool *deals*
+ *     as well as what a held card *does*, so a v59 log's `chooseOrder` and
+ *     `chooseDoctrine` pick indices into offers this build does not deal, and
+ *     the empires that survive the picking are worth different numbers.
+ *
+ *     The migration note: one additive optional field (`TradeRoute.sea`) and
+ *     one additive row marker (`BuildingDef.waters`); nothing else changed
+ *     shape and there is nothing to migrate.
  */
-export const SCHEMA_VERSION = 59;
+export const SCHEMA_VERSION = 60;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1927,6 +1976,23 @@ export interface TradeRoute {
    * it out.
    */
   autoResend: boolean;
+  /**
+   * True when this route is run **by sea**, or the key is **absent** when it is
+   * run by land (the user's ruling, 2026-09-03: *"trade routes should stay
+   * entirely either land only routes or water only routes"*).
+   *
+   * Presence is the state — `Unit.path`'s convention — and the absent half is
+   * land on purpose: every route that existed before the ruling was a land route
+   * and every route in a world with no coast still is, so a land route
+   * serialises exactly as it always did.
+   *
+   * What it changes is two things and no more: the caravan is pathed with the
+   * water-confined profile on every leg (`routeProfile`, `trade.ts`, read again
+   * by `marchTraders` when it turns the piece around), and it **lays no road**
+   * anywhere, harbours included (`layRoadUnder`, `roads.ts`). What a route pays
+   * is untouched — a cargo is a cargo whichever way it travelled.
+   */
+  sea?: true;
 }
 
 /**

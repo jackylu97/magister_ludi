@@ -139,6 +139,51 @@ decision first.
   the other way), anything empire-wide-per-city flat (the shape being
   nerfed), and espionage (a system, not an order).
 
+## Part IV — Charter orders & growing cards (2026-09-03, the deckbuilder thread)
+
+### Charters — the card is temporary, the building is forever
+
+Mechanism already shipped (`cardUnlocksBuilding`, the Gilded Court's). A
+charter unlocks its building WHILE SLOTTED; built copies stand forever;
+unslot = can't build more. One per slot flavour, few and loud:
+
+| Charter (slot) | Unlocks | The building |
+|---|---|---|
+| The Drill Charter (M) | **Drill Yard** (over Barracks) | new soldiers trained here start with +15 hp of experience scars (a veteran mark); +1⚒ per garrisoned unit |
+| The Scriveners' Charter (W) | **Scriptorium** (over Library) | +2🔬; each adjacent worked hex with a great work or academy +1🔬 |
+| The Silo Charter (E) | **Great Silo** (over Granary) | growth overflow past the threshold banks instead of vanishing; +1🌾 |
+| The Coin Charter (E) | **Assay House** (over Market) | +2💰; the town's gold purchases cost 5% less (a city-scoped price line) |
+| The Vigil Charter (M) | **Beacon Keep** (over walls) | +25 city hp; adjacent friendly units heal +5 |
+| The Rites Charter (W) | **Processional Way** (over Shrine) | +1🕯; each rite performed in this town pays +5🎵 (a growing building — see below) |
+
+### Growing cards — `scalingYield`: an occasion, a step, a counter
+
+The card's stamp grows as you play toward it. Counter on the owned order
+(phase-2 schema field, shared with the lifetime tally). All numbers
+placeholder:
+
+| Order | Grows on | Step |
+|---|---|---|
+| The Ballad-Weavers | a barbarian unit killed | +1🎵 per turn, forever |
+| The Surveyors' Rolls | an improvement built | +1💰 per 3 improvements |
+| The Pilgrim Count | a city converted to your faith | +2🕯 |
+| The Annalists | a technology finished | +1🔬 per 2 techs |
+| The Mustering Rolls | a unit trained | +1⚒ in the capital per 3 units |
+| The Feast Calendar | a city grows | +1😊 per 4 growths (capped, say +3) |
+| The Toll Ledger | a trade route completes its run | +1💰 |
+| The War Stones | a war you declared ends in peace | +3🎵 +3🔬 (rare, huge steps) |
+| The Reliquary Rolls | a great person spent | +2🕯 +2🎵 |
+
+Design rule carried over: a growing card is WEAK on draft day — the floor
+is low, the ceiling is the player's own play. The counter prints on the
+card ("×7") and the stamp reads the counter, so the growth is legible.
+
+### The skip-for-rarity fork (user's pitch, under discussion)
+
+"Instead of deepening: a skip, and consecutive skips raise rare odds next
+draft." Recorded; see the session discussion — the open question is
+whether growing cards replace deepening's role before deepening retires.
+
 ## Part III — Great-people ideas (interesting, deliberately modest)
 
 Where the design space actually is: a person is one charge spent on an act

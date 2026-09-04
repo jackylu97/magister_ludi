@@ -345,8 +345,18 @@ export interface MoveProfile {
    * a port set that outlived its loop would answer with a city list the state
    * has moved past.
    *
-   * Absent for every mover that is not a ship, which is every mover in a game
-   * with no navy in it.
+   * **The second reading, since the sea-route pass (2026-09-03).** A mover that
+   * is not a ship but is *confined to the water* — a caravan running a **sea
+   * route** — carries the two harbours its route joins here, and `tileMoveCost`
+   * refuses it every other dry hex on the map. It is one sentence read for a
+   * piece that swims rather than one that sails: *these are the dry hexes this
+   * mover may set foot on*. The two readings do not overlap, because
+   * `moveProfile` writes this key only for a hull; a land mover has it only when
+   * a caller narrows one deliberately (`routeProfile`, `trade.ts`), which is the
+   * safe direction — see `findPath`'s `mover` parameter.
+   *
+   * Absent otherwise, which is every mover in a game with no navy and no sea
+   * route in it.
    */
   ports?: ReadonlySet<Tile>;
   /**
@@ -594,6 +604,16 @@ export function tileMoveCost(tile: Tile, mover?: MoveProfile): number | null {
   if (mover?.naval === true) {
     return mover.ports?.has(tile) === true ? RULES.movement.minStepCost : null;
   }
+  // **The land half of the sea-route rule, and it is the same refusal one deck
+  // down.** A caravan sent by sea is confined to the water and to the two
+  // harbours its route joins (`MoveProfile.ports`, second reading), so every
+  // other dry hex is impassable to it — which is what makes a sea route
+  // *entirely* a sea route rather than a march with a swim in the middle. Read
+  // before `ignoresTerrainCost` for the naval clause's reason exactly: a
+  // discount is never a way onto a hex. The ground keeps its own price where it
+  // is admitted, so the four readers of `stepCost` price this path exactly as
+  // they price the piece's ordinary march over it.
+  if (mover?.ports !== undefined && !mover.ports.has(tile)) return null;
   return mover?.def?.ignoresTerrainCost ? RULES.movement.minStepCost : ground;
 }
 

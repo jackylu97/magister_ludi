@@ -216,6 +216,7 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
+      "waters": true,
       "effects": [
         {
           "kind": "rulePercent",

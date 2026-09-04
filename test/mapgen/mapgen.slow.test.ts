@@ -25,7 +25,8 @@ import {
   getMapSize,
   latitudeOf,
 } from '../../src/sim/mapgen';
-import { tileHex, tileIndex, tileNeighbors, wrappedDistance } from '../../src/sim/map';
+import { HEX_DIRECTIONS } from '../../src/sim/hex';
+import { getTile, tileHex, tileIndex, tileNeighbors, wrappedDistance } from '../../src/sim/map';
 import { neighborInDirection, vertexTiles } from '../../src/sim/water';
 import { detailFor, mapFor } from './fixtures';
 import { FEATURE_IDS, TERRAIN_IDS, isWaterTerrain } from '../../src/sim/terrainData';
@@ -290,6 +291,19 @@ describe('the elevation field', () => {
     // definition. The count of standalone hills went *up* by half (205 → 320),
     // which is what the claim is actually about: "most hills are not foothills"
     // is still true, and there are far more of both.
+    //
+    // The floor moved 0.48 → 0.45 on 2026-09-03 for exactly the same reason one
+    // step further: `elevation.ridgeBreakStrength` breaks the ranges into
+    // scattered massifs, and the *same* count of mountain hexes spread over more
+    // separate places touches more ground. The pooled standalone share went
+    // 0.535 → 0.501 and the unluckiest seed 0.491 → 0.464.
+    //
+    // And back to 0.48 later the same day, when `mountainShare` went 0.10 → 0.08
+    // (the user's own number): a fifth fewer mountain hexes touch a fifth less
+    // ground however they are arranged, so the pooled share recovered to 0.561
+    // and the unluckiest seed to 0.532 — better than either reading before the
+    // scatter. Hills per map are 677 and were never the thing moving; the
+    // mountain cut is a quantile, so what changes is which hexes, not how many.
     let jungleTotal = 0;
     for (const seed of SEEDS) {
       const map = mapFor(seed, 'standard');
@@ -375,6 +389,121 @@ describe('the elevation field', () => {
         );
       }
     }
+  });
+});
+
+describe('the broken ridges', () => {
+  const RIDGE_SEEDS = [1, 2, 3, 7, 11, 42, 99, 777, 1234, 2024, 2468, 31337];
+
+  /**
+   * A map's mountains, read as *shape*: how many separate massifs there are, how
+   * big the biggest is, and the longest unbroken run along any of the three hex
+   * axes. Straight runs are counted from a hex whose predecessor along that axis
+   * is not mountain, so each run is counted once.
+   */
+  function massifs(map: ReturnType<typeof generateMap>) {
+    const isMountain = (index: number): boolean => map.tiles[index]!.terrain === 'mountain';
+    let mountains = 0;
+    for (let i = 0; i < map.tiles.length; i++) if (isMountain(i)) mountains += 1;
+
+    const seen = new Uint8Array(map.tiles.length);
+    let components = 0;
+    let largest = 0;
+    for (let i = 0; i < map.tiles.length; i++) {
+      if (!isMountain(i) || seen[i]) continue;
+      seen[i] = 1;
+      const queue = [i];
+      for (let head = 0; head < queue.length; head++) {
+        for (const near of tileNeighbors(map, map.tiles[queue[head]!]!)) {
+          const index = tileIndex(map, near.col, near.row);
+          if (seen[index] || !isMountain(index)) continue;
+          seen[index] = 1;
+          queue.push(index);
+        }
+      }
+      components += 1;
+      largest = Math.max(largest, queue.length);
+    }
+
+    let longestRun = 0;
+    for (let axis = 0; axis < 3; axis++) {
+      const ahead = HEX_DIRECTIONS[axis]!;
+      const behind = HEX_DIRECTIONS[axis + 3]!;
+      for (const tile of map.tiles) {
+        if (tile.terrain !== 'mountain') continue;
+        const hex = tileHex(tile);
+        const before = getTile(map, { q: hex.q + behind.q, r: hex.r + behind.r });
+        if (before?.terrain === 'mountain') continue;
+        let run = 0;
+        let at: ReturnType<typeof getTile> = tile;
+        while (at && at.terrain === 'mountain') {
+          run += 1;
+          const here = tileHex(at);
+          at = getTile(map, { q: here.q + ahead.q, r: here.r + ahead.r });
+        }
+        longestRun = Math.max(longestRun, run);
+      }
+    }
+    return { mountains, components, largest, longestRun };
+  }
+
+  it('scatters the ranges without culling a single mountain', () => {
+    // Ruled 2026-09-03: "break up continuous lines of mountains a bit and have
+    // them be slightly more scattered". `elevation.ridgeBreakStrength` multiplies
+    // the crest before the relief mix is *ranked*, and that is the whole reason
+    // this is a scatter rather than a cull — `mountainShare` is a quantile of the
+    // land, so the same hexes-worth of mountain is dealt either way and all the
+    // break decides is which hexes. The equality below is exact, not a band.
+    //
+    // Measured over a twenty-seed sweep on a standard board, whole → broken:
+    // 143 → 143 mountains a map, 23.9 → 57.4 separate massifs, 6.37 → 2.52 hexes
+    // in the average one, the largest 40 → 15, and the longest straight run
+    // 6.8 → 5.3 on average and 11 → 8 at worst. (The counts fell from 179 with
+    // `mountainShare` 0.10 → 0.08 later the same day; the *shape* readings are
+    // the break's, and it is the ratios below that this test holds.)
+    //
+    // Round two of the ruling (2026-09-03, "still too many unbroken chains")
+    // pushed `ridgeBreakStrength` to its ceiling of 1 and tightened the break
+    // field to `cycleTiles: 3` at three octaves, roughly halving the average
+    // massif and the longest run again from the 3.8 and 8 the first cut shipped.
+    // A side effect worth the note: the continent got *more* walkable, not less.
+    // The largest connected component of passable land on the mainland went from
+    // 98.5% of it to 99.7% on average and from 89.6% to 96.1% on the worst seed —
+    // a wall of mountain encloses pockets, a chain of massifs has passes.
+    const total = { components: 0, largest: 0, longestRun: 0 };
+    const was = { components: 0, largest: 0, longestRun: 0 };
+    for (const seed of RIDGE_SEEDS) {
+      const broken = massifs(mapFor(seed, 'standard'));
+      const whole = massifs(mapFor(seed, 'standard', { elevation: { ridgeBreakStrength: 0 } }));
+
+      // Per seed, and exactly: the scatter deals the same amount of mountain.
+      expect(`${seed}: ${broken.mountains} mountains`).toBe(`${seed}: ${whole.mountains} mountains`);
+      // Per seed, more pieces than the wall it came out of.
+      expect(`${seed}: ${broken.components} massifs`).toBe(
+        `${seed}: ${Math.max(broken.components, whole.components + 1)} massifs`,
+      );
+      total.components += broken.components;
+      total.largest += broken.largest;
+      total.longestRun += broken.longestRun;
+      was.components += whole.components;
+      was.largest += whole.largest;
+      was.longestRun += whole.longestRun;
+    }
+    // The size of the effect, over the sweep rather than inside it. Half again
+    // as many massifs, each of them smaller — and the second half is why these
+    // two readings are pooled: the hexes a saddle gives up surface *somewhere*,
+    // and on one seed in twelve the somewhere happens to be a line one hex
+    // longer than the longest one broken (seed 2, 6 → 7). What must not happen
+    // is the walls getting longer on the whole, and they do not.
+    const ratio = total.components / was.components;
+    expect(`massifs ×${ratio.toFixed(2)}`).toBe(`massifs ×${Math.max(ratio, 1.4).toFixed(2)}`);
+    const shrunk = total.largest / was.largest;
+    expect(`largest massif ×${shrunk.toFixed(2)}`).toBe(
+      `largest massif ×${Math.min(shrunk, 0.85).toFixed(2)}`,
+    );
+    expect(`longest run ${(total.longestRun / RIDGE_SEEDS.length).toFixed(1)}`).toBe(
+      `longest run ${(Math.min(total.longestRun, was.longestRun) / RIDGE_SEEDS.length).toFixed(1)}`,
+    );
   });
 });
 
@@ -516,6 +645,15 @@ describe('the moisture field', () => {
       }
       // The mechanism, per seed: ground in the lee of a range is drier. This is
       // what the pass actually does, and it holds on every seed.
+      //
+      // The bound went 0.90 → 0.92 when the pangaea gathered the land into one
+      // continent — far more of it stands inland with some range upwind, so the
+      // lee set grows towards the whole map and the open set shrinks towards the
+      // coastal fringe, and two sets that overlap that much cannot differ as
+      // sharply. Breaking the ranges (`elevation.ridgeBreakStrength`, the same
+      // day) hands it straight back: a gapped range shelters a *narrower* strip,
+      // so the lee set is a real lee again. Over this sweep the ratios now run
+      // 0.65-0.87 and the original 0.90 stands.
       const ratio = leeMoisture / lee / (openMoisture / open);
       expect(`${seed}: lee moisture ${ratio.toFixed(2)}x`).toBe(
         `${seed}: lee moisture ${Math.min(ratio, 0.9).toFixed(2)}x`,

@@ -56,8 +56,8 @@ function empire(): GameState {
   ] as const) {
     foundCityAt(state, 0, getTileAt(state.map, col, row)!);
   }
-  // A town well past the old crowding threshold — kept that size so the day the
-  // surcharge returns, this fixture immediately exercises it again.
+  // A town past the crowding threshold, so the fixture carries the surcharge
+  // line the grouping has to leave alone (the weight came back on 2026-09-03).
   state.cities[1]!.population = 11;
   return state;
 }

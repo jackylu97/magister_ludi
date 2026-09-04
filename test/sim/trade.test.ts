@@ -37,18 +37,34 @@ import {
   unitById,
 } from '../../src/sim/state';
 import {
+  type RouteMode,
+  ROUTE_MODES,
+  bestRouteMode,
+  cityRouteYields,
   connectedCities,
+  explainRouteSenderYield,
+  explainRouteSenderYieldBetween,
   explainRouteSlots,
   explainRouteYield,
   explainRouteYieldBetween,
   explainEmpireGold,
   foldRouteYield,
   roadsBuiltBy,
+  routeArrived,
+  routeIsInternational,
+  routeIsLive,
+  routeModeFor,
+  routeModesAvailable,
   routeSlots,
   routeStartable,
+  standsIn,
   startRouteError,
   usedRouteSlots,
 } from '../../src/sim/trade';
+import { hasMetSeat } from '../../src/sim/diplomacy';
+import { openWar } from '../../src/sim/wars';
+import { resetVisibility } from '../../src/sim/visibility';
+import { isWaterTerrain } from '../../src/sim/terrainData';
 import { layRoad } from '../../src/sim/roads';
 import { pillageAt } from '../../src/sim/improvements';
 import { buildError } from '../../src/sim/tech';
@@ -105,8 +121,58 @@ function tradeWorld(width = 16): {
   return { state, home, partner, trader };
 }
 
-function send(playerId: number, unitId: number, fromCityId: number, toCityId: number): Command {
-  return { type: 'startRoute', playerId, unitId, fromCityId, toCityId };
+function send(
+  playerId: number,
+  unitId: number,
+  fromCityId: number,
+  toCityId: number,
+  mode?: RouteMode,
+): Command {
+  // Spread, so a send that names no mode is byte-identical to the command shape
+  // this verb had before the 2026-09-03 ruling — which is the shape the absent
+  // field's default exists for.
+  return {
+    type: 'startRoute',
+    playerId,
+    unitId,
+    fromCityId,
+    toCityId,
+    ...(mode === undefined ? {} : { mode }),
+  };
+}
+
+/**
+ * A sea between two towns: open coast everywhere, two dry city hexes, and —
+ * when `corridor` — a strip of grassland joining them along row 4.
+ *
+ * The two worlds the 2026-09-03 ruling is about, in one fixture. With the
+ * corridor **both** ways exist and the choice is real; without it the towns are
+ * islands and only the sea will do. The trader starts in the origin's gates, as
+ * every fixture here does — where it stands is not part of any gate.
+ */
+function seaWorld(corridor = true): {
+  state: GameState;
+  home: City;
+  partner: City;
+  trader: Unit;
+} {
+  const state = bareState(16, 9);
+  for (const tile of state.map.tiles) tile.terrain = 'coast';
+  at(state, 3, 4).terrain = 'grassland';
+  at(state, 10, 4).terrain = 'grassland';
+  if (corridor) {
+    for (let col = 4; col <= 9; col++) at(state, col, 4).terrain = 'grassland';
+  }
+  const home = foundCityAt(state, 0, at(state, 3, 4));
+  const partner = foundCityAt(state, 0, at(state, 10, 4));
+  home.buildings.push('market');
+  const trader = createUnit(state, 0, 'trader', 3, 4);
+  return { state, home, partner, trader };
+}
+
+/** Every hex wearing a road, in map order. */
+function pavedTiles(state: GameState): Tile[] {
+  return state.map.tiles.filter((tile) => tile.road !== undefined);
 }
 
 /** One whole resolution, exactly as `applyEndTurn` runs it. */
@@ -276,9 +342,12 @@ describe('startRoute', () => {
         match: /No unit with id/,
       },
       {
-        why: 'a foreign partner',
+        // `bareState` seats the two empires at war, so the foreign clause's
+        // *first* question is the one that answers here — the peace half is
+        // `international routes`' own suite below.
+        why: 'a foreign partner, at war',
         command: send(0, trader.id, home.id, theirs.id),
-        match: /foreign routes wait on diplomacy/,
+        match: /at war with/,
       },
       {
         why: 'a foreign origin',
@@ -351,20 +420,25 @@ describe('startRoute', () => {
     expect([trader.col, trader.row]).toEqual([home.col, home.row]);
   });
 
-  it('refuses a second route between the same pair, in either direction', () => {
+  it('refuses a second route the same way, and welcomes the return leg', () => {
     const { state, home, partner, trader } = tradeWorld();
-    // Two slots, so it is the pair that refuses and not the cap.
-    partner.buildings.push('market');
+    // Three slots, so it is the direction that decides and never the cap.
+    partner.buildings.push('market', 'market');
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
 
+    // The same way again: refused, byte-identical.
     const second = createUnit(state, 0, 'trader', 8, 4);
     const before = snapshotState(state);
-    const result = applyCommand(state, send(0, second.id, partner.id, home.id));
+    const result = applyCommand(state, send(0, second.id, home.id, partner.id));
     expect(result).toEqual({
       ok: false,
-      error: expect.stringMatching(/already runs between/),
+      error: expect.stringMatching(/already runs from/),
     });
     expect(snapshotState(state)).toBe(before);
+
+    // The other way is its own route (ruled 2026-09-03): Brightwater→
+    // Aldermarch does not preclude Aldermarch→Brightwater.
+    expect(applyCommand(state, send(0, second.id, partner.id, home.id)).ok).toBe(true);
   });
 
   it('refuses a caravan already carrying one', () => {
@@ -477,6 +551,193 @@ describe('startRoute', () => {
         );
       }
     }
+  });
+});
+
+// --- land or sea ------------------------------------------------------------
+
+/**
+ * The user's ruling of 2026-09-03, which began as a bug: *"trade routes
+ * shouldn't create roads over water, trade routes should stay entirely either
+ * land only routes or water only routes. For the purpose of building roads, we
+ * should have an option to go by sea or go by land when available."*
+ *
+ * Four claims, and they fail for different reasons:
+ *
+ *   1. a **sea** route lays no road — not on the water, not on its harbours;
+ *   2. a **land** route still wears one, and every hex of it is dry;
+ *   3. a mode with no path of its own is a **refusal**, byte-identical;
+ *   4. an **absent** mode resolves by the stated default — land where a land
+ *      path exists, else sea.
+ */
+describe('land or sea', () => {
+  it('offers both ways where both exist, and one where one does', () => {
+    const both = seaWorld();
+    expect(routeModesAvailable(both.state, 0, both.home.id, both.partner.id)).toEqual([
+      'land',
+      'sea',
+    ]);
+    // Islands: the road is gone and only the lane is left.
+    const island = seaWorld(false);
+    expect(routeModesAvailable(island.state, 0, island.home.id, island.partner.id)).toEqual([
+      'sea',
+    ]);
+    // And a landlocked world is today's single button, unchanged.
+    const dry = tradeWorld();
+    expect(routeModesAvailable(dry.state, 0, dry.home.id, dry.partner.id)).toEqual(['land']);
+    // The order is the resolution order and it is an array, never a set.
+    expect(ROUTE_MODES).toEqual(['land', 'sea']);
+  });
+
+  it('lays no road anywhere on a sea route — water or harbour, out and home', () => {
+    const { state, home, partner, trader } = seaWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id, 'sea'))).toEqual({
+      ok: true,
+    });
+    // Presence is the state: a sea route says so, and a land route says nothing.
+    expect(trader.trade?.sea).toBe(true);
+    // Entirely a sea route: every hex of the order is water but the harbour it
+    // ends on, and the corridor beside it is never trodden.
+    const ordered = trader.path ?? [];
+    expect(ordered.length).toBeGreaterThan(0);
+    for (const [index, cell] of ordered.entries()) {
+      const tile = at(state, cell.col, cell.row);
+      const last = index === ordered.length - 1;
+      expect(isWaterTerrain(tile.terrain), `(${cell.col}, ${cell.row})`).toBe(!last);
+    }
+    // Out…
+    runUntil(state, () => standsIn(trader, partner), 24);
+    expect(pavedTiles(state)).toEqual([]);
+    // …and home again, which is the leg `marchTraders` paths on its own and the
+    // one a mode stored only on the command would have sent overland.
+    runUntil(state, () => standsIn(trader, home), 24);
+    expect(pavedTiles(state)).toEqual([]);
+    // It never set foot on the corridor either: every hex it rested on was
+    // water or one of its own two harbours.
+    expect(trader.trade?.sea).toBe(true);
+  });
+
+  it('still wears a road on a land route, and never one over water', () => {
+    const { state, home, partner, trader } = seaWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id, 'land'))).toEqual({
+      ok: true,
+    });
+    expect(trader.trade?.sea).toBeUndefined();
+    runUntil(state, () => standsIn(trader, partner), 24);
+    const paved = pavedTiles(state);
+    expect(paved.length).toBeGreaterThan(0);
+    // The corridor and nothing else. A hex off row 4 is water on this board, so
+    // this is the bug's own assertion: no road stands on the sea.
+    for (const tile of paved) {
+      expect(isWaterTerrain(tile.terrain), `(${tile.col}, ${tile.row})`).toBe(false);
+      expect(tile.row, `(${tile.col}, ${tile.row})`).toBe(4);
+    }
+  });
+
+  it('walks around a bay rather than swimming it — the bug, reproduced', () => {
+    // The board the report was about: dry country with a channel between the
+    // two towns, and one dry way round the bottom of it. A caravan whose empire
+    // holds Sailing used to take the short way — embarking, crossing, landing —
+    // and `layRoadUnder` paved every hex it rested on, sea included.
+    const state = bareState(16, 9);
+    for (let row = 0; row <= 6; row++) at(state, 6, row).terrain = 'coast';
+    const home = foundCityAt(state, 0, at(state, 3, 4));
+    const partner = foundCityAt(state, 0, at(state, 10, 4));
+    home.buildings.push('market');
+    const trader = createUnit(state, 0, 'trader', 3, 4);
+    // The empire can embark — that is the whole premise — and there is still no
+    // sea route here, because neither town has water at its gates.
+    expect(moveProfile(state, trader).embarks).toBe(true);
+    expect(routeModesAvailable(state, 0, home.id, partner.id)).toEqual(['land']);
+
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id))).toEqual({ ok: true });
+    // **The order itself is dry**, and that is the assertion the ruling is
+    // about: `layRoad` refusing water is the floor under this and not a
+    // substitute for it — a route that swam the channel would still be a route
+    // with a gap in its road, which is the shape the report actually described.
+    const ordered = trader.path ?? [];
+    expect(ordered.length).toBeGreaterThan(0);
+    for (const cell of ordered) {
+      const tile = at(state, cell.col, cell.row);
+      expect(isWaterTerrain(tile.terrain), `(${cell.col}, ${cell.row})`).toBe(false);
+    }
+    runUntil(state, () => standsIn(trader, partner), 24);
+    const paved = pavedTiles(state);
+    expect(paved.length).toBeGreaterThan(0);
+    for (const tile of paved) {
+      expect(isWaterTerrain(tile.terrain), `(${tile.col}, ${tile.row})`).toBe(false);
+    }
+    // And it went round: the channel's own column is untouched above row 7.
+    for (let row = 0; row <= 6; row++) expect(at(state, 6, row).road).toBeUndefined();
+  });
+
+  it('refuses a mode with no path of its own, and the refusal changes nothing', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    const before = snapshotState(state);
+    const result = applyCommand(state, send(0, trader.id, home.id, partner.id, 'sea'));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/No sea lane a caravan could sail/);
+    expect(snapshotState(state)).toBe(before);
+
+    // The mirror, and the sentence a player reads is about the way they asked
+    // for rather than about the other one.
+    const island = seaWorld(false);
+    const overland = send(0, island.trader.id, island.home.id, island.partner.id, 'land');
+    const dry = snapshotState(island.state);
+    const refused = applyCommand(island.state, overland);
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) expect(refused.error).toMatch(/No road a caravan could walk/);
+    expect(snapshotState(island.state)).toBe(dry);
+    expect(
+      startRouteError(island.state, 0, island.trader.id, island.home.id, island.partner.id, 'sea'),
+    ).toBeNull();
+  });
+
+  it('resolves an absent mode to land where a land path exists, else sea', () => {
+    const both = seaWorld();
+    expect(routeModeFor(both.state, 0, both.home.id, both.partner.id)).toBe('land');
+    expect(applyCommand(both.state, send(0, both.trader.id, both.home.id, both.partner.id))).toEqual(
+      { ok: true },
+    );
+    expect(both.trader.trade?.sea).toBeUndefined();
+
+    const island = seaWorld(false);
+    expect(routeModeFor(island.state, 0, island.home.id, island.partner.id)).toBe('sea');
+    expect(
+      applyCommand(island.state, send(0, island.trader.id, island.home.id, island.partner.id)),
+    ).toEqual({ ok: true });
+    expect(island.trader.trade?.sea).toBe(true);
+
+    // A named mode is never overruled by the default.
+    expect(routeModeFor(both.state, 0, both.home.id, both.partner.id, 'sea')).toBe('sea');
+  });
+
+  it('prefers land wherever land is legal — the bot’s reading', () => {
+    const both = seaWorld();
+    expect(bestRouteMode(both.state, 0, both.trader.id, both.home.id, both.partner.id)).toBe(
+      'land',
+    );
+    const island = seaWorld(false);
+    expect(
+      bestRouteMode(island.state, 0, island.trader.id, island.home.id, island.partner.id),
+    ).toBe('sea');
+    // Nothing at all when the pair is refused whichever way it is asked.
+    const dry = tradeWorld();
+    expect(bestRouteMode(dry.state, 0, dry.trader.id, dry.home.id, 9999)).toBeNull();
+  });
+
+  it('never paves water, whoever asks — the one writer refuses it', () => {
+    const { state } = seaWorld();
+    // `layRoad` is the only writer of `Tile.road` and the refusal lives there,
+    // so no third occasion can lay a highway across the sea by forgetting to
+    // check. Off row 4 this board is open coast.
+    const sea = at(state, 6, 2);
+    expect(isWaterTerrain(sea.terrain)).toBe(true);
+    expect(layRoad(sea, 0)).toBe(false);
+    expect(sea.road).toBeUndefined();
+    const dry = at(state, 6, 4);
+    expect(layRoad(dry, 0)).toBe(true);
+    expect(dry.road).toBe(0);
   });
 });
 
@@ -767,12 +1028,15 @@ describe('a road', () => {
 describe('a route’s yields', () => {
   it('pays the destination off the origin’s buildings and the two populations', () => {
     const { state, home, partner, trader } = tradeWorld();
-    home.population = 6;
-    partner.population = 8;
+    home.population = 12;
+    partner.population = 10;
     // 2026-08-27: the origin's buildings set the figure, the destination
     // banks it — "it is best for routes from the capital to later settles,
     // to feed the later settles." `home` already carries `tradeWorld`'s
     // market (a `gold`-category building, so it counts toward production too).
+    // Building rates halved by the 2026-09-03 nerf (a yield per TWO
+    // buildings); the coin stays a gold per ten people by the same day's
+    // follow-up ruling.
     home.buildings.push('granary', 'library', 'workshop');
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
 
@@ -780,11 +1044,20 @@ describe('a route’s yields', () => {
     expect(lines.map((line) => line.source)).toEqual([
       `Caravan from ${home.name} · 2 buildings`,
       `Caravan from ${home.name} · 2 buildings`,
-      `Caravan from ${home.name} · 14 people`,
+      `Caravan from ${home.name} · 22 people`,
     ]);
     // granary + library are food/science; the market and the workshop are
     // both production-side categories (gold, production).
-    expect(foldRouteYield(lines)).toEqual({ food: 2, production: 2, gold: 1 });
+    // Five voices since a route may end abroad (2026-09-03); the two new ones
+    // are zero on every domestic line, which is the whole of "a domestic route
+    // reads byte-identically".
+    expect(foldRouteYield(lines)).toEqual({
+      food: 1,
+      production: 1,
+      gold: 2,
+      science: 0,
+      culture: 0,
+    });
   });
 
   it('agrees with the pure preview helper a caravan-free candidate reads', () => {
@@ -806,7 +1079,12 @@ describe('a route’s yields', () => {
     const { state, home, partner, trader } = tradeWorld();
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     expect(foldRouteYield(explainRouteYield(state, trader)).food).toBe(0);
+    // Two, because the nerfed rate is a food per two buildings — the claim
+    // (derived, never snapshotted) is unchanged; the second library is just
+    // what it now takes to move the figure.
     home.buildings.push('library');
+    expect(foldRouteYield(explainRouteYield(state, trader)).food).toBe(0);
+    home.buildings.push('granary');
     expect(foldRouteYield(explainRouteYield(state, trader)).food).toBe(1);
   });
 
@@ -822,7 +1100,8 @@ describe('a route’s yields', () => {
 
   it('stops paying the turn it lapses, wherever the caravan is standing', () => {
     const { state, home, trader, partner } = tradeWorld();
-    home.buildings.push('library');
+    // Two food-side buildings, so the route pays a line under the halved rate.
+    home.buildings.push('library', 'granary');
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     expect(explainRouteYield(state, trader)).not.toEqual([]);
     trader.trade!.expiresTurn = state.turn;
@@ -1277,7 +1556,7 @@ describe('trade in the log', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(59);
+    expect(SCHEMA_VERSION).toBe(60);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {
@@ -1428,5 +1707,243 @@ describe('The Imperial Post', () => {
     // own figure rather than multiplied afterwards, which is rule 5 for a
     // treasury and the reason there is still only one line.
     expect(line()).toBe(before + connectedCities(state, 0).length);
+  });
+});
+
+// --- a route that ends abroad -----------------------------------------------
+
+/**
+ * The user's ruling of 2026-09-03, and the sixth separable claim this file
+ * defends: **a route may end in another empire's town**, and what it pays is a
+ * different table paid to two different empires.
+ *
+ * Four things can be quietly wrong about it and each fails for its own reason:
+ *
+ *   1. **the gate is two questions** — at peace, and met — and every other
+ *      clause of `routeStartable` is asked of a foreign pair unchanged;
+ *   2. **the pay is flat** — no building line reaches it, the sender takes the
+ *      science, the culture and the coin, the host takes one coin;
+ *   3. **the two halves land in two different empires' books**;
+ *   4. **war ends it**, by the broom the declaration already swings.
+ */
+function foreignWorld(met = true): {
+  state: GameState;
+  home: City;
+  partner: City;
+  trader: Unit;
+} {
+  const state = bareState(16, 9);
+  // At peace, and with no truce either: `closeWar` would write one, and a truce
+  // refuses the declaration the last test in this block has to make. The war
+  // register is emptied directly for the same reason `bareState` fills it
+  // directly — this file's subject is the caravan, and `war.test.ts` owns the
+  // verbs.
+  state.wars = [];
+  const home = foundCityAt(state, 0, at(state, 3, 4));
+  const partner = foundCityAt(state, 1, at(state, 10, 4));
+  home.buildings.push('market');
+  const trader = createUnit(state, 0, 'trader', 3, 4);
+  // **Met**, by the one clause that needs no paper: a piece of theirs standing
+  // where this seat can see it. A worker rather than a warrior, so nothing
+  // about the caravan's march is priced by a picket.
+  //
+  // The unmet half is the chart wiped instead: `bareState` builds its board
+  // after the seats are seated, so every hex reads as explored and the fourth
+  // clause of `hasMetSeat` ("their border on your chart") answers yes for a
+  // pair that has never laid eyes on each other. Recomputing the fog from cold
+  // is the honest way to say "nobody has been anywhere yet".
+  if (met) createUnit(state, 1, 'worker', 3, 3);
+  else resetVisibility(state);
+  return { state, home, partner, trader };
+}
+
+describe('international routes', () => {
+  it('refuses a partner at war and a partner nobody has met, byte-identically', () => {
+    const atWarWorld = foreignWorld();
+    openWar(atWarWorld.state, 0, 1);
+    expect(hasMetSeat(atWarWorld.state, 0, 1)).toBe(true);
+    expect(
+      routeStartable(atWarWorld.state, 0, atWarWorld.home.id, atWarWorld.partner.id),
+    ).toBe('You are at war with B');
+
+    const unmet = foreignWorld(false);
+    expect(hasMetSeat(unmet.state, 0, 1)).toBe(false);
+    expect(routeStartable(unmet.state, 0, unmet.home.id, unmet.partner.id)).toBe(
+      'You have not met B',
+    );
+
+    // Both refusals leave the board exactly as they found it — the gate's own
+    // contract, asked through the reducer rather than through the reader.
+    for (const world of [atWarWorld, unmet]) {
+      const before = snapshotState(world.state);
+      const result = applyCommand(
+        world.state,
+        send(0, world.trader.id, world.home.id, world.partner.id),
+      );
+      expect(result.ok).toBe(false);
+      expect(snapshotState(world.state)).toBe(before);
+    }
+  });
+
+  it('takes a foreign partner at peace with an empire this seat has met', () => {
+    const { state, home, partner, trader } = foreignWorld();
+    expect(routeStartable(state, 0, home.id, partner.id)).toBeNull();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    expect(trader.trade?.to).toBe(partner.id);
+    expect(routeIsInternational(home, partner)).toBe(true);
+    // **A caravan trades at the gates**: the leg ends on the partner's doorstep,
+    // because a foreign city hex is closed to a march and always was.
+    const last = trader.path?.[trader.path.length - 1];
+    expect(last).toBeDefined();
+    expect(last).not.toEqual({ col: partner.col, row: partner.row });
+    runUntil(state, () => routeArrived(state, trader, partner), 12);
+    // And having arrived, the shuttle turns it round rather than leaving it
+    // waiting to be somewhere it may not stand.
+    resolve(state);
+    expect(trader.trade?.outbound).toBe(false);
+  });
+
+  it('pays the sender a flat trade and the host one coin, off no buildings at all', () => {
+    const { state, home, partner, trader } = foreignWorld();
+    home.population = 12;
+    partner.population = 10;
+    // Four buildings that would have paid a domestic route two food and two
+    // hammers. A foreign library is not yours to harvest: not one of them
+    // reaches either fold.
+    home.buildings.push('granary', 'library', 'workshop', 'barracks');
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+
+    const mine = explainRouteSenderYield(state, trader);
+    expect(mine.map((entry) => entry.source)).toEqual([
+      `Caravan to ${partner.name} · a foreign market`,
+      `Caravan to ${partner.name} · 22 people`,
+    ]);
+    // +1🔬 +1🎭 +2💰 flat, and a further coin per ten people across the two
+    // markets — 22 of them, so two.
+    expect(foldRouteYield(mine)).toEqual({
+      food: 0,
+      production: 0,
+      gold: 4,
+      science: 1,
+      culture: 1,
+    });
+
+    const theirs = explainRouteYield(state, trader);
+    expect(theirs.map((entry) => entry.source)).toEqual([
+      `Caravan from ${home.name} · a foreign market`,
+    ]);
+    expect(foldRouteYield(theirs)).toEqual({
+      food: 0,
+      production: 0,
+      gold: 1,
+      science: 0,
+      culture: 0,
+    });
+    // The preview and the paying caravan are one implementation, abroad as at
+    // home.
+    expect(explainRouteSenderYieldBetween(state, home, partner)).toEqual(mine);
+    expect(explainRouteYieldBetween(state, home, partner)).toEqual(theirs);
+    // And a domestic route pays no sender line at all — the fold is empty
+    // rather than zeroed, so nothing prints a row that says nothing.
+    expect(explainRouteSenderYieldBetween(state, home, home)).toEqual([]);
+  });
+
+  it('banks the sender’s half in the sender’s books and the host’s coin in the host’s town', () => {
+    // Two identical worlds, one of which sends the caravan: the difference
+    // between them after one resolution *is* what the route paid, which is the
+    // only way to read a banking claim without re-deriving the whole phase.
+    // One resolution, deliberately: the caravan lays at most two hexes of road
+    // in it and road maintenance is a coin per four, so the treasuries are
+    // otherwise identical.
+    const sent = foreignWorld();
+    const idle = foreignWorld();
+    for (const world of [sent, idle]) {
+      world.home.population = 12;
+      world.partner.population = 10;
+    }
+    expect(
+      applyCommand(sent.state, send(0, sent.trader.id, sent.home.id, sent.partner.id)).ok,
+    ).toBe(true);
+
+    const purse = (state: GameState, id: number): { gold: number; science: number; culture: number } => {
+      const player = playerById(state, id)!;
+      return { gold: player.gold, science: player.sciencePool, culture: player.culturePool };
+    };
+    resolve(sent.state);
+    resolve(idle.state);
+
+    const mine = purse(sent.state, 0);
+    const control = purse(idle.state, 0);
+    expect(mine.science - control.science).toBe(1);
+    expect(mine.culture - control.culture).toBe(1);
+    expect(mine.gold - control.gold).toBe(4);
+    // The host's coin lands in the host's *town*, so it reaches the host's
+    // treasury through that town's own fold and nowhere else.
+    expect(cityRouteYields(sent.state, sent.partner).map((entry) => entry.gold)).toEqual([1]);
+    expect(purse(sent.state, 1).gold - purse(idle.state, 1).gold).toBe(1);
+    expect(purse(sent.state, 1).science - purse(idle.state, 1).science).toBe(0);
+  });
+
+  it('ends when the two ends’ empires go to war, by the declaration’s own broom', () => {
+    const { state, home, partner, trader } = foreignWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    expect(routeIsLive(state, trader)).toBe(true);
+
+    const declared = applyCommand(state, { type: 'declareWar', playerId: 0, targetId: 1 });
+    expect(declared.ok).toBe(true);
+    // The route is gone from the piece — presence is the state — and the slot
+    // it held is free again.
+    expect(trader.trade).toBeUndefined();
+    expect(usedRouteSlots(state, 0)).toBe(0);
+    // And the pair is refused now, in the war's own words.
+    expect(routeStartable(state, 0, home.id, partner.id)).toBe('You are at war with B');
+  });
+
+  it('stops paying the turn war is declared, before any broom reaches it', () => {
+    // The broom is the tidying; `routeCities` is the rule. A route whose
+    // partner is taken by an empire this one is fighting pays nobody, and no
+    // sweep had to run for that to be true.
+    const { state, home, partner, trader } = foreignWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    expect(explainRouteSenderYield(state, trader).length).toBeGreaterThan(0);
+    openWar(state, 0, 1);
+    expect(routeIsLive(state, trader)).toBe(false);
+    expect(explainRouteSenderYield(state, trader)).toEqual([]);
+    expect(cityRouteYields(state, partner)).toEqual([]);
+  });
+
+  it('replays a foreign route byte-for-byte', () => {
+    const config: GameConfig = {
+      seed: 71,
+      sizeName: 'duel',
+      players: [
+        { name: 'A', color: '#a00', isHuman: true },
+        { name: 'B', color: '#00a', isHuman: true },
+      ],
+    };
+    const game: Game = { config: createGame(config).config, state: bareState(16, 9), log: [] };
+    const state = game.state;
+    state.wars = [];
+    const home = foundCityAt(state, 0, at(state, 3, 4));
+    const partner = foundCityAt(state, 1, at(state, 10, 4));
+    home.buildings.push('market');
+    const trader = createUnit(state, 0, 'trader', 6, 6);
+    createUnit(state, 1, 'worker', 3, 3);
+    const before = snapshotState(state);
+
+    expect(dispatch(game, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    for (let turn = 0; turn < 6; turn++) {
+      dispatch(game, { type: 'endTurn', playerId: 0 });
+      dispatch(game, { type: 'endTurn', playerId: 1 });
+    }
+    const after = snapshotState(game.state);
+    expect(usedRouteSlots(game.state, 0)).toBe(1);
+
+    const replayed = JSON.parse(before) as GameState;
+    for (const command of game.log) {
+      const result = applyCommand(replayed, command);
+      expect(result.ok, JSON.stringify(command)).toBe(true);
+    }
+    expect(snapshotState(replayed)).toBe(after);
   });
 });

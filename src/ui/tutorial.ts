@@ -136,7 +136,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: '#abacus-button',
     title: 'Welcome',
     body:
-      'You lead a small people. Settle cities, learn ideas, and earn beads — the game\'s points, won by doing things first in the world. Everyone\'s beads are public, on the Abacus above. Most beads when the game ends wins.',
+      'You lead a small people. Settle cities, learn ideas, and earn beads — the game\'s points, won by doing things first in the world. Everyone\'s beads are public, on the Abacus — the bead counter at the top of the screen. Most beads when the game ends wins.',
     advance: { kind: 'next' },
   },
   {
@@ -153,38 +153,44 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: '#unit-panel',
     title: 'Found your capital',
     body:
-      'Press Found City. The wagon becomes your capital and starts working the land around it. Grass and fresh water are best, but don\'t overthink it — settling now beats searching for the perfect spot.',
+      'Press Found City. The wagon becomes your capital and starts working the land around it. Grass and fresh water are best — a town away from water grows slowly until it builds an aqueduct — but don\'t overthink it: settling now beats searching for the perfect spot.',
     advance: { kind: 'command', command: 'foundCity' },
   },
   {
     id: 'openChart',
     anchor: '#hud-research',
-    title: 'Open the star chart',
+    title: 'Open the technology tree',
+    // "A tree with nodes", never the chart's own theatre (the pamphlet audit,
+    // 2026-09-03): a first-time player has not learned that the stars *are* the
+    // technologies, so the three tree steps describe the thing, not the drawing.
     body:
-      'Click this card to open the star chart — the game\'s technology tree. It shows every idea you can learn and the order they come in.',
+      'Click this card to open the technology tree. Every idea you can learn is a node on the tree, and the lines between nodes show which ideas need which.',
     advance: { kind: 'event', event: 'techChartOpened' },
   },
   {
     id: 'research',
     anchor: null,
     place: 'corner',
-    title: 'Aim at a star',
+    title: 'Pick something to learn',
     body:
-      'Click any star to start learning it. Later stars need the earlier ones first. Hold Shift and click to queue several. Technologies unlock new units, buildings, and improvements.',
+      'Click any node on the tree to start learning it. A node further along needs the earlier ones first. Hold Shift and click to queue several. Technologies unlock new units, buildings, and improvements.',
     advance: { kind: 'command', command: 'chooseResearch' },
   },
   {
     id: 'closeChart',
     anchor: '#tech-close',
     place: 'corner',
-    title: 'Fold the chart away',
+    title: 'Close the tree',
     body:
-      'Press Escape, or the cross in the corner, to close the chart. The card now shows what you are learning and how many turns it will take.',
+      'Press Escape, or the cross in the corner, to close the tree. The research card now shows what you are learning and how many turns it will take.',
     advance: { kind: 'event', event: 'techChartClosed' },
   },
   {
     id: 'build',
-    anchor: '#city-panel',
+    // The work rail, not the mode's whole-viewport container (2026-09-03: the
+    // city screen became the full-screen mode and '#city-panel' stopped being
+    // a place a card can point at).
+    anchor: '.city-rail.is-right',
     title: 'Give the city something to build',
     body:
       'Click your city to open it, and pick something to build. A warrior for safety, a scout to explore, or a worker to improve your land are all good first choices.',
@@ -222,7 +228,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: null,
     title: 'The rest arrives as you reach it',
     body:
-      'That is the basics. Each new mechanic explains itself the first time it appears, then leaves you alone. The question mark lists every control; the book beside it holds every rule in the game.',
+      'That is the basics. Each new mechanic explains itself the first time it appears, then leaves you alone. The question mark lists every control; the book beside it holds every rule in the game, and the pamphlet you started with.',
     advance: { kind: 'next' },
   },
 ];
@@ -358,6 +364,33 @@ export const TIPS: readonly TutorialTip[] = [
         title: 'A city is going hungry',
         body:
           'This city is eating more food than it makes and will shrink if that continues. Open it and check the hexes it works — farms and fresh water fix hunger. Note: a city building a settler pauses its growth; when the settler finishes, growth resumes.',
+      },
+    ],
+  },
+  // The two meter notes — taught at the moment it hurts, not in advance (the
+  // pamphlet ruling, 2026-09-03). The pamphlet gives the cursory version;
+  // these fire the first time each meter actually bites. The *condition* is
+  // read in `main.ts` off the meters' own folds and arrives here as an event,
+  // exactly as `enemySeen` does — this table never inspects a state.
+  {
+    id: 'unhappy',
+    triggers: ['event:happinessDeficit'],
+    pages: [
+      {
+        title: 'Your people are unhappy',
+        body:
+          'Happiness has fallen below zero, so your cities grow more slowly. It is a cost, not a catastrophe. Luxury resources, certain buildings, and cards all raise it — hover the happiness number at the top of the screen to see exactly what is pulling it down.',
+      },
+    ],
+  },
+  {
+    id: 'overreach',
+    triggers: ['event:authorityOverrun'],
+    pages: [
+      {
+        title: 'Your authority is stretched',
+        body:
+          'You hold more cities than your authority can govern, so your science and culture are reduced until it recovers. Certain buildings raise it, and so does entering a new age — hover the authority number at the top of the screen for the full account.',
       },
     ],
   },

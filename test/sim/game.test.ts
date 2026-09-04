@@ -12,7 +12,7 @@ import {
   tryReplay,
 } from '../../src/sim/game';
 import { tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
-import { type Cell, findPath, reachableTiles } from '../../src/sim/pathfind';
+import { type Cell, findPath, pathTurns, reachableTiles } from '../../src/sim/pathfind';
 import { type GameConfig, type Unit, SCHEMA_VERSION } from '../../src/sim/state';
 
 function config(overrides: Partial<GameConfig> = {}): GameConfig {
@@ -288,11 +288,18 @@ describe('replay', () => {
 
     // Somewhere far enough that the order outlives several turn changes, so the
     // walk is resumed by `resetMovement` rather than finished by the command.
+    // The march is timed by `pathTurns` rather than by hex distance
+    // (2026-09-03: the pangaea's rougher ground made a 6–10 hex target more
+    // than six turns of walking on this seed) — the fixture asks the sim's own
+    // clock, and the claim is unchanged: a multi-turn order resumes and lands.
     const from = tileHex(map.tiles[tileIndex(map, scout.col, scout.row)]!);
     const target = map.tiles.find((tile) => {
       const distance = wrappedDistance(map, from, tileHex(tile));
       if (distance < 6 || distance > 10) return false;
-      return findPath(game.state, scout, tile) !== null;
+      const path = findPath(game.state, scout, tile);
+      if (path === null) return false;
+      const turns = pathTurns(game.state, scout, path);
+      return turns >= 2 && turns <= 6;
     });
     if (!target) throw new Error('This seed has no room to range; pick another');
 

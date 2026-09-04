@@ -1152,10 +1152,17 @@ export function diplomaticSeats(state: GameState, playerId: number): number[] {
  * a schema bump, and a save-format decision — and that is a ruling, not a patch
  * (`docs/flags.md`).
  *
- * **This is not a rule of war.** The verbs stay unrestricted: `declareWarError`
- * has deliberately no met-ness clause (see its docblock), a bot may know things
- * a human has not scouted, and nothing in the reducer asks this question. It is
- * a reading a *screen* takes, the way `localPlayerId` is.
+ * **This is not a rule of war.** The verbs of war stay unrestricted:
+ * `declareWarError` has deliberately no met-ness clause (see its docblock), and
+ * a bot may know things a human has not scouted.
+ *
+ * It became a rule of **trade** on 2026-09-03, and that is the one gate in the
+ * reducer that asks it: a route may end in a foreign town only when the two
+ * empires are at peace *and have met* (`routeStartable`, `trade.ts`). The
+ * clause reads the same way it does on a screen — a partner you have never run
+ * into is nobody you can send a caravan to — and it is deliberately not asked
+ * of a route already running, because a meeting made by a fleeting sighting can
+ * lapse (the stated gap above) and a caravan must not lapse with it.
  */
 export function hasMetSeat(state: GameState, playerId: number, otherId: number): boolean {
   if (playerId === otherId) return true;

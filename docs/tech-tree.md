@@ -11,10 +11,16 @@ history (proposals, re-cuts, the five-age plan) lives in git and
 - **Five ages**: I Omens · II Heroes · III Empire · IV Cathedrals · V Magister
   (V is a shelf — deliberately unbuilt). Ages follow the drawn columns
   (revision 4.2: columns 9–12 are Æra IV).
-- **A column IS a price**: one tapered table indexed by `techColumn`
-  (`src/sim/tech.ts` docblock has the formula; cost(1)=13, the root's 5 is
-  never paid). Adding a tech = placement: prereqs pick the column, the column
-  prices it (`src/sim/techData.ts` placement docblock).
+- **A column IS a price**: one table indexed by `techColumn`
+  (`src/sim/tech.ts` docblock has it; cost(1)=13, the root's 5 is never paid).
+  Adding a tech = placement: prereqs pick the column, the column prices it
+  (`src/sim/techData.ts` placement docblock).
+- **The late columns are authored above the taper** (user ruling 2026-09-03:
+  the scaling of Æra I–II stands, Æra IV–V is extremely expensive). Columns 0–5
+  are the formula's figures untouched; columns 6–8 lift a little and columns
+  9–12 lift to 1450/1700/1950/2200. A late column is a ruling, not a value of
+  the decay constant — retuning one edits the rows and the pin in
+  `test/sim/tech.test.ts`.
 - **The chart is the user's drawing**: lanes (`row`) and column nudges
   (`columnShift`) are authored data; the annealer only advises on new nodes;
   crossings pinned exactly, false chains zero (`test/ui/techChart.test.ts`).
@@ -25,7 +31,16 @@ history (proposals, re-cuts, the five-age plan) lives in git and
   light) holds from Æra III on; the Fire Ship has range 2 by ruling. Hulls:
   one drawn hull per age + a class canton (`badges.byUnitType`).
 - **Auto-upgrade** (`upgradesTo`) is gated on the strategic resource and swept
-  every turn.
+  every turn; the walk also stops at a rung no technology reaches yet
+  (`awaitsTech`).
+- **Obsolescence is that same walk read of a type** (`upgradeTargetForType`):
+  a unit whose successor this empire could field today is refused by
+  `buildError` ("has been replaced by the …") and hidden from the city panel's
+  build list. It stays offered while the successor is out of reach — an
+  unresearched tech, or a strategic resource the empire cannot access — and
+  comes back if that access is lost. A row already standing in a town's queue is
+  excused by the gate (so the queue stays editable) and builds out: nothing is
+  dropped, and no queue stalls.
 - **Eight effect-carrying techs** are the exceptions to the neutral-tree
   ruling (theme abilities otherwise live on cards and building rows).
 - **Unit prices** take the age band from the unlocking tech, never the row.
@@ -36,7 +51,10 @@ history (proposals, re-cuts, the five-age plan) lives in git and
 
 Regenerated from the rows — never hand-maintained. Costs come off the column
 table (`src/sim/tech.ts`, "a column is a price"): one figure per chart column,
-13 · 30 · 69 · 135 · 225 · 335 · 450 · 565 · 665 · 750 · 820 · 875 · 920 · 950.
+5 · 13 · 30 · 69 · 135 · 225 · 400 · 540 · 680 · 1450 · 1700 · 1950 · 2200.
+Columns 0–5 are the tapered ladder's own figures; columns 6–12 are authored
+above it by the ruling of 2026-09-03 (see the standing determination). The four
+ages cost 345 / 1665 / 7700 / 26000🔬 — 35710 for the whole tree.
 Wonders in **bold**; † = a deferred half on the row (player-plain prose in the
 data). *Renewals are slated for the axe (user ruling 2026-09-02) and are listed
 while they stand.*
@@ -81,24 +99,24 @@ What the effect rows say (player prose from the data):
 - **Irrigation** — A farm standing beside fresh water feeds its city better than it did.
 - **The High Temple** — Until the rites are kept, renown gathers but no great person will come.
 
-### Æra III — The Age of Empire (14 nodes, 335–565🔬)
+### Æra III — The Age of Empire (14 nodes, 400–680🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Iron Working | 335 | Irrigation, Siegecraft | Legionary, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | reveals **Iron** · renewals: Barracks +1⚙ |
-| Raised Fields | 335 | Wayfinding | — | — | — |
-| Rhetoric | 335 | The High Temple | — | Forum, **The Great Library** | — |
-| State Workforce | 335 | Currency | — | — | — |
-| Mathematics | 450 | Iron Working | Catapult, Composite Bowman | **Petra** | renewals: Library +1🔬 |
-| Satrapies † | 450 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
-| Shipwrights | 450 | Raised Fields | Galley, Tower Ship, Fire Ship | Shipyard | — |
-| The Examination Hall | 450 | Code of Laws | — | Examination Hall | — |
-| The Saddle | 450 | Iron Working | Horseman, Horse Archer, War Elephant | — | — |
-| Daughter Cities † | 565 | The Examination Hall | — | Town Charter | — |
-| Engineering | 565 | The Saddle | — | Aqueduct, Baths, Watermill, **The Circus Maximus** | — |
-| Guildhalls | 565 | Satrapies | — | Workshop | — |
-| Horology | 565 | Mathematics | — | **The Water Clock of Su Song**, Clocktower | — |
-| Theology | 565 | Rhetoric | — | Monastery, Cathedral, **Chichen Itza**, **Hagia Sophia**, **Angkor Wat**, **The Great Mosque of Djenné** | — |
+| Iron Working | 400 | Irrigation, Siegecraft | Legionary, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | reveals **Iron** · renewals: Barracks +1⚙ |
+| Raised Fields | 400 | Wayfinding | — | — | — |
+| Rhetoric | 400 | The High Temple | — | Forum, **The Great Library** | — |
+| State Workforce | 400 | Currency | — | — | — |
+| Mathematics | 540 | Iron Working | Catapult, Composite Bowman | **Petra** | renewals: Library +1🔬 |
+| Satrapies † | 540 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
+| Shipwrights | 540 | Raised Fields | Galley, Tower Ship, Fire Ship | Shipyard | — |
+| The Examination Hall | 540 | Code of Laws | — | Examination Hall | — |
+| The Saddle | 540 | Iron Working | Horseman, Horse Archer, War Elephant | — | — |
+| Daughter Cities † | 680 | The Examination Hall | — | Town Charter | — |
+| Engineering | 680 | The Saddle | — | Aqueduct, Baths, Watermill, **The Circus Maximus** | — |
+| Guildhalls | 680 | Satrapies | — | Workshop | — |
+| Horology | 680 | Mathematics | — | **The Water Clock of Su Song**, Clocktower | — |
+| Theology | 680 | Rhetoric | — | Monastery, Cathedral, **Chichen Itza**, **Hagia Sophia**, **Angkor Wat**, **The Great Mosque of Djenné** | — |
 
 What the effect rows say (player prose from the data):
 
@@ -112,25 +130,25 @@ What the effect rows say (player prose from the data):
 - **Daughter Cities** † A city planted far from the capital costing less authority waits for the writ to know how far from home a site is.
 - **Theology** — The enhancing beliefs open here: a faith may now be deepened as well as spread.
 
-### Æra IV — The Age of Cathedrals (15 nodes, 665–875🔬)
+### Æra IV — The Age of Cathedrals (15 nodes, 1450–2200🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Divine Right | 665 | Guildhalls | — | Courthouse | renewals: Library +1🔬 +1🕯 |
-| Geomancy | 665 | Daughter Cities, Horology | — | — | — |
-| Machinery | 665 | Horology, Engineering | Crossbowman | Armoury | — |
-| Paper Money † | 665 | Shipwrights, Guildhalls | — | Mint, Bazaar | renewals: Market +2💰 |
-| Scholarship | 665 | Theology | — | University, **The House of Wisdom**, **The Turning Heavens** | — |
-| Castellany † | 750 | Divine Right | Pikeman | Castle | — |
-| Natural Philosophy | 750 | Scholarship | Trebuchet | **Machu Picchu** | — |
-| Steel | 750 | Machinery | Longswordsman | Forge | — |
-| The Golden Roads | 750 | Paper Money | — | Caravanserai | — |
-| Militant Orders | 820 | Steel | Knight | **The Alhambra** | — |
-| Movable Type | 820 | Steel, The Golden Roads | — | Printing House | renewals: Library +1🎵 |
-| The Astrolabe | 820 | Natural Philosophy | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
-| The Counting Houses | 820 | The Golden Roads, Castellany | — | Bank | renewals: Market +2💰 |
-| The Holy Office | 820 | Scholarship | Inquisitor | The Reliquary, **Notre-Dame** | — |
-| Alchemy | 875 | Militant Orders, Movable Type, The Counting Houses, The Astrolabe, The Holy Office | The Fire Lance | The Alchemical Society, **The Alchemical Codex** | reveals **Niter** · pays a **bead** to every completer |
+| Divine Right | 1450 | Guildhalls | — | Courthouse | renewals: Library +1🔬 +1🕯 |
+| Geomancy | 1450 | Daughter Cities, Horology | — | — | — |
+| Machinery | 1450 | Horology, Engineering | Crossbowman | Armoury | — |
+| Paper Money † | 1450 | Shipwrights, Guildhalls | — | Mint, Bazaar | renewals: Market +2💰 |
+| Scholarship | 1450 | Theology | — | University, **The House of Wisdom**, **The Turning Heavens** | — |
+| Castellany † | 1700 | Divine Right | Pikeman | Castle | — |
+| Natural Philosophy | 1700 | Scholarship | Trebuchet | **Machu Picchu** | — |
+| Steel | 1700 | Machinery | Longswordsman | Forge | — |
+| The Golden Roads | 1700 | Paper Money | — | Caravanserai | — |
+| Militant Orders | 1950 | Steel | Knight | **The Alhambra** | — |
+| Movable Type | 1950 | Steel, The Golden Roads | — | Printing House | renewals: Library +1🎵 |
+| The Astrolabe | 1950 | Natural Philosophy | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
+| The Counting Houses | 1950 | The Golden Roads, Castellany | — | Bank | renewals: Market +2💰 |
+| The Holy Office | 1950 | Scholarship | Inquisitor | The Reliquary, **Notre-Dame** | — |
+| Alchemy | 2200 | Militant Orders, Movable Type, The Counting Houses, The Astrolabe, The Holy Office | The Fire Lance | The Alchemical Society, **The Alchemical Codex** | reveals **Niter** · pays a **bead** to every completer |
 
 What the effect rows say (player prose from the data):
 

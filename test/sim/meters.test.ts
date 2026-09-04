@@ -180,31 +180,98 @@ describe('the breakdown is the number', () => {
     expect(capitalCityOf(state, 0)).toBeUndefined();
   });
 
-  it('charges no crowding by default, and still knows how when the weight returns', () => {
-    // Disabled by data (Entry LVI, user 2026-09-01): `crowdingWeight` is 0, so
-    // the surcharge never appears — the user wants to see how big cities get.
-    // The mechanism stays in the codebase; the second half of this test turns
-    // the weight back on for a moment to prove one number re-enables it.
+  it('charges a crowded town on its own line, and nothing under the threshold', () => {
+    // Crowding was switched off by data on 2026-09-01 (Entry LVI) and switched
+    // back ON by the 9/3 playtest ruling. The line is a *second* fact about a
+    // town — "Ur · 15 citizens" is how big it is, "Ur crowding" is what that
+    // size costs — so it is asserted as its own entry rather than folded into
+    // the citizens' line.
     const state = flatState();
     foundCityAt(state, 0, at(state.map, 4, 4));
     const city = state.cities[0]!;
+
+    // A town at the threshold pays nothing: `over` is zero and a surcharge of
+    // nothing is not a line (see `explainHappiness`).
+    city.population = HAPPY.crowdingFrom;
+    expect(explainHappiness(state, 0).some((entry) => entry.source.includes('crowding'))).toBe(
+      false,
+    );
+
+    // One citizen past it, and the line appears, worth exactly the curve.
     city.population = HAPPY.crowdingFrom + 3;
-    expect(explainHappiness(state, 0).some((entry) => entry.source.includes('crowding'))).toBe(
-      false,
+    const crowding = lineFor(explainHappiness(state, 0), 'crowding');
+    expect(crowding).toBeDefined();
+    expect(-crowding!).toBeCloseTo(HAPPY.crowdingWeight * 3 ** HAPPY.crowdingExponent, 10);
+  });
+});
+
+/**
+ * **The crowding curve, printed** (user ruling, 2026-09-03: "turn crowding back
+ * on, the effect should be noticeable at 15 pop, something to overcome at 20
+ * pop, and almost debilitating (but playable) at 30 pop").
+ *
+ * The three bands are the ruling and the table is the eyeball: the test prints
+ * what one town of each size asks for on top of its citizens, so the numbers
+ * the design was tuned against are readable in the run rather than only in a
+ * report. Read off `explainHappiness`'s own line — the surface a player sees —
+ * so a retune of the demand factor or of the line's shape moves the table with
+ * it, and never off a second copy of the arithmetic (rule 5).
+ */
+describe('what crowding costs a big town', () => {
+  /** The crowding line of a lone city of this size, as a positive magnitude. */
+  function crowdingAt(population: number): number {
+    const state = flatState();
+    foundCityAt(state, 0, at(state.map, 4, 4));
+    state.cities[0]!.population = population;
+    return -(lineFor(explainHappiness(state, 0), 'crowding') ?? 0);
+  }
+
+  it('prints the table the 9/3 ruling was tuned against', () => {
+    const rows = [10, 15, 20, 25, 30].map((pop) => ({
+      pop,
+      crowding: Number(crowdingAt(pop).toFixed(2)),
+    }));
+    console.log(
+      `crowding: from ${HAPPY.crowdingFrom} · weight ${HAPPY.crowdingWeight} · exponent ${HAPPY.crowdingExponent}`,
     );
-    const offWeight = HAPPY.crowdingWeight;
-    try {
-      (HAPPY as { crowdingWeight: number }).crowdingWeight = 0.5;
-      const entries = explainHappiness(state, 0);
-      const crowding = lineFor(entries, 'crowding');
-      expect(crowding).toBeDefined();
-      expect(-crowding!).toBeCloseTo(0.5 * 3 ** HAPPY.crowdingExponent, 10);
-    } finally {
-      (HAPPY as { crowdingWeight: number }).crowdingWeight = offWeight;
+    for (const row of rows) {
+      console.log(`  pop ${String(row.pop).padStart(2)} → crowding demand ${row.crowding}`);
     }
-    expect(explainHappiness(state, 0).some((entry) => entry.source.includes('crowding'))).toBe(
-      false,
-    );
+    // Every row is the same curve the meter charges, so the print cannot drift
+    // from the assertions below.
+    for (const row of rows) {
+      const over = Math.max(0, row.pop - HAPPY.crowdingFrom);
+      expect(row.crowding).toBeCloseTo(
+        Number((HAPPY.crowdingWeight * over ** HAPPY.crowdingExponent).toFixed(2)),
+        6,
+      );
+    }
+  });
+
+  it('lands the three ruled bands: noticeable, then something to overcome, then near-debilitating', () => {
+    // Noticeable — a point or two of the empire's contentment, felt but not
+    // decisive.
+    expect(crowdingAt(15)).toBeGreaterThanOrEqual(3);
+    expect(crowdingAt(15)).toBeLessThanOrEqual(5);
+    // Something to overcome — a luxury or two of happiness, spent on one town.
+    expect(crowdingAt(20)).toBeGreaterThanOrEqual(10);
+    expect(crowdingAt(20)).toBeLessThanOrEqual(15);
+    // Almost debilitating, and still playable: a metropolis is a project.
+    expect(crowdingAt(30)).toBeGreaterThanOrEqual(35);
+    expect(crowdingAt(30)).toBeLessThanOrEqual(45);
+    // And it climbs the whole way: the curve is superlinear inside one city,
+    // which is Entry I's second commitment and the reason this taxes tall.
+    expect(crowdingAt(25)).toBeGreaterThan(crowdingAt(20));
+    expect(crowdingAt(30) - crowdingAt(25)).toBeGreaterThan(crowdingAt(25) - crowdingAt(20));
+  });
+
+  it('starts the palace at the happiness the 9/3 ruling names', () => {
+    // "make palace start with 6 happiness" — the one number in this file
+    // pinned literally, because the ruling is the number rather than a shape.
+    expect(HAPPY.palace).toBe(6);
+    const state = flatState();
+    foundCityAt(state, 0, at(state.map, 4, 4));
+    expect(lineFor(explainHappiness(state, 0), 'Palace')).toBe(6);
   });
 });
 
@@ -515,7 +582,11 @@ describe('what the meters do to the economy', () => {
   it('multiplies science and culture when the people are content', () => {
     const state = empire(1);
     const city = state.cities[0]!;
-    city.population = 3;
+    // Small enough that the palace alone clears the first bonus rung, asked of
+    // the rules rather than assumed: the palace is a playtest lever (9 → 6 on
+    // 2026-09-03) and a hard-coded population would have quietly stopped
+    // testing the bonus the day it moved.
+    city.population = Math.max(1, HAPPY.palace - METERS.tiers[0]!.whenAtOrAbove!);
     const happiness = happinessOf(state, 0);
     expect(tierPercent(happiness)).toBeGreaterThan(0);
 
@@ -548,6 +619,11 @@ describe('what the meters do to the economy', () => {
     const state = empire(1);
     const city = state.cities[0]!;
     city.population = HAPPY.palace + 1;
+    // The town drinks, so the growth channel is the **stifle and nothing else**:
+    // since the dry-settle ruling (2026-09-03) a town off fresh water carries a
+    // second line on the same fold (`explainGrowthPercent`), and the subject
+    // here is what the meter does to a surplus.
+    cityTile(state.map, city).freshwater = true;
     growTerritory(state, city);
     collectYields(state);
     city.foodBasket = 0;
@@ -833,7 +909,7 @@ describe('a captured city, end to end', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(59);
+    expect(SCHEMA_VERSION).toBe(60);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));
@@ -934,9 +1010,12 @@ describe('what founding a city here would cost', () => {
     const site = coastalSite(state);
     const printed = foldMeter(foundingCostLines(explainFoundingCost(state, 0, site), 'authority'));
 
-    // Thalassocracy shifts what a coastal town costs; the preview must move with
-    // it, through the same `cardMeterRule` call the meter makes.
-    playerById(state, 0)!.statecraft.doctrines.push('thalassocracy');
+    // Mare Nostrum shifts what a coastal town costs — to nothing at all; the
+    // preview must move with it, through the same `cardMeterRule` call the meter
+    // makes. (It was Thalassocracy's clause until the user's card pass of
+    // 2026-09-03 rewrote that row into a yield conversion; the rule and the two
+    // readings of it are unchanged, and this is the card that still says it.)
+    playerById(state, 0)!.statecraft.doctrines.push('mareNostrum');
     const legislated = foldMeter(
       foundingCostLines(explainFoundingCost(state, 0, site), 'authority'),
     );

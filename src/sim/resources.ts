@@ -121,10 +121,11 @@ import { type Rng, nextFloat, nextInt } from './rng';
 import { RULES } from './rulesData';
 import { chooseStartPositions } from './startPositions';
 import { isWaterTerrain } from './terrainData';
+import { landRegions } from './water';
 
 /**
  * Which **landmass** every tile belongs to, indexed by tile index; `-1` for
- * water.
+ * water. Re-exported from `water.ts`, where the walk now lives.
  *
  * Connected components of land over the hex neighbourhood, wrap-aware, seeded
  * in tile-index order so a component's *id* is a fact about the map rather than
@@ -132,33 +133,18 @@ import { isWaterTerrain } from './terrainData';
  *
  * A landmass is no longer the unit regional character is keyed to — that is
  * `carveContinents`, which is built on top of this and splits a supercontinent
- * into several continents. What is left here is the honest primitive: "which
- * ground is walkable from which", which is what the carve needs and what a
- * future landmass-aware rule (an ocean-crossing tech, say) would want.
+ * into several continents. What is left is the honest primitive: "which ground
+ * is walkable from which", which is what the carve needs.
+ *
+ * It moved out with the pangaea ruling (2026-09-03), because two modules on the
+ * *other* side of this one came to need it — `startPositions.ts` for the
+ * landmass floor and `mapgen.ts` for the shelf chains — and this module imports
+ * `startPositions.ts`, so a walk that stayed here would have closed a load-time
+ * cycle. `water.ts` is a leaf and can be evaluated before either. The name is
+ * re-exported rather than moved outright so nothing that already asked
+ * `resources.ts` for it had to change.
  */
-export function landRegions(map: GameMap): Int32Array {
-  const regions = new Int32Array(map.tiles.length).fill(-1);
-  let next = 0;
-  for (const seed of map.tiles) {
-    if (isWaterTerrain(seed.terrain)) continue;
-    const seedIndex = tileIndex(map, seed.col, seed.row);
-    if (regions[seedIndex] !== -1) continue;
-    const id = next++;
-    regions[seedIndex] = id;
-    const frontier: Tile[] = [seed];
-    while (frontier.length > 0) {
-      const from = frontier.pop()!;
-      for (const near of tileNeighbors(map, from)) {
-        if (isWaterTerrain(near.terrain)) continue;
-        const index = tileIndex(map, near.col, near.row);
-        if (regions[index] !== -1) continue;
-        regions[index] = id;
-        frontier.push(near);
-      }
-    }
-  }
-  return regions;
-}
+export { landRegions };
 
 /**
  * Graph distance from a set of source tiles, restricted to `member` tiles.

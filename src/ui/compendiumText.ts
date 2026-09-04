@@ -18,6 +18,7 @@
  */
 
 import type { CompendiumEntry } from './compendium';
+import { pamphletEntry } from './pamphlet';
 
 /** A shelf entry with nothing but prose — the two written shelves' shape. */
 function written(
@@ -45,6 +46,12 @@ function written(
 // --- the Introduction --------------------------------------------------------
 
 export const INTRO_ENTRIES: readonly CompendiumEntry[] = [
+  // The printed pamphlet, first on the shelf: the leaflet a new player is
+  // handed before the tutorial's first step lives here forever after
+  // (`pamphlet.ts` — one table, and this page is its second mount). The book
+  // still *opens* on How to play (`DEFAULT_ENTRY`); the pamphlet is where the
+  // overlay's dismissal note and the tutorial's last card point back to.
+  pamphletEntry(),
   written(
     'intro',
     'howToPlay',
@@ -109,7 +116,7 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
     [
       'A "yield" is anything a city produces each turn. There are six: food, production, gold, science, culture and faith. Food makes the city grow. Production builds units and buildings. Gold goes into your treasury to buy things. Science researches technologies. Culture earns you cards and expands your borders. Faith buys augurs and prophets, the game\'s religious units.',
       'Where yields come from: each of your citizens works one hex near the city, and that hex pays whatever its terrain, resource and improvement are worth — a grassland hex gives food, a hill gives production, a farm adds more food, a mine adds more production. Buildings add more on top. So a city grows by getting more citizens, working better hexes, and building.',
-      'You can see a city\'s yields on its screen, and every hex\'s yield by hovering it. Citizens are placed automatically; you can lock one to a hex you want worked.',
+      'You can see a city\'s yields on its screen, and every hex\'s yield by hovering it — or all at once with the yields lens, which paints each hex\'s pay straight onto the map. Citizens are placed automatically; you can lock one to a hex you want worked.',
       'Details: if a hex has both hills and a feature such as forest, the feature\'s yield is what counts. The city\'s own hex is always worked. Bonuses from cards, luxuries and the happiness and authority meters are percentages, applied in two stages — city-level bonuses first, then empire-level — with all the percentages in one stage added together before they are applied. A city that is building a settler puts its citizens on production rather than food until it is done.',
     ],
   ),
@@ -122,8 +129,10 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
     [
       'Cities are the heart of the game. A city works the land around it, builds everything you own, and claims territory. You found a city with a settler — a unit you build in an existing city — and more cities generally means a stronger empire, as long as you can keep them happy and governed (see Happiness and authority).',
       'A city grows when it has spare food after feeding its people; each new citizen works one more hex. Its borders expand over time as it accumulates culture, taking in nearby hexes one at a time. You can also buy a specific hex with gold — open the city and press Buy Tiles to see prices on the map.',
+      'On the map, every city wears a banner. The number on it is the city\'s size, the ring around that number fills as the city grows toward its next citizen, and the line under the name says what the city is building and how many turns remain — so a glance across your banners is a glance across your whole empire\'s work.',
       'As a city\'s buildings earn renown, some of its people leave the fields for the trades. A guild forms on its own, needs nothing from you, and takes one citizen off the land in exchange for what that trade pays — scholars study, merchants trade, engineers build, artists compose. Only a fraction of a city\'s people ever join one, and if you would rather have the hex back you can dismiss a guildsman from the city panel.',
       'Cities can be captured. Reduce a city\'s defence by attacking it, then move a melee (close-combat) unit onto it. Protect your own cities with walls and a unit stationed inside.',
+      'Where you settle matters for growth: a city beside a river, a lake or an oasis has fresh water and grows at full speed, while one founded away from water grows slowly until you build an aqueduct in it.',
       'Details: spare food fills a growth basket; when it is full the city gains a citizen. A granary keeps part of the basket after each growth. Border expansion picks the best available hex each time. A captured city keeps its buildings and counts against the new owner\'s authority. Your oldest city is your capital; if it is captured, the next oldest becomes the capital.',
     ],
   ),

@@ -276,12 +276,13 @@ export class DioramaCamera {
    *
    * The target lands `camera.cityFrameBiasPx` screen pixels right of the
    * rectangle's true centre. Because the camera looks straight down the
-   * middle of the whole canvas — panel included — that draws the framed
-   * tiles that many pixels *left* of screen centre, which is roughly half the
-   * fixed-width city panel's footprint (see `style.css`'s `#city-panel`), so
-   * tiles that would otherwise land dead centre come out clear of it. A fixed
-   * pixel bias rather than a fraction of the frustum, because the panel is a
-   * fixed CSS width regardless of zoom, so the bias has to be too.
+   * middle of the whole canvas — the city mode's rails included — that draws
+   * the framed tiles that many pixels *left* of screen centre, which is half
+   * the difference between what the two rails cover (see `style.css`'s
+   * `.city-rail`), so tiles that would otherwise land dead centre come out in
+   * the clear ground between them. A fixed pixel bias rather than a fraction
+   * of the frustum, because a rail is a fixed CSS width regardless of zoom, so
+   * the bias has to be too.
    *
    * `animate` glides the pan and the zoom together over `camera.panMs`,
    * sampled by the same `stepPan` an ordinary pan uses (see `PanTween`'s

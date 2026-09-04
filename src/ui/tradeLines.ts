@@ -32,9 +32,11 @@ import {
   type RouteEndReport,
   type RouteYieldLine,
   type TraderPlunder,
+  explainRouteSenderYield,
   explainRouteYield,
   foldRouteYield,
   routeCities,
+  routeIsInternational,
   routeSlots,
   usedRouteSlots,
 } from '../sim/trade';
@@ -46,8 +48,16 @@ export function routeTurns(): number {
   return Math.max(1, Math.floor(RULES.trade.routeTurns));
 }
 
-/** The three voices a route pays, in the order every surface prints them. */
-const ROUTE_KEYS = ['food', 'production', 'gold'] as const;
+/**
+ * The voices a route pays, in the order every surface prints them.
+ *
+ * Three of them for a domestic route and five since a route may end abroad (the
+ * international ruling of 2026-09-03) — one list, because a caravan's figures
+ * are printed by the same sentence wherever they land and a second list for the
+ * foreign case is exactly the drift this file exists to end. A domestic fold
+ * reads byte-identically: its two new voices are zero, and a zero is left out.
+ */
+const ROUTE_KEYS = ['food', 'production', 'gold', 'science', 'culture'] as const;
 
 /**
  * "+3🌾 +2⚙ +1💰" — what a route is worth, zeroes left out.
@@ -58,9 +68,16 @@ const ROUTE_KEYS = ['food', 'production', 'gold'] as const;
  * than as a row of `+0`s — a partner with no buildings and eight people between
  * the two towns is a real answer and it is the argument *against* sending.
  */
-export function routeFigures(fold: { food: number; production: number; gold: number }): string {
-  const parts = ROUTE_KEYS.filter((key) => fold[key] !== 0).map(
-    (key) => `${signedFigure(fold[key])}${YIELD_GLYPH[key]}`,
+export function routeFigures(fold: {
+  food: number;
+  production: number;
+  gold: number;
+  /** Absent on a caller that has only ever known the domestic three. */
+  science?: number;
+  culture?: number;
+}): string {
+  const parts = ROUTE_KEYS.filter((key) => (fold[key] ?? 0) !== 0).map(
+    (key) => `${signedFigure(fold[key] ?? 0)}${YIELD_GLYPH[key]}`,
   );
   return parts.length === 0 ? 'nothing yet' : parts.join(' ');
 }
@@ -110,6 +127,26 @@ export interface RouteReading {
   /** `expiresTurn - state.turn`, floored at zero. Never counted down anywhere. */
   turnsLeft: number;
   autoResend: boolean;
+  /**
+   * True when this route runs **by sea** (the ruling of 2026-09-03) — the
+   * caravan sails and lays no road.
+   *
+   * Said out loud on the line only for a sea route, which is presence-is-state
+   * read as prose: by land is what a route has always been and needs no word,
+   * and a sheet that labelled both would put a badge on every caravan in a game
+   * with no coast in it.
+   */
+  sea: boolean;
+  /**
+   * True when the route ends in **another empire's** town (the international
+   * ruling of 2026-09-03).
+   *
+   * `sea`'s sibling and read the same way — a fact about the route that changes
+   * the sentence rather than a second sentence. It also says which fold `lines`
+   * came from: a foreign route's figures are what the **sender** takes, because
+   * the sheet it is printed on is the sender's.
+   */
+  foreign: boolean;
   /** "Caravan · Uruk ⇄ Nippur · +3🌾 +2⚙ +1💰 · 14 turns left". */
   line: string;
 }
@@ -130,9 +167,17 @@ export function routeReading(state: GameState, unit: Unit): RouteReading | null 
   const pair = routeCities(state, unit);
   const fromName = pair ? cityDisplayName(state, pair.from) : 'a lost city';
   const toName = pair ? cityDisplayName(state, pair.to) : 'a lost city';
-  const lines = explainRouteYield(state, unit);
+  // **Whose sheet this is** decides which fold it prints (the international
+  // ruling of 2026-09-03): a domestic route's every voice is banked by the
+  // destination, which is this seat's town too, so its own fold is the honest
+  // answer — while a route ending abroad pays this seat directly and pays the
+  // partner a coin that is none of this sheet's business.
+  const foreign = pair !== null && routeIsInternational(pair.from, pair.to);
+  const lines = foreign ? explainRouteSenderYield(state, unit) : explainRouteYield(state, unit);
   const figures = routeFigures(foldRouteYield(lines));
   const turnsLeft = Math.max(0, route.expiresTurn - state.turn);
+  const sea = route.sea === true;
+  const way = sea ? ' · by sea' : '';
   return {
     fromName,
     toName,
@@ -140,7 +185,9 @@ export function routeReading(state: GameState, unit: Unit): RouteReading | null 
     lines,
     turnsLeft,
     autoResend: route.autoResend,
-    line: `Caravan · ${fromName} ⇄ ${toName} · ${figures} · ${turnsLeft} turns left`,
+    sea,
+    foreign,
+    line: `Caravan · ${fromName} ⇄ ${toName}${way} · ${figures} · ${turnsLeft} turns left`,
   };
 }
 

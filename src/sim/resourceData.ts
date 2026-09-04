@@ -753,9 +753,12 @@ function validateEffect(where: string, effect: ResourceEffect): void {
     if (effect.kind === 'empireYields' && (key === 'food' || key === 'production')) {
       throw new Error(`${where} pays empire ${key}, which no empire has a basket for`);
     }
-    // A caravan carries three voices and a route line has three fields
-    // (`RouteYieldLine`, `routeYields.ts`). A fourth on a `routeYields` bag would
-    // load, pay nothing and say nothing — the quiet-nothing this validator is for.
+    // A **luxury's** caravan line carries three voices (`ROUTE_YIELD_KEYS`), and
+    // that is narrower than `RouteYieldLine` on purpose: the line grew science
+    // and culture for the international ruling of 2026-09-03, and those two are
+    // the *sender's* flat table rather than anything a resource pays. A fourth
+    // voice on a `routeYields` bag would load, pay nothing and say nothing — the
+    // quiet-nothing this validator is for.
     if (effect.kind === 'routeYields' && !ROUTE_YIELD_KEYS.includes(key)) {
       throw new Error(`${where} pays a route ${key}, which a route has no line for`);
     }

@@ -1088,15 +1088,24 @@ export interface CameraSpec {
   panSnapDistance: number;
   /**
    * Screen-pixel rightward bias `DioramaCamera.frameCells` applies to its
-   * target, so a framed city's work radius clears the fixed-width city panel
-   * instead of landing dead centre behind it. Roughly half the panel's own
-   * pixel footprint — see `frameCells`'s docblock.
+   * target, so a framed city's work radius lands in the **clear ground between
+   * the city mode's two rails** rather than behind one of them. Half the
+   * difference between what the two sides cover — see `frameCells`'s docblock.
    *
-   * It therefore moves whenever the panel's width does, and the panel's width
-   * is a CSS number in another file: the 2026-08-27 legibility pass widened
-   * `#city-panel` from 286px to 340px, and this went from 150 to 177 —
-   * (340 + 14) / 2, the box plus its gutter, halved. The rule is written down
-   * at both ends (`style.css`'s `#city-panel` carries the other half).
+   * It therefore moves whenever either rail's width does, and both are CSS
+   * numbers in another file. Two eras of this number:
+   *
+   *   · while the city screen was one fixed panel in the right-hand dock, it
+   *     was half that panel's whole footprint — 150 at 286px wide, then 177
+   *     when the 2026-08-27 legibility pass widened it to 340.
+   *   · since the mode landed (`docs/city-screen.md`, revision 3) the screen
+   *     has a rail on *each* side, so what is off-centre is only the
+   *     difference: (264 + 14) − (230 + 14) = 34, halved, is **17**. A framed
+   *     town sits a touch left of dead centre, which is the middle of the
+   *     board the rails leave between them.
+   *
+   * The rule is written down at both ends (`style.css`'s `.city-rail` carries
+   * the other half) and pinned in `test/ui/cityScreen.test.ts`.
    */
   cityFrameBiasPx: number;
   /**

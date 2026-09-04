@@ -70,15 +70,28 @@
  * row with it before any trader is chosen) and `startRouteError` is that plus
  * the three clauses only a piece can answer. Nothing is duplicated between them.
  *
- * Internal routes only, for now
- * -----------------------------
- * A route must join two cities of the **same empire**. The doc's foreign route —
- * doubled gold, half of it to the partner — is a *deferred* half and is annotated
- * as one rather than half-built: there is no war state and no diplomacy, so
- * "trade with me" has nothing to mean yet and a foreign route would be a gift
- * with no way to refuse it. `routeStartable` refuses it in a sentence; when
- * diplomacy lands, the clause moves and `explainRouteYield` grows the two lines
- * the doc's table already names.
+ * A route may end abroad
+ * ----------------------
+ * The user's ruling of 2026-09-03, and it closed the deferral this docblock used
+ * to state: a route had to join two cities of the **same empire**, because
+ * without a war state and without diplomacy "trade with me" had nothing to mean
+ * and a foreign route would have been a gift with no way to refuse it. Both
+ * exist now, so the clause became two questions asked of the partner's seat —
+ * **at peace**, and **met** — and nothing else about the gate changed: the
+ * slots, the one-route-per-direction rule, the mode and the range are asked of a
+ * foreign pair exactly as they are of an own one.
+ *
+ * What a foreign route *pays* is a different table read by a different clause,
+ * and it is in `routeYields.ts` where every other route figure is: no building
+ * lines at all, a flat science, culture and coin to the **sender**, and one coin
+ * to the **host** as a line in that town's own fold. A war between the two ends
+ * stops it paying the instant it is declared (`routeCities`) and the broom that
+ * follows the declaration ends it properly (`cancelRoutesBetween`).
+ *
+ * **A caravan trades at the gates.** A foreign city hex is closed to a march and
+ * always was, so a leg ending abroad ends on the partner's doorstep rather than
+ * inside it — see `routeGoals`, which is the whole of that rule and the reason
+ * no rule of movement, stacking or capture had to be touched to ship this.
  *
  * The road is not owned by anybody who walks it
  * ---------------------------------------------
@@ -86,6 +99,32 @@
  * who pays the upkeep. Movement never asks (`isRoadStep` in `pathfind.ts` reads
  * presence and nothing else) — an invader uses your roads, which is Civ's rule
  * and the honest one.
+ *
+ * A route is entirely land, or entirely sea
+ * -----------------------------------------
+ * The user's ruling of 2026-09-03, and it began as a bug: *"trade routes
+ * shouldn't create roads over water, trade routes should stay entirely either
+ * land only routes or water only routes. For the purpose of building roads, we
+ * should have an option to go by sea or go by land when available."*
+ *
+ * A caravan's ordinary profile lets it embark, so the shortest path between two
+ * towns across a bay was a march with a swim in the middle — and `layRoadUnder`
+ * paved every hex it rested on, sea included. The fix is not a clause in the
+ * paving; it is that **a route has a mode** (`RouteMode`), the mode is a
+ * narrowing of the survey the caravan walks (`routeProfile`), and the two
+ * narrowings are exhaustive:
+ *
+ *   · **land** — `embarks: false`, which is the profile The Founders' Road has
+ *     always surveyed with (`layFoundingRoad`, `cities.ts`), for the same reason
+ *     said the other way round: a road does not cross water, so a route that
+ *     lays road may not either;
+ *   · **sea** — confined to the water and to the route's two harbours
+ *     (`MoveProfile.ports`, second reading), and it **lays no road at all**.
+ *
+ * The choice rides on the command (`StartRouteCommand.mode`) and then on the
+ * route (`TradeRoute.sea`), because the return leg is re-pathed by a phase
+ * (`marchTraders`) that has no command to read. An absent mode is resolved by
+ * `surveyRoute`'s stated default: **land where a land path exists, else sea**.
  */
 
 import { buildingDef } from './buildingData';
@@ -95,17 +134,27 @@ import {
   settleGrowthWindfall,
   settleProductionWindfall,
 } from './cities';
-import { getTileAt } from './map';
-import { type Cell, findPath, pathTurns } from './pathfind';
+// **A function-level cycle, and the documented kind** (`statecraft.ts` ↔
+// `cities.ts` is the precedent): `diplomacy.ts` imports this module for the war
+// broom (`cancelRoutesBetween`) and this module asks it one question back — have
+// these two empires met — inside a gate, never at load time. Nothing here reads
+// a value from it while modules are being evaluated, which is the whole of the
+// claim `test/mapgen/moduleCycles.test.ts` asserts by loading every module in
+// `src/sim` first in turn.
+import { hasMetSeat } from './diplomacy';
+import { type Tile, getTileAt, tileHex, tileNeighbors, wrappedDistance } from './map';
+import { type Cell, type MoveProfile, findPath, moveProfile, pathTurns } from './pathfind';
 import { RULES } from './rulesData';
 import {
   type City,
   type GameState,
+  type TradeRoute,
   type Unit,
   cityById,
   playerById,
   unitById,
 } from './state';
+import { atWar } from './wars';
 import {
   cardRouteSlots,
   payWindfallGrants,
@@ -126,11 +175,15 @@ import { routeCities, routeIsLive } from './routeYields';
 export {
   type RouteYieldLine,
   cityRouteYields,
+  explainRouteSenderYield,
+  explainRouteSenderYieldBetween,
   explainRouteYield,
   explainRouteYieldBetween,
   foldRouteYield,
   routeCities,
+  routeIsInternational,
   routeIsLive,
+  senderRouteYields,
 } from './routeYields';
 export {
   type ConnectedCity,
@@ -203,12 +256,12 @@ export function endRoute(state: GameState, unit: Unit): void {
  *
  * A route is *between* the two empires when its two ends are held one by each,
  * **read as the board stands now** rather than as it stood when the caravan set
- * out. That is deliberate and it is the case that fires today: a seat may not
- * start a foreign route in v1 (`routeStartable` refuses it, and says why), so
- * the only way a route comes to span two empires is for one of its ends to
- * *change hands* — which is exactly the moment the two are most likely to
- * declare. The clause is written for the pair rather than for that one story so
- * that P2's foreign routes need no second rule.
+ * out. It was written for the pair rather than for the one story that could fire
+ * when it was written — a route came to span two empires only by an end
+ * *changing hands* — and the international ruling of 2026-09-03 needed no second
+ * rule because of it: a route sent abroad at peace is ended by this same sweep
+ * the turn the peace ends. `routeCities` stops it *paying* on the same
+ * declaration, so the broom is the tidying rather than the rule.
  *
  * An end whose city has vanished is left alone: a route describing a city that
  * is not there is `marchTraders`' to drop, and dropping it here would be a
@@ -407,6 +460,283 @@ function caravanProbe(playerId: number, type: UnitTypeId, from: City): Unit {
   };
 }
 
+// --- land or sea ------------------------------------------------------------
+
+/**
+ * Which way a route runs. See the module docblock's last section.
+ *
+ * Two arms and no third: a route is entirely a land route or entirely a sea
+ * route, so "mixed" is not a mode that was left out — it is the thing the
+ * ruling abolished.
+ */
+export type RouteMode = 'land' | 'sea';
+
+/**
+ * Both modes, in **the order every choice is resolved in** — an array, never a
+ * set, because the order is an outcome (see the default in `surveyRoute`, and
+ * `routeModesAvailable`, whose result the interface draws left to right).
+ */
+export const ROUTE_MODES: readonly RouteMode[] = ['land', 'sea'];
+
+/**
+ * Which way this route runs, read off the route itself.
+ *
+ * `TradeRoute.sea` is presence-is-state and its absent half is land, so this is
+ * the one place the two vocabularies meet and nothing else compares the field
+ * against a boolean.
+ */
+export function routeMode(route: TradeRoute): RouteMode {
+  return route.sea === true ? 'sea' : 'land';
+}
+
+/**
+ * The movement profile a caravan surveys and walks **one mode's** route with.
+ *
+ * A **narrowing** of the piece's own profile in both arms, which is the safety
+ * argument `findPath`'s `mover` parameter already states: an override that
+ * widened what a mover may do would path a piece somewhere it cannot go, while
+ * one that narrows can only ever refuse a route the piece could have walked.
+ * Both arms here narrow, so the walk the pipeline commits (`advanceAlongPath`,
+ * which prices with the piece's *full* profile) can never be stopped by ground
+ * the survey admitted.
+ *
+ *   · **land** drops embarkation. Every hex of the path is dry, so
+ *     `layRoadUnder` pavings a caravan makes are all on land by construction —
+ *     the bug's actual fix, and it is a fact about the *path* rather than a
+ *     clause in the writer.
+ *   · **sea** hands the mover its two harbours as `MoveProfile.ports` and
+ *     nothing else, so every dry hex on the map but the route's own two ends is
+ *     impassable to it. It keeps the piece's own `embarks`, which is the whole
+ *     of why a sea route needs Sailing: an empire that cannot put a caravan on
+ *     the water has no sea path to be offered.
+ *
+ * The harbour set is built from the two cities in the order they are named and
+ * is only ever asked `.has`, so nothing about an outcome depends on it.
+ */
+export function routeProfile(
+  state: GameState,
+  unit: Unit,
+  mode: RouteMode,
+  from: City,
+  to: City,
+): MoveProfile {
+  const base = moveProfile(state, unit);
+  if (mode === 'land') return { ...base, embarks: false };
+  const harbours = new Set<Tile>();
+  const start = getTileAt(state.map, from.col, from.row);
+  if (start) harbours.add(start);
+  const goal = getTileAt(state.map, to.col, to.row);
+  if (goal) harbours.add(goal);
+  return { ...base, ports: harbours };
+}
+
+/**
+ * Where a leg of this route actually **ends on the board** — the partner's own
+ * centre at home, and its *doorstep* abroad.
+ *
+ * **A caravan trades at the gates** (the international ruling of 2026-09-03,
+ * and the one thing about it the ruling did not have to say because the
+ * movement rules already had). A foreign city hex is closed to a march —
+ * `canTransit` refuses it outright so that no ordinary walk can make a town
+ * uncapturable, and the garrison standing in it refuses the hex besides — so a
+ * route ending abroad cannot end *inside* the partner. It ends one hex out:
+ * the caravan lays its road up to the gates, the goods go in without the cart,
+ * and not one rule of movement, stacking, capture or arrival had to be bent to
+ * let a foreign piece stand where a foreign piece may not stand.
+ *
+ * The candidates are the partner's six neighbours ordered by **how near they
+ * are to the origin**, then by column and row — a fact about the two towns, so
+ * two players' boards resolve the same doorstep, and the near side of a town is
+ * the side a caravan would come at anyway. `surveyRoute` walks them in this
+ * order and takes the first that has a path, which is at most six searches and
+ * in practice one.
+ *
+ * A leg toward a town of the **mover's own** empire is one candidate, unchanged:
+ * the centre itself. It is keyed on the mover rather than on the pair because
+ * both legs ask this — the way out ends abroad and the way home ends at home,
+ * and a rule written as "the two ends differ" would send a caravan to its own
+ * doorstep on the return.
+ */
+function routeGoals(state: GameState, mover: Unit, from: City, to: City): Tile[] {
+  const centre = getTileAt(state.map, to.col, to.row);
+  if (!centre) return [];
+  if (to.ownerId === mover.ownerId) return [centre];
+  const origin = getTileAt(state.map, from.col, from.row);
+  const doorsteps = tileNeighbors(state.map, centre).map((tile) => ({
+    tile,
+    away:
+      origin === undefined
+        ? 0
+        : wrappedDistance(state.map, tileHex(origin), tileHex(tile)),
+  }));
+  doorsteps.sort(
+    (a, b) => a.away - b.away || a.tile.col - b.tile.col || a.tile.row - b.tile.row,
+  );
+  return doorsteps.map((entry) => entry.tile);
+}
+
+/**
+ * Has this caravan finished the leg it is on — standing in the town it was
+ * walking to, or on its doorstep when the town is not its owner's.
+ *
+ * `standsIn` is still the whole of the answer at home, and `routeGoals` is why
+ * there is a second half: an international leg ends on the gates rather than
+ * inside them, so "arrived" has to be asked the same way the path was found or
+ * a caravan would walk to the doorstep and stand there for ever waiting to be
+ * somewhere it may not be.
+ *
+ * Adjacency is read off the map's own neighbours rather than a distance, so a
+ * wrapped board answers this exactly as `findPath` walked it.
+ */
+export function routeArrived(state: GameState, unit: Unit, target: City): boolean {
+  if (standsIn(unit, target)) return true;
+  if (target.ownerId === unit.ownerId) return false;
+  const centre = getTileAt(state.map, target.col, target.row);
+  if (!centre) return false;
+  for (const tile of tileNeighbors(state.map, centre)) {
+    if (tile.col === unit.col && tile.row === unit.row) return true;
+  }
+  return false;
+}
+
+/**
+ * The path one leg of a live route walks, in the route's own mode — the send's
+ * first leg and every leg the shuttle re-paths afterwards.
+ *
+ * `surveyRoute`'s mechanism with the mode already settled, and it exists so
+ * that the **goal** is resolved in one place: a leg abroad ends on the
+ * doorstep (`routeGoals`), and a shuttle that found its own goal would walk a
+ * caravan at a hex the gate never priced.
+ */
+export function routeLegPath(
+  state: GameState,
+  unit: Unit,
+  from: City,
+  to: City,
+  mode: RouteMode,
+): Cell[] | null {
+  const profile = routeProfile(state, unit, mode, from, to);
+  for (const goal of routeGoals(state, unit, from, to)) {
+    const path = findPath(state, unit, goal, profile);
+    if (path !== null) return path;
+  }
+  return null;
+}
+
+/** What one survey found: the mode a send would run in, and the path it walks. */
+export interface RouteSurvey {
+  /** The mode settled on — the one asked for, or the default's answer. */
+  mode: RouteMode;
+  /** The path that mode would walk, or `null` when it has none. */
+  path: Cell[] | null;
+}
+
+/**
+ * The **one** resolution of "which way does this route run, and can it".
+ *
+ * The gate and the reducer both go through it, so a greyed row, a refused
+ * command and the path a caravan is actually set walking cannot disagree about
+ * a mode — `routeStartable`'s own argument one field over.
+ *
+ * **The default, when the command names no mode: land where a land path exists,
+ * else sea.** It is stated as a fact about the *path* rather than about
+ * legality, deliberately: a rule that fell through to sea whenever land was
+ * merely *out of range* would make the mode of a route depend on a number, and
+ * a player reading a log would have to price the march to know what happened.
+ * The interface names the mode explicitly on every send, so the default is what
+ * an old save, a hand-written command and the bot's fallback resolve to — see
+ * `bestRouteMode`, which asks the question the other way round.
+ *
+ * A pair with no path either way reports **land**, so the refusal above reads in
+ * the plain voice a landlocked world deserves.
+ */
+export function surveyRoute(
+  state: GameState,
+  probe: Unit,
+  from: City,
+  to: City,
+  mode?: RouteMode,
+): RouteSurvey {
+  // The centre at home, the doorsteps abroad, in the order `routeGoals` states —
+  // through `routeLegPath`, so the survey, the send and the shuttle all aim at
+  // the same hex.
+  const walk = (which: RouteMode): Cell[] | null => routeLegPath(state, probe, from, to, which);
+  if (mode !== undefined) return { mode, path: walk(mode) };
+  const land = walk('land');
+  if (land !== null) return { mode: 'land', path: land };
+  const sea = walk('sea');
+  return sea === null ? { mode: 'land', path: null } : { mode: 'sea', path: sea };
+}
+
+/**
+ * The mode a `startRoute` naming `mode` (or naming none) will actually run in.
+ *
+ * The reducer's reading, asked **after** `startRouteError` has passed: the gate
+ * settled the question already, and this asks it again rather than threading a
+ * second return value through a function whose whole contract is "a sentence or
+ * `null`". It is the same survey against the same probe, so it is the same
+ * answer.
+ */
+export function routeModeFor(
+  state: GameState,
+  playerId: number,
+  fromCityId: number,
+  toCityId: number,
+  mode?: RouteMode,
+): RouteMode {
+  if (mode !== undefined) return mode;
+  const type = caravanTypeId();
+  const from = cityById(state, fromCityId);
+  const to = cityById(state, toCityId);
+  if (!type || !from || !to) return 'land';
+  return surveyRoute(state, caravanProbe(playerId, type, from), from, to, undefined).mode;
+}
+
+/**
+ * The modes this pair of towns could actually be joined by, in `ROUTE_MODES`
+ * order — what the Trade screen offers as buttons.
+ *
+ * Each arm is the **whole** gate asked of that mode (`routeStartable`), never a
+ * path test on its own: a mode is on offer exactly when the command naming it
+ * would be accepted, so a button the screen draws is a button that works. Two
+ * entries means a real choice; one means today's single Start; none means the
+ * row is refused, and the sentence to print is `routeStartable`'s own.
+ */
+export function routeModesAvailable(
+  state: GameState,
+  playerId: number,
+  fromCityId: number,
+  toCityId: number,
+): RouteMode[] {
+  const modes: RouteMode[] = [];
+  for (const mode of ROUTE_MODES) {
+    if (routeStartable(state, playerId, fromCityId, toCityId, mode) === null) modes.push(mode);
+  }
+  return modes;
+}
+
+/**
+ * The mode this caravan should be sent on, or `null` when neither works — the
+ * bot's reading, and `routeModesAvailable`'s single-answer twin.
+ *
+ * First in `ROUTE_MODES` order, so a land route is preferred wherever one is
+ * legal: the road it wears is worth something to the empire afterwards and a
+ * sea lane leaves nothing behind. It asks `startRouteError` rather than
+ * `routeStartable` because the bot has a piece in hand.
+ */
+export function bestRouteMode(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+  fromCityId: number,
+  toCityId: number,
+): RouteMode | null {
+  for (const mode of ROUTE_MODES) {
+    if (startRouteError(state, playerId, unitId, fromCityId, toCityId, mode) === null) return mode;
+  }
+  return null;
+}
+
 /**
  * Why a route could not be started between these two towns, or `null` when one
  * could — **the gate minus the piece**.
@@ -414,12 +744,18 @@ function caravanProbe(playerId: number, type: UnitTypeId, from: City): Unit {
  * This is what the Trade screen greys a row with before any trader has been
  * chosen, and it is the whole of what a pair of towns can be asked on its own:
  *
- *   1. both are **cities of yours**, and they are **two** cities;
+ *   1. the origin is **a city of yours**, the destination is **another city** —
+ *      yours, or a **foreign** one whose empire you are **at peace with** and
+ *      have **met** (the international ruling of 2026-09-03);
  *   2. a **free slot** (`routeSlots` against `usedRouteSlots`);
- *   3. **no live route already joins the pair**, in either direction — one route
- *      per pair, so a player cannot stack four caravans on one rich partner;
- *   4. a **land path exists** for the roster's caravan, priced through the very
- *      `findPath` the march will walk;
+ *   3. **no live route already runs this way** — same origin, same
+ *      destination; the reverse leg is its own route (ruled 2026-09-03), so a
+ *      pair carries at most two caravans, one each way;
+ *   4. a path exists **in the mode asked for** for the roster's caravan, priced
+ *      through the very `findPath` the march will walk — `surveyRoute` resolves
+ *      an absent `mode` to land-or-sea by its documented default, so a caller
+ *      that names nothing still gets one honest answer rather than a survey of
+ *      ground no caravan will actually cross;
  *   5. the destination is **in range**, measured by `pathTurns` on a *full*
  *      purse — a fact about the distance between two towns, not about how much
  *      any particular caravan has left today.
@@ -441,6 +777,7 @@ export function routeStartable(
   playerId: number,
   fromCityId: number,
   toCityId: number,
+  mode?: RouteMode,
 ): string | null {
   const type = caravanTypeId();
   if (!type) return 'This world has no caravans';
@@ -452,9 +789,16 @@ export function routeStartable(
   if (from.ownerId !== playerId) return `${from.name} belongs to another empire`;
   if (to.id === from.id) return `A route joins two different cities`;
   if (to.ownerId !== playerId) {
-    // The deferred half, said out loud rather than half-built. See the module
-    // docblock: foreign routes wait on diplomacy.
-    return `${to.name} belongs to another empire — foreign routes wait on diplomacy`;
+    // **The foreign half, and it is two questions** (the international ruling of
+    // 2026-09-03, `docs/trade.md`). War first, because a seat at war has
+    // necessarily met the seat it is fighting, so asking the other way round
+    // would answer a declaration with "you have not met them". There is no
+    // open-borders clause: a caravan passes freely by the standing war ruling,
+    // and the ruling says so out loud.
+    const them = playerById(state, to.ownerId);
+    const name = them?.name ?? 'them';
+    if (atWar(state, playerId, to.ownerId)) return `You are at war with ${name}`;
+    if (!hasMetSeat(state, playerId, to.ownerId)) return `You have not met ${name}`;
   }
 
   const held = usedRouteSlots(state, playerId);
@@ -467,11 +811,15 @@ export function routeStartable(
 
   for (const other of tradersOf(state, playerId)) {
     const route = other.trade!;
-    const joins =
-      (route.from === from.id && route.to === to.id) ||
-      (route.from === to.id && route.to === from.id);
+    // Same origin AND same destination — the reverse leg is its own route
+    // (the user's ruling of 2026-09-03: Brightwater→Aldermarch must not
+    // preclude Aldermarch→Brightwater). The either-direction reading this
+    // replaces existed to stop caravans stacking on one rich partner; the
+    // directional gate keeps the pair to two, one each way, which is the
+    // stacking the ruling accepts.
+    const joins = route.from === from.id && route.to === to.id;
     if (joins && routeIsLive(state, other)) {
-      return `A caravan already runs between ${from.name} and ${to.name}`;
+      return `A caravan already runs from ${from.name} to ${to.name}`;
     }
   }
 
@@ -480,8 +828,16 @@ export function routeStartable(
   if (!getTileAt(state.map, from.col, from.row)) return `${from.name} is off the map`;
 
   const probe = caravanProbe(playerId, type, from);
-  const path = findPath(state, probe, goal);
-  if (!path) return `No road a caravan could walk from ${from.name} to ${to.name}`;
+  // One survey, and the mode it settled on is what the refusal is *about*: a
+  // player who asked for the sea is told about the sea, and a caller who named
+  // nothing is told about the ground the default actually chose.
+  const survey = surveyRoute(state, probe, from, to, mode);
+  const { path } = survey;
+  if (!path) {
+    return survey.mode === 'sea'
+      ? `No sea lane a caravan could sail from ${from.name} to ${to.name}`
+      : `No road a caravan could walk from ${from.name} to ${to.name}`;
+  }
 
   const range = routeRange(from, to);
   // A full purse: the range is a fact about the two towns, not about how much
@@ -518,6 +874,7 @@ export function startRouteError(
   unitId: number,
   fromCityId: number,
   toCityId: number,
+  mode?: RouteMode,
 ): string | null {
   const unit = unitById(state, unitId);
   if (!unit) return `No unit with id ${String(unitId)}`;
@@ -527,7 +884,7 @@ export function startRouteError(
   if (!trades(def)) return `A ${def.name} carries no trade route`;
   if (unit.trade !== undefined) return `${def.name} ${unit.id} is already carrying a route`;
 
-  return routeStartable(state, playerId, fromCityId, toCityId);
+  return routeStartable(state, playerId, fromCityId, toCityId, mode);
 }
 
 /**
@@ -574,20 +931,34 @@ export function originCityOf(state: GameState, unit: Unit): City | null {
  * route whose destination is already receiving its food — the mid-turn
  * register's rule (`refreshCityDerived`), and the reason the city panel does
  * not wait for the turn to end to tell the truth.
+ *
+ * **The mode is written before the path is found**, and both are the caller's
+ * settled answer rather than this function's guess: `applyStartRoute` resolves
+ * it through `routeModeFor` off the very survey the gate passed, so the route
+ * the piece carries and the ground it is aimed across are one decision. A land
+ * route writes no `sea` key at all — presence is the state.
  */
-export function startRouteAt(state: GameState, unit: Unit, from: City, to: City): void {
+export function startRouteAt(
+  state: GameState,
+  unit: Unit,
+  from: City,
+  to: City,
+  mode: RouteMode,
+): void {
   unit.trade = {
     from: from.id,
     to: to.id,
     expiresTurn: state.turn + Math.max(1, Math.floor(TRADE.routeTurns)),
     outbound: true,
     autoResend: false,
+    ...(mode === 'sea' ? { sea: true as const } : {}),
   };
   from.tradingPost = true;
   to.tradingPost = true;
 
-  const goal = getTileAt(state.map, to.col, to.row);
-  const path = goal ? findPath(state, unit, goal) : null;
+  // Through the one goal resolution (`routeLegPath`): a route abroad is walked
+  // to the partner's doorstep, which is the hex the gate priced the range on.
+  const path = routeLegPath(state, unit, from, to, mode);
   if (path && path.length > 0) {
     unit.path = path.map((cell) => ({ col: cell.col, row: cell.row }));
   } else {

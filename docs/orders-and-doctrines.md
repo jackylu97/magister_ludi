@@ -1,8 +1,8 @@
 # Orders and Doctrines — the master list
 
 Every Order, Doctrine and government in one place, tables only. **Regenerated from
-`data/statecraft.json` 2026-09-02** — the Effect column is each row's own ratified `text`;
-counts and tiers are the data's (pools: Chiefdom 13 · Gov I 34 · Gov II 35 · Gov III 33;
+`data/statecraft.json` 2026-09-03** — the Effect column is each row's own ratified `text`;
+counts and tiers are the data's (pools: Chiefdom 12 · Gov I 34 · Gov II 35 · Gov III 33;
 doctrine tiers ride the ladder 4/10/18/29/45). Edit here; the two working docs (`deprecated/statecraft-cards.md`, `deprecated/statecraft-ages-3-5.md`) keep the commentary and are no longer the source. Tier: ● defining · ◆ strong · ○ situational (blank = not yet tiered).
 
 **As built, 2026-08-28 (second pass)** — six of those halves are built and the shapes are
@@ -97,20 +97,20 @@ Warring Tribes (the courthouse).
 | River Kings | 🌱 | +30% food in every city on fresh water; −10% food and −10% production in every city without it. |
 | The Woodwrights | ⚒ | Clearing a forest or jungle pays +100% and grants +10 culture. |
 | The Great Litany | 🕯 | +1 culture for each 3 faith you gain per turn. |
-| Wolf-Mother's Pact | 🏹 | Barbarians never attack you and never steal from you. A barbarian you kill joins you instead of dying. You can no longer clear a barbarian camp. |
-| The Founders' Road | — | Your first 5 cities are founded with a free Monument, and new cities are joined to your nearest city by road. · †deferred |
+| Wolf-Mother's Pact | 🏹 | Barbarians you kill join you at full health. |
+| The Founders' Road | — | Newly founded cities are joined to your nearest city by road · +1 culture in every city. |
 
 ### Pool II (tier 10)
 
 | Doctrine | Line | Effect |
 |---|---|---|
-| Thalassocracy | 🐫 | +20% gold and +20% culture in every coastal city · a coastal city costs 1 less authority. |
-| Mountain Hold | ⚒ | +15% production in every city beside a mountain · +5 city defence there. · †deferred |
+| Thalassocracy | 🐫 | Coastal cities gain 10% of their food yield as gold. |
 | The Burning Way | ⚒ | Clearing a forest or jungle costs no worker charge. · †deferred |
-| Bread and Circuses | 🌱 | While your authority is positive: +3 happiness in every city. −1 gold in every city, always. |
+| The Sacred Path | ⚒ | +1 faith on every forest hex · +1 culture on every jungle hex. |
+| Bread and Circuses | 🌱 | While your authority is positive: +3 happiness in every city of 6 or more population. −2 gold in every city, always. |
 | The Tithe | 🕯 | +1 gold for each faith you gain per turn. |
 | Divine Inspiration | 🕯 | +1% science and +1% culture for each 200 banked faith. |
-| The Gentle Yoke | 🌱 | −20% happiness demanded per citizen · every new city costs 3 more authority. |
+| The Gentle Yoke | 🌱 | −15% happiness demanded per citizen · every city costs 2 more authority. |
 | The Scattered Hearths | 🌱 | The first 3 citizens in every city demand no happiness · −4 happiness in your capital. |
 | The Great Warring Tribes | ⚒ | Negative authority no longer slows production toward units · +10% production toward mounted units · captured cities pay +5 science and +5 culture. |
 
@@ -171,7 +171,7 @@ weight halves for twenty turns) is the other half of the repeat fix and is in
 
 RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will note them.
 
-### Chiefdom pool (13)
+### Chiefdom pool (12)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
@@ -184,10 +184,9 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 | Salt Tithes | E | 🐫 | ● | +2 gold for each unique luxury. | upgrade: +1 gold
 | Boundary Stones | E | — | ● | +30% border expansion in every city. | upgrade: +5%
 | First Rites | W | 🕯 | ● | +2 faith in your capital. | upgrade: +1 faith
-| Border Ballads | W | 🏹 | ◆ | +2 culture for each barbarian camp you have found, and +10 culture for each barbarian unit you kill. | +10 culture per barb kill
 | Fire-Keepers | W | 🕯 | ● | +1 faith in your capital, and +1 happiness there. | upgrade: +1 happiness
-| Wolf-Runners | M | 🏹 | ◆ | Scouts gain +1 movement, and claiming a ruin grants +15 gold. | upgrade: +10 gold
-| Hearth Songs | W | 🌱 | ◆ | +1 culture in every city of 4 population or less. | upgrade: +1 culture
+| Hearth Songs | W | 🌱 | ◆ | +2 culture in every city of 4 population or less. | upgrade: +1 culture
+| First Fruits | W | 🕯 | ◆ | The first citizen born in each city pays +10 faith once. | cannot be upgraded
 
 ### Government I pool (34)
 
@@ -378,6 +377,8 @@ pool and building the content are one decision.
 - **Boundary Stones** — Border culture is the culture a city puts toward its own borders, not the culture your empire saves toward its next draft. This hurries your borders only.
 - **Rites of Passage** — A unit bought with gold counts as completed, so it pays this too — but only once.
 - **The Loose Rein** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
+- **Border Ballads** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
+- **Wolf-Runners** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
 - **Triumphs** — The renown a capture pays is not built: a windfall's grants are banked by a routine that cannot reach the renown ladder, so only the culture arrives. † capturing a city also grants 5 renown
 - **The Laureate** — The great-person improvements are the academy, landmark, manufactory, customs house and citadel.
 - **Cistern Works** — It answers what is asked of a city — whether the town can drink. A hex out in the fields is still watered by the river or by nothing.
@@ -391,8 +392,7 @@ pool and building the content are one decision.
 - **The Dry Docks** — † ships mend completely in a port — a heal that depends on where a piece is standing is a rule about a hex, and healing is a rule about a turn
 - **The Great Warring Tribes** — The clause about courthouses does nothing: there is no courthouse in the game yet.
 - **Athenaeum of the Road** — Retired: this Doctrine is no longer offered in a draft. A saved game that already holds it keeps it.
-- **The Founders' Road** — The free hall is the Monument. A grander one is meant to take its place once the game has a hall to grow into. † an amphitheatre instead of the Monument, once one is unlocked
-- **Mountain Hold** — Built for a mountain **next to** the city. The ratified text says within two hexes, and the board can only be asked about the ring of six today. † the bonus reaching a city with a mountain two hexes away, rather than only one
+- **Mountain Hold** — Retired: this Doctrine is no longer offered in a draft. A saved game that already holds it keeps it. It was built for a mountain **next to** the city, where the ratified text said within two hexes. † the bonus reaching a city with a mountain two hexes away, rather than only one
 - **The Burning Way** — Not built: the board does not remember a clearing. A felled forest leaves bare ground that looks exactly like ground nothing ever grew on, so nothing can tell the two apart to pay for one of them. † +1 food on every hex you have cleared of forest or jungle
 - **Divine Inspiration** — Faith income today rarely reaches 200 banked faith, so this pays little until faith yields grow.
 - **Religious Mandate** — None of this is built, and the card is never offered. † permanent war with empires of another faith † your cities cannot be converted † a powerful bonus toward the domination and religious beads

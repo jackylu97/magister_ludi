@@ -58,6 +58,15 @@
     "rangeTurns": 10,
     "postRangeTurns": 3,
     "goldPerCombinedPop": 10,
+    "international": {
+      "science": 1,
+      "culture": 1,
+      "gold": 2,
+      "goldPerCombinedPop": 10,
+      "hostGold": 1
+    },
+    "buildingsPerFood": 2,
+    "buildingsPerProduction": 2,
     "connectionPerPop": 2,
     "roadsPerMaintenance": 4,
     "pillageBounty": {
@@ -102,6 +111,7 @@
     "growthBase": 10,
     "growthLinear": 6,
     "growthExponent": 1.65,
+    "drySettlePercent": -30,
     "starvationShrinksAt": -1,
     "baseCityYields": {
       "food": 2,
@@ -116,14 +126,14 @@
     "borderCostExponent": 1.45,
     "tilePurchase": {
       "ringBase": [
-        20,
-        20,
-        20,
-        30
+        40,
+        40,
+        40,
+        60
       ],
       "progressFactor": 2,
       "roundTo": 5,
-      "perPriorPurchase": 2
+      "perPriorPurchase": 4
     },
     "guilds": {
       "base": 60,
@@ -206,12 +216,12 @@
   },
   "meters": {
     "happiness": {
-      "palace": 9,
+      "palace": 6,
       "perUniqueLuxury": 4,
       "demandPerPop": 1,
-      "crowdingWeight": 0,
-      "crowdingFrom": 8,
-      "crowdingExponent": 1.2
+      "crowdingWeight": 0.3,
+      "crowdingFrom": 10,
+      "crowdingExponent": 1.6
     },
     "authority": {
       "palaceCapacity": 4,
@@ -326,7 +336,7 @@
       2,
       2.5
     ],
-    "goldPerHammer": 2,
+    "goldPerHammer": 4,
     "faithPerHammer": 1,
     "wonderRefundGoldPerHammer": 1
   },

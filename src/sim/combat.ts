@@ -1996,13 +1996,19 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       if (defender.hp <= 0) {
         const fallenOwner = defender.ownerId;
         const fromWild = playerById(state, fallenOwner)?.barbarian === true;
-        // **Wolf-Mother's Pact: a barbarian you kill joins you instead of
-        // dying.** The blow lands exactly as it always did — the roll, the
+        // **Wolf-Mother's Pact: a barbarian you kill joins you at full
+        // health.** The blow lands exactly as it always did — the roll, the
         // damage, the counter — and only the *disposal* changes, which is why
         // this is one clause here rather than a second combat path: the piece
         // goes through `captureUnit`, the one implementation of a change of
-        // hands, on its feet at a single hit point because a convert is a
-        // survivor and not a fresh recruit.
+        // hands, and is then **made whole** (the user's card pass, 2026-09-03,
+        // where the pact was cut back to this one clause and paid for the cut
+        // with the health). Its own maximum, `unitMaxHp`, so a stamped raider
+        // arrives at the bar the renderer will draw for it rather than at the
+        // roster's figure — the same helper every heal in the game is capped
+        // by. Written *after* the capture, because `captureUnit` is what makes
+        // the piece this empire's and nothing about the health is the wild's
+        // any more.
         //
         // It is a **capture and not a kill**, so no `killed` entry and no kill
         // or death riders: nothing died, and a card paying culture per corpse
@@ -2012,8 +2018,8 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         // then refuses itself on stacking, since the hex now holds a combatant of
         // the attacker's own.
         if (fromWild && cardBehaviorRule(state, attacker.ownerId, 'barbarianKillsConvert')) {
-          defender.hp = 1;
           captureUnit(state, defender, attacker.ownerId);
+          defender.hp = unitMaxHp(defender);
           outcome.capturedUnitId = defender.id;
           defenderDied = true;
         } else {

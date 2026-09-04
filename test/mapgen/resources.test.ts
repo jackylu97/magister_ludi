@@ -470,14 +470,19 @@ describe('strategic resources gate production', () => {
     const city = foundCityAt(state, 0, at(state, 5, 5));
     at(state, 5, 4).resource = 'iron';
     at(state, 5, 4).improvement = 'mine';
+    // The **top** of the iron line, since the obsolescence ruling of 2026-09-03:
+    // this fixture holds every technology, so the mine that opens the legionary
+    // opens the longswordsman above it in the same breath and the legionary is
+    // replaced the instant it becomes legal. The resource gate is the same gate
+    // either way, which is what this test is about.
     const result = applyCommand(state, {
       type: 'setCityProduction',
       playerId: 0,
       cityId: city.id,
-      queue: [{ kind: 'unit', id: 'legionary' }],
+      queue: [{ kind: 'unit', id: 'longswordsman' }],
     });
     expect(result.ok).toBe(true);
-    expect(city.queue).toEqual([{ kind: 'unit', id: 'legionary' }]);
+    expect(city.queue).toEqual([{ kind: 'unit', id: 'longswordsman' }]);
   });
 
   it('is one gate: the panel and the reducer read the same sentence', () => {
@@ -487,7 +492,15 @@ describe('strategic resources gate production', () => {
     // with, are the same call. A divergence here is a button that lies.
     // "improved", since M7: owning the tile stopped being enough.
     expect(buildError(state, 0, 'unit', 'horseman')).toBe('Horseman needs improved Horses');
-    expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
+    // A row with nothing above it in the data is the honest positive control
+    // here: the warrior would now be refused for having been *replaced* (the
+    // obsolescence ruling of 2026-09-03) in a fixture holding every technology,
+    // which is a different sentence about a different rule.
+    expect(unitDef('worker').upgradesTo).toBeUndefined();
+    expect(buildError(state, 0, 'unit', 'worker')).toBeNull();
+    expect(buildError(state, 0, 'unit', 'warrior')).toBe(
+      'Warrior has been replaced by the Swordsman',
+    );
     expect(buildError(state, 0, 'building', 'library')).toBeNull();
     expect(buildingDef('library').name).toBe('Library');
   });

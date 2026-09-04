@@ -370,8 +370,14 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
       expect(applyStages(100, sums.culture)).toBe(
         Math.floor((100 * (100 + percent) * (100 + tier)) / 10_000),
       );
-      expect(applyStages(100, sums.culture)).toBeGreaterThan(
-        applyStages(100, { city: 0, empire: percent + tier }),
+      // Read off a **larger base** than the line above it, deliberately: the
+      // two readings differ by the product term alone (1.05 × 1.10 against
+      // 1.15, five parts in a thousand), and `applyStages` floors once — so at
+      // a base of 100 the difference the doctrine is about disappears into the
+      // rounding and the assertion silently stops asserting anything. The claim
+      // is the arithmetic, not the size of the number it is read at.
+      expect(applyStages(1000, sums.culture)).toBeGreaterThan(
+        applyStages(1000, { city: 0, empire: percent + tier }),
       );
 
       // And the panel's own line for it says city, beside the meter's empire.

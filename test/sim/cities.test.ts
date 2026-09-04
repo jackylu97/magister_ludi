@@ -18,8 +18,11 @@ import {
   explainCentreYield,
   explainBuildingPreview,
   explainCityBuildings,
+  explainGrowthPercent,
   explainTileYield,
+  emptyCityYields,
   foldBuildingPreview,
+  foldGrowthPercent,
   foldTileYield,
   foundCityAt,
   foundingError,
@@ -28,6 +31,7 @@ import {
   expansionScore,
   growCities,
   growthIsHalted,
+  growthSurplus,
   growthThreshold,
   nextBorderCost,
   nextCityName,
@@ -72,7 +76,9 @@ import {
   SCHEMA_VERSION,
   createUnit,
   newGame,
+  playerById,
 } from '../../src/sim/state';
+import { cityHasFreshwater } from '../../src/sim/statecraft';
 import { openWar } from '../../src/sim/wars';
 import { chopBaseFor } from '../../src/sim/improvements';
 import { firstBlocker } from '../../src/ui/turnBlockers';
@@ -1484,6 +1490,114 @@ describe('starvation reporting (StarvationReport)', () => {
   });
 });
 
+/**
+ * **The dry-settle rule** (user ruling, 2026-09-03: "off-fresh settles grow at
+ * −30% speed until an aqueduct is built in the city").
+ *
+ * Written against `explainGrowthPercent`, the rule-5 list `growthSurplus` is the
+ * fold of, because the ruling is a *line* and not a number: a player who cannot
+ * see why their town is slow has been told nothing. The four states of the rule
+ * — dry, watered by stones, watered by the ground, watered by a card — and the
+ * one arithmetic that keeps it honest, which is that the channel sums before it
+ * multiplies.
+ *
+ * Every case prices the same handed-in harvest (10🌾, one citizen eating two,
+ * so a raw surplus of 8) rather than whatever the map happened to grow: the
+ * subject here is the percentage, and a test that also depended on the terrain
+ * would fail for the wrong reason the day grassland is retuned.
+ */
+describe('growth off fresh water', () => {
+  /** A town on a dry plain — no river, no lake, no oasis, nothing built. */
+  function dryTown(): { state: GameState; city: City } {
+    const state = flatState(16, 12, 'grassland');
+    const city = plant(state, 0, 8, 5);
+    expect(cityHasFreshwater(state, city)).toBe(false);
+    return { state, city };
+  }
+
+  /** Ten bushels handed in, the way the turn phase hands its own figure in. */
+  function harvest() {
+    return { ...emptyCityYields(), food: 10 };
+  }
+
+  const RAW = 10 - CITIES.foodPerCitizen; // one citizen eats; the rest is surplus.
+
+  it('is the ratified number, and it lives in the rules', () => {
+    expect(CITIES.drySettlePercent).toBe(-30);
+  });
+
+  it('takes a labelled line off a town that cannot drink', () => {
+    const { state, city } = dryTown();
+    const lines = explainGrowthPercent(state, city);
+    expect(lines).toEqual([{ source: 'No fresh water', percent: -30 }]);
+    // The words are a first-time player's, and carry no identifier.
+    expect(lines[0].source).not.toMatch(/[[\]|]/);
+    expect(growthSurplus(state, city, harvest())).toBe(Math.floor(RAW * 0.7));
+  });
+
+  it('lifts the line the turn an aqueduct stands, and pays its own percentage', () => {
+    const { state, city } = dryTown();
+    city.buildings.push('aqueduct');
+    // The penalty is gone *and* the building's own +15% is on the same list —
+    // one fold, so the town does not pay a compounded price for having fixed
+    // its own water.
+    expect(explainGrowthPercent(state, city).map((line) => line.source)).toEqual([
+      'Building · Aqueduct',
+    ]);
+    expect(growthSurplus(state, city, harvest())).toBe(Math.floor(RAW * 1.15));
+    // The ground is untouched: an aqueduct feeds people, not fields, so no
+    // `freshwater`-scoped card or renewal mistakes it for a river.
+    expect(cityHasFreshwater(state, city)).toBe(false);
+  });
+
+  it('never bills a town beside water at all', () => {
+    const { state, city } = dryTown();
+    cityTile(state.map, city).freshwater = true;
+    expect(cityHasFreshwater(state, city)).toBe(true);
+    expect(explainGrowthPercent(state, city)).toEqual([]);
+    expect(growthSurplus(state, city, harvest())).toBe(RAW);
+  });
+
+  it('lets a card that declares the fact lift it — the one predicate, both arms', () => {
+    const { state, city } = dryTown();
+    // Cistern Works: "every city of yours counts as standing on fresh water".
+    const sc = playerById(state, 0)!.statecraft;
+    sc.orders.push({ id: 'cisternWorks', level: 1 });
+    sc.slots.push({ card: 'cisternWorks', sealedUntil: state.turn });
+
+    expect(cityHasFreshwater(state, city)).toBe(true);
+    expect(explainGrowthPercent(state, city)).toEqual([]);
+    expect(growthSurplus(state, city, harvest())).toBe(RAW);
+  });
+
+  it('sums with the other growth percentages before multiplying, never after', () => {
+    const { state, city } = dryTown();
+    // The Hanging Gardens' +25% in a town that cannot drink: −30 and +25 are one
+    // sum on one channel (Entry XIV.D.4), so the town keeps 95% of its surplus.
+    city.buildings.push('hangingGardens');
+    expect(explainGrowthPercent(state, city)).toEqual([
+      { source: 'No fresh water', percent: -30 },
+      { source: 'Wonder · The Hanging Gardens', percent: 25 },
+    ]);
+    expect(foldGrowthPercent(explainGrowthPercent(state, city))).toBe(-5);
+    expect(growthSurplus(state, city, harvest())).toBe(Math.floor(RAW * 0.95));
+    // And that is a different number from compounding them, which is the whole
+    // reason the channel is one sum.
+    expect(growthSurplus(state, city, harvest())).not.toBe(
+      Math.floor(Math.floor(RAW * 0.7) * 1.25),
+    );
+  });
+
+  it('leaves a deficit alone — a dry town starves at the rate it always did', () => {
+    const { state, city } = dryTown();
+    city.population = 4;
+    const hungry = { ...emptyCityYields(), food: 1 };
+    // Nothing on the channel touches a negative surplus: the debt is the town's
+    // own, exactly as the happiness stifle leaves it (`growthSurplus`, rule 3).
+    expect(growthSurplus(state, city, hungry)).toBe(1 - 4 * CITIES.foodPerCitizen);
+  });
+});
+
 describe('production', () => {
   it('completes one item per turn and carries the overflow to the next', () => {
     const state = flatState();
@@ -2644,7 +2758,7 @@ describe('determinism with cities', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(59);
+    expect(SCHEMA_VERSION).toBe(60);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

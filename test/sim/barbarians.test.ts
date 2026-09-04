@@ -895,7 +895,7 @@ describe('role derivation', () => {
     expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'thief', preyId: prey.id });
   });
 
-  it("Wolf-Mother's Pact takes the pact-holder's civilians off the menu too", () => {
+  it('an empire at peace with the wild keeps its civilians off the menu too', () => {
     const state = wildState();
     const wild = wildId(state);
     foundCityAt(state, 0, at(state, 5, 8));
@@ -911,7 +911,17 @@ describe('role derivation', () => {
     // in `nearestTarget`; a *thief* picks its prey in `barbarianRoles`, so
     // without a clause there the wolves left the spears alone and still walked
     // off with every worker.
-    state.players[0]!.statecraft.doctrines.push('wolfMothersPact' as never);
+    //
+    // **No live row carries `barbariansPassive` since the user's card pass of
+    // 2026-09-03** — Wolf-Mother's Pact was cut back to its conversion clause —
+    // so the rule is turned on here through `Player.timed`, an ordinary source
+    // of live effects. The seam is unchanged, which is what makes restoring the
+    // clause a JSON row rather than a change to the wild's own module.
+    state.players[0]!.timed = [{
+      card: 'wolfMothersPact' as never,
+      effect: { kind: 'behaviorRule', rule: 'barbariansPassive' },
+      expiresTurn: state.turn + 10,
+    }];
     expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'raider' });
     // And the raider it becomes has nothing to march on either — the pact is one
     // rule read at two seams, and neither of them names this seat.

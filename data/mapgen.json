@@ -51,6 +51,12 @@
       "offset": 1.0,
       "gain": 1.9
     },
+    "ridgeBreak": {
+      "cycleTiles": 3,
+      "octaves": 3,
+      "lacunarity": 2.0,
+      "persistence": 0.5
+    },
     "moistureRegional": {
       "frequency": 1.9,
       "octaves": 2,
@@ -65,10 +71,10 @@
     }
   },
   "elevation": {
-    "seaLevel": 0.62,
+    "seaLevel": 0.58,
     "polarWaterLatitude": 0.94,
     "polarWaterElevationBonus": 0.12,
-    "mountainShare": 0.1,
+    "mountainShare": 0.08,
     "hillShare": 0.38,
     "ridgeWeight": 1.0,
     "continentWeight": 0.25,
@@ -77,7 +83,19 @@
     "spineFloor": 0.5,
     "spineNearTiles": 2,
     "spineFarTiles": 7,
-    "crestlineWeight": 0.35
+    "crestlineWeight": 0.35,
+    "ridgeBreakStrength": 1.0
+  },
+  "pangaea": {
+    "enabled": true,
+    "centreColumnShare": 0.5,
+    "coreShare": 0.22,
+    "eastWestStrength": 1.2,
+    "polarStrength": 0.12,
+    "islandShelfTiles": 5,
+    "islandShelfSpread": 3.0,
+    "islandShelfLift": 0.32,
+    "shelfChains": true
   },
   "latitude": {
     "snow": 0.9,
@@ -112,7 +130,7 @@
   "rivers": {
     "countPer1000Tiles": 14,
     "minCount": 3,
-    "minSpringElevation": 0.84,
+    "minSpringElevation": 0.8,
     "minSpringSpacing": 1,
     "minLength": 4,
     "maxLength": 80,
@@ -190,6 +208,8 @@
       "snow"
     ],
     "maxHostileRingShare": 0.45,
-    "maxWaterRingShare": 0.5
+    "maxWaterRingShare": 0.5,
+    "minLandmassShare": 1.0,
+    "minLandmassTiles": 100
   }
 }

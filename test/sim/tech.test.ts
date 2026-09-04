@@ -36,6 +36,7 @@ import {
   settleResearchWindfall,
   turnsToTech,
   upgradeTargetFor,
+  upgradeTargetForType,
 } from '../../src/sim/tech';
 import {
   BUILDING_UNLOCK_TECH,
@@ -339,7 +340,19 @@ describe('tech data integrity', () => {
     // the Holy Office among the closers), and Alchemy takes all four closing
     // lines as parents — thirteen columns, the tree at 19725 beakers, the ages
     // 345 / 1665 / 6415 / 11300 (the user: columns 9-12 constitute Æra IV).
-    const COLUMN_COSTS = [5, 13, 30, 69, 135, 225, 335, 450, 565, 665, 750, 820, 875];
+    //
+    // **The late columns are authored above the taper** (the user, 2026-09-03:
+    // "technologies should keep the same scaling they had in age 1-2.
+    // Technologies should be extremely expensive in age 4-5."). Columns 0-5 are
+    // the formula's own figures, untouched, so the opening a player learns the
+    // game on is byte-identical; columns 6-8 lift a little over the taper
+    // (335/450/565 → 400/540/680) and columns 9-12 lift a lot
+    // (665/750/820/875 → 1450/1700/1950/2200), roughly 2.3x the closing age.
+    // The one-formula ladder is therefore no longer the whole table — a late
+    // column is a *ruling*, and this list is where it is written down. The tree
+    // is 35710 beakers against 19725, and the ages are 345 / 1665 / 7700 /
+    // 26000: Æra IV alone is now nearly three quarters of the chart.
+    const COLUMN_COSTS = [5, 13, 30, 69, 135, 225, 400, 540, 680, 1450, 1700, 1950, 2200];
     expect(COLUMN_COSTS).toHaveLength(techColumnCount());
     for (const id of TECH_IDS) {
       expect(techDef(id).cost, id).toBe(COLUMN_COSTS[techColumn(id)]);
@@ -350,8 +363,8 @@ describe('tech data integrity', () => {
     const bands: Record<number, [number, number]> = {
       1: [5, 69],
       2: [135, 225],
-      3: [335, 565],
-      4: [665, 875],
+      3: [400, 680],
+      4: [1450, 2200],
     };
     for (const id of TECH_IDS) {
       const def = techDef(id);
@@ -813,6 +826,129 @@ describe('production gating', () => {
 
 // ---------------------------------------------------------------------------
 
+/**
+ * **A row an empire has outgrown leaves the build list** (user, 2026-09-03:
+ * "once a unit is obsolete — replaced by the stronger version through a tech —
+ * please remove it from the build queue. Only show the antiquated unit if the
+ * empire doesn't have access to a prerequisite strategic resource").
+ *
+ * Read against the real roster rather than against a fixture, because the whole
+ * of the rule is that succession is the data's: `upgradesTo` is the chain, and
+ * the two rungs below are the two the tree actually draws — the swordsman, who
+ * asks for nothing, and the legionary, who asks for iron.
+ */
+describe('obsolete units', () => {
+  it('offers the warrior until the sword line opens', () => {
+    const state = flatState();
+    expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
+    expect(upgradeTargetForType(state, 0, 'warrior')).toBeNull();
+    // The successor is the one behind the technology, and the message says so.
+    expect(buildError(state, 0, 'unit', 'swordsman')).toContain('needs');
+  });
+
+  it('takes the warrior off the list the moment the swordsman can be built', () => {
+    const state = flatState();
+    grantPrereqs(state, 0, 'bronzePanoply');
+    grant(state, 0, 'bronzePanoply');
+    expect(buildError(state, 0, 'unit', 'swordsman')).toBeNull();
+    expect(buildError(state, 0, 'unit', 'warrior')).toBe(
+      'Warrior has been replaced by the Swordsman',
+    );
+    expect(upgradeTargetForType(state, 0, 'warrior')).toBe('swordsman');
+  });
+
+  it('keeps the antiquated row while the successor’s iron is out of reach', () => {
+    // The ruling's exception, and the only rung on the roster that carries it:
+    // Iron Working opens the legionary, but a seamless empire cannot field one,
+    // so the swordsman it replaces stays on the list until the mine lands.
+    const state = flatState();
+    grantPrereqs(state, 0, 'ironWorking');
+    grant(state, 0, 'ironWorking');
+    expect(buildError(state, 0, 'unit', 'legionary')).toBe('Legionary needs improved Iron');
+    expect(buildError(state, 0, 'unit', 'swordsman')).toBeNull();
+
+    connectIron(state, 0, 8, 5);
+    expect(buildError(state, 0, 'unit', 'legionary')).toBeNull();
+    expect(buildError(state, 0, 'unit', 'swordsman')).toBe(
+      'Swordsman has been replaced by the Legionary',
+    );
+    // And the warrior below it walks the whole chain rather than one rung.
+    expect(upgradeTargetForType(state, 0, 'warrior')).toBe('legionary');
+  });
+
+  it('gives the row back when the iron is lost again', () => {
+    // The one gate in `buildError` that goes backwards, and it must: a captured
+    // mine takes the legionary with it, and an empire that can field no
+    // legionary is an empire that had better be allowed its swords again.
+    const state = flatState();
+    grantPrereqs(state, 0, 'ironWorking');
+    grant(state, 0, 'ironWorking');
+    connectIron(state, 0, 8, 5);
+    expect(buildError(state, 0, 'unit', 'swordsman')).not.toBeNull();
+    at(state.map, 8, 5).resource = undefined;
+    expect(buildError(state, 0, 'unit', 'swordsman')).toBeNull();
+  });
+
+  it('never climbs into a row no technology reaches', () => {
+    // `awaitsTech` rows have no gate in the tree, so `isUnlocked` says yes to
+    // them (that is what the flag exists to correct). A hull nobody can build is
+    // not a replacement for anything, and the walk stops below it — the same
+    // reading `buildError` gives the row itself.
+    const state = flatState();
+    grant(state, 0, ...TECH_IDS);
+    for (const id of UNIT_TYPE_IDS) {
+      const target = upgradeTargetForType(state, 0, id);
+      if (target === null) continue;
+      expect(unitDef(target).awaitsTech, `${id} → ${target}`).not.toBe(true);
+    }
+    // The caravel is the case in the data today: the corvette above it waits on
+    // an age this build of the tree has not drawn.
+    expect(unitDef('caravel').upgradesTo).toBe('corvette');
+    expect(unitDef('corvette').awaitsTech).toBe(true);
+    expect(upgradeTargetForType(state, 0, 'caravel')).toBeNull();
+    expect(buildError(state, 0, 'unit', 'caravel')).toBeNull();
+  });
+
+  it('refuses a new obsolete row but keeps the one a town is already building', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    const send = (queue: unknown[]): ReturnType<typeof applyCommand> =>
+      applyCommand(state, {
+        type: 'setCityProduction',
+        playerId: 0,
+        cityId: city.id,
+        queue,
+      } as Command);
+
+    expect(send([{ kind: 'unit', id: 'warrior' }])).toEqual({ ok: true });
+    grantPrereqs(state, 0, 'bronzePanoply');
+    grant(state, 0, 'bronzePanoply');
+
+    // The hammers already in it are real: the standing row survives, and the
+    // queue around it stays editable.
+    expect(send([{ kind: 'unit', id: 'warrior' }, { kind: 'unit', id: 'swordsman' }])).toEqual({
+      ok: true,
+    });
+    expect(buildError(state, 0, 'unit', 'warrior', city)).toBeNull();
+
+    // A town that is *not* building one may not start one.
+    const other = plant(state, 0, 12, 5);
+    const refusal = applyCommand(state, {
+      type: 'setCityProduction',
+      playerId: 0,
+      cityId: other.id,
+      queue: [{ kind: 'unit', id: 'warrior' }],
+    } as Command);
+    expect(refusal.ok).toBe(false);
+    expect(refusal.ok === false && refusal.error).toBe(
+      'Warrior has been replaced by the Swordsman',
+    );
+    expect(other.queue).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
 describe('auto-upgrade', () => {
   it('retypes in place, keeping id, tile and health fraction', () => {
     const state = flatState();
@@ -1125,7 +1261,7 @@ describe('research in the log', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(59);
+    expect(SCHEMA_VERSION).toBe(60);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

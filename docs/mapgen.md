@@ -25,6 +25,8 @@ types and the override seam), `docs/luxuries.md` (the resource table itself),
 4. [Features: forest and jungle](#features-forest-and-jungle)
 5. [Lakes, coast and rivers](#lakes-coast-and-rivers)
 5b. [The arid features: oasis and floodplain](#the-arid-features-oasis-and-floodplain)
+5c. [The pangaea: one continent and its islands](#the-pangaea-one-continent-and-its-islands)
+5d. [The broken ridges](#the-broken-ridges)
 6. [The continent carve](#the-continent-carve)
 7. [The luxury deal](#the-luxury-deal)
 8. [The density budgets and the settle pass](#the-density-budgets-and-the-settle-pass)
@@ -57,14 +59,21 @@ Passes, in order, all in `generateMapDetail`:
 | # | Pass | Where |
 |---|------|-------|
 | 0 | four noise layers from the seed | `mapgen.ts` |
+| 0b | the pangaea mask, and the island belt read off it | `pangaeaPull`, `islandShelfLift` |
 | 1 | fields → terrain, hills | `buildTerrainFields`, `pickLandTerrain` |
 | 1b | forest and jungle, then oases | `assignFeatures`, `assignOases` |
 | 2 | small water bodies → lakes | `classifyLakes` (`water.ts`) |
 | 3 | ocean within `coast.rings` hexes of land → coast | `mapgen.ts` |
+| 3b | shelf run out to every island | `chainIslandShelves` (`water.ts`) |
 | 4 | rivers (**first dice**) | `traceRivers` (`water.ts`) |
 | 4b | watered flat desert → floodplain | `deriveFloodplains` (`water.ts`) |
 | 5 | who can drink | `computeFreshwater` (`water.ts`) |
 | 6 | resources (**second dice**) | `placeResources` (`resources.ts`) |
+
+Neither pangaea pass rolls a die either — the mask is arithmetic on the
+continental field and the shelf chains are a BFS — so a map generated with
+`pangaea.enabled: false` and `shelfChains: false` is the pre-2026-09-03 world
+back, byte for byte (`test/mapgen/resources.slow.test.ts`'s `OLD_FIXTURES`).
 
 Only two passes roll dice, and both new passes are in the other camp: the oases
 are dealt off a noise layer and the floodplains are read off the finished water,
@@ -104,7 +113,7 @@ no east–west seam. Rows do not wrap.
 
 Both are **rank-normalised**: each value is replaced by its percentile. That is a
 monotone transform, so the shape of the field is untouched, but every threshold
-now means "a fraction of the map" — `seaLevel: 0.62` puts water on 62% of tiles
+now means "a fraction of the map" — `seaLevel: 0.58` puts water on 58% of tiles
 on *every* seed. `rankNormalizeInPlace` and `rankAmong` in `mapgen.ts`.
 
 ### Relief
@@ -414,6 +423,237 @@ See `docs/luxuries.md` for the row-by-row reasoning.
 
 ---
 
+## The pangaea: one continent and its islands
+
+`pangaeaPull` and `islandShelfLift` in `mapgen.ts`, `chainIslandShelves` in
+`water.ts`. **Ruled 2026-09-03** (`docs/flags.md`, "Batch: mapgen pangaea"): the
+default map is one large continent with medium islands off its shelf, and every
+seat is on the continent.
+
+The reason is the length of a game. A split-continents world is a *new world* to
+sail to, and this game ends before ocean-going hulls exist — so a second landmass
+across deep water was ground nobody would ever stand on. The maritime half of the
+design is served instead by islands a coastal hull can reach.
+
+### The mask, and why it is a mask
+
+It biases the field the coastline is **already** read off, and nothing else. The
+generator's architecture is "two geographies, everything derived"; a pangaea that
+drew its own landmass would be a third geography the relief and moisture layers
+knew nothing about — mountains that stop at an invisible line, forests that
+ignore a coast. Every later pass carries on reading the same continental field it
+always did.
+
+Two shoulders, each flat across `coreShare` of a half-extent and rising to 1 at
+the edge (`smoothstep`):
+
+```
+pull = eastWestStrength × shoulder(distance from the meridian)
+     + polarStrength    × shoulder(latitude)
+```
+
+The east–west distance is **wrap-aware**, or the mask would put a hard rim at
+column 0 and make the seam the noise hides visible as a coastline. `polarStrength`
+is deliberately small: a continent that runs most of the way to the caps is what
+keeps tundra and snow on the map at all.
+
+**The field is ranked, masked, and ranked again.** That second rank is the whole
+trick — `seaLevel` is a quantile, so re-ranking a masked field leaves the map with
+exactly the water fraction it had before and only changes *where* that water is. A
+mask applied after the cut would have been a sea-level change wearing a shape's
+clothes.
+
+### The island belt is read off the coastline, not off a longitude
+
+A belt written as a band of longitude lands inside the continent on one seed and
+out in the deep ocean on the next, because how wide the continent comes out is the
+noise's business. So the cut is taken **twice**: a provisional one to find the
+shore, then `islandShelfLift` gives height back to water in a gaussian band
+`islandShelfTiles` hexes offshore, and the real cut follows.
+
+Four hexes offshore is not an arbitrary distance: it is exactly the gap two rings
+of `coast` close from either side, so a belt island is on the shelf by
+construction. The lift touches **water only** — the continent keeps its own
+coastline, and the land the belt gains comes back out of the re-rank at the
+mainland's thinnest margins.
+
+The belt does not *draw* islands; it lets the noise draw them. An archipelago
+appears where this seed's continental field was already high, so it reads as
+geography rather than as a stamp.
+
+### The shelf chains
+
+`chainIslandShelves`, pass 3b. Landmasses are numbered in tile-index order, the
+largest is the mainland, and any other landmass the mainland's shelf cannot reach
+is joined to it by promoting the BFS-shortest path of `ocean` between the two
+shelves to `coast`.
+
+**It moves no land.** A land bridge would change the land fraction, the terrain
+census and every density budget counted per land tile; a shelf is the same
+continental shelf real islands sit on and costs the map nothing but a ribbon of
+shallow water. The one thing it widens is the pool of tiles a sea resource may
+land on, which the 8/27 playtest note wanted anyway.
+
+It fires on a minority of seeds — the belt already puts most islands inside the
+free two rings — and it is what turns "islands usually reachable" into a
+guarantee. Its one refusal is land ringed by **lake**: `lake` is not embarkable,
+a lake has no shelf, and an islet in one is ground no unit in the game can reach.
+Nothing here may invent water.
+
+### The belt retune, 2026-09-03
+
+Ruled the same day, once the shape was on screen: **islands bigger and more
+frequent**. Three knobs, no new algorithm — `islandShelfTiles` 4 → 5 (further
+out, so there is sea room for an island to be round rather than a splinter),
+`islandShelfSpread` 2.5 → 3.0 and `islandShelfLift` 0.18 → 0.32.
+
+Measured on a standard board over twenty seeds:
+
+| | before | after |
+|---|---|---|
+| islands of ≥6 hexes, per map | 5.8 | **8.4** |
+| average size of one | 31 | **41** |
+| islands of ≥20 hexes, per map | 2.0 | **4.0** |
+| median mainland share | 92% | **83%** |
+| median mainland **tiles** | 1480 | **1476** |
+
+The land fraction is fixed by `seaLevel`, so **every hex the islands gain is a
+hex the mainland gives up** — which is why the belt cost the continent a tenth of
+its ground at the first cut. The answer, ruled the same day, was to raise the
+world's land rather than to give the islands back: `seaLevel` 0.62 → 0.58, about
+170 more land tiles on a standard board. The continent is back to the *footprint*
+it had before the islands (1476 tiles against 1480) with the archipelago on top
+of it, and the share is the only reading that stays lower.
+
+Every per-1000-land-tile budget — bonus, strategic and luxury resources, and the
+discoveries — scales with that land automatically, because that is the
+denominator they were always written in.
+
+### What it costs, measured
+
+- **Land fraction: the mask does not move it.** Over twenty seeds and every size
+  the drift against the same seed with the mask off tops out at 1.4% of the map
+  (on duel, where one hex is worth the most) — the ice-cap bonus is applied after
+  the mask, so a polar tile the re-rank moved across the cut is gained or lost at
+  the margin. How much land there is, is `seaLevel`'s business and nothing else's.
+- **Mainland share of the land**: a median of 81-89% by size. The floor over a
+  twenty-seed sweep is 36% (seed 5, large), and the gap is one documented shape —
+  a **strait**. The mask says where the land reaches east and west and nothing
+  about the rows between, so a seed whose noise runs a low band across the
+  continent is dealt a pangaea in two lobes. Both lobes sit on one shelf and both
+  are big enough to live on, so both are legal homes.
+- **Rivers**: the quota is a *ceiling* on the boards above `standard`, because a
+  trace has to run downhill from spring to sea without one step back up and one
+  continent has an interior. Breaking the ranges
+  ([the broken ridges](#the-broken-ridges)) bought most of the loss back —
+  measured floors over twenty seeds are duel 0.71, standard **0.98**, large 0.81,
+  huge 0.63, giant 0.68 of the quota asked for. Round two of the ruling cost some
+  of that back and `rivers.minSpringElevation` 0.84 → 0.80 recovered it — see
+  that row in [Every tunable](#every-tunable).
+- **Coast**: more of it, both from the longer island coastlines and from the
+  chains.
+
+### Starts: the landmass floor
+
+The fifth refusal in `scoreStartSite`, and the only one that looks past the two
+rings. A site is allowed when its own landmass is **the mainland, or big enough
+to live on** — two clauses joined by an *or*:
+
+- `starts.minLandmassShare` (1) — at least this share of the **largest**
+  landmass. `1` means the mainland.
+- `starts.minLandmassTiles` (100) — or simply this many contiguous land tiles,
+  whatever the mainland has.
+
+The *or* is the ruling of 2026-09-03: "all players spawn on the main landmass (or
+a landmass with at least 100 continuous tiles) so players aren't isolated on a
+small island". Either clause alone gets one of the two cases wrong. A share
+refuses the far lobe of a strait-split pangaea, which is a whole country; a tile
+floor alone would seat a player on an island the day the belt grew one that size.
+`0` switches a clause off; both at `0` disables the refusal.
+
+Every roster the game plays now seats legally on every seed in the sweep — duel
+at two and four, and every larger board up to the **maximum roster of twelve**.
+(The tile floor is what let twelve seats in: mainland-only used to fall through
+to the last-resort sweep on a strait seed.) The one documented gap is duel at six
+seats or more: 386 land tiles will not seat six capitals anywhere decent, so the
+greedy sweep takes refused sites (`chooseStartPositions`) and some of those are
+small islands. A start on an island beats no start.
+
+---
+
+## The broken ridges
+
+`elevation.ridgeBreakStrength`, applied inside `buildTerrainFields`. **Ruled
+2026-09-03**: "make it so that the ridges of mountains aren't as continuous —
+break up continuous lines of mountains a bit and have them be slightly more
+scattered."
+
+The crest field is a *ridged multifractal* precisely so that its crests are
+connected lines rather than blobs, and `crestlineWeight` then lifts the skeleton
+of those lines — which is what a range is, and also why a range came out as one
+unbroken wall from end to end. The break is a second field multiplied into the
+crest **before the relief mix is ranked**:
+
+```
+crestRaw = sharp × spineBias × (1 − ridgeBreakStrength × (1 − breakRank))
+```
+
+`breakRank` is a fine-scale fbm (`noise.ridgeBreak`, `cycleTiles: 4`) ranked
+among land, so the strength means an exact fraction: the break field's high
+country keeps its crest whole and its low country keeps `1 − strength` of it. The
+saddles that opens are what turn one wall into a chain of massifs.
+
+**It is a scatter, not a cull, and that is arithmetic rather than tuning.**
+`mountainShare` is a quantile of the land, so the same number of hexes is
+mountain either way — all the break decides is *which* hexes. The hexes a saddle
+gives up surface as mountain somewhere else along the line.
+
+It reads the **ridge layer's own permutation table** rather than a fifth noise
+layer, and that is deliberate: a fifth table would have to be drawn from `rng`,
+and any draw made before the rivers moves every river and every resource on every
+seed. Sampled through plain fbm at hex scale instead of through `ridged3` at
+range scale, the same table hands back a field with nothing in common with the
+crests it breaks. `0` skips the pass and leaves the relief bit-identical.
+
+Measured over twenty seeds on a standard board, whole → broken:
+
+| | whole | broken |
+|---|---|---|
+| mountains per map | 143 | **143** (exactly) |
+| separate massifs | 23.9 | **57.4** |
+| hexes in the average massif | 6.37 | **2.52** |
+| the largest massif | 40 | **15** |
+| longest straight run, average | 6.8 | **5.3** |
+| longest straight run, worst seed | 11 | **8** |
+
+The first cut shipped at `strength 0.7` / `cycleTiles 4` and the user asked for
+more of it the same day ("still too many unbroken chains of mountains"); the
+strength is now at its ceiling of 1 and the break field is finer, which roughly
+halved the average massif and the longest run again.
+
+Three knock-on effects, all improvements and all measured:
+
+- **Walkability.** A wall of mountain encloses pockets; a chain of massifs has
+  passes. The largest connected component of *passable* land on the mainland went
+  from 98.5% of it to 99.7% on average, and from 89.6% to 96.1% on the worst
+  seed.
+- **Rivers.** A continuous wall is a watershed a trace cannot cross, so the
+  interior it encloses drains nowhere. Gapped, the same interior has saddles to
+  leave by. (Pushed to the ceiling the crests also get *flatter*, which costs
+  springs; `rivers.minSpringElevation` follows it down to compensate.)
+- **Rain shadow.** A gapped range shelters a narrower strip, so the lee is a real
+  lee: the test's bound came back from 0.92 to 0.91, and to its original 0.90
+  once `mountainShare` fell to 0.08.
+
+The scatter's one price — scattered mountains touch more ground, so more hills
+stand next to one — was paid and then refunded on the same day. The share of
+hills that are *not* foothills went 0.535 → 0.500 with the break, and back to
+0.561 when `mountainShare` fell to 0.08. Hills per map (677) were never the thing
+moving: the mountain cut is a quantile, so what changes is *which* hexes are
+mountain, not how many hills there are.
+
+---
+
 ## The continent carve
 
 `carveContinents` in `src/sim/resources.ts`. Rolls nothing.
@@ -633,8 +873,11 @@ mediocre hills over one with six excellent tiles.
 
 ### The refusals
 
-Four, in the order a player would say them:
+Five, in the order a player would say them:
 
+0. the site's landmass is neither the mainland (`minLandmassShare`) nor big
+   enough on its own (`minLandmassTiles`) — see
+   [Starts: the landmass floor](#starts-the-landmass-floor);
 1. the site itself stands on `hostileTerrain`;
 2. more than `maxHostileRingShare` of the rings is hostile terrain;
 3. more than `maxWaterRingShare` of the rings is water;
@@ -714,10 +957,12 @@ the census, the continent table and the start table beside it. `src/dev/mapRepor
 computes all of it from the simulation's own evaluators; the page counts nothing.
 
 Its **Tuning panel** carries the parameters in this document that are visible in
-those two surfaces — five groups: Terrain (the two relief shares, the three
+those two surfaces — six groups: Terrain (the two relief shares, the three
 feature shares, oasis spacing, the rain shadow), **Water** (the river quota,
 `minLength`, `minSpringElevation`, `backtrackSteps` and `lakes.maxSize`),
-Continents, Resources and Starts. Floodplains have no row of their own on
+**Pangaea** (the two shoulder strengths, the core, and the island belt's three
+rows), Continents, Resources and Starts. `ridgeBreakStrength` sits in the Terrain
+group beside the two relief shares. Floodplains have no row of their own on
 purpose: they are derived from the rivers and the oases, so the Water group and
 the two oasis rows above it are already the whole of their tuning. Each row shows the JSON's own value in the margin, highlights
 itself when you change it, and Generate rebuilds the map with the change applied.
@@ -784,6 +1029,8 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 | `ridge.offset` / `.gain` | 1.0 / 1.9 | ridged-multifractal shape |
 | `moistureRegional.frequency` | 1.9 | wet-country cycles around the world |
 | `moistureRegional.octaves` / `.lacunarity` / `.persistence` | 2 / 2.0 / 0.45 | |
+| `ridgeBreak.cycleTiles` | 3 | tiles per cycle of the field that gaps the ranges — how often a wall breaks |
+| `ridgeBreak.octaves` / `.lacunarity` / `.persistence` | 3 / 2.0 / 0.5 | fbm shape |
 | `moistureLocal.cycleTiles` | 8 | tiles per copse-and-clearing cycle |
 | `moistureLocal.octaves` / `.lacunarity` / `.persistence` | 3 / 2.0 / 0.5 | |
 
@@ -791,10 +1038,10 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `seaLevel` | 0.62 | quantile of the continental field below which is sea — so ~62% water |
+| `seaLevel` | 0.58 | quantile of the continental field below which is sea — so ~58% water. Was 0.62 until 2026-09-03: the island belt takes its land out of the mainland, so raising the world's land is what put the continent back to the footprint it had before the islands |
 | `polarWaterLatitude` | 0.94 | latitude above which the ice-cap bonus applies |
 | `polarWaterElevationBonus` | 0.12 | how much the poles are lifted, before the sea test |
-| `mountainShare` | 0.10 | **share of land** that is mountain |
+| `mountainShare` | 0.08 | **share of land** that is mountain (0.10 until 2026-09-03 — the user's own playtest number). A quantile, so lowering it moves hexes into the hill band beneath rather than flattening anything |
 | `hillShare` | 0.38 | share of land that is hills — the band below the mountain cut |
 | `ridgeWeight` | 1.0 | weight of the ridged crest field in the relief mix |
 | `continentWeight` | 0.25 | weight of the continental field — pulls high ground inland |
@@ -804,6 +1051,7 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 | `spineFloor` | 0.5 | share of its height a crest keeps on the beach |
 | `spineNearTiles` | 2 | hexes from water where the spine bias starts to lift |
 | `spineFarTiles` | 7 | hexes from water where it is fully lifted |
+| `ridgeBreakStrength` | 1.0 | how much of its height a crest loses in the break field's low country — the gaps in a range. `0` skips the pass. See [The broken ridges](#the-broken-ridges) |
 
 ### latitude
 
@@ -838,6 +1086,20 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 |-----|---------|---------|
 | `maxSize` | 8 | water bodies of at most this many tiles become lakes |
 
+### pangaea
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `enabled` | true | false skips the mask whole, restoring the pre-ruling scatter of continents bit for bit |
+| `centreColumnShare` | 0.5 | where the continent's meridian sits, as a share of the width |
+| `coreShare` | 0.22 | share of a half-extent the mask leaves untouched |
+| `eastWestStrength` | 1.2 | how hard the eastern and western rims are pushed under |
+| `polarStrength` | 0.12 | the same pole-ward; small on purpose, so the continent keeps its tundra |
+| `islandShelfTiles` | 5 | hexes offshore the island belt sits |
+| `islandShelfSpread` | 3.0 | how far either side of that the belt reaches (the gaussian's sigma) |
+| `islandShelfLift` | 0.32 | height the belt hands back; the dial between no islands and a second continent, and the one that pays for them out of the mainland's margins |
+| `shelfChains` | true | run a ribbon of `coast` out to any island the shelf cannot already reach |
+
 ### coast
 
 | Key | Default | Meaning |
@@ -850,7 +1112,7 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 |-----|---------|---------|
 | `countPer1000Tiles` | 14 | river quota, scaled by map area |
 | `minCount` | 3 | floor on that quota — a duel map is never riverless |
-| `minSpringElevation` | 0.84 | lowest corner altitude a spring may sit at (range ground) |
+| `minSpringElevation` | 0.80 | lowest corner altitude a spring may sit at (range ground). Moved with `seaLevel` and the ridge break on 2026-09-03: land elevation runs `seaLevel…1`, so an absolute threshold means a different quantile of the land when either moves. 0.80 is the hill cut — "hill country or above" |
 | `minSpringSpacing` | 1 | hexes between springs; 1 means "not the same hex" |
 | `minLength` | 4 | traces shorter than this many edges are discarded |
 | `maxLength` | 80 | hard cap on one trace |
@@ -900,6 +1162,8 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 | `hostileTerrain` | desert, tundra, snow | terrain nobody should start on or be surrounded by |
 | `maxHostileRingShare` | 0.45 | share of the rings that may be hostile before refusal |
 | `maxWaterRingShare` | 0.5 | share of the rings that may be water before refusal |
+| `minLandmassShare` | 1.0 | how big a site's landmass must be, × the **largest** landmass; `1` means the mainland, `0` switches this clause off |
+| `minLandmassTiles` | 100 | …**or** simply this many contiguous land tiles. The two are an *or*; both at `0` disables the refusal |
 
 ---
 

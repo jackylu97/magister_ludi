@@ -50,6 +50,7 @@ import {
 } from '../../src/sim/greatPeopleData';
 import { improvementError } from '../../src/sim/improvements';
 import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
+import { isWaterTerrain } from '../../src/sim/terrainData';
 import { RULES } from '../../src/sim/rulesData';
 import { settleRenownWindfall } from '../../src/sim/renown';
 import {
@@ -225,7 +226,16 @@ describe('chooseGreatPerson', () => {
     const piece = g.state.units.find((u) => u.person === taken)!;
     // In the capital, or beside it when the centre has no room for another
     // civilian — `spawnTileFor`'s rule, the same one a settler arrives by.
-    expect(Math.abs(piece.col - city.col) + Math.abs(piece.row - city.row)).toBeLessThanOrEqual(1);
+    // Adjacency is asked in hexes, not Manhattan (2026-09-03): the (+1,−1)
+    // neighbour is one hex away and two by column-plus-row, and the pangaea's
+    // ground finally made the spawn pick it.
+    const centre = getTileAt(g.state.map, city.col, city.row)!;
+    const besideCity =
+      (piece.col === city.col && piece.row === city.row) ||
+      neighborTiles(g.state.map, tileHex(centre)).some(
+        (t) => t.col === piece.col && t.row === piece.row,
+      );
+    expect(besideCity).toBe(true);
     expect(piece.chargesLeft).toBe(1);
   });
 
@@ -380,8 +390,18 @@ describe('the work', () => {
     expect(workOf(unit)).toBe('academy');
     // A town's own hex refuses a work exactly as it refuses a farm — the ground
     // rules are `improvementErrorAt`'s and there is no second copy of them — so
-    // the piece steps off it first.
-    const tile = getTileAt(g.state.map, unit.col + 1, unit.row)!;
+    // the piece steps off it first. The step scans the map for standing ground
+    // rather than blindly taking `col + 1` (2026-09-03: the pangaea put water
+    // there on this seed, and a ring-only hunt still found towns ringed in
+    // shore) — a work wants owned ground that is not water, mountain, or the
+    // town's own hex, so the hunt asks exactly those clauses of the whole map.
+    const tile = g.state.map.tiles.find(
+      (t) =>
+        !isWaterTerrain(t.terrain) &&
+        t.terrain !== 'mountain' &&
+        tileOwnerPlayerId(g.state, t.col, t.row) === 0 &&
+        !(t.col === unit.col && t.row === unit.row),
+    )!;
     unit.col = tile.col;
     unit.row = tile.row;
     expect(greatPersonWorkError(g.state, 0, unit.id)).toBeNull();
@@ -521,14 +541,34 @@ describe('the work', () => {
 
   it('a citadel is worth its defence to whoever stands on it', () => {
     const g = game(71);
-    found(g.state, 0);
+    const city = found(g.state, 0);
     const unit = call(g.state, 0, SAMPLE.general);
-    unit.col += 1;
-    const tile = getTileAt(g.state.map, unit.col, unit.row)!;
+    // Owned standing ground with a dry neighbour for the attacker — hunted
+    // rather than taken on faith (2026-09-03: the pangaea put shore at the old
+    // `col + 1`).
+    const stands = (t: { terrain: string } | null): boolean =>
+      t !== null && !isWaterTerrain((t as { terrain: never }).terrain) && (t as { terrain: string }).terrain !== 'mountain';
+    const pair = g.state.map.tiles
+      .filter(
+        (t) =>
+          stands(t) &&
+          tileOwnerPlayerId(g.state, t.col, t.row) === 0 &&
+          !(t.col === city.col && t.row === city.row),
+      )
+      .map((t) => ({
+        tile: t,
+        open: neighborTiles(g.state.map, tileHex(t)).find(
+          (n) => stands(n) && !(n.col === city.col && n.row === city.row),
+        ),
+      }))
+      .find((entry) => entry.open !== undefined)!;
+    const tile = pair.tile;
+    unit.col = tile.col;
+    unit.row = tile.row;
     applyCommand(g.state, { type: 'greatPersonWork', playerId: 0, unitId: unit.id });
 
     const defender = createUnit(g.state, 0, 'warrior', tile.col, tile.row);
-    const attacker = createUnit(g.state, 1, 'warrior', tile.col + 1, tile.row);
+    const attacker = createUnit(g.state, 1, 'warrior', pair.open!.col, pair.open!.row);
     const plan = previewCombat(g.state, attacker.id, { col: tile.col, row: tile.row });
     expect(plan.ok === false ? plan.error : 'ok').toBe('ok');
     if (plan.ok) {

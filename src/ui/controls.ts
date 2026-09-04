@@ -292,7 +292,7 @@ import type { TriumphAward } from '../sim/triumphs';
 import type { BeadAge } from '../sim/beadData';
 import type { BeadAward } from '../sim/beads';
 import { BEAD_FAMILY_MARK, deckEraWord } from './beadsScreen';
-import { type TraderPlunder, routeCities } from '../sim/trade';
+import { type RouteMode, type TraderPlunder, routeCities } from '../sim/trade';
 import { autoExploreError } from '../sim/explore';
 import { type UnitDef, isExplorer, trades, unitDef, unitMaxHp } from '../sim/unitData';
 import { type DisbandReport, treasuryInDebt } from '../sim/upkeep';
@@ -2082,7 +2082,12 @@ export interface GameControls {
    * announcement and one refusal. A caravan that is not this seat's is ignored,
    * which is the same answer the reducer would give.
    */
-  startRouteFrom(unitId: number, fromCityId: number, toCityId: number): void;
+  startRouteFrom(
+    unitId: number,
+    fromCityId: number,
+    toCityId: number,
+    mode?: RouteMode,
+  ): void;
   setAutoResendOf(unitId: number, on: boolean): void;
   cancelRouteOf(unitId: number): void;
 
@@ -3458,7 +3463,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * both, so this is the function's own last act rather than a second one
    * layered on top of it.
    */
-  function startRouteFrom(unitId: number, fromCityId: number, toCityId: number): void {
+  function startRouteFrom(
+    unitId: number,
+    fromCityId: number,
+    toCityId: number,
+    mode?: RouteMode,
+  ): void {
     const { state } = getGame();
     if (!canOrder()) {
       reject(`You have ended turn ${state.turn}`);
@@ -3473,6 +3483,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       unitId,
       fromCityId,
       toCityId,
+      // Spread rather than assigned, so a caller that names no mode sends the
+      // command shape this verb has always sent and the reducer's own default
+      // decides — see `StartRouteCommand.mode`.
+      ...(mode === undefined ? {} : { mode }),
     });
     if (!result.ok) {
       reject(result.error);

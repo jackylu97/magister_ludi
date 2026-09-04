@@ -41,8 +41,12 @@ import type { City, GameConfig, GameState, Player } from '../../src/sim/state';
 import { createUnit, playerById, realPlayers } from '../../src/sim/state';
 import { openEveryWar } from './warHelpers';
 
+// Re-aimed from seed 20260831 on 2026-09-03, when the default map became a
+// pangaea: the old seed's capital came up ringed in forest and shore, and a bench
+// where a spade has nothing legal to do makes the improvement plan below assert
+// nothing at all.
 const CONFIG: GameConfig = {
-  seed: 20260831,
+  seed: 20260903,
   sizeName: 'duel',
   players: [
     { name: 'Crimson', color: '#d4502e' },

@@ -992,6 +992,10 @@ describe('the growth channel', () => {
   it('adds a quarter to what a town banks, summed with the meters', () => {
     const g = game();
     const city = found(g.state, 0);
+    // The town drinks, so the wonder's quarter is the whole of what is on the
+    // channel: a town off fresh water carries the dry-settle line as well
+    // (`explainGrowthPercent`, 2026-09-03), and that is another test's subject.
+    getTileAt(g.state.map, city.col, city.row)!.freshwater = true;
     const yields = { ...emptyCityYields(), food: 10 };
     const bare = growthSurplus(g.state, city, yields);
     expect(bare).toBeGreaterThan(0);
@@ -1020,6 +1024,10 @@ describe('an ordinary building carries card effects, in its own town only', () =
   it('pays the town it stands in', () => {
     const g = game();
     const city = found(g.state, 0);
+    // Watered by the ground, so what is measured here is the row's own +15% and
+    // not the dry-settle line the aqueduct also lifts (`explainGrowthPercent`;
+    // that half is pinned in `test/sim/cities.test.ts`).
+    getTileAt(g.state.map, city.col, city.row)!.freshwater = true;
     const yields = { ...emptyCityYields(), food: 10 };
     const bare = growthSurplus(g.state, city, yields);
 

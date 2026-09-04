@@ -43,7 +43,7 @@ import {
   resourceDef,
 } from '../sim/resourceData';
 import { carveContinents, landTileCount } from '../sim/resources';
-import { chooseStartPositions, scoreStartSite } from '../sim/startPositions';
+import { chooseStartPositions, landmassFacts, scoreStartSite } from '../sim/startPositions';
 import type { GameState } from '../sim/state';
 import { isWaterTerrain } from '../sim/terrainData';
 import { hasFreshWater, isCoastal } from '../sim/water';
@@ -256,9 +256,12 @@ export function startReport(state: GameState): StartReport {
   const { map } = state;
   const radius = Math.max(0, Math.round(resourcesOf(map).startLuxuryRadius));
   const starts = chooseStartPositions(map, state.players.length);
+  // One walk of the land for the whole table. `scoreStartSite` would otherwise
+  // recompute the landmass floor's components once per seat.
+  const landmass = landmassFacts(map);
 
   const rows = starts.map((tile, seat) => {
-    const scored = scoreStartSite(map, tile);
+    const scored = scoreStartSite(map, tile, undefined, landmass);
     return {
       playerId: seat,
       name: state.players[seat]?.name ?? `Seat ${seat + 1}`,

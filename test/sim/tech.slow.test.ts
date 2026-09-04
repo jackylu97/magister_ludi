@@ -187,7 +187,7 @@ describe('pacing', () => {
   }
 
   it('closes its four ages on the Quick-speed schedule (Entry V)', () => {
-    const { game, ageDone } = playEmpire(420);
+    const { game, ageDone } = playEmpire(520);
     // Measured on this seed after the city-centre re-base: **41 / 80 / 120**,
     // against 40 / 78 / 118 immediately before it, 37 / 74 / 111 when the Civ
     // 6-style Age I ramp landed, 40 / 68 / 107 with the flat 16–29 Age I costs,
@@ -368,6 +368,42 @@ describe('pacing', () => {
     //     ~t265 the hand-tuning had settled on rather than past it.
     //
     // Bands keep the same widths again (±10 / ±15 / ±25 / ±30), re-centred.
+    //
+    // **Re-pinned 2026-09-03, the late-cost ruling.** The user, on the cost-knob
+    // flag: "technologies should keep the same scaling they had in age 1-2.
+    // Technologies should be extremely expensive in age 4-5." So columns 0–5 are
+    // exactly the figures they were, columns 6–8 lift a little
+    // (335/450/565 → 400/540/680) and columns 9–12 lift hard
+    // (665/750/820/875 → 1450/1700/1950/2200) — the tree is 35710 beakers
+    // against 19725, the ages 345 / 1665 / 7700 / 26000. The full table is in
+    // `tech.test.ts`'s `COLUMN_COSTS`; the ruling is written up in the pricing
+    // note in `tech.ts`.
+    //
+    // This seed closes at **58 / 91 / 207 / 443** against 44 / 84 / 175 / 236.
+    // Two of those four numbers are *not* this ruling's doing and it matters
+    // that the pin says so:
+    //
+    //   · **Æra I and Æra II moved without a single one of their prices
+    //     moving** (44 → 58, 84 → 91). Their columns are untouched, so what
+    //     moved under them is everything that landed between this pin and the
+    //     last one — tree revisions 4.1 and 4.2 re-shaped the chart and were
+    //     never re-measured here, and the economy batch re-priced what the
+    //     empire buys with the hammers it is not spending on science. This is
+    //     a fresh measurement of the harness as it stands, not an effect of
+    //     the late columns.
+    //   · **Æra III and Æra IV are the ruling** (175 → 207, 236 → 443). Æra III
+    //     is a hundred and sixteen turns against ninety-one, which is the
+    //     little lift; Æra IV is two hundred and thirty-six against sixty-one,
+    //     which is "extremely expensive" read literally — the closing age is
+    //     now more than half the game, and the curtain lands around **t443**
+    //     rather than t236.
+    //
+    // The horizon grew with the bands: `playEmpire` plays 520 turns rather than
+    // 420, because a harness that stops before the tree closes measures nothing
+    // (the same reason the linear-taper experiment was thrown out). At 1400
+    // turns this empire holds all fifty nodes and banks beakers it has nothing
+    // left to buy, so 520 is a horizon with room in it rather than a new wall.
+    // Bands keep the widths above (±10 / ±15 / ±25 / ±30), re-centred.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -377,14 +413,14 @@ describe('pacing', () => {
     expect(third, `age III: ${String(third)}`).toBeDefined();
     expect(fourth, `age IV: ${String(fourth)}`).toBeDefined();
 
-    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(34);
-    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(54);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(69);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(99);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(150);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(200);
-    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(206);
-    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(266);
+    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(48);
+    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(68);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(76);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(106);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(182);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(232);
+    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(413);
+    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(473);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 120_000);
 

@@ -282,7 +282,9 @@ describe('the city panel’s routes row', () => {
     // banks it, so it is the **inbound** row that now carries what the route
     // is worth — see `cityRouteRows`.
     const { state, trader, home, partner } = tradeWorld();
-    home.buildings.push('granary');
+    // Two food-side buildings: the 2026-09-03 nerf pays a food per two, and
+    // this pin wants a figure on the inbound row.
+    home.buildings.push('granary', 'library');
     applyCommand(state, {
       type: 'startRoute',
       playerId: 0,

@@ -118,6 +118,32 @@ export function buildingCityHp(city: City): BuildingCityStatLine[] {
   return list;
 }
 
+/**
+ * **Does a building standing in this town water it** — an aqueduct, today?
+ *
+ * The one reading of `BuildingDef.waters`, so that nothing anywhere compares a
+ * building id against `"aqueduct"`, exactly as `isWonder` is the one reading of
+ * `wonder`. Asked by one rule: the dry-settle penalty a town off fresh water
+ * pays on its growth surplus (`explainGrowthPercent`, `cities.ts`).
+ *
+ * A boolean rather than a list, and the one answer in this file that is: the
+ * other three are numbers a breakdown has to print with their reasons beside
+ * them, and this is a *gate* — the reason is printed by the line it removes,
+ * which is the one the player is looking for ("No fresh water", gone the turn
+ * the aqueduct is raised).
+ *
+ * It answers about the **town** and not the ground under it: `cityHasFreshwater`
+ * (`statecraft.ts`) is the board's question and is untouched by anything built,
+ * so an aqueduct feeds this city's people and still waters nobody's fields.
+ */
+export function cityIsWatered(city: City): boolean {
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    if (buildingDef(id).waters === true) return true;
+  }
+  return false;
+}
+
 /** The fold of a building city-stat list. The only sum of one. */
 export function foldBuildingCityStat(list: readonly BuildingCityStatLine[]): number {
   let total = 0;

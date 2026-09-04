@@ -65,6 +65,11 @@ import {
 } from '../../src/ui/compendium';
 import { SHELF_INTRO_KEY, SHELF_INTROS } from '../../src/ui/compendiumShelves';
 import { CONCEPT_ENTRIES, INTRO_ENTRIES } from '../../src/ui/compendiumText';
+import {
+  PAMPHLET_ENTRY_ID,
+  PAMPHLET_PAGES,
+  pamphletEntry,
+} from '../../src/ui/pamphlet';
 import { techRuleClauses, techsAwaitingRuleNotes } from '../../src/ui/techRuleWords';
 
 const BOOK = compendiumSections();
@@ -407,6 +412,78 @@ describe('a deep link', () => {
 });
 
 /**
+ * **The Pamphlet's page** (`src/ui/pamphlet.ts`, ruled 2026-09-03): the
+ * five-minute read a new player skims before the tutorial lives on the
+ * Introduction shelf forever after, at a stable anchor the overlay's dismissal
+ * note and the tutorial's last card can point to. What is held here is the
+ * book's half of the bargain — the anchor resolves, a deep link lands, the
+ * search reaches the prose, and every keyword mark in it points at a page the
+ * book actually has. The first-run half (the memory, the ordering against the
+ * tutorial) is in `tutorial.test.ts`, beside the guide it front-runs.
+ */
+describe('the pamphlet page', () => {
+  it('stands first on the Introduction shelf, at its stable anchor', () => {
+    const intro = shelf('intro');
+    expect(intro.entries[0]!.id).toBe(PAMPHLET_ENTRY_ID);
+    // The literal in `pamphlet.ts` and the composer agree — the entry id is
+    // the DOM id, the URL hash and `open`'s argument, so a drifted spelling
+    // would be a link that lands nowhere.
+    expect(PAMPHLET_ENTRY_ID).toBe(compendiumId('intro', 'pamphlet'));
+    // And the book still opens on How to play: the pamphlet is the front
+    // matter a reader is *sent* to, not the page every open lands on.
+    expect(DEFAULT_ENTRY).toBe('intro:howToPlay');
+  });
+
+  it('is a written page whose clauses are the pages’ own lines', () => {
+    const entry = pamphletEntry();
+    expect(entry.written).toBe(true);
+    expect(entry.pamphlet).toBe(true);
+    expect(entry.rows).toEqual([]);
+    // Every line of every page, in flipping order — that is what the index's
+    // search walks, so a page left out of the clauses would be a page no
+    // search could find.
+    expect(entry.clauses.map((clause) => clause.text)).toEqual(
+      PAMPHLET_PAGES.flatMap((page) => [...page.lines]),
+    );
+  });
+
+  it('lands a deep link and answers a search over its prose', () => {
+    const landing = compendiumShow(BOOK, '', PAMPHLET_ENTRY_ID);
+    expect(landing).toEqual({ openSection: 'intro', marked: PAMPHLET_ENTRY_ID, clearSearch: false });
+    // "balks" appears only on the pamphlet's End Turn page; a reader typing
+    // it is looking for the sentence, and `entry.written` is what widens the
+    // search to it.
+    const hits = filterSections(BOOK, 'balks').flatMap((section) => section.entries);
+    expect(hits.map((entry) => entry.id)).toContain(PAMPHLET_ENTRY_ID);
+  });
+
+  it('points every keyword mark at a page the book actually has', () => {
+    const mark = /\[\[([a-zA-Z]+):([A-Za-z0-9_]+)\|([^[\]|]*)\]\]/g;
+    const ids = new Set(everyEntry().map((entry) => entry.id));
+    let refs = 0;
+    for (const page of PAMPHLET_PAGES) {
+      for (const text of page.lines) {
+        for (const found of text.matchAll(new RegExp(mark.source, 'g'))) {
+          refs += 1;
+          const target = `${found[1]}:${found[2]}`;
+          expect(ids.has(target), `${page.id} → ${target}`).toBe(true);
+          expect(found[3]!.length, `${page.id} → ${target}`).toBeGreaterThan(0);
+        }
+      }
+    }
+    // The sweep is not vacuous: the pamphlet does name things the book keeps.
+    expect(refs).toBeGreaterThan(3);
+  });
+
+  it('is drawn by its own printer on the card, not as flat paragraphs', () => {
+    const source = sourceOf('compendium.ts');
+    expect(source).toContain("import { renderPamphletBody } from './pamphlet'");
+    expect(source).toMatch(/entry\.pamphlet === true/);
+    expect(source).toContain('renderPamphletBody(leaf)');
+  });
+});
+
+/**
  * The rule the whole module exists for, read off its own source.
  *
  * **Never hand-written prose about a number.** Every figure on this page has to
@@ -633,6 +710,33 @@ describe('never hand-written prose about a number', () => {
     expect(source).toContain("from '../sim/resourceEffects'");
     expect(source).toContain("from '../sim/techUnlocks'");
     expect(source).toContain("from '../sim/rulesData'");
+  });
+
+  /**
+   * The dry-settle rule reaches the reader on both shelves it belongs to (the
+   * ruling of 2026-09-03), and off the **marker** rather than off a name: the
+   * building entry says what raising it lifts, and the Cities concept says the
+   * rule a player needs before they choose where to plant a town. Neither states
+   * the number — a percentage in written prose is the one thing rule 7 forbids
+   * — and neither names the row, so a second building that waters a town joins
+   * the first sentence for free.
+   */
+  it('tells a reader that a town off fresh water grows slowly until it is watered', () => {
+    const watering = BUILDING_IDS.filter((id) => buildingDef(id).waters === true);
+    expect(watering.length).toBeGreaterThan(0);
+    for (const id of watering) {
+      const entry = everyEntry().find((row) => row.id === `building:${id}`);
+      const prose = entry!.clauses.map((clause) => clause.text).join(' ');
+      expect(prose, id).toContain('not beside fresh water');
+      expect(prose, id).toContain('until this is built');
+    }
+    // And the concept a player reads before founding anything says the same
+    // thing in the same words.
+    const cities = everyEntry().find((row) => row.id === 'concept:cities');
+    const concept = cities!.clauses.map((clause) => clause.text).join(' ');
+    expect(concept).toContain('fresh water');
+    expect(concept).toContain('aqueduct');
+    expect(concept).not.toMatch(/\d/);
   });
 
   it('says which end of a trade route is read and which end is paid', () => {

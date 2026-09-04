@@ -82,16 +82,25 @@ describe('techGifts', () => {
       'building',
       'buildingRenewal',
     ]);
-    // Engineering took Construction's works and its lumbermill: four buildings
-    // (the Circus Maximus among them, because a wonder is an ordinary building
-    // on this list) and then the improvement, which sorts after them exactly as
-    // the chop's ability sorts after everything.
+    // Engineering took Construction's works: four buildings, the Circus Maximus
+    // among them, because a wonder is an ordinary building on this list. The
+    // lumbermill left for Siegecraft on 2026-09-03 (user: "lumbermills need to
+    // be way earlier in the tech tree, early age 2 probably"), so Engineering
+    // hands over buildings and nothing else.
     expect(techGifts('engineering').map((gift) => gift.kind)).toEqual([
       'building',
       'building',
       'building',
       'building',
-      'improvement',
+    ]);
+    // And Siegecraft is where it went: the bowman, the walls, then the
+    // improvement, and the siege ability last with the other verbs — the same
+    // reading order, one age earlier.
+    expect(techGifts('siegecraft').map((gift) => [gift.kind, gift.id])).toEqual([
+      ['unit', 'bowman'],
+      ['building', 'stoneWalls'],
+      ['improvement', 'lumbermill'],
+      ['ability', 'siege'],
     ]);
     // Bronzeworking hands over three buildings — the barracks and the funeral
     // games from the Age I sinks, and the Walls of Uruk from the wonders — and

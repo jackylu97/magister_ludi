@@ -37,6 +37,7 @@ import {
 } from './map';
 import { RULES } from './rulesData';
 import { type City, type GameState, type Unit, capitalCityOf, tileOwnerField } from './state';
+import { isWaterTerrain } from './terrainData';
 import { trades, unitDef } from './unitData';
 
 const TRADE = RULES.trade;
@@ -64,8 +65,18 @@ const TRADE = RULES.trade;
  * `false` and writes neither field — so a free road **stays** free, and a road
  * that was already worn does not become free because a doctrine drew a line
  * through it. Whichever mark got there first is the one that stands.
+ *
+ * **Nothing paves water** (the user's bug report, 2026-09-03: *"trade routes
+ * shouldn't create roads over water"*). It is a refusal *here*, in the one
+ * writer, rather than a clause in each occasion, because it is not a fact about
+ * caravans or about doctrines — it is a fact about roads: there is no occasion
+ * in this game on which a highway across the sea is the right mark, and a rule
+ * stated once cannot be forgotten by the third way to lay a road. The Founders'
+ * Road already surveyed with `embarks: false` and so never reached this, and a
+ * sea route lays nothing at all (`layRoadUnder`); this is the floor under both.
  */
 export function layRoad(tile: Tile, ownerId: number, free = false): boolean {
+  if (isWaterTerrain(tile.terrain)) return false;
   if (tile.road !== undefined) return false;
   tile.road = ownerId;
   if (free) tile.roadFree = true;
@@ -91,12 +102,22 @@ export function layRoad(tile: Tile, ownerId: number, free = false): boolean {
  * through `layRoad` like everything else, so the legion's road and the
  * caravan's are one mark on one field and the maintenance count cannot tell
  * them apart — which is the point.
+ *
+ * **A sea route lays nothing at all** (the user's ruling, 2026-09-03). A route
+ * is entirely a land route or entirely a sea route, and the sea half wears no
+ * highway — not on the water, which `layRoad` refuses outright, and not on the
+ * two harbours either, which is the clause here. Read off the route the piece is
+ * carrying (`TradeRoute.sea`), because that is where the choice was recorded and
+ * the alternative — inferring it from the hex underfoot — would pave a harbour
+ * and then stop, leaving two disconnected stubs a player would read as a road
+ * that failed.
  */
 export function layRoadUnder(unit: Unit, tile: Tile): boolean {
   const def = unitDef(unit.type);
   if (def.laysRoad === true) return layRoad(tile, unit.ownerId);
   if (!trades(def)) return false;
   if (unit.trade === undefined) return false;
+  if (unit.trade.sea === true) return false;
   return layRoad(tile, unit.ownerId);
 }
 

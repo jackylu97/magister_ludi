@@ -16,6 +16,7 @@ import type { Command } from '../../src/sim/commands';
 import {
   cityStageSums,
   cityYieldPercents,
+  cityQuote,
   cityYields,
   explainTileYield,
   foldTileYield,
@@ -57,6 +58,7 @@ import {
   cityScopeAdmits,
   cardCityYields,
   cardProduction,
+  cardYieldConversions,
   cardFoundingRider,
   foldCardYields,
   cardOfferRule,
@@ -66,6 +68,7 @@ import {
   draftCost,
   drawDoctrineOffer,
   drawOrderOffer,
+  drawOrderOptions,
   filledOrderSlots,
   isUpgradable,
   liveEffects,
@@ -114,6 +117,7 @@ import {
   slotLayout,
 } from '../../src/sim/statecraftData';
 import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
+import { isCoastal } from '../../src/sim/water';
 import { arriveOnTile } from '../../src/sim/arrival';
 import { foundCityAt } from '../../src/sim/cities';
 import { improvementDef } from '../../src/sim/improvementData';
@@ -140,7 +144,13 @@ import {
   roadsBuiltBy,
   routeSlots,
 } from '../../src/sim/trade';
-import { SCHEMA_VERSION, type GameState, createUnit, playerById } from '../../src/sim/state';
+import {
+  SCHEMA_VERSION,
+  type City,
+  type GameState,
+  createUnit,
+  playerById,
+} from '../../src/sim/state';
 import { unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
 import { sightOf } from '../../src/sim/visibility';
@@ -237,10 +247,10 @@ describe('the card table', () => {
 
   it('opens with a slot for every kind of card the chiefdom pool can deal', () => {
     // Playtest batch two, 8/27: "chiefdom should include 1 wildcard slot, or
-    // make all tier 1 orders non-wildcard". The first option — two of the
-    // eleven chiefdom-pool Orders are wildcard-only (First Rites, Border
-    // Ballads), and a starting government that could never play a card its own
-    // pool deals is a draft that hands a seat a dead card.
+    // make all tier 1 orders non-wildcard". The first option — several of the
+    // chiefdom-pool Orders are wildcard-only (First Rites, Fire-Keepers, Hearth
+    // Songs, First Fruits), and a starting government that could never play a
+    // card its own pool deals is a draft that hands a seat a dead card.
     const layout = slotLayout(STARTING_GOVERNMENT);
     expect(layout).toEqual(['military', 'economic', 'wildcard']);
     const pool = ORDER_IDS.filter((id) => orderDef(id).pool === 'chiefdom');
@@ -329,6 +339,9 @@ describe('the card table', () => {
       'foundingRider', 'countScaled', 'rateConversion', 'offerRider', 'effectAmplifier',
       'meterRule', 'conditionRule', 'actionRule', 'behaviorRule', 'cityStat', 'metaRule',
       'tileYield', 'renown', 'upkeepRebate',
+      // The user's card pass of 2026-09-03: Thalassocracy stopped being two
+      // percentages and became a share of one voice paid again as another.
+      'yieldConversion',
       // No longer the marked exception: buildings can be bought (Entry XXIX), so
       // `cardUnlocksBuilding` is read by `isUnlocked` and The Gilded Court
       // really does hand the Gilded Hall over.
@@ -528,10 +541,10 @@ describe('the command matrix', () => {
     const g = game();
     const sc = g.state.players[0]!.statecraft;
     // The chiefdom's layout is [military, economic, wildcard] — the third slot
-    // arrived with the playtest pass, so that the two wildcard-only cards in the
-    // chiefdom pool (First Rites, Border Ballads) are cards an opening
-    // government can actually play. Blooded Spears is military, so the economic
-    // slot still refuses it.
+    // arrived with the playtest pass, so that the wildcard-only cards in the
+    // chiefdom pool (First Rites, Fire-Keepers, Hearth Songs, First Fruits) are
+    // cards an opening government can actually play. Blooded Spears is military,
+    // so the economic slot still refuses it.
     expect(slotLayout(sc.government)).toEqual(['military', 'economic', 'wildcard']);
     grant(sc, 'bloodedSpears');
     refuses(
@@ -701,12 +714,12 @@ describe('adoption', () => {
     expect(poolOfGovernment(player.statecraft.government)).toBe('chiefdom');
     dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 } as Command);
     expect(poolOfGovernment(player.statecraft.government)).toBe('governmentI');
-    // The live pool is the new government's cards plus the chiefdom leftovers.
+    // The live pool is the new government's cards and **nothing else** (user,
+    // 2026-09-03). The chiefdom leftovers used to ride along; adopting now turns
+    // the whole shelf over, and a chiefdom card never taken is gone for good.
     const pool = new Set(livePool(player.statecraft));
     expect([...pool].some((id) => orderDef(id).pool === 'governmentI')).toBe(true);
-    expect([...pool].some((id) => orderDef(id).pool === 'chiefdom')).toBe(true);
-    // And nothing from a pool two governments back — those retire.
-    expect([...pool].every((id) => orderDef(id).pool !== 'governmentII')).toBe(true);
+    expect([...pool].every((id) => orderDef(id).pool === 'governmentI')).toBe(true);
   });
 
   it('banks the offer until it is claimed', () => {
@@ -988,15 +1001,28 @@ describe('every hook family, end to end', () => {
     expect(city.population).toBe(2);
   });
 
-  it('foundingRider — The Founders’ Road stops after its stated count', () => {
+  it('foundingRider — The Founders’ Road founds no hall, and pays every town its culture', () => {
+    // Re-pinned by the user's card pass of 2026-09-03: the free Monument and its
+    // first-five count are gone, and the road bought a culture line instead. So
+    // `CardFoundingRiderEffect.maxCities` is a field **no live row carries** —
+    // held for the day a card counts its first towns again, and read by
+    // `cardFoundingRider` exactly as it was. What is pinned here is the row as
+    // the user wrote it: nothing is founded with a building, and every town of
+    // the realm is a culture better off.
     const g = game();
     g.state.players[0]!.statecraft.doctrines.push('foundersRoad');
-    expect(cardFoundingRider(g.state, 0).buildings).toEqual(['monument']);
-    const city = found(g.state, 0);
-    expect(city.buildings).toContain('monument');
-    // Five cities held: the sixth is founded without one.
-    for (let i = 0; i < 4; i++) g.state.cities.push({ ...city, id: 900 + i });
     expect(cardFoundingRider(g.state, 0).buildings).toEqual([]);
+    const city = found(g.state, 0);
+    expect(city.buildings).not.toContain('monument');
+    const line = cardCityYields(g.state, city).find((l) => l.card === 'foundersRoad')!;
+    expect(line.culture).toBe(1);
+    // Every town, however many there are — the clause carries no scope at all.
+    const second = foundCityAt(
+      g.state,
+      0,
+      getTileAt(g.state.map, (city.col + 5) % g.state.map.width, city.row)!,
+    )!;
+    expect(cardCityYields(g.state, second).find((l) => l.card === 'foundersRoad')!.culture).toBe(1);
   });
 
   it('conditionRule — The Hermit Crown opens and closes with the city count', () => {
@@ -1023,9 +1049,14 @@ describe('every hook family, end to end', () => {
     g.state.players[0]!.statecraft.doctrines.push('burningWay');
     expect(cardActionRule(g.state, 0, 'freeChop')).toBe(true);
 
-    expect(cardBehaviorRule(g.state, 0, 'barbariansPassive')).toBe(false);
+    // The pact's one surviving clause since the user's card pass of 2026-09-03
+    // — it was three named rules and is now one, so the hook is read through the
+    // rule a live row still carries. `barbariansPassive` and `noCampClearing`
+    // are held in the vocabulary with no row naming them; their verbs are pinned
+    // further down, driven by a timed effect.
+    expect(cardBehaviorRule(g.state, 0, 'barbarianKillsConvert')).toBe(false);
     g.state.players[0]!.statecraft.doctrines.push('wolfMothersPact');
-    expect(cardBehaviorRule(g.state, 0, 'barbariansPassive')).toBe(true);
+    expect(cardBehaviorRule(g.state, 0, 'barbarianKillsConvert')).toBe(true);
 
     expect(cardOfferRule(g.state, 0, 'discoveryClaimAll')).toBe(false);
     g.state.players[0]!.statecraft.doctrines.push('athenaeumOfTheRoad');
@@ -1125,7 +1156,7 @@ describe('determinism', () => {
     // Doctrine ever withdrawn — while The Unbroken Land narrows to unimproved
     // forest and jungle. A v58 log names indices of triples dealt from bags
     // this build no longer holds.
-    expect(SCHEMA_VERSION).toBe(59);
+    expect(SCHEMA_VERSION).toBe(60);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1535,6 +1566,13 @@ describe('the behavioural hooks, in the verbs they change', () => {
   });
 
   it('behaviorRule barbariansPassive — the wild stops choosing this seat', () => {
+    // **A rule held with no row naming it.** The user's card pass of 2026-09-03
+    // cut Wolf-Mother's Pact back to its conversion clause, so nothing in the
+    // data turns this on today — and the verb that reads it is unchanged, which
+    // is exactly what makes restoring the clause a JSON row rather than a change
+    // to the wild's own module. It is therefore driven here through
+    // `Player.timed`, an ordinary source of live effects, so the reading stays
+    // pinned while the vocabulary waits for a card.
     const g = createGame({
       seed: 51,
       sizeName: 'duel',
@@ -1547,7 +1585,11 @@ describe('the behavioural hooks, in the verbs they change', () => {
     recomputeVisibility(g.state, wild.id);
     // The wild can see this seat's pieces, so it has a target — until the pact.
     expect(nearestTarget(g.state, wild, raider)).not.toBeNull();
-    g.state.players[0]!.statecraft.doctrines.push('wolfMothersPact');
+    g.state.players[0]!.timed = [{
+      card: 'wolfMothersPact',
+      effect: { kind: 'behaviorRule', rule: 'barbariansPassive' },
+      expiresTurn: g.state.turn + 10,
+    }];
     expect(nearestTarget(g.state, wild, raider)).toBeNull();
   });
 
@@ -1870,7 +1912,13 @@ describe('the master-list cut of 2026-08-28', () => {
     const g = game();
     const from = found(g.state, 0);
     const to = foundCityAt(g.state, 0, getTileAt(g.state.map, (from.col + 5) % g.state.map.width, from.row)!);
-    from.buildings.push('market', 'workshop', 'barracks', 'granary', 'library', 'monument');
+    // Eight buildings, four per side: the 2026-09-03 nerf pays a yield per TWO
+    // buildings, and this claim needs a base of 2/2 so the charter's 50% still
+    // floors to something a line can carry.
+    from.buildings.push(
+      'market', 'workshop', 'barracks', 'stoneWalls',
+      'granary', 'library', 'monument', 'amphitheater',
+    );
     const before = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
     playerById(g.state, 0)!.statecraft.government = 'merchantLeague';
     const after = explainRouteYieldBetween(g.state, from, to);
@@ -2103,20 +2151,32 @@ describe('the master-list cut of 2026-08-28', () => {
     // Not dead: standing, on its feet, and flying the killer's colours.
     expect(after).toBeDefined();
     expect(after!.ownerId).toBe(0);
-    expect(after!.hp).toBeGreaterThan(0);
+    // **At full health**, which is the whole of the user's card pass of
+    // 2026-09-03: the pact lost its two other clauses and the convert stopped
+    // arriving on one hit point. Its own maximum, not the roster's, so a stamped
+    // raider is whole by the bar the renderer will draw for it.
+    expect(after!.hp).toBe(unitMaxHp(after!));
   });
 
-  it("noCampClearing — Wolf-Mother's Pact does not sack its ally's villages", () => {
+  it('noCampClearing — an empire at peace with the wild does not sack its villages', () => {
+    // The second rule held with no row naming it (see `barbariansPassive`
+    // above): the user's card pass of 2026-09-03 left Wolf-Mother's Pact with
+    // its conversion clause alone, and `arriveOnTile` still asks. Driven
+    // through `Player.timed` for that reading's reason exactly.
     const g = game();
     const player = playerById(g.state, 0)!;
     const unit = g.state.units.find((u) => u.ownerId === 0)!;
     const tile = getTileAt(g.state.map, unit.col, unit.row)!;
     g.state.camps.push({ col: tile.col, row: tile.row, foundedTurn: 0 });
-    player.statecraft.doctrines.push('wolfMothersPact');
+    player.timed = [{
+      card: 'wolfMothersPact',
+      effect: { kind: 'behaviorRule', rule: 'noCampClearing' },
+      expiresTurn: g.state.turn + 10,
+    }];
     expect(arriveOnTile(g.state, unit, tile).camp).toBeNull();
     expect(g.state.camps).toHaveLength(1);
-    // Without the doctrine the same arrival burns it out — the rule is the card.
-    player.statecraft.doctrines = [];
+    // Without the rule the same arrival burns it out — the rule is the card.
+    delete player.timed;
     expect(arriveOnTile(g.state, unit, tile).camp).not.toBeNull();
     expect(g.state.camps).toHaveLength(0);
   });
@@ -2269,18 +2329,14 @@ describe('the master-list cut of 2026-08-28', () => {
       'a great person waiting to be called may be bought with faith',
     ]);
 
+    // The user's card pass of 2026-09-03 cut the pact to one clause and the road
+    // to the road — both cards print exactly what is left of them.
     expect(said('wolfMothersPact')).toEqual([
-      'barbarians never attack you',
-      'a barbarian you kill joins you instead of dying',
-      'you can no longer clear a barbarian camp',
+      'a barbarian you kill joins you at full health instead of dying',
     ]);
     expect(said('foundersRoad')).toEqual([
-      'new cities are founded with a Monument (first 5 cities)',
       'new cities are joined to your nearest city by road',
-      // The master-list cut of 2026-08-28: the ratified text now promises the
-      // *better* hall once one exists, and there is no amphitheatre row to
-      // name — so the half is deferred on the row and printed as such.
-      'an amphitheatre instead of the Monument, once one is unlocked — not built yet',
+      '+1 culture in every city',
     ]);
     expect(said('gildedCourt')).toEqual([
       'unlocks the Gilded Hall',
@@ -2667,9 +2723,17 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     const player = playerById(g.state, 0)!;
     player.statecraft.doctrines.push('breadAndCircuses' as never);
 
-    // A fresh empire has spare writ, so the gate is open and the clause is a
-    // labelled line of the happiness fold rather than a number added beside it.
+    // The user's card pass of 2026-09-03 narrowed the happiness half to the
+    // towns of six or more, so a village pays nothing however open the gate is —
+    // the scope and the condition are two separate refusals and both are pinned.
     expect(authorityOf(g.state, 0)).toBeGreaterThan(0);
+    expect(city.population).toBeLessThan(6);
+    expect(explainHappiness(g.state, 0).some((l) => l.source.includes('Bread'))).toBe(false);
+
+    // A fresh empire has spare writ, so with a town big enough the gate is open
+    // and the clause is a labelled line of the happiness fold rather than a
+    // number added beside it.
+    city.population = 6;
     const open = explainHappiness(g.state, 0).filter((l) => l.source.includes('Bread'));
     expect(open.length).toBeGreaterThan(0);
     expect(foldMeter(open)).toBe(3 * g.state.cities.filter((c) => c.ownerId === 0).length);
@@ -2684,7 +2748,7 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
 
     // The gold half is unconditional and lands in every town's own breakdown.
     const gold = cardCityYields(g.state, city).find((l) => l.card === 'breadAndCircuses')!;
-    expect(gold.gold).toBe(-1);
+    expect(gold.gold).toBe(-2);
   });
 
   it('followingFaithPerTurn — Cuius Regio reads the faith of the towns that follow him', () => {
@@ -2800,8 +2864,8 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
       '+15% production toward melee units',
     ]);
     expect(said('breadAndCircuses')).toEqual([
-      'while your authority is positive: +3 happiness in every city',
-      '-1 gold in every city',
+      'while your authority is positive: +3 happiness in every city of 6+',
+      '-2 gold in every city',
     ]);
   });
 });
@@ -2885,10 +2949,11 @@ describe('the Orders pass of 2026-08-29', () => {
     slot(g.state, 0, 'hearthSongs');
     const paid = (): number =>
       cardCityYields(g.state, city).filter((l) => l.card === 'hearthSongs').length;
-    // Inclusive at the threshold, exactly as `populationAtLeast` is.
+    // Inclusive at the threshold, exactly as `populationAtLeast` is. The figure
+    // doubled in the user's card pass of 2026-09-03; the scope did not move.
     city.population = 4;
     expect(paid()).toBe(1);
-    expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(1);
+    expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(2);
     city.population = 5;
     expect(paid()).toBe(0);
   });
@@ -2940,8 +3005,15 @@ describe('the Orders pass of 2026-08-29', () => {
   it('hillCityCost — Hill Forts prices a hill town a point cheaper, and says so in the preview', () => {
     const g = game(804);
     const city = found(g.state, 0);
-    // Not the capital: the capital rides free and would hide the clause.
-    const hill = ownedTiles(g.state, city).find((t) => t.col !== city.col || t.row !== city.row)!;
+    // Not the capital: the capital rides free and would hide the clause. And
+    // not a hex on the shore either — the harbour outranks the fort by design
+    // (`cityCosts`' ladder of returns), so a coastal hill town is priced as a
+    // port and this card's line never prints. Asked of the ground rather than
+    // assumed of a seed since the pangaea of 2026-09-03 put water beside most
+    // of the opening ring.
+    const hill = ownedTiles(g.state, city).find(
+      (t) => (t.col !== city.col || t.row !== city.row) && !isCoastal(g.state.map, t),
+    )!;
     hill.hills = true;
     hill.terrain = 'grassland';
     const second = foundCityAt(g.state, 0, hill)!;
@@ -2954,7 +3026,10 @@ describe('the Orders pass of 2026-08-29', () => {
     // the whole reason `cityCosts` is hoisted: a preview that disagreed with the
     // meter it previews is a preview that lies.
     const site = ownedTiles(g.state, second).find(
-      (t) => t.hills && (t.col !== second.col || t.row !== second.row),
+      (t) =>
+        t.hills &&
+        (t.col !== second.col || t.row !== second.row) &&
+        !isCoastal(g.state.map, t),
     );
     if (site) {
       const preview = explainFoundingCost(g.state, 0, site).find((l) => l.meter === 'authority')!;
@@ -3065,7 +3140,7 @@ describe('the Orders pass of 2026-08-29', () => {
       'scouts: +1 movement',
       'claiming a ruin grants +15 gold',
     ]);
-    expect(said('hearthSongs')).toEqual(['+1 culture in every city of 4 or less']);
+    expect(said('hearthSongs')).toEqual(['+2 culture in every city of 4 or less']);
     expect(said('statuteLabour')).toEqual(['+1 production per 4 population in this city']);
     expect(said('riverWardens')).toEqual([
       // Reworked 2026-09-02: the wardens have to actually be there, which is
@@ -3388,7 +3463,9 @@ describe('the balance pass of 2026-08-31', () => {
       'the ground of every unimproved hex pays double',
     ]);
     expect(said('theGentleYoke')).toEqual([
-      '-20% happiness demanded per citizen',
+      // Softened from -20% by the user's card pass of 2026-09-03; the writ half
+      // was not touched.
+      '-15% happiness demanded per citizen',
       // Back to 2 by the flag ruling of 2026-09-03: the ratified card asks it of
       // every *new* city, and until a town remembers when it was founded the
       // honest reading is the cheaper one asked of all of them — said out loud
@@ -3977,5 +4054,303 @@ describe('the playtest nerf batch of 2026-09-03', () => {
     // it, which is the reading that keeps a typo silent rather than universal.
     tile.feature = 'forest';
     expect(tileConditionHolds(tile, { test: 'anyFeature', features: [] })).toBe(false);
+  });
+});
+
+// --- the draw, after the 9/3 ruling -----------------------------------------
+
+/**
+ * The two halves of the 2026-09-03 draft ruling: the pool is the current
+ * government's alone, and a hand of three or more shows one of each slot type.
+ *
+ * Both are claims about a *generator*, so every one of these sweeps rather than
+ * draws once — a spread rule that holds on the first hand and not the fortieth
+ * is the failure worth catching, and the deals are cheap.
+ */
+describe('the Order draft', () => {
+  /** Forty consecutive drafts from one game, which is one generator walked. */
+  function drafts(g: ReturnType<typeof game>, count = 40): OrderId[][] {
+    const player = g.state.players[0]!;
+    const hands: OrderId[][] = [];
+    for (let i = 0; i < count; i++) hands.push(drawOrderOffer(g.state, player).options);
+    return hands;
+  }
+
+  it('deals the current government’s pool and nothing behind it', () => {
+    for (const seed of [7, 11, 23, 41, 97]) {
+      const g = game(seed);
+      const player = g.state.players[0]!;
+      player.statecraft.government = 'republic';
+      expect(poolOfGovernment(player.statecraft.government)).toBe('governmentII');
+      for (const hand of drafts(g)) {
+        for (const id of hand) expect(orderDef(id).pool, `${seed} ${id}`).toBe('governmentII');
+      }
+    }
+  });
+
+  it('shows one of every slot type in a hand of three', () => {
+    // Every pool in the data stocks all three types, so the guarantee is
+    // reachable from every government — which is why an unreachable one is
+    // asserted here rather than assumed.
+    for (const pool of ORDER_POOLS) {
+      for (const type of SLOT_TYPES) {
+        expect(poolOrders(pool).some((id) => orderDef(id).slot === type), `${pool} ${type}`).toBe(
+          true,
+        );
+      }
+    }
+    for (const seed of [3, 13, 29, 53]) {
+      for (const government of ['chiefdom', 'republic'] as const) {
+        const g = game(seed);
+        const player = g.state.players[0]!;
+        player.statecraft.government = government;
+        for (const hand of drafts(g)) {
+          expect(hand, `${seed} ${government}`).toHaveLength(3);
+          const types = new Set(hand.map((id) => orderDef(id).slot));
+          for (const type of SLOT_TYPES) {
+            expect(types.has(type), `${seed} ${government} ${type} in ${hand.join()}`).toBe(true);
+          }
+        }
+      }
+    }
+  });
+
+  it('deals a legal hand from a pool with no military left in it', () => {
+    const g = game(59);
+    const player = g.state.players[0]!;
+    const sc = player.statecraft;
+    // Hold every military card the chiefdom has: the military sub-bag is empty,
+    // the slot deals nothing and falls through to the open fill. A hand is still
+    // three cards — an empty sub-bag is not a shorter hand.
+    for (const id of poolOrders('chiefdom')) {
+      if (orderDef(id).slot === 'military') grant(sc, id);
+    }
+    expect(livePool(sc).some((id) => orderDef(id).slot === 'military')).toBe(false);
+    for (const hand of drafts(g, 20)) {
+      expect(hand).toHaveLength(3);
+      expect(new Set(hand).size).toBe(3);
+      for (const id of hand) expect(orderDef(id).slot).not.toBe('military');
+      const types = new Set(hand.map((id) => orderDef(id).slot));
+      expect(types.has('economic')).toBe(true);
+      expect(types.has('wildcard')).toBe(true);
+    }
+  });
+
+  it('hands the cards back in the pool’s own file order, with no slot seam', () => {
+    // The guaranteed picks are drawn military-economic-wildcard; a hand that
+    // came back in draw order would read as a rule about which face is best.
+    const g = game(67);
+    const player = g.state.players[0]!;
+    for (const hand of drafts(g, 20)) {
+      const pool = livePool(player.statecraft);
+      expect(hand).toEqual(pool.filter((id) => hand.includes(id)));
+    }
+  });
+
+  it('deals the same forty hands from the same generator state', () => {
+    for (const seed of [7, 31]) {
+      expect(drafts(game(seed))).toEqual(drafts(game(seed)));
+    }
+  });
+
+  it('keeps the plain uniform draw for a hand narrower than the spread', () => {
+    // Nothing trims a draft today, so this is the rule stating its own
+    // precondition: below three cards the guarantee cannot be honoured and the
+    // draw is the old one, over the same pool.
+    const g = game(71);
+    const player = g.state.players[0]!;
+    const pool = livePool(player.statecraft);
+    const seen = new Set<string>();
+    for (let i = 0; i < 40; i++) {
+      const hand = drawOrderOptions(g.state, pool, 2);
+      expect(hand).toHaveLength(2);
+      expect(hand).toEqual(pool.filter((id) => hand.includes(id)));
+      seen.add(hand.map((id) => orderDef(id).slot).join('+'));
+    }
+    // A two-card hand is free to be two of a kind — the proof the guarantee is
+    // off below three rather than quietly half-applied.
+    expect([...seen].some((pair) => pair.split('+')[0] === pair.split('+')[1])).toBe(true);
+  });
+});
+
+// --- the user's card pass of 2026-09-03 -------------------------------------
+
+/**
+ * The rows the user rewrote by hand in `docs/orders-and-doctrines.md`, and the
+ * two shapes they needed: `yieldConversion` (a share of one voice a town makes,
+ * paid again as another) and `CardWindfallRiderEffect.atPopulation` (a growth
+ * narrowed to the citizen it was).
+ *
+ * One behavioural test per new shape, carried to the ledger it lands in — the
+ * file's own claim, and the only kind of test that catches a shape declared and
+ * never read. The rows whose *numbers* moved are pinned where their own passes
+ * pinned them; what is here is what this pass could not check anywhere else.
+ */
+describe("the user's card pass of 2026-09-03", () => {
+  /** Makes the hex beside a town open water, which is all "coastal" asks. */
+  function putToSea(state: GameState, city: { col: number; row: number }): void {
+    getTileAt(state.map, city.col + 1, city.row)!.terrain = 'coast';
+  }
+
+  /**
+   * A town with a harvest worth a tenth of: farms on its own ground, a granary,
+   * and citizens enough to work them, grown the way the turn pipeline grows one
+   * so the hexes are assigned rather than written.
+   */
+  function farmTown(state: GameState, city: City, size = 9): void {
+    for (const tile of ownedTiles(state, city)) {
+      if (tile.col === city.col && tile.row === city.row) continue;
+      tile.improvement = 'farm';
+    }
+    city.buildings.push('granary');
+    while (city.population < size) {
+      city.foodBasket = growthThreshold(city.population) + 5;
+      if (!settleGrowthWindfall(state, city)) break;
+    }
+  }
+
+  it('yieldConversion — Thalassocracy mints a tenth of what a coastal town grows', () => {
+    const g = game(901);
+    const city = found(g.state, 0);
+    putToSea(g.state, city);
+    farmTown(g.state, city);
+    const player = playerById(g.state, 0)!;
+
+    // Silent until the card is held, and then one **labelled** line: rule 5 at
+    // the town, with both voices in the label so the coin says where it came
+    // from.
+    const flats = cityQuote(g.state, city).flats;
+    expect(flats.food).toBeGreaterThanOrEqual(10);
+    expect(cardYieldConversions(g.state, city, flats)).toEqual([]);
+    player.statecraft.doctrines.push('thalassocracy');
+    const lines = cardYieldConversions(g.state, city, flats);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.source).toContain('Thalassocracy');
+    expect(lines[0]!.source).toContain('food → gold');
+    expect(lines[0]!.gold).toBe(Math.floor(flats.food / 10));
+    // Floored **per city**, on that town's own share — a tenth of nine is
+    // nothing and says so by not being a line at all.
+    expect(cardYieldConversions(g.state, city, { ...flats, food: 9 })).toEqual([]);
+    expect(cardYieldConversions(g.state, city, { ...flats, food: 10 })[0]!.gold).toBe(1);
+
+    // And it is really in the fold the panel prints: the flats the town is
+    // staged from carry the coin, and the harvest it was read off is untouched.
+    const after = cityQuote(g.state, city).flats;
+    expect(after.food).toBe(flats.food);
+    expect(after.gold).toBe(flats.gold + Math.floor(flats.food / 10));
+  });
+
+  it('yieldConversion — the scope is the whole of it: an inland town mints nothing', () => {
+    const g = game(901);
+    const city = found(g.state, 0);
+    farmTown(g.state, city);
+    playerById(g.state, 0)!.statecraft.doctrines.push('thalassocracy');
+    // Inland on this bench — asserted rather than assumed, so a map change
+    // cannot make this test pass by standing the town in a desert.
+    expect(cityScopeAdmits(g.state, city, { test: 'coastal' })).toBe(false);
+    const flats = cityQuote(g.state, city).flats;
+    expect(flats.food).toBeGreaterThanOrEqual(10);
+    expect(cardYieldConversions(g.state, city, flats)).toEqual([]);
+    expect(cityQuote(g.state, city).flats.gold).toBe(flats.gold);
+  });
+
+  it('atPopulation — First Fruits pays for the first citizen and for no other', () => {
+    const g = game(903);
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    slot(g.state, 0, 'firstFruitsOffering');
+
+    // The rider is a filter on the occasion, so the payout itself is the place
+    // to read it: a growth that reached two pays, and every other growth is not
+    // on that payout at all.
+    expect(windfallPayout(g.state, 0, 'growth', 0, 0, { population: 2 }).grants).toEqual([
+      { card: 'firstFruitsOffering', source: 'Order · First Fruits', yield: 'faith', amount: 10 },
+    ]);
+    expect(windfallPayout(g.state, 0, 'growth', 0, 0, { population: 3 }).grants).toEqual([]);
+    // An occasion that carries no population at all never satisfies it.
+    expect(windfallPayout(g.state, 0, 'growth').grants).toEqual([]);
+    expect(windfallPayout(g.state, 0, 'chop', 0, 0, { population: 2 }).grants).toEqual([]);
+
+    // End to end, through the one growth-completion routine: the town's first
+    // citizen banks the faith, and its second banks nothing.
+    city.population = 1;
+    const before = player.faithPool;
+    city.foodBasket = growthThreshold(1) + 5;
+    expect(settleGrowthWindfall(g.state, city)?.population).toBe(2);
+    expect(player.faithPool).toBe(before + 10);
+    city.foodBasket = growthThreshold(2) + 5;
+    expect(settleGrowthWindfall(g.state, city)?.population).toBe(3);
+    expect(player.faithPool).toBe(before + 10);
+  });
+
+  it('The Sacred Path pays the canopy in two voices', () => {
+    const g = game(904);
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    const tile = ownedTiles(g.state, city).find((t) => t.col !== city.col || t.row !== city.row)!;
+    const ctx = () => yieldContextFor(g.state, 0);
+
+    tile.feature = 'forest';
+    const bareForest = foldTileYield(explainTileYield(tile, ctx()));
+    tile.feature = 'jungle';
+    const bareJungle = foldTileYield(explainTileYield(tile, ctx()));
+
+    player.statecraft.doctrines.push('theSacredPath');
+    const jungle = foldTileYield(explainTileYield(tile, ctx()));
+    expect(jungle.culture).toBe(bareJungle.culture + 1);
+    expect(jungle.faith).toBe(bareJungle.faith);
+    tile.feature = 'forest';
+    const forest = foldTileYield(explainTileYield(tile, ctx()));
+    expect(forest.faith).toBe(bareForest.faith + 1);
+    expect(forest.culture).toBe(bareForest.culture);
+    // Bare ground is neither, and the card is silent on it.
+    tile.feature = 'none';
+    const open = explainTileYield(tile, ctx());
+    expect(open.some((line) => line.source.includes('Sacred Path'))).toBe(false);
+  });
+
+  it('takes the three withdrawn rows out of every pool, and keeps them readable', () => {
+    // The user's `[remove]` marks. A retired row keeps its effects and its name
+    // so a save that holds it replays; `poolOrders`/`poolDoctrines` are the one
+    // reader, so it is out of the draw, the upgrade roll and every screen at
+    // once.
+    for (const id of ['borderBallads', 'wolfRunners'] as OrderId[]) {
+      expect(orderDef(id).retired, id).toBe(true);
+      expect(orderDef(id).note, id).toBeTruthy();
+      expect(poolOrders(orderDef(id).pool).includes(id), id).toBe(false);
+      expect(describeCard(id).length, id).toBeGreaterThan(0);
+    }
+    expect(doctrineDef('mountainHold').retired).toBe(true);
+    expect(poolDoctrines(10).includes('mountainHold' as never)).toBe(false);
+    expect(describeCard('mountainHold').length).toBeGreaterThan(0);
+    // And the two rows the pass added are dealt.
+    expect(poolOrders('chiefdom').includes('firstFruitsOffering' as never)).toBe(true);
+    expect(poolDoctrines(10).includes('theSacredPath' as never)).toBe(true);
+  });
+
+  it('reads the shape this pass declared from at least one live card', () => {
+    const used = new Set<CardEffectKind>();
+    for (const id of [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS]) {
+      for (const effect of cardDef(id).effects) used.add(effect.kind);
+    }
+    expect(used.has('yieldConversion')).toBe(true);
+    // The member register: a field on an existing shape is invisible to the
+    // kind-level one, so `atPopulation` is named here or nothing checks it.
+    const riders = ORDER_IDS.flatMap((id) => orderDef(id).effects).filter(
+      (effect) => effect.kind === 'windfallRider',
+    );
+    expect(riders.some((effect) => effect.atPopulation !== undefined)).toBe(true);
+  });
+
+  it('prints every changed and new row in the words the user ratified', () => {
+    const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    expect(said('thalassocracy')).toEqual([
+      '10% of the food in every coastal city is gained again as gold',
+    ]);
+    expect(said('theSacredPath')).toEqual([
+      '+1 faith on every forest hex',
+      '+1 culture on every jungle hex',
+    ]);
+    expect(said('firstFruitsOffering')).toEqual(['a city growing grants +10 faith']);
   });
 });

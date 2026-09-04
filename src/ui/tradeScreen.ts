@@ -45,23 +45,30 @@
  */
 
 import {
+  type RouteMode,
   type RouteYieldLine,
   type TradeGoldLine,
   explainEmpireGold,
+  explainRouteSenderYield,
+  explainRouteSenderYieldBetween,
   explainRouteSlots,
   explainRouteYield,
   explainRouteYieldBetween,
   foldRouteYield,
   originCityOf,
   routeCities,
+  routeIsInternational,
   routeIsLive,
+  routeModesAvailable,
   routeStartable,
   usedRouteSlots,
 } from '../sim/trade';
+import { hasMetSeat } from '../sim/diplomacy';
+import { playerById } from '../sim/state';
 import { UNIT_TYPE_IDS, type UnitTypeId, trades, unitDef } from '../sim/unitData';
 import { gatingTech } from '../sim/tech';
 import { techDef } from '../sim/techData';
-import type { GameState, Unit } from '../sim/state';
+import type { City, GameState, Unit } from '../sim/state';
 import { cityDisplayName } from './cityDisplay';
 import { YIELD_GLYPH, figure, signedFigure } from './figures';
 import { NO_ROUTE_CAPACITY, hasFreeRouteSlot, routeFigures } from './tradeLines';
@@ -107,7 +114,14 @@ export function runningRoutes(state: GameState, playerId: number): RunningRoute[
     const pair = routeCities(state, unit);
     const fromName = pair ? cityDisplayName(state, pair.from) : 'a lost city';
     const toName = pair ? cityDisplayName(state, pair.to) : 'a lost city';
-    const lines = explainRouteYield(state, unit);
+    // **The seat's own take**, which for a route ending abroad is the sender's
+    // fold and not the destination's (the international ruling of 2026-09-03):
+    // this column is the empire's own sheet, and a host's coin belongs on the
+    // host's.
+    const foreign = pair !== null && routeIsInternational(pair.from, pair.to);
+    const lines = foreign
+      ? explainRouteSenderYield(state, unit)
+      : explainRouteYield(state, unit);
     const fold = foldRouteYield(lines);
     const figures = routeFigures(fold);
     const turnsLeft = Math.max(0, route.expiresTurn - state.turn);
@@ -198,11 +212,35 @@ export function tradeLedger(
 export interface TradeCandidate {
   cityId: number;
   name: string;
+  /**
+   * The empire that holds this town, when it is not this seat's — the
+   * international ruling of 2026-09-03, said on the row.
+   *
+   * `null` for one of your own, and that absence is the whole of the dress: a
+   * screen that labelled every row with an owner would print the player's own
+   * name a dozen times to say nothing. Only a row that is about somebody else
+   * carries a name.
+   */
+  ownerName: string | null;
   food: number;
   production: number;
   gold: number;
+  /**
+   * The two voices only a foreign route pays (the sender's science and
+   * culture). Zero on every domestic row, and on the columns' `total`.
+   */
+  science: number;
+  culture: number;
   /** "+3🌾 +2⚙ +1💰", or "nothing yet". */
   figures: string;
+  /**
+   * The lines `figures` is the fold of — **what this seat would get**.
+   *
+   * For a town of your own that is the destination's fold, because the
+   * destination is yours; for a foreign town it is the *sender's* fold, because
+   * that is the half that lands in your books. One rule said once: a row on this
+   * screen quotes what pressing its button pays you.
+   */
   lines: RouteYieldLine[];
   /** True when a live route already joins this pair, in either direction. */
   running: boolean;
@@ -212,8 +250,22 @@ export interface TradeCandidate {
    * joining these two, a path, the range, a free centre to arrive on), asked
    * with no caravan in mind at all, because under the 2026-08-28 ruling the
    * caravan may be anywhere and is teleported to the origin.
+   *
+   * `null` exactly when `modes` is non-empty: a row is offered when some way of
+   * getting there is legal, and refused with the sentence the plain default
+   * gives when none is.
    */
   error: string | null;
+  /**
+   * The ways this pair could actually be joined, in `ROUTE_MODES` order (the
+   * ruling of 2026-09-03).
+   *
+   * Two entries is a **choice** and the row draws two buttons; one is today's
+   * single Start; none is a refused row. It is `routeModesAvailable`'s answer
+   * verbatim — the whole gate asked per mode — so a button drawn here is a
+   * command the reducer accepts.
+   */
+  modes: RouteMode[];
 }
 
 /** One of this seat's towns, and every partner a route could join it to. */
@@ -322,6 +374,37 @@ export function startableError(
   return hasFreeRouteSlot(state, playerId) ? problem : NO_ROUTE_CAPACITY;
 }
 
+/**
+ * Every town a route could be started **to**, in `state.cities` order — this
+ * seat's own, and the towns of empires it has met.
+ *
+ * The met clause is a *screen* reading and not a rule (`hasMetSeat`'s own
+ * docblock says so): the gate refuses an unmet partner in words, and this list
+ * simply does not draw a row for an empire nobody has run into yet — a sheet
+ * that greyed out "You have not met Persia" would be telling the player Persia
+ * exists. An empire that has been met and is at **war** keeps its rows and they
+ * grey with the gate's own sentence, because that is a fact the player already
+ * knows and a road worth remembering when the peace comes.
+ *
+ * The wild holds no towns worth a caravan and is not at the table
+ * (`hasMetSeat` would answer for it), so a barbarian seat's cities are left out
+ * by the same clause every other roster uses.
+ */
+function tradePartners(state: GameState, playerId: number): City[] {
+  const partners: City[] = [];
+  for (const city of state.cities) {
+    if (city.ownerId === playerId) {
+      partners.push(city);
+      continue;
+    }
+    const owner = playerById(state, city.ownerId);
+    if (owner === undefined || owner.barbarian === true) continue;
+    if (!hasMetSeat(state, playerId, city.ownerId)) continue;
+    partners.push(city);
+  }
+  return partners;
+}
+
 /** Is a live route already joining these two towns, either way round? */
 function pairIsRunning(state: GameState, playerId: number, from: number, to: number): boolean {
   for (const unit of state.units) {
@@ -352,24 +435,35 @@ function pairIsRunning(state: GameState, playerId: number, from: number, to: num
  */
 export function tradeOrigins(state: GameState, playerId: number): TradeOrigin[] {
   const towns = state.cities.filter((city) => city.ownerId === playerId);
+  const partners = tradePartners(state, playerId);
   const origins: TradeOrigin[] = [];
   for (const city of towns) {
     const candidates: TradeCandidate[] = [];
-    for (const other of towns) {
+    for (const other of partners) {
       if (other.id === city.id) continue;
-      const lines = explainRouteYieldBetween(state, city, other);
+      const foreign = routeIsInternational(city, other);
+      // **What pressing this row's button would pay *you*.** A domestic route
+      // pays its destination, which is your town; a foreign one pays you
+      // directly and pays the host a coin of their own — so the row quotes the
+      // sender's fold and the host's line stays on the host's sheet.
+      const lines = foreign
+        ? explainRouteSenderYieldBetween(state, city, other)
+        : explainRouteYieldBetween(state, city, other);
       const fold = foldRouteYield(lines);
+      // The reducer's own gate about the *pair*, asked once per mode. No unit is
+      // named because none needs to be: the caravan is teleported to the origin,
+      // so which one it is cannot change the answer. See `TradeCandidate`.
+      const modes = routeModesAvailable(state, playerId, city.id, other.id);
       candidates.push({
         cityId: other.id,
         name: cityDisplayName(state, other),
+        ownerName: foreign ? (playerById(state, other.ownerId)?.name ?? null) : null,
         ...fold,
         figures: routeFigures(fold),
         lines,
         running: pairIsRunning(state, playerId, city.id, other.id),
-        // The reducer's own gate about the *pair*. No unit is named because
-        // none needs to be: the caravan is teleported to the origin, so which
-        // one it is cannot change the answer. See `TradeCandidate`.
-        error: startableError(state, playerId, city.id, other.id),
+        error: modes.length > 0 ? null : startableError(state, playerId, city.id, other.id),
+        modes,
       });
     }
     candidates.sort(
@@ -396,16 +490,37 @@ export function tradeOrigins(state: GameState, playerId: number): TradeOrigin[] 
  * a closure inside a click handler. The two conditions are exactly the ones the
  * row is drawn under — the empire has an idle caravan, and the reducer is not
  * refusing this pair — so a row with a button is a row this answers for.
+ *
+ * **The mode is named, always** (the ruling of 2026-09-03), and it must be one
+ * of the row's own `modes` or there is no command: the screen never leans on the
+ * command's absent-mode default, because that default is a fact about the path
+ * and the row is drawn from the whole gate. A row offering one mode dispatches
+ * that one; a row offering two dispatches whichever button was pressed.
  */
 export function startCommandFor(
   origin: TradeOrigin,
   candidate: TradeCandidate,
   trader: Unit | null,
-): { unitId: number; fromCityId: number; toCityId: number } | null {
+  mode: RouteMode,
+): { unitId: number; fromCityId: number; toCityId: number; mode: RouteMode } | null {
   if (trader === null) return null;
   if (candidate.error !== null) return null;
-  return { unitId: trader.id, fromCityId: origin.cityId, toCityId: candidate.cityId };
+  if (!candidate.modes.includes(mode)) return null;
+  return { unitId: trader.id, fromCityId: origin.cityId, toCityId: candidate.cityId, mode };
 }
+
+/**
+ * What a mode's button says. Plain words, the user's own: *"an option to go by
+ * sea or go by land"*.
+ *
+ * The single-mode row keeps today's word — "Start" — because there is no choice
+ * to name and a button that spelled out the only possibility would be a label
+ * dressed as a decision. `MODE_LABEL` is what the two-button row prints.
+ */
+export const MODE_LABEL: Readonly<Record<RouteMode, string>> = {
+  land: 'By land',
+  sea: 'By sea',
+};
 
 // --- the pane's two controls: sort, and filter by origin ---------------------
 
@@ -441,8 +556,12 @@ export type SortDirection = 'desc' | 'asc';
 
 /** What one column reads on one row. `total` is the sum and nothing else. */
 export function routeRowValue(row: TradeRouteRow, key: RouteSortKey): number {
-  const { food, production, gold } = row.candidate;
-  if (key === 'total') return food + production + gold;
+  const { food, production, gold, science, culture } = row.candidate;
+  // `total` is **every voice summed**, which is what it always was — it grew by
+  // two when a route abroad began paying science and culture (2026-09-03), and
+  // a total that left them out would rank a foreign row below a domestic one
+  // paying strictly less.
+  if (key === 'total') return food + production + gold + science + culture;
   return key === 'food' ? food : key === 'production' ? production : gold;
 }
 
@@ -553,9 +672,16 @@ export interface TradeScreenOptions {
    *
    * Three ids because the command is `startRoute { unitId, fromCityId,
    * toCityId }`: the caravan may be standing anywhere, so the origin is *named*
-   * rather than read off the piece's hex.
+   * rather than read off the piece's hex. The fourth argument is the **mode**
+   * (the ruling of 2026-09-03) and the screen always names it — see
+   * `startCommandFor`.
    */
-  startRoute: (unitId: number, fromCityId: number, toCityId: number) => void;
+  startRoute: (
+    unitId: number,
+    fromCityId: number,
+    toCityId: number,
+    mode: RouteMode,
+  ) => void;
   /** Flips a route's auto-resend flag. */
   setAutoResend: (unitId: number, on: boolean) => void;
   /** Ends a route now and frees the slot. */
@@ -610,6 +736,9 @@ export function routeLedgerTitle(lines: readonly RouteYieldLine[]): string {
         line.food === 0 ? '' : `${signedFigure(line.food)}${YIELD_GLYPH.food}`,
         line.production === 0 ? '' : `${signedFigure(line.production)}${YIELD_GLYPH.production}`,
         line.gold === 0 ? '' : `${signedFigure(line.gold)}${YIELD_GLYPH.gold}`,
+        // The two a route only pays abroad, in `ROUTE_KEYS`' order.
+        line.science === 0 ? '' : `${signedFigure(line.science)}${YIELD_GLYPH.science}`,
+        line.culture === 0 ? '' : `${signedFigure(line.culture)}${YIELD_GLYPH.culture}`,
       ].filter((part) => part.length > 0);
       return `${line.source} ${parts.join(' ')}`;
     })
@@ -871,8 +1000,16 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
       // destination — would receive, read off `origin.name`'s own buildings
       // (2026-08-27's reversal). Said once per origin group rather than per row,
       // which is where every row's figures in the group come from.
+      // A domestic row's figures are what *that town* would receive, read off
+      // this origin's buildings (2026-08-27's reversal); a foreign row's are
+      // what **this empire** would take for the crossing, off no buildings at
+      // all (2026-09-03). One sentence for both, because a group holds both.
       block.append(
-        element('p', 'hint', `What each town would receive, off ${origin.name}'s buildings`),
+        element(
+          'p',
+          'hint',
+          `What a route pays you, off ${origin.name}'s buildings at home — a flat trade abroad`,
+        ),
       );
       const list = element('ul', 'trade-candidates');
       for (const row of group.rows) {
@@ -881,14 +1018,29 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
         if (candidate.running) item.classList.add('is-running');
         if (candidate.error !== null) item.classList.add('is-blocked');
         item.title = routeLedgerTitle(candidate.lines);
-        item.append(element('span', 'trade-candidate-name', candidate.name));
+        // The town, then whose it is when it is not yours — the row's own
+        // sentence rather than a badge, and drawn inside the name cell so the
+        // figure columns stay where the header put them.
+        const named = element('span', 'trade-candidate-name', candidate.name);
+        if (candidate.ownerName !== null) {
+          named.append(element('span', 'hint', ` · ${candidate.ownerName}`));
+        }
+        item.append(named);
         item.append(figureCell(candidate.food, 'food'));
         item.append(figureCell(candidate.production, 'production'));
         item.append(figureCell(candidate.gold, 'gold'));
         item.append(figureCell(routeRowValue(row, 'total'), null));
-        const command = startCommandFor(origin, candidate, trader);
-        if (command !== null) {
-          const start = button('btn btn-primary btn-tiny', 'Start');
+        // One button when there is one way to go, two when the ruling's choice
+        // is real (2026-09-03). The label is "Start" in the first case — a
+        // single button naming the only possibility would dress a fact as a
+        // decision — and the two plain words in the second.
+        const offered = candidate.modes;
+        const buttons: HTMLButtonElement[] = [];
+        for (const mode of offered) {
+          const command = startCommandFor(origin, candidate, trader, mode);
+          if (command === null) continue;
+          const label = offered.length > 1 ? MODE_LABEL[mode] : 'Start';
+          const start = button('btn btn-primary btn-tiny', label);
           // Which caravan is spent, on the button rather than in a rule the
           // player has to know: the piece is teleported to the origin, so the
           // only surprising half is *which* one leaves the map where it was.
@@ -898,11 +1050,19 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
           // made, and what a player wants next is to watch it leave — and after
           // the teleport that town is where the piece now is.
           start.addEventListener('click', () => {
-            options.startRoute(command.unitId, command.fromCityId, command.toCityId);
+            options.startRoute(
+              command.unitId,
+              command.fromCityId,
+              command.toCityId,
+              command.mode,
+            );
             close();
             options.panTo({ col: origin.col, row: origin.row });
           });
-          item.append(start);
+          buttons.push(start);
+        }
+        if (buttons.length > 0) {
+          for (const start of buttons) item.append(start);
         } else if (candidate.error !== null) {
           item.append(element('span', 'trade-candidate-why', candidate.error));
         } else if (candidate.running) {

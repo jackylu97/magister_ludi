@@ -90,6 +90,28 @@ function declaration(selector: string, property: string): string | undefined {
   return match?.[1]?.trim();
 }
 
+/**
+ * The body of one top-level `function name(...) { … }` in a UI module —
+ * `religionScreen.test.ts`'s reader, borrowed for the same job: several of the
+ * claims below are about what one printer asks and nothing else, which no
+ * behavioural test can see and no comment can keep.
+ */
+function fn(file: string, name: string): string {
+  const text = source(file);
+  const at = text.indexOf(`\n  function ${name}(`);
+  if (at < 0) throw new Error(`${file} has no function ${name}`);
+  const open = text.indexOf('{', at);
+  let depth = 0;
+  for (let index = open; index < text.length; index++) {
+    if (text[index] === '{') depth += 1;
+    if (text[index] === '}') {
+      depth -= 1;
+      if (depth === 0) return text.slice(open + 1, index);
+    }
+  }
+  throw new Error(`${file}'s ${name} never closes`);
+}
+
 function pixels(selector: string, property: string): number {
   const value = declaration(selector, property);
   const number = Number.parseFloat(value ?? '');
@@ -124,15 +146,56 @@ describe('the yield strip', () => {
   });
 });
 
-describe('the framed city and the panel that hides it', () => {
-  it('biases the camera by half the panel box, gutter included', () => {
-    const width = pixels('#city-panel,\n#unit-panel', 'width');
-    const gutter = pixels('#city-panel,\n#unit-panel', 'right');
+describe('the framed city and the rails that flank it', () => {
+  it('biases the camera by half the difference between the two rails', () => {
+    // The mode's arithmetic, and it is the old rule generalised rather than a
+    // new one: the framed town belongs in the middle of the ground the screen
+    // leaves clear, so the bias is half of however much more one side covers
+    // than the other. While the city screen was a single right-hand panel the
+    // left side covered nothing and this was half the whole panel; with a rail
+    // on each side it is half the *difference*, and the day the two rails are
+    // the same width it is zero.
+    //
+    // The widths alone: the two gutters are one symmetric `padding` on
+    // `.city-body`, so whatever they are they cancel.
+    const left = pixels('.city-rail.is-left', 'width');
+    const right = pixels('.city-rail.is-right', 'width');
     const bias = viewJson.camera.cityFrameBiasPx;
-    // Half the footprint, to the nearest pixel or two — the rule is "roughly
-    // half", and a tolerance is what keeps this a check on the *relationship*
-    // rather than a second place the number is written.
-    expect(Math.abs(bias - (width + gutter) / 2)).toBeLessThanOrEqual(2);
+    // To the nearest pixel or two — a tolerance is what keeps this a check on
+    // the *relationship* rather than a second place the number is written.
+    expect(Math.abs(bias - (right - left) / 2)).toBeLessThanOrEqual(2);
+  });
+
+  it('leaves the unit sheet the dock the city screen left', () => {
+    // The two used to share one rule and one corner. The city became a mode
+    // (`docs/city-screen.md`, revision 3); the sheet did not move, and the
+    // thing that would break silently is the split taking the sheet's geometry
+    // with it — a panel with no width, in no corner, that still renders.
+    expect(pixels('#unit-panel', 'width')).toBe(340);
+    expect(pixels('#unit-panel', 'right')).toBe(14);
+    expect(declaration('#unit-panel', 'position')).toBe('fixed');
+  });
+
+  it('takes no pointer events on the mode itself, so the board stays live', () => {
+    // The load-bearing declaration of the whole pass: citizens are pinned by
+    // clicking ringed hexes and tiles are bought off the board's own price
+    // tags, and both happen *under* this container. A mode that caught the
+    // pointer would be an overlay sheet with extra steps.
+    expect(declaration('.city-mode', 'pointer-events')).toBe('none');
+    for (const selector of ['.city-band', '.city-rail', '.city-leave']) {
+      expect(`${selector}: ${declaration(selector, 'pointer-events')}`).toBe(
+        `${selector}: auto`,
+      );
+    }
+  });
+
+  it('hands the top edge to the band while the mode holds', () => {
+    // Derived from the panel's own `hidden`, never stored: every path that
+    // closes a city already ends in a render that hides the container, so the
+    // bar restores itself with no flag for anybody to forget to clear. What
+    // gives way is the whole bar — see the mode's own register below.
+    const text = css();
+    expect(text).toContain('body:has(.city-mode:not([hidden])) #topbar');
   });
 });
 
@@ -165,6 +228,202 @@ describe("the panel's controls", () => {
       const transform = declaration(selector, 'text-transform') ?? 'none';
       expect(`${selector}: ${transform}`).toBe(`${selector}: none`);
     }
+  });
+});
+
+/**
+ * **The mode's own promises** (`docs/city-screen.md`, revision 3, ruled
+ * 2026-09-03), and every one of them is a layout that would be merely wrong
+ * rather than an error anything throws.
+ *
+ * The pass moved ink and deleted none: what the screen used to print in fifteen
+ * stacked sections it now prints in a band, two rails, a hover and four
+ * disclosures. The failure this block guards is the obvious regression — a
+ * later edit that "simplifies" a fold back into a deletion — so what is
+ * asserted is the *reach* of each thing that moved, never its position.
+ */
+describe('the city mode', () => {
+  const panel = (): string => source('cityPanel.ts');
+
+  it('mounts a band, two rails and one way out', () => {
+    const text = panel();
+    for (const call of [
+      'container.append(renderBand(city, quote));',
+      'body.append(renderTownRail(city, locked, quote));',
+      'body.append(renderWorkRail(city, locked, puppet, quote));',
+      'container.append(renderLeave());',
+    ]) {
+      expect(`${call}: ${text.includes(call)}`).toBe(`${call}: true`);
+    }
+  });
+
+  /**
+   * **The rails start where the band ends, and no stylesheet says where that
+   * is** (playtest, 2026-09-03: "the build queue overlaps with the top bar").
+   *
+   * The first build hung all three boxes off the viewport with the rails' top
+   * at `topbar + --city-band-h`, a constant built from the band's padding and
+   * one line of its display face. It was right at the width it was written for
+   * and wrong at every other, because the band's contents are a town's name, up
+   * to four badges and six chips, and none of those is a number this file
+   * knows. The fix is structural: the band is a flow row, the rails are the row
+   * under it, and the height is measured by the layout instead of asserted.
+   *
+   * What is pinned is the *absence* of the assumption as much as the column.
+   */
+  it('lays the band and the rails out in flow, never off an assumed height', () => {
+    expect(declaration('.city-mode', 'display')).toBe('flex');
+    expect(declaration('.city-mode', 'flex-direction')).toBe('column');
+    // The rails' row takes what the band leaves, and scrolls inside itself.
+    expect(declaration('.city-body', 'flex')).toBe('1 1 auto');
+    expect(declaration('.city-body', 'min-height')).toBe('0');
+    expect(declaration('.city-rail', 'overflow-y')).toBe('auto');
+    // No rule anywhere may put a rail at a hand-computed offset again.
+    const text = css();
+    expect(text).not.toContain('--city-band-h');
+    expect(declaration('.city-band', 'position') ?? 'static').toBe('static');
+    expect(declaration('.city-rail', 'position') ?? 'static').toBe('static');
+  });
+
+  it('keeps the band one row, letting the name and the belief give', () => {
+    // A band that wrapped was a band twice as tall, which is what pushed the
+    // work rail into the chips in the first place. What gives is the name and
+    // the belief line — both ellipsise and both repeat in full on hover — and
+    // never the figures.
+    expect(declaration('.city-band', 'flex-wrap')).toBe('nowrap');
+    expect(declaration('.city-title', 'flex-wrap')).toBe('nowrap');
+    expect(declaration('.city-band h2,\n.city-band .city-faith-head', 'text-overflow')).toBe(
+      'ellipsis',
+    );
+    expect(declaration('.city-title > .city-size', 'flex')).toBe('0 0 auto');
+    expect(declaration('.city-band .city-yields', 'flex')).toBe('0 0 auto');
+  });
+
+  it('stands the empire’s whole chrome down while the mode holds', () => {
+    // Two playtest defects, one rule. The research dial sat half-buried behind
+    // the band and the dock's buttons floated over the town rail's ground; and
+    // the bar was *half* emptied, which read as a bug rather than as a mode.
+    // So every card that hangs over the board and is not the mode's own gives
+    // way, and so does the bar entire — all of it through the one derived
+    // mechanism, so no path can forget to restore it.
+    const text = css();
+    for (const id of [
+      '#topbar',
+      '#hud-research',
+      '#hud-dock',
+      '#hud-dock-popovers',
+      '#hud-meters',
+      '#hud-popovers',
+    ]) {
+      const rule = `body:has(.city-mode:not([hidden])) ${id}`;
+      expect(`${id}: ${text.includes(rule)}`).toBe(`${id}: true`);
+    }
+    // The bar goes whole or not at all: a rule naming one of its parts would be
+    // the half-emptied strip again, one element at a time.
+    expect(text).not.toContain('#civ-yields {\n  visibility: hidden');
+    // And the one card that stays, because it is about the hex under the
+    // cursor and that is what a player in this mode is doing: it slides clear
+    // of the rail rather than standing down.
+    expect(text).toContain('body:has(.city-mode:not([hidden])) #hud-context');
+    expect(declaration('body:has(.city-mode:not([hidden])) #hud-context', 'left')).toContain(
+      '230px',
+    );
+  });
+
+  it('lets the band take the bar’s place, and only when the bar has gone', () => {
+    // The two facts share one condition on purpose: a browser without `:has`
+    // keeps the bar *and* keeps the band below it, which is exactly the layout
+    // this screen had before the strip stood down. A padding collapsed
+    // unconditionally would put the band behind the bar on that browser, which
+    // is the one degradation worth designing against.
+    expect(declaration('.city-mode', 'padding-top')).toBe('var(--topbar-h)');
+    expect(declaration('body:has(.city-mode:not([hidden])) .city-mode', 'padding-top')).toBe('0');
+  });
+
+  it('has exactly one exit, and Escape is the same verb', () => {
+    // The panel's little × died with the panel — two exits in two corners is
+    // the thing one obvious exit was ruled to fix. `onClose` is the option
+    // `main.ts` wires to `controls.setOpenCity(null)`, which is precisely what
+    // Escape calls, so the button and the key cannot come apart.
+    const text = panel();
+    expect(text).not.toContain("element('button', 'city-close'");
+    expect(text).toContain("leave.addEventListener('click', onClose);");
+  });
+
+  it('puts the yield breakdown one hover deeper and nowhere shallower', () => {
+    // The ledger the panel used to print under the chips is the card the chips
+    // raise — the same five loops, moved rather than rewritten. If a future
+    // edit drops the bind, six multiplied figures would be on screen with no
+    // reason beside them, which is rule 5's one forbidden shape.
+    const text = panel();
+    expect(text).toContain('strip.bind(chip, () => yieldLedger(city, quote));');
+    for (const fold of [
+      'cityResourceYields(state, city)',
+      'explainCityBuildings(state, city)',
+      'citySpecialistYields(city)',
+      'cityRouteYields(state, city)',
+      'stageRows(STAGE_LABEL[stage]',
+    ]) {
+      expect(`${fold}: ${text.includes(fold)}`).toBe(`${fold}: true`);
+    }
+  });
+
+  it('collapses the four standing facts without emptying any of them', () => {
+    // Closed by default with the fold in the summary, and the section's own
+    // contents inside. The four printers still exist and are still called.
+    const text = panel();
+    const rail = fn('cityPanel.ts', 'renderTownRail');
+    for (const call of [
+      "disclosure('Defence'",
+      "disclosure('Built'",
+      "disclosure('Routes'",
+      "disclosure('Faith'",
+    ]) {
+      expect(`${call}: ${rail.includes(call)}`).toBe(`${call}: true`);
+    }
+    for (const printer of [
+      'function renderDefense(',
+      'function renderBuilt(',
+      'function renderRoutes(',
+      'function renderFollowers(',
+    ]) {
+      expect(`${printer}: ${text.includes(printer)}`).toBe(`${printer}: true`);
+    }
+    // A `<details>` and not a class that hides things: the platform's own
+    // disclosure opens on Enter and announces itself as expandable.
+    expect(text).toContain("element('details', 'city-disc')");
+  });
+
+  it('shelves the add-list by the simulation’s own category, never by a name', () => {
+    // `queueCategory` is the one place a queue row is sorted into a production
+    // category (`cities.ts`); the tabs read it. Nothing here compares a row
+    // against a string name, which is the rule `src/sim` keeps and the panel
+    // has to keep to stay correct when the table grows.
+    const text = panel();
+    expect(text).toContain("queueCategory({ kind: 'building', id })");
+    expect(text).toMatch(/import \{[^}]*queueCategory[^}]*\} from '\.\.\/sim\/cities'/s);
+    // Four shelves, and the list of them is data rather than a switch.
+    const shelves = /export const ADD_SHELVES[\s\S]*?\n\];/.exec(text);
+    expect(shelves).not.toBeNull();
+    expect((shelves![0].match(/label: '/g) ?? []).length).toBe(4);
+  });
+
+  it('remembers the shelf in module state, never in the game', () => {
+    // Which tab was last open is a fact about this sitting at the keyboard: a
+    // save is `{config, log}` and replays, so a tab in the state would be a
+    // save that replayed differently.
+    const text = panel();
+    expect(text).toMatch(/^let addShelf: AddShelf = 'unit';$/m);
+    expect(text).not.toMatch(/city\.addShelf|state\.addShelf/);
+  });
+
+  it('prints its one board instruction only when somebody is asking', () => {
+    // An instruction that is always on screen is one nobody reads. Two readers
+    // are left: a player being taught, and a player who has armed Buy Tiles.
+    const printer = fn('cityPanel.ts', 'renderBoardCaption');
+    expect(printer).toContain('isBuyMode()');
+    expect(printer).toContain('isTutorialActive()');
+    expect(printer).toContain('A ringed hex is a tile this city works');
   });
 });
 
@@ -220,6 +479,19 @@ describe('the build list', () => {
       expect(def.greatWork === true || isPurchaseOnly({ kind: 'unit', id }), id).toBe(true);
     }
   });
+
+  it('drops a superseded row from the list rather than greying it', () => {
+    // The obsolescence ruling (user, 2026-09-03: "once a unit is obsolete …
+    // please remove it from the build queue"). It is a fact about an *empire*
+    // rather than about the roster, so it cannot join `offeredInBuildList` —
+    // which is exactly why it is read out of the source here: the panel greys a
+    // row it cannot build *yet* and skips a row that has been replaced, and the
+    // difference between the two is one `continue` nobody would miss going.
+    const panel = source('cityPanel.ts');
+    expect(panel).toContain("if (upgradeTargetForType(state, city.ownerId, id) !== null) continue;");
+    // Asked of the reducer's own walk, so the list and the gate cannot drift.
+    expect(panel).toMatch(/import \{[^}]*upgradeTargetForType[^}]*\} from '\.\.\/sim\/tech'/s);
+  });
 });
 
 /**
@@ -244,7 +516,11 @@ describe('what the panel says at the foot of a list', () => {
     // What is left is the rule a price tag cannot state on its own.
     const text = source('cityPanel.ts');
     expect(text).not.toContain('in the treasury');
-    expect(text).toContain('A price tag buys the row outright at');
+    // Cut to a fragment with the rails (2026-09-03), and the claim is the one
+    // it always was: what survives is the *conversion* — the rule no single
+    // price tag can state for itself — and the treasury is still nowhere.
+    expect(text).toContain('A tag buys the row outright');
+    expect(text).toContain('banked hammers stay banked');
   });
 
   it('leaves air between the last build row and the caption', () => {
@@ -422,16 +698,65 @@ describe('the citizen focus line', () => {
     expect(printer).not.toContain("'settler'");
   });
 
-  it('stands directly under the citizens’ row, which is what it is a note about', () => {
+  it('stands directly under the working count, which is what it is a note about', () => {
+    // The claim survives the mode; where the three sit does not. The citizens'
+    // row was a section of its own with the focus note under it and Growth
+    // beneath; the 2026-09-03 revision folds the count *into* the Growth row
+    // ("5/7 working") and the note follows it down the town rail. What must
+    // stay true is the reading order: the count, then the sentence explaining
+    // where those citizens went.
     const text = source('cityPanel.ts');
-    const citizens = text.indexOf('container.append(renderCitizens(city));');
+    const growth = text.indexOf('clocks.append(renderGrowth(city, quote));');
     const focus = text.indexOf('const focus = renderCitizenFocus(city);');
-    // The call's opening rather than the whole line: the sections take the
-    // render's hoisted `CityQuote` now (`cityPanel.test.ts`), and what this
-    // test is about is the *order* of the three, not their arguments.
-    const growth = text.indexOf('container.append(renderGrowth(city');
-    expect(citizens).toBeGreaterThanOrEqual(0);
-    expect(focus).toBeGreaterThan(citizens);
-    expect(growth).toBeGreaterThan(focus);
+    expect(growth).toBeGreaterThanOrEqual(0);
+    expect(focus).toBeGreaterThan(growth);
+    // And the count is on the Growth row itself rather than in a section — the
+    // one call, inside the one printer.
+    expect(source('cityPanel.ts')).toContain('foot.append(renderCitizens(city));');
+  });
+});
+
+/**
+ * **The Growth line prints the fold's own list** (rule 5, and the dry-settle
+ * ruling of 2026-09-03 is what made it matter).
+ *
+ * `growthSurplus` is the fold of `explainGrowthPercent`, so the modifiers under
+ * the Growth line have to be that list and not a second reading of one of its
+ * sources. The panel used to print the happiness stifle alone — it asked
+ * `growthPercent(meterEffects(...))` itself — which was honest while the meters
+ * were the only source and quietly wrong from the day an aqueduct, a wonder and
+ * a dry site joined the same sum: the number moved and its reason did not print.
+ *
+ * Read out of the source, because the failure is not an error: a printer that
+ * re-derives one line still renders, and the panel simply stops telling a player
+ * why their town is slow.
+ */
+describe('the growth modifiers', () => {
+  it('are the list `growthSurplus` folds, not a second reading of the meters', () => {
+    const text = source('cityPanel.ts');
+    const at = text.indexOf('function renderGrowth(');
+    expect(at).toBeGreaterThanOrEqual(0);
+    let depth = 0;
+    let printer = '';
+    for (let index = text.indexOf('{', at); index < text.length; index += 1) {
+      if (text[index] === '{') depth += 1;
+      else if (text[index] === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          printer = text.slice(at, index + 1);
+          break;
+        }
+      }
+    }
+    expect(printer).toContain('explainGrowthPercent(');
+    // Not one source of the sum, and not the number without its parts.
+    expect(printer).not.toContain('growthPercent(');
+    expect(printer).not.toContain('meterEffects(');
+    // And nothing here knows what fresh water is or what lifts the penalty: the
+    // line's words and the condition behind them are the simulation's. The
+    // *quoted* id, not the word — the comment above the loop names the aqueduct
+    // as prose, which is a sentence about the rule and not a comparison.
+    expect(printer).not.toContain('cityHasFreshwater');
+    expect(printer).not.toContain("'aqueduct'");
   });
 });

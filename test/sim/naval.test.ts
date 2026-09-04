@@ -313,11 +313,15 @@ describe('a hull is launched from the city that built it', () => {
     expect(buildError(state, 0, 'unit', 'trireme', inland)).toBe(
       `${inland.name} is not on the coast`,
     );
+    // The galley rather than the trireme, since the obsolescence ruling of
+    // 2026-09-03: this fixture's hand reaches Shipwrights, so the two hulls
+    // below the galley have already left every build list and the port would be
+    // refusing them for the wrong reason.
     const port = foundCityAt(state, 0, at(state, 5, 4));
-    expect(buildError(state, 0, 'unit', 'trireme', port)).toBeNull();
+    expect(buildError(state, 0, 'unit', 'galley', port)).toBeNull();
     // Asked without a town it is the *tree's* question and stays silent, which
     // is what keeps the Compendium and the tech chart honest.
-    expect(buildError(state, 0, 'unit', 'trireme')).toBeNull();
+    expect(buildError(state, 0, 'unit', 'galley')).toBeNull();
   });
 
   it('refuses a purchase in a landlocked town too, by the same sentence', () => {
@@ -355,9 +359,22 @@ describe('a row shipped ahead of its age', () => {
     // what says the marker is doing the refusing rather than the coastline.
     // The Æra IV hulls came home to The Astrolabe on 2026-08-30 and are not in
     // this fixture's hand (see `plainTechs` — the node that opens the ocean is
-    // deliberately left out of it), so the six here are I, II and III.
-    for (const id of ['trireme', 'bireme', 'warGalley', 'galley', 'towerShip', 'fireShip']) {
+    // deliberately left out of it), so the six here are I, II and III — and
+    // since the obsolescence ruling of 2026-09-03 the six split in two. The top
+    // of each of the three lines is on offer; the rungs below have been replaced
+    // by the hull this fixture can already launch, which is the ruling read at
+    // sea (`upgradeTargetForType`).
+    for (const id of ['galley', 'towerShip', 'fireShip']) {
       expect(buildError(state, 0, 'unit', id as never, port), id).toBeNull();
+    }
+    for (const [id, better] of [
+      ['trireme', 'Galley'],
+      ['bireme', 'Galley'],
+      ['warGalley', 'Tower Ship'],
+    ] as const) {
+      expect(buildError(state, 0, 'unit', id, port), id).toBe(
+        `${unitDef(id).name} has been replaced by the ${better}`,
+      );
     }
   });
 });
@@ -799,7 +816,15 @@ describe('the blockade', () => {
     expect(line, 'the blockade line').toBeDefined();
     // Rule 5: the total is the fold, and the fold is zero — the sheet says why
     // rather than a number quietly going to nothing.
-    expect(foldRouteYield(cut)).toEqual({ food: 0, production: 0, gold: 0 });
+    // Five voices since a route may end abroad (2026-09-03); a domestic route
+    // never pays the two new ones, and the blockade takes back all five.
+    expect(foldRouteYield(cut)).toEqual({
+      food: 0,
+      production: 0,
+      gold: 0,
+      science: 0,
+      culture: 0,
+    });
   });
 });
 

@@ -182,7 +182,9 @@ import {
 import type { TechId } from './techData';
 import {
   type RouteEndReport,
+  type RouteMode,
   endRoute,
+  routeModeFor,
   startRouteAt,
   startRouteError,
 } from './trade';
@@ -1167,7 +1169,8 @@ export interface GreatPersonWorkCommand extends PlayerCommand {
  * caravans on it.
  *
  * The trader is **not** consumed: it walks the route for as long as the route
- * runs, laying road under its feet on every hex it rests on, and shuttles back
+ * runs, laying road under its feet on every hex it rests on (a **land** route;
+ * a sea route lays none — see `mode`), and shuttles back
  * and forth between the two towns until the route lapses. That is the design
  * decision the doc left open (Civ V consumes the caravan on arrival) and it is
  * made this way because it is what makes the piece worth defending — a caravan
@@ -1192,6 +1195,21 @@ export interface StartRouteCommand extends PlayerCommand {
   fromCityId: number;
   /** The partner. Must be another city of `playerId`'s. */
   toCityId: number;
+  /**
+   * **Which way the caravan goes** — by land, wearing a road, or by sea, laying
+   * none (the user's ruling, 2026-09-03; `trade.ts`'s last docblock section).
+   *
+   * Optional because it is a *choice*, and a choice only exists where both are
+   * possible: the interface offers two buttons when `routeModesAvailable` says
+   * two, one when it says one, and names the mode either way. An **absent**
+   * field resolves through `surveyRoute`'s documented default — **land where a
+   * land path exists, else sea** — which is what an old log, a hand-written
+   * command and a bot that names nothing all get.
+   *
+   * Validated like everything else: a mode with no path of that mode is a
+   * refusal, and a refused command leaves the state byte-identical.
+   */
+  mode?: RouteMode;
 }
 
 export interface SetAutoResendCommand extends PlayerCommand {
@@ -3303,6 +3321,7 @@ function applyStartRoute(state: GameState, command: StartRouteCommand): CommandR
     command.unitId,
     command.fromCityId,
     command.toCityId,
+    command.mode,
   );
   if (problem) return fail(problem);
 
@@ -3312,6 +3331,16 @@ function applyStartRoute(state: GameState, command: StartRouteCommand): CommandR
   const unit = unitById(state, command.unitId)!;
   const from = cityById(state, command.fromCityId)!;
   const to = cityById(state, command.toCityId)!;
+  // Which way it goes, settled once and read *before* the piece is moved: the
+  // survey behind it is a fact about the two towns, and the teleport below is
+  // the one thing that changes the board between the gate and the write.
+  const mode: RouteMode = routeModeFor(
+    state,
+    actor.id,
+    command.fromCityId,
+    command.toCityId,
+    command.mode,
+  );
 
   const gates = getTileAt(state.map, from.col, from.row)!;
   unit.col = gates.col;
@@ -3324,7 +3353,7 @@ function applyStartRoute(state: GameState, command: StartRouteCommand): CommandR
   // order, exactly as `applyMoveUnit` does it.
   recomputeVisibility(state, actor.id);
 
-  startRouteAt(state, unit, from, to);
+  startRouteAt(state, unit, from, to, mode);
   return ok(isEmptyArrival(arrival) ? undefined : [arrival]);
 }
 

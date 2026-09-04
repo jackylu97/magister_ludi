@@ -331,6 +331,54 @@ export interface ImprovementRules {
 }
 
 /**
+ * What an **international** route pays — the sender's four voices and the
+ * host's one (`docs/trade.md`, "International routes").
+ *
+ * The whole table is flat figures, and that is the ruling rather than a
+ * simplification: the domestic route reads the origin's buildings because the
+ * goods are the origin's own, and a caravan sent abroad carries *trade* rather
+ * than a granary's surplus — so what it is worth is a fact about two empires
+ * meeting, not about what either of them has built. The one figure that scales
+ * is the coin, and it scales on the same combined population the domestic route
+ * counts, because that is how big the two markets are.
+ *
+ * Both sides are named here because both are paid: the empire that **sent** the
+ * caravan takes `science`/`culture`/`gold` plus the population coin, and the
+ * empire that **hosts** it takes `hostGold`. A route nobody wanted to host would
+ * be a gift with no way to refuse it, which is precisely what the deferral of
+ * 2026-08-28 was waiting on diplomacy to fix.
+ */
+export interface InternationalRouteRules {
+  /** 🔬 the sender's empire banks per turn, flat. */
+  science: number;
+  /** 🎭 the sender's empire banks per turn, flat. */
+  culture: number;
+  /** 💰 the sender's empire banks per turn before the population coin. */
+  gold: number;
+  /**
+   * Combined population of the two ends per further 💰 to the **sender**:
+   * `floor((pop(from) + pop(to)) / goldPerCombinedPop)`.
+   *
+   * Its own knob rather than a reference to `TradeRules.goldPerCombinedPop`,
+   * because the two answer different questions — how rich is a route between my
+   * own towns, and how rich is a route between two empires — and a designer
+   * retuning one must not silently move the other.
+   */
+  goldPerCombinedPop: number;
+  /**
+   * 💰 the **destination's** owner banks per turn, as a labelled line in that
+   * city's own fold.
+   *
+   * The whole of what hosting is worth. It is a city line rather than an empire
+   * line because a host's coin is paid by the town the caravan actually reaches
+   * — the same seam the domestic route's food and hammers land in — and because
+   * a player wondering why a rival's caravan is welcome should find the answer
+   * on the sheet of the town that welcomes it.
+   */
+  hostGold: number;
+}
+
+/**
  * The system half of trade: how long a route runs, how far a caravan may be
  * sent, what a road costs its builder to keep and what killing a trader is
  * worth (`docs/trade.md`).
@@ -371,9 +419,34 @@ export interface TradeRules {
   postRangeTurns: number;
   /**
    * Combined population of the two ends per 💰 a route pays:
-   * `floor((pop(from) + pop(to)) / goldPerCombinedPop)`. The user's table.
+   * `floor((pop(from) + pop(to)) / goldPerCombinedPop)`. The user's table —
+   * the 2026-09-03 nerf halved the building rates and deliberately left this
+   * coin at ten (the same day's follow-up ruling).
    */
   goldPerCombinedPop: number;
+  /**
+   * What a route ending in a **foreign** city pays, and to whom (ruled
+   * 2026-09-03, `docs/trade.md`).
+   *
+   * A block of its own rather than five keys beside the domestic ones, because
+   * it is a different table read by a different clause: an international route
+   * pays **no building lines at all** — a foreign library is not yours to
+   * harvest — so none of the knobs above is consulted for one, and the coin
+   * here is deliberately its own number even though it happens to start at the
+   * same ten.
+   */
+  international: InternationalRouteRules;
+  /**
+   * Origin buildings of the food-paying categories per 🌾 a route carries:
+   * `floor(count / buildingsPerFood)`. The 2026-09-03 nerf's knob — at 1 this
+   * is the old rule (a food per building), at 2 the ruled half.
+   */
+  buildingsPerFood: number;
+  /**
+   * `buildingsPerFood`'s twin for the hammer-paying categories:
+   * `floor(count / buildingsPerProduction)` ⚒ per route.
+   */
+  buildingsPerProduction: number;
   /**
    * Population per 💰 a **connected** non-capital city pays its empire every
    * turn: `floor(pop / connectionPerPop)`.
@@ -777,6 +850,28 @@ export interface CityRules {
   growthBase: number;
   growthLinear: number;
   growthExponent: number;
+  /**
+   * What a town **that cannot drink** banks of its food surplus, as a signed
+   * percentage, until an aqueduct is raised in it (user ruling, 2026-09-03:
+   * "off-fresh settles grow at −30% speed until an aqueduct is built").
+   *
+   * A rule of the game and therefore a number here rather than a card: every
+   * empire lives under it from turn one, and there is no row to hang it on. It
+   * is one more line of `explainGrowthPercent` (`cities.ts`) and folds with the
+   * meters' stifle and the Hanging Gardens exactly as they fold with each other
+   * — summed once, multiplied once (Entry XIV.D.4's channel).
+   *
+   * "Cannot drink" is `cityHasFreshwater` and nothing else, so a card that
+   * declares the fact lifts the penalty for the same reason a river does; and
+   * the aqueduct lifts it off the building's own marker (`BuildingDef.waters`),
+   * which is a *town's* water and deliberately not the ground's — an aqueduct
+   * feeds people, not fields, so it never satisfies the freshwater predicate a
+   * cistern or a `freshwater`-scoped card asks.
+   *
+   * Signed like `growthStifle`'s rows, so the fold adds it and the panel prints
+   * it without anybody negating a number first.
+   */
+  drySettlePercent: number;
   /**
    * Food basket at or below which the city loses a population point. At −1 that
    * is "any deficit at all starves somebody", which is the Civ V feel; the

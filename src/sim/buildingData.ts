@@ -773,6 +773,26 @@ export interface BuildingDef {
    */
   faithPurchases?: boolean;
   /**
+   * **This building waters the town it stands in** — the aqueduct, today.
+   * Absent means an ordinary building, which is every row but one.
+   *
+   * A **marker**, exactly as `consecrated` and `faithPurchases` are: nothing in
+   * `src/sim/` compares a building id against `"aqueduct"`, so the day a second
+   * row wants to end a town's thirst it sets this flag and the growth channel
+   * learns nothing new. Read in exactly one place — `cityIsWatered`
+   * (`buildingEffects.ts`) — and asked by exactly one rule, the dry-settle
+   * penalty a town off fresh water pays on its growth surplus
+   * (`cities.drySettlePercent`, folded by `explainGrowthPercent`).
+   *
+   * It is emphatically **not** the freshwater predicate (`cityHasFreshwater`,
+   * `statecraft.ts`): that one is a fact about the *ground*, which is what a
+   * cistern's renewal and a `freshwater`-scoped card are asking about, and an
+   * aqueduct does nothing for a farm three hexes out. Two questions, two
+   * readings — a row that watered the fields as well would be a second answer
+   * to a question the board already answers.
+   */
+  waters?: boolean;
+  /**
    * A half of this row's ratified text that is **deliberately not built**, in
    * the words a player reads, struck through on the card.
    *

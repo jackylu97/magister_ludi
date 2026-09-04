@@ -33,6 +33,11 @@ stored. Flagged: the 20-bead threshold never decides; winners hold 7–10.
 
 - Two-stage percents (Entry XVII): city then empire, floored once; growth
   surplus and border culture are separate channels.
+- **Growth surplus is one fold of one list** (`explainGrowthPercent`): the site
+  (`cities.drySettlePercent` −30% for a town off fresh water, lifted by a card
+  granting freshwater or by a building marked `waters` — the aqueduct), the
+  cards/buildings/wonders on `growthSurplus`, then the happiness stifle. Summed
+  once, multiplied once; the city panel prints the lines.
 - One-time grants are modifier-immune windfalls (Entry XVIII): base + riders
   compose into ONE printed figure; everything pays through a
   `settle…Windfall`; the mutation register lives in CLAUDE.md.
@@ -47,10 +52,13 @@ stored. Flagged: the 20-bead threshold never decides; winners hold 7–10.
 
 ## The technology tree (revision 4.2, schema 54)
 
-- 50 nodes, 13 columns, ages 12/9/14/15. **A column IS a price**: one table,
-  cost(1)=13, cost(n)=friendly(cost(n−1)×(1+1.3×0.72^max(0,n−3))) —
-  5·13·30·69·135·225·335·450·565·665·750·820·875. Tree 19725; ages
-  345/1665/6415/11300. The 0.72 taper is the one pacing knob.
+- 50 nodes, 13 columns, ages 12/9/14/15. **A column IS a price**: one table —
+  5·13·30·69·135·225·400·540·680·1450·1700·1950·2200. Tree 35710; ages
+  345/1665/7700/26000. Columns 0–5 are the taper's own figures
+  (cost(1)=13, cost(n)=friendly(cost(n−1)×(1+1.3×0.72^max(0,n−3)))); columns
+  6–12 are **authored above it** by ruling (2026-09-03: Æra I–II keep their
+  scaling, Æra IV–V is extremely expensive). A late column is a ruling, not a
+  taper value; the table's witness is `test/sim/tech.test.ts`.
 - **The chart is the user's drawing**: lanes AND columns are authored
   (`row`, `columnShift`); the drawn layout is data, pinned exactly (the
   annealer only advises on new nodes). The packed-column layout renders it

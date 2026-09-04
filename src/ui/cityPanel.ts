@@ -36,18 +36,26 @@ import {
   citizenFocus,
   explainBuildingPreview,
   explainCityBuildings,
+  explainGrowthPercent,
   foldBuildingPreview,
   growthSurplus,
   growthThreshold,
   hasResource,
   productionModifiers,
+  queueCategory,
   queueItemCost,
   queueItemName,
   turnsToBuild,
   turnsToFill,
   unitProductionCost,
 } from '../sim/cities';
-import { type BuildingId, BUILDING_IDS, buildingDef, isWonder } from '../sim/buildingData';
+import {
+  type BuildingId,
+  type ProductionCategory,
+  BUILDING_IDS,
+  buildingDef,
+  isWonder,
+} from '../sim/buildingData';
 import { wonderClaim } from '../sim/state';
 import { cardCityStat, describeCard } from '../sim/statecraft';
 import { RULES } from '../sim/rulesData';
@@ -82,7 +90,7 @@ import type { Command, CommandResult } from '../sim/commands';
 import type { ConfirmRequest } from './confirmCard';
 import { annexCityError, razeCityError } from '../sim/diplomacy';
 import { type Game, dispatch } from '../sim/game';
-import { growthPercent, meterEffects } from '../sim/meters';
+import { meterEffects } from '../sim/meters';
 import {
   type ModifierStage,
   type StageSums,
@@ -117,7 +125,7 @@ import {
 import { type PressureLine, explainPressure } from '../sim/religion';
 import { pressureLedgerText } from './religionScreen';
 import { techDef } from '../sim/techData';
-import { buildError, isUnlocked, requiredResource } from '../sim/tech';
+import { buildError, isUnlocked, requiredResource, upgradeTargetForType } from '../sim/tech';
 import { BEAD_FAMILY_MARK } from './beadsScreen';
 import { describeBeadBoon } from '../sim/beads';
 import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
@@ -384,6 +392,48 @@ export function offeredInBuildList(id: UnitTypeId): boolean {
   return true;
 }
 
+/**
+ * One shelf of the add-list — the tabs across the top of "Add to queue".
+ *
+ * `ProductionCategory` for the three a percentage may name, and `null` for the
+ * projects, which are deliberately not a category at all (`queueCategory`
+ * answers `null` for one, and its docblock says why). So the shelves are not a
+ * fifth vocabulary invented here: they are exactly the answers the simulation's
+ * own sorter gives, asked of every row the list was already printing. A fourth
+ * category added to the table joins this list and nothing else.
+ */
+export type AddShelf = ProductionCategory | null;
+
+/** The tabs, in the order the one long list used to print them. */
+export const ADD_SHELVES: readonly { shelf: AddShelf; label: string }[] = [
+  { shelf: 'unit', label: 'Units' },
+  { shelf: 'building', label: 'Buildings' },
+  { shelf: 'wonder', label: 'Wonders' },
+  { shelf: null, label: 'Projects' },
+];
+
+/**
+ * Which shelf is showing — **module state, and deliberately not game state**.
+ *
+ * Which tab a player last looked at is a fact about this sitting at the
+ * keyboard: it is not in the save (a save is `{config, log}` and replays), it is
+ * not in a command, and no other seat can see it. It survives leaving one town
+ * and entering the next, which is the whole of what remembering a tab means, and
+ * it resets when the page does.
+ */
+let addShelf: AddShelf = 'unit';
+
+/**
+ * Which standing-fact disclosures a player has opened, by label.
+ *
+ * `addShelf`'s neighbour and its twin in every way: module state, out of the
+ * save, per sitting. It exists because the panel rebuilds its whole DOM on every
+ * accepted command, and a `<details>` a player opened to read the defence ledger
+ * would slam shut the moment they queued a warrior — which reads as the screen
+ * fighting them rather than as a repaint.
+ */
+const openDisclosures = new Set<string>();
+
 export interface CityPanelOptions {
   /** The element the panel lives in. Emptied and rebuilt on every render. */
   container: HTMLElement;
@@ -417,6 +467,17 @@ export interface CityPanelOptions {
    * simply carries no button.
    */
   onOpenTrade?: () => void;
+  /**
+   * Whether the guide is switched on.
+   *
+   * Read for one sentence: the board caption ("a ringed hex is a tile this city
+   * works") is an instruction, and an instruction that is on screen forever is
+   * one nobody reads. It prints while the guide is up — a player being taught —
+   * or while Buy Tiles is armed, which is the one mode whose whole point is
+   * clicking hexes. Optional for `setBuyMode`'s reason exactly: a panel built
+   * without a guide is still a panel, and it simply never has one to ask.
+   */
+  isTutorialActive?: () => boolean;
   /**
    * Asks the player before something that cannot be taken back, then runs it.
    *
@@ -660,10 +721,18 @@ export function maxHpLedger(city: City): string {
     .join(' · ');
 }
 
-/** One row of the defence ledger: what it is, what it is worth. */
+/**
+ * One row of the defence ledger: what it is, what it is worth.
+ *
+ * `amount` is the same number `figures` prints, kept as a number so the
+ * disclosure's summary ("Defence · 21") can be the **fold of this list** rather
+ * than a total computed beside it — rule 5's shape, one grade down from a yield.
+ * Nothing parses the string back into a number.
+ */
 export interface DefenseRow {
   label: string;
   figures: string;
+  amount: number;
 }
 
 /**
@@ -683,21 +752,29 @@ export function defenseRows(state: GameState, city: City): DefenseRow[] {
   strengthLines.forEach((entry, index) => {
     const label =
       index === 0 ? entry.source.replace('Garrison strength', 'Defends with') : entry.source;
-    rows.push({ label, figures: String(entry.amount) });
+    rows.push({ label, figures: String(entry.amount), amount: entry.amount });
   });
   for (const entry of buildingCityStat(city, 'defense')) {
-    rows.push({ label: entry.source, figures: signedFigure(entry.amount) });
+    rows.push({ label: entry.source, figures: signedFigure(entry.amount), amount: entry.amount });
   }
   for (const entry of cardCityStat(state, city, 'defense')) {
-    rows.push({ label: entry.source, figures: signedFigure(entry.amount) });
+    rows.push({ label: entry.source, figures: signedFigure(entry.amount), amount: entry.amount });
   }
   return rows;
+}
+
+/** The defence ledger's fold — the figure the disclosure's summary carries. */
+export function defenseTotal(rows: readonly DefenseRow[]): number {
+  let total = 0;
+  for (const row of rows) total += row.amount;
+  return total;
 }
 
 export function createCityPanel(options: CityPanelOptions): CityPanel {
   const { container, getGame, localPlayerId, getCity, onClose, onChanged, onOpenTrade } =
     options;
   const isBuyMode = options.isBuyMode ?? ((): boolean => false);
+  const isTutorialActive = options.isTutorialActive ?? ((): boolean => false);
   // No card handed in: the act happens on the click. See `askConfirm`.
   const askConfirm =
     options.askConfirm ?? ((_request: ConfirmRequest, run: () => void): void => run());
@@ -795,8 +872,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   function renderPuppet(city: City): HTMLElement | null {
     if (city.puppet !== true) return null;
     if (city.ownerId !== localPlayerId()) return null;
-    // `city-built`'s bones, which is what every named block in this panel wears.
-    const box = element('div', 'city-built city-puppet');
+    // A card in the work rail, wearing `city-built`'s prose voice — which is
+    // what every named block on this screen has worn since before the mode.
+    const box = element('div', 'city-card city-built city-puppet');
     box.append(element('h3', undefined, 'A conquered town'));
     box.append(
       element(
@@ -881,6 +959,17 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * puts it away first thing.
    */
   const info = createInfoCard({ className: 'info-card' });
+
+  /**
+   * The band's own card, and the only reason there are two: a chip in a
+   * horizontal strip is compared against the chips beside it, so a card raised
+   * *next to* one covers the very figures the reader is comparing. The top bar
+   * met this first and `placement: 'below'` is its answer (`infoCard.ts`); the
+   * name band is the same strip one screen down, so it borrows the same one.
+   *
+   * Put away with `info` on every render, for `info`'s reason exactly.
+   */
+  const strip = createInfoCard({ className: 'info-card is-strip', placement: 'below' });
 
   /** A figure chip: the number large, its name small and quiet beneath it. */
   function stat(label: string, value: string): HTMLElement {
@@ -1342,13 +1431,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * modifier that does nothing is not a modifier, and a granary in a city whose
    * queue is empty is not a hammer bonus.
    */
-  function renderYields(city: City, quote: CityQuote): HTMLElement {
+  function renderYieldChips(city: City, quote: CityQuote): HTMLElement {
     const { state } = getGame();
     // The rate for what is actually being built — the same call `collectYields`
     // banks with, so the ⚙ chip is the number the basket will receive.
     const front = city.queue[0];
     const yields = cityYields(state, city, [], front, quote);
-    const box = element('div', 'city-yields-box');
     const row = element('div', 'city-yields');
     const entries: [YieldKey, string, number][] = [
       ['food', 'Food', yields.food],
@@ -1369,10 +1457,30 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // the chip still reads as its word alone.
       name.append(yieldMarkNode(key, true), document.createTextNode(label));
       chip.append(name);
+      // The breakdown is **one hover deeper** and no shallower (the 2026-09-03
+      // ruling): the band carries the folds and the list that folds into them
+      // comes up under the chip a player asks about. Nothing is lost — the card
+      // is the very list this function used to print underneath itself, built
+      // by the same code — and rule 5 is kept by the reach rather than by the
+      // ink, which is what a band of six figures makes possible at all.
+      strip.bind(chip, () => yieldLedger(city, quote));
       row.append(chip);
     }
-    box.append(row);
+    return row;
+  }
 
+  /**
+   * Everything folded into the chips above, as the list it is the fold of.
+   *
+   * Verbatim the ledger the panel printed under the strip until the mode landed
+   * — the same five loops in the same order, the same `stageRows` collapse — so
+   * "one hover deeper" is a move and not a rewrite. See `renderYieldChips` for
+   * why it moved and `stageRows` for why a stage prints its parts.
+   */
+  function yieldLedger(city: City, quote: CityQuote): HTMLElement {
+    const { state } = getGame();
+    const front = city.queue[0];
+    const box = element('div', 'city-yields-box');
     const list = element('ul', 'city-modifiers ledger');
     const line = (label: string, figures: string, bad = false): void => {
       const item = element('li', bad ? 'city-modifier is-bad' : 'city-modifier');
@@ -1480,6 +1588,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       }
     }
     if (list.childElementCount > 0) box.append(list);
+    // A town whose chips are pure ground — no buildings, no luxuries, no
+    // percentage in force — has an empty list, and an empty card would read as a
+    // card that failed. The sentence is the honest reading of the emptiness.
+    else box.append(element('p', 'hint', 'The ground alone — nothing is added here yet.'));
     return box;
   }
 
@@ -1530,9 +1642,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const threshold = growthThreshold(city.population);
     const turns = turnsToFill(threshold - city.foodBasket, surplus);
 
-    const box = element('div', 'city-progress');
-    const label = element('div', 'city-progress-label');
-    label.append(element('span', undefined, 'Growth'));
+    const box = element('div', 'city-meter');
+    const label = element('div', 'city-meter-head');
+    label.append(element('span', 'city-meter-name', 'Growth'));
     const sign = surplus > 0 ? '+' : '';
     // The rate is a figure, so it carries the mono class; a shrinking city is
     // the one state in this panel that gets the alarm colour — and the word
@@ -1544,7 +1656,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     label.append(
       element(
         'span',
-        surplus < 0 ? 'city-progress-rate is-bad' : 'city-progress-rate',
+        surplus < 0 ? 'city-meter-rate is-bad' : 'city-meter-rate',
         surplus < 0
           ? `${surplus} food · starving`
           : turns === null
@@ -1554,22 +1666,38 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     );
     box.append(label);
     box.append(bar(city.foodBasket, threshold, 'is-food'));
-    box.append(
-      element('div', 'city-progress-note', `${Math.floor(city.foodBasket)} / ${threshold}`),
-    );
 
-    // The stifle, named on the line it throttles rather than up among the yield
-    // percentages — it is its own channel (Entry XIV.D.4: it multiplies the
-    // *surplus*, never the harvest), and since Entry XVII the modifier list
-    // above says only what the two yield stages did. The Borders line has said
-    // the same thing about the writ since M10; this is its twin.
-    const stifle = growthPercent(meterEffects(getGame().state, city.ownerId));
-    if (stifle !== 0 && surplus > 0) {
-      const modifier = element('div', 'city-progress-note');
-      modifier.append(element('span', 'city-progress-item', 'Happiness'));
-      modifier.append(element('span', undefined, percentFigure(stifle)));
-      box.append(modifier);
+    // The working count rides this row (the 2026-09-03 revision): where a
+    // town's people are standing is a fact about how fast it grows, and it was
+    // a section of its own for no better reason than that it arrived as one.
+    const foot = element('div', 'city-meter-foot');
+    foot.append(renderCitizens(city));
+    foot.append(
+      element('span', 'city-meter-fig', `${Math.floor(city.foodBasket)} / ${threshold}`),
+    );
+    box.append(foot);
+
+    // Every percentage on the channel, named on the line it throttles rather
+    // than up among the yield percentages — this is its own channel (Entry
+    // XIV.D.4: it multiplies the *surplus*, never the harvest), and since Entry
+    // XVII the modifier list says only what the two yield stages did. The
+    // Borders line has said the same thing about the writ since M10; this is its
+    // twin, and since the dry-settle ruling it is the fold's own list rather
+    // than the one line the panel happened to know about: a town that cannot
+    // drink, an aqueduct, a wonder and the happiness stifle all print here
+    // because `growthSurplus` is the sum of exactly these (rule 5).
+    //
+    // **On the row's hover rather than under it** since the mode landed, which
+    // is the same move the yield chips made and the same promise: the list is
+    // one hover deeper, never dropped. A rail two hundred pixels wide cannot
+    // carry four modifier lines under every bar and still be a rail.
+    const modifiers: string[] = [];
+    if (surplus > 0) {
+      for (const line of explainGrowthPercent(getGame().state, city)) {
+        modifiers.push(`${line.source} ${percentFigure(line.percent)}`);
+      }
     }
+    box.title = [`${Math.floor(city.foodBasket)} of ${threshold} banked`, ...modifiers].join('\n');
     return box;
   }
 
@@ -1601,12 +1729,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       cityYields(getGame().state, city, [], undefined, quote),
     );
 
-    const box = element('div', 'city-progress');
-    const label = element('div', 'city-progress-label');
-    label.append(element('span', undefined, 'Borders'));
+    const box = element('div', 'city-meter');
+    const label = element('div', 'city-meter-head');
+    label.append(element('span', 'city-meter-name', 'Borders'));
     const rate = element(
       'span',
-      growth.frozen ? 'city-progress-rate is-bad' : 'city-progress-rate',
+      growth.frozen ? 'city-meter-rate is-bad' : 'city-meter-rate',
       growth.frozen
         ? `${growth.base} culture · frozen`
         : growth.turns === null
@@ -1617,22 +1745,25 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     box.append(label);
     box.append(bar(growth.banked, growth.cost, 'is-culture'));
 
-    const note = element('div', 'city-progress-note');
+    const note = element('div', 'city-meter-foot');
     note.append(
-      element('span', 'city-progress-item', growth.frozen ? 'Authority overdrawn' : 'Next tile'),
+      element('span', 'city-meter-sub', growth.frozen ? 'Authority overdrawn' : 'Next tile'),
     );
-    note.append(element('span', undefined, `${Math.floor(growth.banked)} / ${growth.cost}`));
+    note.append(
+      element('span', 'city-meter-fig', `${Math.floor(growth.banked)} / ${growth.cost}`),
+    );
     box.append(note);
 
     // The writ's own percentage on the accrual, named rather than folded into
     // the rate — rule 5 one grade smaller: a player whose borders sped up is
-    // entitled to find the reason on the line that sped up.
-    if (!growth.frozen && growth.percent !== 0) {
-      const modifier = element('div', 'city-progress-note');
-      modifier.append(element('span', 'city-progress-item', 'Authority'));
-      modifier.append(element('span', undefined, percentFigure(growth.percent)));
-      box.append(modifier);
-    }
+    // entitled to find the reason on the line that sped up. On the row's hover
+    // since the mode landed, for the Growth line's reason exactly.
+    box.title =
+      !growth.frozen && growth.percent !== 0
+        ? `Authority ${percentFigure(growth.percent)}`
+        : growth.frozen
+          ? 'Borders frozen — authority is overdrawn'
+          : `${Math.floor(growth.banked)} of ${growth.cost} toward the next tile`;
 
     const buy = element('button', 'city-buy-tiles');
     buy.type = 'button';
@@ -1668,15 +1799,15 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const pinned = city.lockedTiles.filter((cell) =>
       city.workedTiles.some((tile) => tile.col === cell.col && tile.row === cell.row),
     ).length;
-    const line = element('p', 'city-citizens');
-    line.append(element('span', undefined, 'Citizens'));
-    line.append(
-      element(
-        'span',
-        'city-citizens-count',
-        `${city.workedTiles.length}/${city.population} assigned · ${pinned} pinned`,
-      ),
+    // "5/7 working" — a fragment on the Growth row rather than a section of its
+    // own (the 2026-09-03 revision). The pinned figure is the clause that had to
+    // go somewhere and it went one hover deeper, with the count it qualifies.
+    const line = element(
+      'span',
+      'city-meter-sub',
+      `${city.workedTiles.length}/${city.population} working`,
     );
+    line.title = `${figure(pinned)} pinned by hand`;
     return line;
   }
 
@@ -1797,15 +1928,16 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   function renderProduction(city: City, locked: boolean, quote: CityQuote): HTMLElement {
-    const box = element('div', 'city-progress');
+    const box = element('div', 'city-prod');
     const item = city.queue[0];
     const perTurn = cityYields(getGame().state, city, [], undefined, quote).production;
 
-    const label = element('div', 'city-progress-label');
-    label.append(element('span', undefined, 'Production'));
+    box.append(element('h3', undefined, 'Building now'));
     if (!item) {
-      label.append(element('span', 'city-progress-rate is-bad', 'nothing queued'));
-      box.append(label);
+      // The card that says the town is idle, which is a decision the player has
+      // to make and therefore belongs at the head of the work rail rather than
+      // as a missing block.
+      box.append(element('p', 'city-prod-idle', 'Nothing queued'));
       return box;
     }
 
@@ -1814,23 +1946,42 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // hammers belong to — the same call every other estimate in this panel
     // makes, so the bar and the rows can never round differently.
     const turns = turnsToBuild(getGame().state, city, item, 0, quote);
-    label.append(
+    // What is being built is a *name* and takes the display face — the one thing
+    // in the work rail a player looks at first — with the schedule beside it in
+    // the counting face. The two faces are the whole of the hierarchy here.
+    const what = element('div', 'city-prod-what');
+    const name = element('span', 'city-prod-name', queueItemName(item));
+    // The card is the front row, so it is also where that row is *described* —
+    // the same hover card the queue rows and the build list raise, at the one
+    // position the banked hammers belong to.
+    info.bind(name, () => itemCard(city, item, 0));
+    what.append(name);
+    what.append(
       element(
         'span',
-        'city-progress-rate',
-        turns === null ? `+${perTurn} · stalled` : `+${perTurn} · ${turns}t`,
+        'city-prod-turns',
+        `${Math.floor(city.hammerBasket)}/${cost} · ${turns === null ? 'stalled' : `${turns}t`}`,
       ),
     );
-    box.append(label);
+    // **And where it is taken off.** The front row left the queue list when the
+    // list became "what comes after this", and its × had to come with it or the
+    // one row a player most often changes their mind about would be the one row
+    // they could not remove. Same draft, same command, same refusal.
+    const drop = element('button', 'city-icon-button', '×');
+    drop.type = 'button';
+    drop.title = 'Stop building this';
+    drop.disabled = locked;
+    drop.addEventListener('click', () => {
+      const next = draft(city);
+      next.splice(0, 1);
+      commit(city, next);
+    });
+    what.append(drop);
+    box.append(what);
     box.append(bar(city.hammerBasket, cost, 'is-production'));
-    // What is being built is a name and what is banked is a number, so the note
-    // is two elements rather than one string: the faces differ.
-    const note = element('div', 'city-progress-note');
-    note.append(element('span', 'city-progress-item', queueItemName(item)));
-    note.append(
-      element('span', undefined, `${Math.floor(city.hammerBasket)} / ${cost}`),
-    );
-    box.append(note);
+    // The rate the bar fills at, on the card's hover rather than on a line of
+    // its own — the rails' rule, and the figure is the ⚙ chip in the band.
+    box.title = `+${perTurn} a turn · ${Math.floor(city.hammerBasket)} of ${cost} banked`;
     // And the two banks, on the rows that declare they take them (Entry LV).
     // Under the bar rather than beside the queue row because a contribution pays
     // for `queue[0]` and this box *is* the front row — a button anywhere else
@@ -1895,16 +2046,16 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * needs: remove, and move up. "Move up" repeated is "move to the front", and
    * a drag-and-drop list for three items would be more code than the panel.
    */
-  function renderQueue(city: City, locked: boolean, quote: CityQuote): HTMLElement {
+  function renderQueue(city: City, locked: boolean, quote: CityQuote): HTMLElement | null {
+    // The front row is the card above this one ("Building now"), so the list is
+    // what comes *after* it — "then — Worker". A queue of one is a town with
+    // nothing after the thing it is building, and prints no list at all.
+    if (city.queue.length <= 1) return null;
     const box = element('div', 'city-queue');
-    box.append(element('h3', undefined, 'Queue'));
-    if (city.queue.length === 0) {
-      box.append(element('p', 'hint', 'Nothing queued. Add something below.'));
-      return box;
-    }
 
     const list = element('ol', 'city-queue-list');
     city.queue.forEach((item, index) => {
+      if (index === 0) return;
       const row = element('li');
       const name = element('span', 'city-queue-name', queueItemName(item));
       row.append(name);
@@ -1994,6 +2145,26 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const { state } = getGame();
     const box = element('div', 'city-buildables');
     box.append(element('h3', undefined, 'Add to queue'));
+    // The shelves. One long list of everything a town can start was the list
+    // this screen was born with and the thing the 2026-09-03 audit named: a
+    // player deciding "what unit next" reads past thirty buildings to find four
+    // soldiers. The shelf is `queueCategory`'s answer for the row — the
+    // simulation's own sorter, never a comparison against a name — so a fourth
+    // category in the table gets a tab by joining `ADD_SHELVES`.
+    const tabs = element('div', 'city-tabs');
+    for (const { shelf, label } of ADD_SHELVES) {
+      const tab = element('button', 'city-tab', label);
+      tab.type = 'button';
+      const on = shelf === addShelf;
+      tab.classList.toggle('is-on', on);
+      tab.setAttribute('aria-pressed', on ? 'true' : 'false');
+      tab.addEventListener('click', () => {
+        addShelf = shelf;
+        onChanged();
+      });
+      tabs.append(tab);
+    }
+    box.append(tabs);
     const grid = element('div', 'city-buildable-grid');
 
     const add = (item: QueueItem): void => {
@@ -2030,11 +2201,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       grid.append(line);
     };
 
-    for (const id of UNIT_TYPE_IDS) {
+    for (const id of addShelf === 'unit' ? UNIT_TYPE_IDS : []) {
       // Hidden outright (user, 2026-08-30): a hull no technology can reach
       // yet has no business on the list.
       if (unitDef(id).awaitsTech === true) continue;
       if (!isUnlocked(state, city.ownerId, 'unit', id)) continue;
+      // **Hidden, not greyed** (user, 2026-09-03: "once a unit is obsolete,
+      // please remove it from the build queue"): a warrior an empire could
+      // already field as a swordsman is not a row this town cannot build *yet*,
+      // it is a row that has been replaced — and a greyed one would answer "why
+      // can I not build this" with "because you can build something better",
+      // which is an offer, not a refusal. The same reading the reducer gives it
+      // (`buildError`), asked of the same walk (`upgradeTargetForType`), so the
+      // row leaves the list on the turn the successor becomes trainable and
+      // comes back if the iron under it is ever lost.
+      if (upgradeTargetForType(state, city.ownerId, id) !== null) continue;
       // Bought or not at all, or called and never made: neither belongs on a
       // build row. See `offeredInBuildList`.
       if (!offeredInBuildList(id)) continue;
@@ -2107,7 +2288,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // unlike a buildable row: the Religion screen has said "an augur costs 40🕯"
     // since before Divination, and a player who opens a city ought to find the
     // same offer in the place they are already deciding what a town does next.
-    for (const id of UNIT_TYPE_IDS) {
+    for (const id of addShelf === 'unit' ? UNIT_TYPE_IDS : []) {
       // Hidden outright (user, 2026-08-30): a hull no technology can reach
       // yet has no business on the list.
       if (unitDef(id).awaitsTech === true) continue;
@@ -2125,7 +2306,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const queued = new Set(
       city.queue.filter((item) => item.kind === 'building').map((item) => item.id),
     );
-    for (const id of BUILDING_IDS) {
+    for (const id of addShelf === 'building' || addShelf === 'wonder' ? BUILDING_IDS : []) {
+      // Which of the two shelves this row belongs on, asked of the simulation's
+      // own sorter (`queueCategory`) rather than of `isWonder` a second time:
+      // "wonder is its own category" is the table's ruling, and this list reads
+      // it rather than restating it.
+      if (queueCategory({ kind: 'building', id }) !== addShelf) continue;
       // Hidden outright, not greyed (user, 2026-08-30): a building no
       // technology can reach yet is noise, and a wonder somebody already raised
       // is a row that can never be built — the same reading the reducer's
@@ -2196,7 +2382,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const standing = new Set(
       city.queue.filter((item) => item.kind === 'project').map((item) => item.id),
     );
-    for (const id of PROJECT_IDS) {
+    for (const id of addShelf === null ? PROJECT_IDS : []) {
       if (standing.has(id)) continue;
       if (!isUnlocked(state, city.ownerId, 'project', id)) continue;
       const def = projectDef(id);
@@ -2237,6 +2423,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       row(button);
     }
 
+    // A shelf with nothing on it is a real answer — every wonder in the age
+    // already stands, or no technology has opened a project yet — and it is the
+    // greyed-row reading one scale up: a tab that vanished would take the
+    // question with it.
+    if (grid.childElementCount === 0) {
+      box.append(element('p', 'hint', 'Nothing on this shelf yet.'));
+    }
     box.append(grid);
     // What a price tag *is*, and nothing about how much money you have.
     //
@@ -2252,9 +2445,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       element(
         'p',
         'hint',
-        `A price tag buys the row outright at ${RULES.production.goldPerHammer}` +
-          `${YIELD_GLYPH.gold} per ${HAMMER} of its full cost — the hammers this ` +
-          'city has banked stay banked.',
+        // Cut to a fragment with the rails (the 2026-09-03 revision): the rule
+        // is the conversion and the one thing a price cannot say for itself,
+        // and the sentence around it was scaffolding.
+        `A tag buys the row outright · ${RULES.production.goldPerHammer}` +
+          `${YIELD_GLYPH.gold} per ${HAMMER} of full cost · banked hammers stay banked`,
       ),
     );
     return box;
@@ -2313,11 +2508,15 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return button;
   }
 
-  /** DOM wrapper over `defenseRows` — see it for the rule this ledger keeps. */
+  /**
+   * DOM wrapper over `defenseRows` — see it for the rule this ledger keeps.
+   *
+   * The heading is the disclosure's summary now, so this is the ledger alone:
+   * every line the section printed before the rails, unchanged, one click deep.
+   */
   function renderDefense(city: City): HTMLElement {
     const { state } = getGame();
     const box = element('div', 'city-defense');
-    box.append(element('h3', undefined, 'Defence'));
     const list = element('ul', 'city-modifiers ledger');
     for (const row of defenseRows(state, city)) {
       const item = element('li', 'city-modifier');
@@ -2382,7 +2581,6 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const rows = cityFaithRows(state, city, localPlayerId());
     if (rows.length === 0) return null;
     const box = element('div', 'city-built city-faith');
-    box.append(element('h3', undefined, 'Faith'));
     for (const row of rows) {
       const line = element('p', row.ours ? 'city-faith-row' : 'city-faith-row is-foreign');
       const name = element('span', 'city-faith-name', row.name);
@@ -2433,7 +2631,6 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   function renderBuilt(city: City): HTMLElement | null {
     if (city.buildings.length === 0) return null;
     const box = element('div', 'city-built');
-    box.append(element('h3', undefined, 'Built'));
     box.append(
       element(
         'p',
@@ -2468,15 +2665,18 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     if (city.ownerId !== localPlayerId()) return null;
     const rows = cityRouteRows(state, city);
     const box = element('div', 'city-built');
-    const head = element('h3', undefined, 'Routes');
+    // The post rides the first line of the body now that the heading is the
+    // disclosure's summary. Still a mark rather than a row, and still says what
+    // it is on hover — see the docblock.
     if (city.tradingPost === true) {
-      const post = element('span', 'city-size', '⌂ trading post');
-      post.title =
+      const post = element('p', undefined);
+      const mark = element('span', 'city-size', '⌂ trading post');
+      mark.title =
         'This town has been an end of a trade route. A post extends how far ' +
         'later caravans may be sent from or to it.';
-      head.append(document.createTextNode(' '), post);
+      post.append(mark);
+      box.append(post);
     }
-    box.append(head);
     box.append(element('p', 'hint', routeSlotsLineOf(state, localPlayerId())));
     // A door to the Trade screen, and the one a player reaches from a *town*
     // rather than from a piece: this row already answers "why can I not start
@@ -2504,31 +2704,58 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return box;
   }
 
-  // --- the whole panel -----------------------------------------------------
+  // --- the mode -------------------------------------------------------------
 
-  function render(): void {
-    const city = getCity();
-    // Every anchor in this panel is about to stop existing, and an open card
-    // would be left pointing at a row that has gone. See `infoCard.ts`.
-    info.hide();
-    container.replaceChildren();
-    container.hidden = city === null;
-    if (!city) return;
+  /**
+   * One collapsed standing fact: a summary carrying the fold, the section's own
+   * contents inside it, closed until asked.
+   *
+   * The screen's oldest complaint and the audit's second (2026-09-03): Defence,
+   * Built, Routes and Faith are read-mostly, they were interleaved with the
+   * things a player edits, and each cost a column-foot every render whether or
+   * not anybody was reading it. A `<details>` is the whole fix and it is the
+   * platform's: it opens on a click, it opens on Enter, a screen reader
+   * announces it as expandable, and **nothing inside it is deleted** — the
+   * contents are the very elements the sections built before.
+   *
+   * The figure in the summary is what makes a closed row worth having: "Built ·
+   * 7" answers the question most reads of that section were asking.
+   */
+  function disclosure(label: string, figures: string, body: HTMLElement | null): HTMLElement | null {
+    if (body === null) return null;
+    const box = element('details', 'city-disc');
+    const summary = element('summary');
+    summary.append(element('span', 'city-disc-name', label));
+    summary.append(element('span', 'city-disc-fig', figures));
+    box.append(summary);
+    box.append(body);
+    // Closed by default and open again after a repaint if the player had opened
+    // it — see `openDisclosures` for why that is not a nicety.
+    box.open = openDisclosures.has(label);
+    box.addEventListener('toggle', () => {
+      if (box.open) openDisclosures.add(label);
+      else openDisclosures.delete(label);
+    });
+    return box;
+  }
 
+  /**
+   * The name band: the town's own bar across the top edge, and the one loudest
+   * "you are somewhere else now" the mode has without moving the camera.
+   *
+   * Everything the old header carried, in the same order and the same voices —
+   * the name, Size, hit points with `maxHpLedger` on hover, the siege badge,
+   * the belief badge — with the six yield chips riding the far end where the
+   * empire's own chips sit one bar up. The empire's chips give way while the
+   * mode holds (`style.css`, and it is derived from the panel's own `hidden`
+   * rather than stored anywhere), so the only yields on screen are this town's.
+   *
+   * No close cross: the way out is one button at the bottom of the screen, and
+   * two exits in two corners is the thing the exit was meant to fix.
+   */
+  function renderBand(city: City, quote: CityQuote): HTMLElement {
     const { state } = getGame();
-    // A finished seat may read its cities but not re-plan them; the reducer
-    // would refuse, so the buttons say so first.
-    //
-    // **A puppet is locked the same way, and for a different reason** (the war
-    // ruling, 9b: production visible but uncontrollable). It is a lock of the
-    // *interface's* alone — the reducer deliberately accepts a queue for a
-    // puppet, because under the ruling a puppet builds what the seat's own
-    // appraisal picks and that arrives as an ordinary logged command. So the
-    // one flag covers both, and the hint below says which of the two it is.
-    const puppet = city.puppet === true && city.ownerId === localPlayerId();
-    const locked = hasEndedTurn(state, localPlayerId()) || puppet;
-
-    const header = element('div', 'city-header');
+    const band = element('div', 'city-band');
     const title = element('div', 'city-title');
     title.append(element('h2', undefined, cityDisplayName(state, city)));
     title.append(element('span', 'city-size', `Size ${city.population}`));
@@ -2550,18 +2777,203 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       title.append(badge);
     }
     // What this town believes, beside its name — the 2026-08-28 ruling. The
-    // block halfway down the sheet keeps every word it had; this is its answer
+    // full list of claims is a disclosure in the rail below; this is its answer
     // promoted to where a player actually looks. See `cityFaithHeadline`.
     const belief = renderFaithHeadline(city);
     if (belief) title.append(belief);
-    header.append(title);
+    band.append(title);
+    band.append(renderYieldChips(city, quote));
+    return band;
+  }
 
-    const close = element('button', 'city-close', '×');
-    close.type = 'button';
-    close.title = 'Close (Esc)';
-    close.addEventListener('click', onClose);
-    header.append(close);
-    container.append(header);
+  /**
+   * The left rail — **the town**: what it is, read-mostly.
+   *
+   * Translucent parchment over a live board, ~230px, and everything in it is a
+   * standing fact rather than a decision: the two clocks (growth, borders) with
+   * their breakdowns on the row's own hover, the one specialists line, the note
+   * about where the citizens went when there is one, and the four standing
+   * sections collapsed behind their folds.
+   */
+  function renderTownRail(city: City, locked: boolean, quote: CityQuote): HTMLElement {
+    const { state } = getGame();
+    const rail = element('div', 'city-rail is-left');
+
+    const clocks = element('div', 'city-card');
+    clocks.append(renderGrowth(city, quote));
+    // Under growth, because the two are the town's two clocks and the slower
+    // one reads as the ground under the faster.
+    clocks.append(renderBorders(city, locked, quote));
+    rail.append(clocks);
+
+    // Why the citizens moved, when they have — one short line, and nothing at
+    // all while the town is simply growing. Directly under the working count it
+    // is a note about.
+    const focus = renderCitizenFocus(city);
+    if (focus) {
+      const card = element('div', 'city-card');
+      card.append(focus);
+      rail.append(card);
+    }
+
+    // And which of those citizens are not standing on a hex at all (Entry
+    // XLVIII) — one row, absent until a town has a guild.
+    const guilds = renderSpecialists(city, locked);
+    if (guilds) {
+      const card = element('div', 'city-card');
+      card.append(guilds);
+      rail.append(card);
+    }
+
+    // The standing facts, collapsed. Every one of them keeps its whole contents
+    // — this is the no-deletion rule's load-bearing case.
+    const standing = element('div', 'city-card city-discs');
+    const rows = defenseRows(state, city);
+    const defence = disclosure('Defence', figure(defenseTotal(rows)), renderDefense(city));
+    if (defence) standing.append(defence);
+    const built = disclosure('Built', figure(city.buildings.length), renderBuilt(city));
+    if (built) standing.append(built);
+    // The routes summary counts the caravans this town is an end of; the empire
+    // figure that answers "why can I not start another" (`routeSlotsLine`) rides
+    // the summary's hover and is printed again in full inside.
+    const routes = renderRoutes(city);
+    if (routes) {
+      const runs = cityRouteRows(state, city).length;
+      const shelf = disclosure('Routes', runs === 0 ? '—' : figure(runs), routes);
+      if (shelf) {
+        shelf.title = routeSlotsLineOf(state, localPlayerId());
+        standing.append(shelf);
+      }
+    }
+    // What this town believes, in full — the header badge is the answer and
+    // this is the argument under it (`renderFollowers`).
+    const faiths = cityFaithRows(state, city, localPlayerId());
+    const faith = disclosure('Faith', figure(faiths.length), renderFollowers(city));
+    if (faith) standing.append(faith);
+    if (standing.childElementCount > 0) rail.append(standing);
+    return rail;
+  }
+
+  /**
+   * The right rail — **the work**: the one decision this screen exists for.
+   *
+   * The audit's first failure was that this decision was cut in half — the
+   * queue mid-column, the choose-list at the very bottom with three read-mostly
+   * sections between them. Here they are one rail, in the order the decision is
+   * made: what is being built, what is behind it, and what may be added.
+   */
+  function renderWorkRail(
+    city: City,
+    locked: boolean,
+    puppet: boolean,
+    quote: CityQuote,
+  ): HTMLElement {
+    const { state } = getGame();
+    const rail = element('div', 'city-rail is-right');
+
+    const now = element('div', 'city-card');
+    now.append(renderProduction(city, locked, quote));
+    const queue = renderQueue(city, locked, quote);
+    if (queue) now.append(queue);
+    rail.append(now);
+
+    const add = element('div', 'city-card');
+    add.append(renderBuildables(city, locked, quote));
+    rail.append(add);
+
+    // What a seized town is, and the two decisions about it — with the rail it
+    // explains being locked.
+    const held = renderPuppet(city);
+    if (held) rail.append(held);
+
+    if (puppet) {
+      rail.append(
+        element('p', 'hint', 'A conquered town chooses for itself what to build.'),
+      );
+    } else if (locked) {
+      rail.append(element('p', 'hint', `Turn ${state.turn} ended · production locked`));
+    }
+    return rail;
+  }
+
+  /**
+   * The one instruction on the screen, and only while somebody wants it.
+   *
+   * It used to print under every city panel forever, which is the surest way to
+   * make an instruction invisible. Two readers are left and both are asking the
+   * question it answers: a player being taught (the guide is up), and a player
+   * who has armed Buy Tiles, whose whole mode is clicking hexes.
+   */
+  function renderBoardCaption(): HTMLElement | null {
+    const { state } = getGame();
+    if (isBuyMode()) {
+      return element(
+        'p',
+        'city-board-caption',
+        // Leads with the treasury a tag's price is checked against, because in
+        // this one mode the prices are on the board rather than beside a bank.
+        `${figure(playerById(state, localPlayerId())?.gold ?? 0)}${YIELD_GLYPH.gold} on hand · ` +
+          'every price on the board is what that hex costs now · Esc stops buying',
+      );
+    }
+    if (!isTutorialActive()) return null;
+    return element(
+      'p',
+      'city-board-caption',
+      // The board draws a *ring* on every worked hex and has since the overlay
+      // pass — bone white where the assignment chose the tile, the seat's own
+      // ink where the player pinned it (`overlays.ts`).
+      'A ringed hex is a tile this city works. Click one to pin a citizen ' +
+        'there, or any other hex in the radius to move one to it. A unit ' +
+        'standing in the radius is selected by clicking its badge.',
+    );
+  }
+
+  /**
+   * The way out: one wide button at the bottom centre, and the mode's whole
+   * answer to "how do I get back to the world".
+   *
+   * The panel's little × is gone with the panel. A cross in a corner is right
+   * for a card sitting on a board; it is wrong for a mode that has taken the
+   * whole screen, which is the reading the 2026-09-03 ruling made. Escape does
+   * the same thing and says so on the button (`controls.ts` owns the key — one
+   * Escape listener for the whole board, and this is the same verb it calls).
+   */
+  function renderLeave(): HTMLElement {
+    const leave = element('button', 'city-leave');
+    leave.type = 'button';
+    leave.append(document.createTextNode('Leave the town '));
+    leave.append(element('kbd', 'btn-key', 'Esc'));
+    leave.title = 'Back to the world (Esc)';
+    leave.addEventListener('click', onClose);
+    return leave;
+  }
+
+  // --- the whole panel -----------------------------------------------------
+
+  function render(): void {
+    const city = getCity();
+    // Every anchor in this panel is about to stop existing, and an open card
+    // would be left pointing at a row that has gone. See `infoCard.ts`.
+    info.hide();
+    strip.hide();
+    container.replaceChildren();
+    container.className = 'city-mode';
+    container.hidden = city === null;
+    if (!city) return;
+
+    const { state } = getGame();
+    // A finished seat may read its cities but not re-plan them; the reducer
+    // would refuse, so the buttons say so first.
+    //
+    // **A puppet is locked the same way, and for a different reason** (the war
+    // ruling, 9b: production visible but uncontrollable). It is a lock of the
+    // *interface's* alone — the reducer deliberately accepts a queue for a
+    // puppet, because under the ruling a puppet builds what the seat's own
+    // appraisal picks and that arrives as an ordinary logged command. So the
+    // one flag covers both, and the hint in the work rail says which it is.
+    const puppet = city.puppet === true && city.ownerId === localPlayerId();
+    const locked = hasEndedTurn(state, localPlayerId()) || puppet;
 
     // One photograph of the town, spent inside this render and never kept —
     // see `CityQuote`. Everything below reads the sim fresh through it; nothing
@@ -2569,79 +2981,30 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // or a religion arriving in the town from leaving a stale panel behind.
     const quote = cityQuote(state, city);
 
-    container.append(renderYields(city, quote));
-    container.append(renderCitizens(city));
-    // Directly under the citizens' row, because it is a note about *that* row:
-    // why those hexes and not the ones the town worked last turn.
-    const focus = renderCitizenFocus(city);
-    if (focus) container.append(focus);
-    // And which of those citizens are not standing on a hex at all (Entry
-    // XLVIII). Directly under the focus note for the citizens' row's own reason:
-    // it is the second half of "where are this town's people", and a player
-    // reading "5/8 assigned" above needs the other three accounted for.
-    const guilds = renderSpecialists(city, locked);
-    if (guilds) container.append(guilds);
-    // And what those citizens believe — a second reading of the row above, and
-    // absent until something presses. See `renderFollowers`.
-    const faith = renderFollowers(city);
-    if (faith) container.append(faith);
-    container.append(renderGrowth(city, quote));
-    container.append(renderProduction(city, locked, quote));
-    // After production, because the two food/hammer baskets are what a player
-    // reads first and territory is the slower clock underneath them.
-    container.append(renderBorders(city, locked, quote));
-    // Beside borders and ahead of the queue: what the town is worth in a fight
-    // is a standing fact about it, not a plan a player is editing.
-    container.append(renderDefense(city));
-    container.append(renderQueue(city, locked, quote));
-    // What a seized town is, and the two decisions about it — directly under
-    // the queue it explains being locked.
-    const held = renderPuppet(city);
-    if (held) container.append(held);
-    const built = renderBuilt(city);
-    if (built) container.append(built);
-    // Under the buildings, because a route's slots are a fold over them — see
-    // `renderRoutes`.
-    const routes = renderRoutes(city);
-    if (routes) container.append(routes);
-    container.append(renderBuildables(city, locked, quote));
-
-    if (puppet) {
-      container.append(
-        element(
-          'p',
-          'hint',
-          'A conquered town chooses for itself what to build. Annex it to set its work.',
-        ),
-      );
-    } else if (locked) {
-      container.append(
-        element('p', 'hint', `You have ended turn ${state.turn}; production is locked.`),
-      );
-    }
-    container.append(
-      element(
-        'p',
-        'hint',
-        isBuyMode()
-          ? // Leads with the treasury a tag's price is checked against — the
-            // same `Player.gold` the top bar's chip now shows — so affordability
-            // reads here without a hover.
-            `${figure(playerById(state, localPlayerId())?.gold ?? 0)}${YIELD_GLYPH.gold} on ` +
-            'hand. Every price on the board is what that hex costs right now. ' +
-            'Click one to buy it; a greyed tag says why it cannot be had. ' +
-            'Escape stops buying and leaves the city open.'
-          : // The board draws a *ring* on every worked hex and has since the
-            // overlay pass — bone white where the assignment chose the tile,
-            // the seat's own ink where the player pinned it (`overlays.ts`).
-            // This line still said "dots" (user, 2026-08-27), which is the one
-            // thing on the board it is not.
-            'A ringed hex is a tile this city works. Click one to pin a ' +
-            'citizen there, or any other hex in the work radius to move one ' +
-            'to it. A unit standing in the radius is selected by clicking its ' +
-            'badge.',
-      ),
-    );
+    // The band owns the top edge, the town is on the left, the work is on the
+    // right, and the way out is at the bottom. The container itself takes no
+    // pointer events at all — the board underneath stays live, which is the
+    // whole point of a mode rather than a sheet: citizens are still pinned by
+    // clicking hexes and tiles are still bought off the board.
+    //
+    // **The band and the rails are one column in flow** rather than three boxes
+    // hung off the viewport's corners, and that is a fix rather than a
+    // preference (playtest, 2026-09-03: "the build queue overlaps with the top
+    // bar"). The rails' top used to be `topbar + a stylesheet's guess at the
+    // band's height`, which was right at one window width and put the work rail
+    // through the chips at every other. In flow the band takes what it needs and
+    // the row below starts where it actually ends, at every width there is.
+    container.append(renderBand(city, quote));
+    const body = element('div', 'city-body');
+    body.append(renderTownRail(city, locked, quote));
+    body.append(renderWorkRail(city, locked, puppet, quote));
+    container.append(body);
+    // Out of the flow, both of them: they sit against the bottom of the screen
+    // rather than after the rails, and the row above must not shorten to make
+    // room for something that is over the board anyway.
+    const caption = renderBoardCaption();
+    if (caption) container.append(caption);
+    container.append(renderLeave());
   }
 
   return { render };

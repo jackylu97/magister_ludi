@@ -153,6 +153,31 @@ describe('what gold costs', () => {
     expect(price.total).toBe(buildingDef('granary').cost * RATE);
   });
 
+  /**
+   * **The treasury's rate, doubled** (user ruling, 2026-09-03: "gold is way too
+   * strong. Gold costs need to be 2x across the board ... for the sake of
+   * bonuses, keep the conversion at 2:1 between gold and other yields").
+   *
+   * The one number in this file pinned literally, because the ruling *is* the
+   * number: what a hammer costs at the till went 2 → 4, while every conversion
+   * that pays gold *out* — a chop's coin, a project's payout, a windfall's
+   * riders — stays where it was. Faith is pinned beside it as the control: the
+   * ruling was about gold's flexibility and touched no other bank.
+   */
+  it('charges the doubled treasury rate the 9/3 ruling named, and leaves faith alone', () => {
+    expect(RULES.production.goldPerHammer).toBe(4);
+    expect(RULES.production.faithPerHammer).toBe(1);
+
+    const g = game();
+    const city = found(g.state, 0);
+    const hammers = unitProductionCost(g.state, 0, 'warrior');
+    const price = explainPurchaseCost(g.state, 0, city.id, WARRIOR, 'gold')!;
+    expect(price.total).toBe(hammers * 4);
+    // Twice what the same warrior cost before the ruling, said as the ruling
+    // says it — the price paid in gold, not the gold a yield converts into.
+    expect(price.total).toBe(2 * (hammers * 2));
+  });
+
   it('carries the settler ladder into the tag, because the ladder is a cost line', () => {
     const g = game();
     const city = found(g.state, 0);
@@ -694,6 +719,6 @@ describe('the schema witness', () => {
     // contain a puppet's purchase this reducer refuses, so it is a different
     // game rather than an older one. The other eleven witnesses are listed in
     // `test/sim/state.test.ts`'s own migration note.
-    expect(SCHEMA_VERSION).toBe(59);
+    expect(SCHEMA_VERSION).toBe(60);
   });
 });

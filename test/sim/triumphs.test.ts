@@ -22,8 +22,9 @@ import { describe, expect, it } from 'vitest';
 import { foundCityAt, realiseItem } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { claimDiscoveryAt } from '../../src/sim/discoveries';
-import { getTileAt } from '../../src/sim/map';
+import { type Tile, getTileAt, tileIndex, tileNeighbors } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
+import { isWaterTerrain, terrainDef } from '../../src/sim/terrainData';
 import { type GameState, createUnit } from '../../src/sim/state';
 import { adoptGovernmentAt } from '../../src/sim/statecraft';
 import { GOVERNMENT_TIERS, governmentsAtTier } from '../../src/sim/statecraftData';
@@ -56,6 +57,43 @@ function count(state: GameState, playerId: number, id: TriumphId): number {
 /** A second and third city for this seat, at hand-picked hexes. */
 function settle(state: GameState, playerId: number, ...cells: [number, number][]) {
   return cells.map(([col, row]) => foundCityAt(state, playerId, getTileAt(state.map, col, row)!));
+}
+
+/** Open ground: land a piece can stand on, with nothing already on it. */
+function isOpenGround(state: GameState, tile: Tile): boolean {
+  if (isWaterTerrain(tile.terrain)) return false;
+  if (terrainDef(tile.terrain).moveCost === null) return false;
+  if (state.units.some((unit) => unit.col === tile.col && unit.row === tile.row)) return false;
+  return !state.cities.some((city) => city.col === tile.col && city.row === tile.row);
+}
+
+/**
+ * Pairs of *adjacent* open land hexes, disjoint, found by walking the map.
+ *
+ * A fight has to be staged somewhere, and where the dry land is belongs to the
+ * generator: the pangaea of 2026-09-03 dealt a different coastline and the
+ * hard-coded cells this file used to name went under water, where a piece is
+ * embarked and defends at a strength that has nothing to do with its row. The
+ * walk is in map order, so the pair a seed hands back is still a fixture.
+ */
+function landPairs(state: GameState, count: number): [Tile, Tile][] {
+  const pairs: [Tile, Tile][] = [];
+  const taken = new Set<number>();
+  for (const tile of state.map.tiles) {
+    if (pairs.length === count) break;
+    const at = tileIndex(state.map, tile.col, tile.row);
+    if (taken.has(at) || !isOpenGround(state, tile)) continue;
+    for (const neighbor of tileNeighbors(state.map, tile)) {
+      const beside = tileIndex(state.map, neighbor.col, neighbor.row);
+      if (taken.has(beside) || !isOpenGround(state, neighbor)) continue;
+      taken.add(at);
+      taken.add(beside);
+      pairs.push([tile, neighbor]);
+      break;
+    }
+  }
+  if (pairs.length !== count) throw new Error(`only ${pairs.length} open land pairs on this map`);
+  return pairs;
 }
 
 // --- the table --------------------------------------------------------------
@@ -304,11 +342,16 @@ describe('the seams', () => {
 
   it('a battle won against a stronger defender, once per age', () => {
     const g = game();
-    const attacker = createUnit(g.state, 0, 'warrior', 6, 6);
+    // Two pairs of open land hexes, walked off the map rather than named. This
+    // fight used to be staged on hard-coded cells; the pangaea of 2026-09-03
+    // moved the water and stood both sides in the sea, where an embarked piece
+    // defends at a strength no spearman would recognise.
+    const [first, second] = landPairs(g.state, 2);
+    const attacker = createUnit(g.state, 0, 'warrior', first[0].col, first[0].row);
     // A spearman is worth eleven to a warrior's eight, so the forecast the
     // player was shown says the other side is the stronger — which is exactly
     // what the row rewards beating.
-    const defender = createUnit(g.state, 1, 'spearman', 7, 6);
+    const defender = createUnit(g.state, 1, 'spearman', first[1].col, first[1].row);
     defender.hp = 1;
     const plan = previewCombat(g.state, attacker.id, { col: defender.col, row: defender.row });
     expect(plan.ok).toBe(true);
@@ -322,13 +365,13 @@ describe('the seams', () => {
     expect(count(g.state, 0, 'againstTheOdds')).toBe(1);
 
     // Again in the same era earns nothing: the row is per age.
-    const second = createUnit(g.state, 0, 'warrior', 9, 6);
-    const other = createUnit(g.state, 1, 'spearman', 10, 6);
+    const again = createUnit(g.state, 0, 'warrior', second[0].col, second[0].row);
+    const other = createUnit(g.state, 1, 'spearman', second[1].col, second[1].row);
     other.hp = 1;
     applyCommand(g.state, {
       type: 'attack',
       playerId: 0,
-      unitId: second.id,
+      unitId: again.id,
       target: { col: other.col, row: other.row },
     });
     expect(count(g.state, 0, 'againstTheOdds')).toBe(1);

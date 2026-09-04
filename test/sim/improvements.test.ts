@@ -501,14 +501,15 @@ describe('buildImprovement', () => {
       expect(tileYieldOf(tile).production).toBe(before.production + 1);
     });
 
-    it('waits for Engineering, and says so last', () => {
+    it('waits for Siegecraft, and says so last', () => {
       const { state, worker } = workerState();
       const tile = at(state, 5, 4);
       tile.feature = 'forest';
       state.players[0]!.techsResearched = [];
-      // Engineering since the re-cut of 2026-09-02 pruned Construction and gave
-      // Engineering its works.
-      const said = 'A lumbermill needs Engineering';
+      // Siegecraft since the playtest notes of 2026-09-03 ("lumbermills need to
+      // be way earlier in the tech tree, early age 2 probably") — it had been
+      // Engineering since the re-cut of 2026-09-02 pruned Construction.
+      const said = 'A lumbermill needs Siegecraft';
       expect(improvementError(state, worker.id, 'lumbermill')).toBe(said);
       // The technology is asked *after* every question about the ground, which
       // is what lets the sheet grey a row rather than hide it.
@@ -1839,13 +1840,16 @@ describe('improvements in the log', () => {
    * that it happened at all.
    *
    * Fletching specifically, because of what this seed deals: the capital's ring
-   * on seed 4242 is forest and jungle hills all the way round, and the one hex
-   * in it that any improvement can touch is a deer tile — which wants a camp.
-   * That was the site this test always used; it simply used to be free.
+   * on seed 101 is forest all the way round, and the only hexes in it any
+   * improvement can touch are a deer and a furs tile — which both want a camp.
+   *
+   * Re-aimed from seed 4242 to seed 101 on 2026-09-03, when the default map
+   * became a pangaea: 4242's opening moved on top of the deer this fixture used
+   * to improve, and a town's own hex takes no improvement at all.
    */
   function improvingGame(): Game {
     const game = createGame({
-      seed: 4242,
+      seed: 101,
       sizeName: 'duel',
       players: [
         { name: 'A', color: '#a00', isHuman: true },
@@ -2125,7 +2129,10 @@ describe('improvements in the log', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(59);
+    // v60 (the pangaea, 2026-09-03): the generator deals one continent now, so
+    // the same seed lays down different ground — a v59 log walks units over
+    // water and founds towns on hexes this build does not have.
+    expect(SCHEMA_VERSION).toBe(60);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

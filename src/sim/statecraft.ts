@@ -148,7 +148,6 @@ import {
   type OfferRuleId,
   type OrderDeepening,
   type OrderId,
-  type OrderPool,
   type OrderSlotGrant,
   type RateSource,
   type SlotType,
@@ -156,7 +155,7 @@ import {
   type UnitFilter,
   type WindfallOccasion,
   GOVERNMENT_TIERS,
-  ORDER_IDS,
+  SLOT_TYPES,
   STARTING_GOVERNMENT,
   STATECRAFT,
   cardDef,
@@ -172,7 +171,6 @@ import {
   poolDoctrines,
   poolOfGovernment,
   poolOrders,
-  previousPool,
   slotCount,
   slotLayout,
 } from './statecraftData';
@@ -506,20 +504,30 @@ export function slotTypesOf(sc: PlayerStatecraft): SlotType[] {
 }
 
 /**
- * The **live pool**: this government's cards plus whatever the previous
- * government left unpicked, minus everything already held (Entry XV).
+ * The **live pool**: this government's own cards, minus everything already held
+ * (the minus-held half is Entry XV's).
  *
- * Older pools retire — they live on through the upgrade slot, which is the
- * design: a chiefdom card an empire never took is gone by the Age of Empire, and
- * one it *did* take can still be deepened forever. In file order, because a draw
- * that depends on an order must depend on an order the data carries.
+ * **The current pool alone** (user, 2026-09-03). It carried the previous
+ * government's leftovers until then, and the reason to drop them is that the
+ * leftovers were most of the bag: a seat adopting Government I drafted from
+ * thirteen chiefdom rows beside thirty-four new ones, so a third of every hand
+ * was the age it had just left and the new pool — the reward for adopting —
+ * arrived diluted. An unpicked card from the old government is gone for good
+ * now; adopting is the moment a whole shelf turns over.
+ *
+ * Deepening is untouched by this: the upgrade face is rolled from `sc.orders`
+ * and never from a pool, so a chiefdom card an empire *did* take can still be
+ * deepened forever, which is the half of Entry XV's shape that always did the
+ * work.
+ *
+ * Through `poolOrders`, which is the one reader of `retired` — a withdrawn row
+ * has to be out of the draw and out of every screen by the same clause. In file
+ * order, because a draw that depends on an order must depend on an order the
+ * data carries.
  */
 export function livePool(sc: PlayerStatecraft): OrderId[] {
-  const current = poolOfGovernment(sc.government);
-  const before = previousPool(current);
-  const pools: OrderPool[] = before === null ? [current] : [before, current];
   const held = new Set(sc.orders.map((owned) => owned.id));
-  return ORDER_IDS.filter((id) => pools.includes(orderDef(id).pool) && !held.has(id));
+  return poolOrders(poolOfGovernment(sc.government)).filter((id) => !held.has(id));
 }
 
 // --- the draw ---------------------------------------------------------------
@@ -681,6 +689,77 @@ export function offerSize(state: GameState, playerId: number, kind: OfferKind): 
 }
 
 /**
+ * The smallest hand the spread rule applies to.
+ *
+ * Three slot types need three cards to show one of each, so a hand narrower than
+ * that cannot honour the guarantee and does not try — it is dealt plain uniform.
+ * A hand is only ever narrower than three when a rider *trims* it, which today
+ * nothing does; the clause is here so the rule states its own precondition
+ * rather than assuming the table's number.
+ */
+const SPREAD_MIN_SIZE = SLOT_TYPES.length;
+
+/**
+ * The new cards of one draft: `size` from `pool`, and for a hand of three or
+ * more, **at least one military, one economic and one wildcard** (user,
+ * 2026-09-03).
+ *
+ * The complaint the rule answers is that a uniform draw over a pool that is half
+ * economic deals all-economic hands often enough to be the thing a player
+ * remembers about drafting, and a draft whose three faces are one question is
+ * not the deckbuilder question. Guaranteeing the spread costs nothing in pool
+ * design — every pool stocks all three types — and turns each draft into three
+ * comparable offers.
+ *
+ * **The order of the draws is fixed and stated**: military, then economic, then
+ * wildcard (`SLOT_TYPES`, the same order a spread is printed and a screen lays
+ * slots out), then the open fill from everything not yet taken. Fixed because a
+ * generator read in a different order is a different game from the same seed.
+ *
+ * **The roll contract.** Each of the four draws goes through
+ * `drawWithoutReplacement`, so each spends exactly one roll per card it actually
+ * takes and none for a card it cannot: a draft spends
+ * `(non-empty slot sub-bags) + min(size − guaranteed, rest)` rolls, which is
+ * three plus `size − 3` — that is, exactly `size` — whenever the pool can supply
+ * all three types and enough cards to fill the hand, and fewer only when the bag
+ * itself is short. Emptiness is a fact about the pool and the government, never
+ * about the moment, so two runs of the same state spend the same rolls in the
+ * same order. A slot whose sub-bag is empty simply deals nothing and falls
+ * through to the open fill, which is the same honest answer a short pool has
+ * always got.
+ *
+ * **The hand comes back in the pool's own file order**, not in draw order. The
+ * guaranteed picks would otherwise arrive military-economic-wildcard and the
+ * fill after them, and a player would read the seam — the first three faces of
+ * every wide draft standing in slot order — as a rule about which card is best.
+ * Sorting is display only: the picks are already made, and a choice names an
+ * index into what it is shown.
+ *
+ * Exported for the pins rather than for a second caller: `drawOrderOffer` is the
+ * only one, and a rule about *what a generator deals* is testable only by asking
+ * it for many hands at a size the table does not currently hand out.
+ */
+export function drawOrderOptions(
+  state: GameState,
+  pool: readonly OrderId[],
+  size: number,
+): OrderId[] {
+  const taken = new Set<OrderId>();
+  if (size >= SPREAD_MIN_SIZE) {
+    // The sub-bags partition the pool — `OrderDef.slot` is the card's own single
+    // type, and there is no wildcard *card* that fits everywhere — so no draw
+    // here can take a card another already has.
+    for (const type of SLOT_TYPES) {
+      const bag = pool.filter((id) => orderDef(id).slot === type);
+      for (const id of drawWithoutReplacement(state, bag, 1)) taken.add(id);
+    }
+  }
+  const rest = pool.filter((id) => !taken.has(id));
+  for (const id of drawWithoutReplacement(state, rest, size - taken.size)) taken.add(id);
+  return pool.filter((id) => taken.has(id));
+}
+
+/**
  * Deals one draft: `offerSize` cards from the live pool, plus one owned card
  * rolled as the upgrade target.
  *
@@ -691,7 +770,9 @@ export function offerSize(state: GameState, playerId: number, kind: OfferKind): 
  * is nothing to deepen.
  *
  * Both draws spend the generator in a fixed order (new cards, then the upgrade),
- * so the same state deals the same hand.
+ * so the same state deals the same hand. The new cards come through
+ * `drawOrderOptions`, which is where the slot-spread guarantee and the roll
+ * contract live.
  *
  * **A card with no second face is not in the upgrade draw at all** (user,
  * 2026-08-26). `isUpgradable` reads the row; the three cards that answer no are
@@ -707,11 +788,7 @@ export function offerSize(state: GameState, playerId: number, kind: OfferKind): 
  */
 export function drawOrderOffer(state: GameState, player: Player): OrderOffer {
   const sc = player.statecraft;
-  const options = drawWithoutReplacement(
-    state,
-    livePool(sc),
-    offerSize(state, player.id, 'order'),
-  );
+  const options = drawOrderOptions(state, livePool(sc), offerSize(state, player.id, 'order'));
   const deepenable = sc.orders.filter((owned) => canDeepen(owned)).map((owned) => owned.id);
   const upgrades = drawWithoutReplacement(state, deepenable, 1);
   const offer: OrderOffer = { options };
@@ -1639,8 +1716,16 @@ function hasAdjacentGreatWork(state: GameState, city: City): boolean {
  * It answers about a **town** and nothing wider: a hex's own fresh water is
  * `TileCondition`'s `freshwater` and the renewal's `requiresFreshwater`, and a
  * cistern in the town square does not water the third ring.
+ *
+ * Exported since the dry-settle ruling (2026-09-03), whose whole point is that
+ * the growth channel asks *this* question and not a copy of it: a town the
+ * Cistern Works have watered must stop paying the penalty on the same turn it
+ * stops being a `notFreshwater` city, or the two halves of one sentence
+ * disagree. What an **aqueduct** does is a different question with a different
+ * reading (`cityIsWatered`, `buildingEffects.ts`) — it feeds the people, not the
+ * fields, and deliberately does not answer this.
  */
-function cityHasFreshwater(state: GameState, city: City): boolean {
+export function cityHasFreshwater(state: GameState, city: City): boolean {
   if (cityTile(state.map, city).freshwater) return true;
   return cardCityRule(state, city.ownerId, 'freshwater');
 }
@@ -2588,6 +2673,43 @@ export function cardEmpireYields(
     if (paysSomething(line)) list.push(line);
   }
 
+  return list;
+}
+
+/**
+ * A share of what this town already makes, paid again as another voice —
+ * Thalassocracy's tenth of the harvest, minted.
+ *
+ * Its own function rather than a fourth loop inside `cardCityYields` because it
+ * is the one card line that **reads the fold it joins**: the flats have to be
+ * complete before a share of them can be taken, so it is asked at the end of
+ * `cityQuote` with that town's own total handed in. Handed in, never taken —
+ * asking `cityYields` from here would call `cityQuote`, which calls this, which
+ * would ask again.
+ *
+ * See `CardYieldConversionEffect` for why the flats are the honest reading of
+ * "their food yield". The share is floored **per city** and per line: two
+ * conversions on one town pay for two shares rather than rounding into a free
+ * point, which is `explainCityBuildings`' per-entry floor read one table over.
+ * Every line is computed off the **same** handed-in fold, so two conversions
+ * never read each other and their order cannot change what either pays. A voice
+ * standing at less than nothing pays nothing — a town in arrears is not a mint,
+ * and a conversion that charged for a shortfall would be a second rule.
+ */
+export function cardYieldConversions(
+  state: GameState,
+  city: City,
+  flats: Readonly<Record<CityYieldKey, number>>,
+): CardYieldLine[] {
+  const list: CardYieldLine[] = [];
+  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'yieldConversion')) {
+    if (!cityScopeAdmits(state, city, effect.scope)) continue;
+    const paid = Math.floor((Math.max(0, flats[effect.from]) * effect.percent) / 100);
+    if (paid === 0) continue;
+    const line = emptyLine(card, label(source, `${effect.from} → ${effect.to}`));
+    line[effect.to] = paid;
+    if (paysSomething(line)) list.push(line);
+  }
   return list;
 }
 
@@ -3907,6 +4029,17 @@ export interface WindfallOccasionFacts {
    * captor's own buildings and nothing can tell them from the ones he raised.
    */
   capturedWonder?: boolean;
+  /**
+   * The population the town **grew to** — First Fruits' first citizen.
+   *
+   * The two facts above are passed because the caller is the only thing that
+   * still knows; this one is passed because the *payout* has no town at all.
+   * `windfallPayout` is asked of an empire and an occasion, and a growth is the
+   * one occasion whose whole subject is a single city — so the figure travels
+   * as a fact about the occasion rather than as a city handed to a function
+   * that would then have to decide what to do with one on a chop.
+   */
+  population?: number;
 }
 
 /**
@@ -3965,6 +4098,11 @@ export function windfallPayout(
     // The same narrowing, one fact over: The Empire pays for a town with a
     // wonder in it and not for a town.
     if (effect.capturedWonder === true && facts.capturedWonder !== true) continue;
+    // And the third: First Fruits pays for the citizen that makes a town two
+    // people, not for a citizen. An occasion that carries no population at all
+    // (every occasion but a growth) never satisfies it, which is what keeps a
+    // row written onto the wrong occasion silent rather than universal.
+    if (effect.atPopulation !== undefined && facts.population !== effect.atPopulation) continue;
     if (effect.perAge === true) {
       ageMultiplied = true;
       if (era > 1) payout.lines.push({ card, source, note: `×${era} (Æra ${eraNumeral(era)})` });
@@ -5281,6 +5419,17 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
           `${effect.from}, in ${scopeWords(effect.scope)}`,
       });
       return;
+    case 'yieldConversion':
+      // "Gained again as", which is the wording the rate conversions were
+      // ratified in (Cuius Regio, 2026-09-02) and the only one that does not
+      // read as though the town *loses* the harvest it sells: nothing is taken
+      // away, a share of it is paid a second time in another voice.
+      out.push({
+        text:
+          `${effect.percent}% of the ${effect.from} in ${scopeWords(effect.scope)} ` +
+          `is gained again as ${effect.to}`,
+      });
+      return;
     case 'meterRule': {
       // Two shapes wear this hook and they read differently. A **switch** — a
       // rule of the meters suspended, carried as `value: 1` because the shape
@@ -6319,7 +6468,10 @@ const CITY_RULE_WORDS: Record<CityRuleId, string> = {
 
 const BEHAVIOR_WORDS: Record<BehaviorRuleId, string> = {
   barbariansPassive: 'barbarians never attack you',
-  barbarianKillsConvert: 'a barbarian you kill joins you instead of dying',
+  // "At full health" since the user's card pass of 2026-09-03, which is the
+  // whole of what the pact is now — a clause a player has to be told, because it
+  // is the difference between a fresh soldier and a man on his last legs.
+  barbarianKillsConvert: 'a barbarian you kill joins you at full health instead of dying',
   noCampClearing: 'you can no longer clear a barbarian camp',
   noHealAbroad: 'your units do not heal outside your own borders',
   freeCityRoads: 'roads near your cities cost nothing to keep',

@@ -114,7 +114,6 @@ import type { DisbandReport } from './upkeep';
 import { hasLineOfSight } from './los';
 import { openPeriodicOffers, pruneTimedEffects, spreadReligion } from './religion';
 import { getTileAt, tileHex, wrappedDistance } from './map';
-import { findPath } from './pathfind';
 import { advanceAlongPath } from './movement';
 import {
   cardBehaviorRule,
@@ -134,7 +133,15 @@ import type { BeadAge } from './beadData';
 import { runRenown } from './renown';
 import { advanceResearch } from './tech';
 import { type ExploreEndReport, marchExplorers } from './explore';
-import { type RouteEndReport, endRoute, routeTarget, standsIn } from './trade';
+import {
+  type RouteEndReport,
+  endRoute,
+  routeArrived,
+  routeCities,
+  routeLegPath,
+  routeMode,
+  routeTarget,
+} from './trade';
 import { type TriumphAward, triumphMarks, triumphsSince } from './triumphs';
 import { type GameState, type Unit, wakeUnit } from './state';
 import { isCombatant, unitDef, unitMaxHp } from './unitData';
@@ -873,7 +880,7 @@ function marchOneTrader(state: GameState, unit: Unit, report: TurnReport): void 
   };
 
   let target = routeTarget(state, unit);
-  if (target && standsIn(unit, target)) {
+  if (target && routeArrived(state, unit, target)) {
     // Home, at the end of the road: the one moment expiry is asked.
     if (!route.outbound && state.turn >= route.expiresTurn) {
       if (!route.autoResend) {
@@ -899,8 +906,17 @@ function marchOneTrader(state: GameState, unit: Unit, report: TurnReport): void 
   }
 
   if (!unit.path || unit.path.length === 0) {
-    const goal = getTileAt(state.map, target.col, target.row);
-    const path = goal ? findPath(state, unit, goal) : null;
+    // **In the route's own mode, on every leg** (the ruling of 2026-09-03). The
+    // return leg is pathed here and nowhere else, so a survey that forgot the
+    // mode would send a sea route home across the fields — and pave it.
+    // `routeLegPath` is the one goal resolution — the partner's centre at home
+    // and its doorstep abroad (the international ruling) — and it surveys with a
+    // narrowing of the piece's own profile, so a leg it finds is a leg
+    // `advanceAlongPath` can walk.
+    const pair = routeCities(state, unit);
+    const other = pair === null ? null : target.id === pair.to.id ? pair.from : pair.to;
+    const path =
+      pair && other ? routeLegPath(state, unit, other, target, routeMode(route)) : null;
     if (!path || path.length === 0) {
       // **A jam is not a wall**, which is `advanceAlongPath`'s own distinction
       // read one level up: the commonest reason a caravan cannot path to a town
