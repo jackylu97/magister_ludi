@@ -35,7 +35,7 @@
  * `Infinity` on a build button is a data error wearing the costume of a number.
  */
 
-import type { MeterEffect } from '../sim/meters';
+import type { MeterEffect, MeterId } from '../sim/meters';
 import type { ProjectPayout } from '../sim/projectData';
 
 /** The six yields, in the order the city panel's chip row lists them. */
@@ -96,6 +96,38 @@ export const YIELD_NAME: Record<YieldKey, string> = {
   science: 'science',
   culture: 'culture',
   faith: 'faith',
+};
+
+/**
+ * The two **meters**, as text, in the register `YIELD_GLYPH` keeps for the six
+ * yields — and here beside them for the reason this whole file exists.
+ *
+ * They lived in `topBar.ts`, privately, for as long as a meter glyph was a
+ * thing exactly one surface drew: `☺`/`⚜` sat alone on a chip beside a word.
+ * The card stamp ended that (user, 2026-09-03 — "we should have happiness and
+ * authority be yields that appear in the preview numbers, its confusing when
+ * they aren't shown"): a card's own meter line is now **composed into a figure**
+ * — `+4☺`, printed beside `+2🔬` in the same sentence — which is precisely the
+ * job `YIELD_GLYPH` does for the six, and a second private table one module over
+ * is the drift this file was written to end.
+ *
+ * Same two roles as the yields', and the same seam: the *token* a composed
+ * figure carries so `yieldMark.ts` can find it and swap in the drawing
+ * (`meterMarkNode`), and the *text* for every surface that must be a string —
+ * the chips' own native tooltips, an `aria-label`, an announce line.
+ *
+ * No longer placeholders: `src/art/meterMarks.ts` draws a face and a stamp, and
+ * these two characters are what survives where a mask cannot go.
+ */
+export const METER_GLYPH: Record<MeterId, string> = {
+  happiness: '☺',
+  authority: '⚜',
+};
+
+/** The word behind each meter mark, for the surfaces that have to *say* one. */
+export const METER_NAME: Record<MeterId, string> = {
+  happiness: 'happiness',
+  authority: 'authority',
 };
 
 /**

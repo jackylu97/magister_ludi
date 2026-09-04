@@ -36,7 +36,18 @@
  *      to the running figure*, never a multiplication performed afterwards;
  *   3. **the realm** — the empire-scale card lines, the treasury's four lines
  *      and the luxuries' empire signatures, each diffed under its own label;
- *   4. **the knock-ons** — what the card did to the empire's *meters*, and
+ *   4. **the meters themselves** — what the card pays into happiness and
+ *      authority *in its own hand*. Festival Days pays four contentment and not
+ *      one yield; Provincial Governors pays three writ. Those are the card's
+ *      whole sentence, and for as long as this list carried only the six yields
+ *      the stamp on such a card was either blank or — worse — a beaker it never
+ *      paid, borrowed from the tier its contentment happened to flip (user,
+ *      2026-09-03: "we should have happiness and authority be yields that appear
+ *      in the preview numbers, its confusing when they aren't shown"). So a
+ *      meter movement is a line of its own (`kind: 'meter'`, carrying the meter
+ *      and the points), read as a diff of `happinessOf`/`authorityOf` across the
+ *      same two ghosts — the meters' own evaluators, no rule reimplemented;
+ *   5. **the knock-ons** — what the card did to the empire's *meters*, and
  *      through them to every town. A card paying three contentment can flip a
  *      tier and hand the realm a percentage on science and culture, and that
  *      science is not the card's own line: it is what the card *unlocked*. So a
@@ -46,6 +57,10 @@
  *      hover breakdown leans on the label, and a stamp that folded a cascade in
  *      silently would be claiming an Order pays science when what it pays is
  *      contentment.
+ *
+ * Four and five are the same meter twice and are held apart on purpose: line 4
+ * is the *points the card pays* and is a figure on its face; line 5 is the yield
+ * a tier those points crossed unlocked, and is the hover's business only.
  *
  * Held apart by construction, not by taste: lines 1–3 are read with the
  * **empire's meters held at the reading they have today**, so the card's own
@@ -109,22 +124,26 @@ import {
 } from './statecraft';
 import { CITY_YIELD_KEYS, type CityYieldKey } from './resourceData';
 import { type GreatPersonId, greatPersonDef } from './greatPeopleData';
+import { type MeterId, authorityOf, happinessOf } from './meters';
 import { empireResourceYields } from './resourceEffects';
 import { explainEmpireGold } from './empireGold';
 import { getTileAt } from './map';
 import { highestAge } from './techData';
 import type { City } from './state';
-import type { MeterId } from './meters';
 
 /**
- * Which register a line belongs to — the four the module docblock lists.
+ * Which register a line belongs to — the registers the module docblock lists.
  *
  * `'knockOn'` is the one the interface treats differently rather than merely
  * labels: it is the *consequence* of the card rather than the card's own
  * payment, and a stamp that folded the two into one figure with one voice would
  * be claiming an Order pays science when what it pays is contentment.
+ *
+ * `'meter'` is the other half of that same distinction and pays in no yield at
+ * all: it is what the card puts into happiness or authority itself, in points,
+ * and it is a figure on the card's face beside the yields.
  */
-export type CardImpactKind = 'city' | 'empire' | 'knockOn' | 'occasion';
+export type CardImpactKind = 'city' | 'empire' | 'meter' | 'knockOn' | 'occasion';
 
 /**
  * One reason a card changes what the realm makes — the shape the stamp is the
@@ -145,8 +164,15 @@ export interface CardImpactLine {
   science: number;
   culture: number;
   faith: number;
-  /** The meter that moved. Set on `'knockOn'` lines and nowhere else. */
+  /** The meter that moved. Set on `'meter'` and `'knockOn'` lines, nowhere else. */
   meter?: MeterId;
+  /**
+   * The meter movement itself, in points — a card's own `+4` contentment or
+   * `+3` writ. `'meter'` only, and never one of the six voices: a meter is not
+   * a yield, nothing banks it, and folding it into `foldCardImpact` would put
+   * contentment into the treasury.
+   */
+  amount?: number;
   /** The occasion's own words — "killing a barbarian unit". `'occasion'` only. */
   occasion?: string;
   /**
@@ -519,6 +545,43 @@ function empireLinesOf(state: GameState, playerId: number): Map<string, CityYiel
  * The labels are `empirePercents`' own — no wording is invented here that a
  * player does not already read on the city panel's percentage lines.
  */
+/**
+ * What each meter is called on a line of this list — used by the meter lines and
+ * by the cascade ladder below, so the two readings of one meter cannot come to
+ * be labelled two different ways.
+ *
+ * The words are the top bar's own; nothing is invented here that a player does
+ * not already read on the chip.
+ */
+const METER_WORD: Record<MeterId, string> = {
+  happiness: 'Happiness',
+  authority: 'Authority',
+};
+
+/** The two meters, in the order the top bar's chips stand and this list reads. */
+const METER_ORDER: readonly MeterId[] = ['happiness', 'authority'];
+
+/** One meter's total, through the meter's own fold and nothing else. */
+function meterTotal(state: GameState, playerId: number, meter: MeterId): number {
+  return meter === 'happiness' ? happinessOf(state, playerId) : authorityOf(state, playerId);
+}
+
+/**
+ * A meter movement, **at the precision a meter is read at**: one tenth, which is
+ * `signedFigure`'s rule on the top bar's own chips.
+ *
+ * Not fastidiousness. Happiness folds a list carrying fractional terms — the
+ * crowding curve, a demand line multiplied by a `meterRule` factor — so the
+ * difference between two folds is subject to IEEE addition, and Festival Days'
+ * four contentment arrives here as `3.9999999999999996`. Rounded at the reading
+ * rather than at the printer because a card's stamp is not the only thing that
+ * will ever ask this list what a card pays, and a figure that is four everywhere
+ * but in one caller's string is the drift that costs an afternoon.
+ */
+function meterMoved(from: number, to: number): number {
+  return Math.round((to - from) * 10) / 10;
+}
+
 function knockOnLadder(
   base: EmpirePercents,
   ahead: EmpirePercents,
@@ -531,8 +594,12 @@ function knockOnLadder(
     arrears: base.arrears,
   });
   return [
-    { meter: 'happiness', source: 'Happiness', percents: swap(['happiness']) },
-    { meter: 'authority', source: 'Authority', percents: swap(['happiness', 'authority']) },
+    { meter: 'happiness', source: METER_WORD.happiness, percents: swap(['happiness']) },
+    {
+      meter: 'authority',
+      source: METER_WORD.authority,
+      percents: swap(['happiness', 'authority']),
+    },
     { meter: null, source: 'Treasury in debt', percents: ahead },
   ];
 }
@@ -646,7 +713,25 @@ export function explainCardImpact(
   }
   lines.push(...realm.lines());
 
-  // 4. The knock-ons: what the card did to the meters, and through them to every
+  // 4. The meters, in the card's own hand: the points it pays into contentment
+  //    and into the writ. A diff of the meters' own folds across the same two
+  //    ghosts — so a card that supplies happiness per city, or a charter whose
+  //    amnesty takes a slotted Order's writ away with it, is priced by
+  //    `explainHappiness`/`explainAuthority` rather than by a second reading of
+  //    the rows. These pay in no voice; they are the stamp's other figures.
+  for (const meter of METER_ORDER) {
+    const moved = meterMoved(
+      meterTotal(without, playerId, meter),
+      meterTotal(held, playerId, meter),
+    );
+    if (moved === 0) continue;
+    const line = emptyLine(METER_WORD[meter], 'meter');
+    line.meter = meter;
+    line.amount = moved;
+    lines.push(line);
+  }
+
+  // 5. The knock-ons: what the card did to the meters, and through them to every
   //    town. Sequential deltas as each meter's new reading is let in, so two
   //    tiers flipping at once are two lines rather than one lump — and the last
   //    step's reading is the true one, which is what makes the whole list fold
@@ -661,7 +746,7 @@ export function explainCardImpact(
     running = next;
   }
 
-  // 5. The occasions, which a diff can never see. See `occasionLines`.
+  // 6. The occasions, which a diff can never see. See `occasionLines`.
   lines.push(...occasionLines(subject));
 
   return lines;

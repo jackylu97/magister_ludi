@@ -683,6 +683,33 @@ export interface CitizenWeights {
 }
 
 /**
+ * What a town's people are being placed *for* — the player's own instruction,
+ * and the vocabulary the halted lean speaks too (`citizenLean`, `cities.ts`).
+ *
+ * `'default'` is the absence of an instruction rather than a fourth sheet: the
+ * town is placed by `citizenWeights`, the balanced ordering this game has always
+ * used, and `City.focus` is simply not written. The other three name a sheet in
+ * `citizenFocusWeights` below.
+ */
+export type CitizenFocus = 'default' | 'food' | 'production' | 'gold';
+
+/** The three focuses that name a sheet. `'default'` names none — see `CitizenFocus`. */
+export type CitizenLean = Exclude<CitizenFocus, 'default'>;
+
+/** Every focus a player may ask for, in the order the control offers them. */
+export const CITIZEN_FOCUSES: readonly CitizenFocus[] = [
+  'default',
+  'food',
+  'production',
+  'gold',
+];
+
+/** True for the four words a `setCitizenFocus` command may carry. */
+export function isCitizenFocus(value: unknown): value is CitizenFocus {
+  return typeof value === 'string' && (CITIZEN_FOCUSES as readonly string[]).includes(value);
+}
+
+/**
  * The tile-purchase price, which is Civ 6's shape with this game's numbers in
  * it: a base that depends only on how far out the tile is, a premium that rises
  * with how far the *world* has come, and a flat escalation per tile this player
@@ -949,21 +976,25 @@ export interface CityRules {
   /** Weights the citizen assigner and the border chooser both score tiles with. */
   citizenWeights: CitizenWeights;
   /**
-   * The same weights for a city whose growth is **halted** — a settler at the
-   * front of the queue (`growthIsHalted`).
+   * One sheet per **focus** — what a town's citizens are placed by when they are
+   * placed for something in particular rather than for the balance.
    *
-   * A second sheet rather than a modifier, because the edit a designer wants to
-   * make here is "what does a town care about while it is building a settler",
-   * and that is a set of weights, not a multiplier on one of them. The shipped
-   * pair is the same three numbers with food and production **swapped**: a town
-   * that banks no food toward growth is a town whose surplus grain goes nowhere,
-   * so the hammers that finish the settler are worth more than the bushels that
-   * do not. Food is not zeroed, and that is deliberate — the citizens still eat,
-   * and a sheet that ignored them would be a sheet that starves the town to
-   * build the settler faster. See `assignCitizens`, which also refuses the
-   * swapped sheet outright when it would put the town into deficit.
+   * Sheets rather than a modifier, because the edit a designer wants to make here
+   * is "what does a town care about while it is chasing hammers", and that is a
+   * set of weights, not a multiplier on one of them. There is exactly one table:
+   * the settler lean (a town whose growth is halted, `growthIsHalted`) reads the
+   * `production` row of it rather than carrying a sheet of its own, so a designer
+   * retuning "chasing hammers" retunes it once and both readings move together.
+   *
+   * The shipped three are one rule read three ways: **the focused yield takes the
+   * top weight and the other two keep `citizenWeights`' own order beneath it**
+   * (food, then production, then gold). Nothing is ever zeroed, and that is
+   * deliberate — the citizens still eat, and a sheet that ignored food would be a
+   * sheet that starves a town to finish a settler faster. See `assignCitizens`,
+   * which refuses a focused sheet outright when it would put the town into
+   * deficit.
    */
-  citizenWeightsWhileHalted: CitizenWeights;
+  citizenFocusWeights: Record<CitizenLean, CitizenWeights>;
   /**
    * How a city's borders pick their next tile (`expansionScore`, `cities.ts`).
    *

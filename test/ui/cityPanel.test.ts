@@ -29,8 +29,13 @@ import { resetVisibility } from '../../src/sim/visibility';
 import { cityGuildInflow, dismissSpecialistError, idleCitizens } from '../../src/sim/guilds';
 import { guildThreshold } from '../../src/sim/specialists';
 import { figure } from '../../src/ui/figures';
+import { CITIZEN_FOCUSES } from '../../src/sim/rulesData';
+import { citizenFocusError } from '../../src/sim/cities';
 import {
   dismissBlocker,
+  focusBlocker,
+  focusHint,
+  focusLabel,
   guildBarText,
   previewFigures,
   previewLineText,
@@ -333,5 +338,51 @@ describe('the build list hides what can never be built (user, 2026-08-30)', () =
   });
   it('skips a wonder somebody already raised', () => {
     expect(source).toContain('wonderClaim(getGame().state, id) !== undefined) continue;');
+  });
+});
+
+/**
+ * The focus pane's pure half (ruled 2026-09-03): the sentence a greyed segment
+ * carries, and the four words on the segments themselves.
+ *
+ * The DOM glue is three lines that hand these to elements and is read as source
+ * in `test/ui/cityScreen.test.ts`; what is here is everything a document would
+ * not have helped with — that the blocker is the *reducer's* refusal and not a
+ * second opinion, and that the words are the sim's list rather than four
+ * literals the panel wrote out.
+ */
+describe('the focus pane', () => {
+  it('carries the sentence the reducer would have returned', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+
+    expect(focusBlocker(state, 0, city, false)).toBeNull();
+    expect(focusBlocker(state, 0, city, false)).toBe(citizenFocusError(state, 0, city));
+    // Somebody else's town, said the same way both sides of the seam.
+    expect(focusBlocker(state, 1, city, false)).toBe(citizenFocusError(state, 1, city));
+
+    // A puppet is told it is a puppet — never "you have ended turn", which is
+    // what the panel's one `locked` flag would have said on its own.
+    city.puppet = true;
+    expect(focusBlocker(state, 0, city, true)).toBe(citizenFocusError(state, 0, city));
+    expect(focusBlocker(state, 0, city, true)).toMatch(/puppet/);
+
+    // And the clause the panel adds is about the screen, not the town.
+    delete city.puppet;
+    expect(focusBlocker(state, 0, city, true)).toMatch(/ended turn/);
+  });
+
+  it('names every focus the simulation offers, plainly and once', () => {
+    const labels = CITIZEN_FOCUSES.map((focus) => focusLabel(focus));
+    expect(labels).toEqual(['Default', 'Food', 'Production', 'Gold']);
+    // Sentence case, no shouting, and a hint that says what pressing it does.
+    for (const focus of CITIZEN_FOCUSES) {
+      expect(focusLabel(focus)).toBe(focusLabel(focus).replace(/[A-Z]/g, (c, i: number) =>
+        i === 0 ? c : c.toLowerCase(),
+      ));
+      expect(focusHint(focus).length).toBeGreaterThan(0);
+      expect(focusHint(focus)).not.toMatch(/\d/);
+    }
+    expect(new Set(labels).size).toBe(labels.length);
   });
 });

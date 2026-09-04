@@ -67,6 +67,7 @@ import {
   type StarvationReport,
   type WonderCompletion,
   assignableTiles,
+  citizenFocusError,
   cityAt,
   foundCityAt,
   foundingError,
@@ -141,7 +142,7 @@ import {
 } from './purchase';
 import type { BeliefId, ReligionBeliefPool, RiteId } from './religionData';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
-import { RULES } from './rulesData';
+import { type CitizenFocus, RULES, isCitizenFocus } from './rulesData';
 import {
   type City,
   type GameState,
@@ -375,6 +376,31 @@ export interface SetLockedTilesCommand extends PlayerCommand {
   type: 'setLockedTiles';
   cityId: number;
   cells: Cell[];
+}
+
+/**
+ * Points a city's citizens at a yield, and says whether the town may grow.
+ *
+ * `setLockedTiles`' sibling one grade coarser — a pin says *this hex*, this says
+ * *this kind of hex* — and the one verb the focus pane has. Both halves ride one
+ * command because they are one arrangement a player edits in one place, and a
+ * seat that sent them separately would land two log entries for one click.
+ *
+ * **An absent field is a half not named**, not a half cleared: `focus` alone
+ * leaves the avoid-growth mark as it was, and `avoidGrowth` alone leaves the
+ * focus. Clearing is said out loud — `focus: 'default'` for the balanced
+ * ordering, `avoidGrowth: false` for a town that may grow again — which is what
+ * lets the two controls dispatch independently without either erasing the other.
+ *
+ * Turn-gated like `setLockedTiles`, and refused for a **puppet**: a town that
+ * chooses for itself what to build chooses for itself where its people stand
+ * (`citizenFocusError`, which is also what greys the control).
+ */
+export interface SetCitizenFocusCommand extends PlayerCommand {
+  type: 'setCitizenFocus';
+  cityId: number;
+  focus?: CitizenFocus;
+  avoidGrowth?: boolean;
 }
 
 /**
@@ -1405,6 +1431,7 @@ export type Command =
   | FoundCityCommand
   | SetCityProductionCommand
   | SetLockedTilesCommand
+  | SetCitizenFocusCommand
   | DismissSpecialistCommand
   | ChooseResearchCommand
   | DequeueResearchCommand
@@ -2230,6 +2257,59 @@ function applySetLockedTiles(
   // Copy, for the same reason the queue is copied: the command becomes a log
   // entry, and a caller that reused its array would be rewriting history.
   city.lockedTiles = cells.map((cell) => ({ col: cell.col, row: cell.row }));
+  refreshCityDerived(state, city);
+  return ok();
+}
+
+/**
+ * Writes a town's focus and its avoid-growth mark, then re-seats its citizens on
+ * the spot.
+ *
+ * **Register entry 21** — see `refreshCityDerived` in `cities.ts`. The immediate
+ * re-assignment is `applySetLockedTiles`' own reason: this is a direct
+ * manipulation of who works what, and a pane showing the old dots until the turn
+ * ended would be showing a player that their click did nothing.
+ *
+ * Everything the *gate* refuses is asked of `citizenFocusError`, the one function
+ * the panel greys its control with (`dismissSpecialist`'s bargain). What is
+ * checked here and not there is what a *command* has to check and a control never
+ * does: that the words carried are words the game knows, because a command may
+ * have arrived from a save file or a socket carrying anything at all.
+ *
+ * Presence is the state on both fields, so `'default'` and `false` **delete**
+ * rather than writing a value — a town told to go back to the balanced ordering
+ * must serialise exactly like a town nobody ever told anything.
+ */
+function applySetCitizenFocus(
+  state: GameState,
+  command: SetCitizenFocusCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+
+  const city = cityById(state, command.cityId);
+  if (!city) return fail(`No city with id ${String(command.cityId)}`);
+
+  const focus: unknown = command.focus;
+  if (focus !== undefined && !isCitizenFocus(focus)) {
+    return fail(`"${String(focus)}" is not a citizen focus`);
+  }
+  const avoid: unknown = command.avoidGrowth;
+  if (avoid !== undefined && typeof avoid !== 'boolean') {
+    return fail('setCitizenFocus needs avoidGrowth to be true or false');
+  }
+
+  const blocker = citizenFocusError(state, actor.id, city);
+  if (blocker !== null) return fail(blocker);
+
+  if (focus !== undefined) {
+    if (focus === 'default') delete city.focus;
+    else city.focus = focus;
+  }
+  if (avoid !== undefined) {
+    if (avoid) city.avoidGrowth = true;
+    else delete city.avoidGrowth;
+  }
   refreshCityDerived(state, city);
   return ok();
 }
@@ -3769,6 +3849,9 @@ function orderedUnitId(command: Command): number | undefined {
     case 'endTurn':
     case 'setCityProduction':
     case 'setLockedTiles':
+    // Pointing a town's people at a yield names a *city*, exactly as pinning one
+    // of them to a hex does. There is no piece on the board to wake.
+    case 'setCitizenFocus':
     // Sending a guildsman back to the fields names a *city* and a trade. There
     // is no piece on the board to wake — a specialist is a citizen, and this
     // game has never drawn one.
@@ -3902,6 +3985,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applySetCityProduction(state, command);
     case 'setLockedTiles':
       return applySetLockedTiles(state, command);
+    case 'setCitizenFocus':
+      return applySetCitizenFocus(state, command);
     case 'dismissSpecialist':
       return applyDismissSpecialist(state, command);
     case 'chooseResearch':

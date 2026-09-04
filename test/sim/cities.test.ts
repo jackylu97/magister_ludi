@@ -28,6 +28,8 @@ import {
   foundingError,
   foundingErrorAt,
   citizenFocus,
+  citizenFocusError,
+  cityFocus,
   expansionScore,
   growCities,
   growthIsHalted,
@@ -81,6 +83,7 @@ import {
 } from '../../src/sim/state';
 import { cityHasFreshwater } from '../../src/sim/statecraft';
 import { openWar } from '../../src/sim/wars';
+import { handOverCity } from '../../src/sim/combat';
 import { chopBaseFor } from '../../src/sim/improvements';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { TECH_IDS, UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
@@ -809,6 +812,447 @@ describe('citizen focus while growth is halted', () => {
     expect(cityYields(state, city).food).toBeGreaterThanOrEqual(
       city.population * RULES.cities.foodPerCitizen,
     );
+  });
+});
+
+/**
+ * The citizen focus pane (ruled 2026-09-03, `docs/city-screen.md`): a town's
+ * people pointed at food, hammers or coin, and a town told to stop growing.
+ *
+ * The design guardrail these tests exist for is the one the ruling is most
+ * easily broken by: **Default has to stay genuinely good.** A focus that simply
+ * beat the balanced sheet everywhere would make the pane a chore rather than a
+ * choice, so the claims below are (a) with nothing set the town works the
+ * best-scored ground on the board, and (b) each focus beats Default at *its own*
+ * yield and nowhere else — no focus dominates the balanced assignment across
+ * food, hammers and coin together.
+ */
+describe('the citizen focus pane', () => {
+  /** The city's ring, in tile-index order — the order the assigner breaks ties by. */
+  function ring(state: GameState, city: City): Tile[] {
+    return [...assignableTiles(state, city)].sort(
+      (a, b) => tileIndex(state.map, a.col, a.row) - tileIndex(state.map, b.col, b.row),
+    );
+  }
+
+  /**
+   * A one-citizen town whose ring holds three tiles that pull three ways: a mine
+   * (hammers), a customs house (coin) and a bare grassland (bushels). The mine
+   * and the grassland score the *same* on the balanced sheet, and the mine has
+   * the lower index, so Default takes the mine and the food focus is the only
+   * thing that can move the citizen onto the grass.
+   */
+  function threeWays(state: GameState): City {
+    const city = plant(state, 0, 8, 5);
+    city.population = 1;
+    const hexes = ring(state, city);
+    expect(hexes).toHaveLength(6);
+    hexes[0]!.hills = true;
+    hexes[0]!.improvement = 'mine';
+    hexes[1]!.improvement = 'customsHouse';
+    hexes[2]!.terrain = 'grassland';
+    return city;
+  }
+
+  /** What the citizens are actually standing on, folded. */
+  function harvest(state: GameState, city: City): { food: number; production: number; gold: number } {
+    const ctx = yieldContextFor(state, city.ownerId);
+    const total = { food: 0, production: 0, gold: 0 };
+    for (const cell of city.workedTiles) {
+      const paid = tileYieldOf(at(state.map, cell.col, cell.row), ctx);
+      total.food += paid.food;
+      total.production += paid.production;
+      total.gold += paid.gold;
+    }
+    return total;
+  }
+
+  it('leaves Default the best-scored ground on the board', () => {
+    const state = flatState();
+    const city = threeWays(state);
+    assignCitizens(state, city);
+
+    // Not "a good tile" — *the* best by `citizenWeights`, ties to the lowest
+    // index, which is the promise the pane must not quietly cost a player who
+    // never opens it.
+    const ctx = yieldContextFor(state, 0);
+    const scored = ring(state, city).map((tile) => yieldScore(tileYieldOf(tile, ctx)));
+    const best = Math.max(...scored);
+    expect(city.workedTiles).toHaveLength(1);
+    const standing = at(state.map, city.workedTiles[0]!.col, city.workedTiles[0]!.row);
+    expect(yieldScore(tileYieldOf(standing, ctx))).toBe(best);
+    expect(citizenFocus(city)).toBe('balanced');
+    expect(cityFocus(city)).toBe('default');
+  });
+
+  it('beats Default at its own yield, and only there', () => {
+    const state = flatState();
+    const city = threeWays(state);
+
+    assignCitizens(state, city);
+    const balanced = harvest(state, city);
+
+    const gains: Record<'food' | 'production' | 'gold', typeof balanced> = {
+      food: balanced,
+      production: balanced,
+      gold: balanced,
+    };
+    for (const focus of ['food', 'production', 'gold'] as const) {
+      city.focus = focus;
+      assignCitizens(state, city);
+      gains[focus] = harvest(state, city);
+      // Its own goal, never worse than the balanced sheet's.
+      expect(`${focus} pays ${gains[focus][focus]}`).toBe(
+        `${focus} pays ${Math.max(balanced[focus], gains[focus][focus])}`,
+      );
+    }
+    delete city.focus;
+
+    // Each focus actually moves the citizen somewhere Default did not — a
+    // control that agreed with Default everywhere would be a control that does
+    // nothing.
+    expect(gains.food.food).toBeGreaterThan(balanced.food);
+    expect(gains.gold.gold).toBeGreaterThan(balanced.gold);
+    expect(gains.production.production).toBe(balanced.production);
+
+    // And **Default is never dominated**: no focus pays at least as much in
+    // every voice and more in one. That is the guardrail — a strictly better
+    // sheet would make the balanced ordering a mistake.
+    for (const focus of ['food', 'production', 'gold'] as const) {
+      const paid = gains[focus];
+      const everywhere =
+        paid.food >= balanced.food &&
+        paid.production >= balanced.production &&
+        paid.gold >= balanced.gold;
+      const somewhere =
+        paid.food > balanced.food ||
+        paid.production > balanced.production ||
+        paid.gold > balanced.gold;
+      expect(`${focus}: ${everywhere && somewhere ? 'dominates' : 'trades'}`).toBe(
+        `${focus}: trades`,
+      );
+    }
+  });
+
+  it('reads the player’s word over the settler’s, and says so', () => {
+    const state = flatState();
+    const city = threeWays(state);
+    city.queue = [{ kind: 'unit', id: 'settler' }];
+    expect(growthIsHalted(city)).toBe(true);
+    // Told nothing, a halting town leans on hammers, exactly as it has since
+    // playtest batch two.
+    expect(citizenFocus(city)).toBe('production');
+
+    // Told something, the town does what it was told: the lean is a guess and
+    // this is an instruction.
+    city.focus = 'gold';
+    expect(citizenFocus(city)).toBe('gold');
+    assignCitizens(state, city);
+    expect(harvest(state, city).gold).toBeGreaterThan(0);
+  });
+
+  it('keeps a pinned tile pinned, whatever the focus says', () => {
+    const state = flatState();
+    const city = threeWays(state);
+    const hexes = ring(state, city);
+    city.lockedTiles = [{ col: hexes[1]!.col, row: hexes[1]!.row }];
+    city.focus = 'food';
+    assignCitizens(state, city);
+    // The customs house, which the food sheet ranks last of the three.
+    expect(worked(city)).toEqual([`${hexes[1]!.col},${hexes[1]!.row}`]);
+  });
+
+  it('refuses a focus that would starve the town', () => {
+    const state = flatState();
+    // Three farms and three mines, and a town too big to live on hammers —
+    // the halted lean's own fixture, asked of an instruction instead.
+    for (const [col, row] of [[8, 4], [9, 4], [8, 6]] as const) {
+      const tile = at(state.map, col, row);
+      tile.terrain = 'grassland';
+      tile.improvement = 'farm';
+    }
+    for (const [col, row] of [[7, 4], [7, 5], [9, 6]] as const) {
+      const tile = at(state.map, col, row);
+      tile.hills = true;
+      tile.improvement = 'mine';
+    }
+    const city = plant(state, 0, 8, 5);
+    city.population = 3;
+    city.focus = 'production';
+
+    assignCitizens(state, city);
+    expect(worked(city).sort()).toEqual(['8,4', '8,6', '9,4']);
+    expect(cityYields(state, city).food).toBeGreaterThanOrEqual(
+      city.population * RULES.cities.foodPerCitizen,
+    );
+  });
+});
+
+/**
+ * Avoid growth: the surplus trimmed toward nothing, and the floor under it.
+ *
+ * Two claims and they are the whole feature. The cap is *where possible* — a
+ * town whose ground pays food and nothing else simply grows — and the floor is
+ * absolute: no arrangement this pass writes may leave the citizens eating more
+ * than the town harvests.
+ */
+describe('avoid growth', () => {
+  /** A one-citizen town with a farm and a mine, and a centre that feeds it alone. */
+  function farmOrMine(state: GameState): City {
+    const farm = at(state.map, 8, 4);
+    farm.terrain = 'grassland';
+    farm.improvement = 'farm';
+    const mine = at(state.map, 9, 4);
+    mine.hills = true;
+    mine.improvement = 'mine';
+    const city = plant(state, 0, 8, 5);
+    city.population = 1;
+    return city;
+  }
+
+  function surplus(state: GameState, city: City): number {
+    return cityYields(state, city).food - city.population * RULES.cities.foodPerCitizen;
+  }
+
+  it('trims the surplus to nothing when the board allows it', () => {
+    const state = flatState();
+    const city = farmOrMine(state);
+
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['8,4']);
+    expect(surplus(state, city)).toBeGreaterThan(0);
+
+    city.avoidGrowth = true;
+    assignCitizens(state, city);
+    // The centre alone feeds one citizen, so the farm is pure surplus and the
+    // mine is the hex that banks nothing.
+    expect(worked(city)).toEqual(['9,4']);
+    expect(surplus(state, city)).toBe(0);
+  });
+
+  it('never starves the town to obey', () => {
+    const state = flatState();
+    // Three farms and three mines: the town can shed one farm and no more.
+    for (const [col, row] of [[8, 4], [9, 4], [8, 6]] as const) {
+      const tile = at(state.map, col, row);
+      tile.terrain = 'grassland';
+      tile.improvement = 'farm';
+    }
+    for (const [col, row] of [[7, 4], [7, 5], [9, 6]] as const) {
+      const tile = at(state.map, col, row);
+      tile.hills = true;
+      tile.improvement = 'mine';
+    }
+    const city = plant(state, 0, 8, 5);
+    city.population = 3;
+
+    assignCitizens(state, city);
+    const before = surplus(state, city);
+    expect(before).toBeGreaterThan(0);
+
+    city.avoidGrowth = true;
+    assignCitizens(state, city);
+    const after = surplus(state, city);
+    expect(after).toBeLessThan(before);
+    // The floor. A town that cannot reach nothing without famine keeps what it
+    // must eat, and the arrangement is still the best one it can afford.
+    expect(after).toBeGreaterThanOrEqual(0);
+    expect(city.workedTiles).toHaveLength(3);
+  });
+
+  it('leaves a town it cannot trim alone, and grows', () => {
+    const state = flatState();
+    // Every hex a farm: there is no lower-food hex to swap onto.
+    for (const tile of assignableTiles(state, plant(state, 1, 2, 2))) void tile;
+    const city = plant(state, 0, 8, 5);
+    city.population = 2;
+    for (const tile of assignableTiles(state, city)) {
+      tile.terrain = 'grassland';
+      tile.improvement = 'farm';
+    }
+    assignCitizens(state, city);
+    const grown = surplus(state, city);
+
+    city.avoidGrowth = true;
+    assignCitizens(state, city);
+    expect(surplus(state, city)).toBe(grown);
+    expect(city.workedTiles).toHaveLength(2);
+  });
+
+  it('never moves a pinned citizen off their hex', () => {
+    const state = flatState();
+    const city = farmOrMine(state);
+    city.lockedTiles = [{ col: 8, row: 4 }];
+    city.avoidGrowth = true;
+    assignCitizens(state, city);
+    // The pin outranks the cap exactly as it outranks the focus: the town keeps
+    // its farm and keeps growing.
+    expect(worked(city)).toEqual(['8,4']);
+    expect(surplus(state, city)).toBeGreaterThan(0);
+  });
+
+  it('sheds its bushels for the sheet in force', () => {
+    const state = flatState();
+    const city = farmOrMine(state);
+    // A third hex paying coin, worth the same food as the mine (none).
+    const coin = at(state.map, 8, 6);
+    coin.improvement = 'customsHouse';
+    city.avoidGrowth = true;
+
+    city.focus = 'production';
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['9,4']);
+
+    city.focus = 'gold';
+    assignCitizens(state, city);
+    expect(worked(city)).toEqual(['8,6']);
+  });
+
+  it('is idempotent, like every other assignment', () => {
+    const state = flatState();
+    const city = farmOrMine(state);
+    city.avoidGrowth = true;
+    assignCitizens(state, city);
+    const first = [...city.workedTiles];
+    assignCitizens(state, city);
+    expect(city.workedTiles).toEqual(first);
+  });
+});
+
+describe('setCitizenFocus', () => {
+  function point(
+    playerId: number,
+    cityId: number,
+    focus?: string,
+    avoidGrowth?: boolean,
+  ): Command {
+    return { type: 'setCitizenFocus', playerId, cityId, focus, avoidGrowth } as Command;
+  }
+
+  /** A size-2 town with a farm and a mine in its ring. */
+  function town(state: GameState): City {
+    const farm = at(state.map, 8, 4);
+    farm.terrain = 'grassland';
+    farm.improvement = 'farm';
+    const mine = at(state.map, 9, 4);
+    mine.hills = true;
+    mine.improvement = 'mine';
+    const city = plant(state, 0, 8, 5);
+    city.population = 1;
+    assignCitizens(state, city);
+    return city;
+  }
+
+  it('writes the focus and re-seats the citizens on the spot', () => {
+    const state = flatState();
+    const city = town(state);
+    expect(worked(city)).toEqual(['8,4']);
+
+    expect(applyCommand(state, point(0, city.id, 'production'))).toEqual({ ok: true });
+    expect(city.focus).toBe('production');
+    // Immediately, not at the end of the turn: register entry 21.
+    expect(worked(city)).toEqual(['9,4']);
+  });
+
+  it('writes nothing at all for Default — presence is the state', () => {
+    const state = flatState();
+    const city = town(state);
+    applyCommand(state, point(0, city.id, 'gold', true));
+    expect(city.focus).toBe('gold');
+    expect(city.avoidGrowth).toBe(true);
+
+    expect(applyCommand(state, point(0, city.id, 'default', false))).toEqual({ ok: true });
+    // Deleted rather than written: a town told to go back must serialise like a
+    // town nobody ever told anything.
+    expect('focus' in city).toBe(false);
+    expect('avoidGrowth' in city).toBe(false);
+  });
+
+  it('leaves a half it was not told about alone', () => {
+    const state = flatState();
+    const city = town(state);
+    applyCommand(state, point(0, city.id, 'food', true));
+
+    expect(applyCommand(state, point(0, city.id, 'production', undefined))).toEqual({ ok: true });
+    expect(city.avoidGrowth).toBe(true);
+    expect(applyCommand(state, point(0, city.id, undefined, false))).toEqual({ ok: true });
+    expect(city.focus).toBe('production');
+  });
+
+  it('refuses everything it should, and changes nothing when it does', () => {
+    const state = flatState();
+    const city = town(state);
+    const theirs = plant(state, 1, 2, 2);
+    const puppet = plant(state, 0, 12, 8);
+    puppet.puppet = true;
+    const before = clone(state);
+
+    const refusals: Command[] = [
+      point(0, 9999, 'food'),
+      point(0, theirs.id, 'food'),
+      point(7, city.id, 'food'),
+      // A puppet chooses for itself where its people stand.
+      point(0, puppet.id, 'food'),
+      // Words the game does not know, from a save file or a socket.
+      point(0, city.id, 'hammers'),
+      point(0, city.id, 'Food'),
+      { type: 'setCitizenFocus', playerId: 0, cityId: city.id, focus: 3 } as unknown as Command,
+      {
+        type: 'setCitizenFocus',
+        playerId: 0,
+        cityId: city.id,
+        avoidGrowth: 'yes',
+      } as unknown as Command,
+    ];
+
+    for (const command of refusals) {
+      expect(applyCommand(state, command).ok).toBe(false);
+      expect(state).toEqual(before);
+    }
+  });
+
+  it('refuses a seat that has ended its turn', () => {
+    const state = flatState();
+    const city = town(state);
+    expect(applyCommand(state, { type: 'endTurn', playerId: 0 })).toEqual({ ok: true });
+    const before = clone(state);
+    expect(applyCommand(state, point(0, city.id, 'food')).ok).toBe(false);
+    expect(state).toEqual(before);
+  });
+
+  it('replays a log with a pointed town in it byte for byte', () => {
+    const game = twoCityGame();
+    for (const city of game.state.cities) {
+      expect(
+        dispatch(game, {
+          type: 'setCitizenFocus',
+          playerId: city.ownerId,
+          cityId: city.id,
+          focus: city.id % 2 === 0 ? 'production' : 'gold',
+          avoidGrowth: city.id % 2 === 0,
+        }).ok,
+      ).toBe(true);
+    }
+
+    for (let turn = 0; turn < 20; turn++) {
+      for (const player of game.state.players) {
+        expect(dispatch(game, { type: 'endTurn', playerId: player.id }).ok).toBe(true);
+      }
+    }
+
+    expect(game.state.cities.some((city) => city.focus !== undefined)).toBe(true);
+    expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
+  });
+
+  it('forgets the old owner’s arrangement when the town changes hands', () => {
+    const state = flatState();
+    const city = town(state);
+    applyCommand(state, point(0, city.id, 'gold', true));
+    handOverCity(state, city, 1);
+    expect('focus' in city).toBe(false);
+    expect('avoidGrowth' in city).toBe(false);
+    // And a puppet may not be given one until it is annexed.
+    expect(citizenFocusError(state, 1, city)).toContain('puppet');
   });
 });
 
@@ -3084,6 +3528,10 @@ describe('the mid-turn refresh register', () => {
   /** The register. A new mid-turn yield mutation adds itself here. */
   const REGISTER: { file: string; fn: string }[] = [
     { file: 'commands.ts', fn: 'applySetLockedTiles' },
+    // The focus pane's verb (2026-09-03): entry 1 one grade coarser — a pin
+    // says *this hex*, a focus says *this kind of hex*, and both re-seat the
+    // town on the spot or the pane shows a click that did nothing.
+    { file: 'commands.ts', fn: 'applySetCitizenFocus' },
     { file: 'cities.ts', fn: 'purchaseTileAt' },
     { file: 'cities.ts', fn: 'settleProductionWindfall' },
     { file: 'improvements.ts', fn: 'buildImprovementAt' },

@@ -74,7 +74,7 @@ export const INTRO_ENTRIES: readonly CompendiumEntry[] = [
     [
       'The game ends when one civilisation is the last one left. To win, you need to survive — and, in a game with rivals, eventually to conquer them or be the only one still standing.',
       'In practice, most of the game is about building a strong empire: more cities, bigger cities, better technology, more culture, wonders, and great people. A strong empire is what lets you defend yourself and, when you choose, take cities from others.',
-      'Details: barbarians are not a civilisation and do not count — you do not have to clear the map of them to win. A game with only one player never declares a winner. A second way to win, the Bead Race (a race to complete achievements, scored on the Abacus screen, finished by a final project called the Magnum Opus), is designed but not yet in the game.',
+      'Details: barbarians are not a civilisation and do not count — you do not have to clear the map of them to win. A game with only one player never declares a winner. The other way to win is the Bead Race: a race to earn beads, scored on the Abacus screen and finished by a final project called the Magnum Opus — the empire holding the most beads when the Great Work closes takes the game.',
     ],
   ),
   written(
@@ -116,7 +116,7 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
     [
       'A "yield" is anything a city produces each turn. There are six: food, production, gold, science, culture and faith. Food makes the city grow. Production builds units and buildings. Gold goes into your treasury to buy things. Science researches technologies. Culture earns you cards and expands your borders. Faith buys augurs and prophets, the game\'s religious units.',
       'Where yields come from: each of your citizens works one hex near the city, and that hex pays whatever its terrain, resource and improvement are worth — a grassland hex gives food, a hill gives production, a farm adds more food, a mine adds more production. Buildings add more on top. So a city grows by getting more citizens, working better hexes, and building.',
-      'You can see a city\'s yields on its screen, and every hex\'s yield by hovering it — or all at once with the yields lens, which paints each hex\'s pay straight onto the map. Citizens are placed automatically; you can lock one to a hex you want worked.',
+      'You can see a city\'s yields on its screen, and every hex\'s yield by hovering it — or all at once with the yields lens, which paints each hex\'s pay straight onto the map. Citizens are placed automatically; you can lock one to a hex you want worked. You can also point a whole city at food, production or gold from its screen, or tell it to avoid growing, in which case it works the ground that feeds it and no more — a focus never starves a town, and a hex you have locked is worked whatever the focus says.',
       'Details: if a hex has both hills and a feature such as forest, the feature\'s yield is what counts. The city\'s own hex is always worked. Bonuses from cards, luxuries and the happiness and authority meters are percentages, applied in two stages — city-level bonuses first, then empire-level — with all the percentages in one stage added together before they are applied. A city that is building a settler puts its citizens on production rather than food until it is done.',
     ],
   ),

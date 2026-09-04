@@ -212,12 +212,19 @@ this list.
     turn 40 against eleven — the same happiness pass, plus the pangaea handing
     the script its fifth settler inside the horizon.
     `test/sim/upkeep.slow.test.ts`, `test/sim/buildSinks.slow.test.ts`.
-- **Stamp follow-ups** (ruled in chat 2026-09-03, queued): (a) the
-  draft-selection animation "still feels a little bit clunky" — profile
-  the pick-to-reveal path in the shipped offer flow; (b) **happiness and
-  authority join the stamp's preview voices** — cardImpact already prices
-  them (the knock-on ladder); the stamp should print them as figures
-  (😊/⚓ glyphs) beside the yields, not hide them.
+- ~~**Stamp follow-ups**~~ (ruled in chat 2026-09-03) — **both shipped
+  2026-09-04**, see `docs/doctrine-ideas.md`'s design-of-record block.
+  (a) the pick-to-reveal path's remaining clunk was the count itself:
+  every tick rebuilt the figure's child nodes through `setYieldText`, each
+  rebuilt mark carrying a `data:` URI of the best part of a kilobyte in an
+  inline custom property, inside a card that was being animated — now `yieldTextWriter`
+  builds the row once and moves text nodes; the stamp's seat was also
+  taller as a figure than as a flourish, so a pick nudged the card's
+  flavour rule down, and both faces now share one line-height.
+  (b) **happiness and authority are stamp figures** — `explainCardImpact`
+  gained a `kind: 'meter'` line (the card's own points, a diff of the
+  meters' own folds) and `stampReading` prints it in the meter's mark
+  after the six voices. A tier cascade stays a knock-on, hover only.
 - **Pamphlet shots: 3 outstanding** — move-attack, worker-improve, and
   diplomacy-with-a-met-rival need a riper save (the shot list's mark
   column makes recapture mechanical); they degrade to captions meanwhile.

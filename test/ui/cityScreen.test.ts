@@ -224,6 +224,10 @@ describe("the panel's controls", () => {
       '.city-buildable-buy',
       '.city-icon-button',
       '.city-close',
+      // The focus pane's two controls, added the day the pane shipped — the
+      // note above is written so this list grows rather than the rule bending.
+      '.city-focus-choice',
+      '.city-focus-avoid',
     ]) {
       const transform = declaration(selector, 'text-transform') ?? 'none';
       expect(`${selector}: ${transform}`).toBe(`${selector}: none`);
@@ -592,7 +596,7 @@ describe('the vignette and the open city', () => {
  * A sixth promise, and the one this pass added: **the panel says why the
  * citizens moved.**
  *
- * `assignCitizens` swaps to `citizenWeightsWhileHalted` whenever the front of
+ * `assignCitizens` leans on `citizenFocusWeights.production` whenever the front of
  * the queue halts growth (playtest batch two: "a city should auto-work
  * production tiles when creating a settler"), and a panel that showed a
  * different assignment than it did last turn with nothing to account for it
@@ -758,5 +762,97 @@ describe('the growth modifiers', () => {
     // as prose, which is a sentence about the rule and not a comparison.
     expect(printer).not.toContain('cityHasFreshwater');
     expect(printer).not.toContain("'aqueduct'");
+  });
+});
+
+/**
+ * **The citizen focus pane** (ruled 2026-09-03, `docs/city-screen.md`): four
+ * words and a checkbox in the left rail, under the two clocks they move.
+ *
+ * Read out of the source for this file's usual reason — there is no jsdom here,
+ * and every failure this block guards is a control that still renders and simply
+ * does the wrong thing: a segment that dispatches nothing, a pane that draws
+ * from a variable instead of from the town, a control a puppet can press. The
+ * behaviour behind it is pinned in `test/sim/cities.test.ts`; what is asserted
+ * here is the wiring only that file can see.
+ */
+describe('the citizen focus pane', () => {
+  const panel = (): string => source('cityPanel.ts');
+
+  it('sits in the left rail, directly under the Growth and Borders meters', () => {
+    const rail = fn('cityPanel.ts', 'renderTownRail');
+    const growth = rail.indexOf('renderGrowth(city, quote)');
+    const borders = rail.indexOf('renderBorders(city, locked, quote)');
+    const focus = rail.indexOf('renderFocusPane(city, locked)');
+    expect(growth).toBeGreaterThanOrEqual(0);
+    expect(borders).toBeGreaterThan(growth);
+    // In the clocks card and after both of them — "under the meters" is the
+    // ruling's own word, and it is the only thing about the pane's position
+    // that a later edit must not quietly undo.
+    expect(focus).toBeGreaterThan(borders);
+    expect(rail.slice(borders, focus)).toContain('clocks.append(');
+  });
+
+  it('offers every focus the simulation knows, in the sim’s own order', () => {
+    // The list is `CITIZEN_FOCUSES`, never four literals: a fifth focus is a
+    // data change, and a pane that had written the words out would offer three.
+    const pane = fn('cityPanel.ts', 'renderFocusPane');
+    expect(pane).toContain('for (const focus of CITIZEN_FOCUSES)');
+    expect(pane).toContain('focusLabel(focus)');
+  });
+
+  it('dispatches one command carrying the whole arrangement', () => {
+    const send = fn('cityPanel.ts', 'sendFocus');
+    expect(send).toContain("type: 'setCitizenFocus'");
+    expect(send).toContain('cityId: city.id');
+    expect(send).toContain('focus,');
+    expect(send).toContain('avoidGrowth,');
+    // The panel's own funnel, so the dispatch is reported like every other.
+    expect(send).toContain('report(command, dispatch(getGame(), command))');
+    expect(send).toContain('onChanged();');
+  });
+
+  it('reflects the town rather than a variable of its own', () => {
+    const pane = fn('cityPanel.ts', 'renderFocusPane');
+    // Which segment is lit and whether the box is ticked are both read off the
+    // city on every render — the panel keeps no state, so a refused command
+    // leaves the control showing what the town actually says.
+    expect(pane).toContain('const current = cityFocus(city)');
+    expect(pane).toContain("button.classList.toggle('is-active', focus === current)");
+    expect(pane).toContain('tick.checked = city.avoidGrowth === true');
+    expect(panel()).not.toContain('let focusChoice');
+  });
+
+  it('greys itself with the sentence the reducer would have returned', () => {
+    const pane = fn('cityPanel.ts', 'renderFocusPane');
+    expect(pane).toContain('focusBlocker(state, localPlayerId(), city, locked)');
+    expect(pane).toContain('button.disabled = blocker !== null');
+    expect(pane).toContain('tick.disabled = blocker !== null');
+    expect(pane).toContain('button.title = blocker ??');
+    // And the blocker asks the simulation first, so a puppet is told it is a
+    // puppet rather than something about the turn.
+    const blocker = source('cityPanel.ts');
+    const at = blocker.indexOf('export function focusBlocker(');
+    expect(at).toBeGreaterThanOrEqual(0);
+    const body = blocker.slice(at, blocker.indexOf('\n}', at));
+    expect(body.indexOf('citizenFocusError(')).toBeLessThan(body.indexOf('locked ?'));
+  });
+
+  it('drops the settler note once the player has said something', () => {
+    // The two would otherwise both speak: the note explains a lean as a
+    // settler's doing, and a town told to chase coin is not leaning for that
+    // reason at all. See `citizenLean` — the player's word outranks the guess.
+    const note = fn('cityPanel.ts', 'renderCitizenFocus');
+    expect(note).toContain("if (cityFocus(city) !== 'default') return null;");
+  });
+
+  it('sets the pane in the panel’s own register of controls', () => {
+    expect(declaration('.city-focus-choice', 'font-family')).toBe(
+      declaration('.city-buy-tiles', 'font-family'),
+    );
+    expect(declaration('.city-focus-choice', 'letter-spacing')).toBe('normal');
+    expect(declaration('.city-focus-avoid', 'letter-spacing')).toBe('normal');
+    // Four segments sharing the rail's width, so the row reads as one control.
+    expect(declaration('.city-focus-choices', 'grid-template-columns')).toBe('repeat(4, 1fr)');
   });
 });

@@ -196,6 +196,101 @@ describe('a meter knock-on', () => {
   });
 });
 
+/**
+ * **The meters are figures now** (user, 2026-09-03 — "we should have happiness
+ * and authority be yields that appear in the preview numbers, its confusing when
+ * they aren't shown"). A card's own contentment or writ is a line of its own,
+ * carrying the meter and the points, and it pays in none of the six voices: the
+ * yield a tier those points crossed unlocks is still the cascade's, one register
+ * over. The two are the same meter twice and the suite pins the difference,
+ * because folding them would have a card claiming to pay a beaker it never paid.
+ */
+describe('a card that pays a meter', () => {
+  /** Festival Days pays four contentment flat, and now says so. */
+  it('reports the card\'s own happiness as its own line', () => {
+    const { state } = bench();
+    const lines = explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays' });
+    const meters = lines.filter((line) => line.kind === 'meter');
+    expect(meters).toHaveLength(1);
+    expect(meters[0]!.meter).toBe('happiness');
+    expect(meters[0]!.source).toBe('Happiness');
+    expect(meters[0]!.amount).toBe(4);
+    // It is points, never a voice — nothing banks contentment.
+    for (const key of CITY_YIELD_KEYS) expect(meters[0]![key]).toBe(0);
+    expect(foldCardImpact(lines)).toEqual(emptyCityYields());
+  });
+
+  /** The deepen face prices the *step*, meters included. */
+  it('prices a deepening\'s meter step and not its whole ladder', () => {
+    const { state } = bench();
+    const step = explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays', level: 2 });
+    const meters = step.filter((line) => line.kind === 'meter');
+    expect(meters).toHaveLength(1);
+    expect(meters[0]!.amount).toBe(6);
+  });
+
+  /** Provincial Governors pays the writ. Same shape, the other meter. */
+  it('reports the card\'s own authority as its own line', () => {
+    const { state } = bench();
+    const lines = explainCardImpact(state, 0, { kind: 'order', id: 'provincialGovernors' });
+    const meters = lines.filter((line) => line.kind === 'meter');
+    expect(meters).toHaveLength(1);
+    expect(meters[0]!.meter).toBe('authority');
+    expect(meters[0]!.source).toBe('Authority');
+    expect(meters[0]!.amount).toBe(3);
+  });
+
+  /**
+   * The Choir pays a coin of culture *and* a point of contentment, both scoped
+   * to a town with a Temple. Two registers off one card, and the scope is
+   * honoured by both — which it is by construction, since each is a diff of the
+   * evaluator that owns it.
+   */
+  it('reads a scoped card in both registers at once', () => {
+    const { state, city } = bench();
+    const bare = explainCardImpact(state, 0, { kind: 'order', id: 'theChoir' });
+    expect(bare.filter((line) => line.kind === 'meter')).toEqual([]);
+    expect(foldCardImpact(bare).culture).toBe(0);
+
+    city.buildings.push('temple');
+    refreshCityDerived(state, city);
+    const lines = explainCardImpact(state, 0, { kind: 'order', id: 'theChoir' });
+    const meters = lines.filter((line) => line.kind === 'meter');
+    expect(meters).toHaveLength(1);
+    expect(meters[0]!.meter).toBe('happiness');
+    expect(meters[0]!.amount).toBe(1);
+    expect(foldCardImpact(lines).culture).toBe(1);
+  });
+
+  /** A card that moves no meter says nothing about either. */
+  it('is silent for a card with no meter line', () => {
+    const { state } = bench();
+    const lines = explainCardImpact(state, 0, { kind: 'order', id: 'weightsAndMeasures' });
+    expect(lines.filter((line) => line.kind === 'meter')).toEqual([]);
+  });
+
+  /**
+   * The meter line and the cascade it *causes* are two lines about one meter,
+   * and they say two different things: the points the card paid, and the yield
+   * the tier it flipped unlocked.
+   */
+  it('keeps the points it paid apart from the yield they unlocked', () => {
+    const { state, city } = bench();
+    city.buildings.push('funeralGames', 'baths', 'circusMaximus');
+    refreshCityDerived(state, city);
+    const lines = explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays' });
+    const meter = lines.filter((line) => line.kind === 'meter');
+    const knock = lines.filter((line) => line.kind === 'knockOn');
+    expect(meter).toHaveLength(1);
+    expect(meter[0]!.amount).toBe(4);
+    expect(knock).toHaveLength(1);
+    expect(knock[0]!.science).toBeGreaterThan(0);
+    expect(knock[0]!.amount).toBeUndefined();
+    // The meter's points come first: what the card pays, then what it unlocked.
+    expect(lines.indexOf(meter[0]!)).toBeLessThan(lines.indexOf(knock[0]!));
+  });
+});
+
 describe('a card that pays on an occasion', () => {
   /**
    * Border Ballads pays ten culture for a barbarian killed and nothing at all

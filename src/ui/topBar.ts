@@ -87,6 +87,7 @@ import { type GameState, type Player, playerById, realPlayers } from '../sim/sta
 import { cityDisplayName, starCapitalSource } from './cityDisplay';
 import {
   type YieldKey,
+  METER_GLYPH,
   YIELD_NAME,
   YIELD_NOTE,
   figure,
@@ -291,21 +292,16 @@ const BANKED: Partial<
 };
 
 /**
- * The two meters, as **text** — the register `YIELD_GLYPH` keeps for the six
- * yields (`figures.ts`), one meter over. `smile` and `stamp` are what a
- * player *sees* now (`src/art/meterMarks.ts`, drawn by `meterMarkNode`);
- * these two characters are what survives everywhere a figure has to be a
- * string and cannot hold an element — today, the chip's own native tooltip,
- * which a mask cannot fill.
+ * The two meters as text now live in `figures.ts` beside `YIELD_GLYPH`, because
+ * the card stamp composes them into figures (`+4☺`) exactly as it composes the
+ * six — see that table's docblock. `smile` and `stamp` are still what a player
+ * *sees* here (`src/art/meterMarks.ts`, drawn by `meterMarkNode`); the character
+ * survives for the chip's own native tooltip, which a mask cannot fill.
  *
- * No longer placeholders: Entry XIV.C's want for theatre masks and a wax seal
- * is answered by a face and a stamp rather than by the literal masks and
- * seal it named, on the squint-test call `src/art/meterMarks.ts` documents.
+ * Entry XIV.C's want for theatre masks and a wax seal is answered by a face and
+ * a stamp rather than by the literal masks and seal it named, on the squint-test
+ * call `src/art/meterMarks.ts` documents.
  */
-const METER_GLYPH: Record<MeterId, string> = {
-  happiness: '☺',
-  authority: '⚜',
-};
 
 /**
  * Renown as **text**, the register `METER_GLYPH` and `YIELD_GLYPH` keep for

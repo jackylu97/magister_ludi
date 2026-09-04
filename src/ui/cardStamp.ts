@@ -24,7 +24,14 @@
  *     three cards showing three figures is a hand that has already been chosen
  *     for the player, and a hand of three boxes is furniture.
  *   · **the figure** — the count-up. `+2🔬 +1🎵`, the fold of the impact list,
- *     counted from nothing to the number over three quarters of a second. **The
+ *     counted from nothing to the number over three quarters of a second. The
+ *     two **meters** count in that same row (user, 2026-09-03 — "we should have
+ *     happiness and authority be yields that appear in the preview numbers, its
+ *     confusing when they aren't shown"): a card's own `+4☺` or `+3⚜` is a
+ *     first-class figure in the meter's own mark, printed after the six voices
+ *     because that is the order the top bar stands in. It is the card's *own*
+ *     payment that qualifies — what a tier those points crossed then unlocks
+ *     stays a knock-on, data for the hover and nothing on this face. **The
  *     number stands alone**: there is no tag, no chip and no popup beside it
  *     (final ruling, 2026-09-03 — a reserved band that was rarely filled made
  *     the hand ragged). Where a figure came from — a cascade, a tier flip, a
@@ -53,9 +60,10 @@
  */
 
 import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
-import { YIELD_GLYPH } from './figures';
-import { setYieldText } from './yieldMark';
+import { METER_GLYPH, YIELD_GLYPH } from './figures';
+import { setYieldText, yieldTextWriter } from './yieldMark';
 import type { CardImpactLine } from '../sim/cardImpact';
+import type { MeterId } from '../sim/meters';
 
 /**
  * The mock's four beats, in milliseconds.
@@ -177,6 +185,7 @@ export function stampReading(lines: readonly CardImpactLine[]): StampReading {
   const standing = emptyVoices();
   const cascade = emptyVoices();
   const occasion = emptyVoices();
+  const meters = emptyMeters();
   let occasionWords: string | undefined;
   let note: string | undefined;
   let knockOnLabel: string | undefined;
@@ -187,6 +196,12 @@ export function stampReading(lines: readonly CardImpactLine[]): StampReading {
       note ??= line.note;
       continue;
     }
+    // A meter line pays in points rather than in any of the six voices, so it is
+    // summed on its own side of the fold and never added to a yield.
+    if (line.kind === 'meter') {
+      if (line.meter !== undefined) meters[line.meter] += line.amount ?? 0;
+      continue;
+    }
     for (const key of CITY_YIELD_KEYS) standing[key] += line[key];
     if (line.kind !== 'knockOn') continue;
     for (const key of CITY_YIELD_KEYS) cascade[key] += line[key];
@@ -194,7 +209,7 @@ export function stampReading(lines: readonly CardImpactLine[]): StampReading {
   }
   const knockOn = figuresOf(cascade);
   const reading: StampReading = {
-    figures: figuresOf(standing),
+    figures: [...figuresOf(standing), ...meterFiguresOf(meters)],
     occasionFigures: figuresOf(occasion),
     knockOn,
   };
@@ -208,6 +223,10 @@ function emptyVoices(): Record<CityYieldKey, number> {
   return { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
 }
 
+function emptyMeters(): Record<MeterId, number> {
+  return { happiness: 0, authority: 0 };
+}
+
 /** The non-zero voices, in the order every surface prints them. */
 function figuresOf(voices: Record<CityYieldKey, number>): StampFigure[] {
   const list: StampFigure[] = [];
@@ -217,6 +236,27 @@ function figuresOf(voices: Record<CityYieldKey, number>): StampFigure[] {
   }
   return list;
 }
+
+/**
+ * The non-zero **meters**, after the six voices and in the order the top bar's
+ * two chips stand.
+ *
+ * A separate walk rather than a seventh and eighth entry in the yield table,
+ * because they are not yields: no citizen works a hex for contentment, nothing
+ * banks the writ, and `CITY_YIELD_KEYS` is the sim's own list of the six. What
+ * they share with a yield is the only thing this function cares about — a mark
+ * and a signed integer, which is all a `StampFigure` ever was.
+ */
+function meterFiguresOf(meters: Record<MeterId, number>): StampFigure[] {
+  const list: StampFigure[] = [];
+  for (const key of METER_ORDER) {
+    if (meters[key] === 0) continue;
+    list.push({ glyph: METER_GLYPH[key], amount: meters[key] });
+  }
+  return list;
+}
+
+const METER_ORDER: readonly MeterId[] = ['happiness', 'authority'];
 
 /**
  * A signed figure the way every other number in this interface is written: an
@@ -379,7 +419,15 @@ export function playCardStamp(stamp: HTMLElement, reading: StampReading): () => 
   stamp.dataset.face = 'figure';
   stamp.dataset.phase = 'anticipate';
   const counted = stampFigures(reading);
-  setYieldText(parts.figure, stampText(counted.map((f) => ({ ...f, amount: 0 }))));
+  // **The count writes digits, never nodes** (the 2026-09-03 "still feels a
+  // little bit clunky" report). `setYieldText` throws the figure's children away
+  // and rebuilds them, and each mark it builds carries a `data:` URI of the best
+  // part of a kilobyte in an inline custom property — forty of those inside one
+  // count, each dirtying the layout of a large card mid-animation. Across a count
+  // only the digits change, so the row is built once here and the writer moves
+  // text nodes afterwards. See `yieldTextWriter`.
+  const write = yieldTextWriter(parts.figure);
+  write(stampText(counted.map((f) => ({ ...f, amount: 0 }))));
 
   timers.push(
     window.setTimeout(() => {
@@ -396,7 +444,7 @@ export function playCardStamp(stamp: HTMLElement, reading: StampReading): () => 
         const text = stampText(shown);
         if (text !== lastShown) {
           lastShown = text;
-          setYieldText(parts.figure, text);
+          write(text);
           // The per-tick pop, through the Web Animations API rather than a
           // restarted CSS class: the class-restart idiom needs a forced
           // synchronous reflow (`void offsetWidth`) to convince the browser,
@@ -420,7 +468,7 @@ export function playCardStamp(stamp: HTMLElement, reading: StampReading): () => 
           return;
         }
         frame = 0;
-        setYieldText(parts.figure, stampText(counted));
+        write(stampText(counted));
         stamp.dataset.phase = 'landed';
       };
       frame = window.requestAnimationFrame(step);

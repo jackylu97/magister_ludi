@@ -46,8 +46,10 @@
  * in `figures.ts`.
  */
 
+import { METER_GLYPH, YIELD_GLYPH, type YieldKey } from './figures';
+import { meterMarkNode } from './meterMark';
 import { yieldMarkDataUri } from '../art/yieldMarks';
-import { YIELD_GLYPH, type YieldKey } from './figures';
+import type { MeterId } from '../sim/meters';
 
 /**
  * The reverse of `YIELD_GLYPH`: which voice a character stands for.
@@ -57,6 +59,22 @@ import { YIELD_GLYPH, type YieldKey } from './figures';
  */
 const GLYPH_YIELD = new Map<string, YieldKey>(
   (Object.keys(YIELD_GLYPH) as YieldKey[]).map((key) => [YIELD_GLYPH[key], key]),
+);
+
+/**
+ * The same reverse table for the **two meters**, and the reason this printer
+ * grew a second one.
+ *
+ * A meter glyph used to sit alone on a chip beside a word, which is why
+ * `meterMark.ts` has no printer of its own. The card stamp ended that (user,
+ * 2026-09-03 — happiness and authority are figures on a card's face now, `+4☺`
+ * beside `+2🔬`), and a *composed* glyph is exactly what this module exists to
+ * swap for a drawing. One walk, two tables, one seam: a surface that composes
+ * either kind of mark into a sentence prints the drawing, and a surface that
+ * needs a string still imports the character from `figures.ts`.
+ */
+const GLYPH_METER = new Map<string, MeterId>(
+  (Object.keys(METER_GLYPH) as MeterId[]).map((key) => [METER_GLYPH[key], key]),
 );
 
 /**
@@ -86,16 +104,25 @@ export function yieldMarkNode(key: YieldKey, lead = false): HTMLSpanElement {
   return span;
 }
 
-/** Does this string carry any of the six glyphs? The cheap check before the walk. */
+/** Does this string carry any drawable glyph? The cheap check before the walk. */
 export function hasYieldGlyph(text: string): boolean {
   for (const glyph of GLYPH_YIELD.keys()) if (text.includes(glyph)) return true;
+  for (const glyph of GLYPH_METER.keys()) if (text.includes(glyph)) return true;
   return false;
 }
 
-/** One piece of a composed figure: a run of plain text, or a mark to draw. */
+/**
+ * One piece of a composed figure: a run of plain text, or a mark to draw.
+ *
+ * `'meter'` is its own variant rather than a flag on `'mark'` because the two
+ * draw from two tables and two stylesheets' classes — and because every caller
+ * that reads a part today is asking about a *yield*, and a widened `key` would
+ * have made each of them silently wrong instead of loudly.
+ */
 export type YieldTextPart =
   | { kind: 'text'; text: string }
-  | { kind: 'mark'; key: YieldKey; lead: boolean };
+  | { kind: 'mark'; key: YieldKey; lead: boolean }
+  | { kind: 'meter'; key: MeterId; lead: boolean };
 
 /**
  * A composed figure, split into the runs of text and the marks between them.
@@ -128,28 +155,44 @@ export function splitYieldText(text: string): YieldTextPart[] {
     plain = '';
   };
   chars.forEach((char, index) => {
+    const lead = chars[index + 1] === ' ';
     const key = GLYPH_YIELD.get(char);
-    if (key === undefined) {
-      plain += char;
+    if (key !== undefined) {
+      flush();
+      parts.push({ kind: 'mark', key, lead });
       return;
     }
-    flush();
-    parts.push({ kind: 'mark', key, lead: chars[index + 1] === ' ' });
+    const meter = GLYPH_METER.get(char);
+    if (meter !== undefined) {
+      flush();
+      parts.push({ kind: 'meter', key: meter, lead });
+      return;
+    }
+    plain += char;
   });
   flush();
   return parts;
 }
 
-/** One composed figure as nodes: the text, with every yield glyph in it drawn. */
+/** One part of a split figure as the node that draws it. */
+function partNode(part: YieldTextPart): Node {
+  if (part.kind === 'text') return document.createTextNode(part.text);
+  if (part.kind === 'meter') {
+    const node = meterMarkNode(part.key);
+    // The meter mark's own class knows nothing about sitting in a sentence, so
+    // the *composition* rule is applied here: `.is-lead` is what moves a mark's
+    // air to its right, and it is the same rule for both kinds of mark.
+    node.classList.add('meter-mark-inline');
+    if (part.lead) node.classList.add('is-lead');
+    return node;
+  }
+  return yieldMarkNode(part.key, part.lead);
+}
+
+/** One composed figure as nodes: the text, with every glyph in it drawn. */
 export function yieldTextNodes(text: string): DocumentFragment {
   const fragment = document.createDocumentFragment();
-  for (const part of splitYieldText(text)) {
-    fragment.append(
-      part.kind === 'text'
-        ? document.createTextNode(part.text)
-        : yieldMarkNode(part.key, part.lead),
-    );
-  }
+  for (const part of splitYieldText(text)) fragment.append(partNode(part));
   return fragment;
 }
 
@@ -167,6 +210,71 @@ export function setYieldText(element: HTMLElement, text: string): void {
     return;
   }
   element.replaceChildren(yieldTextNodes(text));
+}
+
+/**
+ * The **animated** writer: one element, written many times a second, without
+ * rebuilding it.
+ *
+ * `setYieldText` is right for the ninety-nine surfaces that write a figure once
+ * and leave it: it throws the element's children away and builds new ones, which
+ * costs nothing when it happens on a click. The card stamp's count-up writes the
+ * same element on every animation frame for three quarters of a second, and
+ * there `replaceChildren` is the whole of the "clunk" the 2026-09-03 playtest
+ * reported: each tick destroyed and rebuilt every mark span, and each mark span
+ * carries a `data:` URI of the best part of a kilobyte in an inline custom
+ * property. Forty-odd style-attribute parses and forty-odd subtree replacements
+ * inside one count,
+ * every one of them dirtying the layout of a large parchment card that is
+ * simultaneously being animated.
+ *
+ * The observation that fixes it: across a count **only the digits change**. The
+ * glyphs, their order and which way each faces are fixed the moment the figure
+ * is composed, because the figure counts from zero to a target of a known sign.
+ * So the writer builds the row once, keeps the text nodes, and afterwards writes
+ * `nodeValue` — no element churn, no style parse, no subtree replacement. It
+ * still compares the split *shape* each time and rebuilds if it differs, so a
+ * caller that changes voices mid-flight is correct rather than merely fast.
+ */
+export function yieldTextWriter(element: HTMLElement): (text: string) => void {
+  let shape: string | null = null;
+  let slots: Text[] = [];
+  return (text: string): void => {
+    const parts = splitYieldText(text);
+    const next = shapeOf(parts);
+    if (next === shape) {
+      let at = 0;
+      for (const part of parts) {
+        if (part.kind !== 'text') continue;
+        const slot = slots[at++];
+        if (slot !== undefined && slot.nodeValue !== part.text) slot.nodeValue = part.text;
+      }
+      return;
+    }
+    shape = next;
+    slots = [];
+    const fragment = document.createDocumentFragment();
+    for (const part of parts) {
+      const node = partNode(part);
+      if (part.kind === 'text') slots.push(node as Text);
+      fragment.append(node);
+    }
+    element.replaceChildren(fragment);
+  };
+}
+
+/**
+ * A split figure's **skeleton**: everything about it that is not a digit.
+ *
+ * Two figures with the same shape can be written into one another by moving text
+ * only, which is the whole of what `yieldTextWriter` needs to know. Text runs
+ * collapse to a marker; marks carry their table, their key and their facing,
+ * because a mark that changed side would want its class rewritten.
+ */
+function shapeOf(parts: readonly YieldTextPart[]): string {
+  return parts
+    .map((part) => (part.kind === 'text' ? 't' : `${part.kind}:${part.key}:${part.lead ? 'l' : 't'}`))
+    .join('|');
 }
 
 /**

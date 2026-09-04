@@ -149,26 +149,38 @@ the exit rather than bottom-left, which `#hud-context` owns; the prototype's
 stand, and the 2026-08-27 ruling forbids reprinting the treasury under the
 build list.
 
-## Citizen focus pane (ruled 2026-09-03, queued behind the mode fixes)
+## Citizen focus pane (ruled 2026-09-03, shipped)
 
 The user: a Civ V/VI-style citizen management control — "default focus,
 food focus, prod focus, gold focus, and avoid growth checkmark for now."
-Shape:
+As built:
 
-- `City.focus`: 'default' | 'food' | 'production' | 'gold' (absent =
-  default, presence-is-state), plus `City.avoidGrowth?: true`. One command
-  (`setCitizenFocus {cityId, focus?, avoidGrowth?}`), validated fully.
-- `assignCitizens` reweights its tile scorer by the focus (the existing
-  growth-halted production lean is the precedent — read how it biases and
-  generalise); **avoid growth** assigns so food surplus caps at 0 where
-  possible (never forced starvation — the existing "refuses the focus
-  outright when it would starve" clause generalises).
-- Locked tiles always outrank focus (existing rule). Bot untouched (it has
-  its own citizen valuation); puppet cities take no focus (queue-locked
-  precedent).
-- UI: a segmented control + checkbox in the mode's left rail under the
-  Growth/Borders meters, plain words.
-- Rides the v60 wave (schema note bullet: assignment outcomes change).
+- **State**: `City.focus` ('food' | 'production' | 'gold'; the key is absent
+  for Default — presence is the state) and `City.avoidGrowth?: true`. Both are
+  player intent the board cannot recompute, and both are cleared by
+  `handOverCity` with the queue and the pins.
+- **Verb**: `setCitizenFocus {cityId, focus?, avoidGrowth?}`, validated fully.
+  An absent field is a half not named; clearing is said out loud
+  (`focus: 'default'`, `avoidGrowth: false`). Turn-gated, refused for a puppet
+  — `citizenFocusError` is the one gate, and it is what greys the control.
+- **Sheets**: one table, `rules.cities.citizenFocusWeights`, keyed by focus.
+  `citizenWeightsWhileHalted` is gone: a halting town (settler at the front)
+  leans on the `production` row of the same table. `citizenLean` decides which
+  speaks, and **the player's word outranks the game's guess** — a town told to
+  chase coin chases coin with a settler at the front. Each sheet gives the
+  focused yield the top weight and leaves the other two in `citizenWeights`'
+  own order beneath it; nothing is zeroed. Default is untouched, and is pinned
+  as never dominated by a focus (`test/sim/cities.test.ts`).
+- **Avoid growth** is a trim applied *after* the sheet has chosen
+  (`capFoodSurplus`): one swap at a time, cheapest score first, stopping at
+  the swap that would put the town into deficit. It never moves a pinned
+  citizen and never walks through a starving arrangement, so a town that could
+  only reach nothing by two swaps at once keeps a bushel.
+- Locked tiles outrank both. Bot untouched (its own citizen valuation).
+- **UI**: `renderFocusPane` — four sentence-case segments and an "Avoid growth"
+  checkbox, in the left rail's clocks card directly under Growth and Borders.
+  The settler note (`renderCitizenFocus`) is silent once a focus is set.
+- Rode the v60 wave (schema note: assignment outcomes change).
 
 ## "You are in a city" — mode ideas (2026-09-03, not yet ruled, no build)
 

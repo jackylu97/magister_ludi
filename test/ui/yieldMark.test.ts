@@ -16,13 +16,21 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { YIELD_GLYPH, type YieldKey } from '../../src/ui/figures';
+import { METER_GLYPH, YIELD_GLYPH, type YieldKey } from '../../src/ui/figures';
 import { hasYieldGlyph, splitYieldText } from '../../src/ui/yieldMark';
+import type { MeterId } from '../../src/sim/meters';
 
 /** Just the marks of a split, in order: what was drawn and which way it faced. */
 function marks(text: string): { key: YieldKey; lead: boolean }[] {
   return splitYieldText(text).flatMap((part) =>
     part.kind === 'mark' ? [{ key: part.key, lead: part.lead }] : [],
+  );
+}
+
+/** The same for the two meter marks — the printer's second table. */
+function meterMarks(text: string): { key: MeterId; lead: boolean }[] {
+  return splitYieldText(text).flatMap((part) =>
+    part.kind === 'meter' ? [{ key: part.key, lead: part.lead }] : [],
   );
 }
 
@@ -115,6 +123,35 @@ describe('splitYieldText', () => {
     expect(marks(line)).toEqual([{ key: 'culture', lead: true }]);
   });
 
+  /**
+   * **The two meters are marks too** (user, 2026-09-03 — happiness and authority
+   * are figures on a card's stamp now). They are their own part kind, so a
+   * caller that reads a yield part is not silently handed a meter, and they take
+   * the same lead rule because it is a rule about the *sentence*.
+   */
+  describe('the two meters', () => {
+    it('finds both, and calls them what they are', () => {
+      for (const key of Object.keys(METER_GLYPH) as MeterId[]) {
+        const composed = `+4${METER_GLYPH[key]}`;
+        expect(hasYieldGlyph(composed)).toBe(true);
+        expect(meterMarks(composed)).toEqual([{ key, lead: false }]);
+        // And never mistaken for one of the six.
+        expect(marks(composed)).toEqual([]);
+        expect(words(composed)).toBe('+4');
+      }
+    });
+
+    it('takes the same lead rule, and mixes with the yields in one row', () => {
+      const row = `+2${YIELD_GLYPH.science} +4${METER_GLYPH.happiness} +3${METER_GLYPH.authority}`;
+      expect(marks(row)).toEqual([{ key: 'science', lead: true }]);
+      expect(meterMarks(row)).toEqual([
+        { key: 'happiness', lead: true },
+        { key: 'authority', lead: false },
+      ]);
+      expect(words(row)).toBe('+2 +4 +3');
+    });
+  });
+
   it('never leaves a yield glyph in the text it hands back', () => {
     const composed = [
       `${YIELD_GLYPH.food}${YIELD_GLYPH.production}${YIELD_GLYPH.gold}`,
@@ -127,7 +164,10 @@ describe('splitYieldText', () => {
       expect(hasYieldGlyph(words(text))).toBe(false);
       // And nothing was lost: the parts rejoin to the original, mark for glyph.
       const rebuilt = splitYieldText(text)
-        .map((part) => (part.kind === 'text' ? part.text : YIELD_GLYPH[part.key]))
+        .map((part) => {
+          if (part.kind === 'text') return part.text;
+          return part.kind === 'meter' ? METER_GLYPH[part.key] : YIELD_GLYPH[part.key];
+        })
         .join('');
       expect(rebuilt).toBe(text);
     }

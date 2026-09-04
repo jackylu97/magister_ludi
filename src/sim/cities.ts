@@ -113,7 +113,12 @@ import { anyBeadDef } from './beadData';
 import { drawGreatPersonOffer } from './greatPeople';
 import { awardBeadGrant, claimEndeavour, closeTheGreatWork } from './beads';
 import { settleRenownWindfall } from './renown';
-import { type CitizenWeights, RULES } from './rulesData';
+import {
+  type CitizenFocus,
+  type CitizenLean,
+  type CitizenWeights,
+  RULES,
+} from './rulesData';
 import {
   type CardYieldLine,
   type RateReading,
@@ -155,6 +160,7 @@ import {
   claimWonder,
   createCity,
   createUnit,
+  hasEndedTurn,
   playerById,
   removeUnit,
   shrinkFollowers,
@@ -1674,44 +1680,215 @@ export function workableSeats(state: GameState, city: City): number {
  *
  * Focus
  * -----
- * A town whose growth is halted — a settler at the front of the queue — scores
- * with `citizenWeightsWhileHalted` instead, which puts hammers over bushels
+ * A town placed *for* something scores with a sheet out of
+ * `citizenFocusWeights` instead of the balanced one — either because its player
+ * said so (`City.focus`, the focus pane) or because its growth is halted, a
+ * settler at the front of the queue, which leans on the `production` row
  * (playtest batch two: "a city should auto-work production tiles when creating a
- * settler"). It is asked of `growthIsHalted`, which is asked of the row's
+ * settler"). The halt is asked of `growthIsHalted`, which is asked of the row's
  * `haltsGrowth`, so nothing here compares a unit type against `"settler"` — the
  * marker is the *rule*, and the day something else stops a town growing it gets
- * the same focus for free.
+ * the same lean for free. Which of the two speaks is `citizenLean`.
  *
- * The focus is a preference and never a way to starve a town: if the swapped
+ * The focus is a preference and never a way to starve a town: if the focused
  * sheet leaves the city short of what its citizens eat, the ordinary sheet is
  * used instead. That check is made against `cityYields`, the same evaluator the
  * pipeline banks with, so what it refuses is exactly the deficit `growCities`
  * would have taken a population point for.
+ *
+ * Avoid growth
+ * ------------
+ * And last, a town told to stop growing has its surplus trimmed toward zero by
+ * `capFoodSurplus` — after the sheet has chosen, because the instruction is
+ * about the *harvest*, not about which hex is better. It is the same refusal
+ * one rung finer: the cap stops at the swap that would put the town into
+ * deficit rather than abandoning the whole arrangement.
  */
 export function assignCitizens(state: GameState, city: City): void {
-  writeAssignment(state, city, chooseCitizens(state, city, CITIES.citizenWeights));
-  if (!growthIsHalted(city)) return;
-  // The focused sheet, tried and kept only if it feeds the town. The balanced
-  // assignment is already written, so `cityYields` below reads the *focused*
-  // one — one call each way rather than a hypothetical, which is what keeps this
-  // the same arithmetic the turn pipeline performs.
-  const balanced = city.workedTiles;
-  writeAssignment(state, city, chooseCitizens(state, city, CITIES.citizenWeightsWhileHalted));
-  if (cityYields(state, city).food < foodUpkeep(city)) city.workedTiles = balanced;
+  const balanced = CITIES.citizenWeights;
+  writeAssignment(state, city, chooseCitizens(state, city, balanced));
+  const lean = citizenLean(city);
+  let weights = balanced;
+  if (lean) {
+    // The focused sheet, tried and kept only if it feeds the town. The balanced
+    // assignment is already written, so `cityYields` below reads the *focused*
+    // one — one call each way rather than a hypothetical, which is what keeps
+    // this the same arithmetic the turn pipeline performs.
+    const fallback = city.workedTiles;
+    weights = CITIES.citizenFocusWeights[lean];
+    writeAssignment(state, city, chooseCitizens(state, city, weights));
+    if (cityYields(state, city).food < foodUpkeep(city)) {
+      city.workedTiles = fallback;
+      weights = balanced;
+    }
+  }
+  if (city.avoidGrowth === true) capFoodSurplus(state, city, weights);
+}
+
+/**
+ * Which sheet this town's citizens are being placed by, or `null` for the
+ * balanced ordering.
+ *
+ * **The player's word outranks the game's guess**, which is the one precedence
+ * this pane had to settle: a town told to chase gold chases gold even with a
+ * settler at the front, because the halted lean is an inference about what the
+ * player probably wants and `City.focus` is what they actually said. A town
+ * told nothing keeps the settler lean it has had since playtest batch two.
+ */
+export function citizenLean(city: City): CitizenLean | null {
+  const chosen = cityFocus(city);
+  if (chosen !== 'default') return chosen;
+  return growthIsHalted(city) ? 'production' : null;
+}
+
+/** This town's focus as a word, `'default'` when the key is absent. */
+export function cityFocus(city: City): CitizenFocus {
+  return city.focus ?? 'default';
 }
 
 /**
  * Which weights this city's citizens are being placed by, for a panel that wants
  * to say so.
  *
- * The *decision*, not the outcome: it says a settler is at the front and the
- * town is chasing hammers, which is what a "focus" readout means. Whether the
- * starvation guard in `assignCitizens` then put the balanced sheet back is a
- * fact about one board, and a readout that flickered between two words as a
- * border moved would be a readout nobody could read.
+ * The *decision*, not the outcome: it says the town is chasing hammers, which is
+ * what a "focus" readout means. Whether the starvation guard in `assignCitizens`
+ * then put the balanced sheet back is a fact about one board, and a readout that
+ * flickered between two words as a border moved would be a readout nobody could
+ * read.
  */
-export function citizenFocus(city: City): 'balanced' | 'production' {
-  return growthIsHalted(city) ? 'production' : 'balanced';
+export function citizenFocus(city: City): 'balanced' | CitizenLean {
+  return citizenLean(city) ?? 'balanced';
+}
+
+/**
+ * Everything that stops this seat pointing this town's people, in a sentence, or
+ * `null` when nothing does.
+ *
+ * `dismissSpecialistError`'s shape and its promise: the panel greys the control
+ * with this and the reducer refuses with it, so a disabled segment says exactly
+ * what the command would have said. Three refusals and they are all about *who
+ * is asking* — the town is somebody else's, the seat has finished acting
+ * (`setLockedTiles`' gate: deciding where a town's people stand is an act), or
+ * the town is a **puppet**, which chooses for itself until it is annexed
+ * (the war ruling's queue-lock read one field over).
+ */
+export function citizenFocusError(
+  state: GameState,
+  playerId: number,
+  city: City,
+): string | null {
+  if (city.ownerId !== playerId) return `${city.name} does not belong to you`;
+  if (hasEndedTurn(state, playerId)) return `You have ended turn ${state.turn}`;
+  if (city.puppet === true) return `${city.name} is a puppet and chooses for itself`;
+  return null;
+}
+
+/**
+ * **Avoid growth**: trims a town's food surplus toward nothing, one swapped hex
+ * at a time, and stops the instant the next swap would take the citizens below
+ * what they eat.
+ *
+ * A repair pass rather than a fourth sheet, and that is the whole design. "Work
+ * hammers instead of bushels" is a *weighting* and it is what a focus already
+ * says; "bank no food" is a statement about the town's **surplus**, which no
+ * per-hex weight can express — a sheet that hated food would strip a town of
+ * every farm it has and then be talked out of it by the starvation guard,
+ * leaving the surplus exactly where it started. So the assignment is chosen
+ * first, by whatever sheet is in force, and then the cheapest bushels are
+ * traded away until the basket takes nothing.
+ *
+ * Each step swaps one worked hex for one idle hex that pays less food, choosing
+ * the swap that **costs the least score** by the sheet in force — so a town
+ * avoiding growth while chasing hammers gives up its grain for the best hammers
+ * available, not for whatever happens to be adjacent. Ties go to the larger cut,
+ * then to tile index, so the outcome is a function of the board (rule 2).
+ *
+ * Two things it will not do. It never moves a **pinned** hex: a lock outranks
+ * the focus exactly as it outranks the score, and a player who pinned a wheat
+ * field has already answered this question. And it never leaves the town in
+ * deficit: the swap is written, `cityYields` is asked — the same evaluator the
+ * pipeline banks with — and a harvest below `foodUpkeep` is put straight back.
+ * "Where possible" is the ruling's own phrase; a town whose every hex is a farm
+ * simply grows.
+ *
+ * It is a **trim, not a solver**: one swap at a time, and never through an
+ * arrangement that starves, so a town that could have reached nothing by making
+ * two swaps at once keeps the bushel neither of them could shed alone. That is
+ * the ruling's "where possible" read strictly — a search that walked through
+ * famine to find a better answer would be a search that could be interrupted by
+ * a border move and leave the town in it.
+ *
+ * The cost is one `cityYields` per bushel of surplus, on the towns that opted in
+ * and no others, which is the same order the halted lean has always paid.
+ */
+function capFoodSurplus(state: GameState, city: City, weights: CitizenWeights): void {
+  const { map } = state;
+  const upkeep = foodUpkeep(city);
+  let food = cityYields(state, city).food;
+  if (food <= upkeep) return;
+
+  const index = (cell: { col: number; row: number }): number => tileIndex(map, cell.col, cell.row);
+  const pinned = new Set(city.lockedTiles.map(index));
+  const ctx = cityContext(state, city);
+  // The ground is the same board on every pass — only who is standing on it
+  // moves — so each hex is priced once and the loop below is arithmetic.
+  const candidates = assignableTiles(state, city);
+  const foodAt = new Map<number, number>();
+  const scoreAt = new Map<number, number>();
+  for (const tile of candidates) {
+    const paid = tileYieldOf(tile, ctx);
+    foodAt.set(index(tile), paid.food);
+    scoreAt.set(index(tile), yieldScore(paid, weights));
+  }
+  const foodOf = (tile: Tile): number => foodAt.get(index(tile)) ?? 0;
+  const scoreOf = (tile: Tile): number => scoreAt.get(index(tile)) ?? 0;
+
+  for (;;) {
+    const seated = new Set(city.workedTiles.map(index));
+    const out = candidates.filter((tile) => seated.has(index(tile)) && !pinned.has(index(tile)));
+    const into = candidates.filter((tile) => !seated.has(index(tile)));
+
+    let best: { out: Tile; into: Tile; cut: number; cost: number } | null = null;
+    for (const leaving of out) {
+      for (const arriving of into) {
+        const cut = foodOf(leaving) - foodOf(arriving);
+        if (cut <= 0) continue;
+        const cost = scoreOf(leaving) - scoreOf(arriving);
+        if (
+          best === null ||
+          cost < best.cost ||
+          (cost === best.cost && cut > best.cut) ||
+          (cost === best.cost && cut === best.cut && index(leaving) < index(best.out)) ||
+          (cost === best.cost &&
+            cut === best.cut &&
+            index(leaving) === index(best.out) &&
+            index(arriving) < index(best.into))
+        ) {
+          best = { out: leaving, into: arriving, cut, cost };
+        }
+      }
+    }
+    if (!best) return;
+
+    const swap = best;
+    const previous = city.workedTiles;
+    const swapped = candidates.filter(
+      (tile) =>
+        (seated.has(index(tile)) && index(tile) !== index(swap.out)) ||
+        index(tile) === index(swap.into),
+    );
+    writeAssignment(state, city, swapped);
+    const next = cityYields(state, city).food;
+    // Below what they eat, or no bushel actually left the harvest (a percentage
+    // and a floor can swallow one): put the hex back and stop. The surplus that
+    // remains is the surplus this trim can reach.
+    if (next < upkeep || next >= food) {
+      city.workedTiles = previous;
+      return;
+    }
+    food = next;
+    if (food <= upkeep) return;
+  }
 }
 
 /** Stores an assignment on the city, sorted by tile index. See `assignCitizens`. */
@@ -1896,6 +2073,12 @@ function chooseCitizens(
  *      lapsed one out (`settleDiplomacy`, `turn.ts`) — which is every moment a
  *      row enters or leaves `state.deals`. A future term that changes what a hex
  *      pays joins by being a term; it needs nothing new here.
+ *
+ *  21. **The focus verb** (`applySetCitizenFocus`, `commands.ts`) — entry 1's
+ *      twin one grade coarser, and it owes the refresh for entry 1's reason
+ *      exactly: pointing a town's people at hammers is a *direct* manipulation
+ *      of who works what, and a pane that showed yesterday's dots until the
+ *      turn ended would be showing the player that their click did nothing.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`

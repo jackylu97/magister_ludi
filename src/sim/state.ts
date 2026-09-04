@@ -84,7 +84,7 @@ import {
   newPlayerPantheon,
 } from './religionData';
 import { type Rng, hashSeed, makeRng, shuffle } from './rng';
-import { RULES } from './rulesData';
+import { type CitizenFocus, RULES } from './rulesData';
 // Type-only, and deliberately: `wars.ts` imports *values* from this module, so
 // an ordinary import here would be a runtime cycle. Nothing runs across this
 // arrow — the two shapes are declarations — which is the documented exception
@@ -930,7 +930,7 @@ import {
  *     migrate. Every retired row is still readable by `anyCardDef`, which is
  *     the whole reason a withdrawn card is marked rather than deleted.
  *
- * v60: **the 9/3 wave** (nine rulings in one push, `docs/flags.md`; each alone
+ * v60: **the 9/3 wave** (ten rulings in one push, `docs/flags.md`; each alone
  * would have earned the bump, and they land together so they share one).
  *
  *   · **Routes are land or sea** — `startRoute` grew `mode`, a sea route lays
@@ -989,9 +989,20 @@ import {
  *     build does not deal (the pool is one name shorter and the draw walks it in
  *     data order), and the empires that survive the picking are worth different
  *     numbers.
+ *   · **A town's people can be pointed** (the citizen focus pane) — `City.focus`
+ *     and `City.avoidGrowth` are new player intent the board cannot recompute,
+ *     and `setCitizenFocus` is the verb that writes them. The break is not the
+ *     two fields (both absent on every v59 town, both meaning what a v59 town
+ *     meant): it is that the **assignment itself moved**. The settler lean is no
+ *     longer a sheet of its own — `citizenWeightsWhileHalted` is gone and the
+ *     halted town reads `citizenFocusWeights.production`, one step stronger than
+ *     the sheet it replaces — so a v59 log replayed here seats a halting town's
+ *     citizens on hexes it did not, and every yield that follows from where they
+ *     stand is a different number.
  *
- *     The migration note: one additive optional field (`TradeRoute.sea`) and
- *     one additive row marker (`BuildingDef.waters`); a deleted roster row is
+ *     The migration note: three additive optional fields (`TradeRoute.sea`,
+ *     `City.focus`, `City.avoidGrowth` — absent reads as what an older town
+ *     was) and one additive row marker (`BuildingDef.waters`); a deleted roster row is
  *     read by nothing that keeps state (`Player.legacies` and
  *     `GameState.recruited` are both guarded by `isGreatPersonId`), so nothing
  *     else changed shape and there is nothing to migrate.
@@ -2187,6 +2198,38 @@ export interface City {
    * that is not currently workable is ignored rather than dropped.
    */
   lockedTiles: { col: number; row: number }[];
+  /**
+   * What this town's people are being placed **for**, or the key is **absent** —
+   * which it is for every town until somebody says otherwise, and absent means
+   * `'default'`: the balanced ordering the game has always used.
+   *
+   * `lockedTiles`' sibling one grade coarser, and player intent in exactly its
+   * sense: a pin says *this hex*, a focus says *this kind of hex*, and neither
+   * can be recomputed from the board. Presence is the state (`tradingPost`'s
+   * rule): there is no `'default'` written anywhere, so a saved town that was
+   * never told anything serialises as it always did.
+   *
+   * A pin outranks it — see `chooseCitizens`, which seats every honoured lock
+   * before the focus sorts what is left — and a focus never starves a town:
+   * `assignCitizens` puts the balanced sheet back when the focused one would
+   * leave the citizens short. **Cleared when the town changes hands**
+   * (`handOverCity`), with the queue and the pins: it is the old owner's
+   * arrangement, and a puppet takes no focus at all until it is annexed.
+   */
+  focus?: CitizenFocus;
+  /**
+   * True when this town has been told to **stop growing** — to work its ground
+   * for anything but the bushels that would fill the basket — or the key is
+   * absent, which it is for every town nobody has said it about.
+   *
+   * A second field rather than a fourth focus, because it is a different kind of
+   * instruction: a focus says which yield to prefer, and this says what the food
+   * *surplus* may be (nothing). The two compose — a town may avoid growth while
+   * chasing hammers — and neither may starve the place: the cap is applied by
+   * swapping worked hexes down while the harvest still feeds the citizens, and
+   * `capFoodSurplus` stops the moment the next swap would not (`cities.ts`).
+   */
+  avoidGrowth?: true;
   /**
    * Effects that run out — an Omen Reading on this town's scribes, a
    * Consecration of its bounds — or the key is **absent**, which it is for every

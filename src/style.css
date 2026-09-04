@@ -381,6 +381,25 @@ body {
   mask-position: center;
 }
 
+/* A meter mark **composed into a figure** rather than standing alone on a chip:
+   `+4☺` on a card stamp, printed by `yieldMark.ts`'s one walk. It takes the
+   yield mark's proportions and its air, because in that sentence it is doing the
+   yield mark's job — a unit on a quantity — and a mark a twentieth larger than
+   the six beside it would read as a different size of thing. `.is-lead` is the
+   same rule one table over: the air moves right for a mark that names what
+   follows it. */
+.meter-mark-inline {
+  width: 0.95em;
+  height: 0.95em;
+  vertical-align: -0.14em;
+  margin-left: 0.14em;
+}
+
+.meter-mark-inline.is-lead {
+  margin-left: 0;
+  margin-right: 0.18em;
+}
+
 /* The board, and everything measured against it.
 
    It starts *below* the top bar rather than under it, and that is load-bearing
@@ -3846,6 +3865,79 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-buy-tiles:disabled {
   opacity: 0.45;
   box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.18);
+  cursor: not-allowed;
+}
+
+/* --- the focus pane: where this town's people are pointed ------------------
+   Under the two clocks it moves, and set in the panel's one register of
+   controls: sentence case, face-ui, no tracking, "on" marked with ink rather
+   than with capitals (the rule `.city-buy-tiles` above is the other instance
+   of). Four segments share the rail's width equally, so the row reads as one
+   control rather than as four buttons that happen to be adjacent. */
+.city-focus-pane {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: var(--border-thin) dotted color-mix(in srgb, var(--ink) 35%, transparent);
+}
+
+.city-focus-choices {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+  margin-top: 5px;
+}
+
+.city-focus-choice {
+  padding: 4px 2px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.city-focus-choice:hover:not(:disabled) {
+  background: #fffdf4;
+}
+
+.city-focus-choice.is-active {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.city-focus-choice:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* The second half of the pane, and its own sentence — a town may chase hammers
+   and still be allowed to grow. */
+.city-focus-avoid {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  font-family: var(--face-ui);
+  font-size: 10.5px;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.city-focus-avoid input {
+  margin: 0;
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+
+.city-focus-avoid:has(input:disabled) {
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
@@ -11468,7 +11560,16 @@ body.compendium-page {
   flex-wrap: nowrap;
   justify-content: center;
   gap: 6px;
-  min-height: 20px;
+  /* **The seat does not resize when the number lands.** One line-height in
+     pixels, inherited by both faces, and a `min-height` equal to it: the
+     flourish (0.8rem, name face) and the figure (1.05rem mono, with a mark
+     hanging below the baseline) then occupy line boxes of exactly the same
+     height, so the reveal swaps one for the other without moving a pixel of the
+     card below it. Left to `normal`, the figure's box was the taller of the two
+     and every pick nudged the flavour rule down — a jolt at the very moment the
+     eye is on the card (the 2026-09-03 "clunky" report). */
+  min-height: 24px;
+  line-height: 24px;
   /* Close under the clauses (the ruling): no dead band between the description
      and the digits — the empty air lives above the flavour rule instead. */
   margin: 1px 0 12px;
@@ -11688,6 +11789,12 @@ body.compendium-page {
    mark, quieter, because thirty of them are on one screen. */
 .sc-card .card-stamp {
   margin: 1px 0 4px;
+  /* Its own pair, for the same reason and at the compact figure's size: the
+     seat has to be height-stable here too (a slot's count replays in place),
+     and inheriting the tarot face's 24px would have grown every row of the
+     collection grid by four pixels for a smaller number. */
+  min-height: 20px;
+  line-height: 20px;
 }
 
 .sc-card .card-stamp-figure {

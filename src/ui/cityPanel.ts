@@ -34,6 +34,8 @@ import {
   cityQuote,
   cityYields,
   citizenFocus,
+  citizenFocusError,
+  cityFocus,
   explainBuildingPreview,
   explainCityBuildings,
   explainGrowthPercent,
@@ -58,7 +60,7 @@ import {
 } from '../sim/buildingData';
 import { wonderClaim } from '../sim/state';
 import { cardCityStat, describeCard } from '../sim/statecraft';
-import { RULES } from '../sim/rulesData';
+import { type CitizenFocus, CITIZEN_FOCUSES, RULES } from '../sim/rulesData';
 import {
   type ProjectId,
   PROJECT_IDS,
@@ -691,6 +693,43 @@ export function dismissBlocker(
 ): string | null {
   if (locked) return `You have ended turn ${state.turn}`;
   return dismissSpecialistError(state, playerId, city, family);
+}
+
+/**
+ * Why the focus pane is greyed, or `null` while it may be used.
+ *
+ * `dismissBlocker`'s shape with the two halves the other way round, and that is
+ * deliberate: the sim's own sentence is asked **first**, because the panel's
+ * `locked` is one flag covering two very different states (a finished seat and a
+ * puppet) and a puppet told "you have ended turn 40" would be told the wrong
+ * thing entirely. `citizenFocusError` names the puppet, so the hover says what
+ * the reducer would have said.
+ */
+export function focusBlocker(
+  state: GameState,
+  playerId: number,
+  city: City,
+  locked: boolean,
+): string | null {
+  const refusal = citizenFocusError(state, playerId, city);
+  if (refusal !== null) return refusal;
+  return locked ? `You have ended turn ${state.turn}` : null;
+}
+
+/** The word on a focus segment — plain, sentence case, the player's own terms. */
+export function focusLabel(focus: CitizenFocus): string {
+  if (focus === 'default') return 'Default';
+  if (focus === 'food') return 'Food';
+  if (focus === 'production') return 'Production';
+  return 'Gold';
+}
+
+/** What a focus segment's hover says: what pressing it would do to the town. */
+export function focusHint(focus: CitizenFocus): string {
+  if (focus === 'default') return 'Place citizens on the best hexes overall';
+  if (focus === 'food') return 'Favour hexes that feed the town';
+  if (focus === 'production') return 'Favour hexes that pay hammers';
+  return 'Favour hexes that pay coin';
 }
 
 /**
@@ -1787,6 +1826,81 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
+   * The focus pane: four words and a checkbox, directly under the two clocks it
+   * is about.
+   *
+   * Civ's citizen-management control in this game's language. It sits under
+   * Growth and Borders because that is what it moves — pressing Food is a
+   * statement about the first bar, and Avoid growth is a statement about
+   * stopping it — and because the pins it outranks are clicked on the board
+   * beside it.
+   *
+   * Every segment sends the same command with the whole arrangement stated
+   * (`setCitizenFocus`), so a click is one log entry and nothing here has to
+   * know which half changed. The active segment is marked with ink rather than
+   * with capitals — the panel's one register of controls, which is the rule the
+   * Buy Tiles note is the other instance of.
+   *
+   * Greyed by `focusBlocker`, which asks the simulation first: the sentence on a
+   * disabled segment is the sentence the reducer would have returned, so a
+   * puppet says it chooses for itself rather than something about the turn.
+   */
+  function renderFocusPane(city: City, locked: boolean): HTMLElement {
+    const { state } = getGame();
+    const blocker = focusBlocker(state, localPlayerId(), city, locked);
+    const current = cityFocus(city);
+
+    const box = element('div', 'city-focus-pane');
+    const head = element('div', 'city-meter-head');
+    head.append(element('span', 'city-meter-name', 'Focus'));
+    box.append(head);
+
+    const choices = element('div', 'city-focus-choices');
+    for (const focus of CITIZEN_FOCUSES) {
+      const button = element('button', 'city-focus-choice', focusLabel(focus));
+      button.type = 'button';
+      button.classList.toggle('is-active', focus === current);
+      button.disabled = blocker !== null;
+      button.title = blocker ?? focusHint(focus);
+      button.addEventListener('click', () => {
+        sendFocus(city, focus, city.avoidGrowth === true);
+      });
+      choices.append(button);
+    }
+    box.append(choices);
+
+    // The checkbox is the pane's second half and its own sentence: a town may
+    // chase hammers and still be allowed to grow, so it is never folded into
+    // the segments above.
+    const avoid = element('label', 'city-focus-avoid');
+    const tick = element('input');
+    tick.type = 'checkbox';
+    tick.checked = city.avoidGrowth === true;
+    tick.disabled = blocker !== null;
+    tick.addEventListener('change', () => {
+      sendFocus(city, current, tick.checked);
+    });
+    avoid.append(tick);
+    avoid.append(element('span', undefined, 'Avoid growth'));
+    avoid.title = blocker ?? 'Work hexes that keep the basket empty, without starving the town';
+    box.append(avoid);
+    return box;
+  }
+
+  /** Sends the whole arrangement and repaints. A refused command changes nothing. */
+  function sendFocus(city: City, focus: CitizenFocus, avoidGrowth: boolean): void {
+    const command: Command = {
+      type: 'setCitizenFocus',
+      playerId: localPlayerId(),
+      cityId: city.id,
+      focus,
+      avoidGrowth,
+    };
+    if (!report(command, dispatch(getGame(), command)).ok) return;
+    onChanged();
+  }
+
+  /**
    * The citizen line: how many are placed, and how many of those the player
    * placed by hand.
    *
@@ -1891,7 +2005,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * "Working for production — a settler is at the front."
    *
    * The one line that explains why a town's citizens have quietly moved off the
-   * wheat. `assignCitizens` swaps to `citizenWeightsWhileHalted` whenever growth
+   * wheat. `assignCitizens` leans on `citizenFocusWeights.production` whenever growth
    * is halted (playtest batch two), and without a word for it the panel simply
    * shows a different assignment than it did last turn with nothing to account
    * for the change — which reads as the game shuffling citizens at random.
@@ -1908,8 +2022,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * marker is the queue row's `haltsGrowth` and nothing here compares a type
    * against `"settler"`, so the day something else halts a town this sentence is
    * the one place that needs a word.
+   *
+   * **Nothing at all once the player has said something** (the focus pane): the
+   * lean is then their own instruction, printed on the segment they pressed, and
+   * a line explaining it as a settler's doing would be explaining the wrong
+   * cause — see `citizenLean`, where the player's word outranks the game's guess.
    */
   function renderCitizenFocus(city: City): HTMLElement | null {
+    if (cityFocus(city) !== 'default') return null;
     if (citizenFocus(city) !== 'production') return null;
     return element(
       'p',
@@ -2804,6 +2924,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // Under growth, because the two are the town's two clocks and the slower
     // one reads as the ground under the faster.
     clocks.append(renderBorders(city, locked, quote));
+    // And under both of them the one control that moves them: where this town's
+    // people are pointed, and whether it may grow at all.
+    clocks.append(renderFocusPane(city, locked));
     rail.append(clocks);
 
     // Why the citizens moved, when they have — one short line, and nothing at

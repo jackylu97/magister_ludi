@@ -220,6 +220,14 @@ is canonical. The binding points:
   included, lives in the hover breakdown's rule-5 lines. The evaluator
   still labels cascade entries distinctly so the hover can show them
   with emphasis — the emphasis just never leaves the hover.
+- **Happiness and authority are figures on the stamp** (ruled 2026-09-03:
+  "we should have happiness and authority be yields that appear in the
+  preview numbers, its confusing when they aren't shown"). A card's OWN
+  meter line counts up in the meter's own mark (`☺`/`⚜`), beside the six
+  voices and after them; the boxless/one-baseline rules apply to it
+  identically. The distinction holds: the points the card pays are a
+  figure, and the yield a tier those points crossed unlocked stays a
+  knock-on — hover only, per the no-popup ruling.
 - **A hand sits level**: card texts are budgeted so no card outgrows its
   siblings (the prose-budget discipline the pamphlet pinned; card clauses
   get the same treatment).
@@ -255,6 +263,22 @@ is canonical. The binding points:
   the ground's, one reconciliation line named for the card (Entry XVII's two
   multiplications, a `yieldConversion`'s share, every floor), the realm's
   lines, then the **cascade** lines. `foldCardImpact` is the stamp's figure.
+- **Meter lines** (`kind: 'meter'`, carrying the meter and the points) are a
+  diff of `happinessOf`/`authorityOf` across the same two ghosts, rounded to
+  the tenth the chips are read at. They pay in none of the six voices —
+  `foldCardImpact` is untouched — and `stampReading` prints them as figures
+  after the yields. `figures.ts` owns `METER_GLYPH` now (it moved out of
+  `topBar.ts`, which kept it privately while a meter mark never had to be
+  composed into a sentence), and `yieldMark.ts`'s one walk swaps both kinds
+  of glyph for their drawings.
+- **The count writes digits, never nodes** (the "still feels a little bit
+  clunky" follow-up). `setYieldText` rebuilds an element's children and each
+  mark it builds carries a `data:` URI of the best part of a kilobyte in an
+  inline custom property; forty of those inside one count dirtied the layout of an
+  animating card every frame. `yieldTextWriter` builds the row once and moves
+  text nodes afterwards. The stamp's seat is also height-stable now — one
+  line-height in pixels shared by the flourish and the figure, `min-height`
+  equal to it — so the reveal no longer nudged the flavour rule down.
 - **Cascades are labelled apart** (`kind: 'knockOn'`, carrying the meter) by a
   cumulative ladder — happiness, then authority, then arrears — so a tier the
   card flipped is its own entry. Per the no-popup ruling nothing draws it on

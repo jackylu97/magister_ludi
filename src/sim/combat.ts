@@ -2288,8 +2288,9 @@ function payBattleRiders(
  *     instant the flag moves nothing on the board says this was ever a seat of
  *     government). Read before the flag changes, which is why it is read at all;
  *   · **the old owner's intent, cleared**: the queue (which may name units the
- *     new owner has no technology for), the hammers banked toward it, and the
- *     pinned citizens. Buildings, population, food and culture stay — they are
+ *     new owner has no technology for), the hammers banked toward it, the
+ *     pinned citizens, and the focus its people were placed for. Buildings,
+ *     population, food and culture stay — they are
  *     the city, and the city survived — and the citizens are re-assigned on the
  *     spot so no panel shows the old owner's dots.
  *
@@ -2307,6 +2308,13 @@ export function handOverCity(state: GameState, city: City, ownerId: number): voi
   city.queue = [];
   city.hammerBasket = 0;
   city.lockedTiles = [];
+  // And the focus pane's two words, which are the same kind of thing the pins
+  // are: the old owner's standing instruction about where these people work. A
+  // town arrives as a puppet, and a puppet takes no focus at all until it is
+  // annexed (`citizenFocusError`), so a kept one would be an arrangement its new
+  // owner could see the effect of and not change.
+  delete city.focus;
+  delete city.avoidGrowth;
   assignCitizens(state, city);
 }
 

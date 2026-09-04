@@ -167,10 +167,22 @@
       "production": 2,
       "gold": 1
     },
-    "citizenWeightsWhileHalted": {
-      "food": 2,
-      "production": 3,
-      "gold": 1
+    "citizenFocusWeights": {
+      "food": {
+        "food": 4,
+        "production": 2,
+        "gold": 1
+      },
+      "production": {
+        "food": 2,
+        "production": 4,
+        "gold": 1
+      },
+      "gold": {
+        "food": 2,
+        "production": 1,
+        "gold": 4
+      }
     },
     "expansion": {
       "yieldWeights": {

@@ -29,8 +29,9 @@ import {
   stampText,
   stampThunks,
 } from '../../src/ui/cardStamp';
+import { METER_GLYPH, YIELD_GLYPH } from '../../src/ui/figures';
 import type { CardImpactLine } from '../../src/sim/cardImpact';
-import { YIELD_GLYPH } from '../../src/ui/figures';
+import type { MeterId } from '../../src/sim/meters';
 
 const SOURCES = import.meta.glob('../../src/ui/*.ts', {
   query: '?raw',
@@ -50,6 +51,11 @@ function source(name: string): string {
   return text;
 }
 
+/** One file's source with its comments taken out — the rule is not the prose. */
+function code(text: string): string {
+  return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
 /** An impact line with only the fields the adapter reads. */
 function line(over: Partial<CardImpactLine> & Pick<CardImpactLine, 'kind'>): CardImpactLine {
   return {
@@ -62,6 +68,11 @@ function line(over: Partial<CardImpactLine> & Pick<CardImpactLine, 'kind'>): Car
     faith: 0,
     ...over,
   };
+}
+
+/** A meter line: points into happiness or authority, and no voice at all. */
+function meter(id: MeterId, amount: number): CardImpactLine {
+  return line({ kind: 'meter', source: id === 'happiness' ? 'Happiness' : 'Authority', meter: id, amount });
 }
 
 describe('stampReading — the sim\'s list as a stamp', () => {
@@ -100,6 +111,62 @@ describe('stampReading — the sim\'s list as a stamp', () => {
     expect(ordinary.knockOn).toEqual([]);
     expect(ordinary.knockOnLabel).toBeUndefined();
     expect(stampCascadeText(ordinary)).toBeNull();
+  });
+
+  /**
+   * **The meters are figures** (user, 2026-09-03 — "we should have happiness and
+   * authority be yields that appear in the preview numbers, its confusing when
+   * they aren't shown"). A card's own meter line counts up in the meter's own
+   * mark, beside the six voices and after them.
+   */
+  it('prints a card\'s own meter line as a figure in the meter\'s mark', () => {
+    const reading = stampReading([
+      meter('happiness', 4),
+      meter('authority', -1),
+    ]);
+    expect(reading.figures).toEqual([
+      { glyph: METER_GLYPH.happiness, amount: 4 },
+      { glyph: METER_GLYPH.authority, amount: -1 },
+    ]);
+    expect(stampText(reading.figures)).toBe(
+      `+4${METER_GLYPH.happiness} −1${METER_GLYPH.authority}`,
+    );
+    // A meter is not a yield: it never joins one of the six, and a card that
+    // pays only a meter is not empty and does not thunk.
+    expect(stampIsEmpty(reading)).toBe(false);
+    expect(stampThunks(reading)).toBe(false);
+    expect(reading.knockOn).toEqual([]);
+  });
+
+  /** The six voices lead, the two meters follow — the top bar's own order. */
+  it('sets the meters after the yields, in the order the chips stand', () => {
+    const reading = stampReading([
+      meter('authority', 3),
+      line({ kind: 'city', science: 2 }),
+      meter('happiness', 1),
+    ]);
+    expect(reading.figures).toEqual([
+      { glyph: YIELD_GLYPH.science, amount: 2 },
+      { glyph: METER_GLYPH.happiness, amount: 1 },
+      { glyph: METER_GLYPH.authority, amount: 3 },
+    ]);
+  });
+
+  /**
+   * The card's own points and the yield a tier they crossed unlocked are two
+   * different sentences: the first is a figure, the second stays the hover's.
+   */
+  it('keeps a meter figure apart from the cascade it caused', () => {
+    const reading = stampReading([
+      meter('happiness', 4),
+      line({ kind: 'knockOn', source: 'Happiness', meter: 'happiness', science: 2 }),
+    ]);
+    expect(reading.figures).toEqual([
+      { glyph: YIELD_GLYPH.science, amount: 2 },
+      { glyph: METER_GLYPH.happiness, amount: 4 },
+    ]);
+    expect(reading.knockOn).toEqual([{ glyph: YIELD_GLYPH.science, amount: 2 }]);
+    expect(stampCascadeText(reading)).toBe(`+2${YIELD_GLYPH.science} · Happiness`);
   });
 
   /** An occasion's grant is its own register, never folded into a rate. */
@@ -232,6 +299,46 @@ describe('the design of record, held at the source', () => {
     expect(module).not.toContain("span('card-stamp-tag')");
     // The cascade survives as *data*, for the breakdown that will print it.
     expect(module).toContain('export function stampCascadeText');
+  });
+
+  /**
+   * **The count writes digits, never nodes** (the 2026-09-03 "still feels a
+   * little bit clunky" report). `setYieldText` rebuilds an element's children,
+   * and each mark it builds carries a `data:` URI of the best part of a
+   * kilobyte in an inline custom property — forty of those inside one count, every one of them
+   * dirtying the layout of a card that is being animated at the same time. The
+   * tick path goes through `yieldTextWriter`, which builds the row once and
+   * moves text nodes afterwards; the one-shot writers (`landCardStamp`, the
+   * thunk) may still rebuild, because they write once.
+   */
+  it('never calls the node-rebuilding printer from inside the count', () => {
+    // Comments out first: the rule is the code, and the docblock beside it names
+    // the very call it is there to forbid.
+    const module = code(source('cardStamp.ts'));
+    const play = module.slice(module.indexOf('export function playCardStamp'));
+    const count = play.slice(play.indexOf("stamp.dataset.face = 'figure';"));
+    expect(count).toContain('const write = yieldTextWriter(parts.figure)');
+    expect(count).not.toContain('setYieldText');
+    // And the writer is the one that patches rather than replaces.
+    const printer = code(source('yieldMark.ts'));
+    const writer = printer.slice(
+      printer.indexOf('export function yieldTextWriter'),
+      printer.indexOf('function shapeOf('),
+    );
+    expect(writer).toContain('slot.nodeValue = part.text');
+  });
+
+  /**
+   * **The seat does not resize when the number lands.** One line-height in
+   * pixels for both faces and a `min-height` equal to it, so the flourish and
+   * the figure occupy identical boxes and the reveal moves nothing below it.
+   */
+  it('gives the flourish and the figure the same box', () => {
+    const block = STYLE.slice(STYLE.indexOf('.card-stamp {'), STYLE.indexOf('.card-stamp-flourish'));
+    const height = /min-height: (\d+)px/.exec(block)?.[1];
+    const leading = /line-height: (\d+)px/.exec(block)?.[1];
+    expect(height).toBeDefined();
+    expect(leading).toBe(height);
   });
 
   /** The digits sit close under the clauses; the air is above the flavour. */
