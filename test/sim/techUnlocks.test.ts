@@ -74,13 +74,13 @@ describe('techGifts', () => {
     // Mathematics and Bronzeworking are the nodes that do; the order is the
     // reading order the node card already uses. Mathematics hands over the
     // catapult and the composite bowman the pruned Construction used to carry,
-    // then Petra — a wonder is an ordinary building on the list — and then the
-    // library's renewal, which is a building renewal and sorts after both.
+    // and then Petra — a wonder is an ordinary building on the list. The
+    // library's renewal used to sort after all three; it was struck by the
+    // renewals axe (2026-09-04), so the node is three gifts rather than four.
     expect(techGifts('mathematics').map((gift) => gift.kind)).toEqual([
       'unit',
       'unit',
       'building',
-      'buildingRenewal',
     ]);
     // Engineering took Construction's works: four buildings, the Circus Maximus
     // among them, because a wonder is an ordinary building on this list. The
@@ -224,20 +224,46 @@ describe('techGifts', () => {
     expect(chopYield('forest').production).toBe(before);
   });
 
-  it('finds the building renewals a tech switches on, with what they add', () => {
-    // The Wheel gives every granary a fourth point of food — the building half
-    // of the renewal hook, and the only one in the tree today.
-    const renewals = techGifts('theWheel').filter((gift) => gift.kind === 'buildingRenewal');
-    expect(renewals.map((gift) => gift.id)).toEqual(['granary']);
-    const granary = renewals[0]!;
-    if (granary.kind !== 'buildingRenewal') throw new Error('expected a building renewal');
-    expect(granary.name).toBe(buildingDef('granary').name);
-    expect(granary.add).toEqual(buildingDef('granary').upgrades?.[0]?.add);
-    // Copied, not the shared table — the same guarantee the improvement
-    // renewal above keeps.
-    const before = { ...buildingDef('granary').upgrades![0]!.add };
-    granary.add.food = (granary.add.food ?? 0) + 99;
-    expect(buildingDef('granary').upgrades![0]!.add).toEqual(before);
+  /**
+   * **No node renews a building** (the renewals axe, 2026-09-04). The Wheel used
+   * to hand every granary a fourth point of food off `BuildingDef.upgrades`, and
+   * eight more nodes did the same for the barracks, the library and the market.
+   * The rows went and the gift kind went with them, so the pin is the shape's
+   * *absence*: the nine nodes hand over what they always handed over minus the
+   * free growth, and nothing in the tree carries a city-side building gift.
+   */
+  it('hands over no building renewals at all — the shape is gone', () => {
+    const renewed = [
+      'theWheel',
+      'irrigation',
+      'bronzePanoply',
+      'ironWorking',
+      'mathematics',
+      'theQadisCourt',
+      'movableType',
+      'paperMoney',
+      'banking',
+    ] as const;
+    for (const id of renewed) {
+      const kinds = techGifts(id).map((gift) => String(gift.kind));
+      expect(kinds, id).not.toContain('buildingRenewal');
+    }
+    // Swept, not spot-checked: no node anywhere hands one over, and no building
+    // row is left carrying an `upgrades` list for one to be read off.
+    for (const id of TECH_IDS) {
+      expect(techGifts(id).map((gift) => String(gift.kind)), id).not.toContain('buildingRenewal');
+    }
+    for (const building of BUILDING_IDS) {
+      expect(Object.keys(buildingDef(building)), building).not.toContain('upgrades');
+    }
+    // The tile lines are the survivors and are not the same bargain: the
+    // lighthouse's food lands on *ground the town works*, and it rides on the
+    // building rather than on a node. The shape that would gate one behind a
+    // technology stays declared and unfed, which is where the water pass left
+    // it (`water.test.ts`) and not this ruling's business.
+    expect(buildingDef('lighthouse').tileYields).toEqual([
+      { on: { test: 'water' }, add: { food: 1 } },
+    ]);
   });
 
   it('reports a node that hands over nothing at all', () => {
@@ -300,9 +326,14 @@ describe('techGifts', () => {
         expect(techGifts(upgrade.tech).some((gift) => gift.id === improvement)).toBe(true);
       }
     }
+    // A building's own side of the sweep is its **tech-gated tile line** since
+    // the renewals axe (2026-09-04) — the `upgrades` list this used to walk is
+    // gone from the table. Vacuous today (no row gates a line yet) and kept
+    // because the shape is live: the day one does, the node has to announce it.
     for (const building of BUILDING_IDS) {
-      for (const upgrade of buildingDef(building).upgrades ?? []) {
-        expect(techGifts(upgrade.tech).some((gift) => gift.id === building)).toBe(true);
+      for (const line of buildingDef(building).tileYields ?? []) {
+        if (line.requiresTech === undefined) continue;
+        expect(techGifts(line.requiresTech).some((gift) => gift.id === building)).toBe(true);
       }
     }
   });

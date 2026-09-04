@@ -1550,38 +1550,44 @@ describe('city yields', () => {
   });
 
   /**
-   * A building renewal, which is `improvements.json`'s `upgrades[].tech` said of
-   * a building: The Wheel gives every granary an extra point of food.
+   * **A technology does not renew a building** (the renewals axe, ruled
+   * 2026-09-04: "lets do this now. This is part of the problem").
+   *
+   * The granary used to grow a fourth point of food the turn The Wheel landed
+   * and a fifth on Irrigation, off `BuildingDef.upgrades`, which was free growth
+   * arriving with a research settlement rather than with anything a player
+   * built. The rows are struck, so the claim is a *non*-event: the same town
+   * with the same jar is worth the same food on both sides of the two nodes that
+   * used to pay it, and the breakdown is still the one line the row declares.
    *
    * Asserted through the breakdown *and* the total, because rule 5 is that the
-   * one is the fold of the other — a renewal that showed up in the number but
+   * one is the fold of the other — a renewal that had survived in the number but
    * not in the list would be exactly the total-computed-beside-its-list the rule
    * forbids, and the city panel prints that list.
    */
-  it('renews a building when its owner earns the technology, as its own line', () => {
+  it('does not renew a building when its owner earns a technology', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     city.buildings = ['granary'];
     const granary = buildingDef('granary');
-    const renewal = granary.upgrades![0]!;
 
     const before = cityYields(state, city).food;
-    expect(explainCityBuildings(state, city)).toHaveLength(1);
+    expect(explainCityBuildings(city)).toHaveLength(1);
 
-    state.players[0]!.techsResearched.push(renewal.tech);
-    const entries = explainCityBuildings(state, city);
-    expect(entries.map((entry) => entry.source)).toEqual([
-      granary.name,
-      techDef(renewal.tech).name,
-    ]);
-    expect(entries[1]!.building).toBe('granary');
-    expect(cityYields(state, city).food).toBe(before + (renewal.add.food ?? 0));
+    // The two nodes that used to renew the jar, learnt one after the other.
+    for (const tech of ['theWheel', 'irrigation'] as const) {
+      state.players[0]!.techsResearched.push(tech);
+      const entries = explainCityBuildings(city);
+      expect(entries.map((entry) => entry.source)).toEqual([granary.name]);
+      expect(entries[0]!.food).toBe(granary.food);
+      expect(cityYields(state, city).food).toBe(before);
+    }
 
-    // And it reaches only the empire that earned it: the other seat's own
-    // granary is untouched, which is the same rule `explainTileYield` keeps.
+    // And a building's worth is the same in every empire that raises it, which
+    // is the other half of the same ruling: there is no owner in the question.
     const theirs = plant(state, 1, 12, 5);
     theirs.buildings = ['granary'];
-    expect(explainCityBuildings(state, theirs)).toHaveLength(1);
+    expect(explainCityBuildings(theirs)).toEqual(explainCityBuildings(city));
   });
 
   /**
@@ -3203,7 +3209,10 @@ describe('determinism with cities', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(61);
+    // v62 (the renewals axe, 2026-09-04): nine building renewals struck, so a
+    // v61 town's buildings pay figures this build does not — and the whole of
+    // what a building is worth is now its own row, in every empire.
+    expect(SCHEMA_VERSION).toBe(62);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

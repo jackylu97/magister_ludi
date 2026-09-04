@@ -1030,8 +1030,36 @@ import {
  *     The migration note: nothing changed shape and there is nothing to
  *     migrate. The two retired rows are still readable by `anyCardDef`, which
  *     is the whole reason a withdrawn card is marked rather than deleted.
+ *
+ * v62: **the renewals axe** (ruled 2026-09-04, `docs/flags.md`: "lets do this
+ * now. This is part of the problem"). A technology no longer makes a building
+ * that is already standing pay more. Nine `BuildingUpgrade` rows are struck —
+ * the granary's two points of food (The Wheel, Irrigation), the barracks' two
+ * hammers (Bronze Panoply, Iron Working), the library's three lines
+ * (Mathematics, Divine Right, Movable Type) and the market's four coins (Paper
+ * Money, The Counting Houses) — and the shape, the sim's reading of it and the
+ * `buildingRenewal` gift kind go with them.
+ *
+ *   · **A v61 log replays into different towns.** The renewals were free growth
+ *     that arrived with a research settlement rather than with a command, so a
+ *     v61 empire holding The Wheel banked a fourth point of food in every
+ *     granary this build does not pay. Every figure downstream of a city's
+ *     yields — growth, hammers, the treasury, when a queue finishes — is a
+ *     different number from the turn the first of those nodes lands.
+ *   · **A building is worth its row in every empire.** `explainBuildingYield`
+ *     no longer takes a context and `explainCityBuildings` no longer takes the
+ *     state: the only thing either asked the empire for was the technologies
+ *     that renewed a building.
+ *   · **Improvement renewals stay.** The farm's irrigation rider and its three
+ *     siblings are a fact about *ground a worker went and improved*, which is
+ *     the bargain the ruling left standing; so is a building's `tileYields`
+ *     line, which pays only the hexes a town actually works.
+ *
+ *     The migration note: the deleted field was optional on every row and is
+ *     read by nothing that keeps state, so nothing changed shape and there is
+ *     nothing to migrate. What moved is what the same log is worth.
  */
-export const SCHEMA_VERSION = 61;
+export const SCHEMA_VERSION = 62;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

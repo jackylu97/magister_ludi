@@ -710,10 +710,12 @@ function siteRequirement(def: BuildingDef): string {
  * list it at the same point and a reader comparing them is comparing like with
  * like.
  *
- * Two gift kinds qualify and they are deliberately not merged: a renewal pays
- * the *city* more, and a tile line pays the *ground the city works* more. Both
- * are `giftWords`' sentences with the naming technology in front, because "when"
- * is the whole of what a reader wants and the gift itself cannot say it.
+ * One gift kind qualifies since the renewals axe (2026-09-04): the tile line
+ * that pays the *ground the city works* more. A `buildingRenewal` that paid the
+ * city's own totals stood beside it until the user ruled that free growth dead.
+ * The clause is `giftWords`' sentence with the naming technology in front,
+ * because "when" is the whole of what a reader wants and the gift itself cannot
+ * say it.
  */
 function laterGifts(id: BuildingId): CompendiumClause[] {
   const clauses: CompendiumClause[] = [];
@@ -738,7 +740,7 @@ function laterGifts(id: BuildingId): CompendiumClause[] {
   }
   for (const tech of TECH_IDS) {
     for (const gift of techGifts(tech)) {
-      if (gift.kind !== 'buildingRenewal' && gift.kind !== 'buildingTileYield') continue;
+      if (gift.kind !== 'buildingTileYield') continue;
       if (gift.id !== id) continue;
       clauses.push({ text: `${techDef(tech).name}: ${giftWords(gift)}` });
     }
@@ -801,11 +803,11 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   }
   // **What technologies later do for this building**, which is the half of a
   // building the tech card stopped telling (the playtest notes, 2026-09-03: the
-  // star chart's "Buildings pay new ground" heading was a fact about a granary
-  // filed under a technology). Both kinds of later gift — the renewal that pays
-  // the city more and the line that pays its *ground* more — are read out of
-  // `techGifts` and worded by `giftWords`, the star chart's own describer, so
-  // this shelf cannot come to disagree with that card about the same row.
+  // star chart's "Buildings pay new ground" heading was a fact about a harbour
+  // filed under a technology). The one kind of later gift left — the line that
+  // pays the building's *ground* more — is read out of `techGifts` and worded by
+  // `giftWords`, the star chart's own describer, so this shelf cannot come to
+  // disagree with that card about the same row.
   clauses.push(...laterGifts(id));
   if (def.note !== undefined) clauses.push({ text: def.note, note: true });
   if (wonder) {
@@ -1019,16 +1021,6 @@ function giftWords(gift: TechGift): string {
   if (gift.kind === 'reveal') return `Reveals the resource ${gift.name} on the map`;
   if (gift.kind === 'renewal') {
     return `${gift.name} improvements you already have now add ${tileYieldFigures({
-      food: gift.add.food ?? 0,
-      production: gift.add.production ?? 0,
-      gold: gift.add.gold ?? 0,
-      science: gift.add.science,
-      culture: gift.add.culture,
-      faith: gift.add.faith,
-    })}`;
-  }
-  if (gift.kind === 'buildingRenewal') {
-    return `${gift.name} buildings you already have now pay ${tileYieldFigures({
       food: gift.add.food ?? 0,
       production: gift.add.production ?? 0,
       gold: gift.add.gold ?? 0,

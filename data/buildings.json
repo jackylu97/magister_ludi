@@ -22,20 +22,6 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "upgrades": [
-        {
-          "tech": "theWheel",
-          "add": {
-            "food": 1
-          }
-        },
-        {
-          "tech": "irrigation",
-          "add": {
-            "food": 1
-          }
-        }
-      ],
       "note": "What the jar keeps, the year forgets."
     },
     "shrine": {
@@ -67,21 +53,7 @@
       "renown": {
         "family": "general",
         "perTurn": 1
-      },
-      "upgrades": [
-        {
-          "tech": "bronzePanoply",
-          "add": {
-            "production": 1
-          }
-        },
-        {
-          "tech": "ironWorking",
-          "add": {
-            "production": 1
-          }
-        }
-      ]
+      }
     },
     "palisade": {
       "name": "Palisade",
@@ -140,28 +112,7 @@
       "renown": {
         "family": "scholar",
         "perTurn": 1
-      },
-      "upgrades": [
-        {
-          "tech": "mathematics",
-          "add": {
-            "science": 1
-          }
-        },
-        {
-          "tech": "theQadisCourt",
-          "add": {
-            "science": 1,
-            "faith": 1
-          }
-        },
-        {
-          "tech": "movableType",
-          "add": {
-            "culture": 1
-          }
-        }
-      ]
+      }
     },
     "temple": {
       "name": "Temple",
@@ -190,21 +141,7 @@
       "renown": {
         "family": "merchant",
         "perTurn": 1
-      },
-      "upgrades": [
-        {
-          "tech": "paperMoney",
-          "add": {
-            "gold": 2
-          }
-        },
-        {
-          "tech": "banking",
-          "add": {
-            "gold": 2
-          }
-        }
-      ]
+      }
     },
     "aqueduct": {
       "name": "Aqueduct",

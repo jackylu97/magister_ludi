@@ -896,30 +896,29 @@ describe('a technology says its rules once', () => {
  */
 describe('a building carries its own later gifts', () => {
   it('names the technology and says what it changes', () => {
+    // Re-aimed 2026-09-04 (the renewals axe). This used to sweep two shapes and
+    // the renewals were the half with rows in it: a granary's shelf had to name
+    // The Wheel. Those rows are struck and the field with them, so what is left
+    // to sweep is the **tech-gated tile line** — live, and fed by nothing today,
+    // which is why the count below is not asserted to be non-zero. The pin that
+    // does bite is the second one: no row carries a renewal any more, so a shelf
+    // cannot promise growth the simulation will not pay.
     const entries = [...shelf('building').entries, ...shelf('wonder').entries];
-    let checked = 0;
     for (const id of BUILDING_IDS) {
-      const upgrades = buildingDef(id).upgrades ?? [];
+      expect(Object.keys(buildingDef(id)), id).not.toContain('upgrades');
       const gated = (buildingDef(id).tileYields ?? []).filter(
         (line) => line.requiresTech !== undefined,
       );
-      if (upgrades.length === 0 && gated.length === 0) continue;
+      if (gated.length === 0) continue;
       const entry = entries.find(
         (row) => row.id === compendiumId(isWonder(id) ? 'wonder' : 'building', id),
       );
       expect(entry, id).toBeDefined();
       const said = entry!.clauses.map((clause) => clause.text).join(' ');
-      for (const upgrade of upgrades) {
-        expect(said, `${id} ← ${upgrade.tech}`).toContain(techDef(upgrade.tech).name);
-        checked += 1;
-      }
       for (const line of gated) {
         expect(said, `${id} ← ${line.requiresTech!}`).toContain(techDef(line.requiresTech!).name);
-        checked += 1;
       }
     }
-    // The sweep is not vacuous: the table has renewed buildings in it.
-    expect(checked).toBeGreaterThan(0);
   });
 
   it('states an ungated tile line too, naming the hexes it lands on', () => {

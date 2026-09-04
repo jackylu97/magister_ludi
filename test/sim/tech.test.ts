@@ -1261,7 +1261,10 @@ describe('research in the log', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(61);
+    // v62 (the renewals axe, 2026-09-04): nine nodes stop renewing a building
+    // already standing, so a v61 log researching any of them banks yields this
+    // build does not pay.
+    expect(SCHEMA_VERSION).toBe(62);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

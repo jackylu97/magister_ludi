@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildingDef } from '../../src/sim/buildingData';
+import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   cityResources,
@@ -617,7 +617,13 @@ describe('the workshop', () => {
     // The renewal was deleted with the rework: the workshop's production is on
     // the row from the day it is raised, and the percentages are what a later
     // age used to buy. A renewal left behind would have paid twice.
-    expect(buildingDef('workshop').upgrades).toBeUndefined();
+    //
+    // Re-aimed 2026-09-04 (the renewals axe): the workshop was the first row cut
+    // and now it is every row — the field itself is gone from `BuildingDef`, so
+    // the claim is that no building anywhere carries one.
+    for (const id of BUILDING_IDS) {
+      expect(Object.keys(buildingDef(id)), id).not.toContain('upgrades');
+    }
     expect(buildingDef('workshop').production).toBe(3);
   });
 });

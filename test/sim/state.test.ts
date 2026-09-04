@@ -656,7 +656,10 @@ describe('the research queue field', () => {
     // II and III pools, The Salt Road and Hearth Songs are retired, and The
     // Last Hunt pays a second voice. Four bags changed size, so a v60 log's
     // `chooseOrder` names indices into triples this build does not deal.
-    expect(SCHEMA_VERSION).toBe(61);
+    // v62 (the renewals axe, 2026-09-04): the tech-gated free building upgrades
+    // are struck from the table, so a v61 empire holding The Wheel banked a
+    // fourth point of food in every granary this build does not pay.
+    expect(SCHEMA_VERSION).toBe(62);
   });
 });
 

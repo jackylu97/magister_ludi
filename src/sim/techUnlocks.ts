@@ -6,8 +6,9 @@
  * *their* side: `data/resources.json` gates a strategic resource's label behind
  * a `requiresTech` (see `isResourceVisible`), `data/improvements.json` gates a
  * worker's build behind one and hangs punctuated renewals off an
- * `upgrades[].tech` (see `ImprovementUpgrade`), and `data/buildings.json` hangs
- * the same kind of renewal off its own (see `BuildingUpgrade`). All of them are
+ * `upgrades[].tech` (see `ImprovementUpgrade`), and `data/buildings.json` gates
+ * a building's *ground* line behind a `tileYields[].requiresTech` (see
+ * `BuildingTileYield`). All of them are
  * written forwards because that is how a designer reads them, and the question
  * an information surface asks — "what does Mining actually give me?" — is the
  * other way round.
@@ -79,15 +80,13 @@ import { type UnitTypeId, unitDef } from './unitData';
  *   · `renewal` — an improvement already on the ground quietly starts paying
  *     more. Nothing is built and nothing is chosen; it is the one gift that
  *     arrives without the player doing anything else.
- *   · `buildingRenewal` — the same thing said of a building, and kept a separate
- *     kind rather than folded in with a `target` field so that a caller which
- *     has checked `kind` still gets the id typed for the table it is about to
- *     reach for.
  *   · `buildingTileYield` — a building a player may already have quietly starts
- *     paying on *ground of a certain kind*: the granary's food on water, which
- *     waits for Sailing. `buildingRenewal`'s sibling and a separate kind for its
- *     reason — the two carry different payloads, because one lands in a city's
- *     totals and the other on a hex.
+ *     paying on *ground of a certain kind*: the harbour's food on water, which
+ *     waits for Sailing. **The only thing left that a technology hands to a
+ *     building already standing** (the renewals axe, 2026-09-04): a
+ *     `buildingRenewal` kind used to sit beside it and pay the city's own
+ *     totals, and it went with the rows that fed it. This one stays because it
+ *     pays the *ground*, which a town has to go and work.
  */
 export type TechGiftKind =
   | 'unit'
@@ -97,7 +96,6 @@ export type TechGiftKind =
   | 'ability'
   | 'reveal'
   | 'renewal'
-  | 'buildingRenewal'
   /**
    * A **rule** the empire holds for as long as it holds the technology —
    * `TechDef.effects`, `liveEffects`' tenth source (the tree pass of
@@ -155,12 +153,6 @@ export type TechGift =
       requiresFreshwater?: boolean;
     })
   | (TechGiftBase & {
-      kind: 'buildingRenewal';
-      id: BuildingId;
-      /** What the renewal adds to every city holding the building. */
-      add: BuildingYield;
-    })
-  | (TechGiftBase & {
       kind: 'techEffect';
       /** The node's own id — the card these effects belong to. */
       id: TechId;
@@ -179,9 +171,10 @@ export type TechGift =
 /**
  * Everything `id` hands over: units, then buildings, then projects, then the
  * improvements a worker may now lay, then the abilities it gains, then reveals,
- * then the two kinds of renewal — the order a player reads them in, and the
- * order of consequence. Four of them are things to build, one is a thing a
- * worker may now do, one is a thing to look for, and the last two simply
+ * then the improvement renewals, then the node's own rules, and last the
+ * building lines that wake on the ground — the order a player reads them in, and
+ * the order of consequence. Four of them are things to build, one is a thing a
+ * worker may now do, one is a thing to look for, and the last three simply
  * happen.
  *
  * Every list is walked as an array in table order, never as a Map, so the same
@@ -269,18 +262,6 @@ export function techGifts(id: TechId): TechGift[] {
       });
     }
   }
-  for (const building of BUILDING_IDS) {
-    for (const upgrade of buildingDef(building).upgrades ?? []) {
-      if (upgrade.tech !== id) continue;
-      gifts.push({
-        kind: 'buildingRenewal',
-        id: building,
-        name: buildingDef(building).name,
-        glyph: '▣',
-        add: { ...upgrade.add },
-      });
-    }
-  }
   // The rules the node hands over, last: they arrive without the player doing
   // anything else, exactly as a renewal does, and they are the one gift with no
   // row of its own anywhere. One entry for the whole node rather than one per
@@ -329,7 +310,8 @@ export function techGifts(id: TechId): TechGift[] {
  *     the day Mining's whole gift became an improvement; the question is now
  *     asked of the whole gift list, which is the list a player actually reads
  *     off the node card.
- *   · **Building renewals name real technologies.** `improvementData` and
+ *   · **A building's tech gates name real technologies** — the `requiresTech` on
+ *     a tile line, and the `worldUnlockTech` below it. `improvementData` and
  *     `resourceData` throw at load for their own dangling ids, and
  *     `buildingData` deliberately cannot: it may only import `TechId` as a type
  *     (see the note on that import), so the check lands here.
@@ -349,10 +331,10 @@ export function unlockDataProblems(): string[] {
     }
   }
   for (const building of BUILDING_IDS) {
-    for (const upgrade of buildingDef(building).upgrades ?? []) {
-      if (isTechId(upgrade.tech)) continue;
+    for (const line of buildingDef(building).tileYields ?? []) {
+      if (line.requiresTech === undefined || isTechId(line.requiresTech)) continue;
       problems.push(
-        `building "${building}" is renewed by "${String(upgrade.tech)}", which is not a tech`,
+        `building "${building}" waits on "${String(line.requiresTech)}" for a tile line, which is not a tech`,
       );
     }
     for (const grant of buildingDef(building).onComplete ?? []) {

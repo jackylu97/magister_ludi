@@ -73,19 +73,19 @@ while they stand.*
 | Divination | 30 | Husbandry | Augur | Shrine, **The Oracle** | Rite of the Harvest · Recasting the Omens · Omen Reading |
 | Sailing | 30 | Pottery | Trireme | Lighthouse, **The Great Lighthouse** | Embark |
 | Stonecraft | 30 | Pottery | — | Monument, Palisade, **Stonehenge**, **The Pyramids** | Consecration of the Bounds |
-| The Wheel | 69 | Bronzeworking, Stonecraft | War Chariot, Chariot Archer | — | renewals: Granary +1🌾 |
+| The Wheel | 69 | Bronzeworking, Stonecraft | War Chariot, Chariot Archer | — | — |
 | Writing | 69 | Divination, Calendar | — | Library, **The Great Ziggurat**, *scholarship* (project) | — |
 
 ### Æra II — The Age of Heroes (9 nodes, 135–225🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Bronze Panoply | 135 | The Wheel | Phalanx, Swordsman | — | renewals: Barracks +1⚙ |
-| Chronology | 135 | Writing | — | **Chart the Stars** | The Long Count · +1 die on age entry |
-| Currency | 135 | The Wheel | Trader | Market, **The Mausoleum** | Rite of Plenty |
+| Bronze Panoply | 135 | The Wheel | Phalanx, Swordsman | — | — |
+| Chronology | 135 | Writing | — | **Chart the Stars** | The Long Count · +1 die on age entry · renewals: Plantation +1🎵 |
+| Currency | 135 | The Wheel | Trader | Market, **The Mausoleum** | Rite of Plenty · renewals: Plantation +1💰 |
 | Epic Poetry † | 135 | Writing | — | Amphitheater, **The Theatre of Dionysus** | — |
 | Code of Laws † | 225 | Chronology | — | Stele of Laws | — |
-| Irrigation | 225 | Chronology, Bronze Panoply | — | — | renewals: Granary +1🌾 |
+| Irrigation | 225 | Chronology, Bronze Panoply | — | — | renewals: Farm +1🌾 (fresh water) |
 | Siegecraft | 225 | Bronze Panoply | Bowman | Stone Walls | Siege |
 | The High Temple | 225 | Epic Poetry | Prophet | Temple | The Preaching · Ancestor Rites |
 | Wayfinding | 225 | Sailing, Currency | Bireme, War Galley | Harbour, **The Colossus** | Sea Legs |
@@ -103,15 +103,15 @@ What the effect rows say (player prose from the data):
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Iron Working | 400 | Irrigation, Siegecraft | Legionary, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | reveals **Iron** · renewals: Barracks +1⚙ |
+| Iron Working | 400 | Irrigation, Siegecraft | Legionary, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | reveals **Iron** |
 | Raised Fields | 400 | Wayfinding | — | — | — |
 | Rhetoric | 400 | The High Temple | — | Forum, **The Great Library** | — |
 | State Workforce | 400 | Currency | — | — | — |
-| Mathematics | 540 | Iron Working | Catapult, Composite Bowman | **Petra** | renewals: Library +1🔬 |
+| Mathematics | 540 | Iron Working | Catapult, Composite Bowman | **Petra** | — |
 | Satrapies † | 540 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
 | Shipwrights | 540 | Raised Fields | Galley, Tower Ship, Fire Ship | Shipyard | — |
 | The Examination Hall | 540 | Code of Laws | — | Examination Hall | — |
-| The Saddle | 540 | Iron Working | Horseman, Horse Archer, War Elephant | — | — |
+| The Saddle | 540 | Iron Working | Horseman, Horse Archer, War Elephant | — | renewals: Pasture +1⚙ |
 | Daughter Cities † | 680 | The Examination Hall | — | Town Charter | — |
 | Engineering | 680 | The Saddle | — | Aqueduct, Baths, Watermill, **The Circus Maximus** | — |
 | Guildhalls | 680 | Satrapies | — | Workshop | — |
@@ -134,19 +134,19 @@ What the effect rows say (player prose from the data):
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Divine Right | 1450 | Guildhalls | — | Courthouse | renewals: Library +1🔬 +1🕯 |
-| Geomancy | 1450 | Daughter Cities, Horology | — | — | — |
+| Divine Right | 1450 | Guildhalls | — | Courthouse | — |
+| Geomancy | 1450 | Daughter Cities, Horology | — | — | renewals: Mine +1⚙ |
 | Machinery | 1450 | Horology, Engineering | Crossbowman | Armoury | — |
-| Paper Money † | 1450 | Shipwrights, Guildhalls | — | Mint, Bazaar | renewals: Market +2💰 |
+| Paper Money † | 1450 | Shipwrights, Guildhalls | — | Mint, Bazaar | — |
 | Scholarship | 1450 | Theology | — | University, **The House of Wisdom**, **The Turning Heavens** | — |
 | Castellany † | 1700 | Divine Right | Pikeman | Castle | — |
 | Natural Philosophy | 1700 | Scholarship | Trebuchet | **Machu Picchu** | — |
 | Steel | 1700 | Machinery | Longswordsman | Forge | — |
 | The Golden Roads | 1700 | Paper Money | — | Caravanserai | — |
 | Militant Orders | 1950 | Steel | Knight | **The Alhambra** | — |
-| Movable Type | 1950 | Steel, The Golden Roads | — | Printing House | renewals: Library +1🎵 |
+| Movable Type | 1950 | Steel, The Golden Roads | — | Printing House | — |
 | The Astrolabe | 1950 | Natural Philosophy | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
-| The Counting Houses | 1950 | The Golden Roads, Castellany | — | Bank | renewals: Market +2💰 |
+| The Counting Houses | 1950 | The Golden Roads, Castellany | — | Bank | — |
 | The Holy Office | 1950 | Scholarship | Inquisitor | The Reliquary, **Notre-Dame** | — |
 | Alchemy | 2200 | Militant Orders, Movable Type, The Counting Houses, The Astrolabe, The Holy Office | The Fire Lance | The Alchemical Society, **The Alchemical Codex** | reveals **Niter** · pays a **bead** to every completer |
 

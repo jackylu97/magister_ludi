@@ -39,8 +39,6 @@
  *     for buildings; generalising the field was strictly cheaper than growing a
  *     sibling special case beside it, and `productionModifiers` (`cities.ts`)
  *     now reads buildings and resources through one shape.
- *   · `upgrades` — the building half of the punctuated-renewal hook that
- *     `improvements.json` has had since M7. See `BuildingUpgrade`.
  *   · `tileYields` — what the building pays on the *ground* its city works
  *     rather than in the city's own totals, as lines the tile chain folds
  *     (`buildingTileLines` in `buildingEffects.ts`). The granary's point of food
@@ -388,39 +386,21 @@ export interface BuildingYield {
 }
 
 /**
- * One tech-driven renewal of a building's yield — the mirror of
- * `ImprovementUpgrade` (`improvementData.ts`), deliberately the same shape so
- * that "a technology quietly makes something you already own pay more" is one
- * idea with one spelling rather than two.
- *
- * `add` is a delta and never a replacement, for `ImprovementUpgrade`'s reason:
- * an entry that replaced would have to know what it was replacing, which is
- * exactly the inline adjustment hard rule 5 exists to forbid. Each renewal
- * becomes its own line in `explainBuildingYield` (`cities.ts`) and its own gift
- * on the tech screen (`techGifts`).
- *
- * There is no `requiresFreshwater` twin: an improvement stands on a tile and can
- * be asked about the ground under it, and a building stands in a city, which has
- * no such question to answer yet.
- */
-export interface BuildingUpgrade {
-  /** The technology that switches this on for its owner. */
-  tech: TechId;
-  /** Added to what the building already pays, once the owner holds `tech`. */
-  add: BuildingYield;
-}
-
-/**
  * What a building pays on **the ground its city works**, rather than in the
- * city's own totals — the granary's point of food on every water hex.
+ * city's own totals — the harbour's point of food on every water hex.
  *
- * `BuildingUpgrade`'s sibling and emphatically not the same thing, which is why
- * it is a second field rather than a flag on that one. An upgrade is a number
- * added to a *building's* line and is worth the same in every town; this is a
- * number added to a *tile's* line and is worth whatever the town's ground turns
- * out to be — a granary in a landlocked city gets nothing from it, and the
- * player can see exactly why, because the line shows up in the hex's own
- * breakdown (hard rule 5) rather than in a lump on the building.
+ * **The one thing a technology may still switch on for a building already
+ * standing** (the renewals axe, 2026-09-04). A building's own row used to carry
+ * an `upgrades` list too — the mirror of `ImprovementUpgrade` — so that a
+ * granary quietly grew a fourth point of food the turn The Wheel landed; the
+ * user ruled that free growth dead, the rows were cut, and the shape went with
+ * them. What survives is this one, and it survives because it is not the same
+ * bargain: an upgrade was a number added to a *building's* line and was worth
+ * the same in every town, while this is a number added to a *tile's* line and
+ * is worth whatever the town's ground turns out to be — a harbour in a
+ * landlocked city gets nothing from it, and the player can see exactly why,
+ * because the line shows up in the hex's own breakdown (hard rule 5) rather
+ * than in a lump on the building.
  *
  * The condition is `TileCondition` (`statecraftData.ts`), shared with the cards
  * and the luxuries, so "which hexes" is one predicate for all three; and the
@@ -579,8 +559,6 @@ export interface BuildingDef {
    * three rows and adds them to a node's `unlocks`, and nothing else changes.
    */
   awaitsTech?: boolean;
-  /** Tech-driven renewals. See `BuildingUpgrade` and the module docblock. */
-  upgrades?: BuildingUpgrade[];
   /** What this pays on the *ground*. See `BuildingTileYield`. */
   tileYields?: BuildingTileYield[];
   /**

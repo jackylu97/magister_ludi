@@ -186,7 +186,6 @@ const GIFT_MARK: Record<TechGift['kind'], string> = {
   ability: 'is-ability',
   reveal: 'is-reveal',
   renewal: 'is-renewal',
-  buildingRenewal: 'is-renewal',
   buildingTileYield: 'is-renewal',
   // A rule is not a thing, and it wears the ability mark for that reason: what
   // an empire gains here is a *verb the world does differently*, which is the
@@ -214,7 +213,6 @@ function giftEntryId(gift: TechGift): string | null {
     case 'unit':
       return `unit:${gift.id}`;
     case 'building':
-    case 'buildingRenewal':
     case 'buildingTileYield':
       return `${isWonder(gift.id) ? 'wonder' : 'building'}:${gift.id}`;
     case 'improvement':
@@ -267,7 +265,6 @@ const GIFT_HEADING: Record<TechGift['kind'], string | null> = {
   ability: null,
   reveal: 'Reveals on the map',
   renewal: 'Improvements renewed',
-  buildingRenewal: 'Buildings renewed',
   // Told by the building's own entry in the Compendium instead. See above.
   buildingTileYield: null,
   // The rules the node hands over. Deliberately not "Effects": what a player
@@ -976,33 +973,6 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   }
 
   /**
-   * The same sentence for a building renewal, which pays in six voices rather
-   * than three — a building can hand a city beakers, culture and faith, and an
-   * improvement never can. Written off the delta's *present* fields, so a
-   * renewal that says only `{food: 1}` reads as `+1🌾` and not as four zeroes.
-   */
-  function buildingRenewalNote(gift: TechGift & { kind: 'buildingRenewal' }): string {
-    const add = gift.add;
-    const parts: string[] = [];
-    const voices: [number | undefined, string][] = [
-      [add.food, YIELD_GLYPH.food],
-      [add.production, HAMMER],
-      [add.gold, YIELD_GLYPH.gold],
-      [add.science, YIELD_GLYPH.science],
-      [add.culture, YIELD_GLYPH.culture],
-      [add.faith, YIELD_GLYPH.faith],
-    ];
-    for (const [value, glyph] of voices) {
-      if (value === undefined || value === 0) continue;
-      parts.push(`${value > 0 ? '+' : ''}${value}${glyph}`);
-    }
-    if (add.sciencePerPop) {
-      parts.push(`${add.sciencePerPop > 0 ? '+' : ''}${add.sciencePerPop}${YIELD_GLYPH.science}/pop`);
-    }
-    return parts.join(' ');
-  }
-
-  /**
    * What a node's own rules do, in the words the row itself was written in.
    *
    * One line of delegation, and the module it delegates to is the point:
@@ -1162,9 +1132,9 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       // quote their flat cost; a project quotes its *rate*, because a
       // repeatable item has no total; an improvement quotes the charges it
       // spends;
-      // a reveal, an ability and the two renewals cost nothing at all, so the
-      // ability and the renewals say what they *pay* instead and the reveal
-      // says nothing.
+      // a reveal, an ability and a renewal cost nothing at all, so the ability
+      // and the renewal say what they *pay* instead and the reveal says
+      // nothing.
       const note =
         gift.kind === 'unit'
           ? `${unitProductionCost(state, playerId, gift.id)}${HAMMER}`
@@ -1178,9 +1148,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
                 ? abilityNote(gift)
                 : gift.kind === 'renewal'
                   ? renewalNote(gift)
-                  : gift.kind === 'buildingRenewal'
-                    ? buildingRenewalNote(gift)
-                    : '';
+                  : '';
       if (note) row.append(element('span', 'info-card-gift-note', note));
       list?.append(row);
     }

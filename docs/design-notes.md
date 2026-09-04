@@ -136,8 +136,12 @@ for 1000🕯 (no renown moved). Triumphs are append-only, turn-stamped, diffed.
 
 Æra III should be the *longest* age — wars and empire-building need room.
 Nerf wide / buff tall through bonuses (per-city tech-cost scaling REJECTED).
-Renewals (tech-gated free building upgrades) are ruled DEAD — implementation
-pending. Late techs should scale (percents, per-city, verbs), never
+Renewals (tech-gated free building upgrades) are DEAD — the nine rows and the
+`BuildingDef.upgrades` shape were cut on 2026-09-04 (schema 62). A building is
+worth its own row in every empire; a *worker's* renewals (the farm's irrigation
+rider and its three siblings) stay, and so does a building's `tileYields` line,
+because both pay only ground somebody went and worked. Late techs should scale
+(percents, per-city, verbs), never
 flat-pay. The bot is NOT a balance instrument (human ≈5–10× tier-1 yields;
 t69 datum) — playtest is the judge; the arena is for regressions and floors.
 

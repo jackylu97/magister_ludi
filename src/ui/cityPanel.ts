@@ -126,7 +126,6 @@ import {
 } from '../sim/state';
 import { type PressureLine, explainPressure } from '../sim/religion';
 import { pressureLedgerText } from './religionScreen';
-import { techDef } from '../sim/techData';
 import { buildError, isUnlocked, requiredResource, upgradeTargetForType } from '../sim/tech';
 import { BEAD_FAMILY_MARK } from './beadsScreen';
 import { describeBeadBoon } from '../sim/beads';
@@ -1223,24 +1222,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const { stat, amount } = def.cityStat;
       notes.append(note(`${amount > 0 ? '+' : ''}${amount} city ${stat}`));
     }
-    // Every renewal this building will ever get, whether or not its owner has
-    // earned it yet. One already held is folded into what the building pays and
-    // gets its own line in the panel's breakdown; one still ahead is a promise,
-    // and naming the technology is the whole of what makes it worth reading.
-    for (const upgrade of def.upgrades ?? []) {
-      const figures = buildingFigures({
-        source: def.name,
-        building: id,
-        food: upgrade.add.food ?? 0,
-        production: upgrade.add.production ?? 0,
-        gold: upgrade.add.gold ?? 0,
-        science: upgrade.add.science ?? 0,
-        culture: upgrade.add.culture ?? 0,
-        faith: upgrade.add.faith ?? 0,
-        sciencePerPop: upgrade.add.sciencePerPop ?? 0,
-      });
-      notes.append(note(`${figures} with ${techDef(upgrade.tech).name}`));
-    }
+    // **No renewal line** (the renewals axe, 2026-09-04). A card used to promise
+    // every technology that would one day make this building pay more; the rows
+    // that promised it are gone, and a building is worth what the figures above
+    // say in every empire that raises it.
+    //
     // What a **wonder** does beyond its yields, in the vocabulary's own words —
     // `describeCard`, the same function the offer, the collection and the slot
     // hover call, so a wonder's clause reads exactly as a Doctrine's does. A
@@ -1461,8 +1447,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * is applied:
    *
    *   · every line the city's buildings pay (`explainCityBuildings`) — one per
-   *     building, and one more per *renewal* a technology has switched on, so
-   *     "Granary +3🌾" and "The Wheel +1🌾" are two facts a player can find.
+   *     building, so "Granary +3🌾" is a fact a player can find. One line each
+   *     since the renewals axe (2026-09-04): a technology no longer adds a
+   *     second line to a building already standing.
    *   · every building putting extra hammers behind the current build.
    *   · every empire modifier that is currently biting.
    *
@@ -1546,7 +1533,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const figures = resourceFigures(entry);
       if (figures) line(entry.source, figures);
     }
-    for (const entry of explainCityBuildings(state, city)) {
+    for (const entry of explainCityBuildings(city)) {
       const figures = buildingFigures(entry);
       if (figures) line(entry.source, figures);
     }

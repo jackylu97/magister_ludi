@@ -2288,15 +2288,20 @@ export function centreYield(
 
 /**
  * One line of what a city's buildings pay it, and *why* — `explainTileYield`'s
- * shape one grade up the ladder, and rule 5 applied to the second yield source
- * that can be renewed by a technology.
+ * shape one grade up the ladder, and rule 5 applied to a city's own totals.
  *
  * There is only one algebra here, unlike the tile chain: every entry **sums**. A
  * building is a thing standing in a town alongside the other things standing in
- * it, and nothing a technology does replaces what a granary was already worth.
+ * it.
+ *
+ * **One line per building, since the renewals axe** (2026-09-04). A building
+ * used to grow a second line the turn a technology renewed it, which is why the
+ * shape is a list rather than a figure; the list stays, because a town's
+ * buildings are read as a group and a caller that had to fold a mixture of
+ * lists and figures would be the place the two came apart.
  */
 export interface BuildingYieldContribution {
-  /** Display label: the building's name, or the technology that renewed it. */
+  /** Display label: the building's name. */
   source: string;
   /** The building the line belongs to, so a caller may group by it. */
   building: BuildingId;
@@ -2311,22 +2316,20 @@ export interface BuildingYieldContribution {
 }
 
 /**
- * The ordered breakdown of one building's yield: what the table says it pays,
- * then one entry per renewal its owner has earned.
+ * The breakdown of one building's yield: what the table says it pays, and
+ * nothing else.
  *
- * Walked in the table's own order so two renewals on one building always read in
- * the same order, exactly as `explainTileYield` walks an improvement's (design
- * ledger, Entry I). A context is the *owner's* technologies and nothing else —
- * see `TileYieldContext`, which this deliberately reuses rather than growing a
- * near-identical twin: the question a renewal asks is the same question at both
- * scales.
+ * **No owner, no context** (the renewals axe, 2026-09-04). This used to take a
+ * `TileYieldContext` and add a line per renewal the owner had earned, so that a
+ * granary was worth a different number in two empires standing on the same
+ * ground. The user ruled the free growth dead: a building is worth what its row
+ * says in every empire that raises it, which is why this asks for an id and
+ * nothing more. What a *technology* is worth to a town is now only ever
+ * something the town went and built.
  */
-export function explainBuildingYield(
-  id: BuildingId,
-  ctx?: TileYieldContext,
-): BuildingYieldContribution[] {
+export function explainBuildingYield(id: BuildingId): BuildingYieldContribution[] {
   const def = buildingDef(id);
-  const list: BuildingYieldContribution[] = [
+  return [
     {
       source: def.name,
       building: id,
@@ -2339,22 +2342,6 @@ export function explainBuildingYield(
       sciencePerPop: def.sciencePerPop,
     },
   ];
-  for (const upgrade of def.upgrades ?? []) {
-    if (!ctx || !ctx.techs.includes(upgrade.tech)) continue;
-    const { add } = upgrade;
-    list.push({
-      source: techDef(upgrade.tech).name,
-      building: id,
-      food: add.food ?? 0,
-      production: add.production ?? 0,
-      gold: add.gold ?? 0,
-      science: add.science ?? 0,
-      culture: add.culture ?? 0,
-      faith: add.faith ?? 0,
-      sciencePerPop: add.sciencePerPop ?? 0,
-    });
-  }
-  return list;
 }
 
 /**
@@ -2365,18 +2352,20 @@ export function explainBuildingYield(
  * `hypothetical` is `cityYields`'s preview hook, carried through so that "what
  * would a library be worth here" is explained by the same list it is totalled
  * from. A candidate the city already has is skipped, exactly as it is there.
+ *
+ * **No `state`, since the renewals axe** (2026-09-04): the only thing the empire
+ * was ever asked for here was the technologies that renewed a building, and
+ * nothing renews one any more. See `explainBuildingYield`.
  */
 export function explainCityBuildings(
-  state: GameState,
   city: City,
   hypothetical: readonly BuildingId[] = [],
 ): BuildingYieldContribution[] {
-  const ctx = cityContext(state, city);
   const list: BuildingYieldContribution[] = [];
-  for (const id of city.buildings) list.push(...explainBuildingYield(id, ctx));
+  for (const id of city.buildings) list.push(...explainBuildingYield(id));
   for (const id of hypothetical) {
     if (city.buildings.includes(id)) continue;
-    list.push(...explainBuildingYield(id, ctx));
+    list.push(...explainBuildingYield(id));
   }
   return list;
 }
@@ -2504,9 +2493,9 @@ export function explainBuildingPreview(
 
   const lines: BuildingPreviewLine[] = [];
 
-  // 1. The row itself, read under the ghost's own context so a renewal this
-  //    empire has earned is on the preview the turn the tech lands.
-  for (const entry of explainBuildingYield(id, cityContext(state, ghost))) {
+  // 1. The row itself, which is the whole of what a building's own table pays
+  //    since the renewals axe (2026-09-04) — no empire is asked.
+  for (const entry of explainBuildingYield(id)) {
     const line = emptyPreviewLine(entry.source);
     line.building = id;
     line.food = entry.food;
@@ -3171,7 +3160,7 @@ export function cityQuote(
   // The fold of `explainCityBuildings`, and the only place a building's worth is
   // summed — a candidate the city already has is skipped in there, because a
   // preview that promised a second library would be a preview that lies.
-  for (const entry of explainCityBuildings(state, city, hypothetical)) {
+  for (const entry of explainCityBuildings(city, hypothetical)) {
     total.food += entry.food;
     total.production += entry.production;
     total.gold += entry.gold;

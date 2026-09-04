@@ -807,6 +807,6 @@ describe('the schema witness', () => {
     // v58 (phase three): a puppet buys nothing — units, buildings and ground
     // are all refused until it is annexed, so a v57 log's puppet purchase is
     // refused here. See `test/sim/purchase.test.ts` for the clause itself.
-    expect(SCHEMA_VERSION).toBe(61);
+    expect(SCHEMA_VERSION).toBe(62);
   });
 });
