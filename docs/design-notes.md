@@ -111,7 +111,8 @@ scope, building-category tiers, and route/connection/upkeep hooks; perCopy
 survives only on silver/gold Æra III (`docs/luxuries.md`). Veins
 (`Tile.vein`) surface via the prospect verb (Geomancy); discovery kinds gate
 on tech (antiquity → Geomancy; wrecks in deep ocean). Strategic reveals:
-horses@Husbandry, iron@Iron Working, niter@Alchemy.
+horses@Husbandry, iron@Bronze Panoply (moved 2026-09-04 so the
+swordsman has a real window before its legionary), niter@Alchemy.
 
 ## Military
 

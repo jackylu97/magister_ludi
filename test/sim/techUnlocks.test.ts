@@ -142,7 +142,9 @@ describe('techGifts', () => {
     // the re-cut of 2026-09-02 moved the reveal off Bronzeworking. The gift is
     // real and the `unlocks` block does not know about it.
     expect(techDef('ironWorking').unlocks.buildings).toEqual(['terracottaArmy', 'statueOfZeus']);
-    const reveals = techGifts('ironWorking').filter((gift) => gift.kind === 'reveal');
+    // Iron's reveal moved to Bronze Panoply on 2026-09-04 (the user's ruling:
+    // the swordsman needs a real window before its legionary).
+    const reveals = techGifts('bronzePanoply').filter((gift) => gift.kind === 'reveal');
     expect(reveals.map((gift) => gift.id)).toEqual(['iron']);
     expect(reveals[0]).toMatchObject({
       name: resourceDef('iron').name,

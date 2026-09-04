@@ -80,7 +80,7 @@ while they stand.*
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Bronze Panoply | 135 | The Wheel | Phalanx, Swordsman *(needs improved Iron)* | — | — |
+| Bronze Panoply | 135 | The Wheel | Phalanx, Swordsman *(needs improved Iron)* | — | reveals **Iron** |
 | Chronology | 135 | Writing | — | **Chart the Stars** | The Long Count · +1 die on age entry · renewals: Plantation +1🎵 |
 | Currency | 135 | The Wheel | Trader | Market, **The Mausoleum** | Rite of Plenty · renewals: Plantation +1💰 |
 | Epic Poetry † | 135 | Writing | — | Amphitheater, **The Theatre of Dionysus** | — |
@@ -103,7 +103,7 @@ What the effect rows say (player prose from the data):
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Iron Working | 400 | Irrigation, Siegecraft | Legionary, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | reveals **Iron** |
+| Iron Working | 400 | Irrigation, Siegecraft | Legionary, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | — |
 | Raised Fields | 400 | Wayfinding | — | — | — |
 | Rhetoric | 400 | The High Temple | — | Forum, **The Great Library** | — |
 | State Workforce | 400 | Currency | — | — | — |

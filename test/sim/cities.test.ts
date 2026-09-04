@@ -1494,7 +1494,8 @@ describe('the city centre', () => {
     const city = plant(state, 0, 8, 5);
     const before = centreYield(state, city);
 
-    state.players[0]!.techsResearched = [...state.players[0]!.techsResearched, 'ironWorking'];
+    // Iron's reveal moved to Bronze Panoply on 2026-09-04.
+    state.players[0]!.techsResearched = [...state.players[0]!.techsResearched, 'bronzePanoply'];
     const after = centreYield(state, city);
     expect(after.production).toBeGreaterThan(before.production);
     expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE, 'Inherited · Iron']);
@@ -3322,7 +3323,7 @@ describe('the reveal gate, in a city', () => {
     // command being issued or any turn being ended.
     const { state, city } = seamCity();
     const before = cityYields(state, city);
-    state.players[0]!.techsResearched = ['ironWorking'];
+    state.players[0]!.techsResearched = ['bronzePanoply']; // iron's reveal moved 2026-09-04
     const after = cityYields(state, city);
 
     const line = resourceYield('iron');
@@ -3339,7 +3340,7 @@ describe('the reveal gate, in a city', () => {
     city.lockedTiles = [];
     assignCitizens(state, city);
     const blind = worked(city);
-    state.players[0]!.techsResearched = ['ironWorking'];
+    state.players[0]!.techsResearched = ['bronzePanoply']; // iron's reveal moved 2026-09-04
     assignCitizens(state, city);
     expect(worked(city)).toEqual([`${seam.col},${seam.row}`]);
     expect(blind).not.toEqual(worked(city));
@@ -3349,7 +3350,7 @@ describe('the reveal gate, in a city', () => {
     // The gate is asked of the *owner's* context, not of the board: two players
     // looking at one seam get two different answers, and neither is stored.
     const { state, seam } = seamCity();
-    state.players[1]!.techsResearched = ['ironWorking'];
+    state.players[1]!.techsResearched = ['bronzePanoply']; // iron's reveal moved 2026-09-04
     expect(tileYieldOf(seam, yieldContextFor(state, 0))).not.toEqual(
       tileYieldOf(seam, yieldContextFor(state, 1)),
     );

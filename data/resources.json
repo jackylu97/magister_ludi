@@ -357,7 +357,7 @@
         "none"
       ],
       "hills": true,
-      "requiresTech": "ironWorking",
+      "requiresTech": "bronzePanoply",
       "frequency": 11,
       "clusterSize": [
         1,

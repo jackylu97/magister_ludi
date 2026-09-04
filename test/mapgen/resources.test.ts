@@ -135,7 +135,7 @@ describe('the resource table', () => {
   it('tech-gates exactly the resources that are meant to be hidden', () => {
     // Iron Working names the iron since the re-cut of 2026-09-02 — the
     // worksheet's "reveals Iron (passive) — gates this line".
-    expect(resourceDef('iron').requiresTech).toBe('ironWorking');
+    expect(resourceDef('iron').requiresTech).toBe('bronzePanoply'); // moved 2026-09-04
     expect(resourceDef('niter').requiresTech).toBe('alchemy');
     // Horses joined it in the Age I rework: Husbandry is the tech that unlocks
     // the horseman and the pasture, so it is also the tech that says where the
@@ -563,7 +563,7 @@ describe('what a player may be told', () => {
   it('hides iron until Iron Working, per player', () => {
     const state = bareState();
     state.players[0]!.techsResearched = [];
-    state.players[1]!.techsResearched = ['ironWorking'];
+    state.players[1]!.techsResearched = ['bronzePanoply']; // iron's reveal moved 2026-09-04
     const tile = at(state, 3, 3);
     tile.resource = 'iron';
 
@@ -604,7 +604,7 @@ describe('what a player may be told', () => {
     tile.resource = 'iron';
 
     const before = tileYieldOf(tile, yieldContextFor(state, 0));
-    player.techsResearched = ['ironWorking'];
+    player.techsResearched = ['bronzePanoply']; // iron's reveal moved 2026-09-04
     const after = tileYieldOf(tile, yieldContextFor(state, 0));
 
     const line = resourceYield('iron');
