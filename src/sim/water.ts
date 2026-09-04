@@ -23,6 +23,12 @@
  * water, and become `lake`. Connectivity is wrap-aware (columns wrap, rows do
  * not), so a puddle straddling the seam is one lake rather than two.
  *
+ * There is a **second source** of them, one pass later and one hex at a time:
+ * the river that runs out of downhill floods the basin it stopped in rather than
+ * being thrown away (`RiverConfig.pitLakes`, `pondTileAt`). A pit lake is always
+ * a single hex with no water for a neighbour, so everything said above about a
+ * lake being a maximal inland body still reads true of it.
+ *
  * Lakes do not mint coast. `coast` is a *marine* terrain — the shallow shelf a
  * trireme hugs — and a pond in the middle of a continent has no shelf. The coast
  * pass in `mapgen.ts` therefore fires only from `ocean`, and because a lake is
@@ -76,8 +82,9 @@
  * A trace ends when it reaches a corner that touches ocean or lake (a mouth) or
  * a corner that already carries a river (a confluence — the two merge and share
  * the rest of the way down). It fails, and is thrown away whole, if it runs out
- * of downhill before either. A visited set makes loops impossible even across a
- * dead-flat plateau, so every walk terminates.
+ * of downhill before either — unless the board pools, in which case it makes its
+ * own mouth out of the basin it stopped in. A visited set makes loops impossible
+ * even across a dead-flat plateau, so every walk terminates.
  *
  * River edges are always between two *land* tiles. That falls out of stopping at
  * the first water-touching corner: the corner before it had three land hexes,
@@ -722,6 +729,39 @@ export interface RiverConfig {
    * short. A per-river budget is the same number on every size.
    */
   attemptsPerRiver: number;
+  /**
+   * May a trace that runs out of downhill **pool** — flood the basin it stopped
+   * in and count as landed? **Pit lakes** (ruled 2026-09-04: "lets increase the
+   * number of rivers if it decreased, also adding lakes could help").
+   *
+   * The pangaea gave the world an interior, and an interior has interior
+   * drainage: a trace that has to reach open water without one step back up dies
+   * in a basin it cannot walk out of, and the whole river is thrown away. That is
+   * what took the big boards to 0.63–0.68 of the quota they ask for. The honest
+   * reading of a descent that ends in a bowl is not "there is no river here" — it
+   * is **a river that ends in a tarn**, which is what half the mountain country
+   * on Earth looks like, so the pass that used to discard it now floods one hex
+   * and keeps the river.
+   *
+   * It is a *rule*, not a retry: nothing about descent is relaxed (see
+   * `traceRiver`), the pond is a single hex the corner already surrounds, and a
+   * spring that cannot pool is still discarded exactly as it was.
+   */
+  pitLakes: boolean;
+  /**
+   * Smallest board, in **tiles**, that pools. Boards under it discard a stranded
+   * trace as they always did.
+   *
+   * The problem is a big-board one — the floors are duel 0.71, standard 0.98,
+   * large 0.81, huge 0.63, giant 0.68 — so the rule is written as "the boards
+   * above standard", which is what 5000 says (standard is 4160 tiles, large
+   * 6656). `standard` is also the size the balance is tuned against and the size
+   * every pinned fixture is measured at, so leaving it alone is what lets this
+   * ship without re-aiming a world of golden hashes. **0 pools on every size** —
+   * see `docs/mapgen.md`, which records that as the intended follow-up rather
+   * than a setting nobody thought about.
+   */
+  pitLakeMinTiles: number;
 }
 
 /** One traced river. The map keeps only its edges; this is for tests and stats. */
@@ -730,8 +770,17 @@ export interface RiverTrace {
   vertices: RiverVertex[];
   /** Edges crossed, in order, as (tile, direction) pairs. */
   edges: { col: number; row: number; direction: number }[];
-  /** Why the walk stopped: a mouth, or a confluence with an older river. */
-  ending: 'water' | 'river';
+  /**
+   * Why the walk stopped: a mouth, a confluence with an older river, or a pond
+   * of its own making (see `RiverConfig.pitLakes`).
+   */
+  ending: 'water' | 'river' | 'lake';
+  /**
+   * The hex flooded, when `ending` is `'lake'` and only then. `traceRiver`
+   * *names* it and writes nothing; `traceRivers` floods it if it keeps the
+   * trace, which is what stops a discarded walk from leaving a pond behind.
+   */
+  pool?: { col: number; row: number };
 }
 
 /** How many rivers a map of this size asks for. */
@@ -767,6 +816,67 @@ function waysDown(
   }
   options.sort((a, b) => a.altitude - b.altitude || a.key - b.key);
   return options;
+}
+
+/**
+ * The hex a stranded trace would flood, or `null` when it may not flood one.
+ *
+ * **Which hex.** A corner has three hexes and the step that arrived at it
+ * crossed the edge between two of them, so there is exactly one hex the river
+ * has *not* run along: the basin straight ahead of its last step. That is the
+ * pond, and choosing it rather than "the lowest of the three" is what keeps the
+ * module's oldest invariant true — **every river edge runs between two land
+ * tiles**. A hex carrying no river edge is on no river, so flooding it cannot
+ * put water on the end of one.
+ *
+ * **When not.** Four refusals, each protecting something already written down:
+ *
+ *   · a **mountain** does not hold a tarn, and drowning a peak would move the
+ *     mountain census the terrain shares are supposed to fix;
+ *   · a hex with a **river edge already on it** — see the invariant above. This
+ *     covers older rivers (the mask is written) and the walk in progress (whose
+ *     edges are not yet written, so they are checked by hand);
+ *   · a hex with **water for a neighbour**, which is the whole of "a lake is an
+ *     inland body". A pond beside the ocean is a bay, a pond beside a pond is a
+ *     bigger pond that nobody sized, and either one would break the reading
+ *     `classifyLakes` and the coast pass share — that no ocean tile is ever next
+ *     to a lake. With this refusal every pit lake is exactly one isolated hex;
+ *   · a hex on **row 0 or the last row**, for `classifyLakes`'s polar reason:
+ *     open water threaded through the ice margin is sea, not a pond.
+ *
+ * The water-neighbour refusal pays a second time, unasked: the six neighbours of
+ * an interior hex form a *ring*, each adjacent to the next, so drowning a hex all
+ * six of whose neighbours are land can never disconnect the land around it. A
+ * pond cannot split a landmass, and every pass downstream that asks what is
+ * connected — the continent carve, the shelf, the start chooser's landmass floor
+ * — reads the continent it would have read anyway.
+ */
+function pondTileAt(
+  map: GameMap,
+  vertex: RiverVertex,
+  edges: readonly { col: number; row: number; direction: number }[],
+): Tile | null {
+  const last = edges[edges.length - 1];
+  if (!last) return null;
+  const tiles = vertexTiles(map, vertex);
+  if (!tiles) return null;
+  const edgeTile = getTileAt(map, last.col, last.row);
+  if (!edgeTile) return null;
+  const across = neighborInDirection(map, edgeTile, last.direction);
+  const pond = tiles.find((tile) => tile !== edgeTile && tile !== across);
+  if (!pond) return null;
+
+  if (isWaterTerrain(pond.terrain) || pond.terrain === 'mountain') return null;
+  if (pond.riverEdges !== 0) return null;
+  if (pond.row === 0 || pond.row === map.height - 1) return null;
+  if (tileNeighbors(map, pond).some((near) => isWaterTerrain(near.terrain))) return null;
+
+  for (const edge of edges) {
+    const tile = getTileAt(map, edge.col, edge.row);
+    if (!tile) continue;
+    if (tile === pond || neighborInDirection(map, tile, edge.direction) === pond) return null;
+  }
+  return pond;
 }
 
 /** One corner on the walk's current path, and how far through its forks it is. */
@@ -808,6 +918,21 @@ interface TraceFrame {
  *     out**, so the path is always simple while a branch that failed leaves
  *     nothing behind for the branch that replaces it. Loops remain impossible.
  *
+ * Pooling
+ * -------
+ * `pool` turns the one failure this walk has into an ending: a corner with
+ * nothing below it names the basin ahead of it (`pondTileAt`) and the trace
+ * comes back `ending: 'lake'` with the hex to flood. It writes nothing — see
+ * `traceRivers`, which floods only what it keeps.
+ *
+ * It is **off by default and asked for twice**. `traceRivers` runs the ordinary
+ * walk first and only re-runs it in pool mode when that walk failed, so a spring
+ * that can reach the sea always does: pooling is what happens to a descent that
+ * has already been proved to have nowhere to go, never a shortcut a river takes
+ * while the sea was still reachable. The second walk explores the identical tree
+ * in the identical order, so "the first dead end it accepts" is a fact about the
+ * board rather than about the pass.
+ *
  * Deterministic: the fork order is total (altitude, then key) and the budget is
  * a count, so the same spring on the same board walks the same way every time.
  */
@@ -816,6 +941,7 @@ export function traceRiver(
   spring: RiverVertex,
   maxLength: number,
   backtracks = 0,
+  pool = false,
 ): RiverTrace | null {
   const startAltitude = vertexAltitude(map, spring);
   if (startAltitude === null) return null;
@@ -834,6 +960,15 @@ export function traceRiver(
     // sea — almost certainly a walk creeping along a plateau. Either way this
     // corner has nothing left to offer, so back out of it if the budget allows.
     if (frame.next >= frame.options.length || edges.length >= maxLength) {
+      // Stranded, not merely long: a walk creeping along a plateau until it hits
+      // the cap has not found a basin, it has found a plateau, and there is
+      // nothing honest to flood there.
+      if (pool && frame.next >= frame.options.length) {
+        const pond = pondTileAt(map, frame.vertex, edges);
+        if (pond) {
+          return { vertices, edges, ending: 'lake', pool: { col: pond.col, row: pond.row } };
+        }
+      }
       if (budget === 0 || stack.length === 1) return null;
       budget -= 1;
       visited.delete(vertexKey(map, frame.vertex));
@@ -884,9 +1019,17 @@ export function traceRiver(
  * before the next is traced, so later rivers can — and do — merge into earlier
  * ones. That makes the result depend on the shuffle, which is exactly what the
  * seed is for.
+ *
+ * The pond is written the same way and in the same breath (see
+ * `RiverConfig.pitLakes`): a kept trace that stranded floods one hex, so the
+ * next trace down the same valley sees a lake there and may end at it as an
+ * ordinary mouth. A **discarded** trace floods nothing — that is why the walk
+ * only names the hex and this function does the writing.
  */
 export function traceRivers(map: GameMap, rng: Rng, config: RiverConfig): RiverTrace[] {
   const target = riverCountFor(config, map.width, map.height);
+  // A board fact, read once: the size gate is on the map, not on the spring.
+  const pools = config.pitLakes && map.width * map.height >= config.pitLakeMinTiles;
 
   const candidates: RiverVertex[] = [];
   for (const tile of map.tiles) {
@@ -914,12 +1057,28 @@ export function traceRivers(map: GameMap, rng: Rng, config: RiverConfig): RiverT
     }
     // A spring standing on an older river would just redraw it from halfway up.
     if (vertexTouchesRiver(map, spring)) continue;
-    const trace = traceRiver(map, spring, config.maxLength, config.backtrackSteps);
+    // The ordinary walk first, always. Pooling is the answer to a descent that
+    // has already failed to find the sea, never an alternative to looking.
+    let trace = traceRiver(map, spring, config.maxLength, config.backtrackSteps);
+    if (!trace && pools) {
+      trace = traceRiver(map, spring, config.maxLength, config.backtrackSteps, true);
+    }
     if (!trace || trace.edges.length < config.minLength) continue;
 
     for (const edge of trace.edges) {
       const tile = getTileAt(map, edge.col, edge.row);
       if (tile) setRiverEdge(map, tile, edge.direction);
+    }
+    if (trace.pool) {
+      // The pond, and everything that was standing where it is. A lake tile is
+      // water: no feature grows on it and no hill stands in it — pass 1 writes
+      // exactly that for every other water hex on the board.
+      const pond = getTileAt(map, trace.pool.col, trace.pool.row);
+      if (pond) {
+        pond.terrain = 'lake';
+        pond.feature = 'none';
+        pond.hills = false;
+      }
     }
     springs.push(hex);
     rivers.push(trace);

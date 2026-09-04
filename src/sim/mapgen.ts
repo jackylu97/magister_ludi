@@ -899,7 +899,11 @@ export interface MapDetail {
   map: GameMap;
   /** Every river that survived tracing, as corner paths. See `water.ts`. */
   rivers: RiverTrace[];
-  /** How many water bodies were reclassified as lakes. */
+  /**
+   * How many water bodies **pass 2** reclassified as lakes. A pit lake is not
+   * one of them — it is flooded by the river pass four passes later, and is
+   * counted by the trace that made it (`RiverTrace.ending === 'lake'`).
+   */
   lakeCount: number;
   /** How many desert tiles the rivers and oases turned into floodplain. */
   floodplainCount: number;
@@ -1066,8 +1070,18 @@ export function generateMapDetail(
   if (config.pangaea.shelfChains) chainIslandShelves(map);
 
   // Pass 4: rivers. The generator's only dice, and they are rolled *after* every
-  // noise field has been drawn from `rng`, so every tile's terrain is exactly
-  // what it was before rivers existed.
+  // noise field has been drawn from `rng`, so the ground the rivers run over is
+  // exactly what it was before rivers existed.
+  //
+  // With one deliberate exception since 2026-09-04, and it is the only pass in
+  // this function that writes terrain out of turn: a trace that runs out of
+  // downhill floods the basin it stopped in and counts as landed
+  // (`RiverConfig.pitLakes`, gated by `pitLakeMinTiles` at the boards above
+  // standard). A pond is one hex with no water for a neighbour, so it mints no
+  // coast, joins no other body and — the six neighbours of a hex being a ring —
+  // cannot split a landmass under the passes below that ask what is connected.
+  // What it does move is the land count, by one hex per pooled river, which the
+  // per-1000-land-tile budgets below simply read.
   const rivers = traceRivers(map, rng, config.rivers);
 
   // Pass 4b: floodplains, read off the rivers pass 4 just wrote and the oases

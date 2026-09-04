@@ -135,7 +135,9 @@
     "minLength": 4,
     "maxLength": 80,
     "backtrackSteps": 64,
-    "attemptsPerRiver": 120
+    "attemptsPerRiver": 120,
+    "pitLakes": true,
+    "pitLakeMinTiles": 5000
   },
   "resources": {
     "continentTargetTiles": 200,

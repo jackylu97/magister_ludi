@@ -134,20 +134,30 @@ describe('rivers on generated maps', () => {
   });
 
   it('runs every river edge between two land tiles', () => {
+    // `huge` joins `standard` here for the pit lakes of 2026-09-04, and it is the
+    // size that can actually break the claim: pooling is the one pass that turns
+    // a *land* hex into water after the rivers are drawn, and the whole of why it
+    // floods the hex ahead of the last step rather than the lowest of the three
+    // is that the flooded hex must be on no river.
     for (const seed of seeds) {
-      const map = mapFor(seed, 'standard');
-      for (const tile of map.tiles) {
-        if (tile.riverEdges === 0) continue;
-        expect(isWaterTerrain(tile.terrain)).toBe(false);
-        for (let d = 0; d < DIRECTION_COUNT; d++) {
-          if (!hasRiverEdge(tile, d)) continue;
-          expect(isWaterTerrain(neighborInDirection(map, tile, d)!.terrain)).toBe(false);
+      for (const map of [mapFor(seed, 'standard'), mapFor(seed, 'huge')]) {
+        for (const tile of map.tiles) {
+          if (tile.riverEdges === 0) continue;
+          expect(isWaterTerrain(tile.terrain)).toBe(false);
+          for (let d = 0; d < DIRECTION_COUNT; d++) {
+            if (!hasRiverEdge(tile, d)) continue;
+            expect(isWaterTerrain(neighborInDirection(map, tile, d)!.terrain)).toBe(false);
+          }
         }
       }
     }
   });
 
   it('ends every river at water or at another river, and keeps none too short', () => {
+    // `'lake'` is the third ending since 2026-09-04 and it is a *mouth* like the
+    // first: the trace stopped at a corner touching water, and the water is the
+    // pond it made (`RiverConfig.pitLakes`). It cannot appear on these two sizes —
+    // both are under `pitLakeMinTiles` — which the sweep below asserts by name.
     for (const size of sizes) {
       for (const seed of seeds) {
         const { rivers } = detailFor(seed, size);
@@ -170,6 +180,15 @@ describe('rivers on generated maps', () => {
     expect(masks(4242, 'duel')).toEqual(masks(4242, 'duel'));
     expect(masks(4242, 'standard')).toEqual(masks(4242, 'standard'));
     expect(masks(1, 'duel')).not.toEqual(masks(2, 'duel'));
+
+    // `huge` reads the **terrain** as well, because pit lakes made the river
+    // pass the one pass that writes terrain while it runs (2026-09-04): a pond
+    // is flooded between one trace and the next, and the trace after it sees the
+    // water. A pass that decides anything by Map or Set order would show up here
+    // and nowhere else.
+    const board = (seed: number): string[] =>
+      generateMap(seed, 'huge').tiles.map((t) => `${t.terrain}|${t.riverEdges}`);
+    expect(board(4242)).toEqual(board(4242));
   });
 
 
@@ -207,18 +226,31 @@ describe('rivers on generated maps', () => {
     // standard **0.98**, large 0.81, huge 0.63, giant 0.68. Duel is the one that
     // did not fully recover: 386 land tiles is not much watershed.
     //
-    // The claim still splits by size, because the interior is still an interior.
-    // `standard` is the size the balance is tuned against and seats the whole
-    // quota; the bigger boards seat a documented share of theirs, and the number
-    // that matters there is that the share does not collapse. `attemptsPerRiver`
-    // is still the tunable this test would notice being reverted — at the old
-    // flat cap every one of these floors halves.
+    // **Pit lakes closed the gap** (2026-09-04, "lets increase the number of
+    // rivers if it decreased, also adding lakes could help"). A trace that
+    // strands in the interior now floods the basin it stopped in and counts as
+    // landed, so interior drainage stopped being a reason to throw a river away:
+    // measured over twelve seeds on large and huge and eight on giant, every one
+    // of the three seats its **whole** quota, where the floors had been large
+    // 0.81, huge 0.63, giant 0.68. The floors below are the shipped rule, not the
+    // measurement — 0.95 leaves room for a seed whose basins are all mountain or
+    // all shoreline, which is the only way a pooling board can still come short.
+    //
+    // `duel` and `standard` are untouched by the rule (`pitLakeMinTiles` gates it
+    // at the boards above standard) and keep the floors they were measured at.
+    // The day standard is let in, its floor is the one to re-measure.
+    //
+    // `attemptsPerRiver` is still the tunable this test would notice being
+    // reverted — at the old flat cap every one of these floors halves. What it is
+    // *not* is the fix for the shortfall above: on a huge board about 3,900
+    // corners clear `minSpringElevation` and the budget is 17,160, so every
+    // candidate was already being tried and no larger budget could have helped.
     const floor: Record<string, number> = {
       duel: 0.65,
       standard: 0.9,
-      large: 0.75,
-      huge: 0.55,
-      giant: 0.6,
+      large: 0.95,
+      huge: 0.95,
+      giant: 0.95,
     };
     for (const size of MAP_SIZE_NAMES) {
       for (const seed of seeds) {
@@ -228,6 +260,30 @@ describe('rivers on generated maps', () => {
         expect(`${size}/${seed}: ${rivers.length} of ${wanted}`).toBe(
           `${size}/${seed}: ${Math.max(rivers.length, least)} of ${wanted}`,
         );
+      }
+    }
+  }, 60_000);
+
+  it('pools only above the size gate, and pools honestly when it does', () => {
+    // The rule swept: every board above `pitLakeMinTiles` makes tarns, every
+    // board under it makes none, and every tarn is the same shape — one hex, on
+    // no river, with no water for a neighbour and nothing standing in it. That
+    // last clause is what keeps `classifyLakes`'s reading of a lake true of a
+    // pond this pass made two passes later: an inland body, never a bay.
+    for (const size of MAP_SIZE_NAMES) {
+      for (const seed of seeds) {
+        const { map, rivers } = detailFor(seed, size);
+        const pools = map.width * map.height >= MAPGEN_CONFIG.rivers.pitLakeMinTiles;
+        const pooled = rivers.filter((river) => river.ending === 'lake');
+        expect(`${size}/${seed}: ${pooled.length > 0}`).toBe(`${size}/${seed}: ${pools}`);
+        for (const river of pooled) {
+          const pond = map.tiles[tileIndex(map, river.pool!.col, river.pool!.row)]!;
+          expect(pond.terrain).toBe('lake');
+          expect(pond.riverEdges).toBe(0);
+          expect(pond.feature).toBe('none');
+          expect(pond.hills).toBe(false);
+          expect(tileNeighbors(map, pond).some((n) => isWaterTerrain(n.terrain))).toBe(false);
+        }
       }
     }
   }, 60_000);

@@ -9,7 +9,7 @@ import {
   tileIndex,
   tileNeighbors,
 } from '../../src/sim/map';
-import { MAPGEN_CONFIG, generateMap } from '../../src/sim/mapgen';
+import { MAPGEN_CONFIG, generateMap, getMapSize } from '../../src/sim/mapgen';
 import { detailFor, mapFor } from './fixtures';
 import { makeRng } from '../../src/sim/rng';
 import { isWaterTerrain } from '../../src/sim/terrainData';
@@ -325,6 +325,138 @@ describe('river tracing', () => {
   });
 });
 
+// --- pit lakes --------------------------------------------------------------
+
+/**
+ * A land map with a valley floor across the middle and no water anywhere.
+ *
+ * The shape the pangaea's interior makes and the reason pit lakes exist: a trace
+ * from the high ground descends to the floor and then has nowhere to go, because
+ * there is no sea on this board to reach. Rows above and below row 5 rise away
+ * from it, so the strand happens in the middle of the map rather than against an
+ * edge, which is where a real basin is.
+ */
+function basin(width: number, height: number): GameMap {
+  const map = land(width, height);
+  for (const tile of map.tiles) tile.elevation = 0.5 + Math.abs(tile.row - 5) * 0.05;
+  return map;
+}
+
+describe('pit lakes', () => {
+  const spring: RiverVertex = { col: 5, row: 1, north: false };
+
+  it('strands without pooling, and pools with it', () => {
+    const map = basin(11, 11);
+    expect(traceRiver(map, spring, 40)).toBeNull();
+
+    const trace = traceRiver(map, spring, 40, 0, true)!;
+    expect(trace).not.toBeNull();
+    expect(trace.ending).toBe('lake');
+    expect(trace.pool).toBeDefined();
+    expect(trace.edges.length).toBeGreaterThan(0);
+    // The walk still only *names* the hex: nothing on the map moved.
+    expect(at(map, trace.pool!.col, trace.pool!.row).terrain).toBe('grassland');
+  });
+
+  it('floods the one hex of the terminal corner that carries no river', () => {
+    // The invariant the choice of hex exists to keep: every river edge runs
+    // between two land tiles, which stays true because the pond is on no edge of
+    // the river that made it.
+    const map = basin(11, 11);
+    const trace = traceRiver(map, spring, 40, 0, true)!;
+    const pond = at(map, trace.pool!.col, trace.pool!.row);
+    const last = trace.vertices[trace.vertices.length - 1]!;
+    expect(vertexTiles(map, last)).toContain(pond);
+    for (const edge of trace.edges) {
+      const tile = at(map, edge.col, edge.row);
+      expect(tile).not.toBe(pond);
+      expect(neighborInDirection(map, tile, edge.direction)).not.toBe(pond);
+    }
+  });
+
+  it('refuses to drown a peak, or to put a pond beside the sea', () => {
+    const bare = basin(11, 11);
+    const where = traceRiver(bare, spring, 40, 0, true)!.pool!;
+
+    // A mountain does not hold a tarn, and there is nowhere else to put one: the
+    // walk gives up exactly as it did before the rule existed.
+    const peak = basin(11, 11);
+    at(peak, where.col, where.row).terrain = 'mountain';
+    expect(traceRiver(peak, spring, 40, 0, true)).toBeNull();
+
+    // A pond beside salt water is a bay, and a pond beside a pond is a body
+    // nobody sized: any water neighbour refuses. The walk may now find that sea
+    // and end at it honestly, or strand as it used to — what it never does here
+    // is pool.
+    const shore = basin(11, 11);
+    tileNeighbors(shore, at(shore, where.col, where.row))[0]!.terrain = 'ocean';
+    const trace = traceRiver(shore, spring, 40, 0, true);
+    expect(trace?.pool).toBeUndefined();
+    expect(trace?.ending ?? 'water').toBe('water');
+  });
+
+  it('floods what it keeps and nothing else', () => {
+    const config = {
+      ...MAPGEN_CONFIG.rivers,
+      pitLakes: true,
+      pitLakeMinTiles: 0,
+      minSpringElevation: 0.5,
+      minLength: 1,
+      countPer1000Tiles: 1000,
+      minCount: 5,
+    };
+    const map = basin(11, 11);
+    const rivers = traceRivers(map, makeRng(99), config);
+    expect(rivers.some((r) => r.ending === 'lake')).toBe(true);
+    const lakes = map.tiles.filter((t) => t.terrain === 'lake');
+    expect(lakes).toHaveLength(rivers.filter((r) => r.ending === 'lake').length);
+    for (const lake of lakes) {
+      // A lake tile is water: nothing grows on it and no hill stands in it.
+      expect(lake.feature).toBe('none');
+      expect(lake.hills).toBe(false);
+      // Every pit lake is one isolated hex — the guard that keeps a lake a
+      // maximal inland body however many rivers strand near each other.
+      expect(tileNeighbors(map, lake).some((n) => isWaterTerrain(n.terrain))).toBe(false);
+    }
+
+    // A trace too short to keep is a trace that floods nothing: the walk names
+    // the hex, `traceRivers` writes it, and only for a river it accepted.
+    const spurned = basin(11, 11);
+    traceRivers(spurned, makeRng(99), { ...config, minLength: 500 });
+    expect(spurned.tiles.some((t) => t.terrain === 'lake')).toBe(false);
+  });
+
+  it('pools on the boards above standard, and on no smaller one', () => {
+    // The shipped gate, read off the data rather than restated: `standard` is
+    // the size the balance is tuned against and every pinned fixture is measured
+    // at, so the rule starts at `large`. `docs/mapgen.md` records lowering this
+    // to 0 as the follow-up.
+    const config = MAPGEN_CONFIG.rivers;
+    expect(config.pitLakes).toBe(true);
+    const area = (name: string): number => {
+      const size = getMapSize(name);
+      return size.width * size.height;
+    };
+    expect(area('standard')).toBeLessThan(config.pitLakeMinTiles);
+    expect(area('large')).toBeGreaterThanOrEqual(config.pitLakeMinTiles);
+  });
+
+  it('switches off whole, leaving the old map behind', () => {
+    // The `enabled`-style promise every pass in this generator makes. The whole
+    // of it — that the switch reaches the pre-ruling world tile for tile — is
+    // `OLD_FIXTURES` in `resources.slow.test.ts`; this is the reading of it that
+    // fails legibly: off, no trace pools and no hex is flooded.
+    const off = detailFor(4242, 'large', { rivers: { pitLakes: false } });
+    const on = detailFor(4242, 'large');
+    expect(off.rivers.some((r) => r.ending === 'lake')).toBe(false);
+    expect(on.rivers.some((r) => r.ending === 'lake')).toBe(true);
+    const lakes = (map: GameMap): number =>
+      map.tiles.filter((t) => t.terrain === 'lake').length;
+    expect(lakes(on.map)).toBeGreaterThan(lakes(off.map));
+    expect(off.rivers.length).toBeLessThanOrEqual(on.rivers.length);
+  });
+});
+
 describe('rivers on generated maps', () => {
   it('scales the spring budget with the quota rather than capping it flat', () => {
     // The tunable itself, read the way the algorithm reads it: a bigger board
@@ -337,6 +469,24 @@ describe('rivers on generated maps', () => {
       9,
     );
     expect(config.attemptsPerRiver).toBeGreaterThan(1);
+  });
+
+  it('seats the whole quota on a huge board, tarns and all', () => {
+    // One seed, in core, because the ruling of 2026-09-04 is a claim about the
+    // big boards and a claim nobody reads until it breaks is worth a second of
+    // anybody's gate. The sweep across seeds and sizes is in `water.slow.test.ts`;
+    // this is the register: huge asked for its rivers and got all of them, and
+    // some of them got there by ending in a pond of their own making.
+    const { map, rivers } = detailFor(1, 'huge');
+    expect(rivers).toHaveLength(riverCountFor(MAPGEN_CONFIG.rivers, map.width, map.height));
+    const pooled = rivers.filter((r) => r.ending === 'lake');
+    expect(pooled.length).toBeGreaterThan(0);
+    for (const river of pooled) {
+      const pond = at(map, river.pool!.col, river.pool!.row);
+      expect(pond.terrain).toBe('lake');
+      expect(pond.riverEdges).toBe(0);
+      expect(tileNeighbors(map, pond).some((n) => isWaterTerrain(n.terrain))).toBe(false);
+    }
   });
 
   it('spaces springs apart', () => {

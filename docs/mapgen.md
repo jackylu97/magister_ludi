@@ -23,7 +23,7 @@ types and the override seam), `docs/luxuries.md` (the resource table itself),
 2. [The two fields](#the-two-fields)
 3. [Terrain, hills and mountains as shares](#terrain-hills-and-mountains-as-shares)
 4. [Features: forest and jungle](#features-forest-and-jungle)
-5. [Lakes, coast and rivers](#lakes-coast-and-rivers)
+5. [Lakes, coast and rivers](#lakes-coast-and-rivers) · [pit lakes](#pit-lakes-a-river-that-ends-in-a-tarn)
 5b. [The arid features: oasis and floodplain](#the-arid-features-oasis-and-floodplain)
 5c. [The pangaea: one continent and its islands](#the-pangaea-one-continent-and-its-islands)
 5d. [The broken ridges](#the-broken-ridges)
@@ -265,7 +265,8 @@ the fact being recorded for a later milestone to price.
 **Lakes** are a *classification*, not a terrain the noise produces. Every water
 tile belongs to a connected water body (wrap-aware, so a puddle on the seam is
 one lake); bodies of at most `lakes.maxSize` tiles that are not part of the polar
-margin become `lake`.
+margin become `lake`. There is a second source of them one pass later, one hex at
+a time — see [pit lakes](#pit-lakes-a-river-that-ends-in-a-tarn).
 
 **Coast** is a multi-source BFS, flooding outward from every land tile across
 ocean tiles only, up to `coast.rings` hex steps (2, since the naval-combat
@@ -324,6 +325,70 @@ tributaries, which is what a mountain range should shed.
 
 Rivers are the generator's **first dice**, rolled after every noise field, so
 terrain on a given seed is exactly what it was before rivers existed.
+
+### Pit lakes: a river that ends in a tarn
+
+**Ruled 2026-09-04**: "lets increase the number of rivers if it decreased, also
+adding lakes could help" — and, on the same day, "in general, more rivers and
+lakes would be good".
+
+The pangaea gave the world an interior, and an interior has **interior
+drainage**: a trace has to run from its spring to open water without one step
+back up, and the ones that could not were thrown away whole. That is what took
+the big boards to 0.63–0.68 of the quota they ask for while `standard` sat at
+0.98. The fix is not to ask for more rivers or to look at more springs — see
+`attemptsPerRiver`, which was already examining every candidate corner on those
+boards. It is to notice that a descent ending in a bowl is not "no river here":
+it is **a river that ends in a tarn**.
+
+So when `rivers.pitLakes` is on and the walk runs out of downhill, it floods one
+hex and keeps the river (`pondTileAt`, `traceRiver`'s `pool` mode). Four things
+about the rule, each of them protecting something already written down:
+
+- **The ordinary walk runs first, always.** Pooling is what happens to a descent
+  already proved to have nowhere to go — `traceRivers` re-runs the same walk in
+  pool mode only after the first one failed — never a shortcut taken while the
+  sea was still reachable. Nothing about descent is relaxed: every step of a
+  pooled river is still to a corner no higher than the one before it.
+- **Which hex.** A corner has three hexes and the step that arrived crossed the
+  edge between two of them, so the pond is the third: the basin straight ahead of
+  the last step. That keeps the module's oldest invariant true — *every river
+  edge runs between two land tiles* — because a hex on no river cannot get water
+  on the end of one.
+- **When not.** A mountain (a peak holds no tarn, and the mountain census is a
+  fixed share), a hex already carrying a river edge, a hex with any water for a
+  neighbour (a pond beside the sea is a bay; a pond beside a pond is a body
+  nobody sized), and a hex on a polar row (`classifyLakes`'s own reason). With
+  the water-neighbour refusal **every pit lake is exactly one isolated hex**, so
+  everything said about a lake being a maximal inland body still reads true.
+- **A discarded trace floods nothing.** The walk *names* the hex; `traceRivers`
+  writes it, and only for a river it kept.
+
+The water-neighbour refusal pays a second time, unasked: the six neighbours of an
+interior hex form a ring, each adjacent to the next, so drowning a hex all six of
+whose neighbours are land can never disconnect the land around it. **A pond
+cannot split a landmass**, and the continent carve, the shelf and the start
+chooser's landmass floor read the continent they would have read anyway. What
+does move is the land count, by one hex per pooled river — and every
+per-1000-land-tile budget simply reads it.
+
+Measured, twelve seeds on large and huge and eight on giant: **every board seats
+its whole quota** (large 0.81 → 1.00, huge 0.63 → 1.00, giant 0.68 → 1.00), and
+roughly four rivers in ten get there by pooling — about 40 tarns on a large
+board, 60 on a huge one and 130 on a giant one, which is also the answer to
+"more lakes would be good": before the rule a huge map had two or three lake
+*tiles* on it.
+
+**What shipped is the lake rule alone**, gated by `rivers.pitLakeMinTiles` at the
+boards above `standard`. The two things deliberately not done: a retry budget per
+size (`attemptsPerRiver` is not binding, so it would have bought nothing), and a
+priority-flood **depression fill** of the corner field before the river pass,
+which is the general fix and remains the honest thing to do the day the shortfall
+comes back. The size gate is a fixture concession, not a design one — `standard`
+is the size the balance is tuned against and the size every pinned hash is
+measured at — so **lowering `pitLakeMinTiles` to 0 is the follow-up**, and it
+costs a re-aim of `FIXTURES` in `test/mapgen/resources.slow.test.ts` and of the
+`standard` row of the quota floors in `test/mapgen/water.slow.test.ts`.
 
 ## The arid features: oasis and floodplain
 
@@ -542,14 +607,17 @@ denominator they were always written in.
   about the rows between, so a seed whose noise runs a low band across the
   continent is dealt a pangaea in two lobes. Both lobes sit on one shelf and both
   are big enough to live on, so both are legal homes.
-- **Rivers**: the quota is a *ceiling* on the boards above `standard`, because a
+- **Rivers**: the quota *was* a ceiling on the boards above `standard`, because a
   trace has to run downhill from spring to sea without one step back up and one
   continent has an interior. Breaking the ranges
   ([the broken ridges](#the-broken-ridges)) bought most of the loss back —
-  measured floors over twenty seeds are duel 0.71, standard **0.98**, large 0.81,
+  measured floors over twenty seeds were duel 0.71, standard **0.98**, large 0.81,
   huge 0.63, giant 0.68 of the quota asked for. Round two of the ruling cost some
   of that back and `rivers.minSpringElevation` 0.84 → 0.80 recovered it — see
-  that row in [Every tunable](#every-tunable).
+  that row in [Every tunable](#every-tunable). The rest was paid back the next
+  day by [pit lakes](#pit-lakes-a-river-that-ends-in-a-tarn), which let the
+  stranded trace end in a tarn: large, huge and giant now seat their whole quota,
+  and `duel` and `standard` are exactly where this bullet left them.
 - **Coast**: more of it, both from the longer island coastlines and from the
   chains.
 
@@ -1117,7 +1185,9 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 | `minLength` | 4 | traces shorter than this many edges are discarded |
 | `maxLength` | 80 | hard cap on one trace |
 | `backtrackSteps` | 64 | forks one trace may retry before it is abandoned; 0 is the plain greedy walk |
-| `attemptsPerRiver` | 120 | springs examined per river asked for |
+| `attemptsPerRiver` | 120 | springs examined per river asked for. **Not the lever it looks like on a big board**: about 3,900 corners clear `minSpringElevation` on a huge map against a budget of 17,160, so every candidate is already tried and a larger number buys nothing |
+| `pitLakes` | true | may a trace that runs out of downhill flood the basin it stopped in and count as landed? See [pit lakes](#pit-lakes-a-river-that-ends-in-a-tarn). `false` switches the rule off whole and reproduces the pre-ruling map byte for byte (`OLD_FIXTURES`) |
+| `pitLakeMinTiles` | 5000 | smallest board, in tiles, that pools — "the boards above standard" (standard is 4,160, large 6,656). **0 pools on every size**, which is the intended follow-up; standard is excluded today only because it is the size the balance is tuned against and the size every pinned fixture is measured at |
 
 ### resources
 

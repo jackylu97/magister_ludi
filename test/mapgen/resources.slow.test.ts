@@ -316,12 +316,20 @@ describe('the ground did not move', () => {
   // Nothing about the dice moved, which is the thing these fixtures actually
   // guard — and `OLD_FIXTURES` below still reproduces the pre-ruling world byte
   // for byte through the three switches.
+  // Re-measured a sixth time on 2026-09-04 for **pit lakes** (`rivers.pitLakes`,
+  // the river-quota ruling), and this is the narrowest re-measure the table has
+  // ever taken: the rule floods one hex for a river that used to be discarded,
+  // and it is gated by `rivers.pitLakeMinTiles` at "boards above standard", so
+  // **the duel and standard hashes below are the ones that were already there,
+  // unchanged**. Only `large` and `huge` moved, and they moved for the reason the
+  // ruling asked them to — more rivers, and a tarn at the end of each one that
+  // could not reach the sea.
   const FIXTURES: [number, string, string][] = [
     [1234, 'duel', '25dd7a72'],
     [7, 'duel', '1d8bfa83'],
     [31337, 'standard', 'fdd96f6b'],
-    [99, 'large', 'feb8a1bf'],
-    [2024, 'huge', '63524b17'],
+    [99, 'large', 'f375c273'],
+    [2024, 'huge', '595a7c36'],
   ];
 
   it('reproduces the pre-resource generator exactly', () => {
@@ -338,7 +346,9 @@ describe('the ground did not move', () => {
   // `coast.rings: 1` is the pre-2026-08-29 one-ring shelf; `pangaea.enabled:
   // false` / `shelfChains: false` are the two halves of the pangaea (the mask on
   // the continental field, and the ribbons of coast run out to the islands);
-  // `ridgeBreakStrength: 0` switches off the crest-gapping pass; and `seaLevel`,
+  // `ridgeBreakStrength: 0` switches off the crest-gapping pass; `rivers.pitLakes:
+  // false` is the river-quota ruling's own switch (2026-09-04), which is why the
+  // five hashes below did not have to move for it; and `seaLevel`,
   // `mountainShare` and `minSpringElevation` are the three *numbers* the same
   // batch retuned, back at the values they had. Each pass is switched off whole rather than tuned to
   // zero, so what comes back is not merely a similar world but the identical one,
@@ -358,7 +368,7 @@ describe('the ground did not move', () => {
         coast: { rings: 1 },
         pangaea: { enabled: false, shelfChains: false },
         elevation: { ridgeBreakStrength: 0, seaLevel: 0.62, mountainShare: 0.1 },
-        rivers: { minSpringElevation: 0.84 },
+        rivers: { minSpringElevation: 0.84, pitLakes: false },
       });
       expect(`${seed}/${size}: ${hashTerrain(map)}`).toBe(`${seed}/${size}: ${expected}`);
     }
@@ -378,10 +388,18 @@ describe('the ground did not move', () => {
     // and the lakes because a masked field puts different pockets of water
     // inland. What is still being guarded is the ordering — rivers before
     // resources, lakes before either — not the numbers themselves.
+    //
+    // Re-measured for **pit lakes** (2026-09-04), and only on `huge`: the rule is
+    // gated at the boards above standard, so the duel and standard rows are the
+    // numbers they always were. The huge row is the whole ruling in one reading —
+    // 140 rivers of the 143 asked for became 143, because the traces that used to
+    // die in the interior now end in a tarn. `lakeCount` is unmoved on every row
+    // because it counts what `classifyLakes` reclassified two passes earlier; a
+    // pit lake is not one of those, and `water.slow.test.ts` counts those.
     const counts: [number, string, number, number][] = [
       [1234, 'duel', 14, 1],
       [31337, 'standard', 57, 0],
-      [2024, 'huge', 140, 2],
+      [2024, 'huge', 143, 2],
     ];
     for (const [seed, size, rivers, lakes] of counts) {
       const detail = detailFor(seed, size);

@@ -234,6 +234,12 @@ const TUNING: TuneGroup[] = [
      * Floodplains have no knob of their own on purpose — they are derived from
      * the rivers and the oases (`deriveFloodplains`), so the two rows above and
      * the four here are already the whole of their tuning.
+     *
+     * The two pit-lake rows are the same question asked from the other side
+     * (2026-09-04): a river that strands in the interior floods the basin it
+     * stopped in, which is where nearly every lake on a big board comes from.
+     * `pitLakeMinTiles` is on the panel rather than buried because **0** is what
+     * a designer types to see the rule on a standard board.
      */
     title: 'Water',
     under: 'rivers · lakes',
@@ -242,6 +248,8 @@ const TUNING: TuneGroup[] = [
       { path: ['rivers', 'minLength'], places: 0, hint: 'shorter traces are discarded' },
       { path: ['rivers', 'minSpringElevation'], places: 2, hint: 'how high a spring must sit' },
       { path: ['rivers', 'backtrackSteps'], places: 0, hint: 'forks a trace may retry' },
+      { path: ['rivers', 'pitLakes'], hint: 'a stranded river ends in a tarn' },
+      { path: ['rivers', 'pitLakeMinTiles'], places: 0, hint: 'smallest board that pools; 0 is all' },
       { path: ['lakes', 'maxSize'], places: 0, hint: 'water bodies up to this are lakes' },
     ],
   },
