@@ -6,7 +6,8 @@
  *
  * **The ladder.** Culture fills an escalating meter; each fill is a draft, and
  * *tier is the draft count* — one number, one ladder. A draft offers 3 new cards
- * and 1 upgrade; a government is offered at tiers 3, 7 and 15 as a fixed triple
+ * and a pass (`skipOrderOffer`, which buys a rarer hand next time); a government
+ * is offered at tiers 3, 7 and 15 as a fixed triple
  * whose adoption is bankable; adopting swaps the slot spread, amnesties every
  * seal, and opens a Doctrine draft. All of it is `state.rng` at the moment an
  * offer opens, an ordinary command to spend it, and both halves in the log —
@@ -25,11 +26,11 @@
  * --------------------------------------
  * There are twenty-eight shapes in the vocabulary and one walk over them
  * (`liveEffects`). Every reader filters that walk; none of them re-derives which
- * cards are live, which are gated, or how deeply one has been drafted — the
- * deepening is expanded at the source, so a reader sees ordinary lines. That is
- * what keeps the promise true as the table grows: the failure mode of a second
- * walk is a card that works everywhere except in the one ledger somebody
- * forgot.
+ * cards are live, which are gated, or what a card's face is — a card is what its
+ * row prints (the levelling ruling of 2026-09-04), so a reader sees ordinary
+ * lines. That is what keeps the promise true as the table grows: the failure
+ * mode of a second walk is a card that works everywhere except in the one ledger
+ * somebody forgot.
  *
  * The import cycle with `cities.ts` and `meters.ts`, and why it is safe
  * --------------------------------------------------------------------
@@ -146,8 +147,8 @@ import {
   type MeterRuleId,
   type OfferRiderScope,
   type OfferRuleId,
-  type OrderDeepening,
   type OrderId,
+  type OrderRarity,
   type OrderSlotGrant,
   type RateSource,
   type SlotType,
@@ -164,7 +165,6 @@ import {
   governmentsAtTier,
   isDoctrineId,
   isGovernmentId,
-  isOrderDeepening,
   isOrderId,
   orderDef,
   orderFitsSlot,
@@ -221,145 +221,62 @@ export function nextDraftCost(player: Player): number {
   return draftCost(player.statecraft.drafts);
 }
 
-// --- the deepening ladder ---------------------------------------------------
+// --- rarity, and the pity a skip buys -------------------------------------
 
 /**
- * **The deepening ladder** (the user's ruling of 2026-09-02: *"orders can only
- * be deepened up to level 3. Some cannot be upgraded"*).
+ * **The draw's weights** (the user's ruling of 2026-09-04: *"no more upgrading
+ * altogether, all cards are as is. Players are given an option to skip and
+ * increase the rarity of their next draft"*).
  *
- * What replaced `scaleByLevel`, and the whole of why it is better. That
- * function multiplied *every printed figure on the card* by 1.5 per level, so
- * deepening Blooded Spears raised the point it pays everybody as well as the two
- * it pays against the wild, and deepening The Almanac raised the library clause
- * a designer had priced against every town in the realm. Nobody authored any of
- * it: the second face of sixty-five cards was an arithmetic accident, and the
- * only dial was one number in a JSON file.
+ * What the ladder left behind. A draft used to ask *widen or deepen*, and the
+ * deepening was the whole of what a second copy of a card meant: an authored
+ * increment, a ceiling, a `maxLevel`, an expansion point, a level on every
+ * holding. All of it is gone — a card is what its row prints, in every empire,
+ * forever — and the question the draft asks instead is **take one, or pass**.
  *
- * So the increment is **authored**, in the ordinary vocabulary, on the row:
- * `OrderDef.upgrade` is the list of what **one deepening does**, and for the
- * fifty-three rows whose entries are all ordinary `CardEffect`s the face at
- * level *N* is
+ * A pass has to be worth something or it is a button nobody presses, and what
+ * it is worth is the *bag*: every Order row carries an `OrderDef.rarity`, the
+ * bag is drawn from by weight rather than uniformly (`rarityWeights`: common 4,
+ * uncommon 2, rare 1), and each consecutive skip adds `skipPity` to the
+ * uncommon and rare weights of the next draw. Take a card and the count goes
+ * back to zero.
  *
- *     def.effects ++ (N − 1) copies of def.upgrade
+ * Three properties this shape has and a "reroll" would not:
  *
- * folded by the ordinary evaluators as ordinary lines. That is the whole
- * mechanism, and three things fall out of it for free:
- *
- *   · every consumer register in `CLAUDE.md` keeps working untouched — a deeper
- *     card is *more lines of the same kinds*, never a bigger number a reader has
- *     to know how to grow;
- *   · the increment names **which clause deepens** (Blooded Spears' upgrade is
- *     the vs-barbarians point alone; The Almanac's is the capital's beaker
- *     alone), which is a design decision and now reads as one;
- *   · a breakdown shows the deepening as its own line, so a player folding the
- *     arithmetic sees *why* the number moved.
- *
- * A row that deepens a **parameter** rather than a line — The Standing Levy's
- * cadence, Pilgrim Roads' cap — cannot be said by a second copy of anything: a
- * second `periodicMuster` musters twice rather than sooner, and a second capped
- * `countScaled` pays past its cap. Those two shipped `upgradable: false` with
- * the ratified deepening in `deferred` for three passes, which was Entry XV.b's
- * rule working (*a shape is never bent to nearly fit*) — and the user's flag
- * ruling of 2026-09-03 (*"standing levy being able to upgrade is a cool
- * mechanic"*) is the edit that rule was holding the place for. So the increment
- * list gained a **second kind of entry**: an `OrderDeepening` names a printed
- * effect's kind and one of its numbers and *moves* that number once per level,
- * where an ordinary effect adds a line. Two things a level may do, one list, one
- * expansion point — below — and the additive rows read byte-identically, because
- * the entry says which it is instead of a rule inferring it from a matching
- * `kind` (every one of the fifty-three prints a kind its increment repeats).
+ *   · **the offer is still drawn once and spent by a command.** A skip *is* the
+ *     spend — the hand is gone, not re-dealt — so a replay deals the same cards
+ *     to the same seat whatever anybody clicked.
+ *   · **the pity is an absolute count**, never a countdown: `orderSkips` is how
+ *     many drafts in a row this empire has passed, compared when the next hand
+ *     is dealt, ticked by nothing.
+ *   · **culture already paid stays paid.** The draft's cost came out when the
+ *     meter filled (`settleDraft`); passing does not hand it back, which is
+ *     what makes the choice cost something.
  */
 
-/** How deep a card may be drafted, in levels. The row's own ceiling, or 3. */
-export function maxLevelOf(id: OrderId): number {
-  return Math.max(1, Math.floor(orderDef(id).maxLevel ?? STATECRAFT.maxOrderLevel));
+/** The weight one card carries in a bag drawn by an empire that has skipped `skips` times. */
+export function orderDrawWeight(id: OrderId, skips: number): number {
+  return rarityDrawWeight(orderDef(id).rarity, skips);
 }
 
 /**
- * The face of one Order at one level: its printed effects, with one application
- * of its authored increment per level above the first.
+ * The same reading, by rung rather than by card — what a screen or a test asks
+ * when it wants the shape of the bag rather than the weight of one row.
  *
- * **The expansion point**, and the only place a level is anything but a number.
- * Each entry of `upgrade` is applied once per level above the first, in list
- * order, and does one of two things (`OrderDef.upgrade`):
- *
- *   · an ordinary `CardEffect` is **appended** — the additive default, and what
- *     every row but two says;
- *   · an `OrderDeepening` **moves a printed number** on the first effect of its
- *     kind that carries that number, replacing the line with a copy. Applied
- *     once per level, so The Standing Levy reads 12, 10, 8 and Pilgrim Roads'
- *     cap reads 5, 7, 9 rather than sticking at the second face.
- *
- * A deepening that names a number the card does not print moves nothing, which
- * is the same silence a missing `upgrade` keeps: the reading is always the
- * printed face plus what the row could actually say.
- *
- * **The reading clamps and never throws.** A save taken before a ceiling was
- * written down may hold a card above it, and a row whose `upgrade` was deleted
- * in a retune reads as its printed face at every level — both are the honest
- * answer rather than a crash, and neither is reachable by a live draft
- * (`canDeepen` refuses a card at its cap).
+ * The pity is added, never multiplied, and only to the two rungs `skipPity`
+ * names: common is not a key of it (see `StatecraftConfig.skipPity`), so a
+ * passed draft can only ever move the deck's top, never its floor. Floored at
+ * zero so a retuned knob cannot make a rung impossible to draw by going
+ * negative — a weightless bag is a draw that has to fall back on its last item,
+ * and an unreachable card is not a balance decision anybody meant to take.
  */
-export function orderEffectsAtLevel(id: OrderId, level: number): CardEffect[] {
-  const def = orderDef(id);
-  const capped = Math.min(Math.max(1, Math.floor(level)), maxLevelOf(id));
-  const upgrade = def.upgrade ?? [];
-  if (capped <= 1 || upgrade.length === 0) return [...def.effects];
-  let list: CardEffect[] = [...def.effects];
-  for (let i = 1; i < capped; i++) {
-    for (const entry of upgrade) {
-      if (isOrderDeepening(entry)) list = deepenParameter(list, entry);
-      else list.push(entry);
-    }
-  }
-  return list;
-}
-
-/**
- * One application of a parameter deepening: the same list with one line
- * replaced by a copy whose named number has moved.
- *
- * A **copy**, never a write, and that is load-bearing twice over: `def.effects`
- * is the table's own array — the row every empire in the world reads — so
- * mutating it would deepen a card for everybody the first time anybody drafted
- * it, and the level-1 face has to keep reading as the printed one however many
- * deeper faces have been asked for since.
- *
- * The line is found by kind **and** by carrying the number, which is what lets
- * Pilgrim Roads name its capped `countScaled` without an index — see
- * `OrderDeepening`. A cadence is floored at one turn: a muster every no turns is
- * not a reading of anything, and `musterPeriodicUnits` would divide by it.
- */
-function deepenParameter(list: readonly CardEffect[], entry: OrderDeepening): CardEffect[] {
-  const at = list.findIndex(
-    (effect) =>
-      effect.kind === entry.deepens &&
-      (entry.parameter in effect) &&
-      typeof (effect as unknown as Record<string, unknown>)[entry.parameter] === 'number',
-  );
-  if (at < 0) return [...list];
-  const target = list[at]!;
-  const was = (target as unknown as Record<string, number>)[entry.parameter]!;
-  const now = entry.parameter === 'every' ? Math.max(1, was + entry.by) : was + entry.by;
-  const next = [...list];
-  next[at] = { ...target, [entry.parameter]: now } as CardEffect;
-  return next;
+export function rarityDrawWeight(rarity: OrderRarity, skips: number): number {
+  const base = STATECRAFT.rarityWeights[rarity] ?? 0;
+  const pity = rarity === 'common' ? 0 : (STATECRAFT.skipPity[rarity] ?? 0);
+  return Math.max(0, base + pity * Math.max(0, Math.floor(skips)));
 }
 
 // --- what a player holds ----------------------------------------------------
-
-/**
- * An Order in the collection, and how deep it has been drafted.
- *
- * Level is on the *holding* rather than on the card, which is the whole of the
- * upgrade slot (Entry XV): a card is one row in the table however many empires
- * hold it and however deeply.
- */
-export interface OwnedOrder {
-  id: OrderId;
-  /** 1 is the printed face. Deepened by the draft's upgrade option. */
-  level: number;
-}
 
 /**
  * An Order in a slot, and the turn from which it may be taken out again.
@@ -377,19 +294,22 @@ export interface SlottedOrder {
 }
 
 /**
- * A draft: three new cards and, when the player owns anything, one upgrade.
+ * A draft: the cards dealt, and nothing else.
  *
  * The options are an ordered list and a pick is an **index**, never an id —
  * `DiscoveryOffer`'s rule, and here for its reason: an index can only ever name
- * something the player was actually dealt. The upgrade is the *last* option when
- * it is there at all, so "option 4" means the same thing on every card that has
- * four.
+ * something the player was actually dealt.
+ *
+ * There is no fourth face. The upgrade option went with the ladder on
+ * 2026-09-04 ("all cards are as is"), and what stands in its place is not an
+ * option at all but a second verb: `skipOrderOffer` passes the whole hand and
+ * buys a rarer one next time. That is deliberately *not* an index — a pass is
+ * not a card, and a client that could name it as one would be a client the
+ * reducer has to tell apart from a pick.
  */
 export interface OrderOffer {
   /** The new cards, in draw order. */
   options: OrderId[];
-  /** The owned card the extra option deepens, or absent on the first draft. */
-  upgrade?: OrderId;
 }
 
 /** Three Doctrines from one adoption's pool, drawn without replacement. */
@@ -430,8 +350,8 @@ export interface PlayerStatecraft {
   /** Drafts taken. **This is the tier.** */
   drafts: number;
   government: GovernmentId;
-  /** Every Order held, in the order they were first drafted. */
-  orders: OwnedOrder[];
+  /** Every Order held, in the order they were drafted. Each is held once. */
+  orders: OrderId[];
   /**
    * What is in each slot, indexed by the government's `slotLayout`. `null` is
    * an empty slot — a real state, unlike an absent key, because the *number* of
@@ -452,6 +372,20 @@ export interface PlayerStatecraft {
    * again is not a second great person, which is what "once" means.
    */
   grantedOnSlot: OrderId[];
+  /**
+   * **Consecutive drafts this empire has passed** — the pity the skip verb buys
+   * (the user's ruling of 2026-09-04).
+   *
+   * An **absolute count**, in the register `SlottedOrder.sealedUntil` and every
+   * other timed fact in this game keep: it is written by `settleOrderSkip` and
+   * zeroed by `settleOrderChoice`, compared once when the next hand is dealt,
+   * and ticked by nothing. A phase that ticked it would be a phase that can be
+   * skipped, run twice, or run in the wrong order.
+   *
+   * Always present, never optional, so a seat that has passed nothing and a
+   * seat that has passed and then taken a card serialise identically.
+   */
+  orderSkips: number;
   /** A draft awaiting a pick, or the key is absent. Blocks End Turn. */
   pendingOrder?: OrderOffer;
   /** A Doctrine draft awaiting a pick, or absent. Blocks End Turn. */
@@ -469,6 +403,7 @@ export function newPlayerStatecraft(): PlayerStatecraft {
     slots: slotLayout(STARTING_GOVERNMENT).map(() => null),
     doctrines: [],
     grantedOnSlot: [],
+    orderSkips: 0,
   };
 }
 
@@ -477,12 +412,9 @@ export function statecraftOf(state: GameState, playerId: number): PlayerStatecra
   return playerById(state, playerId)?.statecraft;
 }
 
-/** The level a player holds a card at, or 0 when they do not hold it. */
-export function orderLevel(sc: PlayerStatecraft, id: OrderId): number {
-  for (const owned of sc.orders) {
-    if (owned.id === id) return owned.level;
-  }
-  return 0;
+/** Does this player hold this card? The whole of what a collection knows. */
+export function holdsOrder(sc: PlayerStatecraft, id: OrderId): boolean {
+  return sc.orders.includes(id);
 }
 
 /** Which slot index holds this card, or −1. */
@@ -515,18 +447,13 @@ export function slotTypesOf(sc: PlayerStatecraft): SlotType[] {
  * arrived diluted. An unpicked card from the old government is gone for good
  * now; adopting is the moment a whole shelf turns over.
  *
- * Deepening is untouched by this: the upgrade face is rolled from `sc.orders`
- * and never from a pool, so a chiefdom card an empire *did* take can still be
- * deepened forever, which is the half of Entry XV's shape that always did the
- * work.
- *
  * Through `poolOrders`, which is the one reader of `retired` — a withdrawn row
  * has to be out of the draw and out of every screen by the same clause. In file
  * order, because a draw that depends on an order must depend on an order the
  * data carries.
  */
 export function livePool(sc: PlayerStatecraft): OrderId[] {
-  const held = new Set(sc.orders.map((owned) => owned.id));
+  const held = new Set(sc.orders);
   return poolOrders(poolOfGovernment(sc.government)).filter((id) => !held.has(id));
 }
 
@@ -551,6 +478,57 @@ export function drawWithoutReplacement<T>(state: GameState, from: readonly T[], 
     const index = Math.min(remaining.length - 1, Math.floor(nextFloat(state.rng) * remaining.length));
     drawn.push(remaining[index]!);
     remaining.splice(index, 1);
+  }
+  return drawn;
+}
+
+/**
+ * `drawWithoutReplacement` with a **weight per candidate** — the rarity draw
+ * (the ruling of 2026-09-04).
+ *
+ * The same walk, the same contract, one roll per card actually taken: the only
+ * difference is that the roll lands in a running total of weights rather than
+ * in a count of items, so a bag of one rare and three commons deals the rare
+ * one time in thirteen rather than one in four. Uniform is this function with
+ * every weight at 1, which is why the plain draw above is still the one every
+ * *other* deck uses — a weight nobody varies is a weight nobody should have to
+ * read.
+ *
+ * **The weight is asked once per candidate per draw**, not cached: the bag
+ * shrinks as cards come out of it, and a total computed before the first pick
+ * would be a total that no longer describes what is left. That is O(n) per
+ * card over a bag of at most a few dozen, which is nothing, and it is the
+ * version that cannot silently drift.
+ *
+ * A negative weight reads as zero and a bag that weighs nothing at all falls
+ * back on its last item rather than dealing `undefined` — the honest answer to
+ * a retune that made every candidate weightless, and unreachable while any rung
+ * carries a positive weight.
+ */
+export function drawWeighted<T>(
+  state: GameState,
+  from: readonly T[],
+  count: number,
+  weightOf: (item: T) => number,
+): T[] {
+  const remaining = [...from];
+  const wanted = Math.min(Math.max(0, Math.floor(count)), remaining.length);
+  const drawn: T[] = [];
+  for (let taken = 0; taken < wanted; taken++) {
+    let total = 0;
+    for (const item of remaining) total += Math.max(0, weightOf(item));
+    const roll = nextFloat(state.rng) * total;
+    let at = remaining.length - 1;
+    let running = 0;
+    for (let i = 0; i < remaining.length; i++) {
+      running += Math.max(0, weightOf(remaining[i]!));
+      if (roll < running) {
+        at = i;
+        break;
+      }
+    }
+    drawn.push(remaining[at]!);
+    remaining.splice(at, 1);
   }
   return drawn;
 }
@@ -613,10 +591,11 @@ const OFFER_BASE_WORDS: Record<OfferKind, string> = {
  *      trimmed says it was trimmed rather than quietly ignoring a card the
  *      player paid for.
  *
- * The Statecraft draft's upgrade face is deliberately **not** in this count: a
- * rider adds to the *new* cards, and "3 new + 1 upgrade" becomes "4 new + 1
- * upgrade". The upgrade is one card because it is one question (deepen or
- * widen), and two of them would be a different question.
+ * A Statecraft draft's **pass** is not in this count and could not be: it is a
+ * verb rather than a card (`skipOrderOffer`), so a rider that widens the hand
+ * widens the hand and leaves the second answer exactly where it was. The
+ * upgrade face this paragraph used to carve out went with the ladder on
+ * 2026-09-04.
  */
 export function explainOfferSize(
   state: GameState,
@@ -631,9 +610,8 @@ export function explainOfferSize(
   for (const { source, effect } of effectsOfKind(state, playerId, 'offerRider')) {
     if (effect.offer !== kind && effect.offer !== 'all') continue;
     // A rider with no figure deals the ordinary one card, so a data row may say
-    // only which draft it widens. Scaled by level like every other figure in
-    // the vocabulary — a deeply drafted Order deals more, and the cap below is
-    // what stops that becoming a spread nobody can read.
+    // only which draft it widens. The cap below is what stops a stack of them
+    // becoming a spread nobody can read.
     const extra = (effect.extra ?? 1);
     if (extra === 0) continue;
     lines.push({ source, delta: extra });
@@ -658,7 +636,7 @@ export function cardRouteSlots(state: GameState, playerId: number): OfferSizeLin
   const lines: OfferSizeLine[] = [];
   for (const { source, effect } of effectsOfKind(state, playerId, 'routeRider')) {
     // A rider with no figure grants the ordinary one route, so a data row may
-    // say only that it widens the fold. Scaled by level like every other figure.
+    // say only that it widens the fold.
     const extra = (effect.extra ?? 1);
     if (extra === 0) continue;
     lines.push({ source, delta: extra });
@@ -716,17 +694,25 @@ const SPREAD_MIN_SIZE = SLOT_TYPES.length;
  * slots out), then the open fill from everything not yet taken. Fixed because a
  * generator read in a different order is a different game from the same seed.
  *
- * **The roll contract.** Each of the four draws goes through
- * `drawWithoutReplacement`, so each spends exactly one roll per card it actually
- * takes and none for a card it cannot: a draft spends
- * `(non-empty slot sub-bags) + min(size − guaranteed, rest)` rolls, which is
- * three plus `size − 3` — that is, exactly `size` — whenever the pool can supply
- * all three types and enough cards to fill the hand, and fewer only when the bag
- * itself is short. Emptiness is a fact about the pool and the government, never
- * about the moment, so two runs of the same state spend the same rolls in the
- * same order. A slot whose sub-bag is empty simply deals nothing and falls
- * through to the open fill, which is the same honest answer a short pool has
- * always got.
+ * **The roll contract.** Each of the four draws goes through `drawWeighted`, so
+ * each spends exactly one roll per card it actually takes and none for a card it
+ * cannot: a draft spends `(non-empty slot sub-bags) + min(size − guaranteed,
+ * rest)` rolls, which is three plus `size − 3` — that is, exactly `size` —
+ * whenever the pool can supply all three types and enough cards to fill the
+ * hand, and fewer only when the bag itself is short. Emptiness is a fact about
+ * the pool and the government, never about the moment, so two runs of the same
+ * state spend the same rolls in the same order. A slot whose sub-bag is empty
+ * simply deals nothing and falls through to the open fill, which is the same
+ * honest answer a short pool has always got.
+ *
+ * **The rarity weights ride inside the guarantee, never around it** (the ruling
+ * of 2026-09-04). Each of the four bags is drawn *by weight* rather than
+ * uniformly, so a rare military card is rare among military cards and the
+ * spread still deals one of each — which is the only composition of the two
+ * rules that keeps both promises. Weighting the hand as a whole and then
+ * repairing the spread afterwards would be a guarantee that quietly stops
+ * holding whenever the repair has to reach past a weight, and one roll per card
+ * is what a replay is owed either way.
  *
  * **The hand comes back in the pool's own file order**, not in draw order. The
  * guaranteed picks would otherwise arrive military-economic-wildcard and the
@@ -743,6 +729,7 @@ export function drawOrderOptions(
   state: GameState,
   pool: readonly OrderId[],
   size: number,
+  weightOf: (id: OrderId) => number = () => 1,
 ): OrderId[] {
   const taken = new Set<OrderId>();
   if (size >= SPREAD_MIN_SIZE) {
@@ -751,73 +738,43 @@ export function drawOrderOptions(
     // here can take a card another already has.
     for (const type of SLOT_TYPES) {
       const bag = pool.filter((id) => orderDef(id).slot === type);
-      for (const id of drawWithoutReplacement(state, bag, 1)) taken.add(id);
+      for (const id of drawWeighted(state, bag, 1, weightOf)) taken.add(id);
     }
   }
   const rest = pool.filter((id) => !taken.has(id));
-  for (const id of drawWithoutReplacement(state, rest, size - taken.size)) taken.add(id);
+  for (const id of drawWeighted(state, rest, size - taken.size, weightOf)) taken.add(id);
   return pool.filter((id) => taken.has(id));
 }
 
 /**
- * Deals one draft: `offerSize` cards from the live pool, plus one owned card
- * rolled as the upgrade target.
+ * Deals one draft: `offerSize` cards from the live pool, weighted by rarity and
+ * by the pity this empire's passes have banked.
  *
- * The upgrade is rolled from what the player *holds* rather than chosen by them,
- * and that is Entry XV's shape: every draft is the deckbuilder question — widen
- * or deepen — and a freely chosen upgrade would make it "deepen the best thing I
- * own", which is not a question. It is absent on the opening draft because there
- * is nothing to deepen.
+ * One draw and no second one. There *was* a second — an owned card rolled as
+ * the upgrade target, the other half of Entry XV's "widen or deepen" — and it
+ * went with the ladder on 2026-09-04. What the draft asks now is take one or
+ * pass, and the pass is a command rather than a card (`OrderOffer`).
  *
- * Both draws spend the generator in a fixed order (new cards, then the upgrade),
- * so the same state deals the same hand. The new cards come through
- * `drawOrderOptions`, which is where the slot-spread guarantee and the roll
- * contract live.
+ * **The pity is read here, once, at the moment the hand is dealt**, which is
+ * the same rule the hand's *size* obeys (`offerSize`): an offer is drawn once
+ * and everything about it is decided then. An empire that skips after the cards
+ * are on the table has bought itself a better *next* hand, never a better one
+ * in front of it.
  *
- * **A card with no second face is not in the upgrade draw at all** (user,
- * 2026-08-26). `isUpgradable` reads the row; the three cards that answer no are
- * pure switches with no figure to advance, and offering one would be a draft
- * option that changed nothing — see `CardDefBase.upgradable`. Filtering the
- * *pool* rather than re-rolling a bad draw is what keeps the generator honest:
- * the draw still spends exactly one roll, over a smaller bag.
- *
- * **How many new cards is asked of `offerSize`, at the moment the offer opens**
- * — which is why this takes the whole player rather than its `PlayerStatecraft`:
- * a rider may sit on a wonder standing in one of its cities, and the empire is
- * what knows that. The upgrade face stays one however wide the hand gets.
+ * **How many cards is asked of `offerSize`** — which is why this takes the whole
+ * player rather than its `PlayerStatecraft`: a rider may sit on a wonder
+ * standing in one of its cities, and the empire is what knows that.
  */
 export function drawOrderOffer(state: GameState, player: Player): OrderOffer {
   const sc = player.statecraft;
-  const options = drawOrderOptions(state, livePool(sc), offerSize(state, player.id, 'order'));
-  const deepenable = sc.orders.filter((owned) => canDeepen(owned)).map((owned) => owned.id);
-  const upgrades = drawWithoutReplacement(state, deepenable, 1);
-  const offer: OrderOffer = { options };
-  const target = upgrades[0];
-  if (target !== undefined) offer.upgrade = target;
-  return offer;
-}
-
-/**
- * Can this card be deepened at all? `CardDefBase.upgradable`, read in the one
- * place that matters and exported because the collection screen greys a card
- * that will never be offered rather than leaving the player to wonder.
- */
-export function isUpgradable(id: CardId): boolean {
-  return cardDef(id).upgradable !== false;
-}
-
-/**
- * Can **this holding** be deepened once more — the row's own answer, and the
- * ceiling on top of it (the 2026-09-02 ruling).
- *
- * Two refusals and they are different sentences: `upgradable: false` is *this
- * card has no second face at all*, and the cap is *this one has no room left*.
- * The draw filters the bag through this rather than re-rolling a bad draw, which
- * is what keeps the generator honest — one roll, over a smaller bag — and it is
- * the same clause `isUpgradable` used to be on its own, widened by the level.
- */
-export function canDeepen(owned: OwnedOrder): boolean {
-  return isUpgradable(owned.id) && owned.level < maxLevelOf(owned.id);
+  const skips = sc.orderSkips;
+  const options = drawOrderOptions(
+    state,
+    livePool(sc),
+    offerSize(state, player.id, 'order'),
+    (id) => orderDrawWeight(id, skips),
+  );
+  return { options };
 }
 
 /**
@@ -985,7 +942,7 @@ let conditionDepth = 0;
  * city it holds.
  *
  * **The** walk. Every reader below filters this and none of them repeats the
- * gating, the deepening or the ordering — which is how "one evaluator" stays
+ * gating or the ordering — which is how "one evaluator" stays
  * true as the table grows. Slot order rather than collection order because a
  * slot is a position the player arranged, and a ledger that reordered itself
  * when a card was re-slotted would be a ledger that looks wrong for no reason.
@@ -1010,16 +967,13 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
   }
   for (const slot of sc.slots) {
     if (!slot || !isOrderId(slot.card)) continue;
-    // **The deepening is expanded here, once, at the source** (the 2026-09-02
-    // ladder): the face this empire holds is the printed effects plus one copy
-    // of the authored increment per level above the first, and every reader
-    // below sees ordinary lines. That is what let `scaleByLevel` retire — no
-    // consumer has to know how a number grows, because none of them does.
-    push(
-      slot.card,
-      CLASS_WORD.order,
-      orderEffectsAtLevel(slot.card, orderLevel(sc, slot.card)),
-    );
+    // **The row, and nothing but the row** (the levelling ruling of 2026-09-04).
+    // There is no expansion point any more: a slotted Order's face is what its
+    // data row prints, in this empire and in every other. What used to stand
+    // here — the printed effects plus one copy of an authored increment per
+    // level — is gone with the ladder, and so is the only line in the whole
+    // evaluator that knew a holding could differ from a card.
+    push(slot.card, CLASS_WORD.order, orderDef(slot.card).effects);
   }
   // **The fourth source** (ledger Entry XXVIII), and the whole of what religion
   // adds to this walk: a pantheon belief is a card of this vocabulary, held
@@ -1100,9 +1054,8 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
   // Last, after the law, the gods, the stones, the dead and the bill, for the
   // reason each of those is last in turn: it is the order they were acquired
   // in, so no ledger reshuffles itself. A bead is `CardId`'s eighth class and
-  // is adapted here rather than in `anyCardDef` — a bead is not drafted, not
-  // slotted and not upgradable, so it carries no authored increment and its
-  // level is always one.
+  // is adapted here rather than in `anyCardDef` — a bead is not drafted and not
+  // slotted; like every card since 2026-09-04 it is exactly what its row says.
   if (seat) {
     for (const held of beadCapEffects(seat)) {
       for (const effect of held.effects) {
@@ -1115,8 +1068,8 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
   // hold*. A node's gift is sometimes a rule rather than a thing — the fallen
   // become verse, a seized town costs one authority less, settlers come
   // cheaper — and a technology is the most permanent card in the game: never
-  // drafted, never slotted, never lost, so it carries no authored increment
-  // and its level is always one.
+  // drafted, never slotted, never lost — and, like every card since 2026-09-04,
+  // exactly what its row says.
   //
   // Walked in `techsResearched` order, which is the order they were learnt, so
   // no ledger reshuffles itself. The overwhelming majority of rows carry
@@ -2324,28 +2277,28 @@ function countOf(
       }
       return total;
     }
-    case 'slottedOrderLevels': {
-      // The council's depth: one helping per *level* of every Order sitting in a
-      // chair. `slots` is the chairs and `orders` is the holdings, which is the
-      // same pair `perSlottedOrder` reads for its multiplier.
+    case 'slottedOrders': {
+      // The council: one helping per Order sitting in a chair. `slots` is the
+      // chairs, which is the same table `perSlottedOrder` reads for its
+      // multiplier. It counted *levels* until the levelling ruling of
+      // 2026-09-04 emptied the word of meaning; a card is one card now.
       const sc = playerById(state, playerId)?.statecraft;
       if (!sc) return 0;
       let total = 0;
       for (const slotted of sc.slots) {
         if (slotted === null) continue;
-        const held = sc.orders.find((owned) => owned.id === slotted.card);
-        total += held?.level ?? 1;
+        total += 1;
       }
       return total;
     }
     case 'unslottedOrders': {
-      // The shelf: cards held and not sitting in a chair, counted once each
-      // however deeply they were drafted — an archive is a shelf of decisions.
+      // The shelf: cards held and not sitting in a chair — an archive is a
+      // shelf of decisions.
       const sc = playerById(state, playerId)?.statecraft;
       if (!sc) return 0;
       let total = 0;
-      for (const owned of sc.orders) {
-        if (sc.slots.some((slotted) => slotted !== null && slotted.card === owned.id)) continue;
+      for (const id of sc.orders) {
+        if (sc.slots.some((slotted) => slotted !== null && slotted.card === id)) continue;
         total += 1;
       }
       return total;
@@ -3964,9 +3917,8 @@ export function cardExtraCharges(
  * day one is, the filter joins `CardUnitStampEffect` and is asked here beside
  * `unitMatches` like every other.
  *
- * Every figure is scaled by the Order's level like the rest of the vocabulary,
- * and a stamp that comes out to nothing at all is **not written** — see
- * `createUnit`, where presence is the state.
+ * Every figure is the card's own, and a stamp that comes out to nothing at all
+ * is **not written** — see `createUnit`, where presence is the state.
  */
 export function cardUnitStamp(state: GameState, playerId: number): UnitStamp {
   let hp = 0;
@@ -4196,9 +4148,9 @@ export function windfallPayout(
       payout.lines.push({ card, source, note: 'your units are healed' });
     }
     if (grant.timed !== undefined && grant.timed.effects.length > 0) {
-      // The *turns* scale with an Order's level like every other figure on a
-      // card, and the effects travel untouched: `timedLive` scales them the way
-      // it scales a rite's, at level 1, because a bill is a bill.
+      // The *turns* are the card's own and the effects travel untouched:
+      // `timedLive` reads them the way it reads a rite's, because a bill is a
+      // bill.
       const turns = Math.max(1, grant.timed.turns);
       payout.timed.push({ card, source, turns, effects: grant.timed.effects });
       payout.lines.push({ card, source, note: `for ${turns} turns` });
@@ -4609,7 +4561,7 @@ export function cardPantheonSlots(state: GameState, playerId: number): number {
  * How far this empire's cards move one number of **the tide**, in all.
  *
  * The `meterRule` pattern one system over (`cardMeterRule`): every live
- * `pressureRule` naming this rule, summed and scaled by its holding's level, so
+ * `pressureRule` naming this rule, summed, so
  * two enhancer beliefs that both widen a range are additive exactly as
  * everything else in this game that stacks is. Read in exactly one place —
  * `explainPressure` (`religion.ts`) — which is what keeps the whole enhancer
@@ -4990,13 +4942,12 @@ function bagWords(bag: Partial<Record<CityYieldKey, number>>): string {
  * printed in. Exported rather than copied, because a second loop over
  * `describeEffect` is a second vocabulary the day an arm is added.
  *
- * **Repeated clauses collapse** (the 2026-09-02 ladder): a deepened Order's face
- * is its printed effects plus one copy of the authored increment per level, so
- * an Order at level 3 hands this list the same clause twice. It reads as
+ * **Repeated clauses collapse**: a row that says the same thing twice reads as
  * "+1 combat strength against barbarians ×2" rather than as the same sentence
- * printed twice, which is the only presentation rule the ladder needed — the
- * *ledger* still shows one labelled line per copy, because that is where a
- * player folds the arithmetic.
+ * printed twice. It was the presentation rule the deepening ladder needed, and
+ * it outlived it (2026-09-04) because a *card* may still print a clause twice —
+ * the *ledger* is where a player folds the arithmetic and it still shows one
+ * labelled line per copy.
  */
 export function describeEffects(effects: readonly CardEffect[]): CardClause[] {
   const clauses: CardClause[] = [];
@@ -5028,24 +4979,21 @@ function collapseClauses(clauses: readonly CardClause[]): CardClause[] {
 }
 
 /**
- * One card's effects in words, **at a given level**.
+ * One card's effects, in words.
  *
  * Here rather than in the interface because it is a reading of the vocabulary,
  * and the vocabulary is read in one file (`describeResourceSignature`'s
  * argument). Every text surface that names a card — the offer, the collection,
  * the slot hover — calls this, so they cannot describe the same card two ways.
  *
- * The level is resolved the one way it is ever resolved, through
- * `orderEffectsAtLevel`: a deepened face is the printed face plus its authored
- * increment, so what the offer card promises and what the ledger pays are the
- * same list. A level above the row's ceiling clamps rather than throwing (see
- * that function), which is what lets the offer print "after" for a card that is
- * one draft from its cap.
+ * **One card, one face.** It took a level until the ruling of 2026-09-04, and
+ * the parameter is gone with the ladder rather than left at a default nobody
+ * passes: what the offer card promises, what the collection prints and what the
+ * ledger pays are the row's own effects, read once.
  */
-export function describeCard(id: CardId, level = 1): CardClause[] {
+export function describeCard(id: CardId): CardClause[] {
   const def: CardDefBase = anyCardDef(id);
-  const effects = isOrderId(id) ? orderEffectsAtLevel(id, level) : def.effects;
-  const clauses: CardClause[] = describeEffects(effects);
+  const clauses: CardClause[] = describeEffects(def.effects);
   // **A completion grant is not an effect, and it still has to be printed.** It
   // happens once, at the moment the stones go up, so it is a field on the
   // building row rather than a shape in the vocabulary (`CompletionGrant`) — but
@@ -6468,9 +6416,9 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'trade route between your own cities',
     many: 'trade routes between your own cities',
   },
-  slottedOrderLevels: {
-    one: 'level of the Orders you have placed in a slot',
-    many: 'levels of the Orders you have placed in a slot',
+  slottedOrders: {
+    one: 'Order you have placed in a slot',
+    many: 'Orders you have placed in a slot',
   },
   unslottedOrders: {
     one: 'Order you hold but have not placed in a slot',
@@ -6796,22 +6744,7 @@ export function runStatecraft(state: GameState): void {
   }
 }
 
-// --- picking a card ---------------------------------------------------------
-
-/**
- * How many options a draft is offering, upgrade included.
- *
- * The upgrade is the **last** option when there is one, so an index means the
- * same thing on every card that has four — see `OrderOffer`.
- */
-export function orderOfferSize(offer: OrderOffer): number {
-  return offer.options.length + (offer.upgrade === undefined ? 0 : 1);
-}
-
-/** True when this index names the upgrade option rather than a new card. */
-export function isUpgradeIndex(offer: OrderOffer, index: number): boolean {
-  return offer.upgrade !== undefined && index === offer.options.length;
-}
+// --- picking a card, or passing on the hand ---------------------------------
 
 /**
  * Why this player cannot take this option, or `null` when they can.
@@ -6835,12 +6768,31 @@ export function orderChoiceError(
     return `chooseOrder needs an integer optionIndex, got ${String(optionIndex)}`;
   }
   const index = optionIndex as number;
-  const size = orderOfferSize(offer);
+  const size = offer.options.length;
   if (index < 0 || index >= size) return `Option ${index} is not one of the ${size} offered`;
-  const id = isUpgradeIndex(offer, index) ? offer.upgrade : offer.options[index];
+  const id = offer.options[index];
   // Only reachable from a hand-edited save or a data file retuned under a live
   // game; an offer naming a row this build does not have is unanswerable.
   if (!isOrderId(id)) return `Option ${index} names no known Order`;
+  return null;
+}
+
+/**
+ * Why this player cannot pass on their draft, or `null` when they can.
+ *
+ * `orderChoiceError`'s twin, refusal for refusal, and one refusal shorter
+ * because a pass names nothing: there is no index to be out of range and no row
+ * to be unknown. The only question is whether there is a hand on the table.
+ *
+ * It asks nothing about the turn for `orderChoiceError`'s reason — that is a
+ * question about the actor and belongs to the command.
+ */
+export function orderSkipError(state: GameState, playerId: number): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  if (!player.statecraft.pendingOrder) {
+    return `${player.name} has no Statecraft draft to pass on`;
+  }
   return null;
 }
 
@@ -6848,10 +6800,6 @@ export function orderChoiceError(
 export interface OrderChoice {
   id: OrderId;
   name: string;
-  /** The level the card is now held at. 1 for a new card. */
-  level: number;
-  /** True when this deepened a card the player already had. */
-  upgraded: boolean;
 }
 
 /**
@@ -6869,23 +6817,56 @@ export interface OrderChoice {
  * command because it is its own decision and it costs a seal — which is the
  * whole of Entry XV's swap friction, and would be given away by a draft that
  * auto-slotted.
+ *
+ * **Taking a card zeroes the pity** (the ruling of 2026-09-04). `orderSkips`
+ * counts *consecutive* passes and this is the thing that breaks the run: an
+ * empire that passes twice and then drafts is back at the table's own weights,
+ * not carrying two skips into every hand it ever sees again.
+ *
+ * A card the empire already holds cannot be dealt (`livePool` filters what is
+ * held out of the bag), so there is no second-copy case to answer — which is
+ * the levelling ruling read from this end: a draft can only ever widen.
  */
 export function settleOrderChoice(player: Player, optionIndex: number): OrderChoice | null {
   const sc = player.statecraft;
   const offer = sc.pendingOrder;
   if (!offer) return null;
-  const upgrade = isUpgradeIndex(offer, optionIndex);
-  const id = upgrade ? offer.upgrade : offer.options[optionIndex];
+  const id = offer.options[optionIndex];
   if (id === undefined || !isOrderId(id)) return null;
 
   delete sc.pendingOrder;
-  for (const owned of sc.orders) {
-    if (owned.id !== id) continue;
-    owned.level += 1;
-    return { id, name: orderDef(id).name, level: owned.level, upgraded: true };
-  }
-  sc.orders.push({ id, level: 1 });
-  return { id, name: orderDef(id).name, level: 1, upgraded: upgrade };
+  sc.orderSkips = 0;
+  if (!sc.orders.includes(id)) sc.orders.push(id);
+  return { id, name: orderDef(id).name };
+}
+
+/** What a pass did, for the announcement. */
+export interface OrderSkip {
+  /** Consecutive drafts passed, this one included. The pity the next hand reads. */
+  skips: number;
+}
+
+/**
+ * Passes on the whole hand and raises the pity. `settleOrderChoice`'s twin, and
+ * the other half of the 2026-09-04 ruling.
+ *
+ * **The hand is gone, not re-dealt.** An offer is drawn once and spent by a
+ * command (CLAUDE.md), and a pass *is* the spend: the same three cards are
+ * never on the table again, and the culture the meter spent to deal them stays
+ * spent. That is what makes it a choice rather than a reroll — a reroll is
+ * something a player pays for, and nobody has priced one.
+ *
+ * The pity is an **absolute count**, raised here and zeroed by a pick. Nothing
+ * ticks it and nothing ages it, so a seat that passes on turn ten and drafts on
+ * turn ninety draws that ninetieth hand with one skip's worth of pity, which is
+ * the honest reading of "consecutive".
+ */
+export function settleOrderSkip(player: Player): OrderSkip | null {
+  const sc = player.statecraft;
+  if (!sc.pendingOrder) return null;
+  delete sc.pendingOrder;
+  sc.orderSkips += 1;
+  return { skips: sc.orderSkips };
 }
 
 // --- the slots --------------------------------------------------------------
@@ -6912,7 +6893,7 @@ export function slotOrderError(
   if (!player) return `No player with id ${String(playerId)}`;
   const sc = player.statecraft;
   if (!isOrderId(cardId)) return `"${String(cardId)}" is not a known Order`;
-  if (orderLevel(sc, cardId) === 0) return `${player.name} does not hold ${orderDef(cardId).name}`;
+  if (!holdsOrder(sc, cardId)) return `${player.name} does not hold ${orderDef(cardId).name}`;
   if (!Number.isInteger(slotIndex)) {
     return `slotOrder needs an integer slotIndex, got ${String(slotIndex)}`;
   }

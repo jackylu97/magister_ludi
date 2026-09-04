@@ -7,9 +7,13 @@
  * function of a count and a stage rather than a measurement taken off a laid-out
  * DOM. How many cards an offer deals is a *fold* now (`explainOfferSize`), so
  * "does the spread fit" stopped being a thing anybody could check by opening the
- * game once: it is four counts times two frames times the upgrade card being
- * there or not, and a spread that overflows is the sort of thing that is quietly
- * wrong on every offer at once.
+ * game once: it is four counts times two frames, and a spread that overflows is
+ * the sort of thing that is quietly wrong on every offer at once.
+ *
+ * It was four counts times two frames times *the upgrade card being there or
+ * not* until the levelling ruling of 2026-09-04 took the centred card away. The
+ * spread has one shape now, and the sheet's second control (the pass) lives in
+ * the foot, which `FOOT` has always been paying for.
  *
  * The one screen in this interface that cannot be dismissed is the last one that
  * should be allowed to fall off the bottom of the window — there is no Escape
@@ -36,34 +40,32 @@ const SHEET_PAD_X = 20;
 describe('the spread fits the stage', () => {
   for (const [name, stage] of Object.entries(STAGES)) {
     for (const count of COUNTS) {
-      for (const centre of [false, true]) {
-        const what = `${count} cards${centre ? ' and an upgrade' : ''} at ${name}`;
+      const what = `${count} cards at ${name}`;
 
-        it(`stands inside the window: ${what}`, () => {
-          const spread = offerSpread(count, stage, { centre });
-          // Top to bottom, overlay padding included. This is the whole point.
-          expect(spread.total, what).toBeLessThanOrEqual(stage.height);
-        });
+      it(`stands inside the window: ${what}`, () => {
+        const spread = offerSpread(count, stage);
+        // Top to bottom, overlay padding included. This is the whole point.
+        expect(spread.total, what).toBeLessThanOrEqual(stage.height);
+      });
 
-        it(`lays the row inside the sheet: ${what}`, () => {
-          const spread = offerSpread(count, stage, { centre });
-          const row = spread.card * count + GAP * (count - 1) + SHEET_PAD_X * 2;
-          expect(row, what).toBeLessThanOrEqual(spread.sheet);
-          // And the sheet inside the overlay's own padding.
-          expect(spread.sheet + 48, what).toBeLessThanOrEqual(stage.width);
-        });
+      it(`lays the row inside the sheet: ${what}`, () => {
+        const spread = offerSpread(count, stage);
+        const row = spread.card * count + GAP * (count - 1) + SHEET_PAD_X * 2;
+        expect(row, what).toBeLessThanOrEqual(spread.sheet);
+        // And the sheet inside the overlay's own padding.
+        expect(spread.sheet + 48, what).toBeLessThanOrEqual(stage.width);
+      });
 
-        it(`keeps a card a card: ${what}`, () => {
-          const spread = offerSpread(count, stage, { centre });
-          // Portrait, always: a card wider than it is tall is a certificate.
-          expect(spread.height, what).toBeGreaterThan(spread.card);
-          // Legible: the type scale never drops below the floor the tarot face
-          // was drawn to survive, and never grows past its designed size.
-          expect(spread.scale, what).toBeGreaterThanOrEqual(0.74);
-          expect(spread.scale, what).toBeLessThanOrEqual(1);
-          expect(spread.emblem, what).toBeGreaterThanOrEqual(28);
-        });
-      }
+      it(`keeps a card a card: ${what}`, () => {
+        const spread = offerSpread(count, stage);
+        // Portrait, always: a card wider than it is tall is a certificate.
+        expect(spread.height, what).toBeGreaterThan(spread.card);
+        // Legible: the type scale never drops below the floor the tarot face
+        // was drawn to survive, and never grows past its designed size.
+        expect(spread.scale, what).toBeGreaterThanOrEqual(0.74);
+        expect(spread.scale, what).toBeLessThanOrEqual(1);
+        expect(spread.emblem, what).toBeGreaterThanOrEqual(28);
+      });
     }
   }
 });
@@ -73,7 +75,7 @@ describe('the spread narrows as the hand widens', () => {
     for (const stage of Object.values(STAGES)) {
       let previous = Number.POSITIVE_INFINITY;
       for (const count of COUNTS) {
-        const spread = offerSpread(count, stage, { centre: true });
+        const spread = offerSpread(count, stage);
         expect(spread.card).toBeLessThanOrEqual(previous);
         previous = spread.card;
       }
@@ -92,36 +94,18 @@ describe('the spread narrows as the hand widens', () => {
     // the type is at scale 1 and the sheet is the width it has always been. A
     // pass about four and five that quietly redrew the ordinary draft would be
     // a regression wearing a feature's clothes.
-    const spread = offerSpread(3, STAGES.large, { centre: true });
+    const spread = offerSpread(3, STAGES.large);
     expect(spread.sheet).toBe(880);
     expect(spread.scale).toBe(1);
     expect(spread.card).toBe(272);
   });
 
-  it('shrinks that same draft to fit the smaller frame rather than scrolling it', () => {
-    // The measurement that started this: three cards *and* the upgrade card at
-    // 1280×720 overflowed the sheet and scrolled, on the one screen that cannot
-    // be dismissed. It fits now because the row gives up the height the upgrade
-    // card needs.
-    const small = offerSpread(3, STAGES.small, { centre: true });
-    const large = offerSpread(3, STAGES.large, { centre: true });
-    expect(small.card).toBeLessThan(large.card);
+  it('fits the smaller frame rather than scrolling it', () => {
+    // The one screen that cannot be dismissed must never overflow the window it
+    // is drawn in — the measurement that put this arithmetic here.
+    const small = offerSpread(3, STAGES.small);
     expect(small.total).toBeLessThanOrEqual(STAGES.small.height);
-  });
-});
-
-describe('the upgrade card is paid for in height', () => {
-  it('takes the room out of the row rather than off the bottom of the sheet', () => {
-    for (const count of COUNTS) {
-      const alone = offerSpread(count, STAGES.small);
-      const withCentre = offerSpread(count, STAGES.small, { centre: true });
-      // The height is what the upgrade card costs the row. The width follows it
-      // only where the portrait rule bites — a hand of two, whose cards are wide
-      // enough that the room the upgrade takes would have flattened them.
-      expect(withCentre.height).toBeLessThanOrEqual(alone.height);
-      expect(withCentre.card).toBeLessThanOrEqual(alone.card);
-      expect(withCentre.total).toBeLessThanOrEqual(STAGES.small.height);
-    }
+    expect(small.card).toBeGreaterThan(0);
   });
 });
 
@@ -135,8 +119,8 @@ describe('a stage nobody designed for', () => {
   });
 
   it('does not fold up on a short window', () => {
-    const spread = offerSpread(5, { width: 1280, height: 560 }, { centre: true });
-    expect(spread.height).toBe(210);
+    const spread = offerSpread(5, { width: 1280, height: 560 });
+    expect(spread.height).toBeGreaterThanOrEqual(210);
     expect(spread.card).toBeGreaterThan(0);
   });
 });
@@ -205,8 +189,8 @@ describe('an offer put away is still an offer', () => {
  * dismiss.
  */
 describe('the foot is paid for', () => {
-  it('still fits the smallest stage with five cards and an upgrade', () => {
-    const spread = offerSpread(5, STAGES.small, { centre: true });
+  it('still fits the smallest stage with five cards', () => {
+    const spread = offerSpread(5, STAGES.small);
     expect(spread.total).toBeLessThanOrEqual(STAGES.small.height);
   });
 });
@@ -248,6 +232,26 @@ describe('View map spends nothing', () => {
   it('never calls the caller back', () => {
     // `choose` is the offer. Hiding must not reach it in any form.
     expect(body('viewMap')).not.toContain('choose');
+  });
+
+  /**
+   * **And the pass is the opposite** (the draft's second answer, 2026-09-04).
+   * The one thing that must never blur is that View map keeps the offer and a
+   * pass spends it, so the pass is held to `take`'s contract rather than
+   * `viewMap`'s: it drops the offer, it reports the phase, and it calls the
+   * caller — which is what dispatches the command.
+   */
+  it('spends the offer when the player passes', () => {
+    const skip = body('skip');
+    expect(skip).toContain('standing = null');
+    expect(skip).toContain("moveTo('take')");
+    expect(skip).toContain('callback()');
+  });
+
+  it('never lets a pass reach an offer that has none', () => {
+    // A caller that gave `Offer.pass` and no handler has written a button that
+    // does nothing; it must not instead answer an offer nobody passed on.
+    expect(body('skip')).toContain('if (callback === null) return;');
   });
 
   it('never lets go of the offer it is holding', () => {

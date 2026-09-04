@@ -197,8 +197,6 @@ import { RITE_IDS } from '../sim/religionData';
 import {
   SLOT_WORDS,
   anyCardDef,
-  isUpgradeIndex,
-  orderOfferSize,
   slotOrderError,
   slotTypesOf,
 } from '../sim/statecraft';
@@ -796,16 +794,16 @@ function slottingDecision(state: GameState, player: Player): BotDecision | null 
   const fits = new Map<SlotType, number>();
   for (const type of layout) {
     if (fits.has(type)) continue;
-    fits.set(type, sc.orders.filter((owned) => orderFitsSlot(owned.id, type)).length);
+    fits.set(type, sc.orders.filter((id) => orderFitsSlot(id, type)).length);
   }
   const rows: BotCandidate[] = [];
   let best: { cardId: OrderId; slot: number; row: number; score: number } | null = null;
 
-  for (const owned of sc.orders) {
+  for (const ownedId of sc.orders) {
     for (let slot = 0; slot < layout.length; slot++) {
       const type = layout[slot]!;
-      const label = `${cardName(owned.id)} → slot ${slot + 1} (${SLOT_WORDS[type]})`;
-      const refusal = slotOrderError(state, player.id, owned.id, slot);
+      const label = `${cardName(ownedId)} → slot ${slot + 1} (${SLOT_WORDS[type]})`;
+      const refusal = slotOrderError(state, player.id, ownedId, slot);
       if (refusal !== null) {
         rows.push({ label, score: 0, chosen: false, terms: [], rejected: refusal });
         continue;
@@ -819,7 +817,7 @@ function slottingDecision(state: GameState, player: Player): BotDecision | null 
       // as good as anything else can still take the wildcard, which is right —
       // scarcity is a tie-break with teeth, not a veto.
       const terms: ValueTerm[] = [
-        nest('what the card is worth', explainCard(player, owned.id, ctx)),
+        nest('what the card is worth', explainCard(player, ownedId, ctx)),
         {
           label: `÷ ${scarcity} — cards of this empire's that would also fit a ${SLOT_WORDS[type]} office`,
           value: scarcity,
@@ -829,7 +827,7 @@ function slottingDecision(state: GameState, player: Player): BotDecision | null 
       const score = foldOf(terms);
       rows.push({ label, score, chosen: false, terms });
       if (best === null || score > best.score) {
-        best = { cardId: owned.id, slot, row: rows.length - 1, score };
+        best = { cardId: ownedId, slot, row: rows.length - 1, score };
       }
     }
   }
@@ -886,18 +884,18 @@ function adoptionTable(
       .map((type, at) => ({
         type,
         at,
-        fits: player.statecraft.orders.filter((owned) => orderFitsSlot(owned.id, type)).length,
+        fits: player.statecraft.orders.filter((id) => orderFitsSlot(id, type)).length,
       }))
       .sort((a, b) => a.fits - b.fits || a.at - b.at);
     const spent = new Set<OrderId>();
     const slotTerms: ValueTerm[] = [];
     for (const office of offices) {
       let take: { id: OrderId; worth: number } | null = null;
-      for (const owned of player.statecraft.orders) {
-        if (spent.has(owned.id)) continue;
-        if (!orderFitsSlot(owned.id, office.type)) continue;
-        const worth = scoreCard(player, owned.id, ctx);
-        if (take === null || worth > take.worth) take = { id: owned.id, worth };
+      for (const ownedId of player.statecraft.orders) {
+        if (spent.has(ownedId)) continue;
+        if (!orderFitsSlot(ownedId, office.type)) continue;
+        const worth = scoreCard(player, ownedId, ctx);
+        if (take === null || worth > take.worth) take = { id: ownedId, worth };
       }
       if (take === null) {
         slotTerms.push({
@@ -1001,15 +999,18 @@ function sameItem(a: QueueItem, b: QueueItem): boolean {
 
 /**
  * Which card of an Order draft this bot takes: **the best-scoring one**, in the
- * one currency, with a bonus for a card that deepens a thread this empire is
- * already committed to.
+ * one currency, with a bonus for a card on a thread this empire is already
+ * committed to.
  *
  * This replaces the v0's label-counting, which could not tell +1💰 from +6💰
  * (see `scoreCard`). Ties go to the first index, which is draw order and
  * therefore part of the log.
  *
- * The upgrade option — always last when there is one — is scored through the
- * card it deepens, because that is what taking it does.
+ * **This bot never passes** (the skip verb of 2026-09-04). Passing trades a
+ * card in hand for a likelier-rare card later, and pricing that trade needs a
+ * reading of the *bag* the appraisal does not have; taking the best card on the
+ * table is the honest placeholder, and a bot that skipped on a guess would be
+ * spending the empire's culture on one.
  */
 function orderDecision(state: GameState, player: Player): BotDecision {
   const playerId = player.id;
@@ -1024,13 +1025,9 @@ function orderDecision(state: GameState, player: Player): BotDecision {
     };
   }
   const ctx = valueContext(state, player);
-  const size = orderOfferSize(offer);
   // The index is the *offer's*, so the list keeps its holes: `pickCard` skips an
   // absent option without shifting what an index names.
-  const ids: (OrderId | undefined)[] = [];
-  for (let index = 0; index < size; index++) {
-    ids.push(isUpgradeIndex(offer, index) ? offer.upgrade : offer.options[index]);
-  }
+  const ids: (OrderId | undefined)[] = [...offer.options];
   const picked = pickCard(player, ids, ctx);
   const taken = ids[picked.index];
   return {
@@ -1189,8 +1186,8 @@ function cardName(id: CardId): string {
 function heldOnLine(player: Player, line: CardLine): number {
   const sc = player.statecraft;
   let count = 0;
-  for (const owned of sc.orders) {
-    if (anyCardDef(owned.id).line === line) count += 1;
+  for (const id of sc.orders) {
+    if (anyCardDef(id).line === line) count += 1;
   }
   for (const slot of sc.slots) {
     if (slot !== null && anyCardDef(slot.card).line === line) count += 1;

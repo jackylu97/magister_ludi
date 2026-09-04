@@ -27,24 +27,19 @@
  * not at all in what they can say. One `CardEffect` union serves all three, so
  * the day a signature and an Order want the same clause there is one clause.
  *
- * Levels
- * ------
- * An Order drafted twice is *deepened* rather than duplicated (Entry XV's
- * upgrade slot), and since the user's ruling of 2026-09-02 the deepening is
- * **authored on the row**: `OrderDef.upgrade` is the list of effects one level
- * adds, and the face at level N is the printed effects plus N−1 copies of it
- * (`orderEffectsAtLevel`, `statecraft.ts`). Three levels deep at most, or the
- * row's own `maxLevel` where the ratified text quotes a ceiling.
+ * A card is what it prints
+ * ------------------------
+ * **There are no levels** (the user's ruling of 2026-09-04: *"no more upgrading
+ * altogether, all cards are as is"*). A row's `effects` are its whole face,
+ * held once, in every empire that drafted it. The three fields that used to say
+ * otherwise — `upgrade`, `maxLevel` and `upgradable` — are gone from this table
+ * with the ladder that read them, and so is `maxOrderLevel` from the config
+ * block. What was second-drafted is now simply another card, which is the whole
+ * of what the ruling bought: a draft is always "widen", never "widen or deepen".
  *
- * It replaced a blanket ×1.5 on every printed figure, for a design reason
- * rather than an arithmetic one: that rule deepened every clause of a card at
- * once, so nobody was ever deciding *which* clause a second draft made
- * stronger. Now the increment says so, in the ordinary vocabulary, read by the
- * ordinary evaluators — which is why no consumer of this table knows a level
- * exists at all.
- *
- * A card with no authored increment does not deepen, and says so on its row:
- * see `CardDefBase.upgradable`.
+ * What a second draft *is* now is a **skip**: a hand nobody wants is passed, and
+ * the pass buys rarer cards next time (`OrderDef.rarity`, `rarityWeights` and
+ * `skipPity` below, spent by `skipOrderOffer`).
  */
 
 import statecraftJson from '../../data/statecraft.json';
@@ -113,17 +108,17 @@ export type OrderId = keyof typeof statecraftJson.orders & string;
  * bead's boon may carry a *cap* — a permanent step in contentment, in authority
  * capacity, in route capacity — written in this vocabulary on a row of
  * `beads.json` and read by this evaluator through `liveEffects`' ninth source.
- * A bead is not drafted, not slotted and not upgradable, so it has no authored
- * increment and its level is always one.
+ * A bead is not drafted and not slotted; like every card since the 2026-09-04
+ * ruling, it is exactly what its row prints.
  *
  * **Nine classes since the tree pass of 2026-08-30**, and the ninth is held for
  * as long as the game lasts: a *technology* may carry `effects` in this
  * vocabulary (`TechDef.effects`), read by this evaluator through `liveEffects`'
  * tenth source. It is a card for the reason a wonder is — what differs is only
  * how it is acquired, which is `tech.ts`'s business — and, like a wonder and a
- * bead, it is never drafted, never slotted and never upgradable, so its level
- * is always one. Ids stay unique across the whole table: no technology id is
- * any other class's id, and `test/sim/tech.test.ts` pins that.
+ * bead, it is never drafted and never slotted. Ids stay unique across the whole
+ * table: no technology id is any other class's id, and `test/sim/tech.test.ts`
+ * pins that.
  */
 export type CardId =
   | GovernmentId
@@ -138,8 +133,8 @@ export type CardId =
   // **Ten classes since the Cathedral** (design ledger Entry LV), and the tenth
   // is the only one nobody chooses: a consecration is *rolled* when a cathedral
   // is topped out and is then a fact about that town. Like a wonder, a bead and
-  // a technology it is never drafted, never slotted and never upgradable, so its
-  // level is always one. Ids stay unique across the whole table.
+  // a technology it is never drafted and never slotted. Ids stay unique across
+  // the whole table.
   | ConsecrationId;
 
 /**
@@ -161,6 +156,24 @@ export const SLOT_TYPES: readonly SlotType[] = ['military', 'economic', 'wildcar
  * per tier** (Entry XV), so a pool is named after the government that opens it.
  */
 export type OrderPool = 'chiefdom' | 'governmentI' | 'governmentII' | 'governmentIII';
+
+/**
+ * How often a card turns up in a draft — `OrderDef.rarity`, the deck's only
+ * weight since the levelling ruling of 2026-09-04.
+ *
+ * Three rungs and no fourth, because three is what the design worksheet marks
+ * (● ◆ ○) and the marks are the spec of record. They are ordered here weakest
+ * pull to strongest, which is the order the weights are read in and the order a
+ * screen would print them.
+ */
+export type OrderRarity = 'common' | 'uncommon' | 'rare';
+
+/** The rungs in that order. The register a sweep or a screen walks. */
+export const ORDER_RARITIES: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
+
+export function isOrderRarity(value: unknown): value is OrderRarity {
+  return value === 'common' || value === 'uncommon' || value === 'rare';
+}
 
 /**
  * The pools in ladder order — which is also "which pool retires when": since
@@ -1146,23 +1159,24 @@ export type CountKind =
    */
   | 'internalTradeRoutes'
   /**
-   * The **levels** of the Orders this empire has placed in a slot, summed — The
-   * Archives, where deepening pays twice.
+   * The Orders this empire has placed in a slot — The Archives, for which
+   * every law on the books is a shelf longer.
    *
-   * Read off `PlayerStatecraft.slots` and the holdings behind them, which is the
-   * same pair `windfallRider`'s `perSlottedOrder` reads: that flag multiplies a
-   * payout by how many chairs are filled, and this counts how *deep* the council
-   * sits. Two readings of one table, each in the shape its cards want.
+   * Read off `PlayerStatecraft.slots`, which is the same table
+   * `windfallRider`'s `perSlottedOrder` reads: that flag multiplies a payout by
+   * how many chairs are filled, and this pays per chair. It counted the
+   * *levels* of those cards until the levelling ruling of 2026-09-04, which
+   * left the word nothing to mean — a card is held once now, so a full council
+   * is a count of chairs.
    */
-  | 'slottedOrderLevels'
+  | 'slottedOrders'
   /**
    * Orders this empire holds and has **not** placed in a slot — The Annals of
    * Law, for which the laws you chose not to pass are also history.
    *
-   * `slottedOrderLevels`' opposite number, and it counts *cards* rather than
-   * levels for the reason that one counts levels: the card is about the archive,
-   * and an archive is a shelf of decisions rather than a measure of how deeply
-   * any of them was taken.
+   * `slottedOrders`' opposite number, over the shelf rather than the chairs:
+   * the card is about the archive, and an archive is what was decided and not
+   * enacted as much as what was.
    */
   | 'unslottedOrders'
   /**
@@ -1170,8 +1184,8 @@ export type CountKind =
    * `CardCountScaledEffect.slot` — the deck-readers (The Guild Charter's
    * economic cards, The Synod's wildcards).
    *
-   * `slottedOrderLevels` counts how *deep* the council sits and this counts what
-   * kind of council it is, which is the whole of what a deck-reader asks: a
+   * `slottedOrders` counts how *full* the council is and this counts what kind
+   * of council it is, which is the whole of what a deck-reader asks: a
    * draft stops being a shopping trip the moment a card is worth more beside its
    * own kind. It takes its argument on the effect exactly as `buildingsOfKind`
    * does, so "per military Order" and "per wildcard Order" are one arm, one
@@ -2866,26 +2880,6 @@ export interface CardDefBase {
   note?: string;
   /** Named halves that are deliberately absent. See `docs/deprecated/statecraft-cards.md`. */
   deferred?: string[];
-  /**
-   * False for a card the upgrade slot must never roll. **Absent means yes.**
-   *
-   * Since the 2026-09-02 ladder the flag says exactly one thing and says it
-   * plainly: *this card has no authored second face*. It used to be a hedge
-   * against `scaleByLevel` — a switch has no louder setting, so a card printing
-   * no figure had to be marked or it would be offered as an upgrade that
-   * changed nothing. The increment is now authored (`OrderDef.upgrade`), so the
-   * two are one decision: a row with no `upgrade` list is a row that is not
-   * upgradable, and `test/sim/statecraft.test.ts` refuses the pair coming
-   * apart in either direction.
-   *
-   * It is a **declaration, not a shrug**. A card marked this way is a card
-   * somebody has decided has no second face — including two whose ratified
-   * deepening changes a *parameter* rather than a line (The Standing Levy's
-   * cadence, Pilgrim Roads' cap), which the vocabulary cannot say and which
-   * therefore ship marked, with the ratified words in `deferred`, rather than
-   * bent into a shape that nearly fits.
-   */
-  upgradable?: boolean;
   effects: CardEffect[];
 }
 
@@ -2952,124 +2946,33 @@ export interface OrderSlotGrant {
   grant: 'greatPerson' | 'die';
 }
 
-/**
- * The number a `deepen` entry may move, and the only two the vocabulary has.
- *
- * A **closed** pair rather than "any numeric field", for the reason every other
- * union in this file is closed: a deepening that could name any key would be a
- * table where a typo pays nothing and says nothing. Each is a number that exists
- * on exactly one shape and means one thing —
- *
- *   · `every`, a `periodicMuster`'s cadence (The Standing Levy's wait);
- *   · `max`, a `countScaled`'s ceiling on helpings (Pilgrim Roads' cap).
- *
- * A third belongs here the day a ratified deepening moves a third number, and
- * adding one is a design decision with a place to be argued about.
- */
-export type DeepenableParameter = 'every' | 'max';
-
-/**
- * **A deepening that moves a printed number instead of adding a line** — the
- * user's flag ruling of 2026-09-03 (*"standing levy being able to upgrade is a
- * cool mechanic"*).
- *
- * The second thing a level may do, and it exists because two ratified cards say
- * something the additive increment cannot say honestly: The Standing Levy's
- * second face brings the muster *sooner* (12 → 10 → 8) and Pilgrim Roads' raises
- * the happiness it *may* pay (5 → 7 → 9). A second `periodicMuster` musters
- * twice rather than sooner, and a second capped `countScaled` pays past its own
- * cap, so those two shipped `upgradable: false` for three passes rather than be
- * bent into a shape that nearly fits (Entry XV.b). This is the shape that fits.
- *
- * It names a **kind and a parameter**, and the parameter is what picks the line:
- * the deepening moves the first printed effect of that kind which *carries* that
- * number. Pilgrim Roads prints two `countScaled`s and only the second is capped,
- * so "the capped one" needs no index to say. A deepening can therefore only move
- * a number the card already prints — it cannot invent a cap the base face does
- * not have, which is what keeps the printed text and the deepened reading the
- * same sentence with one figure changed.
- *
- * It is an **entry in `upgrade`** rather than a field of its own, because it is
- * one of the things one level does and a level may do several: the list is the
- * whole of a deepening, entry by entry. It is not a `CardEffect` and must never
- * become one — every member of that union is a standing reading of the board,
- * while this is an instruction about how to *read another effect*, and nothing
- * outside `orderEffectsAtLevel` ever sees one (the face it hands back is
- * `CardEffect[]`, exactly as it always was).
- */
-export interface OrderDeepening {
-  /** Which printed effect it deepens. See the docblock for the reading. */
-  deepens: CardEffectKind;
-  /** Which number on that effect moves. */
-  parameter: DeepenableParameter;
-  /** How far it moves per level above the first. Signed. */
-  by: number;
-}
-
-/** One entry of an Order's authored deepening. See `OrderDef.upgrade`. */
-export type OrderUpgrade = CardEffect | OrderDeepening;
-
-/** Is this entry the parameter half rather than a line the level adds? */
-export function isOrderDeepening(entry: OrderUpgrade): entry is OrderDeepening {
-  return (entry as OrderDeepening).deepens !== undefined;
-}
-
 export interface OrderDef extends CardDefBase {
   pool: OrderPool;
   slot: SlotType;
   /**
-   * **What one deepening does** — the authored increment of the 2026-09-02
-   * ladder (user: *"orders can only be deepened up to level 3. Some cannot be
-   * upgraded"*).
+   * **How often this card is dealt** — the draw's only weight (the user's
+   * ruling of 2026-09-04: *"players are given an option to skip and increase
+   * the rarity of their next draft"*).
    *
-   * A list, applied once per level above the first (`orderEffectsAtLevel`,
-   * `statecraft.ts`), whose entries say one of **two** things:
+   * Three rungs, taken from the worksheet's own marks (● common · ◆ uncommon ·
+   * ○ rare in `docs/orders-and-doctrines.md`, and a sync test pins the mark to
+   * this field). It weights the bag and nothing else: a rare card is not a
+   * stronger card, it is a card the deck holds back — which is what makes the
+   * skip worth anything, because a pass is paid for in the only currency the
+   * draft has, *what the next hand is likely to be*.
    *
-   *   · **an ordinary `CardEffect` adds a line** — the default, and what fifty-
-   *     three rows say. The face at level *N* is `effects` followed by *N−1*
-   *     copies of it, in the ordinary vocabulary read by the ordinary
-   *     evaluators. Nothing downstream knows a level exists: a deeper card is
-   *     *more lines of the same kinds*, which is why the whole consumer register
-   *     survived the ladder untouched.
-   *   · **an `OrderDeepening` moves a printed number** — the parameter half,
-   *     added by the 2026-09-03 flag ruling. It names a kind and a number and
-   *     *replaces* that number on the printed effect that carries it, once per
-   *     level: The Standing Levy's cadence 12 → 10 → 8, Pilgrim Roads' cap
-   *     5 → 7 → 9. Every other row deals in lines, so the two never meet by
-   *     accident — the entry says which it is, rather than a rule inferring it
-   *     from a matching `kind` (every additive row's increment matches a kind it
-   *     prints, so kind alone would rewrite all fifty-three).
-   *
-   * The increment replaced `scaleByLevel`'s blanket ×1.5 on every printed
-   * figure, and the reason is a design one rather than an arithmetic one: that
-   * rule deepened every clause on a card at once, so Blooded Spears' point
-   * against everybody grew with its point against the wild and The Almanac's
-   * library clause grew with its capital's. An entry says **which clause
-   * deepens**, because that was always a decision somebody should have been
-   * making.
-   *
-   * Absent means the card does not deepen, and such a row says so out loud with
-   * `upgradable: false` — the two are one decision and a source test pins them
-   * together.
+   * Required on every row, retired ones included, so adding a card is a
+   * decision about how often it turns up rather than a field somebody forgets
+   * and a default quietly answers for. The weights themselves are
+   * `StatecraftConfig.rarityWeights`; the pity a skip buys is `skipPity`.
    */
-  upgrade?: OrderUpgrade[];
-  /**
-   * How deep this card may be drafted. Absent means `maxOrderLevel` (3).
-   *
-   * Written only where the ratified text states its **own** ceiling — Silk
-   * Roads' "up to +6" from a base of +3 and an increment of +1 is four levels,
-   * Public Granaries' "up to 35%" from 15% by 5s is five. So the field is the
-   * designer's sentence rather than a second dial: a row that says nothing takes
-   * the table's rung, and a row that says something is quoting its own words.
-   */
-  maxLevel?: number;
+  rarity: OrderRarity;
   /** True for a card with no archetype thread. Presentation only. */
   neutral?: boolean;
   /** What slotting this hands over, once per game. See `OrderSlotGrant`. */
   onSlot?: OrderSlotGrant[];
   /**
-   * **Withdrawn from the pool**: never dealt, never offered as an upgrade, and
-   * still fully readable.
+   * **Withdrawn from the pool**: never dealt, and still fully readable.
    *
    * A card the design has taken out (The Loose Rein, 2026-08-28) rather than a
    * card that never existed, and the distinction is the whole point: a save from
@@ -3096,16 +2999,33 @@ export interface StatecraftMeterConfig {
 export interface StatecraftConfig {
   meter: StatecraftMeterConfig;
   /**
-   * How deep an Order may be drafted when its row names no ceiling of its own —
-   * three, by the user's ruling of 2026-09-02.
+   * **How often each rung of `OrderDef.rarity` is dealt**, as relative weights
+   * over the bag a draft draws from — the worksheet's proposal, ratified
+   * 2026-09-04: common 4, uncommon 2, rare 1.
    *
-   * It replaced `upgradeMultiplier`, which is **gone from the table** rather
-   * than left at 1.5 for nobody: the ladder is authored per row now
-   * (`OrderDef.upgrade`), so a multiplier here would be a dial a designer will
-   * one day turn expecting something to happen — the same argument that deleted
-   * the `offer` block.
+   * Relative rather than probabilities, because the bag changes size every
+   * draft (a pool minus what the empire already holds) and a probability
+   * written down would be a probability about a bag nobody has. A weight is
+   * read against whatever is actually in the bag, which is the only reading
+   * that survives a pool being drained.
+   *
+   * It replaced `maxOrderLevel`, and the replacement is the whole shape of the
+   * ruling: what a second draft used to buy (a deeper card) is now what a
+   * *skipped* draft buys (a rarer bag).
    */
-  maxOrderLevel: number;
+  rarityWeights: Record<OrderRarity, number>;
+  /**
+   * **What one skipped draft adds** to the uncommon and rare weights of the
+   * next one — the pity half of the same ruling, one turn of the same dial.
+   *
+   * Added to the weight rather than multiplied into it, and added *per
+   * consecutive skip* (`PlayerStatecraft.orderSkips`, reset by taking a card),
+   * so the empire that passes three hands running is drawing from a bag where
+   * a rare card weighs 1 + 3 against a common card's 4. Common is deliberately
+   * not a key: pity is a promise about the *top* of the deck, and a knob that
+   * could raise the commons would be a knob that can undo the promise.
+   */
+  skipPity: Record<Exclude<OrderRarity, 'common'>, number>;
   // There is deliberately **no `offer` block**. How many cards a draft deals was
   // moved to `rules.offers` by the offer-size pass (Entry XXXI) and folded by
   // `explainOfferSize`, because a wonder, a belief or a great person may widen
@@ -3221,7 +3141,7 @@ export function cardName(id: CardId): string {
  * Every Order in one pool, in file order — **retired rows excluded**.
  *
  * The one reader of `OrderDef.retired`, which is what makes withdrawing a card a
- * one-field decision: every draw, every upgrade roll and every screen that lists
+ * one-field decision: every draw and every screen that lists
  * a pool comes through here, so a row taken out is out of all of them at once
  * and still readable by a save that holds it.
  */

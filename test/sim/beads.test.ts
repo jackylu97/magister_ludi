@@ -198,7 +198,7 @@ describe('the bead catalogue', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(62);
+    expect(SCHEMA_VERSION).toBe(63);
   });
 
   it('puts the beads phase directly after renown', () => {

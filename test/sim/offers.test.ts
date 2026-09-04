@@ -44,7 +44,6 @@ import {
 import {
   type CardEffect,
   type CardOfferRiderEffect,
-  type OrderUpgrade,
   GOVERNMENT_TIERS,
   ORDER_IDS,
   orderDef,
@@ -73,23 +72,16 @@ function rider(
  * every draft in every other file.
  */
 function withEffects(
-  // `upgrade` is `OrderUpgrade[]` since the parameter-deepening ruling — a list
-  // that may hold an instruction as well as an effect — and this helper installs
-  // ordinary effects, which are a subset of it.
-  def: { effects?: readonly CardEffect[]; upgrade?: OrderUpgrade[] },
+  def: { effects?: readonly CardEffect[] },
   effects: CardEffect[],
   body: () => void,
-  upgrade?: CardEffect[],
 ): void {
   const before = def.effects;
-  const beforeUpgrade = def.upgrade;
   (def as { effects?: readonly CardEffect[] }).effects = effects;
-  if (upgrade !== undefined) def.upgrade = upgrade;
   try {
     body();
   } finally {
     (def as { effects?: readonly CardEffect[] }).effects = before;
-    if (upgrade !== undefined) def.upgrade = beforeUpgrade;
   }
 }
 
@@ -155,49 +147,24 @@ describe('a rider widens the offer it names', () => {
     expect(offerSize(g.state, 1, 'order')).toBe(3);
   });
 
-  it('reads one off an Order, and deepens with the holding', () => {
+  it('reads a slotted Order\'s rider once, and only what the row prints', () => {
     const g = game();
     const id = ORDER_IDS[0]!;
-    // The 2026-09-02 ladder: a level adds the row's **authored increment**
-    // rather than scaling every figure on the card, so a deepening widens an
-    // offer exactly when the increment says another card — which is one more
-    // ordinary line of the same kind, read by the same fold.
-    withEffects(
-      orderDef(id),
-      [rider('belief', 1)],
-      () => {
-        const sc = g.state.players[0]!.statecraft;
-        sc.orders.push({ id, level: 1 });
-        sc.slots[0] = { card: id, sealedUntil: 0 };
-        expect(offerSize(g.state, 0, 'belief')).toBe(4);
-        sc.orders[0]!.level = 2;
-        expect(offerSize(g.state, 0, 'belief')).toBe(5);
-        // And the cap still holds over the deeper hand: a third level asks for
-        // six and `rules.offers.max` says five, which is the negative line the
-        // fold prints rather than a clamp somebody remembered to write.
-        sc.orders[0]!.level = 3;
-        expect(offerSize(g.state, 0, 'belief')).toBe(RULES.offers.max);
-      },
-      [rider('belief', 1)],
-    );
-  });
-
-  it('does not deepen a rider the increment says nothing about', () => {
-    const g = game();
-    const id = ORDER_IDS[0]!;
-    // The other half of the ladder's bargain, and the reason it replaced the
-    // multiplier: a card's *other* clauses do not grow because one of them did.
-    withEffects(
-      orderDef(id),
-      [rider('belief', 1)],
-      () => {
-        const sc = g.state.players[0]!.statecraft;
-        sc.orders.push({ id, level: 3 });
-        sc.slots[0] = { card: id, sealedUntil: 0 };
-        expect(offerSize(g.state, 0, 'belief')).toBe(4);
-      },
-      [],
-    );
+    // **A card is what it prints** (the levelling ruling of 2026-09-04). There
+    // was a pair of tests here about a *level* widening a rider by the row's
+    // authored increment, and there is no level left to widen it — a slotted
+    // Order contributes its row's clauses, once, and the empire that holds it
+    // is dealt exactly what the fold says.
+    withEffects(orderDef(id), [rider('belief', 1)], () => {
+      const sc = g.state.players[0]!.statecraft;
+      sc.orders.push(id);
+      sc.slots[0] = { card: id, sealedUntil: 0 };
+      expect(offerSize(g.state, 0, 'belief')).toBe(4);
+      // Out of its office it says nothing at all: an Order pays from a slot and
+      // nowhere else, and that clause outlived the ladder untouched.
+      sc.slots[0] = null;
+      expect(offerSize(g.state, 0, 'belief')).toBe(3);
+    });
   });
 
   it('reads one off a belief', () => {
@@ -227,7 +194,7 @@ describe('a rider widens the offer it names', () => {
       withEffects(orderDef(id), [rider('order')], () => {
         raiseOracle(g.state, 0);
         const sc = g.state.players[0]!.statecraft;
-        sc.orders.push({ id, level: 1 });
+        sc.orders.push(id);
         sc.slots[0] = { card: id, sealedUntil: 0 };
         expect(offerSize(g.state, 0, 'order')).toBe(5);
         expect(offerSize(g.state, 0, 'belief')).toBe(4);
@@ -266,14 +233,15 @@ describe('every generator draws offerSize cards', () => {
   it('the Statecraft draft — the rider adds to the new cards, never to the face', () => {
     const g = game(23);
     const player = g.state.players[0]!;
-    // One card held, so there is something to deepen and the upgrade face is
-    // rolled: the question stays "one of these, or deepen that one".
-    player.statecraft.orders.push({ id: 'firstRites', level: 1 });
+    // One card held, which since the levelling ruling of 2026-09-04 changes
+    // only the *pool* — the card held is out of the bag, and there is no fourth
+    // face for it to be rolled onto.
+    player.statecraft.orders.push('firstRites');
     expect(drawOrderOffer(g.state, player).options).toHaveLength(3);
     raiseOracle(g.state, 0);
     const wide = drawOrderOffer(g.state, player);
     expect(wide.options).toHaveLength(4);
-    expect(wide.upgrade).toBe('firstRites');
+    expect(wide.options).not.toContain('firstRites');
   });
 
   it('the Doctrine triple at adoption', () => {
@@ -335,7 +303,7 @@ describe('a pool shorter than the offer', () => {
     const g = game();
     const player = g.state.players[0]!;
     for (const id of ORDER_IDS.filter((id) => orderDef(id).pool === 'chiefdom')) {
-      player.statecraft.orders.push({ id, level: 1 });
+      player.statecraft.orders.push(id);
     }
     raiseOracle(g.state, 0);
     expect(livePool(player.statecraft)).toEqual([]);

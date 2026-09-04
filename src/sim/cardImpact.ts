@@ -117,8 +117,7 @@ import { type BeliefId, beliefDef } from './religionData';
 import {
   cardCityYields,
   occasionWords,
-  orderEffectsAtLevel,
-  orderLevel,
+  holdsOrder,
   slotOf,
   slotTypesOf,
 } from './statecraft';
@@ -195,11 +194,12 @@ export interface CardImpactLine {
  * class and the difference is the whole of the answer: an Order is held **and
  * slotted**, a Doctrine is simply held, a charter empties every office (the
  * amnesty is what adoption is), a belief joins the pantheon, and a legacy joins
- * the honoured dead. `level` is the draft's deepen face — ask at level 3 and the
- * diff is the increment, which is exactly what the offer's before/after wants.
+ * the honoured dead. A card has one face since the levelling ruling of
+ * 2026-09-04, so an Order is named by its id alone — there is no level left to
+ * ask about.
  */
 export type CardImpactSubject =
-  | { kind: 'order'; id: OrderId; level?: number }
+  | { kind: 'order'; id: OrderId }
   | { kind: 'doctrine'; id: DoctrineId }
   | { kind: 'government'; id: GovernmentId }
   | { kind: 'belief'; id: BeliefId }
@@ -290,10 +290,9 @@ function ghostPair(
   switch (subject.kind) {
     case 'order': {
       if (!isOrderId(subject.id)) return null;
-      const held = orderLevel(sc, subject.id);
-      const level = subject.level ?? (held > 0 ? held : 1);
+      const held = holdsOrder(sc, subject.id);
       const at = slotOf(sc, subject.id);
-      if (at >= 0 && level === held) {
+      if (at >= 0) {
         // In force. The reading is what taking it out of its office would cost,
         // which is the same figure with the same sign — `isSlotted` is the whole
         // of the test, because an Order pays from a slot and nowhere else.
@@ -302,10 +301,7 @@ function ghostPair(
           statecraft: { ...sc, slots: sc.slots.map((slot, index) => (index === at ? null : slot)) },
         });
       }
-      const orders =
-        held > 0
-          ? sc.orders.map((owned) => (owned.id === subject.id ? { id: owned.id, level } : owned))
-          : [...sc.orders, { id: subject.id, level }];
+      const orders = held ? sc.orders : [...sc.orders, subject.id];
       let slots = sc.slots;
       if (at < 0) {
         // The first office that is empty and admits it. A hand with no such
@@ -390,11 +386,11 @@ function ghostPair(
   }
 }
 
-/** The card's own effects, at the level being asked about. */
+/** The card's own effects. One row, one face. */
 function subjectEffects(subject: CardImpactSubject): readonly CardEffect[] {
   switch (subject.kind) {
     case 'order':
-      return isOrderId(subject.id) ? orderEffectsAtLevel(subject.id, subject.level ?? 1) : [];
+      return isOrderId(subject.id) ? orderDef(subject.id).effects : [];
     case 'doctrine':
       return doctrineDef(subject.id).effects;
     case 'government':

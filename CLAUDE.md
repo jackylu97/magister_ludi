@@ -220,13 +220,14 @@ be renamed — it would change every seeded outcome. No further rename passes.
   `anyCardDef` in `statecraft.ts` spans all card classes (type-only imports both
   ways with `religionData.ts` — keep it that way). Empire conditions evaluate
   ignoring condition-gated effects (`conditionDepth`, the one stated cut).
-- **Order deepening**: `OrderDef.upgrade` = `OrderUpgrade[]` — an ordinary
-  `CardEffect` appends a line per level; an `OrderDeepening`
-  (`{deepens, parameter: 'every'|'max', by}`) moves a printed number once per
-  level. Cap: `maxOrderLevel` (3) or the row's `maxLevel`. Additive rows read
-  byte-identically (pinned). `retired: true` rows leave every pool, keep the row
-  for saves. Governments: tiers ride `tierLadder`; pools via `poolOfGovernment`
-  (current + previous only).
+- **No levels**: an Order is what its row prints, held once (schema 63). A draft
+  is take one or **pass** — `skipOrderOffer` spends the hand and raises
+  `PlayerStatecraft.orderSkips`, an absolute count zeroed by a pick. The draw is
+  weighted by `OrderDef.rarity` (`rarityWeights` 4/2/1) **inside** each sub-bag
+  of the guaranteed M/E/W spread; each banked skip adds `skipPity` to the
+  uncommon and rare weights. The doc's ● ◆ ○ column IS the field (sync test).
+  `retired: true` rows leave every pool, keep the row for saves. Governments:
+  tiers ride `tierLadder`; pools via `poolOfGovernment` (current + previous only).
 - **Religion**: `bankPressure` has exactly two callers — `spreadReligion` (the
   tide) and `pressLump` (prophet/augur lumps; a proclamation is an instant lump,
   no pulse, no broom) — pinned by source. A city's religion is derived (majority),

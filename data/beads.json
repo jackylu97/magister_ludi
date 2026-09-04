@@ -574,32 +574,16 @@
         "dice": 1
       }
     },
-    "theDeepening": {
-      "name": "The Deepening",
-      "age": 3,
-      "family": "culture",
-      "system": "Statecraft",
-      "text": "Raise an Order to its third level and keep it slotted for ten turns together.",
-      "deed": {
-        "shape": "streak",
-        "count": "deepestSlottedOrder",
-        "value": 3,
-        "turns": 10
-      },
-      "boon": {
-        "dice": 1
-      }
-    },
     "theLongReign": {
       "name": "The Long Reign",
       "age": 3,
       "family": "culture",
       "system": "Statecraft",
-      "text": "Keep a council whose slotted Orders total fifteen levels for ten turns together.",
+      "text": "Keep ten of your Orders in slots for ten turns together.",
       "deed": {
         "shape": "streak",
-        "count": "slottedOrderLevels",
-        "value": 15,
+        "count": "slottedOrders",
+        "value": 10,
         "turns": 10
       },
       "boon": {

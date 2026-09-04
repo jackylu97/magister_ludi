@@ -42,9 +42,9 @@ describe('determinism', () => {
         if (player.statecraft.pendingDoctrine) {
           send({ type: 'chooseDoctrine', playerId: 0, optionIndex: 0 } as Command);
         }
-        for (const owned of player.statecraft.orders) {
+        for (const cardId of player.statecraft.orders) {
           for (let i = 0; i < player.statecraft.slots.length; i++) {
-            send({ type: 'slotOrder', playerId: 0, cardId: owned.id, slotIndex: i } as Command);
+            send({ type: 'slotOrder', playerId: 0, cardId, slotIndex: i } as Command);
           }
         }
         for (let i = 0; i < player.statecraft.slots.length; i++) {

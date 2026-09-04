@@ -437,14 +437,15 @@ describe('the bench and the offices', () => {
     );
     expect(collection).toContain('cardStampNode()');
     // The reading is inside the slotted branch and nowhere else.
-    const slotted = collection.slice(collection.indexOf('if (slotted.has(entry.id)) {'));
-    expect(slotted).toContain('stampFor(state, seat, entry.id, entry.level)');
-    expect(collection.slice(0, collection.indexOf('if (slotted.has(entry.id)) {'))).not.toContain('stampFor(');
+    // A card is named by its id alone since the levelling ruling of 2026-09-04.
+    const slotted = collection.slice(collection.indexOf('if (slotted.has(id)) {'));
+    expect(slotted).toContain('stampFor(state, seat, id)');
+    expect(collection.slice(0, collection.indexOf('if (slotted.has(id)) {'))).not.toContain('stampFor(');
   });
 
   /** Slotting plays the count with the true number; a card at rest does not. */
   it('plays the count for the office just filled, and lands the rest', () => {
-    expect(SCREEN).toContain('if (justSlotted === entry.id) playCardStamp(stamp, reading);');
+    expect(SCREEN).toContain('if (justSlotted === id) playCardStamp(stamp, reading);');
     expect(SCREEN).toContain('else landCardStamp(stamp, reading);');
     // The flag is armed by the gesture and spent by the draw that plays it.
     expect(SCREEN).toContain('justSlotted = held;');

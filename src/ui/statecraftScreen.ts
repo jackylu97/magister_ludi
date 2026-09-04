@@ -265,7 +265,6 @@ function drawCardFace(
   def: CardDefBase,
   eyebrow: string,
   clauses: readonly CardClause[],
-  level = 1,
 ): void {
   const id = lineOf(def);
   into.dataset.line = id;
@@ -279,7 +278,6 @@ function drawCardFace(
   emblem.classList.add('sc-card-emblem');
   head.append(emblem);
   head.append(element('span', 'sc-card-type', eyebrow));
-  if (level > 1) head.append(element('span', 'sc-level', `·${level}`));
   into.append(head);
   into.append(element('h4', 'sc-card-name', def.name));
   // A Doctrine's face is an `<article>` and an Order's is a `<button>`, which is
@@ -565,7 +563,6 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       const text = element('span', 'sc-slot-text');
       text.append(element('span', 'sc-slot-type', SLOT_WORDS[type]));
       if (filled) {
-        const level = sc.orders.find((owned) => owned.id === filled.card)?.level ?? 1;
         // A slotted card keeps its own accent, so the column of offices is the
         // same hand of colours the collection beside it is.
         button.dataset.line = isOrderId(filled.card) ? lineOf(orderDef(filled.card)) : 'none';
@@ -575,7 +572,6 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
           button.append(emblem);
         }
         const name = element('span', 'sc-slot-card', isOrderId(filled.card) ? orderDef(filled.card).name : String(filled.card));
-        if (level > 1) name.append(element('span', 'sc-level', `·${level}`));
         text.append(name);
         button.append(text);
         if (filled.staged) {
@@ -737,8 +733,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * it would be worth; a card the law already holds reads as what taking it out
    * would cost. Both are the same number, which is why the screen can print one.
    */
-  function stampFor(state: GameState, seat: number, id: OrderId, level: number) {
-    const reading = stampReading(explainCardImpact(state, seat, { kind: 'order', id, level }));
+  function stampFor(state: GameState, seat: number, id: OrderId) {
+    const reading = stampReading(explainCardImpact(state, seat, { kind: 'order', id }));
     return stampIsEmpty(reading) ? null : reading;
   }
 
@@ -760,7 +756,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     }
     const slotted = new Set(arrangement.filter(Boolean).map((entry) => entry!.card));
     for (const type of SLOT_TYPES) {
-      const owned = sc.orders.filter((entry) => orderDef(entry.id).slot === type);
+      const owned = sc.orders.filter((id) => orderDef(id).slot === type);
       if (owned.length === 0) continue;
       const group = element('div', `sc-group sc-group-${type}`);
       const heading = element('p', 'sc-group-head');
@@ -771,41 +767,35 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       heading.append(element('span', 'sc-group-count', String(owned.length)));
       group.append(heading);
       const grid = element('div', 'sc-card-grid');
-      for (const entry of owned) {
-        const def = orderDef(entry.id);
+      for (const id of owned) {
+        const def = orderDef(id);
         const button = document.createElement('button');
         button.type = 'button';
         button.className = `sc-card sc-card-order sc-card-${def.slot}`;
-        if (slotted.has(entry.id)) button.classList.add('sc-card-slotted');
-        if (held === entry.id) button.classList.add('sc-card-held');
-        // At the level the empire holds it, which is the whole of the upgrade
-        // slot being legible: a deepened card reads as its scaled numbers here
-        // and on the offer that deepened it, from one function.
-        drawCardFace(
-          button,
-          def,
-          SLOT_WORDS[def.slot],
-          describeCard(entry.id, entry.level),
-          entry.level,
-        );
+        if (slotted.has(id)) button.classList.add('sc-card-slotted');
+        if (held === id) button.classList.add('sc-card-held');
+        // The card's own face, from the one describer — the collection and the
+        // offer that dealt it read identically because there is one reading of
+        // a row and no second one to drift from it.
+        drawCardFace(button, def, SLOT_WORDS[def.slot], describeCard(id));
         // The stamp's seat, always built and mostly wearing the flourish — see
         // `stampFor`. The element is the same one whichever face it shows, so a
         // card slotted and unslotted does not change height.
         const stamp = cardStampNode();
-        button.dataset.card = entry.id;
+        button.dataset.card = id;
         button.append(stamp);
-        if (slotted.has(entry.id)) {
-          const reading = stampFor(state, seat, entry.id, entry.level);
+        if (slotted.has(id)) {
+          const reading = stampFor(state, seat, id);
           if (reading) {
             // The count is played only for the office it just went into; every
             // other slotted card is a standing fact and arrives landed.
-            if (justSlotted === entry.id) playCardStamp(stamp, reading);
+            if (justSlotted === id) playCardStamp(stamp, reading);
             else landCardStamp(stamp, reading);
           }
           button.append(element('p', 'sc-card-note', 'in a slot'));
           button.disabled = true;
         } else {
-          button.addEventListener('click', () => take(entry.id));
+          button.addEventListener('click', () => take(id));
         }
         grid.append(button);
       }

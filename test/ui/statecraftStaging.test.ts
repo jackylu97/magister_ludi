@@ -40,8 +40,8 @@ import {
 import { game } from '../sim/statecraftHelpers';
 
 /** Puts a card in the collection, as a draft would have. `statecraft.test.ts`'s. */
-function grant(state: GameState, playerId: number, id: OrderId, level = 1): void {
-  state.players[playerId]!.statecraft.orders.push({ id, level });
+function grant(state: GameState, playerId: number, id: OrderId): void {
+  state.players[playerId]!.statecraft.orders.push(id);
 }
 
 /**

@@ -2123,6 +2123,24 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
+   * What passing on a draft costs and what it buys, in plain words.
+   *
+   * Two sentences and both are load-bearing. The **cost** is said first because
+   * it is the part a player would otherwise discover afterwards: the culture is
+   * already spent and these cards are gone for good, which is what makes a pass
+   * a decision rather than a reroll. The **pity** is said second, and it counts
+   * out loud once there is anything to count — an empire that has passed twice
+   * running is looking at a materially different bag, and a promise the
+   * interface never mentions again is a promise nobody believes.
+   */
+  function passNote(skips: number): string {
+    const cost = 'These cards are gone and the culture stays spent.';
+    if (skips <= 0) return `${cost} Your next draft is likelier to be rare.`;
+    const runs = skips === 1 ? 'one draft passed' : `${skips} drafts passed`;
+    return `${cost} ${runs} — the next one is likelier to be rare again.`;
+  }
+
+  /**
    * Puts the local seat's pending offer on screen, if it has one.
    *
    * The offer is read off the *state* rather than passed in, so the card can
@@ -2215,28 +2233,6 @@ async function boot(initial: Game | null): Promise<void> {
         ...cardFace(orderDef(id)),
         ...cardStamp(seat, { kind: 'order', id }),
       }));
-      const upgrade = offer.upgrade;
-      if (upgrade !== undefined) {
-        const level = sc.orders.find((owned) => owned.id === upgrade)?.level ?? 1;
-        options.push({
-          title: `${orderDef(upgrade).name} · ${level} → ${level + 1}`,
-          payoff: `deepen · ${SLOT_WORDS[orderDef(upgrade).slot]}`,
-          // Before and after, from one function at two levels: the whole of the
-          // draft's question, and the reason this card is laid out on its own
-          // (`orderOfferLayout`) rather than as the fourth of a row.
-          faces: {
-            before: describeCard(upgrade, level).map((c) => c.text).join(' · '),
-            after: describeCard(upgrade, level + 1).map((c) => c.text).join(' · '),
-          },
-          emphasis: 'deepen',
-          flavor: orderDef(upgrade).flavor,
-          ...cardFace(orderDef(upgrade)),
-          // The **step**, not the card: asked at the level above the one held,
-          // the ghost-diff is the increment (`explainCardImpact`), which is
-          // exactly what the before/after face beside it is asking.
-          ...cardStamp(seat, { kind: 'order', id: upgrade, level: level + 1 }),
-        });
-      }
       offerCard.show(
         {
           eyebrow: `tier ${sc.drafts} · the culture meter is full`,
@@ -2244,6 +2240,14 @@ async function boot(initial: Game | null): Promise<void> {
           note: 'A new Order joins your collection. Slotting it is a separate act — and a sealed one.',
           options,
           widening: wideningLines('order'),
+          // The second answer (the ruling of 2026-09-04). Plain words on both
+          // halves: what it does, and what it costs — the culture is already
+          // spent and the cards do not come back, which a player has to be told
+          // before they press it rather than after.
+          pass: {
+            label: 'Pass — rarer cards next time',
+            note: passNote(sc.orderSkips),
+          },
         },
         (index) => {
           // The result is *checked* (the deployed bug of 2026-08-30): a refused
@@ -2259,6 +2263,15 @@ async function boot(initial: Game | null): Promise<void> {
           // behind a blocker the player has to press twice. Never for a seat
           // whose turn is over: the blocker re-deals the card next turn, and
           // re-showing it to a seat that cannot answer is the loop the bug was.
+          if (!hasEndedTurn(game.state, seat)) showStatecraftOffer();
+        },
+        () => {
+          // Checked like every answer, and refused for the same one reachable
+          // reason: a seat that Shift-ended its turn with the draft still up.
+          const result = dispatch(game, { type: 'skipOrderOffer', playerId: seat });
+          if (!result.ok) controls.guide(`☞ ${result.error}`);
+          controls.refresh();
+          statecraft?.refresh();
           if (!hasEndedTurn(game.state, seat)) showStatecraftOffer();
         },
       );

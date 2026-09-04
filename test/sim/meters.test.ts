@@ -912,7 +912,7 @@ describe('a captured city, end to end', () => {
     // v61 (2026-09-04, the card-shapes pass): nine Orders join the pools, two
     // are retired and one pays a second voice — so a v60 log's `chooseOrder`
     // names indices into triples this build does not deal.
-    expect(SCHEMA_VERSION).toBe(62);
+    expect(SCHEMA_VERSION).toBe(63);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));
@@ -1044,7 +1044,7 @@ describe('what founding a city here would cost', () => {
     const before = foldMeter(foundingCostLines(explainFoundingCost(state, 0, site), 'authority'));
 
     const sc = playerById(state, 0)!.statecraft;
-    sc.orders.push({ id: 'hillForts', level: 1 });
+    sc.orders.push('hillForts');
     sc.slots.push({ card: 'hillForts', sealedUntil: 0 });
     const after = foundingCostLines(explainFoundingCost(state, 0, site), 'authority');
     // A cost is signed negative, so a point cheaper is a point *higher*.

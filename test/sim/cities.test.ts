@@ -2013,7 +2013,7 @@ describe('growth off fresh water', () => {
     const { state, city } = dryTown();
     // Cistern Works: "every city of yours counts as standing on fresh water".
     const sc = playerById(state, 0)!.statecraft;
-    sc.orders.push({ id: 'cisternWorks', level: 1 });
+    sc.orders.push('cisternWorks');
     sc.slots.push({ card: 'cisternWorks', sealedUntil: state.turn });
 
     expect(cityHasFreshwater(state, city)).toBe(true);
@@ -3212,7 +3212,7 @@ describe('determinism with cities', () => {
     // v62 (the renewals axe, 2026-09-04): nine building renewals struck, so a
     // v61 town's buildings pay figures this build does not — and the whole of
     // what a building is worth is now its own row, in every empire.
-    expect(SCHEMA_VERSION).toBe(62);
+    expect(SCHEMA_VERSION).toBe(63);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);
@@ -3391,7 +3391,7 @@ describe('the hoisted city quote', () => {
     city.population = 12;
     const player = state.players[0]!;
     player.techsResearched = [...TECH_IDS];
-    player.statecraft.orders = [{ id: 'theLegion', level: 1 }];
+    player.statecraft.orders = ['theLegion'];
     player.statecraft.slots = [{ card: 'theLegion', sealedUntil: 0 }];
     player.statecraft.doctrines = ['theEncyclopaedia'];
     city.buildings = ['granary', 'barracks', 'library', 'monument', 'workshop', 'watermill'];

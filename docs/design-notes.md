@@ -78,11 +78,14 @@ stored. Flagged: the 20-bead threshold never decides; winners hold 7–10.
 - Pools: Chiefdom → Government I/II/III (tier 18 is the last new pool —
   proposed IV/V/VI sit in `docs/orders-and-doctrines.md` awaiting review).
   Doctrine tiers ride the ladder 4/10/18/29/45.
-- **Deepening is authored** (schema 51): `OrderUpgrade[]` — a `CardEffect`
-  appends a line per level; an `OrderDeepening` moves a printed number. Cap 3
-  (`maxOrderLevel`) or the row's own. Additive rows read byte-identically.
-- `retired: true` rows leave pools, keep rows for saves. Rarity marks are a
-  proposal, not yet a draw weight.
+- **No levels** (schema 63): a card is what its row prints, held once. A draft
+  is take one or pass — `skipOrderOffer` spends the hand, raises `orderSkips`
+  (absolute; zeroed by a pick), and each banked skip adds `skipPity` to the
+  uncommon and rare weights of the next draw.
+- **Rarity is the draw's weight**: `OrderDef.rarity` (● common · ◆ uncommon ·
+  ○ rare, mirrored by the doc's Rarity column and pinned by a sync test), weighed
+  4/2/1 (`rarityWeights`) inside each sub-bag of the guaranteed M/E/W spread.
+- `retired: true` rows leave pools, keep rows for saves.
 
 ## Religion
 

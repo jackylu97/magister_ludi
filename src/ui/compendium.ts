@@ -107,6 +107,7 @@ import {
   type DoctrineId,
   ORDER_IDS,
   type OrderId,
+  type OrderRarity,
   doctrineDef,
   orderDef,
 } from '../sim/statecraftData';
@@ -1124,6 +1125,21 @@ function lineRow(def: Parameters<typeof lineOf>[0]): CompendiumRow[] {
   return row('Card line', line === 'none' ? '' : CARD_LINE_NAME[line]);
 }
 
+/**
+ * The three rungs in a first-time player's words.
+ *
+ * `OrderDef.rarity`'s own names are the draw's, and "common" is a word that
+ * reads as a judgement about a card rather than a statement about a deck — so
+ * the shelf says what the weight *does* instead. Nothing here invents a figure:
+ * the exact weights are a balance dial (`rarityWeights`), and a card that
+ * printed one would be a card that lies the day it is retuned.
+ */
+const RARITY_WORDS: Record<OrderRarity, string> = {
+  common: 'often',
+  uncommon: 'less often',
+  rare: 'seldom',
+};
+
 function orderEntry(id: OrderId): CompendiumEntry {
   const def = orderDef(id);
   return {
@@ -1132,7 +1148,17 @@ function orderEntry(id: OrderId): CompendiumEntry {
     name: def.name,
     eyebrow: `${def.slot} order`,
     mark: { kind: 'glyph', glyph: '❧' },
-    rows: [...row('Slot it fits', def.slot), ...row('Draft pool', def.pool), ...lineRow(def)],
+    rows: [
+      ...row('Slot it fits', def.slot),
+      ...row('Draft pool', def.pool),
+      // **How often it turns up** (the levelling ruling of 2026-09-04). A draft
+      // weighs its bag by this and by nothing else, and passing on a hand
+      // raises what the next one is likely to hold — so a player who is told
+      // the pass buys rarer cards has to be able to find out which cards those
+      // are. One word, off the row, in the draw's own vocabulary.
+      ...row('How often it is dealt', RARITY_WORDS[def.rarity]),
+      ...lineRow(def),
+    ],
     clauses: cardClauses(id, def.note),
     flavor: def.flavor.length === 0 ? null : def.flavor,
   };

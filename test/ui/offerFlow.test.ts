@@ -15,6 +15,7 @@ describe('the statecraft offer chain checks its results', () => {
   it('captures every statecraft pick result and guides on refusal', () => {
     for (const kind of [
       "'chooseOrder'",
+      "'skipOrderOffer'",
       "'adoptGovernment'",
       "'chooseDoctrine'",
       "'chooseDiscovery'",
@@ -44,7 +45,6 @@ describe('every statecraft offer carries a stamp', () => {
   it('weighs each class of card through the one evaluator', () => {
     for (const subject of [
       "{ kind: 'order', id }",
-      "{ kind: 'order', id: upgrade, level: level + 1 }",
       "{ kind: 'government', id }",
       "{ kind: 'doctrine', id }",
       "{ kind: 'belief', id }",

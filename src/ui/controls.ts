@@ -1276,9 +1276,9 @@ export function statecraftPause(state: GameState, playerId: number): StatecraftP
   if (!player) return null;
   const sc = player.statecraft;
   if (sc.pendingGovernment !== undefined) return 'government';
-  for (const owned of sc.orders) {
+  for (const id of sc.orders) {
     for (let index = 0; index < sc.slots.length; index++) {
-      if (slotOrderError(state, playerId, owned.id, index) === null) return 'order';
+      if (slotOrderError(state, playerId, id, index) === null) return 'order';
     }
   }
   return null;

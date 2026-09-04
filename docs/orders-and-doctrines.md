@@ -189,65 +189,67 @@ Warring Tribes (the courthouse).
 
 ## Orders
 
-**Rarity** (proposed 2026-08-29, not yet built — the user finalises the marks first): ● common ·
-◆ uncommon · ○ rare. Read by the draw as a *weight, never a restriction* — proposed 4 · 2 · 1 —
-so a rare comes round about a third as often as a common and a hand of three still holds one
-roughly two drafts in five. The marks below are a first assignment for the user to cut: ● is a
-flat number, ◆ pays for doing something, ○ changes a rule. The decline rule (a passed card's
-weight halves for twenty turns) is the other half of the repeat fix and is in
-`docs/orders-candidates.md`.
+**Rarity** (built 2026-09-04): ● common · ◆ uncommon · ○ rare, and the mark in each row's
+Rarity column **is** `OrderDef.rarity` in `data/statecraft.json` — a sync test pins the two
+together, and a blank mark reads as common. Read by the draw as a *weight, never a
+restriction* — 4 · 2 · 1 (`rarityWeights`) — applied inside the guaranteed military/economic/
+wildcard spread, so a rare card is rare among cards of its own office and every hand still
+holds one of each. **Passing a draft raises the weights**: each consecutive skip adds
+`skipPity` (+1 uncommon, +1 rare) to the next draw, and taking a card puts the count back to
+nought.
 
-RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will note them.
+RULING (2026-09-04): orders are never upgraded. A card is what it prints, held once; a draft
+is take one or pass.
 
 ### Chiefdom pool (12)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
-| Blooded Spears | M | 🏹 | ● | +1 combat strength, and +2 more against barbarians. | upgrade: +1 strength towards barbarians
-| Camp Followers | M | 🏹 | ◆ | Clearing a barbarian camp grants +25 food and a random military unit. | upgrade: +15 food
-| Far Runners | M | 🧭 | ● | Scouts +1 movement and +1 sight. Civilians +2 movement while embarked. | cannot be upgraded
-| The Widow's Levy | M | — | ◆ | When a unit of yours dies, its nearest city gains +10 production and you gain +40 gold. | upgrade: +5 production +10 gold
-| Militia Levies | M | — | ● | All your cities gain +4 defense and +1 sight radius. · *neutral* | upgrade: +2 defense
-| Common Granary | E | 🌱 | ● | +1 food in every city holding an improved luxury resource. | upgrade: +1 food
-| Salt Tithes | E | 🐫 | ● | +2 gold for each unique luxury. | upgrade: +1 gold
-| Boundary Stones | E | — | ● | +30% border expansion in every city. | upgrade: +5%
-| First Rites | W | 🕯 | ● | +2 faith in your capital. | upgrade: +1 faith
-| Fire-Keepers | W | 🕯 | ● | +1 faith in your capital, and +1 happiness there. | upgrade: +1 happiness
-| First Fruits | W | 🕯 | ◆ | The first citizen born in each city pays +10 faith once. | cannot be upgraded
+| Blooded Spears | M | 🏹 | ● | +1 combat strength, and +2 more against barbarians. |
+| Camp Followers | M | 🏹 | ◆ | Clearing a barbarian camp grants +25 food and a random military unit. |
+| Far Runners | M | 🧭 | ● | Scouts +1 movement and +1 sight. Civilians +2 movement while embarked. |
+| The Widow's Levy | M | — | ◆ | When a unit of yours dies, its nearest city gains +10 production and you gain +40 gold. |
+| Militia Levies | M | — | ● | All your cities gain +4 defense and +1 sight radius. · *neutral* |
+| Common Granary | E | 🌱 | ● | +1 food in every city holding an improved luxury resource. |
+| Salt Tithes | E | 🐫 | ● | +2 gold for each unique luxury. |
+| Boundary Stones | E | — | ● | +30% border expansion in every city. |
+| First Rites | W | 🕯 | ● | +2 faith in your capital. |
+| Fire-Keepers | W | 🕯 | ● | +1 faith in your capital, and +1 happiness there. |
+| First Fruits | W | 🕯 | ◆ | The first citizen born in each city pays +10 faith once. |
 
 ### Government I pool (34)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
-| The Long Watch | M | — | ● | +1 happiness for each unit standing in one of your cities, and +1 more for each fortification a city has built. | cannot be upgraded
-| Border Wardens | M | — | ● | +2 combat strength inside your territory. | upgrade: +1 combat
-| Vanguard | M | ⚒ | ● | +2 combat strength outside your territory. | upgrade: +1 combat
-| Conscription | M | ⚒ | ◆ | +50% production toward units · −2 happiness. | cannot be upgraded
-| Spoils of the Wild | M | 🏹 | ◆ | Clearing a barbarian camp pays +100%. [Adds to Camp Followers. don't include this text in game] | cannot be upgraded
-| Horse Lords | M | ⚒ | ● | Mounted units gain +1 movement. | cannot be upgraded
-| Weights & Measures | E | 🐫 | ● | +1 gold in every city. | cannot be upgraded
-| Silk Roads | E | 🐫 | ◆ | +3 gold for each trade route you run. | upgrade: +1 gold, up to +6
-| The Tax Farm | E | 🐫 | ● | +1 gold for each 4 population in your empire. | cannot be upgraded
-| Harbour Dues | E | 🐫 | ● | Coastal cities gain +2 gold and +1 culture. | upgrade: +1 gold, up to +4
-| Land Grants | E | — | ◆ | Buying a hex costs 25% less · +40% border expansion. | upgrade: +5% hex cost reduction
-| Homestead Charters | E | — | ◆ | Newly founded cities start with 1 more population. | cannot be upgraded
-| Granary Levies | E | 🌱 | ◆ | When a city grows, it gains +10 production. | upgrade: +10 production
-| The King's Table | E | 🌱 | ● | +1 happiness for every 2 citizens in your capital. | cannot be upgraded
-| Tinkers' Guild | E | — | ◆ | Newly created workers gain +1 charge. · *neutral* | cannot be upgraded
-| Public Granaries | E | — | ◆ | Cities keep 15% of their stored food when they grow. · *neutral* | deepen: gain +5%, up to 35%.
-| Festival Days | W | 🌱 | ● | +4 happiness. | upgrade: +2 happiness, up to +8.
-| Rites of Passage | W | 🕯 | ◆ | Buying or completing a unit grants +10 faith. | upgrade: +5 faith
-| The Laureate | W | 🏛 | ○ | +1 renown per turn. Every great-person improvement pays +2 more of its own yield. | upgrade: +1 renown
-| The Legion | M | ⚒ | ◆ | Melee units gain +1 movement and +1 combat strength, and cities put 15% more production behind them. | upgrade: +10% production
-| Statute Labour | E | ⚒ | ● | +1 production in every city for each 4 citizens living there. | cannot be upgraded
-| The Almanac | W | ✶ | ● | +2 science in your capital, and +1 science in every city with a Library. | upgrade: +1 science in capital
-| Village Fairs | W | 🌱 | ● | +1 happiness for each luxury you hold two or more copies of. | upgrade: +1 happiness
-| The Muster Roll | M | ⚒ | ● | Units created from now on are born with +10 maximum health, and keep it for life. | cannot be upgraded
-| Hill Forts | M | ⛰ | ◆ | +2 combat strength when defending on hills, and a city on hills costs 1 less authority. | upgrade: +1 strength
-| The Pilgrim's Purse | W | 🕯 | ◆ | +5 faith in every city standing beside a holy site. | upgrade: +2 faith
-| Charter Towns | E | 📜 | ◆ | Newly founded cities are founded with a Granary. | cannot be upgraded
-| Wayside Shrines | W | 🕯 | ● | +1 faith in every city. | cannot be upgraded
-| The Unbroken Land | E | 🌱 | ◆ | +1 food and +1 production on every unimproved forest or jungle hex. | upgrade: +1 faith on those hexes
+| The Long Watch | M | — | ● | +1 happiness for each unit standing in one of your cities, and +1 more for each fortification a city has built. |
+| Border Wardens | M | — | ● | +2 combat strength inside your territory. |
+| Vanguard | M | ⚒ | ● | +2 combat strength outside your territory. |
+| Conscription | M | ⚒ | ◆ | +50% production toward units · −2 happiness. |
+| Spoils of the Wild | M | 🏹 | ◆ | Clearing a barbarian camp pays +100%. [Adds to Camp Followers. don't include this text in game] |
+| Horse Lords | M | ⚒ | ● | Mounted units gain +1 movement. |
+| Weights & Measures | E | 🐫 | ● | +1 gold in every city. |
+| Silk Roads | E | 🐫 | ◆ | +3 gold for each trade route you run. |
+| The Tax Farm | E | 🐫 | ● | +1 gold for each 4 population in your empire. |
+| Harbour Dues | E | 🐫 | ● | Coastal cities gain +2 gold and +1 culture. |
+| Land Grants | E | — | ◆ | Buying a hex costs 25% less · +40% border expansion. |
+| Homestead Charters | E | — | ◆ | Newly founded cities start with 1 more population. |
+| Granary Levies | E | 🌱 | ◆ | When a city grows, it gains +10 production. |
+| The King's Table | E | 🌱 | ● | +1 happiness for every 2 citizens in your capital. |
+| Tinkers' Guild | E | — | ◆ | Newly created workers gain +1 charge. · *neutral* |
+| Public Granaries | E | — | ◆ | Cities keep 15% of their stored food when they grow. · *neutral* |
+| Festival Days | W | 🌱 | ● | +4 happiness. |
+| Rites of Passage | W | 🕯 | ◆ | Buying or completing a unit grants +10 faith. |
+| The Laureate | W | 🏛 | ○ | +1 renown per turn. Every great-person improvement pays +2 more of its own yield. |
+| The Legion | M | ⚒ | ◆ | Melee units gain +1 movement and +1 combat strength, and cities put 15% more production behind them. |
+| Statute Labour | E | ⚒ | ● | +1 production in every city for each 4 citizens living there. |
+| The Almanac | W | ✶ | ● | +2 science in your capital, and +1 science in every city with a Library. |
+| Village Fairs | W | 🌱 | ● | +1 happiness for each luxury you hold two or more copies of. |
+| The Muster Roll | M | ⚒ | ● | Units created from now on are born with +10 maximum health, and keep it for life. |
+| Hill Forts | M | ⛰ | ◆ | +2 combat strength when defending on hills, and a city on hills costs 1 less authority. |
+| The Pilgrim's Purse | W | 🕯 | ◆ | +5 faith in every city standing beside a holy site. |
+| Charter Towns | E | 📜 | ◆ | Newly founded cities are founded with a Granary. |
+| Wayside Shrines | W | 🕯 | ● | +1 faith in every city. |
+| The Unbroken Land | E | 🌱 | ◆ | +1 food and +1 production on every unimproved forest or jungle hex. |
 
 ### Government I — proposed additions (no data rows yet; the sync test reads only the built table above)
 
@@ -260,43 +262,43 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
-| River Wardens | E | 🌾 | ● | When a unit is stationed in a city, that city gains +1 food on every farm beside fresh water. | cannot be upgraded
-| Field Surgeons | M | ⚒ | ● | All units heal +10 more per turn, anywhere. | cannot be upgraded
-| March Discipline | M | ⚒ | ◆ | Military units gain +1 movement. | cannot be upgraded
-| The Shield Wall | M | ⚒ | ● | +3 combat strength on hills. | upgrade: +1 combat strength
-| Siege Doctrine | M | ⚒ | ● | +4 combat strength when attacking cities. | upgrade: +1 combat strength
-| Scorched Earth | M | — | ◆ | Pillaging heals a further 25 and pays a further +10 gold. | upgrade: +15 gold
-| Sumptuary Laws | E | 🐫 | ● | +1 happiness for each unique luxury. | cannot be upgraded
-| Publicani | E | 🐫 | ◆ | +2 gold for each point of positive authority. | upgrade: +1 gold
-| Chartered Companies | E | 🐫 | ◆ | Buying a hex pays +5 science · buying a hex costs 15% less. | upgrade: +5 science, +5% cost reduction
-| Ore Tithes | E | ⚒ | ● | +1 production on every hex carrying a strategic resource. | cannot be upgraded
-| Terraced Hillsides | E | 🌱 | ● | +1 food on every hill hex. | cannot be upgraded
-| Master Masons | E | ⚒ | ◆ | Completing a building grants +10 culture. | upgrade: +5 culture
-| Royal Surveyors | E | — | ● | +50% border expansion · buying a hex costs 25% less. | cannot be upgraded
-| Provincial Governors | E | — | ● | +3 authority capacity. | upgrade: +1 authority
-| Emergency Powers | E | — | ○ | While your authority is negative: capital +25% production, and borders do not freeze. | cannot be upgraded
-| The Common Purse | E | — | ○ | Leftover production from a completed item is doubled. · *neutral* | cannot be upgraded
-| Pilgrim Roads | W | 🕯 | ◆ | +1 faith for every 3 citizens in your capital · +1 happiness for each 50 banked faith (at most +5). | upgrade: increases cap on happiness +2
-| Lamplighters | W | 🕯 | ◆ | +1 culture for each 5 faith you gain per turn. | cannot be upgraded
-| Scholars' Stipend | W | ✶ | ● | +2 science in every city of 5 or more population. | upgrade: +1 science
-| The Choir | W | 🕯 | ● | +1 culture and +1 happiness in every city with a Temple. | upgrade: +1 culture
-| Star-Gazers | W | ✶ | ● | +2 science in every city with a mountain hex inside its borders. | upgrade: +1 science
-| Cistern Works | E | 🌾 | ● | Every city of yours counts as standing on fresh water. | cannot be upgraded
-| Ledger-Keepers | E | 🐫 | ● | +1 gold in every city with a Market, and +1 trade route. | upgrade: +1 gold
-| Drums of War | M | ⚒ | ◆ | while slotted, newly created units gain +2 combat strength, and keep it for life. | cannot be upgraded
-| The Cartographers | W | 🧭 | ◆ | +1 science for each 40 hexes you have revealed. |  cannot be upgraded
-| The Masons' Lodge | E | ⚒ | ◆ | Cities of 6 population or more put 10% more production behind buildings. | upgrade: +5% production
-| The Oath-Bound | M | ⚒ | ○ | Killing a unit heals the unit that struck the blow by 15. | cannot be upgraded
-| The Orchard Tithe | E | 🌱 | ● | +1 food on every hex carrying a luxury resource. | cannot be upgraded
-| The Quiet Fields | W | 🌱 | ● | +1 happiness for each unimproved hex your cities work. | cannot be upgraded
-| The Quartermasters | M | ⚒ |   | Military units cost 1 less gold in maintenance. | cannot be upgraded
-| The Last Hunt | W | 🏹 | ○ | +2 culture and +2 science for each barbarian camp you have cleared this game. | cannot be upgraded
-| The Shipwright Shores | E | 🐫 |   | +1 production in every coastal city · +30% production toward ships there. | upgrade: +1 prod
-| The Archives | W | — |   | +1 culture for each level of the Orders you have placed in a slot. | upgrade: +1 culture
-| The War Council | M | — |   | +1 combat strength for each military Order you have in a slot, at most +3. | cannot be upgraded
-| The Guild Charter | E | — |   | +2 gold for each economic Order you have in a slot, and +1 production in your capital for each. | cannot be upgraded
-| The Synod | W | — |   | +1 faith and +1 culture for each wildcard Order you have in a slot. | cannot be upgraded
-| The Harvest Songs | W | 🌱 |   | Every city gains 10% of its food yield again as culture. | cannot be upgraded
+| River Wardens | E | 🌾 | ● | When a unit is stationed in a city, that city gains +1 food on every farm beside fresh water. |
+| Field Surgeons | M | ⚒ | ● | All units heal +10 more per turn, anywhere. |
+| March Discipline | M | ⚒ | ◆ | Military units gain +1 movement. |
+| The Shield Wall | M | ⚒ | ● | +3 combat strength on hills. |
+| Siege Doctrine | M | ⚒ | ● | +4 combat strength when attacking cities. |
+| Scorched Earth | M | — | ◆ | Pillaging heals a further 25 and pays a further +10 gold. |
+| Sumptuary Laws | E | 🐫 | ● | +1 happiness for each unique luxury. |
+| Publicani | E | 🐫 | ◆ | +2 gold for each point of positive authority. |
+| Chartered Companies | E | 🐫 | ◆ | Buying a hex pays +5 science · buying a hex costs 15% less. |
+| Ore Tithes | E | ⚒ | ● | +1 production on every hex carrying a strategic resource. |
+| Terraced Hillsides | E | 🌱 | ● | +1 food on every hill hex. |
+| Master Masons | E | ⚒ | ◆ | Completing a building grants +10 culture. |
+| Royal Surveyors | E | — | ● | +50% border expansion · buying a hex costs 25% less. |
+| Provincial Governors | E | — | ● | +3 authority capacity. |
+| Emergency Powers | E | — | ○ | While your authority is negative: capital +25% production, and borders do not freeze. |
+| The Common Purse | E | — | ○ | Leftover production from a completed item is doubled. · *neutral* |
+| Pilgrim Roads | W | 🕯 | ◆ | +1 faith for every 3 citizens in your capital · +1 happiness for each 50 banked faith (at most +5). |
+| Lamplighters | W | 🕯 | ◆ | +1 culture for each 5 faith you gain per turn. |
+| Scholars' Stipend | W | ✶ | ● | +2 science in every city of 5 or more population. |
+| The Choir | W | 🕯 | ● | +1 culture and +1 happiness in every city with a Temple. |
+| Star-Gazers | W | ✶ | ● | +2 science in every city with a mountain hex inside its borders. |
+| Cistern Works | E | 🌾 | ● | Every city of yours counts as standing on fresh water. |
+| Ledger-Keepers | E | 🐫 | ● | +1 gold in every city with a Market, and +1 trade route. |
+| Drums of War | M | ⚒ | ◆ | while slotted, newly created units gain +2 combat strength, and keep it for life. |
+| The Cartographers | W | 🧭 | ◆ | +1 science for each 40 hexes you have revealed. |
+| The Masons' Lodge | E | ⚒ | ◆ | Cities of 6 population or more put 10% more production behind buildings. |
+| The Oath-Bound | M | ⚒ | ○ | Killing a unit heals the unit that struck the blow by 15. |
+| The Orchard Tithe | E | 🌱 | ● | +1 food on every hex carrying a luxury resource. |
+| The Quiet Fields | W | 🌱 | ● | +1 happiness for each unimproved hex your cities work. |
+| The Quartermasters | M | ⚒ |   | Military units cost 1 less gold in maintenance. |
+| The Last Hunt | W | 🏹 | ○ | +2 culture and +2 science for each barbarian camp you have cleared this game. |
+| The Shipwright Shores | E | 🐫 |   | +1 production in every coastal city · +30% production toward ships there. |
+| The Archives | W | — |   | +1 culture for each Order you have placed in a slot. |
+| The War Council | M | — |   | +1 combat strength for each military Order you have in a slot, at most +3. |
+| The Guild Charter | E | — |   | +2 gold for each economic Order you have in a slot, and +1 production in your capital for each. |
+| The Synod | W | — |   | +1 faith and +1 culture for each wildcard Order you have in a slot. |
+| The Harvest Songs | W | 🌱 |   | Every city gains 10% of its food yield again as culture. |
 
 ### Government II — proposed additions (no data rows yet)
 
@@ -312,43 +314,43 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
-| The Marshals | M | ⚒ | ◆ | +2 combat strength for each adjacent friendly combat unit (at most +4). | cannot be upgraded
-| Garrison State | M | ⚒ | ● | Each city gains +3 production for each combat unit standing in it (at most +6 per city). | upgrade: +1 production
-| Skirmishers' Creed | M | ⚒ | ○ | Ranged units gain +1 range. | cannot be upgraded
-| The Finisher's Art | M | — | ● | +4 combat strength against units below half strength. | cannot be upgraded
-| Frontier Forts | M | — | ● | +6 city defence in every city near another empire's territory. | cannot be upgraded
-| The Standing Levy | M | — | ○ | Every 12 turns, a free melee unit musters in your capital. · *neutral* | upgrade: -2 turns
-| Client Kings | E | — | ● | +2 authority capacity · a captured city costs one less authority. | upgrade: +1 authority
-| Provincial Mints | E | 🐫 | ● | +2 gold for each improved copy of a luxury — duplicates count. | cannot be upgraded
-| Quarrymen's Guild | E | ⚒ | ● | +4 production in every city with a quarry. | upgrade: +1 production
-| The Grain Dole | E | 🌱 | ● | +2 happiness in every city of 6 or more population. | cannot be upgraded
-| Mandate of Heaven | W | 🕯 | ○ | The science and culture your happy cities pay rises 5% · +1 happiness for each 200 banked faith. | cannot be upgraded
-| The Lyceum | W | ✶ | ◆ | Completing a technology grants an extra turn of culture. | cannot be upgraded
-| Census of Souls | W | 🕯 | ◆ | +1 faith for each citizen in your capital. | cannot be upgraded
-| Toleration Edicts | W | — | ● | −10% happiness demanded per citizen. | upgrade: additional -2%
-| The Old Ways | W | 🌱 | ◆ | The yields of unimproved forests and jungles are doubled. [lets keep this, this is the payoff card] cannot be upgraded
-| First Fruits | E | 🌱 | ● | +1 food on every hex carrying a resource. cannot be upgraded
-| The War Chest | E | ⚒ |   | Military units cost 3 less gold in maintenance. | cannot be upgraded
-| Forced Marches | M | ⚒ |   | Melee units gain +1 movement, and +2 instead inside your own territory. | cannot be upgraded
-| The Escorted Roads | E | 🐫 |   | Trade routes pay 30% more. · †deferred | [lets implement this] upgrade: +10% per upgrade
-| The Saints' Fields | W | 🕯 |   | +3 faith on every great-person improvement. | cannot be upgraded
-| The Wayhouses | E | 🐫 |   | +2 gold and +1 culture for each trade route you run. | upgrade: +1 gold
-| The Provisioners | E | 🐫 |   | +1 happiness for each trade route between your own cities. | cannot be upgraded
-| The Prize Grounds | E | 📜 |   | +2 happiness in every city settled on a luxury resource. | upgrade: +1 happiness
-| The Census Eternal | W | ✶ |   | +1 science for every 4 citizens in your empire. | cannot be upgraded
-| The Groundskeepers | E | 🏛 |   | +1 food and +1 production on every great-person improvement. | cannot be upgraded
-| The Master's Presence | E | 🏛 |   | +10% to every yield in each city beside a great person's work. | cannot be upgraded
-| The Wonder-Feasts | E | ⚒ |   | +2 food in every city while it is building a wonder · +10% production toward wonders. | upgrade: +1 food, +5% production
-| The Master Builders | E | ⚒ |   | The Magnum Opus and cathedrals cost 15% less production. | upgrade: additional 5% cost reduction
-| The Dry Docks | E | 🐫 |   | +25% production toward ships in every city with a Harbour. · †deferred | [lets build this] upgrade: +5% production
-| The Wintering Grounds | M | — |   | Your units cost no gold in maintenance outside your territory | cannot be upgraded
-| The Annals of Law | W | — |   | +2 culture for each Order you hold but have not placed in a slot. | upgrade: +1 culture
-| The Auspicious Seal | W | — |   | The first time this Order is placed in a slot, a die of the Magister is yours. | cannot be upgraded
-| The Salting Houses | E | 🐫 |   | Coastal cities gain 10% of their food yield again as production. | cannot be upgraded
-| The Drafting Halls | E | ✶ |   | Cities with a Library gain 10% of their production again as science. | cannot be upgraded
-| The Golden Scales | E | 🐫 |   | Every city gains 10% of its gold yield again as science. | cannot be upgraded
-| The Arsenal Law | M | ⚒ | ○ | While you are at war, cities with a Barracks gain 15% of their production again as gold. | cannot be upgraded
-| The Charter of the Marches | E | 📜 | ○ | Your newest city gains +2 of every yield. Founding a city grants +30 culture. | cannot be upgraded
+| The Marshals | M | ⚒ | ◆ | +2 combat strength for each adjacent friendly combat unit (at most +4). |
+| Garrison State | M | ⚒ | ● | Each city gains +3 production for each combat unit standing in it (at most +6 per city). |
+| Skirmishers' Creed | M | ⚒ | ○ | Ranged units gain +1 range. |
+| The Finisher's Art | M | — | ● | +4 combat strength against units below half strength. |
+| Frontier Forts | M | — | ● | +6 city defence in every city near another empire's territory. |
+| The Standing Levy | M | — | ○ | Every 12 turns, a free melee unit musters in your capital. · *neutral* |
+| Client Kings | E | — | ● | +2 authority capacity · a captured city costs one less authority. |
+| Provincial Mints | E | 🐫 | ● | +2 gold for each improved copy of a luxury — duplicates count. |
+| Quarrymen's Guild | E | ⚒ | ● | +4 production in every city with a quarry. |
+| The Grain Dole | E | 🌱 | ● | +2 happiness in every city of 6 or more population. |
+| Mandate of Heaven | W | 🕯 | ○ | The science and culture your happy cities pay rises 5% · +1 happiness for each 200 banked faith. |
+| The Lyceum | W | ✶ | ◆ | Completing a technology grants an extra turn of culture. |
+| Census of Souls | W | 🕯 | ◆ | +1 faith for each citizen in your capital. |
+| Toleration Edicts | W | — | ● | −10% happiness demanded per citizen. |
+| The Old Ways | W | 🌱 | ◆ | The yields of unimproved forests and jungles are doubled. [lets keep this, this is the payoff card] |
+| First Fruits | E | 🌱 | ● | +1 food on every hex carrying a resource. |
+| The War Chest | E | ⚒ |   | Military units cost 3 less gold in maintenance. |
+| Forced Marches | M | ⚒ |   | Melee units gain +1 movement, and +2 instead inside your own territory. |
+| The Escorted Roads | E | 🐫 |   | Trade routes pay 30% more. · †deferred |
+| The Saints' Fields | W | 🕯 |   | +3 faith on every great-person improvement. |
+| The Wayhouses | E | 🐫 |   | +2 gold and +1 culture for each trade route you run. |
+| The Provisioners | E | 🐫 |   | +1 happiness for each trade route between your own cities. |
+| The Prize Grounds | E | 📜 |   | +2 happiness in every city settled on a luxury resource. |
+| The Census Eternal | W | ✶ |   | +1 science for every 4 citizens in your empire. |
+| The Groundskeepers | E | 🏛 |   | +1 food and +1 production on every great-person improvement. |
+| The Master's Presence | E | 🏛 |   | +10% to every yield in each city beside a great person's work. |
+| The Wonder-Feasts | E | ⚒ |   | +2 food in every city while it is building a wonder · +10% production toward wonders. |
+| The Master Builders | E | ⚒ |   | The Magnum Opus and cathedrals cost 15% less production. |
+| The Dry Docks | E | 🐫 |   | +25% production toward ships in every city with a Harbour. · †deferred |
+| The Wintering Grounds | M | — |   | Your units cost no gold in maintenance outside your territory |
+| The Annals of Law | W | — |   | +2 culture for each Order you hold but have not placed in a slot. |
+| The Auspicious Seal | W | — |   | The first time this Order is placed in a slot, a die of the Magister is yours. |
+| The Salting Houses | E | 🐫 |   | Coastal cities gain 10% of their food yield again as production. |
+| The Drafting Halls | E | ✶ |   | Cities with a Library gain 10% of their production again as science. |
+| The Golden Scales | E | 🐫 |   | Every city gains 10% of its gold yield again as science. |
+| The Arsenal Law | M | ⚒ | ○ | While you are at war, cities with a Barracks gain 15% of their production again as gold. |
+| The Charter of the Marches | E | 📜 | ○ | Your newest city gains +2 of every yield. Founding a city grants +30 culture. |
 
 ### Government III — proposed additions (no data rows yet)
 

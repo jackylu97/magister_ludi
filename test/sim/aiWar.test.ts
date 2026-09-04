@@ -622,8 +622,8 @@ describe('slotting is scored rather than first-fit', () => {
     // A wildcard card and a military one: the chiefdom opens one office of each
     // kind plus an economic, so the two cards contend for the wildcard.
     sc.orders = [
-      { id: 'firstRites', level: 1 },
-      { id: 'bloodedSpears', level: 1 },
+      'firstRites',
+      'bloodedSpears',
     ];
     return state;
   }

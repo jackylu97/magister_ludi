@@ -128,11 +128,9 @@ function wildId(state: GameState): number {
  * room — test scaffolding only, `statecraft.test.ts`'s `slot` helper for a
  * suite that has no reason to import it back.
  */
-function slotOrder(state: GameState, playerId: number, id: OrderId, level = 1): void {
+function slotOrder(state: GameState, playerId: number, id: OrderId): void {
   const sc = playerById(state, playerId)!.statecraft;
-  const owned = sc.orders.find((entry) => entry.id === id);
-  if (owned) owned.level = level;
-  else sc.orders.push({ id, level });
+  if (!sc.orders.includes(id)) sc.orders.push(id);
   sc.slots.push({ card: id, sealedUntil: state.turn });
 }
 

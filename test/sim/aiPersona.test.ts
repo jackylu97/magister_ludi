@@ -465,8 +465,10 @@ describe('every new term still folds to its own score', () => {
     }
     expect(failures).toEqual([]);
     // A floor, not a figure: it is here so an assertion that walked no decisions
-    // could never pass quietly.
-    expect(seen).toBeGreaterThan(40);
+    // could never pass quietly. Lowered from 40 on 2026-09-04 — the levelling
+    // ruling re-seeded every Statecraft draw, so this persona'd game is a
+    // different twenty-four turns and lands on exactly forty decisions.
+    expect(seen).toBeGreaterThan(20);
   });
 });
 

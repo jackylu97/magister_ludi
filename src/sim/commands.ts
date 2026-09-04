@@ -163,8 +163,10 @@ import {
   doctrineChoiceError,
   governmentChoiceError,
   orderChoiceError,
+  orderSkipError,
   settleDoctrineChoice,
   settleOrderChoice,
+  settleOrderSkip,
   slotOrderAt,
   slotOrderError,
   unslotOrderAt,
@@ -762,10 +764,10 @@ export interface ChooseDiscoveryCommand extends PlayerCommand {
  * halves are in the log — so a replay deals the same hand and takes the same
  * card.
  *
- * Three new cards and, when the empire owns anything, one **upgrade** as the
- * last option: taking it deepens a card already held rather than adding one.
- * Which it is, is not in the command — the offer knows, and a client that
- * guessed would be a client the reducer has to second-guess.
+ * Every option is a **new card**. There was a fourth face until 2026-09-04 —
+ * an upgrade that deepened something already held — and it went with the
+ * levelling ruling; what stands in its place is `skipOrderOffer`, a verb rather
+ * than an index.
  *
  * The card lands in the **collection**, never in a slot. Slotting is
  * `slotOrder`, because it is its own decision and it costs a seal.
@@ -776,8 +778,36 @@ export interface ChooseDiscoveryCommand extends PlayerCommand {
  */
 export interface ChooseOrderCommand extends PlayerCommand {
   type: 'chooseOrder';
-  /** Which option, by position. The upgrade is last when there is one. */
+  /** Which option, by position in `OrderOffer.options`. */
   optionIndex: number;
+}
+
+/**
+ * **Passes on a Statecraft draft** — the other half of the levelling ruling of
+ * 2026-09-04 (*"players are given an option to skip and increase the rarity of
+ * their next draft"*).
+ *
+ * A pick's twin, and it names nothing because there is nothing to name: the
+ * whole hand goes. It is a *command* rather than an option index for the reason
+ * a pass is not a card — the reducer would otherwise have to tell one index
+ * apart from the others, and the offer card would have to deal a face that is
+ * not a face.
+ *
+ * **The hand is spent, not thrown away.** An offer is drawn once from
+ * `state.rng` and spent by a command (CLAUDE.md); this is the second way to
+ * spend one. The same cards never come back, and the culture the meter spent
+ * dealing them stays spent — which is what makes passing a decision instead of
+ * a reroll.
+ *
+ * What it buys is the *next* hand: `PlayerStatecraft.orderSkips` counts
+ * consecutive passes, each one adding `skipPity` to the uncommon and rare
+ * weights of the next draw, and taking a card puts it back to nought.
+ *
+ * Turn-gated like every other act, and not a trap for `chooseOrder`'s reason:
+ * the End Turn blocker will not let a seat hand over with a draft outstanding.
+ */
+export interface SkipOrderOfferCommand extends PlayerCommand {
+  type: 'skipOrderOffer';
 }
 
 /**
@@ -1446,6 +1476,7 @@ export type Command =
   | PurchaseTileCommand
   | ChooseDiscoveryCommand
   | ChooseOrderCommand
+  | SkipOrderOfferCommand
   | SlotOrderCommand
   | UnslotOrderCommand
   | AdoptGovernmentCommand
@@ -2840,6 +2871,28 @@ function applyChooseOrder(state: GameState, command: ChooseOrderCommand): Comman
 }
 
 /**
+ * Passes on a draft. See `SkipOrderOfferCommand`.
+ *
+ * `applyChooseOrder`'s twin down to the shape: the seat's two questions here,
+ * everything about the *offer* delegated whole to `orderSkipError`, and not one
+ * line below the validation runs until both have been answered — so a refused
+ * pass leaves the state byte-identical exactly as a refused pick does.
+ */
+function applySkipOrderOffer(state: GameState, command: SkipOrderOfferCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot pass on a draft`);
+  }
+
+  const problem = orderSkipError(state, actor.id);
+  if (problem) return fail(problem);
+
+  settleOrderSkip(actor);
+  return ok();
+}
+
+/**
  * Slots a card and seals it. See `SlotOrderCommand`.
  *
  * `slotOrderError` is the whole of the rule and the Statecraft screen greys its
@@ -3863,9 +3916,10 @@ function orderedUnitId(command: Command): number | undefined {
     case 'dequeueResearch':
     case 'purchaseTile':
     case 'chooseDiscovery':
-    // The five Statecraft verbs name no piece at all: they are about the
+    // The six Statecraft verbs name no piece at all: they are about the
     // empire's law, and a card is not an order to a warrior.
     case 'chooseOrder':
+    case 'skipOrderOffer':
     case 'slotOrder':
     case 'unslotOrder':
     case 'adoptGovernment':
@@ -4015,6 +4069,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyChooseDiscovery(state, command);
     case 'chooseOrder':
       return applyChooseOrder(state, command);
+    case 'skipOrderOffer':
+      return applySkipOrderOffer(state, command);
     case 'slotOrder':
       return applySlotOrder(state, command);
     case 'unslotOrder':

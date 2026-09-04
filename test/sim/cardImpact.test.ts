@@ -119,7 +119,7 @@ describe('a flat card', () => {
     const before = ledger(state, 0);
     const stamp = foldCardImpact(explainCardImpact(state, 0, { kind: 'order', id: 'weightsAndMeasures' }));
     const sc = state.players[0]!.statecraft;
-    sc.orders.push({ id: 'weightsAndMeasures', level: 1 });
+    sc.orders.push('weightsAndMeasures');
     sc.slots[sc.slots.findIndex((slot) => slot === null)] = {
       card: 'weightsAndMeasures',
       sealedUntil: state.turn,
@@ -220,13 +220,18 @@ describe('a card that pays a meter', () => {
     expect(foldCardImpact(lines)).toEqual(emptyCityYields());
   });
 
-  /** The deepen face prices the *step*, meters included. */
-  it('prices a deepening\'s meter step and not its whole ladder', () => {
+  /**
+   * A card's meter line is its **row's**, whole — there is no step to price
+   * since the levelling ruling of 2026-09-04. This asked for a deepening's
+   * increment (a second-level Festival Days, +6 of an authored +2 over +4);
+   * what it holds now is that the card weighs what it prints.
+   */
+  it('prices a card\'s meter line at what the row says', () => {
     const { state } = bench();
-    const step = explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays', level: 2 });
+    const step = explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays' });
     const meters = step.filter((line) => line.kind === 'meter');
     expect(meters).toHaveLength(1);
-    expect(meters[0]!.amount).toBe(6);
+    expect(meters[0]!.amount).toBe(4);
   });
 
   /** Provincial Governors pays the writ. Same shape, the other meter. */
@@ -350,7 +355,7 @@ describe('a card already in force', () => {
       explainCardImpact(state, 0, { kind: 'order', id: 'weightsAndMeasures' }),
     );
     const sc = state.players[0]!.statecraft;
-    sc.orders.push({ id: 'weightsAndMeasures', level: 1 });
+    sc.orders.push('weightsAndMeasures');
     sc.slots[sc.slots.findIndex((slot) => slot === null)] = {
       card: 'weightsAndMeasures',
       sealedUntil: state.turn,
@@ -381,7 +386,7 @@ describe('a card already in force', () => {
    */
   it('is silent for a card held out of a slot', () => {
     const { state } = bench();
-    state.players[0]!.statecraft.orders.push({ id: 'weightsAndMeasures', level: 1 });
+    state.players[0]!.statecraft.orders.push('weightsAndMeasures');
     const lines = explainCardImpact(state, 0, { kind: 'order', id: 'weightsAndMeasures' });
     // Still the forward reading — the card is not in force, so slotting it is
     // worth the coin it was always worth.
@@ -434,12 +439,15 @@ describe('the evaluator itself', () => {
     const fresh = foldCardImpact(explainCardImpact(state, 0, { kind: 'order', id: 'firstRites' }));
     expect(fresh.faith).toBe(2);
     const sc = state.players[0]!.statecraft;
-    sc.orders.push({ id: 'firstRites', level: 1 });
+    sc.orders.push('firstRites');
     sc.slots[sc.slots.findIndex((slot) => slot === null)] = {
       card: 'firstRites',
       sealedUntil: state.turn,
     };
-    const step = explainCardImpact(state, 0, { kind: 'order', id: 'firstRites', level: 2 });
-    expect(foldCardImpact(step).faith).toBe(1);
+    // Held and slotted, so the reading is what taking it *out* would cost —
+    // the same figure with the same sign, which is the clause the ladder's
+    // level argument used to sit beside (2026-09-04).
+    const held = explainCardImpact(state, 0, { kind: 'order', id: 'firstRites' });
+    expect(foldCardImpact(held).faith).toBe(2);
   });
 });

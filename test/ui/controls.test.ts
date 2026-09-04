@@ -609,20 +609,20 @@ describe('the Statecraft pause', () => {
   it('pauses on an Order held outside a slot it fits', () => {
     const state = seatState();
     const sc = playerById(state, 0)!.statecraft;
-    sc.orders.push({ id: anyOrder(), level: 1 });
+    sc.orders.push(anyOrder());
     expect(statecraftPause(state, 0)).toBe('order');
   });
 
   it('says nothing once every slot the card fits is taken', () => {
     const state = seatState();
     const sc = playerById(state, 0)!.statecraft;
-    sc.orders.push({ id: anyOrder(), level: 1 });
+    sc.orders.push(anyOrder());
     // Filled with *other* cards, so the held one is genuinely unslottable rather
     // than already slotted — `slotOrderError` distinguishes the two and so must
     // this. Every slot, because a wildcard takes anything.
     for (let index = 0; index < sc.slots.length; index++) {
       sc.slots[index] = { card: ORDER_IDS[index + 1]!, sealedUntil: 0 };
-      sc.orders.push({ id: ORDER_IDS[index + 1]!, level: 1 });
+      sc.orders.push(ORDER_IDS[index + 1]!);
     }
     expect(statecraftPause(state, 0)).toBeNull();
   });
@@ -630,7 +630,7 @@ describe('the Statecraft pause', () => {
   it('lets the charter win when both are waiting', () => {
     const state = seatState();
     const sc = playerById(state, 0)!.statecraft;
-    sc.orders.push({ id: anyOrder(), level: 1 });
+    sc.orders.push(anyOrder());
     sc.pendingGovernment = { tier: 1, options: [] };
     // Adoption rebuilds the slot spread wholesale, so an Order slotted first is
     // slotted into a layout that is about to stop existing.

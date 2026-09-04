@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { DOCTRINE_IDS, ORDER_IDS, doctrineDef, orderDef } from '../../src/sim/statecraftData';
+import {
+  DOCTRINE_IDS,
+  ORDER_IDS,
+  type OrderRarity,
+  doctrineDef,
+  orderDef,
+} from '../../src/sim/statecraftData';
 
 /**
  * The doc↔data sync test (the user's workflow ruling, 2026-09-03): the pool
@@ -66,6 +72,77 @@ describe('the orders and doctrines doc mirrors the data', () => {
       for (const name of doc) {
         expect(liveSet.has(name), `${heading} row "${name}" names no live data row`).toBe(true);
       }
+    }
+  });
+
+  /**
+   * The **rarity** half (the levelling ruling of 2026-09-04).
+   *
+   * The Rarity column of the worksheet's pool tables is where the user assigns
+   * ● ◆ ○, and `OrderDef.rarity` is what the draw reads. They are one decision
+   * written twice, which is precisely the drift this file exists to catch: a
+   * mark moved in the doc and not in the data is a card the user believes they
+   * have made rarer and has not.
+   *
+   * A **blank** mark is common, deliberately and by the same rule the data file
+   * defaulted 26 rows under: an untiered card is an ordinary card. It is read
+   * as an assignment rather than as "unset" so that the two sides can still be
+   * compared — nothing here excuses a row from the pin.
+   *
+   * Keyed by pool **and** name because two live rows share a name across pools
+   * (the chiefdom's First Fruits and Government III's), which is legal — ids
+   * are what is unique — and would otherwise make one of them shadow the other.
+   */
+  const MARKS: Record<string, OrderRarity> = {
+    '●': 'common',
+    '◆': 'uncommon',
+    '○': 'rare',
+    '': 'common',
+  };
+
+  /** Every row under one heading as `name → rarity mark`, in the doc's own order. */
+  function docRarity(heading: string): Map<string, string> {
+    const start = DOC.indexOf(heading);
+    expect(start, heading).toBeGreaterThanOrEqual(0);
+    const end = DOC.indexOf('\n### ', start + heading.length);
+    const section = DOC.slice(start, end === -1 ? undefined : end);
+    const rows = new Map<string, string>();
+    for (const line of section.split('\n')) {
+      const cells = line.split('|').map((cell: string) => cell.trim());
+      if (cells.length < 6 || cells[0] !== '' || cells[1] === '') continue;
+      if (cells[1] === 'Order' || /^-+$/.test(cells[1])) continue;
+      rows.set(cells[1], cells[4] ?? '');
+    }
+    return rows;
+  }
+
+  it('gives every live order the rarity its worksheet mark says', () => {
+    for (const [pool, heading] of Object.entries(POOL_HEADINGS)) {
+      const marks = docRarity(heading);
+      const live = ORDER_IDS.filter(
+        (id) => orderDef(id).pool === pool && orderDef(id).retired !== true,
+      );
+      expect(live.length, heading).toBeGreaterThan(0);
+      for (const id of live) {
+        const def = orderDef(id);
+        const mark = marks.get(def.name);
+        expect(mark, `${heading} has no Rarity cell for "${def.name}"`).toBeDefined();
+        const wanted = MARKS[mark ?? ''];
+        expect(wanted, `${heading}: "${def.name}" carries an unknown mark "${mark ?? ''}"`)
+          .toBeDefined();
+        expect(def.rarity, `${def.name} (${id}) — the doc says "${mark ?? ''}"`).toBe(wanted);
+      }
+    }
+  });
+
+  /**
+   * A retired row is out of the doc and out of the pools, and it still carries
+   * a rarity — the field is required on the row rather than on the live subset,
+   * so restoring a withdrawn card is one flag rather than two.
+   */
+  it('gives every row a rarity at all, retired ones included', () => {
+    for (const id of ORDER_IDS) {
+      expect(Object.values(MARKS), id).toContain(orderDef(id).rarity);
     }
   });
 

@@ -65,22 +65,23 @@ import {
   cardUnitStat,
   cardRenownLines,
   describeCard,
+  describeEffects,
   draftCost,
   drawDoctrineOffer,
   drawOrderOffer,
   drawOrderOptions,
+  drawWeighted,
+  drawWithoutReplacement,
   filledOrderSlots,
-  isUpgradable,
   liveEffects,
   livePool,
   musterPeriodicUnits,
   payWindfallGrants,
   newPlayerStatecraft,
   orderChoiceError,
+  orderDrawWeight,
   planDraft,
-  canDeepen,
-  maxLevelOf,
-  orderEffectsAtLevel,
+  rarityDrawWeight,
   sealRemaining,
   sealTurnsFor,
   settleCultureWindfall,
@@ -110,13 +111,13 @@ import {
   doctrineDef,
   governmentDef,
   governmentsAtTier,
-  isOrderDeepening,
   orderDef,
   poolDoctrines,
   poolOfGovernment,
   poolOrders,
   slotLayout,
 } from '../../src/sim/statecraftData';
+import { nextFloat } from '../../src/sim/rng';
 import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
 import { isCoastal } from '../../src/sim/water';
 import { arriveOnTile } from '../../src/sim/arrival';
@@ -160,11 +161,9 @@ import { sightOf } from '../../src/sim/visibility';
 
 // --- harness ----------------------------------------------------------------
 
-/** Gives a player a card at a level, in the collection. Test scaffolding only. */
-function grant(sc: PlayerStatecraft, id: OrderId, level = 1): void {
-  const owned = sc.orders.find((entry) => entry.id === id);
-  if (owned) owned.level = level;
-  else sc.orders.push({ id, level });
+/** Puts a card in the collection, as a draft would have. Test scaffolding only. */
+function grant(sc: PlayerStatecraft, id: OrderId): void {
+  if (!sc.orders.includes(id)) sc.orders.push(id);
 }
 
 /**
@@ -172,9 +171,9 @@ function grant(sc: PlayerStatecraft, id: OrderId, level = 1): void {
  * below are about what a card *does*, not about whether a chiefdom had a spare
  * economic slot, and every slot rule has its own test above.
  */
-function slot(state: GameState, playerId: number, id: OrderId, level = 1): void {
+function slot(state: GameState, playerId: number, id: OrderId): void {
   const sc = playerById(state, playerId)!.statecraft;
-  grant(sc, id, level);
+  grant(sc, id);
   sc.slots.push({ card: id, sealedUntil: state.turn });
 }
 
@@ -446,8 +445,9 @@ describe('the draft', () => {
     expect(new Set(offer.options).size).toBe(3);
     const pool = new Set(livePool(sc));
     for (const id of offer.options) expect(pool.has(id), id).toBe(true);
-    // Nothing to deepen on the opening draft.
-    expect(offer.upgrade).toBeUndefined();
+    // The hand is the whole offer: there is no fourth face since the levelling
+    // ruling of 2026-09-04.
+    expect(Object.keys(offer)).toEqual(['options']);
   });
 
   it('never re-offers a card already held', () => {
@@ -461,12 +461,15 @@ describe('the draft', () => {
     expect(drawOrderOffer(g.state, player).options).toEqual([]);
   });
 
-  it('rolls the upgrade target from the collection', () => {
+  it('deals only cards the empire does not already hold', () => {
     const g = game();
     const player = g.state.players[0]!;
     grant(player.statecraft, 'firstRites');
+    // What holding a card buys since the levelling ruling of 2026-09-04: it
+    // leaves the bag. There is no upgrade face for it to be rolled onto —
+    // a draft can only ever widen.
     const offer = drawOrderOffer(g.state, player);
-    expect(offer.upgrade).toBe('firstRites');
+    expect(offer.options).not.toContain('firstRites');
   });
 
   it('deals the same hand from the same generator state', () => {
@@ -477,30 +480,20 @@ describe('the draft', () => {
     );
   });
 
-  it('deepens a card rather than duplicating it', () => {
+  it('adds the card to the collection, once, and clears the offer', () => {
     const g = game();
     const player = g.state.players[0]!;
     const sc = player.statecraft;
-    grant(sc, 'firstRites');
-    sc.pendingOrder = { options: [], upgrade: 'firstRites' };
+    sc.pendingOrder = { options: ['firstRites'] };
     expect(dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command).ok).toBe(true);
-    expect(sc.orders).toEqual([{ id: 'firstRites', level: 2 }]);
-  });
-
-  it('refuses a pick that would take a holding past its ceiling', () => {
-    const g = game();
-    const player = g.state.players[0]!;
-    const sc = player.statecraft;
-    // The offer is where the cap bites (`canDeepen`), so a card at its ceiling
-    // is never dealt as the upgrade face in the first place — see the ladder's
-    // own block. Here: the pick that *is* dealt lands exactly one level deeper.
-    sc.orders = [{ id: 'bloodedSpears', level: maxLevelOf('bloodedSpears') - 1 }];
-    sc.pendingOrder = { options: [], upgrade: 'bloodedSpears' };
-    expect(dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command).ok).toBe(
-      true,
-    );
-    expect(sc.orders).toEqual([{ id: 'bloodedSpears', level: maxLevelOf('bloodedSpears') }]);
-    expect(canDeepen(sc.orders[0]!)).toBe(false);
+    expect(sc.orders).toEqual(['firstRites']);
+    expect(sc.pendingOrder).toBeUndefined();
+    // A second deal of the same card cannot happen (`livePool` filters it out),
+    // and if a hand-edited save contrives one the collection still holds it
+    // once: the levelling ruling left no second copy to hold.
+    sc.pendingOrder = { options: ['firstRites'] };
+    dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command);
+    expect(sc.orders).toEqual(['firstRites']);
   });
 });
 
@@ -648,7 +641,7 @@ describe('seals', () => {
     expect(dispatch(g, { type: 'unslotOrder', playerId: 0, slotIndex: 0 } as Command).ok).toBe(true);
     // The card is back in the collection, never lost.
     expect(sc.slots[0]).toBeNull();
-    expect(sc.orders.map((o) => o.id)).toContain('bloodedSpears');
+    expect(sc.orders).toContain('bloodedSpears');
   });
 
   it('shortens the seal under The Loose Rein — the metaRule hook', () => {
@@ -696,7 +689,7 @@ describe('adoption', () => {
     expect(sc.slots).toHaveLength(slotLayout(choice).length);
     expect(sc.slots.every((entry) => entry === null)).toBe(true);
     // The card is back in the collection, unsealed.
-    expect(sc.orders.map((o) => o.id)).toContain('bloodedSpears');
+    expect(sc.orders).toContain('bloodedSpears');
     // The offer is spent, and the Doctrine draft is open and blocking.
     expect(sc.pendingGovernment).toBeUndefined();
     expect(sc.pendingDoctrine!.options).toHaveLength(3);
@@ -792,31 +785,25 @@ describe('every hook family, end to end', () => {
     const before = cityYields(g.state, city).faith;
     slot(g.state, 0, 'waysideShrines');
     expect(cityYields(g.state, city).faith).toBe(before + 1);
-    // Wayside Shrines has no second face at all (the 2026-09-02 ladder), so a
-    // level written into a save changes nothing — the reading clamps to the
-    // printed row rather than inventing a number for it.
-    g.state.players[0]!.statecraft.orders = [{ id: 'waysideShrines', level: 2 }];
+    // The collection is a list of ids since the levelling ruling of 2026-09-04:
+    // holding a card twice is not a thing the state can say, so a second entry
+    // is the same law read twice and pays once.
+    g.state.players[0]!.statecraft.orders = ['waysideShrines'];
     expect(cityYields(g.state, city).faith).toBe(before + 1);
   });
 
-  it('cityYields — a deepened Order pays its printed line and its increment, as two lines', () => {
+  it('cityYields — a slotted Order pays its printed line, once', () => {
     const g = game();
     const city = found(g.state, 0);
     const before = cityYields(g.state, city).faith;
-    // First Rites prints +2 faith in the capital and its authored increment is
-    // +1 more of the same. Level 2 is 3, level 3 is 4 — and each level is one
-    // more ordinary line in the breakdown rather than a bigger number.
+    // First Rites prints +2 faith in the capital. It printed +2 and an authored
+    // +1 a level until 2026-09-04; what a card pays now is what it says.
     slot(g.state, 0, 'firstRites');
     expect(cityYields(g.state, city).faith).toBe(before + 2);
-    const sc = g.state.players[0]!.statecraft;
-    sc.orders = [{ id: 'firstRites', level: 2 }];
-    expect(cityYields(g.state, city).faith).toBe(before + 3);
-    sc.orders = [{ id: 'firstRites', level: 3 }];
-    expect(cityYields(g.state, city).faith).toBe(before + 4);
-    // The cap clamps rather than throwing: a save from before the ceiling reads
-    // as the deepest face the row allows.
-    sc.orders = [{ id: 'firstRites', level: 9 }];
-    expect(cityYields(g.state, city).faith).toBe(before + 4);
+    // Out of its office it pays nothing: an Order pays from a slot and nowhere
+    // else, which is the clause the ladder never touched.
+    g.state.players[0]!.statecraft.slots = [];
+    expect(cityYields(g.state, city).faith).toBe(before);
   });
 
   it('percentYields — a card joins the city stage rather than multiplying afterwards', () => {
@@ -925,14 +912,11 @@ describe('every hook family, end to end', () => {
       { card: 'militiaLevies', source: 'Order · Militia Levies', amount: 4 },
     ]);
     expect(cardCityStat(g.state, city, 'sight')).toHaveLength(1);
-    // And a deepening is one more line of the same kind, folded by the same
-    // reader — the additive half of the ladder, from the flag ruling that gave
-    // this row a second face (5 flat became 4 and +2 a level).
-    playerById(g.state, 0)!.statecraft.orders.find((o) => o.id === 'militiaLevies')!.level = 2;
-    expect(cardCityStat(g.state, city, 'defense')).toEqual([
-      { card: 'militiaLevies', source: 'Order · Militia Levies', amount: 4 },
-      { card: 'militiaLevies', source: 'Order · Militia Levies', amount: 2 },
-    ]);
+    // One line, because the card prints one. It printed a second at level 2
+    // until the levelling ruling of 2026-09-04; the reader that folded them is
+    // unchanged and a row printing two clauses would still land as two lines.
+    playerById(g.state, 0)!.statecraft.slots = [];
+    expect(cardCityStat(g.state, city, 'defense')).toEqual([]);
   });
 
   it('renown — the Council of Elders is a line per empire, with its arithmetic shown', () => {
@@ -1164,7 +1148,7 @@ describe('determinism', () => {
     // Government I and the chiefdom, and The Last Hunt pays a second voice —
     // four bags changed size, so a v60 log's `chooseOrder` names indices into
     // triples this build does not deal.
-    expect(SCHEMA_VERSION).toBe(62);
+    expect(SCHEMA_VERSION).toBe(63);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1327,7 +1311,7 @@ describe('rule 5 holds with cards active', () => {
       // Slotted, not merely held: the whole of what this rider prices is the
       // scarce decision, so an Order in the pocket buys nothing.
       sc.slots = orders.map((id) => ({ card: id, sealedUntil: 0 }));
-      for (const id of orders) sc.orders.push({ id, level: 1 });
+      for (const id of orders) sc.orders.push(id);
       expect(filledOrderSlots(g.state, 0)).toBe(orders.length);
       const payout = windfallPayout(g.state, 0, 'kill');
       return payout.grants.map((grant) => [grant.yield, grant.amount] as const);
@@ -1349,7 +1333,7 @@ describe('rule 5 holds with cards active', () => {
     const g = game(29);
     const sc = playerById(g.state, 0)!.statecraft;
     sc.government = 'warChief';
-    sc.orders.push({ id: 'bloodedSpears', level: 1 }, { id: 'campFollowers', level: 1 });
+    sc.orders.push('bloodedSpears', 'campFollowers');
     sc.slots = [
       { card: 'bloodedSpears', sealedUntil: 0 },
       { card: 'campFollowers', sealedUntil: 0 },
@@ -1393,7 +1377,7 @@ describe('rule 5 holds with cards active', () => {
     const player = playerById(g.state, 0)!;
     player.statecraft.government = 'warChief';
     player.statecraft.drafts = 20; // No draft threshold in the way of the arithmetic.
-    player.statecraft.orders.push({ id: 'bloodedSpears', level: 1 });
+    player.statecraft.orders.push('bloodedSpears');
     player.statecraft.slots = [{ card: 'bloodedSpears', sealedUntil: 0 }];
     const science = player.sciencePool;
     const culture = player.culturePool;
@@ -1661,218 +1645,226 @@ describe('the behavioural hooks, in the verbs they change', () => {
 });
 
 /**
- * **The deepening ladder** (user, 2026-09-02: *"orders can only be deepened up
- * to level 3. Some cannot be upgraded"*).
+ * **The levelling axe, and the skip** (user, 2026-09-04: *"no more upgrading
+ * altogether, all cards are as is. Players are given an option to skip and
+ * increase the rarity of their next draft"*).
  *
- * `scaleByLevel`'s blanket ×1.5 is gone and the increment is authored on the
- * row (`OrderDef.upgrade`), so the promise this block used to hold together —
- * *an upgrade always changes something* — is now a promise about **data**
- * rather than about arithmetic. It is asserted in both directions, because
- * either half alone is a way to hide the other:
+ * What stood here was the deepening ladder — an authored increment per row, a
+ * ceiling, and a promise that an upgrade always changed something. All of it is
+ * gone, and the promise this block holds in its place is the one the ruling
+ * bought: **a card is what its row prints**, and a draft is take one or pass.
  *
- *   1. a row carrying an increment must actually read differently at level 2;
- *   2. a row marked `upgradable: false` must carry no increment, and one
- *      carrying an increment must not be marked.
+ * Three things need pinning, and each is a way the other two could quietly stop
+ * being true:
  *
- * The cap is the third leg: a card at its ceiling is not in the bag the upgrade
- * face is drawn from, so a draft can never offer a deepening the reading would
- * clamp away.
+ *   1. **the levels are gone from the reading** — no field, no clamp, no second
+ *      face, and one description of a card wherever it is printed;
+ *   2. **the draw is weighted and still guarantees the spread** — a rare card is
+ *      rare among cards of its own office, and every hand of three still holds
+ *      one military, one economic and one wildcard;
+ *   3. **the pity is an absolute count** — a skip raises it, a pick zeroes it,
+ *      nothing ticks it, and the hand a skip passed on is gone for good.
  */
-describe('the deepening ladder', () => {
-  /** True when this card's level-2 face reads differently from its level-1 face. */
-  function deepens(id: OrderId): boolean {
-    return JSON.stringify(describeCard(id, 1)) !== JSON.stringify(describeCard(id, 2));
-  }
-
-  it('reads level N as the printed face plus N−1 copies of the increment', () => {
-    // Blooded Spears prints a point for everybody and two more against the
-    // wild; its authored increment is the vs-barbarian point **alone**, which
-    // is the whole reason the ladder was rewritten — the old multiplier grew
-    // both clauses at once.
-    const base = orderEffectsAtLevel('bloodedSpears', 1);
-    expect(base).toEqual(orderDef('bloodedSpears').effects);
-    const two = orderEffectsAtLevel('bloodedSpears', 2);
-    expect(two).toHaveLength(base.length + 1);
-    expect(two.slice(0, base.length)).toEqual(base);
-    expect(two[base.length]).toEqual(orderDef('bloodedSpears').upgrade![0]);
-    expect(orderEffectsAtLevel('bloodedSpears', 3)).toHaveLength(base.length + 2);
-  });
-
-  it('clamps a level above the ceiling rather than throwing', () => {
-    const three = orderEffectsAtLevel('bloodedSpears', 3);
-    expect(orderEffectsAtLevel('bloodedSpears', 4)).toEqual(three);
-    expect(orderEffectsAtLevel('bloodedSpears', 99)).toEqual(three);
-    // And below it: a save carrying 0 or a fraction reads as the printed face.
-    expect(orderEffectsAtLevel('bloodedSpears', 0)).toEqual(orderDef('bloodedSpears').effects);
-  });
-
-  it('caps at three unless the row quotes its own ceiling', () => {
-    expect(STATECRAFT.maxOrderLevel).toBe(3);
-    for (const id of ORDER_IDS) expect(maxLevelOf(id), id).toBe(orderDef(id).maxLevel ?? 3);
-    // The four rows whose ratified text states a ceiling of its own, derived
-    // from the base, the increment and the words: "+1 gold, up to +6" from a
-    // base of +3 is four levels; "+5%, up to 35%" from 15% is five.
-    expect(maxLevelOf('silkRoads')).toBe(4);
-    expect(maxLevelOf('publicGranaries')).toBe(5);
-    expect(maxLevelOf('festivalDays')).toBe(3);
-    expect(maxLevelOf('harbourDues')).toBe(3);
-  });
-
-  it('deepens every Order that is offerable as an upgrade', () => {
-    const flat = ORDER_IDS.filter((id) => isUpgradable(id) && !deepens(id));
-    expect(flat, `these read the same at level 2: ${flat.join(', ')}`).toEqual([]);
-  });
-
-  it('keeps the flag and the increment one decision', () => {
+describe('a card is what it prints', () => {
+  it('carries no level, no ceiling and no second face anywhere in the table', () => {
     for (const id of ORDER_IDS) {
-      const def = orderDef(id);
-      const authored = (def.upgrade ?? []).length > 0;
-      expect(isUpgradable(id), `${id}: the flag and the increment disagree`).toBe(authored);
+      const row = orderDef(id) as unknown as Record<string, unknown>;
+      expect(row.upgrade, id).toBeUndefined();
+      expect(row.maxLevel, id).toBeUndefined();
+      expect(row.upgradable, id).toBeUndefined();
     }
-    // Both halves of the table are real: nobody has quietly marked everything.
-    expect(ORDER_IDS.filter((id) => isUpgradable(id)).length).toBeGreaterThan(0);
-    expect(ORDER_IDS.filter((id) => !isUpgradable(id)).length).toBeGreaterThan(0);
+    expect((STATECRAFT as unknown as Record<string, unknown>).maxOrderLevel).toBeUndefined();
+  });
+
+  it('describes a card the same way however it is asked', () => {
+    // `describeCard` took a level until 2026-09-04, and the offer printed a
+    // "now/deepened" pair off it. One reading now, and it is the row's — the
+    // effects first, in the vocabulary's own words, and whatever the row adds
+    // beside them (an `onSlot` gift) after.
+    expect(describeCard.length).toBe(1);
+    for (const id of ORDER_IDS) {
+      const said = describeCard(id);
+      const printed = describeEffects(orderDef(id).effects);
+      expect(said.slice(0, printed.length), id).toEqual(printed);
+    }
+  });
+
+  it('holds a card once, in a list of ids', () => {
+    const g = game();
+    const sc = g.state.players[0]!.statecraft;
+    grant(sc, 'firstRites');
+    grant(sc, 'firstRites');
+    expect(sc.orders).toEqual(['firstRites']);
+  });
+});
+
+describe('the draw is weighted by rarity', () => {
+  /** How the table weighs each rung, before any pity. */
+  const WEIGHTS = STATECRAFT.rarityWeights;
+
+  it('reads the ratified weights off the table, and the pity beside them', () => {
+    // The sheet's proposal, ratified 2026-09-04. Pinned here because every
+    // frequency below is a reading of these four numbers.
+    expect(WEIGHTS).toEqual({ common: 4, uncommon: 2, rare: 1 });
+    expect(STATECRAFT.skipPity).toEqual({ uncommon: 1, rare: 1 });
+  });
+
+  it('weighs a card by its row, and adds the pity to the two rungs that take it', () => {
+    expect(rarityDrawWeight('common', 0)).toBe(4);
+    expect(rarityDrawWeight('uncommon', 0)).toBe(2);
+    expect(rarityDrawWeight('rare', 0)).toBe(1);
+    // Three passes: the commons stand still and the rest close on them. That is
+    // the whole of the promise — pity moves the top of the deck, never the floor.
+    expect(rarityDrawWeight('common', 3)).toBe(4);
+    expect(rarityDrawWeight('uncommon', 3)).toBe(5);
+    expect(rarityDrawWeight('rare', 3)).toBe(4);
+    // And a card asks through its own row.
+    expect(orderDrawWeight('bloodedSpears', 0)).toBe(
+      rarityDrawWeight(orderDef('bloodedSpears').rarity, 0),
+    );
   });
 
   /**
-   * **The parameter half of the ladder** — the user's flag ruling of 2026-09-03
-   * (*"standing levy being able to upgrade is a cool mechanic"*), and the edit
-   * the `PARAMETER_DEEPENERS` register that used to sit here was holding the
-   * place for.
+   * The frequencies, **on named seeds**, over a bag built for the purpose.
    *
-   * Two rows deepen a *number* rather than a line: The Standing Levy's cadence
-   * and Pilgrim Roads' cap on what its second clause may pay. A second copy of
-   * either effect says the wrong thing (a second `periodicMuster` musters twice
-   * rather than sooner; a second capped `countScaled` pays past its own cap), so
-   * the increment list gained an entry that names a kind and a number and moves
-   * it — read at the one expansion point, `orderEffectsAtLevel`.
-   *
-   * Both are asserted **through the reading**, never against the row: what
-   * matters is that the face at each level says the ratified figure.
+   * A deterministic pin rather than a statistical claim: the same seeds deal the
+   * same hands forever, so what is asserted is *these draws*, and the count is
+   * only the readable way to state it. The bag is one rare against three
+   * commons of the same office, so the spread rule cannot reach in and pick for
+   * the weights — every draw here is one sub-bag's.
    */
-  it('moves a printed number one level at a time — the cadence', () => {
-    const every = (level: number): number => {
-      const effects = orderEffectsAtLevel('theStandingLevy', level);
-      const muster = effects.find((effect) => effect.kind === 'periodicMuster');
-      expect(muster, `level ${level} lost its muster`).toBeDefined();
-      return (muster as { every: number }).every;
+  it('deals a rare card about a thirteenth as often as three commons', () => {
+    const g = game(5);
+    // Chiefdom military rows: one of each rung is not on the table, so the bag
+    // is assembled by hand out of ids and weighed by a function of the id.
+    const bag: OrderId[] = ['bloodedSpears', 'farRunners', 'militiaLevies', 'campFollowers'];
+    const weight = (id: OrderId): number => (id === 'campFollowers' ? 1 : 4);
+    let rares = 0;
+    for (let i = 0; i < 130; i++) {
+      const [drawn] = drawWeighted(g.state, bag, 1, weight);
+      if (drawn === 'campFollowers') rares += 1;
+    }
+    // Thirteen of a hundred and thirty, on seed 5, exactly — a number this
+    // build produces and the next one must reproduce. Change the seed or the
+    // weights and this moves; it is the pin, not a statistical claim.
+    expect(rares).toBe(13);
+  });
+
+  it('deals nothing but the weighted card when everything else weighs nothing', () => {
+    const g = game(3);
+    const bag: OrderId[] = ['bloodedSpears', 'farRunners', 'militiaLevies'];
+    const only = (id: OrderId): number => (id === 'militiaLevies' ? 1 : 0);
+    for (let i = 0; i < 20; i++) {
+      expect(drawWeighted(g.state, bag, 1, only)).toEqual(['militiaLevies']);
+    }
+  });
+
+  it('spends exactly one roll per card it takes, weighted or not', () => {
+    // The roll contract, unchanged by the weights (`drawWeighted`). Two draws
+    // of two from the same seeded state must land in the same place as one draw
+    // of four would have left the generator.
+    const a = game(17);
+    const b = game(17);
+    const bag: OrderId[] = ['bloodedSpears', 'farRunners', 'militiaLevies', 'campFollowers'];
+    drawWeighted(a.state, bag, 4, () => 1);
+    drawWithoutReplacement(b.state, bag, 4);
+    expect(nextFloat(a.state.rng)).toBe(nextFloat(b.state.rng));
+  });
+
+  it('keeps the military/economic/wildcard spread under weighting', () => {
+    // The guarantee rides *inside* each sub-bag rather than around the hand, so
+    // weighting cannot cost a hand its spread. Ten drafts, every one of them
+    // one of each — and the pool is the chiefdom's, whose rarities are the
+    // table's own.
+    const g = game(41);
+    const sc = g.state.players[0]!.statecraft;
+    for (let i = 0; i < 10; i++) {
+      const hand = drawOrderOptions(g.state, livePool(sc), 3, (id) => orderDrawWeight(id, 0));
+      expect(hand, `draft ${i}`).toHaveLength(3);
+      expect(new Set(hand.map((id) => orderDef(id).slot)), `draft ${i}`).toEqual(
+        new Set(SLOT_TYPES),
+      );
+    }
+  });
+
+  it('deals a hand the pity has changed, from the same state', () => {
+    // The pity is read at the deal (`drawOrderOffer`), so two empires on the
+    // same seeded state with different skip counts are dealt different hands.
+    const clean = game(23);
+    const patient = game(23);
+    patient.state.players[0]!.statecraft.orderSkips = 4;
+    const a = drawOrderOffer(clean.state, clean.state.players[0]!);
+    const b = drawOrderOffer(patient.state, patient.state.players[0]!);
+    expect(a.options).not.toEqual(b.options);
+  });
+});
+
+describe('passing on a draft', () => {
+  it('spends the hand, raises the pity, and blocks nothing afterwards', () => {
+    const g = game();
+    const player = g.state.players[0]!;
+    const sc = player.statecraft;
+    sc.pendingOrder = { options: ['firstRites', 'saltTithes', 'bloodedSpears'] };
+    expect(statecraftBlocker(player)).toBe('an Order draft is waiting');
+    expect(dispatch(g, { type: 'skipOrderOffer', playerId: 0 } as Command).ok).toBe(true);
+    // Gone, not re-dealt: an offer is drawn once and spent by a command, and a
+    // pass is the second way to spend one.
+    expect(sc.pendingOrder).toBeUndefined();
+    expect(sc.orders).toEqual([]);
+    expect(sc.orderSkips).toBe(1);
+    expect(statecraftBlocker(player)).toBeNull();
+  });
+
+  it('counts consecutive passes and zeroes them on a pick', () => {
+    const g = game();
+    const sc = g.state.players[0]!.statecraft;
+    for (let i = 1; i <= 3; i++) {
+      sc.pendingOrder = { options: ['firstRites'] };
+      dispatch(g, { type: 'skipOrderOffer', playerId: 0 } as Command);
+      expect(sc.orderSkips).toBe(i);
+    }
+    sc.pendingOrder = { options: ['firstRites'] };
+    dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command);
+    expect(sc.orderSkips).toBe(0);
+  });
+
+  it('refuses a pass with no draft on the table, byte-identically', () => {
+    const g = game();
+    const before = snapshotState(g.state);
+    const refused = dispatch(g, { type: 'skipOrderOffer', playerId: 0 } as Command);
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) expect(refused.error).toContain('no Statecraft draft to pass on');
+    expect(snapshotState(g.state)).toEqual(before);
+  });
+
+  it('refuses a pass from a seat whose turn is over, byte-identically', () => {
+    const g = game();
+    g.state.players[0]!.statecraft.pendingOrder = { options: ['firstRites'] };
+    dispatch(g, { type: 'endTurn', playerId: 0 } as Command);
+    const before = snapshotState(g.state);
+    const refused = dispatch(g, { type: 'skipOrderOffer', playerId: 0 } as Command);
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) expect(refused.error).toContain('cannot pass on a draft');
+    expect(snapshotState(g.state)).toEqual(before);
+  });
+
+  it('replays byte-identically through a pass', () => {
+    // The determinism claim, end to end: the pass is in the log, the culture it
+    // spent stays spent, and the hand it threw away never comes back.
+    const play = (g: ReturnType<typeof game>): void => {
+      const sc = g.state.players[0]!.statecraft;
+      sc.pendingOrder = drawOrderOffer(g.state, g.state.players[0]!);
+      dispatch(g, { type: 'skipOrderOffer', playerId: 0 } as Command);
+      sc.pendingOrder = drawOrderOffer(g.state, g.state.players[0]!);
+      dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command);
     };
-    // 12 → 10 → 8, and the row is one line at every level: a deepening replaces
-    // the effect rather than adding beside it, which is the whole difference
-    // between this half and the additive one.
-    expect(every(1)).toBe(12);
-    expect(every(2)).toBe(10);
-    expect(every(3)).toBe(8);
-    for (const level of [1, 2, 3]) {
-      expect(orderEffectsAtLevel('theStandingLevy', level)).toHaveLength(1);
-    }
-    // The ceiling clamps rather than throwing, exactly as it does for a line.
-    expect(every(4)).toBe(8);
-    expect(every(99)).toBe(8);
-    // And the **table is not written to**: level 1 still reads the printed face
-    // after every deeper face has been asked for.
-    expect(orderEffectsAtLevel('theStandingLevy', 1)).toEqual(
-      orderDef('theStandingLevy').effects,
-    );
-    expect((orderDef('theStandingLevy').effects[0] as { every: number }).every).toBe(12);
-  });
-
-  it('moves a printed number one level at a time — the cap', () => {
-    // Pilgrim Roads prints two `countScaled`s and only the second carries a cap,
-    // so the deepening names the *number* and needs no index: it moves the line
-    // that actually has one, and the uncapped faith clause is untouched.
-    const capped = (level: number): { per?: number; max?: number } => {
-      const effects = orderEffectsAtLevel('pilgrimRoads', level);
-      expect(effects).toHaveLength(2);
-      const first = effects[0] as { max?: number };
-      expect(first.max, `level ${level} moved the wrong line`).toBeUndefined();
-      return effects[1] as { per?: number; max?: number };
-    };
-    expect(capped(1).max).toBe(5);
-    expect(capped(2).max).toBe(7);
-    expect(capped(3).max).toBe(9);
-    // Everything else on the deepened line is the row's own: only the named
-    // number moved.
-    expect(capped(3).per).toBe(50);
-  });
-
-  it('leaves every additive row byte-identical', () => {
-    // The pin the mechanism is worth having: fifty-three rows carry an increment
-    // whose `kind` also appears on their printed face (Blooded Spears' second
-    // combat line, Silk Roads' second countScaled), so a rule that replaced *by
-    // kind* would have rewritten all of them. The entry says which it is, and
-    // this reads every row at every level to prove nothing else moved.
-    let additive = 0;
-    for (const id of ORDER_IDS) {
-      const def = orderDef(id);
-      const increment = (def.upgrade ?? []).filter((entry) => !isOrderDeepening(entry));
-      if (increment.length === 0 || increment.length !== (def.upgrade ?? []).length) continue;
-      additive += 1;
-      for (let level = 1; level <= maxLevelOf(id); level++) {
-        const expected = [...def.effects];
-        for (let i = 1; i < level; i++) expected.push(...(increment as CardEffect[]));
-        expect(orderEffectsAtLevel(id, level), `${id} at level ${level}`).toEqual(expected);
-      }
-    }
-    expect(additive).toBeGreaterThan(40);
-  });
-
-  it('keeps a deepening out of the face it hands back', () => {
-    // Nothing downstream may ever see an `OrderDeepening`: the face is
-    // `CardEffect[]`, exactly as it was before the shape existed, and every
-    // consumer in the register goes on switching on `kind` alone.
-    for (const id of ORDER_IDS) {
-      for (let level = 1; level <= maxLevelOf(id); level++) {
-        for (const effect of orderEffectsAtLevel(id, level)) {
-          expect(effect.kind, `${id} at level ${level}`).toBeTruthy();
-          expect(isOrderDeepening(effect as never), id).toBe(false);
-        }
-      }
-    }
-  });
-
-  it('never rolls an unupgradable card as the upgrade option', () => {
-    const game = createGame({
-      seed: 99,
-      sizeName: 'duel',
-      players: [{ name: 'A', color: '#a00', isHuman: true }],
-    });
-    const player = game.state.players[0]!;
-    const sc = newPlayerStatecraft();
-    player.statecraft = sc;
-    // An empire holding *only* switches has nothing to deepen, and the offer
-    // says so by having no upgrade at all rather than by offering a no-op.
-    sc.orders = ORDER_IDS.filter((id) => !isUpgradable(id)).map((id) => ({ id, level: 1 }));
-    expect(sc.orders.length).toBeGreaterThan(0);
-    expect(drawOrderOffer(game.state, player).upgrade).toBeUndefined();
-
-    // Add one card that does deepen and it is the only thing that can be rolled,
-    // however many times the bag is drawn from.
-    const deepenable = ORDER_IDS.find((id) => isUpgradable(id))!;
-    sc.orders.push({ id: deepenable, level: 1 });
-    for (let draw = 0; draw < 40; draw++) {
-      expect(drawOrderOffer(game.state, player).upgrade).toBe(deepenable);
-    }
-  });
-
-  it('never rolls a card that has reached its ceiling', () => {
-    const game = createGame({
-      seed: 7,
-      sizeName: 'duel',
-      players: [{ name: 'A', color: '#a00', isHuman: true }],
-    });
-    const player = game.state.players[0]!;
-    const sc = newPlayerStatecraft();
-    player.statecraft = sc;
-    // One card, held at its ceiling: there is nothing left to deepen, and the
-    // offer says so rather than dealing a face the reading would clamp away.
-    sc.orders = [{ id: 'bloodedSpears', level: maxLevelOf('bloodedSpears') }];
-    expect(canDeepen(sc.orders[0]!)).toBe(false);
-    expect(drawOrderOffer(game.state, player).upgrade).toBeUndefined();
-    // One level short of it, and it is the only thing in the bag.
-    sc.orders = [{ id: 'bloodedSpears', level: maxLevelOf('bloodedSpears') - 1 }];
-    expect(canDeepen(sc.orders[0]!)).toBe(true);
-    expect(drawOrderOffer(game.state, player).upgrade).toBe('bloodedSpears');
+    const a = game(31);
+    const b = game(31);
+    play(a);
+    play(b);
+    expect(snapshotState(a.state)).toEqual(snapshotState(b.state));
+    expect(a.state.players[0]!.statecraft.orderSkips).toBe(0);
+    expect(a.state.players[0]!.statecraft.orders).toHaveLength(1);
   });
 });
 
@@ -2932,9 +2924,10 @@ describe('the Orders pass of 2026-08-29', () => {
       expect(def.slot, id).toBe(slotType);
       expect(def.flavor, id).toBeTruthy();
       expect(def.text, id).toBeTruthy();
-      // No rarity yet: the user is holding that field until later, and a row
-      // carrying one would be a dial the draw does not read.
-      expect((def as unknown as Record<string, unknown>)["rarity"], id).toBeUndefined();
+      // And a rarity, since the ruling of 2026-09-04: every row carries one,
+      // taken from the worksheet's mark (`statecraftDocSync.test.ts` pins the
+      // two together), because it is what the draw weighs the bag by.
+      expect(['common', 'uncommon', 'rare'], id).toContain(def.rarity);
     }
   });
 
@@ -3374,7 +3367,7 @@ describe('the balance pass of 2026-08-31', () => {
     // The Lyceum has no second face since the 2026-09-02 ladder, so a level
     // written into a save changes nothing: the reading clamps to the printed
     // row rather than inventing a deeper Lyceum for it.
-    g.state.players[0]!.statecraft.orders = [{ id: 'theLyceum', level: 2 }];
+    g.state.players[0]!.statecraft.orders = ['theLyceum'];
     expect(windfallPayout(g.state, 0, 'tech').grants[0]!.amount).toBe(rate);
   });
 
@@ -3682,7 +3675,7 @@ describe('the ratified cards of the Themes Build', () => {
     expect(happy()).toBe(1);
   });
 
-  it('slottedOrderLevels and unslottedOrders — the council read from both ends', () => {
+  it('slottedOrders and unslottedOrders — the council read from both ends', () => {
     const g = game();
     found(g.state, 0);
     const sc = playerById(g.state, 0)!.statecraft;
@@ -3698,19 +3691,22 @@ describe('the ratified cards of the Themes Build', () => {
     expect(culture('The Archives')).toBe(0);
 
     sc.slots.push({ card: 'theArchives', sealedUntil: g.state.turn });
-    // One chair, one level: the Archives pay for themselves and nothing else.
+    // One chair: the Archives pay for themselves and nothing else.
     expect(culture('The Archives')).toBe(1);
     // Two left on the shelf, at two culture apiece — and the Annals must be
     // slotted to say so, which is what makes the card a decision.
     sc.slots.push({ card: 'theAnnalsOfLaw', sealedUntil: g.state.turn });
     expect(culture('The Annals of Law')).toBe(2);
     expect(culture('The Archives')).toBe(2);
-    // Deepening pays twice over, and the pun is the card: a deeper Archives
-    // raises the *count* (three levels sit in chairs now) and `scaleByLevel`
-    // raises what each level is worth (two culture, the vocabulary's
-    // at-least-a-point-per-level rule). Three by two.
-    grant(sc, 'theArchives', 2);
-    expect(culture('The Archives')).toBe(6);
+    // **A third law moves the count** (the levelless re-cut of 2026-09-04). It
+    // asked for levels until the ruling emptied the word, and what it asks now
+    // is what its own sentence says: one culture for each Order in a slot.
+    grant(sc, 'firstFruitsOffering');
+    sc.slots.push({ card: 'firstFruitsOffering', sealedUntil: g.state.turn });
+    expect(culture('The Archives')).toBe(3);
+    // And a card taken back out of its chair stops being counted.
+    sc.slots.pop();
+    expect(culture('The Archives')).toBe(2);
   });
 
   it('renown — The Laureate is a trickle now, and it joins the ledger it pays into', () => {
@@ -3761,7 +3757,7 @@ describe('the ratified cards of the Themes Build', () => {
     }
     for (const count of [
       'internalTradeRoutes',
-      'slottedOrderLevels',
+      'slottedOrders',
       'unslottedOrders',
       'clearedCamps',
     ]) {
@@ -3835,7 +3831,7 @@ describe('the ratified cards of the Themes Build', () => {
       'all units cost no gold in maintenance outside your territory',
     ]);
     expect(said('theArchives')).toEqual([
-      '+1 culture per level of the Orders you have placed in a slot',
+      '+1 culture per Order you have placed in a slot',
     ]);
     expect(said('theAnnalsOfLaw')).toEqual([
       '+2 culture per Order you hold but have not placed in a slot',

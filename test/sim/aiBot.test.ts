@@ -465,7 +465,7 @@ describe('the drafting hand', () => {
     expect(pair).not.toBeNull();
     const [a, b] = pair!;
     // Commit to `a`'s thread by holding it, and `a` must now outscore `b`.
-    player.statecraft.orders.push({ id: a as OrderId, level: 1 });
+    player.statecraft.orders.push(a as OrderId);
     expect(scoreCard(player, a as OrderId, ctx)).toBeGreaterThan(
       scoreCard(player, b as OrderId, ctx),
     );

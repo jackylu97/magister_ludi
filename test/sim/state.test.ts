@@ -659,7 +659,7 @@ describe('the research queue field', () => {
     // v62 (the renewals axe, 2026-09-04): the tech-gated free building upgrades
     // are struck from the table, so a v61 empire holding The Wheel banked a
     // fourth point of food in every granary this build does not pay.
-    expect(SCHEMA_VERSION).toBe(62);
+    expect(SCHEMA_VERSION).toBe(63);
   });
 });
 

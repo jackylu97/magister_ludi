@@ -6324,6 +6324,37 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-faint);
 }
 
+/* The second answer, on its own line under View map (the draft's pass, ruled
+   2026-09-04). It is `.offer-look`'s twin in every dimension and its opposite in
+   meaning, so it is drawn the same size and given the vermilion rim the rest of
+   this interface reserves for a thing that is spent: quiet enough not to compete
+   with the cards, marked enough that nobody presses it for a close button. Its
+   own sentence sits beside it, because "nothing is spent" is true of the control
+   above and false of this one. */
+.offer-foot-pass {
+  margin-top: 4px;
+}
+
+.offer-pass {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px 4px;
+  border: var(--border-thin) solid var(--vermilion);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--vermilion);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.offer-pass:hover,
+.offer-pass:focus-visible {
+  background: var(--vermilion);
+  color: var(--parchment);
+}
+
 /* The way back, pinned above End Turn while an offer is being held off-screen.
    Gilt rather than the primary ink, because it is not the button that ends the
    turn and must not be mistaken for it in the corner they share; it sits *over*
@@ -6368,17 +6399,13 @@ body:has(.city-mode:not([hidden])) #hud-context {
   line-height: 1.1;
 }
 
-/* The spread: a row of cards, and — for the Statecraft draft alone — one card
-   centred beneath it.
+/* The spread: one row of cards, in the offer's own order.
 
-   **The playtest note this answers.** A draft is three new Orders and one
-   upgrade, and the upgrade was simply the fourth cell of the `auto-fit` grid,
-   which at this sheet's width wrapped to three across and then one card on its
-   own, left-aligned, under them. It read as an afterthought. It is not one: it
-   is the other half of the question, which is *deepen or widen*. So it comes
-   out of the row, is centred under it, and gets a frame and a face of its own —
-   see `orderOfferLayout` in `src/ui/offerCard.ts`, which is where the ordering
-   is decided (and tested), not here. */
+   There was a second half here — a card lifted out of the row and centred
+   beneath it, the draft's deepening — until the levelling ruling of 2026-09-04
+   took the "deepen or widen" question away. What replaced it is not a card at
+   all but a control in the foot (`.offer-pass`), which is why this block is one
+   grid again. */
 .offer-options {
   display: grid;
   gap: 12px;
@@ -6406,35 +6433,6 @@ body:has(.city-mode:not([hidden])) #hud-context {
   .offer-row {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-
-/* The hinge between the two halves of the choice, and the only place the
-   interface says the word out loud. A rule through the middle of the sentence
-   rather than a heading over it: this is a *fork*, not a section. */
-.offer-hinge {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 4px 0 0;
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.offer-hinge::before,
-.offer-hinge::after {
-  flex: 1 1 auto;
-  height: 0;
-  border-top: var(--border-thin) solid var(--ink-faint);
-  content: '';
-}
-
-.offer-centre {
-  display: grid;
-  justify-content: center;
 }
 
 .offer-option {
@@ -6646,91 +6644,6 @@ body:has(.city-mode:not([hidden])) #hud-context {
    The one card that changes something already on the table. It is landscape
    where the others are portrait, because what it has to show is a *change* —
    two faces of one card, read across — and a change reads along a line. */
-/* The upgrade card is the *other half* of the question, and it is a card the
-   player already holds — so it is the one card in the spread that can afford to
-   be brief. It runs landscape, it shows both faces, and (below) it does without
-   the flavour line: that sentence is printed in the collection, where the card
-   lives, and here it would cost the row above it thirty points of height it
-   needs for cards the player has never seen. */
-.offer-option.is-deepen {
-  width: min(560px, 100%);
-  min-height: 0;
-  padding: 12px 16px 12px;
-  border-width: var(--border);
-  box-shadow: 5px 5px 0 var(--ink);
-}
-
-.offer-options[data-face='tarot'] .offer-option.is-deepen {
-  min-height: 0;
-  text-align: left;
-}
-
-.offer-options[data-face='tarot'] .offer-option.is-deepen .offer-emblem {
-  align-self: flex-start;
-  width: 30px;
-  height: 30px;
-  margin: 0;
-}
-
-.offer-options[data-face='tarot'] .offer-option.is-deepen .offer-option-title {
-  font-size: 1.05rem;
-}
-
-.offer-faces {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 10px;
-  margin-top: 2px;
-}
-
-/* See `.offer-option.is-deepen`: the deepening's flavour is in the collection. */
-.offer-option.is-deepen .offer-flavor {
-  display: none;
-}
-
-.offer-face {
-  display: grid;
-  gap: 3px;
-  padding: 6px 9px;
-  border: var(--border-thin) solid var(--ink-faint);
-  border-radius: var(--radius-sm);
-  background: var(--table);
-}
-
-/* The face the card would wear, marked as the answer rather than the question:
-   solid rule, parchment ground, the accent's ink on its label. */
-.offer-face.is-after {
-  border-color: var(--line-ink, var(--ink));
-  background: var(--parchment);
-}
-
-.offer-face-label {
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.offer-face.is-after .offer-face-label {
-  color: var(--line-ink, var(--ink));
-}
-
-.offer-face-text {
-  font-family: var(--face-ui);
-  font-size: 0.8rem;
-  line-height: 1.35;
-  color: var(--ink);
-}
-
-.offer-face-arrow {
-  font-family: var(--face-num);
-  font-size: 1.1rem;
-  color: var(--ink-faint);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .offer-overlay,
   .offer-sheet {
@@ -7618,13 +7531,6 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 .sc-stamp-glyph {
   font-size: 10px;
-}
-
-.sc-level {
-  font-family: var(--face-num);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--gilt);
 }
 
 /* What is in hand, in words. The slot row highlights what will take the card;

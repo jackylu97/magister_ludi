@@ -221,10 +221,8 @@ export type BeadCount =
   | 'combatUnits'
   /** The sum of every unit's roster strength. */
   | 'unitStrength'
-  /** The combined levels of every Order in a slot. */
-  | 'slottedOrderLevels'
-  /** The level of the deepest Order in a slot. */
-  | 'deepestSlottedOrder'
+  /** How many of this empire's Orders are sitting in a slot. */
+  | 'slottedOrders'
   /** The food this empire's best-fed city produces in a turn. */
   | 'bestCityFood'
   /** The production this empire's busiest city produces in a turn. */
@@ -262,8 +260,7 @@ export const BEAD_COUNTS: readonly BeadCount[] = [
   'greatWorkFamiliesInOneCity',
   'combatUnits',
   'unitStrength',
-  'slottedOrderLevels',
-  'deepestSlottedOrder',
+  'slottedOrders',
   'bestCityFood',
   'bestCityProduction',
   'engineCompleted',

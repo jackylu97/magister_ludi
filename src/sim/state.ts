@@ -1058,8 +1058,44 @@ import {
  *     The migration note: the deleted field was optional on every row and is
  *     read by nothing that keeps state, so nothing changed shape and there is
  *     nothing to migrate. What moved is what the same log is worth.
+ *
+ * v63: **the levelling axe, and the skip** (ruled 2026-09-04, `docs/flags.md`:
+ * *"no more upgrading altogether, all cards are as is. Players are given an
+ * option to skip and increase the rarity of their next draft"*). An Order is
+ * what its row prints, held once, in every empire; a draft is take one or pass.
+ *
+ *   · **Levels leave the state.** `PlayerStatecraft.orders` was a list of
+ *     `{id, level}` and is a list of ids. A v62 save holding anything at level
+ *     2 or 3 was paying a face this build does not compute, so every ledger
+ *     downstream of a slotted Order — yields, happiness, combat lines, offer
+ *     size, route slots — is a different number from the draft that deepened it.
+ *   · **A v62 log picks options this build does not deal.** The upgrade was the
+ *     *last* option of every draft an empire held anything for, so `chooseOrder`
+ *     at that index named a deepening here and names nothing at all now; and the
+ *     upgrade roll spent a generator call after every hand, so the whole
+ *     sequence of draws diverges from the second draft onward.
+ *   · **The draw is weighted.** Every Order row carries `rarity`, and each of
+ *     the four sub-bags of the guaranteed spread is drawn by weight
+ *     (`rarityWeights`: common 4, uncommon 2, rare 1) rather than uniformly —
+ *     so a v62 log's very first draft already deals a different hand from the
+ *     same seed.
+ *   · **A new command and a new field.** `skipOrderOffer` spends a draft
+ *     without taking a card and raises `PlayerStatecraft.orderSkips`, whose
+ *     count adds `skipPity` to the uncommon and rare weights of the next draw;
+ *     taking a card zeroes it.
+ *   · **Two card readings change with the word "level".** The Archives pays
+ *     per Order in a slot rather than per level of one (`CountKind`'s
+ *     `slottedOrders`), and the bead quests that read the council are re-cut —
+ *     The Long Reign asks for ten slotted Orders, and The Deepening is struck
+ *     from the table outright because there is nothing left for it to ask.
+ *
+ *     The migration note: `orders` changed shape, so a v62 save cannot be read
+ *     and there is deliberately no migration (`NO_MIGRATIONS` — saves are
+ *     `{config, log}` and replay). `OrderDef.upgrade`, `maxLevel`,
+ *     `upgradable` and `StatecraftConfig.maxOrderLevel` are gone from the data
+ *     table with the machinery that read them.
  */
-export const SCHEMA_VERSION = 62;
+export const SCHEMA_VERSION = 63;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

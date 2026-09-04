@@ -3,7 +3,7 @@
  *
  * Built for the discoveries (playable.md item 3) and deliberately shaped for the
  * thing after it. Entry XV's Statecraft draft is the same gesture at a different
- * scale — three new cards and an upgrade, chosen once every few turns — and the
+ * scale — a hand of cards, chosen once every few turns — and the
  * shape of that gesture is *an offer of N options, each with a name, a line of
  * flavour and a stated payoff, exactly one of which is taken*. So this component
  * knows about options and nothing about ruins: no discovery id, no yield, no
@@ -12,9 +12,8 @@
  *
  * Generic-ish, and no further
  * ---------------------------
- * It is emphatically not a framework. There is no reroll, no multi-select, no
- * disabled state, no upgrade slot — Statecraft will want at least the first and
- * the last, and they can be added when there is a real second caller with real
+ * It is emphatically not a framework. There is no reroll, no multi-select and no
+ * disabled state; they can be added when there is a real second caller with real
  * requirements. What is shared today is the part that would otherwise be
  * rewritten badly: the modal's bones, the keyboard contract, focus handling, and
  * the ink/parchment language of the card itself.
@@ -29,6 +28,16 @@
  * "throw it away", which is not a thing the player asked for. So there is no
  * dismiss and no close button; the only way out is to choose, and the End Turn
  * blocker is what stops the player wandering off before they do.
+ *
+ * **A pass is a choice, never a dismiss** (the Statecraft draft, 2026-09-04).
+ * `Offer.pass` puts a second answer on the sheet — "take none of these" — and
+ * it is a *button that reports back to the caller*, which dispatches a command,
+ * exactly as taking a card does. It is drawn in the foot beside View map and
+ * spelled out in words, because the two are the opposite of one another and the
+ * one thing this component may never do is let them be confused: View map keeps
+ * the offer, a pass spends it. Nothing here decides that a pass is available —
+ * an offer that carries no `pass` shows no such button, which is every offer but
+ * the Order draft.
  *
  * Hidden is not dismissed
  * -----------------------
@@ -186,28 +195,6 @@ export interface OfferOption {
    */
   lineName?: string;
   /**
-   * Marks the one option that **deepens** something the player already holds
-   * rather than adding to the hand.
-   *
-   * The whole of what this component knows about the Statecraft draft, and it is
-   * a fact about the *shape of the choice* rather than about Orders: a hand of
-   * cards where one of them changes a card already on the table is a different
-   * question — deepen, or widen — and it is laid out as one. See
-   * `orderOfferLayout`.
-   */
-  emphasis?: 'deepen';
-  /**
-   * The two faces of a deepening: what the card says now, and what it would say
-   * after. Only read on a `'deepen'` option.
-   *
-   * Both are composed by the caller from one function at two levels, so a
-   * player is comparing the same sentence with itself rather than two
-   * paraphrases. It is the one place in the interface two levels of a card are
-   * shown at once, because "deepen or widen" is not a question anybody can
-   * answer without both.
-   */
-  faces?: { before: string; after: string };
-  /**
    * What this card would be **worth**, for the stamp — and the one thing on this
    * face that is deliberately not shown while the offer is up.
    *
@@ -260,6 +247,24 @@ export interface Offer {
    * Absent, or empty, on an offer dealt at the base size, which is most of them.
    */
   widening?: string[];
+  /**
+   * **The second answer**: take none of these.
+   *
+   * Present only on an offer that has one, which today is the Statecraft draft
+   * (the ruling of 2026-09-04). It is a *choice* and not a dismiss — see the
+   * module docblock — so it reports back to the caller, which dispatches a
+   * command, exactly as a pick does; the offer is spent either way.
+   *
+   * Both strings, like everything else that crosses this boundary. The caller
+   * writes what passing does and what it costs, because this component knows
+   * nothing about drafts, rarity or pity and must not start guessing.
+   */
+  pass?: {
+    /** The button's own words. "Pass — rarer cards next time". */
+    label: string;
+    /** The line beside it, in the foot's quiet voice. What it costs. */
+    note: string;
+  };
 }
 
 /**
@@ -273,7 +278,14 @@ export interface Offer {
  */
 export type OfferPhase = 'none' | 'shown' | 'hidden';
 
-/** What can happen to an offer. `show` deals one; the rest act on one held. */
+/**
+ * What can happen to an offer. `show` deals one; the rest act on one held.
+ *
+ * `'take'` is *answered*, not *a card was picked*: a pass spends the offer as
+ * surely as a pick does, and a second event for it would be a second way to
+ * reach the same state that some future reader has to keep in step with this
+ * one.
+ */
 export type OfferEvent = 'show' | 'viewMap' | 'reopen' | 'take' | 'clear';
 
 /**
@@ -313,8 +325,13 @@ export interface OfferCard {
    * Shows an offer and calls `onChoose` with the index taken. Replaces whatever
    * was showing, which cannot happen today — a player may hold only one offer at
    * a time (`discoveryClaimError`) — and is the right behaviour if it ever can.
+   *
+   * `onPass` is the second answer, and it is called for the same reason
+   * `onChoose` is: the caller dispatches a command. It is only ever reachable on
+   * an offer that carries `Offer.pass`, so a caller that gave one and no handler
+   * has written a button that does nothing — pass both or neither.
    */
-  show(offer: Offer, onChoose: (index: number) => void): void;
+  show(offer: Offer, onChoose: (index: number) => void, onPass?: () => void): void;
   /** True while a card is up. `main.ts` asks, to keep hotkeys off the board. */
   readonly isOpen: boolean;
   /**
@@ -348,48 +365,6 @@ function element(tag: string, className: string, text?: string): HTMLElement {
   node.className = className;
   if (text !== undefined) setYieldText(node, text);
   return node;
-}
-
-/**
- * One half of an upgrade's before/after pair — a card's clauses, joined.
- *
- * A descriptor rather than plain text (a clause marks the things it names), and
- * never a link, for the reason nothing else on this face is one: the face is a
- * `<button>` and the click takes the card.
- */
-function faceText(text: string): HTMLElement {
-  const node = element('span', 'offer-face-text');
-  setDescriptorText(node, text, { linked: false });
-  return node;
-}
-
-/**
- * Where the cards of an offer sit: the flanking row, and the one card in the
- * middle.
- *
- * **The user's note, and the fix.** A draft is three new Orders and one upgrade,
- * and the upgrade was simply the fourth cell of an `auto-fit` grid — which at
- * the sheet's width wraps to three across and then one card alone, left-aligned,
- * under them. It read as an afterthought, which is the opposite of what it is:
- * the upgrade is the *other half of the question*. So it comes out of the row
- * and is centred beneath it, in a frame of its own that shows both of its faces.
- *
- * Pure, and separated from the DOM for `splitYieldText`'s reason — this suite has
- * no jsdom, and "which card is in the middle" is exactly the sort of thing that
- * can be quietly wrong on every offer at once. It answers **indices**, never
- * options, because an index is what the reducer is told (`chooseOrder`'s
- * `optionIndex`) and re-deriving it from a reordered array is how a player picks
- * the card next to the one they clicked.
- *
- * Every other offer — a discovery's three, a Doctrine's three, the government
- * triple — has no such card and lays out as it always did: `centre` is `null`
- * and the row is the whole offer, in order.
- */
-export interface OfferLayout {
-  /** The flanking cards, in offer order. Indices into `options`. */
-  row: number[];
-  /** The centred card's index, or `null` when the offer has no such card. */
-  centre: number | null;
 }
 
 /** The window the spread is being laid out in. */
@@ -429,10 +404,6 @@ const SHEET_PAD_Y = 38;
 const GAP = 12;
 /** The head: eyebrow, title, lede, the widening chips, the rule and its margin. */
 const HEAD = 119;
-/** The "or deepen what you already hold" rule and its own margin. */
-const HINGE = 16;
-/** The landscape upgrade card beneath the row, flavourless by design. */
-const CENTRE = 226;
 /**
  * The View map control and its note, under the hand: a small button, its note,
  * and the margin above them.
@@ -481,8 +452,8 @@ function clamp(low: number, value: number, high: number): number {
  * every draft of every kind, and a great person adds one on top of that. Five is
  * the cap (`rules.offers.max`) and five is what this lays out.
  *
- * Computed here rather than in `style.css`, for `orderOfferLayout`'s reason one
- * scale up: a spread that overflows at 1280×720 is exactly the sort of thing
+ * Computed here rather than in `style.css`: a spread that overflows at
+ * 1280×720 is exactly the sort of thing
  * that is quietly wrong on every offer at once, and a stylesheet cannot be asked
  * whether it fits. The stylesheet is handed the five numbers as custom
  * properties and does the drawing; this is the arithmetic, pure and testable
@@ -495,18 +466,12 @@ function clamp(low: number, value: number, high: number): number {
  *   · **the card takes its share of what is left**, floored so it stays a card
  *     and capped so a hand of two is not two posters.
  *   · **the height is the tarot proportion, or the room there is** — whichever
- *     is smaller. That is what makes the whole spread fit at 720 with an upgrade
- *     card beneath it, and it is why the budget has to know about the centre.
+ *     is smaller, which is what makes the whole spread fit at 720.
  *   · **the type and the emblem scale with the card**, so a narrow card is a
  *     small card rather than a normal card with the words falling out of it.
  */
-export function offerSpread(
-  count: number,
-  stage: OfferStage,
-  options?: { centre?: boolean },
-): OfferSpread {
+export function offerSpread(count: number, stage: OfferStage): OfferSpread {
   const cards = Math.max(1, Math.round(count));
-  const centre = options?.centre === true;
   const sheet = Math.min(
     SHEET_BASE + Math.max(0, cards - 3) * SHEET_PER_CARD,
     stage.width - OVERLAY_PAD * 2,
@@ -516,8 +481,7 @@ export function offerSpread(
     Math.floor((sheet - SHEET_PAD_X * 2 - GAP * (cards - 1)) / cards),
     CARD_MAX,
   );
-  const below = centre ? HINGE + CENTRE + GAP : 0;
-  const budget = stage.height - OVERLAY_PAD * 2 - SHEET_PAD_Y - HEAD - FOOT - below - SLACK;
+  const budget = stage.height - OVERLAY_PAD * 2 - SHEET_PAD_Y - HEAD - FOOT - SLACK;
   const height = clamp(HEIGHT_MIN, Math.min(Math.round(share * TAROT_RATIO), budget), HEIGHT_MAX);
   // A card is **portrait**, whatever the room allows: a hand of two on a short
   // window has the width for two posters and a poster is not a card from a deck.
@@ -534,18 +498,7 @@ export function offerSpread(
       Math.round(
         clamp(SCALE_MIN, Math.min(card / CARD_DESIGNED, height / CONTENT_AT_ONE), 1) * 100,
       ) / 100,
-    total: OVERLAY_PAD * 2 + SHEET_PAD_Y + HEAD + height + below + FOOT,
-  };
-}
-
-export function orderOfferLayout(options: readonly OfferOption[]): OfferLayout {
-  // The *first* such card wins, and there is deliberately no support for two:
-  // a draft has at most one upgrade (`OrderOffer.upgrade` is a single id), and
-  // a second centred card would be a spread nobody has designed.
-  const centre = options.findIndex((option) => option.emphasis === 'deepen');
-  return {
-    row: options.map((_option, index) => index).filter((index) => index !== centre),
-    centre: centre === -1 ? null : centre,
+    total: OVERLAY_PAD * 2 + SHEET_PAD_Y + HEAD + height + FOOT,
   };
 }
 
@@ -567,6 +520,8 @@ export function createOfferCard(
   options: OfferCardOptions = {},
 ): OfferCard {
   let choose: ((index: number) => void) | null = null;
+  /** The pass's callback, held and dropped exactly as `choose` is. */
+  let pass: (() => void) | null = null;
   /**
    * The offer being held, kept **whole** rather than re-derived on reopen.
    *
@@ -576,7 +531,11 @@ export function createOfferCard(
    * and nothing has been spent — and it would be one refactor away from a
    * redraw. Holding the array is the cheaper honesty.
    */
-  let standing: { offer: Offer; onChoose: (index: number) => void } | null = null;
+  let standing: {
+    offer: Offer;
+    onChoose: (index: number) => void;
+    onPass?: () => void;
+  } | null = null;
   let phase: OfferPhase = 'none';
 
   /** Runs the machine, does the DOM, and tells the caller where it landed. */
@@ -607,7 +566,7 @@ export function createOfferCard(
    * the last one that should be allowed to fall off the bottom of a shrunk
    * window.
    */
-  let spreadOf: { count: number; centre: boolean } | null = null;
+  let spreadOf: { count: number } | null = null;
 
   /**
    * Hands the stylesheet the four numbers and the count.
@@ -619,11 +578,10 @@ export function createOfferCard(
    */
   function applySpread(): void {
     if (!spreadOf) return;
-    const spread = offerSpread(
-      spreadOf.count,
-      { width: window.innerWidth, height: window.innerHeight },
-      { centre: spreadOf.centre },
-    );
+    const spread = offerSpread(spreadOf.count, {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    });
     container.style.setProperty('--offer-count', String(spread.count));
     container.style.setProperty('--offer-sheet', `${spread.sheet}px`);
     container.style.setProperty('--offer-card', `${spread.card}px`);
@@ -682,6 +640,7 @@ export function createOfferCard(
     teardown();
     standing = null;
     choose = null;
+    pass = null;
     moveTo('clear');
   }
 
@@ -701,7 +660,7 @@ export function createOfferCard(
     if (standing === null) return;
     // Through `show`, so the spread is re-measured against the window as it is
     // *now*: a player who looked at the map may well have resized on the way.
-    show(standing.offer, standing.onChoose);
+    show(standing.offer, standing.onChoose, standing.onPass);
   }
 
   /**
@@ -730,6 +689,7 @@ export function createOfferCard(
     // ruin claimed by the same march) is not immediately torn down by this one.
     standing = null;
     choose = null;
+    pass = null;
     if (stamp === undefined || stampNode === null || stampIsEmpty(stamp)) {
       teardown();
       moveTo('take');
@@ -753,6 +713,29 @@ export function createOfferCard(
   }
 
   /**
+   * The pass, and it is `take`'s sibling rather than `viewMap`'s.
+   *
+   * **It spends the offer.** `standing` and `pass` are dropped, the phase moves
+   * to the same place a pick moves it to, and the caller dispatches a command —
+   * everything View map deliberately does not do. There is no stamp and no
+   * settle animation: nothing was taken, so there is no card to weigh, and the
+   * sheet simply comes off before the callback runs.
+   *
+   * Cleared before the callback for `take`'s reason: a handler that deals the
+   * next offer on this tick must not be torn down by the one it replaced.
+   */
+  function skip(): void {
+    const callback = pass;
+    if (callback === null) return;
+    standing = null;
+    choose = null;
+    pass = null;
+    teardown();
+    moveTo('take');
+    callback();
+  }
+
+  /**
    * Enter and Space are the buttons' own; the number keys are the shortcut a
    * player learns on the second offer. Esc is deliberately not bound — see the
    * module docblock: there is nothing to escape to.
@@ -770,10 +753,10 @@ export function createOfferCard(
     }
     const digit = Number.parseInt(event.key, 10);
     if (Number.isInteger(digit) && digit >= 1) {
-      // By the index the card *carries*, not by its position in the row: the
-      // draft's deepen card is lifted out of the row and centred beneath it
-      // (`orderOfferLayout`), and a shortcut counted off the DOM would have
-      // started picking the card next to the one the ordinal names.
+      // By the index the card *carries*, never by its position in the DOM: the
+      // reducer is told an index into the offer, and a shortcut counted off the
+      // laid-out row is a shortcut that picks the card next to the one the
+      // ordinal names the first time a layout puts one somewhere else.
       const button = container.querySelector<HTMLButtonElement>(
         `.offer-option[data-index="${digit - 1}"]`,
       );
@@ -789,7 +772,7 @@ export function createOfferCard(
     if (event.key !== 'Tab') event.stopPropagation();
   }
 
-  function show(offer: Offer, onChoose: (index: number) => void): void {
+  function show(offer: Offer, onChoose: (index: number) => void, onPass?: () => void): void {
     // A sheet still holding a landed stamp is on its way out; the next question
     // replaces it now rather than being drawn under a timer that will then take
     // the new card away with the old one.
@@ -802,9 +785,10 @@ export function createOfferCard(
     container.removeAttribute('data-settled');
     restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     choose = onChoose;
+    pass = onPass ?? null;
     // Held from here until it is taken or a new game clears it — through View
     // map and back, which is the whole point of keeping it.
-    standing = { offer, onChoose };
+    standing = onPass === undefined ? { offer, onChoose } : { offer, onChoose, onPass };
     container.replaceChildren();
 
     const sheet = element('div', 'offer-sheet');
@@ -874,7 +858,7 @@ export function createOfferCard(
      */
     function face(option: OfferOption, index: number): HTMLButtonElement {
       const button = document.createElement('button');
-      button.className = option.emphasis === 'deepen' ? 'offer-option is-deepen' : 'offer-option';
+      button.className = 'offer-option';
       button.type = 'button';
       // The accent and the emblem are the two halves of "this card belongs to a
       // line". Both are optional and both fail quietly to the neutral face.
@@ -896,24 +880,7 @@ export function createOfferCard(
       }
       button.append(element('span', 'offer-option-title', option.title));
       if (!tarot) button.append(element('span', 'offer-payoff', option.payoff));
-      if (option.faces !== undefined) {
-        // The deepening, both faces at once: what it says now, and what it would
-        // say after. A row rather than two lines, so the change is read across
-        // rather than hunted for.
-        const faces = element('span', 'offer-faces');
-        const before = element('span', 'offer-face');
-        before.append(
-          element('span', 'offer-face-label', 'now'),
-          faceText(option.faces.before),
-        );
-        const after = element('span', 'offer-face is-after');
-        after.append(
-          element('span', 'offer-face-label', 'deepened'),
-          faceText(option.faces.after),
-        );
-        faces.append(before, element('span', 'offer-face-arrow', '⟶'), after);
-        button.append(faces);
-      } else if (option.note !== undefined) {
+      if (option.note !== undefined) {
         // A card's clauses joined into one line — a descriptor, so the things it
         // names come out bold. Never links: this whole face is a `<button>` and
         // the click picks the card. See the clause list below, and `keywords.ts`.
@@ -981,33 +948,30 @@ export function createOfferCard(
       return button;
     }
 
-    const layout = orderOfferLayout(offer.options);
-    // The spread is measured for the *row*, because the upgrade card is not in
-    // it — it is the thing beneath it, and what it costs the row is height
-    // rather than width (`offerSpread`'s `centre`).
-    spreadOf = { count: Math.max(1, layout.row.length), centre: layout.centre !== null };
+    // One row, every card in the offer's own order. There was a card lifted out
+    // of it and centred beneath — the draft's deepening — until the levelling
+    // ruling of 2026-09-04 took the second half of that question away.
+    spreadOf = { count: Math.max(1, offer.options.length) };
     applySpread();
     const row = element('div', 'offer-row');
-    for (const index of layout.row) row.append(face(offer.options[index]!, index));
+    offer.options.forEach((option, index) => row.append(face(option, index)));
     list.append(row);
-    if (layout.centre !== null) {
-      // The hinge between the two halves of the question, and the only place the
-      // interface says the word out loud.
-      list.append(element('p', 'offer-hinge', 'or deepen what you already hold'));
-      const centre = element('div', 'offer-centre');
-      centre.append(face(offer.options[layout.centre]!, layout.centre));
-      list.append(centre);
-    }
     sheet.append(list);
-    // The one control on this sheet that is not a card. At the foot, after the
-    // hand, because it is the thing you reach for *having read them* — and small
-    // and quiet, because the decision is still the cards. It says "View map"
-    // rather than "Close": there is nothing to close, and a player who read
-    // "Close" would reasonably believe the offer had gone with it.
+    // The controls on this sheet that are not cards. At the foot, after the
+    // hand, because they are what you reach for *having read them* — and small
+    // and quiet, because the decision is still the cards.
+    //
+    // **Two of them, and they are opposites**, which is why each carries its own
+    // sentence rather than sharing one: View map keeps the offer and spends
+    // nothing, and a pass spends it outright. A foot that said "nothing is
+    // spent" over both would be a foot that lies about one of them.
     const foot = element('div', 'offer-foot');
     const look = document.createElement('button');
     look.className = 'offer-look';
     look.type = 'button';
+    // It says "View map" rather than "Close": there is nothing to close, and a
+    // player who read "Close" would reasonably believe the offer had gone with
+    // it.
     look.append(element('span', 'offer-look-label', 'View map'));
     look.append(element('kbd', 'offer-look-key', 'Esc'));
     look.title = 'Look at the board. The offer waits — nothing is spent.';
@@ -1016,7 +980,26 @@ export function createOfferCard(
     });
     foot.append(look);
     foot.append(element('p', 'offer-foot-note', 'the offer waits — nothing is spent'));
-    sheet.append(foot);
+    if (offer.pass !== undefined) {
+      // The second answer. A `<button>` of its own, in its own group, with the
+      // words the caller wrote — never a keyboard shortcut, because the one
+      // irreversible thing on this sheet that is not a card should take a
+      // deliberate click rather than a stray key.
+      const passFoot = element('div', 'offer-foot offer-foot-pass');
+      const button = document.createElement('button');
+      button.className = 'offer-pass';
+      button.type = 'button';
+      button.append(element('span', 'offer-look-label', offer.pass.label));
+      button.title = offer.pass.note;
+      button.addEventListener('click', () => {
+        skip();
+      });
+      passFoot.append(button);
+      passFoot.append(element('p', 'offer-foot-note', offer.pass.note));
+      sheet.append(foot, passFoot);
+    } else {
+      sheet.append(foot);
+    }
     container.append(sheet);
     container.hidden = false;
     moveTo('show');

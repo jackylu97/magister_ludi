@@ -3,11 +3,14 @@
  * every card at once.
  *
  * There is no jsdom in this suite (see `test/ui/yieldMark.test.ts` for the same
- * note), so nothing here builds a card. What it asks instead is the pair of
- * questions that survive that: **where a card sits** in an offer, and **whether
- * every card the data can deal has a face to wear**.
+ * note), so nothing here builds a card. What it asks instead is the question
+ * that survives that: **does every card the data can deal have a face to wear**.
  *
- * The second one is the real prize. A line is a string in
+ * (It asked a second one until the levelling ruling of 2026-09-04 — where the
+ * draft's deepen card sat in the spread — and there is no such card any more.
+ * The whole hand is one row, in the offer's own order.)
+ *
+ * A line is a string in
  * `data/statecraft.json`, the table that says what a line looks like is
  * TypeScript, and the two are joined by nothing but a record type — which is
  * checked at compile time for the members that *exist* and not at all for the
@@ -25,7 +28,6 @@ import {
   lineMarkSvg,
 } from '../../src/art/lineMarks';
 import { CARD_LINE_ACCENT, CARD_LINE_NAME, lineOf } from '../../src/ui/cardLine';
-import { type OfferOption, orderOfferLayout } from '../../src/ui/offerCard';
 import {
   DOCTRINE_IDS,
   GOVERNMENT_IDS,
@@ -33,66 +35,6 @@ import {
   SLOT_TYPES,
   cardDef,
 } from '../../src/sim/statecraftData';
-
-/** A card with only the fields the layout reads. The rest is the DOM's business. */
-function option(title: string, emphasis?: 'deepen'): OfferOption {
-  const card: OfferOption = { title, payoff: '', flavor: '' };
-  if (emphasis !== undefined) card.emphasis = emphasis;
-  return card;
-}
-
-describe('orderOfferLayout', () => {
-  /**
-   * The playtest note, held as a rule: the upgrade is not the fourth card of a
-   * row, it is the card in the middle. Three new Orders flank it.
-   */
-  it('lifts the deepen card out of the row and centres it', () => {
-    const layout = orderOfferLayout([
-      option('Blooded Spears'),
-      option('Salt Tithes'),
-      option('Far Runners'),
-      option('Militia Levies · 1 → 2', 'deepen'),
-    ]);
-    expect(layout.row).toEqual([0, 1, 2]);
-    expect(layout.centre).toBe(3);
-  });
-
-  /**
-   * And the indices are the *reducer's*, not the row's. `chooseOrder` is told an
-   * `optionIndex` and the upgrade is deliberately the last one
-   * (`isUpgradeIndex`), so a layout that renumbered as it reordered would pick
-   * the card next to the one the player clicked.
-   */
-  it('answers indices into the offer, never positions in the spread', () => {
-    const layout = orderOfferLayout([
-      option('Deepen', 'deepen'),
-      option('A'),
-      option('B'),
-      option('C'),
-    ]);
-    expect(layout.centre).toBe(0);
-    expect(layout.row).toEqual([1, 2, 3]);
-  });
-
-  it('leaves every other offer exactly as it was: no centre, the row in order', () => {
-    // A discovery's three, a Doctrine's three, the government triple.
-    const layout = orderOfferLayout([option('A'), option('B'), option('C')]);
-    expect(layout.centre).toBeNull();
-    expect(layout.row).toEqual([0, 1, 2]);
-  });
-
-  it('takes the first deepen card and only the first', () => {
-    // There is at most one today — `OrderOffer.upgrade` is a single id — and a
-    // second centred card would be a spread nobody has designed.
-    const layout = orderOfferLayout([option('A'), option('X', 'deepen'), option('Y', 'deepen')]);
-    expect(layout.centre).toBe(1);
-    expect(layout.row).toEqual([0, 2]);
-  });
-
-  it('survives an empty offer without inventing a card', () => {
-    expect(orderOfferLayout([])).toEqual({ row: [], centre: null });
-  });
-});
 
 describe('every card the data can deal has a face', () => {
   const EVERY_CARD = [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS];

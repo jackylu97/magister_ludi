@@ -309,7 +309,7 @@ describe('melee', () => {
     const state = flatState();
     const player = state.players[0]!;
     player.statecraft.government = 'warChief';
-    player.statecraft.orders.push({ id: 'bloodedSpears', level: 1 });
+    player.statecraft.orders.push('bloodedSpears');
     player.statecraft.slots = [{ card: 'bloodedSpears', sealedUntil: 0 }];
     player.researching = 'husbandry';
     player.sciencePool = techDef('husbandry').cost - 5;
@@ -2371,7 +2371,7 @@ describe('cards and stamps on the strength ledger', () => {
   /** Slots one Order for a seat, growing the spread. Test scaffolding only. */
   function slot(state: GameState, playerId: number, id: string): void {
     const sc = state.players[playerId]!.statecraft;
-    sc.orders.push({ id: id as never, level: 1 });
+    sc.orders.push(id as never);
     sc.slots.push({ card: id as never, sealedUntil: 0 });
   }
 

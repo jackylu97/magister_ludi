@@ -112,7 +112,6 @@ import {
 import {
   type CardClause,
   describeEffects,
-  orderLevel,
   ref,
   religionFounder,
   settleCultureWindfall,
@@ -460,22 +459,16 @@ export function beadCount(state: GameState, playerId: number, count: BeadCount):
       }
       return worth;
     }
-    case 'slottedOrderLevels': {
+    case 'slottedOrders': {
       // The **slotted** ones, never the whole collection: a card in the hand is
-      // not a law of the realm, which is the whole of what a slot means.
-      let levels = 0;
+      // not a law of the realm, which is the whole of what a slot means. It
+      // counted the levels of those cards until the levelling ruling of
+      // 2026-09-04; a card is held once now, so this is a count of chairs.
+      let filled = 0;
       for (const slot of player.statecraft.slots) {
-        if (slot) levels += orderLevel(player.statecraft, slot.card);
+        if (slot) filled += 1;
       }
-      return levels;
-    }
-    case 'deepestSlottedOrder': {
-      let deepest = 0;
-      for (const slot of player.statecraft.slots) {
-        if (!slot) continue;
-        deepest = Math.max(deepest, orderLevel(player.statecraft, slot.card));
-      }
-      return deepest;
+      return filled;
     }
     case 'bestCityFood':
       return bestCityYield(state, playerId, 'food');
