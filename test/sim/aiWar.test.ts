@@ -17,7 +17,14 @@
  *   · **the bargain** — accept a duplicate-for-lacking swap, decline what costs
  *     more than it brings, and offer one when there is one to offer;
  *   · **the opening book, the escort and the puppet** — the three rulings that
- *     are not appraisals at all.
+ *     are not appraisals at all;
+ *   · **the three tactics** of the military brain (ruled 2026-09-04) — a hurt
+ *     piece mends, a spearman holds for a bowman that has not shot, and a bowman
+ *     steps behind our line. Each is one arranged board and one assertion, and
+ *     each is crude v1 by the ruling's own leave.
+ *
+ * The other two thirds of that batch — the sighted levy and the unit mix — are
+ * appraisals rather than orders and live in `aiAppraisal.test.ts`.
  *
  * Every command this file expects is also put to the simulation's own gate, so a
  * test that passed while the reducer would have refused the command is a test
@@ -34,7 +41,7 @@ import {
 } from '../../src/ai/bot';
 import { aiConfigFor, aiConfigForPuppet } from '../../src/ai/aiConfig';
 import { armyStrength, diplomacyDecision, explainWarScore } from '../../src/ai/diplomacy';
-import { foldTerms } from '../../src/ai/decision';
+import { type BotDecision, type ValueTerm, foldTerms } from '../../src/ai/decision';
 import { driveBots } from '../../src/ai/driver';
 import { hasResource, foundCityAt, resourceCopies } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
@@ -52,8 +59,10 @@ import {
   playerById,
 } from '../../src/sim/state';
 import { buildingDef } from '../../src/sim/buildingData';
-import { resetVisibility } from '../../src/sim/visibility';
+import { isVisibleTo, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { unitDef } from '../../src/sim/unitData';
+import { previewCombat } from '../../src/sim/combat';
+import { wrappedDistance, tileHex } from '../../src/sim/map';
 import { slotLayout } from '../../src/sim/statecraftData';
 import { closeWar, openWar, setPeaceOffer } from '../../src/sim/wars';
 
@@ -661,5 +670,220 @@ describe('slotting is scored rather than first-fit', () => {
     const chosen = decision!.candidates.find((row) => row.chosen)!;
     expect(Math.max(...decision!.candidates.map((row) => row.score))).toBe(chosen.score);
     expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+});
+
+// --- 8. the three tactics ---------------------------------------------------
+
+/**
+ * **The military brain's unit-order half** (ruled 2026-09-04).
+ *
+ * Every board here is one seat at war with another, because that is the cheapest
+ * way to put a *hostile* piece on a bench that seats no barbarians: `atWar` is
+ * the one predicate the bot reads, and the wild and a declared enemy answer it
+ * the same way. Every piece but the one under test is fortified, so it is not
+ * idle (`unitAwaitsOrders`) and the blocker names the piece the claim is about.
+ */
+describe('the three tactics', () => {
+  /**
+   * A seat, a held town far from the action, and a war with the neighbour.
+   *
+   * The treasury is set above `solvency.arrearsTreasury` and below the spending
+   * threshold on purpose: an empire in arrears stops paying wages before it does
+   * anything else (`disbandCommand`, ahead of every blocker) and a rich one buys
+   * a soldier, and neither is what these boards are about.
+   */
+  function front(): { state: GameState; city: City } {
+    const state = bench(2);
+    const city = foundCityAt(state, 0, at(state.map, 2, 2));
+    const garrison = createUnit(state, 0, 'warrior', city.col, city.row);
+    garrison.fortifiedTurns = 0;
+    seat(state, 0).gold = 120;
+    openWar(state, 0, 1);
+    return { state, city };
+  }
+
+  /** The seat's decisions, driven until one is an order to this piece. */
+  function orderFor(state: GameState, playerId: number, unitId: number, budget = 8): BotDecision | null {
+    for (let guard = 0; guard < budget; guard++) {
+      const decision = nextBotDecision(state, playerId);
+      if (decision === null) return null;
+      if ((decision.command as { unitId?: number }).unitId === unitId) return decision;
+      if (!applyCommand(state, decision.command).ok) return null;
+    }
+    return null;
+  }
+
+  /** Every label in a decision's term trees, flattened. `aiAppraisal.test.ts`' reader. */
+  function labels(decision: BotDecision): string {
+    const walk = (terms: readonly ValueTerm[]): string =>
+      terms
+        .map((term) => (term.parts === undefined ? term.label : `${term.label} | ${walk(term.parts)}`))
+        .join(' | ');
+    return decision.candidates.map((row) => `${row.label}: ${walk(row.terms)}`).join(' || ');
+  }
+
+  // --- (a) heal when weak ---------------------------------------------------
+
+  /**
+   * A hurt spearman of ours on our own ground with an enemy column next door,
+   * and the enemy's health as the one thing that changes between the two claims.
+   */
+  function wounded(enemyHp: number, ourHp = 30): { state: GameState; piece: ReturnType<typeof createUnit> } {
+    const { state, city } = front();
+    // Our own ground: the heal arm asks the tile's owner, and a piece bleeding
+    // in a rival's fields is deliberately left to go on fighting (crude v1).
+    state.tileOwner[tileIndex(state.map, 5, 5)] = city.id;
+    // A spearman against a warrior, so the exchange is favourable on its own
+    // merits: what is under test is the *preference* not to take it, and a blow
+    // the bot would have declined anyway would prove nothing.
+    const piece = createUnit(state, 0, 'spearman', 5, 5);
+    piece.hp = ourHp;
+    const enemy = createUnit(state, 1, 'warrior', 6, 5);
+    enemy.hp = enemyHp;
+    recomputeAllVisibility(state);
+    return { state, piece };
+  }
+
+  it('digs in and mends rather than trading blows at thirty hit points', () => {
+    const { state, piece } = wounded(100);
+    // The blow is there and it is even favourable — the arm is a *preference*,
+    // and this is what it prefers.
+    const blow = previewCombat(state, piece.id, { col: 6, row: 5 });
+    expect(blow.ok && blow.damageToDefender > blow.damageToAttacker).toBe(true);
+    const decision = orderFor(state, 0, piece.id);
+    expect(decision?.command.type).toBe('fortify');
+    expect(labels(decision!)).toMatch(/30 of 100 hit points, and this seat rests below/);
+    for (const row of decision!.candidates) expect(foldTerms(row.terms)).toBe(row.score);
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('swings anyway when the blow would finish it', () => {
+    // The ruling's own exception, and the only thing different about the board
+    // is the defender's health.
+    const { state, piece } = wounded(1);
+    const decision = orderFor(state, 0, piece.id);
+    expect(decision?.command).toMatchObject({ type: 'attack', target: { col: 6, row: 5 } });
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('is a fraction of the piece’s own maximum, not a flat figure', () => {
+    // Sixty of a hundred is over the knob, so the same board with a healthier
+    // piece takes the exchange the wounded one declined.
+    const { state, piece } = wounded(100, 60);
+    const blow = previewCombat(state, piece.id, { col: 6, row: 5 });
+    expect(blow.ok && blow.damageToDefender > blow.damageToAttacker).toBe(true);
+    const decision = orderFor(state, 0, piece.id);
+    expect(decision?.command).toMatchObject({ type: 'attack', target: { col: 6, row: 5 } });
+  });
+
+  // --- (b) ranged before melee ---------------------------------------------
+
+  /**
+   * A spearman and a bowman of ours, both able to hit the same enemy column.
+   *
+   * The spearman is created **first**, so it is the first idle piece on the
+   * board and the blocker names it — the bowman is what it is deferring *to*,
+   * and a bowman that had already been given its own order would not be.
+   */
+  function bothCanHit(): { state: GameState; spear: ReturnType<typeof createUnit> } {
+    const { state } = front();
+    const spear = createUnit(state, 0, 'spearman', 5, 5);
+    createUnit(state, 0, 'archer', 4, 5);
+    createUnit(state, 1, 'warrior', 6, 5);
+    recomputeAllVisibility(state);
+    return { state, spear };
+  }
+
+  it('holds the melee blow when a bowman of ours can take the same shot', () => {
+    const { state, spear } = bothCanHit();
+    // Both blows are legal and the melee exchange is a favourable one: the
+    // deferral is the bot's opinion, not the rules', and not a blow it would
+    // have declined anyway.
+    const blow = previewCombat(state, spear.id, { col: 6, row: 5 });
+    expect(blow.ok && blow.damageToDefender > blow.damageToAttacker).toBe(true);
+    expect(previewCombat(state, state.units.find((unit) => unit.type === 'archer')!.id, { col: 6, row: 5 }).ok).toBe(true);
+    const decision = orderFor(state, 0, spear.id);
+    expect(decision).not.toBeNull();
+    expect(decision!.command.type).not.toBe('attack');
+    expect(labels(decision!)).toMatch(/can hit it and has not shot yet — the melee piece holds/);
+    // The charge is printed on the candidate rather than swallowed, and the
+    // candidate still folds to its own score.
+    for (const row of decision!.candidates) expect(foldTerms(row.terms)).toBe(row.score);
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('takes the blow once the bowman has already shot', () => {
+    const { state, spear } = bothCanHit();
+    const bow = state.units.find((unit) => unit.type === 'archer')!;
+    bow.hasAttacked = true;
+    const decision = orderFor(state, 0, spear.id);
+    expect(decision?.command).toMatchObject({ type: 'attack', target: { col: 6, row: 5 } });
+  });
+
+  it('never holds a blow that would finish the defender', () => {
+    const { state, spear } = bothCanHit();
+    state.units.find((unit) => unit.ownerId === 1)!.hp = 1;
+    const decision = orderFor(state, 0, spear.id);
+    expect(decision?.command).toMatchObject({ type: 'attack', target: { col: 6, row: 5 } });
+  });
+
+  // --- (c) screen the archers ----------------------------------------------
+
+  it('steps a bowman behind a spearman of ours when a hostile is in sight', () => {
+    const { state } = front();
+    // The bowman is out in the open at (6,5); our spearman holds (8,5), and the
+    // enemy column stands at (9,5) — three hexes from the bow, inside
+    // `military.screenRadius`, and lit for this seat by the spearman's own eyes.
+    const bow = createUnit(state, 0, 'archer', 6, 5);
+    const shield = createUnit(state, 0, 'warrior', 8, 5);
+    shield.fortifiedTurns = 0;
+    createUnit(state, 1, 'warrior', 9, 5);
+    recomputeAllVisibility(state);
+    expect(isVisibleTo(state, 0, 9, 5)).toBe(true);
+    // Out of the bow's own reach, so this is a positioning decision and not a
+    // shot it declined to take.
+    expect(previewCombat(state, bow.id, { col: 9, row: 5 }).ok).toBe(false);
+
+    const decision = orderFor(state, 0, bow.id);
+    expect(decision?.command.type).toBe('moveUnit');
+    const target = (decision!.command as { target: { col: number; row: number } }).target;
+    // The claim: whatever hex it picked, one of our melee pieces is standing
+    // next to it — which is the whole of "screened" in v1.
+    expect(
+      wrappedDistance(state.map, tileHex(at(state.map, target.col, target.row)), tileHex(at(state.map, shield.col, shield.row))),
+    ).toBe(1);
+    expect(labels(decision!)).toMatch(/of our melee pieces stand beside it/);
+    for (const row of decision!.candidates) expect(foldTerms(row.terms)).toBe(row.score);
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('leaves a bowman that is already screened to the ordinary arms', () => {
+    // Same board with the bow already standing beside the spearman: the best hex
+    // is the one it is on, and a positioning rule with nothing to say says
+    // nothing rather than shuffling.
+    const { state } = front();
+    const bow = createUnit(state, 0, 'archer', 7, 5);
+    const shield = createUnit(state, 0, 'warrior', 8, 5);
+    shield.fortifiedTurns = 0;
+    createUnit(state, 1, 'warrior', 9, 5);
+    recomputeAllVisibility(state);
+    const decision = orderFor(state, 0, bow.id);
+    expect(decision).not.toBeNull();
+    // It has a shot from where it stands, so what it does is shoot — which is
+    // the point: the screen sits *behind* the blows.
+    expect(decision!.command).toMatchObject({ type: 'attack', target: { col: 9, row: 5 } });
+  });
+
+  it('says nothing at all about a bowman with no hostile in sight', () => {
+    const { state } = front();
+    const bow = createUnit(state, 0, 'archer', 6, 5);
+    const shield = createUnit(state, 0, 'warrior', 8, 5);
+    shield.fortifiedTurns = 0;
+    recomputeAllVisibility(state);
+    const decision = orderFor(state, 0, bow.id);
+    expect(decision).not.toBeNull();
+    // No enemy, no camp, every town held: the piece digs in where it stands.
+    expect(decision!.command.type).toBe('fortify');
   });
 });

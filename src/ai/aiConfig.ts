@@ -25,6 +25,20 @@
 
 import aiJson from '../../data/ai.json';
 
+/**
+ * The four trades a land soldier can be, for the **unit mix** (`military.mix`).
+ *
+ * The ruling's own four words — melee, ranged, mounted, siege — and they are a
+ * bot's reading rather than a rule: the simulation's `UnitCategory` answers
+ * *where a piece may stand and what it stacks with*, which is a different
+ * question and deliberately a coarser one. The mapping from a roster row to one
+ * of these lives in `bot.ts` (`mixRoleOf`), beside the appraisal that uses it.
+ *
+ * Declared here rather than there because this is the file the *numbers* live
+ * in, and a `Record` keyed by a type nobody can see is a sheet nobody can check.
+ */
+export type MixRole = 'melee' | 'ranged' | 'mounted' | 'siege';
+
 export interface AiConfig {
   driver: {
     /** Hard ceiling on commands one seat may emit in one turn. A guard, not a rule. */
@@ -228,6 +242,61 @@ export interface AiConfig {
     scoutGlutPenalty: number;
     /** How fast an explorer's whole value fades with `state.turn`. */
     scoutDecayPerTurn: number;
+    /**
+     * **The army this empire wants to be made of** — the shares of the four
+     * soldiers' trades, read by the build arm's mix term (ruled 2026-09-04:
+     * *"it should also prioritize a mix of units (unless it has clear bonuses
+     * for a certain type)"*).
+     *
+     * Proportions rather than counts, so the same sheet describes a two-piece
+     * levy and a twenty-piece army; they are not required to sum to one and
+     * nothing normalises them, because what the term actually compares is
+     * *this share against that share* and a designer who writes four numbers
+     * summing to 1.2 has simply made every trade a little hungrier.
+     *
+     * The parenthesis in the ruling — *unless it has clear bonuses for a
+     * certain type* — is why this is a **term and not a gate**: a persona's
+     * `weights.military`, an escalation ladder already climbed and the piece's
+     * own strength all fold beside it, so an empire whose one good row is a
+     * bowman still builds bowmen. See `explainMixCraving`.
+     */
+    mix: Record<MixRole, number>;
+    /**
+     * What a full share of the mix is worth, in the one currency — the term is
+     * `mixBonus × (target − share)`, so a trade the army has none of is paid
+     * its whole target and a trade that is the *entire* army is charged the
+     * rest. Symmetric on purpose: "crave what is missing" and "stop building
+     * the ninth spearman" are one sentence read from two ends.
+     */
+    mixBonus: number;
+    /**
+     * **Rest below this fraction of a piece's hit points** (ruled 2026-09-04:
+     * *"try to heal units that are weak"*). A soldier under it, standing on
+     * ground this empire owns, digs in and mends rather than swinging or
+     * marching — unless the blow in front of it would kill or capture, which
+     * is the one exception the ruling names. See `restAndHeal`.
+     */
+    healBelowHealth: number;
+    /**
+     * What a melee piece's exchange is charged when **a bowman of ours can hit
+     * the same target and has not shot yet** (ruled 2026-09-04: *"prioritize
+     * ranged attacks for melee attacks"*).
+     *
+     * A printed charge rather than a silent skip, for `scoutGlutPenalty`'s
+     * reason: a reader of the spectate feed has to be able to see that the
+     * spearman held, and why. The blow is refused outright for this turn — the
+     * charge is what the candidate table shows — unless it kills or captures.
+     */
+    rangedDeferral: number;
+    /**
+     * Hexes a bowman looks for a sighted hostile in before it starts caring
+     * where it stands. Small: this is a *skirmish* rule, not a doctrine.
+     */
+    screenRadius: number;
+    /** What one friendly melee piece screening a hex is worth to a bowman. */
+    screenBonus: number;
+    /** What one hex of distance from the nearest sighted hostile is worth. */
+    screenExposure: number;
   };
   /**
    * **What a seat will go to war over, and what it will sign to stop.**
@@ -449,6 +518,32 @@ export interface AiConfig {
     extraArmyPerThreat: number;
     /** How much a threat multiplies a unit unlock when picking a research goal. */
     techMilitaryFactor: number;
+    /**
+     * **What the seat has actually SIGHTED, as an appetite for soldiers**
+     * (ruled 2026-09-04: *"there should also be some prioritization around
+     * units based on the number of sighted camps/barbarian units"*).
+     *
+     * `extraArmyPerThreat` above is the *adjacency* reading — an enemy column
+     * standing next to a town, which is an emergency. These two are the wider
+     * one: the wild's camps this seat has charted and the hostile pieces it can
+     * see right now, anywhere on its map. They add to the wanted army rather
+     * than replacing anything, because "a raider is at my gate" and "there are
+     * four camps in my hills" are two different sentences and an empire that
+     * only answered the first would be an empire that never raises a levy until
+     * it is too late.
+     *
+     * Both are *fractions of a soldier* on purpose: two camps is one more
+     * warrior, and a knob a tuner can move without the appetite jumping by a
+     * whole piece. `sightedArmyCap` is the ceiling on the pair together — a
+     * scout that lit up half a continent must not talk this empire into
+     * twenty soldiers.
+     *
+     * The reading itself is seat-scoped and is the whole point: see
+     * `sightedThreat` in `bot.ts`.
+     */
+    armyPerSightedCamp: number;
+    armyPerSightedHostile: number;
+    sightedArmyCap: number;
   };
   /** The beeline: how far ahead a goal may sit, and what its gifts are worth. */
   research: {

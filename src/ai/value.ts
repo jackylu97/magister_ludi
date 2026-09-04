@@ -125,6 +125,19 @@ export interface ValueContext {
    */
   threat: number;
   /**
+   * **What the seat has sighted** — the wild's camps it has charted and the
+   * hostile pieces it can see (`sightedThreat` in `bot.ts`), read through this
+   * empire's own fog and never off the true board.
+   *
+   * `threat`'s wider sibling and deliberately not a replacement for it: that one
+   * is "an enemy is at my gate", this one is "there is a lot of wild out there".
+   * Two counts rather than one number because the two are weighted separately
+   * (`threat.armyPerSightedCamp`, `armyPerSightedHostile`) and because a printed
+   * appetite that could not say *what* it had seen would be a number a reader of
+   * the feed has to take on trust.
+   */
+  sighted: { camps: number; hostiles: number };
+  /**
    * 1 while this empire holds a god and has founded no religion, 0 otherwise —
    * the one window in which the road to a prophet is the most valuable thing on
    * the chart. `threat`'s sibling: a fact about the world that swings one term

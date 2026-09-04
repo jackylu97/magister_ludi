@@ -462,7 +462,17 @@ docblocks: a renewal on a row this empire cannot build yet (counted at
 nothing until the improvement's own tech lands), and borders that will grow
 past the plan's reach tomorrow.
 
-### Ruled 2026-09-04 — bot batch 3 (the military brain: sizing · mix · tactics)
+### Ruled 2026-09-04 — bot batch 3 (the military brain: sizing · mix · tactics) — LANDED
+
+Shipped same day: `sightedThreat` (camps by `isExploredBy`, hostile pieces by
+`isVisibleTo`, hostility by `atWar`) widens the wanted army under
+`threat.sightedArmyCap`; `explainMixCraving` pays the lacking category off
+`military.mix`; the three tactics (heal under `healBelowHealth` on own
+ground, `rangedDeferral` holds a non-decisive melee blow for an unspent
+bowman, `screenMarch` walks archers behind spears). Honest gaps in the
+docblocks: a camp spawning on charted-but-left ground is over-counted (wants
+a sim-side camp memory, schema), a wounded piece deep in enemy fields does
+not retreat, purchases don't read the mix.
 
 The user: "there should also be some prioritization around units based on
 the number of sighted camps/barbarian units. It should also prioritize a

@@ -227,6 +227,8 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 
 | The Rites Charter (W) | unlocks the chapel (same cost as temple) | +1🕯; each rite performed in this town pays +5🎵 (a growing building — see below) |
 | The Vigil Charter (M) | Unlocks the keep (same cost as walls) | +25 city hp; adjacent friendly units heal +5 |
+| The Ballad-Weavers | a barbarian unit killed | +1🎵 per turn, forever |
+| The Bell-Founders (W) | ANY empire finishes a wonder | +1🎵 (jealousy pays) |
 
 ### Government II pool (35)
 
@@ -270,6 +272,11 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 
 | The Scriveners' Charter (W) | Allows building the scriptorium (same cost as university) | cities with an academy within its borders gain +10% science, +2 science |
 | The Coin Charter (E) | Allows building the assay house (same cost as bank) | +2💰; the town's gold purchases cost 5% less (a city-scoped price line) |
+- **The Waterwrights' Charter** (E) — unlocks the **Cistern** costs the same as an aqueduct: +2 food, city acts as a source of freshwater (no happiness penalty if settled off fresh, adjacent farms gain irrigation bonus). Desert tiles gain +1 food.
+- **The Senatus** (W) — allows building the assembly hall, costs the same as examination hall: can only be built in your capital, +2 authority, +1 science and +1 culture for every wildcard slotted in your government (not a wildcard slot filled, a wildcard card that is active)
+- **The Toolmakers' Charter** (E) — unlocks the **smithy**, same cost as workshop: +2 prod, gains +1 production for every military card slotted in your government
+| The Reliquary Rolls | a great person spent | +2🕯 +2🎵 |
+| The Chroniclers of the Fallen (M) | one of YOUR units dies | +1 gold per loss |
 
 ### Government III pool (33)
 
@@ -311,6 +318,12 @@ RULING: orders can only be deepened up to level 3. Some cannot be upgraded, will
 ### Government III — proposed additions (no data rows yet)
 
 NEEDS NAME : upon declaring war, gain +2 combat strength on all units, and gain +10% production in all cities for 10 turns.
+- **The Mint Charter** (E) — unlocks the Mint: same price as bank; the town's
+  gold yield also pays 10% as culture 
+- **The Almshouse Charter** (W) — unlocks the Almshouse, same price as monastery: civilian units + traders in this city can be purchased with faith.
+- **The Stargazers' Charter** (W) — unlocks the **Observatory** same price as university: +1🔬; +10% science in this city if there is a mountain within two tiles. 
+- **The Justices' Charter** (M) — unlocks the **Assize Court** costs the same as a courthouse: +1 authority; -15% happiness cost from crowding in this city
+| The Almoners' Book (W) | 400💰 spent on purchases, cumulative | +1 science |
 
 
 ### Government IV pool — PROPOSED (tier 29 adoption) (20)

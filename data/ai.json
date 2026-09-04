@@ -73,7 +73,19 @@
     "scoutEarlyTurns": 40,
     "scoutBonus": 55,
     "scoutGlutPenalty": 400,
-    "scoutDecayPerTurn": 0.05
+    "scoutDecayPerTurn": 0.05,
+    "mix": {
+      "melee": 0.4,
+      "ranged": 0.3,
+      "mounted": 0.2,
+      "siege": 0.1
+    },
+    "mixBonus": 45,
+    "healBelowHealth": 0.5,
+    "rangedDeferral": 25,
+    "screenRadius": 3,
+    "screenBonus": 30,
+    "screenExposure": 6
   },
   "war": {
     "declareThreshold": 1.4,
@@ -172,7 +184,10 @@
     "militaryBonus": 60,
     "garrisonValue": 140,
     "extraArmyPerThreat": 1,
-    "techMilitaryFactor": 3
+    "techMilitaryFactor": 3,
+    "armyPerSightedCamp": 0.5,
+    "armyPerSightedHostile": 0.34,
+    "sightedArmyCap": 4
   },
   "research": {
     "goalHorizon": 6,
@@ -306,12 +321,20 @@
         "aggression": 0.6,
         "huntRadius": 10,
         "armyPerCity": 4,
-        "campHuntRadius": 9
+        "campHuntRadius": 9,
+        "mix": {
+          "melee": 0.35,
+          "ranged": 0.3,
+          "mounted": 0.2,
+          "siege": 0.15
+        },
+        "healBelowHealth": 0.35
       },
       "threat": {
         "militaryBonus": 80,
         "techMilitaryFactor": 4,
-        "extraArmyPerThreat": 2
+        "extraArmyPerThreat": 2,
+        "sightedArmyCap": 6
       },
       "expansion": {
         "settlerCap": 6,

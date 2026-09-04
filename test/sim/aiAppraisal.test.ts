@@ -31,6 +31,18 @@
  *   · **the tech riders** — a node's improvement renewals, priced by how much of
  *     this empire's ground would actually collect them, and a node's own card
  *     effects, priced by the reader the drafts use.
+ *
+ * Batch 3 (the military brain) adds the two halves of it that are *appraisals*
+ * — the third, the tactics, is a unit order and lives in `aiWar.test.ts`:
+ *
+ *   · **the sighted levy** — the wanted army grows with the camps this seat has
+ *     charted and the hostile pieces it can see, and the pin that matters is the
+ *     one where it *cannot* see: the same camp on the far side of the map moves
+ *     nothing at all. The bot's one fog-honest reading, so the honesty is what
+ *     is tested;
+ *   · **the unit mix** — an army that is all spearmen craves a bow, an army that
+ *     is all bows craves a spearman, and the craving is a term in the fold
+ *     rather than a gate on the list.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -59,7 +71,7 @@ import {
   playerById,
 } from '../../src/sim/state';
 import { researchExpansion } from '../../src/sim/tech';
-import { resetVisibility } from '../../src/sim/visibility';
+import { isExploredBy, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 
 // --- the bench --------------------------------------------------------------
 
@@ -585,5 +597,160 @@ describe('the beeline’s tech riders', () => {
     const scored = decision!.candidates.filter((row) => row.rejected === undefined);
     expect(scored.length).toBeGreaterThan(1);
     for (const row of scored) expect(foldTerms(row.terms)).toBe(row.score);
+  });
+});
+
+// --- 6. the sighted levy ----------------------------------------------------
+
+describe('the wanted army reads what the seat has sighted', () => {
+  /**
+   * One town at the standing levy — `military.armyPerCity` soldiers for one
+   * city, one of them its garrison — with camps written onto the board.
+   *
+   * Both soldiers are **fortified**, which is what makes the claim a claim: a
+   * fortified piece is not idle (`unitAwaitsOrders`), so the seat's next
+   * decision is the town's queue rather than a march that would walk one of them
+   * onto the very camp under test.
+   *
+   * Turn 50 puts the board past `military.scoutEarlyTurns`, so the opening book
+   * (`openingScout`) does not answer the town before anything is weighed.
+   */
+  function levy(camps: readonly [number, number][]): GameState {
+    const state = bench(1);
+    state.turn = 50;
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    for (const [col, row] of [
+      [city.col, city.row],
+      [city.col + 1, city.row],
+    ] as const) {
+      const piece = createUnit(state, 0, 'warrior', col, row);
+      piece.fortifiedTurns = 0;
+    }
+    for (const [col, row] of camps) state.camps.push({ col, row, foundedTurn: 0 });
+    recomputeAllVisibility(state);
+    return state;
+  }
+
+  /** The soldier row of this town's build table, or `null` when it has none. */
+  function soldierRow(state: GameState): BotCandidate | null {
+    const decision = decisionOfType(state, 0, 'setCityProduction');
+    expect(decision).not.toBeNull();
+    return decision!.candidates.find((row) => row.label === 'Warrior') ?? null;
+  }
+
+  it('wants no more soldiers than the standing levy in a quiet world', () => {
+    // Two towns' worth of levy for one town is exactly what is standing, so the
+    // candidate is not merely cheap — the empire does not want one at all.
+    expect(soldierRow(levy([]))).toBeNull();
+  });
+
+  it('wants one more once a camp near the town has been charted', () => {
+    const row = soldierRow(levy([[5, 7]]));
+    expect(row).not.toBeNull();
+    // The appetite is printed, so a reader of the feed can see *why* the levy
+    // grew rather than having to trust that it did.
+    expect(labelsOf(row!.terms)).toMatch(/1 camp charted and 0 hostile pieces in sight/);
+    expect(foldTerms(row!.terms)).toBe(row!.score);
+  });
+
+  it('counts nothing it has never seen — the same camp, off this seat’s chart', () => {
+    // The whole of the fog honesty in one board: an identical camp, thirteen
+    // hexes off, on ground no piece and no town of this empire has ever lit.
+    const dark = levy([[18, 11]]);
+    expect(isExploredBy(dark, 0, 18, 11)).toBe(false);
+    expect(soldierRow(dark)).toBeNull();
+    // And the omniscient reading would have counted it: the camp is on the
+    // board, it is simply not on this seat's map.
+    expect(dark.camps).toHaveLength(1);
+  });
+
+  it('is capped, so a lit continent cannot talk an empire into an army', () => {
+    // Ten charted camps at half a soldier each is five, over the cap of four.
+    const many: [number, number][] = [];
+    for (let index = 0; index < 10; index++) many.push([4 + (index % 3), 4 + Math.floor(index / 3)]);
+    const state = levy(many);
+    const ctx = valueContext(state, seat(state, 0));
+    expect(ctx.sighted.camps).toBe(10);
+    const wanted = 1 * aiJson.military.armyPerCity + Math.min(
+      aiJson.threat.sightedArmyCap,
+      ctx.sighted.camps * aiJson.threat.armyPerSightedCamp,
+    );
+    expect(wanted).toBe(aiJson.military.armyPerCity + aiJson.threat.sightedArmyCap);
+  });
+});
+
+// --- 7. the unit mix --------------------------------------------------------
+
+describe('the levy craves the trade it lacks', () => {
+  /**
+   * Two towns and a three-piece army of one trade, with the roads to the warrior
+   * and the archer both walked.
+   *
+   * Two towns rather than one so the standing levy (`armyPerCity` × 2 = four)
+   * leaves room for a fourth piece: the mix is a *term*, and a term nobody can
+   * reach because the cap closed the branch is a term nobody can test.
+   */
+  function army(kind: 'warrior' | 'archer'): GameState {
+    const state = bench(1);
+    state.turn = 50;
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    foundCityAt(state, 0, at(state.map, 12, 5));
+    seat(state, 0).techsResearched.push('agriculture', 'fletching');
+    for (let index = 0; index < 3; index++) {
+      const piece = createUnit(state, 0, kind, city.col, city.row + 1 + index);
+      piece.fortifiedTurns = 0;
+    }
+    recomputeAllVisibility(state);
+    return state;
+  }
+
+  function row(state: GameState, name: string): BotCandidate {
+    const decision = decisionOfType(state, 0, 'setCityProduction');
+    expect(decision).not.toBeNull();
+    return candidate(decision!, name);
+  }
+
+  const CRAVING = /in this army (?:is|are) \w+, and the mix wants/;
+
+  it('pays a bow a craving in an army of spearmen, and charges the next spearman', () => {
+    const melee = army('warrior');
+    const bow = findTerm(row(melee, 'Archer').terms, CRAVING);
+    const spear = findTerm(row(melee, 'Warrior').terms, CRAVING);
+    expect(bow).not.toBeNull();
+    expect(spear).not.toBeNull();
+    // The whole army is melee, so the bow is paid its whole target share and the
+    // spearman is charged everything the other three trades were owed.
+    expect(bow!.value).toBeGreaterThan(0);
+    expect(spear!.value).toBeLessThan(0);
+    expect(bow!.value).toBeCloseTo(aiJson.military.mixBonus * aiJson.military.mix.ranged, 10);
+    expect(spear!.value).toBeCloseTo(aiJson.military.mixBonus * (aiJson.military.mix.melee - 1), 10);
+  });
+
+  it('reads the same sentence backwards in an army of bowmen', () => {
+    const ranged = army('archer');
+    expect(findTerm(row(ranged, 'Archer').terms, CRAVING)!.value).toBeLessThan(0);
+    expect(findTerm(row(ranged, 'Warrior').terms, CRAVING)!.value).toBeGreaterThan(0);
+  });
+
+  it('scores the same bow higher in the army that has none of them', () => {
+    // The mirror, and the claim the ruling actually makes: two boards identical
+    // but for what the three standing pieces are, and the candidate the empire
+    // lacks is worth more. Everything else — the age, the treasury, the town,
+    // the build effort — is the same on both.
+    const wanted = row(army('warrior'), 'Archer');
+    const glutted = row(army('archer'), 'Archer');
+    expect(wanted.score).toBeGreaterThan(glutted.score);
+    // And the term is a term, not a gate: the over-served bow is still on the
+    // table, still scored, still readable.
+    expect(glutted.rejected).toBeUndefined();
+    for (const entry of [wanted, glutted]) expect(foldTerms(entry.terms)).toBe(entry.score);
+  });
+
+  it('leaves every soldier row folding to its own score', () => {
+    const decision = decisionOfType(army('warrior'), 0, 'setCityProduction');
+    expect(decision).not.toBeNull();
+    const scored = decision!.candidates.filter((entry) => entry.rejected === undefined);
+    expect(scored.length).toBeGreaterThan(1);
+    for (const entry of scored) expect(foldTerms(entry.terms)).toBe(entry.score);
   });
 });
