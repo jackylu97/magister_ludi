@@ -638,51 +638,87 @@ describe('a full turn at scale', () => {
     // And they research, because since the Age I rework every improvement is
     // behind a technology and every seat starts holding Agriculture alone —
     // which gates the farm and nothing else. Mining is the one that opens the
-    // most ground on a generated map (any hill), it is the cheapest node after
-    // the roots, and forty cities pay for it in a turn or two. Ordinary
-    // commands, so the log stays a save file and the replay assertion above
-    // still holds over it.
+    // most ground on a generated map (any hill) and it is the cheapest node
+    // after the roots, so it is what every seat is sent after; which seats can
+    // afford it is the note below. Ordinary commands, so the log stays a save
+    // file and the replay assertion above still holds over it.
     for (const player of state.players) {
       dispatch(game, { type: 'chooseResearch', playerId: player.id, techId: 'mining' });
     }
-    // Long enough for it to land, and no longer: forty size-one cities under a
-    // badly overstretched writ round their single beaker down to nothing (the
-    // −20% is applied per city, and `floor(1 × 0.8)` is 0), so this empire has
-    // to *grow* before it can think. That is the meters working, not a stall.
-    for (let turn = 0; turn < 40; turn++) {
-      if (state.players.every((player) => player.techsResearched.includes('mining'))) break;
-      for (const player of state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
-    }
-    for (const player of state.players) {
-      expect(player.techsResearched, player.name).toContain('mining');
-    }
-
-    // Sites across every seat, because a worker may only build inside its *own*
-    // empire's borders (the own-territory rule) and one seat's ten cities are
-    // not forty tiles of legal ground.
-    const sites: { tile: Tile; seat: number; id: (typeof IMPROVEMENT_IDS)[number] }[] = [];
-    for (const tile of state.map.tiles) {
-      if (sites.length >= WORKER_WAVE) break;
-      for (const player of state.players) {
-        let chosen: (typeof IMPROVEMENT_IDS)[number] | null = null;
-        for (const id of IMPROVEMENT_IDS) {
-          // A great work is planted by a great person, not spadework — it has no
-          // builder for `improvementErrorAt`'s ground-shaped check to refuse, so
-          // without this skip a tile whose only legal improvement is a work
-          // counts as a site with nothing a worker can actually build there.
-          if (isGreatPersonWork(id)) continue;
-          if (improvementErrorAt(state, player.id, tile, id) === null) {
-            chosen = id;
-            break;
+    /**
+     * Sites across every seat, because a worker may only build inside its *own*
+     * empire's borders (the own-territory rule) and one seat's ten cities are
+     * not forty tiles of legal ground.
+     */
+    const improvableSites = (): { tile: Tile; seat: number; id: (typeof IMPROVEMENT_IDS)[number] }[] => {
+      const found: { tile: Tile; seat: number; id: (typeof IMPROVEMENT_IDS)[number] }[] = [];
+      for (const tile of state.map.tiles) {
+        if (found.length >= WORKER_WAVE) break;
+        for (const player of state.players) {
+          let chosen: (typeof IMPROVEMENT_IDS)[number] | null = null;
+          for (const id of IMPROVEMENT_IDS) {
+            // A great work is planted by a great person, not spadework — it has
+            // no builder for `improvementErrorAt`'s ground-shaped check to
+            // refuse, so without this skip a tile whose only legal improvement
+            // is a work counts as a site with nothing a worker can build there.
+            if (isGreatPersonWork(id)) continue;
+            if (improvementErrorAt(state, player.id, tile, id) === null) {
+              chosen = id;
+              break;
+            }
           }
+          if (chosen === null) continue;
+          found.push({ tile, seat: player.id, id: chosen });
+          break;
         }
-        if (chosen === null) continue;
-        sites.push({ tile, seat: player.id, id: chosen });
-        break;
       }
+      return found;
+    };
+
+    /**
+     * Resolve until there is ground for the wave to stand on, and stop there.
+     *
+     * **Re-aimed 2026-09-03, after the 9/3 wave (schema 60).** The loop used to
+     * run until *every* seat held Mining and assert exactly that, and the wave
+     * broke it: this fixture's four seats never all get there. Measured on the
+     * fixture as it stands, over two hundred resolutions, the seats hold
+     * `agriculture / agriculture+mining / agriculture+mining / agriculture` from
+     * turn ~20 onward and never move again. That is not a regression in the
+     * tree — it is what this deliberately absurd fixture *is*: forty size-one
+     * cities founded on turn 1 across four seats is a writ overstretched past
+     * anything a played game reaches, so each city's single beaker rounds to
+     * nothing (`floor(1 × 0.8)` is 0), and the three hundred units spawned
+     * beside them put every seat into arrears by turn 5 — which adds the −25%
+     * arrears line on top. Two seats scrape thirteen beakers together; two never
+     * do. The economy nerfs in the wave deepened a hole this fixture was already
+     * standing in.
+     *
+     * So the loop now waits for the thing the wave actually needs — forty legal
+     * sites — rather than for a particular node in a particular seat's tree.
+     * That is the claim the test was always making (the old comment's own words:
+     * "so the forty cities have pushed their borders out and there is enough
+     * owned ground for forty workers to stand on"); Mining was only ever the
+     * means. Measured: the fortieth site appears after **six resolutions**, well
+     * inside the old forty-turn window, with one seat's Mining and the other
+     * seats' borders between them opening the ground — and thirty-six of the
+     * forty workers get their order away, against the twenty the bound asks for.
+     */
+    let sites = improvableSites();
+    let waited = 0;
+    for (; waited < 40 && sites.length < WORKER_WAVE; waited++) {
+      for (const player of state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
+      sites = improvableSites();
     }
-    console.log(`[stress] ${sites.length} improvable sites found across ${SEATS} seats`);
+    console.log(
+      `[stress] ${sites.length} improvable sites found across ${SEATS} seats ` +
+        `after ${waited} resolutions (techs: ` +
+        `${state.players.map((player) => player.techsResearched.length).join('/')})`,
+    );
     expect(sites.length).toBeGreaterThanOrEqual(WORKER_WAVE);
+    // The research order was not a no-op — somebody paid for the node that opens
+    // the hills. Which seats can afford it is a fact about this fixture's
+    // pathological writ, not about the tree; see the note above.
+    expect(state.players.some((player) => player.techsResearched.includes('mining'))).toBe(true);
 
     const spentBuilds = cpuMs();
     let built = 0;

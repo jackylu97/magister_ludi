@@ -463,8 +463,13 @@ export function yieldContextFor(
  * (`assignCitizens`, `centreYield`, `cityYields`, `bestExpansionTile`). A hex
  * outside anybody's borders has no granary to ask about, which is why the empire
  * context is the honest answer for the hover card and the lens.
+ *
+ * Exported for the **ghost** that reads it twice (`cardImpact.ts`): a card's
+ * stamp diffs what the worked hexes pay under this empire's law and under a
+ * shallow copy of it, and there is no honest way to ask that question without
+ * the very context the town's own yields are read through.
  */
-function cityContext(state: GameState, city: City): TileYieldContext | undefined {
+export function cityContext(state: GameState, city: City): TileYieldContext | undefined {
   const ctx = yieldContextFor(state, city.ownerId);
   if (!ctx) return undefined;
   // Five producers are facts about *this town* rather than about the empire,
@@ -592,6 +597,26 @@ export function explainTileYield(
   // condition field for display — only `source` names the line — so a merge of
   // lines with different conditions loses nothing: there was never a condition
   // to pick between in the first place.
+  // **Ea-nāṣir's rule** (the user, 2026-09-03: "it should never go below zero
+  // or subtract yields from the tile"): a card line's NEGATIVE voice reaches
+  // only what the hex's works pay — the mine's own hammer may be taken back,
+  // the hill's and the seam's never, and no voice of the hex drops below its
+  // wild reading. Clamped per incoming line against what the works still have
+  // (several taking-back lines share one bag), so the breakdown stays the fold
+  // of what it prints.
+  let worksLeft: TileYield | undefined;
+  const worksRemaining = (): TileYield =>
+    (worksLeft ??= foldTileYield(list.slice(worksFrom, worksTo)));
+  const clampTakeBack = (voice: (typeof TILE_YIELD_KEYS)[number], amount: number): number => {
+    if (amount >= 0) return amount;
+    const bag = worksRemaining();
+    const allowed = Math.max(0, bag[voice]);
+    const taken = Math.min(-amount, allowed);
+    bag[voice] -= taken;
+    // `0`, never `-0` — a ledger entry is compared byte-for-byte in replays.
+    return taken === 0 ? 0 : -taken;
+  };
+
   const sourceIndex = new Map<string, number>();
   for (const line of ctx?.lines ?? []) {
     if (!tileConditionHolds(tile, line.on, paidSoFar)) continue;
@@ -601,27 +626,37 @@ export function explainTileYield(
     // the hover that explains nothing — the same reading `paysSomething` takes
     // of a card's city yields one ledger over.
     if (!TILE_YIELD_KEYS.some((voice) => line[voice] !== 0)) continue;
+    const clamped = {
+      food: clampTakeBack('food', line.food),
+      production: clampTakeBack('production', line.production),
+      gold: clampTakeBack('gold', line.gold),
+      science: clampTakeBack('science', line.science),
+      culture: clampTakeBack('culture', line.culture),
+      faith: clampTakeBack('faith', line.faith),
+    };
+    // A taking-back line whose whole bag was already empty says nothing.
+    if (!TILE_YIELD_KEYS.some((voice) => clamped[voice] !== 0)) continue;
     const existingAt = sourceIndex.get(line.source);
     if (existingAt !== undefined) {
       const merged = list[existingAt];
-      merged.food += line.food;
-      merged.production += line.production;
-      merged.gold += line.gold;
-      merged.science += line.science;
-      merged.culture += line.culture;
-      merged.faith += line.faith;
+      merged.food += clamped.food;
+      merged.production += clamped.production;
+      merged.gold += clamped.gold;
+      merged.science += clamped.science;
+      merged.culture += clamped.culture;
+      merged.faith += clamped.faith;
       continue;
     }
     sourceIndex.set(line.source, list.length);
     list.push({
       source: line.source,
       kind: 'add',
-      food: line.food,
-      production: line.production,
-      gold: line.gold,
-      science: line.science,
-      culture: line.culture,
-      faith: line.faith,
+      food: clamped.food,
+      production: clamped.production,
+      gold: clamped.gold,
+      science: clamped.science,
+      culture: clamped.culture,
+      faith: clamped.faith,
     });
   }
 
@@ -3666,6 +3701,7 @@ function empireRates(state: GameState, playerId: number): {
   faithPerTurn: number;
   culturePerTurn: number;
   goldPerTurn: number;
+  sciencePerTurn: number;
   capitalFaithPerTurn: number;
   followingFaithPerTurn: number;
 } {
@@ -3673,6 +3709,11 @@ function empireRates(state: GameState, playerId: number): {
     faithPerTurn: 0,
     culturePerTurn: 0,
     goldPerTurn: 0,
+    // The fourth voice, and the one no `rateConversion` asks for: a great
+    // scholar's act is quoted in *turns of your own science* (the nerf pass of
+    // 2026-09-03), and it reads this fold rather than summing the cities a
+    // second time. See `RateReading.sciencePerTurn`.
+    sciencePerTurn: 0,
     capitalFaithPerTurn: 0,
     followingFaithPerTurn: 0,
   };
@@ -3699,6 +3740,7 @@ function empireRates(state: GameState, playerId: number): {
     rates.faithPerTurn += yields.faith;
     rates.culturePerTurn += yields.culture;
     rates.goldPerTurn += yields.gold;
+    rates.sciencePerTurn += yields.science;
     if (capital && city.id === capital.id) rates.capitalFaithPerTurn += yields.faith;
     // Cuius Regio's congregation, off the same sweep for the capital's reason:
     // the town's yields are already in hand, so "what did my faithful towns
@@ -3713,6 +3755,7 @@ function empireRates(state: GameState, playerId: number): {
   rates.faithPerTurn += empire.faith;
   rates.culturePerTurn += empire.culture;
   rates.goldPerTurn += empire.gold;
+  rates.sciencePerTurn += empire.science;
   // The empire lines join the *base* rate for the reason every other line here
   // does: a card that pays "per gold gained per turn" has to read the gold this
   // turn actually produced, and a connected empire's roads — and since the
@@ -3726,6 +3769,7 @@ function empireRates(state: GameState, playerId: number): {
   const abroad = foldRouteYield(senderRouteYields(state, playerId));
   rates.goldPerTurn += abroad.gold;
   rates.culturePerTurn += abroad.culture;
+  rates.sciencePerTurn += abroad.science;
   return rates;
 }
 
@@ -3740,6 +3784,12 @@ function empireRates(state: GameState, playerId: number): {
  * that says "per culture gained per turn" read one set of books. It is asked
  * lazily — only when a rider actually names a rate — because it prices every
  * town, and an occasion nobody wrote such a rider for must not pay for it.
+ *
+ * **A second caller since the great-people nerf pass** (2026-09-03): a great
+ * scholar's and a great artist's act are quoted in *turns of the empire's own
+ * rate* (`actGainOf`, `greatPeople.ts`), which is the same sentence The Lyceum
+ * says about a technology — so they ask the same books rather than summing the
+ * cities a third time, and "a turn of science" means one thing in the game.
  */
 export function empireRateReading(state: GameState, playerId: number): RateReading {
   return empireRates(state, playerId);

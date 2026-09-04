@@ -122,7 +122,7 @@ function playWarband(maxTurns: number): Game {
 }
 
 describe('what the pass did to the opening', () => {
-  it('leaves the median capital opening on two hammers, unit prices read off the roster', () => {
+  it('leaves the median capital opening on three hammers, unit prices read off the roster', () => {
     const openings: number[] = [];
     for (const seed of [
       4242, 1, 2, 3, 7, 11, 42, 99, 777, 1234, 2024, 2468, 31337, 555, 8888, 90210, 5, 6, 8, 9, 12,
@@ -174,13 +174,32 @@ describe('what the pass did to the opening', () => {
      *   scout   13⚙, median 2 → **7 turns**
      *   warrior 10⚙, median 2 → **5 turns**
      *   worker  14⚙, median 2 → **7 turns**
+     *
+     * **Re-measured 2026-09-03, the 9/3 wave (schema 60).** A price pass this is
+     * not — the roster is byte-identical — so everything here is the *ground*
+     * moving, and it moved for one reason: the map generator now draws a pangaea
+     * with an island belt, its ridges are broken rather than solid
+     * (`mountainShare` 0.08), and a start must sit on at least a hundred tiles
+     * of land. A capital picked out of that is a hillier capital. Over the same
+     * twenty-one seeds the whole distribution shifts up by one — 2,2,2,2,2 then
+     * thirteen 3s then four 4s, a band of **2..4** inside the 2..6 the assertions
+     * allow — and the median comes back to **3⚙**, where it sat before the coast
+     * ruling took it to 2. Against the new rate:
+     *
+     *   scout   13⚙, median 3 → **5 turns**
+     *   warrior 10⚙, median 3 → **4 turns**
+     *   worker  14⚙, median 3 → **5 turns**
+     *
+     * — which is the shape the opening was balanced around in the first place: a
+     * first piece is a handful of turns of real commitment, and the warrior sits
+     * one turn inside the scout rather than level with it.
      */
-    expect(median).toBe(2);
+    expect(median).toBe(3);
     expect(openings[0]).toBeGreaterThanOrEqual(2);
     expect(openings[openings.length - 1]).toBeLessThanOrEqual(6);
-    expect(Math.ceil(unitDef('scout').cost / median)).toBe(7);
-    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(5);
-    expect(Math.ceil(unitDef('worker').cost / median)).toBe(7);
+    expect(Math.ceil(unitDef('scout').cost / median)).toBe(5);
+    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(4);
+    expect(Math.ceil(unitDef('worker').cost / median)).toBe(5);
   }, 60_000);
 
   it('costs the warband empire a quarter of its army by turn 40', () => {
@@ -254,11 +273,39 @@ describe('what the pass did to the opening', () => {
      * this script reaches its fourth founding inside the horizon. The units
      * band (10–14) did not move, which is this test's whole claim: richer
      * ground, same army for the same hammers.
+     *
+     * **Re-measured 2026-09-03, the 9/3 wave (schema 60): 5 cities, 5 units (a
+     * scout and four warriors), 6 technologies.** The roster prices are again
+     * byte-identical, so read the pair — 4 cities/11 units → 5 cities/5 units —
+     * as the *expansion half of this script finishing inside the horizon for the
+     * first time*. Two of the wave's rulings put it there, and one of them takes
+     * the army:
+     *
+     *   · **the pangaea.** One landmass with an island belt, and a start floor of
+     *     a hundred land tiles, means `nearestSite` always has somewhere to walk
+     *     to — this empire reaches its whole `CITY_TARGET` of five by turn 40
+     *     where it used to stall at four. The fifth founding is a fifth settler,
+     *     and a settler is twenty-eight hammers before its escalation: four
+     *     warriors' worth, taken out of the roster;
+     *   · **the economy pass.** The palace pays 6 happiness rather than 9 and
+     *     crowding is switched on (`crowdingWeight` 0.3), so a five-town empire
+     *     on this script is unhappier than a four-town one was and every town's
+     *     yields are docked for it. Fewer hammers behind a roster that costs
+     *     exactly what it always did.
+     *
+     * Neither of those is a price change, and the claim this test exists to make
+     * is a claim about prices: **a later retune may not quietly make units free
+     * again.** That is the upper bound, and it is the one that matters. The band
+     * is re-drawn around the new figure the way the 2026-08-27 note re-drew it
+     * around a richer ground — 3..9 rather than 10..14 — because "this empire
+     * suddenly fields nine pieces again" is the regression worth catching and
+     * "it fields four" is a map roll. The technology floor stays a floor: this
+     * test is not about the tree.
      */
     expect(game.state.turn).toBe(41);
-    expect(game.state.cities.length).toBe(4);
-    expect(mine.length).toBeGreaterThanOrEqual(10);
-    expect(mine.length).toBeLessThanOrEqual(14);
+    expect(game.state.cities.length).toBe(5);
+    expect(mine.length).toBeGreaterThanOrEqual(3);
+    expect(mine.length).toBeLessThanOrEqual(9);
     expect(game.state.players[0]!.techsResearched.length).toBeGreaterThanOrEqual(4);
   }, 120_000);
 

@@ -930,7 +930,7 @@ import {
  *     migrate. Every retired row is still readable by `anyCardDef`, which is
  *     the whole reason a withdrawn card is marked rather than deleted.
  *
- * v60: **the 9/3 wave** (eight rulings in one push, `docs/flags.md`; each alone
+ * v60: **the 9/3 wave** (nine rulings in one push, `docs/flags.md`; each alone
  * would have earned the bump, and they land together so they share one).
  *
  *   · **Routes are land or sea** — `startRoute` grew `mode`, a sea route lays
@@ -974,10 +974,27 @@ import {
  *     as well as what a held card *does*, so a v59 log's `chooseOrder` and
  *     `chooseDoctrine` pick indices into offers this build does not deal, and
  *     the empires that survive the picking are worth different numbers.
+ *   · **The great people were re-priced** (the user's own pass over
+ *     `docs/great-people.md`) — the **acts** first: a scholar paid a share of
+ *     the aimed technology's cost and an artist a flat forty, and both now pay
+ *     `actGainTurns` **turns of the empire's own rate** (`actGainOf`, read off
+ *     `empireRateReading`), so `scholarShare` and `artistCulture` are gone from
+ *     `rules.greatPeople` and neither arm ages with the tree any more. Then the
+ *     **roster**: one name is struck off entirely (Li Jie — a great person is
+ *     consumed rather than withdrawn, so there is no retired marker to set) and
+ *     thirty-odd rows say something different from what they said in v59 —
+ *     numbers moved, malices struck (Archimedes keeps no revocation, Homer's
+ *     army heals abroad), and half a dozen cells re-written into other shapes.
+ *     A v59 log's `chooseGreatPerson` therefore picks indices into offers this
+ *     build does not deal (the pool is one name shorter and the draw walks it in
+ *     data order), and the empires that survive the picking are worth different
+ *     numbers.
  *
  *     The migration note: one additive optional field (`TradeRoute.sea`) and
- *     one additive row marker (`BuildingDef.waters`); nothing else changed
- *     shape and there is nothing to migrate.
+ *     one additive row marker (`BuildingDef.waters`); a deleted roster row is
+ *     read by nothing that keeps state (`Player.legacies` and
+ *     `GameState.recruited` are both guarded by `isGreatPersonId`), so nothing
+ *     else changed shape and there is nothing to migrate.
  */
 export const SCHEMA_VERSION = 60;
 

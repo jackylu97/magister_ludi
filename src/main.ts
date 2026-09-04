@@ -139,6 +139,8 @@ import { type TechTree, createTechTree } from './ui/techTree';
 import { type MapPlates, type TilePriceTags, createMapPlates, createTilePriceTags } from './ui/tilePriceTags';
 import { faithPlates } from './ui/faithPlates';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
+import { type CardImpactSubject, explainCardImpact } from './sim/cardImpact';
+import { stampIsEmpty, stampReading } from './ui/cardStamp';
 import { type OfferOption, createOfferCard } from './ui/offerCard';
 import { type TriumphModal, createTriumphModal } from './ui/triumphModal';
 import { type Rect as TutorialRect, createTutorial } from './ui/tutorial';
@@ -2190,6 +2192,7 @@ async function boot(initial: Game | null): Promise<void> {
         note: describeCard(id).map((clause) => clause.text).join(' · '),
         flavor: orderDef(id).flavor,
         ...cardFace(orderDef(id)),
+        ...cardStamp(seat, { kind: 'order', id }),
       }));
       const upgrade = offer.upgrade;
       if (upgrade !== undefined) {
@@ -2207,6 +2210,10 @@ async function boot(initial: Game | null): Promise<void> {
           emphasis: 'deepen',
           flavor: orderDef(upgrade).flavor,
           ...cardFace(orderDef(upgrade)),
+          // The **step**, not the card: asked at the level above the one held,
+          // the ghost-diff is the increment (`explainCardImpact`), which is
+          // exactly what the before/after face beside it is asking.
+          ...cardStamp(seat, { kind: 'order', id: upgrade, level: level + 1 }),
         });
       }
       offerCard.show(
@@ -2257,6 +2264,11 @@ async function boot(initial: Game | null): Promise<void> {
             // A government joins no archetype thread, so its emblem is the
             // office it opens the most slots for. See `governmentEmblem`.
             ...governmentEmblem(id),
+            // The charter's stamp carries the **amnesty**: adoption empties
+            // every office, so the figure is the new law minus the old one's
+            // slotted cards. That is the honest reading of the one
+            // irreversible pick in the game.
+            ...cardStamp(seat, { kind: 'government', id }),
           })),
         },
         (index) => {
@@ -2289,6 +2301,7 @@ async function boot(initial: Game | null): Promise<void> {
             note: describeCard(id).map((clause) => clause.text).join(' · '),
             flavor: doctrineDef(id).flavor,
             ...cardFace(doctrineDef(id)),
+            ...cardStamp(seat, { kind: 'doctrine', id }),
           })),
         },
         (index) => {
@@ -2372,6 +2385,7 @@ async function boot(initial: Game | null): Promise<void> {
             // `--line-ink` mechanism a Statecraft card's line uses, so a votive
             // card and an Order card are painted by one rule.
             line: def.axis,
+            ...cardStamp(seat, { kind: 'belief', id }),
           };
         }),
       },
@@ -2524,6 +2538,12 @@ async function boot(initial: Game | null): Promise<void> {
             line: TIER_ACCENT[def.tier],
             lineName: TIER_NAME[def.tier],
             emblem: cardLineMarkUrl(FAMILY_EMBLEM[def.family]),
+            // **The legacy**, which is the half of a great person that outlives
+            // the choice — *they served you; their legacy remains*. The act is
+            // one charge spent once and is not a rate, so it is not on the
+            // stamp; a legacy that is a combat rule or a movement clause has no
+            // per-turn figure at all and simply keeps the flourish.
+            ...cardStamp(seat, { kind: 'legacy', id }),
           };
           return option;
         }),
@@ -2632,6 +2652,24 @@ async function boot(initial: Game | null): Promise<void> {
   function cardFace(def: Parameters<typeof lineOf>[0]): Partial<OfferOption> {
     const id = lineOf(def);
     return { line: id, emblem: cardLineMarkUrl(id), lineName: CARD_LINE_NAME[id] };
+  }
+
+  /**
+   * What a card on this offer would be **worth**, as the stamp reads it.
+   *
+   * The seam between `explainCardImpact` (the empire's ledger read twice) and
+   * `offerCard.ts`'s strings-and-numbers boundary — one adapter, spread into the
+   * option exactly as `cardFace` is. Absent when the card has nothing to say,
+   * which is what leaves the flourish standing rather than printing a nought.
+   *
+   * Asked **once, when the offer opens**, and never again while it is on screen:
+   * the answer is a fact about the board at the moment of the deal, and a card
+   * whose number moved while the player was reading it would be a different card
+   * from the one they were dealt.
+   */
+  function cardStamp(seat: number, subject: CardImpactSubject): Partial<OfferOption> {
+    const reading = stampReading(explainCardImpact(game.state, seat, subject));
+    return stampIsEmpty(reading) ? {} : { stamp: reading };
   }
 
   /**

@@ -313,10 +313,9 @@
   },
   "greatPeople": {
     "actPerTech": 0.05,
-    "scholarShare": 0.5,
+    "actGainTurns": 8,
     "engineerHammers": 40,
     "merchantGold": 60,
-    "artistCulture": 40,
     "artistHappiness": 2,
     "artistTurns": 10,
     "generalRadius": 2,

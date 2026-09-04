@@ -1074,8 +1074,8 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
   // record is a third state that contributes nothing. That is *one filter*, on
   // this line, and it is the whole of the revocation mechanism on the reading
   // side: the record stays in spend order, history is never spliced, and
-  // Archimedes' "lost the turn an enemy enters his city" is a rule with a place
-  // rather than a sentence struck through on a card.
+  // Hypatia's "lost the first turn your happiness goes negative" is a rule with
+  // a place rather than a sentence struck through on a card.
   for (const held of playerById(state, playerId)?.legacies ?? []) {
     if (held.revoked === true) continue;
     if (!isGreatPersonId(held.id)) continue;
@@ -2474,6 +2474,21 @@ export interface RateReading {
    * Cuius Regio's, read off the same sweep for `capitalFaithPerTurn`'s reason.
    */
   followingFaithPerTurn?: number;
+  /**
+   * What the empire banked in **science** this turn — the great scholar's act
+   * (`actGainOf`, `greatPeople.ts`), which pays a few turns of it.
+   *
+   * The one member of this reading that **no `RateSource` names**, and that is
+   * deliberate rather than an omission: the ratified card table asks for gold,
+   * culture and three shapes of faith, and a source declared for a card nobody
+   * wrote would be exactly the dead vocabulary the register test refuses. What
+   * the act needed was not a new card shape but the *same books* — "what am I
+   * making per turn" answered once, by `empireRateReading`, so a great person's
+   * beakers and a conversion's coin cannot disagree about what a turn is worth.
+   * The day a card wants to convert science, it says `sciencePerTurn` in
+   * `RateSource` and reads this field that already exists.
+   */
+  sciencePerTurn?: number;
 }
 
 function rateOf(
@@ -6229,7 +6244,16 @@ const WONDER_OCCASION_WORDS: Partial<Record<WindfallOccasion, string>> = {
   capture: 'capturing a city with a wonder in it',
 };
 
-function occasionWords(
+/**
+ * The occasion, in the words a card's own clause uses.
+ *
+ * Exported for `cardImpact.ts`, which reports a rider in its per-occasion form
+ * — the grant read off the row *and the moment it is paid on* — because a card
+ * that pays only on an occasion has an honest impact of zero per turn and a
+ * nought on a stamp would be a lie about it. One table, so the stamp and the
+ * clause say the same sentence about the same moment.
+ */
+export function occasionWords(
   occasion: WindfallOccasion,
   vsBarbarians: boolean,
   capturedWonder = false,

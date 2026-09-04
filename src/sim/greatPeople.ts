@@ -52,6 +52,7 @@
 import {
   capitalCityOf,
   cityAt,
+  empireRateReading,
   nearestOwnedCity,
   refreshCityDerived,
   refreshTileDerived,
@@ -96,7 +97,7 @@ import { renownThreshold, settleRenownWindfall } from './renown';
 import { cardActionRule, cardAmplifier, offerSize, settleCultureWindfall } from './statecraft';
 import type { ActionRuleId, CardEffect } from './statecraftData';
 import { settleResearchWindfall } from './tech';
-import { highestAge, techDef } from './techData';
+import { highestAge } from './techData';
 import { unitDef, unitMaxHp } from './unitData';
 import { recomputeVisibilityFor } from './visibility';
 
@@ -770,6 +771,44 @@ export function agedActFactor(player: Player): number {
   return 1 + PEOPLE.actPerTech * player.techsResearched.length;
 }
 
+/**
+ * The **base** figure a rate-quoted act pays: `actGainTurns` turns of what this
+ * empire is already banking in that voice.
+ *
+ * The nerf pass of 2026-09-03 re-quoted two of the five acts. A scholar used to
+ * pay a *share of the aimed technology's cost*, which meant a great person was
+ * worth more the deeper the tree went and worth it to an empire that had built
+ * nothing; an artist used to pay a flat forty. Both now pay **turns of the
+ * empire's own rate**, which is the same sentence The Lyceum says about a
+ * technology, and it is the honest one: a great person is worth what your empire
+ * is worth.
+ *
+ * "What am I making per turn" is asked of `empireRateReading` (`cities.ts`) and
+ * nowhere else — the very fold `collectYields` banks and the top bar prints — so
+ * the preview, the payout and the headline cannot drift. It is the **base**
+ * rate, before any `rateConversion` pays anything, which is that reading's own
+ * discipline: an act that read a converted rate would be two cards feeding each
+ * other through a great person.
+ *
+ * Deliberately outside `agedActFactor`: a figure read off the empire's own books
+ * already grows with every technology, every building and every citizen, and
+ * ageing it a second time would compound. Leonardo's amplifier is *not* folded
+ * here — it belongs to the act, beside the two flat arms' own boost, so this
+ * stays the one number a preview may print without a card in hand.
+ *
+ * Never negative: an empire whose treasury is being eaten alive still cannot be
+ * charged for calling a scholar.
+ */
+export function actGainOf(
+  state: GameState,
+  playerId: number,
+  voice: 'science' | 'culture',
+): number {
+  const rates = empireRateReading(state, playerId);
+  const perTurn = voice === 'science' ? rates.sciencePerTurn : rates.culturePerTurn;
+  return Math.max(0, Math.floor(perTurn ?? 0)) * Math.max(0, Math.floor(PEOPLE.actGainTurns));
+}
+
 export function greatPersonActAt(
   state: GameState,
   player: Player,
@@ -791,10 +830,14 @@ export function greatPersonActAt(
   // The act ages with the tree (user, 2026-08-30): every *flat* figure pays
   // ×(1 + actPerTech × techs) — composed here, once, before Leonardo's boost
   // and before anything is banked, so the preview and the payout stay one
-  // number (Entry XVIII.5). The scholar's arm never sees it: a share of the
-  // aimed technology's cost already grows with the tree.
+  // number (Entry XVIII.5). The two rate-quoted arms never see it: a figure read
+  // off the empire's own books already grows with the tree (see `actGainOf`).
   const aged = agedActFactor(player);
   const paid = (base: number): number => Math.floor((Math.floor(base * aged) * (100 + boost)) / 100);
+  // The rate-quoted arms' own composition: the boost and nothing else, so the
+  // scholar's beakers and the artist's culture go through the same one
+  // multiplication every other act figure does (Entry XVIII.5).
+  const gained = (base: number): number => Math.floor((base * (100 + boost)) / 100);
   const done: GreatPersonAct = {
     id,
     name: def.name,
@@ -808,10 +851,12 @@ export function greatPersonActAt(
 
   switch (def.family) {
     case 'scholar': {
-      const aim = player.researching;
-      const cost = aim === null ? 0 : techDef(aim).cost;
-      // Deliberately un-aged: see `aged`'s comment.
-      player.sciencePool += Math.floor((Math.floor(cost * PEOPLE.scholarShare) * (100 + boost)) / 100);
+      // Turns of the empire's own science, read through the one seam that
+      // answers what a turn is worth (`actGainOf`). Deliberately un-aged, and
+      // deliberately blind to *which* technology is aimed at: the gate already
+      // refuses a scholar with nothing under study, and what the beakers finish
+      // is `settleResearchWindfall`'s business exactly as it is at end of turn.
+      player.sciencePool += gained(actGainOf(state, player.id, 'science'));
       done.research = settleResearchWindfall(state, player)?.name ?? null;
       break;
     }
@@ -832,12 +877,18 @@ export function greatPersonActAt(
     case 'artist': {
       const city = actCityFor(state, unit);
       done.city = city;
+      // **Read before the cheer is hung**, which is the one place this arm
+      // departs from `performRiteAt`'s "settle under the effects you just
+      // granted": the figure is turns of this empire's *current* culture, and a
+      // town made happier by the act itself would be an act paying interest on
+      // itself (Entry XVIII.5 — a one-time grant is modifier-immune).
+      const culture = gained(actGainOf(state, player.id, 'culture'));
       if (city) {
         done.expiresTurn = stampTimed(state, city, id, PEOPLE.artistTurns, [
           { kind: 'happiness', amount: PEOPLE.artistHappiness, per: 'city' },
         ]);
       }
-      player.culturePool += paid(PEOPLE.artistCulture);
+      player.culturePool += culture;
       settleCultureWindfall(state, player);
       if (city) refreshCityDerived(state, city);
       break;

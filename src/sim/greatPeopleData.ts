@@ -138,6 +138,10 @@ export type GreatPersonTier = 'defining' | 'strong' | 'situational';
  *     capital holds. Archimedes: Syracuse fell while he was drawing circles.
  *     Hooked at the one "a piece arrived" seam (`arriveOnTile`), because it is
  *     an event and a sweep would miss a column that marched through.
+ *     **No row names it today**: the nerf pass of 2026-09-03 struck the clause
+ *     off Archimedes' cell, and the occasion is kept rather than deleted
+ *     because the mechanism is a *moment somebody can point at* and the next
+ *     defining engineer will want one. Open in `docs/great-people.md`.
  *   · `happinessNegative` — the first turn the realm's happiness goes under.
  *     Hypatia, torn apart by a mob. A **condition of a turn** rather than an
  *     event, so it is read once a turn off the meter, exactly as the standing

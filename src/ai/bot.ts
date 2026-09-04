@@ -150,6 +150,7 @@ import { disbandError } from '../sim/commands';
 import { explainEmpireGold } from '../sim/empireGold';
 import { autoExploreError, exploreTarget } from '../sim/explore';
 import {
+  actGainOf,
   agedActFactor,
   familyOf,
   greatPersonActError,
@@ -3908,9 +3909,10 @@ function explainAct(
     case 'scholar': {
       const aim = player.researching;
       if (aim === null) return null;
-      // Deliberately un-aged, exactly as the reducer's scholar arm is: a share of
-      // the aimed technology's cost already grows with the tree.
-      const beakers = Math.floor(techDef(aim).cost * people.scholarShare);
+      // Turns of the empire's own science, off the act's own seam (`actGainOf`)
+      // rather than a second reading of the books. Deliberately un-aged, exactly
+      // as the reducer's scholar arm is: a rate already grows with the tree.
+      const beakers = actGainOf(state, player.id, 'science');
       return appraise([nest(`${beakers} beakers toward ${techDef(aim).name}`, explainLump({ science: beakers }, ctx))]);
     }
     case 'engineer': {
@@ -3922,7 +3924,7 @@ function explainAct(
       return appraise([nest(`${gold} gold into the treasury`, explainLump({ gold }, ctx))]);
     }
     case 'artist': {
-      const culture = Math.floor(people.artistCulture * aged);
+      const culture = actGainOf(state, player.id, 'culture');
       const calm = (people.artistHappiness * ctx.ai.weights.happiness * people.artistTurns) / lumpTurns;
       return appraise([
         nest(`${culture} culture into the basket`, explainLump({ culture }, ctx)),

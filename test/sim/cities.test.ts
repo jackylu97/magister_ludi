@@ -64,6 +64,7 @@ import {
   saveGame,
   snapshotState,
 } from '../../src/sim/game';
+import { improvementYield } from '../../src/sim/improvementData';
 import { type GameMap, type Tile, createMap, getTileAt, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { meterEffects, yieldFactor } from '../../src/sim/meters';
 import { RULES } from '../../src/sim/rulesData';
@@ -3244,5 +3245,50 @@ describe('the trade layering', () => {
           : `${name} missing from trade.ts`,
       );
     }
+  });
+});
+
+// --- Ea-nāṣir's rule --------------------------------------------------------
+
+describe('a taking-back tile line', () => {
+  /**
+   * The user's rule of 2026-09-03 ("it should never go below zero or subtract
+   * yields from the tile"): a card line's negative voice reaches only what the
+   * hex's WORKS pay — Ea-nāṣir may take the mine's own hammer back, never the
+   * hill's, and several taking-back lines share one bag.
+   */
+  it('reaches the works and never the ground', () => {
+    const state = flatState();
+    const tile = { ...state.map.tiles[0]!, terrain: 'grassland' as const, hills: true };
+    tile.improvement = 'mine';
+    const line = (production: number, source = 'Ea-nāṣir'): never =>
+      ({
+        source,
+        on: { test: 'improvement', improvement: 'mine' },
+        food: 0, production, gold: 3, science: 0, culture: 0, faith: 0,
+      }) as never;
+
+    // The mine pays 1 hammer; a −5 line takes exactly that 1 and no more —
+    // the hill's own hammer survives untouched.
+    const bare = tileYieldOf(tile);
+    const cut = foldTileYield(explainTileYield(tile, { techs: [], lines: [line(-5)] }));
+    expect(cut.production).toBe(bare.production - improvementYield('mine').production);
+    expect(cut.gold).toBe(bare.gold + 3);
+
+    // Two taking-back lines share the one bag: the second finds it empty, so
+    // its take-back is nothing — its own coin still rides, but the hex's
+    // production drops no further.
+    const both = explainTileYield(tile, {
+      techs: [],
+      lines: [line(-5), line(-5, 'A second creditor')],
+    });
+    const second = both.find((entry) => entry.source === 'A second creditor')!;
+    expect(second.production).toBe(0);
+    expect(second.gold).toBe(3);
+    expect(foldTileYield(both).production).toBe(cut.production);
+
+    // And a positive line is untouched by the clamp.
+    const plus = foldTileYield(explainTileYield(tile, { techs: [], lines: [line(2)] }));
+    expect(plus.production).toBe(bare.production + 2);
   });
 });

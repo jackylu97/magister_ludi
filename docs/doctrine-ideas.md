@@ -178,11 +178,173 @@ Design rule carried over: a growing card is WEAK on draft day — the floor
 is low, the ceiling is the player's own play. The counter prints on the
 card ("×7") and the stamp reads the counter, so the growth is legible.
 
+### The card as the universal draw (user's pitch 2026-09-03, proposed)
+
+- **Every draw reads as cards** — discoveries, order/doctrine drafts, great
+  people — one tarot face, one deal-and-flip choreography (the mockup's).
+  Great people and statecraft already wear the tarot face; discoveries are
+  the odd one out (the "plain card" face). Ceremony scales with the
+  moment: full flip ritual for adoptions/great people/doctrines, a quick
+  fan at `--offer-scale` for a ruin's three options.
+- **The discard — a legacies gallery**: every recruited great person as a
+  tarot card in one screen, each carrying the two registers — the stamp
+  (the legacy's current per-turn ghost-diff, the orders' own evaluator)
+  and the tally (lifetime, phase 2) — with revoked legacies greyed/torn
+  (the `LegacyRecord.revoked` marking already exists). Fixes a real gap:
+  legacies are invisible today outside the folds; players forget what
+  their honored dead still pay. Naming open (the Reliquary / the Annals /
+  the user's call).
+
+### The card stamp — DESIGN OF RECORD (approved 2026-09-03: "it looks
+great -- please have this be the design moving forward")
+
+The mock at https://claude.ai/code/artifact/9f7a3d6c-8a69-43ac-80f1-274d873cb290
+is canonical. The binding points:
+
+- **Boxless.** The number is bare mono digits sitting CLOSE under the
+  clauses (tight leading — no dead band between the description and the
+  digits; the empty air lives above the flavour rule instead). Never a
+  bordered or filled box. Digits and their unit words share ONE baseline
+  (`align-items: baseline`), no wrapping; the per-occasion form keeps the
+  same digit size as the per-turn form, only the words after it are
+  small.
+- **Undrafted/benched, the number's seat is a flourish** in the card's
+  line ink (— · ✶ · —, serif, ~55% opacity, centred). Digits replace the
+  flourish on reveal.
+- **The landing flash is a soft radial glow** behind the digits in
+  currentColor, never a ring or border flash. Land pop ~1.2 scale with a
+  degree of rotation.
+- **NO popup, ever** (final ruling 2026-09-03 — it reserved space it
+  rarely used and made the hand ragged): the number stands alone;
+  everything about where a number came from, cascades and tier flips
+  included, lives in the hover breakdown's rule-5 lines. The evaluator
+  still labels cascade entries distinctly so the hover can show them
+  with emphasis — the emphasis just never leaves the hover.
+- **A hand sits level**: card texts are budgeted so no card outgrows its
+  siblings (the prose-budget discipline the pamphlet pinned; card clauses
+  get the same treatment).
+- **Two card sizes, two jobs** (ruled direction, 2026-09-03): the full
+  tarot face appears only at MOMENTS — the draft ceremony and the slot
+  ceremony (the card zooms to centre, plays its reveal, shrinks into its
+  slot). The STANDING statecraft screen uses compact cards — the existing
+  `.sc-card` thumbnail scale: emblem, name, rarity mark, and the bare
+  stamp number (or the flourish when benched); hovering a compact card
+  raises the full tarot face as the hover card. Slots are a row of
+  compacts; the collection is a grid of them.
+- **The reveal choreography**: numbers never show during selection; the
+  pick reveals (count-up or thunk), the card flips out; bench = flourish;
+  slotting replays the count with the true number.
+- **The quiet register reads "has produced"** — never "banked".
+
+#### As built (phase 1, derived only — no schema)
+
+- **The evaluator is `explainCardImpact`** (`src/sim/cardImpact.ts`): a
+  **ghost-diff**, `explainBuildingPreview`'s discipline one scale out. Two
+  shallow copies of the seat — the realm without the card and the realm with
+  it — dropped into shallow copies of the state, and the difference between
+  the evaluators the turn resolution banks from (`cityYields` per town,
+  `explainEmpireCardYields`, `empireResourceYields`, `explainEmpireGold`).
+  Nothing in state is touched; no rule is reimplemented.
+- **It reads both ways round.** A card not held is priced forward (what
+  slotting it is worth); a card already in force is priced backward (what
+  taking it out would cost). Same figure, same sign — which is why the draft's
+  face and the office's line print one number. Subjects: order (with `level`,
+  so a deepening prices the *step*), doctrine, government (the amnesty
+  included), belief, great-person legacy.
+- **Rule 5**: the impact is an ordered labelled list — the towns' named lines,
+  the ground's, one reconciliation line named for the card (Entry XVII's two
+  multiplications, a `yieldConversion`'s share, every floor), the realm's
+  lines, then the **cascade** lines. `foldCardImpact` is the stamp's figure.
+- **Cascades are labelled apart** (`kind: 'knockOn'`, carrying the meter) by a
+  cumulative ladder — happiness, then authority, then arrears — so a tier the
+  card flipped is its own entry. Per the no-popup ruling nothing draws it on
+  the card; `stampCascadeText` carries it for the hover breakdown.
+- **Occasion form**: a `windfallRider` is reported as its grant plus the
+  occasion's own words (`occasionWords`, the same table the clause uses), never
+  as a per-turn zero. A card that is both gets both; a card that is neither
+  (a combat line, a movement clause) reports **nothing**, and the flourish
+  stands.
+- **The component is `src/ui/cardStamp.ts`** — flourish / count-up / thunk,
+  `prefers-reduced-motion` arriving already landed. `stampReading` is the one
+  adapter; `offerCard.ts` still crosses its boundary with numbers and strings.
+- **Surfaces**: every tarot-face offer (`main.ts` — order, deepen, charter,
+  doctrine, belief, great-person legacy), and the Statecraft screen's hand
+  (flourish on the bench, the figure at rest in an office, the count replayed
+  on the slot). The pick's **dispatch is not delayed** — only the sheet's exit.
+- **Not built here**: the two-card-sizes ruling's ceremony half (the tarot face
+  zooming to centre for a slot, and a compact card raising the full face on
+  hover); the lifetime tally, which is phase 2 and needs schema.
+
 ### The skip-for-rarity fork (user's pitch, under discussion)
 
 "Instead of deepening: a skip, and consecutive skips raise rare odds next
 draft." Recorded; see the session discussion — the open question is
 whether growing cards replace deepening's role before deepening retires.
+
+## Part V — Combo grammar, curses, and the balance turn (2026-09-03)
+
+### `slottedCondition` cards — the combo grammar (shape NEW, one shape)
+
+Cards that read the slot row. The shape: `{when: {slotted: <selector>}}`
+where the selector names a slot type, a line, or a specific card. Examples:
+
+| Order | Slot | Pitch |
+|---|---|---|
+| The War Chest | E | +2💰 per military order slotted |
+| The Quiet Court | W | while NO military order is slotted: +2😊 in every city |
+| The Twin Pillars | W | while a 🕯 order and an economic order are both slotted: +2🔬 +2🎵 |
+| The Standard-Bearers | M | your military orders' printed numbers each count +1 (a deepen-echo — maybe too wild) |
+| The Echo Chamber | W | the order slotted beside this one (same row, next slot) pays its yields +25% (position matters — very Balatro, needs slot ORDER to be real) |
+
+### Curse cards — war leaves marks in the deck (all NEW, playtest-later)
+
+- **Grief** — injected into a free slot when you lose a city; −1🎵 per city
+  while slotted; spend a draft's pick to discard it. (The draft-pick cost
+  is the StS remove-at-shop, without a shop.)
+- **War Weariness** — injected at year N of any war; −1😊 per city; leaves
+  by itself at peace + 10 (a timed curse, absolute turn).
+- **The Pretender** — injected when your capital is besieged; occupies a
+  slot doing nothing; discarding it costs a draft pick. Pure slot tax.
+
+### More charters / growing cards (round two)
+
+- **The Mint Charter** (E) — unlocks the Mint: a market variant; the town's
+  gold yield also pays 10% as culture (a conversion building — the
+  Thalassocracy shape on a row).
+- **The Gatehouse Charter** (M) — unlocks the Gatehouse: walls variant;
+  enemy units adjacent to the city lose 1 movement (a zoc-adjacent NEW).
+- **The Almshouse Charter** (W) — unlocks the Almshouse: happiness building
+  that grows +1😊 per 5 turns of the city being content (growing building).
+- **The Cartographers' Rolls** (growing, W) — +1🔬 per 40 hexes revealed
+  (reads the existing revealed count — Cartographers' cousin that grows).
+
+### The balance turn (thinking, 2026-09-03 — the user: "nerf other areas
+and lean harder on the orders")
+
+The target state: base play makes chips, statecraft multiplies them, and
+statecraft's SHARE of an empire's power rises while its absolute numbers
+stay roughly where the nerf pass put them. The cut list, in order of how
+much power-share each currently holds outside the card system:
+
+1. **Buildings** — the biggest non-card power block. Direction: flat
+   yields down ~25% across the ordinary rows (a granary feeds less), while
+   UNLOCK/utility buildings (walls, harbours, the charters when they land)
+   keep their roles. Buildings become the things cards point at, not
+   rivals to cards.
+2. **Great people** — the user's 8×-rate act pass (in flight) already cuts
+   the biggest spikes. Legacies should stay modest (they're free jokers).
+3. **Luxuries** — already flattened twice; leave until the next playtest.
+4. **Tech** — the tree's power is mostly unlocks already (good); the few
+   flat-pay techs (paysBead, card-effect techs) are fine as rare spice.
+5. **Do NOT cut**: tiles/terrain (the chips must stay worth multiplying),
+   and the early game before the first draft — the floor of the game is
+   base play and it has to carry the first ~15 turns alone.
+
+Guardrails: the no-draft-bot test (a bot that never drafts should be
+irrelevant by mid-Æra III, NOT by turn 30); and every cut is a data pass,
+measured by the pacing harnesses before/after. Sequencing: land the
+stamps (visibility first — see what cards actually pay), then the
+buildings pass, then re-measure the ages.
 
 ## Part III — Great-people ideas (interesting, deliberately modest)
 

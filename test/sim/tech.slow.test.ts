@@ -187,7 +187,7 @@ describe('pacing', () => {
   }
 
   it('closes its four ages on the Quick-speed schedule (Entry V)', () => {
-    const { game, ageDone } = playEmpire(520);
+    const { game, ageDone } = playEmpire(700);
     // Measured on this seed after the city-centre re-base: **41 / 80 / 120**,
     // against 40 / 78 / 118 immediately before it, 37 / 74 / 111 when the Civ
     // 6-style Age I ramp landed, 40 / 68 / 107 with the flat 16–29 Age I costs,
@@ -404,6 +404,40 @@ describe('pacing', () => {
     // turns this empire holds all fifty nodes and banks beakers it has nothing
     // left to buy, so 520 is a horizon with room in it rather than a new wall.
     // Bands keep the widths above (±10 / ±15 / ±25 / ±30), re-centred.
+    //
+    // **Re-pinned 2026-09-03, the 9/3 wave (schema 60).** The pin above was
+    // written by the tree agent against an intermediate tree; the wave landed
+    // the late columns *and* seven other rulings on top of it, and this is the
+    // first measurement of the four ages as they actually ship. This seed now
+    // closes at **66 / 107 / 249 / 586** against 58 / 91 / 207 / 443, and the
+    // four numbers split cleanly into two causes:
+    //
+    //   · **Æra I and Æra II moved with their prices untouched** (58 → 66,
+    //     91 → 107). Columns 0–5 are byte-identical, so what moved under them is
+    //     the ground and the purse: the map generator draws a pangaea with an
+    //     island belt and broken ridges (`mountainShare` 0.08), a dry settle
+    //     grows 30% slower until it is watered (`cities.drySettlePercent`), the
+    //     palace pays 6 happiness rather than 9 and crowding is switched on.
+    //     This empire's science is pop-based, so a slower, unhappier basket is a
+    //     slower tree — eight turns of Æra I and eight more of Æra II.
+    //   · **Æra III and Æra IV are the late-cost ruling** (207 → 249,
+    //     443 → 586). Columns 6–8 lift about a fifth (335/450/565 →
+    //     400/540/680) and columns 9–12 lift hard (665/750/820/875 →
+    //     1450/1700/1950/2200), which is "extremely expensive in age 4-5" read
+    //     literally: Æra IV alone is three hundred and thirty-seven turns, more
+    //     than half the game.
+    //
+    // The curtain lands around **t586**. Whether that is the game's length is
+    // Part 5 of `docs/tech-tree.md` and the user's to rule — this test measures
+    // it and does not have an opinion — but it is far enough past the ~t265 the
+    // hand-tuning settled on that it is written into `docs/flags.md` under the
+    // post-wave pacing bullet rather than left in a comment nobody reads.
+    //
+    // The horizon grows with it: `playEmpire` plays 700 turns rather than 520,
+    // for the reason the last pin gives — a harness that stops before the tree
+    // closes measures nothing. All fifty nodes are held by t586 and the empire
+    // banks beakers it cannot spend after that. Bands keep the widths above
+    // (±10 / ±15 / ±25 / ±30), re-centred.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -413,14 +447,14 @@ describe('pacing', () => {
     expect(third, `age III: ${String(third)}`).toBeDefined();
     expect(fourth, `age IV: ${String(fourth)}`).toBeDefined();
 
-    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(48);
-    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(68);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(76);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(106);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(182);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(232);
-    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(413);
-    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(473);
+    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(56);
+    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(76);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(92);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(122);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(224);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(274);
+    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(556);
+    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(616);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 120_000);
 
@@ -505,7 +539,16 @@ describe('pacing', () => {
     // resource placement; the capital sites are unchanged, the bonus tiles
     // beside them are not. The median across this seed set is now **2⚙**
     // (previously 3), with the same 2..6 band above.
-    expect(median).toBe(2);
+    //
+    // **Re-measured 2026-09-03, the 9/3 wave (schema 60): back to 3⚙.** No
+    // price moved; the ground did. The generator draws a pangaea with an island
+    // belt, its ridges are broken rather than solid (`mountainShare` 0.08), and
+    // a start must sit on a hundred land tiles — a capital picked out of that
+    // is a hillier capital, and the whole distribution over these twenty-one
+    // seeds shifts up by one to **2..4**, inside the 2..6 the band above
+    // allows. `buildSinks.slow.test.ts` reads the same sweep from the roster's
+    // side and carries the turn counts.
+    expect(median).toBe(3);
     // **Re-pinned 2026-08-28** (user ruling: units and buildings ×1.4, wonders
     // ×0.8). The scout's old anchor — nine hammers set exactly against three
     // turns at the median rate — does not survive a flat multiplier on every
@@ -514,7 +557,8 @@ describe('pacing', () => {
     // ×1.4 and, at the re-pinned median of 2, now costs five turns.
     expect(unitDef('scout').cost).toBe(13);
     expect(unitDef('warrior').cost).toBe(10);
-    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(5);
+    // Four turns at the re-measured median of 3, five at the old median of 2.
+    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(4);
   }, 30_000);
 
   it('turns a fresh capital into a scout at exactly its own rate', () => {

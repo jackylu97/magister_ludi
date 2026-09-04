@@ -183,10 +183,39 @@ describe('what maintenance did to the warband', () => {
      * ground *this* much richer stop turning maintenance into a real cost at
      * all.
      */
-    expect(gold.get(20)!).toBeGreaterThan(60);
-    expect(gold.get(20)!).toBeLessThan(130);
-    expect(gold.get(40)!).toBeGreaterThan(80);
-    expect(gold.get(40)!).toBeLessThan(160);
+    /**
+     * **Re-measured 2026-09-03, the 9/3 wave (schema 60): 10 / −22 / −153**,
+     * against 102 / 130 / −56. Every mark is down and the crossing has walked
+     * back nearly twenty turns — the treasury is already flat at turn 20 and
+     * already under water at turn 40 — and the wave explains all of it without
+     * a single maintenance rate moving:
+     *
+     *   · **the palace pays 6 happiness rather than 9, and crowding is on**
+     *     (`crowdingWeight` 0.3). This script's five towns are unhappy where
+     *     they used to be content, and an unhappy town's yields are docked, gold
+     *     among them. The income side of the ledger simply shrank;
+     *   · **the pangaea hands it its fifth town inside the horizon.** It reaches
+     *     `CITY_TARGET` by turn 40 now (`buildSinks.slow.test.ts` measures the
+     *     same script from the roster side), and a fifth town is a fifth city
+     *     connection to pay for and a fifth writ's worth of overstretch before
+     *     it is a fifth source of income;
+     *   · **and the army is smaller for it** — fourteen pieces at turn 60 where
+     *     it fielded twenty-six — which is the only reason the fall is not
+     *     steeper still.
+     *
+     * The spiral this test is named for is therefore **restored and earlier**:
+     * turn 20 is the peak rather than a way-mark on the way up, turn 40 has
+     * already crossed, and turn 60 is a hundred and fifty gold under. That is
+     * the shape the docblock above argues for, drawn harder. All three bands are
+     * re-centred on the new figures at comparable widths; the turn-20 and
+     * turn-40 lower bounds are what would catch a retune turning the tax into an
+     * execution, and the upper bounds are what a retune making maintenance free
+     * again would break.
+     */
+    expect(gold.get(20)!).toBeGreaterThan(-40);
+    expect(gold.get(20)!).toBeLessThan(70);
+    expect(gold.get(40)!).toBeGreaterThan(-90);
+    expect(gold.get(40)!).toBeLessThan(50);
     // The load-bearing one: unit spam still costs real money by turn 60 — the
     // treasury falls sharply off its turn-40 peak — even though it no longer
     // crosses into the red on this richer map. The lower bound is what would
@@ -214,8 +243,9 @@ describe('what maintenance did to the warband', () => {
     // scale. The band re-centres on the new figure: the upper bound catches a
     // retune making maintenance free again, the lower one catches a retune
     // turning the tax into an execution.
-    expect(gold.get(60)!).toBeLessThan(30);
-    expect(gold.get(60)!).toBeGreaterThan(-160);
+    // Re-centred 2026-09-03 with the two above (measured −153, previously −56).
+    expect(gold.get(60)!).toBeLessThan(-50);
+    expect(gold.get(60)!).toBeGreaterThan(-260);
 
     // And the army is still an army — the creditors thin it, they do not erase
     // it, because they take one piece a turn and the towns keep building.

@@ -1262,7 +1262,7 @@ function riteEntry(id: RiteId): CompendiumEntry {
 function familyAct(family: Family): string {
   const great = RULES.greatPeople;
   if (family === 'scholar') {
-    return `Use it once: it finishes ${figure(great.scholarShare * 100)}% of the technology you are researching.`;
+    return `Use it once: it adds ${figure(great.actGainTurns)} turns of your empire’s science to the technology you are researching.`;
   }
   if (family === 'engineer') {
     return `Use it once: it adds ${figure(great.engineerHammers)}${YIELD_GLYPH.production} to a city’s production, multiplied by the age your empire has reached — and it grows with every technology you research.`;
@@ -1271,7 +1271,7 @@ function familyAct(family: Family): string {
     return `Use it once: it adds ${figure(great.merchantGold)}${YIELD_GLYPH.gold} to your treasury, multiplied by the age your empire has reached — and it grows with every technology you research.`;
   }
   if (family === 'artist') {
-    return `Use it once: it adds ${figure(great.artistCulture)}${YIELD_GLYPH.culture} toward your next draft — growing with every technology you research — and gives the city ${signedFigure(great.artistHappiness)} happiness for ${figure(great.artistTurns)} turns.`;
+    return `Use it once: it adds ${figure(great.actGainTurns)} turns of your empire’s culture toward your next draft, and gives the city ${signedFigure(great.artistHappiness)} happiness for ${figure(great.artistTurns)} turns.`;
   }
   return `Use it once: every unit within ${figure(great.generalRadius)} hexes gains ${signedFigure(great.generalCombat)} combat strength for ${figure(great.generalTurns)} turns.`;
 }

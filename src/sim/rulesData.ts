@@ -1285,22 +1285,31 @@ export interface RenownRules {
  */
 export interface GreatPeopleRules {
   /**
-   * The act's age, per technology (user, 2026-08-30): every flat act figure —
-   * the engineer's hammers, the merchant's gold, the artist's culture — pays
-   * ×(1 + actPerTech × technologies researched), the chop's shape one system
-   * over. The scholar's act is deliberately outside it: its figure is a share
-   * of the aimed technology's own cost, which already grows with the tree,
-   * and scaling it twice would compound.
+   * The act's age, per technology (user, 2026-08-30): every **flat** act figure
+   * — the engineer's hammers, the merchant's gold — pays ×(1 + actPerTech ×
+   * technologies researched), the chop's shape one system over. The two arms
+   * quoted in *turns of a rate* (`actGainTurns`) are deliberately outside it:
+   * a figure read off what the empire is already banking grows with the tree by
+   * construction, and scaling it twice would compound.
    */
   actPerTech: number;
-  /** Share of the *current technology's* cost a scholar's act pays, 0–1. */
-  scholarShare: number;
+  /**
+   * How many turns of the empire's **own rate** a rate-quoted act pays (user,
+   * 2026-09-03, the great-people nerf pass): the scholar's beakers and the
+   * artist's culture are both "this many turns of what you are already making",
+   * read through the one seam that answers that question
+   * (`empireRateReading`, `cities.ts`).
+   *
+   * One knob for the two families rather than one each, because it is one
+   * sentence: *an act is worth a few turns of your empire*. A designer who wants
+   * the scholar and the artist to diverge splits it then, which is a design
+   * decision rather than a tuning pass.
+   */
+  actGainTurns: number;
   /** Hammers an engineer's act pays, **multiplied by the empire's era**. */
   engineerHammers: number;
   /** Gold a merchant's act pays, **multiplied by the empire's era**. */
   merchantGold: number;
-  /** Culture an artist's act pays into the draft basket. */
-  artistCulture: number;
   /** Happiness an artist's act hangs on the town. */
   artistHappiness: number;
   /** How many turns that happiness lasts. */

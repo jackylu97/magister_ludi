@@ -8,7 +8,7 @@ theme vocabulary (Entry LII) is the reorganisation. † marks a deferred row._
 |---|---|---|
 | The Orders’ lines (`line`) | 11 | 125 |
 | Religion’s axes (`axis`) | 9 | 40 |
-| Great-person families (`family`) | 5 | 81 |
+| Great-person families (`family`) | 5 | 80 |
 | Bead families (`family` + `system`) | 4 | 52 |
 | Unclaimed by any taxonomy | — | 99 |
 
@@ -113,22 +113,22 @@ theme vocabulary (Entry LII) is the reorganisation. † marks a deferred row._
 - **renown · person (Æra 5)** (4): Copernicus · John Dee · Paracelsus · Tycho Brahe
 
 ### artist — 16 cards
-- **renown · person (Æra 2)** (4): Enheduanna · Homer · Ilimilku · Sin-lēqi-unninni †
+- **renown · person (Æra 2)** (4): Enheduanna · Homer · Ilimilku · Sin-lēqi-unninni
 - **renown · person (Æra 3)** (4): Phidias · Qu Yuan · Sappho · Sima Qian
 - **renown · person (Æra 4)** (4): Murasaki Shikibu · Rūmī · Sei Shōnagon · Snorri Sturluson
 - **renown · person (Æra 5)** (4): Bashō · Christine de Pizan · Dürer · Sor Juana
-
-### engineer — 16 cards
-- **renown · person (Æra 2)** (4): Amenhotep son of Hapu · Bezalel · Hemiunu · Senenmut
-- **renown · person (Æra 3)** (4): Eupalinos · Hero of Alexandria · Li Bing · Vitruvius
-- **renown · person (Æra 4)** (4): Li Jie · Su Song · Villard de Honnecourt · al-Jazarī
-- **renown · person (Æra 5)** (4): Leonardo † · Mimar Sinan † · Taqī al-Dīn · Vaucanson
 
 ### general — 16 cards
 - **renown · person (Æra 2)** (4): Ahmose son of Ebana · Deborah · Piyamaradu · Sinuhe
 - **renown · person (Æra 3)** (4): Boudica · Han Xin · Hannibal · Spartacus
 - **renown · person (Æra 4)** (4): El Cid · Jan Žižka · Subutai · Tomoe Gozen
 - **renown · person (Æra 5)** (4): Gustavus Adolphus · Lautaro · Nzinga of Ndongo · Yi Sun-sin †
+
+### engineer — 15 cards
+- **renown · person (Æra 2)** (4): Amenhotep son of Hapu · Bezalel · Hemiunu · Senenmut
+- **renown · person (Æra 3)** (4): Eupalinos · Hero of Alexandria † · Li Bing · Vitruvius
+- **renown · person (Æra 4)** (3): Su Song · Villard de Honnecourt · al-Jazarī
+- **renown · person (Æra 5)** (4): Leonardo · Mimar Sinan † · Taqī al-Dīn · Vaucanson
 
 ## Bead families (`family` + `system`)
 

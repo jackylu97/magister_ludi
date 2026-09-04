@@ -50,16 +50,23 @@ legacy.
 
 | Family | Act (spend now) | Work (plant forever) |
 |---|---|---|
-| Scholar | `scholarShare` **0.5** × the aimed technology's full cost, as science | **Academy** — +3🔬 |
-| Artist | `artistCulture` **40** culture · `artistHappiness` **+2** happiness in that city for `artistTurns` **10** turns | **Landmark** — +3🎵 |
+| Scholar | `actGainTurns` **8** turns of the empire's own science, into the study | **Academy** — +3🔬 |
+| Artist | `actGainTurns` **8** turns of the empire's own culture, into the draft basket · `artistHappiness` **+2** happiness in that city for `artistTurns` **10** turns | **Landmark** — +3🎵 |
 | Engineer | `engineerHammers` **40** × the empire's age number, as hammers in that city (a wonder wants two) | **Manufactory** — +3⚙ |
 | Merchant | `merchantGold` **60** × the empire's age number, as gold | **Customs House** — +3💰 |
 | General | heals every unit within `generalRadius` **2** and grants them `generalCombat` **+3** combat for `generalTurns` **5** turns | **Citadel** — +2⚙, **+8** defence, claims its ring (`citadelClaimRadius` **1**) |
 
+- **Two acts are quoted in turns of your own empire** (nerf pass, 2026-09-03):
+  the scholar's beakers and the artist's culture are `actGainTurns` × what the
+  empire is banking in that voice **right now**, read through `actGainOf`
+  (`greatPeople.ts`) off the one seam that answers it — `empireRateReading`
+  (`cities.ts`), the same fold `collectYields` banks and the top bar prints. It
+  is the *base* rate, before any `rateConversion` pays anything.
 - **Every flat act figure ages with the tree**: ×(1 + `actPerTech` **0.05** ×
   technologies researched), composed once before anything banks
-  (`agedActFactor`). The scholar's arm is deliberately un-aged — a share of the
-  aimed technology's cost already grows with the tree.
+  (`agedActFactor`). The two rate-quoted arms are deliberately un-aged — a
+  figure read off the empire's own books already grows with everything it
+  builds, and ageing it twice would compound.
 - `AmplifierTarget greatPersonAct` (Leonardo, **+100%**) folds into the same
   figure before banking. It reaches what an act *pays*, never a duration or a
   radius.
@@ -77,12 +84,13 @@ legacy.
   malice · ◆ generic strong · ○ situational, no malice.
 - **Revocation is marking, never deleting**: `LegacyRecord.revoked`,
   `revokeLegacies` the only writer; `GreatPersonDef.revokedWhen` names the
-  occasion — `enemyEntersCapital` (Archimedes, hooked at `arriveOnTile`),
-  `happinessNegative` (Hypatia), `ageAdvanced` (Boudica), the last two swept in
-  `reviewLegacies`. History (`greatPeopleEarned`, the roll) never shrinks.
-- Deferred rows (Sin-lēqi-unninni, Yi Sun-sin, Mimar Sinan's cathedral half,
-  Leonardo's project half) carry player-plain `deferred:` prose — see
-  `docs/flags.md`.
+  occasion — `happinessNegative` (Hypatia), `ageAdvanced` (Boudica), both swept
+  in `reviewLegacies`. History (`greatPeopleEarned`, the roll) never shrinks.
+  `enemyEntersCapital` is still hooked at `arriveOnTile` and **no row names it**
+  since the nerf pass struck Archimedes' clause — open for a ruling: give it
+  back to a row, or take the occasion and its hook out together.
+- Deferred rows (Dinocrates, Yi Sun-sin, Mimar Sinan's cathedral half)
+  carry player-plain `deferred:` prose — see `docs/flags.md`.
 
 ## Triumphs
 
@@ -108,7 +116,7 @@ legacy.
 
 ## The roster
 
-81 names, four ages, five families. Tier is the row's own `tier` and is
+80 names, four ages, five families. Tier is the row's own `tier` and is
 bookkeeping only — nothing in the simulation switches on it.
 
 ### Æra II — The Age of Heroes
@@ -117,22 +125,22 @@ bookkeeping only — nothing in the simulation switches on it.
 
 | Person | Family | Tier | Legacy, as built | Nerf notes |
 |---|---|---|---|---|
-| Imhotep | Scholar | ◆ strong | +1 production in every city with a Monument · +5% production toward wonders |  |
+| Imhotep | Scholar | ◆ strong | +5% production toward wonders |  |
 | Ahmes | Scholar | ○ situational | +2 science in every city on fresh water |  |
-| Kidinnu | Scholar | ● defining | +30% science in your capital · -25% border expansion |  |
-| Ptahhotep | Scholar | ○ situational | +1 authority capacity per Library |  |
-| Enheduanna | Artist | ◆ strong | +3 culture in your capital · +1 culture in every city with a Shrine |  |
-| Homer | Artist | ● defining | losing a unit grants +9 culture · your units do not heal outside your own borders |  |
-| Sin-lēqi-unninni | Artist | ◆ strong | +2 culture in every city with an Amphitheater · +2 culture in every city with a Hall of Deeds — not built yet |  |
-| Ilimilku | Artist | ○ situational | +2 culture in every coastal city |  |
+| Kidinnu | Scholar | ● defining | +15% science in your capital |  |
+| Ptahhotep | Scholar | ○ situational | +1 authority capacity per 2 Libraries |  |
+| Enheduanna | Artist | ◆ strong | +1 culture in every city with a Shrine |  |
+| Homer | Artist | ● defining | losing a unit grants +20 culture |  |
+| Sin-lēqi-unninni | Artist | ◆ strong | +30% production toward Amphitheaters |  |
+| Ilimilku | Artist | ○ situational | +1 culture in every coastal city |  |
 | Senenmut | Engineer | ◆ strong | +10% production toward buildings |  |
-| Hemiunu | Engineer | ● defining | +30% production toward wonders · while any city is building a wonder: -2 happiness |  |
-| Amenhotep son of Hapu | Engineer | ○ situational | +20% production toward wonders, in your capital |  |
-| Bezalel | Engineer | ○ situational | +1 production, +1 faith in every city with a Shrine · +1 production, +1 faith in every city with a Temple |  |
-| Ea-nāṣir | Merchant | ● defining | +3 gold on every hex with a Mine carrying a bonus resource · every luxury you hold counts 1 fewer toward happiness |  |
+| Hemiunu | Engineer | ● defining | +10% production toward wonders · -2 happiness in every city while it is building a wonder |  |
+| Amenhotep son of Hapu | Engineer | ○ situational | +15% production toward wonders, in your capital |  |
+| Bezalel | Engineer | ○ situational | +1 production in every city with a Temple |  |
+| Ea-nāṣir | Merchant | ● defining | -1 production, +3 gold on every hex with a Mine |  |
 | Kushim | Merchant | ◆ strong | +1 gold in every city with a Granary |  |
-| Aššur-idī | Merchant | ○ situational | +2 gold in every city but your capital |  |
-| Lamassī | Merchant | ○ situational | +1 gold on every hex with a Plantation · +1 gold on every hex with a Pasture |  |
+| Aššur-idī | Merchant | ○ situational | +1 gold in every city but your capital |  |
+| Lamassī | Merchant | ○ situational | +1 gold on every hex with a Pasture |  |
 | Ahmose son of Ebana | General | ◆ strong | +10% combat strength for melee units |  |
 | Piyamaradu | General | ● defining | +3 combat strength outside your territory · -2 authority capacity |  |
 | Sinuhe | General | ○ situational | all units: +5 healing per turn |  |
@@ -144,22 +152,22 @@ bookkeeping only — nothing in the simulation switches on it.
 
 | Person | Family | Tier | Legacy, as built | Nerf notes |
 |---|---|---|---|---|
-| Archimedes | Scholar | ● defining | +6 combat strength for siege units against cities · lost the turn an enemy soldier enters your capital’s territory |  |
+| Archimedes | Scholar | ● defining | +10% production toward siege units · +2 combat strength for siege units against cities |  |
 | Hypatia | Scholar | ● defining | +10% science in every city · lost the first turn your happiness goes negative |  |
-| Zhang Heng | Scholar | ◆ strong | +2 science in every city with a Library |  |
-| Eratosthenes | Scholar | ○ situational | +1 science per 50 hexes you have revealed |  |
-| Sappho | Artist | ◆ strong | +2 culture in your capital · +1 happiness |  |
-| Qu Yuan | Artist | ● defining | +30% culture in every city · -5 happiness in your capital |  |
+| Zhang Heng | Scholar | ◆ strong | +1 science in every city with a Library |  |
+| Eratosthenes | Scholar | ○ situational | +1 science per 60 hexes you have revealed |  |
+| Sappho | Artist | ◆ strong | +3 culture in your capital · +1 happiness |  |
+| Qu Yuan | Artist | ● defining | +10% culture in every city · -5 happiness in your capital |  |
 | Sima Qian | Artist | ○ situational | +1 culture per age that has closed |  |
 | Phidias | Artist | ○ situational | +3 culture per wonder you hold |  |
-| Li Bing | Engineer | ○ situational | +1 food, +1 production on every hex with a Farm beside fresh water |  |
-| Hero of Alexandria | Engineer | ◆ strong | +5 production in every city holding a wonder that supplies science |  |
-| Vitruvius | Engineer | ◆ strong | +2 production in every city with an Aqueduct · +1 happiness in every city with an Aqueduct |  |
-| Eupalinos | Engineer | ○ situational | +3 food, +2 production in every city beside a mountain |  |
-| Zhang Qian | Merchant | ◆ strong | +2 gold per 50 hexes you have revealed |  |
-| Nanaivandak | Merchant | ◆ strong | each connected city pays +2 gold · city connections pay +10% more |  |
-| Hippalus | Merchant | ○ situational | +1 gold on every hex with a Fishing Boat · all units: +1 movement while embarked |  |
-| Crassus | Merchant | ● defining | all units and buildings cost −30% to buy · buying anything costs your empire -1 happiness for 10 turns |  |
+| Li Bing | Engineer | ○ situational | +1 production on every hex with a Farm beside fresh water, in every city with an Aqueduct |  |
+| Dinocrates | Engineer | ◆ strong | finishing or taking a wonder grants +3 production in every city for 10 turns — not built yet |  |
+| Vitruvius | Engineer | ◆ strong | +1 production in every city with an Aqueduct |  |
+| Eupalinos | Engineer | ○ situational | +1 food on every improved hex beside a mountain |  |
+| Zhang Qian | Merchant | ◆ strong | +2 gold per 60 hexes you have revealed |  |
+| Nanaivandak | Merchant | ◆ strong | each connected city pays +2 gold |  |
+| Hippalus | Merchant | ○ situational | +1 gold on every hex with a Fishing Boat |  |
+| Crassus | Merchant | ● defining | all units and buildings cost −20% to buy · buying anything costs your empire -1 happiness for 10 turns |  |
 | Pytheas | Merchant | ○ situational | every coastal city: +1 city sight · scout units: +1 sight |  |
 | Hannibal | General | ● defining | +5 combat strength outside your territory · -4 combat strength inside your territory |  |
 | Han Xin | General | ◆ strong | +2 combat strength beside fresh water · +2 combat strength on the coast |  |
@@ -168,27 +176,26 @@ bookkeeping only — nothing in the simulation switches on it.
 
 ### Æra IV — The Age of Cathedrals
 
-20 names — one row per name in the data's own order.
+19 names — one row per name in the data's own order.
 
 | Person | Family | Tier | Legacy, as built | Nerf notes |
 |---|---|---|---|---|
-| al-Khwārizmī | Scholar | ◆ strong | +3 science in every city with an University |  |
-| Shen Kuo | Scholar | ○ situational | +1 science per improved strategic resource |  |
+| al-Khwārizmī | Scholar | ◆ strong | +2 science in every city with an University |  |
+| Shen Kuo | Scholar | ○ situational | +2 science per improved strategic resource |  |
 | Ibn Sīnā | Scholar | ◆ strong | +1 happiness in every city |  |
-| Āryabhaṭa | Scholar | ○ situational | +2 science in every city with a Shrine |  |
+| Āryabhaṭa | Scholar | ○ situational | +1 faith per building here that supplies science |  |
 | Murasaki Shikibu | Artist | ◆ strong | +2 culture per melee unit in the field |  |
-| Snorri Sturluson | Artist | ● defining | losing a unit grants +3 culture · losing a unit grants +3 faith · -2 authority capacity |  |
-| Rūmī | Artist | ○ situational | +2 culture in every city with a Temple · +1 happiness in every city with a Temple |  |
+| Snorri Sturluson | Artist | ● defining | losing a unit grants +15 culture · losing a unit grants +15 faith · -2 authority capacity |  |
+| Rūmī | Artist | ○ situational | +2 culture in every city with a Temple |  |
 | Sei Shōnagon | Artist | ○ situational | +1 culture per unique luxury |  |
-| al-Jazarī | Engineer | ◆ strong | +3 production in every city with a Workshop |  |
-| Su Song | Engineer | ○ situational | +2 production, +2 science in your capital |  |
-| Villard de Honnecourt | Engineer | ◆ strong | +15% production toward buildings · +15% production toward wonders |  |
-| Li Jie | Engineer | ● defining | +20% production toward buildings · -25% border expansion |  |
+| al-Jazarī | Engineer | ◆ strong | +2 production in every city with a Workshop |  |
+| Su Song | Engineer | ○ situational | +1 science in every city with a Workshop |  |
+| Villard de Honnecourt | Engineer | ◆ strong | +15% production toward wonders |  |
 | Benjamin of Tudela | Merchant | ◆ strong | +1 gold per city you hold |  |
 | Ibn Baṭṭūṭa | Merchant | ○ situational | +1 gold per foreign city you have sighted |  |
 | Marco Polo | Merchant | ○ situational | +3 gold per trade route to another empire |  |
-| Francesco Datini | Merchant | ◆ strong | +2 gold in every city with a Market |  |
-| Subutai | General | ● defining | mounted units: +1 movement · +25% combat strength for mounted units · every city: -5 city defence |  |
+| Francesco Datini | Merchant | ◆ strong | +2 gold in every city with a Bank |  |
+| Subutai | General | ● defining | mounted units: +1 movement · +25% combat strength for mounted units |  |
 | Tomoe Gozen | General | ◆ strong | +15% combat strength for mounted units · +15% combat strength for ranged units |  |
 | Jan Žižka | General | ○ situational | +5 combat strength while fortified |  |
 | El Cid | General | ○ situational | +3 combat strength in a city you captured |  |
@@ -200,14 +207,14 @@ bookkeeping only — nothing in the simulation switches on it.
 | Person | Family | Tier | Legacy, as built | Nerf notes |
 |---|---|---|---|---|
 | Paracelsus | Scholar | ● defining | +25% science in every city · -1 happiness in every city |  |
-| Tycho Brahe | Scholar | ○ situational | +3 science in every city beside a mountain · +3 science in every city on hills |  |
+| Tycho Brahe | Scholar | ○ situational | +1 science on every hill hex beside a mountain |  |
 | John Dee | Scholar | ◆ strong | +1 card in every offer of every kind |  |
 | Copernicus | Scholar | ◆ strong | +2 science in every city |  |
 | Christine de Pizan | Artist | ◆ strong | +3 culture in your capital · +1 authority capacity |  |
 | Dürer | Artist | ○ situational | +2 culture per wonder you hold |  |
 | Bashō | Artist | ○ situational | +1 culture on every forest hex |  |
 | Sor Juana | Artist | ○ situational | +2 culture in every city with an University |  |
-| Leonardo | Engineer | ● defining | +30% production toward wonders · a great person's act pays +100% more · projects pay half as much — not built yet |  |
+| Leonardo | Engineer | ● defining | +30% production toward wonders · a great person's act pays +100% more |  |
 | Taqī al-Dīn | Engineer | ◆ strong | +15% science in your capital · +15% science in every capital city beside a mountain |  |
 | Mimar Sinan | Engineer | ○ situational | +1 culture in every city with a Temple · +30% production toward Temples · cathedrals also cost less to build — not built yet |  |
 | Vaucanson | Engineer | ○ situational | newly created worker units gain +1 charge |  |

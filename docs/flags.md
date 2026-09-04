@@ -184,6 +184,34 @@ this list.
   `trade.buildingsPerFood`/`buildingsPerProduction` = 2, floored), and
   the population coin doubles its divisor (`goldPerCombinedPop` 10 → 20).
   Luxury route lines and card shares untouched (they ride the flats).
+- **Post-wave pacing** (measured 2026-09-03 while re-pinning the slow tier
+  after the v60 wave; no ruling asked for yet, three findings on one page).
+  All three are re-pinned honestly in their tests — this bullet is so you see
+  them without reading a docblock.
+  · **The curtain moved to ~t586.** The scripted five-town harness now closes
+    its ages
+    on **66 / 107 / 249 / 586** (`test/sim/tech.slow.test.ts`), against the
+    58 / 91 / 207 / 443 the late-cost batch above measured on an intermediate
+    tree. Æra I and Æra II moved eight turns each *with none of their prices
+    touched* — the pangaea, the dry-settle −30% and the happiness pass between
+    them make a slower basket, and science here is pop-based. Æra IV alone is
+    now 337 turns, more than half the game. This is the same question the
+    late-cost batch flagged ("a lone capital taking fifteen hundred turns to
+    reach Alchemy"), asked of the multi-town harness.
+  · **The draft ladder grew a cliff at the third town.** The scripted empire's
+    governments land on **57 / 92 / 210** against 39 / 85 / 181, and the ladder
+    is 13, 22, **54**, 57, 60, 66 … — drafts 1–2 unmoved, then twenty-three
+    turns in one rung and three drafts almost on top of each other. Palace
+    happiness 6 (was 9) plus crowding switched on is the cause: the empire goes
+    unhappy as it expands, its yields are docked, and it makes almost no culture
+    for twenty turns before working its way back to content. Early
+    cadence is **9.3 turns per draft** against Entry XV's target of ~5 (it was
+    7.7 before the wave). `test/sim/statecraftPacing.slow.test.ts`.
+  · **The warband is poorer earlier.** Its treasury reads **10 / −22 / −153**
+    at turns 20 / 40 / 60 against 102 / 130 / −56, and it fields five pieces at
+    turn 40 against eleven — the same happiness pass, plus the pangaea handing
+    the script its fifth settler inside the horizon.
+    `test/sim/upkeep.slow.test.ts`, `test/sim/buildSinks.slow.test.ts`.
 - User handles: happiness order/doctrine nerfs (will say when ready) — the
   worksheet edits spotted in `docs/orders-and-doctrines.md` are treated as
   in-progress, NOT folded until you say ready (the doc-sync test failing

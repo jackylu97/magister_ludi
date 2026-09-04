@@ -21,6 +21,7 @@ import { describe, expect, it } from 'vitest';
 import {
   cityYields,
   claimTile,
+  empireRateReading,
   controlledHoldings,
   explainTileYield,
   foundCityAt,
@@ -32,6 +33,8 @@ import { type Command, applyCommand } from '../../src/sim/commands';
 import { previewCombat } from '../../src/sim/combat';
 import { createGame, dispatch, snapshotState } from '../../src/sim/game';
 import {
+  actGainOf,
+  agedActFactor,
   drawGreatPersonOffer,
   familyOf,
   greatPersonActError,
@@ -79,7 +82,7 @@ import {
   type CombatSituation,
 } from '../../src/sim/statecraft';
 import type { CardEffectKind } from '../../src/sim/statecraftData';
-import { highestAge } from '../../src/sim/techData';
+import { highestAge, techDef } from '../../src/sim/techData';
 import { game, found, keepTheRites } from './statecraftHelpers';
 
 const PEOPLE = RULES.greatPeople;
@@ -105,9 +108,15 @@ const SAMPLE = {
 
 describe('the roster', () => {
   it('is the doc as it reads, four families deep per age', () => {
-    expect(GREAT_PERSON_IDS.length).toBe(81);
+    // Eighty since the nerf pass of 2026-09-03 struck Li Jie off the roster
+    // (the user's `[remove]` in the worksheet's Nerf notes column). A name is
+    // deleted rather than marked because there is no retired concept on this
+    // table — a great person is *consumed*, never withdrawn from a pool.
+    expect(GREAT_PERSON_IDS.length).toBe(80);
     for (const age of [2, 3, 4, 5]) {
-      expect(rosterOfAge(age).length, String(age)).toBeGreaterThanOrEqual(20);
+      // Deep enough that a draw never spills in ordinary play; Æra IV is the
+      // short one at nineteen and every other age still holds twenty or more.
+      expect(rosterOfAge(age).length, String(age)).toBeGreaterThanOrEqual(19);
     }
   });
 
@@ -285,7 +294,13 @@ describe('chooseGreatPerson', () => {
 // --- the act ----------------------------------------------------------------
 
 describe('the act', () => {
-  it('a scholar pays a share of the current technology, through settleResearchWindfall', () => {
+  it('a scholar pays turns of the empire’s own science, through settleResearchWindfall', () => {
+    // Re-quoted by the nerf pass of 2026-09-03: it was `scholarShare` × the
+    // aimed technology's full cost, which made a great person worth more the
+    // deeper the tree went and worth it to an empire that had built nothing.
+    // Now it is `actGainTurns` turns of what this empire actually banks —
+    // **read through the one seam** (`actGainOf` → `empireRateReading`), so the
+    // payout, the preview and the top bar cannot disagree about a turn.
     const g = game(29);
     found(g.state, 0);
     const player = g.state.players[0]!;
@@ -294,11 +309,38 @@ describe('the act', () => {
 
     applyCommand(g.state, { type: 'chooseResearch', playerId: 0, techId: 'mining' });
     expect(greatPersonActError(g.state, 0, unit.id)).toBeNull();
+    // The exact figure, asked of the seam *before* the piece is spent — and it
+    // is a real number, not a nought that would pin nothing.
+    const owed = actGainOf(g.state, 0, 'science');
+    expect(owed).toBe(
+      Math.max(0, Math.floor(empireRateReading(g.state, 0).sciencePerTurn ?? 0)) *
+        PEOPLE.actGainTurns,
+    );
+    expect(owed).toBeGreaterThan(0);
+    const before = player.sciencePool;
     expect(applyCommand(g.state, { type: 'greatPersonAct', playerId: 0, unitId: unit.id }).ok)
       .toBe(true);
-    expect(player.sciencePool).toBeGreaterThan(0);
+    // The whole figure was banked once, through the ordinary seam: what is left
+    // in the pool plus whatever the beakers actually bought.
+    const bought = player.techsResearched.includes('mining') ? techDef('mining').cost : 0;
+    expect(player.sciencePool + bought).toBe(before + owed);
     expect(unitById(g.state, unit.id)).toBeUndefined();
     expect(player.legacies.map((held) => held.id)).toEqual([SAMPLE.scholar]);
+  });
+
+  it('a scholar’s act is deliberately un-aged — the rate already grew', () => {
+    // `agedActFactor` reaches the two *flat* arms and neither rate-quoted one:
+    // a figure read off the empire's own books already grows with every
+    // technology, and ageing it twice would compound. Proven by moving the tree
+    // under a fixed board and watching the figure hold.
+    const g = game(30);
+    found(g.state, 0);
+    const player = g.state.players[0]!;
+    const before = actGainOf(g.state, 0, 'science');
+    const aged = agedActFactor(player);
+    player.techsResearched.push('mining', 'earthenware');
+    expect(agedActFactor(player)).toBeGreaterThan(aged);
+    expect(actGainOf(g.state, 0, 'science')).toBe(before);
   });
 
   it('a scholar’s beakers finish the technology outright when they cover it', () => {
@@ -344,19 +386,47 @@ describe('the act', () => {
     );
   });
 
-  it('an artist pays culture into the draft basket and blesses the town', () => {
+  it('an artist pays turns of the empire’s own culture and blesses the town', () => {
+    // The scholar's re-quoting on the other bucket (nerf pass, 2026-09-03): a
+    // flat `artistCulture` 40 became `actGainTurns` turns of what this empire
+    // banks in culture, off the same seam.
     const g = game(43);
     const city = found(g.state, 0);
     const player = g.state.players[0]!;
     const unit = call(g.state, 0, SAMPLE.artist);
+    const owed = actGainOf(g.state, 0, 'culture');
+    expect(owed).toBe(
+      Math.max(0, Math.floor(empireRateReading(g.state, 0).culturePerTurn ?? 0)) *
+        PEOPLE.actGainTurns,
+    );
+    expect(owed).toBeGreaterThan(0);
+    const before = player.culturePool;
     applyCommand(g.state, { type: 'greatPersonAct', playerId: 0, unitId: unit.id });
     // The culture went through the *bucket's* seam, so a big enough grant opens
-    // a draft rather than sitting in a pool.
+    // a draft rather than sitting in a pool — the figure is the fold of the two.
     expect(player.culturePool + (player.statecraft.drafts > 0 ? 1 : 0)).toBeGreaterThan(0);
+    if (player.statecraft.drafts === 0) expect(player.culturePool).toBe(before + owed);
     // And the blessing is an ordinary timed effect with an absolute expiry.
     expect(city.timed).toHaveLength(1);
     expect(city.timed![0]!.expiresTurn).toBe(g.state.turn + PEOPLE.artistTurns);
     expect(city.timed![0]!.effect.kind).toBe('happiness');
+  });
+
+  it('an artist reads the rate before the cheer it hangs — no act pays itself', () => {
+    // Entry XVIII.5 at the seam that composes the figure: the act's own +2
+    // happiness could raise the town's yields, and a payout read afterwards
+    // would be a one-time grant paying interest on itself.
+    const g = game(44);
+    found(g.state, 0);
+    const player = g.state.players[0]!;
+    const unit = call(g.state, 0, SAMPLE.artist);
+    const owed = actGainOf(g.state, 0, 'culture');
+    applyCommand(g.state, { type: 'greatPersonAct', playerId: 0, unitId: unit.id });
+    // Whatever the cheer did to the town, the figure is the one read before it.
+    if (player.statecraft.drafts === 0) expect(player.culturePool).toBe(owed);
+    // The town is now cheered, and the seam says so — which is the whole risk
+    // the ordering closes.
+    expect(happinessOf(g.state, 0)).toBeGreaterThan(0);
   });
 
   it('a general heals every friendly piece in reach and hangs a strength on it', () => {
@@ -662,13 +732,21 @@ describe('the legacies this pass built', () => {
     return cardCombatLines(state, situation).reduce((sum, line) => sum + line.amount, 0);
   }
 
-  it('Ptahhotep counts libraries across the realm, into authority capacity', () => {
+  it('Ptahhotep counts libraries across the realm, two to the point of writ', () => {
+    // Halved by the nerf pass of 2026-09-03: one point of writ per **two**
+    // libraries, so the count's `per` is what moved and nothing else.
     const g = game(101);
     const city = found(g.state, 0);
     bear(g.state, 0, 'ptahhotep');
-    const bare = cardAuthority(g.state, 0).reduce((sum, line) => sum + line.amount, 0);
+    const writ = (): number =>
+      cardAuthority(g.state, 0).reduce((sum, line) => sum + line.amount, 0);
+    const bare = writ();
     city.buildings.push('library');
-    expect(cardAuthority(g.state, 0).reduce((sum, line) => sum + line.amount, 0)).toBe(bare + 1);
+    // One library buys nothing — a helping is two.
+    expect(writ()).toBe(bare);
+    const colony = foundCityAt(g.state, 0, getTileAt(g.state.map, city.col + 4, city.row)!)!;
+    colony.buildings.push('library');
+    expect(writ()).toBe(bare + 1);
   });
 
   it('Phidias is paid for the wonders standing in his empire’s towns', () => {
@@ -684,16 +762,17 @@ describe('the legacies this pass built', () => {
     expect(empire(g.state, 0).culture).toBe(6);
   });
 
-  it('Eratosthenes measures the world in fifties, off the seat’s own grid', () => {
-    // Retuned per 20 → per 50 (user, 2026-09-02): the map layers pass made
-    // revealed ground much easier to come by, so the pension pays slower.
+  it('Eratosthenes measures the world in sixties, off the seat’s own grid', () => {
+    // Retuned per 20 → per 50 (user, 2026-09-02) → per 60 (the nerf pass of
+    // 2026-09-03): the map layers pass made revealed ground much easier to come
+    // by, so the pension pays slower again.
     const g = game(107);
     found(g.state, 0);
     bear(g.state, 0, 'eratosthenes');
     const grid = g.state.visibility[0]!;
     grid.fill(0);
-    for (let i = 0; i < 110; i++) grid[i] = 1;
-    // Two helpings of fifty; the ten over pay nothing until they are fifty.
+    for (let i = 0; i < 130; i++) grid[i] = 1;
+    // Two helpings of sixty; the ten over pay nothing until they are sixty.
     expect(empire(g.state, 0).science).toBe(2);
     // The other seat's grid is the other seat's.
     expect(empire(g.state, 1).science).toBe(0);
@@ -761,7 +840,8 @@ describe('the legacies this pass built', () => {
     }
     applyCommand(g.state, { type: 'greatPersonWork', playerId: 0, unitId: unit.id });
     expect(hasResource(g.state, 0, 'iron')).toBe(true);
-    expect(empire(g.state, 0).science).toBe(1);
+    // Two a seam since the nerf pass of 2026-09-03 (it was one).
+    expect(empire(g.state, 0).science).toBe(2);
   });
 
   it('Nzinga defends in the trees and nowhere else', () => {
@@ -825,15 +905,38 @@ describe('the legacies this pass built', () => {
     expect(fight(g.state, unit, tile, 'attack')).toBe(3);
   });
 
-  it('Tycho Brahe reads the sky from hills as well as from beside a mountain', () => {
+  it('Tycho Brahe reads the sky off the ground, and wants both halves of it', () => {
+    // Re-quoted by the nerf pass of 2026-09-03: two *town* lines (beside a
+    // mountain, on hills) became one *hex* line that wants both at once — so
+    // this is now a `tileYield` question and the observatory pays per hill
+    // rather than per city.
     const g = game(157);
     const city = found(g.state, 0);
     bear(g.state, 0, 'tychoBrahe');
-    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
+    claimTile(g.state, city, tile);
+    const ctx = () => yieldContextFor(g.state, 0);
+    const science = (): number => {
+      let sum = 0;
+      for (const entry of explainTileYield(tile, ctx())) {
+        if (entry.kind === 'add') sum += entry.science;
+        else sum = entry.science;
+      }
+      return sum;
+    };
+
     tile.hills = false;
-    const bare = foldCardYields(cardCityYields(g.state, city)).science;
+    tile.mountainAdjacent = false;
+    const bare = science();
+    // A hill alone is not enough, and a peak next door alone is not either.
     tile.hills = true;
-    expect(foldCardYields(cardCityYields(g.state, city)).science).toBe(bare + 3);
+    expect(science()).toBe(bare);
+    tile.hills = false;
+    tile.mountainAdjacent = true;
+    expect(science()).toBe(bare);
+    // Both, and the sky opens.
+    tile.hills = true;
+    expect(science()).toBe(bare + 1);
   });
 
   it('Aššur-idī pays the colonies and never the capital', () => {
@@ -846,7 +949,8 @@ describe('the legacies this pass built', () => {
       0,
       getTileAt(g.state.map, capital.col + 4, capital.row)!,
     )!;
-    expect(foldCardYields(cardCityYields(g.state, colony)).gold).toBe(2);
+    // One a colony since the nerf pass of 2026-09-03 (it was two).
+    expect(foldCardYields(cardCityYields(g.state, colony)).gold).toBe(1);
     // Still nothing in the capital: the negation is a scope, not a subtraction.
     expect(foldCardYields(cardCityYields(g.state, capital)).gold).toBe(0);
   });
@@ -857,7 +961,8 @@ describe('the legacies this pass built', () => {
     bear(g.state, 0, 'amenhotepSonOfHapu');
     const at = (city: typeof capital, category: 'wonder' | 'building') =>
       cardProduction(g.state, city, category).reduce((sum, line) => sum + line.percent, 0);
-    expect(at(capital, 'wonder')).toBe(20);
+    // Fifteen since the nerf pass of 2026-09-03 (it was twenty).
+    expect(at(capital, 'wonder')).toBe(15);
     // A wonder bonus does not ride on an ordinary building (the categories).
     expect(at(capital, 'building')).toBe(0);
     const colony = foundCityAt(
@@ -909,13 +1014,13 @@ describe('the legacies this pass built', () => {
     // that was printed before any of that existed (`stripRefs`' own guarantee).
     const printed = (id: GreatPersonId) =>
       describeCard(id).map((clause) => stripRefs(clause.text));
-    expect(printed('ptahhotep')).toEqual(['+1 authority capacity per Library']);
+    expect(printed('ptahhotep')).toEqual(['+1 authority capacity per 2 Libraries']);
     expect(printed('phidias')).toEqual(['+3 culture per wonder you hold']);
-    expect(printed('eratosthenes')).toEqual(['+1 science per 50 hexes you have revealed']);
+    expect(printed('eratosthenes')).toEqual(['+1 science per 60 hexes you have revealed']);
     expect(printed('ibnBattuta')).toEqual(['+1 gold per foreign city you have sighted']);
     expect(printed('simaQian')).toEqual(['+1 culture per age that has closed']);
     expect(printed('murasakiShikibu')).toEqual(['+2 culture per melee unit in the field']);
-    expect(printed('shenKuo')).toEqual(['+1 science per improved strategic resource']);
+    expect(printed('shenKuo')).toEqual(['+2 science per improved strategic resource']);
     expect(printed('nzingaOfNdongo')).toEqual([
       '+5 combat strength in forest',
       '+5 combat strength in jungle',
@@ -926,19 +1031,22 @@ describe('the legacies this pass built', () => {
     ]);
     expect(printed('janZizka')).toEqual(['+5 combat strength while fortified']);
     expect(printed('elCid')).toEqual(['+3 combat strength in a city you captured']);
-    expect(printed('assurIdi')).toEqual(['+2 gold in every city but your capital']);
+    expect(printed('assurIdi')).toEqual(['+1 gold in every city but your capital']);
     expect(printed('amenhotepSonOfHapu')).toEqual([
-      '+20% production toward wonders, in your capital',
+      '+15% production toward wonders, in your capital',
+    ]);
+    // Archimedes lost his revocation with the nerf pass of 2026-09-03, and
+    // gained the hammers behind the engines: a `productionBonus` narrowed by a
+    // `UnitFilter`, beside the strength line the same filter narrows.
+    expect(printed('archimedes')).toEqual([
+      '+10% production toward siege units',
+      '+2 combat strength for siege units against cities',
     ]);
     // **The revocation prints, and it is not struck through** (2026-08-28): it
     // is a promise the game *does* make now, so it reads as an ordinary clause
     // of the card. `GreatPersonDef.revokedWhen` is not an effect — it happens at
     // a moment and never un-happens — so `describeCard` prints it beside the
     // completion grant and the slot grant, for their reason.
-    expect(printed('archimedes')).toEqual([
-      '+6 combat strength for siege units against cities',
-      'lost the turn an enemy soldier enters your capital’s territory',
-    ]);
     expect(printed('hypatia')).toEqual([
       '+10% science in every city',
       'lost the first turn your happiness goes negative',
@@ -948,16 +1056,31 @@ describe('the legacies this pass built', () => {
       'lost when the age it was earned in closes',
     ]);
     expect(printed('tychoBrahe')).toEqual([
-      '+3 science in every city beside a mountain',
-      '+3 science in every city on hills',
+      '+1 science on every hill hex beside a mountain',
+    ]);
+    // The two composites the nerf pass wrote, both `all` over `TileCondition`,
+    // and the one `tileYield` that carries a negative voice.
+    expect(printed('eupalinos')).toEqual(['+1 food on every improved hex beside a mountain']);
+    expect(printed('eaNasir')).toEqual(['-1 production, +3 gold on every hex with a Mine']);
+    // A tile line under a **city** scope, which reads as two clauses in one
+    // sentence: whose ground, and which hex.
+    expect(printed('liBing')).toEqual([
+      '+1 production on every hex with a Farm beside fresh water, in every city with an Aqueduct',
+    ]);
+    // A city-scoped count paid in the town it counts in.
+    expect(printed('aryabhata')).toEqual(['+1 faith per building here that supplies science']);
+    // The malice re-read per town rather than once for the realm.
+    expect(printed('hemiunu')).toEqual([
+      '+10% production toward wonders',
+      '-2 happiness in every city while it is building a wonder',
     ]);
     // The building half is built now, so the row says both and one of its two
     // deferred sentences is gone (the timed unhappiness is the one that stays).
-    expect(printed('crassus')[0]).toBe('all units and buildings cost −30% to buy');
+    expect(printed('crassus')[0]).toBe('all units and buildings cost −20% to buy');
     // The timed half is built now too, so both of Crassus' clauses are real and
     // nothing on his row is deferred.
     expect(printed('crassus')).toEqual([
-      'all units and buildings cost −30% to buy',
+      'all units and buildings cost −20% to buy',
       'buying anything costs your empire -1 happiness for 10 turns',
     ]);
     expect(printed('jakobFugger')).toContain('all units and buildings cost −20% to buy');
@@ -1153,31 +1276,99 @@ describe('the one-row shapes, built generically', () => {
     expect(happinessOf(g.state, 0)).toBe(before);
   });
 
-  it('Ea-nāṣir takes a whole point off what every luxury counts for', () => {
+  it('Ea-nāṣir pays every mine and charges it a hand', () => {
+    // Re-quoted by the nerf pass of 2026-09-03: the seam clause and the luxury
+    // malice both struck, and the malice moved onto the same hex as the pay —
+    // a mine is worth three coin and one hammer less. A single `tileYield` row
+    // carrying a **negative** voice, which the bag has always allowed and no
+    // row had yet said.
     const g = game(219);
-    found(g.state, 0);
-    // The amplifier's **other dial**, read through the ordinary evaluator: a
-    // whole point, which no percentage of the table's own figure could say
-    // exactly. `meters.ts` is the one consumer and applies it per luxury line,
-    // floored at nothing — a luxury never costs happiness.
-    expect(cardAmplifierFlat(g.state, 0, 'luxuryHappiness')).toBe(0);
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
+    claimTile(g.state, city, tile);
+    const fold = () => {
+      const sum = { gold: 0, production: 0 };
+      for (const entry of explainTileYield(tile, yieldContextFor(g.state, 0))) {
+        if (entry.kind === 'add') {
+          sum.gold += entry.gold;
+          sum.production += entry.production;
+        } else {
+          sum.gold = entry.gold;
+          sum.production = entry.production;
+        }
+      }
+      return sum;
+    };
+
+    tile.terrain = 'grassland';
+    tile.feature = 'none';
+    tile.hills = true;
+    delete tile.resource;
+    tile.improvement = 'mine';
+    const bare = fold();
     bear(g.state, 0, 'eaNasir');
+    const paid = fold();
+    expect(paid.gold).toBe(bare.gold + 3);
+    expect(paid.production).toBe(bare.production - 1);
+    // No seam wanted: the clause is about the works, not about what is under
+    // them (it was "a Mine carrying a bonus resource" until this pass).
+    expect(hasResource(g.state, 0, 'iron')).toBe(false);
+  });
+
+  it('the flat dial of an amplifier still reads beside the share', () => {
+    // The shape Ea-nāṣir used to be the roster's one witness for. No row names
+    // `luxuryHappiness` flat since the nerf pass, so the claim is made of the
+    // vocabulary itself: a whole point, which no percentage of the table's own
+    // figure could say exactly. `meters.ts` is the one consumer and applies it
+    // per luxury line, floored at nothing — a luxury never costs happiness.
+    const g = game(220);
+    found(g.state, 0);
+    expect(cardAmplifierFlat(g.state, 0, 'luxuryHappiness')).toBe(0);
+    g.state.players[0]!.timed = [{
+      card: 'eaNasir',
+      effect: { kind: 'effectAmplifier', target: 'luxuryHappiness', amount: -1 },
+      expiresTurn: g.state.turn + 10,
+    }];
     expect(cardAmplifierFlat(g.state, 0, 'luxuryHappiness')).toBe(-1);
     // And it is the *flat* dial, not the share: the percentage reading is
     // untouched, which is what keeps a row that turns both one arithmetic.
     expect(cardAmplifier(g.state, 0, 'luxuryHappiness')).toBe(0);
   });
 
-  it('Hero of Alexandria is paid for a wonder that supplies science, not for one that does not', () => {
+  it('a scope reads what a building *does*, not which row it is', () => {
+    // `hasBuildingYielding`, which Hero of Alexandria was the roster's one
+    // witness for until the nerf pass of 2026-09-03 re-wrote his cell into an
+    // occasion the vocabulary has no word for (see the deferred claim below).
+    // The scope is still read, so the claim is made of the vocabulary itself.
     const g = game(223);
     const city = found(g.state, 0);
-    bear(g.state, 0, 'heroOfAlexandria');
     const bare = cityYields(g.state, city).production;
+    g.state.players[0]!.timed = [{
+      card: 'heroOfAlexandria',
+      effect: {
+        kind: 'cityYields',
+        production: 5,
+        scope: { test: 'hasBuildingYielding', yields: 'science', wonder: true },
+      },
+      expiresTurn: g.state.turn + 10,
+    }];
     // The Oracle pays faith, not science: the scope reads what a row *does*.
     city.buildings.push('theOracle');
     expect(cityYields(g.state, city).production).toBe(bare);
     city.buildings.push('greatLibrary');
     expect(cityYields(g.state, city).production).toBe(bare + 5);
+  });
+
+  it('Hero of Alexandria says out loud that his new cell is not built', () => {
+    // The user's worksheet asks for "after completing or gaining control of a
+    // wonder" — a `WindfallOccasion` the table does not have, and a *shape* is a
+    // design decision. Deferred and annotated rather than bent into
+    // `completion`, which would have paid for a granary (CLAUDE.md's rule, kept
+    // for the fourth time on this table).
+    expect(greatPersonDef('heroOfAlexandria').legacy).toEqual([]);
+    expect(greatPersonDef('heroOfAlexandria').deferred?.length).toBe(1);
+    expect(stripRefs(describeCard('heroOfAlexandria')[0]!.text)).toContain('not built yet');
+    expect(describeCard('heroOfAlexandria')[0]!.deferred).toBe(true);
   });
 
   it('Mimar Sinan hurries a Temple and nothing else', () => {
@@ -1189,10 +1380,17 @@ describe('the one-row shapes, built generically', () => {
     expect(cardProduction(g.state, city, 'building', undefined, 'granary')).toHaveLength(0);
   });
 
-  it('Homer’s army mends at home and never abroad', () => {
+  it('an army under noHealAbroad mends at home and never abroad', () => {
+    // Homer's malice until the nerf pass of 2026-09-03 struck it (his cell is
+    // now the culture line alone, at twenty). `turn.ts` still reads the rule, so
+    // the claim is made of the vocabulary rather than of a person.
     const g = game(229);
     found(g.state, 0);
-    bear(g.state, 0, 'homer');
+    g.state.players[0]!.timed = [{
+      card: 'homer',
+      effect: { kind: 'behaviorRule', rule: 'noHealAbroad' },
+      expiresTurn: g.state.turn + 10,
+    }];
     const unit = g.state.units.find((u) => u.ownerId === 0 && u.type !== 'settler')!;
     unit.hp = 1;
     // Standing on ground nobody owns — the honest reading of "outside your
@@ -1293,10 +1491,29 @@ describe('a legacy that is lost', () => {
     }
   });
 
-  it('Archimedes falls when a soldier comes to rest in the capital’s ground', () => {
+  /**
+   * Whoever's legacy `enemyEntersCapital` belongs to today, or `null`.
+   *
+   * Archimedes carried it until the nerf pass of 2026-09-03 struck the clause,
+   * and **no row names the occasion now** — so the two tests below are written
+   * against the roster rather than against a name. They go on proving the
+   * `arriveOnTile` hook the moment a row takes the occasion up again, and until
+   * then they say out loud that the hook is standing idle, which is the fact a
+   * reader most needs and the one a deleted test would have hidden.
+   */
+  const SACKED: GreatPersonId | null =
+    GREAT_PERSON_IDS.find((id) => greatPersonDef(id).revokedWhen === 'enemyEntersCapital') ?? null;
+
+  it('a legacy of the sack falls when a soldier comes to rest in the capital’s ground', () => {
     const g = game(251);
     const capital = found(g.state, 0);
-    bear(g.state, 0, 'archimedes');
+    if (SACKED === null) {
+      // The occasion is hooked and unclaimed. Nothing to revoke, and the hook
+      // must still run without complaint over an empire that holds nothing.
+      expect(revokeLegacies(g.state, 0, 'enemyEntersCapital')).toEqual([]);
+      return;
+    }
+    bear(g.state, 0, SACKED);
     const tile = getTileAt(g.state.map, capital.col, capital.row)!;
     const raider = createUnit(g.state, 1, 'warrior', tile.col, tile.row);
     arriveOnTile(g.state, raider, tile);
@@ -1306,7 +1523,7 @@ describe('a legacy that is lost', () => {
   it('a builder wandering past is not a sack', () => {
     const g = game(253);
     const capital = found(g.state, 0);
-    bear(g.state, 0, 'archimedes');
+    bear(g.state, 0, SACKED ?? 'hypatia');
     const tile = getTileAt(g.state.map, capital.col, capital.row)!;
     const worker = createUnit(g.state, 1, 'worker', tile.col, tile.row);
     arriveOnTile(g.state, worker, tile);

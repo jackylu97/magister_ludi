@@ -60,6 +60,7 @@
  * is `turnSplash.ts`'s rule and it is the same rule here for the same reason.
  */
 
+import { STAMP_TIMING, type StampReading, cardStampNode, playCardStamp, stampIsEmpty } from './cardStamp';
 import { cardLineMarkUrl } from './cardLine';
 import { setDescriptorText } from './keywords';
 import { setYieldText } from './yieldMark';
@@ -206,6 +207,22 @@ export interface OfferOption {
    * answer without both.
    */
   faces?: { before: string; after: string };
+  /**
+   * What this card would be **worth**, for the stamp — and the one thing on this
+   * face that is deliberately not shown while the offer is up.
+   *
+   * The choreography is the mock's (`docs/doctrine-ideas.md`, Part IV, the
+   * design of record): during selection every card wears the small flourish and
+   * **no digits at all**, because a hand of three figures is a hand that has
+   * already chosen for the player. The pick reveals the taken card's number —
+   * counted up, or thunked for a card that pays on an occasion — and the sheet
+   * leaves a beat later.
+   *
+   * Still numbers and strings, so the module's boundary rule holds: the caller
+   * has already turned an impact list into glyphs and integers (`stampReading`
+   * in `cardStamp.ts`) and this component still knows nothing about cards.
+   */
+  stamp?: StampReading;
 }
 
 /** What the card is asking about. */
@@ -573,6 +590,17 @@ export function createOfferCard(
   /** The one timer that takes the backs off. Null whenever nothing is dealing. */
   let dealTimer: number | null = null;
   /**
+   * The taken card's two loose ends: the timer that takes the sheet off after
+   * the stamp has landed, and the canceller for the count itself.
+   *
+   * Both are cleared by `teardown`, which every ending goes through, so a
+   * chained draft that replaces the sheet mid-count cannot leave a frame loop
+   * running against a detached tree — the bug every animation in this interface
+   * has already had once.
+   */
+  let exitTimer: number | null = null;
+  let cancelStamp: (() => void) | null = null;
+  /**
    * The hand on the table, as `offerSpread` needs to be asked about it. Kept so
    * a window resized *while* an offer is up is re-measured rather than left at
    * the size the spread was dealt at — the one screen a player cannot dismiss is
@@ -635,8 +663,15 @@ export function createOfferCard(
       window.clearTimeout(dealTimer);
       dealTimer = null;
     }
+    if (exitTimer !== null) {
+      window.clearTimeout(exitTimer);
+      exitTimer = null;
+    }
+    cancelStamp?.();
+    cancelStamp = null;
     container.hidden = true;
     container.removeAttribute('data-weight');
+    container.removeAttribute('data-settled');
     container.replaceChildren();
     spreadOf = null;
     if (restoreFocus && document.contains(restoreFocus)) restoreFocus.focus();
@@ -669,13 +704,50 @@ export function createOfferCard(
     show(standing.offer, standing.onChoose);
   }
 
+  /**
+   * The pick, and the one place the interface's timing and the reducer's part
+   * company **on purpose**.
+   *
+   * The command is dispatched immediately — the callback runs on this tick, as
+   * it always has, and nothing about the simulation's timing changes. What is
+   * delayed is only the *visual exit*: the taken card's stamp is weighed in
+   * front of the player (`playCardStamp`), the cards that were passed over fall
+   * away, and the sheet comes off two seconds later. A pick whose card carries
+   * no stamp behaves exactly as it did before, down to the frame.
+   *
+   * The reveal is abandoned rather than defended if the callback deals another
+   * offer: `show` cancels the exit and replaces the sheet, which is the honest
+   * behaviour — the next question is more interesting than the last answer's
+   * flourish.
+   */
   function take(index: number): void {
     const callback = choose;
+    const option = standing?.offer.options[index];
+    const stamp = option?.stamp;
+    const card = container.querySelector<HTMLElement>(`.offer-option[data-index="${index}"]`);
+    const stampNode = card?.querySelector<HTMLElement>('.card-stamp') ?? null;
     // Cleared *before* the callback, so a handler that re-opens a card (a second
     // ruin claimed by the same march) is not immediately torn down by this one.
-    teardown();
     standing = null;
     choose = null;
+    if (stamp === undefined || stampNode === null || stampIsEmpty(stamp)) {
+      teardown();
+      moveTo('take');
+      callback?.(index);
+      return;
+    }
+    // The hand settles: the taken card holds the light, the rest fall away.
+    settleDeal();
+    for (const other of container.querySelectorAll<HTMLElement>('.offer-option')) {
+      other.classList.add(other === card ? 'is-taken' : 'is-passed');
+      (other as HTMLButtonElement).disabled = true;
+    }
+    container.dataset.settled = 'true';
+    cancelStamp = playCardStamp(stampNode, stamp);
+    exitTimer = window.setTimeout(() => {
+      exitTimer = null;
+      teardown();
+    }, STAMP_TIMING.exitMs);
     moveTo('take');
     callback?.(index);
   }
@@ -718,6 +790,16 @@ export function createOfferCard(
   }
 
   function show(offer: Offer, onChoose: (index: number) => void): void {
+    // A sheet still holding a landed stamp is on its way out; the next question
+    // replaces it now rather than being drawn under a timer that will then take
+    // the new card away with the old one.
+    if (exitTimer !== null) {
+      window.clearTimeout(exitTimer);
+      exitTimer = null;
+    }
+    cancelStamp?.();
+    cancelStamp = null;
+    container.removeAttribute('data-settled');
     restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     choose = onChoose;
     // Held from here until it is taken or a new game clears it — through View
@@ -863,6 +945,12 @@ export function createOfferCard(
       }
       if (option.warning !== undefined) {
         button.append(element('span', 'offer-warning', option.warning));
+      }
+      // The stamp's seat, **between the clauses and the flavour** (the design of
+      // record). It is built wearing the flourish and never filled in here: the
+      // number arrives on the pick and nowhere else.
+      if (option.stamp !== undefined && !stampIsEmpty(option.stamp)) {
+        button.append(cardStampNode());
       }
       // **Labelled, not merely italic** (copy pass, 2026-08-28 — the
       // Compendium's ruling applied wherever a flavour field is printed). The

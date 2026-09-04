@@ -227,8 +227,9 @@ describe('the culture ladder', () => {
     for (const [index, turn] of tiers.entries()) {
       expect(turn, `government ${index + 1}`).toBeDefined();
     }
-    expect(tiers[0]!).toBeGreaterThan(36);
-    expect(tiers[0]!).toBeLessThan(58);
+    // Re-centred 2026-09-03 with the two below (measured 57, previously 39).
+    expect(tiers[0]!).toBeGreaterThan(46);
+    expect(tiers[0]!).toBeLessThan(68);
     // **Re-centred 2026-08-28.** Two things had drifted under this band and only
     // one of them is a change: `GOVERNMENT_TIERS` moved to 4 / 10 / 18, which put
     // the second charter on draft 10 rather than draft 7 and the measurement at
@@ -294,9 +295,42 @@ describe('the culture ladder', () => {
     // the ladder only parts company where a *built* culture building's gate
     // finally lands. `tiers[0]` stays inside its band; the other two are
     // re-centred on the new measurements at their existing widths.
-    expect(tiers[1]!).toBeGreaterThan(69);
-    expect(tiers[1]!).toBeLessThan(101);
-    expect(tiers[2]!).toBeGreaterThan(160);
-    expect(tiers[2]!).toBeLessThan(202);
+    //
+    // **Re-measured 2026-09-03, the 9/3 wave (schema 60).** The draft meter is
+    // untouched again — `costBase / costLinear / costExponent` and
+    // `GOVERNMENT_TIERS` are byte-identical — and so is every culture row this
+    // empire builds. What moved is the *economy pass*: the palace pays 6
+    // happiness rather than 9 and crowding is switched on
+    // (`crowdingWeight` 0.3), so a five-town empire on this conservative script
+    // is unhappy where a five-town empire used to be comfortable, and an unhappy
+    // town's yields are docked — culture with them. Full ladder on this seed,
+    // before -> after:
+    //
+    //   before  13,23,31,39,46,53,60,67,75,85,93,102,112,123,136,150,166,181,198,217
+    //   after   13,22,54,57,60,66,72,78,85,92,100,110,121,135,150,168,188,210,232,254
+    //
+    // — governments (drafts 4/10/18) at **57 / 92 / 210** against 39 / 85 / 181.
+    // Two things in that pair are worth reading rather than merely re-pinning:
+    //
+    //   · **the first two drafts are unmoved again** (13, 22) — the same tell as
+    //     every re-pin above. Nothing has changed about the meter or the opening;
+    //     the ladder parts company exactly where this empire's third town lands
+    //     and the happiness bill arrives with it;
+    //   · **and then there is a cliff.** Draft 3 slips from turn 31 to turn 54,
+    //     twenty-three turns in one rung, and drafts 3–5 land almost on top of
+    //     each other (54 / 57 / 60) — the empire makes nearly no culture for
+    //     twenty turns and then catches up in a rush as its towns work their way
+    //     back to content. The early cadence over drafts 1–8 comes out at **9.3
+    //     turns per draft** against 7.7 before, and against Entry XV's stated
+    //     target of ~5.
+    //
+    // The bands are re-centred on the new measurements at their existing widths;
+    // the cadence band (5..13) already covers 9.3 and is left where it is. The
+    // cliff itself is not a thing a band can express, so it is written into
+    // `docs/flags.md` under the post-wave pacing bullet for the user to rule on.
+    expect(tiers[1]!).toBeGreaterThan(76);
+    expect(tiers[1]!).toBeLessThan(108);
+    expect(tiers[2]!).toBeGreaterThan(189);
+    expect(tiers[2]!).toBeLessThan(231);
   });
 });

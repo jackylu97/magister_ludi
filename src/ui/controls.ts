@@ -194,6 +194,7 @@ import { disbandError } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { agedActFactor,
   actCityFor,
+  actGainOf,
   familyOf,
   greatPersonActError,
   greatPersonWorkError,
@@ -5121,7 +5122,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     switch (familyOf(unit)) {
       case 'scholar': {
         const aim = player?.researching ?? null;
-        const beakers = aim === null ? 0 : Math.floor(techDef(aim).cost * people.scholarShare);
+        // Turns of the empire's own science, off the act's own seam
+        // (`actGainOf`) rather than a second reading of the books.
+        const beakers = player === undefined ? 0 : actGainOf(state, player.id, 'science');
         const toward = aim === null ? 'your current study' : techDef(aim).name;
         return `+${beakers}${YIELD_GLYPH.science} toward ${toward}`;
       }
@@ -5132,7 +5135,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         return `+${Math.floor(people.merchantGold * era * agedActFactor(player!))}${YIELD_GLYPH.gold} to the treasury`;
       case 'artist':
         return (
-          `+${Math.floor(people.artistCulture * agedActFactor(player!))}${YIELD_GLYPH.culture} toward the next draft · ` +
+          `+${player === undefined ? 0 : actGainOf(state, player.id, 'culture')}${YIELD_GLYPH.culture} toward the next draft · ` +
           `+${people.artistHappiness} happiness in ${where} for ${people.artistTurns} turns`
         );
       case 'general':

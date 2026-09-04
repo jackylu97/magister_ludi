@@ -117,6 +117,14 @@ import {
   orderFitsSlot,
   slotLayout,
 } from '../sim/statecraftData';
+import {
+  cardStampNode,
+  landCardStamp,
+  playCardStamp,
+  stampIsEmpty,
+  stampReading,
+} from './cardStamp';
+import { explainCardImpact } from '../sim/cardImpact';
 import { CARD_LINE_NAME, cardLineMarkNode, lineOf, slotMarkNode } from './cardLine';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import {
@@ -310,6 +318,17 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * first.
    */
   let stagedSeat = -1;
+  /**
+   * The card that has just gone into an office, waiting for its stamp to be
+   * played once the redraw has put it back on the screen.
+   *
+   * **Not state**, and cleared the instant it is spent: slotting is the moment a
+   * held card stops being a guess and starts paying, so it is the one gesture on
+   * this screen that earns the count-up. A card already in an office reads its
+   * figure at rest (`landCardStamp`) — a screen that replayed the ceremony on
+   * every redraw would be a screen celebrating itself.
+   */
+  let justSlotted: OrderId | null = null;
 
   function isOpen(): boolean {
     return !overlay.hidden;
@@ -324,6 +343,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     staged = null;
     stagedSeat = -1;
     held = null;
+    justSlotted = null;
   }
 
   /**
@@ -427,6 +447,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       return;
     }
     staged = place(arrangement, index, held, state.turn);
+    justSlotted = held;
     held = null;
     draw();
   }
@@ -701,7 +722,32 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * player has just staged is spoken for, and one they have just taken out is
    * back in the hand, whether or not either has been signed yet.
    */
-  function drawCollection(sc: PlayerStatecraft, arrangement: StagedSlots): HTMLElement {
+  /**
+   * A card's stamp on this screen — and the one rule about **when** it is asked.
+   *
+   * Only for a card in an office. A held card wears the flourish, and that is
+   * not a shortcut: a hand of thirty figures is thirty questions the player did
+   * not ask, and every one of them is a ghost-diff over every town this empire
+   * holds (`explainCardImpact`). Asking a handful rather than a hand is the same
+   * bargain the yields lens strikes — the reading happens when a hex's yield can
+   * change, never once a frame.
+   *
+   * The figure itself is the sim's whichever way round the card sits: a card
+   * *staged* into an office is not in force yet, so the reading is what slotting
+   * it would be worth; a card the law already holds reads as what taking it out
+   * would cost. Both are the same number, which is why the screen can print one.
+   */
+  function stampFor(state: GameState, seat: number, id: OrderId, level: number) {
+    const reading = stampReading(explainCardImpact(state, seat, { kind: 'order', id, level }));
+    return stampIsEmpty(reading) ? null : reading;
+  }
+
+  function drawCollection(
+    state: GameState,
+    seat: number,
+    sc: PlayerStatecraft,
+    arrangement: StagedSlots,
+  ): HTMLElement {
     const block = element('section', 'sc-collection');
     block.append(
       element('p', 'eyebrow sc-eyebrow', `orders · ${sc.orders.length} held`),
@@ -742,7 +788,20 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
           describeCard(entry.id, entry.level),
           entry.level,
         );
+        // The stamp's seat, always built and mostly wearing the flourish — see
+        // `stampFor`. The element is the same one whichever face it shows, so a
+        // card slotted and unslotted does not change height.
+        const stamp = cardStampNode();
+        button.dataset.card = entry.id;
+        button.append(stamp);
         if (slotted.has(entry.id)) {
+          const reading = stampFor(state, seat, entry.id, entry.level);
+          if (reading) {
+            // The count is played only for the office it just went into; every
+            // other slotted card is a standing fact and arrives landed.
+            if (justSlotted === entry.id) playCardStamp(stamp, reading);
+            else landCardStamp(stamp, reading);
+          }
           button.append(element('p', 'sc-card-note', 'in a slot'));
           button.disabled = true;
         } else {
@@ -788,7 +847,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     split.append(column);
 
     const pane = element('div', 'sc-pane');
-    pane.append(drawCollection(sc, arrangement));
+    pane.append(drawCollection(state, seat, sc, arrangement));
+    // Spent by the draw that played it: the ceremony belongs to the gesture, and
+    // a flag left set would replay it on the next redraw.
+    justSlotted = null;
 
     // The empire's law as one list, last, because it is the *answer* rather than
     // the arrangement: what is actually reaching the ledgers right now, from the

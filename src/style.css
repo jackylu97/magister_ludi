@@ -11440,3 +11440,251 @@ body.compendium-page {
 .cmp-pamphlet {
   margin-top: 8px;
 }
+
+/* --- the card stamp -------------------------------------------------------
+   What a card is worth, printed on its own face (`src/ui/cardStamp.ts`, and
+   `docs/doctrine-ideas.md` Part IV — the design of record).
+
+   **Boxless**, and that is the whole rule: no frame, no fill, no rounded panel.
+   The digits sit bare between the card's clauses and its flavour rule, in the
+   interface's tabular mono, and the landing is a soft radial glow *behind* them
+   in the card's own line ink — never a ring, never a border flash. A box would
+   make the stamp a widget; it is a mark on paper.
+
+   The three faces are one element wearing `data-face`, so the figure lands in
+   the place the flourish was standing and no card's layout jumps on a pick. */
+.card-stamp {
+  --stamp-ink: var(--line-ink, var(--ink));
+  position: relative;
+  display: flex;
+  /* One baseline for the digits and every word beside them (the ruling), and
+     no wrapping: a figure that broke across two lines would stop being one. */
+  align-items: baseline;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 6px;
+  min-height: 20px;
+  /* Close under the clauses (the ruling): no dead band between the description
+     and the digits — the empty air lives above the flavour rule instead. */
+  margin: 1px 0 12px;
+  text-align: center;
+}
+
+/* The seat of the number while the card is still a choice: the card's own small
+   mark, in its line ink. Not a placeholder box and not a word — see the module
+   docblock for why a hand of three figures is a hand already chosen. */
+.card-stamp-flourish {
+  font-family: var(--face-name);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: var(--stamp-ink);
+  opacity: 0.55;
+}
+
+.card-stamp[data-face='figure'] .card-stamp-flourish,
+.card-stamp[data-face='occasion'] .card-stamp-flourish {
+  display: none;
+}
+
+/* The digits. Tabular mono, the specimen's rule for every number, and the same
+   size in both forms — an occasion's grant is not a smaller number than a
+   rate's, only the words after it are small. */
+.card-stamp-figure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-family: var(--face-num);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--stamp-ink);
+  transform-origin: 50% 60%;
+}
+
+.card-stamp[data-face='flourish'] .card-stamp-figure,
+.card-stamp[data-face='flourish'] .card-stamp-occasion {
+  display: none;
+}
+
+/* The moment a rider pays on, after its grant. Small, and in the name face,
+   because it is a sentence rather than a figure. */
+.card-stamp-occasion {
+  font-family: var(--face-name);
+  font-size: 0.68rem;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.card-stamp-occasion:empty {
+  display: none;
+}
+
+/* The number stands alone (final ruling, 2026-09-03): no tag, no chip, no popup
+   beside it. A reserved band that was rarely filled made the hand ragged, and
+   where a figure came from — a cascade, a tier flip, a coastal read — is the
+   hover breakdown's rule-5 lines. Nothing is drawn here for it. */
+
+/* The landing flash: a soft radial glow behind the digits in the line's ink,
+   painted by an element rather than a shadow so it sits *under* the number and
+   outlives one repaint. Invisible until the figure lands. */
+.card-stamp-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, currentcolor 34%, transparent) 0%,
+    transparent 68%
+  );
+  color: var(--stamp-ink);
+  transform: translate(-50%, -50%) scale(0.4);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The count itself. `anticipate` is the held breath — the digits are there at
+   nought and nothing moves; `counting` gives each tick its pop; `landed` is the
+   overshoot and the glow. The durations are `STAMP_TIMING`'s and the module
+   owns them, because the script has to know when the count is done. */
+.card-stamp[data-phase='anticipate'] .card-stamp-figure {
+  opacity: 0.35;
+}
+
+.card-stamp-figure.is-tick {
+  animation: stamp-tick 90ms ease-out;
+}
+
+@keyframes stamp-tick {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.09);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.card-stamp[data-phase='landed'] .card-stamp-figure {
+  animation: stamp-land 420ms cubic-bezier(0.18, 1.5, 0.36, 1);
+}
+
+.card-stamp[data-phase='landed'] .card-stamp-glow {
+  animation: stamp-glow 520ms ease-out;
+}
+
+/* The rubber-stamp drop, for a card that pays on an occasion: it arrives from
+   above, oversized and askew, and settles. No counting — a number that is true
+   on no particular turn must not be read as a rate. */
+.card-stamp[data-phase='thunk'] .card-stamp-figure {
+  animation: stamp-thunk 260ms cubic-bezier(0.3, 1.2, 0.4, 1);
+}
+
+.card-stamp[data-phase='thunk'] .card-stamp-glow {
+  animation: stamp-glow 520ms ease-out;
+}
+
+@keyframes stamp-land {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  38% {
+    transform: scale(1.2) rotate(-1.4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes stamp-thunk {
+  0% {
+    transform: scale(1.7) rotate(-6deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.12) rotate(1.2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes stamp-glow {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.35);
+  }
+  30% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.25);
+  }
+}
+
+/* The hand settles on a pick: the taken card holds the light while its stamp is
+   weighed, and the ones passed over fall away. The sheet itself leaves on the
+   module's own timer — the command has already been sent. */
+.offer-option.is-passed {
+  opacity: 0.25;
+  filter: saturate(0.4);
+  transform: translateY(6px);
+  transition:
+    opacity 380ms ease-out,
+    transform 380ms ease-out,
+    filter 380ms ease-out;
+}
+
+.offer-option.is-taken {
+  animation: offer-taken 2000ms ease-in-out forwards;
+}
+
+@keyframes offer-taken {
+  0% {
+    transform: translateY(0) scale(1) rotateY(0deg);
+  }
+  60% {
+    transform: translateY(-6px) scale(1.03) rotateY(0deg);
+  }
+  100% {
+    transform: translateY(-6px) scale(1.03) rotateY(88deg);
+    opacity: 0.15;
+  }
+}
+
+/* Motion off: the numbers are simply *there*. Not a faster animation — none at
+   all, which is `damageNumbers.ts`' rule and `toasts.ts`': the reduced-motion
+   reading loses the ceremony and never the information. */
+@media (prefers-reduced-motion: reduce) {
+  .card-stamp-figure.is-tick,
+  .card-stamp[data-phase='landed'] .card-stamp-figure,
+  .card-stamp[data-phase='thunk'] .card-stamp-figure,
+  .card-stamp[data-phase='landed'] .card-stamp-glow,
+  .card-stamp[data-phase='thunk'] .card-stamp-glow,
+  .offer-option.is-taken {
+    animation: none;
+  }
+
+  .offer-option.is-passed {
+    transition: none;
+  }
+}
+
+/* The stamp in the hand and in the offices (`statecraftScreen.ts`): the same
+   mark, quieter, because thirty of them are on one screen. */
+.sc-card .card-stamp {
+  margin: 1px 0 4px;
+}
+
+.sc-card .card-stamp-figure {
+  font-size: 0.9rem;
+}
