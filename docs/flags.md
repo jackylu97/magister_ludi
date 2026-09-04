@@ -70,20 +70,21 @@ bot evidence alone.
 
 Buildings are the big non-card power block — direction: ordinary rows' flat
 yields down ~25% so cards carry more of the empire's power share;
-unlock/utility buildings keep their roles. **Entry LIV's supply trim folds
-in here** (your "what is this?" answered: the 2026-09-01 ruling that
-happiness/authority relief should be Order-gated — a slot is an opportunity
-cost — with buildings/luxuries trimmed to match; proposed with
-measurements, never applied). Guardrail: the no-draft-bot test. Awaiting
-your numbers.
+unlock/utility buildings keep their roles. Guardrail: the no-draft-bot
+test. Awaiting your numbers.
+
+### TODO (yours) — Entry LIV's supply trim, deferred 2026-09-04
+
+The problem, short: in playtest it was easy to run tall AND wide at once
+because happiness and authority could simply be BUILT — the relief lives in
+buildings and luxuries, so the tall-vs-wide decision never bites. The
+2026-09-01 ruling (never applied): the bulk of both meters' relief should
+live in Order/Doctrine cards — a slot is an opportunity cost, so relief
+displaces something — with buildings/luxuries trimmed to match. Deferred on
+your word; revisit when you take the balance turn.
 
 ### Open singles (still yours)
 
-- **`greatPeople.offerPriceGold` 300** — your "what is the great people
-  offer price?" answered: it is what The Commonwealth (tier 45) charges to
-  buy a great-person recruitment with GOLD (the faith sibling is
-  `offerPriceFaith` 150 via The Magisterium). Wonder refund stays 1 per
-  your note. The 300 awaits your number now that you know what it buys.
 - **Gov IV/V/VI pools** — wait for your playtest (your ruling). Gov VI
   still needs a gate past tier 45 when it comes.
 - **Guild Charters (Gov V proposal)** — your "what was the guild charters

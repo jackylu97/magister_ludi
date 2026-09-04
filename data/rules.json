@@ -336,8 +336,8 @@
     "generalAuraRange": 2,
     "generalAuraStrength": 3,
     "citadelClaimRadius": 1,
-    "offerPriceGold": 300,
-    "offerPriceFaith": 150,
+    "offerPriceGold": 1000,
+    "offerPriceFaith": 750,
     "scholarDraftFaith": 1000
   },
   "production": {
