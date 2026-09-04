@@ -212,6 +212,24 @@ this list.
     turn 40 against eleven — the same happiness pass, plus the pangaea handing
     the script its fifth settler inside the horizon.
     `test/sim/upkeep.slow.test.ts`, `test/sim/buildSinks.slow.test.ts`.
+- **Stamp follow-ups** (ruled in chat 2026-09-03, queued): (a) the
+  draft-selection animation "still feels a little bit clunky" — profile
+  the pick-to-reveal path in the shipped offer flow; (b) **happiness and
+  authority join the stamp's preview voices** — cardImpact already prices
+  them (the knock-on ladder); the stamp should print them as figures
+  (😊/⚓ glyphs) beside the yields, not hide them.
+- **Pamphlet shots: 3 outstanding** — move-attack, worker-improve, and
+  diplomacy-with-a-met-rival need a riper save (the shot list's mark
+  column makes recapture mechanical); they degrade to captions meanwhile.
+- **Early-worker onboarding gap** (found during the capture playtest,
+  seed 31337): a fresh worker had NO legal action for ~10 turns — the
+  capital ring is forest/desert (farm needs bare grass/plains, mine needs
+  Mining) and Chop showed disabled even with full moves. A first-time
+  player's first worker doing nothing is a real hole: candidate fixes —
+  chop legal from the start, a guaranteed farmable hex near starts, or
+  the worker panel saying WHY nothing is legal. Needs a ruling.
+- **`intro:goal` stale text confirmed in-game** ("the Bead Race … is
+  designed but not yet in the game") — one prose fix, still open.
 - User handles: happiness order/doctrine nerfs (will say when ready) — the
   worksheet edits spotted in `docs/orders-and-doctrines.md` are treated as
   in-progress, NOT folded until you say ready (the doc-sync test failing
