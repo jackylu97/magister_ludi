@@ -438,6 +438,13 @@ describe('pacing', () => {
     // closes measures nothing. All fifty nodes are held by t586 and the empire
     // banks beakers it cannot spend after that. Bands keep the widths above
     // (±10 / ±15 / ±25 / ±30), re-centred.
+    //
+    // Ages III and IV re-centred 249 → 277 and 586 → 674 on 2026-09-04: the
+    // renewals axe (schema 62) took the library's and market's free
+    // tech-gated lines, so mid- and late-game science is honestly slower —
+    // the prose above still tells the pre-axe story of how the curtain got to
+    // t586; the axe then moved it to ~t674. The pacing ruling of the same day
+    // says the playtest, not this harness, judges whether that is right.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -451,10 +458,10 @@ describe('pacing', () => {
     expect(first!, `age I: ${first}`).toBeLessThanOrEqual(76);
     expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(92);
     expect(second!, `age II: ${second}`).toBeLessThanOrEqual(122);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(224);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(274);
-    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(556);
-    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(616);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(252);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(302);
+    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(644);
+    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(704);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 120_000);
 
