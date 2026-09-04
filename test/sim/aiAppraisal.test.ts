@@ -1,6 +1,7 @@
 /**
- * **The bot appraisal batch of 2026-09-04** (`docs/flags.md`, "bot appraisal
- * batch — routes · great people · tile lines").
+ * **The bot appraisal batches of 2026-09-04** (`docs/flags.md`, "bot appraisal
+ * batch — routes · great people · tile lines", and "bot batch 2 — scouts · tech
+ * riders · yield weights" below it).
  *
  * Three things the seat used to price at nothing, or at a position in a list,
  * and each of them is asked here of the pure function that holds it rather than
@@ -19,12 +20,28 @@
  *   · **the ghost's tile lines** — `cityYields(state, city, [lighthouse])` now
  *     sees the coastal food, which is the whole worth of that row, and a real
  *     reading is untouched.
+ *
+ * Batch 2 adds two more, in the same idiom:
+ *
+ *   · **the scout brake** — the t75 diagnostics found twelve to forty rangers a
+ *     seat, so a further scout past `military.scoutCap` is charged a steep
+ *     printed penalty and the whole explorer value decays with the turn count.
+ *     Both are read off the *candidate's own terms*, which is where the ruling
+ *     says they have to be visible;
+ *   · **the tech riders** — a node's improvement renewals, priced by how much of
+ *     this empire's ground would actually collect them, and a node's own card
+ *     effects, priced by the reader the drafts use.
  */
 
 import { describe, expect, it } from 'vitest';
 
 import { nextBotDecision, valueContext } from '../../src/ai/bot';
-import { type BotDecision, type ValueTerm, foldTerms } from '../../src/ai/decision';
+import {
+  type BotCandidate,
+  type BotDecision,
+  type ValueTerm,
+  foldTerms,
+} from '../../src/ai/decision';
 import { rankWorkSites } from '../../src/ai/plan';
 import aiJson from '../../data/ai.json';
 
@@ -41,6 +58,7 @@ import {
   newGame,
   playerById,
 } from '../../src/sim/state';
+import { researchExpansion } from '../../src/sim/tech';
 import { resetVisibility } from '../../src/sim/visibility';
 
 // --- the bench --------------------------------------------------------------
@@ -125,6 +143,23 @@ function labelsOf(terms: readonly ValueTerm[]): string {
   return terms
     .map((term) => (term.parts === undefined ? term.label : `${term.label} | ${labelsOf(term.parts)}`))
     .join(' | ');
+}
+
+/** The first term anywhere in a tree whose label matches. Depth-first, in order. */
+function findTerm(terms: readonly ValueTerm[], match: RegExp): ValueTerm | null {
+  for (const term of terms) {
+    if (match.test(term.label)) return term;
+    const inside = term.parts === undefined ? null : findTerm(term.parts, match);
+    if (inside !== null) return inside;
+  }
+  return null;
+}
+
+/** The candidate one decision weighed under a printed name. */
+function candidate(decision: BotDecision, label: string): BotCandidate {
+  const row = decision.candidates.find((entry) => entry.label === label);
+  if (!row) throw new Error(`no candidate "${label}" among ${decision.candidates.map((c) => c.label).join(', ')}`);
+  return row;
 }
 
 // --- 1. the route scorer ----------------------------------------------------
@@ -394,5 +429,161 @@ describe('the hypothetical building’s own tile lines', () => {
     expect(city.buildings).toEqual([]);
     expect(cityYields(state, city)).toEqual(before);
     expect(cityYields(state, city, [])).toEqual(before);
+  });
+});
+
+// --- 4. the scout brake -----------------------------------------------------
+
+describe('a further scout', () => {
+  /**
+   * One town, `rangers` scouts already out, on a given turn.
+   *
+   * At least one ranger in every case on purpose: with none at all the opening
+   * book answers the town before anything is weighed (`openingScout`), and the
+   * book is a ruling rather than an appraisal — it is not what this is about.
+   */
+  function ranging(rangers: number, turn: number): GameState {
+    const state = bench(1);
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    state.turn = turn;
+    for (let index = 0; index < rangers; index++) {
+      createUnit(state, 0, 'scout', city.col, city.row + 1 + index);
+    }
+    seat(state, 0).gold = 200;
+    return state;
+  }
+
+  function scoutRow(state: GameState): BotCandidate {
+    const decision = decisionOfType(state, 0, 'setCityProduction');
+    expect(decision).not.toBeNull();
+    return candidate(decision!, 'Scout');
+  }
+
+  it('is charged a printed penalty once the empire is already at the cap', () => {
+    const cap = aiJson.military.scoutCap;
+    const glutted = scoutRow(ranging(cap + 1, 0));
+    // Not a silent `null` and not merely a lower place in the list: the charge
+    // is a term a reader of the feed can see, and it takes the candidate below
+    // zero so nothing this town could start loses to it.
+    expect(labelsOf(glutted.terms)).toMatch(/already ranging — this empire wants no more than/);
+    expect(glutted.score).toBeLessThan(0);
+    expect(foldTerms(glutted.terms)).toBe(glutted.score);
+  });
+
+  it('is worth having while the map is dark and the empire is under the cap', () => {
+    const young = scoutRow(ranging(1, 0));
+    expect(young.score).toBeGreaterThan(0);
+    expect(labelsOf(young.terms)).toMatch(/the opening wants eyes/);
+    expect(labelsOf(young.terms)).not.toMatch(/already ranging — this empire wants no more/);
+    // And the same board with a glut of them is the same piece, priced far
+    // below it — the whole of the ruling in one comparison.
+    expect(scoutRow(ranging(aiJson.military.scoutCap + 1, 0)).score).toBeLessThan(young.score);
+  });
+
+  it('fades with the turn count even while the empire is under the cap', () => {
+    const early = scoutRow(ranging(1, 0));
+    const later = scoutRow(ranging(1, 20));
+    expect(labelsOf(early.terms)).toMatch(/a lit map has less left to find/);
+    expect(labelsOf(later.terms)).toMatch(/a lit map has less left to find/);
+    expect(later.score).toBeLessThan(early.score);
+    expect(later.score).toBeGreaterThan(0);
+    // The decay is a divide by `1 + turn × scoutDecayPerTurn`, so twenty turns
+    // at 0.05 is exactly half. Read off the term rather than off the score,
+    // which also carries the build effort and the upkeep.
+    const decay = findTerm(later.terms, /a lit map has less left to find/);
+    expect(decay!.op).toBe('div');
+    expect(decay!.value).toBe(1 + 20 * aiJson.military.scoutDecayPerTurn);
+    for (const row of [early, later]) expect(foldTerms(row.terms)).toBe(row.score);
+  });
+});
+
+// --- 5. what a node's riders are worth --------------------------------------
+
+describe('the beeline’s tech riders', () => {
+  /**
+   * A town whose ring is `wet` hexes of farmable river bank and the rest dry,
+   * with the road to Irrigation and to a rule-carrying node already walked.
+   *
+   * The ring is `foundCityAt`'s own claim — the ground the empire holds — which
+   * is exactly the bound `surveyUpgradeSites` sweeps.
+   */
+  function riverside(wet: number): GameState {
+    const state = bench(1);
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    const ring: [number, number][] = [
+      [4, 5],
+      [6, 5],
+      [5, 4],
+      [5, 6],
+      [4, 4],
+      [4, 6],
+    ];
+    for (let index = 0; index < ring.length; index++) {
+      const tile = own(state, city, ring[index]![0], ring[index]![1]);
+      tile.freshwater = index < wet;
+    }
+    const player = seat(state, 0);
+    for (const goal of ['agriculture', 'irrigation', 'epicPoetry'] as const) {
+      for (const step of researchExpansion(state, 0, goal)) {
+        if (step === goal && goal !== 'agriculture') continue;
+        if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+      }
+    }
+    player.gold = 200;
+    return state;
+  }
+
+  function techRow(state: GameState, name: string): BotCandidate {
+    const decision = decisionOfType(state, 0, 'chooseResearch');
+    expect(decision).not.toBeNull();
+    return candidate(decision!, name);
+  }
+
+  it('prices Irrigation by the river bank that would actually collect it', () => {
+    const dry = findTerm(techRow(riverside(0), 'Irrigation').terms, /Farm renewal/);
+    const damp = findTerm(techRow(riverside(2), 'Irrigation').terms, /Farm renewal/);
+    const wet = findTerm(techRow(riverside(5), 'Irrigation').terms, /Farm renewal/);
+    // A term on every board, so a reader can tell "worth nothing here" from "a
+    // family this appraisal has never heard of".
+    for (const term of [dry, damp, wet]) expect(term).not.toBeNull();
+    expect(dry!.value).toBe(0);
+    expect(damp!.value).toBeGreaterThan(0);
+    // Proportional: the count is the multiplier, and the rider's bag is the
+    // same on every hex.
+    expect(wet!.value).toBeCloseTo(damp!.value * 2.5, 10);
+    expect(labelsOf([wet!])).toMatch(/on 5 hexes that can drink/);
+  });
+
+  it('counts the farms already standing beside the ground that could take one', () => {
+    // Six river-bank hexes; two of them already ploughed. Both halves collect
+    // the day the node lands, so both are counted — and the answer is the same
+    // as the board where none of them is ploughed yet.
+    const ploughed = riverside(6);
+    for (const [col, row] of [
+      [4, 5],
+      [6, 5],
+    ] as const) {
+      at(ploughed.map, col, row).improvement = 'farm';
+    }
+    const withFarms = findTerm(techRow(ploughed, 'Irrigation').terms, /Farm renewal/);
+    const bare = findTerm(techRow(riverside(6), 'Irrigation').terms, /Farm renewal/);
+    expect(withFarms!.value).toBe(bare!.value);
+    expect(labelsOf([withFarms!])).toMatch(/on 6 hexes that can drink/);
+  });
+
+  it('prices a node that carries its own rules through the card reader', () => {
+    const row = techRow(riverside(3), 'Epic Poetry');
+    const rules = findTerm(row.terms, /the rules the node itself carries/);
+    expect(rules).not.toBeNull();
+    expect(rules!.value).not.toBe(0);
+    expect(foldTerms(row.terms)).toBe(row.score);
+  });
+
+  it('leaves every candidate folding to its own score', () => {
+    const decision = decisionOfType(riverside(4), 0, 'chooseResearch');
+    expect(decision).not.toBeNull();
+    const scored = decision!.candidates.filter((row) => row.rejected === undefined);
+    expect(scored.length).toBeGreaterThan(1);
+    for (const row of scored) expect(foldTerms(row.terms)).toBe(row.score);
   });
 });

@@ -69,9 +69,11 @@
     "armyPerCity": 2,
     "aggression": 0,
     "huntRadius": 8,
-    "scoutCap": 2,
+    "scoutCap": 3,
     "scoutEarlyTurns": 40,
-    "scoutBonus": 55
+    "scoutBonus": 55,
+    "scoutGlutPenalty": 400,
+    "scoutDecayPerTurn": 0.05
   },
   "war": {
     "declareThreshold": 1.4,
@@ -94,34 +96,34 @@
   },
   "weights": {
     "food": [
+      7,
       6,
       5,
-      4,
-      3
+      4
     ],
     "production": [
-      5,
-      5,
-      5,
-      5
+      4,
+      4,
+      4,
+      4
     ],
     "gold": [
       3,
       3,
       4,
-      5
-    ],
-    "science": [
-      4,
-      5,
-      5,
       4
     ],
+    "science": [
+      5,
+      6,
+      6,
+      6
+    ],
     "culture": [
-      3,
-      3,
-      2,
-      2
+      5,
+      5,
+      5,
+      5
     ],
     "faith": [
       3,

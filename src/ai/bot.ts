@@ -93,10 +93,12 @@ import {
 } from './decision';
 import {
   type ImprovementPlan,
+  type UpgradeSites,
   buildImprovementPlan,
   explainWorkerCraving,
   rankPlanFor,
   rankWorkSites,
+  surveyUpgradeSites,
 } from './plan';
 import {
   type ValueContext,
@@ -118,7 +120,7 @@ import {
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { discoveryDef } from '../sim/discoveryData';
 import { greatPersonDef } from '../sim/greatPeopleData';
-import { improvementDef } from '../sim/improvementData';
+import { IMPROVEMENT_IDS, improvementDef } from '../sim/improvementData';
 import { projectDef } from '../sim/projectData';
 import {
   type QueueItem,
@@ -163,7 +165,7 @@ import { type ImprovementId, workForFamily } from '../sim/improvementData';
 import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim/map';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
 import { RULES } from '../sim/rulesData';
-import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
+import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
 import { authorityOf } from '../sim/meters';
 import { findPath } from '../sim/pathfind';
 import { PROJECT_IDS } from '../sim/projectData';
@@ -1373,6 +1375,11 @@ function techGoalTable(
 ): { goal: TechId | null; candidates: BotCandidate[] } {
   const ctx = valueContext(state, player);
   const ai = ctx.ai;
+  // **One sweep for the whole table**, `valueContext`'s and the improvement
+  // plan's bargain for the third time: the renewal riders below need to know how
+  // much of this empire's ground a farm's second point of food would land on,
+  // and the answer is a fact about the board that fifty candidate nodes share.
+  const sites = surveyUpgradeSites(state, player);
   const candidates: BotCandidate[] = [];
   let best: TechId | null = null;
   let bestScore = -Infinity;
@@ -1392,7 +1399,7 @@ function techGoalTable(
     let beakers = 0;
     for (const step of road) beakers += techDef(step).cost;
     const denominator = beakers / Math.max(1, ai.research.costDivisor) + 1;
-    const gifts = explainTechGifts(id, ctx);
+    const gifts = explainTechGifts(id, ctx, sites);
     const candidate: BotCandidate = {
       label: techDef(id).name,
       score: 0,
@@ -1439,7 +1446,8 @@ function techGoalTable(
 
 /**
  * What one node hands over, in the one currency — its units, its buildings, its
- * projects and its abilities.
+ * projects, its abilities, **the renewals it switches on and the rules it
+ * carries**.
  *
  * A **row-only** appraisal, unlike the build list's, and deliberately: the build
  * list asks `cityYields` for a hypothetical because it has one town in hand and
@@ -1447,8 +1455,27 @@ function techGoalTable(
  * do not exist in any town yet, and an empire sweep per row would be the profile
  * Entry LIII already warns about. `valueOfBuildingRow` plus the row's flat
  * yields is the honest cheap reading, and it is the same weights either way.
+ *
+ * The two families added 2026-09-04, both of which this used to price at exactly
+ * zero — Irrigation was worth `weights.tech` and nothing else, and so was
+ * Movable Type:
+ *
+ *   · **the renewals** (`ImprovementDef.upgrades`). Priced by the *potential*
+ *     reading the ruling asks for: the rider's own yield bag, weighted like
+ *     every other bag, times the hexes it would land on — farms already standing
+ *     and ground this empire could put a farm on, both, since both collect the
+ *     day the node lands. The count is `surveyUpgradeSites`, **one sweep of the
+ *     ground the improvement plan already walks**, hoisted by `techGoalTable`
+ *     and shared by every candidate node; see that function for the bound and
+ *     for what a second condition on an upgrade record would owe it. A `sites`
+ *     of `undefined` is a caller with no board in hand (nothing in `src/` today)
+ *     and prices the family at nothing rather than guessing.
+ *   · **the rules the node itself carries** (`TechDef.effects`, `liveEffects`'
+ *     tenth source), through `explainEffects` — the same reader the slotting arm
+ *     scores a card with, so a rule is worth the same whether it arrives on a
+ *     card or on a technology and nothing here learns a `CardEffect.kind`.
  */
-function explainTechGifts(id: TechId, ctx: ValueContext) {
+function explainTechGifts(id: TechId, ctx: ValueContext, sites?: UpgradeSites) {
   const ai = ctx.ai;
   const unlocks = techDef(id).unlocks;
   const terms: ValueTerm[] = [];
@@ -1508,7 +1535,52 @@ function explainTechGifts(id: TechId, ctx: ValueContext) {
   const abilities = (unlocks.abilities ?? []).length;
   terms.push({ label: `${projects} conversion project${projects === 1 ? '' : 's'}`, value: projects * ai.research.projectValue });
   terms.push({ label: `${abilities} ability${abilities === 1 ? '' : 'ies'}`, value: abilities * ai.research.abilityValue });
+  for (const term of renewalTerms(id, ctx, sites)) terms.push(term);
+  const effects = techDef(id).effects ?? [];
+  if (effects.length > 0) {
+    terms.push(nest('the rules the node itself carries', explainEffects(effects, ctx)));
+  }
   return appraise(terms);
+}
+
+/**
+ * **What a node's renewals would pay, over the ground that would collect them.**
+ *
+ * One term per `{improvement, upgrade}` pair this node switches on, and the
+ * arithmetic is the plainest thing in the file: the rider's bag through
+ * `explainYields`, multiplied by the hexes counted for it. A pair with no ground
+ * under it still prints — at zero — because "Irrigation is worth nothing to an
+ * empire with no river bank" is a reading a spectator should be able to see the
+ * bot make, and a silent absence is indistinguishable from a family this
+ * appraisal has not learnt about.
+ *
+ * `requiresFreshwater` is the one condition an `ImprovementUpgrade` carries
+ * besides its tech, and it selects which of the survey's two counts is read. The
+ * day the record grows a third, `surveyUpgradeSites` counts it and this reads it
+ * — they are two halves of one register.
+ */
+function renewalTerms(id: TechId, ctx: ValueContext, sites?: UpgradeSites): ValueTerm[] {
+  if (sites === undefined) return [];
+  const terms: ValueTerm[] = [];
+  for (const improvement of IMPROVEMENT_IDS) {
+    const def = improvementDef(improvement);
+    for (const upgrade of def.upgrades ?? []) {
+      if (upgrade.tech !== id) continue;
+      const tally = sites.byImprovement.get(improvement) ?? { hexes: 0, freshwater: 0 };
+      const count = upgrade.requiresFreshwater === true ? tally.freshwater : tally.hexes;
+      const each = explainYields(bagOfTileYield(readTileYield(upgrade.add)), ctx);
+      const where = upgrade.requiresFreshwater === true ? ' that can drink' : '';
+      terms.push({
+        label: `${def.name} renewal — on ${count} hex${count === 1 ? '' : 'es'}${where} this empire holds or could work`,
+        value: each.total * count,
+        parts: [
+          ...each.terms,
+          { label: `× ${count} hex${count === 1 ? '' : 'es'}`, value: count, op: 'mul' },
+        ],
+      });
+    }
+  }
+  return terms;
 }
 
 // --- the two banks ----------------------------------------------------------
@@ -2380,23 +2452,56 @@ function unitRoleValue(
     };
   }
 
-  // **The opening's scouts**, and this is the half that is a *weight* rather
-  // than a ruling: the first scout is the opening book's (`openingScout`), and
-  // this is what makes a second one compete honestly against a warrior or a
-  // granary while the map is still dark. It is a soldier's value plus a
-  // premium, and the premium switches itself off twice over — past
-  // `military.scoutEarlyTurns`, and past `military.scoutCap` rangers — because
-  // an empire in the classical age with four scouts is paying four wages to
-  // rediscover its own borders.
+  // **The opening's scouts, and the glut after them** (ruled 2026-09-04). The
+  // first scout is the opening book's (`openingScout`); this is the *weight*
+  // that lets a second and a third compete honestly against a warrior or a
+  // granary while the map is dark — and the two brakes that stop the twelve to
+  // forty rangers a seat the t75 diagnostics found.
+  //
+  // A ranger is cheap and carries a soldier's strength, so before the brakes it
+  // was simply the best rate on the board once the army cap had closed the
+  // ordinary combatant branch below: nothing said "enough". Three terms say it
+  // now, in the order they fold:
+  //
+  //   · the **premium**, while the game is younger than
+  //     `military.scoutEarlyTurns` and fewer than `military.scoutCap` rangers
+  //     are already out;
+  //   · the **decay**, which divides the whole value by
+  //     `1 + turn × military.scoutDecayPerTurn` — a scout is worth what the
+  //     ground it has not seen yet is worth, and that falls every turn whether
+  //     or not this empire is under the cap;
+  //   · the **glut charge**, once the empire already holds `scoutCap` of them.
+  //     It is steep on purpose (`military.scoutGlutPenalty`) — a candidate
+  //     merely ranked *behind* a granary comes back the moment the granary is
+  //     built, and this one has to stay down — and it is a *printed* charge
+  //     rather than a `null` so the spectate page can read why the empire
+  //     stopped ranging. Subtracted after the divide, so the decay dilutes the
+  //     appetite and never the refusal.
+  //
+  // Rangers are counted by their **marker** across the whole roster
+  // (`countRangers`), not by this type: two rows that both ignore terrain would
+  // otherwise each be allowed a capful.
   if (isExplorer(def) && isCombatant(def)) {
-    const ranging = countOwnedAndQueued(state, player.id, id);
-    const early = state.turn < ai.military.scoutEarlyTurns && ranging < ai.military.scoutCap;
+    const ranging = countRangers(state, player.id);
     const soldier = explainSoldier(id, ctx);
     const terms: ValueTerm[] = [nest('what this piece is worth as a soldier', soldier)];
-    if (early) {
+    if (state.turn < ai.military.scoutEarlyTurns && ranging < ai.military.scoutCap) {
       terms.push({
         label: `${ranging} ranging already, and it is turn ${state.turn} — the opening wants eyes`,
         value: ai.military.scoutBonus,
+      });
+    }
+    const decay = 1 + state.turn * Math.max(0, ai.military.scoutDecayPerTurn);
+    terms.push({
+      label: `÷ ${round1(decay)} — turn ${state.turn}, and a lit map has less left to find`,
+      value: decay,
+      op: 'div',
+    });
+    if (ranging >= ai.military.scoutCap) {
+      terms.push({
+        label: `${ranging} already ranging — this empire wants no more than ${ai.military.scoutCap}`,
+        value: ai.military.scoutGlutPenalty,
+        op: 'sub',
       });
     }
     return { value: foldOf(terms), essential: false, terms };
@@ -4328,6 +4433,26 @@ function countSoldiers(state: GameState, playerId: number): number {
   let count = 0;
   for (const unit of state.units) {
     if (unit.ownerId === playerId && isCombatant(unitDef(unit.type))) count += 1;
+  }
+  return count;
+}
+
+/**
+ * How many **ranging pieces** this empire holds or has queued — the count the
+ * scout brake is spelled against.
+ *
+ * By the marker (`isExplorer`, which is `ignoresTerrainCost`) across the whole
+ * roster rather than by one type, for the reason every reading in `src/sim/` is:
+ * the day a second pathfinder ships, an empire holding three of the first and
+ * three of the second is an empire with six scouts, and a per-type count would
+ * cheerfully call that "under the cap" twice over.
+ */
+function countRangers(state: GameState, playerId: number): number {
+  let count = 0;
+  for (const id of UNIT_TYPE_IDS) {
+    const def = unitDef(id);
+    if (!isExplorer(def) || !isCombatant(def)) continue;
+    count += countOwnedAndQueued(state, playerId, id);
   }
   return count;
 }

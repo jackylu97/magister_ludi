@@ -41,6 +41,15 @@
  * yet. It sits in the same table as a farm, so a worker compares digging to
  * asking rather than only reaching the survey when it has nothing else to do.
  *
+ * The second reading of the same ground (2026-09-04)
+ * ---------------------------------------------------
+ * `surveyUpgradeSites` counts, per improvement row, how much ground a *renewal*
+ * would land on — farms standing and river banks that could take one — so the
+ * beeline can price Irrigation by what it would actually pay this empire rather
+ * than at zero. It walks `groundInReach` exactly as the plan does, and it lives
+ * here rather than in `bot.ts` for the module's whole reason: it is a reading of
+ * the board, and the policy should be handed one rather than take fifty.
+ *
  * Why it is its own module: `value.ts` is the appraisal, `bot.ts` is the policy,
  * and this is a *reading of the board* that both the policy and the great-person
  * arm consult. It ends in a table, not in a number and not in a command, which
@@ -52,13 +61,19 @@ import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './dec
 import { type ValueContext, type YieldBag, explainLump, explainYields } from './value';
 
 import { hasResource, tileContextAt, tileOwnerPlayerId } from '../sim/cities';
-import { type ImprovementId, improvementDef, isImprovementId } from '../sim/improvementData';
+import {
+  IMPROVEMENT_IDS,
+  type ImprovementId,
+  improvementDef,
+  isImprovementId,
+} from '../sim/improvementData';
 import { improvementErrorAt, improvementYieldDelta, seatSeesSleepingVein } from '../sim/improvements';
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo, resourceYield } from '../sim/resourceData';
 import { RULES } from '../sim/rulesData';
 import type { City, GameState, Player, Unit } from '../sim/state';
 import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
+import { hasFreshWater } from '../sim/water';
 
 /**
  * One thing a spade could do, and what it would be worth per turn.
@@ -264,6 +279,64 @@ function surveyEntry(
     terms,
     unclaimed: true,
   };
+}
+
+// --- what a renewal would land on -------------------------------------------
+
+/**
+ * **How much ground a tech's renewal would actually pay on**, per improvement
+ * row: hexes already carrying the improvement, plus hexes this empire could lay
+ * it on today. Both halves, because both will collect the day the node lands —
+ * a farm standing on a river bank and a river bank that will have a farm on it
+ * are the same promise a few worker-turns apart.
+ *
+ * `hexes` is the whole count; `freshwater` is the part of it that can drink,
+ * which is the one condition an `ImprovementUpgrade` may carry besides its tech
+ * (`requiresFreshwater`). **A third condition on that record must be counted
+ * here too** — this survey is the register of what the rider appraisal knows how
+ * to bound, and a condition it cannot see would be priced as if it were not
+ * there.
+ *
+ * The **bound** is `groundInReach`, the same ground the improvement plan reads:
+ * every hex within `REACH` of one of this empire's town centres, deduped. That
+ * is not a sample — `improvementErrorAt` refuses unowned ground outright, so
+ * every hex a spade could legally reach today is inside it — but it does mean a
+ * border that grows past the ring tomorrow is not counted today, which is the
+ * honest reading of "could build on" for an empire that has not claimed it yet.
+ *
+ * **One sweep, read by every candidate node.** `explainTechGifts` is asked of
+ * fifty nodes a turn and its docblock warns about exactly this: a sweep per row
+ * would be fifty empire walks. This is one walk of the same ground the plan
+ * already walks, hoisted by `techGoalTable` and handed down.
+ */
+export interface UpgradeSites {
+  /** By improvement, the hexes a renewal on that row would pay. */
+  byImprovement: Map<ImprovementId, { hexes: number; freshwater: number }>;
+}
+
+export function surveyUpgradeSites(state: GameState, player: Player): UpgradeSites {
+  const byImprovement = new Map<ImprovementId, { hexes: number; freshwater: number }>();
+  const rows = IMPROVEMENT_IDS.filter(
+    (id): id is ImprovementId => (improvementDef(id).upgrades ?? []).length > 0,
+  );
+  if (rows.length === 0) return { byImprovement };
+  for (const row of rows) byImprovement.set(row, { hexes: 0, freshwater: 0 });
+  for (const tile of groundInReach(state, player)) {
+    for (const row of rows) {
+      // Already standing here (and ours — a neighbour's farm collects for the
+      // neighbour), or ground this empire's spade would be allowed to lay it on.
+      // `improvementErrorAt` is the same gate the plan and the worker are held
+      // to, technology included: a renewal on a row this empire cannot build yet
+      // is a promise it cannot keep, and is counted at nothing until it can.
+      const standing =
+        tile.improvement === row && tileOwnerPlayerId(state, tile.col, tile.row) === player.id;
+      if (!standing && improvementErrorAt(state, player.id, tile, row) !== null) continue;
+      const tally = byImprovement.get(row)!;
+      tally.hexes += 1;
+      if (hasFreshWater(tile)) tally.freshwater += 1;
+    }
+  }
+  return { byImprovement };
 }
 
 /** A tile yield delta as a bag the appraisal weights. The keys are the voices. */

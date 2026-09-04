@@ -420,7 +420,7 @@ in the docblocks: a luxury's signature, the citadel's claimed ring, and
 percentages a candidate building would unlock (`cityYieldPercents` takes no
 hypothetical).
 
-### Ruled 2026-09-04 — bot batch 2 (scouts · tech riders · yield weights)
+### Ruled 2026-09-04 — bot batch 2 (scouts · tech riders · yield weights) — LANDED
 
 The user, after the t75 diagnostics found 12–40 scouts per seat and 0–1
 workers: "lets sharply deprioritize having more than 3 scouts at a time,
@@ -449,6 +449,50 @@ importance should decrease as time goes on."
    gold 3/3/4/4. Food first and falling; science/culture above
    production/gold throughout. Slow-tier fixture re-aims expected at the
    push-gate (trajectories shift); the coverage claims never weaken.
+
+All three shipped the same day. The scout brake is three printed terms —
+premium, `÷ 1 + turn × military.scoutDecayPerTurn`, and a
+`military.scoutGlutPenalty` charge once `scoutCap` (now 3) are ranging —
+counted by marker across the roster (`countRangers`), never by type. The
+renewal riders are priced off `surveyUpgradeSites` (`plan.ts`), **one** sweep
+of the ground the improvement plan already walks, hoisted by `techGoalTable`
+and shared by every candidate node; a node's own `effects` go through
+`explainEffects`, the reader the drafts use. Still unpriced, stated in the
+docblocks: a renewal on a row this empire cannot build yet (counted at
+nothing until the improvement's own tech lands), and borders that will grow
+past the plan's reach tomorrow.
+
+### Ruled 2026-09-04 — bot batch 3 (the military brain: sizing · mix · tactics)
+
+The user: "there should also be some prioritization around units based on
+the number of sighted camps/barbarian units. It should also prioritize a
+mix of units (unless it has clear bonuses for a certain type) and i
+imagine it also needs some smarter combat logic (should protect ranged
+units with melee units, prioritize ranged attacks for melee attacks, try
+to heal units that are weak, etc.)"
+
+1. **Threat-read army sizing** — the wanted-army arithmetic reads what the
+   seat has actually SIGHTED: camps and barbarian/hostile units this seat's
+   own visibility knows about (never omniscient map reads — the bot sees
+   what its seat sees), scaled by knobs. The existing `threat` block is the
+   home; `extraArmyPerThreat` grows into a reading of sighted camps + hostile
+   pieces, not just adjacent-column threat.
+2. **Unit mix** — the build arm's soldier choice craves the category the
+   army lacks (the settle scorer's "craves kinds it lacks" pattern): score a
+   candidate soldier higher when its category (melee/ranged/mounted/siege)
+   is underrepresented against a target mix in data. A clear bonus (a
+   persona weight, an escalation ladder already climbed) may still override
+   — the mix is a term in the fold, not a gate.
+3. **Tactics** — three behaviours in the unit-order arm, each a scored
+   preference, never a hard rule: (a) a wounded unit below a health-fraction
+   knob prefers to fortify/heal in safe territory over attacking or
+   advancing (unless its blow would kill); (b) ranged attacks are preferred
+   over melee blows when both can hit the same target (the melee piece holds
+   unless it can capture/kill); (c) a ranged piece keeps a melee piece
+   between itself and the nearest sighted hostile — positioning scored by
+   adjacency, crude v1 is fine and written down as crude.
+   All combat previews through `planCombat`/`previewCombat` (the sim's own
+   arithmetic); every candidate's terms fold to its score.
 
 1. **The route scorer** — `traderCommand` stops taking the first legal
    pair. Enumerate every legal (origin, partner) pair — own towns AND

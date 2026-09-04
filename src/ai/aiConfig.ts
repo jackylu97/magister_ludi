@@ -194,17 +194,40 @@ export interface AiConfig {
     /** Hexes an aggressive seat will look for a rival's piece or town in. */
     huntRadius: number;
     /**
-     * **The opening's scouts** (the user's notes, `docs/bot-notes.md`): *"ai
-     * needs to prioritize early scouts"*. Three knobs rather than a rule,
-     * because how many rangers an opening wants is a balance opinion: a seat
-     * pays `scoutBonus` on top of what the piece is worth as a soldier while
-     * the game is younger than `scoutEarlyTurns`, up to `scoutCap` of them.
-     * The **first** one is not decided here at all — it is the opening book
+     * **The opening's scouts, and the glut that followed them** (the user's
+     * notes, `docs/bot-notes.md`: *"ai needs to prioritize early scouts"*; the
+     * ruling of 2026-09-04 after the t75 diagnostics found twelve to forty
+     * rangers a seat: *"sharply deprioritize having more than 3 scouts at a
+     * time, and deprioritize as turns go on"*).
+     *
+     * Five knobs rather than a rule, because how many rangers an empire wants
+     * and for how long are balance opinions:
+     *
+     *   · `scoutBonus` is paid on top of what the piece is worth as a soldier
+     *     while the game is younger than `scoutEarlyTurns` and the empire holds
+     *     fewer than `scoutCap` rangers — the opening's appetite for eyes;
+     *   · `scoutCap` is now **the number this empire keeps at a time**, not
+     *     just the bonus' gate: holding that many, the next one is charged
+     *     `scoutGlutPenalty`, which is steep enough to drive the candidate
+     *     below every ordinary row rather than merely behind them. It is a
+     *     charge and not a `null` because a bot that silently drops a candidate
+     *     cannot be read on the spectate page — the collapse is a printed term;
+     *   · `scoutDecayPerTurn` fades the **whole** explorer value with the turn
+     *     count (`÷ 1 + turn × this`), so even the first three stop competing
+     *     as the map lights up. A rate rather than a cut-off for the reason
+     *     everything else here is: a cliff at turn forty is a cliff a tuner
+     *     cannot soften.
+     *
+     * The **first** scout is not decided here at all — it is the opening book
      * (`openingScout`), which is a hard-coded ruling rather than a weight.
      */
     scoutCap: number;
     scoutEarlyTurns: number;
     scoutBonus: number;
+    /** Charged against a further ranger once `scoutCap` are already ranging. */
+    scoutGlutPenalty: number;
+    /** How fast an explorer's whole value fades with `state.turn`. */
+    scoutDecayPerTurn: number;
   };
   /**
    * **What a seat will go to war over, and what it will sign to stop.**
@@ -281,13 +304,19 @@ export interface AiConfig {
    * because the next rung on the ladder is self-play parameter tuning, and a
    * tuner rewrites a flat file.
    *
-   * The six arrays are indexed by `TechAge − 1`. The hand-picked defaults say:
-   * food matters most while towns are small and least once they are grown;
-   * production never stops mattering; **gold rises with the age**, which is the
-   * whole of Entry LIX's first finding written as a number (late upkeep is what
-   * bankrupted both seats in the arena); science peaks mid-game; **culture falls
-   * late**, because the arena found it flooding at 200–400 a turn with nothing
-   * to buy; faith opens the early door and quietens after.
+   * The six arrays are indexed by `TechAge − 1`. The defaults are the user's
+   * ruling of 2026-09-04 — *"prioritize food, then science/culture, then
+   * production/gold; food importance should decrease as time goes on"* — read
+   * straight off as a table: **food leads and falls** (7→4) because a young
+   * town's whole future is its next citizen and a grown one's is not;
+   * **science rises and stays** and **culture is level**, both of them above
+   * **production and gold**, which are flat and modest; gold still ticks up
+   * once with the age, which is Entry LIX's first finding (late upkeep is what
+   * bankrupted both seats in the arena) surviving at a smaller size; faith
+   * opens the early door and quietens after.
+   *
+   * The previous sheet had production level with science and culture at two,
+   * and the arena's seats built hammers and let the tree and the drafts go by.
    */
   weights: {
     food: number[];
