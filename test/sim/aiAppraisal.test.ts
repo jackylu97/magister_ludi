@@ -43,18 +43,29 @@
  *   · **the unit mix** — an army that is all spearmen craves a bow, an army that
  *     is all bows craves a spearman, and the craving is a term in the fold
  *     rather than a gate on the list.
+ *
+ * Batch 4 is one ruling across four call sites — **the potential weight**
+ * (`score.potentialWeight`, λ = 0.4): `realized + λ × (potential − realized)`,
+ * wherever this bot can tell a thing it already collects from a thing it would
+ * collect once somebody built, ploughed or researched. The beeline's per-town
+ * building gift, a node's renewal riders, a counted card's buildable subjects
+ * and a worker's anticipation of a node already on the seat's own research plan
+ * each print the discount as a term of their own — which is what section 8
+ * reads, term by term. The same batch stops a counted card being priced at a
+ * nominal guess at all: it is counted by `countOf`, the simulation's own.
  */
 
 import { describe, expect, it } from 'vitest';
 
-import { nextBotDecision, valueContext } from '../../src/ai/bot';
+import { explainCard, nextBotDecision, valueContext } from '../../src/ai/bot';
 import {
   type BotCandidate,
   type BotDecision,
   type ValueTerm,
   foldTerms,
 } from '../../src/ai/decision';
-import { rankWorkSites } from '../../src/ai/plan';
+import { type PlanEntry, buildImprovementPlan, rankWorkSites } from '../../src/ai/plan';
+import { explainCounted } from '../../src/ai/value';
 import aiJson from '../../data/ai.json';
 
 import { type BuildingId } from '../../src/sim/buildingData';
@@ -70,6 +81,14 @@ import {
   newGame,
   playerById,
 } from '../../src/sim/state';
+import { anyCardDef } from '../../src/sim/statecraft';
+import {
+  ORDER_IDS,
+  TALLY_OCCASIONS,
+  type CardCountScaledEffect,
+  type OrderId,
+  type TallyOccasion,
+} from '../../src/sim/statecraftData';
 import { researchExpansion } from '../../src/sim/tech';
 import { isExploredBy, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 
@@ -552,9 +571,13 @@ describe('the beeline’s tech riders', () => {
   }
 
   it('prices Irrigation by the river bank that would actually collect it', () => {
-    const dry = findTerm(techRow(riverside(0), 'Irrigation').terms, /Farm renewal/);
-    const damp = findTerm(techRow(riverside(2), 'Irrigation').terms, /Farm renewal/);
-    const wet = findTerm(techRow(riverside(5), 'Irrigation').terms, /Farm renewal/);
+    // Re-aimed 2026-09-04 (the potential weight): the rider is two terms now,
+    // and on a board where nothing is ploughed the whole of it is the buildable
+    // half — the same proportionality, read off the promise's own line.
+    const bank = /Farm renewal — on \d+ hexes? that can drink this empire could put one on/;
+    const dry = findTerm(techRow(riverside(0), 'Irrigation').terms, bank);
+    const damp = findTerm(techRow(riverside(2), 'Irrigation').terms, bank);
+    const wet = findTerm(techRow(riverside(5), 'Irrigation').terms, bank);
     // A term on every board, so a reader can tell "worth nothing here" from "a
     // family this appraisal has never heard of".
     for (const term of [dry, damp, wet]) expect(term).not.toBeNull();
@@ -566,10 +589,12 @@ describe('the beeline’s tech riders', () => {
     expect(labelsOf([wet!])).toMatch(/on 5 hexes that can drink/);
   });
 
-  it('counts the farms already standing beside the ground that could take one', () => {
-    // Six river-bank hexes; two of them already ploughed. Both halves collect
-    // the day the node lands, so both are counted — and the answer is the same
-    // as the board where none of them is ploughed yet.
+  it('counts the farms already standing apart from the ground that could take one', () => {
+    // Re-aimed 2026-09-04 (the potential weight). Six river-bank hexes; two of
+    // them already ploughed. Both halves still collect the day the node lands,
+    // but they are no longer worth the same: the two standing farms are a fact
+    // and the four bare banks are a promise, folded `2 + λ × 4` against the bare
+    // board's `0 + λ × 6`.
     const ploughed = riverside(6);
     for (const [col, row] of [
       [4, 5],
@@ -577,10 +602,23 @@ describe('the beeline’s tech riders', () => {
     ] as const) {
       at(ploughed.map, col, row).improvement = 'farm';
     }
-    const withFarms = findTerm(techRow(ploughed, 'Irrigation').terms, /Farm renewal/);
-    const bare = findTerm(techRow(riverside(6), 'Irrigation').terms, /Farm renewal/);
-    expect(withFarms!.value).toBe(bare!.value);
-    expect(labelsOf([withFarms!])).toMatch(/on 6 hexes that can drink/);
+    const lambda = aiJson.score.potentialWeight;
+    const rows = techRow(ploughed, 'Irrigation').terms;
+    const standing = findTerm(rows, /Farm renewal — on \d+ hexes? that can drink already carrying one/);
+    const buildable = findTerm(rows, /Farm renewal — on \d+ hexes? that can drink this empire could put one on/);
+    expect(labelsOf([standing!])).toMatch(/on 2 hexes that can drink already carrying one/);
+    expect(labelsOf([buildable!])).toMatch(/on 4 hexes that can drink this empire could put one on/);
+    // The rider's bag per hex, read off the standing line, prices both.
+    const each = standing!.value / 2;
+    expect(buildable!.value).toBeCloseTo(each * 4 * lambda, 10);
+    // And the ploughed board is worth strictly more than the bare one: two
+    // farms in the ground beat two farms somebody has still to walk out and lay.
+    const bare = findTerm(
+      techRow(riverside(6), 'Irrigation').terms,
+      /Farm renewal — on \d+ hexes? that can drink this empire could put one on/,
+    );
+    expect(standing!.value + buildable!.value).toBeGreaterThan(bare!.value);
+    expect(bare!.value).toBeCloseTo(each * 6 * lambda, 10);
   });
 
   it('prices a node that carries its own rules through the card reader', () => {
@@ -752,5 +790,209 @@ describe('the levy craves the trade it lacks', () => {
     const scored = decision!.candidates.filter((entry) => entry.rejected === undefined);
     expect(scored.length).toBeGreaterThan(1);
     for (const entry of scored) expect(foldTerms(entry.terms)).toBe(entry.score);
+  });
+});
+
+// --- 8. the potential weight ------------------------------------------------
+
+/**
+ * **λ, the potential weight** (`docs/flags.md`, ruled 2026-09-04):
+ * `value = realized + λ × (potential − realized)`, one knob, and every call site
+ * prints its own discount.
+ *
+ * Four of the five claims below are about a *term* rather than about a score,
+ * and that is the ruling's own emphasis: the seat is allowed to want what it
+ * cannot yet collect, and a reader of the feed has to be able to see how much
+ * less it wants it. The fifth — the growing card — is about an *order*, because
+ * a counter twelve occasions deep and an empty one are the same row and used to
+ * be worth the same number.
+ */
+describe('the potential weight', () => {
+  const LAMBDA = aiJson.score.potentialWeight;
+
+  /** A blank board with `count` towns of the seat's, nothing built in any. */
+  function towns(count: number): { state: GameState; player: Player; cities: City[] } {
+    const state = bench(1);
+    const cities: City[] = [];
+    for (let index = 0; index < count; index++) {
+      cities.push(foundCityAt(state, 0, at(state.map, 2 + index * 3, 5)));
+    }
+    recomputeAllVisibility(state);
+    return { state, player: seat(state, 0), cities };
+  }
+
+  /** The first Order in the table that watches an occasion. Never a name. */
+  function growingCard(): OrderId {
+    for (const id of ORDER_IDS) {
+      for (const effect of anyCardDef(id).effects ?? []) {
+        if (effect.kind === 'countScaled' && effect.count === 'tally') return id;
+      }
+    }
+    throw new Error('no growing card in the Order table');
+  }
+
+  it('discounts the beeline’s per-town building gift, and says so in the fold', () => {
+    const { state } = towns(2);
+    const decision = decisionOfType(state, 0, 'chooseResearch');
+    expect(decision).not.toBeNull();
+    const row = decision!.candidates.find(
+      (entry) => findTerm(entry.terms, /its flat yields, in every town/) !== null,
+    );
+    expect(row).toBeDefined();
+    const flats = findTerm(row!.terms, /its flat yields, in every town/)!;
+    // The discount is a term of its own, beside the town count it discounts —
+    // not a number folded into the value where nobody can see it.
+    const discount = flats.parts!.find((term) => /towns that must still build it/.test(term.label));
+    expect(discount).toBeDefined();
+    expect(discount!.op).toBe('mul');
+    expect(discount!.value).toBe(LAMBDA);
+    // And the term is still its own arithmetic, as is the candidate holding it.
+    expect(foldTerms(flats.parts!)).toBeCloseTo(flats.value, 10);
+    expect(foldTerms(row!.terms)).toBe(row!.score);
+  });
+
+  it('folds a node’s renewal as standing + λ × buildable', () => {
+    // Five river-bank hexes, two of them already ploughed: 2 standing and 3
+    // buildable, which is the ruling's own worked example.
+    const state = bench(1);
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    const bank: [number, number][] = [
+      [4, 5],
+      [6, 5],
+      [5, 4],
+      [5, 6],
+      [4, 4],
+    ];
+    for (const [col, row] of bank) own(state, city, col, row).freshwater = true;
+    for (const [col, row] of bank.slice(0, 2)) at(state.map, col, row).improvement = 'farm';
+    const player = seat(state, 0);
+    for (const goal of ['agriculture', 'irrigation'] as const) {
+      for (const step of researchExpansion(state, 0, goal)) {
+        if (step === goal && goal !== 'agriculture') continue;
+        if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+      }
+    }
+    const decision = decisionOfType(state, 0, 'chooseResearch');
+    expect(decision).not.toBeNull();
+    const row = candidate(decision!, 'Irrigation');
+    const standing = findTerm(row.terms, /already carrying one/)!;
+    const buildable = findTerm(row.terms, /could put one on/)!;
+    expect(labelsOf([standing])).toMatch(/on 2 hexes that can drink already carrying one/);
+    expect(labelsOf([buildable])).toMatch(/on 3 hexes that can drink this empire could put one on/);
+    const each = standing.value / 2;
+    expect(each).toBeGreaterThan(0);
+    expect(buildable.value).toBeCloseTo(each * 3 * LAMBDA, 10);
+    expect(standing.value + buildable.value).toBeCloseTo(each * (2 + LAMBDA * 3), 10);
+    expect(foldTerms(row.terms)).toBe(row.score);
+  });
+
+  it('prices a counted card by what the empire counts, plus λ of what it could', () => {
+    // Six towns, two of which have already raised the row the card counts. The
+    // other four could raise it today (`buildError` is null in a fresh town), so
+    // the fold is 2 + λ × 4 = 3.6 helpings, and the pin is that arithmetic.
+    const { state, player, cities } = towns(6);
+    for (const city of cities.slice(0, 2)) city.buildings.push('monument');
+    // The row's own gate is the simulation's: without Stonecraft `buildError`
+    // refuses every town and the potential is honestly nought.
+    for (const step of researchExpansion(state, 0, 'stonecraft')) {
+      if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+    }
+    const effect: CardCountScaledEffect = {
+      kind: 'countScaled',
+      count: 'buildingsOfKind',
+      building: 'monument',
+      pays: { to: 'yield', yield: 'culture', amount: 1, where: 'empire' },
+    };
+    const ctx = valueContext(state, player);
+    const appraisal = explainCounted(effect, ctx);
+    expect(appraisal.terms[0]!.value).toBe(2);
+    expect(labelsOf([appraisal.terms[0]!])).toMatch(/2 buildingsOfKind today/);
+    expect(appraisal.terms[1]!.value).toBeCloseTo(4 * LAMBDA, 10);
+    expect(labelsOf([appraisal.terms[1]!])).toMatch(/4 more the towns could raise/);
+    const pays = appraisal.terms[appraisal.terms.length - 1]!;
+    expect(pays.op).toBe('mul');
+    expect(pays.value).toBeGreaterThan(0);
+    expect(appraisal.total).toBeCloseTo((2 + LAMBDA * 4) * pays.value, 10);
+    expect(foldTerms(appraisal.terms)).toBe(appraisal.total);
+    // And the same card on a board where nothing is built anywhere is worth
+    // strictly less: every subject a promise, and a promise is worth λ.
+    const bare = towns(6);
+    expect(explainCounted(effect, valueContext(bare.state, bare.player)).total).toBeLessThan(
+      appraisal.total,
+    );
+  });
+
+  it('ranks a growing card by its own counter, not by a nominal guess', () => {
+    const id = growingCard();
+    const { state, player } = towns(1);
+    const empty = explainCard(player, id, valueContext(state, player)).total;
+    player.statecraft.tallies = [{ card: id, count: 12 }];
+    const deep = explainCard(player, id, valueContext(state, player)).total;
+    // The whole of the fifth call site: the same row, the same board, twelve
+    // occasions apart — and until this ruling the two numbers were equal.
+    expect(deep).toBeGreaterThan(empty);
+  });
+
+  it('forecasts a tally per occasion, and says out loud when it cannot', () => {
+    const { state, player } = towns(1);
+    const ctx = valueContext(state, player);
+    const id = growingCard();
+    const known = TALLY_OCCASIONS[0]!;
+    const pays = { to: 'yield', yield: 'culture', amount: 1, where: 'empire' } as const;
+    const forecast = explainCounted(
+      { kind: 'countScaled', count: 'tally', tally: known, pays },
+      ctx,
+      id,
+    );
+    const promise = forecast.terms[1]!;
+    expect(promise.value).toBeCloseTo((aiJson.score.tallyForecast[known] ?? 0) * LAMBDA, 10);
+    expect(labelsOf([promise])).toMatch(new RegExp(`more ${known} to come`));
+    // An occasion the table does not name is **visibly** unpriced rather than
+    // quietly guessed at — which is what makes a sixth occasion safe to add.
+    const unpriced = explainCounted(
+      { kind: 'countScaled', count: 'tally', tally: 'aMomentNobodyHasPriced' as TallyOccasion, pays },
+      ctx,
+      id,
+    );
+    expect(unpriced.terms[1]!.value).toBe(0);
+    expect(labelsOf([unpriced.terms[1]!])).toMatch(/no forecast/);
+    expect(unpriced.total).toBe(0);
+  });
+
+  it('anticipates a renewal only while the technology is on the seat’s own plan', () => {
+    // One river-bank hex a farm could go on, and the seat's declared plan the
+    // only thing that changes between the two readings.
+    const state = bench(1);
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    const tile = own(state, city, 4, 5);
+    tile.freshwater = true;
+    const player = seat(state, 0);
+    for (const step of researchExpansion(state, 0, 'irrigation')) {
+      if (step === 'irrigation') continue;
+      if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+    }
+    const entryFor = (): PlanEntry | undefined => {
+      const ctx = valueContext(state, player);
+      const plan = buildImprovementPlan(state, player, ctx);
+      return plan.byTile.get(tileIndex(state.map, tile.col, tile.row));
+    };
+
+    player.researching = 'irrigation';
+    const anticipated = entryFor();
+    expect(anticipated).toBeDefined();
+    const term = findTerm(anticipated!.terms, /is on the plan/);
+    expect(term).not.toBeNull();
+    expect(term!.value).toBeGreaterThan(0);
+    expect(foldTerms(anticipated!.terms)).toBe(anticipated!.value);
+
+    // The plan cleared, and the same hex is worth what it pays today and no more
+    // — no tree lookahead, only what the seat has actually declared.
+    player.researching = null;
+    player.researchQueue = [];
+    const plain = entryFor();
+    expect(plain).toBeDefined();
+    expect(findTerm(plain!.terms, /is on the plan/)).toBeNull();
+    expect(plain!.value).toBeLessThan(anticipated!.value);
+    expect(anticipated!.value - plain!.value).toBeCloseTo(term!.value, 10);
   });
 });

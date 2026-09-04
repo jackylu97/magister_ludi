@@ -83,6 +83,30 @@ live in Order/Doctrine cards — a slot is an opportunity cost, so relief
 displaces something — with buildings/luxuries trimmed to match. Deferred on
 your word; revisit when you take the balance turn.
 
+### Ruled 2026-09-04 — the potential weight (λ, queued behind the arena page)
+
+The user's formula, ratified in chat: **value = realized + λ × (potential −
+realized)**, λ = `score.potentialWeight` = 0.4, ONE knob for now ("we may
+want to increase it for technologies and orders later on (spin out separate
+potential weights) but lets keep it simple"). Call sites: `explainTechGifts`
+multiplies its per-town building term by λ (today it prices pure potential
+at 1.0); the improvement-rider term splits standing vs buildable and folds
+`standing + λ × buildable`; `scoreCard`'s counted effects add
+`λ × (potential − current)` where the counted subject is buildable
+(`potentialTownsFor` = towns where `buildError` is null — the sim's own
+gate); and the worker plan adds `λ × rider` for riders granted by techs in
+the bot's OWN current research plan (no tree lookahead — the bot
+anticipates only its declared intentions). Every term prints in the fold.
+
+Fifth call site, ruled in the same thread: **counted cards read their REAL
+count** — `scoreCard`'s flat `× nominalCount` guess goes; realized =
+`countOf(card)` (a slotted growing card's ×12 finally outranks a rookie's
+×0), and a tally card's potential = `λ × forecast × pays` where the
+forecast is a per-occasion data table (`score.tallyForecast`
+{barbarianKill, wonderAnywhere, greatPersonSpent, unitLost, goldSpent…}),
+never one blind number. Ordinary counted cards take realized + λ ×
+(buildable potential − realized) through the same machinery.
+
 ### Findings from the sim singles (2026-09-04, need your eye)
 
 - **The swordsman is now a row no empire can build.** Your iron ruling

@@ -58,9 +58,12 @@
 import type { AiConfig } from './aiConfig';
 import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
 
-import { type BuildingId, buildingDef } from '../sim/buildingData';
-import type { CardEffect } from '../sim/statecraftData';
+import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
+import { countOf } from '../sim/statecraft';
+import type { CardCountScaledEffect, CardEffect, CardId } from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
+import type { GameState } from '../sim/state';
+import { buildError } from '../sim/tech';
 import { type TechAge } from '../sim/techData';
 import { type UnitTypeId, isCombatant, unitDef } from '../sim/unitData';
 
@@ -95,6 +98,22 @@ export interface ValueContext {
    * taste belongs in it beside the seat's treasury.
    */
   ai: AiConfig;
+  /**
+   * **The board this opinion is about**, and whose seat is holding it.
+   *
+   * Here for the readings that cannot be made off a row at all — what this
+   * empire *actually* counts today (`countOf`), and which of its towns could
+   * still raise a given building. Its lifetime is the context's, which is one
+   * decision, for the stated reason: a board that outlived its loop would be
+   * appraised against a world the state has moved past.
+   *
+   * Nothing here mutates it, and nothing here reads sim randomness — this file
+   * is still pure and flat. It reads the simulation's own folds, which is the
+   * module's second rule rather than an exception to it.
+   */
+  state: GameState;
+  /** Whose appraisal this is. The seat every reading above is taken for. */
+  playerId: number;
   /** The empire's age, from `highestAge`. Indexes every yield weight. */
   age: TechAge;
   /** Towns held, capped at `score.cityCap` so a wide empire cannot dominate. */
@@ -398,6 +417,12 @@ export function valueOfSoldier(id: UnitTypeId, ctx: ValueContext): number {
  * copy", "on each such tile"). The nominal figures are `score.nominal*` and are
  * tuning surface like everything else.
  *
+ * **One shape is no longer a guess** (2026-09-04): a `countScaled` is priced by
+ * the count the simulation itself would pay it by, plus the promise of what the
+ * empire could come to count, discounted at λ. See `explainCounted` — and note
+ * the `card`, which is threaded through for the one count whose answer belongs
+ * to the holding rather than to the board (a growing card's own counter).
+ *
  * The v0 this replaces counted **labels** — how many of a card's effects wore a
  * `kind` from a list of liked strings — which could not tell +1💰 from +6💰 and
  * ranked a card with three tiny effects above a card with one enormous one.
@@ -408,14 +433,32 @@ export function valueOfSoldier(id: UnitTypeId, ctx: ValueContext): number {
  * reads. It reads a magnitude off a row to form an opinion, which is what a
  * player does looking at a card, and the opinion never leaves this file.
  */
-export function explainEffects(effects: readonly CardEffect[], ctx: ValueContext): Appraisal {
+export function explainEffects(
+  effects: readonly CardEffect[],
+  ctx: ValueContext,
+  card?: CardId,
+): Appraisal {
   const terms: ValueTerm[] = [];
-  for (const effect of effects) terms.push({ label: effect.kind, value: scoreEffect(effect, ctx) });
+  for (const effect of effects) {
+    // **One shape is priced as an appraisal rather than as a number** — a
+    // counted effect, whose worth is a real reading of the board multiplied by a
+    // discounted promise, and whose arithmetic a reader of the feed has to be
+    // able to see. `nest` keeps the outer sum's grouping exactly as it was.
+    if (effect.kind === 'countScaled') {
+      terms.push(nest(effect.kind, explainCounted(effect, ctx, card)));
+      continue;
+    }
+    terms.push({ label: effect.kind, value: scoreEffect(effect, ctx) });
+  }
   return appraise(terms);
 }
 
-export function scoreEffects(effects: readonly CardEffect[], ctx: ValueContext): number {
-  return explainEffects(effects, ctx).total;
+export function scoreEffects(
+  effects: readonly CardEffect[],
+  ctx: ValueContext,
+  card?: CardId,
+): number {
+  return explainEffects(effects, ctx, card).total;
 }
 
 function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
@@ -448,7 +491,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
         ctx.ai.score.nominalTiles
       );
     case 'countScaled':
-      return scorePayout(effect.pays, ctx) * ctx.ai.score.nominalCount;
+      // Priced by `explainCounted`, which `explainEffects` calls directly — this
+      // arm is the fallback for a caller that only wants the number.
+      return explainCounted(effect, ctx).total;
     case 'happiness':
       return effect.amount * ctx.ai.weights.happiness * (effect.per === 'city' ? ctx.cities : 1);
     case 'authority':
@@ -474,6 +519,199 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // unreadable must not sort below an empty offer.
       return ctx.ai.score.unknownEffect;
   }
+}
+
+// --- counted effects, at the potential weight -------------------------------
+
+/**
+ * **What a counted card is worth: what this empire counts today, plus a
+ * discounted share of what it could come to count.**
+ *
+ * The ruling of 2026-09-04. Until it, every `countScaled` on every card was
+ * priced at `score.nominalCount` — one flat guess, three — which meant a growing
+ * card that had watched twelve barbarians fall was worth exactly what the same
+ * card was worth the turn it was drafted, and a card paying per barracks was
+ * worth the same to an empire with six of them and to one with none.
+ *
+ *     value = (realized + λ × (potential − realized)) ÷ per × what one helping pays
+ *
+ * **Realized** is the simulation's own answer: `countOf` (`statecraft.ts`), the
+ * very reading the evaluator pays the card by. Asked at empire scale first, and
+ * — only when that answers nothing — summed over this empire's towns, which is
+ * how a *city-scoped* count (a garrison, a town's worked hills) is reached
+ * without this file learning which counts those are. That fallback cannot
+ * over-count: an empire-scale arm ignores the town it is handed, so a count that
+ * answered zero for the realm answers zero for every town in it.
+ *
+ * **Potential** is honest or it is absent, and there are exactly three paths:
+ *
+ *   · a row naming a **building** or a **category** — its subjects are things
+ *     towns build, so the potential is `potentialTownsFor`: the towns where the
+ *     simulation's own `buildError` says the row could go up. Read off the
+ *     effect's fields rather than off its `CountKind`, so nothing here switches
+ *     on the union;
+ *   · a **tally** — the growing cards, whose subject is the rest of the game and
+ *     not the board at all. `score.tallyForecast` says what an occasion is
+ *     expected still to bring, per occasion; an occasion the table does not name
+ *     forecasts nothing and prints that it did not;
+ *   · **everything else** — hexes revealed, luxuries held, citizens, camps
+ *     cleared — takes the realized reading alone. There is no honest potential
+ *     reading of "tiles this empire will have explored", and a guess dressed as
+ *     one is worse than the silence.
+ *
+ * `score.nominalCount` survives as exactly one thing: the **last resort** for a
+ * count nothing on this board can answer — a `tally` met with no card in hand,
+ * which is a row-borne counter with no holder (no such row exists today).
+ */
+export function explainCounted(
+  effect: CardCountScaledEffect,
+  ctx: ValueContext,
+  card?: CardId,
+): Appraisal {
+  const ai = ctx.ai;
+  const lambda = ai.score.potentialWeight;
+  const terms: ValueTerm[] = [];
+  const realized = realizedCount(effect, ctx, card);
+  if (realized === null) {
+    terms.push({
+      label: `${effect.count} — no counter this bot can read, at ${ai.score.nominalCount} nominal`,
+      value: ai.score.nominalCount,
+    });
+  } else {
+    terms.push({ label: `${realized} ${effect.count} today`, value: realized });
+    for (const term of potentialTerms(effect, ctx, lambda)) terms.push(term);
+  }
+  // The row's own cap, as a subtraction rather than as a clamp somewhere the
+  // fold cannot see it. A capped card is a card whose late helpings are worth
+  // nothing, and that is a thing a reader of the feed should be told.
+  const counted = terms.reduce((sum, term) => sum + term.value, 0);
+  const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
+  if (effect.max !== undefined && counted > effect.max * per) {
+    terms.push({
+      label: `− everything past the row's cap of ${effect.max} helping${effect.max === 1 ? '' : 's'}`,
+      value: counted - effect.max * per,
+      op: 'sub',
+    });
+  }
+  if (per !== 1) terms.push({ label: `÷ ${per} counted per helping`, value: per, op: 'div' });
+  terms.push({
+    label: `× ${round(scorePayout(effect.pays, ctx))} — what one helping pays`,
+    value: scorePayout(effect.pays, ctx),
+    op: 'mul',
+  });
+  return appraise(terms);
+}
+
+/**
+ * What this empire counts **today**, or `null` when nothing on the board can
+ * answer at all.
+ *
+ * `countOf` is asked rather than reimplemented, for the module's second rule:
+ * the count that pays the card and the count that prices it are one function, so
+ * they cannot drift. See `explainCounted` for the empire-then-towns order.
+ */
+function realizedCount(
+  effect: CardCountScaledEffect,
+  ctx: ValueContext,
+  card?: CardId,
+): number | null {
+  if (effect.count === 'tally' && card === undefined) return null;
+  // Ignored by every arm but `tally`, which is guarded above — `countOf`'s own
+  // docblock says so, and a probe that satisfies the type is the pattern
+  // `statecraft.ts` already uses for a count asked without a card.
+  const asked = card ?? ('' as CardId);
+  const empire = countOf(ctx.state, ctx.playerId, asked, effect);
+  if (empire !== 0) return empire;
+  let total = 0;
+  for (const city of ctx.state.cities) {
+    if (city.ownerId !== ctx.playerId) continue;
+    total += countOf(ctx.state, ctx.playerId, asked, effect, city);
+  }
+  return total;
+}
+
+/**
+ * The promise half, at λ — one printed term, or none where there is no honest
+ * reading of one. See `explainCounted` for the three paths.
+ *
+ * Each path answers with the **difference** (what the empire does not yet count
+ * but could), never with a total, which is why `realized` is not a parameter:
+ * `potentialTownsFor` skips a town already counted and a forecast is what is
+ * still to come. `realized + λ × (potential − realized)` is the sum of this term
+ * and the one before it, exactly as the ruling writes it.
+ */
+function potentialTerms(
+  effect: CardCountScaledEffect,
+  ctx: ValueContext,
+  lambda: number,
+): ValueTerm[] {
+  if (effect.count === 'tally') {
+    const occasion = effect.tally;
+    const forecast = occasion === undefined ? undefined : ctx.ai.score.tallyForecast[occasion];
+    if (forecast === undefined) {
+      return [
+        {
+          label: `no forecast for ${occasion ?? 'an unnamed occasion'} — the promise is unpriced`,
+          value: 0,
+        },
+      ];
+    }
+    return [
+      {
+        label: `+ ${forecast} more ${occasion} to come × ${round(lambda)} potential weight`,
+        value: forecast * lambda,
+      },
+    ];
+  }
+  const buildable = potentialTownsFor(effect, ctx);
+  if (buildable === null) return [];
+  return [
+    {
+      label: `+ ${buildable} more the towns could raise × ${round(lambda)} potential weight`,
+      value: buildable * lambda,
+    },
+  ];
+}
+
+/**
+ * **How many more of the counted thing this empire's towns could raise today** —
+ * `null` when the row's subject is not something a town builds.
+ *
+ * The gate is `buildError`, the simulation's own — the tech, the age marker, the
+ * site, the world's one copy of a wonder are all its and none of them is
+ * restated here. The one clause this file adds is not a rule but the count's own
+ * arithmetic: a town that already holds the row is realized, not potential (see
+ * the loop). Bounded by construction: towns × the building table once, asked of
+ * a card that is being appraised rather than per turn of a game.
+ *
+ * A line narrowed to one town (`within: 'city'`) reads no potential: what it
+ * pays is a fact about the town the payment is made in, and an empire-wide
+ * count of buildable ground would be an answer to a different question.
+ */
+function potentialTownsFor(effect: CardCountScaledEffect, ctx: ValueContext): number | null {
+  if (effect.within === 'city') return null;
+  const wanted: BuildingId[] =
+    effect.building !== undefined
+      ? [effect.building]
+      : effect.category !== undefined
+        ? BUILDING_IDS.filter((id) => buildingDef(id).category === effect.category)
+        : [];
+  if (wanted.length === 0) return null;
+  let open = 0;
+  for (const city of ctx.state.cities) {
+    if (city.ownerId !== ctx.playerId) continue;
+    for (const id of wanted) {
+      // A row this town already holds is **realized**, not potential — it is
+      // already in the count the line above printed, and counting it twice would
+      // pay the empire for the same barracks under both headings. Not a rule
+      // restated: `buildError` is about whether a queue may hold the row (a town
+      // rebuilding one is the reducer's business), and this is about whether the
+      // *count* would grow.
+      if (city.buildings.includes(id)) continue;
+      if (buildError(ctx.state, ctx.playerId, 'building', id, city) === null) open += 1;
+    }
+  }
+  return open;
 }
 
 /** A `countScaled`'s payout, per unit of whatever it counts. */

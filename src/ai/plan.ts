@@ -44,11 +44,17 @@
  * The second reading of the same ground (2026-09-04)
  * ---------------------------------------------------
  * `surveyUpgradeSites` counts, per improvement row, how much ground a *renewal*
- * would land on — farms standing and river banks that could take one — so the
- * beeline can price Irrigation by what it would actually pay this empire rather
- * than at zero. It walks `groundInReach` exactly as the plan does, and it lives
- * here rather than in `bot.ts` for the module's whole reason: it is a reading of
- * the board, and the policy should be handed one rather than take fifty.
+ * would land on — farms standing and river banks that could take one, counted
+ * apart since the potential weight landed — so the beeline can price Irrigation
+ * by what it would actually pay this empire rather than at zero. It walks
+ * `groundInReach` exactly as the plan does, and it lives here rather than in
+ * `bot.ts` for the module's whole reason: it is a reading of the board, and the
+ * policy should be handed one rather than take fifty.
+ *
+ * The plan's own half of the same ruling is `plannedRiderTerms`: a hex is priced
+ * at what it pays today **plus λ × what a technology already on this seat's
+ * research plan would add to it**, so the spade goes to the river bank while the
+ * beeline is still walking towards Irrigation rather than after it lands.
  *
  * Why it is its own module: `value.ts` is the appraisal, `bot.ts` is the policy,
  * and this is a *reading of the board* that both the policy and the great-person
@@ -72,7 +78,9 @@ import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } f
 import { type ResourceId, resourceDef, resourceIsVisibleTo, resourceYield } from '../sim/resourceData';
 import { RULES } from '../sim/rulesData';
 import type { City, GameState, Player, Unit } from '../sim/state';
-import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
+import { researchPlan } from '../sim/tech';
+import { techDef } from '../sim/techData';
+import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
 import { hasFreshWater } from '../sim/water';
 
 /**
@@ -228,15 +236,67 @@ function improvementEntry(
   const yields = explainYields(bagOfTileYield(delta), ctx);
   const name = improvementDef(improvement).name;
   const terms: ValueTerm[] = [nest(`${name} on (${tile.col},${tile.row})`, yields)];
+  for (const term of plannedRiderTerms(player, ctx, tile, improvement)) terms.push(term);
   return {
     col: tile.col,
     row: tile.row,
     improvement,
     label: `${name} at (${tile.col},${tile.row})`,
-    value: yields.total,
+    value: foldTerms(terms),
     terms,
     unclaimed: true,
   };
+}
+
+/**
+ * **What this hex would collect once the plan the seat has already declared
+ * comes in** — the anticipation term (ruled 2026-09-04).
+ *
+ * A farm on a river bank is worth two food today and three the turn Irrigation
+ * lands, and a seat that is *already researching Irrigation* knows that. Pricing
+ * the hex at today's yield alone sent the spade to the dry ground and left the
+ * bank unploughed the whole time the beeline was walking towards the node that
+ * would have paid for it.
+ *
+ * Three bounds, and each is the difference between an anticipation and a
+ * fantasy:
+ *
+ *   · **the seat's own plan and nothing further** — `researchPlan` is
+ *     `researching` plus the queue behind it (presence-is-state, `tech.ts`), so
+ *     this reads intentions the empire has actually declared. No walk of the
+ *     tree, no "a node two rungs on would also pay": a bot that priced ground by
+ *     what the whole tree might one day grant would price every hex the same;
+ *   · **this improvement, on this hex** — the rider's own conditions are asked
+ *     of the tile (`requiresFreshwater`), exactly as `surveyUpgradeSites` asks
+ *     them of the ground it counts. The two are halves of one register: a third
+ *     condition on the record is counted there and asked here;
+ *   · **λ** (`score.potentialWeight`) — the node has not landed. The term prints
+ *     the multiplication, so a reader of the feed sees a discounted promise
+ *     rather than a yield the hex does not pay.
+ */
+function plannedRiderTerms(
+  player: Player,
+  ctx: ValueContext,
+  tile: Tile,
+  improvement: ImprovementId,
+): ValueTerm[] {
+  const upgrades = improvementDef(improvement).upgrades ?? [];
+  if (upgrades.length === 0) return [];
+  const plan = researchPlan(player);
+  if (plan.length === 0) return [];
+  const lambda = ctx.ai.score.potentialWeight;
+  const terms: ValueTerm[] = [];
+  for (const upgrade of upgrades) {
+    if (!plan.includes(upgrade.tech)) continue;
+    if (upgrade.requiresFreshwater === true && !hasFreshWater(tile)) continue;
+    const each = explainYields(bagOfTileYield(readTileYield(upgrade.add)), ctx);
+    terms.push({
+      label: `${techDef(upgrade.tech).name} is on the plan — what it would add here × ${lambda}`,
+      value: each.total * lambda,
+      parts: [...each.terms, { label: `× ${lambda} — the node has still to land`, value: lambda, op: 'mul' }],
+    });
+  }
+  return terms;
 }
 
 /**
@@ -290,9 +350,12 @@ function surveyEntry(
  * a farm standing on a river bank and a river bank that will have a farm on it
  * are the same promise a few worker-turns apart.
  *
- * `hexes` is the whole count; `freshwater` is the part of it that can drink,
- * which is the one condition an `ImprovementUpgrade` may carry besides its tech
- * (`requiresFreshwater`). **A third condition on that record must be counted
+ * The tally is **four numbers, not one**: standing and buildable, each with the
+ * part of it that can drink — which is the one condition an `ImprovementUpgrade`
+ * may carry besides its tech (`requiresFreshwater`). Standing and buildable are
+ * apart because they are a fact and a promise and the ruling of 2026-09-04
+ * prices those differently (`score.potentialWeight`); the freshwater halves are
+ * apart for the older reason. **A third condition on that record must be counted
  * here too** — this survey is the register of what the rider appraisal knows how
  * to bound, and a condition it cannot see would be priced as if it were not
  * there.
@@ -309,18 +372,42 @@ function surveyEntry(
  * would be fifty empire walks. This is one walk of the same ground the plan
  * already walks, hoisted by `techGoalTable` and handed down.
  */
+export interface UpgradeTally {
+  /**
+   * Hexes of this empire's **already carrying** the improvement. The realized
+   * half: they collect the renewal the turn the node lands, with no spade.
+   */
+  standing: number;
+  /**
+   * Hexes this empire's spade could lay the improvement on today. The
+   * **potential** half, folded at `score.potentialWeight` by the reader — a
+   * river bank that will have a farm on it is the same promise a few
+   * worker-turns away, and a few worker-turns is exactly what λ is for.
+   */
+  buildable: number;
+  /** The part of `standing` that can drink. See `requiresFreshwater`. */
+  standingFresh: number;
+  /** The part of `buildable` that can drink. */
+  buildableFresh: number;
+}
+
 export interface UpgradeSites {
   /** By improvement, the hexes a renewal on that row would pay. */
-  byImprovement: Map<ImprovementId, { hexes: number; freshwater: number }>;
+  byImprovement: Map<ImprovementId, UpgradeTally>;
+}
+
+/** The empty tally, for a row nothing was counted for. */
+export function noUpgradeSites(): UpgradeTally {
+  return { standing: 0, buildable: 0, standingFresh: 0, buildableFresh: 0 };
 }
 
 export function surveyUpgradeSites(state: GameState, player: Player): UpgradeSites {
-  const byImprovement = new Map<ImprovementId, { hexes: number; freshwater: number }>();
+  const byImprovement = new Map<ImprovementId, UpgradeTally>();
   const rows = IMPROVEMENT_IDS.filter(
     (id): id is ImprovementId => (improvementDef(id).upgrades ?? []).length > 0,
   );
   if (rows.length === 0) return { byImprovement };
-  for (const row of rows) byImprovement.set(row, { hexes: 0, freshwater: 0 });
+  for (const row of rows) byImprovement.set(row, noUpgradeSites());
   for (const tile of groundInReach(state, player)) {
     for (const row of rows) {
       // Already standing here (and ours — a neighbour's farm collects for the
@@ -332,8 +419,19 @@ export function surveyUpgradeSites(state: GameState, player: Player): UpgradeSit
         tile.improvement === row && tileOwnerPlayerId(state, tile.col, tile.row) === player.id;
       if (!standing && improvementErrorAt(state, player.id, tile, row) !== null) continue;
       const tally = byImprovement.get(row)!;
-      tally.hexes += 1;
-      if (hasFreshWater(tile)) tally.freshwater += 1;
+      const fresh = hasFreshWater(tile);
+      // **The two halves are counted apart** (the potential weight, 2026-09-04):
+      // a farm standing on a river bank is a fact and a river bank that could
+      // take one is a promise, and the reader is the one that decides what a
+      // promise is worth. Counting them together — which is what `hexes` did —
+      // priced every promise at par.
+      if (standing) {
+        tally.standing += 1;
+        if (fresh) tally.standingFresh += 1;
+      } else {
+        tally.buildable += 1;
+        if (fresh) tally.buildableFresh += 1;
+      }
     }
   }
   return { byImprovement };

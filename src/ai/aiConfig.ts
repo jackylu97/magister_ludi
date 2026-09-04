@@ -9,8 +9,9 @@
  * It is a module of its own rather than the top of `bot.ts` for one reason:
  * `value.ts` (the appraisal) and `bot.ts` (the policy) both read it, and a
  * config that lived in either would make the other import a module it has no
- * business depending on. This file imports nothing but the JSON — it is the leaf
- * both of them stand on, which is `roads.ts`' bargain one system over.
+ * business depending on. This file imports nothing but the JSON at runtime — the
+ * one other import is a **type**, erased at build, so the module is still the
+ * leaf both of them stand on, which is `roads.ts`' bargain one system over.
  *
  * `bot.ts` re-exports `AI`, so every existing reader keeps its import site.
  *
@@ -30,6 +31,8 @@
  */
 
 import aiJson from '../../data/ai.json';
+
+import type { TallyOccasion } from '../sim/statecraftData';
 
 /**
  * The four trades a land soldier can be, for the **unit mix** (`military.mix`).
@@ -511,6 +514,53 @@ export interface AiConfig {
      * thing that lets "act now" and "plant the work" sit in one scored table.
      */
     lumpTurns: number;
+    /**
+     * **λ — what a promise is worth beside a fact** (ruled 2026-09-04).
+     *
+     * The user's formula, and it is one knob on purpose: every appraisal that
+     * can separate *what this empire already collects* from *what it would
+     * collect once the ground were worked, the towns had built the row, or the
+     * spades had caught up* folds
+     *
+     *     value = realized + λ × (potential − realized)
+     *
+     * rather than pricing the promise at full weight (which is what a per-town
+     * building term multiplied by the city count silently did) or at nothing
+     * (which is what a renewal on unploughed ground silently did). Four call
+     * sites read it — the beeline's per-town building gift, a node's renewal
+     * riders, a counted card's buildable subjects, and a worker's anticipation
+     * of a technology already on this seat's own research plan — and every one
+     * of them **prints the multiplication as its own term**, so a reader of the
+     * feed can see the discount rather than infer it.
+     *
+     * Per-domain weights (a bolder λ for technologies, a shyer one for orders)
+     * are a later ruling: one number until the arena says which way it wants to
+     * move.
+     */
+    potentialWeight: number;
+    /**
+     * **What a growing card is assumed still to watch happen**, per occasion —
+     * the potential half of a `tally` count (`CountKind`'s `tally`).
+     *
+     * A growing card's *realized* value is its own counter, which is a fact and
+     * is read off the empire's books. Its potential is the rest of the game, and
+     * that cannot be read off anything: a card drafted on turn 10 will watch
+     * hundreds of barbarians fall and a card drafted on turn 400 will not. So it
+     * is stated here, per `TallyOccasion`, and folded at λ like every other
+     * promise.
+     *
+     * **Per occasion and never one blind number**, because the occasions are not
+     * commensurable: a wonder finished anywhere in the world is a rare event and
+     * gold out of the treasury is thousands of coins. The unit is *whatever the
+     * counter stores* — `goldSpent` accumulates the raw coin (the card's own
+     * `per` divides it), so its forecast is raw gold and not a count of
+     * purchases.
+     *
+     * An occasion **absent from this table forecasts nothing** and says so in
+     * the fold ("no forecast"), which is the honest failure: a growing card
+     * nobody has priced is visibly unpriced rather than quietly guessed at.
+     */
+    tallyForecast: Partial<Record<TallyOccasion, number>>;
   };
   /** What "an enemy is near my towns" means, and what it is worth. */
   threat: {

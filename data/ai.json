@@ -177,7 +177,15 @@
     "synergyBonus": 14,
     "combatScale": 3,
     "patienceTurns": 10,
-    "lumpTurns": 20
+    "lumpTurns": 20,
+    "potentialWeight": 0.4,
+    "tallyForecast": {
+      "barbarianKill": 6,
+      "wonderAnywhere": 8,
+      "greatPersonSpent": 4,
+      "unitLost": 3,
+      "goldSpent": 2000
+    }
   },
   "threat": {
     "radius": 4,

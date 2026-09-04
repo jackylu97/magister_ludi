@@ -105,6 +105,7 @@ import {
   type UpgradeSites,
   buildImprovementPlan,
   explainWorkerCraving,
+  noUpgradeSites,
   rankPlanFor,
   rankWorkSites,
   surveyUpgradeSites,
@@ -299,6 +300,11 @@ export function valueContext(state: GameState, player: Player): ValueContext {
   const pressure = goldPressure(state, player);
   return {
     ai,
+    // The board, for the readings that are facts about it rather than about a
+    // row — what this empire actually counts today, and which of its towns could
+    // still raise a building. Its lifetime is the context's; see `ValueContext`.
+    state,
+    playerId: player.id,
     age: highestAge(player.techsResearched),
     cities: Math.min(ai.score.cityCap, countCities(state, player.id)),
     goldPressure: pressure.value,
@@ -1157,7 +1163,11 @@ export function scoreCard(player: Player, id: CardId, ctx: ValueContext): number
 /** `scoreCard`'s arithmetic, labelled. See `decision.ts`. */
 export function explainCard(player: Player, id: CardId, ctx: ValueContext) {
   const def = anyCardDef(id);
-  const terms: ValueTerm[] = [nest('what its effects are worth', explainEffects(def.effects ?? [], ctx))];
+  // The card is handed to the reader, not only its effects: a growing card's
+  // count is a fact about *this holding* (`CountKind`'s `tally`), so an
+  // appraisal that did not say which card it was reading would price a counter
+  // twelve occasions deep exactly as it prices an empty one.
+  const terms: ValueTerm[] = [nest('what its effects are worth', explainEffects(def.effects ?? [], ctx, id))];
   const line = def.line;
   if (line !== undefined) {
     const held = heldOnLine(player, line);
@@ -1605,11 +1615,22 @@ function explainTechGifts(id: TechId, ctx: ValueContext, sites?: UpgradeSites) {
       culture: def.culture,
       faith: def.faith ?? 0,
     };
+    // **A promise, at the potential weight** (ruled 2026-09-04). Not one town
+    // has this row up — the node has not even landed — so "in every town" is the
+    // purest potential in the whole appraisal, and it was priced at full weight
+    // until λ. The multiplication prints as its own term, which is the ruling's
+    // other half: the discount is visible in the feed, never folded away.
+    const lambda = ai.score.potentialWeight;
     const flats = explainYields(bag, ctx).terms;
     flats.push({ label: `× ${ctx.cities} towns`, value: ctx.cities, op: 'mul' });
+    flats.push({
+      label: `× ${lambda} — towns that must still build it`,
+      value: lambda,
+      op: 'mul',
+    });
     terms.push({
       label: `${def.name} — its flat yields, in every town`,
-      value: valueOfYields(bag, ctx) * ctx.cities,
+      value: valueOfYields(bag, ctx) * ctx.cities * lambda,
       parts: flats,
     });
     terms.push(nest(`${def.name} — what its row gives`, explainBuildingRow(building, ctx)));
@@ -1629,13 +1650,17 @@ function explainTechGifts(id: TechId, ctx: ValueContext, sites?: UpgradeSites) {
 /**
  * **What a node's renewals would pay, over the ground that would collect them.**
  *
- * One term per `{improvement, upgrade}` pair this node switches on, and the
+ * **Two** terms per `{improvement, upgrade}` pair this node switches on, and the
  * arithmetic is the plainest thing in the file: the rider's bag through
- * `explainYields`, multiplied by the hexes counted for it. A pair with no ground
- * under it still prints — at zero — because "Irrigation is worth nothing to an
- * empire with no river bank" is a reading a spectator should be able to see the
- * bot make, and a silent absence is indistinguishable from a family this
- * appraisal has not learnt about.
+ * `explainYields`, multiplied by the hexes counted for it. Two, because a farm
+ * already standing on a river bank will collect the renewal the turn the node
+ * lands and a bare river bank will collect it once somebody has walked a spade
+ * out there — a fact and a promise, folded `standing + λ × buildable` (the
+ * ruling of 2026-09-04, `score.potentialWeight`). A pair with no ground under it
+ * still prints — at zero — because "Irrigation is worth nothing to an empire
+ * with no river bank" is a reading a spectator should be able to see the bot
+ * make, and a silent absence is indistinguishable from a family this appraisal
+ * has not learnt about.
  *
  * `requiresFreshwater` is the one condition an `ImprovementUpgrade` carries
  * besides its tech, and it selects which of the survey's two counts is read. The
@@ -1644,21 +1669,33 @@ function explainTechGifts(id: TechId, ctx: ValueContext, sites?: UpgradeSites) {
  */
 function renewalTerms(id: TechId, ctx: ValueContext, sites?: UpgradeSites): ValueTerm[] {
   if (sites === undefined) return [];
+  const lambda = ctx.ai.score.potentialWeight;
   const terms: ValueTerm[] = [];
   for (const improvement of IMPROVEMENT_IDS) {
     const def = improvementDef(improvement);
     for (const upgrade of def.upgrades ?? []) {
       if (upgrade.tech !== id) continue;
-      const tally = sites.byImprovement.get(improvement) ?? { hexes: 0, freshwater: 0 };
-      const count = upgrade.requiresFreshwater === true ? tally.freshwater : tally.hexes;
+      const tally = sites.byImprovement.get(improvement) ?? noUpgradeSites();
+      const drinks = upgrade.requiresFreshwater === true;
+      const standing = drinks ? tally.standingFresh : tally.standing;
+      const buildable = drinks ? tally.buildableFresh : tally.buildable;
       const each = explainYields(bagOfTileYield(readTileYield(upgrade.add)), ctx);
-      const where = upgrade.requiresFreshwater === true ? ' that can drink' : '';
+      const where = drinks ? ' that can drink' : '';
       terms.push({
-        label: `${def.name} renewal — on ${count} hex${count === 1 ? '' : 'es'}${where} this empire holds or could work`,
-        value: each.total * count,
+        label: `${def.name} renewal — on ${standing} hex${standing === 1 ? '' : 'es'}${where} already carrying one`,
+        value: each.total * standing,
         parts: [
           ...each.terms,
-          { label: `× ${count} hex${count === 1 ? '' : 'es'}`, value: count, op: 'mul' },
+          { label: `× ${standing} hex${standing === 1 ? '' : 'es'}`, value: standing, op: 'mul' },
+        ],
+      });
+      terms.push({
+        label: `${def.name} renewal — on ${buildable} hex${buildable === 1 ? '' : 'es'}${where} this empire could put one on`,
+        value: each.total * buildable * lambda,
+        parts: [
+          ...each.terms,
+          { label: `× ${buildable} hex${buildable === 1 ? '' : 'es'}`, value: buildable, op: 'mul' },
+          { label: `× ${lambda} — the spades have still to get there`, value: lambda, op: 'mul' },
         ],
       });
     }
