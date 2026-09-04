@@ -94,6 +94,16 @@
           <button type="button" id="panel-reset" class="quiet" disabled>Reset to data</button>
           <span id="panel-status">at data</span>
         </div>
+        <div id="panel-sheets">
+          <!-- Saved dials: a sheet is the sparse set of edited knobs, kept in
+               this browser's storage under a name. Load resets first, so a
+               sheet is always the whole story. -->
+          <input type="text" id="sheet-name" placeholder="sheet name" />
+          <button type="button" id="sheet-save" class="quiet">Save</button>
+          <select id="sheet-list"></select>
+          <button type="button" id="sheet-load" class="quiet">Load</button>
+          <button type="button" id="sheet-delete" class="quiet">Delete</button>
+        </div>
       </div>
       <div id="panel-groups"></div>
     </aside>

@@ -37,7 +37,7 @@
 import './style.css';
 
 import { DEFAULT_PERSONA, PERSONA_IDS, personaLabel } from '../ai/aiConfig';
-import { type KnobEdit, describeEdit, sheetOfEdits } from './knobs';
+import { type KnobEdit, describeEdit, knobKey, sheetOfEdits } from './knobs';
 import { buildKnobPanel } from './panel';
 import { READING_COLUMNS, type ArenaSeat, type GameReading, type ReadingColumn } from './run';
 import type { ArenaMessage, ArenaTask } from './protocol';
@@ -68,6 +68,11 @@ const dirtyEl = need<HTMLElement>('dirty');
 const runsEl = need<HTMLElement>('runs');
 const panelGroupsEl = need<HTMLElement>('panel-groups');
 const panelResetButton = need<HTMLButtonElement>('panel-reset');
+const sheetNameInput = need<HTMLInputElement>('sheet-name');
+const sheetSaveButton = need<HTMLButtonElement>('sheet-save');
+const sheetListSelect = need<HTMLSelectElement>('sheet-list');
+const sheetLoadButton = need<HTMLButtonElement>('sheet-load');
+const sheetDeleteButton = need<HTMLButtonElement>('sheet-delete');
 const panelStatusEl = need<HTMLElement>('panel-status');
 
 /** The game's own two inks first, the renderer's palette after — spectate's rule. */
@@ -158,6 +163,78 @@ const panel = buildKnobPanel(panelGroupsEl, () => refreshPanel());
 function currentEdits(): KnobEdit[] {
   return panel.edits();
 }
+
+// --- saved sheets -------------------------------------------------------------
+//
+// A sheet is the sparse record of edited knobs, keyed by knob path, in this
+// browser's storage. Storage can be absent or full (a private window, a
+// locked-down profile), so every touch is wrapped and a failure is a quiet
+// no-op — this is a dev dial, not game state.
+
+const SHEETS_KEY = 'webciv:arena:sheets';
+
+type SavedSheets = Record<string, Record<string, number | number[]>>;
+
+function readSheets(): SavedSheets {
+  try {
+    return (JSON.parse(localStorage.getItem(SHEETS_KEY) ?? '{}') as SavedSheets) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSheets(sheets: SavedSheets): void {
+  try {
+    localStorage.setItem(SHEETS_KEY, JSON.stringify(sheets));
+  } catch {
+    /* storage refused — the page keeps working, the sheet is simply not kept */
+  }
+}
+
+function refreshSheetList(): void {
+  const names = Object.keys(readSheets()).sort();
+  sheetListSelect.replaceChildren(
+    ...names.map((name) => {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      return option;
+    }),
+  );
+  const none = names.length === 0;
+  sheetLoadButton.disabled = none;
+  sheetDeleteButton.disabled = none;
+}
+
+sheetSaveButton.addEventListener('click', () => {
+  const name = sheetNameInput.value.trim() || sheetListSelect.value || 'untitled';
+  const record: Record<string, number | number[]> = {};
+  for (const edit of currentEdits()) {
+    record[knobKey(edit.knob.path)] = edit.to as number | number[];
+  }
+  const sheets = readSheets();
+  sheets[name] = record;
+  writeSheets(sheets);
+  sheetNameInput.value = name;
+  refreshSheetList();
+  sheetListSelect.value = name;
+});
+
+sheetLoadButton.addEventListener('click', () => {
+  const sheet = readSheets()[sheetListSelect.value];
+  if (!sheet) return;
+  panel.apply(sheet);
+  sheetNameInput.value = sheetListSelect.value;
+});
+
+sheetDeleteButton.addEventListener('click', () => {
+  const sheets = readSheets();
+  delete sheets[sheetListSelect.value];
+  writeSheets(sheets);
+  refreshSheetList();
+});
+
+refreshSheetList();
 
 /** The reset button live or not, the count, and the deltas listed in full. */
 function refreshPanel(): void {

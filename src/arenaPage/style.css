@@ -434,6 +434,22 @@ tr.is-out td {
   font-weight: 600;
 }
 
+#panel-sheets {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+#panel-sheets input[type='text'] {
+  width: 9rem;
+}
+
+#panel-sheets select {
+  max-width: 10rem;
+}
+
 #panel-head .row {
   margin-bottom: 0;
 }

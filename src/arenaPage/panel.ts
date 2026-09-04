@@ -37,6 +37,13 @@ export interface KnobPanel {
   edits(): KnobEdit[];
   /** Every control back to what `data/ai.json` says. */
   reset(): void;
+  /**
+   * Write a saved sheet's values into the controls — `values` is keyed by
+   * `knobKey` path. Unknown keys are ignored (a sheet saved before a knob was
+   * renamed stays loadable); knobs the sheet does not name are left at the
+   * data file's value, so load always begins from a reset.
+   */
+  apply(values: Readonly<Record<string, number | readonly number[]>>): void;
 }
 
 /**
@@ -105,7 +112,21 @@ export function buildKnobPanel(root: HTMLElement, onChange: () => void): KnobPan
     }
   }
 
-  return { edits, reset };
+  function apply(values: Readonly<Record<string, number | readonly number[]>>): void {
+    reset();
+    for (const knob of KNOBS) {
+      const saved = values[knobKey(knob.path)];
+      if (saved === undefined) continue;
+      const held = inputs.get(knobKey(knob.path)) ?? [];
+      const bands = Array.isArray(saved) ? saved : [saved];
+      for (let index = 0; index < held.length; index++) {
+        if (bands[index] !== undefined) held[index]!.value = String(bands[index]);
+      }
+    }
+    onChange();
+  }
+
+  return { edits, reset, apply };
 }
 
 function knobRow(
