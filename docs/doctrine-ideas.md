@@ -459,6 +459,70 @@ where the selector names a slot type, a line, or a specific card. Examples:
 - **The Cartographers' Rolls** (growing, W) — +1🔬 per 40 hexes revealed
   (reads the existing revealed count — Cartographers' cousin that grows).
 
+### More charters / growing cards (round three, 2026-09-04)
+
+Charters, keeping the grammar (a building variant unlocked WHILE SLOTTED;
+built copies stand forever; one loud idea per building):
+
+- **The Harbourmasters' Charter** (E) — unlocks the **Bonded Wharf** (over
+  Harbour): +1💰; sea routes from this town pay +2💰 (a route hook — the
+  luxury shapes already know this seam).
+- **The Founders' Charter** (W) — unlocks the **Assembly Hall** (over
+  Monument): +1🎵; +1🎵 per doctrine your empire has adopted (countScaled,
+  an existing shape — the building that keeps score of your ideas).
+- **The Toolmakers' Charter** (E) — unlocks the **Pattern Shop** (over
+  Workshop): +1⚒; worked hexes with a mine or quarry +1⚒ (tile lines, the
+  Lighthouse shape).
+- **The Waterwrights' Charter** (E) — unlocks the **Cistern Gardens** (over
+  Aqueduct): keeps `waters`; +1🌾 per adjacent freshwater hex (adjacency).
+- **The Stargazers' Charter** (W) — unlocks the **Observatory** (over
+  Library): +1🔬; +1🔬 per adjacent mountain (the classic — mountains
+  finally pay something).
+- **The Provosts' Charter** (M) — unlocks the **Armoury** (over Barracks,
+  rival to the Drill Yard so the M slot has a fork): soldiers built here
+  cost 25% fewer hammers (a city-scoped price line, the Assay House shape
+  pointed at units).
+- **The Justices' Charter** (M) — unlocks the **Assize Court** (over the
+  authority building of its era): +1 authority; the town's crowding counts
+  one citizen fewer (a cityStat line — quiet, wide-empire tech).
+
+Growing cards, round three — new OCCASIONS more than new numbers; every
+one is an event the sim already announces (a windfall, an arrival, a
+command), so the counter has a hook to live on:
+
+| Order | Grows on | Step |
+|---|---|---|
+| The Groundbreakers' Rolls (E) | a forest or jungle chopped | +1⚒ per 2 chops (capped ~+6) |
+| The Wayfarers' Book (W) | a ruin claimed | +2🔬 |
+| The Torchbearers' Count (M) | a camp burnt | +1 authority per 2 camps |
+| The Landsmen's Ledger (E) | a hex joins your borders (bought or grown) | +1🌾 per 6 hexes |
+| The Prospectors' Register (E) | a vein surfaced | +2💰 +1⚒ |
+| The Masons' Rolls (E) | a building finished anywhere in your empire | +1⚒ per 4 buildings |
+| The Almoners' Book (W) | 500💰 spent on purchases, cumulative | +1😊 (capped ~+3) |
+| The Salvage Rolls (M) | a plunder or pillage you commit | +2💰 each |
+| The Rite Calendar (W) | a rite performed | +1🕯 per 2 rites |
+| The Chroniclers of the Fallen (M) | one of YOUR units dies | +1⚒ per 2 losses |
+| The Bell-Founders (W) | ANY empire finishes a wonder | +2🎵 (jealousy pays) |
+| The Landing Books (E) | your first arrival on a landmass new to you | +2🌾 +2🔬 (rare, big steps) |
+
+Notes for the cut, round three:
+
+- The Chroniclers of the Fallen is the interesting one — the first card
+  that pays on your own losses. It reads as a curse-adjacent CHOICE (draft
+  it and your dead work for you) and previews the curse grammar without
+  committing to it. Warmonger bait that also comforts a defender.
+- The Bell-Founders is the first WORLD occasion (someone else's wonder).
+  Worth one card exactly — it makes the world's progress legible in your
+  own hand — but only one; a deck of world-watchers plays itself.
+- The Landing Books wants `firstLandings` (a per-player landmass set) —
+  cheap, derived at arrival, but it is a schema field; defer to the same
+  phase-2 counter decision the whole growing family already waits on.
+- Shape inventory this round stays at ONE: everything above is
+  occasion + step + counter (`scalingYield`), some capped. No decay, no
+  multipliers, no per-turn conditions — the round-one design rule holds
+  (weak on draft day, ceiling is the player's own play), and caps do the
+  balancing where an occasion is spammable (chops, purchases).
+
 ### The balance turn (thinking, 2026-09-03 — the user: "nerf other areas
 and lean harder on the orders")
 
