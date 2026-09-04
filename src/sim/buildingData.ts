@@ -305,11 +305,13 @@ export type BuildingId =
   // technology behind it (`unlockedByCard`, `purchaseOnly`). The Gilded Court
   // hands it over and the treasury is the only way to raise it.
   | 'gildedHall'
-  // **The charters' nine** (2026-09-04, `docs/orders-and-doctrines.md`), in the
-  // order their pools open: an Order in a slot is what opens each of them, no
-  // node names any of them, and what a town has already raised stays raised.
-  // The Mint and the Observatory are the two charter buildings *not* here —
-  // they are rows the tree already named, opened early rather than only.
+  // **The charters' eleven** (2026-09-04, `docs/orders-and-doctrines.md`), in
+  // the order their pools open: an Order in a slot is what opens each of them,
+  // no node names any of them, and what a town has already raised stays raised.
+  // The Coinworks and the Orrery are rows of their own rather than early ways
+  // into the Mint and the Observatory (the user's amendment, same day): a
+  // charter's building is the charter's, so the tree's two Æra IV rows are
+  // exactly what they were before the charters shipped.
   | 'chapel'
   | 'keep'
   | 'scriptorium'
@@ -317,7 +319,9 @@ export type BuildingId =
   | 'cistern'
   | 'assemblyHall'
   | 'smithy'
+  | 'coinworks'
   | 'almshouse'
+  | 'orrery'
   | 'assizeCourt'
   // The six rows the tree re-cut of 2026-09-02 adds (Entry LVIII), in the order
   // the ages open them: Sailing's lighthouse, the charter a chartered city is

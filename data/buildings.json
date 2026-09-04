@@ -305,7 +305,6 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "unlockedByCard": true,
       "renown": {
         "family": "merchant",
         "perTurn": 1
@@ -1578,12 +1577,11 @@
       "science": 3,
       "culture": 0,
       "sciencePerPop": 1,
-      "unlockedByCard": true,
       "renown": {
         "family": "scholar",
         "perTurn": 2
       },
-      "note": "The sky, written down night after night. A further share of the beakers for one raised in sight of a mountain is paid by The Stargazers' Charter.",
+      "note": "The sky, written down night after night.",
       "effects": [
         {
           "kind": "percentYields",
@@ -1594,6 +1592,9 @@
             "building": "observatory"
           }
         }
+      ],
+      "deferred": [
+        "A further share of the beakers for one raised in sight of a mountain."
       ]
     },
     "lighthouse": {
@@ -2060,6 +2061,35 @@
       ],
       "note": "The hammers fall harder for every military Order standing in your government."
     },
+    "coinworks": {
+      "name": "Coinworks",
+      "category": "gold",
+      "cost": 180,
+      "food": 0,
+      "production": 0,
+      "gold": 2,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "renown": {
+        "family": "merchant",
+        "perTurn": 1
+      },
+      "effects": [
+        {
+          "kind": "yieldConversion",
+          "from": "gold",
+          "to": "culture",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "coinworks"
+          }
+        }
+      ],
+      "note": "Coin struck where the town can watch it being struck. A share of everything this city earns is heard again as culture."
+    },
     "almshouse": {
       "name": "Almshouse",
       "category": "faith",
@@ -2073,6 +2103,43 @@
       "unlockedByCard": true,
       "faithPurchases": "civilian",
       "note": "Settlers, workers and caravans may be bought with faith in the city that holds it, at the same rate gold buys them elsewhere."
+    },
+    "orrery": {
+      "name": "Orrery",
+      "category": "science",
+      "cost": 134,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 1,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "renown": {
+        "family": "scholar",
+        "perTurn": 2
+      },
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "hasBuilding",
+                "building": "orrery"
+              },
+              {
+                "test": "mountainAdjacent",
+                "radius": 2
+              }
+            ]
+          }
+        }
+      ],
+      "note": "Brass rings turning at the speed of the heavens. It is worth more in a town raised within sight of a mountain."
     },
     "assizeCourt": {
       "name": "Assize Court",

@@ -239,7 +239,7 @@ export type CityScope =
    * this town" clause in the game takes.
    *
    * `radius` is `frontier`'s field one scope over and it arrived for the same
-   * reason: the Stargazers' Charter's observatory reads two hexes, and the row's
+   * reason: the Stargazers' Charter's Orrery reads two hexes, and the row's
    * own number is the honest place for a distance a card names out loud. Absent
    * is the reading every row written before it had, so nothing moves.
    */

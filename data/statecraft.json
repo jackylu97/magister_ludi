@@ -4391,21 +4391,11 @@
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "A face on the coin, and a song about the face.",
-      "text": "Unlocks the Mint early. Every city with a Mint gains 10% of its gold yield again as culture.",
+      "text": "Unlocks the Coinworks.",
       "effects": [
         {
           "kind": "unlocksBuilding",
-          "building": "mint"
-        },
-        {
-          "kind": "yieldConversion",
-          "from": "gold",
-          "to": "culture",
-          "percent": 10,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "mint"
-          }
+          "building": "coinworks"
         }
       ]
     },
@@ -4431,37 +4421,11 @@
       "line": "star",
       "rarity": "uncommon",
       "flavor": "The sky is the one archive nobody has been able to edit.",
-      "text": "Unlocks the Observatory early. +1 science in every city with an Observatory, and 10% more science there when a mountain lies within two hexes.",
+      "text": "Unlocks the Orrery.",
       "effects": [
         {
           "kind": "unlocksBuilding",
-          "building": "observatory"
-        },
-        {
-          "kind": "cityYields",
-          "science": 1,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "observatory"
-          }
-        },
-        {
-          "kind": "percentYields",
-          "yield": "science",
-          "percent": 10,
-          "scope": {
-            "test": "all",
-            "of": [
-              {
-                "test": "hasBuilding",
-                "building": "observatory"
-              },
-              {
-                "test": "mountainAdjacent",
-                "radius": 2
-              }
-            ]
-          }
+          "building": "orrery"
         }
       ]
     },

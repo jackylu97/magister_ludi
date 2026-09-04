@@ -11,13 +11,19 @@
  *      building is opened by exactly one charter, every one of them is shut
  *      again when the card leaves the spread — so a twelfth charter is a JSON
  *      row and a charter that opens nothing fails here.
- *   2. **The building half is nine different rules**, each landing in a
+ *   2. **The building half is eleven different rules**, each landing in a
  *      different ledger: the hit points in `cityMaxHp`, the heal in
  *      `buildingAdjacentHeal`, the discount in `explainPurchaseCost`, the
  *      crowding in `explainHappiness`, the faith bank in `purchaseError`, the
  *      rite's culture in `performRiteAt`. One test each, carried to the ledger
  *      it touches — `statecraft.test.ts`' one-card-per-hook-family discipline at
  *      the scale of a building.
+ *
+ * Every clause a charter pays rides its **building**, never the Order (the
+ * user's amendment of 2026-09-04, which gave the Mint and Stargazers' charters
+ * rows of their own rather than early ways into the tree's Mint and
+ * Observatory). So each test below raises a building and asks the ledger, and
+ * the Order's whole job is the one line the register above pins.
  *
  * The bench is `aiAppraisal.test.ts`' blank board rather than a generated map,
  * and for its reason: every claim here is about *one town on ground somebody
@@ -68,7 +74,7 @@ import {
   newGame,
   playerById,
 } from '../../src/sim/state';
-import { buildError, isUnlocked } from '../../src/sim/tech';
+import { buildError, gatingTech, isUnlocked } from '../../src/sim/tech';
 import { resetVisibility } from '../../src/sim/visibility';
 
 // --- the bench --------------------------------------------------------------
@@ -131,8 +137,8 @@ const CHARTERS: { order: OrderId; building: BuildingId }[] = ORDER_IDS.flatMap((
     .map((effect) => ({ order: id, building: effect.building })),
 );
 
-/** The two rows a technology also names — opened *early* rather than only. */
-const ALSO_ON_THE_TREE: readonly BuildingId[] = ['mint', 'observatory'];
+/** The two rows the batch first opened early, and the tree keeps to itself. */
+const THE_TREE_KEEPS: readonly BuildingId[] = ['mint', 'observatory'];
 
 // --- the register -----------------------------------------------------------
 
@@ -214,28 +220,38 @@ describe('the charters as a family', () => {
     // And the refusal sends the player to the **deck**, not to the tree: nine of
     // the eleven stand on no node at all, so "needs a technology" would be false.
     expect(buildError(state, 0, 'building', 'chapel', city)).toContain('in one of your slots');
-    // The two that stand on a node as well name both ways in.
-    expect(buildError(state, 0, 'building', 'mint', city)).toContain('Paper Money');
-    expect(buildError(state, 0, 'building', 'mint', city)).toContain('in one of your slots');
+    // And it says so for every charter building, because none of them stands on
+    // a node: the refusal is read off `unlockedByCard`, not typed per row.
+    for (const { building } of CHARTERS) {
+      expect(buildError(state, 0, 'building', building, city), building).toContain(
+        'in one of your slots',
+      );
+    }
   });
 
-  it('opens the Mint and the Observatory early without closing their technologies', () => {
-    // The one decision in the batch worth its own pin (see `docs/orders-and-
-    // doctrines.md`): rather than ship a second row called "Mint", the charter
-    // opens the row the tree already names. So the card is a way in **early**,
-    // and the node still opens it in its own age.
+  it('opens a row of its own, and never a row the tree names', () => {
+    // The one decision in the batch the user overruled the same day (see
+    // `docs/orders-and-doctrines.md`): the Mint Charter and the Stargazers'
+    // Charter first opened the tree's own Mint and Observatory *early*, and now
+    // hand over the Coinworks and the Orrery instead. So a charter building is
+    // named by no technology at all, and the two Æra IV rows are the tree's
+    // alone — a charter that reached for one again would fail here.
     const state = bench();
     const player = playerById(state, 0)!;
-    for (const building of ALSO_ON_THE_TREE) {
+    for (const { building } of CHARTERS) {
+      expect(gatingTech('building', building), building).toBeNull();
+    }
+    for (const building of THE_TREE_KEEPS) {
+      expect(buildingDef(building).unlockedByCard, building).toBeUndefined();
+      expect(CHARTERS.map((entry) => entry.building)).not.toContain(building);
       expect(isUnlocked(state, 0, 'building', building)).toBe(false);
     }
-    slot(state, 0, 'mintCharter');
-    expect(isUnlocked(state, 0, 'building', 'mint')).toBe(true);
-    clearSlots(state, 0);
-    expect(isUnlocked(state, 0, 'building', 'mint')).toBe(false);
-    player.techsResearched.push('paperMoney');
-    expect(isUnlocked(state, 0, 'building', 'mint')).toBe(true);
-    // The Gilded Hall is the row no node names: nothing falls through for it.
+    // Their nodes still open them, and nothing in the deck is asked about it.
+    player.techsResearched.push('paperMoney', 'theAstrolabe');
+    for (const building of THE_TREE_KEEPS) {
+      expect(isUnlocked(state, 0, 'building', building), building).toBe(true);
+    }
+    // The Gilded Hall is the other row no node names: nothing falls through.
     expect(isUnlocked(state, 0, 'building', 'gildedHall')).toBe(false);
   });
 });
@@ -413,15 +429,16 @@ describe('what each charter building does', () => {
     expect(foldCardYields(cardCityYields(state, city)).production).toBe(2);
   });
 
-  it('The Mint Charter — a Mint town pays a tenth of its gold again as culture', () => {
+  it('Coinworks — the town pays a tenth of its gold again as culture', () => {
     const state = bench();
     const city = capitalOf(state);
     const other = foundCityAt(state, 0, at(state, 10, 5));
-    slot(state, 0, 'mintCharter');
-    raise(state, city, 'mint');
+    raise(state, city, 'coinworks');
     const flats = { food: 0, production: 0, gold: 40, science: 0, culture: 0, faith: 0 };
     expect(foldCardYields(cardYieldConversions(state, city, flats)).culture).toBe(4);
-    // Scoped to the town holding one, so the seat's other city is paid nothing.
+    // The conversion rides the **building**, so it is the town holding one that
+    // is paid and the seat's other city is paid nothing — and it keeps paying
+    // with the charter out of the spread, which is never slotted here at all.
     expect(foldCardYields(cardYieldConversions(state, other, flats)).culture).toBe(0);
   });
 
@@ -443,24 +460,28 @@ describe('what each charter building does', () => {
     expect(purchaseError(state, 0, city.id, warrior, 'faith')).toBeNull();
   });
 
-  it('The Stargazers’ Charter — beakers for an Observatory, more with a peak within two hexes', () => {
+  it('Orrery — a beaker of its own, and a share more with a peak within two hexes', () => {
     const state = bench();
     const city = capitalOf(state);
-    slot(state, 0, 'stargazersCharter');
-    raise(state, city, 'observatory');
-    expect(foldCardYields(cardCityYields(state, city)).science).toBe(1);
+    raise(state, city, 'orrery');
+    // The flat is the row's own field, not a card line: the Order pays nothing.
+    expect(buildingDef('orrery').science).toBe(1);
+    expect(cardPercentYields(state, city)).toHaveLength(0);
     // The radius is the row's own number, and the default is still the ring of
     // six every clause written before it reads — so both are checked on one
-    // board. A peak two hexes out admits the charter's clause and not `beside`.
+    // board. A peak two hexes out admits the Orrery's clause and not `beside`.
     expect(cityScopeAdmits(state, city, { test: 'mountainAdjacent', radius: 2 })).toBe(false);
     at(state, 6, 5).terrain = 'mountain';
     expect(cityScopeAdmits(state, city, { test: 'mountainAdjacent', radius: 2 })).toBe(true);
     expect(cityScopeAdmits(state, city, { test: 'mountainAdjacent' })).toBe(false);
-    const line = cardPercentYields(state, city).find((entry) =>
-      entry.source.includes('Stargazers'),
-    );
+    const line = cardPercentYields(state, city).find((entry) => entry.source.includes('Orrery'));
     expect(line?.yield).toBe('science');
     expect(line?.percent).toBe(10);
+    // And it is the town's own stones talking, so a second town of the same
+    // seat with the same peak in reach is paid nothing.
+    const other = foundCityAt(state, 0, at(state, 7, 5));
+    expect(cityScopeAdmits(state, other, { test: 'mountainAdjacent', radius: 2 })).toBe(true);
+    expect(cardPercentYields(state, other)).toHaveLength(0);
   });
 
   it('Assize Court — forgives a share of its own town’s crowding, as a gain line', () => {

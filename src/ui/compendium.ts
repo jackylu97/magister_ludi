@@ -839,11 +839,13 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
       note: true,
     });
   }
-  // **A row an Order opens** — the Gilded Hall, and the charters' nine
+  // **A row an Order opens** — the Gilded Hall, and the charters' eleven
   // (2026-09-04). Read off the row for the reason the watering clause above is:
   // eleven charters is eleven rows that would otherwise each have to remember to
   // type the same sentence, and the sentence a player actually needs is the one
-  // about what happens when the card comes back out of the slot.
+  // about what happens when the card comes back out of the slot. The second arm
+  // is `isUnlocked`'s dormant one: no row is named by a node and a card both
+  // today, and the sentence is here so that one would read truthfully.
   if (def.unlockedByCard === true) {
     clauses.push({
       text:

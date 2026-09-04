@@ -93,8 +93,9 @@ and no new effect shape:
 half of the sheet's proposed blocks, out of them and into the pools above. **A charter is an
 Order that opens a building while it is slotted** — the Gilded Court's mechanism
 (`cardUnlocksBuilding`), with the Gilded Court's standing rule: built copies stand for ever,
-and unslotting only stops you raising more. Nine of the eleven open a **new** row; two open
-a row the tree already names, *early*.
+and unslotting only stops you raising more. All eleven open a **new** row of their own; no
+charter opens anything the tree names (the user's amendment of the same day — the batch
+first had two of them opening the tree's Mint and Observatory *early*).
 
 | Charter | Pool · Slot | Opens | Cost | What the building does | Where the fact is read |
 |---|---|---|---|---|---|
@@ -105,24 +106,31 @@ a row the tree already names, *early*.
 | The Waterwrights' Charter | II · E | **Cistern** | 59 (aqueduct) | +2🌾; the town counts as watered; desert hexes +1🌾 | `waters` → `cityIsWatered`; `tileYields` |
 | The Senatus | II · W | **Assembly Hall** | 92 (examination hall) | capital only; +2 authority; +1🔬 +1🎵 per wildcard Order slotted | `requiresSite: capital`; `countScaled` · `slottedOrdersOfSlot` |
 | The Toolmakers' Charter | II · E | **Smithy** | 69 (workshop) | +2⚒; +1⚒ per military Order slotted | `countScaled` · `slottedOrdersOfSlot` |
-| The Mint Charter | III · E | **Mint** *(early)* | 150 (its own row) | the charter pays the 10% gold→culture | `unlockedByCard` beside its node |
+| The Mint Charter | III · E | **Coinworks** | 180 (bank) | +2💰; a tenth of the town's gold is paid again as culture | `yieldConversion` → `cardYieldConversions` |
 | The Almshouse Charter | III · W | **Almshouse** | 106 (monastery) | civilians and caravans may be bought with faith here | `faithPurchases: 'civilian'` |
-| The Stargazers' Charter | III · W | **Observatory** *(early)* | 175 (its own row) | the charter pays +1🔬 and the two-hex mountain share | `unlockedByCard`; `mountainAdjacent` radius |
+| The Stargazers' Charter | III · W | **Orrery** | 134 (university) | +1🔬; +10%🔬 with a mountain within two hexes | `percentYields` + `mountainAdjacent` radius |
 | The Justices' Charter | III · M | **Assize Court** | 100 (courthouse) | +1 authority; −15% of the town's crowding | `crowdingRelief` → `explainHappiness` |
 
 Three decisions worth the user's eye:
 
-- **The Mint and the Observatory already existed** as Æra IV rows (Paper Money, The
-  Astrolabe). Rather than ship a second building with the same name, the two charters open
-  the rows the tree already names — `isUnlocked`'s card clause stopped *replacing* the tree's
-  gate and started standing in front of it, so a charter is a way in **early** and the node
-  still opens the row in its own age. Both rows are otherwise untouched; the clauses the
-  sheet gave those two buildings ride the **Order** instead, scoped to towns holding one, so
-  an empire that researches the tech without the charter gets exactly what it always got.
-- **Everything else lives on the building**, not on the Order — including the two
-  slotted-Order counts, because `countScaled` paying `where: 'city'` is read city-locally off
-  a building's own `effects` (`cityBuildingEffects`), so the Senatus and the Smithy needed no
-  split at all.
+- **A charter's building is the charter's** (the user's amendment, 2026-09-04). The batch
+  first pointed the Mint Charter and the Stargazers' Charter at the tree's own Æra IV Mint
+  and Observatory (Paper Money, The Astrolabe), opening them *early* rather than shipping a
+  second row with the same name. The user asked for different names instead, so those two
+  charters now open the **Coinworks** and the **Orrery** — new rows, named by no node,
+  priced off the vanilla building each is a variant of exactly as the other nine are. The
+  Mint and the Observatory do exactly what they did before the charters shipped; the one
+  edit either row keeps is the Observatory's own deferral, whose stated blocker (nothing
+  could measure how far a peak was from a town) the Orrery's radius has since answered — so
+  the line says what still waits and no longer says why. `isUnlocked`'s clause keeps the
+  general rule it grew — a card stands in *front* of the tree's gate, never in place of it —
+  read by no row today.
+- **Every clause lives on the building**, not on the Order, all eleven times. A building's
+  own `effects` are read city-locally (`cityBuildingEffects` → `liveCityEffects`), so the
+  Senatus' and the Smithy's slotted-Order counts, the Coinworks' `yieldConversion` and the
+  Orrery's mountain percentage all ride the row that pays them. An Order's text is one
+  sentence — "Unlocks the …" — and a town that raised the building keeps what it does when
+  the card leaves the spread, which is the standing rule stated once rather than twice.
 - **A charter building pays no maintenance**, because `buildingUpkeep` prices a row off the
   age of the technology that names it and no technology names these. Deliberate for now and
   the user's call: a charter that also cost coin per turn is a different card.
@@ -410,9 +418,9 @@ is take one or pass.
 | The Charter of the Marches | E | 📜 | ○ | Your newest city gains +2 of every yield. Founding a city grants +30 culture. |
 | The Almoners' Book | W | ✶ | ◆ | +1 science per turn for each 400 gold you have spent buying while this Order stands in a slot. |
 | The Casus Belli | M | ⚒ | ○ | Declaring war grants +2 combat strength to all your units and +10% production in every city, for 10 turns. |
-| The Mint Charter | E | 🐫 | ◆ | Unlocks the Mint early. Every city with a Mint gains 10% of its gold yield again as culture. |
+| The Mint Charter | E | 🐫 | ◆ | Unlocks the Coinworks. |
 | The Almshouse Charter | W | 🕯 | ◆ | Unlocks the Almshouse. |
-| The Stargazers' Charter | W | ✶ | ◆ | Unlocks the Observatory early. +1 science in every city with an Observatory, and 10% more science there when a mountain lies within two hexes. |
+| The Stargazers' Charter | W | ✶ | ◆ | Unlocks the Orrery. |
 | The Justices' Charter | M | — | ◆ | Unlocks the Assize Court. |
 
 

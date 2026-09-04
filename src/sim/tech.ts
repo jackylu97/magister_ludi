@@ -374,13 +374,16 @@ export function isUnlocked(
   // beside it — see `BuildingDef.unlockedByCard`.
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByCard === true) {
     if (cardUnlocksBuilding(state, playerId, id)) return true;
-    // **A charter may open a row the tree also opens** (2026-09-04): the Mint
-    // Charter and the Stargazers' Charter hand over buildings a distant Æra IV
-    // node already names, so the card is a way in *early* rather than the only
-    // way in, and a card unslotted leaves the ordinary gate exactly where it
-    // was. A row no node names at all — the Gilded Hall, the nine charter
-    // buildings — has nothing to fall through to and is shut, which is the
-    // clause as it was originally written.
+    // **A card stands in front of the tree's gate, never in place of it**
+    // (2026-09-04): should a row ever be named by a node *and* handed over by a
+    // card, the card is a way in **early** and the node still opens it in its
+    // own age, so unslotting the card leaves the ordinary gate exactly where it
+    // was. No row reads this arm today — the charters' amendment gave the two
+    // charters that wanted a Mint and an Observatory rows of their own — and it
+    // stays because that is the honest answer to the question and it keeps a
+    // charter over a tree row a data decision rather than a code one. A row no
+    // node names at all — the Gilded Hall, the charters' eleven — has nothing
+    // to fall through to and is shut, the clause as originally written.
     if (gatingTech(kind, id) === null) return false;
   }
   // **A race project is asked of the table**, before the tree, for the clause
@@ -559,13 +562,13 @@ export function buildError(
   }
   if (!isUnlocked(state, playerId, kind, id)) {
     const gate = gatingTech(kind, id);
-    // **A row an Order opens says so** (the charters, 2026-09-04). Nine of the
-    // charter buildings stand on no node at all, and "needs a technology you do
+    // **A row an Order opens says so** (the charters, 2026-09-04). Every
+    // charter building stands on no node at all, and "needs a technology you do
     // not have" is not a vaguer sentence than the truth — it is a false one,
     // and it sends a player to the tree for something the deck holds. Read off
-    // `unlockedByCard`, so a tenth charter building says it without anybody
-    // remembering to type it again; the two that *also* stand on a node name
-    // both ways in, because both are true.
+    // `unlockedByCard`, so a twelfth charter building says it without anybody
+    // remembering to type it again; the second arm is `isUnlocked`'s dormant
+    // one a few lines up, and names both ways in should a row ever have both.
     if (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByCard === true) {
       return gate === null
         ? `${itemName(kind, id)} needs the Order that opens it in one of your slots`

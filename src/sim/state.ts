@@ -1172,15 +1172,17 @@ import {
  *     II); The Mint · The Almshouse · The Stargazers' · The Justices' Charter
  *     (Government III). Rows in a pool change what every draft deals, so a v65
  *     log's very first hand comes out different from the same seed.
- *   · **Nine new building rows** — Chapel, Keep, Scriptorium, Assay House,
- *     Cistern, Assembly Hall, Smithy, Almshouse, Assize Court. None is named by
- *     any technology, so each is shut until its charter is in a slot.
- *   · **Two rows the tree already named are opened *early*** — the Mint (Paper
- *     Money) and the Observatory (The Astrolabe) both carry `unlockedByCard`
- *     now, and `isUnlocked`'s card clause stopped *replacing* the tree's gate
- *     and started standing in front of it: a card opens the row early, the node
- *     still opens it in its own age, and a row no node names at all is shut as
- *     before.
+ *   · **Eleven new building rows** — Chapel, Keep, Scriptorium, Assay House,
+ *     Cistern, Assembly Hall, Smithy, Coinworks, Almshouse, Orrery, Assize
+ *     Court. None is named by any technology, so each is shut until its charter
+ *     is in a slot. **A charter's building is the charter's** (the user's
+ *     amendment of the same day): the Mint Charter and the Stargazers' Charter
+ *     first opened the tree's own Æra IV Mint and Observatory *early*, and now
+ *     hand over rows of their own instead — so those two nodes open exactly
+ *     what they opened before the charters shipped, and every clause a charter
+ *     pays rides its own building rather than the Order. `isUnlocked`'s card
+ *     clause keeps the general rule it grew (a card stands in *front* of the
+ *     tree's gate, never in place of it), read by no row today.
  *   · **Four new building facts, each read in exactly one place**:
  *     `crowdingRelief` (`explainHappiness`), `purchaseDiscount`
  *     (`explainPurchaseCost`, folded into the rider sum so the price multiplies
@@ -1189,13 +1191,12 @@ import {
  *     `'all'` for the Reliquary, `'civilian'` for the Almshouse — rather than
  *     growing a second boolean beside itself.
  *   · **One widened scope.** `CityScope`'s `mountainAdjacent` takes an optional
- *     `radius`, `frontier`'s field one scope over, for the Stargazers' two
- *     hexes. Absent is the ring of six every row written before it reads.
+ *     `radius`, `frontier`'s field one scope over, for the Orrery's two hexes.
+ *     Absent is the ring of six every row written before it reads.
  *
  *     The migration note: no field on the state changed shape at all — every
  *     addition is on the data tables. What moves is what the same log is worth:
- *     eleven rows in three pools redeal every draft, and a town that could not
- *     buy a Mint in Æra III now can.
+ *     eleven rows in three pools redeal every draft.
  */
 export const SCHEMA_VERSION = 66;
 
