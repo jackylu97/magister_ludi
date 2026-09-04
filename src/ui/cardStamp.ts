@@ -74,6 +74,13 @@ export const STAMP_TIMING = {
   thunkMs: 260,
   /** How long a taken card stays on the table before the sheet leaves. */
   exitMs: 2000,
+  /**
+   * The floor between two digit pops. Early ticks of the eased count arrive
+   * faster than a 90ms pop can play, and a pop restarted on every one both
+   * looks like a shiver and (in the class-restart idiom this replaced) forced
+   * a layout per tick — the 2026-09-03 "feels laggy" report.
+   */
+  tickPopMinMs: 70,
 } as const;
 
 /** The card's own small mark, in the name face — see the module docblock. */
@@ -379,6 +386,7 @@ export function playCardStamp(stamp: HTMLElement, reading: StampReading): () => 
       stamp.dataset.phase = 'counting';
       const started = performance.now();
       let lastShown = '';
+      let lastPop = 0;
       const step = (now: number): void => {
         const elapsed = now - started;
         const shown = counted.map((f) => ({
@@ -389,12 +397,23 @@ export function playCardStamp(stamp: HTMLElement, reading: StampReading): () => 
         if (text !== lastShown) {
           lastShown = text;
           setYieldText(parts.figure, text);
-          // The per-tick pop: the class is removed and re-added on the next
-          // frame so the keyframe restarts. `void offsetWidth` is the reflow
-          // that makes a browser believe it.
-          parts.figure.classList.remove('is-tick');
-          void parts.figure.offsetWidth;
-          parts.figure.classList.add('is-tick');
+          // The per-tick pop, through the Web Animations API rather than a
+          // restarted CSS class: the class-restart idiom needs a forced
+          // synchronous reflow (`void offsetWidth`) to convince the browser,
+          // and forty of those inside one count is the lag the 2026-09-03
+          // playtest felt. `animate()` restarts cleanly on the compositor,
+          // costs no layout, and is throttled to one pop per `tickPopMinMs`
+          // because early ticks arrive faster than any pop can finish.
+          if (now - lastPop >= STAMP_TIMING.tickPopMinMs && wantsMotion()) {
+            lastPop = now;
+            parts.figure.animate(
+              [
+                { transform: 'scale(1.16) translateY(-1px)' },
+                { transform: 'scale(1)' },
+              ],
+              { duration: 90, easing: 'ease-out' },
+            );
+          }
         }
         if (elapsed < STAMP_TIMING.countMs) {
           frame = window.requestAnimationFrame(step);
