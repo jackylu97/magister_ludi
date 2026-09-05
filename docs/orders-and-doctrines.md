@@ -283,25 +283,24 @@ is take one or pass.
 | Militia Levies | M | — | ● | All your cities gain +4 defense and +1 sight radius. · *neutral* |
 | Common Granary | E | 🌱 | ● | +1 food in every city holding an improved luxury resource. |
 | Salt Tithes | E | 🐫 | ● | +2 gold for each unique luxury. |
-| Boundary Stones | E | — | ● | +30% border expansion in every city. |
-| First Rites | W | 🕯 | ● | +2 faith in your capital. |
+| Boundary Stones | E | — | ● | +30% border expansion in every city with a Monument. |
+| First Rites | W | 🕯 | ● | +1 faith in your capital, and +1 faith for each wildcard Order you have in a slot. |
 | Fire-Keepers | W | 🕯 | ● | +1 faith in your capital, and +1 happiness there. |
 | First Fruits | W | 🕯 | ◆ | The first citizen born in each city pays +10 faith once. |
 
-### Government I pool (31)
+### Government I pool (32)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
 | The Long Watch | M | — | ● | +1 happiness for each unit standing in one of your cities, and +1 more for each fortification a city has built. |
-| Border Wardens | M | — | ● | +2 combat strength inside your territory. |
-| Vanguard | M | ⚒ | ● | +2 combat strength outside your territory. |
+| Border Wardens | M | — | ● | +1 combat strength inside your territory, and +1 more for each military Order you have in a slot, at most +3 more. |
 | Conscription | M | ⚒ | ◆ | +50% production toward units · −2 happiness. |
 | Spoils of the Wild | M | 🏹 | ◆ | Clearing a barbarian camp pays +100%. [Adds to Camp Followers. don't include this text in game] |
 | Horse Lords | M | ⚒ | ● | Mounted units gain +1 movement. |
 | Weights & Measures | E | 🐫 | ● | +1 gold in every city. |
 | Silk Roads | E | 🐫 | ◆ | +3 gold for each trade route you run. |
 | The Tax Farm | E | 🐫 | ● | +1 gold for each 4 population in your empire. |
-| Harbour Dues | E | 🐫 | ● | Coastal cities gain +2 gold and +1 culture. |
+| Harbour Dues | E | 🐫 | ● | Coastal cities gain 5% of their gold again as culture. |
 | Land Grants | E | — | ◆ | Buying a hex costs 25% less · +40% border expansion. |
 | Homestead Charters | E | — | ◆ | Newly founded cities start with 1 more population. |
 | Granary Levies | E | 🌱 | ◆ | When a city grows, it gains +10 production. |
@@ -326,7 +325,7 @@ is take one or pass.
 | The Rites Charter | W | 🕯 | ◆ | Unlocks the Chapel. |
 | The Vigil Charter | M | ⚒ | ◆ | Unlocks the Keep. |
 
-### Government II pool (44)
+### Government II pool (45)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
@@ -339,16 +338,16 @@ is take one or pass.
 | Sumptuary Laws | E | 🐫 | ● | +1 happiness for each unique luxury. |
 | Publicani | E | 🐫 | ◆ | +2 gold for each point of positive authority. |
 | Chartered Companies | E | 🐫 | ◆ | Buying a hex pays +5 science · buying a hex costs 15% less. |
-| Ore Tithes | E | ⚒ | ● | +1 production on every hex carrying a strategic resource. |
+| Ore Tithes | E | ⚒ | ● | +1 production on every hex carrying a strategic resource, and +1 production in your capital for each military Order you have in a slot, at most +3. |
 | Terraced Hillsides | E | 🌱 | ● | +1 food on every hill hex. |
 | Master Masons | E | ⚒ | ◆ | Completing a building grants +10 culture. |
 | Royal Surveyors | E | — | ● | +50% border expansion · buying a hex costs 25% less. |
-| Provincial Governors | E | — | ● | +3 authority capacity. |
+| Provincial Governors | E | — | ● | +1 authority capacity for each economic Order you have in a slot, at most +4. |
 | Emergency Powers | E | — | ○ | While your authority is negative: capital +25% production, and borders do not freeze. |
 | The Common Purse | E | — | ○ | Leftover production from a completed item is doubled. · *neutral* |
 | Pilgrim Roads | W | 🕯 | ◆ | +1 faith for every 3 citizens in your capital · +1 happiness for each 50 banked faith (at most +5). |
 | Lamplighters | W | 🕯 | ◆ | +1 culture for each 5 faith you gain per turn. |
-| Scholars' Stipend | W | ✶ | ● | +2 science in every city of 5 or more population. |
+| Scholars' Stipend | W | ✶ | ● | +2 science in every city of 5 or more population holding a Library, and +2 more where a University stands. |
 | The Choir | W | 🕯 | ● | +1 culture and +1 happiness in every city with a Temple. |
 | Star-Gazers | W | ✶ | ● | +2 science in every city with a mountain hex inside its borders. |
 | Cistern Works | E | 🌾 | ● | Every city of yours counts as standing on fresh water. |
@@ -374,8 +373,9 @@ is take one or pass.
 | The Waterwrights' Charter | E | 🌾 | ◆ | Unlocks the Cistern. |
 | The Senatus | W | 📜 | ◆ | Unlocks the Assembly Hall. |
 | The Toolmakers' Charter | E | ⚒ | ◆ | Unlocks the Smithy. |
+| The Banner-Call | M | ⚒ | ◆ | While you are at war: +15% production toward units, and killing a unit grants +5 culture. |
 
-### Government III pool (43)
+### Government III pool (44)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
@@ -422,6 +422,7 @@ is take one or pass.
 | The Almshouse Charter | W | 🕯 | ◆ | Unlocks the Almshouse. |
 | The Stargazers' Charter | W | ✶ | ◆ | Unlocks the Orrery. |
 | The Justices' Charter | M | — | ◆ | Unlocks the Assize Court. |
+| The Far Charts | W | 🧭 | ○ | +1 science for each 20 hexes you have revealed. |
 
 
 ### Government IV pool — PROPOSED (tier 29 adoption) (20)
@@ -501,6 +502,9 @@ pool and building the content are one decision.
 ### Notes and deferred halves (from the data rows)
 
 - **Boundary Stones** — Border culture is the culture a city puts toward its own borders, not the culture your empire saves toward its next draft. This hurries your borders only.
+- **Vanguard** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. Border Wardens stands in its place, and grows with the war cards beside it.
+- **The Wolf-Standard** — Not built: the bounty for a camp reaches your treasury and the nearest city, and there is no way yet to share one out among all of them. Retired until there is. † a cleared camp pays its bounty to every one of your cities, not only to the nearest
+- **The Far Charts** — How far a caravan may be sent is settled by the two cities it joins and by the trading posts they have built. A law that let one route ignore that distance is not built yet. † your caravans may run one route to any city you have ever seen, however far away it is
 - **Rites of Passage** — A unit bought with gold counts as completed, so it pays this too — but only once.
 - **The Harvest Songs** — It reads the whole harvest rather than what is left after the citizens eat: a city's surplus is decided after every percentage on it, and a card that read the surplus would be reading a figure that reads the card back.
 - **The Salt Road** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The Golden Scales stands in its place.

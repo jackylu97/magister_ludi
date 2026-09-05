@@ -1197,8 +1197,38 @@ import {
  *     The migration note: no field on the state changed shape at all — every
  *     addition is on the data tables. What moves is what the same log is worth:
  *     eleven rows in three pools redeal every draft.
+ *
+ * v67: **the synergy-density pass** (ruled 2026-09-05, `docs/loop-review.md`
+ * section 4 — the user's marginalia on the rework table). A pool of flat
+ * numbers is a pool where no two cards are better together than apart, so eight
+ * rows stopped being flat and started reading the council, the buildings or the
+ * coin beside them. **No new shape was added**: every row below is written in
+ * the vocabulary the card-shapes pass left (`slottedOrdersOfSlot`,
+ * `yieldConversion`, `hasBuilding`, `conditionRule`'s `atWar`), which is what
+ * makes this a data pass with a schema bump rather than a change to the
+ * evaluator.
+ *
+ *   · **Eight rows reworked.** Boundary Stones hurries the borders only where a
+ *     Monument stands; First Rites reads the wildcards in the council; Harbour
+ *     Dues became the Tide's conversion (coastal gold paid again as culture);
+ *     Scholars' Stipend climbs a Library-then-University ladder; Ore Tithes and
+ *     Provincial Governors read the military and economic benches; Border
+ *     Wardens absorbed **Vanguard**, which is retired in its favour, and grows
+ *     a point for every military Order in a slot.
+ *   · **Three new Order rows** — The Banner-Call (Government II, the war line's
+ *     one card from the breadth audit), The Far Charts (Government III, the
+ *     Wayfarers' payoff) and The Wolf-Standard, which ships **retired** with its
+ *     one clause `deferred`: a camp's bounty reaches the treasury and the
+ *     nearest town, and nothing in the windfall vocabulary can share a payout
+ *     out among every city.
+ *
+ *     The migration note: no field on the state changed shape, and nothing a
+ *     v66 save holds is invalid — a retired row keeps paying whoever already
+ *     drafted it. What moves is the draws: rows leaving and joining three pools
+ *     redeal every hand from the same seed, so there is no reading under which
+ *     a v66 log replays to the same board.
  */
-export const SCHEMA_VERSION = 66;
+export const SCHEMA_VERSION = 67;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

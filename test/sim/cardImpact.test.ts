@@ -234,7 +234,14 @@ describe('a card that pays a meter', () => {
     expect(meters[0]!.amount).toBe(4);
   });
 
-  /** Provincial Governors pays the writ. Same shape, the other meter. */
+  /**
+   * Provincial Governors pays the writ. Same shape, the other meter.
+   *
+   * Re-aimed by the synergy pass of 2026-09-05: the row was a flat +3 and is
+   * now a count of the economic bench, at most four — so the preview reports
+   * what the *board* is worth rather than what the row prints, and a card that
+   * counts itself is worth one clerk on an empty council.
+   */
   it('reports the card\'s own authority as its own line', () => {
     const { state } = bench();
     const lines = explainCardImpact(state, 0, { kind: 'order', id: 'provincialGovernors' });
@@ -242,7 +249,7 @@ describe('a card that pays a meter', () => {
     expect(meters).toHaveLength(1);
     expect(meters[0]!.meter).toBe('authority');
     expect(meters[0]!.source).toBe('Authority');
-    expect(meters[0]!.amount).toBe(3);
+    expect(meters[0]!.amount).toBe(1);
   });
 
   /**

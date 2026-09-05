@@ -1636,12 +1636,16 @@
       "line": "none",
       "rarity": "common",
       "flavor": "A stone that says *ours* says it forever.",
-      "text": "+30% border expansion in every city.",
+      "text": "+30% border expansion in every city with a Monument.",
       "effects": [
         {
           "kind": "rulePercent",
           "rule": "borderCulture",
-          "percent": 30
+          "percent": 30,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "monument"
+          }
         }
       ],
       "note": "Border expansion is how fast a city claims its next hex, fed by that city’s own culture — separate from the culture your empire saves toward its next draft. This hurries the borders only."
@@ -1653,13 +1657,24 @@
       "line": "procession",
       "rarity": "common",
       "flavor": "Before the temple, the gesture.",
-      "text": "+2 faith in your capital.",
+      "text": "+1 faith in your capital, and +1 faith for each wildcard Order you have in a slot.",
       "effects": [
         {
           "kind": "cityYields",
-          "faith": 2,
+          "faith": 1,
           "scope": {
             "test": "capital"
+          }
+        },
+        {
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "wildcard",
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 1,
+            "where": "empire"
           }
         }
       ]
@@ -1702,15 +1717,29 @@
       "slot": "military",
       "line": "none",
       "rarity": "common",
-      "flavor": "Home ground fights beside you.",
-      "text": "+2 combat strength inside your territory.",
+      "flavor": "Home ground fights beside you — and fights harder the more of us there are.",
+      "text": "+1 combat strength inside your territory, and +1 more for each military Order you have in a slot, at most +3 more.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 2,
+          "amount": 1,
           "side": "both",
           "when": {
             "test": "ownTerritory"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "ownTerritory"
+          },
+          "scaled": {
+            "count": "slottedOrdersOfSlot",
+            "slot": "military",
+            "per": 1,
+            "max": 3
           }
         }
       ]
@@ -1732,7 +1761,9 @@
             "test": "foreignTerritory"
           }
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. Border Wardens stands in its place, and grows with the war cards beside it."
     },
     "conscription": {
       "name": "Conscription",
@@ -1875,12 +1906,13 @@
       "line": "caravan",
       "rarity": "common",
       "flavor": "The sea pays for the privilege of arriving.",
-      "text": "Coastal cities gain +2 gold and +1 culture.",
+      "text": "Coastal cities gain 5% of their gold again as culture.",
       "effects": [
         {
-          "kind": "cityYields",
-          "gold": 2,
-          "culture": 1,
+          "kind": "yieldConversion",
+          "from": "gold",
+          "to": "culture",
+          "percent": 5,
           "scope": {
             "test": "coastal"
           }
@@ -2266,7 +2298,7 @@
       "line": "forge",
       "rarity": "common",
       "flavor": "Where the ore is, the hammers gather.",
-      "text": "+1 production on every hex carrying a strategic resource.",
+      "text": "+1 production on every hex carrying a strategic resource, and +1 production in your capital for each military Order you have in a slot, at most +3.",
       "effects": [
         {
           "kind": "tileYield",
@@ -2274,6 +2306,18 @@
           "on": {
             "test": "resourceKind",
             "kind": "strategic"
+          }
+        },
+        {
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "military",
+          "max": 3,
+          "pays": {
+            "to": "yield",
+            "yield": "production",
+            "amount": 1,
+            "where": "capital"
           }
         }
       ]
@@ -2343,11 +2387,17 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Distance obeys, if someone is paid to make it.",
-      "text": "+3 authority capacity.",
+      "text": "+1 authority capacity for each economic Order you have in a slot, at most +4.",
       "effects": [
         {
-          "kind": "authority",
-          "amount": 3
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "economic",
+          "max": 4,
+          "pays": {
+            "to": "authority",
+            "amount": 1
+          }
         }
       ]
     },
@@ -2461,14 +2511,40 @@
       "line": "star",
       "rarity": "common",
       "flavor": "A crowd is a library that has not been catalogued.",
-      "text": "+2 science in every city of 5 or more population.",
+      "text": "+2 science in every city of 5 or more population holding a Library, and +2 more where a University stands.",
       "effects": [
         {
           "kind": "cityYields",
           "science": 2,
           "scope": {
-            "test": "populationAtLeast",
-            "value": 5
+            "test": "all",
+            "of": [
+              {
+                "test": "populationAtLeast",
+                "value": 5
+              },
+              {
+                "test": "hasBuilding",
+                "building": "library"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "cityYields",
+          "science": 2,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "populationAtLeast",
+                "value": 5
+              },
+              {
+                "test": "hasBuilding",
+                "building": "university"
+              }
+            ]
           }
         }
       ]
@@ -4443,6 +4519,79 @@
           "building": "assizeCourt"
         }
       ]
+    },
+    "theBannerCall": {
+      "name": "The Banner-Call",
+      "pool": "governmentII",
+      "slot": "military",
+      "line": "forge",
+      "rarity": "uncommon",
+      "flavor": "Peace is the season in which the banners are mended.",
+      "text": "While you are at war: +15% production toward units, and killing a unit grants +5 culture.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atWar"
+          },
+          "then": [
+            {
+              "kind": "productionBonus",
+              "category": "unit",
+              "percent": 15
+            },
+            {
+              "kind": "windfallRider",
+              "occasion": "kill",
+              "grant": {
+                "yield": "culture",
+                "amount": 5
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "theWolfStandard": {
+      "name": "The Wolf-Standard",
+      "pool": "governmentII",
+      "slot": "military",
+      "line": "hunt",
+      "rarity": "rare",
+      "flavor": "The pole goes up where the camp came down.",
+      "text": "Every barbarian camp you clear pays its bounty to all of your cities at once.",
+      "effects": [],
+      "deferred": [
+        "a cleared camp pays its bounty to every one of your cities, not only to the nearest"
+      ],
+      "note": "Not built: the bounty for a camp reaches your treasury and the nearest city, and there is no way yet to share one out among all of them. Retired until there is.",
+      "retired": true
+    },
+    "theFarCharts": {
+      "name": "The Far Charts",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "wayfarers",
+      "rarity": "rare",
+      "flavor": "The edge of the sheet is only where the paper ran out.",
+      "text": "+1 science for each 20 hexes you have revealed.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "revealedTiles",
+          "per": 20,
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ],
+      "deferred": [
+        "your caravans may run one route to any city you have ever seen, however far away it is"
+      ],
+      "note": "How far a caravan may be sent is settled by the two cities it joins and by the trading posts they have built. A law that let one route ignore that distance is not built yet."
     }
   },
   "tierLadder": [

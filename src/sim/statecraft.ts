@@ -6190,7 +6190,11 @@ function buildingWords(id: BuildingId): string {
   // A wonder is its own shelf, which is the same `isWonder` split the article
   // rule is: one of a kind, so a proper noun and a shelf of proper nouns.
   const marked = buildingName(id);
-  return isWonder(id) ? marked : `${indefinite(name)} ${marked}`;
+  // The row's own article wins where the vowel rule would be wrong — "a
+  // University" — which is the fix `indefinite`'s docblock names: a field
+  // beside the name, never a special case in the sound rule.
+  const article = buildingDef(id).article ?? indefinite(name);
+  return isWonder(id) ? marked : `${article} ${marked}`;
 }
 
 /** A building's bare name, marked. `buildingWords` without the article. */

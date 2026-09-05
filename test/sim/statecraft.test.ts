@@ -51,6 +51,7 @@ import {
   cardActionRule,
   cardEmpireYields,
   cardPercentYields,
+  cardRulePercent,
   scopedCardTileLines,
   tileConditionHolds,
   cardBehaviorRule,
@@ -796,10 +797,12 @@ describe('every hook family, end to end', () => {
     const g = game();
     const city = found(g.state, 0);
     const before = cityYields(g.state, city).faith;
-    // First Rites prints +2 faith in the capital. It printed +2 and an authored
-    // +1 a level until 2026-09-04; what a card pays now is what it says.
+    // First Rites prints +1 faith in the capital and +1 more for each wildcard
+    // Order in a slot. Only the capital line is a *city* line — the reader's
+    // candle is an empire line, banked by `collectYields` — so this is the one
+    // point. It printed a flat +2 until the synergy pass of 2026-09-05.
     slot(g.state, 0, 'firstRites');
-    expect(cityYields(g.state, city).faith).toBe(before + 2);
+    expect(cityYields(g.state, city).faith).toBe(before + 1);
     // Out of its office it pays nothing: an Order pays from a slot and nowhere
     // else, which is the clause the ladder never touched.
     g.state.players[0]!.statecraft.slots = [];
@@ -857,11 +860,17 @@ describe('every hook family, end to end', () => {
     // so the flat writ line moved to the card that still carries one.
     slot(g.state, 0, 'provincialGovernors');
     expect(explainHappiness(g.state, 0).some((l) => l.source === 'Order · Festival Days')).toBe(true);
+    // Since the synergy pass of 2026-09-05 the writ line is a *count* — one
+    // point per economic Order in a slot, at most four — so its label carries
+    // the helping the way every other `countScaled` line does, and the card
+    // counts itself: Provincial Governors alone is one point.
     expect(
-      explainAuthority(g.state, 0).some((l) => l.source === 'Order · Provincial Governors'),
+      explainAuthority(g.state, 0).some((l) =>
+        l.source.startsWith('Order · Provincial Governors'),
+      ),
     ).toBe(true);
     expect(foldMeter(explainHappiness(g.state, 0))).toBe(happyBefore + 4);
-    expect(foldMeter(explainAuthority(g.state, 0))).toBe(writBefore + 3);
+    expect(foldMeter(explainAuthority(g.state, 0))).toBe(writBefore + 1);
   });
 
   it('combatLine — Blooded Spears is a labelled line in the forecast', () => {
@@ -1148,7 +1157,12 @@ describe('determinism', () => {
     // Government I and the chiefdom, and The Last Hunt pays a second voice —
     // four bags changed size, so a v60 log's `chooseOrder` names indices into
     // triples this build does not deal.
-    expect(SCHEMA_VERSION).toBe(66);
+    // v67 (the synergy-density pass, 2026-09-05): eight rows stop being flat
+    // and read the council beside them, Vanguard is retired out of Government I
+    // and The Banner-Call and The Far Charts join Government II and III — three
+    // bags changed size again, so a v66 log's first hand comes out different
+    // from the same seed.
+    expect(SCHEMA_VERSION).toBe(67);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1176,8 +1190,12 @@ describe('determinism', () => {
     slot(g.state, 0, 'firstRites');
     slot(g.state, 0, 'festivalDays');
     // Government, then Doctrines in the order taken, then slots in slot order.
+    // First Rites carries two effects since the synergy pass — the capital's
+    // candle and the wildcard reader — and both walk under the card's own name,
+    // in the row's own order.
     expect(liveEffects(g.state, 0).map((e) => e.source)).toEqual([
       'Doctrine · The Great Litany',
+      'Order · First Rites',
       'Order · First Rites',
       'Order · Festival Days',
     ]);
@@ -2914,8 +2932,12 @@ describe('the Orders pass of 2026-08-29', () => {
 
   /** The row that ships inert — a design decision, written on the row. The
    * Bronze Mirror was deleted outright on 2026-09-03 (user: "remove the
-   * bronze mirror from the game") — never offered, so no save can hold it. */
-  const RETIRED: readonly string[] = ['sanctuary'];
+   * bronze mirror from the game") — never offered, so no save can hold it.
+   *
+   * The Wolf-Standard joined it on 2026-09-05 for the same reason: a camp's
+   * bounty reaches the treasury and the nearest town, and no scope on a
+   * windfall payout can spread one across every city. */
+  const RETIRED: readonly string[] = ['sanctuary', 'theWolfStandard'];
 
   it('seats every new row in its ratified pool and slot', () => {
     for (const [id, pool, slotType] of ADDED) {
@@ -2931,7 +2953,7 @@ describe('the Orders pass of 2026-08-29', () => {
     }
   });
 
-  it('keeps the two deferred rows out of every pool sweep', () => {
+  it('keeps the deferred rows out of every pool sweep', () => {
     for (const id of RETIRED) {
       const def = orderDef(id as never);
       expect(def.retired, id).toBe(true);
@@ -3423,7 +3445,12 @@ describe('the balance pass of 2026-08-31', () => {
       'every city beside a mountain: +5 city defence',
       'the bonus reaching a city with a mountain two hexes away, rather than only one — not built yet',
     ]);
-    expect(said('firstRites')).toEqual(['+2 faith in your capital']);
+    // Re-aimed by the synergy pass of 2026-09-05: the row reads the council's
+    // wildcards now, and the reader is the card's second clause.
+    expect(said('firstRites')).toEqual([
+      '+1 faith in your capital',
+      '+1 faith per wildcard Order you have in a slot',
+    ]);
     expect(said('waysideShrines')).toEqual(['+1 faith in every city']);
     expect(said('commonGranary')).toEqual([
       '+1 food in every city holding an improved luxury resource',
@@ -3431,8 +3458,12 @@ describe('the balance pass of 2026-08-31', () => {
     expect(said('theOrchardTithe')).toEqual([
       '+1 food on every hex carrying a luxury resource',
     ]);
+    // The ground half is unmoved; the synergy pass of 2026-09-05 hung the
+    // Forge Levy's reader beside it, in the capital because a tile line's bag
+    // is a printed number and cannot itself count a council.
     expect(said('oreTithes')).toEqual([
       '+1 production on every hex carrying a strategic resource',
+      '+1 production in your capital per military Order you have in a slot (at most +3 production)',
     ]);
     expect(said('terracedHillsides')).toEqual(['+1 food on every hill hex']);
     expect(said('pilgrimRoads')).toEqual([
@@ -3957,7 +3988,11 @@ describe('the balance pass of 2026-09-02', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
     const amountOf = (id: OrderId): number =>
       (orderDef(id).effects[0] as { amount: number }).amount;
-    expect(amountOf('borderWardens')).toBe(2);
+    // Border Wardens' flat half fell to +1 when the synergy pass of 2026-09-05
+    // gave it a second, scaled line and folded Vanguard into it — a lone
+    // Wardens is still the +2 this pass ratified. Vanguard's own row is
+    // retired and keeps the number it was set to here.
+    expect(amountOf('borderWardens')).toBe(1);
     expect(amountOf('vanguard')).toBe(2);
     expect(amountOf('siegeDoctrine')).toBe(4);
     expect(said('weightsAndMeasures')).toEqual(['+1 gold in every city']);
@@ -4717,6 +4752,278 @@ describe('the card-shapes pass of 2026-09-04', () => {
     expect(said('theCharterOfTheMarches')).toEqual([
       '+2 food, +2 production, +2 gold, +2 science, +2 culture, +2 faith in your newest city',
       'founding a city grants +30 culture',
+    ]);
+  });
+});
+
+// --- the synergy-density pass of 2026-09-05 ---------------------------------
+
+/**
+ * `docs/loop-review.md` section 4, and the user's marginalia on its table.
+ *
+ * The claim the pass is testing: a pool of flat numbers is a pool where no two
+ * cards are better together than apart. Eight rows stopped being flat, three
+ * joined, and **not one new `CardEffect` shape was added** — every row below is
+ * written in the vocabulary the card-shapes pass left, which is why these are
+ * behaviour tests rather than register tests. What is pinned here is that each
+ * reworked row still folds through the *one* evaluator it always did, and that
+ * the gates the new clauses hang on actually close.
+ */
+describe('the synergy-density pass of 2026-09-05', () => {
+  /** The zero bag the conversions are asked against. */
+  function bag(over: Partial<Record<CityYieldKey, number>> = {}): Record<CityYieldKey, number> {
+    return { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0, ...over };
+  }
+
+  /** What one named card pays a town, in one voice. */
+  function paidTo(state: GameState, city: City, name: string, yieldKey: CityYieldKey): number {
+    return cardCityYields(state, city)
+      .filter((line) => line.source.includes(name))
+      .reduce((sum, line) => sum + line[yieldKey], 0);
+  }
+
+  it('Boundary Stones — the borders hurry only where a Monument stands', () => {
+    const g = game(950);
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'boundaryStones');
+    const rate = (): number =>
+      cardRulePercent(g.state, 0, 'borderCulture', city)
+        .filter((line) => line.source.includes('Boundary Stones'))
+        .reduce((sum, line) => sum + line.percent, 0);
+    // A scope is a question about a *city*, so a town with no Monument is
+    // simply not admitted — and the empire-wide reading, which has no town to
+    // ask, cannot answer it at all.
+    expect(rate()).toBe(0);
+    expect(cardRulePercent(g.state, 0, 'borderCulture').length).toBe(0);
+    city.buildings.push('monument');
+    expect(rate()).toBe(30);
+  });
+
+  it('First Rites — one candle in the capital, and one for every wildcard on the council', () => {
+    const g = game(951);
+    const capital = found(g.state, 0);
+    slot(g.state, 0, 'firstRites');
+    // The capital's own line is a city line and stays put.
+    expect(paidTo(g.state, capital, 'First Rites', 'faith')).toBe(1);
+    const read = (): number =>
+      cardEmpireYields(g.state, 0)
+        .filter((line) => line.source.includes('First Rites'))
+        .reduce((sum, line) => sum + line.faith, 0);
+    // It counts itself — the reader family's floor is one helping, never none.
+    expect(read()).toBe(1);
+    slot(g.state, 0, 'festivalDays');
+    expect(read()).toBe(2);
+    // A military card on the council is not a wildcard: the count is the
+    // *card's* own flavour, never the chair's.
+    slot(g.state, 0, 'bloodedSpears');
+    expect(read()).toBe(2);
+  });
+
+  it('Border Wardens — the merged row, and Vanguard retired into it', () => {
+    const g = game(952);
+    const capital = found(g.state, 0);
+    const mine = createUnit(g.state, 0, 'warrior', capital.col, capital.row);
+    const target = getTileAt(g.state.map, capital.col + 1, capital.row)!;
+    target.terrain = 'grassland';
+    target.feature = 'none';
+    target.hills = false;
+    createUnit(g.state, 1, 'warrior', target.col, target.row);
+    const wardens = (): number => {
+      const preview = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+      expect(preview.ok).toBe(true);
+      if (!preview.ok) return 0;
+      return preview.bonuses
+        .filter((b) => b.source.includes('Border Wardens'))
+        .reduce((sum, b) => sum + b.amount, 0);
+    };
+    expect(wardens()).toBe(0);
+    // Alone on the council it is the +2 the row printed before the merge: one
+    // flat point and one helping of the ladder, because a reader counts itself.
+    slot(g.state, 0, 'borderWardens');
+    expect(wardens()).toBe(2);
+    slot(g.state, 0, 'bloodedSpears');
+    expect(wardens()).toBe(3);
+    slot(g.state, 0, 'militiaLevies');
+    expect(wardens()).toBe(4);
+    // The cap is on the scaled line's own points, so a fourth soldier on the
+    // council is a soldier on the council and nothing more.
+    slot(g.state, 0, 'horseLords');
+    expect(slottedOrdersOfFlavour(g.state, 0, 'military')).toBe(4);
+    expect(wardens()).toBe(4);
+    // Vanguard is out of the bag and keeps its face for the saves that hold it.
+    expect(orderDef('vanguard').retired).toBe(true);
+    expect(poolOrders('governmentI').includes('vanguard' as never)).toBe(false);
+  });
+
+  it('Harbour Dues — the Tide’s conversion, and it stops at the shore', () => {
+    const g = game(953);
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'harbourDues');
+    const paid = (gold: number): number =>
+      cardYieldConversions(g.state, city, bag({ gold })).find((line) =>
+        line.source.includes('Harbour Dues'),
+      )?.culture ?? 0;
+    const shore = isCoastal(g.state.map, getTileAt(g.state.map, city.col, city.row)!);
+    expect(paid(100)).toBe(shore ? 5 : 0);
+    // Floored per city, on the town's own share — never on an empire total
+    // divided out afterwards.
+    expect(paid(19)).toBe(0);
+    // And the scope is the whole of the gate: an inland town reads the same
+    // hundred coins and pays nothing.
+    expect(cityScopeAdmits(g.state, city, { test: 'coastal' })).toBe(shore);
+  });
+
+  it('Scholars’ Stipend — a Library then a University, both behind the fifth citizen', () => {
+    const g = game(954);
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'scholarsStipend');
+    const paid = (): number => paidTo(g.state, city, "Scholars' Stipend", 'science');
+    city.population = 5;
+    expect(paid()).toBe(0);
+    city.buildings.push('library');
+    expect(paid()).toBe(2);
+    city.buildings.push('university');
+    expect(paid()).toBe(4);
+    // Both lines carry the population gate; a village with a college is still
+    // a village.
+    city.population = 4;
+    expect(paid()).toBe(0);
+  });
+
+  it('Ore Tithes — the seam’s hammer, and the Forge Levy’s reader beside it', () => {
+    const g = game(955);
+    const capital = found(g.state, 0);
+    slot(g.state, 0, 'oreTithes');
+    const hammers = (): number => paidTo(g.state, capital, 'Ore Tithes', 'production');
+    // It is an **economic** card counting the **military** bench, so unlike
+    // the readers that share their own flavour it does not count itself: an
+    // empire with no war cards on the council reads nothing.
+    expect(hammers()).toBe(0);
+    slot(g.state, 0, 'bloodedSpears');
+    expect(hammers()).toBe(1);
+    slot(g.state, 0, 'militiaLevies');
+    expect(hammers()).toBe(2);
+    slot(g.state, 0, 'horseLords');
+    expect(hammers()).toBe(3);
+    slot(g.state, 0, 'farRunners');
+    expect(slottedOrdersOfFlavour(g.state, 0, 'military')).toBe(4);
+    expect(hammers()).toBe(3);
+    // The ground half is untouched, and it is still an unscoped *tile* line —
+    // the seam pays wherever it is, and only the reader landed in the capital.
+    expect(orderDef('oreTithes').effects[0]!.kind).toBe('tileYield');
+    expect(scopedCardTileLines(g.state, capital).length).toBe(0);
+  });
+
+  it('Provincial Governors — the writ is a count of the economic bench, capped at four', () => {
+    const g = game(956);
+    found(g.state, 0);
+    const before = foldMeter(explainAuthority(g.state, 0));
+    slot(g.state, 0, 'provincialGovernors');
+    expect(foldMeter(explainAuthority(g.state, 0))).toBe(before + 1);
+    slot(g.state, 0, 'saltTithes');
+    slot(g.state, 0, 'commonGranary');
+    slot(g.state, 0, 'boundaryStones');
+    expect(foldMeter(explainAuthority(g.state, 0))).toBe(before + 4);
+    // A fifth clerk is a clerk and nothing more.
+    slot(g.state, 0, 'landGrants');
+    expect(slottedOrdersOfFlavour(g.state, 0, 'economic')).toBe(5);
+    expect(foldMeter(explainAuthority(g.state, 0))).toBe(before + 4);
+  });
+
+  it('The Banner-Call — both halves open on a war and close on a peace', () => {
+    // A bench of its own: the shared one declares war on the first turn, and
+    // this card's whole face is the difference between war and peace.
+    const g = createGame({
+      seed: 957,
+      sizeName: 'duel',
+      players: [
+        { name: 'Ada', color: '#d4502e', isHuman: true },
+        { name: 'Bors', color: '#3a7fe8' },
+      ],
+    });
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'theBannerCall');
+    const hammers = (): number =>
+      cardProduction(g.state, city, 'unit', 'warrior')
+        .filter((line) => line.source.includes('The Banner-Call'))
+        .reduce((sum, line) => sum + line.percent, 0);
+    const song = (): number =>
+      windfallPayout(g.state, 0, 'kill').grants
+        .filter((grant) => grant.yield === 'culture')
+        .reduce((sum, grant) => sum + grant.amount, 0);
+    expect(hammers()).toBe(0);
+    expect(song()).toBe(0);
+    openWar(g.state, 0, 1);
+    expect(hammers()).toBe(15);
+    expect(song()).toBe(5);
+    // The hammers are behind *units* and nothing else — the category is the
+    // whole of that rule.
+    expect(
+      cardProduction(g.state, city, 'building', undefined, 'granary').some((line) =>
+        line.source.includes('The Banner-Call'),
+      ),
+    ).toBe(false);
+    closeWar(g.state, 0, 1);
+    expect(hammers()).toBe(0);
+    expect(song()).toBe(0);
+  });
+
+  it('The Far Charts — the Wayfarers’ payoff, and the half that is not built', () => {
+    const g = game(958);
+    found(g.state, 0);
+    slot(g.state, 0, 'theFarCharts');
+    const seen = g.state.visibility[0]!.reduce((sum: number, bit: number) => sum + (bit > 0 ? 1 : 0), 0);
+    const beakers = cardEmpireYields(g.state, 0)
+      .filter((line) => line.source.includes('The Far Charts'))
+      .reduce((sum, line) => sum + line.science, 0);
+    expect(beakers).toBe(Math.floor(seen / 20));
+    // The route half is a rule about how far a caravan may be sent, which is a
+    // fact about the two towns it joins — so it is said on the row and not bent.
+    expect(orderDef('theFarCharts').deferred).toEqual([
+      'your caravans may run one route to any city you have ever seen, however far away it is',
+    ]);
+  });
+
+  it('The Wolf-Standard — deferred whole, and out of every pool', () => {
+    const def = orderDef('theWolfStandard');
+    expect(def.retired).toBe(true);
+    expect(def.effects).toEqual([]);
+    expect(def.deferred).toEqual([
+      'a cleared camp pays its bounty to every one of your cities, not only to the nearest',
+    ]);
+    expect(def.note).toBeTruthy();
+    expect(poolOrders('governmentII').includes('theWolfStandard' as never)).toBe(false);
+  });
+
+  it('prints every changed and new row in the words the pass ratified', () => {
+    const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    expect(said('boundaryStones')).toEqual([
+      '+30% border expansion, in every city with a Monument',
+    ]);
+    expect(said('borderWardens')).toEqual([
+      '+1 combat strength inside your territory',
+      '+1 combat strength per military Order you have in a slot (at most +3) inside your territory',
+    ]);
+    expect(said('harbourDues')).toEqual([
+      '5% of the gold in every coastal city is gained again as culture',
+    ]);
+    // "a University", not "an University": the row carries its own article,
+    // which is the fix `indefinite`'s docblock named for the day a name broke
+    // the vowel rule.
+    expect(said('scholarsStipend')).toEqual([
+      '+2 science in every city of 5+ with a Library',
+      '+2 science in every city of 5+ with a University',
+    ]);
+    expect(said('provincialGovernors')).toEqual([
+      '+1 authority capacity per economic Order you have in a slot (at most +4 authority capacity)',
+    ]);
+    expect(said('theBannerCall')).toEqual([
+      'while you are at war: +15% production toward units; killing a unit grants +5 culture',
+    ]);
+    expect(said('theFarCharts')).toEqual([
+      '+1 science per 20 hexes you have revealed',
+      'your caravans may run one route to any city you have ever seen, however far away it is — ' +
+        'not built yet',
     ]);
   });
 });

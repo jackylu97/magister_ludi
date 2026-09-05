@@ -466,6 +466,21 @@ export interface BuildingDef {
    * every new building worth a hammer to somebody's caravan.
    */
   category: BuildingCategory;
+  /**
+   * The indefinite article this name takes, when the vowel rule gets it wrong —
+   * **"a University"**, and one day "an hour-glass".
+   *
+   * `indefinite` in `statecraft.ts` is a *sound* rule written as a spelling
+   * test, and its own docblock says what to do the day a row breaks it: earn a
+   * field beside the name rather than a special case in the function. The
+   * synergy pass of 2026-09-05 is that day — Scholars' Stipend was the first
+   * card ever to scope a clause to the University, and it printed "an
+   * University" on the compendium's page.
+   *
+   * Absent is the vowel test, which is exact for every other row on this
+   * roster, so nothing that already reads correctly has to declare anything.
+   */
+  article?: 'a' | 'an';
   /** Hammers to complete. */
   cost: number;
   /** Flat food added to the city's total every turn. */

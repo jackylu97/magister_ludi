@@ -233,6 +233,7 @@
     },
     "university": {
       "name": "University",
+      "article": "a",
       "category": "science",
       "cost": 134,
       "food": 0,
