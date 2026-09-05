@@ -389,12 +389,20 @@ export function explainCaravan(ctx: ValueContext): Appraisal | null {
   const routes = ctx.routes;
   if (routes.free <= 0 || routes.open === null) return null;
   const offer = routes.open;
-  return appraise([
+  const terms = [
     nest(
       `the best route no caravan of this empire is running — ${offer.from.name} → ${offer.to.name} by ${offer.mode}`,
       offer.pay,
     ),
-  ]);
+  ];
+  // The stand-in for what this reading leaves out (see `score.caravanScale`);
+  // printed only when it is actually saying something, so a 1 leaves the fold
+  // exactly the route's pay.
+  const scale = ctx.ai.score.caravanScale;
+  if (scale !== 1) {
+    terms.push({ label: `× ${scale} — what a route pays beyond its yields, unread`, value: scale, op: 'mul' });
+  }
+  return appraise(terms);
 }
 
 /** Why a caravan is refused, in the words the feed prints. See `explainCaravan`. */

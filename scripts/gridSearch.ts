@@ -165,7 +165,8 @@ function scale(voice: Voice, factors: readonly number[]): Dial {
  * (batch 6's second question).
  */
 const DIALS: readonly Dial[] = [
-  leaf('site.newLuxuryBonus', [7, 14, 28]),
+  leaf('site.newLuxuryBonus', [7, 14, 21, 28]),
+  leaf('score.caravanScale', [1, 1.5, 2, 3]),
   scale('food', [0.7, 1, 1.4]),
   scale('production', [0.7, 1, 1.4]),
   scale('science', [0.7, 1, 1.4]),
@@ -174,7 +175,7 @@ const DIALS: readonly Dial[] = [
   leaf('threat.militaryBonus', [30, 60, 90]),
   leaf('threat.garrisonValue', [70, 140, 210]),
   leaf('military.mixBonus', [20, 45, 70]),
-  leaf('weights.city', [80, 110, 150]),
+  leaf('weights.city', [80, 110, 150, 200]),
   leaf('weights.happiness', [8, 12, 18]),
   leaf('priorities.horizonTurns', [30, 40, 60]),
   leaf('priorities.priceBandHigh', [2, 3, 5]),

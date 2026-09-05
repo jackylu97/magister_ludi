@@ -346,6 +346,11 @@ describe('the bot defends itself', () => {
     const game = grownGame(14);
     const player = seat(game.state, 0);
     const city = firstCity(game.state, 0);
+    // A quiet world is ESTABLISHED, not assumed (2026-09-05): on the retuned
+    // sheet the fourteen-turn bench already has wild pieces wandering inside the
+    // threat radius of the first town, so the wild is cleared off the board
+    // before the quiet appraisal — the test's own column is placed below.
+    game.state.units = game.state.units.filter((unit) => unit.ownerId === player.id);
 
     const quiet = chooseProduction(game.state, player, city);
     expect(quiet).not.toBeNull();

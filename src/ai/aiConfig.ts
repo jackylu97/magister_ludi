@@ -567,6 +567,15 @@ export interface AiConfig {
      * consistent from two to one.
      */
     unknownEffect: number;
+    /**
+     * A stand-in for what the route reading does not yet count — the road's
+     * march value, trading-post range, the destination's growth — multiplied
+     * onto a caravan's priced worth (`explainCaravan`). 1 is "the honest price
+     * as read"; the grid search sweeps it (2026-09-05), and a value that wants
+     * to sit far from 1 is evidence the missing terms are real and should be
+     * written, not that the multiplier should stay.
+     */
+    caravanScale: number;
     /** How many things a `countScaled` — or an unread rate — is assumed to count. */
     nominalCount: number;
     /** How many hexes a `tileYield` is assumed to land on. */

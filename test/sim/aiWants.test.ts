@@ -1320,8 +1320,10 @@ describe('batch 8 — the caravan and the route it would run', () => {
     expect(ctx.routes.open).not.toBeNull();
     const caravan = explainCaravan(ctx)!;
     expect(caravan).not.toBeNull();
-    // The worth *is* the offer's pay, and the fold is the computation.
-    expect(caravan.total).toBe(ctx.routes.open!.pay.total);
+    // The worth is the offer's pay times the stand-in for what the route reading
+    // leaves unread (`score.caravanScale`, read off the sheet — the 2026-09-05
+    // sweep put it at 3), and the fold is the computation.
+    expect(caravan.total).toBe(ctx.routes.open!.pay.total * ctx.ai.score.caravanScale);
     expect(foldTerms(caravan.terms)).toBe(caravan.total);
 
     // **It moves with the route.** A destination with more people banks more off

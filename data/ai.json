@@ -24,7 +24,7 @@
     "ringFalloff": 0.45,
     "freshWaterBonus": 6,
     "coastBonus": 3,
-    "newLuxuryBonus": 7,
+    "newLuxuryBonus": 14,
     "newStrategicBonus": 10,
     "yieldWeights": {
       "food": 3,
@@ -139,7 +139,7 @@
     "victory": 1500,
     "die": 60,
     "tech": 14,
-    "city": 110,
+    "city": 200,
     "military": 5,
     "happiness": 12,
     "authority": 10,
@@ -159,6 +159,7 @@
   },
   "score": {
     "unknownEffect": 2,
+    "caravanScale": 3,
     "nominalCount": 3,
     "nominalTiles": 3,
     "synergyBonus": 14,
@@ -223,7 +224,7 @@
         "cityValueFalloff": 1
       },
       "weights": {
-        "city": 150,
+        "city": 273,
         "worker": 90
       },
       "growth": {
@@ -241,7 +242,7 @@
         "cityValueFalloff": 0.6
       },
       "weights": {
-        "city": 80,
+        "city": 145,
         "food": [
           8,
           7,
@@ -290,7 +291,7 @@
       },
       "weights": {
         "military": 9,
-        "city": 125
+        "city": 227
       },
       "military": {
         "aggression": 0.6,
