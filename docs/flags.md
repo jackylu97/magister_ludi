@@ -134,6 +134,21 @@ never one blind number. Ordinary counted cards take realized + λ ×
   firsts/quests; whether 20 is the right bar — or whether it should scale
   with something — is a playtest call.
 
+### From the loop review (2026-09-05, `docs/loop-review.md`)
+
+- **The age scoreboard + age clock — DEFERRED by your ruling** ("an easy
+  fix that we can add after playtesting"): publish each empire's beads per
+  age on the abacus with the age's contested firsts and a "the age turns
+  in N turns" clock — the forcing function without the Reckoning; no new
+  mechanic, no schema. Revisit after the first playtests.
+- **A wolf in the default game — RULED, queued** ("i will add #2 for
+  sure, we're not yet at the point yet"): a warmonger seated in the default
+  4-seat game, and balanced bots less gentle (`war.declareThresholdPeaceful`
+  4.5 is the dial; the priority system now knows when it is ahead). Lands
+  when the bot is judged threatening enough to be worth seating.
+- Items 3–5 (the engine view, the synergy-density pass, the breadth audit)
+  are written up in `docs/loop-review.md` for your markup.
+
 ### Open singles (still yours)
 
 - **Gov IV/V/VI pools** — wait for your playtest (your ruling). Gov VI
