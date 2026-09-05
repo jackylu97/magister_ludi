@@ -149,6 +149,22 @@ never one blind number. Ordinary counted cards take realized + λ ×
 - Items 3–5 (the engine view, the synergy-density pass, the breadth audit)
   are written up in `docs/loop-review.md` for your markup.
 
+### RULED 2026-09-05 — the victory rule, and what Æra V is for
+
+- **Victory**: an empire may START the Magnum Opus only while holding 20
+  beads (built, schema 64), and **completing it WINS THE GAME outright** —
+  the builder is the winner, full stop. Beads gate the door; they no longer
+  decide the close (`closeTheGreatWork`'s most-beads reading and its tie
+  rule retire; the golden bead stays as history). Queued behind the
+  late-pools batch (shared schema).
+- **Æra V is not content, it is acceleration**: the game should END around
+  the close of Æra IV; Æra V's rows exist to hand a leader massive bonuses
+  toward the win — Opus cost cuts, bead purses, tempo — not to open a fifth
+  age of building. The thin Æra V is therefore not a content hole to fill
+  with buildings and units; its techs and the Gov V/VI rows should be
+  re-read as victory accelerators. Design pass owed (the Æra V tech rows'
+  effects), after the playthrough reports where Æra IV actually ends.
+
 ### Open singles (still yours)
 
 - **Gov IV/V/VI pools** — wait for your playtest (your ruling). Gov VI
