@@ -7,11 +7,11 @@
   "search": {
     "pathProbes": 4
   },
-  "spending": {
-    "goldSpendAbove": 150,
-    "goldReserve": 100,
-    "faithSpendAbove": 40,
-    "faithReserve": 0
+  "priorities": {
+    "horizonTurns": 40,
+    "switchMargin": 1.1,
+    "priceBandLow": 0.5,
+    "priceBandHigh": 3
   },
   "expansion": {
     "settlerCap": 5,
@@ -204,8 +204,6 @@
     "costDivisor": 40
   },
   "religion": {
-    "pantheonSpendAbove": 0,
-    "prophetSpendAbove": 10,
     "prophetTechValue": 600
   },
   "puppetProfile": {
@@ -307,11 +305,7 @@
           3
         ]
       },
-      "spending": {
-        "faithSpendAbove": 20
-      },
       "religion": {
-        "prophetSpendAbove": 5,
         "prophetTechValue": 950
       }
     },

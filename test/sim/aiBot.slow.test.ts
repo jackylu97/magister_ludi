@@ -22,7 +22,6 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { AI } from '../../src/ai/bot';
 import { driveBots } from '../../src/ai/driver';
 import { type Game, createGame, replay, snapshotState } from '../../src/sim/game';
 import { empireRateReading } from '../../src/sim/cities';
@@ -173,10 +172,15 @@ describe('a hundred and twenty turns of bots', () => {
       expect(spoke).toBe(true);
 
       // The treasury never runs away. A bot with no sink ends a game like this
-      // one nearer four figures; the bar is a loose multiple of the threshold on
-      // purpose, because what is being asserted is "something spends it", not a
-      // balance the tuning is allowed to move.
-      const ceiling = 4 * (AI.spending.goldSpendAbove + AI.spending.goldReserve);
+      // one nearer four figures; the bar is a loose one on purpose, because what
+      // is being asserted is "something spends it", not a balance the tuning is
+      // allowed to move.
+      //
+      // **The number is unchanged**: it was `4 × (spending.goldSpendAbove +
+      // spending.goldReserve)`, which was `4 × (150 + 100)`, and those two knobs
+      // are the ones the want book retired (`wants.ts`). There is no threshold
+      // left to take a multiple of, so the same figure is written out.
+      const ceiling = 1000;
       for (const player of realPlayers(played.game.state)) {
         expect({ seat: player.name, rich: player.gold < ceiling }).toEqual({
           seat: player.name,

@@ -125,7 +125,17 @@ import {
   valueOfSoldier,
   valueOfYields,
   yieldDelta,
+  yieldWeight,
 } from './value';
+import {
+  NO_WANTS,
+  type Want,
+  type WantCurrency,
+  type WantInputs,
+  shadowPrices,
+  wantBook,
+  worthPerCoin,
+} from './wants';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { discoveryDef } from '../sim/discoveryData';
@@ -180,13 +190,9 @@ import { authorityOf } from '../sim/meters';
 import { findPath } from '../sim/pathfind';
 import { PROJECT_IDS } from '../sim/projectData';
 import {
-  type PurchasableItem,
-  type PurchaseCurrency,
   bankOf,
   contributeError,
   explainContribution,
-  explainPurchaseCost,
-  purchaseError,
 } from '../sim/purchase';
 import {
   consecrateError,
@@ -212,7 +218,7 @@ import {
   slotLayout,
 } from '../sim/statecraftData';
 import { type BeliefId } from '../sim/religionData';
-import { TECH_IDS, UNIT_UNLOCK_TECH, type TechId, highestAge, techDef } from '../sim/techData';
+import { TECH_IDS, type TechId, highestAge, techDef } from '../sim/techData';
 import {
   availableTechs,
   buildError,
@@ -297,15 +303,24 @@ function aiFor(player: Player): AiConfig {
  */
 export function valueContext(state: GameState, player: Player): ValueContext {
   const ai = aiFor(player);
-  const pressure = goldPressure(state, player);
-  return {
+  // One reading of the empire's books for the whole context — the pressure, the
+  // wage cover and both saving rates come out of it, and asking three times
+  // would be three sweeps of every town to answer one question.
+  const rates = empireRateReading(state, player.id);
+  const netGold = rates.goldPerTurn ?? 0;
+  const pressure = goldPressure(state, player, netGold);
+  const age = highestAge(player.techsResearched);
+  // **The prior**: the context as it read before the book existed, with each
+  // bank priced at the table's own number. It is what the book is appraised
+  // against, and the band the price is then clamped into is drawn around it.
+  const prior: ValueContext = {
     ai,
     // The board, for the readings that are facts about it rather than about a
     // row — what this empire actually counts today, and which of its towns could
     // still raise a building. Its lifetime is the context's; see `ValueContext`.
     state,
     playerId: player.id,
-    age: highestAge(player.techsResearched),
+    age,
     cities: Math.min(ai.score.cityCap, countCities(state, player.id)),
     goldPressure: pressure.value,
     pressureNote: pressure.note,
@@ -318,7 +333,54 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     // prophet is the most valuable thing on the chart. It closes itself.
     faithAppetite:
       player.pantheon.beliefs.length > 0 && !hasFoundedReligion(state, player.id) ? 1 : 0,
+    prices: {
+      gold: yieldWeight(ai, 'gold', age) * pressure.value,
+      faith: yieldWeight(ai, 'faith', age),
+    },
+    priceNotes: { gold: '', faith: '' },
+    wants: NO_WANTS,
   };
+  const book = wantBook(state, player, prior, {
+    wageReserve: goldReserveFor(state, player),
+    goldRate: netGold,
+    faithRate: rates.faithPerTurn ?? 0,
+    // The hard floor, asked once for the whole book rather than per row.
+    maintained: netGold >= ai.solvency.stopMaintainedBelow,
+    soldierWorth: (city, id) => garrisonWorth(state, player, city, id, prior),
+  } satisfies WantInputs);
+  const priced = shadowPrices(book, prior);
+  return {
+    ...prior,
+    prices: { gold: priced.gold, faith: priced.faith },
+    priceNotes: priced.notes,
+    wants: book,
+  };
+}
+
+/**
+ * What a soldier of this type is worth **bought** for this town, or `null` when
+ * the empire does not want one there.
+ *
+ * The one clause of `unitRoleValue`'s soldier branch that a purse cares about: a
+ * town standing empty. A bought piece is a wall that walks away and the queue is
+ * where an army is raised — what the treasury is for is the emergency, and
+ * `threat.garrisonValue` is the number the queue's own branch charges for it. The
+ * strength half is `explainSoldier`, the same fold, so the two arms cannot drift.
+ */
+function garrisonWorth(
+  state: GameState,
+  player: Player,
+  city: City,
+  id: UnitTypeId,
+  ctx: ValueContext,
+): Appraisal | null {
+  const def = unitDef(id);
+  if (!isCombatant(def) || def.category === 'naval') return null;
+  if (garrisonAt(state, player.id, city) >= ctx.ai.military.garrisonPerCity) return null;
+  return appraise([
+    nest('what this soldier is worth', explainSoldier(id, ctx)),
+    { label: 'its town is standing empty', value: ctx.ai.threat.garrisonValue },
+  ]);
 }
 
 /**
@@ -386,12 +448,21 @@ function upkeepBill(state: GameState, playerId: number): number {
  * can print a 1 that was decided rather than merely arrived at. The note changes
  * no fold: it is a label.
  */
-function goldPressure(state: GameState, player: Player): { value: number; note: string } {
+function goldPressure(
+  state: GameState,
+  player: Player,
+  /**
+   * The books, read once by the caller. It is a parameter rather than a reading
+   * of its own because `valueContext` now needs the very same number three times
+   * over (the pressure, the wage cover, the saving rate) and
+   * `empireRateReading` prices every town in the empire to answer.
+   */
+  net: number,
+): { value: number; note: string } {
   const ai = aiFor(player);
   const { healthyIncome, strainSpan, arrearsTreasury, graceTreasury, graceTurns } = ai.solvency;
   const aversion = Math.max(1, ai.weights.debtAversion);
   if (player.gold < arrearsTreasury) return { value: aversion, note: '' };
-  const net = netGoldPerTurn(state, player.id);
   if (net >= healthyIncome) return { value: 1, note: '' };
   if (player.gold >= graceTreasury && state.turn < graceTurns && net >= 0) {
     return {
@@ -424,19 +495,23 @@ function maintenanceAffordable(state: GameState, player: Player): boolean {
 }
 
 /**
- * The reserve: what this bot never spends, **sized off the standing bill rather
- * than off a flat number**.
+ * The reserve: what this bot never spends, **sized off the standing bill and
+ * nothing else** — `solvency.reserveTurnsOfUpkeep` turns of the real
+ * maintenance bill, so cover grows with what there is to cover.
  *
- * `spending.goldReserve` alone was a hundred coins whether the empire owed five
- * a turn or a hundred and twenty-five, which is a reserve that stops meaning
- * anything at exactly the scale it starts mattering. This is that floor plus
- * `solvency.reserveTurnsOfUpkeep` turns of the real maintenance bill, so cover
- * grows with what there is to cover.
+ * `spending.goldReserve`'s flat hundred coins is gone with the rest of the
+ * spending knobs (the audit's finding 2): it was a hundred whether the empire
+ * owed five a turn or a hundred and twenty-five, which is a reserve that stops
+ * meaning anything at exactly the scale it starts mattering. It survives as the
+ * *want* the book carries (`wageReserveRow`) — a hold row every purchase is
+ * measured against — and as the hard cover `bankSpend` still asks, because a
+ * score can always be outweighed and a treasury at zero is a fact rather than a
+ * trade-off.
  */
 function goldReserveFor(state: GameState, player: Player): number {
   const ai = aiFor(player);
   const turns = Math.max(0, ai.solvency.reserveTurnsOfUpkeep);
-  return ai.spending.goldReserve + Math.floor(turns * upkeepBill(state, player.id));
+  return Math.floor(turns * upkeepBill(state, player.id));
 }
 
 /**
@@ -1706,7 +1781,8 @@ function renewalTerms(id: TechId, ctx: ValueContext, sites?: UpgradeSites): Valu
 // --- the two banks ----------------------------------------------------------
 
 /**
- * The surplus, spent — or `null` when neither bank is over its threshold.
+ * The banks, spent — or `null` when holding is worth more than anything for
+ * sale.
  *
  * **Gold and faith have no automatic sink**, and that is the whole reason this
  * arm exists. Nothing in the simulation converts a treasury into anything: a
@@ -1715,18 +1791,131 @@ function renewalTerms(id: TechId, ctx: ValueContext, sites?: UpgradeSites): Valu
  * no walls and half its towns unimproved — and it is invisible to every test
  * that only asks whether commands were accepted.
  *
- * `purchaseError` is the **single gate**, exactly as `buildError` is for the
- * queue: the wonder clause, the augur's bank, the one-unit-per-city stamp, the
- * spawn tile and the price are all its, and none of them is restated here. What
- * *is* here is the reserve, which is not a rule at all — it is this bot's
- * opinion about how much of a standing upkeep bill to keep cover for.
+ * **There is no threshold any more** (the audit's finding 2). What used to open
+ * the purse was `spending.goldSpendAbove` — a number in a file that *was* the
+ * behaviour: at 0 the bot bought thirteen buildings a game and at 400 it bought
+ * two, and nothing in between asked whether a purchase was worth more than the
+ * coin. Now the want book answers exactly that, and the comparison is between
+ * two things the same arithmetic priced: the best thing the bank could buy, and
+ * the best reason to hold on to it. See `bankSpend`.
+ *
+ * `purchaseError` is still the **single gate**, exactly as `buildError` is for
+ * the queue, and it is asked where it always was — inside the book.
+ *
+ * One context for all three arms, rather than one each: it carries the book, and
+ * the book is the expensive half of asking any of these questions.
  */
 function spendCommand(state: GameState, player: Player): BotDecision | null {
-  const gold = goldPurchase(state, player);
+  const ctx = valueContext(state, player);
+  const gold = bankSpend(state, player, ctx, 'gold');
   if (gold !== null) return gold;
-  const faith = faithPurchase(state, player);
+  const faith = bankSpend(state, player, ctx, 'faith');
   if (faith !== null) return faith;
   return contributionCommand(state, player);
+}
+
+/**
+ * **Buy the best want, if it beats holding the coin.**
+ *
+ * Two numbers, both worth per coin, both folded from printed terms:
+ *
+ *   · the **best buy** — the highest-ranking want in this bank the rules allow
+ *     today and the reserve survives;
+ *   · the **bar** — the highest-ranking *hold* row: the wages this empire owes
+ *     (`wageReserveRow`), and one row per want the purse cannot yet reach,
+ *     discounted by how many turns of saving it is away (`savingRows`).
+ *
+ * A purchase happens when the first is at least the second, and the tie goes to
+ * buying: a want level with holding is a want whose coins are doing the same
+ * work either way, and a bot that never breaks the tie is the hoarder this arm
+ * exists to prevent.
+ *
+ * The whole of the old policy falls out of that comparison. A bleeding empire
+ * holds, because gold's price rises with the pressure and the wage row rises
+ * with it. A rich empire with a four-hundred-coin want three turns off does not
+ * buy the sixty-coin trinket, because the saving row outranks it. And an empire
+ * with nine hundred coins and an unbuilt granary buys the granary, because
+ * nothing about holding was ever worth more than that.
+ */
+function bankSpend(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  currency: WantCurrency,
+): BotDecision | null {
+  const wants = currency === 'gold' ? ctx.wants.gold : ctx.wants.faith;
+  // The hard cover, hoisted: it prices the whole empire's standing bill, and
+  // asking it once per candidate would be one empire sweep per row for sale.
+  const reserve = currency === 'gold' ? goldReserveFor(state, player) : 0;
+  const candidates: BotCandidate[] = [];
+
+  let bar: Want | null = null;
+  let best: Want | null = null;
+  for (const want of wants) {
+    if (want.holding !== undefined) {
+      if (bar === null || worthPerCoin(want) > worthPerCoin(bar)) bar = want;
+      candidates.push(wantCandidate(want, currency, false));
+      continue;
+    }
+    if (want.buy === undefined) continue;
+    if (bankOf(player, currency) - want.price < reserve) {
+      candidates.push(
+        refused(want.label, `${reserve} ${currency} of cover would not survive the price`),
+      );
+      continue;
+    }
+    if (best === null || worthPerCoin(want) > worthPerCoin(best)) best = want;
+    candidates.push(wantCandidate(want, currency, false));
+  }
+  if (best === null) return null;
+  if (bar !== null && worthPerCoin(best) < worthPerCoin(bar)) {
+    candidates.push(refused(best.label, `holding beats it: ${bar.label}`));
+    return null;
+  }
+
+  const bought = best.buy!;
+  const city = cityById(state, bought.cityId)!;
+  for (const candidate of candidates) {
+    if (candidate.label === best.label) candidate.chosen = true;
+  }
+  return {
+    kind: 'purchase',
+    command: {
+      type: 'purchaseItem',
+      playerId: player.id,
+      cityId: bought.cityId,
+      item: bought.item,
+      currency,
+    },
+    subject: city.name,
+    summary:
+      `Buys ${best.label} for ${best.price} ${currency} — ${round1(worthPerCoin(best))} a coin, ` +
+      (bar === null
+        ? 'and this empire has nothing it would rather hold for.'
+        : `against ${round1(worthPerCoin(bar))} for ${bar.label}.`),
+    candidates,
+    focus: { col: city.col, row: city.row },
+  };
+}
+
+/**
+ * One want, as a candidate the feed can read: **worth per coin, folded**.
+ *
+ * The score is the ranking and the terms are the ranking's arithmetic — the
+ * want's own appraisal, then the division by the price — so the number the arm
+ * compared and the number the page prints are one computation. See
+ * `foldTerms`' contract in `decision.ts`.
+ */
+function wantCandidate(want: Want, currency: WantCurrency, chosen: boolean): BotCandidate {
+  const terms: ValueTerm[] = [
+    nest('what it is worth', { total: want.worth, terms: want.terms }),
+    {
+      label: `÷ ${Math.max(1, want.price)} ${currency}${want.holding === undefined ? '' : ' held back'}`,
+      value: Math.max(1, want.price),
+      op: 'div',
+    },
+  ];
+  return { label: want.label, score: worthPerCoin(want), chosen, terms };
 }
 
 /**
@@ -1745,12 +1934,15 @@ function spendCommand(state: GameState, player: Player): BotDecision | null {
  * figure the reducer charges — so "I can give this and still keep a hundred
  * back" is never a guess. Cities in founding order, gold before faith, and one
  * press per command like every other arm.
+ *
+ * **The thresholds are gone and the reserve is not** (batch 1). What a basket
+ * takes is hammers this town was going to spend anyway, so there is no want to
+ * rank it against and nothing here reads the book; what there *is* to say is
+ * that the wages come first, which is the cover the purchase arm keeps too. A
+ * contribution the book could price is batch 3's, with the chains.
  */
 function contributionCommand(state: GameState, player: Player): BotDecision | null {
-  const ai = aiFor(player);
-  const spend = ai.spending;
   for (const currency of ['gold', 'faith'] as const) {
-    const above = currency === 'gold' ? spend.goldSpendAbove : spend.faithSpendAbove;
     for (const city of state.cities) {
       if (city.ownerId !== player.id) continue;
       if (contributeError(state, player.id, city.id, currency) !== null) continue;
@@ -1759,16 +1951,11 @@ function contributionCommand(state: GameState, player: Player): BotDecision | nu
       const front = city.queue[0];
       // **The reserve is the standing bill's, except at the finish line.** The
       // sized reserve (`goldReserveFor`) is what stops a growing empire spending
-      // its cover; the row that `endsTheGame` is the one thing worth going down
-      // to the flat floor for, because there is no next turn to be solvent in.
-      // A deliberate carve-out, written down as one.
+      // its cover; the row that `endsTheGame` is the one thing worth spending the
+      // cover itself for, because there is no next turn to be solvent in. A
+      // deliberate carve-out, written down as one. Faith owes nobody wages.
       const reserve =
-        currency === 'faith'
-          ? spend.faithReserve
-          : frontRowEndsTheGame(city)
-            ? spend.goldReserve
-            : goldReserveFor(state, player);
-      if (bankOf(player, currency) <= above + reserve) continue;
+        currency === 'faith' || frontRowEndsTheGame(city) ? 0 : goldReserveFor(state, player);
       if (bankOf(player, currency) - offer.spend < reserve) continue;
       return {
         kind: 'purchase',
@@ -1810,310 +1997,6 @@ function frontRowEndsTheGame(city: City): boolean {
 function hasFoundedReligion(state: GameState, playerId: number): boolean {
   for (const religion of state.religions) {
     if (religion.founderId === playerId) return true;
-  }
-  return false;
-}
-
-/**
- * What a rich empire buys with gold: the next building on the priority list,
- * anywhere it will go — and failing that, a soldier for a town standing empty.
- *
- * Buildings before soldiers because a bought building is permanent and a bought
- * soldier is a wall that walks away; and the building loop is *building*-outer,
- * *city*-inner so the empire finishes granaries everywhere before it starts on
- * libraries, which is the same order the queue builds them in.
- */
-function goldPurchase(state: GameState, player: Player): BotDecision | null {
-  const ai = aiFor(player);
-  const spend = ai.spending;
-  if (player.gold <= spend.goldSpendAbove + goldReserveFor(state, player)) return null;
-
-  // **The hard floor reaches the purse too** (design ledger Entry LIX, finding
-  // 1). Buying a library outright is exactly as ruinous as building one — the
-  // hammers are the difference, the standing bill is the same — so an empire
-  // whose income has turned buys nothing it would have to keep. See
-  // `maintenanceAffordable`.
-  const maintained = maintenanceAffordable(state, player);
-  const ctx = valueContext(state, player);
-  // Best-scoring first rather than the fixed list's order, so a bleeding empire
-  // buys the market and a growing one buys the granary. The city loop is inside
-  // the row loop for the v0's reason: the empire finishes a row everywhere
-  // before it starts on the next.
-  const order = scoredBuildingOrder(ctx);
-  const candidates: BotCandidate[] = [];
-  for (const row of order) {
-    const id = row.id;
-    const def = buildingDef(id);
-    if (!maintained && buildingUpkeep(id) > 0) {
-      candidates.push(
-        refused(def.name, `the books are bleeding (${netGoldPerTurn(state, player.id)} gold a turn) and it costs upkeep`),
-      );
-      continue;
-    }
-    let taken: City | null = null;
-    let refusal: string | null = null;
-    for (const city of state.cities) {
-      if (city.ownerId !== player.id) continue;
-      const item: PurchasableItem = { kind: 'building', id };
-      if (affordable(state, player, city, item, 'gold')) {
-        taken = city;
-        break;
-      }
-      refusal ??= purchaseError(state, player.id, city.id, item, 'gold') ?? 'the reserve would not survive the price';
-    }
-    if (taken === null) {
-      candidates.push(refused(def.name, refusal ?? 'no town of this empire could take delivery'));
-      continue;
-    }
-    candidates.push({ label: `${def.name} at ${taken.name}`, score: row.value, chosen: true, terms: row.terms });
-    const price = explainPurchaseCost(state, player.id, taken.id, { kind: 'building', id }, 'gold');
-    return {
-      kind: 'purchase',
-      command: {
-        type: 'purchaseItem',
-        playerId: player.id,
-        cityId: taken.id,
-        item: { kind: 'building', id },
-        currency: 'gold',
-      },
-      subject: taken.name,
-      summary:
-        `Buys ${def.name} at ${taken.name} for ${price?.total ?? '?'} gold — the best-scoring row the purse can ` +
-        `reach with ${player.gold} in hand and ${goldReserveFor(state, player)} kept back.`,
-      candidates,
-      focus: { col: taken.col, row: taken.row },
-    };
-  }
-  // A town with nobody standing in it is the one thing worth breaking the
-  // building order for. `purchaseError` owns the one-unit-per-city stamp
-  // (`City.purchasedUnitTurns`), so a town that already took delivery today is
-  // simply skipped rather than fought with.
-  for (const city of state.cities) {
-    if (city.ownerId !== player.id) continue;
-    if (garrisonAt(state, player.id, city) >= ai.military.garrisonPerCity) continue;
-    const soldier = bestPurchasableSoldier(state, player, city);
-    if (soldier === null) continue;
-    const def = unitDef(soldier);
-    const strength = Math.max(def.combatStrength, def.rangedStrength ?? 0);
-    candidates.push({
-      label: `${def.name} at ${city.name}`,
-      score: strength,
-      chosen: true,
-      terms: [{ label: `${strength} strength — the strongest the town can take delivery of today`, value: strength }],
-    });
-    return {
-      kind: 'purchase',
-      command: {
-        type: 'purchaseItem',
-        playerId: player.id,
-        cityId: city.id,
-        item: { kind: 'unit', id: soldier },
-        currency: 'gold',
-      },
-      subject: city.name,
-      summary: `${city.name} is standing empty: buys ${def.name} to hold it, breaking the building order to do it.`,
-      candidates,
-      focus: { col: city.col, row: city.row },
-    };
-  }
-  return null;
-}
-
-/**
- * What a faithful empire buys: the cheapest thing the **faith** bank is priced
- * in — the augur, and after it the prophet — and only ever one at a time.
- *
- * "One at a time" is the whole of the restraint, and it is a restraint rather
- * than a rule: an augur is three rites or one god, so a second one standing idle
- * beside the first is faith that bought nothing. The row's own `purchase` block
- * names the bank (nothing here compares a type against `"augur"`), and roster
- * order puts the cheap one first.
- */
-function faithPurchase(state: GameState, player: Player): BotDecision | null {
-  const ai = aiFor(player);
-  const spend = ai.spending;
-  const noPantheon = player.pantheon.beliefs.length === 0;
-  const unfounded = !hasFoundedReligion(state, player.id);
-  const candidates: BotCandidate[] = [];
-
-  const appetite = faithAppetiteOrder(state, player);
-  for (let rank = 0; rank < appetite.length; rank++) {
-    const id = appetite[rank]!;
-    const def = unitDef(id);
-    if (ownsAny(state, player.id, id)) {
-      candidates.push(refused(def.name, 'this empire already has one standing'));
-      continue;
-    }
-
-    // **Saving up is a decision too.** Once this empire has a god but no faith
-    // of its own, an augur bought today is a prophet not bought this age: the
-    // augur is consumed by consecrating and `ownsAny` goes false again, so a bot
-    // with no hold-back buys augurs forever and reaches the classical age with
-    // no religion at all — which is exactly what the arena showed. The clause is
-    // read off the rows' own markers (`prophesies`), never off a name.
-    if (!noPantheon && unfounded && def.prophesies !== true && wantsAProphet(state, player)) {
-      candidates.push(refused(def.name, 'saving up: this empire holds a god, has no faith, and a prophet is open'));
-      continue;
-    }
-
-    // **The early-game appetite** (design addendum 5). The threshold is not one
-    // number: a seat with no god at all opens its bank at almost nothing for the
-    // piece that would found one, because the first belief is worth more than
-    // any amount of banked faith. Once both doors are open the ordinary
-    // `spending.faithSpendAbove` applies again.
-    let above = spend.faithSpendAbove;
-    if (def.consecrates === true && noPantheon) {
-      above = Math.min(above, ai.religion.pantheonSpendAbove);
-    }
-    if (def.prophesies === true && unfounded) {
-      above = Math.min(above, ai.religion.prophetSpendAbove);
-    }
-    if (player.faithPool <= above + spend.faithReserve) {
-      candidates.push(
-        refused(def.name, `the faith bank holds ${player.faithPool}; it opens above ${above + spend.faithReserve}`),
-      );
-      continue;
-    }
-
-    let taken: City | null = null;
-    let refusal: string | null = null;
-    for (const city of state.cities) {
-      if (city.ownerId !== player.id) continue;
-      const item: PurchasableItem = { kind: 'unit', id };
-      if (affordable(state, player, city, item, 'faith')) {
-        taken = city;
-        break;
-      }
-      refusal ??= purchaseError(state, player.id, city.id, item, 'faith') ?? 'the reserve would not survive the price';
-    }
-    if (taken === null) {
-      candidates.push(refused(def.name, refusal ?? 'no town of this empire could take delivery'));
-      continue;
-    }
-    candidates.push(chosenAt(`${def.name} at ${taken.name}`, rank));
-    const price = explainPurchaseCost(state, player.id, taken.id, { kind: 'unit', id }, 'faith');
-    return {
-      kind: 'purchase',
-      command: {
-        type: 'purchaseItem',
-        playerId: player.id,
-        cityId: taken.id,
-        item: { kind: 'unit', id },
-        currency: 'faith',
-      },
-      subject: taken.name,
-      summary:
-        `Calls ${def.name} at ${taken.name} for ${price?.total ?? '?'} faith — first in the appetite order ` +
-        `(the first god, then the first religion, then anything else) the bank will pay for.`,
-      candidates,
-      focus: { col: taken.col, row: taken.row },
-    };
-  }
-  return null;
-}
-
-/**
- * The faith-priced rows in the order this empire currently wants them.
- *
- * The v0 walked the roster and took the cheapest thing it could afford, which is
- * a policy that can only ever buy augurs: they are the cheap row, and the piece
- * is *spent* consecrating, so the empire is back where it started with a
- * hundred and twenty faith it never saved. The order here is an appetite —
- * **the first god, then the first religion, then whatever else** — and it is
- * read off the rows' own markers, never off a type name (the discipline
- * `src/sim/` keeps for `settler` and `augur`).
- *
- * Ties by roster order, which is data order and therefore part of the log.
- */
-function faithAppetiteOrder(state: GameState, player: Player): UnitTypeId[] {
-  const noPantheon = player.pantheon.beliefs.length === 0;
-  const unfounded = !hasFoundedReligion(state, player.id);
-  const rows: { id: UnitTypeId; rank: number; index: number }[] = [];
-  for (let index = 0; index < UNIT_TYPE_IDS.length; index++) {
-    const id = UNIT_TYPE_IDS[index]!;
-    const def = unitDef(id);
-    if (def.purchase?.currency !== 'faith') continue;
-    let rank = 2;
-    if (def.consecrates === true && noPantheon) rank = 0;
-    else if (def.prophesies === true && unfounded) rank = noPantheon ? 1 : 0;
-    rows.push({ id, rank, index });
-  }
-  rows.sort((a, b) => a.rank - b.rank || a.index - b.index);
-  return rows.map((row) => row.id);
-}
-
-/**
- * Is there a prophet this empire could call *today*, and has it none standing?
- *
- * The **unlock tech clause is the whole of the honesty here.** Holding faith
- * back for a prophet whose door has not opened is not saving, it is hoarding: it
- * cost the arena eighty turns and eight hundred banked faith on a seat that
- * never reached The High Temple. Asked of the tree's own inverse
- * (`UNIT_UNLOCK_TECH`), which is the same lookup `upkeep.ts` prices an age off —
- * so nothing here names a technology either.
- */
-function wantsAProphet(state: GameState, player: Player): boolean {
-  for (const id of UNIT_TYPE_IDS) {
-    const def = unitDef(id);
-    if (def.prophesies !== true) continue;
-    if (def.purchase?.currency !== 'faith') continue;
-    if (ownsAny(state, player.id, id)) return false;
-    const gate = UNIT_UNLOCK_TECH.get(id);
-    if (gate !== undefined && !player.techsResearched.includes(gate)) return false;
-    return true;
-  }
-  return false;
-}
-
-/**
- * Would this purchase be accepted, **and** leave the reserve untouched?
- *
- * Two questions and they belong to two different owners. Legality is the
- * simulation's and is asked whole (`purchaseError`); the reserve is this bot's
- * and is asked of the printed price (`explainPurchaseCost`), which is the same
- * fold the reducer charges — so "I can afford this and still keep a hundred
- * back" is never a guess.
- */
-function affordable(
-  state: GameState,
-  player: Player,
-  city: City,
-  item: PurchasableItem,
-  currency: PurchaseCurrency,
-): boolean {
-  if (purchaseError(state, player.id, city.id, item, currency) !== null) return false;
-  const price = explainPurchaseCost(state, player.id, city.id, item, currency);
-  if (price === null) return false;
-  const reserve =
-    currency === 'gold' ? goldReserveFor(state, player) : aiFor(player).spending.faithReserve;
-  return bankOf(player, currency) - price.total >= reserve;
-}
-
-/** The strongest soldier this town could take delivery of today, or `null`. */
-function bestPurchasableSoldier(
-  state: GameState,
-  player: Player,
-  city: City,
-): UnitTypeId | null {
-  let best: UnitTypeId | null = null;
-  let bestStrength = -1;
-  for (const id of UNIT_TYPE_IDS) {
-    const def = unitDef(id);
-    if (!isCombatant(def) || def.category === 'naval') continue;
-    if (!affordable(state, player, city, { kind: 'unit', id }, 'gold')) continue;
-    const strength = Math.max(def.combatStrength, def.rangedStrength ?? 0);
-    if (strength > bestStrength) {
-      bestStrength = strength;
-      best = id;
-    }
-  }
-  return best;
-}
-
-/** Does this empire hold any piece of this type at all? */
-function ownsAny(state: GameState, playerId: number, type: UnitTypeId): boolean {
-  for (const unit of state.units) {
-    if (unit.ownerId === playerId && unit.type === type) return true;
   }
   return false;
 }
@@ -2958,50 +2841,6 @@ function isOpusTown(state: GameState, player: Player, city: City): boolean {
     }
   }
   return best !== null && best.id === city.id;
-}
-
-/**
- * The building rows in scored order — what the *purse* buys, as opposed to what
- * a town builds.
- *
- * A row-only appraisal (`valueOfBuildingRow` plus the row's flat yields) rather
- * than the hypothetical the queue uses, and for a stated reason: this is asked
- * of the empire rather than of a town, so there is no town to take a
- * hypothetical against, and pricing forty rows against every town every turn is
- * the shape Entry LIII's profile note warns about. The purse is choosing an
- * *order to try things in*; `purchaseError` is still the gate that decides
- * whether any of them lands.
- *
- * It walks the **whole roster**, which is the last of the fixed lists to go:
- * `ai.build.buildings` was a hand-ordered twenty-nine rows that both decided
- * what the bot would consider and what order it would consider them in, and the
- * vector answers both questions better. Ties by `BUILDING_IDS`, which is data
- * order and therefore part of the log.
- */
-function scoredBuildingOrder(ctx: ValueContext): { id: BuildingId; value: number; terms: ValueTerm[] }[] {
-  const rows = BUILDING_IDS.map((id) => {
-    const def = buildingDef(id);
-    const bag: Record<string, number> = {
-      food: def.food,
-      production: def.production,
-      gold: def.gold,
-      science: def.science,
-      culture: def.culture,
-      faith: def.faith ?? 0,
-    };
-    const terms: ValueTerm[] = [
-      nest('its flat yields', explainYields(bag, ctx)),
-      nest('what its row gives', explainBuildingRow(id, ctx)),
-      nest('its standing maintenance', explainUpkeepCost(buildingUpkeep(id), ctx), 'sub'),
-    ];
-    return { id, value: foldOf(terms), terms };
-  });
-  // Ties by `ai.build.buildings` order, which is the data's own list and
-  // therefore part of the replay — a sort that fell back on anything else would
-  // be a sort a replay could disagree with.
-  const order = new Map(BUILDING_IDS.map((id, index) => [id, index]));
-  rows.sort((a, b) => b.value - a.value || order.get(a.id)! - order.get(b.id)!);
-  return rows;
 }
 
 /** `validateQueue`'s building clauses, mirrored so a proposal is never refused. */

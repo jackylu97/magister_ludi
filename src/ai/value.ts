@@ -57,6 +57,11 @@
 
 import type { AiConfig } from './aiConfig';
 import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
+// **Type-only, and deliberately so.** `wants.ts` reads this module's folds at
+// runtime; this module only needs to *name* the book its context carries. The
+// import is erased at build, so the leaf stays a leaf — `statecraft.ts`'
+// documented exception one system over.
+import type { WantBook } from './wants';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { countOf } from '../sim/statecraft';
@@ -163,6 +168,49 @@ export interface ValueContext {
    * of the appraisal and swings back when it is answered.
    */
   faithAppetite: number;
+  /**
+   * **What a coin and a point of faith are worth to *this* empire, today** —
+   * the shadow prices (`shadowPrices`, `wants.ts`), and the numbers every fold
+   * below prices a gold or a faith yield at.
+   *
+   * The weight table is no longer the live value of those two voices; it is the
+   * **prior** and the band anchor. What replaces it is a reading of the empire's
+   * own want book: if the best thing a coin could do is finish a granary at
+   * eight points a coin, a coin is worth eight, and a market that pays four of
+   * them a turn is worth what a market that pays four of them is *really* worth
+   * to this empire. If there is nothing left to buy, a coin is worth the floor
+   * of the band and the arms stop chasing gold they have no use for.
+   *
+   * **Gold's price subsumes `goldPressure`.** The prior it is banded around is
+   * `weights.gold × goldPressure`, so a bleeding empire's prices start dear and
+   * the multiplication is not taken twice — which is why nothing below
+   * multiplies a gold term by the pressure any more.
+   *
+   * The other four voices are unpriced in batch 1 and read the table exactly as
+   * before (`voiceWeight`); constraints — authority, happiness, hammers — are
+   * batch 4's, with the same shape.
+   */
+  prices: { gold: number; faith: number };
+  /**
+   * Why each price reads what it does — "faith is dear: the first religion is
+   * worth 600 for 120 faith". Printed beside every priced term, and a **label**
+   * like `pressureNote`: it changes no fold, so no pin moves.
+   */
+  priceNotes: { gold: string; faith: string };
+  /**
+   * **The book the prices were read off** — every want this empire has in
+   * either bank, ranked by nothing and priced by everything (`wants.ts`).
+   *
+   * It rides on the context because it is built there and because the spend
+   * arms need the very list the prices came from: a book rebuilt in the arm
+   * would be a second walk of the same rows that could disagree with the price
+   * every other arm is reading.
+   *
+   * It is appraised at the **prior** — a want book priced at the shadow prices
+   * it is itself about to set would be a fixed point nobody has asked for, and
+   * one honest pass is what batch 1 ships. See `valueContext` in `bot.ts`.
+   */
+  wants: WantBook;
 }
 
 /**
@@ -179,21 +227,42 @@ export function yieldWeight(ai: AiConfig, voice: Voice, age: TechAge): number {
 }
 
 /**
+ * **What one per-turn point of a voice is worth to this seat right now** — the
+ * live reading, which is the weight table for four voices and the shadow price
+ * for the two the book prices (`ValueContext.prices`).
+ *
+ * This is the single door touch point (a) of the priority spec walks through:
+ * every fold below that used to read `yieldWeight` for a gold or a faith term
+ * reads this instead, so a coin costs and pays the same number everywhere in
+ * the bot, and that number is the empire's own rather than the table's.
+ *
+ * `yieldWeight` survives beside it as *the table's own statement* — the prior
+ * the band is anchored to, which is a different question and one `wants.ts`
+ * still has to ask.
+ */
+export function voiceWeight(ctx: ValueContext, voice: Voice): number {
+  if (voice === 'gold') return ctx.prices.gold;
+  if (voice === 'faith') return ctx.prices.faith;
+  return yieldWeight(ctx.ai, voice, ctx.age);
+}
+
+/**
  * A bag of per-turn yields, in the one currency.
  *
- * Gold is the only voice whose weight moves with the empire's health, and it
- * moves here rather than in the table so the table stays a plain statement of
- * taste. See `ValueContext.goldPressure`.
+ * Gold and faith are priced by the want book rather than by the table (see
+ * `voiceWeight`), and **gold's price already carries the pressure** — which is
+ * why nothing here multiplies a coin by `goldPressure` any more. It moved into
+ * the price so that the two halves of the collapse lever (a gain credited, a
+ * bill charged) go on being one number after the book has had its say.
  */
 export function explainYields(bag: YieldBag, ctx: ValueContext): Appraisal {
   const terms: ValueTerm[] = [];
   for (const voice of VOICES) {
     const amount = bag[voice];
     if (amount === undefined || amount === 0) continue;
-    const weight = yieldWeight(ctx.ai, voice, ctx.age) * (voice === 'gold' ? ctx.goldPressure : 1);
-    const pressure = voice === 'gold' ? goldPressureLabel(ctx) : '';
+    const weight = voiceWeight(ctx, voice);
     terms.push({
-      label: `${voice} ${signed(amount)} × ${round(yieldWeight(ctx.ai, voice, ctx.age))} age weight${pressure}`,
+      label: `${voice} ${signed(amount)} × ${round(weight)} ${weightWords(ctx, voice)}`,
       value: amount * weight,
     });
   }
@@ -205,14 +274,14 @@ export function valueOfYields(bag: YieldBag, ctx: ValueContext): number {
 }
 
 /**
- * How the gold pressure prints beside a coin. Silent in a healthy empire with
- * nothing to explain; loud when the books are bleeding, and loud in the other
- * direction when a 1 was *decided* by the opening grace rather than earned.
+ * What the number a voice was multiplied by **is** — the age weight for the four
+ * unpriced voices, and the live price with its reason for the two the book
+ * prices. A label: it changes no fold.
  */
-function goldPressureLabel(ctx: ValueContext): string {
-  if (ctx.goldPressure === 1 && ctx.pressureNote === '') return '';
-  const note = ctx.pressureNote === '' ? '' : ` (${ctx.pressureNote})`;
-  return ` × ${round(ctx.goldPressure)} gold pressure${note}`;
+function weightWords(ctx: ValueContext, voice: Voice): string {
+  if (voice !== 'gold' && voice !== 'faith') return 'age weight';
+  const note = ctx.priceNotes[voice];
+  return `the ${voice} price` + (note === '' ? '' : ` (${note})`);
 }
 
 /**
@@ -262,15 +331,10 @@ export function yieldDelta(after: Record<Voice, number>, before: Record<Voice, n
  */
 export function explainUpkeepCost(gold: number, ctx: ValueContext): Appraisal {
   if (gold <= 0) return appraise([]);
-  const note = ctx.pressureNote === '' ? '' : ` (${ctx.pressureNote})`;
+  const price = voiceWeight(ctx, 'gold');
   return appraise([
     { label: `${round(gold)} gold a turn`, value: gold },
-    {
-      label: `× ${round(yieldWeight(ctx.ai, 'gold', ctx.age))} age weight`,
-      value: yieldWeight(ctx.ai, 'gold', ctx.age),
-      op: 'mul',
-    },
-    { label: `× ${round(ctx.goldPressure)} gold pressure${note}`, value: ctx.goldPressure, op: 'mul' },
+    { label: `× ${round(price)} ${weightWords(ctx, 'gold')}`, value: price, op: 'mul' },
   ]);
 }
 
@@ -474,20 +538,20 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       const percent = effect.percent / 100;
       if (effect.yield === 'all') {
         let sum = 0;
-        for (const voice of VOICES) sum += yieldWeight(ctx.ai, voice, ctx.age) * percent * nominal;
+        for (const voice of VOICES) sum += voiceWeight(ctx, voice) * percent * nominal;
         return sum * ctx.cities;
       }
-      return yieldWeight(ctx.ai, effect.yield as Voice, ctx.age) * percent * nominal * ctx.cities;
+      return voiceWeight(ctx, effect.yield as Voice) * percent * nominal * ctx.cities;
     }
     case 'productionBonus':
-      return yieldWeight(ctx.ai, 'production', ctx.age) * (effect.percent / 100) * nominal * ctx.cities;
+      return voiceWeight(ctx, 'production') * (effect.percent / 100) * nominal * ctx.cities;
     case 'tileYield':
       // A `CardYieldBag` on the row, plus an optional percentage on whatever the
       // hex's improvement already pays; the bag is the legible half and the
       // percentage is priced against the nominal yield like every other rate.
       return (
         (valueOfYields(bagOf(effect), ctx) +
-          ((effect.percent ?? 0) / 100) * nominal * yieldWeight(ctx.ai, 'production', ctx.age)) *
+          ((effect.percent ?? 0) / 100) * nominal * voiceWeight(ctx, 'production')) *
         ctx.ai.score.nominalTiles
       );
     case 'countScaled':
@@ -727,7 +791,7 @@ function scorePayout(pays: PayoutShape, ctx: ValueContext): number {
     case 'authority':
       return pays.amount * ctx.ai.weights.authority;
     case 'percent':
-      return yieldWeight(ctx.ai, pays.yield as Voice, ctx.age) * (pays.percent / 100) * ctx.ai.score.nominalYield;
+      return voiceWeight(ctx, pays.yield as Voice) * (pays.percent / 100) * ctx.ai.score.nominalYield;
     default:
       return ctx.ai.score.unknownEffect;
   }

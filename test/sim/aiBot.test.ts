@@ -34,6 +34,23 @@ import { researchExpansion } from '../../src/sim/tech';
 import { anyCardDef } from '../../src/sim/statecraft';
 import { type OrderId, ORDER_IDS } from '../../src/sim/statecraftData';
 import { BELIEF_IDS } from '../../src/sim/religionData';
+import { explainEmpireGold } from '../../src/sim/empireGold';
+import { yieldWeight } from '../../src/ai/value';
+import { worthPerCoin } from '../../src/ai/wants';
+
+/**
+ * The standing maintenance bill, as `goldReserveFor` reads it — the negative
+ * lines of `explainEmpireGold`, which is the one set of books the cover is
+ * sized off. Written here rather than exported from the bot because it is one
+ * fold and a test that asks the simulation is a test that cannot drift.
+ */
+function upkeepBillOf(state: GameState, playerId: number): number {
+  let bill = 0;
+  for (const line of explainEmpireGold(state, playerId)) {
+    if (line.gold < 0) bill -= line.gold;
+  }
+  return bill;
+}
 
 /**
  * Two bot seats on a small map with the wild in it.
@@ -131,9 +148,17 @@ describe('the bot', () => {
     const wild = game.state.players.find((player) => player.barbarian);
     expect(wild).toBeDefined();
     expect(nextBotCommand(game.state, wild!.id)).toBeNull();
-    // And a seat that has already handed over is finished, however much
-    // movement its pieces have left.
+    // And a seat driven to quiet runs out of things to say, which is the
+    // property the driver's loop actually relies on. It is asserted by driving
+    // rather than by asking once after a resolution: the turn `driveBots`
+    // resolves hands seat 0 a *fresh* turn, and a fresh turn legitimately has
+    // opinions — re-aiming the beeline at a new turn is a decision, not a spin.
     driveBots(game, { warn: () => {} });
+    for (let step = 0; step < 200; step++) {
+      const command = nextBotCommand(game.state, 0);
+      if (command === null) break;
+      dispatch(game, command);
+    }
     expect(nextBotCommand(game.state, 0)).toBeNull();
   });
 
@@ -154,20 +179,17 @@ describe('the bot', () => {
     }
   });
 
-  it('keeps the reserve back rather than spending to the last coin', () => {
-    // Just over the threshold and no more: the bot may spend the surplus and
-    // must not touch the reserve, so a purse this size buys at most a little.
+  it('keeps the wage cover back rather than spending to the last coin', () => {
+    // **Re-aimed for the want book** (batch 1): there is no `goldSpendAbove` and
+    // no flat `goldReserve` any more. What survives is the cover sized off the
+    // standing bill (`solvency.reserveTurnsOfUpkeep`), and the claim is the same
+    // one it always was — nothing is ever bought *out of* it.
     const game = createGame(CONFIG);
-    const reserve = AI.spending.goldReserve;
-    for (const player of realPlayers(game.state)) {
-      player.gold = AI.spending.goldSpendAbove + reserve + 1;
-    }
+    for (const player of realPlayers(game.state)) player.gold = 400;
     for (let turn = 0; turn < 3; turn++) driveBots(game, { warn: () => {} });
     for (const player of realPlayers(game.state)) {
-      // Income arrives between turns, so this is a floor rather than an
-      // equality — the claim is that nothing was ever bought *out of* the
-      // reserve.
-      expect(player.gold).toBeGreaterThanOrEqual(reserve);
+      const cover = AI.solvency.reserveTurnsOfUpkeep * upkeepBillOf(game.state, player.id);
+      expect(player.gold).toBeGreaterThanOrEqual(Math.floor(cover));
     }
   });
 
@@ -486,12 +508,33 @@ describe('the drafting hand', () => {
 });
 
 describe('the appetite for gods', () => {
-  it('opens the faith bank far earlier while the pantheon is empty', () => {
-    // **Design addendum 5**, the threshold half. A seat with no belief spends at
-    // `religion.pantheonSpendAbove`; the ordinary threshold is higher, so the
-    // first god is never held up by a bank the bot was saving for nothing.
-    expect(AI.religion.pantheonSpendAbove).toBeLessThan(AI.spending.faithSpendAbove);
-    expect(AI.religion.prophetSpendAbove).toBeLessThan(AI.spending.faithSpendAbove);
+  it('prices the first god above everything else the faith bank could buy', () => {
+    // **Design addendum 5, re-aimed onto the want book** (batch 1). It used to be
+    // two lowered thresholds; it is now a worth, and the claim is the stronger
+    // one: on a board where a seat holds no belief at all, the top of its faith
+    // book is the row that would consecrate one — and it got there on worth per
+    // coin, not on a rank somebody wrote down.
+    const game = grownGame(8);
+    const player = seat(game.state, 0);
+    expect(player.pantheon.beliefs).toEqual([]);
+    // The gate is a technology; granted directly, because what is under test is
+    // the appetite rather than the tree.
+    const gate = UNIT_UNLOCK_TECH.get('augur');
+    if (gate !== undefined) {
+      for (const step of researchExpansion(game.state, 0, gate)) player.techsResearched.push(step);
+    }
+    player.faithPool = 500;
+    const book = valueContext(game.state, player).wants.faith;
+    const buys = book.filter((want) => want.buy !== undefined);
+    expect(buys.length).toBeGreaterThan(0);
+    const top = [...buys].sort((a, b) => worthPerCoin(b) - worthPerCoin(a))[0]!;
+    expect(top.buy!.item).toEqual({ kind: 'unit', id: 'augur' });
+    // And it is dear *because* of that: faith's price rides the band's ceiling
+    // while the appetite is live.
+    const ctx = valueContext(game.state, player);
+    expect(ctx.prices.faith).toBe(
+      yieldWeight(AI, 'faith', ctx.age) * AI.priorities.priceBandHigh,
+    );
   });
 
   it('stops buying augurs and saves for a prophet once it has a god', () => {
@@ -599,16 +642,18 @@ function code(text: string): string {
 describe('the bot module', () => {
   it('is there to be read', () => {
     const files = Object.keys(AI_SOURCE).map((path) => path.slice(path.lastIndexOf('/') + 1));
-    // Eight modules since the war pass, and the split is the point:
+    // Nine modules since the priority pass, and the split is the point:
     // `aiConfig.ts` is the leaf holding the tuning surface (and the persona
     // merge), `decision.ts` is the second leaf — the vocabulary a decision and
     // its arithmetic are said in — `value.ts` is the appraisal (every function
-    // ends in a number or the terms that fold to one), `plan.ts` is the reading
-    // of the board a worker and a great person both consult (every function
-    // ends in a table), `diplomacy.ts` is everything this seat has to say to
-    // *another* seat (declarations, warscore peace, bargains), `bot.ts` is the
-    // policy (every function ends in a `BotDecision`), `driver.ts` is the loop
-    // and `stepper.ts` is that same loop unrolled one decision at a time.
+    // ends in a number or the terms that fold to one), `wants.ts` is the want
+    // book and the shadow prices it yields (every function ends in a want or a
+    // price), `plan.ts` is the reading of the board a worker and a great person
+    // both consult (every function ends in a table), `diplomacy.ts` is
+    // everything this seat has to say to *another* seat (declarations,
+    // warscore peace, bargains), `bot.ts` is the policy (every function ends in
+    // a `BotDecision`), `driver.ts` is the loop and `stepper.ts` is that same
+    // loop unrolled one decision at a time.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
@@ -618,6 +663,7 @@ describe('the bot module', () => {
       'plan.ts',
       'stepper.ts',
       'value.ts',
+      'wants.ts',
     ]);
   });
 
@@ -679,6 +725,11 @@ describe('the bot module', () => {
       // is why it is a key of the same file rather than a file of its own — a
       // persona that lived elsewhere would drift from the knobs it overrides.
       'personas',
+      // The priority block (batch 1): the horizon a plan is worth making over,
+      // the margin a challenger must beat an incumbent by, and the band a
+      // shadow price may move in. It stands where `spending`'s four thresholds
+      // used to — see `wants.ts`.
+      'priorities',
       // The puppet profile: the *same* shape as a persona and for the same
       // reason, but folded over whichever persona the seat already plays rather
       // than chosen — a warmonger's puppet is still a warmonger's town.
@@ -689,7 +740,6 @@ describe('the bot module', () => {
       'search',
       'site',
       'solvency',
-      'spending',
       'threat',
       'trade',
       // The war block (P3): what a seat declares over, sues at, and signs.

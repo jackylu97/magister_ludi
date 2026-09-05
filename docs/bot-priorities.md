@@ -123,3 +123,44 @@ later batches per the audit's inventory table.
    fix pinned: an empire holding the tech builds the buildings).
 4. **Constraint prices + the gate deletions** (audit table).
 5. **Win-condition templates.**
+
+## Batch 1 as shipped (`src/ai/wants.ts`, 2026-09-04)
+
+- **The book.** `wantBook` = `purchasingPlan` (gold) + `faithPlan`. A `Want`
+  carries label, currency, price, worth, delay and the terms the worth is the
+  fold of. Purchase rows go through `explainPurchaseCost` + `purchaseError`
+  (the sim's one gate); a building's worth is the queue's own reading
+  (hypothetical `cityYields` delta + `explainBuildingRow` − upkeep) with no
+  `÷ turns of build effort`, because delivery is instant.
+- **Hold rows are how a threshold became a comparison.** The standing wage
+  reserve (`solvency.reserveTurnsOfUpkeep × the bill`) is a want whose worth is
+  `explainLump` of the coins it covers — so holding a coin is worth exactly the
+  prior, and a purchase happens when it beats that. Saving rows are one per
+  out-of-reach want at `worth × (H − turnsToAfford)/H`, dropped when the
+  discount would go negative.
+- **The price, as implemented.** `price(c) = clamp(max over c's wants of
+  (worth ÷ price) × score.lumpTurns, prior × bandLow, prior × bandHigh)` with
+  `prior(gold) = weights.gold × goldPressure` and `prior(faith) =
+  weights.faith`. The `lumpTurns` factor is `explainLump`'s exchange rate run
+  backwards — a want's worth is a stock and a weight is a rate — and **gold's
+  price subsumes the pressure**, so nothing downstream multiplies by it twice.
+  `ValueContext.prices` is what every fold in `value.ts` now reads for those two
+  voices (`voiceWeight`).
+- **Knobs.** Deleted: the whole `spending` block (`goldSpendAbove`,
+  `goldReserve`, `faithSpendAbove`, `faithReserve`) and
+  `religion.pantheonSpendAbove` / `prophetSpendAbove`. Added: the `priorities`
+  block. The zealot's two deleted overrides are carried by the numbers it
+  already had — `weights.faith` (double the balanced sheet, so double the band)
+  and `religion.prophetTechValue: 950` (what the first god and the first
+  religion are worth in its book).
+- **Deferred out of batch 1**: gold's **bridge role** (buying a building the
+  research goal unlocks compresses the tech chain) — it needs the tech chain,
+  which is batch 3's template, and half of it here would mean writing
+  `explainTechGifts` twice. `techChainWorth` is therefore not shipped. Also
+  deferred: what an augur's **rites** are worth (a faith row with no live
+  appetite is priced at exactly the faith it costs, and says so), and a
+  contribution priced by the book rather than by the wage cover.
+- **Measured** (t75, duel, seeds 5/777/20260904, two balanced seats): buildings
+  standing 14 → 30, purchases 11 → 33, worst treasury held beside a town with
+  no buildings 320💰 → 169💰, bankrupt seat-turns 0 → 0, net gold per turn
+  −1/0/1/0/−4/−1 → 3/3/10/1/9/1.

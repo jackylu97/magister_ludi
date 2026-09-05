@@ -77,24 +77,53 @@ export interface AiConfig {
     pathProbes: number;
   };
   /**
-   * When the two banks are opened, and what is never taken out of them.
+   * **The priority system's own dials** — the want book and the shadow prices
+   * (`wants.ts`, `docs/bot-priorities.md`).
    *
-   * **A hoarding bot is a dead bot**: gold and faith have no automatic sink in
-   * this game — nothing spends them but a decision — so a seat that never
-   * decides ends the game with a treasury and an empty board. The threshold is
-   * what stops it going the other way and buying a warrior the turn it can
-   * afford one; the reserve is what it keeps back, because buildings cost gold
-   * to *maintain* (`explainEmpireGold`) and an empire at zero is an empire
-   * disbanding units next resolution.
+   * This block replaces the four `spending` thresholds it was written over
+   * (`goldSpendAbove`, `goldReserve`, `faithSpendAbove`, `faithReserve`) and the
+   * two religious ones beside them. The audit's finding 2 was that those knobs
+   * *were* the behaviour — "spend above 150" is a policy wearing a constant, and
+   * nothing anywhere priced *is this purchase worth more than holding the coin*.
+   * The book answers that question instead, and these four numbers are what it
+   * is answered against.
    */
-  spending: {
-    /** Gold above this, over and above the reserve, is surplus. */
-    goldSpendAbove: number;
-    /** Gold never spent. Upkeep is a standing bill, not a one-off. */
-    goldReserve: number;
-    /** Faith above this, over and above its reserve, is surplus. */
-    faithSpendAbove: number;
-    faithReserve: number;
+  priorities: {
+    /**
+     * **H** — how far ahead a plan is worth making. A chain that starts paying
+     * in `delay` turns is worth `(H − delay)/H` of what it would be worth
+     * paying today, so a want a whole horizon away is worth nothing and a want
+     * in hand is worth all of itself.
+     *
+     * It starts at `score.maxTurns`' forty and is its own knob so the arena can
+     * sweep the two apart: one is how long a town will spend building, the
+     * other is how long an empire will plan.
+     */
+    horizonTurns: number;
+    /**
+     * **The switching margin** — how much better a challenger chain must be
+     * than the incumbent before the empire changes its mind (1.1 = ten per
+     * cent).
+     *
+     * *Declared here and read by nothing yet.* Batch 3 is where chains become
+     * incumbents; the knob is on the sheet now so the arena can start sweeping
+     * it against the batches that came before, and so the number the design
+     * thread ratified lives in the data rather than in a commit message.
+     */
+    switchMargin: number;
+    /**
+     * The band a shadow price may move in, as multiples of what the weight
+     * table says the voice is worth (`priceBandLow × prior` … `priceBandHigh ×
+     * prior`).
+     *
+     * The band is the damping. A price computed straight off the book would
+     * swing with whatever happened to be for sale this turn, and every arm in
+     * the bot reads it; these two say *the designer's table is still the
+     * anchor, and the board may argue with it by a factor of three*. See
+     * `shadowPrices`.
+     */
+    priceBandLow: number;
+    priceBandHigh: number;
   };
   expansion: {
     settlerCap: number;
@@ -615,17 +644,14 @@ export interface AiConfig {
   /**
    * The early-game appetite for gods — design addendum 5.
    *
-   * Two lowered faith thresholds rather than a priority list: a seat with no
-   * pantheon opens its faith bank at almost nothing, because the first god is
-   * worth more than any amount of banked faith, and a seat with no religion
-   * opens it nearly as early for the prophet. Once both are had, the ordinary
-   * `spending.faithSpendAbove` applies again.
+   * It used to be two lowered faith thresholds; it is now **one worth**, and the
+   * faith book does the rest. A seat with no pantheon prices the first god at
+   * `prophetTechValue` and a seat with no religion prices the first prophet
+   * there too, so both ride to the top of the book on their own arithmetic
+   * rather than on a threshold that had been lowered for them. See
+   * `faithPlan` (`wants.ts`).
    */
   religion: {
-    /** Faith spend threshold while this empire holds no belief at all. */
-    pantheonSpendAbove: number;
-    /** Faith spend threshold while this empire has founded no religion. */
-    prophetSpendAbove: number;
     /**
      * What the node that unlocks the prophet is worth to a seat that holds a god
      * and no religion — the **beeline's** half of the appetite.
@@ -637,6 +663,12 @@ export interface AiConfig {
      * has to outrank a whole age's worth of ordinary nodes for the few turns it
      * applies — and it switches itself off the moment a religion exists, which
      * is what `ValueContext.faithAppetite` is.
+     *
+     * **It is now the faith book's price for the thing itself as well** (batch
+     * 1): the first god and the first prophet are both worth this to a seat
+     * that lacks them, which is what makes faith dear in exactly the window the
+     * beeline is already leaning toward the node. One number for one appetite,
+     * rather than a worth here and two thresholds elsewhere.
      */
     prophetTechValue: number;
   };
