@@ -37,6 +37,44 @@ import { type GameConfig, type GameState, type Player, realPlayers } from '../..
 import { UNIT_UNLOCK_TECH } from '../../src/sim/techData';
 import { gatingTech, researchExpansion } from '../../src/sim/tech';
 import { BELIEF_IDS } from '../../src/sim/religionData';
+import { foundCityAt, refreshCityDerived } from '../../src/sim/cities';
+import { createMap, getTileAt } from '../../src/sim/map';
+import { newGame } from '../../src/sim/state';
+import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
+
+/**
+ * **A bench** — `aiAppraisal.test.ts`' and `aiWar.test.ts`' board, for its
+ * reason: the claims below are about *one book on a board somebody arranged*,
+ * and a generated map would arrange it differently every time the mapgen moves.
+ *
+ * Every hex is hilly and every town is grown, so a row's build turns are a
+ * handful rather than a whole horizon and a chain's delays mean something.
+ */
+function benchState(towns: number): GameState {
+  const state = newGame({
+    seed: 11,
+    sizeName: 'duel',
+    players: [{ name: 'Ada', color: '#a00' }],
+  });
+  state.map = createMap({ width: 20, height: 12, terrain: 'grassland' });
+  resetVisibility(state);
+  state.tileOwner = new Array<number | null>(20 * 12).fill(null);
+  state.units = [];
+  state.cities = [];
+  state.camps = [];
+  state.nextEntityId = 1;
+  for (const tile of state.map.tiles) tile.hills = true;
+  const made = [];
+  for (let index = 0; index < towns; index++) {
+    made.push(foundCityAt(state, 0, getTileAt(state.map, 2 + index * 4, 5)!));
+  }
+  recomputeAllVisibility(state);
+  for (const city of made) {
+    city.population = 6;
+    refreshCityDerived(state, city);
+  }
+  return state;
+}
 
 const CONFIG: GameConfig = {
   seed: 20260831,
@@ -343,5 +381,105 @@ describe('the spend arm', () => {
     // silent about the treasury rather than proposing a command the reducer
     // would refuse.
     expect(buyable).toEqual([]);
+  });
+});
+
+// --- batch 3: the chain reaches the book ------------------------------------
+
+/**
+ * **Batch 3 of `docs/bot-priorities.md`** where it touches the book: gold's
+ * bridge role, the augur's rites, and the margin's effect on how often the
+ * beeline changes its mind.
+ *
+ * The two deferrals batch 1 wrote down are closed here — *"gold's bridge role …
+ * it needs the chain, which is batch 3's template"* and *"what an augur's rites
+ * are worth"* — and each is asserted where it lands: as a printed term on the
+ * row it is about.
+ */
+describe('the chain in the book', () => {
+  /** A blank board with towns, hammers under them, and a granted technology. */
+  function chained(count: number, tech: string): { state: GameState; player: Player } {
+    const state = benchState(count);
+    const player = seat(state, 0);
+    for (const step of researchExpansion(state, 0, tech as never)) {
+      if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+    }
+    return { state, player };
+  }
+
+  it('prints what buying a chain’s row buys the chain, in turns', () => {
+    // **Gold's bridge role.** A Library bought is a Library nobody has to spend
+    // a dozen turns raising, so every step of the Writing chain from that one on
+    // starts paying sooner. The row is the ordinary purchase want; what the
+    // bridge adds is a term saying what the delivery bought.
+    const { state, player } = chained(2, 'letters');
+    player.gold = 4000;
+    const ctx = valueContext(state, player);
+    const chain = ctx.chains.find((live) => live.goal === 'letters');
+    expect(chain).toBeDefined();
+    const row = ctx.wants.gold.find((want) => want.label.startsWith('Library at '));
+    expect(row).toBeDefined();
+    const bridge = row!.terms.find((term) => /buys the Writing engine the turns/.test(term.label));
+    expect(bridge).toBeDefined();
+    expect(bridge!.value).toBeGreaterThan(0);
+    // Its parts name the steps the delivery hurried, and the turns it bought.
+    expect(JSON.stringify(bridge!.parts)).toMatch(/pays [\d.]+ turns sooner/);
+    // And the want still folds to the arithmetic it printed, bridge included.
+    expect(foldTerms(row!.terms)).toBe(row!.worth);
+  });
+
+  it('carries no bridge term on a row no chain owes', () => {
+    // The other half: the term is a *reading of a live chain*, not a bonus for
+    // being for sale. A town that already holds the row owes the chain nothing.
+    const { state, player } = chained(2, 'letters');
+    player.gold = 4000;
+    for (const city of state.cities) city.buildings.push('library');
+    const ctx = valueContext(state, player);
+    for (const want of ctx.wants.gold) {
+      expect(want.terms.some((term) => /buys the Writing engine/.test(term.label))).toBe(false);
+    }
+  });
+
+  it('prices an augur by what its rites would do, and says which rite', () => {
+    // **The batch-1 deferral, closed.** A faith row whose rites nobody could
+    // price used to be worth exactly the faith it cost and to say so. A rite's
+    // lasting half is an ordinary card effect list, so the reader the drafts use
+    // answers it — and the row names the rite it was priced by.
+    const { state, player } = chained(1, 'divination');
+    // A god already held, so the row is not the first-god clause.
+    player.pantheon.beliefs = [BELIEF_IDS[0] as never];
+    player.faithPool = 500;
+    const ctx = valueContext(state, player);
+    const augur = ctx.wants.faith.find((want) => want.label.startsWith('Augur at '));
+    expect(augur).toBeDefined();
+    const rites = augur!.terms.find((term) => term.label === 'what its rites would do');
+    expect(rites).toBeDefined();
+    expect(rites!.parts![0]!.label).toMatch(/, the best rite this empire knows$/);
+    expect(augur!.worth).toBeGreaterThan(0);
+    expect(foldTerms(augur!.terms)).toBe(augur!.worth);
+    // Nothing claims to read what it cannot: an unread grant prints as unread.
+    expect(JSON.stringify(rites)).toMatch(/a grant this bot cannot read|what it grants outright/);
+  });
+
+  it('changes its mind about the plan far less often, now the margin defends it', () => {
+    // **The wobble, measured.** Batch 1's own report put `chooseResearch` at 31
+    // commands over the first forty turns of this duel, up from 15 before it —
+    // an empire re-aiming its beeline most turns of the game. The margin is what
+    // stops that, and this is the number pinned as a ceiling.
+    //
+    // Measured 2026-09-05, this exact board: **31 before batch 3, 10 after.**
+    // The ceiling is set where a real regression would trip it and ordinary
+    // board-level movement would not.
+    const game = createGame(CONFIG);
+    let aims = 0;
+    for (let turn = 0; turn < 40; turn++) {
+      driveBots(game, {
+        warn: () => {},
+        report: (command) => {
+          if (command.type === 'chooseResearch') aims += 1;
+        },
+      });
+    }
+    expect(aims).toBeLessThanOrEqual(16);
   });
 });

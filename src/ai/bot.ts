@@ -90,6 +90,7 @@
  */
 
 import { AI, type AiConfig, type MixRole, aiConfigFor, aiConfigForPuppet } from './aiConfig';
+import { chainStepFor, chainStepShare, incumbentGoal, liveChains, techChain } from './chain';
 import { diplomacyDecision } from './diplomacy';
 import {
   type Appraisal,
@@ -102,10 +103,8 @@ import {
 } from './decision';
 import {
   type ImprovementPlan,
-  type UpgradeSites,
   buildImprovementPlan,
   explainWorkerCraving,
-  noUpgradeSites,
   rankPlanFor,
   rankWorkSites,
   surveyUpgradeSites,
@@ -113,9 +112,10 @@ import {
 import {
   type ValueContext,
   type YieldBag,
+  bagOfTileYield,
   buildTurns,
   costOfUpkeep,
-  delayTerm,
+  delayDiscount,
   explainBuildingRow,
   explainEffects,
   explainLump,
@@ -124,9 +124,6 @@ import {
   explainUpkeepCost,
   explainYields,
   medianTownProduction,
-  valueOfBuildingRow,
-  valueOfSoldier,
-  valueOfYields,
   yieldDelta,
   yieldWeight,
 } from './value';
@@ -143,7 +140,7 @@ import {
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { discoveryDef } from '../sim/discoveryData';
 import { greatPersonDef } from '../sim/greatPeopleData';
-import { IMPROVEMENT_IDS, improvementDef } from '../sim/improvementData';
+import { improvementDef } from '../sim/improvementData';
 import { projectDef } from '../sim/projectData';
 import {
   type QueueItem,
@@ -188,11 +185,12 @@ import { type ImprovementId, workForFamily } from '../sim/improvementData';
 import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim/map';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
 import { RULES } from '../sim/rulesData';
-import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
+import type { TileYield } from '../sim/terrainData';
 import { authorityOf } from '../sim/meters';
 import { findPath } from '../sim/pathfind';
 import { PROJECT_IDS } from '../sim/projectData';
 import {
+  type ContributionOffer,
   bankOf,
   contributeError,
   explainContribution,
@@ -342,6 +340,7 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     },
     priceNotes: { gold: '', faith: '' },
     wants: NO_WANTS,
+    chains: [],
     // **The two denominators of every delay** (batch 2 of the priority spec),
     // hoisted here for the context's stated bargain: a build delay is a row's
     // cost over what a middling town makes, and a research delay is beakers
@@ -350,7 +349,14 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     medianProduction: medianTownProduction(state, player.id),
     scienceRate: rates.sciencePerTurn ?? 0,
   };
-  const book = wantBook(state, player, prior, {
+  // **The chains, before the book** (batch 3 of `docs/bot-priorities.md`): the
+  // purchasing plan's bridge rows price what a delivery would buy a live chain in
+  // turns, so the chains have to exist before the book that reads them. Both are
+  // appraised at the prior, which is the same one honest pass batch 1 shipped —
+  // a book and a chain priced at the shadow prices they are themselves about to
+  // set would be a fixed point nobody has asked for.
+  const chained: ValueContext = { ...prior, chains: liveChains(state, player, prior) };
+  const book = wantBook(state, player, chained, {
     wageReserve: goldReserveFor(state, player),
     goldRate: netGold,
     faithRate: rates.faithPerTurn ?? 0,
@@ -360,7 +366,7 @@ export function valueContext(state: GameState, player: Player): ValueContext {
   } satisfies WantInputs);
   const priced = shadowPrices(book, prior);
   return {
-    ...prior,
+    ...chained,
     prices: { gold: priced.gold, faith: priced.faith },
     priceNotes: priced.notes,
     wants: book,
@@ -1546,7 +1552,32 @@ export function bestTechGoal(state: GameState, player: Player): TechId | null {
   return techGoalTable(state, player).goal;
 }
 
-/** `bestTechGoal`, with every node it weighed and the rate that ranked them. */
+/**
+ * `bestTechGoal`, with every node it weighed, **the chain that priced it** and
+ * the margin that defends the one the empire is already on.
+ *
+ * Batch 3 of `docs/bot-priorities.md`. Two things changed here and both are the
+ * spec's:
+ *
+ *   · **a candidate's score IS its chain's worth** (`techChain`, `chain.ts`) —
+ *     the goal's steps at their own delays, less the beakers and hammers it still
+ *     owes. The old rate (`gifts ÷ beakers`) is gone because the chain prices the
+ *     beakers twice over otherwise: once as the delay every step waits through
+ *     and once as the invest it subtracts. `research.costDivisor` was that
+ *     divisor's knob and is deleted with it;
+ *   · **the incumbent holds the plan by `priorities.switchMargin`.** The goal the
+ *     empire is already aiming at — `incumbentGoal`, the last node of
+ *     `researchPlan`, derived and never stored — carries a printed `× 1.1` term,
+ *     so a challenger has to beat it by a tenth to take the plan and the argmax
+ *     below stays a plain maximum. That is greedy-with-a-margin, principle 1,
+ *     spelled as arithmetic rather than as a rule.
+ *
+ * **A chain that has turned negative is not defended.** The margin multiplies, so
+ * an incumbent whose remaining worth has gone below zero is made *worse* by
+ * holding the plan and is displaced at once. That is the right answer rather than
+ * an accident: a plan that is no longer worth finishing is a plan to abandon, and
+ * the empire that would not abandon it is the one that chases sunk costs.
+ */
 function techGoalTable(
   state: GameState,
   player: Player,
@@ -1558,6 +1589,8 @@ function techGoalTable(
   // much of this empire's ground a farm's second point of food would land on,
   // and the answer is a fact about the board that fifty candidate nodes share.
   const sites = surveyUpgradeSites(state, player);
+  const margin = Math.max(1, ai.priorities.switchMargin);
+  const incumbent = incumbentGoal(player);
   const candidates: BotCandidate[] = [];
   let best: TechId | null = null;
   let bestScore = -Infinity;
@@ -1574,25 +1607,21 @@ function techGoalTable(
       );
       continue;
     }
-    let beakers = 0;
-    for (const step of road) beakers += techDef(step).cost;
-    const denominator = beakers / Math.max(1, ai.research.costDivisor) + 1;
-    const gifts = explainTechGifts(id, ctx, sites);
+    const chain = techChain(state, player, ctx, id, sites);
+    const terms: ValueTerm[] = [...chain.terms];
+    if (id === incumbent && margin !== 1) {
+      terms.push({
+        label: `× ${round1(margin)} — holds the plan; a challenger must beat it by that much`,
+        value: margin,
+        op: 'mul',
+      });
+    }
     const candidate: BotCandidate = {
       label: techDef(id).name,
-      score: 0,
+      score: foldOf(terms),
       chosen: false,
-      terms: [
-        nest('what the node unlocks', gifts),
-        { label: 'holding one more technology', value: ai.weights.tech },
-        {
-          label: `÷ ${beakers} beakers over ${road.length} node${road.length === 1 ? '' : 's'} (${beakers} ÷ ${ai.research.costDivisor} + 1)`,
-          value: denominator,
-          op: 'div',
-        },
-      ],
+      terms,
     };
-    candidate.score = foldOf(candidate.terms);
     candidates.push(candidate);
     if (candidate.score > bestScore) {
       bestScore = candidate.score;
@@ -1623,185 +1652,18 @@ function techGoalTable(
 }
 
 /**
- * What one node hands over, in the one currency — its units, its buildings, its
- * projects, its abilities, **the renewals it switches on and the rules it
- * carries**.
+ * **`explainTechGifts` became `TechChain.gifts`** (batch 3 of
+ * `docs/bot-priorities.md`).
  *
- * A **row-only** appraisal, unlike the build list's, and deliberately: the build
- * list asks `cityYields` for a hypothetical because it has one town in hand and
- * the answer has to be exact; this asks fifty nodes a turn about buildings that
- * do not exist in any town yet, and an empire sweep per row would be the profile
- * Entry LIII already warns about. `valueOfBuildingRow` plus the row's flat
- * yields is the honest cheap reading, and it is the same weights either way.
- *
- * The two families added 2026-09-04, both of which this used to price at exactly
- * zero — Irrigation was worth `weights.tech` and nothing else, and so was
- * Movable Type:
- *
- *   · **the renewals** (`ImprovementDef.upgrades`). Priced by the *potential*
- *     reading the ruling asks for: the rider's own yield bag, weighted like
- *     every other bag, times the hexes it would land on — farms already standing
- *     and ground this empire could put a farm on, both, since both collect the
- *     day the node lands. The count is `surveyUpgradeSites`, **one sweep of the
- *     ground the improvement plan already walks**, hoisted by `techGoalTable`
- *     and shared by every candidate node; see that function for the bound and
- *     for what a second condition on an upgrade record would owe it. A `sites`
- *     of `undefined` is a caller with no board in hand (nothing in `src/` today)
- *     and prices the family at nothing rather than guessing.
- *   · **the rules the node itself carries** (`TechDef.effects`, `liveEffects`'
- *     tenth source), through `explainEffects` — the same reader the slotting arm
- *     scores a card with, so a rule is worth the same whether it arrives on a
- *     card or on a technology and nothing here learns a `CardEffect.kind`.
+ * Every clause it used to compute lives in `chain.ts` now, printing the same
+ * labels in the same order: the units, the buildings and their flats, the
+ * projects and abilities, the renewals a `sites` survey prices, and the rules the
+ * node itself carries. What the chain corrected on the way is the two things the
+ * spec named — the towns a building's flats are multiplied by are now *the towns
+ * that would raise it* rather than every town in the empire, and the wait a step
+ * is discounted for is the whole chain's rather than one row's build. The
+ * `renewalTerms` helper moved whole, as `renewalSteps`.
  */
-function explainTechGifts(id: TechId, ctx: ValueContext, sites?: UpgradeSites) {
-  const ai = ctx.ai;
-  const unlocks = techDef(id).unlocks;
-  const terms: ValueTerm[] = [];
-  for (const unit of unlocks.units ?? []) {
-    const def = unitDef(unit);
-    if (isCombatant(def) && !isExplorer(def)) {
-      // The threat swing (addendum 1): a spear is worth several libraries while
-      // there is a column beside the capital, and one library when there is not.
-      const factor = ctx.threat > 0 ? Math.max(1, ai.threat.techMilitaryFactor) : 1;
-      const soldier = explainSoldier(unit, ctx).terms;
-      if (factor !== 1) soldier.push({ label: `× ${factor} (a column is near a town)`, value: factor, op: 'mul' });
-      terms.push({
-        label: def.name,
-        value: valueOfSoldier(unit, ctx) * factor,
-        parts: soldier,
-      });
-    } else if (def.foundsCity) {
-      terms.push({ label: `${def.name} — one more town`, value: ai.weights.city });
-    } else if (trades(def)) {
-      terms.push({ label: `${def.name} — a caravan`, value: ai.weights.trader });
-    } else if (def.prophesies === true) {
-      // **The appetite's beeline** (design addendum 5). A seat that has
-      // consecrated a god and founded no faith wants this door open above almost
-      // anything else, and wants it not at all once it is through — which is
-      // what makes a large number safe here. Read off the row's marker, never
-      // off a name.
-      terms.push({
-        label:
-          `${def.name} — the door to a religion` +
-          (ctx.faithAppetite > 0 ? ' (this empire holds a god and has founded no faith)' : ''),
-        value: ai.weights.worker + ai.religion.prophetTechValue * ctx.faithAppetite,
-      });
-    } else {
-      terms.push({ label: `${def.name} — a civilian`, value: ai.weights.worker });
-    }
-  }
-  for (const building of unlocks.buildings ?? []) {
-    const def = buildingDef(building);
-    const bag: Record<string, number> = {
-      food: def.food,
-      production: def.production,
-      gold: def.gold,
-      science: def.science,
-      culture: def.culture,
-      faith: def.faith ?? 0,
-    };
-    // **A promise, at its own delay** (batch 2 of `docs/bot-priorities.md`; the
-    // flat λ of 2026-09-04 before it). Not one town has this row up — the node
-    // has not even landed — so "in every town" is the purest potential in the
-    // whole appraisal, and it was priced at full weight until λ and at a flat
-    // four tenths after it. What the wait actually is, here, is the **build**:
-    // the tech's own beakers are already in the candidate's denominator, so the
-    // half this discount covers is the towns raising the row, and that is the
-    // row's cost over what a middling town makes (`buildTurns`). The
-    // multiplication prints as its own term with the turns behind it, which is
-    // the ruling's other half: visible in the feed, never folded away.
-    const raising = buildTurns(def.cost, ctx);
-    const flats = explainYields(bag, ctx).terms;
-    flats.push({ label: `× ${ctx.cities} towns`, value: ctx.cities, op: 'mul' });
-    const discount = delayTerm(raising, ctx, 'towns that must still build it');
-    flats.push(discount);
-    terms.push({
-      label: `${def.name} — its flat yields, in every town`,
-      value: valueOfYields(bag, ctx) * ctx.cities * discount.value,
-      parts: flats,
-    });
-    terms.push(nest(`${def.name} — what its row gives`, explainBuildingRow(building, ctx)));
-  }
-  const projects = (unlocks.projects ?? []).length;
-  const abilities = (unlocks.abilities ?? []).length;
-  terms.push({ label: `${projects} conversion project${projects === 1 ? '' : 's'}`, value: projects * ai.research.projectValue });
-  terms.push({ label: `${abilities} ability${abilities === 1 ? '' : 'ies'}`, value: abilities * ai.research.abilityValue });
-  for (const term of renewalTerms(id, ctx, sites)) terms.push(term);
-  const effects = techDef(id).effects ?? [];
-  if (effects.length > 0) {
-    terms.push(nest('the rules the node itself carries', explainEffects(effects, ctx)));
-  }
-  return appraise(terms);
-}
-
-/**
- * **What a node's renewals would pay, over the ground that would collect them.**
- *
- * **Two** terms per `{improvement, upgrade}` pair this node switches on, and the
- * arithmetic is the plainest thing in the file: the rider's bag through
- * `explainYields`, multiplied by the hexes counted for it. Two, because a farm
- * already standing on a river bank will collect the renewal the turn the node
- * lands and a bare river bank will collect it once somebody has walked a spade
- * out there — a fact and a promise, folded `standing + discount × buildable`.
- *
- * **The two halves have two different delays, and that is the whole split**
- * (batch 2 of `docs/bot-priorities.md`). A standing farm's wait is the *tech's*,
- * which the candidate's own beaker denominator already charges, so the standing
- * line is undiscounted. A bare bank's wait is the tech's *and then a walk with a
- * spade*, and the walk is what this term is discounted for:
- * `workers.planRadius + 1` turns, one honest constant-ish estimate rather than a
- * nearest-worker search per hex. It is crude and it is written down as crude —
- * the plan radius is "how near a town a job has to be to be worth wanting", so
- * walking that far and laying the spade is the typical job — and it is bounded,
- * which a per-hex path search over fifty candidate nodes could not be. A pair
- * with no ground under it
- * still prints — at zero — because "Irrigation is worth nothing to an empire
- * with no river bank" is a reading a spectator should be able to see the bot
- * make, and a silent absence is indistinguishable from a family this appraisal
- * has not learnt about.
- *
- * `requiresFreshwater` is the one condition an `ImprovementUpgrade` carries
- * besides its tech, and it selects which of the survey's two counts is read. The
- * day the record grows a third, `surveyUpgradeSites` counts it and this reads it
- * — they are two halves of one register.
- */
-function renewalTerms(id: TechId, ctx: ValueContext, sites?: UpgradeSites): ValueTerm[] {
-  if (sites === undefined) return [];
-  // The walk-and-lay estimate, once for the whole sweep — see the docblock.
-  const walk = ctx.ai.workers.planRadius + 1;
-  const spade = () => delayTerm(walk, ctx, 'the spades have still to get there');
-  const terms: ValueTerm[] = [];
-  for (const improvement of IMPROVEMENT_IDS) {
-    const def = improvementDef(improvement);
-    for (const upgrade of def.upgrades ?? []) {
-      if (upgrade.tech !== id) continue;
-      const tally = sites.byImprovement.get(improvement) ?? noUpgradeSites();
-      const drinks = upgrade.requiresFreshwater === true;
-      const standing = drinks ? tally.standingFresh : tally.standing;
-      const buildable = drinks ? tally.buildableFresh : tally.buildable;
-      const each = explainYields(bagOfTileYield(readTileYield(upgrade.add)), ctx);
-      const where = drinks ? ' that can drink' : '';
-      terms.push({
-        label: `${def.name} renewal — on ${standing} hex${standing === 1 ? '' : 'es'}${where} already carrying one`,
-        value: each.total * standing,
-        parts: [
-          ...each.terms,
-          { label: `× ${standing} hex${standing === 1 ? '' : 'es'}`, value: standing, op: 'mul' },
-        ],
-      });
-      terms.push({
-        label: `${def.name} renewal — on ${buildable} hex${buildable === 1 ? '' : 'es'}${where} this empire could put one on`,
-        value: each.total * buildable * spade().value,
-        parts: [
-          ...each.terms,
-          { label: `× ${buildable} hex${buildable === 1 ? '' : 'es'}`, value: buildable, op: 'mul' },
-          spade(),
-        ],
-      });
-    }
-  }
-  return terms;
-}
 
 // --- the two banks ----------------------------------------------------------
 
@@ -1836,7 +1698,7 @@ function spendCommand(state: GameState, player: Player): BotDecision | null {
   if (gold !== null) return gold;
   const faith = bankSpend(state, player, ctx, 'faith');
   if (faith !== null) return faith;
-  return contributionCommand(state, player);
+  return contributionCommand(state, player, ctx);
 }
 
 /**
@@ -1945,7 +1807,8 @@ function wantCandidate(want: Want, currency: WantCurrency, chosen: boolean): Bot
 
 /**
  * The surplus poured into a basket that will take it — the Cathedral's verb
- * (design ledger Entry LV).
+ * (design ledger Entry LV), **ranked through the book** since batch 3 of
+ * `docs/bot-priorities.md`.
  *
  * Last of the three arms, and deliberately: a purchase delivers a thing and a
  * contribution only hurries one, so a bot with the coin for a granary buys the
@@ -1957,23 +1820,39 @@ function wantCandidate(want: Want, currency: WantCurrency, chosen: boolean): Bot
  * all its, and none of them is restated here. The reserve is this bot's own
  * opinion and is asked of `explainContribution`'s printed `spend`, which is the
  * figure the reducer charges — so "I can give this and still keep a hundred
- * back" is never a guess. Cities in founding order, gold before faith, and one
- * press per command like every other arm.
+ * back" is never a guess.
  *
- * **The thresholds are gone and the reserve is not** (batch 1). What a basket
- * takes is hammers this town was going to spend anyway, so there is no want to
- * rank it against and nothing here reads the book; what there *is* to say is
- * that the wages come first, which is the cover the purchase arm keeps too. A
- * contribution the book could price is batch 3's, with the chains.
+ * **What a press is worth** (the batch-1 deferral, closed): the row it hurries,
+ * times the delay the hurry buys. The row is priced by the queue's own reading —
+ * the hypothetical `cityYields` delta and `explainBuildingRow`, or the piece's
+ * strength, or the conversion's turn — and the hurry is the difference between
+ * `delayDiscount` at the turns the basket still owes and at the turns it would
+ * owe after the press. Crude, and written down as crude: it is `buildTurns` off a
+ * middling town's production rather than this town's front-row rate. What it
+ * buys is the ranking — a press that hurries a cathedral by nine turns outranks
+ * one that hurries a monument by one, and both are measured per coin against
+ * **the best reason to hold the coin instead**, which is the same bar
+ * `bankSpend` compares against and the reason no threshold survives here either.
  */
-function contributionCommand(state: GameState, player: Player): BotDecision | null {
+function contributionCommand(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+): BotDecision | null {
+  const candidates: BotCandidate[] = [];
+  let best: { currency: WantCurrency; city: City; offer: ContributionOffer; score: number } | null =
+    null;
+  let bestBar: Want | null = null;
   for (const currency of ['gold', 'faith'] as const) {
+    // The bar: the best thing holding this coin could do instead. `bankSpend`'s
+    // own comparison, asked of the same book, so the two spend arms cannot
+    // disagree about what a coin is worth.
+    const bar = bestHold(currency === 'gold' ? ctx.wants.gold : ctx.wants.faith);
     for (const city of state.cities) {
       if (city.ownerId !== player.id) continue;
       if (contributeError(state, player.id, city.id, currency) !== null) continue;
       const offer = explainContribution(state, player.id, city.id, currency);
       if (offer === null) continue;
-      const front = city.queue[0];
       // **The reserve is the standing bill's, except at the finish line.** The
       // sized reserve (`goldReserveFor`) is what stops a growing empire spending
       // its cover; the row that `endsTheGame` is the one thing worth spending the
@@ -1981,34 +1860,120 @@ function contributionCommand(state: GameState, player: Player): BotDecision | nu
       // deliberate carve-out, written down as one. Faith owes nobody wages.
       const reserve =
         currency === 'faith' || frontRowEndsTheGame(city) ? 0 : goldReserveFor(state, player);
-      if (bankOf(player, currency) - offer.spend < reserve) continue;
-      return {
-        kind: 'purchase',
-        command: { type: 'contribute', playerId: player.id, cityId: city.id, currency },
-        subject: city.name,
-        summary:
-          `Pours ${offer.spend} ${currency} into ${front === undefined ? 'the basket' : itemName(front)} at ${city.name} — ` +
-          `the bank holds ${bankOf(player, currency)} and keeps ${reserve} back.`,
-        candidates: [
-          {
-            label: `${front === undefined ? 'the front row' : itemName(front)} at ${city.name}`,
-            // The score is the *surplus* — what this bank holds over its reserve
-            // — because that is the only number the bot weighed. What actually
-            // moves is `explainContribution`'s printed `spend`, which is the
-            // reducer's own figure and is in the summary.
-            score: bankOf(player, currency) - reserve,
-            chosen: true,
-            terms: [
-              { label: `${bankOf(player, currency)} in the ${currency} bank`, value: bankOf(player, currency) },
-              { label: `− ${reserve} kept back as reserve`, value: reserve, op: 'sub' },
-            ],
-          },
-        ],
-        focus: { col: city.col, row: city.row },
-      };
+      const label = `${offer.name} at ${city.name}`;
+      if (bankOf(player, currency) - offer.spend < reserve) {
+        candidates.push(refused(label, `${reserve} ${currency} of cover would not survive the press`));
+        continue;
+      }
+      const hurry = explainHurry(state, player, city, offer, ctx);
+      const terms: ValueTerm[] = [
+        nest(`what pouring ${offer.hammers} hammers into ${offer.name} buys`, hurry),
+        { label: `÷ ${Math.max(1, offer.spend)} ${currency}`, value: Math.max(1, offer.spend), op: 'div' },
+      ];
+      const candidate: BotCandidate = { label, score: foldOf(terms), chosen: false, terms };
+      candidates.push(candidate);
+      if (bar !== null && candidate.score < worthPerCoin(bar)) {
+        candidate.rejected = `holding beats it: ${bar.label}`;
+        continue;
+      }
+      if (best === null || candidate.score > best.score) {
+        best = { currency, city, offer, score: candidate.score };
+        bestBar = bar;
+      }
     }
   }
-  return null;
+  if (best === null) return null;
+  const chosenLabel = `${best.offer.name} at ${best.city.name}`;
+  for (const candidate of candidates) {
+    if (candidate.label === chosenLabel && candidate.rejected === undefined) candidate.chosen = true;
+  }
+  return {
+    kind: 'purchase',
+    command: { type: 'contribute', playerId: player.id, cityId: best.city.id, currency: best.currency },
+    subject: best.city.name,
+    summary:
+      `Pours ${best.offer.spend} ${best.currency} into ${best.offer.name} at ${best.city.name} — ` +
+      `${round1(best.score)} a coin` +
+      (bestBar === null
+        ? ', and this empire has nothing it would rather hold for.'
+        : `, against ${round1(worthPerCoin(bestBar))} for ${bestBar.label}.`),
+    candidates,
+    focus: { col: best.city.col, row: best.city.row },
+  };
+}
+
+/** The best hold row in one bank — `bankSpend`'s bar, read the same way. */
+function bestHold(wants: readonly Want[]): Want | null {
+  let bar: Want | null = null;
+  for (const want of wants) {
+    if (want.holding === undefined) continue;
+    if (bar === null || worthPerCoin(want) > worthPerCoin(bar)) bar = want;
+  }
+  return bar;
+}
+
+/**
+ * **What hurrying the front row by this press is worth** — the row's own worth,
+ * times the delay the hammers buy.
+ *
+ * The row is priced by the arm that would have built it: a building through the
+ * hypothetical `cityYields` delta and `explainBuildingRow` (the queue's own
+ * reading, so a contribution and a build cannot disagree about what a cathedral
+ * is worth to this town), a piece through `explainSoldier`, a conversion through
+ * `explainProjectRow`.
+ *
+ * The hurry is `delayDiscount` at the turns the basket owes after the press,
+ * less the discount at the turns it owes now — the same discount every promise in
+ * this bot is priced at, read twice.
+ */
+function explainHurry(
+  state: GameState,
+  player: Player,
+  city: City,
+  offer: ContributionOffer,
+  ctx: ValueContext,
+): Appraisal {
+  const row = frontRowWorth(state, player, city, offer.item, ctx);
+  const before = buildTurns(offer.remaining, ctx);
+  const after = buildTurns(Math.max(0, offer.remaining - offer.hammers), ctx);
+  const sooner = delayDiscount(after, ctx) - delayDiscount(before, ctx);
+  return appraise([
+    nest(`what ${offer.name} is worth to ${city.name}`, row),
+    {
+      label:
+        `× ${round1(sooner)} — it lands in ${after} turn${after === 1 ? '' : 's'} instead of ` +
+        `${before}, against a ${ctx.ai.priorities.horizonTurns}-turn horizon`,
+      value: sooner,
+      op: 'mul',
+    },
+  ]);
+}
+
+/** What the row at the front of a basket is worth to the town building it. */
+function frontRowWorth(
+  state: GameState,
+  player: Player,
+  city: City,
+  item: QueueItem,
+  ctx: ValueContext,
+): Appraisal {
+  if (item.kind === 'building') {
+    const empire = empirePercents(state, player.id);
+    const base = cityYields(state, city, [], null, cityQuote(state, city, [], empire));
+    const after = cityYields(state, city, [item.id], null, cityQuote(state, city, [item.id], empire));
+    return appraise([
+      nest('what this town would actually make with it', explainYields(yieldDelta(after, base), ctx)),
+      nest('what its row gives beyond a yield', explainBuildingRow(item.id, ctx)),
+    ]);
+  }
+  if (item.kind === 'project') {
+    return appraise([nest('what one turn of the conversion pays', explainProjectRow(item.id, ctx))]);
+  }
+  const def = unitDef(item.id);
+  if (isCombatant(def)) return appraise([nest('what this piece is worth', explainSoldier(item.id, ctx))]);
+  if (def.foundsCity === true) return appraise([{ label: 'one more town', value: ctx.ai.weights.city }]);
+  if (trades(def)) return appraise([{ label: 'a caravan', value: ctx.ai.weights.trader }]);
+  return appraise([{ label: 'a civilian', value: ctx.ai.weights.worker }]);
 }
 
 /** Is this town's queue front the row that closes the game? */
@@ -2272,6 +2237,33 @@ function puppetAwareContext(state: GameState, player: Player, city: City): Value
   return { ...ctx, ai: aiConfigForPuppet(player.persona) };
 }
 
+/**
+ * **A candidate that is a step of a live chain, as one printed term** — touch
+ * point (b) of `docs/bot-priorities.md`, and `null` for a row no chain owes.
+ *
+ * The share is `chain.worth ÷ chain.stepsRemaining`, which is the spec's own
+ * line: a chain is worth what finishing it is worth, and each of the things that
+ * still has to happen carries an equal part of it. Equal rather than weighted
+ * because the steps' own payoffs are already inside the worth — weighting the
+ * share by them would price the same yield twice.
+ *
+ * A chain whose remaining worth has turned negative hands its steps a negative
+ * term, which is the honest reading and not a bug: the hammers the chain still
+ * owes are worth more than what finishing it would pay, so a town has better
+ * things to build.
+ */
+function chainTerm(ctx: ValueContext, kind: 'building' | 'unit', id: string): ValueTerm | null {
+  const found = chainStepFor(ctx.chains, kind, id);
+  if (found === null) return null;
+  const share = chainStepShare(found.chain);
+  return {
+    label:
+      `a step of the ${techDef(found.chain.goal).name} engine — ` +
+      `one of ${found.chain.stepsRemaining} thing${found.chain.stepsRemaining === 1 ? '' : 's'} still to happen`,
+    value: share,
+  };
+}
+
 /** One thing a town could start, appraised. See `chooseProduction`. */
 interface BuildCandidate {
   item: QueueItem;
@@ -2335,11 +2327,19 @@ function buildCandidates(
     if (buildingDef(id).endsTheGame === true && !isOpusTown(state, player, city)) continue;
     const after = cityYields(state, city, [id], null, cityQuote(state, city, [id], empire));
     const delta = yieldDelta(after, base);
-    const value = valueOfYields(delta, ctx) + valueOfBuildingRow(id, ctx);
-    push(candidates, state, city, { kind: 'building', id }, value, buildingUpkeep(id), false, ctx, [
+    const terms: ValueTerm[] = [
       nest('what this town would actually make with it', explainYields(delta, ctx)),
       nest('what its row gives beyond a yield', explainBuildingRow(id, ctx)),
-    ]);
+    ];
+    // **Touch point (b) of the priority spec**: a row that is a step of a live
+    // chain carries that chain's per-step share. This is the university fix's
+    // other half — the empire that holds the technology raises the buildings,
+    // because the chain that has already been paid for in beakers says what
+    // finishing it is worth and the town's own yield delta cannot.
+    const step = chainTerm(ctx, 'building', id);
+    if (step !== null) terms.push(step);
+    const value = foldOf(terms);
+    push(candidates, state, city, { kind: 'building', id }, value, buildingUpkeep(id), false, ctx, terms);
   }
 
   for (const id of UNIT_TYPE_IDS) {
@@ -2799,13 +2799,6 @@ function sciencePerPopOf(city: City): number {
   let rate = RULES.cities.sciencePerPop;
   for (const id of city.buildings) rate += buildingDef(id).sciencePerPop;
   return rate;
-}
-
-/** A tile yield as a bag the appraisal weights. The keys are the six voices. */
-function bagOfTileYield(yields: TileYield): YieldBag {
-  const bag: YieldBag = {};
-  for (const key of TILE_YIELD_KEYS) bag[key] = yields[key];
-  return bag;
 }
 
 /**

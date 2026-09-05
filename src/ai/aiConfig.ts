@@ -105,10 +105,12 @@ export interface AiConfig {
      * than the incumbent before the empire changes its mind (1.1 = ten per
      * cent).
      *
-     * *Declared here and read by nothing yet.* Batch 3 is where chains become
-     * incumbents; the knob is on the sheet now so the arena can start sweeping
-     * it against the batches that came before, and so the number the design
-     * thread ratified lives in the data rather than in a commit message.
+     * Read by `techGoalTable` (batch 3): the goal the seat is already aiming at
+     * — the last node of `researchPlan`, derived and never stored — carries a
+     * printed `× switchMargin` term, so the ordinary argmax over the table keeps
+     * the plan unless a challenger beats it by that much. It is what stops a
+     * beeline changing its mind every turn on a board that moved a hair, and it
+     * is the whole of "greedy with a margin" (principle 1 of the spec).
      */
     switchMargin: number;
     /**
@@ -617,8 +619,6 @@ export interface AiConfig {
     abilityValue: number;
     /** What one unlocked project is worth. */
     projectValue: number;
-    /** Beakers per unit of "how far" in the goal score's denominator. */
-    costDivisor: number;
   };
   /**
    * The early-game appetite for gods — design addendum 5.

@@ -81,10 +81,14 @@
  */
 
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
+import { chainCompression, chainStepFor } from './chain';
 import {
   type ValueContext,
+  type YieldBag,
+  VOICES,
   delayTerm,
   explainBuildingRow,
+  explainEffects,
   explainLump,
   explainUpkeepCost,
   explainYields,
@@ -92,7 +96,7 @@ import {
   yieldWeight,
 } from './value';
 
-import { BUILDING_IDS, buildingDef } from '../sim/buildingData';
+import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { cityQuote, cityYields, empirePercents } from '../sim/cities';
 import {
   type PurchasableItem,
@@ -101,7 +105,10 @@ import {
   purchasableName,
   purchaseError,
 } from '../sim/purchase';
+import { RITE_IDS, type RiteId, riteAbility, riteDef } from '../sim/religionData';
 import type { City, GameState, Player } from '../sim/state';
+import { hasAbility } from '../sim/tech';
+import { techDef } from '../sim/techData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
 import { buildingUpkeep } from '../sim/upkeep';
 
@@ -246,13 +253,14 @@ export function purchasingPlan(
       if (reach === null) continue;
       const after = cityYields(state, city, [id], null, cityQuote(state, city, [id], empire));
       const delta = yieldDelta(after, bases[index]!);
-      wants.push(
-        want(`${buildingDef(id).name} at ${city.name}`, 'gold', reach, city, item, [
-          nest('what this town would actually make with it', explainYields(delta, ctx)),
-          nest('what its row gives beyond a yield', explainBuildingRow(id, ctx)),
-          nest('its standing maintenance', explainUpkeepCost(upkeep, ctx), 'sub'),
-        ]),
-      );
+      const terms: ValueTerm[] = [
+        nest('what this town would actually make with it', explainYields(delta, ctx)),
+        nest('what its row gives beyond a yield', explainBuildingRow(id, ctx)),
+        nest('its standing maintenance', explainUpkeepCost(upkeep, ctx), 'sub'),
+      ];
+      const bridge = bridgeTerm(ctx, city, id);
+      if (bridge !== null) terms.push(bridge);
+      wants.push(want(`${buildingDef(id).name} at ${city.name}`, 'gold', reach, city, item, terms));
     }
   }
 
@@ -279,6 +287,39 @@ export function purchasingPlan(
   if (reserve !== null) wants.push(reserve);
   for (const row of savingRows(wants, ctx, bankOf(player, 'gold'), inputs.goldRate)) wants.push(row);
   return wants;
+}
+
+/**
+ * **Gold's bridge role, as a term on the row it bridges** — the batch-1 deferral,
+ * closed in batch 3 (`docs/bot-priorities.md`).
+ *
+ * A university delivered by the purse is a university nobody has to spend a
+ * dozen turns raising, so every step of the chain from that one onward starts
+ * paying that much sooner. `chainCompression` is that difference, read off the
+ * chain object the context already carries rather than recomputed, and it prints
+ * the turns it bought.
+ *
+ * **A term rather than a second row**, which is the one place this departs from
+ * the spec's wording and does so deliberately: the purchasing plan already walks
+ * every building in every town, so a chain step for sale is *already* a row here.
+ * A second row naming the same coins in the same town would be the same purchase
+ * ranked twice, and `shadowPrices` takes a **maximum over the rows** — a
+ * duplicate would quietly raise the price of gold on the strength of a want the
+ * empire has only one of.
+ *
+ * A town that already holds the row is skipped: it is not a town the step is owed
+ * by, and buying it there is not a thing the rules allow anyway.
+ */
+function bridgeTerm(ctx: ValueContext, city: City, id: BuildingId): ValueTerm | null {
+  if (city.buildings.includes(id)) return null;
+  const found = chainStepFor(ctx.chains, 'building', id);
+  if (found === null) return null;
+  const compression = chainCompression(found.chain, found.step, ctx);
+  if (compression.terms.length === 0) return null;
+  return nest(
+    `it buys the ${techDef(found.chain.goal).name} engine the turns this town would have spent raising it`,
+    compression,
+  );
 }
 
 /**
@@ -370,9 +411,11 @@ export function faithPlan(
           reach,
           city,
           item,
-          faithRowTerms(ctx, reach.price, {
+          faithRowTerms(state, ctx, reach.price, {
             firstGod: def.consecrates === true && noPantheon,
             founder: def.prophesies === true && unfounded,
+            performsRites: def.consecrates === true,
+            charges: def.charges ?? 0,
             noPantheon,
             godTurns,
           }),
@@ -427,9 +470,17 @@ export function faithPlan(
  * cannot see a god inside the horizon wants it at nothing, and prints so.
  */
 function faithRowTerms(
+  state: GameState,
   ctx: ValueContext,
   price: number,
-  row: { firstGod: boolean; founder: boolean; noPantheon: boolean; godTurns: number },
+  row: {
+    firstGod: boolean;
+    founder: boolean;
+    performsRites: boolean;
+    charges: number;
+    noPantheon: boolean;
+    godTurns: number;
+  },
 ): ValueTerm[] {
   const appetite = ctx.ai.religion.prophetTechValue;
   if (row.firstGod) {
@@ -444,9 +495,98 @@ function faithRowTerms(
       delayTerm(row.godTurns, ctx, 'the god comes first'),
     ];
   }
+  if (row.performsRites) {
+    const rites = explainRites(state, ctx, row.charges);
+    if (rites.terms.length > 0) return [nest('what its rites would do', rites)];
+  }
   return [
-    nest('worth at least the faith it costs — its rites are unpriced', explainLump({ faith: price }, ctx)),
+    nest('worth at least the faith it costs — nothing it does is priced', explainLump({ faith: price }, ctx)),
   ];
+}
+
+/**
+ * **What an augur's charges are worth** — the batch-1 deferral, closed.
+ *
+ * Batch 1 priced a rite-carrying row at exactly the faith it cost and said so:
+ * *"nothing in this bot can price a rite, and a guess dressed as a price is worse
+ * than the silence."* What has changed is that a rite's lasting half is an
+ * ordinary card effect list (`RiteDef.effects`, stamped as a `TimedEffect` for
+ * its `duration`), so the reader the drafts already use answers it —
+ * `explainEffects`, the same fold a slotted Order goes through, which is the
+ * discipline `explainTechGifts` keeps for a node's own rules.
+ *
+ * Three clauses and one honest gap:
+ *
+ *   · **only the rites this empire knows.** `hasAbility` + `riteAbility` is the
+ *     simulation's own gate (`riteError` asks it in exactly those words), so a
+ *     row whose rites are all behind unread technologies prices at nothing here
+ *     and falls back to the faith it costs;
+ *   · **the best rite, times the charges.** A piece with three charges will spend
+ *     them on the best thing it may do, not on one of each, and the rites are
+ *     tried in roster order by an arm with no price axis (`augurCommand`) — so
+ *     the *book's* reading is what the empire would get if it spent them well;
+ *   · **a blessing is timed, and says so.** The effects run for `duration` turns,
+ *     so they are worth their share of `score.lumpTurns` — the same exchange the
+ *     great person's calm and aura go through (`explainAct`), applied from the
+ *     same end.
+ *
+ * The gap: a rite's **grant** (`RiteGrantSpec`) is a windfall of a shape this
+ * file cannot read as a bag — a citizen, a heal, a proclamation — and it prices
+ * at `score.unknownEffect`, printed as unread. The yield-shaped keys are the
+ * exception and go through `explainLump`, because those the bot can price
+ * exactly.
+ */
+function explainRites(state: GameState, ctx: ValueContext, charges: number): Appraisal {
+  const spent = Math.max(1, charges);
+  let best: { id: RiteId; worth: Appraisal } | null = null;
+  for (const id of RITE_IDS) {
+    if (!hasAbility(state, ctx.playerId, riteAbility(id))) continue;
+    const worth = explainRite(id, ctx);
+    if (best === null || worth.total > best.worth.total) best = { id, worth };
+  }
+  if (best === null) return appraise([]);
+  return appraise([
+    nest(`${riteDef(best.id).name}, the best rite this empire knows`, best.worth),
+    { label: `× ${spent} charge${spent === 1 ? '' : 's'}`, value: spent, op: 'mul' },
+  ]);
+}
+
+/** One rite: what it grants the instant it lands, and what its blessing does. */
+function explainRite(id: RiteId, ctx: ValueContext): Appraisal {
+  const def = riteDef(id);
+  const terms: ValueTerm[] = [];
+  const grant = def.grant;
+  if (grant !== undefined) {
+    const bag: YieldBag = {};
+    for (const voice of VOICES) {
+      const amount = (grant as Record<string, unknown>)[voice];
+      if (typeof amount === 'number') bag[voice] = amount;
+    }
+    if (Object.keys(bag).length > 0) terms.push(nest('what it grants outright', explainLump(bag, ctx)));
+    for (const key of Object.keys(grant)) {
+      if ((VOICES as readonly string[]).includes(key)) continue;
+      terms.push({
+        label: `${key} — a grant this bot cannot read`,
+        value: ctx.ai.score.unknownEffect,
+      });
+    }
+  }
+  const effects = def.effects ?? [];
+  if (effects.length > 0) {
+    const lasting = explainEffects(effects, ctx);
+    const turns = def.duration ?? 1;
+    const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
+    terms.push({
+      label: `its blessing, for ${turns} turn${turns === 1 ? '' : 's'}`,
+      value: (lasting.total * turns) / lumpTurns,
+      parts: [
+        ...lasting.terms,
+        { label: `× ${turns} turns of it`, value: turns, op: 'mul' },
+        { label: `÷ ${lumpTurns} — a blessing that runs out, not a rate`, value: lumpTurns, op: 'div' },
+      ],
+    });
+  }
+  return appraise(terms);
 }
 
 /**

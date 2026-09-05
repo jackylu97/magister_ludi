@@ -60,7 +60,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { explainCard, nextBotDecision, valueContext } from '../../src/ai/bot';
+import { bestTechGoal, explainCard, nextBotDecision, valueContext } from '../../src/ai/bot';
+import { incumbentGoal, liveChains, techChain } from '../../src/ai/chain';
 import {
   type BotCandidate,
   type BotDecision,
@@ -72,7 +73,7 @@ import { delayTerm, explainCounted } from '../../src/ai/value';
 import aiJson from '../../data/ai.json';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
-import { cityYields, foundCityAt } from '../../src/sim/cities';
+import { cityYields, foundCityAt, refreshCityDerived } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { improvementDef } from '../../src/sim/improvementData';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
@@ -93,7 +94,7 @@ import {
   type TallyOccasion,
 } from '../../src/sim/statecraftData';
 import { researchExpansion } from '../../src/sim/tech';
-import { techDef } from '../../src/sim/techData';
+import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { isExploredBy, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 
 /**
@@ -896,7 +897,14 @@ describe('the delay discount', () => {
     throw new Error(`no building called ${name}`);
   }
 
-  it('discounts the beeline’s per-town building gift by the turns a town needs to raise it', () => {
+  it('discounts the beeline’s per-town building gift by the whole chain’s wait', () => {
+    // **Re-aimed 2026-09-05** (batch 3 of `docs/bot-priorities.md` — the tech
+    // chain). The wait a building gift is discounted for used to be one row's
+    // own build; it is now the *chain's*: the beakers still owed over the
+    // science rate, and then every step queued ahead of this one. So the pin is
+    // the relation — the delay is at least the row's own raising — plus the
+    // arithmetic, which is still exactly `(H − delay)/H` read off the very turns
+    // the term prints.
     const { state } = towns(2);
     const decision = decisionOfType(state, 0, 'chooseResearch');
     expect(decision).not.toBeNull();
@@ -906,16 +914,22 @@ describe('the delay discount', () => {
     expect(row).toBeDefined();
     const flats = findTerm(row!.terms, /its flat yields, in every town/)!;
     // The discount is a term of its own, beside the town count it discounts —
-    // not a number folded into the value where nobody can see it — and it now
-    // prints the turns it was read off.
-    const discount = flats.parts!.find((term) => /towns that must still build it/.test(term.label));
+    // not a number folded into the value where nobody can see it — and it prints
+    // the turns it was read off. Matched on the horizon clause, which is
+    // `delayTerm`'s and nothing else's.
+    const discount = flats.parts!.find((term) => /against a \d+-turn horizon/.test(term.label));
     expect(discount).toBeDefined();
     expect(discount!.op).toBe('mul');
-    // The arithmetic, end to end: the row's own cost over what a middling town
-    // makes, rounded up, against the horizon.
-    const turns = raisingTurns(buildingDef(rowNamed(flats.label)).cost, state, 0);
-    expect(discount!.value).toBeCloseTo(discountFor(turns), 10);
-    expect(discount!.label).toMatch(new RegExp(`some ${turns} turns against a ${HORIZON}-turn horizon`));
+    expect(discount!.label).toMatch(/to raise it/);
+    const printed = Number(
+      /some ([\d.]+) turns against a (\d+)-turn horizon/.exec(discount!.label)![1],
+    );
+    expect(discount!.value).toBeCloseTo(discountFor(printed), 2);
+    // At least the row's own raising: the chain charges that and the research
+    // wait besides.
+    expect(printed).toBeGreaterThanOrEqual(
+      raisingTurns(buildingDef(rowNamed(flats.label)).cost, state, 0),
+    );
     // And the term is still its own arithmetic, as is the candidate holding it.
     expect(foldTerms(flats.parts!)).toBeCloseTo(flats.value, 10);
     expect(foldTerms(row!.terms)).toBe(row!.score);
@@ -1180,5 +1194,209 @@ describe('the delay discount', () => {
       return Number(match![1]);
     };
     expect(turnsOf(quick)).toBeLessThan(turnsOf(slow));
+  });
+});
+
+// --- 9. the tech chain, and the margin that defends it ----------------------
+
+/**
+ * **Batch 3 of `docs/bot-priorities.md`** — the chain (`src/ai/chain.ts`) and the
+ * switching margin that finally reads `priorities.switchMargin`.
+ *
+ * Four claims, and each is about arithmetic rather than about a played game:
+ *
+ *   · a chain's **worth is the fold of its printed terms**, exactly;
+ *   · a **realised step drops out by construction**, and the chain is worth more
+ *     for it — the sunk-cost story, pinned on the one row whose whole payout is
+ *     its effects (the University pays no flat yield at all), so what leaves the
+ *     ledger when a town raises one is the hammers and nothing else;
+ *   · the **university fix**: a bench empire handed the technology raises the row
+ *     it unlocked, in every town, because the chain says so;
+ *   · the **margin** holds an incumbent a challenger has not beaten by a tenth,
+ *     and yields to one that has. Both sides, off the same board.
+ */
+describe('the tech chain', () => {
+  /**
+   * A board with `count` towns of the seat's, a granted technology, and enough
+   * hammers under the towns to have opinions with: every hex is hilly and every
+   * town is grown, so a row's build turns are a handful rather than the whole
+   * horizon and the chain's delays mean something.
+   */
+  function chained(count: number, tech?: TechId): { state: GameState; player: Player; cities: City[] } {
+    const state = bench(1);
+    for (const tile of state.map.tiles) tile.hills = true;
+    const cities: City[] = [];
+    for (let index = 0; index < count; index++) {
+      cities.push(foundCityAt(state, 0, at(state.map, 2 + index * 4, 5)));
+    }
+    recomputeAllVisibility(state);
+    for (const city of cities) {
+      city.population = 6;
+      refreshCityDerived(state, city);
+    }
+    const player = seat(state, 0);
+    if (tech !== undefined) {
+      for (const step of researchExpansion(state, 0, tech)) player.techsResearched.push(step);
+    }
+    return { state, player, cities };
+  }
+
+  /** The technology whose name a candidate printed. Never a hand-written id. */
+  function techNamed(name: string): TechId {
+    for (const id of TECH_IDS) {
+      if (techDef(id).name === name) return id;
+    }
+    throw new Error(`no technology called ${name}`);
+  }
+
+  it('folds every chain’s worth out of its own printed terms, exactly', () => {
+    const { state, player } = chained(3, 'education');
+    const ctx = valueContext(state, player);
+    const chains = liveChains(state, player, ctx);
+    expect(chains.length).toBeGreaterThan(0);
+    for (const chain of chains) {
+      // `===`, not `toBeCloseTo`: a regrouped sum is a different number and the
+      // bot's contract is that the same board produces the same command.
+      expect({ goal: chain.goal, folds: foldTerms(chain.terms) === chain.worth }).toEqual({
+        goal: chain.goal,
+        folds: true,
+      });
+    }
+  });
+
+  it('drops a realised step out, and is worth more for the one that was paid', () => {
+    // **The commitment arithmetic.** Education's chain owes a University to every
+    // town that lacks one. A University pays no flat yield — its whole payout is
+    // `sciencePerPop` and a renown trickle, neither of which the chain multiplies
+    // by towns — so raising one in one town takes nothing out of the payoff and
+    // takes its whole 134 hammers out of what the chain still owes. The remaining
+    // worth therefore rises, which is principle 1 of the spec: incumbency is
+    // arithmetic, not memory.
+    const { state, player, cities } = chained(3, 'education');
+    const before = techChain(state, player, valueContext(state, player), 'education');
+    const university = before.steps.find((step) => step.id === 'university');
+    expect(university).toBeDefined();
+    expect(university!.towns).toBe(3);
+
+    cities[0]!.buildings.push('university');
+    const after = techChain(state, player, valueContext(state, player), 'education');
+    expect(after.steps.find((step) => step.id === 'university')!.towns).toBe(2);
+    expect(after.stepsRemaining).toBe(before.stepsRemaining - 1);
+    expect(after.hammers).toBe(before.hammers - buildingDef('university').cost);
+    expect(after.worth).toBeGreaterThan(before.worth);
+  });
+
+  it('makes a held technology’s unbuilt rows a live chain — the university fix', () => {
+    // The end of the loop the beeline used to leave open: an empire could bank
+    // the whole "in every town" promise in the appraisal that chose the node and
+    // then never raise the row. A technology held is a chain with **no beakers
+    // left to pay** and its buildings still outstanding, so every town's build
+    // arm sees them as steps — which is the next test, and the measured half of
+    // it is in `docs/bot-priorities.md` (buildings standing at t75, 30 → 55).
+    const { state, player, cities } = chained(2, 'letters');
+    const ctx = valueContext(state, player);
+    const chain = liveChains(state, player, ctx).find((live) => live.goal === 'letters');
+    expect(chain).toBeDefined();
+    expect(chain!.held).toBe(true);
+    expect(chain!.remainingBeakers).toBe(0);
+    const library = chain!.steps.find((step) => step.id === 'library');
+    expect(library).toBeDefined();
+    expect(library!.towns).toBe(cities.length);
+    // And it stops being live the moment the empire has actually raised them:
+    // the step is owed by nobody, so there is no step, and a chain with nothing
+    // left to do is not in the book at all.
+    for (const city of cities) city.buildings.push('library');
+    const after = liveChains(state, player, valueContext(state, player));
+    const still = after.find((live) => live.goal === 'letters');
+    expect(still?.steps.some((step) => step.id === 'library') ?? false).toBe(false);
+  });
+
+  it('prints the chain’s share on the candidate that is one of its steps', () => {
+    const { state } = chained(2, 'letters');
+    const decision = decisionOfType(state, 0, 'setCityProduction');
+    expect(decision).not.toBeNull();
+    const library = decision!.candidates.find((row) => row.label === 'Library');
+    expect(library).toBeDefined();
+    const share = findTerm(library!.terms, /a step of the Writing engine/);
+    expect(share).not.toBeNull();
+    expect(share!.label).toMatch(/one of \d+ things? still to happen/);
+    expect(foldTerms(library!.terms)).toBe(library!.score);
+  });
+
+  it('holds the plan against a challenger inside the margin, and yields past it', () => {
+    // **Both sides of the boundary, off one board.** With no plan installed the
+    // table has a leader; installing a *different* goal as the plan puts the
+    // printed `× switchMargin` term on it, and whether it survives is exactly
+    // whether the leader beat it by that much.
+    //
+    // The seat is handed Sailing before the table is taken, and that is the
+    // fixture rather than an aside: on a blank bench that one node outscores the
+    // rest of the tree two to one, and a runaway leader is a board on which no
+    // margin could ever matter. With it held, the top of the table is a real
+    // race — a runner-up inside a tenth of the leader, which keeps the plan, and
+    // several nodes well behind it, which do not.
+    const { state } = chained(3, 'sailing');
+    const opening = decisionOfType(state, 0, 'chooseResearch');
+    expect(opening).not.toBeNull();
+    const scored = opening!.candidates.filter((row) => row.rejected === undefined);
+    const winner = scored.find((row) => row.chosen)!;
+    const margin = aiJson.priorities.switchMargin;
+    const trials = scored
+      .filter((row) => row.label !== winner.label)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 12);
+    let held: BotCandidate | null = null;
+    let yielded: BotCandidate | null = null;
+    for (const row of trials) {
+      const id = techNamed(row.label);
+      expect(
+        applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: id, queue: 'replace' }).ok,
+      ).toBe(true);
+      if (bestTechGoal(state, seat(state, 0)) === id) held = held ?? row;
+      else yielded = yielded ?? row;
+    }
+    expect(held).not.toBeNull();
+    expect(yielded).not.toBeNull();
+    // The boundary itself, read off the scores the table printed with no
+    // incumbent: what held was inside the margin of the leader, what yielded was
+    // outside it. That is the whole of `priorities.switchMargin`.
+    expect(held!.score * margin).toBeGreaterThanOrEqual(winner.score);
+    expect(yielded!.score * margin).toBeLessThan(winner.score);
+    // And with the leader itself installed there is nothing to defend against.
+    const free = techNamed(winner.label);
+    expect(
+      applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: free, queue: 'replace' }).ok,
+    ).toBe(true);
+    expect(bestTechGoal(state, seat(state, 0))).toBe(free);
+  });
+
+  it('prints the margin as a term of the incumbent’s own arithmetic', () => {
+    // The margin is not a rule applied over the table — it is a term *inside*
+    // the incumbent's own fold, so the argmax below it is a plain maximum and
+    // the feed shows a reader exactly what the plan was defended by.
+    const { state } = chained(3, 'sailing');
+    const opening = decisionOfType(state, 0, 'chooseResearch');
+    expect(opening).not.toBeNull();
+    const scored = opening!.candidates.filter((row) => row.rejected === undefined);
+    // A laggard, so the table is still asked for (an incumbent that keeps the
+    // plan sends no command at all — the beeline is idempotent by construction).
+    const laggard = scored.sort((a, b) => a.score - b.score)[0]!;
+    const id = techNamed(laggard.label);
+    expect(
+      applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: id, queue: 'replace' }).ok,
+    ).toBe(true);
+    const player = seat(state, 0);
+    // `incumbentGoal` is the plan's own last node, derived and never stored.
+    expect(incumbentGoal(player)).toBe(id);
+    const again = decisionOfType(state, 0, 'chooseResearch');
+    expect(again).not.toBeNull();
+    const row = again!.candidates.find((entry) => entry.label === laggard.label)!;
+    const term = row.terms[row.terms.length - 1]!;
+    expect(term.label).toMatch(/holds the plan; a challenger must beat it by that much/);
+    expect(term.op).toBe('mul');
+    expect(term.value).toBe(aiJson.priorities.switchMargin);
+    // And the score is still the fold of the terms, margin included.
+    expect(foldTerms(row.terms)).toBe(row.score);
+    expect(foldTerms(row.terms.slice(0, -1)) * term.value).toBeCloseTo(row.score, 10);
   });
 });

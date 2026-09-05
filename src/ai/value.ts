@@ -62,6 +62,9 @@ import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
 // import is erased at build, so the leaf stays a leaf — `statecraft.ts`'
 // documented exception one system over.
 import type { WantBook } from './wants';
+// Type-only for the same reason: `chain.ts` reads this module's folds at
+// runtime, and this module only needs to *name* the chains its context carries.
+import type { TechChain } from './chain';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { cityYields } from '../sim/cities';
@@ -71,6 +74,7 @@ import { type ProjectId, projectDef } from '../sim/projectData';
 import type { GameState } from '../sim/state';
 import { buildError } from '../sim/tech';
 import { type TechAge } from '../sim/techData';
+import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
 import { type UnitTypeId, isCombatant, unitDef } from '../sim/unitData';
 
 /** The six voices, in the order every ledger in the game prints them. */
@@ -212,6 +216,23 @@ export interface ValueContext {
    * one honest pass is what batch 1 ships. See `valueContext` in `bot.ts`.
    */
   wants: WantBook;
+  /**
+   * **Every tech chain this empire is executing** (`liveChains`, `chain.ts`) —
+   * the research goal it is aiming at, and one per technology it holds whose
+   * buildings some town of its has still to raise.
+   *
+   * Batch 3's touch point (b): a build candidate that **is** a step of one of
+   * these folds `chain.worth ÷ chain.stepsRemaining` as a labelled term, and a
+   * purchase that would deliver one folds what the delivery buys the chain in
+   * turns. It rides on the context for `wants`' reason exactly — it is built
+   * once per decision, and an arm that rebuilt it would be a second walk of the
+   * same rows that could disagree with the one the other arms read.
+   *
+   * Appraised at the **prior**, like the book: chains priced at shadow prices
+   * they are themselves about to help set would be a fixed point nobody asked
+   * for. See `valueContext` in `bot.ts`.
+   */
+  chains: TechChain[];
   /**
    * **What a middling town of this empire makes in a turn** — the median of its
    * towns' `cityYields().production`, and 1 for an empire with no town at all.
@@ -414,6 +435,20 @@ function round(value: number): string {
 
 function signed(value: number): string {
   return value >= 0 ? `+${round(value)}` : round(value);
+}
+
+/**
+ * A tile yield as a bag the appraisal weights. The keys are the six voices.
+ *
+ * Here rather than in `bot.ts` because two readers need it — the citizen's next
+ * workable hex and the chain's renewal riders (`chain.ts`) — and a helper two
+ * modules need lives in the leaf they both stand on, which is `roads.ts`' bargain
+ * one system over.
+ */
+export function bagOfTileYield(yields: TileYield): YieldBag {
+  const bag: YieldBag = {};
+  for (const key of TILE_YIELD_KEYS) bag[key] = yields[key];
+  return bag;
 }
 
 /** `after − before`, voice by voice. The shape every hypothetical produces. */

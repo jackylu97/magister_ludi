@@ -642,21 +642,24 @@ function code(text: string): string {
 describe('the bot module', () => {
   it('is there to be read', () => {
     const files = Object.keys(AI_SOURCE).map((path) => path.slice(path.lastIndexOf('/') + 1));
-    // Nine modules since the priority pass, and the split is the point:
-    // `aiConfig.ts` is the leaf holding the tuning surface (and the persona
-    // merge), `decision.ts` is the second leaf — the vocabulary a decision and
-    // its arithmetic are said in — `value.ts` is the appraisal (every function
-    // ends in a number or the terms that fold to one), `wants.ts` is the want
-    // book and the shadow prices it yields (every function ends in a want or a
-    // price), `plan.ts` is the reading of the board a worker and a great person
-    // both consult (every function ends in a table), `diplomacy.ts` is
-    // everything this seat has to say to *another* seat (declarations,
-    // warscore peace, bargains), `bot.ts` is the policy (every function ends in
-    // a `BotDecision`), `driver.ts` is the loop and `stepper.ts` is that same
-    // loop unrolled one decision at a time.
+    // Ten modules since batch 3 of the priority system (2026-09-05 — `chain.ts`
+    // joined), and the split is the point: `aiConfig.ts` is the leaf holding the
+    // tuning surface (and the persona merge), `decision.ts` is the second leaf —
+    // the vocabulary a decision and its arithmetic are said in — `value.ts` is
+    // the appraisal (every function ends in a number or the terms that fold to
+    // one), `chain.ts` is the long-term goal priced over time (every function
+    // ends in a chain or a step of one), `wants.ts` is the want book and the
+    // shadow prices it yields (every function ends in a want or a price),
+    // `plan.ts` is the reading of the board a worker and a great person both
+    // consult (every function ends in a table), `diplomacy.ts` is everything
+    // this seat has to say to *another* seat (declarations, warscore peace,
+    // bargains), `bot.ts` is the policy (every function ends in a
+    // `BotDecision`), `driver.ts` is the loop and `stepper.ts` is that same loop
+    // unrolled one decision at a time.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
+      'chain.ts',
       'decision.ts',
       'diplomacy.ts',
       'driver.ts',
