@@ -218,6 +218,25 @@ export function incumbentGoal(player: Player): TechId | null {
  * hoisted once for the whole table (`techGoalTable`). A rider is a reason to want
  * a *node*, not a reason for a town to raise a *building*, so the split costs the
  * arms that read this nothing.
+ *
+ * **The negative floor** (batch 6 of `docs/bot-priorities.md`). A held-tech chain
+ * whose remaining worth has turned negative — the hammers its unbuilt rows still
+ * owe outweigh what finishing them would pay — is **dropped from the book**, and
+ * its rows are then appraised exactly as any other row: on their own merits, with
+ * no chain term at all.
+ *
+ * The reason is what the two families of chain *are*. The research goal is a
+ * **plan**, and a plan whose worth has gone negative is a plan to abandon: it
+ * keeps its honest negative, `techGoalTable`'s margin multiplies it, and the
+ * beeline is displaced (batch 3's stated behaviour, unchanged). A held-tech chain
+ * is not a plan at all — nobody chose it, it is the standing observation *"this
+ * empire holds Writing and two of its towns lack libraries"* — so it is
+ * **advice**, and advice worth less than nothing is advice to withhold. Left in,
+ * it would charge a town for a debt no arm ever took on: a marginal engine's
+ * library would appraise *worse* than the same library in an empire that had
+ * never researched Writing, which is an empire punished for holding a
+ * technology. The floor is the rule that a chain may raise a candidate and may
+ * leave it alone, and may never make it read worse than chainless.
  */
 export function liveChains(state: GameState, player: Player, ctx: ValueContext): TechChain[] {
   const goals: TechId[] = [];
@@ -231,9 +250,14 @@ export function liveChains(state: GameState, player: Player, ctx: ValueContext):
     goals.push(tech);
   }
   const chains: TechChain[] = [];
-  for (const goal of goals) {
-    const chain = techChain(state, player, ctx, goal);
-    if (chain.stepsRemaining > 0) chains.push(chain);
+  for (let index = 0; index < goals.length; index++) {
+    const chain = techChain(state, player, ctx, goals[index]!);
+    if (chain.stepsRemaining <= 0) continue;
+    // Index 0 is the incumbent when there is one (it is pushed first, above),
+    // which is the plan the margin defends and the one chain allowed a negative.
+    const plan = incumbent !== null && index === 0;
+    if (!plan && chain.worth <= 0) continue;
+    chains.push(chain);
   }
   return chains;
 }

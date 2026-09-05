@@ -131,6 +131,7 @@ import {
 import {
   type ValueContext,
   type YieldBag,
+  VOICES,
   bagOfTileYield,
   buildTurns,
   costOfUpkeep,
@@ -144,14 +145,17 @@ import {
   explainUpkeepCost,
   explainYields,
   townProduction,
+  hammerTerm,
+  valueOfYields,
   yieldDelta,
   yieldWeight,
 } from './value';
 import {
   NO_WANTS,
+  type BankCurrency,
   type Want,
-  type WantCurrency,
   type WantInputs,
+  expectedBestOrder,
   meterPrices,
   shadowPrices,
   wantBook,
@@ -172,6 +176,9 @@ import {
 import type { City, GameState, Player, Unit } from '../sim/state';
 import {
   assignableTiles,
+  citizenFocusError,
+  citizenLean,
+  cityFocus,
   cityQuote,
   cityYields,
   empirePercents,
@@ -184,6 +191,8 @@ import {
   foundingErrorAt,
   tileContextAt,
   tileOwnerPlayerId,
+  foodUpkeep,
+  growthThreshold,
   tileYieldOf,
   turnsToBuild,
   yieldScore,
@@ -204,9 +213,9 @@ import {
 } from '../sim/greatPeople';
 import { improvementError, improvementErrorAt, prospectError } from '../sim/improvements';
 import { type ImprovementId, workForFamily } from '../sim/improvementData';
-import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim/map';
+import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
-import { RULES } from '../sim/rulesData';
+import { RULES, type CitizenFocus } from '../sim/rulesData';
 import type { TileYield } from '../sim/terrainData';
 import { explainFoundingCost, foldMeter, foundingCostLines } from '../sim/meters';
 import { findPath } from '../sim/pathfind';
@@ -216,6 +225,7 @@ import {
   bankOf,
   contributeError,
   explainContribution,
+  purchaseError,
 } from '../sim/purchase';
 import {
   consecrateError,
@@ -227,6 +237,9 @@ import { RITE_IDS } from '../sim/religionData';
 import {
   SLOT_WORDS,
   anyCardDef,
+  draftCost,
+  livePool,
+  offerSize,
   slotOrderError,
   slotTypesOf,
 } from '../sim/statecraft';
@@ -363,10 +376,11 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     prices: {
       gold: yieldWeight(ai, 'gold', age) * pressure.value,
       faith: yieldWeight(ai, 'faith', age),
+      culture: yieldWeight(ai, 'culture', age),
       authority: ai.weights.authority,
       happiness: ai.weights.happiness,
     },
-    priceNotes: { gold: '', faith: '', authority: '', happiness: '' },
+    priceNotes: { gold: '', faith: '', culture: '', authority: '', happiness: '' },
     wants: NO_WANTS,
     expansion: null,
     chains: [],
@@ -420,14 +434,85 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     // The hard floor, asked once for the whole book rather than per row.
     maintained: netGold >= ai.solvency.stopMaintainedBelow,
     soldierWorth: (city, id) => garrisonWorth(state, player, city, id, prior),
+    // **The draft plan's two readings** (batch 6): the clock the meter fills at,
+    // and what one Order is worth to this empire. The card is appraised at the
+    // **prior**, like every other row of the book — a hand priced at the culture
+    // price it is itself about to set would be the fixed point batch 1 refused.
+    cultureRate: rates.culturePerTurn ?? 0,
+    cardWorth: (id) => explainCard(player, id, prior),
   } satisfies WantInputs);
   const priced = shadowPrices(book, prior);
   return {
     ...constrained,
-    prices: { ...constrained.prices, gold: priced.gold, faith: priced.faith },
-    priceNotes: { ...constrained.priceNotes, gold: priced.notes.gold, faith: priced.notes.faith },
+    prices: {
+      ...constrained.prices,
+      gold: priced.gold,
+      faith: priced.faith,
+      culture: priced.culture,
+    },
+    priceNotes: {
+      ...constrained.priceNotes,
+      gold: priced.notes.gold,
+      faith: priced.notes.faith,
+      culture: priced.notes.culture,
+    },
     wants: book,
   };
+}
+
+/**
+ * **A seat's sitting at the table** — the one book and the one set of prices a
+ * seat reads for the whole of its turn (batch 6 of `docs/bot-priorities.md`).
+ *
+ * `valueContext` is the expensive half of every decision this bot makes: it
+ * prices the empire's books, walks its towns twice, builds the race, the tech
+ * chains, the expansion chain and the whole want book, and it was being rebuilt
+ * **per decision** — thirty or forty times in a busy seat's turn, each of them
+ * answering the same questions about the same board.
+ *
+ * A sitting is that context, built lazily on the first arm that asks for it and
+ * read by every arm after it. **A turn is one sitting**: the seat opens its
+ * books once, decides everything it is going to decide against them, and closes
+ * them. That is not merely cheaper, it is more coherent — two arms of the same
+ * turn can no longer disagree about what a coin is worth because one of them
+ * asked after the other had spent one.
+ *
+ * What a sitting is **not** is a licence to appraise against a board that has
+ * moved. Anything a mid-turn mutation invalidates is re-read from `state` by the
+ * arm that needs it and never by rebuilding the book: the spend arm asks
+ * `purchaseError` and `bankOf` at the moment it fires (see `bankSpend`), the
+ * contribution arm asks `contributeError`, and every arm's command is validated
+ * by the simulation before it is proposed exactly as it always was.
+ *
+ * The driver and the stepper each open one per seat per turn (`driver.ts`,
+ * `stepper.ts`). A caller that passes none — every test that asks
+ * `nextBotCommand(state, playerId)` directly, and the two exported production
+ * pickers a human seat's puppets go through — gets a fresh context per ask, as
+ * before.
+ */
+export interface BotSitting {
+  /** The seat whose turn this is. A context is never shared across seats. */
+  readonly playerId: number;
+  /** Built on first ask, and then read. Never invalidated inside a turn. */
+  ctx: ValueContext | null;
+}
+
+/** A fresh sitting for one seat's turn. The driver and the stepper open these. */
+export function botSitting(playerId: number): BotSitting {
+  return { playerId, ctx: null };
+}
+
+/**
+ * The context this arm appraises against — the sitting's, or a fresh one.
+ *
+ * The seat guard is not defensive tidiness: a context carries the seat's own
+ * tuning sheet, its treasury and its book, so handing seat 1's sitting to seat
+ * 0's arm would be exactly the global `ValueContext.ai` exists to prevent.
+ */
+function seatContext(state: GameState, player: Player, sitting?: BotSitting): ValueContext {
+  if (sitting === undefined || sitting.playerId !== player.id) return valueContext(state, player);
+  if (sitting.ctx === null) sitting.ctx = valueContext(state, player);
+  return sitting.ctx;
 }
 
 /**
@@ -860,8 +945,12 @@ function nearOwnCity(
  * has gone under is not in a position to buy anything and the one thing it can
  * do about it that pays off this turn is stop paying a wage (`disbandCommand`).
  */
-export function nextBotCommand(state: GameState, playerId: number): Command | null {
-  const decision = nextBotDecision(state, playerId);
+export function nextBotCommand(
+  state: GameState,
+  playerId: number,
+  sitting?: BotSitting,
+): Command | null {
+  const decision = nextBotDecision(state, playerId, sitting);
   return decision === null ? null : decision.command;
 }
 
@@ -884,7 +973,11 @@ export function nextBotCommand(state: GameState, playerId: number): Command | nu
  * most of what a seat's turn actually consists of, and it is invisible in a
  * command log.
  */
-export function nextBotDecision(state: GameState, playerId: number): BotDecision | null {
+export function nextBotDecision(
+  state: GameState,
+  playerId: number,
+  sitting?: BotSitting,
+): BotDecision | null {
   const player = playerById(state, playerId);
   if (!player) return null;
   // The three seats a bot never drives, and each for its own reason: the wild is
@@ -898,7 +991,7 @@ export function nextBotDecision(state: GameState, playerId: number): BotDecision
   // holding open — the reducer refuses them from a seat that has ended its turn
   // — so they are answered before anything else is considered.
   if (blocker !== null && isOfferBlocker(blocker)) {
-    const answer = answerBlocker(state, player, blocker);
+    const answer = answerBlocker(state, player, blocker, sitting);
     if (answer !== null) return answer;
   }
   // **Arrears outrank appetite.** A seat whose treasury has gone under is not in
@@ -907,7 +1000,7 @@ export function nextBotDecision(state: GameState, playerId: number): BotDecision
   const cut = disbandCommand(state, player);
   if (cut !== null) return cut;
 
-  const purchase = spendCommand(state, player);
+  const purchase = spendCommand(state, player, sitting);
   if (purchase !== null) return purchase;
 
   // **What this seat has to say to somebody else**, and it is asked *before* the
@@ -917,14 +1010,14 @@ export function nextBotDecision(state: GameState, playerId: number): BotDecision
   // already stands is refused, an answered paper leaves the table — which is
   // what lets it sit ahead of the blockers without threatening the driver's
   // loop. See `src/ai/diplomacy.ts`.
-  const abroad = diplomacyDecision(state, player, valueContext(state, player));
+  const abroad = diplomacyDecision(state, player, seatContext(state, player, sitting));
   if (abroad !== null) return abroad;
 
   if (blocker !== null) {
-    const answer = answerBlocker(state, player, blocker);
+    const answer = answerBlocker(state, player, blocker, sitting);
     if (answer !== null) return answer;
   }
-  return housekeeping(state, player);
+  return housekeeping(state, player, sitting);
 }
 
 /**
@@ -953,23 +1046,30 @@ function isOfferBlocker(blocker: TurnBlocker): boolean {
  * `null` — and `null` here means "this bot has nothing legal to offer", which
  * the driver reports rather than swallows.
  */
-function answerBlocker(state: GameState, player: Player, blocker: TurnBlocker): BotDecision | null {
+function answerBlocker(
+  state: GameState,
+  player: Player,
+  blocker: TurnBlocker,
+  sitting?: BotSitting,
+): BotDecision | null {
   const playerId = player.id;
   switch (blocker.kind) {
     case 'discovery':
       return discoveryDecision(player);
     case 'statecraft':
-      return blocker.what === 'order' ? orderDecision(state, player) : doctrineDecision(state, player);
+      return blocker.what === 'order'
+        ? orderDecision(state, player, sitting)
+        : doctrineDecision(state, player, sitting);
     case 'religion':
-      return beliefDecision(state, player);
+      return beliefDecision(state, player, sitting);
     case 'greatPerson':
       return greatPersonDecision(state, player);
     case 'idleUnit':
-      return unitCommand(state, player, blocker.unitId);
+      return unitCommand(state, player, blocker.unitId, sitting);
     case 'cityProduction':
-      return cityCommand(state, player, blocker.cityId);
+      return cityCommand(state, player, blocker.cityId, sitting);
     case 'research':
-      return researchCommand(state, playerId);
+      return researchCommand(state, playerId, sitting);
     default: {
       // The aliased-discriminant exhaustiveness idiom, as the reducer uses it: a
       // new blocker kind is a compile error here rather than a seat that quietly
@@ -990,10 +1090,14 @@ function answerBlocker(state: GameState, player: Player, blocker: TurnBlocker): 
  * adoption deletes the offer it answered, and a slotting fills a slot that was
  * empty. Neither can be proposed twice about the same thing.
  */
-function housekeeping(state: GameState, player: Player): BotDecision | null {
+function housekeeping(
+  state: GameState,
+  player: Player,
+  sitting?: BotSitting,
+): BotDecision | null {
   const sc = player.statecraft;
   if (sc.pendingGovernment !== undefined) {
-    const faces = adoptionTable(state, player, sc.pendingGovernment.options);
+    const faces = adoptionTable(state, player, sc.pendingGovernment.options, sitting);
     return {
       kind: 'draft',
       command: { type: 'adoptGovernment', playerId: player.id, choiceIndex: faces.index },
@@ -1006,12 +1110,12 @@ function housekeeping(state: GameState, player: Player): BotDecision | null {
   }
   // **A town idling on a conversion**, which blocks nothing at all and is the
   // one thing `firstBlocker` structurally cannot see. See `projectIdleCommand`.
-  const idle = projectIdleCommand(state, player);
+  const idle = projectIdleCommand(state, player, sitting);
   if (idle !== null) return idle;
 
   // **A settler asleep beside a town it could have founded** — the audit's
   // idle-settler finding, closed in batch 4. See `wakeIdleSettler`.
-  const rousted = wakeIdleSettler(state, player);
+  const rousted = wakeIdleSettler(state, player, sitting);
   if (rousted !== null) return rousted;
 
   // **Re-aiming the beeline**, which blocks nothing and is therefore never
@@ -1021,10 +1125,296 @@ function housekeeping(state: GameState, player: Player): BotDecision | null {
   // the plan already is the goal's closure, so this is silent on every turn the
   // world has not changed class — see its docblock for why that is a proof of
   // termination rather than a hope.
-  const beeline = researchCommand(state, player.id);
+  const beeline = researchCommand(state, player.id, sitting);
   if (beeline !== null) return beeline;
 
-  return slottingDecision(state, player);
+  // **Where a town's people stand** — the hammer price's own arm (batch 6). It
+  // blocks nothing, so `firstBlocker` cannot see it, which is what makes it
+  // housekeeping's; and it is last, because a focus is worth a hammer or two a
+  // turn and everything above it is worth a building.
+  const focus = focusCommand(state, player, sitting);
+  if (focus !== null) return focus;
+
+  return slottingDecision(state, player, sitting);
+}
+
+/**
+ * **The bot points a town's citizens** — its first `setCitizenFocus`, and the
+ * arm the chain-derivative hammer price exists for (batch 6 of
+ * `docs/bot-priorities.md`).
+ *
+ * The question is one comparison and it is the same one every other arm makes:
+ * the town's people placed by the balanced sheet, against the same people placed
+ * by the production sheet, with the difference priced in the one currency — the
+ * yields themselves at their own weights, **plus the hammer premium** (what the
+ * extra hammers buy the engines this empire is still raising). A town beside two
+ * hills with a University half-owed leans on the hills; the same town with every
+ * engine standing goes back to the balanced ordering, because the premium is then
+ * nothing and the food it gave up is not.
+ *
+ * Three things keep it honest and one keeps it finite:
+ *
+ *   · **the sheets are the simulation's own** (`RULES.cities.citizenWeights` and
+ *     `citizenFocusWeights.production`), read through the simulation's own
+ *     scorer (`yieldScore` over `tileYieldOf` in the owning town's context), so
+ *     what the bot predicts a focus would do is what `assignCitizens` will
+ *     actually do;
+ *   · **the starvation guard is anticipated, not discovered.** A focused sheet
+ *     that would leave the town short of what its citizens eat is silently put
+ *     back by `assignCitizens`, so a bot that ignored it would send a command
+ *     that changed nothing. It is printed as a refusal instead;
+ *   · **pinned tiles are not modelled** and are written down as the one
+ *     crudeness: nothing in this bot ever sends `setLockedTiles`, so a bot seat's
+ *     towns have no pins to honour. A human's town this arm never touches.
+ *
+ * **Finite by construction**, which the driver's loop needs: the comparison is a
+ * function of the board and of `ValueContext.medianProduction` — frozen for the
+ * seat's whole turn by the sitting (`BotSitting`) — and never of the town's
+ * current focus, so the answer cannot change because the answer was acted on.
+ * The command is sent only when the focus it names differs from the one the town
+ * carries, so it fires at most once per town per turn and then falls silent.
+ * That is the research plan's lesson (`researchCommand`) said one verb over.
+ */
+function focusCommand(
+  state: GameState,
+  player: Player,
+  sitting?: BotSitting,
+): BotDecision | null {
+  const ctx = seatContext(state, player, sitting);
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id) continue;
+    // The whole gate, and it is the simulation's: a puppet chooses for itself,
+    // and a seat that has ended its turn may not point anybody.
+    if (citizenFocusError(state, player.id, city) !== null) continue;
+    const table = focusTable(state, city, ctx);
+    if (table.best === cityFocus(city)) continue;
+    return {
+      kind: 'focus',
+      command: {
+        type: 'setCitizenFocus',
+        playerId: player.id,
+        cityId: city.id,
+        focus: table.best,
+      },
+      subject: townSubject(city),
+      summary:
+        table.best === 'production'
+          ? `${city.name} puts its people on the hills — the hammers are worth more to it than the ground they leave.`
+          : `${city.name} goes back to the balanced ordering — nothing it is raising is waiting on hammers.`,
+      candidates: table.candidates,
+      focus: { col: city.col, row: city.row },
+    };
+  }
+  return null;
+}
+
+/**
+ * The two placements this town could have, appraised — `focusCommand`'s table.
+ *
+ * The balanced candidate scores exactly nought and says so: it is the baseline
+ * the other is a difference from, which is what makes the comparison a plain
+ * argmax over a printed fold rather than two numbers subtracted somewhere.
+ */
+function focusTable(
+  state: GameState,
+  city: City,
+  ctx: ValueContext,
+): { best: CitizenFocus; candidates: BotCandidate[] } {
+  const balanced = RULES.cities.citizenWeights;
+  const leaning = RULES.cities.citizenFocusWeights.production;
+  const tiles = assignableTiles(state, city);
+  // The seats to fill: exactly the citizens standing on the land today, which is
+  // `assignCitizens`' own `population − specialists` after the fact and needs no
+  // second reading of the guilds.
+  const seats = city.workedTiles.length;
+  const ranked = (weights: typeof balanced): Tile[] => rankTiles(state, city, tiles, weights);
+  const plainRank = ranked(balanced);
+  const under = (order: readonly Tile[]): YieldBag =>
+    bagOfTiles(state, city, order.slice(0, Math.max(0, seats)));
+  // **Both sheets from scratch, and never the town's current one.** The
+  // comparison has to be a fact about the ground rather than about what the town
+  // is doing today, or acting on it would change it: a table that read the
+  // *current* placement as its baseline answers "production" while the town is
+  // balanced and "default" the moment it is not, and the arm flips a town back
+  // and forth for the whole of a turn. Measured, and the reason this is written
+  // down: the oscillating version spent twenty-five times the wall clock of the
+  // rest of the bot put together.
+  const plainBag = under(plainRank);
+  const leanBag = under(ranked(leaning));
+  const delta: YieldBag = {};
+  for (const voice of VOICES) delta[voice] = (leanBag[voice] ?? 0) - (plainBag[voice] ?? 0);
+
+  const terms: ValueTerm[] = [
+    nest('what the people would make on the other hexes', explainYields(delta, ctx)),
+  ];
+  const hammers = hammerTerm(delta.production ?? 0, ctx);
+  if (hammers !== null) terms.push(hammers);
+  // **The two expensive readings are asked last, and only if they can matter.**
+  // The growth charge and the starvation guard both price the town through
+  // `cityYields`, which walks the empire for the two meters; the cheap half above
+  // decides whether they are worth asking at all, and a lean the ground has
+  // already lost cannot be saved by a charge against it. `foldOf` of a prefix is
+  // the same fold — the terms below only ever subtract.
+  if (foldOf(terms) <= 0) {
+    return {
+      best: 'default',
+      candidates: [
+        {
+          label: 'work the hammers',
+          score: foldOf(terms),
+          chosen: false,
+          terms,
+          rejected: 'the ground it would leave is worth more than the hammers',
+        },
+        {
+          label: 'the balanced ordering',
+          score: 0,
+          chosen: true,
+          terms: [{ label: 'what the town is already doing — the baseline', value: 0 }],
+        },
+      ],
+    };
+  }
+  // **What the growth it gives up is worth** — the hammer premium's mirror, and
+  // the term without which this arm is simply wrong. A focus trades bushels for
+  // hammers, and a bushel's flat weight prices *the bushel*, never the citizen it
+  // eventually becomes: the town grows later, and everything the next citizen
+  // would have worked arrives later with it. That is a delay on a promise this
+  // bot already prices (`explainCitizen`), so it is charged the way every other
+  // delay in the system is — the discount at the turns the lean would take to
+  // grow, less the discount at the turns the balanced sheet would.
+  const growth = growthTerm(state, city, ctx, plainRank[seats], plainBag, leanBag);
+  if (growth !== null) terms.push(growth);
+  const lean: BotCandidate = {
+    label: 'work the hammers',
+    score: foldOf(terms),
+    chosen: false,
+    terms,
+  };
+  // **The lean has to be the chains' idea, not the weight table's** — the spec's
+  // own sentence, *"focus production while chain-bound, default otherwise"*, and
+  // a measured decision rather than a taste. Without this clause the arm fires on
+  // the flat weights alone (hammers outrank bushels per point in every age of
+  // the table), so every town of every empire leans on the hills for ever and the
+  // growth it gives up is never bought back: measured at t75 on the acceptance
+  // seeds, fifteen technologies and six buildings, for six points of culture.
+  // A focus is a *standing* instruction, and the honest reason to give one is
+  // that something this empire has committed to is waiting on the hammers.
+  if (hammers === null || hammers.value <= 0) {
+    lean.rejected = 'nothing this empire is raising is waiting on hammers';
+  }
+  // The guard `assignCitizens` would apply: a focused sheet that starves the
+  // town is put back, so a focus that would starve it buys nothing at all.
+  //
+  // This one *does* have to read the town's live books — the raw hexes say
+  // nothing about the centre, the buildings or the percentages — so it is
+  // written as a difference from whatever sheet the town is placed by **today**,
+  // which is invariant under the arm's own command: the live reading and the
+  // baseline move together by exactly the same bushels.
+  if (lean.score > 0) {
+    const standing = citizenLean(city) === 'production' ? leanBag : plainBag;
+    const fed = cityYields(state, city).food + ((leanBag.food ?? 0) - (standing.food ?? 0));
+    if (fed < foodUpkeep(city)) {
+      lean.rejected = `${city.name} would not feed itself on the hammers`;
+    }
+  }
+  const plain: BotCandidate = {
+    label: 'the balanced ordering',
+    score: 0,
+    chosen: false,
+    terms: [{ label: 'what the town is already doing — the baseline', value: 0 }],
+  };
+  const best: CitizenFocus = lean.rejected === undefined && lean.score > 0 ? 'production' : 'default';
+  if (best === 'production') lean.chosen = true;
+  else plain.chosen = true;
+  return { best, candidates: [lean, plain] };
+}
+
+/**
+ * **What leaning on the hammers costs this town in growth**, or `null` when it
+ * costs none — `focusTable`'s second half.
+ *
+ * Both surpluses are read off the town's *live* books and moved by the
+ * difference the two sheets make, for `focusTable`'s stated reason: the raw
+ * hexes say nothing about the centre, the buildings or the percentages, and the
+ * live reading minus the standing sheet is invariant under this arm's own
+ * command.
+ *
+ * A town that cannot grow at all under a sheet waits the whole horizon, which is
+ * `delayDiscount`'s nothing — so a focus that would stall a town's growth
+ * outright is charged the whole of the next citizen, which is right.
+ */
+function growthTerm(
+  state: GameState,
+  city: City,
+  ctx: ValueContext,
+  nextHex: Tile | undefined,
+  plainBag: YieldBag,
+  leanBag: YieldBag,
+): ValueTerm | null {
+  // **What the next citizen is worth, read off the balanced ordering** rather
+  // than off `explainCitizen`. The two agree about the clause that matters — the
+  // ground a new citizen would work — but `explainCitizen` asks it of the town's
+  // *live* placement (`nextWorkableTile` skips the hexes already worked), so its
+  // answer moves the moment this arm's own command moves the citizens, and an
+  // appraisal that changes because it was acted on is an arm that flips a town
+  // back and forth all turn. Measured before it was written down: three thousand
+  // six hundred focus commands in a seventy-five-turn duel.
+  if (nextHex === undefined) return null;
+  const citizen = valueOfYields(
+    bagOfTileYield(tileYieldOf(nextHex, tileContextAt(state, city.ownerId, nextHex))),
+    ctx,
+  );
+  if (citizen <= 0) return null;
+  const standing = citizenLean(city) === 'production' ? leanBag : plainBag;
+  const surplus = cityYields(state, city).food - foodUpkeep(city);
+  const remaining = Math.max(0, growthThreshold(city.population) - city.foodBasket);
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const turnsAt = (bag: YieldBag): number => {
+    const rate = surplus + ((bag.food ?? 0) - (standing.food ?? 0));
+    return rate <= 0 ? horizon : Math.ceil(remaining / rate);
+  };
+  const sooner = delayDiscount(turnsAt(leanBag), ctx) - delayDiscount(turnsAt(plainBag), ctx);
+  if (sooner === 0) return null;
+  return {
+    label:
+      `the next citizen arrives in ${turnsAt(leanBag)} turns instead of ${turnsAt(plainBag)}, ` +
+      `against a ${horizon}-turn horizon`,
+    value: citizen * sooner,
+  };
+}
+
+/**
+ * The town's assignable hexes **ranked** by one sheet — `chooseCitizens`' walk,
+ * minus the pins (see `focusCommand`'s third bullet). The first `seats` of them
+ * are the placement; the one after that is the hex the next citizen would take.
+ *
+ * Scored by the simulation's own `yieldScore` over the owning town's own tile
+ * context, and tie-broken by tile index, which is the sim's tie-break exactly.
+ */
+function rankTiles(
+  state: GameState,
+  city: City,
+  tiles: readonly Tile[],
+  weights: Parameters<typeof yieldScore>[1],
+): Tile[] {
+  const scored = tiles.map((tile) => ({
+    tile,
+    at: tileIndex(state.map, tile.col, tile.row),
+    score: yieldScore(tileYieldOf(tile, tileContextAt(state, city.ownerId, tile)), weights),
+  }));
+  scored.sort((a, b) => b.score - a.score || a.at - b.at);
+  return scored.map((row) => row.tile);
+}
+
+/** What a set of hexes pays, as a bag the appraisal weights. */
+function bagOfTiles(state: GameState, city: City, tiles: readonly Tile[]): YieldBag {
+  const bag: YieldBag = {};
+  for (const tile of tiles) {
+    const yields = bagOfTileYield(tileYieldOf(tile, tileContextAt(state, city.ownerId, tile)));
+    for (const voice of VOICES) bag[voice] = (bag[voice] ?? 0) + (yields[voice] ?? 0);
+  }
+  return bag;
 }
 
 /**
@@ -1053,11 +1443,15 @@ function housekeeping(state: GameState, player: Player): BotDecision | null {
  * is: a sleeping piece raises no `idleUnit`, so `firstBlocker` structurally
  * cannot see it.
  */
-function wakeIdleSettler(state: GameState, player: Player): BotDecision | null {
+function wakeIdleSettler(
+  state: GameState,
+  player: Player,
+  sitting?: BotSitting,
+): BotDecision | null {
   for (const unit of state.units) {
     if (unit.ownerId !== player.id || unit.sleeping !== true) continue;
     if (unitDef(unit.type).foundsCity !== true) continue;
-    const choice = settlerCommand(state, player, unit);
+    const choice = settlerCommand(state, player, unit, sitting);
     if (choice === null || choice.command.type === 'sleepUnit') continue;
     return {
       kind: 'unitOrder',
@@ -1097,9 +1491,13 @@ function wakeIdleSettler(state: GameState, player: Player): BotDecision | null {
  * accepts, and the refusals it gives (sealed, already slotted, wrong office) are
  * printed on the rows rather than restated as clauses here.
  */
-function slottingDecision(state: GameState, player: Player): BotDecision | null {
+function slottingDecision(
+  state: GameState,
+  player: Player,
+  sitting?: BotSitting,
+): BotDecision | null {
   const sc = player.statecraft;
-  const ctx = valueContext(state, player);
+  const ctx = seatContext(state, player, sitting);
   const layout = slotTypesOf(sc);
   // How many held cards each office could take. Asked once for the whole table
   // rather than per pair, and it is the *scarcity* the placement sorts on.
@@ -1181,8 +1579,9 @@ function adoptionTable(
   state: GameState,
   player: Player,
   options: readonly GovernmentId[],
+  sitting?: BotSitting,
 ): { index: number; candidates: BotCandidate[] } {
-  const ctx = valueContext(state, player);
+  const ctx = seatContext(state, player, sitting);
   const candidates: BotCandidate[] = [];
   let index = 0;
   let bestScore = -Infinity;
@@ -1265,12 +1664,16 @@ function adoptionTable(
  * calls of one pure function on one state cannot disagree, so there is no
  * oscillation to guard against.
  */
-function projectIdleCommand(state: GameState, player: Player): BotDecision | null {
+function projectIdleCommand(
+  state: GameState,
+  player: Player,
+  sitting?: BotSitting,
+): BotDecision | null {
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
     const front = city.queue[0];
     if (front === undefined || front.kind !== 'project') continue;
-    const table = productionTable(state, player, city);
+    const table = productionTable(state, player, city, sitting);
     const wanted = table.best;
     if (wanted === null) continue;
     // The scorer still prefers the conversion that is already running: nothing
@@ -1318,13 +1721,28 @@ function sameItem(a: QueueItem, b: QueueItem): boolean {
  * (see `scoreCard`). Ties go to the first index, which is draw order and
  * therefore part of the log.
  *
- * **This bot never passes** (the skip verb of 2026-09-04). Passing trades a
- * card in hand for a likelier-rare card later, and pricing that trade needs a
- * reading of the *bag* the appraisal does not have; taking the best card on the
- * table is the honest placeholder, and a bot that skipped on a guess would be
- * spending the empire's culture on one.
+ * **The pass is priced** (batch 6 of `docs/bot-priorities.md`), and until it was
+ * this arm carried a written-down non-delivery: *"pricing that trade needs a
+ * reading of the bag the appraisal does not have"*. It has one now. The draft
+ * plan's estimator (`expectedBestOrder`, `wants.ts`) answers *what is the best
+ * card a hand dealt from this pool would hold* over the real draw — the live
+ * pool, the M/E/W guarantee, the rarity weights and the pity — so the pass is
+ * simply that question asked with **one more pass banked** and discounted by how
+ * long the next meter takes to fill:
+ *
+ *     skip = E[best of the next hand at pity + 1] × delayDiscount(next draft)
+ *
+ * It is a candidate in the same table as the cards, folded from printed terms
+ * like every other, and it wins exactly when it outscores all of them — an
+ * empire staring at three commons it does not want, with culture coming in fast
+ * enough that the next hand is a handful of turns away, passes. One that would
+ * wait forty turns for the rarer hand does not, and the discount is what says so.
+ *
+ * The pity is not free and the arithmetic knows it: `skipOrderOffer` spends the
+ * hand on the table, so what the pass gives up is the very card the best
+ * candidate is worth, and the comparison is between the two.
  */
-function orderDecision(state: GameState, player: Player): BotDecision {
+function orderDecision(state: GameState, player: Player, sitting?: BotSitting): BotDecision {
   const playerId = player.id;
   const offer = player.statecraft.pendingOrder;
   if (offer === undefined) {
@@ -1336,12 +1754,28 @@ function orderDecision(state: GameState, player: Player): BotDecision {
       candidates: [],
     };
   }
-  const ctx = valueContext(state, player);
+  const ctx = seatContext(state, player, sitting);
   // The index is the *offer's*, so the list keeps its holes: `pickCard` skips an
   // absent option without shifting what an index names.
   const ids: (OrderId | undefined)[] = [...offer.options];
   const picked = pickCard(player, ids, ctx);
   const taken = ids[picked.index];
+  const pass = skipCandidate(state, player, ctx);
+  const best = picked.candidates.find((candidate) => candidate.chosen) ?? null;
+  const candidates = [...picked.candidates, pass];
+  if (best === null || pass.score > best.score) {
+    if (best !== null) best.chosen = false;
+    pass.chosen = true;
+    return {
+      kind: 'draft',
+      command: { type: 'skipOrderOffer', playerId },
+      subject: player.name,
+      summary:
+        `Passes the whole hand — the next one, dealt with a pass of pity banked, is worth ` +
+        `${round1(pass.score)} against ${round1(best?.score ?? 0)} for the best card on the table.`,
+      candidates,
+    };
+  }
   return {
     kind: 'draft',
     command: { type: 'chooseOrder', playerId, optionIndex: picked.index },
@@ -1350,15 +1784,48 @@ function orderDecision(state: GameState, player: Player): BotDecision {
       taken === undefined
         ? 'Takes the first option: there is no card to read.'
         : `Drafts ${cardName(taken)} — best of ${picked.candidates.length} on effects plus the threads it already holds.`,
-    candidates: picked.candidates,
+    candidates,
   };
 }
 
+/**
+ * **The pass, as a candidate** — what the *next* hand would be worth, banked one
+ * pass of pity better and discounted by the turns the meter takes to refill.
+ *
+ * The estimator is the draft plan's own (`expectedBestOrder`), asked of the pool
+ * this hand came out of with `orderSkips + 1`. Two crudenesses ride along and
+ * both are the plan's, said once more rather than fixed here: the pool it reads
+ * is the *live* one, so the cards on the table are still in it (a pass does not
+ * remove them from the bag — a skipped hand's cards can be dealt again), and the
+ * replacement a full government would have to bench is not charged, because a
+ * pass benches nothing.
+ */
+function skipCandidate(state: GameState, player: Player, ctx: ValueContext): BotCandidate {
+  const sc = player.statecraft;
+  const pool = livePool(sc);
+  const size = offerSize(state, player.id, 'order');
+  const hand = expectedBestOrder(pool, size, sc.orderSkips + 1, (id) =>
+    scoreCard(player, id, ctx),
+  );
+  // The next draft's own wait: the whole of the next threshold over what the
+  // meter fills at, because a pass spends the culture already banked for this one.
+  const rate = empireRateReading(state, player.id).culturePerTurn ?? 0;
+  const delay = draftCost(sc.drafts + 1) / Math.max(1, rate);
+  const terms: ValueTerm[] = [
+    {
+      label: `the best of the next hand, dealt with ${sc.orderSkips + 1} pass${sc.orderSkips === 0 ? '' : 'es'} of pity`,
+      value: hand,
+    },
+    delayTerm(delay, ctx, 'the meter has to fill again'),
+  ];
+  return { label: 'pass the hand', score: foldOf(terms), chosen: false, terms };
+}
+
 /** The best-scoring Doctrine of an adoption's triple. `orderDecision`'s twin. */
-function doctrineDecision(state: GameState, player: Player): BotDecision {
+function doctrineDecision(state: GameState, player: Player, sitting?: BotSitting): BotDecision {
   const playerId = player.id;
   const options = player.statecraft.pendingDoctrine?.options ?? [];
-  const picked = pickCard(player, options, valueContext(state, player));
+  const picked = pickCard(player, options, seatContext(state, player, sitting));
   return {
     kind: 'draft',
     command: { type: 'chooseDoctrine', playerId, optionIndex: picked.index },
@@ -1372,10 +1839,10 @@ function doctrineDecision(state: GameState, player: Player): BotDecision {
 }
 
 /** The best-scoring god of a Consecrate's hand, or a follower bag's. */
-function beliefDecision(state: GameState, player: Player): BotDecision {
+function beliefDecision(state: GameState, player: Player, sitting?: BotSitting): BotDecision {
   const playerId = player.id;
   const options = player.pantheon.pending?.options ?? [];
-  const picked = pickCard(player, options, valueContext(state, player));
+  const picked = pickCard(player, options, seatContext(state, player, sitting));
   return {
     kind: 'draft',
     command: { type: 'chooseBelief', playerId, optionIndex: picked.index },
@@ -1713,10 +2180,14 @@ function greatPersonDecision(state: GameState, player: Player): BotDecision {
  * comparison is the whole mechanism, which is `SlottedOrder.sealedUntil`'s
  * lesson applied to a plan.
  */
-function researchCommand(state: GameState, playerId: number): BotDecision | null {
+function researchCommand(
+  state: GameState,
+  playerId: number,
+  sitting?: BotSitting,
+): BotDecision | null {
   const player = playerById(state, playerId);
   if (!player) return null;
-  const table = techGoalTable(state, player);
+  const table = techGoalTable(state, player, sitting);
   const goal = table.goal;
   if (goal === null) return null;
   const wanted = researchExpansion(state, playerId, goal);
@@ -1796,8 +2267,9 @@ export function bestTechGoal(state: GameState, player: Player): TechId | null {
 function techGoalTable(
   state: GameState,
   player: Player,
+  sitting?: BotSitting,
 ): { goal: TechId | null; candidates: BotCandidate[] } {
-  const ctx = valueContext(state, player);
+  const ctx = seatContext(state, player, sitting);
   const ai = ctx.ai;
   // **One sweep for the whole table**, `valueContext`'s and the improvement
   // plan's bargain for the third time: the renewal riders below need to know how
@@ -1907,8 +2379,8 @@ function techGoalTable(
  * One context for all three arms, rather than one each: it carries the book, and
  * the book is the expensive half of asking any of these questions.
  */
-function spendCommand(state: GameState, player: Player): BotDecision | null {
-  const ctx = valueContext(state, player);
+function spendCommand(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
+  const ctx = seatContext(state, player, sitting);
   const gold = bankSpend(state, player, ctx, 'gold');
   if (gold !== null) return gold;
   const faith = bankSpend(state, player, ctx, 'faith');
@@ -1943,7 +2415,7 @@ function bankSpend(
   state: GameState,
   player: Player,
   ctx: ValueContext,
-  currency: WantCurrency,
+  currency: BankCurrency,
 ): BotDecision | null {
   const wants = currency === 'gold' ? ctx.wants.gold : ctx.wants.faith;
   // The hard cover, hoisted: it prices the whole empire's standing bill, and
@@ -1952,7 +2424,10 @@ function bankSpend(
   const candidates: BotCandidate[] = [];
 
   let bar: Want | null = null;
-  let best: Want | null = null;
+  // The buyable rows the treasury still covers, each beside the candidate row it
+  // is printed as — so a row the live gate strikes below is marked refused in
+  // place rather than printed twice.
+  const offers: { want: Want; candidate: BotCandidate }[] = [];
   for (const want of wants) {
     if (want.holding !== undefined) {
       if (bar === null || worthPerCoin(want) > worthPerCoin(bar)) bar = want;
@@ -1960,25 +2435,61 @@ function bankSpend(
       continue;
     }
     if (want.buy === undefined) continue;
+    // **The treasury is read live, never off the book** (batch 6). The book was
+    // priced when the seat sat down and a purchase since then has spent from it,
+    // so the cover is asked of `bankOf` at the moment the question is put.
     if (bankOf(player, currency) - want.price < reserve) {
       candidates.push(
         refused(want.label, `${reserve} ${currency} of cover would not survive the price`),
       );
       continue;
     }
-    if (best === null || worthPerCoin(want) > worthPerCoin(best)) best = want;
-    candidates.push(wantCandidate(want, currency, false));
-  }
-  if (best === null) return null;
-  if (bar !== null && worthPerCoin(best) < worthPerCoin(bar)) {
-    candidates.push(refused(best.label, `holding beats it: ${bar.label}`));
-    return null;
+    const candidate = wantCandidate(want, currency, false);
+    candidates.push(candidate);
+    offers.push({ want, candidate });
   }
 
+  // **The rules are asked again at the moment of firing** — the other half of the
+  // sitting's bargain (`BotSitting`). A book built once per turn can offer a row
+  // this seat has *since bought*: the building now stands, or the town has spent
+  // its one purchase of that class this turn (`City.purchasedUnitTurns`). Asking
+  // `purchaseError` of the live state before proposing keeps the driver's rule
+  // that a refusal is a bug, and a struck row simply hands the bank to the next
+  // best want rather than ending the arm.
+  for (;;) {
+    let best: { want: Want; candidate: BotCandidate } | null = null;
+    for (const offer of offers) {
+      if (offer.candidate.rejected !== undefined) continue;
+      if (best === null || worthPerCoin(offer.want) > worthPerCoin(best.want)) best = offer;
+    }
+    if (best === null) return null;
+    if (bar !== null && worthPerCoin(best.want) < worthPerCoin(bar)) {
+      candidates.push(refused(best.want.label, `holding beats it: ${bar.label}`));
+      return null;
+    }
+    const bought = best.want.buy!;
+    const refusal = purchaseError(state, player.id, bought.cityId, bought.item, currency);
+    if (refusal !== null) {
+      best.candidate.rejected = refusal;
+      continue;
+    }
+    return purchaseDecision(state, player, best.want, bar, currency, candidates);
+  }
+}
+
+/** One want, sent. Split out so `bankSpend`'s live gate can loop above it. */
+function purchaseDecision(
+  state: GameState,
+  player: Player,
+  best: Want,
+  bar: Want | null,
+  currency: BankCurrency,
+  candidates: BotCandidate[],
+): BotDecision {
   const bought = best.buy!;
   const city = cityById(state, bought.cityId)!;
   for (const candidate of candidates) {
-    if (candidate.label === best.label) candidate.chosen = true;
+    if (candidate.label === best.label && candidate.rejected === undefined) candidate.chosen = true;
   }
   return {
     kind: 'purchase',
@@ -2008,7 +2519,7 @@ function bankSpend(
  * compared and the number the page prints are one computation. See
  * `foldTerms`' contract in `decision.ts`.
  */
-function wantCandidate(want: Want, currency: WantCurrency, chosen: boolean): BotCandidate {
+function wantCandidate(want: Want, currency: BankCurrency, chosen: boolean): BotCandidate {
   const terms: ValueTerm[] = [
     nest('what it is worth', { total: want.worth, terms: want.terms }),
     {
@@ -2055,7 +2566,7 @@ function contributionCommand(
   ctx: ValueContext,
 ): BotDecision | null {
   const candidates: BotCandidate[] = [];
-  let best: { currency: WantCurrency; city: City; offer: ContributionOffer; score: number } | null =
+  let best: { currency: BankCurrency; city: City; offer: ContributionOffer; score: number } | null =
     null;
   let bestBar: Want | null = null;
   for (const currency of ['gold', 'faith'] as const) {
@@ -2229,10 +2740,15 @@ function hasFoundedReligion(state: GameState, playerId: number): boolean {
  * applies on top of it (`validateQueue`: a building the town already has, and a
  * unit's `minCityPop`), so a queue this returns is a queue the reducer takes.
  */
-function cityCommand(state: GameState, player: Player, cityId: number): BotDecision | null {
+function cityCommand(
+  state: GameState,
+  player: Player,
+  cityId: number,
+  sitting?: BotSitting,
+): BotDecision | null {
   const city = cityById(state, cityId);
   if (!city || city.ownerId !== player.id) return null;
-  const table = productionTable(state, player, city);
+  const table = productionTable(state, player, city, sitting);
   const item = table.best;
   if (item === null) return null;
   return {
@@ -2333,6 +2849,7 @@ function productionTable(
   state: GameState,
   player: Player,
   city: City,
+  sitting?: BotSitting,
 ): { best: QueueItem | null; candidates: BotCandidate[] } {
   // **The opening book, ahead of the scoring** — the one hard-coded build in
   // this bot. See `openingScout`.
@@ -2353,7 +2870,7 @@ function productionTable(
       ],
     };
   }
-  const ctx = puppetAwareContext(state, player, city);
+  const ctx = puppetAwareContext(state, player, city, sitting);
   // The improvement plan, hoisted for this decision exactly as the context is:
   // the worker candidate reads it, and it walks every owned hex against every
   // improvement on the roster once rather than once per candidate.
@@ -2456,8 +2973,13 @@ function openingScout(state: GameState, player: Player, city: City): QueueItem |
  * its gold pressure and its threat count are facts about the empire, and a
  * puppet is in the empire.
  */
-function puppetAwareContext(state: GameState, player: Player, city: City): ValueContext {
-  const ctx = valueContext(state, player);
+function puppetAwareContext(
+  state: GameState,
+  player: Player,
+  city: City,
+  sitting?: BotSitting,
+): ValueContext {
+  const ctx = seatContext(state, player, sitting);
   if (city.puppet !== true) return ctx;
   return { ...ctx, ai: aiConfigForPuppet(player.persona) };
 }
@@ -2507,6 +3029,52 @@ function escortChainTerm(ctx: ValueContext): ValueTerm | null {
       `nothing of ours would walk a settler to it — ` +
       `one of ${chain.stepsRemaining} thing${chain.stepsRemaining === 1 ? '' : 's'} still to happen`,
     value: expansionStepShare(chain),
+  };
+}
+
+/**
+ * **The settler's whole worth: its share of the expansion chain**, as one term
+ * whose parts fold to its own value.
+ *
+ * Two bugs the slow tier's fold audit caught on 2026-09-05 are closed here, and
+ * both were the same mistake — a term carrying somebody *else's* arithmetic:
+ *
+ *   · **the share is the chain over the steps, so the parts have to say so.**
+ *     `chain.terms` fold to `chain.worth`, not to `worth ÷ stepsRemaining`, so a
+ *     chain owed by two things printed a term whose expansion did not add up to
+ *     it. The division joins the parts, which is exactly what `nest`'s contract
+ *     asks of a nested appraisal (`decision.ts`).
+ *   · **a chain with nothing left to raise prints no arithmetic at all.** A
+ *     settler already walking is no step (batch 4: *"a realised step drops out by
+ *     construction"*), so the share is nought — and "one of 0 things still to
+ *     happen" beside a hundred and nineteen points of parts was a sentence about
+ *     a chain that owes this town nothing. It says that instead, and carries no
+ *     parts, because there is no share to expand.
+ */
+function expansionShareTerm(chain: ExpansionChain): ValueTerm {
+  const where = `(${chain.site.tile.col},${chain.site.tile.row})`;
+  if (chain.stepsRemaining <= 0) {
+    return {
+      label: `the next town at ${where} is already under way — nothing left for a town to raise`,
+      value: 0,
+    };
+  }
+  return {
+    label:
+      `a step of the next town at ${where} — ` +
+      `one of ${chain.stepsRemaining} thing${chain.stepsRemaining === 1 ? '' : 's'} still to happen`,
+    value: expansionStepShare(chain),
+    parts:
+      chain.stepsRemaining === 1
+        ? chain.terms
+        : [
+            ...chain.terms,
+            {
+              label: `÷ ${chain.stepsRemaining} things still to happen`,
+              value: chain.stepsRemaining,
+              op: 'div',
+            },
+          ],
   };
 }
 
@@ -2577,6 +3145,13 @@ function buildCandidates(
       nest('what this town would actually make with it', explainYields(delta, ctx)),
       nest('what its row gives beyond a yield', explainBuildingRow(id, ctx)),
     ];
+    // **The hammer premium** (batch 6): a row that raises what this town *makes*
+    // shortens every engine the town is still raising, and that compression is
+    // worth something over and above the hammers' own rate. Priced off this
+    // town's chains and this town's production — the one site that knows which
+    // town is asking.
+    const hammers = hammerTerm(delta.production ?? 0, ctx, city);
+    if (hammers !== null) terms.push(hammers);
     // **Touch point (b) of the priority spec**: a row that is a step of a live
     // chain carries that chain's per-step share. This is the university fix's
     // other half — the empire that holds the technology raises the buildings,
@@ -2709,19 +3284,10 @@ function unitRoleValue(
     // meters founding would spend. Folding `explainNextTown` beside it would
     // count the town twice.
     const chain = ctx.expansion;
-    const share = chain === null ? null : expansionStepShare(chain);
     const terms: ValueTerm[] =
-      chain === null || share === null
+      chain === null
         ? [nest('one more town, with nowhere yet legal to put it', explainNextTown(state, player, ctx))]
-        : [
-            {
-              label:
-                `a step of the next town at (${chain.site.tile.col},${chain.site.tile.row}) — ` +
-                `one of ${chain.stepsRemaining} thing${chain.stepsRemaining === 1 ? '' : 's'} still to happen`,
-              value: share,
-              parts: chain.terms,
-            },
-          ];
+        : [expansionShareTerm(chain)];
     terms.push(nest('the citizen it costs this town', citizen, 'sub'));
     return { value: foldOf(terms), essential: false, terms };
   }
@@ -3186,7 +3752,12 @@ function canQueueUnit(state: GameState, player: Player, city: City, id: UnitType
  * order that always works: a civilian sleeps and a soldier digs in, and exactly
  * one of those two is legal for any piece (`isCivilian` is `!isCombatant`).
  */
-function unitCommand(state: GameState, player: Player, unitId: number): BotDecision | null {
+function unitCommand(
+  state: GameState,
+  player: Player,
+  unitId: number,
+  sitting?: BotSitting,
+): BotDecision | null {
   const unit = findUnit(state, unitId);
   if (!unit || unit.ownerId !== player.id) return null;
   const def = unitDef(unit.type);
@@ -3194,14 +3765,14 @@ function unitCommand(state: GameState, player: Player, unitId: number): BotDecis
   const choice = (():
     | UnitChoice
     | null => {
-    if (def.foundsCity === true) return settlerCommand(state, player, unit);
-    if (trades(def)) return traderCommand(state, player, unit);
+    if (def.foundsCity === true) return settlerCommand(state, player, unit, sitting);
+    if (trades(def)) return traderCommand(state, player, unit, sitting);
     if (def.consecrates === true) return augurCommand(state, player, unit);
     if (def.prophesies === true) return prophetCommand(state, player, unit);
-    if (isPlainBuilder(def)) return workerCommand(state, player, unit);
+    if (isPlainBuilder(def)) return workerCommand(state, player, unit, sitting);
     if (isExplorer(def)) return scoutCommand(state, player, unit);
     if (isCombatant(def)) return soldierCommand(state, player, unit);
-    if (def.greatWork === true) return greatPersonCommand(state, player, unit);
+    if (def.greatWork === true) return greatPersonCommand(state, player, unit, sitting);
     return standDown(unit, 'Nothing this bot knows how to do with this piece.');
   })();
   if (choice === null) return null;
@@ -3282,7 +3853,12 @@ function standDown(unit: Unit, why = 'Nothing better to do where it stands.'): U
  * coast. Context-less is also the honest reading for a *founding*: the tile is
  * nobody's yet, so there is no owner whose technologies would gate it.
  */
-function settlerCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
+function settlerCommand(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  sitting?: BotSitting,
+): UnitChoice | null {
   const ai = aiFor(player);
   // Hoisted for this whole decision, `valueContext`'s bargain: the site scorer
   // asks it per hex and there are two hundred hexes in a search radius.
@@ -3345,7 +3921,7 @@ function settlerCommand(state: GameState, player: Player, unit: Unit): UnitChoic
     escorted,
     standing?.appraisal ?? null,
     legalHere,
-    valueContext(state, player),
+    seatContext(state, player, sitting),
   );
   if (march !== null) return march;
   // Nowhere better within reach: found here if the rules allow it — a settler
@@ -3421,9 +3997,14 @@ function marchToSite(
   // founded nothing. `priorities.switchMargin` is the same tenth the beeline
   // defends its plan with: found here unless somewhere in reach is *clearly*
   // better, after the road is priced.
-  const bar = legalHere
-    ? (townWorth + (here?.total ?? 0)) * ctx.ai.priorities.switchMargin
-    : -Infinity;
+  // **The ground under the piece, as a fold** — the same term list the row below
+  // prints, folded once and read twice. Computing the bar from `here.total`
+  // beside the row's own fold was the parallel arithmetic the audit caught one
+  // candidate over (2026-09-05): a sum regrouped is a different number, and this
+  // bot's rule is that a score IS the fold of its terms.
+  const hereTerms: ValueTerm[] = [townTerm(townWorth), ...(here?.terms ?? [])];
+  const hereScore = foldOf(hereTerms);
+  const bar = legalHere ? hereScore * ctx.ai.priorities.switchMargin : -Infinity;
   const stride = Math.max(1, unitDef(unit.type).movement);
   const from = tileHex(getTileAt(state.map, unit.col, unit.row) ?? state.map.tiles[0]!);
   for (const tile of mapRange(state.map, from, ai.expansion.siteSearchRadius)) {
@@ -3444,7 +4025,11 @@ function marchToSite(
       'the settler has still to walk there',
     );
     const scored: ValueTerm[] = [townTerm(townWorth), ...appraisal.terms, walk];
-    const score = (townWorth + appraisal.total) * walk.value;
+    // **The score is the fold**, never a second computation beside it
+    // (`decision.ts`' first rule). `(townWorth + appraisal.total) × walk` is the
+    // same sum regrouped, which is a different floating-point number — the drift
+    // the slow tier's fold audit caught on 2026-09-05.
+    const score = foldOf(scored);
     if (score <= bar) continue;
     if (escorted === null) {
       const danger = nearestHostile(state, player, tile.col, tile.row, ai.war.escortRadius);
@@ -3464,13 +4049,12 @@ function marchToSite(
   // board rather than about the order a loop happened to visit hexes in.
   candidates.sort((a, b) => b.score - a.score || a.distance - b.distance);
   const probes = candidates.slice(0, ai.search.pathProbes);
-  const hereScore = here?.total ?? 0;
   const rows: BotCandidate[] = [
     {
       label: `stay and found here (${unit.col},${unit.row})`,
-      score: townWorth + hereScore,
+      score: hereScore,
       chosen: false,
-      terms: [townTerm(townWorth), ...(here?.terms ?? [])],
+      terms: hereTerms,
     },
     // The sites the escort rule struck out, at most a handful of them so a
     // reader sees the rule bite without reading a hundred rows of it.
@@ -3492,7 +4076,7 @@ function marchToSite(
       },
       summary:
         `Marches ${candidate.distance} hexes to (${candidate.tile.col},${candidate.tile.row}), which scores ` +
-        `${round1(candidate.score)} against ${round1(townWorth + hereScore)} where it stands. ` +
+        `${round1(candidate.score)} against ${round1(hereScore)} where it stands. ` +
         `${candidates.length} legal sites in range; the ${ai.search.pathProbes} best were asked for a route.`,
       candidates: rows,
       focus: { col: candidate.tile.col, row: candidate.tile.row },
@@ -3788,9 +4372,14 @@ function explainSite(
  * with no worker on them needs. So a row this arm proposes is a row the reducer
  * takes.
  */
-function workerCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
+function workerCommand(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  sitting?: BotSitting,
+): UnitChoice | null {
   const ai = aiFor(player);
-  const ctx = valueContext(state, player);
+  const ctx = seatContext(state, player, sitting);
   // Built here rather than hoisted for the whole turn because it is only these
   // few pieces that ask: a plan walked for every settler and scout as well would
   // be the map swept a dozen times a turn for nothing.
@@ -4707,9 +5296,14 @@ function garrisonAt(state: GameState, playerId: number, city: City): number {
  * asked hypothetically, so a luxury is still worth more than this bot says. The
  * ring a citadel claims is likewise still unpriced.
  */
-function greatPersonCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
+function greatPersonCommand(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  sitting?: BotSitting,
+): UnitChoice | null {
   const ai = aiFor(player);
-  const ctx = valueContext(state, player);
+  const ctx = seatContext(state, player, sitting);
   const tried: BotCandidate[] = [];
 
   const actRefusal = greatPersonActError(state, player.id, unit.id);
@@ -5029,8 +5623,13 @@ const HOLY_SITE: ImprovementId | null = workForFamily('prophet');
  * Everything about legality — at peace, met, in range, a path in some mode —
  * remains `startRouteError`'s, asked identically of every pair.
  */
-function traderCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
-  const ctx = valueContext(state, player);
+function traderCommand(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  sitting?: BotSitting,
+): UnitChoice | null {
+  const ctx = seatContext(state, player, sitting);
   const tried: BotCandidate[] = [];
   let best: { from: City; to: City; mode: RouteMode; score: number; at: number } | null = null;
 

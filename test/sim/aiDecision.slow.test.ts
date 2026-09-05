@@ -349,12 +349,23 @@ describe('a hundred turns of arithmetic', () => {
       // reads all EIGHT kinds this bot has, which is the fullest it has ever
       // been. The provoked-arrears pin in `aiBot.test.ts` still stands beside
       // this incidental one.
+      //
+      // **`focus` joined and `disband` left again on 2026-09-05**, both from
+      // batch 6 of `docs/bot-priorities.md` and both incidental in exactly the
+      // way this claim's own history says a coverage list is. `focus` is the
+      // ninth kind — the bot points a town's citizens at the hammers when the
+      // engines it is raising are waiting on them (`focusCommand`), and it
+      // reaches that decision on this board. `disband` went with the same
+      // pass's economy: the hammer premium and the draft plan move the spend
+      // arms enough that no seat dips under `solvency.arrearsTreasury` inside
+      // the hundred turns on this seed. The arm is unchanged and its pin is
+      // where it always was, provoked deliberately in `aiBot.test.ts`.
       expect([...kinds].sort()).toEqual([
         'build',
         'deal',
-        'disband',
         'draft',
         'endTurn',
+        'focus',
         'purchase',
         'research',
         'unitOrder',

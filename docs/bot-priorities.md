@@ -760,3 +760,225 @@ Four parts, in order:
    setCitizenFocus for the first time: focus production while chain-bound,
    default otherwise; the focus is a command, replay-honest). Near-zero
    when nothing rich waits on hammers. Banded like the other prices.
+
+## Batch 6 as shipped (the hardening and the two new plans, 2026-09-05)
+
+### Part 0 — two fold bugs the slow tier caught in batch 4
+
+Both were the same mistake, a candidate carrying arithmetic that was not its own,
+and both are pinned by `test/sim/aiDecision.slow.test.ts`' fold audits:
+
+- **the settler's chain term** printed `parts` that folded to the whole chain's
+  worth beside a `value` of the share — and printed *"one of 0 things still to
+  happen"* with a hundred and nineteen points under it when the chain had no step
+  left at all. `expansionShareTerm` (`bot.ts`) is the fix: a chain owed by more
+  than one thing carries the division in its parts, and a chain owed by nothing
+  says so and carries none.
+- **`marchToSite`'s candidates** computed `(townWorth + appraisal.total) × walk`
+  beside a term list that folds the same sum in a different order — a different
+  floating-point number (147.60225000000003 against 147.60225). The score is
+  `foldOf(scored)` now, and the bar the switch margin defends is the same fold
+  read once.
+
+### Part 1 — the perf hoist
+
+**`BotSitting`** (`bot.ts`): a seat's one `ValueContext` for the whole of its
+turn, built lazily by the first arm that asks and read by every arm after it.
+`driveSeat` and the stepper's `SeatRun` each open one; the shape is an **optional
+trailing parameter** threaded through every arm, so `nextBotCommand(state,
+playerId)` and `nextBotDecision(state, playerId)` still answer exactly as they
+did for the tests and for the two exported production pickers a human seat's
+puppets go through. A sitting handed to the wrong seat is ignored (`seatContext`
+guards on the seat id) — the same reason `ValueContext.ai` is not a global.
+
+**What a mid-turn mutation invalidates is re-read from the state, never
+rebuilt.** `bankSpend` asks `bankOf` for the cover and `purchaseError` for the
+rules at the moment it fires, and a row the live gate strikes is marked refused
+in place and the bank handed to the next best want — which is what keeps the
+driver's rule that a refusal is a bug. The contribution arm already asked
+`contributeError` and `bankOf` live.
+
+**Measured** (t75, duel, seeds 5/777/20260904, two balanced seats, one machine):
+**9.29s → 4.30s** for the three games, and seed 5 alone **3.71s → 1.54s**. The
+hoist by itself (nothing else of batch 6) read 4.06s.
+
+**Outcomes moved, and the reason is the semantics rather than a bug.** Decisions
+inside a turn used to see intra-turn book updates — a purchase re-priced the next
+decision's whole book — and now they do not: a turn is one sitting. Hoist-only
+against batch 5: towns 14 → 14, buildings 46 → 45, technologies 75 → 75,
+treasuries 614 → 687, bankrupt seat-turns 0 → 0. Not byte-identical, and not
+claimed to be.
+
+### Part 2 — the negative-chain floor
+
+`liveChains` drops a **held-tech** chain whose worth is ≤ 0. The research goal
+keeps its honest negative (the margin multiplies, so holding makes it worse and
+the beeline is displaced — batch 3's behaviour, unchanged). The difference is
+what the two families *are*: a plan is a commitment and a held-tech chain is the
+standing observation *"this empire holds Letters and two of its towns lack
+libraries"*. Advice worth less than nothing is advice to withhold, and left in it
+would make a library appraise **worse** in an empire that holds the technology
+than in one that never researched it. No figure on the acceptance seeds moved:
+no held-tech chain went negative on those boards, and the floor is pinned on an
+arranged one at three sizes of town.
+
+### Part 3 — the draft plan
+
+**Culture is the third priced currency.** `draftPlan` (`wants.ts`) is a book of
+one row — the next draft — because a draft is the only thing culture buys:
+
+```
+worth = E[best of the dealt hand]  −  the worst slotted card (when every slot is full)
+        × delayDiscount((cost − pool) ÷ culture a turn)
+price = nextDraftCost(player)
+```
+
+and `shadowPrices` bands it exactly as it bands gold and faith
+(`prior = weights.culture[age]`). `voiceWeight` answers it, so every fold in the
+bot prices a point of culture at the empire's own number.
+
+**The estimator** (`expectedBestOrder`, deterministic arithmetic, no roll):
+
+```
+F(t)      = Π over the draws of P(that draw ≤ t)
+E[best]   = Σ over the pool's distinct scores of  v × (F(v) − F(v⁻))
+```
+
+The draws are `drawOrderOptions`' own: **one weighted draw from each of the three
+slot-type sub-bags** (exact — the sub-bags partition the pool, so the three are
+independent), then the fill. Weights are `orderDrawWeight`, which carries the
+rarity table plus `skipPity` per banked pass. **The one stated approximation** is
+the fill: the simulation draws it without replacement from what the guarantee
+left, and this treats it as independent draws from the whole pool — slightly
+generous to a wide hand, against an inclusion–exclusion with two-to-the-pool-size
+terms to price one want.
+
+**The pass is priced, and the bot takes it.** `orderDecision` carries a `pass the
+hand` candidate worth `E[best of the next hand at pity + 1] × delayDiscount(the
+next draft's whole cost ÷ the culture rate)`, and `skipOrderOffer` goes out when
+it beats every card on the table. Measured on the standard duel: **three of the
+eight drafts inside sixty turns are passed** — the first passes this bot has ever
+taken, and the comment above `orderDecision` that said it never would is gone.
+
+**Honest gaps, unchanged and written down**: a conditional card (a war card at
+peace) prices as it always has, with no option value; an unread grant is
+`score.unknownEffect`; the replacement charge is the *worst* slotted card whether
+or not the new one fits its office; and the pool a pass reads still holds the
+cards on the table, because a skipped hand's cards go back in the bag.
+
+### Part 4 — the chain-derivative production price
+
+**`hammerPrice(ctx, city?)`** (`value.ts`, beside `meterWeight`) — batch 4's one
+written-down non-delivery, closed:
+
+```
+marginal = Σ over the building steps this town still owes a live chain of
+             (chain.worth ÷ chain.stepsRemaining)
+             × ( discount(turns at rate+1) − discount(turns at rate) )
+price    = clamp(marginal, weights.production × priceBandLow,
+                           weights.production × priceBandHigh)
+```
+
+Closed form on numbers the chain already carries. `city` says which steps are
+owed (a row the town holds is a step it owes nothing on); **the turns are always
+the middling town's**, both because every build delay in this bot has been the
+median's since batch 2 and because `cityYields` walks the empire for the two
+meters and this is asked of every building row of every town.
+
+**`hammerTerm` folds the difference from the table, not the price.** Every
+candidate already pays `weights.production` for its production delta through
+`explainYields`, so a term carrying the whole price pays for a hammer twice — and
+it did, measurably: at the ceiling a hammer read sixteen points against a
+bushel's seven, every town leaned on the hills for ever, and the acceptance seeds
+lost fifteen technologies to it. The term is `price − weights.production` — a
+credit when the engines are waiting, a **charge** when nothing is.
+
+The register of what folds it: the build arm's building rows (with the town), a
+hex's improvement (`improvementEntry`, `plan.ts`), a card that pays production
+(`explainEffects` via `productionOf`), and the focus arm. Nothing that *spends*
+hammers folds it.
+
+**The focus arm** (`focusCommand`, a new `focus` decision kind) is the bot's
+first `setCitizenFocus`. It prices the town's people placed by the balanced sheet
+against the same people placed by the production sheet, both computed from the
+simulation's own scorer over `assignableTiles`, and folds three terms: what the
+hexes pay, the hammer premium, and **what the growth it gives up is worth** — the
+next citizen's ground at the discount on the turns the two sheets take to grow.
+That third term is not a nicety: without it the arm fires on the flat weights
+alone and costs fifteen technologies. The starvation guard `assignCitizens` would
+apply is anticipated and printed as a refusal rather than discovered.
+
+**Two bugs found by measurement and written down as the reason for the code:**
+
+- **the comparison must not read the town's current placement.** A table that
+  used the live sheet as its baseline answered "production" while the town was
+  balanced and "default" the moment it was not: **3,622 focus commands** in a
+  75-turn duel, and twenty-five times the wall clock of the rest of the bot.
+- **`explainCitizen` reads the live placement too** (`nextWorkableTile` skips
+  worked hexes), so the growth charge inherited the same flip. The next citizen's
+  worth is read off the **balanced** ordering's next hex instead. After both:
+  **108 commands**, and the arm fires at most once per town per turn.
+
+### Measured — the acceptance table
+
+t75, duel, seeds 5/777/20260904, two balanced seats (six seats in all):
+
+| | batch 5 | batch 6 |
+|---|---|---|
+| towns | 14 | **13** |
+| buildings standing | 46 | **58** |
+| technologies | 75 | **69** |
+| treasuries | 614 | **775** |
+| culture per turn | 50 | **53** |
+| bankrupt seat-turns | 0 | **0** |
+| wall clock, three games | 9.29s | **4.30s** |
+
+**Attributed by measurement** (the same three seeds, each part switched off in
+turn against the finished build):
+
+| | towns | buildings | techs | gold | culture/turn |
+|---|---|---|---|---|---|
+| batch 6, everything on | 13 | 58 | 69 | 775 | 53 |
+| the focus arm off | 14 | 53 | 75 | 560 | 59 |
+| the hammer price off (which silences the focus arm) | 12 | 44 | 73 | 566 | 54 |
+| culture's price off | 15 | 53 | 68 | 495 | 44 |
+| all three off (the hoist and the floor alone) | 14 | 45 | 76 | 637 | 47 |
+
+**Culture moves for the first time**, 50 → 53 on the rate and 47 → 53 against the
+same build with its price switched off — the draft plan is the whole of it, and
+the pass is the visible half.
+
+**Buildings are the headline**, 46 → 58 (+26%), and the hammer price is the whole
+of it: with it off the same build reads 44.
+
+**The one number down is technologies, 75 → 69**, and it is the focus arm alone
+(with the arm off the same build reads 75). It is the trade the arm exists to
+make — a town on the hills grows slower, and a slower town makes fewer beakers —
+and the growth term above is what keeps it to six technologies instead of
+fifteen. Whether the trade is worth six is a tuning question with a knob already
+in place: `priorities.priceBandHigh` bounds what an engine may say a hammer is
+worth, and it is the second thing for the arena to sweep after
+`weights.happiness`.
+
+**Knobs**: none added, none deleted. The hammer price is banded by the
+`priorities` block that already existed and anchored on `weights.production`;
+culture's price is anchored on `weights.culture`. The arena panel needed no edit.
+
+**Known gaps, written down rather than fixed.**
+
+- **A pass does not know what it passed.** The pool the skip candidate reads is
+  the live one, cards on the table included — which is right (a skipped hand goes
+  back in the bag) but means the estimate does not condition on the three faces
+  the seat has just seen and rejected.
+- **The replacement charge does not check the office.** The worst slotted card is
+  charged whether or not the new card could take its chair.
+- **The hammer price's turns are the empire's, not the town's**, by the stated
+  affordability bargain — a hammer-rich capital and a hamlet price the same
+  compression.
+- **The focus arm knows nothing about pins.** Nothing in this bot sends
+  `setLockedTiles`, so a bot seat's towns have none to honour; a human's town the
+  arm never touches (`citizenFocusError` refuses a puppet, and the arm is only
+  ever asked for a seat the driver plays).
+- **Only two focuses are weighed** — the balanced ordering and production. The
+  food and gold sheets are not, because nothing in the bot yet has a reason to
+  ask for them that the ordinary arms do not already answer.

@@ -133,6 +133,10 @@ export interface BotCandidate {
  * and a new branch joins it deliberately.
  *
  *   · `build` — a town's queue (`setCityProduction`).
+ *   · `focus` — where a town's people stand (`setCitizenFocus`). Its own kind
+ *     rather than a `build`: a queue says what a town is *making* and a focus
+ *     says what its ground is *for*, and the two are argued in different tables
+ *     (batch 6 of `docs/bot-priorities.md`).
  *   · `research` — the beeline (`chooseResearch`).
  *   · `draft` — an offer answered or a card played: the four `choose…`s, an
  *     adoption, a card slotted.
@@ -151,6 +155,7 @@ export interface BotCandidate {
  */
 export type BotDecisionKind =
   | 'build'
+  | 'focus'
   | 'research'
   | 'draft'
   | 'unitOrder'

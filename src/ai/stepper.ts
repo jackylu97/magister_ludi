@@ -32,7 +32,7 @@
  */
 
 import { aiConfigFor } from './aiConfig';
-import { nextBotDecision } from './bot';
+import { type BotSitting, botSitting, nextBotDecision } from './bot';
 import type { BotDecision } from './decision';
 import type { CommandResult } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
@@ -94,6 +94,14 @@ interface SeatRun {
   /** True while the seat is still being asked for ordinary commands. */
   asking: boolean;
   finished: boolean;
+  /**
+   * **The seat's sitting** — its one appraisal context for this whole turn
+   * (batch 6 of `docs/bot-priorities.md`), and the fourth piece of per-seat
+   * memory this loop has to carry explicitly where `driveSeat` holds it on a
+   * stack. The two loops open it in the same place and drop it in the same
+   * place, which is what keeps the byte-for-byte equivalence pin honest.
+   */
+  sitting: BotSitting;
 }
 
 export function createBotStepper(game: Game, options: StepperOptions = {}): BotStepper {
@@ -127,7 +135,7 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
     const ai = aiConfigFor(playerById(game.state, seat.playerId)?.persona);
     if (seat.asking) {
       if (seat.accepted + seat.refused < ai.driver.commandsPerSeat) {
-        const decision = nextBotDecision(game.state, seat.playerId);
+        const decision = nextBotDecision(game.state, seat.playerId, seat.sitting);
         if (decision !== null) {
           if (!seat.refusedCommands.has(JSON.stringify(decision.command))) return decision;
         }
@@ -151,6 +159,7 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
         refusedCommands: new Set<string>(),
         asking: true,
         finished: false,
+        sitting: botSitting(playerId),
       };
     }
     const seat = run;

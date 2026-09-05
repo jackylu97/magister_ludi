@@ -115,6 +115,14 @@ import {
 } from '../sim/purchase';
 import { RITE_IDS, type RiteId, riteAbility, riteDef } from '../sim/religionData';
 import type { City, GameState, Player } from '../sim/state';
+import {
+  anyCardDef,
+  livePool,
+  nextDraftCost,
+  offerSize,
+  orderDrawWeight,
+} from '../sim/statecraft';
+import { SLOT_TYPES, type OrderId, orderDef } from '../sim/statecraftData';
 import { hasAbility } from '../sim/tech';
 import { techDef } from '../sim/techData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
@@ -128,7 +136,18 @@ import { buildingUpkeep } from '../sim/upkeep';
  * a book; a meter is a capacity nothing accrues, so what prices it is the one
  * thing in the bot that is short of it. See `meterPrices`.
  */
-export type WantCurrency = 'gold' | 'faith';
+export type WantCurrency = 'gold' | 'faith' | 'culture';
+
+/**
+ * The two banks a **spend arm** can actually spend (`bankSpend`, `bot.ts`).
+ *
+ * Culture is a priced currency and not a bank: nothing in the game sells
+ * anything for it. It fills a meter, the meter deals a hand, and the only
+ * decision it ever reaches is *which card*. So its book is one row long, it
+ * carries no `buy`, and the arms that dispatch a purchase take this narrower
+ * type rather than testing for it.
+ */
+export type BankCurrency = 'gold' | 'faith';
 
 /**
  * One thing this empire would spend a bank on, priced.
@@ -173,10 +192,17 @@ export interface Want {
 export interface WantBook {
   gold: Want[];
   faith: Want[];
+  /**
+   * **The draft plan** (batch 6) — one row, the next hand this empire's culture
+   * would deal it, or none at all when there is nothing left in its pool to
+   * deal. It is the whole of what culture buys, which is why it is a plan of
+   * one and not a book.
+   */
+  culture: Want[];
 }
 
 /** An empire that has not been asked yet — the shape `valueContext` starts from. */
-export const NO_WANTS: WantBook = { gold: [], faith: [] };
+export const NO_WANTS: WantBook = { gold: [], faith: [], culture: [] };
 
 /**
  * The readings the book needs that are facts about the *empire* rather than
@@ -200,6 +226,14 @@ export interface WantInputs {
    * on (`roads.ts`' bargain one system over).
    */
   soldierWorth: (city: City, id: UnitTypeId) => Appraisal | null;
+  /** Culture a turn, as the simulation's own books read it. The draft's clock. */
+  cultureRate: number;
+  /**
+   * What one Order card is worth to this empire — `explainCard`'s appraisal,
+   * handed in for `soldierWorth`'s reason exactly: the reading belongs to the
+   * policy, and this module is the leaf `value.ts` and `bot.ts` both stand on.
+   */
+  cardWorth: (id: OrderId) => Appraisal;
 }
 
 /** Worth per coin — the one ranking. A price of nought cannot divide. */
@@ -217,6 +251,7 @@ export function wantBook(
   return {
     gold: purchasingPlan(state, player, ctx, inputs),
     faith: faithPlan(state, player, ctx, inputs),
+    culture: draftPlan(state, player, ctx, inputs),
   };
 }
 
@@ -643,6 +678,203 @@ function turnsToFirstGod(
   return Math.max(0, cheapest - bankOf(player, 'faith')) / Math.max(1, rate);
 }
 
+// --- the draft plan ----------------------------------------------------------
+
+/**
+ * **What this empire's culture is filling toward** — the next draft, priced
+ * (batch 6 of `docs/bot-priorities.md`).
+ *
+ * Culture is the third priced currency and the odd one of the three: nothing
+ * sells anything for it. It fills a meter, the meter deals a hand of Orders, and
+ * the only decision it ever reaches is *which card* (`orderDecision`). So its
+ * book is one row long and that row is the hand:
+ *
+ *     worth = E[best of the hand the real draw would deal]
+ *             − what a new card displaces, when every slot is full
+ *             × the discount on the turns the meter has still to fill
+ *     price = the draft's own culture cost (`nextDraftCost`)
+ *     delay = (cost − pool) ÷ culture a turn
+ *
+ * Three things are worth saying beside the arithmetic:
+ *
+ *   · **the expectation is over the *real* draw** — this government's live pool,
+ *     the hand's real width, the M/E/W guarantee, the rarity weights and the
+ *     pity this empire's own passes have banked (`expectedBestOrder`). It is
+ *     arithmetic, never a simulation: nothing here touches `state.rng`, which it
+ *     could not do anyway without changing every seeded outcome in the game.
+ *   · **the replacement is what a card displaces, not what it adds.** An empire
+ *     with an empty slot gets the whole of the card; an empire whose slots are
+ *     all full has to bench something to play it, so the worst card it has
+ *     benched is what the new one is really worth more than. Crude — the new
+ *     card may not fit the slot the worst one is in — and written down as crude.
+ *   · **the delay is the meter's, and it is discounted like every other
+ *     promise.** A draft eighty turns out is worth nothing today and prints as
+ *     nothing, which is the whole reason a young empire's culture is cheap and a
+ *     cultured one's is dear.
+ *
+ * `null`-shaped (an empty list) for an empire whose pool is empty — every card
+ * of its government already held — because there is then nothing a draft could
+ * deal and culture really is worth its floor.
+ */
+export function draftPlan(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  inputs: WantInputs,
+): Want[] {
+  const sc = player.statecraft;
+  const pool = livePool(sc);
+  if (pool.length === 0) return [];
+  const cost = nextDraftCost(player);
+  const size = offerSize(state, player.id, 'order');
+  const score = (id: OrderId): number => inputs.cardWorth(id).total;
+  const hand = expectedBestOrder(pool, size, sc.orderSkips, score);
+  const delay = Math.max(0, cost - player.culturePool) / Math.max(1, inputs.cultureRate);
+
+  const terms: ValueTerm[] = [
+    {
+      label:
+        `the best of the ${size}-card hand a draft would deal, ` +
+        `over ${pool.length} card${pool.length === 1 ? '' : 's'} still in this government's pool` +
+        (sc.orderSkips > 0 ? ` (${sc.orderSkips} pass${sc.orderSkips === 1 ? '' : 'es'} of pity)` : ''),
+      value: hand,
+    },
+  ];
+  const displaced = replacementCost(sc, score);
+  if (displaced !== null) {
+    terms.push({
+      label: `less ${cardNameOf(displaced.card)}, the worst card it would have to bench`,
+      value: displaced.score,
+      op: 'sub',
+    });
+  }
+  terms.push(delayTerm(delay, ctx, 'the culture has still to fill'));
+
+  const folded = appraise(terms);
+  return [
+    {
+      label: `the next draft (tier ${sc.drafts + 1})`,
+      currency: 'culture',
+      price: cost,
+      worth: folded.total,
+      delay,
+      terms: folded.terms,
+      outOfReach: player.culturePool < cost,
+    },
+  ];
+}
+
+/**
+ * **What a new card would have to displace** — the worst card sitting in a slot,
+ * or `null` while any slot is empty.
+ *
+ * A card taken into an empty slot costs nothing to play. A card taken into a
+ * full government has to bench one, and the one it benches is the worst of them,
+ * so what the draft is really worth is the difference. Held-but-unslotted cards
+ * are not counted as a cost: they are the ordinary state of an empire that has
+ * drafted more than its government seats, and the slots may widen.
+ */
+function replacementCost(
+  sc: Player['statecraft'],
+  score: (id: OrderId) => number,
+): { card: OrderId; score: number } | null {
+  if (sc.slots.length === 0) return null;
+  let worst: { card: OrderId; score: number } | null = null;
+  for (const slot of sc.slots) {
+    if (slot === null) return null;
+    const value = score(slot.card);
+    if (worst === null || value < worst.score) worst = { card: slot.card, score: value };
+  }
+  return worst;
+}
+
+/**
+ * **The expected best card of a dealt hand**, over the draw the simulation
+ * actually performs — deterministic arithmetic, no roll and no sample.
+ *
+ * `drawOrderOffer`'s shape, read as a distribution (`drawOrderOptions`):
+ *
+ *   · a hand of three or more is dealt **one card from each of the three
+ *     sub-bags** — military, economic, wildcard — each drawn *by weight*
+ *     (`orderDrawWeight`: the rarity table plus `skipPity` per banked pass);
+ *   · the remaining faces are filled from whatever is left, by the same weights;
+ *   · a hand narrower than three is dealt plain weighted, with no guarantee.
+ *
+ * The expectation of the maximum is taken through the **CDF**, which is what
+ * makes it exact rather than a mean of means: for a threshold `t`,
+ * `P(best ≤ t) = Π over the draws of P(that draw ≤ t)`, and
+ * `E[best] = Σ over the distinct scores of v × (F(v) − F(v⁻))`. The three
+ * guaranteed sub-draws are **exact** — the sub-bags partition the pool, so the
+ * three are independent and each has a known finite distribution.
+ *
+ * **The one stated approximation is the fill.** The filling draws are taken
+ * without replacement from what the guarantee left behind, and this treats them
+ * as independent draws from the whole pool. That over-counts the chance of
+ * seeing the same excellent card twice and therefore reads a wide hand as very
+ * slightly better than it is; the alternative is an inclusion-exclusion over
+ * every subset of the pool, which is a sum with two to the thirty-fourth terms
+ * to answer a question about one want. An honest approximation, written down.
+ *
+ * `skips` is the pity the *next* hand would be dealt under, which is what makes
+ * this the same function the skip candidate asks with `skips + 1`
+ * (`orderDecision`, `bot.ts`).
+ *
+ * Exported for the tests and for `bot.ts`' skip candidate: the arithmetic is a
+ * claim about a distribution, and a played board can only demonstrate it
+ * statistically.
+ */
+export function expectedBestOrder(
+  pool: readonly OrderId[],
+  size: number,
+  skips: number,
+  score: (id: OrderId) => number,
+): number {
+  if (pool.length === 0 || size <= 0) return 0;
+  const scores = new Map<OrderId, number>();
+  for (const id of pool) scores.set(id, score(id));
+
+  // One factor per draw the deal makes: the guaranteed sub-bag draws, then the
+  // fill. A bag with no card in it makes no draw, which is the sim's own
+  // behaviour — `drawWeighted` of an empty bag deals nothing.
+  const bags: (readonly OrderId[])[] = [];
+  if (size >= 3) {
+    for (const type of SLOT_TYPES) {
+      const bag = pool.filter((id) => orderDef(id).slot === type);
+      if (bag.length > 0) bags.push(bag);
+    }
+  }
+  const fills = Math.max(0, size - bags.length);
+  for (let i = 0; i < fills; i++) bags.push(pool);
+  if (bags.length === 0) return 0;
+
+  const weight = (id: OrderId): number => Math.max(0, orderDrawWeight(id, skips));
+  // The distinct scores, ascending — the points the step function of the maximum
+  // can jump at, and nowhere else.
+  const values = [...new Set([...scores.values()])].sort((a, b) => a - b);
+
+  let expectation = 0;
+  let below = 0;
+  for (const value of values) {
+    let cdf = 1;
+    for (const bag of bags) {
+      let total = 0;
+      let under = 0;
+      for (const id of bag) {
+        const w = weight(id);
+        total += w;
+        if (scores.get(id)! <= value) under += w;
+      }
+      // A bag whose every row weighs nothing is a bag the draw falls back on
+      // whole; treat it as certain to be at or under the threshold only when it
+      // actually is, which `under / total` cannot answer at zero.
+      cdf *= total <= 0 ? (under >= 0 && bag.every((id) => scores.get(id)! <= value) ? 1 : 0) : under / total;
+    }
+    expectation += value * (cdf - below);
+    below = cdf;
+  }
+  return expectation;
+}
+
 // --- saving ------------------------------------------------------------------
 
 /**
@@ -705,7 +937,9 @@ export function savingRows(wants: readonly Want[], ctx: ValueContext, held: numb
 export interface ShadowPrices {
   gold: number;
   faith: number;
-  notes: { gold: string; faith: string };
+  /** The draft plan's own reading, banded like the other two (batch 6). */
+  culture: number;
+  notes: { gold: string; faith: string; culture: string };
 }
 
 /** The two constraints' prices, and their sentences. See `meterPrices`. */
@@ -807,10 +1041,16 @@ function meterPrice(
 export function shadowPrices(book: WantBook, ctx: ValueContext): ShadowPrices {
   const gold = priceOf(book.gold, ctx, 'gold');
   const faith = priceOf(book.faith, ctx, 'faith');
+  // **Culture's price is the draft plan's** (batch 6), through the same clamp
+  // around the same kind of prior. Its book is one row long, so the maximum is
+  // that row — which is the honest reading, because a draft is the one thing
+  // culture buys.
+  const culture = priceOf(book.culture, ctx, 'culture');
   return {
     gold: gold.price,
     faith: faith.price,
-    notes: { gold: gold.note, faith: faith.note },
+    culture: culture.price,
+    notes: { gold: gold.note, faith: faith.note, culture: culture.note },
   };
 }
 
@@ -883,7 +1123,7 @@ function reachOf(
   player: Player,
   city: City,
   item: PurchasableItem,
-  currency: WantCurrency,
+  currency: BankCurrency,
 ): { price: number; outOfReach: boolean } | null {
   const price = explainPurchaseCost(state, player.id, city.id, item, currency);
   if (price === null) return null;
@@ -897,7 +1137,7 @@ function reachOf(
 function outOfReachFor(
   player: Player,
   item: PurchasableItem,
-  currency: WantCurrency,
+  currency: BankCurrency,
   price: number,
   refusal: string,
 ): boolean {
@@ -953,6 +1193,11 @@ function hasFoundedReligion(state: GameState, playerId: number): boolean {
     if (religion.founderId === playerId) return true;
   }
   return false;
+}
+
+/** A card's own printed name, for a row a reader has to recognise. */
+function cardNameOf(id: OrderId): string {
+  return anyCardDef(id).name;
 }
 
 /** One decimal place, and no trailing `.0` — a label is read, not parsed. */

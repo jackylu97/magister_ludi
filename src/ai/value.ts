@@ -71,7 +71,7 @@ import { cityYields } from '../sim/cities';
 import { countOf } from '../sim/statecraft';
 import type { CardCountScaledEffect, CardEffect, CardId } from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
-import type { GameState } from '../sim/state';
+import type { City, GameState } from '../sim/state';
 import { buildError } from '../sim/tech';
 import { type TechAge } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
@@ -200,13 +200,33 @@ export interface ValueContext {
    * **Hammers are deliberately not among them**, and that is batch 4's one
    * written-down non-delivery: see `chain.ts`' note on what a hammer costs.
    */
-  prices: { gold: number; faith: number; authority: number; happiness: number };
+  prices: {
+    gold: number;
+    faith: number;
+    /**
+     * **What a point of culture is worth to this empire** (batch 6) — the draft
+     * plan's own reading. Culture buys exactly one thing in this game, the next
+     * draft, so its price is what that draft's hand is worth per point of the
+     * meter it fills: an empire whose government's pool is full of cards it
+     * wants prices culture dear, and one whose slots are full of better cards
+     * than the pool can deal prices it at the band's floor.
+     */
+    culture: number;
+    authority: number;
+    happiness: number;
+  };
   /**
    * Why each price reads what it does — "faith is dear: the first religion is
    * worth 600 for 120 faith". Printed beside every priced term, and a **label**
    * like `pressureNote`: it changes no fold, so no pin moves.
    */
-  priceNotes: { gold: string; faith: string; authority: string; happiness: string };
+  priceNotes: {
+    gold: string;
+    faith: string;
+    culture: string;
+    authority: string;
+    happiness: string;
+  };
   /**
    * **The book the prices were read off** — every want this empire has in
    * either bank, ranked by nothing and priced by everything (`wants.ts`).
@@ -434,6 +454,12 @@ export function yieldWeight(ai: AiConfig, voice: Voice, age: TechAge): number {
 export function voiceWeight(ctx: ValueContext, voice: Voice): number {
   if (voice === 'gold') return ctx.prices.gold;
   if (voice === 'faith') return ctx.prices.faith;
+  // **Culture joined them in batch 6**, off the draft plan (`draftPlan`,
+  // `wants.ts`). The three priced voices are exactly the three banks this game
+  // holds a *stock* of and spends on rows somebody deals; food, hammers and
+  // beakers are flows nothing banks, and hammers' own reading is a premium
+  // rather than a rate (see `hammerPrice`).
+  if (voice === 'culture') return ctx.prices.culture;
   return yieldWeight(ctx.ai, voice, ctx.age);
 }
 
@@ -462,6 +488,127 @@ export type PricedMeter = 'authority' | 'happiness';
  */
 export function meterWeight(ctx: ValueContext, meter: PricedMeter): number {
   return meter === 'authority' ? ctx.prices.authority : ctx.prices.happiness;
+}
+
+/**
+ * **What one more hammer a turn is worth to this empire** — the chain-derivative
+ * production price (batch 6 of `docs/bot-priorities.md`), and `meterWeight`'s
+ * third sibling.
+ *
+ * Batch 4 wrote down why hammers had no price: the two cheap empire-level
+ * readings of hammer scarcity both answer the same number every turn, and *"a
+ * factor that is always one is a multiplication by one wearing a price"*. What
+ * has changed is that the chains exist. A hammer is not scarce because a queue is
+ * full; it is scarce because **something the empire has already committed to is
+ * waiting on it**, and the chains are the register of exactly that. So the price
+ * is a derivative rather than a ratio:
+ *
+ *     price = Σ over the building steps this town still owes a live chain of
+ *               ( chain.worth ÷ chain.stepsRemaining )
+ *               × ( discount(turns at rate+1) − discount(turns at rate) )
+ *
+ * — closed form on numbers the chain already carries, no sweep and no search.
+ * A town owing a four-hundred-hammer University to an engine worth six hundred
+ * prices a hammer at what one turn off that raising is worth; a town whose
+ * engines are all standing prices it at nothing, which is the spec's *"near-zero
+ * when nothing rich waits on hammers"*.
+ *
+ * **It is a price, not a bonus**, and the band is gold's and faith's exactly:
+ *
+ *     price = clamp( marginal, weights.production × priceBandLow,
+ *                              weights.production × priceBandHigh )
+ *
+ * so an empire whose engines are starving may value a hammer at three times what
+ * the table says and one with nothing waiting values it at half — which is the
+ * spec's *"near-zero when nothing rich waits on hammers"* said in the band's own
+ * language, and the same floor an empty want book gives a coin.
+ *
+ * **Which is why `hammerTerm` folds the *difference*.** Every candidate in this
+ * bot already prices its production delta at `weights.production` through
+ * `explainYields`, so a term carrying the whole price would pay for the hammers
+ * twice — and it did, measurably: at the ceiling a hammer read sixteen points
+ * against a bushel's seven, every town in every empire leaned on the hills for
+ * ever, and the acceptance seeds lost fifteen technologies to it. The term is
+ * `price − weights.production`, which is a *credit* when the engines are waiting
+ * and a *charge* when nothing is, and leaves the candidate paying exactly the
+ * price and no more.
+ *
+ * `city` names the town that would raise the steps: a row it already holds is a
+ * step it owes nothing on, so a town whose engines are built prices a hammer at
+ * nothing while its neighbour still owes three. Without one, every step any town
+ * still owes is counted — the honest fallback the spec allows for the sites that
+ * do not know which town is asking (a hex's improvement, a card's flats).
+ *
+ * **The turns are always the middling town's** (`medianProduction`), even when a
+ * town is named, and that is a deliberate crudeness with two reasons. It is
+ * *consistent*: every build delay in this bot has been the median's since batch
+ * 2, the chains' own `delay` included, so pricing this one off a different rate
+ * would have the premium disagreeing with the chain it is a derivative of. And
+ * it is *affordable*: this is asked of every building row of every town, and
+ * `cityYields` walks the whole empire twice for the two meters — the very sweep
+ * `buildCandidates` hoists a quote to avoid.
+ */
+export function hammerPrice(ctx: ValueContext, city?: City): number {
+  const rate = Math.max(1, ctx.medianProduction);
+  let marginal = 0;
+  for (const chain of ctx.chains) {
+    const share = chain.worth / Math.max(1, chain.stepsRemaining);
+    if (share <= 0) continue;
+    for (const step of chain.steps) {
+      if (step.kind !== 'building') continue;
+      // A town that already holds the row owes the chain nothing on it. Without
+      // a town, the step counts while any town of the empire still owes it,
+      // which is what `step.towns` already says.
+      if (city !== undefined) {
+        if (city.buildings.includes(step.id as BuildingId)) continue;
+      } else if (step.towns <= 0) continue;
+      const before = Math.ceil(Math.max(0, step.cost) / rate);
+      const after = Math.ceil(Math.max(0, step.cost) / (rate + 1));
+      if (after >= before) continue;
+      marginal += share * (delayDiscount(after, ctx) - delayDiscount(before, ctx));
+    }
+  }
+  const prior = yieldWeight(ctx.ai, 'production', ctx.age);
+  const low = prior * ctx.ai.priorities.priceBandLow;
+  const high = prior * ctx.ai.priorities.priceBandHigh;
+  return Math.min(high, Math.max(low, marginal));
+}
+
+/**
+ * **The hammer premium as a printed term**, or `null` when there is nothing to
+ * print — the door every production-raising candidate walks through.
+ *
+ * The register of what folds it, and each is a candidate that raises what a town
+ * makes rather than merely spending it: a **building** whose hypothetical yield
+ * delta pays hammers (`buildCandidates`, `bot.ts`), an **improvement** on a hex
+ * (`improvementEntry`, `plan.ts` — the mine and the workshop's ground), a
+ * **card** that pays production (`explainEffects`, below), and the **citizen
+ * focus** arm (`focusCommand`, `bot.ts`). A new production-raising candidate
+ * joins that list here, deliberately.
+ *
+ * Nothing that *spends* hammers folds it — a chain already charges its own
+ * remaining hammers through `explainLump`, and charging the compression back
+ * would be the bot disagreeing with itself about one wait.
+ */
+export function hammerTerm(
+  production: number,
+  ctx: ValueContext,
+  city?: City,
+): ValueTerm | null {
+  if (production <= 0) return null;
+  const price = hammerPrice(ctx, city);
+  const over = price - yieldWeight(ctx.ai, 'production', ctx.age);
+  if (over === 0) return null;
+  const who = city === undefined ? 'this empire is' : `${city.name} is`;
+  return {
+    label:
+      over > 0
+        ? `+${round(production)} hammers a turn buy the engines ${who} raising — ` +
+          `${round(price)} a hammer against the table's ${round(price - over)}`
+        : `+${round(production)} hammers a turn with nothing much waiting on them — ` +
+          `${round(price)} a hammer against the table's ${round(price - over)}`,
+    value: production * over,
+  };
 }
 
 /** What a meter was multiplied by, and why — a label; it changes no fold. */
@@ -530,7 +677,7 @@ export function valueOfYields(bag: YieldBag, ctx: ValueContext): number {
  * prices. A label: it changes no fold.
  */
 function weightWords(ctx: ValueContext, voice: Voice): string {
-  if (voice !== 'gold' && voice !== 'faith') return 'age weight';
+  if (voice !== 'gold' && voice !== 'faith' && voice !== 'culture') return 'age weight';
   const note = ctx.priceNotes[voice];
   return `the ${voice} price` + (note === '' ? '' : ` (${note})`);
 }
@@ -783,8 +930,47 @@ export function explainEffects(
       continue;
     }
     terms.push({ label: effect.kind, value: scoreEffect(effect, ctx) });
+    // **The hammer premium** (batch 6): a card that pays production shortens
+    // every engine this empire is still raising, exactly as a mine does, and it
+    // walks through the same door. The empire reading — a card names no town.
+    const hammers = hammerTerm(productionOf(effect, ctx), ctx);
+    if (hammers !== null) terms.push(hammers);
   }
   return appraise(terms);
+}
+
+/**
+ * **How many hammers a turn this effect actually pays this empire** — the one
+ * question `hammerTerm` needs of a card, and `null`-shaped (nought) for every
+ * shape that pays none.
+ *
+ * The three legible shapes are the ones whose figure is a *bag*: a card that
+ * says "+2 production in every town", one that says "+2 to the empire", and one
+ * that dresses a hex. The percentage shapes are counted at the same nominal
+ * yield `scoreEffect` prices them against, because that is what this bot means
+ * by "a percentage of a town's hammers" everywhere else.
+ *
+ * Everything else answers nought, which is honest rather than lazy: a card whose
+ * hammers this bot cannot read is a card whose hammers it should not claim a
+ * compression for.
+ */
+function productionOf(effect: CardEffect, ctx: ValueContext): number {
+  const nominal = ctx.ai.score.nominalYield;
+  switch (effect.kind) {
+    case 'cityYields':
+      return (bagOf(effect).production ?? 0) * ctx.cities;
+    case 'empireYields':
+      return bagOf(effect).production ?? 0;
+    case 'tileYield':
+      return (bagOf(effect).production ?? 0) * ctx.ai.score.nominalTiles;
+    case 'productionBonus':
+      return (effect.percent / 100) * nominal * ctx.cities;
+    case 'percentYields':
+      if (effect.yield !== 'production' && effect.yield !== 'all') return 0;
+      return (effect.percent / 100) * nominal * ctx.cities;
+    default:
+      return 0;
+  }
 }
 
 export function scoreEffects(

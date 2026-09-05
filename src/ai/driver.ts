@@ -43,7 +43,7 @@
  */
 
 import { aiConfigFor } from './aiConfig';
-import { nextBotCommand } from './bot';
+import { botSitting, nextBotCommand } from './bot';
 import type { Command, CommandResult } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { hasEndedTurn, playerById, realPlayers } from '../sim/state';
@@ -130,10 +130,19 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
   // is the loop this closes. Membership only — nothing iterates it.
   const refusedCommands = new Set<string>();
   let redraws = 0;
+  // **One sitting for the seat's whole turn** (batch 6 of
+  // `docs/bot-priorities.md`). The appraisal context — the empire's books, the
+  // shadow prices, the chains and the want book — is built by the first arm that
+  // asks for it and read by every arm after it, rather than rebuilt for each of
+  // the thirty or forty decisions a busy seat makes. Anything a mid-turn
+  // mutation invalidates is re-read from the state by the arm that needs it
+  // (`bankSpend` asks `purchaseError` and the treasury at the moment it fires);
+  // see `BotSitting` for the whole of that bargain.
+  const sitting = botSitting(playerId);
 
   for (let attempt = 0; attempt < Math.max(1, ai.driver.endTurnAttempts); attempt++) {
     while (report.accepted + report.refused < ai.driver.commandsPerSeat) {
-      const command = nextBotCommand(game.state, playerId);
+      const command = nextBotCommand(game.state, playerId, sitting);
       if (command === null) break;
       const key = JSON.stringify(command);
       if (refusedCommands.has(key)) {

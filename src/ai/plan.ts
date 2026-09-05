@@ -71,6 +71,7 @@ import {
   delayTerm,
   explainLump,
   explainYields,
+  hammerTerm,
 } from './value';
 
 import { hasResource, tileContextAt, tileOwnerPlayerId } from '../sim/cities';
@@ -243,6 +244,12 @@ function improvementEntry(
   const yields = explainYields(bagOfTileYield(delta), ctx);
   const name = improvementDef(improvement).name;
   const terms: ValueTerm[] = [nest(`${name} on (${tile.col},${tile.row})`, yields)];
+  // **The hammer premium** (batch 6): a mine's hammers shorten every engine this
+  // empire is still raising. The empire reading rather than a town's — a hex in
+  // the ring between two towns belongs to whichever one works it, and the plan
+  // does not know which — which is the fallback `hammerPrice` states.
+  const hammers = hammerTerm(delta.production ?? 0, ctx);
+  if (hammers !== null) terms.push(hammers);
   for (const term of plannedRiderTerms(player, ctx, tile, improvement)) terms.push(term);
   return {
     col: tile.col,
