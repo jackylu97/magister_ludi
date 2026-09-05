@@ -18,8 +18,10 @@ import {
  * in its own table by name, and every name in a BUILT table names a data row.
  * Retired rows are excluded on both sides — they leave the pools and the doc
  * alike. Both halves of the worksheet are read: the Orders by pool and the
- * Doctrines by tier. The PROPOSED Order pool sections (Government IV/V/VI)
- * mirror nothing yet and are not read.
+ * Doctrines by tier. The one PROPOSED Order pool section left (Government VI)
+ * mirrors nothing yet and is not read — Government IV and V stopped being
+ * proposals on 2026-09-05, when the tier-29 and tier-45 governments were wired
+ * to pools of their own.
  */
 describe('the orders and doctrines doc mirrors the data', () => {
   // The repo's source-reading pattern: Vite's raw import, so the test runs in
@@ -37,6 +39,11 @@ describe('the orders and doctrines doc mirrors the data', () => {
     governmentI: '### Government I pool',
     governmentII: '### Government II pool',
     governmentIII: '### Government III pool',
+    // The two late shelves, built 2026-09-05 and read here from that day: they
+    // were PROPOSED tables mirroring nothing until the tier-29 and tier-45
+    // governments were wired to pools of their own.
+    governmentIV: '### Government IV pool',
+    governmentV: '### Government V pool',
   };
 
   /** First-column names of every table row under one heading. */

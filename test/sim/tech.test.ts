@@ -1284,7 +1284,10 @@ describe('research in the log', () => {
     // v62 (the renewals axe, 2026-09-04): nine nodes stop renewing a building
     // already standing, so a v61 log researching any of them banks yields this
     // build does not pay.
-    expect(SCHEMA_VERSION).toBe(67);
+    // v68 (2026-09-05, the cards pass): Government IV and V become Order pools
+    // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
+    // names indices into hands this build does not deal.
+    expect(SCHEMA_VERSION).toBe(68);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

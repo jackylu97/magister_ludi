@@ -2325,6 +2325,18 @@ export function countOf(
       }
       return total;
     }
+    case 'roadHexes': {
+      // The **builder's** mark, read off the one field a road is written on
+      // (`Tile.road`, written by `layRoad` and by nothing else). An index sweep
+      // for `revealedTiles`' reason: four thousand field reads, no addresses.
+      // A decreed hex (`roadFree`) counts — only the maintenance ledger cares
+      // who is billed, and The Long Roads is paid for the road, not the bill.
+      let total = 0;
+      for (const tile of state.map.tiles) {
+        if (tile.road === playerId) total += 1;
+      }
+      return total;
+    }
     case 'sightedCities': {
       // **Foreign** towns only: a seat's own cities are in its sightings too,
       // and a card that counted them would be paying twice for founding.
@@ -6601,6 +6613,7 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   },
   wonders: { one: 'wonder you hold', many: 'wonders you hold' },
   revealedTiles: { one: 'hex you have revealed', many: 'hexes you have revealed' },
+  roadHexes: { one: 'road hex you have laid', many: 'road hexes you have laid' },
   sightedCities: { one: 'foreign city you have sighted', many: 'foreign cities you have sighted' },
   agesClosed: { one: 'age that has closed', many: 'ages that have closed' },
   // The filter is not in these words: `countNoun` prints it, so that "per melee

@@ -807,6 +807,9 @@ describe('the schema witness', () => {
     // v58 (phase three): a puppet buys nothing — units, buildings and ground
     // are all refused until it is annexed, so a v57 log's puppet purchase is
     // refused here. See `test/sim/purchase.test.ts` for the clause itself.
-    expect(SCHEMA_VERSION).toBe(67);
+    // v68 (2026-09-05, the cards pass): Government IV and V become Order pools
+    // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
+    // names indices into hands this build does not deal.
+    expect(SCHEMA_VERSION).toBe(68);
   });
 });

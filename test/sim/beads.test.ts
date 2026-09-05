@@ -199,7 +199,10 @@ describe('the bead catalogue', () => {
     // verbs and a widened `proposePeace`, a luxury that may be lent across a
     // table, and one technology that hands over a verb it did not — so a v56
     // log knows no deal commands and replays into a different world.
-    expect(SCHEMA_VERSION).toBe(67);
+    // v68 (2026-09-05, the cards pass): Government IV and V become Order pools
+    // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
+    // names indices into hands this build does not deal.
+    expect(SCHEMA_VERSION).toBe(68);
   });
 
   it('puts the beads phase directly after renown', () => {

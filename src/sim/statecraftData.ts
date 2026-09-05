@@ -155,7 +155,22 @@ export const SLOT_TYPES: readonly SlotType[] = ['military', 'economic', 'wildcar
  * Which pool an Order is drafted from. **Pool power steps per government, not
  * per tier** (Entry XV), so a pool is named after the government that opens it.
  */
-export type OrderPool = 'chiefdom' | 'governmentI' | 'governmentII' | 'governmentIII';
+export type OrderPool =
+  | 'chiefdom'
+  | 'governmentI'
+  | 'governmentII'
+  | 'governmentIII'
+  /**
+   * The two late pools, built 2026-09-05 for the first full playthrough. They
+   * are members here rather than a fallback in `poolOfGovernment` because a
+   * government that dealt the *previous* government's shelf is a government
+   * whose adoption bought a player nothing — which is exactly what a tier-29
+   * seat got while `poolOfGovernment` answered `governmentIII` for every rung
+   * above eighteen. A pool is named after the government that opens it, so the
+   * ladder's last two rungs name their own.
+   */
+  | 'governmentIV'
+  | 'governmentV';
 
 /**
  * How often a card turns up in a draft — `OrderDef.rarity`, the deck's only
@@ -185,6 +200,8 @@ export const ORDER_POOLS: readonly OrderPool[] = [
   'governmentI',
   'governmentII',
   'governmentIII',
+  'governmentIV',
+  'governmentV',
 ];
 
 /**
@@ -1297,7 +1314,26 @@ export type CountKind =
    * while the card is in a slot (the standing ruling: the bench is never
    * productive, and nothing is retroactive).
    */
-  | 'tally';
+  | 'tally'
+  /**
+   * **Hexes this empire has laid a road on** — The Long Roads', and the one
+   * shape the cards pass of 2026-09-05 was allowed to add.
+   *
+   * Read off `Tile.road`, which is written by `layRoad` and by nothing else, so
+   * the count is the *builder's* mark: a road a rival's culture has since grown
+   * over is still a road this empire paved, and a road nobody paved is not a
+   * road. That is deliberately not the ratified text's "inside your borders to
+   * its nearest city" — a payout routed to a particular town would need a
+   * second answer to "which town is nearest", and the borders move under a road
+   * that does not — so the row prints what it counts and the doc's notes say
+   * what it stopped saying.
+   *
+   * An **index sweep** over `map.tiles`, `revealedTiles`' shape exactly: four
+   * thousand field reads with no address arithmetic, which is the only reading
+   * a whole-map count can afford. `roadFree` hexes count — a decreed road is a
+   * road, and only the *maintenance* ledger cares who is billed for it.
+   */
+  | 'roadHexes';
 
 /**
  * The moments a growing card can be counting. See `CountKind`'s `tally`.
@@ -3278,13 +3314,21 @@ export function poolOrders(pool: OrderPool): OrderId[] {
  * the n-th rung", so they move with `tierLadder` and with nothing else. They
  * were 3 and 7 until the pacing retune of 2026-08-27 widened the ladder to
  * 4/10/18 — a player was reaching the third rung on turn twenty-nine, in Age I.
+ *
+ * **Every rung has its own pool since 2026-09-05.** The last clause used to be
+ * a bare `return 'governmentIII'`, which meant the tier-29 and tier-45
+ * governments re-dealt the shelf their predecessor had already emptied: a full
+ * game drew no card it had not seen after Æra III, and adopting The Curia or
+ * The Empire bought a wider council with nothing new to seat in it.
  */
 export function poolOfGovernment(id: GovernmentId): OrderPool {
   const tier = governmentDef(id).tier;
   if (tier <= 0) return 'chiefdom';
   if (tier <= 4) return 'governmentI';
   if (tier <= 10) return 'governmentII';
-  return 'governmentIII';
+  if (tier <= 18) return 'governmentIII';
+  if (tier <= 29) return 'governmentIV';
+  return 'governmentV';
 }
 
 /**

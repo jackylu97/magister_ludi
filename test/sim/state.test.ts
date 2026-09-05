@@ -669,7 +669,11 @@ describe('the research queue field', () => {
     // reading, first seat to it wins, is retired. A v63 log may contain a
     // swordsman nobody could build and a pour into a puppet, and may be refused
     // a foreign route this build allows.
-    expect(SCHEMA_VERSION).toBe(67);
+    // v68 (the cards pass, 2026-09-05): Government IV and Government V are Order
+    // pools of their own, twenty-seven rows join them, eight rows are retired and
+    // eight say something different. Every pool's bag changed, so a v67 log's
+    // `chooseOrder` names indices into hands this build does not deal.
+    expect(SCHEMA_VERSION).toBe(68);
   });
 });
 

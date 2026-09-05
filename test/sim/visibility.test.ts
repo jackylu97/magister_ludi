@@ -157,7 +157,10 @@ describe('the visibility grid', () => {
     // v64 (the sim singles, 2026-09-04): `Player.metSeats` — a meeting is
     // stored and permanent, written by `recordMeetings` off the same `lit` set
     // this file's recompute folds the fog and the city memory from.
-    expect(SCHEMA_VERSION).toBe(67);
+    // v68 (2026-09-05, the cards pass): Government IV and V become Order pools
+    // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
+    // names indices into hands this build does not deal.
+    expect(SCHEMA_VERSION).toBe(68);
   });
 
   it('survives a JSON round trip as plain data', () => {

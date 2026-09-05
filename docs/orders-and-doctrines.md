@@ -1,9 +1,9 @@
 # Orders and Doctrines — the master list
 
 Every Order, Doctrine and government in one place, tables only. **Regenerated from
-`data/statecraft.json` 2026-09-04** — the Effect column is each row's own ratified `text`;
-counts and tiers are the data's (pools: Chiefdom 11 · Gov I 33 · Gov II 44 · Gov III 43;
-doctrine tiers ride the ladder 4/10/18/29/45). Edit here; the two working docs (`deprecated/statecraft-cards.md`, `deprecated/statecraft-ages-3-5.md`) keep the commentary and are no longer the source. Tier: ● defining · ◆ strong · ○ situational (blank = not yet tiered).
+`data/statecraft.json` 2026-09-05** — the Effect column is each row's own ratified `text`;
+counts and tiers are the data's (pools: Chiefdom 11 · Gov I 29 · Gov II 45 · Gov III 46 ·
+Gov IV 16 · Gov V 11; doctrine tiers ride the ladder 4/10/18/29/45). Edit here; the two working docs (`deprecated/statecraft-cards.md`, `deprecated/statecraft-ages-3-5.md`) keep the commentary and are no longer the source. Tier: ● defining · ◆ strong · ○ situational (blank = not yet tiered).
 
 **As built, 2026-08-28 (second pass)** — six of those halves are built and the shapes are
 generic:
@@ -137,14 +137,43 @@ Three decisions worth the user's eye:
 
 **A deferred half still stands on**, and each waits on a system the game does not have: The
 Curia (the Cathedral) · The Academy of Deeds' second half (a missed Triumph is closed for
-good — reopening one is a change to `awardTriumph`'s `perAge` register) · The Sea Charter
-(the Harbour) · The Renaissance Court (nothing makes a legacy stronger) · Cuius Regio (two) ·
-Absolutism (an extra Order office is a change to a *layout*, not a number) · Blitz (both) ·
-The Philosopher's Stone (both) · The Levée en Masse (nothing happens when a border is
-crossed) · Pax Magistri (no war to declare) · Religious Mandate (diplomacy) · The Great
-Warring Tribes (the courthouse) · **the Cistern's farms** (a building may water a *town* and
-nothing waters a *hex* — `cityIsWatered` and `TileCondition.freshwater` are two different
-questions, and the row ships the town's half with the field's half struck through).
+good — reopening one is a change to `awardTriumph`'s `perAge` register) · Cuius Regio (two) ·
+The Levée en Masse (nothing happens when a border is crossed) · Religious Mandate
+(diplomacy) · **the Cistern's farms** (a building may water a *town* and nothing waters a
+*hex* — `cityIsWatered` and `TileCondition.freshwater` are two different questions, and the
+row ships the town's half with the field's half struck through).
+
+**As built, 2026-09-05 (the cards pass, `docs/cards-pass-2.md`)** — the two late Order
+pools, eight cuts, eight modifications, nine new rows and the deferred late Doctrines,
+on **one** new vocabulary member.
+
+- **Government IV and Government V are pools** (`OrderPool`, `ORDER_POOLS`,
+  `poolOfGovernment`). Every rung of `tierLadder` now opens a shelf of its own: tier 29 →
+  `governmentIV`, tier 45 → `governmentV`, where both used to fall through to Government
+  III. A full game drew no card it had not seen after Æra III until this landed, and the
+  reward for adopting at the fourth rung was a wider council with nothing new to seat.
+  `livePool` is unchanged — the current pool alone, minus what the empire holds.
+- **The one new shape** is `CountKind`'s `roadHexes`, The Long Roads' count: an index sweep
+  over `Tile.road`, which `layRoad` is the only writer of. It counts the hexes *you laid*
+  rather than the ratified "inside your borders to its nearest city" — a payout routed to a
+  particular town would need a second answer to "which town is nearest", and the borders
+  move under a road that does not.
+- **Eight rows retired** (dead weight, duplicates or invisible): Militia Levies · Horse
+  Lords · The Muster Roll · Land Grants · The Shield Wall · The Quartermasters · The Common
+  Purse · Public Granaries. Kept for saves, out of every pool and out of the tables above.
+- **Eight rows modified**: Far Runners pays for looking (every unit +1 sight, and a ruin
+  claimed pays culture) · River Wardens lost its garrison clause · The Great Warring Tribes
+  is two clauses · Spoils of the Wild prints the Camp Followers stack · Village Fairs is
+  uncommon · Bread and Circuses pays 2 · The Scattered Hearths waives 2 · Conscription keeps
+  its flat −2 (nothing can count only the cities past a fourth).
+- **Nine new rows** fill the holes the pass found: The Founding Oath (the Chiefdom's first
+  rare) · The Long Roads · The Reckless Levy · The Tithe of Iron · Bread Alone · The
+  Congregation · The Granary Laws (Orders) and The Horse-Tribes (a Doctrine, carrying the
+  mounted line Horse Lords left). **The Tide-Reckoning is not built**: no route knows
+  whether it went by sea, and an amplifier on a route's pay has no scope to say so.
+- **The late Doctrines pay what they print**: The Sea Charter, The Renaissance Court,
+  Absolutism, Pax Magistri and The Philosopher's Stone ship their stock halves with the
+  rest struck from the text; Blitz, which had no stock half at all, is retired.
 
 ## Themes (the archetype lines)
 
@@ -207,12 +236,13 @@ questions, and the row ships the town's half with the field's half struck throug
 | Thalassocracy | 🐫 | Coastal cities gain 10% of their food yield as gold. |
 | The Burning Way | ⚒ | Clearing a forest or jungle costs no worker charge. · †deferred |
 | The Sacred Path | ⚒ | +1 faith on every forest hex · +1 culture on every jungle hex. |
-| Bread and Circuses | 🌱 | While your authority is positive: +3 happiness in every city of 6 or more population. −2 gold in every city, always. |
+| Bread and Circuses | 🌱 | While your authority is positive: +2 happiness in every city of 6 or more population. −2 gold in every city, always. |
 | The Tithe | 🕯 | +1 gold for each faith you gain per turn. |
 | Divine Inspiration | 🕯 | +1% science and +1% culture for each 200 banked faith. |
 | The Gentle Yoke | 🌱 | −15% happiness demanded per citizen · every city costs 2 more authority. |
-| The Scattered Hearths | 🌱 | The first 3 citizens in every city demand no happiness · −4 happiness in your capital. |
-| The Great Warring Tribes | ⚒ | Negative authority no longer slows production toward units · +10% production toward mounted units · captured cities pay +5 science and +5 culture. |
+| The Scattered Hearths | 🌱 | The first 2 citizens in every city demand no happiness · −4 happiness in your capital. |
+| The Horse-Tribes | ⚒ | Mounted units gain +1 movement. · †deferred |
+| The Great Warring Tribes | ⚒ | While your authority is negative: +10% production toward units. Captured cities pay +5 science and +5 culture. |
 
 ### Pool III (tier 18)
 
@@ -233,21 +263,20 @@ questions, and the row ships the town's half with the field's half struck throug
 |---|---|---|
 | The Academy | — | -10% culture, +20% science. Can purchase great scholar drafts with faith (1000 faith) |
 | The Standing Army | ⚒ | +1 authority capacity for each 5 units you have in the field. −1 happiness in every city. Units cost no upkeep. |
-| The Sea Charter | 🐫 | Trade routes pay 50% more. Every coastal city is founded with a Harbour. · †deferred |
-| The Renaissance Court | — | Great-person offers show one more card. Every great person's legacy is 50% stronger. · †deferred |
+| The Sea Charter | 🐫 | Trade routes pay 50% more. |
+| The Renaissance Court | — | Great-person offers show one more card. |
 | Cuius Regio | 🕯 | In cities that follow your religion, 15% of your faith yield is converted into science |
 | The Yeomanry | 🌱 | +1 production on every hex with a Farm. Cities of 10 or more population −1 happiness. |
-| Absolutism | — | +6 authority capacity. A newly placed Order is locked for 10 turns instead of 5. · †deferred |
+| Absolutism | — | +6 authority capacity. A newly placed Order is locked for 10 turns instead of 5. |
 
 ### Pool V (tier 45)
 
 | Doctrine | Line | Effect |
 |---|---|---|
-| Blitz | ⚒ | Units that kill may move again that turn. Units cannot fortify. · †deferred |
-| The Philosopher's Stone | — | The Great Work costs −25% production. Every Distillery pays +5 gold. · †deferred |
+| The Philosopher's Stone | — | The Magnum Opus is built 25% faster. |
 | The Grand Tour | — | +3 renown per turn for each wonder you hold. +1 culture for each wonder in the world, seen or not. |
 | Mare Nostrum | 🐫 | +1 food and +1 gold on every water hex you own. Coastal cities cost no authority. |
-| Pax Magistri | 🌱 | +3 happiness in every city. +5 science and +5 culture in every city of 12 or more population. · †deferred |
+| Pax Magistri | 🌱 | +3 happiness in every city. +5 science and +5 culture in every city of 12 or more population. |
 | The Encyclopaedia | ✶ | +1 science for each building in a city. Science buildings cost −50% production. |
 | The Triumphal Way | ⚒ | Capturing a city grants +5 happiness in every city for 10 turns. |
 
@@ -278,43 +307,39 @@ is take one or pass.
 |---|---|---|---|---|
 | Blooded Spears | M | 🏹 | ● | +1 combat strength, and +2 more against barbarians. |
 | Camp Followers | M | 🏹 | ◆ | Clearing a barbarian camp grants +25 food and a random military unit. |
-| Far Runners | M | 🧭 | ● | Scouts +1 movement and +1 sight. Civilians +2 movement while embarked. |
+| Far Runners | M | 🧭 | ● | All your units gain +1 sight. Claiming a ruin grants +10 culture. |
 | The Widow's Levy | M | — | ◆ | When a unit of yours dies, its nearest city gains +10 production and you gain +40 gold. |
-| Militia Levies | M | — | ● | All your cities gain +4 defense and +1 sight radius. · *neutral* |
 | Common Granary | E | 🌱 | ● | +1 food in every city holding an improved luxury resource. |
 | Salt Tithes | E | 🐫 | ● | +2 gold for each unique luxury. |
 | Boundary Stones | E | — | ● | +30% border expansion in every city with a Monument. |
 | First Rites | W | 🕯 | ● | +1 faith in your capital, and +1 faith for each wildcard Order you have in a slot. |
 | Fire-Keepers | W | 🕯 | ● | +1 faith in your capital, and +1 happiness there. |
 | First Fruits | W | 🕯 | ◆ | The first citizen born in each city pays +10 faith once. |
+| The Founding Oath | W | 📜 | ○ | Your capital pays +1 of every yield for each building standing in it, at most 3. |
 
-### Government I pool (32)
+### Government I pool (29)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
 | The Long Watch | M | — | ● | +1 happiness for each unit standing in one of your cities, and +1 more for each fortification a city has built. |
 | Border Wardens | M | — | ● | +1 combat strength inside your territory, and +1 more for each military Order you have in a slot, at most +3 more. |
 | Conscription | M | ⚒ | ◆ | +50% production toward units · −2 happiness. |
-| Spoils of the Wild | M | 🏹 | ◆ | Clearing a barbarian camp pays +100%. [Adds to Camp Followers. don't include this text in game] |
-| Horse Lords | M | ⚒ | ● | Mounted units gain +1 movement. |
+| Spoils of the Wild | M | 🏹 | ◆ | Clearing a barbarian camp pays +100%. |
 | Weights & Measures | E | 🐫 | ● | +1 gold in every city. |
 | Silk Roads | E | 🐫 | ◆ | +3 gold for each trade route you run. |
 | The Tax Farm | E | 🐫 | ● | +1 gold for each 4 population in your empire. |
 | Harbour Dues | E | 🐫 | ● | Coastal cities gain 5% of their gold again as culture. |
-| Land Grants | E | — | ◆ | Buying a hex costs 25% less · +40% border expansion. |
 | Homestead Charters | E | — | ◆ | Newly founded cities start with 1 more population. |
 | Granary Levies | E | 🌱 | ◆ | When a city grows, it gains +10 production. |
 | The King's Table | E | 🌱 | ● | +1 happiness for every 2 citizens in your capital. |
 | Tinkers' Guild | E | — | ◆ | Newly created workers gain +1 charge. · *neutral* |
-| Public Granaries | E | — | ◆ | Cities keep 15% of their stored food when they grow. · *neutral* |
 | Festival Days | W | 🌱 | ● | +4 happiness. |
 | Rites of Passage | W | 🕯 | ◆ | Buying or completing a unit grants +10 faith. |
 | The Laureate | W | 🏛 | ○ | +1 renown per turn. Every great-person improvement pays +2 more of its own yield. |
 | The Legion | M | ⚒ | ◆ | Melee units gain +1 movement and +1 combat strength, and cities put 15% more production behind them. |
 | Statute Labour | E | ⚒ | ● | +1 production in every city for each 4 citizens living there. |
 | The Almanac | W | ✶ | ● | +2 science in your capital, and +1 science in every city with a Library. |
-| Village Fairs | W | 🌱 | ● | +1 happiness for each luxury you hold two or more copies of. |
-| The Muster Roll | M | ⚒ | ● | Units created from now on are born with +10 maximum health, and keep it for life. |
+| Village Fairs | W | 🌱 | ◆ | +1 happiness for each luxury you hold two or more copies of. |
 | Hill Forts | M | ⛰ | ◆ | +2 combat strength when defending on hills, and a city on hills costs 1 less authority. |
 | The Pilgrim's Purse | W | 🕯 | ◆ | +5 faith in every city standing beside a holy site. |
 | Charter Towns | E | 📜 | ◆ | Newly founded cities are founded with a Granary. |
@@ -324,15 +349,15 @@ is take one or pass.
 | The Bell-Founders | W | 🏛 | ◆ | +1 culture per turn for each wonder finished anywhere in the world while this Order stands in a slot. |
 | The Rites Charter | W | 🕯 | ◆ | Unlocks the Chapel. |
 | The Vigil Charter | M | ⚒ | ◆ | Unlocks the Keep. |
+| The Reckless Levy | M | ⚒ | ◆ | +50% production toward units · your army costs twice as much to keep. |
 
 ### Government II pool (45)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
-| River Wardens | E | 🌾 | ● | When a unit is stationed in a city, that city gains +1 food on every farm beside fresh water. |
+| River Wardens | E | 🌾 | ● | +1 food on every farm beside fresh water. |
 | Field Surgeons | M | ⚒ | ● | All units heal +10 more per turn, anywhere. |
 | March Discipline | M | ⚒ | ◆ | Military units gain +1 movement. |
-| The Shield Wall | M | ⚒ | ● | +3 combat strength on hills. |
 | Siege Doctrine | M | ⚒ | ● | +4 combat strength when attacking cities. |
 | Scorched Earth | M | — | ◆ | Pillaging heals a further 25 and pays a further +10 gold. |
 | Sumptuary Laws | E | 🐫 | ● | +1 happiness for each unique luxury. |
@@ -344,7 +369,6 @@ is take one or pass.
 | Royal Surveyors | E | — | ● | +50% border expansion · buying a hex costs 25% less. |
 | Provincial Governors | E | — | ● | +1 authority capacity for each economic Order you have in a slot, at most +4. |
 | Emergency Powers | E | — | ○ | While your authority is negative: capital +25% production, and borders do not freeze. |
-| The Common Purse | E | — | ○ | Leftover production from a completed item is doubled. · *neutral* |
 | Pilgrim Roads | W | 🕯 | ◆ | +1 faith for every 3 citizens in your capital · +1 happiness for each 50 banked faith (at most +5). |
 | Lamplighters | W | 🕯 | ◆ | +1 culture for each 5 faith you gain per turn. |
 | Scholars' Stipend | W | ✶ | ● | +2 science in every city of 5 or more population holding a Library, and +2 more where a University stands. |
@@ -358,7 +382,6 @@ is take one or pass.
 | The Oath-Bound | M | ⚒ | ○ | Killing a unit heals the unit that struck the blow by 15. |
 | The Orchard Tithe | E | 🌱 | ● | +1 food on every hex carrying a luxury resource. |
 | The Quiet Fields | W | 🌱 | ● | +1 happiness for each unimproved hex your cities work. |
-| The Quartermasters | M | ⚒ |   | Military units cost 1 less gold in maintenance. |
 | The Last Hunt | W | 🏹 | ○ | +2 culture and +2 science for each barbarian camp you have cleared this game. |
 | The Shipwright Shores | E | 🐫 |   | +1 production in every coastal city · +30% production toward ships there. |
 | The Archives | W | — |   | +1 culture for each Order you have placed in a slot. |
@@ -374,8 +397,11 @@ is take one or pass.
 | The Senatus | W | 📜 | ◆ | Unlocks the Assembly Hall. |
 | The Toolmakers' Charter | E | ⚒ | ◆ | Unlocks the Smithy. |
 | The Banner-Call | M | ⚒ | ◆ | While you are at war: +15% production toward units, and killing a unit grants +5 culture. |
+| The Long Roads | E | 🐫 | ○ | +1 gold for each road hex you have laid. |
+| The Tithe of Iron | E | ⚒ | ◆ | +2 production on every mine · −1 food in every city with one. |
+| Bread Alone | W | 🌱 | ◆ | +3 food and −1 culture in every city. |
 
-### Government III pool (44)
+### Government III pool (46)
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
@@ -423,61 +449,74 @@ is take one or pass.
 | The Stargazers' Charter | W | ✶ | ◆ | Unlocks the Orrery. |
 | The Justices' Charter | M | — | ◆ | Unlocks the Assize Court. |
 | The Far Charts | W | 🧭 | ○ | +1 science for each 20 hexes you have revealed. |
+| The Congregation | W | 🕯 | ○ | +1 culture and +1 science for each city in the world that follows your religion. |
+| The Granary Laws | E | 🌱 | ◆ | Cities of 8 or more population gain 10% of their food yield again as science. |
 
 
-### Government IV pool — PROPOSED (tier 29 adoption) (20)
+### Government IV pool (16)
 
-Not in the data yet. Stocked from the dissolved worksheet pools by power and
-timing: everything here leans on content that is live by mid-Æra III (knights,
-trebuchets, universities, the Cathedral, wonders in number). Wiring it is one
-enum value + `poolOfGovernment` mapping tier 29 here instead of Government III.
-
-| Order | Slot | Line | Rarity | Effect |
-|---|---|---|---|---|
-| The King's Road | M | 🎖 | ◆ | units gain +1 movement when starting their turn in friendly territory. Roads are extra effective. |
-| ~~Levies~~ | M | 🎖 | ● | *Retired 2026-09-04 (queue item 6): the muster is already built as **The Standing Levy** (Government III), and the Levée en Masse proposal it doubled retires with it — its trigger, a border crossed, was never built.* |
-| Field Hospitals | M | 🎖 | ◆ | units inside your borders heal to full each turn they do not move (fortify counts) |
-| Decisive Blows | M | 🎖 | ○ | +15% damage dealt when attacking a unit already below full strength |
-| The Marshals' Purse | M | 🎖 | ○ | units cost −25% gold to purchase |
-| Trade Wardens | M | ⚓ | ○ | trade routes cannot be pillaged · +5 combat within 2 hexes of a road |
-| Knightly Orders | M | ⚒ | ○ | mounted units +5 combat inside your borders · mounted units cost +25% ⚙ |
-| The Siege Train | M | ⚒ | ◆ | siege units +1 movement · +5 combat vs cities for units adjacent to a siege unit |
-| Patrons | E | 🏛 | ◆ | +1 renown per turn per building of the 🎵 category · +2🎵 per wonder you hold |
-| The Guild of Masons | E | 🏛 | ● | +30% ⚙ toward wonders · −15% ⚙ toward units |
-| Harbourmasters | E | ⚓ | ◆ | coastal cities +1 trade route · fishing boats +1💰 |
-| The Factor Houses | E | ⚓ | ○ | each trade route to another civilization pays +3🔬 |
-| The Corvée | E | ⚒ | ● | completing a building grants +1 population in that city · −2 happiness |
-| Assize Courts | E | — | ◆ | +1 authority capacity per 3 cities · captured cities cost 1 |
-| The Grain Fleet | E | 🌱 | ○ | coastal cities +2🌾 · +25% growth surplus in coastal cities |
-| Cathedral Chapters | E | 🕯 | ◆ | +1 happiness per Cathedral · Cathedrals +2🎵 · *(Cathedral is live — implementable)* |
-| Star Readers | W | ✶ | ◆ | +2🔬 per wonder you hold · completing a wonder grants +30🔬 |
-| The Synod *(name taken)* | W | 🕯 | ◆ | rites last 25% longer · +1🕯 per temple · *(rites are one-shots now (one-charge augur) — "last 25% longer" needs a rework; **The Synod is a built Government II row since the card-shapes pass — this proposal needs a new name**)* |
-| Scholastics | W | ✶ | ◆ | +2🔬 per University · completing a technology grants +15🕯 |
-| Court Poets | W | 🏛 | ○ | every Triumph you earn grants +20🎵 · great people arrive with +1 charge |
-
-### Government V pool — PROPOSED (tier 45 adoption) (16)
-
-The Æra IV pool: the run to the Opus. Rally points, great-person economy,
-late-game happiness and print culture. Same wiring as IV, for tier 45.
+Built 2026-09-05 from the proposed table below it, for the first full
+playthrough: every proposed row that rides the vocabulary the game already has,
+with the rarity mark it was proposed under. `poolOfGovernment` maps tier 29 here
+(The Curia · The Estates · The Sultanate), so adopting at the fourth rung turns
+a shelf over instead of re-dealing Government III's.
 
 | Order | Slot | Line | Rarity | Effect |
 |---|---|---|---|---|
-| Muster | M | 🎖 | ● | a unit completed in any city may appear at your designated *rally city* instead · −2 happiness in the rally city |
-| Forced March | M | 🎖 | ○ | combat units +1 movement outside your borders · −5 combat on the turn they moved 3+ hexes |
-| Admiralty | M | ⚓ | ○ | embarked units +1 movement and +5 defence · coastal cities +5 defence |
-| The Salon | E | 🏛 | ● | every great-person draft shows one more card · great people cost +10% renown (the ladder steepens) |
-| The Silk Exchange | E | ⚓ | ◆ | +2💰 per trade route · luxuries imported by route count as held |
-| Printing Houses | E | ✶ | ◆ | +1🎵 per Library · the Printing House +2🔬 |
-| Tithe Barns | E | 🌱 | ○ | cities keep 50% of the basket on growth · −1🕯 per city |
-| The Provincial Estates | E | — | ◆ | +1 authority capacity per city of 8+ population |
-| Guild Charters *(name clashes)* | E | ⚒ | ○ | each Workshop / Forge grants +1 renown per turn to the Engineer family · +2% ⚙ per production building in that city (max +6%) · *(user deferred earlier ("too many mechanics") — re-cut before building; **The Guild Charter is a built Government II row since the card-shapes pass — this proposal needs a new name**)* |
-| Manufactories | E | ⚒ | ◆ | +2⚙ and 1 renown per Manufactory (the great work) in your empire · *(the manufactory great work is live — implementable)* |
-| The Inquisition | W | 🕯 | ● | cities with a Temple: +2 happiness and +2🕯 · cities without one: −2 happiness |
-| Pilgrimage | W | 🕯 | ○ | +2🎵 per wonder you hold · +1🕯 per Triumph earned |
-| Universal Suffrage | W | 🌱 | ◆ | +1 happiness per 4 population, empire-wide · happiness tiers +5pp |
-| The Magister's Court | W | 🏛 | ○ | great people arrive with a second charge · the Magnum Opus +10% ⚙ · *(the Opus is live — implementable)* |
-| Ancestor Cults (II) | W | 🕯 | ○ | +1🕯 per 2 population in every city of 10+ |
-| The Long Peace | W | — | ● | +20% 🎵 and 🔬 empire-wide while you have lost no unit in 20 turns · lose it all the turn you do |
+| The King's Road | M | ⚒ | ◆ | Your units gain +1 movement inside your own territory. |
+| Field Hospitals | M | ⚒ | ◆ | Units resting inside your own territory mend completely each turn. |
+| Decisive Blows | M | ⚒ | ○ | +5 combat strength when attacking a unit below half strength. |
+| The Marshals' Purse | M | ⚒ | ○ | Military units cost 25% less to buy. |
+| Knightly Orders | M | ⚒ | ○ | Mounted units gain +5 combat strength inside your territory, and cities put 25% less production behind them. |
+| The Siege Train | M | ⚒ | ◆ | Siege units gain +1 movement. |
+| Patrons | E | 🏛 | ◆ | +2 culture for each wonder you hold. |
+| The Guild of Masons | E | 🏛 | ● | +30% production toward wonders · −15% production toward units. |
+| Harbourmasters | E | 🐫 | ◆ | +1 trade route · +1 gold on every fishing boat. |
+| The Factor Houses | E | 🐫 | ○ | +3 science for each trade route you run to another empire. |
+| Assize Courts | E | — | ◆ | +1 authority capacity for each 3 cities you hold · a captured city costs 1 authority. |
+| The Grain Fleet | E | 🌱 | ○ | +2 food in every coastal city · +25% growth surplus there. |
+| Cathedral Chapters | E | 🕯 | ◆ | +1 happiness for each Cathedral you hold · +2 culture in every city with one. |
+| Court Astronomers | W | ✶ | ◆ | +2 science for each wonder you hold. |
+| The Consistory | W | 🕯 | ◆ | +1 faith for each Temple you hold. |
+| Scholastics | W | ✶ | ◆ | +2 science for each University you hold · completing a technology grants +15 faith. |
+
+**Two renames and four rows still proposed.** *Star Readers* is the name of a
+built pantheon belief, so the wonder-reading row is **Court Astronomers**; *The
+Synod* is a built Government II Order, so the temples' row is **The
+Consistory** (the ruling of 2026-09-05). *Levies* stays retired — the muster is
+The Standing Levy, one pool down. Still proposed, each waiting on something the
+game cannot say yet: **Trade Wardens** (nothing can protect a route, and no
+strength line can ask how far a road is), **The Corvée** (a completion cannot
+hand over a citizen), **Court Poets** (a Triumph pays no windfall, and no card
+can name a great person).
+
+### Government V pool (11)
+
+The Æra IV shelf, built in the same pass and mapped from tier 45 (The
+Commonwealth · The Empire · The Magisterium).
+
+| Order | Slot | Line | Rarity | Effect |
+|---|---|---|---|---|
+| Forced March | M | ⚒ | ○ | Military units gain +1 movement outside your own territory. |
+| Admiralty | M | 🐫 | ○ | Embarked units gain +1 movement · +5 defence in every coastal city. |
+| The Salon | E | 🏛 | ● | Every great-person offer shows one more card. |
+| The Silk Exchange | E | 🐫 | ◆ | +2 gold for each trade route you run. |
+| Printing Houses | E | ✶ | ◆ | +1 culture for each Library you hold · +2 science in every city with a Printing House. |
+| Tithe Barns | E | 🌱 | ○ | Cities keep 50% of their stored food when they grow · −1 faith in every city. |
+| The Guild Compact | E | ⚒ | ○ | +2% production in a city for each production building standing in it, at most +6%. |
+| Manufactories | E | ⚒ | ◆ | +2 production on every manufactory. |
+| The Inquisition | W | 🕯 | ● | +2 happiness and +2 faith in every city with a Temple. |
+| Universal Suffrage | W | 🌱 | ◆ | +1 happiness for each 4 citizens in your empire · happiness tiers +5 percentage points. |
+| The Magister's Court | W | 🏛 | ○ | +10% production toward the Magnum Opus. |
+
+**One rename and five rows still proposed.** *Guild Charters* clashed with the
+built Government II Order, so the guilds' row is **The Guild Compact**. Still
+proposed: **Muster** (there is no rally city), **The Provincial Estates** (a
+count of cities cannot ask how big they are), **Pilgrimage** (its wonder half is
+Patrons' shipped clause one pool down and its Triumph half has no count),
+**Ancestor Cults (II)** (a count is asked of a realm or of a town and carries no
+size gate), **The Long Peace** (nothing remembers how long it has been since a
+unit fell).
 
 ### Government VI pool — PROPOSED (no rung exists yet) (10)
 
@@ -523,22 +562,49 @@ pool and building the content are one decision.
 - **The Groundskeepers** — The great-person improvements are the academy, landmark, manufactory, customs house and citadel.
 - **The Master's Presence** — A city is beside a work when one stands on its own hex or on one of the six touching it. Two works never pay twice.
 - **The Dry Docks** — † ships mend completely in a port — a heal that depends on where a piece is standing is a rule about a hex, and healing is a rule about a turn
-- **The Great Warring Tribes** — The clause about courthouses does nothing: there is no courthouse in the game yet.
+- **The Great Warring Tribes** — The courthouse clause did nothing — there is no courthouse in the game — and is struck.
 - **Athenaeum of the Road** — Retired: this Doctrine is no longer offered in a draft. A saved game that already holds it keeps it.
 - **Mountain Hold** — Retired: this Doctrine is no longer offered in a draft. A saved game that already holds it keeps it. It was built for a mountain **next to** the city, where the ratified text said within two hexes. † the bonus reaching a city with a mountain two hexes away, rather than only one
 - **The Burning Way** — Not built: the board does not remember a clearing. A felled forest leaves bare ground that looks exactly like ground nothing ever grew on, so nothing can tell the two apart to pay for one of them. † +1 food on every hex you have cleared of forest or jungle
 - **Divine Inspiration** — Faith income today rarely reaches 200 banked faith, so this pays little until faith yields grow.
 - **Religious Mandate** — None of this is built, and the card is never offered. † permanent war with empires of another faith † your cities cannot be converted † a powerful bonus toward the domination and religious beads
 - **The Academy of Deeds** — A Triumph missed in one age is still closed for good; only the doubling is in effect. † Triumphs you missed by one age can still be earned in the next
-- **The Sea Charter** — There is no Harbour in the game yet, so no city is founded with one. † every coastal city is founded with a Harbour
-- **The Renaissance Court** — Nothing yet makes a legacy stronger, so only the extra card is in effect. † every great person's legacy is 50% stronger
+- **The Sea Charter** — The clause about founding coastal cities with a Harbour is struck: nothing founds a city with a building it has not built.
+- **The Renaissance Court** — The clause about stronger legacies is struck: nothing makes a legacy stronger.
 - **Cuius Regio** — Nothing yet makes a rite itself stronger, so only the extra charge is in effect. The charge is decided in the city the augur is trained in. † their rites are 30% more effective
-- **Absolutism** — The extra slot is not built: a government's slots are laid out when it is adopted, and adding one is a change to that layout rather than a number. † you gain a wildcard Order slot
-- **Blitz** — Neither half is built: nothing gives a unit its movement back for a kill, and nothing stops a unit fortifying. † units that kill may move again that turn † units cannot fortify
-- **The Philosopher's Stone** — Neither the Great Work project nor the Distillery is in the game yet. † the Great Work costs −25% production † every Distillery mints +5 gold
+- **Blitz** — Retired: neither half is built — nothing gives a unit its movement back for a kill and nothing stops a unit fortifying — so the Doctrine is no longer offered in a draft. A saved game that already holds it keeps it.
+- **The Philosopher's Stone** — The clause about distilleries is struck: there is no distillery in the game.
 - **The Levée en Masse** — Not built: nothing in the game happens when a foreign unit crosses your border. † cities with a Barracks muster a militia when an enemy enters your borders
-- **Pax Magistri** — The clause about declaring war is not built: empires are not yet at war or at peace. † you can no longer declare war
 - **The Closed Realm** — Not built, both halves. Nothing in this game can hold a meter at a number instead of adding to it, and nothing can refuse an attack for where it is being made. † your happiness is held at +5 whatever your cities ask for † your units cannot attack outside your own territory
+- **Militia Levies** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The wild is answered by soldiers, not by a flat on every wall.
+- **Horse Lords** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The Horse-Tribes carries the mounted line now.
+- **The Muster Roll** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. Drums of War stands in its place.
+- **Land Grants** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. Royal Surveyors stands in its place.
+- **The Shield Wall** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. Hill Forts stands in its place.
+- **The Quartermasters** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The War Chest stands in its place.
+- **The Common Purse** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
+- **Public Granaries** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
+- **Conscription** — The unhappiness is a flat charge on the realm, not a charge per city: nothing can count only the cities past a fourth one.
+- **Spoils of the Wild** — It adds to Camp Followers rather than replacing it: a camp cleared under both pays both.
+- **The Founding Oath** — It counts the buildings standing in your capital rather than the first three ever raised there, and the third is the last that pays.
+- **The Long Roads** — It counts the hexes you paved, wherever they lie: a road belongs to whoever laid it, and a border that later grows over one changes nothing.
+- **The Horse-Tribes** — Neither struck clause is built: a strength line asks what the ground is and there is no word for open ground, and no building in the game is a stable. † mounted units gain +1 combat strength on flat ground † every stable pays +1 food
+- **The King's Road** — The roads themselves are struck: a road step costs the same third of a point for everybody, and nothing bends that price. † your roads carry your units further than anybody else’s
+- **Field Hospitals** — A piece mends only where it rests: one that moved or struck this turn heals nothing, here or anywhere.
+- **Decisive Blows** — A fight is decided by points on one ledger rather than by a share of the blow, so what was written as extra damage is printed as a strength line.
+- **The Siege Train** — Nothing can ask what is standing beside the piece that is fighting, so the struck clause is not built. † +5 combat strength against cities for units standing beside a siege engine
+- **Patrons** — Renown is paid for each city or for each wonder and for nothing else, so the struck clause is not built. † +1 renown per turn for each culture building you hold
+- **Harbourmasters** — A trade route belongs to the empire rather than to a town, so the extra route is the realm’s and not the coast’s.
+- **Court Astronomers** — A completion pays for the kind of thing finished, and a wonder is a building, so a bounty on wonders alone is not built. † completing a wonder grants +30 science
+- **The Consistory** — A rite is one act and has no length to lengthen, so the struck clause is not built. † rites last 25% longer
+- **Forced March** — Nothing remembers how far a piece walked this turn, so the price is not built. † −5 combat strength on the turn a unit moved three hexes or more
+- **Admiralty** — A strength line asks about the hex a fight is on and never about the piece standing on it, so the defence at sea is not built. † +5 combat strength for embarked units
+- **The Salon** — What a great person costs in renown climbs on its own ladder, which no card can steepen, so the struck clause is not built. † great people cost 10% more renown
+- **The Silk Exchange** — A route carries yields rather than goods, so nothing it brings in can be counted as a luxury you hold. † luxuries carried in by a trade route count as held
+- **The Guild Compact** — Renown is paid for each city or for each wonder and for nothing else, so the engineers’ half is not built. † +1 renown per turn to the engineers for each workshop or forge you hold
+- **Manufactories** — Renown is paid for each city or for each wonder and for nothing else, so the struck clause is not built. † +1 renown per turn for each manufactory you hold
+- **The Inquisition** — A scope asks what a town has and never what it lacks, so the penalty on towns without a temple is not built. † −2 happiness in every city without a Temple
+- **The Magister's Court** — A card may name a silhouette or a roster row but never a great person, so the second charge is not built. † great people arrive with a second charge
 
 ---
 

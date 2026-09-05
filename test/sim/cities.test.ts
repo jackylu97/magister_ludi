@@ -3213,7 +3213,10 @@ describe('determinism with cities', () => {
     // v62 (the renewals axe, 2026-09-04): nine building renewals struck, so a
     // v61 town's buildings pay figures this build does not — and the whole of
     // what a building is worth is now its own row, in every empire.
-    expect(SCHEMA_VERSION).toBe(67);
+    // v68 (2026-09-05, the cards pass): Government IV and V become Order pools
+    // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
+    // names indices into hands this build does not deal.
+    expect(SCHEMA_VERSION).toBe(68);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

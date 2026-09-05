@@ -2132,7 +2132,10 @@ describe('improvements in the log', () => {
     // v60 (the pangaea, 2026-09-03): the generator deals one continent now, so
     // the same seed lays down different ground — a v59 log walks units over
     // water and founds towns on hexes this build does not have.
-    expect(SCHEMA_VERSION).toBe(67);
+    // v68 (2026-09-05, the cards pass): Government IV and V become Order pools
+    // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
+    // names indices into hands this build does not deal.
+    expect(SCHEMA_VERSION).toBe(68);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

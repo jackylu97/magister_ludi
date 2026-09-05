@@ -1227,8 +1227,36 @@ import {
  *     drafted it. What moves is the draws: rows leaving and joining three pools
  *     redeal every hand from the same seed, so there is no reading under which
  *     a v66 log replays to the same board.
+ *
+ * v68: **the cards pass** (ruled 2026-09-05, `docs/cards-pass-2.md`) — the two
+ * late Order pools, the cuts, the modifications and the holes, in one bump
+ * because every one of them moves the same thing: what a draft deals.
+ *
+ *   · **Government IV and Government V are pools.** `poolOfGovernment` answered
+ *     `governmentIII` for every rung above eighteen, so a tier-29 or tier-45
+ *     empire re-drew the shelf it had already emptied; each rung of the ladder
+ *     opens its own now, stocked with twenty-seven new Order rows. A v67 log's
+ *     `chooseOrder` past the third rung names indices into hands this build
+ *     does not deal.
+ *   · **Eight rows are retired and eight say something different.** Militia
+ *     Levies, Horse Lords, The Muster Roll, Land Grants, The Shield Wall, The
+ *     Quartermasters, The Common Purse and Public Granaries leave every pool
+ *     (kept for saves); Far Runners pays sight and ruins instead of a scout's
+ *     legs, River Wardens dropped its garrison clause, The Great Warring Tribes
+ *     is two clauses, Village Fairs is uncommon, Bread and Circuses pays two,
+ *     The Scattered Hearths waives two. Nine rows are new (seven Orders, The
+ *     Horse-Tribes, and the late Doctrines' struck halves), and The Master
+ *     Builders' production sign was inverted and is fixed — that row made the
+ *     Opus *slower* than its own text promised.
+ *   · **One new count.** `CountKind`'s `roadHexes` (The Long Roads), read off
+ *     `Tile.road` — the one field `layRoad` writes.
+ *
+ *     The migration note: no field on the state changed shape, and a retired
+ *     row keeps paying whoever already drafted it. What moves is the draws, and
+ *     they move in every pool, so there is no reading under which a v67 log
+ *     replays to the same board.
  */
-export const SCHEMA_VERSION = 67;
+export const SCHEMA_VERSION = 68;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
