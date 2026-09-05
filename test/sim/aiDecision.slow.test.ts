@@ -72,9 +72,16 @@ const PATIENCE = 120_000;
  * turns at all, and seed 3 kept `deal` instead. The seed stays; `war` moved
  * onto the warmonger's claim and `deal` into this one — see the coverage
  * test's comment for the full record.
+ *
+ * **Re-seeded 3 → 1 with the delay discount** (priority system, batch 2):
+ * seed 3 lost `deal` and `disband` to the re-priced promises, and the sweep
+ * found seed 1 — the file's original arena — reaching all EIGHT kinds of the
+ * grown claim. Worth recording from the same sweep: `war` came BACK on two
+ * balanced seeds (5 and 11); the discount re-balanced trajectories in both
+ * directions. War coverage stays on the warmonger's claim regardless.
  */
 const CONFIG: GameConfig = {
-  seed: 3,
+  seed: 1,
   sizeName: 'standard',
   players: [
     { name: 'Crimson', color: '#d4502e' },
