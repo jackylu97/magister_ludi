@@ -1006,6 +1006,234 @@ culture's price is anchored on `weights.culture`. The arena panel needed no edit
    printed table, runnable via vite-node, deterministic throughout.
 4. **First pass run and reported** — the table lands in this doc.
 
+## Batch 7 as shipped (the prune, the per-seat sheet, the grid search, 2026-09-05)
+
+### Part 1 — the prune
+
+Six knobs out, and the shape of every verdict is the same one the programme has
+been making since batch 1: **a threshold that stands in front of arithmetic that
+already says the same thing is a policy wearing a constant.** What changed by
+batch 7 is that the arithmetic exists.
+
+| Retired | What carries it now |
+|---|---|
+| `expansion.settlerCap` (5) | `cityValueFalloff` decays what the next town is worth, and **a realised step drops out by construction** — a settler already walking owes no hammers, so the expansion chain has no step left and its share is nought. The cap only ever fired after the arithmetic had already said no. |
+| `trade.traderCap` (4) | A caravan is `weights.trader × goldPressure` and costs upkeep at **gold's shadow price**, so the empire a caravan would mend is the empire that wants one. The whole `trade` block went with it — it held nothing else. The one refusal left is a *rule*: a lone town has nowhere to send a route. |
+| `solvency.stopMaintainedBelow` (1) | `explainUpkeepCost` at gold's shadow price, which is the pressure and the book together, on **every** candidate and **every** want. Its only reader (`maintenanceAffordable`), the build table's filter, the two `WantInputs.maintained` skips in the purchasing and faith plans, and `BuildCandidate.essential` (dead the moment the filter went) are all gone with it. |
+| `score.maxTurns` (40) | **`priorities.horizonTurns`** (40). Both were forty and both meant *how far ahead this bot looks* — one said as a town's patience, the other as an empire's — so `push`' build-effort cap reads H and there is one horizon. Verified equal before the merge; the printed clause now says "capped at the 40-turn horizon". |
+| `score.nominalYield` (6) | **`score.unknownEffect × score.nominalCount`** (2 × 3 = 6), through one new door, `nominalRate` in `value.ts`. The two knobs were never independent: the `offerRider` arm was *already* pricing an unread rider at exactly that product, which is the same six said as *one thing this bot cannot read, three helpings of it*. The merge therefore moved **no number at all** — what it moved is the count of stand-ins a tuner has to keep in step, from two to one. |
+| `score.cityCap` (6) | Nothing — the clamp is simply gone from its three readers (`ctx.cities`, `threatLevel`, `townsWanting`). See the acceptance below. |
+
+**`score.cityCap`'s verdict: retired, and the acceptance is why.** The clamp said
+*an "in every town" reading stops at six towns*, and it was doing three unrelated
+jobs at once: capping how many towns a card scales over, capping how many
+**threats** a seat may count (a city cap standing in front of an enemy count), and
+capping how many towns a chain's building step is owed by — where it was
+shortening the numerator and the denominator by different amounts, since
+`stepsRemaining` divides the worth by exactly the number the cap had clipped.
+
+t75, duel, seeds 5/777/20260904, two balanced seats (six seats in all):
+
+| | batch 6 | the prune, cityCap kept | + cityCap retired |
+|---|---|---|---|
+| towns | 13 | 12 | **14** |
+| buildings standing | 58 | 55 | **54** |
+| technologies | 69 | 71 | **74** |
+| treasuries | 775 | 728 | **667** |
+| bankrupt seat-turns | 0 | 0 | **0** |
+
+Towns +8%, technologies +7%, buildings −7%, no new bankruptcies: the table holds
+and the removal stands. The one figure outside a tenth is the **treasury, −14%**,
+and it is the movement this programme has been asking for since batch 1 — a hoard
+is not a score, and an empire that ends with fourteen towns and seventy-four
+technologies on six hundred coins has spent what an empire with thirteen towns and
+sixty-nine technologies was sitting on. Nothing went bankrupt in any seat-turn of
+any game.
+
+**Persona fallout, carried through surviving numbers.** `settlerCap` was the last
+knob three personas still spelled their expansion with — wide 9, tall 2, warmonger
+6 — and every one of them already carries the same intent as a *preference*:
+
+- **wide** — `cityValueFalloff 1.0` and `weights.city 150`: it never tires of the
+  next town, which is what a cap of nine was trying to say and could not.
+- **tall** — `cityValueFalloff 0.6`, `weights.city 80` and `weights.happiness 16`:
+  the fourth town is worth a fifth of the first to it and it minds the crowding
+  more, which is a curve where the cap was a step.
+- **warmonger** — `weights.city 125` at the balanced falloff. Its `expansion`
+  block is now **empty and deleted**: it takes towns, it does not court them, and
+  a *raised* cap of six was never that sentence.
+
+The absence grep in `test/sim/aiWants.test.ts` is extended with all six names plus
+`maintenanceAffordable`, word-bounded and comment-stripped, so a retired knob that
+survived as a reader would fail core.
+
+### Part 2 — the per-seat tuning sheet
+
+`setAiTuning(sheet, { playerId })`. The page-level dial (batch 3's arena seam) is
+folded under every persona and applies to every seat, which is exactly what the
+arena wants and exactly what a grid search cannot use: *is this sheet better than
+the file?* needs one seat playing the candidate and another playing the default at
+the same table. So a sheet may name a seat, and the fold order is **the file, what
+the page is trying, what this seat is trying, what this seat's persona says**.
+
+This is not the swap the module's own docblock forbids. The forbidden shape is one
+variable that *changes* between two seats' readings inside a turn; this is a table
+keyed by seat, installed before a run and constant through it, so a seat's answer
+is a function of the seat and of nothing else. It is a persona nobody had to name
+in the roster, and it inherits every property the global sheet has: deterministic,
+never serialised, never in a save.
+
+- `aiConfigFor(persona?, playerId?)` reads the seat's base first; the memo key is
+  `seat|persona`, with the seat half **empty** for every seat with no sheet — so
+  an untuned game has exactly the keys it had before the map existed.
+- `aiFor(player)` passes `player.id`; so do `driveSeat`, the stepper's two
+  readings, and `aiConfigForPuppet`.
+- `aiTuning({playerId})`, `withAiTuning(sheet, run, {playerId})` and
+  `clearSeatTuning()` (every seat sheet off between two games) round it out.
+- Pinned (`test/sim/aiPersona.test.ts`): two seats read different configs; a seat
+  nobody named reads `AI` **by identity**; a seat sheet folds *over* the page's
+  and *under* the persona; a driven turn on a tuned table refuses nothing; and one
+  board read twice gives one book.
+
+### Part 3 — the harness
+
+`scripts/gridSearch.ts`, run with `npx vite-node scripts/gridSearch.ts`
+(`--turns`, `--seeds`, `--dial`, `--jobs`, `--out`). Three rules:
+
+- **Mirror matches.** A candidate sheet plays seat 0 against the file on seat 1,
+  then the same seed again with the seats swapped. A map that hands seat 0 three
+  rivers hands the *default* three rivers in the mirror, and the advantage is what
+  survives the pair.
+- **The judge never wears a candidate's glasses.** Both seats are folded at the
+  **file's** weight table (`scripts/gridObjective.ts`, a module of its own so a
+  test can import it without starting a search). A candidate that trebles
+  `weights.science` and is then marked at treble the science weight has won
+  nothing but the scoring — the one way a self-play objective goes circular.
+  Pinned in `test/sim/gridObjective.test.ts`.
+- **Deterministic under parallelism.** One task is one game; games fan out over
+  `os.availableParallelism() − 2` child processes (each of them this same script
+  under `--worker`, fed one task at a time down its stdin), and every result is
+  merged back **by its own key** — dial · value · seed · side — and summed in the
+  plan's order rather than the completion order, because floating-point addition
+  is not associative. A run on three workers and a run on eight write byte-identical
+  JSON (checked).
+
+The objective is `beads × weights.bead + techs × weights.tech + Σ voice rates ×
+weights[voice][age]` at the final turn, off the books the arena's meters read.
+Deliberately not a win rate: a hundred and fifty turns is not a game, and a duel
+nobody wins would score every configuration nil.
+
+**A value that reproduces the file is reported rather than played.** Both seats
+would then hold the same opinions, the two mirrored games are one game, the two
+differences are exact negations and the mean is nought by construction — which is
+also a third of the pass not run. The all-default **baseline** is played once per
+seed instead, as the reference an advantage is read against.
+
+Results are written to `gridsearch-results.json` (git-ignored: a run's numbers are
+a reading, not a source — the table that matters is the one below).
+
+**The board is the duel, and the reason is measured.** The brief asked for the
+standard map (80×52). The first pass was started there and abandoned: **54 of its
+159 games took three hours and sixteen minutes** on eight workers, and the rate
+was falling as the empires grew — call it nine or ten CPU-hours for one sweep,
+which is not a tool anybody runs between two changes. The duel board (40×25) is a
+quarter of the tiles, is what every acceptance table above was measured on, and —
+with two seats — is the board where the seats actually meet. `--size standard` is
+still there for anybody who wants to pay for it. **Six workers, not eight**: at
+eight the machine (16 GB, with a browser and an editor open) went to swap and a
+game that costs nineteen seconds of CPU took thirty-eight minutes of wall clock.
+The pool is bounded by memory here, not by cores.
+
+### Part 4 — the first OFAT pass
+
+t150, duel, seeds 5/777/20260904, two balanced seats, barbarians on; 26 played
+configurations × 3 seeds × 2 mirrors = **156 games in 24 minutes 26 seconds**
+(73 CPU-minutes over six workers). The 13 configurations that reproduce the file
+are nought by construction and are not listed. **Baseline fold, per seat: 2584.**
+
+| dial | value | advantage | techs | food | prod | gold | sci | cult | faith |
+|---|---|---|---|---|---|---|---|---|---|
+| `weights.production×` | ×1.4 | **+1561** | +1.3 | +44 | +223 | +214 | +326 | +23 | +3 |
+| `site.newLuxuryBonus` | 7 | **+1341** | +2.3 | +137 | +67 | +142 | +166 | +37 | +11 |
+| `weights.culture×` | ×0.7 | **+1289** | +2.8 | +36 | +31 | +85 | +137 | +29 | +15 |
+| `weights.culture×` | ×1.4 | **+625** | +1.7 | +116 | +51 | −14 | +108 | +38 | +11 |
+| `weights.food×` | ×1.4 | **+527** | +0.0 | +49 | +63 | +54 | +58 | +92 | +3 |
+| `threat.militaryBonus` | 30 | **+406** | +3.3 | +30 | +17 | +22 | +48 | +8 | +26 |
+| `priorities.horizonTurns` | 60 | **+380** | −0.5 | +39 | +56 | +6 | +82 | +33 | +4 |
+| `weights.science×` | ×0.7 | **+274** | +0.0 | +38 | +30 | −8 | −6 | +7 | +5 |
+| `threat.garrisonValue` | 70 | **+261** | +1.2 | −30 | +11 | −20 | +102 | +16 | −1 |
+| `weights.city` | 80 | **+238** | +0.7 | −33 | −34 | +63 | −35 | +10 | +8 |
+| `weights.gold×` | ×0.7 | **+175** | −0.8 | +28 | +59 | +18 | +8 | +29 | +3 |
+| `weights.science×` | ×1.4 | **+72** | −0.8 | +9 | +5 | +23 | −100 | −18 | −1 |
+| `priorities.priceBandHigh` | 2 | **+16** | −0.8 | +32 | +25 | −31 | +27 | +21 | −5 |
+| `threat.garrisonValue` | 210 | **−8** | +0.0 | +4 | −2 | +1 | −10 | +3 | −3 |
+| `weights.happiness` | 8 | **−18** | +0.0 | +3 | −32 | −22 | −89 | −10 | +7 |
+| `weights.happiness` | 18 | **−76** | +0.0 | −50 | −28 | −23 | −33 | −21 | −4 |
+| `military.mixBonus` | 70 | **−256** | +0.5 | −41 | +11 | −3 | −8 | +30 | −2 |
+| `priorities.priceBandHigh` | 5 | **−323** | −0.3 | −105 | −47 | +40 | −47 | −8 | −26 |
+| `priorities.horizonTurns` | 30 | **−405** | −1.2 | −96 | +23 | +30 | +34 | −38 | −9 |
+| `military.mixBonus` | 20 | **−505** | +0.7 | −87 | −38 | −33 | −79 | −24 | −3 |
+| `weights.production×` | ×0.7 | **−603** | −2.8 | −44 | −53 | −100 | −133 | −47 | −20 |
+| `threat.militaryBonus` | 90 | **−606** | +0.2 | −39 | −37 | −84 | +13 | −43 | −2 |
+| `weights.city` | 150 | **−708** | −0.3 | −31 | −65 | −39 | −25 | +0 | −1 |
+| `site.newLuxuryBonus` | 28 | **−900** | −3.0 | −43 | −29 | −14 | −95 | +3 | −14 |
+| `weights.gold×` | ×1.4 | **−926** | −4.0 | −103 | −95 | −98 | −258 | −87 | −21 |
+| `weights.food×` | ×0.7 | **−2718** | −8.7 | −219 | −149 | −76 | −547 | −179 | −52 |
+
+**The reading, and the first thing in it is the noise floor.** Three dials come
+out **positive at both ends** — `weights.culture×` (+1289 and +625),
+`weights.science×` (+274 and +72) and, at a stretch, `threat.garrisonValue`. A dial
+that improves an empire whichever way it is turned is a dial six games could not
+resolve, and those three are the table measuring its own error bar: it is of the
+order of **±600 on a baseline of 2584**, a quarter of the standing. Nothing under
+that number is a finding. What follows is only the dials whose two ends are
+**ordered**, which is the cheapest significance test a mirror pass affords.
+
+1. **Food is the strongest lever on the board, and it is under-weighted rather
+   than over.** `×0.7` is −2718 — five times any other movement in the table — and
+   it costs nearly nine technologies and 547 points of science a seat. `×1.4` is
+   +527. A seat that stops valuing bushels stops growing, and an empire that stops
+   growing stops doing everything else; the current row (7→4 across the ages) is
+   nearer the floor of what works than the ceiling.
+2. **Production is under-weighted** (`×1.4` +1561, `×0.7` −603) and **gold is
+   over-weighted** (`×0.7` +175, `×1.4` −926). Read together with the caution
+   below, this is most likely *one* finding said twice: raise hammers relative to
+   coin. Batch 6 gave hammers a shadow price and the table says the anchor under
+   it is still too low.
+3. **`site.newLuxuryBonus` at 14 is too generous** (7 → +1341, 28 → −900, and the
+   28 seat loses three technologies). The first silk is worth something; it is not
+   worth what the sheet currently says, and the site scorer is the one weight table
+   the programme never unified (see batch 4's known gaps).
+4. **`threat.militaryBonus` at 60 is too high** (30 → +406, 90 → −606). The seat
+   that answers a sighted raider with fewer soldiers is the seat with more towns.
+5. **`weights.city` at 110 is a touch high** (80 → +238, 150 → −708) — which is a
+   pointed result, because `wide` plays at 150. It is worth reading beside the
+   surplus charge and the expansion chain: since batch 4 a town is dear in writ,
+   contentment and hammers, and the flat weight on top of that may be double-paying.
+6. **`priorities.horizonTurns` wants raising, not lowering** (60 → +380, 30 → −405).
+   The merge with `score.maxTurns` this batch made H a single dial; the table says
+   the single dial should probably be longer than forty.
+7. **Two dials the table endorses as already right.** `military.mixBonus` is
+   negative at *both* ends (20 → −505, 70 → −256), which is what a local optimum
+   looks like; and `weights.happiness` is negative at both ends but only just
+   (−18 and −76, both inside the floor), so batch 4's suspicion that the happiness
+   prior was the ten-technology regression is **not confirmed**. `priceBandHigh` 5
+   is worse (−323) and 2 is level with 3 (+16), which does confirm batch 6's worry
+   from the other side: a high ceiling on a shadow price costs more than it buys.
+
+**Degeneracy check.** The per-voice columns are printed so a winner that wins one
+voice by starving five is visible. Only one row is that shape:
+`weights.science× ×1.4` reads +72 overall while its *science* rate falls 100 — and
+it sits inside the noise floor anyway. Every finding above wins broadly.
+
+**The stated caution about OFAT on a weight vector.** The six voice weights are
+only meaningful against each other: scaling one band up is scaling the other five
+down. So finding 2's two halves are not independent evidence, and a second pass
+should either normalise the vector (hold the sum fixed) or sweep the pairs jointly.
+That is the next measurement, not this one.
+
+**Nothing was retuned on this pass.** A sweep advises; the sheet is the user's.
+
 ## Batch 8 — ratified 2026-09-05 (the connection pass)
 
 The user's rulings on the gap review, verbatim intent:

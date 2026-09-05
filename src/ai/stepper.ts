@@ -132,7 +132,7 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
     // The seat's own sheet, exactly as `driveSeat` reads it — a persona may
     // override the `driver` block, and the two loops have to agree or the pin
     // that says they play the same game would fail.
-    const ai = aiConfigFor(playerById(game.state, seat.playerId)?.persona);
+    const ai = aiConfigFor(playerById(game.state, seat.playerId)?.persona, seat.playerId);
     if (seat.asking) {
       if (seat.accepted + seat.refused < ai.driver.commandsPerSeat) {
         const decision = nextBotDecision(game.state, seat.playerId, seat.sitting);
@@ -168,7 +168,7 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
     const result = dispatch(game, decision.command);
     const turnResolved = game.state.turn > turn;
 
-    const ai = aiConfigFor(playerById(game.state, seat.playerId)?.persona);
+    const ai = aiConfigFor(playerById(game.state, seat.playerId)?.persona, seat.playerId);
     if (decision.kind === 'endTurn') {
       if (result.ok) {
         seat.accepted += 1;

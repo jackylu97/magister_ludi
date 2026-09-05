@@ -744,7 +744,10 @@ describe('the bot module', () => {
       'site',
       'solvency',
       'threat',
-      'trade',
+      // `trade` left in batch 7 with the last knob in it: `tradersPerCity` went
+      // in batch 4 (route pay is priced) and `traderCap` followed once a
+      // caravan's wage was charged at gold's shadow price. A block with nothing
+      // in it is a dial that turns nothing, which is what this list is for.
       // The war block (P3): what a seat declares over, sues at, and signs.
       'war',
       'weights',

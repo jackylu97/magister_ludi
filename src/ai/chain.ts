@@ -332,7 +332,7 @@ export function techChain(
 
   for (const building of unlocks.buildings ?? []) {
     const def = buildingDef(building);
-    const towns = townsWanting(state, player, building, ctx);
+    const towns = townsWanting(state, player, building);
     // **Realised steps drop out by construction.** Every town holds it (or the
     // world's one copy of the wonder is claimed), so there is nothing left of
     // this step to owe, to wait for or to pay — and the chain says so by having
@@ -578,23 +578,24 @@ function unitTerm(unit: UnitTypeId, ctx: ValueContext): ValueTerm {
 /**
  * **How many towns still owe this row** — the correction the spec asked for.
  *
- * Every town of the empire that does not hold it, capped at `score.cityCap` so a
- * wide empire cannot let one node dominate the tree, and **one** for a wonder,
+ * Every town of the empire that does not hold it, and **one** for a wonder,
  * because there is only ever one of those and pricing it per town was the purest
  * of the every-town optimisms. A wonder somebody has already claimed is owed by
  * nobody at all.
+ *
+ * **Uncapped since batch 7.** `score.cityCap` clipped this at six towns so that
+ * "in every town" could not run away with a wide empire, and the acceptance says
+ * it was not what was holding the bot together: a chain owed by ten towns *is*
+ * ten raisings, `stepsRemaining` divides the worth by exactly that number, and
+ * each town then folds one share of it. The cap was shortening the numerator and
+ * the denominator by different amounts.
  *
  * `buildError` is deliberately *not* asked: a chain is about a node that has not
  * landed yet, and the simulation's gate would refuse every row of it for want of
  * the technology. The gate belongs to the arm that raises the row; what belongs
  * here is the count of towns the row is still missing from.
  */
-function townsWanting(
-  state: GameState,
-  player: Player,
-  id: BuildingId,
-  ctx: ValueContext,
-): number {
+function townsWanting(state: GameState, player: Player, id: BuildingId): number {
   const def = buildingDef(id);
   let lacking = 0;
   for (const city of state.cities) {
@@ -608,7 +609,7 @@ function townsWanting(
     }
     return lacking === 0 ? 0 : 1;
   }
-  return Math.min(ctx.ai.score.cityCap, lacking);
+  return lacking;
 }
 
 /** Could any town of this empire raise this row today? The simulation's gate. */
@@ -993,9 +994,9 @@ export function expansionStepShare(chain: ExpansionChain): number {
  * only the second one is a preference.
  *
  * Towns are counted uncapped (not `ctx.cities`, which is clipped at
- * `score.cityCap` for the "in every town" scalings): the fourth town's discount
- * has to keep biting at the tenth, or the falloff stops being a curve and
- * becomes a step.
+ * `score.cityCap` for the "in every town" scalings, until batch 7 retired the
+ * cap): the fourth town's discount has to keep biting at the tenth, or the
+ * falloff stops being a curve and becomes a step.
  *
  * It lives here rather than in `bot.ts` because batch 4 made it the expansion
  * chain's payoff, and a chain may not stand on the policy that reads it.

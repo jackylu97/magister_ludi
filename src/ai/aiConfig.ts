@@ -27,7 +27,11 @@
  * the one thing that may change what the *base* sheet says, and it exists for the
  * arena page (`arena.html`): a sheet of edited knobs, folded under every persona,
  * constant for a run and never written into a save. Untuned it is identity — see
- * its docblock for why that is not the swap the paragraph above forbids.
+ * its docblock for why that is not the swap the paragraph above forbids. Since
+ * batch 7 a sheet may also name **one seat** (`{playerId}`), which is how the grid
+ * search sits a candidate down opposite the default in one game; that is a table
+ * keyed by seat rather than a variable that changes between two seats' readings,
+ * so the promise above holds unchanged.
  */
 
 import aiJson from '../../data/ai.json';
@@ -95,9 +99,11 @@ export interface AiConfig {
      * paying today, so a want a whole horizon away is worth nothing and a want
      * in hand is worth all of itself.
      *
-     * It starts at `score.maxTurns`' forty and is its own knob so the arena can
-     * sweep the two apart: one is how long a town will spend building, the
-     * other is how long an empire will plan.
+     * It started beside `score.maxTurns`' forty and, since batch 7, **is** it:
+     * the two were the same number saying the same thing from two ends — how
+     * long a town will spend building, and how long an empire will plan — and
+     * an arena that swept them apart would be sweeping one horizon against
+     * itself. `push`' build-effort cap reads this now, so there is one H.
      */
     horizonTurns: number;
     /**
@@ -146,13 +152,6 @@ export interface AiConfig {
     raceLiveHorizons: number;
   };
   expansion: {
-    /**
-     * The loose sanity cap on settlers owned-and-queued. The audit leaves it
-     * standing where it deletes its neighbours: `cityValueFalloff` already
-     * decays what the next town is worth, and this is only here so that a board
-     * nobody foresaw cannot talk an empire into nine idle settlers.
-     */
-    settlerCap: number;
     /**
      * How far a settler looks for ground, **as a bound on compute**: the
      * expansion chain probes for the nearest legal site inside it, and the
@@ -423,10 +422,6 @@ export interface AiConfig {
     /** The same for a tribute: coin **a turn** a luxury is worth lending for. */
     luxuryGptBaseline: number;
   };
-  trade: {
-    /** The loose sanity cap on caravans. `tradersPerCity` deleted in batch 4. */
-    traderCap: number;
-  };
   /**
    * **The value vector**: what one per-turn point of each voice is worth, per
    * age, and what everything that is not a yield is worth beside it.
@@ -500,21 +495,25 @@ export interface AiConfig {
    *
    * The arena found both seats at −125💰 a turn and −1,642 in the treasury by
    * t160, with the creditors' sweep unable to right it. The scoring above is the
-   * *soft* half of the answer (a maintained building simply stops winning); this
-   * block is the **hard** half, and a hard floor is needed because a score can
-   * always be outweighed by a big enough yield and a bankrupt empire is not a
-   * trade-off.
+   * *soft* half of the answer (a maintained building simply stops winning); what
+   * survives here is the **arrears** half — the disband floor, the grace and the
+   * wage cover — which is about a treasury that has already run out rather than
+   * about a comparison.
+   *
+   * `stopMaintainedBelow` — the hard income floor that struck every upkeep-bearing
+   * row out of the build arm and out of the book — is **retired** (batch 7). It was
+   * written before the book existed, when nothing anywhere priced a bill; now every
+   * candidate and every want carries `explainUpkeepCost` at **gold's shadow price**,
+   * so a bleeding empire charges a library's wage four times over and the comparison
+   * refuses it without a threshold saying so. A floor over the top of that is the
+   * audit's finding 2 twice — a policy wearing a constant, ahead of arithmetic that
+   * already says the same thing.
    */
   solvency: {
     /** Net gold per turn at or above which the empire is healthy: pressure 1. */
     healthyIncome: number;
     /** How far below `healthyIncome` the strain ramps to full aversion. */
     strainSpan: number;
-    /**
-     * Net gold per turn below which **nothing that costs upkeep is queued or
-     * bought** — the hard floor, and the one rule here that is not a weight.
-     */
-    stopMaintainedBelow: number;
     /** Treasury below which the empire is in arrears and starts disbanding. */
     arrearsTreasury: number;
     /** Turns of the standing maintenance bill kept back as reserve. */
@@ -538,18 +537,24 @@ export interface AiConfig {
   };
   /** The nominal stand-ins an appraisal uses where a row states a rate. */
   score: {
-    /** Turns of build effort past which a candidate stops looking better. */
-    maxTurns: number;
-    /** What a `CardEffect` shape this bot cannot read is worth. Never zero. */
+    /**
+     * **The nominal helping** — what one thing this bot cannot read is worth.
+     *
+     * Two jobs since batch 7, because they were one number wearing two names.
+     * It is what a `CardEffect` shape nobody has taught the bot prices at (never
+     * zero: an unreadable card must still beat a blank one), and — times
+     * `nominalCount`, which is exactly the arithmetic `offerRider` already did
+     * with the pair — it is **the per-turn yield a percentage is assumed to be a
+     * percentage of**. `score.nominalYield` is retired into it at that reading,
+     * and its six was `unknownEffect × nominalCount` to the point, so the merge
+     * moved no number: what it moved is the count of knobs a tuner has to keep
+     * consistent from two to one.
+     */
     unknownEffect: number;
-    /** The per-turn yield a percentage is assumed to be a percentage *of*. */
-    nominalYield: number;
-    /** How many things a `countScaled` is assumed to count. */
+    /** How many things a `countScaled` — or an unread rate — is assumed to count. */
     nominalCount: number;
     /** How many hexes a `tileYield` is assumed to land on. */
     nominalTiles: number;
-    /** Cities past which "in every city" stops scaling. */
-    cityCap: number;
     /** Per already-held card sharing an option's `line`. See `scoreCard`. */
     synergyBonus: number;
     /** Soldiers a completion grant of one unit is worth. */
@@ -686,7 +691,7 @@ export interface AiConfig {
  *
  * Sparse is the whole point. A persona that had to restate the config would be
  * five copies of one file drifting apart the first time a knob was retuned; this
- * way `tall` says *settler cap two, city weight eighty, hold the citizens dear*
+ * way `tall` says *a steep falloff, city weight eighty, hold the citizens dear*
  * and inherits every other opinion the balanced seat has, including the ones
  * added after it was written.
  *
@@ -736,6 +741,42 @@ export const AI: AiConfig = BASE as AiConfig;
  */
 let TUNING: PersonaOverride | null = null;
 let TUNED: AiConfig = AI;
+
+/**
+ * **The sheets one seat each is trying** (batch 7), and the merged base each of
+ * them reads — `TUNED` with that seat's sheet folded over it.
+ *
+ * Empty in every game the product plays; the grid search fills it with one entry
+ * so that a candidate and the default can sit at one table. A seat with no entry
+ * reads `TUNED` **by identity**, which is what keeps the untuned path the path
+ * that existed before this map did.
+ */
+const SEATS = new Map<number, PersonaOverride>();
+const SEAT_BASES = new Map<number, AiConfig>();
+
+/** The base one seat's persona is merged over: the page's sheet, plus the seat's. */
+function seatBase(playerId?: number): AiConfig {
+  if (playerId === undefined || SEATS.size === 0) return TUNED;
+  const sheet = SEATS.get(playerId);
+  if (sheet === undefined) return TUNED;
+  const held = SEAT_BASES.get(playerId);
+  if (held !== undefined) return held;
+  const merged = deepMerge(TUNED, sheet);
+  SEAT_BASES.set(playerId, merged);
+  return merged;
+}
+
+/** The seat half of a memo key. Empty unless this seat has a sheet of its own. */
+function seatKey(playerId?: number): string {
+  if (playerId === undefined || !SEATS.has(playerId)) return '';
+  return String(playerId);
+}
+
+function clearMemos(): void {
+  SEAT_BASES.clear();
+  MERGED.clear();
+  PUPPETS.clear();
+}
 
 /** What a seat with nothing said about it plays as. */
 export const DEFAULT_PERSONA = 'balanced';
@@ -788,15 +829,29 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * falls back to balanced rather than throwing — a save from a build that knew a
  * persona this one does not must still replay, and a persona drives the bot
  * rather than the reducer, so the fallback costs a replay nothing.
+ *
+ * The key is `seat|persona`, where the seat half is empty for every reader that
+ * names no seat and for every seat with no sheet of its own — so a game nobody
+ * has tuned per seat has exactly the keys it had before the per-seat seam
+ * existed, and the whole table is still one pure function's.
  */
 const MERGED = new Map<string, AiConfig>();
 
-export function aiConfigFor(persona?: string): AiConfig {
-  if (persona === undefined || persona === DEFAULT_PERSONA || !isPersonaId(persona)) return TUNED;
-  const held = MERGED.get(persona);
+/**
+ * @param persona the seat's persona, from `PlayerSpec.persona`.
+ * @param playerId the seat asking, when the caller knows it. It is only ever
+ *   consulted for a **per-seat tuning sheet** (`setAiTuning(sheet, {playerId})`,
+ *   the grid search's door); a seat nobody has tuned answers exactly as it does
+ *   without the argument, by identity.
+ */
+export function aiConfigFor(persona?: string, playerId?: number): AiConfig {
+  const base = seatBase(playerId);
+  if (persona === undefined || persona === DEFAULT_PERSONA || !isPersonaId(persona)) return base;
+  const key = `${seatKey(playerId)}|${persona}`;
+  const held = MERGED.get(key);
   if (held !== undefined) return held;
-  const merged = deepMerge(TUNED, PERSONAS[persona]);
-  MERGED.set(persona, merged);
+  const merged = deepMerge(base, PERSONAS[persona]);
+  MERGED.set(key, merged);
   return merged;
 }
 
@@ -822,11 +877,11 @@ export function aiConfigFor(persona?: string): AiConfig {
  */
 const PUPPETS = new Map<string, AiConfig>();
 
-export function aiConfigForPuppet(persona?: string): AiConfig {
-  const key = persona !== undefined && isPersonaId(persona) ? persona : '';
+export function aiConfigForPuppet(persona?: string, playerId?: number): AiConfig {
+  const key = `${seatKey(playerId)}|${persona !== undefined && isPersonaId(persona) ? persona : ''}`;
   const held = PUPPETS.get(key);
   if (held !== undefined) return held;
-  const merged = deepMerge(aiConfigFor(persona), PUPPET);
+  const merged = deepMerge(aiConfigFor(persona, playerId), PUPPET);
   PUPPETS.set(key, merged);
   return merged;
 }
@@ -871,18 +926,50 @@ export function aiConfigForPuppet(persona?: string): AiConfig {
  *     never heard of the sheet, exactly as a persona does.
  *   · **The memo tables are the same pure function's table.** Both are cleared
  *     when the sheet changes, so `aiConfigFor('tall')` is never a stale merge.
+ *
+ * **Per seat, since batch 7** (`{ playerId }`)
+ * --------------------------------------------
+ * The grid search (`scripts/gridSearch.ts`) asks a question the page-level dial
+ * cannot: *is this sheet better than the file?* — which needs one seat playing
+ * the candidate and another playing the default **in the same game**, mirrored
+ * across two games so the map cannot be the answer. So a sheet may name a seat,
+ * and then it is folded for that seat only, over the global sheet and **under**
+ * the persona, in that order: the file, what the page is trying, what this seat
+ * is trying, what this seat's persona says.
+ *
+ * That is emphatically not the swap the file's docblock forbids. The forbidden
+ * shape is one variable that *changes* between two seats' readings inside a turn;
+ * this is a **table keyed by seat**, installed before the run and constant
+ * through it, so every seat's answer is a function of the seat and of nothing
+ * else. It is a persona nobody had to name in the roster, and it inherits every
+ * property the global sheet has: never serialised, never in a save, and identity
+ * for every seat nobody tuned.
  */
-export function setAiTuning(sheet: PersonaOverride | null): void {
+export function setAiTuning(sheet: PersonaOverride | null, options: TuningScope = {}): void {
   const live = sheet !== null && Object.keys(sheet).length > 0 ? sheet : null;
-  TUNING = live;
-  TUNED = live === null ? AI : deepMerge(BASE as AiConfig, live);
-  MERGED.clear();
-  PUPPETS.clear();
+  if (options.playerId === undefined) {
+    TUNING = live;
+    TUNED = live === null ? AI : deepMerge(BASE as AiConfig, live);
+  } else if (live === null) {
+    SEATS.delete(options.playerId);
+  } else {
+    SEATS.set(options.playerId, live);
+  }
+  clearMemos();
 }
 
-/** The installed sheet, or `null` — which is what "the data file, untouched" is. */
-export function aiTuning(): PersonaOverride | null {
-  return TUNING;
+/** Which seat a sheet is for. Absent is the page-level dial every seat reads. */
+export interface TuningScope {
+  playerId?: number;
+}
+
+/**
+ * The installed sheet, or `null` — which is what "the data file, untouched" is.
+ * With a `playerId`, that seat's own sheet rather than the page's.
+ */
+export function aiTuning(options: TuningScope = {}): PersonaOverride | null {
+  if (options.playerId === undefined) return TUNING;
+  return SEATS.get(options.playerId) ?? null;
 }
 
 /**
@@ -894,12 +981,27 @@ export function aiTuning(): PersonaOverride | null {
  * the product (a test, a headless bench, a page that also renders a live game)
  * uses this instead, so a thrown exception cannot leave a dial turned.
  */
-export function withAiTuning<T>(sheet: PersonaOverride | null, run: () => T): T {
-  const held = TUNING;
-  setAiTuning(sheet);
+export function withAiTuning<T>(
+  sheet: PersonaOverride | null,
+  run: () => T,
+  options: TuningScope = {},
+): T {
+  const held = aiTuning(options);
+  setAiTuning(sheet, options);
   try {
     return run();
   } finally {
-    setAiTuning(held);
+    setAiTuning(held, options);
   }
+}
+
+/**
+ * **Every per-seat sheet off at once** — what a harness calls between two games
+ * so that a seat tuned in one cannot be tuned in the next. The page-level dial is
+ * untouched, because it is the *run's* and the seats are the *game's*.
+ */
+export function clearSeatTuning(): void {
+  if (SEATS.size === 0) return;
+  SEATS.clear();
+  clearMemos();
 }

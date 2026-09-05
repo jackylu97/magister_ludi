@@ -217,8 +217,6 @@ export interface WantInputs {
   goldRate: number;
   /** Faith a turn, likewise. */
   faithRate: number;
-  /** False while the books are bleeding: nothing that costs upkeep is wanted. */
-  maintained: boolean;
   /**
    * What a soldier of this type is worth standing in this town, or `null` when
    * the empire does not want one — `bot.ts`' own reading, handed in rather than
@@ -291,11 +289,11 @@ export function purchasingPlan(
 
   for (const id of BUILDING_IDS) {
     const upkeep = buildingUpkeep(id);
-    // **The hard floor reaches the purse** (design ledger Entry LIX, finding 1):
-    // buying a library outright is exactly as ruinous as building one, so an
-    // empire whose income has turned does not *want* one at any price. A
-    // feasibility sentence rather than a weight, which is why it is a skip.
-    if (!inputs.maintained && upkeep > 0) continue;
+    // **No income floor here either** (batch 7). The row below subtracts
+    // `explainUpkeepCost` at gold's shadow price, and a want whose wage outweighs
+    // what it makes simply ranks under the hold row the book already carries —
+    // which is the whole shape of batch 1 (a threshold became a comparison) said
+    // one last time about `solvency.stopMaintainedBelow`.
     for (let index = 0; index < towns.length; index++) {
       const city = towns[index]!;
       const item: PurchasableItem = { kind: 'building', id };
@@ -485,7 +483,6 @@ export function faithPlan(
   // costs one question per row in an empire that has neither.
   for (const id of BUILDING_IDS) {
     const upkeep = buildingUpkeep(id);
-    if (!inputs.maintained && upkeep > 0) continue;
     for (const city of towns) {
       const item: PurchasableItem = { kind: 'building', id };
       if (explainPurchaseCost(state, player.id, city.id, item, 'faith') === null) continue;

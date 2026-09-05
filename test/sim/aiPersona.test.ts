@@ -31,7 +31,17 @@ import {
   nextBotDecision,
   valueContext,
 } from '../../src/ai/bot';
-import { DEFAULT_PERSONA, PERSONA_IDS, aiConfigFor, personaLabel } from '../../src/ai/aiConfig';
+import {
+  DEFAULT_PERSONA,
+  PERSONA_IDS,
+  aiConfigFor,
+  aiConfigForPuppet,
+  aiTuning,
+  clearSeatTuning,
+  personaLabel,
+  setAiTuning,
+  withAiTuning,
+} from '../../src/ai/aiConfig';
 import { foldTerms } from '../../src/ai/decision';
 import { driveBots } from '../../src/ai/driver';
 import { buildImprovementPlan } from '../../src/ai/plan';
@@ -116,11 +126,13 @@ describe('the persona sheet', () => {
   it('overrides what each persona says it overrides', () => {
     // The authored table, as numbers rather than as prose. These are the user's
     // to tune; what is pinned is that the merge *reaches* them.
-    expect(aiConfigFor('tall').expansion.settlerCap).toBe(2);
+    expect(aiConfigFor('tall').expansion.cityValueFalloff).toBe(0.6);
     expect(aiConfigFor('tall').expansion.cityValueFalloff).toBeLessThan(
       aiConfigFor('wide').expansion.cityValueFalloff,
     );
-    expect(aiConfigFor('wide').expansion.settlerCap).toBeGreaterThan(AI.expansion.settlerCap);
+    expect(aiConfigFor('wide').expansion.cityValueFalloff).toBeGreaterThan(
+      AI.expansion.cityValueFalloff,
+    );
     expect(aiConfigFor('zealot').religion.prophetTechValue).toBeGreaterThan(AI.religion.prophetTechValue);
     expect(aiConfigFor('warmonger').weights.military).toBeGreaterThan(AI.weights.military);
     // The one behaviour addition, and the promise that goes with it: only the
@@ -140,10 +152,11 @@ describe('the persona sheet', () => {
   it('carries each persona’s expansion intent through the numbers batch 4 left it', () => {
     /**
      * **The persona fallout of the gate deletions** (batch 4 of
-     * `docs/bot-priorities.md`). Three personas used to spell how eagerly they
-     * settled with knobs that no longer exist — wide at `settlerCityPop 2` and
-     * `siteScoreMin 11`, tall at 5 and 22, the warmonger at 12 — and every one of
-     * those was a *gate*, which is a feasibility sentence rather than a
+     * `docs/bot-priorities.md`, finished in batch 7). Three personas used to
+     * spell how eagerly they settled with knobs that no longer exist — wide at
+     * `settlerCityPop 2` and `siteScoreMin 11`, tall at 5 and 22, the warmonger at
+     * 12, and all three at a `settlerCap` (9 / 2 / 6) batch 7 retired — and every
+     * one of those was a *gate*, which is a feasibility sentence rather than a
      * preference. What carries the intent now is the two numbers that were always
      * the preference, and this is the pin that they still say it:
      *
@@ -176,7 +189,10 @@ describe('the persona sheet', () => {
       const expansion = aiConfigFor(id).expansion as unknown as Record<string, unknown>;
       expect({ persona: id, gates: Object.keys(expansion).sort() }).toEqual({
         persona: id,
-        gates: ['cityValueFalloff', 'settlerCap', 'siteSearchRadius'],
+        // Batch 7 retired the last of them: `settlerCap` is gone from the
+        // sheet, and what is left in this block is the falloff (a preference)
+        // and the search radius (a bound on compute).
+        gates: ['cityValueFalloff', 'siteSearchRadius'],
       });
     }
   });
@@ -199,11 +215,11 @@ describe('the persona sheet', () => {
     seat(game.state, 1).persona = 'tall';
     const wide = valueContext(game.state, seat(game.state, 0));
     const tall = valueContext(game.state, seat(game.state, 1));
-    expect(wide.ai.expansion.settlerCap).toBe(aiConfigFor('wide').expansion.settlerCap);
-    expect(tall.ai.expansion.settlerCap).toBe(aiConfigFor('tall').expansion.settlerCap);
+    expect(wide.ai.expansion.cityValueFalloff).toBe(aiConfigFor('wide').expansion.cityValueFalloff);
+    expect(tall.ai.expansion.cityValueFalloff).toBe(aiConfigFor('tall').expansion.cityValueFalloff);
     // And asking the first seat again does not answer with the second's sheet.
-    expect(valueContext(game.state, seat(game.state, 0)).ai.expansion.settlerCap).toBe(
-      wide.ai.expansion.settlerCap,
+    expect(valueContext(game.state, seat(game.state, 0)).ai.expansion.cityValueFalloff).toBe(
+      wide.ai.expansion.cityValueFalloff,
     );
   });
 
@@ -241,6 +257,90 @@ describe('the persona sheet', () => {
         }
       }
       expect({ persona, refusals }).toEqual({ persona, refusals: [] });
+    }
+  });
+});
+
+/**
+ * **The per-seat tuning sheet** (batch 7 of `docs/bot-priorities.md`).
+ *
+ * The page-level dial (`setAiTuning(sheet)`) is folded under every persona and
+ * applies to every seat, which is exactly what the arena wants and exactly what
+ * a grid search cannot use: *is this sheet better than the file?* needs one seat
+ * playing the candidate and another playing the default at the same table. So a
+ * sheet may name a seat, and the pins are the two halves of that promise —
+ * two seats read different configs, and a seat nobody named reads what it read
+ * before the seam existed, **by identity**.
+ */
+describe('the per-seat tuning sheet', () => {
+  it('sits two sheets at one table, and folds each under that seat’s persona', () => {
+    withAiTuning({ weights: { city: 999 } }, () => {
+      expect(aiConfigFor(undefined, 0).weights.city).toBe(999);
+      // The other seat is untouched — and it is the *file's* object, not a copy.
+      expect(aiConfigFor(undefined, 1)).toBe(AI);
+      // Under the persona, exactly as the page's sheet is: `tall` pins the city
+      // weight, so the persona wins; `wide` pins it too, and the seat's sheet is
+      // what a persona-less seat gets.
+      expect(aiConfigFor('tall', 0).weights.city).toBe(aiConfigFor('tall').weights.city);
+      // …and a knob the persona is silent about inherits the seat's sheet.
+      withAiTuning({ weights: { tech: AI.weights.tech + 7 } }, () => {
+        expect(aiConfigFor('tall', 0).weights.tech).toBe(AI.weights.tech + 7);
+        expect(aiConfigFor('tall', 1).weights.tech).toBe(AI.weights.tech);
+      }, { playerId: 0 });
+    }, { playerId: 0 });
+  });
+
+  it('is identity for every seat while nothing is installed', () => {
+    expect(aiTuning({ playerId: 0 })).toBeNull();
+    expect(aiConfigFor(undefined, 0)).toBe(AI);
+    expect(aiConfigFor(undefined, 1)).toBe(AI);
+    expect(aiConfigFor('tall', 0)).toBe(aiConfigFor('tall'));
+    expect(aiConfigForPuppet('tall', 0)).toBe(aiConfigForPuppet('tall'));
+  });
+
+  it('folds under the page’s own sheet rather than over it', () => {
+    // The order is: the file, what the page is trying, what this seat is trying,
+    // what this seat's persona says. So a knob both sheets name is the seat's.
+    withAiTuning({ weights: { tech: 100, city: 200 } }, () => {
+      withAiTuning({ weights: { tech: 300 } }, () => {
+        expect(aiConfigFor(undefined, 0).weights.tech).toBe(300);
+        expect(aiConfigFor(undefined, 0).weights.city).toBe(200);
+        expect(aiConfigFor(undefined, 1).weights.tech).toBe(100);
+      }, { playerId: 0 });
+    });
+    expect(aiTuning()).toBeNull();
+    expect(aiConfigFor(undefined, 0)).toBe(AI);
+  });
+
+  it('reaches the seat the driver plays, and only that one', () => {
+    const game = grownGame(4);
+    setAiTuning({ weights: { city: 1234 } }, { playerId: 0 });
+    try {
+      expect(valueContext(game.state, seat(game.state, 0)).ai.weights.city).toBe(1234);
+      expect(valueContext(game.state, seat(game.state, 1)).ai.weights.city).toBe(AI.weights.city);
+      // A driven turn on a tuned table is still a turn: nothing refuses, nothing
+      // stalls, and the sheet reaches the arms rather than merely the context.
+      const refusals: string[] = [];
+      for (const report of driveBots(game, { warn: (message) => refusals.push(message) })) {
+        if (report.refused > 0) refusals.push(`seat ${report.playerId} had refusals`);
+        if (!report.ended) refusals.push(`seat ${report.playerId} stalled`);
+      }
+      expect(refusals).toEqual([]);
+    } finally {
+      clearSeatTuning();
+    }
+    expect(valueContext(game.state, seat(game.state, 0)).ai).toBe(AI);
+  });
+
+  it('is deterministic: one board, one sheet, two identical readings', () => {
+    const game = grownGame(4);
+    setAiTuning({ weights: { city: 1234, food: [9, 9, 9, 9] } }, { playerId: 0 });
+    try {
+      const first = JSON.stringify(valueContext(game.state, seat(game.state, 0)).wants);
+      const second = JSON.stringify(valueContext(game.state, seat(game.state, 0)).wants);
+      expect(second).toBe(first);
+    } finally {
+      clearSeatTuning();
     }
   });
 });

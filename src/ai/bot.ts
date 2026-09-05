@@ -45,8 +45,9 @@
  *     `explainEmpireGold`) and prices what it is about to owe before it owes it.
  *     Entry LIX's first finding — both seats at −125💰 a turn and −1,642 in the
  *     treasury by t160 — is the whole reason this clause exists; `goldPressure`
- *     is the soft half of the answer, `maintenanceAffordable` and
- *     `disbandCommand` the hard halves.
+ *     is the soft half of the answer and the shadow price on a coin is the rest
+ *     of it; `disbandCommand` is the one hard half left, because a treasury that
+ *     has already run out is a fact rather than a trade-off.
  *   · **Peaceful toward real players by default, and hostile only when a seat
  *     says so.** At `military.aggression` 0 — which is every persona but one —
  *     it hunts the wild, garrisons its towns and never once attacks another
@@ -308,9 +309,14 @@ export type { BotCandidate, BotDecision, BotDecisionKind, ValueTerm } from './de
  *
  * Every function below that has an opinion reads this, and every appraisal reads
  * `ValueContext.ai`, which is this. There is no other door to a tuned number.
+ *
+ * The seat's **id** goes with the persona because a sheet may name a seat since
+ * batch 7 (`setAiTuning(sheet, {playerId})`, the grid search's door). Nothing in
+ * the product installs one, and a seat nobody tuned answers by identity — but
+ * the id has to travel or a per-seat sheet would be a sheet nobody could read.
  */
 function aiFor(player: Player): AiConfig {
-  return aiConfigFor(player.persona);
+  return aiConfigFor(player.persona, player.id);
 }
 
 /**
@@ -361,7 +367,7 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     state,
     playerId: player.id,
     age,
-    cities: Math.min(ai.score.cityCap, countCities(state, player.id)),
+    cities: countCities(state, player.id),
     goldPressure: pressure.value,
     pressureNote: pressure.note,
     threat: threatLevel(state, player),
@@ -431,8 +437,6 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     wageReserve: goldReserveFor(state, player),
     goldRate: netGold,
     faithRate: rates.faithPerTurn ?? 0,
-    // The hard floor, asked once for the whole book rather than per row.
-    maintained: netGold >= ai.solvency.stopMaintainedBelow,
     soldierWorth: (city, id) => garrisonWorth(state, player, city, id, prior),
     // **The draft plan's two readings** (batch 6): the clock the meter fills at,
     // and what one Order is worth to this empire. The card is appraised at the
@@ -743,25 +747,6 @@ function goldPressure(
 }
 
 /**
- * **The hard floor**, and it is hard because a score cannot be one.
- *
- * The pressure above is the *soft* half of the solvency answer: a maintained
- * building simply stops winning its comparison. But a score can always be
- * outweighed by a big enough yield, and an empire whose income has gone negative
- * must not be able to talk itself into one more library. Below
- * `solvency.stopMaintainedBelow` nothing that costs upkeep is queued or bought
- * at all.
- *
- * It is a filter over candidates rather than a refusal to decide: `bestBuild`
- * falls back to the unfiltered list when the floor empties it, because a town
- * with nothing legal to build is a seat that can never end its turn (see
- * `chooseProduction`).
- */
-function maintenanceAffordable(state: GameState, player: Player): boolean {
-  return netGoldPerTurn(state, player.id) >= aiFor(player).solvency.stopMaintainedBelow;
-}
-
-/**
  * The reserve: what this bot never spends, **sized off the standing bill and
  * nothing else** — `solvency.reserveTurnsOfUpkeep` turns of the real
  * maintenance bill, so cover grows with what there is to cover.
@@ -804,7 +789,7 @@ function threatLevel(state: GameState, player: Player): number {
     if (nearOwnCity(state, player, unit.col, unit.row, ai.threat.radius) === null) continue;
     threats += 1;
   }
-  return Math.min(ai.score.cityCap, threats);
+  return threats;
 }
 
 /**
@@ -2806,12 +2791,11 @@ function cityCommand(
  *     is what stops a town starting a five-hundred-hammer wonder for a yield a
  *     granary would pay in six turns.
  *
- * The **hard floor** is `maintenanceAffordable`, applied as a filter and not as
- * a refusal: when it empties the list the unfiltered list is used instead,
- * because a town with nothing legal to build is a seat that can never end its
- * turn. A soldier for an *ungarrisoned* town is exempt from the floor by
- * construction — that candidate carries `essential`, which is the same sentence
- * the disband guard makes from the other end.
+ * There is **no hard floor over the top of it** since batch 7. The upkeep line
+ * above is charged at gold's shadow price, which is the pressure and the book
+ * together, so a bleeding empire refuses a library by arithmetic; the income
+ * threshold that used to strike every maintained row out of this table was a
+ * policy wearing a constant ahead of a comparison that already said it.
  *
  * Ties break by the enumeration order — `BUILDING_IDS`, `UNIT_TYPE_IDS`,
  * `PROJECT_IDS`, all of them data order — so two identical boards produce
@@ -2893,33 +2877,24 @@ function productionTable(
     restricted.length > 0 ? restricted : buildCandidates(state, player, city, ctx, plan, false);
   if (candidates.length === 0) return { best: null, candidates: [] };
 
-  const maintained = maintenanceAffordable(state, player);
-  const floored = maintained
-    ? candidates
-    : candidates.filter((candidate) => candidate.upkeep <= 0 || candidate.essential);
-  // The floor is never allowed to leave a town with nothing to build: an empty
-  // list here is a `cityProduction` blocker nobody can answer.
-  const pool = floored.length > 0 ? floored : candidates;
-
-  let best = pool[0]!;
-  for (const candidate of pool) {
+  // **No solvency filter any more** (batch 7). `solvency.stopMaintainedBelow`
+  // struck every upkeep-bearing row out of this table below an income of one, and
+  // it was written before anything in the bot priced a bill. Every candidate here
+  // now carries `explainUpkeepCost` at **gold's shadow price**, which rises with
+  // the pressure and again with the book — so a library's wage is charged four
+  // times over in a bleeding empire and the comparison refuses it by itself. A
+  // threshold on top of arithmetic that already says the same thing is the audit's
+  // finding 2 said twice, and it was the last of them.
+  let best = candidates[0]!;
+  for (const candidate of candidates) {
     if (candidate.score > best.score) best = candidate;
   }
-  const struck = pool !== candidates;
-  const rows: BotCandidate[] = candidates.map((candidate) => {
-    const row: BotCandidate = {
-      label: itemName(candidate.item),
-      score: candidate.score,
-      chosen: candidate === best,
-      terms: candidate.terms,
-    };
-    if (struck && !pool.includes(candidate)) {
-      row.rejected =
-        `struck out by the solvency floor: the empire makes ${netGoldPerTurn(state, player.id)} gold a turn ` +
-        `and this costs ${candidate.upkeep} to keep`;
-    }
-    return row;
-  });
+  const rows: BotCandidate[] = candidates.map((candidate) => ({
+    label: itemName(candidate.item),
+    score: candidate.score,
+    chosen: candidate === best,
+    terms: candidate.terms,
+  }));
   return { best: best.item, candidates: rows };
 }
 
@@ -2977,7 +2952,7 @@ function openingScout(state: GameState, player: Player, city: City): QueueItem |
  * plays, so a warmonger's puppet is still a warmonger's town with a merchant's
  * taste. What the profile *cannot* say is "never a wonder, never a settler,
  * never a unit" — those are feasibility rather than preference and live in
- * `buildCandidates` as filters, exactly where the settler cap does.
+ * `buildCandidates` as filters, which is where a feasibility sentence belongs.
  *
  * The rest of the context is unchanged and deliberately so: the empire's age,
  * its gold pressure and its threat count are facts about the empire, and a
@@ -2991,7 +2966,7 @@ function puppetAwareContext(
 ): ValueContext {
   const ctx = seatContext(state, player, sitting);
   if (city.puppet !== true) return ctx;
-  return { ...ctx, ai: aiConfigForPuppet(player.persona) };
+  return { ...ctx, ai: aiConfigForPuppet(player.persona, player.id) };
 }
 
 /**
@@ -3095,8 +3070,6 @@ interface BuildCandidate {
   score: number;
   /** Gold per turn this would cost the empire for as long as it stands. */
   upkeep: number;
-  /** True for the one candidate the solvency floor may never filter out. */
-  essential: boolean;
   /** The arithmetic `score` folds from. See `decision.ts`. */
   terms: ValueTerm[];
 }
@@ -3104,17 +3077,20 @@ interface BuildCandidate {
 /**
  * Every legal candidate for this town, priced.
  *
- * The **caps stay** — settler, worker, trader, army — because they are not
- * priorities, they are feasibility: a cap says *this empire does not want a
- * sixth settler at all*, which is a different sentence from *a settler is worth
- * less than a library here*, and scoring cannot express the first one. What the
- * caps no longer do is decide the *order*, which is what the fixed list was
- * doing and what the vector does now.
+ * **The caps are gone.** Every one of them — settler, worker, trader, and the
+ * army gate — was a feasibility sentence standing in for a price nobody had
+ * written yet, and batches 4 through 7 wrote the prices: the falloff and the
+ * expansion chain for the settler, the ground's own craving for the spade, the
+ * route's pay and the wage for the caravan, the surplus charge for the levy.
+ * What survives are *rules* (a lone town has nowhere to send a route) and the
+ * one honest kind of cap, a bound on compute (`expansion.siteSearchRadius`,
+ * `military.scoutCap`'s glut charge — see `docs/bot-audit.md`).
  *
- * The army cap is the one that moves with the board: `military.armyPerCity` per
+ * The levy is the one that moves with the board: `military.armyPerCity` per
  * town, plus `threat.extraArmyPerThreat` per enemy piece standing near one of
- * them (design addendum 1), so a besieged empire is allowed to raise the levy it
- * needs and a quiet one is not allowed to bankrupt itself on soldiers.
+ * them (design addendum 1) — and since batch 4 it is a *size*, charged against
+ * the surplus rather than refused at a ceiling, so a besieged empire raises what
+ * it needs and a quiet one prices the ninth spearman out one piece at a time.
  */
 function buildCandidates(
   state: GameState,
@@ -3176,7 +3152,7 @@ function buildCandidates(
     const race = raceTerm(ctx, { kind: 'building', id });
     if (race !== null) terms.push(race);
     const value = foldOf(terms);
-    push(candidates, state, city, { kind: 'building', id }, value, buildingUpkeep(id), false, ctx, terms);
+    push(candidates, state, city, { kind: 'building', id }, value, buildingUpkeep(id), ctx, terms);
   }
 
   for (const id of UNIT_TYPE_IDS) {
@@ -3184,7 +3160,7 @@ function buildCandidates(
     if (!canQueueUnit(state, player, city, id)) continue;
     const role = unitRoleValue(state, player, city, id, ctx, plan);
     if (role === null) continue;
-    push(candidates, state, city, { kind: 'unit', id }, role.value, unitUpkeep(id), role.essential, ctx, role.terms);
+    push(candidates, state, city, { kind: 'unit', id }, role.value, unitUpkeep(id), ctx, role.terms);
   }
 
   for (const id of PROJECT_IDS) {
@@ -3194,7 +3170,7 @@ function buildCandidates(
     // the bead race exactly as a bead-paying building is, through the same door.
     const race = raceTerm(ctx, { kind: 'project', id });
     if (race !== null) terms.push(race);
-    push(candidates, state, city, { kind: 'project', id }, foldOf(terms), 0, false, ctx, terms);
+    push(candidates, state, city, { kind: 'project', id }, foldOf(terms), 0, ctx, terms);
   }
   return candidates;
 }
@@ -3207,7 +3183,6 @@ function push(
   item: QueueItem,
   value: number,
   upkeep: number,
-  essential: boolean,
   ctx: ValueContext,
   valueTerms: ValueTerm[],
 ): void {
@@ -3216,7 +3191,12 @@ function push(
   // candidate that never finishes has no score, not a bad one.
   const turns = turnsToBuild(state, city, item, 0);
   if (turns === null) return;
-  const capped = Math.max(1, Math.min(ai.score.maxTurns, turns));
+  // **One H** (batch 7): `score.maxTurns` is retired into `priorities.horizonTurns`.
+  // Both were forty and both meant the same thing — how far ahead this bot will
+  // look — one said as a town's patience and the other as an empire's, and an
+  // arena sweeping them apart would have been sweeping a horizon against itself.
+  const horizon = Math.max(1, ai.priorities.horizonTurns);
+  const capped = Math.max(1, Math.min(horizon, turns));
   // **Wonder patience.** See `isPatientRow`: a row there is only one of is
   // amortised over at most `score.patienceTurns`, because dividing a
   // hundred-and-nine-point capstone by thirty-two turns is how the endgame rows
@@ -3232,13 +3212,13 @@ function push(
         (patient && effort < capped
           ? ` (patience: there is only one of it, so ${capped} turns is read as ${effort})`
           : turns > effort
-            ? ` (${turns} turns, capped at ${ai.score.maxTurns})`
+            ? ` (${turns} turns, capped at the ${horizon}-turn horizon)`
             : ''),
       value: effort,
       op: 'div',
     },
   ];
-  into.push({ item, upkeep, essential, score: (value - costOfUpkeep(upkeep, ctx)) / effort, terms });
+  into.push({ item, upkeep, score: (value - costOfUpkeep(upkeep, ctx)) / effort, terms });
 }
 
 /**
@@ -3259,9 +3239,8 @@ function push(
  * capital ringed by unploughed wheat wants workers and a town whose every hex is
  * finished stops. A **caravan** is still a flat figure multiplied by the gold
  * pressure: a broke empire builds trade, which is the one production decision
- * that answers a deficit directly. A **soldier** carries `essential` when its
- * town is standing empty, which is the one candidate the solvency floor may
- * never filter away.
+ * that answers a deficit directly. A **soldier** in an ungarrisoned town folds
+ * `threat.garrisonValue`, which is what an empty town is worth defending.
  */
 function unitRoleValue(
   state: GameState,
@@ -3270,19 +3249,21 @@ function unitRoleValue(
   id: UnitTypeId,
   ctx: ValueContext,
   plan: ImprovementPlan,
-): { value: number; essential: boolean; terms: ValueTerm[] } | null {
+): { value: number; terms: ValueTerm[] } | null {
   const ai = ctx.ai;
   const def = unitDef(id);
 
   if (def.foundsCity === true) {
-    // **The gate pile is gone** (batch 4 of `docs/bot-priorities.md`, the audit's
-    // inventory). `settlerCityPop` was redundant — `explainCitizen` below charges
-    // the citizen the town loses, which is the sentence the pop floor was
-    // approximating — and `settlerAuthorityFloor` is now a *price*: the chain
-    // charges the writ founding would over-spend and makes writ dear to every
-    // other arm, instead of refusing to raise the piece at all. `settlerCap`
-    // survives as the loose sanity cap the audit leaves standing.
-    if (countOwnedAndQueued(state, player.id, id) >= ai.expansion.settlerCap) return null;
+    // **The gate pile is gone, and with batch 7 so is the last of it.**
+    // `settlerCityPop` was redundant — `explainCitizen` below charges the citizen
+    // the town loses — and `settlerAuthorityFloor` became a *price*: the chain
+    // charges the writ founding would over-spend. `settlerCap` was the audit's
+    // "loose sanity cap", and batch 7 retires it too, because the two things that
+    // were supposed to stop a ninth settler are now both real: the falloff decays
+    // what the next town is worth (`explainNextTown`), and **a realised step drops
+    // out by construction** — a settler already walking owes no hammers, so the
+    // expansion chain has no step left and its share is nought. A cap over the top
+    // of that only ever fires when the arithmetic has already said no.
     const citizen = explainCitizen(state, city, ctx);
     // **The chain is the settler's value, not an addition to it** — the one place
     // touch point (b) reads differently for a settler than for a building, and
@@ -3299,7 +3280,7 @@ function unitRoleValue(
         ? [nest('one more town, with nowhere yet legal to put it', explainNextTown(state, player, ctx))]
         : [expansionShareTerm(chain)];
     terms.push(nest('the citizen it costs this town', citizen, 'sub'));
-    return { value: foldOf(terms), essential: false, terms };
+    return { value: foldOf(terms), terms };
   }
 
   if (isPlainBuilder(def)) {
@@ -3316,20 +3297,22 @@ function unitRoleValue(
     const craving = explainWorkerCraving(plan, state, city, ctx);
     return {
       value: craving.total,
-      essential: false,
       terms: [nest('the ground around this town that is waiting for a spade', craving)],
     };
   }
 
   if (trades(def)) {
     if (countCities(state, player.id) < 2) return null;
-    // **`trade.tradersPerCity` is deleted** (batch 4): a route's pay is priced,
-    // and a quota per town cannot see whether there is a route left worth
-    // running. `traderCap` survives as the same loose sanity cap.
-    if (countOwnedAndQueued(state, player.id, id) >= ai.trade.traderCap) return null;
+    // **Both trade quotas are gone.** `tradersPerCity` went in batch 4 — a route's
+    // pay is priced, and a quota per town cannot see whether there is a route left
+    // worth running — and batch 7 retires `traderCap` with it: a caravan is worth
+    // `weights.trader × goldPressure` and costs upkeep at gold's shadow price, so
+    // the empire whose books a caravan would mend is exactly the empire that wants
+    // one, and the empire with nothing left to carry prices the wage above the
+    // wagon. The one refusal that stays is a *rule* rather than a cap: a single
+    // town has nowhere to send a route.
     return {
       value: ai.weights.trader * ctx.goldPressure,
-      essential: false,
       terms: [
         { label: 'a caravan, flat', value: ai.weights.trader },
         { label: `× ${ctx.goldPressure} gold pressure — a broke empire trades`, value: ctx.goldPressure, op: 'mul' },
@@ -3389,7 +3372,7 @@ function unitRoleValue(
         op: 'sub',
       });
     }
-    return { value: foldOf(terms), essential: false, terms };
+    return { value: foldOf(terms), terms };
   }
 
   if (isCombatant(def)) {
@@ -3465,7 +3448,7 @@ function unitRoleValue(
     // step — the same term the settler itself folds, in the same words.
     const escort = escortChainTerm(ctx);
     if (escort !== null) terms.push(escort);
-    return { value: foldOf(terms), essential: empty, terms };
+    return { value: foldOf(terms), terms };
   }
 
   // A great person is never built (`greatWork` is refused by `buildError`), and

@@ -123,7 +123,7 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
   // **The seat's own sheet**, not a module global: a persona is a sparse
   // override of the whole configuration, the `driver` block included, so two
   // seats may be allowed different budgets in the same pass.
-  const ai = aiConfigFor(playerById(game.state, playerId)?.persona);
+  const ai = aiConfigFor(playerById(game.state, playerId)?.persona, playerId);
 
   // Keyed by the command's own JSON, which is exactly "the identical command":
   // two `moveUnit`s to different hexes are two commands, and the same one twice

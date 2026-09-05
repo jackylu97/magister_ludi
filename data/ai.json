@@ -15,7 +15,6 @@
     "raceLiveHorizons": 2
   },
   "expansion": {
-    "settlerCap": 5,
     "siteSearchRadius": 8,
     "cityValueFalloff": 0.9
   },
@@ -98,9 +97,6 @@
     "luxuryGoldBaseline": 120,
     "luxuryGptBaseline": 5
   },
-  "trade": {
-    "traderCap": 4
-  },
   "weights": {
     "food": [
       7,
@@ -154,7 +150,6 @@
   "solvency": {
     "healthyIncome": 6,
     "strainSpan": 20,
-    "stopMaintainedBelow": 1,
     "arrearsTreasury": 40,
     "reserveTurnsOfUpkeep": 3,
     "minArmy": 2,
@@ -163,12 +158,9 @@
     "graceTurns": 25
   },
   "score": {
-    "maxTurns": 40,
     "unknownEffect": 2,
-    "nominalYield": 6,
     "nominalCount": 3,
     "nominalTiles": 3,
-    "cityCap": 6,
     "synergyBonus": 14,
     "combatScale": 3,
     "patienceTurns": 10,
@@ -228,7 +220,6 @@
         "declareThresholdPeaceful": 3.2
       },
       "expansion": {
-        "settlerCap": 9,
         "cityValueFalloff": 1
       },
       "weights": {
@@ -247,7 +238,6 @@
         "acceptCeiling": 60
       },
       "expansion": {
-        "settlerCap": 2,
         "cityValueFalloff": 0.6
       },
       "weights": {
@@ -320,9 +310,6 @@
         "techMilitaryFactor": 4,
         "extraArmyPerThreat": 2,
         "sightedArmyCap": 6
-      },
-      "expansion": {
-        "settlerCap": 6
       }
     }
   }

@@ -126,7 +126,11 @@ export interface ValueContext {
   playerId: number;
   /** The empire's age, from `highestAge`. Indexes every yield weight. */
   age: TechAge;
-  /** Towns held, capped at `score.cityCap` so a wide empire cannot dominate. */
+  /**
+   * Towns held. **Uncapped since batch 7** — `score.cityCap` clipped it at six so
+   * that an "in every town" card could not run away with a wide empire, and the
+   * acceptance says a wide empire simply *does* get more out of one.
+   */
   cities: number;
   /**
    * How much dearer a coin is than the weight table says, ≥ 1.
@@ -940,6 +944,26 @@ export function explainEffects(
 }
 
 /**
+ * **The per-turn yield a percentage is assumed to be a percentage of** — the
+ * nominal helping, times how many helpings a nominal assumes.
+ *
+ * `score.nominalYield` was retired into `score.unknownEffect` in batch 7, and
+ * this is where the merge is spelt. The two knobs were never independent: an
+ * unread rider was already priced `unknownEffect × nominalCount` (the
+ * `offerRider` arm), which is the same six the nominal yield carried, said as
+ * *one thing this bot cannot read, three helpings of it*. So a percentage is
+ * priced against exactly that, and a tuner who moves the stand-in moves both
+ * readings of it together rather than keeping two numbers in step by hand.
+ *
+ * It is a function rather than a constant because the sheet is per seat: a
+ * persona (or the arena's tuning sheet) may say what an unread thing is worth,
+ * and the answer has to be that seat's.
+ */
+function nominalRate(ctx: ValueContext): number {
+  return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
+}
+
+/**
  * **How many hammers a turn this effect actually pays this empire** — the one
  * question `hammerTerm` needs of a card, and `null`-shaped (nought) for every
  * shape that pays none.
@@ -947,15 +971,15 @@ export function explainEffects(
  * The three legible shapes are the ones whose figure is a *bag*: a card that
  * says "+2 production in every town", one that says "+2 to the empire", and one
  * that dresses a hex. The percentage shapes are counted at the same nominal
- * yield `scoreEffect` prices them against, because that is what this bot means
- * by "a percentage of a town's hammers" everywhere else.
+ * yield `scoreEffect` prices them against (`nominalRate`), because that is what
+ * this bot means by "a percentage of a town's hammers" everywhere else.
  *
  * Everything else answers nought, which is honest rather than lazy: a card whose
  * hammers this bot cannot read is a card whose hammers it should not claim a
  * compression for.
  */
 function productionOf(effect: CardEffect, ctx: ValueContext): number {
-  const nominal = ctx.ai.score.nominalYield;
+  const nominal = nominalRate(ctx);
   switch (effect.kind) {
     case 'cityYields':
       return (bagOf(effect).production ?? 0) * ctx.cities;
@@ -982,7 +1006,7 @@ export function scoreEffects(
 }
 
 function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
-  const nominal = ctx.ai.score.nominalYield;
+  const nominal = nominalRate(ctx);
   switch (effect.kind) {
     case 'cityYields':
       // Paid in every town the scope admits; the scope is not evaluated, so the
@@ -1283,7 +1307,7 @@ function scorePayout(pays: PayoutShape, ctx: ValueContext): number {
     case 'authority':
       return pays.amount * meterWeight(ctx, 'authority');
     case 'percent':
-      return voiceWeight(ctx, pays.yield as Voice) * (pays.percent / 100) * ctx.ai.score.nominalYield;
+      return voiceWeight(ctx, pays.yield as Voice) * (pays.percent / 100) * nominalRate(ctx);
     default:
       return ctx.ai.score.unknownEffect;
   }

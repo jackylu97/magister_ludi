@@ -165,24 +165,26 @@ describe('the configuration panel is generated, not listed', () => {
   });
 
   it('emits a sparse sheet of only what was edited, shaped like a persona', () => {
-    const cap = knobs.find((knob) => knobKey(knob.path) === 'expansion.settlerCap')!;
+    const falloff = knobs.find((knob) => knobKey(knob.path) === 'expansion.cityValueFalloff')!;
     const food = knobs.find((knob) => knobKey(knob.path) === 'weights.food')!;
     const read = (knob: Knob): number | readonly number[] | null => {
-      if (knob === cap) return 1;
+      if (knob === falloff) return 1;
       if (knob === food) return [9, 9, 9, 9];
       return knob.value as number | readonly number[];
     };
     const edits = editsOf(knobs, read);
     expect(edits.map((edit) => knobKey(edit.knob.path))).toEqual([
-      'expansion.settlerCap',
+      'expansion.cityValueFalloff',
       'weights.food',
     ]);
     expect(sheetOfEdits(edits)).toEqual({
-      expansion: { settlerCap: 1 },
+      expansion: { cityValueFalloff: 1 },
       weights: { food: [9, 9, 9, 9] },
     });
     // The marker's line: the delta, printed, so a run can be repeated.
-    expect(describeEdit(edits[0]!)).toBe(`expansion.settlerCap ${AI.expansion.settlerCap} → 1`);
+    expect(describeEdit(edits[0]!)).toBe(
+      `expansion.cityValueFalloff ${AI.expansion.cityValueFalloff} → 1`,
+    );
   });
 
   it('treats an unreadable box as un-edited rather than handing over a NaN', () => {
@@ -209,7 +211,7 @@ describe('the tuning seam', () => {
       // it inherits the tuning exactly as it inherits every other base opinion.
       expect(aiConfigFor('tall').weights.tech).toBe(held + 100);
       // …and a knob the persona *does* pin is still the persona's.
-      expect(aiConfigFor('tall').expansion.settlerCap).toBe(2);
+      expect(aiConfigFor('tall').expansion.cityValueFalloff).toBe(0.6);
     });
     expect(aiTuning()).toBeNull();
     expect(aiConfigFor(undefined)).toBe(AI);

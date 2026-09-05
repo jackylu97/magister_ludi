@@ -159,6 +159,20 @@ describe('the knobs the book replaced', () => {
       'settlerAuthorityFloor',
       'siteScoreMin',
       'tradersPerCity',
+      // **Batch 7's prune.** The last two "loose sanity caps" (the falloff and a
+      // chain whose realised steps drop out are what stop a ninth settler now;
+      // a caravan's wage is what stops a fifth caravan), the last hard income
+      // floor (every candidate and every want charges upkeep at gold's shadow
+      // price), and the two merges — one horizon (`priorities.horizonTurns`) and
+      // one nominal stand-in (`score.unknownEffect × nominalCount`).
+      'settlerCap',
+      'traderCap',
+      'stopMaintainedBelow',
+      'maxTurns',
+      'nominalYield',
+      // `maintenanceAffordable` was `stopMaintainedBelow`'s only reader and went
+      // with it; a helper left behind is a threshold still deciding.
+      'maintenanceAffordable',
     ];
     const offenders: string[] = [];
     for (const path of Object.keys(sources).sort()) {
@@ -184,10 +198,12 @@ describe('the knobs the book replaced', () => {
     // the block that used to carry two quotas carries neither.
     expect('cap' in AI.workers).toBe(false);
     expect('perCity' in (AI.workers as Record<string, unknown>)).toBe(false);
-    // The three the audit leaves standing as loose sanity caps, and the one it
-    // calls an honest compute bound.
-    expect(AI.expansion.settlerCap).toBeGreaterThan(0);
-    expect(AI.trade.traderCap).toBeGreaterThan(0);
+    // Batch 7 took the last two loose sanity caps with them — `settlerCap` and
+    // `traderCap` — and the block they lived in went with the caravan's
+    // (`trade` held nothing else). What stands is the honest kind of cap: a
+    // bound on compute, and the scout's glut, which is a printed *charge*.
+    expect('trade' in (AI as unknown as Record<string, unknown>)).toBe(false);
+    expect('settlerCap' in (AI.expansion as Record<string, unknown>)).toBe(false);
     expect(AI.military.scoutCap).toBeGreaterThan(0);
     expect(AI.expansion.siteSearchRadius).toBeGreaterThan(0);
   });
