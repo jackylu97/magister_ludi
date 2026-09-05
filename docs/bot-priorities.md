@@ -726,3 +726,37 @@ is `weights.happiness` under its ×3 band (batch 4's one regression, ten
 technologies on wide empires), then `priorities.horizonTurns` against
 `score.maxTurns`, then `raceLiveHorizons` on a board long enough to reach the
 race at all.
+
+## Batch 6 — ratified 2026-09-05 (the post-programme hardening + two new plans)
+
+Four parts, in order:
+
+1. **The perf hoist.** `valueContext` is built once per seat per TURN (the
+   driver/stepper hoists it; every decision inside the turn reads the same
+   book and prices). Deterministic — arguably more coherent, a turn is one
+   sitting. Measured target: claw back most of the 167ms/turn (was ~50 pre-
+   programme; one t75 game 12.5s → aim ≤7s). Anything a mid-turn mutation
+   invalidates (a purchase changing the treasury) is re-read from state by
+   the arm that needs it, never by rebuilding the book.
+2. **The negative-chain floor.** A held-tech chain (the university-fix
+   family) with worth ≤ 0 leaves `liveChains` — advice, not a debt; its
+   steps must never read worse than chainless. The research-goal chain keeps
+   its honest negative (the margin abandons it).
+3. **The draft plan.** Culture joins the priced currencies: the next draft
+   as a want — worth = E[best of the dealt hand] over the REAL draw
+   (current pool, the M/E/W guarantee, rarity weights, standing pity) using
+   scoreCard's own readings, MINUS the replacement cost when slots are full
+   (the worst slotted card is what a new card displaces); delay = culture
+   owed ÷ culture rate. Skip is priced: its value is the pity-improved next
+   draw. Culture's shadow price = the draft plan's marginal worth, banded
+   like gold/faith. Honest gaps written down, not bent: option value of
+   conditional cards (a war card at peace) and unread grants stay crude.
+4. **The chain-derivative production price.** Hammers get their price from
+   the chains themselves: the marginal worth of one hammer in a town =
+   turns it shaves off the chains whose steps that town owes × what those
+   turns are worth ((H − delay)/H arithmetic on numbers the chain already
+   carries). Folds as a printed term on production-raising candidates —
+   mines, workshops, +production cards, and CITIZEN FOCUS (the bot wires
+   setCitizenFocus for the first time: focus production while chain-bound,
+   default otherwise; the focus is a command, replay-honest). Near-zero
+   when nothing rich waits on hammers. Banded like the other prices.
