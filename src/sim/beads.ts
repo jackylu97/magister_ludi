@@ -1012,34 +1012,35 @@ export interface GreatWorkClose {
 }
 
 /**
- * **The finish line** — the Magnum Opus is finished, so the age closes and the
- * race is settled (design ledger Entry LVIII).
+ * **The finish line** — the Magnum Opus is finished, so the empire that finished
+ * it has won (design ledger Entry LVIII; the victory ruling of 2026-09-05,
+ * schema 69).
  *
  * Called from `realiseItem` for a row carrying `BuildingDef.endsTheGame`, which
  * is a *marker* like every other on that table: nothing in `src/sim/` compares a
  * building id against the Opus by name, exactly as nothing compares one against
- * the cathedral. It runs **after** the row's own completion grants, and that
- * order is the whole of why the golden bead is on the builder's rod before
- * anybody counts: the bead is `{ grant: 'bead' }` on the row, and a close that
- * ran first would decide the race on a tally one short.
+ * the cathedral. It runs **after** the row's own completion grants, so the
+ * golden bead is already on the builder's rod when the curtain comes down.
  *
- * Three beats, and each reaches machinery that already exists:
+ * Two beats, and each reaches machinery that already exists:
  *
  *   1. **the age closes** — `takeReckonings` for the world's current age, the
- *      same call `advanceWorldClock` makes when a seat enters a new one. So the
+ *      same call `advanceWorldClock` makes when a seat enters a new one. The
  *      final measures are taken by the one routine that takes every other
  *      measure, ties pay nobody here exactly as they pay nobody there, and the
  *      awards ride out on the ordinary bead diff (`beadsAwarded` /
- *      `beadsSince`) with no new report field anywhere.
- *   2. **the count** — most beads wins, across `realPlayers` in seat order.
- *   3. **the tie** — broken for the Opus's builder, which is the whole reason
- *      building it is worth a thousand hammers: a realm that draws level with
- *      you cannot take the game off you at the last moment. A tie between two
- *      seats that are *both* not the builder falls to seat order, which is this
- *      game's contention rule everywhere else.
+ *      `beadsSince`) with no new report field anywhere. They are **history, not
+ *      arithmetic**: nothing about them decides who won, and they are taken
+ *      because an age that ended unmeasured would be a hole in the record.
+ *   2. **the winner is the builder** — full stop. The beads are the *door*
+ *      (`buildError` refuses the row to a rod short of `BEAD_RULES.threshold`)
+ *      and no longer the *close*: an empire that filled its rod, reached the
+ *      closing technology and raised a thousand hammers of great work has won,
+ *      and a rival with a longer rod cannot take it off them at the last
+ *      moment. The most-beads count and its builder tie-break are **retired**.
  *
- * `state.winnerId` is written only into a `null`, the third way to reach that
- * field and the same discipline the other two keep: a game that has been won
+ * `state.winnerId` is written only into a `null`, one of the two ways to reach
+ * that field and the same discipline the other keeps: a game that has been won
  * stays won.
  */
 export function closeTheGreatWork(state: GameState, city: City): GreatWorkClose {
@@ -1048,20 +1049,8 @@ export function closeTheGreatWork(state: GameState, city: City): GreatWorkClose 
 
   let winner: number | null = null;
   if (state.winnerId === null) {
-    let best = -1;
-    for (const player of realPlayers(state)) {
-      const held = player.beads.length;
-      if (held > best) {
-        best = held;
-        winner = player.id;
-        continue;
-      }
-      // The builder's tie-break, and it is asked only on an exact tie: a seat
-      // level with the leader takes the game only if it is the seat that raised
-      // the Opus.
-      if (held === best && player.id === city.ownerId) winner = player.id;
-    }
-    if (winner !== null) state.winnerId = winner;
+    winner = city.ownerId;
+    state.winnerId = winner;
   }
 
   return { playerId: city.ownerId, cityId: city.id, age, awards, winnerId: winner };
@@ -1088,9 +1077,10 @@ export function closeTheGreatWork(state: GameState, city: City): GreatWorkClose 
  * to `BEAD_RULES.threshold` beads simply won — and it never once decided a game
  * (`docs/beads.md` flagged it). The ruling moved that number one step earlier:
  * the threshold now *opens the Magnum Opus* (`buildError`, `tech.ts`), and the
- * game is still closed by the work being finished (`closeTheGreatWork`), which
- * is where the beads are counted. One number, one reading, and the finish line
- * is a thing somebody built rather than a tally quietly crossed in a phase.
+ * game is closed by the work being finished (`closeTheGreatWork`), which names
+ * its builder the winner outright (schema 69). The beads are a door and nothing
+ * in this phase decides a game — the finish line is a thing somebody built
+ * rather than a tally quietly crossed in a sweep.
  *
  * Seats are walked in `realPlayers` order throughout, so two seats that cross a
  * threshold on the same turn always resolve the same way, and the wild is
@@ -1184,8 +1174,12 @@ function openBeadAge(state: GameState, closing: number, awards: BeadAward[]): vo
  * broken by seat order is a fact about the roster rather than about which sweep
  * ran first.
  *
- * Exported because it is the one seam a test can reach without an age-four
- * technology: `advanceWorldClock` is the only caller in the game.
+ * Two callers, and both are *history*: `advanceWorldClock`, when the world's
+ * clock rises, and `closeTheGreatWork`, so the age a great work ended in is
+ * measured like every age before it. Neither reading decides a winner — since
+ * schema 69 the builder of the Opus wins outright — so a reckoning taken at the
+ * curtain is an annal and nothing more. Exported besides because it is the one
+ * seam a test can reach without an age-four technology.
  */
 export function takeReckonings(state: GameState, closing: number): BeadAward[] {
   const awards: BeadAward[] = [];

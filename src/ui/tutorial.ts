@@ -136,7 +136,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: '#abacus-button',
     title: 'Welcome',
     body:
-      'You lead a small people. Settle cities, learn ideas, and earn beads — the game\'s points, won by doing things first in the world. Everyone\'s beads are public, on the Abacus — the bead counter at the top of the screen. Most beads when the game ends wins.',
+      'You lead a small people. Settle cities, learn ideas, and earn beads — the game\'s points, won by doing things first in the world. Everyone\'s beads are public, on the Abacus — the bead counter at the top of the screen. A full rod opens the game\'s final project, and finishing that project wins.',
     advance: { kind: 'next' },
   },
   {
@@ -331,7 +331,7 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'The Bead Race',
         body:
-          'Beads are the game\'s only points. Do something first in the world and the bead is yours — every player\'s beads are public, on the Abacus. Reaching twenty beads wins at once; otherwise, most beads when the last age closes wins.',
+          'Beads are the game\'s only points. Do something first in the world and the bead is yours — every player\'s beads are public, on the Abacus. Hold twenty beads and you may begin the Magnum Opus; finishing that great work wins the game.',
       },
       {
         title: 'Four kinds of bead',

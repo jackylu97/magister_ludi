@@ -696,7 +696,7 @@ describe('the bead race', () => {
     // The curtain, undiscounted, plus what the four beads still owed are worth.
     expect(race.worth).toBeGreaterThan(AI.weights.victory);
     expect(race.terms.map((term) => term.label)).toContain(
-      'closing the great work — the realm holding the most beads takes the game',
+      'closing the great work — the realm that finishes it takes the game',
     );
     expect(JSON.stringify(race.terms)).toContain('the 4 beads still owed for the rod');
 
@@ -762,10 +762,12 @@ describe('the bead race', () => {
 
   it('prints its zero when a rival holds the race whatever this empire builds', () => {
     // **Out of reach.** Nineteen beads against three, on a rate five times ours:
-    // the rival closes long before this empire could and holds more beads when it
-    // does, so the chain is worth nothing — and it names them rather than merely
-    // reading low, because a bot pouring hammers into a lost race is the failure
-    // this clause exists to prevent.
+    // the rival closes long before this empire could, and since the victory
+    // ruling of 2026-09-05 (schema 69) that is the whole of the reading —
+    // whoever finishes the work wins it, so a rod this empire might still fill
+    // behind them buys nothing. The chain is worth nothing and names them rather
+    // than merely reading low, because a bot pouring hammers into a lost race is
+    // the failure this clause exists to prevent.
     const { state, player } = raceBench({ towns: 3, turn: 120, beads: 3, rivalBeads: 19 });
     const ctx = valueContext(state, player);
     const race = ctx.race!;

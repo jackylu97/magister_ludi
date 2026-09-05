@@ -870,7 +870,7 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
       note: true,
     });
     clauses.push({
-      text: 'Finishing it ends the game: the last measures of the age are taken, and whoever holds the most beads wins — a tie going to whoever raised it.',
+      text: 'Finishing it wins the game outright, for whoever raised it: the last measures of the age are taken for the record, and no rod of beads can take the game back.',
       note: true,
     });
   }

@@ -26,11 +26,13 @@ One win condition: beads on an abacus. Sources: deeds (per-age decks, drawn
 per-empire grants, Alchemy pays every completer. The endgame: first Alchemy
 world-unlocks the **Magnum Opus** (once-per-empire 1200⚙ building, accepts
 gold/faith contributions); completion → golden bead → the age closes →
-reckonings → most beads wins, tie to the builder. `opusOpen` is derived, never
-stored. **The 20-bead threshold opens the Opus** (ruled 2026-09-04, schema 64):
-an empire may begin the great work only while it holds that many, and the
+reckonings (history) → **the builder wins outright** (ruled 2026-09-05, schema
+69: the most-beads reading and its tie rule are retired). `opusOpen` is derived,
+never stored. **The 20-bead threshold opens the Opus** (ruled 2026-09-04, schema
+64): an empire may begin the great work only while it holds that many, and the
 threshold's old reading — first seat to it wins outright, which never decided a
-game — is retired. Pacing note: a one-city bench holds four beads at t1700, so
+game — is retired. So beads gate the door and the finished work decides the
+game. Pacing note: a one-city bench holds four beads at t1700, so
 the gate is a real barrier, not a formality.
 
 ## Economy

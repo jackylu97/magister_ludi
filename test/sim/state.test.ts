@@ -673,7 +673,10 @@ describe('the research queue field', () => {
     // pools of their own, twenty-seven rows join them, eight rows are retired and
     // eight say something different. Every pool's bag changed, so a v67 log's
     // `chooseOrder` names indices into hands this build does not deal.
-    expect(SCHEMA_VERSION).toBe(68);
+    // v69 (the victory rule, 2026-09-05): finishing the Magnum Opus wins
+    // outright. A v68 log reaches the same board and a different winner — the
+    // builder rather than whoever held the longest rod at the curtain.
+    expect(SCHEMA_VERSION).toBe(69);
   });
 });
 

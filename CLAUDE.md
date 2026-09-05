@@ -288,7 +288,8 @@ be renamed — it would change every seeded outcome. No further rename passes.
   carry card effects (`liveEffects`' tenth source), `paysBead`, `ageEntryDice`.
 - **Endgame**: `opusOpen(state)` is DERIVED (any real player holds `alchemy`),
   no stored flag. Opus completion → golden bead → `closeTheGreatWork` →
-  `takeReckonings` → `winnerId` = most beads, tie to builder.
+  `takeReckonings` (history only) → `winnerId` = **the builder**; beads gate the
+  door (the threshold in `buildError`), never the close.
 - **A runtime import cycle** is caught by `test/mapgen/moduleCycles.test.ts`
   (globs every `src/sim/*.ts` as an entry). Typecheck does not see one; the
   symptom is "X is not a function" everywhere. A helper two modules need lives

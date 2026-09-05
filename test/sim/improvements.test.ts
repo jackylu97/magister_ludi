@@ -2135,7 +2135,7 @@ describe('improvements in the log', () => {
     // v68 (2026-09-05, the cards pass): Government IV and V become Order pools
     // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
     // names indices into hands this build does not deal.
-    expect(SCHEMA_VERSION).toBe(68);
+    expect(SCHEMA_VERSION).toBe(69);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

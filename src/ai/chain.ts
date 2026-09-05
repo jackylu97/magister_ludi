@@ -1105,13 +1105,16 @@ export interface RaceRival {
  *     empire is comfortably winning, which is the thing an open race is supposed
  *     to stop doing.
  *
- * **Out of reach is a printed zero.** The winner is whoever holds the most beads
- * when the work is finished (`closeTheGreatWork`), so a rival who would close
- * first *and* hold more beads when they do has the game whatever this empire
- * builds. The chain folds a `× 0` term naming them rather than quietly reading
- * low: a bot that keeps pouring hammers into a race it has lost is the failure
- * this clause exists to prevent, and a reader of the feed should be able to see
- * it decline.
+ * **Out of reach is a printed zero.** The winner is whoever *finishes* the work
+ * (`closeTheGreatWork`, schema 69), so a rival who would close first has the
+ * game whatever this empire builds and however long its own rod is. The rods
+ * used to enter this reading — a rival had to close first *and* hold more beads
+ * when they did — and that half is gone with the rule it read: beads are the
+ * door now, and a door somebody else has already walked through settles nothing
+ * about who is behind them. The chain folds a `× 0` term naming the rival rather
+ * than quietly reading low: a bot that keeps pouring hammers into a race it has
+ * lost is the failure this clause exists to prevent, and a reader of the feed
+ * should be able to see it decline.
  */
 export interface BeadChain {
   /** The row that closes the game, and the beads it asks for. */
@@ -1138,7 +1141,7 @@ export interface BeadChain {
   /** The clock the race runs against: the rival's close while it is open, else H. */
   raceHorizon: number;
   rival: RaceRival | null;
-  /** True when a rival would close first holding more beads. Folds a `× 0`. */
+  /** True when a rival would close the work first. Folds a `× 0`. */
   lost: boolean;
   /** True when a candidate of this race may fold the chain's share. */
   live: boolean;
@@ -1203,12 +1206,11 @@ export function beadChain(state: GameState, player: Player, ctx: ValueContext): 
   const raceHorizon = open ? (rival === null ? Number.POSITIVE_INFINITY : rival.close) : horizon;
   const inTime = delay < raceHorizon;
   // **Out of reach**, crudely and on public numbers: a rival that closes before
-  // this empire could, holding more beads at the moment it closes, has the game.
-  // Their tally at that moment is at least the threshold (they cannot begin the
-  // work below it); ours is what the rod holds plus what the rate would add.
-  const oursThen = rival === null ? held : held + rate * rival.close;
-  const theirsThen = rival === null ? 0 : Math.max(threshold, rival.beads + rival.rate * rival.close);
-  const lost = rival !== null && rival.close < delay && theirsThen > oursThen;
+  // this empire could has the game, full stop. One clause, because the rule is
+  // one clause since schema 69 — finishing the work wins it — and the tally
+  // comparison that used to sit beside this would now be a bot reading a rule
+  // the game does not have.
+  const lost = rival !== null && rival.close < delay;
 
   const urgency: ValueTerm = open
     ? {
@@ -1224,7 +1226,7 @@ export function beadChain(state: GameState, player: Player, ctx: ValueContext): 
 
   const terms: ValueTerm[] = [
     {
-      label: 'closing the great work — the realm holding the most beads takes the game',
+      label: 'closing the great work — the realm that finishes it takes the game',
       value: ai.weights.victory,
     },
     urgency,
@@ -1254,8 +1256,8 @@ export function beadChain(state: GameState, player: Player, ctx: ValueContext): 
   if (lost) {
     terms.push({
       label:
-        `× 0 — ${rival!.name} holds ${rival!.beads} beads and would close in ` +
-        `${round(rival!.close)} turns, before this empire could pass them`,
+        `× 0 — ${rival!.name} holds ${rival!.beads} beads and would close the work in ` +
+        `${round(rival!.close)} turns, before this empire could raise it`,
       value: 0,
       op: 'mul',
     });

@@ -612,9 +612,11 @@ tallies openly, exactly as a human at the same table reads them. The nearest
 rival's clock is its own rod at its own rate plus **this** empire's build delay
 as a stand-in (what a rival's busiest town makes is a sweep of towns this seat
 may not have charted; written down rather than hidden). The race is **lost** when
-that rival would close first *and* hold more beads when it does — which is
-`closeTheGreatWork`'s own rule, most beads at the moment the work is finished —
-and a lost race folds a printed `× 0` naming them, rather than merely reading
+that rival would simply close first — which is `closeTheGreatWork`'s own rule
+since the victory ruling of 2026-09-05 (schema 69): the empire that finishes the
+work wins it, and the rods gate the door rather than decide the close. The
+tally comparison that used to sit beside this clause retired with the rule it
+read. A lost race folds a printed `× 0` naming them, rather than merely reading
 low. A bot pouring hammers into a race it cannot win is the failure that clause
 exists to prevent.
 

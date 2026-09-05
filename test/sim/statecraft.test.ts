@@ -1170,7 +1170,7 @@ describe('determinism', () => {
     // and twenty-seven rows join them while eight leave the four pools below.
     // Every bag changed, so a v67 log's `chooseOrder` names indices into hands
     // this build does not deal.
-    expect(SCHEMA_VERSION).toBe(68);
+    expect(SCHEMA_VERSION).toBe(69);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

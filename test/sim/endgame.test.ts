@@ -8,8 +8,10 @@
  *     any seat anywhere completes the closing technology, every seat with a full
  *     rod of beads may begin one (the threshold's job since 2026-09-04, schema
  *     64) — funded by the cathedral's `contribute` verb, and whose completion
- *     closes the age: the final reckonings are taken across every seat at once
- *     and the empire holding the most beads wins, ties going to the builder.
+ *     **wins the game outright for whoever raised it** (the victory ruling of
+ *     2026-09-05, schema 69). The closing age's reckonings are still taken
+ *     across every seat at once, as history: they settle the record, not the
+ *     game.
  *   · **A bead a thing hands over.** The fifth class of bead row (`grants`),
  *     which is once *per empire* rather than once in the world — because the
  *     closing technology pays every empire that reaches it, and every realm that
@@ -527,7 +529,7 @@ describe('a bead-paying build pays through the beads system', () => {
 
 // --- the finish line --------------------------------------------------------
 
-describe('finishing the Opus closes the age and settles the race', () => {
+describe('finishing the Opus wins the game for whoever raised it', () => {
   /** Two seats, both with a town, the world past the closer. */
   function board() {
     const g = game();
@@ -537,32 +539,37 @@ describe('finishing the Opus closes the age and settles the race', () => {
     return { g, mine, theirs };
   }
 
-  it('takes the closing age’s reckonings and names the seat with the most beads', () => {
+  it('names the builder even when a rival holds far more beads', () => {
+    // **The victory ruling of 2026-09-05 (schema 69), arranged.** The rival's
+    // rod is three times the builder's and it changes nothing: beads open the
+    // door the work is begun through, and the finished work takes the game.
     const { g, mine } = board();
-    // A rival with a rod already going. `theirs` is not the builder.
     const rival = playerById(g.state, 1)!;
     for (const id of BEAD_GRANT_IDS.slice(0, 3)) awardBeadGrant(g.state, rival.id, id);
     expect(g.state.winnerId).toBeNull();
 
     realiseItem(g.state, mine, { kind: 'building', id: OPUS });
 
-    // The builder has exactly the golden bead; the rival has three. Most beads
-    // wins, and it is not the builder — the Opus is a finish line, not a win.
+    // The builder has exactly the golden bead; the rival has three; the builder
+    // has the game. Until this ruling the rival took it on the count.
     expect(playerById(g.state, 0)!.beads.length).toBe(1);
-    expect(g.state.winnerId).toBe(rival.id);
+    expect(rival.beads.length).toBeGreaterThan(playerById(g.state, 0)!.beads.length);
+    expect(g.state.winnerId).toBe(0);
   });
 
-  it('breaks a tie for the empire that raised it', () => {
+  it('asks nothing of the rods — a level rod wins for the builder too', () => {
+    // The old tie-break's board, kept because the *outcome* is what it pinned
+    // and the outcome still holds: what is retired is the reading that reached
+    // it, not the answer.
     const { g, mine } = board();
     const rival = playerById(g.state, 1)!;
-    // One bead each once the golden one lands.
     awardBeadGrant(g.state, rival.id, BEAD_GRANT_IDS[1]!);
     realiseItem(g.state, mine, { kind: 'building', id: OPUS });
     expect(playerById(g.state, 0)!.beads.length).toBe(rival.beads.length);
     expect(g.state.winnerId).toBe(0);
   });
 
-  it('banks the golden bead before it counts — the grant runs first', () => {
+  it('banks the golden bead on the builder’s rod — history, not arithmetic', () => {
     const { g, mine } = board();
     realiseItem(g.state, mine, { kind: 'building', id: OPUS });
     const golden = (buildingDef(OPUS).onComplete ?? []).find(

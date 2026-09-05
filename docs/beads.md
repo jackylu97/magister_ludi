@@ -8,14 +8,16 @@ cut lists: `docs/design-history.md`.
 ## The model
 
 - One unified condition: glass beads, ~30 minted a game, every bead an
-  announced event. Most beads at the curtain wins; the **golden bead** is
-  minted only by the Magnum Opus, whose completion closes the age →
-  `takeReckonings` → `winnerId` (tie to the builder).
+  announced event. Beads are the **door**, never the count at the curtain:
+  the **golden bead** is minted only by the Magnum Opus, whose completion
+  closes the age → `takeReckonings` (history) → `winnerId` = **the empire
+  that raised it** (ruled 2026-09-05, schema 69). The most-beads reading and
+  its builder tie-break are retired.
 - **The threshold opens the Opus** (ruled 2026-09-04, schema 64):
   `rules.threshold` beads is what an empire must hold before `buildError`
   will let it begin the row that `endsTheGame`. Its old reading — first seat
   to the threshold wins outright — never once fired and is retired with
-  `namePossibleWinner`; `winnerId` has two writers now (`updateElimination`,
+  `namePossibleWinner`; `winnerId` has two writers (`updateElimination`,
   `closeTheGreatWork`).
 - **Card kinds**: `feat` (world firsts, always in play) · `endeavour` (a
   race with one winner — first completer takes bead + boon; oncePerEmpire

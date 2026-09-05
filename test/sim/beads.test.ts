@@ -202,7 +202,11 @@ describe('the bead catalogue', () => {
     // v68 (2026-09-05, the cards pass): Government IV and V become Order pools
     // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
     // names indices into hands this build does not deal.
-    expect(SCHEMA_VERSION).toBe(68);
+    // v69 (2026-09-05, the victory rule): finishing the Magnum Opus wins the
+    // game outright — the builder is the winner, and the most-beads count with
+    // its builder tie-break is retired. A v68 log replays to the same board and
+    // to a different verdict, which is the one thing a version number is for.
+    expect(SCHEMA_VERSION).toBe(69);
   });
 
   it('puts the beads phase directly after renown', () => {

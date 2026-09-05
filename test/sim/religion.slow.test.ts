@@ -283,7 +283,7 @@ describe('determinism', () => {
     // v68 (2026-09-05, the cards pass): Government IV and V become Order pools
     // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
     // names indices into hands this build does not deal.
-    expect(SCHEMA_VERSION).toBe(68);
+    expect(SCHEMA_VERSION).toBe(69);
     const played = playFaithful(200);
     // The empire actually got there: an augur was bought out of faith it earned,
     // rites were performed, and a god was named. A determinism test over a log

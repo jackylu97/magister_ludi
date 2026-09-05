@@ -790,8 +790,9 @@ export interface BuildingDef {
    * exactly one place — `realiseItem`, the routine that means "the city now has
    * the thing" — so an Opus finished by hammers, by a contribution or bought
    * outright closes the age by the same line. What it does is
-   * `closeTheGreatWork` (`beads.ts`): the age's reckonings are taken and the
-   * seat with the most beads wins, ties going to whoever raised it.
+   * `closeTheGreatWork` (`beads.ts`): the age's reckonings are taken as history
+   * and the empire that raised it wins outright (schema 69). The beads are the
+   * door the row opens behind, never the count at the curtain.
    */
   endsTheGame?: boolean;
   /**

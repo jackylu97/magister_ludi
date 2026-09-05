@@ -242,8 +242,8 @@ export const PAMPHLET_PAGES: readonly PamphletPage[] = [
       caption: 'The Abacus: every player\'s beads, strung side by side.',
     },
     lines: [
-      'The game is scored in [[bead:about|beads]] — points for doing things first in the world; twenty beads wins on the spot.',
-      'Otherwise the Magnum Opus closes the game, and the most beads wins — a tie goes to its builder.',
+      'The game is scored in [[bead:about|beads]] — points for doing things first in the world; twenty beads lets you begin the Magnum Opus.',
+      'Finishing that great work wins the game outright, whatever anybody else holds.',
     ],
   },
   {

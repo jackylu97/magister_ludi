@@ -1255,8 +1255,28 @@ import {
  *     row keeps paying whoever already drafted it. What moves is the draws, and
  *     they move in every pool, so there is no reading under which a v67 log
  *     replays to the same board.
+ *
+ * v69: **the Great Work wins it** (ruled 2026-09-05, `docs/flags.md` — "the
+ * victory rule, and what Æra V is for"). One rule, one function, and it is here
+ * because it changes **who won a game that has already been played**.
+ *
+ *   · **Finishing the Magnum Opus wins outright.** `closeTheGreatWork` named the
+ *     seat holding the most beads and broke a tie for the builder; it now names
+ *     the builder, full stop. The beads are the *door* — an empire may not begin
+ *     the row below `BEAD_RULES.threshold` (schema 64, unchanged) — and no
+ *     longer the close.
+ *   · **The reckonings stay, as history.** The closing age's measures are still
+ *     taken by `takeReckonings`, and the golden bead is still on the builder's
+ *     rod before the curtain: an age that ended unmeasured would be a hole in
+ *     the record. Neither decides anything now.
+ *
+ *     The migration note: no field on the state changed shape and no draw moves,
+ *     so a v68 log replays to the same board — but not to the same *verdict*. A
+ *     v68 game whose Opus was raised by a seat that did not lead the rods was
+ *     won by the leader; the same log here is won by the builder. That is
+ *     exactly the kind of divergence a version number exists to refuse.
  */
-export const SCHEMA_VERSION = 68;
+export const SCHEMA_VERSION = 69;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -3211,13 +3231,16 @@ export interface GameState {
    *
    * **One field, two ways to reach it** (Entry VI.3): the last empire standing
    * (`updateElimination`, `combat.ts`) and the Great Work closing
-   * (`closeTheGreatWork`, `beads.ts`, which counts the rods). Whichever comes
-   * first writes it, and neither ever clears a winner the other named — a game
-   * that has been won stays won.
+   * (`closeTheGreatWork`, `beads.ts`, which names the empire that raised it).
+   * Whichever comes first writes it, and neither ever clears a winner the other
+   * named — a game that has been won stays won.
    *
    * There used to be a third: the first empire to `BEAD_RULES.threshold` beads
    * won outright in the `beads` phase. That reading is **retired** (schema 64) —
-   * the threshold opens the Magnum Opus now, and the Opus closes the game.
+   * the threshold opens the Magnum Opus now, and the Opus closes the game. The
+   * close used to count the rods and break a tie for the builder; since schema
+   * 69 it simply names the builder, and the beads are a door rather than a
+   * tally.
    *
    * It is a *record*, not a gate: the reducer keeps accepting commands after it
    * is set, because refusing them would mean a replay of a finished game
