@@ -31,7 +31,7 @@ Gov I 28 · Gov II 41 · Gov III 43 — still generous.
 
 | Row | Today | Becomes | Why |
 |---|---|---|---|
-| Far Runners | Scouts +1 move/sight; civilians +2 embarked | **+1 sight for every unit; each ruin you claim pays +10🎵** | the Wayfarers' opener should pay for exploring, not just move faster; ruins are the early game's only discovery reward |
+| Far Runners | Scouts +1 move/sight; civilians +2 embarked | **+1 sight for every unit; each ruin you claim pays +10🎵** | [isn't this already a separate card in the game (your proposal)] the Wayfarers' opener should pay for exploring, not just move faster; ruins are the early game's only discovery reward |
 | River Wardens | +1🌾 on freshwater farms in cities with a stationed unit | **+1🌾 on every farm beside fresh water** | the garrison clause is a hidden tax on a Ploughshare card; the plain version is the line's floor |
 | The Great Warring Tribes (doctrine II) | three clauses | **+10% production toward units while your authority is negative · captured cities pay +5🔬 +5🎵** | one readable identity; the "negative authority no longer slows units" clause is a rule players can't see |
 | Spoils of the Wild | camps pay +100% | keep, but **note in the compendium that it stacks with Camp Followers** (the doc's aside says not to print it — it should print, the stack is the fun) | legibility |
@@ -52,7 +52,7 @@ The pools' gaps, read against the lines and against the draft's texture:
    count on buildings — existing shapes); *The Long Roads* (Gov I E ○):
    "every road hex inside your borders pays +1💰 to its nearest city" (a
    count on roads — `roadsBuiltBy` exists; a tile line on roads is one
-   small shape — NEW, flag it).
+   small shape — NEW, flag it). [move to age 2, where traders are unlocked]
 2. **Risk cards in the early pools.** Balatro's texture is upside with a
    catch; ours lives only in doctrines (Gentle Yoke, Scattered Hearths,
    Wandering Court). Orders need two or three: *The Reckless Levy* (Gov I
@@ -159,3 +159,47 @@ percent-shaped decisions over a quieter base, where every pool answers the
 systems you've invested in and the rare card is the one that changes the
 rules — which is the Balatro loop wearing Civ's systems, rather than Civ
 with a card menu beside it.
+
+---
+
+## RULED 2026-09-05 — "let's make these changes" + the late pools for today's playthrough
+
+The user's marginalia absorbed, and one addition: **"Please implement the
+deferred age 4/5 orders, i want to start my full game playthrough today."**
+
+- **Section A** — all eight cuts stand (Public Granaries: cut; the
+  30%-tall-floor alternative was not taken). Retired per the standing
+  pattern: rows kept for saves, out of every pool and table.
+- **Section B** — every modification stands. Far Runners: the user asked
+  whether a ruins-pay card already exists — it does not (the earlier
+  "Wayfarers' Book" was a proposal in `doctrine-ideas.md`, never built), so
+  the modification is the first such card and proceeds.
+- **Section C** — every hole is built: The Founding Oath (Chiefdom ○), The
+  Long Roads **at Government II** (the user: "where traders are unlocked";
+  the road tile line is the one small NEW shape, approved), The Reckless
+  Levy, The Tithe of Iron, Bread Alone, The Congregation, The Granary Laws,
+  The Horse-Tribes (doctrine II, replacing Horse Lords' identity).
+- **Section D** — The Tide-Reckoning (Gov II E ◆) builds; The Murmuration
+  stays a proposal (a new pressure shape is a design decision for a calmer
+  day).
+- **Pools IV and V (doctrines)** — the six deferred rows: build every
+  STOCK half (Sea Charter's "+50% routes"; Renaissance Court's "one more
+  card" via `offerRider`; Philosopher's Stone's "Opus −25%" via the
+  Master Builders' shape; Pax Magistri's "+3😊 everywhere · +5🔬+5🎵 in
+  12+ cities" is entirely stock — its deferral was the "forswear war"
+  clause, which is dropped; Absolutism's "+6 authority" half). Halves that
+  need a new system (Sea Charter's founded-with-Harbour, Renaissance
+  Court's stronger legacies, Absolutism's longer seal, Blitz's both halves,
+  Philosopher's Stone's Distillery) are STRUCK from the row text — a card
+  prints only what it pays. Blitz has no stock half: retired to proposed.
+- **THE LATE ORDER POOLS — Government IV (tier 29) and V (tier 45) are
+  BUILT** from the proposed tables, so a full game has drafts to the end:
+  the enum + `poolOfGovernment` wiring for the tier-29 and tier-45
+  governments; every proposed row that rides existing vocabulary builds
+  with its rarity mark; rows waiting on unbuilt content (Æra V rows, the
+  Bombards…) stay proposed; name clashes renamed (the Gov IV Synod →
+  **The Consistory**; Gov V Guild Charters → **The Guild Compact**); Levies
+  stays retired. Rows whose one clause needs a new shape ship the stock
+  clause and strike the other, annotated. Government VI: no rung — skip.
+- Schema bump; doc tables promoted from PROPOSED to built (the sync test
+  reads them); the compendium renders every row.
