@@ -332,11 +332,20 @@ describe('a hundred turns of arithmetic', () => {
       // still pinned on an arranged board in `test/sim/aiWar.test.ts`; here it
       // is coverage.
       //
-      // If a later pass makes the economy bleed again `disband` grows back,
-      // and that is worth noticing too.
+      // **And `disband` grew back on 2026-09-04**, exactly as the sentence
+      // below-now-above predicted: the want book (priority system, batch 1)
+      // spends closer to the bone — a purchase happens whenever its worth per
+      // coin beats holding — so somewhere inside the hundred turns a seat dips
+      // under `solvency.arrearsTreasury` and correctly lets a redundant piece
+      // go. That is the arm doing its job, not the economy failing (the same
+      // pass moved every measured seat's net rate UP); the coverage claim now
+      // reads all EIGHT kinds this bot has, which is the fullest it has ever
+      // been. The provoked-arrears pin in `aiBot.test.ts` still stands beside
+      // this incidental one.
       expect([...kinds].sort()).toEqual([
         'build',
         'deal',
+        'disband',
         'draft',
         'endTurn',
         'purchase',
