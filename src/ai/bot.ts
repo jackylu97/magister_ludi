@@ -90,7 +90,24 @@
  */
 
 import { AI, type AiConfig, type MixRole, aiConfigFor, aiConfigForPuppet } from './aiConfig';
-import { chainStepFor, chainStepShare, incumbentGoal, liveChains, techChain } from './chain';
+import {
+  ESCORT_STEP,
+  type ExpansionChain,
+  type SiteProbe,
+  chainStepFor,
+  chainStepShare,
+  expansionChain,
+  expansionStepShare,
+  explainNextTown,
+  incumbentGoal,
+  liveChains,
+  techChain,
+} from './chain';
+// **Re-exported, not redefined** (batch 4): what the next town is worth became
+// the expansion chain's payoff, so it moved into `chain.ts` — a chain may not
+// stand on the policy that reads it. The name stays reachable from here because
+// it is one of the three folds the persona suite pins directly.
+export { explainNextTown };
 import { diplomacyDecision } from './diplomacy';
 import {
   type Appraisal,
@@ -116,6 +133,7 @@ import {
   buildTurns,
   costOfUpkeep,
   delayDiscount,
+  delayTerm,
   explainBuildingRow,
   explainEffects,
   explainLump,
@@ -132,6 +150,7 @@ import {
   type Want,
   type WantCurrency,
   type WantInputs,
+  meterPrices,
   shadowPrices,
   wantBook,
   worthPerCoin,
@@ -157,6 +176,7 @@ import {
   empireRateReading,
   explainTileYield,
   foldTileYield,
+  cityTile,
   controlledResources,
   foundingError,
   foundingErrorAt,
@@ -186,7 +206,7 @@ import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim
 import { type ResourceId, resourceDef } from '../sim/resourceData';
 import { RULES } from '../sim/rulesData';
 import type { TileYield } from '../sim/terrainData';
-import { authorityOf } from '../sim/meters';
+import { explainFoundingCost, foldMeter, foundingCostLines } from '../sim/meters';
 import { findPath } from '../sim/pathfind';
 import { PROJECT_IDS } from '../sim/projectData';
 import {
@@ -337,9 +357,12 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     prices: {
       gold: yieldWeight(ai, 'gold', age) * pressure.value,
       faith: yieldWeight(ai, 'faith', age),
+      authority: ai.weights.authority,
+      happiness: ai.weights.happiness,
     },
-    priceNotes: { gold: '', faith: '' },
+    priceNotes: { gold: '', faith: '', authority: '', happiness: '' },
     wants: NO_WANTS,
+    expansion: null,
     chains: [],
     // **The two denominators of every delay** (batch 2 of the priority spec),
     // hoisted here for the context's stated bargain: a build delay is a row's
@@ -355,8 +378,30 @@ export function valueContext(state: GameState, player: Player): ValueContext {
   // appraised at the prior, which is the same one honest pass batch 1 shipped —
   // a book and a chain priced at the shadow prices they are themselves about to
   // set would be a fixed point nobody has asked for.
-  const chained: ValueContext = { ...prior, chains: liveChains(state, player, prior) };
-  const book = wantBook(state, player, chained, {
+  // **The expansion chain, before the book and before both prices** (batch 4).
+  // It is what the two constraint prices are read off, and the book's soldier
+  // rows read those prices in turn, so the order is: chains, expansion, meters,
+  // book, banks. Appraised at the prior, like everything else built here.
+  // The tech chains come first of all: the expansion chain reads them — a town
+  // this empire does not have cannot raise the rows its engines still owe
+  // (`townChainShare`) — so a context whose `chains` were still empty would price
+  // the next town as though the empire were running no engines at all.
+  const engines: ValueContext = { ...prior, chains: liveChains(state, player, prior) };
+  const chained: ValueContext = {
+    ...engines,
+    expansion: nextTownChain(state, player, engines),
+  };
+  const meters = meterPrices(chained.expansion, chained);
+  const constrained: ValueContext = {
+    ...chained,
+    prices: { ...chained.prices, authority: meters.authority, happiness: meters.happiness },
+    priceNotes: {
+      ...chained.priceNotes,
+      authority: meters.notes.authority,
+      happiness: meters.notes.happiness,
+    },
+  };
+  const book = wantBook(state, player, constrained, {
     wageReserve: goldReserveFor(state, player),
     goldRate: netGold,
     faithRate: rates.faithPerTurn ?? 0,
@@ -366,11 +411,120 @@ export function valueContext(state: GameState, player: Player): ValueContext {
   } satisfies WantInputs);
   const priced = shadowPrices(book, prior);
   return {
-    ...chained,
-    prices: { gold: priced.gold, faith: priced.faith },
-    priceNotes: priced.notes,
+    ...constrained,
+    prices: { ...constrained.prices, gold: priced.gold, faith: priced.faith },
+    priceNotes: { ...constrained.priceNotes, gold: priced.notes.gold, faith: priced.notes.faith },
     wants: book,
   };
+}
+
+/**
+ * **The site the expansion chain is about**, or `null` — `bot.ts`' half of
+ * `SiteProbe`, handed to `chain.ts` rather than imported by it.
+ *
+ * The **nearest** legal site to any town of this empire, which is a different
+ * question from the settler's own (`marchToSite` ranks every legal hex in range
+ * by `explainSite` and walks to the best). The chain asks only *how far off is
+ * the next town*, and the nearest legal one answers it; the settler may well walk
+ * further for better ground, so the chain's walk is optimistic and says so in its
+ * own docblock.
+ *
+ * That choice is also what makes the probe affordable. `valueContext` is asked
+ * once per **decision** — every unit order included — and scoring two hundred
+ * candidate hexes with `explainSite` apiece is two hundred ring walks; picking
+ * the nearest legal hex is `foundingErrorAt` on each, and only the one that wins
+ * is appraised. `expansion.siteSearchRadius` survives the batch as exactly what
+ * the audit says a cap may honestly be: a bound on compute.
+ *
+ * Ties are broken by map order, which is a fact about the board rather than about
+ * the order a loop happened to visit hexes in.
+ */
+function nextTownChain(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+): ExpansionChain | null {
+  const ai = ctx.ai;
+  // The row that founds, read off the marker and never off a name, and only
+  // where the rules would actually let some town of this empire raise one.
+  let settler: UnitTypeId | null = null;
+  for (const id of UNIT_TYPE_IDS) {
+    if (unitDef(id).foundsCity !== true) continue;
+    if (!unitUnlocked(state, player, id)) continue;
+    settler = id;
+    break;
+  }
+  if (settler === null) return null;
+
+  const towns: City[] = [];
+  for (const city of state.cities) {
+    if (city.ownerId === player.id) towns.push(city);
+  }
+  if (towns.length === 0) return null;
+
+  let best: { tile: Tile; distance: number } | null = null;
+  for (const town of towns) {
+    const from = tileHex(cityTile(state.map, town));
+    for (const tile of mapRange(state.map, from, ai.expansion.siteSearchRadius)) {
+      if (foundingErrorAt(state, player.id, tile) !== null) continue;
+      const distance = wrappedDistance(state.map, from, tileHex(tile));
+      if (best !== null && distance >= best.distance) continue;
+      best = { tile, distance };
+    }
+  }
+  if (best === null) return null;
+
+  const lines = explainFoundingCost(state, player.id, best.tile);
+  const probe: SiteProbe = {
+    tile: { col: best.tile.col, row: best.tile.row },
+    score: explainSite(state, heldResources(state, player.id), ai, best.tile).total,
+    distance: best.distance,
+    // The escort question, asked of the *site* exactly as the settler's own arm
+    // asks it (`marchToSite`): a settler with nothing walking beside it will not
+    // walk to a hex something hostile is standing near.
+    dangerous:
+      nearestHostile(state, player, best.tile.col, best.tile.row, ai.war.escortRadius) !== null &&
+      !escortAvailable(state, player),
+    costs: {
+      authority: -foldMeter(foundingCostLines(lines, 'authority')),
+      happiness: -foldMeter(foundingCostLines(lines, 'happiness')),
+    },
+  };
+  return expansionChain(state, player, ctx, probe, {
+    id: settler,
+    walking: countOwnedAndQueued(state, player.id, settler) > 0,
+  });
+}
+
+/** Could any town of this empire raise this row today? The simulation's gate. */
+function unitUnlocked(state: GameState, player: Player, id: UnitTypeId): boolean {
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id) continue;
+    if (buildError(state, player.id, 'unit', id, city) === null) return true;
+  }
+  return false;
+}
+
+/**
+ * **Is anything of this empire's already in a position to walk a settler out?**
+ *
+ * Two readings, and which one applies is a fact about the board rather than a
+ * choice: a settler that *exists* asks `escortWithin`, the settler arm's own
+ * question, so the chain and the piece agree about whether it may march; an
+ * empire with no settler yet asks the coarse question instead, because "is a
+ * column standing beside a piece that does not exist" has no answer. In that
+ * case any column at all is enough — an empire with a spare piece does not have
+ * to *raise* an escort, it has one, and sending it is `escortMarch`'s business.
+ */
+function escortAvailable(state: GameState, player: Player): boolean {
+  let any = false;
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id) continue;
+    const def = unitDef(unit.type);
+    if (def.foundsCity === true) return escortWithin(state, player, unit) !== null;
+    if (isCombatant(def) && def.category !== 'naval') any = true;
+  }
+  return any;
 }
 
 /**
@@ -843,6 +997,11 @@ function housekeeping(state: GameState, player: Player): BotDecision | null {
   const idle = projectIdleCommand(state, player);
   if (idle !== null) return idle;
 
+  // **A settler asleep beside a town it could have founded** — the audit's
+  // idle-settler finding, closed in batch 4. See `wakeIdleSettler`.
+  const rousted = wakeIdleSettler(state, player);
+  if (rousted !== null) return rousted;
+
   // **Re-aiming the beeline**, which blocks nothing and is therefore never
   // surfaced by `firstBlocker`: a plan laid in peacetime is still the plan when
   // a column arrives, and a bot that only answered blockers would research
@@ -854,6 +1013,50 @@ function housekeeping(state: GameState, player: Player): BotDecision | null {
   if (beeline !== null) return beeline;
 
   return slottingDecision(state, player);
+}
+
+/**
+ * **A settler asleep beside ground it could found on** — the audit's finding 1,
+ * second layer: *"the idle settlers under opened gates show the next layer:
+ * pieces built by value, then refused by geometry."*
+ *
+ * A settler that finds every site struck — a raider stands near each of them and
+ * nothing of ours is walking with it — stands down, and standing down is *sleep*.
+ * Sleep is right for a spade with no ground left; it is wrong for a settler,
+ * because the reason it stopped is a fact about **this turn's board** and the
+ * board moves. `wakeSleepers` reads a sleeper's own sight and wakes it on
+ * something new coming into view, so a raider that simply *leaves* wakes nobody:
+ * the measured case is a settler asleep on the same hex from turn 38 to turn 76,
+ * four hexes from a legal site, in an empire that ended the game with one town.
+ *
+ * The fix is the seam the rules already provide — **an order is a waking**
+ * (`orderedUnitId` clears `sleeping` in `applyCommand`) — so this asks the
+ * settler's own arm what it would do if it were awake, and sends that. It fires
+ * only when the answer is a march or a founding, never when the answer is to
+ * sleep again, which is what keeps the driver's loop finite: every decision this
+ * returns clears a `sleeping` bit that nothing in a turn sets, and there are
+ * finitely many settlers.
+ *
+ * It is `housekeeping`'s and not a blocker's for the reason `projectIdleCommand`
+ * is: a sleeping piece raises no `idleUnit`, so `firstBlocker` structurally
+ * cannot see it.
+ */
+function wakeIdleSettler(state: GameState, player: Player): BotDecision | null {
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id || unit.sleeping !== true) continue;
+    if (unitDef(unit.type).foundsCity !== true) continue;
+    const choice = settlerCommand(state, player, unit);
+    if (choice === null || choice.command.type === 'sleepUnit') continue;
+    return {
+      kind: 'unitOrder',
+      command: choice.command,
+      subject: unitLabel(unit),
+      summary: `Rouses a sleeping settler — the board has moved. ${choice.summary}`,
+      candidates: choice.candidates,
+      focus: choice.focus ?? { col: unit.col, row: unit.row },
+    };
+  }
+  return null;
 }
 
 /**
@@ -2264,6 +2467,27 @@ function chainTerm(ctx: ValueContext, kind: 'building' | 'unit', id: string): Va
   };
 }
 
+/**
+ * The escort's share of the expansion chain, or `null` when nothing is blocked.
+ *
+ * `chainTerm`'s sibling for the one step no roster row is named by
+ * (`ESCORT_STEP`): what the chain wants is *a* soldier walking with the settler,
+ * not a particular one, so the match is on the step rather than on the piece.
+ */
+function escortChainTerm(ctx: ValueContext): ValueTerm | null {
+  const chain = ctx.expansion;
+  if (chain === null || !chain.escortNeeded) return null;
+  const step = chain.steps.find((row) => row.id === ESCORT_STEP);
+  if (step === undefined) return null;
+  return {
+    label:
+      `a step of the next town at (${chain.site.tile.col},${chain.site.tile.row}) — ` +
+      `nothing of ours would walk a settler to it — ` +
+      `one of ${chain.stepsRemaining} thing${chain.stepsRemaining === 1 ? '' : 's'} still to happen`,
+    value: expansionStepShare(chain),
+  };
+}
+
 /** One thing a town could start, appraised. See `chooseProduction`. */
 interface BuildCandidate {
   item: QueueItem;
@@ -2435,28 +2659,53 @@ function unitRoleValue(
   const def = unitDef(id);
 
   if (def.foundsCity === true) {
-    if (city.population < ai.expansion.settlerCityPop) return null;
-    if (authorityOf(state, player.id) < ai.expansion.settlerAuthorityFloor) return null;
+    // **The gate pile is gone** (batch 4 of `docs/bot-priorities.md`, the audit's
+    // inventory). `settlerCityPop` was redundant — `explainCitizen` below charges
+    // the citizen the town loses, which is the sentence the pop floor was
+    // approximating — and `settlerAuthorityFloor` is now a *price*: the chain
+    // charges the writ founding would over-spend and makes writ dear to every
+    // other arm, instead of refusing to raise the piece at all. `settlerCap`
+    // survives as the loose sanity cap the audit leaves standing.
     if (countOwnedAndQueued(state, player.id, id) >= ai.expansion.settlerCap) return null;
-    const town = explainNextTown(state, player, ctx);
     const citizen = explainCitizen(state, city, ctx);
-    return {
-      value: town.total - citizen.total,
-      essential: false,
-      terms: [
-        nest('one more town', town),
-        nest('the citizen it costs this town', citizen, 'sub'),
-      ],
-    };
+    // **The chain is the settler's value, not an addition to it** — the one place
+    // touch point (b) reads differently for a settler than for a building, and
+    // deliberately. A library has a worth of its own in the town that raises it
+    // (the yields it makes there) *besides* being a step of a chain, so its
+    // candidate folds both. A settler makes nothing anywhere: the whole of what
+    // it is worth is the town it founds, which is exactly what the chain prices —
+    // the town, discounted for the raising and the walk, less the hammers and the
+    // meters founding would spend. Folding `explainNextTown` beside it would
+    // count the town twice.
+    const chain = ctx.expansion;
+    const share = chain === null ? null : expansionStepShare(chain);
+    const terms: ValueTerm[] =
+      chain === null || share === null
+        ? [nest('one more town, with nowhere yet legal to put it', explainNextTown(state, player, ctx))]
+        : [
+            {
+              label:
+                `a step of the next town at (${chain.site.tile.col},${chain.site.tile.row}) — ` +
+                `one of ${chain.stepsRemaining} thing${chain.stepsRemaining === 1 ? '' : 's'} still to happen`,
+              value: share,
+              parts: chain.terms,
+            },
+          ];
+    terms.push(nest('the citizen it costs this town', citizen, 'sub'));
+    return { value: foldOf(terms), essential: false, terms };
   }
 
   if (isPlainBuilder(def)) {
-    const towns = countCities(state, player.id);
-    // **The cap is a safety, not the policy.** It says "this empire will not
-    // keep nine spades whatever the ground looks like"; what it no longer does
-    // is decide how badly a town wants the first one.
-    const wanted = Math.min(ai.workers.cap, Math.floor(towns * ai.workers.perCity));
-    if (countOwnedAndQueued(state, player.id, id) >= wanted) return null;
+    // **Both worker knobs are deleted** (batch 4). `workers.perCity` was a
+    // per-town quota about a question the craving already answers with evidence —
+    // the ground *this* town has waiting for a spade — and `workers.cap` went
+    // with it because the acceptance says it was never deciding anything: with
+    // the cap removed entirely, no seat in twenty-two measured games at t75 held
+    // more than two spades against a cap of six. A craving that falls to nothing
+    // as the ground is finished does not need a ceiling, which is exactly what
+    // separates a spade from a scout (`military.scoutCap` stays, and the audit
+    // says why). So this branch has no refusal at all: the craving decides.
+
     const craving = explainWorkerCraving(plan, state, city, ctx);
     return {
       value: craving.total,
@@ -2467,9 +2716,10 @@ function unitRoleValue(
 
   if (trades(def)) {
     if (countCities(state, player.id) < 2) return null;
-    const towns = countCities(state, player.id);
-    const wanted = Math.min(ai.trade.traderCap, Math.floor(towns * ai.trade.tradersPerCity));
-    if (countOwnedAndQueued(state, player.id, id) >= wanted) return null;
+    // **`trade.tradersPerCity` is deleted** (batch 4): a route's pay is priced,
+    // and a quota per town cannot see whether there is a route left worth
+    // running. `traderCap` survives as the same loose sanity cap.
+    if (countOwnedAndQueued(state, player.id, id) >= ai.trade.traderCap) return null;
     return {
       value: ai.weights.trader * ctx.goldPressure,
       essential: false,
@@ -2539,8 +2789,8 @@ function unitRoleValue(
     // Ships are a whole system this bot has no opinion about; a landlocked town
     // that queued one would build a hull it can never use.
     if (def.category === 'naval') return null;
-    const held = garrisonAt(state, player.id, city);
-    const empty = held < ai.military.garrisonPerCity;
+    const garrison = garrisonAt(state, player.id, city);
+    const empty = garrison < ai.military.garrisonPerCity;
     // **The levy, and what the seat has seen of the world** (ruled 2026-09-04).
     // Three lines, and they are three different sentences: the standing army an
     // empire this size keeps, the emergency of a column at the gate
@@ -2552,24 +2802,62 @@ function unitRoleValue(
       countCities(state, player.id) * ai.military.armyPerCity +
       ctx.threat * ai.threat.extraArmyPerThreat +
       sighted.extra;
-    if (!empty && countSoldiers(state, player.id) >= wanted) return null;
-    // The cap is feasibility rather than taste (`buildCandidates`' distinction),
-    // so it is not a term — but *why the levy is the size it is* is exactly what
-    // a reader of the feed wants, so it is printed as a zero-valued label. The
-    // fold is untouched by construction.
+    const held = countSoldiers(state, player.id);
+    // **The loose sanity cap** (batch 4, dated 2026-09-05). The hard `held >=
+    // wanted` refusal became the craving below, and a soft comparison has no
+    // ceiling of its own — a board that talked this empire into forty spears
+    // would be a regression nobody could see coming, so twice the levy stands as
+    // the bound the old gate used to be. It is feasibility rather than taste
+    // (`buildCandidates`' distinction), so it is a refusal rather than a term.
+    if (!empty && held >= 2 * wanted) return null;
+    const soldier = explainSoldier(id, ctx);
+    // **The wanted army became a value** (batch 4, the wage-aware levy). Three
+    // sentences used to end in a gate: the standing army an empire this size
+    // keeps, the emergency of a column at the gate, and the appetite that comes
+    // of having charted the wild. They still say what they said; what changed is
+    // that the answer is a *craving* rather than a door — `explainMixCraving`'s
+    // own shape one level up, and symmetric for its reason. An empire with none
+    // of its levy pays a soldier its whole worth again; one exactly at the levy
+    // pays nothing extra; one over it is charged what the surplus is worth, so
+    // the piece has to beat a granary on its own strength and loses.
+    //
+    // **Where the wage is** — the brief's *"minus a wage price (unitUpkeep ×
+    // gold's shadow price)"* — is `push`, one function down, which subtracts
+    // `explainUpkeepCost(unitUpkeep(id))` from *every* candidate at gold's live
+    // price. It is not repeated here, because a bill charged in two places is a
+    // bill this bot would disagree with itself about. What batch 4 changes is
+    // that it now decides something: with the hard gate gone, the margin between
+    // a soldier and a library is where the wage lands, and a broke empire's coin
+    // is dear (the price rides its band) exactly when it can least afford a
+    // spear.
+    // The charge is the **surplus** rather than the shortfall, which is what
+    // makes this a replacement for the gate rather than a new appetite: at an
+    // empty levy it is nothing and the piece is worth exactly what it was worth
+    // before batch 4; at the levy it charges the soldier's whole worth back, so
+    // the piece has to beat a granary on the strength of the emergency alone; and
+    // past it the charge keeps growing, so an army nobody needs prices itself out
+    // one piece at a time instead of stopping dead at a count.
+    const surplus = wanted <= 0 ? 1 : held / wanted;
     const terms: ValueTerm[] = [
-      nest('what this soldier is worth', explainSoldier(id, ctx)),
+      nest('what this soldier is worth', soldier),
       {
         label:
-          `(this empire wants ${round1(wanted)} soldier${wanted === 1 ? '' : 's'} and holds ` +
-          `${countSoldiers(state, player.id)} — ${sighted.note})`,
-        value: 0,
+          `this empire wants ${round1(wanted)} soldier${wanted === 1 ? '' : 's'} and holds ` +
+          `${held} — ${round1(surplus * 100)}% of a levy already standing (${sighted.note})`,
+        value: -soldier.total * surplus,
       },
       explainMixCraving(state, player, id, ctx),
     ];
     if (empty) {
       terms.push({ label: 'its town is standing empty', value: ai.threat.garrisonValue });
     }
+    // **The escort is a step of the expansion chain** (batch 4, the audit's
+    // idle-settler finding). A settler that will not walk because there is
+    // nothing to walk with is a town this empire is not going to have, and the
+    // piece that unblocks it is worth what the chain is worth per remaining
+    // step — the same term the settler itself folds, in the same words.
+    const escort = escortChainTerm(ctx);
+    if (escort !== null) terms.push(escort);
     return { value: foldOf(terms), essential: empty, terms };
   }
 
@@ -2690,35 +2978,6 @@ function explainMixCraving(
 }
 
 /**
- * **What the next town is worth to an empire that already holds some.**
- *
- * `weights.city × cityValueFalloff^towns`, and the falloff is the honest tall
- * lever: before it, a settler was a flat eighty-eight points for every empire on
- * every board, so "tall" could only ever be spelled as a *cap* — which says
- * *this empire does not want a sixth town at all* rather than *a sixth town is
- * worth less to this empire than a library*. Those are different sentences and
- * only the second one is a preference.
- *
- * Towns are counted uncapped (not `ctx.cities`, which is clipped at
- * `score.cityCap` for the "in every town" scalings): the fourth town's discount
- * has to keep biting at the tenth, or the falloff stops being a curve and
- * becomes a step.
- */
-export function explainNextTown(state: GameState, player: Player, ctx: ValueContext): Appraisal {
-  const held = countCities(state, player.id);
-  const falloff = ctx.ai.expansion.cityValueFalloff;
-  const terms: ValueTerm[] = [{ label: 'a town, before what this empire already holds', value: ctx.ai.weights.city }];
-  for (let index = 0; index < held; index++) {
-    terms.push({
-      label: `× ${round1(falloff)} — the ${ordinal(index + 1)} town this empire already holds`,
-      value: falloff,
-      op: 'mul',
-    });
-  }
-  return appraise(terms);
-}
-
-/**
  * **What one citizen of this town is worth** — the user's ruling, 2026-09-03:
  * *"a citizen should be valued as a science yield too. Weight a citizen based on
  * the next potential tile that can be worked, the science that citizen would
@@ -2822,14 +3081,6 @@ export function isPatientRow(item: QueueItem): boolean {
   if (def.oncePerEmpire === true) return true;
   if (def.endsTheGame === true) return true;
   return (def.onComplete ?? []).some((grant) => grant.grant === 'bead');
-}
-
-/** "first", "second", … for a term label. Falls back to the figure past three. */
-function ordinal(n: number): string {
-  if (n === 1) return 'first';
-  if (n === 2) return 'second';
-  if (n === 3) return 'third';
-  return `${n}th`;
 }
 
 /**
@@ -3025,38 +3276,54 @@ function settlerCommand(state: GameState, player: Player, unit: Unit): UnitChoic
     ],
   });
 
-  if (standing !== null && standing.legal === null) {
-    if (standing.appraisal.total >= ai.expansion.siteScoreMin) {
-      return foundHere(
-        `The ground it stands on scores ${round1(standing.appraisal.total)}, over the ` +
-          `${ai.expansion.siteScoreMin} it asks for. Founds here.`,
-      );
-    }
+  // **`siteScoreMin` is deleted** (batch 4 of `docs/bot-priorities.md`). What
+  // stood at the top of this arm was a floor in the settle table's *own* units —
+  // the audit's finding 3, a second weight table with a second threshold —
+  // deciding whether a legal site was worth a town at all. The comparison that
+  // answers that question honestly is the build arm's: a settler competes for its
+  // town's hammers against every other row, priced through the expansion chain in
+  // the one currency, and an empire that raised one has already decided the next
+  // town is worth more than the library it went without. Refusing that decision
+  // here, in different units, is how three settlers came to stand idle on the
+  // audit's board.
+  //
+  // What is left for this arm is *where*, which is what the settle table is
+  // actually for: legal ground under the piece is a **candidate** rather than a
+  // floor, `marchToSite` proposes a walk only when something in reach beats it,
+  // and founding is what "nowhere better" means.
+  const legalHere = standing !== null && standing.legal === null;
+  if (legalHere && escorted === null) {
     // **A settler does not march unescorted** (the user's notes, P3): a hostile
     // inside `war.escortRadius` and nothing of ours walking with it, and the
-    // piece stops walking. What it does instead is *found where it stands*,
-    // below the score it would have asked for — a mediocre town is worth more
-    // than a settler captured in the open, and it is the one answer that cannot
-    // oscillate, because founding is terminal.
-    if (escorted === null) {
-      const danger = nearestHostile(state, player, unit.col, unit.row, ai.war.escortRadius);
-      if (danger !== null) {
-        return foundHere(
-          `There is ${danger.what} ${danger.distance} hexes off and nothing of ours walking with it: ` +
-            `founds on ${round1(standing.appraisal.total)} ground rather than march unescorted.`,
-        );
-      }
+    // piece stops walking. What it does instead is *found where it stands* — a
+    // mediocre town is worth more than a settler captured in the open, and it is
+    // the one answer that cannot oscillate, because founding is terminal.
+    const danger = nearestHostile(state, player, unit.col, unit.row, ai.war.escortRadius);
+    if (danger !== null) {
+      return foundHere(
+        `There is ${danger.what} ${danger.distance} hexes off and nothing of ours walking with it: ` +
+          `founds on ${round1(standing!.appraisal.total)} ground rather than march unescorted.`,
+      );
     }
   }
-  const march = marchToSite(state, player, unit, held, escorted, standing?.appraisal ?? null);
+  const march = marchToSite(
+    state,
+    player,
+    unit,
+    held,
+    escorted,
+    standing?.appraisal ?? null,
+    legalHere,
+    valueContext(state, player),
+  );
   if (march !== null) return march;
-  // Nowhere better within reach: found here anyway if the rules allow it — a
-  // settler standing around forever is worth less than a mediocre town — else
-  // sleep and let the next turn's board be a different question.
-  if (standing !== null && standing.legal === null) {
+  // Nowhere better within reach: found here if the rules allow it — a settler
+  // standing around forever is worth less than a mediocre town — else sleep and
+  // let the next turn's board be a different question.
+  if (legalHere) {
     return foundHere(
-      `Nowhere better within ${ai.expansion.siteSearchRadius} hexes it can walk to; founds on ` +
-        `${round1(standing.appraisal.total)} ground anyway rather than wander.`,
+      `Nowhere within ${ai.expansion.siteSearchRadius} hexes it can walk to beats the ` +
+        `${round1(standing!.appraisal.total)} ground under it. Founds here.`,
     );
   }
   return standDown(unit, 'Nowhere legal to found and nowhere better to walk.');
@@ -3086,34 +3353,81 @@ function marchToSite(
   /** The piece walking with it, or `null`. See `escortWithin`. */
   escorted: Unit | null,
   here: Appraisal | null,
+  /**
+   * True when the rules would let the piece found where it stands, which makes
+   * `here` a **bar** rather than a printed comparison: with `siteScoreMin` gone
+   * (batch 4) the only floor a march has left is the ground already under it, and
+   * a settler that walked to worse ground than it was standing on would be a
+   * settler the old threshold happened to be stopping.
+   */
+  legalHere: boolean,
+  ctx: ValueContext,
 ): UnitChoice | null {
   const ai = aiFor(player);
   const candidates: { tile: Tile; score: number; distance: number; terms: ValueTerm[] }[] = [];
   const struck: BotCandidate[] = [];
+  // **The margin defends the ground under the piece** (principle 1 of the
+  // priority spec, and the other half of `siteScoreMin`'s replacement). A
+  // settler re-decides every turn against a map that keeps opening, so a bar set
+  // at exactly what it is standing on is a bar a newly-lit hex clears by a point
+  // — and the piece walks, and walks again, and is killed in the open having
+  // founded nothing. `priorities.switchMargin` is the same tenth the beeline
+  // defends its plan with: found here unless somewhere in reach is *clearly*
+  // better, after the road is priced.
+  // **What is being delayed is a town, not a site score** — the scale that makes
+  // the walk discount mean anything. The settle table's totals differ between two
+  // good hexes by a handful of points; a *town* is `weights.city` after the
+  // falloff, and it is the town that does not exist while the settler is walking.
+  // So both sides of the comparison carry it, and the discount then bites on the
+  // whole of what is being put off rather than on the part of it that varies. It
+  // is the same reading `explainSite` has always been a modifier to.
+  const townWorth = explainNextTown(state, player, ctx).total;
+  // **The margin defends the ground under the piece** (principle 1 of the
+  // priority spec, and the other half of `siteScoreMin`'s replacement). A
+  // settler re-decides every turn against a map that keeps opening, so a bar set
+  // at exactly what it is standing on is a bar a newly-lit hex clears by a point
+  // — and the piece walks, and walks again, and is killed in the open having
+  // founded nothing. `priorities.switchMargin` is the same tenth the beeline
+  // defends its plan with: found here unless somewhere in reach is *clearly*
+  // better, after the road is priced.
+  const bar = legalHere
+    ? (townWorth + (here?.total ?? 0)) * ctx.ai.priorities.switchMargin
+    : -Infinity;
+  const stride = Math.max(1, unitDef(unit.type).movement);
   const from = tileHex(getTileAt(state.map, unit.col, unit.row) ?? state.map.tiles[0]!);
   for (const tile of mapRange(state.map, from, ai.expansion.siteSearchRadius)) {
     if (tile.col === unit.col && tile.row === unit.row) continue;
     if (foundingErrorAt(state, player.id, tile) !== null) continue;
     const appraisal = explainSite(state, held, ai, tile);
-    if (appraisal.total < ai.expansion.siteScoreMin) continue;
+    const distance = wrappedDistance(state.map, from, tileHex(tile));
+    // **The road is part of the price** (batch 4, in `siteScoreMin`'s place). A
+    // site three turns' walk away has to be *worth* the three turns: the same
+    // `delayDiscount` every other promise in this bot is discounted by, in the
+    // settle table's own units, against the undiscounted ground already under
+    // the piece. Without it the deleted floor left a settler walking to the best
+    // hex in eight rings for a point of ground, which is how a capital came to be
+    // founded on turn six instead of turn one.
+    const walk = delayTerm(
+      Math.ceil(distance / stride),
+      ctx,
+      'the settler has still to walk there',
+    );
+    const scored: ValueTerm[] = [townTerm(townWorth), ...appraisal.terms, walk];
+    const score = (townWorth + appraisal.total) * walk.value;
+    if (score <= bar) continue;
     if (escorted === null) {
       const danger = nearestHostile(state, player, tile.col, tile.row, ai.war.escortRadius);
       if (danger !== null) {
         struck.push(
           refused(
-            `(${tile.col},${tile.row}), scoring ${round1(appraisal.total)}`,
+            `(${tile.col},${tile.row}), scoring ${round1(score)}`,
             `${danger.what} stands ${danger.distance} hexes from it and nothing of ours is walking with this settler`,
           ),
         );
         continue;
       }
     }
-    candidates.push({
-      tile,
-      score: appraisal.total,
-      distance: wrappedDistance(state.map, from, tileHex(tile)),
-      terms: appraisal.terms,
-    });
+    candidates.push({ tile, score, distance, terms: scored });
   }
   // Best first, nearest on a tie, then map order — all three are facts about the
   // board rather than about the order a loop happened to visit hexes in.
@@ -3123,9 +3437,9 @@ function marchToSite(
   const rows: BotCandidate[] = [
     {
       label: `stay and found here (${unit.col},${unit.row})`,
-      score: hereScore,
+      score: townWorth + hereScore,
       chosen: false,
-      terms: here?.terms ?? [],
+      terms: [townTerm(townWorth), ...(here?.terms ?? [])],
     },
     // The sites the escort rule struck out, at most a handful of them so a
     // reader sees the rule bite without reading a hundred rows of it.
@@ -3147,13 +3461,25 @@ function marchToSite(
       },
       summary:
         `Marches ${candidate.distance} hexes to (${candidate.tile.col},${candidate.tile.row}), which scores ` +
-        `${round1(candidate.score)} against ${round1(hereScore)} where it stands. ` +
+        `${round1(candidate.score)} against ${round1(townWorth + hereScore)} where it stands. ` +
         `${candidates.length} legal sites in range; the ${ai.search.pathProbes} best were asked for a route.`,
       candidates: rows,
       focus: { col: candidate.tile.col, row: candidate.tile.row },
     };
   }
   return null;
+}
+
+/**
+ * **The town itself, on both sides of a settler's comparison** — a printed term
+ * so the fold and the score are the same number (`decision.ts`' contract).
+ *
+ * It is the same figure for every hex in the table, and it is there precisely so
+ * that the walk discount multiplies something the right size: see the bar in
+ * `marchToSite`.
+ */
+function townTerm(worth: number): ValueTerm {
+  return { label: 'a town, before the ground it would stand on', value: worth };
 }
 
 /**

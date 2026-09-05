@@ -15,10 +15,7 @@
   },
   "expansion": {
     "settlerCap": 5,
-    "settlerCityPop": 3,
-    "settlerAuthorityFloor": 1,
     "siteSearchRadius": 8,
-    "siteScoreMin": 14,
     "cityValueFalloff": 0.9
   },
   "site": {
@@ -38,8 +35,6 @@
     }
   },
   "workers": {
-    "perCity": 1,
-    "cap": 6,
     "searchRadius": 6,
     "improvements": [
       "farm",
@@ -103,7 +98,6 @@
     "luxuryGptBaseline": 5
   },
   "trade": {
-    "tradersPerCity": 1,
     "traderCap": 4
   },
   "weights": {
@@ -234,17 +228,11 @@
       },
       "expansion": {
         "settlerCap": 9,
-        "settlerCityPop": 2,
-        "siteScoreMin": 11,
         "cityValueFalloff": 1
       },
       "weights": {
         "city": 150,
         "worker": 90
-      },
-      "workers": {
-        "cap": 9,
-        "perCity": 1
       },
       "growth": {
         "smallCityPop": 6,
@@ -259,8 +247,6 @@
       },
       "expansion": {
         "settlerCap": 2,
-        "settlerCityPop": 5,
-        "siteScoreMin": 22,
         "cityValueFalloff": 0.6
       },
       "weights": {
@@ -278,8 +264,6 @@
         "smallCityPremium": 16
       },
       "workers": {
-        "cap": 8,
-        "perCity": 2,
         "planTopN": 6
       }
     },
@@ -337,8 +321,7 @@
         "sightedArmyCap": 6
       },
       "expansion": {
-        "settlerCap": 6,
-        "siteScoreMin": 12
+        "settlerCap": 6
       }
     }
   }

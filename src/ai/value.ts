@@ -64,7 +64,7 @@ import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
 import type { WantBook } from './wants';
 // Type-only for the same reason: `chain.ts` reads this module's folds at
 // runtime, and this module only needs to *name* the chains its context carries.
-import type { TechChain } from './chain';
+import type { ExpansionChain, TechChain } from './chain';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { cityYields } from '../sim/cities';
@@ -191,17 +191,22 @@ export interface ValueContext {
    * the multiplication is not taken twice — which is why nothing below
    * multiplies a gold term by the pressure any more.
    *
-   * The other four voices are unpriced in batch 1 and read the table exactly as
-   * before (`voiceWeight`); constraints — authority, happiness, hammers — are
-   * batch 4's, with the same shape.
+   * **The two constraints join them in batch 4** — `authority` and `happiness`,
+   * read through `meterWeight` rather than `voiceWeight` because a meter is not
+   * a yield: it is a *capacity*, and a point of it is only dear while something
+   * this empire wants is over-spending it. See `meterPrices` in `wants.ts`.
+   *
+   * The four remaining voices read the table exactly as before (`voiceWeight`).
+   * **Hammers are deliberately not among them**, and that is batch 4's one
+   * written-down non-delivery: see `chain.ts`' note on what a hammer costs.
    */
-  prices: { gold: number; faith: number };
+  prices: { gold: number; faith: number; authority: number; happiness: number };
   /**
    * Why each price reads what it does — "faith is dear: the first religion is
    * worth 600 for 120 faith". Printed beside every priced term, and a **label**
    * like `pressureNote`: it changes no fold, so no pin moves.
    */
-  priceNotes: { gold: string; faith: string };
+  priceNotes: { gold: string; faith: string; authority: string; happiness: string };
   /**
    * **The book the prices were read off** — every want this empire has in
    * either bank, ranked by nothing and priced by everything (`wants.ts`).
@@ -216,6 +221,21 @@ export interface ValueContext {
    * one honest pass is what batch 1 ships. See `valueContext` in `bot.ts`.
    */
   wants: WantBook;
+  /**
+   * **The expansion chain** (`expansionChain`, `chain.ts`) — the next town this
+   * empire would found, priced as a chain: the settler it has still to raise,
+   * the walk to the site, the writ and the contentment founding would spend.
+   *
+   * `null` when there is nowhere legal to found inside the search radius, which
+   * is an empire with no expansion chain rather than one with a worthless one.
+   *
+   * It rides on the context for `wants`' reason exactly — it is built once per
+   * decision, and the two arms that read it (the settler candidate and the
+   * escort soldier) would otherwise each walk the map for it. It is also what
+   * the two **constraint prices** are read off, which is why it is built before
+   * them and appraised, like the book, at the prior.
+   */
+  expansion: ExpansionChain | null;
   /**
    * **Every tech chain this empire is executing** (`liveChains`, `chain.ts`) —
    * the research goal it is aiming at, and one per technology it holds whose
@@ -370,6 +390,66 @@ export function voiceWeight(ctx: ValueContext, voice: Voice): number {
   return yieldWeight(ctx.ai, voice, ctx.age);
 }
 
+/** The two meters the priority system prices. `MeterId`'s reading, locally. */
+export type PricedMeter = 'authority' | 'happiness';
+
+/**
+ * **What one point of a meter is worth to this seat right now** — `voiceWeight`'s
+ * sibling for the two *constraints* (batch 4 of `docs/bot-priorities.md`), and the
+ * single door every fold that used to read `weights.authority` or
+ * `weights.happiness` now walks through.
+ *
+ * A meter is not a yield and the difference is the whole reason this is a second
+ * function rather than two more members of `Voice`. A coin is a **stock** that
+ * arrives at a rate and is spent on rows in a book; a point of writ is a
+ * **capacity** that does not arrive at all — it lands when a building, an age, a
+ * card or a seam supplies it, and until then an empire that is short of it is
+ * simply short. So the price is not read off a rate of arrival: it is read off
+ * what the hungriest thing blocked on the meter would pay for one more point
+ * (`meterPrices`, `wants.ts`).
+ *
+ * The floor of the band is different for the same reason, and it is stated in
+ * `meterPrices`: a bank with nothing to buy is worth its floor, but headroom on a
+ * meter is a standing tier bonus nobody can revoke, so a constraint is never
+ * worth *less* than the table says.
+ */
+export function meterWeight(ctx: ValueContext, meter: PricedMeter): number {
+  return meter === 'authority' ? ctx.prices.authority : ctx.prices.happiness;
+}
+
+/** What a meter was multiplied by, and why — a label; it changes no fold. */
+export function meterWords(ctx: ValueContext, meter: PricedMeter): string {
+  const note = ctx.priceNotes[meter];
+  return `${round(meterWeight(ctx, meter))} the ${meter} price` + (note === '' ? '' : ` (${note})`);
+}
+
+/**
+ * **What a one-time call on a meter is worth**, priced at that meter's live
+ * price — `explainLump`'s shape one constraint over.
+ *
+ * There is no `÷ lumpTurns` here and that is the difference between the two: a
+ * point of writ over-spent is not a gift paid once, it is a point of capacity
+ * gone for as long as the town stands. `weights.authority` and
+ * `weights.happiness` are already stated as *stocks* (what one point of the meter
+ * is worth), which is why every reader of them — a building's `authorityCapacity`
+ * line, a card's `authority` grant — multiplies and does not divide.
+ */
+export function explainMeterCall(
+  bag: Partial<Record<PricedMeter, number>>,
+  ctx: ValueContext,
+): Appraisal {
+  const terms: ValueTerm[] = [];
+  for (const meter of ['authority', 'happiness'] as const) {
+    const amount = bag[meter];
+    if (amount === undefined || amount === 0) continue;
+    terms.push({
+      label: `${meter} ${signed(amount)} × ${meterWords(ctx, meter)}`,
+      value: amount * meterWeight(ctx, meter),
+    });
+  }
+  return appraise(terms);
+}
+
 /**
  * A bag of per-turn yields, in the one currency.
  *
@@ -508,14 +588,18 @@ export function explainBuildingRow(id: BuildingId, ctx: ValueContext): Appraisal
   const terms: ValueTerm[] = [];
   if (def.happiness !== undefined) {
     terms.push({
-      label: `${signed(def.happiness)} happiness × ${ctx.ai.weights.happiness}`,
-      value: def.happiness * ctx.ai.weights.happiness,
+      label: `${signed(def.happiness)} happiness × ${meterWords(ctx, 'happiness')}`,
+      value: def.happiness * meterWeight(ctx, 'happiness'),
     });
   }
   if (def.authorityCapacity !== undefined) {
+    // **The capacity row, at the empire's own price** (batch 4): a Palace annex
+    // in an empire whose next town is blocked on writ is worth what that town
+    // is worth per point of writ, not what the table says a point is worth in
+    // the abstract. That is the whole of the audit's authority example.
     terms.push({
-      label: `${signed(def.authorityCapacity)} authority × ${ctx.ai.weights.authority}`,
-      value: def.authorityCapacity * ctx.ai.weights.authority,
+      label: `${signed(def.authorityCapacity)} authority × ${meterWords(ctx, 'authority')}`,
+      value: def.authorityCapacity * meterWeight(ctx, 'authority'),
     });
   }
   if (def.cityStat !== undefined) {
@@ -697,12 +781,15 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // Priced by `explainCounted`, which `explainEffects` calls directly — this
       // arm is the fallback for a caller that only wants the number.
       return explainCounted(effect, ctx).total;
+    // The three constraint arms read the **live** meter price (batch 4), so a
+    // card that supplies writ is worth more to an empire whose next town is
+    // blocked on writ than to one with capacity to spare.
     case 'happiness':
-      return effect.amount * ctx.ai.weights.happiness * (effect.per === 'city' ? ctx.cities : 1);
+      return effect.amount * meterWeight(ctx, 'happiness') * (effect.per === 'city' ? ctx.cities : 1);
     case 'authority':
-      return effect.amount * ctx.ai.weights.authority * (effect.per === 'city' ? ctx.cities : 1);
+      return effect.amount * meterWeight(ctx, 'authority') * (effect.per === 'city' ? ctx.cities : 1);
     case 'happinessTierBoost':
-      return effect.points * ctx.ai.weights.happiness;
+      return effect.points * meterWeight(ctx, 'happiness');
     case 'combatLine':
       return effect.amount * ctx.ai.weights.military * (1 + ctx.threat);
     case 'unitStat':
@@ -959,9 +1046,9 @@ function scorePayout(pays: PayoutShape, ctx: ValueContext): number {
       return valueOfYields(bag, ctx);
     }
     case 'happiness':
-      return pays.amount * ctx.ai.weights.happiness;
+      return pays.amount * meterWeight(ctx, 'happiness');
     case 'authority':
-      return pays.amount * ctx.ai.weights.authority;
+      return pays.amount * meterWeight(ctx, 'authority');
     case 'percent':
       return voiceWeight(ctx, pays.yield as Voice) * (pays.percent / 100) * ctx.ai.score.nominalYield;
     default:

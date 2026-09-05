@@ -78,11 +78,19 @@
  *   · **"Legal but for the price."** The simulation has one gate and it asks
  *     about the bank last, so a want beyond the purse comes back as a refusal
  *     rather than as a price — see `outOfReachFor`.
+ *
+ * **Batch 4 adds the constraints** (`meterPrices`, at the foot of the file), and
+ * they are priced by the same formula around a different reading: what is short
+ * of authority or of happiness is not a row in a book but a *chain*, and the
+ * quotient that stands in for "worth per coin" is the expansion chain's payoff
+ * over the points founding would over-spend. Everything else — the band, the
+ * prior, the clamp, the printed note — is the shape above, said once more.
  */
 
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
-import { chainCompression, chainStepFor } from './chain';
+import { type ExpansionChain, chainCompression, chainStepFor } from './chain';
 import {
+  type PricedMeter,
   type ValueContext,
   type YieldBag,
   VOICES,
@@ -112,7 +120,14 @@ import { techDef } from '../sim/techData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
 import { buildingUpkeep } from '../sim/upkeep';
 
-/** The two banks batch 1 prices. Constraints (authority, happiness) are batch 4. */
+/**
+ * The two **banks** the book prices. The two *constraints* — authority and
+ * happiness — are priced by `meterPrices` at the foot of this file rather than
+ * by a want book, and the difference is not an omission: a bank is a stock that
+ * arrives at a rate and is spent on rows the simulation will sell you, so it has
+ * a book; a meter is a capacity nothing accrues, so what prices it is the one
+ * thing in the bot that is short of it. See `meterPrices`.
+ */
 export type WantCurrency = 'gold' | 'faith';
 
 /**
@@ -686,6 +701,84 @@ export interface ShadowPrices {
   gold: number;
   faith: number;
   notes: { gold: string; faith: string };
+}
+
+/** The two constraints' prices, and their sentences. See `meterPrices`. */
+export interface MeterPrices {
+  authority: number;
+  happiness: number;
+  notes: { authority: string; happiness: string };
+}
+
+/**
+ * **What a point of writ and a point of contentment are worth to this empire** —
+ * the constraint half of the price vocabulary (batch 4 of
+ * `docs/bot-priorities.md`), read off exactly the same formula the two banks are:
+ *
+ *     price(m) = clamp( max(prior, worth-per-point of the hungriest blocked chain),
+ *                       prior × priceBandLow, prior × priceBandHigh )
+ *
+ * with `prior(m) = weights[m]`, the table's own statement about the meter.
+ *
+ * **The `max(prior, …)` is the one deliberate difference from a bank**, and it is
+ * the difference between a stock and a capacity. An empire with nothing left to
+ * buy prices a coin at the band's *floor*, and rightly: a coin nobody has a use
+ * for is worth little. Headroom on a meter is not like that — it is a standing
+ * tier bonus (`tierPercent`, ±10/20% of every town's production, science and
+ * culture) that no empty want book can revoke, and halving what the designer said
+ * a point of writ was worth because nothing happens to be blocked on it this turn
+ * would be a price arguing with a fact. So a constraint's band only ever ratchets
+ * *up*, and `priceBandLow` is unreachable for the two meters by construction.
+ *
+ * **The hungriest blocked chain** is, today, the expansion chain and only it: the
+ * one thing in this bot that names a number of meter points it is short of
+ * (`ExpansionChain.short`) and a worth those points would unlock
+ * (`ExpansionChain.payoff`, the town before its invests). Worth per point is that
+ * quotient, which is the marginal reading the spec's formula asks for — *one more
+ * point of writ buys me a third of a town* — and it is why the audit's example
+ * pins as a test: a town blocked on two points of writ against a payoff of a
+ * hundred prices writ at fifty, the ceiling clamps it to three times the table,
+ * and an authority-capacity building outbids its flat-weight self.
+ *
+ * The payoff is read **before** the chain's own constraint charge, which is not a
+ * nicety: the charge is the price times the shortfall, so reading the price off
+ * the charged worth would be a fixed point nobody asked for — batch 1's one
+ * honest pass, said again one currency over.
+ */
+export function meterPrices(chain: ExpansionChain | null, ctx: ValueContext): MeterPrices {
+  const authority = meterPrice('authority', chain, ctx);
+  const happiness = meterPrice('happiness', chain, ctx);
+  return {
+    authority: authority.price,
+    happiness: happiness.price,
+    notes: { authority: authority.note, happiness: happiness.note },
+  };
+}
+
+function meterPrice(
+  meter: PricedMeter,
+  chain: ExpansionChain | null,
+  ctx: ValueContext,
+): { price: number; note: string } {
+  const prior = ctx.ai.weights[meter];
+  const low = prior * ctx.ai.priorities.priceBandLow;
+  const high = prior * ctx.ai.priorities.priceBandHigh;
+  const short = chain === null ? 0 : chain.short[meter];
+  if (short <= 0) {
+    return {
+      price: Math.min(high, Math.max(low, prior)),
+      note: `nothing this empire wants is over-spending its ${meter}`,
+    };
+  }
+  const marginal = chain!.payoff / short;
+  const price = Math.min(high, Math.max(low, Math.max(prior, marginal)));
+  const capped = marginal > high ? ', capped by the band' : marginal < prior ? ', under the table' : '';
+  return {
+    price,
+    note:
+      `the next town is worth ${round(chain!.payoff)} and over-spends ${round(short)} ${meter}` +
+      capped,
+  };
 }
 
 /**

@@ -128,11 +128,20 @@ export interface AiConfig {
     priceBandHigh: number;
   };
   expansion: {
+    /**
+     * The loose sanity cap on settlers owned-and-queued. The audit leaves it
+     * standing where it deletes its neighbours: `cityValueFalloff` already
+     * decays what the next town is worth, and this is only here so that a board
+     * nobody foresaw cannot talk an empire into nine idle settlers.
+     */
     settlerCap: number;
-    settlerCityPop: number;
-    settlerAuthorityFloor: number;
+    /**
+     * How far a settler looks for ground, **as a bound on compute**: the
+     * expansion chain probes for the nearest legal site inside it, and the
+     * settler's own march ranks every legal hex inside it. The audit's one
+     * honest use for a cap.
+     */
     siteSearchRadius: number;
-    siteScoreMin: number;
     /**
      * **The honest tall lever.** Each town already held multiplies what the next
      * one is worth: a settler is `weights.city × falloff^towns`, so a wide
@@ -185,8 +194,6 @@ export interface AiConfig {
    * list decides nothing but a tie.
    */
   workers: {
-    perCity: number;
-    cap: number;
     searchRadius: number;
     improvements: string[];
     /** How many unclaimed plan entries near a town its craving for workers folds. */
@@ -399,7 +406,7 @@ export interface AiConfig {
     luxuryGptBaseline: number;
   };
   trade: {
-    tradersPerCity: number;
+    /** The loose sanity cap on caravans. `tradersPerCity` deleted in batch 4. */
     traderCap: number;
   };
   /**

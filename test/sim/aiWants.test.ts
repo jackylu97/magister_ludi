@@ -128,6 +128,18 @@ describe('the knobs the book replaced', () => {
       'faithReserve',
       'pantheonSpendAbove',
       'prophetSpendAbove',
+      // Batch 2's flat potential weight, and batch 3's beeline divisor.
+      'potentialWeight',
+      'costDivisor',
+      // **Batch 4's gate pile** (`docs/bot-audit.md`'s inventory table). Each is
+      // a price now: the citizen `explainCitizen` charges, the writ and the
+      // contentment the expansion chain charges, the settle table's floor
+      // replaced by the build arm's own competition, and three quotas replaced by
+      // the cravings and the route pay that already price what they were about.
+      'settlerCityPop',
+      'settlerAuthorityFloor',
+      'siteScoreMin',
+      'tradersPerCity',
     ];
     const offenders: string[] = [];
     for (const path of Object.keys(sources).sort()) {
@@ -143,6 +155,22 @@ describe('the knobs the book replaced', () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('deletes both worker quotas, and leaves the craving to decide', () => {
+    // `workers.perCity` and `workers.cap` both went in batch 4, and the second
+    // one only because the acceptance said it was never deciding anything: with
+    // the cap removed entirely, no seat in twenty-two measured t75 games held
+    // more than two spades against a ceiling of six. The pin is on the *shape* —
+    // the block that used to carry two quotas carries neither.
+    expect('cap' in AI.workers).toBe(false);
+    expect('perCity' in (AI.workers as Record<string, unknown>)).toBe(false);
+    // The three the audit leaves standing as loose sanity caps, and the one it
+    // calls an honest compute bound.
+    expect(AI.expansion.settlerCap).toBeGreaterThan(0);
+    expect(AI.trade.traderCap).toBeGreaterThan(0);
+    expect(AI.military.scoutCap).toBeGreaterThan(0);
+    expect(AI.expansion.siteSearchRadius).toBeGreaterThan(0);
   });
 
   it('leaves the sized wage cover standing, because a floor is a fact', () => {

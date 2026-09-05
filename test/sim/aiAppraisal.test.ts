@@ -69,7 +69,7 @@ import {
   foldTerms,
 } from '../../src/ai/decision';
 import { type PlanEntry, buildImprovementPlan, rankWorkSites } from '../../src/ai/plan';
-import { delayTerm, explainCounted } from '../../src/ai/value';
+import { delayTerm, explainBuildingRow, explainCounted } from '../../src/ai/value';
 import aiJson from '../../data/ai.json';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
@@ -730,10 +730,22 @@ describe('the wanted army reads what the seat has sighted', () => {
     return decision!.candidates.find((row) => row.label === 'Warrior') ?? null;
   }
 
-  it('wants no more soldiers than the standing levy in a quiet world', () => {
+  /**
+   * **Re-aimed 2026-09-05, batch 4 of `docs/bot-priorities.md`.** These two used
+   * to assert `toBeNull()` — the levy was a *gate*, and an army at its size
+   * refused the candidate outright. The wage-aware levy replaced the gate with a
+   * comparison, so the row is now present and *charged*: the surplus already
+   * standing takes the soldier's own worth back off it, and what the assertion
+   * checks is the charge rather than the absence.
+   */
+  it('charges a soldier the levy it already has, in a quiet world', () => {
     // Two towns' worth of levy for one town is exactly what is standing, so the
-    // candidate is not merely cheap — the empire does not want one at all.
-    expect(soldierRow(levy([]))).toBeNull();
+    // whole of the piece's worth is charged back and it is worth nothing at all.
+    const row = soldierRow(levy([]));
+    expect(row).not.toBeNull();
+    expect(labelsOf(row!.terms)).toMatch(/100% of a levy already standing/);
+    expect(row!.score).toBeLessThanOrEqual(0);
+    expect(foldTerms(row!.terms)).toBe(row!.score);
   });
 
   it('wants one more once a camp near the town has been charted', () => {
@@ -750,7 +762,12 @@ describe('the wanted army reads what the seat has sighted', () => {
     // hexes off, on ground no piece and no town of this empire has ever lit.
     const dark = levy([[18, 11]]);
     expect(isExploredBy(dark, 0, 18, 11)).toBe(false);
-    expect(soldierRow(dark)).toBeNull();
+    // The charge is the *unsighted* levy's — a full one, exactly as the quiet
+    // world's above, and strictly heavier than the charge the same camp in
+    // sight would earn (the next assertion is that comparison, made by hand).
+    const row = soldierRow(dark)!;
+    expect(labelsOf(row.terms)).toMatch(/0 camps charted and 0 hostile pieces in sight/);
+    expect(row.score).toBeLessThan(soldierRow(levy([[5, 7]]))!.score);
     // And the omniscient reading would have counted it: the camp is on the
     // board, it is simply not on this seat's map.
     expect(dark.camps).toHaveLength(1);
@@ -1398,5 +1415,213 @@ describe('the tech chain', () => {
     // And the score is still the fold of the terms, margin included.
     expect(foldTerms(row.terms)).toBe(row.score);
     expect(foldTerms(row.terms.slice(0, -1)) * term.value).toBeCloseTo(row.score, 10);
+  });
+});
+
+// --- 10. the expansion chain and the constraint prices -----------------------
+
+/**
+ * **Batch 4 of `docs/bot-priorities.md`** — the expansion chain, the two
+ * constraint prices, and the levy that became a comparison.
+ *
+ * Every claim is made about *one board somebody arranged*, for this file's own
+ * stated reason. The two arrangements the section needs are one town (an empire
+ * with writ to spare) and two towns (an empire whose third would over-spend it):
+ * the palace supplies four points of writ, a capital costs nothing, and every
+ * further town costs three — so a second town leaves one point standing and a
+ * third asks for three, which is a shortfall of exactly two that no reading has
+ * to be tuned to produce.
+ */
+describe('the expansion chain', () => {
+  /** Towns on the bench, in a row, with room to found more inside the radius. */
+  function settled(towns: number): GameState {
+    const state = bench(1, { width: 30, height: 16 });
+    // Past `military.scoutEarlyTurns`, so the opening book (`openingScout`) does
+    // not answer the town before anything is weighed.
+    state.turn = 50;
+    for (let index = 0; index < towns; index++) {
+      const city = foundCityAt(state, 0, at(state.map, 3 + index * 5, 6));
+      city.population = 4;
+      refreshCityDerived(state, city);
+    }
+    recomputeAllVisibility(state);
+    return state;
+  }
+
+  it('folds its worth out of its own printed terms, exactly', () => {
+    const state = settled(1);
+    const chain = valueContext(state, seat(state, 0)).expansion;
+    expect(chain).not.toBeNull();
+    expect(foldTerms(chain!.terms)).toBe(chain!.worth);
+    // The site is a legal one the simulation itself would accept, and the walk
+    // is what the chain is discounted for.
+    expect(chain!.site.distance).toBeGreaterThan(0);
+    expect(labelsOf(chain!.terms)).toMatch(/one more town, at \(\d+,\d+\)/);
+    expect(labelsOf(chain!.terms)).toMatch(/the settler has still to walk to the ground/);
+  });
+
+  it('is the settler candidate’s whole value — a step of the next town', () => {
+    const state = settled(1);
+    const player = seat(state, 0);
+    const chain = valueContext(state, player).expansion!;
+    const decision = decisionOfType(state, 0, 'setCityProduction');
+    expect(decision).not.toBeNull();
+    const row = decision!.candidates.find((entry) => entry.label === 'Settler')!;
+    expect(row).toBeDefined();
+    // The chain's share, and *not* a second reading of what a town is worth: a
+    // settler makes nothing anywhere, so folding `explainNextTown` beside the
+    // chain would count the town twice. See `unitRoleValue`.
+    const step = findTerm(row.terms, /a step of the next town at \(\d+,\d+\)/);
+    expect(step).not.toBeNull();
+    expect(step!.value).toBeCloseTo(chain.worth / chain.stepsRemaining, 6);
+    expect(labelsOf(row.terms)).toMatch(/the citizen it costs this town/);
+    expect(foldTerms(row.terms)).toBe(row.score);
+  });
+
+  it('drops the settler step by construction once one is already walking', () => {
+    // The sunk-cost story, in the shape `techChain` tells it: a piece already
+    // raised owes no hammers and is no longer a thing that has to happen, so the
+    // chain has nothing left for a second town to raise.
+    const state = settled(1);
+    const before = valueContext(state, seat(state, 0)).expansion!;
+    expect(before.stepsRemaining).toBe(1);
+    expect(before.hammers).toBeGreaterThan(0);
+    createUnit(state, 0, 'settler', 4, 8);
+    recomputeAllVisibility(state);
+    const after = valueContext(state, seat(state, 0)).expansion!;
+    expect(after.stepsRemaining).toBe(0);
+    expect(after.hammers).toBe(0);
+  });
+});
+
+describe('the constraint prices', () => {
+  function settled(towns: number): GameState {
+    const state = bench(1, { width: 30, height: 16 });
+    // Past `military.scoutEarlyTurns`, so the opening book (`openingScout`) does
+    // not answer the town before anything is weighed.
+    state.turn = 50;
+    for (let index = 0; index < towns; index++) {
+      const city = foundCityAt(state, 0, at(state.map, 3 + index * 5, 6));
+      city.population = 4;
+      refreshCityDerived(state, city);
+    }
+    recomputeAllVisibility(state);
+    return state;
+  }
+
+  it('sits at the table’s own figure while nothing is over-spending the writ', () => {
+    // One town: the palace's four points against a capital that costs nothing,
+    // so a second town's three are covered and the meter is nobody's constraint.
+    const ctx = valueContext(settled(1), seat(settled(1), 0));
+    expect(ctx.expansion!.short.authority).toBe(0);
+    expect(ctx.prices.authority).toBe(aiJson.weights.authority);
+    expect(ctx.priceNotes.authority).toMatch(/nothing this empire wants is over-spending/);
+  });
+
+  it('rides its ceiling when the next town would over-spend it', () => {
+    const state = settled(2);
+    const ctx = valueContext(state, seat(state, 0));
+    // Four from the palace, three for the second town: one point standing and
+    // three asked for.
+    expect(ctx.expansion!.short.authority).toBe(2);
+    expect(ctx.prices.authority).toBe(
+      aiJson.weights.authority * aiJson.priorities.priceBandHigh,
+    );
+    expect(ctx.priceNotes.authority).toMatch(/over-spends 2 authority, capped by the band/);
+  });
+
+  it('lets a capacity building outbid its own flat-weight self', () => {
+    // The audit's example, pinned: the same row, the same board, appraised once
+    // at the table's figure and once at the price the blocked chain sets.
+    const state = settled(2);
+    const blocked = valueContext(state, seat(state, 0));
+    const flat = { ...blocked, prices: { ...blocked.prices, authority: aiJson.weights.authority } };
+    const capacity = BUILDING_IDS.find(
+      (id) => (buildingDef(id).authorityCapacity ?? 0) > 0 && buildingDef(id).wonder !== true,
+    )!;
+    expect(explainBuildingRow(capacity, blocked).total).toBeGreaterThan(
+      explainBuildingRow(capacity, flat).total,
+    );
+    const line = findTerm(explainBuildingRow(capacity, blocked).terms, /authority × /);
+    expect(line!.value).toBe(
+      (buildingDef(capacity).authorityCapacity ?? 0) * blocked.prices.authority,
+    );
+  });
+
+  it('never leaves its band, on either meter, at any width of empire', () => {
+    // The band is the damping, and it is the reason a price is a dial the board
+    // turns rather than a number the board writes. Walked across every width the
+    // bench can hold, because the shortfall grows with each town.
+    for (let towns = 1; towns <= 5; towns++) {
+      const state = settled(towns);
+      const ctx = valueContext(state, seat(state, 0));
+      for (const meter of ['authority', 'happiness'] as const) {
+        expect(ctx.prices[meter]).toBeGreaterThanOrEqual(
+          aiJson.weights[meter] * aiJson.priorities.priceBandLow,
+        );
+        expect(ctx.prices[meter]).toBeLessThanOrEqual(
+          aiJson.weights[meter] * aiJson.priorities.priceBandHigh,
+        );
+      }
+    }
+  });
+});
+
+describe('the wage-aware levy', () => {
+  /**
+   * One town, a levy's worth of soldiers standing in it, and a treasury the test
+   * sets by hand. Turn 50 puts the board past `military.scoutEarlyTurns` so the
+   * opening book does not answer the town before anything is weighed.
+   */
+  function levied(soldiers: number, gold: number): GameState {
+    const state = bench(1);
+    state.turn = 50;
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    city.population = 5;
+    refreshCityDerived(state, city);
+    for (let index = 0; index < soldiers; index++) {
+      const piece = createUnit(state, 0, 'warrior', city.col, city.row + index);
+      piece.fortifiedTurns = 0;
+    }
+    seat(state, 0).gold = gold;
+    recomputeAllVisibility(state);
+    return state;
+  }
+
+  function warrior(state: GameState): BotCandidate {
+    const decision = decisionOfType(state, 0, 'setCityProduction');
+    expect(decision).not.toBeNull();
+    return decision!.candidates.find((row) => row.label === 'Warrior')!;
+  }
+
+  it('replaced the count with a comparison — the row is there, and charged', () => {
+    // The gate used to answer `null` at the levy. It is a term now, so the row
+    // stands in the table and a reader can see what it was charged.
+    const row = warrior(levied(2, 200));
+    expect(row).toBeDefined();
+    expect(labelsOf(row.terms)).toMatch(/wants \d[\d.]* soldiers? and holds 2 — 100% of a levy already standing/);
+    expect(foldTerms(row.terms)).toBe(row.score);
+  });
+
+  it('wants fewer spears when the treasury is broke than when it is not', () => {
+    // The wage is charged at gold's shadow price, once, in `push` — so the same
+    // piece on the same board costs a bleeding empire more than a solvent one.
+    const rich = warrior(levied(1, 400));
+    const broke = warrior(levied(1, 0));
+    expect(broke.score).toBeLessThan(rich.score);
+  });
+
+  it('wants more of them when a column is at the gate', () => {
+    const quiet = levied(1, 200);
+    const besieged = levied(1, 200);
+    createUnit(besieged, 1, 'warrior', 6, 5);
+    recomputeAllVisibility(besieged);
+    expect(warrior(besieged).score).toBeGreaterThan(warrior(quiet).score);
+  });
+
+  it('keeps the empty town’s garrison essential — a fact, not a price', () => {
+    // No purse, so the spend arm cannot buy the garrison out from under the pin.
+    const row = warrior(levied(0, 0));
+    expect(labelsOf(row.terms)).toMatch(/its town is standing empty/);
   });
 });

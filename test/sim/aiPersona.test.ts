@@ -137,6 +137,59 @@ describe('the persona sheet', () => {
     expect(aiConfigFor('tall').weights.food.length).toBe(AI.weights.food.length);
   });
 
+  it('carries each persona’s expansion intent through the numbers batch 4 left it', () => {
+    /**
+     * **The persona fallout of the gate deletions** (batch 4 of
+     * `docs/bot-priorities.md`). Three personas used to spell how eagerly they
+     * settled with knobs that no longer exist — wide at `settlerCityPop 2` and
+     * `siteScoreMin 11`, tall at 5 and 22, the warmonger at 12 — and every one of
+     * those was a *gate*, which is a feasibility sentence rather than a
+     * preference. What carries the intent now is the two numbers that were always
+     * the preference, and this is the pin that they still say it:
+     *
+     *   · **wide** — the flat falloff and the raised city weight. Its deleted
+     *     gates said *settle sooner and on worse ground*, and that is now every
+     *     empire's default: there is no pop floor and no site floor anywhere in
+     *     the bot, so wide's distinction is that it never tires of the next town.
+     *   · **tall** — the steep falloff and the *lowered* city weight, and one
+     *     carrier batch 4 gave it that it did not have before: `weights.happiness`
+     *     at sixteen against the balanced twelve, which is what the expansion
+     *     chain charges a town founded into a deficit. Tall's *"only settle
+     *     excellent ground"* is now *"tall minds the crowding more"*, which is
+     *     the same sentence said as a price.
+     *   · **warmonger** — a raised city weight and the balanced falloff: it takes
+     *     towns, it does not court them.
+     */
+    const wide = aiConfigFor('wide');
+    const tall = aiConfigFor('tall');
+    const warmonger = aiConfigFor('warmonger');
+    expect(wide.expansion.cityValueFalloff).toBe(1);
+    expect(wide.weights.city).toBeGreaterThan(AI.weights.city);
+    expect(tall.expansion.cityValueFalloff).toBeLessThan(AI.expansion.cityValueFalloff);
+    expect(tall.weights.city).toBeLessThan(AI.weights.city);
+    // The new carrier: a town founded into a deficit costs a tall empire more.
+    expect(tall.weights.happiness).toBeGreaterThan(AI.weights.happiness);
+    expect(warmonger.weights.city).toBeGreaterThan(AI.weights.city);
+    expect(warmonger.expansion.cityValueFalloff).toBe(AI.expansion.cityValueFalloff);
+    // And the deleted knobs are gone from every sheet, not merely from the base.
+    for (const id of PERSONA_IDS) {
+      const expansion = aiConfigFor(id).expansion as unknown as Record<string, unknown>;
+      expect({ persona: id, gates: Object.keys(expansion).sort() }).toEqual({
+        persona: id,
+        gates: ['cityValueFalloff', 'settlerCap', 'siteSearchRadius'],
+      });
+    }
+  });
+
+  /**
+   * **The behavioural half is deliberately not here.** *"Wide out-expands tall
+   * over forty driven turns"* is a claim about a trajectory, and a forty-turn
+   * driven game is slow **by kind** (CLAUDE.md: multi-decade pacing sims) however
+   * quick it happens to run — it belongs in `<concern>.slow.test.ts` and batch 4
+   * was told to leave the slow tier alone. What stands in its place is the pin
+   * above: the two numbers each persona's intent now rides on, asserted directly.
+   */
+
   it('lets two seats appraise differently in the same turn', () => {
     // The whole reason the configuration rides in `ValueContext`. One board, one
     // turn, two seats — and the appraisals differ because the *seats* differ,

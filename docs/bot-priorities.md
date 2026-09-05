@@ -331,3 +331,215 @@ then carry a negative term, which is honest (a town has better things to build)
 and is what makes the margin abandon a bad plan. The contribution arm's new
 ranking was never exercised in any measured game: nothing on these boards took a
 contribution before t75.
+
+## Batch 4 as shipped (the constraint prices and the gate deletions, 2026-09-05)
+
+**The expansion chain** (`expansionChain`, `chain.ts`, beside `techChain`):
+
+```
+expansionChain(state, player, ctx, probe, settler) → {
+  site, settler, hammers, buildDelay, walkDelay, delay,
+  short: { authority, happiness }, payoff,
+  steps, stepsRemaining, escortNeeded, worth, terms }
+```
+
+- `worth === foldTerms(terms)`, exactly, like every other appraisal.
+- `terms` = one more town (`explainNextTown`, moved into `chain.ts` and
+  re-exported from `bot.ts`) **plus the engines it would join**
+  (`townChainShare`) × the **walk** discount, **less** the meter points founding
+  would over-spend. The site's own `explainSite` total and the settler's hammers
+  are printed as **zero-valued labels**, each for a stated reason.
+- **The settler candidate's whole value is the chain's share**, not a term added
+  to `explainNextTown` — the one place touch point (b) reads differently for a
+  settler than for a building, and deliberately: a library has a worth of its own
+  in the town that raises it, a settler makes nothing anywhere, so folding the
+  town beside the chain would count it twice.
+- **`townChainShare` is the missing half of batch 3.** A tech chain's building
+  step is owed by the towns that lack the row and every one of them folds
+  `worth ÷ stepsRemaining` when it raises it; a town this empire does not have
+  can raise nothing. Founding one adds a raising to every live chain at
+  `step.value ÷ step.towns` less one copy's stones. This is the term that
+  actually heals the regression — the chains are built **before** the expansion
+  chain in `valueContext` so that it can see them.
+- **A realised step drops out by construction**: a settler already walking owes
+  no hammers and is no step, so `stepsRemaining` is 0 and no town wants a second.
+  The escort is a step only once a settler is standing and refusing to walk —
+  before that there is nothing to escort, and two steps would halve the share and
+  could leave an empire building neither.
+- **The walk is discounted and the raising is not.** `push` scores a build
+  candidate `value ÷ turns of build effort`, which *is* the price of the raising
+  and *is* the price of its hammers; charging either again here would be the bot
+  disagreeing with itself about one wait. What `push` cannot see is the road after
+  the piece exists.
+
+**The authority reading, chosen and written down.** The spec asked for a wait "if
+authority regrows". **It does not**: `explainAuthority` folds *capacities* — the
+palace, one line per age advanced, buildings' `authorityCapacity`, a seam, a card
+— less what each town costs. Nothing accrues per turn, so there is no number of
+turns to derive and a wait would be invented. What an over-spent meter is instead
+is a **cost**: the town is founded, the writ goes negative, borders freeze and the
+malus tier bites every town. The chain charges the shortfall at the meter's price
+and prints it; happiness is charged by the same clause for the same reason (a town
+founded into a deficit stifles the growth of every town already standing).
+
+**The constraint prices** (`meterPrices`, `wants.ts`), through one door
+(`meterWeight` in `value.ts`, `voiceWeight`'s sibling — every reader of
+`weights.authority` / `weights.happiness` now walks through it: a building's
+capacity and happiness lines, the three card arms, a payout's two):
+
+```
+price(m) = clamp( max(prior, chain.payoff ÷ chain.short[m]),
+                  prior × priceBandLow, prior × priceBandHigh ),  prior = weights[m]
+```
+
+The `max(prior, …)` is the one deliberate difference from a bank and it is the
+difference between a stock and a capacity: an empire with nothing to buy prices a
+coin at the band's floor, but headroom on a meter is a standing tier bonus no
+empty book can revoke, so a constraint's band only ever ratchets **up** and
+`priceBandLow` is unreachable for the two meters. The payoff is read **before**
+the chain's own charge — reading it after would be a fixed point, batch 1's one
+honest pass said once more.
+
+The audit's example is pinned: the palace supplies 4 writ, a capital costs 0, a
+further town 3 — so a two-town empire holds 1 and its third asks 3, a shortfall of
+exactly 2 that needs no tuning to produce. Authority then rides its ceiling
+(`weights.authority × priceBandHigh`) and the same capacity building appraises
+strictly higher than it does at the flat weight.
+
+**Hammers: the batch's one written-down non-delivery.** No shadow price, by the
+spec's own escape hatch, and the note is in `chain.ts`' docblock: the two cheap
+empire-level readings of hammer scarcity both answer the same number every turn
+(the share of towns with a non-empty queue is 1.0 by construction — the bot
+answers the `cityProduction` blocker every turn; median queue depth is one or two
+rows on every board), and the honest alternative is the per-town auction the brief
+rules out. A factor that is always one is a multiplication by one wearing a price.
+
+**The wage-aware levy.** The hard `held >= wanted` refusal became a printed
+**surplus charge** — `−soldier.worth × held ÷ wanted` — which is
+`explainMixCraving`'s shape one level up: nothing at an empty levy (so the piece
+is worth exactly what it was worth before this batch), the soldier's whole worth
+charged back at the levy, and more past it, so an army nobody needs prices itself
+out one piece at a time. A **loose cap at twice the levy** stands as the bound the
+gate used to be (dated 2026-09-05). The wage itself is not repeated in the branch:
+`push` already subtracts `explainUpkeepCost(unitUpkeep)` at **gold's shadow
+price** from every candidate, so a bleeding empire — whose coin rides its band —
+pays more for the same spear, and with the gate gone that margin now decides.
+Measured on the sheet: with the charge switched off (gate restored) the same three
+seeds give 8 towns and 31 buildings against 15 and 46 with it.
+
+**The gate deletions**, and what carries each intent:
+
+| Deleted | Replaced by |
+|---|---|
+| `expansion.settlerCityPop` | `explainCitizen` already charges the citizen the town loses |
+| `expansion.settlerAuthorityFloor` | the chain charges the writ founding over-spends, and makes writ dear to every other arm |
+| `expansion.siteScoreMin` | the build arm's own competition (the settler competes for hammers in the one currency); the settler's arm keeps only *where*, and the ground under the piece is the bar |
+| `workers.perCity`, `workers.cap` | the craving prices the ground; the cap was measured never to decide anything (no seat in 22 t75 games held more than 2 spades against a ceiling of 6) |
+| `trade.tradersPerCity` | route pay is priced; `traderCap` stays as the loose sanity cap |
+| `military.armyPerCity`'s gate half | the surplus charge above; the number itself stays as the levy's size |
+
+`expansion.settlerCap`, `trade.traderCap`, `military.scoutCap` stay as the audit's
+loose sanity caps; `expansion.siteSearchRadius` stays as what the audit calls the
+one honest kind of cap, a bound on compute — the chain's site probe and the
+settler's march both walk it.
+
+**Two things the deletions broke, and the two replacements that are batch 4's
+own.** Deleting `siteScoreMin` deleted the only reason a settler ever *stopped*:
+the old arm founded wherever it stood as soon as the ground cleared 14, and
+without that a settler walked to the best hex in eight rings, re-decided the next
+turn against a map that had opened further, and was killed in the open having
+founded nothing (measured: a capital founded on turn 6 instead of turn 1, and a
+seat that ended a game with no town at all). Two priority-system tools stand in
+its place, both in `marchToSite`:
+
+- **the road is priced** — a candidate site is `(what a town is worth + the settle
+  table's total) × delayDiscount(walk)`, against the undiscounted ground under
+  the piece. Both sides carry the town, because what a walk delays is a *town*
+  and not the handful of points two good hexes differ by;
+- **the margin defends the ground under the piece** — `priorities.switchMargin`,
+  the same tenth the beeline defends its plan with (principle 1).
+
+**A settler asleep is a settler nobody asks again** (`wakeIdleSettler`,
+`housekeeping`). A settler whose every site is struck stands down, and standing
+down is *sleep*; `wakeSleepers` wakes a sleeper on something new coming into
+view, so a raider that simply leaves wakes nobody. The measured case is a settler
+asleep on one hex from turn 38 to turn 76, four hexes from a legal site, in an
+empire that ended with one town — the audit's idle settlers, still alive. An order
+is a waking, so this asks the settler's own arm what it would do awake and sends
+that, firing only when the answer is a march or a founding (which is what keeps
+the driver's loop finite: every such decision clears a `sleeping` bit nothing in a
+turn sets). Worth three towns on the acceptance seeds by itself.
+
+**Persona fallout.** Wide's `settlerCityPop 2` / `siteScoreMin 11`, tall's `5` /
+`22` and the warmonger's `12` are gone, and each intent rides on the numbers that
+were always the *preference* rather than the feasibility sentence:
+
+- **wide** — `cityValueFalloff 1.0` and `weights.city 150`. Its deleted gates said
+  *settle sooner and on worse ground*, which is now every empire's default (there
+  is no pop floor and no site floor anywhere in the bot), so what distinguishes
+  wide is that it never tires of the next town.
+- **tall** — `cityValueFalloff 0.6` and `weights.city 80`, plus a carrier batch 4
+  gave it that it did not have before: `weights.happiness 16` against the balanced
+  12 is what the expansion chain charges for a town founded into a deficit. *"Only
+  settle excellent ground"* became *"tall minds the crowding more"* — the same
+  sentence said as a price.
+- **warmonger** — `weights.city 125` with the balanced falloff: it takes towns, it
+  does not court them.
+
+**Measured** (t75, duel, two balanced seats; before → after):
+
+| seeds 5/777/20260904 | before (batch 3) | after |
+|---|---|---|
+| towns | 2/2/1/1/4/2 (12) | 2/3/1/3/2/3 (**14**) |
+| buildings standing | 8/11/5/4/10/17 (55) | 14/5/5/5/9/8 (46) |
+| treasuries | 95/80/60/35/83/122 (475) | 107/52/81/112/195/67 (614) |
+| technologies | 10/9/12/11/16/17 (75) | 15/12/12/12/11/13 (75) |
+| bankrupt seat-turns | 0 | 0 |
+
+| seeds 1/2/3/42/101/999/31337/20260101 | batch 2 | before (batch 3) | after |
+|---|---|---|---|
+| towns | 33 | 28 | **38** |
+| buildings standing | 87 | 127 | **140** |
+| treasuries | — | 2343 | 1973 |
+| technologies | 195 | 196 | 173 |
+| bankrupt seat-turns | 0 | 0 | 0 |
+
+**The headline, honestly.** Over sixteen seats the towns regression is not merely
+healed but passed — 28 → 38, against batch 2's 33 — with batch 3's buildings kept
+(127 → 140) and no new bankruptcies. Over the three-seed acceptance set the same
+build reads 12 → 14 against batch 2's 15, which is one town short of the stated
+bar on six seats. The two readings disagree by less than the seat-to-seat spread
+inside either of them, and the batch was tuned to neither: every intermediate
+build was measured on both, and the changes kept are the ones that moved both.
+
+**The one number down: technologies, 196 → 173 over sixteen seats** (the three
+acceptance seeds are level at 75). Attributed by measurement: with the constraint
+prices switched off and everything else standing, the same sweep reads 183, so
+about a third of the fall is the happiness price — an empire near zero contentment
+is over-spending it more or less permanently, so happiness rides its ceiling, and
+a row that pays three contentment outbids a library while it does. That is the
+price doing exactly what the spec asked of it; whether `weights.happiness 12` is
+the right prior underneath a ×3 band is a tuning question for the arena, and it is
+the first thing to sweep. The rest is the wider empires themselves: 38 towns is
+ten more sets of founding costs, settler hammers and city upkeep than 28.
+
+**Known gaps, written down rather than fixed.**
+
+- **Two weight tables, still.** The site's own appraisal (`site.yieldWeights`) is
+  folded into the chain at **zero** and printed as a label. Pricing a site's ground
+  in the one currency is the audit's Layer-0 unification and is nobody's batch yet;
+  until it lands, *which* site is decided by the settle table and *whether* a town
+  is worth founding is decided in the one currency, and the two never mix inside a
+  fold.
+- **The site probe takes the nearest legal site, not the best.** That is what makes
+  it affordable — `valueContext` is asked once per decision, and appraising two
+  hundred candidate hexes would be two hundred ring walks — and it makes the
+  chain's walk optimistic, since the settler's own arm may walk further for better
+  ground.
+- **The chain charges its own shortfall at the prior, not at the price it sets.**
+  Charging at the live price is the fixed point batch 1 refused, and it degenerates:
+  the price *is* payoff ÷ shortfall, so the charge would cancel the payoff and a
+  blocked expansion would be worth nothing at all.
+- **The escort term has never been exercised on a measured board.** Every seat that
+  had a settler out also had a column near it, so `escortNeeded` stayed false
+  throughout the sweeps; the arithmetic is pinned by test and by nothing else.
