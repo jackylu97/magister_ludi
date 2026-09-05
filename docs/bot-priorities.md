@@ -1005,3 +1005,33 @@ culture's price is anchored on `weights.culture`. The arena panel needed no edit
    horizonTurns, priceBandHigh), 3 values × 3 seeds × 2 mirrors, JSON +
    printed table, runnable via vite-node, deterministic throughout.
 4. **First pass run and reported** — the table lands in this doc.
+
+## Batch 8 — ratified 2026-09-05 (the connection pass)
+
+The user's rulings on the gap review, verbatim intent:
+
+1. **Trader pricing** — a caravan's build worth = the best unserved route's
+   pay (the pair enumeration exists; bounded), replacing the flat
+   `weights.trader` guess. AND the harder half: a building that opens
+   route CAPACITY (find the sim's own capacity rule — whichever rows grant
+   routes) folds "opens a route worth X" into its appraisal while routes
+   are capacity-bound — the market is priced partly as the route it
+   unlocks.
+2. **Great-person picks scored** — the same pricing strategy as every
+   other system: an offer's names appraised by act lump + work sites +
+   the legacy's card effects through the existing readers; first-legal
+   retires.
+3. **Camps — DEFERRED** (the user: "a smaller concern").
+4. **Re-slotting** — evaluated at the START of each turn, greedy: the
+   best arrangement of owned cards across unsealed slots by the same
+   scoring the draft slotting uses; idempotent (no command when the
+   standing arrangement is already best); seals respected — a sealed
+   chair is not a choice.
+5. **Tile buying** — a gold want-row reusing the SITE strategy's reading
+   on single hexes (yields at the town's prices + the resource bonuses).
+   THE UNIQUENESS RULING, which also re-aims the site scorer if it reads
+   otherwise: **a unique luxury is one with no copy inside the empire's
+   OWNED LAND, improved or not** — the value expresses POTENTIAL (it
+   still needs investment to work), never current access. Strategics
+   likewise. `site.newLuxuryBonus`/`newStrategicBonus` price both the
+   site scorer and the tile want through one reading.
