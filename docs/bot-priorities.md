@@ -982,3 +982,26 @@ culture's price is anchored on `weights.culture`. The arena panel needed no edit
 - **Only two focuses are weighed** — the balanced ordering and production. The
   food and gold sheets are not, because nothing in the bot yet has a reason to
   ask for them that the ordinary arms do not already answer.
+
+## Batch 7 — ratified 2026-09-05 (the prune and the grid search)
+
+1. **Prune** (the user's ask, per-knob verdicts above the batch in chat,
+   recorded here): RETIRE `expansion.settlerCap`, `trade.traderCap`,
+   `solvency.stopMaintainedBelow`, `score.maxTurns` (merged into
+   `priorities.horizonTurns` — one H), `score.nominalYield` (merged into
+   `score.unknownEffect`), and `score.cityCap` behind an acceptance check
+   (three readers; retire only if the t75 table holds). KEEP with reasons:
+   the workers block (plan shape + prices, not gates), the rest of
+   solvency (gold's prior, the disband floor, the grace, the wage want),
+   the scout family (the recorded patch), the war baselines (the next
+   conversion). Persona fallout carried through surviving numbers.
+2. **Per-seat tuning**: the arena seam grows per-player sheets
+   (deterministic, never serialised) so a candidate can play the default.
+3. **The grid-search harness**: mirror matches — candidate vs default,
+   seats swapped per seed — scored in the game's own currency (beads ×
+   weights.bead + techs × weights.tech + the weighted t150 standing),
+   OFAT over the ruled dials (newLuxuryBonus, per-voice weight scalars,
+   threat.militaryBonus/garrisonValue, mixBonus, weights.city/happiness,
+   horizonTurns, priceBandHigh), 3 values × 3 seeds × 2 mirrors, JSON +
+   printed table, runnable via vite-node, deterministic throughout.
+4. **First pass run and reported** — the table lands in this doc.
