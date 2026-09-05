@@ -162,8 +162,11 @@ never one blind number. Ordinary counted cards take realized + λ ×
   toward the win — Opus cost cuts, bead purses, tempo — not to open a fifth
   age of building. The thin Æra V is therefore not a content hole to fill
   with buildings and units; its techs and the Gov V/VI rows should be
-  re-read as victory accelerators. Design pass owed (the Æra V tech rows'
-  effects), after the playthrough reports where Æra IV actually ends.
+  re-read as victory accelerators. **DEFERRED until after the first full
+  playthrough** (the user: "I haven't yet had an empire reach age 4 so
+  i'll need to feel out the pacing for what makes sense for age 5") —
+  nothing Æra V is built or re-cut before then; the Gov V pool the
+  late-pools batch wires is tier 45 (Æra IV's second rung) and stands.
 
 ### Open singles (still yours)
 
