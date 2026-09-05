@@ -88,7 +88,7 @@
  */
 
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
-import { type ExpansionChain, chainCompression, chainStepFor } from './chain';
+import { type ExpansionChain, chainCompression, chainStepFor, raceTerm } from './chain';
 import {
   type PricedMeter,
   type ValueContext,
@@ -275,6 +275,11 @@ export function purchasingPlan(
       ];
       const bridge = bridgeTerm(ctx, city, id);
       if (bridge !== null) terms.push(bridge);
+      // **The purse in the bead race** (batch 5): a row that pays a bead bought
+      // is a bead earned this turn rather than in a dozen, and it carries the
+      // race's own share through the same door the queue and the beeline use.
+      const race = raceTerm(ctx, { kind: 'building', id });
+      if (race !== null) terms.push(race);
       wants.push(want(`${buildingDef(id).name} at ${city.name}`, 'gold', reach, city, item, terms));
     }
   }

@@ -27,13 +27,16 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { AI, type BotDecision, nextBotDecision, valueContext } from '../../src/ai/bot';
+import { AI, type BotDecision, chooseProduction, nextBotDecision, valueContext } from '../../src/ai/bot';
 import { driveBots } from '../../src/ai/driver';
-import { foldTerms } from '../../src/ai/decision';
+import { createBotStepper } from '../../src/ai/stepper';
+import { type ValueTerm, foldTerms } from '../../src/ai/decision';
+import { racePays, raceTerm } from '../../src/ai/chain';
 import { yieldWeight } from '../../src/ai/value';
 import { type Want, savingRows, worthPerCoin } from '../../src/ai/wants';
 import { type Game, createGame, dispatch } from '../../src/sim/game';
-import { type GameConfig, type GameState, type Player, realPlayers } from '../../src/sim/state';
+import { type EarnedBead, type GameConfig, type GameState, type Player, realPlayers } from '../../src/sim/state';
+import { BEAD_FEAT_IDS, beadFeatDef } from '../../src/sim/beadData';
 import { UNIT_UNLOCK_TECH } from '../../src/sim/techData';
 import { gatingTech, researchExpansion } from '../../src/sim/tech';
 import { BELIEF_IDS } from '../../src/sim/religionData';
@@ -50,11 +53,11 @@ import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibilit
  * Every hex is hilly and every town is grown, so a row's build turns are a
  * handful rather than a whole horizon and a chain's delays mean something.
  */
-function benchState(towns: number): GameState {
+function benchState(towns: number, seats: readonly string[] = ['Ada']): GameState {
   const state = newGame({
     seed: 11,
     sizeName: 'duel',
-    players: [{ name: 'Ada', color: '#a00' }],
+    players: seats.map((name) => ({ name, color: '#a00' })),
   });
   state.map = createMap({ width: 20, height: 12, terrain: 'grassland' });
   resetVisibility(state);
@@ -509,5 +512,233 @@ describe('the chain in the book', () => {
       });
     }
     expect(aims).toBeLessThanOrEqual(16);
+  });
+});
+
+// --- batch 5: the bead race -------------------------------------------------
+
+/**
+ * **Batch 5 of `docs/bot-priorities.md`** — the win-condition template: *"the
+ * bead race and the Opus as chains with huge terminal values and honest delays —
+ * they take the book over in the late game because the numbers say so, not
+ * because a rule fires."*
+ *
+ * Four claims, and the first two are the ones that matter most:
+ *
+ *   · **the fold** — `worth === foldTerms(terms)`, exactly, like every other
+ *     appraisal in the bot, and every nested part folds to the term above it;
+ *   · **the null half** — an early-game seat prices the whole race at *nothing*
+ *     and no candidate anywhere carries its term, which is why the t75 acceptance
+ *     reads identically to batch 4's;
+ *   · **the takeover** — a rod nearly full over a world that has reached the
+ *     closing technology puts the great work and the rows that pay beads above
+ *     everything an ordinary town would raise;
+ *   · **the printed zero** — a rival who would close first holding more beads
+ *     zeroes the chain, and the chain says whose name is on it.
+ */
+describe('the bead race', () => {
+  /** One earned bead, of a row whose boon pays no lasting step. See the docblock. */
+  function rod(count: number): EarnedBead[] {
+    const id = BEAD_FEAT_IDS[0]!;
+    const family = beadFeatDef(id).family;
+    return Array.from({ length: count }, () => ({ id, kind: 'feat' as const, family, turn: 1 }));
+  }
+
+  /**
+   * The bench, arranged as a late game: a turn on the clock (so the crude bead
+   * rate reads off a real number of turns rather than off turn one), a rod part
+   * filled, and — when asked — the closing technology in the world's hands.
+   */
+  function raceBench(options: {
+    towns: number;
+    turn: number;
+    beads: number;
+    rivalBeads?: number;
+    alchemy?: boolean;
+  }): { state: GameState; player: Player } {
+    const state = benchState(options.towns, options.rivalBeads === undefined ? ['Ada'] : ['Ada', 'Brun']);
+    state.turn = options.turn;
+    const player = seat(state, 0);
+    player.beads = rod(options.beads);
+    if (options.rivalBeads !== undefined) seat(state, 1).beads = rod(options.rivalBeads);
+    if (options.alchemy === true) grant(state, player, 'alchemy');
+    return { state, player };
+  }
+
+  /** Every nested part folds to the term above it — `aiDecision.test.ts`' walk. */
+  function partFailures(terms: readonly ValueTerm[], where: string): string[] {
+    const failures: string[] = [];
+    for (const term of terms) {
+      if (term.parts === undefined) continue;
+      if (foldTerms(term.parts) !== term.value) {
+        failures.push(`${where} → "${term.label}": parts fold to ${foldTerms(term.parts)}`);
+      }
+      failures.push(...partFailures(term.parts, `${where} → ${term.label}`));
+    }
+    return failures;
+  }
+
+  it('folds its worth out of its own printed terms, exactly, on every board', () => {
+    // The contract every appraisal in this bot keeps, said for the last chain.
+    // Both a played board and an arranged one, because the arranged one is the
+    // only place the terms that only fire late are ever exercised.
+    const game = grownGame(12);
+    for (const player of realPlayers(game.state)) {
+      const race = valueContext(game.state, player).race;
+      expect(race).not.toBeNull();
+      expect(foldTerms(race!.terms)).toBe(race!.worth);
+      expect(partFailures(race!.terms, 'race')).toEqual([]);
+    }
+    for (const arrangement of [
+      { towns: 3, turn: 120, beads: 16, alchemy: true },
+      { towns: 3, turn: 120, beads: 3, rivalBeads: 19 },
+      { towns: 2, turn: 60, beads: 0 },
+    ]) {
+      const { state, player } = raceBench(arrangement);
+      const race = valueContext(state, player).race!;
+      expect(foldTerms(race.terms)).toBe(race.worth);
+      expect(partFailures(race.terms, 'race')).toEqual([]);
+    }
+  });
+
+  it('is a reading of the board and nothing else — two readings are identical', () => {
+    const { state, player } = raceBench({ towns: 3, turn: 120, beads: 16, alchemy: true });
+    const first = valueContext(state, player).race;
+    const second = valueContext(state, player).race;
+    expect(JSON.stringify(second)).toBe(JSON.stringify(first));
+  });
+
+  it('prices the race at nothing in the early game, and nothing carries its term', () => {
+    // **The null half of the acceptance.** Twenty beads owed at a bead every
+    // forty turns is eight hundred turns of rod against a forty-turn horizon: the
+    // curtain discounts to nothing, the beads still owed discount to nothing, and
+    // the chain is not live — so no build candidate, no purchase want and no
+    // beeline gift anywhere carries a race term. This is why the t75 table reads
+    // exactly as batch 4 left it.
+    const game = createGame(CONFIG);
+    for (let turn = 0; turn < 20; turn++) driveBots(game, { warn: () => {} });
+    for (const player of realPlayers(game.state)) {
+      const ctx = valueContext(game.state, player);
+      const race = ctx.race!;
+      expect(race.open).toBe(false);
+      expect(race.live).toBe(false);
+      expect(race.worth).toBe(0);
+      expect(race.needed).toBe(race.threshold - player.beads.length);
+      // The door itself, asked of the one row that closes the game.
+      expect(raceTerm(ctx, { kind: 'building', id: race.opus })).toBeNull();
+      // And the book it feeds: not a want in either bank mentions the race.
+      expect(JSON.stringify(ctx.wants)).not.toContain('bead race');
+    }
+    // Nor does any decision the seats actually take over the next few turns.
+    const stepper = createBotStepper(game, { warn: () => {} });
+    for (let turn = 0; turn < 3; turn++) {
+      for (const step of stepper.playTurn()) {
+        expect(JSON.stringify(step.decision?.candidates ?? [])).not.toContain('bead race');
+      }
+    }
+  });
+
+  it('prices the whole road once the work is open, and shares it over what is left', () => {
+    // **The takeover, on an arranged board.** Sixteen beads at turn a hundred and
+    // twenty is a rate the last four are reachable at; the world holds the closing
+    // technology, so the race is *on* and the planning horizon stops applying —
+    // what is left is whether this empire can get there before anybody else, and
+    // on this board there is nobody else.
+    const { state, player } = raceBench({ towns: 3, turn: 120, beads: 16, alchemy: true });
+    const ctx = valueContext(state, player);
+    const race = ctx.race!;
+    expect(race.open).toBe(true);
+    expect(race.live).toBe(true);
+    expect(race.lost).toBe(false);
+    // The curtain, undiscounted, plus what the four beads still owed are worth.
+    expect(race.worth).toBeGreaterThan(AI.weights.victory);
+    expect(race.terms.map((term) => term.label)).toContain(
+      'closing the great work — the realm holding the most beads takes the game',
+    );
+    expect(JSON.stringify(race.terms)).toContain('the 4 beads still owed for the rod');
+
+    // And a row that pays a bead outbids what the same town would otherwise
+    // raise. The comparison is the build arm's own, off the same context.
+    const town = state.cities.find((city) => city.ownerId === player.id)!;
+    const term = raceTerm(ctx, { kind: 'building', id: race.opus });
+    expect(term).not.toBeNull();
+    expect(term!.value).toBeGreaterThan(0);
+    expect(term!.label).toContain('one of 5 things still to happen');
+    // A row that pays nothing toward the race carries no term at all.
+    expect(raceTerm(ctx, { kind: 'building', id: 'granary' })).toBeNull();
+    expect(town).toBeDefined();
+  });
+
+  it('takes the book over when the rod is full: the work, then the rows that pay beads', () => {
+    // **The takeover, measured on an arranged board.** A full rod over an open
+    // work: the busiest town starts the great work itself, and every other town
+    // starts a row that pays a bead over the soldier and the caravan it would
+    // otherwise have raised — because the race is now one thing away and its
+    // whole worth is on that one thing (`stepsRemaining` is 1).
+    //
+    // Measured on this board (2026-09-05): the Magnum Opus scores 333 against
+    // 150 for the next candidate, and Chart the Stars 169 against the same 150.
+    // The race term is 150 of that 169 — the whole race over one remaining
+    // thing, divided by the ten turns of patience a bead row is read at — so
+    // without it Chart the Stars scores 19 and the soldier wins, which is what
+    // the bot did before this batch.
+    const { state, player } = raceBench({ towns: 3, turn: 120, beads: 20, alchemy: true });
+    // A library apiece, so the age-four rows that pay beads are legal at all:
+    // what is under test is the *ranking*, not whether a bench has a site.
+    for (const city of state.cities) {
+      if (city.ownerId !== player.id) continue;
+      city.buildings.push('library');
+      refreshCityDerived(state, city);
+    }
+    const ctx = valueContext(state, player);
+    const race = ctx.race!;
+    expect(race.needed).toBe(0);
+    expect(race.live).toBe(true);
+    expect(race.stepsRemaining).toBe(1);
+
+    const started: string[] = [];
+    for (const city of state.cities) {
+      if (city.ownerId !== player.id) continue;
+      const item = chooseProduction(state, player, city);
+      expect(item).not.toBeNull();
+      expect(item!.kind).toBe('building');
+      started.push(item!.id);
+      // Every row chosen is a row that carries the race forward.
+      expect(racePays({ kind: 'building', id: item!.id as never })).toBe(true);
+    }
+    // Exactly one town raises the work — the busiest, `isOpusTown`'s reading —
+    // and the others take rows that pay beads.
+    expect(started.filter((id) => id === race.opus).length).toBe(1);
+
+    // And the winning candidate prints the race as one of its reasons.
+    const decision = nextBotDecision(state, player.id);
+    expect(decision?.kind).toBe('build');
+    const chosen = decision!.candidates.find((candidate) => candidate.chosen)!;
+    expect(JSON.stringify(chosen.terms)).toContain('a step of the bead race');
+  });
+
+  it('prints its zero when a rival holds the race whatever this empire builds', () => {
+    // **Out of reach.** Nineteen beads against three, on a rate five times ours:
+    // the rival closes long before this empire could and holds more beads when it
+    // does, so the chain is worth nothing — and it names them rather than merely
+    // reading low, because a bot pouring hammers into a lost race is the failure
+    // this clause exists to prevent.
+    const { state, player } = raceBench({ towns: 3, turn: 120, beads: 3, rivalBeads: 19 });
+    const ctx = valueContext(state, player);
+    const race = ctx.race!;
+    expect(race.rival?.beads).toBe(19);
+    expect(race.rival!.close).toBeLessThan(race.delay);
+    expect(race.lost).toBe(true);
+    expect(race.live).toBe(false);
+    expect(race.worth).toBe(0);
+    // The *last* multiplication, which is the lost clause: the delay discount
+    // ahead of it has already read zero on its own, and that is not the same
+    // sentence — one says "not in this lifetime", the other names the winner.
+    const zero = race.terms[race.terms.length - 1]!;
+    expect(zero.op).toBe('mul');
+    expect(zero.value).toBe(0);
+    expect(zero.label).toContain('Brun');
+    expect(zero.label).toContain('19 beads');
+    expect(raceTerm(ctx, { kind: 'building', id: race.opus })).toBeNull();
   });
 });

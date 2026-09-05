@@ -126,6 +126,24 @@ export interface AiConfig {
      */
     priceBandLow: number;
     priceBandHigh: number;
+    /**
+     * **How many horizons out the bead race is still worth arguing about**
+     * (batch 5 of `docs/bot-priorities.md`).
+     *
+     * The win condition is the one chain whose delay is routinely longer than a
+     * plan: a rod twenty beads short, the road to the closing technology and a
+     * twelve-hundred-hammer raising are not forty turns of work, and a chain the
+     * horizon zeroed outright would never take the book over at all. So the race
+     * is *live* — its candidates carry its share — while its whole delay is
+     * inside this many horizons, and its worth is discounted by the ordinary
+     * `(H − delay)/H` throughout, so being live is permission to argue rather
+     * than a bonus.
+     *
+     * Once the great work is **open** this stops applying: the race then runs
+     * against the nearest rival's clock instead, which is `beadChain`'s stated
+     * reading of what an open race is.
+     */
+    raceLiveHorizons: number;
   };
   expansion: {
     /**

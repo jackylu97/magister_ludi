@@ -64,7 +64,7 @@ import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
 import type { WantBook } from './wants';
 // Type-only for the same reason: `chain.ts` reads this module's folds at
 // runtime, and this module only needs to *name* the chains its context carries.
-import type { ExpansionChain, TechChain } from './chain';
+import type { BeadChain, ExpansionChain, TechChain } from './chain';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { cityYields } from '../sim/cities';
@@ -269,12 +269,40 @@ export interface ValueContext {
    */
   medianProduction: number;
   /**
+   * **What this empire's busiest town makes in a turn** — the median's sibling,
+   * taken in the same sweep, and the denominator of exactly one delay: the
+   * twelve-hundred-hammer great work (`beadChain`, batch 5).
+   *
+   * A capstone is not raised by a middling town and never has been: the endgame
+   * arm picks the busiest town for it (`isOpusTown`), so the honest estimate of
+   * *when the work would stand* is that town's rate rather than the empire's
+   * middle one. Every other build delay in the bot stays on the median, because
+   * every other row is one a middling town really does raise.
+   */
+  bestProduction: number;
+  /**
    * **Beakers a turn, as the simulation's own books read them**
    * (`empireRateReading().sciencePerTurn`) — the denominator of every *research*
    * delay, and hoisted for the same reason as the median above: the worker plan
    * asks "how far off is the node on my plan" once per hex.
    */
   scienceRate: number;
+  /**
+   * **The bead race, as a chain** (`beadChain`, `chain.ts`, batch 5) — the road
+   * from here to a closed great work, priced at `weights.victory` and delayed by
+   * the rod, the road and the raising.
+   *
+   * `null` when no row on the table is the finish line at all. Otherwise it is
+   * present on every context and **worth nothing at all** until the race is
+   * within reach, which is the batch's null half: an empire twenty beads short
+   * at a bead every thirty turns prices the curtain at zero and no candidate
+   * anywhere carries its term.
+   *
+   * It is built **first** of the four things hanging on this context, because the
+   * tech chains read it (a node carrying `paysBead` is a step of the race) and
+   * nothing it reads is a chain.
+   */
+  race: BeadChain | null;
 }
 
 /**
@@ -344,17 +372,36 @@ export function buildTurns(cost: number, ctx: ValueContext): number {
  * anything.
  */
 export function medianTownProduction(state: GameState, playerId: number): number {
+  return townProduction(state, playerId).median;
+}
+
+/**
+ * **Both hammer readings, in one sweep** — the middle town's and the busiest
+ * town's (`ValueContext.medianProduction` / `bestProduction`).
+ *
+ * One walk rather than two, which is the context's standing bargain said once
+ * more: `cityYields` prices every worked hex of a town, and asking it twice per
+ * decision to answer two divisions would be a second sweep of the whole empire.
+ *
+ * An empire with no town at all answers 1 for both rather than 0: a division has
+ * to be safe, and "one hammer a turn" is the honest floor for an empire that has
+ * yet to found anything.
+ */
+export function townProduction(
+  state: GameState,
+  playerId: number,
+): { median: number; best: number } {
   const made: number[] = [];
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     made.push(cityYields(state, city).production);
   }
-  if (made.length === 0) return 1;
+  if (made.length === 0) return { median: 1, best: 1 };
   made.sort((a, b) => a - b);
   const middle = Math.floor(made.length / 2);
   const median =
     made.length % 2 === 1 ? made[middle]! : (made[middle - 1]! + made[middle]!) / 2;
-  return Math.max(1, median);
+  return { median: Math.max(1, median), best: Math.max(1, made[made.length - 1]!) };
 }
 
 /**

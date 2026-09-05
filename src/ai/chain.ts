@@ -72,6 +72,15 @@
  * only its hammers multiply by the towns. A unit unlock advances no cursor at
  * all: it is an option the empire may take the turn the node lands, never an
  * obligation, and it is priced exactly as the beeline always priced it.
+ *
+ * **Three chains live here now**, in the order the batches added them: the tech
+ * chain above, the **expansion** chain (batch 4 — the next town, its settler, its
+ * walk and the meters founding would over-spend), and the **bead race** (batch 5
+ * — the whole road from here to a closed great work, at `weights.victory`). They
+ * share the shape and nothing else: a delay derived from the board, invests
+ * priced in the one currency, a worth that is the fold of its printed terms, and
+ * a share the arms fold when a candidate is one of the things that still has to
+ * happen. Each has its own docblock; this one covers the first.
  */
 
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
@@ -93,11 +102,13 @@ import {
   valueOfYields,
 } from './value';
 
+import { BEAD_RULES } from '../sim/beadData';
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { IMPROVEMENT_IDS, improvementDef } from '../sim/improvementData';
 import { authorityOf, happinessOf } from '../sim/meters';
-import type { GameState, Player } from '../sim/state';
-import { buildError, gatingTech, researchExpansion, researchPlan } from '../sim/tech';
+import { type ProjectId, projectDef } from '../sim/projectData';
+import { type GameState, type Player, realPlayers } from '../sim/state';
+import { buildError, gatingTech, opusOpen, researchExpansion, researchPlan } from '../sim/tech';
 import { type TechId, techDef } from '../sim/techData';
 import { readTileYield } from '../sim/terrainData';
 import { type UnitTypeId, isCombatant, isExplorer, trades, unitDef } from '../sim/unitData';
@@ -265,11 +276,8 @@ export function techChain(
   sites?: UpgradeSites,
 ): TechChain {
   const ai = ctx.ai;
-  const road = researchExpansion(state, player.id, goal);
+  const { road, beakers: remainingBeakers, delay: researchDelay } = researchRoad(state, player, ctx, goal);
   const held = road.length === 0;
-  let remainingBeakers = 0;
-  for (const step of road) remainingBeakers += techDef(step).cost;
-  const researchDelay = remainingBeakers / Math.max(1, ctx.scienceRate);
 
   const unlocks = techDef(goal).unlocks;
   const steps: ChainStep[] = [];
@@ -369,6 +377,21 @@ export function techChain(
     label: `${abilities} ability${abilities === 1 ? '' : 'ies'}`,
     value: abilities * ai.research.abilityValue,
   });
+  // **A node that pays a bead** (`TechDef.paysBead`) — the research half of the
+  // win-condition templates (batch 5). Nothing in the bot priced this clause
+  // before: a node that hands over a glass bead was worth exactly its unlocks,
+  // and the one node that carries it is the node that opens the great work for
+  // the world. It is worth `weights.bead` like every other bead, or — while the
+  // race is live — the race chain's own share of what closing it is worth, which
+  // is the same door a building step of the race walks through (`raceTerm`).
+  if (techDef(goal).paysBead !== undefined) {
+    giftTerms.push(
+      raceTerm(ctx, { kind: 'tech', id: goal }) ?? {
+        label: 'a glass bead when the node lands',
+        value: ai.weights.bead,
+      },
+    );
+  }
   for (const rider of renewalSteps(goal, ctx, researchDelay, sites)) {
     for (const term of rider.terms) giftTerms.push(term);
     steps.push(rider);
@@ -465,6 +488,27 @@ export function chainCompression(
 /** The hammers one copy of a step costs — the whole owed, over the towns owing. */
 export function stepUnitCost(step: ChainStep): number {
   return step.cost / Math.max(1, step.towns);
+}
+
+/**
+ * **The road to a node, the beakers it still owes and the turns that is** — the
+ * three lines every chain in this module opens with, written once.
+ *
+ * `researchExpansion` is the simulation's own depth-ordered expansion, so an
+ * empire that holds the node gets an empty road and no wait at all. The rate is
+ * `ValueContext.scienceRate` — the empire's books, floored at a beaker a turn so
+ * a seat researching nothing is treated as slow rather than as never arriving.
+ */
+export function researchRoad(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  goal: TechId,
+): { road: TechId[]; beakers: number; delay: number } {
+  const road = researchExpansion(state, player.id, goal);
+  let beakers = 0;
+  for (const step of road) beakers += techDef(step).cost;
+  return { road, beakers, delay: beakers / Math.max(1, ctx.scienceRate) };
 }
 
 // --- the pieces of a chain ---------------------------------------------------
@@ -949,6 +993,379 @@ export function explainNextTown(state: GameState, player: Player, ctx: ValueCont
     });
   }
   return appraise(terms);
+}
+
+// --- the bead race ------------------------------------------------------------
+
+/**
+ * **The rival nearest the finish line, and the clock it is on.**
+ *
+ * Every field is public: `Player.beads` is an open record — the Abacus shows
+ * every real seat's rod to every player and there is no fog over it — so a bot
+ * reading a rival's tally is reading what a human at the same table reads. The
+ * *rate* and the *close* are this module's estimates about that public number,
+ * and both are crude in the way `beadRate` writes down.
+ */
+export interface RaceRival {
+  playerId: number;
+  name: string;
+  beads: number;
+  /** Beads a turn, its own record over the turns played. See `beadRate`. */
+  rate: number;
+  /** Turns until it could have the great work standing. */
+  close: number;
+}
+
+/**
+ * **The bead race, as a chain** — batch 5 of `docs/bot-priorities.md`, and the
+ * spec's last template: *"the bead race and the Opus as chains with huge terminal
+ * values and honest delays — they take the book over in the late game because the
+ * numbers say so, not because a rule fires."*
+ *
+ * The shape is `techChain`'s and `expansionChain`'s, one goal further out:
+ *
+ *   · the **terminal value** is `weights.victory` — the game, and there is only
+ *     one of it;
+ *   · the **delay** is the whole road from here to a closed great work: the beads
+ *     the rod is still short of, at this seat's own bead rate; the road to the
+ *     technology that opens the work, when nobody in the world holds it; and the
+ *     twelve hundred hammers of the raising itself in the busiest town. The rod
+ *     and the road fill *together* — an empire researches while it earns — so the
+ *     two are a maximum rather than a sum, and the raising follows both;
+ *   · the **intermediate payoffs** are the beads still owed, at `weights.bead`
+ *     each, discounted for the turns the rod takes to fill. The existing weights
+ *     keep their meaning exactly: a bead is worth what the table has always said
+ *     a bead is worth, and what batch 5 adds is *when* it arrives.
+ *
+ * **The null half is the point.** A seat far from the race prices the whole thing
+ * at nothing and prints why: twenty beads owed at a bead every thirty turns is
+ * six hundred turns against a forty-turn horizon, so the terminal discounts to
+ * zero, the bead line discounts to zero, and no candidate anywhere carries a
+ * race term. Nothing about the early game moves, which is exactly what the
+ * acceptance measures.
+ *
+ * **Two readings decide how loud the chain is**, and both are written down here
+ * because both are choices:
+ *
+ *   · **the rate is crude, deliberately.** Beads are *lumpy* — a quest answered,
+ *     a first taken, a node that pays one — and nothing in this bot can forecast
+ *     which of twenty-five cards a board will hand a seat. So the rate is the
+ *     seat's own record: beads earned over turns played, floored at one bead a
+ *     horizon so an empire that has earned none is treated as slow rather than as
+ *     never arriving. It under-reads a seat that has just entered a new age (a
+ *     fresh hand of cards it has not answered yet) and over-reads one that took
+ *     three firsts in the opening. An honest forecast would need a model of the
+ *     deck, and a guess dressed as a forecast is worse than a crude average that
+ *     says it is one.
+ *   · **when the race is open, the planning horizon stops applying.** While no
+ *     empire holds the closing technology the race is one plan among many and is
+ *     discounted like any other, `(H − delay)/H`. The turn somebody reaches it
+ *     (`opusOpen`) the race is *on*: the game now ends when a work is finished
+ *     rather than when a horizon runs out, so the only clock that matters is the
+ *     nearest rival's. The chain stops discounting by H entirely and asks one
+ *     question instead — **can this empire get there first?** If it can, the
+ *     curtain is worth the whole of `weights.victory`; if it cannot, it is worth
+ *     nothing and says so. That is the batch's one deliberate departure from the
+ *     brief, which suggested `min(H, the rival's close)`: clamping the live-race
+ *     horizon at forty turns would let the *planning* horizon kill a race an
+ *     empire is comfortably winning, which is the thing an open race is supposed
+ *     to stop doing.
+ *
+ * **Out of reach is a printed zero.** The winner is whoever holds the most beads
+ * when the work is finished (`closeTheGreatWork`), so a rival who would close
+ * first *and* hold more beads when they do has the game whatever this empire
+ * builds. The chain folds a `× 0` term naming them rather than quietly reading
+ * low: a bot that keeps pouring hammers into a race it has lost is the failure
+ * this clause exists to prevent, and a reader of the feed should be able to see
+ * it decline.
+ */
+export interface BeadChain {
+  /** The row that closes the game, and the beads it asks for. */
+  opus: BuildingId;
+  threshold: number;
+  held: number;
+  /** Beads still owed for the rod. Zero for an empire that may already begin. */
+  needed: number;
+  /** Beads a turn, floored. Crude — see the interface docblock. */
+  rate: number;
+  /** `needed ÷ rate` — the turns the rod takes to fill. */
+  beadDelay: number;
+  /** The road to the technology that opens the work. Empty once the race is open. */
+  road: TechId[];
+  remainingBeakers: number;
+  researchDelay: number;
+  /** The work's own hammers, and the turns the busiest town would take over them. */
+  hammers: number;
+  buildDelay: number;
+  /** `max(beadDelay, researchDelay) + buildDelay` — the whole road from here. */
+  delay: number;
+  /** `opusOpen(state)` — somebody in the world holds the closing technology. */
+  open: boolean;
+  /** The clock the race runs against: the rival's close while it is open, else H. */
+  raceHorizon: number;
+  rival: RaceRival | null;
+  /** True when a rival would close first holding more beads. Folds a `× 0`. */
+  lost: boolean;
+  /** True when a candidate of this race may fold the chain's share. */
+  live: boolean;
+  /**
+   * The beads still owed **and** the raising — `needed + 1`, the things that have
+   * still to happen.
+   *
+   * There is no `steps` list beside it, and that is the one place this chain's
+   * shape differs from its two siblings: the outstanding events of a race are
+   * mostly **occasions** — a quest answered, a first taken — and an occasion is
+   * not a row a town can be told to raise. The one thing that *is* a row is the
+   * work itself, and `opus` names it. What the count is for is the share, and it
+   * is over events rather than rows for the reason `TechChain.stepsRemaining`
+   * counts raisings: a rod one bead short should hand the work half the race
+   * rather than a twentieth of it, which is what makes the race concentrate as
+   * it is run.
+   */
+  stepsRemaining: number;
+  /** The fold of `terms`, and never anything else. */
+  worth: number;
+  terms: ValueTerm[];
+}
+
+/**
+ * **The race, read off the board** — `null` only when no row on the table is the
+ * finish line at all, which is the honest reading of a set of rules that has not
+ * shipped one.
+ *
+ * Nothing is stored and nothing is remembered: the rod, the road and the rival
+ * are all facts about `GameState`, which is principle 3 of the spec said for the
+ * fifth time.
+ */
+export function beadChain(state: GameState, player: Player, ctx: ValueContext): BeadChain | null {
+  const opus = opusRow();
+  if (opus === null) return null;
+  const ai = ctx.ai;
+  const def = buildingDef(opus);
+  const horizon = Math.max(1, ai.priorities.horizonTurns);
+  const threshold = Math.max(1, Math.floor(BEAD_RULES.threshold));
+
+  const held = player.beads.length;
+  const needed = Math.max(0, threshold - held);
+  const rate = beadRate(held, state.turn, horizon);
+  const beadDelay = needed / rate;
+
+  const open = opusOpen(state);
+  // **The road is owed only while the work is shut.** `worldUnlockTech` is a
+  // *world* gate — the first empire anywhere to reach it opens the row for
+  // everybody — so an empire whose rival has already reached it owes no beakers
+  // at all, and `opusOpen` is the one reading of that (`isUnlocked`' own).
+  const unlock = def.worldUnlockTech;
+  const owed =
+    open || unlock === undefined
+      ? { road: [] as TechId[], beakers: 0, delay: 0 }
+      : researchRoad(state, player, ctx, unlock);
+  const buildDelay = Math.ceil(def.cost / Math.max(1, ctx.bestProduction));
+  // The rod and the road fill together: an empire earns beads while it researches,
+  // so what it waits for is the later of the two, and then the raising.
+  const delay = Math.max(beadDelay, owed.delay) + buildDelay;
+
+  const rival = leadingRival(state, player, threshold, horizon, buildDelay);
+  const raceHorizon = open ? (rival === null ? Number.POSITIVE_INFINITY : rival.close) : horizon;
+  const inTime = delay < raceHorizon;
+  // **Out of reach**, crudely and on public numbers: a rival that closes before
+  // this empire could, holding more beads at the moment it closes, has the game.
+  // Their tally at that moment is at least the threshold (they cannot begin the
+  // work below it); ours is what the rod holds plus what the rate would add.
+  const oursThen = rival === null ? held : held + rate * rival.close;
+  const theirsThen = rival === null ? 0 : Math.max(threshold, rival.beads + rival.rate * rival.close);
+  const lost = rival !== null && rival.close < delay && theirsThen > oursThen;
+
+  const urgency: ValueTerm = open
+    ? {
+        label: inTime
+          ? `× 1 — the great work is open and nothing here waits on a horizon: ` +
+            `${round(delay)} turns to close it, ${rivalWords(rival)}`
+          : `× 0 — the great work is open and this empire is ${round(delay)} turns from closing it, ` +
+            `${rivalWords(rival)}`,
+        value: inTime ? 1 : 0,
+        op: 'mul',
+      }
+    : delayTerm(delay, ctx, 'the rod, the road to the work and the raising');
+
+  const terms: ValueTerm[] = [
+    {
+      label: 'closing the great work — the realm holding the most beads takes the game',
+      value: ai.weights.victory,
+    },
+    urgency,
+  ];
+  if (needed > 0) {
+    const fills = delayTerm(beadDelay, ctx, 'the rod fills at this empire’s own pace');
+    terms.push({
+      label: `the ${needed} bead${needed === 1 ? '' : 's'} still owed for the rod`,
+      value: ai.weights.bead * needed * fills.value,
+      parts: [
+        { label: `${ai.weights.bead} a bead`, value: ai.weights.bead },
+        { label: `× ${needed} still owed`, value: needed, op: 'mul' },
+        fills,
+      ],
+    });
+  }
+  // Printed and folded at nothing, `expansionChain`'s two zero-valued labels one
+  // chain over: the road a reader of the feed wants to see, beside the numbers
+  // that were actually multiplied.
+  terms.push({
+    label:
+      `(${held} of ${threshold} beads at ${round(rate)} a turn — ${round(beadDelay)} turns; ` +
+      `${Math.round(owed.beakers)} beakers for the road — ${round(owed.delay)} turns; ` +
+      `${Math.round(def.cost)} hammers in the busiest town — ${buildDelay} turns)`,
+    value: 0,
+  });
+  if (lost) {
+    terms.push({
+      label:
+        `× 0 — ${rival!.name} holds ${rival!.beads} beads and would close in ` +
+        `${round(rival!.close)} turns, before this empire could pass them`,
+      value: 0,
+      op: 'mul',
+    });
+  }
+
+  const worth = foldTerms(terms);
+  const stepsRemaining = needed + 1;
+  const live =
+    !lost && worth > 0 && (open ? inTime : delay <= horizon * Math.max(0, ai.priorities.raceLiveHorizons));
+
+  return {
+    opus,
+    threshold,
+    held,
+    needed,
+    rate,
+    beadDelay,
+    road: owed.road,
+    remainingBeakers: owed.beakers,
+    researchDelay: owed.delay,
+    hammers: def.cost,
+    buildDelay,
+    delay,
+    open,
+    raceHorizon,
+    rival,
+    lost,
+    live,
+    stepsRemaining,
+    worth,
+    terms,
+  };
+}
+
+/** The row that closes the game, read off the marker and never off a name. */
+function opusRow(): BuildingId | null {
+  for (const id of BUILDING_IDS) {
+    if (buildingDef(id).endsTheGame === true) return id;
+  }
+  return null;
+}
+
+/**
+ * **Beads a turn** — earned over played, floored at one a horizon.
+ *
+ * Crude, and the interface docblock says why at length: beads are lumpy and
+ * nothing here can forecast a deck. The floor is `savingRows`' bargain said once
+ * more — an empire that has earned nothing is slow, not stationary — and it is
+ * what keeps every division below finite.
+ */
+function beadRate(beads: number, turn: number, horizon: number): number {
+  return Math.max(beads / Math.max(1, turn), 1 / horizon);
+}
+
+/**
+ * The rival nearest the finish line, over `realPlayers` in seat order — an
+ * eliminated seat races nobody and the wild has no rod at all.
+ *
+ * Their raising is priced at **this** empire's build delay, which is the one
+ * frankly optimistic line in the reading: what a rival's busiest town makes is a
+ * sweep of towns this seat may not even have charted, and the alternative to a
+ * stand-in is a second empire-wide reading per decision. Written down rather
+ * than hidden.
+ */
+function leadingRival(
+  state: GameState,
+  player: Player,
+  threshold: number,
+  horizon: number,
+  buildDelay: number,
+): RaceRival | null {
+  let best: RaceRival | null = null;
+  for (const other of realPlayers(state)) {
+    if (other.id === player.id || other.eliminated) continue;
+    const beads = other.beads.length;
+    const rate = beadRate(beads, state.turn, horizon);
+    const close = Math.max(0, threshold - beads) / rate + buildDelay;
+    if (best === null || close < best.close) {
+      best = { playerId: other.id, name: other.name, beads, rate, close };
+    }
+  }
+  return best;
+}
+
+/** What the nearest rival's clock reads, for a label. */
+function rivalWords(rival: RaceRival | null): string {
+  if (rival === null) return 'no rival could close it at all';
+  return `${rival.name} holds ${rival.beads} and could close it in ${round(rival.close)}`;
+}
+
+/** The three shapes of row that carry the race forward. See `raceTerm`. */
+export type RaceRow =
+  | { kind: 'building'; id: BuildingId }
+  | { kind: 'project'; id: ProjectId }
+  | { kind: 'tech'; id: TechId };
+
+/**
+ * **Does this row pay a bead, or close the game?** — read off the row's own
+ * markers, never against a name, which is the discipline `src/sim/` keeps and a
+ * reader of the same tables has no business breaking.
+ *
+ * Three markers and no fourth: a building's `endsTheGame` or an `onComplete`
+ * grant of a bead, a race project's `bead`, a node's `paysBead`. A quest or a
+ * feat is *not* here and that is batch 5's one written-down non-delivery — a
+ * count deed ("twelve cities of six citizens") would need the bot to evaluate
+ * `beadCount` hypothetically against a row it has not built, which is the
+ * per-candidate empire sweep the brief rules out everywhere else.
+ */
+export function racePays(row: RaceRow): boolean {
+  if (row.kind === 'building') {
+    const def = buildingDef(row.id);
+    if (def.endsTheGame === true) return true;
+    return (def.onComplete ?? []).some((grant) => grant.grant === 'bead');
+  }
+  if (row.kind === 'project') return projectDef(row.id).bead !== undefined;
+  return techDef(row.id).paysBead !== undefined;
+}
+
+/** What one outstanding event of the race is worth — `chainStepShare`'s sibling. */
+export function raceStepShare(chain: BeadChain): number {
+  return chain.worth / Math.max(1, chain.stepsRemaining);
+}
+
+/**
+ * **A candidate that carries the race forward, as one printed term** — touch
+ * point (b) of the spec, said for the win condition, and `null` for every row
+ * that is not part of the race or every board on which the race is not live.
+ *
+ * One door for four arms: the build list, the purchasing plan, the contribution
+ * arm and the beeline's own gifts all ask this and none of them restates the
+ * question. That is what makes the takeover *honest* — the race does not fire a
+ * rule anywhere, it puts a number on four kinds of candidate and lets the
+ * ordinary argmax decide.
+ */
+export function raceTerm(ctx: ValueContext, row: RaceRow): ValueTerm | null {
+  const chain = ctx.race;
+  if (chain === null || !chain.live) return null;
+  if (!racePays(row)) return null;
+  return {
+    label:
+      `a step of the bead race — one of ${chain.stepsRemaining} thing${chain.stepsRemaining === 1 ? '' : 's'} ` +
+      `still to happen (this realm holds ${chain.held} of ${chain.threshold} beads)`,
+    value: raceStepShare(chain),
+  };
 }
 
 /** "first", "second", … for a term label. Falls back to the figure past three. */

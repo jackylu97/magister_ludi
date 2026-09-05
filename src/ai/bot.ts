@@ -94,6 +94,7 @@ import {
   ESCORT_STEP,
   type ExpansionChain,
   type SiteProbe,
+  beadChain,
   chainStepFor,
   chainStepShare,
   expansionChain,
@@ -101,6 +102,7 @@ import {
   explainNextTown,
   incumbentGoal,
   liveChains,
+  raceTerm,
   techChain,
 } from './chain';
 // **Re-exported, not redefined** (batch 4): what the next town is worth became
@@ -141,7 +143,7 @@ import {
   explainSoldier,
   explainUpkeepCost,
   explainYields,
-  medianTownProduction,
+  townProduction,
   yieldDelta,
   yieldWeight,
 } from './value';
@@ -328,6 +330,10 @@ export function valueContext(state: GameState, player: Player): ValueContext {
   // wage cover and both saving rates come out of it, and asking three times
   // would be three sweeps of every town to answer one question.
   const rates = empireRateReading(state, player.id);
+  // Both hammer readings in one sweep of the towns — the middling town every
+  // build delay is priced off, and the busiest one the great work would be
+  // raised in (`townProduction`, batch 5).
+  const hammers = townProduction(state, player.id);
   const netGold = rates.goldPerTurn ?? 0;
   const pressure = goldPressure(state, player, netGold);
   const age = highestAge(player.techsResearched);
@@ -369,8 +375,10 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     // cost over what a middling town makes, and a research delay is beakers
     // owed over beakers banked. Asked per candidate they would be an empire
     // sweep each; asked once they are two readings of books already open.
-    medianProduction: medianTownProduction(state, player.id),
+    medianProduction: hammers.median,
+    bestProduction: hammers.best,
     scienceRate: rates.sciencePerTurn ?? 0,
+    race: null,
   };
   // **The chains, before the book** (batch 3 of `docs/bot-priorities.md`): the
   // purchasing plan's bridge rows price what a delivery would buy a live chain in
@@ -386,7 +394,11 @@ export function valueContext(state: GameState, player: Player): ValueContext {
   // this empire does not have cannot raise the rows its engines still owe
   // (`townChainShare`) — so a context whose `chains` were still empty would price
   // the next town as though the empire were running no engines at all.
-  const engines: ValueContext = { ...prior, chains: liveChains(state, player, prior) };
+  // **The race, before every chain** (batch 5): a node that pays a bead is a step
+  // of the win condition, so the tech chains read it — and it reads nothing but
+  // the board, the rod and the rival's rod, so it can be built first of all.
+  const raced: ValueContext = { ...prior, race: beadChain(state, player, prior) };
+  const engines: ValueContext = { ...raced, chains: liveChains(state, player, raced) };
   const chained: ValueContext = {
     ...engines,
     expansion: nextTownChain(state, player, engines),
@@ -2164,13 +2176,23 @@ function frontRowWorth(
     const empire = empirePercents(state, player.id);
     const base = cityYields(state, city, [], null, cityQuote(state, city, [], empire));
     const after = cityYields(state, city, [item.id], null, cityQuote(state, city, [item.id], empire));
-    return appraise([
+    const terms: ValueTerm[] = [
       nest('what this town would actually make with it', explainYields(yieldDelta(after, base), ctx)),
       nest('what its row gives beyond a yield', explainBuildingRow(item.id, ctx)),
-    ]);
+    ];
+    // **The coin that hurries the great work** (batch 5). The Opus is the one row
+    // in the game that `acceptsContributions`, so this is where a purse joins the
+    // race — and it joins it through the same term the queue folds rather than
+    // through a carve-out of its own.
+    const race = raceTerm(ctx, { kind: 'building', id: item.id });
+    if (race !== null) terms.push(race);
+    return appraise(terms);
   }
   if (item.kind === 'project') {
-    return appraise([nest('what one turn of the conversion pays', explainProjectRow(item.id, ctx))]);
+    const terms: ValueTerm[] = [nest('what one turn of the conversion pays', explainProjectRow(item.id, ctx))];
+    const race = raceTerm(ctx, { kind: 'project', id: item.id });
+    if (race !== null) terms.push(race);
+    return appraise(terms);
   }
   const def = unitDef(item.id);
   if (isCombatant(def)) return appraise([nest('what this piece is worth', explainSoldier(item.id, ctx))]);
@@ -2562,6 +2584,12 @@ function buildCandidates(
     // finishing it is worth and the town's own yield delta cannot.
     const step = chainTerm(ctx, 'building', id);
     if (step !== null) terms.push(step);
+    // **Touch point (b), said for the win condition** (batch 5): a row that pays
+    // a bead or closes the game carries the race's own share, on the boards where
+    // the race is live. Early and mid game it is `null` for every row in the
+    // list, which is the null half of the acceptance.
+    const race = raceTerm(ctx, { kind: 'building', id });
+    if (race !== null) terms.push(race);
     const value = foldOf(terms);
     push(candidates, state, city, { kind: 'building', id }, value, buildingUpkeep(id), false, ctx, terms);
   }
@@ -2576,9 +2604,12 @@ function buildCandidates(
 
   for (const id of PROJECT_IDS) {
     if (buildError(state, player.id, 'project', id, city) !== null) continue;
-    push(candidates, state, city, { kind: 'project', id }, explainProjectRow(id, ctx).total, 0, false, ctx, [
-      nest('what one turn of the conversion pays', explainProjectRow(id, ctx)),
-    ]);
+    const terms: ValueTerm[] = [nest('what one turn of the conversion pays', explainProjectRow(id, ctx))];
+    // A race project — an endeavour the world's table is offering — is a step of
+    // the bead race exactly as a bead-paying building is, through the same door.
+    const race = raceTerm(ctx, { kind: 'project', id });
+    if (race !== null) terms.push(race);
+    push(candidates, state, city, { kind: 'project', id }, foldOf(terms), 0, false, ctx, terms);
   }
   return candidates;
 }

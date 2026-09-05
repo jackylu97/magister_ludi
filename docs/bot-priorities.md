@@ -543,3 +543,186 @@ ten more sets of founding costs, settler hammers and city upkeep than 28.
 - **The escort term has never been exercised on a measured board.** Every seat that
   had a settler out also had a column near it, so `escortNeeded` stayed false
   throughout the sweeps; the arithmetic is pinned by test and by nothing else.
+
+## Batch 5 as shipped (the win-condition template, 2026-09-05)
+
+**The bead race is a chain** (`beadChain`, `chain.ts`, beside `techChain` and
+`expansionChain`):
+
+```
+beadChain(state, player, ctx) → {
+  opus, threshold, held, needed, rate, beadDelay,
+  road, remainingBeakers, researchDelay, hammers, buildDelay, delay,
+  open, raceHorizon, rival, lost, live,
+  steps, stepsRemaining, worth, terms } | null
+```
+
+- `worth === foldTerms(terms)`, exactly, like every other appraisal in the bot,
+  and every nested part folds to the term above it (pinned on a played board and
+  on three arranged ones).
+- `terms` = **the curtain** (`weights.victory`) at the delay discount · **the
+  beads still owed** (`weights.bead` each) at the rod's own discount · a
+  zero-valued label printing the whole road · and, when the race is lost, a
+  `× 0` naming the rival that holds it. The existing weights keep their meaning
+  exactly: what batch 5 adds is *when* each of them arrives.
+- `delay` is the honest road from here to a **closed** great work:
+  `max(beadDelay, researchDelay) + buildDelay` — the rod and the road to the
+  closing technology fill together (an empire researches while it earns), and
+  the raising follows both. The road is priced by the same `researchRoad` the
+  tech chain opens with, and it is owed **only while the work is shut**:
+  `worldUnlockTech` is a world gate, so an empire whose rival has already
+  reached Alchemy owes no beakers at all.
+- `buildDelay` is the work's twelve hundred hammers over the **busiest** town's
+  production, not the median's — a capstone is not raised by a middling town and
+  the endgame arm has always picked the busiest one (`isOpusTown`).
+  `medianTownProduction` became `townProduction`, which answers both readings in
+  one sweep.
+- `stepsRemaining` is `needed + 1`: the beads still owed **and** the raising. A
+  bead is not a thing a town can build and is counted anyway, for the reason
+  `TechChain.stepsRemaining` counts raisings — a rod one bead short should hand
+  the work half the race rather than a twentieth of it. It is what makes the
+  race *concentrate* as it is run.
+
+**The rate, chosen and written down as crude.** Beads are lumpy — a quest
+answered, a first taken, a node that pays one — and nothing in this bot can
+forecast which of twenty-five cards a board will hand a seat. So the rate is the
+seat's own record: **beads earned over turns played**, floored at one bead a
+horizon so an empire that has earned none is slow rather than stationary
+(`savingRows`' bargain said once more). It under-reads a seat that has just
+entered an age with a fresh hand it has not answered, and over-reads one that
+took three firsts in the opening. A guess dressed as a forecast would be worse
+than an average that says it is one.
+
+**The urgency, and the batch's one deliberate departure from the brief.** While
+nobody holds the closing technology the race is one plan among many and is
+discounted `(H − delay)/H` like every other. The turn somebody reaches it
+(`opusOpen`) the race is **on**: the game now ends when a work is finished rather
+than when a horizon runs out, so the chain stops discounting by `H` entirely and
+asks one question instead — *can this empire get there before the nearest
+rival?* If it can, the curtain is worth the whole of `weights.victory`; if it
+cannot, it is worth nothing and prints so. The brief suggested
+`min(H, the rival's close)` for that live-race horizon; the `min` is not shipped,
+because clamping at forty turns would let the **planning** horizon kill a race an
+empire is comfortably winning, which is the thing an open race exists to stop
+doing.
+
+**The rival check.** `Player.beads` is public — the Abacus shows every real
+seat's rod to every player and no fog touches it — so the chain reads rival
+tallies openly, exactly as a human at the same table reads them. The nearest
+rival's clock is its own rod at its own rate plus **this** empire's build delay
+as a stand-in (what a rival's busiest town makes is a sweep of towns this seat
+may not have charted; written down rather than hidden). The race is **lost** when
+that rival would close first *and* hold more beads when it does — which is
+`closeTheGreatWork`'s own rule, most beads at the moment the work is finished —
+and a lost race folds a printed `× 0` naming them, rather than merely reading
+low. A bot pouring hammers into a race it cannot win is the failure that clause
+exists to prevent.
+
+**The takeover door is one function, read by four arms.** `raceTerm(ctx, row)`
+answers a labelled term or `null`, and `racePays` decides membership off the
+rows' own markers and never off a name: a building's `endsTheGame` or an
+`onComplete` grant of a bead, a race project's `bead`, a node's `paysBead`. The
+four readers are the build list (buildings and projects), the purchasing plan,
+the contribution arm's front row (the Opus is the one row that
+`acceptsContributions`), and the beeline's own gifts — `TechChain` prices
+`paysBead` for the first time, at `weights.bead` or, while the race is live, at
+the race's share. Nothing fires a rule anywhere: the race puts a number on four
+kinds of candidate and the ordinary argmax decides.
+
+**Live, and the one new knob.** A candidate carries the term only while the chain
+is live — not lost, worth something, and within
+`priorities.raceLiveHorizons` (**2**) horizons of the finish while the work is
+shut, or inside the rival's clock once it is open. The win condition is the one
+chain whose delay is routinely longer than a plan, so a horizon that zeroed it
+outright would mean it never took the book over at all; being live is permission
+to argue, not a bonus, and the ordinary discount still applies throughout.
+
+**Measured** (t75, duel, seeds 5/777/20260904, two balanced seats; batch 4 →
+batch 5):
+
+| | batch 4 | batch 5 |
+|---|---|---|
+| towns | 2/3/1/3/2/3 (14) | 2/3/1/3/2/3 (**14**) |
+| buildings standing | 14/5/5/5/9/8 (46) | 14/5/5/5/9/8 (**46**) |
+| technologies | 15/12/12/12/11/13 (75) | 15/12/12/12/11/13 (**75**) |
+| treasuries | 107/52/81/112/195/67 (614) | 107/52/81/112/195/67 (**614**) |
+| bankrupt seat-turns | 0 | 0 |
+
+**Not one figure moves, and that is the acceptance.** Six seats hold eight beads
+between them at t75 — a bead every fifty-odd turns — so every seat's rod is
+nineteen or twenty short, the whole race prices at exactly zero, and no candidate
+anywhere carries its term. The null half is pinned as a test rather than left to
+the table.
+
+**The smoke** (300 turns, seed 5, one duel; a reading, not a pin). The leading
+seat's bead rate settles around 0.08 a turn and its raising falls from 300 turns
+to 31 as its towns grow; the race's whole delay reads 101 turns at t201 — five
+beads of rod, the road to Alchemy, and the raising — against a live bound of 80,
+so the chain is still dark and the game is still being played on ordinary rows.
+**At t221 it goes live**: somebody has reached the closing technology, the leader
+holds 16 beads, and the chain reads `worth 1500 · delay 86 · open · live` — the
+curtain at full price, because the only rival on the board is 790 turns from
+closing and the leader is 86. The trailing seat's chain reads **lost** from t51
+onward and says whose name is on it, every turn, for two hundred and fifty turns.
+
+What the leader then *does* with a live race is nothing, and the reason is the
+gate rather than the bot: the rod goes 16 → 19 by t300 and the Magnum Opus asks
+for twenty, so the one row the race would have it raise is refused the whole
+time, and the bead-paying rows of its age are already standing in its towns. So
+the honest answer to *when does the endgame template start deciding* is: the
+chain lights about a hundred and fifty turns after the acceptance window closes,
+and the first decision it actually changes is the twentieth bead's.
+
+**Known gaps, written down rather than fixed.**
+
+- **A quest is not readable.** The brief asked for quest-advancing candidates to
+  fold the term "where readable", and they are not: a count deed ("twelve cities
+  of six citizens", "a library and a university in four towns") would need the
+  bot to evaluate `beadCount` hypothetically against a row it has not built,
+  which is the per-candidate empire sweep the brief rules out everywhere else.
+  The three markers `racePays` reads are the ones a row carries about itself.
+- **The chain zeroes rather than scaling.** The spec asked for the worth to
+  "scale with the race being winnable"; what shipped is the binary — full while
+  the empire can get there first, nothing when a rival holds it whatever this
+  empire builds. A soft lead ratio is a tuning question with no board to tune it
+  on yet, and a printed zero is a decision a reader of the feed can argue with.
+- **The rival's raising is this empire's.** See the rival check above.
+- **The takeover has never been exercised in a measured game**, only on the
+  arranged board. The 300-turn smoke gets as far as a live chain and no further:
+  no seat in this programme has filled a rod, so the term has never yet decided a
+  queue on a board nobody arranged. The arithmetic is pinned by test and by the
+  smoke, and by nothing else.
+
+## The programme, closed
+
+Five batches, one system: the book prices the banks, the delay discount prices
+time, the chains price long goals, the constraint prices price the meters, and
+the win condition prices the game itself. Every one of them landed as
+**arithmetic in the candidates' folds** rather than as a rule, which is what the
+spec asked for on its first page — the spectate feed and the arena show the whole
+book, and no knob anywhere says *do this above that number* any more. Fourteen
+tuned knobs were deleted across the five batches (six spending thresholds, the
+flat potential weight, the beeline's cost divisor, and the audit's six-row gate
+pile) and two were added (`priorities`, five numbers in all).
+
+The running measurement, t75 on the acceptance seeds (5/777/20260904, two
+balanced seats, six seats in all):
+
+| | batch 1 | batch 2 | batch 3 | batch 4 | batch 5 |
+|---|---|---|---|---|---|
+| towns | — | 15 | 12 | 14 | **14** |
+| buildings standing | 30 | 30 | 55 | 46 | **46** |
+| technologies | — | 71 | 75 | 75 | **75** |
+| treasuries | — | 485 | 475 | 614 | **614** |
+| purchases | 33 | 33 | 38 | — | — |
+| bankrupt seat-turns | 0 | 0 | 0 | 0 | **0** |
+
+and over the wider sweep (seeds 1/2/3/42/101/999/31337/20260101, sixteen seats):
+towns 33 → 28 → **38**, buildings 87 → 127 → **140**, both across batches 2 → 3
+→ 4, with batch 5 leaving every figure untouched by construction.
+
+What the arena is for now is the tuning nobody has done: the first sweep to run
+is `weights.happiness` under its ×3 band (batch 4's one regression, ten
+technologies on wide empires), then `priorities.horizonTurns` against
+`score.maxTurns`, then `raceLiveHorizons` on a board long enough to reach the
+race at all.

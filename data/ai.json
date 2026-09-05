@@ -11,7 +11,8 @@
     "horizonTurns": 40,
     "switchMargin": 1.1,
     "priceBandLow": 0.5,
-    "priceBandHigh": 3
+    "priceBandHigh": 3,
+    "raceLiveHorizons": 2
   },
   "expansion": {
     "settlerCap": 5,
