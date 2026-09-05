@@ -642,8 +642,8 @@ function code(text: string): string {
 describe('the bot module', () => {
   it('is there to be read', () => {
     const files = Object.keys(AI_SOURCE).map((path) => path.slice(path.lastIndexOf('/') + 1));
-    // Ten modules since batch 3 of the priority system (2026-09-05 — `chain.ts`
-    // joined), and the split is the point: `aiConfig.ts` is the leaf holding the
+    // Eleven modules since batch 8 of the priority system (2026-09-05 —
+    // `routes.ts` joined `chain.ts`), and the split is the point: `aiConfig.ts` is the leaf holding the
     // tuning surface (and the persona merge), `decision.ts` is the second leaf —
     // the vocabulary a decision and its arithmetic are said in — `value.ts` is
     // the appraisal (every function ends in a number or the terms that fold to
@@ -664,6 +664,7 @@ describe('the bot module', () => {
       'diplomacy.ts',
       'driver.ts',
       'plan.ts',
+      'routes.ts',
       'stepper.ts',
       'value.ts',
       'wants.ts',

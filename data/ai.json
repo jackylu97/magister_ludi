@@ -5,10 +5,11 @@
     "greatPersonRedraws": 4
   },
   "search": {
-    "pathProbes": 4
+    "pathProbes": 4,
+    "routeGateProbes": 24
   },
   "priorities": {
-    "horizonTurns": 40,
+    "horizonTurns": 60,
     "switchMargin": 1.1,
     "priceBandLow": 0.5,
     "priceBandHigh": 3,
@@ -23,7 +24,7 @@
     "ringFalloff": 0.45,
     "freshWaterBonus": 6,
     "coastBonus": 3,
-    "newLuxuryBonus": 14,
+    "newLuxuryBonus": 7,
     "newStrategicBonus": 10,
     "yieldWeights": {
       "food": 3,
@@ -99,16 +100,16 @@
   },
   "weights": {
     "food": [
+      9.8,
+      8.4,
       7,
-      6,
-      5,
-      4
+      5.6
     ],
     "production": [
-      4,
-      4,
-      4,
-      4
+      5.6,
+      5.6,
+      5.6,
+      5.6
     ],
     "gold": [
       3,
@@ -144,7 +145,6 @@
     "authority": 10,
     "renown": 2,
     "worker": 80,
-    "trader": 70,
     "debtAversion": 4
   },
   "solvency": {
@@ -175,7 +175,7 @@
   },
   "threat": {
     "radius": 4,
-    "militaryBonus": 60,
+    "militaryBonus": 30,
     "garrisonValue": 140,
     "extraArmyPerThreat": 1,
     "techMilitaryFactor": 3,

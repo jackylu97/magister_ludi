@@ -130,6 +130,13 @@ import {
   surveyUpgradeSites,
 } from './plan';
 import {
+  NO_ROUTES,
+  caravanRefusal,
+  explainCaravan,
+  explainRoutePay,
+  routeOutlook,
+} from './routes';
+import {
   type ValueContext,
   type YieldBag,
   VOICES,
@@ -145,6 +152,8 @@ import {
   explainSoldier,
   explainUpkeepCost,
   explainYields,
+  newResourceTerms,
+  realmResources,
   townProduction,
   hammerTerm,
   valueOfYields,
@@ -165,11 +174,12 @@ import {
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { discoveryDef } from '../sim/discoveryData';
-import { greatPersonDef } from '../sim/greatPeopleData';
+import { type Family, type GreatPersonId, greatPersonDef } from '../sim/greatPeopleData';
 import { improvementDef } from '../sim/improvementData';
 import { projectDef } from '../sim/projectData';
 import {
   type QueueItem,
+  capitalCityOf,
   cityById,
   hasEndedTurn,
   playerById,
@@ -187,10 +197,10 @@ import {
   explainTileYield,
   foldTileYield,
   cityTile,
-  controlledResources,
   foundingError,
   foundingErrorAt,
   tileContextAt,
+  tilePurchaseError,
   tileOwnerPlayerId,
   foodUpkeep,
   growthThreshold,
@@ -215,7 +225,7 @@ import {
 import { improvementError, improvementErrorAt, prospectError } from '../sim/improvements';
 import { type ImprovementId, workForFamily } from '../sim/improvementData';
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
-import { type ResourceId, resourceDef } from '../sim/resourceData';
+import type { ResourceId } from '../sim/resourceData';
 import { RULES, type CitizenFocus } from '../sim/rulesData';
 import type { TileYield } from '../sim/terrainData';
 import { explainFoundingCost, foldMeter, foundingCostLines } from '../sim/meters';
@@ -242,7 +252,11 @@ import {
   livePool,
   offerSize,
   slotOrderError,
+  isSlotted,
+  sealRemaining,
+  sealTurnsFor,
   slotTypesOf,
+  unslotOrderError,
 } from '../sim/statecraft';
 import {
   type CardId,
@@ -267,9 +281,6 @@ import { unitUpkeep, buildingUpkeep, unitUpkeepOf } from '../sim/upkeep';
 import {
   type RouteMode,
   bestRouteMode,
-  explainRouteSenderYieldBetween,
-  explainRouteYieldBetween,
-  foldRouteYield,
   routeIsInternational,
   startRouteError,
 } from '../sim/trade';
@@ -399,6 +410,12 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     bestProduction: hammers.best,
     scienceRate: rates.sciencePerTurn ?? 0,
     race: null,
+    routes: NO_ROUTES,
+    // **The ground, before anything is priced off it** (batch 8): which seams
+    // stand on this empire's own land, for the site scorer and for the hex the
+    // purchasing plan would buy. It reads the map and nothing else, so it can be
+    // built with the prior.
+    realm: realmResources(state, player.id),
   };
   // **The chains, before the book** (batch 3 of `docs/bot-priorities.md`): the
   // purchasing plan's bridge rows price what a delivery would buy a live chain in
@@ -417,7 +434,12 @@ export function valueContext(state: GameState, player: Player): ValueContext {
   // **The race, before every chain** (batch 5): a node that pays a bead is a step
   // of the win condition, so the tech chains read it — and it reads nothing but
   // the board, the rod and the rival's rod, so it can be built first of all.
-  const raced: ValueContext = { ...prior, race: beadChain(state, player, prior) };
+  // **The trade reading, before every chain and before the book** (batch 8): a
+  // building row that opens a route folds what that route would pay, and a
+  // building row is priced by the chains, by the book and by the queue. It reads
+  // the prior's prices, which is the one honest pass batch 1 shipped.
+  const traded: ValueContext = { ...prior, routes: routeOutlook(state, player, prior) };
+  const raced: ValueContext = { ...traded, race: beadChain(state, player, traded) };
   const engines: ValueContext = { ...raced, chains: liveChains(state, player, raced) };
   const chained: ValueContext = {
     ...engines,
@@ -578,7 +600,7 @@ function nextTownChain(
   const lines = explainFoundingCost(state, player.id, best.tile);
   const probe: SiteProbe = {
     tile: { col: best.tile.col, row: best.tile.row },
-    score: explainSite(state, heldResources(state, player.id), ai, best.tile).total,
+    score: explainSite(state, ctx.realm, ai, best.tile).total,
     distance: best.distance,
     // The escort question, asked of the *site* exactly as the settler's own arm
     // asks it (`marchToSite`): a settler with nothing walking beside it will not
@@ -1048,7 +1070,7 @@ function answerBlocker(
     case 'religion':
       return beliefDecision(state, player, sitting);
     case 'greatPerson':
-      return greatPersonDecision(state, player);
+      return greatPersonDecision(state, player, sitting);
     case 'idleUnit':
       return unitCommand(state, player, blocker.unitId, sitting);
     case 'cityProduction':
@@ -1120,7 +1142,13 @@ function housekeeping(
   const focus = focusCommand(state, player, sitting);
   if (focus !== null) return focus;
 
-  return slottingDecision(state, player, sitting);
+  const slotted = slottingDecision(state, player, sitting);
+  if (slotted !== null) return slotted;
+
+  // **The arrangement, improved** (batch 8) — last, and after the empty chairs
+  // are filled: a card on the bench and a chair standing open is the cheaper
+  // move, and this is the one that costs a seal. See `reslotDecision`.
+  return reslotDecision(state, player, sitting);
 }
 
 /**
@@ -1503,22 +1531,7 @@ function slottingDecision(
         rows.push({ label, score: 0, chosen: false, terms: [], rejected: refusal });
         continue;
       }
-      const scarcity = Math.max(1, fits.get(type) ?? 1);
-      // **The scarcer office wins the card**, and it is a *division* rather than
-      // a penalty for a reason: what is being compared is value per contested
-      // office. A wildcard six of this empire's cards would fit is worth a sixth
-      // of what it looks like, because five other cards could have taken it; a
-      // military office only one card fits is worth the whole card. A card twice
-      // as good as anything else can still take the wildcard, which is right —
-      // scarcity is a tie-break with teeth, not a veto.
-      const terms: ValueTerm[] = [
-        nest('what the card is worth', explainCard(player, ownedId, ctx)),
-        {
-          label: `÷ ${scarcity} — cards of this empire's that would also fit a ${SLOT_WORDS[type]} office`,
-          value: scarcity,
-          op: 'div',
-        },
-      ];
+      const terms = slotPairTerms(player, ctx, ownedId, type, fits.get(type) ?? 1);
       const score = foldOf(terms);
       rows.push({ label, score, chosen: false, terms });
       if (best === null || score > best.score) {
@@ -1538,6 +1551,164 @@ function slottingDecision(
       'a card outside a slot is paying nothing, and the office fewest cards fit is filled first.',
     candidates: rows,
   };
+}
+
+/**
+ * **What one card in one office is worth** — the slotting scorer, shared by the
+ * three arms that place a card so they cannot disagree about one placement
+ * (batch 8 made it a function; it was `slottingDecision`'s inline arithmetic).
+ *
+ * **The scarcer office wins the card**, and it is a *division* rather than a
+ * penalty for a reason: what is being compared is value per contested office. A
+ * wildcard six of this empire's cards would fit is worth a sixth of what it
+ * looks like, because five other cards could have taken it; a military office
+ * only one card fits is worth the whole card. A card twice as good as anything
+ * else can still take the wildcard, which is right — scarcity is a tie-break
+ * with teeth, not a veto.
+ */
+function slotPairTerms(
+  player: Player,
+  ctx: ValueContext,
+  cardId: OrderId,
+  type: SlotType,
+  fits: number,
+): ValueTerm[] {
+  const scarcity = Math.max(1, fits);
+  return [
+    nest('what the card is worth', explainCard(player, cardId, ctx)),
+    {
+      label: `÷ ${scarcity} — cards of this empire's that would also fit a ${SLOT_WORDS[type]} office`,
+      value: scarcity,
+      op: 'div',
+    },
+  ];
+}
+
+/**
+ * **The arrangement, improved once a turn** — batch 8 of
+ * `docs/bot-priorities.md`, and the half of the slot arm that never existed.
+ *
+ * `slottingDecision` fills an **empty** chair, so a card that arrived after the
+ * chairs were full stayed on the bench for the rest of the game however good it
+ * was. This is the other move: the best **swap** — a held card off the bench for
+ * a card sitting in an unsealed chair it would outscore — and it is greedy in
+ * the plainest sense the ruling asked for. One improvement, the single best one,
+ * and silence when there is no strictly better arrangement.
+ *
+ * Four things make it safe to run every turn:
+ *
+ *   · **strictly better** (`>`), never merely equal, so two cards of the same
+ *     worth cannot trade chairs for ever;
+ *   · **the same scorer as the drafts** (`slotPairTerms`), which is what makes
+ *     the second half of the move predictable: this arm empties the chair, and
+ *     `slottingDecision` — running before it, and asked again the moment the
+ *     board changes — fills it with the best card the same fold can find, which
+ *     is the card this arm emptied it for or something better;
+ *   · **one move a turn**, and it is derived rather than remembered: a slot
+ *     sealed *this* turn is a slot something has already put a card into, and
+ *     while one exists this arm stands down (`sealedThisTurn`). No stored state,
+ *     principle 3;
+ *   · **the seal is the gate's**. `unslotOrderError` is the command's own rule
+ *     and it is what refuses a sealed chair — a sealed chair is not a choice, so
+ *     it is not this arm's business to restate why.
+ *
+ * The one clause asked here rather than of a gate is whether the bench card
+ * *fits* the office, and it is asked with the simulation's own predicate
+ * (`orderFitsSlot`, the same one the scarcity count walks). `slotOrderError`
+ * cannot be asked of an occupied chair — it refuses on the occupant before it
+ * ever looks at the fit — so the honest reading is the predicate underneath it,
+ * and the slotting that follows is held to the whole gate as always.
+ */
+function reslotDecision(
+  state: GameState,
+  player: Player,
+  sitting?: BotSitting,
+): BotDecision | null {
+  const sc = player.statecraft;
+  if (sealedThisTurn(state, player)) return null;
+  const ctx = seatContext(state, player, sitting);
+  const layout = slotTypesOf(sc);
+  const fits = new Map<SlotType, number>();
+  for (const type of layout) {
+    if (fits.has(type)) continue;
+    fits.set(type, sc.orders.filter((id) => orderFitsSlot(id, type)).length);
+  }
+  const rows: BotCandidate[] = [];
+  let best: { cardId: OrderId; slot: number; row: number; gain: number } | null = null;
+
+  for (let slot = 0; slot < layout.length; slot++) {
+    const seated = sc.slots[slot];
+    if (!seated) continue;
+    const type = layout[slot]!;
+    const refusal = unslotOrderError(state, player.id, slot);
+    if (refusal !== null) {
+      rows.push({
+        label: `${cardName(seated.card)} keeps slot ${slot + 1} (${SLOT_WORDS[type]})`,
+        score: 0,
+        chosen: false,
+        terms: [],
+        rejected: refusal,
+      });
+      continue;
+    }
+    const sittingTerms = slotPairTerms(player, ctx, seated.card, type, fits.get(type) ?? 1);
+    const sittingScore = foldOf(sittingTerms);
+    rows.push({
+      label: `${cardName(seated.card)} keeps slot ${slot + 1} (${SLOT_WORDS[type]})`,
+      score: sittingScore,
+      chosen: false,
+      terms: sittingTerms,
+    });
+    for (const ownedId of sc.orders) {
+      if (isSlotted(sc, ownedId)) continue;
+      if (!orderFitsSlot(ownedId, type)) continue;
+      const terms = slotPairTerms(player, ctx, ownedId, type, fits.get(type) ?? 1);
+      const score = foldOf(terms);
+      rows.push({
+        label: `${cardName(ownedId)} takes slot ${slot + 1} from ${cardName(seated.card)}`,
+        score,
+        chosen: false,
+        terms,
+      });
+      const gain = score - sittingScore;
+      // Strictly better, and by the same fold on both sides — the whole of the
+      // ruling's idempotence: an arrangement nothing beats produces no command.
+      if (gain <= 0) continue;
+      if (best === null || gain > best.gain) {
+        best = { cardId: ownedId, slot, row: rows.length - 1, gain };
+      }
+    }
+  }
+  if (best === null) return null;
+  rows[best.row]!.chosen = true;
+  const seated = sc.slots[best.slot]!;
+  return {
+    kind: 'draft',
+    command: { type: 'unslotOrder', playerId: player.id, slotIndex: best.slot },
+    subject: player.name,
+    summary:
+      `Empties slot ${best.slot + 1}: ${cardName(best.cardId)} is worth ${round1(best.gain)} a turn more to ` +
+      `this empire than ${cardName(seated.card)}, and the chair is out of its seal.`,
+    candidates: rows,
+  };
+}
+
+/**
+ * Has this empire sealed a slot **this very turn**? A derived reading, never a
+ * flag: a card slotted now carries `sealedUntil = turn + sealTurnsFor`, so a
+ * slot whose seal has its full length left is a slot somebody has just filled.
+ */
+function sealedThisTurn(state: GameState, player: Player): boolean {
+  const full = sealTurnsFor(state, player.id);
+  if (full <= 0) return false;
+  for (const slot of player.statecraft.slots) {
+    // **Exactly** the full length, which is what a seal stamped this turn reads.
+    // Not "at least": a hand-arranged board, or a card that lengthened the seal
+    // after the stamp, can carry a longer one, and a slot nobody touched this
+    // turn must not stand this arm down.
+    if (slot && sealRemaining(state, slot) === full) return true;
+  }
+  return false;
 }
 
 /**
@@ -2112,44 +2283,167 @@ function cityIsThreatened(state: GameState, player: Player, city: City): boolean
 }
 
 /**
- * Which name to call, and the one place this bot leans on a refusal.
+ * **Which name to call**, scored — batch 8 of `docs/bot-priorities.md`, where
+ * every earlier build took the first legal name and said so.
  *
- * The roster is shared by every seat and resolved by log order, so a hand can
- * name somebody another empire already took. `greatPersonChoiceError` is asked
- * of each option first, so the ordinary case never reaches the reducer's
- * refusal — and when *every* option is spent there is nothing legal to send, so
- * index 0 goes out precisely to trigger the reducer's redraw (the one refusal in
- * the game that mutates; see `chooseGreatPerson`). The driver rides that out a
- * bounded number of times.
+ * First-legal is wrong here for the reason it was wrong in the slot arm: the
+ * three faces of a hand are not three helpings of one thing. A scholar's beakers
+ * and a general's aura are different boons, the ground each family's work wants
+ * is different ground, and a legacy is a card this bot already knows how to
+ * price. So each legal name is appraised through the readers that already exist,
+ * and the argmax decides:
+ *
+ *   · **the boon it would spend itself on** — `explainActFor`, the very
+ *     appraisal the piece's own arm makes once it is standing on the board, asked
+ *     of the family and of the capital it would arrive in (`settleGreatPersonChoice`
+ *     puts it there);
+ *   · **the best ground its work could take** — `rankWorkSites`' top row for the
+ *     family's improvement, walked from that same capital, so the walk it is
+ *     discounted by is the walk it would really make;
+ *   · **the legacy it leaves either way** — `explainEffects` over the row's own
+ *     `legacy`, which is the reader every card class in this bot goes through.
+ *
+ * **The act and the work are alternatives, not a sum.** A person is spent once,
+ * so the fold carries whichever is worth more and prints the other as a
+ * zero-valued label with its number in the label — the shape batch 4 settled on
+ * for a reading that informs a decision without joining its arithmetic.
+ *
+ * **The redraw is untouched.** `greatPersonChoiceError` is asked of every option
+ * first (the roster is shared by every seat and resolved by log order, so a hand
+ * can name somebody another empire already took), and when *every* option is
+ * spent there is nothing legal to send: index 0 goes out precisely to trigger
+ * the reducer's redraw — the one refusal in the game that mutates — exactly as
+ * it did before this batch. The driver rides that out a bounded number of times.
  */
-function greatPersonDecision(state: GameState, player: Player): BotDecision {
+function greatPersonDecision(
+  state: GameState,
+  player: Player,
+  sitting?: BotSitting,
+): BotDecision {
+  const ctx = seatContext(state, player, sitting);
   const options = player.greatPersonOffer?.options ?? [];
   const candidates: BotCandidate[] = [];
   let picked = 0;
-  let found = false;
+  let best: number | null = null;
   for (let index = 0; index < options.length; index++) {
-    const name = greatPersonDef(options[index]!).name;
+    const id = options[index]!;
+    const name = greatPersonDef(id).name;
     const rule = greatPersonChoiceError(state, player.id, index);
-    if (rule === null && !found) {
-      found = true;
-      picked = index;
-      candidates.push(chosenAt(name, index));
-    } else if (rule === null) {
-      candidates.push({ label: name, score: -index, chosen: false, terms: rankTerms(index) });
-    } else {
+    if (rule !== null) {
       candidates.push(refused(name, rule));
+      continue;
     }
+    const worth = explainGreatPerson(state, player, ctx, id);
+    candidates.push({ label: name, score: worth.total, chosen: false, terms: worth.terms });
+    // Strictly greater, so a tie keeps the earlier name — the hand's own order,
+    // which is `drawGreatPersonOffer`'s and therefore a fact about the state.
+    if (best === null || worth.total > best) {
+      best = worth.total;
+      picked = index;
+    }
+  }
+  if (best !== null) {
+    const chosen = candidates[picked];
+    if (chosen !== undefined) chosen.chosen = true;
   }
   return {
     kind: 'draft',
     command: { type: 'chooseGreatPerson', playerId: player.id, optionIndex: picked },
     subject: player.name,
-    summary: found
-      ? `Calls ${greatPersonDef(options[picked]!).name} — the first name in the hand nobody else has taken.`
-      : 'Every name in the hand is spent; sends the first anyway, which is what makes the reducer redraw.',
+    summary:
+      best === null
+        ? 'Every name in the hand is spent; sends the first anyway, which is what makes the reducer redraw.'
+        : `Calls ${greatPersonDef(options[picked]!).name} — worth ${round1(best)} a turn to this empire, ` +
+          `the best of the ${candidates.length} names on the table.`,
     candidates,
   };
 }
+
+/**
+ * **What one name in a hand is worth to this empire** — `greatPersonDecision`'s
+ * table, and nothing in it is new arithmetic.
+ *
+ * The piece does not exist yet, so both readings are taken where it *would*
+ * stand: `settleGreatPersonChoice` puts a called person in the capital (or the
+ * nearest town to it), so the capital is where the boon is spent and where the
+ * walk to its work begins. An empire with no town at all appraises no boon and
+ * no ground, and is left with the legacy — which is honest: the name is still
+ * spent, the ladder still climbs, and no piece stands anywhere.
+ */
+function explainGreatPerson(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  id: GreatPersonId,
+): Appraisal {
+  const def = greatPersonDef(id);
+  const seat = capitalCityOf(state, player.id);
+  const here = seat === undefined ? null : { col: seat.col, row: seat.row };
+  const act = explainActFor(state, player, ctx, def.family, here);
+  const work = workForFamily(def.family);
+  // The same ring the piece's own arm walks, from the hex it would arrive on.
+  const probe = here === null ? null : personProbe(player.id, here);
+  const sites =
+    work === null || probe === null
+      ? []
+      : rankWorkSites(state, player, ctx, work, probe, ctx.ai.workers.searchRadius);
+  const site = sites[0] ?? null;
+  const actWorth = act?.total ?? 0;
+  const siteWorth = site?.score ?? 0;
+  const terms: ValueTerm[] = [];
+  if (act !== null && (site === null || actWorth >= siteWorth)) {
+    terms.push(nest('the boon it would spend itself on', act));
+    if (site !== null) {
+      terms.push({
+        label: `(its work would pay ${round1(siteWorth)} on ${site.entry.label} — not both: a person is spent once)`,
+        value: 0,
+      });
+    }
+  } else if (site !== null) {
+    terms.push(nest(`the best ground its work could take — ${site.entry.label}`, { total: site.score, terms: site.terms }));
+    if (act !== null) {
+      terms.push({
+        label: `(acting now would pay ${round1(actWorth)} — not both: a person is spent once)`,
+        value: 0,
+      });
+    }
+  } else {
+    terms.push({ label: 'nothing to act on and nowhere its work would pay', value: 0 });
+  }
+  terms.push(nest('the legacy it leaves either way', explainEffects(def.legacy, ctx)));
+  return appraise(terms);
+}
+
+/**
+ * **A great person who has not been called yet, standing in the capital.**
+ *
+ * `caravanProbe`'s bargain one system over (`trade.ts`): the question is about a
+ * *place*, and the piece that will answer it does not exist yet. `rankWorkSites`
+ * reads a piece's hex and nothing else about it, so the probe carries a hex, the
+ * seat and no id at all.
+ */
+function personProbe(playerId: number, at: { col: number; row: number }): Unit | null {
+  if (GREAT_PERSON_TYPE === null) return null;
+  const def = unitDef(GREAT_PERSON_TYPE);
+  return {
+    id: -1,
+    ownerId: playerId,
+    type: GREAT_PERSON_TYPE,
+    col: at.col,
+    row: at.row,
+    hp: def.maxHp,
+    movesLeft: def.movement,
+    hasAttacked: false,
+  };
+}
+
+/**
+ * The row a called great person arrives as, read off its **marker**
+ * (`UnitDef.greatWork`) exactly as the unit arm reads it, never off a name —
+ * `HOLY_SITE`'s discipline said about a piece rather than about a work.
+ */
+const GREAT_PERSON_TYPE: UnitTypeId | null =
+  UNIT_TYPE_IDS.find((id) => unitDef(id).greatWork === true) ?? null;
 
 /**
  * **The beeline.** A goal node, and the whole prerequisite closure behind it,
@@ -2429,7 +2723,7 @@ function bankSpend(
       candidates.push(wantCandidate(want, currency, false));
       continue;
     }
-    if (want.buy === undefined) continue;
+    if (want.buy === undefined && want.ground === undefined) continue;
     // **The treasury is read live, never off the book** (batch 6). The book was
     // priced when the seat sat down and a purchase since then has spent from it,
     // so the cover is asked of `bankOf` at the moment the question is put.
@@ -2462,6 +2756,20 @@ function bankSpend(
       candidates.push(refused(best.want.label, `holding beats it: ${bar.label}`));
       return null;
     }
+    // **The rules are asked of the verb the want would fire** — the two gold
+    // sinks are two commands and two gates, and the ground's is `cities.ts`'.
+    const ground = best.want.ground;
+    if (ground !== undefined) {
+      const refusal = tilePurchaseError(state, player.id, ground.cityId, {
+        col: ground.col,
+        row: ground.row,
+      });
+      if (refusal !== null) {
+        best.candidate.rejected = refusal;
+        continue;
+      }
+      return tileDecision(state, player, best.want, bar, candidates);
+    }
     const bought = best.want.buy!;
     const refusal = purchaseError(state, player.id, bought.cityId, bought.item, currency);
     if (refusal !== null) {
@@ -2470,6 +2778,46 @@ function bankSpend(
     }
     return purchaseDecision(state, player, best.want, bar, currency, candidates);
   }
+}
+
+/**
+ * **A hex, bought** — the tile want's half of `bankSpend` (batch 8).
+ *
+ * Its own function rather than a branch inside `purchaseDecision` for the reason
+ * the field is its own: this is a different verb held to a different gate, and
+ * the two only meet in the ranking that chose between them.
+ */
+function tileDecision(
+  state: GameState,
+  player: Player,
+  best: Want,
+  bar: Want | null,
+  candidates: BotCandidate[],
+): BotDecision {
+  const ground = best.ground!;
+  const city = cityById(state, ground.cityId)!;
+  for (const candidate of candidates) {
+    if (candidate.label === best.label && candidate.rejected === undefined) candidate.chosen = true;
+  }
+  return {
+    kind: 'purchase',
+    command: {
+      type: 'purchaseTile',
+      playerId: player.id,
+      cityId: ground.cityId,
+      col: ground.col,
+      row: ground.row,
+    },
+    subject: city.name,
+    summary:
+      `Buys the hex at (${ground.col},${ground.row}) for ${city.name} at ${best.price} gold — ` +
+      `${round1(worthPerCoin(best))} a coin, ` +
+      (bar === null
+        ? 'and this empire has nothing it would rather hold for.'
+        : `against ${round1(worthPerCoin(bar))} for ${bar.label}.`),
+    candidates,
+    focus: { col: ground.col, row: ground.row },
+  };
 }
 
 /** One want, sent. Split out so `bankSpend`'s live gate can loop above it. */
@@ -2703,7 +3051,13 @@ function frontRowWorth(
   const def = unitDef(item.id);
   if (isCombatant(def)) return appraise([nest('what this piece is worth', explainSoldier(item.id, ctx))]);
   if (def.foundsCity === true) return appraise([{ label: 'one more town', value: ctx.ai.weights.city }]);
-  if (trades(def)) return appraise([{ label: 'a caravan', value: ctx.ai.weights.trader }]);
+  if (trades(def)) {
+    // **The route it would run** (batch 8), the same reading the build arm uses —
+    // and nothing at all where there is no route left for it, which is honest
+    // about a basket half-filled with a wagon this empire has no work for.
+    const caravan = explainCaravan(ctx);
+    return caravan ?? appraise([{ label: caravanRefusal(ctx), value: 0 }]);
+  }
   return appraise([{ label: 'a civilian', value: ctx.ai.weights.worker }]);
 }
 
@@ -3302,22 +3656,20 @@ function unitRoleValue(
   }
 
   if (trades(def)) {
-    if (countCities(state, player.id) < 2) return null;
-    // **Both trade quotas are gone.** `tradersPerCity` went in batch 4 — a route's
-    // pay is priced, and a quota per town cannot see whether there is a route left
-    // worth running — and batch 7 retires `traderCap` with it: a caravan is worth
-    // `weights.trader × goldPressure` and costs upkeep at gold's shadow price, so
-    // the empire whose books a caravan would mend is exactly the empire that wants
-    // one, and the empire with nothing left to carry prices the wage above the
-    // wagon. The one refusal that stays is a *rule* rather than a cap: a single
-    // town has nowhere to send a route.
-    return {
-      value: ai.weights.trader * ctx.goldPressure,
-      terms: [
-        { label: 'a caravan, flat', value: ai.weights.trader },
-        { label: `× ${ctx.goldPressure} gold pressure — a broke empire trades`, value: ctx.goldPressure, op: 'mul' },
-      ],
-    };
+    // **A caravan is worth the route it would run** (batch 8), and the flat
+    // `weights.trader × goldPressure` guess is retired with the knob. Every
+    // quota went before it — `tradersPerCity` in batch 4, `traderCap` in batch 7
+    // — on the promise that route pay would be priced, and this is that promise
+    // kept: the best pair no caravan of this empire is running, through the
+    // simulation's own fold, or **nothing at all** where there is no such pair.
+    //
+    // The refusal is a *rule* rather than a cap and there are three of them now,
+    // all derived: a lone town has nowhere to send a route, an empire whose every
+    // slot is running has no room for another wagon, and a wagon already standing
+    // idle will take the next slot before a new one does. See `explainCaravan`.
+    const caravan = explainCaravan(ctx);
+    if (caravan === null) return null;
+    return { value: caravan.total, terms: caravan.terms };
   }
 
   // **The opening's scouts, and the glut after them** (ruled 2026-09-04). The
@@ -3853,9 +4205,12 @@ function settlerCommand(
   sitting?: BotSitting,
 ): UnitChoice | null {
   const ai = aiFor(player);
-  // Hoisted for this whole decision, `valueContext`'s bargain: the site scorer
-  // asks it per hex and there are two hundred hexes in a search radius.
-  const held = heldResources(state, player.id);
+  // Hoisted for the whole sitting, `valueContext`'s bargain: the site scorer
+  // asks it per hex and there are two hundred hexes in a search radius. Since
+  // batch 8 it is the *realm* reading — every seam standing on this empire's
+  // own ground, improved or not — and the tile the purchasing plan would buy
+  // reads the very same set (`ValueContext.realm`).
+  const held = seatContext(state, player, sitting).realm;
   // Who is walking with it, asked once and read twice — here and by the march.
   const escorted = escortWithin(state, player, unit);
   const here = getTileAt(state.map, unit.col, unit.row);
@@ -4091,22 +4446,6 @@ function townTerm(worth: number): ValueTerm {
 }
 
 /**
- * Every resource kind this empire actually holds, as one set.
- *
- * Hoisted once per settler decision and handed to `explainSite` — see its
- * docblock for why that matters. It asks `controlledResources`, the same reading
- * the happiness meter and the deal table ask, so "this empire holds silk" means
- * one thing across the whole program; lent seams are in it, which is right,
- * because a signature on loan is a signature this empire is already paid for.
- */
-function heldResources(state: GameState, playerId: number): Set<ResourceId> {
-  return new Set<ResourceId>([
-    ...controlledResources(state, playerId, 'luxury'),
-    ...controlledResources(state, playerId, 'strategic'),
-  ]);
-}
-
-/**
  * **The nearest thing that would kill a civilian standing here**, or `null`.
  *
  * "Hostile" is the wild *or* an empire this seat is actually at war with
@@ -4319,19 +4658,7 @@ function explainSite(
     const resource = near.resource;
     if (resource === undefined || seen.has(resource)) continue;
     seen.add(resource);
-    if (held.has(resource)) continue;
-    const kind = resourceDef(resource).kind;
-    if (kind === 'luxury') {
-      bonuses.push({
-        label: `${resourceDef(resource).name} at (${near.col},${near.row}) — a luxury this empire holds none of`,
-        value: ai.site.newLuxuryBonus,
-      });
-    } else if (kind === 'strategic') {
-      bonuses.push({
-        label: `${resourceDef(resource).name} at (${near.col},${near.row}) — a strategic kind this empire cannot field`,
-        value: ai.site.newStrategicBonus,
-      });
-    }
+    bonuses.push(...newResourceTerms(held, ai, resource, `at (${near.col},${near.row})`));
   }
   const terms: ValueTerm[] = [
     { label: `the hex and its ${ai.site.ringRadius} ring(s), weighted`, value: foldOf(ring), parts: ring },
@@ -5390,7 +5717,26 @@ function explainAct(
   unit: Unit,
   ctx: ValueContext,
 ): Appraisal | null {
-  const family = familyOf(unit);
+  return explainActFor(state, player, ctx, familyOf(unit), { col: unit.col, row: unit.row });
+}
+
+/**
+ * The same appraisal asked of a **family and a hex** rather than of a piece —
+ * `explainAct`'s implementation, and the reading a name in a hand is priced by
+ * before any piece exists (`explainGreatPerson`, batch 8).
+ *
+ * `here` is where the piece stands or would stand, and it is load-bearing for
+ * exactly one family: a general's aura is worth what the column standing around
+ * it is worth. `null` — an empire with no town — prices the two town-bound boons
+ * at nothing, which is what `greatPersonActError` would refuse them for.
+ */
+function explainActFor(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  family: Family | null,
+  here: { col: number; row: number } | null,
+): Appraisal | null {
   if (family === null) return null;
   const people = RULES.greatPeople;
   const era = highestAge(player.techsResearched);
@@ -5408,6 +5754,7 @@ function explainAct(
       return appraise([nest(`${beakers} beakers toward ${techDef(aim).name}`, explainLump({ science: beakers }, ctx))]);
     }
     case 'engineer': {
+      if (here === null) return null;
       const hammers = Math.floor(people.engineerHammers * era * aged);
       return appraise([nest(`${hammers} hammers into a basket`, explainLump({ production: hammers }, ctx))]);
     }
@@ -5416,6 +5763,7 @@ function explainAct(
       return appraise([nest(`${gold} gold into the treasury`, explainLump({ gold }, ctx))]);
     }
     case 'artist': {
+      if (here === null) return null;
       const culture = actGainOf(state, player.id, 'culture');
       const calm = (people.artistHappiness * ctx.ai.weights.happiness * people.artistTurns) / lumpTurns;
       return appraise([
@@ -5427,7 +5775,8 @@ function explainAct(
       ]);
     }
     case 'general': {
-      const blessed = friendlyPiecesWithin(state, unit, people.generalRadius);
+      const blessed =
+        here === null ? 0 : friendlyPiecesAround(state, player.id, here, people.generalRadius);
       const aura =
         (people.generalCombat * ctx.ai.weights.military * blessed * people.generalTurns) / lumpTurns;
       return appraise([
@@ -5447,17 +5796,22 @@ function explainAct(
   }
 }
 
-/** How many of this empire's pieces stand within a radius, this one included. */
-function friendlyPiecesWithin(state: GameState, unit: Unit, radius: number): number {
-  const from = getTileAt(state.map, unit.col, unit.row);
+/** How many of this empire's pieces stand within a radius of a hex. */
+function friendlyPiecesAround(
+  state: GameState,
+  playerId: number,
+  at: { col: number; row: number },
+  radius: number,
+): number {
+  const from = getTileAt(state.map, at.col, at.row);
   if (!from) return 0;
   const here = tileHex(from);
   let count = 0;
   for (const other of state.units) {
-    if (other.ownerId !== unit.ownerId) continue;
-    const at = getTileAt(state.map, other.col, other.row);
-    if (!at) continue;
-    if (wrappedDistance(state.map, here, tileHex(at)) <= radius) count += 1;
+    if (other.ownerId !== playerId) continue;
+    const on = getTileAt(state.map, other.col, other.row);
+    if (!on) continue;
+    if (wrappedDistance(state.map, here, tileHex(on)) <= radius) count += 1;
   }
   return count;
 }
@@ -5672,53 +6026,6 @@ function traderCommand(
     candidates: tried,
     focus: { col: best.to.col, row: best.to.row },
   };
-}
-
-/**
- * **What one route would pay this empire**, per turn, in the one currency.
- *
- * The whole of the route scorer's opinion, and none of it is this bot's
- * arithmetic: `routeYields.ts` already answers "what does a caravan between
- * these two towns pay, as they stand", and the only thing a seat has to decide
- * is *which side of it lands in its own books*. That is one clause and it is the
- * international ruling read straight:
- *
- *   · a route between two of its own towns pays the **destination**
- *     (`explainRouteYieldBetween` — the origin's shelves, the two populations, a
- *     luxury's coin, the card's share), and the destination is this empire's, so
- *     the whole fold is its own;
- *   · a route ending abroad pays the **sender** a flat table
- *     (`explainRouteSenderYieldBetween`), and pays the host a coin that lands in
- *     somebody else's treasury. That coin is deliberately not counted — neither
- *     as a gift nor as a cost. The ruling is greed, not diplomacy.
- *
- * So the two arms of the table are commensurable because the simulation itself
- * says what each is worth, and a bot that preferred abroad (or shunned it) would
- * be overriding a number it had already been handed.
- *
- * The blockade and the amplifier ride along for free, being lines of those same
- * folds. Faith is the one voice no route pays, so it never appears in the bag.
- */
-function explainRoutePay(state: GameState, from: City, to: City, ctx: ValueContext): Appraisal {
-  const abroad = routeIsInternational(from, to);
-  const paid = foldRouteYield(
-    abroad ? explainRouteSenderYieldBetween(state, from, to) : explainRouteYieldBetween(state, from, to),
-  );
-  const bag: YieldBag = {
-    food: paid.food,
-    production: paid.production,
-    gold: paid.gold,
-    science: paid.science,
-    culture: paid.culture,
-  };
-  return appraise([
-    nest(
-      abroad
-        ? `what a foreign market pays the seat that sent it, ${from.name} → ${to.name}`
-        : `what ${to.name} banks off ${from.name}'s shelves`,
-      explainYields(bag, ctx),
-    ),
-  ]);
 }
 
 // --- naming a decision ------------------------------------------------------

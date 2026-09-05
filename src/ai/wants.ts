@@ -100,12 +100,27 @@ import {
   explainLump,
   explainUpkeepCost,
   explainYields,
+  bagOfTileYield,
+  newResourceTerms,
   yieldDelta,
   yieldWeight,
 } from './value';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
-import { cityQuote, cityYields, empirePercents } from '../sim/cities';
+import {
+  bestExpansionTile,
+  borderGrowth,
+  cityContext,
+  cityQuote,
+  cityYields,
+  empirePercents,
+  explainTileYield,
+  foldTileYield,
+  purchasableTiles,
+  yieldScore,
+} from '../sim/cities';
+import { getTileAt } from '../sim/map';
+import type { TileYield } from '../sim/terrainData';
 import {
   type PurchasableItem,
   bankOf,
@@ -175,6 +190,14 @@ export interface Want {
    * are opinions about coins, not commands.
    */
   buy?: { cityId: number; item: PurchasableItem };
+  /**
+   * **The hex the spend arm could buy this turn** — the tile want's `buy`
+   * (batch 8). A second field rather than a union on the one above, because a
+   * tile is bought by a different verb (`purchaseTile`) held to a different gate
+   * (`tilePurchaseError`), and a shape that hid two commands behind one key
+   * would be the spend arm branching on the absence of a field.
+   */
+  ground?: { cityId: number; col: number; row: number };
   /** True when the bank cannot pay the price today. Saving rows come of these. */
   outOfReach: boolean;
   /**
@@ -336,9 +359,133 @@ export function purchasingPlan(
     }
   }
 
+  // **The ground at the frontier** (batch 8): every hex a town of this empire
+  // could buy today, priced by the sim's own ladder and appraised by what it
+  // would pay the town that bought it. See `tileWants`.
+  for (const city of towns) wants.push(...tileWants(state, ctx, city));
+
   const reserve = wageReserveRow(ctx, inputs.wageReserve);
   if (reserve !== null) wants.push(reserve);
   for (const row of savingRows(wants, ctx, bankOf(player, 'gold'), inputs.goldRate)) wants.push(row);
+  return wants;
+}
+
+/**
+ * **The hexes a town could buy, as wants** — batch 8 of
+ * `docs/bot-priorities.md`, and the game's first gold sink joins the book.
+ *
+ * `purchasableTiles` (`cities.ts`) is the one enumeration: every unowned hex in
+ * a town's work radius that touches this empire, priced by the ladder and
+ * carrying the reason it cannot be had when it cannot. Only the offers with no
+ * reason at all become wants — a hex the writ has frozen, a hex the purse cannot
+ * reach and a **puppet's** whole ring are refusals of the simulation's own, and
+ * a want the rules would strike is a want the spend arm must not carry.
+ *
+ * What a hex is worth has two halves and they are different kinds of thing:
+ *
+ *   · **the ground it would work.** A citizen only moves to a bought hex if the
+ *     hex beats the poorest one the town works today, so that is what is
+ *     charged: the *delta* over that hex, at the town's own prices, through the
+ *     simulation's own citizen scorer (`yieldScore`, the very ordering
+ *     `assignCitizens` will use). A hex nobody would move to pays nothing today
+ *     and says so — which is the honest reading of a fourth-ring tundra beside a
+ *     town of three;
+ *   · **the seam it owns.** A luxury or a strategic kind this empire has no copy
+ *     of anywhere on its ground is worth `site.newLuxuryBonus` /
+ *     `newStrategicBonus` — the site scorer's own numbers, through the site
+ *     scorer's own door (`newResourceTerms`), off the **one** uniqueness reading
+ *     (`ValueContext.realm`). That is the ruling's whole point: the two arms
+ *     cannot disagree about which silk is the first silk, and neither of them
+ *     asks whether the seam is *worked* — a copy owned and unimproved is a copy.
+ *
+ * The stated crudeness: the delta is not re-asked of the whole town
+ * (`assignCitizens` may shuffle three citizens rather than one), and the seam's
+ * *signature* is not priced at all — a luxury's effect list is
+ * `resourceEffects.ts`' to read and cannot be asked hypothetically, which is the
+ * same note the great person's work carries.
+ */
+function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
+  if (city.puppet === true) return [];
+  const wants: Want[] = [];
+  // The poorest hex the town works today, hoisted per town: what a citizen
+  // moving to bought ground would give up.
+  let poorest: { score: number; yields: TileYield } | null = null;
+  for (const at of city.workedTiles) {
+    const tile = getTileAt(state.map, at.col, at.row);
+    if (!tile) continue;
+    const yields = foldTileYield(explainTileYield(tile, cityContext(state, city)));
+    const score = yieldScore(yields);
+    if (poorest === null || score < poorest.score) poorest = { score, yields };
+  }
+  // **The one hex a coin buys nothing but time on** — the hex this town's own
+  // culture is about to claim for nothing (`bestExpansionTile`, the simulation's
+  // own chooser). Buying *that* one gains its yield for the turns until the
+  // claim and not a turn more, so it is charged the share of the horizon those
+  // turns are; buying any other hex leaves the town permanently one hex ahead of
+  // where its borders would have put it, and is charged nothing.
+  //
+  // The distinction is the whole of the honest reading: culture claims hexes in
+  // its own preference order, so a coin spent on the hex at the head of that
+  // order is a coin spent on *sooner*, and a coin spent anywhere else is a coin
+  // spent on *more*.
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const wait = borderGrowth(state, city).turns;
+  const next = bestExpansionTile(state, city);
+  const soonShare = wait === null ? 1 : Math.min(1, wait / horizon);
+  for (const offer of purchasableTiles(state, city)) {
+    if (offer.error !== null) continue;
+    const tile = getTileAt(state.map, offer.col, offer.row);
+    if (!tile) continue;
+    const yields = foldTileYield(explainTileYield(tile, cityContext(state, city)));
+    const terms: ValueTerm[] = [];
+    const beats = poorest === null || yieldScore(yields) > poorest.score;
+    if (beats) {
+      const bag = bagOfTileYield(yields);
+      if (poorest !== null) {
+        const worst = bagOfTileYield(poorest.yields);
+        for (const voice of VOICES) {
+          const had = worst[voice];
+          if (had !== undefined) bag[voice] = (bag[voice] ?? 0) - had;
+        }
+      }
+      terms.push(
+        nest(
+          poorest === null
+            ? `what (${offer.col},${offer.row}) would pay ${city.name}`
+            : `what (${offer.col},${offer.row}) pays over the poorest hex ${city.name} works today`,
+          explainYields(bag, ctx),
+        ),
+      );
+    } else {
+      terms.push({
+        label: `no citizen of ${city.name} would move to (${offer.col},${offer.row}) today`,
+        value: 0,
+      });
+    }
+    terms.push(...newResourceTerms(ctx.realm, ctx.ai, tile.resource, 'on the hex'));
+    const owed = next !== null && next.col === offer.col && next.row === offer.row;
+    const share = owed ? soonShare : 1;
+    const claim: ValueTerm = {
+      label: owed
+        ? `× ${Math.round(share * 100) / 100} — ${city.name}'s borders would claim this very hex in ` +
+          `${String(wait)} turns anyway, against a ${horizon}-turn horizon`
+        : `× 1 — its borders are pointed elsewhere, so this hex is one more rather than one sooner`,
+      value: share,
+      op: 'mul',
+    };
+    const folded = appraise([nest(`the hex at (${offer.col},${offer.row})`, appraise(terms)), claim]);
+    if (folded.total <= 0) continue;
+    wants.push({
+      label: `the hex at (${offer.col},${offer.row}) for ${city.name}`,
+      currency: 'gold',
+      price: offer.price,
+      worth: folded.total,
+      delay: 0,
+      terms: folded.terms,
+      outOfReach: false,
+      ground: { cityId: city.id, col: offer.col, row: offer.row },
+    });
+  }
   return wants;
 }
 

@@ -65,9 +65,18 @@ import type { WantBook } from './wants';
 // Type-only for the same reason: `chain.ts` reads this module's folds at
 // runtime, and this module only needs to *name* the chains its context carries.
 import type { BeadChain, ExpansionChain, TechChain } from './chain';
+/**
+ * Type-only, and deliberately: `routes.ts` reads this file at runtime (the pay
+ * of a route is `explainYields` of the simulation's own fold), so a value import
+ * back would be the cycle `test/mapgen/moduleCycles.test.ts` exists to catch one
+ * system over. The *term* a route slot is worth is therefore built here, beside
+ * `hammerTerm`, and the *reading* it is built from is built there.
+ */
+import type { RouteOutlook } from './routes';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
-import { cityYields } from '../sim/cities';
+import { cityYields, tileOwnerField } from '../sim/cities';
+import { type ResourceId, resourceDef } from '../sim/resourceData';
 import { countOf } from '../sim/statecraft';
 import type { CardCountScaledEffect, CardEffect, CardId } from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
@@ -327,6 +336,37 @@ export interface ValueContext {
    * nothing it reads is a chain.
    */
   race: BeadChain | null;
+  /**
+   * **What this empire's trade stands at** (`routeOutlook`, `routes.ts`, batch
+   * 8) — the slots it holds, the ones spoken for, the best route a new caravan
+   * could run, and the best one more slot would open.
+   *
+   * It rides on the context for `wants`' reason exactly: the gate behind it runs
+   * A* over a pair of towns, and a caravan's worth is asked of every town's
+   * build list and a market's of every row of every town. Asked per candidate it
+   * would be a pathfind each; asked once it is one sweep of the towns.
+   *
+   * Built on the **prior**, like the book and the chains — a route priced at the
+   * shadow prices it is itself about to help set would be the fixed point batch
+   * 1 refused.
+   */
+  routes: RouteOutlook;
+  /**
+   * **Every resource kind standing on this empire's own ground** — improved or
+   * not, worked or not, revealed or not (batch 8's uniqueness ruling).
+   *
+   * The one reading of *"is this seam new to us"*, shared by the site scorer and
+   * by the tile the purchasing plan would buy, so the two cannot disagree about
+   * what a first silk is worth. It is deliberately **potential** rather than
+   * access: a copy inside the borders that nobody has mined yet is still a copy,
+   * because the investment that opens it is an investment this empire may make
+   * whenever it likes, and paying twice for the same signature is what the bonus
+   * exists to prevent.
+   *
+   * Hoisted here for `medianProduction`'s reason: it is one sweep of the map,
+   * and the settler's arm asks it of two hundred candidate hexes.
+   */
+  realm: ReadonlySet<ResourceId>;
 }
 
 /**
@@ -615,6 +655,107 @@ export function hammerTerm(
   };
 }
 
+/**
+ * **A row that opens a trade route, priced as the route it opens** — the harder
+ * half of batch 8's first ruling, and `hammerTerm`'s sibling: a term built here
+ * off a reading built in `routes.ts` (see the type-only import at the head of
+ * this file for why the two halves live apart).
+ *
+ * Folded by `explainBuildingRow`, so every surface that appraises a building —
+ * the queue, the purchasing plan, a chain's step — carries it in the same words.
+ * It is worth something only while it is worth something: the empire must be
+ * **capacity-bound** (every route it may run is running) and there must be an
+ * unserved pair a slot would open, or the row's own shelves are the whole of
+ * what it pays.
+ *
+ * The wagon is charged for in **turns** rather than in hammers: a slot with no
+ * caravan to fill it pays nothing until one is raised, and `caravanDelay` is
+ * nought exactly when one is already standing idle waiting for a slot. Charging
+ * the caravan's hammers here as well would be the bot paying twice for a piece
+ * its own build arm prices — batch 4's rule about the settler's walk, said one
+ * system over.
+ */
+export function routeSlotTerm(slots: number, ctx: ValueContext): ValueTerm | null {
+  const routes = ctx.routes;
+  if (slots <= 0 || !routes.bound || routes.next === null) return null;
+  const offer = routes.next;
+  const terms: ValueTerm[] = [
+    nest(
+      `what the best unserved pair would pay — ${offer.from.name} → ${offer.to.name} by ${offer.mode}`,
+      offer.pay,
+    ),
+  ];
+  if (slots !== 1) {
+    terms.push({ label: `× ${slots} routes this row opens`, value: slots, op: 'mul' });
+  }
+  terms.push(delayTerm(routes.caravanDelay, ctx, 'a caravan has still to be raised to carry it'));
+  return nest('it opens a route, and every route this empire may run is running', appraise(terms));
+}
+
+/**
+ * **Every resource kind standing on this empire's own ground** —
+ * `ValueContext.realm`, and the whole of batch 8's uniqueness ruling.
+ *
+ * *A unique luxury is one with no copy inside the empire's owned land, improved
+ * or not.* So this reads the **ground** and not the holdings: no reveal
+ * technology, no improvement, no city on the seam, no lent copy. Three of those
+ * four are `openedResource`'s clauses and they are the right rule for *access* —
+ * what an empire may draw on today — and the wrong one for *potential*, which is
+ * what a site and a hex for sale are appraised as. A silk this empire owns and
+ * has not yet worked is a silk it can work whenever it likes, and a bonus paid
+ * for the second copy is a bonus paid twice for one signature.
+ *
+ * One sweep of the map, hoisted onto the context: `tileOwnerField`'s bargain,
+ * for `hasResource`'s reason exactly.
+ */
+export function realmResources(state: GameState, playerId: number): ReadonlySet<ResourceId> {
+  const owner = tileOwnerField(state);
+  const held = new Set<ResourceId>();
+  const tiles = state.map.tiles;
+  for (let index = 0; index < tiles.length; index++) {
+    const tile = tiles[index]!;
+    if (tile.resource === undefined) continue;
+    if (owner.at(index) !== playerId) continue;
+    held.add(tile.resource);
+  }
+  return held;
+}
+
+/**
+ * **What a hex whose kind this empire has none of is worth**, as printed terms —
+ * the site scorer's two bonuses, read through one door so that a site and a hex
+ * for sale cannot disagree about which seams are new.
+ *
+ * `realm` is `ValueContext.realm`; it is passed rather than read off the context
+ * because the settler's arm hoists its own copy for a two-hundred-hex ring walk.
+ */
+export function newResourceTerms(
+  realm: ReadonlySet<ResourceId>,
+  ai: AiConfig,
+  resource: ResourceId | undefined,
+  where: string,
+): ValueTerm[] {
+  if (resource === undefined || realm.has(resource)) return [];
+  const kind = resourceDef(resource).kind;
+  if (kind === 'luxury') {
+    return [
+      {
+        label: `${resourceDef(resource).name} ${where} — a luxury this empire owns no copy of`,
+        value: ai.site.newLuxuryBonus,
+      },
+    ];
+  }
+  if (kind === 'strategic') {
+    return [
+      {
+        label: `${resourceDef(resource).name} ${where} — a strategic kind this empire owns no copy of`,
+        value: ai.site.newStrategicBonus,
+      },
+    ];
+  }
+  return [];
+}
+
 /** What a meter was multiplied by, and why — a label; it changes no fold. */
 export function meterWords(ctx: ValueContext, meter: PricedMeter): string {
   const note = ctx.priceNotes[meter];
@@ -826,6 +967,11 @@ export function explainBuildingRow(id: BuildingId, ctx: ValueContext): Appraisal
     else terms.push({ label: `a grant this bot cannot read (${grant.grant})`, value: ctx.ai.score.unknownEffect });
   }
   if (def.endsTheGame === true) terms.push({ label: 'it ends the game', value: ctx.ai.weights.victory });
+  // **The route it opens** (batch 8): a market is shelves *and* a slot, and the
+  // slot is worth what the pair it would join would pay — but only while every
+  // slot this empire has is spoken for. See `routeSlotTerm`.
+  const route = routeSlotTerm(def.routeSlots ?? 0, ctx);
+  if (route !== null) terms.push(route);
   terms.push(nest('its written effects', explainEffects(def.effects ?? [], ctx)));
   return appraise(terms);
 }

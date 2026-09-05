@@ -1263,3 +1263,260 @@ The user's rulings on the gap review, verbatim intent:
    still needs investment to work), never current access. Strategics
    likewise. `site.newLuxuryBonus`/`newStrategicBonus` price both the
    site scorer and the tile want through one reading.
+
+## Batch 8 as shipped (the connection pass, 2026-09-05)
+
+**A tenth module and an eleventh file.** `src/ai/routes.ts` — what a trade route
+is worth to this empire and what a route *slot* would open — a leaf above
+`value.ts` and below `chain.ts`, `wants.ts` and `bot.ts`. `value.ts` takes one
+**type-only** import back (`RouteOutlook`), the shape `statecraft.ts` and
+`religionData.ts` keep for the same reason: the reading lives in `routes.ts` and
+the *term* it becomes lives beside `hammerTerm`, so nothing imports a cycle.
+
+### Part 1 — the caravan is worth the route it would run
+
+`weights.trader` (70, flat, times the gold pressure) is **deleted**, and with it
+the last flat guess in the piece table. A caravan is worth `explainCaravan(ctx)`:
+the pay of **the best route no caravan of this empire is running**, through
+`routeYields.ts`' own fold, plus the road that route would wear. Three readers,
+one number — the build arm (`push`), the contribution arm's front row
+(`frontRowWorth`) and a tech chain's unit step (`chain.ts`).
+
+**The gate is the simulation's trader-independent half.** `routeStartable` is
+documented as *"the gate minus the piece"*: yours at one end, at peace and met at
+the other, a free slot, no live route already running that way, a path in the
+mode asked for, and the range. Those are exactly the clauses a caravan that does
+not exist yet can honestly be held to, so nothing in `routes.ts` re-implements
+one. What `startRouteError` adds — the piece exists, is yours, is a trader, is
+idle — is about a wagon, and there is no wagon.
+
+**The capacity hypothesis is a board, not a clause.** The one clause that is
+about the empire rather than the pair is the free slot, and while it bites every
+pair answers the same empire-level refusal — so the gate can say nothing at all
+about *what a slot would open*. Rather than ask four of the five clauses by hand,
+`withSpareSlot` asks the whole gate **on a shallow clone of the state whose first
+town carries one extra route-slot row**. That is the hypothetical the term is
+about, said as a board, and it is the shape the purchasing plan already uses when
+it prices a building by the `cityYields` an unbuilt row would produce.
+
+**The pay is cheap and the gate is dear**, so the sweep prices *every* ordered
+pair (two folds of `routeYields.ts`, no path) and asks the gate **in pay order**,
+richest first, until a pair passes or `search.routeGateProbes` (**24**, the one
+knob this batch adds, beside `pathProbes` because it is the same kind of number)
+asks have been paid for. The answer is the exact best legal pair whenever one of
+the richest few is legal, and a bound on compute otherwise.
+
+**Three refusals, all derived, none of them a cap**: a lone town has nowhere to
+send a route; an empire whose every slot is running has no room for another
+wagon; and a wagon already standing **idle** will take the next slot before a new
+one does (`RouteOutlook.free = slots − used − idle`, which is batch 4's *a
+realised step drops out by construction* said about traders).
+
+**The road is the half `routeYields.ts` does not answer.** A caravan paves every
+hex it rests on, so a land leg to a town the capital's roads do not yet reach
+very likely **joins** it — and a joined town pays `floor(pop ÷ connectionPerPop)`
+gold a turn for ever through `explainEmpireGold`'s connections line. That is a
+standing income the flat 70 was partly standing in for, and without it the honest
+price stopped the bot building caravans at all: measured at t130 on the
+acceptance seeds, **1 caravan and 1 route with the pay alone, 3 and 7 with the
+road**, against 18 and 24 for the flat weight. Two stated crudenesses, both
+conservative: only the destination is credited, and the join is assumed rather
+than pathfound.
+
+**The market is priced as the route it unlocks** (`routeSlotTerm`, `value.ts`,
+folded by `explainBuildingRow` so the queue, the purchasing plan and a chain's
+step all carry it). It is worth something only while it is worth something: the
+empire must be capacity-bound *and* an unserved pair must exist. The wagon is
+charged in **turns** rather than in hammers — `delayTerm` on the caravan's own
+build, nought when one is already idle — because charging its hammers here as
+well would be the bot paying twice for a piece its build arm prices.
+
+### Part 2 — the name a hand calls, appraised
+
+`greatPersonDecision` took the first legal name. It now appraises each legal one
+through readers that already existed, and the redraw is untouched (an all-spent
+hand still sends index 0 to trigger the reducer's one mutating refusal):
+
+- **the boon** — `explainActFor`, the piece's own act appraisal, refactored to
+  take a *family and a hex* rather than a piece, asked of the capital the called
+  person would arrive in (`settleGreatPersonChoice` puts it there);
+- **the ground** — `rankWorkSites`' top row for the family's work, walked from
+  that same capital through a `personProbe` (`caravanProbe`'s bargain: the
+  question is about a place and the piece does not exist yet);
+- **the legacy** — `explainEffects` over the row's own `legacy`, the reader every
+  card class goes through.
+
+**The act and the work are alternatives, not a sum**: a person is spent once, so
+the fold carries whichever is worth more and prints the other as a zero-valued
+label with its number in the label. Pinned by the test that first-legal cannot
+pass — the same hand dealt in both orders calls the same name.
+
+### Part 3 — the arrangement, improved once a turn
+
+`slottingDecision` fills an **empty** chair, so a card that arrived after the
+chairs were full stayed on the bench for the rest of the game however good it
+was. `reslotDecision` (housekeeping, **last**, after the empty chairs are filled)
+is the other move: the single best **swap** — a held card off the bench for a
+card in an unsealed chair it strictly outscores — emitted as `unslotOrder`, with
+`slottingDecision` seating the replacement the same turn.
+
+- **the same scorer as the drafts**, extracted as `slotPairTerms` (the card's
+  worth ÷ the office's scarcity) and read by both arms, which is what makes the
+  second half of the move predictable rather than hopeful;
+- **strictly better** (`>`), never equal — plain greedy, no margin, per the
+  ruling — so two cards of one worth cannot trade chairs for ever;
+- **one move a turn, derived**: a slot whose seal has *exactly* its full length
+  left is a slot something has just filled, so while one exists the arm stands
+  down (`sealedThisTurn`). No stored state, principle 3. (Exactly, not at least:
+  a longer seal is a slot nobody touched this turn, and reading `>=` stood the
+  arm down for ever on a board that had one.)
+- **the seal is the gate's** — `unslotOrderError` refuses a sealed chair. The one
+  clause asked here rather than of a gate is whether the bench card *fits* the
+  office, with the simulation's own `orderFitsSlot`, because `slotOrderError`
+  cannot be asked of an occupied chair: it refuses on the occupant before it ever
+  looks at the fit.
+
+### Part 4 — the ground at the frontier, and the uniqueness ruling
+
+**Tile buying is a want.** `tileWants` (`wants.ts`) walks `purchasableTiles` —
+the simulation's one enumeration of what a town may buy, priced by its own ladder
+and carrying the reason it cannot be had when it cannot — and carries every offer
+with no reason at all. A puppet's whole ring is refused by `tilePurchaseError`
+before this arm asks. `Want.ground` is the tile row's `buy` (a second field, not
+a union: a tile is a different verb held to a different gate), and `bankSpend`
+fires `purchaseTile` through `tileDecision`.
+
+What a hex is worth is two different kinds of thing:
+
+- **the ground it would work** — the delta over the **poorest hex the town works
+  today**, through the simulation's own citizen scorer (`yieldScore`), because a
+  citizen only moves to bought ground that beats what it is standing on. A hex
+  nobody would move to pays nothing today and says so;
+- **the seam it owns** — `site.newLuxuryBonus` / `newStrategicBonus`, through the
+  site scorer's own door.
+
+**And a coin buys *sooner* or *more*, never both.** The hex this town's culture
+is about to claim anyway (`bestExpansionTile`, the simulation's own chooser) is
+charged the share of the horizon those turns are; any other hex leaves the town
+permanently one hex ahead of where its borders would have put it and is charged
+nothing. Without that clause the tile rows sat at the top of the gold book and
+cost nine buildings on the acceptance seeds; with it they are a real but ordinary
+row.
+
+**The uniqueness ruling, and what the site scorer read before.** It read
+`controlledResources` — **access**: the reveal technology, plus an improvement on
+the seam or a city standing on it. So an empire that owned four silk hexes and
+had built no plantation was told, by every site it looked at and for as long as
+it had no plantation, that silk was *new*. The ruling is the other reading, and
+it is now the only one: `realmResources(state, playerId)` — **every resource kind
+standing on this empire's own ground, improved or not, worked or not, revealed or
+not**. `ValueContext.realm` hoists it (one map sweep), `newResourceTerms` is the
+one door onto it, and a source test pins that the two bonus knobs are named in
+exactly two files: `aiConfig.ts`, which declares them, and `value.ts`, which
+reads them. Lent seams are deliberately out: a loan is not ground.
+
+### Measured — the acceptance table
+
+t75, duel, seeds 5/777/20260904, two balanced seats (six seats in all). "Before"
+is HEAD with this batch's five sheet values already retuned, so the two columns
+differ by code alone:
+
+| | before | batch 8 |
+|---|---|---|
+| towns | 19 | **13** |
+| buildings standing | 64 | **55** |
+| technologies | 65 | **67** |
+| treasuries | 755 | **576** |
+| culture pooled | 297 | **267** |
+| bankrupt seat-turns | 0 | **0** |
+| tiles bought | 0 | **1** |
+| re-slottings | 0 | **14** |
+| routes started · caravans built | 0 · 1 | **0 · 0** |
+
+Over the wider sweep (seeds 1/2/3/42/101/999/31337/20260101, sixteen seats):
+towns 36 → **33**, buildings 132 → **122**, technologies 173 → **176**,
+treasuries 1531 → **1688**, culture 667 → **705**, bankruptcies 0 → 0, tiles
+bought 0 → **2**.
+
+**Attributed by measurement** (the acceptance seeds, each part switched off in
+turn against the finished build):
+
+| | towns | buildings | techs | gold |
+|---|---|---|---|---|
+| batch 8, everything on | 13 | 55 | 67 | 576 |
+| the trader's own price off (flat 70 restored) | 13 | 54 | 67 | 587 |
+| the market's route term off | 13 | 55 | 67 | 624 |
+| the great-person scoring off | 13 | 55 | 67 | 576 |
+| tile buying off | 14 | 59 | 66 | 571 |
+| re-slotting off | 15 | 61 | 69 | 509 |
+| the uniqueness re-aim off (access restored) | 16 | 57 | 65 | 635 |
+| everything off | 19 | 64 | 65 | 755 |
+
+**Trade is not reached inside the acceptance window, and that is the first
+finding.** Six seats hold **two markets and no caravans** at t75, so the caravan
+price, the market's route term and the great-person table move nothing at all
+there — the three of them together are worth one building and eleven coins. The
+window that exercises them is t130, where the same three seeds hold twelve to
+sixteen markets:
+
+| t130, seeds 5/777/20260904 | before | batch 8 |
+|---|---|---|
+| routes started | 24 | 7 |
+| caravans built | 18 | 3 |
+| towns · buildings | 27 · 202 | 17 · 142 |
+
+So the honest price buys a third of the wagons the flat 70 bought, and it is
+right to: the flat weight said a caravan was worth seventy whatever it would
+carry, and the simulation says the best unserved route on these boards pays about
+twenty-eight a turn plus the road. Whether **that** is the whole of what a route
+is worth is the batch's largest open question — see the gaps below.
+
+**The two numbers down are towns and buildings, and the attribution is honest
+about which rulings cost them.** Of the six towns, three are the uniqueness
+re-aim, two are re-slotting and one is tile buying; the trade half costs nothing
+on these boards. Two of those are rulings this batch was asked to implement
+rather than judgements it made, and the third is the arm the ruling asked for. No
+new bankruptcies anywhere, and technologies and the wide sweep's treasury both
+moved **up**.
+
+**The uniqueness re-aim wants `site.newLuxuryBonus` re-swept, and that is the
+recommendation this batch ends on.** The dial's *meaning* changed under it: at 14
+(and then at the grid search's 7) it was paid on almost every site an early
+empire looked at, because an early empire has access to nothing; it is now paid
+only where the empire owns no copy at all, which is a far rarer event and a far
+truer one. Batch 7's OFAT found 7 better than 14 **under the access reading**;
+that finding does not carry over, and the first sweep to run is that dial again.
+
+### Knobs
+
+Added: `search.routeGateProbes` (24) — a bound on compute, the audit's one honest
+kind of cap. Deleted: `weights.trader` (70), the last flat guess in the piece
+table. The arena panel needed no edit; it walks the sheet.
+
+### Known gaps, written down rather than fixed
+
+- **Camps are deferred by ruling** ("a smaller concern") and nothing here touches
+  them.
+- **A route's worth may still be under-read.** What `routeYields.ts` pays plus
+  the connection the road buys is not the whole of a route: the road itself
+  shortens every march that ever uses it, a trading post extends the range of
+  every later route, and the destination's own growth is not modelled. The
+  measurement says the flat 70 bought more towns and more buildings than the
+  honest price does, which is evidence for exactly this and not for the flat
+  number.
+- **The tile want's delta is not re-asked of the whole town.** `assignCitizens`
+  may shuffle three citizens where this reads one, and a luxury's *signature* is
+  not priced at all — the effect list is `resourceEffects.ts`' to read and cannot
+  be asked hypothetically, which is the note the great person's work already
+  carries.
+- **The re-slot arm charges nothing for the turn the chair stands empty**, nor
+  for the seal the replacement takes. Plain greedy is the ruling; the measured
+  cost of it is two towns, and a margin (the knob the ruling withheld) is the
+  first thing to try if that is judged too dear.
+- **The capacity hypothesis credits the first town of the empire** with the
+  phantom market. Which town holds it changes no clause the gate asks — a slot is
+  an empire's — so the reading is exact; the clone is a fact about a board nobody
+  plays.
+- **The great-person table has never decided a pick on a played board.** Two
+  offers arose in the acceptance games and the scored pick agreed with first-legal
+  on both; the arithmetic is pinned by arranged tests and by nothing else.

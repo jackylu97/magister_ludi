@@ -85,6 +85,7 @@
 
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
 import { type UpgradeSites, noUpgradeSites } from './plan';
+import { caravanRefusal, explainCaravan } from './routes';
 import {
   type ValueContext,
   type YieldBag,
@@ -560,7 +561,15 @@ function unitTerm(unit: UnitTypeId, ctx: ValueContext): ValueTerm {
     return { label: def.name, value: valueOfSoldier(unit, ctx) * factor, parts: soldier };
   }
   if (def.foundsCity) return { label: `${def.name} — one more town`, value: ai.weights.city };
-  if (trades(def)) return { label: `${def.name} — a caravan`, value: ai.weights.trader };
+  if (trades(def)) {
+    // **The route it would run** (batch 8), through the same door the build arm
+    // and the contribution arm read. A node that unlocks caravans in an empire
+    // with nowhere to send one unlocks nothing, and now says so.
+    const caravan = explainCaravan(ctx);
+    return caravan === null
+      ? { label: `${def.name} — ${caravanRefusal(ctx)}`, value: 0 }
+      : { label: `${def.name} — a caravan`, value: caravan.total, parts: caravan.terms };
+  }
   if (def.prophesies === true) {
     // **The appetite's beeline** (design addendum 5). A seat that has consecrated
     // a god and founded no faith wants this door open above almost anything else,

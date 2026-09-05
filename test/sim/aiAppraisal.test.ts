@@ -960,7 +960,7 @@ describe('the delay discount', () => {
     const ctx = valueContext(state, player);
     const far = delayTerm(HORIZON * 3, ctx, 'nobody alive will see it');
     expect(far.value).toBe(0);
-    expect(far.label).toMatch(/^× 0 — nobody alive will see it, some \d+ turns against a 40-turn horizon$/);
+    expect(far.label).toMatch(/^× 0 — nobody alive will see it, some \d+ turns against a 60-turn horizon$/);
     // And a promise that lands this very turn is worth the whole of itself.
     expect(delayTerm(0, ctx, 'it is already here').value).toBe(1);
   });
@@ -1346,13 +1346,17 @@ describe('the tech chain', () => {
     // printed `× switchMargin` term on it, and whether it survives is exactly
     // whether the leader beat it by that much.
     //
-    // The seat is handed Sailing before the table is taken, and that is the
-    // fixture rather than an aside: on a blank bench that one node outscores the
-    // rest of the tree two to one, and a runaway leader is a board on which no
-    // margin could ever matter. With it held, the top of the table is a real
-    // race — a runner-up inside a tenth of the leader, which keeps the plan, and
-    // several nodes well behind it, which do not.
-    const { state } = chained(3, 'sailing');
+    // The seat is handed Sailing AND Currency before the table is taken, and
+    // that is the fixture rather than an aside: on a blank bench Sailing
+    // outscores the tree two to one, and with only it held Currency runs away
+    // in turn (the 2026-09-05 retune widened every natural race past the
+    // margin). With both held the top of the table is a real race — Writing
+    // and Divination inside two percent of each other, which keeps the plan,
+    // and several nodes well behind, which do not.
+    const { state, player } = chained(3, 'sailing');
+    for (const step of researchExpansion(state, 0, 'currency')) {
+      if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+    }
     const opening = decisionOfType(state, 0, 'chooseResearch');
     expect(opening).not.toBeNull();
     const scored = opening!.candidates.filter((row) => row.rejected === undefined);

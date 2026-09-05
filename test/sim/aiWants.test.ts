@@ -41,22 +41,33 @@ import { createBotStepper } from '../../src/ai/stepper';
 import { type ValueTerm, foldTerms } from '../../src/ai/decision';
 import { incumbentGoal, racePays, raceTerm } from '../../src/ai/chain';
 import {
+  explainBuildingRow,
   explainYields,
   hammerPrice,
   hammerTerm,
+  realmResources,
   voiceWeight,
   yieldWeight,
 } from '../../src/ai/value';
+import { caravanRefusal, explainCaravan } from '../../src/ai/routes';
 import { type Want, expectedBestOrder, savingRows, worthPerCoin } from '../../src/ai/wants';
 import { type Game, createGame, dispatch } from '../../src/sim/game';
+import type { City } from '../../src/sim/state';
 import { type EarnedBead, type GameConfig, type GameState, type Player, realPlayers } from '../../src/sim/state';
 import { BEAD_FEAT_IDS, beadFeatDef } from '../../src/sim/beadData';
+import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
+import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
 import { UNIT_UNLOCK_TECH } from '../../src/sim/techData';
 import { gatingTech, researchExpansion } from '../../src/sim/tech';
 import { BELIEF_IDS } from '../../src/sim/religionData';
-import { livePool } from '../../src/sim/statecraft';
-import { orderDef } from '../../src/sim/statecraftData';
-import { foundCityAt, refreshCityDerived } from '../../src/sim/cities';
+import { livePool, slotTypesOf } from '../../src/sim/statecraft';
+import { ORDER_IDS, type OrderId, orderDef, orderFitsSlot } from '../../src/sim/statecraftData';
+import {
+  foundCityAt,
+  hasResource,
+  purchasableTiles,
+  refreshCityDerived,
+} from '../../src/sim/cities';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { newGame } from '../../src/sim/state';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
@@ -338,12 +349,12 @@ describe('saving is a row', () => {
   it('beats a trinket bought now when a big want is three turns out', () => {
     // **The spec's own case, with the arithmetic written out.** A four-hundred
     // coin want worth eight hundred, sixty coins short at twenty a turn, is
-    // three turns away; over a forty-turn horizon that discounts it to
-    // 800 × 37/40 = 740, which is 1.85 a coin. A sixty-coin trinket worth sixty
-    // is 1.0 a coin. The bot holds.
+    // three turns away; over the horizon (60 since the 2026-09-05 retune) that
+    // discounts it to 800 × 57/60 = 760, which is 1.9 a coin. A sixty-coin
+    // trinket worth sixty is 1.0 a coin. The bot holds.
     const game = grownGame(6);
     const ctx = valueContext(game.state, seat(game.state, 0));
-    expect(ctx.ai.priorities.horizonTurns).toBe(40);
+    expect(ctx.ai.priorities.horizonTurns).toBe(60); // retuned 2026-09-05, the OFAT pass
     const big: Want = {
       label: 'a big want',
       currency: 'gold',
@@ -368,9 +379,9 @@ describe('saving is a row', () => {
     expect(hold.holding).toBe('saving');
     expect(hold.buy).toBeUndefined();
     expect(hold.delay).toBe(3);
-    expect(hold.worth).toBeCloseTo(740, 6);
+    expect(hold.worth).toBeCloseTo(760, 6);
     expect(foldTerms(hold.terms)).toBe(hold.worth);
-    expect(worthPerCoin(hold)).toBeCloseTo(1.85, 6);
+    expect(worthPerCoin(hold)).toBeCloseTo(1.9, 6);
     expect(worthPerCoin(hold)).toBeGreaterThan(worthPerCoin(trinket));
   });
 
@@ -1129,13 +1140,16 @@ describe('the focus arm', () => {
     return found;
   }
 
-  const FOCUS_TURNS = 32;
+  // Re-aimed 2026-09-05 (batch 8, on the retuned sheet): seat 0 now leans on the
+  // hammers at t32 and puts the town back at t35. The window is what the two
+  // directions need, not a number with an opinion.
+  const FOCUS_TURNS = 40;
 
   it('points a town at the hammers and takes it back, and the rules accept both', () => {
-    // Measured on this board (2026-09-05): seat 0 leans its town on the hammers
-    // at t26 while an engine is waiting on them, and puts it back at t30 when
-    // the engine is standing — which is the whole of the arm's sentence, in both
-    // directions, on a board nobody arranged.
+    // Measured on this board (2026-09-05, batch 8's sheet): seat 0 leans its
+    // town on the hammers at t32 while an engine is waiting on them, and puts it
+    // back at t35 when the engine is standing — which is the whole of the arm's
+    // sentence, in both directions, on a board nobody arranged.
     const steps = focusSteps(FOCUS_TURNS);
     expect(steps.length).toBeGreaterThan(0);
     const words = steps.map((step) => (step.decision.command as { focus?: string }).focus);
@@ -1241,7 +1255,9 @@ describe('batch 6’s terms', () => {
     const stepper = createBotStepper(game, { warn: () => {} });
     const seen = new Set<string>();
     const failures: string[] = [];
-    for (let turn = 0; turn < 30; turn++) {
+    // Forty rather than thirty since batch 8: on the retuned sheet the focus arm
+    // (and with it the hammer premium's positive face) is first reached at t32.
+    for (let turn = 0; turn < 40; turn++) {
       for (const step of stepper.playTurn()) {
         for (const candidate of step.decision.candidates) {
           if (candidate.rejected !== undefined) continue;
@@ -1255,7 +1271,7 @@ describe('batch 6’s terms', () => {
       }
     }
     expect(failures).toEqual([]);
-    // Every term this batch added is actually printed somewhere in thirty turns
+    // Every term this batch added is actually printed somewhere in forty turns
     // of a duel — the claim that keeps the audit above from being vacuous. The
     // hammer premium's *negative* face is not on the list and deliberately: a
     // duel's first thirty turns never run out of engines to raise, so the charge
@@ -1275,4 +1291,311 @@ describe('batch 6’s terms', () => {
     }
     return failures;
   }
+});
+
+/**
+ * **Batch 8 — the connection pass** (`docs/bot-priorities.md`).
+ *
+ * Four rulings, four claims, and every one of them is about a number the bot
+ * used to *guess*: what a caravan is worth, what a market opens, which name in a
+ * hand to call, and what a hex at the frontier is worth. The tests are shaped by
+ * what they replaced — a flat weight, a first-legal pick, an arrangement nothing
+ * ever revisited, and a gold sink the bot could not see at all.
+ */
+describe('batch 8 — the caravan and the route it would run', () => {
+  /** The row that carries route slots, read off the marker exactly as the bot does. */
+  const MARKET = BUILDING_IDS.find((id) => (buildingDef(id).routeSlots ?? 0) > 0)!;
+
+  it('prices a caravan at the best route no caravan of this empire is running', () => {
+    const state = benchState(2);
+    const player = seat(state, 0);
+    // A slot, so a caravan built today would have something to carry.
+    const town = state.cities[0]!;
+    town.buildings.push(MARKET);
+    refreshCityDerived(state, town);
+
+    const ctx = valueContext(state, player);
+    expect(ctx.routes.slots).toBeGreaterThan(0);
+    expect(ctx.routes.free).toBeGreaterThan(0);
+    expect(ctx.routes.open).not.toBeNull();
+    const caravan = explainCaravan(ctx)!;
+    expect(caravan).not.toBeNull();
+    // The worth *is* the offer's pay, and the fold is the computation.
+    expect(caravan.total).toBe(ctx.routes.open!.pay.total);
+    expect(foldTerms(caravan.terms)).toBe(caravan.total);
+
+    // **It moves with the route.** A destination with more people banks more off
+    // the origin's shelves, so the same caravan is worth more to the same empire
+    // — which is the whole of what the flat `weights.trader` guess could not say.
+    const before = caravan.total;
+    for (const city of state.cities) {
+      city.population += 8;
+      refreshCityDerived(state, city);
+    }
+    const richer = explainCaravan(valueContext(state, player))!;
+    expect(richer.total).toBeGreaterThan(before);
+  });
+
+  it('refuses a caravan where there is no route for one, and names the rule that refused', () => {
+    // A lone town has nowhere to send a route — the one refusal batch 4 left
+    // standing — and an empire with no market has no slot to fill. Both are
+    // *rules* rather than caps, and both are read off the board.
+    const lone = benchState(1);
+    const one = seat(lone, 0);
+    expect(explainCaravan(valueContext(lone, one))).toBeNull();
+
+    const pair = benchState(2);
+    const two = seat(pair, 0);
+    const ctx = valueContext(pair, two);
+    expect(ctx.routes.slots).toBe(0);
+    expect(explainCaravan(ctx)).toBeNull();
+    expect(caravanRefusal(ctx)).toContain('market');
+  });
+
+  it('folds the route a market opens into its row, and only while every route is running', () => {
+    const state = benchState(2);
+    const player = seat(state, 0);
+    // No market at all: every route this empire may run (none) is running, so
+    // the row that opens the first one carries what that route would pay.
+    const bound = valueContext(state, player);
+    expect(bound.routes.bound).toBe(true);
+    expect(bound.routes.next).not.toBeNull();
+    const opened = explainBuildingRow(MARKET, bound);
+    const term = opened.terms.find((row) => row.label.includes('it opens a route'));
+    expect(term).toBeDefined();
+    expect(term!.value).toBeGreaterThan(0);
+    expect(foldTerms(opened.terms)).toBe(opened.total);
+
+    // A slot standing free says nothing: the route is not waiting on a market,
+    // it is waiting on a wagon, and the wagon has its own candidate.
+    const town = state.cities[0]!;
+    town.buildings.push(MARKET);
+    refreshCityDerived(state, town);
+    const free = valueContext(state, player);
+    expect(free.routes.bound).toBe(false);
+    const quiet = explainBuildingRow(MARKET, free);
+    expect(quiet.terms.find((row) => row.label.includes('it opens a route'))).toBeUndefined();
+  });
+});
+
+describe('batch 8 — the name a hand calls', () => {
+  it('calls the same person whichever order the hand deals it', () => {
+    // **The first-legal pick, retired.** A bot that took the first name would
+    // answer these two hands differently; a bot that appraises them answers the
+    // same, because the hand's order is not a fact about either name.
+    const state = benchState(2);
+    const player = seat(state, 0);
+    const families = new Map<string, string>();
+    for (const id of GREAT_PERSON_IDS) {
+      const family = greatPersonDef(id).family;
+      if (!families.has(family)) families.set(family, id);
+    }
+    const [first, second] = [...families.values()];
+    player.greatPersonOffer = { options: [first, second] as never };
+    const forward = nextBotDecision(state, player.id)!;
+    player.greatPersonOffer = { options: [second, first] as never };
+    const reversed = nextBotDecision(state, player.id)!;
+    const named = (decision: BotDecision, options: string[]): string =>
+      options[(decision.command as { optionIndex: number }).optionIndex]!;
+    expect(named(forward, [first!, second!])).toBe(named(reversed, [second!, first!]));
+
+    // And the pick is the argmax of the printed table, so the feed and the
+    // decision cannot disagree about why.
+    const best = Math.max(...forward.candidates.map((row) => row.score));
+    const chosen = forward.candidates.find((row) => row.chosen)!;
+    expect(chosen.score).toBe(best);
+    for (const row of forward.candidates) expect(foldTerms(row.terms)).toBe(row.score);
+  });
+
+  it('still sends the first option when every name in the hand is spent', () => {
+    // The redraw, byte-identical: the reducer's one refusal that mutates is what
+    // an all-spent hand is *for*, and this batch left it alone.
+    const state = benchState(1);
+    const player = seat(state, 0);
+    const options = GREAT_PERSON_IDS.slice(0, 2);
+    player.greatPersonOffer = { options: [...options] as never };
+    for (const id of options) state.recruited.push(id);
+    const decision = nextBotDecision(state, player.id)!;
+    expect((decision.command as { optionIndex: number }).optionIndex).toBe(0);
+    expect(decision.summary).toContain('redraw');
+    for (const row of decision.candidates) expect(row.rejected).toBeDefined();
+  });
+});
+
+describe('batch 8 — the arrangement, improved once a turn', () => {
+  /**
+   * Two cards that fit the same office, one seated and one on the bench. Which
+   * of the two is *better* is `explainCard`'s to say and not this test's, so
+   * both arrangements are played and the claim is about the pair: the arm fires
+   * for exactly one of them, and it fires in the direction the printed table
+   * says.
+   */
+  function playArrangement(seated: OrderId, bench: OrderId, turns: number): BotDecision[] {
+    const game = grownGame(6);
+    const player = seat(game.state, 0);
+    const sc = player.statecraft;
+    const layout = slotTypesOf(sc);
+    // Every other chair is **full and sealed**, so the only move on the board is
+    // the swap: an empty chair anywhere would be `slottingDecision`'s to fill,
+    // and a wildcard chair fits everything.
+    const packing = ORDER_IDS.filter(
+      (id) => id !== seated && id !== bench && orderDef(id).retired !== true,
+    );
+    sc.orders = [seated, bench];
+    for (let index = 0; index < sc.slots.length; index++) {
+      if (index === 0) continue;
+      const filler = packing.find(
+        (id) => orderFitsSlot(id, layout[index]!) && !sc.orders.includes(id),
+      )!;
+      sc.orders.push(filler);
+      sc.slots[index] = { card: filler, sealedUntil: game.state.turn + 99 };
+    }
+    // Unsealed by construction: an absolute turn already past.
+    sc.slots[0] = { card: seated, sealedUntil: 0 };
+    const stepper = createBotStepper(game, { warn: () => {} });
+    const found: BotDecision[] = [];
+    for (let turn = 0; turn < turns; turn++) {
+      for (const step of stepper.playTurn()) {
+        const command = step.decision.command as { type: string; playerId: number };
+        if (command.type === 'unslotOrder' && command.playerId === player.id) {
+          found.push(step.decision);
+        }
+      }
+    }
+    return found;
+  }
+
+  function twoThatFit(): [OrderId, OrderId] {
+    const game = createGame(CONFIG);
+    const player = seat(game.state, 0);
+    const type = slotTypesOf(player.statecraft)[0]!;
+    const fitting = ORDER_IDS.filter(
+      (id) => orderFitsSlot(id, type) && orderDef(id).retired !== true,
+    );
+    return [fitting[0]!, fitting[1]!];
+  }
+
+  it('swaps the better card in exactly once, and stays silent the other way round', () => {
+    const [a, b] = twoThatFit();
+    const forward = playArrangement(a, b, 1);
+    const backward = playArrangement(b, a, 1);
+    // One of the two arrangements is the wrong way round and exactly one is.
+    expect(forward.length + backward.length).toBe(1);
+    const moved = forward.length === 1 ? forward[0]! : backward[0]!;
+    // The command names the chair the arrangement seated, and the chosen row is
+    // the best of a table whose every score is its own fold.
+    expect((moved.command as { slotIndex: number }).slotIndex).toBe(0);
+    const chosen = moved.candidates.find((row) => row.chosen)!;
+    expect(chosen.label).toContain('takes slot 1');
+    for (const row of moved.candidates) {
+      if (row.rejected !== undefined) continue;
+      expect(foldTerms(row.terms)).toBe(row.score);
+    }
+  });
+
+  it('does not oscillate: the swap is made, and the next turn asks nothing', () => {
+    // The idempotence half of the ruling, and it is two rules at once: the card
+    // that moved in is sealed (the gate refuses), and the card that came out is
+    // not strictly better than the one that displaced it (the fold refuses).
+    const [a, b] = twoThatFit();
+    const forward = playArrangement(a, b, 2);
+    const backward = playArrangement(b, a, 2);
+    expect(forward.length + backward.length).toBe(1);
+  });
+});
+
+describe('batch 8 — the hexes a town would buy', () => {
+  const SILK = 'silk' as never;
+
+  /** A bench of one town, a full purse, and the two frontier hexes it may buy. */
+  function frontier(): {
+    state: GameState;
+    player: Player;
+    city: City;
+    offers: { col: number; row: number }[];
+  } {
+    const state = benchState(1);
+    const player = seat(state, 0);
+    player.gold = 2000;
+    const city = state.cities[0]!;
+    const offers = purchasableTiles(state, city)
+      .filter((offer) => offer.error === null)
+      .map((offer) => ({ col: offer.col, row: offer.row }));
+    return { state, player, city, offers };
+  }
+
+  function wantAt(state: GameState, player: Player, at: { col: number; row: number }): Want {
+    const book = valueContext(state, player).wants.gold;
+    return book.find((row) => row.label.includes(`(${at.col},${at.row})`))!;
+  }
+
+  it('prices a hex whose luxury this empire owns no copy of above a plain one', () => {
+    const { state, player, offers } = frontier();
+    expect(offers.length).toBeGreaterThan(1);
+    const seam = offers[1]!;
+    // The plain hex is worth nothing at all on this bench and is *not* a want:
+    // every hex here is the same grassland hill, so no citizen would move to it
+    // and the book does not carry a row worth nought. That is the comparison —
+    // the seam is the whole of the difference between the two hexes.
+    const before = wantAt(state, player, seam);
+    expect(before).toBeUndefined();
+    getTileAt(state.map, seam.col, seam.row)!.resource = SILK;
+    const second = wantAt(state, player, seam);
+    expect(second).toBeDefined();
+    expect(second.worth).toBeGreaterThan(0);
+    expect(JSON.stringify(second.terms)).toContain('owns no copy of');
+    // Every want in this book folds out of its own printed terms, tiles included.
+    expect(foldTerms(second.terms)).toBe(second.worth);
+    // And it is a want the arm could actually fire: the ground's own verb.
+    expect(second.ground).toBeDefined();
+    expect(second.buy).toBeUndefined();
+  });
+
+  it('reads uniqueness off the ground, never off access — an unimproved copy is a copy', () => {
+    // **The ruling, pinned at the point the two readings disagree.** A silk
+    // standing on this empire's own land with no plantation on it is a silk
+    // nobody can draw on — `hasResource` says so — and it is nonetheless a copy,
+    // because the value the bonus expresses is *potential* and the investment
+    // that opens it is one this empire may make whenever it likes.
+    const { state, player, city, offers } = frontier();
+    const seam = offers[1]!;
+    getTileAt(state.map, seam.col, seam.row)!.resource = SILK;
+    expect(JSON.stringify(wantAt(state, player, seam).terms)).toContain('owns no copy of');
+
+    // One copy inside the borders, unimproved, unworked, unrevealed by anything.
+    const owned = state.map.tiles.find(
+      (tile) =>
+        state.tileOwner[state.map.width * tile.row + tile.col] === city.id &&
+        tile.resource === undefined,
+    )!;
+    owned.resource = SILK;
+    expect(hasResource(state, player.id, SILK)).toBe(false);
+    expect(realmResources(state, player.id).has(SILK)).toBe(true);
+    // The seam was the whole of what that hex was worth on this bench, so with
+    // a copy owned the row is not merely cheaper: it is not a want at all.
+    expect(wantAt(state, player, seam)).toBeUndefined();
+  });
+
+  it('gives the site scorer and the tile want one door onto that reading', () => {
+    // A source pin, because the two arms are in two files and the ruling is that
+    // they cannot disagree: the two bonuses are named in exactly one module —
+    // the leaf that owns the reading — and everything else asks it.
+    const sources = import.meta.glob('../../src/ai/*.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    const naming: string[] = [];
+    for (const path of Object.keys(sources).sort()) {
+      const code = sources[path]!
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/(^|[^:])\/\/.*$/gm, '$1');
+      if (/\bnewLuxuryBonus\b|\bnewStrategicBonus\b/.test(code)) {
+        naming.push(path.slice(path.lastIndexOf('/') + 1));
+      }
+    }
+    // `aiConfig.ts` *declares* the two numbers, which is the tuning surface's
+    // job; `value.ts` is the only module that reads them.
+    expect(naming).toEqual(['aiConfig.ts', 'value.ts']);
+  });
 });

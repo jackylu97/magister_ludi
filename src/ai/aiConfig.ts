@@ -79,6 +79,19 @@ export interface AiConfig {
      * kind of dial a data file is for.
      */
     pathProbes: number;
+    /**
+     * How many pairs of towns the trade reading will pay the route gate for
+     * before it settles for the best it has found (batch 8).
+     *
+     * `pathProbes`' sibling and the same kind of number: `routeStartable` runs
+     * A* between two towns, and an empire of six towns on a board of twelve has
+     * sixty-six ordered pairs. What a route *pays* is cheap — two folds of
+     * `routeYields.ts` and no path at all — so the sweep prices every pair and
+     * asks the gate **in pay order**, richest first. The answer is therefore the
+     * exact best legal pair whenever one of the richest few is legal, and this
+     * is the bound on what "few" costs.
+     */
+    routeGateProbes: number;
   };
   /**
    * **The priority system's own dials** — the want book and the shadow prices
@@ -477,8 +490,11 @@ export interface AiConfig {
     renown: number;
     /** A worker, flat — the improvements it will lay, priced as one number. */
     worker: number;
-    /** A caravan, flat. Multiplied by the gold pressure: a broke empire trades. */
-    trader: number;
+    // `trader` was here, and batch 8 retired it: a caravan is worth the pay of
+    // the best route no caravan of this empire is running (`explainCaravan`,
+    // `routes.ts`), which is the thing it will actually do. A flat number
+    // multiplied by the gold pressure could not tell an empire whose towns are
+    // all joined from one with a rich pair waiting.
     /**
      * How much dearer a coin gets when the books are bleeding, at full strain.
      *
