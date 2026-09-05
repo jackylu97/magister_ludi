@@ -29,18 +29,23 @@ CountKind the card-shapes pass built.
 | Government | Proposed signature | Why |
 |---|---|---|
 | **Divine Mandate** 3/3/5 | **+1🕯 and +1🎵 in your capital for every wildcard Order slotted** · your happy cities pay +10% faith | The five W chairs become an engine you can see counting up on the stamp; the tier clause goes (illegible). The faith→culture conversion moves to a doctrine (below), where a permanent pick belongs. |
-| **Imperium** 5/3/3 | **+1⚒ in every city for every military Order slotted** · all units +1 movement · **a captured city keeps its buildings** | The five M chairs feed the war economy directly (hammers), the movement stays as the war verb, and the third clause is the conquest payoff the war path lacks — capturing something now *builds* your empire. `+3 authority` moves to Hegemony (below) so the doctrine and the government stop overlapping. |
+| **Imperium** 5/3/3 | **+1⚒ in every city for every military Order slotted** · all units +1 movement · **capturing a city pays +50💰 and heals every unit of yours beside it** | The five M chairs feed the war economy directly (hammers), the movement stays as the war verb, and the third clause is the conquest payoff the war path lacks — capturing something now *builds* your empire. `+3 authority` moves to Hegemony (below) so the doctrine and the government stop overlapping. |
 | **Merchant League** 2/5/4 | **+2💰 for every economic Order slotted** · trade routes pay +50% · +1 trade route | The route clause is right; the flat building line becomes the chair-reader; the extra route makes the government the one that *runs more*. |
+
+these are great, lets keep these. **RULED — building.**
 
 Vocabulary: all three ride `countScaled` on `slottedOrdersOfSlot` with
 `where: 'capital'` or empire payouts (the Guild Charter's precedent), a
 `percentYields` with a happiness-tier scope (check `CityScope` for
 "content"/tier — if absent, Divine Mandate's second clause is "+10% faith in
 cities of 6 or more"), a `routeSlots` grant (Ledger-Keepers' shape), and one
-NEW small rule for Imperium's third clause: a captured city keeping its
-buildings is a `capture` occasion fact (today capture strips? — verify in
-`captureCity`; if buildings already survive, the clause is *"a captured
-city keeps its walls"* or drops). Government signatures are card effects on
+Imperium's third clause: **verified 2026-09-05 — buildings already
+survive a capture** (`handOverCity`, combat.ts: "the walls a conqueror
+inherits are the walls the town was defended with"), so "keeps its
+buildings" would print a rule that is already the rule. Replaced with a
+conquest windfall on the existing capture occasion (The Triumphal Way's
+seam): +50💰 and `healAll` on the units beside the taken town (The Empire's
+grant shape) — stock, and it makes the next siege start from strength. Government signatures are card effects on
 the government row, read by the same evaluator.
 
 ---

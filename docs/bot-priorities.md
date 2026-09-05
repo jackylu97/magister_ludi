@@ -1520,3 +1520,21 @@ table. The arena panel needed no edit; it walks the sheet.
 - **The great-person table has never decided a pick on a played board.** Two
   offers arose in the acceptance games and the scored pick agreed with first-legal
   on both; the arithmetic is pinned by arranged tests and by nothing else.
+
+## Batch 9 — the late-game cost (measured 2026-09-05, queued)
+
+Standard map, two balanced seats, per-turn wall time of the whole driven
+turn: t25 58ms · t50 142ms · t75 269ms · **t100 561ms** — roughly doubling
+every 25 turns (5 towns, 24 pieces, 68 wild units, 4160 tiles). Duel at
+t150 is 146ms. The 200-turn standard arena took 25½ minutes; replaying its
+log took 70s, so ~95% is thinking. `valueContext` is ~20% of a turn (106ms
+at t100 std) — the sitting hoist did its job; the cost is now per DECISION
+elsewhere: the unit-order arms (a path search per candidate per piece over
+a big board), `sightedThreat`'s fog sweeps, the route pair enumeration, the
+improvement plan's ground walks. A profiler pass (node --cpu-prof through
+vite-node on a t100 standard game) is the first step; the levers are the
+usual ones — bound the searches (pathProbes-style caps where none exist),
+hoist per-turn facts that arms recompute per piece (the fog reading, the
+threat field), and stop pricing what the turn cannot change. Target: t100
+standard ≤ 200ms/turn for two seats, no behavior change (byte-identical
+outcomes on the acceptance seeds, or every change attributed).
