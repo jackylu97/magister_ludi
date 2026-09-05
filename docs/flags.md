@@ -83,7 +83,13 @@ live in Order/Doctrine cards — a slot is an opportunity cost, so relief
 displaces something — with buildings/luxuries trimmed to match. Deferred on
 your word; revisit when you take the balance turn.
 
-### Ruled 2026-09-04 — the potential weight (λ, queued behind the arena page)
+### Ruled 2026-09-04 — the potential weight (λ) — LANDED, then SUBSUMED
+
+Both halves shipped same day and the flat knob is already GONE: the
+priority system's batch 2 (`docs/bot-priorities.md`, "Batch 2 as shipped")
+replaced `score.potentialWeight` with the delay discount `(H − delay)/H` at
+every call site — a promise now prices by how long it takes, printed in
+turns. The section below is the original ruling, kept for the record.
 
 The user's formula, ratified in chat: **value = realized + λ × (potential −
 realized)**, λ = `score.potentialWeight` = 0.4, ONE knob for now ("we may

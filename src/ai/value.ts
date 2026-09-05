@@ -64,6 +64,7 @@ import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
 import type { WantBook } from './wants';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
+import { cityYields } from '../sim/cities';
 import { countOf } from '../sim/statecraft';
 import type { CardCountScaledEffect, CardEffect, CardId } from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
@@ -211,6 +212,108 @@ export interface ValueContext {
    * one honest pass is what batch 1 ships. See `valueContext` in `bot.ts`.
    */
   wants: WantBook;
+  /**
+   * **What a middling town of this empire makes in a turn** — the median of its
+   * towns' `cityYields().production`, and 1 for an empire with no town at all.
+   *
+   * The one estimate behind every *build* delay in the bot (batch 2 of
+   * `docs/bot-priorities.md`): a row costs hammers, and "how long until this is
+   * standing" is that cost over what a town actually makes. The **median**
+   * rather than the mean because one hammer-rich capital beside three hamlets
+   * should not tell the beeline that every town raises a library in four turns.
+   *
+   * Hoisted here for the context's stated bargain: `explainTechGifts` is asked
+   * of fifty nodes a turn and a counted card of every row in a hand, and each of
+   * them would otherwise price every town in the empire to answer one division.
+   */
+  medianProduction: number;
+  /**
+   * **Beakers a turn, as the simulation's own books read them**
+   * (`empireRateReading().sciencePerTurn`) — the denominator of every *research*
+   * delay, and hoisted for the same reason as the median above: the worker plan
+   * asks "how far off is the node on my plan" once per hex.
+   */
+  scienceRate: number;
+}
+
+/**
+ * **The delay discount** — `max(0, (H − delay) / H)`, `H` being
+ * `priorities.horizonTurns` (batch 2 of `docs/bot-priorities.md`).
+ *
+ * What the flat potential weight of 2026-09-04 was approximating, and the reason
+ * that knob is gone: a promise is not worth four tenths of a fact, it is worth
+ * *less the longer it takes*, and every call site of the old λ knows something
+ * honest about how long its own promise takes. A row a town raises in six turns
+ * is worth almost all of what it will pay; a row nothing can finish inside the
+ * horizon is worth nothing, and prints as nothing rather than at four tenths of
+ * a fact.
+ *
+ * The floor at zero is the spec's own `max(0, H − delay)`. The horizon is
+ * floored at one so a sheet that sets it to nought cannot divide by it.
+ */
+export function delayDiscount(delay: number, ctx: ValueContext): number {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  return Math.max(0, (horizon - delay) / horizon);
+}
+
+/**
+ * The discount **as a printed term**, which is the ruling's other half: every
+ * call site multiplies by it and every one of them shows the multiplication, so
+ * a reader of the feed sees a discounted promise and the turns behind it rather
+ * than a number somebody folded away.
+ *
+ * `why` is the site's own sentence about what the wait is for — the spades, the
+ * towns, the node.
+ */
+export function delayTerm(delay: number, ctx: ValueContext, why: string): ValueTerm {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const discount = delayDiscount(delay, ctx);
+  return {
+    label: `× ${round(discount)} — ${why}, some ${round(delay)} turns against a ${horizon}-turn horizon`,
+    value: discount,
+    op: 'mul',
+  };
+}
+
+/**
+ * **How many turns a middling town would take to raise a row of this cost** —
+ * the honest, bounded estimate the two build-delay sites share (the beeline's
+ * per-town building gift and a counted card's buildable towns).
+ *
+ * Crude on purpose, and written down as crude: it is the row's whole cost over
+ * `ValueContext.medianProduction`, with no queue, no overflow, no purchase and
+ * no walk. What it is *not* is the old flat weight — a Monument in a hamlet and
+ * a University in the same hamlet are no longer the same promise, which is the
+ * whole of what batch 2 buys.
+ *
+ * Rounded **up**: a row a town cannot finish this turn takes another one.
+ */
+export function buildTurns(cost: number, ctx: ValueContext): number {
+  return Math.ceil(Math.max(0, cost) / Math.max(1, ctx.medianProduction));
+}
+
+/**
+ * The median production of this empire's towns — `ValueContext.medianProduction`,
+ * computed once by `valueContext` and read from the context everywhere else.
+ *
+ * The reading is `cityYields`, the simulation's own fold, so a town's hammers
+ * mean here exactly what they mean in the queue that spends them. An empire with
+ * no town at all answers 1 rather than 0: a division has to be safe, and "one
+ * hammer a turn" is the honest floor for an empire that has yet to found
+ * anything.
+ */
+export function medianTownProduction(state: GameState, playerId: number): number {
+  const made: number[] = [];
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    made.push(cityYields(state, city).production);
+  }
+  if (made.length === 0) return 1;
+  made.sort((a, b) => a - b);
+  const middle = Math.floor(made.length / 2);
+  const median =
+    made.length % 2 === 1 ? made[middle]! : (made[middle - 1]! + made[middle]!) / 2;
+  return Math.max(1, median);
 }
 
 /**
@@ -483,7 +586,8 @@ export function valueOfSoldier(id: UnitTypeId, ctx: ValueContext): number {
  *
  * **One shape is no longer a guess** (2026-09-04): a `countScaled` is priced by
  * the count the simulation itself would pay it by, plus the promise of what the
- * empire could come to count, discounted at λ. See `explainCounted` — and note
+ * empire could come to count, discounted by its own delay. See `explainCounted`
+ * — and note
  * the `card`, which is threaded through for the one count whose answer belongs
  * to the holding rather than to the board (a growing card's own counter).
  *
@@ -585,7 +689,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
   }
 }
 
-// --- counted effects, at the potential weight -------------------------------
+// --- counted effects, at the delay discount ---------------------------------
 
 /**
  * **What a counted card is worth: what this empire counts today, plus a
@@ -597,7 +701,12 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
  * card was worth the turn it was drafted, and a card paying per barracks was
  * worth the same to an empire with six of them and to one with none.
  *
- *     value = (realized + λ × (potential − realized)) ÷ per × what one helping pays
+ *     value = (realized + discount × (potential − realized)) ÷ per × what one helping pays
+ *
+ * The discount was a flat λ until batch 2 of `docs/bot-priorities.md` and is now
+ * `delayDiscount` off the buildable path's own **build** delay: the towns that
+ * would raise the counted row have to raise it first, and how long that takes is
+ * the row's cost over `medianProduction`.
  *
  * **Realized** is the simulation's own answer: `countOf` (`statecraft.ts`), the
  * very reading the evaluator pays the card by. Asked at empire scale first, and
@@ -617,7 +726,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
  *   · a **tally** — the growing cards, whose subject is the rest of the game and
  *     not the board at all. `score.tallyForecast` says what an occasion is
  *     expected still to bring, per occasion; an occasion the table does not name
- *     forecasts nothing and prints that it did not;
+ *     forecasts nothing and prints that it did not. **No discount rides on it**
+ *     (batch 2): a forecast is already "occasions expected over the horizon" and
+ *     carries its own uncertainty, so the flat λ that used to multiply it was
+ *     discounting the same doubt twice — an accident of the one-knob era rather
+ *     than a decision;
  *   · **everything else** — hexes revealed, luxuries held, citizens, camps
  *     cleared — takes the realized reading alone. There is no honest potential
  *     reading of "tiles this empire will have explored", and a guess dressed as
@@ -633,7 +746,6 @@ export function explainCounted(
   card?: CardId,
 ): Appraisal {
   const ai = ctx.ai;
-  const lambda = ai.score.potentialWeight;
   const terms: ValueTerm[] = [];
   const realized = realizedCount(effect, ctx, card);
   if (realized === null) {
@@ -643,7 +755,7 @@ export function explainCounted(
     });
   } else {
     terms.push({ label: `${realized} ${effect.count} today`, value: realized });
-    for (const term of potentialTerms(effect, ctx, lambda)) terms.push(term);
+    for (const term of potentialTerms(effect, ctx)) terms.push(term);
   }
   // The row's own cap, as a subtraction rather than as a clamp somewhere the
   // fold cannot see it. A capped card is a card whose late helpings are worth
@@ -695,20 +807,26 @@ function realizedCount(
 }
 
 /**
- * The promise half, at λ — one printed term, or none where there is no honest
- * reading of one. See `explainCounted` for the three paths.
+ * The promise half, discounted by its own delay — one printed term, or none
+ * where there is no honest reading of one. See `explainCounted` for the three
+ * paths.
  *
  * Each path answers with the **difference** (what the empire does not yet count
  * but could), never with a total, which is why `realized` is not a parameter:
  * `potentialTownsFor` skips a town already counted and a forecast is what is
- * still to come. `realized + λ × (potential − realized)` is the sum of this term
- * and the one before it, exactly as the ruling writes it.
+ * still to come.
+ *
+ * **The forecast carries no discount.** `score.tallyForecast` is stated as
+ * occasions still expected *over the horizon* — the estimate already — so
+ * multiplying it by a delay factor would price the same uncertainty twice. That
+ * double-discount was the flat λ's accident and batch 2 removes it; what the
+ * forecast is worth is the forecast.
+ *
+ * The buildable-towns path does carry one, because its promise has a real wait
+ * in it: somebody has to raise the row. The delay is `buildTurns` of what those
+ * towns would be raising, and the multiplication prints as a part of the term.
  */
-function potentialTerms(
-  effect: CardCountScaledEffect,
-  ctx: ValueContext,
-  lambda: number,
-): ValueTerm[] {
+function potentialTerms(effect: CardCountScaledEffect, ctx: ValueContext): ValueTerm[] {
   if (effect.count === 'tally') {
     const occasion = effect.tally;
     const forecast = occasion === undefined ? undefined : ctx.ai.score.tallyForecast[occasion];
@@ -722,24 +840,37 @@ function potentialTerms(
     }
     return [
       {
-        label: `+ ${forecast} more ${occasion} to come × ${round(lambda)} potential weight`,
-        value: forecast * lambda,
+        label: `+ ${forecast} more ${occasion} to come, over the horizon`,
+        value: forecast,
       },
     ];
   }
   const buildable = potentialTownsFor(effect, ctx);
   if (buildable === null) return [];
+  const turns = buildTurns(buildable.cost, ctx);
+  const discount = delayDiscount(turns, ctx);
   return [
     {
-      label: `+ ${buildable} more the towns could raise × ${round(lambda)} potential weight`,
-      value: buildable * lambda,
+      label: `+ ${buildable.open} more the towns could raise, discounted for the raising`,
+      value: buildable.open * discount,
+      parts: [
+        { label: `${buildable.open} more the towns could raise`, value: buildable.open },
+        delayTerm(turns, ctx, 'the towns must still raise it'),
+      ],
     },
   ];
 }
 
 /**
- * **How many more of the counted thing this empire's towns could raise today** —
- * `null` when the row's subject is not something a town builds.
+ * **How many more of the counted thing this empire's towns could raise today,
+ * and what raising one costs** — `null` when the row's subject is not something
+ * a town builds.
+ *
+ * The cost is the **mean** of the rows actually counted open, which is the one
+ * number a delay can be taken off when a category names several: a card counting
+ * "any wonder" is a promise whose wait is the wait for the rows it would count,
+ * and the mean of them is the honest middle. A single-building row answers its
+ * own cost exactly, which is the common case and the one the tests pin.
  *
  * The gate is `buildError`, the simulation's own — the tech, the age marker, the
  * site, the world's one copy of a wonder are all its and none of them is
@@ -752,7 +883,10 @@ function potentialTerms(
  * pays is a fact about the town the payment is made in, and an empire-wide
  * count of buildable ground would be an answer to a different question.
  */
-function potentialTownsFor(effect: CardCountScaledEffect, ctx: ValueContext): number | null {
+function potentialTownsFor(
+  effect: CardCountScaledEffect,
+  ctx: ValueContext,
+): { open: number; cost: number } | null {
   if (effect.within === 'city') return null;
   const wanted: BuildingId[] =
     effect.building !== undefined
@@ -762,6 +896,7 @@ function potentialTownsFor(effect: CardCountScaledEffect, ctx: ValueContext): nu
         : [];
   if (wanted.length === 0) return null;
   let open = 0;
+  let hammers = 0;
   for (const city of ctx.state.cities) {
     if (city.ownerId !== ctx.playerId) continue;
     for (const id of wanted) {
@@ -772,10 +907,12 @@ function potentialTownsFor(effect: CardCountScaledEffect, ctx: ValueContext): nu
       // rebuilding one is the reducer's business), and this is about whether the
       // *count* would grow.
       if (city.buildings.includes(id)) continue;
-      if (buildError(ctx.state, ctx.playerId, 'building', id, city) === null) open += 1;
+      if (buildError(ctx.state, ctx.playerId, 'building', id, city) !== null) continue;
+      open += 1;
+      hammers += buildingDef(id).cost;
     }
   }
-  return open;
+  return { open, cost: open === 0 ? 0 : hammers / open };
 }
 
 /** A `countScaled`'s payout, per unit of whatever it counts. */

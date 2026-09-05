@@ -83,6 +83,7 @@
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
 import {
   type ValueContext,
+  delayTerm,
   explainBuildingRow,
   explainLump,
   explainUpkeepCost,
@@ -347,6 +348,9 @@ export function faithPlan(
   const towns = ownedCities(state, player.id);
   const noPantheon = player.pantheon.beliefs.length === 0;
   const unfounded = !hasFoundedReligion(state, player.id);
+  // **How far off the god is**, for the one row whose wait is another row (see
+  // `faithRowTerms`). Asked once for the whole plan rather than per town.
+  const godTurns = noPantheon ? turnsToFirstGod(state, player, towns, inputs.faithRate, ctx) : 0;
 
   for (const id of UNIT_TYPE_IDS) {
     const def = unitDef(id);
@@ -370,6 +374,7 @@ export function faithPlan(
             firstGod: def.consecrates === true && noPantheon,
             founder: def.prophesies === true && unfounded,
             noPantheon,
+            godTurns,
           }),
         ),
       );
@@ -410,14 +415,21 @@ export function faithPlan(
  *
  * Three clauses and one deferral: the first god and the first religion are the
  * empire's stated appetite (`religion.prophetTechValue`); a prophet an empire
- * has no god for is that appetite at λ, because the god comes first and the
- * ladder always said so; and everything else is worth exactly the faith it
- * costs, which puts it level with holding until somebody prices a rite.
+ * has no god for is that appetite **discounted by how far off the god is**,
+ * because the god comes first and the ladder always said so; and everything else
+ * is worth exactly the faith it costs, which puts it level with holding until
+ * somebody prices a rite.
+ *
+ * That middle clause was a flat λ until batch 2 of `docs/bot-priorities.md`. The
+ * honest delay is the wait for the *other* row: `turnsToFirstGod`, the cheapest
+ * consecration this empire could buy, over its faith rate. An empire two turns
+ * from its first god wants the prophet behind it almost at full price; one that
+ * cannot see a god inside the horizon wants it at nothing, and prints so.
  */
 function faithRowTerms(
   ctx: ValueContext,
   price: number,
-  row: { firstGod: boolean; founder: boolean; noPantheon: boolean },
+  row: { firstGod: boolean; founder: boolean; noPantheon: boolean; godTurns: number },
 ): ValueTerm[] {
   const appetite = ctx.ai.religion.prophetTechValue;
   if (row.firstGod) {
@@ -427,15 +439,48 @@ function faithRowTerms(
     return [{ label: 'the first religion — a god is held and no faith founded', value: appetite }];
   }
   if (row.founder) {
-    const lambda = ctx.ai.score.potentialWeight;
     return [
       { label: 'the first religion, once this empire has a god at all', value: appetite },
-      { label: `× ${round(lambda)} — the god comes first`, value: lambda, op: 'mul' },
+      delayTerm(row.godTurns, ctx, 'the god comes first'),
     ];
   }
   return [
     nest('worth at least the faith it costs — its rites are unpriced', explainLump({ faith: price }, ctx)),
   ];
+}
+
+/**
+ * **How long until this empire has a god at all** — the cheapest consecration
+ * any of its towns could take delivery of, over what its faith bank fills at.
+ *
+ * Read off the markers rather than off a name (`UnitDef.consecrates`) and priced
+ * by the simulation's own `explainPurchaseCost`, exactly as every other row in
+ * the book is. `max(1, rate)` is `savingRows`' bargain said again: an empire
+ * banking nothing is treated as banking a point a turn rather than as never
+ * arriving.
+ *
+ * An empire that can buy no consecration anywhere — the tech is not held, no
+ * town takes the row — answers the horizon, so the prophet behind the god prices
+ * at nothing. That is the honest reading: there is no god in sight.
+ */
+function turnsToFirstGod(
+  state: GameState,
+  player: Player,
+  towns: readonly City[],
+  rate: number,
+  ctx: ValueContext,
+): number {
+  let cheapest: number | null = null;
+  for (const id of UNIT_TYPE_IDS) {
+    if (unitDef(id).consecrates !== true) continue;
+    for (const city of towns) {
+      const price = explainPurchaseCost(state, player.id, city.id, { kind: 'unit', id }, 'faith');
+      if (price === null) continue;
+      if (cheapest === null || price.total < cheapest) cheapest = price.total;
+    }
+  }
+  if (cheapest === null) return ctx.ai.priorities.horizonTurns;
+  return Math.max(0, cheapest - bankOf(player, 'faith')) / Math.max(1, rate);
 }
 
 // --- saving ------------------------------------------------------------------

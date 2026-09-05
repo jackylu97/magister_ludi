@@ -113,7 +113,9 @@ import {
 import {
   type ValueContext,
   type YieldBag,
+  buildTurns,
   costOfUpkeep,
+  delayTerm,
   explainBuildingRow,
   explainEffects,
   explainLump,
@@ -121,6 +123,7 @@ import {
   explainSoldier,
   explainUpkeepCost,
   explainYields,
+  medianTownProduction,
   valueOfBuildingRow,
   valueOfSoldier,
   valueOfYields,
@@ -339,6 +342,13 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     },
     priceNotes: { gold: '', faith: '' },
     wants: NO_WANTS,
+    // **The two denominators of every delay** (batch 2 of the priority spec),
+    // hoisted here for the context's stated bargain: a build delay is a row's
+    // cost over what a middling town makes, and a research delay is beakers
+    // owed over beakers banked. Asked per candidate they would be an empire
+    // sweep each; asked once they are two readings of books already open.
+    medianProduction: medianTownProduction(state, player.id),
+    scienceRate: rates.sciencePerTurn ?? 0,
   };
   const book = wantBook(state, player, prior, {
     wageReserve: goldReserveFor(state, player),
@@ -1690,22 +1700,24 @@ function explainTechGifts(id: TechId, ctx: ValueContext, sites?: UpgradeSites) {
       culture: def.culture,
       faith: def.faith ?? 0,
     };
-    // **A promise, at the potential weight** (ruled 2026-09-04). Not one town
-    // has this row up — the node has not even landed — so "in every town" is the
-    // purest potential in the whole appraisal, and it was priced at full weight
-    // until λ. The multiplication prints as its own term, which is the ruling's
-    // other half: the discount is visible in the feed, never folded away.
-    const lambda = ai.score.potentialWeight;
+    // **A promise, at its own delay** (batch 2 of `docs/bot-priorities.md`; the
+    // flat λ of 2026-09-04 before it). Not one town has this row up — the node
+    // has not even landed — so "in every town" is the purest potential in the
+    // whole appraisal, and it was priced at full weight until λ and at a flat
+    // four tenths after it. What the wait actually is, here, is the **build**:
+    // the tech's own beakers are already in the candidate's denominator, so the
+    // half this discount covers is the towns raising the row, and that is the
+    // row's cost over what a middling town makes (`buildTurns`). The
+    // multiplication prints as its own term with the turns behind it, which is
+    // the ruling's other half: visible in the feed, never folded away.
+    const raising = buildTurns(def.cost, ctx);
     const flats = explainYields(bag, ctx).terms;
     flats.push({ label: `× ${ctx.cities} towns`, value: ctx.cities, op: 'mul' });
-    flats.push({
-      label: `× ${lambda} — towns that must still build it`,
-      value: lambda,
-      op: 'mul',
-    });
+    const discount = delayTerm(raising, ctx, 'towns that must still build it');
+    flats.push(discount);
     terms.push({
       label: `${def.name} — its flat yields, in every town`,
-      value: valueOfYields(bag, ctx) * ctx.cities * lambda,
+      value: valueOfYields(bag, ctx) * ctx.cities * discount.value,
       parts: flats,
     });
     terms.push(nest(`${def.name} — what its row gives`, explainBuildingRow(building, ctx)));
@@ -1730,8 +1742,19 @@ function explainTechGifts(id: TechId, ctx: ValueContext, sites?: UpgradeSites) {
  * `explainYields`, multiplied by the hexes counted for it. Two, because a farm
  * already standing on a river bank will collect the renewal the turn the node
  * lands and a bare river bank will collect it once somebody has walked a spade
- * out there — a fact and a promise, folded `standing + λ × buildable` (the
- * ruling of 2026-09-04, `score.potentialWeight`). A pair with no ground under it
+ * out there — a fact and a promise, folded `standing + discount × buildable`.
+ *
+ * **The two halves have two different delays, and that is the whole split**
+ * (batch 2 of `docs/bot-priorities.md`). A standing farm's wait is the *tech's*,
+ * which the candidate's own beaker denominator already charges, so the standing
+ * line is undiscounted. A bare bank's wait is the tech's *and then a walk with a
+ * spade*, and the walk is what this term is discounted for:
+ * `workers.planRadius + 1` turns, one honest constant-ish estimate rather than a
+ * nearest-worker search per hex. It is crude and it is written down as crude —
+ * the plan radius is "how near a town a job has to be to be worth wanting", so
+ * walking that far and laying the spade is the typical job — and it is bounded,
+ * which a per-hex path search over fifty candidate nodes could not be. A pair
+ * with no ground under it
  * still prints — at zero — because "Irrigation is worth nothing to an empire
  * with no river bank" is a reading a spectator should be able to see the bot
  * make, and a silent absence is indistinguishable from a family this appraisal
@@ -1744,7 +1767,9 @@ function explainTechGifts(id: TechId, ctx: ValueContext, sites?: UpgradeSites) {
  */
 function renewalTerms(id: TechId, ctx: ValueContext, sites?: UpgradeSites): ValueTerm[] {
   if (sites === undefined) return [];
-  const lambda = ctx.ai.score.potentialWeight;
+  // The walk-and-lay estimate, once for the whole sweep — see the docblock.
+  const walk = ctx.ai.workers.planRadius + 1;
+  const spade = () => delayTerm(walk, ctx, 'the spades have still to get there');
   const terms: ValueTerm[] = [];
   for (const improvement of IMPROVEMENT_IDS) {
     const def = improvementDef(improvement);
@@ -1766,11 +1791,11 @@ function renewalTerms(id: TechId, ctx: ValueContext, sites?: UpgradeSites): Valu
       });
       terms.push({
         label: `${def.name} renewal — on ${buildable} hex${buildable === 1 ? '' : 'es'}${where} this empire could put one on`,
-        value: each.total * buildable * lambda,
+        value: each.total * buildable * spade().value,
         parts: [
           ...each.terms,
           { label: `× ${buildable} hex${buildable === 1 ? '' : 'es'}`, value: buildable, op: 'mul' },
-          { label: `× ${lambda} — the spades have still to get there`, value: lambda, op: 'mul' },
+          spade(),
         ],
       });
     }

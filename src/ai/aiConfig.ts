@@ -544,30 +544,6 @@ export interface AiConfig {
      */
     lumpTurns: number;
     /**
-     * **λ — what a promise is worth beside a fact** (ruled 2026-09-04).
-     *
-     * The user's formula, and it is one knob on purpose: every appraisal that
-     * can separate *what this empire already collects* from *what it would
-     * collect once the ground were worked, the towns had built the row, or the
-     * spades had caught up* folds
-     *
-     *     value = realized + λ × (potential − realized)
-     *
-     * rather than pricing the promise at full weight (which is what a per-town
-     * building term multiplied by the city count silently did) or at nothing
-     * (which is what a renewal on unploughed ground silently did). Four call
-     * sites read it — the beeline's per-town building gift, a node's renewal
-     * riders, a counted card's buildable subjects, and a worker's anticipation
-     * of a technology already on this seat's own research plan — and every one
-     * of them **prints the multiplication as its own term**, so a reader of the
-     * feed can see the discount rather than infer it.
-     *
-     * Per-domain weights (a bolder λ for technologies, a shyer one for orders)
-     * are a later ruling: one number until the arena says which way it wants to
-     * move.
-     */
-    potentialWeight: number;
-    /**
      * **What a growing card is assumed still to watch happen**, per occasion —
      * the potential half of a `tally` count (`CountKind`'s `tally`).
      *
@@ -575,8 +551,11 @@ export interface AiConfig {
      * is read off the empire's books. Its potential is the rest of the game, and
      * that cannot be read off anything: a card drafted on turn 10 will watch
      * hundreds of barbarians fall and a card drafted on turn 400 will not. So it
-     * is stated here, per `TallyOccasion`, and folded at λ like every other
-     * promise.
+     * is stated here, per `TallyOccasion`, and it is the estimate itself: no
+     * delay discount rides on a forecast, because "occasions still expected over
+     * the horizon" already carries its own doubt (batch 2 of
+     * `docs/bot-priorities.md` — the flat λ that used to multiply it was
+     * discounting the same uncertainty twice).
      *
      * **Per occasion and never one blind number**, because the occasions are not
      * commensurable: a wonder finished anywhere in the world is a rare event and

@@ -52,9 +52,10 @@
  * policy should be handed one rather than take fifty.
  *
  * The plan's own half of the same ruling is `plannedRiderTerms`: a hex is priced
- * at what it pays today **plus λ × what a technology already on this seat's
- * research plan would add to it**, so the spade goes to the river bank while the
- * beeline is still walking towards Irrigation rather than after it lands.
+ * at what it pays today **plus what a technology already on this seat's research
+ * plan would add to it, discounted by how far off that node is**, so the spade
+ * goes to the river bank while the beeline is still walking towards Irrigation
+ * rather than after it lands.
  *
  * Why it is its own module: `value.ts` is the appraisal, `bot.ts` is the policy,
  * and this is a *reading of the board* that both the policy and the great-person
@@ -64,7 +65,13 @@
 
 import type { AiConfig } from './aiConfig';
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
-import { type ValueContext, type YieldBag, explainLump, explainYields } from './value';
+import {
+  type ValueContext,
+  type YieldBag,
+  delayTerm,
+  explainLump,
+  explainYields,
+} from './value';
 
 import { hasResource, tileContextAt, tileOwnerPlayerId } from '../sim/cities';
 import {
@@ -79,7 +86,7 @@ import { type ResourceId, resourceDef, resourceIsVisibleTo, resourceYield } from
 import { RULES } from '../sim/rulesData';
 import type { City, GameState, Player, Unit } from '../sim/state';
 import { researchPlan } from '../sim/tech';
-import { techDef } from '../sim/techData';
+import { type TechId, techDef } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
 import { hasFreshWater } from '../sim/water';
 
@@ -270,9 +277,15 @@ function improvementEntry(
  *     of the tile (`requiresFreshwater`), exactly as `surveyUpgradeSites` asks
  *     them of the ground it counts. The two are halves of one register: a third
  *     condition on the record is counted there and asked here;
- *   · **λ** (`score.potentialWeight`) — the node has not landed. The term prints
- *     the multiplication, so a reader of the feed sees a discounted promise
- *     rather than a yield the hex does not pay.
+ *   · **the delay** — the node has not landed, and how far off it is is a thing
+ *     this seat can actually read: the beakers still owed for it (its own cost
+ *     plus everything ahead of it on the plan, less what the pool already holds)
+ *     over `ValueContext.scienceRate`. That was a flat λ until batch 2 of
+ *     `docs/bot-priorities.md`; now a node two turns out barely discounts the
+ *     rider and one a whole horizon away prices it at nothing, which is what the
+ *     flat weight could not say. The term prints the multiplication and the
+ *     turns, so a reader of the feed sees a discounted promise rather than a
+ *     yield the hex does not pay.
  */
 function plannedRiderTerms(
   player: Player,
@@ -284,19 +297,47 @@ function plannedRiderTerms(
   if (upgrades.length === 0) return [];
   const plan = researchPlan(player);
   if (plan.length === 0) return [];
-  const lambda = ctx.ai.score.potentialWeight;
   const terms: ValueTerm[] = [];
   for (const upgrade of upgrades) {
     if (!plan.includes(upgrade.tech)) continue;
     if (upgrade.requiresFreshwater === true && !hasFreshWater(tile)) continue;
     const each = explainYields(bagOfTileYield(readTileYield(upgrade.add)), ctx);
+    const discount = delayTerm(
+      turnsUntilPlanned(player, ctx, upgrade.tech),
+      ctx,
+      'the node has still to land',
+    );
     terms.push({
-      label: `${techDef(upgrade.tech).name} is on the plan — what it would add here × ${lambda}`,
-      value: each.total * lambda,
-      parts: [...each.terms, { label: `× ${lambda} — the node has still to land`, value: lambda, op: 'mul' }],
+      label: `${techDef(upgrade.tech).name} is on the plan — what it would add here, discounted`,
+      value: each.total * discount.value,
+      parts: [...each.terms, discount],
     });
   }
   return terms;
+}
+
+/**
+ * **How many turns until a node the seat has declared for actually lands** — the
+ * beakers still owed for it over the beakers this empire banks a turn.
+ *
+ * Owed is the plan's own arithmetic and not a walk of the tree: `researchPlan`
+ * is `researching` plus the queue behind it, in the order they will be paid, so
+ * everything ahead of the node is owed before the node is. The pool already
+ * banked (`sciencePool`) comes off the front of that, floored at nothing — a
+ * pool that already covers the whole plan is a plan that lands next turn.
+ *
+ * A seat banking no beakers at all is treated as banking one, `savingRows`'
+ * bargain over in the want book: an empire whose books read flat should price a
+ * node as very far off, not as never arriving at all.
+ */
+function turnsUntilPlanned(player: Player, ctx: ValueContext, goal: TechId): number {
+  let owed = 0;
+  for (const step of researchPlan(player)) {
+    owed += techDef(step).cost;
+    if (step === goal) break;
+  }
+  const remaining = Math.max(0, owed - player.sciencePool);
+  return remaining / Math.max(1, ctx.scienceRate);
 }
 
 /**
@@ -353,8 +394,8 @@ function surveyEntry(
  * The tally is **four numbers, not one**: standing and buildable, each with the
  * part of it that can drink — which is the one condition an `ImprovementUpgrade`
  * may carry besides its tech (`requiresFreshwater`). Standing and buildable are
- * apart because they are a fact and a promise and the ruling of 2026-09-04
- * prices those differently (`score.potentialWeight`); the freshwater halves are
+ * apart because they are a fact and a promise and the bot prices those
+ * differently (`delayDiscount`, batch 2); the freshwater halves are
  * apart for the older reason. **A third condition on that record must be counted
  * here too** — this survey is the register of what the rider appraisal knows how
  * to bound, and a condition it cannot see would be priced as if it were not
@@ -380,9 +421,10 @@ export interface UpgradeTally {
   standing: number;
   /**
    * Hexes this empire's spade could lay the improvement on today. The
-   * **potential** half, folded at `score.potentialWeight` by the reader — a
-   * river bank that will have a farm on it is the same promise a few
-   * worker-turns away, and a few worker-turns is exactly what λ is for.
+   * **potential** half, discounted by the reader for the walk that has still to
+   * happen (`delayDiscount`) — a river bank that will have a farm on it is the
+   * same promise a few worker-turns away, and those worker-turns are exactly
+   * what the discount is.
    */
   buildable: number;
   /** The part of `standing` that can drink. See `requiresFreshwater`. */

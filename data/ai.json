@@ -178,7 +178,6 @@
     "combatScale": 3,
     "patienceTurns": 10,
     "lumpTurns": 20,
-    "potentialWeight": 0.4,
     "tallyForecast": {
       "barbarianKill": 6,
       "wonderAnywhere": 8,

@@ -164,3 +164,47 @@ later batches per the audit's inventory table.
   standing 14 → 30, purchases 11 → 33, worst treasury held beside a town with
   no buildings 320💰 → 169💰, bankrupt seat-turns 0 → 0, net gold per turn
   −1/0/1/0/−4/−1 → 3/3/10/1/9/1.
+
+## Batch 2 as shipped (the delay discount, 2026-09-05)
+
+`score.potentialWeight` is **deleted** — from `data/ai.json`, from
+`aiConfig.ts` and from every reader (a source test pins that the string is
+gone from `src/ai/`). In its place `delayDiscount(delay, ctx)` in `value.ts`
+answers `max(0, (H − delay) / H)` with `H = priorities.horizonTurns`, and
+`delayTerm(delay, ctx, why)` prints it — the discount, the reason and **the
+turns it was read off** — so every site still shows its own arithmetic.
+
+Two estimates are shared rather than repeated, both hoisted onto
+`ValueContext` by `valueContext` (the context's standing bargain — a per
+candidate reading would be an empire sweep each):
+
+- `medianProduction` — the **median** of the seat's towns'
+  `cityYields().production`, 1 for an empire with no town. Median, not mean,
+  so one hammer-rich capital cannot tell the beeline that every town raises a
+  library in four turns. `buildTurns(cost, ctx)` is that division, rounded up.
+- `scienceRate` — `empireRateReading().sciencePerTurn`, the denominator of
+  every research delay.
+
+Per site, the delay chosen and what it prints:
+
+| Site | Delay | Printed |
+|---|---|---|
+| `explainTechGifts`' per-town building gift (`bot.ts`) | `buildTurns(row cost)` — the tech's own beakers are already the candidate's denominator, so this covers the BUILD half | `× 0.7 — towns that must still build it, some 12 turns against a 40-turn horizon` |
+| the improvement rider's buildable half (`renewalTerms`) | `workers.planRadius + 1` — one crude constant-ish walk-and-lay estimate, written down as crude; a nearest-worker search per hex over fifty candidate nodes is not affordable. The **standing** half stays undiscounted: it pays the turn the node lands, and that wait is the tech's | `× 0.875 — the spades have still to get there, some 5 turns against a 40-turn horizon` |
+| `explainCounted`'s buildable towns (`value.ts`) | `buildTurns` of the **mean cost of the rows counted open** (a single-building row answers its own cost) | `+ 4 more the towns could raise, discounted for the raising` with the discount as a part |
+| the worker plan's anticipation (`plannedRiderTerms`) | beakers still owed for the planned node — its own cost plus everything ahead of it on `researchPlan`, less the pool — over `scienceRate`, floored at a beaker a turn | `× 0.5 — the node has still to land, some 20 turns against a 40-turn horizon` |
+| a prophet with no god yet (`faithRowTerms`, `wants.ts`) | `turnsToFirstGod` — the cheapest consecration any town could buy, less the faith held, over the faith rate; the horizon (so, nothing) when no god is for sale anywhere | `× 0.6 — the god comes first, some 16 turns against a 40-turn horizon` |
+| the **tally forecast** (`potentialTerms`) | **none** — `score.tallyForecast` is already "occasions expected over the horizon" and carries its own doubt. The flat λ was charging that uncertainty twice; the multiplication is simply removed | `+ 6 more barbarianKill to come, over the horizon` |
+
+The saving rows were already `(H − turnsToAfford)/H` off the same
+`priorities.horizonTurns` (batch 1) and are untouched: there is one `H`.
+
+**Measured** (t75, duel, seeds 5/777/20260904, two balanced seats;
+before → after): purchases 5/1/7/1/14/5 → 5/1/7/1/14/5, buildings standing
+4/3/7/1/11/4 → 4/3/7/1/11/4, treasuries 102/37/67/64/120/111 →
+102/37/67/64/104/111, techs 11/10/12/10/16/13 → 11/10/12/10/15/13, bankrupt
+seat-turns 0 throughout. The batch re-ranks potential-heavy candidates and
+almost nothing about the played trajectories moves — which is the honest
+reading of a discount that mostly *raises* near promises (0.4 → 0.7 for a row
+a town raises in a dozen turns) and zeroes far ones without changing which
+arm wins.
