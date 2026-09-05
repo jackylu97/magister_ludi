@@ -1685,7 +1685,17 @@ function projectIdleCommand(
     // *promoted* to the front rather than added to it. That is the same command
     // either way and it keeps the arm's termination argument exact: after it
     // lands, `wanted` **is** the front, so the guard above silences the arm.
-    const rest = city.queue.filter((item) => !sameItem(item, wanted));
+    //
+    // And minus anything the world has killed since it was queued (2026-09-05):
+    // a wonder a rival finished, a row a lost resource shut. The reducer
+    // validates the WHOLE queue, so one dead row deep in the tail refused this
+    // command every turn for ever — the 200-turn arena caught a seat idling
+    // fifty-six turns behind The Grand Satrapy a rival had already raised. The
+    // reducer's own gate decides what is dead, never a reading of ours.
+    const rest = city.queue.filter(
+      (item) =>
+        !sameItem(item, wanted) && buildError(state, player.id, item.kind, item.id, city) === null,
+    );
     return {
       kind: 'build',
       command: {
