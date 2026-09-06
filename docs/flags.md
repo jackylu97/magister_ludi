@@ -440,9 +440,14 @@ rulings yet:
   connected-city percents, Machinery's roads at a fifth, The Silk Road's
   endpoint luxuries, Horology's two periodic figures — "bursts are strong");
   the apostle at Theology; eight small shapes beside fewer-things' ten.
-  **In flight**: `docs/orders-pass-3.md` — the order pass proposal: every
-  row KEEP / CONVERT / CUT / NEW to reach 25/30/45 per pool with the user's
-  five engine shapes and all twelve lines readable, for markup. And
+  `docs/orders-pass-3.md` — MARKED UP (2026-09-06), folded in its §9: the
+  grammar is **put yields on a thing, then multiply the thing** (routes,
+  Markets, the capital, great works, faith buildings — multipliers late,
+  rare, applied last); **line readers withdrawn** for Orders (slot-flavour
+  counts stay — confirms pending); amplifiers stack additively; early pools
+  lean standalone; periodic conversions (science↔faith↔culture, gold→science)
+  as bursts; the cheer rows kept (the tier clamp is the open question);
+  four Gov V "just win now" bead Orders. Four questions in §9. And
   `docs/veins.md` — **SHELVED on your word (2026-09-06)**: the layer was
   unreachable for most of a game (its gate an Æra IV node) and a survey is
   the small frequent click this pass removes. `veins.share` is 0 (the last
