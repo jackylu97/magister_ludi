@@ -976,11 +976,14 @@ describe('rites', () => {
     } as Command);
 
     // The border basket, not the empire's draft pool: two separate channels.
-    // And it is **spent on the spot** since 2026-08-27 — fifteen culture covers
-    // the first rung, so the tile is taken and the remainder stays banked toward
-    // the next one (`settleBorderWindfall`, the register's entry 14).
-    expect(city.tilesClaimed).toBe(1);
-    expect(city.culture).toBe(banked + 15 - cost);
+    // And it is **spent on the spot** since 2026-08-27 (`settleBorderWindfall`,
+    // the register's entry 14). Since the curve came down a fifth on 2026-09-05
+    // (5 · 3.2 · 1.45 — "boost border growth by around 25%") fifteen culture
+    // covers the first TWO rungs (5 + 8), so two tiles are taken at once and
+    // the remainder stays banked toward the third; it was one tile against
+    // 6 + 10.
+    expect(city.tilesClaimed).toBe(2);
+    expect(city.culture).toBe(banked + 15 - cost - nextBorderCost(1));
     const after = borderGrowth(g.state, city);
     expect(after.percent).toBe(before.percent + 30);
   });
@@ -1072,7 +1075,8 @@ describe('rites', () => {
     const done = performRiteAt(g.state, player, augur, 'consecrationOfTheBounds');
     expect(done.grants).toEqual([{ label: 'Culture to the bounds', amount: 15 }]);
     expect(done.turns).toBe(riteDef('consecrationOfTheBounds').duration);
-    expect(done.bordersClaimed).toHaveLength(1);
+    // Two since the 2026-09-05 curve: fifteen covers rungs one and two (5 + 8).
+    expect(done.bordersClaimed).toHaveLength(2);
     expect(done.name).toBe(riteDef('consecrationOfTheBounds').name);
     expect(done.city).toBe(city);
   });

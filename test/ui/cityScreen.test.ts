@@ -43,7 +43,15 @@ import { isPurchaseOnly } from '../../src/sim/purchase';
 import { offeredInBuildList } from '../../src/ui/cityPanel';
 
 const SOURCES = import.meta.glob(
-  ['../../src/ui/cityPanel.ts', '../../src/ui/controls.ts', '../../src/style.css'],
+  [
+    '../../src/ui/cityPanel.ts',
+    '../../src/ui/controls.ts',
+    // The Compendium joins this suite for one claim: the Built row's keyword and
+    // the book's entry for a consecration have to agree about the address, and
+    // that is a fact neither file holds alone.
+    '../../src/ui/compendium.ts',
+    '../../src/style.css',
+  ],
   { eager: true, query: '?raw', import: 'default' },
 ) as Record<string, string>;
 
@@ -405,6 +413,55 @@ describe('the city mode', () => {
     // A `<details>` and not a class that hides things: the platform's own
     // disclosure opens on Enter and announces itself as expandable.
     expect(text).toContain("element('details', 'city-disc')");
+  });
+
+  /**
+   * **A cathedral's patron is printed after the toast, and printed once**
+   * (playthrough note 21). The roll lands on `City.consecration`, is announced
+   * as it happens, and the announcement scrolls away; the Built row is where a
+   * player can ask again. Read here rather than left as a comment because every
+   * half of it is a rule one local edit undoes: a printer that stopped reading
+   * the town, a name written out instead of marked, a sentence with the numbers
+   * typed into it.
+   */
+  it('prints the cathedral’s patron under the buildings, in the row’s own words', () => {
+    const built = fn('cityPanel.ts', 'renderBuilt');
+    // The town is what carries it — not the cathedral, which a captured town may
+    // no longer have and which the patron outlives either way.
+    expect(built).toContain('city.consecration');
+    // Named through the one emitter, at the Compendium's own address for a
+    // consecration (`consecrationEntry` shelves it on the beliefs shelf).
+    expect(built).toContain("ref('belief', patron, def.name)");
+    // Every word after the name is the describer's. Nothing here writes prose
+    // about a number, which is the rule that keeps the sheet honest the day a
+    // patron is retuned.
+    expect(built).toContain('describeCard(patron)');
+    // And it is drawn as a descriptor, so the marks become keywords instead of
+    // brackets on screen.
+    expect(built).toContain('setDescriptorText(');
+    expect(built).not.toContain('[[');
+  });
+
+  it('keeps the patron out of the Built figure, and the row alive without stones', () => {
+    // The fold in the summary counts buildings; a patron is not a building.
+    const rail = fn('cityPanel.ts', 'renderTownRail');
+    expect(rail).toContain("disclosure('Built', figure(city.buildings.length)");
+    // An empty list is no longer reason enough to print nothing: a town whose
+    // stones were pulled down still kept the consecration the simulation still
+    // pays for (`liveCityEffects`' consecration source).
+    const built = fn('cityPanel.ts', 'renderBuilt');
+    expect(built).toContain('city.buildings.length === 0 && patron === undefined');
+  });
+
+  it('addresses the patron where the book files it', () => {
+    // The two halves of one link, in two files: the panel emits
+    // `[[belief:<id>|…]]`, and the Compendium's entry for a consecration must be
+    // filed under the same kind or the click lands nowhere. Neither file can
+    // keep this on its own.
+    expect(fn('cityPanel.ts', 'renderBuilt')).toContain("ref('belief', patron");
+    const book = source('compendium.ts');
+    const entry = book.slice(book.indexOf('function consecrationEntry('));
+    expect(entry.slice(0, 400)).toContain("compendiumId('belief', id)");
   });
 
   it('shelves the add-list by the simulation’s own category, never by a name', () => {

@@ -59,7 +59,8 @@ import {
   isWonder,
 } from '../sim/buildingData';
 import { wonderClaim } from '../sim/state';
-import { cardCityStat, describeCard } from '../sim/statecraft';
+import { cardCityStat, describeCard, ref } from '../sim/statecraft';
+import { consecrationDef } from '../sim/religionData';
 import { type CitizenFocus, CITIZEN_FOCUSES, RULES } from '../sim/rulesData';
 import {
   type ProjectId,
@@ -2834,16 +2835,61 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return box;
   }
 
+  /**
+   * The stones this town has, and the one thing standing among them that no
+   * other surface says twice.
+   *
+   * The **consecration** is the second line (playthrough note 21): a cathedral's
+   * patron is rolled once, announced once in a toast that scrolls away, and
+   * until now was printed nowhere afterwards — a player who looked up a turn
+   * later had no way at all to ask what their cathedral had been dedicated to.
+   * It belongs here because it is a standing fact about the town in the same
+   * sense the buildings are, and it reads under them because it is a fact
+   * *about* one of them.
+   *
+   * Printed off the town rather than off the cathedral, and drawn even when no
+   * cathedral is in the list: `City.consecration` is written once and never
+   * cleared, so a captured town that lost its stones still kept its patron, and
+   * a line that vanished with the building would be the sheet forgetting
+   * something the simulation still pays for (`liveCityEffects`' consecration
+   * source).
+   *
+   * Every word after the name is the row's own (`describeCard`, the same
+   * describer the Compendium's entry prints), and the name is a keyword ref into
+   * that entry — so "what does it actually do" is one click from the sheet
+   * rather than a number written out here that would drift the day it is
+   * retuned. The Built figure stays the count of buildings: a patron is not a
+   * building and would make the fold lie.
+   */
   function renderBuilt(city: City): HTMLElement | null {
-    if (city.buildings.length === 0) return null;
+    const patron = city.consecration;
+    if (city.buildings.length === 0 && patron === undefined) return null;
     const box = element('div', 'city-built');
-    box.append(
-      element(
-        'p',
-        'hint',
-        city.buildings.map((id) => buildingDef(id).name).join(' · '),
-      ),
-    );
+    if (city.buildings.length > 0) {
+      box.append(
+        element(
+          'p',
+          'hint',
+          city.buildings.map((id) => buildingDef(id).name).join(' · '),
+        ),
+      );
+    }
+    if (patron !== undefined) {
+      const def = consecrationDef(patron);
+      // `belief` is the Compendium's own address for a consecration
+      // (`consecrationEntry` shelves it there), so the mark resolves to the page
+      // that already explains the whole class.
+      const named = ref('belief', patron, def.name);
+      const clauses = describeCard(patron)
+        .map((clause) => clause.text)
+        .join(' · ');
+      const line = element('p', 'hint');
+      setDescriptorText(
+        line,
+        clauses === '' ? `Consecrated to ${named}` : `Consecrated to ${named} — ${clauses}`,
+      );
+      box.append(line);
+    }
     return box;
   }
 
