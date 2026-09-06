@@ -162,14 +162,14 @@ The cut list below touches the **38 ordinary rows only**. Shape column:
 
 | id | Name | What it does | Shape | Verdict |
 |---|---|---|---|---|
-| `monument` | Monument | 2🎵, +1 writ capacity | flat | **KEEP** — the culture door; borders and the draft basket both start here. Re-shape the flat to a per-citizen line so a tall town's songs grow. Writ line **cut** (balance-turn §4g) |
+| `monument` | Monument | 2🎵, +1 writ capacity | flat | **KEEP** — the culture door; borders and the draft basket both start here. Writ line **cut** (balance-turn §4g) |
 | `granary` | Granary | 3🌾 | flat | **KEEP** — becomes the growth shape: a share of the basket kept on a growth (the clause cut with Public Granaries, at a number that reads). Absorbs `watermill` and `townCharter` |
 | `shrine` | Shrine | 1🔬 1🕯 | flat | **KEEP** — the faith door (pantheon, the augur, and under §3 the cheapest rung of the rite verb). Science line **cut** — that is the Library's job |
 | `barracks` | Barracks | +10% units, general renown | % | **KEEP** — the war door. Absorbs `armoury` |
 | `palisade` | Palisade | +5 defence, +15 hp | def | **KEEP** — the one early defensive rung |
 | `funeralGames` | Funeral Games | 3😊 | flat | **CUT** — cheer belongs in cards (Entry LIV). Effect goes **nowhere**; the deed `theGreatGames` re-aims (§2's interactions) |
 | `library` | Library | 2🔬, 1🔬 per citizen | per-citizen | **KEEP** — the archetype. `sciencePerPop` takes balance-turn §4b's cut if that is marked |
-| `lighthouse` | Lighthouse | 2💰, water hexes feed | flat + tile line | **MERGE INTO `harbour`** |
+| `lighthouse` | Lighthouse | 2💰, water hexes feed | flat + tile line | **KEEP** |
 
 ### Æra II — Heroes (6 rows → 3, plus one national row)
 
@@ -178,8 +178,8 @@ The cut list below touches the **38 ordinary rows only**. Shape column:
 | `temple` | Temple | 2🕯; doubles own pressure, foreign to 75% | cond | **KEEP** — the faith engine's subject; five Order rows and Notre-Dame count it |
 | `market` | Market | 3💰, a route slot | flat + door | **KEEP** — the coin door and the route slot. Absorbs `mint`, `bank`, `caravanserai` |
 | `harbour` | Harbour | 1🌾, a route slot, every worked water hex feeds | door + tile line | **KEEP** — absorbs `lighthouse` and `shipyard`, and becomes the whole coastal build |
-| `stoneWalls` | Stone Walls | +4 defence, +25 hp | def | **CUT** — one defensive rung per half of the game: `palisade`, then `castle`. Already flagged in `docs/flags.md` §B as mis-costed |
-| `amphitheater` | Amphitheater | 3🎵 | flat | **CUT** — its culture goes to the Monument's per-citizen line. The Theatre of Dionysus **grants** one on completion and must re-aim |
+| `stoneWalls` | Stone Walls | +4 defence, +25 hp | def | **KEEP** — can only be built in cities with a palisade |
+| `amphitheater` | Amphitheater | 3🎵 | flat | **KEEP** — +0.5 culture per citizen. The Theatre of Dionysus **grants** one on completion and must re-aim, can only be built in a city with a monument |
 | `steleOfLaws` | Stele of Laws | 3🎵, +1 writ | flat | **CUT** — the balance turn already reads it as worse per hammer than the Monument |
 | `chartTheStars` | Chart the Stars | national, 2🔬, a bead, naval movement | door | **KEEP** — a bead row, not an ordinary building |
 
@@ -190,21 +190,21 @@ The cut list below touches the **38 ordinary rows only**. Shape column:
 | `aqueduct` | Aqueduct | waters the town, +15% growth surplus | % + cond | **KEEP** |
 | `workshop` | Workshop | 3⚒, +10% toward buildings and wonders | % | **KEEP** — the hammer door |
 | `cathedral` | Cathedral | 3🎵 3🕯 3😊, rolls one of five consecrations, takes contributions | cond + **a choice** | **KEEP** — the one ordinary building that hands the player a decision. Absorbs `reliquary` (faith purchases move onto it) |
-| `watermill` | Watermill | 2🌾 1⚒ | flat | **MERGE INTO `granary`** |
+| `watermill` | Watermill | 2🌾 1⚒ | flat | **KEEP** |
 | `monastery` | Monastery | 2🎵, 0.25🔬 per citizen | flat | **CUT** — the user's note 15 asks for a rework; the rework is the cut. Its faith identity is the Temple's, its culture the Monument's, its beakers the Library's |
 | `baths` | Baths | 2🌾 2😊 | flat | **CUT** |
 | `forum` | Forum | 3🎵 | flat | **CUT** |
 | `examinationHall` | Examination Hall | 1🔬, +3 writ | flat | **CUT** — writ becomes a card decision (Entry LIV), which is what makes tall-vs-wide bite |
 | `shipyard` | Shipyard | 1⚒, a route slot, +10% units, water resource hexes | door | **MERGE INTO `harbour`** |
-| `townCharter` | Town Charter | 4🌾 2🎵 | flat | **CUT** — a founding artefact; the founding cards pay instead |
+| `townCharter` | Town Charter | 4🌾 2🎵 | flat | **CUT** — a founding artefact; cannot be built in a city, can only be gained by founding a city after daughter cities |
 | `clocktower` | Clocktower | 2🔬 | flat | **CUT** |
 
 ### Æra IV — Cathedrals (13 rows → 7, plus two national rows)
 
 | id | Name | What it does | Shape | Verdict |
 |---|---|---|---|---|
-| `university` | University | 0.75🔬 per citizen | per-citizen | **KEEP** — the second rung of the one science shape |
-| `bazaar` | Bazaar | 2💰, +1💰 per unique luxury the town can reach | count | **KEEP** — a real count, and the luxuries system's building |
+| `university` | University | 0.75🔬 per citizen | per-citizen | **KEEP** — the second rung of the one science shape, can only be built in a city with a library, use numbers in balance-turn. |
+| `bazaar` | Bazaar | 2💰, +1💰 per unique luxury the town can reach | count | **KEEP** — a real count, and the luxuries system's building, can only be built in a city with a market |
 | `courthouse` | Courthouse | 3💰, +2 writ, **captured towns only** | cond | **KEEP** — the conquest door |
 | `castle` | Castle | +5 defence, +25 hp | def | **KEEP** — the second and last defensive rung; absorbs `stoneWalls` |
 | `forge` | Forge | 2⚒, +15% units | % | **KEEP** — absorbs `armoury` |
@@ -215,7 +215,7 @@ The cut list below touches the **38 ordinary rows only**. Shape column:
 | `armoury` | Armoury | 1⚒, +15% units | % | **MERGE INTO `forge`**. The deed `theMusterOfTheRealm` re-aims |
 | `caravanserai` | Caravanserai | 2💰, a route slot | door | **MERGE INTO `market`** |
 | `printingHouse` | Printing House | 2🔬 2🎵 | flat | **CUT** — the Gov V order `printingHouses` names it and re-aims to the Library |
-| `bank` | Bank | 4💰 | flat | **CUT** — its deferred half ("a coin per route ending here") was never buildable |
+| `bank` | Bank | 4💰 | flat | **KEEP** +0.5 gold per citizen, +10% gold, can only be built in a city with a market |
 | `theTurningHeavens` · `theAlchemicalCodex` | — | national, bead-granting | door | **KEEP** |
 
 ### The tally
@@ -354,6 +354,26 @@ Doubling every rite would still leave a four-click errand.
 **The dial A needs**: the faith price per rite (the augur's ladder, re-based per
 city), and the per-city seal in turns. Both are `data/religion.json` rows and
 both are the user's to set — §6.
+
+Ok, my proposed design:
+- consecration happens automatically, similar to a culture draft when the culture threshold is reached. 
+- rites happen within the city, we should rework these rites:
+  - food rite: tiles that supply food gain 1 more for 10 turns
+  - gold rite: resource tiles gain +1 gold for 10 turns
+  - science rite: buildings in this city supply +1 science for 10 turns
+  - culture rite: +1 culture on luxury resource tiles, border growth +30% for 10 turns
+  - military rite: +5 defensive strength, units heal +5 within the city's borders for 10 turns
+- prophets remain purchasable, prophet actions (2 charges):
+  - remove the 'redraft belief' option
+  - found/enhance a belief (costs 2 charges), no longer involves planting a holy site
+  - plant a holy site as a separate action (2 charges)
+  - proclamation (1 charge), same function
+  - can invoke an empire-wide rite (1 charge)
+- add apostle (2 charges), should unlock later in the tech tree than prophets:
+  - 4 movement speed
+  - proclamation (1 charge), half strength of a prophet, only affects cities within 6 tiles
+  - heal adjacent units by 25 hp (1 charge)
+  - what else??
 
 ---
 
@@ -706,3 +726,134 @@ Steps 1 and 2 can run in parallel on disjoint fences (`religion.ts` /
    difference between a path being buildable and being lucky.
    **Recommended: yes.** The alternative is a wider offer, which makes every
    draft slower rather than sharper.
+
+## 7. The markup, folded (2026-09-06, first pass — the user is still reading §4–6)
+
+### Rulings taken from the tables above
+
+- **Buildings kept that the cut list struck**: `lighthouse`, `watermill`,
+  `stoneWalls` (needs a Palisade), `amphitheater` (+0.5🎵 per citizen; needs a
+  Monument), `bank` (+0.5💰 per citizen, +10%💰; needs a Market). The Monument
+  keeps its flat (no per-citizen line). `townCharter` is never built — it is
+  gained only by founding a city after daughter cities. `university` needs a
+  Library and takes balance-turn's numbers; `bazaar` needs a Market.
+  **Prerequisite chains are the new shape here**: a building that needs its
+  parent standing (`requiresBuilding`) — a small schema field and a
+  `buildError` clause, and the tech-tree doc's per-age tables say so.
+- **Religion, redesigned** (supersedes §3's options A/B/C):
+  - **Consecration happens automatically** when a faith threshold is reached —
+    a faith ladder, the culture draft's twin (offer drawn once, spent by a
+    command, the same ceremony).
+  - **Rites are city verbs**, ten turns each, reworked: *food* — tiles that
+    supply food give one more; *gold* — resource tiles +1💰; *science* —
+    buildings in the city +1🔬 each; *culture* — +1🎵 on luxury tiles and
+    border growth +30%; *military* — +5 defence and units heal +5 inside the
+    city's borders.
+  - **Prophets stay purchasable**, two charges: found/enhance a belief (both
+    charges; no holy site planted by it), plant a holy site (both charges, a
+    separate act), proclamation (one), invoke an **empire-wide rite** (one).
+    `redraftBeliefs` is removed.
+  - **The apostle** joins later in the tree than the prophet: two charges, 4
+    movement, a half-strength proclamation reaching cities within six hexes
+    (one charge), heal adjacent units 25 (one charge). *Open: its third act.*
+  - The augur leaves; `courtAugurs`, the five rite abilities on the tree, and
+    `augurHasActed` re-cut with it.
+
+### The order rework — the user's engine shapes, weighed
+
+| the idea | encodable today? | what it takes | verdict |
+|---|---|---|---|
+| your Orders that give production give 50% more production | no | **an amplifier by voice over card yields**: a modifier applied *after* the card fold, "card ⚒ ×1.5". The fold already keeps every card line labelled (`CardYieldLine`), so the multiplier is a pass over that list — one shape, one stage, printed as its own line | **build it** — this is the cleanest engine in the list: it reads the deck without a tag |
+| science buildings give +50% base yield, per-citizen lines included | no | **a building-yield percent by category**: `buildingEffects.ts` folds category selectors for luxuries already; the same selector on a yield percent applied to each building's own lines (flat *and* per-citizen) before the city fold | **build it** — and it is the "double your temples / farms / mines" shape from balance-turn §7 generalised (a doubler is +100%) |
+| tiles that supply faith give one more | nearly | a `TileCondition` `{ test: 'yields', voice: 'faith' }` — the condition vocabulary has resource/hills/feature/unimproved; "yields X" is one more test, read against the tile's own fold before the card's line | **build it** — smallest of the five |
+| your first economic slot pays twice | no | **a slot-position reader**: the fold knows which slot a card sits in (`slottedOrdersOfSlot` counts by flavour), so "the card in economic slot 1 ×2" is the neighbour/amplifier shape §4 deferred, by position rather than by line | **hold** — it is the most Balatro of the five, but position-reading needs the slot order to be a thing the player can rearrange (today the slots are typed, not ordered) — a UI decision first |
+| every X turns, a bonus (standalone); your every-X-turn cards trigger 3 turns earlier | no | a **periodic occasion** on `WindfallOccasion` (`everyTurns: N`, stamped absolute like everything timed), and an engine that shortens the period — the engine must read the standalone's period, which is the tag-less deck-reader again | **build the occasion; the shortener is a "card ×" in disguise** — "your periodic cards pay 50% more" is the same amplifier as row one and needs no second shape |
+
+So: **three shapes** — the amplifier by voice, the building-yield percent by
+category, the "yields X" tile test — plus the periodic occasion, and the
+user's whole list is encodable. None of them needs a line.
+
+### Lines versus modifiers — honest opinion
+
+The user's instinct is right for the wrong reason. A player never has to
+*memorise* lines if the card shows its mark and the draft shows what you hold
+(the stamp's phase 2) — that is a display problem, solved. The real cost of
+lines is **design bandwidth**: every line needs enough engines *and* payoffs
+*and* fuel in every pool to be draftable, or it is a trap line, and twelve
+lines across six pools is seventy-two cells to keep honest. Modifier engines
+("card ⚒ ×1.5", "science buildings +50%", "faith tiles +1") **read what the
+empire is actually doing** rather than what colour its cards are, so they
+combo with everything of that kind — including buildings and tiles, which have
+no line at all. That is the wider net, and it needs three shapes instead of a
+tag system.
+
+**The combination**: modifier engines for the *economy* (they read the board),
+and **a handful of lines — three, not twelve — for the *identity* decks** where
+the board has nothing to read: War, Faith, Trade. A "+1 strength per War card"
+engine cannot be written as a modifier because strength is not a yield. Keep
+`CardLine` as the drawn mark, make three of them readable (the required
+`slottedOrdersOfLine` shape from §4), retire the rest as tags. That is the
+recommendation.
+
+### "Cards show nothing until the government is confirmed" — honest opinion
+
+The scheme: a card in a slot prints no yields until the hand is confirmed;
+then the fold runs in order (base, then modifiers) and the total from the
+cards is shown as one aggregate.
+
+- What it buys: the **reveal** — a Balatro scoring moment, once per
+  government, and a clean statement of order-of-operations.
+- What it costs: **the draft's information**. The stamp (built last night)
+  exists because a player choosing between two cards needs to see what each is
+  worth *now*, in this empire; hiding that until confirmation makes the pick a
+  guess, which is the opposite of a bigger decision. And the seal is five
+  turns — cards come and go between confirmations, so "confirmed" is not a
+  moment the game has.
+- **Take the half that works**: keep the per-card stamp at the draft and on
+  the standing face, and add the **aggregate** — one line in the Ledger's deck
+  band (and the government's charter block): "your cards: +31⚒ +18🔬 +40🎵",
+  with the modifiers' lines listed after the base lines in fold order. The
+  reveal moment becomes the *seal-out*: when a card's seal expires and you
+  swap, the aggregate re-folds with a count-up. That is the scoring ceremony
+  without hiding the numbers a decision needs.
+
+### What cities build and what techs unlock, after the cut
+
+The cut list keeps 19 + the five you kept back = ~24 ordinary buildings, with
+prerequisite chains. The honest worry is right: with fewer rows, a city's
+queue empties sooner and a tech that unlocks nothing is a dead node. Three
+answers, in order of preference:
+
+1. **Chains make the same building a longer project.** A Library → University
+   → (Observatory) chain is three decisions in one town where the flat list was
+   three unrelated ones; the prerequisite is the shape that makes a tall town
+   *different* from a wide one. Every survivor should sit on a chain of two or
+   three.
+2. **Projects fill the queue without adding rows.** The queue already has
+   repeatable projects (`ProjectPayout`: gold/science/faith, and a culture
+   project). Give each age one or two more with *shapes* rather than flats: a
+   festival that pays the city's culture again as happiness for ten turns; a
+   levy that turns hammers into a unit purchase discount; a survey that reveals
+   veins in the city's ring (the vein-visibility note, made a project).
+   Projects are decisions with a cost and a timer, not rows to own.
+3. **Techs unlock verbs, projects and card shapes, not only buildings.** The
+   tree already hands over abilities (embark, siege, rites); after the cut, a
+   node's gift can be: a project, a rite, a *card* (a tech that adds a card to
+   your pool is the Civ VI civic in this game's grammar — `TechDef` already
+   carries card effects), a tile line (`renewals` are gone; a tech that makes an
+   improvement better is still a gift), a prerequisite unlocked (the Bank
+   *exists* at Currency, is *buildable* once a Market stands — two gifts from
+   one row). The rule for the pass: **no tech node without a gift a player
+   will notice**, and the gift table per node is the next doc after this one.
+
+### Open, for the user
+
+- The apostle's third act (a suggestion: *convert* — the apostle's charge makes
+  a city within six hexes follow your faith outright for a turn, the
+  proclamation's blunt sibling; or *pilgrimage* — the apostle standing in a
+  foreign holy-site city pays your capital its faith).
+- Whether the empire-wide rite (the prophet's charge) is one of the five city
+  rites cast everywhere, or its own row.
+- Slot order: do you want slots the player can *arrange* (so "first economic
+  slot" and "the card to the left" mean something)? Yes opens the position
+  engines; no keeps typed slots and the modifier engines carry the combo.
