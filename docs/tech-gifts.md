@@ -312,18 +312,19 @@ specific than the shapes I reached for, and better for it.
 Eight small members beside fewer-things' ten. None reaches a fold that
 another shape does not already reach.
 
-### Still open
+### Ruled on the second markup (2026-09-06)
 
-- **The Mathematics unique's name**, and whether the Throne's +5 authority
-  is empire-wide (then *where* it stands does not matter — the unit rebate is
-  the placement decision) or should be city-read too.
-- **Hammer costs** for the five uniques (a small wonder's — 60/90/120/120/150
-  as a first reading, by age).
-- **Horology's two periodic figures** (every 7 turns science = empire
-  production is ≈19🔬 a turn on the t92 empire, a tenth of its science, before
-  the shortener; every 10 turns +5🔬 per production building ≈ +6 a turn) —
-  strong, and meant to be; confirm.
-- **The science split** (§3): with the Library/University percents withdrawn
-  the tree now hands back science through Horology, Movable Type and the
-  Forum alone — roughly the same quarter, differently shaped. Confirm the
-  deck carries the rest.
+- **The Throne's +5 authority is empire-wide**; the unit rebate is the
+  placement half.
+- **The Mathematics unique is the Caravanserai** — the row cut from the
+  ordinary list returns as the once-per-empire route hub: routes originating
+  here +1🌾 +1⚒ (the name was already the game's word for a caravan's house,
+  and a hub is exactly one per realm).
+- **Hammer costs**: each unique is priced at **about half a wonder of its
+  age** (the age's wonder costs are the reference; the row tables print the
+  figure when the pass lands).
+- **Periodic bonuses are strong by design** — "their yields come in bursts";
+  Horology's two figures stand, and the rule generalises to every periodic
+  row the order pass writes.
+- The science split stands: the deck carries what the tree no longer hands
+  back through Library percents.
