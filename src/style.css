@@ -7695,6 +7695,19 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-faint);
 }
 
+/* The office's **position**, printed only where a card could read it (the Slot
+   order ruling, 2026-09-06 — `deckReadsSlotPosition` is the gate). An ordinal is
+   a number, so it is set in the tabular mono every number in this interface is,
+   and it sits under the office's own word at the same size and a grade quieter:
+   it is a second name for the same chair, not a second chair. */
+.sc-slot-position {
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+}
+
 .sc-slot-military .sc-slot-type {
   color: var(--vermilion);
 }
@@ -7807,6 +7820,23 @@ body:has(.city-mode:not([hidden])) #hud-context {
   font-family: var(--face-ui);
   font-size: 11px;
   color: var(--ink-soft);
+}
+
+/* --- the aggregate -------------------------------------------------------
+   **What your cards pay you**, in one figure per voice.
+
+   The scoring ceremony's band (`docs/fewer-things.md` §4, RULED 2026-09-06): it
+   stands quietly at rest and counts up on Confirm, which is the one moment the
+   figure changed by something the player just did. It sits at the head of the
+   Confirm block below — the column's pinned foot — because the offices scroll and
+   a ceremony fired above the fold is one half the viewports never see; the block's
+   own rule is the band's, so there is one line across the foot rather than two.
+   No box — this is still the table covered in paper — and the digits are the card
+   stamp's own element, so the number here and the number on a card face are set
+   in one type at one size. */
+.sc-aggregate {
+  margin: 0 0 6px;
+  text-align: center;
 }
 
 /* --- confirm, and what is not signed yet ---------------------------------
@@ -7946,9 +7976,13 @@ body:has(.city-mode:not([hidden])) #hud-context {
   transform: translate(-2px, -2px);
 }
 
+/* A card sitting in an office. Quieted, because the hand is a list of what is
+   *available* — but no longer inert: since the rearranging ruling (2026-09-06) a
+   click picks it back out of its office and into the hand, so it keeps the
+   pointer the rest of the collection has. The refusal, when a seal has not
+   lifted, is the reducer's own sentence in the manicule line. */
 .sc-card-slotted {
   opacity: 0.55;
-  cursor: default;
 }
 
 /* A Doctrine is heavier than an Order, because it is permanent: a gilt frame
@@ -11742,7 +11776,8 @@ body.compendium-page {
 }
 
 .card-stamp[data-face='figure'] .card-stamp-flourish,
-.card-stamp[data-face='occasion'] .card-stamp-flourish {
+.card-stamp[data-face='occasion'] .card-stamp-flourish,
+.card-stamp[data-face='pending'] .card-stamp-flourish {
   display: none;
 }
 
@@ -11778,6 +11813,17 @@ body.compendium-page {
 
 .card-stamp-occasion:empty {
   display: none;
+}
+
+/* The pending mark: `— on Confirm`, worn by a card laid in an office this
+   session and not yet signed (the reveal ruling, 2026-09-06). It stands where an
+   occasion's words stand, because both are a *sentence* in the place a figure
+   would otherwise be — and it is quieter and upright, because it is a promise
+   rather than a payment. */
+.card-stamp[data-face='pending'] .card-stamp-occasion {
+  font-style: normal;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
 }
 
 /* The number stands alone (final ruling, 2026-09-03): no tag, no chip, no popup
@@ -11973,6 +12019,34 @@ body.compendium-page {
 
 .rel-slot .card-stamp-figure {
   font-size: 0.9rem;
+}
+
+/* The two places the stamp is not on a card at all: the **aggregate** band under
+   the chairs (`statecraftScreen.ts`) and the same reading at the head of the
+   Ledger's first band (`ledgerScreen.ts`). Written beside the other two for the
+   reason above — one block per surface, findable by the name of the screen.
+
+   The aggregate is the band's whole content, so the card's air below the seat
+   goes and the digits step up a size: it is a fold of eleven cards, and it
+   should read as the larger number it is. */
+.sc-aggregate .card-stamp {
+  margin: 0;
+  min-height: 26px;
+  line-height: 26px;
+}
+
+.sc-aggregate .card-stamp-figure {
+  font-size: 1.15rem;
+}
+
+.ldg-deck .card-stamp {
+  margin: 0;
+  min-height: 20px;
+  line-height: 20px;
+}
+
+.ldg-deck .card-stamp-figure {
+  font-size: 0.95rem;
 }
 
 /* ===========================================================================
@@ -12339,6 +12413,34 @@ body.compendium-page {
 .ldg-band.is-empty {
   padding-top: 4px;
   border-top: var(--border-thin) dashed var(--ink-faint);
+}
+
+/* The aggregate at the head of band 1 — the same reading the Statecraft screen's
+   ceremony counts up (`deckAggregate`), landed rather than played because this
+   sheet is a place a player comes to read. Label left, figure beside it, on one
+   baseline: it is a sentence with a number in it. The stamp's own seat is
+   quieted where the stamp is styled, beside the other two surfaces that borrow
+   it. */
+.ldg-deck {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -2px 0 0;
+}
+
+.ldg-deck-label {
+  font-family: var(--face-num);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.ldg-deck-none {
+  font-family: var(--face-ui);
+  font-size: 11px;
+  color: var(--ink-faint);
 }
 
 .ldg-rows,

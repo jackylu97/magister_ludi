@@ -427,29 +427,122 @@ describe('the bench and the offices', () => {
   const SCREEN = source('statecraftScreen.ts');
 
   /**
-   * A held card wears the flourish and costs nothing to draw; a card in an
-   * office reads its figure. The asymmetry is deliberate — see `stampFor`.
+   * A held card wears the flourish and costs nothing to draw; a card the law
+   * holds in an office reads its figure; a card laid in an office this session
+   * wears the pending mark and is not weighed at all. The asymmetry is
+   * deliberate — see `stampFor` and the reveal ruling.
    */
-  it('weighs only the cards in an office', () => {
+  it('weighs only the cards the law already holds in an office', () => {
     const collection = SCREEN.slice(
       SCREEN.indexOf('function drawCollection('),
       SCREEN.indexOf('function draw()'),
     );
     expect(collection).toContain('cardStampNode()');
-    // The reading is inside the slotted branch and nowhere else.
+    // The reading is inside the in-force branch and nowhere else.
     // A card is named by its id alone since the levelling ruling of 2026-09-04.
-    const slotted = collection.slice(collection.indexOf('if (slotted.has(id)) {'));
-    expect(slotted).toContain("stampFor(state, seat, { kind: 'order', id })");
-    expect(collection.slice(0, collection.indexOf('if (slotted.has(id)) {'))).not.toContain('stampFor(');
+    const inForce = collection.slice(collection.indexOf('} else if (inForce.has(id)) {'));
+    expect(inForce).toContain("stampFor(state, seat, { kind: 'order', id })");
+    expect(
+      collection.slice(0, collection.indexOf('} else if (inForce.has(id)) {')),
+    ).not.toContain('stampFor(');
   });
 
-  /** Slotting plays the count with the true number; a card at rest does not. */
-  it('plays the count for the office just filled, and lands the rest', () => {
-    expect(SCREEN).toContain('if (justSlotted === id) playCardStamp(stamp, reading);');
+  /**
+   * **Confirm plays the count, and nothing else does** — the reveal ruling
+   * (`docs/fewer-things.md` §1 "The reveal", RULED 2026-09-06, the user's own
+   * words: *"aggregate yields fire after hitting confirm"*).
+   *
+   * The three halves of it that can be quietly broken: the list is armed by the
+   * commit rather than by the drop, it is spent by the draw that plays it, and a
+   * card in force that was not part of the signature arrives landed.
+   */
+  it('plays the count for the cards Confirm just made law, and lands the rest', () => {
+    expect(SCREEN).toContain(
+      'if (justConfirmed.includes(id)) counting.push(playCardStamp(stamp, reading));',
+    );
     expect(SCREEN).toContain('else landCardStamp(stamp, reading);');
-    // The flag is armed by the gesture and spent by the draw that plays it.
-    expect(SCREEN).toContain('justSlotted = held;');
-    expect(SCREEN).toContain('justSlotted = null;');
+    // Armed by the signature — `commitStaging` answers the guest list — and spent
+    // by the draw that plays it.
+    expect(SCREEN).toContain('justConfirmed = commitStaging();');
+    expect(SCREEN).toContain('justConfirmed = [];');
+    // And the gesture that lays a card down arms nothing at all.
+    const drop = code(
+      SCREEN.slice(
+        SCREEN.indexOf('function drop(index: number)'),
+        SCREEN.indexOf('function drawGovernment('),
+      ),
+    );
+    expect(drop).not.toContain('playCardStamp');
+    expect(drop).not.toContain('justConfirmed =');
+  });
+
+  /**
+   * **A newly slotted card shows no figure.** The unconfirmed branch calls the
+   * one writer that takes no reading (`pendCardStamp`), so there is no number in
+   * scope for it to print, and neither of the two writers that do take one is
+   * reachable from it.
+   */
+  it('prints the pending mark, and no figure, on an unconfirmed office', () => {
+    const collection = SCREEN.slice(
+      SCREEN.indexOf('function drawCollection('),
+      SCREEN.indexOf('function draw()'),
+    );
+    const pending = code(
+      collection.slice(
+        collection.indexOf('if (pending.has(id)) {'),
+        collection.indexOf('} else if (inForce.has(id)) {'),
+      ),
+    );
+    expect(pending.length).toBeGreaterThan(40);
+    expect(pending).toContain('pendCardStamp(stamp)');
+    expect(pending).not.toContain('landCardStamp');
+    expect(pending).not.toContain('playCardStamp');
+    expect(pending).not.toContain('stampFor(');
+    // The two halves of "in a slot" are told apart by the staging's own flag,
+    // never by a second opinion about what the law says.
+    expect(collection).toContain('(entry.staged ? pending : inForce).add(entry.card)');
+  });
+
+  /**
+   * The **aggregate** band: the ceremony's own figure, counted up on Confirm and
+   * standing at rest otherwise, read from the Ledger's deck slice so the two
+   * surfaces cannot disagree.
+   */
+  it('fires the aggregate on Confirm, from the Ledger’s own reading', () => {
+    const band = SCREEN.slice(
+      SCREEN.indexOf('function drawAggregate('),
+      SCREEN.indexOf('function drawCommit('),
+    );
+    expect(band).toContain('deckAggregate(state, seat)');
+    expect(band).toContain('if (justConfirmed.length > 0) counting.push(playCardStamp(stamp, reading));');
+    expect(band).toContain('else landCardStamp(stamp, reading);');
+    // One source for the figure, and it is the Ledger's.
+    expect(SCREEN).toContain("from './ledgerScreen'");
+  });
+
+  /**
+   * **Rearranging is a placement like any other.** A card in an office is picked
+   * up through the same staging verbs a benched card is placed with, and the
+   * refusal is `removeError`'s — which is how the seal rules survive a gesture
+   * that did not exist before.
+   */
+  it('lifts a slotted card through the staging’s own remove', () => {
+    const lift = SCREEN.slice(
+      SCREEN.indexOf('function lift(id: OrderId)'),
+      SCREEN.indexOf('function drop(index: number)'),
+    );
+    expect(lift).toContain('removeError(state, seat, arrangement, index)');
+    expect(lift).toContain('options.onRefuse?.(problem)');
+    expect(lift).toContain('staged = remove(arrangement, index)');
+    expect(lift).toContain('held = id');
+    // Both branches of "in a slot" offer the gesture, and neither disables the
+    // face any more.
+    const collection = SCREEN.slice(
+      SCREEN.indexOf('function drawCollection('),
+      SCREEN.indexOf('function draw()'),
+    );
+    expect(collection.match(/lift\(id\)/g) ?? []).toHaveLength(2);
+    expect(collection).not.toContain('button.disabled = true');
   });
 });
 

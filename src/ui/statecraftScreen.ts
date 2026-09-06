@@ -53,6 +53,24 @@
  * irreversible thing a player does, and the two surfaces that show it agree on
  * what heavy looks like.
  *
+ * The reveal is Confirm's
+ * ------------------------
+ * `docs/fewer-things.md` §1 ("The reveal") and §4, RULED 2026-09-06, in the
+ * user's own words: *"don't show the yield until you confirm its placement in
+ * the government — hit confirm, locking the card in its slot, aggregate yields
+ * fire after hitting confirm"*. So a card laid in an office this session wears
+ * the pending mark and no figure (`pendCardStamp`); a card the law already holds
+ * wears its landed figure as it always did; and **Confirm is the scoring
+ * ceremony** — the batch goes through, the fold runs in the evaluator's own
+ * order (the base card lines, then the modifiers that read them), and the
+ * aggregate counts up in its own band above the Doctrines while every card the
+ * signature just made law lands its own stamp in the same beat.
+ *
+ * The aggregate's figure is `deckAggregate` (`ledgerScreen.ts`) — the Ledger's
+ * band-1 deck slice, which is the *banked* figure rather than a sum of eleven
+ * marginal ghost-diffs. That function's docblock is where the reasoning lives;
+ * what matters here is that the ceremony and the sheet read one function.
+ *
  * Nothing is locked until you leave
  * ---------------------------------
  * The user's second note, and the reason `statecraftStaging.ts` exists:
@@ -77,10 +95,29 @@
  * reducer would answer if the command were sent anyway. There is no second
  * opinion in this file about what is legal.
  *
+ * Ordered offices, and the word on one
+ * ------------------------------------
+ * `PlayerStatecraft.slots` is indexed by `slotLayout`, which lays the government's
+ * spread out grouped by flavour in `SLOT_TYPES` order — so **the array index is
+ * the position**, and this screen draws the column in array index order, which is
+ * what makes "the first economic slot" a fact rather than an opinion (the Slot
+ * order ruling, `docs/fewer-things.md` §1). The position word is printed on the
+ * office line only when something in the empire's law could *read* a position —
+ * `deckReadsSlotPosition`, which walks the slotted Orders' own effects for a
+ * position-reading count. Today no card carries one and the word never shows; the
+ * day batch A's shape lands, its member joins `POSITION_READING_COUNTS` and the
+ * word appears wherever it now matters. A word printed unconditionally would be a
+ * label for a rule the game does not have.
+ *
  * Click, not drag
  * ---------------
  * Click a card in the collection to pick it up, click an office to put it down —
- * and click the card again to put it back. Drag was considered and dropped: it
+ * and click the card again to put it back. **A card already in an office is
+ * picked up the same way**, which is the whole of rearranging: click it in the
+ * collection, click another office of a flavour it fits, and the move is one more
+ * unconfirmed placement through the same two staging verbs (`remove`, `place`).
+ * The seal rules are untouched, because the refusal is `removeError`'s. Drag was
+ * considered and dropped: it
  * needs a pointer, it needs a fallback for the keyboard anyway, and the gesture
  * this screen actually wants is *comparison* — hold one card against three
  * offices — which reads better as a selection than as a drag. The keyboard gets
@@ -106,9 +143,12 @@ import {
 } from '../sim/statecraft';
 import {
   type CardDefBase,
+  type CardEffect,
   type CardId,
+  type CountKind,
   type GovernmentId,
   type OrderId,
+  type SlotType,
   SLOT_TYPES,
   cardDef,
   governmentDef,
@@ -120,10 +160,12 @@ import {
 import {
   cardStampNode,
   landCardStamp,
+  pendCardStamp,
   playCardStamp,
   stampIsEmpty,
   stampReading,
 } from './cardStamp';
+import { DECK_AGGREGATE_LABEL, deckAggregate, deckAggregateLine } from './ledgerScreen';
 import { type CardImpactSubject, explainCardImpact } from '../sim/cardImpact';
 import { CARD_LINE_NAME, cardLineMarkNode, lineOf, slotMarkNode } from './cardLine';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
@@ -151,6 +193,69 @@ import { playerById } from '../sim/state';
  * slots read as a row rather than as a list of unrelated boxes.
  */
 const SEAL_GLYPH = '❖';
+
+/**
+ * The count shapes that read a **slot's position** — the register the position
+ * word is gated on, and the whole of the gate.
+ *
+ * Empty today, and deliberately a list of the simulation's own `CountKind`
+ * members rather than a boolean: the ruling is that a position word appears
+ * *where a position engine could read it*, so what the screen has to know is
+ * whether such a shape exists and whether this empire's law carries one. Batch A
+ * adds the member (`docs/fewer-things-plan.md` row A, "the slot-position reader
+ * over ordered slots"); adding it here is then the whole of the wiring, and the
+ * compiler refuses a name the union does not have.
+ */
+const POSITION_READING_COUNTS: readonly CountKind[] = [];
+
+/** Does this one effect read a slot's position? See the register above. */
+function readsSlotPosition(effect: CardEffect): boolean {
+  return effect.kind === 'countScaled' && POSITION_READING_COUNTS.includes(effect.count);
+}
+
+/**
+ * Does anything in this empire's law read a slot's position?
+ *
+ * Asked of the **slotted** Orders, because that is where a card's effects reach
+ * the ledgers from (`liveEffects` walks `sc.slots`): a position reader sitting on
+ * the bench changes nothing about what the offices are worth, and a column of
+ * ordinals printed for a card nobody has slotted would be furniture.
+ */
+export function deckReadsSlotPosition(sc: PlayerStatecraft): boolean {
+  for (const slot of sc.slots) {
+    if (slot === null || !isOrderId(slot.card)) continue;
+    for (const effect of orderDef(slot.card).effects) {
+      if (readsSlotPosition(effect)) return true;
+    }
+  }
+  return false;
+}
+
+/** `1st`, `2nd`, `3rd`, `11th` — the English rule, teens and all. */
+function ordinal(rank: number): string {
+  const teens = rank % 100;
+  if (teens >= 11 && teens <= 13) return `${String(rank)}th`;
+  return `${String(rank)}${['th', 'st', 'nd', 'rd'][rank % 10] ?? 'th'}`;
+}
+
+/**
+ * What this office is called by **position**: "1st economic", "2nd wildcard".
+ *
+ * The rank is counted within the flavour and in array order, which is the
+ * contract the sim's own reader will use — `slotLayout` groups by flavour and the
+ * index is the position, so the topmost economic office is the first economic
+ * office on every surface at once. Pure and exported, because an off-by-one here
+ * would name every office one place too high and look perfectly reasonable.
+ */
+export function slotPositionWord(layout: readonly SlotType[], index: number): string {
+  const type = layout[index];
+  if (type === undefined) return '';
+  let rank = 0;
+  for (let at = 0; at <= index; at++) {
+    if (layout[at] === type) rank++;
+  }
+  return `${ordinal(rank)} ${SLOT_WORDS[type]}`;
+}
 
 export interface StatecraftScreen {
   readonly isOpen: boolean;
@@ -317,16 +422,34 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    */
   let stagedSeat = -1;
   /**
-   * The card that has just gone into an office, waiting for its stamp to be
-   * played once the redraw has put it back on the screen.
+   * The cards **Confirm just made law**, waiting for their stamps to be played
+   * once the redraw has put them back on the screen — and, with them, the
+   * aggregate.
    *
-   * **Not state**, and cleared the instant it is spent: slotting is the moment a
-   * held card stops being a guess and starts paying, so it is the one gesture on
-   * this screen that earns the count-up. A card already in an office reads its
-   * figure at rest (`landCardStamp`) — a screen that replayed the ceremony on
-   * every redraw would be a screen celebrating itself.
+   * **Not state**, and cleared the instant it is spent. It used to be the single
+   * card that had just gone into an office; the reveal ruling moved the ceremony
+   * from the drop to the signature (see the module docblock), so it is a list —
+   * one signature can make three cards law, and they are weighed together
+   * because that is what the aggregate is a fold of. A card already in force
+   * reads its figure at rest (`landCardStamp`); a screen that replayed the
+   * ceremony on every redraw would be a screen celebrating itself.
    */
-  let justSlotted: OrderId | null = null;
+  let justConfirmed: OrderId[] = [];
+  /**
+   * The counts still running, so the next draw can stop them.
+   *
+   * `playCardStamp` returns a canceller for the reason its docblock gives — a
+   * timer left running against a detached tree is the bug every animation in
+   * this interface has already had once — and this screen replaces its whole body
+   * on every redraw, which a turn resolving mid-ceremony will do.
+   */
+  let counting: (() => void)[] = [];
+
+  /** Stops every count still running. The start of a draw, and the way out. */
+  function stopCounting(): void {
+    for (const cancel of counting) cancel();
+    counting = [];
+  }
 
   function isOpen(): boolean {
     return !overlay.hidden;
@@ -341,7 +464,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     staged = null;
     stagedSeat = -1;
     held = null;
-    justSlotted = null;
+    justConfirmed = [];
   }
 
   /**
@@ -379,38 +502,78 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * evaluator cannot foresee is the reducer's seat guard, a seat that has ended
    * its turn — the caller's `send` reports it and the arrangement is re-synced
    * from the live state rather than left half-applied.
+   *
+   * Answers **the cards the signature made law** — every card this session
+   * staged that is standing in an office afterwards. That is the ceremony's
+   * guest list, and it is read back from the *live* slots rather than from the
+   * proposal, so a batch the reducer stopped part-way celebrates only what
+   * actually went through.
    */
-  function commitStaging(): void {
+  function commitStaging(): OrderId[] {
     const arrangement = staged;
-    if (arrangement === null) return;
+    if (arrangement === null) return [];
     const state = options.getState();
     const seat = options.getPlayerId();
     // Somebody else's arrangement. Thrown away, never signed — see `stagedSeat`.
     if (stagedSeat !== seat) {
       discardStaging();
-      return;
+      return [];
     }
     const player = playerById(state, seat);
     if (!player) {
       discardStaging();
-      return;
+      return [];
     }
     const commands = diff(player.statecraft.slots, arrangement, seat);
-    if (commands.length === 0) return;
+    if (commands.length === 0) return [];
     const problem = validate(state, seat, arrangement);
     if (problem !== null) {
       options.onRefuse?.(problem);
       staged = stage(player.statecraft.slots);
-      return;
+      return [];
+    }
+    const proposed: OrderId[] = [];
+    for (const entry of arrangement) {
+      if (entry !== null && entry.staged) proposed.push(entry.card);
     }
     options.send(commands);
     // Whatever happened — every command taken, or a batch stopped part-way and
     // reported — the truth is now the live state's and the proposal is spent.
-    staged = stage(playerById(options.getState(), seat)?.statecraft.slots ?? []);
+    const live = playerById(options.getState(), seat)?.statecraft.slots ?? [];
+    staged = stage(live);
+    return proposed.filter((card) => live.some((slot) => slot?.card === card));
   }
 
   function take(id: OrderId): void {
     held = held === id ? null : id;
+    draw();
+  }
+
+  /**
+   * Picks a card **out of its office** and into the hand — the first half of
+   * rearranging.
+   *
+   * The same two verbs a fresh placement uses (`remove`, then `place` on the next
+   * click), so a move is an unconfirmed placement like any other and Confirm
+   * signs it as one batch. The refusal is `removeError`'s and nothing else: a
+   * sealed card answers with the reducer's own sentence, countdown and all, which
+   * is how the seal rules survive a gesture that never existed before.
+   */
+  function lift(id: OrderId): void {
+    const state = options.getState();
+    const seat = options.getPlayerId();
+    const sc = playerById(state, seat)?.statecraft;
+    if (!sc) return;
+    const arrangement = ensureStaging(sc, seat);
+    const index = arrangement.findIndex((entry) => entry?.card === id);
+    if (index < 0) return;
+    const problem = removeError(state, seat, arrangement, index);
+    if (problem !== null) {
+      options.onRefuse?.(problem);
+      return;
+    }
+    staged = remove(arrangement, index);
+    held = id;
     draw();
   }
 
@@ -445,7 +608,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       return;
     }
     staged = place(arrangement, index, held, state.turn);
-    justSlotted = held;
+    // No ceremony here, deliberately: the figure is Confirm's (the reveal
+    // ruling). What the office wears until then is the pending mark.
     held = null;
     draw();
   }
@@ -544,6 +708,13 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const layout = slotLayout(sc.government);
     block.append(element('p', 'eyebrow sc-eyebrow', `${layout.length} slots`));
     const row = element('div', 'sc-slot-row');
+    // Whether the *position* of an office is a fact anything reads. See
+    // `deckReadsSlotPosition` and the module docblock: the word is printed where
+    // a position engine could read it, and nowhere else.
+    const positions = deckReadsSlotPosition(sc);
+    // **Array index order**, which is the position order — `slotLayout` groups the
+    // spread by flavour, so the topmost economic office is the first economic
+    // office and the column and the sim agree without either being told.
     layout.forEach((type, index) => {
       const filled = arrangement[index] ?? null;
       const button = document.createElement('button');
@@ -562,6 +733,11 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       if (moved) button.classList.add('sc-slot-staged');
       const text = element('span', 'sc-slot-text');
       text.append(element('span', 'sc-slot-type', SLOT_WORDS[type]));
+      // The eyebrow, and only where it means something. Every number in this
+      // interface is tabular mono, an ordinal included.
+      if (positions) {
+        text.append(element('span', 'sc-slot-position', slotPositionWord(layout, index)));
+      }
       if (filled) {
         // A slotted card keeps its own accent, so the column of offices is the
         // same hand of colours the collection beside it is.
@@ -628,6 +804,46 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   }
 
   /**
+   * **The aggregate** — what your cards pay you, in one figure per voice.
+   *
+   * The scoring ceremony's band (`docs/fewer-things.md` §4, RULED): it stands
+   * quietly at rest and **counts up on Confirm**, which is the one moment the
+   * number changed by something the player just did. The figure is
+   * `deckAggregate`, the Ledger's own deck slice, so the band and the sheet
+   * cannot disagree — see the module docblock.
+   *
+   * It sits at the **head of the Confirm block**, which is the column's pinned
+   * foot: the office column scrolls, and a ceremony that fired above the fold
+   * would be a ceremony half the viewports never see. The figure is directly
+   * over the button that fires it, which is also the plainest way to say what
+   * the button is for.
+   *
+   * It is drawn whether or not there is a figure: a deck that pays nothing yet
+   * says so, because that is the sentence a first draft is about to change and an
+   * absent band would be one the player never sees change.
+   */
+  function drawAggregate(state: GameState, seat: number): HTMLElement {
+    const block = element('section', 'sc-aggregate');
+    block.append(element('p', 'eyebrow sc-eyebrow', DECK_AGGREGATE_LABEL));
+    const reading = deckAggregate(state, seat);
+    if (stampIsEmpty(reading)) {
+      // No seat at all rather than a seat wearing the flourish: a flourish means
+      // "not weighed yet", and this one has been weighed and came to nothing.
+      block.append(element('p', 'sc-none', 'Nothing yet. A card pays from the office it sits in.'));
+      return block;
+    }
+    // No `data-line`: the aggregate is not a card and has no archetype, so the
+    // stamp falls back to the sheet's own ink (`--stamp-ink`'s second term).
+    const stamp = cardStampNode();
+    block.append(stamp);
+    if (justConfirmed.length > 0) counting.push(playCardStamp(stamp, reading));
+    else landCardStamp(stamp, reading);
+    // The whole band in words, for the reading that has no glyphs in it.
+    block.title = deckAggregateLine(reading);
+    return block;
+  }
+
+  /**
    * Confirm, Revert, and the count of what is unconfirmed.
    *
    * The only place on this screen that writes to the simulation. Confirm is
@@ -642,6 +858,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     arrangement: StagedSlots,
   ): HTMLElement {
     const block = element('div', 'sc-commit');
+    block.append(drawAggregate(state, seat));
     const changes = changedOffices(sc.slots, arrangement);
     const problem = changes === 0 ? null : validate(state, seat, arrangement);
     const row = element('div', 'sc-commit-row');
@@ -655,7 +872,11 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     confirm.title =
       problem ?? (changes === 0 ? 'Nothing to confirm' : 'Seal the arrangement — this is what leaving does');
     confirm.addEventListener('click', () => {
-      commitStaging();
+      // **The ceremony is here and nowhere else** (the reveal ruling): the batch
+      // goes through first, so the fold the aggregate counts is the fold of the
+      // law as it now stands — base card lines, then the modifiers that read
+      // them, in the evaluator's own order. Only then does the redraw play it.
+      justConfirmed = commitStaging();
       draw();
     });
     row.append(confirm);
@@ -687,21 +908,24 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   /**
    * A card's stamp on this screen — and the one rule about **when** it is asked.
    *
-   * Only for a card that is **in force**: an Order in an office, and every
-   * adopted Doctrine. A held Order wears the flourish, and that is not a
-   * shortcut: a hand of thirty figures is thirty questions the player did not
-   * ask, and every one of them is a ghost-diff over every town this empire holds
-   * (`explainCardImpact`). Asking a handful rather than a hand is the same
-   * bargain the yields lens strikes — the reading happens when a hex's yield can
-   * change, never once a frame. A Doctrine is inside that bargain rather than an
-   * exception to it: there is at most one per charter sworn, so the whole shelf
-   * is a handful, and every card on it is already paying.
+   * Only for a card that is **in force**: an Order the law holds in an office,
+   * and every adopted Doctrine. A held Order wears the flourish and a card staged
+   * into an office wears the pending mark, and neither is a shortcut: a hand of
+   * thirty figures is thirty questions the player did not ask, and every one of
+   * them is a ghost-diff over every town this empire holds (`explainCardImpact`).
+   * Asking a handful rather than a hand is the same bargain the yields lens
+   * strikes — the reading happens when a hex's yield can change, never once a
+   * frame. A Doctrine is inside that bargain rather than an exception to it:
+   * there is at most one per charter sworn, so the whole shelf is a handful, and
+   * every card on it is already paying.
    *
-   * The figure itself is the sim's whichever way round the card sits: a card
-   * *staged* into an office is not in force yet, so the reading is what slotting
-   * it would be worth; a card the law already holds — an Order in its office, a
-   * Doctrine adopted — reads as what giving it up would cost. Both are the same
-   * number, which is why the screen can print one.
+   * **Unconfirmed is not asked at all** (the reveal ruling), which is the strict
+   * reading and also the cheap one: a figure that is never computed is a figure
+   * that cannot leak onto a face.
+   *
+   * The figure itself is the sim's: a card the law already holds — an Order in
+   * its office, a Doctrine adopted — reads as what giving it up would cost, which
+   * is the same number as what it is paying.
    */
   function stampFor(state: GameState, seat: number, subject: CardImpactSubject) {
     const reading = stampReading(explainCardImpact(state, seat, subject));
@@ -759,6 +983,13 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * What counts as "in a slot" is the **arrangement**, not the law: a card the
    * player has just staged is spoken for, and one they have just taken out is
    * back in the hand, whether or not either has been signed yet.
+   *
+   * What counts as **in force** is the law, and the two are told apart by the
+   * arrangement's own `staged` flag — which is the reveal ruling in one line:
+   * a card in an office the empire has signed reads its figure, and a card in an
+   * office this session laid out reads `— on Confirm`. A card *moved* between
+   * offices is staged too, and therefore waits with the rest; a move is a
+   * placement like any other.
    */
   function drawCollection(
     state: GameState,
@@ -776,7 +1007,16 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       );
       return block;
     }
-    const slotted = new Set(arrangement.filter(Boolean).map((entry) => entry!.card));
+    // The two halves of "in a slot": what the law holds, and what this session
+    // has laid out and not signed. One walk, because an entry is exactly one of
+    // the two and the flag says which.
+    const inForce = new Set<OrderId>();
+    const pending = new Set<OrderId>();
+    for (const entry of arrangement) {
+      if (entry === null) continue;
+      (entry.staged ? pending : inForce).add(entry.card);
+    }
+    const slotted = new Set([...inForce, ...pending]);
     for (const type of SLOT_TYPES) {
       const owned = sc.orders.filter((id) => orderDef(id).slot === type);
       if (owned.length === 0) continue;
@@ -806,16 +1046,25 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         const stamp = cardStampNode();
         button.dataset.card = id;
         button.append(stamp);
-        if (slotted.has(id)) {
+        if (pending.has(id)) {
+          // **No figure until Confirm** (the reveal ruling). Nothing is even
+          // asked of the simulation here — see `stampFor`.
+          pendCardStamp(stamp);
+          button.append(element('p', 'sc-card-note', 'in a slot · unconfirmed'));
+          button.addEventListener('click', () => lift(id));
+        } else if (inForce.has(id)) {
           const reading = stampFor(state, seat, { kind: 'order', id });
           if (reading) {
-            // The count is played only for the office it just went into; every
-            // other slotted card is a standing fact and arrives landed.
-            if (justSlotted === id) playCardStamp(stamp, reading);
+            // The count is played for the cards the signature just made law;
+            // every other card in force is a standing fact and arrives landed.
+            if (justConfirmed.includes(id)) counting.push(playCardStamp(stamp, reading));
             else landCardStamp(stamp, reading);
           }
           button.append(element('p', 'sc-card-note', 'in a slot'));
-          button.disabled = true;
+          // Rearranging: a card in an office is picked up the same way a benched
+          // one is, and the refusal — a seal that has not lifted — is the
+          // reducer's own (`lift`).
+          button.addEventListener('click', () => lift(id));
         } else {
           button.addEventListener('click', () => take(id));
         }
@@ -831,6 +1080,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const state = options.getState();
     const seat = options.getPlayerId();
     const player = playerById(state, seat);
+    // The tree the last draw's counts were writing into is about to go.
+    stopCounting();
     body.replaceChildren();
     if (!player) return;
     const sc = player.statecraft;
@@ -860,9 +1111,9 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
     const pane = element('div', 'sc-pane');
     pane.append(drawCollection(state, seat, sc, arrangement));
-    // Spent by the draw that played it: the ceremony belongs to the gesture, and
-    // a flag left set would replay it on the next redraw.
-    justSlotted = null;
+    // Spent by the draw that played it: the ceremony belongs to the signature,
+    // and a list left set would replay it on the next redraw.
+    justConfirmed = [];
 
     // The empire's law as one list, last, because it is the *answer* rather than
     // the arrangement: what is actually reaching the ledgers right now, from the
@@ -912,6 +1163,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     if (!isOpen()) return;
     overlay.hidden = true;
     setExpanded();
+    // A ceremony playing on a sheet nobody can see has nothing left to say.
+    stopCounting();
     commitStaging();
     discardStaging();
     trigger?.focus();
@@ -961,6 +1214,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       overlay.removeEventListener('click', onOverlayClick);
       window.removeEventListener('keydown', onKeyDown, true);
       overlay.hidden = true;
+      stopCounting();
       discardStaging();
       body.replaceChildren();
     },

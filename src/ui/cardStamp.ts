@@ -37,6 +37,14 @@
  *     the hand ragged). Where a figure came from — a cascade, a tier flip, a
  *     coastal read, a count — is the hover breakdown's rule-5 lines, and the
  *     evaluator still labels a cascade distinctly so the hover can lean on it.
+ *   · **the pending mark** — `— on Confirm`, for a card laid in an office this
+ *     session and not yet signed. The reveal ruling (`docs/fewer-things.md` §1,
+ *     "The reveal", RULED 2026-09-06): *"don't show the yield until you confirm
+ *     its placement in the government"*. A figure printed the instant a card
+ *     drops answers the question the ceremony exists to ask, so the seat says
+ *     **when** the number arrives instead of what it will be. Not the flourish:
+ *     a flourish means "still a choice", and a card in an unconfirmed office has
+ *     been chosen — what it is waiting for is the signature.
  *   · **the thunk** — a card that pays on an *occasion* has no per-turn figure
  *     to count, so its stamp drops like a rubber stamp on the grant and the
  *     moment it is paid on ("+10🎵 · killing a barbarian unit"). Counting to a
@@ -99,6 +107,15 @@ export const STAMP_TIMING = {
 
 /** The card's own small mark, in the name face — see the module docblock. */
 export const STAMP_FLOURISH = '— · ✶ · —';
+
+/**
+ * What an **unconfirmed** office's card wears where its figure will be.
+ *
+ * The reveal ruling's own words said the short way: the number is a thing
+ * Confirm does. An em dash and three words rather than a nought, because a nought
+ * is a claim about the card and this is a claim about the arrangement.
+ */
+export const STAMP_PENDING_MARK = '— on Confirm';
 
 /**
  * What the quiet lifetime register is called (user, revision 3): **"has
@@ -377,6 +394,30 @@ export function landCardStamp(stamp: HTMLElement, reading: StampReading): void {
   setYieldText(parts.figure, stampText(stampFigures(reading)));
   const said = reading.occasion ?? reading.note;
   parts.occasion.textContent = said === undefined ? '' : `· ${said}`;
+}
+
+/**
+ * Writes the **pending** mark: the seat kept, the figure withheld.
+ *
+ * The one writer for a card in an office this session has not signed yet, and
+ * the reason it is a writer rather than "simply do not call the other two" is
+ * the reveal ruling read strictly: an unconfirmed office must be *visibly*
+ * waiting. Left bare it would wear the flourish, which is the mark of a card
+ * still on the bench — and a player who had just laid three cards out would read
+ * three benched cards.
+ *
+ * It takes no reading, and that is the whole of the guarantee: there is no
+ * figure in scope to print, so no arrangement of this function can leak one.
+ */
+export function pendCardStamp(stamp: HTMLElement): void {
+  const parts = partsOf(stamp);
+  if (!parts) return;
+  stamp.dataset.face = 'pending';
+  stamp.dataset.phase = 'pending';
+  // The digits' own element is emptied rather than hidden, so nothing a previous
+  // draw wrote can survive behind the mark.
+  parts.figure.replaceChildren();
+  parts.occasion.textContent = STAMP_PENDING_MARK;
 }
 
 /**

@@ -10,7 +10,10 @@
  * Three bands, and the third is a labelled hole
  * ---------------------------------------------
  *   1. **This turn, by source class.** Six stacked bars, one per voice, split by
- *      where the yield came from.
+ *      where the yield came from — under the **aggregate**, "your cards: +31⚒
+ *      +18🔬 +40🎵", which is the deck's whole slice in one figure per voice and
+ *      is the very reading Confirm counts up on the Statecraft screen
+ *      (`deckAggregate`, one function so the two cannot disagree).
  *   2. **The curve.** Six sparklines of the per-turn total across the session,
  *      the deck's share shaded underneath.
  *   3. **What the deck has produced** — the lifetime tally, per card. It wants a
@@ -99,8 +102,16 @@ import { highestAge, isTechId } from '../sim/techData';
 import { type City, type GameState, playerById } from '../sim/state';
 import { getTileAt } from '../sim/map';
 import { RULES } from '../sim/rulesData';
-import { type YieldKey, YIELD_NAME, figure, signedFigure } from './figures';
+import { type YieldKey, YIELD_GLYPH, YIELD_NAME, figure, signedFigure } from './figures';
 import { yieldMarkNode } from './yieldMark';
+import {
+  type StampFigure,
+  type StampReading,
+  cardStampNode,
+  landCardStamp,
+  stampFigures,
+  stampText,
+} from './cardStamp';
 
 const CITIES = RULES.cities;
 
@@ -430,6 +441,72 @@ export function netFigure(value: number): string {
   return value < 0 ? signedFigure(value) : figure(value);
 }
 
+// --- the aggregate ----------------------------------------------------------
+
+/**
+ * What both surfaces call the deck's own figure. The user's words for the
+ * ceremony ("your cards: +31⚒ +18🔬 +40🎵"), and plain (hard rule 7).
+ */
+export const DECK_AGGREGATE_LABEL = 'your cards';
+
+/**
+ * **The aggregate**: what this empire's cards pay it this turn, in one figure
+ * per voice — the count-up Confirm fires on the Statecraft screen, and the line
+ * at the head of this sheet's first band.
+ *
+ * One function for both, because the ruling that put the number on Confirm
+ * (`docs/fewer-things.md` §4, "Making the combo visible") is a ruling about a
+ * *scoring ceremony*, and a ceremony celebrating a figure the Ledger disagrees
+ * with would be worse than no ceremony at all.
+ *
+ * **Why band 1's deck slice and not a sum of the cards' own stamps.** The two
+ * readings are different questions and only one of them is the deck's total:
+ *
+ *   · `explainCardImpact` is **marginal** — a ghost-diff of the empire with one
+ *     card taken out. Marginal readings do not sum to a total the moment
+ *     anything multiplies (Entry XVII's two stages), converts (a
+ *     `yieldConversion`'s share of a fold) or reads another card, which is
+ *     precisely the deck this pass is building: eleven cards each worth "what
+ *     the empire would lose without me" adds up to more than the empire makes.
+ *     It is also eleven full empire folds, twice each, on every draw.
+ *   · `ledgerReading`'s `deck` class is the **banked** figure: the very lines
+ *     `collectYields` pays, classified by the card that pays them
+ *     (`classifyCard`), with each town's multiplied total shared back over the
+ *     flats that earned it. It is a sum by construction, and it is `civYields`'
+ *     own summands — which is the property the test at the head of this suite
+ *     pins voice by voice.
+ *
+ * So the aggregate is the second, and batch A's modifier lines join it the day
+ * they land without an edit here: an amplifier over card yields is a
+ * `CardYieldLine` like any other, folded in the evaluator's own order — base
+ * lines, then the modifiers that read them — and classified by the card that
+ * carries it.
+ *
+ * The stamp's shape rather than a bag, so the figure lands through the one
+ * printer (`landCardStamp` / `playCardStamp`) wherever it is drawn.
+ */
+export function deckAggregate(state: GameState, playerId: number): StampReading {
+  const figures: StampFigure[] = [];
+  for (const voice of ledgerReading(state, playerId)) {
+    if (voice.byClass.deck === 0) continue;
+    figures.push({ glyph: YIELD_GLYPH[voice.key], amount: voice.byClass.deck });
+  }
+  return { figures, occasionFigures: [], knockOn: [] };
+}
+
+/**
+ * The aggregate as one line — the Ledger's head, and the sentence a screen reader
+ * is handed for the ceremony.
+ *
+ * A deck that pays nothing says so in words rather than printing an empty
+ * label, which is `ledgerCaption`'s own rule about `0 of 0` one band down.
+ */
+export function deckAggregateLine(reading: StampReading): string {
+  const figures = stampFigures(reading);
+  if (figures.length === 0) return `${DECK_AGGREGATE_LABEL}: nothing yet`;
+  return `${DECK_AGGREGATE_LABEL}: ${stampText(figures)}`;
+}
+
 export function ledgerCaption(voice: LedgerVoice): string {
   const name = YIELD_NAME[voice.key];
   if (voice.total === 0 && voice.byClass.deck === 0) return `your deck makes no ${name} yet`;
@@ -704,9 +781,33 @@ export function createLedgerScreen(options: LedgerScreenOptions): LedgerScreen {
     return !overlay.hidden;
   }
 
+  /**
+   * The aggregate at the head of band 1 — the same figure, from the same
+   * function, that Confirm counts up one screen over (`deckAggregate`).
+   *
+   * Landed rather than played: this sheet is a place a player comes to *read*,
+   * and the ceremony belongs to the moment the law was signed.
+   */
+  function drawDeckLine(state: GameState, playerId: number): HTMLElement {
+    const line = element('p', 'ldg-deck');
+    line.append(element('span', 'ldg-deck-label', DECK_AGGREGATE_LABEL));
+    const reading = deckAggregate(state, playerId);
+    const stamp = cardStampNode();
+    if (stampFigures(reading).length === 0) {
+      line.append(element('span', 'ldg-deck-none', 'nothing yet'));
+    } else {
+      landCardStamp(stamp, reading);
+      line.append(stamp);
+    }
+    // The whole line in words, for the reading that has no glyphs in it.
+    line.title = deckAggregateLine(reading);
+    return line;
+  }
+
   function drawThisTurn(): HTMLElement {
     const band = element('section', 'ldg-band');
     band.append(element('p', 'eyebrow', 'this turn, and who made it'));
+    band.append(drawDeckLine(options.getState(), options.getPlayerId()));
     const rows = element('ul', 'ldg-rows');
     const reading = ledgerReading(options.getState(), options.getPlayerId());
     for (const voice of reading) {
