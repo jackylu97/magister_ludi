@@ -620,12 +620,10 @@ function bestCityYield(state: GameState, playerId: number, key: 'food' | 'produc
  * with no translation — and so a deferred half of a cap comes through struck
  * through like everything else the vocabulary cannot do yet.
  *
- * The order is the settlement's order: dice, windfall, grant, caps.
+ * The order is the settlement's order: windfall, grant, caps.
  */
 export function describeBeadBoon(boon: BeadBoon): CardClause[] {
   const clauses: CardClause[] = [];
-  const dice = Math.max(0, Math.floor(boon.dice ?? 0));
-  if (dice > 0) clauses.push({ text: diceWords(dice) });
   if (boon.windfall !== undefined) clauses.push({ text: windfallWords(boon.windfall) });
   if (boon.grant !== undefined) clauses.push({ text: grantWords(boon.grant) });
   // The **caps**, said in the vocabulary's own words: a step of contentment a
@@ -638,11 +636,6 @@ export function describeBeadBoon(boon: BeadBoon): CardClause[] {
     clauses.push(lasting);
   }
   return clauses;
-}
-
-/** "a die of the Magister", "two dice of the Magister". */
-function diceWords(count: number): string {
-  return count === 1 ? 'a die of the Magister' : `${count} dice of the Magister`;
 }
 
 /**
@@ -697,10 +690,10 @@ function grantWords(grant: BeadGrant): string {
  *
  * **The one `switch` on a boon shape**, and every arm reaches a seam that
  * already exists: Entry XVIII's five windfall wrappers, `realiseItem(…, { free:
- * true })` for a piece nobody paid for, `drawGreatPersonOffer` for a name, and
- * `Player.dice` for a die. Nothing here writes a pool with a bare `+=` except
- * the three banks that accumulate and are read where they lie (gold, faith and
- * the two that have their own settlement immediately after).
+ * true })` for a piece nobody paid for, and `drawGreatPersonOffer` for a name.
+ * Nothing here writes a pool with a bare `+=` except the three banks that
+ * accumulate and are read where they lie (gold, faith and the two that have
+ * their own settlement immediately after).
  *
  * A **cap** — a permanent step in happiness, authority or route capacity — is
  * not settled at all: it is `boon.effects`, and it is read by `liveEffects`'
@@ -712,14 +705,6 @@ function grantWords(grant: BeadGrant): string {
  */
 function payBoon(state: GameState, player: Player, boon: BeadBoon): string[] {
   const lines: string[] = [];
-
-  const dice = Math.max(0, Math.floor(boon.dice ?? 0));
-  if (dice > 0) {
-    // **Uncapped** (user ruling, 2026-08-30), which supersedes Entry XV's held
-    // cap of three: a fourth die is kept like the first three.
-    player.dice += dice;
-    lines.push(stripRefs(diceWords(dice)));
-  }
 
   const windfall = boon.windfall;
   if (windfall !== undefined && payWindfall(state, player, windfall)) {

@@ -386,9 +386,8 @@
           "chartTheStars"
         ]
       },
-      "ageEntryDice": 1,
       "flavor": "A calendar long enough to outlast the people keeping it.",
-      "note": "Every new age this empire enters from now on pays a die of the Magister."
+      "note": "Every age this empire enters from now on is seen a turn early in the beads, and its calendars may call for a second reading of a draft."
     },
     "stateWorkforce": {
       "name": "State Workforce",
@@ -1159,7 +1158,7 @@
       "name": "The Long Count",
       "glyph": "📿",
       "bearer": "empire",
-      "summary": "The next age’s beads are revealed a turn early."
+      "summary": "The next age’s beads are revealed a turn early, and an Order draft may be redrawn for faith."
     },
     "oceanGoing": {
       "name": "Open Ocean",

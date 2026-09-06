@@ -121,9 +121,11 @@ import {
 } from './rulesData';
 import {
   type CardYieldLine,
+  type CardBuildingPercentLine,
   type RateReading,
   type TileLine,
   cardActionRule,
+  cardBuildingPercents,
   cardMeterFlag,
   cardCityYields,
   cardEmpireYields,
@@ -2378,6 +2380,87 @@ export function explainCityBuildings(
 }
 
 /**
+ * **What the deck adds to this town's shelves** — the "your faith buildings give
+ * half again" engine and the doublers, as the ordered list its total is the fold
+ * of (`CardBuildingYieldPercentEffect`, `docs/fewer-things.md` §4).
+ *
+ * A **flat** line, and that is the whole of its stage: a percentage on a
+ * *building's own figure* is not a percentage on the town, so it lands beside
+ * `explainCityBuildings`' fold and is then staged by Entry XVII exactly as the
+ * library's own beaker is. A card that joined `cityYieldPercents` instead would
+ * have raised the tiles, the caravans and the other cards with it, which is a
+ * different sentence and already has a shape (`percentYields`).
+ *
+ * The arithmetic is two stages and never one, which is the user's ruling that a
+ * doubler *"applies to total yields, including from other effects"*:
+ *
+ *   · the **ordinary** shares are each taken of the building's own base;
+ *   · the **`appliedLast`** shares are each taken of that base *plus* what the
+ *     ordinary shares just added — so a doubler doubles what the Vestry raised
+ *     rather than racing it.
+ *
+ * Floored per share, per building and per voice, which is `explainCityBuildings`'
+ * own per-entry floor read one table over: two half-point shares buy two halves
+ * rather than rounding into a free point, and each share's own line is exactly
+ * what it contributed (rule 5 — nothing is apportioned after the fact).
+ *
+ * `cardBuildingPercents` (`statecraft.ts`) hands over the shares and the
+ * selector; this file supplies what a building pays, so neither module learns the
+ * other's business and there is still one reading of `BuildingDef.yields`.
+ */
+export function cardBuildingYields(
+  state: GameState,
+  city: City,
+  hypothetical: readonly BuildingId[] = [],
+): BuildingPreviewLine[] {
+  const shares = cardBuildingPercents(state, city);
+  if (shares.length === 0) return [];
+  const byCard = new Map<CardBuildingPercentLine, BuildingPreviewLine>();
+  for (const entry of explainCityBuildings(city, hypothetical)) {
+    // The building's own figure, per voice — the row's flats plus the per-citizen
+    // beaker, floored exactly as `cityQuote` floors it, so the share is taken of
+    // the number the town actually banks.
+    const base: Record<CityYieldKey, number> = {
+      food: entry.food,
+      production: entry.production,
+      gold: entry.gold,
+      science: entry.science + Math.floor(city.population * entry.sciencePerPop),
+      culture: entry.culture,
+      faith: entry.faith,
+    };
+    const raised: Record<CityYieldKey, number> = { ...base };
+    for (const pass of [false, true]) {
+      for (const share of shares) {
+        if (share.appliedLast !== pass) continue;
+        if (!share.matches(entry.building)) continue;
+        for (const key of CITY_YIELD_KEYS) {
+          if (share.yield !== undefined && share.yield !== 'all' && share.yield !== key) continue;
+          const over = pass ? raised[key] : base[key];
+          if (over === 0) continue;
+          const paid = Math.floor((over * share.percent) / 100);
+          if (paid === 0) continue;
+          let line = byCard.get(share);
+          if (line === undefined) {
+            line = { ...emptyPreviewLine(share.source), card: share.card };
+            byCard.set(share, line);
+          }
+          line[key] += paid;
+          if (!pass) raised[key] += paid;
+        }
+      }
+    }
+  }
+  // In `cardBuildingPercents`' order — ordinary shares first, then the ones taken
+  // last — so the sheet reads in the order the arithmetic ran.
+  const list: BuildingPreviewLine[] = [];
+  for (const share of shares) {
+    const line = byCard.get(share);
+    if (line !== undefined && previewPays(line)) list.push(line);
+  }
+  return list;
+}
+
+/**
  * One thing a town would gain by finishing a building, as a player reads it.
  *
  * `BuildingYieldContribution`'s shape one question wider: that one is what a
@@ -3183,6 +3266,19 @@ export function cityQuote(
     total.science += Math.floor(city.population * entry.sciencePerPop);
   }
 
+  // What the deck adds to those same shelves — "your faith buildings give half
+  // again", and the doublers. Directly after the buildings because it is a share
+  // of exactly the block above it, and *before* the conversions because a
+  // conversion takes a share of the town's whole fold and this is part of it.
+  for (const line of cardBuildingYields(state, city, hypothetical)) {
+    total.food += line.food;
+    total.production += line.production;
+    total.gold += line.gold;
+    total.science += line.science;
+    total.culture += line.culture;
+    total.faith += line.faith;
+  }
+
   // A share of what the town makes, paid again as another voice — Thalassocracy's
   // tenth of the harvest, minted. **Last**, and that is the whole of its stage
   // (`CardYieldConversionEffect`): it is the one card line whose subject is this
@@ -3928,6 +4024,8 @@ function empireRates(state: GameState, playerId: number): {
   sciencePerTurn: number;
   capitalFaithPerTurn: number;
   followingFaithPerTurn: number;
+  productionPerTurn: number;
+  foodPerTurn: number;
 } {
   const rates = {
     faithPerTurn: 0,
@@ -3940,6 +4038,13 @@ function empireRates(state: GameState, playerId: number): {
     sciencePerTurn: 0,
     capitalFaithPerTurn: 0,
     followingFaithPerTurn: 0,
+    // The two voices with no empire bank at all — `collectYields` has nowhere to
+    // put a realm's food or hammers, so they are summed here for the readers that
+    // ask what the books *say* rather than what they hold (`CountKind`'s
+    // `empireYield`, Horology's "science equal to your empire-wide production").
+    // Nothing is banked off them; see `RateReading`.
+    productionPerTurn: 0,
+    foodPerTurn: 0,
   };
   // Theocracy's tithe reads **one town's** faith, and it is read off the same
   // sweep rather than by a second pass: the capital's yields are already in
@@ -3965,6 +4070,8 @@ function empireRates(state: GameState, playerId: number): {
     rates.culturePerTurn += yields.culture;
     rates.goldPerTurn += yields.gold;
     rates.sciencePerTurn += yields.science;
+    rates.productionPerTurn += yields.production;
+    rates.foodPerTurn += yields.food;
     if (capital && city.id === capital.id) rates.capitalFaithPerTurn += yields.faith;
     // Cuius Regio's congregation, off the same sweep for the capital's reason:
     // the town's yields are already in hand, so "what did my faithful towns

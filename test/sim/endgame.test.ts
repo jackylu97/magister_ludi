@@ -58,7 +58,7 @@ import {
   playerById,
 } from '../../src/sim/state';
 import { cardCombatLines, cardUnitStat } from '../../src/sim/statecraft';
-import { buildError, opusOpen, worldTechReached } from '../../src/sim/tech';
+import { buildError, hasAbility, opusOpen, worldTechReached } from '../../src/sim/tech';
 import { unlockDataProblems } from '../../src/sim/techUnlocks';
 import { BUILDING_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
@@ -289,41 +289,42 @@ describe('the closing node pays every empire that reaches it', () => {
   });
 });
 
-describe("the Long Count's die", () => {
+/**
+ * Re-aimed 2026-09-06 (schema 71, `docs/fewer-things.md` §1). The Long Count
+ * used to pay a die of the Magister for every age its holder entered; the dice
+ * are gone from the game entirely and what the node carries in their place is
+ * the **reroll's door** (`docs/tech-gifts.md` §2), which is a gate a verb asks
+ * about rather than a payout a resolution makes. So the three tests that stood
+ * here — a die paid, none paid to a seat without the count, none paid for an age
+ * already behind you — have nothing left to weigh, and what is pinned instead is
+ * that entering an age pays the node nothing at all.
+ */
+describe('the Long Count, after the dice', () => {
   const COUNTER = 'theLongCount';
   const NEWER = 'ironWorking'; // Æra III — a node that raises `highestAge` from 2.
 
-  it('pays a die for an age entered while it is held', () => {
+  it('pays nothing for an age entered while it is held', () => {
     const g = game();
-    // Æra II first, so the node below is the one that raises the age.
     learn(g.state, 0, 'bronzePanoply');
     learn(g.state, 0, COUNTER);
-    const before = playerById(g.state, 0)!.dice;
+    const before = structuredClone(playerById(g.state, 0)!);
 
     aim(g.state, 0, NEWER);
     resolve(g);
-    expect(playerById(g.state, 0)!.dice).toBe(before + techDef(COUNTER).ageEntryDice!);
+    const after = playerById(g.state, 0)!;
+    // The banks the node used to pay into are where they were: the age entered
+    // and the count is owed nothing for it. The **bead** is not one of them —
+    // being first into an age is a feat of the race and always was, and it is
+    // paid whether or not this node is held.
+    expect(after.gold).toBe(before.gold);
+    expect(after.faithPool).toBe(before.faithPool);
+    expect(after.pantheon.rungs).toBe(before.pantheon.rungs);
   });
 
-  it('pays nothing to a seat that does not keep the count', () => {
+  it('still opens the reroll it now carries', () => {
     const g = game();
-    learn(g.state, 0, 'bronzePanoply');
-    const before = playerById(g.state, 0)!.dice;
-    aim(g.state, 0, NEWER);
-    resolve(g);
-    expect(playerById(g.state, 0)!.dice).toBe(before);
-  });
-
-  it('pays nothing for an age already behind you — entering, not having entered', () => {
-    const g = game();
-    // Already in Æra III, then the count arrives. Nothing is owed for the ages
-    // walked before it: the payout is read at the moment of entry.
-    learn(g.state, 0, 'bronzePanoply');
-    learn(g.state, 0, NEWER);
-    const before = playerById(g.state, 0)!.dice;
-    aim(g.state, 0, COUNTER);
-    resolve(g);
-    expect(playerById(g.state, 0)!.dice).toBe(before);
+    learn(g.state, 0, COUNTER);
+    expect(hasAbility(g.state, 0, 'theLongCount')).toBe(true);
   });
 });
 

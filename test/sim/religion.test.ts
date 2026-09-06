@@ -419,8 +419,9 @@ describe('consecrate', () => {
     expect(pantheonSlots(g.state, 0)).toBe(0);
     learn(g.state, 0, 'divination');
     expect(pantheonSlots(g.state, 0)).toBe(RELIGION.pantheon.slotsFromTech.divination);
-    // Derived, never stored: the pantheon carries only what was taken.
-    expect(newPlayerPantheon()).toEqual({ beliefs: [] });
+    // Derived, never stored: the pantheon carries only what was taken, and
+    // (schema 71) how many rungs of the faith ladder paid for it.
+    expect(newPlayerPantheon()).toEqual({ beliefs: [], rungs: 0 });
     expect(slotsFromTechs(['divination'])).toBe(2);
   });
 

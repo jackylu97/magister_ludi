@@ -125,12 +125,11 @@ describe('newGame', () => {
       legacies: [],
       triumphs: [],
       greatPeopleRecruited: 0,
-      // The Bead Race's eight, present from turn one for the same reason: an
-      // empty Abacus, no dice, and six counters at nothing. `dice` is uncapped
-      // (user ruling, 2026-08-30) and nothing spends it yet.
+      // The Bead Race's, present from turn one for the same reason: an empty
+      // Abacus and six counters at nothing. The dice of the Magister used to
+      // sit beside them and went with schema 71 (2026-09-06) — nothing ever
+      // spent one, and faith rerolls a draft in their place.
       beads: [],
-      // Two at the start of every real seat's game (user, 2026-08-30).
-      dice: 2,
       citiesFounded: 0,
       citiesCaptured: 0,
       faithOnHolyOrders: 0,
@@ -442,6 +441,11 @@ describe('end-of-turn pipeline', () => {
       'guilds',
       'advanceProduction',
       'advanceResearch',
+      // The periodic boons (batch A, 2026-09-06): a slotted Order whose clock has
+      // come round pays its burst here — after the baskets this turn's yields
+      // filled, before the draft that might spend one, so a boon paid in culture
+      // opens the draft it fills on the spot. See `runPeriodicBoons`.
+      'periodicBoons',
       // Culture buys a draft, beside the phase that spends the other pool a
       // resolution filled — and before `expandBorders`, whose channel it never
       // touches. See `runStatecraft`.
@@ -676,7 +680,14 @@ describe('the research queue field', () => {
     // v69 (the victory rule, 2026-09-05): finishing the Magnum Opus wins
     // outright. A v68 log reaches the same board and a different winner — the
     // builder rather than whoever held the longest rod at the curtain.
-    expect(SCHEMA_VERSION).toBe(70);
+    // v71 (faith's currency, 2026-09-06): the dice of the Magister are gone —
+    // `Player.dice`, the rules' starting dice, eight bead boons, Chronology's
+    // payout and The Auspicious Seal, which is retired with them. In their place
+    // faith deals the pantheon on a ladder (`PlayerPantheon.rungs`) and rerolls
+    // an Order draft (`PlayerStatecraft.rerollsTaken`). Two fields left the
+    // player and two joined, and a retired row changes every Government III
+    // draw, so a v70 log names indices into hands this build does not deal.
+    expect(SCHEMA_VERSION).toBe(71);
   });
 });
 

@@ -150,6 +150,7 @@ import { type ConfirmCard, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
 import { AXIS_MARK, beliefCardType, beliefOfferEyebrow } from './ui/religionScreen';
 import { type BeliefId, beliefDef } from './sim/religionData';
+import { explainRerollCost, rerollDoorOpen, rerollError } from './sim/religion';
 import { personOf } from './sim/greatPeople';
 import { greatPersonDef } from './sim/greatPeopleData';
 import { FAMILY_EMBLEM, TIER_ACCENT, TIER_NAME } from './ui/greatPersonFace';
@@ -2207,6 +2208,46 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
+   * The reroll's button and its sentence, or `undefined` when this seat has no
+   * reroll to offer at all.
+   *
+   * **The price is the point** (the ruling of 2026-09-06: *"the button prints
+   * the next price so the rise is visible before the click"*), so the label
+   * carries the figure and the note carries the fold that made it —
+   * `explainRerollCost`'s ordered lines, joined, which is the same bargain every
+   * breakdown in this HUD strikes: the sim says what each line is and the
+   * interface says the sign and the glyph.
+   *
+   * A reroll the bank cannot cover is drawn **greyed with the refusal on it**
+   * rather than left off the sheet, because a rising price nobody can see is a
+   * mechanism nobody can plan around. One that is not open at all — the door is
+   * a technology — is left off entirely: a control for a rule the empire has not
+   * met yet is a question it cannot answer.
+   */
+  function rerollControl(seat: number): { label: string; note: string; disabled?: boolean } | undefined {
+    // The door itself, asked as a question rather than read out of a refusal's
+    // words: a shut door draws no button at all, and everything else draws one.
+    if (!rerollDoorOpen(game.state, seat)) return undefined;
+    const problem = rerollError(game.state, seat);
+    const price = explainRerollCost(game.state, seat);
+    const label = `Reroll — ${price.total}${YIELD_GLYPH.faith}`;
+    const fold = price.lines
+      .map((line) => `${line.amount > 0 ? '+' : ''}${line.amount} · ${line.source}`)
+      .join(' · ');
+    if (problem !== null) return { label, note: problem, disabled: true };
+    return { label, note: `${fold}. The next reading costs more than this one.` };
+  }
+
+  /** Dispatches a reroll and puts the hand it dealt back on the sheet. */
+  function rerollOffer(seat: number, again: () => void): void {
+    const result = dispatch(game, { type: 'rerollOffer', playerId: seat });
+    if (!result.ok) controls.guide(`☞ ${result.error}`);
+    controls.refresh();
+    statecraft?.refresh();
+    if (!hasEndedTurn(game.state, seat)) again();
+  }
+
+  /**
    * Puts the local seat's pending offer on screen, if it has one.
    *
    * The offer is read off the *state* rather than passed in, so the card can
@@ -2314,6 +2355,10 @@ async function boot(initial: Game | null): Promise<void> {
             label: 'Pass — rarer cards next time',
             note: passNote(sc.orderSkips),
           },
+          // **The third answer** (2026-09-06): faith buys another hand. Absent
+          // for a seat whose calendars have not opened the door — see
+          // `rerollControl`.
+          ...(rerollControl(seat) === undefined ? {} : { reroll: rerollControl(seat)! }),
         },
         (index) => {
           // The result is *checked* (the deployed bug of 2026-08-30): a refused
@@ -2339,6 +2384,9 @@ async function boot(initial: Game | null): Promise<void> {
           controls.refresh();
           statecraft?.refresh();
           if (!hasEndedTurn(game.state, seat)) showStatecraftOffer();
+        },
+        () => {
+          rerollOffer(seat, showStatecraftOffer);
         },
       );
       return;
@@ -2477,6 +2525,20 @@ async function boot(initial: Game | null): Promise<void> {
               : 'This belongs to your religion, not to your empire. The prophet’s charge is spent either way.',
         weight: 'heavy',
         widening: wideningLines('belief'),
+        // **A votive hand may be drawn again for nothing** (the ruling of
+        // 2026-09-06: a great prophet's draft is free and raises no count). Only
+        // while no Order draft is outstanding, because one verb answers both and
+        // it answers the paid one first (`rerollKindFor`) — a button that said
+        // "nothing is spent" and then spent faith would be lying about which
+        // hand it was rerolling.
+        ...(player.statecraft.pendingOrder === undefined
+          ? {
+              reroll: {
+                label: 'Ask again',
+                note: 'The gods are drawn again. Nothing is spent.',
+              },
+            }
+          : {}),
         options: offer.options.map((id) => {
           const def = beliefDef(id);
           return {
@@ -2549,6 +2611,10 @@ async function boot(initial: Game | null): Promise<void> {
         if (playerById(game.state, seat)?.pantheon.pending !== undefined) {
           showReligionOffer();
         }
+      },
+      undefined,
+      () => {
+        rerollOffer(seat, showReligionOffer);
       },
     );
   }

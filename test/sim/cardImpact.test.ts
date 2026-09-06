@@ -39,6 +39,8 @@ import { getTileAt } from '../../src/sim/map';
 import { isCoastal } from '../../src/sim/water';
 import { terrainDef } from '../../src/sim/terrainData';
 import type { GameState } from '../../src/sim/state';
+import { snapshotState } from '../../src/sim/game';
+import { type CardEffect, type OrderId, orderDef } from '../../src/sim/statecraftData';
 
 /**
  * Everything one empire banks in a turn, read **independently of the module
@@ -552,5 +554,147 @@ describe('a belief', () => {
     explainCardImpact(state, 0, { kind: 'belief', id: 'theQuietHours' });
     explainCardImpact(state, 0, { kind: 'belief', id: 'reliquaries' });
     expect(JSON.stringify(state)).toBe(before);
+  });
+});
+
+// --- the engine shapes (batch A of `docs/fewer-things-plan.md`) --------------
+
+/**
+ * A stamp for each of the shapes batch A declared.
+ *
+ * No live row carries one, so each is written as a fixture over a real Order's
+ * `effects` for the length of one test — the module's whole claim is that a
+ * shape it has never heard of stamps correctly the day it is added, and a
+ * fixture is how that claim is checked before the rows exist.
+ */
+describe('the engine shapes stamp', () => {
+  function withCards(
+    rows: readonly (readonly [OrderId, CardEffect[]])[],
+    body: () => void,
+  ): void {
+    const held = rows.map(([id]) => [id, orderDef(id).effects] as const);
+    try {
+      for (const [id, effects] of rows) {
+        (orderDef(id) as { effects: CardEffect[] }).effects = effects;
+      }
+      body();
+    } finally {
+      for (const [id, effects] of held) {
+        (orderDef(id) as { effects: CardEffect[] }).effects = effects as CardEffect[];
+      }
+    }
+  }
+
+  /** Seats a card in the government's own chair, as a Confirm would. */
+  function seat(state: GameState, index: number, id: OrderId): void {
+    const sc = state.players[0]!.statecraft;
+    if (!sc.orders.includes(id)) sc.orders.push(id);
+    sc.slots[index] = { card: id, sealedUntil: state.turn };
+  }
+
+  it('reads the additive amplifier as what the other cards would pay more', () => {
+    withCards(
+      [
+        ['waysideShrines', [{ kind: 'cityYields', food: 2 }]],
+        ['theChoir', [{ kind: 'cardYieldAmplifier', yield: 'food', amount: 3 }]],
+      ],
+      () => {
+        const { state } = bench();
+        seat(state, 0, 'waysideShrines');
+        const lines = explainCardImpact(state, 0, { kind: 'order', id: 'theChoir' });
+        expect(hasPerTurnImpact(lines)).toBe(true);
+        expect(foldCardImpact(lines).food).toBe(3);
+      },
+    );
+  });
+
+  it('reads the building share off the shelves the town has raised', () => {
+    withCards(
+      [['waysideShrines', [{ kind: 'buildingYieldPercent', pays: 'faith', percent: 100 }]]],
+      () => {
+        const { state, city } = bench();
+        city.buildings.push('temple');
+        refreshCityDerived(state, city);
+        const lines = explainCardImpact(state, 0, { kind: 'order', id: 'waysideShrines' });
+        expect(foldCardImpact(lines).faith).toBe(2);
+      },
+    );
+  });
+
+  it('reads the position engine as the chair it points at', () => {
+    withCards(
+      [
+        ['waysideShrines', [{ kind: 'cityYields', gold: 4 }]],
+        ['theChoir', [{ kind: 'slotPosition', slot: 'economic', position: 1, factor: 2 }]],
+      ],
+      () => {
+        const { state } = bench();
+        seat(state, 1, 'waysideShrines');
+        const lines = explainCardImpact(state, 0, { kind: 'order', id: 'theChoir' });
+        expect(foldCardImpact(lines).gold).toBe(4);
+      },
+    );
+  });
+
+  it('reads a periodic boon as an occasion, in the calendar’s own words', () => {
+    withCards(
+      [['waysideShrines', [{ kind: 'periodic', everyTurns: 10, pays: 'gold', amount: 25 }]]],
+      () => {
+        const { state } = bench();
+        const lines = explainCardImpact(state, 0, { kind: 'order', id: 'waysideShrines' });
+        const occasion = lines.filter((line) => line.kind === 'occasion');
+        expect(occasion).toHaveLength(1);
+        expect(occasion[0]!.occasion).toBe('every 10 turns');
+        expect(occasion[0]!.gold).toBe(25);
+        // A boon pays nothing per turn, so the standing stamp is silent — which
+        // is exactly what the occasion form exists to say instead of a nought.
+        expect(hasPerTurnImpact(lines)).toBe(false);
+        expect(foldCardOccasions(lines).gold).toBe(25);
+      },
+    );
+  });
+
+  it('says what a counted boon is for, when the figure is a fact about the board', () => {
+    withCards(
+      [['waysideShrines', [
+        {
+          kind: 'periodic',
+          everyTurns: 15,
+          pays: 'renown',
+          count: 'buildingsOfCategories',
+          categories: ['science', 'faith'],
+        },
+      ]]],
+      () => {
+        const { state } = bench();
+        const lines = explainCardImpact(state, 0, { kind: 'order', id: 'waysideShrines' });
+        const occasion = lines.filter((line) => line.kind === 'occasion');
+        expect(occasion).toHaveLength(1);
+        expect(occasion[0]!.note).toContain('renown');
+        expect(occasion[0]!.note?.includes('[[')).toBe(false);
+      },
+    );
+  });
+
+  it('leaves the state byte-identical after asking about any of them', () => {
+    withCards(
+      [['waysideShrines', [
+        { kind: 'cardYieldAmplifier', yield: 'all', amount: 1 },
+        { kind: 'buildingYieldPercent', pays: 'faith', percent: 50 },
+        { kind: 'slotPosition', position: 1, factor: 2 },
+        { kind: 'periodic', everyTurns: 8, pays: 'gold', amount: 5 },
+        { kind: 'periodShorten', turns: 2 },
+        { kind: 'cityRenownPercent', percent: 50 },
+        { kind: 'routeYield', gold: 1 },
+      ]]],
+      () => {
+        const { state, city } = bench();
+        city.buildings.push('temple', 'library');
+        refreshCityDerived(state, city);
+        const before = snapshotState(state);
+        explainCardImpact(state, 0, { kind: 'order', id: 'waysideShrines' });
+        expect(snapshotState(state)).toBe(before);
+      },
+    );
   });
 });

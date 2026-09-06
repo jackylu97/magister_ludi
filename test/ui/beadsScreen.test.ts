@@ -159,7 +159,12 @@ describe('what a bead pays', () => {
     // nothing from. The deed is always there; this is about the boon.
     for (const id of [...BEAD_QUEST_IDS, ...BEAD_ENDEAVOUR_IDS]) {
       if (anyBeadDef(id).def.dormant !== undefined) continue;
-      expect(beadCardFace(id).boon.length, id).toBeGreaterThan(0);
+      // Re-aimed 2026-09-06 (schema 71): seven quests paid a die of the
+      // Magister and nothing else, and the dice are gone. Those cards print a
+      // struck-through `deferred` line instead of a boon — which is the face
+      // saying, honestly, that it owes something it cannot yet pay.
+      const face = beadCardFace(id);
+      expect(face.boon.length + face.deferred.length, id).toBeGreaterThan(0);
     }
   });
 

@@ -69,7 +69,7 @@ import {
   foldTerms,
 } from '../../src/ai/decision';
 import { type PlanEntry, buildImprovementPlan, rankWorkSites } from '../../src/ai/plan';
-import { delayTerm, explainBuildingRow, explainCounted } from '../../src/ai/value';
+import { delayTerm, explainBuildingRow, explainCounted, scoreEffects } from '../../src/ai/value';
 import aiJson from '../../data/ai.json';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
@@ -90,8 +90,10 @@ import {
   ORDER_IDS,
   TALLY_OCCASIONS,
   type CardCountScaledEffect,
+  type CardEffect,
   type OrderId,
   type TallyOccasion,
+  orderDef,
 } from '../../src/sim/statecraftData';
 import { researchExpansion } from '../../src/sim/tech';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
@@ -1627,5 +1629,144 @@ describe('the wage-aware levy', () => {
     // No purse, so the spend arm cannot buy the garrison out from under the pin.
     const row = warrior(levied(0, 0));
     expect(labelsOf(row.terms)).toMatch(/its town is standing empty/);
+  });
+});
+
+/**
+ * **The engine shapes, priced** (batch A of `docs/fewer-things-plan.md`).
+ *
+ * Every shape the shapes batch declared has an arm in `scoreEffect`, and the
+ * claim tested here is the one that matters: each arm is *read off the board*
+ * rather than met with `score.unknownEffect`. So each case is a pair — the same
+ * card on a board with nothing for it to multiply and on a board with something
+ * — and the two numbers differ. A shape priced at the unknown stand-in would
+ * give the same number twice.
+ *
+ * The written-down debt of the pass is here too, and it is deliberate: an engine
+ * appraised in isolation *is* worth nearly nothing, because it multiplies a deck
+ * this reading cannot see. The marginal reading is batch F2's.
+ */
+describe('the engine shapes, priced', () => {
+  function board(): { state: GameState; player: Player; city: City } {
+    const state = bench(1);
+    const city = foundCityAt(state, 0, at(state.map, 4, 5));
+    city.population = 6;
+    recomputeAllVisibility(state);
+    return { state, player: seat(state, 0), city };
+  }
+
+  /** Seats a real Order wearing fixture effects, and hands back the price. */
+  function priced(
+    effects: CardEffect[],
+    arrange?: (state: GameState, player: Player, city: City) => void,
+  ): number {
+    const { state, player, city } = board();
+    arrange?.(state, player, city);
+    return scoreEffects(effects, valueContext(state, player));
+  }
+
+  /** Puts a card in a chair, wearing effects of our choosing. */
+  function fixture(
+    state: GameState,
+    player: Player,
+    index: number,
+    id: OrderId,
+    effects: CardEffect[],
+  ): () => void {
+    const held = orderDef(id).effects;
+    (orderDef(id) as { effects: CardEffect[] }).effects = effects;
+    if (!player.statecraft.orders.includes(id)) player.statecraft.orders.push(id);
+    player.statecraft.slots[index] = { card: id, sealedUntil: state.turn };
+    return () => {
+      (orderDef(id) as { effects: CardEffect[] }).effects = held;
+    };
+  }
+
+  it('prices the amplifier by the lines the deck actually pays', () => {
+    const alone = priced([{ kind: 'cardYieldAmplifier', yield: 'food', amount: 1 }]);
+    let undo = (): void => undefined;
+    const beside = priced(
+      [{ kind: 'cardYieldAmplifier', yield: 'food', amount: 1 }],
+      (state, player) => {
+        undo = fixture(state, player, 0, 'waysideShrines', [{ kind: 'cityYields', food: 2 }]);
+      },
+    );
+    undo();
+    expect(alone).toBe(0);
+    expect(beside).toBeGreaterThan(0);
+  });
+
+  it('prices the building share by the shelves the empire has raised', () => {
+    const share: CardEffect[] = [{ kind: 'buildingYieldPercent', pays: 'faith', percent: 100 }];
+    const bare = priced(share);
+    const built = priced(share, (_state, _player, city) => {
+      city.buildings.push('temple');
+    });
+    expect(bare).toBe(0);
+    expect(built).toBeGreaterThan(0);
+  });
+
+  it('prices the position engine as the chair it points at', () => {
+    const engine: CardEffect[] = [
+      { kind: 'slotPosition', slot: 'economic', position: 1, factor: 2 },
+    ];
+    const empty = priced(engine);
+    let undo = (): void => undefined;
+    const filled = priced(engine, (state, player) => {
+      undo = fixture(state, player, 1, 'waysideShrines', [{ kind: 'cityYields', gold: 5 }]);
+    });
+    undo();
+    expect(empty).toBe(0);
+    expect(filled).toBeGreaterThan(0);
+  });
+
+  it('prices a periodic boon over its period, and the shortener as the difference', () => {
+    const often = priced([{ kind: 'periodic', everyTurns: 4, pays: 'gold', amount: 20 }]);
+    const rarely = priced([{ kind: 'periodic', everyTurns: 20, pays: 'gold', amount: 20 }]);
+    expect(often).toBeGreaterThan(rarely);
+    // A shortener with nothing to shorten is worth nothing; beside a boon it is
+    // worth what coming round sooner is worth.
+    const idle = priced([{ kind: 'periodShorten', turns: 2 }]);
+    let undo = (): void => undefined;
+    const useful = priced([{ kind: 'periodShorten', turns: 2 }], (state, player) => {
+      undo = fixture(state, player, 0, 'waysideShrines', [
+        { kind: 'periodic', everyTurns: 6, pays: 'gold', amount: 20 },
+      ]);
+    });
+    undo();
+    expect(idle).toBe(0);
+    expect(useful).toBeGreaterThan(0);
+  });
+
+  it('prices a city renown share off the trickle the towns already earn', () => {
+    const share: CardEffect[] = [{ kind: 'cityRenownPercent', percent: 100 }];
+    const bare = priced(share);
+    const built = priced(share, (_state, _player, city) => {
+      city.buildings.push('library');
+    });
+    expect(bare).toBe(0);
+    expect(built).toBeGreaterThan(0);
+  });
+
+  it('prices a route line by the caravans this empire is running', () => {
+    // No caravan, no coin: the shape pays per route and the count is the
+    // simulation's own, so an empire with no trade prices it at nothing.
+    expect(priced([{ kind: 'routeYield', gold: 2 }])).toBe(0);
+  });
+
+  it('counts the new counts through the simulation rather than a nominal guess', () => {
+    const effect: CardCountScaledEffect = {
+      kind: 'countScaled',
+      count: 'buildingsOfCategories',
+      categories: ['science', 'faith'],
+      pays: { to: 'yield', yield: 'culture', amount: 1, where: 'empire' },
+    };
+    const { state, player, city } = board();
+    const before = explainCounted(effect, valueContext(state, player));
+    city.buildings.push('library', 'temple');
+    const after = explainCounted(effect, valueContext(state, player));
+    expect(before.terms[0]!.value).toBe(0);
+    expect(after.terms[0]!.value).toBe(2);
+    expect(labelsOf([after.terms[0]!])).toMatch(/2 buildingsOfCategories today/);
   });
 });

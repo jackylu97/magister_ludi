@@ -255,6 +255,8 @@ describe('the offices are ordered, and the word says which', () => {
     expect(gate).toContain('readsSlotPosition(effect)');
     expect(SCREEN).toContain('const POSITION_READING_COUNTS: readonly CountKind[] = []');
     expect(SCREEN).toContain("effect.kind === 'countScaled' && POSITION_READING_COUNTS.includes(effect.count)");
+    // Batch A's reader is a modifier, not a count: the gate opens on it by kind.
+    expect(SCREEN).toContain("if (effect.kind === 'slotPosition') return true;");
     // And the office line prints it only behind the gate.
     expect(SCREEN).toContain('const positions = deckReadsSlotPosition(sc);');
     expect(SCREEN).toContain('if (positions) {');

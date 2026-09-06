@@ -408,9 +408,10 @@
         "count": "wondersOfWorldAgeHeld",
         "value": 3
       },
-      "boon": {
-        "dice": 1
-      }
+      "boon": {},
+      "deferred": [
+        "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
+      ]
     },
     "theScholarsWager": {
       "name": "The Scholar's Wager",
@@ -423,9 +424,10 @@
         "count": "agesAheadOfLowestSeat",
         "value": 2
       },
-      "boon": {
-        "dice": 1
-      }
+      "boon": {},
+      "deferred": [
+        "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
+      ]
     },
     "theLibraryOfTheRealm": {
       "name": "The Library of the Realm",
@@ -476,11 +478,10 @@
         "count": "tilesPurchased",
         "value": 20
       },
-      "boon": {
-        "dice": 1
-      },
+      "boon": {},
       "deferred": [
-        "One more claimed hex for every city — a border grant in every town at once."
+        "One more claimed hex for every city — a border grant in every town at once.",
+        "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
       ]
     },
     "theApostle": {
@@ -495,7 +496,6 @@
         "value": 20
       },
       "boon": {
-        "dice": 1,
         "effects": [
           {
             "kind": "happiness",
@@ -570,9 +570,10 @@
         "count": "adjacentGreatWorks",
         "value": 3
       },
-      "boon": {
-        "dice": 1
-      }
+      "boon": {},
+      "deferred": [
+        "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
+      ]
     },
     "theLongReign": {
       "name": "The Long Reign",
@@ -586,11 +587,10 @@
         "value": 10,
         "turns": 10
       },
-      "boon": {
-        "dice": 1
-      },
+      "boon": {},
       "deferred": [
-        "A free Order draft — a draft handed over outright is not in the boon vocabulary."
+        "A free Order draft — a draft handed over outright is not in the boon vocabulary.",
+        "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
       ]
     },
     "theBreadbasket": {
@@ -684,9 +684,10 @@
         "count": "wondersHeld",
         "value": 10
       },
-      "boon": {
-        "dice": 1
-      }
+      "boon": {},
+      "deferred": [
+        "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
+      ]
     },
     "theLegacy": {
       "name": "The Legacy",
@@ -699,11 +700,10 @@
         "count": "unrevokedLegacies",
         "value": 15
       },
-      "boon": {
-        "dice": 1
-      },
+      "boon": {},
       "deferred": [
-        "Every struck legacy of yours restored — a revocation is marked, and unmarking it is not a boon shape."
+        "Every struck legacy of yours restored — a revocation is marked, and unmarking it is not a boon shape.",
+        "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
       ]
     },
     "theLaureatesCourt": {

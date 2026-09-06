@@ -12,11 +12,17 @@
  *
  * Generic-ish, and no further
  * ---------------------------
- * It is emphatically not a framework. There is no reroll, no multi-select and no
- * disabled state; they can be added when there is a real second caller with real
- * requirements. What is shared today is the part that would otherwise be
- * rewritten badly: the modal's bones, the keyboard contract, focus handling, and
- * the ink/parchment language of the card itself.
+ * It is emphatically not a framework. There is no multi-select; it can be added
+ * when there is a real caller with real requirements. What is shared today is
+ * the part that would otherwise be rewritten badly: the modal's bones, the
+ * keyboard contract, focus handling, and the ink/parchment language of the card
+ * itself.
+ *
+ * There *is* a reroll now (`Offer.reroll`, 2026-09-06), and it arrived the way
+ * the pass did: a real caller with a real requirement. It is a third button
+ * reporting back to the caller, and the one control on the sheet that may be
+ * greyed — because its price rises with every use and a price nobody can afford
+ * still has to be legible.
  *
  * Modal, and it means it
  * ----------------------
@@ -279,6 +285,30 @@ export interface Offer {
     /** The line beside it, in the foot's quiet voice. What it costs. */
     note: string;
   };
+  /**
+   * **The third answer**: deal these again, for a price.
+   *
+   * Present only on an offer that may be rerolled — the Order draft for faith,
+   * a prophet's or the ladder's belief hand for nothing (the ruling of
+   * 2026-09-06). It is neither a pick nor a pass: the offer is spent and a new
+   * hand takes its place on the same sheet, so the caller dispatches a command
+   * and then shows the fresh hand exactly as it showed this one.
+   *
+   * `disabled` is the one place this component draws a greyed control, and it
+   * is here because the price is the point: a reroll nobody can afford must
+   * still print what it would cost and why it is out of reach, or the rising
+   * price the design is built on is invisible until the moment it is paid.
+   * Strings, like everything else that crosses this boundary — the caller has
+   * already folded the price into words.
+   */
+  reroll?: {
+    /** The button's own words. "Reroll — 35 faith". */
+    label: string;
+    /** The line beside it: what it costs, or why it cannot be pressed. */
+    note: string;
+    /** Greyed, with `note` saying why. */
+    disabled?: boolean;
+  };
 }
 
 /**
@@ -345,7 +375,12 @@ export interface OfferCard {
    * an offer that carries `Offer.pass`, so a caller that gave one and no handler
    * has written a button that does nothing — pass both or neither.
    */
-  show(offer: Offer, onChoose: (index: number) => void, onPass?: () => void): void;
+  show(
+    offer: Offer,
+    onChoose: (index: number) => void,
+    onPass?: () => void,
+    onReroll?: () => void,
+  ): void;
   /** True while a card is up. `main.ts` asks, to keep hotkeys off the board. */
   readonly isOpen: boolean;
   /**
@@ -536,6 +571,8 @@ export function createOfferCard(
   let choose: ((index: number) => void) | null = null;
   /** The pass's callback, held and dropped exactly as `choose` is. */
   let pass: (() => void) | null = null;
+  /** The reroll's, held and dropped with them. */
+  let again: (() => void) | null = null;
   /**
    * The offer being held, kept **whole** rather than re-derived on reopen.
    *
@@ -549,6 +586,7 @@ export function createOfferCard(
     offer: Offer;
     onChoose: (index: number) => void;
     onPass?: () => void;
+    onReroll?: () => void;
   } | null = null;
   let phase: OfferPhase = 'none';
 
@@ -655,6 +693,7 @@ export function createOfferCard(
     standing = null;
     choose = null;
     pass = null;
+    again = null;
     moveTo('clear');
   }
 
@@ -674,7 +713,7 @@ export function createOfferCard(
     if (standing === null) return;
     // Through `show`, so the spread is re-measured against the window as it is
     // *now*: a player who looked at the map may well have resized on the way.
-    show(standing.offer, standing.onChoose, standing.onPass);
+    show(standing.offer, standing.onChoose, standing.onPass, standing.onReroll);
   }
 
   /**
@@ -704,6 +743,7 @@ export function createOfferCard(
     standing = null;
     choose = null;
     pass = null;
+    again = null;
     if (stamp === undefined || stampNode === null || stampIsEmpty(stamp)) {
       teardown();
       moveTo('take');
@@ -744,6 +784,32 @@ export function createOfferCard(
     standing = null;
     choose = null;
     pass = null;
+    again = null;
+    teardown();
+    moveTo('take');
+    callback();
+  }
+
+  /**
+   * The reroll, and it is `skip`'s sibling rather than `viewMap`'s.
+   *
+   * **It spends the offer**, exactly as a pass does — the hand goes back in the
+   * bag and the price is paid — and what makes it look different to the player
+   * is only what the caller does next: it dispatches the command and then shows
+   * the *new* hand, which arrives here as an ordinary `show` and re-deals the
+   * cards with the whole ceremony. Nothing is held over between the two, which
+   * is why this clears everything the way a pass does.
+   *
+   * Cleared before the callback for `take`'s reason: the handler deals the next
+   * hand on this tick and must not be torn down by the one it replaced.
+   */
+  function reroll(): void {
+    const callback = again;
+    if (callback === null) return;
+    standing = null;
+    choose = null;
+    pass = null;
+    again = null;
     teardown();
     moveTo('take');
     callback();
@@ -786,7 +852,12 @@ export function createOfferCard(
     if (event.key !== 'Tab') event.stopPropagation();
   }
 
-  function show(offer: Offer, onChoose: (index: number) => void, onPass?: () => void): void {
+  function show(
+    offer: Offer,
+    onChoose: (index: number) => void,
+    onPass?: () => void,
+    onReroll?: () => void,
+  ): void {
     // A sheet still holding a landed stamp is on its way out; the next question
     // replaces it now rather than being drawn under a timer that will then take
     // the new card away with the old one.
@@ -800,9 +871,14 @@ export function createOfferCard(
     restoreFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     choose = onChoose;
     pass = onPass ?? null;
+    again = onReroll ?? null;
     // Held from here until it is taken or a new game clears it — through View
-    // map and back, which is the whole point of keeping it.
-    standing = onPass === undefined ? { offer, onChoose } : { offer, onChoose, onPass };
+    // map and back, which is the whole point of keeping it. The two optional
+    // halves are set only when given, so an offer with neither serialises into
+    // the same shape it always did.
+    standing = { offer, onChoose };
+    if (onPass !== undefined) standing.onPass = onPass;
+    if (onReroll !== undefined) standing.onReroll = onReroll;
     container.replaceChildren();
 
     const sheet = element('div', 'offer-sheet');
@@ -1029,6 +1105,27 @@ export function createOfferCard(
       sheet.append(foot, passFoot);
     } else {
       sheet.append(foot);
+    }
+    if (offer.reroll !== undefined) {
+      // **The third answer**, in a group of its own under the pass and drawn
+      // like it: a deliberate click, no keyboard shortcut, its own sentence. It
+      // is the only control on this sheet that may be greyed, and when it is,
+      // the label still prints the price — the rising cost is the mechanism, and
+      // a player who cannot afford this one is exactly the player who needs to
+      // see it.
+      const rerollFoot = element('div', 'offer-foot offer-foot-pass');
+      const button = document.createElement('button');
+      button.className = 'offer-pass offer-reroll';
+      button.type = 'button';
+      button.append(element('span', 'offer-look-label', offer.reroll.label));
+      button.title = offer.reroll.note;
+      button.disabled = offer.reroll.disabled === true;
+      button.addEventListener('click', () => {
+        reroll();
+      });
+      rerollFoot.append(button);
+      rerollFoot.append(element('p', 'offer-foot-note', offer.reroll.note));
+      sheet.append(rerollFoot);
     }
     container.append(sheet);
     container.hidden = false;

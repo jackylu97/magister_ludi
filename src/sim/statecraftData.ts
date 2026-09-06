@@ -1333,7 +1333,59 @@ export type CountKind =
    * a whole-map count can afford. `roadFree` hexes count — a decreed road is a
    * road, and only the *maintenance* ledger cares who is billed for it.
    */
-  | 'roadHexes';
+  | 'roadHexes'
+  /**
+   * Buildings of **two or more categories at once** — The Long Count's science
+   * *and* faith houses.
+   *
+   * `buildingsOfCategory` with a list where that one has a word, reading
+   * `CardCountScaledEffect.categories`, and a member of its own rather than a
+   * widening of that field for `improvedStrategicResources`' reason exactly: the
+   * two read differently on a card ("per gold building", "per science or faith
+   * building") and a member each is what lets `COUNT_WORDS` write the words
+   * without a second table. A row naming no list counts nothing at all, which is
+   * the honest answer for a question that was never asked rather than a guard
+   * that would quietly count every building in the realm.
+   */
+  | 'buildingsOfCategories'
+  /**
+   * **What this empire's books say it makes in one voice, this turn** — Horology's
+   * "science equal to your empire-wide production", and the Long Count's kin.
+   *
+   * The one count in the union whose subject is the ledger rather than the board,
+   * and it is answered by the ledger's own reading (`empireRateReading`,
+   * `cities.ts`) rather than by a second sweep of the towns — the same bargain
+   * `rateConversion` strikes one shape over, widened to all six voices because a
+   * periodic boon may be quoted in hammers and a rate never was.
+   *
+   * **It cannot feed itself**, and that is a stated cut rather than an accident:
+   * while the empire's books are being computed, this count answers nothing
+   * (`rateDepth` in `statecraft.ts`, `conditionDepth`'s idiom one question over).
+   * A card that paid gold for the gold it makes would otherwise be a loop with no
+   * answer — `CardYieldConversionEffect`'s first clause, at empire scale.
+   *
+   * Which voice is `CardCountScaledEffect.voice`; a row naming none counts
+   * nothing.
+   */
+  | 'empireYield'
+  /**
+   * **Order drafts this empire has rerolled while this card sat in its chair** —
+   * the shrine engine of `docs/orders-pass-3.md` §9 ("+1🕯 on Shrines for every
+   * faith roll while this Order is slotted").
+   *
+   * `tally`'s cousin and deliberately not a `TallyOccasion`: a tally belongs to
+   * the *card* and survives the bench (`PlayerStatecraft.tallies`), and this one
+   * belongs to the **chair** — the count is what this placement has watched, so
+   * benching the card and slotting it again starts a new watch. That is the
+   * ruling read literally ("while this Order is slotted") and it is why the
+   * counter is `SlottedOrder.rerollsSeen` rather than a row of the tally table.
+   *
+   * **Nothing writes it yet.** The reroll verb is batch C1's
+   * (`docs/fewer-things-plan.md`); the field is declared here so that batch only
+   * has to increment it, and until it does this count reads nought in every
+   * empire — which is the honest answer for a thing that has not happened.
+   */
+  | 'rerollsWhileSlotted';
 
 /**
  * The moments a growing card can be counting. See `CountKind`'s `tally`.
@@ -1858,7 +1910,22 @@ export type WindfallOccasion =
    * is why this is an occasion rather than a standing `atWar` condition: the
    * card pays for *starting* a war, not for being in one.
    */
-  | 'declareWar';
+  | 'declareWar'
+  /**
+   * **The calendar came round** — a `periodic` Order's own boon, fired by
+   * `runPeriodicBoons` when its slot's absolute stamp is reached.
+   *
+   * The one occasion in the union with no event behind it at all: a chop is a
+   * forest felled and a capture is a town taken, and this is simply a turn
+   * arriving. It is here rather than outside the vocabulary because the boon *is*
+   * a windfall — its figure is composed once, riders and all, before anything is
+   * banked (Entry XVIII.5), and a card that says "your boons pay more" is then an
+   * ordinary `windfallRider` on this occasion rather than a second kind of thing.
+   *
+   * Fired once per firing slot, so an empire holding two periodic Orders that
+   * come round on the same turn pays two windfalls — the riders ride each.
+   */
+  | 'periodic';
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
@@ -2420,6 +2487,21 @@ export interface CardCountScaledEffect {
    * guard that would quietly count everything.
    */
   tally?: TallyOccasion;
+  /**
+   * Which categories `buildingsOfCategories` counts. Ignored by every other count.
+   *
+   * `category`'s sibling one grade wider, and here for that field's reason: a
+   * count that needs an argument names it on the effect, so the union stays a
+   * list of questions. An absent or empty list counts nothing — see the count.
+   */
+  categories?: BuildingCategory[];
+  /**
+   * Which voice `empireYield` reads. Ignored by every other count.
+   *
+   * `building`'s, `category`'s and `slot`'s sixth sibling. Absent counts nothing,
+   * which is the honest answer for a ledger question that never said which column.
+   */
+  voice?: CityYieldKey;
 }
 
 /** A payout converted from a rate or a meter standing. See `RateSource`. */
@@ -2989,6 +3071,315 @@ export interface CardUpkeepRebateEffect {
   where?: 'ownTerritory' | 'foreignTerritory';
 }
 
+/**
+ * **What your other Orders pay, paid again** — the engine shape of
+ * `docs/fewer-things.md` §4, ruled: *"your Orders that give food give an
+ * additional food"*.
+ *
+ * The first clause in the vocabulary whose subject is the **deck**. Every other
+ * reader of the cards counts them (`slottedOrdersOfSlot`) or counts what they
+ * are worth once (`effectAmplifier`'s targets are other systems' figures); this
+ * one reads the card fold itself — `cardCityYields`, `cardEmpireYields` and the
+ * lines the cards put on the ground — and adds to every line of one voice.
+ *
+ * Additive is the default, and that is the user's ruling rather than a taste
+ * -----------------------------------------------------------------------
+ * *"Amplifiers stack additively, not multiplicatively … (per line instance, so
+ * it stacks with '+1 food on each resource hex' hex by hex)"*
+ * (`docs/orders-pass-3.md` §9). `amount` is therefore paid **once per line
+ * instance** — per town for a per-town line, per hex for a hex line, once for an
+ * empire line — which is what makes the engine worth more in a wide realm and
+ * worth more beside a card that already dresses forty hexes. A share (`percent`)
+ * is the late, rare variant and survives on one card ("half again"); a row may
+ * carry both, and the flat is added before the share is taken of what the other
+ * card printed, which is `CardEffectAmplifierEffect`'s own order one table over.
+ *
+ * What it reaches, and what it deliberately does not
+ * --------------------------------------------------
+ *   · **the Orders' lines only** — the ruled sentence says *your Orders*, and a
+ *     government's signature, a wonder's clause and a technology's gift are not
+ *     things a player arranged in a chair. Read off the line's own `card`;
+ *   · **never its own card**, so an amplifier cannot amplify itself and two of
+ *     them cannot amplify each other into a spiral. Every amplifier reads the
+ *     fold *as it stood before any amplifier spoke*, so their order cannot change
+ *     what either pays — `cardYieldConversions`' rule, one list over;
+ *   · **the ground only when the row names no `scope`**. A scope is a question
+ *     about a *town* and the empire's tile pass has none in hand; a scoped
+ *     amplifier is a fact about one town's ledger and stays out of the hexes.
+ *     (`scopedCardTileLines`' own lines are likewise left alone: they already
+ *     name which town they landed in, and a second scope on one fold would be two
+ *     answers to one question.)
+ *
+ * `scope: { test: 'capital' }` is the ruled capital engine — *"yields to your
+ * capital from Orders are 50% more effective"* — and needs nothing of its own:
+ * the seat of government is an ordinary `CityScope`, so the row says where and
+ * the one evaluator answers.
+ */
+export interface CardYieldAmplifierEffect {
+  kind: 'cardYieldAmplifier';
+  /** The voice amplified. `'all'` reaches every one of the six. */
+  yield: CityYieldKey | 'all';
+  /** Paid once per amplified **line instance**. The default shape. */
+  amount?: number;
+  /** A share of what the amplified line prints. The late, rare variant. */
+  percent?: number;
+  /** Which towns the amplified line must land in. Absent means everywhere. */
+  scope?: CityScope;
+}
+
+/**
+ * **A share on what a class of buildings pays**, its per-citizen lines included
+ * — The Synod's *"your faith buildings +50%"*, The Counting Houses' gold, and
+ * the doublers the balance turn asked for.
+ *
+ * `CardPercentYieldsEffect` is a percentage on a **town's** voice and joins Entry
+ * XVII's staged multiplication; this is a percentage on a **building's own
+ * lines** and is therefore a *flat* addition to the town, folded beside
+ * `explainCityBuildings` and staged afterwards exactly as the building's own
+ * figure is. The two are different questions and neither is the other: "+10%
+ * science in this city" reaches the tiles, the caravans and the cards, and
+ * "science buildings pay half again" reaches four shelves.
+ *
+ * Which buildings, and the voice selector
+ * ---------------------------------------
+ * `category` is `BuildingDef.category`, the one word every row declares. It is
+ * *not* the same question as "a faith building" in a card's own sentence — the
+ * table's seven categories are what a building is **for**, and a Shrine
+ * categorised `faith` and a Cathedral categorised `culture` both pay faith. So
+ * `pays` is the second selector and it is the honest reading of the ruled text:
+ * **a faith building is a building whose row pays faith** (`CityScope`'s
+ * `hasBuildingYielding` asks the same question of a town, and answers it the same
+ * way). A row may name one, the other, or both; naming neither reaches every
+ * building the town has raised.
+ *
+ * `yield` is which of the *building's* voices is raised — absent means all of
+ * them, which is what a doubler means.
+ *
+ * `appliedLast`, and the only thing here that could be got wrong
+ * -------------------------------------------------------------
+ * The user's ruling: a doubler *"applies to total yields, including from other
+ * effects"*. So the arithmetic is two stages and never one:
+ *
+ *     raised  = base + floor(base × Σ ordinary% ÷ 100)
+ *     paid    = raised + floor(raised × Σ appliedLast% ÷ 100)
+ *
+ * summed within each stage before one multiplication (Entry XVII's rule, read
+ * one ledger down), floored per building and per voice so two half-points buy
+ * two halves rather than rounding into a free one. A doubler is therefore
+ * `percent: 100, appliedLast: true`, and it doubles what the Vestry already
+ * raised rather than racing it.
+ */
+export interface CardBuildingYieldPercentEffect {
+  kind: 'buildingYieldPercent';
+  /** The share, in whole percent. */
+  percent: number;
+  /** Which buildings, by what the row is *for*. Absent means any. */
+  category?: BuildingCategory;
+  /** Which buildings, by the voice the row **pays**. Absent means any. */
+  pays?: CityYieldKey;
+  /** Which of the building's voices is raised. Absent means every one. */
+  yield?: CityYieldKey | 'all';
+  /** Taken over the building's total **including** the ordinary shares. */
+  appliedLast?: boolean;
+  /** Which towns it lands in. Absent means every one. */
+  scope?: CityScope;
+}
+
+/**
+ * **The Order in one chair, paid again** — *"your first economic slot pays
+ * twice"*, the most Balatro of the five engine shapes.
+ *
+ * It is `cardYieldAmplifier` narrowed from a voice to a **chair**: instead of
+ * "every line of food", the subject is every line of whichever Order is sitting
+ * in one named position, in every voice at once. So the two shapes are one pass
+ * over one list and neither is a special case of the other's arithmetic.
+ *
+ * The position is a fact because the slots are ordered
+ * ----------------------------------------------------
+ * `PlayerStatecraft.slots` is an array indexed by the government's `slotLayout`
+ * and **the index is the drawn order** — the contract stated on that field and on
+ * `slotTypesOf`. So "the first economic slot" is the lowest-indexed slot whose
+ * *layout flavour* is economic, whatever card happens to be in it (a wildcard
+ * chair holding an economic card is not an economic chair — the player is being
+ * paid for where they put it, which is the decision the card is about).
+ *
+ * `slot` absent means "any chair", so `position: 1` with no flavour is the very
+ * first chair on the screen. `factor` is what the line is multiplied by — 2 pays
+ * twice — and the extra is added as its own labelled line, never by rewriting the
+ * card's own (rule 5: the sheet says where the second helping came from).
+ */
+export interface CardSlotPositionEffect {
+  kind: 'slotPosition';
+  /** Which flavour of chair is counted. Absent counts every chair. */
+  slot?: SlotType;
+  /** Which chair of that flavour, counting from one, in slot order. */
+  position: number;
+  /** What that Order's lines are multiplied by. 2 pays twice. */
+  factor: number;
+}
+
+/**
+ * **Every so many turns, a boon** — the periodic occasion of
+ * `docs/fewer-things.md` §4, ruled worthwhile because *frequency × size* is a
+ * second axis of scaling beside the flats.
+ *
+ * Nothing ticks, and that is the whole of the discipline
+ * -----------------------------------------------------
+ * The next firing is an **absolute turn stamp** on the slot record
+ * (`SlottedOrder.nextFiresTurn`), compared and never counted down —
+ * `TimedEffect`'s rule at a different cadence. The phase
+ * (`runPeriodicBoons`) fires when `state.turn >= nextFiresTurn` and re-stamps
+ * `state.turn + period`; a slot with no stamp yet is stamped on the first phase
+ * after the card is placed. A card taken out of its chair loses its clock with
+ * the chair, which is the standing ruling ("the bench is never productive") read
+ * literally.
+ *
+ * The **period** is `max(2, everyTurns − Σ periodShorten)` — the floor of two is
+ * on the period and never on the stamp, so a stack of shorteners cannot buy a
+ * boon every turn. See `CardPeriodShortenEffect` for what happens to a stamp
+ * already made when the clock changes.
+ *
+ * The boon **is a windfall** (`WindfallOccasion`'s `periodic`): its figure is
+ * composed once with every rider before anything is banked, so it is
+ * modifier-immune like every other grant and a card that says "your boons pay
+ * more" is an ordinary rider rather than a second rule.
+ *
+ * The figure is a flat, or a count
+ * --------------------------------
+ * `amount` alone is the flat. With `count`, the figure is that count's answer
+ * times `amount` (one by default), and the count's arguments ride on this row
+ * exactly as they ride on `countScaled` — so "faith equal to your empire's
+ * science" is `count: 'empireYield', voice: 'science'` and The Long Count's
+ * "renown equal to your science and faith buildings" is
+ * `count: 'buildingsOfCategories', categories: ['science', 'faith']`. One
+ * evaluator answers both, because it is the same `countOf`.
+ */
+export interface CardPeriodicEffect {
+  kind: 'periodic';
+  /** Turns between firings, before any shortener. The period floors at two. */
+  everyTurns: number;
+  /** Which bank the boon lands in. `'renown'` feeds the great-person pool. */
+  pays: CityYieldKey | 'renown';
+  /** The flat figure, or what one helping of `count` pays. Default one. */
+  amount?: number;
+  /** …or the figure is this count's answer. See `CountKind`. */
+  count?: CountKind;
+  /** How many counted things buy one helping. Default one. */
+  per?: number;
+  /** The most helpings that ever pay. */
+  max?: number;
+  /** The count's arguments, `CardCountScaledEffect`'s fields exactly. */
+  building?: BuildingId;
+  category?: BuildingCategory;
+  categories?: BuildingCategory[];
+  slot?: SlotType;
+  voice?: CityYieldKey;
+  class?: UnitFilter;
+  tally?: TallyOccasion;
+}
+
+/**
+ * **Your every-N-turn cards come round sooner** — the shortener of
+ * `docs/fewer-things.md` §4 (The Almanac of Hours, The Great Clock, Horology's
+ * Water Clock), and the reason "every 5, shortened by 2" is a different card
+ * from "every 10".
+ *
+ * It reaches **every** periodic Order this empire holds, sums with every other
+ * shortener before one subtraction, and the period floors at **two turns** so a
+ * stack cannot buy a boon every turn.
+ *
+ * What happens to a stamp already made
+ * ------------------------------------
+ * The rule, stated once and pinned in `test/sim/statecraft.test.ts`: **a change
+ * of clock moves every outstanding stamp by the change in period**, and by
+ * nothing else —
+ *
+ *     nextFiresTurn += newPeriod − oldPeriod
+ *
+ * so a boon three turns from firing is two turns from firing the instant a
+ * shortener of one is slotted, and three again if it is taken out. It is exact,
+ * symmetric and reversible, which is what keeps slotting and unslotting a
+ * shortener from being a way to farm a boon or a way to lose one. The stamp may
+ * land on a turn already past, which simply means the boon is due at the next
+ * end of turn — the phase compares, it does not count.
+ *
+ * The change is noticed by the phase itself (`SlottedOrder.firePeriod` records
+ * the clock the stamp was made under), so slotting a shortener needs no hook in
+ * the reducer: the only moment anything fires is the only moment anything has to
+ * be re-stamped.
+ */
+export interface CardPeriodShortenEffect {
+  kind: 'periodShorten';
+  /** Turns off every periodic Order's clock. Shorteners sum; the floor is two. */
+  turns: number;
+}
+
+/**
+ * **A share on what one town earns in renown** — the Heroic Epic's *"this city
+ * gains +50% renown"* (`docs/tech-gifts.md` §7).
+ *
+ * Renown is a flat per building today (`BuildingDef.renown`), so this is the
+ * first percentage the ladder has ever had, and it is city-scoped by
+ * construction: a unique building is *a decision about where*, and a percentage
+ * that reached the realm would have made the decision for the player.
+ *
+ * Read in `explainCityRenown` (`renown.ts`) as one more labelled line of the list
+ * the total is the fold of — never as a multiplication afterwards. It is taken
+ * over **that town's buildings' own trickle** and nothing else: a specialist's
+ * point is added beside the call rather than inside it (that function's own
+ * split, and for its reason — the guild bar is filled by the buildings' figure
+ * and a percentage feeding the bar that made it would be a loop with no brake),
+ * and a Triumph's lump is not a town's at all.
+ *
+ * The line **names no family**, `resourceRenown`'s construction exactly: the pool
+ * grows and the feed record that weights the draw does not, so a percentage
+ * cannot quietly bias which great person arrives.
+ */
+export interface CardCityRenownPercentEffect {
+  kind: 'cityRenownPercent';
+  /** The share, in whole percent. Floored once, per town. */
+  percent: number;
+  /** Which towns it lands in. Absent means every one. */
+  scope?: CityScope;
+}
+
+/**
+ * **Yields put on the route itself** — Silk Roads' coin and the Caravanserai's
+ * grain, and the thing "double your trade route yields" is a doubling *of*.
+ *
+ * The grammar the user's marks revealed (`docs/orders-pass-3.md` §9): *put yields
+ * on a thing, then multiply the thing*. A caravan is the clearest such thing on
+ * the board, and until now nothing could put anything on one — a card that wanted
+ * to pay for trade had to pay a town instead, which the multiplier
+ * (`AmplifierTarget`'s `routeYields`) could then not see. So this joins
+ * `explainRouteYieldBetween`'s list **before** the amplifier, and a doubler
+ * doubles it like every other line of the fold.
+ *
+ * It is the **origin's** empire that pays and is paid, which is the rule the
+ * whole module already keeps: a route belongs to the seat that sent it. A
+ * domestic route's line is banked by the destination with the rest of the
+ * caravan's figure; a route ending abroad carries its line in the *sender's*
+ * fold, so an empire's own law never pays a foreign host.
+ *
+ * `origin` is asked of the town the caravan **left**, which is what makes the
+ * Caravanserai a hub rather than a nationwide subsidy: *"routes originating here
+ * +1🌾 +1⚒"* is `origin: { test: 'hasBuilding', building: … }`, one ordinary
+ * `CityScope` and no field of its own. Absent reaches every route this empire
+ * sends.
+ *
+ * Faith is not here, for `RouteYieldLine`'s reason: nothing pays a caravan in it.
+ */
+export interface CardRouteYieldEffect {
+  kind: 'routeYield';
+  food?: number;
+  production?: number;
+  gold?: number;
+  science?: number;
+  culture?: number;
+  /** Which origin towns' caravans carry it. Absent means all of them. */
+  origin?: CityScope;
+}
+
 /** Everything a card may say. One union, one evaluator (`statecraft.ts`). */
 export type CardEffect =
   | CardCityYieldsEffect
@@ -3029,7 +3420,18 @@ export type CardEffect =
   | CardPressureEffect
   | CardMirrorYieldEffect
   | CardYieldConversionEffect
-  | CardUpkeepRebateEffect;
+  | CardUpkeepRebateEffect
+  // The engine shapes of `docs/fewer-things.md` §4 and `docs/tech-gifts.md` §7,
+  // built as batch A of `docs/fewer-things-plan.md`. No data row uses one yet —
+  // the rows are batches D through F — so every one of them is proved by a
+  // fixture in `test/sim/statecraft.test.ts` rather than by the table.
+  | CardYieldAmplifierEffect
+  | CardBuildingYieldPercentEffect
+  | CardSlotPositionEffect
+  | CardPeriodicEffect
+  | CardPeriodShortenEffect
+  | CardCityRenownPercentEffect
+  | CardRouteYieldEffect;
 
 /** Every `kind` in the union, for the register test that pins the evaluator. */
 export type CardEffectKind = CardEffect['kind'];
@@ -3104,14 +3506,17 @@ export interface DoctrineDef extends CardDefBase {
  */
 export interface OrderSlotGrant {
   /**
-   * `'greatPerson'` — the recruitment the ladder would have opened.
-   * `'die'` — a die of the Magister, The Auspicious Seal's. The second kind, and
-   * it is here rather than as an effect for this field's stated reason: a die
-   * handed over once is a *moment*, and an effect is a standing reading of the
-   * board. It lands in `Player.dice`, the pool the beads already fill, so a
-   * card and a bead cannot disagree about what a die is.
+   * `'greatPerson'` — the recruitment the ladder would have opened, and the one
+   * kind there is.
+   *
+   * There was a second, `'die'`, until schema 71: The Auspicious Seal handed
+   * over a die of the Magister the first time it was slotted. The dice went with
+   * the fewer-things pass (`docs/fewer-things.md` §1 — faith rerolls a draft
+   * now) and the card was retired with them, so the union is one member wide
+   * again. A second *kind* is a design decision; a second card wanting the
+   * existing one is a JSON row.
    */
-  grant: 'greatPerson' | 'die';
+  grant: 'greatPerson';
 }
 
 export interface OrderDef extends CardDefBase {

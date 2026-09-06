@@ -62,7 +62,6 @@ import {
   BEAD_DECK_AGES,
   beadDeckFor,
   drawAgeReckonings,
-  BEAD_RULES,
 } from './beadData';
 import type { ProjectId } from './projectData';
 import type { DiscoveryId, DiscoveryKind } from './discoveryData';
@@ -1320,8 +1319,37 @@ import {
  *     two rarities change the weights, so every draft from a v69 seed deals a
  *     different hand, and a v69 seat under Imperium or Divine Mandate was
  *     collecting different yields from the same board.
+ *
+ * v71: **faith's currency** (ruled 2026-09-06, `docs/fewer-things.md` §3 and §1's
+ * reroll row; the batch is `docs/fewer-things-plan.md` C1). The Magister's dice
+ * were a bank the game filled and nothing ever drew on; faith is the supplement
+ * the design actually wanted, so the dice go and faith buys two things.
+ *
+ *   · **The dice are gone.** `Player.dice` and `BeadRules.startingDice` are
+ *     removed, eight bead boons lose their `dice` grant, Chronology loses its
+ *     `ageEntryDice`, and The Auspicious Seal — the one Order that paid one — is
+ *     **retired** (the row kept for replay, out of every pool, as The Loose Rein
+ *     is). Nothing spent a die, so no outcome moves for it; what moves is the
+ *     draw, because a retired row leaves the Government III bag.
+ *   · **The faith ladder deals the pantheon.** `PlayerPantheon.rungs` counts the
+ *     consecrations the bank has paid for, `RELIGION.ladder` prices them (40,
+ *     +15 a rung, at a 1.5 exponent — the augur's old price ladder), and
+ *     `openFaithLadder` opens a belief draft the moment `Player.faithPool`
+ *     covers the next rung. The offer carries the price it quoted
+ *     (`BeliefOffer.rungCost`) and the **pick** pays it. The augur's own
+ *     Consecrate is untouched and stays until batch C2 retires it.
+ *   · **A draft may be rerolled for faith.** `rerollOffer` redeals an Order hand
+ *     (`PlayerStatecraft.rerollsTaken` is the empire's bill, `RELIGION.reroll`
+ *     the price, Chronology's Long Count the door) or a belief hand (free, and
+ *     counted by nothing). `SlottedOrder.rerollsSeen` — declared in the shapes
+ *     batch — is written for the first time here.
+ *
+ *     The migration note: a v70 save does not load. Two fields left the player
+ *     (`dice`) and the rules (`startingDice`), two joined
+ *     (`PlayerStatecraft.rerollsTaken`, `PlayerPantheon.rungs`), and a retired
+ *     Order changes every Government III draw from the same seed.
  */
-export const SCHEMA_VERSION = 70;
+export const SCHEMA_VERSION = 71;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1868,16 +1896,6 @@ export interface Player {
    * is the world's register, because almost every bead is a first-in-the-world.
    */
   beads: EarnedBead[];
-  /**
-   * Magister's Dice, held. **Uncapped** (user ruling, 2026-08-30), which
-   * supersedes Entry XV's "cap 3 held": a fourth die is kept like the first
-   * three, and a boon that pays one is `dice += n` with nothing to clamp.
-   *
-   * Nothing spends them yet — the seal they were designed for is Æra V's — so
-   * this is a bank the game fills and never draws on, said out loud here rather
-   * than left as a surprise.
-   */
-  dice: number;
   /**
    * Cities this empire **founded itself**, ever. The Founder's count.
    *
@@ -3475,9 +3493,6 @@ export function newGame(config: GameConfig): GameState {
       // reason: an empire that clacks a bead must not write it onto every rod
       // in the world.
       beads: [],
-      // Every real seat opens the game with the rules' starting dice (user,
-      // 2026-08-30); the wild's stays zero below — it rolls nothing.
-      dice: BEAD_RULES.startingDice,
       citiesFounded: 0,
       citiesCaptured: 0,
       faithOnHolyOrders: 0,
@@ -3613,7 +3628,6 @@ function seatBarbarians(state: GameState): void {
     // and filled by nothing: the `beads` phase skips the wild the way the renown
     // phase does. The wild has no Abacus and nothing to win.
     beads: [],
-    dice: 0,
     citiesFounded: 0,
     citiesCaptured: 0,
     faithOnHolyOrders: 0,

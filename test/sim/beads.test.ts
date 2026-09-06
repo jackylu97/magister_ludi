@@ -206,7 +206,11 @@ describe('the bead catalogue', () => {
     // game outright — the builder is the winner, and the most-beads count with
     // its builder tie-break is retired. A v68 log replays to the same board and
     // to a different verdict, which is the one thing a version number is for.
-    expect(SCHEMA_VERSION).toBe(70);
+    // v71 (2026-09-06, faith's currency): the dice of the Magister are gone —
+    // `Player.dice`, the rules' starting dice, and the eight boons that paid
+    // one, seven of which now pay nothing and say so. A v70 log's seats hold a
+    // bank this build does not have.
+    expect(SCHEMA_VERSION).toBe(71);
   });
 
   it('puts the beads phase directly after renown', () => {
@@ -626,28 +630,24 @@ describe('a boon settles through the seam that already exists', () => {
     expect(settler?.freeUpkeep).toBe(true);
   });
 
-  it('seats every real player with the rules\' starting dice, and the wild with none', () => {
-    const state = flatState();
-    for (const player of state.players) {
-      expect(player.dice).toBe(player.barbarian ? 0 : BEAD_RULES.startingDice);
-    }
-    expect(BEAD_RULES.startingDice).toBe(2);
-  });
-
-  it('keeps every die it is paid — there is no cap', () => {
-    // The user's ruling of 2026-08-30 supersedes Entry XV's held cap of three:
-    // a fourth die is kept like the first three.
-    const state = flatState();
-    plant(state, 0, 4, 4);
-    const player = state.players[0]!;
-    // Zeroed so the claim is about the awards alone — a fresh seat starts with
-    // the rules' two (pinned below), which would fog this count.
-    player.dice = 0;
+  /**
+   * Re-aimed 2026-09-06 (schema 71, `docs/fewer-things.md` §1): the dice of the
+   * Magister are gone — `Player.dice`, `BeadRules.startingDice` and the eight
+   * boons that paid one. The two tests that stood here pinned the starting dice
+   * and the absence of a cap on them; what is left to pin is that the seven
+   * quests which paid *only* a die now pay nothing at all and **say so on their
+   * face**, which is this codebase's standing answer for a card promising
+   * something the vocabulary cannot yet pay.
+   */
+  it('leaves a quest whose only boon was a die paying nothing, and annotated', () => {
     for (const id of ['threeOfTheAge', 'theScholarsWager', 'thePatron', 'theBuilder'] as const) {
-      state.beads.claimed = state.beads.claimed.filter((claim) => claim.id !== id);
-      awardBead(state, 0, id, 0);
+      const def = beadQuestDef(id);
+      expect(describeBeadBoon(def.boon)).toEqual([]);
+      expect(def.deferred?.length ?? 0).toBeGreaterThan(0);
     }
-    expect(player.dice).toBe(4);
+    // And the lint agrees: an empty boon is a data mistake unless the row owns
+    // up to it.
+    expect(beadDataProblems()).toEqual([]);
   });
 
   it('raises a cap that every ledger then reads', () => {
@@ -804,11 +804,9 @@ describe('every award reaches the caller', () => {
 // --- 8b. the describer ------------------------------------------------------
 
 describe('describeBeadBoon', () => {
-  it('says a die, a windfall, a grant and a cap in that order', () => {
-    expect(describeBeadBoon({ dice: 1 }).map((c) => c.text)).toEqual(['a die of the Magister']);
-    expect(describeBeadBoon({ dice: 2 }).map((c) => c.text)).toEqual([
-      '2 dice of the Magister',
-    ]);
+  // Re-aimed 2026-09-06 (schema 71): the die clause is gone with the dice, so
+  // the order the settlement pays in is windfall, grant, caps.
+  it('says a windfall, a grant and a cap in that order', () => {
     expect(
       describeBeadBoon({ windfall: { yield: 'science', amount: 200, where: 'capital' } }).map(
         (c) => c.text,
@@ -841,8 +839,11 @@ describe('describeBeadBoon', () => {
 
     // Several at once, in the settlement's own order.
     expect(
-      describeBeadBoon({ dice: 1, effects: [{ kind: 'happiness', amount: 2 }] }).map((c) => c.text),
-    ).toEqual(['a die of the Magister', 'a lasting step: +2 happiness']);
+      describeBeadBoon({
+        windfall: { yield: 'science', amount: 200, where: 'capital' },
+        effects: [{ kind: 'happiness', amount: 2 }],
+      }).map((c) => c.text),
+    ).toEqual(['a one-time windfall of 200 science', 'a lasting step: +2 happiness']);
   });
 
   it('names a granted unit as a keyword ref', () => {
@@ -866,12 +867,20 @@ describe('describeBeadBoon', () => {
     );
   });
 
-  it('says every row in the catalogue, and never says nothing', () => {
+  // Re-aimed 2026-09-06 (schema 71): seven quests paid a die of the Magister and
+  // nothing else, and the dice are gone. Those rows say nothing in the boon
+  // vocabulary now and say it in a `deferred` line instead — which is what the
+  // lint requires of them (`beadDataProblems`) and what this reads.
+  it('says every row in the catalogue, or owns up to paying nothing', () => {
+    const speaks = (id: string, boon: Parameters<typeof describeBeadBoon>[0], deferred?: string[]): void => {
+      const said = describeBeadBoon(boon).length;
+      expect(said + (deferred?.length ?? 0), id).toBeGreaterThan(0);
+    };
     for (const id of BEAD_QUEST_IDS) {
-      expect(describeBeadBoon(beadQuestDef(id).boon).length, id).toBeGreaterThan(0);
+      speaks(id, beadQuestDef(id).boon, beadQuestDef(id).deferred);
     }
     for (const id of BEAD_ENDEAVOUR_IDS) {
-      expect(describeBeadBoon(beadEndeavourDef(id).boon).length, id).toBeGreaterThan(0);
+      speaks(id, beadEndeavourDef(id).boon, beadEndeavourDef(id).deferred);
     }
   });
 });

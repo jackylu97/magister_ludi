@@ -760,6 +760,7 @@ describe('the schema witness', () => {
     // contain a puppet's purchase this reducer refuses, so it is a different
     // game rather than an older one. The other eleven witnesses are listed in
     // `test/sim/state.test.ts`'s own migration note.
-    expect(SCHEMA_VERSION).toBe(70);
+    // 71 since batch C1 (2026-09-06): the dice leave; the faith ladder and the reroll arrive.
+    expect(SCHEMA_VERSION).toBe(71);
   });
 });

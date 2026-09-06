@@ -745,15 +745,10 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
         wire.append(beadChipNode(slot.family!, beadHoverText(earned)));
       });
       rod.append(wire);
-      rod.append(
-        element(
-          'p',
-          'bead-rod-dice',
-          player.dice === 1
-            ? '1 die of the Magister'
-            : `${figure(player.dice)} dice of the Magister`,
-        ),
-      );
+      // The rod used to carry a line of dice of the Magister under the wire.
+      // The dice went with schema 71 (`docs/fewer-things.md` §1 — faith rerolls
+      // a draft now), and nothing stands in their place: the rod counts beads,
+      // which is the whole of what it was ever for.
       column.append(rod);
     }
     return column;

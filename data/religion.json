@@ -9,6 +9,17 @@
     "followerSlots": 3,
     "enhancerSlots": 2
   },
+  "ladder": {
+    "costBase": 40,
+    "costLinear": 15,
+    "costExponent": 1.5
+  },
+  "reroll": {
+    "base": 35,
+    "exponent": 1.35,
+    "ageMultiplier": [1, 1, 1.6, 2.2],
+    "ability": "theLongCount"
+  },
   "names": {
     "epithets": {
       "hearth": [

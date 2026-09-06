@@ -467,7 +467,6 @@ is take one or pass.
 | The Dry Docks | E | 🐫 |   | +25% production toward ships in every city with a Harbour. · †deferred |
 | The Wintering Grounds | M | — |   | Your units cost no gold in maintenance outside your territory |
 | The Annals of Law | W | — |   | +2 culture for each Order you hold but have not placed in a slot. |
-| The Auspicious Seal | W | — |   | The first time this Order is placed in a slot, a die of the Magister is yours. |
 | The Salting Houses | E | 🐫 |   | Coastal cities gain 10% of their food yield again as production. |
 | The Drafting Halls | E | ✶ |   | Cities with a Library gain 10% of their production again as science. |
 | The Golden Scales | E | 🐫 |   | Every city gains 10% of its gold yield again as science. |

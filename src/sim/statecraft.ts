@@ -66,6 +66,7 @@ import {
   queueCategory,
   realiseItem,
   resourceCopies,
+  settleGrowthWindfall,
   spawnTileFor,
   tileOwnerCityId,
   tileOwnerPlayerId,
@@ -128,7 +129,9 @@ import {
   type CardPressureEffect,
   type PressureRuleId,
   type BehaviorRuleId,
+  type CardBuildingYieldPercentEffect,
   type CardCountScaledEffect,
+  type CardPeriodicEffect,
   type CardDefBase,
   type CardEffect,
   type CardId,
@@ -292,6 +295,42 @@ export interface SlottedOrder {
   card: OrderId;
   /** `state.turn >= sealedUntil` means it is free to move. */
   sealedUntil: number;
+  /**
+   * **When this chair's periodic boon next comes round**, absolute, or absent
+   * because the card in it has no clock (which is every card in the table today).
+   *
+   * `sealedUntil`'s discipline at a different cadence and for its reason exactly:
+   * a countdown is state a phase has to tick, and a phase that ticks it is a
+   * phase that can be skipped, run twice, or run in the wrong order. See
+   * `CardPeriodicEffect` for the stamping rule and `runPeriodicBoons` for the one
+   * place either field is written.
+   *
+   * It lives on the **chair** rather than on the owned card, unlike
+   * `PlayerStatecraft.tallies`, and that is the ruled reading: a card taken out
+   * of its chair loses its clock, because the bench is never productive.
+   */
+  nextFiresTurn?: number;
+  /**
+   * The **period the stamp above was made under**, so a shortener slotted or
+   * unslotted since can move the stamp by exactly the difference.
+   *
+   * Written beside `nextFiresTurn` and never without it. It is the only thing
+   * that lets the phase notice a clock that changed between two firings, which is
+   * what keeps the re-stamping rule out of the reducer: the one moment anything
+   * fires is the one moment anything has to be re-stamped.
+   */
+  firePeriod?: number;
+  /**
+   * **Order drafts rerolled while this card has sat in this chair** — the count
+   * `rerollsWhileSlotted` reads.
+   *
+   * Declared here and written by **nobody** until batch C1 builds the reroll
+   * verb (`docs/fewer-things-plan.md`): a save from before that batch and a save
+   * from after it serialise identically for every empire that has never
+   * rerolled, because absence is nought. It belongs to the chair for the count's
+   * own reason — the ruled sentence is *"while this Order is slotted"*.
+   */
+  rerollsSeen?: number;
 }
 
 /**
@@ -403,6 +442,23 @@ export interface PlayerStatecraft {
    */
   orderSkips: number;
   /**
+   * **Order drafts this empire has rerolled for faith**, ever (schema 71).
+   *
+   * `orderSkips`' twin and its opposite: a pass gives a hand up and banks pity,
+   * a reroll pays for another one and banks a *price*. So this is never zeroed —
+   * the whole design of the reroll is that it grows dearer every time it is
+   * used, and a count that reset would be a discount for taking a card.
+   *
+   * An **absolute count**, read once by `explainRerollCost` when the button
+   * prints the next price, raised in one place (`settleReroll`, `religion.ts`)
+   * and ticked by nothing. Distinct from `SlottedOrder.rerollsSeen`, which is
+   * the same act counted per chair for the cards that pay to watch it: this one
+   * is the empire's bill.
+   *
+   * Always present, never optional — `orderSkips`' rule.
+   */
+  rerollsTaken: number;
+  /**
    * **What each growing card has watched happen** — the counters the scaling
    * family reads (`docs/doctrine-ideas.md`, ruled 2026-09-04).
    *
@@ -448,6 +504,7 @@ export function newPlayerStatecraft(): PlayerStatecraft {
     doctrines: [],
     grantedOnSlot: [],
     orderSkips: 0,
+    rerollsTaken: 0,
     tallies: [],
   };
 }
@@ -564,9 +621,58 @@ function orderWatches(id: OrderId, occasion: TallyOccasion): boolean {
   return false;
 }
 
-/** The slot types this government opens, military first. */
+/**
+ * The slot types this government opens, military first.
+ *
+ * **THE slot-order contract**, stated once here because two systems now depend on
+ * it (ruled 2026-09-06, `docs/fewer-things.md` §1's levers):
+ *
+ *   · this array and `PlayerStatecraft.slots` are **the same order, index for
+ *     index** — `newPlayerStatecraft` and `adoptGovernmentAt` both build the
+ *     slots by mapping over this list, so slot *i* has flavour `slotTypesOf()[i]`;
+ *   · **the order is the order the screen draws**, top to bottom, and therefore
+ *     the order a player counts in. "The first economic slot" is the
+ *     lowest-indexed slot whose flavour here is `'economic'` — the *chair's*
+ *     flavour and never the card's, so an economic Order placed in a wildcard
+ *     chair is not sitting in an economic slot;
+ *   · rearranging is a **placement**, so a position is a decision a player made
+ *     and a card may be paid for it (`CardSlotPositionEffect`, read through
+ *     `orderAtSlotPosition`).
+ *
+ * A screen that grouped the chairs by flavour would break the second clause and
+ * with it every position card; `src/ui/statecraftScreen.ts` draws them in this
+ * order for that reason.
+ */
 export function slotTypesOf(sc: PlayerStatecraft): SlotType[] {
   return slotLayout(sc.government);
+}
+
+/**
+ * The Order sitting in the `position`-th chair of a flavour, counting from one in
+ * slot order — or `null` for a chair that does not exist or stands empty.
+ *
+ * The one reading of a slot's *position*, and the whole of what
+ * `CardSlotPositionEffect` needs from the state. An absent `slot` counts every
+ * chair, which is what "the first slot" means with no flavour named.
+ *
+ * See `slotTypesOf` for why the array's index is the position a player sees.
+ */
+export function orderAtSlotPosition(
+  sc: PlayerStatecraft,
+  position: number,
+  slot?: SlotType,
+): OrderId | null {
+  if (position < 1) return null;
+  const flavours = slotTypesOf(sc);
+  let seen = 0;
+  for (let index = 0; index < sc.slots.length; index++) {
+    if (slot !== undefined && flavours[index] !== slot) continue;
+    seen += 1;
+    if (seen !== position) continue;
+    const held = sc.slots[index];
+    return held && isOrderId(held.card) ? held.card : null;
+  }
+  return null;
 }
 
 /**
@@ -1092,6 +1198,27 @@ export function anyCardName(id: CardId): string {
  * condition that asks about a meter cannot ask about itself.
  */
 let conditionDepth = 0;
+
+/**
+ * The recursion cut for `CountKind`'s `empireYield`, and `conditionDepth`'s idiom
+ * one question over: while this empire's books are being folded, a count that
+ * asks what the books say answers nothing.
+ *
+ * `empireRateReading` prices every town, a town's price folds its cards, and a
+ * card written on the empire's own science would otherwise ask for the answer it
+ * is helping to compute. The cut is stated on the count and pinned by a fixture.
+ */
+let rateDepth = 0;
+
+/** Which line of the empire's books each voice is read off. `empireYield`'s. */
+const RATE_OF_VOICE: Record<CityYieldKey, keyof RateReading> = {
+  food: 'foodPerTurn',
+  production: 'productionPerTurn',
+  gold: 'goldPerTurn',
+  science: 'sciencePerTurn',
+  culture: 'culturePerTurn',
+  faith: 'faithPerTurn',
+};
 
 /**
  * One empire condition a build consulted, and what it answered.
@@ -2657,6 +2784,62 @@ export function countOf(
       }
       return total;
     }
+    case 'buildingsOfCategories': {
+      // `buildingsOfCategory` with a list rather than a word — The Long Count's
+      // science *and* faith houses. An empty or absent list counts nothing, for
+      // that count's stated reason: a question that never said which buildings
+      // must not quietly answer "all of them".
+      const wanted = effect.categories;
+      if (wanted === undefined || wanted.length === 0) return 0;
+      if (effect.within === 'city') {
+        if (!city) return 0;
+        let here = 0;
+        for (const id of city.buildings) {
+          if (wanted.includes(buildingDef(id).category)) here += 1;
+        }
+        return here;
+      }
+      let total = 0;
+      for (const town of state.cities) {
+        if (town.ownerId !== playerId) continue;
+        for (const id of town.buildings) {
+          if (wanted.includes(buildingDef(id).category)) total += 1;
+        }
+      }
+      return total;
+    }
+    case 'empireYield': {
+      // **The books, not the board** — and the one count that could feed itself,
+      // cut the way `conditionRule` is cut. `empireRateReading` folds every town,
+      // which folds the cards, which reaches this arm; while that fold is running
+      // this count answers nothing, so a card written on the empire's gold cannot
+      // be paid for the gold it is itself paying. See `CountKind`'s `empireYield`.
+      const voice = effect.voice;
+      if (voice === undefined) return 0;
+      if (rateDepth > 0) return 0;
+      rateDepth += 1;
+      try {
+        const rates = empireRateReading(state, playerId);
+        return Math.max(0, Math.floor(rates[RATE_OF_VOICE[voice]] ?? 0));
+      } finally {
+        rateDepth -= 1;
+      }
+    }
+    case 'rerollsWhileSlotted': {
+      // The **chair's** counter, not the card's: the ruled sentence is "while
+      // this Order is slotted", so a card benched and re-slotted starts a new
+      // watch. Nothing writes `rerollsSeen` until batch C1 builds the reroll, so
+      // this reads nought in every empire today — the honest answer for a thing
+      // that has not happened yet.
+      const sc = statecraftOf(state, playerId);
+      if (!sc) return 0;
+      let total = 0;
+      for (const held of sc.slots) {
+        if (held?.card !== card) continue;
+        total += held.rerollsSeen ?? 0;
+      }
+      return total;
+    }
     case 'defensiveBuildings': {
       if (!city) return 0;
       // A fortification is read off what a building *does* to its town — the
@@ -2940,6 +3123,21 @@ export interface RateReading {
    * `RateSource` and reads this field that already exists.
    */
   sciencePerTurn?: number;
+  /**
+   * What the empire's towns made in **food** and in **hammers** this turn — the
+   * two voices that have no empire bank at all (`collectYields` has nowhere to
+   * put them) and are therefore read rather than banked.
+   *
+   * `sciencePerTurn`'s siblings and here for its stated reason: no `RateSource`
+   * names either, because a `rateConversion` is quoted out of what an empire
+   * *banked* and these are not banked anywhere. What wanted them is
+   * `CountKind`'s `empireYield` — Horology's "science equal to your empire-wide
+   * production" — which asks the books rather than sweeping the towns a second
+   * time, so a periodic boon and a city's own sheet cannot disagree about what a
+   * turn is worth.
+   */
+  productionPerTurn?: number;
+  foodPerTurn?: number;
 }
 
 function rateOf(
@@ -3103,7 +3301,106 @@ export function cardCityYields(state: GameState, city: City): CardYieldLine[] {
     if (paysSomething(line)) list.push(line);
   }
 
+  // **The deck reading itself**, last and off a snapshot of everything above it.
+  // See `deckModifierLines`: the engines are computed from the fold *as it stood
+  // before any engine spoke*, so two of them cannot amplify each other and their
+  // order cannot change what either pays.
+  for (const line of deckModifierLines(state, owner, list, city)) list.push(line);
+
   return list;
+}
+
+/**
+ * **What the deck's engines add to a fold of card lines** — the additive
+ * amplifier by voice (`cardYieldAmplifier`) and the position reader
+ * (`slotPosition`), as their own labelled lines.
+ *
+ * One function over both folds, so "your Orders that give food give an
+ * additional food" means the same thing to a town's sheet and to the empire's
+ * books, and a third caller (the ground, `cardTileLines`) reads the same rules
+ * through `tileAmplifierLines`.
+ *
+ * Three disciplines, all of them stated on the shapes and pinned by fixtures:
+ *
+ *   · **`base` is a snapshot.** Every engine reads the list as it stood before
+ *     any engine spoke, so two amplifiers never compound and their order in the
+ *     walk cannot change what either pays — `cardYieldConversions`' rule, one
+ *     list over;
+ *   · **the Orders' lines only, never its own.** The ruled sentence is *your
+ *     Orders*; a government's signature, a wonder and a technology are not things
+ *     a player arranged in a chair, and a card that read its own line would be an
+ *     engine feeding itself;
+ *   · **per line instance.** The flat is paid once per amplified line, which is
+ *     what makes the additive form stack with a card that already dresses forty
+ *     hexes — the user's stated reason for additive being the default.
+ *
+ * `city` is the town the fold belongs to, or absent for the empire's books; an
+ * amplifier naming a `scope` is a fact about a town's ledger and pays nothing at
+ * all in the empire fold, which is the honest reading rather than a guess about
+ * where an empire line "is".
+ */
+function deckModifierLines(
+  state: GameState,
+  playerId: number,
+  base: readonly CardYieldLine[],
+  city?: City,
+): CardYieldLine[] {
+  const out: CardYieldLine[] = [];
+  const live = city
+    ? cityEffectsOfKind(state, city, 'cardYieldAmplifier')
+    : effectsOfKind(state, playerId, 'cardYieldAmplifier');
+  for (const { source, card, effect } of live) {
+    if (effect.scope !== undefined && (!city || !cityScopeAdmits(state, city, effect.scope))) {
+      continue;
+    }
+    const line = emptyLine(card, source);
+    let instances = 0;
+    for (const paid of base) {
+      if (paid.card === card || !isOrderId(paid.card)) continue;
+      let touched = false;
+      for (const voice of VOICES) {
+        if (effect.yield !== 'all' && effect.yield !== voice) continue;
+        if (paid[voice] <= 0) continue;
+        touched = true;
+        line[voice] +=
+          (effect.amount ?? 0) + Math.floor((paid[voice] * (effect.percent ?? 0)) / 100);
+      }
+      if (touched) instances += 1;
+    }
+    if (instances === 0 || !paysSomething(line)) continue;
+    out.push({
+      ...line,
+      source: label(
+        label(source, scopeNote(effect.scope)),
+        `${instances} line${instances === 1 ? '' : 's'}`,
+      ),
+    });
+  }
+
+  const sc = statecraftOf(state, playerId);
+  const positions = city
+    ? cityEffectsOfKind(state, city, 'slotPosition')
+    : effectsOfKind(state, playerId, 'slotPosition');
+  for (const { source, card, effect } of positions) {
+    if (!sc) continue;
+    const seated = orderAtSlotPosition(sc, effect.position, effect.slot);
+    // A chair that is empty, does not exist, or holds this very card pays
+    // nothing: an engine that read its own line would be an engine feeding
+    // itself, exactly as an amplifier that read its own would.
+    if (seated === null || seated === card) continue;
+    const extra = effect.factor - 1;
+    if (extra === 0) continue;
+    const line = emptyLine(card, label(source, orderDef(seated).name));
+    for (const paid of base) {
+      if (paid.card !== seated) continue;
+      for (const voice of VOICES) {
+        if (paid[voice] === 0) continue;
+        line[voice] += Math.floor(paid[voice] * extra);
+      }
+    }
+    if (paysSomething(line)) out.push(line);
+  }
+  return out;
 }
 
 /**
@@ -3150,6 +3447,11 @@ export function cardEmpireYields(
     if (paysSomething(line)) list.push(line);
   }
 
+  // The deck's engines over the empire's own lines, off a snapshot of everything
+  // above. See `deckModifierLines`; a scoped amplifier pays nothing here, an
+  // empire line having no town to be scoped to.
+  for (const line of deckModifierLines(state, playerId, list)) list.push(line);
+
   return list;
 }
 
@@ -3188,6 +3490,90 @@ export function cardYieldConversions(
     if (paysSomething(line)) list.push(line);
   }
   return list;
+}
+
+/**
+ * One share a card puts on **a class of buildings' own yields**, as the fold in
+ * `cities.ts` needs to read it — the "faith buildings +50%" engine and the
+ * doublers (`CardBuildingYieldPercentEffect`).
+ *
+ * `CardPercentLine`'s shape one ledger down, and the split is the same bargain
+ * `TileLine` strikes with the tile chain: this module is the only one that knows
+ * what a `CardEffect` looks like, and `cities.ts` is the only one that knows what
+ * a building pays. So the card table hands over the *shares* and the building
+ * fold applies them to the entries it already has in hand — no second reading of
+ * `BuildingDef.yields` comes into existence, and `cities.ts` still switches on no
+ * `kind`.
+ *
+ * `matches` is the selector, answered here so the caller never has to know what
+ * `category` and `pays` mean together: see the shape for why a *faith building*
+ * is read as "a row that pays faith" rather than off the seven-word category.
+ */
+export interface CardBuildingPercentLine {
+  card: CardId;
+  source: string;
+  /** The share, in whole percent. */
+  percent: number;
+  /** Taken over the building's total including the ordinary shares. */
+  appliedLast: boolean;
+  /** Does this share reach that building? `category` and `pays`, folded. */
+  matches: (id: BuildingId) => boolean;
+  /** Which of the building's voices it raises. Absent means every one. */
+  yield?: CityYieldKey | 'all';
+}
+
+/**
+ * Every `buildingYieldPercent` this empire's cards put on **this town's**
+ * shelves, in walk order — the ordinary shares first, then the ones taken last,
+ * which is the order `cities.ts` applies them in.
+ *
+ * A city reading, because the scope is a question about a town and because a
+ * building stands in one: the Synod raises the faith houses of every city and the
+ * Heroic Epic's kin raise one, and both are this one list asked per town.
+ */
+export function cardBuildingPercents(state: GameState, city: City): CardBuildingPercentLine[] {
+  const ordinary: CardBuildingPercentLine[] = [];
+  const last: CardBuildingPercentLine[] = [];
+  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'buildingYieldPercent')) {
+    if (!cityScopeAdmits(state, city, effect.scope)) continue;
+    if (effect.percent === 0) continue;
+    const line: CardBuildingPercentLine = {
+      card,
+      source: label(source, scopeNote(effect.scope)),
+      percent: effect.percent,
+      appliedLast: effect.appliedLast === true,
+      yield: effect.yield,
+      matches: (id) => buildingMatchesYieldPercent(id, effect),
+    };
+    (line.appliedLast ? last : ordinary).push(line);
+  }
+  return [...ordinary, ...last];
+}
+
+/**
+ * Which buildings a `buildingYieldPercent` reaches — the two selectors, folded.
+ *
+ * `category` is what a row is *for* (`BuildingDef.category`); `pays` is the voice
+ * its row actually **pays**, which is what a card means by "your faith
+ * buildings" — `CityScope`'s `hasBuildingYielding` asks the same question of a
+ * town and answers it the same way. Science counts a per-citizen line as paying:
+ * a Library whose whole beaker is per head is a science building in every
+ * sentence a player would write.
+ *
+ * Naming neither reaches every building the town has raised, which is the honest
+ * reading of a card that named no class rather than a guard.
+ */
+export function buildingMatchesYieldPercent(
+  id: BuildingId,
+  effect: CardBuildingYieldPercentEffect,
+): boolean {
+  const def = buildingDef(id);
+  if (effect.category !== undefined && def.category !== effect.category) return false;
+  const pays = effect.pays;
+  if (pays === undefined) return true;
+  if (pays === 'science') return (def.science ?? 0) > 0 || (def.sciencePerPop ?? 0) > 0;
+  const paid: number = pays === 'faith' ? (def.faith ?? 0) : def[pays];
+  return paid > 0;
 }
 
 /** The fold of any list of card-yield lines. The only sum of them. */
@@ -3363,11 +3749,71 @@ export function cardTileLines(state: GameState, playerId: number): CardTileLine[
   // and this pass has no city in hand — the same reason a granary's water line
   // cannot be resolved here (`TileYieldContext.lines`). The scoped ones are
   // added by `scopedCardTileLines` from `cityContext`, which does.
-  return tileLinesFrom(
-    pickKind(liveEffects(state, playerId), 'tileYield').filter(
-      ({ effect }) => effect.scope === undefined,
-    ),
+  const found = pickKind(liveEffects(state, playerId), 'tileYield').filter(
+    ({ effect }) => effect.scope === undefined,
   );
+  const lines = tileLinesFrom(found);
+  // The additive amplifier reaching the **ground** — the user's own reason for
+  // additive being the default ("so it stacks with '+1 food on each resource
+  // hex' hex by hex"). See `tileAmplifierLines`.
+  for (const line of tileAmplifierLines(state, playerId, found)) lines.push(line);
+  return lines;
+}
+
+/**
+ * **The amplifier's helping on every hex an Order already dresses** — one more
+ * line of the same shape, on the same condition, so the tile chain folds it with
+ * everything else and has no idea an engine spoke.
+ *
+ * This is the clause that makes the additive form worth writing: *"your Orders
+ * that give food give an additional food"* against a card paying +1🌾 on every
+ * resource hex is +1🌾 on every resource hex again, hex by hex, and no
+ * multiplication anywhere could have said that.
+ *
+ * Two cuts, both deliberate and both stated on `CardYieldAmplifierEffect`:
+ *
+ *   · **an amplifier naming a `scope` reaches no ground at all.** A scope is a
+ *     question about a town and this pass has none in hand — a granary's water
+ *     line cannot be resolved here for exactly the same reason;
+ *   · **the scoped tile lines are not amplified either** (`scopedCardTileLines`).
+ *     They already name which town they landed in, and a second scope question on
+ *     one fold would be two answers to one question.
+ *
+ * The percentage variant is taken off the line's own printed figure and floored
+ * per voice, exactly as it is in the ledger folds.
+ */
+function tileAmplifierLines(
+  state: GameState,
+  playerId: number,
+  found: readonly { source: string; card: CardId; effect: CardTileYieldEffect }[],
+): CardTileLine[] {
+  const out: CardTileLine[] = [];
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'cardYieldAmplifier')) {
+    if (effect.scope !== undefined) continue;
+    for (const dressed of found) {
+      if (dressed.card === card || !isOrderId(dressed.card)) continue;
+      const line: CardTileLine = {
+        source: label(source, tileConditionWords(dressed.effect.on)),
+        on: dressed.effect.on,
+        food: 0,
+        production: 0,
+        gold: 0,
+        science: 0,
+        culture: 0,
+        faith: 0,
+      };
+      let touched = false;
+      for (const voice of VOICES) {
+        if (effect.yield !== 'all' && effect.yield !== voice) continue;
+        const paid = dressed.effect[voice] ?? 0;
+        if (paid <= 0) continue;
+        touched = true;
+        line[voice] += (effect.amount ?? 0) + Math.floor((paid * (effect.percent ?? 0)) / 100);
+      }
+      if (touched && VOICES.some((voice) => line[voice] !== 0)) out.push(line);
+    }
+  }
+  return out;
 }
 
 /**
@@ -4836,6 +5282,157 @@ export function musterPeriodicUnits(state: GameState): void {
   }
 }
 
+/** The shortest a periodic clock can ever be. See `CardPeriodShortenEffect`. */
+const PERIODIC_FLOOR = 2;
+
+/** The payout a periodic boon's *count* is asked with, and it is never read. */
+const PERIODIC_PROBE: CardPayout = { to: 'authority', amount: 0 };
+
+/**
+ * What one periodic Order's clock is **for this empire**, this instant —
+ * `everyTurns` less every shortener it holds, floored at two.
+ *
+ * `shorten` is hoisted by the caller because it is a fact about the empire and
+ * not about the card: one sweep of the law per seat per phase, `zocField`'s
+ * bargain at the scale of a clock.
+ */
+function periodOf(everyTurns: number, shorten: number): number {
+  return Math.max(PERIODIC_FLOOR, Math.floor(everyTurns) - shorten);
+}
+
+/**
+ * **The periodic boons** — the calendar's own phase (`CardPeriodicEffect`).
+ *
+ * Two clocks, and which one a card is on is decided by whether it sits in a
+ * chair:
+ *
+ *   · **a slotted Order** keeps an absolute stamp on its slot record
+ *     (`SlottedOrder.nextFiresTurn`), so its cadence runs from the turn it was
+ *     placed rather than from the world's calendar — which is what makes
+ *     "slotting this is worth doing now" a real decision. A slot with no stamp is
+ *     stamped on the first phase after the card is placed, and the stamp dies
+ *     with the chair;
+ *   · **anything else** — a technology's gift, a building's, a Doctrine's — is on
+ *     the world's clock, `state.turn % period === 0`, which is `periodicMuster`'s
+ *     and `periodicOffer`'s reading exactly. There is no chair to hang a stamp on
+ *     and none is invented: a node held forever has nothing to date its cadence
+ *     from but the calendar.
+ *
+ * **Nothing ticks.** The stamp is compared and re-stamped, never counted down;
+ * `firePeriod` records the clock the stamp was made under, so a shortener slotted
+ * or unslotted since moves the stamp by exactly the difference (see
+ * `CardPeriodShortenEffect` — the rule and its symmetry) and no hook in the
+ * reducer is needed.
+ *
+ * The boon is a **windfall**: its figure is composed once with every rider before
+ * anything is banked (Entry XVIII.5), which is what makes "your boons pay more" a
+ * `windfallRider` on the `periodic` occasion rather than a second rule.
+ *
+ * `bankRenown` is injected rather than imported, and that is the module boundary
+ * doing its job: renown is added in exactly one place (`settleRenownWindfall`,
+ * `renown.ts`) and that file reads *this* one, so the phase's caller — `turn.ts`,
+ * which holds both — hands the seam in. A boon paying renown with no banker given
+ * pays nothing, which is the honest answer for a caller that did not offer one.
+ *
+ * `realPlayers` order, then slot order, then walk order, so a replay reproduces
+ * every firing in one fixed sequence. The wild is skipped for `runStatecraft`'s
+ * reason: it holds no cards.
+ */
+export function runPeriodicBoons(
+  state: GameState,
+  bankRenown?: (state: GameState, player: Player, amount: number) => void,
+): void {
+  for (const player of realPlayers(state)) {
+    const sc = player.statecraft;
+    let shorten = 0;
+    for (const { effect } of effectsOfKind(state, player.id, 'periodShorten')) {
+      shorten += Math.floor(effect.turns);
+    }
+    // The chairs first, in slot order — the stamped clock.
+    const seated = new Set<CardId>();
+    for (const slot of sc.slots) {
+      if (!slot || !isOrderId(slot.card)) continue;
+      seated.add(slot.card);
+      for (const effect of orderDef(slot.card).effects) {
+        if (effect.kind !== 'periodic') continue;
+        const period = periodOf(effect.everyTurns, shorten);
+        if (slot.nextFiresTurn === undefined) {
+          slot.nextFiresTurn = state.turn + period;
+          slot.firePeriod = period;
+          continue;
+        }
+        // The clock changed under an outstanding stamp: move it by the change and
+        // by nothing else. Exact, symmetric, reversible — see the shape.
+        if (slot.firePeriod !== undefined && slot.firePeriod !== period) {
+          slot.nextFiresTurn += period - slot.firePeriod;
+          slot.firePeriod = period;
+        }
+        if (state.turn < slot.nextFiresTurn) continue;
+        payPeriodicBoon(state, player, slot.card, CLASS_WORD.order, effect, bankRenown);
+        slot.nextFiresTurn = state.turn + period;
+        slot.firePeriod = period;
+      }
+    }
+    // Everything else, on the world's clock.
+    for (const { source, card, effect } of effectsOfKind(state, player.id, 'periodic')) {
+      if (seated.has(card)) continue;
+      const period = periodOf(effect.everyTurns, shorten);
+      if (state.turn % period !== 0) continue;
+      payPeriodicBoon(state, player, card, source, effect, bankRenown);
+    }
+  }
+}
+
+/**
+ * One boon, composed and banked — the half of `runPeriodicBoons` that is about
+ * money rather than about clocks.
+ *
+ * The figure is a flat or a count, and the count is the simulation's own
+ * (`countOf`) asked through a probe carrying the row's arguments — so a periodic
+ * boon and a `countScaled` line cannot disagree about how many faith houses an
+ * empire has. Composed through `windfallPayout` before a coin moves, and banked
+ * through `payWindfallGrants`, which is the one seam that pays a windfall.
+ */
+function payPeriodicBoon(
+  state: GameState,
+  player: Player,
+  card: CardId,
+  source: string,
+  effect: CardPeriodicEffect,
+  bankRenown?: (state: GameState, player: Player, amount: number) => void,
+): void {
+  const each = effect.amount ?? 1;
+  let figure = Math.floor(effect.amount ?? 0);
+  if (effect.count !== undefined) {
+    const probe: CardCountScaledEffect = {
+      kind: 'countScaled',
+      count: effect.count,
+      pays: PERIODIC_PROBE,
+      per: effect.per,
+      max: effect.max,
+      building: effect.building,
+      category: effect.category,
+      categories: effect.categories,
+      slot: effect.slot,
+      voice: effect.voice,
+      class: effect.class,
+      tally: effect.tally,
+    };
+    figure = helpings(countOf(state, player.id, card, probe), effect.per, effect.max) * each;
+  }
+  const payout = windfallPayout(state, player.id, 'periodic', figure);
+  if (effect.pays === 'renown') {
+    if (payout.amount !== 0) bankRenown?.(state, player, payout.amount);
+  } else if (payout.amount !== 0) {
+    payout.grants.push({ card, source, yield: effect.pays, amount: payout.amount });
+  }
+  const touched = payWindfallGrants(state, player, payout);
+  // The settlement register's own rule: a grant that filled a basket settles it
+  // the instant it lands. `settleGrowthWindfall` settles the hammers too.
+  for (const city of touched) settleGrowthWindfall(state, city);
+  settleCultureWindfall(state, player);
+}
+
 /**
  * Pays a windfall's *grants* — the voices a rider adds outright — into the
  * empire's banks and the nearest city's baskets.
@@ -5197,6 +5794,77 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
 }
 
 /**
+ * One share a card puts on **one town's** renown. See `CardCityRenownPercentEffect`.
+ */
+export interface CardCityRenownShare {
+  card: CardId;
+  source: string;
+  percent: number;
+}
+
+/**
+ * Every `cityRenownPercent` reaching this town — the Heroic Epic's half again.
+ *
+ * A list rather than a total, for `cardRenownLines`' reason exactly: the renown
+ * hover is the ordered ledger a player checks, so each share arrives as its own
+ * line with its own label and the fold stays the only sum. `explainCityRenown`
+ * (`renown.ts`) is the one caller.
+ */
+export function cardCityRenownShares(state: GameState, city: City): CardCityRenownShare[] {
+  const list: CardCityRenownShare[] = [];
+  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'cityRenownPercent')) {
+    if (effect.percent === 0) continue;
+    if (!cityScopeAdmits(state, city, effect.scope)) continue;
+    list.push({ card, source: label(source, scopeNote(effect.scope)), percent: effect.percent });
+  }
+  return list;
+}
+
+/**
+ * Every `routeYield` line this empire's cards put **on a caravan** that left this
+ * town — Silk Roads' coin and the Caravanserai's grain.
+ *
+ * Asked of the **origin**, which is the rule `routeYields.ts` keeps throughout: a
+ * route belongs to the seat that sent it, and its law is that seat's law. The
+ * `origin` scope is answered against that same town, so *"routes originating
+ * here"* is an ordinary `CityScope` and the hub is a building rather than a
+ * field.
+ *
+ * Faith is not in the shape and is not here: nothing pays a caravan in it.
+ */
+export function cardRouteYieldLines(
+  state: GameState,
+  from: City,
+): { card: CardId; source: string; food: number; production: number; gold: number; science: number; culture: number }[] {
+  const list: {
+    card: CardId;
+    source: string;
+    food: number;
+    production: number;
+    gold: number;
+    science: number;
+    culture: number;
+  }[] = [];
+  for (const { source, card, effect } of effectsOfKind(state, from.ownerId, 'routeYield')) {
+    if (effect.origin !== undefined && !cityScopeAdmits(state, from, effect.origin)) continue;
+    const line = {
+      card,
+      source: label(source, scopeNote(effect.origin)),
+      food: effect.food ?? 0,
+      production: effect.production ?? 0,
+      gold: effect.gold ?? 0,
+      science: effect.science ?? 0,
+      culture: effect.culture ?? 0,
+    };
+    if (line.food === 0 && line.production === 0 && line.gold === 0) {
+      if (line.science === 0 && line.culture === 0) continue;
+    }
+    list.push(line);
+  }
+  return list;
+}
+
+/**
  * What an amplifier does to somebody else's number, as a whole signed percent.
  *
  * The Grand Bazaar's shape and the one hook that reaches *into* another
@@ -5511,11 +6179,6 @@ export function describeCard(id: CardId): CardClause[] {
       if (grant.grant === 'greatPerson') {
         clauses.push({
           text: 'the first time this Order is placed in a slot, you are offered a great person',
-        });
-      }
-      if (grant.grant === 'die') {
-        clauses.push({
-          text: 'the first time this Order is placed in a slot, a die of the Magister is yours',
         });
       }
     }
@@ -6310,12 +6973,155 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       out.push({ text: `${who} cost ${off} less gold in maintenance${where}` });
       return;
     }
+    case 'cardYieldAmplifier': {
+      // Two sentences, because the two dials say different things: the flat is
+      // "one more, on every line the other cards pay" and the share is "worth
+      // half again". A row carrying both prints both, in that order.
+      const voice = effect.yield === 'all' ? 'a yield' : effect.yield;
+      const where = effect.scope === undefined ? '' : ` in ${scopeWords(effect.scope)}`;
+      if ((effect.amount ?? 0) !== 0) {
+        out.push({
+          text:
+            `your Orders that give ${voice} give ${signed(effect.amount ?? 0)} more` +
+            ` on every line they pay${where}`,
+        });
+      }
+      if ((effect.percent ?? 0) !== 0) {
+        out.push({
+          text: `what your other Orders pay in ${voice} is ${signed(effect.percent ?? 0)}% more${where}`,
+        });
+      }
+      return;
+    }
+    case 'buildingYieldPercent': {
+      const voice = effect.yield === undefined || effect.yield === 'all' ? '' : ` ${effect.yield}`;
+      const last = effect.appliedLast === true ? ', counted after every other bonus on them' : '';
+      const where = effect.scope === undefined ? '' : ` in ${scopeWords(effect.scope)}`;
+      out.push({
+        text:
+          `your ${buildingClassWords(effect)} pay ${signed(effect.percent)}%` +
+          ` more${voice}${where}${last}`,
+      });
+      return;
+    }
+    case 'slotPosition': {
+      const flavour = effect.slot === undefined ? '' : ` ${SLOT_WORDS[effect.slot].toLowerCase()}`;
+      out.push({
+        text:
+          `the Order in your ${ordinalWords(effect.position)}${flavour} slot` +
+          ` pays ${timesWords(effect.factor)}`,
+      });
+      return;
+    }
+    case 'periodic': {
+      const what = effect.pays === 'renown' ? 'renown' : effect.pays;
+      const when = `every ${Math.max(PERIODIC_FLOOR, Math.floor(effect.everyTurns))} turns`;
+      if (effect.count === undefined) {
+        out.push({ text: `${when}, ${signed(Math.floor(effect.amount ?? 0))} ${what}` });
+        return;
+      }
+      const each = effect.amount ?? 1;
+      const noun = countWords(effect.per, countNoun(periodicProbe(effect)));
+      out.push({ text: `${when}, ${each} ${what} for every ${noun}` });
+      return;
+    }
+    case 'periodShorten':
+      out.push({
+        text:
+          `your Orders that pay on a cadence come round ${effect.turns}` +
+          ` turn${effect.turns === 1 ? '' : 's'} sooner`,
+      });
+      return;
+    case 'cityRenownPercent':
+      out.push({
+        text: `${scopeWords(effect.scope)} earns ${signed(effect.percent)}% more renown`,
+      });
+      return;
+    case 'routeYield': {
+      const words = bagWords({
+        food: effect.food,
+        production: effect.production,
+        gold: effect.gold,
+        science: effect.science,
+        culture: effect.culture,
+      });
+      if (!words) return;
+      const whose =
+        effect.origin === undefined
+          ? 'every trade route you send'
+          : `every trade route sent from ${scopeWords(effect.origin)}`;
+      out.push({ text: `${words} on ${whose}` });
+      return;
+    }
     default: {
       const unhandled: never = kind;
       void unhandled;
       return;
     }
   }
+}
+
+/**
+ * Which buildings a `buildingYieldPercent` names, in a player's words.
+ *
+ * The two selectors said the way the row means them: `category` is what a
+ * building is *for* and `pays` is the voice it actually supplies — see
+ * `buildingMatchesPercent`, which answers the same question for the arithmetic.
+ */
+function buildingClassWords(effect: CardBuildingYieldPercentEffect): string {
+  const kind = effect.category === undefined ? 'buildings' : `${effect.category} buildings`;
+  return effect.pays === undefined ? kind : `${kind} that supply ${effect.pays}`;
+}
+
+/** Positions, in the words a slot is counted in. See `CardSlotPositionEffect`. */
+const ORDINAL_WORDS: readonly string[] = [
+  'first',
+  'second',
+  'third',
+  'fourth',
+  'fifth',
+  'sixth',
+  'seventh',
+  'eighth',
+  'ninth',
+  'tenth',
+];
+
+function ordinalWords(position: number): string {
+  return ORDINAL_WORDS[position - 1] ?? `${position}th`;
+}
+
+/** "twice", "three times" — what a `factor` multiplies a card's lines by. */
+function timesWords(factor: number): string {
+  if (factor === 2) return 'twice';
+  if (factor === 3) return 'three times over';
+  return `${factor} times over`;
+}
+
+/**
+ * A periodic boon's count, wearing the shape `countNoun`, `countOf` and the
+ * bot's `explainCounted` all read.
+ *
+ * The row carries the count's arguments itself (`CardPeriodicEffect`), so the
+ * probe is a translation and never a second table: one description of a count,
+ * one arithmetic for it and one price, whichever shape asked. Exported for the
+ * bot on `countOf`'s own licence — a *reading*, never a second evaluator.
+ */
+export function periodicProbe(effect: CardPeriodicEffect): CardCountScaledEffect {
+  return {
+    kind: 'countScaled',
+    count: effect.count ?? 'cities',
+    pays: PERIODIC_PROBE,
+    per: effect.per,
+    max: effect.max,
+    building: effect.building,
+    category: effect.category,
+    categories: effect.categories,
+    slot: effect.slot,
+    voice: effect.voice,
+    class: effect.class,
+    tally: effect.tally,
+  };
 }
 
 /**
@@ -6456,6 +7262,22 @@ function countNoun(effect: CardCountScaledEffect): PluralWords {
       one: `${effect.category} building`,
       many: `${effect.category} buildings`,
     };
+  }
+  // The same bargain over a list — "per science or faith building". The list's
+  // own order, because a row's order is what a designer wrote.
+  if (effect.count === 'buildingsOfCategories' && effect.categories !== undefined) {
+    const kinds = effect.categories;
+    const words =
+      kinds.length <= 1
+        ? (kinds[0] ?? '')
+        : `${kinds.slice(0, -1).join(', ')} or ${kinds[kinds.length - 1]}`;
+    return { one: `${words} building`, many: `${words} buildings` };
+  }
+  // The ledger's count, said as the column it reads — "per science your empire
+  // makes a turn". `buildingsOfKind`'s bargain a seventh time.
+  if (effect.count === 'empireYield' && effect.voice !== undefined) {
+    const words = `${effect.voice} your empire makes a turn`;
+    return { one: words, many: words };
   }
   // The deck-readers' count, said as the flavour the player drafts by — "per
   // economic Order you have in a slot". `buildingsOfKind`'s bargain a fourth
@@ -6999,6 +7821,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   rite: 'performing a rite',
   purchase: 'buying anything',
   declareWar: 'declaring war',
+  periodic: 'a boon coming round',
 };
 
 /**
@@ -7106,6 +7929,16 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // The category is not in these words either: `countNoun` prints it, so that
   // "per gold building" and "per faith building" are one entry.
   buildingsOfCategory: { one: 'building', many: 'buildings' },
+  // The list is not in these words either, for `buildingsOfCategory`'s reason —
+  // `countNoun` prints it, so any pair of categories is one entry.
+  buildingsOfCategories: { one: 'building', many: 'buildings' },
+  // The voice is not in these words: `countNoun` prints it, so "per gold your
+  // empire makes" and "per hammer" are one entry.
+  empireYield: { one: 'your empire makes a turn', many: 'your empire makes a turn' },
+  rerollsWhileSlotted: {
+    one: 'draft you have rerolled while this stood',
+    many: 'drafts you have rerolled while this stood',
+  },
   defensiveBuildings: {
     one: 'fortification in this city',
     many: 'fortifications in this city',

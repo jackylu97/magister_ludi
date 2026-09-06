@@ -128,7 +128,7 @@ function bench(): { state: GameState; playerId: number } {
   const order = 'weightsAndMeasures' as (typeof ORDER_IDS)[number];
   if (!sc.orders.includes(order)) sc.orders.push(order);
   sc.slots.push({ card: order, sealedUntil: state.turn });
-  player.pantheon = { beliefs: [ALL_BELIEF_IDS[0]!] };
+  player.pantheon = { beliefs: [ALL_BELIEF_IDS[0]!], rungs: 1 };
   return { state, playerId: 0 };
 }
 

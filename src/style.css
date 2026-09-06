@@ -6568,6 +6568,37 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--parchment);
 }
 
+/* The reroll (schema 71): a third control in the foot, drawn in plain ink
+   rather than in the vermilion the pass wears. The pass is the irreversible
+   half of the sheet — the hand is gone and the culture stays spent — and the
+   reroll is a purchase, so it must not borrow the warning colour.
+
+   It is also the one control here that may be greyed, because its price rises
+   with every use: a reroll nobody can afford still has to print what it would
+   cost, or the mechanism is invisible until the moment it is paid. */
+.offer-reroll {
+  border-color: var(--ink-faint);
+  color: var(--ink);
+}
+
+.offer-reroll:hover,
+.offer-reroll:focus-visible {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.offer-reroll:disabled {
+  border-color: var(--ink-faint);
+  color: var(--ink-faint);
+  cursor: default;
+  opacity: 0.55;
+}
+
+.offer-reroll:disabled:hover {
+  background: transparent;
+  color: var(--ink-faint);
+}
+
 /* The way back, pinned above End Turn while an offer is being held off-screen.
    Gilt rather than the primary ink, because it is not the button that ends the
    turn and must not be mistaken for it in the corner they share; it sits *over*
@@ -10955,14 +10986,6 @@ body.compendium-page {
 .bead-rod-name {
   font-family: var(--face-name);
   font-size: 0.95rem;
-}
-
-.bead-rod-dice {
-  margin: 2px 0 0;
-  font-family: var(--face-num);
-  font-variant-numeric: tabular-nums;
-  font-size: 0.76rem;
-  color: var(--ink-faint);
 }
 
 .bead-pane {

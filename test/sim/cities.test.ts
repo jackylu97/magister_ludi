@@ -3222,7 +3222,8 @@ describe('determinism with cities', () => {
     // v68 (2026-09-05, the cards pass): Government IV and V become Order pools
     // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
     // names indices into hands this build does not deal.
-    expect(SCHEMA_VERSION).toBe(70);
+    // 71 since batch C1 (2026-09-06): the dice leave; the faith ladder and the reroll arrive.
+    expect(SCHEMA_VERSION).toBe(71);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

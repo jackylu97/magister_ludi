@@ -22,13 +22,34 @@ effect evaluator). Draft history and superseded designs: git and
 
 | Unit | Called with | Act |
 |---|---|---|
-| **Augur** (Divination) | faith ladder 40 +15 | ONE charge: a consecration OR one rite; the act is its whole turn (`augurHasActed`). May plant nothing. |
+| **Augur** (Divination) | faith ladder 40 +15 | ONE charge: a consecration OR one rite; the act is its whole turn (`augurHasActed`). May plant nothing. **Retiring in batch C2** — the faith ladder below deals the consecration now. |
 | **Prophet** (The High Temple) | faith ladder 120 +60, own ladder | ONE charge. First prophet: `plantHolySite` founds the religion + raises the holy site + opens the founding drafts. Later prophets: one belief rung each (`gainBelief`, pool by `nextBeliefPool`'s ladder — followers to 3, then enhancers to 2; enhancers gated on Theology). `redraftBeliefs` kept (flagged in `docs/flags.md`). |
 | **Inquisitor** (The Holy Office) | flat 200 faith | Purge: a negative lump vs rival pressure (range 5, `purgeLump` 60; unconverted go to **nobody**) + a standing +2 adjacency aura (the general-aura twin). |
 
 `spendProphet` is the only spender; `plantingHandOf` says who may plant what
 (worker → improvements, great person → its family's work, prophet → the holy
 site, augur → nothing).
+
+## The faith ladder (schema 71)
+
+A consecration is **automatic**: no unit, no errand. `RELIGION.ladder`
+(`costBase` 40 · `costLinear` 15 · `costExponent` 1.5) prices rung *n* as
+`floor(40 + 15n + n^1.5)` — 40 · 56 · 72 — and `openFaithLadder`, inside the
+`religion` phase, deals the ordinary belief hand the moment `Player.faithPool`
+covers the next rung. `PlayerPantheon.rungs` is the count (rungs climbed, never
+gods held: a wonder's god and an augur's are not rungs). The offer carries the
+price it quoted (`BeliefOffer.rungCost`) and the **pick** spends it, floored at
+nothing. Three rungs, because the pantheon has three slots and the third opens
+at The High Temple — the ladder never learns the number.
+
+## The reroll (schema 71)
+
+`rerollOffer {playerId}` deals a draft again. An **Order** hand costs faith —
+`RELIGION.reroll`, `floor(base × ageMultiplier[age] × exponent^rerollsTaken)`,
+35 to start at ×1.35 a use, gated on Chronology's Long Count ability — raises
+`PlayerStatecraft.rerollsTaken` and `SlottedOrder.rerollsSeen` on every chair. A
+**belief** hand is free and raises nothing, and carries its `rungCost` over. The
+skip's pity, the culture meter and the tier are untouched.
 
 ## Founding
 

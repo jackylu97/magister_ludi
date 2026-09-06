@@ -333,8 +333,8 @@ export type BeadGrant =
 /**
  * What a bead pays, in one vocabulary.
  *
- * Every field is optional and a row may carry several: The Apostle pays a die
- * *and* a step of contentment. `effects` is the **cap** form — a permanent step
+ * Every field is optional and a row may carry several: The Apostle pays a
+ * windfall *and* a step of contentment. `effects` is the **cap** form — a permanent step
  * in authority capacity, happiness or route capacity — and it is read by
  * `liveEffects` as its **eighth source**, so a cap a bead granted is an ordinary
  * card effect in every ledger it reaches and `statecraft.ts` stays the one
@@ -345,8 +345,6 @@ export type BeadGrant =
  * building nobody built.
  */
 export interface BeadBoon {
-  /** Magister's Dice. Uncapped (user ruling, 2026-08-30). Nothing spends them yet. */
-  dice?: number;
   windfall?: BeadWindfall;
   grant?: BeadGrant;
   /** Permanent card effects — the caps. Read by `liveEffects`' eighth source. */
@@ -465,8 +463,6 @@ export interface BeadRules {
    * (`closeTheGreatWork`, schema 69) — the rod is a door and never a tally.
    */
   threshold: number;
-  /** Dice every real seat starts the game with (user, 2026-08-30). The wild gets none. */
-  startingDice: number;
   /**
    * How many cards an age's hand holds **face up at once**, by built age.
    *
@@ -718,13 +714,20 @@ export function beadDataProblems(): string[] {
     }
   };
 
-  const checkBoon = (id: string, boon: BeadBoon, where: string): void => {
+  const checkBoon = (id: string, def: BeadDefBase, boon: BeadBoon, where: string): void => {
     const pays =
-      (boon.dice ?? 0) > 0 ||
       boon.windfall !== undefined ||
       boon.grant !== undefined ||
       (boon.effects?.length ?? 0) > 0;
-    if (!pays) problems.push(`${where}: "${id}" pays nothing at all`);
+    // **A row that pays nothing must say so on its own face.** Seven quests paid
+    // a die of the Magister and nothing else, and the dice went with schema 71
+    // (`docs/fewer-things.md` §1) — so those rows now carry a `deferred` line
+    // instead, which is this codebase's standing answer for a card promising
+    // something the vocabulary cannot yet pay. A silent empty boon stays a data
+    // mistake; an annotated one is a debt in the open.
+    if (!pays && (def.deferred?.length ?? 0) === 0) {
+      problems.push(`${where}: "${id}" pays nothing at all`);
+    }
     const windfall = boon.windfall;
     if (windfall !== undefined && !(windfall.amount > 0)) {
       problems.push(`${where}: "${id}" pays a windfall of ${String(windfall.amount)}`);
@@ -754,7 +757,7 @@ export function beadDataProblems(): string[] {
     if (typeof def.flavor !== 'string' || def.flavor.length === 0) {
       problems.push(`endeavours: "${id}" has no flavour line`);
     }
-    checkBoon(id, def.boon, 'endeavours');
+    checkBoon(id, def, def.boon, 'endeavours');
     const building = prerequisiteBuilding(def.prerequisite);
     if (building !== null && !isBuildingId(building)) {
       problems.push(`endeavours: "${id}" wants "${String(building)}", which is not a building`);
@@ -766,7 +769,7 @@ export function beadDataProblems(): string[] {
     checkBase(id, def, 'quests');
     if (!isBeadAge(def.age)) problems.push(`quests: "${id}" is dealt in no deck`);
     checkDeed(id, def.deed, 'quests');
-    checkBoon(id, def.boon, 'quests');
+    checkBoon(id, def, def.boon, 'quests');
   }
 
   for (const id of BEAD_RECKONING_IDS) {

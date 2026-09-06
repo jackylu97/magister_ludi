@@ -210,6 +210,12 @@ const POSITION_READING_COUNTS: readonly CountKind[] = [];
 
 /** Does this one effect read a slot's position? See the register above. */
 function readsSlotPosition(effect: CardEffect): boolean {
+  // Batch A shipped the position reader as a **modifier** (`slotPosition`),
+  // not a count — "the Order in your first economic slot pays twice" reads a
+  // chair, and a chair is not a thing an empire counts. The count list stays
+  // for any future count that reads a position; today it is the modifier that
+  // opens the word.
+  if (effect.kind === 'slotPosition') return true;
   return effect.kind === 'countScaled' && POSITION_READING_COUNTS.includes(effect.count);
 }
 

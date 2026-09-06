@@ -66,6 +66,7 @@ import {
   cardOfferRule,
   cardUnitStat,
   cardRenownLines,
+  countOf,
   describeBuildingRow,
   describeCard,
   describeEffects,
@@ -79,14 +80,17 @@ import {
   liveEffects,
   livePool,
   musterPeriodicUnits,
+  orderAtSlotPosition,
   payWindfallGrants,
   newPlayerStatecraft,
   orderChoiceError,
   orderDrawWeight,
   planDraft,
   rarityDrawWeight,
+  runPeriodicBoons,
   sealRemaining,
   sealTurnsFor,
+  slotTypesOf,
   settleCultureWindfall,
   slotOrderError,
   slottedOrdersOfFlavour,
@@ -127,7 +131,7 @@ import { arriveOnTile } from '../../src/sim/arrival';
 import { closeWar, openWar } from '../../src/sim/wars';
 import { foundReligion } from '../../src/sim/religion';
 import type { CityYieldKey } from '../../src/sim/resourceData';
-import { foundCityAt } from '../../src/sim/cities';
+import { cardBuildingYields, foundCityAt } from '../../src/sim/cities';
 import { improvementDef } from '../../src/sim/improvementData';
 import { awardOccasion } from '../../src/sim/triumphs';
 import { applyCommand } from '../../src/sim/commands';
@@ -144,6 +148,7 @@ import {
 } from '../../src/sim/upkeep';
 import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
 import { buildError, isUnlocked } from '../../src/sim/tech';
+import { TECH_IDS, techDef } from '../../src/sim/techData';
 import {
   explainEmpireGold,
   explainRouteSlots,
@@ -159,6 +164,7 @@ import {
   createUnit,
   playerById,
 } from '../../src/sim/state';
+import { explainCityRenown, explainRenown, foldRenown } from '../../src/sim/renown';
 import { unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
 import { sightOf } from '../../src/sim/visibility';
@@ -299,10 +305,15 @@ describe('the card table', () => {
       // The chiefdom is the one signature-less row: it is where a game starts,
       // not a thing a player chose.
       if (id === STARTING_GOVERNMENT) continue;
-      // An Order whose whole face is a **slot grant** speaks too — The
-      // Auspicious Seal hands over a die the first time it is placed and stands
-      // for nothing afterwards, which is a card that says something and carries
-      // no `CardEffect` at all.
+      // **A retired row is out of this**, and The Auspicious Seal is the reason
+      // the clause exists (schema 71): its whole face was a die of the Magister
+      // handed over on first slotting, the dice are gone, and the row is kept
+      // only so a save that holds it still loads. A withdrawn card has nothing
+      // left to say and is not asked to say it.
+      if (ORDER_IDS.includes(id as never) && orderDef(id as never).retired === true) continue;
+      // An Order whose whole face is a **slot grant** speaks too — a card that
+      // says something and carries no `CardEffect` at all. No live row does
+      // today; the shape stands for the deck that wants it next.
       const granted = ORDER_IDS.includes(id as never) ? (orderDef(id as never).onSlot ?? []) : [];
       const hasSomething =
         def.effects.length > 0 || (def.deferred ?? []).length > 0 || granted.length > 0;
@@ -1175,7 +1186,12 @@ describe('determinism', () => {
     // and twenty-seven rows join them while eight leave the four pools below.
     // Every bag changed, so a v67 log's `chooseOrder` names indices into hands
     // this build does not deal.
-    expect(SCHEMA_VERSION).toBe(70);
+    // v71 (faith's currency, 2026-09-06): The Auspicious Seal is retired with
+    // the dice of the Magister it paid, so the Government III bag is one row
+    // shorter and a v70 log's `chooseOrder` names indices into a hand this
+    // build does not deal. Two fields joined the seat besides — the rerolls it
+    // has taken, and the rungs of the faith ladder it has climbed.
+    expect(SCHEMA_VERSION).toBe(71);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2219,35 +2235,32 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(g.state.camps).toHaveLength(0);
   });
 
-  it('onSlot — The Auspicious Seal pays one die, and never a second', () => {
-    // The Laureate carried this machinery until the Themes Build's rework
-    // (sheet 09, the user): its face is a renown trickle now, and the
-    // once-per-game claim moved to The Auspicious Seal's die. The *mechanism* is
-    // unchanged and is what this pins — `grantedOnSlot` is presence, and nothing
-    // removes an entry.
+  /**
+   * Re-aimed 2026-09-06 (schema 71, `docs/fewer-things.md` §1). This pinned the
+   * once-per-game slot grant through The Auspicious Seal's die of the Magister:
+   * slotted once it paid, unslotted and slotted again it did not. The dice are
+   * gone from the game and the Seal is retired with them, so **no live row
+   * carries an `onSlot` grant at all** — the machinery stays (`OrderSlotGrant`,
+   * `PlayerStatecraft.grantedOnSlot`, the reducer's arm) because it is a shape
+   * the deck may want again, and what is left to pin is that nothing fires it.
+   */
+  it('onSlot — no card in the deck carries a slot grant since the dice went', () => {
+    for (const id of ORDER_IDS) {
+      expect(orderDef(id).onSlot ?? [], id).toEqual([]);
+    }
     const g = game();
     found(g.state, 0);
     keepTheRites(g.state);
     const player = playerById(g.state, 0)!;
     const sc = player.statecraft;
     grant(sc, 'theAuspiciousSeal');
-    const before = player.dice;
-    // Room for it: the chiefdom's wildcard slot takes anything.
     const index = slotLayout(sc.government).indexOf('wildcard');
     expect(dispatch(g, {
       type: 'slotOrder', playerId: 0, cardId: 'theAuspiciousSeal', slotIndex: index,
     } as Command).ok).toBe(true);
-    expect(sc.grantedOnSlot).toEqual(['theAuspiciousSeal']);
-    expect(player.dice).toBe(before + 1);
-
-    // Empty the slot when the seal lifts and slot it again: no second die.
-    g.state.turn = sc.slots[index]!.sealedUntil;
-    expect(dispatch(g, { type: 'unslotOrder', playerId: 0, slotIndex: index } as Command).ok).toBe(true);
-    expect(dispatch(g, {
-      type: 'slotOrder', playerId: 0, cardId: 'theAuspiciousSeal', slotIndex: index,
-    } as Command).ok).toBe(true);
-    expect(sc.grantedOnSlot).toEqual(['theAuspiciousSeal']);
-    expect(player.dice).toBe(before + 1);
+    // The retired row still slots — a save that holds it keeps it — and the
+    // once-flag stays empty, because there is no grant to pay.
+    expect(sc.grantedOnSlot).toEqual([]);
   });
 
   it('offers Gov IV and Gov V at their rungs, and deals a Doctrine pool for each', () => {
@@ -3841,8 +3854,8 @@ describe('the ratified cards of the Themes Build', () => {
     }
     expect(wheres.has('foreignTerritory')).toBe(true);
     expect(filtered).toBe(true);
-    // And the slot grant that is not an effect at all.
-    expect(orderDef('theAuspiciousSeal').onSlot).toEqual([{ grant: 'die' }]);
+    // The slot grant that is not an effect at all went with the dice (schema
+    // 71): the shape stands and no live row asks for it.
   });
 
   it('prints every new row in the words the sheets ratified', () => {
@@ -3915,9 +3928,10 @@ describe('the ratified cards of the Themes Build', () => {
     expect(said('theAnnalsOfLaw')).toEqual([
       '+2 culture per Order you hold but have not placed in a slot',
     ]);
-    expect(said('theAuspiciousSeal')).toEqual([
-      'the first time this Order is placed in a slot, a die of the Magister is yours',
-    ]);
+    // The Auspicious Seal's line went with the dice (schema 71): the row is
+    // retired, its face says nothing the game still does, and `describeCard`
+    // prints no clause for it.
+    expect(said('theAuspiciousSeal')).toEqual([]);
     expect(said('theTriumphalWay')).toEqual([
       'capturing a city grants +5 happiness in every city for 10 turns',
     ]);
@@ -5987,5 +6001,633 @@ describe('the print register', () => {
     // not. One slot for both would answer a meter with the law and the law with
     // the meter's answer.
     expect(bodyOf('liveReading')).toMatch(/conditionDepth > 0/);
+  });
+});
+
+// --- the engine shapes (batch A of `docs/fewer-things-plan.md`) --------------
+
+/**
+ * The seven shapes `docs/fewer-things.md` §4 and `docs/tech-gifts.md` §7 ruled,
+ * proved by **fixtures** rather than by rows.
+ *
+ * No live card uses any of them — the rows are batches D through F — which is
+ * the batch's own acceptance ("byte-identical: no row uses a shape yet") and the
+ * reason every test here writes its own card. The fixtures are written by
+ * swapping a real Order's `effects` for the length of one test and putting them
+ * back, which is the only honest way to exercise the *slot* path: a periodic
+ * card's clock lives on its chair, and a chair only ever holds a real row.
+ */
+describe('the engine shapes', () => {
+  /** Runs `body` with these Orders wearing these effects, and puts them back. */
+  function withCards(
+    rows: readonly (readonly [OrderId, CardEffect[]])[],
+    body: () => void,
+  ): void {
+    const held = rows.map(([id]) => [id, orderDef(id).effects] as const);
+    try {
+      for (const [id, effects] of rows) {
+        (orderDef(id) as { effects: CardEffect[] }).effects = effects;
+      }
+      body();
+    } finally {
+      for (const [id, effects] of held) {
+        (orderDef(id) as { effects: CardEffect[] }).effects = effects as CardEffect[];
+      }
+    }
+  }
+
+  /** Seats a card in the government's own chair `index`, sealed and free. */
+  function seat(state: GameState, playerId: number, index: number, id: OrderId): void {
+    const sc = playerById(state, playerId)!.statecraft;
+    grant(sc, id);
+    sc.slots[index] = { card: id, sealedUntil: state.turn };
+  }
+
+  // --- 1. the amplifier by voice --------------------------------------------
+
+  it('pays the additive amplifier once per line instance, and says how many lines', () => {
+    withCards(
+      [
+        ['waysideShrines', [
+          { kind: 'cityYields', food: 2 },
+          { kind: 'cityYields', food: 5 },
+        ]],
+        ['theChoir', [{ kind: 'cardYieldAmplifier', yield: 'food', amount: 1 }]],
+      ],
+      () => {
+        const g = game();
+        const city = found(g.state, 0);
+        seat(g.state, 0, 0, 'waysideShrines');
+        seat(g.state, 0, 1, 'theChoir');
+        const lines = cardCityYields(g.state, city);
+        // Two food-paying lines on the other card, so the engine pays twice —
+        // per line instance, which is the whole of what "additive" bought.
+        const engine = lines.find((line) => line.card === 'theChoir')!;
+        expect(engine.food).toBe(2);
+        expect(engine.source).toContain('2 lines');
+        expect(foldCardYields(lines).food).toBe(2 + 5 + 2);
+      },
+    );
+  });
+
+  it('never amplifies its own card, nor anything that is not an Order', () => {
+    withCards(
+      [['waysideShrines', [
+        { kind: 'cityYields', food: 4 },
+        { kind: 'cardYieldAmplifier', yield: 'food', amount: 3 },
+      ]]],
+      () => {
+        const g = game();
+        const city = found(g.state, 0);
+        seat(g.state, 0, 0, 'waysideShrines');
+        // A line of the same card, and a line of something that is not an Order
+        // at all (an empire-timed effect labelled with the government).
+        playerById(g.state, 0)!.timed = [
+          {
+            card: STARTING_GOVERNMENT,
+            effect: { kind: 'cityYields', food: 6 },
+            expiresTurn: g.state.turn + 50,
+          },
+        ];
+        const lines = cardCityYields(g.state, city);
+        expect(lines.some((line) => line.source.includes('line'))).toBe(false);
+        expect(foldCardYields(lines).food).toBe(4 + 6);
+      },
+    );
+  });
+
+  it('takes the multiplicative variant off what the other card printed', () => {
+    withCards(
+      [
+        ['waysideShrines', [{ kind: 'cityYields', faith: 9 }]],
+        ['theChoir', [{ kind: 'cardYieldAmplifier', yield: 'faith', percent: 50 }]],
+      ],
+      () => {
+        const g = game();
+        const city = found(g.state, 0);
+        seat(g.state, 0, 0, 'waysideShrines');
+        seat(g.state, 0, 1, 'theChoir');
+        const lines = cardCityYields(g.state, city);
+        expect(lines.find((line) => line.card === 'theChoir')!.faith).toBe(4);
+      },
+    );
+  });
+
+  it('reaches the ground hex by hex, and the empire once', () => {
+    withCards(
+      [
+        ['waysideShrines', [
+          { kind: 'tileYield', on: { test: 'hasResource' }, food: 1 },
+          { kind: 'empireYields', gold: 3 },
+        ]],
+        ['theChoir', [{ kind: 'cardYieldAmplifier', yield: 'all', amount: 1 }]],
+      ],
+      () => {
+        const g = game();
+        found(g.state, 0);
+        seat(g.state, 0, 0, 'waysideShrines');
+        seat(g.state, 0, 1, 'theChoir');
+        // One more line on the ground, on the *same* condition — so the helping
+        // lands on every resource hex, which is the user's own reason for
+        // additive being the default.
+        const ground = cardTileLines(g.state, 0);
+        const helping = ground.find((line) => line.source.includes('Choir'))!;
+        expect(helping.on).toEqual({ test: 'hasResource' });
+        expect(helping.food).toBe(1);
+        // And once, in the empire's books.
+        const empire = cardEmpireYields(g.state, 0);
+        expect(empire.find((line) => line.card === 'theChoir')!.gold).toBe(1);
+      },
+    );
+  });
+
+  it('keeps a scoped amplifier out of the empire fold and off the ground', () => {
+    withCards(
+      [
+        ['waysideShrines', [
+          { kind: 'empireYields', gold: 3 },
+          { kind: 'tileYield', on: { test: 'hills' }, production: 1 },
+        ]],
+        ['theChoir', [
+          { kind: 'cardYieldAmplifier', yield: 'all', amount: 1, scope: { test: 'capital' } },
+        ]],
+      ],
+      () => {
+        const g = game();
+        const city = found(g.state, 0);
+        seat(g.state, 0, 0, 'waysideShrines');
+        seat(g.state, 0, 1, 'theChoir');
+        // An empire line lands in no town, and the ground pass holds no town —
+        // both stated cuts on the shape.
+        expect(cardEmpireYields(g.state, 0).some((line) => line.card === 'theChoir')).toBe(false);
+        expect(cardTileLines(g.state, 0).some((line) => line.source.includes('Choir'))).toBe(false);
+        void city;
+      },
+    );
+  });
+
+  it('does reach the capital’s own ledger, and says which town it landed in', () => {
+    withCards(
+      [
+        ['waysideShrines', [{ kind: 'cityYields', gold: 2 }]],
+        ['theChoir', [
+          { kind: 'cardYieldAmplifier', yield: 'gold', amount: 1, scope: { test: 'capital' } },
+        ]],
+      ],
+      () => {
+        const g = game();
+        const city = found(g.state, 0);
+        seat(g.state, 0, 0, 'waysideShrines');
+        seat(g.state, 0, 1, 'theChoir');
+        const paid = cardCityYields(g.state, city).find((line) => line.card === 'theChoir')!;
+        expect(paid.gold).toBe(1);
+        expect(paid.source).toContain('capital');
+      },
+    );
+  });
+
+  // --- 2. the building percent, and `appliedLast` ----------------------------
+
+  it('raises a class of buildings, and takes the doubler over what the first share left', () => {
+    withCards(
+      [
+        ['waysideShrines', [{ kind: 'buildingYieldPercent', pays: 'faith', percent: 50 }]],
+        ['theChoir', [
+          { kind: 'buildingYieldPercent', pays: 'faith', percent: 100, appliedLast: true },
+        ]],
+      ],
+      () => {
+        const g = game();
+        const city = found(g.state, 0);
+        city.buildings.push('temple');
+        seat(g.state, 0, 0, 'waysideShrines');
+        seat(g.state, 0, 1, 'theChoir');
+        const lines = cardBuildingYields(g.state, city);
+        // The Temple pays 2 faith. The ordinary share is half of that; the
+        // doubler is taken over 2 + 1, which is the ruling ("applies to total
+        // yields, including from other effects").
+        expect(lines.map((line) => [line.source, line.faith])).toEqual([
+          [`Order · ${orderDef('waysideShrines').name}`, 1],
+          [`Order · ${orderDef('theChoir').name}`, 3],
+        ]);
+      },
+    );
+  });
+
+  it('reads "a faith building" as a row that pays faith, and a category as what it is for', () => {
+    withCards(
+      [
+        ['waysideShrines', [{ kind: 'buildingYieldPercent', category: 'science', percent: 100 }]],
+      ],
+      () => {
+        const g = game();
+        const city = found(g.state, 0);
+        city.buildings.push('library', 'temple');
+        city.population = 4;
+        seat(g.state, 0, 0, 'waysideShrines');
+        const lines = cardBuildingYields(g.state, city);
+        // Only the Library, and its per-citizen beaker is in the base — the
+        // ruled "per-citizen lines included".
+        expect(lines).toHaveLength(1);
+        expect(lines[0]!.science).toBe(2 + 4);
+        expect(lines[0]!.faith).toBe(0);
+      },
+    );
+  });
+
+  // --- 3. the `yields` tile test ---------------------------------------------
+
+  it('asks what a hex is worth off the breakdown the caller built, and nothing else', () => {
+    const g = game();
+    const tile = getTileAt(g.state.map, g.state.units[0]!.col, g.state.units[0]!.row)!;
+    const on: TileCondition = { test: 'yields', yield: 'faith' };
+    expect(tileConditionHolds(tile, on, () => ({ faith: 1 }))).toBe(true);
+    expect(tileConditionHolds(tile, on, () => ({ faith: 0 }))).toBe(false);
+    // A caller with nothing to hand in answers no — the stated bargain.
+    expect(tileConditionHolds(tile, on)).toBe(false);
+  });
+
+  // --- 4. the slot-position reader -------------------------------------------
+
+  it('keeps the slots array and the layout in one order, index for index', () => {
+    const g = game();
+    const sc = playerById(g.state, 0)!.statecraft;
+    expect(slotTypesOf(sc)).toHaveLength(sc.slots.length);
+    seat(g.state, 0, 1, 'waysideShrines');
+    // The chair's flavour, never the card's: Wayside Shrines is a wildcard row
+    // sitting in the economic chair, and the position card is paid for where the
+    // player put it.
+    expect(slotTypesOf(sc)[1]).toBe('economic');
+    expect(orderAtSlotPosition(sc, 1, 'economic')).toBe('waysideShrines');
+    expect(orderAtSlotPosition(sc, 1, 'military')).toBeNull();
+    expect(orderAtSlotPosition(sc, 1)).toBeNull();
+    expect(orderAtSlotPosition(sc, 9, 'economic')).toBeNull();
+  });
+
+  it('pays the Order in the first economic chair twice over', () => {
+    withCards(
+      [
+        ['waysideShrines', [{ kind: 'cityYields', food: 3, gold: 2 }]],
+        ['theChoir', [{ kind: 'slotPosition', slot: 'economic', position: 1, factor: 2 }]],
+      ],
+      () => {
+        const g = game();
+        const city = found(g.state, 0);
+        seat(g.state, 0, 1, 'waysideShrines');
+        seat(g.state, 0, 0, 'theChoir');
+        const lines = cardCityYields(g.state, city);
+        const again = lines.find((line) => line.card === 'theChoir')!;
+        expect([again.food, again.gold]).toEqual([3, 2]);
+        expect(again.source).toContain(orderDef('waysideShrines').name);
+      },
+    );
+  });
+
+  // --- 5. the periodic occasion and its shortener ----------------------------
+
+  it('stamps an absolute turn, fires on it, and re-stamps — nothing ticks', () => {
+    withCards(
+      [['waysideShrines', [{ kind: 'periodic', everyTurns: 5, pays: 'gold', amount: 10 }]]],
+      () => {
+        const g = game();
+        found(g.state, 0);
+        const player = playerById(g.state, 0)!;
+        seat(g.state, 0, 0, 'waysideShrines');
+        g.state.turn = 1;
+        const gold = player.gold;
+        runPeriodicBoons(g.state);
+        // The first phase after the placing stamps and pays nothing.
+        expect(player.statecraft.slots[0]!.nextFiresTurn).toBe(6);
+        expect(player.statecraft.slots[0]!.firePeriod).toBe(5);
+        expect(player.gold).toBe(gold);
+        g.state.turn = 5;
+        runPeriodicBoons(g.state);
+        expect(player.gold).toBe(gold);
+        g.state.turn = 6;
+        runPeriodicBoons(g.state);
+        expect(player.gold).toBe(gold + 10);
+        expect(player.statecraft.slots[0]!.nextFiresTurn).toBe(11);
+      },
+    );
+  });
+
+  it('moves an outstanding stamp by the change in period, both ways, and floors at two', () => {
+    withCards(
+      [
+        ['waysideShrines', [{ kind: 'periodic', everyTurns: 5, pays: 'gold', amount: 10 }]],
+        ['theChoir', [{ kind: 'periodShorten', turns: 3 }]],
+        ['statuteLabour', [{ kind: 'periodShorten', turns: 40 }]],
+      ],
+      () => {
+        const g = game();
+        found(g.state, 0);
+        const player = playerById(g.state, 0)!;
+        const sc = player.statecraft;
+        seat(g.state, 0, 0, 'waysideShrines');
+        g.state.turn = 1;
+        runPeriodicBoons(g.state);
+        expect(sc.slots[0]!.nextFiresTurn).toBe(6);
+        // Slotting the shortener moves the stamp by the change and by nothing
+        // else: five becomes two, so six becomes three.
+        seat(g.state, 0, 1, 'theChoir');
+        g.state.turn = 2;
+        runPeriodicBoons(g.state);
+        expect(sc.slots[0]!.nextFiresTurn).toBe(3);
+        expect(sc.slots[0]!.firePeriod).toBe(2);
+        // Taking it out again puts the stamp back — symmetric and reversible.
+        sc.slots[1] = null;
+        runPeriodicBoons(g.state);
+        expect(sc.slots[0]!.nextFiresTurn).toBe(6);
+        expect(sc.slots[0]!.firePeriod).toBe(5);
+        // The floor is on the period, never on the stamp: forty turns off a
+        // five-turn clock is two, not minus thirty-five.
+        seat(g.state, 0, 1, 'statuteLabour');
+        runPeriodicBoons(g.state);
+        expect(sc.slots[0]!.firePeriod).toBe(2);
+        expect(sc.slots[0]!.nextFiresTurn).toBe(3);
+      },
+    );
+  });
+
+  it('sizes a boon by a count, and refuses to feed itself off the empire’s books', () => {
+    withCards(
+      [
+        ['waysideShrines', [
+          { kind: 'periodic', everyTurns: 2, pays: 'faith', count: 'cities', amount: 3 },
+        ]],
+        ['theChoir', [
+          {
+            kind: 'periodic',
+            everyTurns: 2,
+            pays: 'faith',
+            count: 'empireYield',
+            voice: 'production',
+            amount: 1,
+          },
+        ]],
+      ],
+      () => {
+        const g = game();
+        found(g.state, 0);
+        const player = playerById(g.state, 0)!;
+        seat(g.state, 0, 0, 'waysideShrines');
+        g.state.turn = 1;
+        runPeriodicBoons(g.state);
+        g.state.turn = 3;
+        const faith = player.faithPool;
+        runPeriodicBoons(g.state);
+        expect(player.faithPool).toBe(faith + 3);
+        // The ledger count: it reads the books, and reading the books reads the
+        // cards, so the cut is what keeps it from being a loop with no answer.
+        seat(g.state, 0, 1, 'theChoir');
+        g.state.turn = 4;
+        runPeriodicBoons(g.state);
+        g.state.turn = 6;
+        const before = player.faithPool;
+        runPeriodicBoons(g.state);
+        expect(player.faithPool - before).toBe(
+          3 + Math.max(0, Math.floor(empireRateReading(g.state, 0).productionPerTurn ?? 0)),
+        );
+      },
+    );
+  });
+
+  it('rides on the calendar for a card that has no chair', () => {
+    const g = game();
+    found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.timed = [
+      {
+        card: STARTING_GOVERNMENT,
+        effect: { kind: 'periodic', everyTurns: 4, pays: 'science', amount: 7 },
+        expiresTurn: 999,
+      },
+    ];
+    g.state.turn = 7;
+    const banked = player.sciencePool;
+    runPeriodicBoons(g.state);
+    expect(player.sciencePool).toBe(banked);
+    g.state.turn = 8;
+    runPeriodicBoons(g.state);
+    expect(player.sciencePool).toBe(banked + 7);
+  });
+
+  it('composes a boon’s riders into one printed figure before it is banked', () => {
+    withCards(
+      [
+        ['waysideShrines', [{ kind: 'periodic', everyTurns: 2, pays: 'gold', amount: 10 }]],
+        ['theChoir', [
+          { kind: 'windfallRider', occasion: 'periodic', percent: 100 } as CardWindfallRiderEffect,
+        ]],
+      ],
+      () => {
+        const g = game();
+        found(g.state, 0);
+        const player = playerById(g.state, 0)!;
+        seat(g.state, 0, 0, 'waysideShrines');
+        seat(g.state, 0, 1, 'theChoir');
+        g.state.turn = 1;
+        runPeriodicBoons(g.state);
+        g.state.turn = 3;
+        const gold = player.gold;
+        runPeriodicBoons(g.state);
+        expect(player.gold).toBe(gold + 20);
+      },
+    );
+  });
+
+  // --- 6. the city renown percent -------------------------------------------
+
+  it('adds a share of one town’s own trickle, naming no family', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    city.buildings.push('library', 'market');
+    const plain = foldRenown(explainCityRenown(city));
+    const raised = explainCityRenown(city, [{ source: 'Heroic Epic', percent: 50 }]);
+    expect(foldRenown(raised)).toBe(plain + Math.floor((plain * 50) / 100));
+    expect(raised[raised.length - 1]!.family).toBeNull();
+    // A share of nothing is no line at all.
+    expect(explainCityRenown(city, [{ source: 'X', percent: 0 }])).toHaveLength(2);
+  });
+
+  it('reads the share off a card, through the empire’s own ledger', () => {
+    withCards(
+      [['waysideShrines', [{ kind: 'cityRenownPercent', percent: 100 }]]],
+      () => {
+        const g = game();
+        const city = found(g.state, 0);
+        city.buildings.push('library');
+        const before = foldRenown(explainRenown(g.state, 0));
+        seat(g.state, 0, 0, 'waysideShrines');
+        expect(foldRenown(explainRenown(g.state, 0))).toBe(before + 1);
+      },
+    );
+  });
+
+  // --- 7. yields on the route itself -----------------------------------------
+
+  it('puts a card’s yields on the caravan, where a doubler can find them', () => {
+    withCards(
+      [['waysideShrines', [{ kind: 'routeYield', food: 1, production: 2 }]]],
+      () => {
+        const g = game();
+        const from = found(g.state, 0);
+        const to = foundCityAt(
+          g.state,
+          0,
+          getTileAt(g.state.map, (from.col + 5) % g.state.map.width, from.row)!,
+        );
+        const before = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
+        seat(g.state, 0, 0, 'waysideShrines');
+        const after = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
+        expect(after.food).toBe(before.food + 1);
+        expect(after.production).toBe(before.production + 2);
+        // And the multiplier finds it: the line is on the route *before* the
+        // amplifier reads the fold, which is the whole grammar of the pass.
+        playerById(g.state, 0)!.statecraft.government = 'merchantLeague';
+        const doubled = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
+        expect(doubled.production).toBe(
+          after.production + Math.floor((after.production * 50) / 100),
+        );
+      },
+    );
+  });
+
+  it('narrows a route line to the town the caravan left', () => {
+    withCards(
+      [['waysideShrines', [
+        { kind: 'routeYield', gold: 4, origin: { test: 'hasBuilding', building: 'market' } },
+      ]]],
+      () => {
+        const g = game();
+        const from = found(g.state, 0);
+        const to = foundCityAt(
+          g.state,
+          0,
+          getTileAt(g.state.map, (from.col + 5) % g.state.map.width, from.row)!,
+        );
+        seat(g.state, 0, 0, 'waysideShrines');
+        const shut = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
+        from.buildings.push('market');
+        const open = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
+        // The market itself pays a caravan nothing in gold, so the whole
+        // difference is the card's line.
+        expect(open.gold - shut.gold).toBe(4);
+      },
+    );
+  });
+
+  // --- 8. the reroll tally ----------------------------------------------------
+
+  it('counts the rerolls this chair has watched, and nought until batch C1 writes one', () => {
+    const g = game();
+    seat(g.state, 0, 0, 'waysideShrines');
+    const sc = playerById(g.state, 0)!.statecraft;
+    const probe: CardEffect = {
+      kind: 'countScaled',
+      count: 'rerollsWhileSlotted',
+      pays: { to: 'yield', yield: 'faith', amount: 1, where: 'empire' },
+    };
+    expect(countOf(g.state, 0, 'waysideShrines', probe as never)).toBe(0);
+    sc.slots[0]!.rerollsSeen = 3;
+    expect(countOf(g.state, 0, 'waysideShrines', probe as never)).toBe(3);
+    // The counter belongs to the chair: benching the card ends the watch.
+    sc.slots[0] = null;
+    expect(countOf(g.state, 0, 'waysideShrines', probe as never)).toBe(0);
+  });
+
+  it('counts buildings across two categories at once', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    city.buildings.push('library', 'temple', 'market');
+    const probe = (categories?: string[]): CardEffect => ({
+      kind: 'countScaled',
+      count: 'buildingsOfCategories',
+      categories: categories as never,
+      pays: { to: 'yield', yield: 'faith', amount: 1, where: 'empire' },
+    });
+    expect(countOf(g.state, 0, 'waysideShrines', probe(['science', 'faith']) as never)).toBe(2);
+    // A row that never said which buildings counts none of them.
+    expect(countOf(g.state, 0, 'waysideShrines', probe() as never)).toBe(0);
+  });
+
+  // --- the register ----------------------------------------------------------
+
+  it('words every one of the new shapes, with no clause left silent', () => {
+    const fixtures: CardEffect[] = [
+      { kind: 'cardYieldAmplifier', yield: 'food', amount: 1 },
+      { kind: 'cardYieldAmplifier', yield: 'faith', percent: 50, scope: { test: 'capital' } },
+      { kind: 'buildingYieldPercent', pays: 'faith', percent: 100, appliedLast: true },
+      { kind: 'buildingYieldPercent', category: 'gold', percent: 50, yield: 'gold' },
+      { kind: 'slotPosition', slot: 'economic', position: 1, factor: 2 },
+      { kind: 'periodic', everyTurns: 10, pays: 'gold', amount: 25 },
+      {
+        kind: 'periodic',
+        everyTurns: 15,
+        pays: 'renown',
+        count: 'buildingsOfCategories',
+        categories: ['science', 'faith'],
+      },
+      { kind: 'periodic', everyTurns: 7, pays: 'science', count: 'empireYield', voice: 'production' },
+      { kind: 'periodShorten', turns: 3 },
+      { kind: 'cityRenownPercent', percent: 50 },
+      { kind: 'routeYield', food: 1, production: 1, origin: { test: 'hasBuilding', building: 'market' } },
+      {
+        kind: 'countScaled',
+        count: 'rerollsWhileSlotted',
+        pays: { to: 'yield', yield: 'faith', amount: 1, where: 'city' },
+      },
+    ];
+    for (const effect of fixtures) {
+      const clauses = describeEffects([effect]);
+      expect(clauses.length, effect.kind).toBeGreaterThan(0);
+      for (const clause of clauses) {
+        expect(clause.text, effect.kind).toBeTruthy();
+        // Every named thing is a keyword ref, and no surface prints a raw one.
+        expect(stripRefs(clause.text).includes('[['), clause.text).toBe(false);
+      }
+    }
+  });
+
+  it('leaves the game byte-identical: no live row uses a shape this batch declared', () => {
+    // The batch's own acceptance. Every arm above is reached only by a fixture,
+    // so every fold this batch touched hands back an empty list in a real game
+    // and no number on the board moves. The rows arrive in batches D through F.
+    const NEW_KINDS = new Set<CardEffectKind>([
+      'cardYieldAmplifier',
+      'buildingYieldPercent',
+      'slotPosition',
+      'periodic',
+      'periodShorten',
+      'cityRenownPercent',
+      'routeYield',
+    ]);
+    const NEW_COUNTS = new Set<string>([
+      'buildingsOfCategories',
+      'empireYield',
+      'rerollsWhileSlotted',
+    ]);
+    const walk = (effects: readonly CardEffect[] | undefined, where: string): void => {
+      for (const effect of effects ?? []) {
+        expect(NEW_KINDS.has(effect.kind), `${where} · ${effect.kind}`).toBe(false);
+        if (effect.kind === 'countScaled') {
+          expect(NEW_COUNTS.has(effect.count), `${where} · ${effect.count}`).toBe(false);
+        }
+        if (effect.kind === 'conditionRule') walk(effect.then, where);
+      }
+    };
+    for (const id of [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS]) walk(cardDef(id).effects, id);
+    for (const id of BUILDING_IDS) walk(buildingDef(id).effects, id);
+    for (const id of TECH_IDS) walk(techDef(id).effects, id);
+  });
+
+  it('keeps the new slot fields absent until something writes one', () => {
+    // Absence is nought, so a save from before this batch and a save from after
+    // it serialise identically — which is what "no schema bump" means here.
+    const g = game();
+    seat(g.state, 0, 0, 'waysideShrines');
+    expect(snapshotState(g.state)).not.toContain('nextFiresTurn');
+    expect(snapshotState(g.state)).not.toContain('firePeriod');
+    expect(snapshotState(g.state)).not.toContain('rerollsSeen');
   });
 });

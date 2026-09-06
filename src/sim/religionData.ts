@@ -271,6 +271,20 @@ export interface BeliefOffer {
    * has to re-derive it.
    */
   givenBack?: BeliefId;
+  /**
+   * **What answering this offer takes out of the faith bank**, or the key is
+   * absent on every offer that is paid for some other way — an augur spent, a
+   * prophet's charge, a founding's second hand (schema 71).
+   *
+   * Presence is what makes an offer the *ladder's*, and the figure rides on the
+   * offer rather than being re-derived at the pick for the culture draft's
+   * reason turned inside out: a draft spends its meter at the deal, and this
+   * one cannot, because the rung is a *threshold reached* and the pick is a
+   * separate command. So the price the ladder quoted when it opened is the
+   * price the pick pays, and a threshold that moved under a retune between the
+   * two cannot charge a player something they were never shown.
+   */
+  rungCost?: number;
 }
 
 /**
@@ -317,11 +331,25 @@ export interface PlayerPantheon {
    * serialises exactly like one that was never asked.
    */
   owed?: number;
+  /**
+   * **Rungs of the faith ladder this empire has climbed** — consecrations the
+   * bank has paid for (schema 71).
+   *
+   * `PlayerStatecraft.drafts` one currency over, and it is a count of *rungs*
+   * rather than of gods for the reason that field is a count of drafts rather
+   * than of cards: an augur's consecration, a wonder's, a recast — none of them
+   * is a rung, and a ladder that priced itself off `beliefs.length` would charge
+   * an empire for a god it was given.
+   *
+   * Always present, never optional (`orderSkips`' rule), so a seat that has
+   * climbed nothing serialises exactly like one that has.
+   */
+  rungs: number;
 }
 
-/** A brand-new empire's pantheon: no gods, no offer. */
+/** A brand-new empire's pantheon: no gods, no offer, at the ladder's foot. */
 export function newPlayerPantheon(): PlayerPantheon {
-  return { beliefs: [] };
+  return { beliefs: [], rungs: 0 };
 }
 
 export interface PantheonConfig {
@@ -355,6 +383,61 @@ export interface ReligionPoolsConfig {
 }
 
 /**
+ * **The faith ladder** — what banked faith the next pantheon consecration asks
+ * (the fewer-things pass, `docs/fewer-things.md` §3, ruled 2026-09-06).
+ *
+ * `StatecraftConfig.meter`'s shape one currency over, and deliberately the same
+ * three numbers: `base + linear·n + n^exp`, floored, with `n` the rungs this
+ * empire has already climbed. A consecration used to be an augur bought for 40
+ * faith with 15 more for each one already called, and the ruling is that the
+ * ladder wears that old price — so the errand goes and the pacing does not.
+ *
+ * The exponent is what the old ladder did not have. At 1.5 the three rungs come
+ * to 40 · 56 · 72 (168 faith all told, against the three augurs' 165), so the
+ * third god lands where the third augur used to and every rung after would rise
+ * faster than a flat increment — which is the culture meter's argument, and the
+ * reason a threshold is a curve rather than a step.
+ */
+export interface FaithLadderConfig {
+  costBase: number;
+  costLinear: number;
+  costExponent: number;
+}
+
+/**
+ * **What rerolling an Order draft costs**, in faith (ruled 2026-09-06: *"35 to
+ * start, rising per use at a slight exponent"*).
+ *
+ * Three dials and they multiply in one order — `base × ageMultiplier[age] ×
+ * exponent^taken`, floored — printed as an ordered list of differences by
+ * `explainRerollCost`, which is `explainPurchaseCost`'s discipline: every line
+ * carries the difference it makes to the running figure, so the fold *is* the
+ * price and no surface computes a total beside it.
+ *
+ * The **exponent** is the design: a reroll is meant to be used sparingly, and
+ * what makes it sparing is that the button prints the *next* price before the
+ * click. The **age multiplier** is what keeps 35 faith meaning in Æra IV what
+ * it meant in Æra II, and it is a list by age rather than a curve because four
+ * ages is a table a designer can read.
+ */
+export interface RerollConfig {
+  base: number;
+  /** Multiplied in once per reroll this empire has already taken. */
+  exponent: number;
+  /** By `TechAge`, one entry per age, indexed from Æra I. */
+  ageMultiplier: number[];
+  /**
+   * The ability that opens the reroll at all — Chronology's Long Count, which
+   * lost its die of the Magister in the same pass (`docs/tech-gifts.md` §2).
+   *
+   * A data field rather than a constant for `riteAbility`'s reason: which node
+   * carries a door is a design decision that lives in the tables, and nothing in
+   * `src/sim/` compares a technology against a name.
+   */
+  ability: AbilityId;
+}
+
+/**
  * How a religion is **named**: an epithet per belief axis, and the patterns the
  * epithets are dropped into.
  *
@@ -377,6 +460,10 @@ export interface ReligionNamesConfig {
 export interface ReligionConfig {
   pantheon: PantheonConfig;
   pools: ReligionPoolsConfig;
+  /** What each pantheon consecration asks of the faith bank. See `FaithLadderConfig`. */
+  ladder: FaithLadderConfig;
+  /** What rerolling an Order draft costs. See `RerollConfig`. */
+  reroll: RerollConfig;
   names: ReligionNamesConfig;
   /**
    * What founding a religion pays its founder, every turn, for the followers it

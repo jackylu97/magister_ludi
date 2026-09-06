@@ -39,7 +39,7 @@ import {
 import { resourceRouteYields } from './resourceEffects';
 import { RULES } from './rulesData';
 import { type City, type GameState, type Unit, cityById } from './state';
-import { cardAmplifier } from './statecraft';
+import { cardAmplifier, cardRouteYieldLines } from './statecraft';
 // The war register, and the only thing this leaf asks about diplomacy. `wars.ts`
 // imports the rules, the state and the deal terms and nothing else, so asking it
 // costs the leaf claim in the docblock above nothing at all. **Met-ness is not
@@ -330,8 +330,44 @@ export function explainRouteYieldBetween(
     );
   }
 
+  // **What a card puts on the caravan itself** — Silk Roads' coin, the
+  // Caravanserai's grain. *Before* `amplify`, and that ordering is the whole
+  // grammar the user's marks revealed: put yields on a thing, then multiply the
+  // thing. A line added after the share would be a line "double your trade route
+  // yields" could not see.
+  cardLines(state, from, lines, label);
   amplify(state, from, lines, label);
   return blockaded(state, from, to, lines);
+}
+
+/**
+ * **The cards' own lines on the caravan** — the flats an Order or a building puts
+ * on a route, read off the **origin's** empire (`cardRouteYieldLines`).
+ *
+ * One function over both folds, exactly as `amplify` is one over both, and for
+ * its reason: a law that stopped applying the moment a caravan crossed a border
+ * would be a law no card says. Which books the line lands in is the *caller's*
+ * question — a domestic route's whole figure is banked by its destination, and a
+ * route ending abroad carries this line in the sender's own fold — so an empire's
+ * card never pays a foreign host.
+ */
+function cardLines(
+  state: GameState,
+  from: City,
+  lines: RouteYieldLine[],
+  label: (note: string) => string,
+): void {
+  for (const paid of cardRouteYieldLines(state, from)) {
+    lines.push(
+      line(label(paid.source), {
+        food: paid.food,
+        production: paid.production,
+        gold: paid.gold,
+        science: paid.science,
+        culture: paid.culture,
+      }),
+    );
+  }
 }
 
 /**
@@ -469,6 +505,10 @@ export function explainRouteSenderYieldBetween(
   const gold = Math.floor(people / per);
   if (gold > 0) lines.push(line(label(`${people} people`), { gold }));
 
+  // The sender's own cards on its own caravan — see `cardLines`. It rides the
+  // foreign fold exactly as the amplifier does, because the line belongs to the
+  // seat that sent the goods and this is that seat's book.
+  cardLines(state, from, lines, label);
   amplify(state, from, lines, label);
   return blockaded(state, from, to, lines);
 }

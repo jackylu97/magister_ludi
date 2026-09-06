@@ -120,6 +120,7 @@ import {
   cardBehaviorRule,
   cardUnitStat,
   musterPeriodicUnits,
+  runPeriodicBoons,
   runStatecraft,
 } from './statecraft';
 import { type PeaceOutcome, settlePeace } from './diplomacy';
@@ -131,7 +132,7 @@ import { reviewLegacies } from './greatPeople';
 import { type GuildReport, runGuilds } from './guilds';
 import { type BeadAward, beadMarks, beadsSince, runBeads } from './beads';
 import type { BeadAge } from './beadData';
-import { runRenown } from './renown';
+import { runRenown, settleRenownWindfall } from './renown';
 import { advanceResearch } from './tech';
 import { type ExploreEndReport, marchExplorers } from './explore';
 import {
@@ -540,6 +541,27 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // Spends `Player.sciencePool` on the tech it is aimed at, and marches the
     // army up its upgrade chains the moment one lands.
     run: advanceResearch,
+  },
+  {
+    name: 'periodicBoons',
+    // The calendar's own beat (`CardPeriodicEffect`): every Order whose clock has
+    // come round pays its windfall, and every clock is re-stamped.
+    //
+    // Its position is the usual rules decision. **Between `advanceResearch` and
+    // `statecraft`**, because a boon is a windfall and a windfall settles its
+    // bucket the instant it lands: culture paid here reaches the very next
+    // phase's draft, renown reaches `renown` further down, and hammers and food
+    // land in baskets the boon settles itself. Beakers are the one voice that
+    // waits — `advanceResearch` has already run — which is the ordinary reading
+    // of any windfall landing after that phase.
+    //
+    // `settleRenownWindfall` is handed in rather than imported by
+    // `statecraft.ts`: renown is added in exactly one place, and that place reads
+    // the card table, so the phase that holds both passes the seam.
+    run: (state) =>
+      runPeriodicBoons(state, (game, player, amount) => {
+        settleRenownWindfall(game, player, [{ family: null, amount }]);
+      }),
   },
   {
     name: 'statecraft',

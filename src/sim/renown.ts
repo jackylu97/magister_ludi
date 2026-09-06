@@ -67,7 +67,7 @@ import {
   type Player,
   realPlayers,
 } from './state';
-import { cardRenownLines } from './statecraft';
+import { cardCityRenownShares, cardRenownLines } from './statecraft';
 import { triumphDef } from './triumphData';
 import { awardCountTriumphs } from './triumphs';
 
@@ -121,7 +121,7 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
   const lines: RenownLine[] = [];
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    for (const line of explainCityRenown(city)) lines.push(line);
+    for (const line of explainCityRenown(city, cardCityRenownShares(state, city))) lines.push(line);
     // And what its guilds pay back (Entry XLVIII). *Beside* the buildings rather
     // than inside `explainCityRenown`, and the separation is load-bearing: that
     // list is what fills this town's guild bar, and a specialist feeding the bar
@@ -179,8 +179,26 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
  *
  * Buildings **only**: a specialist's own point of renown is added by
  * `explainRenown` beside this call and deliberately not here. See there.
+ *
+ * **The percent arm** (`CardCityRenownPercentEffect`, the Heroic Epic's half
+ * again) is `shares`, handed in rather than taken: this function has a city and
+ * no state, which is exactly what lets the guild bar ask it — so the caller that
+ * *has* an empire (`explainRenown`) reads the cards and passes the shares, and
+ * the caller that does not (`guilds.ts`) passes none and gets the buildings' own
+ * figure, unchanged. That split is load-bearing for the reason the specialists
+ * are outside this function: a share feeding the bar that made it would be a loop
+ * with no brake on it.
+ *
+ * Each share is its own line, floored once, taken over the **buildings' fold
+ * above it** — never over a total that already includes another share, because
+ * two shares on one town must buy two shares rather than compounding. A share's
+ * line names **no family**, `resourceRenown`'s construction: the pool grows and
+ * the feed record that weights the draw does not.
  */
-export function explainCityRenown(city: City): RenownLine[] {
+export function explainCityRenown(
+  city: City,
+  shares: readonly { source: string; percent: number }[] = [],
+): RenownLine[] {
   const lines: RenownLine[] = [];
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
@@ -190,6 +208,19 @@ export function explainCityRenown(city: City): RenownLine[] {
       source: `${buildingDef(id).name} at ${city.name}`,
       family: renown.family,
       amount: renown.perTurn,
+      perTurn: true,
+    });
+  }
+  if (shares.length === 0) return lines;
+  const base = foldRenown(lines);
+  if (base === 0) return lines;
+  for (const share of shares) {
+    const amount = Math.floor((base * share.percent) / 100);
+    if (amount === 0) continue;
+    lines.push({
+      source: `${share.source} · ${city.name}`,
+      family: null,
+      amount,
       perTurn: true,
     });
   }

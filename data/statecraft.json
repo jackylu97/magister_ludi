@@ -4149,12 +4149,9 @@
       "rarity": "common",
       "flavor": "The clerk who chose the day was promoted, and never told anyone why.",
       "text": "The first time this Order is placed in a slot, a die of the Magister is yours.",
-      "onSlot": [
-        {
-          "grant": "die"
-        }
-      ],
-      "effects": []
+      "effects": [],
+      "retired": true,
+      "note": "Retired: the dice of the Magister are gone from the game, so this Order is no longer offered in a draft. A saved game that already holds it keeps it."
     },
     "theWarCouncil": {
       "name": "The War Council",

@@ -77,8 +77,21 @@ import type { RouteOutlook } from './routes';
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { cityQuote, cityYields, empirePercents, tileOwnerField } from '../sim/cities';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
-import { countOf } from '../sim/statecraft';
-import type { CardCountScaledEffect, CardEffect, CardId } from '../sim/statecraftData';
+import {
+  buildingMatchesYieldPercent,
+  countOf,
+  orderAtSlotPosition,
+  periodicProbe,
+  statecraftOf,
+} from '../sim/statecraft';
+import {
+  type CardCountScaledEffect,
+  type CardEffect,
+  type CardId,
+  type CardPeriodicEffect,
+  isOrderId,
+  orderDef,
+} from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
 import type { City, GameState } from '../sim/state';
 import { buildError } from '../sim/tech';
@@ -1208,6 +1221,89 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // rate the bill is charged at — so a card that pays the army's wages
       // becomes the best card in the hand exactly when the treasury is bleeding.
       return costOfUpkeep((effect.amount ?? 1) * ctx.ai.score.nominalCount, ctx);
+    // --- the engine shapes (batch A of `docs/fewer-things-plan.md`) ----------
+    // Every one of them is priced off **what this empire actually holds**, which
+    // is `explainCounted`'s own rule read one shape over: an engine is worth what
+    // it multiplies, so a deck with nothing to multiply prices it near nought —
+    // and that is the honest reading rather than a stand-in. It is also the
+    // *written-down* debt of this pass (`docs/fewer-things.md` §5): a card
+    // appraised in isolation cannot see the deck it would be drafted into, and
+    // the marginal reading `V(deck ∪ card) − V(deck)` is batch F2's.
+    case 'cardYieldAmplifier': {
+      const each = (effect.amount ?? 0) + ((effect.percent ?? 0) / 100) * nominal;
+      if (each === 0) return 0;
+      let sum = 0;
+      for (const voice of VOICES) {
+        if (effect.yield !== 'all' && effect.yield !== voice) continue;
+        sum += voiceWeight(ctx, voice) * each * amplifiedLines(ctx, voice);
+      }
+      return sum;
+    }
+    case 'buildingYieldPercent': {
+      // A share of what the matching shelves already pay, read off the rows the
+      // empire has actually raised — the simulation's own selector
+      // (`buildingMatchesYieldPercent`) asked rather than a second copy of it.
+      let sum = 0;
+      for (const city of ctx.state.cities) {
+        if (city.ownerId !== ctx.playerId) continue;
+        for (const id of city.buildings) {
+          if (!buildingMatchesYieldPercent(id, effect)) continue;
+          const def = buildingDef(id);
+          for (const voice of VOICES) {
+            if (effect.yield !== undefined && effect.yield !== 'all' && effect.yield !== voice) {
+              continue;
+            }
+            const base =
+              (def[voice] ?? 0) +
+              (voice === 'science' ? city.population * (def.sciencePerPop ?? 0) : 0);
+            if (base === 0) continue;
+            sum += voiceWeight(ctx, voice) * base * (effect.percent / 100);
+          }
+        }
+      }
+      return sum;
+    }
+    case 'slotPosition': {
+      // Worth exactly what the card in that chair is worth, over again — asked of
+      // the same appraisal, with the two deck-reading shapes filtered out so an
+      // engine pointed at an engine cannot recur.
+      const sc = statecraftOf(ctx.state, ctx.playerId);
+      const seated = sc === undefined ? null : orderAtSlotPosition(sc, effect.position, effect.slot);
+      if (seated === null || effect.factor === 1) return 0;
+      const inner = orderDef(seated).effects.filter(
+        (held) => held.kind !== 'slotPosition' && held.kind !== 'cardYieldAmplifier',
+      );
+      return (effect.factor - 1) * scoreEffects(inner, ctx, seated);
+    }
+    case 'periodic':
+      // A windfall spread over its period: what one firing pays, divided by how
+      // often it comes round. The shortener below is the same figure differenced.
+      return periodicWorth(effect, ctx) / periodicPeriodOf(effect, 0);
+    case 'periodShorten': {
+      let gain = 0;
+      for (const held of slottedOrderEffects(ctx)) {
+        if (held.kind !== 'periodic') continue;
+        const worth = periodicWorth(held, ctx);
+        if (worth === 0) continue;
+        gain += worth * (1 / periodicPeriodOf(held, effect.turns) - 1 / periodicPeriodOf(held, 0));
+      }
+      return gain;
+    }
+    case 'cityRenownPercent': {
+      // A share of what a **middling** town of this empire earns, because the
+      // shape is city-scoped and the scope is not evaluated here — the same
+      // bargain `cityYields`' arm strikes with a scope it cannot read.
+      let total = 0;
+      for (const city of ctx.state.cities) {
+        if (city.ownerId !== ctx.playerId) continue;
+        for (const id of city.buildings) total += buildingDef(id).renown?.perTurn ?? 0;
+      }
+      const mean = ctx.cities === 0 ? 0 : total / ctx.cities;
+      return mean * (effect.percent / 100) * ctx.ai.weights.renown;
+    }
+    case 'routeYield':
+      // Paid on every caravan this empire is running, counted by the simulation.
+      return valueOfYields(bagOf(effect), ctx) * countProbe(ctx, 'tradeRoutes');
     case 'offerRider':
       return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
     default:
@@ -1216,6 +1312,84 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // unreadable must not sort below an empty offer.
       return ctx.ai.score.unknownEffect;
   }
+}
+
+// --- the deck, as the engines read it ---------------------------------------
+
+/** A count asked with no payout to read. `RENOWN_PROBE`'s twin, one file over. */
+function countProbe(ctx: ValueContext, count: CardCountScaledEffect['count']): number {
+  return countOf(ctx.state, ctx.playerId, '' as CardId, {
+    kind: 'countScaled',
+    count,
+    pays: { to: 'authority', amount: 0 },
+  });
+}
+
+/** Every effect on every Order this empire currently has in a chair. */
+function slottedOrderEffects(ctx: ValueContext): CardEffect[] {
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  if (sc === undefined) return [];
+  const list: CardEffect[] = [];
+  for (const slot of sc.slots) {
+    if (!slot || !isOrderId(slot.card)) continue;
+    for (const effect of orderDef(slot.card).effects) list.push(effect);
+  }
+  return list;
+}
+
+/**
+ * **How many line instances an amplifier would find**, in one voice — the count
+ * that makes the additive engine worth anything at all.
+ *
+ * Read off the deck the seat is holding, in the shapes the evaluator actually
+ * pays per line: a per-town line is one per town, an empire line is one, a hex
+ * line is `score.nominalTiles` of them — the same stand-in `scoreEffect`'s
+ * `tileYield` arm uses, so a card's own hexes and an amplifier's agree.
+ */
+function amplifiedLines(ctx: ValueContext, voice: Voice): number {
+  let lines = 0;
+  for (const effect of slottedOrderEffects(ctx)) {
+    if (effect.kind === 'cityYields') {
+      if ((bagOf(effect)[voice] ?? 0) > 0) lines += ctx.cities;
+    } else if (effect.kind === 'empireYields') {
+      if ((bagOf(effect)[voice] ?? 0) > 0) lines += 1;
+    } else if (effect.kind === 'tileYield') {
+      if ((bagOf(effect)[voice] ?? 0) > 0) lines += ctx.ai.score.nominalTiles;
+    } else if (effect.kind === 'countScaled') {
+      const pays = effect.pays;
+      if (pays.to !== 'yield' || pays.yield !== voice || pays.amount <= 0) continue;
+      lines += pays.where === 'city' ? ctx.cities : 1;
+    }
+  }
+  return lines;
+}
+
+/** A periodic clock, with a shortener taken off it. The simulation's floor. */
+function periodicPeriodOf(effect: CardPeriodicEffect, shorten: number): number {
+  return Math.max(2, Math.floor(effect.everyTurns) - shorten);
+}
+
+/**
+ * **What one firing of a periodic boon pays**, in this empire's own money.
+ *
+ * The count is the simulation's (`countOf`, through the row's own probe), so a
+ * boon quoted "per faith building" is priced by the faith buildings this empire
+ * has actually raised — `explainCounted`'s first rule, one shape over.
+ */
+function periodicWorth(effect: CardPeriodicEffect, ctx: ValueContext): number {
+  const each = effect.amount ?? 1;
+  let figure = Math.floor(effect.amount ?? 0);
+  if (effect.count !== undefined) {
+    const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
+    let times = Math.floor(
+      countOf(ctx.state, ctx.playerId, '' as CardId, periodicProbe(effect)) / per,
+    );
+    if (effect.max !== undefined) times = Math.min(times, effect.max);
+    figure = Math.max(0, times) * each;
+  }
+  if (figure === 0) return 0;
+  if (effect.pays === 'renown') return figure * ctx.ai.weights.renown;
+  return voiceWeight(ctx, effect.pays as Voice) * figure;
 }
 
 // --- counted effects, at the delay discount ---------------------------------
@@ -1422,7 +1596,12 @@ function potentialTownsFor(
       ? [effect.building]
       : effect.category !== undefined
         ? BUILDING_IDS.filter((id) => buildingDef(id).category === effect.category)
-        : [];
+        : // The list form (`buildingsOfCategories`) — the same reading with more
+          // than one word in it, so a row counting science *and* faith houses has
+          // a promise half like every other row that names what a town builds.
+          effect.categories !== undefined && effect.categories.length > 0
+          ? BUILDING_IDS.filter((id) => effect.categories?.includes(buildingDef(id).category))
+          : [];
   if (wanted.length === 0) return null;
   let open = 0;
   let hammers = 0;

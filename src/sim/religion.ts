@@ -81,9 +81,11 @@ import {
   unitById,
 } from './state';
 import {
+  type UnitCostLine,
   type WonderCompletion,
   capitalCityOf,
   cityAt,
+  foldUnitCost,
   nearestOwnedCity,
   refreshCityDerived,
   refreshTileDerived,
@@ -119,6 +121,7 @@ import {
   cardPeriodicOffers,
   cardPressureRule,
   cardPressureSources,
+  drawOrderOffer,
   drawWithoutReplacement,
   offerSize,
   payWindfallGrants,
@@ -128,7 +131,7 @@ import {
   windfallPayout,
 } from './statecraft';
 import { hasAbility, hasTech, settleResearchWindfall } from './tech';
-import { type TechId, techDef } from './techData';
+import { type TechId, eraNumeral, highestAge, techDef } from './techData';
 import type { BuildingId } from './buildingData';
 import { buildingRitePay } from './buildingEffects';
 import type { PressureRuleId } from './statecraftData';
@@ -335,6 +338,278 @@ export function consecrateAt(state: GameState, player: Player, unit: Unit): Beli
   return offer;
 }
 
+// --- the faith ladder -------------------------------------------------------
+
+/**
+ * What the `n`-th rung of the faith ladder asks of the bank. `n` is the number
+ * already climbed, so the first consecration is `faithRungCost(0)`.
+ *
+ * `draftCost`'s arithmetic exactly, one currency over — `base + linear·n +
+ * n^exp`, floored — and it is the same function for the same reason: a bank of
+ * whole numbers wants a whole threshold, and two ladders that disagreed about
+ * how a threshold is shaped would be two systems to retune. The numbers are
+ * `RELIGION.ladder` and what they were chosen to reproduce is in
+ * `FaithLadderConfig`: the augur's old price ladder, without the errand.
+ */
+export function faithRungCost(rungs: number): number {
+  const n = Math.max(0, Math.floor(rungs));
+  const ladder = RELIGION.ladder;
+  return Math.floor(ladder.costBase + ladder.costLinear * n + n ** ladder.costExponent);
+}
+
+/** What this empire's next consecration asks. The fold of the curve and its rungs. */
+export function nextFaithRungCost(player: Player): number {
+  return faithRungCost(player.pantheon.rungs);
+}
+
+/**
+ * Would the ladder deal this empire a consecration right now, and at what price?
+ * `null` when it would not.
+ *
+ * `planDraft`'s shape — the pure half of "would this empire consecrate" — and it
+ * carries every clause the phase would otherwise inline, so a screen counting
+ * down to the next god and the phase that deals it cannot disagree:
+ *
+ *   · **the bank covers the rung.** Faith already banked, never faith owing:
+ *     the ladder is a threshold reached, the culture meter's discipline.
+ *   · **a slot is open** (`hasOpenBeliefSlot`), which is where "three rungs and
+ *     no fourth" actually comes from: the pantheon has three slots, the third
+ *     of them opens at The High Temple, and the ladder never learns the number.
+ *   · **an offer is not already outstanding**, `settleDraft`'s rule for
+ *     `discoveryClaimError`'s reason — a second hand dealt on top of the first
+ *     would silently destroy it.
+ *   · **the bag is not empty**, which is `consecrateError`'s last clause: a
+ *     draft with nothing to deal is an End Turn blocker nobody could clear.
+ */
+export function planFaithRung(state: GameState, player: Player): { rung: number; cost: number } | null {
+  if (player.pantheon.pending !== undefined) return null;
+  if (!hasOpenBeliefSlot(state, player.id)) return null;
+  if (beliefPool(state, player).length === 0) return null;
+  const cost = nextFaithRungCost(player);
+  if (player.faithPool < cost) return null;
+  return { rung: player.pantheon.rungs + 1, cost };
+}
+
+/**
+ * The ladder's phase: every empire whose faith has reached the next rung is
+ * dealt a consecration.
+ *
+ * **A rung is not spent here.** The offer opens, carrying the price it was
+ * quoted (`BeliefOffer.rungCost`), and the bank is charged by the *pick* —
+ * which is the one place the ladder and the culture meter differ, and
+ * deliberately: culture fills a meter that a draft empties, and faith is a bank
+ * the player also spends on units and buildings, so a threshold that emptied it
+ * the instant it was crossed would take the choice away rather than offer one.
+ * A pick is a command, so the charge is as log-determined as the draw.
+ *
+ * Called from `openPeriodicOffers` — the religion phase — rather than being a
+ * phase of its own, because it is the same beat: an offer dealt from
+ * `state.rng` at the end of a resolution, on a board that has already grown,
+ * built and banked this turn, blocking End Turn until it is answered. The wild
+ * is skipped by `realPlayers` for `runStatecraft`'s reason.
+ *
+ * At most one rung an empire a turn, `openPeriodicOffers`' rule for its reason:
+ * `planFaithRung` refuses while an offer is outstanding, and it has just made
+ * one. A bank deep enough for two rungs climbs the second next turn.
+ */
+export function openFaithLadder(state: GameState): void {
+  for (const player of realPlayers(state)) {
+    const plan = planFaithRung(state, player);
+    if (!plan) continue;
+    const offer = drawBeliefOffer(state, player);
+    offer.rungCost = plan.cost;
+    player.pantheon.pending = offer;
+  }
+}
+
+// --- the reroll -------------------------------------------------------------
+
+/**
+ * What a reroll would cost, as the ordered lines the price is the fold of.
+ *
+ * `explainPurchaseCost`'s shape and rule 5's discipline: every line carries the
+ * **difference** it makes to the running figure, so the sum of the list *is* the
+ * price and no surface adds a total beside it. Three lines at most, in the order
+ * a player would ask them —
+ *
+ *   1. what a fresh hand costs at all (`RerollConfig.base`);
+ *   2. what the age adds, named by its numeral, and absent in an age whose
+ *      multiplier is one;
+ *   3. what the rerolls already taken add, absent for the first.
+ *
+ * The arithmetic is multiplicative and the print is additive, which is the same
+ * bargain a purchase's currency conversion strikes: the rounding happens once,
+ * at the end, and each line says how much of the total it is answerable for.
+ *
+ * A **belief** hand is not priced here at all: rerolling a prophet's or the
+ * ladder's draft is free (ruled 2026-09-06), so this answers the Order draft's
+ * question and `rerollError` decides which question is being asked.
+ */
+export interface RerollPrice {
+  lines: UnitCostLine[];
+  total: number;
+}
+
+export function explainRerollCost(state: GameState, playerId: number): RerollPrice {
+  const player = playerById(state, playerId);
+  const spec = RELIGION.reroll;
+  const taken = Math.max(0, Math.floor(player?.statecraft.rerollsTaken ?? 0));
+  const age = player ? highestAge(player.techsResearched) : 1;
+  const multiplier = spec.ageMultiplier[age - 1] ?? 1;
+
+  const base = Math.floor(spec.base);
+  const aged = Math.floor(spec.base * multiplier);
+  const full = Math.floor(spec.base * multiplier * spec.exponent ** taken);
+
+  const lines: UnitCostLine[] = [{ source: 'A fresh hand', amount: base }];
+  if (aged !== base) lines.push({ source: `Æra ${eraNumeral(age)}`, amount: aged - base });
+  if (full !== aged) {
+    lines.push({
+      source: `${taken} reroll${taken === 1 ? '' : 's'} already taken`,
+      amount: full - aged,
+    });
+  }
+  return { lines, total: foldUnitCost(lines) };
+}
+
+/** What this empire's next reroll of an Order draft costs. The fold. */
+export function nextRerollCost(state: GameState, playerId: number): number {
+  return explainRerollCost(state, playerId).total;
+}
+
+/**
+ * Which draft a reroll would redeal — `'order'`, `'belief'`, or `null` when
+ * there is nothing on the table.
+ *
+ * **One command, two hands**, and the precedence is the Order draft's because it
+ * is the one that costs something: an empire holding both is being asked to
+ * spend faith, and a verb that quietly rerolled the free hand instead would be
+ * a button that did something other than what its own price said.
+ */
+export function rerollKindFor(player: Player): 'order' | 'belief' | null {
+  if (player.statecraft.pendingOrder !== undefined) return 'order';
+  if (player.pantheon.pending !== undefined) return 'belief';
+  return null;
+}
+
+/**
+ * Why this empire cannot reroll, or `null` when it can.
+ *
+ * `orderSkipError`'s sibling, and the whole of the rule the button greys itself
+ * with — so a control a player can press is a command the reducer takes, and
+ * the sentence they read on a refusal is this one.
+ *
+ * The clauses, in the order a player would meet them: is there a hand at all ·
+ * has this empire the door open (`RerollConfig.ability` — Chronology's Long
+ * Count, which lost the Magister's die in the same pass and gained this) · can
+ * the bank pay. A **belief** hand skips the last two: a prophet's draft and the
+ * ladder's are free and uncounted (ruled 2026-09-06), so nothing gates them but
+ * their own existence.
+ */
+/**
+ * **Is the reroll's door open to this empire at all?** — the question a surface
+ * asks before it draws a button, as opposed to `rerollError`'s "may this be
+ * pressed right now".
+ *
+ * The two are different decisions and the interface needs both: a bank that
+ * cannot pay is drawn **greyed with the price on it**, because the rising cost
+ * is the mechanism and a player has to see it coming; a technology nobody has
+ * researched draws **nothing**, because a control for a rule the empire has not
+ * met yet is a question it cannot answer. A caller that told them apart by
+ * reading the refusal's words would break the day a sentence was reworded.
+ */
+export function rerollDoorOpen(state: GameState, playerId: number): boolean {
+  return hasAbility(state, playerId, RELIGION.reroll.ability);
+}
+
+export function rerollError(state: GameState, playerId: number): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  const kind = rerollKindFor(player);
+  if (kind === null) return `${player.name} has no draft waiting to be answered`;
+  if (kind === 'belief') return null;
+  if (!rerollDoorOpen(state, playerId)) {
+    return 'Your calendars cannot yet call for a second reading';
+  }
+  const price = nextRerollCost(state, playerId);
+  if (player.faithPool < price) {
+    return `A second reading asks ${price} faith and ${player.name} has ${Math.floor(player.faithPool)}`;
+  }
+  return null;
+}
+
+/** What a reroll did, for the line the interface announces it in. */
+export interface RerollOutcome {
+  kind: 'order' | 'belief';
+  /** Faith the bank gave up. Nought for a belief hand. */
+  paid: number;
+  /** Rerolls this empire has taken once this one is counted. */
+  taken: number;
+}
+
+/**
+ * Deals the hand again. Validates nothing — `rerollError` is the rule.
+ *
+ * **The hand is spent, and a new one is drawn in its place.** An offer is drawn
+ * once from `state.rng` and spent by a command (CLAUDE.md); this is the third
+ * way to spend one, beside a pick and a pass, and it obeys the doctrine for the
+ * same reason they do — the draw happens inside the command, so a replay deals
+ * the same cards to the same seat and nothing here is a function of when
+ * somebody looked at a screen.
+ *
+ * Three things it deliberately does **not** touch:
+ *
+ *   · **`orderSkips`.** A reroll is not a pass: the pity a pass banks is the
+ *     price of giving a hand up, and paying faith to see another one is the
+ *     opposite bargain. The next hand is dealt with exactly the pity the last
+ *     one was.
+ *   · **the meter.** The culture that dealt the first hand stays spent, and the
+ *     draft is still the same tier — a reroll buys cards, never a rung.
+ *   · **a belief hand's price.** The free reroll raises no count and empties no
+ *     bank, and it carries the ladder's quoted rung over to the new hand so an
+ *     empire cannot reroll its way out of paying for the god it takes.
+ *
+ * The **tally** is `SlottedOrder.rerollsSeen`, raised on every card in a slot at
+ * the moment the faith is paid — the shrine engine's count (the order pass, §9
+ * question 3). On the slot record rather than on the player, so a card that was
+ * benched while the rerolls happened counts none of them, which is the same
+ * bargain `recordScalingOccasion` strikes for every other growing card.
+ */
+export function settleReroll(state: GameState, player: Player): RerollOutcome | null {
+  const kind = rerollKindFor(player);
+  if (kind === null) return null;
+
+  if (kind === 'belief') {
+    const old = player.pantheon.pending!;
+    const religion = foundedReligion(state, player.id);
+    const pool = old.pool;
+    let offer: BeliefOffer;
+    if (pool !== undefined) {
+      if (!religion) return null;
+      offer = drawPoolBeliefOffer(state, player, religion, pool);
+    } else {
+      offer = drawBeliefOffer(state, player);
+    }
+    // The offer's own facts travel with it: the god handed back is still handed
+    // back, and the rung the ladder quoted is still the rung the pick pays.
+    if (old.givenBack !== undefined) offer.givenBack = old.givenBack;
+    if (old.rungCost !== undefined) offer.rungCost = old.rungCost;
+    player.pantheon.pending = offer;
+    return { kind, paid: 0, taken: player.statecraft.rerollsTaken };
+  }
+
+  const sc = player.statecraft;
+  const paid = nextRerollCost(state, player.id);
+  player.faithPool = Math.max(0, player.faithPool - paid);
+  sc.rerollsTaken += 1;
+  for (const slot of sc.slots) {
+    if (slot === null) continue;
+    slot.rerollsSeen = (slot.rerollsSeen ?? 0) + 1;
+  }
+  sc.pendingOrder = drawOrderOffer(state, player);
+  return { kind, paid, taken: sc.rerollsTaken };
+}
+
 /**
  * Why this player cannot take this option, or `null` when they can.
  *
@@ -378,6 +653,15 @@ export interface BeliefChoice {
  * reader that saw `pending` during the addition would see a decision that had in
  * fact already been made, and a player who has answered must serialise
  * identically to one who never had an offer.
+ *
+ * **The ladder's rung is paid here**, and only when the offer says so
+ * (`BeliefOffer.rungCost`): the offer is the ladder's own record of what it
+ * quoted, so an augur's hand, a prophet's and a founding's second all cost the
+ * bank nothing and the one shape that charges is the one that opened on a
+ * threshold. Floored at nothing, because faith is a bank the player may spend
+ * between the deal and the pick — the End Turn blocker keeps that window inside
+ * one turn, and an empire that emptied it meanwhile pays what it has rather
+ * than going into debt no other pool in this game can go into.
  */
 export function settleBeliefChoice(
   state: GameState,
@@ -389,6 +673,11 @@ export function settleBeliefChoice(
   const id = offer.options[optionIndex];
   if (id === undefined || !isBeliefId(id)) return null;
   delete player.pantheon.pending;
+  const rungCost = offer.rungCost;
+  if (rungCost !== undefined) {
+    player.faithPool = Math.max(0, player.faithPool - Math.max(0, Math.floor(rungCost)));
+    player.pantheon.rungs += 1;
+  }
   // **Which shelf it goes on is the offer's own answer.** One field, one
   // command, three drafts: an offer that names a pool is a prophet's and lands
   // on the religion; one that names none is an augur's and lands on the
@@ -1257,6 +1546,14 @@ function sweep(state: GameState, holder: { timed?: TimedEffect[] }): void {
  * `claimDiscoveryAt` takes the same liberty for the same reason.
  */
 export function openPeriodicOffers(state: GameState): void {
+  // **The faith ladder**, run from here rather than from a phase of its own:
+  // it is the same beat as the calendar's hand — an offer dealt from
+  // `state.rng` at the end of a resolution, on a board that has already grown,
+  // built and banked. First in the function because it is the older debt (the
+  // bank crossed its threshold during *this* turn's `collectYields`), and the
+  // two cannot tread on each other: they fill different fields and each refuses
+  // while its own is occupied.
+  openFaithLadder(state);
   for (const player of realPlayers(state)) {
     if (player.pendingDiscovery !== undefined) continue;
     for (const cadence of cardPeriodicOffers(state, player.id)) {

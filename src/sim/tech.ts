@@ -1235,12 +1235,12 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   // as it paid for whatever the player chose by hand before a queue existed.
   promoteResearchQueue(state, player);
   if (highestAge(player.techsResearched) > eraBefore) {
+    // The one moment in the game that knows an empire has *entered* an age
+    // rather than merely standing in one. The Long Count used to pay a die of
+    // the Magister here; the dice went with schema 71 (`docs/fewer-things.md`
+    // §1) and what the node pays now is the reroll's door, which is a gate a
+    // verb asks about and never a payout.
     awardOccasion(state, player.id, 'ageEntered');
-    // **The Long Count's die**, at the one moment in the game that knows an
-    // empire has *entered* an age rather than merely standing in one. Read off
-    // the rows (`TechDef.ageEntryDice`) rather than off a technology this
-    // function names, so a second such node is a JSON field.
-    payAgeEntryDice(player);
   }
   // **The closer's own bead** (`TechDef.paysBead`), after the push so the node
   // is already in the list, and inside this routine so a technology finished by
@@ -1260,25 +1260,6 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
     settleCultureWindfall(state, player);
   }
   return { player, techId: plan.techId, name: techDef(plan.techId).name, cost: plan.cost };
-}
-
-/**
- * Pays the dice every node this empire holds owes it for entering a new age.
- *
- * A **fold over the empire's own list**, not a lookup of one technology: the
- * figure is `TechDef.ageEntryDice` and any number of nodes may carry one, so the
- * rule is "what do my technologies together pay" and a second such node needs no
- * second line anywhere. Dice are uncapped (the user's ruling of 2026-08-30), so
- * there is nothing to clamp; `Player.dice` is the bank and nothing else writes
- * it but this and a bead's boon.
- */
-function payAgeEntryDice(player: Player): void {
-  let dice = 0;
-  for (const id of player.techsResearched) {
-    if (!isTechId(id)) continue;
-    dice += Math.max(0, Math.floor(techDef(id).ageEntryDice ?? 0));
-  }
-  if (dice > 0) player.dice += dice;
 }
 
 /**

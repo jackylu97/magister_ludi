@@ -568,23 +568,6 @@ export interface TechDef {
    * pays the same bead by the same line.
    */
   paysBead?: BeadGrantId;
-  /**
-   * **Every new age this empire enters pays this many dice of the Magister** —
-   * The Long Count's, and nothing else's today.
-   *
-   * Read at the age-entry branch of `settleResearch`, beside the `ageEntered`
-   * occasion and for its reason: that comparison (`highestAge` before against
-   * `highestAge` after) is the one place in the game that knows an empire has
-   * *entered* an age, as opposed to standing in one. Deliberately **not
-   * retroactive** — the node pays for the ages you enter after keeping the
-   * count, never for the ones already behind you — which falls out of reading it
-   * at the moment rather than sweeping a list.
-   *
-   * A number on the row rather than a constant in the code (hard rule: data
-   * carries every tuned figure), and summed across every such node an empire
-   * holds, so a second one is a JSON field.
-   */
-  ageEntryDice?: number;
   /** One-line epigram for the tech screen. Flavour only. */
   flavor?: string;
   /**

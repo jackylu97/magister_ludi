@@ -130,8 +130,10 @@ import {
   redraftError,
   renameReligionAt,
   renameReligionError,
+  rerollError,
   riteError,
   settleBeliefChoice,
+  settleReroll,
 } from './religion';
 import {
   type PurchaseCurrency,
@@ -764,11 +766,13 @@ export interface PurchaseTileCommand extends PlayerCommand {
  * simply looks at the offer it stored. An id would make every pick a question
  * about the whole pool.
  *
- * There is **no reroll and no decline**. The offer is the decision; a pick that
- * could be refused would be an offer that can sit in the state forever, and the
- * End Turn blocker exists precisely to stop that. (Entry XV's Magister's Dice
- * will add a reroll *as its own command*, which is the right shape for it — a
- * reroll is a thing you spend something on, not a mode of this.)
+ * There is **no reroll and no decline** on a *discovery*. The offer is the
+ * decision; a pick that could be refused would be an offer that can sit in the
+ * state forever, and the End Turn blocker exists precisely to stop that. The
+ * shape Entry XV predicted arrived on the Statecraft draft instead — the dice of
+ * the Magister went and `rerollOffer` buys a second hand for faith — and it is a
+ * command of its own, which was the point: a reroll is a thing you spend
+ * something on, never a mode of a pick.
  *
  * Turn-gated like every other act: choosing what the ruins gave you is an act,
  * and a seat that has declared itself finished has finished acting. That is not
@@ -837,6 +841,36 @@ export interface ChooseOrderCommand extends PlayerCommand {
  */
 export interface SkipOrderOfferCommand extends PlayerCommand {
   type: 'skipOrderOffer';
+}
+
+/**
+ * **Deals the draft again, for faith** — the Magister's dice replaced by the
+ * currency that had nothing to buy (ruled 2026-09-06, `docs/fewer-things.md` §1:
+ * *"the dice go entirely; faith rerolls a draft"*).
+ *
+ * It names nothing, exactly as a pass names nothing: there is one hand on the
+ * table and the whole of it goes back in the bag. Which hand that is, is the
+ * state's answer rather than the command's (`rerollKindFor`) — an Order draft
+ * costs faith and is counted, a belief draft is free and is counted by nothing,
+ * and an empire holding both is rerolling the one it would be charged for,
+ * because a button that quietly redealt the free hand would be doing something
+ * other than what its own price says.
+ *
+ * **The hand is spent and a new one is drawn in its place**, inside this
+ * command, so the drawn-once doctrine holds: the deal is a function of the log
+ * and never of when somebody looked at a screen. What it deliberately does not
+ * touch is `orderSkips` — a pass banks pity for giving a hand up, and paying to
+ * see another one is the opposite bargain.
+ *
+ * The price rises with every reroll this empire has taken
+ * (`PlayerStatecraft.rerollsTaken`) and with the age, and the button prints the
+ * *next* one before the click, which is the whole of "used sparingly".
+ *
+ * Turn-gated like every other act, and not a trap for `chooseOrder`'s reason:
+ * the End Turn blocker will not let a seat hand over with a draft outstanding.
+ */
+export interface RerollOfferCommand extends PlayerCommand {
+  type: 'rerollOffer';
 }
 
 /**
@@ -1507,6 +1541,7 @@ export type Command =
   | ChooseDiscoveryCommand
   | ChooseOrderCommand
   | SkipOrderOfferCommand
+  | RerollOfferCommand
   | SlotOrderCommand
   | UnslotOrderCommand
   | AdoptGovernmentCommand
@@ -2964,6 +2999,29 @@ function applySkipOrderOffer(state: GameState, command: SkipOrderOfferCommand): 
 }
 
 /**
+ * Deals the hand again for faith. See `RerollOfferCommand`.
+ *
+ * `applySkipOrderOffer`'s twin down to the shape: the seat's two questions here,
+ * everything about the *offer and the price* delegated whole to `rerollError`
+ * (`religion.ts`), and not one line below the validation runs until both have
+ * been answered — so a refused reroll leaves the state byte-identical, generator
+ * included, exactly as a refused pass does.
+ */
+function applyRerollOffer(state: GameState, command: RerollOfferCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot reroll a draft`);
+  }
+
+  const problem = rerollError(state, actor.id);
+  if (problem) return fail(problem);
+
+  settleReroll(state, actor);
+  return ok();
+}
+
+/**
  * Slots a card and seals it. See `SlotOrderCommand`.
  *
  * `slotOrderError` is the whole of the rule and the Statecraft screen greys its
@@ -2990,15 +3048,6 @@ function applySlotOrder(state: GameState, command: SlotOrderCommand): CommandRes
   // opens exactly as a Triumph opens one — including the rule that an empire
   // already holding an offer banks rather than blocks.
   for (const grant of outcome.granted) {
-    // **The Auspicious Seal's die**, banked here beside the laureate's offer and
-    // for its reason: `slotOrderAt` makes the claim, and the module above both
-    // pools turns a claim into a payment. `Player.dice` is the pool the beads
-    // already fill (`beads.ts`), so a card and a bead cannot disagree about what
-    // a die is; nothing spends one yet, which is the Almanac's business.
-    if (grant.grant === 'die') {
-      actor.dice += 1;
-      continue;
-    }
     if (grant.grant !== 'greatPerson') continue;
     // Exactly what the ladder still wants, and never more: the gift is *a great
     // person*, not a lump of renown, so an empire two renown short of the next
@@ -3990,10 +4039,12 @@ function orderedUnitId(command: Command): number | undefined {
     case 'dequeueResearch':
     case 'purchaseTile':
     case 'chooseDiscovery':
-    // The six Statecraft verbs name no piece at all: they are about the
-    // empire's law, and a card is not an order to a warrior.
+    // The Statecraft verbs name no piece at all: they are about the
+    // empire's law, and a card is not an order to a warrior. Rerolling a hand
+    // is the same kind of act one currency over.
     case 'chooseOrder':
     case 'skipOrderOffer':
+    case 'rerollOffer':
     case 'slotOrder':
     case 'unslotOrder':
     case 'adoptGovernment':
@@ -4147,6 +4198,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyChooseOrder(state, command);
     case 'skipOrderOffer':
       return applySkipOrderOffer(state, command);
+    case 'rerollOffer':
+      return applyRerollOffer(state, command);
     case 'slotOrder':
       return applySlotOrder(state, command);
     case 'unslotOrder':

@@ -116,6 +116,54 @@ describe('every statecraft offer carries a stamp', () => {
   });
 });
 
+/**
+ * **The reroll prints the next price before the click** (schema 71, ruled
+ * 2026-09-06 — `docs/fewer-things.md` §1: *"the button prints the next price so
+ * the rise is visible before the click"*).
+ *
+ * Source-read like the rest of this file: the claim is about where the figure
+ * comes from and what the button does with a refusal, and both are one line each
+ * in `main.ts` that a future edit could quietly drop.
+ */
+describe('the reroll button', () => {
+  it('takes its figure from the simulation’s own explainer, never composed beside it', () => {
+    const control = offerSource('rerollControl');
+    expect(control).toContain('explainRerollCost(game.state, seat)');
+    expect(control).toContain('price.total');
+    // The fold is printed too, line by line, so the rise says where it came from.
+    expect(control).toContain('price.lines');
+  });
+
+  it('greys the control with the refusal rather than hiding it', () => {
+    const control = offerSource('rerollControl');
+    expect(control).toContain('rerollError(game.state, seat)');
+    expect(control).toContain('disabled: true');
+    // And a door that has not opened at all shows no button, not a greyed one —
+    // asked as its own question, never read out of a refusal's words.
+    expect(control).toContain('if (!rerollDoorOpen(game.state, seat)) return undefined;');
+  });
+
+  it('checks the result and re-deals the hand it was given', () => {
+    const send = offerSource('rerollOffer');
+    expect(send).toContain("type: 'rerollOffer', playerId: seat");
+    expect(send).toContain('if (!result.ok) controls.guide(');
+    expect(send).toContain('if (!hasEndedTurn(game.state, seat)) again();');
+  });
+
+  it('offers the free hand on the votive card and the paid one on the draft', () => {
+    expect(MAIN).toContain('rerollOffer(seat, showStatecraftOffer)');
+    expect(MAIN).toContain('rerollOffer(seat, showReligionOffer)');
+    // The votive card says what it costs, which is nothing.
+    expect(MAIN).toContain("label: 'Ask again'");
+  });
+
+  it('draws it as a foot control the card component knows about', () => {
+    expect(OFFER_CARD).toContain('offer.reroll !== undefined');
+    expect(OFFER_CARD).toContain("button.className = 'offer-pass offer-reroll'");
+    expect(OFFER_CARD).toContain('button.disabled = offer.reroll.disabled === true');
+  });
+});
+
 describe('the soft pause lives on the End Turn button (user, 2026-08-30)', () => {
   it('labels the button and opens the waiting thing on click', () => {
     expect(MAIN).toContain("order: 'You have a new Order'");

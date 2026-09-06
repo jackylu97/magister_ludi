@@ -128,7 +128,8 @@ import {
   purchasableName,
   purchaseError,
 } from '../sim/purchase';
-import { RITE_IDS, type RiteId, riteAbility, riteDef } from '../sim/religionData';
+import { RITE_IDS, type RiteId, beliefDef, riteAbility, riteDef } from '../sim/religionData';
+import { beliefPool, hasOpenBeliefSlot, nextFaithRungCost } from '../sim/religion';
 import type { City, GameState, Player } from '../sim/state';
 import {
   anyCardDef,
@@ -649,10 +650,81 @@ export function faithPlan(
     }
   }
 
+  // **The faith ladder** (schema 71): the consecration nobody has to walk to.
+  for (const row of ladderPlan(state, player, ctx, inputs)) wants.push(row);
+
   for (const row of savingRows(wants, ctx, bankOf(player, 'faith'), inputs.faithRate)) {
     wants.push(row);
   }
   return wants;
+}
+
+/**
+ * **What the next rung of the faith ladder is worth** — `draftPlan`'s shape one
+ * currency over (schema 71, `docs/fewer-things.md` §3).
+ *
+ * A rung is not a purchase: nothing is bought, the offer opens on its own when
+ * the bank crosses the threshold and the pick takes the faith. But that is
+ * exactly what a *draft* is on the other ladder, and `draftPlan` already prices
+ * one — so this is the same three lines: what the hand would deal, over the
+ * pool it is dealt from, discounted by how long the bank still has to fill.
+ *
+ * Two crudenesses, both written down rather than hidden:
+ *
+ *   · **the best god in the pool, not the best of the hand.** `expectedBestOrder`
+ *     does the distribution properly for Orders and is typed to them; the belief
+ *     bag is small and every god in it is permanent, so the ceiling is a fair
+ *     stand-in and it errs high by exactly the width of a three-card hand.
+ *   · **the first god is not given its appetite here.** The augur row already
+ *     carries `religion.prophetTechValue` for "this empire holds no belief at
+ *     all", and adding it a second time would have the bot value faith twice for
+ *     one god. When the augur retires (batch C2) that appetite moves here.
+ *
+ * Empty for an empire the ladder cannot deal to at all — no open slot, an offer
+ * already outstanding, an empty bag — which is `planFaithRung`'s own answer,
+ * asked with the bank set aside so a rung that is merely unaffordable still
+ * prints (that is the whole point of a want: it is what the faith is *for*).
+ */
+function ladderPlan(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  inputs: WantInputs,
+): Want[] {
+  if (player.pantheon.pending !== undefined) return [];
+  if (!hasOpenBeliefSlot(state, player.id)) return [];
+  const pool = beliefPool(state, player);
+  if (pool.length === 0) return [];
+
+  const cost = nextFaithRungCost(player);
+  let best: Appraisal | null = null;
+  for (const id of pool) {
+    const folded = explainEffects(beliefDef(id).effects ?? [], ctx);
+    if (best === null || folded.total > best.total) best = folded;
+  }
+  if (best === null) return [];
+
+  const bank = bankOf(player, 'faith');
+  const delay = Math.max(0, cost - bank) / Math.max(1, inputs.faithRate);
+  const terms: ValueTerm[] = [
+    nest(
+      `the best of the ${pool.length} god${pool.length === 1 ? '' : 's'} still unconsecrated`,
+      best,
+    ),
+    delayTerm(delay, ctx, 'the faith has still to fill'),
+  ];
+  const folded = appraise(terms);
+  return [
+    {
+      label: `the next consecration (rung ${player.pantheon.rungs + 1})`,
+      currency: 'faith',
+      price: cost,
+      worth: folded.total,
+      delay,
+      terms: folded.terms,
+      outOfReach: bank < cost,
+    },
+  ];
 }
 
 /**

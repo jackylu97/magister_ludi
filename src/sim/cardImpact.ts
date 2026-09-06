@@ -116,10 +116,12 @@ import {
 import { type BeliefId, beliefDef, beliefPoolOf } from './religionData';
 import {
   cardCityYields,
+  describeEffects,
   occasionWords,
   holdsOrder,
   slotOf,
   slotTypesOf,
+  stripRefs,
 } from './statecraft';
 import { CITY_YIELD_KEYS, type CityYieldKey } from './resourceData';
 import { type GreatPersonId, greatPersonDef } from './greatPeopleData';
@@ -797,6 +799,26 @@ function occasionLines(subject: CardImpactSubject): CardImpactLine[] {
   const lines: CardImpactLine[] = [];
   const name = subjectName(subject);
   for (const effect of subjectEffects(subject)) {
+    // **The calendar's own occasion** (`CardPeriodicEffect`), which a diff can
+    // never see for the reason every occasion is here: it pays on a turn rather
+    // than every turn, so there is no per-turn ledger for a ghost to differ in.
+    // A flat boon prints its figure; a counted one prints a note, because what
+    // it pays is a fact about the board rather than a number on the row.
+    if (effect.kind === 'periodic') {
+      const line = emptyLine(name, 'occasion');
+      line.occasion = `every ${Math.max(2, Math.floor(effect.everyTurns))} turns`;
+      if (effect.count === undefined && effect.pays !== 'renown') {
+        line[effect.pays] = Math.floor(effect.amount ?? 0);
+      } else {
+        line.note = stripRefs(
+          describeEffects([effect])
+            .map((clause) => clause.text)
+            .join('; '),
+        );
+      }
+      if (pays(line) || line.note !== undefined) lines.push(line);
+      continue;
+    }
     if (effect.kind !== 'windfallRider') continue;
     const line = emptyLine(name, 'occasion');
     line.occasion = occasionWords(

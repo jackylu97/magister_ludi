@@ -418,7 +418,9 @@ describe('the offer\'s draft flow', () => {
     expect(teardown).toContain('exitTimer');
     expect(teardown).toContain('cancelStamp?.()');
     // And a chained draft replaces the sheet rather than being taken away with it.
-    const show = OFFER.slice(OFFER.indexOf('function show(offer: Offer'), OFFER.indexOf('const sheet = element('));
+    // The signature wraps since the reroll control joined it (batch C1), so the
+    // slice starts at the name rather than at the first parameter.
+    const show = OFFER.slice(OFFER.indexOf('function show('), OFFER.indexOf('const sheet = element('));
     expect(show).toContain('exitTimer');
   });
 });
