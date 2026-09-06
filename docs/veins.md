@@ -1,4 +1,20 @@
-# Veins — the hills' hidden layer, marked, and the rare minerals (2026-09-06)
+# Veins — SHELVED (2026-09-06)
+
+**Ruled: shelved, to be revisited later.** The layer is unreachable for most
+of a game (its gate is an Æra IV node), and when it arrives a survey is a
+worker's turn for a small, frequent return — the shape the fewer-things pass
+is removing. Shelving is cheap and safe: veins are the **last** mapgen pass,
+so `veins.share` at zero leaves every seed's terrain, rivers, resources and
+ruins bit-identical. The code, the tile field, the verb (greyed by the tree)
+and the tests stay; Geomancy keeps its mine bonus. **In the drawer**: the rare
+minerals below do not need veins — a hidden luxury revealed by a tech is how
+iron already works, so eight surface minerals visible only from a late node
+would give the "I found something" moment with no verb, no marks and no
+survey. A data pass, when wanted.
+
+The rest of this doc is the proposal as it stood when shelved.
+
+---
 
 The ruling (`docs/fewer-things.md` §6 item 12, the user): *"Mark them. Let's
 have unique luxuries that can possibly be hidden in them that give powerful

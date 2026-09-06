@@ -33,7 +33,21 @@ describe('seeding the veins', () => {
     const a = generateMap(4242, 'duel');
     const b = generateMap(4242, 'duel');
     expect(veinCells(a)).toEqual(veinCells(b));
-    expect(veinCells(a).length).toBeGreaterThan(0);
+  });
+
+  it('ships switched off — the sheet seeds nothing while the layer is shelved', () => {
+    // **Shelved 2026-09-06** (the user, after the first full playthrough): the
+    // layer was unreachable for most of a game — its gate is an Æra IV node —
+    // and a survey is the small, frequent click the fewer-things pass removes.
+    // `veins.share` is 0 on the sheet, which is the whole of the shelving: the
+    // pass still runs last, still spends its rolls, and seeds nothing, so every
+    // seed's ground above it is bit-identical to what it was. The machinery
+    // below is kept alive by the tests that hand `placeVeins` a share of their
+    // own; this pin is what says the *sheet* is off, on purpose, and that
+    // turning it back on is one number (`docs/veins.md`).
+    expect(VEINS.share).toBe(0);
+    expect(veinCells(generateMap(4242, 'duel'))).toEqual([]);
+    expect(veinCells(generateMap(4242, 'standard'))).toEqual([]);
   });
 
   it('only ever seeds a seam the generator could have placed on that hex', () => {

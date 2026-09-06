@@ -435,11 +435,12 @@ rulings yet:
   for markup: `docs/tech-gifts.md` (every node's gift after the cut — two
   nodes empty today, nine weak, all filled; the science split proposed at
   a quarter back through the tree, three quarters through the deck) and
-  `docs/veins.md` (the layer holds 170–200 seams a standard map but the
-  marks AND the survey wait for Geomancy in Æra IV — the finding; proposal
-  A opens the marks and the shallow survey at Mining, Geomancy keeps the
-  deep strike; eight rare minerals as vein-only build-around luxuries, no
-  new shape).
+  `docs/veins.md` — **SHELVED on your word (2026-09-06)**: the layer was
+  unreachable for most of a game (its gate an Æra IV node) and a survey is
+  the small frequent click this pass removes. `veins.share` is 0 (the last
+  mapgen pass — every seed's ground stays bit-identical); the verb stays
+  greyed by the tree; Geomancy keeps its mine line. In the drawer: the rare
+  minerals as tech-revealed surface luxuries, no verb, when wanted.
 
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture
   boon → mid-turn draft → slot → dead ×) awaits confirmation on current

@@ -549,14 +549,18 @@ describe('the word a player reads for the surveying hand', () => {
     }
   });
 
-  it('says the survey is a worker’s or a scout’s, in the node that opens it', () => {
-    // The positive half, and it is asked of the gate's own row rather than of a
-    // spelled tech id: whichever node opens the survey is the node that has to
-    // say who may spend it.
+  it('no longer sells the survey in the node that gates it, while the layer is shelved', () => {
+    // **Shelved 2026-09-06** (the user, after the first full playthrough): the
+    // vein layer ships switched off (`veins.share` 0 — `test/mapgen/veins.test.ts`
+    // pins it), so the node that gates the survey must not promise a hill that
+    // answers, a mark, or an assay: a note selling a verb the board never offers
+    // would be the sheet lying. What the node still gives — the mine's further
+    // hammer — is what its note says. The positive half of the old pin ("a
+    // worker or a scout may survey…") comes back with the layer
+    // (`docs/veins.md`).
     const note = techDef(prospectDef().tech).note ?? '';
-    expect(note).toMatch(/worker or a scout/i);
-    // …and that it says what the empire is shown for free, which is the other
-    // half of the ruling: where a seam sleeps, never which seam it is.
-    expect(note).toMatch(/sleeps/i);
+    expect(note).not.toMatch(/survey/i);
+    expect(note).not.toMatch(/sleeps/i);
+    expect(note).toMatch(/mine/i);
   });
 });

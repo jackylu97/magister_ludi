@@ -54,6 +54,15 @@ describe('how much is buried', () => {
         counts.set(cell.resource, (counts.get(cell.resource) ?? 0) + 1);
       }
     }
+    // **Shelved 2026-09-06**: with `veins.share` at 0 on the sheet the ladder
+    // has nothing to measure, and a sweep over an empty layer would be a test
+    // that passes by saying nothing. So while the layer is off this pins the
+    // shelving instead — five seeds, no seam — and the ladder claim below
+    // wakes up the day the share is set again (`docs/veins.md`).
+    if (VEINS.share === 0) {
+      expect([...counts.values()].reduce((sum, n) => sum + n, 0)).toBe(0);
+      return;
+    }
     const ore = counts.get('richOre') ?? 0;
     const iron = counts.get('iron') ?? 0;
     const luxuries = ['gems', 'silver', 'gold'].reduce((sum, id) => sum + (counts.get(id) ?? 0), 0);

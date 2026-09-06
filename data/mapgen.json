@@ -163,7 +163,7 @@
     "startLuxuryCopies": 2
   },
   "veins": {
-    "share": 0.33,
+    "share": 0,
     "kinds": [
       {
         "resource": "richOre",
