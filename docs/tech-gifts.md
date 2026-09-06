@@ -40,7 +40,7 @@ What a node can hand over, and whether the shape exists.
 | a bead | `paysBead` | yes | Alchemy |
 | a card into your pool | — | **no** | a tech that adds a named Order to your draw bag. Not proposed: a card the tree hands you is a card the draft did not — it takes the decision out of the draft, which is the wrong direction for this pass |
 | a rung of the faith ladder · the reroll | — | ruled, not yet placed | §2: the ladder opens with the Shrine (Divination); the reroll opens at The Long Count |
-| the vein layer | `prospect.tech` · `prospect.deepTech` | `docs/veins.md` §2 A | Mining opens the marks and the shallow survey; Geomancy the deep strike and the minerals |
+| the vein layer | — | **shelved** (`docs/veins.md`) | the survey stays greyed by the tree; the layer is off in data |
 
 ---
 
@@ -59,7 +59,7 @@ unchanged. Chain children are written "X (needs Y)".
 | `earthenware` | Earthenware | 13 | Granary | ≡ | none | ≡ (the Granary takes the growth shape — fewer-things §2) |
 | `fletching` | Fletching | 13 | archer · camp | ≡ | none | ≡ |
 | `husbandry` | Husbandry | 13 | pasture · Temple of Artemis · reveals horses | ≡ | none | ≡ |
-| `mining` | Mining | 13 | mine | mine | **weak** — one improvement | **+ the vein marks and the shallow survey** (`docs/veins.md` §2 A): the hills start answering in the opening |
+| `mining` | Mining | 13 | mine | mine | **weak** — one improvement | ≡ — kept lean on purpose (veins shelved; the mine is the hills' whole economy) [keep as is]
 | `bronzeWorking` | Bronze Working | 30 | spearman · Barracks · Funeral Games · Walls of Uruk · Blessing of Arms | spearman · Barracks · Walls of Uruk · the military rite | none (Funeral Games cut, three gifts remain) | ≡ |
 | `calendar` | Calendar | 30 | Hanging Gardens · plantation · **Tithes** (⚒→💰) | ≡ | none | ≡ |
 | `divination` | Divination | 30 | augur · Shrine · The Oracle · three rites | Shrine · The Oracle · three rites (city verbs) | none — but the augur's *act* needs a home | **+ the faith ladder opens** (the pantheon's first consecration at its first rung); the Shrine is the rung's door |
@@ -70,7 +70,7 @@ unchanged. Chain children are written "X (needs Y)".
 
 **The arc**: Æra I teaches the doors — every door building, every early verb,
 two of the three projects, the faith ladder's first rung, and (new) the hills.
-No node is empty; Mining was the weakest and is now the layer's front door.
+No node is empty; Mining is the leanest and honestly so (veins shelved).
 
 ### Æra II — Heroes (9 nodes)
 
@@ -78,12 +78,12 @@ No node is empty; Mining was the weakest and is now the layer's front door.
 |---|---|---|---|---|---|---|
 | `bronzePanoply` | Bronze Panoply | 135 | phalanx · swordsman · reveals iron | ≡ | none | ≡ |
 | `currency` | Currency | 135 | trader · Market · Mausoleum · Rite of Plenty | ≡ | none | ≡ |
-| `epicPoetry` | Epic Poetry | 135 | Amphitheater · Theatre of Dionysus · the great-person gate · verse (culture on a death) | Amphitheater (needs a Monument) · the rest | none | ≡ |
-| `theLongCount` | The Long Count | 135 | Chart the Stars · The Long Count · **a die of the Magister** | Chart the Stars · The Long Count | **weak** (the die is gone) | **+ the faith reroll opens here** — the Magister's replacement on the Magister's node; the count's two gifts stay |
-| `irrigation` | Irrigation | 225 | *(nothing — its renewal went with schema 62)* | — | **EMPTY** | **a tile line as the tech's own effect**: farms beside fresh water +1🌾 (the `tileYield` shape Raised Fields uses) — what the node was always for, restored as *the* gift rather than a renewal beside a building |
-| `kingship` | Kingship | 225 | Stele of Laws | — | **EMPTY** (the Stele is cut) | **the third project, production → culture** ("Pageants" — the king's festivals), and **+1 writ capacity** as a tech effect (the Stele's writ, carried by the crown instead of a stone) |
+| `epicPoetry` | Epic Poetry | 135 | Amphitheater · Theatre of Dionysus · the great-person gate · verse (culture on a death) | Amphitheater (needs a Monument) · the rest | none | ≡ | [unlocks: heroic epic, can only be built once in your empire, this city gains +50% renown]
+| `theLongCount` | The Long Count | 135 | Chart the Stars · The Long Count · **a die of the Magister** | Chart the Stars · The Long Count | every 15 turns, gain renown equal to the number of science and faith buildings in your empire | **+ the faith reroll opens here** — the Magister's replacement on the Magister's node; the count's two gifts stay |
+| `irrigation` | Irrigation | 225 | farms beside fresh water gain +1 food |
+| `kingship` | Kingship | 225 | Stele of Laws | — | **the third project, production → culture** ("Pageants" — the king's festivals), and **+3 writ capacity** as a tech effect (the Stele's writ, carried by the crown instead of a stone) | [+3, +1 is too inconsequential] Unlocks: imperial throne, can be built once in a city. +5 authority. units built in this city cost -1 maintenance.
 | `siegecraft` | Siegecraft | 225 | bowman · Stone Walls · siege · lumber mill | bowman · Stone Walls (needs a Palisade) · siege · lumber mill | none | ≡ |
-| `theHighTemple` | The High Temple | 225 | prophet · Temple · The Preaching · the third pantheon slot | prophet (two charges, four acts) · Temple (needs a Shrine) · The Preaching | none | ≡ |
+| `theHighTemple` | The High Temple | 225 | prophet · Temple · The Preaching · the third pantheon slot | prophet (two charges, four acts) · Temple (needs a Shrine) · The Preaching | none | ≡ | unlocks: high temple, can only be built once in your empire. Same religious pressure as a holy site, +25% faith in this city.
 | `wayfinding` | Wayfinding | 225 | bireme · war galley · Harbour · Colossus · sea legs | ≡ | none | ≡ |
 
 **The arc**: Æra II opens the lines — iron, trade, verse, the sea, the
@@ -96,19 +96,19 @@ The Long Count back its Magister.
 | id | name | cost | today | survives | gap | proposed |
 |---|---|---|---|---|---|---|
 | `ironWorking` | Iron Working | 400 | legionary · spear wall · Terracotta Army · Statue of Zeus | ≡ | none | ≡ |
-| `philosophy` | Philosophy | 400 | Forum · Great Library | Great Library | **weak** — a wonder alone | **a card effect: your Libraries pay +25%** (the building-yield percent by category — fewer-things §4's second shape) — the first science engine on the tree, where the science cut is felt |
+| `philosophy` | Philosophy | 400 | Forum · Great Library | Great Library | unlocks the Forum, can only be built once in your empire: +10% science and +10% culture in this city.
 | `raisedFields` | Raised Fields | 400 | floating gardens · a tile line | ≡ | none | ≡ |
 | `stateWorkforce` | State Workforce | 400 | a unit stat · purchases −25% | ≡ | none | ≡ |
-| `mathematics` | Mathematics | 540 | catapult · composite bowman · Petra | ≡ | none | ≡ |
+| `mathematics` | Mathematics | 540 | catapult · composite bowman · Petra | ≡ | none | ≡ | [new, unlocks unique building, needs name: can only be built once in your empire, +1 food and +1 prod from trade routes originating from this city]
 | `shipwrights` | Shipwrights | 540 | galley · tower ship · fire ship · Shipyard | ships · Shipyard (needs a Harbour) | none | ≡ |
 | `theCataphract` | The Cataphract | 540 | horseman · horse archer · war elephant | ≡ | none | ≡ (the Æra II cavalry rung — flags note 18 — is a roster question, not this doc's) |
-| `theExaminationHall` | The Examination Hall | 540 | Examination Hall · a happiness tier boost | the boost | **weak** — a boost alone, and the building that named the node is cut | **+2 writ capacity as a tech effect** (the hall's +3, less one — writ lives in cards now and the tree's share is smaller) — and rename the node **The Civil Service**, since the hall is gone |
+| `theExaminationHall` | The Examination Hall | 540 | Examination Hall · a happiness tier boost | the boost | rename to civil service, +5 authority, +1 production and +1 food on great work improvements|
 | `theImperialPost` | The Imperial Post | 540 | Forbidden City · Great Wall · a behaviour rule · an amplifier · cheer | ≡ | none | ≡ |
-| `artisanry` | Artisanry | 680 | Workshop | Workshop | **weak** — one building | **+ the Forge exists here** (buildable at Steel? — no: the Forge's node stays Steel; the chain Workshop → Forge is Steel's gift). Instead: **a card effect: your Workshops pay +50%** — the hammer engine, on the hammer node |
+| `artisanry` | Artisanry | 680 | Workshop | Workshop | **weak** — one building | +10% production towards wonders, wonders gain +2 culture |
 | `colonialCharters` | Daughter Cities | 680 | Town Charter · a founding rider · settlers −33% | the founding artefact (the charter a daughter city brings) · the rider · the discount | none | ≡ |
 | `engineering` | Engineering | 680 | Aqueduct · Baths · Watermill · Circus Maximus | Aqueduct · Watermill · Circus Maximus | none | ≡ |
-| `horology` | Horology | 680 | Water Clock of Su Song · Clocktower | the Water Clock | **weak** — a wonder alone | **the tree's first periodic boon**: *every ten turns, +N🔬 to the capital* — the ruled periodic occasion, on the clock's own node; the Water Clock's deferred chime ("beakers on a fixed cadence") is exactly this and can stop being deferred |
-| `theology` | Theology | 680 | Monastery · Cathedral · Chichén Itzá · Hagia Sophia · Angkor Wat · Great Mosque | Cathedral (needs a Temple) · four wonders | none — the Æra III wonder bulge (fewer-things §2 flag) | ≡ |
+| `horology` | Horology | 680 | Water Clock of Su Song · Clocktower | the Water Clock | water clock rework: your periodic effects trigger 2 turns earlier. Every 7 turns, gain science equal to your empire-wide production | every 10 turns, gain +5 science for every production building in your empire |
+| `theology` | Theology | 680 | Monastery · Cathedral · Chichén Itzá · Hagia Sophia · Angkor Wat · Great Mosque | Cathedral (needs a Temple) · four wonders | none — the Æra III wonder bulge (fewer-things §2 flag) | ≡ | [unlock apostles here]
 
 **The arc**: the fork. After the cut the age's gifts split cleanly: the
 army (Iron Working, Mathematics, The Cataphract), the sea (Shipwrights), the
@@ -124,19 +124,19 @@ Horology).
 | id | name | cost | today | survives | gap | proposed |
 |---|---|---|---|---|---|---|
 | `education` | Education | 1450 | University · House of Wisdom · The Turning Heavens | University (needs a Library) · the rest | none | ≡ |
-| `machinery` | Machinery | 1450 | crossbowman · Armoury | crossbowman | **weak** — one unit | **a card effect: your Barracks pay +50%** (their unit percent) — the armoury's identity carried by the node |
+| `machinery` | Machinery | 1450 | crossbowman · Armoury | crossbowman | faster movement along roads (1/3rd movement -> 1/5th) |
 | `paperMoney` | Paper Money | 1450 | Mint · Bazaar | Bazaar (needs a Market) | none | ≡ |
-| `prospecting` | Geomancy | 1450 | the survey and the marks (`prospect.tech`) · mines +1⚒ (a tech-gated line on the mine row) | the deep strike · the minerals' reveal · mines +1⚒ | none under veins §2 A | ≡ |
+| `prospecting` | Geomancy | 1450 | the survey and the marks (`prospect.tech`, **shelved**) · mines +1⚒ (a tech-gated line on the mine row) | rework: mines +1 prod, mines on resources provide an additional +1 prod and +1 faith |
 | `theQadisCourt` | The Qadi's Court | 1450 | Courthouse · a meter rule | ≡ | none | ≡ |
 | `feudalism` | Feudalism | 1700 | pikeman · Castle | pikeman · Castle (needs Stone Walls) | none | ≡ |
 | `physics` | Physics | 1700 | trebuchet · Machu Picchu | ≡ | none | ≡ |
 | `steel` | Steel | 1700 | longswordsman · Forge · a unit stat | longswordsman · Forge (needs a Workshop) · the stat | none | ≡ |
-| `theSilkRoad` | The Silk Road | 1700 | Caravanserai · a route rider | the rider | **weak** — a rider alone | **a card effect: routes +30%** (`routeYields` percent — the Escorted Roads' shape, which the balance-turn markup called a payoff) — the road's node pays the roads |
+| `theSilkRoad` | The Silk Road | 1700 | Caravanserai · a route rider | the rider |  — the road's node pays the roads, trade routes gain +1 gold from each luxury resource in the origin/destination city |
 | `banking` | Banking | 1950 | Bank | Bank (needs a Market; +0.5💰 per citizen, +10%💰) | none | ≡ |
 | `militantOrders` | Militant Orders | 1950 | knight · Alhambra | ≡ | none | ≡ |
-| `movableType` | Movable Type | 1950 | Printing House · cheer | the cheer | **weak** — cheer alone, and cheer is dead above the clamp | **a card effect: your Libraries and Universities pay +25%** — the press; the second science engine, on the node whose building was the science flat |
+| `movableType` | Movable Type | 1950 | Printing House · cheer | the cheer | rework: remove cheer, cities connected to the capital gain +10% science and +10% production. |
 | `theAstrolabe` | The Astrolabe | 1950 | caravel · carrack · gun galley · Observatory · ocean-going | ships · Observatory (needs a University) · ocean-going | none | ≡ |
-| `theHolyOffice` | The Holy Office | 1950 | inquisitor · Reliquary · Notre-Dame | inquisitor · Notre-Dame · (faith purchases move onto the Cathedral) | none | **+ the apostle** — "later in the tree than the prophet" (RULED); this is the religion node after The High Temple, and the Office is where an apostle is sent from |
+| `theHolyOffice` | The Holy Office | 1950 | inquisitor · Reliquary · Notre-Dame | inquisitor · Notre-Dame · (faith purchases move onto the Cathedral) | none | [move apostles to theology] |
 | `alchemy` | Alchemy | 2200 | fire lance · Alchemical Society · Alchemical Codex · a bead · reveals niter | ≡ | none | ≡ |
 
 **The arc**: acceleration toward the Opus. The two science engines (Movable
@@ -147,19 +147,20 @@ gifts; the apostle lands where the theme said it would.
 
 | | nodes | empty today | weak today | after |
 |---|---|---|---|---|
-| Æra I | 12 | 0 | 1 (Mining) | 0 |
+| Æra I | 12 | 0 | 1 (Mining) | 1 (Mining, by choice) |
 | Æra II | 9 | 2 (Irrigation, Kingship) | 1 (The Long Count) | 0 |
 | Æra III | 14 | 0 | 4 (Philosophy, The Examination Hall, Artisanry, Horology) | 0 |
-| Æra IV | 14 | 0 | 3 (Machinery, The Silk Road, Movable Type) | 0 |
-| **all** | **49** | **2** | **9** | **0** |
+| Æra IV | 14 | 0 | 3 (Machinery, The Silk Road, Movable Type) | 1 (Geomancy, until the minerals) |
+| **all** | **49** | **2** | **9** | **2** |
 
 Gap-fills by kind: **six card effects** (Philosophy, Artisanry, Machinery,
 Movable Type — building percents; Irrigation — a tile line; The Silk Road —
 a route percent) · **one periodic boon** (Horology) · **one project + writ**
 (Kingship) · **one writ effect** (The Civil Service) · **the reroll** (The
-Long Count) · **the faith ladder** (Divination) · **the vein layer** (Mining)
-· **the apostle** (The Holy Office). No node is too rich: the richest
-(Stonecraft, Bronze Working, Theology) were rich before and lose a row each
+Long Count) · **the faith ladder** (Divination) · **the apostle** (The Holy
+Office). Veins shelved: Mining and Geomancy stay lean on purpose. No node is
+too rich: the richest (Stonecraft, Bronze Working, Theology) were rich before
+and lose a row each
 or none.
 
 ---
@@ -202,7 +203,7 @@ not too low for a seat that never drafts Learning.
 
 | Surface | What moves |
 |---|---|
-| `docs/tech-tree.md` | the per-age tables list units · buildings · abilities & gifts per node; every row this doc changes re-prints (Irrigation, Kingship, The Long Count, Philosophy, The Civil Service, Artisanry, Horology, Machinery, The Silk Road, Movable Type, The Holy Office, Mining, Divination, Geomancy). The Civil Service rename is a name only (`theExaminationHall` keeps its id for saves) |
+| `docs/tech-tree.md` | the per-age tables list units · buildings · abilities & gifts per node; every row this doc changes re-prints (Irrigation, Kingship, The Long Count, Philosophy, The Civil Service, Artisanry, Horology, Machinery, The Silk Road, Movable Type, The Holy Office, Divination, Geomancy). The Civil Service rename is a name only (`theExaminationHall` keeps its id for saves) |
 | `test/sim/tech.test.ts` | pins node unlocks, the ability register (`ABILITY_TECH`), the cut-ids list, the lane crossings — every changed row re-pins; the crossings are untouched (no lane moves) |
 | `test/sim/statecraft.test.ts` | the fold registry: a tech carrying a building percent, a periodic boon or a route percent joins `liveEffects`' tenth source as it does today — the *shapes* are fewer-things §4's and join the registry there |
 | The compendium | generated from rows and describers; a tech effect prints through `describeEffect` — each new shape needs its words once |
@@ -245,3 +246,84 @@ node already has its gift and the deck's science budget is known.
    cut recommended.*
 7. **"A card into your pool" as a shape.** Not recommended (it takes a
    decision out of the draft). Say if you want it anyway.
+
+---
+
+## 7. The markup, folded (2026-09-06) — RULED
+
+The user marked the ledger; the rows above carry the marks. Two moves came
+out of it, and both are recorded here as the pass's rulings.
+
+### Unique buildings — once per empire, the age's anchor
+
+*"One balance mechanism is introducing strong buildings that can only be
+built once per empire."* The shape exists: `BuildingDef.oncePerEmpire` (the
+Opus and the three national rows already wear it; `buildError` refuses a
+second; the bot's potential arm reads it). A unique building is a **decision
+about where** — the one thing a multiplied flat never was — so its effect is
+city-scoped and scales with the city it lands in.
+
+| node | building | effect (city-scoped) | shape | new? |
+|---|---|---|---|---|
+| Epic Poetry (II) | **Heroic Epic** | this city gains +50% renown | a percent on the city's renown lines | **new** — renown is a flat per building today; a city-scoped renown percent is one arm in `explainCityRenown` |
+| Kingship (II) | **Imperial Throne** | +5 authority; units built in this city cost −1 maintenance | authority capacity (`cityStat`, exists); a per-city unit-upkeep rebate stamped on the unit at build (`Unit.freeUpkeep`'s cousin) | **half new** — the rebate is written at one of the five free-unit seams, as a partial |
+| The High Temple (II) | **High Temple** | pressure as a holy site; +25% faith in this city | building `pressure` (exists on the Temple); `percentYields` faith, city stage (exists) | no |
+| Philosophy (III) | **Forum** (kept back from the cut as the unique) | +10% science and +10% culture in this city | city-stage percents (exist) | no |
+| Mathematics (III) | *(unnamed — the Counting House? the Harbourmaster's Table?)* | routes **originating here** +1🌾 +1⚒ | route yields keyed on the origin city | **new** — `routeYields` is empire-wide today; an origin-scoped line is one field on the shape |
+
+Rules for the set: one per age at most two; every effect says *this city*;
+the Forum's cut is reversed only in this form (it is not an ordinary row
+again). Each is a real build — the chains do not apply to them, and the
+hammer cost should read as a small wonder's.
+
+### Tech effects — the nodes' own gifts, as marked
+
+| node | gift, as ruled | shape | new? |
+|---|---|---|---|
+| The Long Count | every 15 turns, renown equal to the number of science and faith buildings in your empire | the periodic occasion paying a `countScaled` over `buildingsOfKind` (two categories) into renown | the occasion is fewer-things §4's; the renown payout is `settleRenownWindfall`'s |
+| Irrigation | farms beside fresh water +1🌾 | `tileYield` (Raised Fields' shape) | no |
+| Kingship | Pageants (⚒→🎵) · **+3 writ capacity** ("+1 is too inconsequential") | project · `cityStat` authority as a tech effect | no |
+| The Civil Service (renamed) | +5 authority · great-work improvements +1⚒ +1🌾 | authority; `tileYield` on the great-work improvements (academy · landmark · manufactory · customs house · citadel · holy site — one line per improvement, or a `greatWork` test) | a `greatWork` tile test is one member |
+| Artisanry | +10% production toward wonders · wonders +2🎵 | `productionBonus` wonders (exists); `buildingCategoryYields` wonders (exists) | no |
+| Horology | **the Water Clock reworked**: your periodic effects fire 2 turns earlier; every 7 turns, science equal to your empire-wide production. **The tech**: every 10 turns, +5🔬 per production building | the period shortener and the periodic occasion (fewer-things §4, ruled); a payout equal to a *yield total* needs a count `empireProduction` | the count is **new** (one member); the rest is the ruled periodic pair |
+| Theology | **the apostle unlocks here** (moved from The Holy Office) | `unlocks.units` | no |
+| Machinery | roads faster: a road step costs a fifth instead of a third | `stepCost`'s road fraction as an empire fact (`MoveProfile`) | **new** — one field read in the one place a step is priced |
+| Geomancy | mines +1⚒ (as today); **mines on resources +1⚒ +1🕯 more** | `tileYield` with `improvement: mine` ∧ `hasResource` (`all` composes) | no |
+| The Silk Road | routes +1💰 per luxury in the origin or destination city | route yields counting the endpoints' luxuries | **new** — a route-fold count over the partner's and origin's resources (the Silk Exchange's "partner population" reading is the same seam) |
+| Movable Type | cheer removed; cities **connected to the capital** +10% science and +10% production | city-stage percents under a city condition `connected` | the condition is **new** (one member; `explainEmpireGold` already knows the connection) |
+
+Withdrawn by the markup: the Library/Workshop/Barracks percents, the
+Libraries-and-Universities press, the route +30% — the user's gifts are more
+specific than the shapes I reached for, and better for it.
+
+### Shapes this adds to the pass
+
+| shape | where | cost |
+|---|---|---|
+| a city-scoped renown percent | `renown.ts` `explainCityRenown` | one arm |
+| a per-city unit-upkeep rebate written at build | `realiseItem` → `Unit` | one field, one seam |
+| origin-scoped route yields | `routeYields.ts` | one field on the shape |
+| `empireProduction` (a yield total as a count) | `countOf` | one member |
+| a `greatWork` tile test | `TileCondition` | one member |
+| the road step fraction as an empire fact | `MoveProfile` / `stepCost` | one field |
+| endpoint-luxury route count | `routeYields.ts` | one count |
+| a `connected` city condition | the city-condition evaluator | one member |
+
+Eight small members beside fewer-things' ten. None reaches a fold that
+another shape does not already reach.
+
+### Still open
+
+- **The Mathematics unique's name**, and whether the Throne's +5 authority
+  is empire-wide (then *where* it stands does not matter — the unit rebate is
+  the placement decision) or should be city-read too.
+- **Hammer costs** for the five uniques (a small wonder's — 60/90/120/120/150
+  as a first reading, by age).
+- **Horology's two periodic figures** (every 7 turns science = empire
+  production is ≈19🔬 a turn on the t92 empire, a tenth of its science, before
+  the shortener; every 10 turns +5🔬 per production building ≈ +6 a turn) —
+  strong, and meant to be; confirm.
+- **The science split** (§3): with the Library/University percents withdrawn
+  the tree now hands back science through Horology, Movable Type and the
+  Forum alone — roughly the same quarter, differently shaped. Confirm the
+  deck carries the rest.
