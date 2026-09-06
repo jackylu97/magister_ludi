@@ -431,10 +431,15 @@ rulings yet:
   the base beaker halves and science moves into orders (the next playtest
   calibrates); three projects (production → gold / science / culture);
   veins marked, with hidden unique minerals. **Still open: the rites' faith
-  price and per-city seal** (a default is proposed there). Two docs in
-  flight for markup: `docs/tech-gifts.md` (every node's gift after the cut,
-  before the order pass) and `docs/veins.md` (the vein mechanics and the
-  rare minerals).
+  price and per-city seal** (a default is proposed there). Two docs DRAFTED
+  for markup: `docs/tech-gifts.md` (every node's gift after the cut — two
+  nodes empty today, nine weak, all filled; the science split proposed at
+  a quarter back through the tree, three quarters through the deck) and
+  `docs/veins.md` (the layer holds 170–200 seams a standard map but the
+  marks AND the survey wait for Geomancy in Æra IV — the finding; proposal
+  A opens the marks and the shallow survey at Mining, Geomancy keeps the
+  deep strike; eight rare minerals as vein-only build-around luxuries, no
+  new shape).
 
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture
   boon → mid-turn draft → slot → dead ×) awaits confirmation on current
