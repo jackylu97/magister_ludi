@@ -65,6 +65,7 @@
 
 import type { AiConfig } from './aiConfig';
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
+import { type TileContextField, tileContextField } from './ground';
 import {
   type ValueContext,
   type YieldBag,
@@ -74,7 +75,7 @@ import {
   hammerTerm,
 } from './value';
 
-import { hasResource, tileContextAt, tileOwnerPlayerId } from '../sim/cities';
+import { hasResource, tileOwnerPlayerId } from '../sim/cities';
 import {
   IMPROVEMENT_IDS,
   type ImprovementId,
@@ -134,11 +135,17 @@ export function buildImprovementPlan(
   const roster = workRoster(ctx.ai);
   const occupied = workerHexes(state, player.id);
   const byTile = new Map<number, PlanEntry>();
+  // **The ground's context, hoisted for the whole walk** (batch 9). Every hex of
+  // one town prices through that town's own reading, and this walk asks a few
+  // hundred hexes against every row of the roster; `tileContextField` is the
+  // same answer `tileContextAt` gives, computed once per town. Its lifetime is
+  // this call, which is a sweep, which is the rule.
+  const ground = tileContextField(state, player.id);
 
   for (const tile of groundInReach(state, player)) {
     const at = tileIndex(state.map, tile.col, tile.row);
     if (byTile.has(at)) continue;
-    const best = bestEntryOn(state, player, ctx, tile, roster);
+    const best = bestEntryOn(state, player, ctx, tile, roster, ground);
     if (best === null) continue;
     best.unclaimed = !occupied.has(at);
     byTile.set(at, best);
@@ -216,10 +223,11 @@ function bestEntryOn(
   ctx: ValueContext,
   tile: Tile,
   roster: readonly ImprovementId[],
+  ground: TileContextField,
 ): PlanEntry | null {
   let best: PlanEntry | null = null;
   for (const improvement of roster) {
-    const entry = improvementEntry(state, player, ctx, tile, improvement);
+    const entry = improvementEntry(state, player, ctx, tile, improvement, ground);
     if (entry === null) continue;
     if (best === null || entry.value > best.value) best = entry;
   }
@@ -238,9 +246,10 @@ function improvementEntry(
   ctx: ValueContext,
   tile: Tile,
   improvement: ImprovementId,
+  ground: TileContextField,
 ): PlanEntry | null {
   if (improvementErrorAt(state, player.id, tile, improvement) !== null) return null;
-  const delta = improvementYieldDelta(tile, improvement, tileContextAt(state, player.id, tile));
+  const delta = improvementYieldDelta(tile, improvement, ground(tile));
   const yields = explainYields(bagOfTileYield(delta), ctx);
   const name = improvementDef(improvement).name;
   const terms: ValueTerm[] = [nest(`${name} on (${tile.col},${tile.row})`, yields)];
@@ -626,9 +635,12 @@ export function rankWorkSites(
   // empire that cannot change while this ring is being walked. A cache, never an
   // iteration — nothing downstream reads its order.
   const held = new Map<ResourceId, boolean>();
+  // The ring's contexts, hoisted for this walk exactly as the plan hoists them
+  // for its own (batch 9) — one reading per town rather than one per hex.
+  const ground = tileContextField(state, player.id);
   const ranked: { entry: PlanEntry; score: number; distance: number; terms: ValueTerm[] }[] = [];
   for (const tile of mapRange(state.map, here, radius)) {
-    const entry = improvementEntry(state, player, ctx, tile, improvement);
+    const entry = improvementEntry(state, player, ctx, tile, improvement, ground);
     if (entry === null) continue;
     const distance = wrappedDistance(state.map, here, tileHex(tile));
     const discount = 1 + distance * ctx.ai.workers.walkDiscount;

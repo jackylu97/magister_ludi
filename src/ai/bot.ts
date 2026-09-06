@@ -112,6 +112,7 @@ import {
 // it is one of the three folds the persona suite pins directly.
 export { explainNextTown };
 import { diplomacyDecision } from './diplomacy';
+import { type TileContextField, tileContextField } from './ground';
 import {
   type Appraisal,
   type BotCandidate,
@@ -186,6 +187,7 @@ import {
 } from '../sim/state';
 import type { City, GameState, Player, Unit } from '../sim/state';
 import {
+  type CityQuote,
   assignableTiles,
   citizenFocusError,
   citizenLean,
@@ -521,11 +523,22 @@ export interface BotSitting {
   readonly playerId: number;
   /** Built on first ask, and then read. Never invalidated inside a turn. */
   ctx: ValueContext | null;
+  /**
+   * How many times this seat has re-aimed its beeline so far this turn —
+   * `driver.reaimsPerTurn`'s counter, and the sitting's second piece of memory.
+   *
+   * It is here rather than in the driver because it is a fact about the *seat's
+   * deliberation*, not about the loop that dispatches it: the two loops
+   * (`driver.ts` and `stepper.ts`) open one sitting per seat per turn in the
+   * same place and drop it in the same place, so a bound carried here is the
+   * same bound in both and the byte-for-byte pin between them holds.
+   */
+  reaims: number;
 }
 
 /** A fresh sitting for one seat's turn. The driver and the stepper open these. */
 export function botSitting(playerId: number): BotSitting {
-  return { playerId, ctx: null };
+  return { playerId, ctx: null, reaims: 0 };
 }
 
 /**
@@ -1130,9 +1143,10 @@ function housekeeping(
   // a column arrives, and a bot that only answered blockers would research
   // pottery while its capital was stormed. `researchCommand` sends nothing when
   // the plan already is the goal's closure, so this is silent on every turn the
-  // world has not changed class — see its docblock for why that is a proof of
-  // termination rather than a hope.
-  const beeline = researchCommand(state, player.id, sitting);
+  // world has not changed class — an argument about one goal, which is why it
+  // goes through `reaimBeeline`: two goals that displace each other displaced
+  // each other four hundred times in one turn before batch 9 bounded it.
+  const beeline = reaimBeeline(state, player, sitting);
   if (beeline !== null) return beeline;
 
   // **Where a town's people stand** — the hammer price's own arm (batch 6). It
@@ -1149,6 +1163,46 @@ function housekeeping(
   // are filled: a card on the bench and a chair standing open is the cheaper
   // move, and this is the one that costs a seal. See `reslotDecision`.
   return reslotDecision(state, player, sitting);
+}
+
+/**
+ * **The beeline, re-aimed at most `driver.reaimsPerTurn` times a turn.**
+ *
+ * `researchCommand`'s idempotence argument is about one goal: it sends nothing
+ * when the plan already *is* that goal's expansion, so the very next ask is
+ * silent. What it does not cover is two goals that displace each other. The
+ * incumbent carries `priorities.switchMargin` as a **multiplication**, so two
+ * chains whose remaining worth has gone negative each make the other look better
+ * the moment it holds the plan — and the seat swaps A for B for A for B until
+ * the command budget cuts it off. Measured on the standard board at turn ninety
+ * -four: three hundred and ninety-two `chooseResearch` commands in one turn, and
+ * seventy per cent of the whole game's thinking spent on them.
+ *
+ * The bound is the sitting's, and it is a bound rather than a repair: nothing
+ * here decides *which* goal is right, and the first re-aim of the turn goes out
+ * exactly as it always did. What cannot happen any more is a second one on a
+ * board the seat's own order is the only thing that changed. The research
+ * blocker — a seat holding no plan at all — is a different door
+ * (`answerBlocker`) and is deliberately not capped, or a seat could be left
+ * unable to end its turn.
+ *
+ * A caller with no sitting (the tests that ask `nextBotCommand` directly) keeps
+ * the old unbounded behaviour, which is the same bargain `seatContext` makes.
+ */
+function reaimBeeline(
+  state: GameState,
+  player: Player,
+  sitting?: BotSitting,
+): BotDecision | null {
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  if (own !== null) {
+    const budget = Math.max(0, aiConfigFor(player.persona, player.id).driver.reaimsPerTurn);
+    if (own.reaims >= budget) return null;
+  }
+  const beeline = researchCommand(state, player.id, sitting);
+  if (beeline === null) return null;
+  if (own !== null) own.reaims += 1;
+  return beeline;
 }
 
 /**
@@ -1236,14 +1290,24 @@ function focusTable(
   const balanced = RULES.cities.citizenWeights;
   const leaning = RULES.cities.citizenFocusWeights.production;
   const tiles = assignableTiles(state, city);
+  // **The ring's context, hoisted for the table** (batch 9): the two sheets are
+  // ranked and bagged four times over the same hexes, and every hex of one town
+  // prices through that town's own reading. `tileContextField` is
+  // `tileContextAt`'s answer computed once per town; its lifetime is this table.
+  const ground = tileContextField(state, city.ownerId);
+  // **The town's books, taken once** for the two live readings below (the
+  // starvation guard and the growth clock): `cityQuote` is the ingredients and
+  // `cityYields` is still the fold, so the figure is the same one and the empire
+  // meter sweep behind it is paid for once rather than three times (batch 9).
+  const books = cityQuote(state, city, [], empirePercents(state, city.ownerId));
   // The seats to fill: exactly the citizens standing on the land today, which is
   // `assignCitizens`' own `population − specialists` after the fact and needs no
   // second reading of the guilds.
   const seats = city.workedTiles.length;
-  const ranked = (weights: typeof balanced): Tile[] => rankTiles(state, city, tiles, weights);
+  const ranked = (weights: typeof balanced): Tile[] => rankTiles(state, tiles, weights, ground);
   const plainRank = ranked(balanced);
   const under = (order: readonly Tile[]): YieldBag =>
-    bagOfTiles(state, city, order.slice(0, Math.max(0, seats)));
+    bagOfTiles(order.slice(0, Math.max(0, seats)), ground);
   // **Both sheets from scratch, and never the town's current one.** The
   // comparison has to be a fact about the ground rather than about what the town
   // is doing today, or acting on it would change it: a table that read the
@@ -1296,7 +1360,7 @@ function focusTable(
   // bot already prices (`explainCitizen`), so it is charged the way every other
   // delay in the system is — the discount at the turns the lean would take to
   // grow, less the discount at the turns the balanced sheet would.
-  const growth = growthTerm(state, city, ctx, plainRank[seats], plainBag, leanBag);
+  const growth = growthTerm(state, city, ctx, plainRank[seats], plainBag, leanBag, books);
   if (growth !== null) terms.push(growth);
   const lean: BotCandidate = {
     label: 'work the hammers',
@@ -1326,7 +1390,8 @@ function focusTable(
   // baseline move together by exactly the same bushels.
   if (lean.score > 0) {
     const standing = citizenLean(city) === 'production' ? leanBag : plainBag;
-    const fed = cityYields(state, city).food + ((leanBag.food ?? 0) - (standing.food ?? 0));
+    const fed =
+      cityYields(state, city, [], null, books).food + ((leanBag.food ?? 0) - (standing.food ?? 0));
     if (fed < foodUpkeep(city)) {
       lean.rejected = `${city.name} would not feed itself on the hammers`;
     }
@@ -1364,6 +1429,8 @@ function growthTerm(
   nextHex: Tile | undefined,
   plainBag: YieldBag,
   leanBag: YieldBag,
+  /** The town as it stands, hoisted by `focusTable`. See `push`'s `standing`. */
+  books: CityQuote,
 ): ValueTerm | null {
   // **What the next citizen is worth, read off the balanced ordering** rather
   // than off `explainCitizen`. The two agree about the clause that matters — the
@@ -1380,7 +1447,7 @@ function growthTerm(
   );
   if (citizen <= 0) return null;
   const standing = citizenLean(city) === 'production' ? leanBag : plainBag;
-  const surplus = cityYields(state, city).food - foodUpkeep(city);
+  const surplus = cityYields(state, city, [], null, books).food - foodUpkeep(city);
   const remaining = Math.max(0, growthThreshold(city.population) - city.foodBasket);
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
   const turnsAt = (bag: YieldBag): number => {
@@ -1407,24 +1474,24 @@ function growthTerm(
  */
 function rankTiles(
   state: GameState,
-  city: City,
   tiles: readonly Tile[],
   weights: Parameters<typeof yieldScore>[1],
+  ground: TileContextField,
 ): Tile[] {
   const scored = tiles.map((tile) => ({
     tile,
     at: tileIndex(state.map, tile.col, tile.row),
-    score: yieldScore(tileYieldOf(tile, tileContextAt(state, city.ownerId, tile)), weights),
+    score: yieldScore(tileYieldOf(tile, ground(tile)), weights),
   }));
   scored.sort((a, b) => b.score - a.score || a.at - b.at);
   return scored.map((row) => row.tile);
 }
 
 /** What a set of hexes pays, as a bag the appraisal weights. */
-function bagOfTiles(state: GameState, city: City, tiles: readonly Tile[]): YieldBag {
+function bagOfTiles(tiles: readonly Tile[], ground: TileContextField): YieldBag {
   const bag: YieldBag = {};
   for (const tile of tiles) {
-    const yields = bagOfTileYield(tileYieldOf(tile, tileContextAt(state, city.ownerId, tile)));
+    const yields = bagOfTileYield(tileYieldOf(tile, ground(tile)));
     for (const voice of VOICES) bag[voice] = (bag[voice] ?? 0) + (yields[voice] ?? 0);
   }
   return bag;
@@ -3473,7 +3540,15 @@ function buildCandidates(
   // sweep rather than once per candidate — `cityQuote`'s own documented bargain,
   // and the difference between one meter sweep and forty.
   const empire = empirePercents(state, player.id);
-  const base = cityYields(state, city, [], null, cityQuote(state, city, [], empire));
+  // **The town as it stands**, taken once and then lent twice: to the baseline
+  // every candidate's delta is measured from, and to `push`'s schedule estimate.
+  // `turnsToBuild` used to be asked with no quote at all, so every row of the
+  // list paid for a whole fresh reading of this town — the centre, the worked
+  // hexes, the luxuries, the cards and both meter sweeps — to answer a question
+  // whose only moving part is the item at the front of the queue. Same figure,
+  // one reading (batch 9).
+  const standing = cityQuote(state, city, [], empire);
+  const base = cityYields(state, city, [], null, standing);
 
   for (const id of BUILDING_IDS) {
     if (!canQueueBuilding(state, player, city, id)) continue;
@@ -3506,7 +3581,7 @@ function buildCandidates(
     const race = raceTerm(ctx, { kind: 'building', id });
     if (race !== null) terms.push(race);
     const value = foldOf(terms);
-    push(candidates, state, city, { kind: 'building', id }, value, buildingUpkeep(id), ctx, terms);
+    push(candidates, state, city, standing, { kind: 'building', id }, value, buildingUpkeep(id), ctx, terms);
   }
 
   for (const id of UNIT_TYPE_IDS) {
@@ -3514,7 +3589,7 @@ function buildCandidates(
     if (!canQueueUnit(state, player, city, id)) continue;
     const role = unitRoleValue(state, player, city, id, ctx, plan);
     if (role === null) continue;
-    push(candidates, state, city, { kind: 'unit', id }, role.value, unitUpkeep(id), ctx, role.terms);
+    push(candidates, state, city, standing, { kind: 'unit', id }, role.value, unitUpkeep(id), ctx, role.terms);
   }
 
   for (const id of PROJECT_IDS) {
@@ -3524,7 +3599,7 @@ function buildCandidates(
     // the bead race exactly as a bead-paying building is, through the same door.
     const race = raceTerm(ctx, { kind: 'project', id });
     if (race !== null) terms.push(race);
-    push(candidates, state, city, { kind: 'project', id }, foldOf(terms), 0, ctx, terms);
+    push(candidates, state, city, standing, { kind: 'project', id }, foldOf(terms), 0, ctx, terms);
   }
   return candidates;
 }
@@ -3534,6 +3609,15 @@ function push(
   into: BuildCandidate[],
   state: GameState,
   city: City,
+  /**
+   * The town as it stands, hoisted by the caller — `CityQuote`'s documented
+   * bargain (`cities.ts`), and the reason the estimate below is one division
+   * rather than one empire sweep. A quote is a photograph of one town at one
+   * instant and its lifetime is this sweep; the *rate* it feeds still comes out
+   * of `cityYields` with the item at the front, which is where a per-category
+   * modifier lands.
+   */
+  standing: CityQuote,
   item: QueueItem,
   value: number,
   upkeep: number,
@@ -3543,7 +3627,7 @@ function push(
   const ai = ctx.ai;
   // `null` is "this town will never finish it" — no production at all — and a
   // candidate that never finishes has no score, not a bad one.
-  const turns = turnsToBuild(state, city, item, 0);
+  const turns = turnsToBuild(state, city, item, 0, standing);
   if (turns === null) return;
   // **One H** (batch 7): `score.maxTurns` is retired into `priorities.horizonTurns`.
   // Both were forty and both meant the same thing — how far ahead this bot will
@@ -3978,10 +4062,11 @@ export function explainCitizen(state: GameState, city: City, ctx: ValueContext):
  */
 function nextWorkableTile(state: GameState, city: City): { tile: Tile; yields: TileYield } | null {
   const worked = new Set(city.workedTiles.map((cell) => `${cell.col},${cell.row}`));
+  const ground = tileContextField(state, city.ownerId);
   let best: { tile: Tile; yields: TileYield; score: number } | null = null;
   for (const tile of assignableTiles(state, city)) {
     if (worked.has(`${tile.col},${tile.row}`)) continue;
-    const yields = tileYieldOf(tile, tileContextAt(state, city.ownerId, tile));
+    const yields = tileYieldOf(tile, ground(tile));
     const score = yieldScore(yields);
     if (best === null || score > best.score) best = { tile, yields, score };
   }
@@ -4043,9 +4128,12 @@ export function isPatientRow(item: QueueItem): boolean {
 function isOpusTown(state: GameState, player: Player, city: City): boolean {
   let best: City | null = null;
   let most = -1;
+  // One meter sweep for the empire rather than one per town — `cityQuote`'s
+  // documented bargain, and the same figure either way.
+  const empire = empirePercents(state, player.id);
   for (const town of state.cities) {
     if (town.ownerId !== player.id) continue;
-    const made = cityYields(state, town).production;
+    const made = cityYields(state, town, [], null, cityQuote(state, town, [], empire)).production;
     if (made > most) {
       most = made;
       best = town;

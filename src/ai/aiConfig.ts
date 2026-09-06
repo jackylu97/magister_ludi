@@ -60,6 +60,29 @@ export interface AiConfig {
     endTurnAttempts: number;
     /** How many `chooseGreatPerson` redraws the driver will ride out. */
     greatPersonRedraws: number;
+    /**
+     * How many times one seat will **re-aim its beeline** in one turn.
+     *
+     * `researchCommand` is idempotent by construction — it sends nothing when
+     * the plan already is the goal's expansion — and that argument holds for one
+     * goal at a time and not for two. `techGoalTable` defends the incumbent by
+     * `priorities.switchMargin`, which *multiplies*: an incumbent whose chain
+     * has turned negative is made worse by holding the plan and is displaced at
+     * once (the table's own docblock says so). Two negative chains near enough
+     * in worth therefore displace each other for ever, and the seat spends its
+     * whole command budget swapping one plan for the other. Measured on the
+     * standard board: three hundred and ninety-two `chooseResearch` commands in
+     * a single turn, and seventy per cent of a hundred-turn game's thinking.
+     *
+     * The bound is a *turn's* worth of re-aiming, which is also the honest
+     * reading of what a beeline is: a plan is a turn-scale decision, and a seat
+     * that has already changed its mind once this turn has said what it wants.
+     * The research **blocker** — a seat with no plan at all — is answered by the
+     * same arm through a different door and is never capped, so a seat can
+     * always end its turn. A bound on compute, which is the audit's one honest
+     * kind of cap (`search.pathProbes`, `expansion.siteSearchRadius`).
+     */
+    reaimsPerTurn: number;
   };
   search: {
     /**

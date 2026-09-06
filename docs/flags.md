@@ -22,8 +22,16 @@ directly to confirm rulings — user marginalia are rulings.
   lowered, one line on your word; (c) **Hegemony's capture bonus ships as
   +5% production for 10 turns** (the Triumphal Way's duration) — your
   bracket named no length.
-- **Batch 9 — the late-game cost** (`docs/bot-priorities.md`): profiler
-  first; standard map t100 561ms/turn → target ≤200, byte-identical.
+- **Batch 9 — the late-game cost** (`docs/bot-priorities.md`) — LANDED,
+  target not met: a 100-turn standard game 321s → 73s (t76–100 5×),
+  byte-identical to t75 on six acceptance games. Two thirds of the old cost
+  was ONE turn: a seat live-locked on research (392 re-aims in a turn,
+  alternating two negative chains) until the command budget cut it off —
+  bounded by `driver.reaimsPerTurn` (1). What is left is sim-side, not the
+  bot's: `effectsOfKind` rebuilds the whole `liveEffects` list per query
+  (115k–179k calls a turn for at most two distinct answers) — a hoist for a
+  statecraft batch, next. Also queued: a warning when a seat exhausts its
+  command budget, so the next live-lock is seen the turn it starts.
 - **The push-gate** on the committed chain (tuning → synergy → late pools →
   victory) — pushes on green; the play checkout on :5199 is frozen at the
   victory commit meanwhile.

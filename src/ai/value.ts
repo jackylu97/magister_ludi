@@ -75,7 +75,7 @@ import type { BeadChain, ExpansionChain, TechChain } from './chain';
 import type { RouteOutlook } from './routes';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
-import { cityYields, tileOwnerField } from '../sim/cities';
+import { cityQuote, cityYields, empirePercents, tileOwnerField } from '../sim/cities';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
 import { countOf } from '../sim/statecraft';
 import type { CardCountScaledEffect, CardEffect, CardId } from '../sim/statecraftData';
@@ -456,9 +456,13 @@ export function townProduction(
   playerId: number,
 ): { median: number; best: number } {
   const made: number[] = [];
+  // The empire's half of every town's percentages, taken **once** for the sweep
+  // — `cityQuote`'s documented bargain (`cities.ts`), and the difference between
+  // one meter sweep and one per town. Same figure; the fold stays where it was.
+  const empire = empirePercents(state, playerId);
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    made.push(cityYields(state, city).production);
+    made.push(cityYields(state, city, [], null, cityQuote(state, city, [], empire)).production);
   }
   if (made.length === 0) return { median: 1, best: 1 };
   made.sort((a, b) => a - b);

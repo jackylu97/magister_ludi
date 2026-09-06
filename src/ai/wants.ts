@@ -407,13 +407,18 @@ export function purchasingPlan(
 function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
   if (city.puppet === true) return [];
   const wants: Want[] = [];
+  // **The town's own reading, hoisted** (batch 9): a context is a fact about the
+  // town — its shelves, its rites, its scoped cards, the faith it follows — and
+  // it was being rebuilt for every worked hex and again for every hex on offer.
+  // One reading, spent by both loops below.
+  const here = cityContext(state, city);
   // The poorest hex the town works today, hoisted per town: what a citizen
   // moving to bought ground would give up.
   let poorest: { score: number; yields: TileYield } | null = null;
   for (const at of city.workedTiles) {
     const tile = getTileAt(state.map, at.col, at.row);
     if (!tile) continue;
-    const yields = foldTileYield(explainTileYield(tile, cityContext(state, city)));
+    const yields = foldTileYield(explainTileYield(tile, here));
     const score = yieldScore(yields);
     if (poorest === null || score < poorest.score) poorest = { score, yields };
   }
@@ -436,7 +441,7 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
     if (offer.error !== null) continue;
     const tile = getTileAt(state.map, offer.col, offer.row);
     if (!tile) continue;
-    const yields = foldTileYield(explainTileYield(tile, cityContext(state, city)));
+    const yields = foldTileYield(explainTileYield(tile, here));
     const terms: ValueTerm[] = [];
     const beats = poorest === null || yieldScore(yields) > poorest.score;
     if (beats) {

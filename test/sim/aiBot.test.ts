@@ -647,8 +647,9 @@ function code(text: string): string {
 describe('the bot module', () => {
   it('is there to be read', () => {
     const files = Object.keys(AI_SOURCE).map((path) => path.slice(path.lastIndexOf('/') + 1));
-    // Eleven modules since batch 8 of the priority system (2026-09-05 —
-    // `routes.ts` joined `chain.ts`), and the split is the point: `aiConfig.ts` is the leaf holding the
+    // Twelve modules since batch 9 of the priority system (2026-09-05 —
+    // `ground.ts` joined the leaves; `routes.ts` joined `chain.ts` in batch 8),
+    // and the split is the point: `aiConfig.ts` is the leaf holding the
     // tuning surface (and the persona merge), `decision.ts` is the second leaf —
     // the vocabulary a decision and its arithmetic are said in — `value.ts` is
     // the appraisal (every function ends in a number or the terms that fold to
@@ -659,8 +660,10 @@ describe('the bot module', () => {
     // consult (every function ends in a table), `diplomacy.ts` is everything
     // this seat has to say to *another* seat (declarations, warscore peace,
     // bargains), `bot.ts` is the policy (every function ends in a
-    // `BotDecision`), `driver.ts` is the loop and `stepper.ts` is that same loop
-    // unrolled one decision at a time.
+    // `BotDecision`), `ground.ts` is the third leaf — one reading of the board's
+    // tile contexts, hoisted for a sweep the way `tileOwnerField` is — and
+    // `driver.ts` is the loop with `stepper.ts` that same loop unrolled one
+    // decision at a time.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
@@ -668,6 +671,7 @@ describe('the bot module', () => {
       'decision.ts',
       'diplomacy.ts',
       'driver.ts',
+      'ground.ts',
       'plan.ts',
       'routes.ts',
       'stepper.ts',

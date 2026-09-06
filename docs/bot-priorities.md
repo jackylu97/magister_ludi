@@ -1540,3 +1540,200 @@ hoist per-turn facts that arms recompute per piece (the fog reading, the
 threat field), and stop pricing what the turn cannot change. Target: t100
 standard ≤ 200ms/turn for two seats, no behavior change (byte-identical
 outcomes on the acceptance seeds, or every change attributed).
+
+## Batch 9 as shipped — the late-game cost, measured and mostly elsewhere
+
+**The measurement the queue was written from no longer described the tree.** Re
+-measured on the standard board (seed 20260831, two balanced seats, the wild in
+the fog, whole driven turn, 100 turns) the game did not cost the queued 561ms a
+turn at t100; it cost **321 seconds in total**, and two thirds of that was **one
+turn**. Everything below is measured against a pinned export of `9b6085a` with
+only `src/ai/` and `data/ai.json` swapped, because the tree was being edited by
+other hands throughout — baseline and shipped run back to back on the same
+machine under the same load.
+
+### The profile before, and what it says
+
+`node --cpu-prof` through `vite-node`, profiler started at t95 so the window is
+six ordinary late turns (37.6s of samples). Self time, top ten:
+
+| % | function |
+| --- | --- |
+| 10.05 | `effectsOfKind` (`statecraft.ts`) |
+| 9.25 | `anyCardDef` (`statecraft.ts`) |
+| 7.55 | `pushEffects` (`statecraft.ts`) |
+| 6.23 | `isBeliefId` (`religionData.ts`) |
+| 5.48 | `isGreatPersonId` (`greatPeopleData.ts`) |
+| 5.27 | `liveEffects` (`statecraft.ts`) |
+| 4.90 | `isDoctrineId` (`statecraftData.ts`) |
+| 3.27 | `push` (`statecraft.ts`) |
+| 3.24 | `isOrderId` (`statecraftData.ts`) |
+| 3.17 | `isTechId` (`techData.ts`) |
+
+Not one of the queue's suspects. **Half of a late turn is the statecraft
+evaluator rebuilding the same list.** The same profile attributed to the deepest
+bot frame — *which arm asked, and what it asked for* — names the batch's actual
+work:
+
+| % | arm → what it called |
+| --- | --- |
+| 30.95 | `push` → `turnsToBuild` |
+| 14.23 | `driveSeat` → `dispatch` (the simulation executing the commands) |
+| 9.67 | `tileWants` → `purchasableTiles` |
+| 9.31 | `improvementEntry` → `tileContextAt` |
+| 5.84 | `buildCandidates` → `cityQuote` |
+| 3.92 | `rankTiles` → `tileContextAt` |
+| 3.68 | `purchasingPlan` → `cityQuote` |
+| 2.46 | `reachOf` → `explainPurchaseCost` |
+| 2.40 | `bagOfTiles` → `tileContextAt` |
+| 1.78 | `tileWants` → `borderGrowth` |
+
+The queued suspects were wrong in an instructive way. The unit-order arms' path
+searches are already bounded and cost under a per cent; `sightedThreat` never
+appears; `routeOutlook` appears at 0.87%. The cost was never a search — it was
+**the same fact about the same town asked hundreds of times**, and each ask got
+dearer as the card tables grew.
+
+### The live-lock, which was two thirds of the game
+
+Turn 94 took **204 seconds** on its own. One seat emitted **392
+`chooseResearch` commands**, alternating `raisedFields` → `shipwrights` →
+`raisedFields` for ever, until `driver.commandsPerSeat` cut it off.
+
+`researchCommand`'s idempotence argument — *it sends nothing when the plan
+already is the goal's expansion* — is about one goal and holds for one goal.
+`techGoalTable` defends the incumbent by `priorities.switchMargin`, and the
+margin **multiplies**: an incumbent whose chain has turned negative is made
+*worse* by holding the plan and is displaced at once. The table's own docblock
+says so and treats it as the right answer, which it is — for one candidate.
+For two negative chains near enough in worth it is a perfect two-cycle, and each
+lap of it rebuilds the whole goal table.
+
+Shipped as a bound, not a repair: `driver.reaimsPerTurn` (1). A seat re-aims its
+beeline at most once a turn; the first re-aim goes out exactly as before, and
+nothing decides *which* goal is right differently. The research **blocker** — a
+seat holding no plan at all — is the same arm through a different door and is
+deliberately uncapped, so no seat can be left unable to end its turn. The bound
+lives on the sitting, so `driver.ts` and `stepper.ts` carry it identically and
+their byte-for-byte pin holds (re-verified directly: 60 turns of a duel, same
+state hash both ways).
+
+### The four hoists, each of them exact
+
+1. **`push` was pricing a schedule with no quote.** `buildCandidates` already
+   hoists `empirePercents` and takes one `cityQuote` for its baseline, then
+   handed every candidate to `push`, which asked `turnsToBuild` with **no quote
+   at all** — so each of the forty rows paid for a fresh reading of the town's
+   centre, hexes, luxuries, cards and both meter sweeps to answer a question
+   whose only moving part is the item at the front. The quote is now lent. Same
+   figure, one reading. **31% of a late turn.**
+2. **`tileContextAt` was a coordinate reading used as a sweep reading.** Every
+   arm that walks a town's ring asked it per hex, and the answer is the same
+   object for every hex of the same town; the improvement plan asked it per hex
+   **per candidate improvement**. New leaf `src/ai/ground.ts` —
+   `tileContextField(state, viewerId)`, `tileOwnerField`'s bargain read one
+   system across: `tileContextAt`'s own answer, computed once per owning town,
+   read by lookup, lifetime one sweep. Wired into `buildImprovementPlan`,
+   `rankWorkSites`, `focusTable` (`rankTiles`/`bagOfTiles`) and
+   `nextWorkableTile`. **~16% of a late turn.**
+3. **`tileWants` rebuilt the town's context per hex**, twice over — once for
+   every worked hex and again for every hex on offer. One reading, spent by both
+   loops.
+4. **Three quote-less `cityYields` sweeps**: `townProduction` and `isOpusTown`
+   walked every town of the empire taking a fresh `empirePercents` each time,
+   and `focusTable`'s two live readings (the starvation guard and the growth
+   clock) each took their own. One quote per town, lent.
+
+Nothing was memoised across a decision, nothing is keyed on anything but the
+sweep it was taken in, and no bound was placed on any search.
+
+### The table
+
+Whole driven turn, both seats, standard map, seed 20260831 — baseline and
+shipped run back to back on the same (busy) machine:
+
+| window | before | after | |
+| --- | --- | --- | --- |
+| t1–25 | 46ms | 42ms | 1.09× |
+| t26–50 | 217ms | 197ms | 1.10× |
+| t51–75 | 436ms | 295ms | 1.48× |
+| t76–100 | 12154ms | 2378ms | **5.11×** |
+| whole 100-turn game | 321.3s | 72.8s | **4.41×** |
+
+On a quiet machine the same pair reads 297.5s → 48.0s (6.2×), t76–100 median
+2988ms → 1487ms. The t76–100 *average* moves further than the median because
+the live-lock was one turn; the median turn is the honest reading of the four
+hoists, and it is between 1.6× and 2×.
+
+**Byte-identical on every acceptance game.** Seeds 5 / 777 / 20260904, duel and
+standard, both seats driven to t75, `snapshotState` and command-log hashes
+before and after:
+
+| | state | log |
+| --- | --- | --- |
+| duel 5 | `9c3fd3af111a524d` | `32b977fd4a808a37` |
+| duel 777 | `56880bd2e5dfbc50` | `f3a14affba7f9831` |
+| duel 20260904 | `d9de559a675fbefc` | `2cc713e5e15efaa2` |
+| standard 5 | `924050b0f3d811f9` | `d322cc086e211dab` |
+| standard 777 | `1f90bb5c354fbefe` | `12c63dd2845e8c4f` |
+| standard 20260904 | `6d040c9ce5f2d33c` | `099cbab91880c552` |
+
+All six match on both hashes: the four hoists are exact, and the re-aim bound
+never fires inside seventy-five turns on any acceptance seed. The one game whose
+outcome moves is the 200-turn standard arena, and it moves at **t94** — the
+live-lock turn — which is the change being made.
+
+### The target was not met, and the number that stands in the way is not the bot's
+
+Target was t100 ≤ 200ms. Shipped is ~2.4s (busy) / ~1.5s (quiet). The remaining
+cost is one shape, and it is `src/sim/`'s:
+
+> `effectsOfKind` calls `liveEffects(state, playerId)` and filters the result,
+> so **every query for one kind of effect rebuilds the whole per-empire list** —
+> the government, the doctrines, the slots, the pantheon, the wonders, the
+> beads, the technologies and every held religion, each row through
+> `anyCardDef`. Counted on the shipped build at t95–100: **115,000 to 179,000
+> `liveEffects` calls per turn**, for at most two distinct answers per instant.
+
+That is the whole of the top-ten profile above, before and after (the shipped
+build's profile is the same list in the same order — 10.03% `effectsOfKind`,
+8.70% `anyCardDef`, 7.67% `pushEffects` — the bot simply asks for less of it).
+The bot cannot fix it from outside: it is not asking redundantly any more; the
+answer it asks for is expensive. The fix is the one this codebase already has a
+name for — a per-sweep hoisted reading, `zocField`/`tileOwnerField`/`CityQuote`
+said once more about the effect list — and it belongs to a statecraft batch, not
+to this one. **Estimated headroom: the great majority of what is left.**
+
+Two smaller sim-side readings sit under the same heading and are the next two
+after it: `purchasableTiles` (17% of a late turn, and asked exactly once per
+town per turn — it is dear, not redundant) and the hypothetical `cityQuote`s
+`buildCandidates` and `purchasingPlan` take per row, which are dear for the same
+reason the list above is dear.
+
+### Knobs
+
+Added: `driver.reaimsPerTurn` (1) — how many times a seat re-aims its beeline in
+one turn; a bound on compute, the audit's one honest kind of cap. Nothing
+deleted. The arena panel needed no edit; it walks the sheet.
+
+### Known gaps, written down rather than fixed
+
+- **`projectIdleCommand` rebuilds a whole production table per project-headed
+  town on every decision that reaches housekeeping**, and says nothing on almost
+  all of them. Suppressing the re-ask needs a sitting-scoped memo of *towns this
+  turn has already found nothing to say about*, which is not exact — a purchase
+  or a chop mid-turn can change the answer — so it was left alone rather than
+  bought with a behaviour change.
+- **The live-lock is bounded, not cured.** `techGoalTable`'s margin still makes
+  a negative incumbent worse than a challenger, which is what produced the
+  two-cycle; the bound stops the seat paying for it four hundred times a turn
+  and does not decide what the margin should do to a negative chain. That is a
+  design question about `priorities.switchMargin`, and it is the first thing to
+  ask if a re-aim ever needs to happen twice in one turn.
+- **`driver.commandsPerSeat` masked the live-lock for as long as it existed.** A
+  seat that spends its whole budget is not a seat that is busy; nothing warns
+  when the budget is exhausted, and a warning there would have found this in the
+  turn it started.
+- **The queue's suspects are cleared, with numbers**: the unit-order arms'
+  searches, `sightedThreat`'s fog sweeps and the route pair enumeration are each
+  under one per cent of a late turn. They do not need bounding.
