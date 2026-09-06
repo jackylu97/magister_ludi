@@ -3237,13 +3237,12 @@ body:has(.city-mode:not([hidden])) .city-mode {
    rail's own gutter plus its width, written the way `.city-body` and
    `.city-rail.is-left` write them, so the three move together. */
 body:has(.city-mode:not([hidden])) #hud-context {
-  left: calc(14px + 230px + 14px);
-}
-
-@media (max-width: 860px) {
-  body:has(.city-mode:not([hidden])) #hud-context {
-    left: calc(14px + 196px + 14px);
-  }
+  /* Bottom RIGHT under the mode (the user, first playthrough 2026-09-05):
+     beside the left rail it sat over the worked hexes once the Growth and
+     Borders bars filled that rail out. The right corner is the one place the
+     card covers no ground a player is looking at. */
+  left: auto;
+  right: 14px;
 }
 
 /* One card in a rail: the panel's parchment, thinner and quieter, because a

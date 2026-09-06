@@ -326,12 +326,12 @@ describe('the city mode', () => {
     // the half-emptied strip again, one element at a time.
     expect(text).not.toContain('#civ-yields {\n  visibility: hidden');
     // And the one card that stays, because it is about the hex under the
-    // cursor and that is what a player in this mode is doing: it slides clear
-    // of the rail rather than standing down.
+    // cursor and that is what a player in this mode is doing: it moves to the
+    // bottom RIGHT corner (the user, first playthrough 2026-09-05 — beside the
+    // left rail it covered the worked hexes once the rail's bars filled out).
     expect(text).toContain('body:has(.city-mode:not([hidden])) #hud-context');
-    expect(declaration('body:has(.city-mode:not([hidden])) #hud-context', 'left')).toContain(
-      '230px',
-    );
+    expect(declaration('body:has(.city-mode:not([hidden])) #hud-context', 'left')).toBe('auto');
+    expect(declaration('body:has(.city-mode:not([hidden])) #hud-context', 'right')).toBe('14px');
   });
 
   it('lets the band take the bar’s place, and only when the bar has gone', () => {
