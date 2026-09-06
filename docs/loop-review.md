@@ -14,6 +14,21 @@ system list where every entry feeds the deck loop — those are the three.
 
 ## 3. The engine view — watching your own snowball
 
+> **BANDS 1-2 BUILT 2026-09-05.** `src/ui/ledgerScreen.ts` + `#ledger-overlay`,
+> the **eighth** id in the capped-overlay rule, opened from any yield chip in the
+> top bar but culture's (culture's chip already opens Statecraft). Band 1 is the
+> six voices split eight ways — tiles - buildings - the deck - religion - great
+> people - trade - wonders - other — bucketed off the simulation's own breakdown
+> lines by **card id**, never by label; the one label read is
+> `explainEmpireGold`'s, keyed on the head before the ` - ` as `empireTradeLines`
+> already keys it. No new fold: the six totals are `civYields`' own, and Entry
+> XVII's multiplied total is shared back over the flats that earned it
+> (`shareOut`). Band 2 is a session ring buffer of 400 turns sampled at
+> `onTurnResolved`, not saved, and the band says so. **Band 3 is still open** —
+> it is drawn as a labelled empty band saying the lifetime figures are not kept
+> yet, and it still wants the tally schema and the `collectYields` writer
+> described below. `test/ui/ledgerScreen.test.ts` is the behaviour record.
+
 **The problem.** Formidability is a feeling of *relative* growth, and the
 game shows growth only as a top-bar number this turn. The stamps show one
 card's contribution; nothing shows the deck's, the empire's, or the curve.

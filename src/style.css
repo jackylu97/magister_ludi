@@ -6705,6 +6705,24 @@ body:has(.city-mode:not([hidden])) #hud-context {
   mask-position: center;
 }
 
+/* The same plate, **set rather than masked**: the votive deck's cards carry an
+   axis symbol (`AXIS_MARK`) where a Statecraft card carries a drawing, because
+   borrowing one of the seven marks would say a god belongs to the Wild Hunt.
+   The mask is turned off and the fill with it — a masked box with no drawing in
+   it paints as a solid square of accent — and the glyph takes the accent ink the
+   emblem would have taken, at the same size the drawing occupies. */
+.offer-emblem-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  -webkit-mask-image: none;
+  mask-image: none;
+  font-size: calc(var(--offer-emblem, 56px) * 0.72);
+  line-height: 1;
+  color: var(--line-ink, var(--ink));
+}
+
 /* --- the deepen card ------------------------------------------------------
    The one card that changes something already on the table. It is landscape
    where the others are portrait, because what it has to show is a *change* —
@@ -7116,7 +7134,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
 #compendium-overlay,
 #diplomacy-overlay,
 #beads-overlay,
-#reliquary-overlay {
+#reliquary-overlay,
+#ledger-overlay {
   overflow: hidden;
 }
 
@@ -7126,7 +7145,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
 #compendium-overlay .statecraft-sheet,
 #diplomacy-overlay .statecraft-sheet,
 #beads-overlay .statecraft-sheet,
-#reliquary-overlay .statecraft-sheet {
+#reliquary-overlay .statecraft-sheet,
+#ledger-overlay .statecraft-sheet {
   display: flex;
   flex-direction: column;
   width: min(1240px, 100%);
@@ -7140,7 +7160,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
 #compendium-overlay .statecraft-body,
 #diplomacy-overlay .statecraft-body,
 #beads-overlay .statecraft-body,
-#reliquary-overlay .statecraft-body {
+#reliquary-overlay .statecraft-body,
+#ledger-overlay .statecraft-body {
   flex: 1 1 auto;
   min-height: 0;
   gap: 14px;
@@ -7208,7 +7229,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
   #compendium-overlay,
   #diplomacy-overlay,
   #beads-overlay,
-  #reliquary-overlay {
+  #reliquary-overlay,
+  #ledger-overlay {
     overflow-y: auto;
   }
 
@@ -7218,7 +7240,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
   #compendium-overlay .statecraft-sheet,
   #diplomacy-overlay .statecraft-sheet,
   #beads-overlay .statecraft-sheet,
-  #reliquary-overlay .statecraft-sheet {
+  #reliquary-overlay .statecraft-sheet,
+  #ledger-overlay .statecraft-sheet {
     max-height: none;
   }
 
@@ -7226,6 +7249,13 @@ body:has(.city-mode:not([hidden])) #hud-context {
      in a stacked pane is three columns nobody can read. Same breakpoint,
      deliberately — see the note above. */
   .diplo-board {
+    grid-template-columns: 1fr;
+  }
+
+  /* The Ledger's bands stack with them: six sparklines side by side under a
+     narrow sheet is six charts none of which can be read. Same breakpoint, and
+     in the same query, for the reason written above it. */
+  .ldg-sparks {
     grid-template-columns: 1fr;
   }
 
@@ -11777,6 +11807,21 @@ body.compendium-page {
   font-size: 0.9rem;
 }
 
+/* The gods and beliefs standing in the pantheon's column (`religionScreen.ts`)
+   keep the compact face too, and therefore the compact stamp: the same seat, the
+   same height-stable pair, the same smaller digits. Written beside the hand's
+   rule rather than folded into its selector so each screen's face is one block
+   a reader can find by the name of the screen. */
+.rel-slot .card-stamp {
+  margin: 1px 0 4px;
+  min-height: 20px;
+  line-height: 20px;
+}
+
+.rel-slot .card-stamp-figure {
+  font-size: 0.9rem;
+}
+
 /* ===========================================================================
    THE RELIQUARY  —  the honored dead, and what they still pay
    ===========================================================================
@@ -12106,4 +12151,253 @@ body.compendium-page {
   .rel-card.is-flipping {
     animation: none;
   }
+}
+
+/* ===========================================================================
+   THE LEDGER  —  where this turn's yield comes from, and where the curve goes
+   ===========================================================================
+   The eighth parchment sheet (`src/ui/ledgerScreen.ts`, `docs/loop-review.md`
+   §3). It joins the capped-overlay rule above with the other seven and then
+   says almost nothing else about the paper: unlike the Reliquary it does *not*
+   narrow, because three bands of six rows are exactly what 1240px is for.
+
+   Ink only. There is one colour on this sheet and it is the deck's slice —
+   grape, the register culture and Statecraft already wear everywhere else in
+   the interface — because the whole question the sheet answers is "is my deck
+   doing anything", and the eye has to be able to find that slice in a bar of
+   eight without reading a key. The other seven classes are ink at seven
+   weights, which is the specimen's own way of saying "these are the same kind
+   of thing". */
+#ledger-overlay .ledger-body {
+  gap: 20px;
+  padding-bottom: 6px;
+  overflow-y: auto;
+}
+
+.ldg-band {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Band 3: the labelled hole. Ruled off above like the other two and set in the
+   quiet voice, so it reads as a shelf waiting for its figures rather than as a
+   band that failed to draw. */
+.ldg-band.is-empty {
+  padding-top: 4px;
+  border-top: var(--border-thin) dashed var(--ink-faint);
+}
+
+.ldg-rows,
+.ldg-sparks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Six sparklines are a grid, not a column: they are read against each other. */
+.ldg-sparks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px 20px;
+}
+
+.ldg-row,
+.ldg-spark-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The chip a player clicked to get here, picked out — the sheet answers the
+   question they actually asked before it answers the other five. */
+.ldg-row.is-focused,
+.ldg-spark-row.is-focused {
+  padding: 4px 8px;
+  margin: -4px -8px;
+  border-radius: var(--radius-sm);
+  background: var(--table);
+}
+
+.ldg-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ldg-voice {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--face-ui);
+  font-size: 0.86rem;
+  color: var(--ink-soft);
+}
+
+.ldg-voice-icon {
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+}
+
+.ldg-total {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+/* The bar itself: one ruled box, the slices flexed by their own figures, so a
+   share is a width and never a number this file worked out. */
+.ldg-bar {
+  display: flex;
+  overflow: hidden;
+  height: 16px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+}
+
+.ldg-slice {
+  min-width: 2px;
+  border-right: 1px solid var(--parchment);
+}
+
+.ldg-slice:last-child {
+  border-right: none;
+}
+
+/* An empire that makes nothing of a voice: the box, ruled and empty, rather
+   than no box at all — an absent bar reads as a bar that failed to draw. */
+.ldg-bar-empty {
+  flex: 1 1 auto;
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 5px,
+    var(--rule) 5px 6px
+  );
+}
+
+/* The seven inks and the one colour. Ordered dark to light down the bar's own
+   order, so a bar reads left to right as ground, stones, deck, and the rest. */
+.ldg-slice.is-tiles,
+.is-tiles .ldg-swatch {
+  background: var(--ink);
+}
+
+.ldg-slice.is-buildings,
+.is-buildings .ldg-swatch {
+  background: var(--ink-soft);
+}
+
+.ldg-slice.is-deck,
+.is-deck .ldg-swatch {
+  background: var(--grape);
+}
+
+.ldg-slice.is-religion,
+.is-religion .ldg-swatch {
+  background: rgba(29, 26, 32, 0.62);
+}
+
+.ldg-slice.is-people,
+.is-people .ldg-swatch {
+  background: rgba(29, 26, 32, 0.5);
+}
+
+.ldg-slice.is-trade,
+.is-trade .ldg-swatch {
+  background: rgba(29, 26, 32, 0.38);
+}
+
+.ldg-slice.is-wonders,
+.is-wonders .ldg-swatch {
+  background: rgba(29, 26, 32, 0.26);
+}
+
+.ldg-slice.is-other,
+.is-other .ldg-swatch {
+  background: rgba(29, 26, 32, 0.16);
+}
+
+.ldg-caption {
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* What went out again. Vermilion, because it is the one figure on the sheet
+   that is not income — the same alarm every other ledger in the interface uses
+   for a charge. */
+.ldg-out {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--vermilion);
+}
+
+.ldg-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ldg-key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--face-ui);
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+.ldg-swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+}
+
+/* The curve. `preserveAspectRatio: none` stretches the box to whatever width
+   the grid gives it, so every stroke in here is drawn with a non-scaling width
+   — a hairline that thickened as the band widened would be the only line in
+   this interface whose weight depended on the window. */
+.ldg-spark {
+  width: 100%;
+  height: 44px;
+  border-bottom: var(--border-thin) solid var(--ink-faint);
+}
+
+.ldg-spark-line {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The deck's share, shaded under the total — the one filled shape on the sheet
+   and the same grape the slice wears, so the two bands say "deck" the same way. */
+.ldg-spark-deck {
+  fill: var(--grape);
+  fill-opacity: 0.22;
+  stroke: var(--grape);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/* An age turned here. The lightest ink in the palette: it is an axis mark, and
+   an axis that competes with its own curve is a chart with two subjects. */
+.ldg-spark-tick {
+  stroke: var(--rule);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }

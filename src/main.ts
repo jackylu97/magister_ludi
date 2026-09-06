@@ -148,12 +148,18 @@ import { createPamphletOverlay, shouldShowPamphlet } from './ui/pamphlet';
 import { authorityOf, happinessOf } from './sim/meters';
 import { type ConfirmCard, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
-import { AXIS_MARK, beliefOfferEyebrow } from './ui/religionScreen';
+import { AXIS_MARK, beliefCardType, beliefOfferEyebrow } from './ui/religionScreen';
 import { type BeliefId, beliefDef } from './sim/religionData';
 import { personOf } from './sim/greatPeople';
 import { greatPersonDef } from './sim/greatPeopleData';
 import { FAMILY_EMBLEM, TIER_ACCENT, TIER_NAME } from './ui/greatPersonFace';
 import { type ReliquaryScreen, createReliquaryScreen } from './ui/reliquaryScreen';
+import {
+  type LedgerScreen,
+  createLedgerHistory,
+  createLedgerScreen,
+  ledgerSample,
+} from './ui/ledgerScreen';
 import {
   type GreatPersonCeremony,
   createGreatPersonCeremony,
@@ -369,6 +375,9 @@ const beadsBodyEl = requireElement<HTMLElement>('beads-body');
    whole by its module (`greatPersonCeremony.ts`), the triumph sheet's shape. */
 const reliquaryOverlayEl = requireElement<HTMLElement>('reliquary-overlay');
 const reliquaryBodyEl = requireElement<HTMLElement>('reliquary-body');
+/* The Ledger sheet — the eighth of the family (`ledgerScreen.ts`). */
+const ledgerOverlayEl = requireElement<HTMLElement>('ledger-overlay');
+const ledgerBodyEl = requireElement<HTMLElement>('ledger-body');
 const ceremonyOverlayEl = requireElement<HTMLElement>('ceremony-overlay');
 const victoryOverlayEl = requireElement<HTMLElement>('victory-overlay');
 /**
@@ -712,6 +721,22 @@ let diplomacy: DiplomacyScreen | null = null;
    walked away from is exactly what those two sweeps exist to prevent. */
 let reliquary: ReliquaryScreen | null = null;
 let ceremony: GreatPersonCeremony | null = null;
+/* The Ledger, held here for the Reliquary's reason exactly. */
+let ledger: LedgerScreen | null = null;
+
+/**
+ * The Ledger's curve, and the one piece of *history* this interface keeps.
+ *
+ * The simulation stores none and must not grow any for a view
+ * (`docs/loop-review.md` §3), so the six per-turn totals are sampled here, once
+ * per resolved turn, into a capped ring. It lives at module scope rather than
+ * inside the screen because it has to outlive every open and shut of the sheet
+ * — a player who has never opened the Ledger still wants a curve when they do —
+ * and it is emptied in `adoptGame`, because a curve belongs to the game that
+ * drew it. It is deliberately not saved: a reloaded game starts its curve at
+ * the reload, and the band says so.
+ */
+const ledgerHistory = createLedgerHistory();
 
 /**
  * The top bar's meter chips, once `boot` has built them. A holder for the same
@@ -855,6 +880,7 @@ function closePopovers(): boolean {
     (trade?.isOpen ?? false) ||
     (diplomacy?.isOpen ?? false) ||
     (reliquary?.isOpen ?? false) ||
+    (ledger?.isOpen ?? false) ||
     compendium.isOpen ||
     savesPanel.isOpen ||
     // Escape never actually arrives here while the card is up — it answers its
@@ -875,6 +901,7 @@ function closePopovers(): boolean {
   trade?.close();
   diplomacy?.close();
   reliquary?.close();
+  ledger?.close();
   // The ceremony is not a popover and answers no key, but it is a card standing
   // over the board on a timer, and Escape meaning "clear the screen" has to mean
   // it here too. It is not counted in `wasOpen`: it takes itself down, so it is
@@ -947,6 +974,7 @@ function showLanding(): void {
   trade?.dispose();
   diplomacy?.dispose();
   reliquary?.dispose();
+  ledger?.dispose();
   // And every per-game window listener this boot hung (Entry LVII) — the four
   // above dispose more than listeners, these seven dispose exactly that.
   disposeGameScreens();
@@ -2364,10 +2392,17 @@ async function boot(initial: Game | null): Promise<void> {
    *
    * Every clause is `describeCard`, the same function the Religion screen
    * prints, so a god reads identically on the card that dealt it and in the
-   * pantheon afterwards. The emblem is deliberately **absent**: a belief joins
-   * no Statecraft line, so lending it one of that deck's seven marks would be
-   * saying something untrue, and the axis glyph carries the accent instead
+   * pantheon afterwards. The emblem is deliberately **not a drawing**: a belief
+   * joins no Statecraft line, so lending it one of that deck's seven marks would
+   * be saying something untrue, and the axis glyph takes the plate instead
    * (`religionScreen.ts`'s AXIS_MARK — one table, both surfaces).
+   *
+   * **It is dealt like a card, because it is one** (the ruling of 2026-09-05,
+   * `docs/flags.md` note 10: the card animations belong on the religion cards
+   * too). The votive hand is a tarot hand — the tall frame, the backs, the
+   * stagger, the turn-over, the stamp counted at the pick — for the reason the
+   * Order draft is: three cards are dealt from a bag, read, and one is taken.
+   * Nothing here declares that; the plate is what `offerCard.ts` reads.
    */
   function showReligionOffer(): void {
     const seat = controls.localPlayerId();
@@ -2407,14 +2442,21 @@ async function boot(initial: Game | null): Promise<void> {
         options: offer.options.map((id) => {
           const def = beliefDef(id);
           return {
+            // What kind of thing this is, in the mono eyebrow, exactly where an
+            // Order's slot word goes — one table with the compact face on the
+            // Religion screen (`beliefCardType`), so a belief reads the same on
+            // the card that dealt it and in the pantheon afterwards.
+            payoff: beliefCardType(offer.pool),
             title: def.name,
-            // The axis's **glyph and nothing else**: it is the accent's mark,
-            // not a category the player is picking between, and the word for it
-            // came off every surface in the 2026-08-26 playtest pass. See
-            // `AXIS_MARK`. The eyebrow above already says what all three are.
-            payoff: AXIS_MARK[def.axis].glyph,
             note: describeCard(id).map((clause) => clause.text).join(' · '),
             flavor: def.flavor,
+            // The plate, and it is the axis's **glyph** rather than a drawing:
+            // the axis is the accent's mark, not a category the player is
+            // picking between (the 2026-08-26 playtest pass took the word off
+            // every surface), and borrowing one of the Statecraft deck's seven
+            // marks would say a god belongs to the Wild Hunt. See `AXIS_MARK`,
+            // and `OfferOption.emblemGlyph` for why the plate takes a character.
+            emblemGlyph: AXIS_MARK[def.axis].glyph,
             // The accent key, resolved by `style.css`'s axis block — the same
             // `--line-ink` mechanism a Statecraft card's line uses, so a votive
             // card and an Order card are painted by one rule.
@@ -2500,10 +2542,14 @@ async function boot(initial: Game | null): Promise<void> {
         options: held.map((id) => {
           const def = beliefDef(id);
           return {
+            // The very face `showReligionOffer` deals, down to the plate: what
+            // you give up and what you take instead are read on one surface, in
+            // one dress, a beat apart. A god is always a pantheon card here.
+            payoff: beliefCardType(undefined),
             title: def.name,
-            payoff: AXIS_MARK[def.axis].glyph,
             note: describeCard(id).map((clause) => clause.text).join(' · '),
             flavor: def.flavor,
+            emblemGlyph: AXIS_MARK[def.axis].glyph,
             line: def.axis,
           };
         }),
@@ -2814,6 +2860,10 @@ async function boot(initial: Game | null): Promise<void> {
       // — the pile is what ‹ › mean there — so the board must not see either
       // from underneath, and neither should `H`, `T` or End Turn.
       (reliquary?.isOpen ?? false) ||
+      // The Ledger owns its own Escape while it is up, on the Reliquary's
+      // argument exactly: the board must not see the key from underneath, and
+      // `H`, `T` and End Turn have no business firing behind a sheet.
+      (ledger?.isOpen ?? false) ||
       // The ceremony is a card on a timer over the board (`greatPersonCeremony.ts`).
       // It answers no key at all, which is exactly why it is here: End Turn
       // firing under it would resolve a turn the player is still watching.
@@ -3079,6 +3129,12 @@ async function boot(initial: Game | null): Promise<void> {
       // set off have finished (see `scheduleHandOver`), and a tab closed in that
       // second would otherwise have lost the turn.
       autosave.save(game, Date.now());
+      // And the Ledger's curve takes its reading, at the same clean moment and
+      // for a related reason: this is the one instant where the six totals are
+      // the turn that just resolved rather than a turn being played. One sample
+      // per resolved turn, never per command — see `ledgerScreen.ts`.
+      ledgerHistory.push(ledgerSample(game.state, controls.localPlayerId()));
+      ledger?.refresh();
     },
     onTurnHandedOver: (_turn, research) => {
       // A discovery outranks the turn card: "your turn" happens every turn,
@@ -3582,6 +3638,42 @@ async function boot(initial: Game | null): Promise<void> {
   gameDisposers.push(() => reliquary?.dispose());
 
   /**
+   * The Ledger: where this turn's yield came from, and which way the curve is
+   * heading.
+   *
+   * The eighth parchment sheet (`ledgerScreen.ts`, `docs/loop-review.md` §3),
+   * built on each open off the state and off the session's curve — the one
+   * thing on it that is not derived, and the reason `history` is handed in
+   * rather than held by the screen: the ring outlives every open and belongs to
+   * the game, not to the sheet.
+   */
+  ledger = createLedgerScreen({
+    overlay: ledgerOverlayEl,
+    body: ledgerBodyEl,
+    closeButton: requireElement('ledger-close'),
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    history: () => ledgerHistory.samples(),
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      meterCards?.close();
+      techTree?.close();
+      abacus?.close();
+      beads?.close();
+      statecraft?.close();
+      religion?.close();
+      trade?.close();
+      diplomacy?.close();
+      reliquary?.close();
+      compendium.close();
+    },
+  });
+  gameDisposers.push(() => ledger?.dispose());
+
+  /**
    * The spend ceremony, raised by `controls`' `onGreatPersonSpent` and by
    * nothing else — a refused command never reaches it.
    *
@@ -3736,6 +3828,20 @@ async function boot(initial: Game | null): Promise<void> {
       notifications?.close();
       techTree?.close();
       reliquary?.open();
+    },
+    // Every other yield chip's door, the fifth on the same precedent and the
+    // one wired to five chips at once: the Ledger is about all six voices, and
+    // the honest way in is the figure the player is already looking at. The
+    // voice comes with the click so the sheet opens picking out the one they
+    // asked about.
+    onOpenLedger: (key) => {
+      meterCards?.close();
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      techTree?.close();
+      ledger?.open(key);
     },
   });
   // Escape and the landing screen reach these through `closePopovers`, which is
@@ -4050,6 +4156,12 @@ async function boot(initial: Game | null): Promise<void> {
       controls.prospect();
       updatePanel(null, renderer.getHover());
     },
+    removeImprovementBlocker: () => controls.removeImprovementBlocker(),
+    removeImprovementName: () => controls.removeImprovementName(),
+    onRemoveImprovement: () => {
+      controls.removeImprovement();
+      updatePanel(null, renderer.getHover());
+    },
     pillageBlocker: () => controls.pillageBlocker(),
     onPillage: () => {
       controls.pillage();
@@ -4172,6 +4284,11 @@ async function boot(initial: Game | null): Promise<void> {
     // bead taken in it.
     victory?.clear();
     clearBeadNews();
+    // And so does the Ledger's curve: it is a hundred turns of a game that is
+    // over, and a curve carried into the next one would be the same lie as a
+    // chronicle carried across (`notifications.ts`, two lines up).
+    ledgerHistory.clear();
+    ledger?.close();
     // A star chart of the game that just ended has nothing to say about the
     // one starting either.
     techTree?.close();

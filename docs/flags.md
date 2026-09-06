@@ -64,27 +64,36 @@ Fixes queue in main for the next session unless the user says otherwise.
    third scope vocabulary otherwise; say the word if you want it on the face.)
 8. **The Library's +2 gold** — REMOVED on your word (it had been on the row
    since the tree pass of 2026-08-30).
-9. **The Ledger — BUILD IT** (RULED: "include all of the remaining ledger
-   items in the next pass"): bands 1–2 (this turn's yields by source class
-   with the deck's slice; the per-turn curve over the game) flying as a UI
-   batch; band 3 ("has produced" — the lifetime tally per owned order,
-   schema) follows the moment the perf agent frees `cities.ts`.
-10. **Religion cards join the ceremony** (RULED, in flight): the pantheon
-    and belief drafts deal-and-flip like an order draft and their faces
-    wear the stamp (count-up at the pick, landed figure standing) — the
-    loop review's "one draw" note, built.
+9. **The Ledger** — bands 1–2 LANDED (the eighth sheet; every yield chip but
+   culture's opens it on its own voice; this turn's yields by source class
+   with the deck's slice in grape, and the per-turn curve since the game
+   opened, era ticks on the axis, page memory only). Band 3 ("has produced" —
+   the lifetime tally per owned order, schema) follows the moment the perf
+   agent frees `cities.ts`. Two data collisions the sheet found, yours:
+   `theEncyclopaedia`, `theTithe`, `theStandingArmy` are Doctrine ids AND
+   bead-row ids; `theTurningHeavens` is a building AND a bead grant — the
+   id spaces are meant to be disjoint. Worth a browser look (no jsdom here).
+10. **Religion cards join the ceremony** — LANDED: every class deals a full
+    tarot face and flips (orders, charters, doctrines, great people already
+    did; beliefs were the plain one — now their axis glyph sits on the plate
+    and the eyebrow says "a god / a follower belief / an enhancer belief");
+    standing faces stay compact and wear the landed stamp. Found and fixed on
+    the way: a follower belief's stamp counted every town as keeping the
+    faith (8 culture printed where 4 was true).
 11. **The great-person gate moves to Epic Poetry** — LANDED (one JSON row:
     `ancestorRites` off The High Temple, onto Epic Poetry; renown answered
     too early, and the poets keeping the roll of names reads better than the
     temple). The queued `techDoc` sync is the only ripple.
-12. **A worker may remove an improvement for free** (RULED, in flight): a
+12. **A worker may remove an improvement for free** (BUILT): a
     `removeImprovement` verb on the worker (builder units) that tears out an
     improvement on ground the empire owns, spends **no charge**, and pays
     nothing — the opposite of pillage, which is a raider's verb on foreign
     ground. It costs the worker's action for the turn like a build does. The
     hex goes bare (the monotone suppression rule: bare ground stays bare on
     the board, as after a pillage). No refund, no yield, no toast beyond the
-    ordinary refresh; the tile's yield refreshes at once (register entry 18).
+    ordinary refresh; the tile's yield refreshes at once (register entry 22).
+    The road stays: a raid takes the road up with the farm because a raid takes
+    what has been built on the hex, and this is not a raid.
 
 ### RULED, awaiting build (after the playthrough)
 

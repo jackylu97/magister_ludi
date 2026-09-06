@@ -433,6 +433,19 @@ export interface CivYieldStripOptions {
    * mattering.
    */
   onOpenReliquary?: () => void;
+  /**
+   * Opens the Ledger on the voice whose chip was pressed — where this turn's
+   * figure came from, and which way it is heading (`ledgerScreen.ts`).
+   *
+   * The **fifth** door on this strip and the widest: it is the only one wired to
+   * more than one chip, because the Ledger is about all six voices at once and
+   * a player wondering "where is my science coming from" should be able to ask
+   * the science chip. Every chip but culture's takes it — culture already has a
+   * screen behind it (Statecraft, and `C`), and a chip cannot mean two things.
+   * The Ledger names culture on all three of its bands regardless, so nothing
+   * is out of reach; what is out of reach is a second click on one chip.
+   */
+  onOpenLedger?: (key: YieldKey) => void;
 }
 
 export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStrip {
@@ -447,6 +460,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     onOpenTrade,
     onOpenBeads,
     onOpenReliquary,
+    onOpenLedger,
   } = options;
   const values = new Map<YieldKey, HTMLElement>();
 
@@ -500,6 +514,26 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
         onOpenStatecraft();
+      });
+    } else if (onOpenLedger) {
+      // The Ledger's door, on the culture chip's own three lines said a fifth
+      // time — the class that draws a chip as pressable, the button role, the
+      // click, and Enter/Space so a keyboard reaches what `tabIndex` above
+      // already promised. `else if`, because culture's screen is already
+      // claimed and a chip that opened two sheets would open neither reliably.
+      item.classList.add('civ-yield-clickable');
+      item.setAttribute('role', 'button');
+      // The chip's own sentence, kept, with the door added after it: what the
+      // figure *is* is still the first thing a hover has to answer, and a
+      // banked voice's "on hand, per turn in parens" is the half a player
+      // cannot reconstruct.
+      item.title = `${item.title} — open the Ledger`;
+      item.setAttribute('aria-label', `${label} — open the Ledger`);
+      item.addEventListener('click', () => onOpenLedger(key));
+      item.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        onOpenLedger(key);
       });
     }
     values.set(key, value);

@@ -1079,6 +1079,39 @@
       </div>
     </div>
 
+    <!-- ================= the Ledger ============================
+         Where this turn's yield came from, and which way the curve is
+         heading. The eighth member of the parchment-sheet family
+         (docs/loop-review.md §3): three bands — this turn split by source
+         class, the session's curve per voice, and the lifetime tally, which
+         is a labelled hole until the schema carries one. Built by
+         src/ui/ledgerScreen.ts on each open; nothing on it is stored except
+         the curve, which is this page's and not the save's. Reached from any
+         yield chip in the top bar.
+         ============================================================ -->
+    <div
+      id="ledger-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="The Ledger"
+      hidden
+    >
+      <div class="statecraft-sheet ledger-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <p class="eyebrow statecraft-eyebrow">what your empire makes, and who makes it</p>
+            <h2 class="statecraft-title">The <em>Ledger</em></h2>
+          </div>
+          <p class="statecraft-hint"><kbd>Esc</kbd> to close</p>
+          <button id="ledger-close" class="statecraft-close" type="button" aria-label="Close">
+            &times;
+          </button>
+        </header>
+        <div id="ledger-body" class="statecraft-body ledger-body"></div>
+      </div>
+    </div>
+
     <!-- ================= the spend ceremony ====================
          A great person was spent: the card rises to centre over a dimmed
          board, the LEGACY counts its figure (the inversion, 2026-09-03 — what
