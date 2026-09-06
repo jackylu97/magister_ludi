@@ -387,6 +387,18 @@ rulings yet:
   `prospect` would answer. Candidate: the lens (or the worker's reachable
   highlight) marks prospectable hills once the tech is held; or a survey is
   automatic when a worker rests on the hex. Small, and a UI ruling.
+- **Bigger, rarer choices; cards that combo** (2026-09-06, the user): "I
+  ended up with generically strong orders across the board, it didn't feel
+  like the cards had synergy with each other… the faith-oriented build
+  didn't make me really change how I played… I almost feel like we need to
+  include a proportion of cards that don't really do much on their own, but
+  combo nicely with other cards." Direction, not yet numbers: the deck gets
+  **engines** (weak alone, read other cards by tag) and **payoffs** (scale
+  with what is slotted beside them) beside a smaller share of standalone
+  flats; a path (faith, war, trade, growth) has to be a different *engine*
+  for the primary yields, not a side dish. `docs/fewer-things.md` (in
+  flight) carries the building cut list, the augur options, the choice-size
+  ladder and the synergy proposal for markup.
 
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture
   boon → mid-turn draft → slot → dead ×) awaits confirmation on current
