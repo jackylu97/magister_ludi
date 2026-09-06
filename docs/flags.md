@@ -13,12 +13,13 @@ directly to confirm rulings — user marginalia are rulings.
 ### In flight right now (2026-09-06)
 
 - **The fewer-things pass — BUILDING** (`docs/fewer-things-plan.md`, the
-  user: "ok lets implement the plan"): batches **A** (the shapes), **B** (the
-  reveal on Confirm, ordered slots), **C1** (the dice out, the faith ladder,
-  the reroll) flying in parallel on disjoint fences; C2 (rites, prophets, the
-  apostle), D (buildings with chains, the uniques), E (the tree's gifts), F
-  (the order pass), F2 (the bot drafts engines), G (cadence and chairs)
-  follow in that order. One gate per batch; one schema per batch that
+  user: "ok lets implement the plan"): **A** (the shapes — byte-identical,
+  no row uses one yet), **B** (the reveal on Confirm, ordered slots) and
+  **C1** (the dice out, the faith ladder at 40 · 56 · 72, the reroll from 35
+  at ×1.35 a use, schema 71) — LANDED in main. **C2** (rites as city verbs,
+  the prophet's four acts, the apostle) and **D** (buildings with chains, the
+  cut, the five uniques, schema 73) — in flight. E (the tree's gifts), F (the
+  order pass), F2 (the bot drafts engines), G (cadence and chairs) follow. One gate per batch; one schema per batch that
   changes a save (71 → 75). The play checkout on :5199 stays where it is.
 
 ### In flight earlier (2026-09-05, evening)
