@@ -328,10 +328,17 @@ describe('the city mode', () => {
     // And the one card that stays, because it is about the hex under the
     // cursor and that is what a player in this mode is doing: it moves to the
     // bottom RIGHT corner (the user, first playthrough 2026-09-05 — beside the
-    // left rail it covered the worked hexes once the rail's bars filled out).
+    // left rail it covered the worked hexes once the rail's bars filled out),
+    // and CLEAR of the work rail rather than under it: at the bare gutter the
+    // card stood on the rail's footprint and hid the tail of a long queue
+    // (the same playthrough, note 13). The offset is the rail's gutter + its
+    // width + the gap, read off the rail's own rule so the two move together.
     expect(text).toContain('body:has(.city-mode:not([hidden])) #hud-context');
     expect(declaration('body:has(.city-mode:not([hidden])) #hud-context', 'left')).toBe('auto');
-    expect(declaration('body:has(.city-mode:not([hidden])) #hud-context', 'right')).toBe('14px');
+    const railWidth = declaration('.city-rail.is-right', 'width');
+    expect(declaration('body:has(.city-mode:not([hidden])) #hud-context', 'right')).toBe(
+      `calc(14px + ${railWidth} + 14px)`,
+    );
   });
 
   it('lets the band take the bar’s place, and only when the bar has gone', () => {

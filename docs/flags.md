@@ -102,6 +102,23 @@ Fixes queue in main for the next session unless the user says otherwise.
     ordinary refresh; the tile's yield refreshes at once (register entry 22).
     The road stays: a raid takes the road up with the farm because a raid takes
     what has been built on the hex, and this is not a raid.
+13. **The build queue is cut off once it is long enough to scroll** — FIXED
+    in main (cause: note 4's readout, moved to the bottom-right corner, stood
+    on the work rail's own footprint, so a queue long enough to reach the
+    bottom of the screen vanished under the hex readout whenever a hex was
+    hovered). The readout now sits clear of the rail — bottom edge, just left
+    of it — at both rail widths. The rail itself scrolls as it always did.
+    Your play checkout carries the old placement until the next session.
+14. **End Turn holds the button down while the bots think** (RULED, in
+    flight): around turn 88 the pause after the click is a visible freeze
+    with the button stuck pressed. The ruling: click → the button **raises
+    at once** (its own press-and-release, nothing waits on the bots) → a
+    working state while the bots take their turns ("The others are moving…",
+    the button disabled, not held) → the turn advances with the three beats
+    as now. The bot work must not run inside the button's press frame: yield
+    to the browser first (a frame, then the drive) so the release paints
+    before the sim blocks the thread. (The pause itself shrinks with batch 9
+    and 10 — the play checkout still runs the old bot.)
 
 ### RULED, awaiting build (after the playthrough)
 

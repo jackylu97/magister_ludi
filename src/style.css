@@ -3240,9 +3240,16 @@ body:has(.city-mode:not([hidden])) #hud-context {
   /* Bottom RIGHT under the mode (the user, first playthrough 2026-09-05):
      beside the left rail it sat over the worked hexes once the Growth and
      Borders bars filled that rail out. The right corner is the one place the
-     card covers no ground a player is looking at. */
+     card covers no ground a player is looking at.
+
+     Clear of the work rail, not under it: at `right: 14px` the card stood on
+     the rail's own footprint and a queue long enough to reach the bottom of
+     the screen vanished under the readout every time a hex was hovered (the
+     same playthrough, a few turns on). The offset is the rail's gutter plus
+     its width plus the gap between them — the mirror of the reading the
+     left-corner rule above makes for the town rail. */
   left: auto;
-  right: 14px;
+  right: calc(14px + 264px + 14px);
 }
 
 /* One card in a rail: the panel's parchment, thinner and quieter, because a
@@ -7305,6 +7312,11 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
   .city-rail.is-right {
     width: 214px;
+  }
+
+  /* The readout keeps clear of the narrowed rail by the same three terms. */
+  body:has(.city-mode:not([hidden])) #hud-context {
+    right: calc(14px + 214px + 14px);
   }
 }
 
