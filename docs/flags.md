@@ -53,9 +53,19 @@ Fixes queue in main for the next session unless the user says otherwise.
    from the card's own breakdown lines (the growing cards' tally register
    is the shape), printed on the face as "has produced". Schema. Lands
    after the perf agent frees `cities.ts`.
-6. **Doctrines wear the stamp** (RULED, in flight): a standing doctrine's
-   face on the statecraft screen shows what it supplies per turn — the
-   same `explainCardImpact` reading orders use; UI only.
+6. **Doctrines wear the stamp** — LANDED. (Governments' charter block is
+   prose, not a card, and "without your government" has no reading — a
+   design ruling if you want a figure there.)
+7. **Charter cards describe their building** (RULED, in flight): the
+   unlock clause composes the building's own describer at print time —
+   "Unlocks the Chapel — +1 faith; a rite performed here pays +5 culture."
+8. **The Library's +2 gold** — REMOVED on your word (it had been on the row
+   since the tree pass of 2026-08-30).
+9. **The Ledger — BUILD IT** (RULED: "include all of the remaining ledger
+   items in the next pass"): bands 1–2 (this turn's yields by source class
+   with the deck's slice; the per-turn curve over the game) flying as a UI
+   batch; band 3 ("has produced" — the lifetime tally per owned order,
+   schema) follows the moment the perf agent frees `cities.ts`.
 
 ### RULED, awaiting build (after the playthrough)
 
