@@ -1493,8 +1493,37 @@ import {
  *     different gifts, a project id joined the queue's vocabulary, and an army
  *     that holds Machinery marches further on the same paving — so a v75 command
  *     log replays into a different empire the turn any of them lands.
+ *
+ * v77: **the order pass** (`docs/orders-pass-3.md` §2 as the user marked it and
+ * §9 as it rules; the batch is `docs/fewer-things-plan.md` F). The deck itself,
+ * gone over row by row: twenty-four Orders retired, thirty-four written, and
+ * every surviving standalone re-priced off the balance turn's marked numbers.
+ * No shape was invented — batch A declared all seven and this is the pass that
+ * puts them on cards.
+ *
+ *   · **The bag moved, which is why this is a schema at all.** Three rarity
+ *     marks changed (Cistern Works ○ → ◆, The Consistory ◆ → ○, The Inquisition
+ *     ● → ○) and twenty-four rows left every pool while thirty-four joined, so
+ *     an Order draft dealt from the same generator state deals a different hand.
+ *   · **The grammar is the user's**: put yields on a thing, then multiply the
+ *     thing. Silk Roads' coin and the Ledger-Keepers' lines moved onto the
+ *     **route**; Wayside Shrines' and Fire-Keepers' candles into the
+ *     **capital**; and the multipliers arrive later and rarer as shares on a
+ *     class of buildings, on the works of a hex, and on what the other Orders
+ *     pay.
+ *   · **Two caps came off** — Ore Tithes' and The War Council's slot-flavour
+ *     counts — and no line reader was built: `CardLine` stays a drawn mark, as
+ *     `docs/orders-pass-3.md` §9's second answered question rules.
+ *   · **Four rows are deferred whole** (the Æra V "just win now" Orders): a
+ *     bead is won by the deeds an age deals, and nothing can hand one to a card.
+ *     They carry their text and a `deferred` line, the vocabulary's own
+ *     convention for a card whose shape does not exist yet.
+ *
+ *     The migration note: a v76 save does not load. The draw bag changed and
+ *     most of the deck's numbers with it, so a v76 command log replays into a
+ *     different empire from the first draft it answers.
  */
-export const SCHEMA_VERSION = 76;
+export const SCHEMA_VERSION = 77;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

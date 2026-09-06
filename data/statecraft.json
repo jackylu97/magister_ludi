@@ -1768,11 +1768,11 @@
       "line": "green",
       "rarity": "common",
       "flavor": "One store, one hunger, one answer.",
-      "text": "+1 food in every city holding an improved luxury resource.",
+      "text": "+2 food in every city holding an improved luxury resource.",
       "effects": [
         {
           "kind": "cityYields",
-          "food": 1,
+          "food": 2,
           "scope": {
             "test": "holdingCategory",
             "category": "luxury"
@@ -1787,7 +1787,7 @@
       "line": "caravan",
       "rarity": "common",
       "flavor": "Salt is small. Its tax is not.",
-      "text": "+2 gold for each unique luxury.",
+      "text": "+3 gold for each unique luxury.",
       "effects": [
         {
           "kind": "countScaled",
@@ -1795,7 +1795,7 @@
           "pays": {
             "to": "yield",
             "yield": "gold",
-            "amount": 2,
+            "amount": 3,
             "where": "empire"
           }
         }
@@ -2018,17 +2018,12 @@
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "Rare things travel; travel makes them rarer.",
-      "text": "+3 gold for each trade route you run.",
+      "text": "+5 gold on every trade route you run.",
+      "note": "The coin rides on the road itself, so anything that raises what a route pays raises this with it.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "tradeRoutes",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 3,
-            "where": "empire"
-          }
+          "kind": "routeYield",
+          "gold": 5
         }
       ]
     },
@@ -2060,12 +2055,12 @@
       "line": "caravan",
       "rarity": "common",
       "flavor": "Count the people, and the coin counts itself.",
-      "text": "+1 gold for each 4 population in your empire.",
+      "text": "+1 gold for each 3 population in your empire.",
       "effects": [
         {
           "kind": "countScaled",
           "count": "population",
-          "per": 4,
+          "per": 3,
           "pays": {
             "to": "yield",
             "yield": "gold",
@@ -2218,11 +2213,19 @@
       "line": "green",
       "rarity": "common",
       "flavor": "Idleness, made sacred, keeps the peace.",
-      "text": "+4 happiness.",
+      "text": "+4 happiness in your capital, and +2 culture in every city.",
       "effects": [
         {
           "kind": "happiness",
-          "amount": 4
+          "amount": 4,
+          "per": "city",
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "cityYields",
+          "culture": 2
         }
       ]
     },
@@ -2414,6 +2417,7 @@
       "rarity": "uncommon",
       "flavor": "The writ has a price, and we collect it.",
       "text": "+2 gold for each point of positive authority.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "rateConversion",
@@ -2426,7 +2430,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "charteredCompanies": {
       "name": "Chartered Companies",
@@ -2480,11 +2485,11 @@
       "line": "forge",
       "rarity": "common",
       "flavor": "Where the ore is, the hammers gather.",
-      "text": "+1 production on every hex carrying a strategic resource, and +1 production in your capital for each military Order you have in a slot, at most +3.",
+      "text": "+2 production on every hex carrying a strategic resource, and +2 production in your capital for each military Order you have in a slot.",
       "effects": [
         {
           "kind": "tileYield",
-          "production": 1,
+          "production": 2,
           "on": {
             "test": "resourceKind",
             "kind": "strategic"
@@ -2494,11 +2499,10 @@
           "kind": "countScaled",
           "count": "slottedOrdersOfSlot",
           "slot": "military",
-          "max": 3,
           "pays": {
             "to": "yield",
             "yield": "production",
-            "amount": 1,
+            "amount": 2,
             "where": "capital"
           }
         }
@@ -2511,11 +2515,11 @@
       "line": "green",
       "rarity": "common",
       "flavor": "The hill was made to feed us; it only needed steps.",
-      "text": "+1 food on every hill hex.",
+      "text": "+2 food on every hill hex.",
       "effects": [
         {
           "kind": "tileYield",
-          "food": 1,
+          "food": 2,
           "on": {
             "test": "hills"
           }
@@ -2529,14 +2533,14 @@
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "Every finished wall is a song about itself.",
-      "text": "Completing a building grants +10 culture.",
+      "text": "Completing a building grants +25 culture.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "buildingCompletion",
           "grant": {
             "yield": "culture",
-            "amount": 10
+            "amount": 25
           }
         }
       ]
@@ -2641,12 +2645,11 @@
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "Where the faithful walk, the faithful settle.",
-      "text": "+1 faith for every 3 citizens in your capital · +1 happiness for each 50 banked faith (at most +5).",
+      "text": "+1 faith for each citizen in your capital · +1 happiness for each 50 banked faith (at most +5).",
       "effects": [
         {
           "kind": "countScaled",
           "count": "capitalPopulation",
-          "per": 3,
           "pays": {
             "to": "yield",
             "yield": "faith",
@@ -2673,12 +2676,12 @@
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "A small flame kept is a small song sung.",
-      "text": "+1 culture for each 5 faith you gain per turn.",
+      "text": "+1 culture for each 3 faith you gain per turn.",
       "effects": [
         {
           "kind": "rateConversion",
           "from": "faithPerTurn",
-          "per": 5,
+          "per": 3,
           "pays": {
             "to": "yield",
             "yield": "culture",
@@ -2695,11 +2698,11 @@
       "line": "star",
       "rarity": "common",
       "flavor": "A crowd is a library that has not been catalogued.",
-      "text": "+2 science in every city of 5 or more population holding a Library, and +2 more where a University stands.",
+      "text": "+3 science in every city of 5 or more population holding a Library, and +3 more where a University stands.",
       "effects": [
         {
           "kind": "cityYields",
-          "science": 2,
+          "science": 3,
           "scope": {
             "test": "all",
             "of": [
@@ -2716,7 +2719,7 @@
         },
         {
           "kind": "cityYields",
-          "science": 2,
+          "science": 3,
           "scope": {
             "test": "all",
             "of": [
@@ -2765,6 +2768,7 @@
       "rarity": "common",
       "flavor": "The soldiers do not idle. Nobody does.",
       "text": "Each city gains +3 production for each combat unit standing in it (at most +6 per city).",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "countScaled",
@@ -2777,7 +2781,8 @@
             "where": "city"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "skirmishersCreed": {
       "name": "Skirmishers' Creed",
@@ -2806,6 +2811,7 @@
       "rarity": "common",
       "flavor": "Mercy is for the unwounded.",
       "text": "+4 combat strength against units below half strength.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. Decisive Blows says the same rule, and says it bigger.",
       "effects": [
         {
           "kind": "combatLine",
@@ -2815,7 +2821,8 @@
             "test": "targetBelowHalf"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "frontierForts": {
       "name": "Frontier Forts",
@@ -2825,6 +2832,7 @@
       "rarity": "common",
       "flavor": "The border is where we keep our walls.",
       "text": "+6 city defence in every city near another empire's territory.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "cityStat",
@@ -2834,7 +2842,8 @@
             "test": "frontier"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "triumphs": {
       "name": "Triumphs",
@@ -2885,11 +2894,11 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Better a king who bows than a province that rebels.",
-      "text": "+2 authority capacity · a captured city costs one less authority.",
+      "text": "+4 authority capacity · a captured city costs one less authority.",
       "effects": [
         {
           "kind": "authority",
-          "amount": 2
+          "amount": 4
         },
         {
           "kind": "meterRule",
@@ -2905,16 +2914,15 @@
       "line": "caravan",
       "rarity": "common",
       "flavor": "Every seam of silk, its own small coin.",
-      "text": "+2 gold for each improved copy of a luxury — duplicates count.",
+      "text": "+10% gold in every city holding an improved luxury resource.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "luxuryCopies",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 2,
-            "where": "empire"
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 10,
+          "scope": {
+            "test": "holdingCategory",
+            "category": "luxury"
           }
         }
       ]
@@ -2926,13 +2934,21 @@
       "line": "forge",
       "rarity": "common",
       "flavor": "Stone remembers; marble boasts.",
-      "text": "+4 production in every city with a quarry.",
+      "text": "+4 production in every city with a quarry, and +1 production on every quarry.",
       "effects": [
         {
           "kind": "cityYields",
           "production": 4,
           "scope": {
             "test": "hasImprovement",
+            "improvement": "quarry"
+          }
+        },
+        {
+          "kind": "tileYield",
+          "production": 1,
+          "on": {
+            "test": "improvement",
             "improvement": "quarry"
           }
         }
@@ -2965,16 +2981,16 @@
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "The pious are easy to govern, and they know it.",
-      "text": "The science and culture your happy cities pay rises 5 percentage points · +1 happiness for each 200 banked faith.",
+      "text": "The science and culture your happy cities pay rises 8 percentage points · +1 happiness for each 150 banked faith.",
       "effects": [
         {
           "kind": "happinessTierBoost",
-          "points": 5
+          "points": 8
         },
         {
           "kind": "countScaled",
           "count": "bankedFaith",
-          "per": 200,
+          "per": 150,
           "pays": {
             "to": "happiness",
             "amount": 1
@@ -3030,12 +3046,12 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Let them keep their gods; they will pay their taxes.",
-      "text": "−10% happiness demanded per citizen.",
+      "text": "−15% happiness demanded per citizen.",
       "effects": [
         {
           "kind": "rulePercent",
           "rule": "happinessDemand",
-          "percent": -10
+          "percent": -15
         }
       ]
     },
@@ -3043,17 +3059,19 @@
       "name": "The Laureate",
       "pool": "governmentI",
       "slot": "wildcard",
+      "line": "court",
+      "rarity": "rare",
       "flavor": "The court keeps one chair empty, and it is never empty for long.",
-      "text": "+1 renown per turn. Every great-person improvement pays +2 more of its own yield.",
+      "text": "+2 renown per turn. Every great-person improvement pays +3 more of its own yield.",
       "note": "The great-person improvements are the academy, landmark, manufactory, customs house and citadel.",
       "effects": [
         {
           "kind": "renown",
-          "amount": 1
+          "amount": 2
         },
         {
           "kind": "tileYield",
-          "science": 2,
+          "science": 3,
           "on": {
             "test": "improvement",
             "improvement": "academy"
@@ -3061,7 +3079,7 @@
         },
         {
           "kind": "tileYield",
-          "culture": 2,
+          "culture": 3,
           "on": {
             "test": "improvement",
             "improvement": "landmark"
@@ -3069,7 +3087,7 @@
         },
         {
           "kind": "tileYield",
-          "production": 2,
+          "production": 3,
           "on": {
             "test": "improvement",
             "improvement": "manufactory"
@@ -3077,7 +3095,7 @@
         },
         {
           "kind": "tileYield",
-          "gold": 2,
+          "gold": 3,
           "on": {
             "test": "improvement",
             "improvement": "customsHouse"
@@ -3085,15 +3103,13 @@
         },
         {
           "kind": "tileYield",
-          "production": 2,
+          "production": 3,
           "on": {
             "test": "improvement",
             "improvement": "citadel"
           }
         }
-      ],
-      "line": "court",
-      "rarity": "rare"
+      ]
     },
     "theLegion": {
       "name": "The Legion",
@@ -3138,21 +3154,18 @@
       "line": "procession",
       "rarity": "common",
       "flavor": "Someone has sat up with it every night since the first night.",
-      "text": "+1 faith in your capital, and +1 happiness there.",
+      "text": "+1 faith in your capital for every 2 citizens living there.",
+      "note": "The faith is paid in your capital, so anything that raises what your capital receives raises this with it.",
       "effects": [
         {
-          "kind": "cityYields",
-          "faith": 1,
-          "scope": {
-            "test": "capital"
-          }
-        },
-        {
-          "kind": "happiness",
-          "amount": 1,
-          "per": "city",
-          "scope": {
-            "test": "capital"
+          "kind": "countScaled",
+          "count": "capitalPopulation",
+          "per": 2,
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 1,
+            "where": "capital"
           }
         }
       ]
@@ -3215,6 +3228,7 @@
       "rarity": "uncommon",
       "flavor": "The first child of the season is carried to the stone, and given back.",
       "text": "The first citizen born in each city pays +10 faith once.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. A tithe on a town’s first citizen pays nothing once the towns are grown.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -3225,7 +3239,8 @@
             "amount": 10
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "statuteLabour": {
       "name": "Statute Labour",
@@ -3235,6 +3250,7 @@
       "rarity": "common",
       "flavor": "Every third back is owed to the road.",
       "text": "+1 production in every city for each 4 citizens living there.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "countScaled",
@@ -3248,7 +3264,8 @@
             "where": "city"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "riverWardens": {
       "name": "River Wardens",
@@ -3258,6 +3275,7 @@
       "rarity": "common",
       "flavor": "The water is watched, so the water is shared.",
       "text": "+1 food on every farm beside fresh water.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The waterworks of the tree already water a farm beside fresh water.",
       "effects": [
         {
           "kind": "tileYield",
@@ -3275,7 +3293,8 @@
           },
           "food": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "theAlmanac": {
       "name": "The Almanac",
@@ -3284,7 +3303,7 @@
       "line": "star",
       "rarity": "common",
       "flavor": "A year written down is a year that can be argued with.",
-      "text": "+2 science in your capital, and +1 science in every city with a Library.",
+      "text": "+2 science in your capital, and +2 science in every city with a Library.",
       "effects": [
         {
           "kind": "cityYields",
@@ -3295,7 +3314,7 @@
         },
         {
           "kind": "cityYields",
-          "science": 1,
+          "science": 2,
           "scope": {
             "test": "hasBuilding",
             "building": "library"
@@ -3371,6 +3390,7 @@
       "rarity": "uncommon",
       "flavor": "Nobody walks that far without stopping to eat.",
       "text": "+5 faith in every city standing beside a holy site.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "cityYields",
@@ -3380,7 +3400,8 @@
             "improvement": "holySite"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "charterTowns": {
       "name": "Charter Towns",
@@ -3390,12 +3411,14 @@
       "rarity": "uncommon",
       "flavor": "The grain store is written into the charter, above the wall.",
       "text": "Newly founded cities are founded with a Granary.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. Homestead Charters already founds a town better than it was founded.",
       "effects": [
         {
           "kind": "foundingRider",
           "building": "granary"
         }
-      ]
+      ],
+      "retired": true
     },
     "theChoir": {
       "name": "The Choir",
@@ -3404,11 +3427,11 @@
       "line": "procession",
       "rarity": "common",
       "flavor": "Forty voices, and not one of them heard on its own.",
-      "text": "+1 culture and +1 happiness in every city with a Temple.",
+      "text": "+3 culture and +1 happiness in every city with a Temple.",
       "effects": [
         {
           "kind": "cityYields",
-          "culture": 1,
+          "culture": 3,
           "scope": {
             "test": "hasBuilding",
             "building": "temple"
@@ -3432,11 +3455,12 @@
       "line": "star",
       "rarity": "common",
       "flavor": "Above the smoke, the sky keeps better records.",
-      "text": "+2 science in every city with a mountain hex inside its borders.",
+      "text": "+15% science in every city with a mountain hex inside its borders.",
       "effects": [
         {
-          "kind": "cityYields",
-          "science": 2,
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 15,
           "scope": {
             "test": "terrainInBorders",
             "terrain": "mountain"
@@ -3449,16 +3473,16 @@
       "pool": "governmentII",
       "slot": "economic",
       "line": "ploughshare",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "flavor": "The rain of one winter, kept under the square.",
       "text": "Every city of yours counts as standing on fresh water.",
+      "note": "It answers what is asked of a city — whether the town can drink. A hex out in the fields is still watered by the river or by nothing.",
       "effects": [
         {
           "kind": "cityRule",
           "rule": "freshwater"
         }
-      ],
-      "note": "It answers what is asked of a city — whether the town can drink. A hex out in the fields is still watered by the river or by nothing."
+      ]
     },
     "ledgerKeepers": {
       "name": "Ledger-Keepers",
@@ -3467,12 +3491,14 @@
       "line": "caravan",
       "rarity": "common",
       "flavor": "The column of figures is longer than the road.",
-      "text": "+1 gold in every city with a Market, and +1 trade route.",
+      "text": "+1 science and +1 culture on every trade route sent from a city with a Market, and +1 trade route.",
+      "note": "A road is read from the town that sent the caravan, so a Market at the far end of it pays nothing here.",
       "effects": [
         {
-          "kind": "cityYields",
-          "gold": 1,
-          "scope": {
+          "kind": "routeYield",
+          "science": 1,
+          "culture": 1,
+          "origin": {
             "test": "hasBuilding",
             "building": "market"
           }
@@ -3528,6 +3554,7 @@
       "rarity": "uncommon",
       "flavor": "A trade that will not teach a stranger keeps its walls straight.",
       "text": "Cities of 6 population or more put 10% more production behind buildings.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "productionBonus",
@@ -3538,7 +3565,8 @@
             "value": 6
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theOathBound": {
       "name": "The Oath-Bound",
@@ -3580,11 +3608,18 @@
       "line": "procession",
       "rarity": "common",
       "flavor": "A stone, a bowl, a name. No priest required.",
-      "text": "+1 faith in every city.",
+      "text": "+1 faith in your capital for every city you hold.",
+      "note": "The faith is gathered in your capital, so anything that raises what your capital receives raises this with it.",
       "effects": [
         {
-          "kind": "cityYields",
-          "faith": 1
+          "kind": "countScaled",
+          "count": "cities",
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 1,
+            "where": "capital"
+          }
         }
       ]
     },
@@ -3595,11 +3630,11 @@
       "line": "green",
       "rarity": "common",
       "flavor": "The tenth basket goes to the crown, and the crown plants it.",
-      "text": "+1 food on every hex carrying a luxury resource.",
+      "text": "+2 food on every hex carrying a luxury resource.",
       "effects": [
         {
           "kind": "tileYield",
-          "food": 1,
+          "food": 2,
           "on": {
             "test": "resourceKind",
             "kind": "luxury"
@@ -3667,6 +3702,7 @@
       "rarity": "common",
       "flavor": "No plough, no boundary, no quarrel.",
       "text": "+1 happiness for each unimproved hex your cities work.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It paid a wide realm far more contentment than any other card of its age.",
       "effects": [
         {
           "kind": "countScaled",
@@ -3676,7 +3712,8 @@
             "amount": 1
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theOldWays": {
       "name": "The Old Ways",
@@ -3703,11 +3740,11 @@
       "line": "green",
       "rarity": "common",
       "flavor": "The first of everything is set aside. The rest feeds us.",
-      "text": "+1 food on every hex carrying a resource.",
+      "text": "+2 food on every hex carrying a resource.",
       "effects": [
         {
           "kind": "tileYield",
-          "food": 1,
+          "food": 2,
           "on": {
             "test": "hasResource"
           }
@@ -3741,11 +3778,11 @@
       "line": "forge",
       "rarity": "common",
       "flavor": "Kept locked, kept counted, kept full. Kept, above all.",
-      "text": "Military units cost 3 less gold in maintenance.",
+      "text": "Military units cost 2 less gold in maintenance.",
       "effects": [
         {
           "kind": "upkeepRebate",
-          "amount": 3,
+          "amount": 2,
           "class": {
             "category": "military"
           }
@@ -3806,7 +3843,7 @@
       "line": "hunt",
       "rarity": "rare",
       "flavor": "They sing the old raids now. Nobody living remembers being afraid.",
-      "text": "+2 culture and +2 science for each barbarian camp you have cleared this game.",
+      "text": "+4 culture and +4 science for each barbarian camp you have cleared this game.",
       "effects": [
         {
           "kind": "countScaled",
@@ -3814,7 +3851,7 @@
           "pays": {
             "to": "yield",
             "yield": "culture",
-            "amount": 2,
+            "amount": 4,
             "where": "empire"
           }
         },
@@ -3824,7 +3861,7 @@
           "pays": {
             "to": "yield",
             "yield": "science",
-            "amount": 2,
+            "amount": 4,
             "where": "empire"
           }
         }
@@ -3856,7 +3893,7 @@
       "line": "caravan",
       "rarity": "common",
       "flavor": "A bed, a fire, and somebody who will listen to where you have been.",
-      "text": "+2 gold and +1 culture for each trade route you run.",
+      "text": "+1 gold and +3 culture for each trade route you run.",
       "effects": [
         {
           "kind": "countScaled",
@@ -3864,7 +3901,7 @@
           "pays": {
             "to": "yield",
             "yield": "gold",
-            "amount": 2,
+            "amount": 1,
             "where": "empire"
           }
         },
@@ -3874,7 +3911,7 @@
           "pays": {
             "to": "yield",
             "yield": "culture",
-            "amount": 1,
+            "amount": 3,
             "where": "empire"
           }
         }
@@ -3907,6 +3944,7 @@
       "rarity": "common",
       "flavor": "They founded it on the vein and argued about the name for a century.",
       "text": "+2 happiness in every city settled on a luxury resource.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "happiness",
@@ -3917,7 +3955,8 @@
             "kind": "luxury"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCensusEternal": {
       "name": "The Census Eternal",
@@ -3926,12 +3965,12 @@
       "line": "star",
       "rarity": "common",
       "flavor": "Every soul written down, every year, for ever. The writing is the point.",
-      "text": "+1 science for every 4 citizens in your empire.",
+      "text": "+1 science for every 2 citizens in your empire.",
       "effects": [
         {
           "kind": "countScaled",
           "count": "population",
-          "per": 4,
+          "per": 2,
           "pays": {
             "to": "yield",
             "yield": "science",
@@ -3948,13 +3987,13 @@
       "line": "court",
       "rarity": "common",
       "flavor": "Someone has to weed around the monument.",
-      "text": "+1 food and +1 production on every great-person improvement.",
+      "text": "+2 food and +2 production on every great-person improvement.",
       "note": "The great-person improvements are the academy, landmark, manufactory, customs house and citadel.",
       "effects": [
         {
           "kind": "tileYield",
-          "food": 1,
-          "production": 1,
+          "food": 2,
+          "production": 2,
           "on": {
             "test": "greatWork"
           }
@@ -3968,13 +4007,13 @@
       "line": "court",
       "rarity": "common",
       "flavor": "He is not often at home. The town works harder anyway, in case.",
-      "text": "+10% to every yield in each city beside a great person's work.",
+      "text": "+15% to every yield in each city beside a great person’s work.",
       "note": "A city is beside a work when one stands on its own hex or on one of the six touching it. Two works never pay twice.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "all",
-          "percent": 10,
+          "percent": 15,
           "scope": {
             "test": "adjacentGreatWork"
           }
@@ -3988,11 +4027,11 @@
       "line": "forge",
       "rarity": "common",
       "flavor": "The scaffolding goes up and the ovens do not go out again for a year.",
-      "text": "+2 food in every city while it is building a wonder · +10% production toward wonders.",
+      "text": "+4 food in every city while it is building a wonder · +20% production toward wonders.",
       "effects": [
         {
           "kind": "cityYields",
-          "food": 2,
+          "food": 4,
           "scope": {
             "test": "queueHolds",
             "category": "wonder"
@@ -4001,7 +4040,7 @@
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 10
+          "percent": 20
         }
       ]
     },
@@ -4012,19 +4051,19 @@
       "line": "forge",
       "rarity": "common",
       "flavor": "They have built one of everything. The second is always cheaper.",
-      "text": "The Magnum Opus and cathedrals cost 15% less production.",
+      "text": "The Magnum Opus and cathedrals cost 25% less production.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "building",
           "building": "theMagnumOpus",
-          "percent": 15
+          "percent": 25
         },
         {
           "kind": "productionBonus",
           "category": "building",
           "building": "cathedral",
-          "percent": 15
+          "percent": 25
         }
       ]
     },
@@ -4035,11 +4074,11 @@
       "line": "caravan",
       "rarity": "common",
       "flavor": "A town that smells of pitch is a town with somewhere to be.",
-      "text": "+1 production in every coastal city · +30% production toward ships there.",
+      "text": "+3 production in every coastal city · +30% production toward ships there.",
       "effects": [
         {
           "kind": "cityYields",
-          "production": 1,
+          "production": 3,
           "scope": {
             "test": "coastal"
           }
@@ -4065,6 +4104,7 @@
       "rarity": "common",
       "flavor": "Pull the sea out from under her and you can see what she has been hiding.",
       "text": "+25% production toward ships in every city with a Harbour.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It is a line on a building the game rarely raises.",
       "deferred": [
         "ships mend completely in a port — a heal that depends on where a piece is standing is a rule about a hex, and healing is a rule about a turn"
       ],
@@ -4081,7 +4121,8 @@
             "building": "harbour"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theWinteringGrounds": {
       "name": "The Wintering Grounds",
@@ -4091,13 +4132,15 @@
       "rarity": "common",
       "flavor": "Home is wherever the horses have stopped.",
       "text": "Your units cost no gold in maintenance outside your territory.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The War Chest is the card that pays an army’s keep.",
       "effects": [
         {
           "kind": "upkeepRebate",
           "free": true,
           "where": "foreignTerritory"
         }
-      ]
+      ],
+      "retired": true
     },
     "theArchives": {
       "name": "The Archives",
@@ -4106,7 +4149,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Every law ever passed, in order, in a room nobody is allowed to leave.",
-      "text": "+1 culture for each Order you have placed in a slot.",
+      "text": "+2 culture for each Order you have placed in a slot.",
       "effects": [
         {
           "kind": "countScaled",
@@ -4114,7 +4157,7 @@
           "pays": {
             "to": "yield",
             "yield": "culture",
-            "amount": 1,
+            "amount": 2,
             "where": "empire"
           }
         }
@@ -4127,7 +4170,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "The laws you chose not to pass are also history.",
-      "text": "+2 culture for each Order you hold but have not placed in a slot.",
+      "text": "+3 culture for each Order you hold but have not placed in a slot.",
       "effects": [
         {
           "kind": "countScaled",
@@ -4135,7 +4178,7 @@
           "pays": {
             "to": "yield",
             "yield": "culture",
-            "amount": 2,
+            "amount": 3,
             "where": "empire"
           }
         }
@@ -4160,7 +4203,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Three old soldiers, one map, and a great deal of shouting.",
-      "text": "+1 combat strength for each military Order you have in a slot, at most +3.",
+      "text": "+1 combat strength for each military Order you have in a slot.",
       "effects": [
         {
           "kind": "combatLine",
@@ -4172,8 +4215,7 @@
           "scaled": {
             "count": "slottedOrdersOfSlot",
             "slot": "military",
-            "per": 1,
-            "max": 3
+            "per": 1
           }
         }
       ]
@@ -4185,7 +4227,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "They asked for a seat at the table. They were given a page of it, and took the room.",
-      "text": "+2 gold for each economic Order you have in a slot, and +1 production in your capital for each.",
+      "text": "+3 gold for each economic Order you have in a slot, and +2 production in your capital for each.",
       "effects": [
         {
           "kind": "countScaled",
@@ -4194,7 +4236,7 @@
           "pays": {
             "to": "yield",
             "yield": "gold",
-            "amount": 2,
+            "amount": 3,
             "where": "empire"
           }
         },
@@ -4205,7 +4247,7 @@
           "pays": {
             "to": "yield",
             "yield": "production",
-            "amount": 1,
+            "amount": 2,
             "where": "capital"
           }
         }
@@ -4218,29 +4260,14 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Everyone speaks, nobody presides, and a decision is written down regardless.",
-      "text": "+1 faith and +1 culture for each wildcard Order you have in a slot.",
+      "text": "Your faith buildings give half again their yield, counted after every other share.",
+      "note": "A faith building is any building of yours that pays faith at all, and the share is taken last — after everything else that raised it.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "slottedOrdersOfSlot",
-          "slot": "wildcard",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "empire"
-          }
-        },
-        {
-          "kind": "countScaled",
-          "count": "slottedOrdersOfSlot",
-          "slot": "wildcard",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "buildingYieldPercent",
+          "pays": "faith",
+          "percent": 50,
+          "appliedLast": true
         }
       ]
     },
@@ -4251,14 +4278,14 @@
       "line": "green",
       "rarity": "common",
       "flavor": "The reaping song is older than the field, and older than the kingdom.",
-      "text": "Every city gains 10% of its food yield again as culture.",
+      "text": "Every city gains 15% of its food yield again as culture.",
       "note": "It reads the whole harvest rather than what is left after the citizens eat: a city's surplus is decided after every percentage on it, and a card that read the surplus would be reading a figure that reads the card back.",
       "effects": [
         {
           "kind": "yieldConversion",
           "from": "food",
           "to": "culture",
-          "percent": 10
+          "percent": 15
         }
       ]
     },
@@ -4270,6 +4297,7 @@
       "rarity": "common",
       "flavor": "Salt keeps the fish, the fish keeps the town, and the town keeps the salt.",
       "text": "Coastal cities gain 10% of their food yield again as production.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The Grain Fleet is the coast’s card now.",
       "effects": [
         {
           "kind": "yieldConversion",
@@ -4280,7 +4308,8 @@
             "test": "coastal"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theDraftingHalls": {
       "name": "The Drafting Halls",
@@ -4289,13 +4318,13 @@
       "line": "star",
       "rarity": "common",
       "flavor": "Every beam is drawn twice: once for the builder, once for the book.",
-      "text": "Cities with a Library gain 10% of their production again as science.",
+      "text": "Cities with a Library gain 20% of their production again as science.",
       "effects": [
         {
           "kind": "yieldConversion",
           "from": "production",
           "to": "science",
-          "percent": 10,
+          "percent": 20,
           "scope": {
             "test": "hasBuilding",
             "building": "library"
@@ -4310,13 +4339,13 @@
       "line": "caravan",
       "rarity": "common",
       "flavor": "What the counting-house learns about weight, the college learns about everything else.",
-      "text": "Every city gains 10% of its gold yield again as science.",
+      "text": "Every city gains 20% of its gold yield again as science.",
       "effects": [
         {
           "kind": "yieldConversion",
           "from": "gold",
           "to": "science",
-          "percent": 10
+          "percent": 20
         }
       ]
     },
@@ -4357,6 +4386,7 @@
       "rarity": "rare",
       "flavor": "The furthest town is written the widest liberties, and keeps them until it is no longer the furthest.",
       "text": "Your newest city gains +2 of every yield. Founding a city grants +30 culture.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It reads only at a founding, and the founding age ends.",
       "effects": [
         {
           "kind": "cityYields",
@@ -4378,7 +4408,8 @@
             "amount": 30
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theBalladWeavers": {
       "name": "The Ballad-Weavers",
@@ -4387,7 +4418,7 @@
       "line": "hunt",
       "rarity": "uncommon",
       "flavor": "Every raider who falls in the passes is worth a verse, and the verses outlast the passes.",
-      "text": "+1 culture per turn for each barbarian you have killed while this Order stands in a slot.",
+      "text": "+2 culture per turn for each barbarian you have killed while this Order stands in a slot.",
       "effects": [
         {
           "kind": "countScaled",
@@ -4396,7 +4427,7 @@
           "pays": {
             "to": "yield",
             "yield": "culture",
-            "amount": 1,
+            "amount": 2,
             "where": "empire"
           }
         }
@@ -4410,6 +4441,7 @@
       "rarity": "uncommon",
       "flavor": "A rival raises a dome; the foundry answers with a bell, and the town agrees it is the finer sound.",
       "text": "+1 culture per turn for each wonder finished anywhere in the world while this Order stands in a slot.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "countScaled",
@@ -4422,7 +4454,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theReliquaryRolls": {
       "name": "The Reliquary Rolls",
@@ -4431,7 +4464,7 @@
       "line": "court",
       "rarity": "uncommon",
       "flavor": "They served, and then they were shelved: a knuckle, a brush, a name written large.",
-      "text": "+2 faith and +2 culture per turn for each great person you have spent while this Order stands in a slot.",
+      "text": "+3 faith and +3 culture per turn for each great person you have spent while this Order stands in a slot.",
       "effects": [
         {
           "kind": "countScaled",
@@ -4440,7 +4473,7 @@
           "pays": {
             "to": "yield",
             "yield": "faith",
-            "amount": 2,
+            "amount": 3,
             "where": "empire"
           }
         },
@@ -4451,7 +4484,7 @@
           "pays": {
             "to": "yield",
             "yield": "culture",
-            "amount": 2,
+            "amount": 3,
             "where": "empire"
           }
         }
@@ -4487,6 +4520,7 @@
       "rarity": "uncommon",
       "flavor": "What the treasury spends, the almoners write down; what the almoners write down, the schools read.",
       "text": "+1 science per turn for each 400 gold you have spent buying while this Order stands in a slot.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It paid less in a whole game than a single flat pays in a turn.",
       "effects": [
         {
           "kind": "countScaled",
@@ -4500,7 +4534,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCasusBelli": {
       "name": "The Casus Belli",
@@ -4861,7 +4896,7 @@
       "rarity": "rare",
       "flavor": "The road is the realm. Everything else is where it stops.",
       "text": "+1 gold for each road hex you have laid.",
-      "note": "It counts the hexes you paved, wherever they lie: a road belongs to whoever laid it, and a border that later grows over one changes nothing.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "countScaled",
@@ -4873,7 +4908,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theRecklessLevy": {
       "name": "The Reckless Levy",
@@ -4883,6 +4919,10 @@
       "rarity": "uncommon",
       "flavor": "Every man who can hold a spear, and some who cannot.",
       "text": "+50% production toward units · your army costs twice as much to keep.",
+      "note": "A charge on each piece of an army is not built; the levy taxes the whole payroll instead, which is what the card pays for.",
+      "deferred": [
+        "every soldier costs one coin more to keep, whatever kind of soldier it is"
+      ],
       "effects": [
         {
           "kind": "productionBonus",
@@ -4903,11 +4943,11 @@
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "The hill gives up its iron and the valley gives up its bread.",
-      "text": "+2 production on every mine · −1 food in every city with one.",
+      "text": "+3 production on every mine · −3 food in every city with one.",
       "effects": [
         {
           "kind": "tileYield",
-          "production": 2,
+          "production": 3,
           "on": {
             "test": "improvement",
             "improvement": "mine"
@@ -4915,7 +4955,7 @@
         },
         {
           "kind": "cityYields",
-          "food": -1,
+          "food": -3,
           "scope": {
             "test": "hasImprovement",
             "improvement": "mine"
@@ -4931,13 +4971,15 @@
       "rarity": "uncommon",
       "flavor": "Fed, and nothing else.",
       "text": "+3 food and −1 culture in every city.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The Harvest Songs are the food deck’s card now.",
       "effects": [
         {
           "kind": "cityYields",
           "food": 3,
           "culture": -1
         }
-      ]
+      ],
+      "retired": true
     },
     "theCongregation": {
       "name": "The Congregation",
@@ -4947,6 +4989,7 @@
       "rarity": "rare",
       "flavor": "Count the roofs that face your altar, not the ones that pay you.",
       "text": "+1 culture and +1 science for each city in the world that follows your religion.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "countScaled",
@@ -4968,7 +5011,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theGranaryLaws": {
       "name": "The Granary Laws",
@@ -4977,13 +5021,13 @@
       "line": "green",
       "rarity": "uncommon",
       "flavor": "A full granary is an argument nobody wins.",
-      "text": "Cities of 8 or more population gain 10% of their food yield again as science.",
+      "text": "Cities of 8 or more population gain 20% of their food yield again as science.",
       "effects": [
         {
           "kind": "yieldConversion",
           "from": "food",
           "to": "science",
-          "percent": 10,
+          "percent": 20,
           "scope": {
             "test": "populationAtLeast",
             "value": 8
@@ -5127,7 +5171,7 @@
       "line": "court",
       "rarity": "uncommon",
       "flavor": "The painter eats, and the city is remembered.",
-      "text": "+2 culture for each wonder you hold.",
+      "text": "+10 culture for each wonder you hold.",
       "note": "Renown is paid for each city or for each wonder and for nothing else, so the struck clause is not built.",
       "deferred": [
         "+1 renown per turn for each culture building you hold"
@@ -5139,7 +5183,7 @@
           "pays": {
             "to": "yield",
             "yield": "culture",
-            "amount": 2,
+            "amount": 10,
             "where": "empire"
           }
         }
@@ -5152,12 +5196,12 @@
       "line": "court",
       "rarity": "common",
       "flavor": "One guild raises the cathedral. The armoury waits its turn.",
-      "text": "+30% production toward wonders · −15% production toward units.",
+      "text": "+50% production toward wonders · −15% production toward units.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 30
+          "percent": 50
         },
         {
           "kind": "productionBonus",
@@ -5173,7 +5217,7 @@
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "The harbour keeps its own hours and the city keeps to them.",
-      "text": "+1 trade route · +1 gold on every fishing boat.",
+      "text": "+1 trade route · +2 gold on every fishing boat.",
       "note": "A trade route belongs to the empire rather than to a town, so the extra route is the realm’s and not the coast’s.",
       "effects": [
         {
@@ -5182,7 +5226,7 @@
         },
         {
           "kind": "tileYield",
-          "gold": 1,
+          "gold": 2,
           "on": {
             "test": "improvement",
             "improvement": "fishingBoats"
@@ -5198,6 +5242,7 @@
       "rarity": "rare",
       "flavor": "A house in every port, and a ledger in every house.",
       "text": "+3 science for each trade route you run to another empire.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It paid less than a common card of a much earlier age.",
       "effects": [
         {
           "kind": "countScaled",
@@ -5209,7 +5254,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "assizeCourts": {
       "name": "Assize Courts",
@@ -5218,12 +5264,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The judge rides a circuit, and the writ rides with him.",
-      "text": "+1 authority capacity for each 3 cities you hold · a captured city costs 1 authority.",
+      "text": "+1 authority capacity for each 2 cities you hold · a captured city costs 1 authority.",
       "effects": [
         {
           "kind": "countScaled",
           "count": "cities",
-          "per": 3,
+          "per": 2,
           "pays": {
             "to": "authority",
             "amount": 1
@@ -5243,11 +5289,11 @@
       "line": "green",
       "rarity": "rare",
       "flavor": "The corn comes in by water, and the water never tires.",
-      "text": "+2 food in every coastal city · +25% growth surplus there.",
+      "text": "+6 food in every coastal city · +50% growth surplus there.",
       "effects": [
         {
           "kind": "cityYields",
-          "food": 2,
+          "food": 6,
           "scope": {
             "test": "coastal"
           }
@@ -5255,7 +5301,7 @@
         {
           "kind": "rulePercent",
           "rule": "growthSurplus",
-          "percent": 25,
+          "percent": 50,
           "scope": {
             "test": "coastal"
           }
@@ -5269,20 +5315,12 @@
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "The chapter meets, and the town is quieter for a week.",
-      "text": "+1 happiness for each Cathedral you hold · +2 culture in every city with one.",
+      "text": "+2 culture and +2 faith in every city with a Cathedral.",
       "effects": [
-        {
-          "kind": "countScaled",
-          "count": "buildingsOfKind",
-          "building": "cathedral",
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
-        },
         {
           "kind": "cityYields",
           "culture": 2,
+          "faith": 2,
           "scope": {
             "test": "hasBuilding",
             "building": "cathedral"
@@ -5297,7 +5335,7 @@
       "line": "star",
       "rarity": "uncommon",
       "flavor": "They read the sky the way a clerk reads a ledger.",
-      "text": "+2 science for each wonder you hold.",
+      "text": "+10 science for each wonder you hold.",
       "note": "A completion pays for the kind of thing finished, and a wonder is a building, so a bounty on wonders alone is not built.",
       "deferred": [
         "completing a wonder grants +30 science"
@@ -5309,7 +5347,7 @@
           "pays": {
             "to": "yield",
             "yield": "science",
-            "amount": 2,
+            "amount": 10,
             "where": "empire"
           }
         }
@@ -5320,24 +5358,16 @@
       "pool": "governmentIV",
       "slot": "wildcard",
       "line": "procession",
-      "rarity": "uncommon",
+      "rarity": "rare",
       "flavor": "They meet under one roof and speak for every roof.",
-      "text": "+1 faith for each Temple you hold.",
-      "note": "A rite is one act and has no length to lengthen, so the struck clause is not built.",
-      "deferred": [
-        "rites last 25% longer"
-      ],
+      "text": "Your faith buildings pay double, counted after every other share.",
+      "note": "A faith building is any building of yours that pays faith at all, and the doubling is taken last — after everything else that raised it.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "buildingsOfKind",
-          "building": "temple",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "buildingYieldPercent",
+          "pays": "faith",
+          "percent": 100,
+          "appliedLast": true
         }
       ]
     },
@@ -5348,7 +5378,7 @@
       "line": "star",
       "rarity": "uncommon",
       "flavor": "Every question has an answer already. The trick is finding whose.",
-      "text": "+2 science for each University you hold · completing a technology grants +15 faith.",
+      "text": "+5 science for each University you hold · completing a technology grants +40 faith.",
       "effects": [
         {
           "kind": "countScaled",
@@ -5357,7 +5387,7 @@
           "pays": {
             "to": "yield",
             "yield": "science",
-            "amount": 2,
+            "amount": 5,
             "where": "empire"
           }
         },
@@ -5366,7 +5396,7 @@
           "occasion": "tech",
           "grant": {
             "yield": "faith",
-            "amount": 15
+            "amount": 40
           }
         }
       ]
@@ -5431,16 +5461,15 @@
       "line": "court",
       "rarity": "common",
       "flavor": "Everyone who matters is in one room, and they all want something.",
-      "text": "Every great-person offer shows one more card.",
-      "note": "What a great person costs in renown climbs on its own ladder, which no card can steepen, so the struck clause is not built.",
-      "deferred": [
-        "great people cost 10% more renown"
-      ],
+      "text": "Every great person’s work pays double what it makes.",
+      "note": "The great-person improvements are the academy, landmark, manufactory, customs house and citadel.",
       "effects": [
         {
-          "kind": "offerRider",
-          "offer": "greatPerson",
-          "extra": 1
+          "kind": "tileYield",
+          "on": {
+            "test": "greatWork"
+          },
+          "percent": 100
         }
       ]
     },
@@ -5452,9 +5481,9 @@
       "rarity": "uncommon",
       "flavor": "The bale is sold three times before it is unloaded.",
       "text": "+2 gold for each trade route you run.",
-      "note": "A route carries yields rather than goods, so nothing it brings in can be counted as a luxury you hold.",
+      "note": "A caravan’s line is read from the town that sent it, and nothing yet asks how big the town at the far end has grown.",
       "deferred": [
-        "luxuries carried in by a trade route count as held"
+        "a song for every second citizen of the city the caravan is sent to"
       ],
       "effects": [
         {
@@ -5476,7 +5505,7 @@
       "line": "star",
       "rarity": "uncommon",
       "flavor": "The second copy costs nothing, which changes everything.",
-      "text": "+1 culture for each Library you hold · +10% science in every city.",
+      "text": "+3 culture for each Library you hold · +10% science in every city.",
       "effects": [
         {
           "kind": "countScaled",
@@ -5485,7 +5514,7 @@
           "pays": {
             "to": "yield",
             "yield": "culture",
-            "amount": 1,
+            "amount": 3,
             "where": "empire"
           }
         },
@@ -5504,6 +5533,7 @@
       "rarity": "rare",
       "flavor": "The barn belongs to the parish, and the parish belongs to the church.",
       "text": "Cities keep 50% of their stored food when they grow · −1 faith in every city.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It cost an empire more to hold than it ever paid back.",
       "effects": [
         {
           "kind": "rulePercent",
@@ -5514,7 +5544,8 @@
           "kind": "cityYields",
           "faith": -1
         }
-      ]
+      ],
+      "retired": true
     },
     "theGuildCompact": {
       "name": "The Guild Compact",
@@ -5523,10 +5554,10 @@
       "line": "forge",
       "rarity": "rare",
       "flavor": "The guilds sign, and the price of everything is settled for a generation.",
-      "text": "+2% production in a city for each production building standing in it, at most +6%.",
-      "note": "Renown is paid for each city or for each wonder and for nothing else, so the engineers’ half is not built.",
+      "text": "+3% production in a city for each production building standing in it, at most +15%.",
+      "note": "Nothing yet counts the specialists working in a town, so the compact is paid for the workshops instead.",
       "deferred": [
-        "+1 renown per turn to the engineers for each workshop or forge you hold"
+        "the guilds were to be paid for the specialists a town keeps rather than for the halls it has raised"
       ],
       "effects": [
         {
@@ -5534,11 +5565,11 @@
           "count": "buildingsOfCategory",
           "category": "production",
           "within": "city",
-          "max": 3,
+          "max": 5,
           "pays": {
             "to": "percent",
             "yield": "production",
-            "percent": 2,
+            "percent": 3,
             "stage": "city"
           }
         }
@@ -5552,7 +5583,7 @@
       "rarity": "uncommon",
       "flavor": "One roof, a hundred hands, one thing made over and over.",
       "text": "+2 production on every manufactory.",
-      "note": "Renown is paid for each city or for each wonder and for nothing else, so the struck clause is not built.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It is a line on a great person’s work that few realms ever hold.",
       "deferred": [
         "+1 renown per turn for each manufactory you hold"
       ],
@@ -5565,33 +5596,22 @@
             "improvement": "manufactory"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theInquisition": {
       "name": "The Inquisition",
       "pool": "governmentV",
       "slot": "wildcard",
       "line": "procession",
-      "rarity": "common",
+      "rarity": "rare",
       "flavor": "The questions are the same everywhere. So are the answers.",
-      "text": "+2 happiness and +2 faith in every city with a Temple.",
-      "note": "A scope asks what a town has and never what it lacks, so the penalty on towns without a temple is not built.",
-      "deferred": [
-        "−2 happiness in every city without a Temple"
-      ],
+      "text": "+8 faith and +8 culture in every city with a Temple.",
       "effects": [
         {
-          "kind": "happiness",
-          "amount": 2,
-          "per": "city",
-          "scope": {
-            "test": "hasBuilding",
-            "building": "temple"
-          }
-        },
-        {
           "kind": "cityYields",
-          "faith": 2,
+          "faith": 8,
+          "culture": 8,
           "scope": {
             "test": "hasBuilding",
             "building": "temple"
@@ -5606,12 +5626,12 @@
       "line": "green",
       "rarity": "uncommon",
       "flavor": "Everyone votes, and the ledger is read aloud.",
-      "text": "+1 happiness for each 4 citizens in your empire · happiness tiers +5 percentage points.",
+      "text": "+1 happiness for each 3 citizens in your empire · happiness tiers +10 percentage points.",
       "effects": [
         {
           "kind": "countScaled",
           "count": "population",
-          "per": 4,
+          "per": 3,
           "pays": {
             "to": "happiness",
             "amount": 1
@@ -5619,7 +5639,7 @@
         },
         {
           "kind": "happinessTierBoost",
-          "points": 5
+          "points": 10
         }
       ]
     },
@@ -5630,7 +5650,7 @@
       "line": "court",
       "rarity": "rare",
       "flavor": "The Magister keeps a court, and the court keeps the Work.",
-      "text": "+10% production toward the Magnum Opus.",
+      "text": "+30% production toward the Magnum Opus.",
       "note": "A card may name a silhouette or a roster row but never a great person, so the second charge is not built.",
       "deferred": [
         "great people arrive with a second charge"
@@ -5640,9 +5660,608 @@
           "kind": "productionBonus",
           "category": "building",
           "building": "theMagnumOpus",
-          "percent": 10
+          "percent": 30
         }
       ]
+    },
+    "theMusterRolls": {
+      "name": "The Muster Rolls",
+      "pool": "governmentI",
+      "slot": "military",
+      "line": "forge",
+      "rarity": "uncommon",
+      "flavor": "The first name on the list is read out twice.",
+      "text": "The Order in your first military slot pays twice.",
+      "effects": [
+        {
+          "kind": "slotPosition",
+          "slot": "military",
+          "position": 1,
+          "factor": 2
+        }
+      ]
+    },
+    "theHarvestHome": {
+      "name": "The Harvest Home",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "green",
+      "rarity": "common",
+      "flavor": "One sheaf more than anybody counted. Always.",
+      "text": "Your Orders that give food give an additional food.",
+      "effects": [
+        {
+          "kind": "cardYieldAmplifier",
+          "yield": "food",
+          "amount": 1
+        }
+      ]
+    },
+    "theReevesBell": {
+      "name": "The Reeve’s Bell",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "ploughshare",
+      "rarity": "common",
+      "flavor": "It rings, and the granary doors stand open.",
+      "text": "Every 8 turns, your capital gains food for each citizen in your empire.",
+      "effects": [
+        {
+          "kind": "periodic",
+          "everyTurns": 8,
+          "pays": "food",
+          "count": "population"
+        }
+      ]
+    },
+    "theFirstChair": {
+      "name": "The First Chair",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "court",
+      "rarity": "uncommon",
+      "flavor": "Nearest the fire, and twice as warm.",
+      "text": "The Order in your first economic slot pays twice.",
+      "effects": [
+        {
+          "kind": "slotPosition",
+          "slot": "economic",
+          "position": 1,
+          "factor": 2
+        }
+      ]
+    },
+    "theScriveners": {
+      "name": "The Scriveners",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "star",
+      "rarity": "uncommon",
+      "flavor": "They copy everything, the margins included.",
+      "text": "Your science buildings give half again their yield, the per-citizen lines included.",
+      "effects": [
+        {
+          "kind": "buildingYieldPercent",
+          "pays": "science",
+          "percent": 50
+        }
+      ]
+    },
+    "theSacredGround": {
+      "name": "The Sacred Ground",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "procession",
+      "rarity": "common",
+      "flavor": "Some hills were holy before anybody said so.",
+      "text": "+1 faith on every hex that already supplies faith.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "faith": 1,
+          "on": {
+            "test": "yields",
+            "yield": "faith"
+          }
+        }
+      ]
+    },
+    "theAssayersRule": {
+      "name": "The Assayer’s Rule",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "caravan",
+      "rarity": "common",
+      "flavor": "Every seam weighed, and weighed again.",
+      "text": "+1 gold on every hex that already supplies gold.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "gold": 1,
+          "on": {
+            "test": "yields",
+            "yield": "gold"
+          }
+        }
+      ]
+    },
+    "theCountingHouses": {
+      "name": "The Counting Houses",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "caravan",
+      "rarity": "uncommon",
+      "flavor": "The abacus has learned to lean upward.",
+      "text": "Your gold buildings give half again their yield.",
+      "effects": [
+        {
+          "kind": "buildingYieldPercent",
+          "pays": "gold",
+          "percent": 50
+        }
+      ]
+    },
+    "theAlmanacOfHours": {
+      "name": "The Almanac of Hours",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "court",
+      "rarity": "uncommon",
+      "flavor": "The feast comes sooner if you move the feast.",
+      "text": "Your Orders that pay every so many turns come round 3 turns sooner.",
+      "effects": [
+        {
+          "kind": "periodShorten",
+          "turns": 3
+        }
+      ]
+    },
+    "theFoundryDays": {
+      "name": "The Foundry Days",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "forge",
+      "rarity": "common",
+      "flavor": "Ten days of smoke, and one of iron.",
+      "text": "Every 10 turns, your capital gains production equal to half of what your empire makes in a turn.",
+      "effects": [
+        {
+          "kind": "periodic",
+          "everyTurns": 10,
+          "pays": "production",
+          "count": "empireYield",
+          "voice": "production",
+          "per": 2
+        }
+      ]
+    },
+    "theNetsBlessing": {
+      "name": "The Nets’ Blessing",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "caravan",
+      "rarity": "rare",
+      "flavor": "Bless the water and it fills the net twice.",
+      "text": "Every fishing boat pays double what it makes.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "improvement",
+            "improvement": "fishingBoats"
+          },
+          "percent": 100
+        }
+      ]
+    },
+    "theHighChancery": {
+      "name": "The High Chancery",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "court",
+      "rarity": "rare",
+      "flavor": "Everything is worth more once it has reached the palace.",
+      "text": "Your Orders pay half again in your capital.",
+      "effects": [
+        {
+          "kind": "cardYieldAmplifier",
+          "yield": "all",
+          "percent": 50,
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "theVotiveTally": {
+      "name": "The Votive Tally",
+      "pool": "governmentII",
+      "slot": "wildcard",
+      "line": "procession",
+      "rarity": "uncommon",
+      "flavor": "Ask the gods twice and they remember your face.",
+      "text": "+1 faith for each draft you have asked again while this Order stands in a slot.",
+      "note": "Only the drafts you paid faith to see again are counted, and only while this Order sits in a chair.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "rerollsWhileSlotted",
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theWorkshopsRule": {
+      "name": "The Workshops’ Rule",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "forge",
+      "rarity": "uncommon",
+      "flavor": "A hammer is worth what it strikes beside.",
+      "text": "Your production buildings give half again their yield.",
+      "effects": [
+        {
+          "kind": "buildingYieldPercent",
+          "pays": "production",
+          "percent": 50
+        }
+      ]
+    },
+    "theWildChair": {
+      "name": "The Wild Chair",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "court",
+      "rarity": "uncommon",
+      "flavor": "Nobody knows whose seat it is. Everybody sits in it.",
+      "text": "The Order in your first wildcard slot pays twice.",
+      "effects": [
+        {
+          "kind": "slotPosition",
+          "slot": "wildcard",
+          "position": 1,
+          "factor": 2
+        }
+      ]
+    },
+    "theCantorsRule": {
+      "name": "The Cantors’ Rule",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "procession",
+      "rarity": "rare",
+      "flavor": "Sing the line again, and louder.",
+      "text": "Your Orders that give faith give half again.",
+      "effects": [
+        {
+          "kind": "cardYieldAmplifier",
+          "yield": "faith",
+          "percent": 50
+        }
+      ]
+    },
+    "theGoldenCenser": {
+      "name": "The Golden Censer",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "procession",
+      "rarity": "rare",
+      "flavor": "Learning burns very well.",
+      "text": "Every 15 turns, gain faith equal to half the science your empire makes in a turn.",
+      "effects": [
+        {
+          "kind": "periodic",
+          "everyTurns": 15,
+          "pays": "faith",
+          "count": "empireYield",
+          "voice": "science",
+          "per": 2
+        }
+      ]
+    },
+    "theDeepSeams": {
+      "name": "The Deep Seams",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "forge",
+      "rarity": "rare",
+      "flavor": "Dig where the rock argues back.",
+      "text": "Every mine pays double what it makes.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "improvement",
+            "improvement": "mine"
+          },
+          "percent": 100
+        }
+      ]
+    },
+    "theExchangeCharter": {
+      "name": "The Exchange Charter",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "caravan",
+      "rarity": "rare",
+      "flavor": "Signed by everyone who could afford a pen.",
+      "text": "Your gold buildings give half again their yield, counted after every other share.",
+      "effects": [
+        {
+          "kind": "buildingYieldPercent",
+          "pays": "gold",
+          "percent": 50,
+          "appliedLast": true
+        }
+      ]
+    },
+    "theTriumph": {
+      "name": "The Triumph",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "court",
+      "rarity": "common",
+      "flavor": "A parade is a city’s whole year spent in an afternoon.",
+      "text": "Every 12 turns, gain culture equal to the production your empire makes in a turn.",
+      "effects": [
+        {
+          "kind": "periodic",
+          "everyTurns": 12,
+          "pays": "culture",
+          "count": "empireYield",
+          "voice": "production"
+        }
+      ]
+    },
+    "theScholarsRule": {
+      "name": "The Scholars’ Rule",
+      "pool": "governmentIV",
+      "slot": "wildcard",
+      "line": "star",
+      "rarity": "uncommon",
+      "flavor": "Every reading earns a second reading.",
+      "text": "Your Orders that give science give an additional science.",
+      "effects": [
+        {
+          "kind": "cardYieldAmplifier",
+          "yield": "science",
+          "amount": 1
+        }
+      ]
+    },
+    "theExchequer": {
+      "name": "The Exchequer",
+      "pool": "governmentIV",
+      "slot": "economic",
+      "line": "caravan",
+      "rarity": "common",
+      "flavor": "The road pays twice: once out, and once home.",
+      "text": "Your trade routes pay double.",
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "routeYields",
+          "percent": 100
+        }
+      ]
+    },
+    "theAssay": {
+      "name": "The Assay",
+      "pool": "governmentIV",
+      "slot": "economic",
+      "line": "caravan",
+      "rarity": "rare",
+      "flavor": "Melt the treasury down and see what it knew.",
+      "text": "Every 20 turns, gain science equal to the gold your empire makes in a turn.",
+      "effects": [
+        {
+          "kind": "periodic",
+          "everyTurns": 20,
+          "pays": "science",
+          "count": "empireYield",
+          "voice": "gold"
+        }
+      ]
+    },
+    "theBroadAcres": {
+      "name": "The Broad Acres",
+      "pool": "governmentIV",
+      "slot": "economic",
+      "line": "green",
+      "rarity": "rare",
+      "flavor": "Fields to the horizon, and behind the horizon, fields.",
+      "text": "Every farm pays double what it makes.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "improvement",
+            "improvement": "farm"
+          },
+          "percent": 100
+        }
+      ]
+    },
+    "theJubilee": {
+      "name": "The Jubilee",
+      "pool": "governmentIV",
+      "slot": "wildcard",
+      "line": "procession",
+      "rarity": "uncommon",
+      "flavor": "Debts forgiven, doors open, everybody singing.",
+      "text": "Every 10 turns, gain faith for each citizen in your empire.",
+      "note": "One Order keeps one calendar, so a second boon on this row would never come round.",
+      "deferred": [
+        "the same festival was to fill the archives with song as well as the shrines with faith"
+      ],
+      "effects": [
+        {
+          "kind": "periodic",
+          "everyTurns": 10,
+          "pays": "faith",
+          "count": "population"
+        }
+      ]
+    },
+    "theCompactOfChairs": {
+      "name": "The Compact of Chairs",
+      "pool": "governmentV",
+      "slot": "wildcard",
+      "line": "court",
+      "rarity": "rare",
+      "flavor": "Every seat at the head of its own table.",
+      "text": "The Order in your first military, economic and wildcard slot each pay twice.",
+      "effects": [
+        {
+          "kind": "slotPosition",
+          "slot": "military",
+          "position": 1,
+          "factor": 2
+        },
+        {
+          "kind": "slotPosition",
+          "slot": "economic",
+          "position": 1,
+          "factor": 2
+        },
+        {
+          "kind": "slotPosition",
+          "slot": "wildcard",
+          "position": 1,
+          "factor": 2
+        }
+      ]
+    },
+    "theLaureatesRule": {
+      "name": "The Laureates’ Rule",
+      "pool": "governmentV",
+      "slot": "wildcard",
+      "line": "court",
+      "rarity": "uncommon",
+      "flavor": "One more verse. There is always one more verse.",
+      "text": "Your Orders that give culture give an additional culture.",
+      "effects": [
+        {
+          "kind": "cardYieldAmplifier",
+          "yield": "culture",
+          "amount": 1
+        }
+      ]
+    },
+    "theGreatClock": {
+      "name": "The Great Clock",
+      "pool": "governmentV",
+      "slot": "wildcard",
+      "line": "court",
+      "rarity": "rare",
+      "flavor": "It runs fast, and it runs generous.",
+      "text": "Your Orders that pay every so many turns come round 3 turns sooner and pay half again.",
+      "effects": [
+        {
+          "kind": "periodShorten",
+          "turns": 3
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "periodic",
+          "percent": 50
+        }
+      ]
+    },
+    "theEncyclopaedists": {
+      "name": "The Encyclopaedists",
+      "pool": "governmentV",
+      "slot": "economic",
+      "line": "star",
+      "rarity": "rare",
+      "flavor": "They wrote everything down and it turned into song.",
+      "text": "Every 10 turns, gain culture equal to the science your empire makes in a turn.",
+      "effects": [
+        {
+          "kind": "periodic",
+          "everyTurns": 10,
+          "pays": "culture",
+          "count": "empireYield",
+          "voice": "science"
+        }
+      ]
+    },
+    "theCollegesRule": {
+      "name": "The Colleges’ Rule",
+      "pool": "governmentV",
+      "slot": "economic",
+      "line": "star",
+      "rarity": "rare",
+      "flavor": "Two lectures, one hall, twice the noise.",
+      "text": "Your science buildings pay double, counted after every other share.",
+      "effects": [
+        {
+          "kind": "buildingYieldPercent",
+          "pays": "science",
+          "percent": 100,
+          "appliedLast": true
+        }
+      ]
+    },
+    "theGreatEnquiry": {
+      "name": "The Great Enquiry",
+      "pool": "governmentV",
+      "slot": "wildcard",
+      "line": "star",
+      "rarity": "rare",
+      "flavor": "Ask the last questions first.",
+      "text": "The learning of the last age is counted toward the great work itself.",
+      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet.",
+      "deferred": [
+        "a bead of your own for every second technology of the fifth age you finish, while this Order stands in a slot"
+      ],
+      "effects": []
+    },
+    "theLastLaurels": {
+      "name": "The Last Laurels",
+      "pool": "governmentV",
+      "slot": "wildcard",
+      "line": "court",
+      "rarity": "rare",
+      "flavor": "Refuse the wreath and they carve you two.",
+      "text": "A draft turned down is counted toward the great work itself.",
+      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet.",
+      "deferred": [
+        "a bead of your own each time you pass on a draft, while this Order stands in a slot"
+      ],
+      "effects": []
+    },
+    "theSaltedEarth": {
+      "name": "The Salted Earth",
+      "pool": "governmentV",
+      "slot": "military",
+      "line": "forge",
+      "rarity": "rare",
+      "flavor": "Nothing grows there now. That was the point.",
+      "text": "A city put to the torch is counted toward the great work itself.",
+      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet.",
+      "deferred": [
+        "a bead of your own each time you raze a city, while this Order stands in a slot"
+      ],
+      "effects": []
+    },
+    "theFinalProclamation": {
+      "name": "The Final Proclamation",
+      "pool": "governmentV",
+      "slot": "wildcard",
+      "line": "procession",
+      "rarity": "rare",
+      "flavor": "Read once, in every square, at the same hour.",
+      "text": "A prophet’s proclamation is counted toward the great work itself.",
+      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet.",
+      "deferred": [
+        "a bead of your own for each prophet’s proclamation, while this Order stands in a slot"
+      ],
+      "effects": []
     }
   },
   "tierLadder": [

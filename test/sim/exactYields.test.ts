@@ -142,11 +142,11 @@ describe('nothing rounds inside a fold', () => {
    * A **conversion** — "a tenth of what this town grows, again as coin" — pays
    * the tenth rather than nothing.
    *
-   * Seven food is seven tenths of a point. The old floor made every card of this
-   * shape dead in a town making under ten of the voice it read, which is most
-   * towns for most of a game.
+   * Seven food is a point and a twentieth at the songs' share. The old floor made
+   * every card of this shape dead in a town making under ten of the voice it
+   * read, which is most towns for most of a game.
    */
-  it('pays a tenth of seven food as seven tenths of a point', () => {
+  it('pays a share of seven food as a fraction of a point', () => {
     const state = flatState();
     const city = foundCityAt(state, 0, getTileAt(state.map, 8, 5)!);
     // The Harvest Songs, which is every town rather than only the coastal ones,
@@ -157,9 +157,12 @@ describe('nothing rounds inside a fold', () => {
     const flats = { ...cityQuote(state, city).flats, food: 7 };
     const lines = cardYieldConversions(state, city, flats);
     const paid = lines.find((line) => line.source.includes('food'))?.culture ?? 0;
-    expect(paid).toBe(0.7);
-    // And the old floor is what it is not: a tenth of seven used to be nothing.
-    expect(Math.floor((7 * 10) / 100)).toBe(0);
+    // Batch F raised the songs' share to fifteen percent, so seven food is a
+    // point and a twentieth — still a fraction, which is the whole claim.
+    expect(paid).toBe(1.05);
+    // And the old floor is what it is not: the share of seven used to round to
+    // a whole point and lose the rest.
+    expect(Math.floor((7 * 15) / 100)).toBe(1);
   });
 
   /** The growth surplus and the border accrual, the two channels beside Entry XVII. */

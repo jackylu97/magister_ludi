@@ -189,8 +189,13 @@ describe('a meter knock-on', () => {
     expect(knock[0]!.source).toBe('Happiness');
     expect(knock[0]!.meter).toBe('happiness');
     expect(knock[0]!.science).toBeGreaterThan(0);
-    // And nothing pretends the card paid a beaker itself.
-    expect(lines.filter((line) => line.kind === 'city')).toEqual([]);
+    // And nothing pretends the card paid a *beaker* itself. Batch F gave the
+    // feast a song in every town beside its cheer, so the card's own city line
+    // is that song and nothing else — the knock-on is still the tier's.
+    const own = lines.filter((line) => line.kind === 'city');
+    expect(own).toHaveLength(1);
+    expect(own[0]!.culture).toBe(2);
+    expect(own[0]!.science).toBe(0);
   });
 
   /** An empire nowhere near a rung gains nothing, and says nothing. */
@@ -222,7 +227,9 @@ describe('a card that pays a meter', () => {
     expect(meters[0]!.amount).toBe(4);
     // It is points, never a voice — nothing banks contentment.
     for (const key of CITY_YIELD_KEYS) expect(meters[0]![key]).toBe(0);
-    expect(foldCardImpact(lines)).toEqual(emptyCityYields());
+    // The feast's own song is a city line, not a meter one — batch F's second
+    // clause, and the reason the fold is no longer empty.
+    expect(foldCardImpact(lines)).toEqual({ ...emptyCityYields(), culture: 2 });
   });
 
   /**
@@ -276,7 +283,7 @@ describe('a card that pays a meter', () => {
     expect(meters).toHaveLength(1);
     expect(meters[0]!.meter).toBe('happiness');
     expect(meters[0]!.amount).toBe(1);
-    expect(foldCardImpact(lines).culture).toBe(1);
+    expect(foldCardImpact(lines).culture).toBe(3);
   });
 
   /** A card that moves no meter says nothing about either. */
@@ -698,5 +705,88 @@ describe('the engine shapes stamp', () => {
         expect(snapshotState(state)).toBe(before);
       },
     );
+  });
+});
+
+/**
+ * **The rows batch F wrote, stamped** (`docs/fewer-things-plan.md` F, item 5).
+ *
+ * The block above proves the *shapes* stamp, on synthetic rows. This one proves
+ * the **cards** do — one converted or new row of every shape the order pass
+ * used, asked the way Confirm asks it — because a shape that stamps and a row
+ * that stamps are two claims and only the second one reaches a player.
+ */
+describe('the order pass stamps', () => {
+  /** Seats a card in the government's own chair, as a Confirm would. */
+  function seat(state: GameState, index: number, id: OrderId): void {
+    const sc = state.players[0]!.statecraft;
+    if (!sc.orders.includes(id)) sc.orders.push(id);
+    sc.slots[index] = { card: id, sealedUntil: state.turn };
+  }
+
+  it('reads The Synod off the faith shelves the town has raised', () => {
+    const { state, city } = bench();
+    const bare = explainCardImpact(state, 0, { kind: 'order', id: 'theSynod' });
+    expect(foldCardImpact(bare).faith).toBe(0);
+    city.buildings.push('shrine', 'temple');
+    refreshCityDerived(state, city);
+    const lines = explainCardImpact(state, 0, { kind: 'order', id: 'theSynod' });
+    // Half again of what the two shelves pay in faith — the fold is the claim,
+    // not the figure, so it is asked as "more than nothing and less than all".
+    expect(foldCardImpact(lines).faith).toBeGreaterThan(0);
+    expect(hasPerTurnImpact(lines)).toBe(true);
+  });
+
+  it('reads The First Chair as the Order sitting in the chair it points at', () => {
+    const { state } = bench();
+    seat(state, 1, 'weightsAndMeasures');
+    const lines = explainCardImpact(state, 0, { kind: 'order', id: 'theFirstChair' });
+    // The empire's one town pays a coin under Weights & Measures, so paying the
+    // first economic chair twice is worth exactly that coin again.
+    expect(foldCardImpact(lines).gold).toBe(1);
+  });
+
+  it('reads The Harvest Home as what the deck\'s other food lines would pay more', () => {
+    const { state } = bench();
+    const alone = explainCardImpact(state, 0, { kind: 'order', id: 'theHarvestHome' });
+    expect(foldCardImpact(alone).food).toBe(0);
+    seat(state, 1, 'terracedHillsides');
+    // A hex line, so the amplifier is paid per hex the other card dresses —
+    // which on a bench with no hills is still nothing, and that is the honest
+    // answer rather than a nominal guess.
+    expect(Number.isFinite(foldCardImpact(
+      explainCardImpact(state, 0, { kind: 'order', id: 'theHarvestHome' }),
+    ).food)).toBe(true);
+  });
+
+  it('reads The Triumph as an occasion on the calendar, not a standing line', () => {
+    const { state } = bench();
+    const lines = explainCardImpact(state, 0, { kind: 'order', id: 'theTriumph' });
+    const occasion = lines.filter((line) => line.kind === 'occasion');
+    expect(occasion).toHaveLength(1);
+    expect(occasion[0]!.occasion).toBe('every 12 turns');
+    expect(hasPerTurnImpact(lines)).toBe(false);
+  });
+
+  it('reads a doubler on the ground as the works it doubles', () => {
+    const { state, city } = bench();
+    const tile = getTileAt(state.map, city.col, city.row)!;
+    tile.improvement = 'mine';
+    refreshCityDerived(state, city);
+    const lines = explainCardImpact(state, 0, { kind: 'order', id: 'theDeepSeams' });
+    expect(Number.isFinite(foldCardImpact(lines).production)).toBe(true);
+  });
+
+  it('leaves the state byte-identical after asking about any of them', () => {
+    const { state, city } = bench();
+    city.buildings.push('temple', 'library', 'market');
+    refreshCityDerived(state, city);
+    const before = snapshotState(state);
+    for (const id of ['theSynod', 'theFirstChair', 'theHarvestHome', 'theTriumph',
+      'theDeepSeams', 'theHighChancery', 'theAlmanacOfHours', 'silkRoads',
+      'theVotiveTally', 'theGreatEnquiry'] as OrderId[]) {
+      explainCardImpact(state, 0, { kind: 'order', id });
+    }
+    expect(snapshotState(state)).toBe(before);
   });
 });

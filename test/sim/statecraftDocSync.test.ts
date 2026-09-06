@@ -143,6 +143,118 @@ describe('the orders and doctrines doc mirrors the data', () => {
   });
 
   /**
+   * The **role** half (batch F, 2026-09-06 — `docs/orders-pass-3.md` §1).
+   *
+   * The worksheet's new Role column says which of the three kinds of card a row
+   * is: an **engine** (its subject is the deck or the board's *kind*), a
+   * **payoff** (it scales with what the empire has built, holds or slotted) or a
+   * **standalone** (a flat, a rule, an occasion, a boon on the calendar). The
+   * user balances the pass by those shares, so the column has to say what the
+   * *data* says and not what somebody typed a fortnight ago.
+   *
+   * Unlike rarity, the role is **not a field** — it is derived from the row's
+   * own effects, because a card's kind is a fact about its shapes and a second
+   * place to write it down would be a second place to get it wrong. So this
+   * pins the doc against the derivation rather than against a column of the
+   * data, which is the same bargain one grade up: a row that changes shape
+   * changes its letter here or fails the build.
+   */
+  type Role = 'E' | 'P' | 'S';
+
+  /** Counts whose subject is the deck itself — the engine reading. */
+  const DECK_COUNTS = new Set([
+    'slottedOrders',
+    'unslottedOrders',
+    'slottedOrdersOfSlot',
+    'rerollsWhileSlotted',
+  ]);
+
+  function roleOf(id: (typeof ORDER_IDS)[number]): Role {
+    let engine = false;
+    let payoff = false;
+    for (const effect of orderDef(id).effects) {
+      switch (effect.kind) {
+        case 'cardYieldAmplifier':
+        case 'slotPosition':
+        case 'periodShorten':
+          engine = true;
+          break;
+        case 'buildingYieldPercent':
+          // A share taken **last** is a multiplier on what the empire raised —
+          // a payoff. An ordinary share reads a class of buildings — an engine.
+          if (effect.appliedLast === true) payoff = true;
+          else engine = true;
+          break;
+        case 'countScaled':
+          if (DECK_COUNTS.has(effect.count)) engine = true;
+          else payoff = true;
+          break;
+        case 'combatLine':
+          if (effect.scaled && DECK_COUNTS.has(effect.scaled.count)) engine = true;
+          break;
+        case 'tileYield':
+          // "every hex that already supplies X" is the tile test — an engine.
+          // A percentage on the works or on the ground is a doubler — a payoff.
+          if ((effect.on as { test?: string }).test === 'yields') engine = true;
+          else if (effect.percent !== undefined || effect.basePercent !== undefined) payoff = true;
+          break;
+        case 'yieldConversion':
+        case 'rateConversion':
+        case 'effectAmplifier':
+        case 'percentYields':
+        case 'mirrorYield':
+          payoff = true;
+          break;
+        case 'periodic':
+          // A boon is a standalone unless its size is a fact about the realm's
+          // own books, which is what makes the periodic conversions payoffs.
+          if (effect.count === 'empireYield') payoff = true;
+          break;
+        case 'cityYields': {
+          const scope = effect.scope;
+          if (scope !== undefined && scope.test !== 'capital') payoff = true;
+          break;
+        }
+        default:
+          break;
+      }
+    }
+    return engine ? 'E' : payoff ? 'P' : 'S';
+  }
+
+  /** Every row under one heading as `name → role mark`. */
+  function docRole(heading: string): Map<string, string> {
+    const start = DOC.indexOf(heading);
+    expect(start, heading).toBeGreaterThanOrEqual(0);
+    const end = DOC.indexOf('\n### ', start + heading.length);
+    const section = DOC.slice(start, end === -1 ? undefined : end);
+    const rows = new Map<string, string>();
+    for (const line of section.split('\n')) {
+      const cells = line.split('|').map((cell: string) => cell.trim());
+      if (cells.length < 7 || cells[0] !== '' || cells[1] === '') continue;
+      if (cells[1] === 'Order' || /^-+$/.test(cells[1])) continue;
+      rows.set(cells[1], cells[5] ?? '');
+    }
+    return rows;
+  }
+
+  it('gives every live order the role its own effects say it is', () => {
+    for (const [pool, heading] of Object.entries(POOL_HEADINGS)) {
+      const marks = docRole(heading);
+      const live = ORDER_IDS.filter(
+        (id) => orderDef(id).pool === pool && orderDef(id).retired !== true,
+      );
+      expect(live.length, heading).toBeGreaterThan(0);
+      for (const id of live) {
+        const def = orderDef(id);
+        const mark = marks.get(def.name);
+        expect(mark, `${heading} has no Role cell for "${def.name}"`).toBeDefined();
+        expect(mark, `${def.name} (${id}) — the row's effects read as`).toBe(roleOf(id));
+      }
+    }
+  });
+
+  /**
    * A retired row is out of the doc and out of the pools, and it still carries
    * a rarity — the field is required on the row rather than on the live subset,
    * so restoring a withdrawn card is one flag rather than two.

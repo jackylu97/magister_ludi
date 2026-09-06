@@ -138,7 +138,7 @@ describe('the growing-card vocabulary', () => {
   it('says in words that the counting stops at the bench', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
     expect(said('theBalladWeavers')).toEqual([
-      '+1 culture per barbarian you have killed, counted while this Order stands in a slot',
+      '+2 culture per barbarian you have killed, counted while this Order stands in a slot',
     ]);
     expect(said('theBellFounders')).toEqual([
       '+1 culture per wonder finished anywhere in the world, counted while this Order stands in a slot',
@@ -146,8 +146,8 @@ describe('the growing-card vocabulary', () => {
     // One counter, two voices — two clauses off one tally, which is what makes
     // "counted once per card" a rule worth testing below.
     expect(said('theReliquaryRolls')).toEqual([
-      '+2 faith per great person you have spent, counted while this Order stands in a slot',
-      '+2 culture per great person you have spent, counted while this Order stands in a slot',
+      '+3 faith per great person you have spent, counted while this Order stands in a slot',
+      '+3 culture per great person you have spent, counted while this Order stands in a slot',
     ]);
     expect(said('theChroniclersOfTheFallen')).toEqual([
       '+1 gold per unit you have lost in battle, counted while this Order stands in a slot',
@@ -169,7 +169,8 @@ describe('the counter', () => {
     recordScalingOccasion(g.state, 0, 'barbarianKill');
     recordScalingOccasion(g.state, 0, 'barbarianKill');
     expect(tallyOf(sc, 'theBalladWeavers')).toBe(2);
-    expect(empirePays(g.state, 0, 'culture')).toBe(2);
+    // Two culture a raider since batch F, so a tally of two pays four.
+    expect(empirePays(g.state, 0, 'culture')).toBe(4);
 
     // **The bench is never productive.** Three raiders fall while the card is on
     // the shelf and none of them is written down.
@@ -182,10 +183,10 @@ describe('the counter', () => {
     // Re-slotted, it resumes from where it stopped rather than from nought:
     // nothing is retroactive in either direction.
     slot(g.state, 0, 'theBalladWeavers');
-    expect(empirePays(g.state, 0, 'culture')).toBe(2);
+    expect(empirePays(g.state, 0, 'culture')).toBe(4);
     recordScalingOccasion(g.state, 0, 'barbarianKill');
     expect(tallyOf(sc, 'theBalladWeavers')).toBe(3);
-    expect(empirePays(g.state, 0, 'culture')).toBe(3);
+    expect(empirePays(g.state, 0, 'culture')).toBe(6);
   });
 
   it('survives an adoption rebuilding every slot', () => {
@@ -207,7 +208,7 @@ describe('the counter', () => {
     // then it pays the four it remembers.
     expect(empirePays(g.state, 0, 'culture')).toBe(0);
     slot(g.state, 0, 'theBalladWeavers');
-    expect(empirePays(g.state, 0, 'culture')).toBe(4);
+    expect(empirePays(g.state, 0, 'culture')).toBe(8);
   });
 
   it('counts once per card however many voices the card pays in', () => {
@@ -216,8 +217,8 @@ describe('the counter', () => {
     recordScalingOccasion(g.state, 0, 'greatPersonSpent');
     // Two `countScaled` effects, one counter: a card is one watcher.
     expect(tallyOf(sc, 'theReliquaryRolls')).toBe(1);
-    expect(empirePays(g.state, 0, 'faith')).toBe(2);
-    expect(empirePays(g.state, 0, 'culture')).toBe(2);
+    expect(empirePays(g.state, 0, 'faith')).toBe(3);
+    expect(empirePays(g.state, 0, 'culture')).toBe(3);
   });
 
   it('keeps one counter per card when two cards watch one moment', () => {

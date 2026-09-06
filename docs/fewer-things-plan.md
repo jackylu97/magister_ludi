@@ -51,6 +51,221 @@ The play checkout (:5199) moves only when the user says; every batch lands in
 
 ## As shipped
 
+### Batch F as shipped (2026-09-06) — schema 77
+
+The deck itself. `docs/orders-pass-3.md` §2 as the user marked it and §9 as it
+rules, with `docs/balance-turn.md` §3's marked numbers on every surviving
+standalone. **No shape was invented**: batch A declared all seven and this is the
+pass that puts them on cards, so `src/sim/` gained not one line — the batch is
+`data/statecraft.json`, the doc, the schema number and the tests.
+
+**The verdicts, counted**: 69 KEEP untouched · 64 CONVERT or re-priced · 24 CUT ·
+34 NEW · 8 rows given a `deferred` line **by this pass** (4 of them deferred whole).
+
+#### The census after the pass
+
+Role is **derived from the row's own effects** (`statecraftDocSync.test.ts` owns
+the derivation and pins the doc's new column against it): **E** an engine — its
+subject is the deck or the board's *kind*; **P** a payoff — it scales with what
+the empire has built, holds or slotted; **S** a standalone — a flat, a rule, an
+occasion, a boon on the calendar.
+
+| pool | rows | E | P | S | rarity ● / ◆ / ○ |
+|---|---|---|---|---|---|
+| Chiefdom | 10 | 1 | 4 | 5 | 70% / 20% / 10% |
+| Government I | 28 | 3 | 8 | 17 | 39% / 57% / 4% |
+| Government II | 49 | 13 | 16 | 20 | 43% / 47% / 10% |
+| Government III | 42 | 4 | 19 | 19 | 50% / 29% / 21% |
+| Government IV | 20 | 1 | 10 | 9 | 10% / 55% / 35% |
+| Government V | 18 | 3 | 8 | 7 | 6% / 22% / 72% |
+| **all** | **167** | **25 (15%)** | **65 (39%)** | **77 (46%)** | 38% / 41% / 22% |
+
+Against the ruled **25 / 30 / 45** the standalones land on the number and the
+engines are **ten points light** — the deck came out payoff-heavy. That is what
+§9's withdrawal of the line readers cost it: the proposal's twenty-four engines
+included eleven line-counting rows, and the ruling kept only the slot-flavour
+counts. It is a design finding for the next markup, not a bug, and it is printed
+in `statecraft.test.ts`'s own comment rather than asserted — a share is a thing
+the user moves by striking rows, and a test that failed when they did would be a
+test arguing with the designer.
+
+Rarity climbs with the pool, which is the ruling ("rarity should correlate with
+power/payoff") read up the ladder: a Chiefdom hand is seven-tenths common, a
+Government V hand is seven-tenths rare.
+
+#### The retired rows (24, kept for saves)
+
+| pool | ids |
+|---|---|
+| Chiefdom | `firstFruitsOffering` |
+| Government I | `charterTowns` · `statuteLabour` · `theBellFounders` · `thePilgrimsPurse` |
+| Government II | `breadAlone` · `publicani` · `riverWardens` · `theLongRoads` · `theMasonsLodge` · `theQuietFields` |
+| Government III | `frontierForts` · `garrisonState` · `theAlmonersBook` · `theCharterOfTheMarches` · `theCongregation` · `theDryDocks` · `theFinishersArt` · `thePrizeGrounds` · `theSaltingHouses` · `theWinteringGrounds` |
+| Government IV | `theFactorHouses` |
+| Government V | `manufactories` · `titheBarns` |
+
+Each keeps its text untouched and gains `retired: true` plus the standing note
+("A saved game that already holds it keeps it"). Two of them are the only live
+rows for a `TallyOccasion` — `wonderAnywhere` (the Bell-Founders) and `goldSpent`
+(the Almoners' Book) — so those two occasions are now written down and watched by
+nothing that is dealt. The register in `growingOrders.test.ts` walks every row
+rather than every live row, so it still holds; whether an unwatched occasion
+should stay is a question for the next pass.
+
+#### The new rows, with their JSON
+
+| id | name | pool · rarity · line | effects |
+|---|---|---|---|
+| `theMusterRolls` | The Muster Rolls | I · ◆ · forge | `[{"kind":"slotPosition","slot":"military","position":1,"factor":2}]` |
+| `theHarvestHome` | The Harvest Home | I · ● · green | `[{"kind":"cardYieldAmplifier","yield":"food","amount":1}]` |
+| `theReevesBell` | The Reeve's Bell | I · ● · ploughshare | `[{"kind":"periodic","everyTurns":8,"pays":"food","count":"population"}]` |
+| `theFirstChair` | The First Chair | II · ◆ · court | `[{"kind":"slotPosition","slot":"economic","position":1,"factor":2}]` |
+| `theScriveners` | The Scriveners | II · ◆ · star | `[{"kind":"buildingYieldPercent","pays":"science","percent":50}]` |
+| `theSacredGround` | The Sacred Ground | II · ● · procession | `[{"kind":"tileYield","faith":1,"on":{"test":"yields","yield":"faith"}}]` |
+| `theAssayersRule` | The Assayer's Rule | II · ● · caravan | `[{"kind":"tileYield","gold":1,"on":{"test":"yields","yield":"gold"}}]` |
+| `theCountingHouses` | The Counting Houses | II · ◆ · caravan | `[{"kind":"buildingYieldPercent","pays":"gold","percent":50}]` |
+| `theAlmanacOfHours` | The Almanac of Hours | II · ◆ · court | `[{"kind":"periodShorten","turns":3}]` |
+| `theFoundryDays` | The Foundry Days | II · ● · forge | `[{"kind":"periodic","everyTurns":10,"pays":"production","count":"empireYield","voice":"production","per":2}]` |
+| `theNetsBlessing` | The Nets' Blessing | II · ○ · caravan | `[{"kind":"tileYield","on":{"test":"improvement","improvement":"fishingBoats"},"percent":100}]` |
+| `theHighChancery` | The High Chancery | II · ○ · court | `[{"kind":"cardYieldAmplifier","yield":"all","percent":50,"scope":{"test":"capital"}}]` |
+| `theVotiveTally` | The Votive Tally | II · ◆ · procession | `[{"kind":"countScaled","count":"rerollsWhileSlotted","pays":{"to":"yield","yield":"faith","amount":1,"where":"empire"}}]` |
+| `theWorkshopsRule` | The Workshops' Rule | III · ◆ · forge | `[{"kind":"buildingYieldPercent","pays":"production","percent":50}]` |
+| `theWildChair` | The Wild Chair | III · ◆ · court | `[{"kind":"slotPosition","slot":"wildcard","position":1,"factor":2}]` |
+| `theCantorsRule` | The Cantors' Rule | III · ○ · procession | `[{"kind":"cardYieldAmplifier","yield":"faith","percent":50}]` |
+| `theGoldenCenser` | The Golden Censer | III · ○ · procession | `[{"kind":"periodic","everyTurns":15,"pays":"faith","count":"empireYield","voice":"science","per":2}]` |
+| `theDeepSeams` | The Deep Seams | III · ○ · forge | `[{"kind":"tileYield","on":{"test":"improvement","improvement":"mine"},"percent":100}]` |
+| `theExchangeCharter` | The Exchange Charter | III · ○ · caravan | `[{"kind":"buildingYieldPercent","pays":"gold","percent":50,"appliedLast":true}]` |
+| `theTriumph` | The Triumph | III · ● · court | `[{"kind":"periodic","everyTurns":12,"pays":"culture","count":"empireYield","voice":"production"}]` |
+| `theScholarsRule` | The Scholars' Rule | IV · ◆ · star | `[{"kind":"cardYieldAmplifier","yield":"science","amount":1}]` |
+| `theExchequer` | The Exchequer | IV · ● · caravan | `[{"kind":"effectAmplifier","target":"routeYields","percent":100}]` |
+| `theAssay` | The Assay | IV · ○ · caravan | `[{"kind":"periodic","everyTurns":20,"pays":"science","count":"empireYield","voice":"gold"}]` |
+| `theBroadAcres` | The Broad Acres | IV · ○ · green | `[{"kind":"tileYield","on":{"test":"improvement","improvement":"farm"},"percent":100}]` |
+| `theJubilee` | The Jubilee | IV · ◆ · procession | `[{"kind":"periodic","everyTurns":10,"pays":"faith","count":"population"}]` |
+| `theCompactOfChairs` | The Compact of Chairs | V · ○ · court | three `slotPosition` rows, one per flavour, `factor: 2` |
+| `theLaureatesRule` | The Laureates' Rule | V · ◆ · court | `[{"kind":"cardYieldAmplifier","yield":"culture","amount":1}]` |
+| `theGreatClock` | The Great Clock | V · ○ · court | `[{"kind":"periodShorten","turns":3},{"kind":"windfallRider","occasion":"periodic","percent":50}]` |
+| `theEncyclopaedists` | The Encyclopaedists | V · ○ · star | `[{"kind":"periodic","everyTurns":10,"pays":"culture","count":"empireYield","voice":"science"}]` |
+| `theCollegesRule` | The Colleges' Rule | V · ○ · star | `[{"kind":"buildingYieldPercent","pays":"science","percent":100,"appliedLast":true}]` |
+| `theGreatEnquiry` · `theLastLaurels` · `theSaltedEarth` · `theFinalProclamation` | the four "just win now" Orders | V · ○ | `[]` — **deferred**, see below |
+
+#### The grammar, on the board
+
+§9's sentence — *put yields on a thing, then multiply the thing* — is the whole
+shape of the pass, and it is visible in four objects:
+
+| the object | what was put on it | what multiplies it |
+|---|---|---|
+| **the route** | Silk Roads' five coins · the Ledger-Keepers' beaker and song (scoped by `origin` to a Market town) | The Escorted Roads (+30%), **The Exchequer** (×2) |
+| **a class of buildings** | the shelves' own figures | The Scriveners, The Counting Houses, The Workshops' Rule (+50%); **The Synod**, The Exchange Charter, The Consistory, The Colleges' Rule (`appliedLast`) |
+| **the capital** | Wayside Shrines' candle per town · Fire-Keepers' candle per two citizens · the Guild Charter's hammers · Ore Tithes' hammers | **The High Chancery** (+50% of what the Orders pay there) |
+| **the works on a hex** | the improvement's own lines | The Nets' Blessing, The Deep Seams, The Broad Acres, The Salon (×2) |
+
+Two caps came off — **Ore Tithes** and **The War Council** — and no line reader
+was built: `CardLine` stays a drawn mark, per §9's second answered question.
+`slottedOrdersOfLine` does not exist and nothing asked for it.
+
+#### Deferred, and why
+
+| row | what is not built |
+|---|---|
+| `theGreatEnquiry` · `theLastLaurels` · `theSaltedEarth` · `theFinalProclamation` | **A bead cannot be handed to a card.** Beads are won by the deeds each age deals (`beads.ts`'s five card classes) and no `CardEffect` grants one; and none of the four occasions the rows want exists either — `TallyOccasion` has `barbarianKill`, `wonderAnywhere`, `greatPersonSpent`, `unitLost` and `goldSpent`, and nothing marks *a draft passed*, *a city razed*, *a proclamation* or *an Æra V technology*. All four ship with their text, a `deferred` line and a `note`, which is the vocabulary's own convention. **They are still dealt**, so the day the occasion lands they are already in the bag |
+| `theRecklessLevy` | *"every unit +1 maintenance"* — a **flat surcharge per soldier**. `CardUpkeepRebateEffect` is a rebate and skips a non-positive amount, so a negative rebate is silently nothing. The row keeps its percentage on the payroll, which is the honest reading of what it does pay |
+| `theSilkExchange` | *"+1🎵 per 2 population in the destination city"* — a route reading the **partner's size**. `routeYields.ts` can see the partner's buildings but a `CityScope` answers about one town and `origin` is deliberately the only one. `docs/balance-turn.md` §7 already named this as needing a new shape |
+| `theGuildCompact` | *"+5% per specialist"* — there is no `specialists` count. The row takes the balance turn's other number (+3% a production hall, at most +15%) and says so |
+| `theJubilee` | the second voice. **One chair keeps one clock**: `SlottedOrder.nextFiresTurn` is a single stamp, so a second `periodic` effect on one row would be skipped forever by the first one's re-stamp. The Jubilee pays faith and its `deferred` line says the song is missing |
+
+#### Judgement calls
+
+1. **`firstRites` and `theFoundingOath` were left alone**, against §2's printed
+   verdicts, because the user's own bracketed marks are later and say so:
+   *"keep the current effect for now"* on First Rites, and *"per city is way too
+   strong … chiefdom may be too early for this"* on the Founding Oath. §2's
+   "the user's re-cut" attribution on the Oath reads as the pass author's, not
+   the user's.
+2. **Rule 3 is withdrawn** (`docs/balance-turn.md` §7: *"the recommendation is
+   neither rule 3 nor the clamp"*), so the pure-cheer rows — Census Rolls, the
+   Long Watch, Village Fairs, Sumptuary Laws, the Grain Dole, the Provisioners —
+   keep their cheer and gained no second yield clause. **Festival Days is the
+   exception** and only because the user wrote the modification themselves
+   (+4😊 in the capital, +2🎵 everywhere).
+3. **Weights & Measures kept its flat.** Balance-turn §3 proposes "+1💰 per 3
+   citizens" for it *and* for The Tax Farm, which would have made two identical
+   rows in one pool. The Tax Farm takes the count; Weights & Measures stays the
+   vanilla floor, which is also what §9's "early pools lean standalone" wants.
+4. **The building doublers select by `pays`, not by `category`.** The shape's own
+   docblock rules that *"a faith building is a building whose row pays faith"*,
+   and §9's re-ruling of The Exchange Charter from "Markets" to "gold buildings"
+   is the user reading it the same way. So The Consistory is "your faith
+   buildings" rather than "your Temples", and The Colleges' Rule is "your science
+   buildings" rather than "your Universities".
+5. **Three periodic rows were reworded to what the shape can say.** A boon pays
+   one bank, and food and hammers land in the **capital's** basket
+   (`payWindfallGrants`), so *"every city gains food equal to its population"*
+   became "your capital gains food for each citizen in your empire" — the same
+   total, honestly printed. The Foundry Days' *"every mine and quarry pays its
+   production again"* has no count to read (there is no improvement count), so it
+   is half the realm's hammers, which lands within a few points of the figure
+   §2 estimated for it.
+6. **The Votive Tally lost its object.** The ruled text is *"+1🕯 on Shrines for
+   every faith roll"*; `CardPayout` has no scope and `countScaled` no `where`
+   beyond empire / city / capital, so the tally pays the realm rather than the
+   shrines. The count itself is exactly the ruled one (`rerollsWhileSlotted`,
+   batch C1's counter), and this is the one place the pass could not put a yield
+   on a thing.
+7. **The Ledger-Keepers' route reads the origin, not the destination.** The
+   ruled text is "routes **to** cities with a Market"; a `CityScope` answers about
+   the town the caravan *left*. Origin is the closest expressible reading and it
+   is the one that puts the yield on the route object, which is what the mark
+   ("modify to put bonuses on markets") was for.
+
+#### No slow-tier measurement, by ruling
+
+**The user's ruling of 2026-09-06 — *"stop using scripted bots for measuring
+changes"* — landed while this batch was in flight, so step 7 of the brief was
+withdrawn and no figure below it is claimed.** `statecraftPacing.slow`'s bands
+are gone (it reports rather than asserts) and `aiDecision.slow`'s coverage set
+was not touched. The batch's gate is the core tier and the typecheck.
+
+What was read before the ruling landed, kept as a note rather than as a pin:
+`statecraftPacing.slow` ran green and **identical to the turn** — first eight
+drafts 13 · 22 · 31 · 40 · 53 · 61 · 68 · 78, early cadence 9.29, government
+tiers 40 / 95 / 275 — which is exactly the dated re-aim of 2026-09-06.
+`aiDecision.slow` ran green in 105s. `aiBot.slow` was never allowed to finish.
+
+The reason nothing moved is the reason the ruling exists: `playEmpire` takes the
+first legal card in every draft and never arranges a deck, so a pass whose whole
+power is in engines and multipliers pays a scripted seat almost nothing. The
+measurement that would matter — what a *played* deck is worth — is the hand
+arithmetic in `docs/orders-pass-3.md` §6, and no harness in the repo can arrange
+one until the bot drafts engines (batch F2). That is the pass's real open number.
+
+#### The bot
+
+`src/ai/value.ts` needed **no edit** — batch A armed every engine shape and this
+pass used only those. The acceptance is a source-reading register in
+`aiAppraisal.test.ts` (`has an arm for every shape batch F wrote onto a card`),
+which reads `scoreEffect`'s own `case` labels and asserts every effect kind on
+every touched row has one. Four named debts, all of them older than this batch
+and all priced at the stand-in: `routeRider` (an extra caravan slot),
+`rulePercent` (every rule but Machinery's road fraction), `effectAmplifier` (a
+percentage on another table's figure — which is what **The Exchequer** is, so the
+deck's clearest trade payoff is the one the bot most under-prices), and
+`windfallRider` (an occasion's grant).
+
+The standing debt is unchanged and is F2's: an engine appraised alone multiplies
+a deck this reading cannot see, so the bot drafts a standalone-and-payoff deck.
+
+Files: `data/statecraft.json` · `docs/orders-and-doctrines.md` (Orders
+regenerated, with the new Role column) · `src/sim/state.ts` (schema 77 and its
+changelog). Tests: `statecraft.test.ts` (a batch-F block of six, plus the shape
+register turned into the list of which rows carry which shape, and every earlier
+pass's ratified-words block re-aimed), `statecraftDocSync.test.ts` (the role
+column's own sync), `cardImpact.test.ts` (a stamp fixture per shape, on the real
+rows), `aiAppraisal.test.ts` (the bot register), `growingOrders.test.ts`,
+`exactYields.test.ts` (the Harvest Songs' share), `test/ui/statecraftReveal.test.ts`
+(the position word now has cards to appear for), and the twelve schema witnesses.
+
+
 ### Pacing re-aim after D, E, X (2026-09-06)
 
 The one dated re-aim the plan holds the fixtures still for. Batches D (the

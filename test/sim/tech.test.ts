@@ -1313,7 +1313,7 @@ describe('research in the log', () => {
     // third conversion project joined the queue's vocabulary, and Machinery
     // makes a road step cost a fifth instead of a third — so a v75 log researches
     // different things and marches different distances.
-    expect(SCHEMA_VERSION).toBe(76);
+    expect(SCHEMA_VERSION).toBe(77);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

@@ -1867,4 +1867,93 @@ describe('the engine shapes, priced', () => {
     expect(after.terms[0]!.value).toBe(2);
     expect(labelsOf([after.terms[0]!])).toMatch(/2 buildingsOfCategories today/);
   });
+
+  /**
+   * **Batch F's acceptance for the bot** (`docs/fewer-things-plan.md` F, item 5).
+   *
+   * The order pass wrote thirty-three new Orders and converted twenty more, and
+   * the shapes they carry are batch A's engines. The claim here is the one the
+   * batch-E register makes of the tree, one table over: **no row this pass
+   * touched falls to `unknownEffect` for want of an arm**. It is read off
+   * `scoreEffect`'s own `case` labels rather than by arithmetic, for that
+   * register's stated reason — a percentage shape is *deliberately* priced
+   * against the stand-in, so a number this test picked could collide by luck.
+   *
+   * What an engine is *worth* is a different question and still an open debt:
+   * appraised alone an engine multiplies a deck this reading cannot see, which
+   * is `docs/fewer-things.md` §5's marginal reading and batch F2's job.
+   */
+  it('has an arm for every shape batch F wrote onto a card', () => {
+    const PASS_F: OrderId[] = [
+      // The engines, in pool order.
+      'theMusterRolls', 'theHarvestHome', 'theReevesBell',
+      'theFirstChair', 'theScriveners', 'theSacredGround', 'theAssayersRule',
+      'theCountingHouses', 'theAlmanacOfHours', 'theFoundryDays', 'theNetsBlessing',
+      'theHighChancery', 'theVotiveTally',
+      'theWorkshopsRule', 'theWildChair', 'theCantorsRule', 'theGoldenCenser',
+      'theDeepSeams', 'theExchangeCharter', 'theTriumph',
+      'theScholarsRule', 'theExchequer', 'theAssay', 'theBroadAcres', 'theJubilee',
+      'theCompactOfChairs', 'theLaureatesRule', 'theGreatClock', 'theEncyclopaedists',
+      'theCollegesRule',
+      // The converted rows, one of every shape the pass moved.
+      'silkRoads', 'ledgerKeepers', 'theSynod', 'theConsistory', 'theSalon',
+      'fireKeepers', 'waysideShrines', 'starGazers', 'provincialMints',
+    ] as OrderId[];
+    // The source, through Vite's raw import — `seatRoster.test.ts`' idiom.
+    const source = (
+      import.meta.glob('../../src/ai/value.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>
+    )['../../src/ai/value.ts']!;
+    const body = source.slice(source.indexOf('function scoreEffect('));
+    const armed = new Set(
+      [...body.slice(0, body.indexOf('\n}\n')).matchAll(/case '(\w+)'/g)].map((m) => m[1]!),
+    );
+    // `countScaled` never reaches that switch in anger — `explainEffects` sends
+    // it to `explainCounted` one call earlier — so it is armed by the caller.
+    armed.add('countScaled');
+    // The named debts, written down rather than swept under. Each wants a
+    // reading this file does not have and each prices at the stand-in: an extra
+    // caravan *slot* (batch E's, still open); every `CardRule` but the road
+    // fraction; and a percentage on **another table's** figure — The Exchequer
+    // doubles what `routeYields.ts` prints, which the appraiser reaches only
+    // through the marginal reading batch F2 builds.
+    // `windfallRider` is the oldest of them: an occasion's grant is worth what
+    // the occasion is worth, which no arm has ever tried to guess.
+    const debt = new Set(['routeRider', 'rulePercent', 'effectAmplifier', 'windfallRider']);
+    for (const id of PASS_F) {
+      const def = orderDef(id);
+      // A deferred row carries no effect at all, which is the convention for a
+      // card whose shape does not exist yet — there is nothing to price.
+      if (def.effects.length === 0) {
+        expect((def.deferred ?? []).length, id).toBeGreaterThan(0);
+        continue;
+      }
+      for (const effect of def.effects) {
+        if (debt.has(effect.kind)) continue;
+        expect(armed.has(effect.kind), `${id} · ${effect.kind}`).toBe(true);
+      }
+    }
+    // And the four Æra V bead Orders really are the deferred ones.
+    for (const id of ['theGreatEnquiry', 'theLastLaurels', 'theSaltedEarth',
+      'theFinalProclamation'] as OrderId[]) {
+      expect(orderDef(id).effects, id).toEqual([]);
+      expect((orderDef(id).deferred ?? []).length, id).toBeGreaterThan(0);
+    }
+  });
+
+  it('never prices a live Order at nothing but the stand-in', () => {
+    // The blunter half of the same claim, arithmetic this time: every live row
+    // that carries an effect is worth *something* to a seat with a town, so a
+    // card whose whole face the bot cannot read would show up here as a zero.
+    const { state, player } = board();
+    const ctx = valueContext(state, player);
+    for (const id of ORDER_IDS) {
+      const def = orderDef(id);
+      if (def.retired === true || def.effects.length === 0) continue;
+      expect(Number.isFinite(scoreEffects(def.effects, ctx)), id).toBe(true);
+    }
+  });
 });

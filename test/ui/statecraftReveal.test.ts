@@ -226,20 +226,25 @@ describe('the offices are ordered, and the word says which', () => {
 
   /**
    * **Gated on the reading, not on a constant.** The word appears where a
-   * position engine could read it — which today is nowhere, because no card
-   * carries such a shape. The gate walks this empire's *slotted* Orders and asks
-   * the sim's own effect vocabulary; batch A's member joins one list and the
-   * word starts appearing on its own.
+   * position engine could read it, and batch F is the pass that wrote the first
+   * ones — the four chair-readers of `docs/orders-pass-3.md` §3. The gate walks
+   * this empire's *slotted* Orders and asks the sim's own effect vocabulary, so
+   * a fifth chair-reader drafted tomorrow opens the word with no page edit.
    */
-  it('prints no position word until a slotted card reads a position', () => {
+  it('prints a position word for exactly the cards that read a chair', () => {
     const { state } = bench();
     const player = playerById(state, 0)!;
-    // Every Order in the game, slotted one at a time: not one of them reads a
-    // position today, so the gate is closed on every board.
+    const reads: string[] = [];
     for (const id of ORDER_IDS) {
       player.statecraft.slots = [{ card: id, sealedUntil: 0 }];
-      expect(deckReadsSlotPosition(player.statecraft), id).toBe(false);
+      if (deckReadsSlotPosition(player.statecraft)) reads.push(id);
     }
+    expect(reads).toEqual([
+      'theMusterRolls',
+      'theFirstChair',
+      'theWildChair',
+      'theCompactOfChairs',
+    ]);
   });
 
   it('asks the effects rather than answering false', () => {
