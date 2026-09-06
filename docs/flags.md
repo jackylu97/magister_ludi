@@ -117,6 +117,24 @@ Fixes queue in main for the next session unless the user says otherwise.
     gap: a soft statecraft-pause press wears the working state for one frame
     before its card goes up. (The pause itself shrank 8× with batches 9 and
     10; the play checkout still runs the old bot unless you say otherwise.)
+15. **Monasteries need a rework** (NOTED, no action yet — your call on the
+    shape when you're back from the game).
+16. **Players spawn too far apart** (NOTED, no action yet): try **six players
+    on the standard map** as the next playtest's seating before touching
+    `data/mapgen.json`'s start-position spacing — the same map with more seats
+    is the cheaper experiment.
+17. **"I'm just building more buildings in my cities"** (NOTED — a reading
+    for the balance turn, `docs/loop-review.md`'s direction: cards carry more
+    of the empire's power, building flats −25%). Your turn-92 snapshot, six
+    cities, for the ledger:
+
+    | food | prod | gold | science | culture | faith | happiness | authority |
+    |---|---|---|---|---|---|---|---|
+    | 211 | 131 | 143 | 200 | 195 | 59 | 28 | 6 |
+
+    Against the bot at t75 (science 28–63 a seat, 3–5 towns) this is the
+    3–4× gap the audit measured, now with a turn number on the human side.
+    The balance turn's numbers are still yours to rule.
 
 ### RULED, awaiting build (after the playthrough)
 
