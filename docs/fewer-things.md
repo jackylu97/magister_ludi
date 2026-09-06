@@ -25,25 +25,25 @@ out cards that are mostly flats, so it reads as *take the biggest number*.
 Three moves, one pass: **fewer things, each consequential; a ladder of choice
 sizes; a deck that combos.**
 
-**Nothing under `data/` or `src/` moves until this is marked.** Everything here
-is a proposal; §6 is the list of decisions only the user can make. The master
-row lists stay `docs/orders-and-doctrines.md` and `data/buildings.json`; the
-measurement of record stays `docs/balance-turn.md`.
+**Status.** This is the second revision (the user's first markup and the
+conversation of 2026-09-06 folded in). Every table marks its rows one of three
+ways: **RULED** (the user marked it, or said it), **proposed** (unmarked —
+stands until struck), **OPEN** (a question only the user can answer; all of
+them are gathered in §6). **Nothing under `data/` or `src/` moves until §6 is
+marked.** The master row lists stay `docs/orders-and-doctrines.md` and
+`data/buildings.json`; the measurement of record stays `docs/balance-turn.md`
+(marked up 2026-09-06; its §7 carries the answers to that markup).
 
 ---
 
 ## 0. Where the data disagrees with the frame
 
-Two of the assumptions this pass started from do not survive the arithmetic,
-and both change what the pass should do.
+Two of the assumptions this pass started from do not survive the arithmetic.
 
 | Assumption | What the data says | Consequence |
 |---|---|---|
-| "The draft is too rare — Entry XV wanted one every five turns and the harness measured 9.3" | Against the **user's** culture curve the ladder deals a draft every 4–5 turns from turn 4 to turn 90, and the model reproduces the user's t92 state exactly (20 drafts, 19 orders held) — see §1's ladder table. The 9.3 reading was the bot's | `docs/cards-pass-2.md` §E.3 ("more drafts, smaller cards") is **wrong for a human empire** and is superseded here. The cadence is already at target; the size is not |
-| "The deck has readers and conversions; the pass is about ratio" | Of 158 live Order rows, **nine** read anything about the player's other cards — seven count slotted Orders by *slot flavour*, two amplify another system's figure. **Not one reads a card's line.** `CardLine` exists on every row and its own docblock says *"nothing in the simulation switches on a `line`"* | The synergy problem is not a ratio problem. The vocabulary for "this card reads my other cards" is one count wide and asks the wrong question |
-
-The second finding is the pass's centre: **the tag family already exists as
-data and is inert.** Making it readable is one new union member.
+| "The draft is too rare — Entry XV wanted one every five turns and the harness measured 9.3" | Against the **user's** culture curve the ladder deals a draft every 4–5 turns from turn 4 to turn 90, and the model reproduces the user's t92 state exactly (20 drafts, 19 orders held) — §1's ladder table. The 9.3 reading was the bot's | `docs/cards-pass-2.md` §E.3 ("more drafts, smaller cards") is **wrong for a human empire** and is superseded here. The cadence is already at target; the size is not |
+| "The deck has readers and conversions; the pass is about ratio" | Of 158 live Order rows, **nine** read anything about the player's other cards — seven count slotted Orders by *slot flavour*, two amplify another system's figure. **Not one reads a card's line.** `CardLine` exists on every row and is presentation only by its own docblock | The synergy problem is not a ratio problem. The vocabulary for "this card reads my other cards" is one count wide and asks the wrong question — and the user's answer (§4) is to read the *board* rather than the cards' colours |
 
 ---
 
@@ -53,7 +53,7 @@ data and is inert.** Making it readable is one new union member.
 
 Estimates for the user's turn-92 empire (six cities, four military pieces,
 three traders, two or three workers). Card weights are `docs/balance-turn.md`'s
-audit; the rest is estimated from the board and marked as such.
+audit; the rest is estimated from the board.
 
 | Tier | Decision | Per ten turns | What one moves | Clicks each |
 |---|---|---|---|---|
@@ -67,8 +67,7 @@ audit; the rest is estimated from the board and marked as such.
 | Ground | a unit ordered | 40–70 | ≈0 at peace | 1 |
 
 **The reading.** The two highest-frequency decisions move the least, and the
-one frequent decision that could be large is sized like a small one. That is
-the tedium, stated as arithmetic.
+one frequent decision that could be large is sized like a small one.
 
 ### The draft ladder, measured
 
@@ -84,64 +83,69 @@ fitted to the user's own game (2 at t0 · 15 at t20 · 45 at t40 · 90 at t60 ·
 | cost | 12 | 29 | 59 | 134 | 250 | 411 | 620 | **880** | 1192 | 1560 | 1983 |
 
 The model puts the twentieth draft at t89; the user held nineteen Orders at t92.
-The ladder is not the problem.
+The ladder is not the problem; the size of what it deals is.
 
-### The proposed target ladder
+### The target ladder
 
-| Tier | Today, per ten turns | Target | How |
-|---|---|---|---|
-| Era-defining | 1 | 1 | unchanged |
-| The draft | 2.2 | **1.4** | `costExponent` 2.25 → 2.8; each card worth roughly twice today |
-| Research | 1.3 | 1.3 | unchanged (the queue already absorbs the clicks) |
-| Production | ~10 | **5** | §2's cut list — half the rows, each a longer, larger build |
-| Citizen focus / locks | 1 | 1 | unchanged |
-| Worker verbs | ~8 | **3** | passive survey; no verb that only reveals |
-| Rites | 1.5 at 4–6 clicks | **0.5 at 1 click** | §3 |
-| Unit orders | 40–70 | 40–70 | not a design problem; sleep, fortify and route persistence already carry it |
+| Tier | Today, per ten turns | Target | How | Status |
+|---|---|---|---|---|
+| Era-defining | 1 | 1 | unchanged | — |
+| The draft | 2.2 | **1.4** | `costExponent` 2.25 → 2.8; each card worth roughly twice today | **OPEN** (§6.9) |
+| Research | 1.3 | 1.3 | unchanged (the queue absorbs the clicks) | — |
+| Production | ~10 | **6** | §2's cut list, with prerequisite chains — fewer rows, each a longer build | RULED in shape; the list is §2 |
+| Citizen focus / locks | 1 | 1 | unchanged | — |
+| Worker verbs | ~8 | **3** | the vein is marked once the tech is held (or surveyed when a worker rests) | **OPEN** (§6.12) |
+| Rites | 1.5 at 4–6 clicks | **0.5 at 1 click** | rites are city verbs (§3) | **RULED** |
+| Unit orders | 40–70 | 40–70 | not a design problem; sleep, fortify and route persistence carry it | — |
 
 ### The levers, one per row
 
-| Lever | Today | Proposed | What it does | Risk |
-|---|---|---|---|---|
-| Draft cadence (`meter.costExponent`) | 2.25 | **2.8** | 20 drafts by t92 → 14; opening drafts land on the same turns (4, 7, 11) so the teaching rate is untouched; late gaps open to 8–10 | culture's worth falls, and culture is also the border channel — the culture-paying cards get relatively weaker |
-| Draft cadence, alternatives | — | ×1.5 on all three terms → 18 by t92 · exponent 3.0 → 13 by t92 | the multiplier barely moves the count (the ladder is super-linear); only the exponent does | — |
-| Slot count | Gov III 11 chairs (2/5/4 · 5/3/3 · 3/3/5) | **−25%, Gov III to 8** | at 14 drafts by t92 and 11 chairs, chairs stop being contested; at 8 they stay contested and the seal keeps biting | `theAnnalsOfLaw` pays per benched card and gets better; `theArchives` pays per slotted card and gets worse |
-| Seal length | 5 turns | **5 turns — RULED, untouched** | the user's veto of 2026-09-05 stands: slot-in/out is skill expression | — |
-| Cards per offer | 3 (max 5) | 3, **plus a line guarantee** (§4) | a committed deck must see its own line often enough to build; with six tags and three faces the chance of seeing your line is 42% | a fourth draw rule, not a card shape — see §4 |
-| The pass | spends the hand, `skipPity` +1 to uncommon and rare | unchanged, but it now has a *reason*: pass an off-line hand toward the rare payoff | — | the bot never conditions a pass on the hand it just saw (a written-down debt) |
-| Ordinary buildings per age | 8 · 6 · 11 · 13 | **6 · 3 · 3 · 7** | §2 | three bead deeds and one wonder grant re-aim |
-| Verbs that go passive | `prospect` on a vein; `survey` | a vein is marked once the tech is held, or surveyed when a worker rests | the user could not see where the surveyable mines were | a UI ruling, not a sim one |
+| Lever | Today | Proposed | Status |
+|---|---|---|---|
+| Draft cadence (`meter.costExponent`) | 2.25 | **2.8** — 20 drafts by t92 → 14; opening drafts land on the same turns (4, 7, 11); late gaps open to 8–10. A multiplier on all three terms barely moves the count (the ladder is super-linear); only the exponent does | **OPEN** (§6.9), tuned last |
+| Slot count | Gov III 11 chairs (2/5/4 · 5/3/3 · 3/3/5) | **−25%, Gov III to 8** — at 14 drafts and 11 chairs, chairs stop being contested; at 8 the seal keeps biting. `theAnnalsOfLaw` (per benched card) gets better; `theArchives` (per slotted) worse | **OPEN** (§6.9), one decision with the cadence |
+| Seal length | 5 turns | 5 turns | **RULED, untouched** (2026-09-05: slot-in/out is skill expression) |
+| Slot order | typed, unordered | **the arrangement the screen draws is the order**: the topmost economic slot is "the first economic slot". Rearranging is a placement like any other, unconfirmed until Confirm | **RULED** (2026-09-06) |
+| The reveal | a card shows its stamp the moment it is slotted | **a newly slotted card shows no yields until Confirm.** On Confirm the fold runs in order — base lines, then modifiers — and the **aggregate** fires with the count-up ("your cards: +31⚒ +18🔬 +40🎵"). The draft keeps its per-card stamp; only the *slotting* waits | **RULED** (2026-09-06) |
+| Cards per offer | 3 (max 5) | 3 | proposed |
+| The pass | spends the hand, `skipPity` +1 to uncommon and rare | unchanged; it now has a *reason* — pass an off-line hand toward the payoff you want | proposed |
+| **The reroll** | the Magister's dice (`Player.dice`, bead boons' `dice`, `startingDice`, Chronology's die) — nothing spends them | **the dice go entirely; faith rerolls a draft.** The price scales by age and by rerolls taken so far, and the button prints the *next* price so the rise is visible before the click — "used sparingly" is the design | **RULED** (2026-09-06); the price curve is **OPEN** (§6.5) |
+| Ordinary buildings per age | 8 · 6 · 11 · 13 | **7 · 5 · 5 · 9** (§2, after the user's keeps) | RULED per row where marked; §2 says which |
+| Verbs that go passive | `prospect` on a vein; `survey` | a vein is marked once the tech is held, or surveyed when a worker rests | **OPEN** (§6.12) |
 
 ### What "bigger and rarer" does to pacing and to the bot
 
 - **Culture pacing.** Culture fills one pool for two purposes (the draft basket
   and, separately, `City.culture` for borders). Slowing the ladder makes the
-  *basket* dearer without touching borders, so a culture empire converts less
-  of its lead into cards. The four culture-conversion rows
+  *basket* dearer without touching borders. The four culture-conversion rows
   (`theHarvestSongs`, `theLyceum`, `theArchives`, `theAnnalsOfLaw`) sit in the
-  feedback loop the balance turn already flagged: a stronger deck drafts faster,
-  which strengthens the deck. A steeper exponent damps that loop, which is a
-  second reason to prefer it over a flat multiplier.
+  feedback loop the balance turn flagged: a stronger deck drafts faster, which
+  strengthens the deck. A steeper exponent damps that loop.
 - **The pacing harness.** `test/sim/statecraftPacing.slow.test.ts` bands the
-  cadence (measured 9.3, band 5–13) and the three government tiers. A steeper
-  exponent moves every one of them, and the tier bands are two-sided.
+  cadence and the three government tiers. A steeper exponent moves every one of
+  them, and the tier bands are two-sided.
 - **The bot's draft plan.** `draftPlan` (`src/ai/wants.ts`) prices a draft as
   `E[best of the hand] − the worst card it would bench`, discounted by
-  `delayTerm` over how long the culture takes to fill. A steeper ladder raises
-  that delay, so the bot values culture less early and more late — which is
-  correct. The plan needs no edit for the cadence. It needs a real one for tags
-  (§5).
+  `delayTerm`. A steeper ladder raises that delay, so the bot values culture
+  less early and more late — correct without an edit. It needs a real one for
+  engines (§5).
 
 ---
 
 ## 2. The building cut list
 
-**Target**: roughly half as many ordinary buildings; **no survivor is only a
-flat**; every survivor is a *shape* (per-citizen · percentage · conditional ·
-count) or a *door* (an enabler: a route slot, faith purchases, a site for
-something else). The flats that go do not reappear — their power moves into
-cards, which is the ruled direction (`docs/loop-review.md` §E,
-`docs/flags.md` §A "the balance turn").
+**Target**: fewer ordinary buildings, **no survivor only a flat**, every
+survivor a *shape* (per-citizen · percentage · conditional · count) or a *door*
+(a route slot, faith purchases, a site), and — **RULED** on the first markup —
+**prerequisite chains**: a building that needs its parent standing in the same
+town (Stone Walls need a Palisade; Amphitheater a Monument; University a
+Library; Bazaar and Bank a Market; Shipyard a Harbour). The chain is the shape
+that makes a tall town different from a wide one: three decisions in one town
+where the flat list was three unrelated rows.
+
+**The chain is a new schema field** — `BuildingDef.requiresBuilding` — read in
+`buildError` (the sentence names the parent) and shown on the add-list row and
+the compendium entry. One field, one clause, the doc tables say so.
 
 Counts today, from `data/buildings.json` (83 rows):
 
@@ -154,743 +158,455 @@ Counts today, from `data/buildings.json` (83 rows):
 | the Magnum Opus | 1 |
 | parked (`awaitsTech`: `bastion`, `hallOfDeeds`) | 2 |
 
-The cut list below touches the **38 ordinary rows only**. Shape column:
-`flat` · `per-citizen` · `%` · `cond` (a condition on site or state) ·
-`count` · `door` · `def` (defensive).
+The tables touch the **38 ordinary rows only**. Shape: `flat` · `per-citizen`
+· `%` · `cond` · `count` · `door` · `def`. Status: **RULED** where the user
+edited the row; **proposed** where the row stands unmarked.
 
-### Æra I — Omens (8 rows → 6)
+### Æra I — Omens (8 rows → 7)
 
-| id | Name | What it does | Shape | Verdict |
-|---|---|---|---|---|
-| `monument` | Monument | 2🎵, +1 writ capacity | flat | **KEEP** — the culture door; borders and the draft basket both start here. Writ line **cut** (balance-turn §4g) |
-| `granary` | Granary | 3🌾 | flat | **KEEP** — becomes the growth shape: a share of the basket kept on a growth (the clause cut with Public Granaries, at a number that reads). Absorbs `watermill` and `townCharter` |
-| `shrine` | Shrine | 1🔬 1🕯 | flat | **KEEP** — the faith door (pantheon, the augur, and under §3 the cheapest rung of the rite verb). Science line **cut** — that is the Library's job |
-| `barracks` | Barracks | +10% units, general renown | % | **KEEP** — the war door. Absorbs `armoury` |
-| `palisade` | Palisade | +5 defence, +15 hp | def | **KEEP** — the one early defensive rung |
-| `funeralGames` | Funeral Games | 3😊 | flat | **CUT** — cheer belongs in cards (Entry LIV). Effect goes **nowhere**; the deed `theGreatGames` re-aims (§2's interactions) |
-| `library` | Library | 2🔬, 1🔬 per citizen | per-citizen | **KEEP** — the archetype. `sciencePerPop` takes balance-turn §4b's cut if that is marked |
-| `lighthouse` | Lighthouse | 2💰, water hexes feed | flat + tile line | **KEEP** |
+| id | Name | What it does | Shape | Verdict | Status |
+|---|---|---|---|---|---|
+| `monument` | Monument | 2🎵, +1 writ capacity | flat | **KEEP** — the culture door; borders and the draft basket both start here. Keeps its flat (no per-citizen line). Writ line **cut** (balance-turn §4g) | RULED |
+| `granary` | Granary | 3🌾 | flat | **KEEP** — becomes the growth shape: a share of the basket kept on a growth (the clause cut with Public Granaries, at a number that reads) | proposed |
+| `shrine` | Shrine | 1🔬 1🕯 | flat | **KEEP** — the faith door (the pantheon, and under §3 the first rung of the faith ladder). Science line **cut** — the Library's job | proposed |
+| `barracks` | Barracks | +10% units, general renown | % | **KEEP** — the war door. Absorbs `armoury` | proposed |
+| `palisade` | Palisade | +5 defence, +15 hp | def | **KEEP** — the first defensive rung; Stone Walls chain from it | RULED (by the walls' chain) |
+| `funeralGames` | Funeral Games | 3😊 | flat | **CUT** — cheer belongs in cards (Entry LIV). The deed `theGreatGames` re-aims | proposed |
+| `library` | Library | 2🔬, 1🔬 per citizen | per-citizen | **KEEP** — the archetype. Takes balance-turn's numbers (the markup there cut `sciencePerPop` — see balance-turn §7's caution on the base beaker) | RULED |
+| `lighthouse` | Lighthouse | 2💰, water hexes feed | flat + tile line | **KEEP** | RULED |
 
-### Æra II — Heroes (6 rows → 3, plus one national row)
+### Æra II — Heroes (6 rows → 5, plus one national row)
 
-| id | Name | What it does | Shape | Verdict |
-|---|---|---|---|---|
-| `temple` | Temple | 2🕯; doubles own pressure, foreign to 75% | cond | **KEEP** — the faith engine's subject; five Order rows and Notre-Dame count it |
-| `market` | Market | 3💰, a route slot | flat + door | **KEEP** — the coin door and the route slot. Absorbs `mint`, `bank`, `caravanserai` |
-| `harbour` | Harbour | 1🌾, a route slot, every worked water hex feeds | door + tile line | **KEEP** — absorbs `lighthouse` and `shipyard`, and becomes the whole coastal build |
-| `stoneWalls` | Stone Walls | +4 defence, +25 hp | def | **KEEP** — can only be built in cities with a palisade |
-| `amphitheater` | Amphitheater | 3🎵 | flat | **KEEP** — +0.5 culture per citizen. The Theatre of Dionysus **grants** one on completion and must re-aim, can only be built in a city with a monument |
-| `steleOfLaws` | Stele of Laws | 3🎵, +1 writ | flat | **CUT** — the balance turn already reads it as worse per hammer than the Monument |
-| `chartTheStars` | Chart the Stars | national, 2🔬, a bead, naval movement | door | **KEEP** — a bead row, not an ordinary building |
+| id | Name | What it does | Shape | Verdict | Status |
+|---|---|---|---|---|---|
+| `temple` | Temple | 2🕯; doubles own pressure, foreign to 75% | cond | **KEEP** — the faith engine's subject; five Order rows and Notre-Dame count it. The user's balance-turn markup makes `theConsistory` "double the yields on your temples" | proposed |
+| `market` | Market | 3💰, a route slot | flat + door | **KEEP** — the coin door and the route slot; Bazaar and Bank chain from it. Absorbs `mint`, `caravanserai` | RULED (by the chains) |
+| `harbour` | Harbour | 1🌾, a route slot, every worked water hex feeds | door + tile line | **KEEP** — the coastal door; Shipyard chains from it. `lighthouse` stays beside it (the user's keep) | RULED |
+| `stoneWalls` | Stone Walls | +4 defence, +25 hp | def | **KEEP** — **needs a Palisade** | RULED |
+| `amphitheater` | Amphitheater | 3🎵 | flat → per-citizen | **KEEP** — **+0.5🎵 per citizen; needs a Monument.** The Theatre of Dionysus' completion grant stands (it grants a kept row; the chain is satisfied where a Monument stands, and where it is not the grant is the open question in §6.4) | RULED |
+| `steleOfLaws` | Stele of Laws | 3🎵, +1 writ | flat | **CUT** — worse per hammer than the Monument (balance-turn) | proposed |
+| `chartTheStars` | Chart the Stars | national, 2🔬, a bead, naval movement | door | **KEEP** — a bead row, not an ordinary building | — |
 
-### Æra III — Empire (11 rows → 3)
+### Æra III — Empire (11 rows → 5, plus the founding artefact)
 
-| id | Name | What it does | Shape | Verdict |
-|---|---|---|---|---|
-| `aqueduct` | Aqueduct | waters the town, +15% growth surplus | % + cond | **KEEP** |
-| `workshop` | Workshop | 3⚒, +10% toward buildings and wonders | % | **KEEP** — the hammer door |
-| `cathedral` | Cathedral | 3🎵 3🕯 3😊, rolls one of five consecrations, takes contributions | cond + **a choice** | **KEEP** — the one ordinary building that hands the player a decision. Absorbs `reliquary` (faith purchases move onto it) |
-| `watermill` | Watermill | 2🌾 1⚒ | flat | **KEEP** |
-| `monastery` | Monastery | 2🎵, 0.25🔬 per citizen | flat | **CUT** — the user's note 15 asks for a rework; the rework is the cut. Its faith identity is the Temple's, its culture the Monument's, its beakers the Library's |
-| `baths` | Baths | 2🌾 2😊 | flat | **CUT** |
-| `forum` | Forum | 3🎵 | flat | **CUT** |
-| `examinationHall` | Examination Hall | 1🔬, +3 writ | flat | **CUT** — writ becomes a card decision (Entry LIV), which is what makes tall-vs-wide bite |
-| `shipyard` | Shipyard | 1⚒, a route slot, +10% units, water resource hexes | door | **KEEP** | can only be built in a city with a harbour
-| `townCharter` | Town Charter | 4🌾 2🎵 | flat | **CUT** — a founding artefact; cannot be built in a city, can only be gained by founding a city after daughter cities |
-| `clocktower` | Clocktower | 2🔬 | flat | **CUT** |
+| id | Name | What it does | Shape | Verdict | Status |
+|---|---|---|---|---|---|
+| `aqueduct` | Aqueduct | waters the town, +15% growth surplus | % + cond | **KEEP** | proposed |
+| `workshop` | Workshop | 3⚒, +10% toward buildings and wonders | % | **KEEP** — the hammer door | proposed |
+| `cathedral` | Cathedral | 3🎵 3🕯 3😊, rolls one of five consecrations, takes contributions | cond + a choice | **KEEP** — under §3 the consecration is drawn from the faith ladder rather than rolled here (§6.3 asks what the Cathedral then does); absorbs `reliquary` (faith purchases move onto it) | proposed, shape depends on §3 |
+| `watermill` | Watermill | 2🌾 1⚒ | flat | **KEEP** | RULED |
+| `shipyard` | Shipyard | 1⚒, a route slot, +10% units, water resource hexes | door | **KEEP** — **needs a Harbour** | RULED |
+| `townCharter` | Town Charter | 4🌾 2🎵 | flat | **never built** — a founding artefact: gained only by founding a city after daughter cities (the founding cards' subject) | RULED |
+| `monastery` | Monastery | 2🎵, 0.25🔬 per citizen | flat | **CUT** — the user's note 15 asks for a rework; the rework is the cut. Its faith identity is the Temple's, its culture the Monument's, its beakers the Library's | proposed (§6.4 asks) |
+| `baths` | Baths | 2🌾 2😊 | flat | **CUT** | proposed |
+| `forum` | Forum | 3🎵 | flat | **CUT** | proposed |
+| `examinationHall` | Examination Hall | 1🔬, +3 writ | flat | **CUT** — writ becomes a card decision (Entry LIV). The single biggest tall-vs-wide change in the cut | proposed (§6.4 asks) |
+| `clocktower` | Clocktower | 2🔬 | flat | **CUT** | proposed |
 
-### Æra IV — Cathedrals (13 rows → 7, plus two national rows)
+### Æra IV — Cathedrals (13 rows → 9, plus two national rows)
 
-| id | Name | What it does | Shape | Verdict |
-|---|---|---|---|---|
-| `university` | University | 0.75🔬 per citizen | per-citizen | **KEEP** — the second rung of the one science shape, can only be built in a city with a library, use numbers in balance-turn. |
-| `bazaar` | Bazaar | 2💰, +1💰 per unique luxury the town can reach | count | **KEEP** — a real count, and the luxuries system's building, can only be built in a city with a market |
-| `courthouse` | Courthouse | 3💰, +2 writ, **captured towns only** | cond | **KEEP** — the conquest door |
-| `castle` | Castle | +5 defence, +25 hp | def | **KEEP** — the second and last defensive rung; absorbs `stoneWalls` |
-| `forge` | Forge | 2⚒, +15% units | % | **KEEP** — absorbs `armoury` |
-| `observatory` | Observatory | 3🔬, 1🔬 per citizen, +10%🔬 | % + per-citizen | **KEEP** |
-| `alchemicalSociety` | The Alchemical Society | 1🔬 per citizen, +1⚒ per building in this town | count | **KEEP** — a count over the town's own build, and the Codex's site |
-| `reliquary` | The Reliquary | 4😊, faith buys units here, +10%🕯 | door | **MERGE INTO `cathedral`** |
-| `mint` | Mint | 3💰 | flat | **CUT** — `docs/flags.md` already asks for the Mint and the Coinworks to be reconciled; this is the answer. The deed `theMint` re-aims |
-| `armoury` | Armoury | 1⚒, +15% units | % | **MERGE INTO `forge`**. The deed `theMusterOfTheRealm` re-aims |
-| `caravanserai` | Caravanserai | 2💰, a route slot | door | **MERGE INTO `market`** |
-| `printingHouse` | Printing House | 2🔬 2🎵 | flat | **CUT** — the Gov V order `printingHouses` names it and re-aims to the Library |
-| `bank` | Bank | 4💰 | flat | **KEEP** +0.5 gold per citizen, +10% gold, can only be built in a city with a market |
-| `theTurningHeavens` · `theAlchemicalCodex` | — | national, bead-granting | door | **KEEP** |
+| id | Name | What it does | Shape | Verdict | Status |
+|---|---|---|---|---|---|
+| `university` | University | 0.75🔬 per citizen | per-citizen | **KEEP** — the second rung of the science shape; **needs a Library**; takes balance-turn's numbers | RULED |
+| `bazaar` | Bazaar | 2💰, +1💰 per unique luxury the town can reach | count | **KEEP** — the luxuries system's building; **needs a Market** | RULED |
+| `bank` | Bank | 4💰 | flat → per-citizen + % | **KEEP** — **+0.5💰 per citizen, +10%💰; needs a Market** | RULED |
+| `courthouse` | Courthouse | 3💰, +2 writ, captured towns only | cond | **KEEP** — the conquest door | proposed |
+| `castle` | Castle | +5 defence, +25 hp | def | **KEEP** — the third defensive rung (Palisade → Stone Walls → Castle; whether it chains from the walls is §6.4) | proposed |
+| `forge` | Forge | 2⚒, +15% units | % | **KEEP** — absorbs `armoury` | proposed |
+| `observatory` | Observatory | 3🔬, 1🔬 per citizen, +10%🔬 | % + per-citizen | **KEEP** — the balance-turn markup zeroes its per-citizen line; whether it chains from the University is §6.4 | proposed |
+| `alchemicalSociety` | The Alchemical Society | 1🔬 per citizen, +1⚒ per building in this town | count | **KEEP** — a count over the town's own build, and the Codex's site | proposed |
+| `reliquary` | The Reliquary | 4😊, faith buys units here, +10%🕯 | door | **MERGE INTO `cathedral`** | proposed |
+| `mint` | Mint | 3💰 | flat | **CUT** — the Mint and the Coinworks reconciled (flags §B). The deed `theMint` re-aims | proposed |
+| `armoury` | Armoury | 1⚒, +15% units | % | **MERGE INTO `forge`**. The deed `theMusterOfTheRealm` re-aims | proposed |
+| `caravanserai` | Caravanserai | 2💰, a route slot | door | **MERGE INTO `market`** | proposed |
+| `printingHouse` | Printing House | 2🔬 2🎵 | flat | **CUT** — the Gov V order `printingHouses` re-aims to "+3🎵 per Library; +10% science" (the balance-turn markup already wrote it that way) | proposed |
+| `theTurningHeavens` · `theAlchemicalCodex` | — | national, bead-granting | door | **KEEP** | — |
 
 ### The tally
 
-| | Today | After | Cut outright | Merged away |
-|---|---|---|---|---|
-| Æra I | 8 | 6 | 1 | 1 |
-| Æra II | 6 | 3 | 2 | 1 |
-| Æra III | 11 | 3 | 6 | 2 |
-| Æra IV | 13 | 7 | 3 | 3 |
-| **Ordinary total** | **38** | **19** | **12** | **7** |
+| | Today | After | Cut outright | Merged away | Chains |
+|---|---|---|---|---|---|
+| Æra I | 8 | 7 | 1 | 0 | Palisade → Stone Walls (II) · Monument → Amphitheater (II) |
+| Æra II | 6 | 5 | 1 | 0 | Market → Bazaar, Bank (IV) · Harbour → Shipyard (III) |
+| Æra III | 11 | 5 (+ the founding artefact) | 5 | 1 | Library → University (IV) |
+| Æra IV | 13 | 9 | 2 | 3 | — |
+| **Ordinary total** | **38** | **26** | **9** | **4** | six chains |
 
-Every survivor names what it is *for* in one clause: Monument the culture door ·
-Granary growth · Shrine the faith door · Barracks the war door · Palisade and
-Castle the two defensive rungs · Library and University the science shape ·
-Temple the tide · Market and Harbour the two route doors · Aqueduct growth's
-percentage · Workshop and Forge the two hammer shapes · Cathedral the one
-building that asks a question · Bazaar luxuries · Courthouse conquest ·
+What each survivor is *for*: Monument the culture door · Amphitheater the tall
+town's second song · Granary growth · Shrine the faith door · Barracks the war
+door · Palisade, Stone Walls, Castle the three defensive rungs · Library and
+University the science shape · Temple the tide · Market, Harbour, Lighthouse,
+Shipyard the trade and coastal doors · Aqueduct and Watermill growth's two
+shapes · Workshop and Forge the two hammer shapes · Cathedral the faith
+ladder's house · Bazaar and Bank the coin shapes · Courthouse conquest ·
 Observatory and the Alchemical Society the two late counts.
 
 ### What the cut does to the charters
 
-The twelve card-unlocked rows are untouched by the cut and become **more**
-valuable, which is the direction: with `mint` and `bank` gone the Assay House
-and the Coinworks are the gold line's only late shapes; with `clocktower` and
-`printingHouse` gone the Scriptorium and the Orrery are the science line's.
+The twelve card-unlocked rows are untouched and become **more** valuable: with
+`mint` gone the Assay House and the Coinworks are the gold line's late shapes
+beside the Bank; with `clocktower` and `printingHouse` gone the Scriptorium and
+the Orrery are the science line's.
 
 | Charter row | Building | What the cut does |
 |---|---|---|
-| `coinCharter` · `mintCharter` | Assay House · Coinworks | become the whole late gold build; their balance-turn numbers should be re-derived after the cut, not before |
+| `coinCharter` · `mintCharter` | Assay House · Coinworks | the late gold build with the Bank; numbers re-derived after the cut |
 | `scrivenersCharter` · `stargazersCharter` | Scriptorium · Orrery | same, for science |
-| `toolmakersCharter` | Smithy | unchanged — already the pool's one consequential row, and already a deck-reader |
+| `toolmakersCharter` | Smithy | unchanged — already a deck-reader and the pool's one consequential row |
 | `waterwrightsCharter` | Cistern | unchanged |
-| `theSenatus` | Assembly Hall | unchanged — a deck-reader, and with `examinationHall` cut it is one of two writ buildings left (with the Assize Court) |
+| `theSenatus` | Assembly Hall | unchanged — with `examinationHall` cut it is one of two writ buildings left |
 | `justicesCharter` | Assize Court | rises: writ leaves buildings and lives in cards and these two rows |
-| `vigilCharter` | Keep | rises: with `stoneWalls` cut, the Keep is the mid-game defensive answer |
+| `vigilCharter` | Keep | with Stone Walls kept, the Keep is the *charter* defensive answer between the walls and the Castle — its number re-derived |
 | `almshouseCharter` | Almshouse | unchanged |
-| `ritesCharter` | **Chapel** | **decided by §3** — under the recommended option the Chapel becomes the rite door and gains a real reason to be built |
+| `ritesCharter` | **Chapel** | **OPEN** (§6.3): under the ruled religion design the rite is a city verb — the Chapel's role (the door? a discount? cut?) is not yet said |
 | `gildedCourt` (doctrine) | Gilded Hall | unchanged (purchase-only) |
 
 ### What the cut does to the wonders
 
-**No wonder is cut in this pass.** `docs/balance-turn.md` §4d already reads the
-wonder line as the weak build — a wonder pays a few points of one voice for the
-hammers of several ordinary buildings — and cutting the ordinary queue in half
-*raises* a wonder's relative worth for free, because the town has fewer cheap
-rows to prefer. Two consequences and one flag:
+**No wonder is cut in this pass.** `docs/balance-turn.md` §4d reads the wonder
+line as the weak build, and halving the ordinary queue raises a wonder's
+relative worth for free.
 
 | | |
 |---|---|
-| **Grants that break** | `theatreOfDionysus` grants an Amphitheatre on completion. Re-aim to a Monument, or to a doctrine draft alone |
+| **Grants** | `theatreOfDionysus` grants an Amphitheatre — kept; where the town has no Monument the chain is unmet (§6.4 asks whether a grant ignores the chain) |
 | **Counts that survive** | `circusMaximus` (barracks), `notreDame` (temples), `greatLibrary` (library), `greatZiggurat` (shrine), `hagiaSophia` (temple), `templeOfArtemis` (camps and pastures) all name kept rows |
-| **The real duplication is Æra III** | twelve wonders open in one age and five of them at Theology alone (`chichenItza`, `hagiaSophia`, `angkorWat`, `greatMosqueOfDjenne`, and the Cathedral behind them). Flagged, not proposed — a wonder cut is its own pass |
+| **The real duplication is Æra III** | twelve wonders open in one age, five at Theology alone. Flagged, not proposed — a wonder cut is its own pass |
 
-### Maintenance, and the bot
+### Maintenance, the deeds, and the bot
 
 | Surface | What moves |
 |---|---|
-| `explainEmpireGold` (`empireGold.ts`) | building upkeep is the age of the unlocking tech, one line per standing building. Cutting nineteen rows removes up to nineteen upkeep lines per fully-built town — at six towns this is the largest single gold change in any pass this year, and it lands on the *relief* side. It also shrinks the empire's gold sink, so `theLongRoads` and the coin cards get relatively stronger, and the Library's removed gold (flags note 8) stops threatening the scripted five-town empire with debt. **A re-run of the pacing fixtures is mandatory** |
-| Bead deeds | three `prerequisite: buildingInEveryCity` deeds name cut rows — `theGreatGames` (`funeralGames`), `theMint` (`mint`), `theMusterOfTheRealm` (`armoury`, three cities). Each needs a new subject or a new prerequisite shape. `theCathedralOfTheAge` (cathedral) and `theEncyclopaedia` (university) are safe |
-| The bot's building wants | the appraisal is per row through the sim's own explainers, so a shorter list needs no code — but `explainCounted`'s **potential** arm reads `potentialTownsFor` for any card naming a building, and a card naming a cut building would price a promise that can never arrive. Every `buildingsOfKind` / `hasBuilding` reference must be re-aimed in the same commit |
-| The bot's build order | fewer, larger rows means `turns-amortisation` (Entry LXIV: a 109-point temple losing to an 80-point worker on the divide alone) bites harder. The OFAT baseline wants re-running after the cut |
-| The compendium | generated from rows and describers; a cut row simply stops rendering. `retired`-style preservation is **not** available for buildings — a save holding a cut building must still replay, so the rows stay in `data/buildings.json` with a marker (`awaitsTech` is the existing precedent) rather than being deleted |
+| `explainEmpireGold` | building upkeep is one line per standing building. Cutting thirteen rows removes up to thirteen upkeep lines per fully-built town — the largest gold change in any pass this year, on the *relief* side. **A re-run of the pacing fixtures is mandatory** (they were re-aimed on 2026-09-05 after the Library lost its gold; they move again) |
+| Bead deeds | three `buildingInEveryCity` deeds name cut rows — `theGreatGames` (`funeralGames`), `theMint` (`mint`), `theMusterOfTheRealm` (`armoury`). Each needs a new subject. `theCathedralOfTheAge` and `theEncyclopaedia` are safe |
+| The bot's building wants | per row through the sim's explainers — a shorter list needs no code; but `explainCounted`'s potential arm prices a card naming a cut building as a promise that never arrives, so every `buildingsOfKind` / `hasBuilding` reference re-aims in the same commit. **Chains are new to the bot**: a University's potential is gated on Libraries standing — `potentialTownsFor` reads the parent |
+| The compendium | generated; a cut row stops rendering. A save holding a cut building must still replay, so cut rows stay in `data/buildings.json` behind a marker (`awaitsTech` is the precedent) rather than being deleted |
 
 ---
 
-## 3. The augur and the rites
+## 3. Religion — the ruled design
 
-### The loop today
+### The loop today, for the record
 
-`docs/religion-v2.md` and the data. An augur is called with faith
-(`purchase.cost` 40, `increment` 15, exclusive), has **one charge**, and its act
-is its whole turn (`augurHasActed`). It may **consecrate** (open a pantheon
-belief draft — `consecrateAt`) **or** perform **one rite** (`performRiteAt`).
-Seven rites, each gated by a tech (`ABILITY_TECH`), the Chapel (`ritePays` 5)
-paying a little culture on top wherever one is performed.
+An augur is called with faith (`purchase.cost` 40, `increment` 15,
+exclusive), has one charge, and its act is its whole turn. It consecrates (a
+pantheon belief draft) **or** performs one of seven tech-gated rites; the
+Chapel pays a little culture wherever one is performed.
 
 | Step | Clicks | Turns |
 |---|---|---|
-| call the augur (faith, exclusive, the ladder's next rung) | 1 | 0 |
+| call the augur | 1 | 0 |
 | walk it to the town | 1–3 | 1–3 |
 | choose the rite and target | 2 | 0 |
 | **total** | **4–6** | **1–3** |
 
-What it buys, for the turn-92 empire (six cities, 59🕯 a turn, 300 banked):
+For the turn-92 empire the best rite paid under one percent of a voice for
+those clicks. The failure is the errand, not the numbers: doubling every rite
+would still leave a four-click chore. (The three options this doc first
+weighed — city verb / fold into the prophet / one rare augur — are superseded
+by the design below; the old table is in git.)
 
-| Rite | Paid once | Paid per turn | Life | Worth at t92 |
-|---|---|---|---|---|
-| `riteOfTheHarvest` | +1 citizen | — | — | one citizen, ≈2% of one town |
-| `omenReading` | 15🔬 | +1🔬 per science building here (≈3) | 20 | ≈75🔬 total, ≈0.4% of the empire's science a turn |
-| `consecrationOfTheBounds` | 15 border culture | +30% of one town's border culture | 20 | roughly one tile |
-| `blessingOfArms` | heals whole | +5 strength | 5 | ≈20% of one mid-age unit, once |
-| `riteOfPlenty` | 25💰 | +1💰 per resource hex here (≈3) | 20 | ≈85💰 total, ≈0.6% of the empire's gold a turn |
-| `thePreaching` | a pressure lump, range 4, 20 | — | — | a few converts |
-| `recastingTheOmens` | redraws a pantheon belief | — | — | a real choice, once |
+### The design — RULED (the user, first markup)
 
-**Against a draft** — two clicks, 3–8% of a voice, and rising. Four to six
-clicks for under one percent is the worst value-per-click in the game, and the
-user's sentence *"I was so far ahead and didn't want to waste time"* is the
-correct read of it: a rite is a chore whose payoff is invisible even when it
-works. Note the shape of the failure — it is **not** that the numbers are small.
-Doubling every rite would still leave a four-click errand.
+- **Consecration is automatic**: it happens when a **faith threshold** is
+  reached, the culture draft's twin — a faith ladder, the offer drawn once at
+  the rung, spent by a command, the same deal-and-flip ceremony. The augur is
+  gone.
+- **Rites are city verbs**, ten turns each, paid in faith, reworked:
 
-### Three options
+  | rite | what it does, for ten turns |
+  |---|---|
+  | food | tiles that supply food give one more |
+  | gold | resource tiles +1💰 |
+  | science | buildings in this city +1🔬 each |
+  | culture | +1🎵 on luxury tiles; border growth +30% |
+  | military | +5 defence; units heal +5 inside the city's borders |
 
-| | **A — the rite is a city verb** | **B — the augur folds into the prophet** | **C — one augur, era-scale** |
-|---|---|---|---|
-| **What it is** | no unit; a city with the door pays faith and performs a rite on itself. Cooldown as a per-city seal (absolute turn, `City.purchasedUnitTurns`' shape) | the augur is retired; the prophet is the one religious piece; rites fold into consecrations and follower beliefs, so faith is mostly passive | the augur stays, is dear and rare, and its rites run for an age rather than twenty turns |
-| **Clicks per act** | 1 | 0 (passive) | 4–6, but a handful of times per game |
-| **The Chapel** | **becomes the door** — the building that lets a town call a rite at all, and keeps its culture rider. A real build for the first time | **cut**; `ritesCharter` re-cut to something else | unchanged, still weak |
-| **The prophet** | unchanged (founding, beliefs, the proclamation lump) | absorbs the consecration; the pantheon then arrives at The High Temple instead of Divination — **an age later**, which is a large pacing change | unchanged |
-| **Consecrations** | stay on the augur, which survives as the **consecrator only**: a rare, decisive piece that drafts a pantheon belief | move to the prophet | unchanged |
-| **The tech gifts** (`ABILITY_TECH` rites) | keep their meaning — a tech opens a rite the *city* may call. `docs/design-notes.md`'s Entry LXIII rule (abilities head by their bearer) re-heads them to the Chapel | **lost** — five ability-techs stop granting anything and need new gifts | unchanged |
-| **The bot** | `faithPlan` / `explainRites` (`src/ai/wants.ts`) simplifies: a rite becomes a purchase-shaped want priced per city, not a roster walk. The known debt "rites in roster order" (Entry LXIV) closes | simplest of the three; the faith appetite becomes a belief plan alone | unchanged; the debt stays |
-| **Saves / schema** | `performRite` changes shape (a city, not a unit); the augur row is kept for replay with its purchase gated; `chargedAugurs` (`CountKind`) loses its subject and the pantheon belief **Court Augurs** must be re-cut. **Schema bump** | larger: two unit rows retired, the belief ladder's gate moves. **Schema bump** | none |
-| **Risk** | the city screen grows a verb; a rite performed on the city that pays for it removes the "walk it somewhere useful" decision — which was never a decision anyone enjoyed | the pantheon arriving an age late is a real loss; Æra I loses its one religious act | does nothing about clicks-per-value; the user's complaint stands |
+- **Prophets stay purchasable**, two charges: found or enhance a belief (both
+  charges; no holy site planted by it) · plant a holy site (both charges, a
+  separate act) · proclamation (one charge, as today) · **an empire-wide rite**
+  (one charge) — **one of the five city rites, cast on every city at once**
+  (ruled 2026-09-06). `redraftBeliefs` is removed.
+- **The apostle** joins later in the tree than the prophet: two charges, 4
+  movement · a half-strength proclamation reaching cities within six hexes
+  (one charge) · heal adjacent units 25 (one charge) · **a third act — OPEN**
+  (§6.7).
+- **Faith is the magisterial supplement**: the reroll (§1) is its first use;
+  the apostle is a second; a **relic** — performed once per cathedral, paying
+  faith per turn thereafter — is a third, **OPEN** (§6.7).
 
-### Recommendation — **A**, with the augur kept as the consecrator
+### What the design touches
 
-- **Value per click** is the whole brief, and A is the only option that changes
-  it by an order of magnitude (4–6 clicks → 1).
-- The two acts an augur can perform have wildly different worth: the
-  **consecration** opens a belief draft — an era-defining choice, worth walking
-  a piece for and worth the exclusivity — and the **rite** is an errand. Split
-  them by their size rather than cutting both. The augur then appears two to
-  four times in a game, always for a big choice, which is exactly "bigger and
-  rarer" applied to a unit.
-- The Chapel finally has an answer to *what is it for*: it is the door, and it
-  is a Æra I charter (`ritesCharter`), so a faith deck's first card buys a real
-  building rather than a flat.
-- B's cost is hidden and large: the pantheon is Æra I's only religious decision
-  and moving it to The High Temple takes the identity out of the opening.
-- C keeps the errand and only makes it rarer, which trades tedium for
-  irrelevance.
-
-**The dial A needs**: the faith price per rite (the augur's ladder, re-based per
-city), and the per-city seal in turns. Both are `data/religion.json` rows and
-both are the user's to set — §6.
-
-Ok, my proposed design:
-- consecration happens automatically, similar to a culture draft when the culture threshold is reached. 
-- rites happen within the city, we should rework these rites:
-  - food rite: tiles that supply food gain 1 more for 10 turns
-  - gold rite: resource tiles gain +1 gold for 10 turns
-  - science rite: buildings in this city supply +1 science for 10 turns
-  - culture rite: +1 culture on luxury resource tiles, border growth +30% for 10 turns
-  - military rite: +5 defensive strength, units heal +5 within the city's borders for 10 turns
-- prophets remain purchasable, prophet actions (2 charges):
-  - remove the 'redraft belief' option
-  - found/enhance a belief (costs 2 charges), no longer involves planting a holy site
-  - plant a holy site as a separate action (2 charges)
-  - proclamation (1 charge), same function
-  - can invoke an empire-wide rite (1 charge)
-- add apostle (2 charges), should unlock later in the tech tree than prophets:
-  - 4 movement speed
-  - proclamation (1 charge), half strength of a prophet, only affects cities within 6 tiles
-  - heal adjacent units by 25 hp (1 charge)
-  - what else??
+| Surface | What moves |
+|---|---|
+| `performRite` | a city command (no unit); a per-city seal in absolute turns (`City.purchasedUnitTurns`' shape). **Schema** |
+| The augur row · `chargedAugurs` (`CountKind`) · the belief **Court Augurs** · `augurHasActed` | retired for replay, the count and the belief re-cut (**OPEN** §6.3 for the belief's new subject) |
+| The five rite abilities on the tree (`ABILITY_TECH`) | keep their meaning if a tech opens a rite the *city* may call — or the rites are all open from the Shrine and the techs get other gifts (**OPEN** §6.3 / §6.11) |
+| The Chapel (`ritesCharter`) | **OPEN** §6.3 |
+| The Cathedral's roll | with the consecration on the faith ladder, the Cathedral's completion no longer rolls one — what it does instead is **OPEN** §6.3 (a rung of the ladder paid at once? the relic's site?) |
+| The faith ladder | `costBase / costLinear / costExponent` for faith, as `meter` is for culture — numbers **OPEN** §6.5 |
+| The bot | `faithPlan` / `explainRites` (`src/ai/wants.ts`) simplify to a per-city purchase want; the "rites in roster order" debt closes; the faith ladder joins the draft plan's shape |
 
 ---
 
-## 4. The synergy proposal — engines, payoffs, and tags
+## 4. The deck — engines, payoffs, and what they read
 
 ### The finding this rests on
 
 | Role, by classifier over the 158 live Order rows | Count | Share |
 |---|---|---|
-| reads the deck (counts slotted Orders by **slot flavour**) | 7 | 4% |
+| reads the deck (counts slotted Orders by slot flavour) | 7 | 4% |
 | amplifies another system's figure (`effectAmplifier`) | 2 | 1% |
 | unlocks a building (a charter — a door, not a reader) | 11 | 7% |
 | scales with something the empire built or holds | ~71 | 45% |
 | pays a flat number, or a number scoped to a site | ~67 | 42% |
 
-The seven readers are `firstRites`, `oreTithes`, `provincialGovernors`,
-`theArchives`, `theAnnalsOfLaw`, `theGuildCharter`, `theSynod`; two more
-(`borderWardens`, `theWarCouncil`) read the deck for *strength* through
-`CombatScale`. **Every one of them counts slot flavour — military, economic,
-wildcard — which is the least interesting fact about a card.** A wildcard slot
-holds a faith card and a growth card and an exploration card; counting it says
-nothing about a strategy.
+The seven readers count slot flavour — military, economic, wildcard — which is
+the least interesting fact about a card. The user's answer is not to make the
+cards' *colours* readable but to make the cards read **what the empire is
+doing**.
 
-Meanwhile `CardLine` — twelve threads, one on every Order, Doctrine and
-Government row, each with a drawn mark in `src/art/lineMarks.ts` — is
-**presentation only**, by its own docblock. The tag family is built, drawn, and
-switched off.
+### The engine shapes — RULED (the user's five, weighed)
 
-### The proposed tags
-
-Twelve lines is too many for an 8–11 chair government; the distribution today is
-also badly lumpy (`forge` 35 rows, `highlands` 1) and `forge` conflates soldiers
-with hammers, which makes it unusable as an engine's subject. Consolidate to
-**six**, each a family a deck can commit to:
-
-| Tag | From today's lines | Live Order rows | What the path *is* |
+| the card | shape it needs | precedent | verdict |
 |---|---|---|---|
-| **Procession** 🕯 | `procession` (+ `cloister`) | 18 | faith converted into the primary voices — only when stacked |
-| **Forge** ⚒ | `forge` · `hunt` · `highlands` | 41 | hammers and soldiers; and the payoff that makes a war pay a **peacetime** voice |
-| **Caravan** 💰 | `caravan` | 24 | gold, routes, roads, coast; the multiplier rides the map |
-| **Ploughshare** 🌾 | `green` · `ploughshare` · `charter` | 26 | food and ground; growth itself pays a second voice |
-| **Star** 🔬 | `star` · `wayfarers` | 15 | learning and reveal; a technology completing is the occasion |
-| **Court** 🏛 | `court` (+ the untagged deck-readers) | 9 + the reassignment of `none` | wonders, great people, renown, and the deck reading itself |
+| "your Orders that give production give 50% more" | **an amplifier by voice over card yields** — a modifier applied *after* the card fold, "card ⚒ ×1.5". The fold keeps every card line labelled (`CardYieldLine`), so the multiplier is a pass over that list, printed as its own line | the Ledger's band 1 already buckets by card | **build** — the cleanest engine on the table; reads the deck without a tag |
+| "your science buildings give +50% base yield, per-citizen lines included" | **a building-yield percent by category** — the luxury evaluator's category selector on a yield percent, applied to each building's own lines (flat and per-citizen) before the city fold | `buildingEffects.ts` category selectors | **build** — the same shape as the balance-turn markup's "double the yields on your temples / farms / mines / fishing boats / markets" (a doubler is +100%); one shape, five or six cards |
+| "your tiles that supply faith give one more" | a `TileCondition` `{ test: 'yields', voice }` read against the tile's own fold | `hasResource` · `hills` · `feature` · `unimproved` | **build** — the smallest |
+| "your first economic slot pays twice" · "the card to the left is doubled" | **a slot-position reader** — the fold knows each card's slot; with slots ordered as drawn (RULED) the position is a fact | `slottedOrdersOfSlot` | **build** — the most Balatro of the five |
+| "every N turns, a boon" (standalone) · "your every-N-turn cards fire 3 turns earlier" (engine) · "your boons pay more" (engine) | a **periodic occasion** on `WindfallOccasion` (`everyTurns: N`) **and a period modifier** — its own small shape, read where the occasion is stamped. The boon-raiser is a rider on the windfall | `chop` · `camp` · `growth` · `found` · `completion` | **build** — ruled worthwhile: *frequency × size* is a second axis of scaling (chips × mult), and "every 5, shortened by 2" is a different card from "every 10" |
 
-The 25 rows carrying `line: 'none'` are reassigned by what they pay (the writ
-rows to Court, the war rows to Forge, and so on). `forge` at 41 rows is still
-the largest family and should probably be split at the pass — **flagged for
-markup**, because a split is a naming decision, not an arithmetic one.
+Discipline for the periodic build: the next firing is an **absolute turn
+stamp** (`nextFiresTurn`; nothing ticks — the timed-effects rule); a shortener
+re-stamps; the period has a **floor of two turns** so a stack cannot fire every
+turn; the boon is a windfall, so a raiser is a rider composed into one printed
+figure before banking (Entry XVIII.5) and modifier-immune like every grant.
 
-Doctrines carry a line too and would count; **beliefs should not** — a follower
-belief is city-local and pays whoever owns the town, so counting it toward an
-empire tag would pay a rival's faith to the wrong deck. Recommendation: the tag
-count reads **slotted Orders only**; doctrines and beliefs act as payoffs
-instead of as fuel.
+**Five shapes, no tag system.** Every one of them combos with buildings and
+tiles as well as cards, which a tag never could.
 
-### The three roles, and the share
+### Lines — RULED: drawn marks, three of them readable
+
+The user's instinct (players should not have to learn twelve lines) is right,
+and the real cost of lines is design bandwidth: twelve lines across six pools
+is seventy-two cells that each need engines, payoffs and fuel or they are trap
+lines. So:
+
+- **Modifier engines carry the economy** (they read the board).
+- **Three lines are readable — War, Faith, Trade** — for the identity decks
+  where the board has nothing to read ("+1 strength per War card slotted"
+  cannot be a modifier, strength is not a yield). This needs the one count
+  shape this doc first called required: `slottedOrdersOfLine` (a `CountKind`
+  member with a `line` argument and its `CombatScaleCount` twin —
+  `slottedOrdersOfSlot` is the shape exactly), plus `COUNT_WORDS`.
+- The other nine `CardLine`s stay **drawn marks only**; the six-family
+  consolidation this doc first proposed is withdrawn. **OPEN** (§6.8): which
+  of today's twelve lines map onto War, Faith and Trade, and whether the
+  remaining rows keep their marks or the mark is dropped.
+- The seven flavour-counting readers (`firstRites`, `theSynod`,
+  `theGuildCharter`, `oreTithes`, `theWarCouncil`, `borderWardens`,
+  `provincialGovernors`) re-aim: the war ones to the War line, the faith ones
+  to Faith, the gold one to Trade, `provincialGovernors` to a board reading
+  (cities founded). The balance-turn markup already cut `firstRites`' "per W
+  order" as a snowball.
+
+### The three roles, and the share — RULED
 
 | Role | What it is | Alone | With three friends | Rarity |
 |---|---|---|---|---|
-| **Engine** | reads the deck: "+1🕯 in every city for each Procession Order slotted", "your rites last twice as long", "each Forge card you hold pays +1⚒ in its town" | nearly nothing | multiplies | ● / ◆ |
-| **Payoff** | scales with what is slotted, held or built: "+3% science per Star Order slotted", "your faith pays again as science, a share per Procession Order" | small | the reason the deck exists | ○ |
-| **Standalone** | the honest flat, tagged | its number | its number, plus whatever counts it | ● / ◆ |
+| **Engine** | a modifier over what the empire does: "card ⚒ ×1.5", "science buildings +50%", "faith tiles +1", "your boons fire 3 turns sooner", "the first economic slot pays twice"; or a line reader for War/Faith/Trade | nearly nothing | multiplies | ● / ◆ |
+| **Payoff** | scales with what is slotted, held or built: "double the yields on your temples", "+3% science per Star card", "each Temple pays its faith again as culture", the periodic boon | small | the reason the deck exists | ○ |
+| **Standalone** | the honest flat | its number | its number, plus whatever multiplies it | ● / ◆ |
 
-**Proposed share per pool: 25% engines · 30% payoffs · 45% standalones.**
+**Share per pool: 25% engines · 30% payoffs · 45% standalones** — the user:
+"I agree with your mix". Standalones are the *fuel*, not the residue; a pool
+that is mostly engines is a pool where nothing is worth slotting first.
 
-This differs from the brief's 40/35/25 and the reason is the worked deck below:
-a committed eleven-chair deck used **one engine, three payoffs and seven tagged
-standalones**. Standalones are not the residue — they are the *fuel*, and a pool
-that is mostly engines is a pool where nothing is ever worth slotting first.
-What makes them fuel rather than filler is that every one carries a tag.
+**The power rule** (proposed, unmarked): *the multiplier rides the role.* A
+standalone keeps today's number; an engine and a payoff take the pool's
+multiplier from `docs/balance-turn.md` §3 (Æra III at seven-fourths). An
+uncommitted pile then plays exactly as it does today — not punished, simply
+no longer the ceiling.
 
-**And the power rule, which is the whole pass in one line:**
+**Rarity — RULED** (the balance-turn markup: "rarity should correlate with
+power/payoff"): engines common and uncommon, payoffs rare. That also carries
+out `docs/cards-pass-2.md` §E.6's ○ = rule-changer, which the audit found was
+never done. The counter-argument (Balatro's rares are often the engines) does
+not survive our cadence: a hand every four to eight turns wants reliable
+engines, not surprising ones.
 
-> **The multiplier rides the role.** A standalone keeps today's number. An
-> engine and a payoff take the pool's multiplier (`docs/balance-turn.md` §3's
-> table — Æra III at ×1.75). The deck's power rises only where the deck talks
-> to itself.
+### What each path has to be
 
-Consequence: an uncommitted pile plays *exactly as it does today* — it is not
-punished, it simply stops being the ceiling. A committed deck is the spike. That
-is a better answer than making the generic pile worse, which would tax the
-first-time player for not yet knowing the tags.
+A path is a *different engine for the primary yields*, not a side dish. The
+faith path is the worked example; the others follow the same template.
 
-### The shapes this needs
-
-| # | Shape | Where | Precedent | Verdict |
-|---|---|---|---|---|
-| 1 | **`slottedOrdersOfLine`** — a `CountKind` member with a `line` argument on `CardCountScaledEffect`, plus its twin in `CombatScaleCount` (a strength line must be able to read a tag too) | `statecraftData.ts` (two unions), one arm each in `countOf` and `combatScaleCount`, one entry in `COUNT_WORDS` | `slottedOrdersOfSlot` is this shape exactly, with `slot` where `line` would go — including the two-union split, which that member already pays for | **REQUIRED** |
-| 2 | **`EmpireCondition: { test: 'slottedLineAtLeast', line, value }`** | one member, one arm in the condition evaluator; `conditionRule` already wraps any clause | `cityCountAtLeast`; and `docs/card-shapes.md` named this the biggest return in that doc and it was never built | **RECOMMENDED** — it buys threshold engines ("while three or more Procession Orders are slotted…") and the honest version of Border Wardens' switch, which shipped as a lie in 2026-09-05 |
-| 3 | `AmplifierTarget: 'lineYields'` — "your Procession cards pay half again" | the central `liveEffects` fold would have to know which card each line came from | the Ledger's band 1 buckets by card id, so provenance exists | **DEFER** — it reaches the one fold every card passes through, and the bot cannot price it (it falls to `unknownEffect`) |
-
-**A payoff needs no shape beyond #1.** `CardPayout` already carries
-`{ to: 'percent', yield, percent, stage }` — `theGuildCompact` uses it — so
-"+3% science for every Star Order slotted" is a `countScaled` over the new count
-paying a percent, and it is expressible the day #1 lands.
-
-One further change is a **draw rule**, not a card shape:
-
-| Lever | Shape | Why |
-|---|---|---|
-| **The line guarantee** | one face of every hand drawn from the tag the player has the most of | with six tags and three faces, a committed player sees their own line on 42% of hands; a path that needs four cards then takes most of the game to assemble. `drawOrderOffer` already partitions into three guaranteed sub-bags, so this is that machinery asked a second question |
-
-### Which existing rows fit which role
-
-**Already engines (convert by swapping the count — a value change plus shape #1):**
-
-| id | Today | Becomes |
-|---|---|---|
-| `firstRites` | +1🕯 per wildcard slotted | per **Procession** slotted |
-| `theSynod` | +1🕯 +1🎵 per wildcard slotted | per **Procession** slotted |
-| `theGuildCharter` | +2💰 +1⚒ per economic slotted | per **Caravan** slotted |
-| `oreTithes` | +1⚒ capital per military slotted | per **Forge** slotted |
-| `theWarCouncil` | +1 strength per military slotted | per **Forge** slotted (`CombatScale` twin) |
-| `borderWardens` | +1 strength per military slotted | per **Forge** slotted, and with shape #2 the *switch* the row was written to have |
-| `provincialGovernors` | +1 writ per economic slotted | per **Ploughshare** slotted (expansion as a deck commitment) |
-| `theArchives` | +1🎵 per Order slotted | untagged reader — the deck's own floor; **keep** as the one tagless engine |
-| `theAnnalsOfLaw` | +2🎵 per benched Order | unchanged — the bench reader, and it gets better as chairs shrink |
-| `assemblyHall` · `smithy` (charter buildings) | count wildcard / military slotted | per **Court** / per **Forge** |
-| `theEscortedRoads` · `theSalon` | amplifiers | unchanged |
-
-Eleven rows, all of which become tag engines by editing two fields.
-
-**Already payoffs (scale with what the empire built or holds — keep the shape,
-take the multiplier):** `theOldWays`, `theMastersPresence`, `theHarvestSongs`,
-`theGoldenScales`, `theDraftingHalls`, `theGranaryLaws`, `theSaltingHouses`,
-`harbourDues`, `theCongregation`, `censusOfSouls`, `theCensusEternal`,
-`theFarCharts`, `theCartographers`, `theLongRoads`, `provincialMints`,
-`saltTithes`, `theTaxFarm`, `statuteLabour`, `theConsistory`, `theInquisition`,
-`theChoir`, `lamplighters`, `theLyceum`, and the doctrines `theTithe`,
-`cuiusRegio`, `thePilgrimWays`, `theAcademyOfDeeds`.
-
-**Need shape #1 to exist at all — the missing role.** The pool has no card that
-says "the more of this line you run, the better this is". Every tag needs one
-engine and one tag-scaled payoff per pool from Government II up; that is the
-new-row budget of this pass, and it is roughly **two rows per tag per pool**.
-
-**What each path has to be**, so that no path is a side dish:
-
-| Tag | The engine reads | The payoff converts | Why the path changes how you play |
+| Path | Engines read | Payoffs convert | Why it changes how you play |
 |---|---|---|---|
-| **Procession** | Procession cards slotted → faith in every city | faith → science · culture · production, a share per Procession card | faith stops being a fourth wheel and becomes the *source* of the primary voices; Temples everywhere, the Chapel, faith purchases |
-| **Forge** | Forge cards slotted → hammers, and strength through `CombatScale` | production → gold and science in Barracks/Forge towns; a captured town pays yields, not just ground | the audit's 35 dead war rows read zero **at peace**; a Forge path must pay a peacetime voice or it will always be the trap it is today |
-| **Caravan** | Caravan cards slotted → gold per route and per road hex | gold → every other voice, a share per Caravan card (`theGoldenScales` is the model) | roads and routes become the multiplier; the map is the deck |
-| **Ploughshare** | Ploughshare cards slotted → food in every town | food → science and culture (`theGranaryLaws`, `theHarvestSongs` are already the model), and growth itself pays | the tall/wide question becomes a deck question |
-| **Star** | Star cards slotted → beakers per Library and per hex revealed | a technology completing pays a share of a voice, sized per Star card (`theLyceum` is the model) | the tree's tempo becomes the payoff, so beelining is a build |
-| **Court** | Court cards slotted → renown, offers, and percents beside great works | +1% to every yield per Court card slotted, and wonders paying twice | the wonder line stops being a trap without touching a wonder row |
+| **Faith** | faith tiles +1 · temples doubled · "card 🕯 ×1.5" · Faith cards slotted (line) | faith → science / culture / production, a share per Faith card; the reroll and the rites are faith's *spend* | Temples everywhere, the Chapel worth raising, the faith ladder's rungs arrive sooner, rerolls shape the deck |
+| **War** | War cards slotted → strength (line) · "units cost half" | production → gold and science in Barracks towns; a captured town pays yields | the 29 war rows read zero at peace today; a War path must pay a peacetime voice or it stays the trap it is |
+| **Trade** | Trade cards slotted → gold per route and road (line) · "card 💰 ×1.5" | gold → every other voice (`theGoldenScales` is the model); route yields read the partner (the Silk Exchange's new reading) | roads and routes are the multiplier; the map is the deck |
+| **Growth** | "food tiles +1" · granaries doubled · growth's occasion | food → science and culture (`theGranaryLaws`, `theHarvestSongs`) | the tall/wide question becomes a deck question |
+| **Learning** | "science buildings +50%" · "card 🔬 ×1.5" · a technology completing as the occasion | a tech pays a share of a voice (`theLyceum`) | the tree's tempo becomes the payoff, so beelining is a build |
+| **Court** | position engines ("first slot pays twice") · the periodic boons | +1% to every yield per Court card; wonders paying twice | the wonder line stops being a trap without touching a wonder row |
 
 ### Three worked decks, against the turn-92 empire
 
-The empire (`docs/flags.md` note 17): 🌾211 ⚒131 💰143 🔬200 🎵195 🕯59 —
-939 points across the six voices. Assumptions are `docs/balance-turn.md` §0's
-(six cities, sixty citizens, a Temple and a Library in each, three great works,
-three routes, six unique luxuries).
+The empire: 🌾211 ⚒131 💰143 🔬200 🎵195 🕯59 — 939 points across the six
+voices (assumptions: `docs/balance-turn.md` §0). The worked decks were built
+under the tag design; under the modifier design the engine rows change name
+but not size (a "+1🕯 in every city per Faith card" engine and a "faith tiles
++1 · temples doubled" pair land within a few points of each other on this
+empire), so the arithmetic stands as an estimate.
 
 **Deck 1 — the generic pile (today, eleven chairs, the strongest tag-blind set):**
+`theLongRoads` 45💰 · `theFarCharts` 35🔬 · `scholarsStipend` 20🔬 ·
+`theGranaryLaws` 18🔬 · `theCensusEternal` 15🔬 · `theLyceum` 24🎵 ·
+`theHarvestSongs` 21🎵 · `theAnnalsOfLaw` 16🎵 · `theTaxFarm` 15💰 ·
+`statuteLabour` 12⚒ · `censusOfSouls` 12🕯 — **233 points, 25% of the empire.**
 
-| Row | Pays at t92 |
-|---|---|
-| `theLongRoads` | 45💰 |
-| `theFarCharts` | 35🔬 |
-| `scholarsStipend` | 20🔬 |
-| `theGranaryLaws` | 18🔬 |
-| `theCensusEternal` | 15🔬 |
-| `theLyceum` | 24🎵 |
-| `theHarvestSongs` | 21🎵 |
-| `theAnnalsOfLaw` | 16🎵 |
-| `theTaxFarm` | 15💰 |
-| `statuteLabour` | 12⚒ |
-| `censusOfSouls` | 12🕯 |
-| **total** | **60💰 · 88🔬 · 61🎵 · 12⚒ · 12🕯 = 233 points, 25% of the empire** |
-
-**Deck 2 — a committed Procession deck under the proposal (eleven chairs, all
-six tagged Procession or better):**
+**Deck 2 — a committed Faith deck under the proposal (eleven chairs):**
 
 | Row | Role | Pays |
 |---|---|---|
-| `waysideShrines` | standalone | 6🕯 |
-| `thePilgrimsPurse` | standalone | 5🕯 |
-| `theSaintsFields` | standalone | 9🕯 |
-| `theConsistory` | payoff (per Temple) | 12🕯 |
-| `censusOfSouls` | payoff (per capital citizen) | 12🕯 |
+| `waysideShrines` · `thePilgrimsPurse` · `theSaintsFields` | standalones | 20🕯 |
+| `theConsistory` (temples doubled — the user's own re-cut) | payoff | 12🕯 |
+| `censusOfSouls` | payoff | 12🕯 |
 | `theChoir` | standalone | 12🎵 |
-| `theInquisition` | payoff (per Temple town) | 18🕯 · 18🎵 |
-| **The Litany** *(NEW engine)* — +1🕯 in every city per Procession Order slotted | engine | 11 × 6 = **66🕯** |
-| `lamplighters` *(re-shaped, +1🎵 per 2🕯)* | payoff | 93🎵 |
-| **The Golden Censer** *(NEW payoff)* — faith pays again as science, 3% per Procession Order | payoff | 33% of 187🕯 = **61🔬** |
-| **The Masons of the Faith** *(NEW payoff)* — +2% production per Procession Order, in Temple towns | payoff | 22% of 131⚒ = **28⚒** |
-| **total** | | **128🕯 · 123🎵 · 61🔬 · 28⚒ = 340 points, 27% of a much larger empire** |
+| `theInquisition` (+8🕯 +8🎵 on temples — the user's re-cut) | payoff | 48🕯 · 48🎵 |
+| **faith tiles +1 · "card 🕯 ×1.5"** (engines) | engines | ≈60🕯 |
+| `lamplighters` (+1🎵 per 2🕯) | payoff | ≈80🎵 |
+| **faith pays again as science, 3% per Faith card** (payoff) | payoff | ≈55🔬 |
+| **+2% production per Faith card, in Temple towns** (payoff) | payoff | ≈28⚒ |
+| **total** | | **≈150🕯 · 140🎵 · 55🔬 · 28⚒ ≈ 370 points** |
 
-The empire after: 🌾211 ⚒159 💰143 🔬261 🎵318 🕯187 — 1279 points against 939.
-**The committed deck out-pays the generic pile by 46%**, and — the part the
-numbers cannot show — it changes what gets built (a Temple in every town, a
-Chapel worth raising, faith purchases worth opening) and what gets played (the
-tide, the consecrations, the prophet's timing).
+The empire after ≈ 1300 points against 939: **the committed deck out-pays the
+generic pile by roughly half**, and it changes what gets built and played.
+The engines alone, in a deck with no other Faith card, pay a tenth of that —
+**the card the user asked for.**
 
-**The Litany alone**, in a deck with no other Procession card, pays 6🕯 — a
-twentieth of what it pays above, and a tenth of what an honest flat would pay
-for the same chair. **That is the card the user asked for.**
+**Deck 3 — the uncommitted pile under the proposal:** the standalones pay
+their unchanged numbers, the payoffs fire on one or two helpings, the engines
+pay almost nothing — roughly **110–130 points**, half of Deck 1. The pile is
+not nerfed; it is no longer the best a hand can do. Whether that is tolerable
+for a first-time player is **OPEN** (§6.10).
 
-**Deck 3 — the uncommitted pile under the proposal (eleven chairs, one or two of
-each tag):** the six standalones pay their unchanged numbers; the three payoffs
-fire on one or two helpings each; the two engines pay almost nothing. Roughly
-**110–130 points** — about half of Deck 1, and about a third of Deck 2. This is
-the design working: the pile is not nerfed (its standalones kept their numbers);
-it simply is no longer the best a hand can do.
+### Making the combo visible — RULED
 
-### Making the combo visible at the draft
-
-An engine that cannot be seen is a trap. The draft must show, on the face and in
-the hand:
-
-| Surface | What it must print | Status |
+| Surface | What it prints | Status |
 |---|---|---|
-| The tarot face | the tag glyph and name in the eyebrow | `CardLine` already has drawn marks; a presentation change |
-| The offer, per face | "you hold N of this line · M slotted" | new, one line per face |
-| The standing face | "has produced" — the lifetime tally per owned order, per voice | `docs/flags.md` note 5, the stamp design's phase 2 — **schema, already specified, waiting on `cities.ts`** |
-| The Ledger | the deck's slice per voice, already built (bands 1–2); band 3 is the same tally | `docs/loop-review.md` §3 |
-| The Statecraft screen | chairs grouped by tag, so the council reads as a deck | new, presentation |
-
-Without the tally and the per-face count, an engine is indistinguishable from a
-weak flat, and the pass fails on legibility rather than on arithmetic. **Phase 2
-of the stamp is a dependency of this pass, not a nice-to-have.**
-
-### Rarity: engines common, payoffs rare
-
-The recommendation, and the argument:
-
-- An engine must be **reliably available** or a path cannot be assembled. A
-  rare engine is a strategy that depends on a coin flip, and the pool's history
-  already shows what that produces — `theFoundingOath` is a rare that pays less
-  than a twentieth of any voice, and it is the Chiefdom pool's *only* rare.
-- `docs/cards-pass-2.md` §E.6 ruled that ○ means **rule-changer, not bigger
-  number**. A payoff that scales with a whole tag *is* a rule-changer: it turns
-  every other card in that family into a multiplier. That ruling was never
-  carried out (the balance turn's audit says so); this is the pass that carries
-  it out.
-- The **pass** becomes a real decision for the first time: a committed player
-  who is dealt an off-line hand passes, banks `skipPity`, and is pushed by the
-  weighting toward the rare payoff. That is the Balatro moment — turning down a
-  good card because your deck wants a different one — and it only exists if the
-  rares are the payoffs.
-- The counter-argument, honestly: in Balatro the rare jokers *are* often the
-  engines. It does not carry here, because Balatro deals a shop every round and
-  we deal a hand every four to eight turns. At our cadence, reliability is worth
-  more than surprise.
+| The tarot face at the draft | the per-card stamp (what this card is worth *now*), the line mark where the card has a readable line | built (the stamp); the mark is a presentation change |
+| **The slot, unconfirmed** | **nothing** — a newly slotted card shows no yields until Confirm | **RULED** |
+| **Confirm** | the fold runs in order — base lines, then modifiers — and **the aggregate fires with the count-up**: "your cards: +31⚒ +18🔬 +40🎵", the modifier lines listed after the base lines in fold order | **RULED** — the scoring ceremony |
+| The standing face | "has produced" — the lifetime tally per owned order (flags note 5, stamp phase 2) | schema, specified, waiting on `cities.ts` — **a dependency of this pass** |
+| The Ledger | the deck's slice per voice (bands 1–2, built); band 3 is the tally; the aggregate line joins band 1 | built / specified |
+| The Statecraft screen | slots ordered as drawn, position words on the face ("first economic slot") | **RULED** (ordered slots) |
 
 ---
 
 ## 5. Interactions, and the order of work
 
-### The balance turn: partly superseded
+### The balance turn (`docs/balance-turn.md`, marked up 2026-09-06)
 
-| `docs/balance-turn.md` | Verdict |
+| Section | Verdict |
 |---|---|
-| §0–§2 — the scale, the row-by-row audit, the diagnosis, the six failure modes | **stands.** It is the measurement of record and this doc is built on it |
-| §3 — the proposed multiplier per pool and the row-by-row new numbers | **held.** Do not apply it before the tag pass: it raises rows whose *role* is about to change, and a standalone that took the Æra III multiplier would then have to be cut back. Re-derive §3 after §4 lands, with the multiplier riding the role |
-| §4a–§4g — the nerf side (building flats −25%, `library.sciencePerPop`, Entry LIV's supply trim, leave tiles/wonders/beliefs/techs) | **stands, and is subsumed.** §2's cut list is a larger version of the same move: it removes the flats rather than shrinking them. Entry LIV's trim (writ and cheer leaving buildings) is *implemented* by the cut list — `monument`, `steleOfLaws`, `examinationHall`, `funeralGames`, `baths` were the rows in question |
-| §5 — interactions | **stands**, and everything in it applies twice over here |
-| §6 — the six decisions | five of the six are re-asked in §6 below, in this pass's terms |
+| §0–§2 — the scale, the audit, the diagnosis | **stands** — the measurement of record |
+| §3 — the row-by-row numbers, now the user's | **held until the roles are assigned**: a row's number rides its role (the power rule), so §3's figures apply to standalones as written and to engines/payoffs with the pool multiplier. Re-derive once §4's roles are on the rows |
+| §4 — the nerf side, marked | **stands**: `sciencePerPop` base 1 → 0.5 and Library 1 → 0.5 (balance-turn §7 flags the base beaker as the largest single move — **OPEN** §6.13 to confirm), building flats −25% is **subsumed by §2's cut**, tiles/wonders/beliefs/techs left alone |
+| §7 — rule 3 (cheer rows), the 29 war rows, what faith buys, the two new shapes | folded here: the pure-cheer rows are §2/§4's first cuts (**OPEN** §6.4 which); the war rows are the War line's fuel; faith's purchases are §3 and §1's reroll; the doubler and the partner-population route reading are two of §4's shapes |
 
 ### What else moves
 
 | Surface | What moves |
 |---|---|
-| `src/ai/wants.ts` — `draftPlan`, `expectedBestOrder` | **the largest bot debt this pass creates.** Both score a card *in isolation* through `inputs.cardWorth`. An engine scores near zero on its own, so the bot will never draft one, and will therefore never build a combo deck. The fix is a **marginal** reading — `V(deck ∪ card) − V(deck)` — which needs `countOf` to be askable hypothetically, and it is not (the same wall the "hypothetical percents unpriced" debt names). Write it down; it is a batch of its own |
-| `src/ai/value.ts` — `explainCounted` | prices `countScaled` through the simulation's own `countOf`, so the new count is priced **honestly for free** the day it lands. This is why shape #1 is cheap and shape #3 is not (an amplifier falls to `score.unknownEffect`) |
-| `src/ai/wants.ts` — `faithPlan`, `explainRites` | §3 option A simplifies both and closes the "rites in roster order" debt |
-| The bot's building wants | §2 — every card naming a cut building must be re-aimed or `potentialTownsFor` prices a promise that cannot arrive |
-| `test/sim/statecraftPacing.slow.test.ts` | the cadence band and all three tier bands move on the exponent alone; then again on the deck's power. Read the cadence band first |
-| `test/sim/tech.slow.test.ts` · `endgame.slow.test.ts` | age turns and bead pace; the science payoffs are the largest movers, and the bands are two-sided |
-| `test/sim/statecraftDocSync.test.ts` | pins name and rarity per pool. **A tag column is new data and wants its own sync**, on the doc-table pattern (`docs/orders-and-doctrines.md` grows a Line column, pinned) |
-| `test/sim/statecraft.test.ts` | the fold registry is pinned there; a new `CountKind` arm and a new `EmpireCondition` arm each join it, and a shape declared but never read fails the register test |
-| `test/sim/cardImpact.test.ts` · `growingOrders.test.ts` | every re-shaped row's stamp changes |
-| The compendium | generated; it follows for free, except that a tag needs a word in the describers (`COUNT_WORDS` gets the line's name) |
-| Saves | a new count, a new condition, twelve buildings retired, `performRite`'s shape, the tally: **one schema bump covers the batch if they land together**, several if they do not |
-| The arena | no page edit — the panel walks `data/ai.json` and this pass adds no bot knob except, eventually, whatever the marginal draft reading needs |
+| **Shapes** (all new, all small) | amplifier by voice over card yields · building-yield percent by category · `yields` tile test · slot-position reader · periodic occasion + period modifier · `slottedOrdersOfLine` (+ its combat twin) · `requiresBuilding` · route reading of the partner's population · the faith ladder · the faith reroll. **Ten** members across `statecraftData.ts`, `buildingEffects.ts`, `routeYields.ts`, `religionData.ts`; each declared shape must be read (the register test) and priced (the bot) |
+| `src/ai/wants.ts` — `draftPlan`, `expectedBestOrder` | **the largest bot debt this pass creates.** Both price a card *in isolation* through `cardWorth`; an engine prices near zero alone, so the bot never drafts one and never builds a combo deck. The fix is a marginal reading `V(deck ∪ card) − V(deck)`, which needs the fold askable hypothetically — a batch of its own, after the shapes land |
+| `src/ai/value.ts` — `explainCounted` | prices `countScaled` through the sim's own `countOf`, so the line count is priced honestly for free; the amplifier and the building percent need arms (`unknownEffect` otherwise); the periodic boon prices as a windfall over its period |
+| The bot's faith plan | the augur leaves; rites are a per-city purchase want; the faith ladder joins the draft plan; the reroll is a new spend the bot must price (or ignore, at first) |
+| Pacing harnesses | `statecraftPacing.slow` (cadence, tiers), `tech.slow`, `endgame.slow` — every one moves on the buildings cut (upkeep relief), the science cuts, the deck's power, and the cadence. Re-aim once per landed batch, not once per row |
+| `statecraftDocSync.test.ts` | name + rarity per pool are pinned; a line column and a role column are new data and want their own sync on `docs/orders-and-doctrines.md` |
+| `statecraft.test.ts` | the fold registry: every new arm joins it |
+| Saves | the dice removed · the augur retired · `performRite` reshaped · the faith ladder · thirteen buildings behind a marker · chains · new counts and conditions · the tally: **one schema bump per landed batch** |
+| The arena / compendium | no page edit; the compendium follows the describers, and each new shape needs its words |
 
-### The order of work
-
-The brief's suggested order was tags → orders → buildings → augur. One change
-is recommended, for one reason: **the buildings the cards count should be
-settled before the cards that count them are written**, but the *cut* is a pure
-data pass with no new shape and no dependency on tags. So:
+### The order of work — proposed
 
 | | Step | Why here |
 |---|---|---|
-| 1 | **The augur** (§3 option A) | entirely self-contained, removes the worst clicks in the game, and answers the user's first sentence. One command shape, one schema, one belief re-cut |
-| 2 | **Tags** — shape #1, the six-family consolidation, the tag on the face and in the offer | landing tags alone changes no number on the board (every row already carries a line), so it is the safest possible sim step, and everything downstream reads it |
-| 3 | **The buildings cut** (§2) | pure data plus three bead re-aims and one wonder grant; must precede the order pass so the surviving cards count surviving rows |
-| 4 | **The order pass** — roles, shares, the new engines and payoffs, shape #2, and `docs/balance-turn.md` §3's numbers re-derived on top | the big one; needs 2 and 3 settled |
-| 5 | **Cadence and chairs** (§1's levers) | last, tuned against the pacing harness once the deck's real power is known — tuning cadence before step 4 would be tuning against the old deck |
-
-Steps 1 and 2 can run in parallel on disjoint fences (`religion.ts` /
-`statecraftData.ts`). Steps 3, 4, 5 are sequential.
+| 1 | **The five engine shapes + the readable line + the Confirm reveal and aggregate + ordered slots** | changes no number on the board until a card uses a shape; everything downstream reads them. The reveal is UI on the existing Confirm |
+| 2 | **Religion** (§3): the faith ladder, city rites, the prophet's acts, the apostle, the dice out and the faith reroll in | self-contained, removes the worst clicks in the game; disjoint fence from step 1 (`religion.ts` / `statecraftData.ts`) — can run in parallel |
+| 3 | **The buildings cut with chains** (§2) | pure data plus `requiresBuilding`, three deed re-aims, the bot's parent reading; must precede the order pass so cards count surviving rows |
+| 4 | **The order pass**: roles on every row, the new engines and payoffs per pool, the balance-turn numbers re-derived with the multiplier riding the role, the 29 war rows fuelling the War line | the big one; needs 1 and 3 |
+| 5 | **The tech gift table** — every node's gift after the cut (a project, a rite, a card, a chain unlock, a tile line); the rule: **no node without a gift a player will notice** | the doc after this one (§6.11) |
+| 6 | **Cadence and chairs** (§1's levers) | last, tuned against the harness once the deck's real power is known |
 
 ---
 
-## 6. For your markup — the decisions only you can make
+## 6. Open — the decisions only you can make
 
-1. **The augur.** §3 recommends **A**: rites become a city verb paid in faith
-   with the Chapel as the door and a per-city seal, and the augur survives as
-   the **consecrator only** — a rare piece bought two to four times a game for a
-   pantheon belief. The alternatives are B (fold the augur into the prophet;
-   faith goes passive; the pantheon arrives an age later) and C (keep the errand,
-   make it rarer). **Recommended: A.** Two numbers ride on it and are yours: the
-   faith a rite costs, and how many turns a town must wait between rites.
+Everything not marked RULED above, gathered. Each carries a recommendation.
 
-2. **How many buildings, and which.** §2 cuts the 38 ordinary rows to 19, of
-   which 7 are merges. The list is per-age and per-row; strike any line. The one
-   judgement worth a second look is **`examinationHall`** — cutting it puts writ
-   entirely in cards and two charter buildings, which is Entry LIV's thesis
-   carried out in full and is the single biggest change to tall-versus-wide in
-   the cut. **Recommended: take the whole list**, since half a cut leaves the
-   duplication the complaint was about.
-
-3. **The tags: six families, and what to do with `forge`.** §4 proposes
-   Procession · Forge · Caravan · Ploughshare · Star · Court, consolidating
-   today's twelve lines. `forge` at 41 rows is nearly a third of the deck and
-   mixes soldiers with hammers; splitting it into **War** and **Works** would
-   give seven tags and a cleaner Forge path, at the cost of one more family for
-   the player to track. **Recommended: split it** — a tag that means two things
-   cannot be an engine's subject.
-
-4. **The role shares, and the power rule.** §4 proposes **25% engines · 30%
-   payoffs · 45% standalones** per pool, with the multiplier riding the role: a
-   standalone keeps today's number, an engine and a payoff take
-   `docs/balance-turn.md` §3's pool multiplier. The alternative is the brief's
-   40/35/25, which the worked deck argues against — a committed deck needs more
-   fuel than glue. **Recommended: 25/30/45 with the power rule.**
-
-5. **Rarity.** §4 recommends **engines common and uncommon, payoffs rare**,
-   which finally carries out `docs/cards-pass-2.md` §E.6's ruling that ○ means
-   rule-changer. The alternative is the reverse (rare engines, common payoffs),
-   which is Balatro's own distribution and does not survive our draft cadence.
-   A rarity move changes the draw bag and therefore costs a schema bump either
-   way. **Recommended: engines common, payoffs rare.**
-
-6. **Cadence and chairs.** §1 proposes `meter.costExponent` 2.25 → 2.8 (20
-   drafts by t92 → 14, opening drafts unmoved) **and** slot counts down a
-   quarter (Gov III 11 chairs → 8), so that chairs stay contested at the lower
-   draft count. They are one decision: moving either alone breaks the tension
-   the other holds. The seal stays at 5 turns — ruled, untouched.
-   **Recommended: take both, and tune them last, after the deck's power is
-   known.**
-
-7. **The line guarantee.** With six tags and three faces, a committed player
-   sees their own line on 42% of hands. §4 proposes one guaranteed face drawn
-   from the tag the player holds most of — the M/E/W sub-bag machinery asked a
-   second question. It is a draw rule, not a card shape, and it is the
-   difference between a path being buildable and being lucky.
-   **Recommended: yes.** The alternative is a wider offer, which makes every
-   draft slower rather than sharper.
-
-## 7. The markup, folded (2026-09-06, first pass — the user is still reading §4–6)
-
-### Rulings taken from the tables above
-
-- **Buildings kept that the cut list struck**: `lighthouse`, `watermill`,
-  `stoneWalls` (needs a Palisade), `amphitheater` (+0.5🎵 per citizen; needs a
-  Monument), `bank` (+0.5💰 per citizen, +10%💰; needs a Market). The Monument
-  keeps its flat (no per-citizen line). `townCharter` is never built — it is
-  gained only by founding a city after daughter cities. `university` needs a
-  Library and takes balance-turn's numbers; `bazaar` needs a Market.
-  **Prerequisite chains are the new shape here**: a building that needs its
-  parent standing (`requiresBuilding`) — a small schema field and a
-  `buildError` clause, and the tech-tree doc's per-age tables say so.
-- **Religion, redesigned** (supersedes §3's options A/B/C):
-  - **Consecration happens automatically** when a faith threshold is reached —
-    a faith ladder, the culture draft's twin (offer drawn once, spent by a
-    command, the same ceremony).
-  - **Rites are city verbs**, ten turns each, reworked: *food* — tiles that
-    supply food give one more; *gold* — resource tiles +1💰; *science* —
-    buildings in the city +1🔬 each; *culture* — +1🎵 on luxury tiles and
-    border growth +30%; *military* — +5 defence and units heal +5 inside the
-    city's borders.
-  - **Prophets stay purchasable**, two charges: found/enhance a belief (both
-    charges; no holy site planted by it), plant a holy site (both charges, a
-    separate act), proclamation (one), invoke an **empire-wide rite** (one).
-    `redraftBeliefs` is removed.
-  - **The apostle** joins later in the tree than the prophet: two charges, 4
-    movement, a half-strength proclamation reaching cities within six hexes
-    (one charge), heal adjacent units 25 (one charge). *Open: its third act.*
-  - The augur leaves; `courtAugurs`, the five rite abilities on the tree, and
-    `augurHasActed` re-cut with it.
-
-### The order rework — the user's engine shapes, weighed
-
-| the idea | encodable today? | what it takes | verdict |
-|---|---|---|---|
-| your Orders that give production give 50% more production | no | **an amplifier by voice over card yields**: a modifier applied *after* the card fold, "card ⚒ ×1.5". The fold already keeps every card line labelled (`CardYieldLine`), so the multiplier is a pass over that list — one shape, one stage, printed as its own line | **build it** — this is the cleanest engine in the list: it reads the deck without a tag |
-| science buildings give +50% base yield, per-citizen lines included | no | **a building-yield percent by category**: `buildingEffects.ts` folds category selectors for luxuries already; the same selector on a yield percent applied to each building's own lines (flat *and* per-citizen) before the city fold | **build it** — and it is the "double your temples / farms / mines" shape from balance-turn §7 generalised (a doubler is +100%) |
-| tiles that supply faith give one more | nearly | a `TileCondition` `{ test: 'yields', voice: 'faith' }` — the condition vocabulary has resource/hills/feature/unimproved; "yields X" is one more test, read against the tile's own fold before the card's line | **build it** — smallest of the five |
-| your first economic slot pays twice | no | **a slot-position reader**: the fold knows which slot a card sits in (`slottedOrdersOfSlot` counts by flavour), so "the card in economic slot 1 ×2" is the neighbour/amplifier shape §4 deferred, by position rather than by line | **hold** — it is the most Balatro of the five, but position-reading needs the slot order to be a thing the player can rearrange (today the slots are typed, not ordered) — a UI decision first |
-| every X turns, a bonus (standalone); your every-X-turn cards trigger 3 turns earlier | no | a **periodic occasion** on `WindfallOccasion` (`everyTurns: N`, stamped absolute like everything timed), and an engine that shortens the period — the engine must read the standalone's period, which is the tag-less deck-reader again | **build the occasion; the shortener is a "card ×" in disguise** — "your periodic cards pay 50% more" is the same amplifier as row one and needs no second shape |
-
-So: **three shapes** — the amplifier by voice, the building-yield percent by
-category, the "yields X" tile test — plus the periodic occasion, and the
-user's whole list is encodable. None of them needs a line.
-
-### Lines versus modifiers — honest opinion
-
-The user's instinct is right for the wrong reason. A player never has to
-*memorise* lines if the card shows its mark and the draft shows what you hold
-(the stamp's phase 2) — that is a display problem, solved. The real cost of
-lines is **design bandwidth**: every line needs enough engines *and* payoffs
-*and* fuel in every pool to be draftable, or it is a trap line, and twelve
-lines across six pools is seventy-two cells to keep honest. Modifier engines
-("card ⚒ ×1.5", "science buildings +50%", "faith tiles +1") **read what the
-empire is actually doing** rather than what colour its cards are, so they
-combo with everything of that kind — including buildings and tiles, which have
-no line at all. That is the wider net, and it needs three shapes instead of a
-tag system.
-
-**The combination**: modifier engines for the *economy* (they read the board),
-and **a handful of lines — three, not twelve — for the *identity* decks** where
-the board has nothing to read: War, Faith, Trade. A "+1 strength per War card"
-engine cannot be written as a modifier because strength is not a yield. Keep
-`CardLine` as the drawn mark, make three of them readable (the required
-`slottedOrdersOfLine` shape from §4), retire the rest as tags. That is the
-recommendation.
-
-### "Cards show nothing until the government is confirmed" — honest opinion
-
-The scheme: a card in a slot prints no yields until the hand is confirmed;
-then the fold runs in order (base, then modifiers) and the total from the
-cards is shown as one aggregate.
-
-- What it buys: the **reveal** — a Balatro scoring moment, once per
-  government, and a clean statement of order-of-operations.
-- What it costs: **the draft's information**. The stamp (built last night)
-  exists because a player choosing between two cards needs to see what each is
-  worth *now*, in this empire; hiding that until confirmation makes the pick a
-  guess, which is the opposite of a bigger decision. And the seal is five
-  turns — cards come and go between confirmations, so "confirmed" is not a
-  moment the game has.
-- **Take the half that works**: keep the per-card stamp at the draft and on
-  the standing face, and add the **aggregate** — one line in the Ledger's deck
-  band (and the government's charter block): "your cards: +31⚒ +18🔬 +40🎵",
-  with the modifiers' lines listed after the base lines in fold order. The
-  reveal moment becomes the *seal-out*: when a card's seal expires and you
-  swap, the aggregate re-folds with a count-up. That is the scoring ceremony
-  without hiding the numbers a decision needs.
-
-### What cities build and what techs unlock, after the cut
-
-The cut list keeps 19 + the five you kept back = ~24 ordinary buildings, with
-prerequisite chains. The honest worry is right: with fewer rows, a city's
-queue empties sooner and a tech that unlocks nothing is a dead node. Three
-answers, in order of preference:
-
-1. **Chains make the same building a longer project.** A Library → University
-   → (Observatory) chain is three decisions in one town where the flat list was
-   three unrelated ones; the prerequisite is the shape that makes a tall town
-   *different* from a wide one. Every survivor should sit on a chain of two or
-   three.
-2. **Projects fill the queue without adding rows.** The queue already has
-   repeatable projects (`ProjectPayout`: gold/science/faith, and a culture
-   project). Give each age one or two more with *shapes* rather than flats: a
-   festival that pays the city's culture again as happiness for ten turns; a
-   levy that turns hammers into a unit purchase discount; a survey that reveals
-   veins in the city's ring (the vein-visibility note, made a project).
-   Projects are decisions with a cost and a timer, not rows to own.
-3. **Techs unlock verbs, projects and card shapes, not only buildings.** The
-   tree already hands over abilities (embark, siege, rites); after the cut, a
-   node's gift can be: a project, a rite, a *card* (a tech that adds a card to
-   your pool is the Civ VI civic in this game's grammar — `TechDef` already
-   carries card effects), a tile line (`renewals` are gone; a tech that makes an
-   improvement better is still a gift), a prerequisite unlocked (the Bank
-   *exists* at Currency, is *buildable* once a Market stands — two gifts from
-   one row). The rule for the pass: **no tech node without a gift a player
-   will notice**, and the gift table per node is the next doc after this one.
-
-### Open, for the user
-
-- The apostle's third act (a suggestion: *convert* — the apostle's charge makes
-  a city within six hexes follow your faith outright for a turn, the
-  proclamation's blunt sibling; or *pilgrimage* — the apostle standing in a
-  foreign holy-site city pays your capital its faith).
-- Whether the empire-wide rite (the prophet's charge) is one of the five city
-  rites cast everywhere, or its own row.
-- Slot order: do you want slots the player can *arrange* (so "first economic
-  slot" and "the card to the left" mean something)? Yes opens the position
-  engines; no keeps typed slots and the modifier engines carry the combo.
-
-### Second pass (2026-09-06, the user's answers) — RULED
-
-- **The reveal is the Confirm.** A card newly placed in a slot shows no
-  yields until the government is confirmed (the screen already has Confirm /
-  Revert and an "unconfirmed" state — the stamp simply waits for it). On
-  Confirm the fold runs in order — base lines, then modifiers — and **the
-  aggregate fires** with the count-up: "your cards: +31⚒ +18🔬 +40🎵". Drafted
-  cards keep their stamp at the draft; only the *slotting* hides its figure.
-- **Slots are ordered.** The arrangement the screen draws is the order: the
-  topmost economic slot is "the first economic slot", so the position engines
-  ("your first economic slot pays twice", "the card to the left") are open.
-  Rearranging is a placement like any other (unconfirmed until Confirm).
-- **Faith replaces the Magister's dice.** The dice go entirely (`Player.dice`,
-  `startingDice`, the bead boons' `dice`, Chronology's die — nothing spends
-  them today, so the cut is clean; schema). A **faith reroll** of a draft
-  costs by age and by the number of rerolls taken so far, and the button
-  prints the *next* price so the rise is visible before the click — "used
-  sparingly" is the design. Rerolls are the deck's tempo currency, which is
-  what makes a faith path a different engine.
-- **The prophet's empire-wide rite** is one of the five city rites, cast on
-  every city at once (one charge).
-- **Faith as the magisterial supplement** — open ideas beside the reroll: the
-  apostle's acts; a **relic**, performed once per cathedral, paying faith per
-  turn thereafter.
-- **Periodic effects, with two dials.** Ruled worthwhile: "every N turns, a
-  boon" is a standalone; one engine raises the boon, another shortens N —
-  *frequency × size* is a second axis of scaling (Balatro's chips × mult),
-  and "every 5, shortened by 2" is a different card from "every 10". So the
-  shortener is its **own** small shape (a period modifier read where the
-  occasion is stamped), not the amplifier in disguise as §7 first said.
-  Discipline for the build: the next firing is an absolute turn stamp
-  (`nextFiresTurn`, nothing ticks — the timed-effects rule); a shortener
-  re-stamps; the period has a floor (two turns) so a stack cannot fire every
-  turn; the boon is a windfall — the engine that raises it is a rider
-  composed into one printed figure before banking (Entry XVIII.5), so it is
-  modifier-immune like every one-time grant.
+1. **The building tables' unmarked rows.** Every `proposed` row in §2 stands
+   until struck; the ones worth a second look: `examinationHall` (cutting it
+   puts writ entirely in cards and two charter buildings — Entry LIV in full),
+   `monastery` (note 15 asked for a rework; the cut *is* the rework — or name
+   the shape you want it to have), `funeralGames` / `baths` / `forum` (the
+   pure-cheer and pure-flat rows), `steleOfLaws`. **Recommended: take the
+   list as it stands.**
+2. **The chains not yet said.** Castle from Stone Walls? Observatory from
+   University? Forge from Workshop? Temple from Shrine? **Recommended: yes to
+   all four** — a chain per line, so every survivor sits on one.
+3. **Religion's loose ends.** (a) The **Chapel** (`ritesCharter`): the door
+   to the city rites (a town without one cannot call a rite), a discount, or
+   cut? *Recommended: the door* — the Æra I faith charter buys a real
+   building. (b) **What the Cathedral does** now that the consecration is on
+   the faith ladder: a rung paid at once, the relic's site, or its yields
+   alone? *Recommended: the relic's site.* (c) **Court Augurs** (the pantheon
+   belief on `chargedAugurs`) — its new subject. (d) The **rite abilities on
+   the tree**: do techs still open the five rites one by one, or are all five
+   open from the Shrine and the five nodes get other gifts? *Recommended: the
+   techs keep opening them* — it costs nothing and keeps five gifts.
+4. **Grants and the chain.** Does a wonder's completion grant (the Theatre's
+   Amphitheatre) ignore the chain, or grant the parent too, or fail? Same for
+   `charterTowns` (a Granary at founding — no chain today). *Recommended: a
+   grant ignores the chain; the sentence says so.*
+5. **Faith's two curves.** The **faith ladder** (consecration thresholds:
+   base / linear / exponent, as culture's `meter`), and the **reroll price**
+   by age and by rerolls taken (a base per age × a multiplier per reroll —
+   e.g. ×1.5 each; the button prints the next price). Both are data rows and
+   yours.
+6. **The rites' numbers.** Ten turns each is ruled; the faith price per rite
+   and the per-city seal between rites are not.
+7. **The apostle's third act, and the relic.** *Suggested*: **convert** — a
+   city within six hexes follows your faith outright for a turn (the
+   proclamation's blunt sibling) — or **pilgrimage** — standing in a foreign
+   holy-site city pays your capital its faith. The relic (once per cathedral,
+   faith per turn) is yours to confirm.
+8. **The three readable lines.** War, Faith, Trade — which of today's twelve
+   `CardLine`s map onto them (`forge`/`hunt` → War; `procession`/`cloister` →
+   Faith; `caravan` → Trade is the obvious reading), and whether the other
+   rows keep a drawn mark that reads nothing. *Recommended: keep the marks —
+   they are the card's illustration.*
+9. **Cadence and chairs.** `costExponent` 2.25 → 2.8 (20 drafts by t92 → 14)
+   **and** Gov III 11 chairs → 8, as one decision, tuned last. *Recommended:
+   take both.*
+10. **The uncommitted pile at half of today.** Deck 3 lands at 110–130 points
+    against today's 233 for a tag-blind hand. Tolerable for a first-time
+    player, or should the standalones take a small share of the multiplier
+    too? *Recommended: leave it — the standalones keep their numbers, and the
+    tutorial's job is to show one combo.*
+11. **The tech gift table.** After the cut, which nodes lose their only gift,
+    and what replaces it (a project, a rite, a card added to your pool, a
+    chain unlock, a tile line). Its own doc; say if you want it before or
+    after the order pass. *Recommended: before* — the tree is the game's
+    spine.
+12. **Veins.** Mark prospectable hills on the lens once the tech is held, or
+    survey automatically when a worker rests on the hex? *Recommended: mark
+    them* — the survey stays a choice, it just stops being a hunt.
+13. **The base beaker.** The balance-turn markup halves `sciencePerPop` (the
+    citizen's own science) as well as the Library's. Confirm that a roughly
+    third-slower tech pace for every empire is the intent, or take the
+    Library cut alone.
+14. **Projects.** Each age one or two repeatable projects with shapes (a
+    festival paying culture again as happiness for ten turns; a levy turning
+    hammers into a unit discount; a survey revealing veins in the ring) so
+    the queue has something to do after the cut. Yes or no, and which.
