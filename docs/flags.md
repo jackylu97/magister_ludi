@@ -28,7 +28,13 @@ directly to confirm rulings — user marginalia are rulings.
   yields**, lands before the pacing re-aim: every fold carries fractions
   (no per-source or per-stage floor), banks and pools hold the exact figure,
   every printed number rounds at the surface only. The floor question is
-  closed by it; the beaker stays at 0.5. One gate per batch; one schema per batch that
+  closed by it; the beaker stays at 0.5. **E LANDED** in the tree (schema
+  76; every gift a data row; Machinery's road step an empire fact in
+  fifteenths; Irrigation's gift already stood as the farm's line and was
+  left alone; the Water Clock keeps its rider). Measured with X under it:
+  Æra I close 236 → 80 against a 56–76 band — exact yields recover nearly
+  all of D's slide; E adds a few turns. The one dated re-aim follows the
+  X + E gate. One gate per batch; one schema per batch that
   changes a save (71 → 75). The play checkout on :5199 stays where it is.
 
 ### In flight earlier (2026-09-05, evening)

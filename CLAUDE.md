@@ -108,7 +108,10 @@ be renamed — it would change every seeded outcome. No further rename passes.
   verb (worker|explorer); `richOre` is a `buried`-marker bonus row.
 - **Roads**: `Tile.road = builderId`, written only by `layRoad` (`roads.ts`, a
   leaf — `cities.ts` never imports `trade.ts`; pinned). A road step (both hexes
-  paved) costs exact thirds inside `stepCost`. `roadFree` = a decreed hex (free
+  paved) costs `MoveProfile.roadStep` inside `stepCost` — fifteenths
+  (`MOVEMENT_DENOMINATOR` 15): a third by default, a fifth under Machinery's
+  `roadStepCost` rule; read in exactly two places (`stepCost`,
+  `cheapestStepCostFor`). `roadFree` = a decreed hex (free
   for maintenance count). A trader is its own stacking-free `UnitCategory`;
   `Unit.trade` presence IS the route (no route register). `startRoute` may
   teleport an idle trader to the origin through `arriveOnTile`. A melee blow on
