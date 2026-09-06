@@ -421,6 +421,20 @@ rulings yet:
   empire-wide rite is one of the five city rites cast everywhere; the
   apostle and a relic (faith per turn, once per cathedral) are faith's
   "magisterial supplement" ideas, open; buildings keep prerequisite chains.
+  **Third pass (2026-09-06)** — every open item answered, folded into
+  `docs/fewer-things.md` (§6 is the record): all twelve lines readable;
+  cadence 2.8 and chairs down a quarter incl. Gov IV/V; ten chains; the
+  Chapel is the rite door; the Cathedral keeps its roll; Court Augurs
+  renamed to pay every city with an active rite; grants ignore chains; the
+  faith ladder shaped like the augur's old prices; reroll from 35 faith at
+  a slight exponent, prophets free; the apostle's third act is the relic;
+  the base beaker halves and science moves into orders (the next playtest
+  calibrates); three projects (production → gold / science / culture);
+  veins marked, with hidden unique minerals. **Still open: the rites' faith
+  price and per-city seal** (a default is proposed there). Two docs in
+  flight for markup: `docs/tech-gifts.md` (every node's gift after the cut,
+  before the order pass) and `docs/veins.md` (the vein mechanics and the
+  rare minerals).
 
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture
   boon → mid-turn draft → slot → dead ×) awaits confirmation on current
