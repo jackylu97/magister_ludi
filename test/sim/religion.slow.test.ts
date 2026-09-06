@@ -4,11 +4,21 @@
  *
  * The scripts here play a real opening: an empire that settles a few towns,
  * beelines the prerequisite closure of The High Temple, puts a shrine in every
- * town, and then spends faith on prophets and augurs the moment the pool covers
- * one. The horizon is the measurement, not an implementation detail — the
- * determinism claim is only worth making over a log that actually *contains* a
- * purchase, a rite and a god, so each test asserts that its own game reached
- * them before it asserts that the replay is byte-identical.
+ * town, and then banks the faith that comes back out of it. The horizon is the
+ * measurement, not an implementation detail — the determinism claim is only
+ * worth making over a log that actually *contains* a consecration, a rite and a
+ * god, so each test asserts that its own game reached them before it asserts
+ * that the replay is byte-identical.
+ *
+ * **Repaired 2026-09-06, batch C2's debt.** The one-seat script used to buy an
+ * augur the moment the pool covered one and spend it on a rite or a god. The
+ * augur is **retired** (C2) and the consecration is the faith ladder's (C1), so
+ * the script measured nothing at all: a refused purchase every turn, no augur,
+ * no rite, no god. What replaced it is the game as it is played now — faith
+ * banks, `openFaithLadder` deals the belief hand when the bank crosses a rung,
+ * the pick pays for it, and a **rite is a town's verb** said in whichever town
+ * holds the door. See `test/sim/faithLadder.test.ts` for the ladder's own rules
+ * and `docs/religion-v2.md` for the shape.
  *
  * **The horizons doubled on 2026-09-02**, with the column-formula costs: 90 →
  * **200** for the one-seat game and 170 → **340** for the two-seat one. Nothing
@@ -26,22 +36,58 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import type { Command } from '../../src/sim/commands';
 import { foundingErrorAt } from '../../src/sim/cities';
 import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
 import { mapRange, tileHex } from '../../src/sim/map';
-import { availableRites, consecrateError, isAugur, riteError } from '../../src/sim/religion';
+import { availableRites, empireRiteError, riteError } from '../../src/sim/religion';
 import { type PurchasableItem, explainPurchaseCost } from '../../src/sim/purchase';
+import { type OrderId, orderDef } from '../../src/sim/statecraftData';
 import { type GameState, SCHEMA_VERSION, playerById } from '../../src/sim/state';
 import { availableTechs, buildError } from '../../src/sim/tech';
 import { TECH_IDS,
   type TechId, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 
-/** The one thing faith sells. Named once, so the shape reads out of the way. */
-const AUGUR: PurchasableItem = { kind: 'unit', id: 'augur' };
-/** The other thing faith sells, since religion v2. */
+/** The thing faith sells, since religion v2 — the augur's row is retired. */
 const PROPHET: PurchasableItem = { kind: 'unit', id: 'prophet' };
+
+/**
+ * The row that holds a town's rite door, by its **marker** rather than its name
+ * (`BuildingDef.ritesDoor`) — the discipline `src/sim/` keeps, so a second door
+ * would be found here without anybody editing this file.
+ */
+const RITE_DOOR = BUILDING_IDS.find((id) => buildingDef(id).ritesDoor === true)!;
+
+/** Does this Order hand over a row that holds the rite door? */
+function opensTheRiteDoor(id: OrderId): boolean {
+  for (const effect of orderDef(id).effects ?? []) {
+    if (effect.kind !== 'unlocksBuilding') continue;
+    if (buildingDef(effect.building).ritesDoor === true) return true;
+  }
+  return false;
+}
+
+/**
+ * Which of an offered hand this pious script takes.
+ *
+ * Option 0 as everywhere else — the cadence is measured elsewhere and the
+ * choices are not what these tests are about — **except** for the one card that
+ * opens the rite door, which the seat takes whenever the deck shows it to it.
+ *
+ * It rarely does, and that is worth knowing rather than working around: the
+ * charter is an *uncommon wildcard* in the Government I pool, one wildcard is
+ * drawn per hand, and the pool is gone the moment Government II is adopted — so
+ * a scripted seat gets five or six chances at it and, on this seed, takes none.
+ * The rite this file's determinism claim rests on is therefore the **prophet's**
+ * (`empireRite`, which needs no Chapel anywhere); the town verb is scripted too,
+ * and fires when the deck obliges.
+ */
+function orderPick(options: readonly OrderId[]): number {
+  const wanted = options.findIndex(opensTheRiteDoor);
+  return wanted >= 0 ? wanted : 0;
+}
 
 
 /**
@@ -49,11 +95,13 @@ const PROPHET: PurchasableItem = { kind: 'unit', id: 'prophet' };
  * numbers rest on.
  *
  * `playWarband`'s shape (`buildSinks.test.ts`) with a different appetite: settle
- * a few towns, research toward Divination first, put a shrine in every town, and
- * then spend faith on augurs the moment the pool covers one — a rite when there
- * is a use for one, a god when a slot is open. Deliberately conservative and
- * deliberately scripted, because the number it produces ("the first augur lands
- * on turn N") is only worth anything if the same script always produces it.
+ * a few towns, research toward Divination first, put a shrine in every town, take
+ * the charter that opens the rite door when the deck offers it, and then let the
+ * faith bank — the ladder deals a god the moment the bank crosses a rung, and a
+ * town says a rite whenever it can pay for one. Deliberately conservative and
+ * deliberately scripted, because the number it produces ("the first god is
+ * consecrated on turn N") is only worth anything if the same script always
+ * produces it.
  *
  * Every act is a **command**, which is what lets the determinism test above
  * replay the whole thing: the harness never reaches into the state.
@@ -77,9 +125,10 @@ function closureOf(target: TechId): TechId[] {
 }
 function playFaithful(maxTurns: number): {
   game: ReturnType<typeof createGame>;
-  firstAugurTurn: number | null;
+  /** The turn the faith ladder's first rung was climbed, or `null`. */
+  firstConsecrationTurn: number | null;
   ritesPerformed: number;
-  augursBought: number;
+  rungsClimbed: number;
 } {
   const g = createGame({
     seed: 4242,
@@ -90,20 +139,25 @@ function playFaithful(maxTurns: number): {
   // The road to the augur, cheapest-first inside the prerequisites the tree
   // already enforces: this is a *pious* opening, not an optimal one.
   const ROAD: TechId[] = closureOf('theHighTemple' as TechId);
-  let firstAugurTurn: number | null = null;
+  let firstConsecrationTurn: number | null = null;
   let ritesPerformed = 0;
-  let augursBought = 0;
 
   for (let turn = 0; turn < maxTurns; turn++) {
     const player = playerById(g.state, 0)!;
 
     // Answer whatever is owed, always option 0 — this measures the price, not
-    // the choices.
+    // the choices. The belief hand is the **faith ladder's** now (schema 71):
+    // it is dealt by the bank rather than by an errand, and the pick is what
+    // spends the rung.
     if (player.pantheon.pending !== undefined) {
       dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
     }
     if (player.statecraft.pendingOrder !== undefined) {
-      dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 } as Command);
+      dispatch(g, {
+        type: 'chooseOrder',
+        playerId: 0,
+        optionIndex: orderPick(player.statecraft.pendingOrder.options),
+      } as Command);
     }
     if (player.statecraft.pendingGovernment !== undefined) {
       dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 } as Command);
@@ -140,72 +194,72 @@ function playFaithful(maxTurns: number): {
       if (target) dispatch(g, { type: 'moveUnit', playerId: 0, unitId: unit.id, target });
     }
 
-    // Buy an augur whenever the pool covers one, in the biggest town.
+    // **The consecration is not an errand any more** — nothing is bought for
+    // it. The bank fills, `openFaithLadder` deals the belief hand the moment it
+    // crosses the next rung, and the `chooseBelief` at the top of the loop pays
+    // for it. The **prophet** is what faith still sells, and this pious seat
+    // buys one whenever the bank covers it.
     const home = g.state.cities.find((city) => city.ownerId === 0);
-    const price = home ? explainPurchaseCost(g.state, 0, home.id, AUGUR, 'faith') : null;
-    if (price && home && player.faithPool >= price.total) {
-      if (
-        dispatch(g, {
-          type: 'purchaseItem',
-          playerId: 0,
-          cityId: home.id,
-          item: { kind: 'unit', id: 'augur' },
-          currency: 'faith',
-        } as Command).ok
-      ) {
-        augursBought += 1;
-        if (firstAugurTurn === null) firstAugurTurn = g.state.turn;
-      }
+    const price = home ? explainPurchaseCost(g.state, 0, home.id, PROPHET, 'faith') : null;
+    if (home && price && player.faithPool >= price.total) {
+      dispatch(g, {
+        type: 'purchaseItem',
+        playerId: 0,
+        cityId: home.id,
+        item: PROPHET,
+        currency: 'faith',
+      } as Command);
     }
 
-    // Spend the augurs. **One charge, one deed** since Entry LVIII, so the
-    // "one rite first, then a god with what is left" policy this script used to
-    // run is no longer a thing a single piece can do: an augur is a rite *or* a
-    // god, and the price ladder is the whole of the question.
-    //
-    // The script therefore **alternates**, keeping the gods one behind the
-    // rites — the order a player weighing the two would take them in, and the
-    // one policy that guarantees the log this test replays contains both. The
-    // preference is a preference, not a rule: an augur that cannot do the
-    // preferred thing does the other rather than standing idle, which is what
-    // keeps a full pantheon from stalling the script.
+    // **A rite over the whole realm, then the ground.** A prophet has two
+    // charges and `plantHolySite` spends the *piece*, so the order matters: the
+    // realm-wide rite takes one charge and the founding takes what is left.
+    // This is the one rite a scripted seat can be *sure* of — `empireRite`
+    // needs no Chapel anywhere, and the Chapel is behind an uncommon wildcard
+    // Order (see the note on the determinism test).
     for (const unit of [...g.state.units]) {
-      if (unit.ownerId !== 0 || !isAugur(unit)) continue;
-      if (
-        player.pantheon.beliefs.length < ritesPerformed &&
-        consecrateError(g.state, 0, unit.id) === null &&
-        dispatch(g, { type: 'consecrate', playerId: 0, unitId: unit.id } as Command).ok
-      ) {
-        continue;
-      }
-      // **A rite is a town's verb now** (2026-09-06), so the piece plays no
-      // part in it: the scripted seat says one in whichever of its towns will
-      // take it, and the augur's own arm below is what is left of the piece.
-      let acted = false;
-      for (const city of g.state.cities) {
-        if (city.ownerId !== 0) continue;
-        for (const rite of availableRites(g.state, 0)) {
-          if (riteError(g.state, 0, city.id, rite) !== null) continue;
-          if (dispatch(g, { type: 'performRite', playerId: 0, cityId: city.id, rite } as Command).ok) {
-            ritesPerformed += 1;
-            acted = true;
-          }
-          break;
+      if (unit.ownerId !== 0 || unitDef(unit.type).prophesies !== true) continue;
+      for (const rite of availableRites(g.state, 0)) {
+        if (empireRiteError(g.state, 0, unit.id, rite) !== null) continue;
+        if (dispatch(g, { type: 'empireRite', playerId: 0, unitId: unit.id, rite } as Command).ok) {
+          ritesPerformed += 1;
         }
-        if (acted) break;
+        break;
       }
-      if (acted) continue;
-      if (consecrateError(g.state, 0, unit.id) === null) {
-        dispatch(g, { type: 'consecrate', playerId: 0, unitId: unit.id } as Command);
-      }
+      dispatch(g, { type: 'plantHolySite', playerId: 0, unitId: unit.id } as Command);
     }
 
-    // Keep every queue full: a shrine first, then whatever the town can make.
+    // **And a rite is also a town's verb** (schema 74): the seat says one in
+    // whichever of its towns holds the door and can pay, one town a turn, and
+    // the ten turns of the blessing are its own seal. Whether any town ever
+    // holds the door is the deck's business, which is why the prophet's rite
+    // above is what the claim rests on.
+    for (const city of g.state.cities) {
+      if (city.ownerId !== 0) continue;
+      let said = false;
+      for (const rite of availableRites(g.state, 0)) {
+        if (riteError(g.state, 0, city.id, rite) !== null) continue;
+        if (dispatch(g, { type: 'performRite', playerId: 0, cityId: city.id, rite } as Command).ok) {
+          ritesPerformed += 1;
+          said = true;
+        }
+        break;
+      }
+      if (said) break;
+    }
+
+    // Keep every queue full: a shrine first, then the rite door if the deck has
+    // handed it over, then whatever the town can make.
     for (const city of g.state.cities) {
       if (city.queue.length > 0) continue;
       const queue: { kind: string; id: string }[] = [];
       if (!city.buildings.includes('shrine') && buildError(g.state, 0, 'building', 'shrine') === null) {
         queue.push({ kind: 'building', id: 'shrine' });
+      } else if (
+        !city.buildings.includes(RITE_DOOR) &&
+        buildError(g.state, 0, 'building', RITE_DOOR) === null
+      ) {
+        queue.push({ kind: 'building', id: RITE_DOOR });
       } else if (
         !city.buildings.includes('monument') &&
         buildError(g.state, 0, 'building', 'monument') === null
@@ -220,8 +274,16 @@ function playFaithful(maxTurns: number): {
     }
 
     dispatch(g, { type: 'endTurn', playerId: 0 });
+    if (firstConsecrationTurn === null && playerById(g.state, 0)!.pantheon.rungs > 0) {
+      firstConsecrationTurn = g.state.turn;
+    }
   }
-  return { game: g, firstAugurTurn, ritesPerformed, augursBought };
+  return {
+    game: g,
+    firstConsecrationTurn,
+    ritesPerformed,
+    rungsClimbed: playerById(g.state, 0)!.pantheon.rungs,
+  };
 }
 
 /** The nearest tile a city could legally stand on, or null. `tech.test.ts`'s. */
@@ -246,7 +308,7 @@ function nearestSite(
 }
 
 describe('determinism', () => {
-  it('round-trips a schema 40 save with augurs, rites and beliefs in the log', () => {
+  it('round-trips a save with a consecration, a rite and a belief in the log', () => {
     // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
     // moved every replay that raised one.
     // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
@@ -290,12 +352,24 @@ describe('determinism', () => {
     // v68 (2026-09-05, the cards pass): Government IV and V become Order pools
     // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
     // names indices into hands this build does not deal.
-    expect(SCHEMA_VERSION).toBe(70);
+    // **Caught up 2026-09-06** (a repair, not a re-aim): this pin had stood at
+    // 70 since before C1 and the file simply never ran green long enough for
+    // anybody to move it. What landed on top of it, in order — v71 the faith
+    // ladder and the reroll (a consecration is dealt by the bank, not walked
+    // over by an augur), v72–v74 the rites becoming a town's verb behind the
+    // Chapel's door, v75 exact yields (nothing rounds inside a fold, so every
+    // pool a replay banks is a different number), v76 the tree's gifts (ten
+    // nodes hand over different rows and a Machinery army marches further on
+    // the same paving). A v70 log replays into a different world at every one
+    // of those, which is what a schema number is for.
+    expect(SCHEMA_VERSION).toBe(76);
     const played = playFaithful(200);
-    // The empire actually got there: an augur was bought out of faith it earned,
-    // rites were performed, and a god was named. A determinism test over a log
-    // with none of those in it would be a determinism test of nothing.
-    expect(played.firstAugurTurn).not.toBeNull();
+    // The empire actually got there: the faith ladder dealt a god and the bank
+    // paid for it, a town said a rite, and a belief is held. A determinism test
+    // over a log with none of those in it would be a determinism test of
+    // nothing.
+    expect(played.firstConsecrationTurn).not.toBeNull();
+    expect(played.rungsClimbed).toBeGreaterThan(0);
     expect(played.ritesPerformed).toBeGreaterThan(0);
     expect(playerById(played.game.state, 0)!.pantheon.beliefs.length).toBeGreaterThan(0);
     // The whole claim: `{config, log}` replays byte for byte.
@@ -384,11 +458,12 @@ function playTwoFaiths(maxTurns: number): {
         if (target) dispatch(g, { type: 'moveUnit', playerId: seat, unitId: unit.id, target });
       }
 
-      // The prophet first, then the augur: a religion is worth more than a rite,
-      // and a seat that saved for one should not spend the faith on three.
+      // **The prophet is the only thing faith buys** since C2 retired the
+      // augur; the gods this seat needs before it can found anything come off
+      // the faith ladder, which is dealt by the bank at the top of the loop.
       const home = g.state.cities.find((city) => city.ownerId === seat);
       if (home) {
-        for (const item of [PROPHET, AUGUR]) {
+        for (const item of [PROPHET]) {
           const price = explainPurchaseCost(g.state, seat, home.id, item, 'faith');
           // Save for the second prophet rather than spend the faith on augurs:
           // founding consumes the founder, so the bomb this test is about needs
@@ -460,21 +535,11 @@ function playTwoFaiths(maxTurns: number): {
         }
       }
 
-      // **A god first, here.** This script is about founding, and a religion is
-      // founded out of the pantheon — so a seat with an open slot spends its
-      // augur on a god and only preaches with what is left over. Under the
-      // one-charge rule (Entry LVIII) that is a *choice between pieces* rather
-      // than a plan for one, which is exactly why the preference has to be
-      // stated: an augur spent on a rite is a god this seat will never have.
-      for (const unit of [...g.state.units]) {
-        if (unit.ownerId !== seat || !isAugur(unit)) continue;
-        if (
-          consecrateError(g.state, seat, unit.id) === null &&
-          dispatch(g, { type: 'consecrate', playerId: seat, unitId: unit.id } as Command).ok
-        ) {
-          continue;
-        }
-      }
+      // **A god first, here** — and the ladder is what sees to it. This script
+      // is about founding, and a religion is founded out of the pantheon, so
+      // the seat that has not banked a rung yet has nothing to found with. The
+      // bank is left alone above for exactly that reason; what is left over
+      // pays for a rite, in whichever town holds the door.
       for (const city of g.state.cities) {
         if (city.ownerId !== seat) continue;
         for (const rite of availableRites(g.state, seat)) {
@@ -536,26 +601,32 @@ describe('two faiths and a bomb', () => {
   });
 });
 
-describe('what an augur costs a real empire', () => {
-  it('lands the first one in the window the design predicted', () => {
+describe('what a god costs a real empire', () => {
+  it('lands the first consecration in the window the design predicted', () => {
     const played = playFaithful(200);
     // eslint-disable-next-line no-console
     console.log(
-      `[religion] first augur on turn ${String(played.firstAugurTurn)} — ` +
-        `${played.augursBought} bought, ${played.ritesPerformed} rites performed in 90 turns`,
+      `[religion] first consecration on turn ${String(played.firstConsecrationTurn)} — ` +
+        `${played.rungsClimbed} rungs climbed, ${played.ritesPerformed} rites performed in 200 turns`,
     );
-    expect(played.firstAugurTurn).not.toBeNull();
+    expect(played.firstConsecrationTurn).not.toBeNull();
     // A **band**, not a memorised number, for `statecraftPacing.test.ts`'s
     // reason: a curve that got cheaper is as much a regression as one that got
-    // dearer. `docs/religion.md` predicts "the first augur ~turn 15–20 after
-    // Divination"; this pious opening reaches Divination around turn 10, so the
-    // window is generous on both sides and would catch a retune that made faith
-    // free or made it unreachable.
-    expect(played.firstAugurTurn!).toBeGreaterThan(10);
-    expect(played.firstAugurTurn!).toBeLessThan(75);
-    // And the agent is actually *spent* rather than accumulated: the whole
-    // anti-spam structure is that an augur is one rite or one god.
-    expect(played.ritesPerformed + playerById(played.game.state, 0)!.pantheon.beliefs.length)
-      .toBeGreaterThan(0);
+    // dearer. `docs/religion-v2.md` prices the ladder's first rung at forty
+    // faith and this pious opening reaches Divination — which is what opens the
+    // first pantheon slot — around turn ten, so the window is generous on both
+    // sides and would catch a retune that made faith free or made it
+    // unreachable.
+    //
+    // **Re-aimed 2026-09-06** with the same window the augur's purchase had.
+    // The two prices are deliberately the same number (the ladder "wears the
+    // augur's old price ladder" — `faithLadder.test.ts`), so what moved is the
+    // errand and not the arithmetic, and the band did not have to move with it.
+    expect(played.firstConsecrationTurn!).toBeGreaterThan(10);
+    expect(played.firstConsecrationTurn!).toBeLessThan(75);
+    // And the bank is actually *spent* rather than hoarded: a rung climbed is a
+    // god held, and the ladder is what turns one into the other.
+    expect(playerById(played.game.state, 0)!.pantheon.beliefs.length)
+      .toBeGreaterThanOrEqual(played.rungsClimbed);
   });
 });

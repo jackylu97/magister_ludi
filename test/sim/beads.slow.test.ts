@@ -10,9 +10,10 @@
  *
  * The claim under test is the 2026-08-30 re-keying: the deck keys are the
  * **built** age numbers, so the doc's Æra III deck is deck **2**, and a real
- * game therefore turns its first hand face up when the first seat completes an
- * age-2 technology — turn 46 on this script — rather than never, which is what
- * an age-4 key would have meant on a three-age tree.
+ * game therefore turns its first hand face up when the first seat reaches the
+ * matching age — turn 308 on this script since batches D, E and X (2026-09-06;
+ * turn 46 when the re-keying landed, on a much cheaper tree) — rather than
+ * never, which is what an age-4 key would have meant on a three-age tree.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -77,7 +78,7 @@ function playSeat(maxTurns: number): { game: Game; opened: number | null; firstD
 
 describe('the table in a played game', () => {
   it('deals from turn one and opens when the first seat enters built age 3', () => {
-    const { game, opened, firstDeal } = playSeat(260);
+    const { game, opened, firstDeal } = playSeat(400);
     const player = game.state.players[0]!;
 
     // The deal does not wait for anybody: a card lands on the table face down
@@ -107,7 +108,22 @@ describe('the table in a played game', () => {
     // 300, which is still the loose one this test wants: what is pinned is that
     // the table opens *inside a game*, and a tighter band would fail on a tree
     // retune this file has no opinion about.
-    expect(opened!).toBeLessThan(300);
+    //
+    // **Re-aimed 2026-09-06 — the one dated pass after batches D, E and X**
+    // (`docs/fewer-things-plan.md`, "Pacing re-aim after D, E, X"). Nothing
+    // about the beads moved: no deed was re-keyed, no deck re-priced, and the
+    // Water Clock's rework (E) hands this seat a periodic beaker rather than
+    // taking one away. **It is the science pace, and only that.** This lone
+    // capital reaches built age 2 on t133 and built age 3 on **t308**, and the
+    // hand turns over on exactly the turn the age does — against t211 before
+    // the three batches. D halved the base beaker and cut the buildings to
+    // chains, X's exact yields gave most of it back (a size-1 town's half
+    // beaker is banked rather than floored away), and what is left is the
+    // halving itself, paid over a one-city economy that has the least of it to
+    // spare. The horizon grows 260 → 400 with the band, for the reason every
+    // pacing harness in this suite gives: one that stops before the thing it
+    // measures happens measures nothing at all.
+    expect(opened!).toBeLessThan(420);
     expect(game.state.beads.worldAge).toBeGreaterThanOrEqual(3);
     expect(highestAge(player.techsResearched)).toBeGreaterThanOrEqual(3);
 

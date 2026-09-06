@@ -12,10 +12,13 @@
  *
  * Three claims, and none of them is reachable without playing:
  *
- *   · **The finish line arrives inside a game.** A seat that researches the
+ *   · **The finish line is reachable at all.** A seat that researches the
  *     cheapest thing available every turn reaches the closing technology, the
  *     Opus opens for the world, and the row appears in a build list — the
  *     regression this guards is a gate that is correct and unreachable.
+ *     It used to say "inside a game", and since 2026-09-06 it does not: this
+ *     one-city seat needs ~3960 turns, which is a pacing finding written up on
+ *     the assertion itself rather than a band anybody should read as a target.
  *   · **The Opus can be paid for.** Hammers and the `contribute` verb together
  *     finish twelve hundred, out of a treasury the empire actually earned.
  *   · **The whole thing is a save.** Every act above is a command, so the game
@@ -156,7 +159,7 @@ function playToTheFinish(maxTurns: number): Played {
 
 describe('the finish line in a played game', () => {
   it('opens, is paid for, and settles the race', () => {
-    const { game, opened, finished } = playToTheFinish(1900);
+    const { game, opened, finished } = playToTheFinish(4200);
     const player = game.state.players[0]!;
 
     // **It arrives inside a game.** A gate that is correct and unreachable is
@@ -187,9 +190,40 @@ describe('the finish line in a played game', () => {
     // headroom it had (measured +135) and the horizon grows to 1900 with it,
     // for the reason the pin above gives: a harness that stops before the chart
     // runs out measures nothing at all.
+    //
+    // **Re-aimed 2026-09-06 — the one dated pass after batches D, E and X**
+    // (`docs/fewer-things-plan.md`, "Pacing re-aim after D, E, X"). This seat
+    // now opens the Opus on **3959** and finishes it on 3960, against
+    // 1689/1690 before the three batches. D halved the base beaker and cut the
+    // buildings down to chains, X's exact yields gave most of that back, and E
+    // added a few turns of gifts — and the residue lands hardest here for the
+    // reason this harness exists: a **one-city** seat is the leanest science
+    // economy the suite plays, so a halved per-citizen beaker costs it a
+    // greater share of everything it has, and it has no second town to make the
+    // loss up in.
+    //
+    // **The claim this assertion makes has changed, and it is written down
+    // rather than bent.** It no longer says the finish line "arrives inside a
+    // game": three thousand nine hundred and sixty turns is not a game, and
+    // pretending a band around it means anything about pacing would be the lie.
+    // What stays pinned is the **machinery** — the chart runs out, the row
+    // appears in a build list, hammers and the treasury together pay twelve
+    // hundred, the golden bead lands on the rod and the race settles — which is
+    // the regression this file was written for (a gate that is correct and
+    // unreachable) and is worth keeping whatever the turn count is. The turn
+    // count itself is a **pacing finding** for the user: the four-age tree is
+    // meant to close the game around the end of Æra IV, the five-town empire in
+    // `tech.slow.test.ts` closes Æra IV at t999, and this lone capital needs
+    // four times that. The gap between the two *is* what a capital alone is
+    // worth, and it is far wider than the ruling that opened the question
+    // intended.
+    //
+    // The horizon grows 1900 → 4200 with the band (the run is still under ten
+    // seconds — a one-city turn is cheap), and the ceiling keeps roughly the
+    // headroom it had.
     expect(opened).not.toBeNull();
     expect(opened!).toBeGreaterThan(100);
-    expect(opened!).toBeLessThan(1825);
+    expect(opened!).toBeLessThan(4100);
     expect(player.techsResearched).toContain(buildingDef(OPUS).worldUnlockTech!);
 
     // **It can be paid for**, out of hammers and a treasury the empire earned.

@@ -137,7 +137,8 @@ describe('the culture ladder', () => {
     // in view rather than dropping the tier from the measurement.
     // Horizon 260 → 400 (2026-09-05, the Library's gold row): the third
     // government slipped to turn 325, well past the old horizon. See the
-    // re-aim note on `tiers[2]` below.
+    // re-aim note on `tiers[2]` below. Left at 400 on 2026-09-06, when batches
+    // D, E and X brought the third government back to turn 275.
     const { draftTurn } = playEmpire(400);
     /**
      * **Measured on seed 4242 at `costBase 6 / costLinear 3 / costExponent 2`,
@@ -214,7 +215,9 @@ describe('the culture ladder', () => {
     // The early cadence — drafts 1 through 8, the stretch Entry XV's "~5 turns
     // per draft early" is about. Measured 7.4; the band is two-sided, because a
     // curve that got cheaper is as much a regression as one that got dearer.
-    // Measured 9.7 after the column-formula costs (7.4 before).
+    // Measured 9.7 after the column-formula costs (7.4 before), and **9.29
+    // after batches D, E and X** (2026-09-06) — the band is left where it is,
+    // because the figure did not move.
     const earlyCadence = (eighth - first) / 7;
     expect(earlyCadence).toBeGreaterThan(5);
     expect(earlyCadence).toBeLessThan(13);
@@ -233,8 +236,39 @@ describe('the culture ladder', () => {
       expect(turn, `government ${index + 1}`).toBeDefined();
     }
     // Re-centred 2026-09-03 with the two below (measured 57, previously 39).
-    expect(tiers[0]!).toBeGreaterThan(46);
-    expect(tiers[0]!).toBeLessThan(68);
+    //
+    // **Re-aimed 2026-09-06 — the one dated pass after batches D, E and X**
+    // (`docs/fewer-things-plan.md`, "Pacing re-aim after D, E, X"). Full ladder
+    // on this seed, before → after the three batches:
+    //
+    //   before  13,22,54,57,60,66,72,78,85,94,110,130,153,179,209,243,282,325
+    //   after   13,22,31,40,53,61,68,78,88,95,104,117,136,157,181,209,240,275
+    //
+    // — governments (drafts 4/10/18) at **40 / 95 / 275** against 57 / 94 / 325,
+    // and the ladder is **faster**, which is the one direction none of the
+    // re-pins above ever moved in. Three readings:
+    //
+    //   · **The cliff at draft 3 is gone** (54 → 31). It was the happiness bill
+    //     of a third town landing on an empire that could not pay it; D's
+    //     buildings cut and E's writs moved where a realm's cheer comes from,
+    //     so the third town is affordable when it lands and the empire no
+    //     longer makes nearly no culture for twenty turns.
+    //   · **The early cadence comes down with it** — 9.29 turns per draft over
+    //     drafts 1–8, against 9.3 before, which is the same number: the opening
+    //     never moved (13 and 22 are unmoved for the fifth re-pin running) and
+    //     the drafts in between simply spread more evenly.
+    //   · **The late ladder is a quarter quicker** (draft 18 at 275 against
+    //     325), which is the purse: the science cut of D took the beaker and
+    //     not the coin, and X's exact yields pay a small town its fraction of
+    //     everything rather than flooring it away, so the treasury crosses zero
+    //     later and the quarter `treasuryInDebt` takes off culture bites later.
+    //
+    // `tiers[1]` (95) stays inside the band it had — it moved by a turn.
+    // `tiers[0]` and `tiers[2]` are re-centred on the new measurements at their
+    // existing widths (±11 and ±21). The horizon stays at 400: draft 18 lands
+    // at 275, which is a hundred and twenty-five turns inside it.
+    expect(tiers[0]!).toBeGreaterThan(29);
+    expect(tiers[0]!).toBeLessThan(51);
     // **Re-centred 2026-08-28.** Two things had drifted under this band and only
     // one of them is a change: `GOVERNMENT_TIERS` moved to 4 / 10 / 18, which put
     // the second charter on draft 10 rather than draft 7 and the measurement at
@@ -380,7 +414,8 @@ describe('the culture ladder', () => {
     // to 400 to keep it in view.
     expect(tiers[1]!).toBeGreaterThan(76);
     expect(tiers[1]!).toBeLessThan(108);
-    expect(tiers[2]!).toBeGreaterThan(304);
-    expect(tiers[2]!).toBeLessThan(346);
+    // Re-centred 2026-09-06 on 275 at its existing ±21 — see the note above.
+    expect(tiers[2]!).toBeGreaterThan(254);
+    expect(tiers[2]!).toBeLessThan(296);
   });
 });

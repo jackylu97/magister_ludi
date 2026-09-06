@@ -195,7 +195,7 @@ describe('pacing', () => {
   }
 
   it('closes its four ages on the Quick-speed schedule (Entry V)', () => {
-    const { game, ageDone } = playEmpire(900);
+    const { game, ageDone } = playEmpire(1100);
     // Measured on this seed after the city-centre re-base: **41 / 80 / 120**,
     // against 40 / 78 / 118 immediately before it, 37 / 74 / 111 when the Civ
     // 6-style Age I ramp landed, 40 / 68 / 107 with the flat 16–29 Age I costs,
@@ -482,6 +482,35 @@ describe('pacing', () => {
     // above gives: a harness that stops before the tree closes measures nothing
     // at all. Bands keep the widths above (±10 / ±15 / ±25 / ±30), re-centred;
     // Æra I's is left where it is, because its measurement did not move.
+    //
+    // **Re-aimed 2026-09-06 — the one dated pass after batches D, E and X**
+    // (`docs/fewer-things-plan.md`, "Pacing re-aim after D, E, X"). Three
+    // batches moved this harness and the plan holds the fixtures still until
+    // all three have landed, so that the size of what the science cut actually
+    // costs is measured once rather than absorbed a batch at a time. This seed
+    // now closes at **80 / 156 / 481 / 999** against 66 / 120 / 366 / 779.
+    // What the four numbers are, in the order they were caused:
+    //
+    //   · **D halved the base beaker** (`rules.cities.sciencePerPop` 1 → 0.5)
+    //     and cut the buildings down to chains. On its own that was ruinous
+    //     rather than slower: the beaker was floored *per town*, so a size-1
+    //     village banked nothing at all, and Æra I slid to t236.
+    //   · **X took the floor out of every fold** (exact yields). A half beaker
+    //     is a half beaker again, and most of D came back — Æra I from 236 to
+    //     80. It does not come all the way back, and it is not meant to: the
+    //     beaker really did halve, so 80 against 66 and 156 against 120 is the
+    //     ruling's own cost, paid honestly.
+    //   · **E's gifts add a few turns** at the far end (Horology's periodic
+    //     beakers and the Water Clock's arrive too late in this build order to
+    //     pay for themselves before Æra III).
+    //   · **And the Monument's writ left the buildings**, which is the one that
+    //     does not look like science: a wide realm's borders grow slower, so
+    //     five towns work less ground, so five towns make fewer beakers. It is
+    //     most of the difference between Æra III at 366 and at 481.
+    //
+    // The horizon grows 900 → 1100 with the bands, for the reason every pin
+    // above gives. Bands keep the widths above (±10 / ±15 / ±25 / ±30),
+    // re-centred on the four fresh measurements.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -491,14 +520,14 @@ describe('pacing', () => {
     expect(third, `age III: ${String(third)}`).toBeDefined();
     expect(fourth, `age IV: ${String(fourth)}`).toBeDefined();
 
-    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(56);
-    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(76);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(105);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(135);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(341);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(391);
-    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(749);
-    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(809);
+    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(70);
+    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(90);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(141);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(171);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(456);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(506);
+    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(969);
+    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(1029);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 120_000);
 

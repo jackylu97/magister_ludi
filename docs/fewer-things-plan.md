@@ -42,7 +42,7 @@ The play checkout (:5199) moves only when the user says; every batch lands in
 | | |
 |---|---|
 | **Schema** | 71 · 72 · 73 · 74 · 75 — one per batch that changes a save; saves from before the pass do not load (the standing rule) |
-| **Harness re-aims** | after D+E (upkeep relief, science cut, the tree's gifts), after F (the deck), after G (the ladder) — three re-aims, dated, never one per row |
+| **Harness re-aims** | after D+E+X (upkeep relief, science cut, exact yields, the tree's gifts) — **landed 2026-09-06**, see "Pacing re-aim after D, E, X" below; then after F (the deck), after G (the ladder) — three re-aims, dated, never one per row |
 | **Determinism** | A is byte-identical by construction (no row); C1's reroll and ladder are logged commands; the periodic occasion stamps absolute turns; D's markers keep cut rows for replay |
 | **The bot** | prices every new shape the day it lands (A) or is written down as a debt in the batch doc (the reroll in C1; engines until F2) |
 | **The compendium and the arena** | generated; no page edit in any batch; a new shape needs its words in the describers (A, E) |
@@ -50,6 +50,110 @@ The play checkout (:5199) moves only when the user says; every batch lands in
 | **Deferred, not forgotten** | veins (shelved); the wonder cut (a pass of its own); the Æra V acceleration beyond the four bead Orders; the incumbency margin on the focus arm; the command-budget warning |
 
 ## As shipped
+
+### Pacing re-aim after D, E, X (2026-09-06)
+
+The one dated re-aim the plan holds the fixtures still for. Batches D (the
+buildings cut, the halved base beaker), X (exact yields) and E (the tree's
+gifts) all moved the scripted harnesses; each batch reported its measurement and
+left the bands where they were, so that the size of what the science cut costs
+is read once rather than absorbed a batch at a time. This is that reading.
+
+**Seed 4242, standard map, each harness's own script.** "Before" is each
+assertion's last dated pin (2026-09-05 for the first three files, 2026-09-02 for
+`beads.slow`), not a re-run of the old tree.
+
+| harness · assertion | before | after | band now |
+|---|---|---|---|
+| `tech.slow` — Æra I closes | 66 | **80** | 70 … 90 |
+| `tech.slow` — Æra II closes | 120 | **156** | 141 … 171 |
+| `tech.slow` — Æra III closes | 366 | **481** | 456 … 506 |
+| `tech.slow` — Æra IV closes | 779 | **999** | 969 … 1029 (horizon 900 → 1100) |
+| `statecraftPacing.slow` — first draft | 13 | **13** | 6 … 20 (unmoved) |
+| `statecraftPacing.slow` — early cadence, drafts 1–8 | 9.3 | **9.29** | 5 … 13 (unmoved) |
+| `statecraftPacing.slow` — Government I (draft 4) | 57 | **40** | 29 … 51 |
+| `statecraftPacing.slow` — Government II (draft 10) | 94 | **95** | 76 … 108 (unmoved) |
+| `statecraftPacing.slow` — Government III (draft 18) | 325 | **275** | 254 … 296 |
+| `beads.slow` — the Æra III table opens | 211 | **308** | 20 … 420 (horizon 260 → 400) |
+| `endgame.slow` — the Opus opens (one-city seat) | 1689 | **3959** | 100 … 4100 (horizon 1900 → 4200) |
+| `endgame.slow` — the Opus is finished | 1690 | **3960** | > opened |
+| `religion.slow` — the first consecration | — | **53** | 10 … 75 (the augur's old window) |
+
+**The mechanism, in one paragraph.** D halved `rules.cities.sciencePerPop` and
+cut the buildings down to chains, which on its own was ruinous rather than slow —
+the base beaker was floored *per town*, so a size-1 village banked nothing at all
+and Æra I slid to t236. X took the floor out of every fold and most of that came
+back (Æra I from 236 to 80), because a half beaker is a half beaker again. What
+is left is the halving itself, paid honestly: 80 against 66, 156 against 120. E's
+gifts add a few turns at the far end — Horology's and the Water Clock's periodic
+beakers arrive too late in these build orders to pay for themselves before Æra
+III. And the Monument's writ leaving the buildings is the one that does not look
+like science: a wide realm's borders grow slower, five towns work less ground,
+five towns make fewer beakers — most of the difference between Æra III at 366 and
+at 481.
+
+The culture ladder is the exception and moves the *other* way: the cliff at
+draft 3 (turn 54 → 31) was the happiness bill of a third town landing on an
+empire that could not pay it, and D and E moved where a realm's cheer comes
+from, so the third town is affordable when it lands.
+
+#### Repairs, not re-aims
+
+Two edits are repairs to a harness that was **wrong**, not bands moved around a
+slower game. Both in `test/sim/religion.slow.test.ts`:
+
+1. **The schema pin, 70 → 76.** It had stood at 70 since before C1 and the file
+   never ran green long enough for anybody to move it. The dated line on the
+   assertion names what landed on top of it: v71 the faith ladder and the
+   reroll, v72–v74 the rites becoming a town's verb behind the Chapel's door,
+   v75 exact yields, v76 the tree's gifts.
+2. **The augur's errand becomes the faith ladder.** `playFaithful` bought an
+   augur for forty faith the moment the pool covered one, walked it to a town
+   and spent it on a rite or a god. C2 retired the augur, so the script bought
+   nothing, said nothing and consecrated nothing — a refused purchase every turn
+   for two hundred turns. It now banks its faith and takes the consecration the
+   ladder deals (`openFaithLadder` → `chooseBelief`, the pick paying the rung),
+   which lands the first god on **turn 53** — inside the window the augur's own
+   purchase had, because the ladder deliberately wears the augur's old price.
+   `playTwoFaiths` lost its dead augur purchase and its dead consecration loop
+   the same way.
+
+#### Claims changed
+
+- **`endgame.slow` no longer claims the finish line "arrives inside a game".**
+  It arrives — the chart runs out, the row appears in a build list, hammers and
+  the treasury pay twelve hundred, the golden bead lands and the race settles —
+  but the one-city seat needs **3960 turns**. A band around that number would be
+  a pacing target nobody should read, so the assertion pins the *machinery* (the
+  regression it was written for: a gate correct and unreachable) and the turn
+  count is written up on the assertion as a finding.
+- **`religion.slow`'s rite comes off the prophet, not a town.** A rite is a
+  town's verb behind the Chapel, and the Chapel is behind The Rites Charter — an
+  *uncommon wildcard* Order in the Government I pool, one wildcard drawn per
+  hand, and the pool is gone the moment Government II is adopted. A scripted
+  seat gets five or six chances at it and, on this seed, takes none. The
+  determinism claim therefore rests on `empireRite`, which needs no Chapel
+  anywhere; the town verb is scripted too and fires when the deck obliges.
+
+#### Findings for the user (pacing, not fixtures)
+
+- **The game's length.** The four-age tree is meant to close the game around the
+  end of Æra IV. The five-town empire closes Æra IV at **t999**; the one-city
+  seat opens the Opus at **t3959**. Both are longer than any ruling asked for,
+  and the gap between them — four to one — is what a capital alone is worth.
+- **The rite door.** Rites are a whole subsystem (five rows, a price ladder by
+  age, a ten-turn seal) standing behind one uncommon wildcard card that leaves
+  the bag at the second government. A seat that misses it never says a town rite
+  for the rest of the game.
+- **The purse is still under water.** The five-town empire crosses zero around
+  turn 90 and never returns (−22528 gold at t900); the one-city seat crosses
+  around t900. `treasuryInDebt`'s quarter is therefore a standing tax on both
+  harnesses rather than an occasional pressure, and it is most of why the late
+  ages are as long as they are.
+
+Files: `test/sim/tech.slow.test.ts` · `statecraftPacing.slow.test.ts` ·
+`endgame.slow.test.ts` · `beads.slow.test.ts` · `religion.slow.test.ts`.
+No `src/` or `data/` edit — a slower game is a finding here, not a fix.
 
 ### Batch X as shipped (2026-09-06) — schema 75
 
@@ -200,13 +304,17 @@ those suites assert behaviour rather than a snapshot digest.
   decimal is still printed on purpose.
 - **`test/sim/religion.slow.test.ts` carries a stale schema pin (70)** from
   before C1, and fixing the number reveals a deeper C2 breakage (the harness buys
-  an augur, and the augur is retired). Left for C2's own debt list.
+  an augur, and the augur is retired). Left for C2's own debt list. —
+  **Paid 2026-09-06** in the pacing re-aim above: pin 76, and the errand replaced
+  by the faith ladder.
 - **The city panel still prints `+0.5🔬/pop`** on a building's per-citizen line.
   That figure is a *rate off the row*, not a standing yield, and rounding it
   would print either a beaker a citizen (a lie) or nothing (worse). It has read
   that way since batch D halved the Library's line; if it reads badly in play the
   fix is a rate voice in the formatter, not a rounding.
 - The three pacing harnesses above are red on purpose, pending the dated re-aim.
+  — **Paid 2026-09-06**, with `beads.slow` and `religion.slow` beside them; see
+  "Pacing re-aim after D, E, X".
 
 Files: `src/sim/yieldFormat.ts` (new) · `modifiers.ts` · `cities.ts` ·
 `statecraft.ts` · `routeYields.ts` · `empireGold.ts` · `renown.ts` · `upkeep.ts` ·
