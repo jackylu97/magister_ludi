@@ -448,6 +448,28 @@ export interface CivYieldStripOptions {
   onOpenLedger?: (key: YieldKey) => void;
 }
 
+/**
+ * The two steps down the strip takes when its row no longer fits the space the
+ * bar leaves it, widest first. What each one costs in points, in the gap
+ * between chips and in the meters' own padding is `style.css`'s to say ("the
+ * strip steps down before it would overflow"); this file only names which step
+ * is in force, so a retune is a stylesheet edit and no size is written twice.
+ */
+const STRIP_FIT_STEPS = ['is-tight', 'is-tighter'] as const;
+
+/**
+ * The width watcher on a strip container, so a new game replaces the old game's
+ * rather than stacking a second one on the same element.
+ *
+ * `#civ-yields` outlives every game — it is markup in `index.html`, and each
+ * `createCivYieldStrip` empties and refills it — so the observer has to be
+ * disposed by whoever takes the element over next. That is this map. It is not
+ * a window listener, so it is not `main.ts`'s `gameDisposers` business: the
+ * thing it is attached to is the very thing being handed over, and handing it
+ * over is the only moment it can go stale.
+ */
+const stripFitObservers = new WeakMap<HTMLElement, ResizeObserver>();
+
 export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStrip {
   const {
     container,
@@ -472,6 +494,10 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   const info = createInfoCard({ className: 'info-card is-strip', placement: 'below' });
 
   container.replaceChildren();
+  // The element outlives the game, and so would a step left on it from the last
+  // one's late-empire figures. A fresh strip starts at full size and measures
+  // its way down again.
+  container.classList.remove(...STRIP_FIT_STEPS);
 
   // --- the five yields ------------------------------------------------------
 
@@ -1324,6 +1350,77 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     chipEl.setAttribute('aria-label', spoken ? `${label} ${figure}: ${spoken}` : `${label} ${figure}`);
   }
 
+  /**
+   * The strip fits itself to the bar: **the figures shrink before the row would
+   * overflow** (`docs/flags.md`, "From the first full playthrough", note 24).
+   *
+   * On turn 92 of the first full playthrough the six yields were three digits
+   * each, and the row — six yields, renown over its rung, routes, beads, then
+   * the two meters — outgrew the space the bar leaves it. The strip's floor
+   * took over and it scrolled, and what scrolls out of sight is its right-hand
+   * end, which is where the authority meter lives. A meter you have to scroll
+   * to is a meter that is gone.
+   *
+   * Measured, not asked of a container query, and the reason is the thing that
+   * overflowed. A container query asks how wide the *container* is; this
+   * container is never narrow — it is the window's own bar. What grew is the
+   * **content**: the same bar at the same width carries this row easily on turn
+   * 20 and cannot fit it on turn 92, because each figure gained a digit. No
+   * width breakpoint can tell those two turns apart, and a guess at "how wide
+   * six figures are" would be a digit count in a stylesheet, which is the
+   * guess the ruling forbids. So the question is asked of the layout that knows
+   * the answer: is the content wider than the box.
+   *
+   * Widest first, and each step is tried on its own rather than accumulated:
+   * clear everything, measure, and take the first step that fits. That is a
+   * pure function of the width the bar currently leaves and the digits
+   * currently printed — no hysteresis to unwind, and a row that shrinks back
+   * when a treasury drops a digit. Reading `scrollWidth` flushes layout, so
+   * this costs one reflow per step tried and is called only when one of the two
+   * inputs actually moved (below), never per frame. The one-pixel slack is the
+   * rounding in those two integers, not a fudge: they are rounded to whole
+   * pixels from a fractional layout, so an exact fit can read as one over.
+   */
+  function fitStrip(): void {
+    container.classList.remove(...STRIP_FIT_STEPS);
+    // Nothing to measure while the bar is stood down — the city screen hides it
+    // whole (`style.css`'s "the chrome gives way"). The observer below brings us
+    // back the moment it has a width again.
+    if (container.clientWidth === 0) return;
+    for (const step of STRIP_FIT_STEPS) {
+      if (container.scrollWidth - container.clientWidth <= 1) return;
+      container.classList.remove(...STRIP_FIT_STEPS);
+      container.classList.add(step);
+    }
+  }
+
+  /**
+   * What the strip printed when it was last fitted. The fit depends on exactly
+   * two things — the width the bar leaves the strip, and the digits in it — so
+   * it is re-taken when either moves and at no other time. Width is the
+   * observer's business; this is the digits'. `render` runs on every hover of
+   * the board, and three forced reflows per mouse move is not something a
+   * figure that has not changed should be paying for.
+   */
+  let fittedText = '';
+
+  /**
+   * The width half. A `ResizeObserver` on the strip itself rather than a window
+   * `resize` listener, because the strip's width moves for reasons the window's
+   * does not: a seat joining the bar's seat strip, the tools growing a button,
+   * the bar coming back after the city screen stood it down (0 → its width,
+   * which the observer reports and a `resize` listener never would). The
+   * observer's first delivery is the strip's opening fit, so nothing has to
+   * call it here.
+   */
+  const fitObserver =
+    typeof ResizeObserver === 'function' ? new ResizeObserver(() => fitStrip()) : undefined;
+  stripFitObservers.get(container)?.disconnect();
+  if (fitObserver) {
+    stripFitObservers.set(container, fitObserver);
+    fitObserver.observe(container);
+  }
+
   return {
     render(): void {
       const { state } = getGame();
@@ -1424,6 +1521,17 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       }
       if (authorityCard.isOpen) {
         renderLedger(authority.body, authorityLedger, authorityStanding);
+      }
+
+      // The digits half of the fit (see `fitStrip`). Every figure this render
+      // wrote is in the strip's own text, so the strip is asked rather than a
+      // signature being assembled by hand — a chip added later joins this by
+      // existing. Reading text forces no layout; the fit below does, which is
+      // why it waits for the text to have actually changed.
+      const printed = container.textContent ?? '';
+      if (printed !== fittedText) {
+        fittedText = printed;
+        fitStrip();
       }
     },
     get isOpen() {

@@ -32,9 +32,25 @@ directly to confirm rulings — user marginalia are rulings.
   (115k–179k calls a turn for at most two distinct answers) — a hoist for a
   statecraft batch, next. Also queued: a warning when a seat exhausts its
   command budget, so the next live-lock is seen the turn it starts.
-- **The push-gate** on the committed chain (tuning → synergy → late pools →
-  victory) — pushes on green; the play checkout on :5199 is frozen at the
-  victory commit meanwhile.
+- **Batch 10 — the evaluator remembers** — LANDED: `liveEffects` memoised
+  per seat on a value print of its inputs (a source register pins the two in
+  step); 82s → 43s on the 100-turn game, seven hash pairs identical.
+- **Batch 11 — the focus arm holds its word; the levy counts field
+  soldiers** — LANDED (`docs/bot-priorities.md`): the border curve exposed a
+  town being re-pointed 40+ times in one turn (a staged food total patched
+  by a raw tile difference; a stale seat count the turn after growth; the
+  board moving mid-turn) — fixed by construction, plus `BotSitting.focused`
+  as the bound. And a seat with three scouts and one warrior read itself as
+  half-levied, so a column at the gate lost to a worker by a third of a
+  point — `isFieldSoldier` (combatant, not explorer, not naval) is now the
+  one predicate the levy and the mix ask. One written-down gap: the focus
+  arm has no incumbency margin, so a lean near zero can flip on consecutive
+  turns (never twice in one).
+- **The push-gate**: main on GitHub is at the re-aimed fixtures; everything
+  since (border growth, the consecration line, camp cadence, civilian
+  capture, the bot batch, the balance-turn doc) pushes on the running
+  all-tier gate. The play checkout on :5199 stays frozen at the victory
+  commit unless you say otherwise.
 
 ### From the first full playthrough (2026-09-05, live notes — queued as they arrive)
 
@@ -178,6 +194,15 @@ Fixes queue in main for the next session unless the user says otherwise.
     the prey — the worker survives, so no regression, but the coherent fix
     is one line in `barbarians.ts` (the thief marches onto the hex, which
     the widening made legal).
+24. **The bar's authority meter is cut off once the yields grow** — LANDED:
+    the strip measures itself (scroll width against width — a container
+    query cannot see *content* grow a digit) and takes the first of two
+    smaller steps that fits (12.5 → 11.5 → 10.5px figures, gaps closing
+    with them), re-measured on resize and whenever the printed figures
+    change, stepping back up when a figure loses a digit. Meters step with
+    the yields; chips stay buttons; every figure tabular mono. Not eyeballed
+    live (no browser in the session) — a narrow-window drag on a running
+    game is the quick human check.
 23. **Barbarian camps refill too fast** — RULED and LANDED (your playtest,
     t92: "once you kill the barb standing on the camp, it respawns very
     quickly"): a camp musters a unit every **five** turns, not three
