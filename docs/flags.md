@@ -310,6 +310,18 @@ Fixes queue in main for the next session unless the user says otherwise.
   happiness and authority relief should live in cards, not buildings, so
   tall-vs-wide bites.
 
+### Scripted harnesses — RULED 2026-09-06 ("can we stop using scripted bots for measuring changes")
+
+- The scripted-empire harnesses (`tech.slow`, `statecraftPacing.slow`,
+  `endgame.slow`, `beads.slow`, `religion.slow`) **report their figures and
+  assert only machinery** (the ages close inside the horizon, the chart runs
+  out, a draft is dealt, a faith is founded, a replay is byte-identical). No
+  band, no re-aim after a pass. Pacing is judged by the user's playtests, as
+  the 2026-09-04 ruling below already said. A batch that moves a figure
+  prints the new one and says so in its report; nothing blocks on it.
+- The bot arena (`aiBot.slow`, `aiDecision.slow`) is a real bot, not a
+  script — its solvency and coverage claims stay.
+
 ### Pacing — RULED 2026-09-04 (your marginalia)
 
 "The bot is a bad indicator for actual play… later eras feel too _fast_…

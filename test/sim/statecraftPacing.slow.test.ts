@@ -210,17 +210,13 @@ describe('the culture ladder', () => {
     const eighth = draftTurn[7]!;
     // The opening draft: soon enough that the first government is a real
     // mid-opening decision rather than a late-game footnote. Measured 7.
-    expect(first).toBeGreaterThan(6);
-    expect(first).toBeLessThan(20);
-    // The early cadence — drafts 1 through 8, the stretch Entry XV's "~5 turns
-    // per draft early" is about. Measured 7.4; the band is two-sided, because a
-    // curve that got cheaper is as much a regression as one that got dearer.
-    // Measured 9.7 after the column-formula costs (7.4 before), and **9.29
-    // after batches D, E and X** (2026-09-06) — the band is left where it is,
-    // because the figure did not move.
+    // **Reported, not banded** (the user, 2026-09-06: "can we stop using
+    // scripted bots for measuring changes"): the opening draft and the early
+    // cadence are printed, never asserted — a scripted empire's numbers are the
+    // script's, and the user's playtests judge the ladder. Last measured
+    // 2026-09-06: first draft 13, early cadence 9.29.
     const earlyCadence = (eighth - first) / 7;
-    expect(earlyCadence).toBeGreaterThan(5);
-    expect(earlyCadence).toBeLessThan(13);
+    console.info(`[pacing] scripted empire: first draft t${first}, early cadence ${earlyCadence.toFixed(2)} turns a draft`);
     // The government tiers **this horizon reaches** all arrive, and they arrive
     // spread out. Measured 24 / 52 / 124.
     //
@@ -267,8 +263,8 @@ describe('the culture ladder', () => {
     // `tiers[0]` and `tiers[2]` are re-centred on the new measurements at their
     // existing widths (±11 and ±21). The horizon stays at 400: draft 18 lands
     // at 275, which is a hundred and twenty-five turns inside it.
-    expect(tiers[0]!).toBeGreaterThan(29);
-    expect(tiers[0]!).toBeLessThan(51);
+    // Reported, not banded (2026-09-06 — see the cadence note above).
+    console.info(`[pacing] scripted empire reaches Government I on t${tiers[0]}`);
     // **Re-centred 2026-08-28.** Two things had drifted under this band and only
     // one of them is a change: `GOVERNMENT_TIERS` moved to 4 / 10 / 18, which put
     // the second charter on draft 10 rather than draft 7 and the measurement at
@@ -412,10 +408,8 @@ describe('the culture ladder', () => {
     // `tiers[0]` (57) and `tiers[1]` (94) stay inside the bands they had;
     // `tiers[2]` is re-centred on 325 at its existing ±21, and the horizon grew
     // to 400 to keep it in view.
-    expect(tiers[1]!).toBeGreaterThan(76);
-    expect(tiers[1]!).toBeLessThan(108);
-    // Re-centred 2026-09-06 on 275 at its existing ±21 — see the note above.
-    expect(tiers[2]!).toBeGreaterThan(254);
-    expect(tiers[2]!).toBeLessThan(296);
+    // Reported, not banded (2026-09-06 — see the cadence note above). Last
+    // measured: Government II t95, Government III t275.
+    console.info(`[pacing] scripted empire reaches Government II on t${tiers[1]}, Government III on t${tiers[2]}`);
   });
 });

@@ -520,14 +520,15 @@ describe('pacing', () => {
     expect(third, `age III: ${String(third)}`).toBeDefined();
     expect(fourth, `age IV: ${String(fourth)}`).toBeDefined();
 
-    expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(70);
-    expect(first!, `age I: ${first}`).toBeLessThanOrEqual(90);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(141);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(171);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(456);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(506);
-    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(969);
-    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(1029);
+    // **Reported, not banded** (the user, 2026-09-06: "can we stop using
+    // scripted bots for measuring changes"). A scripted empire's age closes are a
+    // reading of the script, and the bands around them had to be re-aimed after
+    // every pass for a number the user's own playtests judge instead. The
+    // machinery claims above stay — every age closes inside the horizon, the
+    // whole chart runs out — and the figures are printed for whoever is
+    // looking, never asserted. Last measured 2026-09-06 after batches D, E and
+    // X: 80 · 156 · 481 · 999.
+    console.info(`[pacing] scripted five-town empire closes the ages on turns ${first} · ${second} · ${third} · ${fourth}`);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 120_000);
 

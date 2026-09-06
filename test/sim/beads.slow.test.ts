@@ -98,7 +98,12 @@ describe('the table in a played game', () => {
     // an age no technology belongs to produces, and it means no seat ever saw a
     // card.
     expect(opened).not.toBeNull();
-    expect(opened!).toBeGreaterThan(20);
+    // Reported, not banded (the user, 2026-09-06: "can we stop using scripted
+    // bots for measuring changes"): the turn the Æra III table opens for a
+    // scripted seat is printed, never asserted; the horizon (400) stays wide
+    // enough that the machinery below — the age opens, four cards are dealt, a
+    // deck stands — is what the test claims. Last measured 2026-09-06: t308.
+    console.info(`[pacing] the scripted seat opens the Æra III table on t${opened}`);
     // Re-banded 2026-09-01 (Entry LIV): the tree's new walls put the Empire
     // band around t100 on this seed; the band stays deliberately loose.
     // Re-banded 2026-09-02 (the column-formula costs): every price in the tree
@@ -123,7 +128,6 @@ describe('the table in a played game', () => {
     // spare. The horizon grows 260 → 400 with the band, for the reason every
     // pacing harness in this suite gives: one that stops before the thing it
     // measures happens measures nothing at all.
-    expect(opened!).toBeLessThan(420);
     expect(game.state.beads.worldAge).toBeGreaterThanOrEqual(3);
     expect(highestAge(player.techsResearched)).toBeGreaterThanOrEqual(3);
 

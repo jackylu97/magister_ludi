@@ -222,8 +222,11 @@ describe('the finish line in a played game', () => {
     // seconds — a one-city turn is cheap), and the ceiling keeps roughly the
     // headroom it had.
     expect(opened).not.toBeNull();
-    expect(opened!).toBeGreaterThan(100);
-    expect(opened!).toBeLessThan(4100);
+    // Reported, not banded (the user, 2026-09-06: "can we stop using scripted
+    // bots for measuring changes") — the turn a one-city script opens the Opus
+    // is the script's number; the machinery below is the claim. Last measured
+    // 2026-09-06: t3959.
+    console.info(`[pacing] the one-city seat opens the Magnum Opus on t${opened}`);
     expect(player.techsResearched).toContain(buildingDef(OPUS).worldUnlockTech!);
 
     // **It can be paid for**, out of hammers and a treasury the empire earned.
