@@ -99,7 +99,12 @@ import {
 } from '../sim/resourceData';
 import { describeResourceSignature } from '../sim/resourceEffects';
 import { RULES } from '../sim/rulesData';
-import { describeCard, stripRefs, tileConditionWords } from '../sim/statecraft';
+import {
+  describeBuildingRow,
+  describeCard,
+  stripRefs,
+  tileConditionWords,
+} from '../sim/statecraft';
 import { techRuleClauses } from './techRuleWords';
 import {
   type CityScope,
@@ -717,28 +722,15 @@ function siteRequirement(def: BuildingDef): string {
  * The clause is `giftWords`' sentence with the naming technology in front,
  * because "when" is the whole of what a reader wants and the gift itself cannot
  * say it.
+ *
+ * **Gated lines only.** The lines a building pays from the day it is raised are
+ * said by the row's own describer (`describeBuildingRow`), which is where they
+ * moved with the charters' pass of 2026-09-05: no technology hands one over, so
+ * nothing about them is a *later* gift, and printing them twice on one shelf was
+ * the price of this page having its own copy of the sentence.
  */
 function laterGifts(id: BuildingId): CompendiumClause[] {
   const clauses: CompendiumClause[] = [];
-  // The lines this building pays on the ground **from the day it is raised**.
-  // No technology hands these over, so `techGifts` never sees them and nothing
-  // anywhere printed the figure — the Lighthouse's food on water was a sentence
-  // in its `note` and a number in the simulation, with nothing joining them.
-  // Worded through the same describer the gated ones use, by handing it the
-  // gift shape it already words.
-  for (const line of buildingDef(id).tileYields ?? []) {
-    if (line.requiresTech !== undefined) continue;
-    clauses.push({
-      text: giftWords({
-        kind: 'buildingTileYield',
-        id,
-        name: buildingDef(id).name,
-        glyph: '▣',
-        add: line.add,
-        on: line.on,
-      }),
-    });
-  }
   for (const tech of TECH_IDS) {
     for (const gift of techGifts(tech)) {
       if (gift.kind !== 'buildingTileYield') continue;
@@ -786,22 +778,20 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
     ...row('Can only be built in', siteRequirement(def)),
     ...row('Unlocked by', techName(gate)),
   ];
-  const clauses: CompendiumClause[] = describeCard(id).map((entry) => ({
+  // **What this row is worth, in the simulation's own words** — and since the
+  // charters' playthrough note (2026-09-05) that is `describeBuildingRow` rather
+  // than `describeCard`: an Order that unlocks a building prints the building's
+  // description on its own face, and the one way the card and this shelf can
+  // never disagree about the same row is for both to read one describer.
+  //
+  // It carries what this page used to add for itself — the wall a town builds
+  // (`cityStat`), and the ground an ungated tile line pays — along with the eight
+  // row fields (a Keep's mending, a Chapel's rite, an Assize Court's crowding)
+  // that reached a reader only as prose in the row's own `note`.
+  const clauses: CompendiumClause[] = describeBuildingRow(id).map((entry) => ({
     text: entry.text,
     deferred: entry.deferred,
   }));
-  if (def.cityStat !== undefined) {
-    const stat = def.cityStat;
-    // A wall a card raises and a wall a town built are the same fact about the
-    // same city (`buildingEffects.ts`), so this reads the same two words a
-    // card's `cityStat` clause does — the shape is that one minus its scope.
-    clauses.push({
-      text:
-        stat.stat === 'defense'
-          ? `${signedFigure(stat.amount)} to the city’s defence strength`
-          : `${signedFigure(stat.amount)} to how far the city sees`,
-    });
-  }
   // **What technologies later do for this building**, which is the half of a
   // building the tech card stopped telling (the playtest notes, 2026-09-03: the
   // star chart's "Buildings pay new ground" heading was a fact about a harbour

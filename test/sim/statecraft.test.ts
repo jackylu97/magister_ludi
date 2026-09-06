@@ -32,7 +32,7 @@ import {
   yieldContextFor,
 } from '../../src/sim/cities';
 import { previewCombat } from '../../src/sim/combat';
-import { buildingDef } from '../../src/sim/buildingData';
+import { type BuildingId, BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { chopFeatureAt, pillageAt, prospectAt } from '../../src/sim/improvements';
 import { nearestTarget } from '../../src/sim/barbarians';
 import { settleDiscovery } from '../../src/sim/discoveries';
@@ -66,6 +66,7 @@ import {
   cardOfferRule,
   cardUnitStat,
   cardRenownLines,
+  describeBuildingRow,
   describeCard,
   describeEffects,
   draftCost,
@@ -2391,7 +2392,11 @@ describe('the master-list cut of 2026-08-28', () => {
       '+1 culture in every city',
     ]);
     expect(said('gildedCourt')).toEqual([
-      'unlocks the Gilded Hall',
+      // The unlock clause carries the **building's own description** since the
+      // playthrough note of 2026-09-05 — see `describeBuildingRow`, and the
+      // charters' own block at the foot of this file.
+      'unlocks the Gilded Hall — +8 gold, +2 culture; it is bought with gold and never built; ' +
+        '+1 renown per turn, favouring merchants',
       // The 2026-09-02 rework: the writ dropped to one point and the card bought
       // a hex clause with the difference — the first `yields` condition, asked
       // of the breakdown the hex has already been reckoned to pay. The Æra III
@@ -5669,5 +5674,121 @@ describe('the Æra III fork of 2026-09-05', () => {
       'surfacing a vein grants +40 gold',
       '+2 production on every hex with a Mine carrying Rich Ore',
     ]);
+  });
+});
+
+/**
+ * **A card that opens a building says what the building does** — the
+ * playthrough note of 2026-09-05 (`docs/flags.md`), which is a complaint about a
+ * card that told a player the *name* of a thing and nothing else: "Unlocks the
+ * Chapel." is a charter's whole ratified face, and a player deciding whether to
+ * spend a slot on it could not know what a Chapel was.
+ *
+ * The composition is `describeBuildingRow`, the simulation's one reading of a
+ * building row, and every claim below is about that being **one** describer: the
+ * card face, the collection, the stamp's hover and the Compendium's shelf all
+ * print it, so a re-cut building re-prints itself on all four in the same pass
+ * and none of them can drift.
+ */
+describe('a charter carries the description of the building it opens', () => {
+  /** Every card row that opens a building, whatever class it belongs to. */
+  const OPENERS: { card: string; building: BuildingId }[] = [
+    ...ORDER_IDS.flatMap((id) =>
+      orderDef(id)
+        .effects.filter((effect) => effect.kind === 'unlocksBuilding')
+        .map((effect) => ({ card: id as string, building: effect.building })),
+    ),
+    ...DOCTRINE_IDS.flatMap((id) =>
+      doctrineDef(id)
+        .effects.filter((effect) => effect.kind === 'unlocksBuilding')
+        .map((effect) => ({ card: id as string, building: effect.building })),
+    ),
+  ];
+
+  it('finds the twelve rows that open one', () => {
+    // Eleven charters and the Gilded Court's doctrine. A twelfth charter joins
+    // this list by being a JSON row, and inherits every claim below.
+    expect(OPENERS.length).toBe(12);
+  });
+
+  it('says every live clause the building’s own describer says', () => {
+    for (const { card, building } of OPENERS) {
+      const clause = describeCard(card as never)
+        .map((entry) => entry.text)
+        .find((text) => text.includes('unlocks the '));
+      expect(clause, card).toBeDefined();
+      // The building is **named as a keyword**, so a reader can open its page
+      // from the card and the Compendium resolves the mark to a real entry.
+      expect(clause, card).toContain(`[[building:${building}|`);
+      // And every live clause of the row's own description is in the sentence,
+      // word for word: the card does not paraphrase the building.
+      const said = stripRefs(clause!);
+      const row = describeBuildingRow(building).filter((entry) => entry.deferred !== true);
+      expect(row.length, building).toBeGreaterThan(0);
+      for (const entry of row) expect(said, `${card} → ${building}`).toContain(stripRefs(entry.text));
+      // A deferred half is printed struck through where it is printed, and
+      // there is no striking half of a sentence — so it stays out of this one.
+      for (const entry of describeBuildingRow(building)) {
+        if (entry.deferred !== true) continue;
+        expect(said, `${card} → ${building}`).not.toContain(stripRefs(entry.text));
+      }
+      // Nothing leaks the mark's own syntax onto a surface (`stripRefs`, and
+      // the sweep in `test/ui/keywords.test.ts`).
+      expect(said, card).not.toContain('[[');
+    }
+  });
+
+  it('composes at print time and leaves the ratified text alone', () => {
+    // The data still says what was ratified — the description is **not** written
+    // into the row, which is what makes a re-cut building re-print itself.
+    expect(orderDef('ritesCharter').text).toBe('Unlocks the Chapel.');
+    const said = describeCard('ritesCharter').map((entry) => stripRefs(entry.text));
+    expect(said).toEqual(['unlocks the Chapel — +1 faith; a rite performed in this city pays +5 culture']);
+  });
+
+  it('reads the half of a building row that no card effect models', () => {
+    // The eight fields `buildingEffects.ts` reads and the card vocabulary does
+    // not: before this pass they reached a player only as prose in the row's own
+    // `note`, or not at all. One row each, in the ledger's own terms.
+    const words = (id: BuildingId): string =>
+      describeBuildingRow(id)
+        .map((entry) => stripRefs(entry.text))
+        .join(' · ');
+    expect(words('chapel')).toContain('a rite performed in this city pays +5 culture');
+    expect(words('keep')).toContain('+5 healing');
+    expect(words('assizeCourt')).toContain('15% less');
+    expect(words('assayHouse')).toContain('costs 5% less');
+    expect(words('cistern')).toContain('beside fresh water');
+    expect(words('almshouse')).toContain('bought with faith');
+    expect(words('gildedHall')).toContain('bought with gold and never built');
+    // And the flat voices lead it, because that is what a building mostly is.
+    expect(describeBuildingRow('granary')[0]!.text).toBe('+3 food');
+  });
+
+  it('describes every building row in the game, not only the charters’', () => {
+    for (const id of BUILDING_IDS) {
+      const said = describeBuildingRow(id);
+      expect(said.length, id).toBeGreaterThan(0);
+      for (const clause of said) expect(stripRefs(clause.text), id).not.toContain('[[');
+    }
+    // The ungated line a building pays on the ground it works is the row's own,
+    // not a technology's gift — the Lighthouse's food on water.
+    expect(describeBuildingRow('lighthouse').map((entry) => entry.text)).toContain(
+      '+1 food on every water hex',
+    );
+    // Every ungated ground line a row pays is stated, naming the hexes it lands
+    // on in the card describer's own words for that condition. A **gated** line
+    // belongs to the node that hands it over and is announced there
+    // (`techGifts`), so nothing here promises one before it exists.
+    for (const id of BUILDING_IDS) {
+      const said = describeBuildingRow(id)
+        .map((entry) => stripRefs(entry.text))
+        .join(' · ');
+      for (const line of buildingDef(id).tileYields ?? []) {
+        const ground = `on every ${stripRefs(tileConditionWords(line.on))}`;
+        if (line.requiresTech === undefined) expect(said, id).toContain(ground);
+        else expect(said, `${id} ← ${line.requiresTech}`).not.toContain(ground);
+      }
+    }
   });
 });

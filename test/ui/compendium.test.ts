@@ -38,6 +38,7 @@ import {
   RITE_IDS,
 } from '../../src/sim/religionData';
 import { RESOURCE_IDS } from '../../src/sim/resourceData';
+import { describeBuildingRow, stripRefs } from '../../src/sim/statecraft';
 import { DOCTRINE_IDS, ORDER_IDS } from '../../src/sim/statecraftData';
 import { newGame } from '../../src/sim/state';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
@@ -697,6 +698,7 @@ describe('never hand-written prose about a number', () => {
     const source = sourceOf('compendium.ts');
     for (const describer of [
       'describeCard', // the one place a card effect becomes words
+      'describeBuildingRow', // and what a building row is worth, said once
       'describeResourceSignature', // the same bargain for a luxury
       'techGifts', // what a technology hands over
       'explainUnitCost', // the roster's own price
@@ -934,5 +936,26 @@ describe('a building carries its own later gifts', () => {
     expect(entry).toBeDefined();
     const said = entry!.clauses.map((clause) => clause.text).join(' ');
     expect(said).toContain('water hex');
+  });
+
+  /**
+   * **The shelf and the card face read one describer** (the playthrough note of
+   * 2026-09-05). A charter's own face now prints the description of the building
+   * it opens, and the only way that sentence and this page cannot drift is for
+   * both to be `describeBuildingRow` — so this page's clauses *lead* with it, and
+   * what the page adds after are its own notes and gates.
+   */
+  it('leads a building’s clauses with the simulation’s reading of the row', () => {
+    for (const id of BUILDING_IDS) {
+      const entry = everyEntry().find(
+        (row) => row.id === compendiumId(isWonder(id) ? 'wonder' : 'building', id),
+      );
+      expect(entry, id).toBeDefined();
+      const row = describeBuildingRow(id);
+      expect(
+        entry!.clauses.slice(0, row.length).map((clause) => stripRefs(clause.text)),
+        id,
+      ).toEqual(row.map((clause) => stripRefs(clause.text)));
+    }
   });
 });

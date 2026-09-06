@@ -5263,6 +5263,176 @@ export function describeCard(id: CardId): CardClause[] {
 }
 
 /**
+ * **What a building row is worth, in one list** — its yields and every fact
+ * beside them: `describeCard` for a building, plus the half of a building row
+ * that was never in the card vocabulary at all.
+ *
+ * It exists because of the charters (the playthrough note of 2026-09-05: *"charter
+ * orders should include a description of the building they unlock"*). A charter's
+ * ratified text is "Unlocks the Chapel." and nothing else, so a player drafting
+ * one was told the name of a thing and not one word about what it does — and the
+ * describer that *could* have told them lived on the Compendium's page, which is
+ * the one surface a player holding an offer card is not looking at.
+ *
+ * So the sentence is composed **here**, on the simulation's side, and the
+ * Compendium reads the same function: the reference book and the card face cannot
+ * come to disagree about the same row, and a re-cut building re-prints itself
+ * everywhere in the same pass. Nothing is written into the card's `text` in the
+ * data — the ratified text stays exactly as ratified (`CardDefBase.text`), and
+ * the description composes at print time out of the building's own row.
+ *
+ * `describeCard` is the middle of it rather than a rival to it: a building **is**
+ * a card, so its effects, happiness, authority capacity and completion grants are
+ * already said in the vocabulary every other card is said in. What this adds is
+ * the rest of the row — the flat voices, and the eight fields a building carries
+ * that no card effect models (`ritePays`, `waters`, `crowdingRelief`,
+ * `purchaseDiscount`, `healsAdjacent`, `cityHp`, `faithPurchases`, `purchaseOnly`)
+ * — which the Compendium's shelf either printed as a *note* in the row's own prose
+ * or did not print at all.
+ *
+ * The **gates** are deliberately not here: what ground a row wants
+ * (`requiresSite`), which technology opens it, and the markers a reference page
+ * annotates (one per empire, one per world, ends the game) are conditions of
+ * *getting* the building rather than clauses of what it does, and the Compendium
+ * states each of them in its own words beside the rows. This list answers one
+ * question: **what do I have, once it stands?**
+ *
+ * Deferred halves sort to the end, so a face may print the live clauses and stop
+ * at the first struck-through one.
+ */
+export function describeBuildingRow(id: BuildingId): CardClause[] {
+  // The cycle guard, and the one reason this function is not simply a fold: a
+  // card that unlocks a building prints this list inside its own clause, and a
+  // building row may itself carry a card effect (`BuildingDef.effects`). The day
+  // a row unlocks a row that unlocks it back, the honest answer is the name on
+  // its own rather than a stack overflow at the moment a player opens an offer.
+  if (DESCRIBING_BUILDINGS.has(id)) return [];
+  DESCRIBING_BUILDINGS.add(id);
+  try {
+    return buildingRowClauses(id);
+  } finally {
+    DESCRIBING_BUILDINGS.delete(id);
+  }
+}
+
+/** See `describeBuildingRow`. Never read outside it. */
+const DESCRIBING_BUILDINGS = new Set<BuildingId>();
+
+function buildingRowClauses(id: BuildingId): CardClause[] {
+  const def = buildingDef(id);
+  const out: CardClause[] = [];
+  // The six voices first, because that is what a building mostly *is* and the
+  // first thing a player asks of one. Worded by `bagWords`, the same helper a
+  // card's `cityYields` clause is worded by, so "+1 faith" is "+1 faith"
+  // wherever it is read.
+  const voices = bagWords({
+    food: def.food,
+    production: def.production,
+    gold: def.gold,
+    science: def.science,
+    culture: def.culture,
+    faith: def.faith ?? 0,
+  });
+  if (voices) out.push({ text: voices });
+  if (def.sciencePerPop !== 0) {
+    out.push({ text: `${signed(def.sciencePerPop)} science for every citizen` });
+  }
+  if (def.routeSlots !== undefined && def.routeSlots !== 0) {
+    const slots = def.routeSlots;
+    out.push({
+      text: `${signed(slots)} trade ${slots === 1 || slots === -1 ? 'route' : 'routes'} for your empire`,
+    });
+  }
+  if (def.productionBonus !== undefined) {
+    // The card arm's own sentence for the same shape (`productionBonus`), minus
+    // the scope a building cannot have: it stands in one town, so the town *is*
+    // the scope.
+    const bonus = def.productionBonus;
+    out.push({ text: `${signed(bonus.percent)}% production toward ${bonus.category}s` });
+  }
+  // What the card vocabulary already says about this row — its effects, the two
+  // meter fields and anything finishing it hands over. Live clauses here; the
+  // deferred halves are held back to the end of the list below.
+  const card = describeCard(id);
+  for (const clause of card) {
+    if (clause.deferred !== true) out.push(clause);
+  }
+  // The eight row fields no card effect models. Each is read by exactly one rule
+  // (`buildingEffects.ts` and the ledgers it feeds), and each was invisible to a
+  // player until this list: a Keep's mending and a Chapel's rite were sentences
+  // in a `note` and numbers in the simulation, with nothing joining them.
+  if (def.cityStat !== undefined) {
+    const stat = def.cityStat;
+    out.push({
+      text:
+        stat.stat === 'defense'
+          ? `${signed(stat.amount)} to the city’s defence strength`
+          : `${signed(stat.amount)} to how far the city sees`,
+    });
+  }
+  if (def.cityHp !== undefined && def.cityHp !== 0) {
+    out.push({ text: `${signed(def.cityHp)} to how much punishment the city can take` });
+  }
+  if (def.crowdingRelief !== undefined && def.crowdingRelief !== 0) {
+    out.push({ text: `a crowded city asks ${def.crowdingRelief}% less of you` });
+  }
+  if (def.purchaseDiscount !== undefined && def.purchaseDiscount !== 0) {
+    // "costs less", never "−5% cost": the sign belongs to the price, exactly as
+    // it does in the `purchaseRider` arm a card writes the same promise with.
+    const off = def.purchaseDiscount;
+    out.push({
+      text: `everything this city buys costs ${Math.abs(off)}% ${off < 0 ? 'less' : 'more'}`,
+    });
+  }
+  if (def.healsAdjacent !== undefined && def.healsAdjacent !== 0) {
+    out.push({
+      text: `${signed(def.healsAdjacent)} healing for your units resting in this city or beside it`,
+    });
+  }
+  if (def.ritePays !== undefined && def.ritePays !== 0) {
+    out.push({ text: `a rite performed in this city pays ${signed(def.ritePays)} culture` });
+  }
+  if (def.waters === true) {
+    out.push({ text: 'the city counts as standing beside fresh water' });
+  }
+  if (def.faithPurchases !== undefined) {
+    out.push({
+      text:
+        def.faithPurchases === 'civilian'
+          ? 'settlers, workers and caravans may be bought with faith in this city'
+          : 'units may be bought with faith in this city',
+    });
+  }
+  if (def.purchaseOnly === true) {
+    out.push({ text: 'it is bought with gold and never built' });
+  }
+  // The renown a building pays is a fact about what it *is* (`BuildingRenown`),
+  // and it is said in the card arm's words — "per turn" load-bearing, the family
+  // trailing — so a renown building and a renown card read alike.
+  if (def.renown !== undefined) {
+    const renown = def.renown;
+    out.push({
+      text: `${signed(renown.perTurn)} renown per turn, favouring ${renown.family}s`,
+    });
+    if (renown.onComplete !== undefined && renown.onComplete !== 0) {
+      out.push({ text: `${signed(renown.onComplete)} renown the turn it is finished` });
+    }
+  }
+  // What it pays on the **ground its city works**, for the lines that stand from
+  // the day it is raised. A tech-gated line belongs to the node that hands it
+  // over and is announced there (`techGifts`), never here.
+  for (const line of def.tileYields ?? []) {
+    if (line.requiresTech !== undefined) continue;
+    const add = bagWords(line.add);
+    if (add) out.push({ text: `${add} on every ${tileConditionWords(line.on)}` });
+  }
+  for (const clause of card) {
+    if (clause.deferred === true) out.push(clause);
+  }
+  return out;
+}
+
+/**
  * When a legacy stops being heeded, in words. See `LegacyRevocation`.
  *
  * "lost the turn …" leads every one of them, for `grantWords`' reason exactly:
@@ -5772,12 +5942,30 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       out.push({ text: `every ${effect.every} turns, ${what} musters in your capital` });
       return;
     }
-    case 'unlocksBuilding':
+    case 'unlocksBuilding': {
       // No longer struck through: buildings can be bought (Entry XXIX) and
       // `cardUnlocksBuilding` is read by `isUnlocked`, so The Gilded Court
       // really does hand the Gilded Hall over.
-      out.push({ text: `unlocks the ${buildingName(effect.building)}` });
+      //
+      // **And it says what the building does** (the playthrough note of
+      // 2026-09-05): a charter whose whole face read "Unlocks the Chapel" told a
+      // player drafting it the name of a thing and nothing else, and the name of
+      // a thing is not a reason to spend a slot on it. The clause is the
+      // building's **own** description (`describeBuildingRow`) rather than a
+      // sentence written onto the card, so the Compendium's shelf and this face
+      // cannot disagree and a re-cut building re-prints itself here.
+      //
+      // Live clauses only: a deferred half is *struck through* where it is
+      // printed, and there is no striking half of a sentence.
+      const does = describeBuildingRow(effect.building)
+        .filter((clause) => clause.deferred !== true)
+        .map((clause) => clause.text)
+        .join('; ');
+      out.push({
+        text: `unlocks the ${buildingName(effect.building)}${does === '' ? '' : ` — ${does}`}`,
+      });
       return;
+    }
     case 'pantheonSlots': {
       const slots = effect.amount;
       out.push({ text: `${signed(slots)} pantheon ${slots === 1 || slots === -1 ? 'slot' : 'slots'}` });

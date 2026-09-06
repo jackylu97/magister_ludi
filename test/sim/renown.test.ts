@@ -422,8 +422,13 @@ describe('the register', () => {
     // institution is what has a payroll. That third reader is a deliberate
     // coupling and is written down here rather than being given a flag of its
     // own on the row, which would have been a second answer to "is this a
-    // building or a monument". Nobody else has an opinion about the column.
-    expect(offenders).toEqual(['cities.ts', 'renown.ts', 'upkeep.ts']);
+    // building or a monument". The fourth (2026-09-05) has no opinion at all:
+    // `describeBuildingRow` in `statecraft.ts` *prints* the column, in the
+    // card arm's words, so a charter's "unlocks the Gilded Hall — +1 renown per
+    // turn" and the compendium's entry are one sentence from one describer.
+    // It was the compendium's own reading, moved sim-side; it reads, never
+    // folds. Nobody else has an opinion about the column.
+    expect(offenders).toEqual(['cities.ts', 'renown.ts', 'statecraft.ts', 'upkeep.ts']);
   });
 });
 
