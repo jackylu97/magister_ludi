@@ -214,12 +214,12 @@
       "effects": [
         {
           "kind": "countScaled",
-          "count": "buildingsOfCategory",
-          "category": "gold",
+          "count": "slottedOrdersOfSlot",
+          "slot": "economic",
           "pays": {
             "to": "yield",
             "yield": "gold",
-            "amount": 1,
+            "amount": 2,
             "where": "empire"
           }
         },
@@ -227,9 +227,13 @@
           "kind": "effectAmplifier",
           "target": "routeYields",
           "percent": 50
+        },
+        {
+          "kind": "routeRider",
+          "extra": 1
         }
       ],
-      "text": "+1 gold for each building that produces gold. Trade routes pay 50% more."
+      "text": "+2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route."
     },
     "imperium": {
       "name": "Imperium",
@@ -242,16 +246,32 @@
       },
       "effects": [
         {
-          "kind": "authority",
-          "amount": 3
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "military",
+          "pays": {
+            "to": "yield",
+            "yield": "production",
+            "amount": 1,
+            "where": "city"
+          }
         },
         {
           "kind": "unitStat",
           "stat": "movement",
           "amount": 1
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "yield": "gold",
+            "amount": 50,
+            "healAll": true
+          }
         }
       ],
-      "text": "+3 authority capacity. All units +1 movement."
+      "text": "+1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units."
     },
     "divineMandate": {
       "name": "Divine Mandate",
@@ -264,21 +284,39 @@
       },
       "effects": [
         {
-          "kind": "happinessTierBoost",
-          "points": 5
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "wildcard",
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 1,
+            "where": "capital"
+          }
         },
         {
-          "kind": "rateConversion",
-          "from": "faithPerTurn",
-          "per": 5,
+          "kind": "countScaled",
+          "count": "slottedOrdersOfSlot",
+          "slot": "wildcard",
           "pays": {
             "to": "yield",
             "yield": "culture",
             "amount": 1,
-            "where": "empire"
+            "where": "capital"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "faith",
+          "percent": 10,
+          "scope": {
+            "test": "populationAtLeast",
+            "value": 6
           }
         }
-      ]
+      ],
+      "text": "+1 faith and +1 culture in your capital for each wildcard Order you have in a slot · +10% faith in every city of 6 or more population.",
+      "note": "The tithe rises in your larger cities: nothing yet can ask whether a city is content."
     },
     "theEstates": {
       "name": "The Estates",
@@ -813,23 +851,20 @@
       "tier": 18,
       "line": "forge",
       "flavor": "Every death a verse; every verse a debt paid.",
-      "text": "Killing a unit grants +15 culture · pillaging pays +15 gold.",
+      "text": "Killing a unit grants +20 culture · pillaging pays double.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "kill",
           "grant": {
             "yield": "culture",
-            "amount": 15
+            "amount": 20
           }
         },
         {
           "kind": "windfallRider",
           "occasion": "pillage",
-          "grant": {
-            "yield": "gold",
-            "amount": 15
-          }
+          "percent": 100
         }
       ]
     },
@@ -865,7 +900,7 @@
       "tier": 18,
       "line": "caravan",
       "flavor": "Gold on the walls, gold in the words, gold under the throne.",
-      "text": "Unlocks the Gilded Hall, a building that is bought with gold and never built. +1 science and +1 culture on every hex that yields gold. +1 authority capacity.",
+      "text": "Unlocks the Gilded Hall, a building that is bought with gold and never built. +1 science and +1 culture on every hex that yields gold.",
       "effects": [
         {
           "kind": "unlocksBuilding",
@@ -879,10 +914,6 @@
           },
           "science": 1,
           "culture": 1
-        },
-        {
-          "kind": "authority",
-          "amount": 1
         }
       ]
     },
@@ -920,7 +951,7 @@
       "tier": 18,
       "line": "wayfarers",
       "flavor": "We see everything. We fear it a little.",
-      "text": "All units +1 sight and +1 movement · all units −2 combat strength.",
+      "text": "All units +1 sight and +1 movement · every vein you surface and every ruin you claim pays +25 science · all units −2 combat strength.",
       "effects": [
         {
           "kind": "unitStat",
@@ -931,6 +962,22 @@
           "kind": "unitStat",
           "stat": "movement",
           "amount": 1
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "veinFound",
+          "grant": {
+            "yield": "science",
+            "amount": 25
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "discovery",
+          "grant": {
+            "yield": "science",
+            "amount": 25
+          }
         },
         {
           "kind": "combatLine",
@@ -947,20 +994,29 @@
       "tier": 18,
       "line": "forge",
       "flavor": "Every city carries its own weight, and the crown carries none.",
-      "text": "+1 authority capacity for each city you hold · a captured city costs one less authority.",
+      "text": "A captured city costs 1 authority · capturing a city grants +5% production in every city for 10 turns.",
+      "note": "A city you take costs one authority — the least any law can make it.",
       "effects": [
-        {
-          "kind": "countScaled",
-          "count": "cities",
-          "pays": {
-            "to": "authority",
-            "amount": 1
-          }
-        },
         {
           "kind": "meterRule",
           "rule": "capturedCityCost",
-          "delta": -1
+          "value": 1
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "timed": {
+              "turns": 10,
+              "effects": [
+                {
+                  "kind": "percentYields",
+                  "yield": "production",
+                  "percent": 5
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -1364,6 +1420,127 @@
           "scope": {
             "test": "notCapital"
           }
+        }
+      ]
+    },
+    "thePilgrimWays": {
+      "name": "The Pilgrim Ways",
+      "tier": 18,
+      "line": "procession",
+      "flavor": "Every road that ends at an altar is a road somebody paid for.",
+      "text": "+2 faith for each city in the world that follows your religion · +1 culture for each foreign city that follows you · +1 culture for each 5 faith you gain per turn.",
+      "note": "Nothing yet marks the turn a city changes its faith, so the foreign congregation is counted rather than paid for at the moment it is won.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "followingCities",
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 2,
+            "where": "empire"
+          }
+        },
+        {
+          "kind": "countScaled",
+          "count": "followingForeign",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
+        },
+        {
+          "kind": "rateConversion",
+          "from": "faithPerTurn",
+          "per": 5,
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ]
+    },
+    "theNaturalPhilosophers": {
+      "name": "The Natural Philosophers",
+      "tier": 18,
+      "line": "star",
+      "flavor": "They measured the tower's shadow, and then they measured the tower.",
+      "text": "+1 science in your capital for each building standing in it · completing a technology grants 20% of a turn's culture.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "buildingsInCity",
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "capital"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "grant": {
+            "yield": "culture",
+            "amount": 0.2,
+            "fromRate": "culturePerTurn"
+          }
+        }
+      ]
+    },
+    "theDeepDelving": {
+      "name": "The Deep Delving",
+      "tier": 18,
+      "line": "highlands",
+      "flavor": "The hill kept its secret for an age. It kept it badly.",
+      "text": "+1 production on every mine and every quarry · surfacing a vein pays +40 gold, and a mine standing on rich ore pays +2 production more.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "improvement",
+            "improvement": "mine"
+          },
+          "production": 1
+        },
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "improvement",
+            "improvement": "quarry"
+          },
+          "production": 1
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "veinFound",
+          "grant": {
+            "yield": "gold",
+            "amount": 40
+          }
+        },
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "mine"
+              },
+              {
+                "test": "resource",
+                "resources": [
+                  "richOre"
+                ]
+              }
+            ]
+          },
+          "production": 2
         }
       ]
     },
@@ -2786,7 +2963,7 @@
       "pool": "governmentIII",
       "slot": "wildcard",
       "line": "procession",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "flavor": "The pious are easy to govern, and they know it.",
       "text": "The science and culture your happy cities pay rises 5 percentage points · +1 happiness for each 200 banked faith.",
       "effects": [
@@ -3272,7 +3449,7 @@
       "pool": "governmentII",
       "slot": "economic",
       "line": "ploughshare",
-      "rarity": "common",
+      "rarity": "rare",
       "flavor": "The rain of one winter, kept under the square.",
       "text": "Every city of yours counts as standing on fresh water.",
       "effects": [

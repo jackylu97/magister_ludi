@@ -4373,7 +4373,12 @@ export function windfallPayout(
       if (grant.fromRate !== undefined) {
         const turns = grant.amount;
         const rate = rateOf(state, playerId, grant.fromRate, empireRateReading(state, playerId));
-        const amount = turns * rate;
+        // **Floored**, because a windfall is a whole number all the way down —
+        // the same rule the percentages below are floored under. It changes
+        // nothing for a row quoting whole turns (The Lyceum's one turn of
+        // culture is a rate that was already an integer) and it is what lets a
+        // row quote a *share* of a turn: The Natural Philosophers' fifth.
+        const amount = Math.floor(turns * rate);
         if (amount !== 0) {
           payout.grants.push({ card, source, yield: grant.yield, amount });
           payout.lines.push({ card, source, note: `+${amount} ${grant.yield}` });
@@ -5004,6 +5009,11 @@ export function cardFoundingRider(state: GameState, playerId: number): FoundingR
  * The `metaRule` hook's one consumer — a card that rewrites a rule of Statecraft
  * itself (Entry XV.b).
  *
+ * **The table's figure is the same on every shelf**, and it stays that way: the
+ * Æra III fork proposed a ten-turn seal from Government III on and the user
+ * vetoed it (2026-09-05) — swapping a card in and out is skill, not a thing to
+ * be priced out of the late game. See `StatecraftMeterConfig.sealTurns`.
+ *
  * **A card's figure is read as a departure from the table's own**, and the
  * departures sum — Entry XVII's "additive within a stage, applied once" at the
  * scale of a rule. `min` used to be the fold, and it was right while the only
@@ -5495,11 +5505,15 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
         // every time it is looked at.
         if (grant.fromRate !== undefined) {
           const turns = grant.amount;
-          out.push({
-            text:
-              `${occasion} grants ${turns === 1 ? 'an extra turn' : `${turns} extra turns`} ` +
-              `of ${grant.yield}${per}`,
-          });
+          // **A share of a turn reads as a share**, not as a fraction of one:
+          // The Natural Philosophers pays a fifth of what the realm makes in a
+          // year, and "0.2 extra turns of culture" is not a sentence anybody
+          // has ever said out loud. Whole turns keep the words they had.
+          const figure =
+            Number.isInteger(turns)
+              ? `${turns === 1 ? 'an extra turn' : `${turns} extra turns`} of ${grant.yield}`
+              : `${Math.round(turns * 100)}% of a turn's ${grant.yield}`;
+          out.push({ text: `${occasion} grants ${figure}${per}` });
         } else {
           out.push({
             text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${per}`,
@@ -5532,8 +5546,15 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
         // hangs a festival, so the verb is read off the nested clauses' own sign
         // rather than assumed: "costs your empire −1 happiness" is a double
         // negative, and "grants +5 happiness" is what the ratified text says.
+        // A **percentage** is read the same way as a figure, and it has to be:
+        // Hegemony hangs "+5% production in every city" on a capture, which is a
+        // gift with no `amount` on it at all — and a clause read off nothing
+        // defaults to the bill's sentence, so the row would have printed
+        // "capturing a city costs your empire +5% production".
         const pays = grant.timed.effects.some(
-          (nested) => 'amount' in nested && typeof nested.amount === 'number' && nested.amount > 0,
+          (nested) =>
+            ('amount' in nested && typeof nested.amount === 'number' && nested.amount > 0) ||
+            ('percent' in nested && typeof nested.percent === 'number' && nested.percent > 0),
         );
         out.push({
           text:
@@ -6509,6 +6530,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   kill: 'killing a unit',
   pillage: 'pillaging',
   prospect: 'surveying a hill',
+  veinFound: 'surfacing a vein',
   pillageTrader: 'plundering a caravan',
   tech: 'completing a technology',
   tilePurchase: 'buying a hex',

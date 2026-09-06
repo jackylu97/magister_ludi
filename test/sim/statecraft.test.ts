@@ -33,7 +33,7 @@ import {
 } from '../../src/sim/cities';
 import { previewCombat } from '../../src/sim/combat';
 import { buildingDef } from '../../src/sim/buildingData';
-import { chopFeatureAt, pillageAt } from '../../src/sim/improvements';
+import { chopFeatureAt, pillageAt, prospectAt } from '../../src/sim/improvements';
 import { nearestTarget } from '../../src/sim/barbarians';
 import { settleDiscovery } from '../../src/sim/discoveries';
 import { RULES } from '../../src/sim/rulesData';
@@ -124,6 +124,7 @@ import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
 import { isCoastal } from '../../src/sim/water';
 import { arriveOnTile } from '../../src/sim/arrival';
 import { closeWar, openWar } from '../../src/sim/wars';
+import { foundReligion } from '../../src/sim/religion';
 import type { CityYieldKey } from '../../src/sim/resourceData';
 import { foundCityAt } from '../../src/sim/cities';
 import { improvementDef } from '../../src/sim/improvementData';
@@ -1073,8 +1074,11 @@ describe('every hook family, end to end', () => {
     g.state.players[0]!.statecraft.doctrines.push('hegemony');
     const after = explainAuthority(g.state, 0).find((l) => l.source.includes('captured'))!;
     expect(after.value).toBeGreaterThan(before.value);
-    // A captured city costs 4 since the authority rework (user, 2026-08-29); Hegemony's delta makes it 3.
-    expect(after.value).toBe(-3);
+    // A captured city costs 4 since the authority rework (user, 2026-08-29).
+    // Hegemony *sets* the price since the Æra III fork (2026-09-05) — the user's
+    // own rewrite of the row — and one is the least the writ allows (`cityCosts`
+    // floors it, Entry XIV.D.2), so a conquest is as cheap as any law can make it.
+    expect(after.value).toBe(-1);
   });
 
   it('rulePercent — Manifest of the Steppe cheapens settlers and stops the ladder', () => {
@@ -1170,7 +1174,7 @@ describe('determinism', () => {
     // and twenty-seven rows join them while eight leave the four pools below.
     // Every bag changed, so a v67 log's `chooseOrder` names indices into hands
     // this build does not deal.
-    expect(SCHEMA_VERSION).toBe(69);
+    expect(SCHEMA_VERSION).toBe(70);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1907,19 +1911,26 @@ describe('passing on a draft', () => {
  * drifted from its words is a card that lies.
  */
 describe('the master-list cut of 2026-08-28', () => {
-  it('buildingsOfCategory — the Merchant League pays per gold building', () => {
+  it('buildingsOfCategory — a card pays per building of one category', () => {
     const g = game();
     const city = found(g.state, 0);
-    playerById(g.state, 0)!.statecraft.government = 'merchantLeague';
-    // No gold buildings: no line at all, rather than a line worth nothing.
-    expect(cardEmpireYields(g.state, 0).some((l) => l.card === 'merchantLeague')).toBe(false);
-    city.buildings.push('market');
-    expect(foldCardYields(cardEmpireYields(g.state, 0)).gold).toBe(1);
-    // A *second* market in a second town is a second helping: the count is of
-    // buildings across the realm, which is what `buildingsOfKind` counts one
-    // grade narrower.
+    // The Merchant League carried this count until the Æra III fork
+    // (2026-09-05) made every tier-18 government a reader of its own chair; the
+    // shape it declared is still read, from The Guild Compact's row, which is
+    // the claim this test has always been making.
+    slot(g.state, 0, 'theGuildCompact');
+    const percent = (): number =>
+      cardPercentYields(g.state, city)
+        .filter((line) => line.card === 'theGuildCompact')
+        .reduce((sum, line) => sum + line.percent, 0);
+    // No production buildings: no line at all, rather than a line worth nothing.
+    expect(percent()).toBe(0);
+    city.buildings.push('workshop');
+    expect(percent()).toBe(2);
+    // A building of another category is not a helping: the count is of the rows
+    // that declare this category, read off `BuildingDef.category`.
     city.buildings.push('monument');
-    expect(foldCardYields(cardEmpireYields(g.state, 0)).gold).toBe(1);
+    expect(percent()).toBe(2);
   });
 
   it('capitalFaithPerTurn — Theocracy tithes the capital and nowhere else', () => {
@@ -2309,11 +2320,25 @@ describe('the master-list cut of 2026-08-28', () => {
       '+1 science per 10 faith your capital gains per turn',
       '+1 culture per 10 faith your capital gains per turn',
     ]);
+    // The Æra III fork of 2026-09-05: each tier-18 government reads its own
+    // dominant chair, so the signature moves when a card of its flavour is
+    // slotted beside it.
     expect(said('merchantLeague')).toEqual([
-      '+1 gold per gold building',
+      '+2 gold per economic Order you have in a slot',
       'trade routes pay +50% more',
+      '+1 trade route',
     ]);
-    expect(said('imperium')).toEqual(['+3 authority capacity', 'all units: +1 movement']);
+    expect(said('imperium')).toEqual([
+      '+1 production per military Order you have in a slot',
+      'all units: +1 movement',
+      'capturing a city grants +50 gold',
+      'capturing a city heals every one of your units',
+    ]);
+    expect(said('divineMandate')).toEqual([
+      '+1 faith in your capital per wildcard Order you have in a slot',
+      '+1 culture in your capital per wildcard Order you have in a slot',
+      '+10% faith in every city of 6+',
+    ]);
 
     expect(said('theEstates')).toEqual([
       '+1 happiness in every city',
@@ -2369,9 +2394,9 @@ describe('the master-list cut of 2026-08-28', () => {
       'unlocks the Gilded Hall',
       // The 2026-09-02 rework: the writ dropped to one point and the card bought
       // a hex clause with the difference — the first `yields` condition, asked
-      // of the breakdown the hex has already been reckoned to pay.
+      // of the breakdown the hex has already been reckoned to pay. The Æra III
+      // fork (2026-09-05) dropped the writ altogether: two clauses, one identity.
       '+1 science, +1 culture on every hex that yields gold',
-      '+1 authority capacity',
     ]);
     // The pillage heal was Scorched Earth's all along, and the balance pass of
     // 2026-08-31 gave the second half back to the doc's own sentence — which the
@@ -2814,13 +2839,15 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     // One card shifts it by a point rather than replacing it, which is the whole
     // of the 2026-08-28 change: a *set* could not stack.
     const sc = playerById(g.state, 0)!.statecraft;
-    sc.doctrines.push('hegemony' as never);
+    slot(g.state, 0, 'clientKings');
     expect(cost()).toBe(base - 1);
 
-    // Two of them stack, and the fold is floored at one: a free conquest would
-    // make the meter free to whoever drafted twice.
-    slot(g.state, 0, 'clientKings');
-    expect(cost()).toBe(Math.max(1, base - 2));
+    // A card that *sets* the price still composes with a shift — the set lands
+    // first and the deltas ride on it — and the fold is floored at one: a free
+    // conquest would make the meter free to whoever drafted twice. Hegemony is
+    // the setter since the Æra III fork (2026-09-05).
+    sc.doctrines.push('hegemony' as never);
+    expect(cost()).toBe(1);
     expect(cost()).toBeGreaterThanOrEqual(1);
   });
 
@@ -2878,6 +2905,11 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     expect(said('masterOfMaps')).toEqual([
       'all units: +1 sight',
       'all units: +1 movement',
+      // The Æra III fork (2026-09-05) made this the Geomancy row: the eyes and
+      // the legs stay, the strength stays as the trade, and what a surveyor
+      // *finds* is now worth something.
+      'surfacing a vein grants +25 science',
+      'claiming a ruin grants +25 science',
       // Flat points on the one ledger (Entry XXXVII), where it used to be the
       // only percentage a card put on a strength.
       '-2 combat strength',
@@ -5257,5 +5289,385 @@ describe('the cards pass of 2026-09-05', () => {
     }
     expect(said('thePhilosophersStone')).toEqual(['+25% production toward The Magnum Opus']);
     expect(said('theSeaCharter')).toEqual(['trade routes pay +50% more']);
+  });
+});
+
+// --- the Æra III fork, 2026-09-05 -------------------------------------------
+
+/**
+ * The fork (`docs/age-three.md`, sections 1–3 with the user's marginalia).
+ *
+ * The claim the pass rests on: **each tier-18 government is a reader of its own
+ * dominant chair**, so "which government" becomes "which deck". Every signature
+ * below is asserted twice — once with an empty council and once with a card of
+ * its own flavour in a slot — because a deck-reader that does not *move* is a
+ * flat by another name.
+ *
+ * Beside that, the Pool III pass: three rows sharpened, three rows new, and the
+ * one new occasion (`veinFound`), which is `prospect`'s other half and fires
+ * only on a strike.
+ *
+ * **The seal is not here.** Section 3 proposed ten turns from Government III on
+ * and the user vetoed it the same day — swapping a card in and out is skill —
+ * so `sealTurnsFor` is untouched and the seal tests above still pin five.
+ */
+describe('the Æra III fork of 2026-09-05', () => {
+  /** Puts a government on a seat. Adoption has its own tests above. */
+  function rule(state: GameState, playerId: number, id: string): void {
+    playerById(state, playerId)!.statecraft.government = id as never;
+  }
+
+  it('Divine Mandate — the capital reads the wildcard bench, and the tithe rises', () => {
+    const g = game(901);
+    const capital = found(g.state, 0);
+    rule(g.state, 0, 'divineMandate');
+    const paid = (city: City, key: CityYieldKey): number =>
+      cardCityYields(g.state, city)
+        .filter((line) => line.card === 'divineMandate')
+        .reduce((sum, line) => sum + line[key], 0);
+    // An empty council pays nothing at all, and says so by having no line.
+    expect(paid(capital, 'faith')).toBe(0);
+    // A wildcard card in a chair is one helping of each voice; a military one is
+    // none, because the count is the **card's** flavour and not the chair's.
+    slot(g.state, 0, 'festivalDays');
+    expect(paid(capital, 'faith')).toBe(1);
+    expect(paid(capital, 'culture')).toBe(1);
+    slot(g.state, 0, 'bloodedSpears');
+    expect(paid(capital, 'faith')).toBe(1);
+    slot(g.state, 0, 'waysideShrines');
+    expect(paid(capital, 'faith')).toBe(2);
+    // One town only: `where: 'capital'` is the payout that lands in a single
+    // named city.
+    const second = foundCityAt(
+      g.state, 0,
+      getTileAt(g.state.map, (capital.col + 5) % g.state.map.width, capital.row)!,
+    )!;
+    expect(paid(second, 'faith')).toBe(0);
+    // And the second clause, which is the doc's own fallback: nothing in the
+    // vocabulary can ask whether a town is content, so the tithe reads its size.
+    const share = (city: City): number =>
+      cardPercentYields(g.state, city)
+        .filter((line) => line.card === 'divineMandate')
+        .reduce((sum, line) => sum + line.percent, 0);
+    capital.population = 5;
+    expect(share(capital)).toBe(0);
+    capital.population = 6;
+    expect(share(capital)).toBe(10);
+    for (const line of cardPercentYields(g.state, capital)) {
+      if (line.card !== 'divineMandate') continue;
+      expect(line.yield).toBe('faith');
+      expect(line.stage).toBe('city');
+    }
+  });
+
+  it('Imperium — every city reads the military bench', () => {
+    const g = game(902);
+    const capital = found(g.state, 0);
+    const second = foundCityAt(
+      g.state, 0,
+      getTileAt(g.state.map, (capital.col + 5) % g.state.map.width, capital.row)!,
+    )!;
+    rule(g.state, 0, 'imperium');
+    const hammers = (city: City): number =>
+      cardCityYields(g.state, city)
+        .filter((line) => line.card === 'imperium')
+        .reduce((sum, line) => sum + line.production, 0);
+    expect(hammers(capital)).toBe(0);
+    slot(g.state, 0, 'bloodedSpears');
+    // **Every** city, which is what makes the war economy a war economy: the
+    // payout is `where: 'city'`, not the capital's.
+    expect(hammers(capital)).toBe(1);
+    expect(hammers(second)).toBe(1);
+    slot(g.state, 0, 'festivalDays');
+    expect(hammers(capital)).toBe(1);
+    slot(g.state, 0, 'siegeDoctrine');
+    expect(hammers(capital)).toBe(2);
+    // The legs are unchanged, and they are the reason the government still
+    // reads as Imperium.
+    expect(cardUnitStat(g.state, createUnit(g.state, 0, 'warrior', 3, 3), 'movement')).toBe(1);
+  });
+
+  it('Imperium — a captured city pays the treasury and makes the army whole', () => {
+    const g = game(903);
+    found(g.state, 0);
+    rule(g.state, 0, 'imperium');
+    const player = playerById(g.state, 0)!;
+    const hurt = createUnit(g.state, 0, 'warrior', 3, 3);
+    hurt.hp = 1;
+    const before = player.gold;
+    // The conquest payoff the war path lacked, on the occasion The Triumphal Way
+    // already rides. Both halves are one grant, composed before anything is
+    // banked (Entry XVIII.5).
+    const payout = windfallPayout(g.state, 0, 'capture');
+    expect(payout.healAll).toBe(true);
+    expect(payout.grants).toEqual([
+      { card: 'imperium', source: 'Government · Imperium', yield: 'gold', amount: 50 },
+    ]);
+    payWindfallGrants(g.state, player, payout, { col: 3, row: 3 });
+    expect(player.gold - before).toBe(50);
+    expect(hurt.hp).toBe(unitMaxHp(hurt));
+    // A town founded is not a town taken: the occasion is the capture and no
+    // other.
+    expect(windfallPayout(g.state, 0, 'found').grants).toEqual([]);
+  });
+
+  it('Merchant League — the economic bench, the routes, and one more of them', () => {
+    const g = game(904);
+    found(g.state, 0);
+    rule(g.state, 0, 'merchantLeague');
+    const coin = (): number => foldCardYields(
+      cardEmpireYields(g.state, 0).filter((line) => line.card === 'merchantLeague'),
+    ).gold;
+    expect(coin()).toBe(0);
+    slot(g.state, 0, 'weightsAndMeasures');
+    expect(coin()).toBe(2);
+    slot(g.state, 0, 'festivalDays');
+    expect(coin()).toBe(2);
+    slot(g.state, 0, 'silkRoads');
+    expect(coin()).toBe(4);
+    // The route the government *runs*, which no other tier-18 law hands over.
+    const slots = explainRouteSlots(g.state, 0);
+    expect(slots.some((line) => line.source.includes('Merchant League'))).toBe(true);
+    expect(routeSlots(g.state, 0)).toBe(slots.reduce((sum, line) => sum + line.slots, 0));
+  });
+
+  it('The Iron Price — twenty a kill, and a pillage worth twice as much', () => {
+    const g = game(905);
+    found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('ironPrice' as never);
+    expect(windfallPayout(g.state, 0, 'kill').grants).toEqual([
+      { card: 'ironPrice', source: 'Doctrine · The Iron Price', yield: 'culture', amount: 20 },
+    ]);
+    // A percentage on the occasion's own figure, where the row used to add a
+    // flat beside it: the salvage is doubled, and the doubling is part of the
+    // printed number.
+    const salvage = windfallPayout(g.state, 0, 'pillage', 30);
+    expect(salvage.amount).toBe(60);
+    expect(salvage.grants).toEqual([]);
+  });
+
+  it('The Gilded Court — two clauses, one identity: the writ is gone', () => {
+    const g = game(906);
+    found(g.state, 0);
+    const before = foldMeter(explainAuthority(g.state, 0));
+    playerById(g.state, 0)!.statecraft.doctrines.push('gildedCourt' as never);
+    expect(foldMeter(explainAuthority(g.state, 0))).toBe(before);
+    expect(
+      doctrineDef('gildedCourt').effects.some((effect) => effect.kind === 'authority'),
+    ).toBe(false);
+  });
+
+  it('Master of Maps — the Geomancy row pays for what a survey finds', () => {
+    const g = game(907);
+    found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('masterOfMaps' as never);
+    const beakers = (occasion: 'veinFound' | 'discovery' | 'prospect'): number =>
+      windfallPayout(g.state, 0, occasion).grants
+        .filter((grant) => grant.yield === 'science')
+        .reduce((sum, grant) => sum + grant.amount, 0);
+    expect(beakers('veinFound')).toBe(25);
+    expect(beakers('discovery')).toBe(25);
+    // **The asking pays nothing**: `prospect` is the survey, strike or barren,
+    // and the row is written on the answer.
+    expect(beakers('prospect')).toBe(0);
+  });
+
+  it('veinFound — the strike is fired from the survey, and only on a strike', () => {
+    const g = game(908);
+    found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.statecraft.doctrines.push('masterOfMaps' as never);
+    const hill = (col: number, row: number, seam: boolean) => {
+      const tile = getTileAt(g.state.map, col, row)!;
+      tile.hills = true;
+      delete tile.surveyed;
+      delete tile.resource;
+      if (seam) tile.vein = 'richOre';
+      else delete tile.vein;
+      return tile;
+    };
+
+    // A barren hill: the assay is paid, the strike never happens, and the
+    // Geomancy line is not on the report.
+    const barren = hill(2, 2, false);
+    const empty = createUnit(g.state, 0, 'worker', 2, 2);
+    const before = player.sciencePool;
+    const dry = prospectAt(g.state, empty, barren);
+    expect(dry.struck).toBeNull();
+    expect(player.sciencePool).toBe(before);
+
+    // A seam: the ore surfaces and the occasion fires, into the empire's own
+    // bank through the one grant routine.
+    const struck = hill(3, 2, true);
+    const digger = createUnit(g.state, 0, 'worker', 3, 2);
+    const report = prospectAt(g.state, digger, struck);
+    expect(report.struck).toBe('richOre');
+    expect(struck.resource).toBe('richOre');
+    expect(player.sciencePool - before).toBe(25);
+    expect(report.lines.some((line) => line.card === 'masterOfMaps')).toBe(true);
+  });
+
+  it('Hegemony — the user’s rewrite: a cheap conquest, and ten turns of forges', () => {
+    const g = game(909);
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('hegemony' as never);
+    // The row *sets* the price now rather than shifting it, and one is the
+    // least the writ allows (`cityCosts` floors it).
+    const seized = found(g.state, 1);
+    seized.ownerId = 0;
+    seized.captured = true;
+    expect(-explainAuthority(g.state, 0).find((l) => l.source.includes('captured'))!.value).toBe(1);
+
+    // And the forges: a capture hangs an ordinary timed effect on the empire,
+    // read by the ordinary evaluator and expiring by comparison.
+    const player = playerById(g.state, 0)!;
+    const payout = windfallPayout(g.state, 0, 'capture');
+    expect(payout.timed).toHaveLength(1);
+    payWindfallGrants(g.state, player, payout, { col: city.col, row: city.row });
+    const share = (): number =>
+      cardPercentYields(g.state, city)
+        .filter((line) => line.card === 'hegemony')
+        .reduce((sum, line) => sum + line.percent, 0);
+    expect(share()).toBe(5);
+    g.state.turn += 10;
+    expect(share()).toBe(0);
+  });
+
+  it('The Pilgrim Ways — the faith fork’s permanent pick', () => {
+    const g = game(910);
+    const city = found(g.state, 0);
+    const theirs = found(g.state, 1);
+    playerById(g.state, 0)!.statecraft.doctrines.push('thePilgrimWays' as never);
+    const paid = (key: CityYieldKey, rates = {}): number => foldCardYields(
+      cardEmpireYields(g.state, 0, rates).filter((line) => line.card === 'thePilgrimWays'),
+    )[key];
+    // An empire that has founded nothing counts nothing — the honest answer
+    // rather than a guard.
+    expect(paid('faith')).toBe(0);
+    const religion = foundReligion(g.state, playerById(g.state, 0)!);
+    city.followers = { [religion.id]: city.population };
+    expect(paid('faith')).toBe(2);
+    expect(paid('culture')).toBe(0);
+    // The tide, counted where it has reached: a foreign town that keeps your
+    // faith pays the culture clause as well as the faith one.
+    theirs.followers = { [religion.id]: theirs.population };
+    expect(paid('faith')).toBe(4);
+    expect(paid('culture')).toBe(1);
+    // And the conversion Divine Mandate gave up, read off the turn's rate.
+    expect(paid('culture', { faithPerTurn: 20 })).toBe(1 + 4);
+  });
+
+  it('The Natural Philosophers — the capital’s shelves, and a technology’s song', () => {
+    const g = game(911);
+    const capital = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('theNaturalPhilosophers' as never);
+    const beakers = (city: City): number =>
+      cardCityYields(g.state, city)
+        .filter((line) => line.card === 'theNaturalPhilosophers')
+        .reduce((sum, line) => sum + line.science, 0);
+    capital.buildings = [];
+    expect(beakers(capital)).toBe(0);
+    capital.buildings = ['monument'];
+    expect(beakers(capital)).toBe(1);
+    capital.buildings = ['monument', 'granary', 'shrine', 'barracks', 'library'];
+    expect(beakers(capital)).toBe(5);
+    // Something that actually sings, so the share of a turn is not floored to
+    // nothing and the grant is not dropped as an empty line.
+    capital.buildings.push('amphitheater', 'forum', 'steleOfLaws');
+    // The technology's boon is a **share of a turn**, read off the empire's own
+    // rate at the moment the node lands and floored once, before anything is
+    // banked (Entry XVIII.5) — so the preview, the bank and the announcement are
+    // one figure.
+    const rate = empireRateReading(g.state, 0).culturePerTurn ?? 0;
+    expect(rate).toBeGreaterThan(0);
+    expect(windfallPayout(g.state, 0, 'tech').grants).toEqual([
+      {
+        card: 'theNaturalPhilosophers',
+        source: 'Doctrine · The Natural Philosophers',
+        yield: 'culture',
+        amount: Math.floor(rate * 0.2),
+      },
+    ]);
+    // The occasion is the whole of the gate.
+    expect(windfallPayout(g.state, 0, 'kill').grants).toEqual([]);
+  });
+
+  it('The Deep Delving — the workings, and what a surfaced seam is worth', () => {
+    const g = game(912);
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('theDeepDelving' as never);
+    const tile = ownedTiles(g.state, city).find((t) => t.col !== city.col || t.row !== city.row)!;
+    tile.feature = 'none';
+    const hammers = (): number =>
+      explainTileYield(tile, yieldContextFor(g.state, 0))
+        .filter((line) => line.source.includes('Deep Delving'))
+        .reduce((sum, line) => sum + line.production, 0);
+    tile.improvement = 'farm';
+    expect(hammers()).toBe(0);
+    tile.improvement = 'quarry';
+    expect(hammers()).toBe(1);
+    tile.improvement = 'mine';
+    expect(hammers()).toBe(1);
+    // The seam's own line, on top of the workings': a mine on rich ore is what
+    // a survey was for.
+    tile.resource = 'richOre';
+    expect(hammers()).toBe(3);
+    // And the strike itself pays the treasury.
+    expect(windfallPayout(g.state, 0, 'veinFound').grants).toEqual([
+      { card: 'theDeepDelving', source: 'Doctrine · The Deep Delving', yield: 'gold', amount: 40 },
+    ]);
+  });
+
+  it('seats the three new rows in the tier-18 pool, and leaves the seal alone', () => {
+    const pool = poolDoctrines(18);
+    for (const id of ['thePilgrimWays', 'theNaturalPhilosophers', 'theDeepDelving'] as never[]) {
+      expect(pool.includes(id), id).toBe(true);
+      expect(doctrineDef(id).tier, id).toBe(18);
+      expect(doctrineDef(id).effects.length, id).toBeGreaterThan(0);
+    }
+    // Eleven rows at the fork, every line with a permanent pick.
+    expect(pool.length).toBe(11);
+    // Section 3's seal proposal was vetoed by the user (2026-09-05): a card you
+    // want to slot in and out is skill expression, so every shelf still seals
+    // for the table's own five turns.
+    const g = game(913);
+    expect(sealTurnsFor(g.state, 0)).toBe(STATECRAFT.meter.sealTurns);
+    expect(STATECRAFT.meter.sealTurns).toBe(5);
+  });
+
+  it('moves the two rarity marks the pass ruled', () => {
+    // The ○ mark is meant to be exactly the rule-changers: Cistern Works is the
+    // best of them in Government II, and Mandate of Heaven is large rather than
+    // rule-changing. The doc's marks are pinned against these by
+    // `statecraftDocSync.test.ts`.
+    expect(orderDef('cisternWorks').rarity).toBe('rare');
+    expect(orderDef('mandateOfHeaven').rarity).toBe('uncommon');
+  });
+
+  it('prints every changed and new row in the words the fork ratified', () => {
+    const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    expect(said('ironPrice')).toEqual([
+      'killing a unit grants +20 culture',
+      'pillaging pays +100%',
+    ]);
+    expect(said('hegemony')).toEqual([
+      'the authority a captured city costs is 1',
+      'capturing a city grants +5% production in every city for 10 turns',
+    ]);
+    expect(said('thePilgrimWays')).toEqual([
+      '+2 faith per city that follows you',
+      '+1 culture per foreign city that follows you',
+      '+1 culture per 5 faith gained per turn',
+    ]);
+    expect(said('theNaturalPhilosophers')).toEqual([
+      '+1 science in your capital per building in this city',
+      "completing a technology grants 20% of a turn's culture",
+    ]);
+    expect(said('theDeepDelving')).toEqual([
+      '+1 production on every hex with a Mine',
+      '+1 production on every hex with a Quarry',
+      'surfacing a vein grants +40 gold',
+      '+2 production on every hex with a Mine carrying Rich Ore',
+    ]);
   });
 });

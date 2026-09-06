@@ -65,12 +65,14 @@ permanent pick at the fork. Marks: KEEP · MODIFY · CUT · ADD.
 | The Gilded Court 🐫 | Gilded Hall unlock · +1🔬+1🎵 on gold tiles · +1 authority | **MODIFY — focus**: drop the authority clause. Two clauses, one identity (gold ground). |
 | The Grand Bazaar 🐫 | luxury happiness +50% · duplicates pay 30% · +2💰 per unique | **KEEP** — the Caravan payoff; the best-designed row in the pool. |
 | Master of Maps 🧭 | +1 sight and movement · −2 strength | **MODIFY — make it the Geomancy doctrine**: +1 sight and movement · **every vein you surface and every ruin you claim pays +25🔬** · −2 strength. The Æra III reveal becomes a path: prospecting is now a science plan, and the strength cost stays as the trade. |
-| Hegemony ⚒ | +1 authority capacity per city · captured city −1 authority | **MODIFY — absorb Imperium's authority**: **+3 authority capacity, and +1 more per city you hold** · captured cities cost no authority. The wide-war doctrine, distinct from Client Kings (an order). |
+| Hegemony ⚒ | +1 authority capacity per city · captured city −1 authority | **MODIFY — absorb Imperium's authority**: **+3 authority capacity, and +1 more per city you hold** · captured cities cost no authority. The wide-war doctrine, distinct from Client Kings (an order). | [way too strong, lets say: captured cities cost no authority, +5% production-wide after capturing a city]
 | Pax Imperia 🌱 | +3😊 +3🎵 in cities of 8+ | **KEEP** — the tall floor at the fork. |
 | The Wandering Court 🌱 | −15% capital · +3 everything elsewhere | **KEEP** — the most distinctive row here; the anti-capital identity. |
 | **ADD — The Great Litany II** 🕯 (working name *The Pilgrim Ways*) | **+2🕯 in every city following your religion · converting a foreign city pays +30🎵 · +1🎵 per 5🕯 gained per turn** (the conversion Divine Mandate gives up) | The faith fork's permanent pick — spreading the faith becomes an engine. `following…` CountKind + a conversion occasion (check the religion windfall occasions; if "a foreign city converted" isn't an occasion, the clause is a count: "+1🎵 per foreign city following you"). |
-| **ADD — The Natural Philosophers** ✶ | **+1🔬 for every 2 buildings in your capital · completing a technology pays +10🎵** | The science fork's permanent pick; the capital-buildings count is the Encyclopaedia's shape one age early and one city narrow. |
+| **ADD — The Natural Philosophers** ✶ | **+1🔬 for every 2 buildings in your capital · completing a technology pays +10🎵** | The science fork's permanent pick; the capital-buildings count is the Encyclopaedia's shape one age early and one city narrow. | [not strong enough, edit: +1 science per building in your capital, completing a technology grants a one time boon of 20% of your culture per turn]
 | **ADD — The Deep Delving** ⛰ (Highlands) | **Mines and quarries +1⚒ · a vein you surface pays +40💰 and its mine +2⚒ for ever** | Geomancy's second home; with Master of Maps it makes prospecting a real Æra III playstyle. Vein-surfaced is an occasion (`prospect` verb) — check the windfall vocabulary; the standing +2⚒ is a tile line on `richOre`-marked hexes (marker exists). |
+
+great, love these.
 
 Pool III after: eleven rows, every line with a permanent pick, two Geomancy
 paths, no orphan clauses.
@@ -86,7 +88,7 @@ Two changes make the drafts *consequential* rather than merely rich:
 
 1. **Seals lengthen from tier 18: 5 → 10 turns** (data: the seal length
    per government tier, or per pool). A Gov III pick is a commitment you
-   feel; early-game churn stays cheap.
+   feel; early-game churn stays cheap. [veto - certain cards you want to slot in and out, should be part of the game's skill expression]
 2. **Rarity tightening**: the ○ mark should be exactly the rule-changers.
    Promote Cistern Works (●→○ — it is the best rule-changer in Gov II),
    demote Mandate of Heaven (○→◆ — large, not rule-changing). Audit the
@@ -124,7 +126,8 @@ minimal honest shape:
 - **The derivation**: world age = the age the MEDIAN real player has
   entered (derived from `techsResearched`, no stored state; deterministic;
   replay-safe). With two players that is "both"; with four, the third.
-  Firsts and beads stay per personal age — the race is still yours.
+  Firsts and beads stay per personal age — the race is still yours. 
+  [for this to be meaningful, it needs to be the mean age of all players(including bots). For single player campaigns, it should punish you if you're behind the bots]
 - **The effect on advance**, in this order of certainty: the ceremony (UI
   only), the wild's tier (one reader changes what it asks), the catch-up
   percent (one line in tech cost), and — later, if playtests want it — an
@@ -146,3 +149,76 @@ costs of trailing, and what the screen announces.
 3. Seals to 10 from tier 18; the two rarity moves.
 4. The world age, after the playthrough, in its minimal shape: ceremony →
    wild's tier → catch-up.
+
+---
+
+## BUILT — sections 1, 2 and the rarity half of 3 (2026-09-05, schema 70)
+
+Sections 1 and 2 are shipped whole; section 3 shipped its rarity half only —
+**the seal lengthening was vetoed by the user mid-build** (*"certain cards you
+want to slot in and out, should be part of the game's skill expression"*), so a
+seal is still the table's five turns on every shelf and `sealTurnsFor` is
+untouched. Section 4 (the world age) was out of scope and is not built.
+
+**The three signatures, as shipped.** Each is a `countScaled` on
+`slottedOrdersOfSlot` — the card's own flavour, never the chair's — so the
+figure moves the moment a card of the deck's kind is slotted beside it:
+
+| Government | Shipped signature |
+|---|---|
+| Divine Mandate 3/3/5 | +1🕯 and +1🎵 **in the capital** per wildcard Order slotted · **+10% faith in every city of 6 or more** |
+| Imperium 5/3/3 | +1⚒ **in every city** per military Order slotted · all units +1 movement · capturing a city pays **+50💰 and heals every one of your units** |
+| Merchant League 2/5/4 | +2💰 per economic Order slotted · routes pay +50% · +1 trade route |
+
+Three notes on the shipping:
+
+- **There is no contentment scope**, so Divine Mandate's second clause took the
+  doc's own stated fallback (cities of 6 or more), with the reason on the row's
+  `note`. A `CityScope` for "a contented town" is a design decision, not a
+  number.
+- **`healAll` is the whole army**, not the ring around the taken town — it is
+  the shape The Empire already carries, and the row prints what it does
+  ("heals every one of your units") rather than a reach the vocabulary cannot
+  express.
+- **Imperium's +3 authority is gone rather than moved.** Section 1's ruled table
+  has no authority clause and section 2's Hegemony row carries the user's own
+  bracketed rewrite, which drops the capacity ladder — so the point of writ the
+  proposal moved between them is cut by both halves of the ruling. Worth the
+  user's eye: the war path lost three points of capacity across this pass.
+
+**Pool III, eleven rows.** The Iron Price pays 20🎵 a kill and doubles a
+pillage (a percentage on the occasion's own figure, not a second flat). The
+Gilded Court dropped the writ. Master of Maps is the Geomancy row: the eyes,
+the legs, the −2 strength, and **+25🔬 for every vein surfaced and every ruin
+claimed**. Hegemony is the user's bracket, with one departure stated below.
+Three rows are new — **The Pilgrim Ways** (+2🕯 per following city · +1🎵 per
+*foreign* following city · the +1🎵 per 5🕯 conversion Divine Mandate gave up),
+**The Natural Philosophers** (+1🔬 in the capital per building there ·
+completing a technology pays a fifth of a turn's culture — the user's
+mid-build edit: *"not strong enough"*) and **The Deep Delving** (+1⚒ on every mine
+and quarry · a vein surfaced pays +40💰 · +2⚒ on a mine standing on rich ore).
+
+**One new occasion.** `WindfallOccasion`'s `veinFound`, fired from `prospectAt`
+on a strike and only on a strike, after the seam has surfaced. It is
+`prospect`'s other half rather than a flag on it: that occasion pays for the
+*asking* by design — certainty is the thing being bought — and a rider that
+fired only on ore would have been a second rule about what a survey is. Both
+Geomancy rows ride it.
+
+**Two open strokes, for the user:**
+
+1. **"Captured cities cost no authority" ships as "costs 1 authority."** The
+   meter floors a captured town at one point (`cityCosts`, Entry XIV.D.2 —
+   deliberately, so two stacking cards cannot make conquest free), so zero is
+   not sayable without lowering that floor, which is a rules decision and not a
+   number. Hegemony *sets* the price to the floor (`meterRule` `value: 1`),
+   which is the cheapest any law in the game can make a conquest. Say the word
+   and it is one line.
+2. **"+5% production-wide after capturing a city" ships as ten turns.** The
+   bracket does not say how long, and nothing in the game can hold a standing
+   bonus behind "you have captured a town at some point"; the honest shape is
+   The Triumphal Way's — a capture hangs a timed effect on the empire — and its
+   ten turns are what this borrowed. A different number is a one-line edit.
+
+**The rarity half of section 3:** Cistern Works ● → ○, Mandate of Heaven ○ → ◆,
+both marks pinned doc↔data by `statecraftDocSync.test.ts`.

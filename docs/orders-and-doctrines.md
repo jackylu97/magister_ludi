@@ -175,6 +175,34 @@ on **one** new vocabulary member.
   Absolutism, Pax Magistri and The Philosopher's Stone ship their stock halves with the
   rest struck from the text; Blitz, which had no stock half at all, is retired.
 
+**As built, 2026-09-05 (the Æra III fork, `docs/age-three.md` sections 1–3)** — the three
+tier-18 signatures, six Pool III rows and one new occasion, on the vocabulary the
+card-shapes pass left:
+
+- **Each tier-18 government reads its own dominant chair** — one `countScaled` on
+  `slottedOrdersOfSlot` apiece, the card's own flavour and never the chair's, so the
+  signature *moves* when a card of the deck's kind is slotted beside it. Divine Mandate pays
+  its capital 🕯 and 🎵 per wildcard Order (and +10%🕯 in cities of 6+ — there is no
+  contentment scope, so the doc's own fallback shipped); Imperium pays every city a hammer
+  per military Order and pays a conquest **+50💰 and `healAll`** on the existing `capture`
+  occasion; the Merchant League pays 2💰 per economic Order and hands over a `routeRider`.
+- **Pool III is eleven rows.** The Iron Price pays 20🎵 a kill and doubles a pillage (a
+  percentage on the occasion's own figure). The Gilded Court dropped its authority. Master
+  of Maps is the Geomancy row (+25🔬 per vein surfaced and per ruin claimed). Hegemony is
+  the user's own rewrite — the captured price *set* to the writ's floor of one, and +5%⚒ in
+  every city for ten turns after a capture. New: **The Pilgrim Ways** (🕯), **The Natural
+  Philosophers** (✶) and **The Deep Delving** (⛰).
+- **One new occasion** — `WindfallOccasion`'s `veinFound`, fired from `prospectAt` on a
+  strike and only on a strike. `prospect` pays for the *asking* by design (certainty is what
+  the assay buys), so the finding is a second occasion on the same verb rather than a flag
+  on the first.
+- **A `fromRate` grant may quote a share of a turn** — The Natural Philosophers' fifth,
+  floored once in `windfallPayout` with every other figure and printed as a percentage
+  rather than as a fraction of a turn. No new shape; The Lyceum's whole turn is unchanged.
+- **Two rarity marks moved**: Cistern Works ● → ○, Mandate of Heaven ○ → ◆. **The seal
+  lengthening was vetoed** by the user mid-build — a card you want to slot in and out is
+  skill expression — so every shelf still seals for the same five turns.
+
 ## Themes (the archetype lines)
 
 | Line | Playstyle | Ideas |
@@ -206,9 +234,9 @@ on **one** new vocabulary member.
 | 10 | Republic | 1/3/3 | +1 culture for each 5 population in a city. −5% happiness demanded per citizen. |
 |  | Theocracy | 1/2/4 | +2 faith in every city. Your capital's faith is gained again as science and as culture, at a tenth of the rate. |
 |  | Tyranny | 3/1/3 | +3 authority capacity. Pillaging pays +50%. |
-| 18 | Divine Mandate | 3/3/5 | happiness tiers +5pp · +1🎵 per 5🕯 gained per turn |
-|  | Imperium | 5/3/3 | +3 authority capacity. All units +1 movement. |
-|  | Merchant League | 2/5/4 | +1 gold for each building that produces gold. Trade routes pay 50% more. |
+| 18 | Divine Mandate | 3/3/5 | +1 faith and +1 culture in your capital for each wildcard Order you have in a slot · +10% faith in every city of 6 or more population. |
+|  | Imperium | 5/3/3 | +1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units. |
+|  | Merchant League | 2/5/4 | +2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route. |
 | 29 | The Curia | 4/4/5 | +3 faith for each Cathedral. Faith buildings supply science equal to their faith. · †deferred |
 |  | The Estates | 3/5/5 | +1 happiness in every city. +2 culture in every city of 8 or more population. |
 |  | The Sultanate | 6/3/4 | All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture. |
@@ -248,14 +276,17 @@ on **one** new vocabulary member.
 
 | Doctrine | Line | Effect |
 |---|---|---|
-| The Iron Price | ⚒ | Killing a unit grants +15 culture · pillaging pays +15 gold. |
+| The Iron Price | ⚒ | Killing a unit grants +20 culture · pillaging pays double. |
 | Manifest of the Steppe | — | Settlers cost 40% less to train and have +2 movement · every city demands +1 happiness. |
-| The Gilded Court | 🐫 | Unlocks the Gilded Hall, a building that is bought with gold and never built. +1 science and culture on all tiles that yield gold. +1 authority |
+| The Gilded Court | 🐫 | Unlocks the Gilded Hall, a building that is bought with gold and never built. +1 science and +1 culture on every hex that yields gold. |
 | The Grand Bazaar | 🐫 | Happiness from unique luxuries +50%. A second or later copy of a luxury pays 30% of its bonus instead of nothing. +2 gold for each unique luxury. |
-| Master of Maps | 🧭 | All units +1 sight and +1 movement · all units −2 combat strength. |
-| Hegemony | ⚒ | +1 authority capacity for each city you hold · a captured city costs one less authority. |
+| Master of Maps | 🧭 | All units +1 sight and +1 movement · every vein you surface and every ruin you claim pays +25 science · all units −2 combat strength. |
+| Hegemony | ⚒ | A captured city costs 1 authority · capturing a city grants +5% production in every city for 10 turns. |
 | Pax Imperia | 🌱 | +3 happiness and +3 culture in every city of 8 or more population. |
 | The Wandering Court | 🌱 | −15% to every yield in your capital · +3 food, production, science, culture and faith, and +3 happiness, in every city but your capital. |
+| The Pilgrim Ways | 🕯 | +2 faith for each city in the world that follows your religion · +1 culture for each foreign city that follows you · +1 culture for each 5 faith you gain per turn. |
+| The Natural Philosophers | ✶ | +1 science in your capital for each building standing in it · completing a technology grants 20% of a turn's culture. |
+| The Deep Delving | ⛰ | +1 production on every mine and every quarry · surfacing a vein pays +40 gold, and a mine standing on rich ore pays +2 production more. |
 
 ### Pool IV (tier 29)
 
@@ -374,7 +405,7 @@ is take one or pass.
 | Scholars' Stipend | W | ✶ | ● | +2 science in every city of 5 or more population holding a Library, and +2 more where a University stands. |
 | The Choir | W | 🕯 | ● | +1 culture and +1 happiness in every city with a Temple. |
 | Star-Gazers | W | ✶ | ● | +2 science in every city with a mountain hex inside its borders. |
-| Cistern Works | E | 🌾 | ● | Every city of yours counts as standing on fresh water. |
+| Cistern Works | E | 🌾 | ○ | Every city of yours counts as standing on fresh water. |
 | Ledger-Keepers | E | 🐫 | ● | +1 gold in every city with a Market, and +1 trade route. |
 | Drums of War | M | ⚒ | ◆ | while slotted, newly created units gain +2 combat strength, and keep it for life. |
 | The Cartographers | W | 🧭 | ◆ | +1 science for each 40 hexes you have revealed. |
@@ -415,7 +446,7 @@ is take one or pass.
 | Provincial Mints | E | 🐫 | ● | +2 gold for each improved copy of a luxury — duplicates count. |
 | Quarrymen's Guild | E | ⚒ | ● | +4 production in every city with a quarry. |
 | The Grain Dole | E | 🌱 | ● | +2 happiness in every city of 6 or more population. |
-| Mandate of Heaven | W | 🕯 | ○ | The science and culture your happy cities pay rises 5% · +1 happiness for each 200 banked faith. |
+| Mandate of Heaven | W | 🕯 | ◆ | The science and culture your happy cities pay rises 5% · +1 happiness for each 200 banked faith. |
 | The Lyceum | W | ✶ | ◆ | Completing a technology grants an extra turn of culture. |
 | Census of Souls | W | 🕯 | ◆ | +1 faith for each citizen in your capital. |
 | Toleration Edicts | W | — | ● | −10% happiness demanded per citizen. |

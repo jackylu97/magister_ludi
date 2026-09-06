@@ -1275,8 +1275,53 @@ import {
  *     v68 game whose Opus was raised by a seat that did not lead the rods was
  *     won by the leader; the same log here is won by the builder. That is
  *     exactly the kind of divergence a version number exists to refuse.
+ *
+ * v70: **the Æra III fork** (ruled 2026-09-05, `docs/age-three.md` sections 1–3
+ * with the user's marginalia). The third age is where a game forks toward war or
+ * toward a victory road, and the fork was illegible: three tier-18 governments
+ * whose signatures said nothing about the chairs they dealt, a Pool III with no
+ * faith pick and no science pick, and a five-turn seal that made a Æra III
+ * commitment as cheap as a Æra I one.
+ *
+ *   · **Each tier-18 government reads its own dominant chair.** Divine Mandate
+ *     pays its capital a candle and a note for every wildcard Order slotted (and
+ *     +10% faith in its larger towns); Imperium pays every city a hammer for
+ *     every military Order slotted, keeps the movement, and pays +50 gold and a
+ *     whole army's health for a captured town; the Merchant League pays two coins
+ *     for every economic Order slotted, keeps the routes' half again, and runs
+ *     one more route. Written in the vocabulary the card-shapes pass left
+ *     (`slottedOrdersOfSlot`, `routeRider`, the `capture` occasion's `healAll`),
+ *     so the signatures are data.
+ *   · **Pool III is eleven rows.** The Iron Price is sharpened (a kill pays 20
+ *     culture, a pillage pays double); The Gilded Court dropped its authority;
+ *     Master of Maps became the Geomancy row (a vein surfaced and a ruin claimed
+ *     each pay 25 science); Hegemony is the user's own rewrite — a captured city
+ *     at the writ's floor, and 5% more production everywhere for ten turns after
+ *     a capture. Three rows are new: The Pilgrim Ways (faith), The Natural
+ *     Philosophers (science) and The Deep Delving (the Highlands' second
+ *     Geomancy path).
+ *   · **One new occasion.** `WindfallOccasion`'s `veinFound`, fired from
+ *     `prospectAt` on a strike and only on a strike — `prospect`'s other half,
+ *     because that occasion pays for the *asking* by design and a rider that
+ *     fired only on ore would have been a second rule about what a survey is.
+ *   · **A `fromRate` grant may quote a *share* of a turn** — The Natural
+ *     Philosophers' fifth of the realm's culture, floored in `windfallPayout`
+ *     with every other figure (a windfall is a whole number all the way down)
+ *     and printed as a percentage rather than as a fraction of a turn. The
+ *     Lyceum's whole turn reads and pays exactly as it did.
+ *   · **Two rarity marks move** — Cistern Works ●→○ (the best rule-changer in
+ *     Gov II) and Mandate of Heaven ○→◆ (large, not rule-changing). The pass's
+ *     third proposal, a ten-turn seal from Government III on, was **vetoed by
+ *     the user the same day**: swapping a card in and out is skill expression,
+ *     so a seal is the same five turns on every shelf.
+ *
+ *     The migration note: no field on the state changed shape. What moves is
+ *     what the same log is worth — three rows join the tier-18 Doctrine pool and
+ *     two rarities change the weights, so every draft from a v69 seed deals a
+ *     different hand, and a v69 seat under Imperium or Divine Mandate was
+ *     collecting different yields from the same board.
  */
-export const SCHEMA_VERSION = 69;
+export const SCHEMA_VERSION = 70;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

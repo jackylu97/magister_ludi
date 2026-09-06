@@ -1798,6 +1798,20 @@ export type WindfallOccasion =
   /** An improvement pillaged (`pillageAt`). */
   | 'pillage'
   /**
+   * A **vein surfaced** (`prospectAt`, on a strike and only on a strike) — the
+   * Geomancy pass of 2026-09-05.
+   *
+   * `prospect`'s other half, and a member of its own rather than a flag on it
+   * for the reason that occasion's own docblock states so plainly: the survey
+   * pays for the *asking*, because certainty is the thing being bought, and a
+   * rider on it that only fired on a strike would be a second rule about what a
+   * survey is. So the two moments are two occasions on one verb — the hill was
+   * asked, and the hill answered yes — and a card written on either says which
+   * one it means. Fired after the seam has surfaced, so a rider reading the
+   * board sees the ore.
+   */
+  | 'veinFound'
+  /**
    * A hill **surveyed** (`prospectAt`, the vein pass) — strike or barren.
    *
    * The occasion is the *asking*, not the finding, exactly as the assay it pays
@@ -3146,7 +3160,18 @@ export interface StatecraftMeterConfig {
   costLinear: number;
   /** Exponent on the draft count — the escalation Entry XV asks for. */
   costExponent: number;
-  /** How long slotting an Order seals it. `metaRule` may rewrite this. */
+  /**
+   * How long slotting an Order seals it. `metaRule` may rewrite this.
+   *
+   * **One number for every shelf**, and the Æra III fork of 2026-09-05 is why
+   * that is written down rather than assumed: the fork's proposal was a longer
+   * seal from Government III on (`docs/age-three.md` section 3) and the user
+   * vetoed it the same day — *certain cards you want to slot in and out; that
+   * should be part of the game's skill expression*. So a seal is a fixed price
+   * for anticipating a posture (Entry XV), never a tax that climbs with the
+   * ladder, and a per-pool table is a shape this file deliberately does not
+   * have.
+   */
   sealTurns: number;
 }
 

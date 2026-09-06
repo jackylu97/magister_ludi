@@ -676,7 +676,7 @@ describe('the research queue field', () => {
     // v69 (the victory rule, 2026-09-05): finishing the Magnum Opus wins
     // outright. A v68 log reaches the same board and a different winner — the
     // builder rather than whoever held the longest rod at the curtain.
-    expect(SCHEMA_VERSION).toBe(69);
+    expect(SCHEMA_VERSION).toBe(70);
   });
 });
 

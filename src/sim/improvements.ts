@@ -61,6 +61,7 @@ import {
   type TileYieldContext,
   nearestOwnedCity,
   refreshTileDerived,
+  settleProductionWindfall,
   tileOwnerCityId,
   tileOwnerPlayerId,
   tileYieldOf,
@@ -96,7 +97,7 @@ import {
   unitById,
 } from './state';
 import { atWar } from './wars';
-import { hasTech } from './tech';
+import { hasTech, settleResearchWindfall } from './tech';
 import { techDef } from './techData';
 import {
   TILE_YIELD_KEYS,
@@ -1098,8 +1099,30 @@ export function prospectAt(state: GameState, unit: Unit, tile: Tile): ProspectRe
       // nothing — `settleCampBounty`'s ruling, and for its reason.
       report.warning = 'no city to receive the assay';
     }
-    payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row });
+    const touched = payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row });
+    // **The strike is an occasion of its own** (the Geomancy pass, 2026-09-05).
+    // The survey above pays for the *asking* — barren or not, which is the
+    // layer's whole thesis — and this pays for the answer, so a card written on
+    // one is silent on the other. Composed after the seam has surfaced, so a
+    // rider that reads the board reads ore; `base` is nothing, because a strike
+    // has no figure of its own until a card names one.
+    if (report.struck !== null) {
+      const strike = windfallPayout(state, unit.ownerId, 'veinFound');
+      report.lines = [...report.lines, ...strike.lines];
+      for (const grown of payWindfallGrants(state, player, strike, {
+        col: tile.col,
+        row: tile.row,
+      })) {
+        if (!touched.includes(grown)) touched.push(grown);
+      }
+    }
+    // The three settlements every windfall that pays into a bucket owes — the
+    // register in CLAUDE.md, entries 3 and 9: a hammer, a beaker or a point of
+    // culture banked here is banked *now*, and a draft it fills opens on the
+    // spot rather than at the end of the turn.
+    for (const grown of touched) settleProductionWindfall(state, grown);
     settleCultureWindfall(state, player);
+    settleResearchWindfall(state, player);
   }
 
   // A struck hill is a hill worth a different amount to a citizen standing on

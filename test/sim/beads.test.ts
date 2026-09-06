@@ -206,7 +206,7 @@ describe('the bead catalogue', () => {
     // game outright — the builder is the winner, and the most-beads count with
     // its builder tie-break is retired. A v68 log replays to the same board and
     // to a different verdict, which is the one thing a version number is for.
-    expect(SCHEMA_VERSION).toBe(69);
+    expect(SCHEMA_VERSION).toBe(70);
   });
 
   it('puts the beads phase directly after renown', () => {
