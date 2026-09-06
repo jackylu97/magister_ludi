@@ -431,10 +431,18 @@ rulings yet:
   the base beaker halves and science moves into orders (the next playtest
   calibrates); three projects (production → gold / science / culture);
   veins marked, with hidden unique minerals. **Still open: the rites' faith
-  price and per-city seal** (a default is proposed there). Two docs DRAFTED
-  for markup: `docs/tech-gifts.md` (every node's gift after the cut — two
-  nodes empty today, nine weak, all filled; the science split proposed at
-  a quarter back through the tree, three quarters through the deck) and
+  price and per-city seal** (a default is proposed there).
+  `docs/tech-gifts.md` — MARKED UP and folded (2026-09-06): **unique
+  buildings, once per empire, as each age's anchor** (Heroic Epic · Imperial
+  Throne · High Temple · Forum · the Caravanserai returned as the route hub;
+  priced at half a wonder of the age; effects city-scoped bar the Throne's
+  authority); the nodes' own gifts as the user wrote them (Movable Type's
+  connected-city percents, Machinery's roads at a fifth, The Silk Road's
+  endpoint luxuries, Horology's two periodic figures — "bursts are strong");
+  the apostle at Theology; eight small shapes beside fewer-things' ten.
+  **In flight**: `docs/orders-pass-3.md` — the order pass proposal: every
+  row KEEP / CONVERT / CUT / NEW to reach 25/30/45 per pool with the user's
+  five engine shapes and all twelve lines readable, for markup. And
   `docs/veins.md` — **SHELVED on your word (2026-09-06)**: the layer was
   unreachable for most of a game (its gate an Æra IV node) and a survey is
   the small frequent click this pass removes. `veins.share` is 0 (the last
