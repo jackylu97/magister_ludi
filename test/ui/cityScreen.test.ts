@@ -414,13 +414,57 @@ describe('the city mode', () => {
     expect((shelves![0].match(/label: '/g) ?? []).length).toBe(4);
   });
 
-  it('remembers the shelf in module state, never in the game', () => {
+  it('remembers the tab in module state, never in the game', () => {
     // Which tab was last open is a fact about this sitting at the keyboard: a
     // save is `{config, log}` and replays, so a tab in the state would be a
     // save that replayed differently.
     const text = panel();
-    expect(text).toMatch(/^let addShelf: AddShelf = 'unit';$/m);
-    expect(text).not.toMatch(/city\.addShelf|state\.addShelf/);
+    expect(text).toMatch(/^let addTab: AddTab = 'all';$/m);
+    expect(text).not.toMatch(/city\.addTab|state\.addTab/);
+  });
+
+  it('opens on All — one list, whatever a player knows about the shelves', () => {
+    // The playthrough's note: a newer player does not know a wonder is not a
+    // building, and four tabs asked them to know it before they could find
+    // anything. So the list opens whole and the shelves became the filter.
+    const text = panel();
+    const tabs = /export const ADD_TABS[\s\S]*?\n\];/.exec(text);
+    expect(tabs).not.toBeNull();
+    // First in the list *is* first on screen: the tabs are printed by walking
+    // `ADD_TABS` in order, so the row's order is this literal's order.
+    expect(tabs![0]).toMatch(/\[\s*\{ tab: 'all', label: 'All' \},/);
+    // …and it is what a fresh sitting starts on.
+    expect(text).toMatch(/^let addTab: AddTab = 'all';$/m);
+    expect(text).toContain('for (const { tab: which, label } of ADD_TABS)');
+    // 'all' is a tab and never a shelf: no row is ever sorted into it, so it
+    // must not be an answer `queueCategory` could be expected to give.
+    expect(text).toMatch(/export type AddTab = AddShelf \| 'all';/);
+    expect(text).not.toMatch(/AddShelf = ProductionCategory \| null \| 'all'/);
+  });
+
+  it('shows every shelf under All, each group under its own eyebrow', () => {
+    // One predicate decides what a tab shows, so a fifth shelf cannot be added
+    // and quietly left out of All.
+    const text = panel();
+    expect(text).toContain("return addTab === 'all' || addTab === shelf;");
+    for (const call of ["shelfShows('unit')", 'shelfShows(null)', 'shelfShows(shelf)']) {
+      expect(`${call}: ${text.includes(call)}`).toBe(`${call}: true`);
+    }
+    // The eyebrow over a group is written after its rows are in — a heading over
+    // nothing is worse than no heading — and it takes the shelf's own word out
+    // of `ADD_SHELVES` rather than a fifth spelling of "wonders".
+    expect(text).toContain("if (addTab !== 'all') return;");
+    expect(text).toContain("element('h4', 'city-shelf-head', word)");
+    for (const call of [
+      "groupHead('unit', unitsAt)",
+      'groupHead(shelf, at)',
+      'groupHead(null, projectsAt)',
+    ]) {
+      expect(`${call}: ${text.includes(call)}`).toBe(`${call}: true`);
+    }
+    // Every shelf carries the word its eyebrow prints.
+    const shelves = /export const ADD_SHELVES[\s\S]*?\n\];/.exec(text);
+    expect((shelves![0].match(/word: '/g) ?? []).length).toBe(4);
   });
 
   it('prints its one board instruction only when somebody is asking', () => {
@@ -445,7 +489,6 @@ describe('the build list', () => {
       'minmax(0, 1fr) auto',
     );
     expect(declaration('.city-buildable', 'display')).toBe('grid');
-    expect(declaration('.city-buildable', 'grid-template-columns')).toBe('minmax(0, 1fr) auto');
   });
 
   it('floors the two figure columns so neither steals width from a name', () => {
@@ -456,6 +499,51 @@ describe('the build list', () => {
     expect(declaration('.city-buildable-buy', 'min-width')).toBeDefined();
     // And the name is still the cell that gives: it, and only it, ellipsises.
     expect(declaration('.city-buildable-name', 'text-overflow')).toBe('ellipsis');
+  });
+
+  it('never lets the yields take the name’s width — the name has a floor', () => {
+    // The Founding Oath (a card paying +1 of every yield per capital building)
+    // made the preview line under a price six marks wide, and an `auto` figure
+    // column handed it every pixel: the buildings and the wonders were left as
+    // ellipses on a list that is read by its names. The figure column is capped
+    // and the name column floored, which is the same rule stated from both ends.
+    // The name track is flexible and floored above zero; the figure track is
+    // capped, so nothing printed in it can grow past the cap.
+    const columns = declaration('.city-buildable', 'grid-template-columns') ?? '';
+    const tracks = /^minmax\((\d+(?:\.\d+)?)em, 1fr\) minmax\(min-content, (\d+(?:\.\d+)?)em\)$/.exec(
+      columns,
+    );
+    expect(`${columns} → ${tracks !== null}`).toBe(`${columns} → true`);
+    expect(Number.parseFloat(tracks![1])).toBeGreaterThan(0);
+    expect(Number.parseFloat(tracks![2])).toBeGreaterThan(0);
+  });
+
+  it('truncates the yields line rather than the name beside it', () => {
+    // The third thing on the row and the one with no ceiling — a later card may
+    // pay more voices than the Oath does. One line, clipped, with the whole bag
+    // still readable in the row's own hover card (`previewLineText`), which is
+    // the refusal/preview idiom this panel already keeps. Not a `title`: a
+    // native tooltip would arrive on top of that card saying less (2026-08-28).
+    expect(declaration('.city-buildable-preview', 'overflow')).toBe('hidden');
+    expect(declaration('.city-buildable-preview', 'text-overflow')).toBe('ellipsis');
+    expect(declaration('.city-buildable-preview', 'white-space')).toBe('nowrap');
+    expect(declaration('.city-buildable-preview', 'min-width')).toBe('0');
+    // And it truncates on a line of its own rather than inside the price
+    // column, which is what leaves the price column a price's width.
+    expect(declaration('.city-buildable-preview', 'grid-column')).toBe('1 / -1');
+    expect(declaration('.city-buildable-cost.is-reason', 'grid-column')).toBe('1 / -1');
+    expect(source('cityPanel.ts')).toContain(
+      "element('span', 'city-buildable-preview', previewFigures(foldedPreview) || '—')",
+    );
+    expect(source('cityPanel.ts')).toContain("costSpan.classList.add('is-reason')");
+    expect(source('cityPanel.ts')).toContain("price.classList.add('is-reason')");
+    // The card behind the row is where the untruncated list lives, and it is
+    // bound on the button itself so a greyed row can still raise it.
+    const text = source('cityPanel.ts');
+    expect(text).toContain('previewList.append(note(previewLineText(line)))');
+    expect(text).toContain(
+      "info.bind(button, () => itemCard(city, { kind: 'building', id }, city.queue.length))",
+    );
   });
 
   it('offers no row for a piece that is called rather than built', () => {

@@ -3421,9 +3421,9 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 /* --- the add-list's shelves ------------------------------------------------
-   Four tabs, in the order the one long list used to print its rows. Sentence
-   case at the panel's own control size: an eyebrow may shout, a control may
-   not (`cityScreen.test.ts`'s third promise). */
+   All, then the four shelves, in the order the one long list used to print its
+   rows. Sentence case at the panel's own control size: an eyebrow may shout, a
+   control may not (`cityScreen.test.ts`'s third promise). */
 .city-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -3452,6 +3452,25 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-tab.is-on {
   background: var(--ink);
   color: var(--parchment);
+}
+
+/* The eyebrow over one group of the All tab — "units", "wonders". It is a label
+   and not a control, so it takes the mode's own mono uppercase micro-label
+   rather than the tab's sentence case, and it is quieter than the `h3` above it
+   ("Add to queue") because it is one rank down from it. Zero top margin on the
+   first, because the tabs already left the air. */
+.city-shelf-head {
+  margin: 8px 0 1px;
+  font-family: var(--face-num);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.city-shelf-head:first-child {
+  margin-top: 0;
 }
 
 /* --- the way out ----------------------------------------------------------
@@ -4140,12 +4159,30 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 /* The stripe down the left edge is what separates the two kinds: a city builds
-   many more units than buildings, so the buildings are the quieter colour. */
+   many more units than buildings, so the buildings are the quieter colour.
+
+   **The name column is floored and the figure column is capped**, which is one
+   rule stated twice: a name is what this list is read by, and no figure beside
+   it may take that width away. The figure column used to be `auto` — it took
+   whatever its content asked for — and the day a card paid every voice at once
+   (the Founding Oath, +1 of all six per capital building) the preview line under
+   the price grew six marks wide, ate the whole row, and left the buildings and
+   wonders as ellipses.
+
+   So the column holds *prices* and nothing else now. The two things that have no
+   width of their own take a line of the row instead — the yields
+   (`.city-buildable-preview`) and a refusal sentence (`.city-buildable-cost.is-reason`),
+   both spanning both tracks on the row below — which is what leaves the second
+   track a price's width and the name everything else. The floor and the cap are
+   the belt and braces: whatever anybody prints in either cell later, the name
+   keeps a name's worth of room and the figures keep a figure's. */
 .city-buildable {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(4.5em, 1fr) minmax(min-content, 6.4em);
   align-items: baseline;
-  gap: 8px;
+  /* Row gap is a line's breath, not a column's gutter: the yields sit *under*
+     the price they elaborate. */
+  gap: 2px 8px;
   padding: 6px 8px;
   border: var(--border-thin) solid var(--ink);
   border-left: 5px solid var(--y-prod);
@@ -4198,8 +4235,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
    sentence or reserve its width on every row that has none. A floor wide enough
    for the longest real figure ("120⚙ · 15t") is what makes the tabular numerals
    worth having — every row's cost lands on the same column, so the list can be
-   read down as a column of prices — and the one long sentence simply takes the
-   width it needs from the name beside it. */
+   read down as a column of prices. */
 .city-buildable-cost {
   min-width: 5.8em;
   text-align: right;
@@ -4209,17 +4245,47 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-soft);
 }
 
-.city-buildable:disabled .city-buildable-cost {
+/* …and the one row in this list that carries a *sentence* there instead — "needs
+   improved ⛏ Iron", "The Oracle already stands in Uruk (Crimson)". It takes the
+   whole row on a line of its own: a sentence set in a price's column is a
+   sentence broken into six one-word lines, and it was the other half of what was
+   squeezing the names. Left, because it is prose. */
+.city-buildable-cost.is-reason {
+  grid-column: 1 / -1;
+  min-width: 0;
+  text-align: left;
+}
+
+.city-buildable:disabled .city-buildable-cost,
+.city-buildable:disabled .city-buildable-preview {
   color: inherit;
 }
 
 /* The building row's second line: what this town would gain today, out of
    `explainBuildingPreview` (Orders, beliefs, wonders — a barracks reading
-   "+1⚙" with God of the Forge held). `block` drops it under the cost/turns
-   line rather than fighting it for the same baseline; it inherits the column's
-   right alignment and tabular numerals rather than restating them. */
+   "+1⚙" with God of the Forge held). A whole line of the row, under the price it
+   elaborates and in the price's own ink and numerals.
+
+   **The line that truncates.** A row of this list carries a name, a schedule
+   and — here — a bag of yields that has no ceiling: six voices under the
+   Founding Oath, and nothing says a later card cannot pay more. The name is what
+   the list is read by and the schedule is what the decision costs, so the yields
+   are the third thing and the one that ends in an ellipsis. Nothing is lost by
+   it: the row's hover card lists every preview line in full, labelled by the
+   source that pays it (`previewLineText`), which is where a player who wants the
+   whole bag was always going to read it — and never a `title`, which would
+   arrive a second after that card, on top of it, saying less. */
 .city-buildable-preview {
-  display: block;
+  grid-column: 1 / -1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
 }
 
 /* The list of what the city has already built: prose, so it reads as prose. */

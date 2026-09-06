@@ -405,29 +405,70 @@ export function offeredInBuildList(id: UnitTypeId): boolean {
  */
 export type AddShelf = ProductionCategory | null;
 
-/** The tabs, in the order the one long list used to print them. */
-export const ADD_SHELVES: readonly { shelf: AddShelf; label: string }[] = [
-  { shelf: 'unit', label: 'Units' },
-  { shelf: 'building', label: 'Buildings' },
-  { shelf: 'wonder', label: 'Wonders' },
-  { shelf: null, label: 'Projects' },
+/**
+ * The shelves, in the order the one long list used to print them — and the order
+ * the All tab prints them in, one group after another.
+ *
+ * `word` is the shelf's name for **one** row of it, which is what an eyebrow
+ * over a group says ("units", not "Units"): the tab is a control and shouts in
+ * sentence case, the eyebrow is a label and is set in the specimen's mono
+ * uppercase, so the two want different words rather than the same word twice.
+ */
+export const ADD_SHELVES: readonly { shelf: AddShelf; label: string; word: string }[] = [
+  { shelf: 'unit', label: 'Units', word: 'units' },
+  { shelf: 'building', label: 'Buildings', word: 'buildings' },
+  { shelf: 'wonder', label: 'Wonders', word: 'wonders' },
+  { shelf: null, label: 'Projects', word: 'projects' },
 ];
 
 /**
- * Which shelf is showing — **module state, and deliberately not game state**.
+ * A tab of the add-list: one shelf, or **all four at once**.
+ *
+ * `'all'` is deliberately *not* a fifth `AddShelf`. A shelf is an answer
+ * `queueCategory` gives about a row (see `AddShelf`), and no row is ever sorted
+ * into "all" — it is a filter the player holds, not a kind of thing a town
+ * builds. Keeping the two types apart is what stops a future reader from asking
+ * the simulation whether something is an "all", which it cannot answer.
+ */
+export type AddTab = AddShelf | 'all';
+
+/**
+ * The tabs across the top of the add-list. **All comes first and is the
+ * default** (user, from a playthrough): the split into four shelves is a fact
+ * about the rules, and a player who has not learnt yet that a wonder is not a
+ * building was being asked to know it before they could find one. So the list
+ * opens whole, and the shelves stay for the player who has learnt the
+ * distinction and wants only the soldiers.
+ */
+export const ADD_TABS: readonly { tab: AddTab; label: string }[] = [
+  { tab: 'all', label: 'All' },
+  ...ADD_SHELVES.map(({ shelf, label }) => ({ tab: shelf, label })),
+];
+
+/**
+ * Which tab is showing — **module state, and deliberately not game state**.
  *
  * Which tab a player last looked at is a fact about this sitting at the
  * keyboard: it is not in the save (a save is `{config, log}` and replays), it is
  * not in a command, and no other seat can see it. It survives leaving one town
  * and entering the next, which is the whole of what remembering a tab means, and
- * it resets when the page does.
+ * it resets to All when the page does — a fresh sitting is where a fresh player
+ * is, and nothing is hidden from them until they hide it themselves.
  */
-let addShelf: AddShelf = 'unit';
+let addTab: AddTab = 'all';
+
+/**
+ * Does this shelf print under the tab in hand? The All tab shows every shelf;
+ * every other tab shows itself and nothing else.
+ */
+function shelfShows(shelf: AddShelf): boolean {
+  return addTab === 'all' || addTab === shelf;
+}
 
 /**
  * Which standing-fact disclosures a player has opened, by label.
  *
- * `addShelf`'s neighbour and its twin in every way: module state, out of the
+ * `addTab`'s neighbour and its twin in every way: module state, out of the
  * save, per sitting. It exists because the panel rebuilds its whole DOM on every
  * accepted command, and a `<details>` a player opened to read the defence ledger
  * would slam shut the moment they queued a warrior — which reads as the screen
@@ -2252,27 +2293,48 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const { state } = getGame();
     const box = element('div', 'city-buildables');
     box.append(element('h3', undefined, 'Add to queue'));
-    // The shelves. One long list of everything a town can start was the list
-    // this screen was born with and the thing the 2026-09-03 audit named: a
-    // player deciding "what unit next" reads past thirty buildings to find four
+    // The tabs. One long list of everything a town can start was the list this
+    // screen was born with and the thing the 2026-09-03 audit named: a player
+    // deciding "what unit next" reads past thirty buildings to find four
     // soldiers. The shelf is `queueCategory`'s answer for the row — the
     // simulation's own sorter, never a comparison against a name — so a fourth
     // category in the table gets a tab by joining `ADD_SHELVES`.
+    //
+    // **All is first and lit by default** and gives that one long list back —
+    // grouped now, under an eyebrow apiece, so a player who does not yet know a
+    // wonder from a building is never asked to guess which tab hides the thing
+    // they want. The shelves are the *filter* rather than the way in.
     const tabs = element('div', 'city-tabs');
-    for (const { shelf, label } of ADD_SHELVES) {
+    for (const { tab: which, label } of ADD_TABS) {
       const tab = element('button', 'city-tab', label);
       tab.type = 'button';
-      const on = shelf === addShelf;
+      const on = which === addTab;
       tab.classList.toggle('is-on', on);
       tab.setAttribute('aria-pressed', on ? 'true' : 'false');
       tab.addEventListener('click', () => {
-        addShelf = shelf;
+        addTab = which;
         onChanged();
       });
       tabs.append(tab);
     }
     box.append(tabs);
     const grid = element('div', 'city-buildable-grid');
+
+    /**
+     * The eyebrow over one group of the All tab, written *after* its rows are
+     * in — because whether a group has any is only known then, and a heading
+     * over nothing is worse than no heading at all.
+     *
+     * `at` is where the group started, so the label is spliced in above its own
+     * rows rather than appended below them. On a single-shelf tab there is
+     * nothing to label: the tab that is lit already said it.
+     */
+    const groupHead = (shelf: AddShelf, at: number): void => {
+      if (addTab !== 'all') return;
+      if (grid.childElementCount === at) return;
+      const word = ADD_SHELVES.find((entry) => entry.shelf === shelf)?.word ?? '';
+      grid.insertBefore(element('h4', 'city-shelf-head', word), grid.children[at] ?? null);
+    };
 
     const add = (item: QueueItem): void => {
       const next = draft(city);
@@ -2308,7 +2370,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       grid.append(line);
     };
 
-    for (const id of addShelf === 'unit' ? UNIT_TYPE_IDS : []) {
+    const unitsAt = grid.childElementCount;
+    for (const id of shelfShows('unit') ? UNIT_TYPE_IDS : []) {
       // Hidden outright (user, 2026-08-30): a hull no technology can reach
       // yet has no business on the list.
       if (unitDef(id).awaitsTech === true) continue;
@@ -2370,9 +2433,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       button.append(element('span', 'city-buildable-name', def.name));
       // An unbuildable row keeps its reason where the price goes: a "needs
       // improved Iron" that had to share the line with "9⚙ · 4t" would be
-      // quoting a schedule for something that is not going to start.
+      // quoting a schedule for something that is not going to start. `is-reason`
+      // gives the sentence the whole row rather than the figure column, because
+      // a sentence in a figure's width is a sentence nobody reads — and because
+      // the price column exists to hold prices, which is what lets the name
+      // beside it keep its own width (see `.city-buildable`).
       const price = element('span', 'city-buildable-cost');
       if (needsResource && missing !== null) {
+        price.classList.add('is-reason');
         price.append('needs improved ');
         price.append(resourceLabelNodes(missing));
       } else {
@@ -2395,7 +2463,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // unlike a buildable row: the Religion screen has said "an augur costs 40🕯"
     // since before Divination, and a player who opens a city ought to find the
     // same offer in the place they are already deciding what a town does next.
-    for (const id of addShelf === 'unit' ? UNIT_TYPE_IDS : []) {
+    for (const id of shelfShows('unit') ? UNIT_TYPE_IDS : []) {
       // Hidden outright (user, 2026-08-30): a hull no technology can reach
       // yet has no business on the list.
       if (unitDef(id).awaitsTech === true) continue;
@@ -2410,74 +2478,96 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       }
     }
 
+    groupHead('unit', unitsAt);
+
     const queued = new Set(
       city.queue.filter((item) => item.kind === 'building').map((item) => item.id),
     );
-    for (const id of addShelf === 'building' || addShelf === 'wonder' ? BUILDING_IDS : []) {
-      // Which of the two shelves this row belongs on, asked of the simulation's
-      // own sorter (`queueCategory`) rather than of `isWonder` a second time:
-      // "wonder is its own category" is the table's ruling, and this list reads
-      // it rather than restating it.
-      if (queueCategory({ kind: 'building', id }) !== addShelf) continue;
-      // Hidden outright, not greyed (user, 2026-08-30): a building no
-      // technology can reach yet is noise, and a wonder somebody already raised
-      // is a row that can never be built — the same reading the reducer's
-      // planQueueItem gives both.
-      if (buildingDef(id).awaitsTech === true) continue;
-      if (isWonder(id) && wonderClaim(getGame().state, id) !== undefined) continue;
-      if (city.buildings.includes(id) || queued.has(id)) continue;
-      if (!isUnlocked(state, city.ownerId, 'building', id)) continue;
-      const def = buildingDef(id);
-      const wonder = isWonder(id);
-      // The reducer's own sentence, and the only thing that can grey a building
-      // row: "The Oracle already stands in Uruk (Crimson)", or "Ur is already
-      // building The Oracle". The city is handed over so the second clause does
-      // not fire on the town that is legitimately building it — see
-      // `buildError`, whose sentence this is.
-      const blocked = buildError(state, city.ownerId, 'building', id, city);
-      const button = element('button', 'city-buildable is-building');
-      if (wonder) button.classList.add('is-wonder');
-      button.type = 'button';
-      button.disabled = locked || blocked !== null;
-      button.setAttribute('aria-label', blocked ?? `${def.name} — ${def.cost} production`);
-      const name = element('span', 'city-buildable-name', def.name);
-      // The eyebrow: a wonder is a different *kind* of thing to spend a hundred
-      // hammers on, and a player deciding needs to know that before they read
-      // the price rather than after they lose the race.
-      if (wonder) name.append(element('span', 'city-buildable-eyebrow', 'wonder'));
-      button.append(name);
-      // A row nobody can build keeps its reason where the price goes, exactly as
-      // an unbuildable unit row does: quoting a schedule for something that is
-      // never going to start is the one thing worse than saying nothing.
-      const costSpan = element('span', 'city-buildable-cost');
-      if (blocked !== null) {
-        setYieldText(costSpan, blocked);
-      } else {
-        setYieldText(
-          costSpan,
-          `${def.cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length, quote))}`,
-        );
-        // What this town would gain today — Orders, beliefs, wonders, whatever
-        // in this empire's law wakes on this row (user, 2026-08-28: a barracks
-        // should read "+1⚙" with God of the Forge held). The fold of exactly
-        // the lines the hover card lists below, never re-derived — a building
-        // that pays nothing of its own and wakes no card prints the house dash,
-        // exactly as `turnsLabel` prints one for an unanswerable estimate.
-        const foldedPreview = foldBuildingPreview(
-          explainBuildingPreview(state, city, id, quote),
-        );
-        costSpan.append(
-          element('span', 'city-buildable-preview', previewFigures(foldedPreview) || '—'),
-        );
+    // One pass per shelf rather than one pass with a sort inside it, because the
+    // All tab prints the two as *groups*: every building, then every wonder, in
+    // `ADD_SHELVES`' own order. A single walk of `BUILDING_IDS` would interleave
+    // them in table order and no eyebrow could honestly sit over that.
+    for (const shelf of ['building', 'wonder'] as const) {
+      if (!shelfShows(shelf)) continue;
+      const at = grid.childElementCount;
+      for (const id of BUILDING_IDS) {
+        // Which of the two shelves this row belongs on, asked of the simulation's
+        // own sorter (`queueCategory`) rather than of `isWonder` a second time:
+        // "wonder is its own category" is the table's ruling, and this list reads
+        // it rather than restating it.
+        if (queueCategory({ kind: 'building', id }) !== shelf) continue;
+        // Hidden outright, not greyed (user, 2026-08-30): a building no
+        // technology can reach yet is noise, and a wonder somebody already raised
+        // is a row that can never be built — the same reading the reducer's
+        // planQueueItem gives both.
+        if (buildingDef(id).awaitsTech === true) continue;
+        if (isWonder(id) && wonderClaim(getGame().state, id) !== undefined) continue;
+        if (city.buildings.includes(id) || queued.has(id)) continue;
+        if (!isUnlocked(state, city.ownerId, 'building', id)) continue;
+        const def = buildingDef(id);
+        const wonder = isWonder(id);
+        // The reducer's own sentence, and the only thing that can grey a building
+        // row: "The Oracle already stands in Uruk (Crimson)", or "Ur is already
+        // building The Oracle". The city is handed over so the second clause does
+        // not fire on the town that is legitimately building it — see
+        // `buildError`, whose sentence this is.
+        const blocked = buildError(state, city.ownerId, 'building', id, city);
+        const button = element('button', 'city-buildable is-building');
+        if (wonder) button.classList.add('is-wonder');
+        button.type = 'button';
+        button.disabled = locked || blocked !== null;
+        button.setAttribute('aria-label', blocked ?? `${def.name} — ${def.cost} production`);
+        const name = element('span', 'city-buildable-name', def.name);
+        // The eyebrow: a wonder is a different *kind* of thing to spend a hundred
+        // hammers on, and a player deciding needs to know that before they read
+        // the price rather than after they lose the race. It rides the row on
+        // every tab — the group eyebrow above it names the shelf, this one names
+        // the *stakes*, and a player scrolling the All tab needs the second even
+        // where they have already read the first.
+        if (wonder) name.append(element('span', 'city-buildable-eyebrow', 'wonder'));
+        button.append(name);
+        // A row nobody can build keeps its reason where the price goes, exactly as
+        // an unbuildable unit row does: quoting a schedule for something that is
+        // never going to start is the one thing worse than saying nothing.
+        const costSpan = element('span', 'city-buildable-cost');
+        if (blocked !== null) {
+          costSpan.classList.add('is-reason');
+          setYieldText(costSpan, blocked);
+          button.append(costSpan);
+        } else {
+          setYieldText(
+            costSpan,
+            `${def.cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length, quote))}`,
+          );
+          button.append(costSpan);
+          // What this town would gain today — Orders, beliefs, wonders, whatever
+          // in this empire's law wakes on this row (user, 2026-08-28: a barracks
+          // should read "+1⚙" with God of the Forge held). The fold of exactly
+          // the lines the hover card lists below, never re-derived — a building
+          // that pays nothing of its own and wakes no card prints the house dash,
+          // exactly as `turnsLabel` prints one for an unanswerable estimate.
+          //
+          // A line of the row rather than a second line of the price column
+          // (user, from a playthrough): the bag has no ceiling — the Founding
+          // Oath pays all six voices at once — and inside the price column it
+          // was setting the column's width, which is the name's width, which is
+          // what the list is read by. On its own line it truncates instead.
+          const foldedPreview = foldBuildingPreview(
+            explainBuildingPreview(state, city, id, quote),
+          );
+          button.append(
+            element('span', 'city-buildable-preview', previewFigures(foldedPreview) || '—'),
+          );
+        }
+        info.bind(button, () => itemCard(city, { kind: 'building', id }, city.queue.length));
+        button.addEventListener('click', () => add({ kind: 'building', id }));
+        // **No Buy tag on a wonder.** `purchaseError` refuses one outright (a
+        // wonder is built, not bought), so a price tag here would be an offer the
+        // reducer will not honour — `isPurchaseOnly`'s sibling question, asked of
+        // the other end of the same rule.
+        row(button, wonder ? undefined : { kind: 'building', id });
       }
-      button.append(costSpan);
-      info.bind(button, () => itemCard(city, { kind: 'building', id }, city.queue.length));
-      button.addEventListener('click', () => add({ kind: 'building', id }));
-      // **No Buy tag on a wonder.** `purchaseError` refuses one outright (a
-      // wonder is built, not bought), so a price tag here would be an offer the
-      // reducer will not honour — `isPurchaseOnly`'s sibling question, asked of
-      // the other end of the same rule.
-      row(button, wonder ? undefined : { kind: 'building', id });
+      groupHead(shelf, at);
     }
 
     // The projects, at the bottom of the list because that is what they are for:
@@ -2489,7 +2579,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const standing = new Set(
       city.queue.filter((item) => item.kind === 'project').map((item) => item.id),
     );
-    for (const id of addShelf === null ? PROJECT_IDS : []) {
+    const projectsAt = grid.childElementCount;
+    for (const id of shelfShows(null) ? PROJECT_IDS : []) {
       if (standing.has(id)) continue;
       if (!isUnlocked(state, city.ownerId, 'project', id)) continue;
       const def = projectDef(id);
@@ -2529,13 +2620,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // is nothing to buy. See `PurchasableItem`.
       row(button);
     }
+    groupHead(null, projectsAt);
 
     // A shelf with nothing on it is a real answer — every wonder in the age
     // already stands, or no technology has opened a project yet — and it is the
     // greyed-row reading one scale up: a tab that vanished would take the
-    // question with it.
+    // question with it. On the All tab the same emptiness means something wider,
+    // so it says so in wider words.
     if (grid.childElementCount === 0) {
-      box.append(element('p', 'hint', 'Nothing on this shelf yet.'));
+      box.append(
+        element(
+          'p',
+          'hint',
+          addTab === 'all' ? 'Nothing to build here yet.' : 'Nothing on this shelf yet.',
+        ),
+      );
     }
     box.append(grid);
     // What a price tag *is*, and nothing about how much money you have.
