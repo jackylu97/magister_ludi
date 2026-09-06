@@ -396,9 +396,18 @@ rulings yet:
   **engines** (weak alone, read other cards by tag) and **payoffs** (scale
   with what is slotted beside them) beside a smaller share of standalone
   flats; a path (faith, war, trade, growth) has to be a different *engine*
-  for the primary yields, not a side dish. `docs/fewer-things.md` (in
-  flight) carries the building cut list, the augur options, the choice-size
-  ladder and the synergy proposal for markup.
+  for the primary yields, not a side dish. `docs/fewer-things.md` — DRAFTED,
+  awaiting your markup: the choice-size ladder, 38 → 19 buildings per age
+  with a clause each, the augur options (recommends A split by act: rites a
+  city verb, the augur a rare consecrator), the engine/payoff/standalone
+  shares (25/30/45 — standalones are the fuel), one required new shape
+  (`slottedOrdersOfLine` — the twelve `CardLine`s already on every row,
+  switched on as a readable tag), and the finding that supersedes
+  `cards-pass-2.md` §E.3: the draft cadence is NOT the problem (20 drafts by
+  t92 on your own culture curve) — fewer, bigger drafts (`costExponent`
+  2.25 → 2.8 with chairs down a quarter) is the coupled proposal. Largest
+  bot debt: the draft plan prices cards alone, so it can never draft an
+  engine — a marginal reading `V(deck ∪ card) − V(deck)` is the fix.
 
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture
   boon → mid-turn draft → slot → dead ×) awaits confirmation on current
