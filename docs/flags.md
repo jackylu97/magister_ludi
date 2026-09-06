@@ -364,6 +364,30 @@ standable — a movement ruling; pit lakes now exist on big maps).
 
 ## C. Open threads
 
+### The tedium thread (2026-09-06, the user's overriding impression of the first playthrough)
+
+"Many of the mechanics felt tedious — so many buildings with similar effects;
+I never wanted to invest in my chapel because I was so far ahead and didn't
+want to waste time paying for augurs and using them in my cities. I couldn't
+notice where the surveyable mines were in my territory." Three threads, no
+rulings yet:
+
+- **Buildings**: too many rows that are a flat with a different name. The
+  balance turn's building trim is the wrong tool for this — the fix is
+  *fewer* buildings, each a shape (a per-citizen line, a percentage, a
+  district-like condition), with the flats folded into cards. Proposal owed:
+  a cut list per age, with what each surviving building is *for*.
+- **Augurs and rites**: a unit bought with faith, walked to a town, told to
+  perform a timed rite — value per click too low, and worthless when ahead.
+  Candidate shapes: rites become a city verb paid in faith (no unit; the
+  Chapel is the door), or the augur folds into the prophet and rites into
+  consecrations/beliefs (passive faith). The Chapel then has to be *for*
+  something the leader still wants.
+- **Veins**: the surveyable hills are invisible — nothing marks a hex that
+  `prospect` would answer. Candidate: the lens (or the worker's reachable
+  highlight) marks prospectable hills once the tech is held; or a survey is
+  automatic when a worker rests on the hex. Small, and a UI ruling.
+
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture
   boon → mid-turn draft → slot → dead ×) awaits confirmation on current
   main plus the console/elementsFromPoint probe.
