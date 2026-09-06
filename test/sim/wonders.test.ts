@@ -43,7 +43,6 @@ import {
   type GameState,
   SCHEMA_VERSION,
   claimWonder,
-  createUnit,
   playerById,
   wonderClaim,
 } from '../../src/sim/state';
@@ -1079,19 +1078,18 @@ describe('a rite lasts longer under the observatory', () => {
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
 
-    const plain = createUnit(g.state, 0, 'augur', city.col, city.row);
-    const first = performRiteAt(g.state, player, plain, 'omenReading');
-    const bare = first.expiresTurn! - g.state.turn;
+    player.faithPool = 1000;
+    const first = performRiteAt(g.state, player, city, 'omenReading');
+    const bare = first.expiresTurn - g.state.turn;
     expect(bare).toBeGreaterThan(0);
     delete city.timed;
 
     raise(g.state, city, 'chichenItza');
-    const blessed = createUnit(g.state, 0, 'augur', city.col, city.row);
-    const second = performRiteAt(g.state, player, blessed, 'omenReading');
-    expect(second.expiresTurn! - g.state.turn).toBe(Math.floor((bare * 150) / 100));
+    const second = performRiteAt(g.state, player, city, 'omenReading');
+    expect(second.expiresTurn - g.state.turn).toBe(Math.floor((bare * 150) / 100));
     // Still an absolute turn nobody ticks: losing the wonder cannot shorten a
     // blessing already stamped.
-    const stamped = second.expiresTurn!;
+    const stamped = second.expiresTurn;
     city.buildings = city.buildings.filter((id) => id !== 'chichenItza');
     expect(city.timed!.every((entry) => entry.expiresTurn === stamped)).toBe(true);
   });

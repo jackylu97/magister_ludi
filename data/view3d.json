@@ -247,6 +247,7 @@
     "byUnitType": {
       "trader": "trader",
       "prophet": "prophet",
+      "apostle": "apostle",
       "trireme": "navalLight",
       "bireme": "navalLight2",
       "galley": "navalLight3",

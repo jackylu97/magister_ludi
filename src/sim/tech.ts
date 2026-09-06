@@ -236,6 +236,10 @@ import type { CityScope } from './statecraftData';
 import {
   cardUnlocksBuilding,
   cityScopeAdmits,
+  // The article rule, borrowed rather than rewritten: "needs **a** Library" and
+  // "in **an** Amphitheater" must agree, and a second vowel test in this file is
+  // exactly how the two would come apart. See `indefinite`.
+  indefinite,
   payWindfallGrants,
   settleCultureWindfall,
   windfallPayout,
@@ -386,6 +390,12 @@ export function isUnlocked(
     // to fall through to and is shut, the clause as originally written.
     if (gatingTech(kind, id) === null) return false;
   }
+  // **A placed row is never available**, to anybody, ever: a relic has no gate
+  // in the tree, no card that hands it over and no bank that sells it — it
+  // arrives by an act (`BuildingDef.placed`). Asked here rather than left to
+  // fall through the tree's silence for `unlockedByCard`'s stated reason: a
+  // building no technology names is otherwise buildable from turn one.
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).placed === true) return false;
   // **A race project is asked of the table**, before the tree, for the clause
   // above's reason exactly one kind over: an endeavour has no gate in the tree
   // — no technology names it — so without this it would be offered from turn
@@ -560,6 +570,17 @@ export function buildError(
       return `${itemName(kind, id)} waits until some empire in the world reaches ${techDef(world).name}`;
     }
   }
+  // **A row that is placed, and a row that is withdrawn, before the tree's
+  // sentence.** Both answer `false` from `isUnlocked`, and "needs a technology
+  // you do not have" is not a vaguer sentence than the truth — it is a false
+  // one, and it sends a player to the tree for a relic an apostle leaves and for
+  // an augur nobody may call again.
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).placed === true) {
+    return `${itemName(kind, id)} is neither built nor bought — it is placed`;
+  }
+  if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).retired === true) {
+    return `${itemName(kind, id)}s are no longer called`;
+  }
   if (!isUnlocked(state, playerId, kind, id)) {
     const gate = gatingTech(kind, id);
     // **A row an Order opens says so** (the charters, 2026-09-04). Every
@@ -586,6 +607,16 @@ export function buildError(
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).awaitsTech === true) {
     return `${itemName(kind, id)} waits on a technology this age has not reached`;
   }
+  // **And a building may have left the buildable set for good** — the twelve
+  // ordinary rows the fewer-things pass cut (`BuildingDef.retired`). The mirror
+  // image of the clause above it and next to it for that reason: "not yet" and
+  // "never again" are two sentences a player must be able to tell apart, and a
+  // row wearing both markers would be a row of nothing. The row itself stays in
+  // the table so a save that raised one still replays, and a copy already
+  // standing keeps paying — this refuses the *decision*, not the stones.
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).retired === true) {
+    return `${itemName(kind, id)} is no longer built`;
+  }
   // Some things are **bought or not at all** (ledger Entry XXVIII): the augur is
   // faith-purchased, and a city that could also hammer one out would make the
   // faith price a suggestion. Third in the order for the same message-quality
@@ -603,6 +634,14 @@ export function buildError(
   // .purchaseOnly`) and a row that named both would be a row of nothing.
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).purchaseOnly === true) {
     return `${itemName(kind, id)} is not built — it is bought`;
+  }
+  // And a row may be **granted and nothing else**: the Town Charter, which a
+  // city founded under Daughter Cities is founded holding (`BuildingDef
+  // .grantedOnly`). The fourth marker of the same family, beside its three
+  // siblings; the sentence names no giver, because more than one law may hand a
+  // row over and the row's own note is where a player is told which.
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).grantedOnly === true) {
+    return `${itemName(kind, id)} is not built or bought — it is granted`;
   }
   // And some things are **neither built nor bought**: a great person is
   // *recruited*, by a renown bucket that filled and an offer that was answered
@@ -712,6 +751,29 @@ export function buildError(
     if (held < BEAD_RULES.threshold) {
       const who = player?.name ?? `player ${playerId}`;
       return `${itemName(kind, id)} asks for ${BEAD_RULES.threshold} beads; ${who} holds ${held}`;
+    }
+  }
+  /**
+   * **The chain** (`BuildingDef.requiresBuilding`, `docs/fewer-things.md` §2):
+   * a University wants a Library standing in the same town.
+   *
+   * With the site clause below and only when a town is in hand, because it is
+   * the site's question asked of the *build* rather than of the ground — "could
+   * this empire ever raise one" is a question about the tree, and a caller with
+   * no city (the Compendium, the tech chart) is asking that one. The sentence
+   * names the parent and the town, which is the whole of what a player can act
+   * on.
+   *
+   * A **grant ignores it**, and nothing here has to say so: the two paths that
+   * hand a town a building (`realiseItem`'s completion grants, `cardFoundingRider`'s
+   * founding list) never ask `buildError` at all. See the field's docblock.
+   */
+  if (kind === 'building' && isBuildingId(id) && city !== undefined) {
+    const parent = buildingDef(id).requiresBuilding;
+    if (parent !== undefined && !city.buildings.includes(parent)) {
+      const named = buildingDef(parent);
+      const article = named.article ?? indefinite(named.name);
+      return `${itemName(kind, id)} needs ${article} ${named.name} standing in ${city.name}`;
     }
   }
   // **The site**, last of the building clauses and only when a town is in hand:

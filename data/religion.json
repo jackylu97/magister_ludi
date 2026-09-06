@@ -20,6 +20,15 @@
     "ageMultiplier": [1, 1, 1.6, 2.2],
     "ability": "theLongCount"
   },
+  "rite": {
+    "costByAge": [40, 56, 72, 90]
+  },
+  "relicFaith": 3,
+  "apostle": {
+    "proclaimRange": 6,
+    "proclaimPercent": 50,
+    "heal": 25
+  },
   "names": {
     "epithets": {
       "hearth": [
@@ -480,32 +489,14 @@
       ]
     },
     "courtAugurs": {
-      "name": "Court Augurs",
+      "name": "The Vigil",
       "axis": "none",
-      "flavor": "Keep one at home. The omens travel badly.",
-      "text": "+5% science and +5% culture for each augur stationed in a city with a rite left.",
-      "effects": [
-        {
-          "kind": "countScaled",
-          "count": "chargedAugurs",
-          "pays": {
-            "to": "percent",
-            "yield": "science",
-            "percent": 5,
-            "stage": "city"
-          }
-        },
-        {
-          "kind": "countScaled",
-          "count": "chargedAugurs",
-          "pays": {
-            "to": "percent",
-            "yield": "culture",
-            "percent": 5,
-            "stage": "city"
-          }
-        }
-      ]
+      "flavor": "Somebody sits up with the lamp while the rite is running.",
+      "text": "A city keeping a rite is richer in learning and in song while it lasts.",
+      "deferred": [
+        "While a rite is running, this city gives more science and more culture. The rule that asks a city whether it is keeping a rite has not been written yet, so the god sits quiet."
+      ],
+      "effects": []
     },
     "theLivingRock": {
       "name": "The Living Rock",
@@ -1042,26 +1033,30 @@
     "riteOfTheHarvest": {
       "name": "Rite of the Harvest",
       "tech": "divination",
-      "target": "city",
       "flavor": "The grain was always going to come up. Somebody has to be thanked.",
-      "grant": {
-        "population": 1
-      },
-      "effects": []
+      "text": "Every hex this city works that feeds it feeds it one more, while the rite runs.",
+      "duration": 10,
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "yields",
+            "yield": "food"
+          },
+          "food": 1
+        }
+      ]
     },
     "omenReading": {
       "name": "Omen Reading",
       "tech": "divination",
-      "target": "city",
       "flavor": "The liver said what the scribe already suspected.",
-      "grant": {
-        "science": 15
-      },
-      "duration": 20,
+      "text": "Every building standing in this city adds a little learning, while the rite runs.",
+      "duration": 10,
       "effects": [
         {
           "kind": "countScaled",
-          "count": "scienceBuildings",
+          "count": "buildingsInCity",
           "pays": {
             "to": "yield",
             "yield": "science",
@@ -1074,13 +1069,18 @@
     "consecrationOfTheBounds": {
       "name": "Consecration of the Bounds",
       "tech": "stonecraft",
-      "target": "city",
       "flavor": "Walk the line once a year and the line walks itself the rest of it.",
-      "grant": {
-        "borderCulture": 15
-      },
-      "duration": 20,
+      "text": "Luxury hexes sing, and this city's bounds walk outward faster, while the rite runs.",
+      "duration": 10,
       "effects": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "resourceKind",
+            "kind": "luxury"
+          },
+          "culture": 1
+        },
         {
           "kind": "rulePercent",
           "rule": "borderCulture",
@@ -1091,32 +1091,26 @@
     "blessingOfArms": {
       "name": "Blessing of Arms",
       "tech": "bronzeWorking",
-      "target": "unit",
       "flavor": "The god does not promise you live. Only that it will be worth watching.",
-      "grant": {
-        "healFully": true
-      },
-      "duration": 5,
+      "text": "This city is harder to storm while the rite runs.",
+      "deferred": [
+        "Your soldiers were also to mend faster inside this city's bounds. Where a heal is decided there is nothing yet that can ask a city what it is keeping, so only the walls answer."
+      ],
+      "duration": 10,
       "effects": [
         {
-          "kind": "combatLine",
-          "amount": 5,
-          "when": {
-            "test": "always"
-          },
-          "side": "both"
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 5
         }
       ]
     },
     "riteOfPlenty": {
       "name": "Rite of Plenty",
       "tech": "currency",
-      "target": "city",
       "flavor": "A feast is an argument that the year was good, made loudly enough to win.",
-      "grant": {
-        "gold": 25
-      },
-      "duration": 20,
+      "text": "Every hex this city works with a seam in it pays a little coin, while the rite runs.",
+      "duration": 10,
       "effects": [
         {
           "kind": "tileYield",
@@ -1130,23 +1124,17 @@
     "thePreaching": {
       "name": "The Preaching",
       "tech": "theHighTemple",
-      "target": "here",
+      "retired": true,
       "flavor": "He spoke for two hours. Four people stayed, and they told everyone.",
-      "grant": {
-        "lump": {
-          "range": 4,
-          "amount": 20
-        }
-      },
+      "note": "Withdrawn. A prophet makes this noise now, and makes it louder.",
       "effects": []
     },
     "recastingTheOmens": {
       "name": "Recasting the Omens",
       "tech": "divination",
-      "target": "here",
+      "retired": true,
       "flavor": "The bones fell badly. They were gathered up, and they fell again.",
-      "note": "Give back one of your beliefs and choose another. A belief another empire keeps is never offered.",
-      "redraws": "pantheon",
+      "note": "Withdrawn. A hand of gods may be asked again for faith instead.",
       "effects": []
     }
   },

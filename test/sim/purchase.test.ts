@@ -56,6 +56,12 @@ const SETTLER: PurchasableItem = { kind: 'unit', id: 'settler' };
 const WORKER: PurchasableItem = { kind: 'unit', id: 'worker' };
 const GRANARY: PurchasableItem = { kind: 'building', id: 'granary' };
 const AUGUR: PurchasableItem = { kind: 'unit', id: 'augur' };
+/**
+ * The row that stands for "bought, never built" since the augur was withdrawn
+ * (2026-09-06). Same shape, same bank, same exclusivity — and one that is still
+ * on sale, which is what most of this file needs.
+ */
+const PROPHET: PurchasableItem = { kind: 'unit', id: 'prophet' };
 const RATE = RULES.production.goldPerHammer;
 
 /** A city for a player, on the tile their first unit is standing on. */
@@ -86,9 +92,10 @@ function stepsFrom(state: GameState, city: City, unitId: number): number {
 // --- the augur is not a build row -------------------------------------------
 
 describe('a thing that is bought is not a thing that is built', () => {
-  it('marks the augur purchase-only, and nothing else in the roster', () => {
+  it('marks the holy orders purchase-only, and nothing else in the roster', () => {
     // The rule the city panel filters its unit list with, and it is read off the
     // roster row rather than off a name.
+    expect(isPurchaseOnly(PROPHET)).toBe(true);
     expect(isPurchaseOnly(AUGUR)).toBe(true);
     expect(isPurchaseOnly(WARRIOR)).toBe(false);
     expect(isPurchaseOnly(GRANARY)).toBe(false);
@@ -96,12 +103,12 @@ describe('a thing that is bought is not a thing that is built', () => {
 
   it('refuses the production queue with the bank named, even with the tech', () => {
     const g = game();
-    learn(g.state, 0, 'divination');
+    learn(g.state, 0, 'theHighTemple');
     const city = found(g.state, 0);
 
     // The reducer's own sentence, and the one the panel would have to grey a row
     // with if it drew one at all.
-    const blocked = buildError(g.state, 0, 'unit', 'augur');
+    const blocked = buildError(g.state, 0, 'unit', 'prophet');
     expect(blocked).toMatch(/not built/);
     expect(blocked).toMatch(/faith/);
 
@@ -110,7 +117,7 @@ describe('a thing that is bought is not a thing that is built', () => {
       type: 'setCityProduction',
       playerId: 0,
       cityId: city.id,
-      queue: [{ kind: 'unit', id: 'augur' }],
+      queue: [{ kind: 'unit', id: 'prophet' }],
     } as Command);
     expect(result.ok).toBe(false);
     expect(result.ok === false && result.error).toBe(blocked);
@@ -119,11 +126,26 @@ describe('a thing that is bought is not a thing that is built', () => {
     expect(city.queue).toHaveLength(0);
   });
 
+  it('refuses a withdrawn row before the bank is ever named', () => {
+    // The augur went with the fewer-things pass and the row is kept for replay
+    // (`UnitDef.retired`). Its own sentence stands in front of the bank's,
+    // because "bought with faith, not gold" would send a player to a bank that
+    // no longer sells it.
+    const g = game();
+    learn(g.state, 0, 'divination');
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.faithPool = 500;
+    expect(buildError(g.state, 0, 'unit', 'augur')).toBe('Augurs are no longer called');
+    expect(purchaseError(g.state, 0, city.id, AUGUR, 'faith')).toBe(
+      'A Augur is no longer called',
+    );
+  });
+
   it('offers it in the bank it is actually sold in, with a verb off its row', () => {
     // What the city panel's foot-of-the-units row prints. The verb is data, so a
     // prophet is *called* and a mercenary would be *hired* without this file (or
     // the panel) learning either name.
-    expect(purchaseVerb(AUGUR)).toBe('Call an augur');
+    expect(purchaseVerb(PROPHET)).toBe('Call a prophet');
     expect(purchaseVerb(WARRIOR)).toBe('Buy a Warrior');
   });
 });
@@ -340,7 +362,7 @@ describe('buying a unit', () => {
     // spent the afternoon it would have given a spearman, and a worker is not a
     // garrison. Three buckets, one apiece, all on the same day.
     const g = game();
-    learn(g.state, 0, 'divination');
+    learn(g.state, 0, 'theHighTemple');
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
     player.faithPool = 500;
@@ -348,7 +370,7 @@ describe('buying a unit', () => {
 
     expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
     expect(dispatch(g, buyCommand(city.id, WORKER)).ok).toBe(true);
-    expect(dispatch(g, buyCommand(city.id, AUGUR, 'faith')).ok).toBe(true);
+    expect(dispatch(g, buyCommand(city.id, PROPHET, 'faith')).ok).toBe(true);
     expect(city.purchasedUnitTurns).toEqual({
       militaryGold: g.state.turn,
       civilianGold: g.state.turn,
@@ -364,24 +386,24 @@ describe('buying a unit', () => {
       expect(blocked.ok).toBe(false);
       expect(blocked.ok === false && blocked.error).toMatch(words);
     }
-    const prophetBlocked = dispatch(g, buyCommand(city.id, AUGUR, 'faith'));
+    const prophetBlocked = dispatch(g, buyCommand(city.id, PROPHET, 'faith'));
     expect(prophetBlocked.ok).toBe(false);
     expect(prophetBlocked.ok === false && prophetBlocked.error).toMatch(
       /already bought a unit with faith this turn/,
     );
   });
 
-  it('still buys an augur with faith, into the same routine', () => {
+  it('still buys a prophet with faith, into the same routine', () => {
     const g = game();
-    learn(g.state, 0, 'divination');
+    learn(g.state, 0, 'theHighTemple');
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
-    player.faithPool = 100;
+    player.faithPool = 200;
 
-    expect(dispatch(g, buyCommand(city.id, AUGUR, 'faith')).ok).toBe(true);
-    expect(bankOf(player, 'faith')).toBe(60);
-    expect(player.augursPurchased).toBe(1);
-    expect(g.state.units.some((u) => u.type === 'augur')).toBe(true);
+    expect(dispatch(g, buyCommand(city.id, PROPHET, 'faith')).ok).toBe(true);
+    expect(bankOf(player, 'faith')).toBe(80);
+    expect(player.prophetsPurchased).toBe(1);
+    expect(g.state.units.some((u) => u.type === 'prophet')).toBe(true);
   });
 });
 
@@ -422,7 +444,7 @@ describe('every refusal, and each leaves the state byte-identical', () => {
       },
       {
         why: 'gold asked for a thing priced in faith',
-        command: buyCommand(city.id, AUGUR, 'gold'),
+        command: buyCommand(city.id, PROPHET, 'gold'),
         match: /bought with faith, not gold/,
       },
       {
@@ -532,26 +554,30 @@ describe('every refusal, and each leaves the state byte-identical', () => {
 
 // --- determinism -------------------------------------------------------------
 
-// --- the Reliquary's faith bank ---------------------------------------------
+// --- the Cathedral's faith bank ---------------------------------------------
 
 /**
- * **The Reliquary** (ledger Entry LVIII, The Holy Office).
+ * **The faith bank a building opens** — the Reliquary's until the fewer-things
+ * cut, the **Cathedral's** since (`docs/fewer-things.md` §2: the Reliquary is
+ * withdrawn and its door moves onto the row that was always the faith line's
+ * house).
  *
- * The one marker on a building row that opens a *second bank* for the rows the
- * treasury already sells. Three claims, and they are the three the docblock on
- * `faithBankOpen` makes: units only, never a row that names its own bank, and
- * the rate is the one a contribution already buys a hammer at.
+ * The whole point of the marker is that it is a marker: nothing in `src/sim/`
+ * ever named the Reliquary, so moving the door was one field in one JSON row and
+ * every claim below reads identically. Three claims, and they are the three the
+ * docblock on `faithBankOpen` makes: units only, never a row that names its own
+ * bank, and the rate is the one a contribution already buys a hammer at.
  */
-describe('a town holding a Reliquary sells its units for faith', () => {
-  const RELIQUARY: PurchasableItem = { kind: 'building', id: 'reliquary' };
+describe('a town holding a Cathedral sells its units for faith', () => {
+  const CATHEDRAL: PurchasableItem = { kind: 'building', id: 'cathedral' };
   const FAITH_RATE = RULES.production.faithPerHammer;
 
   /** A town with the stones standing in it, and a full faith bank. */
   function withReliquary() {
     const g = game();
-    learn(g.state, 0, 'divination', 'theHighTemple', 'theology', 'theHolyOffice');
+    learn(g.state, 0, 'divination', 'theHighTemple', 'theology');
     const city = found(g.state, 0);
-    city.buildings.push('reliquary');
+    city.buildings.push('cathedral');
     playerById(g.state, 0)!.faithPool = 2000;
     return { g, city };
   }
@@ -595,45 +621,63 @@ describe('a town holding a Reliquary sells its units for faith', () => {
     expect(applyCommand(g.state, buyCommand(city.id, WARRIOR, 'faith')).ok).toBe(false);
   });
 
-  it('sells no building out of it, and does not overrule the augur’s own bank', () => {
+  it('sells no building out of it, and does not overrule the prophet’s own bank', () => {
     const { g, city } = withReliquary();
     // Units only: a granary bought with faith would make the Reliquary a second,
     // quieter treasury.
     expect(explainPurchaseCost(g.state, 0, city.id, GRANARY, 'faith')).toBeNull();
     expect(applyCommand(g.state, buyCommand(city.id, GRANARY, 'faith')).ok).toBe(false);
-    // The augur still names its own bank, and is still refused gold there.
-    expect(explainPurchaseCost(g.state, 0, city.id, AUGUR, 'faith')?.currency).toBe('faith');
-    const refused = applyCommand(g.state, buyCommand(city.id, AUGUR, 'gold'));
+    // The prophet still names its own bank, and is still refused gold there.
+    expect(explainPurchaseCost(g.state, 0, city.id, PROPHET, 'faith')?.currency).toBe('faith');
+    const refused = applyCommand(g.state, buyCommand(city.id, PROPHET, 'gold'));
     expect(refused.ok === false && refused.error).toMatch(/bought with faith, not gold/);
   });
 
-  it('is a build row like any other, unlocked by The Holy Office', () => {
+  it('is a build row like any other, unlocked by Theology', () => {
     const g = game();
     const city = found(g.state, 0);
-    expect(isPurchaseOnly(RELIQUARY)).toBe(false);
-    expect(gatingTech('building', 'reliquary')).toBe('theHolyOffice');
-    expect(buildError(g.state, 0, 'building', 'reliquary', city)).not.toBeNull();
-    learn(g.state, 0, 'divination', 'theHighTemple', 'theology', 'theHolyOffice');
-    expect(buildError(g.state, 0, 'building', 'reliquary', city)).toBeNull();
-    // The happiness is the row's own plain field, like the cathedral's.
-    expect(buildingDef('reliquary').happiness).toBe(4);
+    expect(isPurchaseOnly(CATHEDRAL)).toBe(false);
+    expect(gatingTech('building', 'cathedral')).toBe('theology');
+    expect(buildError(g.state, 0, 'building', 'cathedral', city)).not.toBeNull();
+    learn(g.state, 0, 'divination', 'theHighTemple', 'theology');
+    expect(buildError(g.state, 0, 'building', 'cathedral', city)).toBeNull();
+    // The happiness is the row's own plain field, as it always was.
+    expect(buildingDef('cathedral').happiness).toBe(3);
     // A **word** since the charters (2026-09-04): the Almshouse opens the same
     // bank for civilians alone, so the marker names whose roster it sells.
-    expect(buildingDef('reliquary').faithPurchases).toBe('all');
+    expect(buildingDef('cathedral').faithPurchases).toBe('all');
   });
 
-  it('pays a tenth more faith in the town it stands in', () => {
-    // The row's third clause, written as an ordinary `percentYields` scoped to
-    // the building — read through `liveCityEffects`' ordinary-building source,
-    // exactly as the observatory's science is, so nothing in the evaluator
-    // learned the Reliquary's name.
+  it('leaves the withdrawn Reliquary in the table and out of every queue', () => {
+    // The cut's whole discipline in one claim: the row is **kept** so a save
+    // that raised one still replays, and refused so nobody raises another. Its
+    // own door is gone with it — a town holding a Reliquary and nothing else
+    // sells no unit for faith, because the marker went with the row.
+    const g = game();
+    const city = found(g.state, 0);
+    learn(g.state, 0, 'divination', 'theHighTemple', 'theology', 'theHolyOffice');
+    expect(buildingDef('reliquary').retired).toBe(true);
+    expect(buildError(g.state, 0, 'building', 'reliquary', city)).toBe('The Reliquary is no longer built');
+    const before = snapshotState(g.state);
+    const refused = applyCommand(g.state, buyCommand(city.id, { kind: 'building', id: 'reliquary' }, 'gold'));
+    expect(refused.ok).toBe(false);
+    expect(snapshotState(g.state)).toEqual(before);
+  });
+
+  it('pays a quarter more faith in the town the High Temple stands in', () => {
+    // The clause the Reliquary used to carry, re-homed on one of the five
+    // uniques (`docs/tech-gifts.md` §7) and written the same way: an ordinary
+    // `percentYields` scoped to the building, read through the empire's own
+    // walk because a `oncePerEmpire` row belongs to it. Nothing in the evaluator
+    // learned a building's name either time, which is why the move was a JSON
+    // edit.
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('shrine', 'temple');
     const before = cityYields(g.state, city).faith;
     expect(before).toBeGreaterThan(0);
-    city.buildings.push('reliquary');
-    expect(cityYields(g.state, city).faith).toBe(Math.floor((before * 110) / 100));
+    city.buildings.push('highTemple');
+    expect(cityYields(g.state, city).faith).toBe(Math.floor((before * 125) / 100));
   });
 });
 
@@ -703,7 +747,7 @@ describe('a puppet spends nothing', () => {
     } as Command);
     expect(refused.ok).toBe(false);
     // Hard rule 1: a refused command leaves the state byte-identical.
-    expect(snapshotState(g.state)).toBe(before);
+    expect(snapshotState(g.state)).toEqual(before);
   });
 
   it('refuses a contribution too, in the same sentence', () => {
@@ -731,7 +775,7 @@ describe('a puppet spends nothing', () => {
       } as Command);
       expect(refused.ok).toBe(false);
       // Hard rule 1: a refused command leaves the state byte-identical.
-      expect(snapshotState(g.state)).toBe(before);
+      expect(snapshotState(g.state)).toEqual(before);
     }
 
     // And the moment it is annexed the pour is legal, which is the whole of the
@@ -761,6 +805,10 @@ describe('the schema witness', () => {
     // game rather than an older one. The other eleven witnesses are listed in
     // `test/sim/state.test.ts`'s own migration note.
     // 71 since batch C1 (2026-09-06): the dice leave; the faith ladder and the reroll arrive.
-    expect(SCHEMA_VERSION).toBe(71);
+    // 73 since batch D (2026-09-06): the buildings cut with chains — twelve
+    // ordinary rows withdrawn, five uniques added, the chain field, the
+    // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
+    // landed the rites beside it on the same day.
+    expect(SCHEMA_VERSION).toBe(74);
   });
 });

@@ -239,13 +239,8 @@ import {
   explainContribution,
   purchaseError,
 } from '../sim/purchase';
-import {
-  consecrateError,
-  gainBeliefError,
-  plantHolySiteError,
-  riteError,
-} from '../sim/religion';
-import { RITE_IDS } from '../sim/religionData';
+import { gainBeliefError, plantHolySiteError, riteError } from '../sim/religion';
+import { riteDef } from '../sim/religionData';
 import { totalSpecialists } from '../sim/specialists';
 import {
   SLOT_WORDS,
@@ -2904,7 +2899,7 @@ function bankSpend(
       candidates.push(wantCandidate(want, currency, false));
       continue;
     }
-    if (want.buy === undefined && want.ground === undefined) continue;
+    if (want.buy === undefined && want.ground === undefined && want.rite === undefined) continue;
     // **The treasury is read live, never off the book** (batch 6). The book was
     // priced when the seat sat down and a purchase since then has spent from it,
     // so the cover is asked of `bankOf` at the moment the question is put.
@@ -2950,6 +2945,18 @@ function bankSpend(
         continue;
       }
       return tileDecision(state, player, best.want, bar, candidates);
+    }
+    // **A rite is the third verb the faith bank fires** (schema 72). Its gate is
+    // `riteError` and its command names a *town*, so it can no more share
+    // `purchaseDecision` than the hex can.
+    const rite = best.want.rite;
+    if (rite !== undefined) {
+      const refusal = riteError(state, player.id, rite.cityId, rite.rite);
+      if (refusal !== null) {
+        best.candidate.rejected = refusal;
+        continue;
+      }
+      return riteDecision(state, player, best.want, bar, candidates);
     }
     const bought = best.want.buy!;
     const refusal = purchaseError(state, player.id, bought.cityId, bought.item, currency);
@@ -2998,6 +3005,40 @@ function tileDecision(
         : `against ${round1(worthPerCoin(bar))} for ${bar.label}.`),
     candidates,
     focus: { col: ground.col, row: ground.row },
+  };
+}
+
+/**
+ * **A rite, said** — the rite want's half of `bankSpend` (schema 72).
+ *
+ * Its own function rather than a branch inside `purchaseDecision` for the reason
+ * `tileDecision` is: this is a different verb held to a different gate, and the
+ * two only meet in the ranking that chose between them.
+ */
+function riteDecision(
+  state: GameState,
+  player: Player,
+  best: Want,
+  bar: Want | null,
+  candidates: BotCandidate[],
+): BotDecision {
+  const rite = best.rite!;
+  const city = cityById(state, rite.cityId)!;
+  for (const candidate of candidates) {
+    if (candidate.label === best.label && candidate.rejected === undefined) candidate.chosen = true;
+  }
+  return {
+    kind: 'purchase',
+    command: { type: 'performRite', playerId: player.id, cityId: rite.cityId, rite: rite.rite },
+    subject: city.name,
+    summary:
+      `${city.name} performs ${riteDef(rite.rite).name} for ${best.price} faith — ` +
+      `${round1(worthPerCoin(best))} a coin, ` +
+      (bar === null
+        ? 'and this empire has nothing it would rather hold for.'
+        : `against ${round1(worthPerCoin(bar))} for ${bar.label}.`),
+    candidates,
+    focus: { col: city.col, row: city.row },
   };
 }
 
@@ -6021,54 +6062,19 @@ function friendlyPiecesAround(
 }
 
 /**
- * An augur's whole brain: **found a god if there is room for one, otherwise
- * bless something, otherwise stand quiet.**
+ * An augur's whole brain, since the piece was **withdrawn**: stand quiet.
  *
- * The order is the value order and it is not close. A Consecrate spends the
- * piece and buys a *permanent* belief; a rite spends one of three charges and
- * buys a windfall or a blessing that runs out. So a pantheon with an open slot
- * always wins, and the rites are what the piece does with its life when the
- * pantheon is full — which is also the only reason an augur is worth buying
- * once the gods are all named.
- *
- * **A rite is the augur's whole turn** (`augurHasActed`), so this can be asked
- * every turn without ever proposing a second act: `riteError` refuses it, and
- * the piece's own spent movement is the reading. Rites are tried in roster
- * order, which is file order and therefore part of the data — there is no price
- * axis to sort on, because every rite costs exactly one charge.
- *
- * The target is deliberately **absent**, which means "where the augur stands" —
- * and where it stands is the town that bought it, so a city-targeted rite lands
- * on that town with nothing to aim.
+ * The rites are a town's verbs now and the gods arrive on a faith threshold
+ * (`docs/fewer-things.md` §3), so an augur left standing on a board from before
+ * the pass has nothing it may legally do — `consecrateError` refuses always and
+ * there is no unit-borne rite to refuse. It is kept, with its sentence, rather
+ * than deleted: a save may hold one, and a piece the bot had no arm for at all
+ * would be a piece it stared at every turn with no reason written down.
  */
 function augurCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
-  const tried: BotCandidate[] = [];
-  const consecrate = consecrateError(state, player.id, unit.id);
-  if (consecrate === null) {
-    tried.push(chosenAt('consecrate a god', 0));
-    return {
-      command: { type: 'consecrate', playerId: player.id, unitId: unit.id },
-      summary:
-        'Consecrates: a god is permanent and spends the piece, a rite is one of three charges and runs out — ' +
-        'so an open pantheon slot always wins.',
-      candidates: tried,
-    };
-  }
-  tried.push(refused('consecrate a god', consecrate));
-  for (let rank = 0; rank < RITE_IDS.length; rank++) {
-    const rite = RITE_IDS[rank]!;
-    const refusal = riteError(state, player.id, unit.id, rite);
-    if (refusal === null) {
-      tried.push(chosenAt(String(rite), rank + 1));
-      return {
-        command: { type: 'performRite', playerId: player.id, unitId: unit.id, rite },
-        summary: `Performs ${String(rite)} where it stands — rites are tried in roster order; every one costs the same charge.`,
-        candidates: tried,
-      };
-    }
-    tried.push(refused(String(rite), refusal));
-  }
-  return standDown(unit, 'No pantheon slot open and no rite it may perform.');
+  void state;
+  void player;
+  return standDown(unit, 'The augur is withdrawn: its rites are a city\'s verbs and its gods arrive on their own.');
 }
 
 /**

@@ -184,7 +184,6 @@
         ],
         "abilities": [
           "riteOfTheHarvest",
-          "recastingTheOmens",
           "omenReading"
         ]
       },
@@ -305,7 +304,8 @@
       "unlocks": {
         "buildings": [
           "amphitheater",
-          "theatreOfDionysus"
+          "theatreOfDionysus",
+          "heroicEpic"
         ],
         "abilities": [
           "ancestorRites"
@@ -361,7 +361,8 @@
       ],
       "unlocks": {
         "buildings": [
-          "steleOfLaws"
+          "steleOfLaws",
+          "imperialThrone"
         ]
       },
       "flavor": "One name at the top of the list, and a list.",
@@ -435,10 +436,8 @@
           "prophet"
         ],
         "buildings": [
-          "temple"
-        ],
-        "abilities": [
-          "thePreaching"
+          "temple",
+          "highTemple"
         ]
       },
       "flavor": "A roof high enough that the god has to look down through it."
@@ -550,7 +549,8 @@
           "compositeBowman"
         ],
         "buildings": [
-          "petra"
+          "petra",
+          "caravanserai"
         ]
       },
       "flavor": "The siege begins as a diagram."
@@ -684,6 +684,9 @@
         "philosophy"
       ],
       "unlocks": {
+        "units": [
+          "apostle"
+        ],
         "buildings": [
           "monastery",
           "cathedral",
@@ -907,11 +910,7 @@
       "prereqs": [
         "paperMoney"
       ],
-      "unlocks": {
-        "buildings": [
-          "caravanserai"
-        ]
-      },
+      "unlocks": {},
       "effects": [
         {
           "kind": "routeRider",
@@ -1097,44 +1096,32 @@
     "riteOfTheHarvest": {
       "name": "Rite of the Harvest",
       "glyph": "🌾",
-      "bearer": "augur",
-      "summary": "A city gains a citizen."
-    },
-    "recastingTheOmens": {
-      "name": "Recasting the Omens",
-      "glyph": "🎲",
-      "bearer": "augur",
-      "summary": "Swap one pantheon belief for a new draw."
+      "bearer": "city",
+      "summary": "A city may keep this rite a while: every hex it works that feeds it feeds it more."
     },
     "omenReading": {
       "name": "Omen Reading",
       "glyph": "🔮",
-      "bearer": "augur",
-      "summary": "A burst of science, then more for a while."
+      "bearer": "city",
+      "summary": "A city may keep this rite a while: every building standing in it adds a little learning."
     },
     "consecrationOfTheBounds": {
       "name": "Consecration of the Bounds",
       "glyph": "🗿",
-      "bearer": "augur",
-      "summary": "A city’s borders grow at once."
+      "bearer": "city",
+      "summary": "A city may keep this rite a while: its luxury hexes sing and its bounds walk outward faster."
     },
     "blessingOfArms": {
       "name": "Blessing of Arms",
       "glyph": "⚔",
-      "bearer": "augur",
-      "summary": "Fully heals a unit and strengthens it a while."
-    },
-    "thePreaching": {
-      "name": "The Preaching",
-      "glyph": "📯",
-      "bearer": "augur",
-      "summary": "Spreads your religion nearby."
+      "bearer": "city",
+      "summary": "A city may keep this rite a while: it is harder to storm."
     },
     "riteOfPlenty": {
       "name": "Rite of Plenty",
       "glyph": "🍷",
-      "bearer": "augur",
-      "summary": "Gold now, and richer seams for a while."
+      "bearer": "city",
+      "summary": "A city may keep this rite a while: every hex it works with a seam in it pays a little coin."
     },
     "ancestorRites": {
       "name": "Ancestor Rites",

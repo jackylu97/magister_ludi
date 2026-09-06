@@ -6310,6 +6310,22 @@ function buildingRowClauses(id: BuildingId): CardClause[] {
   if (def.cityHp !== undefined && def.cityHp !== 0) {
     out.push({ text: `${signed(def.cityHp)} to how much punishment the city can take` });
   }
+  // The writ a building supplies (`authorityCapacity`), in the card arm's own
+  // words — a building's capacity and a card's are one number read by one
+  // evaluator (`explainAuthority`), so they read alike wherever they are
+  // printed. It says *your empire* because that is what the field means: the
+  // capacity is counted per building type across the realm.
+  if (def.authorityCapacity !== undefined && def.authorityCapacity !== 0) {
+    out.push({ text: `${signed(def.authorityCapacity)} authority capacity for your empire` });
+  }
+  // The Throne's placement half (`unitUpkeepRebate`), said as the promise rather
+  // than as the field: what a player needs to know is that it follows the piece,
+  // which is the whole of why the number is stamped and not read off the board.
+  if (def.unitUpkeepRebate !== undefined && def.unitUpkeepRebate !== 0) {
+    out.push({
+      text: `every unit raised in this city costs ${def.unitUpkeepRebate} less gold a turn to keep, for as long as it lives`,
+    });
+  }
   if (def.crowdingRelief !== undefined && def.crowdingRelief !== 0) {
     out.push({ text: `a crowded city asks ${def.crowdingRelief}% less of you` });
   }
@@ -7486,7 +7502,7 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
  * Compendium has a page about. Asking the vowel question of a wrapped name would
  * have asked it of `[`, which is a consonant.
  */
-function indefinite(name: string): string {
+export function indefinite(name: string): string {
   return /^[aeiou]/i.test(name) ? 'an' : 'a';
 }
 

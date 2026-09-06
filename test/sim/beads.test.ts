@@ -210,7 +210,11 @@ describe('the bead catalogue', () => {
     // `Player.dice`, the rules' starting dice, and the eight boons that paid
     // one, seven of which now pay nothing and say so. A v70 log's seats hold a
     // bank this build does not have.
-    expect(SCHEMA_VERSION).toBe(71);
+    // 73 since batch D (2026-09-06): the buildings cut with chains — twelve
+    // ordinary rows withdrawn, five uniques added, the chain field, the
+    // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
+    // landed the rites beside it on the same day.
+    expect(SCHEMA_VERSION).toBe(74);
   });
 
   it('puts the beads phase directly after renown', () => {

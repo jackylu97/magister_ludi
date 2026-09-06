@@ -292,6 +292,9 @@ const BEARER_HEADING: Record<AbilityBearer, string> = {
   civilian: 'Workers and settlers may',
   military: 'Soldiers may',
   augur: 'The augur may',
+  // The rites' heading since they became city verbs: the thing that gains the
+  // verb is a town, and every town of the realm gains it at once.
+  city: 'Your cities may',
   // A verb nobody carries: the deep ocean opening, the next age's beads shown
   // early. "The empire may" would be a piece that does not exist, so the heading
   // says what actually changed.

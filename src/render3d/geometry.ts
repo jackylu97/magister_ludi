@@ -2585,6 +2585,37 @@ export const prophetMini: MiniFactory = (spec) => {
 };
 
 /**
+ * The apostle: the prophet's figure, carrying a book instead of a ringed staff.
+ *
+ * The **same body deliberately** (`prophetMini`), because the two pieces are the
+ * same kind of thing and a player reading the board wants to know that at a
+ * glance: what separates them at this size is one silhouette detail, exactly as
+ * a laden caravan is a caravan with a box on it. The staff is shorter than a
+ * prophet's and carries no rim — a rim is the thing the eye picks out, and the
+ * apostle is the piece that does not have one — and a small slab is held at
+ * chest height, which is the whole of "he is carrying the book rather than the
+ * sign".
+ */
+export const apostleMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h * 0.9, r, t));
+
+  // The book, held across the front at chest height: a flat slab, wider than it
+  // is tall, so it reads as a codex rather than as a shield.
+  const book = slabAt(h * 0.1, h * 0.22, h * 0.34, r * 0.7, t + h * 0.46, 0);
+  mini.add('gilt', book);
+
+  // A plain staff, shorter than the prophet's and unringed.
+  const staffH = h * 1.02;
+  const staff = shaft(staffH, 0.017);
+  staff.translate(-r * 1.05, t, 0.03);
+  mini.add('wood', staff);
+  return mini.build();
+};
+
+/**
  * The boat's proportions, as fractions of the kit it is cut from.
  *
  * `TRADER_PACK`'s shape and its reason: one table, so that nudging the hull

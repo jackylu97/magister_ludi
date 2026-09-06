@@ -5476,7 +5476,7 @@
       "line": "star",
       "rarity": "uncommon",
       "flavor": "The second copy costs nothing, which changes everything.",
-      "text": "+1 culture for each Library you hold · +2 science in every city with a Printing House.",
+      "text": "+1 culture for each Library you hold · +10% science in every city.",
       "effects": [
         {
           "kind": "countScaled",
@@ -5490,12 +5490,9 @@
           }
         },
         {
-          "kind": "cityYields",
-          "science": 2,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "printingHouse"
-          }
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10
         }
       ]
     },

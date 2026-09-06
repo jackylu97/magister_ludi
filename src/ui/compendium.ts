@@ -776,6 +776,15 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
     // printing rather than a gap.
     ...row('Upkeep each turn', upkeepRow(buildingUpkeep(id))),
     ...row('Can only be built in', siteRequirement(def)),
+    // **The chain** (`BuildingDef.requiresBuilding`): the parent that must
+    // already stand in the same town. A row rather than a clause, beside the
+    // site it reads like — both answer "where may I put one", one about the
+    // ground and one about what is on it — so a reader comparing two entries
+    // finds the answer in the same place on both.
+    ...row(
+      'Needs standing here',
+      def.requiresBuilding === undefined ? '' : buildingDef(def.requiresBuilding).name,
+    ),
     ...row('Unlocked by', techName(gate)),
   ];
   // **What this row is worth, in the simulation's own words** — and since the
@@ -812,6 +821,17 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   // without anybody remembering to type it again.
   if (def.oncePerEmpire === true) {
     clauses.push({ text: 'You may have only one of these, in one of your cities.', note: true });
+  }
+  // **A row nothing builds and nothing sells** — the Town Charter, which a city
+  // founded under the right law is founded holding. Read off the marker for the
+  // watering clause's reason: the day a second such row exists it says this
+  // without anybody remembering to type it again, and the row's own note is
+  // where a reader is told who does the granting.
+  if (def.grantedOnly === true) {
+    clauses.push({
+      text: 'This cannot be built or bought. It is granted, and a city that is granted one keeps it.',
+      note: true,
+    });
   }
   if (def.worldUnlockTech !== undefined) {
     clauses.push({
@@ -1266,12 +1286,10 @@ function riteEntry(id: RiteId): CompendiumEntry {
     eyebrow: 'rite',
     mark: { kind: 'glyph', glyph: '☩' },
     rows: [
-      // **A redraw is performed on nothing standing anywhere.** Its row carries
-      // `target: 'here'` because that is the shape for "no hex", and printing
-      // that word would tell a reader to walk somewhere. What it acts on is the
-      // pantheon, so that is what the row says. Every other rite answers off the
-      // data as before.
-      ...row('Performed on', def.redraws === undefined ? def.target : 'your pantheon'),
+      // **A rite is performed by a city** since the fewer-things pass, so there
+      // is no target word to print at all: the row says who says it, which is
+      // the one thing that changed about every rite in the table at once.
+      ...row('Performed by', def.retired === true ? 'nobody — withdrawn' : 'a city with a chapel'),
       ...row('Duration', def.duration === undefined ? '' : `${figure(def.duration)} turns`),
       ...row('Unlocked by', techName(def.tech)),
     ],
@@ -1750,7 +1768,15 @@ export function compendiumSections(state: GameState | null = null): CompendiumSe
   for (const entry of INTRO_ENTRIES) push(entry);
   for (const entry of CONCEPT_ENTRIES) push(entry);
   for (const id of UNIT_TYPE_IDS) push(unitEntry(state, id));
-  for (const id of BUILDING_IDS) push(buildingEntry(id));
+  // **A withdrawn row has no page.** The fewer-things pass cut twelve ordinary
+  // buildings and kept their rows so that a save which raised one still replays
+  // (`BuildingDef.retired`); a reference that still described a Mint would be
+  // teaching a build nobody can make. The reading is the shelf's, not the row's
+  // — the data keeps the Mint, the book forgets it.
+  for (const id of BUILDING_IDS) {
+    if (buildingDef(id).retired === true) continue;
+    push(buildingEntry(id));
+  }
   for (const id of IMPROVEMENT_IDS) push(improvementEntry(id));
   for (const id of RESOURCE_IDS) push(resourceEntry(id));
   // Age order, then the table's own order inside an age: a reference is read

@@ -94,7 +94,7 @@ describe('the row figure: the fold, or the house dash', () => {
     // play is exactly that, "the row's base figure" — on a landlocked desert
     // town its water tile-line (gated on Sailing) never fires.
     const lines = explainBuildingPreview(state, city, 'granary');
-    expect(previewFigures(foldBuildingPreview(lines))).toBe('+3🌾');
+    expect(previewFigures(foldBuildingPreview(lines))).toBe('+2🌾');
   });
 });
 

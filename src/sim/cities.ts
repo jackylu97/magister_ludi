@@ -5047,6 +5047,19 @@ export function realiseItem(
   // either way — which is exactly why it is a parameter and not a rule. See
   // `Unit.freeUpkeep` for the register of who passes it.
   if (options.free) unit.freeUpkeep = true;
+  // **The Throne's bargain, stamped where it is struck** (`docs/tech-gifts.md`
+  // §7): a town holding a row that forgives its soldiers' keep
+  // (`BuildingDef.unitUpkeepRebate`) sends every piece it raises out cheaper to
+  // hold, for the rest of that piece's life. Read off the town's own buildings
+  // here and never again, because "where was this raised" is a fact that leaves
+  // the board the moment the piece marches. A free piece is skipped rather than
+  // stamped: it already costs nothing, and a rebate on nothing is a figure in a
+  // ledger with no line to sit under. See `Unit.upkeepRebate`.
+  if (!options.free) {
+    let rebate = 0;
+    for (const held of city.buildings) rebate += buildingDef(held).unitUpkeepRebate ?? 0;
+    if (rebate > 0) unit.upkeepRebate = rebate;
+  }
   // The ladder climbs at completion, so the next one of this *same type* —
   // anywhere in the empire — is dearer from the very next resolution. Its own
   // key in `Player.unitsBuilt`, not a shared counter (schema 31). A free grant

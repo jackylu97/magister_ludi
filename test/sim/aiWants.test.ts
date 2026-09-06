@@ -60,6 +60,7 @@ import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData'
 import { UNIT_UNLOCK_TECH } from '../../src/sim/techData';
 import { gatingTech, researchExpansion } from '../../src/sim/tech';
 import { BELIEF_IDS } from '../../src/sim/religionData';
+import { riteCostFor, riteError } from '../../src/sim/religion';
 import { livePool, slotTypesOf } from '../../src/sim/statecraft';
 import { ORDER_IDS, type OrderId, orderDef, orderFitsSlot } from '../../src/sim/statecraftData';
 import {
@@ -514,25 +515,35 @@ describe('the chain in the book', () => {
     }
   });
 
-  it('prices an augur by what its rites would do, and says which rite', () => {
-    // **The batch-1 deferral, closed.** A faith row whose rites nobody could
-    // price used to be worth exactly the faith it cost and to say so. A rite's
-    // lasting half is an ordinary card effect list, so the reader the drafts use
-    // answers it — and the row names the rite it was priced by.
+  it('prices a rite as a want of its own — the town, the rite and the price', () => {
+    // **The rites became a city's verb** (schema 74), so the bot no longer
+    // prices a *piece* by what its charges would do: it prices the act itself,
+    // in the bank that pays for it, ranked against every other faith row by
+    // worth per coin. That is the ruled shape ("a per-city purchase-shaped
+    // want") and it is what lets a rite lose to a prophet honestly.
     const { state, player } = chained(1, 'divination');
-    // A god already held, so the row is not the first-god clause.
     player.pantheon.beliefs = [BELIEF_IDS[0] as never];
     player.faithPool = 500;
+    for (const city of state.cities) city.buildings.push('chapel');
     const ctx = valueContext(state, player);
-    const augur = ctx.wants.faith.find((want) => want.label.startsWith('Augur at '));
-    expect(augur).toBeDefined();
-    const rites = augur!.terms.find((term) => term.label === 'what its rites would do');
-    expect(rites).toBeDefined();
-    expect(rites!.parts![0]!.label).toMatch(/, the best rite this empire knows$/);
-    expect(augur!.worth).toBeGreaterThan(0);
-    expect(foldTerms(augur!.terms)).toBe(augur!.worth);
-    // Nothing claims to read what it cannot: an unread grant prints as unread.
-    expect(JSON.stringify(rites)).toMatch(/a grant this bot cannot read|what it grants outright/);
+    const rite = ctx.wants.faith.find((want) => want.rite !== undefined);
+    expect(rite).toBeDefined();
+    // The price is the simulation's own, and the act is a command the reducer
+    // would take.
+    expect(rite!.price).toBe(riteCostFor(state, player.id));
+    expect(riteError(state, player.id, rite!.rite!.cityId, rite!.rite!.rite)).toBeNull();
+    expect(rite!.worth).toBeGreaterThan(0);
+    expect(foldTerms(rite!.terms)).toBe(rite!.worth);
+    // And its worth is the blessing over the turns it runs — never a grant,
+    // because a rite pays nothing the instant it lands any more.
+    expect(rite!.terms[0]!.label).toMatch(/^its blessing, for 10 turns$/);
+  });
+
+  it('leaves the withdrawn augur out of the faith book entirely', () => {
+    const { state, player } = chained(1, 'divination');
+    player.faithPool = 500;
+    const ctx = valueContext(state, player);
+    expect(ctx.wants.faith.some((want) => want.label.startsWith('Augur at '))).toBe(false);
   });
 
   it('changes its mind about the plan far less often, now the margin defends it', () => {

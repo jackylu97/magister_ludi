@@ -2,24 +2,22 @@
  * What the interface says after a rite is performed.
  *
  * The user's note (playtest, 2026-08-27): *"there should be some indication
- * after performing a rite"*. There was none. An augur is bought outright out of
- * the faith bank and carries three charges; spending one paid its grant, hung a
- * blessing on a town for twenty turns, and said nothing at all — the only sign
- * was a number changing somewhere else on the screen, in a different panel, that
- * the player was not looking at.
+ * after performing a rite"*. There was none, and there is more reason for one
+ * now than there was then: since the fewer-things pass a rite is a **town's**
+ * verb bought out of the faith bank for a season, so the only sign it worked
+ * would otherwise be a number changing somewhere else on the screen.
  *
  * Two claims, and the second is the one with teeth:
  *
  *   1. **The sentence is the simulation's own words.** `ritePreview` is what the
- *      rite's row on the augur's sheet promised, so the offer and the report are
+ *      rite's row on the city's sheet promised, so the offer and the report are
  *      one string. A sentence composed here out of the performance report would
  *      be a second description of what a rite does, and the two would drift the
- *      first time a rite's grant was retuned.
- *   2. **It is composed *before* the command and announced after.** A rite may
- *      spend the augur's last charge and take it off the board, and its grant
- *      lands on a town chosen by where the piece was standing — so the sentence
- *      is a fact only the moment before the dispatch can answer. `commit`'s
- *      caravan snapshot keeps the same rule for the same reason.
+ *      first time a rite was retuned.
+ *   2. **It is composed *before* the command and announced after.** `commit`'s
+ *      caravan snapshot keeps the same rule for the same reason, and it still
+ *      holds: the town's name is read off the board and the board is what the
+ *      command changes.
  *
  * No jsdom in this suite (`controls.test.ts`'s note), so `riteSentence` is pure
  * and module-level and the ordering is read off the source.
@@ -29,7 +27,7 @@ import { describe, expect, it } from 'vitest';
 
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
+import { type City, type GameState, newGame } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
 import { riteSentence } from '../../src/ui/controls';
@@ -46,8 +44,8 @@ function controlsSource(): string {
   return text;
 }
 
-/** One town called Uruk, with an augur standing in it. */
-function world(): { state: GameState; augur: Unit } {
+/** One town called Uruk. */
+function world(): { state: GameState; city: City } {
   const state = newGame({
     seed: 11,
     sizeName: 'duel',
@@ -65,83 +63,51 @@ function world(): { state: GameState; augur: Unit } {
   const tile = getTileAt(state.map, 5, 5)!;
   foundCityAt(state, 0, tile);
   state.cities[0]!.name = 'Uruk';
-  const augur = createUnit(state, 0, 'augur', 5, 5);
-  return { state, augur };
+  return { state, city: state.cities[0]! };
 }
 
 describe('riteSentence', () => {
-  it('names the rite, the town and what it did', () => {
-    const { state, augur } = world();
-    // The user's own example line, in the shape they asked for. The star is
-    // `cityDisplayName`'s capital mark, which is the point of asking it rather
-    // than reading `city.name`: a town is named here the way it is named
-    // everywhere else in the interface.
-    expect(riteSentence(state, augur, 'omenReading')).toBe(
-      '✶ Omen Reading at Uruk ✶ · +15 science · lasts 20 turns',
-    );
+  it('names the rite, the town and what it does', () => {
+    const { state, city } = world();
+    // The star is `cityDisplayName`'s capital mark, which is the point of asking
+    // it rather than reading `city.name`: a town is named here the way it is
+    // named everywhere else in the interface.
+    const line = riteSentence(state, city, 'omenReading');
+    expect(line).toContain('✶ Omen Reading at Uruk ✶');
+    expect(line).toContain('lasts 10 turns');
   });
 
-  it('says how long the blessing runs, because that is half of what was spent', () => {
-    const { state, augur } = world();
-    expect(riteSentence(state, augur, 'riteOfPlenty')).toContain('lasts 20 turns');
+  it('says how long the blessing runs, because that is the whole of what was bought', () => {
+    const { state, city } = world();
+    expect(riteSentence(state, city, 'riteOfPlenty')).toContain('lasts 10 turns');
   });
 
   it('names the town through the one city-name formatter', () => {
-    const { state, augur } = world();
-    state.cities[0]!.name = 'Lagash';
-    expect(riteSentence(state, augur, 'riteOfTheHarvest')).toContain('at Lagash');
+    const { state, city } = world();
+    city.name = 'Lagash';
+    expect(riteSentence(state, city, 'riteOfTheHarvest')).toContain('at Lagash');
   });
 
   it('quotes the sheet’s own preview, word for word', () => {
-    // Not "the same figures" — the same string. The augur's sheet and the
+    // Not "the same figures" — the same string. The city's sheet and the
     // announcement are one sentence produced once.
-    const { state, augur } = world();
-    const line = riteSentence(state, augur, 'consecrationOfTheBounds');
-    expect(line).toContain("+15 culture toward Uruk's borders");
+    const { state, city } = world();
+    const line = riteSentence(state, city, 'consecrationOfTheBounds');
+    expect(line).toContain('bounds walk outward faster');
   });
 
-  it('names the piece instead when the rite is aimed at one', () => {
-    const { state, augur } = world();
-    createUnit(state, 0, 'warrior', 5, 5);
-    const line = riteSentence(state, augur, 'blessingOfArms');
-    expect(line).toContain('over the warrior');
-    expect(line).toContain('heals the Warrior fully');
-  });
-
-  it('names no place when there is no town to aim at', () => {
-    // An augur in a field. The empire-wide half of the grant is still what the
-    // rite would pay, and the sentence simply stops naming a town rather than
-    // inventing one.
-    const { state, augur } = world();
-    state.cities = [];
-    expect(riteSentence(state, augur, 'omenReading')).toBe(
-      '✶ Omen Reading · +15 science · lasts 20 turns',
-    );
-  });
-
-  it('falls back to the card’s own text when the preview has nothing to say', () => {
-    // A city grant with no town to land on and no duration: `ritePreview`
-    // answers `null`, and the sentence is still a sentence. The reducer refuses
-    // the command anyway — a blank announcement is what this guards against.
-    const { state, augur } = world();
-    state.cities = [];
-    expect(riteSentence(state, augur, 'riteOfTheHarvest')).toMatch(
-      /^✶ Rite of the Harvest/,
-    );
+  it('says what the military rite does, in a first-time player’s words', () => {
+    const { state, city } = world();
+    expect(riteSentence(state, city, 'blessingOfArms')).toContain('harder to storm');
   });
 });
 
 describe('when the sentence is composed', () => {
   const controls = controlsSource();
-  // The signature grew a `belief` for the redraw rite (2026-08-29), so the
-  // slice names the function rather than its whole parameter list.
-  const perform = controls.slice(controls.indexOf('function performRite(id: RiteId'));
+  const perform = controls.slice(controls.indexOf('function performRite(cityId: number'));
   const body = perform.slice(0, perform.indexOf('\n  }\n'));
 
   it('reads the board before the dispatch and speaks after it', () => {
-    // The augur may be gone by the time this returns, and the grant is already
-    // banked in a town somewhere else. Both halves of the sentence stop being
-    // askable the instant the command lands.
     expect(body.indexOf('const sentence = riteSentence(')).toBeLessThan(
       body.indexOf('const result = commit({'),
     );
@@ -160,15 +126,11 @@ describe('when the sentence is composed', () => {
     expect(body).toContain('if (!result.ok) {');
   });
 
-  it('pans to the hex the augur stood on', () => {
-    // The chronicle line leads back to the town that received the grant, which
-    // is the town the augur was standing in.
-    expect(body).toContain('const cell = { col: unit.col, row: unit.row };');
+  it('pans to the town that received it', () => {
+    expect(body).toContain('const cell = { col: city.col, row: city.row };');
   });
 
-  it('refreshes the sheet, so the spent charge shows at once', () => {
+  it('refreshes the sheet, so the spent faith shows at once', () => {
     expect(body).toContain('onUpdate(selectedUnit(), renderer.getHover())');
-    // And lets go of an augur the last charge emptied, exactly as a worker is.
-    expect(body).toContain('if (!unitById(getGame().state, unit.id))');
   });
 });

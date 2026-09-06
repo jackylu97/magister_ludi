@@ -89,9 +89,6 @@ import {
   nearestOwnedCity,
   refreshCityDerived,
   refreshTileDerived,
-  settleBorderWindfall,
-  settleGrowthWindfall,
-  settlePopulationWindfall,
   settleProductionWindfall,
   tileOwnerField,
 } from './cities';
@@ -105,6 +102,7 @@ import {
   type RiteDef,
   type RiteId,
   BELIEF_IDS,
+  LIVE_RITE_IDS,
   RELIGION,
   beliefDef,
   isBeliefId,
@@ -112,6 +110,7 @@ import {
   isRiteId,
   poolBeliefs,
   riteAbility,
+  riteCost,
   riteDef,
   slotsFromTechs,
 } from './religionData';
@@ -130,10 +129,15 @@ import {
   timedEffectIsLive,
   windfallPayout,
 } from './statecraft';
-import { hasAbility, hasTech, settleResearchWindfall } from './tech';
+import { hasAbility, hasTech } from './tech';
 import { type TechId, eraNumeral, highestAge, techDef } from './techData';
 import type { BuildingId } from './buildingData';
-import { buildingRitePay } from './buildingEffects';
+import {
+  PLACED_BUILDING,
+  buildingRitePay,
+  cityKeepsRelics,
+  cityPerformsRites,
+} from './buildingEffects';
 import type { PressureRuleId } from './statecraftData';
 import { type ImprovementId, workForFamily } from './improvementData';
 import { improvementErrorAt } from './improvements';
@@ -141,7 +145,7 @@ import { nextFloat } from './rng';
 import { RULES } from './rulesData';
 import { awardBeadOccasion } from './beads';
 import { awardOccasion } from './triumphs';
-import { isCombatant, unitDef, unitMaxHp } from './unitData';
+import { unitDef, unitMaxHp } from './unitData';
 
 // --- the pantheon's slots ---------------------------------------------------
 
@@ -262,16 +266,22 @@ export function augurHasActed(unit: Unit): boolean {
 }
 
 /**
- * Why this augur cannot consecrate, or `null` when it can.
+ * Why this augur cannot consecrate — **always**, since the faith ladder took the
+ * consecration over (`docs/fewer-things.md` §3, ruled 2026-09-06).
  *
- * **Consecrate spends the whole unit**, which since Entry LVIII is what every
- * act of an augur's does: an augur is *either* one rite *or* one god, and the
- * price ladder makes the second augur dearer whichever of the two the first was
- * spent on. There is therefore no charge clause here at all — only a slot one,
- * and the turn clause every act of an augur's shares (`augurHasActed`).
+ * The verb is **retired, not deleted**, and the distinction is the whole of why
+ * this function still exists and still opens with the ownership clauses. A
+ * command in an old log has to be *refused*, not crash; a piece already standing
+ * on a board has to have a sentence beside its greyed row; and a reducer arm
+ * that had been deleted would have taken the exhaustiveness idiom's guarantee
+ * with it. So the gate stands, the refusals a player would think of are asked in
+ * their old order so a hand-edited log still gets the honest sentence, and the
+ * last one is the design's: a god arrives when the bank crosses a rung
+ * (`openFaithLadder`), not when a piece is walked to a town and spent.
  *
- * The blocker sentence for a full pantheon is the one the unit panel prints, so
- * a greyed row and a refused command say the same thing.
+ * `consecrateAt` is untouched below it and unreachable, which is deliberate:
+ * the day the design wants an agent-bought god back, this clause comes out and
+ * nothing else moves.
  */
 export function consecrateError(
   state: GameState,
@@ -284,19 +294,7 @@ export function consecrateError(
   if (!unit) return `No unit with id ${String(unitId)}`;
   if (unit.ownerId !== playerId) return `Unit ${unit.id} does not belong to player ${playerId}`;
   if (!isAugur(unit)) return `A ${unitDef(unit.type).name} cannot consecrate`;
-  // Held to the rite's own rule (`augurHasActed`): an augur that blessed a town
-  // this turn does not then go and found a god with what is left of the day.
-  // Consecration spends the whole piece either way, so this is not about
-  // charges — it is about the turn, and it is the same sentence the rite gives.
-  if (augurHasActed(unit)) return `The augur has acted this turn`;
-  if (player.pantheon.pending !== undefined) {
-    return `${player.name} still has a belief waiting to be chosen`;
-  }
-  if (!hasOpenBeliefSlot(state, playerId)) {
-    return 'Your pantheon has no room for another belief';
-  }
-  if (beliefPool(state, player).length === 0) return 'There are no beliefs left to choose';
-  return null;
+  return 'Your gods arrive on their own, once your faith is deep enough';
 }
 
 /**
@@ -764,425 +762,219 @@ function refreshBeliefDerived(state: GameState, player: Player): void {
   }
 }
 
-// --- recasting the omens ----------------------------------------------------
-
-/**
- * The bag a recast draws from: this empire's pool **without the god going back**.
- *
- * **A reroll that can re-offer the same god is not a reroll**, and this is the
- * one line that says so. It is deliberately the *opposite* of `redraftAt`'s
- * rule, which returns a religion's beliefs to the bag before drawing precisely
- * so a prophet may honestly land on what it gave up — and the difference is not
- * an inconsistency but the two acts' different subjects. A redraft empties a
- * whole *house* and asks the question again from nothing; a recast is a player
- * pointing at one god and saying "not that one", and a hand that answered with
- * that god would be the interface disagreeing with the verb the player pressed.
- *
- * Asked by `riteError` (so an empty bag is refused before anything mutates) and
- * by `recastPantheonAt` (so the refusal and the draw cannot disagree about what
- * is on the table). Note the belief is still *held* when the gate asks and
- * already gone when the settlement does; the filter makes both readings the same
- * list, which is what lets one function serve both.
- */
-function recastPool(state: GameState, player: Player, belief: BeliefId): BeliefId[] {
-  return beliefPool(state, player).filter((id) => id !== belief);
-}
-
-/**
- * Gives one god back and deals a fresh hand. Validates nothing — `riteError` is
- * the rule, and it has already checked that the bag below is not empty.
- *
- * The order is the arithmetic:
- *
- *   1. **the god leaves the list**, spliced by the index it was found at rather
- *      than filtered out, so a pantheon that somehow held a duplicate loses
- *      exactly one of them — deterministic, and array order all the way down.
- *   2. **every town is re-seated**, because a belief is an empire-wide fact
- *      about what ground is worth and one has just stopped being true. It is
- *      `settleBeliefChoice`'s own refresh, run for the loss rather than the
- *      gain, and it is why a recast is in `refreshCityDerived`'s register.
- *   3. **the hand is dealt** from `recastPool` — this seat's gods, minus every
- *      rival's, minus the one just handed over — at `offerSize`, the one
- *      evaluator all four drafts ask, at the moment the offer opens.
- *
- * The **charge is not spent here**: this is a rite like any other and
- * `performRiteAt`'s fourth beat spends it, through the routine both agents
- * share. A second charge rule inside a settlement is how two rites end up
- * disagreeing about whether an augur walks away.
- *
- * The pick is the ordinary `chooseBelief`, which *appends* — so the slot the
- * recast emptied is the slot the answer fills, and nothing counts anything.
- */
-export function recastPantheonAt(state: GameState, player: Player, belief: BeliefId): BeliefOffer {
-  const index = player.pantheon.beliefs.indexOf(belief);
-  if (index >= 0) player.pantheon.beliefs.splice(index, 1);
-  refreshBeliefDerived(state, player);
-  const offer: BeliefOffer = {
-    options: drawWithoutReplacement(
-      state,
-      recastPool(state, player, belief),
-      offerSize(state, player.id, 'belief'),
-    ),
-    givenBack: belief,
-  };
-  player.pantheon.pending = offer;
-  return offer;
-}
-
 // --- rites ------------------------------------------------------------------
+//
+// **A rite is a city's verb** (`docs/fewer-things.md` §3, ruled 2026-09-06).
+//
+// It was an augur's: call the piece for forty faith, walk it one to three
+// hexes, aim it, spend it — four to six clicks for something worth under one
+// percent of a voice on the user's turn-92 board. The failure was the errand
+// rather than the figures, so the errand is gone. The empire is still what is
+// *taught* a rite (`ABILITY_TECH`, the same five nodes the augur's rites sat
+// on); the **town** is what performs one, out of the empire's faith bank, and
+// keeps it for ten turns.
+//
+// Three rules, and each is one line below:
+//
+//   · **the Chapel is the door** — a town performs the rites it has been taught
+//     iff it holds a row carrying `ritesDoor` (`cityPerformsRites`). Nothing
+//     here has heard of a chapel;
+//   · **one rite at a time, per town** — the seal *is* the rite's ten turns
+//     (`cityRite`), so there is no second clock to keep and nothing to tick;
+//   · **the price is the faith ladder's rung for the age you stand in**
+//     (`riteCost`), which is the ruled default: 40 in Æra I, rising a rung an
+//     age.
 
-/** Every rite this empire has been taught, in table order. */
+/**
+ * Every rite this empire has been taught, in table order.
+ *
+ * The withdrawn rows are out by construction (`LIVE_RITE_IDS`): Recasting the
+ * Omens is the faith reroll's job now and The Preaching is the prophet's, and a
+ * pool that still dealt them would be a pool disagreeing with the table.
+ */
 export function availableRites(state: GameState, playerId: number): RiteId[] {
-  return (Object.keys(RELIGION.rites) as RiteId[]).filter((id) =>
-    hasAbility(state, playerId, riteAbility(id)),
-  );
+  return LIVE_RITE_IDS.filter((id) => hasAbility(state, playerId, riteAbility(id)));
 }
 
 /**
- * The hex a rite is aimed at: the one named, or the augur's own.
+ * **What a rite costs this empire**, in faith, right now.
  *
- * Defaulting to the augur's tile is the whole of "target: the city the augur
- * stands in **or adjacent to**" read from the player's side — an augur standing
- * in Uruk aims at Uruk by saying nothing.
+ * One reading — the button, the refusal and the charge are the same figure, the
+ * discipline `explainPurchaseCost` keeps for a price tag. The age is the
+ * empire's own highest technology (`highestAge`), which is the same band
+ * `explainUnitCost` reads and the same one the reroll's multiplier reads, so a
+ * realm that has just opened an era pays the era's price for everything at
+ * once.
  */
-function riteAimAt(unit: Unit, target?: { col: number; row: number }): { col: number; row: number } {
-  return target ?? { col: unit.col, row: unit.row };
-}
-
-/** The city a `city` rite would land on, or `null`. */
-export function riteCityTarget(
-  state: GameState,
-  unit: Unit,
-  target?: { col: number; row: number },
-): City | null {
-  const aim = riteAimAt(unit, target);
-  const city = cityAt(state, aim.col, aim.row);
-  return city && city.ownerId === unit.ownerId ? city : null;
-}
-
-/**
- * The unit a `unit` rite would land on, or `null`.
- *
- * A **combatant first**, then anything of the actor's own on the hex, and the
- * order is the design rather than a tie-break: stacking allows one military and
- * one civilian piece per tile (`rules.stacking`), and a Blessing of Arms aimed
- * at a hex holding a warrior and a worker is aimed at the warrior. The augur may
- * bless itself, which is useless and legal — a rule forbidding it would be a
- * rule nobody could discover.
- */
-export function riteUnitTarget(
-  state: GameState,
-  unit: Unit,
-  target?: { col: number; row: number },
-): Unit | null {
-  const aim = riteAimAt(unit, target);
-  let fallback: Unit | null = null;
-  for (const other of state.units) {
-    if (other.ownerId !== unit.ownerId) continue;
-    if (other.col !== aim.col || other.row !== aim.row) continue;
-    if (isCombatant(unitDef(other.type))) return other;
-    if (fallback === null) fallback = other;
-  }
-  return fallback;
-}
-
-/**
- * Why this augur cannot perform this rite here, or `null` when it can.
- *
- * **The** gate, and the unit panel greys its rite rows with exactly it, so an
- * offered row is a command the reducer takes and the sentence on a refusal is
- * the reducer's own. The refusals in the order a player would think of them: is
- * this my augur, does it have a rite left, has it already acted today, do I know
- * this one, is the target in reach, and is there anything there to bless.
- *
- * Reach is **one hex**, measured on the map's own wrapped distance, and it is
- * the same rule for both target kinds: a rite is a thing you walk up to.
- *
- * `belief` is named only by a **redraw** rite (Recasting the Omens) and is the
- * god being handed back. It is `unknown` for `rite`'s reason — it arrives off a
- * command and a hand-edited log may put anything in it — and it is ignored
- * outright by every rite that redraws nothing, so an old log carrying none
- * replays byte-identically.
- */
-export function riteError(
-  state: GameState,
-  playerId: number,
-  unitId: number,
-  rite: unknown,
-  target?: { col: number; row: number },
-  belief?: unknown,
-): string | null {
+export function riteCostFor(state: GameState, playerId: number): number {
   const player = playerById(state, playerId);
-  if (!player) return `No player with id ${String(playerId)}`;
-  const unit = unitById(state, unitId);
-  if (!unit) return `No unit with id ${String(unitId)}`;
-  if (unit.ownerId !== playerId) return `Unit ${unit.id} does not belong to player ${playerId}`;
-  if (!isAugur(unit)) return `A ${unitDef(unit.type).name} performs no rites`;
-  if ((unit.chargesLeft ?? 0) < 1) return `That augur has no rites left`;
-  // The other half of "a rite is the augur's whole turn". `performRiteAt` spends
-  // the movement; this refuses the act that would have followed it, which is
-  // what makes an augur three rites over three turns rather than three in one.
-  if (augurHasActed(unit)) return `The augur has acted this turn`;
-  if (!isRiteId(rite)) return `There is no rite called "${String(rite)}"`;
-  const def = riteDef(rite);
-  if (!hasAbility(state, playerId, riteAbility(rite))) {
-    return `${def.name} is not known to ${player.name}`;
-  }
+  if (!player) return riteCost(1);
+  return riteCost(highestAge(player.techsResearched));
+}
 
-  const from = getTileAt(state.map, unit.col, unit.row);
-  if (!from) return `Unit ${unit.id} is not on the map`;
-  const aim = riteAimAt(unit, target);
-  const to = getTileAt(state.map, aim.col, aim.row);
-  if (!to) return `(${aim.col}, ${aim.row}) is off the map`;
-  if (wrappedDistance(state.map, tileHex(from), tileHex(to)) > 1) {
-    return `${def.name} must be performed where the augur stands, or beside it`;
-  }
-
-  // **A rite that leaves a proclamation needs a faith to proclaim.** Asked of
-  // the grant's own shape rather than of the rite's id, so the second such rite
-  // inherits the refusal without this function learning its name.
-  if (def.grant?.lump !== undefined && foundedReligion(state, playerId) === undefined) {
-    return `${def.name} needs a religion to preach`;
-  }
-
-  // **A redraw's four refusals**, asked of `RiteDef.redraws` rather than of the
-  // rite's id for the clause above's reason. They stand before the target arms
-  // because a redraw names a *god* rather than a hex — its `target: 'here'` is
-  // the shape for "no hex at all" — and the reach test above is the whole of
-  // where it happens.
-  //
-  // The last of the four is the one that is easy to leave out and impossible to
-  // recover from: a recast that could deal an **empty** hand would leave a
-  // `pending` offer on the seat that `chooseBelief` can never answer and the End
-  // Turn blocker can never clear. It is asked of the bag the settlement will
-  // actually draw from — this seat's pool without the god going back — because
-  // that filter is the whole difference between a recast and a Consecrate.
-  if (def.redraws !== undefined) {
-    if (player.pantheon.beliefs.length === 0) return 'You have no belief to give back';
-    if (player.pantheon.pending !== undefined) {
-      return `${player.name} still has a belief waiting to be chosen`;
-    }
-    if (!isBeliefId(belief) || !player.pantheon.beliefs.includes(belief)) {
-      return `${def.name} needs one of your own beliefs to give back`;
-    }
-    if (recastPool(state, player, belief).length === 0) {
-      return 'There are no other beliefs left to choose';
-    }
-    return null;
-  }
-
-  if (def.target === 'here') {
-    // The third target, and it asks nothing further: a proclamation is made on
-    // the ground, and the reach test above is the whole of where.
-    return null;
-  }
-  if (def.target === 'city') {
-    if (riteCityTarget(state, unit, target) === null) {
-      return `${def.name} needs one of your cities to bless`;
-    }
-    return null;
-  }
-  if (riteUnitTarget(state, unit, target) === null) {
-    return `${def.name} needs one of your units to bless`;
+/**
+ * **The rite this town is keeping**, or `null` — the whole of "one at a time".
+ *
+ * Derived off `City.timed`, never stored, and the reading is the ordinary
+ * comparison every timed effect in this game is read by (`timedEffectIsLive`):
+ * the seal *is* the blessing, so there is no `sealedUntil` beside it, nothing to
+ * clear when it lapses and no phase that could clear it twice. A town whose rite
+ * ran out this turn may perform another this turn, which is exactly what "ten
+ * turns" means.
+ *
+ * It answers the rite's **id** rather than a boolean because every surface that
+ * asks wants to say *which* — the panel prints its name and its turns left, and
+ * the refusal names it too.
+ *
+ * A withdrawn row hanging on an old save is skipped: it is not a rite the town
+ * may be said to be keeping, and refusing a fresh one on the strength of a
+ * blessing the design has taken out would be a save punishing a player for the
+ * turn it was made on.
+ */
+export function cityRite(state: GameState, city: City): RiteId | null {
+  for (const entry of city.timed ?? []) {
+    if (!timedEffectIsLive(state, entry)) continue;
+    if (!isRiteId(entry.card)) continue;
+    if (riteDef(entry.card).retired === true) continue;
+    return entry.card;
   }
   return null;
 }
 
-/** One thing a rite paid, as a player reads it. See `RitePerformance.grants`. */
-export interface RiteGrantLine {
-  /** "Science", "Culture to the bounds", "Population" — the destination. */
-  label: string;
-  /** The figure paid. Whole, printed, and already what the basket received. */
-  amount: number;
+/** How many turns are left of the rite this town is keeping, or `0`. */
+export function cityRiteTurnsLeft(state: GameState, city: City): number {
+  let left = 0;
+  for (const entry of city.timed ?? []) {
+    if (!timedEffectIsLive(state, entry)) continue;
+    if (!isRiteId(entry.card)) continue;
+    if (riteDef(entry.card).retired === true) continue;
+    left = Math.max(left, entry.expiresTurn - state.turn);
+  }
+  return left;
+}
+
+/**
+ * Why this city cannot perform this rite, or `null` when it can.
+ *
+ * **The** gate: the city panel greys its rite rows with exactly it, so an
+ * offered row is a command the reducer takes and the sentence on a refusal is
+ * the reducer's own. The refusals in the order a player would think of them: is
+ * this my town, has it the door, do I know this rite, is the town already
+ * keeping one, and can I pay for it.
+ */
+export function riteError(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  rite: unknown,
+): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  const city = state.cities.find((row) => row.id === cityId);
+  if (!city) return `No city with id ${String(cityId)}`;
+  if (city.ownerId !== playerId) return `${city.name} does not belong to player ${playerId}`;
+  // The door, asked of the marker rather than of a name (`BuildingDef.ritesDoor`).
+  if (!cityPerformsRites(city)) return `${city.name} has nowhere to say a rite`;
+  if (!isRiteId(rite)) return `There is no rite called "${String(rite)}"`;
+  const def = riteDef(rite);
+  if (def.retired === true) return `${def.name} is no longer performed`;
+  if (!hasAbility(state, playerId, riteAbility(rite))) {
+    return `${def.name} is not known to ${player.name}`;
+  }
+  const held = cityRite(state, city);
+  if (held !== null) return `${city.name} is already keeping ${riteDef(held).name}`;
+  const cost = riteCostFor(state, playerId);
+  if (player.faithPool < cost) {
+    return `${def.name} asks ${cost} faith and ${player.name} has ${Math.floor(player.faithPool)}`;
+  }
+  return null;
 }
 
 /** What performing a rite did, for the announcement and the chronicle. */
 export interface RitePerformance {
   rite: RiteId;
   name: string;
-  /** The town it landed on, or `null` for a rite aimed at a piece. */
-  city: City | null;
-  /** The piece it landed on, or `null`. */
-  unit: Unit | null;
-  /** The population the town reached, when the rite granted a citizen. */
-  population: number | null;
-  /** The technology the beakers completed, or `null`. */
-  research: string | null;
-  /** True when the augur was spent by this rite's last charge. */
-  augurSpent: boolean;
-  /** The turn the lasting half runs out, or `null` for a pure windfall. */
-  expiresTurn: number | null;
+  /** The town that is keeping it. */
+  city: City;
+  /** The faith actually taken out of the bank. */
+  cost: number;
+  /** The turn the blessing runs out — absolute, and nothing ticks it. */
+  expiresTurn: number;
   /**
-   * How many turns the blessing runs, amplifiers folded in, or `null` for a
-   * pure windfall.
+   * How many turns the blessing runs, amplifiers folded in.
    *
    * `expiresTurn` minus the turn it was stamped on, carried rather than left to
    * be subtracted by whoever announces it: the row's printed `duration` is *not*
    * the answer once Chichen Itza is standing, and a caller that quoted the row
-   * would promise twenty turns and deliver thirty.
+   * would promise ten turns and deliver fifteen.
    */
-  turns: number | null;
+  turns: number;
   /**
-   * What the rite actually paid, one labelled line per destination.
-   *
-   * The `explainUnitCost` shape for the third time: a caller that has to say
-   * what happened folds the list rather than switching on which fields of this
-   * report happen to be non-null. Every figure is the **paid** one — Entry
-   * XVIII.5's printed number, riders folded in by `windfallPayout` before
-   * anything was banked — so an announcement and the basket agree by
-   * construction.
-   *
-   * Empty is impossible for a rite with a grant and ordinary for one that is
-   * pure blessing.
+   * Culture this town's own shelves paid for the saying of it — the Chapel's
+   * five, banked into the draft basket. Zero for a town whose door pays nothing.
    */
-  grants: RiteGrantLine[];
+  chapelCulture: number;
   /**
-   * The tiles a rite's border culture claimed **this instant**, or empty.
+   * Wonders a rider's hammers finished, in the order they completed.
    *
-   * The user's rule (2026-08-27): "should instantaneously add the tile and reset
-   * the counter (with overflow) if it exceeds the culture needed". It is a list
-   * rather than a count because fifteen culture can cover two rungs, and because
-   * the interface wants to know *which* hexes lit up.
-   */
-  bordersClaimed: { col: number; row: number }[];
-  /**
-   * Wonders this rite's hammers finished, in the order they completed.
-   *
-   * The gap the wonders framework left and named (`GameState.wonders`'s ledger
-   * entry: "a rite's hammers can complete a wonder correctly but carry no toast
-   * out"). The *rule* was always right — a Rite of the Forge that covers the
-   * front of a queue completes it through `settleProductionWindfall`, which is
-   * `advanceProduction`'s own routine — but the completion is news to **every**
-   * seat, and the one thing that could say so was being dropped on the floor.
-   *
-   * Empty on every rite that finished nothing, which is almost all of them, so a
-   * caller that has never heard of it is unaffected.
+   * Empty on every rite that finished nothing, which is all of them until a card
+   * rides the `rite` occasion — so a caller that has never heard of it is
+   * unaffected.
    */
   wonders: WonderCompletion[];
-  /**
-   * What this rite's proclamation converted, or `null` for every rite that made
-   * none — which is all of them but The Preaching.
-   *
-   * The third kind of news joining the shape rather than a second out-parameter
-   * (`RealisedItem`'s rule): a lump of pressure is a **difference** that stops
-   * existing the instant the command returns, so `applyPerformRite` hands it
-   * straight out as `CommandResult.proclaimed`, the same field a prophet's bomb
-   * fills. See `ProclamationReport`.
-   */
-  proclaimed: ProclamationReport | null;
-  /**
-   * The god given back, on the one rite that gives one back, or `null`.
-   *
-   * The offer it opened is deliberately **not** here: it is on the player
-   * (`pantheon.pending`), which is where a Consecrate's has always been and
-   * where the End Turn blocker and the offer card both already look. What the
-   * board cannot say afterwards is which god was handed over — the belief is out
-   * of the list by the time this returns — so that is what is carried, and it is
-   * `arrivals`' argument in a third currency.
-   */
-  recast: BeliefId | null;
 }
 
 /**
- * Performs one rite. Validates nothing — `riteError` is the rule and the command
- * asks it first.
+ * Performs one rite in one town. Validates nothing — `riteError` is the rule and
+ * the command asks it first.
  *
  * The order is the arithmetic and each step is a rule:
  *
- *   1. **the lasting half is stamped first**, so a rite whose windfall settles a
- *      queue does so under the effects it just granted. Twenty turns from *this*
- *      turn, as an absolute expiry (`TimedEffect`).
- *   2. **the instant half is paid**, through the bucket's own `settle…Windfall`
- *      helper — never by writing into a basket and hoping a phase notices.
- *      Entry XVIII: the moment of the gift is the moment of the payoff.
+ *   1. **the faith is taken first**, so nothing downstream can read a bank that
+ *      has not paid yet — a rider on the `rite` occasion that counted banked
+ *      faith would otherwise count the price it is about to cost;
+ *   2. **the blessing is stamped**, ten turns from *this* turn as an absolute
+ *      expiry (`TimedEffect`), amplifiers folded in once at the stamp;
  *   3. **the riders fire**, on the `rite` occasion, so a card may pay for the
- *      *act* of performing one.
- *   4. **the charge is spent**, and an augur that empties is removed from the
- *      board exactly as a worker is. That is the one place the two agents share
- *      a rule rather than a field, and it is deliberate: three acts in a box.
- *   5. **the rite is the augur's turn** (user, 2026-08-27: "the rite should end
- *      the augur's turn"). Every remaining movement point is spent, the way an
- *      attack spends an attacker and a build spends a worker — a rite is the
- *      day's work, not something a piece does on its way past. In the
- *      *mechanism* rather than in the reducer, for `buildImprovementAt`'s stated
- *      reason: an AI that performs one gets it without having to remember. Only
- *      a surviving augur is written to, because a spent one has left the board.
- *      The *refusal* that makes this bite is `augurHasActed`, asked by both
- *      gates — spending the movement here and refusing the next act there are
- *      one rule in two halves, and for a while only this half existed.
+ *      *act* of performing one;
+ *   4. **the town's own shelves pay** — the Chapel's culture, after the riders
+ *      because it is neither a grant nor a law: a rider is the empire's and
+ *      reaches every rite in the realm, and this is a fact about one town;
+ *   5. **the town is re-seated** (`refreshCityDerived`, the rite's own entry in
+ *      that helper's register):
+ *      a lasting tile line and a lasting count were just hung on it, so what its
+ *      citizens are worth has changed before the turn ends.
+ *
+ * There is deliberately **no instant half**. A rite used to pay a citizen, a
+ * purse of beakers, a lump of coin — the windfall that made it worth the errand
+ * — and the errand is gone. What is left is the season, which is the thing the
+ * ruling is about.
  */
 export function performRiteAt(
   state: GameState,
   player: Player,
-  unit: Unit,
+  city: City,
   rite: RiteId,
-  target?: { col: number; row: number },
-  belief?: BeliefId,
 ): RitePerformance {
   const def = riteDef(rite);
-  const city = def.target === 'city' ? riteCityTarget(state, unit, target) : null;
-  const blessed = def.target === 'unit' ? riteUnitTarget(state, unit, target) : null;
+  const cost = riteCostFor(state, player.id);
+  player.faithPool = Math.max(0, player.faithPool - cost);
 
-  const expiresTurn = stampRite(state, player.id, rite, def, city, blessed);
-  const paid = payRiteGrant(state, player, def, city, blessed, { col: unit.col, row: unit.row });
-  // **The redraw stands where the grant does**, between the stamp and the
-  // riders, because it is this rite's whole instant half: a grant fills a
-  // bucket, a redraw puts a decision back on the empire, and one row does
-  // exactly one of the two (`RiteDef.redraws`). It reaches the same generator
-  // and the same `pending` field a Consecrate does, so a recast is answered by
-  // the one `chooseBelief` command like every other draft in the game.
-  let recast: BeliefId | null = null;
-  if (def.redraws !== undefined && belief !== undefined) {
-    recastPantheonAt(state, player, belief);
-    recast = belief;
-  }
-  const wonders = payRiteRiders(state, player, unit);
-  wonders.unshift(...paid.wonders);
-  // **The Chapel's culture** (the charters, 2026-09-04), after the grant and the
-  // riders because it is neither: a rider is the empire's law and reaches every
-  // rite in the realm, and this is a fact about one town that happened to be
-  // where the rite was said. It joins `paid.grants` rather than opening a field
-  // of its own, so the announcement folds one list exactly as it did before.
-  const chapel = payRiteBuildings(state, player, unit, city);
-  if (chapel > 0) paid.grants.push({ label: 'Culture', amount: chapel });
-
-  // The fourth and fifth beats, in the routine both agents share
-  // (`spendCharge`): the charge goes, an emptied piece leaves the board, and a
-  // survivor's day goes with it.
-  const augurSpent = spendCharge(state, unit);
+  const expiresTurn = stampRite(state, player.id, rite, def, city) ?? state.turn;
+  const wonders = payRiteRiders(state, player, city);
+  const chapelCulture = payRiteBuildings(state, player, city);
+  refreshCityDerived(state, city);
 
   return {
-    recast,
     rite,
     name: def.name,
     city,
-    unit: blessed,
-    population: paid.population,
-    research: paid.research,
-    augurSpent,
+    cost,
     expiresTurn,
-    turns: expiresTurn === null ? null : expiresTurn - state.turn,
-    grants: paid.grants,
-    bordersClaimed: paid.bordersClaimed,
+    turns: expiresTurn - state.turn,
+    chapelCulture,
     wonders,
-    proclaimed: paid.proclaimed,
   };
-}
-
-/**
- * **The town the rite was performed in**, or `null`.
- *
- * The place it landed on when it named one, and otherwise the town the augur was
- * standing in — which is the honest reading of "performed in this town" for a
- * rite that blesses a *piece* and names no place at all. Two clauses rather than
- * one because a rite reaches one hex ("a rite is a thing you walk up to"), so an
- * augur outside the walls may still bless the town, and a rite said over a
- * wounded column in the square is still said in the square.
- *
- * The one reading of it, so nothing anywhere asks the question twice.
- */
-function riteTown(state: GameState, unit: Unit, city: City | null): City | null {
-  return city ?? cityAt(state, unit.col, unit.row) ?? null;
 }
 
 /**
@@ -1191,21 +983,15 @@ function riteTown(state: GameState, unit: Unit, city: City | null): City | null 
  *
  * Paid through `settleCultureWindfall`, the one settlement culture reaches the
  * draft basket by, so a chapel's culture fills a pool and may open a draft
- * exactly as a Rite of the Bounds' does. Read through `buildingEffects.ts`, so
- * this module has never heard of a chapel; `refreshCityDerived` is not owed
+ * exactly as a rite's border culture once did. Read through `buildingEffects.ts`,
+ * so this module has never heard of a chapel; `refreshCityDerived` is not owed
  * anything because culture is the realm's basket and no town's yield moved.
  *
  * Returns what was paid, for the report.
  */
-function payRiteBuildings(
-  state: GameState,
-  player: Player,
-  unit: Unit,
-  city: City | null,
-): number {
-  const town = riteTown(state, unit, city);
-  if (!town || town.ownerId !== player.id) return 0;
-  const paid = buildingRitePay(town);
+function payRiteBuildings(state: GameState, player: Player, city: City): number {
+  if (city.ownerId !== player.id) return 0;
+  const paid = buildingRitePay(city);
   if (paid <= 0) return 0;
   player.culturePool += paid;
   settleCultureWindfall(state, player);
@@ -1213,7 +999,7 @@ function payRiteBuildings(
 }
 
 /**
- * Hangs a rite's lasting effects on its target, and answers when they run out.
+ * Hangs a rite's lasting effects on a town, and answers when they run out.
  *
  * One `TimedEffect` per effect rather than one carrying a list, because every
  * reader walks a flat list of `{ card, effect }` and a nested one would be a
@@ -1229,168 +1015,48 @@ function payRiteBuildings(
  * day the wonder was captured would be a countdown wearing a comparison's
  * clothes. Floored once, and never below a single turn — an amplifier may
  * lengthen a blessing or shorten it, but a rite that expired the instant it was
- * performed would be a charge spent on nothing.
+ * performed would be faith spent on nothing.
  */
 function stampRite(
   state: GameState,
   playerId: number,
   rite: RiteId,
   def: RiteDef,
-  city: City | null,
-  unit: Unit | null,
+  city: City,
 ): number | null {
   if (def.duration === undefined || def.effects.length === 0) return null;
-  const holder: { timed?: TimedEffect[] } | null = def.target === 'city' ? city : unit;
-  if (!holder) return null;
   const percent = cardAmplifier(state, playerId, 'riteDuration');
   const turns = Math.floor((Math.max(1, Math.floor(def.duration)) * (100 + percent)) / 100);
   const expiresTurn = state.turn + Math.max(1, turns);
-  const list = holder.timed ?? [];
+  const list = city.timed ?? [];
   for (const effect of def.effects) list.push({ card: rite, effect, expiresTurn });
-  holder.timed = list;
+  city.timed = list;
   return expiresTurn;
 }
 
-/** What a rite's instant half completed, for the report. */
-interface RiteGrantResult {
-  population: number | null;
-  research: string | null;
-  /** One labelled line per destination paid. See `RitePerformance.grants`. */
-  grants: RiteGrantLine[];
-  /** Hexes the border culture took on the spot. See `RitePerformance`. */
-  bordersClaimed: { col: number; row: number }[];
-  /** Wonders the rite's hammers finished. See `RitePerformance.wonders`. */
-  wonders: WonderCompletion[];
-  /** What The Preaching's lump converted. See `RitePerformance.proclaimed`. */
-  proclaimed: ProclamationReport | null;
-}
-
 /**
- * Pays a rite's instant half into the buckets it names.
+ * Takes whatever rite a town is keeping off it — the one thing that ends a
+ * blessing early, and the prophet's empire-wide word is the only caller.
  *
- * **One arm per destination**, each writing its own labelled line into
- * `RiteGrantLine[]` as it pays, and the destinations are why `RiteGrantSpec` is a
- * bag of names rather than a bag of yields: a rite's culture fills a *city's
- * border basket* while its science fills the *empire's* research pool, and those
- * are two different channels (Entry XVII) that a `CityYieldKey` could not tell
- * apart. Each arm goes through the settlement helper its bucket already has, so
- * a rite that finishes a granary finishes it by exactly the code an end-of-turn
- * granary is finished by.
- *
- * Every figure is Entry XVIII.5-immune: printed, unmodified, whole.
- *
- * A **redraw** rite has no grant at all (`RiteDef.redraws`), and it comes
- * through here rather than being branched around: an empty result is what "paid
- * nothing" means, and every field of the report below already has a word for it.
+ * A **splice of the live entries that name a rite**, not a broom: an expired
+ * entry is already inert and `pruneTimedEffects` owns the dead paper. Withdrawn
+ * rows are left where they are for `cityRite`'s reason — they are not a rite the
+ * town is keeping, so they are not a rite anything may take away.
  */
-function payRiteGrant(
-  state: GameState,
-  player: Player,
-  def: RiteDef,
-  city: City | null,
-  unit: Unit | null,
-  at: { col: number; row: number },
-): RiteGrantResult {
-  const grant = def.grant ?? {};
-  const result: RiteGrantResult = {
-    population: null,
-    research: null,
-    grants: [],
-    bordersClaimed: [],
-    wonders: [],
-    proclaimed: null,
-  };
-  // One line per destination, written beside the payment rather than derived
-  // afterwards from which report fields came back non-null: the arm that knows
-  // what it paid is the arm that says so.
-  const said = (label: string, amount: number): void => {
-    result.grants.push({ label, amount });
-  };
-
-  if (grant.gold !== undefined) {
-    player.gold += grant.gold;
-    said('Gold', grant.gold);
-  }
-  if (grant.faith !== undefined) {
-    player.faithPool += grant.faith;
-    said('Faith', grant.faith);
-  }
-  if (grant.science !== undefined) {
-    player.sciencePool += grant.science;
-    said('Science', grant.science);
-    result.research = settleResearchWindfall(state, player)?.name ?? null;
-  }
-  if (grant.culture !== undefined) {
-    player.culturePool += grant.culture;
-    said('Culture', grant.culture);
-    settleCultureWindfall(state, player);
-  }
-  if (grant.healFully === true && unit) unit.hp = unitMaxHp(unit);
-  if (grant.lump !== undefined) {
-    // **A rite makes the same kind of noise a prophet does**, out of a smaller
-    // purse: the row's own figures, shifted by the enhancer pool through the one
-    // reader, banked and converted on the spot by `pressLump`. The augur's
-    // Preaching and the prophet's bomb are one act at two prices, which is what
-    // stops a retune moving one and not the other.
-    const religion = foundedReligion(state, player.id);
-    if (religion) {
-      const range = Math.max(
-        0,
-        grant.lump.range + cardPressureRule(state, player.id, 'bombRange'),
-      );
-      const lump = Math.max(0, grant.lump.amount + cardPressureRule(state, player.id, 'bombLump'));
-      result.proclaimed = pressLump(state, religion, at, range, lump);
-      said('Preaching', lump);
-    }
-  }
-
-  if (city) {
-    if (grant.borderCulture !== undefined) {
-      // The border basket, **not** the draft pool: a consecrated boundary walks
-      // outward, it does not buy a card. The two are separate channels and this
-      // is the one rite that names the quieter one.
-      //
-      // And it is spent **now**. `settleBorderWindfall` is the border bucket's
-      // own completion routine (Entry XVIII's fifth seam) — `expandBorders`'
-      // choice and `expandBorders`' claim, run at the moment of the gift — so a
-      // rite that covers the next rung moves the bounds before the command
-      // returns, with the remainder left banked toward the rung after. A rite
-      // that covers nothing simply adds, which is what it always did.
-      city.culture += grant.borderCulture;
-      said("Culture to the bounds", grant.borderCulture);
-      const grew = settleBorderWindfall(state, city);
-      if (grew) {
-        for (const tile of grew.tiles) {
-          result.bordersClaimed.push({ col: tile.col, row: tile.row });
-        }
-      }
-      refreshCityDerived(state, city);
-    }
-    if (grant.production !== undefined) {
-      city.hammerBasket += grant.production;
-      // The completion is *read* rather than discarded: a rite that covers the
-      // front of a queue holding a wonder has just taken it off the board for
-      // everybody, and `ProductionCompletion.wonder` is the report that says so.
-      const done = settleProductionWindfall(state, city);
-      if (done?.wonder) result.wonders.push(done.wonder);
-      said('Production', grant.production);
-    }
-    if (grant.food !== undefined) {
-      city.foodBasket += grant.food;
-      settleGrowthWindfall(state, city);
-      said('Food', grant.food);
-    }
-    if (grant.population !== undefined) {
-      result.population = settlePopulationWindfall(state, city, grant.population);
-      said('Population', grant.population);
-    }
-    // Even a rite that granted nothing to this town has changed what it is worth
-    // — a lasting tile line was stamped a moment ago — so the panel is re-seated
-    // through the one helper every mid-turn mutation goes through. Idempotent,
-    // like every entry in that register.
-    refreshCityDerived(state, city);
-  }
-  return result;
+function clearCityRite(state: GameState, city: City): void {
+  const timed = city.timed;
+  if (!timed) return;
+  const kept = timed.filter(
+    (entry) =>
+      !(
+        timedEffectIsLive(state, entry) &&
+        isRiteId(entry.card) &&
+        riteDef(entry.card).retired !== true
+      ),
+  );
+  if (kept.length === timed.length) return;
+  if (kept.length === 0) delete city.timed;
+  else city.timed = kept;
 }
 
 /**
@@ -1401,26 +1067,21 @@ function payRiteGrant(
  * vocabulary that could not name it would be a vocabulary with a hole in it.
  *
  * **Grants only, deliberately.** A `percent` rider scales an occasion's own
- * figure, and a rite has no single figure — it pays a citizen here, beakers
- * there, coin somewhere else. Rather than pick one voice to be "the" figure and
- * silently ignore the rest, the percentage arm is left unread on this occasion
- * and said so here. The day a card wants one, the honest fix is a marker on the
- * rite's own row naming its headline voice, not a guess in this function.
+ * figure, and a rite has no figure at all any more — it is a season, not a
+ * purse. The percentage arm is left unread on this occasion and said so here;
+ * the heal arm is unread too, because a rite is no longer said over a piece.
  */
-function payRiteRiders(state: GameState, player: Player, unit: Unit): WonderCompletion[] {
+function payRiteRiders(state: GameState, player: Player, city: City): WonderCompletion[] {
   const wonders: WonderCompletion[] = [];
   const payout = windfallPayout(state, player.id, 'rite');
-  if (payout.heal > 0) {
-    unit.hp = Math.min(unitMaxHp(unit), unit.hp + payout.heal);
-  }
   if (payout.grants.length === 0) return wonders;
-  const at = { col: unit.col, row: unit.row };
-  for (const city of payWindfallGrants(state, player, payout, at)) {
-    // A rider's hammers may finish a wonder exactly as the rite's own may, and
-    // the news goes out the same way. See `RitePerformance.wonders`.
-    const done = settleProductionWindfall(state, city);
+  const at = { col: city.col, row: city.row };
+  for (const touched of payWindfallGrants(state, player, payout, at)) {
+    // A rider's hammers may finish a wonder, and the news goes out the same way
+    // every other completion does. See `RitePerformance.wonders`.
+    const done = settleProductionWindfall(state, touched);
     if (done?.wonder) wonders.push(done.wonder);
-    refreshCityDerived(state, city);
+    refreshCityDerived(state, touched);
   }
   return wonders;
 }
@@ -1428,49 +1089,124 @@ function payRiteRiders(state: GameState, player: Player, unit: Unit): WonderComp
 /**
  * What a rite would do, in one sentence, for the panel's payoff preview.
  *
- * Every figure comes from the row that will pay it and every *completion* from
- * the plan that will settle it, which is `explainDiscoveryOption`'s rule: a
- * promise on a button is made by the function that keeps it. `null` when the
- * rite cannot be performed at all — the panel prints the blocker instead.
- *
- * A **redraw** rite has no figure to compose and no hex to aim at, so its answer
- * is the row's own `note` — the plain sentence the Compendium and the Religion
- * screen already print, in the data rather than here (hard rule 7: a rule is
- * stated once, in a first-time player's words, on the row). Composing a second
- * wording for the sheet is how one act ends up described two ways.
+ * The row's own ratified text and its length, and nothing composed here: a rite
+ * is a bag of ordinary `CardEffect`s now, so the *clauses* are `describeCard`'s
+ * job on every surface that prints them and this is only the one-line summary
+ * beside the button. `null` when the row says nothing at all, which no live row
+ * does.
  */
-export function ritePreview(
-  state: GameState,
-  unitId: number,
-  rite: RiteId,
-  target?: { col: number; row: number },
-): string | null {
-  const unit = unitById(state, unitId);
-  if (!unit) return null;
+export function ritePreview(rite: RiteId): string | null {
   const def = riteDef(rite);
-  const city = def.target === 'city' ? riteCityTarget(state, unit, target) : null;
-  const blessed = def.target === 'unit' ? riteUnitTarget(state, unit, target) : null;
-  if (def.redraws !== undefined) return def.note ?? null;
-  const parts: string[] = [];
-  const grant = def.grant ?? {};
-  if (grant.population !== undefined && city) {
-    parts.push(`+${grant.population} pop to ${city.name}`);
+  if (def.duration === undefined) return def.text ?? null;
+  const turns = `lasts ${def.duration} turns`;
+  return def.text ? `${def.text} · ${turns}` : turns;
+}
+
+// --- the prophet's empire-wide rite ------------------------------------------
+
+/**
+ * Why this prophet cannot say this rite over the whole realm, or `null`.
+ *
+ * The fourth of a prophet's acts (ruled 2026-09-06): **one of the five city
+ * rites, cast on every city at once**, for one charge and one price.
+ *
+ * Three of the town gate's five clauses are deliberately **not** asked here:
+ *
+ *   · **no Chapel is needed.** The door is what lets a *town* say a rite on its
+ *     own account; a prophet says it over the realm, and a realm with no chapels
+ *     anywhere is exactly the realm this act is for;
+ *   · **no town is refused for keeping one already.** The prophet's word takes
+ *     over from whatever a town was keeping (`clearCityRite`) — an act that
+ *     skipped half a realm because half a realm was busy would be an act nobody
+ *     could plan;
+ *   · **there is no target.** It lands everywhere the empire owns.
+ *
+ * What *is* asked: the prophet's own four questions (`prophetProblem`), that the
+ * realm knows the rite, that it has a town to say it over at all, and the price
+ * — **paid once**, not once a town.
+ */
+export function empireRiteError(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+  rite: unknown,
+): string | null {
+  const problem = prophetProblem(state, playerId, unitId);
+  if (problem !== null) return problem;
+  const player = playerById(state, playerId)!;
+  if (!isRiteId(rite)) return `There is no rite called "${String(rite)}"`;
+  const def = riteDef(rite);
+  if (def.retired === true) return `${def.name} is no longer performed`;
+  if (!hasAbility(state, playerId, riteAbility(rite))) {
+    return `${def.name} is not known to ${player.name}`;
   }
-  if (grant.science !== undefined) parts.push(`+${grant.science} science`);
-  if (grant.gold !== undefined) parts.push(`+${grant.gold} gold`);
-  if (grant.faith !== undefined) parts.push(`+${grant.faith} faith`);
-  if (grant.culture !== undefined) parts.push(`+${grant.culture} culture`);
-  if (grant.borderCulture !== undefined && city) {
-    parts.push(`+${grant.borderCulture} culture toward ${city.name}'s borders`);
+  if (!state.cities.some((city) => city.ownerId === playerId)) {
+    return `${player.name} has no city to bless`;
   }
-  if (grant.production !== undefined && city) parts.push(`+${grant.production} production`);
-  if (grant.food !== undefined && city) parts.push(`+${grant.food} food`);
-  if (grant.healFully === true && blessed) parts.push(`heals the ${unitDef(blessed.type).name} fully`);
-  if (grant.lump !== undefined) {
-    parts.push(`presses ${grant.lump.amount} faith on every town within ${grant.lump.range} hexes`);
+  const cost = riteCostFor(state, playerId);
+  if (player.faithPool < cost) {
+    return `${def.name} asks ${cost} faith and ${player.name} has ${Math.floor(player.faithPool)}`;
   }
-  if (def.duration !== undefined) parts.push(`lasts ${def.duration} turns`);
-  return parts.length > 0 ? parts.join(' · ') : null;
+  return null;
+}
+
+/** What a prophet's empire-wide rite did, for the announcement. */
+export interface EmpireRitePerformance {
+  rite: RiteId;
+  name: string;
+  /** Every town it landed on, in `state.cities` order. */
+  cities: City[];
+  cost: number;
+  expiresTurn: number;
+  turns: number;
+  /** True when the prophet was spent by this act's last charge. */
+  prophetSpent: boolean;
+}
+
+/**
+ * Says one rite over every town of the realm, and spends one of the prophet's
+ * charges. Validates nothing — `empireRiteError` is the rule.
+ *
+ * **The price is paid once**, before anything is stamped, for `performRiteAt`'s
+ * reason exactly. Then `state.cities` in array order — never a distance sort,
+ * because an outcome may only depend on an order the state carries (hard rule 2)
+ * — each town losing whatever it was keeping and taking this instead, and each
+ * re-seated through the one helper every mid-turn yield mutation goes through.
+ *
+ * The **town's own shelves are not paid**: the Chapel's culture is what a town
+ * gets for saying a rite itself, and a prophet saying one over the realm is not
+ * forty chapels each holding a service. Stated rather than omitted.
+ */
+export function empireRiteAt(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  rite: RiteId,
+): EmpireRitePerformance {
+  const def = riteDef(rite);
+  const cost = riteCostFor(state, player.id);
+  player.faithPool = Math.max(0, player.faithPool - cost);
+
+  const cities: City[] = [];
+  let expiresTurn = state.turn;
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id) continue;
+    clearCityRite(state, city);
+    const until = stampRite(state, player.id, rite, def, city);
+    if (until !== null) expiresTurn = until;
+    refreshCityDerived(state, city);
+    cities.push(city);
+  }
+  const prophetSpent = spendCharge(state, unit);
+  return {
+    rite,
+    name: def.name,
+    cities,
+    cost,
+    expiresTurn,
+    turns: expiresTurn - state.turn,
+    prophetSpent,
+  };
 }
 
 // --- timed effects ----------------------------------------------------------
@@ -1852,6 +1588,11 @@ export function drawPoolBeliefOffer(
 
 // --- the prophet's four verbs ----------------------------------------------
 
+/** Is this piece an apostle — a unit whose charges are the small preacher's? */
+export function isApostle(unit: Unit): boolean {
+  return unitDef(unit.type).proclaims === true;
+}
+
 /**
  * The questions every one of a prophet's verbs asks first — is this my piece, is
  * it a prophet, has it a charge, has it a day left, and is it already holding a
@@ -1862,12 +1603,41 @@ export function drawPoolBeliefOffer(
  * reason: a second hand dealt on top of the first would silently destroy it.
  */
 function prophetProblem(state: GameState, playerId: number, unitId: number): string | null {
+  return agentProblem(state, playerId, unitId, isProphet, 'prophet');
+}
+
+/**
+ * `prophetProblem`'s twin for the small preacher, and the same five questions.
+ *
+ * A second entry point rather than a widened first one, because the *sentence*
+ * is the whole point of the function: a player who pressed a row on an apostle
+ * and was told "a Worker is no prophet" would be reading about a piece that is
+ * not on the screen.
+ */
+function apostleProblem(state: GameState, playerId: number, unitId: number): string | null {
+  return agentProblem(state, playerId, unitId, isApostle, 'apostle');
+}
+
+/**
+ * The five questions, asked once, with the piece's own word in the refusal.
+ *
+ * `is` is the roster **marker** (`prophesies`, `proclaims`), never a type name —
+ * so a third preacher is a data row and this function is unchanged — and `noun`
+ * is what a player calls the thing, because a refusal is a sentence.
+ */
+function agentProblem(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+  is: (unit: Unit) => boolean,
+  noun: string,
+): string | null {
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
   const unit = unitById(state, unitId);
   if (!unit) return `No unit with id ${String(unitId)}`;
   if (unit.ownerId !== playerId) return `Unit ${unit.id} does not belong to player ${playerId}`;
-  if (!isProphet(unit)) return `A ${unitDef(unit.type).name} is no prophet`;
+  if (!is(unit)) return `A ${unitDef(unit.type).name} is no ${noun}`;
   if ((unit.chargesLeft ?? 0) < 1) return `That prophet has nothing left to give`;
   if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
   if (player.pantheon.pending !== undefined) {
@@ -1877,16 +1647,31 @@ function prophetProblem(state: GameState, playerId: number, unitId: number): str
 }
 
 /**
- * The verbs a prophet's one charge may be spent on, named as the interface names
+ * The verbs a prophet's charges may be spent on, named as the interface names
  * them, so a row and a command cannot drift apart by a typo.
  *
- * **There is no price function any more** (Entry LVIII). A prophet carries one
- * charge, so every one of these ends the piece, and `prophetPrice` — which
- * existed to say which two of four acts consumed it — became a function with one
- * possible answer. A rule with one answer is a sentence, and the sentence lives
- * on the interface's rows.
+ * **Two charges again, and the ladder is back — deliberately** (ruled
+ * 2026-09-06). Entry LVIII gave the prophet one charge because a piece with
+ * three made the first act nearly free and the last one agonising. Two is a
+ * different shape and it is the one the ruling asks for: the two acts that
+ * settle what a faith *is* — founding it on stones, drawing it another belief —
+ * take the **whole** piece, and the two that merely spend its voice — a
+ * proclamation, a rite said over the realm — take **one**. So the question the
+ * price ladder poses is still asked once and answered once ("what is this
+ * prophet for"), and a prophet kept for its voice gets to use it twice.
+ *
+ * Which is which is not a field: it is which routine the act ends with —
+ * `spendProphet` for the whole piece, `spendCharge` for one — and that is
+ * stated on both.
  */
-export type ProphetVerbName = 'plantHolySite' | 'gainBelief' | 'proclaim' | 'redraftBeliefs';
+export type ProphetVerbName =
+  | 'plantHolySite'
+  | 'gainBelief'
+  | 'proclaim'
+  // The fourth since the fewer-things pass, and the one that replaced the
+  // redraft: **one of the five city rites, said over every town at once**. It is
+  // the prophet's answer to a realm with no chapels and to a realm with forty.
+  | 'empireRite';
 
 /**
  * Spends the whole prophet on the act it just performed, and the piece leaves
@@ -2114,15 +1899,25 @@ export function gainBeliefAt(state: GameState, player: Player, unit: Unit): Beli
 }
 
 /**
- * Why this prophet cannot proclaim here, or `null` when it can.
+ * Why this piece cannot proclaim here, or `null` when it can.
  *
  * The faith bomb, and the ruling that shaped it (user, 2026-08-27): it **only
  * converts**. There is no site, no lasting anchor and nothing to defend — which
  * is precisely what makes the choice between this charge and a holy site a real
  * one. A bomb converts; a site keeps.
+ *
+ * **Two pieces make this noise** since the apostle landed (2026-09-06), and one
+ * gate serves both because it is one act: the apostle's is half the weight over
+ * a little more than half the ground (`bombFigures` reads the piece), and every
+ * refusal above the figures is identical. Asked of the two roster **markers**
+ * rather than of two type names, so a third preacher is a data row.
  */
 export function proclaimError(state: GameState, playerId: number, unitId: number): string | null {
-  const problem = prophetProblem(state, playerId, unitId);
+  const unit = unitById(state, unitId);
+  const problem =
+    unit !== undefined && isApostle(unit)
+      ? apostleProblem(state, playerId, unitId)
+      : prophetProblem(state, playerId, unitId);
   if (problem !== null) return problem;
   if (foundedReligion(state, playerId) === undefined) {
     return 'You have founded no religion to proclaim';
@@ -2145,11 +1940,22 @@ export interface BombFigures {
  * and `stampRite`'s: a promise on a button is made by the function that keeps
  * it.
  */
-function bombFigures(state: GameState, playerId: number): BombFigures {
+function bombFigures(state: GameState, playerId: number, unit?: Unit): BombFigures {
   const rules = RULES.religion;
-  return {
+  const full: BombFigures = {
     range: Math.max(0, rules.bombRange + cardPressureRule(state, playerId, 'bombRange')),
     lump: Math.max(0, rules.bombLump + cardPressureRule(state, playerId, 'bombLump')),
+  };
+  if (unit === undefined || !isApostle(unit)) return full;
+  // **The apostle's share**, taken after the riders rather than before them, so
+  // an empire whose cards have made its prophets louder has made its apostles
+  // louder in the same proportion — which is the ruled sentence ("half a
+  // prophet's strength") read as a rule rather than as a number. The reach is
+  // its own figure, because six hexes is not half of ten.
+  const apostle = RELIGION.apostle;
+  return {
+    range: Math.max(0, Math.floor(apostle.proclaimRange)),
+    lump: Math.max(0, Math.floor((full.lump * Math.max(0, apostle.proclaimPercent)) / 100)),
   };
 }
 
@@ -2170,7 +1976,7 @@ function bombFigures(state: GameState, playerId: number): BombFigures {
  */
 export function proclaimAt(state: GameState, player: Player, unit: Unit): ProclamationReport {
   const religion = foundedReligion(state, player.id)!;
-  const { range, lump } = bombFigures(state, player.id);
+  const { range, lump } = bombFigures(state, player.id, unit);
   const report = pressLump(state, religion, { col: unit.col, row: unit.row }, range, lump);
   spendCharge(state, unit);
   return report;
@@ -2218,7 +2024,7 @@ export function proclaimPreview(state: GameState, unitId: number): ProclaimPrevi
   if (!unit) return null;
   const religion = foundedReligion(state, unit.ownerId);
   if (!religion) return null;
-  const { range, lump } = bombFigures(state, unit.ownerId);
+  const { range, lump } = bombFigures(state, unit.ownerId, unit);
   const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
   const cities: ProclaimPreviewCity[] = [];
   for (const { city, pressed } of lumpTargets(state, religion, unit, range, lump)) {
@@ -2239,53 +2045,200 @@ export function proclaimPreview(state: GameState, unitId: number): ProclaimPrevi
   return { range, lump, cities };
 }
 
+// --- the apostle -------------------------------------------------------------
+//
+// **The small preacher** (`docs/tech-gifts.md` §7, ruled 2026-09-06). The
+// prophet's price put a travelling agent out of reach for most of a game, so
+// Theology opens a cheaper one: two charges, four movement, and three acts each
+// worth one charge — a proclamation at half a prophet's weight, a laying-on of
+// hands, and the relic it may leave in a town that has topped out a cathedral.
+//
+// It founds nothing, plants no stones and draws no belief. That is the whole of
+// what keeps it from being a cheap prophet: an empire's *identity* still costs
+// the expensive piece, and this one only carries it about.
+
 /**
- * Why this prophet cannot redraft this pool, or `null` when it can.
+ * Why this apostle cannot mend the pieces beside it, or `null` when it can.
  *
- * **The pantheon is never redrafted**, and it is not in the union of pools this
- * command accepts at all — identity is not a decision you take back
- * (`docs/religion-v2.md`).
+ * **No clause about what is standing there**, deliberately, and it is
+ * `purgeError`'s stated rule one piece over: an apostle spent on an empty ring
+ * is a wasted charge exactly as a proclamation that reached nothing is, and a
+ * refusal there would be the interface playing the turn for the player. The
+ * preview says what it would touch.
  */
-export function redraftError(
+export function healAdjacentError(
   state: GameState,
   playerId: number,
   unitId: number,
-  pool: unknown,
 ): string | null {
-  const problem = prophetProblem(state, playerId, unitId);
-  if (problem !== null) return problem;
-  const religion = foundedReligion(state, playerId);
-  if (!religion) return 'You have founded no religion to redraft';
-  if (pool !== 'follower' && pool !== 'enhancer') {
-    return `There is no belief pool called "${String(pool)}"`;
-  }
-  if (poolHeld(religion, pool) === 0) {
-    return `${religion.name} holds no ${pool} belief to give back`;
-  }
-  return null;
+  return apostleProblem(state, playerId, unitId);
+}
+
+/** One piece an apostle's hands mended. See `HealingReport`. */
+export interface HealedUnit {
+  unitId: number;
+  /** Hit points actually restored — zero for a piece that was already whole. */
+  healed: number;
+}
+
+/** What a laying-on of hands did, for the announcement. */
+export interface HealingReport {
+  /** What each piece was mended, in `state.units` order. */
+  units: HealedUnit[];
+  /** True when the apostle was spent by this act's last charge. */
+  apostleSpent: boolean;
 }
 
 /**
- * Gives one pool's beliefs back and deals a fresh offer. Validates nothing —
- * `redraftError` is the rule.
+ * Mends every friendly piece on this hex and the six touching it, and spends one
+ * of the apostle's charges. Validates nothing — `healAdjacentError` is the rule.
  *
- * The beliefs are returned **before** the draw, so the bag they came out of is
- * whole again and a redraft may honestly re-offer what was just given up —
- * `beliefPool`'s "a declined god goes back in the bag", one system over.
+ * Three rules, each a decision:
+ *
+ *   · **the ring of six plus the centre**, which is `keepHeal`'s reach and the
+ *     reach every other "beside this piece" clause in the game already takes;
+ *   · **its own seat only.** There are no allies, so "friendly" has one reading;
+ *   · **`state.units` in array order**, never a distance sort, because an
+ *     outcome may only depend on an order the state carries (hard rule 2).
+ *
+ * The cap is `unitMaxHp` — the **piece's** maximum, not the roster's, so a
+ * stamped legion mends to the points its law gave it. It is the same cap the
+ * rested heal keeps, which is what stops two mendings in one turn walking a
+ * piece past its own ceiling.
+ *
+ * It mends **the apostle too**, which is useless and legal — a rule forbidding
+ * it would be a rule nobody could discover (`riteUnitTarget`'s old argument,
+ * kept).
  */
-export function redraftAt(
+export function healAdjacentAt(state: GameState, player: Player, unit: Unit): HealingReport {
+  const amount = Math.max(0, Math.floor(RELIGION.apostle.heal));
+  const units: HealedUnit[] = [];
+  const from = getTileAt(state.map, unit.col, unit.row);
+  if (from) {
+    const eye = tileHex(from);
+    for (const other of state.units) {
+      if (other.ownerId !== player.id) continue;
+      const tile = getTileAt(state.map, other.col, other.row);
+      if (!tile) continue;
+      if (wrappedDistance(state.map, eye, tileHex(tile)) > 1) continue;
+      const maxHp = unitMaxHp(other);
+      const healed = Math.max(0, Math.min(maxHp, other.hp + amount) - other.hp);
+      other.hp += healed;
+      units.push({ unitId: other.id, healed });
+    }
+  }
+  const apostleSpent = spendCharge(state, unit);
+  return { units, apostleSpent };
+}
+
+/**
+ * What a laying-on of hands would mend, piece by piece — the facts the
+ * interface's sentence is made of.
+ *
+ * `proclaimPreview`'s bargain one act over: the *sentence* is the interface's
+ * and the *facts* are the simulation's, and every figure comes from the function
+ * that will pay it. A forecast, and it says so — an apostle that walks a hex
+ * before laying on hands gets a different list.
+ */
+export function healAdjacentPreview(state: GameState, unitId: number): HealingReport | null {
+  const unit = unitById(state, unitId);
+  if (!unit || !isApostle(unit)) return null;
+  const amount = Math.max(0, Math.floor(RELIGION.apostle.heal));
+  const units: HealedUnit[] = [];
+  const from = getTileAt(state.map, unit.col, unit.row);
+  if (!from) return { units, apostleSpent: false };
+  const eye = tileHex(from);
+  for (const other of state.units) {
+    if (other.ownerId !== unit.ownerId) continue;
+    const tile = getTileAt(state.map, other.col, other.row);
+    if (!tile) continue;
+    if (wrappedDistance(state.map, eye, tileHex(tile)) > 1) continue;
+    const maxHp = unitMaxHp(other);
+    units.push({ unitId: other.id, healed: Math.max(0, Math.min(maxHp, other.hp + amount) - other.hp) });
+  }
+  return { units, apostleSpent: (unit.chargesLeft ?? 0) <= 1 };
+}
+
+/**
+ * The row an apostle leaves behind, read off the table's own marker.
+ *
+ * `HOLY_SITE`'s trick one table over: the *rule* is "the placed row", the data
+ * says which row that is (`PLACED_BUILDING`, `buildingEffects.ts`), and nothing
+ * in this module compares a building id against a name.
+ */
+const RELIC: BuildingId | undefined = PLACED_BUILDING;
+
+/**
+ * Why this apostle cannot leave a relic here, or `null` when it can.
+ *
+ * The refusals in the order a player would think of them: is this my apostle and
+ * has it a charge (`apostleProblem`), is it standing in one of my towns, has
+ * that town finished the shelf a relic is kept in, and is there one there
+ * already.
+ *
+ * **"One per cathedral" is read off the board**, never counted: a town has one
+ * cathedral at most, so "this town has a cathedral and no relic" *is* the rule,
+ * and there is no register to keep and nothing to fix up when a town changes
+ * hands. The cathedral is asked of the marker every consecration already reads
+ * (`BuildingDef.consecrated`) rather than of a name, so the day a second row
+ * keeps relics it says so in JSON.
+ */
+export function placeRelicError(
   state: GameState,
-  player: Player,
-  unit: Unit,
-  pool: ReligionBeliefPool,
-): BeliefOffer {
-  const religion = foundedReligion(state, player.id)!;
-  if (pool === 'follower') religion.follower = [];
-  else religion.enhancer = [];
-  const offer = drawPoolBeliefOffer(state, player, religion, pool);
-  player.pantheon.pending = offer;
-  spendCharge(state, unit);
-  return offer;
+  playerId: number,
+  unitId: number,
+): string | null {
+  const problem = apostleProblem(state, playerId, unitId);
+  if (problem !== null) return problem;
+  if (RELIC === undefined) return 'There is no relic to leave';
+  const unit = unitById(state, unitId)!;
+  const city = cityAt(state, unit.col, unit.row);
+  if (!city || city.ownerId !== playerId) {
+    return 'A relic is left in one of your own cities';
+  }
+  if (!cityKeepsRelics(city)) return `${city.name} has no cathedral to keep a relic in`;
+  if (city.buildings.includes(RELIC)) return `${city.name} already keeps a relic`;
+  return null;
+}
+
+/** What leaving a relic did, for the announcement. */
+export interface RelicPlacement {
+  city: City;
+  building: BuildingId;
+  /** What it pays its town every turn, off the row that will pay it. */
+  faith: number;
+  /** True when the apostle was spent by this act's last charge. */
+  apostleSpent: boolean;
+}
+
+/**
+ * Leaves a relic in this town, and spends one of the apostle's charges.
+ * Validates nothing — `placeRelicError` is the rule.
+ *
+ * The shelf is written straight into `City.buildings`, which is the one place a
+ * town's stones are recorded, so what a relic pays is read by the ordinary fold
+ * that reads a granary's — **and follows the stones**: a conqueror who takes the
+ * town takes the relic and the faith with it, with no bookkeeping at all. There
+ * is no completion, no claim and no grant, because nothing was built: `placed`
+ * is exactly the marker that says so (`BuildingDef.placed`).
+ *
+ * `refreshCityDerived` is owed and paid — the town's faith moved mid-turn, and
+ * this act joins that helper's register beside the rite's own entry (the note
+ * on the helper is `cities.ts`'s to keep; the debt is written in
+ * `docs/fewer-things-plan.md`).
+ */
+export function placeRelicAt(state: GameState, _player: Player, unit: Unit): RelicPlacement {
+  const city = cityAt(state, unit.col, unit.row)!;
+  const building = RELIC!;
+  city.buildings.push(building);
+  refreshCityDerived(state, city);
+  const apostleSpent = spendCharge(state, unit);
+  return {
+    city,
+    building,
+    faith: Math.max(0, Math.floor(RELIGION.relicFaith)),
+    apostleSpent,
+  };
 }
 
 // --- the inquisitor ---------------------------------------------------------

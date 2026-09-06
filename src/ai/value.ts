@@ -1576,8 +1576,12 @@ function potentialTerms(effect: CardCountScaledEffect, ctx: ValueContext): Value
  * own cost exactly, which is the common case and the one the tests pin.
  *
  * The gate is `buildError`, the simulation's own — the tech, the age marker, the
- * site, the world's one copy of a wonder are all its and none of them is
- * restated here. The one clause this file adds is not a rule but the count's own
+ * site, the world's one copy of a wonder, **the parent a chained row wants
+ * standing** (`BuildingDef.requiresBuilding`) and **a row the cut withdrew**
+ * (`retired`) are all its and none of them is restated here. That is why the
+ * fewer-things chains cost this file nothing: a University's potential is
+ * already gated on a Library standing, because the town is handed in and the
+ * simulation answers for it. The one clause this file adds is not a rule but the count's own
  * arithmetic: a town that already holds the row is realized, not potential (see
  * the loop). Bounded by construction: towns × the building table once, asked of
  * a card that is being appraised rather than per turn of a game.

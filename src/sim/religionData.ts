@@ -134,105 +134,35 @@ export interface BeliefDef extends CardDefBase {
 }
 
 /**
- * What one rite pays the instant it is performed.
+ * One rite: **a city's verb**, paid for in faith and standing for ten turns
+ * (`docs/fewer-things.md` §3, ruled 2026-09-06).
  *
- * A bag of *destinations*, not of voices, and the difference is the point: a
- * rite's culture fills a **city's border basket** while its science fills the
- * **empire's** research pool, and a single `CityYieldKey` bag could not say
- * which. Each field has exactly one arm in `payRiteGrant` (`religion.ts`), which
- * is the only place a rite pays anything.
- *
- * Every figure here is an Entry XVIII windfall: printed, modifier-immune, and
- * settled into its bucket the instant it lands.
- */
-export interface RiteGrantSpec {
-  /** Citizens granted outright. Settled through the growth machinery. */
-  population?: number;
-  /** Beakers, settled through `settleResearchWindfall`. */
-  science?: number;
-  /** Coin, straight into the treasury. */
-  gold?: number;
-  /** Faith, straight into the pool that bought the augur. */
-  faith?: number;
-  /** Culture into the **empire's** draft pool (`settleCultureWindfall`). */
-  culture?: number;
-  /** Culture into **this city's** border basket. A separate channel — Entry XVII. */
-  borderCulture?: number;
-  /** Food into the city's basket, settled through the growth windfall. */
-  food?: number;
-  /** Hammers into the city's basket, settled through the production windfall. */
-  production?: number;
-  /** Restores the target unit to full. Blessing of Arms', today. */
-  healFully?: boolean;
-  /**
-   * A **proclamation** made on the hex the rite was performed on — The
-   * Preaching's whole payout, and the prophet's faith bomb out of a smaller
-   * purse.
-   *
-   * It is a **lump**, not a pulse (user, 2026-08-28): `amount` is banked into
-   * `City.pressureBank` of every town within `range` at the moment the augur
-   * speaks, the temple's own resistance applied, and the phase's own converter
-   * is run on the spot. Nothing is left standing on the board afterwards.
-   *
-   * The numbers are on the row rather than in `rules.religion` because the
-   * *bomb's* numbers are the rules' and a rite's are the rite's: they are two
-   * different acts that happen to make the same kind of noise, and a rite that
-   * read the bomb's figures would preach three times as hard the day somebody
-   * retuned a prophet. It pays nothing at all to an empire that has founded no
-   * religion — there is no faith to preach — which is a fact about the board
-   * rather than a refusal (`riteError` says so before it comes to this).
-   */
-  lump?: { range: number; amount: number };
-}
-
-/** What a rite is aimed at. Decides which target the command will accept. */
-/**
- * What a rite is aimed at. Decides which target the command will accept.
- *
- * `'here'` is the third and the odd one: a rite aimed at **the ground the augur
- * stands on** and at nothing standing there. The Preaching is one — a
- * proclamation is made in a place, not to a town or to a soldier — and a rite
- * that had to name an owned city to preach in would be a rite that can only
- * convert people who already agree.
- */
-export type RiteTarget = 'city' | 'unit' | 'here';
-
-/**
- * One rite: a charge of an augur spent on a moment.
- *
- * `effects` is the **lasting** half and is an ordinary card's effect list; it is
- * stamped onto the target as a `TimedEffect` for `duration` turns and read by
- * the same evaluators that read a slotted Order. A rite with no `duration` (the
- * Harvest) is pure windfall and stamps nothing.
+ * It was a charge of an augur spent on a moment, and the errand was the whole
+ * complaint: call the piece, walk it, aim it, spend it — four to six clicks for
+ * under one percent of a voice. So the agent is gone and the **city** is the
+ * bearer of the ability. What is left is the half that was always worth having:
+ * `effects` is an ordinary card's effect list, stamped onto the town as a
+ * `TimedEffect` for `duration` turns and read by the same evaluators that read a
+ * slotted Order. There is no instant half at all any more — a rite is a season,
+ * not a purse.
  */
 export interface RiteDef extends CardDefBase {
   /** The technology that teaches it, whose `unlocks.abilities` names it. */
   tech: TechId;
-  target: RiteTarget;
-  /**
-   * What it pays the instant it lands. Absent on a **redraw** rite, which pays
-   * nothing at all — see `redraws`.
-   */
-  grant?: RiteGrantSpec;
-  /**
-   * The bag this rite hands one card back to and deals a fresh offer out of —
-   * `'pantheon'`, and nothing else today (Recasting the Omens).
-   *
-   * A rite is **either** a grant/blessing **or** a redraw, never both, and
-   * `religionDataProblems` refuses a row that is neither or that is both. They
-   * are two different kinds of act: a grant is an Entry XVIII windfall settled
-   * into a bucket, a redraw is a *decision* put back on the empire and answered
-   * by `chooseBelief` — the same seam a Consecrate's offer is answered through.
-   * A row carrying both would be a windfall that also opens a blocker, which is
-   * two announcements for one charge and no place to say either.
-   *
-   * Presence is the state, exactly as `RiteGrantSpec.lump`'s is: `riteError`
-   * asks the shape rather than the id, so the second redraw rite inherits every
-   * refusal without that function learning its name.
-   */
-  redraws?: 'pantheon';
-  /** Turns the `effects` last. Absent for a rite whose whole payout is instant. */
+  /** Turns the `effects` last. Ten for every live row. */
   duration?: number;
+  /**
+   * **Withdrawn from the table**: never taught, never performed, still readable.
+   *
+   * `OrderDef.retired`'s discipline one table over and for its reason exactly. A
+   * rite the design has taken out (Recasting the Omens, whose redraw is the
+   * faith reroll's job now; The Preaching, whose lump is the prophet's) is not a
+   * rite that never existed — a `TimedEffect` in a save may still name it, and
+   * `anyCardDef` would throw on an id the table had forgotten. So the row stays,
+   * `availableRites` stops offering it, and the load validator stops asking it
+   * for a duration and an ability it no longer has.
+   */
+  retired?: boolean;
 }
 
 // --- what a player holds ----------------------------------------------------
@@ -438,6 +368,47 @@ export interface RerollConfig {
 }
 
 /**
+ * **What a rite costs a city**, in faith, by the age its empire stands in
+ * (ruled 2026-09-06, `docs/fewer-things.md` §6's "Still open": *a rite costs the
+ * faith ladder's first rung, rising a rung per age*).
+ *
+ * So the numbers are not a second curve: they are `faithRungCost` read off by
+ * age instead of by consecration — 40 · 56 · 72 · 90, the augur's old price
+ * ladder exactly. An empire in Æra I pays for a rite what it pays for its first
+ * god; one in Æra IV pays what a fourth god would ask. Written out as a list
+ * rather than derived from `FaithLadderConfig` in code, because the two are
+ * *design* decisions that happen to agree today and a designer must be able to
+ * part them without touching a function.
+ *
+ * By `TechAge`, indexed from Æra I; a shorter list clamps to its last entry, so
+ * a fifth age costs what the fourth does until somebody says otherwise.
+ */
+export interface RiteCostConfig {
+  costByAge: number[];
+}
+
+/**
+ * **What an apostle's three acts are worth** (ruled 2026-09-06,
+ * `docs/fewer-things.md` §3 and `docs/tech-gifts.md` §7).
+ *
+ * Here rather than in `rules.religion` for `RiteGrantSpec.lump`'s old reason,
+ * which outlived the field: the *bomb's* numbers are the rules' and belong to
+ * the prophet, and a piece that read them would preach a different distance the
+ * day somebody retuned a prophet. What the apostle borrows it borrows as a
+ * **share** — `proclaimPercent` of whatever a prophet's lump is worth today — so
+ * the ruled sentence ("half a prophet's strength") stays true through a retune,
+ * while the reach is its own figure because six hexes is not half of ten.
+ */
+export interface ApostleConfig {
+  /** How far its proclamation carries, in hexes. */
+  proclaimRange: number;
+  /** What share of a prophet's lump it presses, in whole percent. */
+  proclaimPercent: number;
+  /** Hit points its laying-on of hands mends on each piece beside it. */
+  heal: number;
+}
+
+/**
  * How a religion is **named**: an epithet per belief axis, and the patterns the
  * epithets are dropped into.
  *
@@ -464,6 +435,21 @@ export interface ReligionConfig {
   ladder: FaithLadderConfig;
   /** What rerolling an Order draft costs. See `RerollConfig`. */
   reroll: RerollConfig;
+  /** What a city's rite asks of the faith bank. See `RiteCostConfig`. */
+  rite: RiteCostConfig;
+  /**
+   * What one relic pays its town, every turn, in faith.
+   *
+   * A bare number rather than a card list because it is the whole of the row: an
+   * apostle's relic is a **building** (`data/buildings.json`'s `relic`, placed
+   * and never built), and what a building pays is its own row's yields. The
+   * figure lives here so that the apostle's act and the shelf it leaves behind
+   * are tuned in one place; `test/sim/religion.test.ts` pins the two together,
+   * because this module holds no building table and must not learn one.
+   */
+  relicFaith: number;
+  /** What an apostle's three acts are worth. See `ApostleConfig`. */
+  apostle: ApostleConfig;
   names: ReligionNamesConfig;
   /**
    * What founding a religion pays its founder, every turn, for the followers it
@@ -520,6 +506,17 @@ export const ALL_BELIEF_IDS: readonly BeliefId[] = [
   ...ENHANCER_BELIEF_IDS,
 ];
 export const RITE_IDS = Object.keys(RELIGION.rites) as RiteId[];
+/**
+ * The rites the table still **teaches**, in file order — `RITE_IDS` minus the
+ * withdrawn rows (`RiteDef.retired`).
+ *
+ * The list every pool, every panel and every register walks. `RITE_IDS` stays
+ * the whole table because a save may name a withdrawn row and `anyCardDef` has
+ * to find it; this is the one that answers "which rites are there".
+ */
+export const LIVE_RITE_IDS: readonly RiteId[] = RITE_IDS.filter(
+  (id) => riteDef(id).retired !== true,
+);
 /**
  * The patrons in **file order**, which is the order the roll walks them in and
  * the order the Compendium lists them — `BELIEF_IDS`' rule, and here for its
@@ -602,6 +599,26 @@ export function riteAbility(id: RiteId): AbilityId {
 }
 
 /**
+ * **What a rite asks of the faith bank**, for an empire standing in this age.
+ *
+ * One reading, so the button, the refusal and the charge are the same figure —
+ * `explainUnitCost`'s discipline at the scale of one number. The list is
+ * clamped rather than indexed blindly: an age past the table's end pays what the
+ * last age pays, which is the honest answer for a fifth era nobody has priced.
+ *
+ * It does **not** vary by how many rites an empire has performed. A rite is a
+ * season a town buys and the season runs out; a ladder on top of that would be
+ * two escalations on one act, and the one that matters is already there — every
+ * town may keep only one at a time.
+ */
+export function riteCost(age: number): number {
+  const table = RELIGION.rite.costByAge;
+  if (table.length === 0) return 0;
+  const index = Math.min(table.length, Math.max(1, Math.floor(age))) - 1;
+  return Math.max(0, Math.floor(table[index] ?? 0));
+}
+
+/**
  * How many belief slots these technologies open, in all.
  *
  * A table keyed by tech rather than a constant, so the High Temple's +1 is a
@@ -653,6 +670,11 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
   }
   for (const id of RITE_IDS) {
     const def = riteDef(id);
+    // **A withdrawn row is asked nothing.** It is kept so a save naming it still
+    // resolves to a name (`anyCardDef`), and it is out of every pool, so asking
+    // it for a duration or an ability would be asking a row to finish a job the
+    // design took away from it.
+    if (def.retired === true) continue;
     if (!knownTechs.includes(def.tech)) {
       problems.push(`rite "${id}" is taught by "${def.tech}", which is not a technology`);
     }
@@ -662,20 +684,19 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
     if (def.duration === undefined && def.effects.length > 0) {
       problems.push(`rite "${id}" has lasting effects and no duration to hang them on`);
     }
-    // **Exactly one of the two.** A rite pays a bucket or it reopens a bag, and
-    // the union is enforced here rather than in the type because the table is
-    // JSON: `RELIGION` is cast, so a row carrying both would typecheck and then
-    // pay a windfall *and* raise a blocker on one charge, with nothing able to
-    // announce both. A row carrying neither is the sibling failure and reads as
-    // a rite that silently does nothing.
-    const redraws = def.redraws !== undefined;
-    if (redraws && def.grant !== undefined) {
-      problems.push(`rite "${id}" both pays a grant and redraws a bag`);
-    }
-    if (!redraws && def.grant === undefined) {
-      problems.push(`rite "${id}" pays nothing and redraws nothing`);
+    // **A rite is its season and nothing else** (the fewer-things pass): the
+    // instant half is gone, so a live row that stamps nothing on its town is a
+    // city verb that costs faith and does nothing at all. The belief guard's
+    // sentence one table over, and it fails for that guard's reason.
+    if (def.duration === undefined || def.effects.length === 0) {
+      problems.push(`rite "${id}" hangs nothing on the town that performs it`);
     }
   }
+  // **The relic's faith is one number.** The apostle's act and the shelf it
+  // leaves are tuned together or not at all, so a row that paid a different
+  // figure from the one this table names would be two answers to one question.
+  if (RELIGION.relicFaith < 0) problems.push('a relic pays a negative amount of faith');
+  if (RELIGION.rite.costByAge.length === 0) problems.push('no rite price is written for any age');
   for (const id of ALL_BELIEF_IDS) {
     const def = beliefDef(id);
     // **A row with nothing to say is a bug; a row that says why is a decision.**

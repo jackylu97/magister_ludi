@@ -102,11 +102,13 @@ function overextendTo(state: GameState, playerId: number, target: number): void 
     row += 3;
     if (row >= state.map.height) throw new Error('ran out of board to over-extend on');
   }
-  // A city costs 2 and a monument supplies 1, so the cities alone can overshoot
-  // the target by one. Trimming with monuments is the same board-only lever.
+  // A city costs 2 and an Assize Court supplies 1, so the cities alone can
+  // overshoot the target by one. Trimming with courts is the same board-only
+  // lever — it was the monument's until batch D cut the writ off the universal
+  // culture row (`docs/balance-turn.md` §4g).
   for (const town of planted) {
     if (authorityOf(state, playerId) >= target) break;
-    town.buildings.push('monument');
+    town.buildings.push('assizeCourt');
   }
   expect(authorityOf(state, playerId)).toBe(target);
 }
@@ -231,10 +233,16 @@ describe('a monument buys three or four tiles by the early game', () => {
     const city = foundCityAt(state, 0, at(state.map, 8, 8));
     city.buildings.push('monument');
 
+    // No `+ 1` since batch D: the monument supplies no writ any more, and the
+    // town is here for its culture rather than for its capacity.
     expect(authorityOf(state, 0)).toBe(
-      WRIT.palaceCapacity + RULES.meters.authority.capital * -1 + 1 - WRIT.capital,
+      WRIT.palaceCapacity + RULES.meters.authority.capital * -1 - WRIT.capital,
     );
-    expect(tierPercent(authorityOf(state, 0))).toBeGreaterThan(0);
+    // **And below the first writ rung since batch D**, which changes nothing
+    // here and proves the docblock's own point: the tier's ten percent was
+    // worth nothing at three culture a turn, because the accrual is floored
+    // once. The schedule below is the same schedule it was with the writ.
+    expect(tierPercent(authorityOf(state, 0))).toBe(0);
 
     const claimedOn: number[] = [];
     let claimed = 0;

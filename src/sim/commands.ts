@@ -126,8 +126,12 @@ import {
   proclaimError,
   purgeAt,
   purgeError,
-  redraftAt,
-  redraftError,
+  empireRiteAt,
+  empireRiteError,
+  healAdjacentAt,
+  healAdjacentError,
+  placeRelicAt,
+  placeRelicError,
   renameReligionAt,
   renameReligionError,
   rerollError,
@@ -144,7 +148,7 @@ import {
   purchaseItemAt,
   readPurchasableItem,
 } from './purchase';
-import type { BeliefId, ReligionBeliefPool, RiteId } from './religionData';
+import type { RiteId } from './religionData';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import { type CitizenFocus, RULES, isCitizenFocus } from './rulesData';
 import {
@@ -1057,44 +1061,74 @@ export interface ChooseBeliefCommand extends PlayerCommand {
 }
 
 /**
- * Spends **one** of an augur's charges on a rite.
+ * **A city performs a rite** (ruled 2026-09-06, `docs/fewer-things.md` §3).
  *
- * `buildImprovement`'s twin one system over, and shaped like it on purpose: one
- * charge, instant, fully validated, and an augur that empties its last charge is
- * removed from the board exactly as a worker is. What differs is the target —
- * a rite blesses a *town* or a *piece*, and it reaches one hex, so `target` is
- * the hex it is aimed at and **absent means where the augur stands**.
+ * It named a piece until this pass — an augur, walked to a town and spent — and
+ * the errand was the whole complaint. It names a **town** now: no unit, no
+ * target hex, no aiming. The town must hold the door (a Chapel), the empire must
+ * have been taught the rite, the town must not already be keeping one, and the
+ * faith bank must cover the age's price. All four are `riteError`'s, which is
+ * what the city panel greys its rows with.
  *
- * It does not spend movement, unlike building. A rite is a thing said, not a
- * day's work, and the charge is the whole of what it costs.
- *
- * The instant half settles into its bucket the moment it lands (Entry XVIII) and
- * the lasting half is stamped on the target as an absolute-expiry `TimedEffect`.
+ * The whole payout is the **season**: ten turns of ordinary card effects stamped
+ * on the town as absolute-expiry `TimedEffect`s. There is no instant half any
+ * more, so nothing settles into a bucket and no windfall is announced.
  *
  * Turn-gated like every other act.
  */
 export interface PerformRiteCommand extends PlayerCommand {
   type: 'performRite';
+  cityId: number;
+  rite: RiteId;
+}
+
+/**
+ * Spends **one** of a prophet's charges on a rite said over the **whole realm**
+ * — one of the five city rites, on every town at once, for one price.
+ *
+ * The fourth of a prophet's acts and the one that replaced `redraftBeliefs`
+ * (ruled 2026-09-06). It needs no Chapel anywhere and takes over from whatever
+ * a town was keeping; `empireRiteError` is the gate.
+ *
+ * Turn-gated like every other act.
+ */
+export interface EmpireRiteCommand extends PlayerCommand {
+  type: 'empireRite';
   unitId: number;
   rite: RiteId;
-  /** The hex blessed. Absent means the hex the augur is standing on. */
-  target?: Cell;
-  /**
-   * The god handed back, on a **redraw** rite (Recasting the Omens) and on no
-   * other — absent everywhere else, so a v33 log replays byte-identically.
-   *
-   * It names an **id** rather than an index, which is the one place this system
-   * departs from Entry XV's doctrine and departs from it for that doctrine's own
-   * reason: an index is safe because it can only name something the player was
-   * *dealt*, and this names something the player already **holds**. The pantheon
-   * is not an offer — it is a list on the empire that no draw produced — so an
-   * index into it would be an index into a list the log never wrote down. The
-   * gate checks the seat holds it (`riteError`).
-   *
-   * The hand it opens is answered by the ordinary `chooseBelief`, which appends,
-   * so the slot the give-back emptied is the slot the pick fills.
-   */
-  belief?: BeliefId;
+}
+
+/**
+ * Spends **one** of an apostle's charges on mending every friendly piece on its
+ * hex and the six touching it.
+ *
+ * `proclaim`'s shape: it names the piece and nothing else, because the hex the
+ * apostle stands on is where it happens and the ring is the rule.
+ *
+ * Turn-gated like every other act.
+ */
+export interface HealAdjacentCommand extends PlayerCommand {
+  type: 'healAdjacent';
+  unitId: number;
+}
+
+/**
+ * Spends **one** of an apostle's charges on leaving a **relic** in the town it
+ * stands in.
+ *
+ * `foundCity`'s shape: it names the piece, and the hex it stands on is where the
+ * relic goes. The town must be yours and must have topped out the shelf a relic
+ * is kept in, and it may keep only one — `placeRelicError`.
+ *
+ * What arrives is an ordinary **building** row on the town (`BuildingDef.placed`
+ * — never built, never bought), so what it pays is read by the fold that reads a
+ * granary's and follows the stones when the town changes hands.
+ *
+ * Turn-gated like every other act.
+ */
+export interface PlaceRelicCommand extends PlayerCommand {
+  type: 'placeRelic';
+  unitId: number;
 }
 
 /**
@@ -1172,21 +1206,6 @@ export interface PurgeCommand extends PlayerCommand {
 export interface ProclaimCommand extends PlayerCommand {
   type: 'proclaim';
   unitId: number;
-}
-
-/**
- * Spends a charge on **giving one pool's beliefs back** and drawing again.
- *
- * The pantheon is not one of the pools it accepts, and that is the design: a
- * pantheon is the religion's identity and identity is not a decision you take
- * back (`docs/religion-v2.md`).
- *
- * Turn-gated like every other act.
- */
-export interface RedraftBeliefsCommand extends PlayerCommand {
-  type: 'redraftBeliefs';
-  unitId: number;
-  pool: ReligionBeliefPool;
 }
 
 /**
@@ -1555,7 +1574,9 @@ export type Command =
   | GainBeliefCommand
   | PurgeCommand
   | ProclaimCommand
-  | RedraftBeliefsCommand
+  | EmpireRiteCommand
+  | HealAdjacentCommand
+  | PlaceRelicCommand
   | RenameReligionCommand
   | ChooseGreatPersonCommand
   | PurchaseGreatPersonOfferCommand
@@ -3262,27 +3283,16 @@ function applyPerformRite(state: GameState, command: PerformRiteCommand): Comman
     return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot perform rites`);
   }
 
-  // An absent target is legal and means "where the augur stands"; a *present*
-  // one that is not a pair of integers is a malformed command, not a default.
-  let target: Cell | undefined;
-  if (command.target !== undefined) {
-    target = readCell(command.target);
-    if (!target) return fail('performRite needs an integer target { col, row }');
-  }
-
-  const problem = riteError(state, actor.id, command.unitId, command.rite, target, command.belief);
+  const problem = riteError(state, actor.id, command.cityId, command.rite);
   if (problem) return fail(problem);
 
-  const unit = unitById(state, command.unitId)!;
+  const city = state.cities.find((row) => row.id === command.cityId)!;
   const mark = actor.triumphs.length;
-  const done = performRiteAt(state, actor, unit, command.rite, target, command.belief);
-  // A rite's hammers may finish a wonder, and a wonder is news to every seat —
+  const done = performRiteAt(state, actor, city, command.rite);
+  // A rider's hammers may finish a wonder, and a wonder is news to every seat —
   // the gap the wonders framework left and named. Its triumphs ride out the
   // same way every other command's do, as a diff of this seat's own list.
-  const result = ok(undefined, undefined, done.wonders, triumphsAwarded(actor, mark));
-  // The Preaching's lump, on the one rite that makes one. See `CommandResult`.
-  if (result.ok && done.proclaimed) result.proclaimed = done.proclaimed;
-  return result;
+  return ok(undefined, undefined, done.wonders, triumphsAwarded(actor, mark));
 }
 
 /**
@@ -3369,18 +3379,55 @@ function applyProclaim(state: GameState, command: ProclaimCommand): CommandResul
   return result;
 }
 
-/** Gives a pool's beliefs back and draws again. See `RedraftBeliefsCommand`. */
-function applyRedraftBeliefs(state: GameState, command: RedraftBeliefsCommand): CommandResult {
+/** Says one rite over every town of the realm. See `EmpireRiteCommand`. */
+function applyEmpireRite(state: GameState, command: EmpireRiteCommand): CommandResult {
   const actor = resolveActor(state, command.playerId);
   if (typeof actor === 'string') return fail(actor);
   if (hasEndedTurn(state, actor.id)) {
-    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot redraft beliefs`);
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot perform rites`);
   }
 
-  const problem = redraftError(state, actor.id, command.unitId, command.pool);
+  const problem = empireRiteError(state, actor.id, command.unitId, command.rite);
   if (problem) return fail(problem);
 
-  redraftAt(state, actor, unitById(state, command.unitId)!, command.pool);
+  empireRiteAt(state, actor, unitById(state, command.unitId)!, command.rite as RiteId);
+  return ok();
+}
+
+/** Mends every friendly piece beside the apostle. See `HealAdjacentCommand`. */
+function applyHealAdjacent(state: GameState, command: HealAdjacentCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot lay on hands`);
+  }
+
+  const problem = healAdjacentError(state, actor.id, command.unitId);
+  if (problem) return fail(problem);
+
+  healAdjacentAt(state, actor, unitById(state, command.unitId)!);
+  return ok();
+}
+
+/**
+ * Leaves a relic in the town the apostle stands in. See `PlaceRelicCommand`.
+ *
+ * The shelf lands through `placeRelicAt`, which writes `City.buildings` and
+ * re-seats the town through the one helper every mid-turn yield mutation goes
+ * through — so a relic pays into the panel this instant, exactly as a holy
+ * site's faith does.
+ */
+function applyPlaceRelic(state: GameState, command: PlaceRelicCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot place a relic`);
+  }
+
+  const problem = placeRelicError(state, actor.id, command.unitId);
+  if (problem) return fail(problem);
+
+  placeRelicAt(state, actor, unitById(state, command.unitId)!);
   return ok();
 }
 
@@ -3984,17 +4031,20 @@ function orderedUnitId(command: Command): number | undefined {
     // told to lay it down is — the act spends its whole turn either way.
     case 'removeImprovement':
     case 'pillage':
-    // An augur told to consecrate or to bless is an augur given an order, so it
-    // wakes like anybody else — even though the first of the two spends it.
+    // An augur told to consecrate is an augur given an order, so it wakes like
+    // anybody else — even though the verb is retired and always refused now.
     case 'consecrate':
-    case 'performRite':
-    // A prophet told to plant, to enhance, to proclaim or to redraft is a piece
-    // given an order, so it wakes like anybody else — even though every one of
-    // the four may spend it.
+    // A prophet told to plant, to enhance, to proclaim or to say a rite over the
+    // realm is a piece given an order, so it wakes like anybody else — even
+    // though every one of the four may spend it.
     case 'plantHolySite':
     case 'gainBelief':
     case 'proclaim':
-    case 'redraftBeliefs':
+    case 'empireRite':
+    // An apostle told to lay on hands or to leave a relic is a piece given an
+    // order, and both spend a charge of it.
+    case 'healAdjacent':
+    case 'placeRelic':
     // An inquisitor told to purge is a piece given an order, like every other.
     case 'purge':
     // A great person told to act or to plant is a piece given an order, so it
@@ -4055,6 +4105,9 @@ function orderedUnitId(command: Command): number | undefined {
     // Pouring a bank into a basket names a city. There is nothing standing on
     // the board to wake.
     case 'contribute':
+    // **A rite names a town** since it became a city verb (2026-09-06). There is
+    // no piece to wake, which is the whole of what the ruling changed.
+    case 'performRite':
     case 'chooseBelief':
     // Naming a faith is prose about the empire, not an order to a piece.
     case 'renameReligion':
@@ -4226,8 +4279,12 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyPurge(state, command);
     case 'proclaim':
       return applyProclaim(state, command);
-    case 'redraftBeliefs':
-      return applyRedraftBeliefs(state, command);
+    case 'empireRite':
+      return applyEmpireRite(state, command);
+    case 'healAdjacent':
+      return applyHealAdjacent(state, command);
+    case 'placeRelic':
+      return applyPlaceRelic(state, command);
     case 'renameReligion':
       return applyRenameReligion(state, command);
     case 'chooseGreatPerson':

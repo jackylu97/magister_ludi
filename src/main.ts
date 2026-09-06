@@ -149,7 +149,7 @@ import { authorityOf, happinessOf } from './sim/meters';
 import { type ConfirmCard, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
 import { AXIS_MARK, beliefCardType, beliefOfferEyebrow } from './ui/religionScreen';
-import { type BeliefId, beliefDef } from './sim/religionData';
+import { beliefDef } from './sim/religionData';
 import { explainRerollCost, rerollDoorOpen, rerollError } from './sim/religion';
 import { personOf } from './sim/greatPeople';
 import { greatPersonDef } from './sim/greatPeopleData';
@@ -2619,51 +2619,6 @@ async function boot(initial: Game | null): Promise<void> {
     );
   }
 
-  /**
-   * Asks which god the empire hands back, on the same card its replacement will
-   * be chosen on.
-   *
-   * The one place in this interface where the offer card is a **picker** rather
-   * than an offer: nothing was dealt here, the options are the seat's own
-   * pantheon, and the pick is not spent — it is an argument to the command that
-   * follows. It wears that card anyway, and deliberately, because the two halves
-   * of Recasting the Omens are one gesture: what you give up and what you take
-   * instead should be read on one surface, in one dress, a beat apart.
-   *
-   * Every word is the same word `showReligionOffer` prints — `describeCard`'s
-   * clauses, the axis glyph, the god's own aphorism, the axis accent — so a
-   * belief looks identical on the card that offered it, on the card that gives
-   * it back, and on the Religion screen in between. It is **not** heavy-framed:
-   * the frame means "this cannot be taken back", and this is a question, not the
-   * answer. The heavy card is the one that follows.
-   */
-  function showGiveBackPicker(held: BeliefId[], onPick: (belief: BeliefId) => void): void {
-    offerCard.show(
-      {
-        eyebrow: 'give back',
-        title: 'Which belief do you give back?',
-        note: 'The augur casts again. A belief another empire keeps is never offered.',
-        options: held.map((id) => {
-          const def = beliefDef(id);
-          return {
-            // The very face `showReligionOffer` deals, down to the plate: what
-            // you give up and what you take instead are read on one surface, in
-            // one dress, a beat apart. A god is always a pantheon card here.
-            payoff: beliefCardType(undefined),
-            title: def.name,
-            note: describeCard(id).map((clause) => clause.text).join(' · '),
-            flavor: def.flavor,
-            emblemGlyph: AXIS_MARK[def.axis].glyph,
-            line: def.axis,
-          };
-        }),
-      },
-      (index) => {
-        const belief = held[index];
-        if (belief !== undefined) onPick(belief);
-      },
-    );
-  }
 
   /**
    * Puts the local seat's great-person offer on screen, if it has one.
@@ -4200,6 +4155,11 @@ async function boot(initial: Game | null): Promise<void> {
     // a guildsman cannot be taken back — they return to the fields and the town's
     // guild bar restarts with them — which is the whole test for this card.
     askConfirm: (request, run) => confirmCard.ask(request, run),
+    // **The rites are the city's verb** since the fewer-things pass. The panel
+    // owns the rows and the board's funnel owns the dispatch, exactly as the
+    // Buy Tiles button owns the mode and `controls.ts` owns the click.
+    riteOptions: (cityId) => controls.riteOptions(cityId),
+    performRite: (cityId, rite) => controls.performRite(cityId, rite),
     onChanged: () => {
       renderer.invalidate();
       updatePanel(null, renderer.getHover());
@@ -4285,36 +4245,13 @@ async function boot(initial: Game | null): Promise<void> {
       updatePanel(null, renderer.getHover());
       religion?.refresh();
     },
-    riteOptions: () => controls.riteOptions(),
-    onPerformRite: (id) => {
-      // **A redraw asks first.** Recasting the Omens names a god the seat
-      // already holds, so the one thing the sheet cannot supply is *which* — and
-      // the choice is put on the same offer card every other draft in this game
-      // is answered on, in a picker's dress. Asked of `recastChoices`, which is
-      // empty for every rite that gives nothing back, so this branch costs the
-      // other six nothing. A pantheon of one is not a question: it is dispatched
-      // at once, because a card with a single option on it is a confirmation
-      // dialog wearing a draft's clothes.
-      const held = controls.recastChoices(id);
-      if (held.length > 1) {
-        showGiveBackPicker(held, (belief) => {
-          controls.performRite(id, belief);
-          updatePanel(null, renderer.getHover());
-          religion?.refresh();
-        });
-        return;
-      }
-      controls.performRite(id, held[0]);
-      updatePanel(null, renderer.getHover());
-      religion?.refresh();
-    },
     prophetRows: () => controls.prophetRows(),
-    onProphetAct: (verb, pool) => {
-      // Three of the four deal a hand, and the offer card is raised by
+    onProphetAct: (verb, rite) => {
+      // Two of the four deal a hand, and the offer card is raised by
       // `controls.prophetAct` itself through the `onOfferReligion` seam — the
-      // same one the augur's Consecrate and the End Turn blocker use, so there
-      // is one path from "a belief was drawn" to "the card is on screen".
-      controls.prophetAct(verb, pool);
+      // same one the End Turn blocker uses, so there is one path from "a belief
+      // was drawn" to "the card is on screen".
+      controls.prophetAct(verb, rite);
       updatePanel(null, renderer.getHover());
       religion?.refresh();
     },

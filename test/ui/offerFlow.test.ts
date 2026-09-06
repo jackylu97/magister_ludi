@@ -202,8 +202,10 @@ describe('every draft deals a tarot face', () => {
     // A belief joins no Statecraft line, so it may not wear one of that deck's
     // seven drawings — the whole reason the glyph plate exists.
     expect(offer).not.toContain('cardLineMarkUrl(');
-    // The card that gives a god back is dealt in the very same dress.
-    expect(offerSource('showGiveBackPicker')).toContain('emblemGlyph: AXIS_MARK[def.axis].glyph');
+    // The give-back picker went with Recasting the Omens (2026-09-06): the one
+    // rite that asked which god to hand over is withdrawn, so there is no second
+    // belief card to keep in the same dress.
+    expect(MAIN).not.toContain('showGiveBackPicker');
   });
 
   it('leaves the other three classes dealing a drawing, as they always have', () => {

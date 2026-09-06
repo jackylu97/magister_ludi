@@ -92,7 +92,6 @@ import { type ExpansionChain, chainCompression, chainStepFor, raceTerm } from '.
 import {
   type PricedMeter,
   type ValueContext,
-  type YieldBag,
   VOICES,
   delayTerm,
   explainBuildingRow,
@@ -128,8 +127,14 @@ import {
   purchasableName,
   purchaseError,
 } from '../sim/purchase';
-import { RITE_IDS, type RiteId, beliefDef, riteAbility, riteDef } from '../sim/religionData';
-import { beliefPool, hasOpenBeliefSlot, nextFaithRungCost } from '../sim/religion';
+import { LIVE_RITE_IDS, type RiteId, beliefDef, riteAbility, riteDef } from '../sim/religionData';
+import {
+  beliefPool,
+  hasOpenBeliefSlot,
+  nextFaithRungCost,
+  riteCostFor,
+  riteError,
+} from '../sim/religion';
 import type { City, GameState, Player } from '../sim/state';
 import {
   anyCardDef,
@@ -199,6 +204,18 @@ export interface Want {
    * would be the spend arm branching on the absence of a field.
    */
   ground?: { cityId: number; col: number; row: number };
+  /**
+   * **The rite this town could perform this turn** — the rites' want since they
+   * became city verbs (2026-09-06, `docs/fewer-things.md` §3).
+   *
+   * A third field beside `buy` and `ground` for `ground`'s stated reason: a rite
+   * is a different verb (`performRite`) held to a different gate (`riteError`),
+   * and a shape that hid three commands behind one key would be the spend arm
+   * branching on the absence of a field. It is priced in faith like a purchase
+   * and ranked against every other faith row by worth per coin, which is exactly
+   * what the ruling asks — a rite is now a thing the bank buys.
+   */
+  rite?: { cityId: number; rite: RiteId };
   /** True when the bank cannot pay the price today. Saving rows come of these. */
   outOfReach: boolean;
   /**
@@ -601,6 +618,10 @@ export function faithPlan(
 
   for (const id of UNIT_TYPE_IDS) {
     const def = unitDef(id);
+    // A **withdrawn** row is out of the book entirely: the augur's own bank
+    // refuses it (`purchaseError`), and a want the purse can never reach would
+    // be a saving row banking faith for ever against a price nobody sells.
+    if (def.retired === true) continue;
     if (ownsAny(state, player.id, id)) continue;
     for (const city of towns) {
       const item: PurchasableItem = { kind: 'unit', id };
@@ -620,8 +641,8 @@ export function faithPlan(
           faithRowTerms(state, ctx, reach.price, {
             firstGod: def.consecrates === true && noPantheon,
             founder: def.prophesies === true && unfounded,
-            performsRites: def.consecrates === true,
-            charges: def.charges ?? 0,
+            saysRites: def.prophesies === true,
+            towns: towns.length,
             noPantheon,
             godTurns,
           }),
@@ -652,6 +673,9 @@ export function faithPlan(
 
   // **The faith ladder** (schema 71): the consecration nobody has to walk to.
   for (const row of ladderPlan(state, player, ctx, inputs)) wants.push(row);
+  // **The rites** (schema 72): a town's verb, bought out of this same bank and
+  // ranked against everything else in it by worth per coin.
+  for (const row of ritePlan(state, player, ctx)) wants.push(row);
 
   for (const row of savingRows(wants, ctx, bankOf(player, 'faith'), inputs.faithRate)) {
     wants.push(row);
@@ -675,10 +699,10 @@ export function faithPlan(
  *     does the distribution properly for Orders and is typed to them; the belief
  *     bag is small and every god in it is permanent, so the ceiling is a fair
  *     stand-in and it errs high by exactly the width of a three-card hand.
- *   · **the first god is not given its appetite here.** The augur row already
- *     carries `religion.prophetTechValue` for "this empire holds no belief at
- *     all", and adding it a second time would have the bot value faith twice for
- *     one god. When the augur retires (batch C2) that appetite moves here.
+ *   · **the first god's appetite is now here** (schema 74). It was the augur's
+ *     row until the augur was withdrawn, and the ladder is the only way to a
+ *     first god; counting it in both places would have the bot value faith twice for
+ *     one god.
  *
  * Empty for an empire the ladder cannot deal to at all — no open slot, an offer
  * already outstanding, an empty bag — which is `planFaithRung`'s own answer,
@@ -711,8 +735,19 @@ function ladderPlan(
       `the best of the ${pool.length} god${pool.length === 1 ? '' : 's'} still unconsecrated`,
       best,
     ),
-    delayTerm(delay, ctx, 'the faith has still to fill'),
   ];
+  // **The first god's appetite, moved here** (schema 74, the C1 debt closed).
+  // The augur's row carried `religion.prophetTechValue` for "this empire holds
+  // no belief at all" and the augur is withdrawn; the ladder is the only way to
+  // a first god now, so the appetite is the ladder's. Counted once, on the first
+  // rung only, exactly as it was counted once on the augur.
+  if (player.pantheon.beliefs.length === 0) {
+    terms.push({
+      label: 'the first god — this empire holds no belief at all',
+      value: ctx.ai.religion.prophetTechValue,
+    });
+  }
+  terms.push(delayTerm(delay, ctx, 'the faith has still to fill'));
   const folded = appraise(terms);
   return [
     {
@@ -752,8 +787,8 @@ function faithRowTerms(
   row: {
     firstGod: boolean;
     founder: boolean;
-    performsRites: boolean;
-    charges: number;
+    saysRites: boolean;
+    towns: number;
     noPantheon: boolean;
     godTurns: number;
   },
@@ -771,9 +806,12 @@ function faithRowTerms(
       delayTerm(row.godTurns, ctx, 'the god comes first'),
     ];
   }
-  if (row.performsRites) {
-    const rites = explainRites(state, ctx, row.charges);
-    if (rites.terms.length > 0) return [nest('what its rites would do', rites)];
+  if (row.saysRites) {
+    // **The prophet's rite over the realm**, priced by the same arithmetic the
+    // town's own rite is. The other two acts of a two-charge prophet are the
+    // appetite above; this is the one that has a figure.
+    const rites = explainEmpireRite(state, ctx, row.towns);
+    if (rites.terms.length > 0) return [nest('a rite said over every town', rites)];
   }
   return [
     nest('worth at least the faith it costs — nothing it does is priced', explainLump({ faith: price }, ctx)),
@@ -781,78 +819,72 @@ function faithRowTerms(
 }
 
 /**
- * **What an augur's charges are worth** — the batch-1 deferral, closed.
+ * **What a rite is worth to this town, for the faith it asks** — the rites'
+ * want since they became city verbs (2026-09-06).
  *
- * Batch 1 priced a rite-carrying row at exactly the faith it cost and said so:
- * *"nothing in this bot can price a rite, and a guess dressed as a price is worse
- * than the silence."* What has changed is that a rite's lasting half is an
- * ordinary card effect list (`RiteDef.effects`, stamped as a `TimedEffect` for
- * its `duration`), so the reader the drafts already use answers it —
- * `explainEffects`, the same fold a slotted Order goes through, which is the
- * discipline `explainTechGifts` keeps for a node's own rules.
+ * One row per town per rite the empire knows, priced exactly as a purchase is:
+ * `price` is the simulation's own figure (`riteCostFor`) and `worth` is what
+ * the blessing pays over the turns it runs. The ranking downstream is worth per
+ * coin, so a rite competes with a prophet and a faith-bought building in one
+ * list — which is the whole point of pricing it at all.
  *
  * Three clauses and one honest gap:
  *
- *   · **only the rites this empire knows.** `hasAbility` + `riteAbility` is the
- *     simulation's own gate (`riteError` asks it in exactly those words), so a
- *     row whose rites are all behind unread technologies prices at nothing here
- *     and falls back to the faith it costs;
- *   · **the best rite, times the charges.** A piece with three charges will spend
- *     them on the best thing it may do, not on one of each, and the rites are
- *     tried in roster order by an arm with no price axis (`augurCommand`) — so
- *     the *book's* reading is what the empire would get if it spent them well;
- *   · **a blessing is timed, and says so.** The effects run for `duration` turns,
- *     so they are worth their share of `score.lumpTurns` — the same exchange the
- *     great person's calm and aura go through (`explainAct`), applied from the
- *     same end.
+ *   · **only the rites this empire knows and this town may say.** `riteError` is
+ *     the simulation's own gate and it is asked here, so a town with no chapel,
+ *     a town already keeping one, and a rite behind an unread technology all
+ *     fall out for the sim's own reasons rather than for a guess of this file's;
+ *   · **a blessing is timed, and says so.** The effects run for `duration`
+ *     turns, so they are worth their share of `score.lumpTurns` — the same
+ *     exchange the great person's calm and aura go through;
+ *   · **the effects are read by the fold the drafts use** (`explainEffects`), so
+ *     a rite is priced by exactly the reader a slotted Order is.
  *
- * The gap: a rite's **grant** (`RiteGrantSpec`) is a windfall of a shape this
- * file cannot read as a bag — a citizen, a heal, a proclamation — and it prices
- * at `score.unknownEffect`, printed as unread. The yield-shaped keys are the
- * exception and go through `explainLump`, because those the bot can price
- * exactly.
+ * The gap: `explainEffects` is asked **without a town in hand**, so a city-scoped
+ * clause is priced by `cityYields`' own standing bargain rather than by this
+ * town's board. A rite is city-scoped by construction, so every row here is that
+ * approximation — stated rather than hidden, and it is the same approximation
+ * every scoped card in the book already carries.
  */
-function explainRites(state: GameState, ctx: ValueContext, charges: number): Appraisal {
-  const spent = Math.max(1, charges);
-  let best: { id: RiteId; worth: Appraisal } | null = null;
-  for (const id of RITE_IDS) {
-    if (!hasAbility(state, ctx.playerId, riteAbility(id))) continue;
-    const worth = explainRite(id, ctx);
-    if (best === null || worth.total > best.worth.total) best = { id, worth };
-  }
-  if (best === null) return appraise([]);
-  return appraise([
-    nest(`${riteDef(best.id).name}, the best rite this empire knows`, best.worth),
-    { label: `× ${spent} charge${spent === 1 ? '' : 's'}`, value: spent, op: 'mul' },
-  ]);
-}
-
-/** One rite: what it grants the instant it lands, and what its blessing does. */
-function explainRite(id: RiteId, ctx: ValueContext): Appraisal {
-  const def = riteDef(id);
-  const terms: ValueTerm[] = [];
-  const grant = def.grant;
-  if (grant !== undefined) {
-    const bag: YieldBag = {};
-    for (const voice of VOICES) {
-      const amount = (grant as Record<string, unknown>)[voice];
-      if (typeof amount === 'number') bag[voice] = amount;
-    }
-    if (Object.keys(bag).length > 0) terms.push(nest('what it grants outright', explainLump(bag, ctx)));
-    for (const key of Object.keys(grant)) {
-      if ((VOICES as readonly string[]).includes(key)) continue;
-      terms.push({
-        label: `${key} — a grant this bot cannot read`,
-        value: ctx.ai.score.unknownEffect,
+function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
+  const wants: Want[] = [];
+  const price = riteCostFor(state, player.id);
+  const bank = bankOf(player, 'faith');
+  for (const city of ownedCities(state, player.id)) {
+    for (const id of LIVE_RITE_IDS) {
+      if (riteError(state, player.id, city.id, id) !== null) continue;
+      const worth = explainRite(id, ctx);
+      wants.push({
+        label: `${riteDef(id).name} at ${city.name}`,
+        currency: 'faith',
+        price,
+        worth: worth.total,
+        delay: 0,
+        terms: worth.terms,
+        rite: { cityId: city.id, rite: id },
+        outOfReach: bank < price,
       });
     }
   }
+  return wants;
+}
+
+/**
+ * One rite: what its blessing is worth over the turns it runs.
+ *
+ * There is no grant arm any more, and the deletion is the news: a rite pays
+ * nothing the instant it lands (`RiteDef`), so the whole appraisal is the
+ * lasting half — which is the half this file could always read exactly.
+ */
+function explainRite(id: RiteId, ctx: ValueContext): Appraisal {
+  const def = riteDef(id);
   const effects = def.effects ?? [];
-  if (effects.length > 0) {
-    const lasting = explainEffects(effects, ctx);
-    const turns = def.duration ?? 1;
-    const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
-    terms.push({
+  if (effects.length === 0) return appraise([]);
+  const lasting = explainEffects(effects, ctx);
+  const turns = def.duration ?? 1;
+  const lumpTurns = Math.max(1, ctx.ai.score.lumpTurns);
+  return appraise([
+    {
       label: `its blessing, for ${turns} turn${turns === 1 ? '' : 's'}`,
       value: (lasting.total * turns) / lumpTurns,
       parts: [
@@ -860,9 +892,33 @@ function explainRite(id: RiteId, ctx: ValueContext): Appraisal {
         { label: `× ${turns} turns of it`, value: turns, op: 'mul' },
         { label: `÷ ${lumpTurns} — a blessing that runs out, not a rate`, value: lumpTurns, op: 'div' },
       ],
-    });
+    },
+  ]);
+}
+
+/**
+ * **What the best rite this empire knows would be worth said over every town** —
+ * the prophet's fourth act, priced the way its old ones were.
+ *
+ * The prophet's other three acts price as an *appetite* (`faithRowTerms`), which
+ * is the honest shape for "found a religion" and a poor one for a rite: this act
+ * pays a blessing in every town at once and that is a figure the book can read.
+ * So it is the rite plan's own arithmetic, times the towns it would land on,
+ * charged the single price — which is what makes a prophet worth keeping in a
+ * realm with forty towns and no chapels.
+ */
+function explainEmpireRite(state: GameState, ctx: ValueContext, towns: number): Appraisal {
+  let best: { id: RiteId; worth: Appraisal } | null = null;
+  for (const id of LIVE_RITE_IDS) {
+    if (!hasAbility(state, ctx.playerId, riteAbility(id))) continue;
+    const worth = explainRite(id, ctx);
+    if (best === null || worth.total > best.worth.total) best = { id, worth };
   }
-  return appraise(terms);
+  if (best === null || towns <= 0) return appraise([]);
+  return appraise([
+    nest(`${riteDef(best.id).name}, the best rite this empire knows`, best.worth),
+    { label: `× ${towns} town${towns === 1 ? '' : 's'} it would reach`, value: towns, op: 'mul' },
+  ]);
 }
 
 /**

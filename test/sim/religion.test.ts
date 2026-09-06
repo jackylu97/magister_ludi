@@ -20,14 +20,12 @@ import { describe, expect, it } from 'vitest';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
-  borderCostFor,
-  borderGrowth,
+  cityContext,
   cityYields,
   growthCarryover,
   explainTileYield,
   foldTileYield,
   foundCityAt,
-  nextBorderCost,
   yieldContextFor,
 } from '../../src/sim/cities';
 import { inquisitorAuraLines, previewCombat } from '../../src/sim/combat';
@@ -48,10 +46,16 @@ import {
   religionBeliefPool,
   spreadReligion,
   consecrateError,
-  hasOpenBeliefSlot,
-  isAugur,
-  liveTimedEffects,
+  cityRite,
+  cityRiteTurnsLeft,
+  empireRiteAt,
+  empireRiteError,
+  healAdjacentAt,
+  healAdjacentError,
   openPeriodicOffers,
+  placeRelicAt,
+  placeRelicError,
+  riteCostFor,
   pantheonSlots,
   performRiteAt,
   plantHolySiteError,
@@ -65,10 +69,11 @@ import {
 } from '../../src/sim/religion';
 import {
   type PurchasableItem,
-  bankOf,
   explainPurchaseCost,
+  purchaseError,
   purchaseItemAt,
 } from '../../src/sim/purchase';
+import { buildError, isUnlocked } from '../../src/sim/tech';
 
 /** The one thing faith sells. Named once, so the shape reads out of the way. */
 const AUGUR: PurchasableItem = { kind: 'unit', id: 'augur' };
@@ -77,13 +82,14 @@ import {
   BELIEF_IDS,
   ENHANCER_BELIEF_IDS,
   FOLLOWER_BELIEF_IDS,
+  LIVE_RITE_IDS,
   RELIGION,
   RITE_IDS,
   beliefDef,
-  newPlayerPantheon,
   isPantheonBeliefId,
   religionDataProblems,
   riteAbility,
+  riteCost,
   riteDef,
   slotsFromTechs,
 } from '../../src/sim/religionData';
@@ -105,8 +111,11 @@ import {
   cardCombatLines,
   cardEmpireYields,
   cardHappiness,
+  cardCityStat,
   cardPressureRule,
   cardProduction,
+  cardRulePercent,
+  foldCityStat,
   describeCard,
   cardFoundingRider,
   consecrationCardTileLines,
@@ -122,7 +131,7 @@ import {
 import { RULES } from '../../src/sim/rulesData';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { hasAbility } from '../../src/sim/tech';
-import { isCombatant, unitDef } from '../../src/sim/unitData';
+import { isCombatant, unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { buildingDef } from '../../src/sim/buildingData';
 import { openEveryWar } from './warHelpers';
 
@@ -206,372 +215,112 @@ describe('the religion table', () => {
     expect(BELIEF_IDS.length).toBeGreaterThanOrEqual(RULES.offers.belief * 4);
   });
 
-  it('teaches each rite through its own technology, as an ability', () => {
-    for (const id of RITE_IDS) {
+  it('teaches each live rite through its own technology, as an ability', () => {
+    // A **withdrawn** row is taught by nobody and says so: the two the pass cut
+    // keep their `tech` for readability and their abilities have left the tree
+    // with them, which is what `LIVE_RITE_IDS` is for.
+    for (const id of LIVE_RITE_IDS) {
       const tech = riteDef(id).tech;
       expect(techDef(tech).unlocks.abilities ?? [], id).toContain(riteAbility(id));
+    }
+    for (const id of RITE_IDS) {
+      if (LIVE_RITE_IDS.includes(id)) continue;
+      const tech = riteDef(id).tech;
+      expect(techDef(tech).unlocks.abilities ?? [], id).not.toContain(id);
     }
   });
 });
 
-// --- buying an augur --------------------------------------------------------
+// --- the augur, withdrawn ---------------------------------------------------
 
-describe('the augur is bought, never built', () => {
-  it('refuses the production queue outright, with the bank named', () => {
+describe('the augur is withdrawn, and the row is kept for replay', () => {
+  it('is refused by the production queue and by its own bank, byte-identically', () => {
     const g = game();
     learn(g.state, 0, 'divination');
     const city = found(g.state, 0);
+    playerById(g.state, 0)!.faithPool = 500;
     const before = snapshotState(g.state);
-    const result = applyCommand(g.state, {
+    expect(buildError(g.state, 0, 'unit', 'augur')).toBe('Augurs are no longer called');
+    expect(purchaseError(g.state, 0, city.id, AUGUR, 'faith')).toBe(
+      'A Augur is no longer called',
+    );
+    applyCommand(g.state, {
       type: 'setCityProduction',
       playerId: 0,
       cityId: city.id,
       queue: [{ kind: 'unit', id: 'augur' }],
     } as Command);
-    expect(result.ok).toBe(false);
-    expect(result.ok === false && result.error).toMatch(/bought with faith/);
-    expect(snapshotState(g.state)).toEqual(before);
-  });
-
-  it('prices the first at the printed figure and each later one a step higher', () => {
-    const g = game();
-    learn(g.state, 0, 'divination');
-    const city = found(g.state, 0);
-    const player = playerById(g.state, 0)!;
-    const spec = unitDef('augur').purchase!;
-
-    const first = explainPurchaseCost(g.state, 0, city.id, AUGUR, 'faith')!;
-    expect(first.currency).toBe('faith');
-    expect(first.total).toBe(spec.cost);
-    expect(first.lines).toHaveLength(1);
-
-    player.augursPurchased = 2;
-    const third = explainPurchaseCost(g.state, 0, city.id, AUGUR, 'faith')!;
-    expect(third.total).toBe(spec.cost + 2 * spec.increment!);
-    // Rule 5 for a price: the fold of the printed lines *is* the figure.
-    expect(third.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(third.total);
-    expect(third.lines[1]!.source).toMatch(/2 already called/);
-  });
-
-  it('answers null when faith is asked for a thing it does not sell', () => {
-    const g = game();
-    const city = found(g.state, 0);
-    // Faith sells exactly what the table prices in faith. A warrior is bought
-    // with coin like everything else, so the faith bank has no figure for it.
-    expect(
-      explainPurchaseCost(g.state, 0, city.id, { kind: 'unit', id: 'warrior' }, 'faith'),
-    ).toBeNull();
-    // And gold has no figure for the augur, for the mirror reason.
-    expect(explainPurchaseCost(g.state, 0, city.id, AUGUR, 'gold')).toBeNull();
-  });
-
-  it('refuses every way it can, and each refusal leaves the state byte-identical', () => {
-    const g = game();
-    const city = found(g.state, 0);
-    const player = playerById(g.state, 0)!;
-    player.faithPool = 1000;
-
-    const cases: { why: string; command: Command; match: RegExp }[] = [
-      {
-        why: 'no such player',
-        command: { type: 'purchaseItem', playerId: 9, cityId: city.id, item: { kind: 'unit', id: 'augur' }, currency: 'faith' } as Command,
-        match: /No player/,
-      },
-      {
-        why: 'somebody else’s city',
-        command: { type: 'purchaseItem', playerId: 1, cityId: city.id, item: { kind: 'unit', id: 'augur' }, currency: 'faith' } as Command,
-        match: /does not belong/,
-      },
-      {
-        why: 'no such city',
-        command: { type: 'purchaseItem', playerId: 0, cityId: 999, item: { kind: 'unit', id: 'augur' }, currency: 'faith' } as Command,
-        match: /No city/,
-      },
-      {
-        why: 'a thing this game has never heard of',
-        command: { type: 'purchaseItem', playerId: 0, cityId: city.id, item: { kind: 'unit', id: 'dragon' }, currency: 'faith' } as unknown as Command,
-        match: /for sale/,
-      },
-      {
-        why: 'faith asked for a thing the treasury sells',
-        command: { type: 'purchaseItem', playerId: 0, cityId: city.id, item: { kind: 'unit', id: 'warrior' }, currency: 'faith' } as Command,
-        match: /bought with gold, not faith/,
-      },
-      {
-        why: 'the wrong bank',
-        command: { type: 'purchaseItem', playerId: 0, cityId: city.id, item: { kind: 'unit', id: 'augur' }, currency: 'gold' } as Command,
-        match: /bought with faith, not gold/,
-      },
-      {
-        why: 'the technology',
-        command: { type: 'purchaseItem', playerId: 0, cityId: city.id, item: { kind: 'unit', id: 'augur' }, currency: 'faith' } as Command,
-        match: /need Divination/,
-      },
-    ];
-
-    for (const testCase of cases) {
-      const before = snapshotState(g.state);
-      const result = applyCommand(g.state, testCase.command);
-      expect(result.ok, testCase.why).toBe(false);
-      expect(result.ok === false && result.error, testCase.why).toMatch(testCase.match);
-      expect(snapshotState(g.state), testCase.why).toEqual(before);
-    }
-  });
-
-  it('refuses a pool that does not cover the price, and says what it holds', () => {
-    const g = game();
-    learn(g.state, 0, 'divination');
-    const city = found(g.state, 0);
-    playerById(g.state, 0)!.faithPool = 39;
-    const before = snapshotState(g.state);
-    const result = applyCommand(g.state, {
+    applyCommand(g.state, {
       type: 'purchaseItem',
       playerId: 0,
       cityId: city.id,
-      item: { kind: 'unit', id: 'augur' },
+      item: AUGUR,
       currency: 'faith',
     } as Command);
-    expect(result.ok).toBe(false);
-    expect(result.ok === false && result.error).toMatch(/costs 40 faith; Ada has 39/);
     expect(snapshotState(g.state)).toEqual(before);
   });
 
-  it('refuses a seat that has ended its turn', () => {
-    const g = game();
-    learn(g.state, 0, 'divination');
-    const city = found(g.state, 0);
-    playerById(g.state, 0)!.faithPool = 100;
-    dispatch(g, { type: 'endTurn', playerId: 0 });
-    const before = snapshotState(g.state);
-    const result = applyCommand(g.state, {
-      type: 'purchaseItem',
-      playerId: 0,
-      cityId: city.id,
-      item: { kind: 'unit', id: 'augur' },
-      currency: 'faith',
-    } as Command);
-    expect(result.ok).toBe(false);
-    expect(snapshotState(g.state)).toEqual(before);
-  });
-
-  it('charges the pool, climbs the ladder and puts a full augur in the city', () => {
-    const g = game();
-    learn(g.state, 0, 'divination');
-    const city = found(g.state, 0);
-    const player = playerById(g.state, 0)!;
-    player.faithPool = 100;
-
-    expect(dispatch(g, {
-      type: 'purchaseItem',
-      playerId: 0,
-      cityId: city.id,
-      item: { kind: 'unit', id: 'augur' },
-      currency: 'faith',
-    } as Command).ok).toBe(true);
-
-    expect(player.faithPool).toBe(60);
-    expect(player.augursPurchased).toBe(1);
-    const augur = g.state.units.find((u) => u.type === 'augur')!;
-    expect(augur.ownerId).toBe(0);
-    // It stands where a *built* one would: on the city tile if that hex has
-    // room for another civilian, otherwise the first neighbour that has — the
-    // one spawn convention, since the purchase and the production queue were
-    // put through one completion routine (`realiseItem`). The opening town has
-    // a worker on its own tile, so this augur is next door, and that is the
-    // rule rather than an accident.
-    expect(
-      wrappedDistance(
-        g.state.map,
-        tileHex(getTileAt(g.state.map, augur.col, augur.row)!),
-        tileHex(getTileAt(g.state.map, city.col, city.row)!),
-      ),
-    ).toBeLessThanOrEqual(1);
-    // Born through `createUnit`, so it can act this turn: full movement, its
-    // charges, an unspent attack.
-    expect(augur.chargesLeft).toBe(unitDef('augur').charges);
-    expect(augur.movesLeft).toBe(unitDef('augur').movement);
-    expect(isAugur(augur)).toBe(true);
-
-    // The second one is dearer, from this instant.
-    expect(explainPurchaseCost(g.state, 0, city.id, AUGUR, 'faith')!.total).toBe(55);
-    expect(bankOf(player, 'faith')).toBe(60);
-  });
-
-  it('is called into the city the command names, not the capital', () => {
-    const g = game();
-    learn(g.state, 0, 'divination');
-    found(g.state, 0);
-    const player = playerById(g.state, 0)!;
-    player.faithPool = 500;
-    // A second town four hexes off, so the two cannot be confused.
-    const far = foundCityAt(g.state, 0, getTileAt(g.state.map, 10, 10)!);
-    purchaseItemAt(g.state, player, far, { kind: 'unit', id: 'augur' }, 'faith');
-    const augur = g.state.units.find((u) => u.type === 'augur')!;
-    expect([augur.col, augur.row]).toEqual([far.col, far.row]);
+  it('says so on the row rather than deleting it, so an old save still reads', () => {
+    // The marker, not a name: `buildError` and `purchaseError` ask the row.
+    expect(unitDef('augur').retired).toBe(true);
+    expect(unitDef('augur').consecrates).toBe(true);
+    expect(unitDef('prophet').retired).toBeUndefined();
   });
 });
 
-// --- consecration -----------------------------------------------------------
+// --- consecration, retired --------------------------------------------------
 
 describe('consecrate', () => {
   it('opens no slots at all before Divination, and two after', () => {
     const g = game();
     expect(pantheonSlots(g.state, 0)).toBe(0);
     learn(g.state, 0, 'divination');
-    expect(pantheonSlots(g.state, 0)).toBe(RELIGION.pantheon.slotsFromTech.divination);
-    // Derived, never stored: the pantheon carries only what was taken, and
-    // (schema 71) how many rungs of the faith ladder paid for it.
-    expect(newPlayerPantheon()).toEqual({ beliefs: [], rungs: 0 });
-    expect(slotsFromTechs(['divination'])).toBe(2);
+    expect(pantheonSlots(g.state, 0)).toBe(2);
   });
 
-  it('refuses without a slot, with the sentence the panel prints', () => {
+  it('is refused always — the faith ladder deals the gods now', () => {
     const g = game();
+    learn(g.state, 0, 'divination');
     const augur = augurAt(g.state, 0, 5, 5);
     expect(consecrateError(g.state, 0, augur.id)).toBe(
-      'Your pantheon has no room for another belief',
+      'Your gods arrive on their own, once your faith is deep enough',
     );
-    learn(g.state, 0, 'divination');
-    expect(consecrateError(g.state, 0, augur.id)).toBeNull();
-    keep(g.state, 0, BELIEF_IDS[0]!);
-    keep(g.state, 0, BELIEF_IDS[1]!);
-    expect(hasOpenBeliefSlot(g.state, 0)).toBe(false);
-    expect(consecrateError(g.state, 0, augur.id)).toMatch(/no room/);
+    // And the piece questions are still asked first, so a hand-edited log gets
+    // the honest sentence rather than the retirement's.
+    expect(consecrateError(g.state, 1, augur.id)).toContain('does not belong to player 1');
+    const worker = createUnit(g.state, 0, 'worker', 5, 5);
+    expect(consecrateError(g.state, 0, worker.id)).toBe('A Worker cannot consecrate');
   });
 
-  it('refuses a piece that is not an augur, and somebody else’s augur', () => {
-    const g = game();
-    learn(g.state, 0, 'divination');
-    const worker = g.state.units.find((u) => u.ownerId === 0 && u.type === 'worker');
-    if (worker) expect(consecrateError(g.state, 0, worker.id)).toMatch(/cannot consecrate/);
-    const theirs = augurAt(g.state, 1, 6, 6);
-    expect(consecrateError(g.state, 0, theirs.id)).toMatch(/does not belong/);
-  });
-
-  it('spends the whole augur however many rites are left in it', () => {
-    for (const charges of [3, 2, 1]) {
-      const g = game();
-      learn(g.state, 0, 'divination');
-      const augur = augurAt(g.state, 0, 5, 5);
-      augur.chargesLeft = charges;
-      expect(dispatch(g, { type: 'consecrate', playerId: 0, unitId: augur.id } as Command).ok).toBe(
-        true,
-      );
-      expect(g.state.units.some((u) => u.id === augur.id), `${charges} charges`).toBe(false);
-    }
-  });
-
-  it('deals three gods without replacement, and blocks End Turn until answered', () => {
+  it('leaves the state byte-identical when the retired verb is sent', () => {
     const g = game();
     learn(g.state, 0, 'divination');
     const augur = augurAt(g.state, 0, 5, 5);
-    dispatch(g, { type: 'consecrate', playerId: 0, unitId: augur.id } as Command);
-
-    const player = playerById(g.state, 0)!;
-    const offer = player.pantheon.pending!;
-    expect(offer.options).toHaveLength(RULES.offers.belief);
-    expect(new Set(offer.options).size).toBe(offer.options.length);
-    expect(religionBlocker(player)).toMatch(/belief/);
-
-    expect(dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 1 } as Command).ok).toBe(
-      true,
-    );
-    expect(player.pantheon.beliefs).toEqual([offer.options[1]]);
-    // Deleted, not undefined: a seat that has answered serialises exactly like
-    // one that never had an offer.
-    expect('pending' in player.pantheon).toBe(false);
-    expect(religionBlocker(player)).toBeNull();
-  });
-
-  it('never offers a god already held, and returns a declined one to the bag', () => {
-    const g = game();
-    learn(g.state, 0, 'divination');
-    const first = augurAt(g.state, 0, 5, 5);
-    dispatch(g, { type: 'consecrate', playerId: 0, unitId: first.id } as Command);
-    const player = playerById(g.state, 0)!;
-    const dealt = [...player.pantheon.pending!.options];
-    dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
-
-    const taken = dealt[0]!;
-    const declined = dealt[1]!;
-    expect(beliefPool(g.state, player)).not.toContain(taken);
-    // The two that were passed over are drawable again — declining is a
-    // decision about the cards beside a god, not about the god.
-    expect(beliefPool(g.state, player)).toContain(declined);
-
-    const second = augurAt(g.state, 0, 5, 5);
-    dispatch(g, { type: 'consecrate', playerId: 0, unitId: second.id } as Command);
-    expect(player.pantheon.pending!.options).not.toContain(taken);
-  });
-
-  it('never offers a god a rival empire already keeps', () => {
-    // **A god belongs to one world** (2026-08-29). The bag is not this seat's
-    // own holdings subtracted from the table — it is the table minus every
-    // pantheon in play, swept in `realPlayers` order.
-    const g = game();
-    learn(g.state, 0, 'divination');
-    learn(g.state, 1, 'divination');
-    const mine = playerById(g.state, 0)!;
-    const theirs = playerById(g.state, 1)!;
-
-    const rival = BELIEF_IDS.filter(isPantheonBeliefId)[0]!;
-    keep(g.state, 1, rival);
-    expect(beliefPool(g.state, mine)).not.toContain(rival);
-    // And it is gone from the *hand*, not merely from a list nobody deals off.
-    const augur = augurAt(g.state, 0, 5, 5);
-    dispatch(g, { type: 'consecrate', playerId: 0, unitId: augur.id } as Command);
-    expect(mine.pantheon.pending!.options).not.toContain(rival);
-
-    // The rival's own bag still holds it — a god you keep is yours, and the
-    // exclusion is about *other* seats.
-    expect(beliefPool(g.state, theirs)).not.toContain(rival);
-    expect(theirs.pantheon.beliefs).toEqual([rival]);
-  });
-
-  it('refuses a second offer while one is outstanding', () => {
-    const g = game();
-    learn(g.state, 0, 'divination');
-    const first = augurAt(g.state, 0, 5, 5);
-    dispatch(g, { type: 'consecrate', playerId: 0, unitId: first.id } as Command);
-    const second = augurAt(g.state, 0, 5, 5);
-    expect(consecrateError(g.state, 0, second.id)).toMatch(/waiting to be chosen/);
     const before = snapshotState(g.state);
-    expect(applyCommand(g.state, {
-      type: 'consecrate',
-      playerId: 0,
-      unitId: second.id,
-    } as Command).ok).toBe(false);
+    expect(applyCommand(g.state, { type: 'consecrate', playerId: 0, unitId: augur.id } as Command).ok).toBe(false);
     expect(snapshotState(g.state)).toEqual(before);
   });
 
-  it('refuses an index off the end, byte-identically', () => {
+  it('refuses an index off the end of an offer, byte-identically', () => {
     const g = game();
     learn(g.state, 0, 'divination');
-    const augur = augurAt(g.state, 0, 5, 5);
-    dispatch(g, { type: 'consecrate', playerId: 0, unitId: augur.id } as Command);
-    for (const optionIndex of [-1, 3, 1.5, 'one' as unknown as number]) {
-      const before = snapshotState(g.state);
-      const result = applyCommand(g.state, {
-        type: 'chooseBelief',
-        playerId: 0,
-        optionIndex,
-      } as Command);
-      expect(result.ok, String(optionIndex)).toBe(false);
-      expect(snapshotState(g.state), String(optionIndex)).toEqual(before);
-    }
+    const player = playerById(g.state, 0)!;
+    player.pantheon.pending = { options: beliefPool(g.state, player).slice(0, 3) };
+    const before = snapshotState(g.state);
+    expect(applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 9 } as Command).ok).toBe(false);
+    expect(snapshotState(g.state)).toEqual(before);
   });
 
-  it('deals the same three gods from the same generator state', () => {
-    const draw = (): string[] => {
-      const g = game(4242);
-      learn(g.state, 0, 'divination');
-      const augur = augurAt(g.state, 0, 5, 5);
-      dispatch(g, { type: 'consecrate', playerId: 0, unitId: augur.id } as Command);
-      return [...playerById(g.state, 0)!.pantheon.pending!.options];
-    };
-    expect(draw()).toEqual(draw());
+  it('blocks End Turn while a hand is outstanding', () => {
+    const g = game();
+    learn(g.state, 0, 'divination');
+    const player = playerById(g.state, 0)!;
+    expect(religionBlocker(player)).toBeNull();
+    player.pantheon.pending = { options: beliefPool(g.state, player).slice(0, 3) };
+    expect(religionBlocker(player)).toBeTruthy();
   });
 });
+
 
 // --- beliefs through the shared evaluator -----------------------------------
 
@@ -777,602 +526,438 @@ describe('a belief is an effect source, not a second evaluator', () => {
 
 // --- rites, end to end ------------------------------------------------------
 
+/**
+ * **A rite is a city's verb** (`docs/fewer-things.md` §3, ruled 2026-09-06).
+ *
+ * The user's complaint was the errand — call an augur, walk it, aim it, spend it
+ * — so the errand is gone and the town says the rite itself, out of the empire's
+ * faith bank, for ten turns. Four rules and each has a test below: the Chapel is
+ * the door, one rite at a time, the price is the ladder's rung for the age, and
+ * every refusal leaves the state byte-identical.
+ */
 describe('rites', () => {
-  it('are known only where the tree teaches them', () => {
+  /** A town with the door, and a bank deep enough to say anything. */
+  function town(...techs: string[]) {
+    const g = game();
+    learn(g.state, 0, 'divination', ...techs);
+    const city = found(g.state, 0);
+    city.buildings.push('chapel');
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 1000;
+    return { g, city, player };
+  }
+
+  it('are known only where the tree teaches them, and the withdrawn two are gone', () => {
     const g = game();
     expect(availableRites(g.state, 0)).toEqual([]);
     learn(g.state, 0, 'divination');
-    // Divination teaches **three** since the re-cut of 2026-09-02 gathered the
-    // worksheet's "first rites" onto the faith door: the augur's first rite, the
-    // omen read for beakers, and the one that recasts what the augur before it
-    // named. The order is the tree's own.
-    expect(availableRites(g.state, 0)).toEqual([
-      'riteOfTheHarvest',
-      'omenReading',
-      'recastingTheOmens',
-    ]);
+    // Divination teaches two now: Recasting the Omens is withdrawn (the faith
+    // reroll does that job) and its ability has left the tree with it.
+    expect(availableRites(g.state, 0)).toEqual(['riteOfTheHarvest', 'omenReading']);
     expect(hasAbility(g.state, 0, 'riteOfTheHarvest')).toBe(true);
-    expect(hasAbility(g.state, 0, 'recastingTheOmens')).toBe(true);
     expect(hasAbility(g.state, 0, 'omenReading')).toBe(true);
+    // The rows are kept so a save naming one still resolves to a card.
+    expect(riteDef('recastingTheOmens').retired).toBe(true);
+    expect(riteDef('thePreaching').retired).toBe(true);
+    expect(LIVE_RITE_IDS).not.toContain('recastingTheOmens');
+    expect(anyCardDef('thePreaching').name).toBe('The Preaching');
+  });
+
+  it('need the door — the Chapel, asked of the marker and never of a name', () => {
+    const g = game();
+    learn(g.state, 0, 'divination');
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.faithPool = 1000;
+    expect(riteError(g.state, 0, city.id, 'omenReading')).toBe(
+      `${city.name} has nowhere to say a rite`,
+    );
+    city.buildings.push('chapel');
+    expect(riteError(g.state, 0, city.id, 'omenReading')).toBeNull();
+    // The marker is the rule; the row is the data.
+    expect(buildingDef('chapel').ritesDoor).toBe(true);
+  });
+
+  it('cost the faith ladder’s rung for the age this empire stands in', () => {
+    const { g, city, player } = town();
+    // Æra I: the ladder's first rung, which is what a first god costs.
+    expect(riteCostFor(g.state, 0)).toBe(RELIGION.rite.costByAge[0]);
+    expect(riteCost(1)).toBe(40);
+    expect(riteCost(2)).toBe(56);
+    expect(riteCost(3)).toBe(72);
+    expect(riteCost(4)).toBe(90);
+    // A fifth age nobody has priced pays what the fourth does.
+    expect(riteCost(9)).toBe(90);
+
+    player.faithPool = 1000;
+    const before = player.faithPool;
+    performRiteAt(g.state, player, city, 'omenReading');
+    expect(player.faithPool).toBe(before - 40);
+  });
+
+  it('rise a rung when the empire enters an age', () => {
+    const { g } = town();
+    expect(riteCostFor(g.state, 0)).toBe(40);
+    // Theology is an Æra III node, so holding it prices a rite at the third rung.
+    learn(g.state, 0, 'theology');
+    expect(riteCostFor(g.state, 0)).toBe(72);
+  });
+
+  it('refuse a bank that cannot pay, and say what it holds', () => {
+    const { g, city, player } = town();
+    player.faithPool = 12;
+    expect(riteError(g.state, 0, city.id, 'omenReading')).toBe(
+      'Omen Reading asks 40 faith and Ada has 12',
+    );
+  });
+
+  it('are one at a time — the seal is the rite’s own ten turns', () => {
+    const { g, city, player } = town();
+    performRiteAt(g.state, player, city, 'omenReading');
+    expect(cityRite(g.state, city)).toBe('omenReading');
+    expect(cityRiteTurnsLeft(g.state, city)).toBe(10);
+    expect(riteError(g.state, 0, city.id, 'riteOfTheHarvest')).toBe(
+      `${city.name} is already keeping Omen Reading`,
+    );
+    // …and the moment it runs out, another may be said. Nothing was ticked.
+    g.state.turn += 10;
+    expect(cityRite(g.state, city)).toBeNull();
+    expect(riteError(g.state, 0, city.id, 'riteOfTheHarvest')).toBeNull();
   });
 
   it('refuse everything they should, byte-identically', () => {
-    const g = game();
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-
-    // The technology.
-    expect(riteError(g.state, 0, augur.id, 'riteOfTheHarvest')).toMatch(/not known/);
-    learn(g.state, 0, 'divination');
-    expect(riteError(g.state, 0, augur.id, 'riteOfTheHarvest')).toBeNull();
-
-    // A rite nobody has heard of.
-    expect(riteError(g.state, 0, augur.id, 'nonsense')).toMatch(/no rite called/);
-    // A piece that performs none.
-    const settler = g.state.units.find((u) => u.ownerId === 0 && u.type === 'settler');
-    if (settler) expect(riteError(g.state, 0, settler.id, 'riteOfTheHarvest')).toMatch(/no rites/);
-    // Out of reach: two hexes is not beside.
-    expect(riteError(g.state, 0, augur.id, 'riteOfTheHarvest', { col: city.col + 3, row: city.row })).toMatch(
-      /where the augur stands, or beside it/,
-    );
-    // An empty augur.
-    augur.chargesLeft = 0;
-    expect(riteError(g.state, 0, augur.id, 'riteOfTheHarvest')).toMatch(/no rites left/);
-    augur.chargesLeft = 1;
-
+    const { g, city, player } = town();
+    const other = found(g.state, 1);
     const before = snapshotState(g.state);
+    // Not my town · no such rite · a withdrawn rite · a rite I have not learnt.
+    expect(riteError(g.state, 0, other.id, 'omenReading')).toContain('does not belong');
+    expect(riteError(g.state, 0, city.id, 'nonsense')).toContain('no rite called');
+    expect(riteError(g.state, 0, city.id, 'thePreaching')).toBe(
+      'The Preaching is no longer performed',
+    );
+    expect(riteError(g.state, 0, city.id, 'blessingOfArms')).toBe(
+      'Blessing of Arms is not known to Ada',
+    );
+    expect(riteError(g.state, 0, 9999, 'omenReading')).toContain('No city with id');
+    for (const rite of ['omenReading', 'nonsense', 'thePreaching', 'blessingOfArms']) {
+      applyCommand(g.state, {
+        type: 'performRite',
+        playerId: 0,
+        cityId: other.id,
+        rite,
+      } as unknown as Command);
+    }
+    expect(player.faithPool).toBe(1000);
+    expect(snapshotState(g.state)).toEqual(before);
+  });
+
+  it('refuse a seat that has ended its turn', () => {
+    const { g, city } = town();
+    g.state.turnEnded[0] = true;
     const result = applyCommand(g.state, {
       type: 'performRite',
       playerId: 0,
-      unitId: augur.id,
-      rite: 'nonsense',
-    } as unknown as Command);
-    expect(result.ok).toBe(false);
-    expect(snapshotState(g.state)).toEqual(before);
-  });
-
-  it('is the augur’s one deed: the piece is spent, and a second rite has nobody to ask', () => {
-    // Entry LVIII: an augur carries **one** charge, so a rite is not merely the
-    // piece's turn — it is the piece. What used to be "three blessings over
-    // three turns" is three augurs' worth of faith, which is the whole of what
-    // the price ladder was built to ask.
-    const g = game();
-    learn(g.state, 0, 'divination');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    expect(augur.chargesLeft).toBe(1);
-    expect(augur.movesLeft).toBeGreaterThan(0);
-
-    const rite = {
-      type: 'performRite',
-      playerId: 0,
-      unitId: augur.id,
-      rite: 'riteOfTheHarvest',
-    } as Command;
-    expect(applyCommand(g.state, rite).ok).toBe(true);
-    // Gone from the board, exactly as a worker that spends its last charge is.
-    expect(g.state.units.find((u) => u.id === augur.id)).toBeUndefined();
-
-    const before = snapshotState(g.state);
-    const second = applyCommand(g.state, rite);
-    expect(second.ok).toBe(false);
-    expect(second.ok === false && second.error).toMatch(/No unit with id/);
-    expect(snapshotState(g.state)).toEqual(before);
-  });
-
-  it('holds an augur that spent its day to the *next* turn, both acts alike', () => {
-    // The half of `augurHasActed` the one-charge rework did not delete: an augur
-    // that walked its whole allowance to reach a town blesses it next turn. It
-    // is the bargain every other piece makes with its movement, and it is what
-    // keeps a bought augur from being walked to a front and spent in one breath.
-    const g = game();
-    learn(g.state, 0, 'divination');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    augur.movesLeft = 0;
-
-    expect(riteError(g.state, 0, augur.id, 'riteOfTheHarvest')).toMatch(/acted this turn/);
-    // And the *other* act an augur can take is held to the same sentence.
-    faith(g.state, 0, 'starReaders');
-    expect(consecrateError(g.state, 0, augur.id)).toMatch(/acted this turn/);
-
-    const before = snapshotState(g.state);
-    const refused = applyCommand(g.state, {
-      type: 'performRite',
-      playerId: 0,
-      unitId: augur.id,
-      rite: 'riteOfTheHarvest',
-    } as Command);
-    expect(refused.ok).toBe(false);
-    expect(snapshotState(g.state)).toEqual(before);
-
-    // Next turn it may act: nothing counted down, `resetMovement` simply gave
-    // the piece its day back.
-    for (const player of g.state.players) {
-      dispatch(g, { type: 'endTurn', playerId: player.id });
-    }
-    expect(augur.movesLeft).toBeGreaterThan(0);
-    expect(riteError(g.state, 0, augur.id, 'riteOfTheHarvest')).toBeNull();
-  });
-
-  it('reach one hex, and default to where the augur stands', () => {
-    const g = game();
-    learn(g.state, 0, 'divination');
-    const city = found(g.state, 0);
-    const beside = augurAt(g.state, 0, city.col + 1, city.row);
-    // No target named: the augur's own hex, which holds no city — so it must
-    // name the town beside it.
-    expect(riteError(g.state, 0, beside.id, 'riteOfTheHarvest')).toMatch(/needs one of your cities/);
-    expect(
-      riteError(g.state, 0, beside.id, 'riteOfTheHarvest', { col: city.col, row: city.row }),
-    ).toBeNull();
-  });
-
-  it('Rite of the Harvest grants a citizen and re-seats the town', () => {
-    const g = game();
-    learn(g.state, 0, 'divination');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    const before = city.population;
-    const worked = city.workedTiles.length;
-
-    expect(ritePreview(g.state, augur.id, 'riteOfTheHarvest')).toMatch(/\+1 pop/);
-    expect(dispatch(g, {
-      type: 'performRite',
-      playerId: 0,
-      unitId: augur.id,
-      rite: 'riteOfTheHarvest',
-    } as Command).ok).toBe(true);
-
-    expect(city.population).toBe(before + 1);
-    // The citizen is *placed*, not merely counted: the mid-turn register's whole
-    // point (`refreshCityDerived`).
-    expect(city.workedTiles.length).toBe(worked + 1);
-    // The one charge, which is the whole augur (Entry LVIII).
-    expect(g.state.units.find((u) => u.id === augur.id)).toBeUndefined();
-  });
-
-  it('Omen Reading banks beakers now and sharpens the scribes for twenty turns', () => {
-    const g = game();
-    learn(g.state, 0, 'divination', 'earthenware', 'letters');
-    const city = found(g.state, 0);
-    city.buildings.push('library');
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    const player = playerById(g.state, 0)!;
-    const pool = player.sciencePool;
-    const before = cityYields(g.state, city).science;
-
-    dispatch(g, {
-      type: 'performRite',
-      playerId: 0,
-      unitId: augur.id,
+      cityId: city.id,
       rite: 'omenReading',
     } as Command);
-
-    // The instant half, settled through the research bucket's own routine.
-    expect(player.sciencePool - pool).toBe(15);
-    // The lasting half, read by the same fold a card's `countScaled` is.
-    expect(cityYields(g.state, city).science).toBe(before + 1);
-    expect(liveTimedEffects(g.state, city)).toHaveLength(1);
-    expect(liveTimedEffects(g.state, city)[0]!.expiresTurn).toBe(g.state.turn + 20);
-    // And it labels itself, with the turns left on it.
-    const live = liveCityEffects(g.state, city).find((entry) => entry.card === 'omenReading');
-    expect(live!.source).toMatch(/^Rite · Omen Reading \(20 turns left\)$/);
+    expect(result.ok).toBe(false);
   });
 
-  it('Consecration of the Bounds fills the border basket and speeds it', () => {
-    const g = game();
-    learn(g.state, 0, 'husbandry', 'earthenware', 'stonecraft');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    const banked = city.culture;
-    const cost = borderCostFor(g.state, city);
-    const before = borderGrowth(g.state, city);
+  // --- what each of the five does -------------------------------------------
 
-    dispatch(g, {
-      type: 'performRite',
-      playerId: 0,
-      unitId: augur.id,
-      rite: 'consecrationOfTheBounds',
-    } as Command);
-
-    // The border basket, not the empire's draft pool: two separate channels.
-    // And it is **spent on the spot** since 2026-08-27 (`settleBorderWindfall`,
-    // the register's entry 14). Since the curve came down a fifth on 2026-09-05
-    // (5 · 3.2 · 1.45 — "boost border growth by around 25%") fifteen culture
-    // covers the first TWO rungs (5 + 8), so two tiles are taken at once and
-    // the remainder stays banked toward the third; it was one tile against
-    // 6 + 10.
-    expect(city.tilesClaimed).toBe(2);
-    expect(city.culture).toBe(banked + 15 - cost - nextBorderCost(1));
-    const after = borderGrowth(g.state, city);
-    expect(after.percent).toBe(before.percent + 30);
+  it('food — every hex the town works that feeds it feeds it one more', () => {
+    const { g, city, player } = town();
+    const before = cityYields(g.state, city).food;
+    performRiteAt(g.state, player, city, 'riteOfTheHarvest');
+    const after = cityYields(g.state, city).food;
+    expect(after).toBeGreaterThan(before);
+    // And it is a line on the ground, not a flat on the town: a hex that feeds
+    // reads one higher through the tile chain itself.
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    const ctx = cityContext(g.state, city);
+    const paid = foldTileYield(explainTileYield(tile, ctx));
+    expect(paid.food).toBeGreaterThan(foldTileYield(explainTileYield(tile)).food);
   });
 
-  it('claims two tiles at once when the gift covers two rungs, and carries the rest', () => {
-    // The user's rule read to its end: "reset the counter (with overflow) if it
-    // exceeds the culture needed". Fifteen alone buys one rung; a town that had
-    // already banked toward the next one buys both in the same instant, because
-    // a gift is not accrual and the phase's one-tile-per-turn is a rate limit on
-    // accrual.
-    const g = game();
-    learn(g.state, 0, 'husbandry', 'earthenware', 'stonecraft');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    const first = borderCostFor(g.state, city);
-    city.culture = first;
-    city.tilesClaimed = 0;
-    const second = nextBorderCost(1);
-
-    dispatch(g, {
-      type: 'performRite',
-      playerId: 0,
-      unitId: augur.id,
-      rite: 'consecrationOfTheBounds',
-    } as Command);
-
-    expect(city.tilesClaimed).toBe(2);
-    expect(city.culture).toBe(first + 15 - first - second);
+  it('gold — a worked hex with a seam in it pays a coin more', () => {
+    const { g, city, player } = town('currency', 'theWheel', 'mining');
+    const tile = g.state.map.tiles.find(
+      (t) => t.resource !== undefined && tileIndex(g.state.map, t.col, t.row) >= 0,
+    );
+    performRiteAt(g.state, player, city, 'riteOfPlenty');
+    expect(cityRite(g.state, city)).toBe('riteOfPlenty');
+    if (tile) {
+      const ctx = cityContext(g.state, city);
+      const withRite = foldTileYield(explainTileYield(tile, ctx)).gold;
+      delete city.timed;
+      const without = foldTileYield(explainTileYield(tile, cityContext(g.state, city))).gold;
+      expect(withRite).toBe(without + 1);
+    }
   });
 
-  it('merely banks a gift that covers nothing', () => {
-    // The other side of the same rule: a town whose next rung is out of reach
-    // keeps every point, exactly as it did before the seam existed.
-    const g = game();
-    learn(g.state, 0, 'husbandry', 'earthenware', 'stonecraft');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    // Far up the curve, where fifteen culture is not close to a tile.
-    city.tilesClaimed = 12;
-    city.culture = 0;
-
-    dispatch(g, {
-      type: 'performRite',
-      playerId: 0,
-      unitId: augur.id,
-      rite: 'consecrationOfTheBounds',
-    } as Command);
-
-    expect(city.tilesClaimed).toBe(12);
-    expect(city.culture).toBe(15);
+  it('science — every building standing in the town adds a beaker', () => {
+    const { g, city, player } = town('earthenware', 'letters');
+    city.buildings.push('library');
+    const before = cityYields(g.state, city).science;
+    performRiteAt(g.state, player, city, 'omenReading');
+    // The Chapel and the Library are two shelves, so two beakers.
+    expect(cityYields(g.state, city).science).toBe(before + city.buildings.length);
   });
 
-  it('takes the augur off the board, so there is nothing left to march', () => {
-    // User, 2026-08-27: "the rite should end the augur's turn" — and since Entry
-    // LVIII it ends rather more than that. A rite is the day's work *and* the
-    // piece, so the march after one is refused because there is nobody to order.
-    const g = game();
-    learn(g.state, 0, 'husbandry', 'earthenware', 'stonecraft');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    expect(augur.movesLeft).toBeGreaterThan(0);
-
-    dispatch(g, {
-      type: 'performRite',
-      playerId: 0,
-      unitId: augur.id,
-      rite: 'consecrationOfTheBounds',
-    } as Command);
-
-    expect(g.state.units.find((u) => u.id === augur.id)).toBeUndefined();
-    expect(
-      applyCommand(g.state, {
-        type: 'moveUnit',
-        playerId: 0,
-        unitId: augur.id,
-        target: { col: city.col + 1, row: city.row },
-      } as Command).ok,
-    ).toBe(false);
+  it('culture — luxuries sing, and the bounds walk outward faster', () => {
+    const { g, city, player } = town('earthenware');
+    performRiteAt(g.state, player, city, 'consecrationOfTheBounds');
+    const lines = cardRulePercent(g.state, 0, 'borderCulture', city).filter(
+      (entry) => entry.card === 'consecrationOfTheBounds',
+    );
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.percent).toBe(30);
   });
 
-  it('reports what it paid as labelled lines, and how long the blessing runs', () => {
-    // The toast's raw material. Written beside each payment rather than derived
-    // from which report fields came back non-null.
-    const g = game();
-    learn(g.state, 0, 'husbandry', 'earthenware', 'stonecraft');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    const player = g.state.players[0]!;
-    const done = performRiteAt(g.state, player, augur, 'consecrationOfTheBounds');
-    expect(done.grants).toEqual([{ label: 'Culture to the bounds', amount: 15 }]);
-    expect(done.turns).toBe(riteDef('consecrationOfTheBounds').duration);
-    // Two since the 2026-09-05 curve: fifteen covers rungs one and two (5 + 8).
-    expect(done.bordersClaimed).toHaveLength(2);
-    expect(done.name).toBe(riteDef('consecrationOfTheBounds').name);
-    expect(done.city).toBe(city);
+  it('military — the town is harder to storm while the rite runs', () => {
+    const { g, city, player } = town('mining', 'bronzeWorking');
+    const before = foldCityStat(cardCityStat(g.state, city, 'defense'));
+    performRiteAt(g.state, player, city, 'blessingOfArms');
+    expect(foldCityStat(cardCityStat(g.state, city, 'defense'))).toBe(before + 5);
+    // And it runs out on the turn it names, like everything else timed.
+    g.state.turn += 10;
+    expect(foldCityStat(cardCityStat(g.state, city, 'defense'))).toBe(before);
   });
 
-  it('Blessing of Arms heals a unit whole and pays five turns of strength', () => {
-    const g = game();
-    learn(g.state, 0, 'mining', 'earthenware', 'bronzeWorking');
-    const warrior = createUnit(g.state, 0, 'warrior', 4, 4);
-    const theirs = createUnit(g.state, 1, 'warrior', 5, 4);
-    warrior.hp = 40;
-    const augur = augurAt(g.state, 0, 4, 4);
-    const before = forecast(g.state, warrior.id, theirs.col, theirs.row);
-
-    dispatch(g, {
-      type: 'performRite',
-      playerId: 0,
-      unitId: augur.id,
-      rite: 'blessingOfArms',
-      target: { col: 4, row: 4 },
-    } as Command);
-
-    expect(warrior.hp).toBe(unitDef('warrior').maxHp);
-    const after = forecast(g.state, warrior.id, theirs.col, theirs.row);
-    expect(after.attackerStrength).toBe(before.attackerStrength + 5);
-    expect(after.bonuses.some((line) => line.source.includes('Blessing of Arms'))).toBe(true);
-    expect(liveTimedEffects(g.state, warrior)[0]!.expiresTurn).toBe(g.state.turn + 5);
-    // The **combatant** on the hex, not the augur standing beside it.
-    expect(liveTimedEffects(g.state, augur)).toEqual([]);
+  it('pays the Chapel’s culture for the saying of it', () => {
+    const { g, city, player } = town();
+    player.culturePool = 0;
+    const done = performRiteAt(g.state, player, city, 'omenReading');
+    expect(done.chapelCulture).toBe(5);
+    expect(player.culturePool).toBe(5);
   });
 
-  it('Rite of Plenty pays coin now and enriches this town’s seams after', () => {
-    const g = game();
-    // Currency keeps the feast since the re-cut of 2026-09-02 pruned Calendar —
-    // the rite pays coin, so it belongs on the node that invents it.
-    learn(g.state, 0, 'earthenware', 'currency');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    const player = playerById(g.state, 0)!;
-    const gold = player.gold;
-
-    // A seam inside the town's own rings, so the tile line has somewhere to land.
-    const seam = getTileAt(g.state.map, city.col + 1, city.row)!;
-    seam.resource = 'wheat';
-
-    dispatch(g, {
-      type: 'performRite',
-      playerId: 0,
-      unitId: augur.id,
-      rite: 'riteOfPlenty',
-    } as Command);
-
-    expect(player.gold - gold).toBe(25);
-    // The tile line is the **city's**, so it reaches the hex only through that
-    // city's own context — the granary's rule, one producer over.
-    const empire = yieldContextFor(g.state, 0)!;
-    expect((empire.lines ?? []).some((line) => line.source.includes('Rite of Plenty'))).toBe(false);
-    expect(cityYields(g.state, city)).toBeDefined();
-    const live = liveCityEffects(g.state, city).find((entry) => entry.card === 'riteOfPlenty');
-    expect(live).toBeDefined();
-  });
-
-  it('spends the augur on its last rite, exactly as a worker is spent', () => {
-    const g = game();
-    learn(g.state, 0, 'divination');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    augur.chargesLeft = 1;
-    dispatch(g, {
-      type: 'performRite',
-      playerId: 0,
-      unitId: augur.id,
-      rite: 'riteOfTheHarvest',
-    } as Command);
-    expect(g.state.units.some((u) => u.id === augur.id)).toBe(false);
+  it('stamps an absolute expiry, and the report carries the turns it runs', () => {
+    const { g, city, player } = town();
+    const done = performRiteAt(g.state, player, city, 'omenReading');
+    expect(done.turns).toBe(10);
+    expect(done.expiresTurn).toBe(g.state.turn + 10);
+    expect(city.timed!.every((entry) => entry.expiresTurn === done.expiresTurn)).toBe(true);
   });
 });
 
-// --- recasting the omens ----------------------------------------------------
+// --- the prophet's rite over the realm ---------------------------------------
 
-/**
- * The rite that gives a god back (user ruling, 2026-08-29).
- *
- * Two halves and both are here: the *give-back* is a rite like any other — one
- * charge, the augur's whole turn, refused before anything mutates — and the
- * *offer* it opens is Entry XV's shape for the fifth time, answered by the same
- * `chooseBelief` that answers a Consecrate. What is worth pinning is the seam
- * between them: the slot count is restored by the pick rather than counted
- * anywhere, and the bag the hand comes out of is the one thing that makes a
- * recast different from a Consecrate.
- */
-describe('recasting the omens', () => {
-  /** A seat with Divination, an augur, and one god already named. */
-  function ready(seed = 7) {
-    const g = game(seed);
+describe('a prophet says a rite over every town', () => {
+  function ready() {
+    const g = game();
     learn(g.state, 0, 'divination');
-    learn(g.state, 1, 'divination');
-    const augur = augurAt(g.state, 0, 5, 5);
+    const first = found(g.state, 0);
+    const second = foundCityAt(g.state, 0, getTileAt(g.state.map, first.col + 3, first.row)!);
     const player = playerById(g.state, 0)!;
-    return { g, augur, player };
+    player.faithPool = 1000;
+    const prophet = createUnit(g.state, 0, 'prophet', first.col, first.row);
+    return { g, first, second, player, prophet };
   }
 
-  const RECAST = 'recastingTheOmens' as const;
-  const GODS = BELIEF_IDS.filter(isPantheonBeliefId);
-
-  it('gives the god back, deals a hand without it, and spends the augur', () => {
-    const { g, augur, player } = ready();
-    const given = GODS[0]!;
-    const rival = GODS[1]!;
-    keep(g.state, 0, given);
-    keep(g.state, 1, rival);
-
-    expect(
-      dispatch(g, { type: 'performRite', playerId: 0, unitId: augur.id, rite: RECAST, belief: given } as Command)
-        .ok,
-    ).toBe(true);
-
-    // The god is out of the pantheon, and the slot it held is empty until the
-    // pick fills it.
-    expect(player.pantheon.beliefs).toEqual([]);
-    const offer = player.pantheon.pending!;
-    expect(offer.options).toHaveLength(RULES.offers.belief);
-    expect(new Set(offer.options).size).toBe(offer.options.length);
-    // **A reroll that re-offers the same god is not a reroll** — deliberately
-    // the opposite of a prophet's redraft, which puts a pool back in the bag.
-    expect(offer.options).not.toContain(given);
-    // And the world's rule still holds: a rival's god is nobody else's.
-    expect(offer.options).not.toContain(rival);
-    // The offer says what it was dealt in place of, so the card has a line.
-    expect(offer.givenBack).toBe(given);
-    // The one charge, which is the whole augur — and the hand is still on the
-    // seat: the piece paying for it is gone and the decision is not.
-    expect(g.state.units.some((u) => u.id === augur.id)).toBe(false);
+  it('needs no chapel anywhere, and lands on every town at one price', () => {
+    const { g, first, second, player, prophet } = ready();
+    expect(first.buildings).not.toContain('chapel');
+    expect(empireRiteError(g.state, 0, prophet.id, 'omenReading')).toBeNull();
+    const before = player.faithPool;
+    const done = empireRiteAt(g.state, player, prophet, 'omenReading');
+    expect(done.cities.map((city) => city.id)).toEqual([first.id, second.id]);
+    // One price, not one a town.
+    expect(player.faithPool).toBe(before - 40);
+    expect(cityRite(g.state, first)).toBe('omenReading');
+    expect(cityRite(g.state, second)).toBe('omenReading');
   });
 
-  it('takes the augur’s last charge like every other rite', () => {
-    const { g, augur } = ready();
-    keep(g.state, 0, GODS[0]!);
-    augur.chargesLeft = 1;
-    expect(
-      dispatch(g, { type: 'performRite', playerId: 0, unitId: augur.id, rite: RECAST, belief: GODS[0]! } as Command)
-        .ok,
-    ).toBe(true);
-    expect(g.state.units.some((u) => u.id === augur.id)).toBe(false);
-    // The hand is still on the seat: the piece paying for it is gone and the
-    // decision is not.
-    expect(playerById(g.state, 0)!.pantheon.pending).toBeDefined();
+  it('takes over from whatever a town was keeping, so it is still one at a time', () => {
+    const { g, first, player, prophet } = ready();
+    first.buildings.push('chapel');
+    performRiteAt(g.state, player, first, 'riteOfTheHarvest');
+    expect(cityRite(g.state, first)).toBe('riteOfTheHarvest');
+    empireRiteAt(g.state, player, prophet, 'omenReading');
+    expect(cityRite(g.state, first)).toBe('omenReading');
+    const live = first.timed!.filter((entry) => entry.card === 'riteOfTheHarvest');
+    expect(live).toHaveLength(0);
   });
 
-  it('restores the count through the ordinary pick, which appends', () => {
-    const { g, augur, player } = ready();
-    keep(g.state, 0, GODS[0]!);
-    keep(g.state, 0, GODS[1]!);
-    dispatch(g, { type: 'performRite', playerId: 0, unitId: augur.id, rite: RECAST, belief: GODS[0]! } as Command);
-    expect(player.pantheon.beliefs).toEqual([GODS[1]!]);
-    const dealt = [...player.pantheon.pending!.options];
-    expect(dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 1 } as Command).ok).toBe(true);
-    expect(player.pantheon.beliefs).toEqual([GODS[1]!, dealt[1]!]);
-    expect('pending' in player.pantheon).toBe(false);
-    expect(religionBlocker(player)).toBeNull();
+  it('spends one charge of two, and refuses a rite the realm has not learnt', () => {
+    const { g, player, prophet } = ready();
+    expect(prophet.chargesLeft).toBe(2);
+    expect(empireRiteError(g.state, 0, prophet.id, 'blessingOfArms')).toBe(
+      'Blessing of Arms is not known to Ada',
+    );
+    const done = empireRiteAt(g.state, player, prophet, 'omenReading');
+    expect(done.prophetSpent).toBe(false);
+    expect(playerById(g.state, 0)!.id).toBe(0);
+    expect(g.state.units.find((u) => u.id === prophet.id)!.chargesLeft).toBe(1);
   });
 
-  it('refuses every way it should, byte-identically', () => {
-    // **A seat with nothing to give back.** The first refusal, and the one a
-    // player meets before they have a pantheon at all.
-    const empty = ready();
-    expect(riteError(empty.g.state, 0, empty.augur.id, RECAST, undefined, GODS[0]!)).toMatch(
-      /no belief to give back/,
-    );
-
-    const { g, augur, player } = ready();
-    keep(g.state, 0, GODS[0]!);
-
-    // A belief the seat does not hold, and a missing one, are one sentence.
-    expect(riteError(g.state, 0, augur.id, RECAST, undefined, GODS[1]!)).toMatch(
-      /one of your own beliefs/,
-    );
-    expect(riteError(g.state, 0, augur.id, RECAST)).toMatch(/one of your own beliefs/);
-    expect(riteError(g.state, 0, augur.id, RECAST, undefined, 'notAGod')).toMatch(
-      /one of your own beliefs/,
-    );
-
-    // Every one of them leaves the state exactly as it was.
+  it('refuses a bank that cannot pay, byte-identically', () => {
+    const { g, player, prophet } = ready();
+    player.faithPool = 3;
     const before = snapshotState(g.state);
-    for (const belief of [undefined, GODS[1]!, 'notAGod']) {
-      expect(
-        applyCommand(g.state, {
-          type: 'performRite',
-          playerId: 0,
-          unitId: augur.id,
-          rite: RECAST,
-          belief,
-        } as Command).ok,
-      ).toBe(false);
-    }
-    expect(snapshotState(g.state)).toBe(before);
-
-    // **An offer already outstanding.** The augur's own gate, and it is the
-    // same sentence a second Consecrate gives.
-    dispatch(g, { type: 'performRite', playerId: 0, unitId: augur.id, rite: RECAST, belief: GODS[0]! } as Command);
-    const second = augurAt(g.state, 0, 5, 5);
-    keep(g.state, 0, GODS[1]!);
-    expect(riteError(g.state, 0, second.id, RECAST, undefined, GODS[1]!)).toMatch(
-      /waiting to be chosen/,
-    );
-    const held = snapshotState(g.state);
     expect(
       applyCommand(g.state, {
-        type: 'performRite',
+        type: 'empireRite',
         playerId: 0,
-        unitId: second.id,
-        rite: RECAST,
-        belief: GODS[1]!,
+        unitId: prophet.id,
+        rite: 'omenReading',
       } as Command).ok,
     ).toBe(false);
-    expect(snapshotState(g.state)).toBe(held);
-    expect(player.pantheon.pending!.givenBack).toBe(GODS[0]!);
+    expect(snapshotState(g.state)).toEqual(before);
+  });
+});
+
+// --- the apostle -------------------------------------------------------------
+
+describe('the apostle', () => {
+  function ready() {
+    const g = game();
+    learn(g.state, 0, 'divination', 'philosophy', 'theology');
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 1000;
+    const apostle = createUnit(g.state, 0, 'apostle', city.col, city.row);
+    return { g, city, player, apostle };
+  }
+
+  it('is on the roster with two charges, four movement and its own marker', () => {
+    const def = unitDef('apostle');
+    expect(def.charges).toBe(2);
+    expect(def.movement).toBe(4);
+    expect(def.category).toBe('civilian');
+    expect(def.proclaims).toBe(true);
+    expect(def.prophesies).toBeUndefined();
+    // Theology's own list names it, and only that node's.
+    expect(techDef('theology').unlocks.units ?? []).toContain('apostle');
   });
 
-  it('refuses a recast that could deal nothing, rather than opening a hand nobody can answer', () => {
-    // The deadlock this clause exists to prevent: an empty offer is a `pending`
-    // no `chooseBelief` can spend and no End Turn can clear.
-    const { g, augur } = ready();
-    for (const id of GODS) keep(g.state, 0, id);
-    expect(riteError(g.state, 0, augur.id, RECAST, undefined, GODS[0]!)).toMatch(
-      /no other beliefs left/,
+  it('proclaims at half a prophet’s weight, over six hexes', () => {
+    const { g, apostle } = ready();
+    const player = playerById(g.state, 0)!;
+    keep(g.state, 0, BELIEF_IDS[0]!);
+    foundReligion(g.state, player);
+    const preview = proclaimPreview(g.state, apostle.id)!;
+    expect(preview.range).toBe(RELIGION.apostle.proclaimRange);
+    expect(preview.lump).toBe(Math.floor((RULES.religion.bombLump * 50) / 100));
+    // The prophet's own figures are untouched by the apostle's share.
+    const prophet = createUnit(g.state, 0, 'prophet', apostle.col, apostle.row);
+    expect(proclaimPreview(g.state, prophet.id)!.lump).toBe(RULES.religion.bombLump);
+    expect(proclaimPreview(g.state, prophet.id)!.range).toBe(RULES.religion.bombRange);
+  });
+
+  it('lays on hands: mends every friendly piece on its hex and the six touching it', () => {
+    const { g, apostle } = ready();
+    const player = playerById(g.state, 0)!;
+    const beside = createUnit(g.state, 0, 'warrior', apostle.col + 1, apostle.row);
+    const far = createUnit(g.state, 0, 'warrior', apostle.col + 4, apostle.row);
+    beside.hp = 40;
+    far.hp = 40;
+    expect(healAdjacentError(g.state, 0, apostle.id)).toBeNull();
+    const done = healAdjacentAt(g.state, player, apostle);
+    expect(beside.hp).toBe(40 + RELIGION.apostle.heal);
+    expect(far.hp).toBe(40);
+    expect(done.units.some((row) => row.unitId === beside.id && row.healed === 25)).toBe(true);
+    // One charge of two.
+    expect(done.apostleSpent).toBe(false);
+    expect(g.state.units.find((u) => u.id === apostle.id)!.chargesLeft).toBe(1);
+  });
+
+  it('never mends past a piece’s own maximum', () => {
+    const { g, apostle } = ready();
+    const player = playerById(g.state, 0)!;
+    const whole = createUnit(g.state, 0, 'warrior', apostle.col, apostle.row);
+    healAdjacentAt(g.state, player, apostle);
+    expect(whole.hp).toBe(unitMaxHp(whole));
+  });
+
+  it('leaves a relic in a cathedral town, one per cathedral, paying faith a turn', () => {
+    const { g, city, player, apostle } = ready();
+    expect(placeRelicError(g.state, 0, apostle.id)).toBe(
+      `${city.name} has no cathedral to keep a relic in`,
     );
+    city.buildings.push('cathedral');
+    expect(placeRelicError(g.state, 0, apostle.id)).toBeNull();
+
+    const before = cityYields(g.state, city).faith;
+    const done = placeRelicAt(g.state, player, apostle);
+    expect(done.building).toBe('relic');
+    expect(city.buildings).toContain('relic');
+    expect(cityYields(g.state, city).faith).toBe(before + RELIGION.relicFaith);
+    // The row's own figure and the religion table's are one number.
+    expect(buildingDef('relic').faith).toBe(RELIGION.relicFaith);
+    // And a second one is refused.
+    const second = createUnit(g.state, 0, 'apostle', city.col, city.row);
+    expect(placeRelicError(g.state, 0, second.id)).toBe(`${city.name} already keeps a relic`);
   });
 
-  it('replays byte for byte', () => {
-    // The whole verb through the log alone: the give-back is a splice, the hand
-    // is dealt from `state.rng` at the moment the offer opens, and the pick
-    // names an index into it.
-    const play = () => {
-      const { g, augur } = ready(21);
-      keep(g.state, 0, GODS[0]!);
-      keep(g.state, 1, GODS[1]!);
-      dispatch(g, {
-        type: 'performRite',
-        playerId: 0,
-        unitId: augur.id,
-        rite: RECAST,
-        belief: GODS[0]!,
-      } as Command);
-      dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
-      return g;
-    };
-    const first = play();
-    const second = play();
-    expect(snapshotState(second.state)).toBe(snapshotState(first.state));
-    expect(playerById(first.state, 0)!.pantheon.beliefs).toHaveLength(1);
-    expect(playerById(first.state, 0)!.pantheon.beliefs[0]).not.toBe(GODS[0]!);
-    expect(playerById(first.state, 0)!.pantheon.beliefs[0]).not.toBe(GODS[1]!);
+  it('never builds and never buys the relic, and says so both ways', () => {
+    const { g, city } = ready();
+    expect(buildingDef('relic').placed).toBe(true);
+    expect(isUnlocked(g.state, 0, 'building', 'relic')).toBe(false);
+    expect(buildError(g.state, 0, 'building', 'relic')).toBe(
+      'Relic is neither built nor bought — it is placed',
+    );
+    expect(
+      purchaseError(g.state, 0, city.id, { kind: 'building', id: 'relic' }, 'gold'),
+    ).toBe('Relic is neither built nor bought — it is placed');
   });
 
-  it('is a rite the table itself calls a redraw, and pays no bucket', () => {
-    const def = riteDef(RECAST);
-    expect(def.redraws).toBe('pantheon');
-    expect(def.grant).toBeUndefined();
-    // The sentence a player reads is the row's own prose, not a second wording
-    // composed in the interface (hard rule 7).
-    expect(def.note).toBeTruthy();
-    const { g, augur } = ready();
-    expect(ritePreview(g.state, augur.id, RECAST)).toBe(def.note);
+  it('refuses a relic in somebody else’s town, byte-identically', () => {
+    const { g, apostle } = ready();
+    const theirs = found(g.state, 1);
+    theirs.buildings.push('cathedral');
+    apostle.col = theirs.col;
+    apostle.row = theirs.row;
+    const before = snapshotState(g.state);
+    expect(placeRelicError(g.state, 0, apostle.id)).toBe(
+      'A relic is left in one of your own cities',
+    );
+    expect(
+      applyCommand(g.state, { type: 'placeRelic', playerId: 0, unitId: apostle.id } as Command).ok,
+    ).toBe(false);
+    expect(snapshotState(g.state)).toEqual(before);
+  });
+
+  it('is refused every act when it is not an apostle, in the piece’s own words', () => {
+    const { g } = ready();
+    const worker = createUnit(g.state, 0, 'worker', 5, 5);
+    expect(healAdjacentError(g.state, 0, worker.id)).toBe('A Worker is no apostle');
+    expect(placeRelicError(g.state, 0, worker.id)).toBe('A Worker is no apostle');
   });
 });
 
 // --- timed effects ----------------------------------------------------------
 
 describe('timed effects', () => {
-  it('run out on the exact turn they name, and not the one before', () => {
+  /** A blessed town: the door, a library to count, and a full bank. */
+  function blessed() {
     const g = game();
     learn(g.state, 0, 'divination', 'earthenware', 'letters');
     const city = found(g.state, 0);
+    city.buildings.push('chapel');
+    playerById(g.state, 0)!.faithPool = 1000;
+    return { g, city };
+  }
+
+  it('run out on the exact turn they name, and not the one before', () => {
+    const { g, city } = blessed();
     city.buildings.push('library');
-    const augur = augurAt(g.state, 0, city.col, city.row);
     const bare = cityYields(g.state, city).science;
 
-    performRiteAt(g.state, playerById(g.state, 0)!, augur, 'omenReading');
+    performRiteAt(g.state, playerById(g.state, 0)!, city, 'omenReading');
     const expires = city.timed![0]!.expiresTurn;
-    expect(expires).toBe(g.state.turn + 20);
+    expect(expires).toBe(g.state.turn + 10);
 
     // Live on the last turn before the expiry…
     g.state.turn = expires - 1;
-    expect(cityYields(g.state, city).science).toBe(bare + 1);
+    expect(cityYields(g.state, city).science).toBe(bare + city.buildings.length);
     // …and inert on the expiry itself. A comparison, never a countdown.
     g.state.turn = expires;
     expect(cityYields(g.state, city).science).toBe(bare);
   });
 
   it('are swept without changing any answer — a broom, not a clock', () => {
-    const g = game();
-    learn(g.state, 0, 'divination', 'earthenware', 'letters');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    performRiteAt(g.state, playerById(g.state, 0)!, augur, 'omenReading');
+    const { g, city } = blessed();
+    performRiteAt(g.state, playerById(g.state, 0)!, city, 'omenReading');
     const expires = city.timed![0]!.expiresTurn;
 
     g.state.turn = expires;
@@ -1385,26 +970,21 @@ describe('timed effects', () => {
   });
 
   it('leave a still-live effect alone when the broom passes', () => {
-    const g = game();
-    learn(g.state, 0, 'divination', 'earthenware', 'letters');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    performRiteAt(g.state, playerById(g.state, 0)!, augur, 'omenReading');
+    const { g, city } = blessed();
+    performRiteAt(g.state, playerById(g.state, 0)!, city, 'omenReading');
     pruneTimedEffects(g.state);
     expect(city.timed).toHaveLength(1);
   });
 
   it('fold into the same lists a card does, never into a channel of their own', () => {
-    const g = game();
-    learn(g.state, 0, 'divination', 'earthenware', 'letters');
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
+    const { g, city } = blessed();
     const empireOnly = liveEffects(g.state, 0).length;
-    performRiteAt(g.state, playerById(g.state, 0)!, augur, 'omenReading');
+    const before = liveCityEffects(g.state, city).length;
+    performRiteAt(g.state, playerById(g.state, 0)!, city, 'omenReading');
     // The empire's own walk is unchanged — a rite is a fact about a town.
     expect(liveEffects(g.state, 0)).toHaveLength(empireOnly);
-    // And the city's walk is the empire's plus this one.
-    expect(liveCityEffects(g.state, city)).toHaveLength(empireOnly + 1);
+    // And the city's walk is what it was plus this one.
+    expect(liveCityEffects(g.state, city)).toHaveLength(before + 1);
   });
 });
 
@@ -1423,7 +1003,7 @@ describe('determinism', () => {
     applyCommand(g.state, { type: 'consecrate', playerId: 0, unitId: augur.id } as Command);
     applyCommand(g.state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
     applyCommand(g.state, {
-      type: 'performRite', playerId: 0, unitId: augur.id, rite: 'riteOfTheHarvest',
+      type: 'performRite', playerId: 0, cityId: city.id, rite: 'riteOfTheHarvest',
     } as Command);
     expect(snapshotState(g.state)).toEqual(before);
   });
@@ -1432,16 +1012,12 @@ describe('determinism', () => {
 // --- what the interface reads ----------------------------------------------
 
 describe('the panel’s reading', () => {
-  it('gives every rite a preview or an honest silence', () => {
-    const g = game();
-    learn(g.state, 0, ...RITE_IDS.map((id) => riteDef(id).tech));
-    const city = found(g.state, 0);
-    const augur = augurAt(g.state, 0, city.col, city.row);
-    createUnit(g.state, 0, 'warrior', city.col, city.row);
-    for (const id of RITE_IDS) {
-      const preview = ritePreview(g.state, augur.id, id);
+  it('gives every live rite a preview, and says how long it runs', () => {
+    for (const id of LIVE_RITE_IDS) {
+      const preview = ritePreview(id);
       expect(preview, id).not.toBeNull();
       expect(preview!.length, id).toBeGreaterThan(0);
+      expect(preview!, id).toContain('lasts 10 turns');
     }
   });
 
@@ -1587,7 +1163,9 @@ describe('The High Temple', () => {
     expect(def.prereqs).toEqual(['epicPoetry']);
     expect(def.unlocks.units ?? []).toContain('prophet');
     expect(def.unlocks.buildings ?? []).toContain('temple');
-    expect(def.unlocks.abilities ?? []).toContain('thePreaching');
+    // The Preaching went with the fewer-things pass: a prophet makes that noise
+    // now, and makes it louder.
+    expect(def.unlocks.abilities ?? []).not.toContain('thePreaching');
     // The great-person gate moved a rung DOWN the line on 2026-09-05 (the first
     // full playthrough: renown was answered too early, and the poets keeping
     // the roll of names reads better than the temple). `settleRenownWindfall`
@@ -2491,10 +2069,13 @@ describe('the prophet’s four verbs', () => {
     }
   });
 
-  it('is used up entirely by the founding — one charge, one deed', () => {
-    // Entry LVIII: a prophet carries one charge and founding spends the piece.
+  it('is used up entirely by the founding — both charges, one deed', () => {
+    // Two charges since the fewer-things pass, and the founding still takes the
+    // **whole** piece: the acts that settle what a faith is are what the price
+    // ladder poses a question about, and the two that merely spend its voice
+    // (a proclamation, a rite over the realm) take one charge each.
     const { g, prophet } = readyProphet();
-    expect(prophet.chargesLeft).toBe(1);
+    expect(prophet.chargesLeft).toBe(2);
     const result = applyCommand(g.state, {
       type: 'plantHolySite',
       playerId: 0,
@@ -2572,10 +2153,14 @@ describe('the prophet’s four verbs', () => {
     // The proclamation is an *act*, not a thing left on the board: what it did
     // comes back on the result and nothing on the religion records it.
     expect(spoke.ok && spoke.proclaimed?.religionId).toBe(religion.id);
-    // One charge, one deed: the piece is gone, so there is no second verb to
-    // refuse — the refusal is simply that there is no such unit.
-    expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
-    expect(proclaimError(g.state, 0, prophet.id)).toBe(`No unit with id ${prophet.id}`);
+    // **One charge of two**, so the prophet walks away — and its day goes with
+    // the charge, which is what stops a second proclamation on the same turn.
+    const left = g.state.units.find((u) => u.id === prophet.id)!;
+    expect(left.chargesLeft).toBe(1);
+    expect(left.movesLeft).toBe(0);
+    expect(proclaimError(g.state, 0, prophet.id)).toBe(
+      `Unit ${prophet.id} has no movement left`,
+    );
   });
 
   it('leaves the board when a proclamation takes its last charge', () => {
@@ -2674,34 +2259,19 @@ describe('the prophet’s four verbs', () => {
     expect(religion.enhancer.length).toBe(0);
   });
 
-  it('redrafts a pool, returns what it held, and never touches the pantheon', () => {
+  it('no longer redrafts a pool at all — the verb is gone from the union', () => {
+    // The redraft went with the fewer-things pass and the empire rite took its
+    // charge; an old log naming it is refused and changes nothing.
     const { g, prophet } = readyProphet();
-    const religion = faith(g.state, 0, 'starReaders');
-    religion.follower = ['feastDays'];
+    faith(g.state, 0, 'starReaders');
     const before = snapshotState(g.state);
     expect(applyCommand(g.state, {
       type: 'redraftBeliefs',
       playerId: 0,
       unitId: prophet.id,
-      pool: 'pantheon',
+      pool: 'follower',
     } as unknown as Command).ok).toBe(false);
     expect(snapshotState(g.state)).toBe(before);
-
-    applyCommand(g.state, {
-      type: 'redraftBeliefs',
-      playerId: 0,
-      unitId: prophet.id,
-      pool: 'follower',
-    } as Command);
-    expect(religion.follower).toEqual([]);
-    // One charge, one deed (Entry LVIII): a redraft takes the prophet too.
-    expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
-    const offer = playerById(g.state, 0)!.pantheon.pending!;
-    expect(offer.pool).toBe('follower');
-    // The belief given back is in the bag again — a declined god's rule.
-    expect(religionBeliefPool(religion, 'follower')).toContain('feastDays');
-    expect(playerById(g.state, 0)!.pantheon.beliefs).toEqual(['keeperOfTheHearth', 'starReaders']);
-    void offer;
   });
 
   it('plants nothing but a holy site, and lets nobody else plant one', () => {
@@ -2721,34 +2291,35 @@ describe('the prophet’s four verbs', () => {
     expect(improvementError(g.state, augur.id, 'farm')).toBe('A augur builds nothing');
   });
 
-  it('preaches: the augur’s rite presses the same lump out of a smaller purse', () => {
+  it('preaches: the apostle presses half the lump out of the same purse', () => {
     const g = game();
-    learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple');
+    learn(g.state, 0, 'divination', 'stonecraft', 'theHighTemple', 'philosophy', 'theology');
     const seat = found(g.state, 0);
-    seat.population = 5;
+    seat.population = 8;
     const religion = faith(g.state, 0);
-    const augur = augurAt(g.state, 0, seat.col, seat.row);
-    expect(availableRites(g.state, 0)).toContain('thePreaching');
-    expect(riteError(g.state, 0, augur.id, 'thePreaching')).toBeNull();
+    const apostle = createUnit(g.state, 0, 'apostle', seat.col, seat.row);
+    expect(proclaimError(g.state, 0, apostle.id)).toBeNull();
     const result = applyCommand(g.state, {
-      type: 'performRite',
+      type: 'proclaim',
       playerId: 0,
-      unitId: augur.id,
-      rite: 'thePreaching',
+      unitId: apostle.id,
     } as Command);
     expect(result.ok).toBe(true);
-    // 20 against 10 a convert: two citizens of five, which is not a majority —
-    // the cheap lever, and it is the *same* lever the prophet's charge pulls
-    // (`pressLump`), reported through the same field of the same result.
-    expect(seat.followers?.[religion.id]).toBe(2);
+    // Half of the prophet's sixty against ten a convert: three citizens of
+    // eight, which is not a majority — the cheap lever, and it is the *same*
+    // lever the prophet's charge pulls (`pressLump`), reported through the same
+    // field of the same result.
+    expect(seat.followers?.[religion.id]).toBe(3);
     expect(cityReligion(seat)).toBeNull();
     expect(result.ok && result.proclaimed?.cities).toContainEqual({
       cityId: seat.id,
-      converted: 2,
+      converted: 3,
       nowFollows: false,
     });
     // Nothing is left standing on the board.
     expect(seat.pressureBank).toBeUndefined();
+    // And one charge of two is gone: the apostle walks away.
+    expect(g.state.units.find((u) => u.id === apostle.id)!.chargesLeft).toBe(1);
   });
 });
 

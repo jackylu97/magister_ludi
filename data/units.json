@@ -619,6 +619,7 @@
       "cost": 0,
       "charges": 1,
       "consecrates": true,
+      "retired": true,
       "purchase": {
         "currency": "faith",
         "cost": 40,
@@ -640,7 +641,7 @@
       "maxHp": 100,
       "combatStrength": 0,
       "cost": 0,
-      "charges": 1,
+      "charges": 2,
       "prophesies": true,
       "purchase": {
         "currency": "faith",
@@ -654,6 +655,29 @@
       "minCityPop": 0,
       "modelClass": "worker",
       "glyph": "P"
+    },
+    "apostle": {
+      "name": "Apostle",
+      "category": "civilian",
+      "movement": 4,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 0,
+      "cost": 0,
+      "charges": 2,
+      "proclaims": true,
+      "purchase": {
+        "currency": "faith",
+        "cost": 90,
+        "increment": 40,
+        "exclusive": true,
+        "verb": "Call an apostle"
+      },
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "worker",
+      "glyph": "T"
     },
     "inquisitor": {
       "name": "Inquisitor",

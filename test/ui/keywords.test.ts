@@ -30,7 +30,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { ALL_BELIEF_IDS, RITE_IDS } from '../../src/sim/religionData';
-import { BUILDING_IDS } from '../../src/sim/buildingData';
+import { BUILDING_IDS, buildingDef, isBuildingId } from '../../src/sim/buildingData';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
 import { DOCTRINE_IDS, GOVERNMENT_IDS, ORDER_IDS } from '../../src/sim/statecraftData';
 import { describeCard, ref, stripRefs } from '../../src/sim/statecraft';
@@ -136,6 +136,12 @@ describe('what a describer marks', () => {
       compendiumSections().flatMap((section) => section.entries.map((entry) => entry.id)),
     );
     for (const id of EVERY_CARD) {
+      // **A withdrawn building is described nowhere** (batch D,
+      // `BuildingDef.retired`): the row is kept so a save replays and has no
+      // page, so its own self-scoped clause is a mark on no surface. Every
+      // *other* card is still swept, which is what catches a live row pointing
+      // at a withdrawn one.
+      if (isBuildingId(id) && buildingDef(id).retired === true) continue;
       for (const clause of describeCard(id)) {
         for (const [, kind, key] of clause.text.matchAll(/\[\[([a-zA-Z]+):([A-Za-z0-9_]+)\|/g)) {
           expect(known.has(`${kind}:${key}`), `${id} → ${kind}:${key}`).toBe(true);

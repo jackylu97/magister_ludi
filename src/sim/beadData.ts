@@ -565,16 +565,19 @@ export function anyBeadDef(
  *
  * Two sources, and only one of them is written down. A row may say so on its
  * own (`dormant`, the Engine); an **endeavour** may also be dormant *derived* —
- * its prerequisite names a building that is itself waiting on a technology
- * (`BuildingDef.awaitsTech`), so no empire could ever meet it. Deriving that
- * rather than flagging it is what makes deleting `awaitsTech` from a building
- * row the whole of shipping the endeavour that wanted it.
+ * its prerequisite names a building no empire can raise, either because the row
+ * is waiting on a technology (`BuildingDef.awaitsTech`) or because it has been
+ * withdrawn (`BuildingDef.retired`, the fewer-things cut). Deriving that rather
+ * than flagging it is what makes deleting `awaitsTech` from a building row the
+ * whole of shipping the endeavour that wanted it — and what makes a deed left
+ * pointing at a cut row a race nobody is dealt rather than a race nobody can
+ * finish.
  */
 export function beadIsDormant(id: BeadCardId): boolean {
   const { kind, def } = anyBeadDef(id);
   if (def.dormant !== undefined) return true;
   if (kind !== 'endeavour') return false;
-  return prerequisiteAwaitsTech((def as BeadEndeavourDef).prerequisite);
+  return prerequisiteUnreachable((def as BeadEndeavourDef).prerequisite);
 }
 
 /** The building a prerequisite names, or `null`. Read by the dormancy rule. */
@@ -584,10 +587,11 @@ export function prerequisiteBuilding(prerequisite: BeadPrerequisite): BuildingId
   return null;
 }
 
-function prerequisiteAwaitsTech(prerequisite: BeadPrerequisite): boolean {
+function prerequisiteUnreachable(prerequisite: BeadPrerequisite): boolean {
   const building = prerequisiteBuilding(prerequisite);
   if (building === null) return false;
-  return buildingDef(building).awaitsTech === true;
+  const def = buildingDef(building);
+  return def.awaitsTech === true || def.retired === true;
 }
 
 /**

@@ -177,9 +177,11 @@ describe('a meter knock-on', () => {
    */
   it('is its own kind, named for the meter that moved', () => {
     const { state, city } = bench();
-    // Scenery: three houses of contentment, so the empire sits just below the
-    // tier rather than far under it. The card is the subject, not the buildings.
-    city.buildings.push('funeralGames', 'baths', 'circusMaximus');
+    // Scenery: houses of contentment, so the empire sits just below the tier
+    // rather than far under it, and a Library so there is a beaker for the tier
+    // to take a share of — the base beaker halved in batch D, and ten percent of
+    // a floored six is nothing. The card is the subject, not the buildings.
+    city.buildings.push('cathedral', 'hallOfDeeds', 'circusMaximus', 'library');
     refreshCityDerived(state, city);
     const lines = explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays' });
     const knock = lines.filter((line) => line.kind === 'knockOn');
@@ -291,7 +293,7 @@ describe('a card that pays a meter', () => {
    */
   it('keeps the points it paid apart from the yield they unlocked', () => {
     const { state, city } = bench();
-    city.buildings.push('funeralGames', 'baths', 'circusMaximus');
+    city.buildings.push('cathedral', 'hallOfDeeds', 'circusMaximus', 'library');
     refreshCityDerived(state, city);
     const lines = explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays' });
     const meter = lines.filter((line) => line.kind === 'meter');

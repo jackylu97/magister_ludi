@@ -678,8 +678,12 @@ describe('packChart', () => {
       { bow: 16, from: 'shipwrights', to: 'paperMoney' },
       { bow: 16, from: 'kingship', to: 'theExaminationHall' },
       // Stone Walls (item 13) made Siegecraft's card a row taller, which
-      // re-packed column 6 and flipped this bow back below Theology's stack.
-      { bow: -16, from: 'philosophy', to: 'theology' },
+      // re-packed column 6 and flipped this bow back below Theology's stack —
+      // and batch D flipped it over again for the same kind of reason: the
+      // buildings cut took the Monastery off Theology's face and the
+      // Examination Hall off its own, so the middle stacks pack differently and
+      // the connector clears from above. Same three bows, one of them mirrored.
+      { bow: 16, from: 'philosophy', to: 'theology' },
     ]);
   });
 

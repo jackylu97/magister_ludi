@@ -76,10 +76,13 @@ describe('techGifts', () => {
     // catapult and the composite bowman the pruned Construction used to carry,
     // and then Petra — a wonder is an ordinary building on the list. The
     // library's renewal used to sort after all three; it was struck by the
-    // renewals axe (2026-09-04), so the node is three gifts rather than four.
+    // renewals axe (2026-09-04). Batch D put the **Caravanserai** on the node
+    // as the age's route hub (`docs/tech-gifts.md` §7), so it is four gifts
+    // again and the two buildings still sort behind the two pieces.
     expect(techGifts('mathematics').map((gift) => gift.kind)).toEqual([
       'unit',
       'unit',
+      'building',
       'building',
     ]);
     // Engineering took Construction's works: four buildings, the Circus Maximus
@@ -360,20 +363,22 @@ describe('an ability names its bearer', () => {
     }
   });
 
-  it('files the rites under the augur and the crossings under who may cross', () => {
+  it('files the rites under the city and the crossings under who may cross', () => {
     // The rows the mislabelling was actually about. Named here rather than
     // derived, because "which of these is a rite" is a design fact about the
     // religion pass and not something the table can be asked.
+    // **The bearer is the city** since the rites became city verbs (2026-09-06):
+    // the tech card says "Your cities may", which is the one thing that changed
+    // about every rite in the table at once. The two withdrawn rites are no
+    // longer abilities at all, which is why they are not in this list.
     for (const rite of [
       'riteOfTheHarvest',
-      'recastingTheOmens',
       'omenReading',
       'consecrationOfTheBounds',
       'blessingOfArms',
-      'thePreaching',
       'riteOfPlenty',
     ] as const) {
-      expect(abilityDef(rite).bearer, rite).toBe('augur');
+      expect(abilityDef(rite).bearer, rite).toBe('city');
     }
     // The two crossings are the pair the tree deliberately splits: civilians at
     // Sailing, soldiers at Wayfinding. A heading that filed the second under the

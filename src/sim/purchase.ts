@@ -535,6 +535,19 @@ export function purchaseError(
   if (bought.kind === 'building' && buildingDef(bought.id).awaitsTech === true) {
     return `${name} waits on a technology this age has not reached`;
   }
+  // **A row a building's shelf never carried and never will**: a relic is left
+  // by an act (`BuildingDef.placed`), so this bank would otherwise sell one for
+  // nothing at all — its cost is zero. `buildError`'s matching sentence.
+  if (bought.kind === 'building' && buildingDef(bought.id).placed === true) {
+    return `${name} is neither built nor bought — it is placed`;
+  }
+  // **And some rows are withdrawn.** The augur's row is kept so a save holding
+  // one replays; its own bank is what has to stop selling, because a
+  // `purchase.exclusive` row is otherwise sold by exactly this function and by
+  // nothing else. `buildError`'s matching sentence, one table over.
+  if (bought.kind === 'unit' && unitDef(bought.id).retired === true) {
+    return `A ${name} is no longer called`;
+  }
 
   const bank = rosterBank(bought);
   if (bank !== undefined && bank !== currency) {

@@ -128,9 +128,15 @@ describe('the shelves', () => {
     // Buildings and wonders come off **one** table and are two shelves: a
     // wonder is a flag on a building row, not a second roster, so the two
     // together must be the whole of it and neither may be empty.
-    const wonders = BUILDING_IDS.filter(isWonder);
+    // **A withdrawn row has no page** (batch D, `BuildingDef.retired`): the
+    // twelve rows the fewer-things cut took off the buildable set keep their
+    // data so a save replays and leave the book, so the count is the table less
+    // them. Read off the marker rather than off a list of names, so the day a
+    // thirteenth is cut this line still holds.
+    const live = BUILDING_IDS.filter((id) => buildingDef(id).retired !== true);
+    const wonders = live.filter(isWonder);
     expect(shelf('wonder').entries).toHaveLength(wonders.length + LEAD);
-    expect(shelf('building').entries).toHaveLength(BUILDING_IDS.length - wonders.length + LEAD);
+    expect(shelf('building').entries).toHaveLength(live.length - wonders.length + LEAD);
     expect(shelf('building').entries.length).toBeGreaterThan(LEAD);
     expect(shelf('wonder').entries.length).toBeGreaterThan(LEAD);
   });
@@ -743,6 +749,59 @@ describe('never hand-written prose about a number', () => {
     expect(concept).not.toMatch(/\d/);
   });
 
+  /**
+   * **The chain, on the shelf** (batch D, `docs/fewer-things.md` §2). A row that
+   * wants a parent standing says so where the site requirement says its own
+   * thing — both answer "where may I put one", one about the ground and one
+   * about what is on it — and it says it off the field, so the tenth chain and
+   * the eleventh both print without a line here.
+   */
+  it('prints the parent a chained building wants, and only for a chained one', () => {
+    const chained = BUILDING_IDS.filter((id) => buildingDef(id).requiresBuilding !== undefined);
+    expect(chained.length).toBeGreaterThan(0);
+    for (const id of chained) {
+      const entry = everyEntry().find((row) => row.id === `building:${id}`)!;
+      const needs = entry.rows.find((row) => row.label === 'Needs standing here');
+      expect(needs, id).toBeDefined();
+      expect(needs!.figures, id).toBe(buildingDef(buildingDef(id).requiresBuilding!).name);
+    }
+    const plain = everyEntry().find((row) => row.id === 'building:library')!;
+    expect(plain.rows.some((row) => row.label === 'Needs standing here')).toBe(false);
+  });
+
+  /**
+   * **A withdrawn row has no page, and a granted one says so.** The two markers
+   * the cut is built out of, read on the shelf: `retired` takes the entry away
+   * entirely, and `grantedOnly` keeps it and tells a reader why they will never
+   * see it on a build list.
+   */
+  it('drops a withdrawn building and explains a granted one', () => {
+    const withdrawn = BUILDING_IDS.filter((id) => buildingDef(id).retired === true);
+    expect(withdrawn.length).toBeGreaterThan(0);
+    for (const id of withdrawn) {
+      expect(everyEntry().find((row) => row.id === `building:${id}`), id).toBeUndefined();
+    }
+    const granted = BUILDING_IDS.filter((id) => buildingDef(id).grantedOnly === true);
+    expect(granted.length).toBeGreaterThan(0);
+    for (const id of granted) {
+      const entry = everyEntry().find((row) => row.id === `building:${id}`)!;
+      const prose = entry.clauses.map((clause) => clause.text).join(' ');
+      expect(prose, id).toContain('cannot be built or bought');
+    }
+  });
+
+  /** Every unique says it is one to a realm, off the marker the capstones wear. */
+  it('says of each unique building that a realm holds only one', () => {
+    const uniques = BUILDING_IDS.filter((id) => buildingDef(id).oncePerEmpire === true);
+    expect(uniques.length).toBeGreaterThan(0);
+    for (const id of uniques) {
+      const entry = everyEntry().find((row) => row.id === `building:${id}`);
+      if (entry === undefined) continue; // the Opus and the great works shelve elsewhere
+      const prose = entry.clauses.map((clause) => clause.text).join(' ');
+      expect(prose, id).toContain('only one of these');
+    }
+  });
+
   it('says which end of a trade route is read and which end is paid', () => {
     // The one sentence on this page that reads just as plausibly backwards, and
     // it *was* backwards until the user's reversal of 2026-08-27 (`trade.ts`,
@@ -947,6 +1006,9 @@ describe('a building carries its own later gifts', () => {
    */
   it('leads a building’s clauses with the simulation’s reading of the row', () => {
     for (const id of BUILDING_IDS) {
+      // A withdrawn row has no page at all (batch D) — the claim is about the
+      // pages that exist.
+      if (buildingDef(id).retired === true) continue;
       const entry = everyEntry().find(
         (row) => row.id === compendiumId(isWonder(id) ? 'wonder' : 'building', id),
       );

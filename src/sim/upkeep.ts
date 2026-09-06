@@ -40,7 +40,12 @@
  *
  * And one exemption on the *piece*: `Unit.freeUpkeep`, which says "this empire
  * never paid for this". See its docblock in `state.ts` for the register of the
- * seams that write it.
+ * seams that write it. Beside it, and deliberately **not** an exemption at all,
+ * `Unit.upkeepRebate` — what the town that raised a piece forgives it (the
+ * Imperial Throne's). A rebate is a give-back line in `explainUnitUpkeepRebate`
+ * below, never a discount on the gross, so the ledger says what the army costs
+ * and then what the Throne forgives, and the creditors keep picking the dearest
+ * piece by what it truly costs.
  *
  * A building pays iff it feeds the renown bucket
  * ----------------------------------------------
@@ -63,7 +68,7 @@
  */
 
 import { BUILDING_UNLOCK_TECH, UNIT_UNLOCK_TECH, techDef } from './techData';
-import { type BuildingId, buildingDef } from './buildingData';
+import { BUILDING_IDS, type BuildingId, buildingDef } from './buildingData';
 import { type UnitTypeId, isCivilian, isExplorer, trades, unitDef } from './unitData';
 import { RULES } from './rulesData';
 // Salt's Æra III shilling a soldier, read through the one luxury evaluator. It
@@ -242,13 +247,34 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
   const gross = unitUpkeepTotal(state, playerId);
   if (gross <= 0) return [];
   const out: UpkeepLine[] = [];
+  // **The birthplace's bargain, before the empire's law** — the Imperial
+  // Throne's shilling off every piece the town that holds it raised
+  // (`Unit.upkeepRebate`, stamped in `realiseItem`). First because it is the
+  // most particular of the three: a fact about *this piece*, agreed on the day
+  // it was made, where the law and the salt are facts about the realm this turn
+  // and may both be gone next year. One line rather than one per soldier, and
+  // labelled with the row that promised it — the rows are read off the table
+  // rather than off the board, so a Throne razed since does not leave the ledger
+  // with an unexplained give-back.
+  let given = 0;
+  let birth = 0;
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    const rebate = unit.upkeepRebate ?? 0;
+    if (rebate <= 0) continue;
+    birth += Math.min(rebate, unitUpkeepOf(unit));
+  }
+  if (birth > 0) {
+    const share = Math.min(birth, gross);
+    given += share;
+    out.push({ source: upkeepRebateRowWords(), gold: share });
+  }
   // **The flat half first** — a figure per soldier, counted off the pieces
   // themselves (`cardUpkeepRebateLines`, which owns the card reading and takes
   // the price from here so the arrow between the two modules stays one-way).
   // Before the percentage because that is the order a player reads them: the
   // quartermasters shave a shilling off each man, and *then* the law takes its
   // share of what is left. Both are clamped against the same gross below.
-  let given = 0;
   for (const flat of cardUpkeepRebateLines(state, playerId, unitUpkeepOf)) {
     const share = Math.min(flat.gold, gross - given);
     if (share <= 0) break;
@@ -287,6 +313,22 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
     out.push({ source: line.source, gold: share });
   }
   return out;
+}
+
+/**
+ * The name on the birthplace rebate's line — every row in the table that
+ * forgives its town's soldiers, joined.
+ *
+ * Read off `BUILDING_IDS` rather than off the board, and that is the whole
+ * point: the stamp on the piece is permanent (`Unit.upkeepRebate`), so a Throne
+ * razed since would leave the ledger with a give-back nothing on the board
+ * explained. The table always can.
+ */
+function upkeepRebateRowWords(): string {
+  const names = BUILDING_IDS.filter((id) => (buildingDef(id).unitUpkeepRebate ?? 0) > 0).map(
+    (id) => buildingDef(id).name,
+  );
+  return names.length === 0 ? 'Where they were raised' : names.join(' · ');
 }
 
 /** The fold of `explainBuildingUpkeep`, positive. The only sum of one. */

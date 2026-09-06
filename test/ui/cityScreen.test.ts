@@ -416,6 +416,33 @@ describe('the city mode', () => {
   });
 
   /**
+   * **The rites are the town's verb** (`docs/fewer-things.md` §3, ruled
+   * 2026-09-06).
+   *
+   * The user's complaint about the augur was an errand, so the errand went and
+   * this sheet is where a rite is said now. Three halves, each a rule one local
+   * edit undoes: the rows are the *simulation's* (`riteOptions` carries every
+   * blocker), the button is disabled with exactly that blocker, and the whole
+   * shelf is absent from a panel built without a board — this suite builds one.
+   */
+  it('offers the rites on the town’s own sheet, greyed with the sim’s sentence', () => {
+    const rail = fn('cityPanel.ts', 'renderTownRail');
+    expect(rail).toContain("disclosure('Rites'");
+    // The summary figure is the turns left on the one it holds, which is the
+    // only number a player wants without opening the shelf.
+    expect(rail).toContain('cityRiteTurnsLeft(state, city)');
+    const rites = fn('cityPanel.ts', 'renderRites');
+    // Every row is the sim's: nothing here names a rite or composes a refusal.
+    expect(rites).toContain('riteOptions(city.id)');
+    expect(rites).toContain('button.disabled = row.blocked !== null;');
+    expect(rites).toContain('performRite(city.id, row.id)');
+    expect(rites).toContain('row.requiredTechName');
+    expect(rites).not.toContain('omenReading');
+    // Optional, like the trade button: a panel with no board is still a panel.
+    expect(rites).toContain('if (!riteOptions || !performRite) return null;');
+  });
+
+  /**
    * **A cathedral's patron is printed after the toast, and printed once**
    * (playthrough note 21). The roll lands on `City.consecration`, is announced
    * as it happens, and the announcement scrolls away; the Built row is where a
@@ -636,6 +663,26 @@ describe('the build list', () => {
       const def = unitDef(id);
       expect(def.greatWork === true || isPurchaseOnly({ kind: 'unit', id }), id).toBe(true);
     }
+  });
+
+  /**
+   * **The chain's own sentence, on the row** (batch D, `docs/fewer-things.md`
+   * §2). A chained building is *greyed*, not hidden — the reason is the whole
+   * point of it, because "raise a Library and this opens" is the decision the
+   * chain exists to create. Read from the source, like every other claim in this
+   * describe: the greying is the reducer's own sentence, and the row would look
+   * perfectly fine printing a stale one.
+   */
+  it('greys a chained row with the reducer’s own sentence, and never hides it', () => {
+    const panel = source('cityPanel.ts');
+    // The sentence comes from `buildError` and nowhere else — no second copy of
+    // "needs a Library" lives in the interface.
+    expect(panel).toContain("const blocked = buildError(state, city.ownerId, 'building', id, city)");
+    expect(panel).not.toContain('requiresBuilding');
+    // And the two rows the panel *does* hide are the two whose refusal can never
+    // be acted on: withdrawn, and granted-only.
+    expect(panel).toContain("if (buildingDef(id).retired === true) continue;");
+    expect(panel).toContain("if (buildingDef(id).grantedOnly === true) continue;");
   });
 
   it('drops a superseded row from the list rather than greying it', () => {

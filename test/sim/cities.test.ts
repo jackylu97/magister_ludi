@@ -1517,7 +1517,10 @@ describe('city yields', () => {
       food: CITIES.baseCityYields.food + 2,
       production: CITIES.baseCityYields.production,
       gold: CITIES.baseCityYields.gold + CITIES.palaceGold,
-      science: CITIES.sciencePerPop,
+      // The base beaker is half a citizen's since the fewer-things pass
+      // (`docs/balance-turn.md` §4b), and it is floored like every other
+      // per-citizen line — a town of one banks nothing from it.
+      science: Math.floor(city.population * CITIES.sciencePerPop),
       culture: CITIES.baseCulturePerCity,
       faith: 0,
     });
@@ -1537,7 +1540,11 @@ describe('city yields', () => {
     expect(small.food).toBe(CITIES.baseCityYields.food + granary.food);
     // The population's own beaker, plus both of the library's terms — the flat
     // one and the per-citizen one, floored on its own.
-    expect(small.science).toBe(1 + library.science + Math.floor(1 * library.sciencePerPop));
+    expect(small.science).toBe(
+      Math.floor(1 * CITIES.sciencePerPop) +
+        library.science +
+        Math.floor(1 * library.sciencePerPop),
+    );
 
     city.population = 4;
     assignCitizens(state, city);
@@ -1546,7 +1553,12 @@ describe('city yields', () => {
     // then the empire's percentage applied once to the sum.
     const factor = yieldFactor(meterEffects(state, city.ownerId), 'science');
     expect(cityYields(state, city).science).toBe(
-      Math.floor((4 + library.science + Math.floor(4 * library.sciencePerPop)) * factor),
+      Math.floor(
+        (Math.floor(4 * CITIES.sciencePerPop) +
+          library.science +
+          Math.floor(4 * library.sciencePerPop)) *
+          factor,
+      ),
     );
   });
 
@@ -3130,7 +3142,9 @@ describe('the turn pipeline over a live empire', () => {
     collectYields(state);
     const player = state.players[0]!;
     expect(city.hammerBasket).toBeGreaterThan(0);
-    expect(player.sciencePool).toBe(CITIES.sciencePerPop);
+    // Floored per source: a town of one citizen banks nothing from the base
+    // beaker since it halved (`docs/balance-turn.md` §4b).
+    expect(player.sciencePool).toBe(Math.floor(city.population * CITIES.sciencePerPop));
     expect(player.culturePool).toBe(CITIES.baseCulturePerCity);
     expect(city.culture).toBe(CITIES.baseCulturePerCity);
     expect(player.gold).toBeGreaterThanOrEqual(0);
@@ -3223,7 +3237,11 @@ describe('determinism with cities', () => {
     // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
     // names indices into hands this build does not deal.
     // 71 since batch C1 (2026-09-06): the dice leave; the faith ladder and the reroll arrive.
-    expect(SCHEMA_VERSION).toBe(71);
+    // 73 since batch D (2026-09-06): the buildings cut with chains — twelve
+    // ordinary rows withdrawn, five uniques added, the chain field, the
+    // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
+    // landed the rites beside it on the same day.
+    expect(SCHEMA_VERSION).toBe(74);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

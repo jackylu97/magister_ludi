@@ -18,17 +18,43 @@ effect evaluator). Draft history and superseded designs: git and
   redrafted.
 - Cap: `maxReligions` = ⌈2/3 × real players⌉.
 
-## The clergy (all one-shot)
+## The clergy (schema 74)
 
-| Unit | Called with | Act |
+| Unit | Called with | Acts |
 |---|---|---|
-| **Augur** (Divination) | faith ladder 40 +15 | ONE charge: a consecration OR one rite; the act is its whole turn (`augurHasActed`). May plant nothing. **Retiring in batch C2** — the faith ladder below deals the consecration now. |
-| **Prophet** (The High Temple) | faith ladder 120 +60, own ladder | ONE charge. First prophet: `plantHolySite` founds the religion + raises the holy site + opens the founding drafts. Later prophets: one belief rung each (`gainBelief`, pool by `nextBeliefPool`'s ladder — followers to 3, then enhancers to 2; enhancers gated on Theology). `redraftBeliefs` kept (flagged in `docs/flags.md`). |
+| **Augur** | — | **Retired** (`UnitDef.retired`, row kept for replay). Its rites are a town's verbs and its consecration the faith ladder's; `buildError`, `purchaseError` and `consecrateError` all refuse it. |
+| **Prophet** (The High Temple) | faith ladder 120 +60, own ladder | **TWO charges.** Both, whole: `plantHolySite` (founds the religion, raises the site, opens the founding drafts) · `gainBelief` (one belief rung, pool by `nextBeliefPool` — followers to 3, then enhancers to 2, enhancers gated on Theology). One charge each: `proclaim` · `empireRite` (one of the five city rites said over **every** town at once, one price). |
+| **Apostle** (Theology) | faith ladder 90 +40 | **TWO charges**, movement 4, marker `proclaims`. One charge each: `proclaim` at half a prophet's lump within 6 hexes · `healAdjacent` (25 to every friendly piece on its hex and the six touching it) · `placeRelic` (one per town holding a cathedral). |
 | **Inquisitor** (The Holy Office) | flat 200 faith | Purge: a negative lump vs rival pressure (range 5, `purgeLump` 60; unconverted go to **nobody**) + a standing +2 adjacency aura (the general-aura twin). |
 
-`spendProphet` is the only spender; `plantingHandOf` says who may plant what
-(worker → improvements, great person → its family's work, prophet → the holy
-site, augur → nothing).
+`spendProphet` spends a whole piece and `spendCharge` spends one; which an act
+uses is the whole of the two-charge rule. `plantingHandOf` says who may plant
+what (worker → improvements, great person → its family's work, prophet → the
+holy site, augur and apostle → nothing).
+
+## Rites (schema 74)
+
+A rite is a **city's verb**: `performRite {cityId, rite}`. The town must hold the
+door (a row carrying `ritesDoor` — the Chapel), the empire must have been taught
+the rite (`ABILITY_TECH`, the same five nodes), the town must not already be
+keeping one (`cityRite`, derived off `City.timed` — the seal *is* the ten turns),
+and the bank must cover `religion.rite.costByAge` for the empire's age
+(**40 · 56 · 72 · 90** — the faith ladder's rungs read by age).
+
+Five rows, ten turns each, **pure blessing** — no instant grant anywhere:
+food (+1🌾 on every hex that feeds) · gold (+1💰 on seams) · science (+1🔬 per
+building here) · culture (+1🎵 on luxuries, +30% border growth) · military
+(+5 defence; the heal half is `deferred`).
+
+Recasting the Omens and The Preaching are `retired: true` — rows kept, abilities
+gone from the tree.
+
+## The relic
+
+A **building** (`BuildingDef.placed`): never built, never bought, left by an
+apostle in a town that has topped out a cathedral, one per town. Pays
+`religion.relicFaith` (3🕯) a turn through the ordinary building fold, and
+follows the stones on a capture.
 
 ## The faith ladder (schema 71)
 
@@ -112,16 +138,16 @@ Pressure sources (`explainPressure`, rule-5 list; numbers in
   taken on the way in (same `templeShare` as the tide), banked then converted
   on the spot. Reports `CommandResult.proclaimed`; previews via
   `proclaimPreview`. A bomb converts; a holy site keeps.
-- **The Preaching** (augur rite): the same act at range 4 / lump 20 (numbers
-  on the rite's own row).
+- **Proclaim** (apostle charge): the same act at `apostle.proclaimRange` 6 and
+  `apostle.proclaimPercent` 50 — a *share* of whatever a prophet's lump is worth
+  today, so a retune moves both together.
 - **Purge** (inquisitor): the negative lump; converts to nobody.
 
 ## Buildings & wonders
 
 - Temple: the defensive building (no combat) — doubles own pressure, cuts
   foreign to 75%.
-- The High Temple (tech): prophet + Temple + third pantheon slot + The
-  Preaching. (The great-person offer gate, `ancestorRites`, moved to Epic
+- The High Temple (tech): prophet + Temple + third pantheon slot. (The great-person offer gate, `ancestorRites`, moved to Epic
   Poetry on 2026-09-05 — renown answered too early, and the poets read better.)
 - Cathedral: 340⚙, contributions, five consecrations (`docs/design-notes.md`).
 - Reliquary (The Holy Office): opens faith purchases for units

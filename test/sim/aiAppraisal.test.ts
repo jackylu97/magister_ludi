@@ -1348,16 +1348,21 @@ describe('the tech chain', () => {
     // printed `× switchMargin` term on it, and whether it survives is exactly
     // whether the leader beat it by that much.
     //
-    // The seat is handed Sailing AND Currency before the table is taken, and
-    // that is the fixture rather than an aside: on a blank bench Sailing
-    // outscores the tree two to one, and with only it held Currency runs away
-    // in turn (the 2026-09-05 retune widened every natural race past the
-    // margin). With both held the top of the table is a real race — Writing
-    // and Divination inside two percent of each other, which keeps the plan,
-    // and several nodes well behind, which do not.
+    // The seat is handed Sailing, Currency **and Divination** before the table
+    // is taken, and that is the fixture rather than an aside: on a blank bench
+    // Sailing outscores the tree two to one, and with only it held Currency runs
+    // away in turn (the 2026-09-05 retune widened every natural race past the
+    // margin). Divination joined the three on 2026-09-06 (batch D): with the
+    // Library's beaker halved and the Shrine's cut, Writing collapsed and
+    // Divination ran away alone, so the near-tie the claim needs moved one row
+    // down the table. With all three held the top is a real race again — Bronze
+    // Panoply and Wayfinding inside two percent of each other, which keeps the
+    // plan, and several nodes well behind, which do not.
     const { state, player } = chained(3, 'sailing');
-    for (const step of researchExpansion(state, 0, 'currency')) {
-      if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+    for (const tech of ['currency', 'divination'] as const) {
+      for (const step of researchExpansion(state, 0, tech)) {
+        if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+      }
     }
     const opening = decisionOfType(state, 0, 'chooseResearch');
     expect(opening).not.toBeNull();

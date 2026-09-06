@@ -237,6 +237,11 @@ describe('tech data integrity', () => {
       // instead of asking this map, exactly as it asks the cards for the
       // Gilded Hall.
       if (buildingDef(id).worldUnlockTech !== undefined) continue;
+      // **And the fifth, the placed row** (2026-09-06): a relic is left in a
+      // town by an apostle, so it hangs on no node, no card and no bank —
+      // `isUnlocked` answers `false` for it outright and `buildError` says why.
+      // See `BuildingDef.placed`.
+      if (buildingDef(id).placed === true) continue;
       expect(BUILDING_UNLOCK_TECH.has(id), id).toBe(true);
     }
   });
@@ -734,7 +739,11 @@ describe('advanceResearch', () => {
 
   it('banks science for a player who has chosen nothing', () => {
     const state = flatState();
-    plant(state, 0, 8, 5);
+    // **Two citizens, since the base beaker halved** (`docs/balance-turn.md`
+    // §4b, batch D): the rate is half a beaker a citizen and it is floored per
+    // town like every other per-citizen line, so a hamlet of one banks nothing
+    // at all. That is the ruled number and this fixture is about the banking.
+    plant(state, 0, 8, 5).population = 2;
     for (let turn = 0; turn < 5; turn++) endRound(state);
     expect(state.players[0]!.sciencePool).toBeGreaterThan(0);
     expect(state.players[0]!.researching).toBe(null);
@@ -755,7 +764,8 @@ describe('advanceResearch', () => {
   it('runs inside the turn pipeline, on the science banked that same turn', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
-    city.population = techDef('fletching').cost + 5; // a great many scientists
+    // Half a beaker a citizen since batch D, so twice the crowd.
+    city.population = techDef('fletching').cost * 2 + 5; // a great many scientists
     applyCommand(state, choose(0, 'fletching'));
 
     endRound(state);
@@ -1290,7 +1300,11 @@ describe('research in the log', () => {
     // v71 (2026-09-06, faith's currency): Chronology stops paying a die of the
     // Magister for every age its holder enters — the dice are gone from the
     // game — and carries the faith reroll's door instead.
-    expect(SCHEMA_VERSION).toBe(71);
+    // 73 since batch D (2026-09-06): the buildings cut with chains — twelve
+    // ordinary rows withdrawn, five uniques added, the chain field, the
+    // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
+    // landed the rites beside it on the same day.
+    expect(SCHEMA_VERSION).toBe(74);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1551,6 +1565,10 @@ describe('the research queue', () => {
   it('schedules the plan cumulatively, one technology per turn at the floor', () => {
     const game = researchingGame();
     const state = game.state;
+    // A capital with citizens in it: at half a beaker each and a floor per town
+    // (batch D), a hamlet of one researches nothing at all and every step of
+    // the plan would honestly answer "never".
+    for (const city of state.cities) city.population = 12;
     expect(applyCommand(state, queue(0, 'bronzePanoply', 'replace'))).toEqual({ ok: true });
     const steps = queueTurns(state, 0);
     expect(steps.map((step) => step.techId)).toEqual(researchPlan(state.players[0]!));
@@ -1742,9 +1760,10 @@ describe('the shape of the tree', () => {
     // two empires may write into a bargain (schema 57). Pinned by name rather
     // than by "none", so a rite re-homed here would still fail this line.
     expect(techDef('letters').unlocks.abilities).toEqual(['openBorders']);
+    // Two, not three: Recasting the Omens is withdrawn and its ability has left
+    // the tree with the row (the fewer-things pass, 2026-09-06).
     expect(techDef('divination').unlocks.abilities).toEqual([
       'riteOfTheHarvest',
-      'recastingTheOmens',
       'omenReading',
     ]);
     // The one row the restoration did *not* hand back, because it did not exist
@@ -1755,6 +1774,31 @@ describe('the shape of the tree', () => {
     for (const id of TECH_IDS) {
       for (const prereq of techDef(id).prereqs) expect(isTechId(prereq), `${id} → ${prereq}`).toBe(true);
     }
+  });
+
+  /**
+   * **The five uniques sit on the five nodes the gift table names**
+   * (`docs/tech-gifts.md` §7, batch D). One per node, each `oncePerEmpire`, and
+   * the Caravanserai moved down two ages from The Golden Roads to Mathematics —
+   * a hub is a decision about *where*, and the age of trade is where the
+   * decision belongs.
+   */
+  it('puts each unique building on its own node, and one of them nowhere else', () => {
+    const homes: Record<string, string> = {
+      heroicEpic: 'epicPoetry',
+      imperialThrone: 'kingship',
+      highTemple: 'theHighTemple',
+      forum: 'philosophy',
+      caravanserai: 'mathematics',
+    };
+    for (const [building, node] of Object.entries(homes)) {
+      expect(BUILDING_UNLOCK_TECH.get(building as never), building).toBe(node);
+      expect(techDef(node as never).unlocks.buildings, node).toContain(building);
+      expect(buildingDef(building as never).oncePerEmpire, building).toBe(true);
+    }
+    // The Golden Roads kept its caravan rider and lost its building; re-gifting
+    // it is the tree batch's.
+    expect(techDef('theSilkRoad').unlocks.buildings ?? []).toEqual([]);
   });
 
   it("re-homes Drama's rows on Epic Poetry, and hangs Theology off The High Temple", () => {

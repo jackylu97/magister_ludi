@@ -472,11 +472,15 @@ describe('authority: what a city costs', () => {
   });
 
   /**
-   * Capacity an empire *built*, which is the Age I rework's addition to the
-   * writ: a monument raises it by one.
+   * Capacity an empire *built*: an Assembly Hall raises it.
+   *
+   * **The Monument's writ is cut** (batch D, `docs/balance-turn.md` §4g — Entry
+   * LIV: the writ becomes a card decision, and the universal culture row is the
+   * one building that was selling it to everybody). So the subject here is a row
+   * a player chose, which is what the line was always meant to be about.
    *
    * What is under test is the data-drivenness rather than the number. Nothing in
-   * `meters.ts` names the monument — the line is grown from whichever buildings
+   * `meters.ts` names any building — the line is grown from whichever buildings
    * declare an `authorityCapacity` — so the assertions are written off
    * `buildingDef` and a second such building would need no code at all.
    */
@@ -484,7 +488,7 @@ describe('authority: what a city costs', () => {
     const state = flatState();
     const first = foundCityAt(state, 0, at(state.map, 4, 4));
     const second = foundCityAt(state, 0, at(state.map, 10, 4));
-    const monument = buildingDef('monument');
+    const monument = buildingDef('assemblyHall');
     const capacity = monument.authorityCapacity!;
     const bare = meterStanding(explainAuthority(state, 0)).gain;
 
@@ -492,16 +496,16 @@ describe('authority: what a city costs', () => {
     // everything the player has not done.
     expect(lineFor(explainAuthority(state, 0), monument.name)).toBeUndefined();
 
-    first.buildings.push('monument');
+    first.buildings.push('assemblyHall');
     expect(lineFor(explainAuthority(state, 0), monument.name)).toBe(capacity);
     expect(meterStanding(explainAuthority(state, 0)).gain).toBe(bare + capacity);
 
     // Two of them are one line that counts them, not two lines.
-    second.buildings.push('monument');
+    second.buildings.push('assemblyHall');
     const entries = explainAuthority(state, 0);
     const named = entries.filter((entry) => entry.source.includes(monument.name));
     expect(named).toHaveLength(1);
-    expect(named[0]!.source).toBe(`Monuments ×2`);
+    expect(named[0]!.source).toBe(`Assembly Halls ×2`);
     expect(named[0]!.value).toBe(2 * capacity);
     expect(meterStanding(entries).gain).toBe(bare + 2 * capacity);
 
@@ -521,23 +525,25 @@ describe('authority: what a city costs', () => {
   it('grows the same line for a second building that declares capacity', () => {
     const state = flatState();
     const city = foundCityAt(state, 0, at(state.map, 4, 4));
-    const stele = buildingDef('steleOfLaws');
+    // The Imperial Throne, one of batch D's five uniques: five writ for the
+    // whole realm, and the whole of that landing was two fields on a JSON row.
+    const stele = buildingDef('imperialThrone');
     const capacity = stele.authorityCapacity!;
     expect(capacity, 'the row declares one').toBeGreaterThan(0);
     const bare = meterStanding(explainAuthority(state, 0)).gain;
 
-    city.buildings.push('steleOfLaws');
+    city.buildings.push('imperialThrone');
     expect(lineFor(explainAuthority(state, 0), stele.name)).toBe(capacity);
     expect(meterStanding(explainAuthority(state, 0)).gain).toBe(bare + capacity);
 
     // Two kinds of building are two lines, each counting its own type — which is
-    // what makes "Monuments ×3" a reading of the monuments rather than of the
+    // what makes "Assembly Halls ×3" a reading of the halls rather than of the
     // whole shelf.
-    city.buildings.push('monument');
+    city.buildings.push('assemblyHall');
     const entries = explainAuthority(state, 0);
     expect(lineFor(entries, stele.name)).toBe(capacity);
-    expect(lineFor(entries, buildingDef('monument').name)).toBe(
-      buildingDef('monument').authorityCapacity!,
+    expect(lineFor(entries, buildingDef('assemblyHall').name)).toBe(
+      buildingDef('assemblyHall').authorityCapacity!,
     );
   });
 
@@ -916,7 +922,11 @@ describe('a captured city, end to end', () => {
     // their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
     // names indices into hands this build does not deal.
     // 71 since batch C1 (2026-09-06): the dice leave; the faith ladder and the reroll arrive.
-    expect(SCHEMA_VERSION).toBe(71);
+    // 73 since batch D (2026-09-06): the buildings cut with chains — twelve
+    // ordinary rows withdrawn, five uniques added, the chain field, the
+    // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
+    // landed the rites beside it on the same day.
+    expect(SCHEMA_VERSION).toBe(74);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

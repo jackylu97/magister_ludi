@@ -176,7 +176,7 @@
       "family": "culture",
       "prerequisite": {
         "test": "buildingInEveryCity",
-        "building": "funeralGames"
+        "building": "amphitheater"
       },
       "boon": {
         "effects": [
@@ -187,7 +187,7 @@
         ]
       },
       "flavor": "The whole world comes to watch, and forgets to fight.",
-      "text": "A race. Needs funeral games in every city. The first empire to finish keeps a lasting step of contentment."
+      "text": "A race. Needs an amphitheater in every city. The first empire to finish keeps a lasting step of contentment."
     },
     "theGrandCaravan": {
       "name": "The Grand Caravan",
@@ -279,7 +279,7 @@
       "family": "economic",
       "prerequisite": {
         "test": "buildingInEveryCity",
-        "building": "mint"
+        "building": "bank"
       },
       "boon": {
         "windfall": {
@@ -289,7 +289,7 @@
         }
       },
       "flavor": "A coin is a promise that everyone has agreed to keep.",
-      "text": "A race. Needs a mint in every city. The first empire to finish banks a great sum of gold.",
+      "text": "A race. Needs a bank in every city. The first empire to finish banks a great sum of gold.",
       "deferred": [
         "Cheaper purchases for a spell — a timed empire effect the boon vocabulary does not carry."
       ]
@@ -301,7 +301,7 @@
       "family": "domination",
       "prerequisite": {
         "test": "buildingsInCities",
-        "building": "armoury",
+        "building": "forge",
         "cities": 3
       },
       "boon": {
@@ -317,7 +317,7 @@
         ]
       },
       "flavor": "Every spear counted, every spear sharpened.",
-      "text": "A race. Needs an armoury in three cities. The first empire to finish fights a little harder ever after."
+      "text": "A race. Needs a forge in three cities. The first empire to finish fights a little harder ever after."
     },
     "theExposition": {
       "name": "The Exposition",

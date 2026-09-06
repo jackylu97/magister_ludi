@@ -118,7 +118,7 @@
       "production": 2,
       "gold": 0
     },
-    "sciencePerPop": 1,
+    "sciencePerPop": 0.5,
     "baseCulturePerCity": 1,
     "palaceGold": 2,
     "borderCostBase": 5,

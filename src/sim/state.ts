@@ -1348,8 +1348,88 @@ import {
  *     (`dice`) and the rules (`startingDice`), two joined
  *     (`PlayerStatecraft.rerollsTaken`, `PlayerPantheon.rungs`), and a retired
  *     Order changes every Government III draw from the same seed.
+ *
+ * v73: **buildings with chains** (ruled 2026-09-06, `docs/fewer-things.md` §2 and
+ * `docs/tech-gifts.md` §7; the batch is `docs/fewer-things-plan.md` D). The
+ * ordinary building list was thirty-eight rows of which most were a flat with a
+ * different name. It is twenty-six, ten of them behind a parent.
+ *
+ *   · **`BuildingDef.requiresBuilding`** — a parent that must stand in the same
+ *     town, refused in `buildError` (and therefore in `purchaseError`) and shown
+ *     on the add-list row and the Compendium entry. Ten chains: Palisade → Stone
+ *     Walls → Castle · Monument → Amphitheater · Market → Bazaar, Bank ·
+ *     Harbour → Shipyard · Library → University → Observatory · Workshop → Forge
+ *     · Shrine → Temple. A **grant ignores the chain** — neither `realiseItem`'s
+ *     completion grants nor `cardFoundingRider`'s founding list asks `buildError`.
+ *   · **Twelve rows leave the buildable set.** Ten wear `BuildingDef.retired`
+ *     (Funeral Games, the Stele of Laws, the Monastery, the Baths, the
+ *     Examination Hall, the Clocktower, the Reliquary, the Mint, the Armoury,
+ *     the Printing House); the Forum and the Caravanserai are **re-cut in place**
+ *     as two of the five uniques. The Town Charter is `grantedOnly` — Daughter
+ *     Cities' founding rider was already the only honest way to get one. Every
+ *     row stays in the table so a save that raised one still replays, and a copy
+ *     already standing keeps paying.
+ *   · **Five unique buildings** (`oncePerEmpire`), each on its node and each at
+ *     about half its age's wonder: the Heroic Epic (Epic Poetry), the Imperial
+ *     Throne (Kingship), the High Temple (The High Temple), the Forum
+ *     (Philosophy) and the Caravanserai (Mathematics). Three new `BuildingId`s.
+ *   · **`Unit.upkeepRebate`** — the Throne's placement half, stamped in
+ *     `realiseItem` off the town's own buildings and read as a give-back line in
+ *     `explainUnitUpkeepRebate`. Not `freeUpkeep`: a partial rebate on a piece
+ *     the empire did pay for.
+ *   · **The science cut** (`docs/balance-turn.md` §4b): `rules.cities.sciencePerPop`
+ *     1 → 0.5 and the Library's own line 1 → 0.5, with the −25% of §4a on the
+ *     ordinary flats that survive as flats.
+ *   · **Three bead deeds re-aimed** off cut rows — The Great Games to the
+ *     Amphitheater, The Mint to the Bank, The Muster of the Realm to the Forge.
+ *
+ *     The migration note: a v72 save does not load. One field joined the unit
+ *     (`upkeepRebate`), three joined the building table, `data/buildings.json`
+ *     re-prices eleven rows and adds three, and three endeavours name different
+ *     buildings — so a v72 log replays into a different board from the first
+ *     turn a town finishes anything.
+ *
+ * v74: **rites, prophets, the apostle** (ruled 2026-09-06, `docs/fewer-things.md`
+ * §3 and §6.3; the batch is `docs/fewer-things-plan.md` C2 — which the plan
+ * numbered 72 and which lands here because the buildings batch reached `main`
+ * first; the numbers are a sequence, not a name). The user's own complaint about
+ * the augur — *"i never wanted to invest in my chapel because i was so far ahead
+ * and didnt want to waste time paying for augurs and using them in my cities"* —
+ * is a complaint about an **errand**, so the errand goes and the season stays.
+ *
+ *   · **A rite is a city's verb.** `performRite` names a `cityId` where it named
+ *     a `unitId`, a hex and a belief; the town must hold a row carrying
+ *     `ritesDoor` (the Chapel), must not already be keeping one, and the price
+ *     is the faith ladder's rung for the age (`RELIGION.rite.costByAge`, 40 · 56
+ *     · 72 · 90). The five surviving rows are reworked to ten turns of pure
+ *     blessing — there is no instant grant left anywhere — and the two that no
+ *     longer fit (Recasting the Omens, The Preaching) are **retired**, rows kept
+ *     for replay, with their two abilities gone from `AbilityId` and from the
+ *     tree.
+ *   · **The augur is retired** (`UnitDef.retired`, the row kept): `buildError`
+ *     and `purchaseError` refuse it and `consecrateError` always refuses, so the
+ *     verb survives for an old log and the piece is never made again. The
+ *     pantheon belief that counted charged augurs is renamed **The Vigil** and
+ *     its effect deferred until a city condition can ask "is a rite live here".
+ *   · **The prophet carries two charges again.** Founding and drawing a belief
+ *     take the whole piece; a proclamation and the new **empire rite** —
+ *     `empireRite`, one of the five said over every town at once for one price —
+ *     take one each. `redraftBeliefs` is gone from the union.
+ *   · **The apostle** joins the roster at Theology: two charges, four movement,
+ *     `proclaims` its marker, and three acts of a charge each — `proclaim` at
+ *     half a prophet's lump within six hexes, `healAdjacent`, and `placeRelic`.
+ *   · **The relic is a building** (`BuildingDef.placed`, the `relic` row): never
+ *     built, never bought, one per town that has topped out a cathedral, paying
+ *     `RELIGION.relicFaith` a turn through the ordinary building fold and
+ *     following the stones on a capture.
+ *
+ *     The migration note: a v73 save does not load. The rites' rows changed
+ *     shape and duration, two abilities left the tree, the prophet's charge
+ *     count changed, and a unit type joined the roster — so a v73 log replayed
+ *     against this table would perform different rites for different lengths
+ *     with different pieces.
  */
-export const SCHEMA_VERSION = 71;
+export const SCHEMA_VERSION = 74;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2281,6 +2361,34 @@ export interface Unit {
    * occasions, not as an exception to "capture touches nothing else".
    */
   freeUpkeep?: true;
+  /**
+   * **Gold a turn the town that raised this piece forgives it**, or the key is
+   * absent — which it is for every unit not born under an Imperial Throne
+   * (`BuildingDef.unitUpkeepRebate`, `docs/tech-gifts.md` §7).
+   *
+   * `freeUpkeep`'s **partial** cousin and deliberately a number rather than a
+   * second flag: that one says the empire never paid for the piece at all and is
+   * written at five named seams, and this says the empire paid for it in a town
+   * that keeps its own soldiers cheaply. A flag would have made the Throne a way
+   * to field a free army; a number is a discount a ledger can print.
+   *
+   * Presence is the state, `freeUpkeep`'s convention for the tenth time: a
+   * warrior raised before the Throne stood and one raised after it must
+   * serialise differently in kind, and a game with no Throne in it serialises
+   * exactly as it did before this field existed.
+   *
+   * **Written in one place**, `realiseItem` (`cities.ts`), off the buildings
+   * standing in the town at the moment the piece is raised — a completion and a
+   * purchase both, because both are pieces the town made. It is never rewritten:
+   * the stamp is a fact about a *moment*, exactly as `unitStamp` is, so a Throne
+   * razed next year does not put the legion back on full pay and a captured
+   * piece carries its birthplace's bargain to its new flag.
+   *
+   * Read in one place, `explainUnitUpkeepRebate` (`upkeep.ts`), as a labelled
+   * give-back line — never subtracted from the gross, so the creditors' sweep
+   * (`disbandCandidate`) still picks the dearest piece by what it truly costs.
+   */
+  upkeepRebate?: number;
   /**
    * What this empire's **law** was worth to this piece on the day it was made —
    * or the key is **absent**, which it is for every unit born under a council

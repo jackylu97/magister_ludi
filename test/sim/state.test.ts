@@ -687,7 +687,11 @@ describe('the research queue field', () => {
     // an Order draft (`PlayerStatecraft.rerollsTaken`). Two fields left the
     // player and two joined, and a retired row changes every Government III
     // draw, so a v70 log names indices into hands this build does not deal.
-    expect(SCHEMA_VERSION).toBe(71);
+    // 73 since batch D (2026-09-06): the buildings cut with chains — twelve
+    // ordinary rows withdrawn, five uniques added, the chain field, the
+    // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
+    // landed the rites beside it on the same day.
+    expect(SCHEMA_VERSION).toBe(74);
   });
 });
 

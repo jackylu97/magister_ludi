@@ -29,8 +29,8 @@ import {
   foundReligion,
   gainBeliefError,
   plantHolySiteError,
+  empireRiteError,
   proclaimError,
-  redraftError,
   religionBeliefPool,
 } from '../../src/sim/religion';
 import {
@@ -308,7 +308,7 @@ describe('the religious agents’ sheet', () => {
       'plantHolySiteError(state, localPlayerId, unit.id)',
       'gainBeliefError(state, localPlayerId, unit.id)',
       'proclaimError(state, localPlayerId, unit.id)',
-      'redraftError(state, localPlayerId, unit.id, pool)',
+      'empireRiteError(state, localPlayerId, unit.id, id)',
       'purgeError(state, localPlayerId, unit.id)',
     ]) {
       expect(`${gate}: ${rows.includes(gate)}`).toBe(`${gate}: true`);
@@ -317,16 +317,18 @@ describe('the religious agents’ sheet', () => {
 
   it('asks the seat’s own question in front of every one of them', () => {
     // `chopBlocker`'s split: this client's question first, the act's delegated
-    // whole. Four prophet rows plus the redraft's two sub-rows, plus the
-    // inquisitor's one — every row, one `ended ??`.
-    expect(rows.match(/ended \?\?/g) ?? []).toHaveLength(6);
+    // whole. Four prophet rows plus the empire rite's own sub-rows, the
+    // apostle's three and the inquisitor's one — every row, one `ended ??`.
+    expect(rows.match(/ended \?\?/g) ?? []).toHaveLength(9);
   });
 
   it('is offered only to the two agents, and asked of the markers rather than names', () => {
     expect(rows).toContain('isInquisitor(unit)');
+    expect(rows).toContain('isApostle(unit)');
     expect(rows).toContain('!isProphet(unit)');
     expect(sourceOf('controls.ts')).not.toContain("'prophet'");
     expect(sourceOf('controls.ts')).not.toContain("'inquisitor'");
+    expect(sourceOf('controls.ts')).not.toContain("'apostle'");
   });
 
   it('says the planting founds, and says it always', () => {
@@ -357,17 +359,21 @@ describe('the religious agents’ sheet', () => {
     expect(AGENT_PRICE_WORD.prophet).toBe('Uses the prophet');
     expect(AGENT_PRICE_WORD.inquisitor).toBe('Uses the inquisitor');
     expect(rows).toContain('const price = AGENT_PRICE_WORD.prophet;');
-    expect((rows.match(/cost: price,/g) ?? []).length).toBe(4);
+    // **Two words, because a prophet has two charges and two kinds of act**: the
+    // two that settle what a faith is take the whole piece, the two that spend
+    // its voice take one charge each.
+    expect((rows.match(/cost: price,/g) ?? []).length).toBe(2);
+    expect((rows.match(/cost: charge,/g) ?? []).length).toBe(5);
     expect(rows).toContain('cost: AGENT_PRICE_WORD.inquisitor,');
-    // Driven: one charge on the roster is what makes the one word true.
-    expect(unitDef('prophet').charges).toBe(1);
-    expect(unitDef('augur').charges).toBe(1);
+    // Driven: the charge counts on the roster are what make the words true.
+    expect(unitDef('prophet').charges).toBe(2);
+    expect(unitDef('apostle').charges).toBe(2);
     expect(unitDef('inquisitor').charges).toBe(1);
   });
 
-  it('gives Redraft one sub-row per pool, each with its own refusal', () => {
-    expect(rows).toContain('RELIGION_BELIEF_POOLS.map');
-    expect(rows).toContain('POOL_WORD[pool].name');
+  it('gives the empire rite one sub-row per rite, each with its own refusal', () => {
+    expect(rows).toContain('taught.map');
+    expect(rows).toContain('riteDef(id).name');
   });
 
   it('is the sim’s own refusal a prophet with no religion reads', () => {
@@ -379,8 +385,11 @@ describe('the religious agents’ sheet', () => {
       'You have founded no religion to teach',
     );
     expect(proclaimError(state, 0, prophet.id)).toBe('You have founded no religion to proclaim');
-    expect(redraftError(state, 0, prophet.id, 'follower')).toBe(
-      'You have founded no religion to redraft',
+    // The empire rite refuses on the rite rather than on the faith: it is a
+    // town's blessing said over a realm, and a realm with no religion may still
+    // say one.
+    expect(empireRiteError(state, 0, prophet.id, 'riteOfTheHarvest')).toContain(
+      'Rite of the Harvest is not known to',
     );
     // And planting reaches the founding refusals, which is the design: all three
     // meet the player at the ground rather than in a gate nothing asks.
@@ -405,9 +414,9 @@ describe('the religious agents’ sheet', () => {
 
   it('is the panel’s own list, drawn as rows and greyed with what it carries', () => {
     const sheet = fn('unitPanel.ts', 'actionsFor');
-    expect(sheet).toContain('isProphet(unit) || isInquisitor(unit)');
+    expect(sheet).toContain('isProphet(unit) || isApostle(unit) || isInquisitor(unit)');
     expect(sheet).toContain('prophetRows()');
-    expect(sheet).toContain('blocked: pool.blocked');
+    expect(sheet).toContain('blocked: rite.blocked');
     expect(sheet).toContain('blocked: row.blocked');
     // And a prophet is excused the worker's six improvement rows and the axe:
     // `plantingHandOf` gives it the holy site and nothing else.
@@ -890,18 +899,18 @@ describe('the Compendium’s religion rows', () => {
  * them invents a second wording — the sentence is the data row's `note`, printed
  * everywhere and composed nowhere.
  */
-describe('the rite that recasts a pantheon', () => {
+describe('the two withdrawn rites', () => {
   const RECAST = 'recastingTheOmens' as const;
   const def = riteDef(RECAST);
 
-  it('pays no bucket, so the grant words are empty rather than wrong', () => {
+  it('hangs nothing, so the length words are empty rather than wrong', () => {
     expect(riteGrantWords(RECAST)).toBe('');
-    // Every other rite still has its figure — the arm is a redraw's, not a
-    // regression in the describer.
-    expect(riteGrantWords('riteOfTheHarvest')).toContain('population');
+    // Every live rite still says how long it runs — the arm is a withdrawn
+    // row's, not a regression in the describer.
+    expect(riteGrantWords('riteOfTheHarvest')).toBe('Kept for 10 turns');
   });
 
-  it('shelves in the Compendium with its sentence and no crash on a missing grant', () => {
+  it('shelves in the Compendium as withdrawn, with the row’s own sentence', () => {
     const book = compendiumSections();
     const row = book.flatMap((section) => section.entries).find((e) => e.id === `rite:${RECAST}`);
     expect(row).toBeDefined();
@@ -909,54 +918,28 @@ describe('the rite that recasts a pantheon', () => {
     const clauses = row!.clauses.map((clause) => clause.text);
     // The row's own prose, printed — not a sentence composed here.
     expect(clauses).toContain(def.note);
-    // Its `target: 'here'` is the shape for "no hex", and the shelf says what it
-    // actually acts on rather than telling a reader to walk somewhere.
-    const performedOn = row!.rows.find((line) => line.label === 'Performed on');
-    expect(performedOn?.figures).toBe('your pantheon');
+    const performedBy = row!.rows.find((line) => line.label === 'Performed by');
+    expect(performedBy?.figures).toBe('nobody — withdrawn');
     // No digits in the sentence a player reads (hard rule 7).
     expect(def.note ?? '').not.toMatch(/[0-9]/);
   });
 
-  it('says both halves of the rule in plain words', () => {
-    expect(def.note).toContain('Give back one of your beliefs and choose another');
-    expect(def.note).toContain('A belief another empire keeps is never offered');
+  it('says what happened to it, in plain words and with no identifier', () => {
+    expect(def.retired).toBe(true);
+    expect(def.note).toContain('Withdrawn');
+    expect(riteDef('thePreaching').retired).toBe(true);
+    expect(riteDef('thePreaching').note).toContain('Withdrawn');
   });
 
-  it('is asked for a god before it is dispatched, and only when there is a question', () => {
-    // The sheet cannot supply *which* god, so `main.ts` asks — through
-    // `recastChoices`, which is empty for every rite that gives nothing back, and
-    // only when the pantheon holds more than one. A single god is not a question.
-    const wiring = sourceOf('main.ts');
-    expect(wiring).toContain('controls.recastChoices(id)');
-    expect(wiring).toContain('if (held.length > 1)');
-    expect(wiring).toContain('controls.performRite(id, held[0])');
-    // The picker hands the pick straight to the command.
-    const picker = fn('main.ts', 'showGiveBackPicker');
-    expect(picker).toContain("eyebrow: 'give back'");
-    expect(picker).toContain("title: 'Which belief do you give back?'");
-    expect(picker).toContain('held.map');
-    expect(picker).toContain('describeCard(id)');
-    expect(picker).toContain('AXIS_MARK[def.axis].glyph');
-    // A question, not an irreversible choice: the heavy frame belongs to the
-    // card that follows it.
-    expect(picker).not.toContain("weight: 'heavy'");
-  });
-
-  it('gives the offer that follows a wording of its own', () => {
-    // `BeliefOffer.givenBack` is the offer's own answer, so the card does not
-    // have to know which rite opened it.
-    const offer = fn('main.ts', 'showReligionOffer');
-    expect(offer).toContain('offer.givenBack !== undefined');
-    expect(offer).toContain("'Name what your people keep instead'");
-  });
-
-  it('reaches the offer card through the one seam every other draft uses', () => {
-    // Never a second path from "a hand was dealt" to "the card is on screen".
-    const performRite = fn('controls.ts', 'performRite');
-    expect(performRite).toContain('onOfferReligion?.()');
-    expect(performRite).toContain('pantheon.pending');
-    // Asked of the state, not of which rite was pressed.
-    expect(performRite).not.toContain('recastingTheOmens');
+  it('shelves a live rite as the city’s own verb', () => {
+    const book = compendiumSections();
+    const row = book
+      .flatMap((section) => section.entries)
+      .find((e) => e.id === 'rite:omenReading')!;
+    expect(row.rows.find((line) => line.label === 'Performed by')?.figures).toBe(
+      'a city with a chapel',
+    );
+    expect(row.rows.find((line) => line.label === 'Duration')?.figures).toContain('10');
   });
 });
 
@@ -1041,10 +1024,13 @@ describe('the faith lens', () => {
   });
 });
 
-describe('the pool words the two screens share', () => {
-  it('is one table, read by the sheet and by the prophet’s Redraft rows', () => {
+describe('the pool words', () => {
+  it('are one table, read by the Religion screen', () => {
+    // The sheet stopped reading them when Redraft went (2026-09-06): the empire
+    // rite names a *rite*, not a pool. The table stays because the screen still
+    // prints a house's name beside its rung.
     expect(POOL_WORD.follower.name).toBe('follower belief');
     expect(POOL_WORD.enhancer.name).toBe('enhancer belief');
-    expect(sourceOf('controls.ts')).toContain("import { POOL_WORD } from './religionScreen'");
+    expect(sourceOf('controls.ts')).not.toContain("import { POOL_WORD }");
   });
 });

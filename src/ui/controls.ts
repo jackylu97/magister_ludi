@@ -253,19 +253,22 @@ import {
   unitById,
 } from '../sim/state';
 import {
+  availableRites,
   consecrateError,
+  empireRiteError,
   gainBeliefError,
-  isAugur,
+  healAdjacentError,
+  healAdjacentPreview,
+  isApostle,
   isInquisitor,
   isProphet,
+  placeRelicError,
   plantHolySiteError,
   proclaimError,
   purgeError,
-  redraftError,
-  ritePreview,
-  riteCityTarget,
+  riteCostFor,
   riteError,
-  riteUnitTarget,
+  ritePreview,
 } from '../sim/religion';
 import {
   type ProclamationReport,
@@ -274,11 +277,8 @@ import {
   purgePreview,
 } from '../sim/religion';
 import {
-  type BeliefId,
-  type ReligionBeliefPool,
   type RiteId,
-  RELIGION_BELIEF_POOLS,
-  RITE_IDS,
+  LIVE_RITE_IDS,
   riteAbility,
   riteDef,
 } from '../sim/religionData';
@@ -335,7 +335,6 @@ import {
   createReligionWatcher,
   createSightingWatcher,
 } from './notifications';
-import { POOL_WORD } from './religionScreen';
 import {
   NO_ROUTE_CAPACITY,
   type RouteReading,
@@ -393,55 +392,40 @@ export function moveModeNotice(movesLeft: number): string {
 
 /**
  * What a rite that has just been performed is announced as: "✶ Omen Reading at
- * Uruk · +15 science · 20 turns of blessing".
+ * Uruk · Every building standing in this city adds a little learning · lasts 10
+ * turns".
  *
  * The user found the hole (playtest, 2026-08-27: "there should be some
- * indication after performing a rite"). A rite is the quietest expensive thing
- * in the game — one of three charges on a unit bought outright from the faith
- * bank — and the only sign it had worked was a number changing somewhere else
- * on the screen.
- *
- * **Asked of the state before the command, and that is the whole of it.** A rite
- * spends a charge, may empty the augur and take it off the board, and lands its
- * grant on a town chosen by where the piece is standing — so "the augur, the
- * town, and what it did" is a sentence only the moment *before* can answer.
- * `commit`'s caravan snapshot and `unitSnapshot` are the same rule; this is the
- * third occasion of it.
+ * indication after performing a rite"). A rite was the quietest expensive thing
+ * in the game and the only sign it had worked was a number changing somewhere
+ * else on the screen; it is a town's own verb now and costs a season of faith,
+ * which makes the sentence more necessary rather than less.
  *
  * Every word is the simulation's own. `ritePreview` is exactly what the rite's
- * row on the augur's sheet promised in this same position (the same call
+ * row on the city's sheet promised in this same position (the same call
  * `riteOptions` makes), so what the player was offered and what the Chamberlain
  * reports back are one string by construction rather than by agreement.
- * `describeCard` is the fallback for a rite whose grant the preview has nothing
- * to say about — a card's printed text, which is the other place a rite's effect
- * is already written down. Composing a third sentence out of the performance
- * report would be a second description of what a rite does.
+ * `describeCard` is the fallback for a row whose text is silent — a card's
+ * printed clauses, which is the other place a rite's effect is already written
+ * down. Composing a third sentence out of the performance report would be a
+ * second description of what a rite does.
  *
  * Module-level and pure so it can be asserted without a browser: this suite has
  * no jsdom, and a sentence is exactly the kind of thing that is quietly wrong.
  */
-export function riteSentence(state: GameState, unit: Unit, id: RiteId): string {
+export function riteSentence(state: GameState, city: City, id: RiteId): string {
   const def = riteDef(id);
-  // Where it lands, in the words every other surface names a town in. A rite
-  // aimed at a piece names the piece; one that can find neither names neither,
-  // rather than inventing a place.
-  const city = def.target === 'city' ? riteCityTarget(state, unit) : null;
-  const blessed = def.target === 'unit' ? riteUnitTarget(state, unit) : null;
-  const where = city
-    ? ` at ${cityDisplayName(state, city)}`
-    : blessed
-      ? ` over the ${unitDef(blessed.type).name.toLowerCase()}`
-      : '';
+  const where = ` at ${cityDisplayName(state, city)}`;
   const payoff =
-    ritePreview(state, unit.id, id) ??
+    ritePreview(id) ??
     describeCard(id)
       .filter((clause) => clause.deferred !== true)
       // **Stripped**: this sentence is announced — the chronicle line and a
       // toast — and a toast pans the camera on click, so nothing in it may be a
       // keyword. `stripRefs` is the plain reading of exactly the same words.
       .map((clause) => stripRefs(clause.text))
-      .join(' · ');
-  return payoff.length > 0 ? `✶ ${def.name}${where} · ${payoff}` : `✶ ${def.name}${where}`;
+      .join(' \u00b7 ');
+  return payoff.length > 0 ? `\u2736 ${def.name}${where} \u00b7 ${payoff}` : `\u2736 ${def.name}${where}`;
 }
 
 /** And while the city screen's Buy Tiles mode is up. */
@@ -561,10 +545,12 @@ export interface RiteOption {
   name: string;
   /** Why it cannot be performed, or `null`. The reducer's own sentence. */
   blocked: string | null;
-  /** What it would do, in one line — "+1 pop to Uruk". `ritePreview`'s. */
+  /** What it would do, in one line. `ritePreview`'s. */
   preview: string | null;
   /** The technology a greyed row is waiting on, or `null`. */
   requiredTechName: string | null;
+  /** What it asks of the faith bank, in the age this empire stands in. */
+  cost: number;
 }
 
 /**
@@ -587,7 +573,11 @@ export type ProphetVerb =
   | 'plantHolySite'
   | 'gainBelief'
   | 'proclaim'
-  | 'redraftBeliefs'
+  | 'empireRite'
+  // The apostle's two, which ride this list for the Purge's reason exactly: a
+  // greyable, blocker-carrying row is a `ProphetRow` whoever is standing on it.
+  | 'healAdjacent'
+  | 'placeRelic'
   | 'purge';
 
 /**
@@ -598,12 +588,11 @@ export type ProphetVerb =
  * offered row is a command the reducer takes and a greyed one carries the
  * reducer's own sentence.
  *
- * `pools` is the one thing no other verb on that sheet has. Redraft names a
- * **pool** as well as a piece, and the two are refused separately — a religion
- * holding a follower belief and no enhancer may give back the first and not the
- * second — so the row carries one sub-row per pool, each with its own blocker
- * out of `redraftError`. Absent on the other three verbs, which name nothing but
- * the piece.
+ * `rites` is the one thing no other verb on that sheet has. A rite said over the
+ * realm names a **rite** as well as a piece, and each is refused separately — an
+ * empire may know two of the five — so the row carries one sub-row per rite it
+ * has been taught, each with its own blocker out of `empireRiteError`. Absent on
+ * every other verb, which names nothing but the piece.
  */
 export interface ProphetRow {
   verb: ProphetVerb;
@@ -626,8 +615,15 @@ export interface ProphetRow {
    * thing your faith buys" is the fact a player is deciding against.
    */
   cost: string;
-  /** Redraft's two sub-rows, or absent. */
-  pools?: ProphetPoolRow[];
+  /** The empire rite's sub-rows, one per rite this realm knows, or absent. */
+  rites?: ProphetRiteRow[];
+}
+
+/** One rite a prophet could say over the realm, with its own refusal. */
+export interface ProphetRiteRow {
+  rite: RiteId;
+  name: string;
+  blocked: string | null;
 }
 
 /**
@@ -642,6 +638,20 @@ export interface ProphetRow {
 export const AGENT_PRICE_WORD = {
   prophet: 'Uses the prophet',
   inquisitor: 'Uses the inquisitor',
+} as const;
+
+/**
+ * What spending **one charge** of an agent costs, said the same way.
+ *
+ * `AGENT_PRICE_WORD`'s sibling since the prophet took its second charge back
+ * (2026-09-06) and the apostle landed carrying two. The split is the rule the
+ * sheet has to make legible: the acts that settle what a faith *is* take the
+ * whole piece and wear the price word; the acts that only spend its voice take
+ * one charge and wear this one.
+ */
+export const AGENT_CHARGE_WORD = {
+  prophet: 'Uses one of the prophet\u2019s charges',
+  apostle: 'Uses one of the apostle\u2019s charges',
 } as const;
 
 /**
@@ -698,14 +708,6 @@ export function proclaimSays(state: GameState, unitId: number): string {
     `Converts ${towns.join(', ')} — every city within ${preview.range} hexes — ` +
     `by applying ${preview.lump} pressure at once.`
   );
-}
-
-/** One pool a redraft could give back, with its own refusal. */
-export interface ProphetPoolRow {
-  pool: ReligionBeliefPool;
-  /** "follower belief" / "enhancer belief" — `POOL_WORD`'s name. */
-  name: string;
-  blocked: string | null;
 }
 
 /**
@@ -2053,8 +2055,8 @@ export interface GameControls {
   /** Spends the whole augur on a belief offer. The unit sheet's button. */
   consecrate(): void;
   /**
-   * The rites this augur could perform where it stands — every rite in the
-   * table, each carrying its blocker and its payoff preview.
+   * The rites this **town** could keep — every live rite in the table, each
+   * carrying its blocker, its payoff and its price.
    *
    * A list rather than a blocker, because this verb is five verbs, and unlike
    * the improvements the **unknown ones stay on the list** and are greyed with
@@ -2063,19 +2065,9 @@ export interface GameControls {
    * and the argument for going and learning it, where "there is no forest here"
    * is a fact about a hex the worker will not be standing on tomorrow.
    */
-  riteOptions(): RiteOption[];
-  /**
-   * Spends one charge on a rite, aimed where the augur stands.
-   *
-   * `belief` is the god handed back, and it is named by a **redraw** rite alone
-   * — see `recastChoices`, which is what the caller picks it out of.
-   */
-  performRite(id: RiteId, belief?: BeliefId): void;
-  /**
-   * The gods a redraw rite would offer to give back, in the order they were
-   * taken — empty for every other rite. See `recastChoices`.
-   */
-  recastChoices(rite: RiteId): BeliefId[];
+  riteOptions(cityId: number): RiteOption[];
+  /** Performs one rite in one town. The city panel's button. */
+  performRite(cityId: number, id: RiteId): void;
 
   /**
    * The four rows a selected prophet's sheet offers — empty for every other
@@ -2086,8 +2078,8 @@ export interface GameControls {
    * a row here and nothing in the sheet.
    */
   prophetRows(): ProphetRow[];
-  /** Takes one of the prophet's four acts. `pool` is Redraft's, ignored by the rest. */
-  prophetAct(verb: ProphetVerb, pool?: ReligionBeliefPool): void;
+  /** Takes one of the agent's acts. `rite` is the empire rite's, ignored by the rest. */
+  prophetAct(verb: ProphetVerb, rite?: RiteId): void;
   /** Renames this empire's religion. The Religion sheet's name field. */
   renameReligion(name: string): void;
 
@@ -4956,103 +4948,64 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onOfferReligion?.();
   }
 
-  /** Every rite, with its blocker and its payoff. See `RiteOption`. */
-  function riteOptions(): RiteOption[] {
-    const unit = selectedUnit();
-    if (!unit || !isAugur(unit)) return [];
+  /**
+   * Every rite this **town** could keep, with its blocker and its price. See
+   * `RiteOption`.
+   *
+   * `improvementOptions`' twin one system over, and shaped like it for that
+   * function's reason: the panel prints rows and the *rules* decide which are
+   * live, so a row a player can press is a command the reducer takes. The whole
+   * roster is returned — including the rites this empire has not been taught —
+   * because a greyed row with the node named is how a player learns a rite
+   * exists at all (`requiredTechName`).
+   */
+  function riteOptions(cityId: number): RiteOption[] {
     const { state } = getGame();
     const ended = !canOrder();
-    return RITE_IDS.map((id) => {
+    const cost = riteCostFor(state, localPlayerId);
+    return LIVE_RITE_IDS.map((id) => {
       const blocked = ended
         ? `You have ended turn ${state.turn}`
-        : riteError(state, localPlayerId, unit.id, id);
+        : riteError(state, localPlayerId, cityId, id);
       return {
         id,
         name: riteDef(id).name,
-        preview: ritePreview(state, unit.id, id),
+        preview: ritePreview(id),
         blocked,
         // Named off the row's own `tech` field rather than parsed back out of
         // the sentence, exactly as a greyed improvement's is.
         requiredTechName: hasAbility(state, localPlayerId, riteAbility(id))
           ? null
           : techDef(riteDef(id).tech).name,
+        cost,
       };
     });
   }
 
   /**
-   * Spends one charge on a rite, and lets go of the augur if that was its last.
+   * Performs one rite in one town.
    *
-   * `buildImprovement` line for line — the same reason the selection is dropped
-   * by hand, and the same "believe the simulation" rule about how it is asked.
-   *
-   * The one thing it does that `buildImprovement` does not is *say what
-   * happened* (user, 2026-08-27: "there should be some indication after
-   * performing a rite"). A rite is the quietest expensive thing in the game —
-   * one of three charges on a unit bought out of the faith bank — and until this
-   * line the only sign it had worked was a number changing somewhere else on the
-   * screen. Composed before the dispatch (see `riteSentence`), announced after,
-   * and panned to the hex the augur stood on so the chronicle line leads back to
-   * the town that received it.
+   * `buildImprovement` line for line — the same "believe the simulation" rule
+   * about how it is asked, and the same announcement afterwards (user,
+   * 2026-08-27: "there should be some indication after performing a rite"). The
+   * sentence is composed before the dispatch (see `riteSentence`) and panned to
+   * the town, so the chronicle line leads back to what received it.
    */
-  function performRite(id: RiteId, belief?: BeliefId): void {
-    const unit = selectedUnit();
-    if (!unit) return;
-    const sentence = riteSentence(getGame().state, unit, id);
-    const cell = { col: unit.col, row: unit.row };
-    const result = commit({
-      type: 'performRite',
-      playerId: localPlayerId,
-      unitId: unit.id,
-      rite: id,
-      // Named only by a redraw rite, and `undefined` is not written into the
-      // command at all — a rite that gives nothing back logs exactly the command
-      // it always did.
-      ...(belief === undefined ? {} : { belief }),
-    });
+  function performRite(cityId: number, id: RiteId): void {
+    const { state } = getGame();
+    const city = state.cities.find((row) => row.id === cityId);
+    if (!city) return;
+    const sentence = riteSentence(state, city, id);
+    const cell = { col: city.col, row: city.row };
+    const result = commit({ type: 'performRite', playerId: localPlayerId, cityId, rite: id });
     if (!result.ok) {
       reject(result.error);
       return;
     }
     announce(sentence, { cell });
-    // The Preaching is a proclamation out of a smaller purse and reports through
-    // the same field, so it gets the same second line rather than a rite preview
-    // that says how much pressure and never which towns turned.
-    if (result.proclaimed) reportProclamation(result.proclaimed, cell);
-    if (!unitById(getGame().state, unit.id)) {
-      selectedId = null;
-      setMoveMode(false);
-    }
     renderer.invalidate();
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
-    // Recasting the Omens deals a hand, and it reaches the card through the one
-    // `onOfferReligion` seam Consecrate and the prophet's drafts use — asked of
-    // the *state* rather than of which rite was pressed, so the second redraw
-    // rite raises its card without this function learning its name.
-    if (playerById(getGame().state, localPlayerId)?.pantheon.pending) onOfferReligion?.();
-  }
-
-  /**
-   * The gods this rite would ask the player to choose between giving back, or an
-   * empty list for every rite that gives nothing back.
-   *
-   * The **interface's** half of a redraw: the sim names an id (`performRite`'s
-   * `belief`), which means somebody has to pick one, and this is what that
-   * picker is built from. It answers off the seat's own pantheon in the order
-   * the gods were taken, because that is the order every other surface prints
-   * them in.
-   *
-   * A list rather than a boolean for `ProphetRow.pools`' reason: the caller has
-   * to know *both* that a choice is owed and what the choices are, and a
-   * single-god pantheon is the case worth having in the shape — one entry means
-   * "no question to ask", and the sheet dispatches it directly rather than
-   * raising a card with one card on it.
-   */
-  function recastChoices(rite: RiteId): BeliefId[] {
-    if (riteDef(rite).redraws === undefined) return [];
-    const player = playerById(getGame().state, localPlayerId);
-    return player ? [...player.pantheon.beliefs] : [];
   }
 
   // --- the prophet ---------------------------------------------------------
@@ -5100,12 +5053,42 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         },
       ];
     }
+    // The apostle's sheet is three rows, and it is this list's for the
+    // inquisitor's reason exactly: each is a greyable, blocker-carrying row.
+    if (isApostle(unit)) {
+      const charge = AGENT_CHARGE_WORD.apostle;
+      return [
+        {
+          verb: 'proclaim',
+          name: 'Proclaim',
+          blocked: ended ?? proclaimError(state, localPlayerId, unit.id),
+          says: proclaimSays(state, unit.id),
+          cost: charge,
+        },
+        {
+          verb: 'healAdjacent',
+          name: 'Lay on hands',
+          blocked: ended ?? healAdjacentError(state, localPlayerId, unit.id),
+          says: healSays(state, unit.id),
+          cost: charge,
+        },
+        {
+          verb: 'placeRelic',
+          name: 'Leave a relic',
+          blocked: ended ?? placeRelicError(state, localPlayerId, unit.id),
+          says: `${charge}: leave a relic in this city, which pays it faith for ever`,
+          cost: charge,
+        },
+      ];
+    }
     if (!isProphet(unit)) return [];
     const mine = foundedReligion(state, localPlayerId);
     const faith = mine?.name ?? 'your faith';
-    // One price, one word: a prophet carries one charge, so every row on this
-    // sheet is the end of the piece and the sentence is a constant.
+    // **Two words, because a prophet has two charges and two kinds of act**: the
+    // founding pair take the whole piece, the voice pair take one charge each.
     const price = AGENT_PRICE_WORD.prophet;
+    const charge = AGENT_CHARGE_WORD.prophet;
+    const taught = availableRites(state, localPlayerId);
     return [
       {
         verb: 'plantHolySite',
@@ -5131,22 +5114,22 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // the price it costs is said on the hover card beside it, exactly as a
         // rite's is. See `proclaimSays`.
         says: proclaimSays(state, unit.id),
-        cost: price,
+        cost: charge,
       },
       {
-        verb: 'redraftBeliefs',
-        name: 'Redraft',
+        verb: 'empireRite',
+        name: 'Say a rite',
         // The row itself is refused by the *piece's* questions, which is what
-        // `redraftError` answers first for either pool; a pool that has nothing
-        // to give back is refused on its own sub-row rather than greying the
+        // `empireRiteError` answers first for any rite; a rite this realm has
+        // not been taught is refused on its own sub-row rather than greying the
         // whole verb.
-        blocked: ended ?? redraftError(state, localPlayerId, unit.id, 'follower'),
-        says: `${price}: give one of ${faith}'s pools back and draw again`,
-        cost: price,
-        pools: RELIGION_BELIEF_POOLS.map((pool) => ({
-          pool,
-          name: POOL_WORD[pool].name,
-          blocked: ended ?? redraftError(state, localPlayerId, unit.id, pool),
+        blocked: ended ?? empireRiteError(state, localPlayerId, unit.id, taught[0] ?? ''),
+        says: `${charge}: say one rite over every city you own, for one price`,
+        cost: charge,
+        rites: taught.map((id) => ({
+          rite: id,
+          name: riteDef(id).name,
+          blocked: ended ?? empireRiteError(state, localPlayerId, unit.id, id),
         })),
       },
     ];
@@ -5160,6 +5143,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * command will actually perform. A forecast, and it says so by naming what is
    * in reach *now*.
    */
+  function healSays(state: GameState, unitId: number): string {
+    const preview = healAdjacentPreview(state, unitId);
+    const charge = AGENT_CHARGE_WORD.apostle;
+    if (!preview) return `${charge}: mends every one of your pieces standing beside it`;
+    const mended = preview.units.filter((row) => row.healed > 0).length;
+    if (mended === 0) return `${charge}: nothing standing beside it is hurt`;
+    let total = 0;
+    for (const row of preview.units) total += row.healed;
+    return `${charge}: mends ${mended} ${mended === 1 ? 'piece' : 'pieces'} beside it, ${total} health in all`;
+  }
+
   function purgeSays(state: GameState, unitId: number): string {
     const preview = purgePreview(state, unitId);
     if (!preview) return 'Strips every rival faith from the towns around it';
@@ -5190,12 +5184,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * from the state (`reportReligion` in `commit`), because two of the three
    * happen to seats that issued no verb at all.
    */
-  function prophetAct(verb: ProphetVerb, pool: ReligionBeliefPool = 'follower'): void {
+  function prophetAct(verb: ProphetVerb, rite?: RiteId): void {
     const unit = selectedUnit();
     if (!unit) return;
     const command: Command =
-      verb === 'redraftBeliefs'
-        ? { type: 'redraftBeliefs', playerId: localPlayerId, unitId: unit.id, pool }
+      verb === 'empireRite'
+        ? { type: 'empireRite', playerId: localPlayerId, unitId: unit.id, rite: rite! }
         : { type: verb, playerId: localPlayerId, unitId: unit.id };
     const result = commit(command);
     if (!result.ok) {
@@ -7165,7 +7159,6 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     consecrate,
     riteOptions,
     performRite,
-    recastChoices,
     prophetRows,
     prophetAct,
     renameReligion,

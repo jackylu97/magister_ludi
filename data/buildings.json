@@ -9,20 +9,26 @@
       "gold": 0,
       "science": 0,
       "culture": 2,
-      "sciencePerPop": 0,
-      "authorityCapacity": 1
+      "sciencePerPop": 0
     },
     "granary": {
       "name": "Granary",
       "category": "food",
       "cost": 21,
-      "food": 3,
+      "food": 2,
       "production": 0,
       "gold": 0,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "note": "What the jar keeps, the year forgets."
+      "note": "What the jar keeps, the year forgets — and some of it is still there after the town grows.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthCarryover",
+          "percent": 20
+        }
+      ]
     },
     "shrine": {
       "name": "Shrine",
@@ -31,7 +37,7 @@
       "food": 0,
       "production": 0,
       "gold": 0,
-      "science": 1,
+      "science": 0,
       "culture": 0,
       "faith": 1,
       "sciencePerPop": 0
@@ -85,7 +91,8 @@
         "stat": "defense",
         "amount": 4
       },
-      "cityHp": 25
+      "cityHp": 25,
+      "requiresBuilding": "palisade"
     },
     "funeralGames": {
       "name": "Funeral Games",
@@ -97,7 +104,8 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "happiness": 3
+      "happiness": 3,
+      "retired": true
     },
     "library": {
       "name": "Library",
@@ -108,7 +116,7 @@
       "gold": 0,
       "science": 2,
       "culture": 0,
-      "sciencePerPop": 1,
+      "sciencePerPop": 0.5,
       "renown": {
         "family": "scholar",
         "perTurn": 1
@@ -125,7 +133,8 @@
       "culture": 0,
       "faith": 2,
       "sciencePerPop": 0,
-      "note": "Foreign faiths pressing on this city lose a quarter of their strength at its door."
+      "note": "Foreign faiths pressing on this city lose a quarter of their strength at its door.",
+      "requiresBuilding": "shrine"
     },
     "market": {
       "name": "Market",
@@ -133,7 +142,7 @@
       "cost": 59,
       "food": 0,
       "production": 0,
-      "gold": 3,
+      "gold": 2,
       "routeSlots": 1,
       "science": 0,
       "culture": 0,
@@ -167,7 +176,7 @@
       "category": "production",
       "cost": 69,
       "food": 0,
-      "production": 3,
+      "production": 2,
       "gold": 0,
       "science": 0,
       "culture": 0,
@@ -213,12 +222,28 @@
       "production": 0,
       "gold": 0,
       "science": 0,
-      "culture": 3,
+      "culture": 2,
       "sciencePerPop": 0,
       "renown": {
         "family": "artist",
         "perTurn": 1
-      }
+      },
+      "requiresBuilding": "monument",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "population",
+          "within": "city",
+          "per": 2,
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "city"
+          }
+        }
+      ],
+      "note": "Every second citizen of this city is worth a further song."
     },
     "monastery": {
       "name": "Monastery",
@@ -229,7 +254,8 @@
       "gold": 0,
       "science": 0,
       "culture": 2,
-      "sciencePerPop": 0.25
+      "sciencePerPop": 0.25,
+      "retired": true
     },
     "university": {
       "name": "University",
@@ -245,7 +271,8 @@
       "renown": {
         "family": "scholar",
         "perTurn": 2
-      }
+      },
+      "requiresBuilding": "library"
     },
     "cathedral": {
       "name": "Cathedral",
@@ -255,8 +282,8 @@
       "production": 0,
       "gold": 0,
       "science": 0,
-      "culture": 3,
-      "faith": 3,
+      "culture": 2,
+      "faith": 2,
       "sciencePerPop": 0,
       "happiness": 3,
       "consecrated": true,
@@ -264,7 +291,9 @@
       "renown": {
         "family": "artist",
         "perTurn": 1
-      }
+      },
+      "faithPurchases": "all",
+      "note": "Dedicated to a patron the day it is finished. Units may be bought with faith in the city that holds it, at the rate gold buys them elsewhere."
     },
     "reliquary": {
       "name": "The Reliquary",
@@ -294,7 +323,8 @@
       "renown": {
         "family": "artist",
         "perTurn": 1
-      }
+      },
+      "retired": true
     },
     "mint": {
       "name": "Mint",
@@ -309,7 +339,8 @@
       "renown": {
         "family": "merchant",
         "perTurn": 1
-      }
+      },
+      "retired": true
     },
     "armoury": {
       "name": "Armoury",
@@ -328,7 +359,8 @@
       "renown": {
         "family": "general",
         "perTurn": 1
-      }
+      },
+      "retired": true
     },
     "theOracle": {
       "name": "The Oracle",
@@ -1279,7 +1311,7 @@
       "cost": 350,
       "food": 0,
       "production": 0,
-      "gold": 8,
+      "gold": 6,
       "science": 0,
       "culture": 2,
       "sciencePerPop": 0,
@@ -1319,7 +1351,8 @@
       "culture": 3,
       "sciencePerPop": 0,
       "authorityCapacity": 1,
-      "note": "The law, cut in stone where anyone may read it."
+      "note": "The law, cut in stone where anyone may read it.",
+      "retired": true
     },
     "bazaar": {
       "name": "Bazaar",
@@ -1348,7 +1381,8 @@
           }
         }
       ],
-      "note": "Every kind of luxury this city can reach pays a further gold here."
+      "note": "Every kind of luxury this city can reach pays a further gold here.",
+      "requiresBuilding": "market"
     },
     "harbour": {
       "name": "Harbour",
@@ -1395,23 +1429,45 @@
         "family": "artist",
         "perTurn": 1
       },
-      "note": "Hot water, cold water, and somewhere to argue in between."
+      "note": "Hot water, cold water, and somewhere to argue in between.",
+      "retired": true
     },
     "forum": {
       "name": "Forum",
       "category": "culture",
-      "cost": 96,
+      "cost": 130,
       "food": 0,
       "production": 0,
       "gold": 0,
       "science": 0,
-      "culture": 3,
+      "culture": 0,
       "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "forum"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "forum"
+          }
+        }
+      ],
       "renown": {
         "family": "artist",
         "perTurn": 2
       },
-      "note": "The square where the city hears itself think."
+      "note": "The square where the city hears itself think. One realm, one Forum."
     },
     "examinationHall": {
       "name": "Examination Hall",
@@ -1428,7 +1484,8 @@
         "family": "scholar",
         "perTurn": 1
       },
-      "note": "Clerks chosen by what they can write down."
+      "note": "Clerks chosen by what they can write down.",
+      "retired": true
     },
     "courthouse": {
       "name": "Courthouse",
@@ -1436,7 +1493,7 @@
       "cost": 100,
       "food": 0,
       "production": 0,
-      "gold": 3,
+      "gold": 2,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
@@ -1489,7 +1546,8 @@
             "production": 1
           }
         }
-      ]
+      ],
+      "requiresBuilding": "harbour"
     },
     "castle": {
       "name": "Castle",
@@ -1510,7 +1568,8 @@
         "family": "engineer",
         "perTurn": 1
       },
-      "note": "The town is worth more to storm, and takes longer to empty."
+      "note": "The town is worth more to storm, and takes longer to empty.",
+      "requiresBuilding": "stoneWalls"
     },
     "forge": {
       "name": "Forge",
@@ -1530,24 +1589,37 @@
         "family": "engineer",
         "perTurn": 1
       },
-      "note": "Soldiers are made here faster than anywhere else in the realm."
+      "note": "Soldiers are made here faster than anywhere else in the realm.",
+      "requiresBuilding": "workshop"
     },
     "caravanserai": {
       "name": "Caravanserai",
       "category": "gold",
-      "cost": 150,
+      "cost": 130,
       "food": 0,
       "production": 0,
-      "gold": 2,
+      "gold": 0,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
       "routeSlots": 1,
+      "oncePerEmpire": true,
+      "effects": [
+        {
+          "kind": "routeYield",
+          "food": 1,
+          "production": 1,
+          "origin": {
+            "test": "hasBuilding",
+            "building": "caravanserai"
+          }
+        }
+      ],
       "renown": {
         "family": "merchant",
         "perTurn": 1
       },
-      "note": "A walled yard, a well, and room for one more trade route."
+      "note": "A walled yard, a well, and room for one more trade route. Every caravan that sets out from this city carries more than it could alone."
     },
     "printingHouse": {
       "name": "Printing House",
@@ -1566,7 +1638,8 @@
       "note": "One carved character, used a thousand times.",
       "deferred": [
         "Beakers and songs carried in by the caravans that end here wait until a route can pay its destination something the origin did not send."
-      ]
+      ],
+      "retired": true
     },
     "observatory": {
       "name": "Observatory",
@@ -1575,9 +1648,9 @@
       "food": 0,
       "production": 0,
       "gold": 0,
-      "science": 3,
+      "science": 2,
       "culture": 0,
-      "sciencePerPop": 1,
+      "sciencePerPop": 0,
       "renown": {
         "family": "scholar",
         "perTurn": 2
@@ -1596,7 +1669,8 @@
       ],
       "deferred": [
         "A further share of the beakers for one raised in sight of a mountain."
-      ]
+      ],
+      "requiresBuilding": "university"
     },
     "lighthouse": {
       "name": "Lighthouse",
@@ -1631,13 +1705,14 @@
       "name": "Town Charter",
       "category": "food",
       "cost": 30,
-      "food": 4,
+      "food": 3,
       "production": 0,
       "gold": 0,
       "science": 0,
       "culture": 2,
       "sciencePerPop": 0,
-      "note": "The writ a chartered city is founded with: land granted, market days set, and a name on a list somewhere."
+      "note": "A city founded under Daughter Cities is founded holding one. It is never built and never bought.",
+      "grantedOnly": true
     },
     "clocktower": {
       "name": "Clocktower",
@@ -1653,7 +1728,8 @@
         "family": "engineer",
         "perTurn": 1
       },
-      "note": "The town keeps one hour, and everybody in it keeps the same one."
+      "note": "The town keeps one hour, and everybody in it keeps the same one.",
+      "retired": true
     },
     "bank": {
       "name": "Bank",
@@ -1661,7 +1737,7 @@
       "cost": 180,
       "food": 0,
       "production": 0,
-      "gold": 4,
+      "gold": 3,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
@@ -1672,6 +1748,26 @@
       "note": "Coin that stays still long enough to be counted twice.",
       "deferred": [
         "A further coin for each caravan route touching this city waits until a count can ask which routes end here."
+      ],
+      "requiresBuilding": "market",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "population",
+          "within": "city",
+          "per": 2,
+          "pays": {
+            "to": "yield",
+            "yield": "gold",
+            "amount": 1,
+            "where": "city"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 10
+        }
       ]
     },
     "bastion": {
@@ -1775,7 +1871,7 @@
       "food": 0,
       "production": 0,
       "gold": 0,
-      "science": 3,
+      "science": 2,
       "culture": 0,
       "sciencePerPop": 0,
       "oncePerEmpire": true,
@@ -1852,7 +1948,7 @@
       "production": 0,
       "gold": 0,
       "science": 0,
-      "culture": 5,
+      "culture": 4,
       "sciencePerPop": 0,
       "oncePerEmpire": true,
       "worldUnlockTech": "alchemy",
@@ -1886,8 +1982,9 @@
       "faith": 1,
       "sciencePerPop": 0,
       "unlockedByCard": true,
+      "ritesDoor": true,
       "ritePays": 5,
-      "note": "Every rite an augur performs in this city pays a little culture as well."
+      "note": "This city may perform the rites it has been taught, and every rite it performs pays a little culture as well."
     },
     "keep": {
       "name": "Keep",
@@ -2156,6 +2253,99 @@
       "authorityCapacity": 1,
       "crowdingRelief": 15,
       "note": "A crowded town asks less of you while the justices sit."
+    },
+    "relic": {
+      "name": "Relic",
+      "category": "faith",
+      "cost": 0,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 3,
+      "sciencePerPop": 0,
+      "placed": true,
+      "note": "An apostle may leave one of these in a town that has finished its cathedral. It is never built and never bought, and a town holds one at most."
+    },
+    "heroicEpic": {
+      "name": "Heroic Epic",
+      "category": "culture",
+      "cost": 100,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "effects": [
+        {
+          "kind": "cityRenownPercent",
+          "percent": 50,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "heroicEpic"
+          }
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "perTurn": 2
+      },
+      "note": "The deeds of the realm set to verse, and sung where they were done."
+    },
+    "imperialThrone": {
+      "name": "Imperial Throne",
+      "category": "culture",
+      "cost": 100,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "authorityCapacity": 5,
+      "oncePerEmpire": true,
+      "unitUpkeepRebate": 1,
+      "renown": {
+        "family": "general",
+        "perTurn": 1
+      },
+      "note": "The seat of the realm. Soldiers raised in its shadow cost a little less to keep, for as long as they live."
+    },
+    "highTemple": {
+      "name": "High Temple",
+      "category": "faith",
+      "cost": 100,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "effects": [
+        {
+          "kind": "pressure",
+          "amount": 6,
+          "range": 6
+        },
+        {
+          "kind": "percentYields",
+          "yield": "faith",
+          "percent": 25,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "highTemple"
+          }
+        }
+      ],
+      "renown": {
+        "family": "artist",
+        "perTurn": 1
+      },
+      "note": "Your faith carries from here as far and as strongly as it does from a holy site."
     }
   },
   "projects": {

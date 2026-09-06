@@ -30,7 +30,7 @@ import {
 import { type GameMap, type Tile, getTileAt, mapRange, tileHex } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import type { GameState } from '../../src/sim/state';
-import { availableTechs, isUnlocked } from '../../src/sim/tech';
+import { availableTechs, buildError } from '../../src/sim/tech';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 import { choose, researchingGame } from './techHelpers';
@@ -145,7 +145,15 @@ describe('pacing', () => {
         const queue: { kind: 'unit' | 'building'; id: string }[] = [];
         for (const id of wanted) {
           if (city.buildings.includes(id as never)) continue;
-          if (!isUnlocked(game.state, 0, 'building', id)) continue;
+          // **The reducer's own gate, since batch D** (`docs/fewer-things.md`
+          // §2). `isUnlocked` answers about the *tree* alone, and a queue is
+          // validated row by row — so one chained row whose parent is not up
+          // yet (a Temple before its Shrine) refused the whole command and the
+          // town built **nothing at all**, which measured nothing at all. A
+          // scripted player builds what the reducer would take, which is
+          // `buildError` with the town in hand: the tree, the chain, the
+          // withdrawn rows and the site, asked once.
+          if (buildError(game.state, 0, 'building', id, city) !== null) continue;
           queue.push({ kind: 'building', id });
         }
         // Settlers already *paid for* count toward the target as well as

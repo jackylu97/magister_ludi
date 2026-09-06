@@ -162,39 +162,25 @@ const SLOT_GLYPH = '◇';
 
 /**
  * A rite's **instant** half in words — the bag it pays the moment it is
- * performed, as against the lasting clauses `describeCard` prints.
+ * kept, as against the lasting clauses `describeCard` prints.
  *
- * Read off the row that will pay it — the same `RiteGrantSpec` `payRiteGrant`
- * walks — so the sentence and the payout cannot drift. It is not `describeCard`'s
- * job and could not be: a clause is an ordinary `CardEffect` and knows nothing
- * about the rite it hangs on, while a grant is a bag of *destinations* (a rite's
- * culture fills the empire's draft basket, its border culture fills one town's).
+ * Read off the row that will hang it — `RiteDef.duration`, which is what
+ * `stampRite` reads — so the sentence and the blessing cannot drift. It is not
+ * `describeCard`'s job and could not be: a clause is an ordinary `CardEffect`
+ * and knows nothing about the rite it hangs on, while how long a rite runs is a
+ * fact about the rite.
  *
  * Exported because the Compendium prints the same sentence on its Rites shelf,
  * and two surfaces describing one rite two ways is precisely what every
  * describer in this codebase exists to prevent. This screen is where it lives
- * because this screen is where a rite is *performed*.
+ * because this screen is where a rite is read about.
  *
- * Empty for a **redraw** rite, which pays no bucket at all (`RiteDef.redraws`):
- * what that one does is its row's `note`, printed beside these words by both
- * surfaces, and inventing a figure-shaped fragment for it here would be a
- * second description of a rule the data already states.
+ * Empty for a **withdrawn** rite, which hangs nothing at all.
  */
 export function riteGrantWords(id: RiteId): string {
-  const grant = riteDef(id).grant ?? {};
-  const parts: string[] = [];
-  if (grant.population !== undefined) parts.push(`+${grant.population} population`);
-  if (grant.science !== undefined) parts.push(`+${grant.science} science`);
-  if (grant.gold !== undefined) parts.push(`+${grant.gold} gold`);
-  if (grant.faith !== undefined) parts.push(`+${grant.faith} faith`);
-  if (grant.culture !== undefined) parts.push(`+${grant.culture} culture`);
-  if (grant.borderCulture !== undefined) {
-    parts.push(`+${grant.borderCulture} culture toward the city's borders`);
-  }
-  if (grant.production !== undefined) parts.push(`+${grant.production} production`);
-  if (grant.food !== undefined) parts.push(`+${grant.food} food`);
-  if (grant.healFully === true) parts.push('heals the unit fully');
-  return parts.join(', ');
+  const def = riteDef(id);
+  if (def.duration === undefined) return '';
+  return `Kept for ${def.duration} turns`;
 }
 
 // --- the religion, as the pane reads it -------------------------------------

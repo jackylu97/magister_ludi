@@ -178,14 +178,21 @@ function playFaithful(maxTurns: number): {
       ) {
         continue;
       }
+      // **A rite is a town's verb now** (2026-09-06), so the piece plays no
+      // part in it: the scripted seat says one in whichever of its towns will
+      // take it, and the augur's own arm below is what is left of the piece.
       let acted = false;
-      for (const rite of availableRites(g.state, 0)) {
-        if (riteError(g.state, 0, unit.id, rite) !== null) continue;
-        if (dispatch(g, { type: 'performRite', playerId: 0, unitId: unit.id, rite } as Command).ok) {
-          ritesPerformed += 1;
-          acted = true;
+      for (const city of g.state.cities) {
+        if (city.ownerId !== 0) continue;
+        for (const rite of availableRites(g.state, 0)) {
+          if (riteError(g.state, 0, city.id, rite) !== null) continue;
+          if (dispatch(g, { type: 'performRite', playerId: 0, cityId: city.id, rite } as Command).ok) {
+            ritesPerformed += 1;
+            acted = true;
+          }
+          break;
         }
-        break;
+        if (acted) break;
       }
       if (acted) continue;
       if (consecrateError(g.state, 0, unit.id) === null) {
@@ -467,9 +474,12 @@ function playTwoFaiths(maxTurns: number): {
         ) {
           continue;
         }
+      }
+      for (const city of g.state.cities) {
+        if (city.ownerId !== seat) continue;
         for (const rite of availableRites(g.state, seat)) {
-          if (riteError(g.state, seat, unit.id, rite) !== null) continue;
-          dispatch(g, { type: 'performRite', playerId: seat, unitId: unit.id, rite } as Command);
+          if (riteError(g.state, seat, city.id, rite) !== null) continue;
+          dispatch(g, { type: 'performRite', playerId: seat, cityId: city.id, rite } as Command);
           break;
         }
       }

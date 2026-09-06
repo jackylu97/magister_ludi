@@ -811,6 +811,10 @@ describe('the schema witness', () => {
     // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
     // names indices into hands this build does not deal.
     // 71 since batch C1 (2026-09-06): the dice leave; the faith ladder and the reroll arrive.
-    expect(SCHEMA_VERSION).toBe(71);
+    // 73 since batch D (2026-09-06): the buildings cut with chains — twelve
+    // ordinary rows withdrawn, five uniques added, the chain field, the
+    // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
+    // landed the rites beside it on the same day.
+    expect(SCHEMA_VERSION).toBe(74);
   });
 });

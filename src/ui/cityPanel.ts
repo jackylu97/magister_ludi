@@ -145,6 +145,9 @@ import {
   signedFigure,
   turnsLabel,
 } from './figures';
+import type { RiteOption } from './controls';
+import { cityRite, cityRiteTurnsLeft } from '../sim/religion';
+import { type RiteId, riteDef } from '../sim/religionData';
 import { createInfoCard } from './infoCard';
 import { setDescriptorText } from './keywords';
 
@@ -531,6 +534,16 @@ export interface CityPanelOptions {
    * the default simply runs, and the page hands in the card.
    */
   askConfirm?: (request: ConfirmRequest, run: () => void) => void;
+  /**
+   * The rites this town could keep — `controls.riteOptions(cityId)`, already
+   * carrying each row's blocker, its payoff and its price.
+   *
+   * Optional for `setBuyMode`'s reason exactly: a panel built without a board
+   * (this suite does that) is still a panel, and simply carries no rites.
+   */
+  riteOptions?: (cityId: number) => RiteOption[];
+  /** Performs one rite in this town — `controls.performRite`. */
+  performRite?: (cityId: number, rite: RiteId) => void;
 }
 
 export interface CityPanel {
@@ -2502,6 +2515,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         // is a row that can never be built — the same reading the reducer's
         // planQueueItem gives both.
         if (buildingDef(id).awaitsTech === true) continue;
+        // The same reading for the two rows a queue may never hold *ever*: one
+        // the fewer-things cut withdrew (`retired`) and one that only ever
+        // arrives as a gift (`grantedOnly`, the Town Charter). A row whose
+        // refusal can never be acted on is noise wherever it is printed, which
+        // is exactly the argument the marker above it won.
+        if (buildingDef(id).retired === true) continue;
+        if (buildingDef(id).grantedOnly === true) continue;
         if (isWonder(id) && wonderClaim(getGame().state, id) !== undefined) continue;
         if (city.buildings.includes(id) || queued.has(id)) continue;
         if (!isUnlocked(state, city.ownerId, 'building', id)) continue;
@@ -2763,6 +2783,59 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     badge.append(name);
     badge.append(document.createTextNode(head.text.slice(at + head.name.length)));
     return badge;
+  }
+
+  /**
+   * **The rites this town may keep** — the verb the fewer-things pass moved off
+   * the augur and onto the city (`docs/fewer-things.md` §3, ruled 2026-09-06).
+   *
+   * One row per rite in the table, greyed with the reducer's own sentence, which
+   * is `renderBuildables`' contract and `riteOptions`' one system over: a row a
+   * player can press is a command the reducer takes. The rows the *tree* refuses
+   * stay on the list and name the node that teaches them, because a rite the
+   * empire has not learnt is an argument for going and learning it.
+   *
+   * The whole section is absent from a town with no door — a chapel — because a
+   * shelf of five permanently greyed rows is not information, and the Chapel's
+   * own row in the build list is where that town is told what it is missing.
+   *
+   * Optional, like the trade screen's button: a panel built without `riteOptions`
+   * (this suite does exactly that) is still a panel, and simply carries no
+   * rites.
+   */
+  function renderRites(city: City): HTMLElement | null {
+    const riteOptions = options.riteOptions;
+    const performRite = options.performRite;
+    if (!riteOptions || !performRite) return null;
+    const rows = riteOptions(city.id);
+    if (rows.length === 0) return null;
+    const box = element('div', 'city-built city-rites');
+    for (const row of rows) {
+      const line = element('div', 'city-rite-row');
+      const button = element('button', 'city-rite-button');
+      button.type = 'button';
+      button.textContent = row.name;
+      button.disabled = row.blocked !== null;
+      button.title = row.blocked ?? row.preview ?? row.name;
+      button.addEventListener('click', () => {
+        performRite(city.id, row.id);
+        onChanged();
+      });
+      line.append(button);
+      const price = element('span', 'city-rite-cost num', `${figure(row.cost)}\u{1F56F}`);
+      line.append(price);
+      const says = element(
+        'p',
+        'city-rite-says',
+        row.blocked ?? row.preview ?? '',
+      );
+      line.append(says);
+      if (row.requiredTechName !== null) {
+        line.append(element('p', 'city-rite-says', `Taught by ${row.requiredTechName}`));
+      }
+      box.append(line);
+    }
+    return box;
   }
 
   /**
@@ -3105,6 +3178,22 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const faiths = cityFaithRows(state, city, localPlayerId());
     const faith = disclosure('Faith', figure(faiths.length), renderFollowers(city));
     if (faith) standing.append(faith);
+    // And what it is **keeping** — the rites, beside the faith it keeps them in.
+    // The summary figure is the turns left on the one it holds, because that is
+    // the only number a player wants without opening the shelf.
+    const riteRows = renderRites(city);
+    if (riteRows) {
+      const held = cityRite(state, city);
+      const left = cityRiteTurnsLeft(state, city);
+      const rites = disclosure('Rites', held === null ? '—' : figure(left), riteRows);
+      if (rites) {
+        rites.title =
+          held === null
+            ? 'This city keeps no rite'
+            : `${riteDef(held).name}, ${left} more turns`;
+        standing.append(rites);
+      }
+    }
     if (standing.childElementCount > 0) rail.append(standing);
     return rail;
   }

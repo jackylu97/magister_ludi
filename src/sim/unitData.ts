@@ -83,6 +83,10 @@ export type UnitTypeId =
   | 'fireLance'
   | 'augur'
   | 'prophet'
+  // Theology's preacher (the fewer-things pass, 2026-09-06): the small
+  // travelling agent the prophet's price put out of reach — half a
+  // proclamation, a laying-on of hands, and the relic it leaves behind.
+  | 'apostle'
   // The Holy Office's agent (Entry LVIII): the faith rework's third religious
   // piece, bought out of the faith bank and spent on one Purge.
   | 'inquisitor'
@@ -401,6 +405,37 @@ export interface UnitDef {
    * the reason every other rule here is — a second such piece is a data row.
    */
   purges?: boolean;
+  /**
+   * True when this unit's charges are an **apostle's** — a lesser proclamation,
+   * a laying-on of hands, and the relic it may leave in a cathedral town — or
+   * the field is **absent** for everything that digs, prays, prophesies, purges
+   * or leaves a work.
+   *
+   * Presence is the marker, exactly as with `foundsCity`, `charges`,
+   * `consecrates`, `greatWork`, `prophesies` and `purges`: nothing in `src/sim/`
+   * asks whether a type is `"apostle"`, so the second travelling preacher is one
+   * data row. It is the sixth reading of one charge counter — three acts in a
+   * box, one charge each, and *which* acts is this flag.
+   *
+   * It is deliberately **not** `prophesies`. The two pieces share one act out of
+   * four (the proclamation, and the apostle's is half the weight over half the
+   * ground) and share none of the others: an apostle founds nothing, plants no
+   * stones and draws no belief. One marker for both would have made every
+   * prophet gate ask "and is it the small one".
+   */
+  proclaims?: boolean;
+  /**
+   * **Withdrawn from the roster**: never bought, never built, still readable.
+   *
+   * `OrderDef.retired` and `RiteDef.retired`'s discipline one table over. The
+   * augur went when the rites became city verbs and the faith ladder took over
+   * its consecration (`docs/fewer-things.md` §3, ruled 2026-09-06) — but a piece
+   * that once stood is a piece a save may hold, and a row deleted outright is a
+   * log that cannot be replayed. So the row stays, every rule that reads it
+   * keeps working for a piece already on the board, and the two doors close:
+   * `purchaseError` refuses it and `isUnlocked` never offers it.
+   */
+  retired?: boolean;
   /**
    * True when this unit may be **sent** — it carries a trade route between two
    * cities and lays road under its feet — or the field is **absent** for

@@ -1191,7 +1191,11 @@ describe('determinism', () => {
     // shorter and a v70 log's `chooseOrder` names indices into a hand this
     // build does not deal. Two fields joined the seat besides — the rerolls it
     // has taken, and the rungs of the faith ladder it has climbed.
-    expect(SCHEMA_VERSION).toBe(71);
+    // 73 since batch D (2026-09-06): the buildings cut with chains — twelve
+    // ordinary rows withdrawn, five uniques added, the chain field, the
+    // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
+    // landed the rites beside it on the same day.
+    expect(SCHEMA_VERSION).toBe(74);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2408,7 +2412,7 @@ describe('the master-list cut of 2026-08-28', () => {
       // The unlock clause carries the **building's own description** since the
       // playthrough note of 2026-09-05 — see `describeBuildingRow`, and the
       // charters' own block at the foot of this file.
-      'unlocks the Gilded Hall — +8 gold, +2 culture; it is bought with gold and never built; ' +
+      'unlocks the Gilded Hall — +6 gold, +2 culture; it is bought with gold and never built; ' +
         '+1 renown per turn, favouring merchants',
       // The 2026-09-02 rework: the writ dropped to one point and the card bought
       // a hex clause with the difference — the first `yields` condition, asked
@@ -5776,7 +5780,9 @@ describe('a charter carries the description of the building it opens', () => {
     expect(words('almshouse')).toContain('bought with faith');
     expect(words('gildedHall')).toContain('bought with gold and never built');
     // And the flat voices lead it, because that is what a building mostly is.
-    expect(describeBuildingRow('granary')[0]!.text).toBe('+3 food');
+    // Two since batch D took a quarter off the ordinary flats
+    // (`docs/balance-turn.md` §4a); the jar's shape is now its growth rebate.
+    expect(describeBuildingRow('granary')[0]!.text).toBe('+2 food');
   });
 
   it('describes every building row in the game, not only the charters’', () => {
@@ -6229,7 +6235,9 @@ describe('the engine shapes', () => {
         // Only the Library, and its per-citizen beaker is in the base — the
         // ruled "per-citizen lines included".
         expect(lines).toHaveLength(1);
-        expect(lines[0]!.science).toBe(2 + 4);
+        // The Library pays two flat and half a beaker a citizen since batch D,
+        // floored on its own — a doubling of 2 + 2.
+        expect(lines[0]!.science).toBe(2 + 2);
         expect(lines[0]!.faith).toBe(0);
       },
     );
@@ -6617,7 +6625,17 @@ describe('the engine shapes', () => {
       }
     };
     for (const id of [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS]) walk(cardDef(id).effects, id);
-    for (const id of BUILDING_IDS) walk(buildingDef(id).effects, id);
+    // **The unique buildings are exempt, since batch D.** The five once-per-realm
+    // rows are the first live rows in the game to use two of the shapes batch A
+    // declared — the Heroic Epic's `cityRenownPercent` and the Caravanserai's
+    // `routeYield` — which is exactly what those shapes were built for. The
+    // claim is narrowed rather than dropped: no card, no technology and no
+    // ordinary building uses one, so batch A is still byte-identical everywhere
+    // batch D did not land.
+    for (const id of BUILDING_IDS) {
+      if (buildingDef(id).oncePerEmpire === true) continue;
+      walk(buildingDef(id).effects, id);
+    }
     for (const id of TECH_IDS) walk(techDef(id).effects, id);
   });
 

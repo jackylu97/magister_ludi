@@ -100,9 +100,9 @@ ladder) and one-charge augur (consecrate OR one rite, the whole turn).
 Pressure is a tide (`spreadReligion`) plus lumps (`pressLump`); a city's
 religion is derived majority. Follower beliefs pay the city's owner;
 founder-side pay follows the holy site's stones. The Inquisitor purges
-(pressure to nobody) with an adjacency aura; the Reliquary opens faith
-purchases; the Cathedral (340⚙) takes contributions and rolls one of five
-consecrations on completion.
+(pressure to nobody) with an adjacency aura; the Cathedral takes
+contributions, rolls one of five consecrations on completion and — since the
+fewer-things cut withdrew the Reliquary — opens faith purchases.
 
 ## Map & resources
 

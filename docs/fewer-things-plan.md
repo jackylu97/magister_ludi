@@ -51,6 +51,396 @@ The play checkout (:5199) moves only when the user says; every batch lands in
 
 ## As shipped
 
+### Batch C2 as shipped (2026-09-06) — schema 74
+
+Rites, prophets, the apostle. The user's complaint was an **errand** — *"i never
+wanted to invest in my chapel because i was so far ahead and didnt want to waste
+time paying for augurs and using them in my cities"* — so the errand goes and the
+season stays.
+
+**The schema number.** The plan wrote C2 as 72; the buildings batch (D) reached
+`main` first and took 73, so this lands as **74** and says so in `state.ts`'s
+changelog. Batch F's 74 in the table above is now 75, and G's 75 is 76.
+
+#### A rite is a city's verb
+
+`performRite { playerId, cityId, rite }` — no unit, no target hex, no belief.
+Four refusals, in the order a player thinks of them (`riteError`):
+
+| gate | reading |
+|---|---|
+| the town is yours | `city.ownerId` |
+| it holds **the door** | `cityPerformsRites` — the marker `BuildingDef.ritesDoor` on the Chapel's row. Nothing in `src/sim/` names a chapel |
+| the empire knows the rite | `hasAbility` + `riteAbility`, the same five nodes the augur's rites sat on |
+| it is not already keeping one | `cityRite(state, city)` — **derived** off `City.timed`, so the seal *is* the rite's ten turns and there is no second clock to keep |
+| the faith is there | `riteCostFor` |
+
+**The price, ruled by default and stated as a number**: `religion.rite.costByAge`
+= **40 · 56 · 72 · 90**. That is not a second curve — it is `faithRungCost` read
+off by *age* instead of by consecration, which is the ruled sentence ("the
+ladder's first rung, rising a rung per age") taken literally. An empire in Æra I
+pays for a rite what its first god costs; one in Æra IV pays what a fourth god
+would ask. Written out in `data/religion.json` rather than derived in code,
+because the two are design decisions that happen to agree today.
+
+**The seal is the rite's own ten turns.** A town keeping a rite refuses another
+by name ("Uruk is already keeping Omen Reading"); the turn it lapses, another may
+be said. Nothing ticks: `cityRite` is a comparison over `City.timed`.
+
+The five rows, reworked to ten turns of **pure blessing** — there is no instant
+grant left anywhere in the table, so `RiteGrantSpec`, `payRiteGrant`,
+`RiteTarget`, `riteCityTarget`/`riteUnitTarget` and the whole `redraws` machinery
+are gone:
+
+| rite | node | what it hangs |
+|---|---|---|
+| Rite of the Harvest | Divination | `tileYield` on `{test:'yields',yield:'food'}` — +1🌾 (batch A's tile test, already built) |
+| Omen Reading | Divination | `countScaled buildingsInCity` → +1🔬 in this city per building |
+| Rite of Plenty | Currency | `tileYield` on `hasResource` — +1💰 |
+| Consecration of the Bounds | Stonecraft | `tileYield` on `resourceKind: luxury` — +1🎵 · `rulePercent borderCulture +30` |
+| Blessing of Arms | Bronzeworking | `cityStat defense +5` |
+
+**Retired for replay** (`RiteDef.retired`, rows kept so `anyCardDef` still
+resolves a save's id): Recasting the Omens — its redraw is the faith reroll's job
+now — and The Preaching — its lump is the prophet's. Their two abilities left
+`AbilityId` and the tree entirely, because an ability nothing teaches is a gift
+on a tech card promising a verb no surface offers. `AbilityBearer` gained
+**`city`** and the star chart's heading for the five is now *"Your cities may"*.
+
+#### The augur, withdrawn
+
+`UnitDef.retired` (the row kept). `buildError` and `purchaseError` refuse it —
+both clauses stand **in front of** the bank's sentence, because "bought with
+faith, not gold" would send a player to a bank that no longer sells it — and
+`consecrateError` refuses always, with the design's own sentence: *"Your gods
+arrive on their own, once your faith is deep enough."* The `consecrate` arm and
+`consecrateAt` are untouched below that clause and unreachable, so the day an
+agent-bought god is wanted back, one clause comes out and nothing else moves.
+
+**Court Augurs → The Vigil.** Renamed, re-worded, and its effect **deferred**:
+the ruled text is *"+X in every city with an active rite"* and `CityScope` has no
+way to ask a town whether it is keeping one. The row ships with `effects: []` and
+a `deferred` line in player prose, which is the vocabulary's own convention for a
+card whose shape does not exist yet.
+
+#### The prophet, two charges, four acts
+
+| act | charges | routine |
+|---|---|---|
+| found a religion (the stones) | **both** — the whole piece | `spendProphet` |
+| draw another belief | **both** — the whole piece | `spendProphet` |
+| proclaim | one | `spendCharge` |
+| **a rite over the realm** (`empireRite`) | one | `spendCharge` |
+
+Which is which is not a field: it is which routine the act ends with, and both
+say so. The empire rite asks none of the town gate's first three clauses — no
+Chapel anywhere, no town refused for keeping one already (`clearCityRite` takes
+over from whatever it held), no target — and the **price is paid once**, not once
+a town. `redraftBeliefs` is gone from the command union.
+
+#### The apostle
+
+`data/units.json`: civilian, **movement 4**, **2 charges**, marker
+`proclaims: true` (deliberately *not* `prophesies` — the two share one act of
+four), faith purchase **90 + 40** exclusive, `modelClass: 'worker'`. Named by
+Theology's `units` list and nothing else in `data/techs.json`.
+
+| act | charges | figures |
+|---|---|---|
+| proclaim | 1 | `religion.apostle.proclaimRange` **6** hexes, `proclaimPercent` **50** of whatever a prophet's lump is worth *today* — a share, so the ruled "half a prophet's strength" survives a retune |
+| lay on hands | 1 | `religion.apostle.heal` **25** to every friendly piece on its hex and the six touching it, capped at `unitMaxHp` |
+| leave a relic | 1 | one per town that has topped out a cathedral |
+
+**The relic is a building.** `BuildingDef.placed` (a new marker): never built,
+never bought, never unlocked by anything — `isUnlocked` answers false outright
+and `buildError`/`purchaseError` say *"neither built nor bought — it is placed"*.
+It pays `religion.relicFaith` = **3🕯** through the ordinary building fold, so it
+follows the stones on a capture with no bookkeeping at all, and "one per
+cathedral" is two readings of the board (`cityKeepsRelics` off the `consecrated`
+marker, plus whether the placed row is already on the shelf) rather than a
+register.
+
+The sculpt is `apostleMini` — the prophet's body with a **book** at chest height
+instead of the ringed staff, registered in `MINI_SCULPTS`/`EXTRA_SCULPT_IDS` and
+named by `data/view3d.json`. `pieces.html` walks `SCULPT_IDS`, so it joined with
+no page edit. Its badge is the worker's (no new atlas cell).
+
+#### The bot
+
+`explainRites` is gone; `ritePlan` replaces it as a **per-city, purchase-shaped
+want** — `Want.rite = { cityId, rite }` beside `buy` and `ground`, priced at
+`riteCostFor` and gated by `riteError` itself, ranked against every other faith
+row by worth per coin. `bankSpend` fires it through `riteDecision`, the third
+verb that bank now sends. The prophet's empire rite prices as
+`explainEmpireRite` (the best rite this empire knows × the towns it would reach);
+the other three acts keep the appetite. `augurCommand` stands down with its
+reason written on it.
+
+**The C1 debt closed**: the first god's `religion.prophetTechValue` appetite moved
+from the augur's row to `ladderPlan`, because the ladder is now the only way to a
+first god.
+
+#### Debts
+
+- **The military rite's heal is deferred.** *"+5 defence; units heal +5 inside
+  the city's borders"* — the defence half is a `cityStat` line and lands; the
+  heal half cannot, because `healUnits` (`turn.ts`) is the one place a heal is
+  decided and `cardUnitStat` reads `liveEffects` (the *empire's* walk), which a
+  city-timed effect never reaches. Closing it is one clause in `healUnits` asking
+  the town the piece is standing in — `turn.ts` was batch A's fence this batch, so
+  it is written on the row's own `deferred` line instead.
+- **The Vigil pays nothing** until `CityScope` can ask "is a rite live here"
+  (batch A's file, or F's pass). The row's `deferred` line says so in player
+  prose. Until then it is a live god in the pantheon bag that does nothing — the
+  cheapest interim fix, if that reads badly in play, is to give it a shape it
+  *can* hold (`effectAmplifier riteDuration` would be the thematic one).
+- **`chargedAugurs` counts nothing** and `augurHasActed` is read by nothing. Both
+  stay: the count is `statecraftData.ts`'s (batch A's fence) and a `CountKind`
+  removed would move every save's card table. Batch F retires them.
+- **The apostle is unpriced by the bot.** No arm in `wants.ts` values a
+  proclamation, a laying-on of hands or a relic, so the row prices at the faith
+  it costs like every other unpriced faith row. A relic is the easy one when
+  somebody wants it (a permanent 3🕯 in one town is `explainLump` over the
+  horizon); the other two want a reading of the board this file does not have.
+- **`BeliefOffer.givenBack`** is now produced by nothing — the recast was its one
+  writer. The field and `showReligionOffer`'s clause stay for the shape; the
+  reroll carries it over if a hand ever has one again.
+- **`refreshCityDerived`'s register** (the docblock in `cities.ts`) gains two
+  entries — the rite and the relic — and neither is written down there, because
+  `cities.ts` was batch A's fence. One line each, next time that file is open.
+- **The pacing harnesses were not re-aimed.** Nothing in this batch moves a
+  scripted empire's cadence (a rite costs faith the harness does not spend), and
+  the plan's re-aim schedule puts the next one after D+E.
+
+Files: `src/sim/religion.ts` · `religionData.ts` · `commands.ts` · `state.ts`
+(schema 74) · `unitData.ts` · `techData.ts` · `buildingData.ts` ·
+`buildingEffects.ts` · `tech.ts` · `purchase.ts` · `data/religion.json` ·
+`data/units.json` · `data/techs.json` · `data/buildings.json` (the relic row, the
+Chapel's marker) · `data/view.json` · `data/view3d.json` ·
+`src/render3d/geometry.ts` · `board3d.ts` · `src/ui/controls.ts` ·
+`cityPanel.ts` · `unitPanel.ts` · `compendium.ts` · `religionScreen.ts` ·
+`techTree.ts` · `src/main.ts` · `src/style.css` · `src/ai/wants.ts` · `bot.ts`.
+Tests: `religion.test.ts` (rewritten through the rites, the empire rite and the
+apostle), `charters`, `wonders`, `tech`, `techUnlocks`, `purchase`, `aiWants`,
+`aiBot`, `religion.slow`, `test/ui/religionV2`, `riteFeedback`, `unitPanel`,
+`cityScreen`, `offerFlow`, `test/render/pieces3d`.
+
+### Batch D as shipped (2026-09-06) — schema 73
+
+The ordinary building list was thirty-eight rows of which most were a flat with a
+different name. It is twenty-six, ten of them behind a parent, five of them
+once-to-a-realm.
+
+#### The ten chains
+
+`BuildingDef.requiresBuilding` — one field, one clause in `buildError` (asked
+only when a town is in hand, beside `requiresSite` and for its reason), three
+surfaces: the reducer, the add-list's greyed reason and the Compendium's **Needs
+standing here** row. The sentence is *"University needs a Library standing in
+Uruk"*, composed from the two rows' own names and `indefinite` (exported from
+`statecraft.ts` so there is one article rule in the game).
+
+| child | parent | | child | parent |
+|---|---|---|---|---|
+| Stone Walls | Palisade | | University | Library |
+| Castle | Stone Walls | | Observatory | University |
+| Amphitheater | Monument | | Forge | Workshop |
+| Bazaar | Market | | Temple | Shrine |
+| Bank | Market | | Shipyard | Harbour |
+
+**A grant ignores the chain** and nothing had to be written to make it so: the
+two paths that hand a town a building — `realiseItem`'s `CompletionGrant` (the
+Theatre of Dionysus' Amphitheatre) and `cardFoundingRider`'s founding list
+(Charter Towns' Granary) — never ask `buildError` about anything. Said out loud
+in the field's docblock and pinned in `buildingChains.test.ts`.
+
+**The chain is one link deep**: a Castle asks for Stone Walls and the walls' own
+Palisade is the walls' problem. That falls out of the clause being a reading
+rather than a walk, and it is right — a town holding Stone Walls held a Palisade
+to build them.
+
+#### The cut list — twelve rows, three markers
+
+| marker | rows |
+|---|---|
+| `retired: true` (withdrawn; row kept for replay) | Funeral Games · Stele of Laws · Monastery · Baths · Examination Hall · Clocktower · The Reliquary · Mint · Armoury · Printing House |
+| re-cut **in place** as a unique | Forum (Philosophy) · Caravanserai (Mathematics) |
+| `grantedOnly: true` (never built, never bought) | Town Charter |
+
+`retired` is `awaitsTech`'s mirror image and deliberately a second marker: one
+says *not yet* and one says *never again*, and the two sentences a player reads
+are opposites. It is refused in `buildError` (and so in `purchaseError`), hidden
+from the add-list and from the Compendium, and invisible to the bot for free —
+every one of the bot's building readings is gated on `buildError`, so
+`potentialTownsFor` needed **no edit at all** and reads the chains for free too.
+A copy already standing keeps paying: the refusal is about the *decision*.
+
+`beadIsDormant` now derives dormancy from `retired` as well as `awaitsTech`, so a
+deed left pointing at a cut row would be a race nobody is dealt rather than a
+race nobody can finish.
+
+The Town Charter was never honestly buildable — Daughter Cities' own
+`foundingRider` is where a charter comes from — so the marker only stops the
+queue and the bank selling what the law gives.
+
+#### The kept rows' new shapes
+
+| row | as shipped |
+|---|---|
+| Monument | 2🎵; **the writ line cut** (Entry LIV / balance-turn §4g) |
+| Granary | 2🌾 + **20% of the basket kept on growing** (`rulePercent growthCarryover`, city-local) |
+| Shrine | 1🕯; **the beaker cut** (the Library's job) |
+| Library | 2🔬 + **0.5🔬 a citizen** (was 1) |
+| Amphitheater | 2🎵 + **1🎵 per two citizens**; needs a Monument |
+| Bank | 3💰 + **1💰 per two citizens** + **10%💰**; needs a Market |
+| Observatory | 2🔬 + 10%🔬; **per-citizen line zeroed**; needs a University |
+| Cathedral | 2🎵 2🕯 3😊 + **the Reliquary's faith bank** (`faithPurchases: 'all'`) |
+| Market · Workshop · Courthouse · Gilded Hall · The Turning Heavens · The Magnum Opus | balance-turn §4a's −25% on the flat |
+
+The two per-citizen lines are written as `countScaled` over `population` with
+`per: 2` rather than as a fractional payout, because that is *exactly*
+`Math.floor(pop × 0.5)` through the fold's own `helpings` floor — a card line
+carrying 3.5 culture would have leaked a fraction into a bank of whole numbers.
+
+#### The numbers
+
+`rules.cities.sciencePerPop` **1 → 0.5** and the Library's own line **1 → 0.5**
+(balance-turn §4b, ruled at §7's item 13). Every §4a delta on a row that survives
+as a flat: Granary −1🌾 · Market −1💰 · Workshop −1⚒ · Amphitheater −1🎵 ·
+Cathedral −1🎵 −1🕯 · Observatory −1🔬 · Bank −1💰 · Courthouse −1💰 · Town
+Charter −1🌾 · Gilded Hall −2💰 · The Turning Heavens −1🔬 · The Magnum Opus
+−1🎵. Withdrawn rows keep their numbers untouched, so a save that holds one
+replays into the same board.
+
+#### The five uniques
+
+Each `oncePerEmpire`, each on its own node, each priced at about half the mean
+wonder of its unlock age (Æra II ≈ 203⚒ → **100**, Æra III ≈ 261⚒ → **130**).
+
+| node | row | cost | effect | shape |
+|---|---|---|---|---|
+| Epic Poetry (II) | **Heroic Epic** | 100 | this city +50% renown | `cityRenownPercent` (batch A) |
+| Kingship (II) | **Imperial Throne** | 100 | +5 authority capacity for the realm; units raised here cost 1 less to keep, for life | `authorityCapacity` + `unitUpkeepRebate` (new) |
+| The High Temple (II) | **High Temple** | 100 | presses as a holy site; +25% faith here | `pressure` + `percentYields` |
+| Philosophy (III) | **Forum** | 130 | +10% science and +10% culture here | `percentYields` ×2 |
+| Mathematics (III) | **Caravanserai** | 130 | routes leaving here +1🌾 +1⚒; a route slot | `routeYield` with an `origin` scope (batch A) |
+
+The Caravanserai **moved two ages down**, from The Golden Roads to Mathematics —
+those are the only two edits to `data/techs.json` beyond the three additions, and
+The Golden Roads keeps its caravan rider and now hands over no building.
+
+**The Throne's rebate** is `Unit.upkeepRebate`, a number and emphatically not
+`Unit.freeUpkeep`: a flag would have made the Throne a way to field a free army.
+It is stamped in `realiseItem` off the town's own buildings, because *where a
+piece was raised* is a fact that leaves the board the moment the piece marches
+and no later reading could recover it — so the stamp is permanent, a captured
+legion carries its birthplace's bargain, and razing the Throne does not put the
+army back on full pay. It is read in one place, `explainUnitUpkeepRebate`, as a
+**give-back line** beside the law's and the salt's: the gross stays gross, so
+`disbandCandidate` keeps picking the dearest piece by what it truly costs.
+`explainEmpireGold` needed no edit — it is still four lines and one fold.
+
+#### The three deeds
+
+| deed | was | now |
+|---|---|---|
+| The Great Games | funeral games in every city | **an amphitheater in every city** |
+| The Mint | a mint in every city | **a bank in every city** |
+| The Muster of the Realm | an armoury in three cities | **a forge in three cities** |
+
+`docs/beads.md` names no building and needed no edit; the endeavour rows' own
+`text` was rewritten with them.
+
+#### The pacing figures, measured and NOT re-aimed
+
+Per the plan the harnesses are re-aimed **once, after D and E together**. The
+three slow fixtures are therefore **red** on this branch and the measurements are
+here for that one dated move.
+
+First, a repair that is not a re-aim: both scripted `playEmpire`s filtered their
+queue with `isUnlocked`, which answers about the *tree* alone. A queue is
+validated row by row, so one chained row whose parent was not up yet refused the
+whole `setCityProduction` command and the town built **nothing at all** — the
+harness measured nothing. Both now filter with `buildError` and the town in hand,
+which is what a scripted player would actually be allowed to do.
+
+`tech.slow` (seed 4242, standard, five towns, 900 turns) — the four ages' closing
+turns:
+
+| | Æra I | Æra II | Æra III | Æra IV | techs at t900 |
+|---|---|---|---|---|---|
+| before this batch | 66 | 120 | 365 | 773 | 50 of 50 |
+| **the science cut alone** | **186** | **250** | **524** | — | 45 |
+| **all of batch D** | **236** | **347** | — | — | **34** |
+
+`statecraftPacing.slow` (the same empire, 400 turns) — the drafts' turns:
+
+| | first eight drafts | early cadence |
+|---|---|---|
+| before | 13 · 22 · 54 · 57 · 60 · 66 · 72 · 78 | 9.3 |
+| **after** | 13 · 22 · 168 · 172 · 178 · 186 · 196 · 210 | **28.1** |
+
+`endgame.slow` (the one-city seat, 1900 turns): the Opus **never opens** — the
+seat holds 38 of 50 technologies at the horizon, against opening on t1689 before.
+
+**The diagnosis, because the re-aim needs it.** The dominant cause is the base
+beaker, not the buildings: on the same harness the science cut *alone* moves Æra
+I from 66 to 186, and everything else in the batch adds 186 → 236. Two things
+make it bite harder than balance-turn §7's "roughly a third" estimate:
+
+- the rate is **floored per town**, so a hamlet of one citizen banks **nothing**
+  at all rather than half a beaker — every new town contributes zero science
+  until it reaches size two;
+- science buys ground and ground buys science. A slower tree means later
+  borders, fewer worked hexes and smaller towns, and the loss compounds down the
+  ladder rather than scaling with it.
+
+The Monument's writ cut is the second cause and is small on its own (Æra I 68 →
+68 on the fast probe) but real in a wide empire: a Monument was the only writ a
+small realm could *build*, so a three-town empire now sits at −2 writ where it sat
+at +3, its borders freeze, and it works four hexes a town instead of eight.
+
+Both are the ruling as written (§6.13 / balance-turn §7 item 13: *"science moves
+into the orders; the next playtest calibrates how much science the order set must
+carry"*, and Entry LIV: *"writ becomes a card decision"*). The cards are batch F.
+**What the re-aim after E has to decide is whether E's gifts and F's deck put
+enough back** — and if they do not, the two dials are `rules.cities.sciencePerPop`
+and either the Monument's writ or `meters.authority`'s own capacity.
+
+#### Debts and notes
+
+- **A chain cannot be pre-queued.** `validateQueue` asks `buildError` of every
+  row against the board *as it stands*, so a town may not queue [Library,
+  University] in one command — the University is refused until the Library
+  actually stands. That is the ruled reading ("read in `buildError`") and it is
+  also the fewer-things thesis (three decisions, not one), but it is a real
+  interface cost and the cheapest fix if the user dislikes it is a second gate:
+  let the queue accept a chained row and have `advanceProduction` hold it, the
+  way it already holds a row whose strategic resource was lost.
+- **Six nodes now hand over no building.** The Examination Hall, Machinery and
+  Movable Type hand over nothing buildable at all; Horology, Engineering and The
+  Holy Office lost a row apiece. Withdrawn rows deliberately stayed on their
+  nodes so a v72 log's `unlocks` reading is unchanged. Re-gifting them is batch
+  E's, and `buildingChains.test.ts` pins the three empty ones so the debt shows
+  up in a test run.
+- **One edit outside the fence, and it was forced.** `printingHouses` (Gov V)
+  scoped a clause to `hasBuilding: printingHouse`, which is now a row with no
+  page — the keyword sweep fails on a mark that points nowhere. Its second clause
+  is re-cut to the ruled shape (*"+10% science in every city"*, `docs/fewer-things.md`
+  §2's own words) and its `text` and doc row follow. **The first clause's number
+  is untouched**: the ruled re-aim is "+3🎵 per Library", and the 1 → 3 is batch
+  F's number to derive.
+- **Schema.** This batch's changelog entry is **v73**; batch C2 landed the same
+  day and took **v74**, so `SCHEMA_VERSION` reads 74 and every witness pins 74.
+- **The pop-1 town banks no science.** Worth a ruling of its own: if the intent
+  is "half a beaker a citizen" rather than "nothing until size two", the floor
+  could move to the empire's fold instead of the town's — one line in
+  `cityQuote`, and a change to the "every source floored on its own" discipline
+  that would need saying out loud.
+- **`CityLook` untouched**, deliberately: a building is not a visual-affecting
+  city property, and none of the five uniques carries a sculpt.
+
+
 ### Batch B as shipped (2026-09-06)
 
 The reveal, the aggregate, the ordered offices and rearranging. UI only — nothing

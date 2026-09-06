@@ -514,26 +514,26 @@ describe('the drafting hand', () => {
 
 describe('the appetite for gods', () => {
   it('prices the first god above everything else the faith bank could buy', () => {
-    // **Design addendum 5, re-aimed onto the want book** (batch 1). It used to be
-    // two lowered thresholds; it is now a worth, and the claim is the stronger
-    // one: on a board where a seat holds no belief at all, the top of its faith
-    // book is the row that would consecrate one — and it got there on worth per
-    // coin, not on a rank somebody wrote down.
+    // **Design addendum 5, re-aimed onto the want book** (batch 1), and re-aimed
+    // again when the augur was withdrawn (schema 74): the row that would
+    // consecrate a first god is the **ladder's** now, not a piece's, so the
+    // claim is made about the whole book rather than about what may be bought.
     const game = grownGame(8);
     const player = seat(game.state, 0);
     expect(player.pantheon.beliefs).toEqual([]);
     // The gate is a technology; granted directly, because what is under test is
     // the appetite rather than the tree.
-    const gate = UNIT_UNLOCK_TECH.get('augur');
-    if (gate !== undefined) {
-      for (const step of researchExpansion(game.state, 0, gate)) player.techsResearched.push(step);
+    for (const step of researchExpansion(game.state, 0, 'divination')) {
+      player.techsResearched.push(step);
     }
     player.faithPool = 500;
     const book = valueContext(game.state, player).wants.faith;
-    const buys = book.filter((want) => want.buy !== undefined);
-    expect(buys.length).toBeGreaterThan(0);
-    const top = [...buys].sort((a, b) => worthPerCoin(b) - worthPerCoin(a))[0]!;
-    expect(top.buy!.item).toEqual({ kind: 'unit', id: 'augur' });
+    const rungs = book.filter((want) => want.label.startsWith('the next consecration'));
+    expect(rungs).toHaveLength(1);
+    const others = book.filter((want) => want.holding === undefined && want !== rungs[0]);
+    for (const want of others) {
+      expect(worthPerCoin(rungs[0]!), want.label).toBeGreaterThan(worthPerCoin(want));
+    }
     // And it is dear *because* of that: faith's price rides the band's ceiling
     // while the appetite is live.
     const ctx = valueContext(game.state, player);

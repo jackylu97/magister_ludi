@@ -376,54 +376,44 @@ describe('a greyed row’s refusal', () => {
     expect(card).toContain("element('p', 'unit-card-blocked', text)");
   });
 
-  it("a row rich enough for its own card — a rite — folds the refusal into it, not a second card", () => {
-    expect(panel).toContain('if (rite.blocked !== null) card.append');
+  it("a row rich enough for its own card — a proclamation — folds the refusal into it", () => {
+    expect(panel).toContain("element('p', 'unit-card-blocked', row.blocked)");
     // `renderActions` prefers `action.card` over the fallback exactly when one
-    // exists, so a rite's card is never wrapped in `refusalCard` too.
+    // exists, so such a card is never wrapped in `refusalCard` too.
     expect(body).toContain('action.card ??');
   });
 });
 
 /**
- * The augur's Recasting the Omens row (user, 2026-08-29: "could we give augurs
- * the ability to reroll a pantheon belief… it should give the option to choose
- * which belief to reroll").
+ * The rite rows left the unit sheet entirely (2026-09-06).
  *
- * The row itself needs no code of its own — `riteOptions` walks the whole rite
- * table and the sheet prints what comes back — which is exactly the property
- * worth pinning: what a player reads on that row is the *simulation's* sentence
- * for it (`ritePreview`, and for a redraw that is the data row's own plain
- * prose), never a wording composed in the panel. The other half is the belief
- * the command names, which the sheet cannot supply and must be asked for.
+ * A rite is a **town's** verb now, so the rows are the city panel's and the
+ * augur is one permanently greyed Consecrate — kept, with the reducer's own
+ * sentence, so a piece already standing on a board can say what happened to it.
+ * What is worth pinning here is the *absence*: a sheet that still walked a rite
+ * table would be a second place a rite could be performed from.
  */
-describe('the rite row that gives a belief back', () => {
+describe('the rites are no longer on the unit sheet', () => {
   const panel = source('unitPanel.ts');
   const controls = source('controls.ts');
 
-  it('is printed off the table like every other rite, with the sim’s own hint', () => {
-    // The loop that draws them is the whole implementation of "a new rite is a
-    // JSON row": nothing here names one.
-    expect(panel).toContain('for (const rite of riteOptions())');
-    expect(panel).toContain('`Spend a rite: ${rite.name.toLowerCase()}`');
-    expect(panel).toContain('(rite.preview ? ` · ${rite.preview}` : \'\')');
+  it('walks no rite table and offers no rite row', () => {
+    expect(panel).not.toContain('riteOptions()');
+    expect(panel).not.toContain('onPerformRite');
     expect(panel).not.toContain('recastingTheOmens');
-    // And the preview is asked of the simulation, per rite.
-    expect(controls).toContain('preview: ritePreview(state, unit.id, id)');
   });
 
-  it('carries the god back to the command, and writes nothing when there is none', () => {
-    // A rite that gives nothing back logs exactly the command it always did —
-    // `undefined` is never written into a command, so an old log replays.
-    expect(controls).toContain('function performRite(id: RiteId, belief?: BeliefId): void');
-    expect(controls).toContain('...(belief === undefined ? {} : { belief })');
+  it('keeps the augur’s one row, greyed with the sim’s own sentence', () => {
+    expect(panel).toContain('if (isAugur(unit)) {');
+    expect(panel).toContain("label: 'Consecrate',");
+    expect(panel).toContain('Your gods arrive on their own');
   });
 
-  it('answers the sheet with the seat’s own pantheon, and only for a redraw rite', () => {
-    // `recastChoices` is what the picker is built from: empty for every rite
-    // that redraws nothing, so the branch costs the other six nothing.
-    expect(controls).toContain('function recastChoices(rite: RiteId): BeliefId[]');
-    expect(controls).toContain('if (riteDef(rite).redraws === undefined) return [];');
-    expect(controls).toContain('[...player.pantheon.beliefs]');
+  it('names a town where the verb names one, and asks the sim for the price', () => {
+    expect(controls).toContain('function performRite(cityId: number, id: RiteId): void');
+    expect(controls).toContain('function riteOptions(cityId: number): RiteOption[]');
+    expect(controls).toContain('const cost = riteCostFor(state, localPlayerId);');
+    expect(controls).not.toContain('recastChoices');
   });
 });
 

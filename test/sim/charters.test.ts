@@ -58,7 +58,7 @@ import {
 import { explainHappiness } from '../../src/sim/meters';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
-import { performRiteAt } from '../../src/sim/religion';
+import { performRiteAt, riteError } from '../../src/sim/religion';
 import {
   cardCityYields,
   cardPercentYields,
@@ -67,13 +67,7 @@ import {
   foldCardYields,
 } from '../../src/sim/statecraft';
 import { type OrderId, ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
-import {
-  type City,
-  type GameState,
-  createUnit,
-  newGame,
-  playerById,
-} from '../../src/sim/state';
+import { type City, type GameState, newGame, playerById } from '../../src/sim/state';
 import { buildError, gatingTech, isUnlocked } from '../../src/sim/tech';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -259,46 +253,28 @@ describe('the charters as a family', () => {
 // --- the buildings ----------------------------------------------------------
 
 describe('what each charter building does', () => {
-  it('Chapel — a rite performed in the town pays its empire culture', () => {
+  it('Chapel — the door to the rites, and it pays culture for every one said', () => {
+    // The Chapel is what makes a town able to perform a rite at all since the
+    // fewer-things pass, so a town without one refuses before any culture is
+    // ever in question.
     const bare = bench();
     const plainCity = capitalOf(bare);
-    const plainSeat = playerById(bare, 0)!;
-    plainSeat.culturePool = 0;
-    const plainAugur = createUnit(bare, 0, 'augur', plainCity.col, plainCity.row);
-    performRiteAt(bare, plainSeat, plainAugur, 'omenReading', {
-      col: plainCity.col,
-      row: plainCity.row,
-    });
-    const plain = plainSeat.culturePool;
+    expect(riteError(bare, 0, plainCity.id, 'omenReading')).toContain('nowhere to say a rite');
+    playerById(bare, 0)!.techsResearched.push('divination');
 
     const state = bench();
     const city = capitalOf(state);
     const seat = playerById(state, 0)!;
+    playerById(state, 0)!.techsResearched.push('divination');
     raise(state, city, 'chapel');
     seat.culturePool = 0;
-    const augur = createUnit(state, 0, 'augur', city.col, city.row);
-    const done = performRiteAt(state, seat, augur, 'omenReading', {
-      col: city.col,
-      row: city.row,
-    });
+    seat.faithPool = 500;
+    expect(riteError(state, 0, city.id, 'omenReading')).toBeNull();
+    const done = performRiteAt(state, seat, city, 'omenReading');
     expect(buildingRitePay(city)).toBe(5);
-    // It says so in the rite's own report, folded into the one grant list.
-    expect(done.grants).toContainEqual({ label: 'Culture', amount: 5 });
-    // And it is on top of whatever the rite itself paid, not instead of it.
-    expect(seat.culturePool).toBe(plain + 5);
-  });
-
-  it('Chapel — pays nothing for a rite said somewhere else', () => {
-    const state = bench();
-    const city = capitalOf(state);
-    const seat = playerById(state, 0)!;
-    raise(state, city, 'chapel');
-    seat.culturePool = 0;
-    // Four hexes out: the augur is standing in no town and blessing none.
-    const away = at(state, 12, 5);
-    const augur = createUnit(state, 0, 'augur', away.col, away.row);
-    performRiteAt(state, seat, augur, 'blessingOfArms', { col: away.col, row: away.row });
-    expect(seat.culturePool).toBe(0);
+    // It says so in the rite's own report.
+    expect(done.chapelCulture).toBe(5);
+    expect(seat.culturePool).toBe(5);
   });
 
   it('Keep — the walls hold longer, and friends beside them mend faster', () => {

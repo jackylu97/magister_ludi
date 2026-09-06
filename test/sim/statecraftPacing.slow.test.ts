@@ -26,7 +26,7 @@ import { mapRange, tileHex } from '../../src/sim/map';
 import { GOVERNMENT_TIERS } from '../../src/sim/statecraftData';
 import type { GameState } from '../../src/sim/state';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
-import { availableTechs, isUnlocked } from '../../src/sim/tech';
+import { availableTechs, buildError } from '../../src/sim/tech';
 import { unitDef } from '../../src/sim/unitData';
 
 /** The nearest tile a city could legally stand on, or null. `tech.test.ts`'s. */
@@ -98,7 +98,9 @@ function playEmpire(maxTurns: number): { game: Game; draftTurn: number[] } {
       const queue: { kind: 'unit' | 'building'; id: string }[] = [];
       for (const id of wanted) {
         if (city.buildings.includes(id as never)) continue;
-        if (!isUnlocked(game.state, 0, 'building', id)) continue;
+        // The reducer's own gate since batch D — see `tech.slow.test.ts`'s twin
+        // of this loop for why `isUnlocked` is not enough any more.
+        if (buildError(game.state, 0, 'building', id, city) !== null) continue;
         queue.push({ kind: 'building', id });
       }
       const settlersOut =

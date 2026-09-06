@@ -345,6 +345,18 @@ export type BuildingId =
   | 'chartTheStars'
   | 'theTurningHeavens'
   | 'theAlchemicalCodex'
+  // **Placed, never built** (the fewer-things pass, 2026-09-06): an apostle
+  // leaves one in a town that has topped out a cathedral. It carries `placed`,
+  // so no technology, no card and no bank opens it — see `BuildingDef.placed`.
+  | 'relic'
+  // **The uniques** (`docs/tech-gifts.md` §7, ruled 2026-09-06): one to a realm,
+  // each on its own node, each at about half its age's wonder. Two more of the
+  // set are rows that already existed and were re-cut in place rather than added
+  // — the Forum at Philosophy and the Caravanserai at Mathematics — which is
+  // why only three names join here.
+  | 'heroicEpic'
+  | 'imperialThrone'
+  | 'highTemple'
   // --- the wonders ---------------------------------------------------------
   //
   // Twenty-seven, ratified from `docs/wonders.md` and homed on the tree as it
@@ -621,6 +633,94 @@ export interface BuildingDef {
    * three rows and adds them to a node's `unlocks`, and nothing else changes.
    */
   awaitsTech?: boolean;
+  /**
+   * **A parent that must already stand in the same town** — the University's
+   * Library, the Castle's Stone Walls (`docs/fewer-things.md` §2, RULED). Absent
+   * means a row anybody may raise, which is most of them.
+   *
+   * The shape the cut list is built on: ten chains replace thirty-eight
+   * unrelated rows, so a tall town's third decision is a *consequence* of its
+   * first rather than another line on the same list. One field, one clause,
+   * three surfaces — `buildError` refuses the queue and the purchase in the
+   * parent's own name, the add-list greys the row with that sentence, and the
+   * Compendium prints a "Needs standing here" row off the same field.
+   *
+   * **A grant ignores the chain**, and that is a ruling rather than an oversight
+   * (`docs/fewer-things.md` §6.4). The two paths that hand a town a building —
+   * `realiseItem`'s `CompletionGrant` (the Theatre of Dionysus' Amphitheater)
+   * and `cardFoundingRider`'s founding list (Charter Towns' Granary) — never ask
+   * `buildError` about anything, so neither asks about this: a wonder that
+   * promises an Amphitheatre keeps its promise in a town with no Monument. The
+   * chain is a rule about what a town may *decide to build*, not about what may
+   * stand in it.
+   *
+   * A chain of one link only: the parent is asked about, never *its* parent, so
+   * a Castle asks for Stone Walls and the walls' own Palisade is the walls'
+   * problem. That falls out of the clause being a single reading rather than a
+   * walk, and it is the right reading — a town holding Stone Walls held a
+   * Palisade to build them.
+   */
+  requiresBuilding?: BuildingId;
+  /**
+   * **This row has left the buildable set** — the twelve ordinary buildings the
+   * fewer-things pass cut (`docs/fewer-things.md` §2). Absent means a live row,
+   * which is every row but those.
+   *
+   * `awaitsTech`'s mirror image and deliberately a second marker rather than a
+   * reuse: that one says *not yet* and this one says *never again*, the two
+   * sentences a player reads are opposites, and a row that carried both would be
+   * a row of nothing. The row itself **stays in the table forever** — a save is
+   * `{config, log}` and a v72 log holds towns that raised a Mint, so deleting
+   * the row would make the replay of a legal game impossible. This is the
+   * standing convention for a cut row (`OrderDef.retired`, one table over).
+   *
+   * Refused in `buildError` (and therefore in `purchaseError`, which asks it),
+   * hidden from the city panel's add-list and from the Compendium, and invisible
+   * to the bot for free — every one of the bot's building readings is gated on
+   * `buildError`. What it does **not** touch is a copy already standing: a town
+   * that built a Mint keeps its three gold, its upkeep and its renown, because
+   * every one of those is read off `city.buildings` and none of them asks this.
+   */
+  retired?: boolean;
+  /**
+   * **Nothing builds or buys this — something hands it over** (the Town Charter,
+   * which a city founded under Daughter Cities is founded with). Absent means an
+   * ordinary row.
+   *
+   * `purchaseOnly`'s third sibling, and the union of the three is the whole of
+   * how a row may be acquired: hammered, bought, or given. It is not `retired` —
+   * the row is live and towns really do gain one — and it is not `awaitsTech`,
+   * because no technology is coming. Refused in `buildError` with the sentence,
+   * and the row's own `note` says who does the granting.
+   */
+  grantedOnly?: boolean;
+  /**
+   * **What this building takes off the maintenance of every unit raised in its
+   * town**, per turn — the Imperial Throne's one gold (`docs/tech-gifts.md` §7).
+   * Absent means a building the payroll passes by.
+   *
+   * A number the caller interprets, `purchaseDiscount`'s bargain one ledger
+   * over, and it is emphatically **not** `Unit.freeUpkeep`: that flag says "this
+   * empire never paid for this piece" and is written at five named seams, while
+   * this is a *partial* rebate on a piece the empire did pay for and did raise.
+   * A row that set the flag instead would have made the Throne a way to field a
+   * free army.
+   *
+   * It is **stamped on the piece at the moment it is raised** (`Unit.upkeepRebate`,
+   * written in `realiseItem`) rather than read off the board every turn, because
+   * the promise the card makes is about *where a unit was built* — a fact that
+   * stops being on the board the moment the piece marches out of the town, and
+   * one no later reading could recover. The stamp is therefore permanent: a
+   * legion raised under the Throne is cheap to keep for the rest of its life,
+   * and razing the Throne does not put it back on full pay.
+   *
+   * Read in exactly one place, `explainUnitUpkeepRebate` (`upkeep.ts`), as one
+   * more labelled give-back line beside the law's and the salt's — so the ledger
+   * still shows what the army costs and then what the Throne forgives, and
+   * `disbandCandidate` still picks off the gross figures like every other rebate
+   * in the game.
+   */
+  unitUpkeepRebate?: number;
   /** What this pays on the *ground*. See `BuildingTileYield`. */
   tileYields?: BuildingTileYield[];
   /**
@@ -869,11 +969,43 @@ export interface BuildingDef {
    * rite resolves at — and paid through `settleCultureWindfall` like every other
    * culture grant in the game, so it fills the draft basket by the ordinary path.
    *
-   * "In its town" is the town the rite lands on, or — for a rite that blesses a
-   * piece rather than a place — the town the augur was standing in. See
-   * `riteTown` in `religion.ts`.
+   * "In its town" is the town the rite is performed in, which since the rites
+   * became city verbs (2026-09-06) is the only town there is.
    */
   ritePays?: number;
+  /**
+   * **This building is the door to the city rites** — the Chapel's, and the
+   * whole of what the Chapel is for since the fewer-things pass (ruled
+   * 2026-09-06, `docs/fewer-things.md` §6.3).
+   *
+   * A **marker**, exactly as `consecrated` and `waters` are: nothing in
+   * `src/sim/` compares a building id against `"chapel"`, so the day a second
+   * row wants to open the rites it sets this flag and `riteError` learns
+   * nothing new. Read in exactly one place — `cityPerformsRites`
+   * (`buildingEffects.ts`) — and asked by exactly one gate, `riteError`.
+   *
+   * It is a *door*, not a discount: a chapel does not make a rite cheaper or
+   * longer, it makes one possible at all. That is what turned a building the
+   * user never wanted to invest in into the one a rite-keeping town must have.
+   */
+  ritesDoor?: boolean;
+  /**
+   * **This row is placed, never built and never bought** — the relic an apostle
+   * leaves in a cathedral town.
+   *
+   * `unlockedByCard`'s and `purchaseOnly`'s third sibling and read in the same
+   * place, `isUnlocked` (`tech.ts`), as one more clause of the single
+   * availability question rather than a second gate beside it: a building no
+   * technology names is otherwise available from turn one, which is right for
+   * content the tree opens and exactly wrong for a shelf that arrives by an act.
+   *
+   * A row that declares it is out of every queue and every purchase list for
+   * ever — there is no tech, no card and no bank that opens it — and the only
+   * way it reaches a town is the act that writes it into `City.buildings`. What
+   * it *pays* is then entirely ordinary: its own yields, read by the same fold
+   * that reads a granary's, following the stones when the town changes hands.
+   */
+  placed?: boolean;
   /**
    * **This building waters the town it stands in** — the aqueduct, today.
    * Absent means an ordinary building, which is every row but one.

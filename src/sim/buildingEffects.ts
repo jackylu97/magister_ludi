@@ -149,6 +149,72 @@ export function cityIsWatered(city: City): boolean {
 }
 
 /**
+ * **May this town perform a rite at all** — has it the door (`ritesDoor`, the
+ * Chapel)?
+ *
+ * `cityIsWatered`'s shape exactly, one marker over, and here for that function's
+ * reason: `riteError` (`religion.ts`) is the one gate and it must not learn the
+ * name of a building. A second row that opens the rites is a JSON flag and this
+ * function is unchanged.
+ */
+export function cityPerformsRites(city: City): boolean {
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    if (buildingDef(id).ritesDoor === true) return true;
+  }
+  return false;
+}
+
+/**
+ * The rows a town holds that are **placed rather than built** — the relic an
+ * apostle leaves (`BuildingDef.placed`).
+ *
+ * A list rather than a boolean because "one relic per cathedral" is a question
+ * about *which* row, and because the act that places one has to be able to name
+ * what is already standing. The gate itself (`placeRelicError`) asks about one
+ * id; this is what lets a panel say what a town is keeping without naming any.
+ */
+export function placedBuildings(city: City): BuildingId[] {
+  return BUILDING_IDS.filter(
+    (id) => city.buildings.includes(id) && buildingDef(id).placed === true,
+  );
+}
+
+/**
+ * **The row an act leaves behind** — the relic, and nothing else today.
+ *
+ * `workForFamily`'s trick one table over: the *rule* is "the placed row", the
+ * data says which row that is, and `religion.ts` — which owns the act — never
+ * compares a building id against a name. `undefined` when the table carries
+ * none, which is the honest answer and is what makes the act refuse rather than
+ * throw.
+ *
+ * Exactly one row carries the marker today. A second would be a design decision
+ * about what else an agent may leave standing, and this constant is where it
+ * would have to be argued about rather than quietly indexed past.
+ */
+export const PLACED_BUILDING: BuildingId | undefined = BUILDING_IDS.find(
+  (id) => buildingDef(id).placed === true,
+);
+
+/**
+ * **Does this town keep the shelf a relic is kept in** — a row carrying
+ * `consecrated`, which is the cathedral's marker and the one the patron roll
+ * already reads.
+ *
+ * `cityPerformsRites`' shape exactly, one marker over. "One relic per cathedral"
+ * is then two readings of the board and no register at all: this, and whether
+ * the placed row is already on the shelf.
+ */
+export function cityKeepsRelics(city: City): boolean {
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    if (buildingDef(id).consecrated === true) return true;
+  }
+  return false;
+}
+
+/**
  * What **this city's own** buildings mend on friendly pieces resting in or
  * beside it — the Keep's five (the charters, 2026-09-04).
  *

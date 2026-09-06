@@ -38,10 +38,10 @@
 import { fortifyBonus, isCivilian, isCombatant, isFortified, isRanged } from '../sim/combat';
 import type { ImprovementId } from '../sim/improvementData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
-import { isAugur, isInquisitor, isProphet } from '../sim/religion';
-import { type ReligionBeliefPool, type RiteId, riteDef } from '../sim/religionData';
-import { describeCard, stripRefs } from '../sim/statecraft';
-import type { GreatPersonView, ProphetRow, ProphetVerb, RiteOption } from './controls';
+import { isApostle, isAugur, isInquisitor, isProphet } from '../sim/religion';
+import type { RiteId } from '../sim/religionData';
+import { stripRefs } from '../sim/statecraft';
+import type { GreatPersonView, ProphetRow, ProphetVerb } from './controls';
 import { getTileAt } from '../sim/map';
 import type { Game } from '../sim/game';
 import { explainAuthority, meterStanding } from '../sim/meters';
@@ -257,18 +257,7 @@ export interface UnitPanelOptions {
   consecrateBlocker: () => string | null | undefined;
   onConsecrate: () => void;
   /**
-   * The rites this augur could perform where it stands —
-   * `controls.riteOptions()`, already carrying each row's blocker and payoff.
-   *
-   * A list rather than a blocker, because this verb is five verbs. Unlike the
-   * improvements, the rows the *tree* refuses stay on the list and are greyed
-   * with the node named: a rite is a permanent gift of a technology, and hiding
-   * one would make it something a player discovers by accident.
-   */
-  riteOptions: () => RiteOption[];
-  onPerformRite: (id: RiteId) => void;
-  /**
-   * The four things the selected prophet's charges could do —
+   * The things the selected prophet's or apostle's charges could do —
    * `controls.prophetRows()`, already carrying each row's blocker and its
    * sentence. Empty for every other piece on the board.
    *
@@ -280,7 +269,7 @@ export interface UnitPanelOptions {
    * verb that vanished would be one a player never learns exists.
    */
   prophetRows: () => ProphetRow[];
-  onProphetAct: (verb: ProphetVerb, pool?: ReligionBeliefPool) => void;
+  onProphetAct: (verb: ProphetVerb, rite?: RiteId) => void;
   /**
    * Who the selected piece is, if it is a great person, and what its two verbs
    * would do — `controls.greatPersonView()`, or `null` for every other piece.
@@ -574,8 +563,6 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     onPillage,
     consecrateBlocker,
     onConsecrate,
-    riteOptions,
-    onPerformRite,
     prophetRows,
     onProphetAct,
     greatPerson,
@@ -996,31 +983,20 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         run: onProspect,
       });
     }
-    // The augur's two verbs, and the order is the decision: **Consecrate first**,
-    // because it is the one that spends the whole piece and the one a player is
-    // choosing *against* when they perform a rite instead. Its blocker sentence
-    // is the reducer's own — "Your pantheon has no room for another god" — so a
-    // greyed row explains itself rather than merely refusing.
+    // **The augur's one remaining row.** Its rites are a town's verbs now
+    // (`docs/fewer-things.md` §3) and its gods arrive on a faith threshold, so
+    // there is one row left and it is always greyed — with the reducer's own
+    // sentence, which is what says *why*. Kept rather than deleted: a piece
+    // already standing on a board from before the pass must be able to say what
+    // has happened to it.
     if (isAugur(unit)) {
       const blocker = consecrateBlocker();
       actions.push({
         label: 'Consecrate',
         blocked: blocker === undefined ? 'No unit selected' : blocker,
-        hint: 'Spend this augur — the whole of it — to name a god of your pantheon',
+        hint: 'Your gods arrive on their own, once your faith is deep enough',
         run: onConsecrate,
       });
-      for (const rite of riteOptions()) {
-        actions.push({
-          label: rite.name,
-          blocked: rite.blocked,
-          hint:
-            `Spend a rite: ${rite.name.toLowerCase()}` +
-            (rite.preview ? ` · ${rite.preview}` : ''),
-          title: techHoverTitle(rite.requiredTechName, rite.blocked),
-          card: () => riteCard(rite),
-          run: () => onPerformRite(rite.id),
-        });
-      }
     }
     // The prophet's four verbs, in the order a player meets them: the one that
     // founds first, then the two that spend a charge on the faith it founded,
@@ -1030,23 +1006,23 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // rather than about this hex, and a row that vanished would be a verb a
     // player only discovers by standing somewhere else.
     //
-    // Redraft is **two** rows, one per pool. It is the one prophet verb that
-    // names something besides the piece, and the two pools are refused
-    // separately — a faith holding a follower belief and no enhancer may give
-    // the first back and not the second — so a single row with a hidden choice
-    // would be a button whose sentence is right about only half of what it does.
-    // The **inquisitor** shares this block rather than opening one of its own:
-    // its single act carries the same greyable, blocker-bearing row a prophet's
-    // deeds do (`ProphetVerb`), and `prophetRows` is what answers for both.
-    if (isProphet(unit) || isInquisitor(unit)) {
+    // The rite over the realm is **one row per rite**. It is the one prophet
+    // verb that names something besides the piece, and the rites are refused
+    // separately — an empire may know two of the five — so a single row with a
+    // hidden choice would be a button whose sentence is right about only part
+    // of what it does. The **inquisitor** and the **apostle** share this block
+    // rather than opening ones of their own: their acts carry the same
+    // greyable, blocker-bearing row a prophet's deeds do (`ProphetVerb`), and
+    // `prophetRows` is what answers for all three.
+    if (isProphet(unit) || isApostle(unit) || isInquisitor(unit)) {
       for (const row of prophetRows()) {
-        if (row.pools) {
-          for (const pool of row.pools) {
+        if (row.rites) {
+          for (const rite of row.rites) {
             actions.push({
-              label: `${row.name} · ${pool.name}`,
-              blocked: pool.blocked,
+              label: `${row.name} · ${rite.name}`,
+              blocked: rite.blocked,
               hint: row.says,
-              run: () => onProphetAct(row.verb, pool.pool),
+              run: () => onProphetAct(row.verb, rite.rite),
             });
           }
           continue;
@@ -1206,32 +1182,6 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     card.append(element('p', 'unit-card-payoff', row.says));
     card.append(element('p', 'unit-card-clause', row.cost));
     if (row.blocked !== null) card.append(element('p', 'unit-card-blocked', row.blocked));
-    return card;
-  }
-
-  function riteCard(rite: RiteOption): Node {
-    const def = riteDef(rite.id);
-    const card = element('div', 'unit-card');
-    card.append(element('h4', 'unit-card-title', rite.name));
-    if (rite.preview) card.append(element('p', 'unit-card-payoff', rite.preview));
-    const clauses = describeCard(rite.id);
-    for (const clause of clauses) {
-      const line = element(
-        'p',
-        clause.deferred ? 'unit-card-clause is-deferred' : 'unit-card-clause',
-      );
-      // Bold, and not a link: this is a hover card and a hover card takes no
-      // pointer (`infoCard.ts`), so an affordance here would be one for a click
-      // that cannot land.
-      setDescriptorText(line, clause.text, { linked: false });
-      card.append(line);
-    }
-    // The one thing on the card that is not about the rite: what it *costs*,
-    // which is the piece rather than a purse. Said here because this is the
-    // screen where the decision is made.
-    card.append(element('p', 'unit-card-clause', 'Spends one of the augur’s charges'));
-    if (rite.blocked !== null) card.append(element('p', 'unit-card-blocked', rite.blocked));
-    card.append(element('p', 'unit-card-flavor', def.flavor));
     return card;
   }
 

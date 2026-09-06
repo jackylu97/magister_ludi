@@ -151,6 +151,7 @@ import {
   saltCrust,
   sawPit,
   scoutMini,
+  apostleMini,
   prophetMini,
   settlerMini,
   silkFrame,
@@ -372,6 +373,7 @@ export const MINI_SCULPTS: Record<SculptId, MiniSculpt> = {
   trader: { cls: 'foot', build: caravanMini, laden: 'traderLaden' },
   traderLaden: { cls: 'foot', build: caravanLadenMini },
   prophet: { cls: 'foot', build: prophetMini },
+  apostle: { cls: 'foot', build: apostleMini },
   boat: { cls: 'foot', build: boatMini },
   /**
    * **The naval line: three hulls, five rigs, twelve bodies** (2026-08-29).
@@ -465,6 +467,11 @@ const EXTRA_SCULPT_IDS = [
   'trader',
   'traderLaden',
   'prophet',
+  // The fourth *named* one (2026-09-06): the apostle wears the prophet's body
+  // with a book instead of the ringed staff, and it is named here for the
+  // prophet's reason exactly — its roster row is `modelClass: 'worker'` and
+  // rightly so, and which drawing a row wears is a decision about drawings.
+  'apostle',
   'boat',
   // The nine later rigs of the three naval lines. Each *is* named by
   // `pieces.byUnitType` — unlike `traderLaden` and `boat`, which are reached

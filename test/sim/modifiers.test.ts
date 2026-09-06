@@ -624,6 +624,8 @@ describe('the workshop', () => {
     for (const id of BUILDING_IDS) {
       expect(Object.keys(buildingDef(id)), id).not.toContain('upgrades');
     }
-    expect(buildingDef('workshop').production).toBe(3);
+    // Two since batch D took a quarter off the ordinary flats
+    // (`docs/balance-turn.md` §4a). The claim is that nothing renews it.
+    expect(buildingDef('workshop').production).toBe(2);
   });
 });

@@ -531,7 +531,7 @@ Commonwealth · The Empire · The Magisterium).
 | Admiralty | M | 🐫 | ○ | Embarked units gain +1 movement · +5 defence in every coastal city. |
 | The Salon | E | 🏛 | ● | Every great-person offer shows one more card. |
 | The Silk Exchange | E | 🐫 | ◆ | +2 gold for each trade route you run. |
-| Printing Houses | E | ✶ | ◆ | +1 culture for each Library you hold · +2 science in every city with a Printing House. |
+| Printing Houses | E | ✶ | ◆ | +1 culture for each Library you hold · +10% science in every city. |
 | Tithe Barns | E | 🌱 | ○ | Cities keep 50% of their stored food when they grow · −1 faith in every city. |
 | The Guild Compact | E | ⚒ | ○ | +2% production in a city for each production building standing in it, at most +6%. |
 | Manufactories | E | ⚒ | ◆ | +2 production on every manufactory. |

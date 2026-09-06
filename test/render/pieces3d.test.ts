@@ -356,6 +356,13 @@ describe('the model-class roster', () => {
     // bought out of one bank at an order of magnitude's difference in price.
     expect(modelClassFor('prophet')).toBe('worker');
     expect(sculptFor('prophet')).toBe('prophet');
+    // The **apostle** is the table's fourth named row (2026-09-06) and it is
+    // the prophet's argument one price down: `modelClass: 'worker'` is right, it
+    // must not stand in the worker's body, and it must not stand in the
+    // prophet's either — the two travel the same board and one is a tenth of
+    // the other's price.
+    expect(modelClassFor('apostle')).toBe('worker');
+    expect(sculptFor('apostle')).toBe('apostle');
     // The augur keeps the plain worker body, which is the half of that pair the
     // table does not name — and must not, or the split would say nothing.
     expect(sculptFor('augur')).toBe('worker');
@@ -476,16 +483,16 @@ describe('the model-class roster', () => {
     board.dispose();
   });
 
-  it('gilds the caravan\'s bale and the prophet\'s rim, and nothing else', () => {
+  it('gilds the caravan\'s bale, the prophet\'s rim and the apostle\'s book, and nothing else', () => {
     // Gold is the one reserved note in this world — a great work, a palace
     // finial, a wonder's tip — and a sculpt may spend it on exactly one element,
     // to say the one thing about itself that its silhouette cannot. The laden
     // caravan says "this piece is carrying something"; the prophet says "this is
-    // not the augur beside it", which is the pair the note was needed for.
-    // Anything else reaching for it would be spending a word the world has
-    // already given a meaning, so the list is written out here rather than
-    // derived.
-    const GILT: readonly SculptId[] = ['traderLaden', 'prophet'];
+    // not the worker beside it"; the apostle says "this is the prophet's small
+    // brother, carrying a book instead of the sign". Anything else reaching for
+    // it would be spending a word the world has already given a meaning, so the
+    // list is written out here rather than derived.
+    const GILT: readonly SculptId[] = ['traderLaden', 'prophet', 'apostle'];
     const board = geometry();
     for (const id of GILT) expect(board.pieces[id].parts, id).toContain('gilt');
     for (const id of SCULPT_IDS) {
