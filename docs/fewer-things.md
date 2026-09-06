@@ -545,7 +545,7 @@ above and listed here for the record:
 | 4 | A grant **ignores the chain** |
 | 5 | The **faith ladder**: thresholds shaped like the augur's old price ladder (40, +15 a rung), three rungs for the pantheon's three slots. The **reroll**: 35 faith to start, rising per use at a slight exponent; a great prophet's draft is free and does not raise the count |
 | 7 | The apostle's third act is the **relic** (faith per turn, one per cathedral); no other act |
-| 8 | **All twelve lines readable**, not three |
+| 8 | **All twelve lines readable**, not three — **re-ruled 2026-09-06 by the order pass (`docs/orders-pass-3.md` §9): lines stay drawn marks, nothing reads them; slot-flavour counts stay** |
 | 9 | Cadence 2.25 → 2.8 **and** chairs down a quarter — Gov III to 8, **Gov IV and V commensurately** |
 | 10 | *("what's a tag-blind hand?")* — a hand or deck chosen for each card's own number with no regard to what the other cards read: Deck 1 above, the strongest eleven flats. Under the proposal such a pile keeps its numbers and stops being the ceiling; the question was whether a first-time player who drafts that way should feel the gap. Left as recommended: leave it, and let the tutorial show one combo |
 | 11 | The **tech gift table** is its own doc — `docs/tech-gifts.md`, in flight, before the order pass |

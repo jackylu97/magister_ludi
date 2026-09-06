@@ -444,10 +444,10 @@ rulings yet:
   grammar is **put yields on a thing, then multiply the thing** (routes,
   Markets, the capital, great works, faith buildings — multipliers late,
   rare, applied last); **line readers withdrawn** for Orders (slot-flavour
-  counts stay — confirms pending); amplifiers stack additively; early pools
+  counts stay — CONFIRMED; `CardLine` is a drawn mark only); amplifiers stack additively; early pools
   lean standalone; periodic conversions (science↔faith↔culture, gold→science)
-  as bursts; the cheer rows kept (the tier clamp is the open question);
-  four Gov V "just win now" bead Orders. Four questions in §9. And
+  as bursts; the cheer rows kept and the clamp left as is until the next playtest; the shrine engine tallies faith rerolls;
+  four Gov V "just win now" bead Orders. All four questions in §9 answered. And
   `docs/veins.md` — **SHELVED on your word (2026-09-06)**: the layer was
   unreachable for most of a game (its gate an Æra IV node) and a survey is
   the small frequent click this pass removes. `veins.share` is 0 (the last

@@ -521,19 +521,15 @@ Early pools standalone-heavy, late pools multiplier-heavy — the ladder the
 user asked for, and the reason the 25/30/45 share is now **per game**, not
 per pool.
 
-### Four questions
+### The four questions — answered (2026-09-06)
 
-1. **"Move to age 2 / age 3"** — read as the Government II and III pools
-   (Orders live in pools, not ages). Confirm.
-2. **Lines** — the marks withdraw line reading for Orders. Confirm that
-   `CardLine` stays a drawn mark only and `slottedOrdersOfLine` is not built
-   (fewer-things §4 and §6 item 8 then re-rule). Slot-flavour counts stay.
-3. **"For every faith roll"** — the faith ladder's consecration rungs (three
-   in a game), or every time faith is *spent* (rites, rerolls)? The second is
-   the livelier tally.
-4. **The cheer clamp** — with the cheer rows kept and happiness nerfed on the
-   tree, `METERS.tierClamp` still caps the bonus at the second rung, so an
-   empire at 28 happiness gets nothing from a +1. Raise the clamp (one
-   number), or leave cheer as a floor against unhappiness rather than a
-   bonus? The pass reads better with the clamp raised now that cheer is
-   scarcer.
+1. **Pools, confirmed**: "age 2 / age 3" are the Government II and III pools.
+2. **Lines, confirmed**: `CardLine` stays a drawn mark only; `slottedOrdersOfLine`
+   is not built; slot-flavour counts stay. `docs/fewer-things.md` §4 and §6
+   item 8 are re-ruled by this.
+3. **"Every faith roll" = every faith reroll of an Order draft.** The shrine
+   engine is a tally on rerolls taken while slotted (+1🕯 on Shrines per
+   reroll) — the reroll's rising price buys a standing return, which is the
+   faith deck's tempo loop closing on itself.
+4. **The clamp stays as it is** for now; the cheer rows stay because cheer is
+   scarcer and tall cities need sources of it. The next playtest judges.
