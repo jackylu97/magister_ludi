@@ -225,6 +225,7 @@ import {
   chopError,
   chopTechError,
   improvementError,
+  improvementGroundError,
   improvementTechError,
   improvementYieldDelta,
   isBuilder,
@@ -1866,29 +1867,44 @@ export interface GameControls {
   isUnitSkipped(): boolean;
 
   /**
-   * Every improvement a spade can ever lay, with what each would add to this
-   * tile and — when it cannot be laid here — why not, in the simulation's own
-   * words. The rows the unit sheet turns into buttons.
+   * Every improvement this hex could take, with what each would add to it and —
+   * when it cannot be laid *yet* — why not, in the simulation's own words. The
+   * rows the unit sheet turns into buttons.
    *
-   * **Nothing is hidden any more** (user, 2026-09-04: "add a greyed out button
-   * of the possible improvements that can be built and explain why it can't be
-   * built in the worker panel"). The list used to be the shape of the ground —
-   * a row the ground refused was simply absent — which reads well to somebody
-   * who already knows the table and tells a first-time player nothing at all:
-   * the mine they are looking for is missing, and the panel does not say
-   * whether that is the hill, the borders or Mining. So every row is printed,
-   * pressable exactly when `improvementError` says `null`, and greyed with that
-   * function's own sentence otherwise ("A mine needs hills", "Wheat wants a
-   * farm", "A mine needs Mining"). One rule, one sentence, no UI copy restating
-   * a rule the reducer already states.
+   * **The ground decides who is listed; the empire decides who is greyed.**
+   * Two rulings met here and the second is the one that settled it:
    *
-   * The one row kept off the list is a **great person's work**, and that is the
-   * `greatPerson` marker rather than a name: a worker cannot lay an academy in
-   * any circumstance whatsoever, so its refusal is about the *piece* rather
-   * than about the hex, and four permanently dead rows under a spade would be
-   * clutter carrying no argument. `ImprovementOption.requiredTechName` stays the
-   * narrower thing it always was — set only when the *tree* is the refusal — so
-   * the sheet's "Requires Mining" headline can never crown a ground refusal.
+   *   · 2026-09-04, "add a greyed out button of the possible improvements that
+   *     can be built and explain why it can't be built in the worker panel" —
+   *     the list had been the shape of the ground, so a row the hex refused was
+   *     simply absent, which reads well to somebody who already knows the table
+   *     and tells a first-time player nothing: the mine they are looking for is
+   *     missing and nothing says whether that is the hill or Mining.
+   *   · playthrough note 1, "worker menu should not show every improvement
+   *     grayed out — just the ones that are valid on the tile (show none on
+   *     city tile, show only plantation on silk)" — because the first ruling,
+   *     read as *every* row, put eight dead buttons under a worker standing in
+   *     a town and made the sheet a table of contents for the improvement file.
+   *
+   * So a row is listed when the **ground** would take it
+   * (`improvementGroundError` — the borders, the town standing here, the
+   * terrain, the features, the hills, a seam that has already claimed the hex),
+   * and a listed row is pressable exactly when `improvementError` says `null`
+   * and greyed with that function's own sentence otherwise ("A mine needs
+   * Mining", "This worker has no charges left"). Every greyed row is therefore
+   * an argument for something a player can go and do. One rule, one sentence,
+   * no UI copy restating a rule the reducer already states.
+   *
+   * The other row kept off the list is a **great person's work**, and that is
+   * the `greatPerson` marker rather than a name: a worker cannot lay an academy
+   * in any circumstance whatsoever, so its refusal is about the *piece* rather
+   * than about the hex. `ImprovementOption.requiredTechName` stays the narrower
+   * thing it always was — set only when the *tree* is the refusal — and now
+   * cannot be anything else, since a ground refusal never reaches the list.
+   *
+   * **Empty is a real answer**: a town hex takes no improvement at all, so the
+   * sheet shows the worker's other verbs and no spade rows, which is the honest
+   * picture rather than eight refusals of the same sentence.
    *
    * Empty when there is no selection, when the selection is not a builder, or
    * when the seat has ended its turn — the panel then shows the charges line and
@@ -4722,8 +4738,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   // --- improvements --------------------------------------------------------
 
   /**
-   * Every improvement a spade can lay, on this hex or not — see
-   * `GameControls.improvementOptions` for the ruling and the one exclusion.
+   * Every improvement this hex could ever take — see
+   * `GameControls.improvementOptions` for the ruling and the two exclusions.
+   *
+   * The filter is the *ground's* reading (`improvementGroundError`) and the
+   * greying is the whole one, which is the two questions a worker's sheet asks
+   * kept apart: a row the ground will never accept is not printed, and a row
+   * the ground accepts is printed with whatever the empire, the tree or the
+   * worker's own purse has to say about it.
    *
    * Each row's `blocked` is `improvementError` whole, the reducer's own gate, so
    * a row that appears *pressable* is a command that will be accepted and a row
@@ -4759,6 +4781,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // marker, never a name. Their refusal is about the piece rather than the
       // hex, so they are the one thing this list still hides.
       if (def.greatPerson !== undefined) continue;
+      // **The ground decides who is on the sheet at all** (user, playthrough
+      // note 1). A row this hex could never take under any empire — a town
+      // standing here, somebody else's border, the silk asking for its
+      // plantation — is not an argument for anything, so it is not printed.
+      // Asked of the sim's own ground reading rather than by re-deriving the
+      // clauses here, so the menu and the reducer cannot disagree about what
+      // this hex is.
+      if (improvementGroundError(state, unit.ownerId, tile, id) !== null) continue;
       const tech = improvementTechError(state, unit.ownerId, id);
       const gate = def.requiresTech;
       options.push({

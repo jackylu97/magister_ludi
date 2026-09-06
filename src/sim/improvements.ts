@@ -134,13 +134,55 @@ export function chargesLeft(unit: Unit): number {
 // --- building ---------------------------------------------------------------
 
 /**
- * Why this tile cannot take this improvement, or `null` when it can.
+ * The row as the noun of a refusal — "a lumbermill", but "floating gardens":
+ * a plural name takes no article. The test is grammar (the trailing s), never
+ * a row id, so a future plural row inherits it for free. `ARow` is the same
+ * phrase opening a sentence; `rowNeeds` is its verb ("needs"/"need").
+ * Found the day the worker panel started printing every refusal (2026-09-04):
+ * "A floating gardens cannot be built on grassland" had never been on screen.
+ */
+function aRow(def: { name: string }): string {
+  const noun = def.name.toLowerCase();
+  return noun.endsWith('s') ? noun : `a ${noun}`;
+}
+
+function ARow(def: { name: string }): string {
+  const phrase = aRow(def);
+  return phrase.charAt(0).toUpperCase() + phrase.slice(1);
+}
+
+function rowNeeds(def: { name: string }): string {
+  return def.name.toLowerCase().endsWith('s') ? 'need' : 'needs';
+}
+
+/**
+ * Why this **ground** cannot take this improvement, or `null` when it could —
+ * every question about the hex, and not one about the empire's tree.
  *
  * The *ground's* half of the rule, split out for the reason `foundingErrorAt` is
  * split out of `foundingError`: a lens, an AI valuation or a "where could I
  * farm?" overlay wants to ask it of a hex with no worker standing on it, and a
  * second implementation of the constraint shape would be a second implementation
  * that disagrees.
+ *
+ * **Why there are two readings** (user, playthrough note 1: "worker menu should
+ * not show every improvement grayed out — just the ones that are valid on the
+ * tile"). The two questions a worker's sheet asks are genuinely different, and
+ * they want different answers:
+ *
+ *   · *What could this hex ever take?* — this function. A row it refuses is a
+ *     row that has no business on the sheet at all: a town hex takes nothing,
+ *     and a silk forest takes the plantation the silk is asking for. Printing
+ *     eight dead rows there is a menu of things that will never become
+ *     available however the game goes, which is noise rather than onboarding.
+ *   · *Why can I not press this one now?* — `improvementErrorAt`, which is this
+ *     plus the tree. A row the ground accepts and the technology refuses is
+ *     printed and greyed, because that one *is* an argument: go and learn
+ *     Mining.
+ *
+ * So the panel filters on this reading and greys on the whole one (see
+ * `improvementOptions` in `controls.ts`), and neither can drift from the other,
+ * because `improvementErrorAt` is literally this function followed by the gate.
  *
  * The constraint shape is a plain AND of four optional filters, read straight
  * off the row (see `improvementData.ts`), and the messages name the filter that
@@ -167,6 +209,11 @@ export function chargesLeft(unit: Unit): number {
  *     that improvement and no other, so the wrong one is refused by name. See
  *     the clause; it is `chopErrorAt`'s protection rule read forwards.
  *
+ * **The borders are ground.** A hex outside this empire's territory answers here
+ * rather than in the gate, which is what makes the sheet quiet on somebody
+ * else's land: whose ground this is is a fact about the hex a worker is standing
+ * on, not a thing the player is one technology away from fixing.
+ *
  * And one row is excused nearly all of it. **A great person's work stands
  * anywhere its planter can stand** (user, 2026-08-27), so a row carrying
  * `greatPerson` skips the four ground filters *and* the seam clause and is asked
@@ -178,29 +225,7 @@ export function chargesLeft(unit: Unit): number {
  * citadel on an iron hill is not a mistake a player discovers three turns later,
  * it is a citadel on an iron hill, and `openedResource` hands over the iron.
  */
-/**
- * The row as the noun of a refusal — "a lumbermill", but "floating gardens":
- * a plural name takes no article. The test is grammar (the trailing s), never
- * a row id, so a future plural row inherits it for free. `ARow` is the same
- * phrase opening a sentence; `rowNeeds` is its verb ("needs"/"need").
- * Found the day the worker panel started printing every refusal (2026-09-04):
- * "A floating gardens cannot be built on grassland" had never been on screen.
- */
-function aRow(def: { name: string }): string {
-  const noun = def.name.toLowerCase();
-  return noun.endsWith('s') ? noun : `a ${noun}`;
-}
-
-function ARow(def: { name: string }): string {
-  const phrase = aRow(def);
-  return phrase.charAt(0).toUpperCase() + phrase.slice(1);
-}
-
-function rowNeeds(def: { name: string }): string {
-  return def.name.toLowerCase().endsWith('s') ? 'need' : 'needs';
-}
-
-export function improvementErrorAt(
+export function improvementGroundError(
   state: GameState,
   ownerId: number,
   tile: Tile,
@@ -338,16 +363,38 @@ export function improvementErrorAt(
       );
     }
   }
-  // The technology **last**, after every question about the ground, which is the
-  // opposite of `buildError`'s order and is the whole of what makes the worker
-  // sheet readable. That sheet lists the improvements a hex could take and greys
-  // only the ones the *tree* is holding back (see `improvementOptions` in
-  // `controls.ts`); if the gate were asked first, a worker standing on flat
-  // grassland would be told "a mine needs Mining" about a hill it is not on, and
-  // the sheet would advertise six things this hex will never accept. Asked here,
-  // "the only thing refusing this is the technology" is exactly
-  // `improvementErrorAt(…) === improvementTechError(…)`.
-  return improvementTechError(state, ownerId, improvementId);
+  return null;
+}
+
+/**
+ * Why this tile cannot take this improvement *for this empire*, or `null` when
+ * it can — the ground's every question, and then the tree's.
+ *
+ * The technology **last**, after every question about the ground, which is the
+ * opposite of `buildError`'s order and is the whole of what makes the worker
+ * sheet readable. That sheet lists the improvements a hex could take and greys
+ * only the ones the *tree* is holding back (see `improvementOptions` in
+ * `controls.ts`); if the gate were asked first, a worker standing on flat
+ * grassland would be told "a mine needs Mining" about a hill it is not on, and
+ * the sheet would advertise six things this hex will never accept. Asked here,
+ * "the only thing refusing this is the technology" is exactly
+ * `improvementErrorAt(…) === improvementTechError(…)`.
+ *
+ * Written as the composition rather than as a walk of its own, so the ordering
+ * is not a convention two functions have to keep separately: the ground reading
+ * (`improvementGroundError`, whose docblock has the clauses and the reason
+ * there are two readings) is asked whole, and the gate is what is left.
+ */
+export function improvementErrorAt(
+  state: GameState,
+  ownerId: number,
+  tile: Tile,
+  improvementId: ImprovementId,
+): string | null {
+  return (
+    improvementGroundError(state, ownerId, tile, improvementId) ??
+    improvementTechError(state, ownerId, improvementId)
+  );
 }
 
 /**
@@ -418,8 +465,8 @@ function hillsWaived(
  * Why the *tree* refuses this improvement to this player, or `null` when it does
  * not — the one place the sentence is written.
  *
- * Split out because two callers need it separately from the ground: the last
- * clause of `improvementErrorAt` above, and the worker sheet, which asks it of
+ * Split out because two callers need it separately from the ground: the second
+ * half of `improvementErrorAt` above, and the worker sheet, which asks it of
  * an improvement it is about to grey rather than hide. An improvement with no
  * `requiresTech` is never refused, which is the same escape hatch `isUnlocked`
  * keeps for a unit nothing gates.

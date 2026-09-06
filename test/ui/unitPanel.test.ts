@@ -256,25 +256,38 @@ describe('the worker offers every improvement the table names', () => {
   });
 
   /**
-   * The onboarding ruling (user, 2026-09-04: "add a greyed out button of the
-   * possible improvements that can be built and explain why it can't be built
-   * in the worker panel"). Nothing is hidden for a reason about the *hex* any
-   * more: every spade row is printed and greyed with `improvementError`'s own
-   * sentence, so the panel answers "why can I not build a mine here" instead of
-   * answering it by omission.
+   * The two onboarding rulings, and the second is what the shape is now.
    *
-   * The failure this guards is a quiet one in both directions — a `continue`
-   * added back for a ground refusal empties the sheet again, and a sentence
-   * written in the UI would drift from the rule the reducer enforces.
+   * 2026-09-04, "add a greyed out button of the possible improvements that can
+   * be built and explain why it can't be built in the worker panel" — a row
+   * refused for a reason the player can *act on* is printed and greyed with
+   * `improvementError`'s own sentence, so the panel answers "why can I not
+   * build a mine here" instead of answering it by omission.
+   *
+   * Playthrough note 1, "worker menu should not show every improvement grayed
+   * out — just the ones that are valid on the tile" — a row the *ground* will
+   * never take is not an argument for anything, so it is filtered out on the
+   * sim's own ground reading. Two clauses, and they are different questions:
+   * what could this hex ever hold, against what is stopping me today.
+   *
+   * The failure this guards is a quiet one in both directions — a filter
+   * written on `improvementError` instead would hide the tech-blocked rows the
+   * first ruling asked for, and a sentence written in the UI would drift from
+   * the rule the reducer enforces.
    */
-  it("prints every spade row and greys it with the reducer's own sentence", () => {
+  it("lists what the ground takes and greys it with the reducer's own sentence", () => {
     expect(body).toContain("blocked: improvementError(state, unit.id, id),");
-    // The one exclusion, and it is a marker rather than a name: a great
+    // The filter is the ground's reading — never the full gate, which would
+    // take the tech-blocked rows with it.
+    expect(body).toContain(
+      'if (improvementGroundError(state, unit.ownerId, tile, id) !== null) continue;',
+    );
+    // The other exclusion, and it is a marker rather than a name: a great
     // person's work is not a spade's row at all.
     expect(body).toContain('if (def.greatPerson !== undefined) continue;');
-    // Exactly one `continue` — the works. A second is a hex the sheet went
-    // back to hiding.
-    expect((body.match(/continue;/g) ?? []).length).toBe(1);
+    // Exactly two `continue`s — the works, and the ground. A third is a rule
+    // the sheet invented for itself.
+    expect((body.match(/continue;/g) ?? []).length).toBe(2);
   });
 
   it('names a technology only when the tree is what refused', () => {

@@ -42,6 +42,7 @@ import {
   chopTechError,
   improvementError,
   improvementErrorAt,
+  improvementGroundError,
   improvementTechError,
   improvementYieldDelta,
   isBuilder,
@@ -836,6 +837,92 @@ describe('buildImprovement', () => {
       expect(improvementErrorAt(state, 0, tile, 'farm')).toBeNull();
       expect(improvementErrorAt(state, 0, tile, 'mine')).toBe('A mine needs hills');
       expect(improvementErrorAt(state, 1, tile, 'farm')).toBe('(5, 4) belongs to player 0');
+    });
+  });
+
+  /**
+   * The **ground's** reading, which is the worker menu's filter (user,
+   * playthrough note 1: "worker menu should not show every improvement grayed
+   * out — just the ones that are valid on the tile (show none on city tile,
+   * show only plantation on silk)").
+   *
+   * It is `improvementErrorAt` minus its last question, and that is the whole
+   * of the split: what could this hex *ever* hold, as against what is stopping
+   * me from holding it today. The panel lists on the first and greys on the
+   * second, so a row nothing but the tree refuses is still printed — the
+   * 2026-09-04 ruling — and a row the hex will never take is gone.
+   */
+  describe('the ground reading', () => {
+    it('is the full gate with the tree taken off the end', () => {
+      // The composition, asserted rather than assumed: on every hex and every
+      // row the two readings differ by exactly the tech sentence, which is what
+      // makes "the ground said yes" a comparison the sheet can trust.
+      const { state } = workerState();
+      state.players[0]!.techsResearched = ['agriculture'];
+      const tiles = [at(state, 5, 4), at(state, 5, 5), at(state, 4, 4), at(state, 0, 0)];
+      for (const tile of tiles) {
+        tile.hills = tile.col === 4;
+        for (const id of IMPROVEMENT_IDS) {
+          const ground = improvementGroundError(state, 0, tile, id);
+          const whole = improvementErrorAt(state, 0, tile, id);
+          expect(`${id}@${tile.col},${tile.row}: ${whole}`).toBe(
+            `${id}@${tile.col},${tile.row}: ${ground ?? improvementTechError(state, 0, id)}`,
+          );
+        }
+      }
+    });
+
+    it('offers a silk forest the plantation and nothing else', () => {
+      const { state } = workerState();
+      const tile = at(state, 5, 4);
+      tile.feature = 'forest';
+      tile.resource = 'silk';
+
+      expect(improvementGroundError(state, 0, tile, 'plantation')).toBeNull();
+      // The seam claims its own hex, so the row that could otherwise stand in a
+      // wood is refused by the silk rather than by the trees.
+      expect(improvementGroundError(state, 0, tile, 'lumbermill')).toBe('Silk wants a plantation');
+      expect(improvementGroundError(state, 0, tile, 'mine')).toBe(
+        'A mine cannot be built in forest',
+      );
+      // The ruling, literally: one spade row survives the filter here.
+      const offered = IMPROVEMENT_IDS.filter(
+        (id) =>
+          improvementDef(id).greatPerson === undefined &&
+          improvementGroundError(state, 0, tile, id) === null,
+      );
+      expect(offered).toEqual(['plantation']);
+    });
+
+    it('offers a town hex nothing at all', () => {
+      const { state } = workerState();
+      const city = state.cities[0]!;
+      const tile = at(state, city.col, city.row);
+      for (const id of IMPROVEMENT_IDS) {
+        expect(`${id}: ${improvementGroundError(state, 0, tile, id)}`).toBe(
+          `${id}: ${city.name} stands on (${tile.col}, ${tile.row})`,
+        );
+      }
+    });
+
+    it('keeps the row the tree alone is holding back', () => {
+      // The other half of the filter, and the reason it is not simply
+      // `improvementError`: a mine on a hill an empire has not learnt to dig is
+      // exactly the row the 2026-09-04 ruling wanted printed and greyed, with
+      // the technology named. The ground says yes; the gate says Mining.
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      tile.hills = true;
+      state.players[0]!.techsResearched = ['agriculture'];
+      expect(improvementGroundError(state, 0, tile, 'mine')).toBeNull();
+      expect(improvementError(state, worker.id, 'mine')).toBe('A mine needs Mining');
+    });
+
+    it('answers unowned ground before anything else, with no tech in the sentence', () => {
+      const { state } = workerState();
+      const far = at(state, 0, 0);
+      state.players[0]!.techsResearched = [];
+      expect(improvementGroundError(state, 0, far, 'farm')).toBe('(0, 0) is not in your territory');
     });
   });
 
