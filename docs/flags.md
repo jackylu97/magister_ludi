@@ -196,10 +196,18 @@ Fixes queue in main for the next session unless the user says otherwise.
   of a few of them", and **the Æra III orders most of all** (the fork is
   meant to be the power spike). Earlier half of the same direction stands:
   ordinary building flats −25%, cards carry more of the empire's power.
-  **Numbers not yet ruled**: `docs/balance-turn.md` (in flight) audits every
-  order's weight against the turn-92 reading (note 17) and proposes the
-  pass as a table for your markup; nothing under `data/` moves until you
-  mark it. **Entry LIV's supply trim** rides with it, deferred on your word:
+  **Numbers not yet ruled**: `docs/balance-turn.md` — DRAFTED, awaiting
+  your markup: every order weighed against the turn-92 reading (note 17), a
+  diagnosis, a proposed column per pool, the nerf side, and the decisions
+  only you can make. Nothing under `data/` moves until you mark it. Three
+  findings from the audit worth reading first: (a) **eighteen live rows pay
+  nothing** — the happiness tier clamp caps the bonus at the +10 rung and
+  your empire reads 28, so every pure-cheer clause is dead; (b) faith is
+  the smallest voice, so the same shape pays a fifth of faith and a
+  thirtieth of science — the faith commons audit as the strongest cards by
+  accident; (c) Æra III is not a spike because the *shapes* don't change at
+  the fork, and Gov IV audits below Gov II. The −25% on building flats
+  touches science not at all (science lives per citizen). **Entry LIV's supply trim** rides with it, deferred on your word:
   happiness and authority relief should live in cards, not buildings, so
   tall-vs-wide bites.
 
