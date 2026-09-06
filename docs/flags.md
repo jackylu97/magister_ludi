@@ -34,10 +34,30 @@ directly to confirm rulings — user marginalia are rulings.
   left alone; the Water Clock keeps its rider). Measured with X under it:
   Æra I close 236 → 80 against a 56–76 band — exact yields recover nearly
   all of D's slide; E adds a few turns. **X and E LANDED together** (main
-  3ede042). The one dated re-aim of the five slow harnesses is in flight;
-  F (the order pass) starts when it reports, then F2 and G. Main on GitHub
-  is still at the vein shelving — the push waits for the re-aim and an
-  all-tier gate. One gate per batch; one schema per batch that
+  3ede042). **The re-aim LANDED** (c1307fd): Æra closes 80 / 156 / 481 /
+  999; Gov I 40, Gov III 275; the one-city seat's Opus at t3959;
+  `religion.slow` repaired to the faith ladder. **F (the order pass) is in
+  flight**; the all-tier gate for the push runs beside it. Three findings
+  from the re-aim, yours to rule:
+  1. **The rite door is a lottery.** The Chapel stands behind The Rites
+     Charter — an uncommon wildcard in the Government I pool, one wildcard a
+     hand, gone at Government II. A seat that never draws it never says a
+     town rite. *Recommended*: the Chapel becomes a tech-unlocked building
+     (Divination, chained Shrine → Chapel) and The Rites Charter re-cuts to a
+     rite payoff (or grants the Chapel free in the capital).
+  2. **Game length.** The scripted five-town empire closes Æra IV at t999
+     (was 779); the one-city seat opens the Opus at t3959 (was 1689). Your
+     own game runs 3–4× the bots' pace, so this is a harness reading, not a
+     verdict — but "ends around the close of Æra IV" wants the next
+     playtest's number.
+  3. **The purse is under water.** The five-town harness crosses zero gold
+     near t90 and ends at −22,000 by t900; the one-city seat near t900. The
+     debt rule's quarter off science and culture is most of the late slide.
+     The Library's gold left, Markets lost a coin, and no scripted empire
+     buys or disbands. The bots stay solvent; you were +143 at t92. Worth a
+     look at the coin side before the second playthrough — the Bank's per-
+     citizen line and the Counting Houses are the deck's answer; the tree
+     has none. One gate per batch; one schema per batch that
   changes a save (71 → 75). The play checkout on :5199 stays where it is.
 
 ### In flight earlier (2026-09-05, evening)
