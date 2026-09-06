@@ -142,6 +142,11 @@ Fixes queue in main for the next session unless the user says otherwise.
     Against the bot at t75 (science 28–63 a seat, 3–5 towns) this is the
     3–4× gap the audit measured, now with a turn number on the human side.
     The balance turn's numbers are still yours to rule.
+18. **An Æra II cavalry unit** (NOTED for the future, no action): the mounted
+    line has no rung in the Age of Heroes. A row in `data/units.json` with
+    its tech placement (a chart question — the lanes are yours) and an
+    escalation ladder; joins `pieces.html` in the same pass. Needs a
+    strategic (horses?) ruling — the seam is the resource row.
 
 ### RULED, awaiting build (after the playthrough)
 
