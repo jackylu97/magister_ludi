@@ -160,6 +160,12 @@ Fixes queue in main for the next session unless the user says otherwise.
     tech still gates seeing it). Lands with the next mapgen batch, after the
     six-player standard-map seating experiment (note 16), since both touch
     start positions. `docs/mapgen.md` documents it when it lands.
+21. **A city's consecration is printed nowhere after the toast** (BUG, in
+    flight): the cathedral's roll lands on `City.consecration`, is announced
+    once, and no surface names it again. The Built row (the town rail's
+    standing facts) prints it under the Cathedral — "consecrated to the
+    Hearth Mother" with the consecration's own clauses from its describer,
+    as a keyword ref into the compendium's consecration entry.
 
 ### RULED, awaiting build (after the playthrough)
 
