@@ -83,7 +83,7 @@ import type { TurnReport } from './turn';
 import { cardBehaviorRule } from './statecraft';
 import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from './map';
 import { advanceAlongPath } from './movement';
-import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
+import { type Cell, canStopOn, findPath, isPassable, takesByWalking } from './pathfind';
 import { nextInt } from './rng';
 import { RULES } from './rulesData';
 import { chooseStartPositions } from './startPositions';
@@ -99,7 +99,7 @@ import {
 } from './state';
 import type { TechId } from './techData';
 import { UNIT_UNLOCK_TECH } from './techData';
-import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from './unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId, isRanged, unitDef } from './unitData';
 import { hasStackingRoom, unitsOnTile } from './units';
 import { VISIBLE, isVisibleTo, visibilityAt } from './visibility';
 
@@ -1014,7 +1014,20 @@ export function raid(
         case 'thief': {
           const prey = unitById(state, role.preyId);
           const at = prey === undefined ? null : getTileAt(state.map, prey.col, prey.row);
-          if (at) closeAndStrike(state, unit, at, report);
+          if (!at) break;
+          // A **ranged** thief walks onto its prey rather than shooting it
+          // (2026-09-05, the civilian-capture ruling): a lone civilian is taken
+          // by arriving on its hex — `arriveOnTile`, the one capture seam — and
+          // `planCombat` now refuses the shot outright, so the bow's old blow
+          // would be a refusal every turn and the worker would stand there
+          // unstolen forever. The march is the same verb a player's archer
+          // uses. A melee thief keeps `closeAndStrike`: its blow *is* the
+          // advance, byte for byte what it was.
+          if (isRanged(unitDef(unit.type)) && takesByWalking(state, unit, at)) {
+            marchTo(state, unit, at);
+            break;
+          }
+          closeAndStrike(state, unit, at, report);
           break;
         }
         case 'raider': {

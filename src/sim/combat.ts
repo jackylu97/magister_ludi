@@ -151,6 +151,16 @@
  * enemy **civilian** — so a lone civilian is reachable exactly when nothing is
  * standing over it.
  *
+ * **A bow may not aim at one.** A hex holding nothing but somebody else's
+ * civilians is ground that is *taken by walking onto it* (user, 2026-09-05), so
+ * `planCombat` refuses a ranged blow on it in the ruling's own words and the
+ * player marches instead — `takesByWalking` in `pathfind.ts` is the one reading
+ * of that hex, and `canTransit` is what makes the march legal. Melee is
+ * unchanged, because a melee blow on a lone civilian has *been* that step onto
+ * the hex since 2026-08-28. A civilian standing with a soldier is shielded as it
+ * always was: the list above hits the soldier, and there is nothing here to
+ * refuse.
+ *
  * A hex holding a **foreign city** is three attacks in a fixed order (user,
  * 2026-08-28: "when a unit attacks a city, the damage should apply to the city
  * first; only then does the enemy damage the unit inside. Upon killing the unit
@@ -233,7 +243,14 @@ import {
   tileIndex,
   wrappedDistance,
 } from './map';
-import { type Cell, isPassable, moveProfile, snapMovement, tileMoveCost } from './pathfind';
+import {
+  type Cell,
+  isPassable,
+  moveProfile,
+  snapMovement,
+  takesByWalking,
+  tileMoveCost,
+} from './pathfind';
 import { nextRange } from './rng';
 import { RULES } from './rulesData';
 import {
@@ -1229,6 +1246,7 @@ function planCombat(
   const cityPhase = cityAttackPhase(state, tile.col, tile.row, attacker.ownerId) ?? undefined;
 
   const kind: CombatKind = isRanged(def) ? 'ranged' : 'melee';
+
   const distance = wrappedDistance(state.map, tileHex(from), tileHex(tile));
   if (kind === 'melee') {
     if (distance !== 1) {
@@ -1275,6 +1293,55 @@ function planCombat(
       ok: false,
       error: `${def.name} cannot see (${tile.col}, ${tile.row})`,
     };
+  }
+
+  /**
+   * **An archer does not shoot a settler; it walks over and takes it** (user,
+   * 2026-09-05, `docs/flags.md` note 22: "archers should capture civilian units
+   * when right clicking them, right now they ranged attack").
+   *
+   * A hex holding nothing but somebody else's civilians is taken by *walking
+   * onto it* — the one capture seam, `arriveOnTile` — and that has been the
+   * melee rule since 2026-08-28. A bow had no way to say it: the only gesture
+   * aimed at a hex was a shot, so the piece a player meant to capture died.
+   * The gesture that was missing is an ordinary march (`canTransit` now lets a
+   * soldier onto that ground), and this is the other half — the rule stated
+   * where the **log** can see it, so it holds for the bot, for a replay and for
+   * a hand-written command, and not only for the pointer.
+   *
+   * Refused rather than quietly turned into a move: a command means what it
+   * says, and `applyCommand` may not hand back a different verb than the one it
+   * was given. The sentence is the ruling in the player's own words, and it
+   * names the piece so the answer to "why not" is also the instruction.
+   *
+   * `takesByWalking` is asked rather than "is the target a civilian" because the
+   * refusal has to be true: it is `canStopOn` underneath, so a bow aimed at an
+   * embarked worker on the coast — ground no landsman may stand on — still
+   * shoots, exactly as a swordsman still rides it down (`capturesUnit` below
+   * asks `canAdvanceOnto` for this same reason).
+   *
+   * Asked **last of the gates**, after the fog clause above, and that placement
+   * is the rule and not a preference: this sentence names the piece standing on
+   * the hex, so asking it of ground the empire cannot see would hand a player
+   * the game's own memory — the very thing the fog clause is there to refuse.
+   * Range and line of sight come first for the ordinary reason: they are sharper
+   * true sentences, and a right-click never reaches this refusal anyway
+   * (`controls.ts` sends the march instead).
+   *
+   * Melee is deliberately untouched. A blow on a lone civilian is already the
+   * step onto its hex, the wild's thieves are built on it (`barbarians.ts`), and
+   * every save in existence replays through it.
+   */
+  if (kind === 'ranged' && takesByWalking(state, attacker, tile)) {
+    const prey = target.unit!;
+    const preyDef = unitDef(prey.type);
+    // A laden caravan is the one civilian that is *not* taken: arriving on its
+    // hex plunders it (`arrival.ts`). Same rule, honest sentence.
+    const fate =
+      trades(preyDef) && prey.trade !== undefined
+        ? 'plundered by walking onto it'
+        : 'taken by walking onto it';
+    return { ok: false, error: `A ${preyDef.name} is ${fate}, not shot at` };
   }
 
   // --- strengths ---------------------------------------------------------

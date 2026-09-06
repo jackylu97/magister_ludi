@@ -69,10 +69,15 @@
  *
  * Blocking
  * --------
- * See `units.ts`: a friendly unit blocks *stopping* only, an enemy unit blocks
- * *transit* as well. So the frontier expands through friendly tiles but never
- * reports them as destinations, and `reachableTiles` never highlights a tile the
- * unit could not legally end its move on.
+ * See `units.ts`: a friendly unit blocks *stopping* only, an enemy **soldier**
+ * blocks *transit* as well. So the frontier expands through friendly tiles but
+ * never reports them as destinations, and `reachableTiles` never highlights a
+ * tile the unit could not legally end its move on.
+ *
+ * An enemy's **civilians alone** block neither, for an army at war with them:
+ * that hex is ground taken by walking onto it, and the taking is `arriveOnTile`'s
+ * (see the last clause of `canTransit`, and `takesByWalking` for the composed
+ * reading the fight and the interface ask).
  *
  * Determinism
  * -----------
@@ -105,7 +110,7 @@ import {
 } from './terrainData';
 import { isCoastal } from './water';
 import { type UnitDef, isCivilian, isCombatant, isExplorer, isNaval, unitDef } from './unitData';
-import { fullMovement, hasForeignUnit, hasStackingRoom } from './units';
+import { fullMovement, hasForeignUnit, hasStackingRoom, undefendedCiviliansOn } from './units';
 
 /** An offset cell. The wire/serialisation form of a position. */
 export interface Cell {
@@ -631,9 +636,11 @@ export function isPassable(tile: Tile): boolean {
 }
 
 /**
- * May `unit` move *through* this tile? Ground this mover can be on, with no
- * foreign unit on it and no **foreign city** on it either. Friendly units are
- * walked past, not around; a friendly city is ground like any other.
+ * May `unit` move *through* this tile? Ground this mover can be on, with nothing
+ * of anybody else's on it that could swing back and no **foreign city** on it
+ * either. Friendly units are walked past, not around; a friendly city is ground
+ * like any other; and a hex holding nothing but an enemy's civilians is ground a
+ * soldier at war with them takes by walking onto it (the last clause below).
  *
  * The city clause is what makes a town capturable at all (2026-08-28): before
  * it, nothing asked a hex "is this somebody's else's city", so a unit could
@@ -679,7 +686,46 @@ export function canTransit(
    * barred by. See `closedBordersFor`.
    */
   if (mover.closed?.bars(tile) === true) return false;
-  return !hasForeignUnit(state, tile.col, tile.row, unit.ownerId);
+  if (!hasForeignUnit(state, tile.col, tile.row, unit.ownerId)) return true;
+  /**
+   * **A hex holding nothing but somebody else's civilians is not a wall** — it
+   * is ground a soldier takes by walking onto it (`docs/flags.md`, the archer
+   * ruling: "a settler is taken by walking onto it").
+   *
+   * The rule was already half here. A melee blow on a lone civilian has been an
+   * *advance* since 2026-08-28 — the attacker steps onto the hex and
+   * `arriveOnTile` hands over everybody standing on it — so the ground was
+   * always enterable; what was missing was a way to say so with a march, which
+   * left an archer with no gesture but a shot. Written as one clause in
+   * `canTransit` for the reason the closed-border clause above gives: everything
+   * downstream inherits it by construction, so the route the highlight draws,
+   * the route `findPath` returns and the step `advanceAlongPath` spends are one
+   * answer rather than three that could drift.
+   *
+   * Three conditions, and each of them is somebody's rule already:
+   *
+   *   · **Armed.** A settler does not capture a settler. `isCombatant` is the
+   *     same question the fight asks of an attacker, and it is what keeps this
+   *     a rule about soldiers taking ground rather than a new way for a worker
+   *     to be stolen by a worker.
+   *   · **At war with every one of them.** Walking off with an empire's people
+   *     is a blow, and a blow needs a war (`docs/war-diplomacy.md`, section 5) —
+   *     the same clause `planCombat` refuses a peacetime attack with. Asked per
+   *     owner because traders stack freely, so two empires' civilians can share
+   *     one hex and only one of the two may be at war with this mover.
+   *   · **Civilians only.** `undefendedCiviliansOn` (`units.ts`), which is the
+   *     one reading of the hex this rule, the fight and the interface share.
+   *
+   * The foreign-city clause above already ran, so a town nobody is holding is
+   * still refused: a city is taken by capture, never by a march.
+   */
+  if (!isCombatant(unitDef(unit.type))) return false;
+  const undefended = undefendedCiviliansOn(state, tile.col, tile.row, unit.ownerId);
+  if (undefended === null) return false;
+  for (const civilian of undefended) {
+    if (!atWar(state, unit.ownerId, civilian.ownerId)) return false;
+  }
+  return true;
 }
 
 /**
@@ -696,6 +742,37 @@ export function canStopOn(
   if (!canTransit(state, unit, tile, mover)) return false;
   const { category } = unitDef(unit.type);
   return hasStackingRoom(state, tile.col, tile.row, category, unit.id);
+}
+
+/**
+ * Is this hex one `unit` **takes by walking onto it** rather than one it attacks
+ * — somebody else's civilians standing on ground this piece could come to rest
+ * on (`docs/flags.md`, the archer ruling)?
+ *
+ * The composed reading, and the *whole* of the question both the fight and the
+ * interface ask: `planCombat` refuses a bombardment of such a hex ("a settler is
+ * taken by walking onto it"), and `controls.ts` reads a right-click on one as a
+ * march. It is written here rather than in `combat.ts` so that the movement rule
+ * and the two rules built on it cannot disagree — the second half is literally
+ * `canStopOn`, which is the function that decides whether the march this refusal
+ * sends the player to would be accepted.
+ *
+ * `canStopOn` carries every condition worth naming and none of them twice: the
+ * ground under the mover's own profile, the foreign town that is never walked
+ * into, the war the taking needs, that the mover is armed at all, and room under
+ * the stacking cap. So the clause in front of it is only the one thing
+ * `canStopOn` cannot tell an empty meadow from — that there is somebody standing
+ * here to take.
+ *
+ * It answers **false** for a hex the piece could never stand on, and that is the
+ * rule and not a gap: an embarked worker on the coast is ridden down by a
+ * landsman like anything else, because a capture that could not be walked into
+ * would be a capture with nowhere to happen (`canAdvanceOnto` in `combat.ts`
+ * says the same thing from the other side).
+ */
+export function takesByWalking(state: GameState, unit: Unit, tile: Tile): boolean {
+  if (undefendedCiviliansOn(state, tile.col, tile.row, unit.ownerId) === null) return false;
+  return canStopOn(state, unit, tile);
 }
 
 // --- zone of control --------------------------------------------------------

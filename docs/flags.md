@@ -166,15 +166,18 @@ Fixes queue in main for the next session unless the user says otherwise.
     standing facts) prints it under the Cathedral — "consecrated to the
     Hearth Mother" with the consecration's own clauses from its describer,
     as a keyword ref into the compendium's consecration entry.
-22. **Archers capture civilians on right-click; today they shoot them**
-    (RULED, in flight): a hex holding only civilians (no soldier, no town) is
-    **taken by walking onto it** — the one capture seam, `arriveOnTile` — for
-    every unit that can move there, ranged units included. Right-click on
-    such a hex is a move order, never a shot. The reducer refuses a ranged
-    attack on a civilian-only hex with the sentence that says so ("a settler
-    is taken by walking onto it"), so the rule holds for the bot and the
-    log, not only the pointer. A civilian standing with a soldier is shielded
-    as now (the shot hits the soldier).
+22. **Archers capture civilians on right-click; today they shoot them** —
+    LANDED: a hex holding only foreign civilians is taken by walking onto it
+    (the one capture seam), for every combatant at war with their owner;
+    right-click there is a move, the red tint and the fight card stay off,
+    and the reducer refuses the shot ("A Settler is taken by walking onto
+    it, not shot at" — a laden caravan "is plundered by walking onto it").
+    A civilian beside a soldier is shielded as before; an embarked worker is
+    still shot (nothing can stop on its hex). One follow-up, queued: the
+    **wild's ranged thief** now has its blow refused where it used to kill
+    the prey — the worker survives, so no regression, but the coherent fix
+    is one line in `barbarians.ts` (the thief marches onto the hex, which
+    the widening made legal).
 23. **Barbarian camps refill too fast** — RULED and LANDED (your playtest,
     t92: "once you kill the barb standing on the camp, it respawns very
     quickly"): a camp musters a unit every **five** turns, not three

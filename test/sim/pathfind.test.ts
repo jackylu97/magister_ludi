@@ -13,6 +13,7 @@ import {
   shoreStepCost,
   snapMovement,
   stepCost,
+  takesByWalking,
   tileMoveCost,
   zocField,
 } from '../../src/sim/pathfind';
@@ -22,6 +23,7 @@ import { techsGrant } from '../../src/sim/techData';
 import { fullMovement } from '../../src/sim/units';
 import { type GameState, type Unit, createCity, createUnit, newGame } from '../../src/sim/state';
 import { moveCost } from '../../src/sim/terrainData';
+import { openWar } from '../../src/sim/wars';
 import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -272,7 +274,7 @@ describe('findPath', () => {
     expect(findPath(state, mover, at(state.map, 2, 3))).toEqual([{ col: 2, row: 3 }]);
   });
 
-  it('treats an enemy unit as a wall, whatever its category', () => {
+  it('treats an enemy unit as a wall, whatever its category, at peace', () => {
     const state = flatState();
     const mover = unit(state, 1, 3, 'warrior', 0);
     unit(state, 2, 3, 'settler', 1); // enemy civilian
@@ -280,8 +282,51 @@ describe('findPath', () => {
     const held = at(state.map, 2, 3);
     expect(canTransit(state, mover, held)).toBe(false);
     expect(canStopOn(state, mover, held)).toBe(false);
+    expect(takesByWalking(state, mover, held)).toBe(false);
     const around = findPath(state, mover, at(state.map, 3, 3))!;
     expect(around.some((step) => step.col === 2 && step.row === 3)).toBe(false);
+  });
+
+  /**
+   * **A hex holding nothing but the enemy's civilians is not a wall** (user,
+   * 2026-09-05, `docs/flags.md` note 22: a settler is *taken by walking onto
+   * it*). The clause is in `canTransit`, so all four readers of `stepCost`
+   * inherit it — which is what lets the interface send an archer's right-click
+   * as a march and have the reducer accept the very route the highlight drew.
+   */
+  it('lets a soldier at war walk onto a hex holding only enemy civilians', () => {
+    const state = flatState();
+    openWar(state, 0, 1);
+    const mover = unit(state, 1, 3, 'warrior', 0);
+    unit(state, 2, 3, 'settler', 1);
+
+    const held = at(state.map, 2, 3);
+    expect(canTransit(state, mover, held)).toBe(true);
+    expect(canStopOn(state, mover, held)).toBe(true);
+    expect(takesByWalking(state, mover, held)).toBe(true);
+    expect(findPath(state, mover, held)).toEqual([{ col: 2, row: 3 }]);
+    // And it is ground to be *walked through* as much as walked to: the ground
+    // and the people on it change hands together whichever it turns out to be.
+    expect(findPath(state, mover, at(state.map, 3, 3))).toEqual([
+      { col: 2, row: 3 },
+      { col: 3, row: 3 },
+    ]);
+  });
+
+  it('keeps the wall up for a soldier guarding them, and for a civilian mover', () => {
+    const state = flatState();
+    openWar(state, 0, 1);
+    const mover = unit(state, 1, 3, 'warrior', 0);
+    const settlerMover = unit(state, 1, 4, 'settler', 0);
+    unit(state, 2, 3, 'settler', 1);
+    const guarded = at(state.map, 2, 3);
+    // A settler does not capture a settler: the taking is a soldier's.
+    expect(canTransit(state, settlerMover, guarded)).toBe(false);
+    expect(takesByWalking(state, settlerMover, guarded)).toBe(false);
+
+    unit(state, 2, 3, 'spearman', 1);
+    expect(canTransit(state, mover, guarded)).toBe(false);
+    expect(takesByWalking(state, mover, guarded)).toBe(false);
   });
 
   /**

@@ -52,7 +52,7 @@ import {
 import { advanceResearch } from '../../src/sim/tech';
 import { TECH_IDS, type TechId } from '../../src/sim/techData';
 import { END_OF_TURN_PHASES, emptyTurnReport, runEndOfTurn } from '../../src/sim/turn';
-import { unitDef } from '../../src/sim/unitData';
+import { isRanged, unitDef } from '../../src/sim/unitData';
 import { fullMovement, hasStackingRoom } from '../../src/sim/units';
 import {
   VISIBLE,
@@ -1034,6 +1034,30 @@ describe('stealing', () => {
     // And it keeps what it is: a captured worker is still a worker with its
     // charges (M7), not a fresh one.
     expect(taken.chargesLeft).toBe(unitDef('worker').charges);
+  });
+
+  it('walks a bowman onto the worker rather than shooting it', () => {
+    // The civilian-capture ruling of 2026-09-05 read from the wild's side: a
+    // lone civilian is taken by arriving on its hex and `planCombat` refuses
+    // the shot, so a ranged thief that kept striking would be refused every
+    // turn and the worker would stand there unstolen. The bow marches instead,
+    // and the arrival is the same change of hands the warrior's advance was.
+    const state = wildState();
+    const wild = wildId(state);
+    const prey = createUnit(state, 0, 'worker', 9, 8);
+    const bow = createUnit(state, wild, 'bowman', 10, 8);
+    expect(isRanged(unitDef('bowman'))).toBe(true);
+    recomputeAllVisibility(state);
+
+    state.turn = QUIET_TURN;
+    barbarianTurn(state);
+
+    const taken = state.units.find((unit) => unit.id === prey.id)!;
+    expect(taken.ownerId).toBe(wild);
+    expect(taken.hp).toBe(unitDef('worker').maxHp);
+    expect({ col: taken.col, row: taken.row }).toEqual({ col: 9, row: 8 });
+    const thief = state.units.find((unit) => unit.id === bow.id)!;
+    expect({ col: thief.col, row: thief.row }).toEqual({ col: 9, row: 8 });
   });
 
   it('gets a fight instead when a soldier is standing over the worker', () => {

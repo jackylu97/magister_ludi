@@ -31,8 +31,11 @@
  * -------------------
  * They are different questions and the pathfinder needs both. Walking *through*
  * a friendly unit is fine — armies file past each other — but finishing a move
- * on top of one is not. An enemy unit blocks both: you may not slip past a
- * hostile army, so any tile holding a foreign unit is a wall for now.
+ * on top of one is not. An enemy *army* blocks both: you may not slip past a
+ * hostile soldier, so a tile holding one is a wall. A tile holding nothing but
+ * somebody else's **civilians** is not a wall at all — it is ground a soldier
+ * takes by walking onto it, and `undefendedCiviliansOn` below is the one reading
+ * of that hex the movement rules, the fight and the interface all share.
  *
  * Contention under simultaneous turns
  * -----------------------------------
@@ -54,7 +57,7 @@
 import { getTileAt } from './map';
 import type { GameState, Unit } from './state';
 import { cardUnitStat } from './statecraft';
-import { type UnitCategory, isCivilian, unitDef } from './unitData';
+import { type UnitCategory, isCivilian, isCombatant, unitDef } from './unitData';
 import { RULES } from './rulesData';
 import { isWaterTerrain } from './terrainData';
 
@@ -94,6 +97,43 @@ export function hasForeignUnit(
     if (unit.col === col && unit.row === row && unit.ownerId !== ownerId) return true;
   }
   return false;
+}
+
+/**
+ * Somebody else's pieces on this hex when **not one of them can swing back** —
+ * the people a soldier takes by walking onto the ground they are standing on.
+ *
+ * `null` is "this is not that hex", and it covers both ways of not being one:
+ * nobody else is here at all, or something here can fight. The list is never
+ * returned empty, and it is in `state.units` order like every other sweep of
+ * the board, so a caller that acts on it acts deterministically.
+ *
+ * **One reading, three readers**, which is why it lives in this leaf rather than
+ * beside any one of them. The movement rules let a soldier *enter* such a hex
+ * (`canTransit`, which is where the rest of the rule — at war, and armed — is
+ * written). The fight refuses to *shoot* at one (`planCombat`: a settler is
+ * taken by walking onto it, never bombarded). And the interface reads a
+ * right-click on one as a march rather than as a blow (`controls.ts`). Three
+ * places asking the same question two different ways is a hex the board offers
+ * and the reducer refuses; see `docs/flags.md`, the archer ruling.
+ *
+ * A **laden caravan** is in the list like any other civilian: what walking onto
+ * it does — taken, or plundered — is `arriveOnTile`'s rule and not this one's.
+ */
+export function undefendedCiviliansOn(
+  state: GameState,
+  col: number,
+  row: number,
+  ownerId: number,
+): Unit[] | null {
+  const found: Unit[] = [];
+  for (const unit of state.units) {
+    if (unit.col !== col || unit.row !== row) continue;
+    if (unit.ownerId === ownerId) continue;
+    if (isCombatant(unitDef(unit.type))) return null;
+    found.push(unit);
+  }
+  return found.length > 0 ? found : null;
 }
 
 /**

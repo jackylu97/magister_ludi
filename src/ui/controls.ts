@@ -237,7 +237,7 @@ import {
 import { type Tile, getTileAt, mapRange, tileHex } from '../sim/map';
 import { resourceDef } from '../sim/resourceData';
 import { authorityOf, happinessOf } from '../sim/meters';
-import { findPath, reachableTiles } from '../sim/pathfind';
+import { findPath, reachableTiles, takesByWalking } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
 import {
   type City,
@@ -4291,6 +4291,33 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   // --- combat --------------------------------------------------------------
 
   /**
+   * Is the hovered hex one this piece **takes by walking onto it** rather than
+   * one it attacks — somebody else's civilians, alone, on ground it could stand
+   * on (user, 2026-09-05: "archers should capture civilian units when right
+   * clicking them, right now they ranged attack")?
+   *
+   * The simulation's own reading, asked by name (`takesByWalking`,
+   * `pathfind.ts`) rather than re-derived here from what is standing on the hex.
+   * That is the whole point of the helper: the reducer refuses a bombardment of
+   * exactly these hexes, so an interface that drew its own line would tint a
+   * shot the reducer would not take, or march onto ground it would not give.
+   *
+   * Three surfaces ask it and they have to agree, because between them they are
+   * the *whole* gesture: the red tint must not offer a fight here
+   * (`attackableCells`), the forecast card must not price one
+   * (`combatForecast`), and the right button must fall through to the march
+   * (`issueAttack`). It is asked of **melee too** — a warrior's blow on a lone
+   * settler already captured, and this only changes which verb the click sends,
+   * so one rule covers the bow and the sword and the player aims at a thing
+   * rather than at a mode.
+   */
+  function takenByWalking(unit: Unit, col: number, row: number): boolean {
+    const { state } = getGame();
+    const tile = getTileAt(state.map, col, row);
+    return tile !== undefined && takesByWalking(state, unit, tile);
+  }
+
+  /**
    * Every tile the selected unit could attack this turn.
    *
    * Candidates come from the unit's *reach* — six neighbours for a swordsman,
@@ -4318,6 +4345,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const cells: CellRef[] = [];
     for (const tile of mapRange(state.map, tileHex(origin), radius)) {
       if (tile.col === unit.col && tile.row === unit.row) continue;
+      // Ground taken by walking is not a target, whatever the roster says this
+      // piece could do to it: the right button marches there.
+      if (takenByWalking(unit, tile.col, tile.row)) continue;
       if (!previewCombat(state, unit.id, { col: tile.col, row: tile.row }).ok) continue;
       cells.push({ col: tile.col, row: tile.row });
     }
@@ -4341,6 +4371,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const { col, row } = hover.tile;
     if (col === unit.col && row === unit.row) return null;
     if (!attackTargetAt(state, col, row, localPlayerId)) return null;
+    // A hex that is taken by walking onto it is a march, so there is no fight to
+    // price — and a card refusing one would be a card explaining a gesture the
+    // player never made.
+    if (takenByWalking(unit, col, row)) return null;
     return previewCombat(state, unit.id, { col, row });
   }
 
@@ -4365,9 +4399,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * the click.
    *
    * Taking the click is decided *before* the command: if something hostile is
-   * standing there, this gesture was an attack, and a refusal is spoken rather
-   * than quietly falling through to a move order that would only be refused
-   * again for a worse reason ("a foreign unit is in the way").
+   * standing there that has to be *fought*, this gesture was an attack, and a
+   * refusal is spoken rather than quietly falling through to a move order that
+   * would only be refused again for a worse reason ("a foreign unit is in the
+   * way"). Ground taken by walking is the one hostile hex this hands back
+   * (`takenByWalking`), because there the march is the better order and not a
+   * worse one.
    *
    * Everything the interface says afterwards is measured rather than reported by
    * the reducer: the names come from the forecast taken beforehand, and the
@@ -4388,6 +4425,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const { col, row } = hover.tile;
     if (!attackTargetAt(state, col, row, localPlayerId)) return false;
     if (!isCombatant(unitDef(unit.type))) return false;
+    // **Not every hostile hex is a fight.** Ground holding nothing but somebody
+    // else's civilians is taken by walking onto it, so this gesture was a march
+    // and the click falls through to `issueMove` — which is the same order a
+    // right-click on empty ground sends, and the arrival is what hands the
+    // people over (`arrival.ts`).
+    if (takenByWalking(unit, col, row)) return false;
 
     if (!canOrder()) {
       reject(`You have ended turn ${state.turn}`);
@@ -5934,8 +5977,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function handleRightClick(hover: HoverInfo): void {
     if (!selectedUnit()) return;
     // "Act on this target" already covers both verbs: a tile with somebody
-    // else's piece or town on it is a fight, and everything else is a march.
-    // The player aims at a thing, not at a mode.
+    // else's soldier or town on it is a fight, and everything else — empty
+    // ground, and ground holding nothing but their civilians — is a march. The
+    // player aims at a thing, not at a mode.
     if (issueAttack(hover)) return;
     issueMove(hover);
   }

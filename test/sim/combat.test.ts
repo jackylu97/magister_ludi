@@ -35,7 +35,10 @@ import {
   getTileAt,
   neighborTiles,
   tileHex,
+  tileIndex,
 } from '../../src/sim/map';
+import { advanceAlongPath } from '../../src/sim/movement';
+import { findPath } from '../../src/sim/pathfind';
 import { type Rng, cloneRng, makeRng, nextRange } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, createUnit, newGame, realPlayers } from '../../src/sim/state';
@@ -952,16 +955,156 @@ describe('civilians', () => {
     expect(clause).toMatch(/barbarianKillsConvert/);
   });
 
-  it('kills a civilian with ranged fire instead', () => {
+  /**
+   * **An archer does not shoot a settler; it walks over and takes it** (user,
+   * 2026-09-05: "archers should capture civilian units when right clicking them,
+   * right now they ranged attack" — `docs/flags.md` note 22).
+   *
+   * The ruling is stated in the *reducer* rather than in the pointer, so these
+   * ask the command and not the interface: a bow aimed at a hex holding nothing
+   * but somebody else's civilians is refused in the ruling's own words, and the
+   * capture that replaces it is the ordinary march every other capture is.
+   */
+  it('refuses a ranged blow on a lone civilian, naming the march instead', () => {
     const state = flatState();
     const a = createUnit(state, 0, 'archer', 3, 3);
     const settler = createUnit(state, 1, 'settler', 5, 3);
     settler.hp = 5;
 
+    const before = clone(state);
+    const result = applyCommand(state, attack(a.id, 5, 3));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe('A Settler is taken by walking onto it, not shot at');
+    // Refused is refused: nothing moved, nothing was spent, nobody was hurt.
+    expect(state).toEqual(before);
+    // And the forecast says the same thing, so the tint and the card never offer
+    // a shot the reducer would refuse.
+    const preview = previewCombat(state, a.id, { col: 5, row: 3 });
+    expect(preview.ok).toBe(false);
+  });
+
+  it('takes the civilian when the archer walks onto its hex', () => {
+    const state = flatState();
+    const a = createUnit(state, 0, 'archer', 3, 3);
+    const settler = createUnit(state, 1, 'settler', 4, 3);
+
+    const result = applyCommand(state, {
+      type: 'moveUnit',
+      playerId: 0,
+      unitId: a.id,
+      target: { col: 4, row: 3 },
+    });
+    expect(result.ok).toBe(true);
+    // Through the one capture seam, and reported by it: the ground and the
+    // people standing on it changed hands together (`arriveOnTile`).
+    expect(settler.ownerId).toBe(0);
+    expect({ col: a.col, row: a.row }).toEqual({ col: 4, row: 3 });
+    expect(result.ok && result.arrivals?.[0]?.captured).toEqual([
+      { id: settler.id, type: 'settler', fromOwnerId: 1, fromWild: false },
+    ]);
+  });
+
+  it('still shoots the soldier when one is standing over the civilian', () => {
+    // The shield is the targeting priority and the ruling does not touch it: the
+    // hex is not civilians-only, so there is nothing to refuse.
+    const state = flatState();
+    const a = createUnit(state, 0, 'archer', 3, 3);
+    const guard = createUnit(state, 1, 'spearman', 5, 3);
+    const worker = createUnit(state, 1, 'worker', 5, 3);
+
     const view = forecast(state, a.id, 5, 3);
-    expect(view.capturesUnit).toBe(false);
+    expect(view.defenderUnitId).toBe(guard.id);
     expect(applyCommand(state, attack(a.id, 5, 3))).toEqual({ ok: true });
-    expect(state.units.find((unit) => unit.id === settler.id)).toBeUndefined();
+    expect(guard.hp).toBeLessThan(unitDef('spearman').maxHp);
+    expect(worker.ownerId).toBe(1);
+  });
+
+  it('still shoots a civilian standing where no landsman could follow', () => {
+    // The refusal is `canStopOn` underneath, so it is true wherever it is spoken:
+    // an embarked worker on the coast is not taken by walking onto anything, and
+    // a bow that could not shoot it would leave it untouchable.
+    const state = flatState();
+    at(state.map, 5, 3).terrain = 'coast';
+    const a = createUnit(state, 0, 'archer', 3, 3);
+    const worker = createUnit(state, 1, 'worker', 5, 3);
+    worker.hp = 1;
+
+    expect(applyCommand(state, attack(a.id, 5, 3))).toEqual({ ok: true });
+    expect(state.units.find((unit) => unit.id === worker.id)).toBeUndefined();
+  });
+
+  it('says a laden caravan is plundered rather than taken', () => {
+    // Walking onto a caravan carrying a route destroys it and banks the cargo
+    // (`arrival.ts`), so the sentence that sends the player there says so.
+    const state = flatState();
+    foundCityAt(state, 0, at(state.map, 2, 3));
+    const a = createUnit(state, 0, 'archer', 3, 3);
+    const cart = createUnit(state, 1, 'trader', 5, 3);
+    cart.trade = { from: 1, to: 2, expiresTurn: 40, outbound: true, autoResend: false };
+
+    const result = applyCommand(state, attack(a.id, 5, 3));
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toBe('A Trader is plundered by walking onto it, not shot at');
+    }
+  });
+
+  it('lets the wild take a civilian by walking, and never by shooting', () => {
+    // The wild is not excused: `atWar` answers true for it without a register,
+    // so a raider's bow is refused exactly as an empire's is — and the theft it
+    // is refused in favour of is the theft barbarians have always done.
+    const state = flatState(16, 8, 2, true);
+    const wild = realPlayers(state).length;
+    // The wild's seat is finished the moment it is seated, and it acts through
+    // the evaluator rather than through the log (`barbarians.ts`) — so this asks
+    // the evaluator, which is the same plan a player's command resolves with.
+    const a = createUnit(state, wild, 'archer', 3, 3);
+    const worker = createUnit(state, 1, 'worker', 5, 3);
+
+    const shot = applyCombat(state, a.id, { col: 5, row: 3 });
+    expect(shot.ok).toBe(false);
+    if (!shot.ok) expect(shot.error).toBe('A Worker is taken by walking onto it, not shot at');
+
+    const path = findPath(state, a, at(state.map, 5, 3));
+    expect(path).not.toBeNull();
+    advanceAlongPath(state, a, path!);
+    expect(worker.ownerId).toBe(wild);
+  });
+
+  it('says "cannot see" first, so the refusal never names an unseen piece', () => {
+    // The refusal names the piece standing on the hex, so it is asked *after*
+    // the fog clause: a sentence that identified a settler on ground the empire
+    // has not charted would hand a player the game's own memory, which is the
+    // one thing the fog clause exists to refuse.
+    const state = flatState();
+    const a = createUnit(state, 0, 'archer', 3, 3);
+    createUnit(state, 1, 'settler', 5, 3);
+    state.visibility[0]![tileIndex(state.map, 5, 3)] = 0;
+
+    const result = applyCommand(state, attack(a.id, 5, 3));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toContain('cannot see');
+  });
+
+  it('leaves an empire at peace with them exactly where it was', () => {
+    // Taking somebody's people is a blow and a blow needs a war. At peace the
+    // hex is a wall again, the bow has nothing to be refused in favour of, and
+    // the sentence a player reads is the war's, not the ruling's.
+    const state = flatState();
+    state.wars = [];
+    const a = createUnit(state, 0, 'archer', 3, 3);
+    createUnit(state, 1, 'settler', 5, 3);
+
+    const shot = applyCommand(state, attack(a.id, 5, 3));
+    expect(shot.ok).toBe(false);
+    if (!shot.ok) expect(shot.error).toContain('not at war');
+    const march = applyCommand(state, {
+      type: 'moveUnit',
+      playerId: 0,
+      unitId: a.id,
+      target: { col: 5, row: 3 },
+    });
+    expect(march.ok).toBe(false);
   });
 
   it('never lets a civilian attack anything', () => {
