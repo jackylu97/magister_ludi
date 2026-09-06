@@ -149,6 +149,20 @@ never one blind number. Ordinary counted cards take realized + λ ×
 - Items 3–5 (the engine view, the synergy-density pass, the breadth audit)
   are written up in `docs/loop-review.md` for your markup.
 
+### RULED 2026-09-05 — Æra III (docs/age-three.md, user marginalia)
+
+- The tier-18 government signatures as chair-readers and the Pool III
+  doctrine pass: **"great, love these"** — building (schema 70, in flight).
+- **Seals do NOT lengthen** — VETOED: "certain cards you want to slot in and
+  out, should be part of the game's skill expression." Seals stay 5 turns
+  everywhere; the two rarity moves stand.
+- **The world age, when it is built** (after the playthrough): the counter is
+  the **MEAN age of all players including bots**, not the median — "for this
+  to be meaningful… for single player campaigns, it should punish you if
+  you're behind the bots." So the laggard's cost (the wild's tier following
+  the world age, the catch-up discount going the OTHER way for a trailing
+  human) is the point, not a side effect. Design pass owed before it flies.
+
 ### RULED 2026-09-05 — the victory rule, and what Æra V is for
 
 - **Victory**: an empire may START the Magnum Opus only while holding 20
