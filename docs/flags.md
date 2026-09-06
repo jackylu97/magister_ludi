@@ -30,6 +30,11 @@ directly to confirm rulings — user marginalia are rulings.
 
 ### From the first full playthrough (2026-09-05, live notes — queued as they arrive)
 
+**Standing rule while the game is live**: nothing writes to the play checkout
+(`/tmp/webciv-play`, :5199) — a file change forces a reload on the player.
+Fixes queue in main for the next session unless the user says otherwise.
+
+
 1. **Worker menu shows only what the ground accepts** (RULED): rows appear
    only where the hex's terrain/feature/hills/seam would take them — a city
    tile shows none, a silk hex shows the plantation alone — greyed only for
@@ -40,9 +45,17 @@ directly to confirm rulings — user marginalia are rulings.
 2. **Yields never hide names** (RULED, in flight): The Founding Oath's six
    marks per row cut off building and wonder names in the add-list — the
    name always shows in full, the yields line truncates.
-3. **An "All" tab on the add-list** (RULED, in flight): every buildable in
-   one list, first and default, each row keeping its kind's eyebrow — newer
-   players don't know buildings from units from wonders.
+3. **An "All" tab on the add-list** — LANDED (cherry-picked onto the play
+   checkout, save-safe).
+4. **The tile readout bottom-right under the city mode** — LANDED, same.
+5. **"Has produced" on order cards** (RULED): the stamp design's phase 2 —
+   a lifetime tally per owned order, per voice, written by `collectYields`
+   from the card's own breakdown lines (the growing cards' tally register
+   is the shape), printed on the face as "has produced". Schema. Lands
+   after the perf agent frees `cities.ts`.
+6. **Doctrines wear the stamp** (RULED, in flight): a standing doctrine's
+   face on the statecraft screen shows what it supplies per turn — the
+   same `explainCardImpact` reading orders use; UI only.
 
 ### RULED, awaiting build (after the playthrough)
 
