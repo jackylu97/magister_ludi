@@ -30,6 +30,12 @@ directly to confirm rulings — user marginalia are rulings.
    sentence. Implementation: a `groundError` reading in `improvements.ts`
    (the clauses before the tree's gate); the panel filters on it and greys
    on the full error. Lands after the Æra III agent frees the file.
+2. **Yields never hide names** (RULED, in flight): The Founding Oath's six
+   marks per row cut off building and wonder names in the add-list — the
+   name always shows in full, the yields line truncates.
+3. **An "All" tab on the add-list** (RULED, in flight): every buildable in
+   one list, first and default, each row keeping its kind's eyebrow — newer
+   players don't know buildings from units from wonders.
 
 ### RULED, awaiting build (after the playthrough)
 
