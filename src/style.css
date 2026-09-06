@@ -2522,6 +2522,54 @@ kbd {
   color: var(--ink);
 }
 
+/* The button while the other empires take their turns (`pressEndTurn` in
+   src/main.ts). Its own press is *over*: it stands raised on its full shadow,
+   at its full size, exactly where the hand left it — the whole complaint this
+   answers was a button that stayed pushed into the page while the rivals
+   thought, so the one thing this state may never look like is pressed.
+
+   And it is quiet rather than spent. The generic disabled plate says "not for
+   you" — greyed fill, faint border, the shadow knocked back — which is the
+   wrong sentence for a control that is working on the player's own press, so it
+   is overruled here: parchment, ink border, ink text, and only the vermilion
+   and the pointer given up. `cursor: progress` is the second half of that
+   sentence, and the reason the rule has to out-specify `.btn:disabled`. */
+#end-turn.is-working:disabled {
+  background: var(--parchment);
+  border-color: var(--ink);
+  color: var(--ink-soft);
+  box-shadow: var(--shadow);
+  transform: none;
+  cursor: progress;
+}
+
+/* The one sign of life, on the words rather than the plate: a slow breath says
+   "still working" where a static label says "stuck". It is the label alone
+   because the button must not move — see above. */
+#end-turn.is-working .btn-key,
+#end-turn.is-working #end-turn-label {
+  animation: end-turn-working 1.4s ease-in-out infinite;
+}
+
+@keyframes end-turn-working {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* A reader who asked for less motion asked for fewer beats here too — the
+     label still changes, which is the part that carries the meaning. */
+  #end-turn.is-working .btn-key,
+  #end-turn.is-working #end-turn-label {
+    animation: none;
+  }
+}
+
 /* --- move mode -------------------------------------------------------------
    Armed by M: the next left click is an order. The cursor is the fastest of the
    three ways the interface says so (the others are the context card's line and

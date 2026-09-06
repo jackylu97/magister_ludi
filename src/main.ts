@@ -1503,8 +1503,10 @@ function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>)
  *     loud button in the corner stays meaningful;
  *   · the tooltip, which is where Shift ⏎ is written down.
  *
- * It is never *disabled*: a blocked press is not a refusal, it is the fastest
- * way to get taken to the thing you forgot.
+ * A blocked press is never a refusal — it is the fastest way to get taken to the
+ * thing you forgot — so the button is disabled for exactly one reason, and it is
+ * not the player's: while the other empires are moving there is no press to
+ * take. See `END_TURN_WORKING_LABEL` and `pressEndTurn`.
  */
 const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
   idleUnit: 'Unit needs orders',
@@ -1523,7 +1525,43 @@ const PAUSE_LABELS: Record<StatecraftPause, string> = {
   government: 'A government awaits your oath',
 };
 
+/**
+ * What the button says while the seats nobody is sitting in take their turns.
+ *
+ * The empires, not the machine: the player is waiting on the *other players*,
+ * which is a fact about the game rather than about the software, and it is the
+ * sentence a first-time player already understands.
+ */
+const END_TURN_WORKING_LABEL = 'The others are moving…';
+
+/**
+ * True from the press until the bots have finished and this seat's own turn has
+ * gone in — the one thing that can disable the button. Module-scope beside the
+ * button it paints, because `showEndTurnState` is the single writer of that
+ * corner and has to know which of the two stories it is telling.
+ */
+let endTurnWorking = false;
+/** The two hops `pressEndTurn` yields through, held so a teardown can cancel. */
+let endTurnRaf = 0;
+let endTurnTimer = 0;
+
 function showEndTurnState(blocker: TurnBlocker | null, pause: StatecraftPause | null): void {
+  // **The working state outranks both.** A blocker read while the resolution is
+  // running is a reading of a turn being resolved rather than one being played,
+  // and there is nothing the player could answer with it anyway: the press has
+  // been taken and the only true thing to say is what is happening.
+  if (endTurnWorking) {
+    endTurnLabelEl.textContent = END_TURN_WORKING_LABEL;
+    endTurnButton.classList.remove('btn-primary');
+    endTurnButton.classList.add('btn-quiet', 'is-working');
+    endTurnButton.disabled = true;
+    endTurnButton.setAttribute('aria-busy', 'true');
+    endTurnButton.title = 'The other empires are taking their turns';
+    return;
+  }
+  endTurnButton.classList.remove('is-working');
+  endTurnButton.disabled = false;
+  endTurnButton.removeAttribute('aria-busy');
   endTurnLabelEl.textContent = blocker
     ? END_TURN_LABELS[blocker.kind]
     : pause
@@ -3024,6 +3062,11 @@ async function boot(initial: Game | null): Promise<void> {
     onBeforeEndTurn: () => {
       driveBots(game, { report: (command, result) => controls.reportCommand(command, result) });
     },
+    // ⏎ pressed on the board is the same press as a click on the button, and
+    // this is the line that makes it so: it lands in `pressEndTurn` below, which
+    // raises the button and yields a frame before the drive above takes the
+    // thread. Without it the key would call `endTurn` directly and freeze.
+    onEndTurnPressed: (force) => pressEndTurn(force),
     closePopovers,
     inputBlocked: isInputBlocked,
     onToggleTechTree: () => techTree?.toggle(),
@@ -4436,12 +4479,91 @@ async function boot(initial: Game | null): Promise<void> {
     saveNote(`Exported ${exportFilename(payload)}.`, false);
   });
 
+  /**
+   * The End Turn press, in two halves: the button raises, *then* the bots think.
+   *
+   * The freeze this exists to remove was never in the simulation — it was in
+   * *when* the simulation ran. `controls.endTurn` plays every seat nobody is
+   * sitting in before it commits this one's (`onBeforeEndTurn` above), and doing
+   * that inside the click's own handler means the browser is never given a frame
+   * between the mousedown that painted the button pressed and the handler's
+   * return: by turn 88 the button sits visibly held for the better part of a
+   * second while the rivals think (user, `docs/flags.md` note 14). So the press
+   * is split —
+   *
+   *   · this frame: the button raises, goes quiet and says what is happening.
+   *     A DOM change and nothing else, so it costs nothing to paint;
+   *   · two hops later: the bots take their turns and the turn resolves, exactly
+   *     as before, with the three beats behind it (marches → turn card → camera)
+   *     untouched and in the same order.
+   *
+   * **Two hops, not one.** `requestAnimationFrame` runs *before* the paint it is
+   * scheduled for, so a drive started in that callback would block the very
+   * frame it was waiting on. The `setTimeout` after it is the hop that lands
+   * once the frame has been committed, and it is what makes the raise visible.
+   *
+   * A press that is only going to bounce off a blocker keeps the old, instant
+   * path: it ends no turn, drives no bot and has nothing to wait for, and a
+   * working state that flashed for a frame on the way to a city screen would be
+   * a lie about what the press did. The *soft* pause is the one deliberate gap:
+   * whether a press is the sentence or the turn is a fact only `controls` holds
+   * (it counts the acknowledgement), and reading the pause here would take the
+   * instant path on the second press — the one that actually drives the bots —
+   * which is the freeze back. So a pause press wears the working state for the
+   * one frame it takes to put its card up, and that is the cheaper wrong.
+   */
+  function pressEndTurn(force: boolean): void {
+    // The button is disabled while it works, but ⏎ does not go through a
+    // disabled attribute (`controls.ts`'s key handler calls straight in), so the
+    // guard that makes a second press a no-op lives here rather than on the DOM.
+    if (endTurnWorking) return;
+    if (!force && controls.endTurnBlocker() !== null) {
+      controls.endTurn(force);
+      updatePanel(null, renderer.getHover());
+      return;
+    }
+    endTurnWorking = true;
+    // Both arguments are ignored while the flag is up — the working branch is
+    // the first thing that function answers — and they are passed as the empty
+    // reading rather than looked up, because a blocker is exactly what this
+    // press has just established there is none of.
+    showEndTurnState(null, null);
+    endTurnRaf = window.requestAnimationFrame(() => {
+      endTurnRaf = 0;
+      endTurnTimer = window.setTimeout(() => {
+        endTurnTimer = 0;
+        try {
+          controls.endTurn(force);
+        } finally {
+          // In a `finally` because a button stuck at "The others are moving…" is
+          // a game the player cannot go on playing: whatever the resolution did,
+          // the corner comes back.
+          endTurnWorking = false;
+        }
+        // The repaint that ends the wait, and the same one the click always did:
+        // `updatePanel` is where the button's state is recomputed, so the label
+        // returns to "End Turn" (or to whatever the new turn owes) here.
+        updatePanel(null, renderer.getHover());
+      }, 0);
+    });
+  }
+
   // Shift is the override, on the button as well as on the key it wears: a
   // keyboard activation of a focused button carries the modifier through to the
   // click, so Shift ⏎ and Shift-click are genuinely one gesture.
   endTurnButton.addEventListener('click', (event) => {
-    controls.endTurn(event.shiftKey);
-    updatePanel(null, renderer.getHover());
+    pressEndTurn(event.shiftKey);
+  });
+
+  // Entry LVII's register, for a pair of pending hops rather than a listener: a
+  // game torn down between the press and the drive would otherwise resolve a
+  // turn on a board that is no longer on screen.
+  gameDisposers.push(() => {
+    if (endTurnRaf !== 0) window.cancelAnimationFrame(endTurnRaf);
+    if (endTurnTimer !== 0) window.clearTimeout(endTurnTimer);
+    endTurnRaf = 0;
+    endTurnTimer = 0;
+    endTurnWorking = false;
   });
 
   window.addEventListener('resize', () => renderer.resize());

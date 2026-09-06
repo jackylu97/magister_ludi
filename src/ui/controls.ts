@@ -1377,6 +1377,20 @@ export interface GameControlsOptions {
    */
   onBeforeEndTurn?: () => void;
   /**
+   * **The player asked to end the turn**, by the key rather than by the button.
+   *
+   * The two gestures are one gesture, and this is what keeps them one. The host
+   * owns the button, so it is the host that raises it, quiets it and yields a
+   * frame to the browser before the bots take a second of the main thread
+   * (`pressEndTurn` in `main.ts`) — and ⏎ pressed on the board would otherwise
+   * walk straight past all of that into `endTurn` and freeze with no button to
+   * show for it. So the key asks the host to press, and the host presses.
+   *
+   * Optional, and `endTurn` is what a client that wires none gets: this module
+   * still owns *ending the turn*, and only borrows *the press*.
+   */
+  onEndTurnPressed?: (force: boolean) => void;
+  /**
    * The turn is *handed over*: the pieces resolution marched have finished
    * moving and the interface may speak.
    *
@@ -2212,6 +2226,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onHover,
     onTurnResolved,
     onBeforeEndTurn,
+    onEndTurnPressed,
     onTurnHandedOver,
     onSeatAdvanced,
     onNotice,
@@ -7003,7 +7018,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         event.preventDefault();
         // Shift ⏎ is the same override the button carries: end the turn
         // whatever is still outstanding.
-        endTurn(event.shiftKey);
+        //
+        // And it goes through the *press*, not straight to `endTurn`, so the key
+        // and the button are one gesture down to the frame the button raises in
+        // — see `onEndTurnPressed`.
+        if (onEndTurnPressed) onEndTurnPressed(event.shiftKey);
+        else endTurn(event.shiftKey);
         return;
       }
       // Space is the Civ convention for "do nothing this turn". Silent with

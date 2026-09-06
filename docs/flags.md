@@ -109,16 +109,14 @@ Fixes queue in main for the next session unless the user says otherwise.
     hovered). The readout now sits clear of the rail — bottom edge, just left
     of it — at both rail widths. The rail itself scrolls as it always did.
     Your play checkout carries the old placement until the next session.
-14. **End Turn holds the button down while the bots think** (RULED, in
-    flight): around turn 88 the pause after the click is a visible freeze
-    with the button stuck pressed. The ruling: click → the button **raises
-    at once** (its own press-and-release, nothing waits on the bots) → a
-    working state while the bots take their turns ("The others are moving…",
-    the button disabled, not held) → the turn advances with the three beats
-    as now. The bot work must not run inside the button's press frame: yield
-    to the browser first (a frame, then the drive) so the release paints
-    before the sim blocks the thread. (The pause itself shrinks with batch 9
-    and 10 — the play checkout still runs the old bot.)
+14. **End Turn holds the button down while the bots think** — LANDED: the
+    press is two halves. Click → the button raises on its own frame and
+    reads "The others are moving…" (disabled, raised, not the spent plate) →
+    a frame and a timeout later the bots are driven → the turn advances with
+    the three beats as before. ⏎ goes through the same press. One stated
+    gap: a soft statecraft-pause press wears the working state for one frame
+    before its card goes up. (The pause itself shrank 8× with batches 9 and
+    10; the play checkout still runs the old bot unless you say otherwise.)
 
 ### RULED, awaiting build (after the playthrough)
 
