@@ -166,6 +166,15 @@ Fixes queue in main for the next session unless the user says otherwise.
     standing facts) prints it under the Cathedral — "consecrated to the
     Hearth Mother" with the consecration's own clauses from its describer,
     as a keyword ref into the compendium's consecration entry.
+22. **Archers capture civilians on right-click; today they shoot them**
+    (RULED, in flight): a hex holding only civilians (no soldier, no town) is
+    **taken by walking onto it** — the one capture seam, `arriveOnTile` — for
+    every unit that can move there, ranged units included. Right-click on
+    such a hex is a move order, never a shot. The reducer refuses a ranged
+    attack on a civilian-only hex with the sentence that says so ("a settler
+    is taken by walking onto it"), so the rule holds for the bot and the
+    log, not only the pointer. A civilian standing with a soldier is shielded
+    as now (the shot hits the soldier).
 
 ### RULED, awaiting build (after the playthrough)
 
