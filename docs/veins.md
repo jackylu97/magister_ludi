@@ -183,7 +183,7 @@ against a known place and an unknown seam.
 | does the mark hint at the seam | **by depth only** (§2): shallow says *ore or iron*, deep says *a luxury or a mineral* — never the row |
 | the assay | stays 15💰, riders composed; the `veinFound` occasion stays a card's to name |
 | a great person's work | a scholar's or engineer's work placed on a marked hill **surveys it as part of the work** (the work already opens the seam it covers — "Iron · academy") — one clause in `greatPersonWorkAt`, no new rule |
-| Geomancy's second gift | the deep strike, mines +1⚒ (the note claims it — **verify it is implemented; the row's `unlocks` is empty**), and the minerals' reveal |
+| Geomancy's second gift | the deep strike, mines +1⚒ (built: a tech-gated line on the mine row in `data/improvements.json`, not an `unlocks` entry), and the minerals' reveal |
 | the theme's proposal batch | The Assayers (+5🔬 per survey), The Vein Maps (seams inside borders reveal without a survey — under A this becomes "deep seams too"), The Prospector (first to strike three) — all still fit; The Vein Maps is the Cartographers path's engine |
 
 ---
@@ -225,5 +225,3 @@ against a known place and an unknown seam.
 6. **Tradeable?** *Recommended: no.*
 7. **Lottery or guarantee.** *Recommended: lottery*, with one per seated
    continent as the spread rule.
-8. **Geomancy's mine bonus** — confirm it should exist (the note promises it;
-   the data does not carry it).

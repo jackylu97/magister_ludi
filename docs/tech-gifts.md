@@ -126,7 +126,7 @@ Horology).
 | `education` | Education | 1450 | University · House of Wisdom · The Turning Heavens | University (needs a Library) · the rest | none | ≡ |
 | `machinery` | Machinery | 1450 | crossbowman · Armoury | crossbowman | **weak** — one unit | **a card effect: your Barracks pay +50%** (their unit percent) — the armoury's identity carried by the node |
 | `paperMoney` | Paper Money | 1450 | Mint · Bazaar | Bazaar (needs a Market) | none | ≡ |
-| `prospecting` | Geomancy | 1450 | *(the survey and the marks — `unlocks` is empty; the note also promises mines +1⚒)* | the deep strike · the minerals' reveal · mines +1⚒ (**verify** — `docs/veins.md` §7.8) | none under veins §2 A | ≡ |
+| `prospecting` | Geomancy | 1450 | the survey and the marks (`prospect.tech`) · mines +1⚒ (a tech-gated line on the mine row) | the deep strike · the minerals' reveal · mines +1⚒ | none under veins §2 A | ≡ |
 | `theQadisCourt` | The Qadi's Court | 1450 | Courthouse · a meter rule | ≡ | none | ≡ |
 | `feudalism` | Feudalism | 1700 | pikeman · Castle | pikeman · Castle (needs Stone Walls) | none | ≡ |
 | `physics` | Physics | 1700 | trebuchet · Machu Picchu | ≡ | none | ≡ |
