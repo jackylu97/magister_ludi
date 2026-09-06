@@ -1,186 +1,25 @@
 # The Standing Flags
 
 Every OPEN ruling, deferred half, and live thread — nothing here is done.
-Pruned 2026-09-04 on the user's standing order: a ruled-and-built item leaves
-this page the day it lands (its story lives in `docs/design-history.md` and
-git). Three sections: **A** is decisions only you can make, **B** is rows
-that ship deferred-with-prose (regenerated from the data rows' own
-`deferred:` fields), **C** is open threads and playtest questions. The user
-edits this page directly to confirm rulings — user marginalia are rulings.
+Pruned 2026-09-05 (second prune) on the user's standing order: a
+ruled-and-built item leaves this page the day it lands (its story lives in
+`docs/design-history.md`, the batch docs, and git). Three sections: **A** is
+decisions only you can make, **B** is rows that ship deferred-with-prose,
+**C** is open threads and playtest questions. The user edits this page
+directly to confirm rulings — user marginalia are rulings.
 
 ## A. Awaiting your ruling
 
-### The batch queue (your 2026-09-04 marginalia wave, absorbed — agents flying)
+### In flight right now (2026-09-05, evening)
 
-Wave one, flying now on disjoint fences:
-
-1. **The renewals axe** ("lets do this now. This is part of the problem") —
-   the tech-gated free building upgrades (granary/monument/barracks/
-   library/market/workshop rows) go. Schema: derived yields change under
-   old logs.
-2. **UI singles** — the worker panel shows every improvement as a greyed
-   button with the reason it can't be built (your onboarding ruling); the
-   city mode refuses board pan while open (no camera easing); the vignette
-   lightens ~25% (opacity 0.68 → 0.51).
-3. **Mapgen: rivers & lakes on big maps** — restore the huge/giant river
-   quota; failed river pits may become lakes.
-
-Wave two, queued behind them in order, each gated:
-
-4. **The levelling axe + skip-for-rarity** (RULED: "No more upgrading
-   altogether, all cards are as is. Players are given an option to skip
-   and increase the rarity of their next draft.") — deepening leaves
-   whole: no upgrade options in drafts, owned levels dissolve to
-   as-printed, the `upgrade:` columns leave the sheet; rarity marks
-   (● ◆ ○, the sheet's 4/2/1 draw-weight proposal) become real draw
-   weights; a draft may be SKIPPED, each consecutive skip raising the
-   rarity odds of the next (the pity ladder). Per your Section-B note,
-   anything relying on deepening (Pilgrim Roads' cap ladder, The Standing
-   Levy's cadence ladder, The Archives' per-level count) is re-cut to a
-   levelless reading or removed. Schema.
-5. **Sim singles** — the swordsman requires iron (data field); puppet
-   `contribute` refused (one clause); the met-set becomes a stored
-   per-seat field (permanent meeting: sighting a unit or an owned tile
-   once suffices — schema); **the Magnum Opus opens at 20 beads**
-   (INTERPRETATION for your veto: an empire may begin the Opus only while
-   holding ≥20 beads; the row's tech placement stays; the old
-   never-decides threshold role retires). Schema.
-6. **The proposed additions build** ("Add the proposed additions, let me
-   playtest before we decide on the government 4,5,6 orders") — the
-   sheet's per-pool proposed blocks: the charters (each unlocking its
-   building — the `cardUnlocksBuilding` shape), the growing cards
-   (Ballad-Weavers · Bell-Founders · Reliquary Rolls · Chroniclers of the
-   Fallen · Almoners' Book — the phase-2 scaling counter, slot-only per
-   the standing ruling), and the NEEDS-NAME war order (proposal: **The
-   Casus Belli**). Levies vs Levée reconciled per your note: PROPOSAL —
-   keep The Standing Levy (built), retire the Levée en Masse proposal
-   (its trigger was never built). Schema.
-
-### Pacing — RULED 2026-09-04 (your marginalia)
-
-"The bot is a bad indicator for actual play… later eras feel too _fast_
-based on how much snowball is in the game. We need to consider outrageous
-costs later in the game as part of the skill test. For now, only look to my
-playtests as the source of truth for pacing balance." — The three post-wave
-harness findings (t586 curtain, draft cliff, warband poverty) are CLOSED as
-questions; the harnesses keep their honest pins; no pacing knob moves on
-bot evidence alone.
-
-### The balance turn (direction agreed, numbers not yet ruled)
-
-Buildings are the big non-card power block — direction: ordinary rows' flat
-yields down ~25% so cards carry more of the empire's power share;
-unlock/utility buildings keep their roles. Guardrail: the no-draft-bot
-test. Awaiting your numbers.
-
-### TODO (yours) — Entry LIV's supply trim, deferred 2026-09-04
-
-The problem, short: in playtest it was easy to run tall AND wide at once
-because happiness and authority could simply be BUILT — the relief lives in
-buildings and luxuries, so the tall-vs-wide decision never bites. The
-2026-09-01 ruling (never applied): the bulk of both meters' relief should
-live in Order/Doctrine cards — a slot is an opportunity cost, so relief
-displaces something — with buildings/luxuries trimmed to match. Deferred on
-your word; revisit when you take the balance turn.
-
-### Ruled 2026-09-04 — the potential weight (λ) — LANDED, then SUBSUMED
-
-Both halves shipped same day and the flat knob is already GONE: the
-priority system's batch 2 (`docs/bot-priorities.md`, "Batch 2 as shipped")
-replaced `score.potentialWeight` with the delay discount `(H − delay)/H` at
-every call site — a promise now prices by how long it takes, printed in
-turns. The section below is the original ruling, kept for the record.
-
-The user's formula, ratified in chat: **value = realized + λ × (potential −
-realized)**, λ = `score.potentialWeight` = 0.4, ONE knob for now ("we may
-want to increase it for technologies and orders later on (spin out separate
-potential weights) but lets keep it simple"). Call sites: `explainTechGifts`
-multiplies its per-town building term by λ (today it prices pure potential
-at 1.0); the improvement-rider term splits standing vs buildable and folds
-`standing + λ × buildable`; `scoreCard`'s counted effects add
-`λ × (potential − current)` where the counted subject is buildable
-(`potentialTownsFor` = towns where `buildError` is null — the sim's own
-gate); and the worker plan adds `λ × rider` for riders granted by techs in
-the bot's OWN current research plan (no tree lookahead — the bot
-anticipates only its declared intentions). Every term prints in the fold.
-
-Fifth call site, ruled in the same thread: **counted cards read their REAL
-count** — `scoreCard`'s flat `× nominalCount` guess goes; realized =
-`countOf(card)` (a slotted growing card's ×12 finally outranks a rookie's
-×0), and a tally card's potential = `λ × forecast × pays` where the
-forecast is a per-occasion data table (`score.tallyForecast`
-{barbarianKill, wonderAnywhere, greatPersonSpent, unitLost, goldSpent…}),
-never one blind number. Ordinary counted cards take realized + λ ×
-(buildable potential − realized) through the same machinery.
-
-### Findings from the sim singles (2026-09-04, need your eye)
-
-- **The swordsman is now a row no empire can build.** Your iron ruling
-  landed as a data field — but iron is REVEALED by Iron Working (Æra III),
-  the same rung whose legionary supersedes the swordsman, so no empire can
-  ever hold the sword's seam without already holding its replacement. (The
-  wild still fields swordsmen — barbarian tiers ask the technology, never
-  the seam.) The one-line fix, if you want a real Æra II sword window:
-  move iron's reveal to Bronze Panoply (`data/resources.json`) — a
-  reveal-placement change with mapgen/yield/city-strength consequences, so
-  it waits on your word. Side effect as shipped: an iron-less empire's
-  city strength drops and the warrior stays buildable a full age longer.
-- **Twenty beads is out of a lone capital's reach** — the solo endgame
-  harness banks ~4 beads by t1700, so the Opus gate would hold its door
-  for ever there (the harness now grants the rod once the chart-side gate
-  is met, pinning the machinery; the pacing is yours). Datum for the
-  20-bead interpretation you flagged for veto: a solitary empire cannot
-  start the Great Work at all under it. Wide empires bank beads from
-  firsts/quests; whether 20 is the right bar — or whether it should scale
-  with something — is a playtest call.
-
-### From the loop review (2026-09-05, `docs/loop-review.md`)
-
-- **The age scoreboard + age clock — DEFERRED by your ruling** ("an easy
-  fix that we can add after playtesting"): publish each empire's beads per
-  age on the abacus with the age's contested firsts and a "the age turns
-  in N turns" clock — the forcing function without the Reckoning; no new
-  mechanic, no schema. Revisit after the first playtests.
-- **A wolf in the default game — RULED, queued** ("i will add #2 for
-  sure, we're not yet at the point yet"): a warmonger seated in the default
-  4-seat game, and balanced bots less gentle (`war.declareThresholdPeaceful`
-  4.5 is the dial; the priority system now knows when it is ahead). Lands
-  when the bot is judged threatening enough to be worth seating.
-- Items 3–5 (the engine view, the synergy-density pass, the breadth audit)
-  are written up in `docs/loop-review.md` for your markup.
-
-### RULED 2026-09-05 — Æra III (docs/age-three.md, user marginalia)
-
-- The tier-18 government signatures as chair-readers and the Pool III
-  doctrine pass: **"great, love these"** — building (schema 70, in flight).
-- **Seals do NOT lengthen** — VETOED: "certain cards you want to slot in and
-  out, should be part of the game's skill expression." Seals stay 5 turns
-  everywhere; the two rarity moves stand.
-- **The world age, when it is built** (after the playthrough): the counter is
-  the **MEAN age of all players including bots**, not the median — "for this
-  to be meaningful… for single player campaigns, it should punish you if
-  you're behind the bots." So the laggard's cost (the wild's tier following
-  the world age, the catch-up discount going the OTHER way for a trailing
-  human) is the point, not a side effect. Design pass owed before it flies.
-
-### RULED 2026-09-05 — the victory rule, and what Æra V is for
-
-- **Victory**: an empire may START the Magnum Opus only while holding 20
-  beads (built, schema 64), and **completing it WINS THE GAME outright** —
-  the builder is the winner, full stop. Beads gate the door; they no longer
-  decide the close (`closeTheGreatWork`'s most-beads reading and its tie
-  rule retire; the golden bead stays as history). Queued behind the
-  late-pools batch (shared schema).
-- **Æra V is not content, it is acceleration**: the game should END around
-  the close of Æra IV; Æra V's rows exist to hand a leader massive bonuses
-  toward the win — Opus cost cuts, bead purses, tempo — not to open a fifth
-  age of building. The thin Æra V is therefore not a content hole to fill
-  with buildings and units; its techs and the Gov V/VI rows should be
-  re-read as victory accelerators. **DEFERRED until after the first full
-  playthrough** (the user: "I haven't yet had an empire reach age 4 so
-  i'll need to feel out the pacing for what makes sense for age 5") —
-  nothing Æra V is built or re-cut before then; the Gov V pool the
-  late-pools batch wires is tier 45 (Æra IV's second rung) and stands.
+- **Æra III** (`docs/age-three.md`): the three tier-18 government signatures
+  as chair-readers, the Pool III doctrine pass (three modified, three added),
+  the two rarity moves. Seals VETOED (stay 5). Schema 70.
+- **Batch 9 — the late-game cost** (`docs/bot-priorities.md`): profiler
+  first; standard map t100 561ms/turn → target ≤200, byte-identical.
+- **The push-gate** on the committed chain (tuning → synergy → late pools →
+  victory) — pushes on green; the play checkout on :5199 is frozen at the
+  victory commit meanwhile.
 
 ### From the first full playthrough (2026-09-05, live notes — queued as they arrive)
 
@@ -189,24 +28,68 @@ never one blind number. Ordinary counted cards take realized + λ ×
    tile shows none, a silk hex shows the plantation alone — greyed only for
    empire/unit reasons (the tech, movement, charges) with the reducer's
    sentence. Implementation: a `groundError` reading in `improvements.ts`
-   (the clauses before the tree's gate), the panel filters on it and greys
+   (the clauses before the tree's gate); the panel filters on it and greys
    on the full error. Lands after the Æra III agent frees the file.
+
+### RULED, awaiting build (after the playthrough)
+
+- **The victory rule** — BUILT (schema 69): 20 beads open the door,
+  completing the Great Work wins. One loose end: `src/ui/victoryModal.ts`
+  still frames the win as "the frame is full / N of 20 beads" — true but
+  reads bead-decided; a wording pass owed.
+- **Æra V is acceleration, not content** — DEFERRED until you have had an
+  empire reach Æra IV ("i'll need to feel out the pacing for what makes
+  sense for age 5"). The game should end around the close of Æra IV; Æra
+  V's rows become victory accelerators (Opus cost cuts, bead purses,
+  tempo). Nothing Æra V is built or re-cut before then; Gov VI stays
+  proposed.
+- **The world age** (`docs/age-three.md` §4, your marginalia): the counter
+  is the **MEAN age of all players including bots** — "for single player
+  campaigns, it should punish you if you're behind the bots." The laggard's
+  cost is the point: the wild's tier follows the world age, and a trailing
+  human pays rather than catches up. Minimal shape after the playthrough:
+  the ceremony → the wild's tier → the cost of trailing.
+- **The age scoreboard + clock** — DEFERRED ("an easy fix that we can add
+  after playtesting"); the world-age ceremony is its natural home.
+- **A wolf in the default game** — RULED, queued: the warmonger seated by
+  default, balanced bots less gentle (`war.declareThresholdPeaceful` 4.5 is
+  the dial). Lands when the bot is judged threatening enough to seat.
+- **Camps** — DEFERRED on the bot side ("a smaller concern"); a player-side
+  Wild Hunt payoff (The Wolf-Standard) is deferred on the row until a camp's
+  bounty can have more than one destination.
+- **The engine view** (`docs/loop-review.md` §3, the Ledger) — bands 1–2
+  are a UI batch with no sim change; band 3 wants the lifetime tally
+  schema. Not yet scheduled.
+- **The balance turn** — direction agreed (ordinary building flats −25%,
+  cards carry more of the empire's power), numbers not yet ruled. **Entry
+  LIV's supply trim** rides with it, deferred on your word: happiness and
+  authority relief should live in cards, not buildings, so tall-vs-wide
+  bites.
+
+### Pacing — RULED 2026-09-04 (your marginalia)
+
+"The bot is a bad indicator for actual play… later eras feel too _fast_…
+outrageous costs later in the game as part of the skill test. For now, only
+look to my playtests as the source of truth." The harness findings are
+closed as questions; no pacing knob moves on bot evidence alone.
 
 ### Open singles (still yours)
 
-- **Gov IV/V/VI pools** — wait for your playtest (your ruling). Gov VI
-  still needs a gate past tier 45 when it comes.
-- **Guild Charters (Gov V proposal)** — your "what was the guild charters
-  thing?" answered: "each Workshop/Forge grants +1 renown per turn to the
-  Engineer family · +2%⚙ per production building in that city (max +6%)";
-  deferred then as too many mechanics. The family renown feed exists now,
-  so it is implementable — needs a new name (The Guild Charter is built)
-  and your re-cut.
+- **Gov VI** — no rung past tier 45; needs a seventh tier or another gate
+  when Æra V's shape is decided (deferred with it).
 - **The Harvest Songs re-cut** — ships as 10% of food yield, not surplus
   (the surplus reading is circular with the growth percents); say if the
   percent should drop.
-- **The Synod (Gov IV proposal)** name clash with the built Synod — needs
-  a new name if it ever builds.
+- **The Guild Compact** (Gov V, built) ships its production-percent half;
+  the Engineer-family renown feed per building is struck (no per-building
+  family feed exists) — a shape decision if you want it back.
+- **The Tide-Reckoning** (sea routes +50%) — deferred whole: a route's
+  MODE is not readable by a card today; one small shape if wanted.
+- **The Murmuration** (religion spreads along routes) — stays a proposal; a
+  new pressure shape is a design decision for a calmer day.
+- **`site.newLuxuryBonus` under the uniqueness reading** — re-swept 2026-09-05
+  (14 and 21 both positive, 28 collapses); sits at 14. Sweep again after
+  the playthrough with real seeds.
 
 ### Standing small items (earlier passes)
 
@@ -215,34 +98,42 @@ never one blind number. Ordinary counted cards take realized + λ ×
 - **Temple** — −25% foreign-pressure defence semantics (was −50%).
 - **`redraftBeliefs`** — kept through the faith rework; keep or retire.
 - **The Sea Peoples** — waits on a plundering-costs-no-movement rule.
-- **The Mint** — endeavour timing vs Paper Money's building (conflict);
-  the user's Mint Charter (queue item 6) may supersede — reconcile there.
+- **The Mint (Æra IV row) vs the Coinworks** — two gold-culture buildings
+  now; reconcile at the balance turn.
 - **Inquisitor badge** — wears the augur's candle; own art owed.
 - **Rite windfall toast** — a rite's hammers can complete a wonder with no
   toast (`RiteResult` gap).
+- **The Banner line has a card but no drawn mark** — The Banner-Call flies
+  `forge` because `CardLine` is a closed union with drawn marks; adding 🎖
+  is an art pass.
 
 ## B. Deferred halves on the rows (regenerated from data)
 
-Your ruling 2026-09-04: "deferring on these for now. Disable/remove
-anything that relies on something we've removed." — applied as: every
-deferral stands; the deepening-dependent ones (Pilgrim Roads' cap, The
-Standing Levy's cadence) are re-cut by queue item 4; the Levée en Masse
-proposal retires with queue item 6.
+Each waits on the named thing; the prose on the row is player-plain and is
+the source. Regenerate with the scratchpad dump after any data pass. Your
+ruling 2026-09-04 stands: every deferral stays; anything relying on a
+removed system was re-cut with the levelling axe.
 
-**Orders** — Pilgrim Roads (cap deepening — re-cut by the axe) · Triumphs
-(renown grant: a windfall's grants can't reach the renown ladder) · The
-Standing Levy (cadence deepening — re-cut by the axe) · Sanctuary (sacking
-doesn't exist; retired) · The Escorted Roads (route safety is placeless) ·
-The Dry Docks (heal-in-port is a hex rule).
+**Orders** — Triumphs (renown grant: a windfall's grants can't reach the
+renown ladder) · Sanctuary (sacking doesn't exist; retired) · The Escorted
+Roads (route safety is placeless) · The Dry Docks (heal-in-port is a hex
+rule) · The Wolf-Standard (a camp's bounty has one destination) · The Far
+Charts' second half (route reach off sightings is a `trade.ts` rule) · The
+Tide-Reckoning (route mode unreadable) · the late-pool strikes (King's
+Road's roads, Siege Train's adjacency, Patrons'/Guild Compact's/
+Manufactories' family renown, Court Astronomers' wonder bounty, The
+Consistory's rite duration, Forced March's penalty, Admiralty's embarked
+defence, The Salon's renown price, The Silk Exchange's imported luxuries,
+The Inquisition's temple-less penalty, The Magister's Court's second charge).
 
 **Doctrines** — The Founders' Road (amphitheatre swap) · Mountain Hold
 (radius 2) · The Burning Way (chopped-hex memory) · Religious Mandate (war,
 conversion immunity, bead bonus — parked tier 0) · The Academy (faith-bought
-scholar drafts) · The Sea Charter (founded-with-Harbour) · The Renaissance
-Court (stronger legacies) · Absolutism (a wildcard slot is a layout change)
-· Blitz (both halves) · The Philosopher's Stone (both) · The Levée en Masse
-(retiring with queue item 6) · Pax Magistri (no war to forswear) · The
-Closed Realm (both — parked tier 0).
+scholar drafts) · The Sea Charter's founded-with-Harbour half · The
+Renaissance Court's stronger-legacies half · Absolutism's longer-seal half ·
+Blitz (retired to proposed — no stock half) · The Philosopher's Stone's
+Distillery half · The Closed Realm (both — parked tier 0) · The
+Horse-Tribes' flat-ground and stable halves.
 
 **Governments** — The Curia (+3🕯 per Cathedral).
 
@@ -259,9 +150,9 @@ Fortification (walls that mend).
 (+15% vs cities) · Notre-Dame (Cathedral culture) · Forbidden City (an
 Order slot) · Alhambra (born fortify bonus) · Water Clock (the chime
 cadence) · Shipyard (ship-only discount) · Printing House (routes paying
-the destination) · Observatory (mountain sight clause; the Stargazers'
-Charter builds a different Observatory — reconcile at queue item 6) · Bank
-(routes-ending-here count) · **The Magnum Opus (the culture pillar)**.
+the destination) · Observatory's mountain sight clause · Bank
+(routes-ending-here count) · The Cistern's fields half (a building waters
+its town, not its hexes) · **The Magnum Opus (the culture pillar)**.
 
 **Great people** — Sin-lēqi-unninni (Hall of Deeds is gone) · Leonardo
 (project halving) · Mimar Sinan (cathedral discount) · Yi Sun-sin (naval
@@ -274,8 +165,7 @@ way to press).
 **Numbers to tune (v55)** — Stele of Laws (50⚙, worse per hammer than the
 Monument) · Stone Walls (55⚙) · Workshop (net −1 late vs the old renewal
 path) · Floating Gardens (+1🌾+1💰; the lake half waits on lakes being
-standable — a movement ruling; queue item 3 may create map lakes, the
-terrain half of that story).
+standable — a movement ruling; pit lakes now exist on big maps).
 
 ## C. Open threads
 
@@ -284,19 +174,28 @@ terrain half of that story).
   main plus the console/elementsFromPoint probe.
 - **Bot honesty — RULED into context**: the bot is not a balance baseline
   until significantly improved; playtests are the source of truth. The
-  optimizer over `data/ai.json` stands ready when wanted.
+  arena (`arena.html`) and the grid search (`scripts/gridSearch.ts`) are the
+  instruments; the OFAT baseline needs re-running after the playthrough's
+  tunings, on real seeds.
 - **Bot debts, written down in docblocks** — a luxury's signature, the
   citadel's ring and hypothetical percents unpriced; a camp on
-  charted-but-left ground over-counted (wants a sim-side camp memory,
-  schema); a wounded piece deep in enemy fields does not retreat; purchases
-  don't read the unit mix; warscore wants a loss register (schema); the
-  balanced endgame slowed (knobs: site.ringFalloff, war.escortRadius).
+  charted-but-left ground over-counted; a wounded piece deep in enemy
+  fields does not retreat; purchases don't read the unit mix; warscore
+  wants a loss register (schema); the route reading under-reads a caravan
+  (`score.caravanScale` 3 is the stand-in — the road's march and the
+  destination's growth are the missing terms); naval is a hard null; the
+  war economy's baselines sit outside the currency; the bot's culture plan
+  prices drafts but a pass never conditions on the hand it just saw.
+- **Late-game cost** — batch 9 in flight (above); if your game's End Turn
+  drags past ~t100 on standard, say so and it jumps the queue.
 - **Pamphlet shots: 3 outstanding** — move-attack, worker-improve,
   diplomacy-with-a-met-rival need a riper save; captions meanwhile.
-- **Closed 2026-09-04 by your marginalia, for the record**: mid-peace
-  expulsion (not now) · barbarian red rim (keep) · 4.5× declare (tune in
-  playtest) · project-headed towns (Civ V behaviour — confirmed, that is
-  how processes behave there) · authority roominess (defer to playtest) ·
-  camera easing (not needed; pan lock ships in queue item 2).
-- **Playtest questions live** — do the luxury flats *feel* right; does
-  Æra III hold its length under real play.
+- **Closed by your marginalia, for the record**: mid-peace expulsion (not
+  now) · barbarian red rim (keep) · 4.5× declare (tune in playtest) ·
+  project-headed towns (Civ V behaviour, confirmed) · authority roominess
+  (defer to playtest) · camera easing (not needed; pan lock shipped) ·
+  the seal lengthening (vetoed — slot-in/out is skill expression).
+- **Playtest questions live** — the seven-line log: turn of each draft, the
+  first pass and why, when slots first feel contested, the turn the wild
+  stops mattering, when each age turns, beads per age, any stamp that
+  surprised you.
