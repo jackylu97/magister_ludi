@@ -1991,9 +1991,8 @@
       "faith": 1,
       "sciencePerPop": 0,
       "unlockedByCard": true,
-      "ritesDoor": true,
       "ritePays": 5,
-      "note": "This city may perform the rites it has been taught, and every rite it performs pays a little culture as well."
+      "note": "Every rite this city performs pays a little culture as well."
     },
     "keep": {
       "name": "Keep",

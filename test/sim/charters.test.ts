@@ -253,14 +253,18 @@ describe('the charters as a family', () => {
 // --- the buildings ----------------------------------------------------------
 
 describe('what each charter building does', () => {
-  it('Chapel — the door to the rites, and it pays culture for every one said', () => {
-    // The Chapel is what makes a town able to perform a rite at all since the
-    // fewer-things pass, so a town without one refuses before any culture is
-    // ever in question.
+  it('Chapel — pays culture for every rite said in its town, and gates nothing', () => {
+    // The tree is the only gate (the user, 2026-09-06: "have the rites unlock
+    // in the tech tree where they used to be"): a town that has not been
+    // taught the rite refuses for *that* reason, and a bare town that has been
+    // taught it may say it with no Chapel standing. The Chapel's whole business
+    // with rites is the culture it pays on one.
     const bare = bench();
     const plainCity = capitalOf(bare);
-    expect(riteError(bare, 0, plainCity.id, 'omenReading')).toContain('nowhere to say a rite');
+    expect(riteError(bare, 0, plainCity.id, 'omenReading')).toContain('is not known to');
     playerById(bare, 0)!.techsResearched.push('divination');
+    playerById(bare, 0)!.faithPool = 1000;
+    expect(riteError(bare, 0, plainCity.id, 'omenReading')).toBeNull();
 
     const state = bench();
     const city = capitalOf(state);

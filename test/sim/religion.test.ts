@@ -569,13 +569,17 @@ describe('rites', () => {
     learn(g.state, 0, 'divination');
     const city = found(g.state, 0);
     playerById(g.state, 0)!.faithPool = 1000;
-    expect(riteError(g.state, 0, city.id, 'omenReading')).toBe(
-      `${city.name} has nowhere to say a rite`,
-    );
-    city.buildings.push('chapel');
+    // **The tree is the only gate** (the user, 2026-09-06: "have the rites
+    // unlock in the tech tree where they used to be"). C2 first made the Chapel
+    // a door and the rite subsystem sat behind one uncommon wildcard card; the
+    // door is gone the same day. A bare town that knows the rite may say it.
+    expect(city.buildings).not.toContain('chapel');
     expect(riteError(g.state, 0, city.id, 'omenReading')).toBeNull();
-    // The marker is the rule; the row is the data.
-    expect(buildingDef('chapel').ritesDoor).toBe(true);
+    // The Chapel is the rite's *bonus*, never its gate: a rite performed where
+    // one stands pays culture too (`ritePays`), and that is the whole of the
+    // row's business with rites.
+    expect(buildingDef('chapel').ritePays).toBeGreaterThan(0);
+    expect((buildingDef('chapel') as { ritesDoor?: boolean }).ritesDoor).toBeUndefined();
   });
 
   it('cost the faith ladder’s rung for the age this empire stands in', () => {

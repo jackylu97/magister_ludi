@@ -39,12 +39,11 @@ directly to confirm rulings — user marginalia are rulings.
   `religion.slow` repaired to the faith ladder. **F (the order pass) is in
   flight**; the all-tier gate for the push runs beside it. Three findings
   from the re-aim, yours to rule:
-  1. **The rite door is a lottery.** The Chapel stands behind The Rites
-     Charter — an uncommon wildcard in the Government I pool, one wildcard a
-     hand, gone at Government II. A seat that never draws it never says a
-     town rite. *Recommended*: the Chapel becomes a tech-unlocked building
-     (Divination, chained Shrine → Chapel) and The Rites Charter re-cuts to a
-     rite payoff (or grants the Chapel free in the capital).
+  1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
+     user's ruling was always "unlock rites in the tech tree where they used
+     to be"; C2's Chapel gate is removed (the tree is the only gate; the
+     Chapel keeps its culture-on-a-rite bonus). `religion.slow` re-aims
+     once more to town rites.
   2. **Game length.** The scripted five-town empire closes Æra IV at t999
      (was 779); the one-city seat opens the Opus at t3959 (was 1689). Your
      own game runs 3–4× the bots' pace, so this is a harness reading, not a
@@ -474,7 +473,7 @@ rulings yet:
   **Third pass (2026-09-06)** — every open item answered, folded into
   `docs/fewer-things.md` (§6 is the record): all twelve lines readable;
   cadence 2.8 and chairs down a quarter incl. Gov IV/V; ten chains; the
-  Chapel is the rite door; the Cathedral keeps its roll; Court Augurs
+  Chapel pays culture on a rite (no gate — the tree is the only gate); the Cathedral keeps its roll; Court Augurs
   renamed to pay every city with an active rite; grants ignore chains; the
   faith ladder shaped like the augur's old prices; reroll from 35 faith at
   a slight exponent, prophets free; the apostle's third act is the relic;

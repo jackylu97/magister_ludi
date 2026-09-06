@@ -974,22 +974,6 @@ export interface BuildingDef {
    */
   ritePays?: number;
   /**
-   * **This building is the door to the city rites** — the Chapel's, and the
-   * whole of what the Chapel is for since the fewer-things pass (ruled
-   * 2026-09-06, `docs/fewer-things.md` §6.3).
-   *
-   * A **marker**, exactly as `consecrated` and `waters` are: nothing in
-   * `src/sim/` compares a building id against `"chapel"`, so the day a second
-   * row wants to open the rites it sets this flag and `riteError` learns
-   * nothing new. Read in exactly one place — `cityPerformsRites`
-   * (`buildingEffects.ts`) — and asked by exactly one gate, `riteError`.
-   *
-   * It is a *door*, not a discount: a chapel does not make a rite cheaper or
-   * longer, it makes one possible at all. That is what turned a building the
-   * user never wanted to invest in into the one a rite-keeping town must have.
-   */
-  ritesDoor?: boolean;
-  /**
    * **This row is placed, never built and never bought** — the relic an apostle
    * leaves in a cathedral town.
    *

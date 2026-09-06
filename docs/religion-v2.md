@@ -35,7 +35,7 @@ holy site, augur and apostle → nothing).
 ## Rites (schema 74)
 
 A rite is a **city's verb**: `performRite {cityId, rite}`. The town must hold the
-door (a row carrying `ritesDoor` — the Chapel), the empire must have been taught
+(the tree is the only gate — no building opens the verb), the empire must have been taught
 the rite (`ABILITY_TECH`, the same five nodes), the town must not already be
 keeping one (`cityRite`, derived off `City.timed` — the seal *is* the ten turns),
 and the bank must cover `religion.rite.costByAge` for the empire's age

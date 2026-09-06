@@ -1398,8 +1398,8 @@ import {
  * is a complaint about an **errand**, so the errand goes and the season stays.
  *
  *   · **A rite is a city's verb.** `performRite` names a `cityId` where it named
- *     a `unitId`, a hex and a belief; the town must hold a row carrying
- *     `ritesDoor` (the Chapel), must not already be keeping one, and the price
+ *     a `unitId`, a hex and a belief; the town must not already be keeping
+ *     one (the tree is the only gate — no building opens the verb), and the price
  *     is the faith ladder's rung for the age (`RELIGION.rite.costByAge`, 40 · 56
  *     · 72 · 90). The five surviving rows are reworked to ten turns of pure
  *     blessing — there is no instant grant left anywhere — and the two that no

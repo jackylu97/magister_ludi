@@ -16,8 +16,10 @@
  * the script measured nothing at all: a refused purchase every turn, no augur,
  * no rite, no god. What replaced it is the game as it is played now — faith
  * banks, `openFaithLadder` deals the belief hand when the bank crosses a rung,
- * the pick pays for it, and a **rite is a town's verb** said in whichever town
- * holds the door. See `test/sim/faithLadder.test.ts` for the ladder's own rules
+ * the pick pays for it, and a **rite is a town's verb** any town may say once
+ * the tree has taught it (the user, 2026-09-06: "have the rites unlock in the
+ * tech tree where they used to be" — no building gates the verb; the Chapel
+ * only pays culture on one). See `test/sim/faithLadder.test.ts` for the ladder's own rules
  * and `docs/religion-v2.md` for the shape.
  *
  * **The horizons doubled on 2026-09-02**, with the column-formula costs: 90 →
@@ -36,13 +38,13 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import type { Command } from '../../src/sim/commands';
 import { foundingErrorAt } from '../../src/sim/cities';
 import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
 import { mapRange, tileHex } from '../../src/sim/map';
 import { availableRites, empireRiteError, riteError } from '../../src/sim/religion';
 import { type PurchasableItem, explainPurchaseCost } from '../../src/sim/purchase';
+import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { type OrderId, orderDef } from '../../src/sim/statecraftData';
 import { type GameState, SCHEMA_VERSION, playerById } from '../../src/sim/state';
 import { availableTechs, buildError } from '../../src/sim/tech';
@@ -53,39 +55,35 @@ import { unitDef } from '../../src/sim/unitData';
 /** The thing faith sells, since religion v2 — the augur's row is retired. */
 const PROPHET: PurchasableItem = { kind: 'unit', id: 'prophet' };
 
-/**
- * The row that holds a town's rite door, by its **marker** rather than its name
- * (`BuildingDef.ritesDoor`) — the discipline `src/sim/` keeps, so a second door
- * would be found here without anybody editing this file.
- */
-const RITE_DOOR = BUILDING_IDS.find((id) => buildingDef(id).ritesDoor === true)!;
 
-/** Does this Order hand over a row that holds the rite door? */
-function opensTheRiteDoor(id: OrderId): boolean {
+/**
+ * The rite-bonus row — the building whose marker says a rite performed in its
+ * town pays culture too (`BuildingDef.ritePays`, the Chapel). Found by its
+ * **marker** rather than its name, `src/sim/`'s discipline. It gates nothing:
+ * the tree is the rites' only door (the user, 2026-09-06 — C2's door lasted an
+ * afternoon). A pious script still wants one in every town, for its faith line
+ * and the culture it pays on each rite, so the script prefers the charter that
+ * hands it over and queues it wherever it may.
+ */
+const RITE_HOUSE = BUILDING_IDS.find((id) => (buildingDef(id).ritePays ?? 0) > 0)!;
+
+/** Does this Order hand over the rite-bonus row? */
+function opensTheRiteHouse(id: OrderId): boolean {
   for (const effect of orderDef(id).effects ?? []) {
     if (effect.kind !== 'unlocksBuilding') continue;
-    if (buildingDef(effect.building).ritesDoor === true) return true;
+    if ((buildingDef(effect.building).ritePays ?? 0) > 0) return true;
   }
   return false;
 }
 
 /**
- * Which of an offered hand this pious script takes.
- *
- * Option 0 as everywhere else — the cadence is measured elsewhere and the
- * choices are not what these tests are about — **except** for the one card that
- * opens the rite door, which the seat takes whenever the deck shows it to it.
- *
- * It rarely does, and that is worth knowing rather than working around: the
- * charter is an *uncommon wildcard* in the Government I pool, one wildcard is
- * drawn per hand, and the pool is gone the moment Government II is adopted — so
- * a scripted seat gets five or six chances at it and, on this seed, takes none.
- * The rite this file's determinism claim rests on is therefore the **prophet's**
- * (`empireRite`, which needs no Chapel anywhere); the town verb is scripted too,
- * and fires when the deck obliges.
+ * Which of an offered hand this pious script takes: option 0, as everywhere
+ * else — the cadence is measured elsewhere and the choices are not what these
+ * tests are about — except the charter that hands over the rite house, which a
+ * faithful seat takes whenever the deck shows it.
  */
 function orderPick(options: readonly OrderId[]): number {
-  const wanted = options.findIndex(opensTheRiteDoor);
+  const wanted = options.findIndex(opensTheRiteHouse);
   return wanted >= 0 ? wanted : 0;
 }
 
@@ -95,9 +93,8 @@ function orderPick(options: readonly OrderId[]): number {
  * numbers rest on.
  *
  * `playWarband`'s shape (`buildSinks.test.ts`) with a different appetite: settle
- * a few towns, research toward Divination first, put a shrine in every town, take
- * the charter that opens the rite door when the deck offers it, and then let the
- * faith bank — the ladder deals a god the moment the bank crosses a rung, and a
+ * a few towns, research toward Divination first, put a shrine in every town, and
+ * then let the faith bank — the ladder deals a god the moment the bank crosses a rung, and a
  * town says a rite whenever it can pay for one. Deliberately conservative and
  * deliberately scripted, because the number it produces ("the first god is
  * consecrated on turn N") is only worth anything if the same script always
@@ -229,11 +226,10 @@ function playFaithful(maxTurns: number): {
       dispatch(g, { type: 'plantHolySite', playerId: 0, unitId: unit.id } as Command);
     }
 
-    // **And a rite is also a town's verb** (schema 74): the seat says one in
-    // whichever of its towns holds the door and can pay, one town a turn, and
-    // the ten turns of the blessing are its own seal. Whether any town ever
-    // holds the door is the deck's business, which is why the prophet's rite
-    // above is what the claim rests on.
+    // **And a rite is a town's verb** (schema 74): the seat says one in
+    // whichever of its towns can pay, one town a turn, and the ten turns of
+    // the blessing are its own seal. No building gates it — the tree taught
+    // the rite, the town says it (the door C2 first built is gone, 2026-09-06).
     for (const city of g.state.cities) {
       if (city.ownerId !== 0) continue;
       let said = false;
@@ -248,7 +244,7 @@ function playFaithful(maxTurns: number): {
       if (said) break;
     }
 
-    // Keep every queue full: a shrine first, then the rite door if the deck has
+    // Keep every queue full: a shrine first, then the rite house if the deck has
     // handed it over, then whatever the town can make.
     for (const city of g.state.cities) {
       if (city.queue.length > 0) continue;
@@ -256,10 +252,10 @@ function playFaithful(maxTurns: number): {
       if (!city.buildings.includes('shrine') && buildError(g.state, 0, 'building', 'shrine') === null) {
         queue.push({ kind: 'building', id: 'shrine' });
       } else if (
-        !city.buildings.includes(RITE_DOOR) &&
-        buildError(g.state, 0, 'building', RITE_DOOR) === null
+        !city.buildings.includes(RITE_HOUSE) &&
+        buildError(g.state, 0, 'building', RITE_HOUSE) === null
       ) {
-        queue.push({ kind: 'building', id: RITE_DOOR });
+        queue.push({ kind: 'building', id: RITE_HOUSE });
       } else if (
         !city.buildings.includes('monument') &&
         buildError(g.state, 0, 'building', 'monument') === null
@@ -356,8 +352,7 @@ describe('determinism', () => {
     // 70 since before C1 and the file simply never ran green long enough for
     // anybody to move it. What landed on top of it, in order — v71 the faith
     // ladder and the reroll (a consecration is dealt by the bank, not walked
-    // over by an augur), v72–v74 the rites becoming a town's verb behind the
-    // Chapel's door, v75 exact yields (nothing rounds inside a fold, so every
+    // over by an augur), v72–v74 the rites becoming a town's verb, v75 exact yields (nothing rounds inside a fold, so every
     // pool a replay banks is a different number), v76 the tree's gifts (ten
     // nodes hand over different rows and a Machinery army marches further on
     // the same paving). A v70 log replays into a different world at every one
@@ -538,9 +533,14 @@ function playTwoFaiths(maxTurns: number): {
       // **A god first, here** — and the ladder is what sees to it. This script
       // is about founding, and a religion is founded out of the pantheon, so
       // the seat that has not banked a rung yet has nothing to found with. The
-      // bank is left alone above for exactly that reason; what is left over
-      // pays for a rite, in whichever town holds the door.
+      // bank is left alone above for exactly that reason, and **a seat that has
+      // not founded says no rite** (2026-09-06): now that the tree is the rites'
+      // only door every town may say one, and a script that spent its faith on
+      // blessings never saved the prophet's price — the two-faiths game founded
+      // nothing. After the founding, what is left over pays for a rite, in
+      // whichever town can.
       for (const city of g.state.cities) {
+        if (!hasFaith) break;
         if (city.ownerId !== seat) continue;
         for (const rite of availableRites(g.state, seat)) {
           if (riteError(g.state, seat, city.id, rite) !== null) continue;

@@ -258,7 +258,7 @@ the Orrery are the science line's.
 | `justicesCharter` | Assize Court | rises: writ leaves buildings and lives in cards and these two rows |
 | `vigilCharter` | Keep | with Stone Walls kept, the Keep is the *charter* defensive answer between the walls and the Castle — its number re-derived |
 | `almshouseCharter` | Almshouse | unchanged |
-| `ritesCharter` | **Chapel** | **the door** to the city rites: a town without one cannot call a rite (RULED, third pass — the recommendation taken) |
+| `ritesCharter` | **Chapel** | a rite performed in a town holding one pays culture too (`ritePays`) — **not a door**: the user's third-pass answer was "unlock rites where their corresponding augur bonuses were previously", i.e. the tree is the only gate (re-read 2026-09-06 after a misreading made the Chapel a gate) |
 | `gildedCourt` (doctrine) | Gilded Hall | unchanged (purchase-only) |
 
 ### What the cut does to the wonders
@@ -343,7 +343,7 @@ by the design below; the old table is in git.)
 | `performRite` | a city command (no unit); a per-city seal in absolute turns (`City.purchasedUnitTurns`' shape). **Schema** |
 | The augur row · `chargedAugurs` (`CountKind`) · the belief **Court Augurs** · `augurHasActed` | retired for replay; the belief is **renamed and re-cut: its effect applies to every city with an active rite** (RULED) |
 | The five rite abilities on the tree (`ABILITY_TECH`) | **keep opening the rites one by one, on the same nodes the augur's rites sat on** (RULED); the ability's bearer becomes the city |
-| The Chapel (`ritesCharter`) | the door to the city rites (RULED) |
+| The Chapel (`ritesCharter`) | the rite's culture bonus, never its gate (RULED — the tree is the only gate) |
 | The Cathedral's roll | **unchanged** — the Cathedral's consecration (its rolled bonus) is a different thing from the pantheon consecration the faith ladder now deals |
 | The faith ladder | the pantheon's three consecrations arrive at faith thresholds **shaped like the augur's old price ladder** (40, +15 a rung — RULED); three rungs, three pantheon slots (the third opens at The High Temple as today) |
 | The bot | `faithPlan` / `explainRites` (`src/ai/wants.ts`) simplify to a per-city purchase want; the "rites in roster order" debt closes; the faith ladder joins the draft plan's shape |
@@ -541,7 +541,7 @@ above and listed here for the record:
 |---|---|
 | 1 | The building tables stand as marked — every `proposed` row is confirmed |
 | 2 | The four chains: Stone Walls → Castle · University → Observatory · Workshop → Forge · Shrine → Temple |
-| 3 | The **Chapel** is the door to the city rites · the **Cathedral** keeps its roll unchanged (its consecration is not the pantheon's) · **Court Augurs** is renamed and its effect applies to every city with an active rite · the rite abilities stay on the tree, unlocked one by one on the nodes the augur's rites sat on |
+| 3 | The rites unlock **on the tree where the augur's did**, no building gates them; the **Chapel** pays culture on a rite · the **Cathedral** keeps its roll unchanged (its consecration is not the pantheon's) · **Court Augurs** is renamed and its effect applies to every city with an active rite · the rite abilities stay on the tree, unlocked one by one on the nodes the augur's rites sat on |
 | 4 | A grant **ignores the chain** |
 | 5 | The **faith ladder**: thresholds shaped like the augur's old price ladder (40, +15 a rung), three rungs for the pantheon's three slots. The **reroll**: 35 faith to start, rising per use at a slight exponent; a great prophet's draft is free and does not raise the count |
 | 7 | The apostle's third act is the **relic** (faith per turn, one per cathedral); no other act |

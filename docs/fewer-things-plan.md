@@ -569,7 +569,7 @@ Four refusals, in the order a player thinks of them (`riteError`):
 | gate | reading |
 |---|---|
 | the town is yours | `city.ownerId` |
-| it holds **the door** | `cityPerformsRites` — the marker `BuildingDef.ritesDoor` on the Chapel's row. Nothing in `src/sim/` names a chapel |
+| ~~it holds the door~~ | **withdrawn the same day** — the Chapel was never meant to gate the verb (the user: "have the rites unlock in the tech tree where they used to be"); the tree is the only gate and `ritesDoor` is gone. Nothing in `src/sim/` names a chapel |
 | the empire knows the rite | `hasAbility` + `riteAbility`, the same five nodes the augur's rites sat on |
 | it is not already keeping one | `cityRite(state, city)` — **derived** off `City.timed`, so the seal *is* the rite's ten turns and there is no second clock to keep |
 | the faith is there | `riteCostFor` |

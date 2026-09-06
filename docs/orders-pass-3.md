@@ -95,7 +95,7 @@ deck of its line*.
 | `harbourDues` | Coastal cities gain 5% of their gold again as culture. | ● | caravan | P | KEEP |
 | `hillForts` | +2 combat strength when defending on hills, and a city on hills costs 1 less authority. | ◆ | highlands | S | KEEP |
 | `homesteadCharters` | Newly founded cities start with 1 more population. | ◆ | charter | S | KEEP |
-| `ritesCharter` | Unlocks the Chapel. | ◆ | procession | S | KEEP — the Chapel (a real build) |
+| `ritesCharter` | Unlocks the Chapel. | ◆ | procession | S | KEEP — the Chapel: a rite performed where one stands pays culture too; never a gate (the tree is the only gate) |
 | `ritesOfPassage` | Buying or completing a unit grants +10 faith. | ◆ | procession | S | KEEP (an occasion) |
 | `silkRoads` | +3 gold on each trade route. | ◆ | caravan | P | [modified: attach yields to trade routes for later multipliers] |
 | `spoilsOfTheWild` | Clearing a barbarian camp pays +100%. | ◆ | hunt | S | KEEP |

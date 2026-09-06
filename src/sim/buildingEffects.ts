@@ -149,23 +149,6 @@ export function cityIsWatered(city: City): boolean {
 }
 
 /**
- * **May this town perform a rite at all** — has it the door (`ritesDoor`, the
- * Chapel)?
- *
- * `cityIsWatered`'s shape exactly, one marker over, and here for that function's
- * reason: `riteError` (`religion.ts`) is the one gate and it must not learn the
- * name of a building. A second row that opens the rites is a JSON flag and this
- * function is unchanged.
- */
-export function cityPerformsRites(city: City): boolean {
-  for (const id of BUILDING_IDS) {
-    if (!city.buildings.includes(id)) continue;
-    if (buildingDef(id).ritesDoor === true) return true;
-  }
-  return false;
-}
-
-/**
  * The rows a town holds that are **placed rather than built** — the relic an
  * apostle leaves (`BuildingDef.placed`).
  *
@@ -202,7 +185,7 @@ export const PLACED_BUILDING: BuildingId | undefined = BUILDING_IDS.find(
  * `consecrated`, which is the cathedral's marker and the one the patron roll
  * already reads.
  *
- * `cityPerformsRites`' shape exactly, one marker over. "One relic per cathedral"
+ * `cityIsWatered`'s shape exactly, one marker over. "One relic per cathedral"
  * is then two readings of the board and no register at all: this, and whether
  * the placed row is already on the shelf.
  */

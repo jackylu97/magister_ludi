@@ -136,7 +136,6 @@ import {
   PLACED_BUILDING,
   buildingRitePay,
   cityKeepsRelics,
-  cityPerformsRites,
 } from './buildingEffects';
 import type { PressureRuleId } from './statecraftData';
 import { type ImprovementId, workForFamily } from './improvementData';
@@ -776,9 +775,12 @@ function refreshBeliefDerived(state: GameState, player: Player): void {
 //
 // Three rules, and each is one line below:
 //
-//   · **the Chapel is the door** — a town performs the rites it has been taught
-//     iff it holds a row carrying `ritesDoor` (`cityPerformsRites`). Nothing
-//     here has heard of a chapel;
+//   · **the tree is the only gate** (the user, 2026-09-06: "have the rites
+//     unlock in the tech tree where they used to be") — a town performs any
+//     rite its empire has been taught; no building opens the verb. The Chapel
+//     is a *bonus* (`ritePays`: a rite performed in a town holding one pays
+//     culture too), never a door — the door was a misreading of the ruling and
+//     left the whole subsystem behind one uncommon wildcard card;
 //   · **one rite at a time, per town** — the seal *is* the rite's ten turns
 //     (`cityRite`), so there is no second clock to keep and nothing to tick;
 //   · **the price is the faith ladder's rung for the age you stand in**
@@ -873,8 +875,6 @@ export function riteError(
   const city = state.cities.find((row) => row.id === cityId);
   if (!city) return `No city with id ${String(cityId)}`;
   if (city.ownerId !== playerId) return `${city.name} does not belong to player ${playerId}`;
-  // The door, asked of the marker rather than of a name (`BuildingDef.ritesDoor`).
-  if (!cityPerformsRites(city)) return `${city.name} has nowhere to say a rite`;
   if (!isRiteId(rite)) return `There is no rite called "${String(rite)}"`;
   const def = riteDef(rite);
   if (def.retired === true) return `${def.name} is no longer performed`;
