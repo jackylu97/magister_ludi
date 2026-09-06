@@ -165,11 +165,18 @@ Fixes queue in main for the next session unless the user says otherwise.
 - **The engine view** (`docs/loop-review.md` §3, the Ledger) — bands 1–2
   are a UI batch with no sim change; band 3 wants the lifetime tally
   schema. Not yet scheduled.
-- **The balance turn** — direction agreed (ordinary building flats −25%,
-  cards carry more of the empire's power), numbers not yet ruled. **Entry
-  LIV's supply trim** rides with it, deferred on your word: happiness and
-  authority relief should live in cards, not buildings, so tall-vs-wide
-  bites.
+- **The balance turn** — RULED in direction 2026-09-05 (turn 92 of the
+  first playthrough): **orders get more powerful, everything else is nerfed
+  a little** — "the orders don't feel very consequential currently outside
+  of a few of them", and **the Æra III orders most of all** (the fork is
+  meant to be the power spike). Earlier half of the same direction stands:
+  ordinary building flats −25%, cards carry more of the empire's power.
+  **Numbers not yet ruled**: `docs/balance-turn.md` (in flight) audits every
+  order's weight against the turn-92 reading (note 17) and proposes the
+  pass as a table for your markup; nothing under `data/` moves until you
+  mark it. **Entry LIV's supply trim** rides with it, deferred on your word:
+  happiness and authority relief should live in cards, not buildings, so
+  tall-vs-wide bites.
 
 ### Pacing — RULED 2026-09-04 (your marginalia)
 
