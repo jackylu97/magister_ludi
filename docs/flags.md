@@ -175,6 +175,13 @@ Fixes queue in main for the next session unless the user says otherwise.
     is taken by walking onto it"), so the rule holds for the bot and the
     log, not only the pointer. A civilian standing with a soldier is shielded
     as now (the shot hits the soldier).
+23. **Barbarian camps refill too fast** — RULED and LANDED (your playtest,
+    t92: "once you kill the barb standing on the camp, it respawns very
+    quickly"): a camp musters a unit every **five** turns, not three
+    (`barbarians.unitEveryTurns`). The camp-founding faucet (three camps
+    every two turns, cap 24) is untouched — the complaint was the refill,
+    not the count. If the wild now reads too thin, the faucet is the next
+    dial and yours.
 
 ### RULED, awaiting build (after the playthrough)
 

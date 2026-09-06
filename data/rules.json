@@ -90,7 +90,7 @@
     "minCampDistanceFromCity": 4,
     "minCampDistanceFromStart": 6,
     "minCampDistanceApart": 6,
-    "unitEveryTurns": 3,
+    "unitEveryTurns": 5,
     "maxUnitsPerCamp": 2,
     "campUnitRadius": 4,
     "aggressionRadius": 6,

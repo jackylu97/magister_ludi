@@ -612,7 +612,16 @@ export interface BarbarianRules {
   minCampDistanceFromStart: number;
   /** How far a new camp must stand from every camp already standing. */
   minCampDistanceApart: number;
-  /** A camp musters a unit every this many turns after it was founded. */
+  /**
+   * A camp musters a unit every this many turns after it was founded.
+   *
+   * Five since 2026-09-05 (user, turn 92 of the first full playthrough: "once
+   * you kill the barb standing on the camp, it respawns very quickly"). At
+   * three, a guard cut down was back before the army that cut it down had
+   * walked onto the camp, so a camp was a fight you had to win twice in one
+   * breath. The camp-founding faucet (`campEveryTurns` / `campsPerSpawn`) is
+   * untouched — it is the *refill* that was too quick, not the number of camps.
+   */
   unitEveryTurns: number;
   /** How many live units one camp may have in the field at once. */
   maxUnitsPerCamp: number;
