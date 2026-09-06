@@ -182,6 +182,16 @@ never one blind number. Ordinary counted cards take realized + λ ×
   nothing Æra V is built or re-cut before then; the Gov V pool the
   late-pools batch wires is tier 45 (Æra IV's second rung) and stands.
 
+### From the first full playthrough (2026-09-05, live notes — queued as they arrive)
+
+1. **Worker menu shows only what the ground accepts** (RULED): rows appear
+   only where the hex's terrain/feature/hills/seam would take them — a city
+   tile shows none, a silk hex shows the plantation alone — greyed only for
+   empire/unit reasons (the tech, movement, charges) with the reducer's
+   sentence. Implementation: a `groundError` reading in `improvements.ts`
+   (the clauses before the tree's gate), the panel filters on it and greys
+   on the full error. Lands after the Æra III agent frees the file.
+
 ### Open singles (still yours)
 
 - **Gov IV/V/VI pools** — wait for your playtest (your ruling). Gov VI
