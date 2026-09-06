@@ -234,15 +234,15 @@ card-shapes pass left:
 | 10 | Republic | 1/3/3 | +1 culture for each 5 population in a city. −5% happiness demanded per citizen. |
 |  | Theocracy | 1/2/4 | +2 faith in every city. Your capital's faith is gained again as science and as culture, at a tenth of the rate. |
 |  | Tyranny | 3/1/3 | +3 authority capacity. Pillaging pays +50%. |
-| 18 | Divine Mandate | 3/3/5 | +1 faith and +1 culture in your capital for each wildcard Order you have in a slot · +10% faith in every city of 6 or more population. |
-|  | Imperium | 5/3/3 | +1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units. |
-|  | Merchant League | 2/5/4 | +2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route. |
-| 29 | The Curia | 4/4/5 | +3 faith for each Cathedral. Faith buildings supply science equal to their faith. · †deferred |
-|  | The Estates | 3/5/5 | +1 happiness in every city. +2 culture in every city of 8 or more population. |
-|  | The Sultanate | 6/3/4 | All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture. |
-| 45 | The Commonwealth | 3/7/6 | Great people may be bought with gold. Great-person improvements pay +50% more. |
-|  | The Empire | 7/4/5 | +6 authority capacity. +1 combat strength for each great general you have earned this game. |
-|  | The Magisterium | 4/5/7 | Every offer of every kind shows one more card. +3 renown per turn for each wonder you hold. |
+| 18 | Divine Mandate | 2/2/4 | +1 faith and +1 culture in your capital for each wildcard Order you have in a slot · +10% faith in every city of 6 or more population. |
+|  | Imperium | 4/2/2 | +1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units. |
+|  | Merchant League | 1/4/3 | +2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route. |
+| 29 | The Curia | 3/3/4 | +3 faith for each Cathedral. Faith buildings supply science equal to their faith. · †deferred |
+|  | The Estates | 2/4/4 | +1 happiness in every city. +2 culture in every city of 8 or more population. |
+|  | The Sultanate | 5/2/3 | All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture. |
+| 45 | The Commonwealth | 2/5/5 | Great people may be bought with gold. Great-person improvements pay +50% more. |
+|  | The Empire | 5/3/4 | +6 authority capacity. +1 combat strength for each great general you have earned this game. |
+|  | The Magisterium | 3/4/5 | Every offer of every kind shows one more card. +3 renown per turn for each wonder you hold. |
 
 ## Doctrines
 

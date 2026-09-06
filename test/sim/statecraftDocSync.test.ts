@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DOCTRINE_IDS,
+  GOVERNMENT_IDS,
   ORDER_IDS,
   type OrderRarity,
   doctrineDef,
+  governmentDef,
   orderDef,
 } from '../../src/sim/statecraftData';
 
@@ -296,5 +298,54 @@ describe('the orders and doctrines doc mirrors the data', () => {
         expect(liveSet.has(name), `${heading} row "${name}" names no live data row`).toBe(true);
       }
     }
+  });
+
+  /**
+   * The **chairs** half (batch G, 2026-09-06 — `docs/fewer-things.md` §6 item 9,
+   * "chairs down a quarter: Government III 11 → 8, and Government IV and V
+   * commensurately").
+   *
+   * The Governments table's `Slots M/E/W` column is the third doc table in this
+   * file mirroring data, and until this batch it was the one without a sync
+   * test — which is exactly how it came to be read three times in the design
+   * docs and never checked once. It is a table of numbers the user tunes, so it
+   * earns the rule (`CLAUDE.md`: a doc table that mirrors data carries a sync
+   * test).
+   *
+   * Both directions, as ever: every government in the data appears in the table
+   * with its own spread, and every row of the table names a government.
+   */
+  it('prints every government’s chairs as the data lays them out', () => {
+    const heading = '## Governments';
+    const start = DOC.indexOf(heading);
+    expect(start).toBeGreaterThanOrEqual(0);
+    const end = DOC.indexOf('\n## ', start + heading.length);
+    const section = DOC.slice(start, end === -1 ? undefined : end);
+
+    /** `name → "M/E/W"` for every row of the table. */
+    const doc = new Map<string, string>();
+    for (const line of section.split('\n')) {
+      const cells = line.split('|').map((cell: string) => cell.trim());
+      if (cells.length < 5 || cells[0] !== '' || cells[2] === '') continue;
+      if (cells[2] === 'Government' || /^-+$/.test(cells[2])) continue;
+      doc.set(cells[2], cells[3] ?? '');
+    }
+
+    for (const id of GOVERNMENT_IDS) {
+      const def = governmentDef(id);
+      const spread = `${def.slots.military}/${def.slots.economic}/${def.slots.wildcard}`;
+      const printed = doc.get(def.name);
+      expect(printed, `the Governments table has no row for "${def.name}"`).toBeDefined();
+      expect(printed, `${def.name} (${id}) — the data lays out`).toBe(spread);
+    }
+    // Doc → data: a row naming no government is a ghost, the same bargain the
+    // pool tables strike above.
+    const names = new Set(GOVERNMENT_IDS.map((id) => governmentDef(id).name));
+    for (const name of doc.keys()) {
+      expect(names.has(name), `the Governments table row "${name}" names no government`).toBe(true);
+    }
+    // And the tier column mirrors the ladder, so a government moved between
+    // tiers cannot sit under the wrong heading row.
+    expect(doc.size).toBe(GOVERNMENT_IDS.length);
   });
 });

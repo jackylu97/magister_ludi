@@ -2,7 +2,7 @@
   "meter": {
     "costBase": 12,
     "costLinear": 6,
-    "costExponent": 2.25,
+    "costExponent": 2.8,
     "sealTurns": 5
   },
   "rarityWeights": {
@@ -207,9 +207,9 @@
       "tier": 18,
       "flavor": "Every treaty has a ledger underneath.",
       "slots": {
-        "military": 2,
-        "economic": 5,
-        "wildcard": 4
+        "military": 1,
+        "economic": 4,
+        "wildcard": 3
       },
       "effects": [
         {
@@ -240,9 +240,9 @@
       "tier": 18,
       "flavor": "The map is a claim; the legion is the proof.",
       "slots": {
-        "military": 5,
-        "economic": 3,
-        "wildcard": 3
+        "military": 4,
+        "economic": 2,
+        "wildcard": 2
       },
       "effects": [
         {
@@ -278,9 +278,9 @@
       "tier": 18,
       "flavor": "Heaven approves. It was asked.",
       "slots": {
-        "military": 3,
-        "economic": 3,
-        "wildcard": 5
+        "military": 2,
+        "economic": 2,
+        "wildcard": 4
       },
       "effects": [
         {
@@ -323,9 +323,9 @@
       "tier": 29,
       "flavor": "Three orders, one hall, and the hall keeps the minutes.",
       "slots": {
-        "military": 3,
-        "economic": 5,
-        "wildcard": 5
+        "military": 2,
+        "economic": 4,
+        "wildcard": 4
       },
       "text": "+1 happiness in every city. +2 culture in every city of 8 or more population.",
       "effects": [
@@ -349,9 +349,9 @@
       "tier": 29,
       "flavor": "The road is short for those the Sultan sends.",
       "slots": {
-        "military": 6,
-        "economic": 3,
-        "wildcard": 4
+        "military": 5,
+        "economic": 2,
+        "wildcard": 3
       },
       "text": "All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture.",
       "effects": [
@@ -388,9 +388,9 @@
       "tier": 29,
       "flavor": "What is written in the register is what heaven remembers.",
       "slots": {
-        "military": 4,
-        "economic": 4,
-        "wildcard": 5
+        "military": 3,
+        "economic": 3,
+        "wildcard": 4
       },
       "text": "+3 faith for each Cathedral. Faith buildings supply science equal to their faith.",
       "note": "There is no cathedral in the game yet — the temple is the last of the faith buildings — so the first clause waits on one.",
@@ -411,9 +411,9 @@
       "tier": 45,
       "flavor": "The estate is common; the ledger is not.",
       "slots": {
-        "military": 3,
-        "economic": 7,
-        "wildcard": 6
+        "military": 2,
+        "economic": 5,
+        "wildcard": 5
       },
       "text": "Great people may be bought with gold. Great-person improvements pay +50% more.",
       "effects": [
@@ -435,9 +435,9 @@
       "tier": 45,
       "flavor": "One frontier, and it is wherever the last courier stopped.",
       "slots": {
-        "military": 7,
-        "economic": 4,
-        "wildcard": 5
+        "military": 5,
+        "economic": 3,
+        "wildcard": 4
       },
       "text": "+6 authority capacity. +1 combat strength for each great general you have earned this game.",
       "effects": [
@@ -473,9 +473,9 @@
       "tier": 45,
       "flavor": "The Magister does not rule. He sets the rules.",
       "slots": {
-        "military": 4,
-        "economic": 5,
-        "wildcard": 7
+        "military": 3,
+        "economic": 4,
+        "wildcard": 5
       },
       "text": "Every offer of every kind shows one more card. +3 renown per turn for each wonder you hold.",
       "effects": [

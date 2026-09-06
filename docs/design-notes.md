@@ -79,11 +79,18 @@ the gate is a real barrier, not a formality.
 
 ## Statecraft
 
-- Culture fills one pool; draft meter 12+6n+n^2.25; offers drawn once, spent
-  by command; adoption rebuilds slots (total amnesty); seals absolute.
+- Culture fills one pool; draft meter 12+6n+n^2.8; offers drawn once, spent
+  by command; adoption rebuilds slots (total amnesty); seals absolute (5 turns).
 - Pools: Chiefdom → Government I/II/III (tier 18 is the last new pool —
   proposed IV/V/VI sit in `docs/orders-and-doctrines.md` awaiting review).
   Doctrine tiers ride the ladder 4/10/18/29/45.
+- **Chairs by tier** (M/E/W; the table of record is
+  `docs/orders-and-doctrines.md`'s Governments table, pinned by
+  `statecraftDocSync.test.ts`): Chiefdom 1/1/1 · tier 4 five each · tier 10
+  seven each · tier 18 **eight** each (1/4/3 · 4/2/2 · 2/2/4) · tier 29 ten
+  each (2/4/4 · 5/2/3 · 3/3/4) · tier 45 twelve each (2/5/5 · 5/3/4 · 3/4/5).
+  Tiers 18/29/45 came down a quarter on 2026-09-06 (`docs/fewer-things.md` §6
+  item 9) so that chairs stay contested against the slower ladder.
 - **No levels** (schema 63): a card is what its row prints, held once. A draft
   is take one or pass — `skipOrderOffer` spends the hand, raises `orderSkips`
   (absolute; zeroed by a pick), and each banked skip adds `skipPity` to the

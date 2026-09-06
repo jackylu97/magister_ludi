@@ -139,7 +139,26 @@ describe('the culture ladder', () => {
     // government slipped to turn 325, well past the old horizon. See the
     // re-aim note on `tiers[2]` below. Left at 400 on 2026-09-06, when batches
     // D, E and X brought the third government back to turn 275.
-    const { draftTurn } = playEmpire(400);
+    //
+    // **Horizon 400 → 800 (2026-09-06, batch G — the cadence ruling.)** This is
+    // a horizon extension and **not a re-aim**: nothing below asserts a figure
+    // any more (the user, 2026-09-06: "stop using scripted bots for measuring
+    // changes" — every measurement here is printed, not banded), and the one
+    // assertion left is that the three tiers this slice claims to reach do
+    // arrive inside it. `meter.costExponent` 2.25 → 2.8
+    // (`docs/fewer-things.md` §1's lever table, §6 item 9) makes the twentieth
+    // rung four and a half times dearer, and this deliberately conservative
+    // scripted empire's third government slipped from turn 275 to **turn 695**.
+    // The full ladder on this seed, after the ruling:
+    //
+    //   13,22,31,43,58,67,82,95,108,131,167,213,270,341,415,503,596,695
+    //
+    // — governments (drafts 4/10/18) at **43 / 131 / 695**, against 40 / 95 /
+    // 275 before it. Read the third figure as this script's rather than the
+    // game's: a seat that never chases culture pays the steeper ladder in full,
+    // which is what the lever was for, and the user's own curve (§1's table)
+    // puts the same ruling at fourteen drafts by turn 92 against twenty.
+    const { draftTurn } = playEmpire(800);
     /**
      * **Measured on seed 4242 at `costBase 6 / costLinear 3 / costExponent 2`,
      * re-measured 2026-08-26 after the water milestone (Entry XXVII):** drafts

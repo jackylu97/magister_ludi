@@ -51,6 +51,127 @@ The play checkout (:5199) moves only when the user says; every batch lands in
 
 ## As shipped
 
+### Batch G as shipped (2026-09-06) — schema 78
+
+The last batch of the pass, and the only one that turns dials rather than
+writing rows. `docs/fewer-things.md` §1 "The levers" and §6 item 9, RULED on the
+third pass. Two numbers, no new shape, no `src/sim/` logic: the deck was
+finished in F, so **how often a card arrives** and **how many can sit down** are
+set against the finished deck.
+
+#### The cadence
+
+`meter.costExponent` **2.25 → 2.8**. Everything else in the meter is untouched —
+`costBase` 12, `costLinear` 6, and the seal stays **5 turns** (RULED 2026-09-05
+and again here: a card slotted in and out is skill expression).
+
+| rung *n* | 0 | 1 | 2 | 3 | 4 | 9 | 13 | **19** |
+|---|---|---|---|---|---|---|---|---|
+| 12+6n+n^2.25 | 12 | 19 | 28 | 41 | 58 | 206 | 410 | **879** |
+| **12+6n+n^2.8** | 12 | 19 | **30** | **51** | **84** | **535** | **1405** | **3932** |
+
+**The opening does not move, by construction**: n^2.25 and n^2.8 are the same
+number at n = 0 and n = 1, so the first two rungs are byte-identical and the
+third is dearer by two culture. Run against §1's own culture curve fitted to the
+user's game (2 at t0 · 15 at t20 · 45 at t40 · 90 at t60 · 195 at t92), the
+ruling reproduces its stated figures exactly: **twenty drafts by turn 92 becomes
+fourteen**, and the opening drafts still land on turns **4, 7, 11**.
+
+#### The chairs
+
+A quarter off Government III, IV and V, as ruled ("Gov III 11 → 8, and Gov IV
+and V commensurately — a quarter off each slot group, rounded, every group
+≥ 1"). The Chiefdom and tiers 4 and 10 are untouched: the ruling names III and
+up, and three, five and seven chairs were never the crowded numbers.
+
+**How "commensurately" was computed**, so the next pass can redo it: each
+government's target total is `round(0.75 × old)`, and its own M/E/W spread is
+apportioned off three quarters of each group by **largest remainder** — floor
+every quarter-shaved group, then hand the leftover chairs to the largest
+fractions. That keeps a government's *shape* through the cut (the Sultanate is
+still the soldiers' government, the Merchant League still the counting-house)
+where a plain round-each-group would have drifted the totals apart. No tie ever
+arose, so the apportionment is unique; no group fell below one.
+
+| tier | government | before | after |
+|---|---|---|---|
+| **18** (11 → 8) | Merchant League | 2/5/4 | **1/4/3** |
+| | Imperium | 5/3/3 | **4/2/2** |
+| | Divine Mandate | 3/3/5 | **2/2/4** |
+| **29** (13 → 10) | The Estates | 3/5/5 | **2/4/4** |
+| | The Sultanate | 6/3/4 | **5/2/3** |
+| | The Curia | 4/4/5 | **3/3/4** |
+| **45** (16 → 12) | The Commonwealth | 3/7/6 | **2/5/5** |
+| | The Empire | 7/4/5 | **5/3/4** |
+| | The Magisterium | 4/5/7 | **3/4/5** |
+
+The ladder is still monotone (3 · 5 · 7 · 8 · 10 · 12), which
+`statecraft.test.ts`'s "grows the slot spread monotonically" claim needed and
+which the quarter came close to breaking at tier 18 — eight against seven is the
+narrowest rung on the ladder, and it is deliberate: §1's argument is that at
+fourteen drafts and eleven chairs the chairs stop being contested, and the seal
+only bites when they are.
+
+#### The pacing lines, printed
+
+`TEST_TIER=slow npx vitest run test/sim/statecraftPacing.slow.test.ts`, seed
+4242, standard map, the harness's own conservative script. **Reported, never
+asserted** (the user's ruling of 2026-09-06):
+
+```
+[pacing] scripted empire: first draft t13, early cadence 11.71 turns a draft
+[pacing] scripted empire reaches Government I on t43
+[pacing] scripted empire reaches Government II on t131, Government III on t695
+```
+
+Against the batch-F reading (13 · 9.29 · 40 / 95 / 275). The full ladder on this
+seed: 13, 22, 31, 43, 58, 67, 82, 95, 108, 131, 167, 213, 270, 341, 415, 503,
+596, 695.
+
+**Nothing in that file was re-aimed** — there is no band left in it to move. One
+edit landed: the **horizon 400 → 800**, because the file's one surviving
+assertion is that the three tiers its slice claims to reach do arrive inside the
+window, and draft 18 now lands at t695. The horizon is the measurement's, not a
+claim about the ladder (the file says so), and it has been extended three times
+before for the same reason.
+
+**Read the third figure as the script's rather than the game's.** `playEmpire`
+never chases culture — it builds culture buildings only when the tree hands them
+over — so it pays the steeper ladder in full and gets none of what the ladder
+was steepened *for*. The user's own curve puts the same ruling at fourteen
+drafts by t92 against twenty, which is the figure §1 asked for. The gap between
+the two readings is the standing finding of the whole pass: a scripted seat
+cannot measure a deck.
+
+#### The doc tables, and a sync test that was missing
+
+`docs/orders-and-doctrines.md`'s **Governments** table (the `Slots M/E/W`
+column) is the table of record for the chairs and it re-prints here. It was
+mirroring data with **no sync test** — the third such table in that file and the
+only one unguarded — so it gains one (`statecraftDocSync.test.ts`, "prints every
+government's chairs as the data lays them out"), both directions, per
+`CLAUDE.md`'s rule.
+
+`docs/design-notes.md` had no slot table, only the meter formula; it now carries
+both — `12+6n+n^2.8` and a one-line chairs-by-tier summary pointing at the table
+of record.
+
+#### Files and tests
+
+Files: `data/statecraft.json` (`meter.costExponent`, nine `slots` spreads) ·
+`docs/orders-and-doctrines.md` (the Governments table) · `docs/design-notes.md`
+(the Statecraft section) · `src/sim/state.ts` (schema **78** and its changelog
+entry). **No `src/sim/` logic and no `src/ui/` edit** — a chair count and a
+ladder exponent are both read straight off the sheet.
+
+Tests: `statecraft.test.ts` (a new dated block, "the cadence and the chairs, as
+ruled on the third pass" — the meter object, the ladder's arithmetic at both
+ends, the nine triples, the untouched tiers and the ≥ 1 floor),
+`statecraftDocSync.test.ts` (the governments' chairs), the twelve schema
+witnesses, and `statecraftPacing.slow.test.ts`'s horizon. Green: the four named
+statecraft files, the twelve witnesses, `statecraftStaging`, `reroll`, `aiWar`,
+`ledgerScreen`, and the slow pacing harness.
+
 ### Batch F as shipped (2026-09-06) — schema 77
 
 The deck itself. `docs/orders-pass-3.md` §2 as the user marked it and §9 as it

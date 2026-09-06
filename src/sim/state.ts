@@ -1522,8 +1522,38 @@ import {
  *     The migration note: a v76 save does not load. The draw bag changed and
  *     most of the deck's numbers with it, so a v76 command log replays into a
  *     different empire from the first draft it answers.
+ *
+ * v78: **cadence and chairs** (`docs/fewer-things.md` §1 "The levers" and §6
+ * item 9 as the user ruled them on the third pass; the batch is
+ * `docs/fewer-things-plan.md` G). The last batch of the fewer-things pass, and
+ * the one that is tuned rather than built: the deck is finished, so the two
+ * dials that say how often a card arrives and how many can sit down are set
+ * against it.
+ *
+ *   · **The draft ladder steepens**: `meter.costExponent` 2.25 → **2.8**, so
+ *     cost(n) = 12 + 6n + n^2.8. The opening is deliberately untouched (the
+ *     first three drafts land on the turns they always did — the exponent is
+ *     worth under a point at n ≤ 3) and the late gaps open out: on the user's
+ *     own culture curve twenty drafts by turn 92 becomes fourteen.
+ *   · **Chairs come down a quarter at tiers 18, 29 and 45** — Government III
+ *     eleven → **eight**, IV thirteen → **ten**, V sixteen → **twelve**. Each
+ *     government's own M/E/W spread is apportioned by largest remainder off
+ *     three quarters of its old total, so the shape of a government (the
+ *     Sultanate's soldiers, the Merchant League's counting-house) survives the
+ *     cut: 2/5/4 → 1/4/3, 5/3/3 → 4/2/2, 3/3/5 → 2/2/4, 3/5/5 → 2/4/4,
+ *     6/3/4 → 5/2/3, 4/4/5 → 3/3/4, 3/7/6 → 2/5/5, 7/4/5 → 5/3/4,
+ *     4/5/7 → 3/4/5. The Chiefdom and tiers 4 and 10 are untouched: the ruling
+ *     names III and up, and the early governments were never the crowded ones.
+ *   · **The seal stays five turns** (ruled 2026-09-05 and re-ruled here: a card
+ *     slotted in and out is skill expression).
+ *
+ *     The migration note: a v77 save does not load. The draft ladder prices
+ *     every rung differently from the fourth one up, and adopting a government
+ *     rebuilds the slots array — so a v77 command log replays into an empire
+ *     with a different hand at a different turn, holding a different number of
+ *     chairs to put it in.
  */
-export const SCHEMA_VERSION = 77;
+export const SCHEMA_VERSION = 78;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

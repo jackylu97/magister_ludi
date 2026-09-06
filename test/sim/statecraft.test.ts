@@ -106,6 +106,7 @@ import {
   type CardEffect,
   type CardEffectKind,
   type CardWindfallRiderEffect,
+  type GovernmentId,
   type TileCondition,
   type OrderId,
   DOCTRINE_IDS,
@@ -1206,7 +1207,7 @@ describe('determinism', () => {
     // from its second turn on. 76 since batch E landed the tree's own gifts the
     // same day: ten nodes hand over something else, a third conversion project
     // joined the queue's vocabulary, and a road step is an empire fact.
-    expect(SCHEMA_VERSION).toBe(77);
+    expect(SCHEMA_VERSION).toBe(78);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -6993,5 +6994,94 @@ describe('the order pass of 2026-09-06', () => {
     expect(orderDef('cisternWorks').rarity).toBe('uncommon');
     expect(orderDef('theConsistory').rarity).toBe('rare');
     expect(orderDef('theInquisition').rarity).toBe('rare');
+  });
+});
+
+/**
+ * **Batch G — cadence and chairs** (`docs/fewer-things-plan.md` row G;
+ * `docs/fewer-things.md` §1 "The levers" and §6 item 9, ruled by the user on the
+ * third pass, 2026-09-06). The last batch of the fewer-things pass and the one
+ * that turns dials rather than writing rows: the deck was finished in batch F,
+ * so the two numbers that say *how often a card arrives* and *how many can sit
+ * down* are set against the finished deck.
+ *
+ * Both are pinned here, off the data, because both are rulings rather than
+ * measurements — the pacing harness reports the turns a scripted empire drafts
+ * on and asserts nothing about them (the user, 2026-09-06: "stop using scripted
+ * bots for measuring changes"), so the ruled figures need a home that fails when
+ * somebody edits the sheet.
+ */
+describe('the cadence and the chairs, as ruled on the third pass', () => {
+  it('steepens the draft ladder to 12 + 6n + n^2.8', () => {
+    // 2.25 → 2.8 (`docs/fewer-things.md` §1's lever table, RULED third pass):
+    // "20 drafts by t92 → 14; opening drafts land on the same turns (4, 7, 11);
+    // late gaps open to 8–10". The other three terms are untouched, and the
+    // seal in particular is RULED untouched — a card slotted in and out is skill
+    // expression (2026-09-05, re-ruled here).
+    expect(STATECRAFT.meter).toEqual({
+      costBase: 12,
+      costLinear: 6,
+      costExponent: 2.8,
+      sealTurns: 5,
+    });
+    // The shape of the ruling, stated as arithmetic rather than as a story.
+    // **The opening is untouched**: n^2.25 and n^2.8 are the same number at
+    // n = 0 and n = 1, so the first two rungs are byte-identical and the third
+    // is dearer by two culture — under a turn's income on any curve, which is
+    // why §1 can promise "the opening drafts land on the same turns".
+    const OLD = (n: number): number => Math.floor(12 + 6 * n + n ** 2.25);
+    expect([0, 1, 2].map(draftCost)).toEqual([12, 19, 30]);
+    expect([0, 1, 2].map(OLD)).toEqual([12, 19, 28]);
+    // **The late rungs are where the cost lands** — the whole of "20 drafts by
+    // t92 becomes 14". The old ladder asked 879 for the twentieth draft; this
+    // one asks four and a half times that.
+    expect(draftCost(19)).toBe(3932);
+    expect(OLD(19)).toBe(879);
+  });
+
+  it('takes a quarter off the chairs at tiers 18, 29 and 45, and leaves the early ones alone', () => {
+    /** A government's spread, M/E/W, as the doc's Slots column prints it. */
+    const spread = (id: GovernmentId): [number, number, number] => {
+      const slots = governmentDef(id).slots;
+      return [slots.military, slots.economic, slots.wildcard];
+    };
+    const chairs = (id: GovernmentId): number => spread(id).reduce((sum, n) => sum + n, 0);
+
+    // **Untouched**: the ruling names Government III and up, and the early
+    // governments were never the crowded ones — three chairs, then five, then
+    // seven, exactly as they stood.
+    expect(chairs(STARTING_GOVERNMENT)).toBe(3);
+    for (const id of governmentsAtTier(4)) expect(chairs(id), id).toBe(5);
+    for (const id of governmentsAtTier(10)) expect(chairs(id), id).toBe(7);
+
+    // **Cut a quarter**: 11 → 8, 13 → 10, 16 → 12. Each is `round(0.75 × old)`,
+    // and each government's own M/E/W shape is apportioned off three quarters of
+    // its old spread by largest remainder — so the Sultanate is still the
+    // soldiers' government and the Merchant League still the counting-house.
+    for (const id of governmentsAtTier(18)) expect(chairs(id), id).toBe(8);
+    for (const id of governmentsAtTier(29)) expect(chairs(id), id).toBe(10);
+    for (const id of governmentsAtTier(45)) expect(chairs(id), id).toBe(12);
+
+    // The nine triples, before → after, printed here because they are the
+    // ruling's own answer to "commensurately" and the doc table mirrors them
+    // (`docs/orders-and-doctrines.md`, pinned by `statecraftDocSync.test.ts`).
+    expect(spread('merchantLeague')).toEqual([1, 4, 3]); // 2/5/4
+    expect(spread('imperium')).toEqual([4, 2, 2]); // 5/3/3
+    expect(spread('divineMandate')).toEqual([2, 2, 4]); // 3/3/5
+    expect(spread('theEstates')).toEqual([2, 4, 4]); // 3/5/5
+    expect(spread('theSultanate')).toEqual([5, 2, 3]); // 6/3/4
+    expect(spread('theCuria')).toEqual([3, 3, 4]); // 4/4/5
+    expect(spread('theCommonwealth')).toEqual([2, 5, 5]); // 3/7/6
+    expect(spread('theEmpire')).toEqual([5, 3, 4]); // 7/4/5
+    expect(spread('theMagisterium')).toEqual([3, 4, 5]); // 4/5/7
+
+    // **Every flavour keeps a chair** at the cut tiers, which is the half of the
+    // ruling a total cannot express: "rounded, every group ≥ 1". The Council of
+    // Elders' nought is older than this pass and sits at tier 4, untouched.
+    for (const tier of [18, 29, 45]) {
+      for (const id of governmentsAtTier(tier)) {
+        for (const count of spread(id)) expect(count, id).toBeGreaterThanOrEqual(1);
+      }
+    }
   });
 });
