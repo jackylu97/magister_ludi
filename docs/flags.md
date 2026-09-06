@@ -33,8 +33,11 @@ directly to confirm rulings — user marginalia are rulings.
   fifteenths; Irrigation's gift already stood as the farm's line and was
   left alone; the Water Clock keeps its rider). Measured with X under it:
   Æra I close 236 → 80 against a 56–76 band — exact yields recover nearly
-  all of D's slide; E adds a few turns. The one dated re-aim follows the
-  X + E gate. One gate per batch; one schema per batch that
+  all of D's slide; E adds a few turns. **X and E LANDED together** (main
+  3ede042). The one dated re-aim of the five slow harnesses is in flight;
+  F (the order pass) starts when it reports, then F2 and G. Main on GitHub
+  is still at the vein shelving — the push waits for the re-aim and an
+  all-tier gate. One gate per batch; one schema per batch that
   changes a save (71 → 75). The play checkout on :5199 stays where it is.
 
 ### In flight earlier (2026-09-05, evening)
