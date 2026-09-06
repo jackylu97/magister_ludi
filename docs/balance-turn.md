@@ -448,9 +448,10 @@ Five findings, in order of weight:
 |---|---|---|---|---|
 | commonGranary | +1🌾 per town with an improved luxury | **+2🌾** | 10🌾 · 5% | modest |
 | saltTithes | +2💰 per unique luxury | **+3💰** | 18💰 · 13% | real |
-| firstRites | +1🕯 capital, +1🕯 per W Order | **+1🕯 in *every city* per W Order** | 24🕯 · 41% | consequential — **too strong; see §6 on the faith voice** |
+| firstRites | +1🕯 capital, +1🕯 per W Order | **+1🕯 in *every city* ** | 24🕯 · 41% | consequential — **too strong; see §6 on the faith voice** | [per W order is way too strong, early faith snowballs very quickly]
 | firstFruitsOffering | a growth pays 10🕯 | **20🕯** | 6🕯 · 10% | real |
-| theFoundingOath | +1 of each yield per capital building, max 3 | **+1 of each yield in *every city* per building there, at most 3 helpings** | 18 of each · 6–30% | consequential — the pool's rare finally warps a game |
+| theFoundingOath | +1 of each yield per capital building, max 3 | **+1 of each yield in the capital for every city you've founded (no cap)** | 18 of each · 6–30% | consequential — the pool's rare finally warps a game |
+[per city is way too strong, wouldn't that be potentially ~+20 to all yields in the early game? I'm for buffing orders massively, but chiefdom may be too early for this]
 
 Unchanged: bloodedSpears, campFollowers, farRunners, theWidowsLevy,
 boundaryStones, fireKeepers (rules 4 and 5).
@@ -465,10 +466,10 @@ boundaryStones, fireKeepers (rules 4 and 5).
 | theAlmanac | +2🔬 capital, +1🔬 per Library | **+2🔬 capital, +2🔬 per Library** | 14🔬 · 7% | modest |
 | waysideShrines | +1🕯 every city | **+1🕯 every city, +1🎵 every city** | 6🕯 + 6🎵 | real |
 | silkRoads | +3💰 per route | **+5💰** | 15💰 · 10% | real |
-| festivalDays | +4😊 | **+4😊, +2🎵 every city** | 12🎵 · 6% | modest (the cheer floor now pays) |
+| festivalDays | +4😊 | **+4😊 in your capital, +2🎵 every city** | 12🎵 · 6% | modest (the cheer floor now pays) | [this is way too much happiness, modified]
 | censusRolls | +1😊 per 2 capital citizens | **+1😊 per 2, +1🎵 per 2 capital citizens** | 6🎵 · 3% | modest |
 | theLaureate | +1 renown; +2 on each great-work hex | **+2 renown; +3 on each great-work hex** | 9 points + renown | modest |
-| theUnbrokenLand | +1🌾+1⚒ on unimproved wood | **+2🌾+1⚒** | 15 points · 4–5% | modest |
+| theUnbrokenLand | +1🌾+1⚒ on unimproved wood | **+1🌾+1⚒** | 15 points · 4–5% | modest | [+1 +1 was already strong enough]
 | theBalladWeavers | +1🎵 per barbarian killed | **+2🎵** | 30🎵 · 15% | real (grows) |
 | theBellFounders | +1🎵 per wonder finished anywhere | **+2🎵** | 16🎵 · 8% | real (grows) |
 | thePilgrimsPurse | +5🕯 per town beside a Holy Site | unchanged | — | already real |
@@ -485,27 +486,27 @@ Unchanged: the war rows, the founding rows, tinkersGuild, harbourDues
 | oreTithes | +1⚒ strategic hexes, +1⚒ capital per M Order (max 3) | **+2⚒ strategic hexes, +2⚒ capital per M Order (max 3)** | 14⚒ · 11% | real |
 | terracedHillsides | +1🌾 on hills | **+2🌾** | 16🌾 · 8% | real |
 | provincialGovernors | +1 writ per E Order (max 4) | **max 6** | 6 writ ≈ two cities and the +20% ⚒ rung | consequential |
-| pilgrimRoads | +1🕯 per 3 capital citizens | **per 2** | 6🕯 · 10% | real |
+| pilgrimRoads | +1🕯 per 3 capital citizens | **per 1 capital citizen** | 6🕯 · 10% | real |
 | lamplighters | +1🎵 per 5🕯 a turn | **per 3** | 19🎵 · 10% | real |
 | scholarsStipend | +2🔬 with a Library, +2 with a University | **+3🔬 / +3🔬** | 30🔬 · 15% | consequential |
 | riverWardens | +1🌾 on Farms beside fresh water | **+2🌾** | 16🌾 · 8% | real |
-| theChoir | +1🎵 +1😊 per Temple town | **+2🎵 +1😊** | 12🎵 · 6% | modest |
-| starGazers | +2🔬 per mountain town | **+4🔬** | 8🔬 · 4% | modest |
-| ledgerKeepers | +1💰 per Market town, +1 route | **+2💰 per Market town, +1 route** | 12💰 + a route | real |
-| theCartographers | +1🔬 per 40 revealed | **per 25** | 28🔬 · 14% | real |
+| theChoir | +1🎵 +1😊 per Temple town | **+3🎵 +1😊** | 12🎵 · 6% | modest |
+| starGazers | +2🔬 per mountain town | **+15%** | 8🔬 · 4% | modest |
+| ledgerKeepers | +1💰 per Market town, +1 route | **trade routes to cities with a market +1 science and +1 culture** | 12💰 + a route | real |
+| theCartographers | +1🔬 per 40 revealed | **per 40** | 28🔬 · 14% | real | [no this is way too strong to buff]
 | theOrchardTithe | +1🌾 on luxury hexes | **+2🌾** | 16🌾 · 8% | real |
 | theLastHunt | +2🎵 +2🔬 per camp cleared | **+4🎵 +4🔬** | 20 each · 10% each | real |
 | theShipwrightShores | +1⚒ coastal, +30% ships | **+3⚒ coastal, +30% ships** | 6⚒ · 5% | modest |
 | theArchives | +1🎵 per Order slotted | **+2🎵** | 22🎵 · 11% | real |
 | theGuildCharter | +2💰 per E Order; +1⚒ capital per E Order | **+3💰; +2⚒** | 12💰 + 8⚒ | real |
-| theSynod | +1🕯 +1🎵 per W Order | **+1🕯 +2🎵** | 4🕯 + 8🎵 | modest |
+| theSynod | +1🕯 +1🎵 per W Order | **+2🕯 +2🎵** | 4🕯 + 8🎵 | modest |
 | theHarvestSongs | 10% of food again as 🎵 | **15%** | 32🎵 · 16% | consequential |
 | theReliquaryRolls | +2🕯 +2🎵 per great person spent | **+3🕯 +3🎵** | 9🕯 · 15% | real |
-| theSenatus | the Assembly Hall: +1🔬 +1🎵 per W Order, +2 writ | **+2🔬 +2🎵 per W Order, +3 writ** | 8🔬 + 8🎵 + 3 writ | real |
+| theSenatus | the Assembly Hall: +1🔬 +1🎵 per W Order, +2 writ | **+2🔬 +2🎵 per W Order, +2 writ** | 8🔬 + 8🎵 + 3 writ | real |
 | scrivenersCharter | the Scriptorium: +2🔬, +10%🔬 with an Academy | **+3🔬, +15%** | 18🔬 · 9% | real |
 | coinCharter | the Assay House: +2💰 | **+3💰** | 18💰 · 13% | real |
 | waterwrightsCharter | the Cistern: +2🌾 | **+3🌾** | 18🌾 · 9% | real |
-| theTitheOfIron | +2⚒ per Mine, −1🌾 per Mine town | **+3⚒ per Mine, −1🌾** | 21⚒ · 16% | consequential |
+| theTitheOfIron | +2⚒ per Mine, −1🌾 per Mine town | **+3⚒ per Mine, −3🌾** | 21⚒ · 16% | consequential |
 | breadAlone | +3🌾 −1🎵 every city | **+5🌾 −1🎵** | 30🌾 · 14% | real |
 | theLongRoads | +1💰 per road hex | unchanged | — | already consequential |
 | toolmakersCharter | the Smithy: +2⚒, +1⚒ per M Order | unchanged | — | already consequential |
@@ -522,25 +523,25 @@ The target is **10–20% of a voice**. Every uncoloured Gov III row moves.
 
 | id | Current | Proposed | New weight | Reading |
 |---|---|---|---|---|
-| garrisonState | +3⚒ per garrison (max 6) | **+4⚒ (max 12)** | 24⚒ · 18% | consequential (conditional) |
+| garrisonState | +3⚒ per garrison (max 6) | **+4⚒ (max 12)** | 24⚒ · 18% | consequential (conditional) | [remove, boring]
 | clientKings | +2 writ; captured −1 | **+4 writ; captured −1** | 4 writ → crosses the +20% ⚒ rung | consequential |
-| provincialMints | +2💰 per improved luxury copy | **+3💰** | 24💰 · 17% | consequential |
+| provincialMints | +2💰 per improved luxury copy | **+10% gold in cities with an improved luxury** | 24💰 · 17% | consequential |
 | quarrymensGuild | +4⚒ per Quarry town | **+4⚒ per Quarry town, and +1⚒ per Quarry hex** | 15⚒ · 11% | real |
 | theGrainDole | +2😊 in towns of 6+ | **+2😊 and +3🌾 in towns of 6+** | 18🌾 · 9% | real |
 | mandateOfHeaven | +5pp; +1😊 per 200 banked faith | **+8pp; +1😊 per 150 banked faith** | 16🔬 + 16🎵 · 8% each | real |
-| theLyceum | a technology pays a turn's 🎵 | **a turn and a half's 🎵** | 37🎵 · 19% | consequential |
+| theLyceum | a technology pays a turn's 🎵 | **a turn** | 37🎵 · 19% | consequential | [no need to buff this one]
 | censusOfSouls | +1🕯 per capital citizen | unchanged | — | already consequential |
-| tolerationEdicts | −10% happiness demanded | **−15% demanded, +1🎵 every city** | 6🎵 + real headroom | modest |
+| tolerationEdicts | −10% happiness demanded | **−15% demanded** | 6🎵 + real headroom | modest | [happiness already very strong]
 | theOldWays | unimproved ground doubled | unchanged | — | already consequential |
 | firstFruits | +1🌾 on resource hexes | **+2🌾** | 28🌾 · 13% | real |
-| theWarChest | military upkeep −3💰 | **−5💰** | 20💰 · 14% | real |
-| theEscortedRoads | routes +30% | **+60%** | 14 points | real |
-| theSaintsFields | +3🕯 per great-work hex | **+3🕯 +2🎵** | 9🕯 + 6🎵 | consequential |
-| theWayhouses | +2💰 +1🎵 per route | **+4💰 +2🎵** | 12💰 + 6🎵 | real |
+| theWarChest | military upkeep −3💰 | **−2💰** | 20💰 · 14% | real | [units already only cost 3 in this era]
+| theEscortedRoads | routes +30% | **+30%** | 14 points | real | [this is a payoff card from other bonuses to trade routes]
+| theSaintsFields | +3🕯 per great-work hex | **+3🕯** | 9🕯 + 6🎵 | consequential | [i'll probably have 6-7 great work hexes at this point in the game]
+| theWayhouses | +2💰 +1🎵 per route | **+3🎵 +1gold** | 12💰 + 6🎵 | real |
 | theProvisioners | +1😊 per internal route | **+1😊 and +3💰 per internal route** | 6💰 · 4% | modest |
-| thePrizeGrounds | +2😊 per town on a luxury | **+2😊 and +3 of that luxury's own yield** | ~6 points | modest |
+| thePrizeGrounds | +2😊 per town on a luxury | **+2😊 and +3 of that luxury's own yield** | ~6 points | modest | [remove this one entirely]
 | theCensusEternal | +1🔬 per 4 citizens | **per 2** | 30🔬 · 15% | consequential |
-| theGroundskeepers | +1🌾+1⚒ per great-work hex | **+3🌾+3⚒** | 18 points | real |
+| theGroundskeepers | +1🌾+1⚒ per great-work hex | **+2🌾+2⚒** | 18 points | real |
 | theMastersPresence | +10% all yields beside a great work | **+15%** | ~70 points · 7% of every voice | consequential |
 | theWonderFeasts | +2🌾 while building a wonder, +10% wonder ⚒ | **+4🌾, +20%** | situational | modest |
 | theMasterBuilders | +15% Opus and Cathedrals | **+25%** | endgame | endgame |
@@ -570,23 +571,23 @@ Gov IV must clear Gov III by a margin or the fourth rung is a downgrade.
 
 | id | Current | Proposed | New weight | Reading |
 |---|---|---|---|---|
-| patrons | +2🎵 per wonder | **+6🎵** | 18🎵 · 9% | real |
+| patrons | +2🎵 per wonder | **+10🎵** | 18🎵 · 9% | real |
 | theGuildOfMasons | +30% wonders, −15% units | **+50%, −15%** | ~15⚒ while building | real |
-| harbourmasters | +1 route, +1💰 per Fishing Boat | **+1 route, +3💰 per Fishing Boat** | 12💰 + a route | real |
+| harbourmasters | +1 route, +1💰 per Fishing Boat | **+1 route, +2💰 per Fishing Boat** | 12💰 + a route | real |
 | theFactorHouses | +3🔬 per foreign route | **+3🔬 and +3💰 per route, foreign routes twice over** | ~27 points | consequential |
 | assizeCourts | +1 writ per 3 cities | **+1 writ per 2 cities** | 3 writ = one city | real |
 | theGrainFleet | +2🌾 coastal, +25% coastal growth | **+6🌾 coastal, +50%** | 12🌾 · 6% | modest |
 | cathedralChapters | +1😊 per Cathedral, +2🎵 in Cathedral towns | **+1😊 per Cathedral, +4🎵 +4🕯 in Cathedral towns** | 4🎵 + 4🕯 | modest (Cathedral-poor empire) |
-| courtAstronomers | +2🔬 per wonder | **+6🔬** | 18🔬 · 9% | real |
-| theConsistory | +1🕯 per Temple | **+2🕯 per Temple** | 12🕯 · 20% | consequential |
+| courtAstronomers | +2🔬 per wonder | **+10🔬** | 18🔬 · 9% | real |
+| theConsistory | +1🕯 per Temple | Double the yields on your temples [applies last] | 12🕯 · 20% | consequential | [we should include more orders like this, double the yields on (farms, mines, fishing boats, markets, as some potential candidates)]
 | scholastics | +2🔬 per University; a technology pays 15🕯 | **+5🔬; 40🕯** | 20🔬 + 5🕯 | real |
-| theSalon (V) | +1 card in every great-person offer | **+2 cards** | draft quality | real |
-| theSilkExchange (V) | +2💰 per route | **+6💰** | 18💰 · 13% | real |
-| printingHouses (V) | +1🎵 per Library; +2🔬 in Printing House towns | **+3🎵 per Library; +5🔬** | 18🎵 + 15🔬 | real |
+| theSalon (V) | +1 card in every great-person offer | **+1 card** | draft quality | real |
+| theSilkExchange (V) | +2💰 per route | **+1 culture per 2 population in the destination city** | 18💰 · 13% | real |
+| printingHouses (V) | +1🎵 per Library; +2🔬 in Printing House towns | **+3🎵 per Library; +10% science** | 18🎵 + 15🔬 | real |
 | titheBarns (V) | +50% stored food kept; −1🕯 every city | **+100% kept; −1🕯 every city** | growth tempo; the cost stands | real for a growing empire |
 | theGuildCompact (V) | +2% ⚒ per production building (max 6%) | **+3% (max 15%)** | 20⚒ · 15% | consequential |
 | manufactories (V) | +2⚒ per Manufactory hex | **+6⚒** | 6⚒ · 5% | modest (works-poor empire) |
-| theInquisition (V) | +2😊 +2🕯 per Temple town | **+2😊 +3🕯 +3🎵 per Temple town** | 18🕯 + 18🎵 | consequential |
+| theInquisition (V) | +2😊 +2🕯 per Temple town | **+8🕯 +8🎵 on temples** | 18🕯 + 18🎵 | consequential |
 | universalSuffrage (V) | +1😊 per 4 citizens; +5pp | **+1😊 per 3; +10pp** | 20🔬 + 20🎵 · 10% each | consequential |
 | theMagistersCourt (V) | +10% toward the Opus | **+20%** | endgame | endgame |
 
@@ -675,10 +676,10 @@ per-citizen lines on buildings, and most of that is one line.
 
 | Source | 🔬 at t92 | Considered view |
 |---|---|---|
-| the base `rules.cities.sciencePerPop` | 60 | **leave** — it is the citizen's own beaker, not a building's |
-| library `sciencePerPop: 1` | 60 | **cut to 0.75** — one ordinary building paying a citizen's whole beaker again is where "I'm just building more buildings" comes from |
-| university `0.75` | 30 | leave |
-| observatory `1` · alchemicalSociety `1` · monastery `0.25` | ~15 | leave |
+| the base `rules.cities.sciencePerPop` | 60 | cut to 0.5 |
+| library `sciencePerPop: 1` | 60 | **cut to 0.5** — one ordinary building paying a citizen's whole beaker again is where "I'm just building more buildings" comes from |
+| university `1` | 30 | leave |
+| observatory `0` · alchemicalSociety `1` · monastery `0` | ~15 | leave |
 
 Cutting the Library line is the single most effective nerf on the table — worth
 about a twelfth of the empire's science, which is more than the whole of §4a
@@ -729,9 +730,9 @@ thing.
 |---|---|---|
 | monument | +1 authority capacity | **cut** — the universal one; writ becomes a card decision |
 | steleOfLaws | +1 authority capacity | keep (a specialist row) |
-| examinationHall · courthouse · assemblyHall · assizeCourt | +3 / +2 / +2 / +1 | keep — each is a deliberate build |
+| examinationHall · courthouse · assemblyHall · assizeCourt | +1 / +2 / +2 / +1 | keep — each is a deliberate build |
 | funeralGames | +3😊 | **+2😊** |
-| baths | +2😊 | **+1😊** |
+| baths | +2😊 | **+2😊** |
 | cathedral · reliquary | +3😊 / +4😊 | keep — late, expensive, specialist |
 
 ---
@@ -770,12 +771,16 @@ thing.
    voice grows with the empire. Until this is marked, every 🕯 figure in §3
    should be read as provisional.
 
+   faith needs to be a more useful resource, i agree. What are some ideas for what faith can buy?
+
 3. **Does the nerf reach beyond the flats?** The ruled quarter off ordinary
    building flats is worth about a twentieth of the empire (§4a) and **nothing
    at all to science**. §4b proposes the one further cut that would bite —
    `library.sciencePerPop` down a quarter. Yes or no. §4c–f recommend leaving
    tile yields, wonders, beliefs and techs alone, each for a stated reason;
    strike any you disagree with.
+
+   ruled on, above
 
 4. **Rarity: correlated with power, or orthogonal?** Today it is neither — ○
    marks four strong rows and eight rows that pay nothing. `docs/cards-pass-2.md`
@@ -784,6 +789,8 @@ thing.
    thing rarity does, or (b) ○ also means bigger, and the proposal tables should
    push the rares further than the commons. A rarity move changes the draw bag,
    so this decision costs a schema bump either way.
+
+   rarity should correlate with power/payoff
 
 5. **Cuts.** The audit found rows that pay nothing to any empire, not merely to
    this one. Candidates, for your strike: **theFoundingOath** (a rare paying
@@ -794,8 +801,92 @@ thing.
    **theGroundskeepers** (a strictly worse theSaintsFields). Keep or cut each; a
    cut is `retired: true` per the standing pattern.
 
+   made edits above, if there are things not included above, please list their abilities.
+
 6. **The cheer clamp.** Eighteen live rows pay nothing to an empire this happy,
    because `METERS.tierClamp` caps the bonus at the second rung (§0). §3's rule
    3 gives each of those rows a second yield clause. The alternative is one line
    of data — raise the clamp — which makes every cheer row live again and makes
    happiness the strongest thing in the game. Rule 3, or the clamp, or neither.
+
+what is rule 3?
+## 7. Answers to the markup (2026-09-06)
+
+**Rule 3** is §3's third rule: a row that is *only* cheer gets a second, small
+yield clause, because the tier clamp makes cheer alone a dead clause for any
+happy empire. You marked "happiness already very strong" on tolerationEdicts,
+so the recommendation is **neither** rule 3 nor the clamp: the pure-cheer rows
+are the "fewer things" pass's first cuts or become conditional payoffs (cheer
+*and* something only a wide empire has). Listed for the strike in
+`docs/fewer-things.md`.
+
+**Not in the proposal tables**: the twenty-nine rows rule 4 left alone — war,
+wild and expansion — because they read zero at peace and finished expanding,
+not because they are mis-sized. Their abilities, for your eye:
+
+| id | pool · rarity | ability |
+|---|---|---|
+| theLongWatch | I · ● | +1😊 per unit standing in a city, +1 more per fortification built |
+| borderWardens | I · ● | +1 strength inside your territory, +1 more per slotted military Order (max +3) |
+| conscription | I · ◆ | +50% production toward units · −2😊 |
+| spoilsOfTheWild | I · ◆ | clearing a camp pays +100% |
+| homesteadCharters | I · ◆ | new cities start with 1 more population |
+| granaryLevies | I · ◆ | a city that grows gains +10⚒ |
+| ritesOfPassage | I · ◆ | buying or completing a unit grants +10🕯 |
+| theLegion | I · ◆ | melee +1 movement +1 strength; cities put 15% more production behind them |
+| villageFairs | I · ◆ | +1😊 per luxury held in two or more copies |
+| hillForts | I · ◆ | +2 strength defending on hills; a hill city costs 1 less authority |
+| charterTowns | I · ◆ | new cities founded with a Granary |
+| vigilCharter | I · ◆ | unlocks the Keep |
+| theRecklessLevy | I · ◆ | +50% production toward units · army upkeep doubled |
+| fieldSurgeons | II · ● | all units heal +10 more per turn |
+| siegeDoctrine | II · ● | +4 strength attacking cities |
+| theWarCouncil | II · ● | +1 strength per slotted military Order (max +3) |
+| marchDiscipline | II · ◆ | military +1 movement |
+| scorchedEarth | II · ◆ | pillaging heals a further 25 and pays a further +10💰 |
+| theChroniclersOfTheFallen | II · ◆ | +1💰 per unit lost in battle while slotted |
+| theBannerCall | II · ◆ | at war: +15% production toward units; a kill grants +5🎵 |
+| emergencyPowers | II · ○ | authority negative: capital +25% production, borders do not freeze |
+| theOathBound | II · ○ | a kill heals the striker by 15 |
+| theKingsRoad | IV · ◆ | +1 movement inside your territory |
+| fieldHospitals | IV · ◆ | units resting in your territory mend completely |
+| theSiegeTrain | IV · ◆ | siege units +1 movement |
+| decisiveBlows | IV · ○ | +5 strength attacking a unit below half |
+| theMarshalsPurse | IV · ○ | military units cost 25% less to buy |
+| knightlyOrders | IV · ○ | mounted +5 strength in your territory; cities put 25% less production behind them |
+| admiralty | V · ○ | embarked +1 movement · +5 defence in coastal cities |
+
+**What faith can buy** — candidates, none built, for your pick (the fewer-things
+doc's option A makes rites the first of these):
+
+| purchase | shape | why it changes play |
+|---|---|---|
+| a rite, in a city, no augur | faith → a timed city bonus, per-city seal | the Chapel becomes the door to a verb you actually use |
+| a redraw of an Order offer | faith → the offer is dealt again (Balatro's reroll) | faith is the deck's tempo currency; a faith deck drafts better |
+| breaking a seal early | faith → a slotted card may be swapped before its five turns | the skill expression you ruled on, now purchasable by the faithful |
+| a border tile | faith → the next rung of a city's borders | the votive alternative to culture; a faith empire spreads |
+| the religious line at a discount, any building with a belief | faith → hammers, at a rate a belief can raise | the tall faith town builds what the science town builds, paid differently |
+| renown toward the next great person | faith → renown, at a rate | a faith deck calls its people sooner (the Academy draft is this today for scholars only) |
+| a settler or worker (the Reliquary opens this today) | existing | keep |
+
+The conversions are the same thing seen from the deck: an *engine* card
+("faith buys culture at 2:1", "each rite also pays science") is a faith path
+that changes how you play, and that is `docs/fewer-things.md` §4's job.
+
+**Your edits that need a new shape** (rule 2 said none; two of yours do):
+
+| row | your text | shape |
+|---|---|---|
+| theConsistory | double the yields on your temples, applied last | **a doubler by building category** — new; the same shape gives "double your farms / mines / fishing boats / markets", which you asked for, so it is one shape for five or six cards and worth building |
+| theSilkExchange | +1🎵 per 2 population in the destination city | a route reading the *partner's* population — new; `routeYields` reads the partner's buildings today, not its size |
+
+Everything else you wrote lands on an existing shape (percentages, per-building
+counts, route yields, city-scoped conditions).
+
+**The one number to look at twice**: `rules.cities.sciencePerPop` 1 → 0.5
+*and* the Library 1 → 0.5 halves the citizen's own beaker as well as the
+building's. That is the largest single move in the markup — it slows every
+empire's tech pace by roughly a third, bots and pacing fixtures included — and
+you have not yet reached Æra IV at turn 92. If the intent is "buildings carry
+less", the Library cut alone does it; if the intent is a slower game, say so
+and the pacing bands move with it.
