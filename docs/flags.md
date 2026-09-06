@@ -12,9 +12,16 @@ directly to confirm rulings — user marginalia are rulings.
 
 ### In flight right now (2026-09-05, evening)
 
-- **Æra III** (`docs/age-three.md`): the three tier-18 government signatures
-  as chair-readers, the Pool III doctrine pass (three modified, three added),
-  the two rarity moves. Seals VETOED (stay 5). Schema 70.
+- **Æra III** — LANDED (schema 70, committed, in the push-gate queue). Three
+  strokes for your eye from the build: (a) **Imperium's +3 authority is cut,
+  not moved** — the ruled table had no authority clause and your Hegemony
+  bracket dropped the capacity ladder, so the war path is 3 capacity poorer
+  across this pass; (b) **"captured cities cost no authority" ships as
+  costing 1** — `cityCosts` floors a captured town at one point by design
+  (so stacking cards can't make conquest free); zero needs the floor
+  lowered, one line on your word; (c) **Hegemony's capture bonus ships as
+  +5% production for 10 turns** (the Triumphal Way's duration) — your
+  bracket named no length.
 - **Batch 9 — the late-game cost** (`docs/bot-priorities.md`): profiler
   first; standard map t100 561ms/turn → target ≤200, byte-identical.
 - **The push-gate** on the committed chain (tuning → synergy → late pools →
