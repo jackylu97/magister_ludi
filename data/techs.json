@@ -306,6 +306,9 @@
         "buildings": [
           "amphitheater",
           "theatreOfDionysus"
+        ],
+        "abilities": [
+          "ancestorRites"
         ]
       },
       "effects": [
@@ -322,7 +325,7 @@
       "deferred": [
         "Verse measured against the fallen soldier — a greater loss sung longer — waits until a one-time grant can be sized by the piece that earned it."
       ],
-      "note": "When one of your units falls, the nearest city of yours records the loss in verse and gains culture."
+      "note": "When one of your units falls, the nearest city of yours records the loss in verse and gains culture. Until the poets keep the roll of names, renown gathers but no great person will come."
     },
     "currency": {
       "name": "Currency",
@@ -436,12 +439,10 @@
           "temple"
         ],
         "abilities": [
-          "thePreaching",
-          "ancestorRites"
+          "thePreaching"
         ]
       },
-      "flavor": "A roof high enough that the god has to look down through it.",
-      "note": "Until the rites are kept, renown gathers but no great person will come."
+      "flavor": "A roof high enough that the god has to look down through it."
     },
     "bronzePanoply": {
       "name": "Bronze Panoply",

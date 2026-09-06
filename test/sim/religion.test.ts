@@ -1583,11 +1583,13 @@ describe('The High Temple', () => {
     expect(def.unlocks.units ?? []).toContain('prophet');
     expect(def.unlocks.buildings ?? []).toContain('temple');
     expect(def.unlocks.abilities ?? []).toContain('thePreaching');
-    // The orphaned gate, re-homed rather than lost: until the rites are kept
-    // renown gathers and nobody answers it, and this is the node that keeps
-    // them now (`settleRenownWindfall` asks `ABILITY_TECH`, so the move is one
-    // JSON row).
-    expect(def.unlocks.abilities ?? []).toContain('ancestorRites');
+    // The great-person gate moved a rung DOWN the line on 2026-09-05 (the first
+    // full playthrough: renown was answered too early, and the poets keeping
+    // the roll of names reads better than the temple). `settleRenownWindfall`
+    // asks `ABILITY_TECH`, so the move is one JSON row — pinned here so the
+    // temple never quietly takes it back.
+    expect(def.unlocks.abilities ?? []).not.toContain('ancestorRites');
+    expect(techDef('epicPoetry').unlocks.abilities ?? []).toContain('ancestorRites');
     // The temple **moved**: Philosophy was where it stood on the shipped tree,
     // and a building unlocked twice would be a building whose gate depends on
     // which node the player happened to take first.

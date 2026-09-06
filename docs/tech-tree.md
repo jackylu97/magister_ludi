@@ -83,21 +83,20 @@ while they stand.*
 | Bronze Panoply | 135 | The Wheel | Phalanx, Swordsman *(needs improved Iron)* | — | reveals **Iron** |
 | Chronology | 135 | Writing | — | **Chart the Stars** | The Long Count · +1 die on age entry · renewals: Plantation +1🎵 |
 | Currency | 135 | The Wheel | Trader | Market, **The Mausoleum** | Rite of Plenty · renewals: Plantation +1💰 |
-| Epic Poetry † | 135 | Writing | — | Amphitheater, **The Theatre of Dionysus** | — |
+| Epic Poetry † | 135 | Writing | — | Amphitheater, **The Theatre of Dionysus** | Ancestor Rites |
 | Code of Laws † | 225 | Chronology | — | Stele of Laws | — |
 | Irrigation | 225 | Chronology, Bronze Panoply | — | — | renewals: Farm +1🌾 (fresh water) |
 | Siegecraft | 225 | Bronze Panoply | Bowman | Stone Walls | Siege |
-| The High Temple | 225 | Epic Poetry | Prophet | Temple | The Preaching · Ancestor Rites |
+| The High Temple | 225 | Epic Poetry | Prophet | Temple | The Preaching |
 | Wayfinding | 225 | Sailing, Currency | Bireme, War Galley | Harbour, **The Colossus** | Sea Legs |
 
 What the effect rows say (player prose from the data):
 
 - **Chronology** — Every new age this empire enters from now on pays a die of the Magister.
-- **Epic Poetry** — When one of your units falls, the nearest city of yours records the loss in verse and gains culture.
+- **Epic Poetry** — When one of your units falls, the nearest city of yours records the loss in verse and gains culture. Until the poets keep the roll of names, renown gathers but no great person will come.
 - **Epic Poetry** † Verse measured against the fallen soldier — a greater loss sung longer — waits until a one-time grant can be sized by the piece that earned it.
 - **Code of Laws** † The King List, which would pay a city for the years since it was founded, waits until a city remembers its own founding turn.
 - **Irrigation** — A farm standing beside fresh water feeds its city better than it did.
-- **The High Temple** — Until the rites are kept, renown gathers but no great person will come.
 
 ### Æra III — The Age of Empire (14 nodes, 400–680🔬)
 

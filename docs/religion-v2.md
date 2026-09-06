@@ -100,8 +100,8 @@ Pressure sources (`explainPressure`, rule-5 list; numbers in
 - Temple: the defensive building (no combat) — doubles own pressure, cuts
   foreign to 75%.
 - The High Temple (tech): prophet + Temple + third pantheon slot + The
-  Preaching; the great-person offer gate also lives here (`ancestorRites`
-  ability, re-homed).
+  Preaching. (The great-person offer gate, `ancestorRites`, moved to Epic
+  Poetry on 2026-09-05 — renown answered too early, and the poets read better.)
 - Cathedral: 340⚙, contributions, five consecrations (`docs/design-notes.md`).
 - Reliquary (The Holy Office): opens faith purchases for units
   (`faithPurchases`).

@@ -56,9 +56,12 @@ Fixes queue in main for the next session unless the user says otherwise.
 6. **Doctrines wear the stamp** — LANDED. (Governments' charter block is
    prose, not a card, and "without your government" has no reading — a
    design ruling if you want a figure there.)
-7. **Charter cards describe their building** (RULED, in flight): the
-   unlock clause composes the building's own describer at print time —
-   "Unlocks the Chapel — +1 faith; a rite performed here pays +5 culture."
+7. **Charter cards describe their building** — LANDED: the unlock clause
+   composes the building's own describer at print time ("unlocks the Chapel —
+   +1 faith; a rite performed in this city pays +5 culture"); the compendium's
+   building entries read the same sim-side describer. (The Assembly Hall's
+   capital-only gate stays on the compendium row, not the charter face — a
+   third scope vocabulary otherwise; say the word if you want it on the face.)
 8. **The Library's +2 gold** — REMOVED on your word (it had been on the row
    since the tree pass of 2026-08-30).
 9. **The Ledger — BUILD IT** (RULED: "include all of the remaining ledger
@@ -70,6 +73,18 @@ Fixes queue in main for the next session unless the user says otherwise.
     and belief drafts deal-and-flip like an order draft and their faces
     wear the stamp (count-up at the pick, landed figure standing) — the
     loop review's "one draw" note, built.
+11. **The great-person gate moves to Epic Poetry** — LANDED (one JSON row:
+    `ancestorRites` off The High Temple, onto Epic Poetry; renown answered
+    too early, and the poets keeping the roll of names reads better than the
+    temple). The queued `techDoc` sync is the only ripple.
+12. **A worker may remove an improvement for free** (RULED, in flight): a
+    `removeImprovement` verb on the worker (builder units) that tears out an
+    improvement on ground the empire owns, spends **no charge**, and pays
+    nothing — the opposite of pillage, which is a raider's verb on foreign
+    ground. It costs the worker's action for the turn like a build does. The
+    hex goes bare (the monotone suppression rule: bare ground stays bare on
+    the board, as after a pillage). No refund, no yield, no toast beyond the
+    ordinary refresh; the tile's yield refreshes at once (register entry 18).
 
 ### RULED, awaiting build (after the playthrough)
 
