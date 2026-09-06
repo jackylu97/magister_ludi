@@ -66,6 +66,10 @@ Fixes queue in main for the next session unless the user says otherwise.
    with the deck's slice; the per-turn curve over the game) flying as a UI
    batch; band 3 ("has produced" — the lifetime tally per owned order,
    schema) follows the moment the perf agent frees `cities.ts`.
+10. **Religion cards join the ceremony** (RULED, in flight): the pantheon
+    and belief drafts deal-and-flip like an order draft and their faces
+    wear the stamp (count-up at the pick, landed figure standing) — the
+    loop review's "one draw" note, built.
 
 ### RULED, awaiting build (after the playthrough)
 
