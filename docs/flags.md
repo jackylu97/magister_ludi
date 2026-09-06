@@ -10,7 +10,18 @@ directly to confirm rulings — user marginalia are rulings.
 
 ## A. Awaiting your ruling
 
-### In flight right now (2026-09-05, evening)
+### In flight right now (2026-09-06)
+
+- **The fewer-things pass — BUILDING** (`docs/fewer-things-plan.md`, the
+  user: "ok lets implement the plan"): batches **A** (the shapes), **B** (the
+  reveal on Confirm, ordered slots), **C1** (the dice out, the faith ladder,
+  the reroll) flying in parallel on disjoint fences; C2 (rites, prophets, the
+  apostle), D (buildings with chains, the uniques), E (the tree's gifts), F
+  (the order pass), F2 (the bot drafts engines), G (cadence and chairs)
+  follow in that order. One gate per batch; one schema per batch that
+  changes a save (71 → 75). The play checkout on :5199 stays where it is.
+
+### In flight earlier (2026-09-05, evening)
 
 - **Æra III** — LANDED (schema 70, committed, in the push-gate queue). Three
   strokes for your eye from the build: (a) **Imperium's +3 authority is cut,
