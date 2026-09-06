@@ -195,7 +195,7 @@ The cut list below touches the **38 ordinary rows only**. Shape column:
 | `baths` | Baths | 2🌾 2😊 | flat | **CUT** |
 | `forum` | Forum | 3🎵 | flat | **CUT** |
 | `examinationHall` | Examination Hall | 1🔬, +3 writ | flat | **CUT** — writ becomes a card decision (Entry LIV), which is what makes tall-vs-wide bite |
-| `shipyard` | Shipyard | 1⚒, a route slot, +10% units, water resource hexes | door | **MERGE INTO `harbour`** |
+| `shipyard` | Shipyard | 1⚒, a route slot, +10% units, water resource hexes | door | **KEEP** | can only be built in a city with a harbour
 | `townCharter` | Town Charter | 4🌾 2🎵 | flat | **CUT** — a founding artefact; cannot be built in a city, can only be gained by founding a city after daughter cities |
 | `clocktower` | Clocktower | 2🔬 | flat | **CUT** |
 
@@ -857,3 +857,40 @@ answers, in order of preference:
 - Slot order: do you want slots the player can *arrange* (so "first economic
   slot" and "the card to the left" mean something)? Yes opens the position
   engines; no keeps typed slots and the modifier engines carry the combo.
+
+### Second pass (2026-09-06, the user's answers) — RULED
+
+- **The reveal is the Confirm.** A card newly placed in a slot shows no
+  yields until the government is confirmed (the screen already has Confirm /
+  Revert and an "unconfirmed" state — the stamp simply waits for it). On
+  Confirm the fold runs in order — base lines, then modifiers — and **the
+  aggregate fires** with the count-up: "your cards: +31⚒ +18🔬 +40🎵". Drafted
+  cards keep their stamp at the draft; only the *slotting* hides its figure.
+- **Slots are ordered.** The arrangement the screen draws is the order: the
+  topmost economic slot is "the first economic slot", so the position engines
+  ("your first economic slot pays twice", "the card to the left") are open.
+  Rearranging is a placement like any other (unconfirmed until Confirm).
+- **Faith replaces the Magister's dice.** The dice go entirely (`Player.dice`,
+  `startingDice`, the bead boons' `dice`, Chronology's die — nothing spends
+  them today, so the cut is clean; schema). A **faith reroll** of a draft
+  costs by age and by the number of rerolls taken so far, and the button
+  prints the *next* price so the rise is visible before the click — "used
+  sparingly" is the design. Rerolls are the deck's tempo currency, which is
+  what makes a faith path a different engine.
+- **The prophet's empire-wide rite** is one of the five city rites, cast on
+  every city at once (one charge).
+- **Faith as the magisterial supplement** — open ideas beside the reroll: the
+  apostle's acts; a **relic**, performed once per cathedral, paying faith per
+  turn thereafter.
+- **Periodic effects, with two dials.** Ruled worthwhile: "every N turns, a
+  boon" is a standalone; one engine raises the boon, another shortens N —
+  *frequency × size* is a second axis of scaling (Balatro's chips × mult),
+  and "every 5, shortened by 2" is a different card from "every 10". So the
+  shortener is its **own** small shape (a period modifier read where the
+  occasion is stamped), not the amplifier in disguise as §7 first said.
+  Discipline for the build: the next firing is an absolute turn stamp
+  (`nextFiresTurn`, nothing ticks — the timed-effects rule); a shortener
+  re-stamps; the period has a floor (two turns) so a stack cannot fire every
+  turn; the boon is a windfall — the engine that raises it is a rider
+  composed into one printed figure before banking (Entry XVIII.5), so it is
+  modifier-immune like every one-time grant.

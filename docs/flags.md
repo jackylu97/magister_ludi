@@ -408,6 +408,19 @@ rulings yet:
   2.25 → 2.8 with chairs down a quarter) is the coupled proposal. Largest
   bot debt: the draft plan prices cards alone, so it can never draft an
   engine — a marginal reading `V(deck ∪ card) − V(deck)` is the fix.
+  **Rulings from the markup (2026-09-06)** — `docs/fewer-things.md` §7:
+  the engine shapes are the user's five (amplifier by voice over card yields;
+  building-yield percent by category; a "yields X" tile test; a periodic
+  occasion with its own period-shortener; the slot-position reader — **slots
+  are ordered as drawn, the topmost economic slot is the first**); lines stay
+  drawn marks with three readable (War, Faith, Trade); **an unconfirmed card
+  in a slot shows no yields — Confirm locks it and the aggregate fires**
+  (the count-up is the scoring moment); **faith replaces the Magister's
+  dice** — the dice go entirely, a faith reroll of a draft costs by age and
+  by rerolls so far, printed as the rising price it is; the prophet's
+  empire-wide rite is one of the five city rites cast everywhere; the
+  apostle and a relic (faith per turn, once per cathedral) are faith's
+  "magisterial supplement" ideas, open; buildings keep prerequisite chains.
 
 - **Statecraft-close bug** — your deterministic recipe (discovery → culture
   boon → mid-turn draft → slot → dead ×) awaits confirmation on current
