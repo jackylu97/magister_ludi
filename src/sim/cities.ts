@@ -2114,6 +2114,12 @@ function chooseCitizens(
  *      of who works what, and a pane that showed yesterday's dots until the
  *      turn ended would be showing the player that their click did nothing.
  *
+ *  22. **An improvement taken out again** (`removeImprovementAt`,
+ *      `improvements.ts`) — entry 4 read backwards and owed to the same panel:
+ *      the hex stops paying the instant the farm comes up, and the town quoting
+ *      it belongs to the player who asked for it. Entry 5's argument with the
+ *      ownership turned round.
+ *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
  * asserts that, because it is the one property a new mutation can break while

@@ -47,6 +47,7 @@ import {
   improvementYieldDelta,
   isBuilder,
   pillageError,
+  removeImprovementError,
 } from '../../src/sim/improvements';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { RESOURCE_IDS, resourceDef, resourceYield } from '../../src/sim/resourceData';
@@ -1655,6 +1656,140 @@ describe('pillage', () => {
     // mine. That is the whole rule, with no bookkeeping of its own.
     expect(hasResource(state, 1, 'iron')).toBe(false);
     expect(hasResource(state, 0, 'iron')).toBe(false);
+  });
+});
+
+/**
+ * The worker's fourth verb (`docs/flags.md`, the playthrough's note 12): take an
+ * improvement back off your own ground, for the turn and for nothing else.
+ *
+ * What is asserted here is mostly what the verb does **not** do, because that is
+ * the whole of the ruling and every one of them is a line somebody could add
+ * later by analogy with the three verbs beside it: it spends no charge, it pays
+ * nothing, it takes no road, and it never consumes the worker. The one thing it
+ * does do besides emptying the hex is the register's (entry 22): the town
+ * quoting that ground is re-seated on the spot.
+ */
+describe('removeImprovement', () => {
+  /** A player-0 city at (5, 5), a farm and a road at (5, 4), a worker on it. */
+  function farmState(): { state: GameState; worker: Unit; tile: Tile; city: City } {
+    const state = bareState();
+    const city = foundCityAt(state, 0, at(state, 5, 5));
+    const tile = at(state, 5, 4);
+    tile.improvement = 'farm';
+    tile.road = 0;
+    const worker = createUnit(state, 0, 'worker', 5, 4);
+    return { state, worker, tile, city };
+  }
+
+  function remove(unitId: number, playerId = 0): Command {
+    return { type: 'removeImprovement', playerId, unitId };
+  }
+
+  it('empties the hex, spends the turn, and spends nothing else', () => {
+    const { state, worker, tile } = farmState();
+    const charges = chargesLeft(worker);
+    const gold = state.players[0]!.gold;
+    const before = tileYieldOf(tile);
+    worker.movesLeft = 2;
+
+    expect(applyCommand(state, remove(worker.id)).ok).toBe(true);
+    expect(tile.improvement).toBeUndefined();
+    // The yield went with it, which is the only payment either way: no salvage,
+    // no timber, no refund.
+    expect(tileYieldOf(tile).food).toBeLessThan(before.food);
+    expect(state.players[0]!.gold).toBe(gold);
+    // The turn is spent like a build's, and nothing else is: the charges are
+    // untouched and the worker is still standing there.
+    expect(worker.movesLeft).toBe(0);
+    expect(chargesLeft(worker)).toBe(charges);
+    expect(unitById(state, worker.id)).toBeDefined();
+  });
+
+  it('leaves the road where it is', () => {
+    // A raid takes the road up with the farm because a raid takes what has been
+    // built on the hex. This is not a raid: the road is this empire's own and
+    // nobody asked about it.
+    const { state, worker, tile } = farmState();
+    expect(applyCommand(state, remove(worker.id)).ok).toBe(true);
+    expect(tile.road).toBe(0);
+  });
+
+  it('re-seats the town that owns the ground, at once', () => {
+    // Register entry 22, asserted the way `cities.test.ts` asserts the others:
+    // the stored assignment is emptied by hand, and the command is what fills it
+    // again. A verb that mutated the hex and skipped the refresh would leave the
+    // panel quoting citizens standing on a farm that is not there.
+    const { state, worker, city } = farmState();
+    city.population = 2;
+    city.workedTiles = [];
+    expect(applyCommand(state, remove(worker.id)).ok).toBe(true);
+    expect(city.workedTiles).toHaveLength(2);
+  });
+
+  it('refuses somebody else’s ground, and the wild’s stolen labour with it', () => {
+    // The clause that makes this the opposite of a raid rather than a cheaper
+    // one. The wild needs no clause of its own: it never owns ground, so a
+    // stolen worker meets this same sentence.
+    const state = bareState(12, 10, true);
+    foundCityAt(state, 1, at(state, 2, 2));
+    at(state, 2, 1).improvement = 'farm';
+    const thief = createUnit(state, 0, 'worker', 2, 1);
+    expect(removeImprovementError(state, thief.id)).toBe('(2, 1) belongs to player 1');
+    expect(applyCommand(state, remove(thief.id)).ok).toBe(false);
+    expect(at(state, 2, 1).improvement).toBe('farm');
+
+    const wild = state.players.find((player) => player.barbarian === true);
+    expect(wild).toBeDefined();
+    const stolen = createUnit(state, wild!.id, 'worker', 2, 1);
+    expect(removeImprovementError(state, stolen.id)).toBe('(2, 1) belongs to player 1');
+  });
+
+  it('refuses unclaimed ground, a bare hex, a spent worker and a soldier', () => {
+    const { state, worker, tile } = farmState();
+
+    const wilds = at(state, 11, 9);
+    wilds.improvement = 'farm';
+    const stray = createUnit(state, 0, 'worker', 11, 9);
+    expect(removeImprovementError(state, stray.id)).toBe('(11, 9) is not in your territory');
+
+    const warrior = createUnit(state, 0, 'warrior', 5, 4);
+    expect(removeImprovementError(state, warrior.id)).toBe(
+      'A Warrior cannot remove improvements',
+    );
+
+    worker.movesLeft = 0;
+    expect(removeImprovementError(state, worker.id)).toBe('This worker has no movement left');
+
+    worker.movesLeft = 2;
+    delete tile.improvement;
+    expect(removeImprovementError(state, worker.id)).toBe('There is nothing to remove on (5, 4)');
+    // And a town hex falls out of that same clause rather than needing one of
+    // its own: a city tile carries a town instead of an improvement.
+    const inTown = createUnit(state, 0, 'worker', 5, 5);
+    expect(removeImprovementError(state, inTown.id)).toBe('There is nothing to remove on (5, 5)');
+  });
+
+  it('is turn-gated and leaves the state byte-identical when it refuses', () => {
+    const { state, worker } = farmState();
+    state.turnEnded[0] = true;
+    const before = snapshotState(state);
+    expect(applyCommand(state, remove(worker.id))).toEqual({
+      ok: false,
+      error: `Player 0 has ended turn ${state.turn} and cannot remove improvements`,
+    });
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('leaves the state byte-identical on every other refusal too', () => {
+    const { state, worker, tile } = farmState();
+    delete tile.improvement;
+    const before = snapshotState(state);
+    expect(applyCommand(state, remove(worker.id)).ok).toBe(false);
+    expect(snapshotState(state)).toBe(before);
+    // And a command from a seat that does not own the piece.
+    expect(applyCommand(state, remove(worker.id, 1)).ok).toBe(false);
+    expect(snapshotState(state)).toBe(before);
   });
 });
 

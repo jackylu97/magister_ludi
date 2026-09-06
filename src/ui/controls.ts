@@ -232,6 +232,7 @@ import {
   pillageError,
   prospectError,
   prospectTechError,
+  removeImprovementError,
 } from '../sim/improvements';
 import { type Tile, getTileAt, mapRange, tileHex } from '../sim/map';
 import { resourceDef } from '../sim/resourceData';
@@ -1978,6 +1979,28 @@ export interface GameControls {
   /** Surveys the hill the selected piece is standing on. */
   prospect(): void;
   chop(): void;
+  /**
+   * Why the selected worker cannot take the improvement it is standing on back
+   * off the hex, or `null` when it can — `chopBlocker`'s three-valued shape and
+   * the same guarantee.
+   *
+   * A blocker rather than an option list, for the axe's reason: there is only
+   * ever one improvement on a hex, so there is nothing to choose between and
+   * everything to explain.
+   */
+  removeImprovementBlocker(): string | null | undefined;
+  /**
+   * What the Remove row would take off — the improvement standing under the
+   * selected piece, by name — or `null` when the hex carries none.
+   *
+   * The label names the thing rather than saying "Remove" into the air, because
+   * a worker standing on a farm it is about to lose should be reading the word
+   * *farm*. Read off the tile rather than parsed out of the blocker's sentence,
+   * which is `chopTechName`'s discipline in a second currency.
+   */
+  removeImprovementName(): string | null;
+  /** Takes the improvement under the selected worker back off the hex. */
+  removeImprovement(): void;
   /**
    * Why the selected unit cannot pillage where it stands, or `null` when it can.
    * `undefined` with nothing selected — the same three-valued shape as
@@ -5487,6 +5510,62 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * Why the selected worker cannot take the improvement under it back off the
+   * hex. The seat's question here, the work's delegated to
+   * `removeImprovementError` — `chopBlocker`'s split, and the same guarantee.
+   */
+  function removeImprovementBlocker(): string | null | undefined {
+    const unit = selectedUnit();
+    if (!unit) return undefined;
+    if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
+    return removeImprovementError(getGame().state, unit.id);
+  }
+
+  /**
+   * See `GameControls.removeImprovementName`. Read off the hex the piece is
+   * standing on, so a row that says "Remove Farm" is naming the thing the
+   * reducer is about to delete rather than a word taken out of a sentence.
+   */
+  function removeImprovementName(): string | null {
+    const unit = selectedUnit();
+    if (!unit) return null;
+    const tile = getTileAt(getGame().state.map, unit.col, unit.row);
+    const standing = tile?.improvement;
+    return standing === undefined ? null : improvementDef(standing).name;
+  }
+
+  /**
+   * Takes the improvement up. The command, then the one line that says so.
+   *
+   * The name is read *before* the dispatch, for `chop`'s reason: by the time
+   * this returns the hex is bare and the board cannot be asked what stood on it.
+   * The worker always survives — this verb spends no charge — so unlike `chop`
+   * and `buildImprovement` there is no selection to let go of.
+   */
+  function removeImprovement(): void {
+    const unit = selectedUnit();
+    if (!unit || removeImprovementBlocker() !== null) return;
+    const removed = removeImprovementName();
+
+    const command: Command = {
+      type: 'removeImprovement',
+      playerId: localPlayerId,
+      unitId: unit.id,
+    };
+    const result = commit(command);
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    if (removed) {
+      announce(`Removed: ${removed.toLowerCase()}`, { cell: { col: unit.col, row: unit.row } });
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
    * Why the selected piece cannot survey where it stands. The seat's question
    * here, the act's delegated to `prospectError` — `chopBlocker`'s split, and
    * the same guarantee.
@@ -7010,6 +7089,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     chopPreview,
     chopTechName,
     chop,
+    removeImprovementBlocker,
+    removeImprovementName,
+    removeImprovement,
     pillage,
     pillageBlocker,
     greatPersonView,

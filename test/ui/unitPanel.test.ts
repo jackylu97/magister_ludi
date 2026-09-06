@@ -516,3 +516,55 @@ describe('the upkeep the sheet and the row agree on', () => {
     expect(main).toContain('controls.disbandUnit();');
   });
 });
+
+/**
+ * The Remove row (the playthrough's note 12, ruled 2026-09-05).
+ *
+ * By inspection, as the rest of this file's DOM glue is: what the row promises
+ * spans three files — the sentence is the reducer's own, the label names the
+ * thing standing on the hex, and `main.ts` is what carries both to the sheet —
+ * and the failure mode of each is a row that is merely wrong rather than one
+ * that throws. What the two sentences actually *say* is pinned in
+ * `test/sim/improvements.test.ts`.
+ */
+describe('the Remove row', () => {
+  const controls = source('controls.ts');
+  const panel = source('unitPanel.ts');
+
+  it('is the seat’s question first, then the reducer’s own sentence', () => {
+    const body = controls.slice(
+      controls.indexOf('function removeImprovementBlocker('),
+      controls.indexOf('function removeImprovementName('),
+    );
+    expect(body).toContain('if (!canOrder()) return `You have ended turn');
+    // Delegated whole — no clause of the interface's own, which is what makes an
+    // enabled row a command the reducer takes.
+    expect(body).toContain('return removeImprovementError(getGame().state, unit.id);');
+  });
+
+  it('names the improvement off the hex rather than out of the sentence', () => {
+    const body = controls.slice(
+      controls.indexOf('function removeImprovementName('),
+      controls.indexOf('function removeImprovement('),
+    );
+    expect(body).toContain('const standing = tile?.improvement;');
+    expect(body).toContain('improvementDef(standing).name');
+  });
+
+  it('is shown only when there is something under the worker to name', () => {
+    // The improvements' reading rather than the axe's: a "Remove" button on bare
+    // ground would be a verb with no object.
+    expect(panel).toContain('const removing = removeImprovementName();');
+    expect(panel).toContain('label: `Remove ${removing}`');
+    expect(panel).toContain(
+      "blocked: removeBlocked === undefined ? 'No unit selected' : removeBlocked,",
+    );
+  });
+
+  it('is wired to the sheet by main.ts', () => {
+    const main = source('main.ts');
+    expect(main).toContain('removeImprovementBlocker: () => controls.removeImprovementBlocker()');
+    expect(main).toContain('removeImprovementName: () => controls.removeImprovementName()');
+    expect(main).toContain('controls.removeImprovement();');
+  });
+});

@@ -55,6 +55,15 @@
  * `chop` table in `data/improvements.json`, so the day the jungle is designed
  * the whole feature arrives as one JSON object. See `chopErrorAt` for the rules,
  * the resource-protection decision included.
+ *
+ * Taking one out again (`removeImprovement`, 2026-09-05)
+ * -----------------------------------------------------
+ * The worker's fourth verb, and the cheapest thing in this file: on your own
+ * ground, take the improvement off the hex, spend the turn, spend no charge, and
+ * be paid nothing. It is the *opposite* of a raid rather than a cheaper one —
+ * pillage is a raider's verb on somebody else's land and an act of war, this is
+ * housekeeping on your own — and it is the only way an empire has of putting a
+ * hex back the way it found it. See `removeImprovementError` for the rules.
  */
 
 import {
@@ -636,6 +645,106 @@ export function improvementYieldDelta(
   const delta = emptyTileYield();
   for (const key of TILE_YIELD_KEYS) delta[key] = after[key] - now[key];
   return delta;
+}
+
+// --- taking an improvement out again ----------------------------------------
+
+/**
+ * Why this worker cannot tear out the improvement it is standing on, or `null`
+ * when it can.
+ *
+ * **The** gate: the `removeImprovement` command refuses with this sentence and
+ * the unit sheet greys its Remove row with it, so an offered row is a command
+ * the reducer takes — `chopError`'s bargain for a fourth verb.
+ *
+ * The clauses, and each is a rule rather than a guard:
+ *
+ *   · **alive, and a builder.** Asked of the data (`isBuilder`) like every other
+ *     verb in this file, so the day a second labouring row exists it inherits
+ *     the verb by having charges rather than by being named here.
+ *   · **movement left.** Taking a farm up is the turn's work, exactly as laying
+ *     one down is (see `removeImprovementAt`), so a worker that has spent its
+ *     purse has spent its turn.
+ *   · **your own ground.** This is the clause that makes the verb the *opposite*
+ *     of a raid rather than a cheaper one (`docs/flags.md`, the playthrough's
+ *     note 12): pillage is what you do to somebody else's works and it is an act
+ *     of war; this is what you do to your own, and it is housekeeping. Answered
+ *     in `improvementGroundError`'s own two sentences, because "whose ground is
+ *     this" is one question and should not have two answers.
+ *   · **something to remove.** Pillage's sentence one verb over. A town hex needs
+ *     no clause of its own: a city tile has a town on it instead of an
+ *     improvement, so it falls out of this one.
+ *
+ * There is deliberately **no charge clause** — the verb spends none — and **no
+ * clause about the wild**. The wild never captures a city and therefore never
+ * owns ground (see `combat.ts`), so a stolen worker standing on an empire's farm
+ * is refused by the borders clause above, in the sentence that is actually true
+ * of it. A second clause saying so would be a rule about a case the first one
+ * has already answered.
+ */
+export function removeImprovementError(state: GameState, unitId: number): string | null {
+  const unit = unitById(state, unitId);
+  if (!unit) return `No unit with id ${String(unitId)}`;
+  if (unit.hp <= 0) return `Unit ${unit.id} is not alive`;
+
+  const def = unitDef(unit.type);
+  if (!isBuilder(unit)) return `A ${def.name} cannot remove improvements`;
+  if (unit.movesLeft <= 0) return `This ${def.name.toLowerCase()} has no movement left`;
+
+  const tile = getTileAt(state.map, unit.col, unit.row);
+  if (!tile) return `Unit ${unit.id} is not on the map`;
+  const where = `(${tile.col}, ${tile.row})`;
+
+  const owner = tileOwnerPlayerId(state, tile.col, tile.row);
+  if (owner === null) return `${where} is not in your territory`;
+  if (owner !== unit.ownerId) return `${where} belongs to player ${owner}`;
+  if (tile.improvement === undefined) return `There is nothing to remove on ${where}`;
+  return null;
+}
+
+/**
+ * Takes the improvement off the tile. Validates nothing — the rules are
+ * `removeImprovementError`'s job; this is the mechanism.
+ *
+ * Two mutations, and each is a rule:
+ *
+ *   · **the improvement goes, and nothing else does.** A pillage tears the road
+ *     up with the farm because a raid takes what has been *built* on a hex and a
+ *     road is built — but this is not a raid. The road is this empire's own, laid
+ *     by its own caravans, and a worker sent to take a farm up has not been asked
+ *     about the highway running through it. Roads are otherwise permanent (the
+ *     user's ruling) and this verb does not become the second thing that removes
+ *     one. `roadFree` stays with the road it is a fact about, for the same reason.
+ *   · **the worker spends all its remaining movement**, which is
+ *     `buildImprovementAt`'s rule read backwards and is the ruling's own words:
+ *     it costs the worker's action for the turn like a build does. What it does
+ *     **not** cost is a charge — the worker is never removed by this verb, which
+ *     is why it returns nothing where its two siblings return whether the piece
+ *     survived. Taking a farm up is a day's labour and it builds nothing, so
+ *     charging a charge for it would price undoing a mistake at the same rate as
+ *     making one.
+ *
+ * Nothing is paid out. No salvage, no timber, no refund: the empire spent a
+ * charge on that farm and the charge is gone. The hex simply goes bare, which
+ * the board draws the way it draws a pillaged one (the monotone suppression
+ * rule, `instances.ts`).
+ *
+ * **This is not how you replace a farm with a mine.** An improvement already
+ * *replaces* whatever stands on the hex — `improvementGroundError` refuses only
+ * the improvement that is already there — so swapping one for another was always
+ * one command, and on a resource hex the seam clause refuses the swap whether or
+ * not the ground is bare first. What this verb is the only way to reach is
+ * **bare ground**: an empire that farmed a hex it now wants back as it was had,
+ * until this ruling, no way to ask for that short of inviting a raider.
+ *
+ * The refresh is `buildImprovementAt`'s, owed to the same panel: the ground stops
+ * paying the instant the farm comes up, and the town quoting it is this player's
+ * own (register entry 22, see `refreshCityDerived`).
+ */
+export function removeImprovementAt(state: GameState, unit: Unit, tile: Tile): void {
+  delete tile.improvement;
+  refreshTileDerived(state, tile);
+  unit.movesLeft = 0;
 }
 
 // --- clearing features ------------------------------------------------------

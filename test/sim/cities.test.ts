@@ -3549,6 +3549,10 @@ describe('the mid-turn refresh register', () => {
     { file: 'cities.ts', fn: 'settleProductionWindfall' },
     { file: 'improvements.ts', fn: 'buildImprovementAt' },
     { file: 'improvements.ts', fn: 'pillageAt' },
+    // The worker's fourth verb (the playthrough's note 12): a farm taken back up
+    // on your own ground. Entry 5 with the ownership turned round — the town
+    // that has to be told is the one that asked for it.
+    { file: 'improvements.ts', fn: 'removeImprovementAt' },
     { file: 'improvements.ts', fn: 'chopFeatureAt' },
     { file: 'cities.ts', fn: 'foundCityAt' },
     // The border bucket's own settlement (2026-08-27): culture poured into a

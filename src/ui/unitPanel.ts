@@ -218,6 +218,19 @@ export interface UnitPanelOptions {
   chopTechName: () => string | null;
   onChop: () => void;
   /**
+   * Why the selected worker cannot take the improvement under it back off the
+   * hex — the same three-valued shape as `chopBlocker`, answered by
+   * `controls.removeImprovementBlocker()`.
+   */
+  removeImprovementBlocker: () => string | null | undefined;
+  /**
+   * The improvement standing under the selected piece, by name, or `null` —
+   * `controls.removeImprovementName()`. It is what the row is *called*, so a
+   * worker on a farm reads "Remove Farm" rather than a bare verb.
+   */
+  removeImprovementName: () => string | null;
+  onRemoveImprovement: () => void;
+  /**
    * Why the selected piece cannot survey the hill it stands on —
    * `controls.prospectBlocker()`. `chopBlocker`'s shape.
    */
@@ -551,6 +564,9 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     chopPreview,
     chopTechName,
     onChop,
+    removeImprovementBlocker,
+    removeImprovementName,
+    onRemoveImprovement,
     prospectBlocker,
     prospectTechName,
     onProspect,
@@ -837,14 +853,15 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // The builder's verbs, one per improvement a spade can lay anywhere.
     //
     // Which rows are here and which are greyed is `improvementOptions`'s rule,
-    // not this panel's, and since 2026-09-04 the rule is *all of them*: the
-    // table's whole spade half is printed, pressable where the reducer would
-    // take the command and greyed with the reducer's own refusal where it would
-    // not. A worker's sheet is therefore the same shape on every hex, and the
-    // question "why can I not build a mine here" is answered on the row rather
-    // than by the row's absence. The refusal itself rides the hover card
-    // (`refusalCard`, one fallback for every greyed verb on this sheet), so
-    // nine rows cost nine words, not nine sentences.
+    // not this panel's: the rows are what the *ground* would take, printed
+    // pressable where the reducer would take the command and greyed with the
+    // reducer's own refusal where the empire, the tree or the worker's purse is
+    // what stands in the way. So the question "why can I not build a mine here"
+    // is answered on the row wherever a hex could ever hold one, and a hex that
+    // could not simply does not offer it — a worker in a town gets no spade
+    // rows at all, and this loop writing nothing is that answer. The refusal
+    // itself rides the hover card (`refusalCard`, one fallback for every greyed
+    // verb on this sheet), so nine rows cost nine words, not nine sentences.
     //
     // The label carries the delta, from the same evaluator the city banks with,
     // so a charge is spent against a number rather than against a hope — and a
@@ -934,6 +951,23 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         title: techHoverTitle(chopTechName(), chopBlocked ?? null),
         run: onChop,
       });
+      // Taking one back off, and this row follows the *improvements'* reading
+      // rather than the axe's: it is shown only when there is something under
+      // the worker to name. A "Remove" button on bare ground would be a verb
+      // with no object — the label's whole job is to say which thing is about to
+      // go — and every other refusal (somebody else's borders, a spent worker)
+      // greys the row with the reducer's own sentence instead, because those are
+      // arguments about a farm the player can see.
+      const removing = removeImprovementName();
+      if (removing) {
+        const removeBlocked = removeImprovementBlocker();
+        actions.push({
+          label: `Remove ${removing}`,
+          blocked: removeBlocked === undefined ? 'No unit selected' : removeBlocked,
+          hint: `Spend the turn: take the ${removing.toLowerCase()} off this tile, leaving bare ground`,
+          run: onRemoveImprovement,
+        });
+      }
     }
     /**
      * The survey, and it is **outside** the builder block on purpose: a scout

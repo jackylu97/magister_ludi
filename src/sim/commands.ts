@@ -93,6 +93,8 @@ import {
   pillageError,
   prospectAt,
   prospectError,
+  removeImprovementAt,
+  removeImprovementError,
 } from './improvements';
 import { type DisbandReport, unitUpkeepOf } from './upkeep';
 import {
@@ -676,6 +678,33 @@ export interface ChopFeatureCommand extends PlayerCommand {
  */
 export interface ProspectCommand extends PlayerCommand {
   type: 'prospect';
+  unitId: number;
+}
+
+/**
+ * Takes an improvement back off your own ground, for nothing.
+ *
+ * `ChopFeatureCommand`'s shape exactly — it names the unit and nothing else, it
+ * is instant, and it spends all remaining movement — and it names no tile for
+ * that command's reason: the hex is wherever the worker is standing, and a
+ * command that carried one could disagree with the ground.
+ *
+ * What it does **not** cost is a charge. A charge buys a thing that stands on
+ * the hex afterwards; this leaves nothing behind, and a worker used up undoing
+ * its own work would make a mistake twice as expensive as the mistake.
+ *
+ * A command of its own rather than a mode of `pillage`, and the difference is
+ * the whole ruling (`docs/flags.md`, note 12): a raid is a raider's verb on
+ * somebody else's land, it is an act of war and it pays salvage; this is a
+ * worker's verb on your own, it is housekeeping and it pays nothing. Folding
+ * them together would have meant one verb whose rules changed depending on who
+ * owned the ground under it.
+ *
+ * Turn-gated like `moveUnit`: taking a farm up is an act, and a seat that has
+ * declared itself finished has finished acting.
+ */
+export interface RemoveImprovementCommand extends PlayerCommand {
+  type: 'removeImprovement';
   unitId: number;
 }
 
@@ -1472,6 +1501,7 @@ export type Command =
   | BuildImprovementCommand
   | ChopFeatureCommand
   | ProspectCommand
+  | RemoveImprovementCommand
   | PillageCommand
   | PurchaseTileCommand
   | ChooseDiscoveryCommand
@@ -2755,6 +2785,47 @@ function applyProspect(state: GameState, command: ProspectCommand): CommandResul
 }
 
 /**
+ * Takes a farm back up. See `RemoveImprovementCommand`, and `improvements.ts`
+ * for the rules.
+ *
+ * `applyChopFeature`'s twin, question for question: is this a real seat, may it
+ * still act, is that its unit — and everything about the *work* delegated whole
+ * to `removeImprovementError`, which is what the unit sheet greys its Remove row
+ * with. So an offered row is a command this accepts, and the sentence a player
+ * reads on a refusal is this reducer's own.
+ *
+ * Nothing rides back out on the result, and that is the verb rather than an
+ * omission: a raid has figures the interface could not derive (`PillageReport`),
+ * and this has none — no salvage, no timber, no refund. The board says the whole
+ * of what happened, so the panel's ordinary refresh is the whole of the news.
+ */
+function applyRemoveImprovement(
+  state: GameState,
+  command: RemoveImprovementCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot remove improvements`);
+  }
+
+  const unit = unitById(state, command.unitId);
+  if (!unit) return fail(`No unit with id ${String(command.unitId)}`);
+  if (unit.ownerId !== actor.id) {
+    return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
+  }
+
+  const problem = removeImprovementError(state, unit.id);
+  if (problem) return fail(problem);
+
+  // Validation is done — `removeImprovementError` has already established that
+  // the unit is on the map and that this empire's own works stand on the hex.
+  const tile = getTileAt(state.map, unit.col, unit.row)!;
+  removeImprovementAt(state, unit, tile);
+  return ok();
+}
+
+/**
  * Burns somebody else's works. See `PillageCommand`.
  *
  * The seat's questions here, the raid's delegated to `pillageError` — the same
@@ -3860,6 +3931,9 @@ function orderedUnitId(command: Command): number | undefined {
     // A surveyor told to read a hill is a piece given an order, and it wakes
     // like anybody else — the act spends its whole turn either way.
     case 'prospect':
+    // A worker told to take a farm up is a piece given an order, exactly as one
+    // told to lay it down is — the act spends its whole turn either way.
+    case 'removeImprovement':
     case 'pillage':
     // An augur told to consecrate or to bless is an augur given an order, so it
     // wakes like anybody else — even though the first of the two spends it.
@@ -4061,6 +4135,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyChopFeature(state, command);
     case 'prospect':
       return applyProspect(state, command);
+    case 'removeImprovement':
+      return applyRemoveImprovement(state, command);
     case 'pillage':
       return applyPillage(state, command);
     case 'purchaseTile':

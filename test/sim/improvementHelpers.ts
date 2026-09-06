@@ -17,8 +17,16 @@ import { openWar } from '../../src/sim/wars';
 import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 
-/** A blank grassland rectangle, two seats, every technology known. */
-export function bareState(width = 12, height = 10): GameState {
+/**
+ * A blank grassland rectangle, two seats, every technology known.
+ *
+ * `wild` seats the barbarians as a third player — off by default, because a
+ * third seat in `realPlayers` moves nothing these files ask about and every
+ * existing fixture is built on two. It is on for the one claim that needs a
+ * piece the wild owns: a stolen worker is refused another empire's ground by the
+ * borders clause, the wild having none of its own (`removeImprovementError`).
+ */
+export function bareState(width = 12, height = 10, wild = false): GameState {
   const state = newGame({
     seed: 1,
     sizeName: 'duel',
@@ -26,6 +34,7 @@ export function bareState(width = 12, height = 10): GameState {
       { name: 'A', color: '#a00', isHuman: true },
       { name: 'B', color: '#00a', isHuman: true },
     ],
+    barbarians: wild,
   });
   state.map = createMap({ width, height, terrain: 'grassland' });
   resetVisibility(state);
