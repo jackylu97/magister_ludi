@@ -1737,3 +1737,159 @@ deleted. The arena panel needed no edit; it walks the sheet.
 - **The queue's suspects are cleared, with numbers**: the unit-order arms'
   searches, `sightedThreat`'s fog sweeps and the route pair enumeration are each
   under one per cent of a late turn. They do not need bounding.
+
+## Batch 10 as shipped — the evaluator remembers
+
+Batch 9 ended by naming the one shape left, and it was not the bot's:
+`effectsOfKind` asked `liveEffects` and filtered the answer, so **every query for
+one kind of effect rebuilt the whole per-empire list** — 115,000 to 179,000 walks
+a turn at t95–100, for at most two distinct answers per instant. This batch does
+not make the walk cheaper. It stops asking for it.
+
+Everything below is measured on the standard board (seed 20260831, two balanced
+seats, the wild in the fog, whole driven turn, 100 turns), baseline and shipped
+run back to back on the same machine, twice.
+
+### What the list is a function of, written down
+
+The walk reads eleven things and nothing else: the turn (a rite's liveness *and*
+the number of turns its label says it has left), the government, the doctrines in
+the order taken, the slots in slot order, the pantheon's beliefs, the one-of-a-kind
+buildings standing in the empire's towns, the legacies and which of them are
+revoked, the realm's own timed bill, the beads that pay a cap, the technologies
+held — and the religions whose holy city the empire holds, which is not a field
+at all but a reading of the board (`religionFounder` follows the stones).
+
+Then there is the twelfth, and it is the one a print cannot carry: a
+`conditionRule` asks a **meter**, and a meter reads the whole realm. Six rows in
+the table carry one (`hermitCrown`, `greatWarringTribes`, `breadAndCircuses`,
+`emergencyPowers`, `theArsenalLaw`, `theBannerCall`).
+
+### The memo, and the two things it checks
+
+`liveReading(state, playerId)` — a `WeakMap` on the state, keyed
+`playerId * 2 + cut`, holding the list, the print it was built from, and every
+gate the build opened or closed. A remembered list is handed back when:
+
+1. **the print agrees** — `livePrint` reads every input above again, as values,
+   each list preceded by its length. Values and not array identities,
+   deliberately: an identity-and-length print would be cheaper and would be wrong
+   the first time somebody replaced a member of a list in place, and the failure
+   mode of a wrong print is a stale yield;
+2. **the gates answer the same** — every condition the build consulted, re-asked
+   under the same cut. Re-asking costs exactly what the rebuild would have paid
+   for those gates and saves everything else, so the memo is **never a loss**; a
+   seat holding no gated card pays nothing at all.
+
+Two slots per seat rather than one, because there are two readings and they
+differ: at `conditionDepth > 0` every gated clause contributes nothing, so an
+empire being *asked about* has a shorter law than the same empire being paid.
+The state is not touched — `snapshotState` is `JSON.stringify(state)`, so a cache
+hung on `GameState` would be in every save hash in the suite, and a restored
+state is a different object that starts with nothing remembered.
+
+On top of the remembered walk, `effectsOfKind` keeps its own narrowing per kind
+(`LiveReading.byKind`), cut on first ask and dying with the walk it belongs to —
+because once the walk is remembered, *filtering* it is what a late turn spends
+its time on.
+
+### The other half: `anyCardDef` walked its cascade once per effect pushed
+
+Ten arms, four of them `hasOwnProperty` probes into four different data tables,
+asked once per line the evaluator wrote — 9% of a late turn on its own, with
+`isBeliefId`, `isGreatPersonId`, `isDoctrineId`, `isOrderId` and `isTechId`
+another 22% between them. Every arm is a question about the *tables*, which are
+frozen at module load, so the answer for an id cannot change inside a game:
+`CARD_DEFS` now remembers it. The arms are in the same order, so an id resolves
+to the same class it always did; four of them used to hand back a freshly built
+adaptation and now hand back the same one, which is why the answer is `readonly`
+in spirit and read-only in fact.
+
+And `pushEffects` built `word · name` — a template *and* an `anyCardDef` — once
+per effect of a card, when every effect of one card carries the identical label.
+Once per card now.
+
+### The table
+
+| window | before | after | |
+| --- | --- | --- | --- |
+| t1–25 | 64ms | 63ms | 1.02× |
+| t26–50 | 274ms | 254ms | 1.08× |
+| t51–75 | 590ms | 422ms | 1.40× |
+| t76–100 | 2320ms | 964ms | **2.41×** |
+| whole 100-turn game | 82.3s | 43.1s | **1.91×** |
+
+The first of the two pairs reads 77.0s → 45.9s (1.68×), t76–100 2123ms → 1004ms
+(2.11×). Turns before t50 barely move, which is the shape you would expect: the
+list is short and the bot asks for it less often.
+
+**Byte-identical on every acceptance game.** Seeds 5 / 777 / 20260904, duel and
+standard, both seats driven to t75, `snapshotState` and command-log hashes
+before and after:
+
+| | state | log |
+| --- | --- | --- |
+| duel 5 | `de2ddb92695dc940` | `24acaa371f8b8ab9` |
+| duel 777 | `a935e60e23cfbb3a` | `7b4f928785827b11` |
+| duel 20260904 | `d763a7d17f48e3bb` | `1fd2038d2f1f81d3` |
+| standard 5 | `c6a1cc68bdf6370c` | `2e8bcdbdacf4e6e5` |
+| standard 777 | `3d7809ac866c4de8` | `e5e37300e7085dde` |
+| standard 20260904 | `fc8f2946f7ff5402` | `975d4f57d933ecdf` |
+
+All six match on both hashes, and so does the 100-turn standard game the table
+is measured on (`542359843c159c4e` / `497e951cb7506530`, before and after, all
+four runs). Nothing about what the bot decides has changed; it is the same game,
+played faster.
+
+### The profile after
+
+`node --cpu-prof` over the whole 100-turn game (late turns are half of it):
+
+| % | function |
+| --- | --- |
+| 9.67 | `findPath` (`pathfind.ts`) |
+| 8.78 | `controlledHoldings` (`cities.ts`) |
+| 8.00 | `hasForeignUnit` (`units.ts`) |
+| 6.06 | `controlledResources` (`cities.ts`) |
+| 5.87 | `at` (`state.ts`) |
+| 2.88 | `livePrint` (`statecraft.ts`) |
+| 1.49 | `liveReading` (`statecraft.ts`) |
+| 0.85 | `printsAgree` (`statecraft.ts`) |
+
+`effectsOfKind`, `anyCardDef`, `pushEffects`, `liveEffects` and the five `is…Id`
+predicates are gone from the top twenty-five entirely. The whole statecraft
+evaluator is now **about 5%** of a game, of which 3.7% is the memo's own
+bookkeeping — the price of a print that is complete rather than clever, and the
+next thing to shave if the evaluator ever matters again.
+
+What is in front of it now is a different system: `controlledHoldings` and
+`controlledResources` (an empire's resource sweep, taken per town per reading)
+and `hasForeignUnit`/`findPath` (the movement layer). Both are the *same shape*
+this batch fixed one system over — the same fact about the same realm asked
+hundreds of times — and neither is the bot's.
+
+### Discipline
+
+Nothing was bounded, nothing was approximated, and no decision changed. The two
+guards are the register test and the mutation cases: `test/sim/statecraft.test.ts`
+reads `buildLiveEffects`' own body and `livePrint`'s and fails when the walk
+reads a field the print does not, with a short, justified list of what is *not*
+an input (`CLASS_WORD`'s labels, a data row's frozen clauses, the founder
+trickle's amplifier read off the list already built). A source added to the walk
+joins the print or the suite says so.
+
+### Known gaps, written down rather than fixed
+
+- **`livePrint` is a fifth of what the evaluator now costs.** It allocates an
+  array of every input on a *hit* as well as a miss, and it could compare in
+  place against the print it holds — one walk, two sinks. Left alone because two
+  sinks is two chances to disagree about what an input is, and the whole value of
+  the print is that it cannot.
+- **`liveCityEffects` still builds four arrays and spreads them per call.** The
+  empire half of it is remembered now; the town-local half (buildings, rites,
+  follower beliefs, the cathedral's patron) is not, and it has a fifth input
+  class of its own (`cityReligion` is derived from citizens). The same memo would
+  fit, keyed by city; it was not needed to clear the profile.
+- **The memo is per state object, not per game.** `restoreState` starts empty by
+  construction, which is right, and a test that hands the same `GameState` to two
+  games would share one — nothing does, and nothing should.

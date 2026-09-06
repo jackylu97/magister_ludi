@@ -5792,3 +5792,200 @@ describe('a charter carries the description of the building it opens', () => {
     }
   });
 });
+
+// --- the remembered walk ----------------------------------------------------
+
+/**
+ * Batch 10 of `docs/bot-priorities.md` in tests.
+ *
+ * `liveEffects` is asked six figures of times a turn late in a game and answers
+ * at most two distinct lists per instant, so since batch 10 it remembers one per
+ * seat per state (`liveReading`). A memo is a promise about *when it is wrong*,
+ * and every test here is one way of being wrong: an input the print does not
+ * carry, a gate that flipped with no input changing at all, a cache that got
+ * into a save.
+ */
+describe('the remembered walk', () => {
+  /** The lines one seat's law puts on the table, as plain strings. */
+  function lawOf(state: GameState, playerId: number): string[] {
+    return liveEffects(state, playerId).map(
+      (entry) => `${entry.source} :: ${JSON.stringify(entry.effect)}`,
+    );
+  }
+
+  it('hands the same list back twice, and a fresh one when a card is slotted', () => {
+    const { state } = game();
+    found(state, 0);
+    // The memo actually memoises: two asks with nothing between them are the
+    // same array, not two builds of it.
+    expect(liveEffects(state, 0)).toBe(liveEffects(state, 0));
+    const before = lawOf(state, 0);
+    slot(state, 0, 'theBannerCall');
+    const after = lawOf(state, 0);
+    expect(after.length).toBeGreaterThan(before.length);
+    expect(after.slice(0, before.length)).toEqual(before);
+  });
+
+  it('drops a rite the turn it runs out', () => {
+    const { state } = game();
+    found(state, 0);
+    const seat = playerById(state, 0)!;
+    seat.timed = [
+      { card: 'riteOfPlenty', effect: { kind: 'happiness', amount: 2 }, expiresTurn: state.turn + 1 },
+    ];
+    expect(lawOf(state, 0).some((line) => line.includes('turns left'))).toBe(true);
+    // An expiry is a comparison, never a countdown — so the turn moving is the
+    // whole of what changes, and the print carries the turn for exactly this.
+    state.turn += 1;
+    expect(lawOf(state, 0).some((line) => line.includes('turns left'))).toBe(false);
+  });
+
+  it('drops a legacy the turn it is revoked', () => {
+    const { state } = game();
+    found(state, 0);
+    const seat = playerById(state, 0)!;
+    seat.legacies.push({ id: 'imhotep', age: 1 });
+    expect(lawOf(state, 0).some((line) => line.includes('Imhotep'))).toBe(true);
+    // Revocation is a marking, never a deletion: the record stays in spend
+    // order and the flag is the whole of the reading side.
+    seat.legacies[0]!.revoked = true;
+    expect(lawOf(state, 0).some((line) => line.includes('Imhotep'))).toBe(false);
+  });
+
+  it('re-asks a gate that flipped with none of its own inputs changing', () => {
+    const { state } = game();
+    found(state, 0);
+    // The Banner-Call pays while you are at war, and `state.wars` is nothing
+    // the walk itself reads — it is reached through `empireConditionHolds`, off
+    // a meter's own reading of the board. This is the case a print cannot
+    // cover and the reason a build writes down every gate it opened.
+    slot(state, 0, 'theBannerCall');
+    const atWar = lawOf(state, 0);
+    expect(atWar.some((line) => line.includes('Banner-Call'))).toBe(true);
+    closeWar(state, 0, 1);
+    const atPeace = lawOf(state, 0);
+    expect(atPeace.some((line) => line.includes('Banner-Call'))).toBe(false);
+    openWar(state, 0, 1);
+    expect(lawOf(state, 0)).toEqual(atWar);
+  });
+
+  it('follows a wonder to the empire that takes the town it stands in', () => {
+    const { state } = game();
+    const city = found(state, 0)!;
+    city.buildings.push('theOracle');
+    state.wonders.push({ building: 'theOracle', playerId: 0, cityId: city.id, turn: state.turn });
+    const held = lawOf(state, 0);
+    expect(held.some((line) => line.startsWith('Wonder'))).toBe(true);
+    expect(lawOf(state, 1).some((line) => line.startsWith('Wonder'))).toBe(false);
+    // Pay follows the stones. The claim register never moves, so the print's
+    // reading of it is the owning town's `buildings`, town by town.
+    city.ownerId = 1;
+    expect(lawOf(state, 0).some((line) => line.startsWith('Wonder'))).toBe(false);
+    expect(lawOf(state, 1).some((line) => line.startsWith('Wonder'))).toBe(true);
+  });
+
+  it('keeps the memo out of the snapshot, and out of the next game', () => {
+    const { state } = game();
+    found(state, 0);
+    const clean = snapshotState(state);
+    void liveEffects(state, 0);
+    void liveEffects(state, 1);
+    // A cache that reached the snapshot would not be a cache, it would be a
+    // rule — `snapshotState` is `JSON.stringify(state)` and every replay in the
+    // suite compares it byte for byte.
+    expect(snapshotState(state)).toBe(clean);
+    // And it is keyed on the state object, so a second game of the same seed
+    // reads its own board rather than the first one's answers.
+    const other = game().state;
+    found(other, 0);
+    expect(liveEffects(other, 0)).not.toBe(liveEffects(state, 0));
+    expect(lawOf(other, 0)).toEqual(lawOf(state, 0));
+  });
+});
+
+describe('the print register', () => {
+  /**
+   * The simulation's own text, read through Vite's raw glob — `cities.ts`'s
+   * mid-turn refresh register one file over takes the same reading, and for the
+   * same reason: this project has no node typings.
+   */
+  const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>;
+
+  /** One function's body, comments stripped — a docblock is not a reading. */
+  function bodyOf(name: string): string {
+    const key = Object.keys(SIM_SOURCE).find((path) => path.endsWith('/statecraft.ts'))!;
+    const text = SIM_SOURCE[key]!;
+    const from = text.indexOf(`function ${name}(`);
+    expect(`${name} found`).toBe(from === -1 ? `${name} missing` : `${name} found`);
+    const end = text.indexOf('\n}', from);
+    return text
+      .slice(from, end === -1 ? undefined : end)
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('\n')
+      .map((line) => line.replace(/\/\/.*$/, ''))
+      .join('\n');
+  }
+
+  /** Every field this body reads off anything, by name. */
+  function fieldsOf(name: string): string[] {
+    const found = bodyOf(name).match(/\.[A-Za-z_][A-Za-z0-9_]*/g) ?? [];
+    return [...new Set(found.map((token) => token.slice(1)))].sort();
+  }
+
+  /**
+   * What the walk reads that the print does **not**, and why each one is not an
+   * input. Anything else appearing here is a source added to `buildLiveEffects`
+   * whose inputs nothing invalidates on — a stale ledger, which is the one
+   * failure a memo can cause and the whole reason this test exists.
+   */
+  const NOT_AN_INPUT = [
+    // `CLASS_WORD`'s labels — the one table of how a class names itself.
+    'bead',
+    'belief',
+    'building',
+    'doctrine',
+    'legacy',
+    'order',
+    'religion',
+    'tech',
+    'wonder',
+    // A data row's own clauses, frozen at module load with the tables.
+    'effects',
+    'founderTrickle',
+    // Read off the list the walk has already built (the founder's trickle and
+    // its amplifier), so its inputs are the ones already printed.
+    'kind',
+    'target',
+    'percent',
+    // The eighth source's helper, spread in. Its input is `timed`, printed.
+    'timedLive',
+  ].sort();
+
+  it('prints every input the walk reads', () => {
+    const walk = fieldsOf('buildLiveEffects');
+    const print = fieldsOf('livePrint');
+    expect(walk.filter((field) => !print.includes(field))).toEqual(NOT_AN_INPUT);
+  });
+
+  it('asks the board the same question the walk asks it', () => {
+    // Which faiths pay this empire is derived from the stones, not stored, so
+    // the print cannot list a field for it — it asks the same function.
+    for (const name of ['buildLiveEffects', 'livePrint']) {
+      expect(`${name} asks`).toBe(
+        /heldReligions\(state, playerId\)/.test(bodyOf(name)) ? `${name} asks` : `${name} silent`,
+      );
+    }
+  });
+
+  it('keeps the cut and the open reading in separate slots', () => {
+    // Two readings of one seat: an empire being *asked about* has every gated
+    // clause closed (the module docblock's cut), and an empire being paid does
+    // not. One slot for both would answer a meter with the law and the law with
+    // the meter's answer.
+    expect(bodyOf('liveReading')).toMatch(/conditionDepth > 0/);
+  });
+});

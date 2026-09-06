@@ -976,8 +976,36 @@ const CLASS_WORD = {
  * A raw id nothing knows is a hand-edited save, and it gets a card-shaped
  * nothing rather than a throw — a breakdown line is not the place to take a
  * whole frame down.
+ *
+ * **The cascade is walked once per id, ever** (batch 10 of
+ * `docs/bot-priorities.md`). Every arm below is a question about the *tables*,
+ * which are frozen at module load, so the answer for an id cannot change inside
+ * a game — and the cascade was measured at a ninth of a late turn on its own,
+ * because four of the ten arms are `hasOwnProperty` probes into four different
+ * data tables and the evaluator asks them once per effect it pushes. The first
+ * ask walks the arms and the rest read `CARD_DEFS`. Nothing else changes: the
+ * arms are in the same order, so an id in two id spaces resolves to the same
+ * class it always did.
+ *
+ * The one thing this asks of a caller: **the answer is shared, so do not write
+ * to it.** Four of the arms used to hand back a freshly built object (a bead, a
+ * great person, a technology, a building adapted into the card shape); they now
+ * hand back the same one every time, and every reader in the game treats a card
+ * def as the row it came from — read-only — which is why the adaptation is worth
+ * doing once instead of per line.
  */
+const CARD_DEFS = new Map<CardId, CardDefBase>();
+
 export function anyCardDef(id: CardId): CardDefBase {
+  const known = CARD_DEFS.get(id);
+  if (known !== undefined) return known;
+  const def = readCardDef(id);
+  CARD_DEFS.set(id, def);
+  return def;
+}
+
+/** `anyCardDef`'s cascade, walked once per id. See the docblock above. */
+function readCardDef(id: CardId): CardDefBase {
   if (isBeliefId(id)) return beliefDef(id);
   if (isRiteId(id)) return riteDef(id);
   // The **tenth** class (Entry LV): a cathedral's patron. It is already a
@@ -1066,6 +1094,180 @@ export function anyCardName(id: CardId): string {
 let conditionDepth = 0;
 
 /**
+ * One empire condition a build consulted, and what it answered.
+ *
+ * A `when` is a row of the data table, so the object itself is the question's
+ * identity and re-asking it is one call — which is exactly what `liveReading`
+ * does before it hands a remembered list back.
+ */
+interface AskedCondition {
+  when: EmpireCondition;
+  held: boolean;
+}
+
+/**
+ * What `liveEffects` last answered for one seat, and everything it would have to
+ * change for that answer to be wrong.
+ */
+interface LiveReading {
+  /** The inputs, read as values, in `livePrint`'s fixed order. */
+  print: unknown[];
+  /** Every gate this build opened or closed, and which way. */
+  asked: AskedCondition[];
+  list: LiveCardEffect[];
+  /** `effectsOfKind`'s narrowings of `list`, cut on first ask. */
+  byKind: Map<string, readonly LiveCardEffect[]>;
+}
+
+/**
+ * The memo, and the reason it is a `WeakMap` on the state rather than a field of
+ * it: **`snapshotState` is `JSON.stringify(state)`**, so anything hung on
+ * `GameState` is in every save hash and every replay comparison in the suite. A
+ * cache that changed a snapshot would not be a cache, it would be a rule.
+ *
+ * Keyed `playerId * 2 + cut`, because there are two readings of one seat and
+ * they differ: at `conditionDepth > 0` every gated clause contributes nothing
+ * (the module docblock's cut), so an empire being *asked about* has a shorter
+ * law than the same empire being *paid*. Two slots, never mixed.
+ *
+ * A restored state is a different object and starts with nothing remembered,
+ * which is right: a memo that survived `restoreState` would be a memo of another
+ * game.
+ */
+const LIVE_MEMO = new WeakMap<GameState, Map<number, LiveReading>>();
+
+/**
+ * The remembered walk for one seat — **the** entry point, and the only thing in
+ * the file that calls `buildLiveEffects`.
+ *
+ * Batch 10 of `docs/bot-priorities.md` measured 115,000–179,000 walks a turn at
+ * t95 for at most two distinct answers per instant, which is what a memo is for.
+ * It is trusted on two conditions and they are checked in that order because the
+ * first is cheap and almost always decides:
+ *
+ *   · **the print agrees** — every input the walk reads, read again as values
+ *     (`livePrint`), positionally identical to the print the list was built
+ *     from. It is deliberately the values and not a revision counter: nothing in
+ *     the simulation announces a mutation, and a counter somebody forgot to bump
+ *     is a wrong yield rather than a slow one;
+ *   · **the gates answer the same** — every `conditionRule` the build consulted,
+ *     re-asked. A gate reads meters, and a meter reads the board, so no print of
+ *     this walk's own inputs can stand in for it. Re-asking costs exactly what
+ *     the rebuild would have paid for the same gates and saves everything else,
+ *     so the memo is never a loss; a seat holding no gated card — the common
+ *     case, six rows in the whole table carry one — pays nothing at all.
+ *
+ * Anything else changing means the print changed, and a source added to the walk
+ * that is not in the print fails `test/sim/statecraft.test.ts`'s register.
+ */
+function liveReading(state: GameState, playerId: number): LiveReading {
+  let bySeat = LIVE_MEMO.get(state);
+  if (bySeat === undefined) {
+    bySeat = new Map<number, LiveReading>();
+    LIVE_MEMO.set(state, bySeat);
+  }
+  const key = playerId * 2 + (conditionDepth > 0 ? 1 : 0);
+  const print = livePrint(state, playerId);
+  const held = bySeat.get(key);
+  if (held !== undefined && printsAgree(held.print, print) && gatesAgree(state, playerId, held)) {
+    return held;
+  }
+  const asked: AskedCondition[] = [];
+  const list = buildLiveEffects(state, playerId, asked);
+  const fresh: LiveReading = { print, asked, list, byKind: new Map() };
+  bySeat.set(key, fresh);
+  return fresh;
+}
+
+/** Two prints, position by position. Lengths differ the moment a list grows. */
+function printsAgree(was: readonly unknown[], now: readonly unknown[]): boolean {
+  if (was.length !== now.length) return false;
+  for (let i = 0; i < was.length; i++) {
+    if (was[i] !== now[i]) return false;
+  }
+  return true;
+}
+
+/** Does every gate this build opened still open? See `liveReading`. */
+function gatesAgree(state: GameState, playerId: number, held: LiveReading): boolean {
+  for (const gate of held.asked) {
+    if (askCondition(state, playerId, gate.when) !== gate.held) return false;
+  }
+  return true;
+}
+
+/**
+ * **The register of what `liveEffects` reads**, read again as plain values.
+ *
+ * One entry per thing the walk below can be changed by, in the walk's own order,
+ * each list preceded by its length so that two neighbouring lists cannot trade a
+ * member between them and print the same. `state.turn` leads because it is two
+ * inputs at once: which timed effects are still running, and how many turns the
+ * label says they have left.
+ *
+ * It is the **values** and not the arrays' identities, deliberately. An
+ * identity-and-length print would be cheaper and would be wrong the first time
+ * somebody replaced a member of a list in place — and the failure mode of a
+ * wrong print is a stale yield, which is the one class of bug this file cannot
+ * afford. Reading it is still an order of magnitude under the walk, which
+ * allocates a labelled line per effect and asks `anyCardDef` for each.
+ *
+ * Adding a source to `buildLiveEffects` means adding its inputs here.
+ * `test/sim/statecraft.test.ts` reads both bodies and fails if the sources do
+ * not match.
+ */
+function livePrint(state: GameState, playerId: number): unknown[] {
+  const print: unknown[] = [state.turn];
+  const sc = statecraftOf(state, playerId);
+  if (!sc) return print;
+  const player = playerById(state, playerId);
+  print.push(sc.government);
+  print.push(sc.doctrines.length);
+  for (const id of sc.doctrines) print.push(id);
+  print.push(sc.slots.length);
+  for (const slot of sc.slots) print.push(slot === null ? null : slot.card);
+  const beliefs = player?.pantheon?.beliefs;
+  print.push(beliefs?.length ?? -1);
+  for (const id of beliefs ?? []) print.push(id);
+  // The wonder source's own guard, so a game with nothing one of a kind in it
+  // prints as cheaply as it walks.
+  if (state.wonders.length > 0 || ONE_OF_A_KIND) {
+    for (const city of state.cities) {
+      if (city.ownerId !== playerId) continue;
+      print.push(city.id, city.buildings.length);
+      for (const id of city.buildings) print.push(id);
+    }
+  }
+  // The stones block is the one entry here with no length in front of it — it
+  // is a *filtered* sweep, so its size is not a field to read — and this is its
+  // full stop. Without it a town gained and a legacy lost could print the same.
+  print.push(-1);
+  const legacies = player?.legacies;
+  print.push(legacies?.length ?? -1);
+  for (const held of legacies ?? []) print.push(held.id, held.revoked === true);
+  const timed = player?.timed;
+  print.push(timed?.length ?? -1);
+  for (const entry of timed ?? []) print.push(entry.card, entry.expiresTurn, entry.effect);
+  const beads = player?.beads;
+  print.push(beads?.length ?? -1);
+  for (const earned of beads ?? []) print.push(earned.id);
+  const techs = player?.techsResearched;
+  print.push(techs?.length ?? -1);
+  for (const id of techs ?? []) print.push(id);
+  // Derived rather than read: which faiths pay this empire is a fact about the
+  // board (`religionFounder` follows the stones), so the print asks the same
+  // question the walk asks and prints the answer.
+  const held = heldReligions(state, playerId);
+  print.push(held.length);
+  for (const religion of held) {
+    print.push(religion, religion.name, religion.enhancer.length, religion.follower.length);
+    for (const id of religion.enhancer) print.push(id);
+    print.push(religion.follower[0] ?? null);
+  }
+  return print;
+}
+
+/**
  * Every effect currently reaching this empire, in one fixed order: the
  * government's signature, then its Doctrines in the order they were taken, then
  * the slotted Orders in **slot order**, then the pantheon's beliefs, then the
@@ -1084,14 +1286,35 @@ let conditionDepth = 0;
  * `conditionRule` is flattened *here*, so no reader ever sees one: a gated
  * clause either contributes its inner effects or contributes nothing, and it
  * carries its parent card's label either way.
+ *
+ * **The list is shared, and it is not yours to write to.** Since batch 10 it is
+ * remembered per state and per seat (`liveReading`), so two readers a
+ * microsecond apart get the same array rather than two builds of it; the type
+ * says `readonly` because that is the only thing keeping the memo honest.
  */
-export function liveEffects(state: GameState, playerId: number): LiveCardEffect[] {
+export function liveEffects(state: GameState, playerId: number): readonly LiveCardEffect[] {
+  return liveReading(state, playerId).list;
+}
+
+/**
+ * The walk itself, once. Everything above this line is the memo's bookkeeping;
+ * everything below it is the ten sources, in the order the docblock names them.
+ *
+ * `asked` is the build's own record of every empire condition it consulted and
+ * what each answered — see `liveReading`, which re-asks exactly those and
+ * nothing else before it trusts a remembered list.
+ */
+function buildLiveEffects(
+  state: GameState,
+  playerId: number,
+  asked: AskedCondition[],
+): LiveCardEffect[] {
   const sc = statecraftOf(state, playerId);
   if (!sc) return [];
   const list: LiveCardEffect[] = [];
 
   const push = (card: CardId, word: string, effects: readonly CardEffect[]): void => {
-    pushEffects(state, playerId, list, card, word, effects, push);
+    pushEffects(state, playerId, list, card, word, effects, push, asked);
   };
 
   push(sc.government, CLASS_WORD.government, governmentDef(sc.government).effects);
@@ -1176,7 +1399,7 @@ export function liveEffects(state: GameState, playerId: number): LiveCardEffect[
   // `liveCityEffects` because its subject is the realm: a town's rites are a
   // fact about a town and this is a fact about everybody.
   const seat = playerById(state, playerId);
-  if (seat?.timed !== undefined) list.push(...timedLive(state, playerId, seat));
+  if (seat?.timed !== undefined) list.push(...timedLive(state, playerId, seat, asked));
   // **The ninth source** (the Bead Race, design ledger Entry VI): the *caps* a
   // bead's boon granted — a permanent step in contentment, in authority
   // capacity, in route capacity. Read off `Player.beads` every time rather than
@@ -1397,6 +1620,11 @@ export function followerBeliefEffects(state: GameState, city: City): LiveCardEff
  * same walk — the `conditionRule` flattening, the label, the cut — instead of a
  * second one that could disagree about any of the three. `recur` is the caller's
  * own push, so a nested clause carries the parent's word.
+ *
+ * `asked` is the memo's notebook (`liveReading`): the empire walk hands one in
+ * so that every gate it opens or closes is written down and can be re-asked; the
+ * city-local and unit-local walks hand in nothing, because nothing remembers
+ * them.
  */
 function pushEffects(
   state: GameState,
@@ -1406,24 +1634,41 @@ function pushEffects(
   word: string,
   effects: readonly CardEffect[],
   recur: (card: CardId, word: string, effects: readonly CardEffect[]) => void,
+  asked?: AskedCondition[],
 ): void {
+  // One line for the whole card, built once: every effect of one card carries
+  // the identical label, and this used to be a template and an `anyCardDef` per
+  // effect — a ninth of a late turn between them (batch 10).
+  let source: string | undefined;
   for (const effect of effects) {
     if (effect.kind === 'conditionRule') {
       // The cut. Inside a condition's own evaluation every gate is closed, so
       // a meter that counts cards cannot count a card that asks about it.
       if (conditionDepth > 0) continue;
-      conditionDepth += 1;
-      let open: boolean;
-      try {
-        open = empireConditionHolds(state, playerId, effect.when);
-      } finally {
-        conditionDepth -= 1;
-      }
+      const open = askCondition(state, playerId, effect.when);
+      asked?.push({ when: effect.when, held: open });
       if (!open) continue;
       recur(card, word, effect.then);
       continue;
     }
-    list.push({ source: `${word} · ${anyCardDef(card).name}`, card, effect });
+    source ??= `${word} · ${anyCardDef(card).name}`;
+    list.push({ source, card, effect });
+  }
+}
+
+/**
+ * One empire condition, asked under the cut.
+ *
+ * **The** place `conditionDepth` is raised, so the memo's re-ask and the walk's
+ * first ask are the same question asked the same way — a second `try/finally`
+ * somewhere else is a second reading of the module docblock's one rule.
+ */
+function askCondition(state: GameState, playerId: number, when: EmpireCondition): boolean {
+  conditionDepth += 1;
+  try {
+    return empireConditionHolds(state, playerId, when);
+  } finally {
+    conditionDepth -= 1;
   }
 }
 
@@ -1450,11 +1695,16 @@ export function timedTurnsLeft(state: GameState, timed: TimedEffect): number {
  * `playerId` is whose empire the conditions are asked of — the *holder's owner*,
  * not the augur who performed the rite: a captured city's Omen Reading pays its
  * new owner (see `City.timed`).
+ *
+ * `asked` is `pushEffects`' notebook, threaded through for its reason exactly:
+ * the realm's own bill is the eighth source of the remembered walk, so a gate
+ * inside a timed clause has to be written down with all the others.
  */
 function timedLive(
   state: GameState,
   playerId: number,
   holder: { timed?: TimedEffect[] },
+  asked?: AskedCondition[],
 ): LiveCardEffect[] {
   const timed = holder.timed;
   if (!timed || timed.length === 0) return [];
@@ -1475,7 +1725,7 @@ function timedLive(
     const push = (card: CardId, _word: string, effects: readonly CardEffect[]): void => {
       for (const nested of effects) {
         if (nested.kind === 'conditionRule') {
-          pushEffects(state, playerId, list, card, _word, [nested], push);
+          pushEffects(state, playerId, list, card, _word, [nested], push, asked);
           continue;
         }
         list.push({ source: word, card, effect: nested });
@@ -1645,13 +1895,37 @@ function pickKind<K extends CardEffect['kind']>(
   return list;
 }
 
-/** Every live effect of one kind for an **empire**. */
+/**
+ * Every live effect of one kind for an **empire**.
+ *
+ * The narrowing is cut once per (state, seat, kind) and kept beside the walk it
+ * came from (`LiveReading.byKind`), which is the other half of batch 10's
+ * measurement: with the walk remembered, *filtering* it was what a late turn was
+ * spending its time on — twenty-eight kinds asked of the same hundred lines,
+ * several times per town per turn. The remembered narrowing dies with the walk
+ * it belongs to, so it cannot outlive its own inputs.
+ *
+ * `readonly` for `liveEffects`' reason: the answer is shared with every other
+ * reader of the same kind, and every one of them folds it into a list of its
+ * own.
+ */
 function effectsOfKind<K extends CardEffect['kind']>(
   state: GameState,
   playerId: number,
   kind: K,
-): { source: string; card: CardId; effect: Extract<CardEffect, { kind: K }> }[] {
-  return pickKind(liveEffects(state, playerId), kind);
+): readonly { source: string; card: CardId; effect: Extract<CardEffect, { kind: K }> }[] {
+  const reading = liveReading(state, playerId);
+  const known = reading.byKind.get(kind);
+  if (known !== undefined) {
+    return known as unknown as readonly {
+      source: string;
+      card: CardId;
+      effect: Extract<CardEffect, { kind: K }>;
+    }[];
+  }
+  const cut = pickKind(reading.list, kind);
+  reading.byKind.set(kind, cut);
+  return cut;
 }
 
 /** Every live effect of one kind for **one city**, its own rites included. */
