@@ -36,9 +36,18 @@ directly to confirm rulings — user marginalia are rulings.
   all of D's slide; E adds a few turns. **X and E LANDED together** (main
   3ede042). **The re-aim LANDED** (c1307fd): Æra closes 80 / 156 / 481 /
   999; Gov I 40, Gov III 275; the one-city seat's Opus at t3959;
-  `religion.slow` repaired to the faith ladder. **F (the order pass) is in
-  flight**; the all-tier gate for the push runs beside it. Three findings
-  from the re-aim, yours to rule:
+  `religion.slow` repaired to the faith ladder. **F (the order pass) LANDED
+  in the tree** (schema 77; 167 live rows, 45 retired, 34 new; the census
+  reads 15% engines · 39% payoffs · 46% standalones — engines ten points
+  light against the ruled 25 because the line readers were withdrawn; eight
+  rows carry a `deferred` line: the four Æra V bead Orders (no bead-granting
+  effect and no occasion for a draft passed / a city razed / a proclamation /
+  an Æra V tech — dealt, paying nothing until those land), the Reckless
+  Levy's per-unit surcharge, the Silk Exchange's destination reading, the
+  Guild Compact's specialist count, the Jubilee's second boon (one chair
+  keeps one clock). The bot under-prices the Exchequer (`effectAmplifier`
+  is a stand-in) — F2's. **G (cadence and chairs) in flight.** Three
+  findings from the re-aim, yours to rule:
   1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
      user's ruling was always "unlock rites in the tech tree where they used
      to be"; C2's Chapel gate is removed (the tree is the only gate; the
