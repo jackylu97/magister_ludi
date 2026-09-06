@@ -46,8 +46,11 @@ directly to confirm rulings — user marginalia are rulings.
   Levy's per-unit surcharge, the Silk Exchange's destination reading, the
   Guild Compact's specialist count, the Jubilee's second boon (one chair
   keeps one clock). The bot under-prices the Exchequer (`effectAmplifier`
-  is a stand-in) — F2's. **G (cadence and chairs) in flight.** Three
-  findings from the re-aim, yours to rule:
+  is a stand-in) — F2's. **F and G LANDED in main** (F 9362cac, G 7bd4e1d:
+  exponent 2.8, chairs 8 · 10 · 12 from Government III up, schema 78).
+  **F2 (the bot drafts engines) in flight** — the last batch. Then the
+  all-tier gate (heavy; on your word for timing) and the push. Two findings
+  from the re-aim, yours to rule:
   1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
      user's ruling was always "unlock rites in the tech tree where they used
      to be"; C2's Chapel gate is removed (the tree is the only gate; the
