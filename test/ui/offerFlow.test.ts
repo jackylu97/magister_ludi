@@ -11,6 +11,26 @@ const MAIN = import.meta.glob('../../src/main.ts', {
   eager: true,
 })['../../src/main.ts'] as string;
 
+const OFFER_CARD = import.meta.glob('../../src/ui/offerCard.ts', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+})['../../src/ui/offerCard.ts'] as string;
+
+const STYLE = import.meta.glob('../../src/style.css', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+})['../../src/style.css'] as string;
+
+/** The source of one `function name(` in `main.ts`, up to the next one. */
+function offerSource(name: string): string {
+  const at = MAIN.indexOf(`function ${name}(`);
+  if (at < 0) throw new Error(`main.ts has no function ${name}`);
+  const next = MAIN.indexOf('\n  function ', at + 10);
+  return MAIN.slice(at, next < 0 ? undefined : next);
+}
+
 describe('the statecraft offer chain checks its results', () => {
   it('captures every statecraft pick result and guides on refusal', () => {
     for (const kind of [
@@ -101,5 +121,60 @@ describe('the soft pause lives on the End Turn button (user, 2026-08-30)', () =>
     expect(MAIN).toContain("order: 'You have a new Order'");
     expect(MAIN).toContain('PAUSE_LABELS[pause]');
     expect(MAIN).toContain('onStatecraftPause: (kind) =>');
+  });
+});
+
+/**
+ * **Every draft of every card class is dealt as a card** (the ruling of
+ * 2026-09-05, `docs/flags.md` playthrough note 10 — the card animations belong
+ * on the religion cards too).
+ *
+ * The tall frame, the backs, the stagger and the turn-over all hang off one
+ * flag in `offerCard.ts`: a card with a plate is a card from a deck. So what is
+ * pinned here is that each of the four decks hands one over — an Order, a
+ * charter and a Doctrine a drawing, a great person the family's drawing, a
+ * belief its axis glyph — and that the flag reads both kinds. A class that goes
+ * back to dealing a plain face is a draft that no longer turns over, which is
+ * exactly the sort of thing that is silently wrong on one screen only.
+ */
+describe('every draft deals a tarot face', () => {
+  it('reads a plate of either kind as a card from a deck', () => {
+    const at = OFFER_CARD.indexOf('const tarot = offer.options.some(');
+    expect(at).toBeGreaterThan(-1);
+    const flag = OFFER_CARD.slice(at, OFFER_CARD.indexOf(';', at));
+    expect(flag).toContain('option.emblem !== undefined');
+    expect(flag).toContain('option.emblemGlyph !== undefined');
+    // And the back rides that same flag, which is what deals the hand face-down.
+    expect(OFFER_CARD).toContain('const dealing = tarot && wantsMotion();');
+  });
+
+  it('hands the votive deck a plate of its own, and never a Statecraft mark', () => {
+    const offer = offerSource('showReligionOffer');
+    expect(offer).toContain('emblemGlyph: AXIS_MARK[def.axis].glyph');
+    // A belief joins no Statecraft line, so it may not wear one of that deck's
+    // seven drawings — the whole reason the glyph plate exists.
+    expect(offer).not.toContain('cardLineMarkUrl(');
+    // The card that gives a god back is dealt in the very same dress.
+    expect(offerSource('showGiveBackPicker')).toContain('emblemGlyph: AXIS_MARK[def.axis].glyph');
+  });
+
+  it('leaves the other three classes dealing a drawing, as they always have', () => {
+    expect(offerSource('showStatecraftOffer')).toContain('...cardFace(orderDef(id))');
+    expect(offerSource('showStatecraftOffer')).toContain('...governmentEmblem(id)');
+    expect(offerSource('showStatecraftOffer')).toContain('...cardFace(doctrineDef(id))');
+    expect(offerSource('showGreatPersonOffer')).toContain(
+      'emblem: cardLineMarkUrl(FAMILY_EMBLEM[def.family])',
+    );
+  });
+
+  it('paints the glyph plate rather than a solid square of accent', () => {
+    // The masked plate fills with `currentColor` and shows only what the drawing
+    // covers; a plate with no drawing must therefore turn both off, or a belief's
+    // card wears a 56px block of ink where its symbol should be.
+    const at = STYLE.indexOf('.offer-emblem-glyph {');
+    expect(at).toBeGreaterThan(-1);
+    const rule = STYLE.slice(at, STYLE.indexOf('}', at));
+    expect(rule).toContain('background-color: transparent');
+    expect(rule).toContain('mask-image: none');
   });
 });

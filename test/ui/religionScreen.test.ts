@@ -113,17 +113,18 @@ describe('the Religion sheet is a split', () => {
     // The cap is what makes a pane scroll instead of the page: without it the
     // sheet grows and the "fixed" column leaves with it.
     //
-    // **Seven ids now, and still one rule** — the block's own comment asks a
+    // **Eight ids now, and still one rule** — the block's own comment asks a
     // later overlay borrowing this paper to name itself here, and the Trade
     // screen, the Compendium (2026-08-27), the Bead Race (2026-08-30), the
-    // Diplomacy table and the Reliquary (2026-09-03) have. What is pinned is
-    // that the list is one rule with all seven in it: a second block that
-    // agreed today would be two blocks the first time either was touched.
+    // Diplomacy table, the Reliquary (2026-09-03) and the Ledger have. What is
+    // pinned is that the list is one rule with all eight in it: a second block
+    // that agreed today would be two blocks the first time either was touched.
     //
-    // The Reliquary is the seventh and the only one that then *narrows* — it
-    // takes the cap and overrides the width to ~30rem, because there is one card
-    // on it. Which is the invitation working as intended: borrow the paper, then
-    // say what is different.
+    // The Reliquary is the only one that then *narrows* — it takes the cap and
+    // overrides the width to ~30rem, because there is one card on it. Which is
+    // the invitation working as intended: borrow the paper, then say what is
+    // different. The Ledger is the eighth and takes the paper as it is: three
+    // bands of six rows are exactly what 1240px is for.
     const SHEETS = [
       '#statecraft-overlay',
       '#religion-overlay',
@@ -132,6 +133,7 @@ describe('the Religion sheet is a split', () => {
       '#diplomacy-overlay',
       '#beads-overlay',
       '#reliquary-overlay',
+      '#ledger-overlay',
     ];
     expect(declaration(SHEETS.join(',\n'), 'overflow')).toBe('hidden');
     expect(
@@ -190,5 +192,58 @@ describe("the sheet's controls", () => {
     const text = source('religionScreen.ts');
     expect(text).toContain('Call an augur · ');
     expect(/textContent = '[A-Z ]{4,}'/.test(text)).toBe(false);
+  });
+});
+
+/**
+ * The standing face of a belief, and the ruling that put a figure on it
+ * (`docs/flags.md` playthrough note 10, 2026-09-05: the card animations and the
+ * yields belong on the religion cards too).
+ *
+ * Two sizes and no third: the ceremony is the draft, where the card is dealt
+ * full-length and the number counts up; the column keeps the compact face, and
+ * its stamp **lands**. A screen that replayed the count every time it opened
+ * would be celebrating a decision the player made an age ago — the Doctrine
+ * shelf's rule, one system over.
+ */
+describe('the gods in the column wear their figure', () => {
+  it('builds the stamp on the compact face and lands it', () => {
+    const text = source('religionScreen.ts');
+    expect(text).toContain('const stamp = cardStampNode();');
+    expect(text).toContain('if (reading) landCardStamp(stamp, reading);');
+    // Never played: there is no ceremony on a screen at rest.
+    expect(text).not.toContain('playCardStamp');
+  });
+
+  it('reads the figure from the sim and shows nothing when there is nothing', () => {
+    const text = source('religionScreen.ts');
+    expect(text).toContain(
+      "stampReading(explainCardImpact(state, seat, { kind: 'belief', id }))",
+    );
+    // A belief that pays nothing standing keeps the flourish rather than a nought.
+    expect(text).toContain('stampIsEmpty(reading) ? null : reading');
+  });
+
+  it('hands every face on the sheet its own reading', () => {
+    const text = source('religionScreen.ts');
+    // The pantheon's slots, the gods held beyond them, and the religion's two
+    // houses — a face drawn without a reading is a card wearing the flourish
+    // while it is quietly paying.
+    const drawn = text.match(/drawBeliefFace\([^)]*\)/g) ?? [];
+    expect(drawn.length).toBeGreaterThanOrEqual(3);
+    for (const call of drawn) {
+      if (call.startsWith('drawBeliefFace(\n')) continue;
+      expect(call, call).toContain('beliefStamp(state, seat, id)');
+    }
+    // And the house's pool reaches the face, so a follower belief is not
+    // announced as a god.
+    expect(text).toContain('drawBeliefFace(card, id, house.pool');
+  });
+
+  it('keeps the compact stamp compact', () => {
+    // The two-sizes rule as a number: the column's seat is the collection's, not
+    // the tarot face's 24px — a taller seat would grow every slot on the sheet.
+    expect(declaration('.rel-slot .card-stamp', 'min-height')).toBe('20px');
+    expect(declaration('.rel-slot .card-stamp', 'line-height')).toBe('20px');
   });
 });

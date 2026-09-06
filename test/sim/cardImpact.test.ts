@@ -34,6 +34,7 @@ import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
 import { empireResourceYields } from '../../src/sim/resourceEffects';
 import { explainEmpireGold } from '../../src/sim/empireGold';
 import { found, game } from './statecraftHelpers';
+import { foundReligion } from '../../src/sim/religion';
 import { getTileAt } from '../../src/sim/map';
 import { isCoastal } from '../../src/sim/water';
 import { terrainDef } from '../../src/sim/terrainData';
@@ -456,5 +457,100 @@ describe('the evaluator itself', () => {
     // level argument used to sit beside (2026-09-04).
     const held = explainCardImpact(state, 0, { kind: 'order', id: 'firstRites' });
     expect(foldCardImpact(held).faith).toBe(2);
+  });
+});
+
+/**
+ * A belief, and the split that makes it three cards rather than one.
+ *
+ * Three pools share one id space (`beliefPoolOf`) and three different evaluators
+ * read them — a god is the seat's own, a follower belief is read city-locally
+ * off the faith each town follows, an enhancer belief pays whoever holds the
+ * holy site — so the ghost has to put a belief on the shelf its own pool names.
+ * A ghost that put all three in the pantheon stamped a follower belief as though
+ * every town this empire owns kept the faith, which is the one promise that pool
+ * never makes (the votive draft's card pass, 2026-09-05).
+ */
+describe('a belief', () => {
+  /** A faith founded by seat 0, and one of its two towns keeping it. */
+  function faithful() {
+    const { state, city } = bench();
+    // A second town, deliberately outside the congregation: what a follower
+    // belief must *not* pay is the whole of what this fixture is for.
+    const other = coastalTown(state);
+    const religion = foundReligion(state, state.players[0]!);
+    city.followers = { [religion.id]: city.population };
+    return { state, city, other, religion };
+  }
+
+  it('reads a god as the pantheon card it is', () => {
+    const { state } = bench();
+    const lines = explainCardImpact(state, 0, { kind: 'belief', id: 'keeperOfTheHearth' });
+    // The forward reading: the god is not held, so the figure is what keeping it
+    // would be worth — and it is the same list once it is in the pantheon.
+    const before = foldCardImpact(lines);
+    state.players[0]!.pantheon.beliefs.push('keeperOfTheHearth');
+    expect(foldCardImpact(explainCardImpact(state, 0, { kind: 'belief', id: 'keeperOfTheHearth' })))
+      .toEqual(before);
+  });
+
+  /**
+   * The pooled half, and the assertion the pantheon ghost got wrong: Choirs pays
+   * a note per three citizens **in a city that follows**, and it says nothing at
+   * all about congregations in its own effect — it is the pool that says where
+   * it lands. So an empire of two towns with one congregation is worth the
+   * congregation's four notes, never the eight a pantheon god would have paid.
+   */
+  it('pays a follower belief only where the faith is kept', () => {
+    const { state, city, other } = faithful();
+    expect(city.population).toBe(12);
+    expect(other.population).toBe(14);
+    const fold = foldCardImpact(explainCardImpact(state, 0, { kind: 'belief', id: 'choirs' }));
+    expect(fold.culture).toBe(4);
+  });
+
+  /** And it is the difference the turn resolution would bank, drafted for real. */
+  it('folds to exactly what putting it on the shelf would pay', () => {
+    const { state, religion } = faithful();
+    const before = ledger(state, 0);
+    const stamp = foldCardImpact(
+      explainCardImpact(state, 0, { kind: 'belief', id: 'theQuietHours' }),
+    );
+    religion.follower.push('theQuietHours');
+    const after = ledger(state, 0);
+    for (const key of CITY_YIELD_KEYS) {
+      expect(stamp[key], key).toBe(after[key] - before[key]);
+    }
+  });
+
+  /** Already on the shelf, the reading is what giving it up would cost. */
+  it('reads a belief in force as what it is paying', () => {
+    const { state, religion } = faithful();
+    const offered = foldCardImpact(
+      explainCardImpact(state, 0, { kind: 'belief', id: 'theQuietHours' }),
+    );
+    religion.follower.push('theQuietHours');
+    const kept = foldCardImpact(explainCardImpact(state, 0, { kind: 'belief', id: 'theQuietHours' }));
+    expect(kept).toEqual(offered);
+  });
+
+  /**
+   * An empire that has founded nothing has no shelf to put a pooled belief on,
+   * and therefore no other world to diff against — the `null` a charter already
+   * sworn answers with, for the same reason.
+   */
+  it('is silent for a pooled belief in an empire with no faith', () => {
+    const { state } = bench();
+    expect(explainCardImpact(state, 0, { kind: 'belief', id: 'theQuietHours' })).toEqual([]);
+  });
+
+  /** The ghost discipline holds across all three pools. */
+  it('leaves the state exactly as it found it', () => {
+    const { state } = faithful();
+    const before = JSON.stringify(state);
+    explainCardImpact(state, 0, { kind: 'belief', id: 'keeperOfTheHearth' });
+    explainCardImpact(state, 0, { kind: 'belief', id: 'theQuietHours' });
+    explainCardImpact(state, 0, { kind: 'belief', id: 'reliquaries' });
+    expect(JSON.stringify(state)).toBe(before);
   });
 });

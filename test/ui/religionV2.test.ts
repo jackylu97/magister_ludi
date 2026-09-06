@@ -53,6 +53,7 @@ import { CONCEPT_ENTRIES } from '../../src/ui/compendiumText';
 import { createReligionWatcher } from '../../src/ui/notifications';
 import {
   POOL_WORD,
+  beliefCardType,
   beliefOfferEyebrow,
   poolTechName,
   pressureLedgerText,
@@ -500,6 +501,21 @@ describe('the belief offer’s eyebrow', () => {
     const main = sourceOf('main.ts');
     expect(main).toContain('eyebrow: beliefOfferEyebrow(offer.pool)');
     expect(main).not.toContain("eyebrow: 'a god · permanent");
+  });
+
+  /**
+   * The card's own half of that word, and it is one table across two surfaces
+   * (the ruling of 2026-09-05): the eyebrow of the tarot card a belief is dealt
+   * on, and the eyebrow of the compact face it stands on afterwards. A face that
+   * said "a god" over a follower belief would be naming the wrong shelf.
+   */
+  it('says what one card is, wherever the card is drawn', () => {
+    expect(beliefCardType(undefined)).toBe('a god');
+    expect(beliefCardType('follower')).toBe('a follower belief');
+    expect(beliefCardType('enhancer')).toBe('an enhancer belief');
+    const main = sourceOf('main.ts');
+    expect(main).toContain('payoff: beliefCardType(offer.pool)');
+    expect(sourceOf('religionScreen.ts')).toContain("'sc-card-type', beliefCardType(pool)");
   });
 
   it('reads a pooled pick back off the shelf it landed on', () => {

@@ -189,6 +189,20 @@ export interface OfferOption {
    */
   emblem?: string;
   /**
+   * The same plate, drawn as a **glyph** rather than as a drawing.
+   *
+   * For a deck whose cards have no mark of their own: a belief's axis is a
+   * symbol (`AXIS_MARK` in `religionScreen.ts`) and deliberately not one of the
+   * Statecraft deck's seven drawings — lending a god the Wild Hunt's emblem
+   * would be saying something untrue about what it belongs to. Two fields rather
+   * than one because they are two mechanisms: `emblem` is a mask over the
+   * accent's ink, and this is a character set in it.
+   *
+   * A string, like everything else that crosses this boundary. Never both: a
+   * card with a drawing does not also want a letter in the middle of it.
+   */
+  emblemGlyph?: string;
+  /**
    * What the accent *is*, in words — "The Wild Hunt". It becomes the card's
    * `title`, so the one thing a colour cannot do (say its own name) is done by
    * the platform's own tooltip rather than by a legend nobody would read.
@@ -816,7 +830,7 @@ export function createOfferCard(
 
     /**
      * A **tarot** offer is one whose cards carry an emblem — the Statecraft
-     * deck, and nothing else today.
+     * deck, the great-person roster and the votive deck.
      *
      * The distinction is the whole of how the two dressings stay one component.
      * A card with an emblem is a card from a deck: it wears the tall
@@ -826,8 +840,16 @@ export function createOfferCard(
      * printed — so it keeps the plain face it has always had, name first. One
      * flag, read off the options themselves rather than declared by the caller,
      * because a caller that had to remember it is a caller that will forget.
+     *
+     * **A glyph counts** (the ruling of 2026-09-05 — every draft of every card
+     * class is dealt as a card). A belief's plate is its axis symbol rather than
+     * a drawing, and it is a card from a deck in every way that matters: it is
+     * dealt three at a time, turned over, and taken once. The flag stays read
+     * off the options for its own reason; what widened is what an emblem *is*.
      */
-    const tarot = offer.options.some((option) => option.emblem !== undefined);
+    const tarot = offer.options.some(
+      (option) => option.emblem !== undefined || option.emblemGlyph !== undefined,
+    );
     if (tarot) list.dataset.face = 'tarot';
 
     /**
@@ -876,6 +898,14 @@ export function createOfferCard(
         const emblem = element('span', 'offer-emblem');
         emblem.setAttribute('aria-hidden', 'true');
         emblem.style.setProperty('--line-mark', option.emblem);
+        button.append(emblem);
+      } else if (option.emblemGlyph !== undefined) {
+        // The same plate, set rather than masked. `textContent` and not
+        // `element`'s writer: a glyph here is a mark of the votive deck and must
+        // not be mistaken for a yield's and swapped for a drawing of one.
+        const emblem = element('span', 'offer-emblem offer-emblem-glyph');
+        emblem.setAttribute('aria-hidden', 'true');
+        emblem.textContent = option.emblemGlyph;
         button.append(emblem);
       }
       button.append(element('span', 'offer-option-title', option.title));

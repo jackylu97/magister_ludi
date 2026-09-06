@@ -124,7 +124,7 @@ import {
   stampIsEmpty,
   stampReading,
 } from './cardStamp';
-import { explainCardImpact } from '../sim/cardImpact';
+import { type CardImpactSubject, explainCardImpact } from '../sim/cardImpact';
 import { CARD_LINE_NAME, cardLineMarkNode, lineOf, slotMarkNode } from './cardLine';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import {
@@ -684,8 +684,43 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     return block;
   }
 
-  /** The Doctrines, permanent and slotless. Beneath the offices: there are few. */
-  function drawDoctrines(sc: PlayerStatecraft): HTMLElement {
+  /**
+   * A card's stamp on this screen — and the one rule about **when** it is asked.
+   *
+   * Only for a card that is **in force**: an Order in an office, and every
+   * adopted Doctrine. A held Order wears the flourish, and that is not a
+   * shortcut: a hand of thirty figures is thirty questions the player did not
+   * ask, and every one of them is a ghost-diff over every town this empire holds
+   * (`explainCardImpact`). Asking a handful rather than a hand is the same
+   * bargain the yields lens strikes — the reading happens when a hex's yield can
+   * change, never once a frame. A Doctrine is inside that bargain rather than an
+   * exception to it: there is at most one per charter sworn, so the whole shelf
+   * is a handful, and every card on it is already paying.
+   *
+   * The figure itself is the sim's whichever way round the card sits: a card
+   * *staged* into an office is not in force yet, so the reading is what slotting
+   * it would be worth; a card the law already holds — an Order in its office, a
+   * Doctrine adopted — reads as what giving it up would cost. Both are the same
+   * number, which is why the screen can print one.
+   */
+  function stampFor(state: GameState, seat: number, subject: CardImpactSubject) {
+    const reading = stampReading(explainCardImpact(state, seat, subject));
+    return stampIsEmpty(reading) ? null : reading;
+  }
+
+  /**
+   * The Doctrines, permanent and slotless. Beneath the offices: there are few.
+   *
+   * Each face wears the standing stamp exactly as an Order in an office does
+   * (the ruling of 2026-09-05, `docs/flags.md` note 6: "doctrines that give
+   * yields should also give an indicator of the yields they're supplying"). It
+   * is **landed**, never played — a Doctrine's ceremony was adoption day, and
+   * the offer card counted it there (`main.ts`'s `pendingDoctrine` spread); a
+   * screen that replayed the count every time it opened would be celebrating a
+   * decision the player made an age ago. A Doctrine that pays nothing per turn
+   * keeps the flourish, which is the honest reading and not an omission.
+   */
+  function drawDoctrines(state: GameState, seat: number, sc: PlayerStatecraft): HTMLElement {
     const block = element('section', 'sc-doctrines');
     block.append(element('p', 'eyebrow sc-eyebrow', 'doctrines · permanent'));
     if (sc.doctrines.length === 0) {
@@ -698,6 +733,13 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     for (const id of sc.doctrines) {
       const card = element('article', 'sc-card sc-card-doctrine');
       drawCardFace(card, cardDef(id), 'permanent', describeCard(id));
+      // The same seat the hand's cards keep, built whichever face it shows, so
+      // a shelf of Doctrines is a column of one card shape rather than two.
+      const stamp = cardStampNode();
+      card.dataset.card = id;
+      card.append(stamp);
+      const reading = stampFor(state, seat, { kind: 'doctrine', id });
+      if (reading) landCardStamp(stamp, reading);
       row.append(card);
     }
     block.append(row);
@@ -718,26 +760,6 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * player has just staged is spoken for, and one they have just taken out is
    * back in the hand, whether or not either has been signed yet.
    */
-  /**
-   * A card's stamp on this screen — and the one rule about **when** it is asked.
-   *
-   * Only for a card in an office. A held card wears the flourish, and that is
-   * not a shortcut: a hand of thirty figures is thirty questions the player did
-   * not ask, and every one of them is a ghost-diff over every town this empire
-   * holds (`explainCardImpact`). Asking a handful rather than a hand is the same
-   * bargain the yields lens strikes — the reading happens when a hex's yield can
-   * change, never once a frame.
-   *
-   * The figure itself is the sim's whichever way round the card sits: a card
-   * *staged* into an office is not in force yet, so the reading is what slotting
-   * it would be worth; a card the law already holds reads as what taking it out
-   * would cost. Both are the same number, which is why the screen can print one.
-   */
-  function stampFor(state: GameState, seat: number, id: OrderId) {
-    const reading = stampReading(explainCardImpact(state, seat, { kind: 'order', id }));
-    return stampIsEmpty(reading) ? null : reading;
-  }
-
   function drawCollection(
     state: GameState,
     seat: number,
@@ -785,7 +807,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         button.dataset.card = id;
         button.append(stamp);
         if (slotted.has(id)) {
-          const reading = stampFor(state, seat, id);
+          const reading = stampFor(state, seat, { kind: 'order', id });
           if (reading) {
             // The count is played only for the office it just went into; every
             // other slotted card is a standing fact and arrives landed.
@@ -831,7 +853,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     stack.append(drawGovernment(sc));
     stack.append(drawProgress(state, sc, seat));
     stack.append(drawSlots(state, sc, seat, arrangement));
-    stack.append(drawDoctrines(sc));
+    stack.append(drawDoctrines(state, seat, sc));
     column.append(stack);
     column.append(drawCommit(state, sc, seat, arrangement));
     split.append(column);

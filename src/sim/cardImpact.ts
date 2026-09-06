@@ -100,7 +100,7 @@ import {
   explainEmpireCardYields,
   explainTileYield,
 } from './cities';
-import { type GameState, type Player, playerById } from './state';
+import { type GameState, type Player, foundedReligion, playerById } from './state';
 import {
   type CardEffect,
   type DoctrineId,
@@ -113,7 +113,7 @@ import {
   orderFitsSlot,
   slotLayout,
 } from './statecraftData';
-import { type BeliefId, beliefDef } from './religionData';
+import { type BeliefId, beliefDef, beliefPoolOf } from './religionData';
 import {
   cardCityYields,
   occasionWords,
@@ -193,7 +193,8 @@ export interface CardImpactLine {
  * A tagged union rather than a bare `CardId` because the *ghost* differs per
  * class and the difference is the whole of the answer: an Order is held **and
  * slotted**, a Doctrine is simply held, a charter empties every office (the
- * amnesty is what adoption is), a belief joins the pantheon, and a legacy joins
+ * amnesty is what adoption is), a belief joins the pantheon or the religion's
+ * own shelf (`beliefPoolOf` decides which), and a legacy joins
  * the honoured dead. A card has one face since the levelling ruling of
  * 2026-09-04, so an Order is named by its id alone — there is no level left to
  * ask about.
@@ -350,6 +351,40 @@ function ghostPair(
       });
     }
     case 'belief': {
+      // **Which shelf a belief sits on decides which ghost it needs.** Three
+      // pools share one id space (`beliefPoolOf`) and three different evaluators
+      // read them: a pantheon god is the seat's own (`liveEffects` walks
+      // `Player.pantheon.beliefs`), a follower belief is read city-locally off
+      // the faith each town follows (`followerBeliefEffects`), and an enhancer
+      // belief pays whoever holds the holy site. A ghost that put all three in
+      // the pantheon stamped a follower belief as though every town this empire
+      // owns kept the faith — which is the one thing that pool never promises.
+      const pool = beliefPoolOf(subject.id);
+      if (pool !== null) {
+        const mine = foundedReligion(state, player.id);
+        // No faith, no shelf, and therefore no reading — the `null` a charter
+        // already sworn answers with, for the same reason: there is no other
+        // world to diff against.
+        if (mine === undefined) return null;
+        const shelf = pool === 'follower' ? mine.follower : mine.enhancer;
+        // The religion is swapped whole, shallowly, exactly as the seat is: the
+        // named array is *replaced* rather than pushed to, so nothing downstream
+        // can write through a ghost into `state`.
+        const swapReligion = (held: BeliefId[]): GameState => ({
+          ...state,
+          religions: state.religions.map((faith) =>
+            faith.id !== mine.id
+              ? faith
+              : pool === 'follower'
+                ? { ...faith, follower: held }
+                : { ...faith, enhancer: held },
+          ),
+        });
+        if (shelf.includes(subject.id)) {
+          return { without: swapReligion(shelf.filter((id) => id !== subject.id)), with: state };
+        }
+        return { without: state, with: swapReligion([...shelf, subject.id]) };
+      }
       const pantheon = player.pantheon;
       if (pantheon.beliefs.includes(subject.id)) {
         return backward({

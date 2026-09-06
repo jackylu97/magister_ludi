@@ -439,7 +439,7 @@ describe('the bench and the offices', () => {
     // The reading is inside the slotted branch and nowhere else.
     // A card is named by its id alone since the levelling ruling of 2026-09-04.
     const slotted = collection.slice(collection.indexOf('if (slotted.has(id)) {'));
-    expect(slotted).toContain('stampFor(state, seat, id)');
+    expect(slotted).toContain("stampFor(state, seat, { kind: 'order', id })");
     expect(collection.slice(0, collection.indexOf('if (slotted.has(id)) {'))).not.toContain('stampFor(');
   });
 
@@ -450,6 +450,79 @@ describe('the bench and the offices', () => {
     // The flag is armed by the gesture and spent by the draw that plays it.
     expect(SCREEN).toContain('justSlotted = held;');
     expect(SCREEN).toContain('justSlotted = null;');
+  });
+});
+
+/**
+ * The Doctrines' shelf (`docs/flags.md` note 6, 2026-09-05: "doctrines that give
+ * yields should also give an indicator of the yields they're supplying").
+ *
+ * An adopted Doctrine is permanently in force, so its face wears the standing
+ * stamp exactly as an Order in an office does. The three things that could be
+ * quietly wrong on every Doctrine at once are pinned here: that the seat is
+ * built at all, that the reading is `explainCardImpact`'s for the **doctrine**
+ * subject rather than borrowed from some other card class, and that it arrives
+ * *landed* — a permanent card's ceremony was adoption day, and a screen that
+ * replayed the count-up on every open would celebrate a decision made an age
+ * ago.
+ */
+describe('the doctrines wear the stamp', () => {
+  const SCREEN = source('statecraftScreen.ts');
+  const DOCTRINES = SCREEN.slice(
+    SCREEN.indexOf('function drawDoctrines('),
+    SCREEN.indexOf('function drawCollection('),
+  );
+
+  it('finds the shelf, so the sweep is not vacuous', () => {
+    expect(DOCTRINES.length).toBeGreaterThan(200);
+    expect(DOCTRINES).toContain('sc-card-doctrine');
+  });
+
+  /** The same seat the hand's cards keep — one card shape, not two. */
+  it('builds the stamp on every adopted doctrine\'s face', () => {
+    expect(DOCTRINES).toContain('cardStampNode()');
+    expect(DOCTRINES).toContain('card.append(stamp)');
+  });
+
+  /** The reading is the doctrine's own, through the one evaluator. */
+  it('reads it from explainCardImpact for the doctrine id', () => {
+    expect(DOCTRINES).toContain("stampFor(state, seat, { kind: 'doctrine', id })");
+    // And `stampFor` is the one adapter both classes go through — nothing on
+    // this screen asks `explainCardImpact` a second way.
+    expect(code(SCREEN).match(/explainCardImpact\(/g) ?? []).toHaveLength(1);
+  });
+
+  /** Landed, never played: the count-up belongs to the adoption moment. */
+  it('lands the figure rather than replaying the ceremony on open', () => {
+    expect(DOCTRINES).toContain('landCardStamp(stamp, reading)');
+    expect(DOCTRINES).not.toContain('playCardStamp');
+  });
+
+  /**
+   * A doctrine with no yield-shaped effect keeps the flourish. `stampFor`
+   * answers `null` for an empty reading and the draw simply does not write into
+   * the seat — which leaves `cardStampNode`'s own `data-face='flourish'`
+   * standing, the same thing a benched Order shows.
+   */
+  it('leaves the flourish standing when the reading is empty', () => {
+    expect(code(DOCTRINES)).toContain('if (reading) landCardStamp(stamp, reading);');
+    expect(SCREEN).toContain('return stampIsEmpty(reading) ? null : reading;');
+    // The seat's default face, and the mark it wears there.
+    const stampSource = code(source('cardStamp.ts'));
+    expect(stampSource).toContain("stamp.dataset.face = 'flourish'");
+    expect(stampSource).toContain('flourish.textContent = STAMP_FLOURISH');
+    expect(STAMP_FLOURISH).toBe('— · ✶ · —');
+  });
+
+  /**
+   * The stamp is a mark on paper wherever it lands, so the compact rule the
+   * hand's cards keep has to reach the doctrine shelf too — both are `.sc-card`,
+   * and the one block that quiets the mark is written on the class rather than
+   * on the collection's grid.
+   */
+  it('is quieted by the same compact rule the hand\'s cards keep', () => {
+    expect(STYLE).toContain('.sc-card .card-stamp {');
+    expect(STYLE).not.toContain('.sc-card-order .card-stamp {');
   });
 });
 

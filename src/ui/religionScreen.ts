@@ -68,6 +68,14 @@
  */
 
 import { civYields } from './topBar';
+import {
+  type StampReading,
+  cardStampNode,
+  landCardStamp,
+  stampIsEmpty,
+  stampReading,
+} from './cardStamp';
+import { explainCardImpact } from '../sim/cardImpact';
 import { poolFigure } from './figures';
 import {
   type PressureLine,
@@ -412,6 +420,23 @@ function signed(amount: number): string {
  * — which they are: a god is your identity, a follower belief is what every town
  * that keeps your faith gets, an enhancer is how far the faith spreads.
  */
+/**
+ * What one belief **is**, in the two or three words a card's eyebrow carries.
+ *
+ * The offer card's per-card line and the compact face's, from one table: a god,
+ * a follower belief, an enhancer belief. `beliefOfferEyebrow` says the same
+ * thing about the *hand* and says what it costs beside it; this is the card's
+ * own half, which is the only thing that fits above a name.
+ *
+ * Three drafts wear one card (`BeliefOffer.pool`), so the word has to come off
+ * the pool rather than be written at the call — a face that said "a god" over a
+ * follower belief would be the interface naming the wrong shelf.
+ */
+export function beliefCardType(pool: ReligionBeliefPool | undefined): string {
+  if (pool === undefined) return 'a god';
+  return pool === 'follower' ? 'a follower belief' : 'an enhancer belief';
+}
+
 export function beliefOfferEyebrow(pool: ReligionBeliefPool | undefined): string {
   if (pool === undefined) return 'a god · permanent, and never converted away';
   if (pool === 'follower') return 'a follower belief · applies in every city that follows';
@@ -498,8 +523,20 @@ function houseTooltip(id: BeliefId): string {
  * the whitespace around it is what went — and the flavour line is off, because
  * it is the one part of the card that says nothing about what the card does and
  * it is still read on the offer that deals the god (`offerCard.ts`).
+ *
+ * **The stamp lands here, it never plays** (the ruling of 2026-09-05, the
+ * Doctrine shelf's rule one system over): a belief's ceremony was the draft, and
+ * the offer card counted the figure up there. A screen that replayed the count
+ * every time it opened would be celebrating a decision the player made an age
+ * ago. A belief that pays nothing standing keeps the flourish, which is the
+ * honest reading rather than an omission.
  */
-function drawBeliefFace(into: HTMLElement, id: BeliefId): void {
+function drawBeliefFace(
+  into: HTMLElement,
+  id: BeliefId,
+  pool?: ReligionBeliefPool,
+  reading?: StampReading | null,
+): void {
   const def = beliefDef(id);
   into.dataset.axis = def.axis;
   into.title = def.name;
@@ -507,7 +544,7 @@ function drawBeliefFace(into: HTMLElement, id: BeliefId): void {
   const mark = axisMarkNode(def.axis);
   mark.classList.add('rel-card-emblem');
   head.append(mark);
-  head.append(element('span', 'sc-card-type', 'a god'));
+  head.append(element('span', 'sc-card-type', beliefCardType(pool)));
   into.append(head);
   into.append(element('h4', 'sc-card-name', def.name));
   const list = element('ul', 'sc-clauses');
@@ -522,6 +559,12 @@ function drawBeliefFace(into: HTMLElement, id: BeliefId): void {
     list.append(item);
   }
   into.append(list);
+  // The same seat the Statecraft shelf's cards keep, built whichever face it
+  // shows, so a column of gods is a column of one card shape rather than two.
+  const stamp = cardStampNode();
+  into.dataset.card = id;
+  into.append(stamp);
+  if (reading) landCardStamp(stamp, reading);
 }
 
 export function createReligionScreen(options: ReligionScreenOptions): ReligionScreen {
@@ -533,6 +576,26 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
 
   function setExpanded(): void {
     trigger?.setAttribute('aria-expanded', String(isOpen()));
+  }
+
+  /**
+   * What a belief this seat **holds** is worth, as the stamp reads it.
+   *
+   * `statecraftScreen.ts`'s `stampFor` in the votive deck's house, and mirrored
+   * rather than shared for that screen's own reason: it is four lines of adapter
+   * over `explainCardImpact`, and a helper exported across two screens to save
+   * them would be a seam neither of them asked for. What must not be forked is
+   * the *evaluator*, and it is not — both ask the sim.
+   *
+   * Only for a belief in force, which is every belief on this screen: a god is
+   * never given back except by the one rite that takes it, and a pooled belief
+   * is on the shelf the moment it is drafted. The reading is therefore what
+   * giving it up would cost, which is the same figure with the same sign — see
+   * `ghostPair`'s pair.
+   */
+  function beliefStamp(state: GameState, seat: number, id: BeliefId): StampReading | null {
+    const reading = stampReading(explainCardImpact(state, seat, { kind: 'belief', id }));
+    return stampIsEmpty(reading) ? null : reading;
   }
 
   /** The pool and its rate — the Faith popover's whole content, folded in. */
@@ -628,7 +691,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
         card.append(element('span', 'sc-slot-empty', 'unnamed'));
         card.title = 'An augur may consecrate a god here';
       } else {
-        drawBeliefFace(card, id);
+        drawBeliefFace(card, id, undefined, beliefStamp(state, seat, id));
       }
       row.append(card);
     }
@@ -640,7 +703,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     // a god that pays.
     for (const id of held.slice(slots)) {
       const card = element('article', 'rel-slot');
-      drawBeliefFace(card, id);
+      drawBeliefFace(card, id, undefined, beliefStamp(state, seat, id));
       row.append(card);
     }
     if (player && held.length < slots) {
@@ -833,7 +896,9 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       );
       for (const id of house.held) {
         const card = element('article', 'rel-slot');
-        drawBeliefFace(card, id);
+        // The pool is the house's, so a follower belief's face says which shelf
+        // it sits on rather than borrowing the pantheon's word.
+        drawBeliefFace(card, id, house.pool, beliefStamp(state, seat, id));
         box.append(card);
       }
       if (house.empty > 0) {
