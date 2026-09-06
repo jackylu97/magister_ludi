@@ -71,7 +71,14 @@ Fixes queue in main for the next session unless the user says otherwise.
    capital-only gate stays on the compendium row, not the charter face — a
    third scope vocabulary otherwise; say the word if you want it on the face.)
 8. **The Library's +2 gold** — REMOVED on your word (it had been on the row
-   since the tree pass of 2026-08-30).
+   since the tree pass of 2026-08-30). **A side effect for your eye**: a
+   library now costs its maintenance and pays no coin back, and the scripted
+   five-town pacing empire (a library in every town, nothing else paying
+   coin) crosses into debt around turn 90 and never climbs out — the debt
+   rule docks science and culture a quarter from then on, so its Æra III/IV
+   closes slipped ~90/105 turns (fixtures re-aimed, dated). Your empire at
+   t92 is +143💰 and the bots stay solvent in the arena, so no action — but
+   the balance turn's building trim should keep an eye on the coin side.
 9. **The Ledger** — bands 1–2 LANDED (the eighth sheet; every yield chip but
    culture's opens it on its own voice; this turn's yields by source class
    with the deck's slice in grape, and the per-turn curve since the game

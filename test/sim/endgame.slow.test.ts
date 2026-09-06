@@ -156,7 +156,7 @@ function playToTheFinish(maxTurns: number): Played {
 
 describe('the finish line in a played game', () => {
   it('opens, is paid for, and settles the race', () => {
-    const { game, opened, finished } = playToTheFinish(1700);
+    const { game, opened, finished } = playToTheFinish(1900);
     const player = game.state.players[0]!;
 
     // **It arrives inside a game.** A gate that is correct and unreachable is
@@ -175,9 +175,21 @@ describe('the finish line in a played game', () => {
     // nothing at all. The four-city empire in `tech.slow.test.ts` closes Æra IV
     // on t443; the gap between the two is what a capital alone is worth, and it
     // is the pacing question the ruling deliberately re-opened.
+    //
+    // **Re-aimed 2026-09-05, the Library's gold row** (the user: "remove the +2
+    // gold from the library"). This seat now opens the Opus on **1689** and
+    // finishes it on 1690, against 1515/1516 before the ruling. The library was
+    // this capital's only standing coin beyond the palace, so without it the
+    // treasury goes under water and stays there — and a treasury under water is
+    // a quarter off science and culture (`treasuryInDebt`, an empire-stage line)
+    // as well as fewer coins for the `contribute` verb below, so the closing
+    // technology arrives later and is paid for later. The ceiling keeps the
+    // headroom it had (measured +135) and the horizon grows to 1900 with it,
+    // for the reason the pin above gives: a harness that stops before the chart
+    // runs out measures nothing at all.
     expect(opened).not.toBeNull();
     expect(opened!).toBeGreaterThan(100);
-    expect(opened!).toBeLessThan(1650);
+    expect(opened!).toBeLessThan(1825);
     expect(player.techsResearched).toContain(buildingDef(OPUS).worldUnlockTech!);
 
     // **It can be paid for**, out of hammers and a treasury the empire earned.

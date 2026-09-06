@@ -133,7 +133,10 @@ describe('the culture ladder', () => {
     // scripted empire's third government (draft 18) now lands at turn 144 —
     // four turns past the old 140-turn horizon. A modest extension keeps it
     // in view rather than dropping the tier from the measurement.
-    const { draftTurn } = playEmpire(260);
+    // Horizon 260 → 400 (2026-09-05, the Library's gold row): the third
+    // government slipped to turn 325, well past the old horizon. See the
+    // re-aim note on `tiers[2]` below.
+    const { draftTurn } = playEmpire(400);
     /**
      * **Measured on seed 4242 at `costBase 6 / costLinear 3 / costExponent 2`,
      * re-measured 2026-08-26 after the water milestone (Entry XXVII):** drafts
@@ -328,9 +331,54 @@ describe('the culture ladder', () => {
     // the cadence band (5..13) already covers 9.3 and is left where it is. The
     // cliff itself is not a thing a band can express, so it is written into
     // `docs/flags.md` under the post-wave pacing bullet for the user to rule on.
+    //
+    // **Re-aimed 2026-09-05, the Library's gold row** (the user: "remove the +2
+    // gold from the library"). Nothing in the draft meter moved and no culture
+    // row moved: what moved is the **purse**. This empire builds a library in
+    // each of its five towns and nothing else it builds pays standing coin, so
+    // ten gold a turn came off its income and its treasury goes under water
+    // around **turn 90** and never comes back up (+98 at t50, −105 at t100,
+    // −567 at t200). A treasury under water is a quarter off science *and*
+    // culture (`treasuryInDebt` → an empire-stage percent, Entry XVII), so
+    // every draft after the crossing is bought at three quarters of the old
+    // rate and an escalating cost turns that into a widening gap — the same
+    // shape as the faith move and the ×1.4 building ruling above. Full ladder
+    // on this seed, before → after:
+    //
+    //   before  13,22,54,57,60,66,72,78,85,92,100,110,121,135,150,168,188,210,232,254
+    //   after   13,22,54,57,60,66,72,78,85,94,110,130,153,179,209,243,282,325,378,413
+    //
+    // — governments (drafts 4/10/18) at **57 / 94 / 325** against 57 / 92 / 210.
+    // Two readings, as usual:
+    //
+    //   · **the first nine drafts are unmoved** (13 … 85), and that is the tell
+    //     again: draft 9 lands on turn 85 and the treasury crosses zero around
+    //     90, so the ladder parts company on exactly the rung after the
+    //     crossing. The early cadence over drafts 1–8 is therefore **unchanged
+    //     at 9.3** turns per draft, and its band is left where it is;
+    //   · **the late ladder stretches rather than shifts.** Draft 10 slips two
+    //     turns, draft 14 forty-four, draft 18 a hundred and fifteen — the
+    //     compounding a constant loss of income makes against an escalating
+    //     cost. The three tiers still arrive *spread out*, which is what this
+    //     assertion claims, but the third charter is now a t325 decision rather
+    //     than a t210 one, against the sister harness's Æra IV closing at t779.
+    //
+    // **Two rulings landed here, not one, and the bisect separates them.** The
+    // great-person gate moved the same day (`ancestorRites` off The High Temple
+    // and onto Epic Poetry — renown was being answered too early in the first
+    // full playthrough), and on its own it took this figure 210 → **240**: the
+    // gate sits later in the chart, so the empire that sweeps the cheapest node
+    // available reaches it later and the draft that rides behind it lands later
+    // too. The Library's gold row then took 240 → 325. The gate is worth thirty
+    // turns of this figure and the purse eighty-five; both are rulings and both
+    // stay, and only the band moves.
+    //
+    // `tiers[0]` (57) and `tiers[1]` (94) stay inside the bands they had;
+    // `tiers[2]` is re-centred on 325 at its existing ±21, and the horizon grew
+    // to 400 to keep it in view.
     expect(tiers[1]!).toBeGreaterThan(76);
     expect(tiers[1]!).toBeLessThan(108);
-    expect(tiers[2]!).toBeGreaterThan(189);
-    expect(tiers[2]!).toBeLessThan(231);
+    expect(tiers[2]!).toBeGreaterThan(304);
+    expect(tiers[2]!).toBeLessThan(346);
   });
 });

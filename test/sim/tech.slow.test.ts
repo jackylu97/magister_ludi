@@ -187,7 +187,7 @@ describe('pacing', () => {
   }
 
   it('closes its four ages on the Quick-speed schedule (Entry V)', () => {
-    const { game, ageDone } = playEmpire(700);
+    const { game, ageDone } = playEmpire(900);
     // Measured on this seed after the city-centre re-base: **41 / 80 / 120**,
     // against 40 / 78 / 118 immediately before it, 37 / 74 / 111 when the Civ
     // 6-style Age I ramp landed, 40 / 68 / 107 with the flat 16–29 Age I costs,
@@ -445,6 +445,35 @@ describe('pacing', () => {
     // the prose above still tells the pre-axe story of how the curtain got to
     // t586; the axe then moved it to ~t674. The pacing ruling of the same day
     // says the playtest, not this harness, judges whether that is right.
+    //
+    // **Re-aimed 2026-09-05, the Library's gold row** (the user: "remove the +2
+    // gold from the library"). No science price moved and no culture row moved;
+    // what moved is the **purse**. This scripted empire builds a library in
+    // every one of its five towns and nothing else it builds pays standing
+    // coin, so ten gold a turn came off its income — and its treasury, which
+    // used to ride comfortably positive, now goes under water around **turn 90**
+    // and never comes back up (measured: +98 at t50, −105 at t100, −567 at
+    // t200). A treasury under water is a quarter off science *and* culture
+    // (`treasuryInDebt` → an empire-stage percent, Entry XVII), so the tree
+    // slows from the moment the empire crosses zero and the loss compounds down
+    // the ladder.
+    //
+    // This seed now closes at **66 / 120 / 366 / 779** against 66 / 107 / 277 /
+    // 674. The pair reads exactly the way the mechanism predicts:
+    //
+    //   · **Æra I did not move at all** (66 both times). It closes at t66, a
+    //     good twenty turns before the empire's coin runs out, so the whole age
+    //     is bought at the old rate.
+    //   · **Æra II slips thirteen turns** (107 → 120) — it is the age the
+    //     crossing happens inside, so only its tail is docked.
+    //   · **Æra III and Æra IV are docked end to end** (277 → 366, 674 → 779),
+    //     eighty-nine and a hundred and five turns, which is about the quarter
+    //     the debt line takes off a band of that length.
+    //
+    // The horizon grows 700 → 900 with the bands, for the reason every pin
+    // above gives: a harness that stops before the tree closes measures nothing
+    // at all. Bands keep the widths above (±10 / ±15 / ±25 / ±30), re-centred;
+    // Æra I's is left where it is, because its measurement did not move.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -456,12 +485,12 @@ describe('pacing', () => {
 
     expect(first!, `age I: ${first}`).toBeGreaterThanOrEqual(56);
     expect(first!, `age I: ${first}`).toBeLessThanOrEqual(76);
-    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(92);
-    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(122);
-    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(252);
-    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(302);
-    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(644);
-    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(704);
+    expect(second!, `age II: ${second}`).toBeGreaterThanOrEqual(105);
+    expect(second!, `age II: ${second}`).toBeLessThanOrEqual(135);
+    expect(third!, `age III: ${third}`).toBeGreaterThanOrEqual(341);
+    expect(third!, `age III: ${third}`).toBeLessThanOrEqual(391);
+    expect(fourth!, `age IV: ${fourth}`).toBeGreaterThanOrEqual(749);
+    expect(fourth!, `age IV: ${fourth}`).toBeLessThanOrEqual(809);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 120_000);
 
