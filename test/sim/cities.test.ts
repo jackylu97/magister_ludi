@@ -2941,12 +2941,18 @@ describe('borders', () => {
     // takes it back, so the eighth tile is 73 against the old 76 while the
     // first is 6 against 9. The schedule the monument band in
     // `territory.test.ts` is measured against.
-    expect(nextBorderCost(0)).toBe(6);
-    expect(nextBorderCost(1)).toBe(10);
-    expect(nextBorderCost(2)).toBe(16);
-    expect(nextBorderCost(3)).toBe(25);
-    expect(nextBorderCost(4)).toBe(35);
-    expect(nextBorderCost(7)).toBe(73);
+    //
+    // A fifth off the height, 2026-09-05 (user, turn 92 of the first full
+    // playthrough — "boost border growth by around 25%"): 5 · 3.2 · 1.45, the
+    // same shape with both height terms at four fifths, so every rung is ~80%
+    // of what it was: 5 · 8 · 13 · 20 · 28 · … · 58 against 6 · 10 · 16 · 25
+    // · 35 · … · 73.
+    expect(nextBorderCost(0)).toBe(5);
+    expect(nextBorderCost(1)).toBe(8);
+    expect(nextBorderCost(2)).toBe(13);
+    expect(nextBorderCost(3)).toBe(20);
+    expect(nextBorderCost(4)).toBe(28);
+    expect(nextBorderCost(7)).toBe(58);
     // Each tile costs more than the last.
     for (let claimed = 0; claimed < 12; claimed++) {
       expect(nextBorderCost(claimed + 1)).toBeGreaterThan(nextBorderCost(claimed));

@@ -147,6 +147,19 @@ Fixes queue in main for the next session unless the user says otherwise.
     its tech placement (a chart question — the lanes are yours) and an
     escalation ladder; joins `pieces.html` in the same pass. Needs a
     strategic (horses?) ruling — the seam is the resource row.
+19. **Border growth +25%** — RULED and LANDED (your playtest, t92): the
+    border cost curve's two height terms take a fifth off (6 · 4 · 1.45 →
+    5 · 3.2 · 1.45; the exponent keeps the 2026-08-28 shape), so every tile
+    costs ~80% and the same culture buys a quarter more ground. Schedule
+    5 · 8 · 13 · 20 · 28 · 37 · 48 · 58 against 6 · 10 · 16 · 25 · 35 · 47 ·
+    59 · 73.
+20. **Mapgen: every capital has both horses and iron within six tiles**
+    (RULED, queued — "note for mapgen"): a start-position guarantee in
+    `data/mapgen.json`'s terms (the strategic pass places or moves one copy
+    of each inside radius 6 of every seat's start; the seat's own reveal
+    tech still gates seeing it). Lands with the next mapgen batch, after the
+    six-player standard-map seating experiment (note 16), since both touch
+    start positions. `docs/mapgen.md` documents it when it lands.
 
 ### RULED, awaiting build (after the playthrough)
 

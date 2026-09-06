@@ -965,6 +965,13 @@ export interface CityRules {
    * · 22 · 31 · 41 · 52 · 64 · 76. A third off the first tile, a quarter off the
    * second, and level by the last — which is the ramp the note asked for, rather
    * than a discount that grows with the empires already expanding fastest.
+   *
+   * **A fifth off the height, 2026-09-05** (user, turn 92 of the first full
+   * playthrough: "boost border growth by around 25%"): 5 · 3.2 · 1.45. The
+   * shape stays — the exponent is the 2026-08-28 ramp — and both height terms
+   * scale by 0.8 together, so every rung costs four fifths and the same culture
+   * buys a quarter more ground at every point of the game rather than only at
+   * the opening. The schedule is 5 · 8 · 13 · 20 · 28 · 37 · 48 · 58.
    */
   borderCostBase: number;
   borderCostLinear: number;

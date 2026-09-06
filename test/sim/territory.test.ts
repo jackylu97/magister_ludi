@@ -167,7 +167,13 @@ describe('the border cost curve', () => {
     // and the exponent takes it back later — the eighth tile is 73 against the
     // old 76 — so the discount is spent where the note pointed it. It was
     // [9, 14, 22, 31].
-    expect([0, 1, 2, 3].map(nextBorderCost)).toEqual([6, 10, 16, 25]);
+    //
+    // Said a third time, 2026-09-05 (user, turn 92 of the first full
+    // playthrough — "boost border growth by around 25%"): 5 · 3.2 · 1.45. The
+    // shape holds and both height terms take a fifth off together, so every
+    // rung is four fifths of what it was — a quarter more ground for the same
+    // culture all game long, not only at the opening. It was [6, 10, 16, 25].
+    expect([0, 1, 2, 3].map(nextBorderCost)).toEqual([5, 8, 13, 20]);
   });
 
   it('counts expansions, not owned tiles: the founding ring is free', () => {
@@ -198,15 +204,21 @@ describe('a monument buys three or four tiles by the early game', () => {
    * 19. It was 3 · 8 · 15 · 26 against 9 · 14 · 22 · 31, and 4 · 9 · 17 · 29
    * against 10 · 16 · 24 · 35 before that.
    *
-   * **The band below still holds, and that is the measurement rather than a
-   * coincidence**: the fifth rung is 35 culture, which this town does not bank
-   * until turn 31, so every turn from 19 to 30 sits at exactly four tiles — the
-   * whole 25–30 window is inside the 3–4 the user asked for, with the tiles
-   * arriving earlier in the opening where the note said they were wanted.
-   * A real capital spends its opening five or six turns building the
-   * monument, which slides the whole schedule later by about that much and lands
-   * the *third* tile inside the window instead — which is why the assertion is a
-   * band of 3–4 across turns 25–30 rather than a number.
+   * **The band moved with the ruling of 2026-09-05** (user, turn 92 of the
+   * first full playthrough: "boost border growth by around 25%" — 5 · 3.2 ·
+   * 1.45, a fifth off both height terms). Banking 3 a turn against 5 · 8 · 13
+   * · 20 · 28 now claims the first tile on turn 2, the second on turn 5, the
+   * third on turn 9, the fourth on turn 16 and the **fifth on turn 25**; the
+   * sixth rung is 37 more, which this town does not bank until turn 37, so
+   * every turn from 25 to 30 sits at exactly five tiles. The old target of
+   * three or four by turns 25–30 was the 2026-08-2x tuning item; the new
+   * ruling deliberately buys a quarter more ground, and the band below is the
+   * new measurement — four or five across the window — rather than the old
+   * band bent to fit. A real capital spends its opening five or six turns
+   * building the monument, which slides the whole schedule later by about that
+   * much and lands the *fourth* tile inside the window with the fifth arriving
+   * at its end — which is why the assertion is a band of 4–5 across turns
+   * 25–30 rather than a number.
    *
    * The +10% the writ puts on the accrual is worth nothing at 3 culture a turn,
    * and that is deliberate and not a bug: the accrual is floored once, exactly
@@ -214,7 +226,7 @@ describe('a monument buys three or four tiles by the early game', () => {
    * monument town is not meant to sprint; the writ's tier is felt by cities that
    * actually make culture, and the test below proves it on one that does.
    */
-  it('claims its third and fourth tiles inside turns 25–30', () => {
+  it('claims its fourth and fifth tiles inside turns 25–30', () => {
     const state = flatState(24, 18);
     const city = foundCityAt(state, 0, at(state.map, 8, 8));
     city.buildings.push('monument');
@@ -236,15 +248,16 @@ describe('a monument buys three or four tiles by the early game', () => {
     }
 
     // The schedule the docblock works out by hand, reproduced by the pipeline.
-    expect(claimedOn.slice(0, 4)).toEqual([2, 6, 11, 19]);
+    expect(claimedOn.slice(0, 5)).toEqual([2, 5, 9, 16, 25]);
 
-    // And the claim the user asked for, as a band over the window: three or
-    // four tiles on every turn from 25 to 30. Read off the same schedule so
-    // that a curve change has to move this line, not just the one above.
+    // And the claim, as a band over the window: four or five tiles on every
+    // turn from 25 to 30 (the 2026-09-05 ruling's reading — it was three or
+    // four). Read off the same schedule so that a curve change has to move
+    // this line, not just the one above.
     for (const turn of [25, 26, 27, 28, 29, 30]) {
       const byThen = claimedOn.filter((on) => on <= turn).length;
-      expect(byThen, `turn ${turn}`).toBeGreaterThanOrEqual(3);
-      expect(byThen, `turn ${turn}`).toBeLessThanOrEqual(4);
+      expect(byThen, `turn ${turn}`).toBeGreaterThanOrEqual(4);
+      expect(byThen, `turn ${turn}`).toBeLessThanOrEqual(5);
     }
   });
 
@@ -266,9 +279,11 @@ describe('a monument buys three or four tiles by the early game', () => {
         claimedOn.push(turn);
       }
     }
+    // Measured 5 · 8 · 12 · 19 · 28 on the 2026-09-05 curve: four by turn 19
+    // and the fifth at 28, so the window holds four then five.
     const byThirty = claimedOn.filter((on) => on <= 30).length;
-    expect(byThirty, claimedOn.join(',')).toBeGreaterThanOrEqual(3);
-    expect(byThirty, claimedOn.join(',')).toBeLessThanOrEqual(4);
+    expect(byThirty, claimedOn.join(',')).toBeGreaterThanOrEqual(4);
+    expect(byThirty, claimedOn.join(',')).toBeLessThanOrEqual(5);
   });
 });
 

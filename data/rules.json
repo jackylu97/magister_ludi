@@ -121,8 +121,8 @@
     "sciencePerPop": 1,
     "baseCulturePerCity": 1,
     "palaceGold": 2,
-    "borderCostBase": 6,
-    "borderCostLinear": 4,
+    "borderCostBase": 5,
+    "borderCostLinear": 3.2,
     "borderCostExponent": 1.45,
     "tilePurchase": {
       "ringBase": [
