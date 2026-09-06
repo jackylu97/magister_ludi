@@ -1893,3 +1893,80 @@ joins the print or the suite says so.
 - **The memo is per state object, not per game.** `restoreState` starts empty by
   construction, which is right, and a test that hands the same `GameState` to two
   games would share one — nothing does, and nothing should.
+
+## The focus arm's idempotence, and the levy's own count (2026-09-05)
+
+Two fixes in `bot.ts`, both by construction, both found by a test that had been
+passing on the luck of a board.
+
+### The focus arm answered differently about a board nothing had changed
+
+`focusCommand`'s docblock promised that its appraisal is a function of the ground
+and of the sitting's frozen readings, "never of the focus it is about, so acting
+on it cannot change it". It was not, in two places, and the driver's loop paid:
+on seed 20260904 at t51 one seat spent its **whole command budget**
+(`driver.commandsPerSeat`) pointing one town back and forth.
+
+- **A staged total patched by a raw difference is not the staged total.** The
+  starvation guard and the growth clock both have to read the town's live books
+  (the raw hexes say nothing about the centre, the buildings or the
+  percentages), and both moved between the two sheets by adding the *tile* food
+  difference to the *staged* figure. Under Entry XVII that is wrong by every
+  percentage on the channel and again by the floor: the measured town lost ten
+  bushels of banked food for eight bushels of ground, so the growth charge read
+  −3.1 with the town standing balanced and −11.3 with it standing on the
+  hammers, and the lean scored +7.6 and then −0.6. **`foodUnder(bag)`** is the
+  fix — the simulation's own `cityYields` over a *shifted quote*, `books.flats`
+  moved by the difference from the hexes the town actually stands on. The anchor
+  is the **actual** placement (`workedTilesOf`), not the sheet the town is
+  pointed at, so `flats.food − standing.food` is the town's non-tile food and is
+  invariant under any reassignment — the sim's starvation guard putting a
+  focused sheet back, `capFoodSurplus` trimming a swap, a pinned hex.
+- **The seats to fill are `chooseCitizens`' cap, not the length of the last
+  assignment.** `city.workedTiles.length` is stale for exactly one turn after a
+  town grows — `settleGrowth` adds the citizen and `collectYields` seats it, and
+  `collectYields` prices the town *before* the growth phase — and any command
+  reaching `refreshCityDerived` (this arm's own, first of all) seats it. Seat 0
+  on seed 20260831 read four seats, was told the balanced ordering, seated its
+  fifth citizen on the way, and read five seats and the opposite word a moment
+  later. `population − specialists`, bounded by the assignable ground, is a fact
+  about the town's people rather than about when it was last swept.
+
+**And a bound where the board genuinely moves.** A card slotted, a government
+adopted, a hex bought — any of these legitimately changes what a town's hexes pay
+or what it eats, and batch 6's rule is that a mid-turn mutation is re-read from
+the state. Re-reading is right; ordering a second time is not.
+**`BotSitting.focused`** is that bound, `reaims`' sibling and the sitting's third
+piece of memory: a town this seat has pointed this turn keeps its word until the
+seat sits down again. Measured (seed 1, t48): the town was told the balanced
+ordering, the seat then slotted a card worth three bushels to it, and the same
+arm told it the hammers four commands later.
+
+Over twelve seeds × sixty turns the arm now issues 183 orders and **no town is
+ordered twice in one turn on any of them**; it was six such turns before, one of
+them the budget burn.
+
+### The levy counted scouts, the mix did not
+
+`countSoldiers` answered `isCombatant`, which is true of a scout — it has a
+combat strength — so the wage-aware levy read three ranging pieces as three
+quarters of the army it wanted, while the very next term in the same fold
+(`explainMixCraving`) said "1 of 1 in this army is melee". A seat with a column
+at its gate, one warrior in its town and three scouts on the map therefore
+charged the next spearman three quarters of its worth for an army it did not
+have, and started a worker. **`isFieldSoldier`** — combatant, not an explorer,
+not naval — is now the one predicate both readings ask, and `countRangers`
+against `military.scoutCap` remains the scouts' own count, as it always was.
+
+Measured on the fourteen-turn bench (seed 20260831, the threat fixture): with
+three wild warriors beside the town the warrior's fold goes 130 − 18.6 (the levy)
+− 27 (the mix) − 12 (the wage) = 72, against the worker's 17 — where it read
+16.93 and lost by a third of a point. In the quiet world the same warrior reads
+−12 and the worker still wins, which is the fixture's other half.
+
+**Known gap, written down rather than fixed.** The focus arm has no incumbency
+margin: the balanced candidate scores exactly nought by construction, so
+`priorities.switchMargin` has nothing to multiply and a town whose lean sits near
+zero can be re-pointed on consecutive turns (seed 20260831, seat 1's town, t43
+to t49 — production, default, production, default). One order per town per turn is guaranteed; one order per town per *era*
+is not, and a margin for it would need a baseline that is not zero.

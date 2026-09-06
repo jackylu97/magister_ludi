@@ -190,7 +190,6 @@ import {
   type CityQuote,
   assignableTiles,
   citizenFocusError,
-  citizenLean,
   cityFocus,
   cityQuote,
   cityYields,
@@ -247,6 +246,7 @@ import {
   riteError,
 } from '../sim/religion';
 import { RITE_IDS } from '../sim/religionData';
+import { totalSpecialists } from '../sim/specialists';
 import {
   SLOT_WORDS,
   anyCardDef,
@@ -287,6 +287,7 @@ import {
   startRouteError,
 } from '../sim/trade';
 import {
+  type UnitDef,
   type UnitTypeId,
   UNIT_TYPE_IDS,
   isCombatant,
@@ -534,11 +535,31 @@ export interface BotSitting {
    * same bound in both and the byte-for-byte pin between them holds.
    */
   reaims: number;
+  /**
+   * The towns this seat has already pointed this turn (`focusCommand`), and the
+   * sitting's third piece of memory — `reaims`' sibling, and a bound of exactly
+   * the same kind.
+   *
+   * A focus is a *standing* instruction, so the arm's own answer cannot change
+   * because it was acted on (see `focusCommand`). What can change it is the rest
+   * of the seat's turn: a card slotted, a government adopted, a building bought,
+   * a hex purchased — any of which moves what the town's hexes pay or what it
+   * eats, and any of which can make a lean the starvation guard struck a moment
+   * ago legal. That is a legitimate re-reading of a board that has genuinely
+   * moved (batch 6's rule: what a mid-turn mutation invalidates is re-read from
+   * the state), but it is not worth a second order: the town keeps the word it
+   * was given until the seat sits down again.
+   *
+   * Measured (seed 1, t48, seat 1): the town was told the balanced ordering, the
+   * seat then slotted a card worth three bushels to it, and the same arm told it
+   * the hammers four commands later.
+   */
+  focused: Set<number>;
 }
 
 /** A fresh sitting for one seat's turn. The driver and the stepper open these. */
 export function botSitting(playerId: number): BotSitting {
-  return { playerId, ctx: null, reaims: 0 };
+  return { playerId, ctx: null, reaims: 0, focused: new Set<number>() };
 }
 
 /**
@@ -1241,6 +1262,24 @@ function reaimBeeline(
  * The command is sent only when the focus it names differs from the one the town
  * carries, so it fires at most once per town per turn and then falls silent.
  * That is the research plan's lesson (`researchCommand`) said one verb over.
+ *
+ * The two readings that *must* be live — the starvation guard and the growth
+ * clock, both of which price the town through `cityYields` — hold that property
+ * by asking `foodUnder`, which shifts the town's quote to the sheet in question
+ * and lets the simulation stage it. They used to patch the staged total by a raw
+ * tile difference instead, which is a different number under any food percentage
+ * and a different number again depending on which sheet the town was standing on
+ * — and that, measurably, was an arm ordering one town back and forth until its
+ * seat's command budget ran out. See `foodUnder`.
+ *
+ * What those two clauses cannot cover is the board **genuinely** moving under
+ * the arm — a card slotted, a government adopted, a hex bought — which is the
+ * seat's other arms doing their work and is exactly the mid-turn mutation batch 6
+ * says to re-read from the state. Re-reading it is right; ordering a second time
+ * on it is not, and `BotSitting.focused` is that bound (`reaims`' sibling): a
+ * town this seat has pointed this turn keeps its word until the seat sits down
+ * again. A caller with no sitting keeps the old unbounded behaviour, which is
+ * the same bargain `seatContext` and `reaimBeeline` make.
  */
 function focusCommand(
   state: GameState,
@@ -1248,13 +1287,16 @@ function focusCommand(
   sitting?: BotSitting,
 ): BotDecision | null {
   const ctx = seatContext(state, player, sitting);
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
     // The whole gate, and it is the simulation's: a puppet chooses for itself,
     // and a seat that has ended its turn may not point anybody.
     if (citizenFocusError(state, player.id, city) !== null) continue;
+    if (own !== null && own.focused.has(city.id)) continue;
     const table = focusTable(state, city, ctx);
     if (table.best === cityFocus(city)) continue;
+    if (own !== null) own.focused.add(city.id);
     return {
       kind: 'focus',
       command: {
@@ -1300,10 +1342,38 @@ function focusTable(
   // `cityYields` is still the fold, so the figure is the same one and the empire
   // meter sweep behind it is paid for once rather than three times (batch 9).
   const books = cityQuote(state, city, [], empirePercents(state, city.ownerId));
-  // The seats to fill: exactly the citizens standing on the land today, which is
-  // `assignCitizens`' own `population − specialists` after the fact and needs no
-  // second reading of the guilds.
-  const seats = city.workedTiles.length;
+  // **The seats to fill: `chooseCitizens`' own `cap`, bounded by the ground it
+  // walks** — the citizens this town would place if it were placed right now,
+  // and *not* `city.workedTiles.length`.
+  //
+  // The two agree in every town whose assignment is fresh, and the length is
+  // what this read before. Where they part is a town that has **grown since it
+  // was last assigned**: `settleGrowth` adds the citizen and `collectYields` is
+  // what seats it, and `collectYields` prices the town *before* the growth
+  // phase, so a town that grows at the end of turn N stands all of turn N + 1
+  // with one fewer hex worked than it has people. Any command that reaches
+  // `refreshCityDerived` — this arm's own, first of all — seats them.
+  //
+  // Read off the length, that made the arm's own command change its answer: seat
+  // 0's town on seed 20260831 read four seats, was told the balanced ordering,
+  // seated its fifth citizen on the way, and read five seats and the opposite
+  // word a moment later. The cap is a fact about the town's people rather than
+  // about when it was last swept, so it survives the sweep.
+  const seats = Math.min(Math.max(0, city.population - totalSpecialists(city)), tiles.length);
+  // **What the hexes the town stands on today pay**, read through the same
+  // evaluator and the same context as the two sheets below — which is what makes
+  // it exactly the tile half of `books.flats` (`cityQuote` folds a worked hex's
+  // `tileYieldOf` into the flats one for one, under this town's own context, and
+  // `assignableTiles` is the ground this town owns, so `tileContextField` answers
+  // that same context for every hex of it).
+  //
+  // It is the anchor `foodUnder` subtracts, and the reason it is read off the
+  // town's **actual** placement rather than off whichever sheet the town is
+  // pointed at: the sim may be standing the citizens somewhere neither sheet
+  // predicts (the starvation guard put a focused sheet back, `capFoodSurplus`
+  // trimmed a swap, a hex is pinned), and an anchor that guessed would leave the
+  // arithmetic below reading differently before and after its own command.
+  const standingBag = bagOfTiles(workedTilesOf(state, city), ground);
   const ranked = (weights: typeof balanced): Tile[] => rankTiles(state, tiles, weights, ground);
   const plainRank = ranked(balanced);
   const under = (order: readonly Tile[]): YieldBag =>
@@ -1320,6 +1390,38 @@ function focusTable(
   const leanBag = under(ranked(leaning));
   const delta: YieldBag = {};
   for (const voice of VOICES) delta[voice] = (leanBag[voice] ?? 0) - (plainBag[voice] ?? 0);
+  /**
+   * **What this town would eat and bank with its people on `bag`'s hexes** — the
+   * simulation's own reading, asked of a *shifted quote* rather than patched
+   * afterwards, and the whole of what keeps this arm from arguing with itself.
+   *
+   * The reading has to be the town's live one — the raw hexes say nothing about
+   * the centre, the buildings, the routes or the percentages — and the two
+   * placements differ by bushels that are **flats**, so the honest way to move
+   * between them is to move the flats and let `cityYields` stage them:
+   * `(base + flats) × (1 + Σ city%) × (1 + Σ global%)`, floored once.
+   *
+   * Patching the *staged* total by a raw tile difference is what this replaces,
+   * and it was wrong in the way a percentage is always wrong twice: a town under
+   * a quarter's worth of food modifiers loses ten bushels of banked food for
+   * eight bushels of ground, so the correction under-read by two — and by
+   * different amounts depending on which sheet the town happened to be standing
+   * on. Measured (seed 20260904, t51, six citizens): the same town read a
+   * surplus of 11 while balanced and 1 while leaning, so the growth charge came
+   * out −3.1 one way and −11.3 the other, the lean scored +7.6 and then −0.6, and
+   * the arm spent a seat's whole command budget pointing one town back and forth.
+   *
+   * Written this way the answer is a function of the ground, of the town's
+   * non-tile facts and of `bag` alone: `books.flats.food − standingBag.food` is
+   * everything the town eats that is not a worked hex, and a command that moves
+   * the citizens moves both halves of that difference by the same bushels.
+   */
+  const foodUnder = (bag: YieldBag): number => {
+    const shift = (bag.food ?? 0) - (standingBag.food ?? 0);
+    const quote =
+      shift === 0 ? books : { ...books, flats: { ...books.flats, food: books.flats.food + shift } };
+    return cityYields(state, city, [], null, quote).food;
+  };
 
   const terms: ValueTerm[] = [
     nest('what the people would make on the other hexes', explainYields(delta, ctx)),
@@ -1360,7 +1462,7 @@ function focusTable(
   // bot already prices (`explainCitizen`), so it is charged the way every other
   // delay in the system is — the discount at the turns the lean would take to
   // grow, less the discount at the turns the balanced sheet would.
-  const growth = growthTerm(state, city, ctx, plainRank[seats], plainBag, leanBag, books);
+  const growth = growthTerm(state, city, ctx, plainRank[seats], plainBag, leanBag, foodUnder);
   if (growth !== null) terms.push(growth);
   const lean: BotCandidate = {
     label: 'work the hammers',
@@ -1384,17 +1486,12 @@ function focusTable(
   // town is put back, so a focus that would starve it buys nothing at all.
   //
   // This one *does* have to read the town's live books — the raw hexes say
-  // nothing about the centre, the buildings or the percentages — so it is
-  // written as a difference from whatever sheet the town is placed by **today**,
-  // which is invariant under the arm's own command: the live reading and the
-  // baseline move together by exactly the same bushels.
-  if (lean.score > 0) {
-    const standing = citizenLean(city) === 'production' ? leanBag : plainBag;
-    const fed =
-      cityYields(state, city, [], null, books).food + ((leanBag.food ?? 0) - (standing.food ?? 0));
-    if (fed < foodUpkeep(city)) {
-      lean.rejected = `${city.name} would not feed itself on the hammers`;
-    }
+  // nothing about the centre, the buildings or the percentages — and it asks
+  // them through `foodUnder`, which is the town's own evaluator over a quote
+  // shifted to the sheet in question. That is what makes it a fact about the
+  // ground rather than about the sheet the town happens to stand on today.
+  if (lean.score > 0 && foodUnder(leanBag) < foodUpkeep(city)) {
+    lean.rejected = `${city.name} would not feed itself on the hammers`;
   }
   const plain: BotCandidate = {
     label: 'the balanced ordering',
@@ -1412,11 +1509,13 @@ function focusTable(
  * **What leaning on the hammers costs this town in growth**, or `null` when it
  * costs none — `focusTable`'s second half.
  *
- * Both surpluses are read off the town's *live* books and moved by the
- * difference the two sheets make, for `focusTable`'s stated reason: the raw
- * hexes say nothing about the centre, the buildings or the percentages, and the
- * live reading minus the standing sheet is invariant under this arm's own
- * command.
+ * Both surpluses are the town's *live* books read under one sheet and then the
+ * other, through `focusTable`'s `foodUnder` — the simulation's own evaluator
+ * over a quote whose flats have been shifted to the sheet in question. The raw
+ * hexes say nothing about the centre, the buildings or the percentages, and a
+ * staged total patched by a raw difference is not the same number as the total
+ * staged from the shifted flats: see `foodUnder`'s own docblock for the two
+ * readings of one town that this arm used to answer.
  *
  * A town that cannot grow at all under a sheet waits the whole horizon, which is
  * `delayDiscount`'s nothing — so a focus that would stall a town's growth
@@ -1429,8 +1528,8 @@ function growthTerm(
   nextHex: Tile | undefined,
   plainBag: YieldBag,
   leanBag: YieldBag,
-  /** The town as it stands, hoisted by `focusTable`. See `push`'s `standing`. */
-  books: CityQuote,
+  /** `focusTable`'s reading of the town's food under a given sheet's hexes. */
+  foodUnder: (bag: YieldBag) => number,
 ): ValueTerm | null {
   // **What the next citizen is worth, read off the balanced ordering** rather
   // than off `explainCitizen`. The two agree about the clause that matters — the
@@ -1446,12 +1545,11 @@ function growthTerm(
     ctx,
   );
   if (citizen <= 0) return null;
-  const standing = citizenLean(city) === 'production' ? leanBag : plainBag;
-  const surplus = cityYields(state, city, [], null, books).food - foodUpkeep(city);
   const remaining = Math.max(0, growthThreshold(city.population) - city.foodBasket);
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const upkeep = foodUpkeep(city);
   const turnsAt = (bag: YieldBag): number => {
-    const rate = surplus + ((bag.food ?? 0) - (standing.food ?? 0));
+    const rate = foodUnder(bag) - upkeep;
     return rate <= 0 ? horizon : Math.ceil(remaining / rate);
   };
   const sooner = delayDiscount(turnsAt(leanBag), ctx) - delayDiscount(turnsAt(plainBag), ctx);
@@ -1485,6 +1583,22 @@ function rankTiles(
   }));
   scored.sort((a, b) => b.score - a.score || a.at - b.at);
   return scored.map((row) => row.tile);
+}
+
+/**
+ * The hexes this town's citizens are standing on **today**, as tiles.
+ *
+ * `City.workedTiles` is cells, and the whole of what this adds is the lookup —
+ * kept here so `focusTable`'s anchor and its two sheets are bagged by the one
+ * function over the one context.
+ */
+function workedTilesOf(state: GameState, city: City): Tile[] {
+  const tiles: Tile[] = [];
+  for (const cell of city.workedTiles) {
+    const tile = getTileAt(state.map, cell.col, cell.row);
+    if (tile) tiles.push(tile);
+  }
+  return tiles;
 }
 
 /** What a set of hexes pays, as a bag the appraisal weights. */
@@ -3936,14 +4050,16 @@ function mixRoleOf(def: ReturnType<typeof unitDef>): MixRole {
  * start an archer.
  *
  * Explorers are excluded — a scout is priced by its own branch and is nobody's
- * line of battle — and so are hulls, which this bot never builds.
+ * line of battle — and so are hulls, which this bot never builds. That rule is
+ * `isFieldSoldier`, shared with the levy's own count so the two readings inside
+ * one fold cannot disagree about who is in the army.
  */
 function armyMix(state: GameState, playerId: number): { counts: Record<MixRole, number>; total: number } {
   const counts: Record<MixRole, number> = { melee: 0, ranged: 0, mounted: 0, siege: 0 };
   let total = 0;
   const count = (id: UnitTypeId): void => {
     const def = unitDef(id);
-    if (!isCombatant(def) || isExplorer(def) || def.category === 'naval') return;
+    if (!isFieldSoldier(def)) return;
     counts[mixRoleOf(def)] += 1;
     total += 1;
   };
@@ -6199,10 +6315,36 @@ function countCities(state: GameState, playerId: number): number {
   return count;
 }
 
+/**
+ * **A piece of the field army** — what the levy counts and what the mix is a mix
+ * of, by the markers and never by a name.
+ *
+ * A scout has a combat strength (it can be attacked and it can defend a hill),
+ * so `isCombatant` is true of it — and it is nevertheless *not* a soldier in the
+ * only sense the levy means: it is a ranging piece, governed by its own count
+ * (`countRangers`) against its own cap, appraised down its own branch of
+ * `valueOfUnit`, and it is the piece an empire sends *away* from its towns. A
+ * hull is excluded for the same reason from the other side: this bot has no
+ * opinion about ships and never builds one, so counting them would be counting
+ * an army it did not raise.
+ *
+ * One predicate rather than two so the two readings inside one fold cannot
+ * disagree: the levy's *"this empire wants 7 soldiers and holds n"* and the
+ * mix's *"n of m in this army are melee"* now count the same pieces. They did
+ * not, and it was a measurable gap in the threat reading — a seat with a column
+ * at its gate, three scouts on the map and one warrior in its town read itself
+ * as 57% of the way to the levy it wanted, charged the next spearman three
+ * quarters of its worth for an army it did not have, and started a worker
+ * (2026-09-05, the fourteen-turn bench, seed 20260831).
+ */
+function isFieldSoldier(def: UnitDef): boolean {
+  return isCombatant(def) && !isExplorer(def) && def.category !== 'naval';
+}
+
 function countSoldiers(state: GameState, playerId: number): number {
   let count = 0;
   for (const unit of state.units) {
-    if (unit.ownerId === playerId && isCombatant(unitDef(unit.type))) count += 1;
+    if (unit.ownerId === playerId && isFieldSoldier(unitDef(unit.type))) count += 1;
   }
   return count;
 }

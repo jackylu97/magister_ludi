@@ -360,9 +360,19 @@ describe('a hundred turns of arithmetic', () => {
       // arms enough that no seat dips under `solvency.arrearsTreasury` inside
       // the hundred turns on this seed. The arm is unchanged and its pin is
       // where it always was, provoked deliberately in `aiBot.test.ts`.
+      //
+      // **And `disband` grew back again on 2026-09-05**, from the levy's own
+      // count (`isFieldSoldier`): a scout is no longer read as a soldier the
+      // empire already holds, so a seat with a column at its gate raises the
+      // spearmen it actually wants, pays their wages, and somewhere inside the
+      // hundred turns dips under `solvency.arrearsTreasury` and lets a
+      // redundant piece go. Same sentence as the 2026-09-04 note, one cause
+      // over — the arm doing its job rather than the economy failing — and the
+      // list now reads all NINE kinds this bot has, which is the whole register.
       expect([...kinds].sort()).toEqual([
         'build',
         'deal',
+        'disband',
         'draft',
         'endTurn',
         'focus',

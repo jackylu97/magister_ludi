@@ -1126,9 +1126,9 @@ describe('the focus arm', () => {
    * exercise this: the two sheets pick the same hexes when every hex is the
    * same, so the difference the arm exists to price is nought by construction.
    * The standard duel is where the two sheets actually disagree, and the arm is
-   * reached there in both directions inside thirty turns.
+   * reached there in both directions inside `FOCUS_TURNS`.
    */
-  function focusSteps(turns: number): { decision: BotDecision; turn: number; ok: boolean }[] {
+  function playFocusSteps(turns: number): { decision: BotDecision; turn: number; ok: boolean }[] {
     const game = createGame(CONFIG);
     const stepper = createBotStepper(game, { warn: () => {} });
     const found: { decision: BotDecision; turn: number; ok: boolean }[] = [];
@@ -1142,15 +1142,32 @@ describe('the focus arm', () => {
     return found;
   }
 
-  // Re-aimed 2026-09-05 (batch 8, on the retuned sheet): seat 0 now leans on the
-  // hammers at t32 and puts the town back at t35. The window is what the two
-  // directions need, not a number with an opinion.
-  const FOCUS_TURNS = 40;
+  /**
+   * The one game, played once for the three claims below.
+   *
+   * Deterministic (`createGame` off a fixed config, `createBotStepper`'s own
+   * loop), so three tests reading one run read exactly what three runs would
+   * have said — and the window is long enough now that playing it three times is
+   * a third of this file's wall clock for nothing.
+   */
+  let cached: { decision: BotDecision; turn: number; ok: boolean }[] | null = null;
+  function focusSteps(turns: number): { decision: BotDecision; turn: number; ok: boolean }[] {
+    if (cached === null) cached = playFocusSteps(turns);
+    return cached;
+  }
+
+  // Re-aimed 2026-09-05 (the levy's own count, `isFieldSoldier`, and the focus
+  // arm's idempotence pass): seat 0 leans its capital on the hammers at t29 and
+  // its two other towns at t33 and t39, the first town is put back at t53, and
+  // seat 1's town is told the balanced ordering at t44. The window is what the
+  // two directions need on this board, not a number with an opinion — it was 40
+  // while the arm's story ran from t32 to t35.
+  const FOCUS_TURNS = 56;
 
   it('points a town at the hammers and takes it back, and the rules accept both', () => {
-    // Measured on this board (2026-09-05, batch 8's sheet): seat 0 leans its
-    // town on the hammers at t32 while an engine is waiting on them, and puts it
-    // back at t35 when the engine is standing — which is the whole of the arm's
+    // Measured on this board (2026-09-05): seat 0 leans its capital on the
+    // hammers at t29 while an engine is waiting on them and puts a town back at
+    // t53 when the engine is standing — which is the whole of the arm's
     // sentence, in both directions, on a board nobody arranged.
     const steps = focusSteps(FOCUS_TURNS);
     expect(steps.length).toBeGreaterThan(0);
@@ -1162,13 +1179,10 @@ describe('the focus arm', () => {
     for (const step of steps) expect(step.ok).toBe(true);
   });
 
-  it('never asks the same town for the focus it already has, in one turn or across two', () => {
-    // Idempotence by construction — the research plan's lesson, and what keeps
-    // the driver's loop finite. The arm's appraisal is a function of the ground
-    // and of the sitting's frozen readings, never of the focus it is about, so
-    // acting on it cannot change it: no town is told the same word twice in a
-    // row, and no turn carries two orders for one town.
-    const steps = focusSteps(FOCUS_TURNS);
+  /** Every focus order on one played board must be a town's first that turn. */
+  function expectOneOrderPerTownPerTurn(
+    steps: readonly { decision: BotDecision; turn: number; ok: boolean }[],
+  ): void {
     const last = new Map<number, string>();
     const perTurn = new Set<string>();
     for (const step of steps) {
@@ -1179,6 +1193,46 @@ describe('the focus arm', () => {
       expect(perTurn.has(key)).toBe(false);
       perTurn.add(key);
     }
+  }
+
+  it('never asks the same town for the focus it already has, in one turn or across two', () => {
+    // Idempotence by construction — the research plan's lesson, and what keeps
+    // the driver's loop finite. It stands on three things, and all three are
+    // `focusCommand`'s docblock:
+    //
+    //   · the appraisal is a function of the ground and of the sitting's frozen
+    //     readings, never of the focus it is about — the two live readings go
+    //     through `foodUnder`, which shifts the town's quote to the sheet in
+    //     question rather than patching a staged total by a raw tile difference;
+    //   · the seats it fills are `chooseCitizens`' own cap rather than the
+    //     length of an assignment the arm's own command is about to refresh;
+    //   · and the sitting will not ask a town twice, so a board that genuinely
+    //     moves mid-turn (a card slotted, a hex bought) is re-read next turn
+    //     rather than re-ordered this one.
+    expectOneOrderPerTownPerTurn(focusSteps(FOCUS_TURNS));
+  });
+
+  it('holds its word on the board that used to burn a seat\'s whole command budget', () => {
+    // The regression, pinned on the board it was measured on (2026-09-05, seed
+    // 20260904 at t51): one town, six citizens, a quarter's worth of food
+    // percentages on it — so eight bushels of ground moved the town's staged
+    // food by ten, the growth charge read −3.1 with the town standing balanced
+    // and −11.3 with it standing on the hammers, and the arm ordered it back and
+    // forth until `driver.commandsPerSeat` cut the seat off. Fifty-two turns is
+    // what it takes to reach; the claim is the same one the test above makes.
+    const game = createGame({ ...CONFIG, seed: 20260904 });
+    const stepper = createBotStepper(game, { warn: () => {} });
+    const steps: { decision: BotDecision; turn: number; ok: boolean }[] = [];
+    for (let turn = 0; turn < 52; turn++) {
+      for (const step of stepper.playTurn()) {
+        if (step.decision.kind === 'focus') {
+          steps.push({ decision: step.decision, turn: step.turn, ok: step.result.ok });
+        }
+      }
+    }
+    expect(steps.length).toBeGreaterThan(0);
+    expectOneOrderPerTownPerTurn(steps);
+    for (const step of steps) expect(step.ok).toBe(true);
   });
 
   it('prints both readings and folds each candidate from its own terms', () => {
