@@ -22,7 +22,7 @@
  * ----------------------------------------
  * Milestone 10 put the same two sentences on three surfaces — the top bar's
  * meter chips, their hover cards, and the city panel's modifier lines — and they
- * are here for the third time for the reason above: `+6` / `−2.4` uses the true
+ * are here for the third time for the reason above: `+6` / `−2` uses the true
  * minus sign rather than a hyphen because every figure in this interface is set
  * in mono and tabular, and `⚙🔬🎭 −10%` says a modifier in the same five glyphs
  * the yields themselves are written in.
@@ -37,6 +37,7 @@
 
 import type { MeterEffect, MeterId } from '../sim/meters';
 import type { ProjectPayout } from '../sim/projectData';
+import { roundYield } from '../sim/yieldFormat';
 
 /** The six yields, in the order the city panel's chip row lists them. */
 export type YieldKey = 'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith';
@@ -167,12 +168,14 @@ export const PROJECT_GLYPHS: Record<keyof ProjectPayout, string> = {
   gold: YIELD_GLYPH.gold,
   science: YIELD_GLYPH.science,
   faith: YIELD_GLYPH.faith,
+  culture: YIELD_GLYPH.culture,
 };
 
 export const PROJECT_SPOKEN: Record<keyof ProjectPayout, string> = {
   gold: ' gold',
   science: ' science',
   faith: ' faith',
+  culture: ' culture',
 };
 
 export const HAMMER = YIELD_GLYPH.production;
@@ -187,18 +190,50 @@ export function turnsLabel(turns: number | null): string {
 }
 
 /**
- * "+6", "−2.4", "0" — a signed figure in the house voice.
+ * "+6", "−2", "0" — a signed figure in the house voice.
  *
- * Rounded to a tenth, because the only fractional figures on this interface are
- * the happiness curve's crowding terms and nobody needs the fourteenth decimal
- * place of `0.6 · 3 ^ 1.4`. A true minus sign, never a hyphen.
+ * **A whole number since batch X** (exact yields, the user 2026-09-06: *"just
+ * don't show this to the player"*). Every yield, pool, basket and price in the
+ * simulation is now carried as the exact fraction it is, and this is one of the
+ * two places the interface turns one back into something a player reads — so the
+ * rounding rule is not this file's to invent: it is `roundYield`'s, in
+ * `src/sim/yieldFormat.ts`, shared with the sim's own describers so a card's
+ * printed clause and the chip above it round the same way.
+ *
+ * A true minus sign, never a hyphen. The two **meters** keep their tenth and
+ * have their own printer below (`signedMeterFigure`) — a happiness curve's
+ * crowding term is not a yield, and the rung it is closing on is worth seeing.
  */
 export function signedFigure(value: number): string {
+  const rounded = roundYield(value);
+  const body = compact(Math.abs(rounded));
+  if (rounded > 0) return `+${body}`;
+  if (rounded < 0) return `−${body}`;
+  return '0';
+}
+
+/**
+ * The same voice with a tenth kept — for the **meters**, and only for them.
+ *
+ * `signedFigure`'s old body, split off rather than deleted when batch X made
+ * every yield print whole. Happiness and authority are not yields: they are
+ * ledgers whose lines include a crowding term of `0.6 · 3 ^ 1.4`, they are
+ * compared against tier *rungs* rather than spent, and a chip reading `+9` while
+ * the tenth-of-a-point below the rung is what a player is playing around would
+ * be hiding the wrong thing. Nobody needs the fourteenth decimal place, hence
+ * the tenth.
+ */
+export function signedMeterFigure(value: number): string {
   const rounded = Math.round(value * 10) / 10;
   const body = compact(Math.abs(rounded));
   if (rounded > 0) return `+${body}`;
   if (rounded < 0) return `−${body}`;
   return '0';
+}
+
+/** `signedMeterFigure`'s unsigned half — a meter's magnitude, tenth kept. */
+export function meterFigure(value: number): string {
+  return compact(Math.abs(Math.round(value * 10) / 10));
 }
 
 /**
@@ -222,9 +257,15 @@ function compact(magnitude: number): string {
   return rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1);
 }
 
-/** A plain magnitude in the same voice: `6`, `2.4`, `1.5k`, `2M`. */
+/**
+ * A plain magnitude in the same voice: `6`, `2`, `1.5k`, `2M`.
+ *
+ * Whole since batch X, through `roundYield` — see `signedFigure`. The `k`/`M`
+ * abbreviation keeps its tenth, because `1.5k` is a *scale* rather than a
+ * fraction of a point and a thousand-and-a-half beakers is what it says.
+ */
 export function figure(value: number): string {
-  return compact(Math.abs(value));
+  return compact(Math.abs(roundYield(value)));
 }
 
 /**

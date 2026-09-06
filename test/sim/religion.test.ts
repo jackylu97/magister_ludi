@@ -21,6 +21,7 @@ import { describe, expect, it } from 'vitest';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   cityContext,
+  cityQuote,
   cityYields,
   growthCarryover,
   explainTileYield,
@@ -697,10 +698,13 @@ describe('rites', () => {
   it('science — every building standing in the town adds a beaker', () => {
     const { g, city, player } = town('earthenware', 'letters');
     city.buildings.push('library');
-    const before = cityYields(g.state, city).science;
+    // The **flats**, since batch X: the empire stage multiplies both readings
+    // and is no longer floored away, so "two more beakers" is a claim about the
+    // fold rather than about the staged figure.
+    const before = cityQuote(g.state, city).flats.science;
     performRiteAt(g.state, player, city, 'omenReading');
     // The Chapel and the Library are two shelves, so two beakers.
-    expect(cityYields(g.state, city).science).toBe(before + city.buildings.length);
+    expect(cityQuote(g.state, city).flats.science).toBe(before + city.buildings.length);
   });
 
   it('culture — luxuries sing, and the bounds walk outward faster', () => {
@@ -941,18 +945,19 @@ describe('timed effects', () => {
   it('run out on the exact turn they name, and not the one before', () => {
     const { g, city } = blessed();
     city.buildings.push('library');
-    const bare = cityYields(g.state, city).science;
+    const bare = cityQuote(g.state, city).flats.science;
 
     performRiteAt(g.state, playerById(g.state, 0)!, city, 'omenReading');
     const expires = city.timed![0]!.expiresTurn;
     expect(expires).toBe(g.state.turn + 10);
 
-    // Live on the last turn before the expiry…
+    // Live on the last turn before the expiry… (the flats, for batch X's reason
+    // above: the stage multiplies both sides.)
     g.state.turn = expires - 1;
-    expect(cityYields(g.state, city).science).toBe(bare + city.buildings.length);
+    expect(cityQuote(g.state, city).flats.science).toBe(bare + city.buildings.length);
     // …and inert on the expiry itself. A comparison, never a countdown.
     g.state.turn = expires;
-    expect(cityYields(g.state, city).science).toBe(bare);
+    expect(cityQuote(g.state, city).flats.science).toBe(bare);
   });
 
   it('are swept without changing any answer — a broom, not a clock', () => {

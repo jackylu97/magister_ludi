@@ -191,7 +191,8 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
   const share = cardAmplifier(state, playerId, 'connectionYields');
   let connectionGold = 0;
   for (const entry of connected) connectionGold += entry.gold + perCity;
-  if (share !== 0) connectionGold = Math.floor((connectionGold * (100 + share)) / 100);
+  // Exact since batch X — the share of a road's coin is a yield like any other.
+  if (share !== 0) connectionGold = (connectionGold * (100 + share)) / 100;
   if (connectionGold !== 0) {
     const count = connected.length;
     lines.push({
@@ -208,17 +209,19 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
     // nothing to do with Entry XVII's two city stages, and routing it through
     // them would have multiplied a town's markets into the price of a road.
     //
-    // Percentages **sum before one multiplication** and the product is floored
-    // **once**, then shared out in the lines' own order so the parts sum to it
-    // exactly however the flooring falls — `explainUnitUpkeepRebate`'s
-    // running-difference discipline, one ledger over.
+    // Percentages **sum before one multiplication**, then the product is shared
+    // out in the lines' own order so the parts sum to it exactly —
+    // `explainUnitUpkeepRebate`'s running-difference discipline, one ledger
+    // over. Since batch X both halves are exact, so the last line's correction
+    // is arithmetically a no-op; it is kept because the discipline is the rule
+    // and a future integer-shaped share would need it again.
     const shares = resourceConnectionPercent(state, playerId);
     const sum = foldRulePercent(shares);
-    const extra = Math.floor((connectionGold * sum) / 100);
+    const extra = (connectionGold * sum) / 100;
     if (extra !== 0) {
       let paid = 0;
       for (let i = 0; i < shares.length; i++) {
-        const share = i === shares.length - 1 ? extra - paid : Math.floor((extra * shares[i]!.percent) / sum);
+        const share = i === shares.length - 1 ? extra - paid : (extra * shares[i]!.percent) / sum;
         paid += share;
         if (share === 0) continue;
         lines.push({ source: shares[i]!.source, gold: share });

@@ -1530,7 +1530,29 @@ export type CardRule =
    * card that doubles it prints +100. Folded once, in `explainEmpireGold`'s
    * maintenance line, and clamped so a −100% army is free rather than a mint.
    */
-  | 'unitUpkeep';
+  | 'unitUpkeep'
+  /**
+   * **What one step along a road costs a marching piece** (`roadStepCost`,
+   * `pathfind.ts`) — Machinery's *"roads at a fifth instead of a third"*.
+   *
+   * The ninth rule and the only one that is not about a city's books at all. It
+   * is here rather than as an effect kind of its own because it is exactly what
+   * `settlerCost` and `unitUpkeep` are: a percentage on a constant the game
+   * already reads in one place, with the same sign convention — a **negative**
+   * percentage is a discount, so a third becoming a fifth is −40.
+   *
+   * Read **once per sweep**, into `MoveProfile.roadStep`, and never inside
+   * `stepCost` itself: a step's price is asked tens of thousands of times inside
+   * one search and a card walk per edge would be `zocField`'s mistake made
+   * again. Everything downstream — `findPath`, `reachableTiles`,
+   * `advanceAlongPath`, `pathTurns` — inherits it through the one evaluator, so
+   * no highlight can promise a march the walk will not make.
+   *
+   * The result is snapped onto `MOVEMENT_DENOMINATOR`, which is fifteen for this
+   * rule's sake: a third and a fifth are both exact fifteenths, and every
+   * running total in the searches has to compare equal to itself.
+   */
+  | 'roadStepCost';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -3378,6 +3400,29 @@ export interface CardRouteYieldEffect {
   culture?: number;
   /** Which origin towns' caravans carry it. Absent means all of them. */
   origin?: CityScope;
+  /**
+   * **Paid once for every luxury held at either end of the road** — The Golden
+   * Roads' *"+1💰 from each luxury resource in the origin or destination city"*
+   * (`docs/tech-gifts.md` §7).
+   *
+   * A multiplier on this row's own bag rather than a count shape of its own,
+   * because the thing counted is a fact about *the route* and nothing else in
+   * the vocabulary can see both ends of one: `origin` above is a `CityScope`
+   * asked of the town the caravan left, and there is deliberately no
+   * `destination` twin — a scope answers about one town, and this question is
+   * about a pair.
+   *
+   * Counted as the **union** of the two towns' luxuries, once each: a vineyard
+   * at both ends of a road is one wine, not two, which is the reading *"in the
+   * origin or destination city"* takes literally and the one that cannot be
+   * farmed by pointing a caravan at a mirror of its own hinterland. Each town's
+   * own list is `cityResources(…, 'luxury')`, the same one-per-town rule the
+   * luxury signatures keep (`resourceEffects.ts`), so a pillaged plantation
+   * stops paying the caravan and the signature at the same instant.
+   *
+   * Folded in `routeYields.ts`, which is the only module holding both cities.
+   */
+  perEndpointLuxury?: true;
 }
 
 /** Everything a card may say. One union, one evaluator (`statecraft.ts`). */

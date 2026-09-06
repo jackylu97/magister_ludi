@@ -222,11 +222,11 @@ describe('a monument buys three or four tiles by the early game', () => {
    * at its end — which is why the assertion is a band of 4–5 across turns
    * 25–30 rather than a number.
    *
-   * The +10% the writ puts on the accrual is worth nothing at 3 culture a turn,
-   * and that is deliberate and not a bug: the accrual is floored once, exactly
-   * as `cityYields` floors a barracks' hammers, so a bonus on three is three. A
-   * monument town is not meant to sprint; the writ's tier is felt by cities that
-   * actually make culture, and the test below proves it on one that does.
+   * The +10% the writ puts on the accrual used to be worth nothing at 3 culture
+   * a turn, because the accrual floored. **Batch X ended that** (exact yields,
+   * the user 2026-09-06): three culture under a +10% writ is 3.3 and the three
+   * tenths bank, so a monument town on the ladder does now creep, and the
+   * schedule below moved a turn or two earlier the day the floors came out.
    */
   it('claims its fourth and fifth tiles inside turns 25–30', () => {
     const state = flatState(24, 18);
@@ -238,10 +238,8 @@ describe('a monument buys three or four tiles by the early game', () => {
     expect(authorityOf(state, 0)).toBe(
       WRIT.palaceCapacity + RULES.meters.authority.capital * -1 - WRIT.capital,
     );
-    // **And below the first writ rung since batch D**, which changes nothing
-    // here and proves the docblock's own point: the tier's ten percent was
-    // worth nothing at three culture a turn, because the accrual is floored
-    // once. The schedule below is the same schedule it was with the writ.
+    // **And below the first writ rung since batch D**, so nothing multiplies
+    // this town's accrual at all and the schedule below is the bare curve.
     expect(tierPercent(authorityOf(state, 0))).toBe(0);
 
     const claimedOn: number[] = [];
@@ -256,7 +254,12 @@ describe('a monument buys three or four tiles by the early game', () => {
     }
 
     // The schedule the docblock works out by hand, reproduced by the pipeline.
-    expect(claimedOn.slice(0, 5)).toEqual([2, 5, 9, 16, 25]);
+    // Re-pinned 2026-09-06 (batch X — exact yields): 2 · 5 · 9 · 16 · 25 became
+    // 2 · 4 · 8 · 15 · 24. Nothing about the border curve moved; what moved is
+    // that the town's own culture is no longer floored on its way through Entry
+    // XVII's stages, so a fraction of a point a turn accumulates instead of
+    // being thrown away, and every rung after the first arrives a turn sooner.
+    expect(claimedOn.slice(0, 5)).toEqual([2, 4, 8, 15, 24]);
 
     // And the claim, as a band over the window: four or five tiles on every
     // turn from 25 to 30 (the 2026-09-05 ruling's reading — it was three or
@@ -337,7 +340,9 @@ describe('the writ and the borders', () => {
     expect(growth.frozen).toBe(false);
     expect(growth.percent).toBe(tierPercent(authorityOf(state, 0)));
     expect(growth.percent).toBeGreaterThan(0);
-    expect(growth.perTurn).toBe(Math.floor(growth.base * (1 + growth.percent / 100)));
+    // Exact since batch X, so the writ's tenth of a point banks rather than
+    // rounding away on a town making three culture.
+    expect(growth.perTurn).toBe(growth.base * (1 + growth.percent / 100));
     expect(growth.perTurn).toBeGreaterThan(growth.base);
     // And the accrual is what the pipeline actually banks.
     const before = city.culture;

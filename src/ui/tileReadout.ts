@@ -51,7 +51,8 @@ import { TILE_YIELD_KEYS, featureDef, terrainDef } from '../sim/terrainData';
 import { hasFreshWater, isCoastal } from '../sim/water';
 import { citySightingOf, isExploredBy, isVisibleTo } from '../sim/visibility';
 import { cityDisplayName } from './cityDisplay';
-import { YIELD_GLYPH, YIELD_NAME, type YieldKey, signedFigure } from './figures';
+import { YIELD_GLYPH, YIELD_NAME, type YieldKey, signedMeterFigure } from './figures';
+import { roundYield } from '../sim/yieldFormat';
 import { yieldFigureNodes } from './yieldMark';
 import { resourceMarkNode } from './resourceMark';
 
@@ -132,11 +133,13 @@ export function tileYieldNodes(
   // (`src/art/yieldMarks.ts`, printed here by `src/ui/yieldMark.ts`). The row
   // gets an `aria-label` of its own because this is one of the few surfaces
   // where the figure has *no* word beside it: "2 food" spoken, "2🌾" seen.
-  return TILE_YIELD_KEYS.filter((key) => value[key] > 0).map((key) => {
+  // Rounded at the eye (batch X): the fold is exact, the hex reads whole.
+  return TILE_YIELD_KEYS.filter((key) => roundYield(value[key]) > 0).map((key) => {
+    const shown = String(roundYield(value[key]));
     const span = document.createElement('span');
     span.className = `tile-yield is-${key}`;
-    span.append(yieldFigureNodes(String(value[key]), key));
-    span.setAttribute('aria-label', `${value[key]} ${YIELD_NAME[key]}`);
+    span.append(yieldFigureNodes(shown, key));
+    span.setAttribute('aria-label', `${shown} ${YIELD_NAME[key]}`);
     return span;
   });
 }
@@ -187,7 +190,10 @@ function partsOf(entry: TileYieldContribution): TileYieldPart[] {
   const signed = entry.kind === 'add';
   const parts: TileYieldPart[] = [];
   for (const key of TILE_YIELD_KEYS) {
-    const value = entry[key];
+    // Rounded at the eye, never in the fold (batch X): a card's half-point share
+    // of a hex is half a point in `explainTileYield` and reads `+1` or nothing
+    // here. A line rounding to nothing is dropped rather than printed as `0`.
+    const value = roundYield(entry[key]);
     if (value === 0) continue;
     parts.push({ key, text: signed && value > 0 ? `+${value}` : String(value) });
   }
@@ -512,7 +518,7 @@ export function describeWater(state: GameState, tile: Tile): string | null {
  *
  * Both meters always, in the order the top bar carries them, and never a row of
  * one: a founding costs on both sides and a player choosing a hex is weighing
- * them against each other. `signedFigure` is the same printer the meter chips
+ * them against each other. `signedMeterFigure` is the same printer the meter chips
  * and their hover cards use, so the figures on this card and the figures on the
  * bar are set in one voice.
  *
@@ -524,7 +530,7 @@ export function describeWater(state: GameState, tile: Tile): string | null {
 export function foundingCostText(lines: readonly FoundingCost[]): string {
   const authority = foldMeter(foundingCostLines(lines, 'authority'));
   const happiness = foldMeter(foundingCostLines(lines, 'happiness'));
-  return `${signedFigure(authority)} authority · ${signedFigure(happiness)} happiness`;
+  return `${signedMeterFigure(authority)} authority · ${signedMeterFigure(happiness)} happiness`;
 }
 
 /**

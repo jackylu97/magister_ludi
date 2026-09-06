@@ -31,12 +31,21 @@
  * `applyStages` multiplies in whole points and divides once, rather than
  * building two floating factors and multiplying them into the base. Both readings
  * are the same arithmetic; only one of them is *exact* where it matters. The
- * numerator is integer-valued and far inside the range a double holds exactly, so
- * whenever the true result is a whole number the division returns it exactly —
- * `20 × 1.15` is `22.999999999999996` and floors to 22, while `20 × 115 / 100` is
- * 23 and floors to 23. Floor-once was always the rule; this is what makes it
- * true rather than nearly true, and it is why a marble city's build estimate no
- * longer loses a hammer to the last bit of a mantissa.
+ * numerator is integer-valued (when the base is) and far inside the range a
+ * double holds exactly, so whenever the true result is a whole number the
+ * division returns it exactly — `20 × 1.15` is `22.999999999999996`, while
+ * `20 × 115 / 100` is 23 on the nose. That mattered when the answer was floored;
+ * it still matters, because a printed figure rounds and a figure a mantissa left
+ * a hair under 23 would print 23 either way but *bank* the hair.
+ *
+ * Batch X — exact yields (the user, 2026-09-06)
+ * ---------------------------------------------
+ * The floor at the end is **gone**. A yield is carried as the exact fraction the
+ * two stages produce, banked as that fraction, and rounded only where a surface
+ * prints it (`src/sim/yieldFormat.ts`). Floor-once became lose-a-point-once the
+ * moment a per-town figure could honestly be half a beaker: batch D halved
+ * `sciencePerPop` and a size-1 town banked *nothing*, because the floor was
+ * inside the fold rather than at the reader's eye.
  */
 
 /**
@@ -131,14 +140,16 @@ export function stageFactor(sums: StageSums): number {
 }
 
 /**
- * Entry XVII, applied: the city stage, then the global stage, floored once.
+ * Entry XVII, applied: the city stage, then the global stage, and **no rounding
+ * at all**.
  *
  * The **only** place a yield meets a percentage. Callers hand it a base that has
  * every flat already folded in (rule 5: the total is the fold of the breakdown)
- * and get back the whole number the city banks — there is no intermediate result
- * anyone may round, print, or bank.
+ * and get back the exact figure the city banks — there is no intermediate result
+ * anyone may round, print, or bank, and since batch X there is no *final* one
+ * either. A surface rounds; the simulation does not.
  */
 export function applyStages(base: number, sums: StageSums): number {
-  if (stagesAreIdle(sums)) return Math.floor(base);
-  return Math.floor((base * (100 + sums.city) * (100 + sums.empire)) / 10_000);
+  if (stagesAreIdle(sums)) return base;
+  return (base * (100 + sums.city) * (100 + sums.empire)) / 10_000;
 }

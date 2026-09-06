@@ -51,6 +51,397 @@ The play checkout (:5199) moves only when the user says; every batch lands in
 
 ## As shipped
 
+### Batch X as shipped (2026-09-06) — schema 75
+
+Yields are exact. The ruling, in the user's words on the day batch D's science
+cut was measured: *"could we just have yields be valid as decimals? Just don't
+show this to the player, but behind the scenes all yields should be calculated
+exactly."*
+
+The measurement that caused it: D halved `rules.cities.sciencePerPop` to 0.5 and
+the scripted five-town empire's Æra I close slid **t66 → t236**. Nothing about
+the tree moved. What moved is that the base beaker was floored **per town**, so a
+size-1 village at half a beaker banked *nothing at all* — and the same floor sat
+under a card's tenth of a harvest, a writ's ten percent on three culture, a
+luxury's half-point signature and a fifth of a turn's science. The ruling takes
+the floor out of every fold and puts one rounding at the reader's eye.
+
+#### The three halves
+
+1. **Nothing rounds inside a fold.** `applyStages` (Entry XVII's two
+   multiplications) returns the exact product; every per-citizen line, tile
+   percentage share, card conversion, amplifier, route share, connection share,
+   renown trickle share, upkeep rebate, luxury signature, growth surplus, growth
+   carryover and border accrual carries the fraction.
+2. **The banks hold it.** `Player.gold` · `sciencePool` · `culturePool` ·
+   `faithPool` · `renownPool` · `City.foodBasket` · `hammerBasket` ·
+   `City.culture` are JSON numbers that may be fractional. Every threshold beside
+   them is still an integer and every comparison is the `<` / `>=` it always was
+   — `floor(x) >= n` and `x >= n` are the same statement for integer `n`, which
+   is why the pools' own readings could be left alone.
+   `Player.pressureBank` is **not** yield-fed (lumps and the tide are integers)
+   and is untouched.
+3. **The surface rounds, and only the surface.** One formatter,
+   `src/sim/yieldFormat.ts` — `roundYield` / `formatYield` / `signedYield` /
+   `yieldShows` — in `src/sim/` rather than in `src/ui/` because the compendium's
+   describers, a card's clause and a toast's sentence are composed sim-side.
+
+#### The audit
+
+Every `Math.floor` / `Math.round` / `Math.trunc` in `src/sim/` was classified —
+185 call sites over 39 files. **Removed — 38, across 9 files**, each one a line
+of a yield fold:
+
+| file | what came out |
+|---|---|
+| `modifiers.ts` | `applyStages` — both floors, the idle path and the two-stage product |
+| `cities.ts` | the two tile percentage shares (works · ground) · `cardBuildingYields`' per-pop base and its share · `explainBuildingPreview`'s per-pop line · `cityQuote`'s centre per-pop and buildings per-pop · `growthSurplus` · `borderGrowth.perTurn` · `growthCarryover` · a beaten wonder's gold refund |
+| `statecraft.ts` | `amplifyTrickle` · the amplifier's percent · the slot-position factor · `cardYieldConversions` · the tile-line amplifier · `fromRate`'s share of a turn · `windfallPayout`'s rider percentage · `rateOf`'s five voices (a rate is divided *and* floored by `helpings` when it is a count, so unfloring it changes no count and pays a `fromRate` grant its fraction) |
+| `routeYields.ts` | the route amplifier's five voices |
+| `empireGold.ts` | the connection share, the luxury share of it, and its apportionment |
+| `renown.ts` | the buildings' trickle share |
+| `upkeep.ts` | the payroll rebate and its apportionment |
+| `resourceEffects.ts` | a luxury's yield bag, scaled by copies |
+| `triumphs.ts` | The Academy of Deeds' share of a Triumph's lump |
+
+**Kept — the other 147**, because each is a price, a threshold, a count, an
+index, a roll, movement or a display. The ones worth naming:
+
+| kept | where | why |
+|---|---|---|
+| `growthThreshold` · `nextBorderCost` · `borderCostFor` | `cities.ts` | prices the basket and the culture bank are compared *against*; a fractional threshold makes every rail unreadable |
+| `explainUnitCost`'s age band and settler law · `tilePurchasePrice` · `explainTilePurchase` (ring index, era step, luxury discount) | `cities.ts` | prices |
+| `settlePopulationWindfall`'s `points` | `cities.ts` | a count of citizens |
+| `specialistThreshold` | `specialists.ts` | the guild bar |
+| `helpings` (`floor(total / step)`) · `countOf`'s pool and rate readings · `draftCost` · `skipPity` · offer sizes · every `every`/`turns` figure | `statecraft.ts` | counts and periods. **The `per: N` ruling stands**: "one point per two citizens" counts citizens; it did not become half a point a citizen (batch D chose `countScaled per: 2` deliberately) |
+| `buildingsPerFood` · `buildingsPerProduction` · `goldPerCombinedPop` | `routeYields.ts` | "one X per N things" — the same count rule |
+| `roadsPerMaintenance` | `empireGold.ts` | one coin of upkeep per N road hexes |
+| `renownThreshold` | `renown.ts` | the great-person ladder's rung |
+| the faith ladder · the reroll price · `pressurePerConvert` · the majority · the apostle's range and lump · `relicFaith` | `religion.ts` | prices, counts and pressure — pressure is not yield-fed |
+| `Math.floor(player.faithPool)` in the three refusal sentences | `religion.ts` | a **shortfall** printed in a refusal must never round *up* into affordability ("asks 40 and has 40" would be a lie) |
+| `routeTurns` | `turn.ts` | a duration |
+| the luxury happiness lines | `meters.ts`, `resourceEffects.ts` | meters are not yields |
+| `snapMovement`, every combat roll, every rng index | `movement.ts`, `combat.ts`, … | untouched by construction |
+
+`test/sim/exactYields.test.ts` pins both columns by reading the source, so a
+floor that comes back on a fold's line fails the build.
+
+#### The formatter, and the two meters
+
+`figure` and `signedFigure` (`src/ui/figures.ts`) now round **whole**, through
+`roundYield`. They were the interface's two number printers already, so one edit
+carried forty call sites. Everything that composes a figure itself — the town
+rail's meters, the hex readout, the stamp's counted digits, a plunder's spoils,
+the culture ladder, the pressure ledger, the spectator's seat line — names
+`roundYield` / `signedYield` directly, and `test/ui/yieldPrinters.test.ts` is the
+register of that list.
+
+**The two meters keep their tenth**, on a printer of their own
+(`meterFigure` / `signedMeterFigure`). Happiness and authority are not yields:
+they are ledgers with a genuinely fractional crowding term
+(`0.6 · 3 ^ 1.4`), they are compared against tier *rungs* rather than spent, and
+a chip reading `+9` while the tenth below the rung is what a player is playing
+around would be hiding the wrong thing.
+
+**Lines may not visibly sum, and there is no "±".** Rule 5 is unchanged — a total
+is the exact fold of its exact lines — but a *printed* breakdown rounds each line
+on its own and the total from the exact fold, so three lines of 0.4 print as
+`0 · 0 · 0` under a total of `1`. Apportioning the rounding back over the lines
+would make each printed line disagree with what that source actually paid, which
+is the worse lie. Said in `yieldFormat.ts`'s docblock.
+
+**Entry XVIII.5 restated** in `windfallPayout`'s docblock: the rule was "one
+printed figure"; it is now *one exact banked figure, printed rounded*. Base and
+riders still compose before anything is banked — that was always the point — but
+the composition no longer floors, so a fifth of a turn's science is paid.
+
+#### The measurement (reported, not re-aimed)
+
+The scripted five-town empire, seed 4242, standard map, `tech.slow.test.ts`'s own
+harness. Measured **twice on today's tree** (batch E's nodes included on both
+sides), by re-flooring the batch and running the same harness:
+
+| | Æra I | Æra II | Æra III | Æra IV | techs by t900 |
+|---|---|---|---|---|---|
+| before the science cut (2026-09-05 pin) | 66 | 120 | 366 | 779 | 50 / 50 |
+| batch D, floors in (measured today) | **236** | **343** | — | — | 34 / 50 |
+| batch X, floors out (measured today) | **80** | **156** | **481** | — | 47 / 50 |
+
+So the ruling recovers most of what the floor cost — Æra I from 236 back to 80
+against a pre-cut 66 — and the game reaches Æra III again inside the harness's
+horizon. It does **not** put the curve back where it was: the beaker really did
+halve, and Æra II is 156 against 120. The three pacing harnesses
+(`tech.slow`, `statecraftPacing.slow`, `endgame.slow`) are therefore still
+outside their bands and are **left there deliberately** — the dated re-aim
+follows E, and re-aiming inside this batch would have hidden the size of what the
+cut actually costs. All three were already failing after D; `beads.slow`'s
+age-3 opening fails identically with the floors in and out, so it is D/E's, not
+this batch's.
+
+The border curve moved too, and that one is re-pinned because it is a *core*
+test: `test/sim/territory.test.ts`'s monument schedule was 2 · 5 · 9 · 16 · 25
+and is now 2 · 4 · 8 · 15 · 24. No border cost changed; the town's own culture
+simply stops being floored on its way through the stages.
+
+#### The bot
+
+`src/ai/value.ts` needed no edit. Its four floors are a median index, a label
+formatter, a periodic period and a data amount — it prices yields as numbers and
+made no integer assumption. `test/sim/aiBot.test.ts` and `aiWants.test.ts` pass
+unchanged; the bot's own hashes are re-derived rather than re-pinned, because
+those suites assert behaviour rather than a snapshot digest.
+
+#### Debts
+
+- **The arena's means stay at one decimal.** `src/arenaPage/main.ts` averages
+  five headless games a seat, and a mean of five whole readings is honestly
+  fractional — rounding it whole would destroy the signal the panel exists for.
+  It is an instrument, not a player-facing figure, and it is the one place a
+  decimal is still printed on purpose.
+- **`test/sim/religion.slow.test.ts` carries a stale schema pin (70)** from
+  before C1, and fixing the number reveals a deeper C2 breakage (the harness buys
+  an augur, and the augur is retired). Left for C2's own debt list.
+- **The city panel still prints `+0.5🔬/pop`** on a building's per-citizen line.
+  That figure is a *rate off the row*, not a standing yield, and rounding it
+  would print either a beaker a citizen (a lie) or nothing (worse). It has read
+  that way since batch D halved the Library's line; if it reads badly in play the
+  fix is a rate voice in the formatter, not a rounding.
+- The three pacing harnesses above are red on purpose, pending the dated re-aim.
+
+Files: `src/sim/yieldFormat.ts` (new) · `modifiers.ts` · `cities.ts` ·
+`statecraft.ts` · `routeYields.ts` · `empireGold.ts` · `renown.ts` · `upkeep.ts` ·
+`resourceEffects.ts` · `triumphs.ts` · `state.ts` (schema 75) ·
+`src/ui/figures.ts` · `topBar.ts` · `tileReadout.ts` · `cityPanel.ts` ·
+`cardStamp.ts` · `controls.ts` · `tradeLines.ts` · `techTree.ts` ·
+`statecraftScreen.ts` · `religionScreen.ts` · `src/spectate/main.ts`.
+
+**The schema number.** This batch took **75**; batch E landed **76** on top of it
+the same afternoon, so the twelve schema witnesses read 76 and the changelog in
+`state.ts` carries both entries. Tests: `exactYields` (new), `yieldPrinters` (new),
+`cities`, `modifiers`, `statecraft`, `meters`, `territory`, `religion`,
+`resourceEffects`, `buildingChains`, `greatPeople`, `purchase`, `wonders`,
+`figures`, `religionV2`, and the twelve schema witnesses.
+
+### Batch E as shipped (2026-09-06) — schema 76
+
+The tree's gifts, `docs/tech-gifts.md` §7 as the user marked it. Batch D left six
+nodes handing over no building; this is what they hand over instead. **Every gift
+is a row** — the effect vocabulary the tree has carried since the Age I rework
+(`TechDef.effects`, `liveEffects`' tenth source) plus the engine shapes batch A
+declared and nothing had used yet — so `src/sim/` gained no branch that names a
+technology, and the whole batch is nine JSON rows, two shape members and one
+denominator.
+
+**The schema number.** The plan wrote E as riding D's. It does not: ten nodes
+hand over different gifts, a project id joined the queue's vocabulary and an army
+holding Machinery marches further on the same paving, so a v75 log replays into a
+different empire. Batch X took **75** while this batch was in flight; E takes
+**76**, and `state.ts`'s changelog says so. Eleven `expect(SCHEMA_VERSION)` pins
+moved with it.
+
+#### Node by node, and the JSON
+
+| node | landed gift | the row |
+|---|---|---|
+| **Code of Laws** (`kingship`) | the third conversion project, and the crown's writ | `unlocks.projects: ["pageants"]` · `{"kind":"authority","amount":3}` |
+| **The Civil Service** (`theExaminationHall`, **renamed**, id kept) | the writ, and a great person's works put to use | `{"kind":"authority","amount":5}` · `{"kind":"tileYield","on":{"test":"greatWork"},"food":1,"production":1}` (the happiness tier boost it always carried stays) |
+| **Guildhalls** (`artisanry`) | wonders rise faster and sing louder | `{"kind":"productionBonus","category":"wonder","percent":10}` · `{"kind":"countScaled","count":"wonders","pays":{"to":"yield","yield":"culture","amount":2,"where":"empire"}}` |
+| **Horology** | every ten turns, five beakers a production building | `{"kind":"periodic","everyTurns":10,"pays":"science","amount":5,"count":"buildingsOfCategories","categories":["production"]}` |
+| **The Water Clock of Su Song** (`data/buildings.json`) | the wonder reworked around its own deferred chime | `{"kind":"periodShorten","turns":2}` · `{"kind":"periodic","everyTurns":7,"pays":"science","count":"empireYield","voice":"production"}` |
+| **Chronology** (`theLongCount`) | every fifteen turns, renown by the realm's libraries and shrines | `{"kind":"periodic","everyTurns":15,"pays":"renown","count":"buildingsOfCategories","categories":["science","faith"]}` |
+| **Machinery** | a road step at a fifth instead of a third | `{"kind":"rulePercent","rule":"roadStepCost","percent":-40}` |
+| **Geomancy** (`prospecting`) | the seam under the mine (the mine's own renewal stays) | `{"kind":"tileYield","on":{"test":"all","of":[{"test":"improvement","improvement":"mine"},{"test":"hasResource"}]},"production":1,"faith":1}` |
+| **The Golden Roads** (`theSilkRoad`) | a coin per good at either end (the caravan slot stays) | `{"kind":"routeYield","gold":1,"perEndpointLuxury":true}` |
+| **Movable Type** | the cheer out, the presses in | two `{"kind":"percentYields","yield":…,"percent":10,"scope":{"test":"connected"}}` |
+| **The Holy Office** | verified: `units: ["inquisitor"]`, the apostle is Theology's (C2) | — |
+| **Divination** · **Chronology** | the faith ladder's door and the reroll's, named in the two nodes' own `note` prose | — |
+| **Engineering** | **deliberately lean and not empty** — Aqueduct · Watermill · Circus Maximus | — |
+
+Every re-gifted node's `note` is rewritten in plain words with no number in it,
+and a test sweeps every `note` on the tree for a digit.
+
+#### The two members, and what they cost
+
+| member | where | why it is one member and not a shape |
+|---|---|---|
+| `CardRule`'s **`roadStepCost`** | `statecraftData.ts`, one word in `RULE_WORDS` | It is exactly what `settlerCost` and `unitUpkeep` are — a percentage on a constant the game already reads in one place, with the same sign convention (a negative percentage is a discount, so a third → a fifth is **−40**). A `roadStep` effect kind of its own would have wanted a `describeEffect` arm, a `statecraft.ts` reader and a fold-registry entry; `rulePercent` needed none of the three |
+| `CardRouteYieldEffect`'s **`perEndpointLuxury`** | `statecraftData.ts`, carried through `cardRouteYieldLines`, folded in `routeYields.ts` | The thing counted is a fact about **the route**, and nothing else in the vocabulary can see both ends of one: `origin` is a `CityScope` asked of the town the caravan left, and there is deliberately no `destination` twin, because a scope answers about one town |
+
+**Two members the batch expected to add and did not**: the `greatWork` tile test
+and the `connected` city condition **already existed** (`TileCondition`'s
+`greatWork` reads `ImprovementDef.greatPerson`; `CityScope`'s `connected` is what
+Satrapies' cheer was scoped on). The brief's "one `statecraftData.ts` member you
+may add" was spent on the road rule instead.
+
+#### The road rule, exactly
+
+- **`MOVEMENT_DENOMINATOR` is 15**, not 3 — the least common multiple of the two
+  road fractions, so a third is five fifteenths and a fifth is three and both are
+  exact. Nothing older moved: IEEE division is correctly rounded, so `5k / 15`
+  and `k / 3` are the *same double* for every integer `k`, and every figure a
+  pre-batch save holds still snaps to itself.
+- **The price is an empire fact, folded once per sweep**: `MoveProfile.roadStep`,
+  written only by `moveProfile` off
+  `foldCardRulePercent(cardRulePercent(state, ownerId, 'roadStepCost'))` and
+  snapped, clamped at one fifteenth so no edge is free.
+- **Read in exactly two places** and no fifth reader prices a road anywhere:
+  `stepCost` (`mover?.roadStep ?? roadStepCost`) and `cheapestStepCostFor`, which
+  is A*'s heuristic floor — an empire with a cheaper edge than the constant would
+  otherwise have made the estimate inadmissible and `findPath` would have stopped
+  returning the cheapest route over exactly the ground it paved. `findPath`,
+  `reachableTiles`, `advanceAlongPath` and `pathTurns` inherit it by
+  construction, and `trade.test.ts` pins all four against one board.
+- **Absent means the base**, which is a real answer: a caller with no mover is
+  asking the ground's own price, and `layFoundingRoad`'s hand-built probe — which
+  chooses where a *decreed* road goes over ground that has none yet — is
+  deliberately left on it, because a Machinery empire's founding roads taking a
+  different route is a behaviour change nothing ruled.
+
+#### Pageants, and the door `projectData.ts` left open
+
+`ProjectPayout` gained `culture`, and `payProject` pays it by calling
+`settleCultureWindfall` — which is the sentence that docblock already wrote (*"the
+day a culture project is wanted, it joins by calling that wrapper — never by
+adding a field here and hoping"*). So the basket has no second filler, only one
+more caller of its one settler. `PROJECT_GLYPHS`/`PROJECT_SPOKEN` are typed
+`Record<keyof ProjectPayout, …>`, so the fourth bank was a compile error in the
+two UI tables until it had a mark — which is what that typing exists for.
+
+#### The bot
+
+`chain.ts` needed **no edit**: `techChain` already sends `techDef(goal).effects`
+through `explainEffects`, so a node's gift is priced by the same evaluator a card's
+is. What moved is `value.ts`, two arms:
+
+- **`rulePercent`**, and deliberately for one rule only. The road fraction is a
+  discount on a *march* rather than on a town's books, priced as
+  `(−percent/100) × weights.military × unitsInField`; every other `CardRule`
+  returns `score.unknownEffect`, exactly as it did, so no existing appraisal moved
+  by a point.
+- **`routeYield`** now multiplies its bag by `uniqueLuxuries` when the row is
+  `perEndpointLuxury` — the realm's own shelf as the stand-in for what the two
+  ends of a road hold.
+
+The acceptance is a **source-reading register** in `aiAppraisal.test.ts`: it reads
+`scoreEffect`'s own `case` labels out of `src/ai/value.ts` and asserts every
+effect kind on every re-gifted node has an arm. Arithmetic could not have asked
+this — a percentage shape is *deliberately* priced against
+`unknownEffect × nominalCount` (that is what "a nominal yield" means here), and
+the flat shapes price in the same small integers the stand-in is written in, so
+any number the test picked could have collided by luck.
+
+#### The pacing figures, measured and NOT re-aimed
+
+Per the plan the harnesses are re-aimed **once**, after D and E together, and that
+move is the user's dated one — so the three slow fixtures are **red** on this
+branch and these are the measurements for it. **Batch X's exact yields landed
+under this batch**, and they dominate: D's own figures were taken before the
+floors came out of the folds.
+
+Every row measured twice on the same tree — once as shipped, once with
+`data/techs.json` and `data/buildings.json` restored to their pre-E state — so
+E's own contribution is separated from X's.
+
+`tech.slow` (seed 4242, standard, five towns, 900 turns) — the four ages' closing
+turns:
+
+| | Æra I | Æra II | Æra III | Æra IV | techs at t900 |
+|---|---|---|---|---|---|
+| before batch D (the last green run) | 66 | 120 | 366 | 779 | 50 of 50 |
+| **all of batch D** (D's own doc) | 236 | 347 | — | — | 34 |
+| **X, without E's rows** | **80** | **157** | **487** | — | 45 |
+| **X + E, as shipped** | **80** | **156** | **481** | — | **47** |
+| the bands as written | 56–76 | 105–135 | 341–391 | 749–809 | — |
+
+`statecraftPacing.slow` (the same empire, 400 turns) — **identical with and
+without E**, to the turn: first eight drafts **13 · 22 · 31 · 40 · 53 · 61 · 68 ·
+78**, early cadence **9.29** (band 5–13, green), government tiers **40 / 95 /
+275** against a first-tier band of 46–68 (**red by six turns**).
+
+`endgame.slow` (the one-city seat, 1900 turns) — **identical with and without E**:
+the Opus **never opens**, the seat holding **40 of 50** technologies at the
+horizon against opening on t1689 when the fixture was last aimed.
+
+**What the figures say.** X's exact yields recovered nearly all of D's science
+loss on the five-town harness (Æra I 236 → 80, against a pre-D 66) and E adds
+almost nothing to it — six turns off Æra III and two more technologies at the
+horizon. That is the honest reading rather than a disappointment: this harness's
+scripted queue never raises a wonder, never builds the Water Clock and never runs
+a caravan, so **three of E's ten gifts cannot fire in it at all** and two more
+(the writ, the great-person works) pay a town this empire does not shape. The
+gifts that would show up in a played game are exactly the ones a script cannot
+reach. The one-city seat is untouched for the same reason and more strongly: a
+single town with no caravan and no wonder receives nothing this batch hands out.
+
+#### Judgement calls and debts
+
+- **Irrigation was left alone, and that is a deliberate departure from §7's
+  table.** The ruled gift is *"farms beside fresh water +1🌾, a `tileYield`,
+  Raised Fields' shape"* — and that line **already stands**, as the farm's own
+  renewal (`data/improvements.json`, `upgrades[].tech: irrigation`,
+  `requiresFreshwater`), which is what §2's own "today" column says the node
+  gives. Building it a second time as a card effect would pay **two** food;
+  converting it would delete the only live demonstration of `requiresFreshwater`
+  in the improvement vocabulary and re-aim a whole `describe` block that exists to
+  test the renewal hook. So the node keeps its gift in the shape it has, its
+  `note` says so in plain words, and the doc prints it. **If the user wants the
+  conversion anyway** it is two edits: drop `improvements.json`'s `farm.upgrades`
+  and add the `all` of `{improvement: farm}` and `{freshwater}` to the node — both
+  tile tests already exist.
+- **The Water Clock keeps its `projectRider`.** "Reworked" was read as *the
+  deferred chime is finally built* rather than *the row is emptied*: the rider is
+  the only live row using `projectRider`, and a shape declared with no reader
+  fails the register test. Its `deferred` line is gone, because the thing it was
+  waiting for is now on the row.
+- **`routeRider` is still unpriced by the bot** — an extra caravan *slot* wants
+  the marginal reading batch F2 builds, so it prices at the stand-in. Written into
+  the register test as a named debt rather than swept under it.
+- **The endpoint-luxury count is the union of the two towns' luxuries**, once
+  each: wine at both ends of a road is one wine. That is the literal reading of
+  *"in the origin or destination city"* and the one that cannot be farmed by
+  pointing a caravan at a mirror of its own hinterland. The alternative (summing
+  the two lists, which is what the luxury *signatures* do) is one line away if the
+  user prefers it.
+- **`layFoundingRoad`'s probe is on the base road price**, not the empire's — see
+  the road rule above. A Machinery empire's decreed roads take the same route they
+  took before, which is a behaviour nothing ruled either way.
+- **`CLAUDE.md`'s movement trap line is stale**: it says *"A road step (both hexes
+  paved) costs exact thirds inside `stepCost`"*. It is now exact fifteenths, and
+  the price is a `MoveProfile` fact. One line, and it is the orchestrator's file.
+- **Three edits outside the stated fence, each forced and each minimal.**
+  `src/sim/cities.ts` — six lines in `payProject` for the culture basket (batch X
+  was live in that file). `src/sim/projectData.ts` and `src/ui/figures.ts` — the
+  `culture` payout and its two marks, without which the project cannot exist.
+  `src/sim/resourceEffects.ts` — `endpointLuxuryCount`, which lives there rather
+  than in `routeYields.ts` because that module's leaf rule forbids it importing
+  `cities.ts` directly and it already reaches the city scale through this one.
+- **`statecraft.ts` took four edits, not two.** The two describer words the brief
+  budgeted were not needed (both members already existed), and what landed instead
+  is: one `RULE_WORDS` entry, one clause on the `routeYield` describer, one word
+  in `cardProjectPays`' voice list, and the `perEndpointLuxury` passthrough in
+  `cardRouteYieldLines` (which also gained a named `CardRouteLine` interface, since
+  the inline type was written out twice).
+- **Batch A's byte-identity test is spent and became a register.**
+  `statecraft.test.ts`'s *"no live row uses a shape this batch declared"* now lists
+  exactly which rows use which shape — the deck still uses none of them, and the
+  ten that do are named. A row that quietly picks one up fails there.
+- **Two of X's files do not typecheck** (`test/ui/figures.test.ts`'s unused import;
+  `exactYields.test.ts` and `yieldPrinters.test.ts` import `node:fs`, which this
+  project has no typings for — `seatRoster.test.ts`'s `import.meta.glob('…?raw')`
+  is the idiom). Not this batch's, reported and left.
+
+Files: `data/techs.json` · `data/buildings.json` (the three projects, the Water
+Clock) · `src/sim/statecraftData.ts` · `statecraft.ts` · `pathfind.ts` ·
+`rulesData.ts` · `routeYields.ts` · `resourceEffects.ts` · `projectData.ts` ·
+`cities.ts` (`payProject`) · `state.ts` (schema 76) · `src/ui/figures.ts` ·
+`src/ai/value.ts` · `docs/tech-tree.md` (Part 2 regenerated). Tests:
+`tech.test.ts` (a new batch-E block of twelve), `trade.test.ts` (the road at a
+fifth across the four readers; the endpoint-luxury coin), `buildSinks.test.ts`
+(Pageants' basket and its rate), `statecraft.test.ts` (the shape register; Movable
+Type's two shares off the `connected` scope), `aiAppraisal.test.ts` (the
+source-reading register, Machinery's price, the Golden Roads' goods),
+`cityProjects.test.ts` (the fourth bank), and the eleven schema pins.
+
 ### Batch C2 as shipped (2026-09-06) — schema 74
 
 Rites, prophets, the apostle. The user's complaint was an **errand** — *"i never

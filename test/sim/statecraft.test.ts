@@ -1195,7 +1195,12 @@ describe('determinism', () => {
     // ordinary rows withdrawn, five uniques added, the chain field, the
     // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
     // landed the rites beside it on the same day.
-    expect(SCHEMA_VERSION).toBe(74);
+    // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
+    // bank and pool holds the fraction, so a v74 log banks different figures
+    // from its second turn on. 76 since batch E landed the tree's own gifts the
+    // same day: ten nodes hand over something else, a third conversion project
+    // joined the queue's vocabulary, and a road step is an empire fact.
+    expect(SCHEMA_VERSION).toBe(76);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2517,7 +2522,8 @@ describe('the governments’ deferred halves, built', () => {
     govern(g.state, 0, 'tyranny');
     const rebate = explainUnitUpkeepRebate(g.state, 0);
     expect(rebate).toHaveLength(1);
-    expect(rebate[0]!.gold).toBe(Math.floor((gross * 30) / 100));
+    // Exact since batch X — a rebate is a yield line, not a price.
+    expect(rebate[0]!.gold).toBe((gross * 30) / 100);
     // And it reaches the one list the treasury's figure is the fold of.
     const ledger = explainEmpireGold(g.state, 0);
     expect(ledger.some((line) => line.source.includes('Tyranny'))).toBe(true);
@@ -2540,9 +2546,13 @@ describe('the governments’ deferred halves, built', () => {
     govern(g.state, 0, 'theCuria');
     // Measured against the *same town under any other law*, so the shrine's own
     // science is on both sides of the comparison and what is left is the mirror.
+    // The **flats**, not the staged figure: two laws are two writs, so the
+    // empire stage differs between the two readings, and since batch X that
+    // stage is no longer floored away (it used to be, which is the only reason
+    // this comparison ever read as a bare addition).
     const under = (law: string): number => {
       govern(g.state, 0, law);
-      return cityYields(g.state, city).science;
+      return cityQuote(g.state, city).flats.science;
     };
     // A granary is not a faith building: the clause reads the rows' own
     // category and their own faith, never the town's total.
@@ -2578,7 +2588,7 @@ describe('the governments’ deferred halves, built', () => {
     const share = shareLine()!;
     // A share of the **works**, never of the ground: the terrain's own yields
     // are on the same list and are not what the card raised.
-    expect(share.science).toBe(Math.floor((works.science * 50) / 100));
+    expect(share.science).toBe((works.science * 50) / 100);
     // And it is a line of the breakdown, so the fold is still the total.
     expect(lines[lines.length - 1]).toStrictEqual(share);
   });
@@ -3356,13 +3366,28 @@ describe('the balance pass of 2026-08-31', () => {
     expect(cheer()).toBe(0);
     playerById(g.state, 0)!.techsResearched.push('theImperialPost');
     expect(cheer()).toBe(1);
-    // Movable Type says the same sentence a second time, and the worksheet rules
-    // the double deliberate: the connectivity build stacks.
+    // **Satrapies is the only node that cheers a joined town** since batch E:
+    // Movable Type used to say the same sentence a second time and now says a
+    // different one entirely (`docs/tech-gifts.md` §7 — the cheer out, two
+    // percentages in), so the scope has one reader on the tree and the stacking
+    // the worksheet once ruled deliberate has nothing to stack with.
     playerById(g.state, 0)!.techsResearched.push('movableType');
-    const both = explainHappiness(g.state, 0).filter((entry) =>
+    const cheering = explainHappiness(g.state, 0).filter((entry) =>
       /Technology · (Satrapies|Movable Type)/.test(entry.source),
     );
-    expect(both.map((entry) => entry.value)).toEqual([1, 1]);
+    expect(cheering.map((entry) => entry.value)).toEqual([1]);
+    // What Movable Type says instead, read off the same scope: a share of what a
+    // joined town learns and builds, and nothing at all in the capital the road
+    // is measured from.
+    const shares = (city: City): { yield: string; percent: number }[] =>
+      cityYieldPercents(g.state, city)
+        .filter((line) => line.source.startsWith('Technology · Movable Type'))
+        .map((line) => ({ yield: line.yield, percent: line.percent }));
+    expect(shares(second)).toEqual([
+      { yield: 'science', percent: 10 },
+      { yield: 'production', percent: 10 },
+    ]);
+    expect(shares(capital)).toEqual([]);
   });
 
   it('terrainInBorders — Star-Gazers reads the borders, never the ring of six', () => {
@@ -3374,10 +3399,12 @@ describe('the balance pass of 2026-08-31', () => {
     const was = mine.terrain;
     mine.terrain = 'mountain';
     expect(cityScopeAdmits(g.state, city, scope)).toBe(true);
-    // The science follows the scope, through the ordinary `cityYields` fold.
-    const before = cityYields(g.state, city).science;
+    // The science follows the scope, through the ordinary fold — read off the
+    // **flats**, because the empire stage multiplies both sides and is no longer
+    // floored away (batch X).
+    const before = cityQuote(g.state, city).flats.science;
     slot(g.state, 0, 'starGazers');
-    expect(cityYields(g.state, city).science).toBe(before + 2);
+    expect(cityQuote(g.state, city).flats.science).toBe(before + 2);
     // And a mountain the borders have **not** taken in pays nothing: the scope
     // is about what a town owns, which is what makes it different from the ring
     // of six `mountainAdjacent` asks about.
@@ -3387,7 +3414,7 @@ describe('the balance pass of 2026-08-31', () => {
     )!;
     far.terrain = 'mountain';
     expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
-    expect(cityYields(g.state, city).science).toBe(before);
+    expect(cityQuote(g.state, city).flats.science).toBe(before);
   });
 
   it('workedUnimprovedTiles — The Quiet Fields counts the hexes the town works', () => {
@@ -4348,17 +4375,19 @@ describe("the user's card pass of 2026-09-03", () => {
     expect(lines).toHaveLength(1);
     expect(lines[0]!.source).toContain('Thalassocracy');
     expect(lines[0]!.source).toContain('food → gold');
-    expect(lines[0]!.gold).toBe(Math.floor(flats.food / 10));
-    // Floored **per city**, on that town's own share — a tenth of nine is
-    // nothing and says so by not being a line at all.
-    expect(cardYieldConversions(g.state, city, { ...flats, food: 9 })).toEqual([]);
+    expect(lines[0]!.gold).toBe(flats.food / 10);
+    // **Per city**, on that town's own share, and exact since batch X — a tenth
+    // of nine is nine tenths of a coin and the treasury keeps it. Only a town
+    // making nothing at all is not a line.
+    expect(cardYieldConversions(g.state, city, { ...flats, food: 9 })[0]!.gold).toBe(0.9);
+    expect(cardYieldConversions(g.state, city, { ...flats, food: 0 })).toEqual([]);
     expect(cardYieldConversions(g.state, city, { ...flats, food: 10 })[0]!.gold).toBe(1);
 
     // And it is really in the fold the panel prints: the flats the town is
     // staged from carry the coin, and the harvest it was read off is untouched.
     const after = cityQuote(g.state, city).flats;
     expect(after.food).toBe(flats.food);
-    expect(after.gold).toBe(flats.gold + Math.floor(flats.food / 10));
+    expect(after.gold).toBe(flats.gold + flats.food / 10);
   });
 
   it('yieldConversion — the scope is the whole of it: an inland town mints nothing', () => {
@@ -4724,7 +4753,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
     // decided after every percentage that reads this line back.
     slot(g.state, 0, 'theHarvestSongs');
     expect(paid('The Harvest Songs', 'culture', { food: 40 })).toBe(4);
-    expect(paid('The Harvest Songs', 'culture', { food: 9 })).toBe(0);
+    expect(paid('The Harvest Songs', 'culture', { food: 9 })).toBe(0.9);
 
     // The Golden Scales: gold read again as science, everywhere.
     slot(g.state, 0, 'theGoldenScales');
@@ -4944,9 +4973,10 @@ describe('the synergy-density pass of 2026-09-05', () => {
       )?.culture ?? 0;
     const shore = isCoastal(g.state.map, getTileAt(g.state.map, city.col, city.row)!);
     expect(paid(100)).toBe(shore ? 5 : 0);
-    // Floored per city, on the town's own share — never on an empire total
-    // divided out afterwards.
-    expect(paid(19)).toBe(0);
+    // Per city, on the town's own share — never on an empire total divided out
+    // afterwards — and exact since batch X, so nineteen coins pay nineteen
+    // twentieths rather than nothing.
+    expect(paid(19)).toBe(shore ? 0.95 : 0);
     // And the scope is the whole of the gate: an inland town reads the same
     // hundred coins and pays nothing.
     expect(cityScopeAdmits(g.state, city, { test: 'coastal' })).toBe(shore);
@@ -5594,13 +5624,13 @@ describe('the Æra III fork of 2026-09-05', () => {
     expect(beakers(capital)).toBe(1);
     capital.buildings = ['monument', 'granary', 'shrine', 'barracks', 'library'];
     expect(beakers(capital)).toBe(5);
-    // Something that actually sings, so the share of a turn is not floored to
-    // nothing and the grant is not dropped as an empty line.
+    // Something that actually sings, so the share of a turn is not zero and the
+    // grant is not dropped as an empty line.
     capital.buildings.push('amphitheater', 'forum', 'steleOfLaws');
     // The technology's boon is a **share of a turn**, read off the empire's own
-    // rate at the moment the node lands and floored once, before anything is
+    // rate at the moment the node lands and composed once, before anything is
     // banked (Entry XVIII.5) — so the preview, the bank and the announcement are
-    // one figure.
+    // one figure. Exact since batch X: a fifth of a turn is a fifth, not zero.
     const rate = empireRateReading(g.state, 0).culturePerTurn ?? 0;
     expect(rate).toBeGreaterThan(0);
     expect(windfallPayout(g.state, 0, 'tech').grants).toEqual([
@@ -5608,7 +5638,7 @@ describe('the Æra III fork of 2026-09-05', () => {
         card: 'theNaturalPhilosophers',
         source: 'Doctrine · The Natural Philosophers',
         yield: 'culture',
-        amount: Math.floor(rate * 0.2),
+        amount: rate * 0.2,
       },
     ]);
     // The occasion is the whole of the gate.
@@ -6114,7 +6144,8 @@ describe('the engine shapes', () => {
         seat(g.state, 0, 0, 'waysideShrines');
         seat(g.state, 0, 1, 'theChoir');
         const lines = cardCityYields(g.state, city);
-        expect(lines.find((line) => line.card === 'theChoir')!.faith).toBe(4);
+        // Exact since batch X: half of nine is four and a half.
+        expect(lines.find((line) => line.card === 'theChoir')!.faith).toBe(4.5);
       },
     );
   });
@@ -6597,10 +6628,12 @@ describe('the engine shapes', () => {
     }
   });
 
-  it('leaves the game byte-identical: no live row uses a shape this batch declared', () => {
-    // The batch's own acceptance. Every arm above is reached only by a fixture,
-    // so every fold this batch touched hands back an empty list in a real game
-    // and no number on the board moves. The rows arrive in batches D through F.
+  it('registers exactly which live rows use each shape batch A declared', () => {
+    // **Batch A's byte-identity claim, spent.** A declared nothing, D gave two of
+    // the shapes their first rows (the uniques) and E gave the rest theirs — so
+    // the acceptance test that used to say *nobody uses one* is now the register
+    // of *who does*. A row that quietly picks up an engine shape fails here and
+    // has to be written down, which is what the claim was ever protecting.
     const NEW_KINDS = new Set<CardEffectKind>([
       'cardYieldAmplifier',
       'buildingYieldPercent',
@@ -6615,28 +6648,43 @@ describe('the engine shapes', () => {
       'empireYield',
       'rerollsWhileSlotted',
     ]);
+    const seen: string[] = [];
     const walk = (effects: readonly CardEffect[] | undefined, where: string): void => {
       for (const effect of effects ?? []) {
-        expect(NEW_KINDS.has(effect.kind), `${where} · ${effect.kind}`).toBe(false);
-        if (effect.kind === 'countScaled') {
-          expect(NEW_COUNTS.has(effect.count), `${where} · ${effect.count}`).toBe(false);
+        if (NEW_KINDS.has(effect.kind)) seen.push(`${where} · ${effect.kind}`);
+        if (effect.kind === 'countScaled' && NEW_COUNTS.has(effect.count)) {
+          seen.push(`${where} · ${effect.count}`);
+        }
+        if (effect.kind === 'periodic' && effect.count !== undefined && NEW_COUNTS.has(effect.count)) {
+          seen.push(`${where} · ${effect.count}`);
         }
         if (effect.kind === 'conditionRule') walk(effect.then, where);
       }
     };
+    // **The deck still uses none of them.** Every engine shape's first rows are
+    // on the tree and on the shelves; the Orders that read them are batch F's,
+    // and until they land a card carrying one is a card nobody wrote down.
     for (const id of [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS]) walk(cardDef(id).effects, id);
-    // **The unique buildings are exempt, since batch D.** The five once-per-realm
-    // rows are the first live rows in the game to use two of the shapes batch A
-    // declared — the Heroic Epic's `cityRenownPercent` and the Caravanserai's
-    // `routeYield` — which is exactly what those shapes were built for. The
-    // claim is narrowed rather than dropped: no card, no technology and no
-    // ordinary building uses one, so batch A is still byte-identical everywhere
-    // batch D did not land.
-    for (const id of BUILDING_IDS) {
-      if (buildingDef(id).oncePerEmpire === true) continue;
-      walk(buildingDef(id).effects, id);
-    }
+    expect(seen).toEqual([]);
+
+    for (const id of BUILDING_IDS) walk(buildingDef(id).effects, id);
     for (const id of TECH_IDS) walk(techDef(id).effects, id);
+    // In `BUILDING_IDS` then `TECH_IDS` order, which is the data files' own.
+    expect(seen).toEqual([
+      // Batch E — the Water Clock of Su Song, reworked around its own chime.
+      'waterClockOfSuSong · periodShorten',
+      'waterClockOfSuSong · periodic',
+      'waterClockOfSuSong · empireYield',
+      // Batch D — two of the five uniques.
+      'caravanserai · routeYield',
+      'heroicEpic · cityRenownPercent',
+      // Batch E — the tree's own gifts (`docs/tech-gifts.md` §7).
+      'theLongCount · periodic',
+      'theLongCount · buildingsOfCategories',
+      'horology · periodic',
+      'horology · buildingsOfCategories',
+      'theSilkRoad · routeYield',
+    ]);
   });
 
   it('keeps the new slot fields absent until something writes one', () => {

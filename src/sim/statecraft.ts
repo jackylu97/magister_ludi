@@ -71,6 +71,7 @@ import {
   tileOwnerCityId,
   tileOwnerPlayerId,
 } from './cities';
+import { roundYield } from './yieldFormat';
 import {
   BUILDING_IDS,
   type BuildingId,
@@ -1689,7 +1690,8 @@ function amplifyTrickle(effect: CardEffect, percent: number): CardEffect {
   if (percent === 0 || effect.kind !== 'countScaled') return effect;
   const pays = effect.pays;
   if (pays.to !== 'yield' && pays.to !== 'happiness' && pays.to !== 'authority') return effect;
-  const amount = Math.floor((pays.amount * (100 + percent)) / 100);
+  // Exact since batch X: half again on a one-point trickle is a point and a half.
+  const amount = (pays.amount * (100 + percent)) / 100;
   return { ...effect, pays: { ...pays, amount } };
 }
 
@@ -3140,6 +3142,18 @@ export interface RateReading {
   foodPerTurn?: number;
 }
 
+/**
+ * What one turn of a voice is worth to this empire, as the exact figure.
+ *
+ * **Unfloored since batch X.** It used to floor every rate, on the reading that
+ * a rate is a *count* of helpings; it is both — `helpings` divides it and floors
+ * the quotient itself (so a count is unchanged), while a `fromRate` grant
+ * multiplies it and used to throw away everything under a whole point. A fifth
+ * of a turn's culture in an empire making four is 0.8, and 0.8 is what The
+ * Natural Philosophers now pays.
+ *
+ * The two meters keep their own reading below: they are not yields.
+ */
 function rateOf(
   state: GameState,
   playerId: number,
@@ -3148,15 +3162,15 @@ function rateOf(
 ): number {
   switch (from) {
     case 'faithPerTurn':
-      return Math.max(0, Math.floor(rates.faithPerTurn ?? 0));
+      return Math.max(0, rates.faithPerTurn ?? 0);
     case 'capitalFaithPerTurn':
-      return Math.max(0, Math.floor(rates.capitalFaithPerTurn ?? 0));
+      return Math.max(0, rates.capitalFaithPerTurn ?? 0);
     case 'followingFaithPerTurn':
-      return Math.max(0, Math.floor(rates.followingFaithPerTurn ?? 0));
+      return Math.max(0, rates.followingFaithPerTurn ?? 0);
     case 'culturePerTurn':
-      return Math.max(0, Math.floor(rates.culturePerTurn ?? 0));
+      return Math.max(0, rates.culturePerTurn ?? 0);
     case 'goldPerTurn':
-      return Math.max(0, Math.floor(rates.goldPerTurn ?? 0));
+      return Math.max(0, rates.goldPerTurn ?? 0);
     case 'happiness':
       return Math.max(0, happinessReading(state, playerId));
     case 'authority':
@@ -3362,8 +3376,7 @@ function deckModifierLines(
         if (effect.yield !== 'all' && effect.yield !== voice) continue;
         if (paid[voice] <= 0) continue;
         touched = true;
-        line[voice] +=
-          (effect.amount ?? 0) + Math.floor((paid[voice] * (effect.percent ?? 0)) / 100);
+        line[voice] += (effect.amount ?? 0) + (paid[voice] * (effect.percent ?? 0)) / 100;
       }
       if (touched) instances += 1;
     }
@@ -3395,7 +3408,7 @@ function deckModifierLines(
       if (paid.card !== seated) continue;
       for (const voice of VOICES) {
         if (paid[voice] === 0) continue;
-        line[voice] += Math.floor(paid[voice] * extra);
+        line[voice] += paid[voice] * extra;
       }
     }
     if (paysSomething(line)) out.push(line);
@@ -3483,7 +3496,7 @@ export function cardYieldConversions(
   const list: CardYieldLine[] = [];
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'yieldConversion')) {
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    const paid = Math.floor((Math.max(0, flats[effect.from]) * effect.percent) / 100);
+    const paid = (Math.max(0, flats[effect.from]) * effect.percent) / 100;
     if (paid === 0) continue;
     const line = emptyLine(card, label(source, `${effect.from} → ${effect.to}`));
     line[effect.to] = paid;
@@ -3808,7 +3821,7 @@ function tileAmplifierLines(
         const paid = dressed.effect[voice] ?? 0;
         if (paid <= 0) continue;
         touched = true;
-        line[voice] += (effect.amount ?? 0) + Math.floor((paid * (effect.percent ?? 0)) / 100);
+        line[voice] += (effect.amount ?? 0) + (paid * (effect.percent ?? 0)) / 100;
       }
       if (touched && VOICES.some((voice) => line[voice] !== 0)) out.push(line);
     }
@@ -4982,6 +4995,14 @@ export interface WindfallOccasionFacts {
  * or it is composed twice**. It is deliberately *not* a `lines` entry: `lines`
  * is the register of what the **cards** did, and an occasion's own figure has
  * never appeared there (`base` does not either).
+ *
+ * **Batch X restates Entry XVIII.5.** The rule was "one printed figure"; it is
+ * now *one exact banked figure, printed rounded*. Base and every rider still
+ * compose before anything is banked — that was always the whole point, and it is
+ * why a rider is a percentage on a running total rather than a second payment —
+ * but the composition no longer floors, so a fifth of a turn's science and half
+ * again on a one-point trickle are paid rather than swallowed. The surface
+ * rounds the answer (`src/sim/yieldFormat.ts`); the pool keeps it.
  */
 export function windfallPayout(
   state: GameState,
@@ -5093,15 +5114,14 @@ export function windfallPayout(
       if (grant.fromRate !== undefined) {
         const turns = grant.amount;
         const rate = rateOf(state, playerId, grant.fromRate, empireRateReading(state, playerId));
-        // **Floored**, because a windfall is a whole number all the way down —
-        // the same rule the percentages below are floored under. It changes
-        // nothing for a row quoting whole turns (The Lyceum's one turn of
-        // culture is a rate that was already an integer) and it is what lets a
-        // row quote a *share* of a turn: The Natural Philosophers' fifth.
-        const amount = Math.floor(turns * rate);
+        // **Exact** since batch X (Entry XVIII.5 restated: composed exactly,
+        // banked exactly, rounded only where it is printed). It used to floor,
+        // which quietly paid nothing at all for The Natural Philosophers' fifth
+        // of a turn in an empire making four science.
+        const amount = turns * rate;
         if (amount !== 0) {
           payout.grants.push({ card, source, yield: grant.yield, amount });
-          payout.lines.push({ card, source, note: `+${amount} ${grant.yield}` });
+          payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
         }
         continue;
       }
@@ -5118,15 +5138,17 @@ export function windfallPayout(
         (effect.perSlottedOrder === true ? slotted : 1);
       if (amount !== 0) {
         payout.grants.push({ card, source, yield: grant.yield, amount });
-        payout.lines.push({ card, source, note: `+${amount} ${grant.yield}` });
+        payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
       }
     }
   }
-  // Summed, then applied once — see the docblock. Floored, because a windfall is
-  // a whole number all the way down. The era multiplies **last**, on the figure
-  // the percentages already reached, so "×your era" is a fact about the money
-  // rather than a competitor to the percentages.
-  if (percent !== 0 && base !== 0) payout.amount = Math.floor((base * (100 + percent)) / 100);
+  // Summed, then applied once — see the docblock. **Exact** since batch X: the
+  // riders still compose into ONE figure before anything is banked (Entry
+  // XVIII.5), and that figure is now the exact one rather than a floored one.
+  // The era multiplies **last**, on the figure the percentages already reached,
+  // so "×your era" is a fact about the money rather than a competitor to the
+  // percentages.
+  if (percent !== 0 && base !== 0) payout.amount = (base * (100 + percent)) / 100;
   if (ageMultiplied) payout.amount *= era;
   if (slotMultiplied) payout.amount *= slotted;
   return payout;
@@ -5723,7 +5745,7 @@ export function cardProjectPays(
   const bag: ProjectPayout = {};
   for (const { effect } of effectsOfKind(state, playerId, 'projectRider')) {
     if (effect.project !== project) continue;
-    for (const key of ['gold', 'science', 'faith'] as const) {
+    for (const key of ['gold', 'science', 'faith', 'culture'] as const) {
       const amount = (effect.pays[key] ?? 0);
       if (amount !== 0) bag[key] = (bag[key] ?? 0) + amount;
     }
@@ -5832,22 +5854,26 @@ export function cardCityRenownShares(state: GameState, city: City): CardCityReno
  *
  * Faith is not in the shape and is not here: nothing pays a caravan in it.
  */
+export interface CardRouteLine {
+  card: CardId;
+  source: string;
+  food: number;
+  production: number;
+  gold: number;
+  science: number;
+  culture: number;
+  /** The bag is paid once per luxury at either end. `CardRouteYieldEffect`'s. */
+  perEndpointLuxury: boolean;
+}
+
 export function cardRouteYieldLines(
   state: GameState,
   from: City,
-): { card: CardId; source: string; food: number; production: number; gold: number; science: number; culture: number }[] {
-  const list: {
-    card: CardId;
-    source: string;
-    food: number;
-    production: number;
-    gold: number;
-    science: number;
-    culture: number;
-  }[] = [];
+): CardRouteLine[] {
+  const list: CardRouteLine[] = [];
   for (const { source, card, effect } of effectsOfKind(state, from.ownerId, 'routeYield')) {
     if (effect.origin !== undefined && !cityScopeAdmits(state, from, effect.origin)) continue;
-    const line = {
+    const line: CardRouteLine = {
       card,
       source: label(source, scopeNote(effect.origin)),
       food: effect.food ?? 0,
@@ -5855,6 +5881,10 @@ export function cardRouteYieldLines(
       gold: effect.gold ?? 0,
       science: effect.science ?? 0,
       culture: effect.culture ?? 0,
+      // Carried rather than resolved: this module holds the origin and the fold
+      // in `routeYields.ts` holds both ends, and only the pair can answer "how
+      // many luxuries are on this road". See `CardRouteYieldEffect`.
+      perEndpointLuxury: effect.perEndpointLuxury === true,
     };
     if (line.food === 0 && line.production === 0 && line.gold === 0) {
       if (line.science === 0 && line.culture === 0) continue;
@@ -6064,8 +6094,19 @@ export function stripRefs(text: string): string {
   );
 }
 
+/**
+ * A card's figure, in words — `roundYield`'s wrapper (batch X).
+ *
+ * A row's own amounts are whole numbers in `data/`, but a describer composes
+ * them (an amplified trickle, a share of a rate), and a clause reading
+ * `+1.5 science` would be the one place in the game a player met a fraction.
+ * One rounding rule with every chip above the card; the **hyphen** stays a
+ * hyphen here rather than becoming the specimen's true minus, because these
+ * clauses are the sim's own ratified prose and the printer draws them verbatim.
+ */
 function signed(value: number): string {
-  return value >= 0 ? `+${value}` : `${value}`;
+  const rounded = roundYield(value);
+  return rounded >= 0 ? `+${rounded}` : `${rounded}`;
 }
 
 /** A yield bag in words: "+2 gold, +1 culture". */
@@ -7066,7 +7107,15 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
         effect.origin === undefined
           ? 'every trade route you send'
           : `every trade route sent from ${scopeWords(effect.origin)}`;
-      out.push({ text: `${words} on ${whose}` });
+      // **What the row is paid *for***, when it is paid more than once. The
+      // Golden Roads pays its bag per good on the road, so the sentence has to
+      // say so or a player reads a flat coin where a caravan of six is earning
+      // six. See `CardRouteYieldEffect.perEndpointLuxury`.
+      const each =
+        effect.perEndpointLuxury === true
+          ? ', for each luxury in the city it left or the city it reaches'
+          : '';
+      out.push({ text: `${words} on ${whose}${each}` });
       return;
     }
     default: {
@@ -7727,6 +7776,7 @@ const RULE_WORDS: Record<CardRule, string> = {
   settlerCost: 'the production a settler costs',
   growthSurplus: 'food surplus stored toward growth',
   unitUpkeep: 'the gold your units cost in maintenance',
+  roadStepCost: 'the movement one step along a road costs',
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {

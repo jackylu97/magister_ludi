@@ -497,7 +497,7 @@ describe('perPopulationYields: paid a head', () => {
    * the vocabulary, it costs one branch, and a shape nothing exercises is a shape
    * whose flooring rule quietly rots.
    */
-  it('scales with the city and floors per city', () => {
+  it('scales with the city, exactly and per city', () => {
     withSignature([{ kind: 'perPopulationYields', gold: 0.5 }], () => {
       const id: ResourceId = 'gems';
       const state = flatState();
@@ -506,20 +506,16 @@ describe('perPopulationYields: paid a head', () => {
       at(state.map, 7, 5).hills = true;
       plant(state, city, 7, 5, id);
 
-      // Half a coin a head, floored per city — the same rule a building's
-      // `sciencePerPop` keeps, and for the same reason: two half sources must pay
-      // for two halves rather than round into a free one.
+      // Half a coin a head, **exact** per city since batch X — the same rule a
+      // building's `sciencePerPop` keeps, and for the same reason one grade
+      // further on: two half sources pay for two halves and both halves reach
+      // the treasury rather than one of them rounding away.
       for (const population of [1, 2, 3, 7]) {
         city.population = population;
         const line = cityResourceYields(state, city).find(
           (entry) => entry.resource === id && entry.source.includes('per citizen'),
         );
-        const expected = Math.floor(0.5 * population);
-        if (expected === 0) {
-          expect(line).toBeUndefined();
-          continue;
-        }
-        expect(line!.gold).toBe(expected);
+        expect(line!.gold).toBe(0.5 * population);
       }
     });
   });
@@ -1235,7 +1231,7 @@ describe('unitUpkeepRebate: a shilling off each soldier', () => {
 });
 
 describe('connectionPercent: a share of what the roads pay', () => {
-  it('rides the connections line of the empire ledger, floored once', () => {
+  it('rides the connections line of the empire ledger, exactly once', () => {
     const row = plantableWith('connectionPercent');
     expect(row).toBeDefined();
     const { id, effect } = row!;
@@ -1264,7 +1260,7 @@ describe('connectionPercent: a share of what the roads pay', () => {
     expect(connections(after)).toBe(connections(before));
     const share = after.find((line) => line.source.includes(resourceDef(id).name));
     expect(share).toBeDefined();
-    expect(share!.gold).toBe(Math.floor((connections(before) * effect.percent) / 100));
+    expect(share!.gold).toBe((connections(before) * effect.percent) / 100);
     expect(share!.gold).toBeGreaterThan(0);
     // Rule 5: the treasury's figure is the fold of the list, with the share in it.
     expect(empireGold(state, 0)).toBe(after.reduce((sum, line) => sum + line.gold, 0));

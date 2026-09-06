@@ -70,6 +70,7 @@
 import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
 import { METER_GLYPH, YIELD_GLYPH } from './figures';
 import { setYieldText, yieldTextWriter } from './yieldMark';
+import { roundYield, yieldShows } from '../sim/yieldFormat';
 import type { CardImpactLine } from '../sim/cardImpact';
 import type { MeterId } from '../sim/meters';
 
@@ -250,12 +251,21 @@ function emptyMeters(): Record<MeterId, number> {
   return { happiness: 0, authority: 0 };
 }
 
-/** The non-zero voices, in the order every surface prints them. */
+/**
+ * The voices worth printing, in the order every surface prints them.
+ *
+ * **Rounded here** (batch X — exact yields): the sim carries the fold as the
+ * exact fraction it is, and a stamp counts *digits* up onto a card's face, so
+ * this is where a fraction becomes the number a player watches land. A line
+ * that rounds to nothing is not a line — `yieldShows`, not `!== 0`, or a
+ * half-point card would deal a face reading `+0🔬` and a difference of one part
+ * in a mantissa would deal one at all.
+ */
 function figuresOf(voices: Record<CityYieldKey, number>): StampFigure[] {
   const list: StampFigure[] = [];
   for (const key of CITY_YIELD_KEYS) {
-    if (voices[key] === 0) continue;
-    list.push({ glyph: YIELD_GLYPH[key], amount: voices[key] });
+    if (!yieldShows(voices[key])) continue;
+    list.push({ glyph: YIELD_GLYPH[key], amount: roundYield(voices[key]) });
   }
   return list;
 }

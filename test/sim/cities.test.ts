@@ -100,6 +100,7 @@ import { emptyTurnReport, runEndOfTurn } from '../../src/sim/turn';
 import { PROJECT_IDS } from '../../src/sim/projectData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
+import { roundYield } from '../../src/sim/yieldFormat';
 
 const CITIES = RULES.cities;
 
@@ -1513,20 +1514,36 @@ describe('city yields', () => {
     // The one town this empire has is its capital, so the palace's coin is in
     // the gold (the maintenance ruling, 2026-08-28) — `explainPalaceYield`,
     // folded inside `cityYields` like every other list beside it.
-    expect(cityYields(state, city)).toEqual({
+    //
+    // Read off the **flats** since batch X, because that is where these sources
+    // live: `cityYields` is this fold times Entry XVII's two stages, and a
+    // contented one-town empire is on the happiness ladder's first rung, so
+    // every one of these figures used to come back whole only because the stage
+    // was floored afterwards.
+    const quote = cityQuote(state, city);
+    expect(quote.flats).toEqual({
       food: CITIES.baseCityYields.food + 2,
       production: CITIES.baseCityYields.production,
       gold: CITIES.baseCityYields.gold + CITIES.palaceGold,
       // The base beaker is half a citizen's since the fewer-things pass
-      // (`docs/balance-turn.md` §4b), and it is floored like every other
-      // per-citizen line — a town of one banks nothing from it.
-      science: Math.floor(city.population * CITIES.sciencePerPop),
+      // (`docs/balance-turn.md` §4b), and it is **exact** since batch X — a town
+      // of one banks half a beaker where the old floor banked nothing.
+      science: city.population * CITIES.sciencePerPop,
       culture: CITIES.baseCulturePerCity,
       faith: 0,
     });
+    // And the printed answer is those flats through the one multiplication, with
+    // nothing rounded on the way.
+    const banked = cityYields(state, city, [], undefined, quote);
+    for (const key of CITY_YIELD_KEYS) {
+      const percent = quote.percents
+        .filter((entry) => entry.yield === key)
+        .reduce((sum, entry) => sum + entry.percent, 0);
+      expect(banked[key]).toBe((quote.flats[key] * (100 + percent)) / 100);
+    }
   });
 
-  it('adds building effects, flooring each science-per-pop on its own', () => {
+  it('adds building effects, keeping each science-per-pop exact on its own', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     city.buildings = ['monument', 'granary', 'library'];
@@ -1535,30 +1552,26 @@ describe('city yields', () => {
 
     city.population = 1;
     assignCitizens(state, city);
-    const small = cityYields(state, city);
-    expect(small.culture).toBe(CITIES.baseCulturePerCity + 2);
-    expect(small.food).toBe(CITIES.baseCityYields.food + granary.food);
+    // The **flats**, because a contented empire's first happiness rung is an
+    // empire-stage percentage and since batch X it is no longer floored away.
+    const smallFlats = cityQuote(state, city).flats;
+    expect(smallFlats.culture).toBe(CITIES.baseCulturePerCity + 2);
+    expect(smallFlats.food).toBe(CITIES.baseCityYields.food + granary.food);
     // The population's own beaker, plus both of the library's terms — the flat
-    // one and the per-citizen one, floored on its own.
-    expect(small.science).toBe(
-      Math.floor(1 * CITIES.sciencePerPop) +
-        library.science +
-        Math.floor(1 * library.sciencePerPop),
+    // one and the per-citizen one, exact on its own (batch X).
+    expect(smallFlats.science).toBe(
+      1 * CITIES.sciencePerPop + library.science + 1 * library.sciencePerPop,
     );
 
     city.population = 4;
     assignCitizens(state, city);
-    // Through the happiness multiplier, which bites at this size: the two
-    // rules compose in the documented order — every source floored on its own,
-    // then the empire's percentage applied once to the sum.
+    // Through the happiness multiplier, which bites at this size: the two rules
+    // compose in the documented order — every source **exact** on its own since
+    // batch X, then the empire's percentage applied once to the sum, and the
+    // fraction that falls out is what the pool banks.
     const factor = yieldFactor(meterEffects(state, city.ownerId), 'science');
     expect(cityYields(state, city).science).toBe(
-      Math.floor(
-        (Math.floor(4 * CITIES.sciencePerPop) +
-          library.science +
-          Math.floor(4 * library.sciencePerPop)) *
-          factor,
-      ),
+      (4 * CITIES.sciencePerPop + library.science + 4 * library.sciencePerPop) * factor,
     );
   });
 
@@ -1713,9 +1726,9 @@ describe('city yields', () => {
     expect(productionModifiers(state, city, unit)).toEqual([]);
 
     city.buildings = ['barracks'];
-    // A unit gets the bonus, floored once at the end; a building never does,
-    // and neither does a city asked about itself rather than about a build.
-    expect(cityYields(state, city, [], unit).production).toBe(Math.floor(plain * (1 + bonus)));
+    // A unit gets the bonus, exactly and unrounded (batch X); a building never
+    // does, and neither does a city asked about itself rather than about a build.
+    expect(cityYields(state, city, [], unit).production).toBe((plain * (100 + bonus * 100)) / 100);
     expect(cityYields(state, city, [], building).production).toBe(plain);
     expect(cityYields(state, city).production).toBe(plain);
     expect(productionModifiers(state, city, unit)).toEqual([
@@ -1728,7 +1741,7 @@ describe('city yields', () => {
     city.queue = [unit];
     city.hammerBasket = 0;
     collectYields(state);
-    expect(city.hammerBasket).toBe(Math.floor(plain * (1 + bonus)));
+    expect(city.hammerBasket).toBe((plain * (100 + bonus * 100)) / 100);
   });
 });
 
@@ -1996,7 +2009,7 @@ describe('growth off fresh water', () => {
     expect(lines).toEqual([{ source: 'No fresh water', percent: -30 }]);
     // The words are a first-time player's, and carry no identifier.
     expect(lines[0].source).not.toMatch(/[[\]|]/);
-    expect(growthSurplus(state, city, harvest())).toBe(Math.floor(RAW * 0.7));
+    expect(growthSurplus(state, city, harvest())).toBe(RAW * 0.7);
   });
 
   it('lifts the line the turn an aqueduct stands, and pays its own percentage', () => {
@@ -2008,7 +2021,7 @@ describe('growth off fresh water', () => {
     expect(explainGrowthPercent(state, city).map((line) => line.source)).toEqual([
       'Building · Aqueduct',
     ]);
-    expect(growthSurplus(state, city, harvest())).toBe(Math.floor(RAW * 1.15));
+    expect(growthSurplus(state, city, harvest())).toBe(RAW * 1.15);
     // The ground is untouched: an aqueduct feeds people, not fields, so no
     // `freshwater`-scoped card or renewal mistakes it for a river.
     expect(cityHasFreshwater(state, city)).toBe(false);
@@ -2044,7 +2057,7 @@ describe('growth off fresh water', () => {
       { source: 'Wonder · The Hanging Gardens', percent: 25 },
     ]);
     expect(foldGrowthPercent(explainGrowthPercent(state, city))).toBe(-5);
-    expect(growthSurplus(state, city, harvest())).toBe(Math.floor(RAW * 0.95));
+    expect(growthSurplus(state, city, harvest())).toBe(RAW * 0.95);
     // And that is a different number from compounding them, which is the whole
     // reason the channel is one sum.
     expect(growthSurplus(state, city, harvest())).not.toBe(
@@ -3142,11 +3155,17 @@ describe('the turn pipeline over a live empire', () => {
     collectYields(state);
     const player = state.players[0]!;
     expect(city.hammerBasket).toBeGreaterThan(0);
-    // Floored per source: a town of one citizen banks nothing from the base
-    // beaker since it halved (`docs/balance-turn.md` §4b).
-    expect(player.sciencePool).toBe(Math.floor(city.population * CITIES.sciencePerPop));
-    expect(player.culturePool).toBe(CITIES.baseCulturePerCity);
-    expect(city.culture).toBe(CITIES.baseCulturePerCity);
+    // Exact per source since batch X: a town of one citizen banks half a beaker
+    // from the base line, where the old floor banked nothing at all — and the
+    // pools bank the staged figure, tier and all, rather than a floored one.
+    const banked = cityYields(state, city);
+    expect(banked.science).toBeGreaterThan(0);
+    expect(player.sciencePool).toBe(banked.science);
+    expect(cityQuote(state, city).flats.science).toBe(
+      city.population * CITIES.sciencePerPop,
+    );
+    expect(player.culturePool).toBe(banked.culture);
+    expect(city.culture).toBe(banked.culture);
     expect(player.gold).toBeGreaterThanOrEqual(0);
   });
 
@@ -3241,7 +3260,10 @@ describe('determinism with cities', () => {
     // ordinary rows withdrawn, five uniques added, the chain field, the
     // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
     // landed the rites beside it on the same day.
-    expect(SCHEMA_VERSION).toBe(74);
+    // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
+    // bank and pool holds the fraction, so a v74 log banks different figures
+    // from its second turn on.
+    expect(SCHEMA_VERSION).toBe(76);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);
@@ -3356,7 +3378,10 @@ describe('the reveal gate, in a city', () => {
 
     const line = resourceYield('iron');
     for (const key of TILE_YIELD_KEYS) {
-      expect(`${key} +${after[key] - before[key]}`).toBe(`${key} +${line[key]}`);
+      // Rounded for the sentence, because the delta is now an exact figure that
+      // has been through two multiplications — `1.2999999999999998` is a
+      // mantissa, not a disagreement (`roundYield` is what every surface uses).
+      expect(`${key} +${roundYield(after[key] - before[key])}`).toBe(`${key} +${line[key]}`);
     }
     expect(after.production).toBeGreaterThan(before.production);
   });

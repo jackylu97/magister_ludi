@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS, buildingDef, isBuildingId } from '../../src/sim/buildingData';
-import { cityYields, foundCityAt } from '../../src/sim/cities';
+import { cityYields, foundCityAt, tileYieldOf, yieldContextFor } from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   dispatch,
@@ -39,6 +39,7 @@ import {
   upgradeTargetForType,
 } from '../../src/sim/tech';
 import {
+  ABILITY_TECH,
   BUILDING_UNLOCK_TECH,
   PROJECT_UNLOCK_TECH,
   TECH_IDS,
@@ -58,6 +59,7 @@ import {
   anyCardDef,
   liveEffects,
   payWindfallGrants,
+  runPeriodicBoons,
   windfallPayout,
 } from '../../src/sim/statecraft';
 import { choose, config, researchingGame } from './techHelpers';
@@ -1304,7 +1306,14 @@ describe('research in the log', () => {
     // ordinary rows withdrawn, five uniques added, the chain field, the
     // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
     // landed the rites beside it on the same day.
-    expect(SCHEMA_VERSION).toBe(74);
+    // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
+    // bank and pool holds the fraction, so a v74 log banks different figures
+    // from its second turn on.
+    // 76 since batch E, the same day: ten nodes hand over different gifts, a
+    // third conversion project joined the queue's vocabulary, and Machinery
+    // makes a road step cost a fifth instead of a third — so a v75 log researches
+    // different things and marches different distances.
+    expect(SCHEMA_VERSION).toBe(76);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1934,5 +1943,234 @@ describe('the shape of the tree', () => {
     const before = player.culturePool;
     payWindfallGrants(state, player, paid, { col: 8, row: 5 });
     expect(player.culturePool).toBeGreaterThan(before);
+  });
+});
+
+// --- batch E: the tree's gifts ----------------------------------------------
+
+/**
+ * `docs/tech-gifts.md` §7 as the user marked it, node by node.
+ *
+ * Batch D left six nodes handing over no building; these are what they hand over
+ * instead. Every gift is a **row** — the effect vocabulary the tree has carried
+ * since the Age I rework, plus the engine shapes batch A declared — so the
+ * assertions are about the data and about the one fold each shape reaches, never
+ * about a branch somebody wrote for a technology.
+ */
+describe('the tree’s gifts (batch E, 2026-09-06)', () => {
+  /** The effects of a node, by kind, so a row's shape is legible in one line. */
+  const kinds = (id: TechId): string[] => (techDef(id).effects ?? []).map((e) => e.kind);
+
+  it('renames The Examination Hall to The Civil Service and keeps its id', () => {
+    // A name only. The id is what a save's `techsResearched` holds and what
+    // every prereq in the table points at, so it does not move — which is the
+    // whole of the ruling ("`theExaminationHall` keeps its id for saves").
+    expect(techDef('theExaminationHall').name).toBe('The Civil Service');
+    expect(TECH_IDS).toContain('theExaminationHall');
+    expect(techDef('colonialCharters').prereqs).toEqual(['theExaminationHall']);
+  });
+
+  it('gives Code of Laws the third project and the crown’s writ', () => {
+    expect(techDef('kingship').unlocks.projects).toEqual(['pageants']);
+    expect(PROJECT_UNLOCK_TECH.get('pageants')).toBe('kingship');
+    expect(techDef('kingship').effects).toEqual([{ kind: 'authority', amount: 3 }]);
+  });
+
+  it('gives The Civil Service the writ and the great-person works', () => {
+    // The happiness tier boost it always carried, then the two the markup added.
+    expect(kinds('theExaminationHall')).toEqual(['happinessTierBoost', 'authority', 'tileYield']);
+    const line = techDef('theExaminationHall').effects![2]!;
+    expect(line).toEqual({
+      kind: 'tileYield',
+      on: { test: 'greatWork' },
+      food: 1,
+      production: 1,
+    });
+  });
+
+  it('pays The Civil Service’s line on a great person’s work and nowhere else', () => {
+    // The `greatWork` tile test reads `ImprovementDef.greatPerson` rather than a
+    // list of five names, so the day a sixth work lands it joins this clause for
+    // free. Both halves are checked: the academy pays, the farm beside it does
+    // not.
+    const state = flatState();
+    grantPrereqs(state, 0, 'theExaminationHall');
+    const work = at(state.map, 4, 4);
+    work.improvement = 'academy';
+    const plain = at(state.map, 5, 4);
+    plain.improvement = 'farm';
+    // The **owner's** context, which is the call-site rule an owned tile keeps:
+    // a card's tile line rides `TileYieldContext.lines`, and a bare `{ techs }`
+    // reading would never see the ministry at all.
+    const read = (): { work: number[]; plain: number[] } => {
+      const ctx = yieldContextFor(state, 0);
+      const bag = (tile: Tile): number[] => {
+        const y = tileYieldOf(tile, ctx);
+        return [y.food, y.production];
+      };
+      return { work: bag(work), plain: bag(plain) };
+    };
+    const before = read();
+    grant(state, 0, 'theExaminationHall');
+    const after = read();
+    expect(after.work[0]! - before.work[0]!).toBe(1);
+    expect(after.work[1]! - before.work[1]!).toBe(1);
+    expect(after.plain).toEqual(before.plain);
+  });
+
+  it('gives Guildhalls the wonder-builders’ bonus and the wonders’ song', () => {
+    expect(techDef('artisanry').effects).toEqual([
+      { kind: 'productionBonus', category: 'wonder', percent: 10 },
+      {
+        kind: 'countScaled',
+        count: 'wonders',
+        pays: { to: 'yield', yield: 'culture', amount: 2, where: 'empire' },
+      },
+    ]);
+  });
+
+  it('gives Horology and Chronology their clocks, and the Water Clock its chime', () => {
+    expect(techDef('horology').effects).toEqual([
+      {
+        kind: 'periodic',
+        everyTurns: 10,
+        pays: 'science',
+        amount: 5,
+        count: 'buildingsOfCategories',
+        categories: ['production'],
+      },
+    ]);
+    expect(techDef('theLongCount').effects).toEqual([
+      {
+        kind: 'periodic',
+        everyTurns: 15,
+        pays: 'renown',
+        count: 'buildingsOfCategories',
+        categories: ['science', 'faith'],
+      },
+    ]);
+    // The wonder that was deferred on exactly this ("beakers and renown on a
+    // fixed cadence") now carries it, and the deferral is gone with it.
+    const clock = buildingDef('waterClockOfSuSong');
+    expect(clock.deferred).toBeUndefined();
+    expect((clock.effects ?? []).map((e) => e.kind)).toEqual([
+      'projectRider',
+      'periodShorten',
+      'periodic',
+    ]);
+  });
+
+  it('pays Chronology’s renown out of the world’s clock, through the one seam', () => {
+    // A periodic effect on anything but a chair runs on `state.turn % period`
+    // (batch A's stated rule), and renown is added in exactly one place — so the
+    // phase hands `settleRenownWindfall` in and this asks for the same thing.
+    const state = flatState();
+    const city = plant(state, 0, 4, 4);
+    city.buildings.push('library', 'shrine');
+    grant(state, 0, 'theLongCount');
+    const paid: number[] = [];
+    const bank = (_s: GameState, _p: unknown, amount: number): void => void paid.push(amount);
+    state.turn = 14;
+    runPeriodicBoons(state, bank as never);
+    expect(paid).toEqual([]);
+    state.turn = 15;
+    runPeriodicBoons(state, bank as never);
+    // Two buildings, one science and one faith, so two renown.
+    expect(paid).toEqual([2]);
+  });
+
+  it('gives Geomancy the seam under the mine, and leaves the mine’s own line alone', () => {
+    expect(techDef('prospecting').effects).toEqual([
+      {
+        kind: 'tileYield',
+        on: {
+          test: 'all',
+          of: [{ test: 'improvement', improvement: 'mine' }, { test: 'hasResource' }],
+        },
+        production: 1,
+        faith: 1,
+      },
+    ]);
+  });
+
+  it('gives The Golden Roads a coin for every good at either end', () => {
+    expect(techDef('theSilkRoad').effects).toEqual([
+      { kind: 'routeRider', extra: 1 },
+      { kind: 'routeYield', gold: 1, perEndpointLuxury: true },
+    ]);
+  });
+
+  it('takes Movable Type’s cheer away and gives it the presses’ two shares', () => {
+    expect(techDef('movableType').effects).toEqual([
+      { kind: 'percentYields', yield: 'science', percent: 10, scope: { test: 'connected' } },
+      { kind: 'percentYields', yield: 'production', percent: 10, scope: { test: 'connected' } },
+    ]);
+  });
+
+  it('leaves the ability register exactly where it was', () => {
+    // Not one gift in this batch is a verb: every one of them is a row in the
+    // effect vocabulary, so `ABILITY_TECH` is untouched and no tech card promises
+    // a verb no surface offers. (C2's two withdrawals are the last thing that
+    // moved this table.)
+    expect([...ABILITY_TECH.entries()].sort()).toEqual(
+      [
+        ['ancestorRites', 'epicPoetry'],
+        ['blessingOfArms', 'bronzeWorking'],
+        ['consecrationOfTheBounds', 'stonecraft'],
+        ['embark', 'sailing'],
+        ['militaryEmbark', 'wayfinding'],
+        ['oceanGoing', 'theAstrolabe'],
+        ['omenReading', 'divination'],
+        ['openBorders', 'letters'],
+        ['riteOfPlenty', 'currency'],
+        ['riteOfTheHarvest', 'divination'],
+        ['siege', 'siegecraft'],
+        ['theLongCount', 'theLongCount'],
+      ].sort(),
+    );
+  });
+
+  it('leaves The Holy Office without the apostle, which is Theology’s', () => {
+    // C2 moved it; this is the pin that it stayed moved.
+    expect(techDef('theHolyOffice').unlocks.units).toEqual(['inquisitor']);
+    expect(UNIT_UNLOCK_TECH.get('apostle')).toBe('theology');
+  });
+
+  it('names the two doors faith opens, in the two nodes’ own prose', () => {
+    // The ladder's door and the reroll's, said in plain words with no number in
+    // them — `docs/tech-gifts.md` §2. The rule they describe is C1's; what E owes
+    // is that the card the player reads says so.
+    expect(techDef('divination').note).toMatch(/faith runs deep enough/);
+    expect(techDef('theLongCount').note).toMatch(/second reading of a draft/);
+    for (const id of TECH_IDS) {
+      const note = techDef(id).note;
+      if (note === undefined) continue;
+      expect(/\d/.test(note), id).toBe(false);
+    }
+  });
+
+  it('leaves every re-gifted node with something a player will notice', () => {
+    // The pass's own rule (`docs/fewer-things.md` §5 step 5). Six nodes handed
+    // over no building after batch D; each one now hands over a gift of some
+    // kind — a unit, a building, a project, a verb, a renewal or a rule of its
+    // own. Engineering is on the list deliberately and is *not* one of them: it
+    // kept three buildings and needed nothing.
+    const naked: TechId[] = [
+      'theExaminationHall',
+      'machinery',
+      'movableType',
+      'horology',
+      'theHolyOffice',
+    ];
+    for (const id of naked) {
+      const gifts = techGifts(id).length + (techDef(id).effects ?? []).length;
+      expect(gifts, id).toBeGreaterThan(0);
+    }
+    expect(techDef('engineering').unlocks.buildings).toEqual([
+      'aqueduct',
+      'baths',
+      'watermill',
+      'circusMaximus',
+    ]);
   });
 });

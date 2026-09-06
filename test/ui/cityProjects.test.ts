@@ -87,8 +87,11 @@ describe('a project prints its rate from the table', () => {
         continue;
       }
       // And the drawn form is the figure beside its mark, off the same row the
-      // cost comes from.
-      expect(drawn).toContain(String(projectDef(id).pays.gold ?? projectDef(id).pays.science));
+      // cost comes from — whichever of the four banks the row happens to name.
+      const pays = projectDef(id).pays;
+      const figure = pays.gold ?? pays.science ?? pays.faith ?? pays.culture;
+      expect(figure, id).toBeDefined();
+      expect(drawn).toContain(String(figure));
     }
   });
 });

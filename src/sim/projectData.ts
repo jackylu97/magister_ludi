@@ -34,13 +34,17 @@
  * city's own exchange rate on hammers it has *already earned*: 20⚙ in, 5🪙 out,
  * and the number on the row is the number the treasury receives.
  *
- * The three banks it may pay into are the three that nothing settles — gold,
- * science and faith all accumulate and are read where they lie. Culture is
- * deliberately absent: `Player.culturePool` is a *basket* whose filling is a
- * draft (Entry XV), so a project paying it would owe `settleCultureWindfall`
- * and would be exactly the second path into a bucket that CLAUDE.md's register
- * exists to forbid. The day a culture project is wanted, it joins by calling
- * that wrapper — never by adding a field here and hoping.
+ * Three of the four banks it may pay into are the ones nothing settles — gold,
+ * science and faith all accumulate and are read where they lie.
+ *
+ * **Culture is the fourth, and it arrived by the door this docblock left open**
+ * (Pageants, Code of Laws, `docs/tech-gifts.md` §7). `Player.culturePool` is a
+ * *basket* whose filling is a draft (Entry XV), so a project paying it owes
+ * `settleCultureWindfall` — and that is exactly how it joined: `payProject`
+ * calls the wrapper, the way every other filler of that basket does, rather
+ * than a field being added here and hoped over. It is entry 18 of the mid-turn
+ * settlement register in CLAUDE.md by way of `settleProduction`, which already
+ * stood there.
  */
 
 import buildingsJson from '../../data/buildings.json';
@@ -68,7 +72,7 @@ import {
  * `finishes`, and everything downstream reads that rather than asking where the
  * row came from.
  */
-export type ProjectId = 'tithes' | 'scholarship' | BeadEndeavourId;
+export type ProjectId = 'tithes' | 'scholarship' | 'pageants' | BeadEndeavourId;
 
 /**
  * What one completion of a project banks for its owner.
@@ -78,11 +82,16 @@ export type ProjectId = 'tithes' | 'scholarship' | BeadEndeavourId;
  * production are absent on purpose — production would be a project that pays
  * for itself, and food belongs to a basket with a settlement of its own
  * (`settleGrowthWindfall`).
+ *
+ * `culture` is the one voice here that is a **basket** rather than a bank, and
+ * it is why `payProject` ends with `settleCultureWindfall`: a pool that fills is
+ * a draft owed, and the wrapper is the one place that debt is paid.
  */
 export interface ProjectPayout {
   gold?: number;
   science?: number;
   faith?: number;
+  culture?: number;
 }
 
 export interface ProjectDef {
@@ -113,7 +122,7 @@ export interface ProjectDef {
 }
 
 interface ProjectTable {
-  projects: Record<'tithes' | 'scholarship', ProjectDef>;
+  projects: Record<'tithes' | 'scholarship' | 'pageants', ProjectDef>;
 }
 
 const BASE_PROJECTS: ProjectTable = buildingsJson as unknown as ProjectTable;
@@ -188,7 +197,7 @@ export function projectRate(id: ProjectId, glyphs: Record<keyof ProjectPayout, s
   // words rather than glyphs, because there is no yield to name.
   if (def.finishes === true) return 'a bead';
   const parts: string[] = [];
-  for (const key of ['gold', 'science', 'faith'] as const) {
+  for (const key of ['gold', 'science', 'faith', 'culture'] as const) {
     const amount = def.pays[key];
     if (amount !== undefined && amount !== 0) parts.push(`${amount}${glyphs[key]}`);
   }

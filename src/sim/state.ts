@@ -1428,8 +1428,73 @@ import {
  *     count changed, and a unit type joined the roster — so a v73 log replayed
  *     against this table would perform different rites for different lengths
  *     with different pieces.
+ *
+ * v75: **exact yields** (ruled by the user, 2026-09-06 — *"could we just have
+ * yields be valid as decimals? Just don't show this to the player, but behind
+ * the scenes all yields should be calculated exactly"*; the batch is
+ * `docs/fewer-things-plan.md` X). Batch D halved `sciencePerPop` to 0.5 and the
+ * scripted five-town empire's Æra I close slid 66 → 236, because the beaker was
+ * floored **per town**: a size-1 village at half a beaker banked nothing at all.
+ * The floor was inside the fold, and the ruling takes it out.
+ *
+ *   · **Nothing is rounded inside a yield fold.** `applyStages` (Entry XVII's
+ *     two multiplications) returns the exact product; the science-per-pop lines,
+ *     the tile percentage shares, the card conversions and amplifiers, the route
+ *     share, the connection share, the renown trickle share, the upkeep rebate,
+ *     a luxury's signature, the growth surplus, the growth carryover and the
+ *     border accrual all carry fractions.
+ *   · **The banks hold the fraction.** `Player.gold`, `sciencePool`,
+ *     `culturePool`, `faithPool`, `renownPool`, `City.foodBasket`,
+ *     `hammerBasket` and `City.culture` are now JSON numbers that may be
+ *     fractional. Every threshold beside them stays an integer and every
+ *     comparison against one is the same `<`/`>=` it always was.
+ *   · **A windfall composes exactly and banks exactly** (Entry XVIII.5
+ *     restated): one figure, still composed before anything is banked, no longer
+ *     floored on the way.
+ *   · **Prices, costs, thresholds, counts, movement and rolls are untouched** —
+ *     the growth threshold, the border rungs, the guild bar, the faith ladder,
+ *     every purchase price, `snapMovement` and every "per N things" count keep
+ *     their integer arithmetic. The audit table is in the batch doc.
+ *   · **Display rounds at the surface**, in one place — `src/sim/yieldFormat.ts`
+ *     (`roundYield` / `signedYield`). No surface shows a fraction.
+ *
+ *     The migration note: a v74 save does not load. Every figure in the
+ *     simulation moves — the first turn a town collects, its pools hold
+ *     different numbers from the ones a v74 log would have produced — so a v74
+ *     command log replays into a different empire by turn two.
+ *
+ * v76: **the tree's gifts** (`docs/tech-gifts.md` §7 as the user marked it; the
+ * batch is `docs/fewer-things-plan.md` E). Batch D left six nodes handing over
+ * no building; this is what they hand over instead, and every one of them is a
+ * row rather than a branch — the effect vocabulary the tree has carried since
+ * the Age I rework (`TechDef.effects`, `liveEffects`' tenth source) plus the
+ * engine shapes batch A declared and nothing had used yet.
+ *
+ *   · **A third conversion project.** `pageants` (Code of Laws): production →
+ *     culture at the same rate its two siblings trade at. `ProjectPayout` gained
+ *     `culture`, and `payProject` pays it through `settleCultureWindfall` —
+ *     which is exactly the door `projectData.ts`'s docblock left open, so a
+ *     culture project is one basket-filler more and not a second path into the
+ *     basket.
+ *   · **The Examination Hall is The Civil Service.** A name only; the id
+ *     `theExaminationHall` is kept, so no save's tech list moves.
+ *   · **A road step is an empire fact.** `CardRule` gained `roadStepCost` and
+ *     Machinery carries −40% of it, which is a third becoming a fifth exactly.
+ *     `MOVEMENT_DENOMINATOR` is 15 rather than 3 for that reason (the least
+ *     common multiple of the two fractions, and `5k/15 === k/3` for every
+ *     integer `k`, so no older figure moved). The price is folded once per
+ *     sweep into `MoveProfile.roadStep` and read only by `stepCost` and A*'s own
+ *     floor, so the four readers still agree by construction.
+ *   · **A route may be paid per luxury at either end.** The Golden Roads:
+ *     `CardRouteYieldEffect.perEndpointLuxury`, folded in `routeYields.ts`,
+ *     which is the one module holding both cities.
+ *
+ *     The migration note: a v75 save does not load. Ten nodes hand over
+ *     different gifts, a project id joined the queue's vocabulary, and an army
+ *     that holds Machinery marches further on the same paving — so a v75 command
+ *     log replays into a different empire the turn any of them lands.
  */
-export const SCHEMA_VERSION = 74;
+export const SCHEMA_VERSION = 76;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

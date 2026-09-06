@@ -56,11 +56,17 @@ export interface MovementRules {
    * `1` is Civ's ⅓ and a two-movement column covers six hexes of highway.
    *
    * Stored as a numerator rather than as `0.3333…` because movement points are
-   * exact thirds and a decimal in a data file is a decimal that drifts: three
+   * exact fractions and a decimal in a data file is a decimal that drifts: three
    * road steps have to come to exactly one point or a unit finishes its turn
    * holding a billionth of a move. `pathfind.ts` is the one place the fraction is
    * formed (`roadStepCost`), and `snapMovement` is what keeps every running
-   * total on a whole third.
+   * total on a whole one.
+   *
+   * It is the **base**, and since Machinery (batch E) not always the price: an
+   * empire may hold a `roadStepCost` percentage that makes a step a fifth
+   * instead of a third, folded once per sweep into `MoveProfile.roadStep`. The
+   * denominator every total snaps onto is fifteen for that reason, so both
+   * fractions stay exact.
    *
    * A road step **replaces** the ground's own price rather than discounting it —
    * a wooded hill on a highway is a road, not a cheaper hill — which is the rule

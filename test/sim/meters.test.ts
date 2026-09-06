@@ -5,6 +5,7 @@ import { applyCommand } from '../../src/sim/commands';
 import {
   assignCitizens,
   capitalCityOf,
+  cityQuote,
   cityTile,
   cityYields,
   collectYields,
@@ -713,11 +714,12 @@ describe('what the meters do to the economy', () => {
     expect(factor).toBeLessThan(1);
 
     // `cityYields` is the number the panel prints, the pipeline banks and
-    // `turnsToBuild` divides by — one multiplication, floored once at the end.
+    // `turnsToBuild` divides by — one multiplication, and since batch X no
+    // rounding at all: the meter's own factor applied to the flats, exactly.
     const rate = cityYields(state, city).production;
     const unmodified = state.cities.length;
     expect(unmodified).toBeGreaterThan(0);
-    expect(rate).toBe(Math.floor(rate));
+    expect(rate).toBe(cityQuote(state, city).flats.production * factor);
     expect(rate).toBeGreaterThan(0);
 
     // Softening the meter softens the rate, through the same function.
@@ -926,7 +928,10 @@ describe('a captured city, end to end', () => {
     // ordinary rows withdrawn, five uniques added, the chain field, the
     // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
     // landed the rites beside it on the same day.
-    expect(SCHEMA_VERSION).toBe(74);
+    // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
+    // bank and pool holds the fraction, so a v74 log banks different figures
+    // from its second turn on.
+    expect(SCHEMA_VERSION).toBe(76);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

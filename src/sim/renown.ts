@@ -215,7 +215,9 @@ export function explainCityRenown(
   const base = foldRenown(lines);
   if (base === 0) return lines;
   for (const share of shares) {
-    const amount = Math.floor((base * share.percent) / 100);
+    // Exact since batch X: a tenth of a two-renown trickle is a fifth of a point
+    // banked, where the floor paid nothing until the trickle reached ten.
+    const amount = (base * share.percent) / 100;
     if (amount === 0) continue;
     lines.push({
       source: `${share.source} · ${city.name}`,

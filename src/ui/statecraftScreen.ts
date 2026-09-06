@@ -131,6 +131,7 @@
  * every number a card prints is `describeCard` at the level the empire holds it.
  */
 
+import { roundYield } from '../sim/yieldFormat';
 import {
   type CardClause,
   type PlayerStatecraft,
@@ -649,7 +650,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const line = element('p', 'sc-progress');
     const player = playerById(state, seat)!;
     const cost = nextDraftCost(player);
-    const banked = Math.max(0, Math.floor(player.culturePool));
+    // Rounded at the eye (batch X): the pool is exact, the meter reads whole.
+    const banked = Math.max(0, roundYield(player.culturePool));
     line.append(element('span', 'sc-tier', `Tier ${sc.drafts}`));
     line.append(element('span', 'sc-sep', '·'));
     const meter = element('span', 'sc-meter', `${banked}/${cost}`);

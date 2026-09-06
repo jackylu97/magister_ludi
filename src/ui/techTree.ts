@@ -94,6 +94,7 @@
  */
 
 import { buildingDef, isWonder } from '../sim/buildingData';
+import { signedYield, yieldShows } from '../sim/yieldFormat';
 import { unitProductionCost } from '../sim/cities';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
@@ -949,11 +950,10 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    */
   function tileYieldNote(add: TileYield): string {
     const parts: string[] = [];
-    if (add.food !== 0) parts.push(`${add.food > 0 ? '+' : ''}${add.food}${YIELD_GLYPH.food}`);
-    if (add.production !== 0) {
-      parts.push(`${add.production > 0 ? '+' : ''}${add.production}${HAMMER}`);
-    }
-    if (add.gold !== 0) parts.push(`${add.gold > 0 ? '+' : ''}${add.gold}${YIELD_GLYPH.gold}`);
+    // Rounded at the eye (batch X): the delta is exact, the note is whole.
+    if (yieldShows(add.food)) parts.push(`${signedYield(add.food)}${YIELD_GLYPH.food}`);
+    if (yieldShows(add.production)) parts.push(`${signedYield(add.production)}${HAMMER}`);
+    if (yieldShows(add.gold)) parts.push(`${signedYield(add.gold)}${YIELD_GLYPH.gold}`);
     return parts.join(' ');
   }
 

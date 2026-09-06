@@ -692,9 +692,10 @@ export function explainTileYield(
   // had already added. It joins as one more labelled `add`, so the breakdown
   // still sums to the total and a player can see which half was raised.
   //
-  // Riders **sum before one multiplication** and the result is floored per
-  // voice, which is Entry XVII's discipline read at the scale of a hex: two
-  // cards that each say +50% are worth +100% rather than ×2.25.
+  // Riders **sum before one multiplication**, which is Entry XVII's discipline
+  // read at the scale of a hex: two cards that each say +50% are worth +100%
+  // rather than ×2.25. Since batch X the share is not rounded per voice either —
+  // half a point of food on a hex is half a point of food in the town's fold.
   //
   // **And a percentage on the ground, which is its opposite number** — The Old
   // Ways' doubling of what an unimproved hex pays (`TileLine.basePercent`). It
@@ -739,7 +740,7 @@ export function explainTileYield(
     }
     let pays = false;
     for (const voice of TILE_YIELD_KEYS) {
-      share[voice] = Math.floor((share[voice] * worksPercent) / 100);
+      share[voice] = (share[voice] * worksPercent) / 100;
       if (share[voice] !== 0) pays = true;
     }
     if (pays) list.push(share);
@@ -758,7 +759,7 @@ export function explainTileYield(
     };
     let pays = false;
     for (const voice of TILE_YIELD_KEYS) {
-      share[voice] = Math.floor((ground[voice] * groundPercent) / 100);
+      share[voice] = (ground[voice] * groundPercent) / 100;
       if (share[voice] !== 0) pays = true;
     }
     if (pays) list.push(share);
@@ -2399,9 +2400,8 @@ export function explainCityBuildings(
  *     ordinary shares just added — so a doubler doubles what the Vestry raised
  *     rather than racing it.
  *
- * Floored per share, per building and per voice, which is `explainCityBuildings`'
- * own per-entry floor read one table over: two half-point shares buy two halves
- * rather than rounding into a free point, and each share's own line is exactly
+ * Exact per share, per building and per voice (batch X): two half-point shares
+ * buy two halves and the halves are *kept*, and each share's own line is exactly
  * what it contributed (rule 5 — nothing is apportioned after the fact).
  *
  * `cardBuildingPercents` (`statecraft.ts`) hands over the shares and the
@@ -2418,13 +2418,13 @@ export function cardBuildingYields(
   const byCard = new Map<CardBuildingPercentLine, BuildingPreviewLine>();
   for (const entry of explainCityBuildings(city, hypothetical)) {
     // The building's own figure, per voice — the row's flats plus the per-citizen
-    // beaker, floored exactly as `cityQuote` floors it, so the share is taken of
-    // the number the town actually banks.
+    // beaker, exact exactly as `cityQuote` is exact, so the share is taken of the
+    // number the town actually banks.
     const base: Record<CityYieldKey, number> = {
       food: entry.food,
       production: entry.production,
       gold: entry.gold,
-      science: entry.science + Math.floor(city.population * entry.sciencePerPop),
+      science: entry.science + city.population * entry.sciencePerPop,
       culture: entry.culture,
       faith: entry.faith,
     };
@@ -2437,7 +2437,7 @@ export function cardBuildingYields(
           if (share.yield !== undefined && share.yield !== 'all' && share.yield !== key) continue;
           const over = pass ? raised[key] : base[key];
           if (over === 0) continue;
-          const paid = Math.floor((over * share.percent) / 100);
+          const paid = (over * share.percent) / 100;
           if (paid === 0) continue;
           let line = byCard.get(share);
           if (line === undefined) {
@@ -2591,7 +2591,7 @@ export function explainBuildingPreview(
     line.food = entry.food;
     line.production = entry.production;
     line.gold = entry.gold;
-    line.science = entry.science + Math.floor(city.population * entry.sciencePerPop);
+    line.science = entry.science + city.population * entry.sciencePerPop;
     line.culture = entry.culture;
     line.faith = entry.faith;
     if (previewPays(line)) lines.push(line);
@@ -3077,16 +3077,15 @@ export function cityStageSums(
  * land in the *second* of two multiplications: everything the town did for
  * itself — its buildings' category bonuses, a seam it holds, a coastal
  * signature — is summed and applied first, and then the empire's mood multiplies
- * the result, `(base + flats) × (1 + Σ city%) × (1 + Σ global%)`, floored once
- * at the very end (`applyStages` in `modifiers.ts`).
+ * the result, `(base + flats) × (1 + Σ city%) × (1 + Σ global%)`, with **no
+ * rounding anywhere** (`applyStages` in `modifiers.ts`).
  *
  * Additive within a stage and multiplicative across the pair, which is the whole
  * doctrine: two city bonuses of +10% and +15% are +25% and never ×1.10 × 1.15,
  * while a +10% writ on top of that +25% is worth 37.5 points of base rather than
  * 35 — a global modifier scales with how well-built the cities under it are.
- * Floor-once is the same rule the science-per-pop terms above keep, so a +10% on
- * 7 hammers is 7 and not a rounding gift, and a barracks in an overstretched
- * empire is two multiplications and still one rounding.
+ * Exactness is the same rule the science-per-pop terms above keep since batch X,
+ * so a +10% on 7 hammers is 7.7 and the seven tenths reach the basket.
  *
  * Applying it inside this function rather than in the turn phase is the point:
  * `turnsToBuild`, the city panel, the top bar's totals, the tech screen's rate
@@ -3169,7 +3168,9 @@ export function cityQuote(
     gold: centre.gold,
     // The centre's own science and culture ride on top of what a city makes just
     // by being one: a town founded on a tea hill keeps the beaker.
-    science: Math.floor(city.population * CITIES.sciencePerPop) + centre.science,
+    // Exact since batch X: at `sciencePerPop` 0.5 a size-1 town banks half a
+    // beaker, where the old floor banked nothing at all.
+    science: city.population * CITIES.sciencePerPop + centre.science,
     culture: CITIES.baseCulturePerCity + centre.culture,
     faith: centre.faith,
   };
@@ -3260,10 +3261,9 @@ export function cityQuote(
     // faith since 2026-08-26, and faith is banked into `Player.faithPool` by
     // `collectYields` like every other source of it.
     total.faith += entry.faith;
-    // Floored per *entry* rather than per building, which is the same rule the
-    // old per-building floor was: two half-science sources must pay for two
-    // halves rather than round into a free point.
-    total.science += Math.floor(city.population * entry.sciencePerPop);
+    // Per *entry* rather than per building, and exact since batch X: two
+    // half-science sources pay for two halves and both halves are kept.
+    total.science += city.population * entry.sciencePerPop;
   }
 
   // What the deck adds to those same shelves — "your faith buildings give half
@@ -3435,15 +3435,18 @@ export function growthSurplus(
   // prints line by line. Floored at zero for `growthFactor`'s reason: the worst
   // any of this may do is stall a city, never eat it.
   const factor = Math.max(0, 1 + foldGrowthPercent(explainGrowthPercent(state, city)) / 100);
-  // Floored, so the basket stays whole: the panel prints it, the threshold is a
-  // whole number, and a fraction of a bushel banked forever is a fraction that
-  // eventually decides a growth turn nobody can account for. Applied **whatever
-  // the factor is**: it used to be skipped at 1 or above, which was exactly
-  // right while the meters were the only source and could only ever stifle, and
-  // silently ate the first card that pushed the other way. A factor of exactly 1
-  // still leaves a whole surplus untouched, so a game where nobody holds such a
-  // card banks what it always banked.
-  return Math.floor(surplus * factor);
+  // **Exact** since batch X. It used to floor, on the argument that "a fraction
+  // of a bushel banked forever eventually decides a growth turn nobody can
+  // account for" — which had it backwards: the fraction is *earned*, and a −25%
+  // stifle on a surplus of 3 that floored to 2 was the empire losing a quarter
+  // of a bushel a turn to arithmetic. The threshold is still a whole number and
+  // the comparison is still `<`, so the growth turn is decided by a figure the
+  // panel can print rather than by a rounding.
+  //
+  // Applied **whatever the factor is**: it used to be skipped at 1 or above,
+  // which was exactly right while the meters were the only source and could only
+  // ever stifle, and silently ate the first card that pushed the other way.
+  return surplus * factor;
 }
 
 /**
@@ -3520,10 +3523,10 @@ export function turnsToFill(remaining: number, perTurn: number): number | null {
  *      other percentage in this game;
  *   3. a writ in deficit freezes it outright, at any deficit at all.
  *
- * The result is floored, and a +10% on 3 culture is therefore 3 rather than a
- * rounding gift — the same rule `cityYields` keeps for a barracks' hammers, and
- * for the same reason. The writ's bonus is felt by cities that actually make
- * culture, which is the tuning intent: a monument town is not meant to sprint.
+ * The result is **exact** (batch X): a +10% on 3 culture is 3.3, and the third
+ * of a point banks like every other fraction in the game. It used to floor,
+ * which meant the writ's bonus was felt only by towns already making ten culture
+ * — a tuning the flooring chose rather than a designer.
  *
  * `frozen` is a *state*, not a rate of zero, and it is carried separately from
  * `perTurn` so no surface has to infer it. A frozen city still banks its culture
@@ -3580,7 +3583,10 @@ export function borderGrowth(
   // never march it backwards.
   const factor = frozen ? 0 : Math.max(0, borderFactor(effects) + cardPercent / 100);
   const base = yields.culture;
-  const perTurn = Math.floor(base * factor);
+  // Exact since batch X — a +10% on 3 culture is 3.3 and the third of a point is
+  // banked, where the old floor made the writ's bonus invisible to every town
+  // making less than ten culture.
+  const perTurn = base * factor;
   const cost = borderCostFor(state, city);
   return {
     base,
@@ -4149,7 +4155,8 @@ export function explainEmpireCardYields(state: GameState, playerId: number): Car
  * A share of the *threshold*, not of the overflow: "cities keep 10% of food upon
  * growing" is a rebate on what growing cost, so a city that grew at exactly the
  * threshold still keeps something and a city that overshot keeps the overshoot
- * *as well*. Floored, because the basket is whole numbers all the way down.
+ * *as well*. Exact since batch X: the basket carries fractions, so a tenth of a
+ * threshold of 15 is a bushel and a half rather than the one the floor left.
  *
  * `rulePercent` reads the `growthCarryover` rule as the percentage **itself**
  * rather than as a multiplier on a base, which is the one place the shape's two
@@ -4167,7 +4174,7 @@ export function growthCarryover(state: GameState, city: City, threshold: number)
     // same argument, one bucket over.
     foldCardRulePercent(cardRulePercent(state, city.ownerId, 'growthCarryover', city));
   if (percent <= 0) return 0;
-  return Math.floor((threshold * percent) / 100);
+  return (threshold * percent) / 100;
 }
 
 /**
@@ -4761,11 +4768,14 @@ export interface WonderRefund {
  * has to remember to grow. `pays` is the printed figure and nothing multiplies
  * it — see `projectData.ts` for why that is arithmetic rather than taste.
  *
- * Nothing here settles a bucket, and that is the reason culture is not in
- * `ProjectPayout`: gold, science and faith are pools that accumulate and are
- * read where they lie, while a culture pool that fills is a draft owed
- * (`settleCultureWindfall`). A project that paid culture would be the second
- * path into that bucket the register in CLAUDE.md exists to forbid.
+ * **Three of the four voices settle nothing** — gold, science and faith are
+ * pools that accumulate and are read where they lie. Culture is the fourth and
+ * it is a *basket*: a culture pool that fills is a draft owed, so Pageants (the
+ * third conversion, Code of Laws — `docs/tech-gifts.md` §7) ends this function
+ * with `settleCultureWindfall`, which is the one wrapper that pays that debt.
+ * That is the door `projectData.ts` left open, walked through rather than
+ * widened: nothing here is a second path into the bucket the register in
+ * CLAUDE.md exists to forbid.
  *
  * **The riders are flat additions to the payout** — the Water Clock of Su
  * Song's three extra beakers on Scholarship — and they are added here, in the
@@ -4784,6 +4794,14 @@ function payProject(state: GameState, playerId: number, id: ProjectId): void {
   player.gold += gold;
   player.sciencePool += science;
   player.faithPool += (pays.faith ?? 0) + (extra.faith ?? 0);
+  const culture = (pays.culture ?? 0) + (extra.culture ?? 0);
+  if (culture !== 0) {
+    player.culturePool += culture;
+    // The basket, settled the instant it fills — see the docblock. A draft dealt
+    // here reaches the same turn's `statecraft` phase, because `advanceProduction`
+    // runs before it.
+    settleCultureWindfall(state, player);
+  }
   // The Bead Race's two cumulative counters (The Tithe, The Scholarship). They
   // count what the *conversion* paid, riders included, because that is what the
   // card asks — "gather a great sum of gold from tithes" is about the tithes and
@@ -5411,7 +5429,8 @@ function refundBeatenWonders(
     city.queue.splice(index, 1);
     // Only the front row was being paid for. See the docblock.
     const hammers = index === 0 ? Math.max(0, city.hammerBasket) : 0;
-    const gold = Math.floor(hammers * rate);
+    // Exact since batch X: the basket is a fraction and so is what it buys back.
+    const gold = hammers * rate;
     if (index === 0) city.hammerBasket -= hammers;
     const player = playerById(state, city.ownerId);
     if (player) player.gold += gold;

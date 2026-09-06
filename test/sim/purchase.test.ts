@@ -677,7 +677,9 @@ describe('a town holding a Cathedral sells its units for faith', () => {
     const before = cityYields(g.state, city).faith;
     expect(before).toBeGreaterThan(0);
     city.buildings.push('highTemple');
-    expect(cityYields(g.state, city).faith).toBe(Math.floor((before * 125) / 100));
+    // Exact since batch X: a quarter more on three faith is three and three
+    // quarters, and the pool keeps the three quarters.
+    expect(cityYields(g.state, city).faith).toBe((before * 125) / 100);
   });
 });
 
@@ -809,6 +811,9 @@ describe('the schema witness', () => {
     // ordinary rows withdrawn, five uniques added, the chain field, the
     // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
     // landed the rites beside it on the same day.
-    expect(SCHEMA_VERSION).toBe(74);
+    // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
+    // bank and pool holds the fraction, so a v74 log banks different figures
+    // from its second turn on.
+    expect(SCHEMA_VERSION).toBe(76);
   });
 });

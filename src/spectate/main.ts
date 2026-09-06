@@ -28,6 +28,7 @@
  */
 
 import './style.css';
+import { roundYield, signedYield } from '../sim/yieldFormat';
 
 import { DEFAULT_PERSONA, PERSONA_IDS, type BotStep, createBotStepper, personaLabel } from '../ai/stepper';
 import { type BotCandidate, type ValueTerm, rankedCandidates } from '../ai/decision';
@@ -242,8 +243,10 @@ function seatRow(playerId: number): HTMLElement {
   row.append(swatch(playerId));
   row.append(span('who', player.name));
   row.append(span('stat', `${cities}⌂  ${units}⚔`));
-  row.append(span('stat', `${player.gold}💰 ${signed(rate.goldPerTurn ?? 0)}/t`));
-  row.append(span('stat', `${player.faithPool}✝ ${signed(rate.faithPerTurn ?? 0)}/t`));
+  // The pools are exact fractions since batch X; a seat's line rounds them at
+  // the eye like every other surface (`src/sim/yieldFormat.ts`).
+  row.append(span('stat', `${roundYield(player.gold)}💰 ${signedYield(rate.goldPerTurn ?? 0)}/t`));
+  row.append(span('stat', `${roundYield(player.faithPool)}✝ ${signedYield(rate.faithPerTurn ?? 0)}/t`));
   row.append(span('stat', `${player.techsResearched.length}🔬  ${player.beads.length}●`));
   return row;
 }
@@ -418,9 +421,6 @@ function figure(value: number): string {
   return Number.isInteger(rounded) ? String(rounded) : String(rounded.toFixed(2));
 }
 
-function signed(value: number): string {
-  return value >= 0 ? `+${value}` : String(value);
-}
 
 // --- wiring -------------------------------------------------------------------
 

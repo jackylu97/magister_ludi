@@ -187,7 +187,8 @@
           "omenReading"
         ]
       },
-      "flavor": "We question the sky, and learn the habit of questions."
+      "flavor": "We question the sky, and learn the habit of questions.",
+      "note": "A shrine is where a people first listen, and the first of your gods arrives of its own accord once the realm's faith runs deep enough."
     },
     "letters": {
       "name": "Writing",
@@ -363,12 +364,22 @@
         "buildings": [
           "steleOfLaws",
           "imperialThrone"
+        ],
+        "projects": [
+          "pageants"
         ]
       },
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 3
+        }
+      ],
       "flavor": "One name at the top of the list, and a list.",
       "deferred": [
         "The King List, which would pay a city for the years since it was founded, waits until a city remembers its own founding turn."
-      ]
+      ],
+      "note": "A city may put its labour into pageants, and what it raises is celebration rather than stone. The crown's writ reaches further too: your realm may hold more cities in hand than it could."
     },
     "theLongCount": {
       "name": "Chronology",
@@ -387,8 +398,20 @@
           "chartTheStars"
         ]
       },
+      "effects": [
+        {
+          "kind": "periodic",
+          "everyTurns": 15,
+          "pays": "renown",
+          "count": "buildingsOfCategories",
+          "categories": [
+            "science",
+            "faith"
+          ]
+        }
+      ],
       "flavor": "A calendar long enough to outlast the people keeping it.",
-      "note": "Every age this empire enters from now on is seen a turn early in the beads, and its calendars may call for a second reading of a draft."
+      "note": "Every age this empire enters from now on is seen a turn early in the beads, and its calendars may call for a second reading of a draft. On the long count the realm's libraries and its shrines are read off together, and your renown grows by them."
     },
     "stateWorkforce": {
       "name": "State Workforce",
@@ -532,7 +555,25 @@
           "workshop"
         ]
       },
-      "flavor": "The guild decides what a thing is worth by how long it took."
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 10
+        },
+        {
+          "kind": "countScaled",
+          "count": "wonders",
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 2,
+            "where": "empire"
+          }
+        }
+      ],
+      "flavor": "The guild decides what a thing is worth by how long it took.",
+      "note": "The guilds put their weight behind the great works: a wonder rises faster in your cities, and every wonder your realm has raised sings a little louder."
     },
     "mathematics": {
       "name": "Mathematics",
@@ -596,7 +637,7 @@
       "note": "Roads near your cities cost nothing to keep, every city joined to your capital pays one more gold, and a joined city is a contented one."
     },
     "theExaminationHall": {
-      "name": "The Examination Hall",
+      "name": "The Civil Service",
       "glyph": "🏛",
       "age": 3,
       "row": 1,
@@ -613,10 +654,22 @@
         {
           "kind": "happinessTierBoost",
           "points": 5
+        },
+        {
+          "kind": "authority",
+          "amount": 5
+        },
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "greatWork"
+          },
+          "food": 1,
+          "production": 1
         }
       ],
       "flavor": "The clerk is chosen by the paper, not by the father.",
-      "note": "A realm that is content or well governed is rewarded more generously.",
+      "note": "A realm that is content or well governed is rewarded more generously, and the crown's writ reaches further than it did. The ministry also puts the works your great people leave behind to use: each of them feeds and supplies its city better.",
       "columnShift": 1
     },
     "colonialCharters": {
@@ -756,7 +809,20 @@
           "clocktower"
         ]
       },
-      "flavor": "The hour stops being a guess."
+      "effects": [
+        {
+          "kind": "periodic",
+          "everyTurns": 10,
+          "pays": "science",
+          "amount": 5,
+          "count": "buildingsOfCategories",
+          "categories": [
+            "production"
+          ]
+        }
+      ],
+      "flavor": "The hour stops being a guess.",
+      "note": "The hours are kept. On a regular beat every workshop and forge in your realm reports what its craft has taught it, and the beakers arrive all at once."
     },
     "engineering": {
       "name": "Engineering",
@@ -806,8 +872,27 @@
         "horology"
       ],
       "unlocks": {},
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "mine"
+              },
+              {
+                "test": "hasResource"
+              }
+            ]
+          },
+          "production": 1,
+          "faith": 1
+        }
+      ],
       "flavor": "The hill is asked again, and this time it answers.",
-      "note": "Every mine your cities work gives up a further hammer."
+      "note": "Every mine your cities work gives up a further hammer, and a mine sunk into a named seam gives up more still — and a little devotion with it, for the earth is asked before it is taken."
     },
     "raisedFields": {
       "name": "Raised Fields",
@@ -875,7 +960,15 @@
           "armoury"
         ]
       },
-      "flavor": "A crank is a servant that never sleeps."
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "roadStepCost",
+          "percent": -40
+        }
+      ],
+      "flavor": "A crank is a servant that never sleeps.",
+      "note": "Cranks, rollers and a good axle: an army marches further along your paving in a day than it used to."
     },
     "theAstrolabe": {
       "name": "The Astrolabe",
@@ -915,10 +1008,15 @@
         {
           "kind": "routeRider",
           "extra": 1
+        },
+        {
+          "kind": "routeYield",
+          "gold": 1,
+          "perEndpointLuxury": true
         }
       ],
       "flavor": "No one walks all of it; the cloth does.",
-      "note": "One more caravan may be on the road at once."
+      "note": "One more caravan may be on the road at once, and every caravan of yours is paid for the fine goods held at either end of its journey."
     },
     "feudalism": {
       "name": "Castellany",
@@ -1036,16 +1134,24 @@
       },
       "effects": [
         {
-          "kind": "happiness",
-          "amount": 1,
-          "per": "city",
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10,
+          "scope": {
+            "test": "connected"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 10,
           "scope": {
             "test": "connected"
           }
         }
       ],
       "flavor": "One carved character, used a thousand times.",
-      "note": "A city joined to your capital is contented by the news that reaches it — and it is contented again if your roads were already famous."
+      "note": "A city joined to your capital reads what your presses print: it learns faster, and it builds faster."
     },
     "physics": {
       "name": "Natural Philosophy",

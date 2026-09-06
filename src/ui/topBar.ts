@@ -91,9 +91,11 @@ import {
   YIELD_NAME,
   YIELD_NOTE,
   figure,
+  meterFigure,
   percentFigure,
   poolFigure,
   signedFigure,
+  signedMeterFigure,
 } from './figures';
 import { foldCardYields, nextDraftCost, statecraftBlocker } from '../sim/statecraft';
 import { greatPersonBlocker } from '../sim/greatPeople';
@@ -1168,7 +1170,9 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   function meterLine(source: string, value: number, signed: boolean): HTMLElement {
     const line = element('li', 'meter-line');
     line.append(element('span', 'meter-line-source', source));
-    const amount = signed ? signedFigure(value) : figure(value);
+    // A meter's ledger, so `signedMeterFigure` and not the yields' printer —
+    // see `figures.ts`. The crowding term is a tenth and stays one.
+    const amount = signed ? signedMeterFigure(value) : meterFigure(value);
     line.append(
       element('span', value < 0 ? 'meter-line-value is-cost' : 'meter-line-value', amount),
     );
@@ -1191,7 +1195,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     body.append(lines);
     const total = element('div', 'meter-total ledger-total');
     total.append(element('span', 'meter-line-source', 'Total'));
-    total.append(element('span', 'meter-line-value', signedFigure(standing.total)));
+    total.append(element('span', 'meter-line-value', signedMeterFigure(standing.total)));
     body.append(total);
   }
 
@@ -1241,7 +1245,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         element(
           'span',
           group.total < 0 ? 'meter-line-value is-cost' : 'meter-line-value',
-          signedFigure(group.total),
+          signedMeterFigure(group.total),
         ),
       );
       box.append(heading);
@@ -1299,7 +1303,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     return meterCard(
       'happiness',
       'Happiness',
-      signedFigure(standing.total),
+      signedMeterFigure(standing.total),
       entries,
       effectsOf('happiness'),
     );
@@ -1313,7 +1317,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     return meterCard(
       'authority',
       'Authority',
-      `${figure(standing.cost)}/${figure(standing.gain)}`,
+      `${meterFigure(standing.cost)}/${meterFigure(standing.gain)}`,
       entries,
       effectsOf('authority'),
     );
@@ -1492,7 +1496,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       const happinessStanding = meterStanding(happinessLedger);
       writeChip(
         happinessChip,
-        signedFigure(happinessStanding.total),
+        signedMeterFigure(happinessStanding.total),
         happinessStanding.total,
         effectsOf('happiness', effects),
         'Happiness',
@@ -1507,7 +1511,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       const authorityStanding = meterStanding(authorityLedger);
       writeChip(
         authorityChip,
-        signedFigure(authorityStanding.total),
+        signedMeterFigure(authorityStanding.total),
         authorityStanding.total,
         effectsOf('authority', effects),
         'Authority',

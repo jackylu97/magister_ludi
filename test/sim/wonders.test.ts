@@ -1000,7 +1000,7 @@ describe('the growth channel', () => {
     expect(bare).toBeGreaterThan(0);
 
     raise(g.state, city, 'hangingGardens');
-    expect(growthSurplus(g.state, city, yields)).toBe(Math.floor(bare * 1.25));
+    expect(growthSurplus(g.state, city, yields)).toBe(bare * 1.25);
   });
 });
 
@@ -1031,7 +1031,7 @@ describe('an ordinary building carries card effects, in its own town only', () =
     const bare = growthSurplus(g.state, city, yields);
 
     city.buildings.push('aqueduct');
-    expect(growthSurplus(g.state, city, yields)).toBe(Math.floor(bare * 1.15));
+    expect(growthSurplus(g.state, city, yields)).toBe(bare * 1.15);
     // And it is an ordinary line of the ordinary ledger, labelled by its class.
     const line = cardRulePercent(g.state, 0, 'growthSurplus', city).find(
       (entry) => entry.card === 'aqueduct',

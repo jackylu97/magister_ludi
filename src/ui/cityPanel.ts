@@ -114,6 +114,7 @@ import { type RouteYieldLine, cityRouteYields } from '../sim/trade';
 import { cityRouteRows, routeSlotsLine as routeSlotsLineOf } from './tradeLines';
 import { resourceLabelNodes } from './resourceMark';
 import { setYieldText, yieldMarkNode } from './yieldMark';
+import { roundYield } from '../sim/yieldFormat';
 import {
   type City,
   type GameState,
@@ -648,7 +649,9 @@ export function stageRows(
 export function previewFigures(entry: CityYields): string {
   const parts: string[] = [];
   for (const key of CITY_YIELD_KEYS) {
-    const value = entry[key];
+    // Rounded at the eye and never in the fold (batch X): a preview whose true
+    // worth is four tenths of a beaker prints nothing rather than `+0.4🔬`.
+    const value = roundYield(entry[key]);
     if (value === 0) continue;
     parts.push(`${value > 0 ? '+' : ''}${value}${YIELD_GLYPH[key]}`);
   }
@@ -665,7 +668,7 @@ export function previewFigures(entry: CityYields): string {
 export function specialistFigures(entry: SpecialistYieldLine): string {
   const parts: string[] = [];
   for (const key of CITY_YIELD_KEYS) {
-    const value = entry[key];
+    const value = roundYield(entry[key]);
     if (value === 0) continue;
     parts.push(`${value > 0 ? '+' : ''}${value}${YIELD_GLYPH[key]}`);
   }
@@ -1442,7 +1445,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       [entry.culture, YIELD_GLYPH.culture],
       [entry.faith, YIELD_GLYPH.faith],
     ];
-    for (const [value, glyph] of voices) {
+    for (const [raw, glyph] of voices) {
+      const value = roundYield(raw);
       if (value === 0) continue;
       parts.push(`${value > 0 ? '+' : ''}${value}${glyph}`);
     }
@@ -1467,6 +1471,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       [entry.gold, YIELD_GLYPH.gold],
     ];
     return voices
+      .map(([value, glyph]): [number, string] => [roundYield(value), glyph])
       .filter(([value]) => value !== 0)
       .map(([value, glyph]) => `${value > 0 ? '+' : ''}${value}${glyph}`)
       .join(' ');
@@ -1483,7 +1488,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       [entry.culture, YIELD_GLYPH.culture],
       [entry.faith, YIELD_GLYPH.faith],
     ];
-    for (const [value, glyph] of voices) {
+    for (const [raw, glyph] of voices) {
+      const value = roundYield(raw);
       if (value === 0) continue;
       parts.push(`${value > 0 ? '+' : ''}${value}${glyph}`);
     }
@@ -1727,6 +1733,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const label = element('div', 'city-meter-head');
     label.append(element('span', 'city-meter-name', 'Growth'));
     const sign = surplus > 0 ? '+' : '';
+    // Rounded at the eye (batch X): the basket carries the exact surplus, the
+    // rail prints the whole number. The *sign* is read off the exact figure, so
+    // a town losing a tenth of a bushel still says "starving".
+    const shownSurplus = roundYield(surplus);
     // The rate is a figure, so it carries the mono class; a shrinking city is
     // the one state in this panel that gets the alarm colour — and the word
     // (user, 2026-08-29): a deficit says "starving", not "stalled", because a
@@ -1739,10 +1749,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         'span',
         surplus < 0 ? 'city-meter-rate is-bad' : 'city-meter-rate',
         surplus < 0
-          ? `${surplus} food · starving`
+          ? `${shownSurplus} food · starving`
           : turns === null
-            ? `${sign}${surplus} food · stalled`
-            : `${sign}${surplus} food · ${turns}t`,
+            ? `${sign}${shownSurplus} food · stalled`
+            : `${sign}${shownSurplus} food · ${turns}t`,
       ),
     );
     box.append(label);
@@ -1817,10 +1827,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       'span',
       growth.frozen ? 'city-meter-rate is-bad' : 'city-meter-rate',
       growth.frozen
-        ? `${growth.base} culture · frozen`
+        ? `${roundYield(growth.base)} culture · frozen`
         : growth.turns === null
-          ? `+${growth.perTurn} culture · stalled`
-          : `+${growth.perTurn} culture · ${growth.turns}t`,
+          ? `+${roundYield(growth.perTurn)} culture · stalled`
+          : `+${roundYield(growth.perTurn)} culture · ${growth.turns}t`,
     );
     label.append(rate);
     box.append(label);
@@ -1831,7 +1841,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       element('span', 'city-meter-sub', growth.frozen ? 'Authority overdrawn' : 'Next tile'),
     );
     note.append(
-      element('span', 'city-meter-fig', `${Math.floor(growth.banked)} / ${growth.cost}`),
+      element('span', 'city-meter-fig', `${roundYield(growth.banked)} / ${growth.cost}`),
     );
     box.append(note);
 
@@ -1844,7 +1854,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         ? `Authority ${percentFigure(growth.percent)}`
         : growth.frozen
           ? 'Borders frozen — authority is overdrawn'
-          : `${Math.floor(growth.banked)} of ${growth.cost} toward the next tile`;
+          : `${roundYield(growth.banked)} of ${growth.cost} toward the next tile`;
 
     const buy = element('button', 'city-buy-tiles');
     buy.type = 'button';
@@ -2122,7 +2132,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       element(
         'span',
         'city-prod-turns',
-        `${Math.floor(city.hammerBasket)}/${cost} · ${turns === null ? 'stalled' : `${turns}t`}`,
+        `${roundYield(city.hammerBasket)}/${cost} · ${turns === null ? 'stalled' : `${turns}t`}`,
       ),
     );
     // **And where it is taken off.** The front row left the queue list when the
@@ -2143,7 +2153,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     box.append(bar(city.hammerBasket, cost, 'is-production'));
     // The rate the bar fills at, on the card's hover rather than on a line of
     // its own — the rails' rule, and the figure is the ⚙ chip in the band.
-    box.title = `+${perTurn} a turn · ${Math.floor(city.hammerBasket)} of ${cost} banked`;
+    box.title = `+${roundYield(perTurn)} a turn · ${roundYield(city.hammerBasket)} of ${cost} banked`;
     // And the two banks, on the rows that declare they take them (Entry LV).
     // Under the bar rather than beside the queue row because a contribution pays
     // for `queue[0]` and this box *is* the front row — a button anywhere else

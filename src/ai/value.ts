@@ -1301,11 +1301,33 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       const mean = ctx.cities === 0 ? 0 : total / ctx.cities;
       return mean * (effect.percent / 100) * ctx.ai.weights.renown;
     }
-    case 'routeYield':
+    case 'routeYield': {
       // Paid on every caravan this empire is running, counted by the simulation.
-      return valueOfYields(bagOf(effect), ctx) * countProbe(ctx, 'tradeRoutes');
+      // A row paid **per luxury at either end** (The Golden Roads) is that figure
+      // again for every good on the road, and the stand-in for "how many goods"
+      // is the empire's own luxury count: a caravan runs between two of this
+      // realm's towns, so the realm's shelf is the honest upper reading of what
+      // the pair between them holds.
+      const each = valueOfYields(bagOf(effect), ctx);
+      const goods = effect.perEndpointLuxury === true ? countProbe(ctx, 'uniqueLuxuries') : 1;
+      return each * goods * countProbe(ctx, 'tradeRoutes');
+    }
     case 'offerRider':
       return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
+    case 'rulePercent':
+      // **One rule of the nine is legible here, and deliberately only one.** The
+      // road fraction (Machinery, batch E) is a discount on a *march*, not on a
+      // town's books, so nothing else in this file was ever going to price it —
+      // and every other `CardRule` keeps the stand-in it has always been priced
+      // at, so adding this arm moved no existing appraisal by a point.
+      //
+      // What a cheaper road is worth: the share of a step it takes off, over the
+      // pieces this empire is paying to keep. A negative percentage is a
+      // discount (`CardRule`'s own sign), so the worth is the positive of it.
+      if (effect.rule !== 'roadStepCost') return ctx.ai.score.unknownEffect;
+      return (
+        (-effect.percent / 100) * ctx.ai.weights.military * countProbe(ctx, 'unitsInField')
+      );
     default:
       // **Never zero.** A shape this bot cannot read is a shape whose card is
       // still worth more than a blank one, and a card whose whole text is

@@ -1,7 +1,11 @@
 # The Technology Tree — reference
 
-The as-built tech reference. Part 2's tables regenerate from `data/techs.json`
-(`scratchpad techdoc.py`; never hand-maintained). Companions: `docs/wonders.md`,
+The as-built tech reference. Part 2's tables are **generated from the rows** —
+never hand-maintained. The generator is a throwaway: a one-file vitest that walks
+`TECH_IDS`, asks `techGifts` what each node hands over and prints the markdown
+(the `scratchpad techdoc.py` that did it before is gone). Regenerating means
+writing that walk again, which is a few minutes and cannot drift from the data —
+hand-editing a row is what drift looks like. Companions: `docs/wonders.md`,
 `docs/trade.md`, `docs/religion-v2.md`, `docs/great-people.md`. The design
 history (proposals, re-cuts, the five-age plan) lives in git and
 `docs/design-history.md`.
@@ -41,8 +45,10 @@ history (proposals, re-cuts, the five-age plan) lives in git and
   comes back if that access is lost. A row already standing in a town's queue is
   excused by the gate (so the queue stays editable) and builds out: nothing is
   dropped, and no queue stalls.
-- **Eight effect-carrying techs** are the exceptions to the neutral-tree
-  ruling (theme abilities otherwise live on cards and building rows).
+- **Sixteen effect-carrying techs** are the exceptions to the neutral-tree
+  ruling (theme abilities otherwise live on cards and building rows). It was
+  eight until batch E gave the re-gifted nodes their own rules
+  (`docs/tech-gifts.md` §7).
 - **Unit prices** take the age band from the unlocking tech, never the row.
 - `TechDef` may carry `paysBead` (Alchemy) and `ageEntryDice`; abilities ride
   `techsGrant` (`ABILITY_TECH`).
@@ -55,21 +61,29 @@ table (`src/sim/tech.ts`, "a column is a price"): one figure per chart column,
 Columns 0–5 are the tapered ladder's own figures; columns 6–12 are authored
 above it by the ruling of 2026-09-03 (see the standing determination). The four
 ages cost 345 / 1665 / 7700 / 26000🔬 — 35710 for the whole tree.
-Wonders in **bold**; † = a deferred half on the row (player-plain prose in the
-data). *Renewals are slated for the axe (user ruling 2026-09-02) and are listed
-while they stand.*
+Wonders in **bold**; ‡ = a row **one to a realm** (`oncePerEmpire` — the five
+uniques of the fewer-things cut, and the three national rows that always wore
+it); ◇ = a row that is granted and never built; † = a deferred half on the row
+(player-plain prose in the data). A unit that cannot be raised without a seam
+says so. *Renewals are slated for the axe (user ruling 2026-09-02) and are listed
+while they stand.* A withdrawn row (`retired`) is not printed at all.
 
-**The fewer-things cut** (2026-09-06, `docs/fewer-things.md` §2): ‡ = a **unique**
-building, one to a realm, priced at about half its age's wonder. ◇ = a row that
-is granted and never built. Twelve ordinary rows left the buildable set and are
-no longer printed here — Funeral Games, the Stele of Laws, the Monastery, the
-Baths, the Examination Hall, the Clocktower, the Reliquary, the Mint, the
+**The fewer-things cut** (2026-09-06, `docs/fewer-things.md` §2): twelve ordinary
+rows left the buildable set — Funeral Games, the Stele of Laws, the Monastery,
+the Baths, the Examination Hall, the Clocktower, the Reliquary, the Mint, the
 Armoury and the Printing House are withdrawn outright; the Forum and the
-Caravanserai return above as two of the five uniques. Their rows stay in
-`data/buildings.json` so a save that raised one still replays. **Six nodes now
-hand over no building at all** — The Examination Hall, Machinery, The Golden
-Roads, Movable Type, Horology's second row and The Holy Office's — and re-gifting
-them is batch E's.
+Caravanserai return as two of the five uniques. Their rows stay in
+`data/buildings.json` so a save that raised one still replays.
+
+**Batch E — the tree's gifts** (2026-09-06, `docs/tech-gifts.md` §7 as the user
+marked it). The six nodes batch D left handing over no building hand over
+something else now, and every gift is a **row** rather than a branch: the effect
+vocabulary the tree has carried since the Age I rework (`TechDef.effects`) plus
+the engine shapes batch A declared. What each one says is printed under its age,
+in the data's own words. The Examination Hall is renamed **The Civil Service**
+(the id `theExaminationHall` is kept, so no save moves), Code of Laws hands over
+the third conversion project, and Engineering is deliberately *not* on the list —
+it kept three buildings and needed nothing.
 
 **The ten chains** (`BuildingDef.requiresBuilding`, a parent standing in the same
 town): Palisade → Stone Walls → Castle · Monument → Amphitheater · Market →
@@ -83,25 +97,29 @@ Workshop → Forge · Shrine → Temple.
 | Agriculture | 5 | — | Settler, Warrior, Scout, Worker | — | — |
 | Fletching | 13 | Agriculture | Archer | — | — |
 | Husbandry | 13 | Agriculture | — | **The Temple of Artemis** | reveals **Horses** |
-| Mining | 13 | Agriculture | — | — | — |
+| Mining | 13 | Agriculture | — | — | Clear Forest |
 | Pottery | 13 | Agriculture | — | Granary | — |
-| Bronzeworking | 30 | Mining | Spearman | Barracks, **The Walls of Uruk** | Blessing of Arms |
+| Bronzeworking | 30 | Mining | Spearman | Barracks, **The Walls of Uruk** | Clear Jungle · Blessing of Arms |
 | Calendar | 30 | Fletching | — | **The Hanging Gardens**, *tithes* (project) | — |
 | Divination | 30 | Husbandry | — | Shrine, **The Oracle** | Rite of the Harvest · Omen Reading |
 | Sailing | 30 | Pottery | Trireme | Lighthouse, **The Great Lighthouse** | Embark |
 | Stonecraft | 30 | Pottery | — | Monument, Palisade, **Stonehenge**, **The Pyramids** | Consecration of the Bounds |
-| The Wheel | 69 | Bronzeworking, Stonecraft | War Chariot, Chariot Archer | — | — |
-| Writing | 69 | Divination, Calendar | — | Library, **The Great Ziggurat**, *scholarship* (project) | — |
+| The Wheel | 69 | Bronzeworking, Stonecraft | War Chariot *(needs improved Horses)*, Chariot Archer *(needs improved Horses)* | — | — |
+| Writing | 69 | Divination, Calendar | — | Library, **The Great Ziggurat**, *scholarship* (project) | Open Borders |
+
+What the effect rows say (player prose from the data):
+
+- **Divination** — A shrine is where a people first listen, and the first of your gods arrives of its own accord once the realm's faith runs deep enough.
 
 ### Æra II — The Age of Heroes (9 nodes, 135–225🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
 | Bronze Panoply | 135 | The Wheel | Phalanx, Swordsman *(needs improved Iron)* | — | reveals **Iron** |
-| Chronology | 135 | Writing | — | **Chart the Stars** | The Long Count · +1 die on age entry · renewals: Plantation +1🎵 |
+| Chronology | 135 | Writing | — | Chart the Stars ‡ | The Long Count · renewals: Plantation +1🎵 |
 | Currency | 135 | The Wheel | Trader | Market, **The Mausoleum** | Rite of Plenty · renewals: Plantation +1💰 |
-| Epic Poetry † | 135 | Writing | — | Amphitheater, Heroic Epic ‡, **The Theatre of Dionysus** | Ancestor Rites |
-| Code of Laws † | 225 | Chronology | — | Imperial Throne ‡ | — |
+| Epic Poetry † | 135 | Writing | — | Amphitheater, **The Theatre of Dionysus**, Heroic Epic ‡ | Ancestor Rites |
+| Code of Laws † | 225 | Chronology | — | Imperial Throne ‡, *pageants* (project) | — |
 | Irrigation | 225 | Chronology, Bronze Panoply | — | — | renewals: Farm +1🌾 (fresh water) |
 | Siegecraft | 225 | Bronze Panoply | Bowman | Stone Walls | Siege |
 | The High Temple | 225 | Epic Poetry | Prophet | Temple, High Temple ‡ | — |
@@ -109,9 +127,10 @@ Workshop → Forge · Shrine → Temple.
 
 What the effect rows say (player prose from the data):
 
-- **Chronology** — Every new age this empire enters from now on pays a die of the Magister.
+- **Chronology** — Every age this empire enters from now on is seen a turn early in the beads, and its calendars may call for a second reading of a draft. On the long count the realm's libraries and its shrines are read off together, and your renown grows by them.
 - **Epic Poetry** — When one of your units falls, the nearest city of yours records the loss in verse and gains culture. Until the poets keep the roll of names, renown gathers but no great person will come.
 - **Epic Poetry** † Verse measured against the fallen soldier — a greater loss sung longer — waits until a one-time grant can be sized by the piece that earned it.
+- **Code of Laws** — A city may put its labour into pageants, and what it raises is celebration rather than stone. The crown's writ reaches further too: your realm may hold more cities in hand than it could.
 - **Code of Laws** † The King List, which would pay a city for the years since it was founded, waits until a city remembers its own founding turn.
 - **Irrigation** — A farm standing beside fresh water feeds its city better than it did.
 
@@ -119,16 +138,16 @@ What the effect rows say (player prose from the data):
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Iron Working | 400 | Irrigation, Siegecraft | Legionary, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | — |
+| Iron Working | 400 | Irrigation, Siegecraft | Legionary *(needs improved Iron)*, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | — |
 | Raised Fields | 400 | Wayfinding | — | — | — |
 | Rhetoric | 400 | The High Temple | — | Forum ‡, **The Great Library** | — |
 | State Workforce | 400 | Currency | — | — | — |
-| Mathematics | 540 | Iron Working | Catapult, Composite Bowman | Caravanserai ‡, **Petra** | — |
+| Mathematics | 540 | Iron Working | Catapult, Composite Bowman | **Petra**, Caravanserai ‡ | — |
 | Satrapies † | 540 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
 | Shipwrights | 540 | Raised Fields | Galley, Tower Ship, Fire Ship | Shipyard | — |
-| The Examination Hall | 540 | Code of Laws | — | — | — |
-| The Saddle | 540 | Iron Working | Horseman, Horse Archer, War Elephant | — | renewals: Pasture +1⚙ |
-| Daughter Cities † | 680 | The Examination Hall | — | Town Charter ◇ | — |
+| The Civil Service | 540 | Code of Laws | — | — | — |
+| The Saddle | 540 | Iron Working | Horseman *(needs improved Horses)*, Horse Archer *(needs improved Horses)*, War Elephant *(needs improved Ivory)* | — | renewals: Pasture +1⚙ |
+| Daughter Cities † | 680 | The Civil Service | — | Town Charter ◇ | — |
 | Engineering | 680 | The Saddle | — | Aqueduct, Watermill, **The Circus Maximus** | — |
 | Guildhalls | 680 | Satrapies | — | Workshop | — |
 | Horology | 680 | Mathematics | — | **The Water Clock of Su Song** | — |
@@ -141,9 +160,11 @@ What the effect rows say (player prose from the data):
 - **State Workforce** — Every worker you train has one more season of work in it, and the treasury hires one at a quarter off.
 - **Satrapies** — Roads near your cities cost nothing to keep, every city joined to your capital pays one more gold, and a joined city is a contented one.
 - **Satrapies** † Hammers toward a building your capital already keeps waits until a one-time grant can look at what stands in another town.
-- **The Examination Hall** — A realm that is content or well governed is rewarded more generously.
+- **The Civil Service** — A realm that is content or well governed is rewarded more generously, and the crown's writ reaches further than it did. The ministry also puts the works your great people leave behind to use: each of them feeds and supplies its city better.
 - **Daughter Cities** — Settlers are trained faster, and every city you found is founded with its charter already granted.
 - **Daughter Cities** † A city planted far from the capital costing less authority waits for the writ to know how far from home a site is.
+- **Guildhalls** — The guilds put their weight behind the great works: a wonder rises faster in your cities, and every wonder your realm has raised sings a little louder.
+- **Horology** — The hours are kept. On a regular beat every workshop and forge in your realm reports what its craft has taught it, and the beakers arrive all at once.
 - **Theology** — The enhancing beliefs open here: a faith may now be deepened as well as spread.
 
 ### Æra IV — The Age of Cathedrals (15 nodes, 1450–2200🔬)
@@ -154,26 +175,26 @@ What the effect rows say (player prose from the data):
 | Geomancy | 1450 | Daughter Cities, Horology | — | — | renewals: Mine +1⚙ |
 | Machinery | 1450 | Horology, Engineering | Crossbowman | — | — |
 | Paper Money † | 1450 | Shipwrights, Guildhalls | — | Bazaar | — |
-| Scholarship | 1450 | Theology | — | University, **The House of Wisdom**, **The Turning Heavens** | — |
+| Scholarship | 1450 | Theology | — | University, **The House of Wisdom**, The Turning Heavens ‡ | — |
 | Castellany † | 1700 | Divine Right | Pikeman | Castle | — |
 | Natural Philosophy | 1700 | Scholarship | Trebuchet | **Machu Picchu** | — |
-| Steel | 1700 | Machinery | Longswordsman | Forge | — |
+| Steel | 1700 | Machinery | Longswordsman *(needs improved Iron)* | Forge | — |
 | The Golden Roads | 1700 | Paper Money | — | — | — |
-| Militant Orders | 1950 | Steel | Knight | **The Alhambra** | — |
+| Militant Orders | 1950 | Steel | Knight *(needs improved Horses)* | **The Alhambra** | — |
 | Movable Type | 1950 | Steel, The Golden Roads | — | — | — |
 | The Astrolabe | 1950 | Natural Philosophy | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
 | The Counting Houses | 1950 | The Golden Roads, Castellany | — | Bank | — |
 | The Holy Office | 1950 | Scholarship | Inquisitor | **Notre-Dame** | — |
-| Alchemy | 2200 | Militant Orders, Movable Type, The Counting Houses, The Astrolabe, The Holy Office | The Fire Lance | The Alchemical Society, **The Alchemical Codex** | reveals **Niter** · pays a **bead** to every completer |
+| Alchemy | 2200 | Militant Orders, Movable Type, The Counting Houses, The Astrolabe, The Holy Office | The Fire Lance *(needs improved Niter)* | The Alchemical Society, The Alchemical Codex ‡ | reveals **Niter** · pays a **bead** to every completer |
 
 What the effect rows say (player prose from the data):
 
 - **Divine Right** — A city you have taken by force costs one less authority.
-- **Geomancy** — Every mine your cities work gives up a further hammer. Workers and explorers may survey a hill they stand on: a turn spent asking the ground what it hides. A rich seam, buried iron, or gems come up as a resource anyone can see; an empty hill is marked surveyed and stays answered. Every survey pays a small assay.
+- **Geomancy** — Every mine your cities work gives up a further hammer, and a mine sunk into a named seam gives up more still — and a little devotion with it, for the earth is asked before it is taken.
+- **Machinery** — Cranks, rollers and a good axle: an army marches further along your paving in a day than it used to.
 - **Paper Money** † The Bourse, which would turn a city’s coin into culture every turn, waits for a building that spends gold rather than earning it.
 - **Castellany** † Defenders shrugging off arrows waits until a strength line can be told which weapon it is answering.
 - **Steel** — Every soldier of the sword line marches one hex further.
-- **The Golden Roads** — One more caravan may be on the road at once.
-- **Movable Type** — A city joined to your capital is contented by the news that reaches it — and it is contented again if your roads were already famous.
+- **The Golden Roads** — One more caravan may be on the road at once, and every caravan of yours is paid for the fine goods held at either end of its journey.
+- **Movable Type** — A city joined to your capital reads what your presses print: it learns faster, and it builds faster.
 - **Alchemy** — Niter is named, and the first soldier who carries fire may be trained where it is dug. Completing this pays a glass bead, and the first empire in the world to complete it opens the Magnum Opus for everybody.
-

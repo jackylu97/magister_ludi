@@ -1759,6 +1759,99 @@ describe('the engine shapes, priced', () => {
     expect(priced([{ kind: 'routeYield', gold: 2 }])).toBe(0);
   });
 
+  it('prices every gift batch E hangs on the tree, and never as an unread shape', () => {
+    // The batch's own acceptance for the bot (`docs/fewer-things-plan.md` E): a
+    // card-effect gift on a node must be *priced*, because `techChain` values a
+    // node by what it hands over and `score.unknownEffect` firing would mean the
+    // bot beelines a node for a reason it cannot name.
+    const score = valueContext(board().state, board().player).ai.score;
+    // The nodes E re-gifted, named rather than swept: a coincidence elsewhere on
+    // the tree (Epic Poetry's verse happens to price at exactly the stand-in)
+    // would otherwise make this test about arithmetic rather than about reading.
+    const gifted: TechId[] = [
+      'kingship',
+      'theExaminationHall',
+      'artisanry',
+      'horology',
+      'theLongCount',
+      'machinery',
+      'prospecting',
+      'theSilkRoad',
+      'movableType',
+    ];
+    // Every one of them has to *have* a gift to price, which is the other half
+    // of the batch and cheap to say here.
+    for (const id of gifted) expect((techDef(id).effects ?? []).length, id).toBeGreaterThan(0);
+    // **Read off the appraiser's own source**, because the two honest ways to
+    // ask this question by arithmetic both fail: a percentage shape is
+    // *deliberately* priced against `unknownEffect × nominalCount` (that is what
+    // "a nominal yield" means here), and the flat shapes price in the same small
+    // integers the stand-in is written in, so any number this test picked could
+    // collide by luck. What it actually wants to know is whether `scoreEffect`
+    // has an arm for the kind at all — which the source says exactly.
+    // The source, through Vite's raw import — `seatRoster.test.ts`' idiom, and
+    // for its stated reason: this project has no node typings and a source
+    // assertion is not worth a dependency.
+    const source = (
+      import.meta.glob('../../src/ai/value.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>
+    )['../../src/ai/value.ts']!;
+    const body = source.slice(source.indexOf('function scoreEffect('));
+    const armed = new Set(
+      [...body.slice(0, body.indexOf('\n}\n')).matchAll(/case '(\w+)'/g)].map((m) => m[1]!),
+    );
+    // `countScaled` never reaches that switch in anger — `explainEffects` sends
+    // it to `explainCounted` one call earlier — so it is armed by the caller.
+    armed.add('countScaled');
+    expect(armed.size).toBeGreaterThan(10);
+    void score;
+    // The one shape on these rows this bot still cannot read, written down
+    // rather than swept under: `routeRider` (an extra caravan slot) predates the
+    // batch and is priced at the stand-in like any unread shape. Pricing it
+    // wants the marginal reading of a *slot*, which is batch F2's.
+    const debt = new Set(['routeRider']);
+    for (const id of gifted) {
+      for (const effect of techDef(id).effects ?? []) {
+        if (debt.has(effect.kind)) continue;
+        expect(armed.has(effect.kind), `${id} · ${effect.kind}`).toBe(true);
+      }
+    }
+    expect([...debt].every((kind) => !armed.has(kind))).toBe(true);
+  });
+
+  it('prices Machinery’s roads by the army that would walk them', () => {
+    // The one `CardRule` this file reads, and it reads the board: a realm with
+    // no pieces in the field gains nothing from cheaper paving, and every piece
+    // it fields makes the discount worth more. Every other rule keeps the
+    // stand-in it has always had.
+    const road: CardEffect[] = [{ kind: 'rulePercent', rule: 'roadStepCost', percent: -40 }];
+    const idle = priced(road);
+    const marching = priced(road, (state, player) => {
+      for (let n = 0; n < 4; n++) createUnit(state, player.id, 'warrior', 5 + n, 7);
+    });
+    expect(idle).toBe(0);
+    expect(marching).toBeGreaterThan(0);
+    // And a rule this file cannot read is still the stand-in, unmoved.
+    const { state, player } = board();
+    expect(
+      scoreEffects(
+        [{ kind: 'rulePercent', rule: 'settlerCost', percent: -33 }],
+        valueContext(state, player),
+      ),
+    ).toBe(valueContext(state, player).ai.score.unknownEffect);
+  });
+
+  it('prices The Golden Roads by the goods as well as by the caravans', () => {
+    // `perEndpointLuxury` multiplies the bag by what the realm's shelves hold,
+    // so the same row is worth more to an empire with goods to carry — and still
+    // nothing at all to one with no caravan on the road.
+    const row: CardEffect[] = [{ kind: 'routeYield', gold: 1, perEndpointLuxury: true }];
+    expect(priced(row)).toBe(0);
+  });
+
   it('counts the new counts through the simulation rather than a nominal guess', () => {
     const effect: CardCountScaledEffect = {
       kind: 'countScaled',

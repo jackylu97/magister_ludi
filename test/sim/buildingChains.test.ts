@@ -355,8 +355,9 @@ describe('the five unique buildings', () => {
     const before = cityYields(g.state, city);
     city.buildings.push('forum');
     const after = cityYields(g.state, city);
-    expect(after.science).toBe(Math.floor((before.science * 110) / 100));
-    expect(after.culture).toBe(Math.floor((before.culture * 110) / 100));
+    // Exact since batch X: a tenth on top is a tenth, not a tenth rounded off.
+    expect(after.science).toBe((before.science * 110) / 100);
+    expect(after.culture).toBe((before.culture * 110) / 100);
   });
 
   /**

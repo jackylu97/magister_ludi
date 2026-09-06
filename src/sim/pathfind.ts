@@ -94,7 +94,7 @@
 import { cityAt, tileOwnerField } from './cities';
 import { type GameMap, type Tile, getTile, getTileAt, mapNeighbors, tileHex, tileIndex, wrappedDistance } from './map';
 import { RULES } from './rulesData';
-import { cardBorderZoc } from './statecraft';
+import { cardBorderZoc, cardRulePercent, foldCardRulePercent } from './statecraft';
 import { type GameState, type Unit, playerById } from './state';
 import { atWar } from './wars';
 // Open borders, read at the same seam and for the same reason `atWar` is: one
@@ -123,18 +123,50 @@ export interface Cell {
 /**
  * The denominator every movement point in this game is a whole multiple of.
  *
- * Three, because a road costs a third of a point (`rules.movement.roadCostThirds`
- * over this) and nothing else in the game is fractional. It is written down once
- * so the two halves of the claim — the price of a road step, and the snapping
- * that keeps a running total exact — cannot be given different denominators.
+ * **Fifteen** since Machinery (`docs/tech-gifts.md` §7 — *"roads at a fifth
+ * instead of a third"*), and fifteen for exactly that reason: it is the least
+ * common multiple of the two road fractions the game now has, so a third is five
+ * fifteenths, a fifth is three, and both are exact. It was three while a road
+ * could only cost `rules.movement.roadCostThirds` over three, and nothing else in
+ * the game is fractional.
+ *
+ * The change costs the older arithmetic nothing. IEEE division is correctly
+ * rounded, so `5k / 15` and `k / 3` are the *same double* for every integer `k`
+ * — every movement figure a save from before this pass holds still snaps to
+ * itself, and the two searches' `best` arrays still compare equal costs equal.
+ *
+ * It is written down once so the halves of the claim — the price of a road step,
+ * the empire's discount on it, and the snapping that keeps a running total exact
+ * — cannot be given different denominators.
  */
-export const MOVEMENT_DENOMINATOR = 3;
+export const MOVEMENT_DENOMINATOR = 15;
 
 /**
- * What one step **along a road** costs, in movement points. See
- * `rules.movement.roadCostThirds`.
+ * What one step **along a road** costs an empire that has learnt nothing about
+ * roads: `rules.movement.roadCostThirds` thirds of a point.
+ *
+ * The **base**, not the price. Since Machinery a road's fraction is a fact about
+ * the *mover's empire* (`MoveProfile.roadStep`, folded off
+ * `cardRulePercent(…, 'roadStepCost')`), and `stepCost` reads the profile. This
+ * constant is what a mover with no profile pays and what the discount is taken
+ * of, and it is still `rules.movement.roadCostThirds` read in the one place.
  */
-export const roadStepCost = RULES.movement.roadCostThirds / MOVEMENT_DENOMINATOR;
+export const roadStepCost = (RULES.movement.roadCostThirds * (MOVEMENT_DENOMINATOR / 3)) / MOVEMENT_DENOMINATOR;
+
+/**
+ * The base road price with an empire's own percentage on it, snapped onto the
+ * denominator — Machinery's −40 turning a third into a fifth exactly.
+ *
+ * The sign is `CardRule`'s own throughout: a negative percentage is a discount.
+ * Clamped at the denominator's own smallest step rather than at zero, because a
+ * free edge would break the "no zero-cost edges" guarantee both searches settle
+ * on.
+ */
+export function roadStepCostWith(percent: number): number {
+  if (percent === 0) return roadStepCost;
+  const priced = snapMovement((roadStepCost * (100 + percent)) / 100);
+  return Math.max(1 / MOVEMENT_DENOMINATOR, priced);
+}
 
 /**
  * The cheapest any single step can be, whatever it crosses — the floor a road
@@ -161,6 +193,20 @@ export const cheapestStepCost = Math.min(
     ? RULES.movement.shoreCrossing
     : Number.POSITIVE_INFINITY,
 );
+
+/**
+ * `cheapestStepCost` for **this mover** — the constant, or this empire's own
+ * road price when that is cheaper still.
+ *
+ * The heuristic's admissibility is the whole of why it takes a mover: an empire
+ * holding Machinery has an edge below the constant, and an estimate built on the
+ * constant would overestimate a highway and A* would stop returning the cheapest
+ * route over exactly the ground that empire paved. One reading, asked once per
+ * search, off a profile that was hoisted once per sweep.
+ */
+export function cheapestStepCostFor(mover?: MoveProfile): number {
+  return Math.min(cheapestStepCost, mover?.roadStep ?? Number.POSITIVE_INFINITY);
+}
 
 /**
  * Snaps a movement figure onto the exact third it must be a multiple of.
@@ -320,6 +366,32 @@ export interface MoveProfile {
    * clause and stays there.
    */
   full: number;
+  /**
+   * What one step **along a road** costs this mover — `roadStepCost`, with the
+   * mover's empire's own `roadStepCost` percentage on it (Machinery's −40, a
+   * third becoming a fifth).
+   *
+   * The fifth fact about the mover a step's price depends on, and hoisted for
+   * `embarks`' reason exactly: the answer is a walk of this empire's whole card
+   * table, and a step's price is asked tens of thousands of times inside one
+   * search. It is a fact about the **empire**, never about the paving — anybody
+   * walks a highway (`isRoadStep`), and what changes is what *this* army's carts
+   * make of one.
+   *
+   * Read in exactly two places, and no fifth reader of `stepCost` may price a
+   * road anywhere else: `stepCost` itself, and `cheapestStepCostFor` so that
+   * A*'s estimate stays admissible for an empire whose roads are cheaper than
+   * the constant.
+   *
+   * **Absent means the base**, and that is a real answer rather than a hole:
+   * a caller with no mover at all is asking "the ground's own price"
+   * (`tileMoveCost`), and a probe assembled by hand — `layFoundingRoad`'s, which
+   * chooses where a decreed road *goes* over ground that has none yet — is
+   * deliberately asking what a road is worth to nobody in particular. Only
+   * `moveProfile` writes it, because only `moveProfile` knows whose piece this
+   * is.
+   */
+  roadStep?: number;
   /**
    * The **land** hexes a ship may stand on at all: coastal city centres, and
    * nothing else (the user's ruling, 2026-08-29 — "a coastal city's hex is the
@@ -507,6 +579,13 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
   // shore crossing is priced off it. `fullMovement` and not `unit.movesLeft`,
   // for the reason on the field.
   const full = fullMovement(unit, state);
+  // What a road is worth to *this empire's* carts, asked once for the sweep and
+  // never per edge. `cardRulePercent` is the one reading of a rule's percentage
+  // and `foldCardRulePercent` its one fold, exactly as the settler's discount and
+  // the army's payroll are read — see `MoveProfile.roadStep`.
+  const roadStep = roadStepCostWith(
+    owner === undefined ? 0 : foldCardRulePercent(cardRulePercent(state, owner.id, 'roadStepCost')),
+  );
   if (isNaval(def)) {
     // Spread rather than assigned, so a mover nothing bars has *no key* and a
     // profile from a world with no diplomacy in it is the object it always was.
@@ -516,6 +595,7 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
       naval: true,
       ocean,
       full,
+      roadStep,
       ports: navalPorts(state),
       ...(closed === undefined ? {} : { closed }),
     };
@@ -534,7 +614,15 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     (owner !== undefined && techsGrant(owner.techsResearched, 'militaryEmbark'));
   const embarks =
     mayEmbark && owner !== undefined && techsGrant(owner.techsResearched, 'embark');
-  return { def, embarks, naval: false, ocean, full, ...(closed === undefined ? {} : { closed }) };
+  return {
+    def,
+    embarks,
+    naval: false,
+    ocean,
+    full,
+    roadStep,
+    ...(closed === undefined ? {} : { closed }),
+  };
 }
 
 /**
@@ -1029,7 +1117,7 @@ export function stepCost(
   // a caravan wading off the end of one is wading, not driving. (Nothing lays
   // paving on water, so the two can only ever meet on the dry half of the step.)
   // Like the road, it *replaces* the ground's price rather than discounting it.
-  let base = isRoadStep(from, to) ? roadStepCost : ground;
+  let base = isRoadStep(from, to) ? (mover?.roadStep ?? roadStepCost) : ground;
   if (mover !== undefined && isShoreStep(from, to, mover)) base = shoreStepCost(mover);
   const zoc = zocBinds(map, field, from, to);
   // Snapped for `snapMovement`'s reason: the base may be a road's third and the
@@ -1229,8 +1317,8 @@ export function findPath(
   // `cheapestStepCost`, not `minStepCost`: a road is cheaper than the floor, so
   // an estimate built on the floor would overestimate a highway and A* would
   // stop returning the cheapest route over exactly the ground a player paved.
-  const heuristic = (tile: Tile): number =>
-    wrappedDistance(map, tileHex(tile), goalHex) * cheapestStepCost;
+  const floor = cheapestStepCostFor(mover);
+  const heuristic = (tile: Tile): number => wrappedDistance(map, tileHex(tile), goalHex) * floor;
 
   const count = map.tiles.length;
   const best = new Float64Array(count).fill(Infinity);

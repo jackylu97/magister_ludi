@@ -68,6 +68,7 @@
  */
 
 import { civYields } from './topBar';
+import { roundYield, signedYield, yieldShows } from '../sim/yieldFormat';
 import {
   type StampReading,
   cardStampNode,
@@ -392,9 +393,18 @@ export function pressureLedgerText(lines: readonly PressureLine[]): string {
   return `${said.join(' · ')} — ${Math.max(0, total)} a turn`;
 }
 
-/** A signed whole figure, for a ledger a temple can subtract from. */
+/**
+ * A signed whole figure, for a ledger a temple can subtract from.
+ *
+ * `roundYield`'s rule rather than its own arithmetic (batch X): pressure is not
+ * a yield — nothing in the fold that fills `pressureBank` carries fractions —
+ * but a temple's line is a *difference* off a percentage, and the one rounding
+ * rule in the game is cheaper to share than to reason about twice. The hyphen
+ * stays a hyphen: this string is the hover's ratified wording.
+ */
 function signed(amount: number): string {
-  return amount < 0 ? String(amount) : `+${amount}`;
+  const rounded = roundYield(amount);
+  return rounded < 0 ? String(rounded) : `+${rounded}`;
 }
 
 /**
@@ -966,7 +976,9 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   function trickleFigures(line: CardYieldLine): string {
     const parts: string[] = [];
     for (const key of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
-      if (line[key] !== 0) parts.push(`+${line[key]}${YIELD_GLYPH[key]}`);
+      // Rounded at the eye (batch X): a follower belief's trickle may be a
+      // fraction, and a line that rounds to nothing is not a line.
+      if (yieldShows(line[key])) parts.push(`${signedYield(line[key])}${YIELD_GLYPH[key]}`);
     }
     return parts.join(' ');
   }

@@ -178,7 +178,8 @@ export function awardTriumph(
   // and never the buildings' trickle, which is a different line of
   // `explainRenown` and a different sentence.
   const boost = cardAmplifier(state, player.id, 'triumphRenown');
-  const pays = Math.floor((def.pays * (100 + boost)) / 100);
+  // Exact since batch X — Entry XVIII.5's one composed figure, unfloored.
+  const pays = (def.pays * (100 + boost)) / 100;
   const grant: RenownGrant = { family: def.family ?? null, amount: pays };
   settleRenownWindfall(state, player, [grant]);
 

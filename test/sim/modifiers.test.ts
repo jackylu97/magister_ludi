@@ -169,24 +169,24 @@ describe('Entry XVII: the two stages, as arithmetic', () => {
     expect(applyStages(100, sums)).not.toBe(Math.floor(100 * 1.1 * 1.15));
   });
 
-  it('floors once, at the very end, and never twice', () => {
-    // 15 hammers under +10% city and +10% global is 18.15 — eighteen. Rounding
-    // the city stage first would bank 17, which is the whole of what "floored
-    // once at the very end" buys, and it is a hammer a player would never find.
+  it('rounds nowhere at all, which is batch X read at the stages', () => {
+    // 15 hammers under +10% city and +10% global is 18.15, and the basket banks
+    // 18.15. Rounding the city stage first would bank 17 and flooring once would
+    // bank 18; both are hammers a player would never find, and since the user's
+    // ruling of 2026-09-06 neither happens — the fraction is kept and the panel
+    // rounds it at the eye (`src/sim/yieldFormat.ts`).
     const sums = { city: 10, empire: 10 };
-    expect(applyStages(15, sums)).toBe(18);
+    expect(applyStages(15, sums)).toBe(18.15);
     expect(Math.floor(Math.floor(15 * 1.1) * 1.1)).toBe(17);
 
     // And the arithmetic is exact where a float multiplication is not. Marble's
     // +15% on a base of 100 is 115 hammers; built as `base * (1 + 15/100)` it is
-    // 114.99999999999999 in IEEE doubles and floors to 114, eating a hammer
-    // nobody could account for. Multiplying in whole points and dividing once
-    // returns the exact quotient whenever the true answer is a whole number —
-    // which is what makes "floored once at the very end" true rather than nearly
-    // true. No city today makes a hundred hammers, so this is a guarantee about
-    // the pipeline rather than a bug that was biting.
+    // 114.99999999999999 in IEEE doubles. Multiplying in whole points and
+    // dividing once returns the exact quotient whenever the true answer is a
+    // whole number — which used to be what made "floored once" honest and is now
+    // what keeps a printed figure from being a hair under the number it is.
     expect(applyStages(100, { city: 15, empire: 0 })).toBe(115);
-    expect(Math.floor(100 * (1 + 15 / 100))).toBe(114);
+    expect(100 * (1 + 15 / 100)).not.toBe(115);
   });
 
   it('nets to nothing when two global tiers offset, and leaves the base whole', () => {
@@ -207,7 +207,7 @@ describe('Entry XVII: the two stages, as arithmetic', () => {
     for (const percent of [-20, -10, 5, 10, 15, 25]) {
       for (const base of [0, 1, 3, 7, 13, 20, 41, 137]) {
         const staged = applyStages(base, { city: 0, empire: percent });
-        expect(staged).toBe(Math.floor((base * (100 + percent)) / 100));
+        expect(staged).toBe((base * (100 + percent)) / 100);
       }
     }
   });
@@ -265,7 +265,7 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
     // Both stages, on a base of a hundred: the doctrine's example reached
     // through the real classification rather than a hand-built list.
     const staged = applyStages(100, sums.production);
-    expect(staged).toBe(Math.floor((100 * (100 + sums.production.city) * (100 + writ)) / 10_000));
+    expect(staged).toBe((100 * (100 + sums.production.city) * (100 + writ)) / 10_000);
     expect(staged).toBeGreaterThan(applyStages(100, { city: 0, empire: sums.production.city + writ }));
   });
 
@@ -285,7 +285,10 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
     const base = applyStages(flat, { city: 0, empire: 0 });
     expect(flat).toBe(applyStages(base, { city: 0, empire: 0 }));
     expect(rate).toBeGreaterThanOrEqual(flat);
-    expect(rate).toBe(Math.floor(rate));
+    // Exact, not whole (batch X): a barracks' tenth of a town's hammers is a
+    // fraction, the basket keeps it, and the two readings differ by exactly the
+    // city stage the barracks put there — no rounding anywhere between them.
+    expect(rate).toBe((flat * (100 + sums.production.city)) / 100);
 
     // And the panel's own figures are this same fold, not a second one.
     const hammers = modifierPercent(productionModifiers(state, city, UNIT));
@@ -327,7 +330,7 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
     for (const key of ['science', 'culture', 'gold', 'food'] as const) {
       expect(sums[key].city).toBe(0);
       expect(yields[key]).toBe(applyStages(yields[key], NO_STAGES));
-      expect(applyStages(100, sums[key])).toBe(Math.floor((100 * (100 + sums[key].empire)) / 100));
+      expect(applyStages(100, sums[key])).toBe((100 * (100 + sums[key].empire)) / 100);
     }
   });
 
@@ -368,14 +371,15 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
       // Both stages live on one yield: the doctrine's ×1.21 shape, reached from a
       // luxury and a meter rather than from a hand-built list.
       expect(applyStages(100, sums.culture)).toBe(
-        Math.floor((100 * (100 + percent) * (100 + tier)) / 10_000),
+        (100 * (100 + percent) * (100 + tier)) / 10_000,
       );
       // Read off a **larger base** than the line above it, deliberately: the
       // two readings differ by the product term alone (1.05 × 1.10 against
-      // 1.15, five parts in a thousand), and `applyStages` floors once — so at
-      // a base of 100 the difference the doctrine is about disappears into the
-      // rounding and the assertion silently stops asserting anything. The claim
-      // is the arithmetic, not the size of the number it is read at.
+      // 1.15, five parts in a thousand). It floored once when this was written,
+      // so at a base of 100 the difference disappeared into the rounding and the
+      // assertion silently stopped asserting anything; batch X removed the
+      // rounding and the larger base is kept because the claim is still the
+      // arithmetic rather than the size of the number it is read at.
       expect(applyStages(1000, sums.culture)).toBeGreaterThan(
         applyStages(1000, { city: 0, empire: percent + tier }),
       );
@@ -443,7 +447,7 @@ describe('the channels Entry XVII does not own', () => {
     expect(growth.base).toBe(cityYields(state, city).culture);
     // The border channel multiplies the *already staged* culture — one factor,
     // applied to the yield the stages produced, never a third stage.
-    expect(growth.perTurn).toBe(Math.floor(growth.base * (1 + growth.percent / 100)));
+    expect(growth.perTurn).toBe(growth.base * (1 + growth.percent / 100));
   });
 
   it('folds a hand-built pair the same way whichever channel it is in', () => {

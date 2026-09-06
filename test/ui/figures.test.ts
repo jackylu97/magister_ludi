@@ -12,7 +12,18 @@
 import { describe, expect, it } from 'vitest';
 import { turnsToFill } from '../../src/sim/cities';
 import type { MeterEffect } from '../../src/sim/meters';
-import { BORDER_GLYPH, HAMMER, YIELD_GLYPH, effectFigure, figure, poolFigure, signedFigure, turnsLabel } from '../../src/ui/figures';
+import {
+  BORDER_GLYPH,
+  HAMMER,
+  YIELD_GLYPH,
+  effectFigure,
+  figure,
+  meterFigure,
+  poolFigure,
+  signedFigure,
+  signedMeterFigure,
+  turnsLabel,
+} from '../../src/ui/figures';
 import { BEAKER } from '../../src/ui/researchProgress';
 
 describe('turnsLabel', () => {
@@ -77,8 +88,15 @@ describe('poolFigure', () => {
     expect(poolFigure(50, -3)).toBe('50 (−3)');
   });
 
-  it('rounds to a tenth in the house voice, true minus sign included', () => {
-    expect(poolFigure(12.34, 1.25)).toBe('12.3 (+1.3)');
+  it('rounds to a whole figure in the house voice, true minus sign included', () => {
+    // Whole since batch X (exact yields, the user 2026-09-06 — *"just don't show
+    // this to the player"*): the pools carry fractions now, and `roundYield` is
+    // the one place any of them becomes a number a player reads. The tenth lives
+    // on in `meterFigure`, for the two meters and nothing else.
+    expect(poolFigure(12.34, 1.25)).toBe('12 (+1)');
+    expect(signedFigure(-2.4)).toBe('−2');
+    expect(signedMeterFigure(-2.4)).toBe('−2.4');
+    expect(meterFigure(9.64)).toBe('9.6');
   });
 
   /**
@@ -111,7 +129,9 @@ describe('poolFigure', () => {
       // A luxury signature can pay a fractional share, so the pool drifts off
       // the integers in a way a treasury does not. Both halves round to a tenth
       // rather than one being floored to look tidy.
-      expect(poolFigure(7.5, 0.5)).toBe('7.5 (+0.5)');
+      // Both halves round the same way, and both round *whole* since batch X:
+      // a half-beaker rate reads as one and a half-full pool reads as eight.
+      expect(poolFigure(7.5, 0.5)).toBe('8 (+1)');
     });
 
     it('has no way to say a falling pool, and does not need one', () => {
@@ -193,7 +213,9 @@ describe('an empire modifier as a figure', () => {
 describe('the three-digit abbreviation (user, 2026-08-30)', () => {
   it('leaves everything under a thousand alone, tenths included', () => {
     expect(figure(999)).toBe('999');
-    expect(figure(2.4)).toBe('2.4');
+    // Whole since batch X — the abbreviation's own tenth (`1.5k`) is a scale
+    // and survives; a fraction of a point is not shown at all.
+    expect(figure(2.4)).toBe('2');
   });
   it('reads thousands as k and millions as M, one decimal while single-digit', () => {
     expect(figure(1000)).toBe('1k');

@@ -81,6 +81,7 @@
  */
 
 import { type ProductionCategory, buildingDef } from './buildingData';
+import { roundYield } from './yieldFormat';
 import type { ModifierStage } from './modifiers';
 import {
   cityResources,
@@ -313,8 +314,8 @@ function lineOf(
   copies: number,
   scale = 1,
 ): ResourceYieldLine {
-  const at = (key: keyof ResourceYieldBag): number =>
-    Math.floor((bag[key] ?? 0) * copies * scale);
+  // Exact since batch X: a half-point signature on one copy pays half a point.
+  const at = (key: keyof ResourceYieldBag): number => (bag[key] ?? 0) * copies * scale;
   return {
     resource: id,
     source: label(id, note, copies),
@@ -553,6 +554,26 @@ export interface ResourceRouteLine {
   food: number;
   production: number;
   gold: number;
+}
+
+/**
+ * **How many distinct luxuries the two ends of one road hold between them**, for
+ * The Golden Roads' coin-per-good (`CardRouteYieldEffect.perEndpointLuxury`).
+ *
+ * It lives here rather than in `routeYields.ts` for that module's stated leaf
+ * rule: nothing there imports `cities.ts` directly, and this file already does,
+ * so the caravan reaches the city scale *through* one hop exactly as it reaches
+ * the luxury evaluator below.
+ *
+ * The **union**, once each, and that is the ruled reading of *"a luxury in the
+ * origin or destination city"*: wine at both ends of a road is one wine. Each
+ * town's own list is `cityResources`' one-per-town rule, so a plantation
+ * pillaged this turn stops paying the caravan and the signature together.
+ */
+export function endpointLuxuryCount(state: GameState, from: City, to: City): number {
+  const held = new Set<ResourceId>(cityResources(state, from, 'luxury'));
+  for (const id of cityResources(state, to, 'luxury')) held.add(id);
+  return held.size;
 }
 
 /**
@@ -1076,6 +1097,12 @@ function scopeWords(scope: ResourceCityScope | undefined): string {
   return 'every city';
 }
 
+/**
+ * A luxury's figure, in words — `roundYield`'s rule with every other (batch X),
+ * and the hyphen kept for `statecraft.ts`'s reason: ratified prose, drawn as it
+ * is written.
+ */
 function signed(value: number): string {
-  return value >= 0 ? `+${value}` : `${value}`;
+  const rounded = roundYield(value);
+  return rounded >= 0 ? `+${rounded}` : `${rounded}`;
 }

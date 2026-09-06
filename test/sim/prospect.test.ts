@@ -15,7 +15,7 @@ import { prospectDef } from '../../src/sim/improvementData';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, createUnit, newGame } from '../../src/sim/state';
 import { ABILITY_IDS, TECH_IDS, abilityDef, techDef } from '../../src/sim/techData';
-import { at, bareState } from './improvementHelpers';
+import { at, bareState as plainState } from './improvementHelpers';
 
 /**
  * The survey: `prospect`, and what turning a hill over is worth (ledger Entry
@@ -37,6 +37,23 @@ import { at, bareState } from './improvementHelpers';
 const GATE = prospectDef().tech;
 
 /** A player-0 city at (5, 5) and a worker standing on a bare hill at (5, 4). */
+/**
+ * `improvementHelpers`' bench **with Geomancy in hand**.
+ *
+ * That helper deliberately withholds every node whose gift is a *rule*
+ * (`TechDef.effects`), so a fixture is not quietly running seven rewritten rules
+ * of the world — and since batch E gave Geomancy its seam-under-the-mine line
+ * (`docs/tech-gifts.md` §7) the survey's own node is one of them. This file is
+ * about that node, so it is the one file that asks for it back by name.
+ */
+function bareState(width?: number, height?: number, wild?: boolean): GameState {
+  const state = plainState(width, height, wild);
+  for (const player of state.players) {
+    if (!player.techsResearched.includes('prospecting')) player.techsResearched.push('prospecting');
+  }
+  return state;
+}
+
 function hillWorker(): { state: GameState; worker: ReturnType<typeof createUnit> } {
   const state = bareState();
   foundCityAt(state, 0, at(state, 5, 5));

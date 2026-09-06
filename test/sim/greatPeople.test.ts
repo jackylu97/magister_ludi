@@ -19,6 +19,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  cityQuote,
   cityYields,
   claimTile,
   empireRateReading,
@@ -685,9 +686,12 @@ describe('a legacy is a card', () => {
     // Enheduanna: the capital +3🎵, and shrines +1🎵. Without a shrine the
     // second line pays nothing at all.
     g.state.players[0]!.legacies.push({ id: 'enheduanna', age: 1 });
-    const bare = cityYields(g.state, city).culture;
+    // The **flats**: the empire stage multiplies both readings and, since batch
+    // X, is no longer floored away, so "one more culture" is a claim about the
+    // fold rather than about the staged figure.
+    const bare = cityQuote(g.state, city).flats.culture;
     city.buildings.push('shrine');
-    expect(cityYields(g.state, city).culture).toBe(bare + 1);
+    expect(cityQuote(g.state, city).flats.culture).toBe(bare + 1);
   });
 });
 

@@ -172,6 +172,7 @@ import {
   queueItemName,
   withinWorkRadius,
 } from '../sim/cities';
+import { roundYield, signedYield } from '../sim/yieldFormat';
 import { buildingDef } from '../sim/buildingData';
 import type { CampBounty } from '../sim/camps';
 import {
@@ -1079,7 +1080,8 @@ export function pillagedThing(report: PillageReport): string {
  */
 export function pillageSentence(report: PillageReport): string {
   const parts = [`${pillagedThing(report)} pillaged`];
-  if (report.gold > 0) parts.push(`+${report.gold}${YIELD_GLYPH.gold}`);
+  // Rounded at the eye (batch X): a raid's payout is a windfall composed exactly.
+  if (report.gold > 0) parts.push(`${signedYield(report.gold)}${YIELD_GLYPH.gold}`);
   if (report.heal > 0) parts.push(`healed ${report.heal}`);
   return `✶ ${parts.join(' · ')}`;
 }
@@ -1159,10 +1161,10 @@ export function guildSentence(family: SpecialistFamily, cityName: string): strin
  * and a sentence that is merely wrong throws nothing.
  */
 export function campSentence(bounty: CampBounty): string {
-  const parts = [`+${bounty.gold}${YIELD_GLYPH.gold}`];
+  const parts = [`${signedYield(bounty.gold)}${YIELD_GLYPH.gold}`];
   if (bounty.cityName !== null) {
     const grew = bounty.grownTo === null ? '' : ` · grows to ${bounty.grownTo}`;
-    parts.push(`+${bounty.food}${YIELD_GLYPH.food} → ${bounty.cityName}${grew}`);
+    parts.push(`${signedYield(bounty.food)}${YIELD_GLYPH.food} → ${bounty.cityName}${grew}`);
   } else if (bounty.warning !== null) {
     // The forfeited half, said out loud. An empire with no towns has nowhere
     // to put provisions, and a boon that vanished silently is the interface
@@ -2681,8 +2683,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // banked a hundred hammers wants to know where they went.
         if (refund.hammers > 0) {
           announce(
-            `${name}'s ${refund.hammers}${HAMMER} toward ${done.name} returned as ` +
-              `${refund.gold}${YIELD_GLYPH.gold}`,
+            `${name}'s ${roundYield(refund.hammers)}${HAMMER} toward ${done.name} returned as ` +
+              `${roundYield(refund.gold)}${YIELD_GLYPH.gold}`,
             { cell },
           );
           continue;
@@ -5265,7 +5267,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // (`actGainOf`) rather than a second reading of the books.
         const beakers = player === undefined ? 0 : actGainOf(state, player.id, 'science');
         const toward = aim === null ? 'your current study' : techDef(aim).name;
-        return `+${beakers}${YIELD_GLYPH.science} toward ${toward}`;
+        return `${signedYield(beakers)}${YIELD_GLYPH.science} toward ${toward}`;
       }
       case 'engineer':
         // Aged like the act itself (`agedActFactor`) — the hint is the payout.
@@ -5274,7 +5276,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         return `+${Math.floor(people.merchantGold * era * agedActFactor(player!))}${YIELD_GLYPH.gold} to the treasury`;
       case 'artist':
         return (
-          `+${player === undefined ? 0 : actGainOf(state, player.id, 'culture')}${YIELD_GLYPH.culture} toward the next draft · ` +
+          `${signedYield(player === undefined ? 0 : actGainOf(state, player.id, 'culture'))}${YIELD_GLYPH.culture} toward the next draft · ` +
           `+${people.artistHappiness} happiness in ${where} for ${people.artistTurns} turns`
         );
       case 'general':
@@ -5547,7 +5549,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     }
 
     if (preview) {
-      announce(`Cleared: +${preview.production}${HAMMER} → ${preview.cityName}`, {
+      announce(`Cleared: ${signedYield(preview.production)}${HAMMER} → ${preview.cityName}`, {
         cell: { col: unit.col, row: unit.row },
       });
     }
@@ -5686,7 +5688,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       const assay =
         report.cityName === null
           ? ''
-          : ` · +${report.gold}${YIELD_GLYPH.gold} → ${report.cityName}`;
+          : ` · ${signedYield(report.gold)}${YIELD_GLYPH.gold} → ${report.cityName}`;
       announce(
         struck === null ? `Surveyed: nothing found${assay}` : `Struck ${struck}!${assay}`,
         { cell: at },

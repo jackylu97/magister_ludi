@@ -120,6 +120,27 @@ describe('a project is a queue row that never leaves', () => {
     expect(state.players[0]!.gold).toBe(before + 2 * projectDef('tithes').pays.gold!);
   });
 
+  it('banks Pageants’ culture through the basket’s own settlement', () => {
+    // The third conversion (batch E, Code of Laws). Culture is a **basket**
+    // rather than a bank, so `payProject` ends with `settleCultureWindfall` — the
+    // one wrapper that pays that debt — which is the door `projectData.ts`'s
+    // docblock left open rather than a second path into the pool.
+    const state = flatState();
+    knowEverything(state, 0);
+    const city = plant(state, 0, 5, 5);
+    const player = state.players[0]!;
+    city.queue = [{ kind: 'project', id: 'pageants' }];
+    city.hammerBasket = projectDef('pageants').cost;
+    const before = player.culturePool;
+    expect(settleProductionWindfall(state, city)?.name).toBe('Pageants');
+    expect(city.queue).toEqual([{ kind: 'project', id: 'pageants' }]);
+    expect(player.culturePool).toBe(before + projectDef('pageants').pays.culture!);
+    // Gold, science and faith are untouched: the row names one voice.
+    expect(player.gold).toBe(0);
+    expect(player.sciencePool).toBe(0);
+    expect(player.faithPool).toBe(0);
+  });
+
   it('holds when the basket is short, and never drops', () => {
     const state = flatState();
     knowEverything(state, 0);
@@ -338,12 +359,16 @@ describe('a project is gated, once, by the tree', () => {
   it('states its rate in one place', () => {
     // The label the panel and the star chart both print, so a retuned cost
     // cannot leave a stale sentence behind it.
-    const glyphs = { gold: 'G', science: 'S', faith: 'F' };
+    const glyphs = { gold: 'G', science: 'S', faith: 'F', culture: 'C' };
     expect(projectRate('tithes', glyphs)).toBe('5G');
     expect(projectRate('scholarship', glyphs)).toBe('5S');
+    expect(projectRate('pageants', glyphs)).toBe('5C');
     // The rate the design ratified: four hammers to the coin.
     expect(projectDef('tithes').cost / projectDef('tithes').pays.gold!).toBe(4);
     expect(projectDef('scholarship').cost / projectDef('scholarship').pays.science!).toBe(4);
+    // The third conversion trades at the same rate as its two siblings (batch E,
+    // `docs/tech-gifts.md` §7 — Code of Laws' pageants).
+    expect(projectDef('pageants').cost / projectDef('pageants').pays.culture!).toBe(4);
   });
 });
 

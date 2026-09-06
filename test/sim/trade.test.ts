@@ -955,6 +955,83 @@ describe('a road', () => {
     expect(snapMovement(1 / 3 + 1 / 3 + 1 / 3)).toBe(1);
   });
 
+  it('pays The Golden Roads a coin for every good at either end, counted once', () => {
+    // Batch E (`docs/tech-gifts.md` §7). The count is the **union** of the two
+    // towns' luxuries — wine at both ends of a road is one wine — and it is the
+    // one reading only this module can take, because a `CityScope` answers about
+    // one town and this question is about a pair.
+    const state = bareState(20, 9);
+    const from = foundCityAt(state, 0, at(state, 4, 4));
+    const to = foundCityAt(state, 0, at(state, 14, 4));
+    const gold = (): number =>
+      explainRouteYieldBetween(state, from, to).reduce((sum, line) => sum + line.gold, 0);
+
+    const bare = gold();
+    playerById(state, 0)!.techsResearched.push('theSilkRoad');
+    // No goods at either end: the row is carried and pays nothing, rather than
+    // paying its bag once for nothing in particular.
+    expect(gold()).toBe(bare);
+
+    // A town standing on a seam controls it (`openedResource`'s city clause), so
+    // one luxury under each centre is two goods on the road.
+    at(state, 4, 4).resource = 'wine';
+    expect(gold()).toBe(bare + 1);
+    at(state, 14, 4).resource = 'silk';
+    expect(gold()).toBe(bare + 2);
+    // The same good at both ends is still one good.
+    at(state, 14, 4).resource = 'wine';
+    expect(gold()).toBe(bare + 1);
+  });
+
+  it('costs a fifth once Machinery lands, and a third before it — the four readers agree', () => {
+    // Batch E (`docs/tech-gifts.md` §7): the road fraction is an **empire fact**,
+    // folded once per sweep into `MoveProfile.roadStep` off
+    // `cardRulePercent(…, 'roadStepCost')` and read only where a step is priced.
+    // A third is five fifteenths and a fifth is three, which is why
+    // `MOVEMENT_DENOMINATOR` is fifteen — both are exact and every running total
+    // still compares equal to itself.
+    const state = bareState(16, 9);
+    pave(state, 4, 2, 14);
+    const warrior = createUnit(state, 0, 'warrior', 2, 4);
+    const field = zocField(state, 0);
+    const price = (): number =>
+      stepCost(state.map, at(state, 4, 4), at(state, 5, 4), moveProfile(state, warrior), field)!
+        .cost;
+
+    expect(price()).toBe(1 / 3);
+    playerById(state, 0)!.techsResearched.push('machinery');
+    expect(price()).toBe(1 / 5);
+    expect(snapMovement(1 / 5 + 1 / 5 + 1 / 5 + 1 / 5 + 1 / 5)).toBe(1);
+
+    // **The four readers inherit it.** A two-point column walked six hexes of
+    // highway before; it walks ten now, the estimate says one turn, and the walk
+    // spends exactly what the highlight promised. Nothing here prices a road: all
+    // four go through `stepCost`.
+    const along = reachableTiles(state, warrior)
+      .filter((entry) => entry.tile.row === 4 && entry.tile.col > 2)
+      .map((entry) => entry.tile.col);
+    expect(along).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    const path = findPath(state, warrior, at(state, 12, 4))!;
+    expect(path).toHaveLength(10);
+    expect(pathTurns(state, warrior, path)).toBe(1);
+    const walk = advanceAlongPath(state, warrior, path);
+    expect(walk.steps).toBe(10);
+    expect(warrior.movesLeft).toBe(0);
+
+    // And it is the **mover's empire**, not the paving: a neighbour walking the
+    // same hexes still pays a third.
+    const stranger = createUnit(state, 1, 'warrior', 2, 5);
+    expect(
+      stepCost(
+        state.map,
+        at(state, 4, 4),
+        at(state, 5, 4),
+        moveProfile(state, stranger),
+        zocField(state, 1),
+      )!.cost,
+    ).toBe(1 / 3);
+  });
+
   it('does not lift a zone of control: the toll rides on top of the paving', () => {
     const state = bareState(16, 9);
     pave(state, 4, 2, 12);
@@ -1564,7 +1641,10 @@ describe('trade in the log', () => {
     // ordinary rows withdrawn, five uniques added, the chain field, the
     // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
     // landed the rites beside it on the same day.
-    expect(SCHEMA_VERSION).toBe(74);
+    // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
+    // bank and pool holds the fraction, so a v74 log banks different figures
+    // from its second turn on.
+    expect(SCHEMA_VERSION).toBe(76);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

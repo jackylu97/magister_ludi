@@ -1294,6 +1294,17 @@
           "pays": {
             "science": 3
           }
+        },
+        {
+          "kind": "periodShorten",
+          "turns": 2
+        },
+        {
+          "kind": "periodic",
+          "everyTurns": 7,
+          "pays": "science",
+          "count": "empireYield",
+          "voice": "production"
         }
       ],
       "renown": {
@@ -1301,9 +1312,7 @@
         "onComplete": 10,
         "perTurn": 2
       },
-      "deferred": [
-        "The chime itself — beakers and renown on a fixed cadence, each ring louder than the last — waits until a clock can pay a city on the calendar rather than on its scholarship."
-      ]
+      "note": "The escapement keeps the realm's whole calendar. Every boon of yours that comes round on a beat comes round sooner, and on the clock's own beat the realm is paid in learning for everything its workshops made."
     },
     "gildedHall": {
       "name": "Gilded Hall",
@@ -2364,6 +2373,14 @@
         "science": 5
       },
       "note": "A way to turn spare production into science when a city has little left worth building."
+    },
+    "pageants": {
+      "name": "Pageants",
+      "cost": 20,
+      "pays": {
+        "culture": 5
+      },
+      "note": "A way to turn spare production into culture when a city has little left worth building."
     }
   }
 }

@@ -297,17 +297,16 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
   const percent = foldCardRulePercent(lines);
   if (percent >= 0) return out;
   // The whole rebate first, then shared out in the lines' own order so the parts
-  // sum to it exactly however the flooring falls — `explainUnitCost`'s
-  // running-difference discipline, one ledger over.
-  const rebate = Math.min(gross - given, Math.floor((gross * -percent) / 100));
+  // sum to it exactly — `explainUnitCost`'s running-difference discipline, one
+  // ledger over. Exact since batch X: a quarter off a payroll of three is three
+  // quarters of a coin, where the floor forgave nothing.
+  const rebate = Math.min(gross - given, (gross * -percent) / 100);
   if (rebate <= 0) return out;
   let paid = 0;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!;
     const share =
-      i === lines.length - 1
-        ? rebate - paid
-        : Math.floor((rebate * line.percent) / percent);
+      i === lines.length - 1 ? rebate - paid : (rebate * line.percent) / percent;
     paid += share;
     if (share === 0) continue;
     out.push({ source: line.source, gold: share });

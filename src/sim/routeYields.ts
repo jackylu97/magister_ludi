@@ -36,7 +36,7 @@ import {
 // another file and only inside a function — the leaf claim in the docblock above
 // is about what this file imports directly, and it still holds for `cities.ts`
 // and `trade.ts` themselves.
-import { resourceRouteYields } from './resourceEffects';
+import { endpointLuxuryCount, resourceRouteYields } from './resourceEffects';
 import { RULES } from './rulesData';
 import { type City, type GameState, type Unit, cityById } from './state';
 import { cardAmplifier, cardRouteYieldLines } from './statecraft';
@@ -335,7 +335,7 @@ export function explainRouteYieldBetween(
   // grammar the user's marks revealed: put yields on a thing, then multiply the
   // thing. A line added after the share would be a line "double your trade route
   // yields" could not see.
-  cardLines(state, from, lines, label);
+  cardLines(state, from, to, lines, label);
   amplify(state, from, lines, label);
   return blockaded(state, from, to, lines);
 }
@@ -354,17 +354,31 @@ export function explainRouteYieldBetween(
 function cardLines(
   state: GameState,
   from: City,
+  to: City,
   lines: RouteYieldLine[],
   label: (note: string) => string,
 ): void {
+  // **The one count this fold takes, and the one thing only this module can
+  // answer**: how many distinct luxuries the two ends hold between them (The
+  // Golden Roads). Hoisted before the walk and only when a row asks for it, so
+  // a game whose cards say nothing about luxuries pays for no set at all.
+  let goods = -1;
   for (const paid of cardRouteYieldLines(state, from)) {
+    let helpings = 1;
+    if (paid.perEndpointLuxury) {
+      if (goods < 0) goods = endpointLuxuryCount(state, from, to);
+      helpings = goods;
+      // A road between two towns holding no luxury at all carries the row and
+      // pays nothing for it — the honest zero rather than an absent line.
+      if (helpings === 0) continue;
+    }
     lines.push(
-      line(label(paid.source), {
-        food: paid.food,
-        production: paid.production,
-        gold: paid.gold,
-        science: paid.science,
-        culture: paid.culture,
+      line(label(paid.perEndpointLuxury ? `${paid.source} · ${helpings} luxur${helpings === 1 ? 'y' : 'ies'}` : paid.source), {
+        food: paid.food * helpings,
+        production: paid.production * helpings,
+        gold: paid.gold * helpings,
+        science: paid.science * helpings,
+        culture: paid.culture * helpings,
       }),
     );
   }
@@ -396,12 +410,14 @@ function amplify(
   const percent = cardAmplifier(state, from.ownerId, 'routeYields');
   if (percent === 0) return;
   const total = foldRouteYield(lines);
+  // Exact since batch X: half again on a two-gold caravan is one gold, and half
+  // again on a one-gold caravan is half a gold rather than nothing at all.
   const extra = {
-    food: Math.floor((total.food * percent) / 100),
-    production: Math.floor((total.production * percent) / 100),
-    gold: Math.floor((total.gold * percent) / 100),
-    science: Math.floor((total.science * percent) / 100),
-    culture: Math.floor((total.culture * percent) / 100),
+    food: (total.food * percent) / 100,
+    production: (total.production * percent) / 100,
+    gold: (total.gold * percent) / 100,
+    science: (total.science * percent) / 100,
+    culture: (total.culture * percent) / 100,
   };
   if (extra.food === 0 && extra.production === 0 && extra.gold === 0) {
     if (extra.science === 0 && extra.culture === 0) return;
@@ -508,7 +524,7 @@ export function explainRouteSenderYieldBetween(
   // The sender's own cards on its own caravan — see `cardLines`. It rides the
   // foreign fold exactly as the amplifier does, because the line belongs to the
   // seat that sent the goods and this is that seat's book.
-  cardLines(state, from, lines, label);
+  cardLines(state, from, to, lines, label);
   amplify(state, from, lines, label);
   return blockaded(state, from, to, lines);
 }

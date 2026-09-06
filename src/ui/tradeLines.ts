@@ -27,6 +27,7 @@
  */
 
 import { RULES } from '../sim/rulesData';
+import { signedYield } from '../sim/yieldFormat';
 import type { City, GameState, Unit } from '../sim/state';
 import {
   type RouteEndReport,
@@ -262,11 +263,12 @@ export function plunderSpoilsSentence(plunder: TraderPlunder, victim: string): s
  * is the only part of this that is arithmetic.
  */
 export function plunderSpoils(plunder: TraderPlunder): string {
-  const parts = [`+${plunder.gold}${YIELD_GLYPH.gold}`];
+  // A plunder is a windfall, composed exactly and printed rounded (batch X).
+  const parts = [`${signedYield(plunder.gold)}${YIELD_GLYPH.gold}`];
   if (plunder.cityName !== null) {
     const goods = [
-      `+${plunder.food}${YIELD_GLYPH.food}`,
-      `+${plunder.production}${YIELD_GLYPH.production}`,
+      `${signedYield(plunder.food)}${YIELD_GLYPH.food}`,
+      `${signedYield(plunder.production)}${YIELD_GLYPH.production}`,
     ].join(' ');
     const grew = plunder.grownTo === null ? '' : ` · grows to ${plunder.grownTo}`;
     parts.push(`${goods} → ${plunder.cityName}${grew}`);
