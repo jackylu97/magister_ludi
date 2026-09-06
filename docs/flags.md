@@ -19,7 +19,16 @@ directly to confirm rulings — user marginalia are rulings.
   at ×1.35 a use, schema 71) — LANDED in main. **C2** (rites as city verbs,
   the prophet's four acts, the apostle) and **D** (buildings with chains, the
   cut, the five uniques, schema 73) — in flight. E (the tree's gifts), F (the
-  order pass), F2 (the bot drafts engines), G (cadence and chairs) follow. One gate per batch; one schema per batch that
+  order pass), F2 (the bot drafts engines), G (cadence and chairs) follow.
+  **C2 and D LANDED** (schema 74). D measured the science cut against the
+  scripted empire: Æra I close 66 → 236 — the base beaker halved is floored
+  per town, so a size-1 town banked nothing. **RULED (the user, 2026-09-06):
+  "yields are valid as decimals — don't show this to the player, but behind
+  the scenes all yields are calculated exactly."** A new batch, **X — exact
+  yields**, lands before the pacing re-aim: every fold carries fractions
+  (no per-source or per-stage floor), banks and pools hold the exact figure,
+  every printed number rounds at the surface only. The floor question is
+  closed by it; the beaker stays at 0.5. One gate per batch; one schema per batch that
   changes a save (71 → 75). The play checkout on :5199 stays where it is.
 
 ### In flight earlier (2026-09-05, evening)
