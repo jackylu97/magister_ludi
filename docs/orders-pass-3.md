@@ -57,229 +57,230 @@ Counts of the verdicts: **KEEP 108 · CONVERT 12 · CUT 26 · NEW 30.**
 
 ## 2. The pass, per pool
 
-Columns: id · rarity (today → after) · line (after) · role after · verdict and
-text. Weights are on the turn-92 empire (🌾211 ⚒131 💰143 🔬200 🎵195 🕯59,
+Columns: id · **today** (the row's effect as it reads now — the balance-turn
+markup's re-cuts are quoted in the verdict where they differ) · rarity (today →
+after) · line (after) · role after · verdict and text. Weights are on the turn-92 empire (🌾211 ⚒131 💰143 🔬200 🎵195 🕯59,
 six cities, a Temple and a Library in each, three routes, six unique
 luxuries, ~45 road hexes, ~700 revealed hexes) — *alone* / *in a committed
 deck of its line*.
 
 ### Chiefdom (11 → 10)
 
-| id | rarity | line | role | verdict |
-|---|---|---|---|---|
-| `bloodedSpears` | ● | hunt | S | KEEP |
-| `boundaryStones` | ● | charter | P | KEEP — +30% border growth per Monument city |
-| `campFollowers` | ◆ | hunt | S | KEEP |
-| `commonGranary` | ● | green | P | KEEP |
-| `farRunners` | ● | wayfarers | S | KEEP |
-| `fireKeepers` | ● | procession | **E** | **CONVERT** — *"Your tiles that supply faith give one more."* (the tile test). Alone at t92: ~4 holy-site and pasture-shrine hexes → 4🕯; in a Faith deck with Saints' Fields and a Cathedral town: 10–14🕯 |
-| `firstFruitsOffering` | ◆ | procession | — | **CUT** — a one-off first citizen's tithe; pays nothing after turn 30 |
-| `firstRites` | ● | procession | **E** | **CONVERT** — *"Your Orders that give faith give half again."* (the amplifier by voice, faith). The balance-turn markup cut its "per wildcard" as a snowball; an amplifier cannot snowball — it pays nothing with no faith cards and a third of the faith deck with them. Alone: 0; Faith deck at t92: ~25🕯 |
-| `saltTithes` | ● | caravan | P | KEEP |
-| `theFoundingOath` | ○ | charter | P | KEEP — the user's re-cut (+1 of each yield in the capital per city founded) |
-| `theWidowsLevy` | ◆ | forge | S | KEEP |
-| **`theFirstChair`** | ◆ | court | **E** | **NEW** — *"The Order in your first economic slot pays twice."* (the slot-position reader; the user's shape, at the pool where the deck is three cards) |
+| id | today | rarity | line | role | verdict |
+|---|---|---|---|---|---|
+| `bloodedSpears` | +1 combat strength, and +2 more against barbarians. | ● | hunt | S | KEEP |
+| `boundaryStones` | +30% border expansion in every city with a Monument. | ● | charter | P | KEEP — +30% border growth per Monument city |
+| `campFollowers` | Clearing a barbarian camp grants +25 food and a random military unit. | ◆ | hunt | S | KEEP |
+| `commonGranary` | +1 food in every city holding an improved luxury resource. | ● | green | P | KEEP |
+| `farRunners` | All your units gain +1 sight. Claiming a ruin grants +10 culture. | ● | wayfarers | S | KEEP |
+| `fireKeepers` | +1 faith in your capital, and +1 happiness there. | ● | procession | **E** | **CONVERT** — *"Your tiles that supply faith give one more."* (the tile test). Alone at t92: ~4 holy-site and pasture-shrine hexes → 4🕯; in a Faith deck with Saints' Fields and a Cathedral town: 10–14🕯 |
+| `firstFruitsOffering` | The first citizen born in each city pays +10 faith once. | ◆ | procession | — | **CUT** — a one-off first citizen's tithe; pays nothing after turn 30 |
+| `firstRites` | +1 faith in your capital, and +1 faith for each wildcard Order you have in a slot. | ● | procession | **E** | **CONVERT** — *"Your Orders that give faith give half again."* (the amplifier by voice, faith). The balance-turn markup cut its "per wildcard" as a snowball; an amplifier cannot snowball — it pays nothing with no faith cards and a third of the faith deck with them. Alone: 0; Faith deck at t92: ~25🕯 |
+| `saltTithes` | +2 gold for each unique luxury. | ● | caravan | P | KEEP |
+| `theFoundingOath` | Your capital pays +1 of every yield for each building standing in it, at most 3. | ○ | charter | P | KEEP — the user's re-cut (+1 of each yield in the capital per city founded) |
+| `theWidowsLevy` | When a unit of yours dies, its nearest city gains +10 production and you gain +40 gold. | ◆ | forge | S | KEEP |
+| **`theFirstChair`** | — | ◆ | court | **E** | **NEW** — *"The Order in your first economic slot pays twice."* (the slot-position reader; the user's shape, at the pool where the deck is three cards) |
 
 ### Government I (29 → 25)
 
-| id | rarity | line | role | verdict |
-|---|---|---|---|---|
-| `borderWardens` | ● | forge | **E** | **CONVERT** — *"+1 strength inside your territory, and +1 more for each Forge Order in a slot, at most +3."* (the line reader, `CombatScale` twin) |
-| `censusRolls` | ● | green | — | **CUT** — cheer per citizen; dead above the clamp |
-| `charterTowns` | ◆ | charter | S | KEEP |
-| `conscription` | ◆ | forge | S | KEEP |
-| `festivalDays` | ● | green | S | KEEP — the user's re-cut (+4😊 capital, +2🎵 every city) |
-| `granaryLevies` | ◆ | green | S | KEEP (an occasion) |
-| `harbourDues` | ● | caravan | P | KEEP |
-| `hillForts` | ◆ | highlands | S | KEEP |
-| `homesteadCharters` | ◆ | charter | S | KEEP |
-| `ritesCharter` | ◆ | procession | S | KEEP — the Chapel, now the rite door (a real build) |
-| `ritesOfPassage` | ◆ | procession | S | KEEP (an occasion) |
-| `silkRoads` | ◆ | caravan | P | KEEP |
-| `spoilsOfTheWild` | ◆ | hunt | S | KEEP |
-| `statuteLabour` | ● | forge | P | KEEP |
-| `theAlmanac` | ● | star | P | KEEP |
-| `theBalladWeavers` | ◆ | hunt | P | KEEP (a tally) |
-| `theBellFounders` | ◆ | court | P | KEEP (a tally) |
-| `theLaureate` | ○ | court | P | KEEP |
-| `theLegion` | ◆ | forge | S | KEEP |
-| `theLongWatch` | ● | forge | — | **CUT** — cheer per garrison; dead above the clamp |
-| `thePilgrimsPurse` | ◆ | procession | P | KEEP |
-| `theRecklessLevy` | ◆ | forge | S | KEEP |
-| `theTaxFarm` | ● | caravan | P | KEEP |
-| `theUnbrokenLand` | ◆ | green | P | KEEP — the user's number (+1🌾 +1⚒) |
-| `tinkersGuild` | ◆ | ploughshare | S | KEEP |
-| `vigilCharter` | ◆ | forge | S | KEEP |
-| `villageFairs` | ◆ | green | — | **CUT** — cheer per duplicate luxury |
-| `waysideShrines` | ● | procession | S | KEEP |
-| `weightsAndMeasures` | ● | caravan | S | KEEP |
-| **`theScriveners`** | ◆ | star | **E** | **NEW** — *"Your science buildings give half again their yield, the per-citizen lines included."* (the building-yield percent by category; the user's shape, verbatim). Alone at t92: six Libraries at (2 + 5) × 50% ≈ **21🔬**; with Universities later, ≈35 |
-| **`theHarvestHome`** | ● | green | **E** | **NEW** — *"Your Orders that give food give half again."* (amplifier, food). Alone: 0; Growth deck: ~15🌾 |
-| **`theMusterRolls`** | ◆ | forge | **E** | **NEW** — *"The Order in your first military slot pays twice."* (position) |
-| **`theReevesBell`** | ● | ploughshare | S | **NEW, periodic** — *"Every eight turns, every city gains food equal to its population."* Bursts: ~60🌾 an eighth turn on the t92 empire ≈ 7.5🌾 a turn averaged; a growth deck shortens it |
+| id | today | rarity | line | role | verdict |
+|---|---|---|---|---|---|
+| `borderWardens` | +1 combat strength inside your territory, and +1 more for each military Order you have in a slot, at most +3 more. | ● | forge | **E** | **CONVERT** — *"+1 strength inside your territory, and +1 more for each Forge Order in a slot, at most +3."* (the line reader, `CombatScale` twin) |
+| `censusRolls` | +1 happiness for every 2 citizens in your capital. | ● | green | — | **CUT** — cheer per citizen; dead above the clamp |
+| `charterTowns` | Newly founded cities are founded with a Granary. | ◆ | charter | S | KEEP |
+| `conscription` | +50% production toward units · −2 happiness. | ◆ | forge | S | KEEP |
+| `festivalDays` | +4 happiness. | ● | green | S | KEEP — the user's re-cut (+4😊 capital, +2🎵 every city) |
+| `granaryLevies` | When a city grows, it gains +10 production. | ◆ | green | S | KEEP (an occasion) |
+| `harbourDues` | Coastal cities gain 5% of their gold again as culture. | ● | caravan | P | KEEP |
+| `hillForts` | +2 combat strength when defending on hills, and a city on hills costs 1 less authority. | ◆ | highlands | S | KEEP |
+| `homesteadCharters` | Newly founded cities start with 1 more population. | ◆ | charter | S | KEEP |
+| `ritesCharter` | Unlocks the Chapel. | ◆ | procession | S | KEEP — the Chapel, now the rite door (a real build) |
+| `ritesOfPassage` | Buying or completing a unit grants +10 faith. | ◆ | procession | S | KEEP (an occasion) |
+| `silkRoads` | +3 gold for each trade route you run. | ◆ | caravan | P | KEEP |
+| `spoilsOfTheWild` | Clearing a barbarian camp pays +100%. | ◆ | hunt | S | KEEP |
+| `statuteLabour` | +1 production in every city for each 4 citizens living there. | ● | forge | P | KEEP |
+| `theAlmanac` | +2 science in your capital, and +1 science in every city with a Library. | ● | star | P | KEEP |
+| `theBalladWeavers` | +1 culture per turn for each barbarian you have killed while this Order stands in a slot. | ◆ | hunt | P | KEEP (a tally) |
+| `theBellFounders` | +1 culture per turn for each wonder finished anywhere in the world while this Order stands in a slot. | ◆ | court | P | KEEP (a tally) |
+| `theLaureate` | +1 renown per turn. Every great-person improvement pays +2 more of its own yield. | ○ | court | P | KEEP |
+| `theLegion` | Melee units gain +1 movement and +1 combat strength, and cities put 15% more production behind them. | ◆ | forge | S | KEEP |
+| `theLongWatch` | +1 happiness for each unit standing in one of your cities, and +1 more for each fortification a city has built. | ● | forge | — | **CUT** — cheer per garrison; dead above the clamp |
+| `thePilgrimsPurse` | +5 faith in every city standing beside a holy site. | ◆ | procession | P | KEEP |
+| `theRecklessLevy` | +50% production toward units · your army costs twice as much to keep. | ◆ | forge | S | KEEP |
+| `theTaxFarm` | +1 gold for each 4 population in your empire. | ● | caravan | P | KEEP |
+| `theUnbrokenLand` | +1 food and +1 production on every unimproved forest or jungle hex. | ◆ | green | P | KEEP — the user's number (+1🌾 +1⚒) |
+| `tinkersGuild` | Newly created workers gain +1 charge. | ◆ | ploughshare | S | KEEP |
+| `vigilCharter` | Unlocks the Keep. | ◆ | forge | S | KEEP |
+| `villageFairs` | +1 happiness for each luxury you hold two or more copies of. | ◆ | green | — | **CUT** — cheer per duplicate luxury |
+| `waysideShrines` | +1 faith in every city. | ● | procession | S | KEEP |
+| `weightsAndMeasures` | +1 gold in every city. | ● | caravan | S | KEEP |
+| **`theScriveners`** | — | ◆ | star | **E** | **NEW** — *"Your science buildings give half again their yield, the per-citizen lines included."* (the building-yield percent by category; the user's shape, verbatim). Alone at t92: six Libraries at (2 + 5) × 50% ≈ **21🔬**; with Universities later, ≈35 |
+| **`theHarvestHome`** | — | ● | green | **E** | **NEW** — *"Your Orders that give food give half again."* (amplifier, food). Alone: 0; Growth deck: ~15🌾 |
+| **`theMusterRolls`** | — | ◆ | forge | **E** | **NEW** — *"The Order in your first military slot pays twice."* (position) |
+| **`theReevesBell`** | — | ● | ploughshare | S | **NEW, periodic** — *"Every eight turns, every city gains food equal to its population."* Bursts: ~60🌾 an eighth turn on the t92 empire ≈ 7.5🌾 a turn averaged; a growth deck shortens it |
 
 ### Government II (45 → 40)
 
-| id | rarity | line | role | verdict |
-|---|---|---|---|---|
-| `breadAlone` | ◆ | green | — | **CUT** — a flat with a tax on culture; the Harvest Songs are the food deck's card |
-| `charteredCompanies` | ◆ | caravan | S | KEEP |
-| `cisternWorks` | ○ | ploughshare | S | KEEP — the rule-changer |
-| `coinCharter` | ◆ | caravan | S | KEEP |
-| `drumsOfWar` | ◆ | forge | S | KEEP |
-| `emergencyPowers` | ○ | court | S | KEEP |
-| `fieldSurgeons` | ● | forge | S | KEEP |
-| `lamplighters` | ◆ | procession | P | KEEP — +1🎵 per 5🕯 (the conversion) |
-| `ledgerKeepers` | ● | caravan | P | KEEP — the user's re-cut (routes to Market cities +1🔬 +1🎵) |
-| `marchDiscipline` | ◆ | forge | S | KEEP |
-| `masterMasons` | ◆ | forge | S | KEEP (an occasion) |
-| `oreTithes` | ● | forge | **E** | **CONVERT** — *"+1⚒ on every strategic hex, and +1⚒ in your capital for each Forge Order in a slot, at most +3."* (line reader) |
-| `pilgrimRoads` | ◆ | procession | P | KEEP — the user's re-cut (+1🕯 per capital citizen) |
-| `provincialGovernors` | ● | court | P | **CONVERT** — *"+1 authority capacity for every two cities you hold, at most +4."* (a board reading; the flavour count goes) |
-| `publicani` | ◆ | caravan | P | KEEP |
-| `riverWardens` | ● | ploughshare | P | KEEP |
-| `royalSurveyors` | ● | charter | S | KEEP |
-| `scholarsStipend` | ● | star | P | KEEP |
-| `scorchedEarth` | ◆ | hunt | S | KEEP |
-| `scrivenersCharter` | ◆ | star | S | KEEP |
-| `siegeDoctrine` | ● | forge | S | KEEP |
-| `starGazers` | ● | star | P | KEEP — the user's re-cut (+15%🔬 in mountain cities) |
-| `sumptuaryLaws` | ● | caravan | — | **CUT** — cheer per luxury |
-| `terracedHillsides` | ● | green | P | KEEP |
-| `theArchives` | ● | court | E | KEEP — the tagless deck reader (+1🎵 per slotted Order) |
-| `theBannerCall` | ◆ | forge | S | KEEP |
-| `theCartographers` | ◆ | wayfarers | P | KEEP — per 40 (the user: no buff) |
-| `theChoir` | ● | procession | P | KEEP — the user's re-cut (+3🎵 +1😊 per Temple town) |
-| `theChroniclersOfTheFallen` | ◆ | forge | P | KEEP (a tally) |
-| `theGuildCharter` | ● | caravan | **E** | **CONVERT** — *"+2💰 for each Caravan Order in a slot, and +1⚒ in your capital for each."* (line reader) |
-| `theHarvestSongs` | ● | green | P | KEEP |
-| `theLastHunt` | ○ | hunt | P | KEEP |
-| `theLongRoads` | ○ | caravan | P | KEEP |
-| `theMasonsLodge` | ◆ | forge | P | KEEP |
-| `theOathBound` | ○ | forge | S | KEEP |
-| `theOrchardTithe` | ● | green | P | KEEP |
-| `theQuietFields` | ● | green | — | **CUT** — cheer per unimproved hex |
-| `theReliquaryRolls` | ◆ | court | P | KEEP (a tally) |
-| `theSenatus` | ◆ | charter | S | KEEP |
-| `theShipwrightShores` | ● | caravan | S | KEEP |
-| `theSynod` | ● | procession | **E** | **CONVERT** — *"+2🕯 +2🎵 for each Procession Order in a slot."* (line reader; the user's numbers) |
-| `theTitheOfIron` | ◆ | forge | P | KEEP — the user's (+3⚒ per mine, −3🌾) |
-| `theWarCouncil` | ● | forge | **E** | **CONVERT** — *"+1 strength for each Forge Order in a slot, at most +3."* |
-| `toolmakersCharter` | ◆ | forge | S | KEEP |
-| `waterwrightsCharter` | ◆ | ploughshare | S | KEEP |
-| **`theAlmanacOfHours`** | ◆ | court | **E** | **NEW** — *"Your every-so-many-turns Orders fire three turns earlier."* (the period shortener; the user's shape, verbatim). Alone: nothing; with two periodic rows: their bursts a third more often |
-| **`theAssayersRule`** | ● | caravan | **E** | **NEW** — *"Your tiles that supply gold give one more."* (tile test). Alone at t92: ~10 gold hexes → 10💰 |
-| **`theCountingHouses`** | ◆ | caravan | **E** | **NEW** — *"Your gold buildings give half again their yield."* (building percent: Market, Bazaar, Bank) |
-| **`theFoundryDays`** | ● | forge | S | **NEW, periodic** — *"Every ten turns, every mine and quarry pays its production again, at once, to its city."* ~20 hexes × 3⚒ = 60⚒ a tenth turn |
-| **`theNetsBlessing`** | ○ | caravan | P | **NEW** — *"Double the yields of your fishing boats, applied last."* (the doubler by category; the user's list) |
+| id | today | rarity | line | role | verdict |
+|---|---|---|---|---|---|
+| `breadAlone` | +3 food and −1 culture in every city. | ◆ | green | — | **CUT** — a flat with a tax on culture; the Harvest Songs are the food deck's card |
+| `charteredCompanies` | Buying a hex pays +5 science · buying a hex costs 15% less. | ◆ | caravan | S | KEEP |
+| `cisternWorks` | Every city of yours counts as standing on fresh water. | ○ | ploughshare | S | KEEP — the rule-changer |
+| `coinCharter` | Unlocks the Assay House. | ◆ | caravan | S | KEEP |
+| `drumsOfWar` | While this Order is in a slot, units created from now on are born with +2 combat strength, and keep it for life. | ◆ | forge | S | KEEP |
+| `emergencyPowers` | While your authority is negative: capital +25% production, and borders do not freeze. | ○ | court | S | KEEP |
+| `fieldSurgeons` | All units heal +10 more per turn, anywhere. | ● | forge | S | KEEP |
+| `lamplighters` | +1 culture for each 5 faith you gain per turn. | ◆ | procession | P | KEEP — +1🎵 per 5🕯 (the conversion) |
+| `ledgerKeepers` | +1 gold in every city with a Market, and +1 trade route. | ● | caravan | P | KEEP — the user's re-cut (routes to Market cities +1🔬 +1🎵) |
+| `marchDiscipline` | Military units gain +1 movement. | ◆ | forge | S | KEEP |
+| `masterMasons` | Completing a building grants +10 culture. | ◆ | forge | S | KEEP (an occasion) |
+| `oreTithes` | +1 production on every hex carrying a strategic resource, and +1 production in your capital for each military Order you have in a slot, at most +3. | ● | forge | **E** | **CONVERT** — *"+1⚒ on every strategic hex, and +1⚒ in your capital for each Forge Order in a slot, at most +3."* (line reader) |
+| `pilgrimRoads` | +1 faith for every 3 citizens in your capital · +1 happiness for each 50 banked faith (at most +5). | ◆ | procession | P | KEEP — the user's re-cut (+1🕯 per capital citizen) |
+| `provincialGovernors` | +1 authority capacity for each economic Order you have in a slot, at most +4. | ● | court | P | **CONVERT** — *"+1 authority capacity for every two cities you hold, at most +4."* (a board reading; the flavour count goes) |
+| `publicani` | +2 gold for each point of positive authority. | ◆ | caravan | P | KEEP |
+| `riverWardens` | +1 food on every farm beside fresh water. | ● | ploughshare | P | KEEP |
+| `royalSurveyors` | +50% border expansion · buying a hex costs 25% less. | ● | charter | S | KEEP |
+| `scholarsStipend` | +2 science in every city of 5 or more population holding a Library, and +2 more where a University stands. | ● | star | P | KEEP |
+| `scorchedEarth` | Pillaging heals a further 25 and pays a further +10 gold. | ◆ | hunt | S | KEEP |
+| `scrivenersCharter` | Unlocks the Scriptorium. | ◆ | star | S | KEEP |
+| `siegeDoctrine` | +4 combat strength when attacking cities. | ● | forge | S | KEEP |
+| `starGazers` | +2 science in every city with a mountain hex inside its borders. | ● | star | P | KEEP — the user's re-cut (+15%🔬 in mountain cities) |
+| `sumptuaryLaws` | +1 happiness for each unique luxury. | ● | caravan | — | **CUT** — cheer per luxury |
+| `terracedHillsides` | +1 food on every hill hex. | ● | green | P | KEEP |
+| `theArchives` | +1 culture for each Order you have placed in a slot. | ● | court | E | KEEP — the tagless deck reader (+1🎵 per slotted Order) |
+| `theBannerCall` | While you are at war: +15% production toward units, and killing a unit grants +5 culture. | ◆ | forge | S | KEEP |
+| `theCartographers` | +1 science for each 40 hexes you have revealed. | ◆ | wayfarers | P | KEEP — per 40 (the user: no buff) |
+| `theChoir` | +1 culture and +1 happiness in every city with a Temple. | ● | procession | P | KEEP — the user's re-cut (+3🎵 +1😊 per Temple town) |
+| `theChroniclersOfTheFallen` | +1 gold per turn for each unit you have lost in battle while this Order stands in a slot. | ◆ | forge | P | KEEP (a tally) |
+| `theGuildCharter` | +2 gold for each economic Order you have in a slot, and +1 production in your capital for each. | ● | caravan | **E** | **CONVERT** — *"+2💰 for each Caravan Order in a slot, and +1⚒ in your capital for each."* (line reader) |
+| `theHarvestSongs` | Every city gains 10% of its food yield again as culture. | ● | green | P | KEEP |
+| `theLastHunt` | +2 culture and +2 science for each barbarian camp you have cleared this game. | ○ | hunt | P | KEEP |
+| `theLongRoads` | +1 gold for each road hex you have laid. | ○ | caravan | P | KEEP |
+| `theMasonsLodge` | Cities of 6 population or more put 10% more production behind buildings. | ◆ | forge | P | KEEP |
+| `theOathBound` | Killing a unit heals the unit that struck the blow by 15. | ○ | forge | S | KEEP |
+| `theOrchardTithe` | +1 food on every hex carrying a luxury resource. | ● | green | P | KEEP |
+| `theQuietFields` | +1 happiness for each unimproved hex your cities work. | ● | green | — | **CUT** — cheer per unimproved hex |
+| `theReliquaryRolls` | +2 faith and +2 culture per turn for each great person you have spent while this Order stands in a slot. | ◆ | court | P | KEEP (a tally) |
+| `theSenatus` | Unlocks the Assembly Hall. | ◆ | charter | S | KEEP |
+| `theShipwrightShores` | +1 production in every coastal city · +30% production toward ships there. | ● | caravan | S | KEEP |
+| `theSynod` | +1 faith and +1 culture for each wildcard Order you have in a slot. | ● | procession | **E** | **CONVERT** — *"+2🕯 +2🎵 for each Procession Order in a slot."* (line reader; the user's numbers) |
+| `theTitheOfIron` | +2 production on every mine · −1 food in every city with one. | ◆ | forge | P | KEEP — the user's (+3⚒ per mine, −3🌾) |
+| `theWarCouncil` | +1 combat strength for each military Order you have in a slot, at most +3. | ● | forge | **E** | **CONVERT** — *"+1 strength for each Forge Order in a slot, at most +3."* |
+| `toolmakersCharter` | Unlocks the Smithy. | ◆ | forge | S | KEEP |
+| `waterwrightsCharter` | Unlocks the Cistern. | ◆ | ploughshare | S | KEEP |
+| **`theAlmanacOfHours`** | — | ◆ | court | **E** | **NEW** — *"Your every-so-many-turns Orders fire three turns earlier."* (the period shortener; the user's shape, verbatim). Alone: nothing; with two periodic rows: their bursts a third more often |
+| **`theAssayersRule`** | — | ● | caravan | **E** | **NEW** — *"Your tiles that supply gold give one more."* (tile test). Alone at t92: ~10 gold hexes → 10💰 |
+| **`theCountingHouses`** | — | ◆ | caravan | **E** | **NEW** — *"Your gold buildings give half again their yield."* (building percent: Market, Bazaar, Bank) |
+| **`theFoundryDays`** | — | ● | forge | S | **NEW, periodic** — *"Every ten turns, every mine and quarry pays its production again, at once, to its city."* ~20 hexes × 3⚒ = 60⚒ a tenth turn |
+| **`theNetsBlessing`** | — | ○ | caravan | P | **NEW** — *"Double the yields of your fishing boats, applied last."* (the doubler by category; the user's list) |
 
 ### Government III (46 → 40) — the fork
 
-| id | rarity | line | role | verdict |
-|---|---|---|---|---|
-| `almshouseCharter` | ◆ | procession | S | KEEP |
-| `censusOfSouls` | ◆ | procession | P | KEEP |
-| `clientKings` | ● | court | S | KEEP |
-| `firstFruits` | ● | green | P | KEEP |
-| `forcedMarches` | ● | forge | S | KEEP |
-| `frontierForts` | ● | highlands | S | KEEP |
-| `garrisonState` | ● | forge | — | **CUT** — the user: "remove, boring" |
-| `justicesCharter` | ◆ | court | S | KEEP |
-| `mandateOfHeaven` | ◆ | procession | P | KEEP |
-| `mintCharter` | ◆ | caravan | S | KEEP |
-| `provincialMints` | ● | caravan | P | KEEP — the user's re-cut (+10%💰 in cities with an improved luxury) |
-| `quarrymensGuild` | ● | forge | P | KEEP |
-| `skirmishersCreed` | ○ | forge | S | KEEP |
-| `stargazersCharter` | ◆ | star | S | KEEP |
-| `theAlmonersBook` | ◆ | star | — | **CUT** — a tally on gold spent buying; pays under a hundredth of a voice |
-| `theAnnalsOfLaw` | ● | court | E | KEEP — the bench reader; better as chairs shrink |
-| `theArsenalLaw` | ○ | forge | P | KEEP |
-| `theAuspiciousSeal` | ● | court | — | **CUT** — a die of the Magister; the dice are gone |
-| `theCasusBelli` | ○ | forge | S | KEEP |
-| `theCensusEternal` | ● | star | P | KEEP |
-| `theCharterOfTheMarches` | ○ | charter | — | **CUT** — reads only at a founding, after the founding age |
-| `theCongregation` | ○ | procession | P | KEEP |
-| `theDraftingHalls` | ● | star | P | KEEP |
-| `theDryDocks` | ● | caravan | — | **CUT** — a per-building line on a building the game rarely has |
-| `theEscortedRoads` | ● | caravan | P | KEEP — +30% (the user: "a payoff card from other bonuses to trade routes") |
-| `theFarCharts` | ○ | wayfarers | P | KEEP |
-| `theFinishersArt` | ● | forge | — | **CUT** — Decisive Blows (IV) is the same rule, bigger |
-| `theGoldenScales` | ● | caravan | P | KEEP |
-| `theGrainDole` | ● | green | — | **CUT** — cheer per big city |
-| `theGranaryLaws` | ◆ | green | P | KEEP |
-| `theGroundskeepers` | ● | court | P | KEEP — the user's (+2🌾 +2⚒ per great work) |
-| `theLyceum` | ◆ | star | P | KEEP — a turn (the user: no buff) |
-| `theMarshals` | ◆ | forge | S | KEEP |
-| `theMasterBuilders` | ● | forge | S | KEEP |
-| `theMastersPresence` | ● | court | P | KEEP |
-| `theOldWays` | ◆ | green | P | KEEP |
-| `thePrizeGrounds` | ● | charter | — | **CUT** — the user: "remove this one entirely" |
-| `theProvisioners` | ● | caravan | — | **CUT** — cheer per route |
-| `theSaintsFields` | ● | procession | P | KEEP — +3🕯 (the user) |
-| `theSaltingHouses` | ● | caravan | — | **CUT** — a coastal food-to-production conversion nobody builds around; the Grain Fleet (IV) is the coastal card |
-| `theStandingLevy` | ○ | forge | S | KEEP — a periodic row already; every 12 turns a free melee unit |
-| `theWarChest` | ● | forge | S | KEEP — −2💰 (the user) |
-| `theWayhouses` | ● | caravan | P | KEEP — the user's re-cut (+3🎵 +1💰 per route) |
-| `theWinteringGrounds` | ● | forge | — | **CUT** — the War Chest is the upkeep card |
-| `theWonderFeasts` | ● | forge | S | KEEP |
-| `tolerationEdicts` | ● | court | S | KEEP — −15% demanded (the user) |
-| **`theIronRule`** | ◆ | forge | **E** | **NEW** — *"Your Orders that give production give half again."* (amplifier, production; the user's shape, verbatim). Alone: 0; Forge deck at t92 (Tithe of Iron 21, Quarrymen 8, Statute 12, Ore Tithes 6 …): ~24⚒ |
-| **`theWorkshopsRule`** | ◆ | forge | **E** | **NEW** — *"Your production buildings give half again their yield."* (building percent: Workshop, Forge, Barracks' percent line) |
-| **`theLitany`** | ● | procession | **E** | **NEW** — *"+1🕯 in every city for each Procession Order in a slot."* (line reader; the worked deck's engine). Alone: 6🕯; Faith deck with five Procession cards: 30🕯 |
-| **`theChartroom`** | ● | star | **E** | **NEW** — *"+2🔬 in your capital for each Star or Wayfarers Order in a slot, and +1 in every other city."* (line reader over two lines) |
-| **`theWildChair`** | ◆ | court | **E** | **NEW** — *"The Order in your first wildcard slot pays twice."* (position) |
-| **`theGoldenCenser`** | ○ | procession | P | **NEW** — *"Your faith pays again as science, three percent for each Procession Order in a slot."* (a conversion at a share per line card). Faith deck at t92 (150🕯, five cards): **22🔬**; alone (59🕯, one card): 2 |
-| **`theDeepSeams`** | ○ | forge | P | **NEW** — *"Double the yields of your mines, applied last."* (doubler). ~20 mines × 3 = **60⚒** — the Æra III spike the fork wanted, and the reason it is rare |
-| **`theExchangeCharter`** | ○ | caravan | P | **NEW** — *"Double the yields of your Markets, applied last."* (doubler; Markets and, through the chain, what stands on them is a §8 question) |
-| **`theTriumph`** | ● | court | S | **NEW, periodic** — *"Every twelve turns, your capital gains culture equal to your empire's production."* 131🎵 a twelfth turn ≈ 11🎵 a turn; shortened, a ninth |
+| id | today | rarity | line | role | verdict |
+|---|---|---|---|---|---|
+| `almshouseCharter` | Unlocks the Almshouse. | ◆ | procession | S | KEEP |
+| `censusOfSouls` | +1 faith for each citizen in your capital. | ◆ | procession | P | KEEP |
+| `clientKings` | +2 authority capacity · a captured city costs one less authority. | ● | court | S | KEEP |
+| `firstFruits` | +1 food on every hex carrying a resource. | ● | green | P | KEEP |
+| `forcedMarches` | Melee units gain +1 movement, and +2 instead inside your own territory. | ● | forge | S | KEEP |
+| `frontierForts` | +6 city defence in every city near another empire's territory. | ● | highlands | S | KEEP |
+| `garrisonState` | Each city gains +3 production for each combat unit standing in it (at most +6 per city). | ● | forge | — | **CUT** — the user: "remove, boring" |
+| `justicesCharter` | Unlocks the Assize Court. | ◆ | court | S | KEEP |
+| `mandateOfHeaven` | The science and culture your happy cities pay rises 5 percentage points · +1 happiness for each 200 banked faith. | ◆ | procession | P | KEEP |
+| `mintCharter` | Unlocks the Coinworks. | ◆ | caravan | S | KEEP |
+| `provincialMints` | +2 gold for each improved copy of a luxury — duplicates count. | ● | caravan | P | KEEP — the user's re-cut (+10%💰 in cities with an improved luxury) |
+| `quarrymensGuild` | +4 production in every city with a quarry. | ● | forge | P | KEEP |
+| `skirmishersCreed` | Ranged units gain +1 range. | ○ | forge | S | KEEP |
+| `stargazersCharter` | Unlocks the Orrery. | ◆ | star | S | KEEP |
+| `theAlmonersBook` | +1 science per turn for each 400 gold you have spent buying while this Order stands in a slot. | ◆ | star | — | **CUT** — a tally on gold spent buying; pays under a hundredth of a voice |
+| `theAnnalsOfLaw` | +2 culture for each Order you hold but have not placed in a slot. | ● | court | E | KEEP — the bench reader; better as chairs shrink |
+| `theArsenalLaw` | While you are at war, cities with a Barracks gain 15% of their production again as gold. | ○ | forge | P | KEEP |
+| `theAuspiciousSeal` | The first time this Order is placed in a slot, a die of the Magister is yours. | ● | court | — | **CUT** — a die of the Magister; the dice are gone |
+| `theCasusBelli` | Declaring war grants +2 combat strength to all your units and +10% production in every city, for 10 turns. | ○ | forge | S | KEEP |
+| `theCensusEternal` | +1 science for every 4 citizens in your empire. | ● | star | P | KEEP |
+| `theCharterOfTheMarches` | Your newest city gains +2 of every yield. Founding a city grants +30 culture. | ○ | charter | — | **CUT** — reads only at a founding, after the founding age |
+| `theCongregation` | +1 culture and +1 science for each city in the world that follows your religion. | ○ | procession | P | KEEP |
+| `theDraftingHalls` | Cities with a Library gain 10% of their production again as science. | ● | star | P | KEEP |
+| `theDryDocks` | +25% production toward ships in every city with a Harbour. | ● | caravan | — | **CUT** — a per-building line on a building the game rarely has |
+| `theEscortedRoads` | Trade routes pay 30% more. | ● | caravan | P | KEEP — +30% (the user: "a payoff card from other bonuses to trade routes") |
+| `theFarCharts` | +1 science for each 20 hexes you have revealed. | ○ | wayfarers | P | KEEP |
+| `theFinishersArt` | +4 combat strength against units below half strength. | ● | forge | — | **CUT** — Decisive Blows (IV) is the same rule, bigger |
+| `theGoldenScales` | Every city gains 10% of its gold yield again as science. | ● | caravan | P | KEEP |
+| `theGrainDole` | +2 happiness in every city of 6 or more population. | ● | green | — | **CUT** — cheer per big city |
+| `theGranaryLaws` | Cities of 8 or more population gain 10% of their food yield again as science. | ◆ | green | P | KEEP |
+| `theGroundskeepers` | +1 food and +1 production on every great-person improvement. | ● | court | P | KEEP — the user's (+2🌾 +2⚒ per great work) |
+| `theLyceum` | Completing a technology grants an extra turn of culture. | ◆ | star | P | KEEP — a turn (the user: no buff) |
+| `theMarshals` | +2 combat strength for each adjacent friendly combat unit (at most +4). | ◆ | forge | S | KEEP |
+| `theMasterBuilders` | The Magnum Opus and cathedrals cost 15% less production. | ● | forge | S | KEEP |
+| `theMastersPresence` | +10% to every yield in each city beside a great person's work. | ● | court | P | KEEP |
+| `theOldWays` | The yields of unimproved hexes are doubled. | ◆ | green | P | KEEP |
+| `thePrizeGrounds` | +2 happiness in every city settled on a luxury resource. | ● | charter | — | **CUT** — the user: "remove this one entirely" |
+| `theProvisioners` | +1 happiness for each trade route between your own cities. | ● | caravan | — | **CUT** — cheer per route |
+| `theSaintsFields` | +3 faith on every great-person improvement. | ● | procession | P | KEEP — +3🕯 (the user) |
+| `theSaltingHouses` | Coastal cities gain 10% of their food yield again as production. | ● | caravan | — | **CUT** — a coastal food-to-production conversion nobody builds around; the Grain Fleet (IV) is the coastal card |
+| `theStandingLevy` | Every 12 turns, a free melee unit musters in your capital. | ○ | forge | S | KEEP — a periodic row already; every 12 turns a free melee unit |
+| `theWarChest` | Military units cost 3 less gold in maintenance. | ● | forge | S | KEEP — −2💰 (the user) |
+| `theWayhouses` | +2 gold and +1 culture for each trade route you run. | ● | caravan | P | KEEP — the user's re-cut (+3🎵 +1💰 per route) |
+| `theWinteringGrounds` | Your units cost no gold in maintenance outside your territory. | ● | forge | — | **CUT** — the War Chest is the upkeep card |
+| `theWonderFeasts` | +2 food in every city while it is building a wonder · +10% production toward wonders. | ● | forge | S | KEEP |
+| `tolerationEdicts` | −10% happiness demanded per citizen. | ● | court | S | KEEP — −15% demanded (the user) |
+| **`theIronRule`** | — | ◆ | forge | **E** | **NEW** — *"Your Orders that give production give half again."* (amplifier, production; the user's shape, verbatim). Alone: 0; Forge deck at t92 (Tithe of Iron 21, Quarrymen 8, Statute 12, Ore Tithes 6 …): ~24⚒ |
+| **`theWorkshopsRule`** | — | ◆ | forge | **E** | **NEW** — *"Your production buildings give half again their yield."* (building percent: Workshop, Forge, Barracks' percent line) |
+| **`theLitany`** | — | ● | procession | **E** | **NEW** — *"+1🕯 in every city for each Procession Order in a slot."* (line reader; the worked deck's engine). Alone: 6🕯; Faith deck with five Procession cards: 30🕯 |
+| **`theChartroom`** | — | ● | star | **E** | **NEW** — *"+2🔬 in your capital for each Star or Wayfarers Order in a slot, and +1 in every other city."* (line reader over two lines) |
+| **`theWildChair`** | — | ◆ | court | **E** | **NEW** — *"The Order in your first wildcard slot pays twice."* (position) |
+| **`theGoldenCenser`** | — | ○ | procession | P | **NEW** — *"Your faith pays again as science, three percent for each Procession Order in a slot."* (a conversion at a share per line card). Faith deck at t92 (150🕯, five cards): **22🔬**; alone (59🕯, one card): 2 |
+| **`theDeepSeams`** | — | ○ | forge | P | **NEW** — *"Double the yields of your mines, applied last."* (doubler). ~20 mines × 3 = **60⚒** — the Æra III spike the fork wanted, and the reason it is rare |
+| **`theExchangeCharter`** | — | ○ | caravan | P | **NEW** — *"Double the yields of your Markets, applied last."* (doubler; Markets and, through the chain, what stands on them is a §8 question) |
+| **`theTriumph`** | — | ● | court | S | **NEW, periodic** — *"Every twelve turns, your capital gains culture equal to your empire's production."* 131🎵 a twelfth turn ≈ 11🎵 a turn; shortened, a ninth |
 
 ### Government IV (16 → 21)
 
-| id | rarity | line | role | verdict |
-|---|---|---|---|---|
-| `assizeCourts` | ◆ | court | P | KEEP |
-| `cathedralChapters` | ◆ | procession | P | **CONVERT** (the cheer half goes) — *"+2🎵 and +2🕯 in every city with a Cathedral."* |
-| `courtAstronomers` | ◆ | star | P | KEEP — +10🔬 per wonder (the user) |
-| `decisiveBlows` | ○ | forge | S | KEEP |
-| `fieldHospitals` | ◆ | forge | S | KEEP |
-| `harbourmasters` | ◆ | caravan | P | KEEP — +2💰 per boat (the user) |
-| `knightlyOrders` | ○ | forge | S | KEEP |
-| `patrons` | ◆ | court | P | KEEP — +10🎵 per wonder (the user) |
-| `scholastics` | ◆ | star | P | KEEP |
-| `theConsistory` | ◆ → ○ | procession | P | KEEP — the user's re-cut, *"double the yields of your Temples, applied last"* — a doubler is a payoff and goes rare |
-| `theFactorHouses` | ○ | caravan | — | **CUT** — a Gov IV rare paying under a fiftieth of a voice |
-| `theGrainFleet` | ○ | green | P | KEEP |
-| `theGuildOfMasons` | ● | court | S | KEEP |
-| `theKingsRoad` | ◆ | forge | S | KEEP |
-| `theMarshalsPurse` | ○ | forge | S | KEEP |
-| `theSiegeTrain` | ◆ | forge | S | KEEP |
-| **`theScholarsRule`** | ◆ | star | **E** | **NEW** — *"Your Orders that give science give half again."* (amplifier, science) |
-| **`theVestryRule`** | ◆ | procession | **E** | **NEW** — *"Your faith buildings give half again their yield."* (building percent: Shrine, Temple, Cathedral, Chapel) |
-| **`theExchequer`** | ● | caravan | **E** | **NEW** — *"+3💰 for each Caravan Order in a slot."* (line reader) |
-| **`theAssay`** | ○ | caravan | P | **NEW** — *"Your gold pays again as science, three percent for each Caravan Order in a slot."* Trade deck at t92 (200💰, five cards): 30🔬 |
-| **`theBroadAcres`** | ○ | green | P | **NEW** — *"Double the yields of your farms, applied last."* — the largest doubler, so the latest; ~40 farms × 2 = 80🌾 |
-| **`theJubilee`** | ◆ | procession | S | **NEW, periodic** — *"Every fifteen turns, every city gains faith and culture equal to its population."* |
+| id | today | rarity | line | role | verdict |
+|---|---|---|---|---|---|
+| `assizeCourts` | +1 authority capacity for each 3 cities you hold · a captured city costs 1 authority. | ◆ | court | P | KEEP |
+| `cathedralChapters` | +1 happiness for each Cathedral you hold · +2 culture in every city with one. | ◆ | procession | P | **CONVERT** (the cheer half goes) — *"+2🎵 and +2🕯 in every city with a Cathedral."* |
+| `courtAstronomers` | +2 science for each wonder you hold. | ◆ | star | P | KEEP — +10🔬 per wonder (the user) |
+| `decisiveBlows` | +5 combat strength when attacking a unit below half strength. | ○ | forge | S | KEEP |
+| `fieldHospitals` | Units resting inside your own territory mend completely each turn. | ◆ | forge | S | KEEP |
+| `harbourmasters` | +1 trade route · +1 gold on every fishing boat. | ◆ | caravan | P | KEEP — +2💰 per boat (the user) |
+| `knightlyOrders` | Mounted units gain +5 combat strength inside your territory, and cities put 25% less production behind them. | ○ | forge | S | KEEP |
+| `patrons` | +2 culture for each wonder you hold. | ◆ | court | P | KEEP — +10🎵 per wonder (the user) |
+| `scholastics` | +2 science for each University you hold · completing a technology grants +15 faith. | ◆ | star | P | KEEP |
+| `theConsistory` | +1 faith for each Temple you hold. | ◆ → ○ | procession | P | KEEP — the user's re-cut, *"double the yields of your Temples, applied last"* — a doubler is a payoff and goes rare |
+| `theFactorHouses` | +3 science for each trade route you run to another empire. | ○ | caravan | — | **CUT** — a Gov IV rare paying under a fiftieth of a voice |
+| `theGrainFleet` | +2 food in every coastal city · +25% growth surplus there. | ○ | green | P | KEEP |
+| `theGuildOfMasons` | +30% production toward wonders · −15% production toward units. | ● | court | S | KEEP |
+| `theKingsRoad` | Your units gain +1 movement inside your own territory. | ◆ | forge | S | KEEP |
+| `theMarshalsPurse` | Military units cost 25% less to buy. | ○ | forge | S | KEEP |
+| `theSiegeTrain` | Siege units gain +1 movement. | ◆ | forge | S | KEEP |
+| **`theScholarsRule`** | — | ◆ | star | **E** | **NEW** — *"Your Orders that give science give half again."* (amplifier, science) |
+| **`theVestryRule`** | — | ◆ | procession | **E** | **NEW** — *"Your faith buildings give half again their yield."* (building percent: Shrine, Temple, Cathedral, Chapel) |
+| **`theExchequer`** | — | ● | caravan | **E** | **NEW** — *"+3💰 for each Caravan Order in a slot."* (line reader) |
+| **`theAssay`** | — | ○ | caravan | P | **NEW** — *"Your gold pays again as science, three percent for each Caravan Order in a slot."* Trade deck at t92 (200💰, five cards): 30🔬 |
+| **`theBroadAcres`** | — | ○ | green | P | **NEW** — *"Double the yields of your farms, applied last."* — the largest doubler, so the latest; ~40 farms × 2 = 80🌾 |
+| **`theJubilee`** | — | ◆ | procession | S | **NEW, periodic** — *"Every fifteen turns, every city gains faith and culture equal to its population."* |
 
 ### Government V (11 → 14)
 
-| id | rarity | line | role | verdict |
-|---|---|---|---|---|
-| `admiralty` | ○ | caravan | S | KEEP |
-| `forcedMarch` | ○ | forge | S | KEEP |
-| `manufactories` | ◆ | forge | — | **CUT** — a per-building line on a great work few hold |
-| `printingHouses` | ◆ | star | P | KEEP — the user's re-cut (+3🎵 per Library; +10%🔬) |
-| `theGuildCompact` | ○ | forge | P | KEEP |
-| `theInquisition` | ● → ○ | procession | P | KEEP — the user's re-cut (+8🕯 +8🎵 on Temples) is a payoff at rare size |
-| `theMagistersCourt` | ○ | court | S | KEEP |
-| `theSalon` | ● | court | S | KEEP — +1 card (the user) |
-| `theSilkExchange` | ◆ | caravan | P | KEEP — the user's re-cut (+1🎵 per 2 population in the destination) |
-| `titheBarns` | ○ | green | — | **CUT** — net negative to hold |
-| `universalSuffrage` | ◆ | green | S | KEEP — the tier boost is live above the clamp |
-| **`theCompactOfChairs`** | ○ | court | **E** | **NEW** — *"The Order in the first slot of every kind pays twice."* (position; the capstone) |
-| **`theEncyclopaedists`** | ○ | star | P | **NEW** — *"Your science pays again as culture, three percent for each Star Order in a slot."* |
-| **`theLaureatesRule`** | ◆ | court | **E** | **NEW** — *"Your Orders that give culture give half again."* (amplifier, culture) |
-| **`theGreatClock`** | ○ | court | **E** | **NEW** — *"Your every-so-many-turns Orders fire three turns earlier and pay half again."* (shortener + a rider on the boon; the periodic capstone) |
-| **`theCollegesRule`** | ○ | star | P | **NEW** — *"Double the yields of your Universities, applied last."* |
+| id | today | rarity | line | role | verdict |
+|---|---|---|---|---|---|
+| `admiralty` | Embarked units gain +1 movement · +5 defence in every coastal city. | ○ | caravan | S | KEEP |
+| `forcedMarch` | Military units gain +1 movement outside your own territory. | ○ | forge | S | KEEP |
+| `manufactories` | +2 production on every manufactory. | ◆ | forge | — | **CUT** — a per-building line on a great work few hold |
+| `printingHouses` | +1 culture for each Library you hold · +2 science in every city with a Printing House. | ◆ | star | P | KEEP — the user's re-cut (+3🎵 per Library; +10%🔬) |
+| `theGuildCompact` | +2% production in a city for each production building standing in it, at most +6%. | ○ | forge | P | KEEP |
+| `theInquisition` | +2 happiness and +2 faith in every city with a Temple. | ● → ○ | procession | P | KEEP — the user's re-cut (+8🕯 +8🎵 on Temples) is a payoff at rare size |
+| `theMagistersCourt` | +10% production toward the Magnum Opus. | ○ | court | S | KEEP |
+| `theSalon` | Every great-person offer shows one more card. | ● | court | S | KEEP — +1 card (the user) |
+| `theSilkExchange` | +2 gold for each trade route you run. | ◆ | caravan | P | KEEP — the user's re-cut (+1🎵 per 2 population in the destination) |
+| `titheBarns` | Cities keep 50% of their stored food when they grow · −1 faith in every city. | ○ | green | — | **CUT** — net negative to hold |
+| `universalSuffrage` | +1 happiness for each 4 citizens in your empire · happiness tiers +5 percentage points. | ◆ | green | S | KEEP — the tier boost is live above the clamp |
+| **`theCompactOfChairs`** | — | ○ | court | **E** | **NEW** — *"The Order in the first slot of every kind pays twice."* (position; the capstone) |
+| **`theEncyclopaedists`** | — | ○ | star | P | **NEW** — *"Your science pays again as culture, three percent for each Star Order in a slot."* |
+| **`theLaureatesRule`** | — | ◆ | court | **E** | **NEW** — *"Your Orders that give culture give half again."* (amplifier, culture) |
+| **`theGreatClock`** | — | ○ | court | **E** | **NEW** — *"Your every-so-many-turns Orders fire three turns earlier and pay half again."* (shortener + a rider on the boon; the periodic capstone) |
+| **`theCollegesRule`** | — | ○ | star | P | **NEW** — *"Double the yields of your Universities, applied last."* |
 
 ---
 
