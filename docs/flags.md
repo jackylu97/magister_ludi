@@ -100,7 +100,14 @@ directly to confirm rulings — user marginalia are rulings.
   camp's first standing unit is its **warden**, holds the camp hex and
   fortifies; every further muster raids as now. A camp whose warden dies
   keeps its next-mustered piece home. Batch **H8 — the warden** in flight.
-  Two findings from the re-aim, yours to rule:
+  (h) **Forests more diffuse** (mapgen): "currently forests spawn in huge
+  patches — smaller patches of forest across the map, and some unforested
+  tiles breaking up the large patches." The feature pass's forest scatter
+  gets a finer grain (smaller clumps, more of them) and a clearing rule
+  inside a large patch; the density (forest share of land) stays where it
+  is unless the mapgen page says otherwise. A map change moves every seed's
+  replay — schema. Batch **H9 — the woods** in flight; `mapgen.html` is the
+  eye. Two findings from the re-aim, yours to rule:
   1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
      user's ruling was always "unlock rites in the tech tree where they used
      to be"; C2's Chapel gate is removed (the tree is the only gate; the
