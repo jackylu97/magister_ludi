@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest';
 import { foundCityAt } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { purchaseError } from '../../src/sim/purchase';
-import { type GameState, unitById } from '../../src/sim/state';
+import { type GameState, unitById, bumpRevision } from '../../src/sim/state';
 import { explainEmpireGold } from '../../src/sim/trade';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { civYields } from '../../src/ui/topBar';
@@ -142,6 +142,10 @@ describe('a caravan, from the treasury to the ledger', () => {
     const empireBefore = fold();
     const shown = civYields(state, 0).gold;
     for (const tile of state.map.tiles) delete tile.road;
+    // A hand mutation with no command behind it: the readings are memoised on
+    // the state's revision (batch E2), so the bench announces the change the
+    // way a command would.
+    bumpRevision(state);
     expect(shown - civYields(state, 0).gold).toBe(empireBefore - fold());
   });
 });
