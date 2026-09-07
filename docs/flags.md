@@ -52,8 +52,17 @@ directly to confirm rulings — user marginalia are rulings.
   rows; six of seven acceptance games byte-identical). **The pass is built.**
   The play checkout on :5199 is refreshed to b8a5ca2 for the second
   playthrough (schema 78 — the turn-92 save does not load). Main on GitHub
-  is still at the vein shelving: the all-tier gate for the push is heavy
-  and waits for a moment the machine is free. Two findings from the re-aim,
+  is still at the vein shelving: the all-tier gate for the push is running
+  (capped at three workers) on the user's word; the push follows on green.
+  **The audit is in flight** (the user: "do a pass on the codebase —
+  thoroughly read through bonus logic … feature bloat … simplified … unified
+  … not built … long deprecated"): three read-only readers, one file each —
+  `docs/audit/bonuses.md` (every bonus from row to fold to surface to the
+  bot's price; previews computed beside a fold are findings),
+  `docs/audit/simplify.md` (duplications, vocabulary sprawl, structural
+  cuts, the brittle pins), `docs/audit/dead-code.md` (declared-never-built,
+  deprecated-and-kept, unread exports and knobs, docs now false). Findings
+  first; fixes as batches on your markup. Two findings from the re-aim,
   yours to rule:
   1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
      user's ruling was always "unlock rites in the tech tree where they used
