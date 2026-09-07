@@ -263,8 +263,28 @@ import {
  * where it did not and every draw after it belongs to a different game. A log
  * with no such reroll in it replays identically: nothing about a deal, an Order
  * reroll's price or the tally moved.
+ *
+ * v86: **the empire stage** (batch H19, `docs/flags.md` item oo — the user,
+ * 2026-09-07: *"empire additive bonuses should apply before empire
+ * multiplicative bonuses"*). The meter tiers and the arrears multiplied every
+ * *town's* basket and nothing else; the empire's own lines — a luxury's empire
+ * signature, the caravans abroad, the roads' coin, an Order's empire-wide
+ * science — were banked flat, which made a tier a rule about *where* a beaker
+ * happened to be earned. They now fold first and take the empire stage once:
+ * `(Σ empire lines) × (1 + Σ empire%)`, Entry XVII's shape at the empire's
+ * scale, as the ordered list `explainEmpireLines` (`cities.ts`) is the fold of —
+ * with the multiplication printed as one reconciliation line per voice. The
+ * treasury's **bills** stay outside it: maintenance, a levy's surcharge, a
+ * charter's rebate and the treaties are costs rather than yields
+ * (`TradeGoldKind`), so a contented empire earns more from its roads without
+ * paying its soldiers less.
+ *
+ * A v85 log replays identically until the first turn an empire holds **both** a
+ * meter tier (or an arrears penalty) and an empire-scale line, at which point
+ * that turn banks a different figure and every threshold downstream of it — a
+ * technology, a border rung, a draft — is crossed on a different turn.
  */
-export const SCHEMA_VERSION = 85;
+export const SCHEMA_VERSION = 86;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

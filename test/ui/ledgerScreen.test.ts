@@ -53,6 +53,7 @@ import {
   cityFlatsByClass,
   classifyCard,
   classifyEmpireGold,
+  classifyEmpireLine,
   classifyPercent,
   createLedgerHistory,
   foldLedgerBag,
@@ -71,13 +72,15 @@ import {
   cityQuote,
   cityYields,
   collectYields,
+  explainEmpireLines,
   foundCityAt,
 } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { foldRouteYield, senderRouteYields } from '../../src/sim/trade';
 import { createUnit } from '../../src/sim/state';
 import { at, bareState } from '../sim/improvementHelpers';
-import type { CardId } from '../../src/sim/statecraftData';
+import type { CardEffect, CardId } from '../../src/sim/statecraftData';
+import { orderDef } from '../../src/sim/statecraftData';
 import { DOCTRINE_IDS, GOVERNMENT_IDS, ORDER_IDS } from '../../src/sim/statecraftData';
 import { ALL_BELIEF_IDS, CONSECRATION_IDS, RITE_IDS } from '../../src/sim/religionData';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
@@ -268,6 +271,48 @@ describe('the reading', () => {
       let parts = 0;
       for (const cls of LEDGER_CLASSES) parts += voice.byClass[cls];
       expect(parts, `${voice.key} parts`).toBe(voice.total);
+    }
+  });
+
+  /**
+   * **A board where the empire stage is actually standing** (batch H19). The
+   * benches above sit under water — a town of five citizens asks for more than
+   * the palace supplies — so neither of them carries a positive tier, and a
+   * sheet that dropped the empire's multiplication would agree with a top bar
+   * that had dropped it too. This one is a single-citizen capital over the first
+   * contentment tier with an Order paying the realm three beakers: the stage
+   * pays 0.3 of them, the sheet has to carry it, and the bank has to agree.
+   */
+  it('carries the empire stage, into “other”, and still agrees with the bank', () => {
+    const held = orderDef('waysideShrines').effects;
+    try {
+      (orderDef('waysideShrines') as { effects: CardEffect[] }).effects = [
+        { kind: 'empireYields', science: 3 },
+      ];
+      const g = game();
+      found(g.state, 0);
+      const sc = playerById(g.state, 0)!.statecraft;
+      sc.orders.push('waysideShrines');
+      sc.slots[0] = { card: 'waysideShrines', sealedUntil: g.state.turn };
+
+      const stage = explainEmpireLines(g.state, 0).filter((line) => line.origin === 'stage');
+      expect(stage.length, 'the tier is standing').toBeGreaterThan(0);
+
+      const headline = civYields(g.state, 0);
+      const reading = ledgerReading(g.state, 0);
+      for (const voice of reading) {
+        expect(voice.total, voice.key).toBe(headline[voice.key]);
+        let parts = 0;
+        for (const cls of LEDGER_CLASSES) parts += voice.byClass[cls];
+        expect(parts, `${voice.key} parts`).toBe(voice.total);
+      }
+      // And the money: the pools move by the headline the sheet is a split of.
+      const player = playerById(g.state, 0)!;
+      const opened = player.sciencePool;
+      collectYields(g.state);
+      expect(player.sciencePool - opened).toBeCloseTo(headline.science, 10);
+    } finally {
+      (orderDef('waysideShrines') as { effects: CardEffect[] }).effects = held as CardEffect[];
     }
   });
 
@@ -748,7 +793,7 @@ describe('the source register', () => {
   it('gives every empire-gold line the simulation emits a bar of its own', () => {
     // `TradeGoldLine` offers no handle but its label, so the map is keyed on the
     // head of it — everything before the ` · count` tail, exactly as
-    // `empireTradeLines` in `topBar.ts` keys its hover detail. The heads are read
+    // `empireGoldDetail` in `topBar.ts` keys its hover detail. The heads are read
     // out of `empireGold.ts` itself so a rename there fails here rather than
     // silently moving a bill into "the land".
     const emitted = new Set<string>();
@@ -763,6 +808,33 @@ describe('the source register', () => {
     // luxury's share of the connection gold.
     expect(classifyEmpireGold('Spices · city connections')).toBe('tiles');
     expect(classifyEmpireGold('Unit maintenance · 7 units')).toBe('other');
+  });
+
+  /**
+   * **The empire's own lines, filed by where they came from** (batch H19). The
+   * empire stage is a line of that list now, and it lands in `other` — which is
+   * the town half's own answer: `classifyPercent` files a meter tier and the
+   * arrears there, so sharing the empire's gain over those weights would hand
+   * the whole of it to `other` in any case.
+   */
+  it('files each empire-scale line by its origin, the stage into “other”', () => {
+    const { state, playerId } = bench();
+    const lines = explainEmpireLines(state, playerId);
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      const into = classifyEmpireLine(line);
+      if (line.origin === 'resource') expect(into).toBe('tiles');
+      if (line.origin === 'route') expect(into).toBe('trade');
+      if (line.origin === 'gold') expect(into).toBe(classifyEmpireGold(line.source));
+      if (line.origin === 'stage') expect(into).toBe('other');
+    }
+    // A stage line with a card's markers on it would be a line crediting a
+    // meter to a card: the reconciliation carries neither.
+    for (const line of lines) {
+      if (line.origin !== 'stage') continue;
+      expect(line.card).toBeUndefined();
+      expect(line.resource).toBeUndefined();
+    }
   });
 
   it('emits every percentage from one function, and every one names its card', () => {

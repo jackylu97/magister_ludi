@@ -86,10 +86,12 @@ import {
   capitalCityOf,
   cityQuote,
   cityYields,
+  emptyCityYields,
   empirePercents,
   empireRateReading,
   explainEmpireCardYields,
   queueCategory,
+  stageEmpireFold,
   tileOwnerField,
 } from '../sim/cities';
 import { explainEmpireGold } from '../sim/empireGold';
@@ -2002,13 +2004,16 @@ function scoreAmplifier(
       return share * best * running;
     }
     case 'connectionYields': {
-      // The roads' own coin, read off the ledger that pays it: the **positive**
+      // The roads' own coin, read off the ledger that pays it: the **income**
       // lines of `explainEmpireGold` are the connections and a luxury's share of
-      // them, and the three negative ones are maintenance. The flat step is per
-      // connected town, which is what a connection's gold is quoted in.
+      // them, and every other line is a bill. Off the line's own `kind` since
+      // batch H19 rather than off its sign, which was wrong on one line and
+      // silently: a charter's payroll rebate is a positive figure that is not a
+      // road's coin at all. The flat step is per connected town, which is what a
+      // connection's gold is quoted in.
       let roads = 0;
       for (const line of explainEmpireGold(ctx.state, ctx.playerId)) {
-        if (line.gold > 0) roads += line.gold;
+        if (line.kind === 'income') roads += line.gold;
       }
       const joined = Math.max(0, ctx.cities - 1);
       return (share * roads + flat * joined) * voiceWeight(ctx, 'gold');
@@ -2378,9 +2383,20 @@ function marginRates(state: GameState, playerId: number): Record<Voice, number> 
     culture: rates.culturePerTurn ?? 0,
     faith: rates.faithPerTurn ?? 0,
   };
+  // **Staged, as the resolution banks them** (batch H19, the empire stage
+  // ruling): an empire's additive lines fold before its meters multiply them, so
+  // a card paying three beakers into a realm ten points up is banking 3.3 and a
+  // margin reading the row's own figure would price the deck's whole empire half
+  // low. `stageEmpireFold` is the simulation's one multiplication, asked here of
+  // the cards' fold alone because the base reading above already carries the
+  // standing half of it — staging is linear, so the two halves staged apart sum
+  // to the fold `collectYields` banks.
+  const cards = emptyCityYields();
   for (const line of explainEmpireCardYields(state, playerId)) {
-    for (const voice of VOICES) reading[voice] += line[voice];
+    for (const voice of VOICES) cards[voice] += line[voice];
   }
+  const staged = stageEmpireFold(cards, empirePercents(state, playerId));
+  for (const voice of VOICES) reading[voice] += staged[voice];
   return reading;
 }
 

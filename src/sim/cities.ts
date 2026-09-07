@@ -87,6 +87,7 @@ import {
   type StageSums,
   applyStages,
   foldStages,
+  stageFactor,
   withStage,
 } from './modifiers';
 import { type Cell, type MoveProfile, findPath, isPassable, moveProfile, tileMoveCost } from './pathfind';
@@ -144,7 +145,6 @@ import {
   scopedCardTileLines,
   timedCityTileLines,
   foldCardRulePercent,
-  foldCardYields,
   heldReligions,
   payWindfallGrants,
   recordWorldScalingOccasion,
@@ -226,7 +226,6 @@ import {
 import {
   cityResourceYields,
   empireResourceYields,
-  foldResourceYields,
   foldRulePercent,
   resourcePercentYields,
   resourceProduction,
@@ -247,8 +246,8 @@ import { citySpecialistYields, totalSpecialists } from './specialists';
 // nothing: `routeYields.ts` and `empireGold.ts` import neither this module nor
 // `trade.ts`, `trade.ts` re-exports them so no screen changed its import, and
 // `test/sim/cities.test.ts` reads this source and fails if `./trade` comes back.
-import { cityRouteYields, foldRouteYield, senderRouteYields } from './routeYields';
-import { empireGold, explainEmpireGold } from './empireGold';
+import { cityRouteYields, senderRouteYields } from './routeYields';
+import { explainEmpireGold } from './empireGold';
 // **A leaf, deliberately** (2026-08-28): the road writer and the roster's
 // caravan both moved out of `trade.ts` so that this file's *founding* verb — The
 // Founders' Road — reaches them without crossing the cycle it once documented.
@@ -4164,69 +4163,43 @@ export function collectYields(state: GameState, report?: TurnReport): void {
     }
   }
 
-  // The empire-scale half of the luxury vocabulary, banked **once per player**
-  // after every city has collected — which is the whole difference between an
-  // `empireYields` signature and a `cityYields` one. Walked in `state.players`
-  // order, and the fold of the same list the top bar's totals quote, so a silk
-  // road's two gold is one number wherever it is read.
+  // **The empire's own lines, banked once per player** after every city has
+  // collected — the whole difference between an `empireYields` signature and a
+  // `cityYields` one, and since the empire stage ruling (batch H19) one list
+  // rather than four loops.
+  //
+  // `explainEmpireLines` is that list, in the order this phase has always banked
+  // in: the luxuries' empire signatures, the caravans abroad, the treasury's
+  // ledger, then the cards' empire-scale payouts — last, for the reason that is
+  // the whole of `rateConversion`: a card that pays "per faith gained per turn"
+  // has to be asked *after* everything that pays faith this turn has paid it, or
+  // The Tithe would be converting last turn's rate. And at the foot, the empire
+  // stage: the additive lines fold first and the meters multiply that fold once,
+  // exactly as Entry XVII multiplies a town's basket. What banks is the fold of
+  // the list, so the top bar, the Ledger, the ghost-diff and the bot's margin
+  // read the very figure this line moves.
+  //
+  // Walked in `state.players` order. A domestic route pays its *destination*, so
+  // every voice it carries landed in a town's fold above; a route ending abroad
+  // pays the empire that **sent** it and has no town to be banked in, which is
+  // why one side of it is here and the other is not.
   for (const player of state.players) {
-    const empire = foldResourceYields(empireResourceYields(state, player.id));
+    const lines = explainEmpireLines(state, player.id);
+    const empire = foldEmpireLines(lines);
     player.gold += empire.gold;
     player.sciencePool += empire.science;
     player.culturePool += empire.culture;
     player.faithPool += empire.faith;
-  }
-
-  // **The caravans abroad**, banked once per player on the luxuries' own seam and
-  // for the luxuries' own argument (the international ruling of 2026-09-03).
-  //
-  // A domestic route pays its *destination*, so every voice it carries lands in
-  // a town's fold and rides that town's percentages. A route ending abroad pays
-  // the empire that **sent** it, and there is no town to bank that in: the
-  // science and the culture are the seat's pools and the coin is the seat's
-  // treasury, exactly as an `empireYields` luxury's are. The **host's** coin is
-  // a city line and was already banked above, in the destination's own fold —
-  // which is the whole of why this loop pays one side and not both.
-  //
-  // Counted into `routeYieldsThisAge` here for the reason the city loop counts
-  // it there: this is the one place these figures are *banked* rather than
-  // previewed.
-  for (const player of state.players) {
-    const abroad = foldRouteYield(senderRouteYields(state, player.id));
-    player.gold += abroad.gold;
-    player.sciencePool += abroad.science;
-    player.culturePool += abroad.culture;
-    player.routeYieldsThisAge += abroad.gold + abroad.science + abroad.culture;
-  }
-
-  // The empire-scale half of the treasury: the connection gold every town
-  // joined to the capital by road pays, less what those roads cost to keep and
-  // less what the army and the institutions cost to run (`explainEmpireGold`).
-  // Banked once per player after every city has collected, which is the same
-  // seam and the same argument the luxuries' loop above makes — a connection
-  // belongs to no town, it belongs to the road between two, and a garrison
-  // belongs to the empire that raised it.
-  for (const player of state.players) {
-    player.gold += empireGold(state, player.id);
-  }
-
-  // And the empire-scale half of Statecraft, last of the three, for a reason
-  // that is the whole of `rateConversion`: a card that pays "per faith gained
-  // per turn" has to be asked *after* everything that pays faith this turn has
-  // paid it, or The Tithe would be converting last turn's rate. So the rates
-  // this pass produced are handed in — the same figures the phase has just
-  // banked, never a second sweep that could answer differently.
-  //
-  // Deliberately **not** compounding: a conversion reads the turn's *base*
-  // rates, so two cards converting faith both read the same faith and neither
-  // reads the other's output. A conversion that fed another conversion would be
-  // an ordering question with no honest answer under simultaneous turns.
-  for (const player of state.players) {
-    const cards = foldCardYields(explainEmpireCardYields(state, player.id));
-    player.gold += cards.gold;
-    player.sciencePool += cards.science;
-    player.culturePool += cards.culture;
-    player.faithPool += cards.faith;
+    // **What the caravans carried**, counted here for the reason the city loop
+    // counts its own: this is the one place these figures are *banked* rather
+    // than previewed. The route lines' own figures, before the stage — a
+    // reckoning of what the caravans brought in is a fact about the caravans,
+    // and the city loop above counts its half the same way (`cityRouteYields`,
+    // before that town's two multiplications).
+    for (const line of lines) {
+      if (line.origin !== 'route') continue;
+      player.routeYieldsThisAge += line.gold + line.science + line.culture;
+    }
   }
 
   // And **last of all**, the creditors. Placed at the very end of the phase for
@@ -4351,25 +4324,37 @@ function empireRates(state: GameState, playerId: number): {
     const kept = cityReligion(city);
     if (kept !== null && held.includes(kept)) rates.followingFaithPerTurn += yields.faith;
   }
-  const empire = foldResourceYields(empireResourceYields(state, playerId));
+  // **The empire's standing lines, staged** (batch H19). The luxuries' empire
+  // signatures, the caravans abroad and the treasury's whole ledger join the
+  // *base* rate for the reason every other line here does: a card that pays "per
+  // gold gained per turn" has to read the gold this turn actually produced, and
+  // a connected empire's roads — and since the maintenance ruling its army and
+  // its institutions — are part of it. All of them, maintenance included: a
+  // conversion reads what the treasury *made*, and an empire whose upkeep eats
+  // its connections made less.
+  //
+  // They are staged here for the same reason they are staged in the bank: since
+  // the empire stage ruling the figure this empire actually banks off these
+  // lines is `(Σ income) × (1 + Σ empire%)`, and a rate reading that quoted the
+  // unmultiplied fold would be a conversion pricing against money nobody
+  // received. `stageEmpireFold` is the one multiplication and the bills are
+  // outside it, so this is `explainEmpireLines` without its cards — which is
+  // exactly what a base rate is.
+  const standing = empireStandingLines(state, playerId);
+  const additive = emptyCityYields();
+  let bills = 0;
+  for (const line of standing) {
+    if (line.bill === true) {
+      bills += line.gold;
+      continue;
+    }
+    for (const key of CITY_YIELD_KEYS) additive[key] += line[key];
+  }
+  const empire = stageEmpireFold(additive, percents);
   rates.faithPerTurn += empire.faith;
   rates.culturePerTurn += empire.culture;
-  rates.goldPerTurn += empire.gold;
+  rates.goldPerTurn += empire.gold + bills;
   rates.sciencePerTurn += empire.science;
-  // The empire lines join the *base* rate for the reason every other line here
-  // does: a card that pays "per gold gained per turn" has to read the gold this
-  // turn actually produced, and a connected empire's roads — and since the
-  // maintenance ruling its army and its institutions — are part of it. All four
-  // lines, maintenance included: a conversion reads what the treasury *made*,
-  // and an empire whose upkeep eats its connections made less.
-  for (const line of explainEmpireGold(state, playerId)) rates.goldPerTurn += line.gold;
-  // The caravans abroad, on the empire lines' own argument one system over: a
-  // route ending in a foreign town pays this seat's treasury and this seat's
-  // culture pool, so a card converting "per gold gained per turn" has to see it.
-  const abroad = foldRouteYield(senderRouteYields(state, playerId));
-  rates.goldPerTurn += abroad.gold;
-  rates.culturePerTurn += abroad.culture;
-  rates.sciencePerTurn += abroad.science;
   return rates;
 }
 
@@ -4418,6 +4403,204 @@ export function empireRateReading(state: GameState, playerId: number): RateReadi
  */
 export function explainEmpireCardYields(state: GameState, playerId: number): CardYieldLine[] {
   return cardEmpireYields(state, playerId, () => empireRates(state, playerId));
+}
+
+// --- the empire's own list (batch H19) --------------------------------------
+
+/**
+ * Which fold an empire-scale line came out of — the only handle a reader needs
+ * to file it under the class it belongs to, and the reason no surface has to
+ * parse a label to find out.
+ *
+ * `'stage'` is the reconciliation line itself: what the empire stage added over
+ * the additive lines above it, one per voice.
+ */
+export type EmpireLineOrigin = 'resource' | 'route' | 'gold' | 'card' | 'stage';
+
+/**
+ * One labelled line of what an empire banks **beyond its towns** — the shape
+ * `explainEmpireLines` is a list of.
+ *
+ * Six voices on every line, so a reader asks the same question of a luxury's
+ * signature, a caravan abroad, a road's coin and a card's payout; the sources
+ * that cannot pay in a voice simply carry nought there.
+ */
+export interface EmpireYieldLine extends CityYields {
+  /** The evaluator's own label — "Silk · empire", "City connections · 4 cities". */
+  source: string;
+  origin: EmpireLineOrigin;
+  /**
+   * A **bill**: a cost the empire stage does not reach (`TradeGoldKind`). Absent
+   * on every income line, which is what the stage multiplies.
+   */
+  bill?: boolean;
+  /** The seam this line came from, for a surface filing it under the land. */
+  resource?: ResourceId;
+  /** The card that pays it, for a surface filing it under the deck. */
+  card?: CardId;
+  /**
+   * The stage line's own multiplier on this voice — 1.1 for a realm ten points
+   * up — so a surface prints the reason rather than inventing one. Absent on
+   * every additive line.
+   */
+  factor?: number;
+}
+
+/**
+ * The empire's **standing** additive lines: the luxuries' empire signatures, the
+ * caravans abroad, and the treasury's own ledger — everything but the cards.
+ *
+ * Private, and the cards are out of it for `empireRates`' reason: an empire card
+ * line is computed *from* the rate this list feeds, so a list that carried them
+ * would be a conversion reading its own output. `explainEmpireLines` puts them
+ * back on the end, which is the order `collectYields` has always banked in.
+ */
+function empireStandingLines(state: GameState, playerId: number): EmpireYieldLine[] {
+  const lines: EmpireYieldLine[] = [];
+  for (const line of empireResourceYields(state, playerId)) {
+    lines.push({
+      ...emptyCityYields(),
+      ...voicesOf(line),
+      source: line.source,
+      origin: 'resource',
+      resource: line.resource,
+    });
+  }
+  for (const line of senderRouteYields(state, playerId)) {
+    lines.push({ ...emptyCityYields(), ...voicesOf(line), source: line.source, origin: 'route' });
+  }
+  for (const line of explainEmpireGold(state, playerId)) {
+    lines.push({
+      ...emptyCityYields(),
+      gold: line.gold,
+      source: line.source,
+      origin: 'gold',
+      // The one classification that is not "everything here is a yield": a
+      // maintenance line, a levy's surcharge, a charter's rebate and a treaty
+      // are costs, and the stage does not reach them (ruling oo).
+      ...(line.kind === 'bill' ? { bill: true as const } : {}),
+    });
+  }
+  return lines;
+}
+
+/**
+ * The voices a line actually carries, as a bag to spread over the six.
+ *
+ * The three additive sources speak in different numbers of voices — a luxury's
+ * signature in six, a caravan in five (a route never pays faith), a treasury
+ * line in one — and `EmpireYieldLine` speaks in six so that every reader asks
+ * one question of all of them. Copying only the keys a line declares is what
+ * keeps a missing voice a nought rather than an `undefined` in a fold.
+ */
+function voicesOf(line: Partial<CityYields>): Partial<CityYields> {
+  const bag: Partial<CityYields> = {};
+  for (const key of CITY_YIELD_KEYS) if (line[key] !== undefined) bag[key] = line[key];
+  return bag;
+}
+
+/**
+ * **The empire stage applied to an empire-scale fold** — Entry XVII's second
+ * multiplication at the empire's own scale, and the one implementation of it.
+ *
+ * The city stage is nought by construction: `empirePercents` returns meter tiers
+ * and arrears, every one of them `stage: 'empire'`, and there is no town here to
+ * carry a city percentage. So this is `applyStages` with an idle first stage —
+ * the very function every town's basket goes through, never a second reading of
+ * the same doctrine.
+ *
+ * Exported because a reader may hold a **subset** of the additive lines and want
+ * the same multiplication over it (the bot's margin, which adds the cards' half
+ * to a base reading that already carries the standing half). Staging is linear,
+ * so the parts staged separately sum to the whole staged once — which is the
+ * property that lets `explainEmpireLines` print one reconciliation line rather
+ * than one per source.
+ */
+export function stageEmpireFold(fold: CityYields, empire: EmpirePercents): CityYields {
+  const list = [...empire.meters, ...empire.arrears];
+  const staged = emptyCityYields();
+  for (const key of CITY_YIELD_KEYS) staged[key] = applyStages(fold[key], stageSumsFor(list, key));
+  return staged;
+}
+
+/**
+ * **What one empire banks beyond its towns, as the ordered list the bank is the
+ * fold of** — rule 5 at the empire's scale, and the whole of the empire stage
+ * ruling (`docs/flags.md` oo, the user, 2026-09-07: *"empire additive bonuses
+ * should apply before empire multiplicative bonuses"*).
+ *
+ * The additive lines first, in the order `collectYields` has always banked them:
+ * the luxuries' empire signatures, the caravans abroad, the treasury's ledger,
+ * then the cards' empire-scale payouts (last, because a `rateConversion` reads
+ * the rates the three above it produced). Then **one reconciliation line per
+ * voice** for the empire stage — the meter tiers and the arrears, the same two
+ * lists every town carries as its second stage — whose figure is what the
+ * multiplication added over the additive fold. The fold of the whole list is
+ * what banks, exactly as `applyRiders` and the building preview do it.
+ *
+ * Until this batch the empire's lines were banked flat while every town's basket
+ * was multiplied twice, which made a happiness tier's "+10% science" a rule about
+ * where a beaker happened to be earned. Now `(Σ empire lines) × (1 + Σ empire%)`
+ * is one multiplication over one fold, floored nowhere (batch X).
+ *
+ * **Which lines the stage reaches**: the yields — a luxury's signature, a
+ * caravan's foreign coin, a card's empire payout, and the *income* half of the
+ * treasury (city connections and a luxury's share of them). Not the **bills**:
+ * maintenance, a levy's surcharge, a charter's rebate and the treaties are costs
+ * rather than yields (`TradeGoldKind`, whose docblock has each one's reason), and
+ * a contented empire earns more from its roads without paying its soldiers less.
+ *
+ * `empire` may be handed in by a caller that already took the reading —
+ * `cityQuote`'s parameter one scale out, and the seam a ghost-diff lends its own
+ * meters across (`cardImpact.ts`).
+ */
+export function explainEmpireLines(
+  state: GameState,
+  playerId: number,
+  empire: EmpirePercents = empirePercents(state, playerId),
+): EmpireYieldLine[] {
+  const lines = empireStandingLines(state, playerId);
+  for (const line of explainEmpireCardYields(state, playerId)) {
+    lines.push({
+      ...emptyCityYields(),
+      ...voicesOf(line),
+      source: line.source,
+      origin: 'card',
+      card: line.card,
+    });
+  }
+  // The additive fold the stage multiplies — every line but the bills.
+  const additive = emptyCityYields();
+  for (const line of lines) {
+    if (line.bill === true) continue;
+    for (const key of CITY_YIELD_KEYS) additive[key] += line[key];
+  }
+  const staged = stageEmpireFold(additive, empire);
+  const list = [...empire.meters, ...empire.arrears];
+  for (const key of CITY_YIELD_KEYS) {
+    const gain = staged[key] - additive[key];
+    if (gain === 0) continue;
+    const factor = stageFactor(stageSumsFor(list, key));
+    const line: EmpireYieldLine = {
+      ...emptyCityYields(),
+      // The multiplier on its face, because a line whose figure is a difference
+      // is a line a player cannot check without it. `×1.10`, the panel's own
+      // reading of a stage said in one number.
+      source: `Empire stage · ×${factor.toFixed(2)}`,
+      origin: 'stage',
+      factor,
+    };
+    line[key] = gain;
+    lines.push(line);
+  }
+  return lines;
+}
+
+/** The fold of `explainEmpireLines`, and the only sum of one. */
+export function foldEmpireLines(lines: readonly EmpireYieldLine[]): CityYields {
+  const total = emptyCityYields();
+  for (const line of lines) for (const key of CITY_YIELD_KEYS) total[key] += line[key];
+  return total;
 }
 
 /**

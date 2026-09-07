@@ -63,7 +63,8 @@ import {
   cityYields,
   emptyCityYields,
   empirePercents,
-  explainEmpireCardYields,
+  explainEmpireLines,
+  foldEmpireLines,
 } from '../sim/cities';
 import type { Game } from '../sim/game';
 import {
@@ -76,8 +77,6 @@ import {
   meterEffects,
   meterStanding,
 } from '../sim/meters';
-import { empireResourceYields, foldResourceYields } from '../sim/resourceEffects';
-import { empireGold, explainEmpireGold, foldRouteYield, senderRouteYields } from '../sim/trade';
 import {
   type UpkeepLine,
   explainBuildingUpkeep,
@@ -98,7 +97,7 @@ import {
   signedFigure,
   signedMeterFigure,
 } from './figures';
-import { foldCardYields, nextDraftCost, statecraftBlocker } from '../sim/statecraft';
+import { nextDraftCost, statecraftBlocker } from '../sim/statecraft';
 import { greatPersonBlocker } from '../sim/greatPeople';
 import { explainNextRung, nextRungWords } from '../sim/religion';
 import { explainRenown, foldRenown, renownPerTurn, renownThreshold } from '../sim/renown';
@@ -153,48 +152,28 @@ export function civYields(state: GameState, playerId: number): CityYields {
     total.culture += yields.culture;
     total.faith += yields.faith;
   }
-  // The empire-scale luxury signatures, which belong to no city and are banked
-  // once per turn by `collectYields`. Added here for the same reason they are
-  // added there: a headline that left them out would be a headline the turn
-  // resolution disagrees with.
-  const empire = foldResourceYields(empireResourceYields(state, playerId));
+  // **Everything the empire banks beyond its towns**, as the one list the phase
+  // itself banks the fold of (`explainEmpireLines`, batch H19): the luxuries'
+  // empire signatures, the caravans abroad, the treasury's ledger, the cards'
+  // empire-scale payouts — and the empire stage over the additive fold of them.
+  // None of it belongs to a town: a city connection is a fact about the *road*
+  // between one and the capital, road maintenance is charged on hexes, a
+  // garrison's wages are charged on the army rather than on whichever town it
+  // happens to be standing in (Entry XLI), and a route ending in a foreign town
+  // pays the empire that *sent* it. Read through the phase's own list rather
+  // than summed here, so a headline and the turn resolution cannot disagree —
+  // which is the claim this function used to make four separate times, once per
+  // fold, and each of the four was a chance to leave one out.
+  //
+  // The empire's percentages are handed in: `empirePercents` is a pure function
+  // of the seat and the loop above already took the reading.
+  const empire = foldEmpireLines(explainEmpireLines(state, playerId, empirePercent));
+  total.food += empire.food;
+  total.production += empire.production;
   total.gold += empire.gold;
   total.science += empire.science;
   total.culture += empire.culture;
   total.faith += empire.faith;
-  // The empire-scale gold, banked by `collectYields` in the same pass and for
-  // the same reason as the signatures above it: none of its four lines belongs
-  // to a town. A city connection is a fact about the *road* between one and the
-  // capital, road maintenance is charged on hexes, and a garrison's wages are
-  // charged on the army rather than on whichever town it happens to be standing
-  // in (Entry XLI — that is what keeps an army out of Entry XVII's staging).
-  // Left out, this headline would be a rate the turn resolution disagrees with.
-  total.gold += empireGold(state, playerId);
-  // **The caravans abroad**, banked once per player by `collectYields` on the
-  // luxuries' own seam (the international ruling of 2026-09-03): a route ending
-  // in a foreign town pays the empire that *sent* it, and there is no town to
-  // bank that in, so its gold, science and culture never passed through the loop
-  // above. Left out — as they were until 2026-09-06 — this headline under-reads
-  // an empire by the whole of its foreign trade every turn, which is the same
-  // claim this function has already made twice about the two totals above it.
-  const abroad = foldRouteYield(senderRouteYields(state, playerId));
-  total.gold += abroad.gold;
-  total.science += abroad.science;
-  total.culture += abroad.culture;
-  // The empire-scale Statecraft lines — every `empireYields`/`countScaled` card
-  // and every `rateConversion` (The Great Litany's culture off faith, The
-  // Tithe's gold off culture, and the rest) — banked by `collectYields` in the
-  // same pass as the two totals above. Read through the one helper the phase
-  // itself calls, `explainEmpireCardYields`, so a headline that left them out
-  // would be a headline the turn resolution disagrees with — the same claim
-  // this function has made twice already, now true of the card lines too.
-  const cards = foldCardYields(explainEmpireCardYields(state, playerId));
-  total.food += cards.food;
-  total.production += cards.production;
-  total.gold += cards.gold;
-  total.science += cards.science;
-  total.culture += cards.culture;
-  total.faith += cards.faith;
   return total;
 }
 
@@ -220,49 +199,30 @@ function upkeepDetail(lines: readonly UpkeepLine[]): string {
 }
 
 /**
- * The empire-scale gold lines in the shape the yield card already folds: a
- * source and a figure in each of the six voices.
+ * The per-item list behind each maintenance line, by the **head** of its label —
+ * what the yield card hangs on a `title` one hover deeper.
  *
- * **Four lines** since the maintenance ruling (Entry XLI) — the city
- * connections, the road bill, the army's wages and the institutions' — because
- * that is what `explainEmpireGold` is. Each is a count and a total, and the
- * per-item lists behind them stay where they are: `connectedCities` for the
- * first, `explainUnitUpkeep` and `explainBuildingUpkeep` for the last two.
- * The two maintenance lines carry theirs as a `detail` the card hangs on a
- * `title`; the connections line deliberately does not, because a per-city
- * ledger of the same money is the thing the fold exists to prevent.
+ * The two maintenance lines carry a detail; the connections line deliberately
+ * does not, because a per-city ledger of the same money is the thing the fold
+ * exists to prevent. `connectedCities` is still the per-city answer for a
+ * surface that ever wants it.
  *
- * **`detail` is attached without asking which voice is being shown**, and that
- * is not laziness: a maintenance line is zero in all five other voices, so the
- * card's own zero-skip has already decided. A `key === 'gold'` here would be
- * the hand-rolled comparison `tradePanels.test.ts` refuses.
+ * Keyed on the head of the label — everything before the ` · count` tail —
+ * because that is the handle every reader of `explainEmpireGold` uses
+ * (`classifyEmpireGold`, `empireLinesOf`). It degrades to no detail rather than
+ * to a wrong one if the simulation ever renames a line, and
+ * `test/ui/tradePanels.test.ts` pins that the two names still meet.
  *
- * The adapter is here rather than in `trade.ts` because it is a *presentation*
- * fact: the simulation pays this in gold and knows nothing about six voices,
- * and the card wants every empire-scale source to answer the same question
- * ("what do you pay in the voice I am showing").
+ * A **lookup rather than an adapter** since batch H19: the empire's lines are
+ * one list in the simulation now (`explainEmpireLines`, six voices a line), so
+ * the card walks that list and asks this only for the hover text. What used to
+ * be a second shape of the same four lines is a map of two strings.
  */
-function empireTradeLines(
-  state: GameState,
-  playerId: number,
-): (CityYields & { source: string; detail?: string })[] {
-  // Keyed on the head of the label — everything before the ` · count` tail —
-  // because that is the only handle `TradeGoldLine` offers. It degrades to no
-  // detail rather than to a wrong one if the simulation ever renames a line,
-  // and `test/ui/tradePanels.test.ts` pins that the two names still meet.
-  const details = new Map<string, string>([
+function empireGoldDetail(state: GameState, playerId: number): Map<string, string> {
+  return new Map<string, string>([
     ['Unit maintenance', upkeepDetail(explainUnitUpkeep(state, playerId))],
     ['Building maintenance', upkeepDetail(explainBuildingUpkeep(state, playerId))],
   ]);
-  return explainEmpireGold(state, playerId).map((line) => {
-    const detail = details.get(line.source.split(' · ')[0] ?? '');
-    return {
-      ...emptyCityYields(),
-      source: line.source,
-      gold: line.gold,
-      ...(detail !== undefined && detail.length > 0 ? { detail } : {}),
-    };
-  });
 }
 
 /**
@@ -668,41 +628,30 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         ),
       );
     }
-    // One line per empire-scale luxury signature, after the cities, because
-    // that is where it is banked and because "Silk +2" belongs to no town.
-    for (const line of empireResourceYields(state, playerId)) {
+    // Then the empire's own lines, after the cities because that is where they
+    // are banked and because "Silk +2" belongs to no town — a luxury's empire
+    // signature, a caravan abroad, a city connection, a road bill, an army's
+    // wages, an institution's, a card's empire payout, and at the foot the
+    // empire stage over the additive fold of them (batch H19). One list, the
+    // one `collectYields` banks the fold of, so these rows and the figure they
+    // sum into can never disagree (rule 5) — and the per-voice read rather than
+    // a `key === 'gold'` for the reason the banked register was taken away from
+    // hand-rolled comparisons (`figures.test.ts`): the zero-skip is the gate.
+    const details = empireGoldDetail(state, playerId);
+    for (const line of explainEmpireLines(state, playerId, empirePercent)) {
       const value = line[key];
       if (value === 0) continue;
-      lines.append(meterLine(`${line.source} · empire`, value, false));
-    }
-    // The four empire lines, after the signatures and for their reason: a city
-    // connection, a road bill, an army's wages and an institution's belong to no
-    // town. Read by voice like the signatures above rather than behind a
-    // `key === 'gold'` — the zero-skip is already the gate, and a hand-rolled
-    // comparison is exactly the shape the banked register was taken away from
-    // (`figures.test.ts`).
-    for (const line of empireTradeLines(state, playerId)) {
-      const value = line[key];
-      if (value === 0) continue;
-      // Signed, all four: this is an income and three bills in one list. A cost
-      // shown unsigned under a heading that says "per turn" would be the ledger
-      // lying about itself.
-      const row = meterLine(line.source, value, true);
+      // Signed on the treasury's own lines: they are one income and several
+      // bills in one list, and a cost shown unsigned under a heading that says
+      // "per turn" would be the ledger lying about itself. A luxury's signature
+      // reads as a gain, which is what it is.
+      const label = line.origin === 'resource' ? `${line.source} · empire` : line.source;
+      const row = meterLine(label, value, line.origin !== 'resource');
       // The per-item list, one hover deeper. Plain text, because a `title` is a
       // plain-text sink (`keywords.ts`) and the platform draws it.
-      if (line.detail !== undefined) row.title = line.detail;
+      const detail = details.get(line.source.split(' · ')[0] ?? '');
+      if (detail !== undefined) row.title = detail;
       lines.append(row);
-    }
-    // The empire-scale Statecraft lines, after the trade ledger and for the
-    // same reason: an Order's `empireYields`, a `countScaled` payout and a
-    // `rateConversion` (The Great Litany's culture off faith, The Tithe's gold
-    // off culture) belong to no city either. Read off the one list
-    // `collectYields` itself banks — `explainEmpireCardYields` — so this row
-    // and the figure it sums into can never disagree (rule 5).
-    for (const line of explainEmpireCardYields(state, playerId)) {
-      const value = line[key];
-      if (value === 0) continue;
-      lines.append(meterLine(line.source, value, true));
     }
     // Culture's card gains the ladder it now buys (Entry XV): the tier, the
     // basket against the next threshold, and whatever offer is outstanding.

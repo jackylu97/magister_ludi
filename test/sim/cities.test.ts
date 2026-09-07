@@ -21,6 +21,8 @@ import {
   explainGrowthPercent,
   explainTileYield,
   emptyCityYields,
+  explainEmpireLines,
+  foldEmpireLines,
   foldBuildingPreview,
   foldGrowthPercent,
   foldTileYield,
@@ -72,6 +74,9 @@ import { type GameMap, type Tile, createMap, getTileAt, tileHex, tileIndex, wrap
 import { meterEffects, yieldFactor } from '../../src/sim/meters';
 import { RULES } from '../../src/sim/rulesData';
 import { config, twoCityGame } from './citiesHelpers';
+import { found as statecraftFound, game as statecraftGame } from './statecraftHelpers';
+import { type CardEffect, type OrderId, orderDef } from '../../src/sim/statecraftData';
+import { explainEmpireGold } from '../../src/sim/empireGold';
 import {
   type City,
   type GameState,
@@ -3293,7 +3298,7 @@ describe('determinism with cities', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(85);
+    expect(SCHEMA_VERSION).toBe(86);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);
@@ -3753,8 +3758,13 @@ describe('the trade layering', () => {
     expect(valueImports('cities.ts')).toContain('routeYields');
     expect(valueImports('cities.ts')).toContain('empireGold');
     expect(text('cities.ts')).toMatch(/cityRouteYields\(state, city\)/);
-    expect(text('cities.ts')).toMatch(/empireGold\(state, player\.id\)/);
+    // The treasury's ledger reaches the bank through the empire's own list now
+    // (batch H19): `collectYields` banks `foldEmpireLines`, and the four lines
+    // are one of the origins that list is built out of. So the pin is on the
+    // call that reads them rather than on the fold that used to be banked
+    // beside three others.
     expect(text('cities.ts')).toMatch(/explainEmpireGold\(state, playerId\)/);
+    expect(text('cities.ts')).toMatch(/explainEmpireLines\(state, player\.id\)/);
   });
 
   it('keeps the two leaves leaves', () => {
@@ -3835,5 +3845,156 @@ describe('a taking-back tile line', () => {
     // And a positive line is untouched by the clamp.
     const plus = foldTileYield(explainTileYield(tile, { techs: [], lines: [line(2)] }));
     expect(plus.production).toBe(bare.production + 2);
+  });
+});
+
+// --- the empire stage (batch H19) -------------------------------------------
+
+/**
+ * **The empire's additive lines fold first, and the empire stage multiplies that
+ * fold once** — `docs/flags.md` item oo, the user, 2026-09-07: *"empire additive
+ * bonuses should apply before empire multiplicative bonuses"*.
+ *
+ * Until this batch a meter tier multiplied every *town's* basket and nothing
+ * else, so an Order's empire-wide beaker, a luxury's empire signature and the
+ * caravans abroad were banked flat — which made a tier a rule about *where* a
+ * beaker happened to be earned. The claim under test is Entry XVII's shape at
+ * the empire's scale: one fold, one multiplication, and a **list** whose fold is
+ * what the resolution banks (rule 5).
+ */
+describe('the empire stage', () => {
+  /** Runs `body` with this Order wearing these effects, and puts them back. */
+  function withCard(id: OrderId, effects: CardEffect[], body: () => void): void {
+    const held = orderDef(id).effects;
+    try {
+      (orderDef(id) as { effects: CardEffect[] }).effects = effects;
+      body();
+    } finally {
+      (orderDef(id) as { effects: CardEffect[] }).effects = held as CardEffect[];
+    }
+  }
+
+  /**
+   * A one-town seat over the first contentment tier — the palace's six against a
+   * single citizen's demand — with one Order paying the empire three beakers.
+   * The tier's +10% reaches science and culture, which is the pair a happiness
+   * tier has ever touched (`meterEffects`).
+   */
+  function tiered() {
+    const g = statecraftGame();
+    const city = statecraftFound(g.state, 0);
+    const sc = g.state.players[0]!.statecraft;
+    sc.orders.push('waysideShrines');
+    sc.slots[0] = { card: 'waysideShrines', sealedUntil: g.state.turn };
+    return { state: g.state, city };
+  }
+
+  it('banks a card’s empire line through the tier, and prints the multiplication as a line', () => {
+    withCard('waysideShrines', [{ kind: 'empireYields', science: 3 }], () => {
+      const { state } = tiered();
+      const tier = empirePercents(state, 0).meters.find((line) => line.yield === 'science');
+      expect(tier?.percent).toBe(10);
+
+      const lines = explainEmpireLines(state, 0);
+      // The additive line is what the row says — the multiplication is never
+      // folded into it, which is what keeps the list readable.
+      const card = lines.find((line) => line.origin === 'card')!;
+      expect(card.science).toBe(3);
+      // And one reconciliation line, whose amount is the difference and whose
+      // label carries the multiplier a player would otherwise have to work out.
+      const stage = lines.filter((line) => line.origin === 'stage');
+      expect(stage).toHaveLength(1);
+      expect(stage[0]!.source).toBe('Empire stage · ×1.10');
+      expect(stage[0]!.science).toBeCloseTo(0.3, 10);
+      // The fold of the list is the figure, exactly (batch X — nothing floors).
+      expect(foldEmpireLines(lines).science).toBeCloseTo(3.3, 10);
+    });
+  });
+
+  it('is what the resolution banks, and the town’s own science is still staged as before', () => {
+    withCard('waysideShrines', [{ kind: 'empireYields', science: 3 }], () => {
+      const { state, city } = tiered();
+      const player = playerById(state, 0)!;
+      // The town's own basket takes the same tier at its second stage, which is
+      // the reading that has not moved: the empire's lines now join it.
+      const quote = cityQuote(state, city);
+      const town = cityYields(state, city, [], city.queue[0], quote);
+      expect(town.science).toBeCloseTo((quote.flats.science * 110) / 100, 10);
+
+      const before = player.sciencePool;
+      collectYields(state);
+      expect(player.sciencePool - before).toBeCloseTo(town.science + 3.3, 10);
+    });
+  });
+
+  it('leaves the treasury’s bills outside the multiplication', () => {
+    withCard('waysideShrines', [{ kind: 'empireYields', gold: 4 }], () => {
+      const { state, city } = tiered();
+      // An institution to owe for, so the ledger carries both halves.
+      city.buildings.push('market');
+      refreshCityDerived(state, city);
+      // A stated reading of the empire's percentages rather than a meter that
+      // happens to reach gold: no tier in today's table touches coin (a
+      // contentment tier pays science and culture, a writ tier hammers), so the
+      // rule is pinned through the parameter every caller may hand in — which is
+      // also how a ghost lends its own meters (`cardImpact.ts`).
+      const empire = {
+        meters: [
+          { source: 'Happiness', yield: 'gold' as const, percent: 50, stage: 'empire' as const },
+        ],
+        arrears: [],
+      };
+      const lines = explainEmpireLines(state, 0, empire);
+      let income = 0;
+      let bills = 0;
+      for (const line of lines) {
+        if (line.origin === 'stage') continue;
+        if (line.bill === true) bills += line.gold;
+        else income += line.gold;
+      }
+      // The bench has both halves, or this proves nothing.
+      expect(bills).toBeLessThan(0);
+      // A bill is a cost, not a yield: what the stage adds is half the income and
+      // nothing of the bill (ruling oo, and `TradeGoldKind` for each line's own
+      // reason).
+      const stage = lines.filter((line) => line.origin === 'stage');
+      expect(stage.reduce((sum, line) => sum + line.gold, 0)).toBeCloseTo(income * 0.5, 10);
+      expect(foldEmpireLines(lines).gold).toBeCloseTo(income * 1.5 + bills, 10);
+    });
+  });
+
+  it('says which of the treasury’s lines are income and which are bills', () => {
+    const { state } = tiered();
+    // The register, read off the ledger itself: a connection and a luxury's
+    // share of it are what the roads *make*; maintenance, a levy's surcharge, a
+    // charter's rebate and the treaties are what the empire *owes*.
+    for (const line of explainEmpireGold(state, 0)) {
+      const head = line.source.split(' · ')[0];
+      const bill =
+        head === 'Road maintenance' ||
+        head === 'Unit maintenance' ||
+        head === 'Building maintenance' ||
+        head.startsWith('Tribute');
+      if (bill) expect(line.kind, line.source).toBe('bill');
+      else if (head === 'City connections') expect(line.kind, line.source).toBe('income');
+    }
+  });
+
+  it('folds to what every reader reads, in the phase’s own banking order', () => {
+    withCard('waysideShrines', [{ kind: 'empireYields', science: 3, gold: 2 }], () => {
+      const { state } = tiered();
+      const lines = explainEmpireLines(state, 0);
+      // The additive lines come in the order the phase has always banked in —
+      // the luxuries' signatures, the caravans abroad, the treasury, the cards
+      // — and the stage closes the list.
+      const origins = [...new Set(lines.map((line) => line.origin))];
+      expect(origins[origins.length - 1]).toBe('stage');
+      expect(origins.indexOf('card')).toBeGreaterThan(origins.indexOf('gold'));
+      // Nothing before the stage line is the multiplication in disguise.
+      for (const line of lines) {
+        if (line.origin === 'stage') continue;
+        expect(line.factor, line.source).toBeUndefined();
+      }
+    });
   });
 });

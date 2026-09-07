@@ -14,11 +14,10 @@
  *
  * Nothing in `state` is touched, nothing is cloned deeply, and **no rule is
  * reimplemented**. A card shape that does not exist yet is stamped correctly the
- * day it is added, because the thing being diffed is `cityYields`,
- * `explainEmpireCardYields`, `explainEmpireGold` and `empireResourceYields`
- * themselves. That is the same bargain the build screen's preview struck, and it
- * is the only one worth striking: a stamp computed beside the rules is a stamp
- * that disagrees with the turn a player ends.
+ * day it is added, because the thing being diffed is `cityYields` and
+ * `explainEmpireLines` themselves. That is the same bargain the build screen's
+ * preview struck, and it is the only one worth striking: a stamp computed beside
+ * the rules is a stamp that disagrees with the turn a player ends.
  *
  * Rule 5, at the scale of a card
  * ------------------------------
@@ -34,8 +33,9 @@
  *      share, and every floor on the way. `applyRiders`' idiom, exactly as the
  *      building preview's: a line of the list carrying *the difference it makes
  *      to the running figure*, never a multiplication performed afterwards;
- *   3. **the realm** — the empire-scale card lines, the treasury's four lines
- *      and the luxuries' empire signatures, each diffed under its own label;
+ *   3. **the realm** — the empire-scale card lines, the luxuries' empire
+ *      signatures, the caravans abroad, the treasury's ledger and the empire
+ *      stage over the additive fold of them, each diffed under its own label;
  *   4. **the meters themselves** — what the card pays into happiness and
  *      authority *in its own hand*. Festival Days pays four contentment and not
  *      one yield; Provincial Governors pays three writ. Those are the card's
@@ -99,8 +99,9 @@ import {
   cityYields,
   emptyCityYields,
   empirePercents,
-  explainEmpireCardYields,
+  explainEmpireLines,
   explainTileYield,
+  foldEmpireLines,
 } from './cities';
 import { type GameState, type Player, foundedReligion, playerById } from './state';
 import {
@@ -128,8 +129,6 @@ import {
 import { CITY_YIELD_KEYS, type CityYieldKey } from './resourceData';
 import { type GreatPersonId, greatPersonDef } from './greatPeopleData';
 import { type MeterId, authorityOf, happinessOf } from './meters';
-import { empireResourceYields } from './resourceEffects';
-import { explainEmpireGold } from './empireGold';
 import { getTileAt } from './map';
 import type { Tile } from './map';
 import { highestAge } from './techData';
@@ -534,16 +533,28 @@ function townsTotal(state: GameState, playerId: number, empire: EmpirePercents):
 }
 
 /**
- * The three empire-scale folds `collectYields` banks beside the towns' — the
- * card lines, the luxuries' empire signatures and the treasury's four lines —
- * summed by the label a player reads.
+ * Everything `collectYields` banks beside the towns — the luxuries' empire
+ * signatures, the caravans abroad, the treasury's ledger, the cards' empire
+ * payouts and the empire stage over the additive fold of them — summed by the
+ * label a player reads.
  *
- * All three, because all three read this empire's cards (`cardAmplifier` reaches
- * into the luxuries and into the connections' gold), and a stamp that quoted
- * only the towns would be a figure the turn resolution disagrees with — the
- * claim the top bar's headline makes about itself, one question over.
+ * All of it, because all of it reads this empire's cards (`cardAmplifier`
+ * reaches into the luxuries and into the connections' gold), and a stamp that
+ * quoted only the towns would be a figure the turn resolution disagrees with —
+ * the claim the top bar's headline makes about itself, one question over.
+ *
+ * **The meters are handed in** (batch H19), for the reason `townsTotal` beside
+ * it takes them: the empire's lines take the empire stage now, so a diff that
+ * let each ghost read its own tier would let the card's own arithmetic borrow
+ * the tier it caused. Lend both sides the reading the realm has today and the
+ * difference is the card's; the ladder in `explainCardImpact` then lets the new
+ * reading in a rung at a time, which is where a tier the card flipped belongs.
  */
-function empireLinesOf(state: GameState, playerId: number): Map<string, CityYields> {
+function empireLinesOf(
+  state: GameState,
+  playerId: number,
+  empire: EmpirePercents,
+): Map<string, CityYields> {
   const map = new Map<string, CityYields>();
   const record = (source: string, values: Partial<CityYields>): void => {
     let sum = map.get(source);
@@ -553,17 +564,31 @@ function empireLinesOf(state: GameState, playerId: number): Map<string, CityYiel
     }
     for (const key of CITY_YIELD_KEYS) sum[key] += values[key] ?? 0;
   };
-  for (const line of explainEmpireCardYields(state, playerId)) {
-    record(line.source.replace(/ · ×\d+$/, ''), line);
-  }
-  for (const line of empireResourceYields(state, playerId)) record(line.source, line);
-  for (const line of explainEmpireGold(state, playerId)) {
-    // Keyed on the head of the label — everything before the ` · count` tail —
-    // which is the only handle `TradeGoldLine` offers and the same key the top
-    // bar's ledger uses to join the two halves of that line.
-    record(line.source.split(' · ')[0] ?? line.source, { gold: line.gold });
+  for (const line of explainEmpireLines(state, playerId, empire)) {
+    // A treasury line is keyed on the **head** of its label — everything before
+    // the ` · count` tail — which is the handle every reader of one uses, and
+    // which keeps "Unit maintenance · 7 units" and "· 8 units" the same row of
+    // the diff. Every other line keeps its whole label, less the `· ×2` an
+    // amplifier hangs on a card's, so a doubled payout stays one row too.
+    const key =
+      line.origin === 'gold'
+        ? (line.source.split(' · ')[0] ?? line.source)
+        : line.source.replace(/ · ×\d+$/, '');
+    record(key, line);
   }
   return map;
+}
+
+/**
+ * The empire's own lines as one figure per voice, under a stated meter reading —
+ * `townsTotal`'s twin, and the half of the ladder that moved in batch H19.
+ *
+ * A tier the card flipped multiplies the empire's lines exactly as it multiplies
+ * every town's basket, so the knock-on rungs have to price both or the last rung
+ * would not be the true reading and the list would no longer fold to the diff.
+ */
+function empireTotal(state: GameState, playerId: number, empire: EmpirePercents): CityYields {
+  return foldEmpireLines(explainEmpireLines(state, playerId, empire));
 }
 
 /**
@@ -738,7 +763,10 @@ export function cardImpactSheet(state: GameState, playerId: number): CardImpactS
     state,
     playerId,
     percents: () => (percents ??= empirePercents(state, playerId)),
-    empireLines: () => (empireLines ??= empireLinesOf(state, playerId)),
+    empireLines: () => {
+      percents ??= empirePercents(state, playerId);
+      return (empireLines ??= empireLinesOf(state, playerId, percents));
+    },
     meter: (meter) => {
       let held = meters.get(meter);
       if (held === undefined) {
@@ -867,6 +895,9 @@ export function explainCardImpact(
   //    is the only thing that changed.
   const townsNow = townsTotal(without, playerId, base);
   const townsThen = townsTotal(held, playerId, base);
+  // The empire's own lines under the same held reading — the other half of what
+  // a tier moves, and the figure the knock-on ladder walks from (batch H19).
+  const realmThen = empireTotal(held, playerId, base);
   const rest = emptyLine(subjectName(subject), 'city');
   const named = foldCardImpact(lines);
   for (const key of CITY_YIELD_KEYS) {
@@ -874,16 +905,32 @@ export function explainCardImpact(
   }
   if (pays(rest)) lines.push(rest);
 
-  // 3. The realm: the empire-scale card lines, the luxuries' empire signatures
-  //    and the treasury's four lines, each under its own label. `collectYields`
-  //    banks all three beside the towns' and a stamp that left them out would
-  //    be a figure the turn resolution disagrees with.
+  // 3. The realm: the empire-scale card lines, the luxuries' empire signatures,
+  //    the caravans abroad, the treasury's ledger and the empire stage over the
+  //    fold of them, each under its own label. `collectYields` banks all of it
+  //    beside the towns' and a stamp that left it out would be a figure the turn
+  //    resolution disagrees with. Both sides are read at the realm's **current**
+  //    meters (`base`), exactly as the towns above are, so a tier this card
+  //    flipped is the ladder's business and not this diff's.
   const realm = new Bucket();
-  const empireWas = isReal(without) ? shared!.empireLines() : empireLinesOf(without, playerId);
-  const empireNow = isReal(held) ? shared!.empireLines() : empireLinesOf(held, playerId);
+  //
+  //    The shared sheet is lent to a side only where its own reading is the one
+  //    being asked for: it holds the **real** board's lines at the real board's
+  //    meters, which is `base` when the ghost is the held side, and is `base`
+  //    on the other side only when the card moved neither meter (batch H18's
+  //    memo, batch H19's parameter — the guard is a proof, not a shortcut).
+  const empireWas = isReal(without)
+    ? shared!.empireLines()
+    : empireLinesOf(without, playerId, base);
+  const empireNow =
+    isReal(held) && metersUnmoved(base, ahead)
+      ? shared!.empireLines()
+      : empireLinesOf(held, playerId, base);
   for (const [source, now] of empireNow) {
     const before = empireWas.get(source);
-    for (const key of CITY_YIELD_KEYS) realm.add(source, 'empire', key, now[key] - (before?.[key] ?? 0));
+    for (const key of CITY_YIELD_KEYS) {
+      realm.add(source, 'empire', key, now[key] - (before?.[key] ?? 0));
+    }
   }
   // A line the card **removed** entirely is a change too — a charter's amnesty
   // takes a slotted Order's empire payout away with it, and a diff that only
@@ -921,10 +968,20 @@ export function explainCardImpact(
   //    A card that moved neither meter has no ladder to walk and the three rungs
   //    are three empire-wide sweeps reporting nought — see `metersUnmoved`,
   //    which is why the guard is a proof rather than a shortcut.
+  //
+  //    **The empire's own lines walk the ladder too** (batch H19): a tier
+  //    multiplies the luxuries' signatures, the caravans abroad, the roads'
+  //    coin and the cards' empire payouts exactly as it multiplies a town's
+  //    basket, so a rung that priced only the towns would leave that gain
+  //    unnamed and the list would stop folding to the true difference.
   if (!metersUnmoved(base, ahead)) {
-    let running = townsThen;
+    let running = emptyCityYields();
+    for (const key of CITY_YIELD_KEYS) running[key] = townsThen[key] + realmThen[key];
     for (const step of knockOnLadder(base, ahead)) {
-      const next = townsTotal(held, playerId, step.percents);
+      const towns = townsTotal(held, playerId, step.percents);
+      const realmNext = empireTotal(held, playerId, step.percents);
+      const next = emptyCityYields();
+      for (const key of CITY_YIELD_KEYS) next[key] = towns[key] + realmNext[key];
       const line = emptyLine(step.source, 'knockOn');
       if (step.meter !== null) line.meter = step.meter;
       for (const key of CITY_YIELD_KEYS) line[key] = next[key] - running[key];

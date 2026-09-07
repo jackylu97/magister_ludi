@@ -33,8 +33,10 @@ import {
   cityYields,
   collectYields,
   foundCityAt,
+  emptyCityYields,
   growthSurplus,
   growthThreshold,
+  stageEmpireFold,
   borderGrowth,
   borderCostFor,
 } from '../../src/sim/cities';
@@ -91,6 +93,27 @@ describe('nothing rounds inside a fold', () => {
     collectYields(state);
     expect(state.players[0]!.sciencePool).toBeGreaterThan(0);
     expect(state.players[0]!.sciencePool % 1).not.toBe(0);
+  });
+
+  /**
+   * **The empire's own lines carry the fraction too** (batch H19, the empire
+   * stage ruling). Three beakers an Order pays the realm, through a tier ten
+   * points up, is 3.3 in the pool — not the 3 an integer stage would have left
+   * and not the 4 a rounding would have invented. The multiplication is
+   * `applyStages` with an idle city stage, so it is the very fold this file's
+   * first section pins; what is asserted here is that the *empire's* half goes
+   * through it.
+   */
+  it('carries a fraction through the empire stage', () => {
+    const empire = {
+      meters: [
+        { source: 'Happiness', yield: 'science' as const, percent: 10, stage: 'empire' as const },
+      ],
+      arrears: [],
+    };
+    const staged = stageEmpireFold({ ...emptyCityYields(), science: 3 }, empire);
+    expect(staged.science).toBeCloseTo(3.3, 10);
+    expect(staged.science % 1).not.toBe(0);
   });
 
   /**

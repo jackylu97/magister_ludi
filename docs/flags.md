@@ -266,7 +266,64 @@ directly to confirm rulings — user marginalia are rulings.
   very slow") — batch **H18 — the performance pass** in flight: measure on
   a late board first, then the Reliquary's per-legacy ghost-diffs on every
   refresh, the per-card impact folds, the per-hex context, the effect-list
-  hoists; speed only, byte-identity the gate. Open, yours to rule: **the bead
+  hoists; speed only, byte-identity the gate. **Built** (a859dbb): the
+  Reliquary 80 ms → 0.05 ms on open, nine stamps 120 → 55 ms; found and
+  left: the bots' thinking ≈ 790 ms a turn at t150. (oo) **Empire additive
+  lines take the empire stage** (the user, 2026-09-07: "empire additive
+  bonuses should apply before empire multiplicative bonuses"): today the
+  meter tiers and arrears multiply every *town's* basket as its second
+  stage and the empire's own lines (an Order's empire-wide science, a
+  luxury's empire signature, the caravans abroad, the treasury's four lines)
+  bank flat. Ruled: the empire's additive lines fold first, then the empire
+  stage multiplies that fold once — `(Σ empire lines) × (1 + Σ empire%)`,
+  floored once, Entry XVII's shape at the empire's scale — with the stage
+  printed as one reconciliation line in the Ledger's empire band, the
+  ghost-diff and the bot's margin reading the same fold. Which lines the
+  stage reaches is the design question left to the batch to state: the
+  yields (science, culture, faith, gold in) yes; the treasury's *bills*
+  (maintenance) are costs, not yields, and stay outside the multiplication.
+  Schema **86**. Batch **H19 — the empire stage** — **built** (schema 86):
+  `explainEmpireLines` (`cities.ts`) is the list — the luxuries' signatures,
+  the caravans abroad, the treasury's ledger, the cards' empire payouts, then
+  one `Empire stage · ×1.10` line a voice — and its fold is what
+  `collectYields` banks and what the top bar, the Ledger, the ghost-diff and
+  the bot's margin all read; every treasury line now declares itself income or
+  bill (`TradeGoldKind`), the bills being maintenance, the levy's surcharge,
+  the charter's rebate and the treaties (a tribute is what two empires agreed,
+  so a stage would pay one side more than the other was charged); the stage is
+  `empirePercents` — the meter tiers and the arrears — and not a card's
+  empire-stage percentage, which is written about a town. Tables and the
+  before/after in `docs/fewer-things-plan.md`. (pp) **The
+  evaluations cleanup — RULED** (the user, 2026-09-07: "it looks good to
+  me — please queue that up next. Please test thoroughly to ensure
+  behavior remains the same (make these one-time tests for parity). Let's
+  also include a suite of tests to ensure that these calculations are
+  happening in the correct order"). The spec is `docs/audit/evaluations.md`
+  §4 and §4b, in this order, each gated on the parity fixtures:
+  **E1 — the sequence of record and the parity baseline**: `docs/yields.md`
+  (§2, §2c as a numbered reference with a sync test on `cityQuote`'s order),
+  `test/sim/yieldOrder.test.ts` (one test per layer boundary: a hex
+  bonus lands before a town bonus, a building share before the stage, a
+  conversion over the flats, the two stages in order, the empire fold
+  before its stage — each built from real rows and asserting the *order*
+  by the numbers), and the **parity harness**: a slow test that drives
+  four boards (duel/standard, 2 seats, t30/t60/t150) and records to
+  `test/fixtures/parity/*.json` every reading the refactor will move —
+  `snapshotState` hashes, each town's flats/percents/total, `civYields`,
+  `ledgerReading`, `deckAggregate`, `explainCardImpact` for every held card,
+  every worked hex's fold — then compares on every later run. One-time:
+  it is deleted when E3 lands. **E2 — the list is the artefact**:
+  `state.revision` (bumped in `applyCommand` and once per phase; serialised;
+  schema 87), `readCity`/`readEmpire` as the two memoised sources of truth
+  returning the labelled list (`CityQuoteLine[]` with `source`, `card?`,
+  `building?`, `resource?`, `class`, `step`), the readers (panel, Ledger,
+  lens, card impact, bot) moved onto them, `cityFlatsByClass` and the
+  refresh register gone. **E3 — the three verbs and the files by layer**:
+  `explain`/`fold`/`read` only; `yields/{hex,town,empire,stages}.ts`,
+  `statecraft/{evaluator,describers,draft}.ts`; mechanical, parity the
+  gate, the harness retired at its end. **E4 — the deferred rows ruled**
+  (§3e's table, yours). **E5 — the yield family collapsed** (optional,
+  last, H6-shaped). E1 starts when H19 lands. Open, yours to rule: **the bead
   tables open on the world's clock** (the first empire into an age turns
   its hand face up for all; the Long Count shows the next hand early) — the
   user saw Æra IV draws in Æra III and asked for them only on reaching the

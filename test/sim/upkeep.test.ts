@@ -243,10 +243,13 @@ describe('the empire ledger', () => {
 
     // No roads and no connection in this world, so two of the four are absent —
     // which is the list's own rule: a line worth nothing is never printed.
+    // Each line says which half of the treasury it is since batch H19
+    // (`TradeGoldKind`): maintenance is a **bill**, and a bill is charged flat
+    // where the empire's income lines take the empire stage.
     expect(explainEmpireGold(state, 0)).toEqual([
-      { source: 'Unit maintenance · 2 units', gold: -2 },
+      { source: 'Unit maintenance · 2 units', gold: -2, kind: 'bill' },
       // Revision 4.2 re-aged this building's unlocking tech to Æra IV.
-      { source: 'Building maintenance · 1 building', gold: -4 },
+      { source: 'Building maintenance · 1 building', gold: -4, kind: 'bill' },
     ]);
   });
 

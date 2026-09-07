@@ -31,10 +31,16 @@ import {
   foundCityAt,
   refreshCityDerived,
 } from '../../src/sim/cities';
-import { explainEmpireCardYields } from '../../src/sim/cities';
+import {
+  empirePercents,
+  explainEmpireCardYields,
+  explainEmpireLines,
+  foldEmpireLines,
+} from '../../src/sim/cities';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
 import { empireResourceYields } from '../../src/sim/resourceEffects';
 import { explainEmpireGold } from '../../src/sim/empireGold';
+import { senderRouteYields } from '../../src/sim/routeYields';
 import { found, game } from './statecraftHelpers';
 import { foundReligion } from '../../src/sim/religion';
 import { getTileAt } from '../../src/sim/map';
@@ -46,12 +52,16 @@ import { type CardEffect, type OrderId, orderDef } from '../../src/sim/statecraf
 
 /**
  * Everything one empire banks in a turn, read **independently of the module
- * under test**: every town's own fold, plus the three empire-scale folds
- * `collectYields` banks beside them.
+ * under test**: every town's own fold, plus the empire-scale folds
+ * `collectYields` banks beside them — and, since batch H19, the empire stage
+ * over the additive half of those (`docs/flags.md` oo).
  *
  * Deliberately a second implementation *in the test*, which is the one place a
  * second implementation is worth having: it is what makes "the stamp is the
  * difference the turn resolution would see" an assertion rather than a comment.
+ * The staging is written out here rather than borrowed from
+ * `explainEmpireLines`, for that same reason — the bills stay flat, and the
+ * multiplication is `applyStages` with an idle city stage.
  */
 function ledger(state: GameState, playerId: number): CityYields {
   const total = emptyCityYields();
@@ -60,13 +70,31 @@ function ledger(state: GameState, playerId: number): CityYields {
     const yields = cityYields(state, city, [], city.queue[0], cityQuote(state, city));
     for (const key of CITY_YIELD_KEYS) total[key] += yields[key];
   }
+  const empire = emptyCityYields();
   for (const line of explainEmpireCardYields(state, playerId)) {
-    for (const key of CITY_YIELD_KEYS) total[key] += line[key];
+    for (const key of CITY_YIELD_KEYS) empire[key] += line[key];
   }
   for (const line of empireResourceYields(state, playerId)) {
-    for (const key of CITY_YIELD_KEYS) total[key] += line[key];
+    for (const key of CITY_YIELD_KEYS) empire[key] += line[key];
   }
-  for (const line of explainEmpireGold(state, playerId)) total.gold += line.gold;
+  // A route line carries five voices and never faith, so it is walked by its
+  // own keys rather than by the six.
+  for (const line of senderRouteYields(state, playerId)) {
+    for (const key of ['food', 'production', 'gold', 'science', 'culture'] as const) {
+      empire[key] += line[key];
+    }
+  }
+  for (const line of explainEmpireGold(state, playerId)) {
+    if (line.kind === 'bill') total.gold += line.gold;
+    else empire.gold += line.gold;
+  }
+  const percents = empirePercents(state, playerId);
+  const lines = [...percents.meters, ...percents.arrears];
+  for (const key of CITY_YIELD_KEYS) {
+    let stage = 0;
+    for (const line of lines) if (line.yield === key) stage += line.percent;
+    total[key] += (empire[key] * (100 + stage)) / 100;
+  }
   return total;
 }
 
@@ -628,6 +656,35 @@ describe('the engine shapes stamp', () => {
     if (!sc.orders.includes(id)) sc.orders.push(id);
     sc.slots[index] = { card: id, sealedUntil: state.turn };
   }
+
+  /**
+   * **The empire stage, on the stamp** (batch H19, `docs/flags.md` oo). An
+   * empire-scale line is banked through the empire's own multiplication now, so
+   * a card paying three beakers to a realm sitting a contentment tier up is
+   * worth 3.3 — and the stamp has to say the figure the resolution banks, which
+   * is the whole bargain of this module.
+   *
+   * The bench is a **small** town: contentment is the palace's six less what the
+   * citizens ask for, so the seat is over the first tier at a population of one
+   * and under water at the suite's usual twelve. The tier's +10% reaches science
+   * and culture.
+   */
+  it('reads an empire line at the figure the empire stage banks', () => {
+    withCards([['waysideShrines', [{ kind: 'empireYields', science: 3 }]]], () => {
+      const { state } = bench(1);
+      // The tier is really standing, or this test proves nothing.
+      const tier = empirePercents(state, 0).meters.find((line) => line.yield === 'science');
+      expect(tier?.percent).toBe(10);
+      const lines = explainCardImpact(state, 0, { kind: 'order', id: 'waysideShrines' });
+      expect(foldCardImpact(lines).science).toBeCloseTo(3.3, 10);
+      // And the same figure the empire's own list would gain — the stamp reads
+      // the list, never a fold of its own.
+      const before = foldEmpireLines(explainEmpireLines(state, 0)).science;
+      seat(state, 0, 'waysideShrines');
+      const after = foldEmpireLines(explainEmpireLines(state, 0)).science;
+      expect(after - before).toBeCloseTo(3.3, 10);
+    });
+  });
 
   it('reads the additive amplifier as what the other cards would pay more', () => {
     withCards(

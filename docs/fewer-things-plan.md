@@ -51,6 +51,73 @@ The play checkout (:5199) moves only when the user says; every batch lands in
 
 ## As shipped
 
+### Batch H19 as shipped (2026-09-07) — schema 86
+
+The empire stage (`docs/flags.md` item oo — the user: *"empire additive bonuses
+should apply before empire multiplicative bonuses"*). The meter tiers and the
+arrears multiplied every *town's* basket as its second stage and stopped there;
+the empire's own lines — a luxury's empire signature, the caravans abroad, the
+roads' coin, an Order's empire-wide beaker — were banked flat, which made a tier
+a rule about *where* a yield happened to be earned. They fold first now and take
+the empire stage once: `(Σ empire lines) × (1 + Σ empire%)`, Entry XVII's shape
+at the empire's scale, exact (batch X left no floor).
+
+#### The list
+
+`explainEmpireLines(state, seat, empire?)` (`cities.ts`) is rule 5 at the
+empire's scale: the additive lines in the order `collectYields` has always
+banked them — the luxuries' signatures, the caravans abroad, the treasury's
+ledger, then the cards' empire payouts (last, because a `rateConversion` reads
+the rates the three above it produced) — and then **one reconciliation line per
+voice** for the stage, labelled `Empire stage · ×1.10`. `foldEmpireLines` is the
+fold, and the fold is what banks. Every reader moved onto it in the same pass:
+`collectYields` (four loops became one), `civYields` and the top bar's yield
+hover, the Ledger's empire band, the card ghost-diff's "the realm" lines and its
+knock-on ladder, and the bot's margin. Nothing computes an empire total beside
+the list any more.
+
+#### Which lines the stage reaches
+
+| Line | Stage? | Why |
+|---|---|---|
+| A luxury's empire signature (`empireResourceYields`) | **yes** | a yield the realm makes |
+| The caravans abroad (`senderRouteYields`) | **yes** | produced income with no town to bank it in |
+| The cards' empire payouts (`explainEmpireCardYields`) | **yes** | a yield the realm makes |
+| City connections, and a luxury's share of them | **yes** | what the roads *make* — the treasury's income half |
+| Road · unit · building maintenance | no | a **bill**: a contented empire does not pay its soldiers less |
+| The levy's surcharge, a charter's rebate | no | both belong to the payroll they change; a rebate pays and is still a bill |
+| Tributes, either direction | no | a figure two empires agreed on — a stage on the receiving side would hand one treasury more than the other paid |
+
+Every treasury line declares its own half (`TradeGoldKind`, `empireGold.ts`)
+rather than leaving a reader to infer one from the sign, because the sign is
+wrong on two of the eight: a rebate is positive and is not income, and a tribute
+is signed both ways. `explainEmpireGold` stays one fold — the stage is applied
+to the sum of its income lines, outside it.
+
+Two cuts, stated: the stage is `empirePercents` — the meter tiers and the
+arrears — and **not** a card's `stage: 'empire'` percentage, which is written
+about a town and reaches the empire through the towns it names; and the empire
+has no *city* stage, there being no town for one to be a fact about.
+
+#### Before and after, on one board
+
+One seat, a capital of one citizen (contentment 5 — the first tier, +10% on
+science and culture), one Order paying the realm +3🔬 +2🎵 +1💰. Per turn:
+
+| | Town | Empire line | Empire stage | Banked |
+|---|---|---|---|---|
+| **v85 (flat)** | 0.55🔬 1.1🎵 2💰 | 3🔬 2🎵 1💰 | — | **3.55🔬 3.1🎵 3💰** |
+| **v86 (staged)** | 0.55🔬 1.1🎵 2💰 | 3🔬 2🎵 1💰 | +0.3🔬 +0.2🎵 | **3.85🔬 3.3🎵 3💰** |
+
+The town's own half is unchanged — it always took the tier. Gold does not move
+because no meter tier touches coin today (contentment pays science and culture,
+the writ pays hammers), which is also why the bill/income split is a rule
+written ahead of the first percentage that will test it.
+
+A v85 log replays identically until the first turn an empire holds **both** a
+tier (or arrears) and an empire-scale line; from there the bank differs and
+every threshold downstream of it is crossed on a different turn.
+
 ### Batch H11 as shipped (2026-09-07) — schema 82
 
 The cost scale (`docs/flags.md`, "Rulings 2026-09-07, small hours", item aa, and

@@ -323,10 +323,14 @@ describe('a tribute', () => {
     const id = onlyProposal(state);
     applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: id });
 
+    // **Both directions are bills** since batch H19 (`TradeGoldKind`): a
+    // tribute is a figure two empires agreed on, so the empire stage reaches
+    // neither side — a stage on the receiving one would hand that treasury
+    // more coin than the payer was charged.
     const payer = explainEmpireGold(state, 0).filter((line) => line.source.startsWith('Tribute'));
-    expect(payer).toEqual([{ source: 'Tribute to the Bors', gold: -4 }]);
+    expect(payer).toEqual([{ source: 'Tribute to the Bors', gold: -4, kind: 'bill' }]);
     const paid = explainEmpireGold(state, 1).filter((line) => line.source.startsWith('Tribute'));
-    expect(paid).toEqual([{ source: 'Tribute from the Ada', gold: 4 }]);
+    expect(paid).toEqual([{ source: 'Tribute from the Ada', gold: 4, kind: 'bill' }]);
   });
 
   it('stops the moment the bargain does', () => {

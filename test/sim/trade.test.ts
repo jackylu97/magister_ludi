@@ -1246,10 +1246,14 @@ describe('the city connection', () => {
     // capital holds a market — an age-two institution, so 2💰 a turn. The
     // caravan pays no maintenance at all (`trades`), which is why there is no
     // unit line here even though the world holds one.
+    // Every line says which half of the treasury it is since batch H19
+    // (`TradeGoldKind`): the connections are an **income** and take the empire
+    // stage with the rest of the empire's additive lines, the two maintenance
+    // lines are **bills** and are charged flat.
     expect(explainEmpireGold(state, 0)).toEqual([
-      { source: 'City connections · 1 city', gold: 3 },
-      { source: 'Road maintenance · 8 hexes', gold: -2 },
-      { source: 'Building maintenance · 1 building', gold: -2 },
+      { source: 'City connections · 1 city', gold: 3, kind: 'income' },
+      { source: 'Road maintenance · 8 hexes', gold: -2, kind: 'bill' },
+      { source: 'Building maintenance · 1 building', gold: -2, kind: 'bill' },
     ]);
   });
 
@@ -1650,7 +1654,7 @@ describe('trade in the log', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(85);
+    expect(SCHEMA_VERSION).toBe(86);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

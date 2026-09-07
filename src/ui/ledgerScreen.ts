@@ -27,10 +27,11 @@
  * No new fold (rule 5)
  * --------------------
  * Nothing here computes a yield. Every figure on band 1 is the simulation's own
- * — `cityYields` for a town's six voices, `explainEmpireGold` /
- * `explainEmpireCardYields` / `empireResourceYields` for the three empire-scale
- * lists — and the whole of what this file adds is a **classification** of the
- * lines those functions already return, plus the arithmetic that shares a
+ * — `cityYields` for a town's six voices, `explainEmpireLines` for everything
+ * the empire banks beyond them (the luxuries' signatures, the caravans abroad,
+ * the treasury's ledger, the cards' empire payouts and the empire stage over the
+ * fold of them) — and the whole of what this file adds is a **classification**
+ * of the lines those functions already return, plus the arithmetic that shares a
  * town's **flats** to the classes that paid them and its **multiplied gain** to
  * the classes that supplied the percentages (`shareOut`, and the ruling below).
  *
@@ -75,10 +76,11 @@
  * tell them apart. So `classifyCard` is a switch over the ten id spaces and
  * never over words — which is also what keeps a renamed row from silently
  * moving a slice into "other". The one place a *label* is read is
- * `classifyEmpireGold`, because `TradeGoldLine` offers no other handle; it keys
- * on the head of the label before the ` · ` exactly as `empireTradeLines` in
- * `topBar.ts` already does, and `test/ui/ledgerScreen.test.ts` pins the two
- * names still meeting.
+ * `classifyEmpireGold`, because a treasury line offers no other handle for the
+ * question *which class* (its `kind` answers a different one — whether the
+ * empire stage reaches it); it keys on the head of the label before the ` · `
+ * exactly as `empireGoldDetail` in `topBar.ts` already does, and
+ * `test/ui/ledgerScreen.test.ts` pins the two names still meeting.
  *
  * Two classes are deliberately **"other"**: a technology's card effects and a
  * bead's cap. Neither is a source a player would go looking for on this sheet —
@@ -109,6 +111,7 @@ import {
   type CityYieldPercent,
   type CityYields,
   type ProductionModifier,
+  type EmpireYieldLine,
   type TileYieldContribution,
   cardBuildingYields,
   centreYield,
@@ -118,16 +121,16 @@ import {
   emptyCityYields,
   empirePercents,
   explainCityBuildings,
-  explainEmpireCardYields,
+  explainEmpireLines,
   explainPalaceYield,
   explainTileYield,
   foldTileYield,
   productionModifiers,
 } from '../sim/cities';
 import { cardCityYields, cardYieldConversions } from '../sim/statecraft';
-import { cityResourceYields, empireResourceYields } from '../sim/resourceEffects';
+import { cityResourceYields } from '../sim/resourceEffects';
 import { citySpecialistYields } from '../sim/specialists';
-import { cityRouteYields, explainEmpireGold, senderRouteYields } from '../sim/trade';
+import { cityRouteYields } from '../sim/trade';
 import { isBuildingId, isWonder } from '../sim/buildingData';
 import { isBeadCardId } from '../sim/beadData';
 import { isBeliefId, isConsecrationId, isRiteId } from '../sim/religionData';
@@ -289,6 +292,37 @@ export const EMPIRE_GOLD_CLASS: Record<string, LedgerClass> = {
 export function classifyEmpireGold(source: string): LedgerClass {
   const head = source.split(' · ')[0] ?? '';
   return EMPIRE_GOLD_CLASS[head] ?? 'tiles';
+}
+
+/**
+ * Which class one **empire-scale** line belongs to — the same question the town
+ * half answers four ways, asked once off the line's own `origin` (batch H19).
+ *
+ * A luxury's empire signature is the land's, a caravan abroad is trade's, the
+ * treasury's ledger splits by the head of its label (`classifyEmpireGold`), and
+ * a card's empire payout goes to the card.
+ *
+ * **The empire stage is `other`**, and that is the town half's own answer
+ * arrived at by a shorter road: the only percentages standing at the empire's
+ * scale are the two meter tiers and the arrears, `classifyPercent` files both
+ * under `other` (the empire leaning on every town at once is not a thing a
+ * player built), and so `shareGain` over these weights would hand the whole
+ * figure to `other` in any case. Said as a classification rather than run
+ * through the sharer because a share of one class is that class.
+ */
+export function classifyEmpireLine(line: EmpireYieldLine): LedgerClass {
+  switch (line.origin) {
+    case 'resource':
+      return 'tiles';
+    case 'route':
+      return 'trade';
+    case 'gold':
+      return classifyEmpireGold(line.source);
+    case 'card':
+      return line.card === undefined ? 'other' : classifyCard(line.card);
+    case 'stage':
+      return 'other';
+  }
 }
 
 /**
@@ -611,10 +645,10 @@ export interface LedgerVoice {
  * The whole of band 1: the six voices, each split eight ways.
  *
  * Assembled in `civYields`' order and out of `civYields`' own summands — every
- * town's `cityYields`, then the empire-scale luxury signatures, then the
- * outbound foreign routes, then the four lines of `explainEmpireGold`, then the
- * empire-scale card lines — so the six totals here are that function's six
- * totals and the test pins it. The pin is against the **bank** as well now: the
+ * town's `cityYields`, then the empire's own list (`explainEmpireLines`: the
+ * luxury signatures, the outbound foreign routes, the treasury's ledger, the
+ * empire-scale card lines, and the empire stage over the fold of them) — so the
+ * six totals here are that function's six totals and the test pins it. The pin is against the **bank** as well now: the
  * two surfaces agreeing with each other is what let them both miss the foreign
  * routes for three days.
  *
@@ -630,8 +664,11 @@ export interface LedgerVoice {
  * card that pays nothing but a percentage out of "your cards" entirely. The
  * module docblock has the user's words for it.
  *
- * The empire lines are banked after every city has collected and are multiplied
- * by nothing, so they are added flat.
+ * The empire lines are banked after every city has collected, and since batch
+ * H19 they take the empire stage themselves: the additive lines fold first and
+ * the meters multiply that fold once (`explainEmpireLines`). The stage arrives
+ * as its own line and lands in **other**, which is where `classifyPercent` puts
+ * a meter tier and the arrears one scale down — see `classifyEmpireLine`.
  */
 export function ledgerReading(state: GameState, playerId: number): LedgerVoice[] {
   const bag = emptyLedgerBag();
@@ -659,19 +696,16 @@ export function ledgerReading(state: GameState, playerId: number): LedgerVoice[]
     }
   }
 
-  for (const line of empireResourceYields(state, playerId)) add(bag, 'tiles', line);
-  // The caravans abroad, into **trade** — the class a route's line lands in when
-  // its destination is at home (`cityFlatsByClass`), said again for the half of
-  // the same money that has no town to be banked in. `civYields` adds the same
-  // fold in the same place; both were missing it until 2026-09-06, and because
-  // the only pin compared the two surfaces to *each other* they were wrong
-  // together and agreed about it.
-  for (const line of senderRouteYields(state, playerId)) add(bag, 'trade', line);
-  for (const line of explainEmpireGold(state, playerId)) {
-    bag[classifyEmpireGold(line.source)].gold += line.gold;
-  }
-  for (const line of explainEmpireCardYields(state, playerId)) {
-    add(bag, classifyCard(line.card), line);
+  // **The empire's own lines**, off the one list the resolution banks the fold
+  // of (`explainEmpireLines`, batch H19) and classified by where each came from
+  // rather than by four separate walks of four folds — a luxury's signature into
+  // the land, a caravan abroad into trade (the class a route's line lands in
+  // when its destination is at home, `cityFlatsByClass`, said again for the half
+  // of the same money that has no town to be banked in), the treasury's ledger
+  // by the head of its label, a card's payout by the card, and the empire stage
+  // into **other**.
+  for (const line of explainEmpireLines(state, playerId, empire)) {
+    add(bag, classifyEmpireLine(line), line);
   }
 
   return VOICES.map((key) => {

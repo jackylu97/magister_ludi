@@ -15,7 +15,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { foldCardYields } from '../../src/sim/statecraft';
-import { explainEmpireCardYields } from '../../src/sim/cities';
+import {
+  empirePercents,
+  emptyCityYields,
+  explainEmpireCardYields,
+  stageEmpireFold,
+} from '../../src/sim/cities';
 import { civYields } from '../../src/ui/topBar';
 import { game, found } from '../sim/statecraftHelpers';
 
@@ -45,6 +50,16 @@ describe('civYields carries the empire-scale card lines', () => {
 
     const cardCulture = foldCardYields(explainEmpireCardYields(g.state, 0)).culture;
     expect(cardCulture).toBeGreaterThan(0);
+    // **Staged, since batch H19** (`docs/flags.md` oo): the empire's additive
+    // lines fold and the meters multiply that fold once, so what the headline
+    // gains is the card's line through the empire stage — this bench sits a
+    // contentment tier up, and the culture it banks is the tenth more. Read
+    // through the simulation's own multiplication rather than restated here.
+    const banked = stageEmpireFold(
+      { ...emptyCityYields(), culture: cardCulture },
+      empirePercents(g.state, 0),
+    ).culture;
+    expect(banked).toBeGreaterThan(cardCulture);
 
     // The headline moves by exactly the card fold when the doctrine is the
     // only thing that changes — a fresh, otherwise-identical game rather than
@@ -56,17 +71,20 @@ describe('civYields carries the empire-scale card lines', () => {
       c.buildings.push('shrine', 'temple');
       return civYields(bare.state, 0).culture;
     })();
-    expect(civYields(g.state, 0).culture - withoutDoctrine).toBe(cardCulture);
+    expect(civYields(g.state, 0).culture - withoutDoctrine).toBe(banked);
   });
 
   it('reads the same helper `collectYields` banks with, by source', () => {
+    // **One list since batch H19**, and the same one on both sides: the four
+    // folds `collectYields` used to bank one loop at a time are
+    // `explainEmpireLines`, the card lines among them, and the headline reads
+    // that list rather than a fold of its own.
     // The phase's own call, inside `collectYields`.
-    expect(source('cities.ts')).toMatch(
-      /foldCardYields\(explainEmpireCardYields\(state, player\.id\)\)/,
-    );
+    expect(source('cities.ts')).toMatch(/explainEmpireLines\(state, player\.id\)/);
+    expect(source('cities.ts')).toMatch(/foldEmpireLines\(lines\)/);
     // The headline's call, inside `civYields`.
     expect(source('topBar.ts')).toMatch(
-      /foldCardYields\(explainEmpireCardYields\(state, playerId\)\)/,
+      /foldEmpireLines\(explainEmpireLines\(state, playerId, empirePercent\)\)/,
     );
   });
 });

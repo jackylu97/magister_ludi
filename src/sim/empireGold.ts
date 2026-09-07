@@ -134,12 +134,33 @@ function postedHexes(state: GameState, playerId: number): ReadonlySet<number> {
   return near;
 }
 
+/**
+ * Which half of the treasury a line is — **an income or a bill** (the empire
+ * stage ruling, `docs/flags.md` oo, 2026-09-07).
+ *
+ * The empire's additive lines take the empire stage before they are banked, and
+ * the ruling drew the line at what the empire *makes*: an income is a yield and
+ * is multiplied with every other empire-scale yield, a bill is a **cost** and is
+ * charged at the figure it is charged at. A contented empire earns more from its
+ * roads; it does not pay its soldiers less.
+ *
+ * It is a field rather than a reading of the sign, because the sign does not
+ * answer the question in two of the eight lines: a payroll **rebate** is a
+ * positive figure that belongs to the bill it forgives (a happy empire may not
+ * be paid a dividend on wages it never paid), and a **tribute** is signed both
+ * ways. So every push site below declares which half it is, and a ninth line
+ * cannot be added without deciding.
+ */
+export type TradeGoldKind = 'income' | 'bill';
+
 /** One labelled line of empire-scale gold. See `explainEmpireGold`. */
 export interface TradeGoldLine {
   /** "City connections · 4 cities", "Unit maintenance · 7 units". */
   source: string;
   /** Signed: connections pay, maintenance costs. */
   gold: number;
+  /** Whether the empire stage reaches it. See `TradeGoldKind`. */
+  kind: TradeGoldKind;
 }
 
 /**
@@ -183,6 +204,15 @@ export interface TradeGoldLine {
  * in, and charging it there would put an army inside Entry XVII's staging, where
  * a happy empire would pay less for the same soldiers.
  *
+ * **Every line says which half it is** (`TradeGoldKind`, the ruling of
+ * 2026-09-07): the connections and a luxury's share of them are **income** and
+ * join the empire's additive fold, where the empire stage multiplies them once
+ * with every other empire-scale yield; the road, unit and building bills, the
+ * levy's surcharge, the charter's rebate and the treaties are **bills** and are
+ * charged flat. The list is still one fold — nothing here multiplies, and
+ * `explainEmpireLines` (`cities.ts`) is where the stage is applied to the sum of
+ * the income lines.
+ *
  * The wild is charged nothing, which `explainUnitUpkeep` refuses at the seat
  * (see `seatPays`) rather than this function checking twice.
  */
@@ -206,6 +236,8 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
     lines.push({
       source: `City connections · ${count} ${count === 1 ? 'city' : 'cities'}`,
       gold: connectionGold,
+      // What the roads *make*, so the empire stage reaches it (ruling oo).
+      kind: 'income',
     });
     // **A luxury's share of the roads' own coin** — spices' Æra III, and the one
     // shape in the luxury vocabulary whose consumer is this ledger.
@@ -232,7 +264,9 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
         const share = i === shares.length - 1 ? extra - paid : (extra * shares[i]!.percent) / sum;
         paid += share;
         if (share === 0) continue;
-        lines.push({ source: shares[i]!.source, gold: share });
+        // A share of an income is an income, and it rides the same stage the
+        // charge it sits under does.
+        lines.push({ source: shares[i]!.source, gold: share, kind: 'income' });
       }
     }
   }
@@ -241,7 +275,7 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
   const per = Math.max(1, Math.floor(TRADE.roadsPerMaintenance));
   const upkeep = Math.floor(roads / per);
   if (upkeep > 0) {
-    lines.push({ source: `Road maintenance · ${roads} hexes`, gold: -upkeep });
+    lines.push({ source: `Road maintenance · ${roads} hexes`, gold: -upkeep, kind: 'bill' });
   }
 
   // The two new lines, each a *count* and a total rather than a page of pieces —
@@ -254,6 +288,7 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
     lines.push({
       source: `Unit maintenance · ${units.length} ${units.length === 1 ? 'unit' : 'units'}`,
       gold: -gold,
+      kind: 'bill',
     });
   }
 
@@ -267,15 +302,20 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
   // (`upkeep.ts`) — the ledger says what the army costs and then what the law
   // did to it.
   for (const surcharge of explainUnitUpkeepSurcharge(state, playerId)) {
-    lines.push({ source: surcharge.source, gold: -surcharge.gold });
+    lines.push({ source: surcharge.source, gold: -surcharge.gold, kind: 'bill' });
   }
 
   // What the law gives back on that payroll — Tyranny's, The Standing Army's.
   // Its **own lines**, right after the charge they reduce, so a player reads the
   // army's price and then the reason it is lower. Positive, because the fold is
   // signed and this one pays.
+  //
+  // A **bill** although it pays, which is the one classification in this list a
+  // reader of the sign would get wrong: what the charter forgives is wages, so it
+  // belongs to the payroll it reduces and not to what the empire earned. A
+  // contented realm is not owed a dividend on soldiers it did not pay.
   for (const rebate of explainUnitUpkeepRebate(state, playerId)) {
-    lines.push({ source: rebate.source, gold: rebate.gold });
+    lines.push({ source: rebate.source, gold: rebate.gold, kind: 'bill' });
   }
 
   const buildings = explainBuildingUpkeep(state, playerId);
@@ -287,6 +327,7 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
         `Building maintenance · ${buildings.length} ` +
         `${buildings.length === 1 ? 'building' : 'buildings'}`,
       gold: -gold,
+      kind: 'bill',
     });
   }
 
@@ -300,8 +341,13 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
   // rather than per neighbour for the same reason the road line prints its own
   // hex count — a player who cannot see which bargain is charging them cannot
   // decide which one to let lapse.
+  //
+  // **Both directions are bills** under the empire stage ruling, and the reason
+  // is conservation rather than sign: a tribute is a figure two empires *agreed*
+  // on, and a stage on the receiving side would hand one treasury more coin than
+  // the other one paid. What a promise is worth is what the promise says.
   for (const tribute of tributeLines(state, playerId)) {
-    lines.push({ source: tribute.source, gold: tribute.gold });
+    lines.push({ source: tribute.source, gold: tribute.gold, kind: 'bill' });
   }
 
   return lines;

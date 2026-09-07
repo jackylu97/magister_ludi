@@ -38,14 +38,102 @@ Per town (`cityQuote` → `cityYields`), in this order:
 11. **The percent list** (`cityYieldPercents`: luxuries', cards', the two meter tiers, arrears) plus, for production only, `productionModifiers` folded into the city stage.
 12. **`applyStages`** — the two multiplications, floored once.
 
-Then per empire (`collectYields`, after every town is priced): the luxuries'
-empire signatures → the caravans abroad → `explainEmpireGold`'s four lines →
-the empire card lines → the banks. Occasions pay through `windfallPayout`
-outside all of this.
+Then per empire (`collectYields`, after every town is priced), as one list —
+`explainEmpireLines`, batch H19: the luxuries' empire signatures → the caravans
+abroad → `explainEmpireGold`'s lines → the empire card lines → **the empire
+stage** over the additive fold of them (the meter tiers and the arrears, one
+reconciliation line per voice) → the banks. Occasions pay through
+`windfallPayout` outside all of this.
 
-Twelve town steps, five empire lines, two stages. **It is deterministic
-and it is one sequence** — but no document states it, and no test pins the
-order as an order.
+Twelve town steps, one empire list, two stages at each scale. **It is
+deterministic and it is one sequence** — but no document states it, and no test
+pins the order as an order.
+
+### 2b. The flow, layer by layer, and where it stops being one-way
+
+The user's ideal (2026-09-07): *information flows one way; downstream
+subscribers never publish upwards and subscribe to a single source of
+truth rather than recalculating; variables are cached and updated with the
+user's actions, so yields that have not changed are not recalculated.*
+
+| Layer | Source of truth | Computed when | Cached? |
+|---|---|---|---|
+| 0. **Rows** | `data/*.json` | load | constants |
+| 1. **The law** — every effect reaching a seat | `liveEffects(state, seat)` | on ask | yes, per seat — but keyed on a **print** of the seat rebuilt per ask (§3c) |
+| 2. **The hex** | `explainTileYield(tile, ctx)` | on ask, per hex | no; `yieldContextFor` is hoisted once per sweep |
+| 3. **The town's list** | `cityQuote` (flats + percents) | on ask | no; `refreshCityDerived` only re-seats citizens (`assignCitizens`) — the yields are "computed on read" by its own docblock |
+| 4. **The town's total** | `cityYields` = `applyStages(quote)` | on ask | no |
+| 5. **The empire's lines** | `explainEmpireLines` (luxuries, routes abroad, `explainEmpireGold`, `explainEmpireCardYields`, then the empire stage) | on ask | no (`empireRates` sweeps every town for a `rateConversion`) |
+| 6. **The banks** | `collectYields` (once a turn) | end of turn | the state itself |
+| 7. **Readers** | top bar `civYields`, panel, Ledger, card impact, lens, bot | on every accepted command (`updatePanel`) | H18: one shared sheet per screen draw; the Reliquary's figure by `(state, log.length, seat)` |
+
+Where it is one-way: rows → law → hex → town → empire → banks is a strict
+chain; nothing below writes above it, and the banks are written by one
+phase. Where it is not:
+
+- **The readers recompute** (§3a). Each surface walks layers 2–5 itself
+  rather than subscribing to a list the town published — the panel, the
+  Ledger, the ghost-diff and the bot are four private recomputations of
+  layer 3.
+- **Invalidation is manual and upward.** The register of twenty-two
+  mid-turn yield mutations (`refreshCityDerived`'s docblock) is a list of
+  *writers* that must remember to call the refresh — a windfall, a tile
+  bought, a citizen focus, a route started. That is a downstream cache
+  being poked by every publisher, which is the shape the ideal forbids. It
+  works because the register is pinned by source tests; it is not
+  one-way.
+- **The law's memo keys on a walk**, not on the action (§3c): the print is
+  taken on every ask because the sim mutates mid-turn without a command
+  and there is no revision to key on.
+- **The interface's revision is `game.log.length`** (`main.ts`,
+  `getRevision`), the right idea — but the sim's own phases move the
+  state without moving the log, so it is an interface fact, not a state
+  fact, and nothing in `src/sim` can key on it.
+
+The target, in the same terms: **one revision on the state** (bumped by
+`applyCommand` and once per turn phase; deterministic and replayed), every
+derived reading a memo keyed `(revision, seat | town)` in a leaf, the town
+publishing its labelled **list** once per revision and every reader —
+panel, Ledger, lens, card impact, bot — reading that list and never
+walking layers 2–5 themselves. The twenty-two-entry register then goes:
+a writer moves the state, the revision moves with it, and the caches
+follow without being told. That is §4 steps 2 and 4, and it is the whole
+of the answer to "don't recalculate yields that haven't changed".
+
+### 2c. Which layer each effect kind lands in — verified
+
+The user's convention: *each layer takes its additive bonuses, then its
+multiplicative ones, then hands its figure to the next layer; the failure
+mode is a town bonus applied before a hex bonus.* Probed on one worked
+hill hex (seed 905), 2026-09-07:
+
+| Layer | Additive | Multiplicative (within the layer) | Measured |
+|---|---|---|---|
+| **Hex** | terrain, hill/canopy, seam, works; the law's `tileYield` lines (two passes); the `cardYieldAmplifier` *flat* on those lines | works percent (a share of the works' entries); ground percent (`basePercent`, a share of the entries before the works); the amplifier's *percent* on card tile lines | Hills override the grassland to 0 food; Terraced Hillsides +2 and The Harvest Home's +1 land **on the hex** (`Order · The Harvest Home · hill hex`); the hex folds to 3 before the town sees it |
+| **Town list** | centre, the hexes' folds, `cityYields`, `countScaled` (city), `mirrorYield`, the amplifier's flat on card lines, luxuries, specialists, routes in, palace, buildings, `routeYield` (arrivals) | the amplifier's percent on card lines; the building shares (ordinary, then `appliedLast`) over row + the law's lines on the building; the conversions, a share of the **running flats** of a voice | flats food 6 = centre 3 + hex 3; The Harvest Songs' 15% is 0.9 culture, taken of the flats, before any stage; the Synod's half is 1 faith over the temple's 2 and 1.5 culture over The Choir's 3 |
+| **Town total** | — | `percentYields` (city stage), `productionModifiers` (city stage, production), the meter tiers and arrears (empire stage): `(flats) × (1+Σcity) × (1+Σempire)`, floored once | the happiness tier's +10% culture lands last: 1.9 → 2.09 |
+| **Empire** | `empireYields`, `countScaled` (empire), `rateConversion`, luxury signatures, caravans abroad, the treasury's **income** lines (connections and a luxury's share of them); the **bills** — maintenance, the levy's surcharge, the charter's rebate, the treaties — are costs and stand outside the multiplication | the **meter tiers and the arrears**, once, over the additive fold: `(Σ empire lines) × (1 + Σ empire%)`, exact (batch H19, ruling oo) | an Order paying the realm +3🔬 into a seat a contentment tier up banks 3.3; the tier's own line reads `Empire stage · ×1.10` |
+
+The order is structural, not incidental: `explainTileYield` is
+self-contained and `cityQuote` consumes its fold, so a town bonus cannot
+reach a hex; `cityQuote` returns flats and a percent list and `cityYields`
+is the only place they meet. Two conventions worth stating in
+`docs/yields.md` because a reader would not guess them: the hex's two
+percentages are over *subsets* of the hex (the works; the ground), never
+the hex's total, so two cards cannot pay each other interest; and the empire's
+lines take the empire stage **once, over their own fold** — never the city
+stage, which has no town to be a fact about, and never a town's percentages.
+
+Two cuts inside that second convention, both stated rather than incidental:
+the stage is `empirePercents` — the meter tiers and the arrears — and **not**
+a card's `stage: 'empire'` percentage, which is written about a *town* and
+reaches the empire only through the towns it names; and the treasury's bills
+are outside it, because a contented empire earns more from its roads without
+paying its soldiers less. Today no meter tier touches gold at all (contentment
+pays science and culture, the writ pays hammers), so the bill/income split is a
+rule stated ahead of the first percentage that would test it — which is why
+every treasury line declares its own `TradeGoldKind` rather than leaving a
+reader to infer one from a sign.
 
 ## 3. Findings
 
@@ -183,6 +271,36 @@ hashes over four boards at t30/t60/t150 before and after).
    merge. H6-shaped, high risk, last; only if (1)–(4) leave the appetite.
 6. **The deferred rows ruled** — the table in §3e, one line each: build /
    cut / keep. The Compendium keeps labelling whatever stays.
+
+### 4b. Organisation, for cleanliness going forward (the user, 2026-09-07:
+"keep it as simple as possible")
+
+7. **Three verbs, and only three.** `explainX(…)` returns a labelled list
+   and never a number; `foldX(list)` is the one sum of it; `readX(state, …)`
+   is the memo — `explain` + `fold`, keyed on the revision. Anything else
+   named `…Yield(s)`, `…Total`, `…Rate`, `…Reading` is renamed to one of the
+   three or deleted. Today `cityQuote`/`cityYields`/`civYields`/
+   `empireRateReading`/`ledgerReading`/`explainCardImpact` are six spellings
+   of two ideas.
+8. **The readings are the subscription model.** There is no event bus and
+   there should not be one: a reader is a pure function of `(state)` and
+   the revision is the subscription. `readCity(state, city)` → the town's
+   list, flats, percents, total; `readEmpire(state, seat)` → the towns'
+   readings, the empire lines with their stage line, the banks-to-be. The
+   interface's `updatePanel` becomes "the revision moved — re-read", and
+   `getRevision` moves from `main.ts` onto the state.
+9. **Files by layer, not by topic.** `cities.ts` (6.4k lines) and
+   `statecraft.ts` (9k) split along the layers of §2b: `yields/hex.ts`,
+   `yields/town.ts`, `yields/empire.ts`, `yields/stages.ts` (the two
+   multiplications and nothing else), `statecraft/evaluator.ts` (the one
+   switch), `statecraft/describers.ts` (the words), `statecraft/draft.ts`
+   (pools, offers, rerolls). Leaves stay leaves; `moduleCycles.test.ts` is
+   the gate. Mechanical, after (2) so the split moves settled code.
+10. **One doc per layer, sync-tested.** `docs/yields.md` (§4.1) carries the
+    sequence; each layer's section lists the kinds that land there (§2c's
+    table) and a test asserts every `CardEffect.kind` that pays a yield is
+    named in exactly one layer — a new kind then has to say where it lands
+    before it compiles.
 
 ## 5. What I think
 

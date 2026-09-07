@@ -389,7 +389,12 @@ describe('the treasury’s empire lines', () => {
 
   it('reads by voice rather than by a hand-rolled gold comparison', () => {
     const bar = source('topBar.ts');
-    expect(bar).toMatch(/for \(const line of empireTradeLines\(state, playerId\)\) \{/);
+    // The empire's lines are one list in the simulation since batch H19, so the
+    // card walks `explainEmpireLines` — the very list the resolution banks the
+    // fold of — instead of an adapter of its own over the four gold lines.
+    expect(bar).toMatch(
+      /for \(const line of explainEmpireLines\(state, playerId, empirePercent\)\) \{/,
+    );
     expect(bar).toMatch(/const value = line\[key\];/);
     // The banked register's rule, one surface over: no site re-asks which yield
     // it is looking at.
