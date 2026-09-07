@@ -568,6 +568,64 @@ describe('what a tile costs', () => {
     // Rule 5: the discounted total is still the fold of the printed list.
     expect(foldTilePrice(lines)).toBe(discounted);
   }));
+
+  /**
+   * **A charter is a line, not an arithmetic beside the list.**
+   *
+   * `tilePurchasePrice` applied the deck's `tilePurchase` rule to the *fold* of
+   * `explainTilePurchase` until 2026-09-06 — so the docblock that calls the list
+   * "the price" was wrong by a quarter with Royal Surveyors slotted, and the tag
+   * a player reads would have shown four lines adding to a number they were not
+   * charged. Nothing printed the breakdown yet, which is the only reason it was
+   * latent rather than visible.
+   */
+  function slotOrder(state: GameState, playerId: number, id: string): void {
+    const sc = state.players[playerId]!.statecraft;
+    if (!sc.orders.includes(id as never)) sc.orders.push(id as never);
+    sc.slots.push({ card: id as never, sealedUntil: state.turn });
+  }
+
+  it('prints the deck’s discount as a line, and charges the list’s own fold', () => {
+    const state = flatState();
+    const city = foundCityAt(state, 0, at(state.map, 6, 6));
+    const cell = { col: 8, row: 6 };
+    const plain = tilePurchasePrice(state, 0, city.id, cell);
+
+    // Chartered Companies: −15% on a deed.
+    slotOrder(state, 0, 'charteredCompanies');
+    const lines = explainTilePurchase(state, 0, city.id, cell);
+    const charter = lines.find((line) => line.source.includes('Chartered Companies'));
+    expect(charter, 'the charter names itself on its own line').toBeDefined();
+    expect(charter!.amount).toBeLessThan(0);
+    expect(charter!.source).toContain('-15%');
+    // The price **is** the fold — rule 5, and the claim the docblock makes.
+    const price = tilePurchasePrice(state, 0, city.id, cell);
+    expect(price).toBe(foldTilePrice(lines));
+    expect(price).toBe(Math.max(1, Math.floor((plain * 85) / 100)));
+  });
+
+  it('sums two charters before it multiplies, and hands out the whole discount', () => {
+    // Percentages sum before one multiplication (the house rule), and the parts
+    // sum to the product exactly — so two cards are two labelled lines and one
+    // discount, never two discounts taken one after the other.
+    const state = flatState();
+    const city = foundCityAt(state, 0, at(state.map, 6, 6));
+    const cell = { col: 8, row: 6 };
+    const plain = tilePurchasePrice(state, 0, city.id, cell);
+
+    slotOrder(state, 0, 'charteredCompanies');
+    slotOrder(state, 0, 'royalSurveyors');
+    const lines = explainTilePurchase(state, 0, city.id, cell);
+    const cards = lines.filter(
+      (line) => line.source.includes('Chartered Companies') || line.source.includes('Royal Surveyors'),
+    );
+    expect(cards).toHaveLength(2);
+    const price = tilePurchasePrice(state, 0, city.id, cell);
+    expect(price).toBe(foldTilePrice(lines));
+    // −15 and −25 sum to −40, taken once.
+    expect(price).toBe(Math.max(1, Math.floor((plain * 60) / 100)));
+    expect(cards.reduce((sum, line) => sum + line.amount, 0)).toBe(price - plain);
+  });
 });
 
 describe('buying ground', () => {

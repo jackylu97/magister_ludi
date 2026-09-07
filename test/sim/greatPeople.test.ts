@@ -303,7 +303,11 @@ describe('the act', () => {
     // Now it is `actGainTurns` turns of what this empire actually banks —
     // **read through the one seam** (`actGainOf` → `empireRateReading`), so the
     // payout, the preview and the top bar cannot disagree about a turn.
-    const g = game(29);
+    // Seed 4: a capital that banks a whole beaker from turn one (1.65 a turn on
+    // the H9 board — most seeds found at 0.55, which the floor below reads as
+    // nothing). Seed 29 was such a capital until the start chooser learned to
+    // seat every capital within six of horses and iron (2026-09-06).
+    const g = game(4);
     found(g.state, 0);
     const player = g.state.players[0]!;
     const unit = call(g.state, 0, SAMPLE.scholar);

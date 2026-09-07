@@ -53,7 +53,6 @@
     "planFalloff": 0.6,
     "planRadius": 4,
     "walkDiscount": 0.12,
-    "veinValue": 6,
     "workDefenseValue": 0.6
   },
   "growth": {
@@ -138,7 +137,6 @@
     ],
     "bead": 250,
     "victory": 1500,
-    "die": 60,
     "tech": 14,
     "city": 200,
     "military": 5,

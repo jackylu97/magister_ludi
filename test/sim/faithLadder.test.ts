@@ -5,8 +5,8 @@
  * A consecration used to be an augur bought for forty faith, walked to a town
  * and spent. The errand is gone: faith accumulates the way culture does, and
  * when the bank crosses the next rung the same belief hand is dealt — drawn
- * once, spent by the same `chooseBelief` command, and paid for out of the bank
- * by the *pick*.
+ * once, paid for out of the bank at the *deal*, and spent by the same
+ * `chooseBelief` command.
  *
  * What is pinned here is the whole of that sentence, in the order a player meets
  * it: the rungs' arithmetic, the moment an offer opens, the moment the bank is
@@ -122,7 +122,9 @@ describe('the offer the ladder opens', () => {
     // dealt on top of the first would silently destroy it.
     openFaithLadder(g.state);
     expect(player.pantheon.pending).toBe(first);
-    expect(player.pantheon.rungs).toBe(0);
+    // One rung climbed and paid — the first deal's — and not a second.
+    expect(player.pantheon.rungs).toBe(1);
+    expect(player.faithPool).toBe(500 - 40);
   });
 
   it('opens nothing for an empire with no room in its pantheon', () => {
@@ -160,11 +162,21 @@ describe('the offer the ladder opens', () => {
 
 // --- the pick pays ----------------------------------------------------------
 
-describe('the pick spends the bank', () => {
-  it('takes exactly the rung the offer quoted, and climbs one rung', () => {
+describe('the deal spends the bank', () => {
+  // **Re-ruled 2026-09-06, evening** (the user: "it should auto-draft a
+  // pantheon once you reach the requisite faith. It subtracts that amount from
+  // your faith total"): the rung is spent and climbed the moment the hand is
+  // dealt — the culture meter's own shape — and the pick charges nothing. The
+  // block used to say "the pick spends the bank"; the bank is spent one command
+  // earlier now, and the offer's `rungCost` is the record of it.
+  it('takes exactly the rung the offer quoted at the deal, and climbs one rung', () => {
     const g = believer(7, 100);
     const player = playerById(g.state, 0)!;
     openFaithLadder(g.state);
+    expect(player.faithPool).toBe(100 - 40);
+    expect(player.pantheon.rungs).toBe(1);
+    expect(player.pantheon.pending?.rungCost).toBe(40);
+    // And the pick takes nothing more.
     expect(dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command).ok)
       .toBe(true);
     expect(player.faithPool).toBe(100 - 40);
@@ -174,29 +186,30 @@ describe('the pick spends the bank', () => {
     expect(faithRungCost(player.pantheon.rungs)).toBe(56);
   });
 
-  it('charges an augur’s hand nothing — only the ladder’s offer carries a price', () => {
+  it('charges a hand with no rung nothing at the pick either — a prophet’s, a founding’s second', () => {
     const g = believer(7, 100);
     const player = playerById(g.state, 0)!;
-    // An offer with no `rungCost` is somebody else's: the augur's, a prophet's,
-    // a founding's second hand.
     openFaithLadder(g.state);
+    // The ladder paid at the deal; strip its record and the pick still asks
+    // nothing — there is no second bill anywhere.
     delete player.pantheon.pending!.rungCost;
     expect(dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command).ok)
       .toBe(true);
-    expect(player.faithPool).toBe(100);
-    expect(player.pantheon.rungs).toBe(0);
+    expect(player.faithPool).toBe(100 - 40);
+    expect(player.pantheon.rungs).toBe(1);
   });
 
-  it('never puts the bank below nothing when faith was spent between deal and pick', () => {
+  it('is unmoved by faith spent between deal and pick — the bank was charged at the deal', () => {
     const g = believer(7, 60);
     const player = playerById(g.state, 0)!;
     openFaithLadder(g.state);
-    // The End Turn blocker keeps this window inside one turn, but a purchase can
-    // still empty the bank in it. The god is still taken and the bank floors.
+    expect(player.faithPool).toBe(60 - 40);
+    // A purchase can still empty the bank inside the End Turn window; the god
+    // is still taken and nothing more is asked.
     player.faithPool = 5;
     expect(dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command).ok)
       .toBe(true);
-    expect(player.faithPool).toBe(0);
+    expect(player.faithPool).toBe(5);
     expect(player.pantheon.rungs).toBe(1);
   });
 });

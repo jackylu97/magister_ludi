@@ -183,7 +183,7 @@ import { isWaterTerrain } from './terrainData';
 import { anyBeadDef, isBeadCardId } from './beadData';
 import { beadCapEffects } from './beads';
 import { awardOccasion } from './triumphs';
-import { UNIT_UNLOCK_TECH, eraNumeral, highestAge, isTechId, techDef } from './techData';
+import { type TechAge, UNIT_UNLOCK_TECH, eraNumeral, highestAge, isTechId, techDef } from './techData';
 import {
   type ModelClass,
   type UnitStamp,
@@ -698,6 +698,27 @@ export function livePool(sc: PlayerStatecraft): OrderId[] {
   return poolOrders(poolOfGovernment(sc.government)).filter((id) => !held.has(id));
 }
 
+/**
+ * `livePool` with the rows' own age gates applied — **the bag the draw deals
+ * from**.
+ *
+ * Governments carry no age gate (ruled), so a seat that climbs the tier ladder
+ * fast opens pool V in Æra III, and the four bead Orders — whose whole text is
+ * the last age — were in its hand (the user, 2026-09-06: "the era 4 victory
+ * cards are showing in the game at age 3, that's a bug"). `OrderDef.fromAge` is
+ * the row's answer, and this is its one reader: the empire's `highestAge` must
+ * reach it. The pool-shape reading above stays ungated on purpose — it is what
+ * the bot's margin and the tests ask about a government's whole shelf, and a
+ * row already held keeps its chair whatever the age says: the gate is on the
+ * deal, never on the holding.
+ */
+export function drawablePool(sc: PlayerStatecraft, age: TechAge): OrderId[] {
+  return livePool(sc).filter((id) => {
+    const from = orderDef(id).fromAge;
+    return from === undefined || age >= from;
+  });
+}
+
 // --- the draw ---------------------------------------------------------------
 
 /**
@@ -1011,7 +1032,7 @@ export function drawOrderOffer(state: GameState, player: Player): OrderOffer {
   const skips = sc.orderSkips;
   const options = drawOrderOptions(
     state,
-    livePool(sc),
+    drawablePool(sc, highestAge(player.techsResearched)),
     offerSize(state, player.id, 'order'),
     (id) => orderDrawWeight(id, skips),
   );
@@ -2641,22 +2662,6 @@ export function countOf(
       }
       return total;
     }
-    case 'chargedAugurs': {
-      if (!city) return 0;
-      // Court Augurs. "Stationed" is the city's own hex, which is where a
-      // garrison stands, and "with a rite left in it" is `chargesLeft` — an
-      // augur that has spent its last charge is not on the board at all, so the
-      // test is really "is this piece an augur of this empire, standing here".
-      let total = 0;
-      for (const unit of state.units) {
-        if (unit.ownerId !== city.ownerId) continue;
-        if (unit.col !== city.col || unit.row !== city.row) continue;
-        if (unitDef(unit.type).consecrates !== true) continue;
-        if ((unit.chargesLeft ?? 0) < 1) continue;
-        total += 1;
-      }
-      return total;
-    }
     case 'scienceBuildings': {
       if (!city) return 0;
       // Omen Reading. "Buildings that supply science" is read off the building
@@ -3196,7 +3201,6 @@ const CITY_SCOPED_COUNTS: readonly CountKind[] = [
   'garrison',
   'garrisonWatch',
   'workedHills',
-  'chargedAugurs',
   'scienceBuildings',
   'buildingsInCity',
   'workedTilesInCity',
@@ -4108,6 +4112,53 @@ export function cardUpkeepRebateLines(
       const cost = costOf(unit);
       if (cost <= 0) continue;
       gold += off === null ? cost : Math.min(off, cost);
+    }
+    if (gold <= 0) continue;
+    list.push({ card, source, gold });
+  }
+  return list;
+}
+
+/**
+ * What this empire's cards **add** to its payroll, piece by piece — The Reckless
+ * Levy's coin a soldier.
+ *
+ * `cardUpkeepRebateLines`' twin, and every clause of that function's docblock
+ * holds here with the sign turned round: `costOf` is handed in so the arrow to
+ * `upkeep.ts` stays one-way, the filters are the same two readings, and one line
+ * per card means two levies read as two reasons.
+ *
+ * The one difference is the clamp, and it is a rule rather than an oversight: a
+ * rebate is floored at what a piece costs, because a card that paid more than
+ * the army did would be a mint, and a **charge has no ceiling** — an empire that
+ * cannot carry its own levy goes into arrears and the creditors take a piece,
+ * which is a rule the game already has (`disbandCandidate`). A piece the empire
+ * pays nothing for is charged nothing all the same: the three exemptions are
+ * facts about what an army is, and a levy makes an army dearer rather than
+ * making a settler a soldier.
+ */
+export function cardUpkeepSurchargeLines(
+  state: GameState,
+  playerId: number,
+  costOf: (unit: Unit) => number,
+): CardUpkeepLine[] {
+  const list: CardUpkeepLine[] = [];
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'upkeepSurcharge')) {
+    const on = effect.amount;
+    if (on <= 0) continue;
+    let gold = 0;
+    for (const unit of state.units) {
+      if (unit.ownerId !== playerId) continue;
+      if (!unitMatches(unit.type, effect.class)) continue;
+      if (effect.where === 'ownTerritory') {
+        if (tileOwnerPlayerId(state, unit.col, unit.row) !== playerId) continue;
+      }
+      if (effect.where === 'foreignTerritory') {
+        if (tileOwnerPlayerId(state, unit.col, unit.row) === playerId) continue;
+      }
+      // Already on the payroll, or the levy is not what made it cost anything.
+      if (costOf(unit) <= 0) continue;
+      gold += on;
     }
     if (gold <= 0) continue;
     list.push({ card, source, gold });
@@ -7030,6 +7081,14 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       out.push({ text: `${who} cost ${off} less gold in maintenance${where}` });
       return;
     }
+    // The same sentence with the sign turned round — "more" where the rebate
+    // says "less", and the same two narrowings read the same way.
+    case 'upkeepSurcharge': {
+      const who = effect.class ? filterWords(effect.class) : 'all units';
+      const where = WHERE_WORDS[effect.where ?? 'anywhere'];
+      out.push({ text: `${who} cost ${effect.amount} more gold in maintenance${where}` });
+      return;
+    }
     case 'cardYieldAmplifier': {
       // Two sentences, because the two dials say different things: the flat is
       // "one more, on every line the other cards pay" and the share is "worth
@@ -7226,6 +7285,10 @@ function grantWords(grant: CompletionGrant): string {
   if (grant.grant === 'tech') return 'on completion, the technology you are researching is finished';
   if (grant.grant === 'doctrineDraft') return 'on completion, a Doctrine draft opens';
   if (grant.grant === 'bead') return 'on completion, a glass bead is yours';
+  // Not "a free rung": a rung is the ladder's word for a threshold the bank
+  // crossed, and this is the stones paying instead of the bank. What a player
+  // needs is that a god arrives and that it costs them nothing.
+  if (grant.grant === 'faithRung') return 'on completion, a god is named, and your faith is not spent';
   if (grant.grant === 'greatPerson') {
     return grant.family === undefined
       ? 'on completion, a great person is offered'
@@ -7967,10 +8030,6 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   bankedFaith: { one: 'banked faith', many: 'banked faith' },
   bankedGold: { one: 'gold in the treasury', many: 'gold in the treasury' },
   visibleCamps: { one: 'barbarian camp you can see', many: 'barbarian camps you can see' },
-  chargedAugurs: {
-    one: 'augur stationed here with a rite left',
-    many: 'augurs stationed here with a rite left',
-  },
   scienceBuildings: {
     one: 'building here that supplies science',
     many: 'buildings here that supply science',
@@ -8814,8 +8873,8 @@ export function hasStatecraftOffer(player: Player): boolean {
 }
 
 /** Every pool this table knows, for a screen that lists what is still drawable. */
-export function poolSizeOf(sc: PlayerStatecraft): number {
-  return livePool(sc).length;
+export function poolSizeOf(sc: PlayerStatecraft, age: TechAge): number {
+  return drawablePool(sc, age).length;
 }
 
 /** The Orders of one pool, for the screen's browser. Re-exported for one import. */

@@ -21,13 +21,19 @@
  * makes anything of. Scoring what will be worked put the opening capital's
  * production back where the pacing tests had measured it.
  *
- * Six hard rejections back the score up, because a weighted sum will always
+ * Seven hard rejections back the score up, because a weighted sum will always
  * find a way to like somewhere unliveable: how much land the site's own landmass
  * carries at all, the site's own terrain, the share of its rings that is cold or
- * arid, the share that is water, and floors on the food and production its rings
+ * arid, the share that is water, floors on the food and production its rings
  * carry *in total* (all of them, not the scored six — a floor read off a set the
  * score itself ordered would be a floor measuring the weights it exists to
- * backstop).
+ * backstop), and whether the ground within `startStrategicRadius` could ever
+ * seat the strategics every capital is promised.
+ *
+ * That last one is the odd one out and says so: the other six ask whether a
+ * player could *live* here, and it asks whether a promise made elsewhere
+ * (`ensureStartStrategics`, `resources.ts`) can be kept here. See
+ * `strategicGround`.
  *
  * The landmass floor is the newest and the only one that looks past the two
  * rings: the pangaea ruling (2026-09-03) puts islands off the shelf on every
@@ -100,8 +106,22 @@
 
 import { tileYieldOf } from './cities';
 import type { GameMap, Tile } from './map';
-import { getTile, mapNeighbors, mapRange, tileHex, tileIndex, wrappedDistance } from './map';
+import {
+  getTile,
+  mapNeighbors,
+  mapRange,
+  tileHex,
+  tileIndex,
+  tileNeighbors,
+  wrappedDistance,
+} from './map';
 import { type StartsConfig, mapgenFor } from './mapgenData';
+import {
+  RESOURCE_IDS,
+  type ResourceId,
+  resourceDef,
+  tileSuitsResource,
+} from './resourceData';
 import { RULES } from './rulesData';
 import { isWaterTerrain, isWorkableTerrain, moveCost, type TileYield } from './terrainData';
 import { type UnitCategory, type UnitTypeId, unitDef } from './unitData';
@@ -185,6 +205,75 @@ export function isHomeLandmass(
   return starts.minLandmassTiles > 0 && tiles >= starts.minLandmassTiles;
 }
 
+/**
+ * Which of the guaranteed strategics each hex could *ever* be armed with —
+ * one flag per row of `resources.startStrategics`, set where a hex whose own
+ * terrain suits that row stands within `startStrategicRadius`.
+ *
+ * A **ground** fact, asked before a single resource has been placed, which is
+ * what makes it a legal thing for a site rejection to read. Ruled 2026-09-05
+ * (`docs/flags.md` note 20): every capital is promised horses and iron within
+ * six hexes, and the guarantee that keeps that promise
+ * (`ensureStartStrategics`, `resources.ts`) cannot invent a hill. A site with
+ * no hill in reach is therefore a site the ruling cannot be honoured on, and
+ * refusing it here is the only place the promise can be kept rather than
+ * apologised for.
+ *
+ * Precomputed and handed down for `groundYields`' reason, one scale sharper:
+ * the disc of radius six is 127 hexes, the sweep asks about every land tile,
+ * and a disc per hex would be a hundred map reads per candidate. What this is
+ * instead is one **dilation** per row — a multi-source breadth-first walk out
+ * from the legal hexes, stopped at the radius — which is a single pass of the
+ * grid however wide the radius is.
+ */
+export interface StrategicGround {
+  /** Row id → flag per tile index: 1 where a legal hex is in reach. */
+  reach: Map<ResourceId, Uint8Array>;
+  /** The rows asked about, in sheet order. Empty disables the refusal. */
+  rows: ResourceId[];
+}
+
+/**
+ * The dilation. Wrap-aware, and over *every* tile rather than over land only:
+ * hex distance is the unit the guarantee is written in (`mapRange`), so a hill
+ * across a one-hex strait is in reach exactly as the resource pass will find it.
+ */
+export function strategicGround(map: GameMap): StrategicGround {
+  const config = mapgenFor(map).resources;
+  const radius = Math.max(0, Math.round(config.startStrategicRadius));
+  const rows = (config.startStrategics ?? []).filter(
+    (id) => RESOURCE_IDS.includes(id) && resourceDef(id).kind === 'strategic',
+  );
+  const reach = new Map<ResourceId, Uint8Array>();
+  for (const id of rows) {
+    const def = resourceDef(id);
+    const flag = new Uint8Array(map.tiles.length);
+    // Sources in tile-index order. The walk's outcome is a distance field and
+    // so is order-independent, but the queue is index-ordered anyway — the
+    // discipline every sweep in this codebase keeps.
+    let frontier: Tile[] = [];
+    for (const tile of map.tiles) {
+      if (!tileSuitsResource(tile, def)) continue;
+      flag[tileIndex(map, tile.col, tile.row)] = 1;
+      frontier.push(tile);
+    }
+    for (let step = 0; step < radius && frontier.length > 0; step++) {
+      const next: Tile[] = [];
+      for (const tile of frontier) {
+        for (const neighbour of tileNeighbors(map, tile)) {
+          const at = tileIndex(map, neighbour.col, neighbour.row);
+          if (flag[at]) continue;
+          flag[at] = 1;
+          next.push(neighbour);
+        }
+      }
+      frontier = next;
+    }
+    reach.set(id, flag);
+  }
+  return { reach, rows };
+}
+
 /** A scored site: the ledger, its fold, and whether it is allowed at all. */
 export interface StartSiteScore {
   entries: StartScoreContribution[];
@@ -240,8 +329,9 @@ export function scoreStartSite(
   tile: Tile,
   ground?: readonly TileYield[],
   landmass?: LandmassFacts,
+  arms?: StrategicGround,
 ): StartSiteScore {
-  return scoreSite(map, startsFor(map), tile, ground, landmass);
+  return scoreSite(map, startsFor(map), tile, ground, landmass, arms);
 }
 
 /**
@@ -257,6 +347,7 @@ function scoreSite(
   tile: Tile,
   ground?: readonly TileYield[],
   landmass?: LandmassFacts,
+  arms?: StrategicGround,
 ): StartSiteScore {
   const yieldAt = (target: Tile): TileYield =>
     ground ? ground[tileIndex(map, target.col, target.row)]! : tileYieldOf(groundOf(target));
@@ -343,6 +434,23 @@ function scoreSite(
   } else if (ringFood < STARTS.minRingFood) reject = 'not enough food';
   else if (ringProduction < STARTS.minRingProduction) reject = 'not enough production';
 
+  // The seventh, and the only one that is about a *promise* rather than about
+  // the ground being liveable: a site with no legal hex for a guaranteed
+  // strategic within its radius is a site `ensureStartStrategics` would have to
+  // leave unarmed (2026-09-05, `docs/flags.md` note 20). Last, because it is the
+  // most expensive question to ask and the cheapest to skip — and lazy, because
+  // a caller with no precomputed field is a tool asking about one tile and pays
+  // for the dilation only if the site got this far.
+  if (reject === null) {
+    const field = arms ?? strategicGround(map);
+    const at = tileIndex(map, tile.col, tile.row);
+    for (const id of field.rows) {
+      if (field.reach.get(id)?.[at]) continue;
+      reject = `no ground for ${resourceDef(id).name.toLowerCase()}`;
+      break;
+    }
+  }
+
   return { entries, total, reject, ringFood, ringProduction };
 }
 
@@ -423,10 +531,17 @@ export function chooseStartPositions(map: GameMap, count: number): Tile[] {
   // landmass floor is a map-wide fact and computing it per candidate would be a
   // component pass per hex.
   const landmass = landmassFacts(map);
+  // One dilation per guaranteed strategic for the whole sweep, for the same
+  // reason `landmassFacts` is hoisted: the refusal is a disc of 127 hexes and
+  // computing it per candidate would be a hundred map reads a hex.
+  const arms = strategicGround(map);
   const scores = new Map<number, StartSiteScore>();
   const candidates = map.tiles.filter(isStartCandidate);
   for (const tile of candidates) {
-    scores.set(tileIndex(map, tile.col, tile.row), scoreSite(map, STARTS, tile, ground, landmass));
+    scores.set(
+      tileIndex(map, tile.col, tile.row),
+      scoreSite(map, STARTS, tile, ground, landmass, arms),
+    );
   }
   const byScore = (a: Tile, b: Tile): number => {
     const ia = tileIndex(map, a.col, a.row);

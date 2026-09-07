@@ -1240,7 +1240,14 @@ describe('the focus arm', () => {
     // and −11.3 with it standing on the hammers, and the arm ordered it back and
     // forth until `driver.commandsPerSeat` cut the seat off. Fifty-two turns is
     // what it takes to reach; the claim is the same one the test above makes.
-    const game = createGame({ ...CONFIG, seed: 20260904 });
+    //
+    // Seed 20260905, not 20260904, since 2026-09-06: H9's start chooser seats
+    // every capital within six of horses and iron, which moved the measured
+    // board out from under its seed — 20260904 now raises no focus order in
+    // fifty-two turns at all, and a test that pins nothing pins nothing. The
+    // neighbouring seed raises eleven from turn thirty-seven, the same shape
+    // of town (one, mid-sized, food-heavy), and the claim is unchanged.
+    const game = createGame({ ...CONFIG, seed: 20260905 });
     const stepper = createBotStepper(game, { warn: () => {} });
     const steps: { decision: BotDecision; turn: number; ok: boolean }[] = [];
     for (let turn = 0; turn < 52; turn++) {

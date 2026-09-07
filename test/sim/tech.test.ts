@@ -46,6 +46,7 @@ import {
   type TechId,
   UNIT_UNLOCK_TECH,
   isTechId,
+  liveUnlocks,
   techAgeBands,
   techColumn,
   techColumnCount,
@@ -359,7 +360,16 @@ describe('tech data integrity', () => {
     // column is a *ruling*, and this list is where it is written down. The tree
     // is 35710 beakers against 19725, and the ages are 345 / 1665 / 7700 /
     // 26000: Æra IV alone is now nearly three quarters of the chart.
-    const COLUMN_COSTS = [5, 13, 30, 69, 135, 225, 400, 540, 680, 1450, 1700, 1950, 2200];
+    //
+    // **And now the first paid column is authored below it** (the user,
+    // 2026-09-06, `docs/flags.md` rulings "late — early production", item x:
+    // "the first column of technologies slightly cheaper"). Column 1 —
+    // Fletching, Husbandry, Mining, Pottery, the four nodes every empire buys
+    // first — is **10** rather than the formula's 13. The root's nominal 5 and
+    // every column from 2 up are untouched, so the taper now carries an authored
+    // figure at each end and the middle is still the measured ladder. The tree
+    // is 35698 beakers and the ages are 333 / 1665 / 7700 / 26000.
+    const COLUMN_COSTS = [5, 10, 30, 69, 135, 225, 400, 540, 680, 1450, 1700, 1950, 2200];
     expect(COLUMN_COSTS).toHaveLength(techColumnCount());
     for (const id of TECH_IDS) {
       expect(techDef(id).cost, id).toBe(COLUMN_COSTS[techColumn(id)]);
@@ -1313,7 +1323,7 @@ describe('research in the log', () => {
     // third conversion project joined the queue's vocabulary, and Machinery
     // makes a road step cost a fifth instead of a third — so a v75 log researches
     // different things and marches different distances.
-    expect(SCHEMA_VERSION).toBe(78);
+    expect(SCHEMA_VERSION).toBe(81);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1722,12 +1732,18 @@ describe('the shape of the tree', () => {
     // Divination came down a rung to 30 and only Writing and The Wheel pay the
     // 69. That last column of two is the user's own chart and is one of the two
     // named exceptions to "no column holds fewer than three".
+    //
+    // **And the four came down again on 2026-09-06** (`docs/flags.md`, rulings
+    // "late — early production", item x: "the first column of technologies
+    // slightly cheaper"): 13 → **10**, so the first four purchases of a game
+    // land three beakers sooner apiece. Nothing else in the age moved, and the
+    // column table in `COLUMN_COSTS` above is where that is written down.
     expect(Object.fromEntries(ageOne.map((id) => [id, techDef(id).cost]))).toEqual({
       agriculture: 5,
-      husbandry: 13,
-      fletching: 13,
-      mining: 13,
-      earthenware: 13,
+      husbandry: 10,
+      fletching: 10,
+      mining: 10,
+      earthenware: 10,
       sailing: 30,
       bronzeWorking: 30,
       stonecraft: 30,
@@ -2172,5 +2188,45 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
       'watermill',
       'circusMaximus',
     ]);
+  });
+});
+
+// --- what a node still hands over --------------------------------------------
+
+/**
+ * **A retired row is not a gift** (the user, 2026-09-06: "remove stele of laws
+ * — and any other stale buildings — from the tech tree UX").
+ *
+ * The fewer-things pass retired ten building rows and one unit and left every
+ * one on its tech's list, so the tree's faces promised a Stele of Laws nobody
+ * could build. `liveUnlocks` is the printing surfaces' reading; the raw lists
+ * stay for the inverted tables and the gates.
+ */
+describe('what a node still hands over', () => {
+  it('drops every retired unit and building, and nothing else', () => {
+    let dropped = 0;
+    for (const id of TECH_IDS) {
+      const raw = techDef(id).unlocks;
+      const live = liveUnlocks(id);
+      for (const building of raw.buildings ?? []) {
+        const kept = live.buildings.includes(building);
+        expect(kept, `${id} → ${building}`).toBe(buildingDef(building).retired !== true);
+        if (!kept) dropped += 1;
+      }
+      for (const unit of raw.units ?? []) {
+        const kept = live.units.includes(unit);
+        expect(kept, `${id} → ${unit}`).toBe(unitDef(unit).retired !== true);
+        if (!kept) dropped += 1;
+      }
+      expect(live.projects).toEqual(raw.projects ?? []);
+    }
+    // The sweep is not a no-op: the retired rows are still on their techs.
+    expect(dropped).toBeGreaterThan(0);
+  });
+
+  it('keeps Kingship’s Imperial Throne and loses its Stele of Laws', () => {
+    expect(techDef('kingship' as TechId).unlocks.buildings).toContain('steleOfLaws');
+    expect(liveUnlocks('kingship' as TechId).buildings).not.toContain('steleOfLaws');
+    expect(liveUnlocks('kingship' as TechId).buildings).toContain('imperialThrone');
   });
 });

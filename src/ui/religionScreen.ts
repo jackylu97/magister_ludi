@@ -1,5 +1,20 @@
 /**
- * The Religion screen: your faith, your gods, your augurs, your rites.
+ * The Religion screen: your gods, your beliefs, the tide, and who you may call.
+ *
+ * The sheet's subject is the **deck of faith** (ruled 2026-09-06). Everything a
+ * player's religion *is* is a card — a god in a place at the fire, a follower
+ * belief, an enhancer — and this screen is those cards, standing, each wearing
+ * the figure it pays (`landCardStamp`). What used to lead the sheet was a piece
+ * for hire and its price ladder; that piece is retired (`docs/religion-v2.md`),
+ * the faith ladder consecrates on its own (`openFaithLadder`), and what took its
+ * place at the head is the one question the old panel could not answer: **when
+ * does the next god arrive**. Below the cards, in this order and deliberately:
+ * the tide (who follows, and what presses), then the clergy a player may call.
+ *
+ * **No retired piece is named on this sheet**, in a sentence or in a comment,
+ * and `test/ui/religionScreen.test.ts` reads the source to say so. A screen that
+ * still explained a mechanism the reducer refuses is a screen teaching a player
+ * a rule that is not true.
  *
  * The fourth full-screen overlay and the second parchment one, and it is
  * deliberately the Statecraft sheet's sibling rather than a new language: same
@@ -31,10 +46,10 @@
  * ----------------------------------------
  * The user's note (2026-08-27), one screen after the same note about
  * Statecraft: "ideally it would also fit on a single screen; split panes would
- * be good here too". The sheet used to be one column — the pool and the augur,
- * then the wheel and eighteen-hundred pixels of slot cards, then the rites —
- * and a player deciding whether to call an augur had to scroll past their own
- * gods to reach the button that calls one.
+ * be good here too". The sheet used to be one column — the pool and its price
+ * ladder, then the wheel and eighteen-hundred pixels of slot cards, then the
+ * rites — and a player deciding whether to spend faith had to scroll past their
+ * own gods to reach the figure that priced it.
  *
  * It is now the same **split** the Statecraft sheet is, down to the classes and
  * the breakpoint: the pantheon is a fixed column on the left — the wheel, the
@@ -79,13 +94,18 @@ import {
 import { explainCardImpact } from '../sim/cardImpact';
 import { poolFigure } from './figures';
 import {
+  type NextRung,
+  type PantheonPlace,
   type PressureLine,
   availableRites,
   beliefPool,
+  explainNextRung,
   explainPressure,
   foundReligionError,
   holySites,
   maxReligions,
+  nextRungWords,
+  pantheonPlaces,
   pantheonSlots,
   poolHeld,
   poolSlots,
@@ -123,7 +143,7 @@ import { cityDisplayName } from './cityDisplay';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import { gatingTech } from '../sim/tech';
 import { type TechId, techDef } from '../sim/techData';
-import type { UnitTypeId } from '../sim/unitData';
+import { type UnitTypeId, unitDef } from '../sim/unitData';
 import { YIELD_GLYPH } from './yieldMark';
 
 /**
@@ -210,6 +230,22 @@ export function poolTechName(pool: ReligionBeliefPool): string {
 
 /** The piece whose charges found and spread a faith. Named once, read twice. */
 const PROPHET: UnitTypeId = 'prophet';
+
+/**
+ * The pieces faith calls, in the order a player meets them: the prophet who
+ * founds, the apostle who carries, the inquisitor who takes back.
+ *
+ * A list rather than a filter over the roster, and deliberately: "which units
+ * does faith buy" is answerable from `UnitDef.purchase.currency`, but *the
+ * order they are read in* is an editorial fact and belongs on the sheet that
+ * prints them. Every other word on a row — the name, the verb, the price, the
+ * refusal — comes off the roster or off the sim.
+ *
+ * The retired fourth is not here (`docs/religion-v2.md`): its consecration is
+ * the faith ladder's and its rites are a town's verbs, so a row for it would be
+ * a piece the reducer refuses to sell.
+ */
+const CLERGY: readonly UnitTypeId[] = ['prophet', 'apostle', 'inquisitor'];
 
 /** What each pool is called on the sheet, and what a house of it is for. */
 export const POOL_WORD: Readonly<Record<ReligionBeliefPool, { name: string; says: string }>> = {
@@ -391,6 +427,21 @@ export function pressureLedgerText(lines: readonly PressureLine[]): string {
     said.push(`${line.source} ${signed(line.amount)}`);
   }
   return `${said.join(' · ')} — ${Math.max(0, total)} a turn`;
+}
+
+/**
+ * A price's ordered lines as one hover sentence — rule 5 for a thing you buy,
+ * folded into the plain text a `title` can hold.
+ *
+ * `explainPurchaseCost`'s list verbatim and in its order, so the sum of the
+ * clauses is the figure on the button. It is a hover rather than a block for
+ * the clergy row's own reason: three stacked breakdowns of an escalation
+ * everybody understands is three blocks of arithmetic where the sheet wants
+ * three decisions.
+ */
+export function priceLedgerText(price: PurchasePrice): string {
+  const said = price.lines.map((line) => `${line.source} ${line.amount}`);
+  return `${said.join(' · ')} — ${price.total} ${price.currency}`;
 }
 
 /**
@@ -594,7 +645,20 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     return stampIsEmpty(reading) ? null : reading;
   }
 
-  /** The pool and its rate — the Faith popover's whole content, folded in. */
+  /**
+   * The pool, its rate, and **when the next god arrives** — the Faith chip's
+   * whole content, folded in.
+   *
+   * The second line is `nextRungWords`, which is the sim's own sentence about
+   * the ladder (`explainNextRung`), and it is printed here for the reason the
+   * pool figure is: the faith chip's hover card says exactly this, off exactly
+   * this reading, and two surfaces composing one threshold is how a sheet comes
+   * to promise a god at a price the phase disagrees with. Nothing on this screen
+   * adds a figure of its own.
+   *
+   * The rate is `civYields`' — the top bar's fold, handed in rather than folded
+   * again, which is the bargain `explainNextRung` documents.
+   */
   function drawPool(state: GameState, seat: number): HTMLElement {
     const block = element('section', 'rel-pool');
     const player = playerById(state, seat);
@@ -603,13 +667,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     const figure = element('p', 'rel-pool-figure');
     figure.textContent = player ? poolFigure(player.faithPool, rate) : '—';
     block.append(figure);
-    block.append(
-      element(
-        'p',
-        'sc-flavor',
-        'Faith buys augurs. An augur can name a belief or perform a rite. Nothing else spends faith.',
-      ),
-    );
+    block.append(element('p', 'rel-rung-line', nextRungWords(explainNextRung(state, seat, rate))));
     return block;
   }
 
@@ -643,12 +701,66 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   }
 
   /**
-   * The pantheon: the wheel, and one place per slot **under** it.
+   * A place at the fire nobody has named — the ghost, and **what it is waiting
+   * for**.
+   *
+   * Three sentences and no fourth, because a place stands empty for exactly
+   * three reasons and a placeholder that said "unnamed" to all of them was the
+   * old sheet's whole failure: the first open place is waiting for the *bank*
+   * and prints the ladder's own sentence with a bar under it; a further open
+   * place is waiting for the one in front of it; a shut place is waiting for a
+   * *technology*, and says which.
+   *
+   * The words and the bar are both `explainNextRung`'s — the figure is never
+   * composed here, and the bar is the same two numbers the sentence names, so a
+   * player who reads the bar and a player who reads the line are told one thing.
+   */
+  function drawEmptyPlace(
+    card: HTMLElement,
+    place: PantheonPlace,
+    rung: NextRung,
+    first: boolean,
+  ): void {
+    card.append(element('span', 'rel-slot-ghost', SLOT_GLYPH));
+    if (place.awaits !== null) {
+      card.append(element('span', 'sc-slot-empty', `${techDef(place.awaits).name} opens this place`));
+      card.title = 'A technology opens this place at the fire';
+      return;
+    }
+    if (!first || rung.kind !== 'open') {
+      card.append(element('span', 'sc-slot-empty', 'unnamed'));
+      card.title = 'Your gods arrive on their own, once your faith is deep enough';
+      return;
+    }
+    const said = element('span', 'sc-slot-empty', nextRungWords(rung));
+    card.append(said);
+    // The bank against the threshold, drawn. A bar rather than a second figure:
+    // the sentence beside it already carries both numbers, and what a bar adds
+    // is the only thing a number cannot — how close.
+    const bar = element('span', 'rel-rung-bar');
+    const fill = element('span', 'rel-rung-fill');
+    const part = rung.cost <= 0 ? 1 : Math.min(1, rung.banked / rung.cost);
+    fill.style.width = `${Math.round(part * 100)}%`;
+    bar.append(fill);
+    bar.setAttribute('aria-hidden', 'true');
+    card.append(bar);
+    card.title = 'Your gods arrive on their own, once your faith is deep enough';
+  }
+
+  /**
+   * The pantheon: the wheel, and one place per **place** under it.
    *
    * The slot list is the Statecraft idiom and the same argument for it — a run
    * of slots is a run of *places a thing goes*, and the shape says so before any
    * of the words are read. What differs is that a god never comes back out, so
    * there is nothing to click: these are `article`s, not buttons.
+   *
+   * **Every place the tree will ever open is drawn**, not only the ones open
+   * today (ruled 2026-09-06): the pantheon is three faces, and the third saying
+   * what opens it is the fact the old sheet — which drew `pantheonSlots` places
+   * and stopped — could not print. `pantheonPlaces` is the whole shape, and it
+   * is the sim's, so which technology opens which place is not a word this file
+   * knows.
    *
    * The wheel does not replace them, and the two are not the same picture: the
    * wheel is the **pool** — where a god sits in the sky and what it is next to —
@@ -662,110 +774,123 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     const player = playerById(state, seat);
     const slots = pantheonSlots(state, seat);
     const held = player?.pantheon.beliefs ?? [];
+    const rung = explainNextRung(state, seat, civYields(state, seat).faith);
     block.append(
       element('p', 'eyebrow sc-eyebrow', `pantheon · ${held.length} of ${slots}`),
     );
     const wheelRow = element('div', 'rel-wheel-row');
     wheelRow.append(drawWheel(state, seat, slots));
     block.append(wheelRow);
-    if (slots === 0) {
-      block.append(
-        element(
-          'p',
-          'sc-none',
-          'Your people keep no gods yet. Divination opens the first two places at the fire.',
-        ),
-      );
-      return block;
-    }
     const row = element('div', 'rel-slot-row');
-    for (let index = 0; index < slots; index++) {
-      const id = held[index];
-      const card = element('article', id === undefined ? 'rel-slot rel-slot-empty' : 'rel-slot');
-      if (id === undefined) {
-        card.append(element('span', 'rel-slot-ghost', SLOT_GLYPH));
-        card.append(element('span', 'sc-slot-empty', 'unnamed'));
-        card.title = 'An augur may consecrate a god here';
+    let firstOpen = true;
+    for (const place of pantheonPlaces(state, seat)) {
+      const empty = place.belief === null;
+      const card = element('article', empty ? 'rel-slot rel-slot-empty' : 'rel-slot');
+      if (place.belief === null) {
+        drawEmptyPlace(card, place, rung, firstOpen && place.awaits === null);
+        if (place.awaits === null) firstOpen = false;
       } else {
-        drawBeliefFace(card, id, undefined, beliefStamp(state, seat, id));
+        drawBeliefFace(card, place.belief, undefined, beliefStamp(state, seat, place.belief));
       }
       row.append(card);
     }
     // Under the wheel, in the same column: the sky and the faces are two
     // readings of one pantheon and the column is the whole of it.
     block.append(row);
-    // Gods held beyond the slots the tree currently opens: only reachable from a
-    // hand-edited save, and drawn rather than hidden, because a god you hold is
-    // a god that pays.
-    for (const id of held.slice(slots)) {
-      const card = element('article', 'rel-slot');
-      drawBeliefFace(card, id, undefined, beliefStamp(state, seat, id));
-      row.append(card);
-    }
     if (player && held.length < slots) {
       block.append(
         element(
           'p',
           'sc-hand',
-          `${beliefPool(state, player).length} gods are still unnamed. Consecrating spends the whole augur, whatever rites are left in it.`,
+          `${beliefPool(state, player).length} gods are still unnamed. Your people name one on their own, once enough faith has gathered.`,
         ),
       );
     }
     return block;
   }
 
-  /** The price, line by line — rule 5 for a thing you buy. */
-  function drawPrice(price: PurchasePrice): HTMLElement {
-    const list = element('ul', 'rel-price ledger');
-    for (const line of price.lines) {
-      const item = element('li', 'rel-price-line');
-      item.append(element('span', 'meter-line-source', line.source));
-      item.append(element('span', 'meter-line-value', String(line.amount)));
-      list.append(item);
-    }
-    const total = element('li', 'rel-price-line rel-price-total ledger-total');
-    total.append(element('span', 'meter-line-source', 'to call one'));
-    total.append(element('span', 'meter-line-value', `${price.total} ${price.currency}`));
-    list.append(total);
-    return list;
+  /**
+   * One clergy row: the piece, what it is for, its price here, and the button
+   * that calls it.
+   *
+   * A **row** rather than the ledger this block used to be (ruled
+   * 2026-09-06, the sheet's subject is the cards): three pieces are three
+   * decisions of the same shape, and three stacked price breakdowns would push
+   * the tide and the gods off the sheet to explain arithmetic that is one line
+   * of ordinary escalation. The breakdown is still rule 5's and still the sim's
+   * — it moves to the row's hover, where `explainPurchaseCost`'s lines are read
+   * by whoever asks for them.
+   *
+   * The figure is `explainPurchaseCost`'s total and the refusal is
+   * `purchaseError`'s sentence, exactly as before: a button a player can press
+   * is a command the simulation takes.
+   */
+  function drawClergyRow(
+    state: GameState,
+    seat: number,
+    cityId: number,
+    type: UnitTypeId,
+  ): HTMLElement | null {
+    const def = unitDef(type);
+    const item: PurchasableItem = { kind: 'unit', id: type };
+    const currency = def.purchase?.currency ?? 'faith';
+    const price = explainPurchaseCost(state, seat, cityId, item, currency);
+    // No price is no row: a piece the roster does not sell in this bank is not a
+    // decision this sheet can offer, and a row with a blank figure would be one.
+    if (price === null) return null;
+    const row = element('div', 'rel-clergy');
+    const name = element('span', 'rel-clergy-name', def.name);
+    row.append(name);
+    // What is standing in the way, in the reducer's own words — on the row, so
+    // a greyed piece says why without being clicked. A gate the player has not
+    // reached is the commonest one and reads as a plan rather than a refusal.
+    const problem = purchaseError(state, seat, cityId, item, currency);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'btn rel-buy';
+    button.textContent = `${def.purchase?.verb ?? `Call a ${def.name}`} · ${price.total} ${currency}`;
+    button.disabled = problem !== null;
+    button.title = problem ?? priceLedgerText(price);
+    button.addEventListener('click', () => {
+      const blocked = purchaseError(state, seat, cityId, item, currency);
+      if (blocked !== null) {
+        options.onRefuse?.(blocked);
+        return;
+      }
+      options.buy(cityId, item, currency);
+      draw();
+    });
+    row.append(button);
+    return row;
   }
 
   /**
-   * The purchase row: what an augur costs here, and the button that calls one.
+   * The clergy: who this empire may call, and where.
    *
-   * Aimed at the **capital** by default and at whichever city the player names
-   * with the select. A city rather than "the empire" because the piece has to
-   * stand somewhere, and stacking room is asked of that hex — which is one of
-   * the sentences `purchaseError` can answer with.
+   * At the **foot** of the sheet (ruled 2026-09-06). A purchase is the smallest
+   * decision on this screen — it is reversible in the sense that matters, since
+   * the faith comes back next century — and it sat at the head for a year only
+   * because the one piece it used to sell was the whole of what faith did. The gods
+   * and the beliefs are what the sheet is about, so they lead and this closes.
+   *
+   * One city select for all three, aimed at the first town by default: a piece
+   * has to stand somewhere and stacking room is asked of that hex, which is one
+   * of the sentences `purchaseError` answers with. Three rows and one select is
+   * one conversation; three selects would be three.
    */
-  function drawPurchase(state: GameState, seat: number): HTMLElement {
+  function drawClergy(state: GameState, seat: number): HTMLElement {
     const block = element('section', 'rel-purchase');
-    block.append(element('p', 'eyebrow sc-eyebrow', 'the augur'));
-    const type: UnitTypeId = 'augur';
-    const item: PurchasableItem = { kind: 'unit', id: type };
+    block.append(element('p', 'eyebrow sc-eyebrow', 'the clergy'));
     const cities = state.cities.filter((city) => city.ownerId === seat);
     // The price is asked **of a city**, since M9 — a purchase always happens
     // somewhere — so the town has to be picked before the figure can be quoted.
     if (aimedCityId === null || !cities.some((city) => city.id === aimedCityId)) {
       aimedCityId = cities[0]?.id ?? null;
     }
-    const price =
-      aimedCityId === null ? null : explainPurchaseCost(state, seat, aimedCityId, item, 'faith');
-    if (!price || cities.length === 0) {
-      block.append(element('p', 'sc-none', 'You have no city an augur could be bought in.'));
+    if (aimedCityId === null) {
+      block.append(element('p', 'sc-none', 'You have no city the clergy could be called in.'));
       return block;
     }
-    const gate = gatingTech('unit', type);
-    block.append(
-      element(
-        'p',
-        'sc-flavor',
-        `An augur performs one rite, or names one belief. ${
-          gate === null ? '' : `Called by those who have ${techDef(gate).name}.`
-        }`,
-      ),
-    );
-    block.append(drawPrice(price));
 
     const row = element('div', 'rel-buy-row');
     const select = document.createElement('select');
@@ -782,25 +907,14 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       draw();
     });
     row.append(select);
-
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'btn btn-primary rel-buy';
-    button.textContent = `Call an augur · ${price.total} ${price.currency}`;
-    const problem = purchaseError(state, seat, aimedCityId!, item, price.currency);
-    button.disabled = problem !== null;
-    button.title = problem ?? `An augur joins ${select.selectedOptions[0]?.textContent ?? 'the city'}`;
-    button.addEventListener('click', () => {
-      const blocked = purchaseError(state, seat, aimedCityId!, item, price.currency);
-      if (blocked !== null) {
-        options.onRefuse?.(blocked);
-        return;
-      }
-      options.buy(aimedCityId!, item, price.currency);
-      draw();
-    });
-    row.append(button);
     block.append(row);
+
+    const list = element('div', 'rel-clergy-list');
+    for (const type of CLERGY) {
+      const clergyRow = drawClergyRow(state, seat, aimedCityId, type);
+      if (clergyRow !== null) list.append(clergyRow);
+    }
+    block.append(list);
     return block;
   }
 
@@ -811,12 +925,15 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
    * a seat that has founded nothing is told what a religion is and how one is
    * founded, with the world's count against the cap beside it — because "can I
    * still have one" is the first question, and the answer stops being yes. A
-   * seat that has one gets its name, its houses, what its followers pay it, and
-   * the list of towns that follow.
+   * seat that has one gets its name and its **belief rungs as faces** —
+   * followers then enhancers, each wearing the figure it pays, the same standing
+   * card the pantheon's places wear one column over.
+   *
+   * What the faith is *paid* and who follows it went to `drawTide` in the rework
+   * of 2026-09-06: this block is the cards, that one is what they are doing.
    *
    * Every figure comes off `religionReading`, which is pure and pinned; this
-   * function is the DOM and the two controls (the name field, and the hover on
-   * each town's row).
+   * function is the DOM and the one control (the name field).
    */
   function drawReligion(state: GameState, seat: number): HTMLElement {
     const block = element('section', 'rel-faith');
@@ -906,6 +1023,27 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       }
       block.append(box);
     }
+    return block;
+  }
+
+  /**
+   * The tide, **under the cards**: what the holy city is paid, and every town in
+   * the world that follows.
+   *
+   * Split off `drawReligion` in the rework of 2026-09-06 for the ruling's own
+   * reason: the sheet's subject is the deck, and the tide is what the deck is
+   * doing. It reads exactly as it did — the same lines, the same hovers, the
+   * same order — one block lower and drawn compact, because a player scanning
+   * for their gods should not scroll a congregation list to reach them.
+   *
+   * Nothing here when this seat founded nothing: the tide is a fact about a
+   * religion, and a seat with none is told how to found one three blocks up.
+   */
+  function drawTide(state: GameState, seat: number): HTMLElement | null {
+    const reading = religionReading(state, seat);
+    const mine = reading.religion;
+    if (mine === null) return null;
+    const block = element('section', 'rel-faith rel-tide');
 
     // What the faith pays whoever holds its holy city. `cardEmpireYields`' own
     // labelled lines, so the figure here is the figure `collectYields` banks —
@@ -989,12 +1127,12 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
    * Every rite in the table, not only the known ones, and the unknown ones say
    * which node teaches them — a reference that hid what you have not learnt yet
    * would be a reference you cannot plan against. Which are known is
-   * `hasAbility` through `availableRites`, so this list and the augur's own
+   * `hasAbility` through `availableRites`, so this list and the town's own
    * panel cannot disagree about what is greyed.
    */
   function drawRites(state: GameState, seat: number): HTMLElement {
     const block = element('section', 'rel-rites');
-    block.append(element('p', 'eyebrow sc-eyebrow', 'rites · one charge each'));
+    block.append(element('p', 'eyebrow sc-eyebrow', 'rites · a town keeps one'));
     const known = new Set<RiteId>(availableRites(state, seat));
     const list = element('div', 'rel-rite-list');
     for (const id of Object.keys(RELIGION.rites) as RiteId[]) {
@@ -1047,12 +1185,12 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     }
     block.append(list);
     // Said once, here, because it is the rule that makes the whole system a
-    // decision rather than a queue: the agent is the cost.
+    // decision rather than a queue: a rite is a town's turn and its bank's.
     block.append(
       element(
         'p',
         'sc-flavor',
-        'An augur is one deed: perform a rite, or name a belief. Either spends it.',
+        'A rite is said over one of your towns. The town keeps one at a time, and your faith pays for it.',
       ),
     );
     return block;
@@ -1077,19 +1215,22 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     split.append(column);
 
     const pane = element('div', 'sc-pane');
-    // The pool and the price on one line: how much faith has gathered is the
-    // first line of what an augur costs, and reading the two apart was the old
-    // sheet asking a player to hold a figure in their head while they scrolled.
-    const head = element('div', 'sc-head-row');
-    head.append(drawPool(state, seat));
-    head.append(drawPurchase(state, seat));
-    pane.append(head);
-    // The religion above the rites, because it is the larger question: a rite is
-    // one charge of one augur, and a faith is the thing the whole screen is
-    // about. The pantheon stays in the column — what your empire *is* — and this
-    // is what it has been made into, which is a thing you do with it.
+    // **The order is the ruling's** (2026-09-06): the cards, then what the cards
+    // are doing, then what may be bought. The pool leads the pane because it is
+    // the one figure every block below it is priced against, and it carries the
+    // ladder's own sentence — how much faith has gathered and when the next god
+    // arrives are one question asked twice.
+    pane.append(drawPool(state, seat));
+    // The religion's belief rungs — the deck's second half, the pantheon in the
+    // column being the first.
     pane.append(drawReligion(state, seat));
+    // The tide under the cards, compact: who follows, and what presses.
+    const tide = drawTide(state, seat);
+    if (tide !== null) pane.append(tide);
     pane.append(drawRites(state, seat));
+    // The clergy last. A purchase is the smallest decision on the sheet, and the
+    // gods and the beliefs above it are what the sheet is about.
+    pane.append(drawClergy(state, seat));
     split.append(pane);
     body.append(split);
   }

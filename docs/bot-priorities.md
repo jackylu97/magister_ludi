@@ -2138,3 +2138,265 @@ sitting's own bargain said once more, batch 6.
   same test with the F2 door switched off: it fails identically. Not re-aimed —
   the coverage list moves deliberately or not at all, and this batch is not what
   moved it.
+
+## Batch H2 as shipped — the bot reads the whole deck (2026-09-06)
+
+`docs/audit/orchestrator.md`'s finding 4, and the row of the fix queue that says
+*half the effect vocabulary is worth one constant*: `scoreEffect`'s `switch`
+ended in `default: return score.unknownEffect`, so **23 of the 46 `CardEffect`
+kinds — 161 of 681 live effect rows — priced at two points apiece**, and nobody
+had decided that.
+
+### The structure: a `never`, so the next shape cannot be forgotten
+
+`scoreEffect` switches on an **aliased discriminant** and ends in
+`unreadEffect(kind, ctx)` with `kind: never` — `applyCommand`'s idiom
+(`commands.ts`), one system over. A member of `CardEffect` declared in
+`statecraftData.ts` with no arm here now stops the build. Four smaller registers
+inside the batch carry the same guard: `occasionRate` over `WindfallOccasion`,
+`scoreRulePercent` over `CardRule`, `scoreMeterRule` over `MeterRuleId`,
+`scoreAmplifier` over `AmplifierTarget`, and `conditionIsLive` over
+`EmpireCondition`.
+
+The module docblock's old rule 3 said a `never` here *"would make adding a card
+shape a compile error in the AI, which is not where that decision belongs"*. The
+audit measured that sentence wrong and it is rewritten: a shape with no honest
+reading still scores `score.unknownEffect`, but it now says so **by name**, in an
+arm, with a line saying why. It cost exactly what it should have: **the first
+shape the `never` caught was H1's own `upkeepSurcharge`, landed in the shared
+tree while this batch was being written.**
+
+### The arms added — kind → the reading it takes
+
+| Kind | Live rows | Reading |
+|---|---|---|
+| `windfallRider` | 43 | the occasion's frequency × the grant. See below |
+| `rulePercent` | 21 | each rule's own fold — see below |
+| `unlocksBuilding` | 12 | the shelf it opens (`explainBuildingRow` + the row's flats) × the towns × `delayDiscount(buildTurns)` |
+| `effectAmplifier` | 11 | the table it points at — see below |
+| `meterRule` | 9 | the constant it rewrites × the towns, at the meter's **live** price (`meterWeight`) |
+| `yieldConversion` | 8 | the share of the `from` books, at the `to` price |
+| `rateConversion` | 8 | `floor(rate ÷ per) × scorePayout` — the books are literally this shape's input |
+| `routeRider` | 6 | `routeSlotTerm`, the very door a market's `routeSlots` walks through |
+| `cityStat` | 6 | `explainBuildingRow`'s own wall reading, exactly |
+| `conditionRule` | 6 | its clauses at full price while the gate is open on **this board**, nothing when shut |
+| `purchaseRider` | 5 | the share off, over what the purse turns over in a turn |
+| `foundingRider` | 5 | a citizen at the growth threshold · a shelf · a road home, × the founding rate |
+| `zocRule` · `unitStamp` | 1 · 1 | the wall reading and the `unitStat` reading |
+| `projectRider` | 1 | the payout it adds × the towns actually running that project |
+| `mirrorYield` | 1 | the category's shelves' own `from` figure, at the `to` price |
+| `periodicOffer` · `periodicMuster` | 1 · 1 | one firing over the cadence — `periodic`'s arithmetic |
+| `upkeepSurcharge` | 1 (H1's) | −amount × the pieces in the field, at gold's live price |
+
+**The `windfallRider` family, and how a frequency is read.** The brief allowed
+either "count the recent turns" or "estimate from the board"; what shipped is
+**the board's own record wherever the board keeps one** — technologies held over
+turns played, citizens standing less one per town (every growth that ever
+happened), shelves standing, `Player.unitsBuilt`, `Player.tilesPurchased`. Those
+are exact histories, and they cost one sweep between them (`boardTempo`, memoised
+per sitting). Where the board keeps no record the reading is a **stock over the
+horizon** — the ruins this seat has charted (through its **own fog**,
+`isExploredBy`), the wooded hexes inside its borders, the camps it has sighted —
+and that is crude and written down as crude. Three families answer nothing, each
+for a stated reason: the war occasions ride `ValueContext.threat`, so they are
+worth nothing in a quiet world; the survey pair is nought because **the vein
+layer is shelved**; and a rite is nought because no augur stands. `kill` and
+`death` divide `score.tallyForecast` by the horizon, which is what "occasions
+expected over the horizon" means said as a rate — the forecast table's second
+reader.
+
+The grant is `explainLump` (a windfall is a gift paid once, and this file has one
+exchange rate for that); a grant quoted in *turns of a rate* reads the empire's
+own books, which is `windfallPayout`'s own reading. `perAge` and
+`perSlottedOrder` are the evaluator's own multipliers read off the same board.
+The **`percent` half is the one thing here that is not read** — it scales the
+occasion's own payout, which is composed inside `windfallPayout` from rules this
+file does not carry — so it meets the stand-in scaled by the share, and The
+Woodwrights' doubled chop still sorts above a fifty-percent one.
+
+**The rules, seven of nine.** `unitUpkeep` → the payroll itself
+(`unitUpkeepTotal`) at gold's live price, **both signs**, so The Reckless Levy's
+surcharge is now a charge and Tyranny's rebate a credit; `happinessDemand` → what
+this empire's citizens demand (`happinessDemand` per town) at the happiness
+price; `growthSurplus` → a share of the food the realm makes; `growthCarryover` →
+a share of what a growth cost (the simulation's own curve at the realm's mean
+population) × how often this empire grows; `settlerCost` → the hammers the
+settler this empire is *actually* raising would stop owing, and nothing when no
+expansion chain is live; `tilePurchase` → the ring price × this seat's own
+purchase record; `roadStepCost` unchanged.
+
+**The amplifier, five targets of eight.** The routes running, the roads' own coin
+(`explainEmpireGold`'s positive lines), the shelf's `perUniqueLuxury` at the
+happiness price, the faith rate, the renown rate. `connectionYields` also joined
+`foldReadsAmplifier` — it lives inside `goldPerTurn`, so the **fold** reads it
+exactly — which moves no board today (its two live rows are a technology's and a
+great person's, and `deckPair` answers `null` for both) and is right for the next
+row that carries it.
+
+### The stand-ins left, and why each stays
+
+Nine arms still answer `score.unknownEffect`, and each carries its reason in the
+source:
+
+| Kind | Why |
+|---|---|
+| `pressure` · `pressureRule` | **The tide has no reading in this currency.** The bot prices the *first* religion (`religion.prophetTechValue`) and nothing anywhere prices the hundredth follower |
+| `pantheonSlots` | a belief's worth is the faith book's, and the faith book (`wants.ts`) reads *this* file — taking it here is the cycle `moduleCycles.test.ts` exists to catch. Closing it means moving the belief appraisal into a leaf |
+| `metaRule` | a seal is the difference between two draft plans, same module, same reason |
+| `cityRule` | what fresh water un-gates is `buildError` asked hypothetically, which is the hypothetical inside `src/sim/` this bot may not ask for |
+| `actionRule` | three of the four live rows open the great-person draft **no surface constructs** (the audit's own surprise, queued as H3); a price on a button nobody can press is worse than a stand-in |
+| `behaviorRule` | a rule of the wild's turn, and roads that are already free |
+| `rulePercent` → `borderCulture`, `borderCost` | both buy **ground**, and a hex nobody owns is priced by the settle table's weights (`site.yieldWeights`) rather than by this currency — batch 4's two-weight-tables gap, unclosed |
+| `effectAmplifier` → `riteDuration`, `greatPersonAct` | neither is a rate. F2's own written-down cut, kept |
+| a `unitStamp`'s `hp`, a rider's `heal`/`healAll` | a hit point is a fraction of a piece and none of the three names a piece |
+
+### The two other findings
+
+**Finding 6 — a `where: 'city'` counted line paid once.** `scorePayout` reads
+`pays.where` now: a city line is multiplied by `ValueContext.cities`, a capital
+line and an empire line pay once. Five live rows were under-priced by the whole
+of the empire's city count (Imperium, the Assembly Hall's two, the Smithy's,
+Sima Qian's). The scope is still not evaluated, exactly as `cityYields`' own arm
+does not evaluate one — the standing bargain of the file rather than a new
+omission.
+
+**Finding 5 — the margin's `V`.** `deckReading` reads `marginRates`, which is
+`empireRateReading` **plus** `explainEmpireCardYields`. The sender's foreign
+routes and the treasury's four lines turned out to be **already inside** the base
+reading (`empireRates`, `cities.ts`), so the card empire lines were the whole of
+the hole; the audit's sentence about the routes was stale. It is built in
+`value.ts` and not added to `empireRateReading`, deliberately: that function's
+meaning in the simulation is *the base rate a conversion reads*, and folding the
+card lines back into it would be a card feeding itself. If the base reading ever
+grows these terms of its own, `marginRates` collapses to it.
+
+### The two knobs retired
+
+- **`workers.veinValue`** — the seam a survey reveals is unknown *by
+  construction*, so the want prices at **0** and prints a zero-valued label
+  saying why. Gone from `data/ai.json` and `aiConfig.ts`, so the arena panel
+  loses the box with no page edit. Inert on every board besides: `veins.share` is
+  0 since the layer was shelved (2026-09-06).
+- **`weights.die`** — the great-person dice are gone and the knob was read by
+  nothing at all, while shipping as a live arena box that moved nothing.
+
+**`score.caravanScale` is kept, and measured.** H1's five-voice route fold added
+voices the reading already claimed to carry, not the terms this stands in for
+(the road's march value, trading-post range, the destination's growth), so its
+stated justification is untouched. And it decides nothing on the acceptance
+boards: **no seat raises a caravan at all inside t75 on any of the six**, at ×3
+or at ×1 — two seats hold one route slot each by t75 and neither fills it (the
+pay it multiplies reads 46 → 138 and 24.4 → 73.2, and is never acted on). The
+grid search remains the instrument.
+
+### Byte-identity, and the attribution
+
+The tree moved under this batch several times (H1 and the order pass landing in
+parallel), so a git before/after would have measured other people's work. Instead
+both passes were run **in one process on one tree**, with the batch's arms gated
+by a temporary switch, over the batch 9/10 acceptance harness (seeds 5/777/20260904
+× duel/standard, both seats driven to t75, `snapshotState` + log hashes):
+
+| game | log hash off → on | | first divergence | knockouts |
+|---|---|---|---|---|
+| duel 5 | `44f37cc1024de2d1` → `8f3e8a47a2c85f99` | **moved** | #72 `chooseOrder` option 0 → option 1 | windfallRider MOVES · cityStat MOVES · rulePercent inert · purchaseRider inert |
+| duel 777 | `1c7c220fd73968f5` → `41a0d2325ffe9d63` | **moved** | #130 `chooseOrder` → `skipOrderOffer` | windfallRider · rulePercent · cityStat MOVE |
+| duel 20260904 | `3f8ac19042770ec6` → `4ef769297902dc0a` | **moved** | #46 `chooseOrder` → `skipOrderOffer` | windfallRider · rulePercent · cityStat MOVE |
+| standard 5 | `7f5c7d7507953f24` → `2e0b23c5066713c9` | **moved** | #172 `setCityProduction` granary → settler | rulePercent · cityStat · purchaseRider MOVE; windfallRider inert |
+| standard 777 | `d2ca6cf36efc270f` → `e0fe3f880b989804` | **moved** | #43 `chooseOrder` → `skipOrderOffer` | windfallRider · rulePercent · cityStat MOVE |
+| standard 20260904 | `f145b9022ad58d53` → `afc46cf17d13ebb3` | **moved** | #47 `chooseOrder` → `skipOrderOffer` | windfallRider · rulePercent · cityStat MOVE |
+
+**All six moved, and five of the six first diverge on a Statecraft draft** — the
+bot takes a different card, or passes a hand it used to take. That is the batch
+said as one line: the draft is the one arm that appraises *whole cards*, so
+pricing 23 shapes shows up there first and everywhere else downstream (culture's
+shadow price is the draft plan's own reading, so a re-priced pool re-prices every
+coin of culture in the book). The sixth diverges at a build, three turns of
+compounding later.
+
+"Knockouts" is each arm reverted **alone** with the rest of the batch live:
+`windfallRider`, `rulePercent` and `cityStat` each move a board on their own on
+five or six of the six, which is the honest shape of a 43-row family, a 21-row
+family and a shape on three wonders. `purchaseRider` alone moves one board of the
+six despite being asked three hundred times a game — a discount priced against
+the gold *rate* is a small number beside a shelf.
+
+Arms asked per game (the tally, duel 5): `windfallRider` 1,149 · `rulePercent`
+533 · `cityStat` 402 · `purchaseRider` 275 · `pantheonSlots` 180 · `routeRider`
+173 · `pressure` 136 · `behaviorRule` 94 · `zocRule` 93 · `effectAmplifier` 93 ·
+`meterRule` 80 · `unlocksBuilding` 48 · `periodicOffer` 41 · `foundingRider` 25 ·
+`yieldConversion` 24 · `upkeepSurcharge` 24 · `conditionRule` 2 ·
+`rateConversion` 1. `mirrorYield`, `projectRider`, `periodicMuster`, `unitStamp`,
+`cityRule`, `actionRule` and `metaRule` are asked **nothing** on these boards —
+their rows are on cards no seat holds inside seventy-five turns, which is why
+they are pinned by fixture and by nothing else.
+
+### One measured mistake, kept as the reason for the code
+
+The first `cityStat` arm multiplied by the town count, on the audit's own finding
+6 reasoning. It is wrong here and the acceptance caught it inside a minute: a
+`cityStat` on a **building** is that town's own wall, and `explainBuildingRow`
+prices the identical field at ×1 — so the same wall read two prices depending on
+whether it was written as a top-level field or as an `effects` entry, and the
+bead-race takeover test flipped a town off the great work. The arm reads ×1 now
+and says why; a card's defence in every town is under-read by the town count, and
+that is the price of the two readings agreeing.
+
+### Known gaps, written down rather than fixed
+
+- **The arena's prophet.** See the slow tier below: the two-hundred-turn arena
+  stops founding a religion, no single arm is responsible, and every partial
+  revert restores it.
+- **A `UnitFilter` is never evaluated.** `purchaseRider`'s class and the
+  surcharge's are read as "every piece", so a discount on religious units prices
+  as a discount on everything. Evaluating one wants the roster asked per row.
+- **A `CityScope` is never evaluated**, anywhere in this file — `cityStat`,
+  `meterRule`, `yieldConversion` and `mirrorYield` all count the realm. Same
+  bargain `cityYields`' arm has always struck.
+- **`conditionRule` is a board reading, not a hypothetical.** A war card at peace
+  prices at nought and no option value is folded, which is exactly the gap batch
+  6 wrote down for the draft plan, said one shape over.
+- **`upkeepRebate` still reads `score.nominalCount`** while the surcharge beside
+  it reads the real piece count. The rebate's arm predates this batch and moving
+  it would move boards for no listed reason; the asymmetry is in the source.
+- **The margin costs a fifth empire sweep.** `deckReading` was four and is five
+  (`explainEmpireCardYields` re-reads the base rates internally). Only the
+  fold-read engine rows ask, and every answer is remembered for the sitting
+  (`MARGIN_MEMO`), so nothing measurable moved.
+
+### The slow tier
+
+- `aiDecision.slow.test.ts` — the coverage set is **red on this tree and it is
+  not this batch's**: seed 1's hundred turns now reach `deal` and not `disband`,
+  where the file expects the reverse. Verified the way F2 verified the same claim
+  — the same test run with H2's arms switched off reads the identical eight kinds
+  (`build,deal,draft,endTurn,focus,purchase,research,unitOrder`), so the swap is
+  somewhere else in the shared tree. **Not re-aimed**: the coverage list moves
+  deliberately or not at all, and this batch is not what moved it. The other six
+  claims in the file are green.
+
+- **`aiBot.slow.test.ts` — thirteen of fifteen green, and two red that ARE this
+  batch's.** Both are the same fact said twice, on the two-hundred-turn arena
+  (seed 20260831): the seat stops buying a **prophet**, so
+  `state.religions.length` is 0 and `faith` leaves the set of banks the game
+  spends out of. Measured off/on in one process on one tree:
+
+  ```
+  OFF  religions=1  banks=[faith,gold]  rites=106  pantheon=3/4  purchases=195
+  ON   religions=0  banks=[gold]        rites=58   pantheon=4/3  purchases=140
+  ```
+
+  Both seats still reach a pantheon of three or four beliefs either way — the
+  appetite works; what does not happen is the founding. **It is not attributable
+  to one arm, and the bisect says why**: with the *first thirteen* arms reverted
+  the religion is founded, and with the *last thirteen* reverted it is founded,
+  and with the first seven or the middle six reverted it is founded. Every
+  perturbation of this size restores it, which is the signature of a knife-edge
+  rather than of a mispriced shape: the prophet's purchase sits close enough to
+  the hold row on this seed that re-pricing a hundred and sixty-odd effect rows
+  in either direction moves it across. It is left red and written down here rather
+  than tuned away, because the honest reading is either *the claim wants a band
+  and a wider sweep* (it asserts a single seed's founding, and the augur — the
+  other half of its `banks` claim — was retired out from under it the same day)
+  or *the faith book wants the attention batch 1 deferred*: a rite's worth and a
+  contribution priced by the book are both still open, and neither is H2's fence.

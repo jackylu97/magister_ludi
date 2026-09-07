@@ -24,11 +24,20 @@ import { describe, expect, it } from 'vitest';
 import { unitProductionCost } from '../../src/sim/cities';
 import type { Command } from '../../src/sim/commands';
 import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { RULES } from '../../src/sim/rulesData';
 import { unitDef } from '../../src/sim/unitData';
 import { twoCityGame } from './citiesHelpers';
 
 const BASE = unitDef('settler').cost;
 const STEP = unitDef('settler').escalation!;
+/**
+ * What the nth settler actually costs, band and all — `cities.test.ts`'s own
+ * reading of a rung (2026-09-06, `docs/flags.md` item y). The band multiplies
+ * the *escalated* figure and floors once, so `BASE + n * STEP` is the row's
+ * ladder rather than a price.
+ */
+const rung = (built: number): number =>
+  Math.floor((BASE + built * STEP) * RULES.production.costAgeBase);
 
 describe('escalating settler cost', () => {
   it('replays a run of escalating settlers byte for byte', () => {
@@ -63,7 +72,7 @@ describe('escalating settler cost', () => {
     // The run was long enough for the ladder to matter.
     const built = game.state.players[0]!.unitsBuilt.settler ?? 0;
     expect(built).toBeGreaterThanOrEqual(3);
-    expect(unitProductionCost(game.state, 0, 'settler')).toBe(BASE + STEP * built);
+    expect(unitProductionCost(game.state, 0, 'settler')).toBe(rung(built));
     expect(snapshotState(replay(game.config, game.log))).toBe(snapshotState(game.state));
   });
 

@@ -61,11 +61,37 @@ describe('wonderGrantNotices', () => {
 
   it('gives a vowel its article', () => {
     const notices = wonderGrantNotices(
-      [wonder('stonehenge', 'Stonehenge')],
-      [{ grant: 'unit', name: 'Augur', done: true, unitId: 3 }],
+      [wonder('hagiaSophia', 'Hagia Sophia')],
+      [{ grant: 'unit', name: 'Apostle', done: true, unitId: 3 }],
       SEAT,
     );
-    expect(texts(notices)).toEqual(['✶ Stonehenge · an Augur answers the call']);
+    expect(texts(notices)).toEqual(['✶ Hagia Sophia · an Apostle answers the call']);
+  });
+
+  /**
+   * The standing stones, since the ruling of 2026-09-06: they hand over the god
+   * a piece used to be walked to a town to name, and the pick spends nothing.
+   * The sentence says the second half, because "free" is the whole of what
+   * distinguishes this from the consecration the ladder deals anyway.
+   */
+  it('names the god the stones give, and says the faith is not spent', () => {
+    const notices = wonderGrantNotices(
+      [wonder('stonehenge', 'Stonehenge')],
+      [{ grant: 'faithRung', name: 'a god', done: true }],
+      SEAT,
+    );
+    expect(texts(notices)).toEqual(['✶ Stonehenge · a god awaits a name']);
+  });
+
+  it('tells the truth when the stones find no place to fill', () => {
+    // `done: false` covers a hand already waiting, a full pantheon and an empty
+    // bag, and the report does not say which — the unit arm's discipline.
+    const notices = wonderGrantNotices(
+      [wonder('stonehenge', 'Stonehenge')],
+      [{ grant: 'faithRung', name: 'a god', done: false }],
+      SEAT,
+    );
+    expect(texts(notices)).toEqual(['✶ Stonehenge · no god could be named']);
   });
 
   it('says what a technology grant finished', () => {

@@ -78,7 +78,7 @@ sizes.
 | what it does (`prospectAt`) | if a seam sleeps there, it **surfaces**: `tile.resource = tile.vein` (the ordinary reveal flow then governs who can *see* it — iron stays veiled until Bronze Panoply, gems until their reveal); `vein` is deleted; `surveyed = true` (a barren hill is marked surveyed too) |
 | what it pays | the **assay**, `improvements.assayGold` **15💰** to the nearest owned city (a windfall on the `prospect` occasion, riders composed); on a strike, the **`veinFound` occasion** fires as well (base nothing — a card names the figure) |
 | the interface | once an empire holds Geomancy, a Survey row on a hill with nothing under it is greyed "Nothing sleeps under this hill" (`barrenHillError`) — the reducer still accepts the survey; the sentence is the interface's |
-| the bot | prospects only inside its own territory; a sleeping seam is priced at `workers.veinValue` a turn as a stand-in (`src/ai/plan.ts`) |
+| the bot | prospects only inside its own territory; the sleeping-seam stand-in (`workers.veinValue`) was retired with the shelving (batch H2, 2026-09-06) — a seam prices at nothing until the layer returns |
 
 ### The marks — already built, at Æra IV
 

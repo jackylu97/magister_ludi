@@ -221,6 +221,9 @@ const TUNING: TuneGroup[] = [
       { path: ['elevation', 'ridgeBreakStrength'], places: 2, hint: 'gaps in a range; 0 is one wall' },
       { path: ['moisture', 'forestShare'], places: 3, hint: 'share of *eligible* ground wooded' },
       { path: ['moisture', 'jungleShare'], places: 3, hint: 'the same inside the tropics' },
+      { path: ['woodland', 'grain'], places: 2, hint: 'copses against wet country; 0 is one wood' },
+      { path: ['woodland', 'clearingChance'], places: 2, hint: 'an enclosed forest hex is opened' },
+      { path: ['woodland', 'clearingMinPatch'], places: 0, hint: 'smallest wood a hole is cut in' },
       { path: ['moisture', 'oasisShare'], places: 3, hint: 'share of flat desert with a pool' },
       { path: ['moisture', 'oasisSpacing'], places: 0, hint: 'hexes between two oases' },
       { path: ['moisture', 'rainShadow', 'enabled'], hint: 'dry the lee side of ranges' },
@@ -973,6 +976,37 @@ function censusSection(reading: MapReport): HTMLElement {
   return el;
 }
 
+/**
+ * The woods, in the numbers the 2026-09-06 ruling is written against.
+ *
+ * "Forests spawn in huge patches" is not a claim about the share — that was
+ * already about a sixth of the land — so the share alone could never tell a
+ * designer whether turning `woodland.grain` had worked. The four rows below the
+ * share are what the sentence actually means: how many separate woods there
+ * are, how big the biggest is, and how much of the forest is *inside* a wood
+ * rather than on its edge. Turn the knob, press Generate, read these.
+ */
+function woodlandSection(reading: MapReport): HTMLElement {
+  const wood = reading.woodland;
+  const el = section(
+    'The woods',
+    'Forest as it stands — the patch reading woodland.grain and ' +
+      'woodland.clearingChance are turned against.',
+  );
+  const { el: tableEl, body } = table([{ label: 'Measure' }, { label: '', className: 'num tight' }]);
+  const line = (label: string, value: string): void => {
+    body.append(row(cell('td', '', label), cell('td', 'num tight', value)));
+  };
+  line('forest tiles', String(wood.forestTiles));
+  line('share of land', `${(wood.share * 100).toFixed(1)}%`);
+  line('separate woods', String(wood.patches));
+  line('mean wood', wood.meanPatch.toFixed(1));
+  line('largest wood', String(wood.largestPatch));
+  line('enclosed hexes', `${wood.enclosed} · ${(wood.enclosedShare * 100).toFixed(1)}%`);
+  el.append(tableEl);
+  return el;
+}
+
 /** The continent table: size, and the hand as placed. One row per continent. */
 function continentSection(reading: MapReport): HTMLElement {
   const el = section(
@@ -1016,7 +1050,8 @@ function startSection(reading: MapReport): HTMLElement {
     'Starts',
     `Rings 1–2 workable food and production, read off the start scorer itself. ` +
       `Luxuries are the kinds within ${reading.starts.luxuryRadius} hexes — the ` +
-      `radius the guarantee pass works to.`,
+      `radius the guarantee pass works to. Strategics are the guaranteed rows ` +
+      `within ${reading.starts.strategicRadius}; a seat short of one says so in red.`,
   );
   const { el: tableEl, body } = table([
     { label: 'Seat' },
@@ -1061,6 +1096,15 @@ function startSection(reading: MapReport): HTMLElement {
     coast.textContent = start.coast ? 'coast' : 'inland';
     flags.append(fresh, document.createTextNode(' · '), coast, document.createTextNode(' · '));
     holder.append(flags, handNode(start.luxuries));
+    // The 2026-09-05 guarantee, audited per seat: what is in reach, and — in the
+    // refusal ink, because it is a promise broken — what is not.
+    holder.append(handNode(start.strategics));
+    if (start.strategicsMissing.length > 0) {
+      const short = document.createElement('span');
+      short.className = 'reject';
+      short.textContent = `no ${start.strategicsMissing.join(' or ')} within ${reading.starts.strategicRadius}`;
+      holder.append(short);
+    }
     if (start.reject !== null) {
       const why = document.createElement('span');
       why.className = 'reject';
@@ -1078,6 +1122,7 @@ function startSection(reading: MapReport): HTMLElement {
 function renderSections(reading: MapReport): void {
   sectionsEl.replaceChildren(
     censusSection(reading),
+    woodlandSection(reading),
     continentSection(reading),
     startSection(reading),
   );

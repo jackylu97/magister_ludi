@@ -89,7 +89,7 @@ import {
 import { placeDiscoveries } from './discoveryPlacement';
 import { createNoise3D, fbm3, ridged3, type Noise3D } from './noise';
 import { placeResources } from './resources';
-import { makeRng, nextUint32 } from './rng';
+import { hashSeed, makeRng, nextFloat, nextUint32 } from './rng';
 import { placeVeins } from './veins';
 import { isWaterTerrain, type FeatureId, type TerrainId } from './terrainData';
 import {
@@ -791,12 +791,24 @@ function forestEligible(tile: Tile, latitude: number, config: MapgenConfig): boo
  * Jungle is dealt before forest and takes its tiles out of forest's eligible
  * set, so the tropics read as jungle-then-clearing rather than as two features
  * competing for one hex.
+ *
+ * The forest deal carries a second field since 2026-09-06 — the woodland grain,
+ * `WoodlandConfig.grain`. It changes *which* eligible hexes are taken and never
+ * how many, because both fields are read as percentiles inside the candidate
+ * set and the count is still `share × candidates`. Jungle takes no grain: the
+ * complaint was about the woods, and a rainforest is meant to read as a mass.
  */
-function assignFeatures(map: GameMap, config: MapgenConfig, fields: TerrainFields): void {
+function assignFeatures(
+  map: GameMap,
+  config: MapgenConfig,
+  fields: TerrainFields,
+  grain: Float64Array | null,
+): void {
   const deal = (
     eligible: (tile: Tile, latitude: number) => boolean,
     share: number,
     feature: FeatureId,
+    scatter: Float64Array | null,
   ): void => {
     const candidates: number[] = [];
     for (let i = 0; i < map.tiles.length; i++) {
@@ -805,16 +817,167 @@ function assignFeatures(map: GameMap, config: MapgenConfig, fields: TerrainField
       if (!eligible(tile, latitudeOf(tile.row, map.height))) continue;
       candidates.push(i);
     }
-    // Wettest first, ties by index — moisture is a rank so ties cannot happen,
-    // but the comparator says so anyway rather than trusting that.
-    candidates.sort((a, b) => fields.moisture[b]! - fields.moisture[a]! || a - b);
+    if (scatter === null) {
+      // Wettest first, ties by index — moisture is a rank so ties cannot happen,
+      // but the comparator says so anyway rather than trusting that.
+      candidates.sort((a, b) => fields.moisture[b]! - fields.moisture[a]! || a - b);
+    } else {
+      // Two percentiles *within this candidate set*, blended. Ranking inside the
+      // set rather than reading the two fields raw is what makes the weight mean
+      // something: `fields.moisture` is a rank over the whole map and the grain
+      // is raw fbm, and a blend of two incomparable scales is one field with a
+      // little noise on it. Highest score first, ties by index.
+      const wet = rankWithin(candidates, (index) => fields.moisture[index]!);
+      const fine = rankWithin(candidates, (index) => scatter[index]!);
+      const weight = config.woodland.grain;
+      const score = new Float64Array(candidates.length);
+      for (let n = 0; n < candidates.length; n++) {
+        score[n] = (1 - weight) * wet[n]! + weight * fine[n]!;
+      }
+      // Sorted as *positions* so the score stays readable beside the candidate
+      // it belongs to, then written back as tile indices.
+      const order = candidates.map((_, position) => position);
+      order.sort((a, b) => score[b]! - score[a]! || candidates[a]! - candidates[b]!);
+      const sorted = order.map((position) => candidates[position]!);
+      for (let n = 0; n < sorted.length; n++) candidates[n] = sorted[n]!;
+    }
     const take = Math.round(candidates.length * share);
     for (let n = 0; n < take; n++) map.tiles[candidates[n]!]!.feature = feature;
   };
 
-  deal((tile, latitude) => jungleEligible(tile, latitude, config), config.moisture.jungleShare, 'jungle');
-  deal((tile, latitude) => forestEligible(tile, latitude, config), config.moisture.forestShare, 'forest');
+  deal(
+    (tile, latitude) => jungleEligible(tile, latitude, config),
+    config.moisture.jungleShare,
+    'jungle',
+    null,
+  );
+  deal(
+    (tile, latitude) => forestEligible(tile, latitude, config),
+    config.moisture.forestShare,
+    'forest',
+    grain,
+  );
   assignOases(map, config, fields);
+}
+
+/**
+ * Each candidate's percentile among the candidates, by the value it is asked
+ * for. Ascending, so 1 is the largest; ties break by tile index.
+ *
+ * Indexed by *position in `candidates`*, not by tile index, because the caller
+ * holds the list and this is only ever read beside it.
+ */
+function rankWithin(candidates: number[], valueOf: (index: number) => number): Float64Array {
+  const order = candidates.map((_, position) => position);
+  order.sort(
+    (a, b) =>
+      valueOf(candidates[a]!) - valueOf(candidates[b]!) || candidates[a]! - candidates[b]!,
+  );
+  const ranks = new Float64Array(candidates.length);
+  const last = Math.max(1, candidates.length - 1);
+  for (let r = 0; r < order.length; r++) ranks[order[r]!] = r / last;
+  return ranks;
+}
+
+/**
+ * The copse-scale field the forest deal blends in, or `null` when the grain is
+ * off (`woodland.grain <= 0`), which reproduces the pre-2026-09-06 woods hex
+ * for hex — the `rainShadow.enabled` and `ridgeBreakStrength: 0` bargain again.
+ *
+ * The permutation table is drawn from a **stream of the seed's own**, never from
+ * the map `rng`. That is the whole reason this pass could be added at all: the
+ * fifth noise table `noise.ridgeBreak`'s docblock says cannot be afforded is
+ * affordable the moment it stops sharing a generator with the rivers.
+ */
+function woodlandGrainField(
+  map: GameMap,
+  config: MapgenConfig,
+  seed: number,
+): Float64Array | null {
+  if (config.woodland.grain <= 0) return null;
+  const noise = createNoise3D(makeRng(hashSeed(`webciv:mapgen:woodland:grain:${seed | 0}`)));
+  const field = new Float64Array(map.tiles.length);
+  for (let row = 0; row < map.height; row++) {
+    for (let col = 0; col < map.width; col++) {
+      field[row * map.width + col] = sampleCylinder(
+        noise,
+        config.noise.woodlandGrain,
+        col,
+        row,
+        map.width,
+      );
+    }
+  }
+  return field;
+}
+
+/**
+ * Punches clearings through the inside of the big woods. The trees' only dice.
+ *
+ * A hex whose six neighbours are **all** wooded is the inside of a forest, and
+ * a map whose woods have no inside is a map of copses — which is the ruling.
+ * Every such hex in a wood of at least `clearingMinPatch` hexes is offered to
+ * `clearingChance`, and the ones that take it lose their trees.
+ *
+ * Two disciplines make the result independent of the sweep:
+ *
+ *   · **Enclosure is read off the snapshot**, `wooded` below, and never off the
+ *     map being edited. Otherwise the first clearing would disqualify its six
+ *     neighbours and the answer would be a fact about tile order.
+ *   · **The patch sizes are taken first**, by a flood over the same snapshot,
+ *     tiles visited in index order.
+ *
+ * The draws come from a stream of the seed's own, so this costs the map's dice
+ * nothing — see `woodlandGrainField`. It runs after the whole feature deal, so
+ * the jungle, the oases and every earlier pass are bit-identical without it.
+ *
+ * Returns how many hexes were opened; the map report prints it.
+ */
+function openClearings(map: GameMap, config: MapgenConfig, seed: number): number {
+  const { clearingChance, clearingMinPatch } = config.woodland;
+  if (clearingChance <= 0) return 0;
+
+  const count = map.tiles.length;
+  const wooded = new Uint8Array(count);
+  for (let i = 0; i < count; i++) if (map.tiles[i]!.feature === 'forest') wooded[i] = 1;
+
+  // Connected woods, flooded in tile-index order. `patch` holds each wooded
+  // hex's component id and `patchSize` that component's size.
+  const patch = new Int32Array(count).fill(-1);
+  const patchSize: number[] = [];
+  for (let i = 0; i < count; i++) {
+    if (!wooded[i] || patch[i] !== -1) continue;
+    const id = patchSize.length;
+    let size = 0;
+    const stack: Tile[] = [map.tiles[i]!];
+    patch[i] = id;
+    while (stack.length > 0) {
+      const tile = stack.pop()!;
+      size += 1;
+      for (const neighbour of tileNeighbors(map, tile)) {
+        const index = tileIndex(map, neighbour.col, neighbour.row);
+        if (!wooded[index] || patch[index] !== -1) continue;
+        patch[index] = id;
+        stack.push(map.tiles[index]!);
+      }
+    }
+    patchSize.push(size);
+  }
+
+  const rng = makeRng(hashSeed(`webciv:mapgen:woodland:clearings:${seed | 0}`));
+  let opened = 0;
+  for (let i = 0; i < count; i++) {
+    if (!wooded[i]) continue;
+    if (patchSize[patch[i]!]! < clearingMinPatch) continue;
+    const neighbours = tileNeighbors(map, map.tiles[i]!);
+    if (neighbours.length < 6) continue;
+    const inside = neighbours.every((n) => wooded[tileIndex(map, n.col, n.row)] === 1);
+    if (!inside) continue;
+    if (nextFloat(rng) >= clearingChance) continue;
+    map.tiles[i]!.feature = 'none';
+    opened += 1;
+  }
+  return opened;
 }
 
 /**
@@ -907,6 +1070,14 @@ export interface MapDetail {
   lakeCount: number;
   /** How many desert tiles the rivers and oases turned into floodplain. */
   floodplainCount: number;
+  /** How many enclosed forest hexes pass 1c opened as clearings. */
+  clearingCount: number;
+  /**
+   * How many strategic copies the start guarantee had to force
+   * (`ensureStartStrategics`). Not readable off the finished map — a forced
+   * copy and a dealt one are the same tile — so generation hands it over.
+   */
+  forcedStrategics: number;
 }
 
 /**
@@ -1007,7 +1178,15 @@ export function generateMapDetail(
   // Pass 1b: the trees, as a share of the ground each kind is eligible for.
   // Separate from pass 1 because eligibility reads the terrain pass 1 just
   // wrote, and because a share has to be counted over a finished set.
-  assignFeatures(map, config, fields);
+  assignFeatures(map, config, fields, woodlandGrainField(map, config, seed));
+
+  // Pass 1c: the clearings inside the big woods (ruled 2026-09-06). It rolls
+  // dice, and they come out of a stream keyed on the seed rather than out of
+  // `rng` — so the rivers, the resources and the ruins of a given seed are
+  // dealt from exactly the numbers they were dealt from before the woods had a
+  // grain. What moves is the *ground* those passes read: a forest resource
+  // needs a forest, so a cleared hex is a hex the deer cannot stand on.
+  const clearings = openClearings(map, config, seed);
 
   // Pass 2: small inland water bodies become lakes. Before the coast pass, and
   // that order is the whole point — see `classifyLakes` in `water.ts`.
@@ -1106,7 +1285,7 @@ export function generateMapDetail(
   // hills, features and river edges on a given seed are bit-identical to what
   // they were before resources existed. Adding a pass must never move the
   // ground. See `resources.ts`.
-  placeResources(map, rng, config.resources);
+  const forcedStrategics = placeResources(map, rng, config.resources);
 
   // Pass 7: the ruins and the villages, and they are **last** for the third time
   // for the same reason — every draw made here is a draw nothing before it can
@@ -1124,7 +1303,7 @@ export function generateMapDetail(
   // note that nothing but the survey may ever read what this writes.
   placeVeins(map, rng, config.veins);
 
-  return { map, rivers, lakeCount, floodplainCount };
+  return { map, rivers, lakeCount, floodplainCount, clearingCount: clearings, forcedStrategics };
 }
 
 /** Convenience for the UI: axial coordinates of a tile. */

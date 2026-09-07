@@ -213,15 +213,43 @@ export function signedFigure(value: number): string {
 }
 
 /**
+ * A whole figure that keeps a minus sign and never wears a plus — the voice of
+ * a number that is a *quantity* rather than a contribution, and that may
+ * honestly land on either side of zero.
+ *
+ * `figure`'s sibling, and the difference between them is the only thing worth
+ * saying: `figure` is a **magnitude**, so a caller that hands it a cost or a
+ * strength has already decided the sign is not part of the number. The top
+ * bar's chips have made no such decision. A food rate goes negative when a town
+ * starves and a treasury goes negative when an empire runs on debt, and both of
+ * those printed through `figure` would read as good news.
+ *
+ * It is here rather than in the bar because `poolFigure` below leads with a
+ * bank and has the same exposure.
+ */
+export function netFigure(value: number): string {
+  const rounded = roundYield(value);
+  return rounded < 0 ? `−${compact(-rounded)}` : compact(rounded);
+}
+
+/**
  * The same voice with a tenth kept — for the **meters**, and only for them.
  *
  * `signedFigure`'s old body, split off rather than deleted when batch X made
  * every yield print whole. Happiness and authority are not yields: they are
  * ledgers whose lines include a crowding term of `0.6 · 3 ^ 1.4`, they are
- * compared against tier *rungs* rather than spent, and a chip reading `+9` while
- * the tenth-of-a-point below the rung is what a player is playing around would
- * be hiding the wrong thing. Nobody needs the fourteenth decimal place, hence
- * the tenth.
+ * compared against tier *rungs* rather than spent, and the tenth-of-a-point
+ * below a rung is what a player closing on one is playing around. Nobody needs
+ * the fourteenth decimal place, hence the tenth.
+ *
+ * **The tenth is off the top bar since 2026-09-06** (the user, `docs/flags.md`
+ * item z: "every figure in the top bar rounds to the nearest integer for
+ * display — the yield chips and both meters"). What survives is the argument's
+ * own half: a *ledger* is where the fraction can be read against a rung, so the
+ * two meters' hover cards, their click-through ledgers and the authority card's
+ * capacity headline still print through this pair, and the two chips print
+ * through `signedFigure` with every other figure on the strip. A chip is a
+ * glance; a card is the place a player goes to count.
  */
 export function signedMeterFigure(value: number): string {
   const rounded = Math.round(value * 10) / 10;
@@ -288,7 +316,12 @@ export function figure(value: number): string {
  * figure is written one way everywhere it appears.
  */
 export function poolFigure(pool: number, perTurn: number, threshold?: number): string {
-  const head = threshold === undefined ? figure(pool) : `${figure(pool)}/${figure(threshold)}`;
+  // `netFigure` and not `figure`: a treasury goes under water in a game that
+  // charges maintenance, and a bank of −22 printed as a magnitude reads as
+  // twenty-two coins in hand. The rate keeps its explicit `+`, because that one
+  // *is* a contribution.
+  const head =
+    threshold === undefined ? netFigure(pool) : `${netFigure(pool)}/${netFigure(threshold)}`;
   return `${head} (${signedFigure(perTurn)})`;
 }
 

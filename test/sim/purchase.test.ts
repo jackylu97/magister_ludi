@@ -26,6 +26,7 @@ import { describe, expect, it } from 'vitest';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import {
+  buildingProductionCost,
   cityYields,
   foundCityAt,
   queueItemName,
@@ -169,11 +170,18 @@ describe('what gold costs', () => {
     expect(price.lines[price.lines.length - 1]!.source).toBe(`×${RATE} in gold`);
   });
 
-  it('prices a building off its flat cost', () => {
+  it('prices a building off its folded cost, age band and all', () => {
+    // **Re-aimed 2026-09-06** (`docs/flags.md` item y). It used to be the row's
+    // flat `cost` — a building had no fold, so the tag converted the printed
+    // figure. A building's price is now `explainBuildingCost`, whose second line
+    // is the age band, and the purchase converts *that*: the till and the basket
+    // ask the same evaluator, which is the whole of `explainPurchaseCost`'s
+    // second shape.
     const g = game();
     const city = found(g.state, 0);
     const price = explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!;
-    expect(price.total).toBe(buildingDef('granary').cost * RATE);
+    expect(price.total).toBe(buildingProductionCost('granary') * RATE);
+    expect(buildingProductionCost('granary')).toBeGreaterThan(buildingDef('granary').cost);
   });
 
   /**
@@ -280,13 +288,20 @@ describe('buying a unit', () => {
     player.gold = 2000;
 
     const before = unitProductionCost(g.state, 0, 'worker');
-    expect(before).toBe(unitDef('worker').cost);
+    // The row's figure through the Æra I band, which every price wears since
+    // 2026-09-06 (item y) — the ladder is what this case is about, and it starts
+    // from the banded figure.
+    expect(before).toBe(
+      Math.floor(unitDef('worker').cost * RULES.production.costAgeBase),
+    );
     expect(dispatch(g, buyCommand(city.id, WORKER)).ok).toBe(true);
     expect(player.unitsBuilt.worker).toBe(1);
     expect(player.unitsBuilt.settler).toBeUndefined();
     // The empire's *next* worker is dearer; its settler ladder never moved.
     expect(unitProductionCost(g.state, 0, 'worker')).toBeGreaterThan(before);
-    expect(unitProductionCost(g.state, 0, 'settler')).toBe(unitDef('settler').cost);
+    expect(unitProductionCost(g.state, 0, 'settler')).toBe(
+      Math.floor(unitDef('settler').cost * RULES.production.costAgeBase),
+    );
   });
 
   it('strikes the bought thing off the queue and keeps the hammers', () => {
@@ -814,6 +829,6 @@ describe('the schema witness', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(78);
+    expect(SCHEMA_VERSION).toBe(81);
   });
 });

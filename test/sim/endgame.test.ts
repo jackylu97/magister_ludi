@@ -46,7 +46,7 @@ import {
 } from '../../src/sim/beads';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { type Command, applyCommand } from '../../src/sim/commands';
-import { foundCityAt, realiseItem } from '../../src/sim/cities';
+import { buildingProductionCost, foundCityAt, realiseItem } from '../../src/sim/cities';
 import { createGame, dispatch, snapshotState } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
 import { nextBotCommand } from '../../src/ai/bot';
@@ -613,7 +613,7 @@ describe('the Opus is funded the cathedral’s way', () => {
 
     const player = playerById(g.state, 0)!;
     // Enough coin to cover the whole row at the printed rate, in one press.
-    player.gold = buildingDef(OPUS).cost * RULES.production.goldPerHammer;
+    player.gold = buildingProductionCost(OPUS) * RULES.production.goldPerHammer;
     const result = applyCommand(g.state, {
       type: 'contribute',
       playerId: 0,
@@ -666,7 +666,7 @@ describe('the endgame is deterministic', () => {
     fillRod(g.state, 0);
     const town = g.state.cities.find((c) => c.ownerId === 0)!;
     playerById(g.state, 0)!.gold =
-      buildingDef(OPUS).cost * RULES.production.goldPerHammer;
+      buildingProductionCost(OPUS) * RULES.production.goldPerHammer;
     dispatch(g, {
       type: 'setCityProduction',
       playerId: 0,

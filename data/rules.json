@@ -341,12 +341,7 @@
     "scholarDraftFaith": 1000
   },
   "production": {
-    "unitCostAgeMultiplier": [
-      1,
-      1.5,
-      2,
-      2.5
-    ],
+    "costAgeBase": 1.25,
     "goldPerHammer": 4,
     "faithPerHammer": 1,
     "wonderRefundGoldPerHammer": 1

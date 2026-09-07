@@ -923,6 +923,12 @@ function grantSentence(report: CompletionGrantReport): string {
   if (report.grant === 'tech') {
     return report.done ? `${report.name} is understood` : 'nothing was being researched';
   }
+  if (report.grant === 'faithRung') {
+    // The failure arm names no cause, the unit arm's discipline: `done: false`
+    // covers a hand already waiting, a pantheon with no place open and an empty
+    // bag, and the report does not say which.
+    return report.done ? 'a god awaits a name' : 'no god could be named';
+  }
   // Not "a Doctrine is already owed", which was the first wording and is a
   // guess: `done: false` covers **two** causes here — a seat already holding an
   // unanswered draft, and a government whose tier deals no Doctrine at all
@@ -3851,8 +3857,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (selectedId === null) return null;
     const unit = unitById(getGame().state, selectedId);
     // The unit may have been removed, or the seat may have changed under the
-    // selection; either way it is stale.
-    if (!unit || unit.ownerId !== localPlayerId) return null;
+    // selection; either way it is stale. So is a trader that has since taken a
+    // route: the piece in hand when Start Route was pressed walks itself now,
+    // and `ownUnitsAt` would not hand it over again (the same rule, read once
+    // more here so the selection drops the moment the route stands).
+    if (!unit || unit.ownerId !== localPlayerId || unit.trade !== undefined) return null;
     return unit;
   }
 
@@ -5802,10 +5811,19 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * the state, so click-cycling visits them in the same sequence every time.
    * Other players' pieces are never returned — they are information, not
    * something this client may command.
+   *
+   * Nor is a trader on its route (the user, 2026-09-06: "traders should be
+   * unselectable while they're in a trade route"). `Unit.trade` presence IS the
+   * route, and while it stands the piece walks itself; there is no order to give
+   * it here, and the one thing a player can do to it — cancel the route — is the
+   * trade screen's verb. Picking it up only put a piece in hand that answered
+   * nothing.
    */
   function ownUnitsAt(col: number, row: number): Unit[] {
     const { state } = getGame();
-    return unitsOnTile(state, col, row).filter((unit) => unit.ownerId === localPlayerId);
+    return unitsOnTile(state, col, row).filter(
+      (unit) => unit.ownerId === localPlayerId && unit.trade === undefined,
+    );
   }
 
   /**
@@ -6848,9 +6866,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * (`setOpenCity` frames the work radius), so while the mode holds, the camera
    * belongs to it.
    *
-   * Only the pan. The press, the click and the wheel are untouched: clicking
-   * hexes is the mode's own input, and a player who wants a wider view of the
-   * work radius should have it. And it is derived from `openCity()` — the same
+   * The pan and, since 2026-09-06, the wheel too (the user: "remove zoom from
+   * the city screen"): the frame the mode set is the frame the screen talks
+   * about, and a scroll over the panel's edge was dollying the town out from
+   * under it. The press and the click are untouched: clicking hexes is the
+   * mode's own input. And it is derived from `openCity()` — the same
    * question the vignette and the banner hide ask, never a second flag — so
    * every way out of the mode (Leave, Escape, a seat change, a captured town)
    * restores the pan without anybody remembering to.
@@ -6929,6 +6949,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     'wheel',
     (event) => {
       event.preventDefault();
+      // The city screen's frame is the mode's (`panLocked`'s docblock).
+      if (panLocked()) return;
       const rect = viewport.getBoundingClientRect();
       const factor = Math.exp(-event.deltaY * 0.0015);
       pointer = { x: event.clientX - rect.left, y: event.clientY - rect.top };

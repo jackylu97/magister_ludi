@@ -68,6 +68,12 @@
       "octaves": 3,
       "lacunarity": 2.0,
       "persistence": 0.5
+    },
+    "woodlandGrain": {
+      "cycleTiles": 5,
+      "octaves": 2,
+      "lacunarity": 2.0,
+      "persistence": 0.5
     }
   },
   "elevation": {
@@ -121,6 +127,11 @@
       "strength": 0.45
     }
   },
+  "woodland": {
+    "grain": 0.55,
+    "clearingChance": 0.4,
+    "clearingMinPatch": 8
+  },
   "lakes": {
     "maxSize": 8
   },
@@ -160,7 +171,9 @@
     "startFoodRadius": 3,
     "startLuxuryRadius": 4,
     "startLuxuryKinds": 2,
-    "startLuxuryCopies": 2
+    "startLuxuryCopies": 2,
+    "startStrategics": ["horses", "iron"],
+    "startStrategicRadius": 6
   },
   "veins": {
     "share": 0,

@@ -826,3 +826,41 @@ describe('the human seat’s puppet hook', () => {
     expect(turn.indexOf('autoPickPuppets()')).toBeLessThan(turn.indexOf('endTurnBlocker()'));
   });
 });
+
+/**
+ * **A trader on its route is not in hand** (the user, 2026-09-06: "traders
+ * should be unselectable while they're in a trade route").
+ *
+ * `Unit.trade` presence IS the route; while it stands the piece walks itself,
+ * and the one thing a player can do to it — cancel — is the trade screen's
+ * by-id verb (`cancelRouteOf`). Two readers, one rule: the tile's click list
+ * never hands the piece over, and a selection that took a route drops the
+ * moment it stands. `unitAwaitsOrders` (`sim/units.ts`) already reads `trade`,
+ * so End Turn never sends the player looking for it either.
+ */
+describe('a trader on its route is not in hand', () => {
+  const SOURCE = (
+    import.meta.glob('../../src/ui/controls.ts', {
+      eager: true,
+      query: '?raw',
+      import: 'default',
+    }) as Record<string, string>
+  )['../../src/ui/controls.ts'];
+  const fn = (name: string): string => {
+    const at = SOURCE.indexOf(`function ${name}(`);
+    expect(at, name).toBeGreaterThan(-1);
+    return SOURCE.slice(at, SOURCE.indexOf('\n  }\n', at));
+  };
+
+  it('never lists one among the units a click may pick up', () => {
+    expect(fn('ownUnitsAt')).toContain('unit.ownerId === localPlayerId && unit.trade === undefined');
+  });
+
+  it('drops the selection the moment the route stands', () => {
+    expect(fn('selectedUnit')).toContain('unit.trade !== undefined) return null;');
+  });
+
+  it('keeps the by-id cancel for the trade screen', () => {
+    expect(SOURCE).toContain('function cancelRouteOf(');
+  });
+});

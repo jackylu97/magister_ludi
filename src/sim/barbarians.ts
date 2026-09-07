@@ -31,20 +31,40 @@
  * for the *technology* gate and never asks `hasResource`. Said out loud here
  * because it is the kind of asymmetry that looks like a bug in six months.
  *
- * Three roles, and none of them stored
- * ------------------------------------
- * A band does one of three things: it **steals** an unguarded civilian, it
- * **escorts** one home, or it **raids**. Which of the three a given unit is
- * doing is *derived from the board every turn* (`barbarianRoles`) and never
- * written down — see that type's docblock for why stored intent would be a
- * serialisation problem, a staleness problem and a replay problem at once, and
- * how the two facts a memory would have carried (which camp is home, which
- * raider is the captor) fall out of geometry instead.
+ * Four roles, and none of them stored
+ * -----------------------------------
+ * A band does one of four things: it **wardens** its camp, it **steals** an
+ * unguarded civilian, it **escorts** one home, or it **raids**. Which of the
+ * four a given unit is doing is *derived from the board every turn*
+ * (`barbarianRoles`) and never written down — see that type's docblock for why
+ * stored intent would be a serialisation problem, a staleness problem and a
+ * replay problem at once, and how the two facts a memory would have carried
+ * (which camp is home, which raider is the captor) fall out of geometry instead.
  *
- * The priority is **escort > theft > raid**, expressed as the order the three
- * derivation passes run in. A soldier walking a prisoner home ignores a scout
- * that wanders past: a band that dropped its cargo for every fresh target would
- * never get one home, which is the whole behaviour.
+ * The priority is **escort > warden > theft > raid**, expressed as the order the
+ * four derivation passes run in. A soldier walking a prisoner home ignores a
+ * scout that wanders past: a band that dropped its cargo for every fresh target
+ * would never get one home, which is the whole behaviour.
+ *
+ * The warden keeps the camp
+ * -------------------------
+ * **A camp keeps one unit dug in on the camp hex before it sends anybody out**
+ * (the user, 2026-09-06). The warden is the wild soldier standing *on* the camp,
+ * or — when nobody is — the nearest unspoken-for soldier inside `campUnitRadius`,
+ * which walks home; exactly one per camp, and it fortifies through the same
+ * field a player's Fortify writes (`Unit.fortifiedTurns`), so `planCombat` pays
+ * it the ordinary entrenchment line and there is no second trench rule with the
+ * wild's name on it. It never raids, never wanders and never chases prey: it
+ * strikes only what has come within reach of the camp itself.
+ *
+ * The muster half needs no clause of its own, which is the nice part:
+ * `musterTileFor` already seats a new band **on the camp** when its category has
+ * room, and under the stacking cap "there is military room on the camp hex" and
+ * "this camp has no warden" are the same sentence. So a camp with no warden
+ * musters into the warden's place and digs in on the spot; a camp that has one
+ * seats the next muster on a neighbour, and that one raids. A warden killed
+ * therefore keeps the camp's next piece home without anybody remembering that it
+ * died.
  *
  * Theft is not a mechanism of its own
  * -----------------------------------
@@ -77,7 +97,7 @@
 
 import { campAt, hasCampAt } from './camps';
 import { tileOwnerPlayerId } from './cities';
-import { applyCombat, isCombatant } from './combat';
+import { applyCombat, fortifyError, isCombatant, isFortified } from './combat';
 import { pillageAt, pillageError } from './improvements';
 import type { TurnReport } from './turn';
 import { cardBehaviorRule } from './statecraft';
@@ -410,6 +430,26 @@ function musterTileFor(state: GameState, camp: BarbarianCamp, type: UnitTypeId):
 }
 
 /**
+ * Digs a unit in, through the player's own gate.
+ *
+ * One line and one field — `Unit.fortifiedTurns = 0`, exactly what `applyFortify`
+ * writes and for the reason its comment gives: the bonus is paid for turns
+ * *survived* dug in, and `advanceFortify` raises the counter at the end of every
+ * turn the piece stays put. The wild fortifies through the same field so
+ * `planCombat` prints the same labelled line for a warden as for a spearman on a
+ * hill; there is no barbarian entrenchment rule.
+ *
+ * `fortifyError` is asked rather than reimplemented — a civilian has no trench,
+ * and a piece already dug in must not have its counter reset to zero, which would
+ * hand every warden a permanent first rung and never a second.
+ */
+function digIn(unit: Unit): void {
+  if (isFortified(unit)) return;
+  if (fortifyError(unit) !== null) return;
+  unit.fortifiedTurns = 0;
+}
+
+/**
  * Every camp that is due musters one band, up to its cap.
  *
  * Camps are walked in `state.camps` order, which is founding order and is part of
@@ -421,7 +461,17 @@ function musterTileFor(state: GameState, camp: BarbarianCamp, type: UnitTypeId):
  * the camp (`campUnitRadius`), not over everything the camp has ever produced:
  * a band that has marched off to besiege a town is no longer its garrison, so the
  * camp musters again. That is what makes a camp left standing a faucet rather
- * than a one-off, and it is why clearing one is worth a bounty.
+ * than a one-off, and it is why clearing one is worth a bounty. **The warden is
+ * inside that count**, so a camp fields one fewer piece in the world than it did
+ * before the warden — which is the price of the camp being defended, and it is
+ * paid in the number rather than in a second cap.
+ *
+ * **The warden is served first**, and it needs no clause: `musterTileFor` seats a
+ * band on the camp hex whenever its category has room, and under the stacking cap
+ * "there is military room on the camp" *is* "this camp has no warden". So the
+ * first piece a camp raises stands on the camp — and **digs in where it stands**,
+ * which is the one line below. Everything after it is seated on a neighbour and
+ * goes out into the world.
  */
 export function musterCamps(state: GameState): void {
   const wild = barbarianPlayer(state);
@@ -436,7 +486,13 @@ export function musterCamps(state: GameState): void {
     if (type === null) continue;
     const seat = musterTileFor(state, camp, type);
     if (!seat) continue;
-    createUnit(state, wild.id, type, seat.col, seat.row);
+    const raised = createUnit(state, wild.id, type, seat.col, seat.row);
+    // A piece mustered onto the camp itself *is* that camp's warden — nothing
+    // else can be standing there — so it fortifies on the turn it is raised
+    // rather than waiting for its first sweep. Through `fortifyError`, the
+    // player's own gate, so a camp that somehow mustered a civilian is refused
+    // by the rule that refuses a player's worker its trench.
+    if (seat.col === camp.col && seat.row === camp.row) digIn(raised);
   }
 }
 
@@ -575,6 +631,8 @@ export type BarbarianRole =
   | { kind: 'cargo'; home: Cell | null }
   /** A soldier shadowing that civilian, and doing nothing else at all. */
   | { kind: 'escort'; cargoId: number }
+  /** The one soldier holding a camp: it stands on the hex and digs in. */
+  | { kind: 'warden'; camp: Cell }
   /** A soldier going for an unguarded civilian it can see. */
   | { kind: 'thief'; preyId: number }
   /** Everybody else: v1's raider. */
@@ -677,16 +735,19 @@ function isUnguarded(state: GameState, civilian: Unit): boolean {
  * before a single barbarian has moved. That is deliberate and it is the same
  * argument the `veterans` snapshot makes: a unit acting late in the array must
  * not have a different job because a friend of its acted early. It also makes
- * the two exclusivity rules expressible at all, since both are about who *else*
- * is available:
+ * the three exclusivity rules expressible at all, since all three are about who
+ * *else* is available:
  *
  *   · **one escort per cargo** — the nearest soldier within `escortRadius`, and
  *     that soldier is then spoken for;
+ *   · **one warden per camp** — the nearest *unspoken-for* soldier within
+ *     `campUnitRadius`, which is the one standing on the camp whenever anybody
+ *     is, since zero is the nearest distance there is;
  *   · **one thief per prey** — the nearest *unspoken-for* soldier within
  *     `theftRadius`, so a camp does not send four raiders after one worker.
  *
- * The priority is **escort > theft > raid**, and it is expressed as the order
- * these three passes run in rather than as a rule anybody has to remember. A
+ * The priority is **escort > warden > theft > raid**, and it is expressed as the
+ * order these four passes run in rather than as a rule anybody has to remember. A
  * soldier walking a prisoner home therefore ignores a scout that wanders past —
  * *the cargo is worth more than the fight*, and a band that dropped its
  * prisoner every time something shinier appeared would never get one home, which
@@ -737,7 +798,35 @@ export function barbarianRoles(
     roles.set(escort.id, { kind: 'escort', cargoId: prisoner.id });
   }
 
-  // 3 — thieves. Walked over the *prey* rather than over the band, because the
+  // 3 — wardens, one per camp, walked in `state.camps` order so a soldier that
+  // two camps could both claim goes to the older one. The camp's own hex is not
+  // a special case: `nearestUnit` is asked from the camp, and a soldier standing
+  // *on* it is at distance zero, which is the nearest distance there is. So "the
+  // unit standing on the camp is its warden" falls out of the same geometry that
+  // calls a soldier home when nobody is standing there — one rule, not two.
+  //
+  // It runs *after* escorts on purpose. A guard walking a prisoner home is the
+  // one job that outranks everything (see above), and pulling it back to the camp
+  // mid-walk would drop the cargo the escort rule exists to deliver; the moment
+  // that cargo is home its guard is released and is a candidate here. It runs
+  // *before* theft and raiding because those are what the warden is being kept
+  // back from.
+  for (const camp of state.camps) {
+    const centre = getTileAt(state.map, camp.col, camp.row);
+    if (!centre) continue;
+    const warden = nearestUnit(
+      state,
+      band,
+      centre,
+      BARB.campUnitRadius,
+      (unit) => !spokenFor.has(unit.id),
+    );
+    if (!warden) continue;
+    spokenFor.add(warden.id);
+    roles.set(warden.id, { kind: 'warden', camp: { col: camp.col, row: camp.row } });
+  }
+
+  // 4 — thieves. Walked over the *prey* rather than over the band, because the
   // rule is "the nearest raider takes it" and that sentence is about a worker.
   // Prey is anybody else's civilian, unguarded, inside `theftRadius`, on a hex
   // the wild can actually see (below), with a hex beside it the raider could
@@ -771,7 +860,7 @@ export function barbarianRoles(
     roles.set(thief.id, { kind: 'thief', preyId: prey.id });
   }
 
-  // 4 — everybody left is v1's raider.
+  // 5 — everybody left is v1's raider.
   for (const unit of band) {
     if (!roles.has(unit.id)) roles.set(unit.id, { kind: 'raider' });
   }
@@ -953,6 +1042,60 @@ function shadow(state: GameState, unit: Unit, cargoId: number): void {
 }
 
 /**
+ * The warden: it stands on its camp, digs in, and hits whatever comes in reach.
+ *
+ * Three beats, and the first two are exclusive — a warden off its hex is walking
+ * home and does nothing else that turn:
+ *
+ *   · **off the camp**, it marches to the camp and (if it arrived) digs in. This
+ *     is the recall arm: a soldier the derivation called back because nobody was
+ *     holding the hex.
+ *   · **on the camp**, it strikes what is *already adjacent* — the raider's own
+ *     first beat, `nearestTarget` filtered to reach — and nothing else. It does
+ *     not close on anything, does not burn works, does not wander, and is not a
+ *     candidate for theft at all (the derivation spoke for it before the thieves
+ *     were chosen). A camp whose guard chases a scout is not a guarded camp.
+ *   · then **it digs in**, wherever it ended the turn standing on the camp.
+ *
+ * Re-fortifying in the same phase after a blow is deliberate. `applyCombat`
+ * breaks the trench, exactly as it does for a player's spearman — but a player
+ * has a whole turn in which to press Fortify again and the wild has only this
+ * one phase, so the warden climbs back in immediately and pays for the blow by
+ * losing the rungs it had rather than by standing in the open. `advanceFortify`
+ * raises the counter a few phases later, so a quiet warden reaches `fortifyMax`
+ * on the ordinary schedule.
+ *
+ * The one thing it cannot help: a **melee kill advances the winner**, so a
+ * warden that destroys its attacker steps off the camp and is derived home again
+ * next turn. That is the same rule every melee piece on the board obeys and the
+ * wild gets no exemption from it.
+ */
+function holdCamp(
+  state: GameState,
+  wild: Player,
+  unit: Unit,
+  camp: Cell,
+  report?: TurnReport,
+): void {
+  const home = getTileAt(state.map, camp.col, camp.row);
+  if (!home) return;
+
+  if (unit.col !== camp.col || unit.row !== camp.row) {
+    marchTo(state, unit, home);
+  } else {
+    const target = nearestTarget(state, wild, unit);
+    if (target && isAdjacentTo(state, unit, target.tile)) {
+      closeAndStrike(state, unit, target.tile, report);
+    }
+  }
+
+  const after = unitById(state, unit.id);
+  if (!after) return;
+  if (after.col !== camp.col || after.row !== camp.row) return;
+  digIn(after);
+}
+
+/**
  * Marches and fights, one unit at a time, in the order the state carries.
  *
  * `veterans` is a snapshot taken before this turn's camps mustered, so a band
@@ -965,6 +1108,8 @@ function shadow(state: GameState, unit: Unit, cargoId: number): void {
  *
  *   · **cargo** walks toward the nearest camp, or sits on it;
  *   · **escort** closes to within a hex of its cargo, and does nothing else;
+ *   · **warden** stands on its camp and digs in, striking only what has come
+ *     within reach of the camp — never marching on anything;
  *   · **thief** closes on its chosen civilian and strikes, which captures it;
  *   · **raider** strikes what is already in reach, else **burns the works it is
  *     standing on**, else does what v1 did — nearest visible thing inside
@@ -1010,6 +1155,9 @@ export function raid(
           break;
         case 'escort':
           shadow(state, unit, role.cargoId);
+          break;
+        case 'warden':
+          holdCamp(state, wild, unit, role.camp, report);
           break;
         case 'thief': {
           const prey = unitById(state, role.preyId);

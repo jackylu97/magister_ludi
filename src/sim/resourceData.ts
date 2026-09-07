@@ -99,6 +99,9 @@ import type { BuildingCategory, ProductionCategory } from './buildingData';
 // back would close a cycle around two tables that both build indexes on
 // evaluation. See the note in `validateEffect`.
 import type { ImprovementId } from './improvementData';
+// Type-only, for `tileSuitsResource`'s one argument. See its docblock: a value
+// edge from this data leaf to `map.ts` would be a new runtime edge.
+import type { Tile } from './map';
 import {
   FEATURE_IDS,
   type FeatureId,
@@ -535,6 +538,27 @@ export function resourceDef(id: ResourceId): ResourceDef {
   const def = RESOURCE_DATA.resources[id];
   if (!def) throw new Error(`Unknown resource "${id}"`);
   return def;
+}
+
+/**
+ * Does this tile satisfy a resource's terrain / feature / hills filters?
+ *
+ * The row read against a hex, and nothing else — no map, no neighbours, no
+ * spacing, no config — which is why it lives with the table rather than with
+ * the scatter that grew it. Two modules ask now (`resources.ts` places on it,
+ * `startPositions.ts` refuses a site that cannot seat a guaranteed strategic)
+ * and the scatter imports the chooser, so a home in `resources.ts` would close
+ * a runtime cycle around the two. `resources.ts` re-exports it, so every caller
+ * that ever asked that module still can.
+ *
+ * `Tile` is a **type-only** import here and must stay that way: this file is a
+ * data leaf and a value edge to `map.ts` would be a new one.
+ */
+export function tileSuitsResource(tile: Tile, def: ResourceDef): boolean {
+  if (!def.validTerrain.includes(tile.terrain)) return false;
+  if (def.validFeatures && !def.validFeatures.includes(tile.feature)) return false;
+  if (def.hills !== undefined && tile.hills !== def.hills) return false;
+  return true;
 }
 
 /**

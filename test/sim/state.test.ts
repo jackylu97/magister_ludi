@@ -694,7 +694,13 @@ describe('the research queue field', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(78);
+    // 81 since batch H10 (2026-09-06, `docs/flags.md` items x and y): the first
+    // paid column of the tree costs 10 beakers rather than 13, and the age band
+    // is one rule for every hammer price — `cost × 1.25 ^ age`, buildings and
+    // wonders as well as units, Æra I no longer exempt. A v80 log settles its
+    // first research and its first completion against different figures, and
+    // diverges from there.
+    expect(SCHEMA_VERSION).toBe(81);
   });
 });
 
@@ -717,8 +723,12 @@ describe('the unitsBuilt field (schema 31)', () => {
     const state = newGame(config());
     const player = state.players[0]!;
     delete (player as { unitsBuilt?: unknown }).unitsBuilt;
-    expect(unitProductionCost(state, 0, 'settler')).toBe(unitDef('settler').cost);
-    expect(unitProductionCost(state, 0, 'worker')).toBe(unitDef('worker').cost);
+    // The row's figure through its Æra I band (2026-09-06, item y) and no
+    // ladder — an empty count is what this case is about, not the band.
+    const banded = (cost: number): number =>
+      Math.floor(cost * RULES.production.costAgeBase);
+    expect(unitProductionCost(state, 0, 'settler')).toBe(banded(unitDef('settler').cost));
+    expect(unitProductionCost(state, 0, 'worker')).toBe(banded(unitDef('worker').cost));
   });
 
   it('keys the settler and the worker independently, and replays byte for byte', () => {

@@ -388,7 +388,7 @@ the ladder `docs/orders-pass-3.md` §9 rules.
 | The Ballad-Weavers | W | 🏹 | ◆ | P | +2 culture per turn for each barbarian you have killed while this Order stands in a slot. |
 | The Rites Charter | W | 🕯 | ◆ | S | Unlocks the Chapel. |
 | The Vigil Charter | M | ⚒ | ◆ | S | Unlocks the Keep. |
-| The Reckless Levy | M | ⚒ | ◆ | S | +50% production toward units · your army costs twice as much to keep. |
+| The Reckless Levy | M | ⚒ | ◆ | S | +50% production toward units · every unit costs one more coin to keep. |
 | The Muster Rolls | M | ⚒ | ◆ | E | The Order in your first military slot pays twice. |
 | The Harvest Home | E | 🌱 | ● | E | Your Orders that give food give an additional food. |
 | The Reeve’s Bell | E | 🌾 | ● | S | Every 8 turns, your capital gains food for each citizen in your empire. |
@@ -627,7 +627,7 @@ the two wants renaming before this pool is ever dealt.
 - **The Far Charts** — How far a caravan may be sent is settled by the two cities it joins and by the trading posts they have built. A law that let one route ignore that distance is not built yet. † your caravans may run one route to any city you have ever seen, however far away it is
 - **The Founding Oath** — It counts the buildings standing in your capital rather than the first three ever raised there, and the third is the last that pays.
 - **The Long Roads** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
-- **The Reckless Levy** — A charge on each piece of an army is not built; the levy taxes the whole payroll instead, which is what the card pays for. † every soldier costs one coin more to keep, whatever kind of soldier it is
+- **The Reckless Levy** — The coin is charged on each soldier the empire is already paying for, so a settler, a scout or a caravan is no dearer than it was.
 - **Bread Alone** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The Harvest Songs are the food deck’s card now.
 - **The Congregation** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
 - **The King's Road** — The roads themselves are struck: a road step costs the same third of a point for everybody, and nothing bends that price. † your roads carry your units further than anybody else’s
@@ -649,10 +649,10 @@ the two wants renaming before this pool is ever dealt.
 - **The Magister's Court** — A card may name a silhouette or a roster row but never a great person, so the second charge is not built. † great people arrive with a second charge
 - **The Votive Tally** — Only the drafts you paid faith to see again are counted, and only while this Order sits in a chair.
 - **The Jubilee** — One Order keeps one calendar, so a second boon on this row would never come round. † the same festival was to fill the archives with song as well as the shrines with faith
-- **The Great Enquiry** — Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. † a bead of your own for every second technology of the fifth age you finish, while this Order stands in a slot
-- **The Last Laurels** — Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. † a bead of your own each time you pass on a draft, while this Order stands in a slot
-- **The Salted Earth** — Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. † a bead of your own each time you raze a city, while this Order stands in a slot
-- **The Final Proclamation** — Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. † a bead of your own for each prophet’s proclamation, while this Order stands in a slot
+- **The Great Enquiry** — Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there. † a bead of your own for every second technology of the fifth age you finish, while this Order stands in a slot
+- **The Last Laurels** — Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there. † a bead of your own each time you pass on a draft, while this Order stands in a slot
+- **The Salted Earth** — Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there. † a bead of your own each time you raze a city, while this Order stands in a slot
+- **The Final Proclamation** — Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there. † a bead of your own for each prophet’s proclamation, while this Order stands in a slot
 
 ---
 

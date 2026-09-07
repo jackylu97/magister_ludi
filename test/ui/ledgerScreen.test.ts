@@ -54,7 +54,16 @@ import {
   sparkPoints,
 } from '../../src/ui/ledgerScreen';
 import { civYields } from '../../src/ui/topBar';
-import { cityQuote } from '../../src/sim/cities';
+import {
+  cardBuildingYields,
+  cityQuote,
+  collectYields,
+  foundCityAt,
+} from '../../src/sim/cities';
+import { applyCommand } from '../../src/sim/commands';
+import { foldRouteYield, senderRouteYields } from '../../src/sim/trade';
+import { createUnit } from '../../src/sim/state';
+import { at, bareState } from '../sim/improvementHelpers';
 import type { CardId } from '../../src/sim/statecraftData';
 import { DOCTRINE_IDS, GOVERNMENT_IDS, ORDER_IDS } from '../../src/sim/statecraftData';
 import { ALL_BELIEF_IDS, CONSECRATION_IDS, RITE_IDS } from '../../src/sim/religionData';
@@ -117,7 +126,11 @@ function bench(): { state: GameState; playerId: number } {
   const made = game();
   const state = made.state;
   const city = found(state, 0);
-  city.population = 4;
+  // **Odd on purpose.** The two `sciencePerPop` terms are exact since batch X —
+  // half a beaker a citizen from the rules and half again from the library — and
+  // a mirror that floored them read the same as the fold on every even town.
+  // `cityFlatsByClass` did floor them, and this bench is why nobody saw it.
+  city.population = 5;
   city.buildings.push('monument', 'library');
   const wonder = BUILDING_IDS.find((id) => isWonder(id));
   if (wonder) city.buildings.push(wonder);
@@ -128,7 +141,48 @@ function bench(): { state: GameState; playerId: number } {
   const order = 'weightsAndMeasures' as (typeof ORDER_IDS)[number];
   if (!sc.orders.includes(order)) sc.orders.push(order);
   sc.slots.push({ card: order, sealedUntil: state.turn });
+  // **And one of the seven `buildingYieldPercent` Orders**, over the library the
+  // bench just built. `cardBuildingYields` is the eleventh summand of
+  // `cityQuote` and the mirror below simply did not walk it; a bench with no
+  // such card in it is a bench that cannot tell.
+  const scrivened = 'theScriveners' as (typeof ORDER_IDS)[number];
+  if (!sc.orders.includes(scrivened)) sc.orders.push(scrivened);
+  sc.slots.push({ card: scrivened, sealedUntil: state.turn });
   player.pantheon = { beliefs: [ALL_BELIEF_IDS[0]!], rungs: 1 };
+  return { state, playerId: 0 };
+}
+
+/**
+ * A seat whose caravan is abroad — the empire-scale half of a route, which
+ * belongs to no town and is banked once a turn on the luxuries' own seam.
+ *
+ * Two seats at peace who have met, a market in the sending town, and a route
+ * running from it to the neighbour's. Built on `bareState` rather than on the
+ * duel game above because what is wanted is a *known* foreign route and nothing
+ * else: the point of the bench is that a figure the phase banks reaches the two
+ * surfaces, and a world with no route at all would pin nothing.
+ */
+function foreignRouteBench(): { state: GameState; playerId: number } {
+  const state = bareState(16, 9);
+  // At peace, and no truce: `bareState` seats the war register full.
+  state.wars = [];
+  const home = foundCityAt(state, 0, at(state, 3, 4));
+  const partner = foundCityAt(state, 1, at(state, 10, 4));
+  home.buildings.push('market', 'library');
+  home.population = 5;
+  partner.population = 4;
+  const trader = createUnit(state, 0, 'trader', 3, 4);
+  // Met, by the clause that needs no paper: a piece of theirs where this seat
+  // can see it.
+  createUnit(state, 1, 'worker', 3, 3);
+  const sent = applyCommand(state, {
+    type: 'startRoute',
+    playerId: 0,
+    unitId: trader.id,
+    fromCityId: home.id,
+    toCityId: partner.id,
+  });
+  expect(sent.ok).toBe(true);
   return { state, playerId: 0 };
 }
 
@@ -149,11 +203,59 @@ describe('the reading', () => {
     }
   });
 
+  it('is what the resolution actually banks, not merely what the strip says', () => {
+    // **The pin that was missing.** Until 2026-09-06 the only guard compared the
+    // two surfaces to *each other*, so when both left out the sender's foreign
+    // routes they were wrong together and agreed about it. The honest reading is
+    // the bank: run the phase and watch the pools move.
+    //
+    // The four banked voices only — food goes to a basket and hammers to
+    // another, and neither is a pool a player can spend.
+    const { state, playerId } = foreignRouteBench();
+    // A route that actually pays, or the fixture proves nothing.
+    const abroad = foldRouteYield(senderRouteYields(state, playerId));
+    expect(abroad.gold).toBeGreaterThan(0);
+
+    // One resolution first, so the citizens are seated where the *next* one will
+    // find them: `collectYields` re-seats before it prices, and a headline read
+    // against an older assignment would differ for a reason that is not the
+    // subject here.
+    collectYields(state);
+    const purse = (): Record<string, number> => {
+      const player = playerById(state, playerId)!;
+      return {
+        gold: player.gold,
+        science: player.sciencePool,
+        culture: player.culturePool,
+        faith: player.faithPool,
+      };
+    };
+    const opened = purse();
+    const headline = civYields(state, playerId);
+    const reading = ledgerReading(state, playerId);
+    collectYields(state);
+    const closed = purse();
+
+    for (const key of ['gold', 'science', 'culture', 'faith'] as const) {
+      expect(closed[key]! - opened[key]!, `${key} banked`).toBe(headline[key]);
+      // And the sheet agrees with the strip it was opened from, on the same
+      // bench — the older claim, kept, now that both are pinned to the money.
+      expect(reading.find((voice) => voice.key === key)!.total, `${key} sheet`).toBe(headline[key]);
+    }
+  });
+
   it('mirrors `cityQuote`’s own flats, summand for summand', () => {
     // `cityFlatsByClass` walks the same seven lists `cityQuote` folds. A source
     // added there and not here would not throw — it would quietly swell the
     // town's multiplied total into whichever classes happened to have weight.
     const { state } = bench();
+    // The bench has to carry the two things the mirror was blind to, or this is
+    // a guard that passes on the tree it was meant to catch: a card taking a
+    // share of a building's yield, and a town whose population is odd.
+    const town = state.cities.find((city) => city.ownerId === 0)!;
+    expect(cardBuildingYields(state, town).length).toBeGreaterThan(0);
+    expect(town.population % 2).toBe(1);
+
     for (const city of state.cities) {
       if (city.ownerId !== 0) continue;
       const flats = foldLedgerBag(cityFlatsByClass(state, city));
@@ -162,6 +264,29 @@ describe('the reading', () => {
         expect(flats[key], `${city.name} ${key}`).toBe(quote.flats[key]);
       }
     }
+  });
+
+  it('puts the deck’s share of a building in the deck’s own slice', () => {
+    // The eleventh summand is not merely *counted* now, it is classified: a
+    // card's half again on a library is the card's, and folding it into
+    // "buildings" would have made the sheet answer its own question wrongly
+    // while still adding up.
+    const { state } = bench();
+    const town = state.cities.find((city) => city.ownerId === 0)!;
+    const shares = cardBuildingYields(state, town);
+    const paid = shares.reduce((sum, line) => sum + line.science, 0);
+    expect(paid).toBeGreaterThan(0);
+    // Every such line names the card that spoke, which is what the classifier
+    // reads — a line with no card would land in "buildings" by the fallback.
+    expect(shares.every((line) => line.card !== undefined)).toBe(true);
+
+    const held = cityFlatsByClass(state, town).deck.science;
+    // Take the card out of the slot and the deck's slice falls by exactly what
+    // the card was paying, with nothing appearing anywhere else.
+    const sc = playerById(state, 0)!.statecraft;
+    sc.slots = sc.slots.filter((entry) => entry?.card !== 'theScriveners');
+    expect(cardBuildingYields(state, town)).toEqual([]);
+    expect(held - cityFlatsByClass(state, town).deck.science).toBe(paid);
   });
 
   it('finds the deck’s own slice, and says so in the caption’s words', () => {

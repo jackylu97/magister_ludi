@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { cityYields, foundCityAt, growthThreshold } from '../../src/sim/cities';
+import {
+  cityQuote,
+  cityYields,
+  collectYields,
+  foundCityAt,
+  growthThreshold,
+} from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { applyCombat } from '../../src/sim/combat';
 import {
@@ -1644,7 +1650,7 @@ describe('trade in the log', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(78);
+    expect(SCHEMA_VERSION).toBe(81);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {
@@ -2033,5 +2039,103 @@ describe('international routes', () => {
       expect(result.ok, JSON.stringify(command)).toBe(true);
     }
     expect(snapshotState(replayed)).toBe(after);
+  });
+});
+
+// --- the two quiet voices ---------------------------------------------------
+
+/**
+ * **Every voice a `RouteYieldLine` carries reaches the books it is banked in.**
+ *
+ * The line grew `science` and `culture` with the international ruling of
+ * 2026-09-03 and `cityQuote` went on folding the three voices it was born with
+ * until 2026-09-06 — so Ledger-Keepers, a live common Order whose whole text is
+ * *"+1 science and +1 culture on every trade route sent from a city with a
+ * Market"*, computed its two figures, printed them in the trade panel, and paid
+ * nothing at all on a domestic road.
+ *
+ * It is pinned at three depths on purpose, because the bug lived between them:
+ * the **line** carries the voices, the destination's **quote** folds them, and
+ * the resolution **banks** them. A test of any one of those alone would have
+ * passed on the broken tree.
+ */
+describe('a route’s science and culture', () => {
+  /** Puts an Order in a seat's hand and in a slot. Test scaffolding only. */
+  function slotOrder(state: GameState, playerId: number, id: string): void {
+    const sc = playerById(state, playerId)!.statecraft;
+    if (!sc.orders.includes(id as never)) sc.orders.push(id as never);
+    sc.slots.push({ card: id as never, sealedUntil: state.turn });
+  }
+
+  /** A domestic route from the market town, with Ledger-Keepers slotted or not. */
+  function ledgerWorld(withCard: boolean): {
+    state: GameState;
+    home: City;
+    partner: City;
+  } {
+    const { state, home, partner, trader } = tradeWorld();
+    if (withCard) slotOrder(state, 0, 'ledgerKeepers');
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    return { state, home, partner };
+  }
+
+  it('reaches the destination’s own quote, voice for voice', () => {
+    const plain = ledgerWorld(false);
+    const carded = ledgerWorld(true);
+
+    // 1. The **line**: the card's own figures, on the caravan, read off the
+    //    origin's market exactly as the row says.
+    const lines = cityRouteYields(carded.state, carded.partner);
+    const paid = foldRouteYield(lines);
+    expect(paid.science).toBe(1);
+    expect(paid.culture).toBe(1);
+    expect(foldRouteYield(cityRouteYields(plain.state, plain.partner)).science).toBe(0);
+
+    // 2. The **quote**: the flats the town is priced on. Exact, because a flat
+    //    is a flat — the percentages are a stage later and are the same on both
+    //    boards.
+    const before = cityQuote(plain.state, plain.partner).flats;
+    const after = cityQuote(carded.state, carded.partner).flats;
+    expect(after.science - before.science).toBe(1);
+    expect(after.culture - before.culture).toBe(1);
+    // And the three older voices are untouched by the change: this is two lines
+    // added to a fold, not a fold rewritten.
+    for (const key of ['food', 'production', 'gold'] as const) {
+      expect(after[key] - before[key], key).toBe(0);
+    }
+  });
+
+  it('is banked by the resolution, in the destination empire’s pools', () => {
+    const plain = ledgerWorld(false);
+    const carded = ledgerWorld(true);
+
+    const pools = (state: GameState): { science: number; culture: number } => {
+      const player = playerById(state, 0)!;
+      return { science: player.sciencePool, culture: player.culturePool };
+    };
+    const opened = { plain: pools(plain.state), carded: pools(carded.state) };
+    collectYields(plain.state);
+    collectYields(carded.state);
+    const banked = {
+      plain: {
+        science: pools(plain.state).science - opened.plain.science,
+        culture: pools(plain.state).culture - opened.plain.culture,
+      },
+      carded: {
+        science: pools(carded.state).science - opened.carded.science,
+        culture: pools(carded.state).culture - opened.carded.culture,
+      },
+    };
+    // Strictly more, rather than exactly one more: a flat rides the town's
+    // percentages on its way into the pool (Entry XVII), which is the whole
+    // point of folding it into the quote rather than adding it downstream.
+    expect(banked.carded.science).toBeGreaterThan(banked.plain.science);
+    expect(banked.carded.culture).toBeGreaterThan(banked.plain.culture);
+    // And what the pool moved by is what the town was priced at, so the bank and
+    // the panel cannot disagree.
+    expect(banked.carded.science).toBe(
+      cityYields(carded.state, carded.home).science +
+        cityYields(carded.state, carded.partner).science,
+    );
   });
 });

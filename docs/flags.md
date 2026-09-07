@@ -107,7 +107,99 @@ directly to confirm rulings — user marginalia are rulings.
   inside a large patch; the density (forest share of land) stays where it
   is unless the mapgen page says otherwise. A map change moves every seed's
   replay — schema. Batch **H9 — the woods** in flight; `mapgen.html` is the
-  eye. Two findings from the re-aim, yours to rule:
+  eye. **Note 20 (horses and iron within six of every capital) rides H9** —
+  it was queued, not built; the user asked after it tonight. (i) **Belief
+  rerolls, re-ruled** (supersedes e): the pantheon hand opens by itself when
+  the bank reaches the rung and **the rung is spent at the deal**; on that
+  hand the **first reroll is free** and each further one costs faith rising
+  per asking, reset with the next hand; a **prophet's hand** works the same
+  way; both are entirely separate from the Order draft's lifetime count.
+  **Built** (schema 80): `openFaithLadder` pays at the deal; `BeliefOffer.rerolls`
+  + `explainBeliefRerollCost` in `religion.ts`; the votive card's foot prints
+  "Ask again — free" then the price; `docs/religion-v2.md` is current.
+  (j) **No zoom on the city screen** — **built**: the wheel is the only zoom
+  input, and it now returns while `openCity()` holds (the `panLocked` rule in
+  `controls.ts`, extended from the pan to the wheel). (k) **"No option to
+  purchase rites in cities"** — there was one, behind a closed "Rites —"
+  shelf in the city screen's left rail. **Built**: the shelf's figure is the
+  rite's price whenever one can be said here, and the shelf opens by itself
+  until the player shuts it (`closedDisclosures`, `cityPanel.ts`). The gate
+  stays the tree's (a pantheon is not a condition — a rite is a town's verb
+  taught by the five nodes); the greyed rows name the node. (l) **The bead
+  Orders show at Æra III** — governments carry no age gate (ruled), so a fast
+  climb opened pool V early and the four last-age bead Orders were dealt.
+  **Built**: `OrderDef.fromAge` (4 on the four rows), read by `drawablePool`
+  alone (the bag the draw deals from; `livePool`, the shelf, stays ungated);
+  "earned only there" rides their `deferred` text for whoever builds them.
+  (m) **Traders unselectable while on a route** — **built**: `ownUnitsAt`
+  (the click's list) and `selectedUnit` both read `Unit.trade`; the trade
+  screen's by-id Cancel is the way to call one home, and End Turn already
+  never nagged about one (`unitAwaitsOrders`). Pinned in `controls.test.ts`.
+  **The second playtest's verdict and rulings** (the user, 2026-09-06, late):
+  "the science nerfs were good, I no longer feel like I'm speeding through
+  the tech tree … pacing feels more reasonable, orders feel more
+  consequential, I'm having to decide between happiness in my cities vs
+  strong bonuses, and the flat bonuses feel impactful". The problem: "my
+  cities don't seem to have much to build (wonders included)" — and only
+  three cities before the Stele. The proposal with numbers is
+  **`docs/early-pacing.md`** — mark it up; nothing there moves until you do.
+  Ruled outright: (n) **+1 authority back on the Monument** (`authorityCapacity`
+  1); (o) **the once-per-empire buildings scale with the number of cities**
+  (shape per row in the doc); (p) **some authority into the Orders** (rows
+  proposed in the doc, early pools); (q) **rerolls for Doctrines and great
+  people at twice the Order price, on the same ladder** — one `rerollsTaken`
+  count: rerolling any of the three raises the price of all three; (r) **the
+  reroll and the pass are fully featured, decorated buttons** — "meant to be
+  taken sometimes for optimal play", not foot links. Inclined, not ruled:
+  (s) **cheaper Æra I techs**; (t) **more science Orders early** — the doc
+  argues where the lull actually is (the Æra I → II price step) and proposes
+  numbers for both. (u) **Stale buildings out of the tech tree** ("I meant
+  the Imperial Throne. Let's remove stele of laws — and any other stale
+  buildings — from the tech tree UX") — **built**: ten retired rows still
+  hung on their techs; `liveUnlocks` (`techData.ts`) is what the tree's
+  faces print, the raw lists stay for the gates and the inverted tables.
+  (v) **The phalanx needs its own unit icon** — it wears the spearman's.
+  Queued (a flair pass, not a fix): `data/view3d.json` `byUnitType` maps
+  `phalanx` to the `spear` badge; the same map hands `legionary` the
+  swordsman's `melee`, `spearWall` the pikeman's, `horseArcher` the chariot
+  archer's `mountedRanged`, and `cataphract` and `warElephant` the
+  horseman's `mounted` — six later-age units drawn as their Æra I forebears.
+  One pass draws the six badges (`lookData.ts`, `geometry.ts` minis) and
+  lands them in `flair.html` the same pass, per the house rule.
+  (w) **The unit purchase tag broke onto a second line** — **built**: a town
+  with an open faith bank prints two tags beside a unit and the row's
+  two-column grid wrapped the second; the row is a flex line now (every tag
+  inline, the name is what gives), the work rail is 300px from 264 (244
+  from 214 at the narrow breakpoint; `cityFrameBiasPx` 35 follows), and the
+  tag prints the figure alone — no "or".
+  **Rulings 2026-09-06, late — early production** (the user, after the
+  early-pacing discussion; these supersede `docs/early-pacing.md` §2a where
+  they overlap): (x) **the first column of technologies slightly cheaper** —
+  the four column-1 nodes (Earthenware, Fletching, Husbandry, Mining) from
+  13 to **10** beakers; the root stays nominal, every other column stays.
+  (y) **Production costs ×1.25 across the board, and rising by age** ("my
+  cities had way more production than things cost by age 3 … Age 3
+  buildings and units should probably be ~2× as expensive"): one rule for
+  every hammer price — buildings, units, wonders — **cost × 1.25^age**,
+  where `age` is the band of the row's unlocking technology (a row no tech
+  unlocks is Æra I; the unit trap: the band reads the tech, never the unit
+  row). Æra I ×1.25 · II ×1.56 · III ×1.95 · IV ×2.44. Rows in the data keep
+  their printed base; the multiplier is a **line** in the cost fold
+  (`explainUnitCost`'s shape, and the same for buildings), so every surface
+  that prints a price prints the fold — the build list, the tech tree's
+  unlock notes, the Compendium, the arena. Purchases price off the folded
+  cost (`goldPerHammer` × full cost). Projects (conversions per hammer) are
+  untouched. (z) **Every figure in the top bar rounds to the nearest
+  integer for display** — the yield chips and both meters; the underlying
+  fold keeps the full decimal (batch X's rule; the meters' kept tenth is
+  withdrawn from the bar — the hover cards may keep it). Batch **H10 —
+  early production** — **built** (schema 81): column 1 at 10; one band
+  `costAgeBase` 1.25 in `data/rules.json`, `explainBuildingCost` beside
+  `explainUnitCost` (floor once at the fold's total), every printing surface
+  and the purchase price off the fold; `netFigure` for the chips, the hover
+  ledgers keep the meters' tenth; the bot's seven printed-cost reads moved
+  onto the fold by the orchestrator. Tables in `docs/fewer-things-plan.md`.
+  Two findings from the re-aim, yours to rule:
   1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
      user's ruling was always "unlock rites in the tech tree where they used
      to be"; C2's Chapel gate is removed (the tree is the only gate; the
@@ -288,12 +380,19 @@ Fixes queue in main for the next session unless the user says otherwise.
     5 · 8 · 13 · 20 · 28 · 37 · 48 · 58 against 6 · 10 · 16 · 25 · 35 · 47 ·
     59 · 73.
 20. **Mapgen: every capital has both horses and iron within six tiles**
-    (RULED, queued — "note for mapgen"): a start-position guarantee in
-    `data/mapgen.json`'s terms (the strategic pass places or moves one copy
-    of each inside radius 6 of every seat's start; the seat's own reveal
-    tech still gates seeing it). Lands with the next mapgen batch, after the
-    six-player standard-map seating experiment (note 16), since both touch
-    start positions. `docs/mapgen.md` documents it when it lands.
+    (RULED — "note for mapgen"; **BUILT 2026-09-06**, batch H9, schema 79):
+    a start-position guarantee in `data/mapgen.json`'s terms —
+    `resources.startStrategics: ["horses", "iron"]` and
+    `startStrategicRadius: 6`, the fourth fairness pass
+    (`ensureStartStrategics`), rolling no dice, nearest legal hex, giving up
+    `minSpacing` rather than the promise and never the row's own terrain
+    filter; the seat's reveal tech still gates seeing it. Measured over five
+    seeds and the maximum twelve-seat roster: **no seat short at any size
+    from `standard` up**. The chooser gained a seventh hard rejection for a
+    site the ground cannot arm (`strategicGround`) — unreachable on the
+    standard sheet, firing only on `duel` seating twelve. See
+    `docs/mapgen.md` "The four guarantees" and
+    `docs/fewer-things-plan.md` "Batch H9 as shipped".
 21. **A city's consecration is printed nowhere after the toast** (BUG, in
     flight): the cathedral's roll lands on `City.consecration`, is announced
     once, and no surface names it again. The Built row (the town rail's

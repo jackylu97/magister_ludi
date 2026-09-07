@@ -181,6 +181,46 @@ export function hasOpenBeliefSlot(state: GameState, playerId: number): boolean {
   return player.pantheon.beliefs.length < pantheonSlots(state, playerId);
 }
 
+/** One place at the fire: the god standing in it, or what is keeping it shut. */
+export interface PantheonPlace {
+  /** The god here, or `null` for a place nobody has named. */
+  belief: BeliefId | null;
+  /** The technology that would open this place, or `null` when it is already open. */
+  awaits: TechId | null;
+}
+
+/**
+ * Every place at the fire in the order the tree opens them — the ones filled,
+ * the ones standing empty, and the ones a technology has yet to open.
+ *
+ * `pantheonSlots` answers "how many may I hold", which is the whole of what the
+ * *rules* need; a sheet drawing the pantheon needs the shape as well, and the
+ * third place existing-but-shut is the fact it exists to print. Derived here
+ * rather than on the screen for `poolTechName`'s reason: which technology opens
+ * which place is `RELIGION.pantheon.slotsFromTech`, and a screen holding a copy
+ * would be a second table that disagrees with the data the day it is retuned.
+ *
+ * A god held beyond the open places (a card's slot withdrawn, a hand-edited
+ * save) still gets a place, because a god you hold is a god that pays.
+ */
+export function pantheonPlaces(state: GameState, playerId: number): PantheonPlace[] {
+  const player = playerById(state, playerId);
+  if (!player) return [];
+  const held = player.pantheon.beliefs;
+  const open = Math.max(held.length, pantheonSlots(state, playerId));
+  const places: PantheonPlace[] = [];
+  for (let index = 0; index < open; index++) {
+    places.push({ belief: held[index] ?? null, awaits: null });
+  }
+  for (const [tech, slots] of Object.entries(RELIGION.pantheon.slotsFromTech)) {
+    if (player.techsResearched.includes(tech as TechId)) continue;
+    for (let index = 0; index < Math.max(0, Math.floor(slots ?? 0)); index++) {
+      places.push({ belief: null, awaits: tech as TechId });
+    }
+  }
+  return places;
+}
+
 /**
  * The gods still drawable: every row in the table **nobody in the world** holds,
  * in file order.
@@ -239,30 +279,13 @@ export function isAugur(unit: Unit): boolean {
   return unitDef(unit.type).consecrates === true;
 }
 
-/**
- * True when this augur has already spent its day — the one reading of "a rite is
- * the augur's whole turn" (user, 2026-08-27, restated in the 8/28 playtest as
- * "performing a rite should end the augur's turn").
- *
- * Since the one-charge rework (Entry LVIII) an augur that has *acted* is an
- * augur that has left the board, so this no longer stands between two acts of
- * the same piece. What it still says is the half that was always about the
- * board: **an augur that walked its whole allowance to reach a town blesses it
- * next turn.** That is the bargain every other piece makes with its movement,
- * and it is the only thing keeping a bought augur from being teleported to a
- * front and spent in the same breath.
- *
- * `movesLeft`, rather than a flag of its own, because that is already the
- * game's word for "this piece has acted": a worker's verbs refuse on it
- * (`improvementError`), an attack spends it, and reading it here means the augur
- * that walked its whole allowance to reach a town blesses it *next* turn — the
- * same bargain every other piece on the board makes with its movement. It needs
- * no phase to clear it; `resetMovement` already does, which is the
- * `TimedEffect` discipline applied to a thing that lasts exactly one turn.
- */
-export function augurHasActed(unit: Unit): boolean {
-  return unit.movesLeft <= 0;
-}
+// `augurHasActed` stood here until 2026-09-06 — "a rite is the augur's whole
+// turn", read off `movesLeft`. The faith ladder took the consecration over and
+// the verb refuses always (`consecrateError` below), so the sentence had no
+// reader left: a rule nothing asks is a rule that quietly stops being true. The
+// reading it made is one line (`unit.movesLeft <= 0`) and every other piece in
+// the game makes it, so a returning verb writes it again rather than inheriting
+// a function whose docblock outlived the rule.
 
 /**
  * Why this augur cannot consecrate — **always**, since the faith ladder took the
@@ -360,6 +383,113 @@ export function nextFaithRungCost(player: Player): number {
 }
 
 /**
+ * The technology that would open the **next** place at the fire, or `null` when
+ * the tree has none left to open.
+ *
+ * The first shut place `pantheonPlaces` lists, which walks
+ * `RELIGION.pantheon.slotsFromTech` in its own key order — Divination's two,
+ * then The High Temple's third. Off that list rather than off a second walk of
+ * the table, so "what opens the next place" and the place drawn on the sheet
+ * can never name two different technologies.
+ */
+export function nextPantheonTech(state: GameState, playerId: number): TechId | null {
+  for (const place of pantheonPlaces(state, playerId)) {
+    if (place.awaits !== null) return place.awaits;
+  }
+  return null;
+}
+
+/**
+ * Where this empire stands on the faith ladder — one reading, four states, for
+ * every surface that answers "when is my next god".
+ *
+ * Four states and no fifth, because there are exactly four things that can be
+ * true of the next place at the fire and a screen that folded any two of them
+ * together would lie about one:
+ *
+ *   · **`waiting`** — a hand is already dealt and unanswered. The bank is not
+ *     the question; the player is.
+ *   · **`open`** — a place stands empty and the ladder is charging for it. The
+ *     rung, its price, what is banked, and how long the current rate needs.
+ *   · **`closed`** — every place the tree has opened is filled and a further
+ *     technology would open another. The player is not saving, they are
+ *     researching.
+ *   · **`full`** — the pantheon holds every place it will ever hold.
+ *
+ * **The rate is the caller's**, and deliberately: what an empire gathers a turn
+ * is `civYields`' fold of every town — the same figure the top bar prints — and
+ * folding it a second time here would be a second answer to a question the
+ * interface has already asked. So the surface hands in the number it is already
+ * showing, and this composes.
+ *
+ * Exact figures, one rounding: `turns` is whole because a partial turn buys
+ * nothing, and everything else is the bank's own arithmetic. `nextRungWords`
+ * below is the one sentence both surfaces print.
+ */
+export type NextRung =
+  | { kind: 'waiting' }
+  | {
+      kind: 'open';
+      /** Which place this would be — the gods held, plus one. */
+      rung: number;
+      /** What the ladder asks of the bank, `faithRungCost`'s own figure. */
+      cost: number;
+      /** Faith banked now. */
+      banked: number;
+      /** Faith a turn, as the caller reads it. */
+      perTurn: number;
+      /** Whole turns at that rate — `0` when the bank already covers it, `null` when nothing gathers. */
+      turns: number | null;
+    }
+  | { kind: 'closed'; tech: TechId }
+  | { kind: 'full' };
+
+export function explainNextRung(state: GameState, playerId: number, perTurn: number): NextRung {
+  const player = playerById(state, playerId);
+  if (!player) return { kind: 'full' };
+  if (player.pantheon.pending !== undefined) return { kind: 'waiting' };
+  if (!hasOpenBeliefSlot(state, playerId)) {
+    const tech = nextPantheonTech(state, playerId);
+    return tech === null ? { kind: 'full' } : { kind: 'closed', tech };
+  }
+  const cost = nextFaithRungCost(player);
+  const banked = Math.max(0, Math.floor(player.faithPool));
+  const owing = Math.max(0, cost - banked);
+  return {
+    kind: 'open',
+    rung: player.pantheon.beliefs.length + 1,
+    cost,
+    banked,
+    perTurn,
+    turns: owing === 0 ? 0 : perTurn > 0 ? Math.ceil(owing / perTurn) : null,
+  };
+}
+
+/**
+ * The reading as the one sentence every surface prints — "Next god: 56 faith ·
+ * 31 banked · about 4 turns".
+ *
+ * Beside the reading rather than on either screen, for `riteGrantWords`'
+ * reason turned the right way round: the faith chip's card and the Religion
+ * sheet's empty place answer the same question, and two compositions of one
+ * reading is how two surfaces come to disagree about a threshold. A figure is
+ * never composed by the interface — this is where it is written, once.
+ *
+ * "about", because the rate is this turn's and the next town changes it.
+ */
+export function nextRungWords(reading: NextRung): string {
+  if (reading.kind === 'waiting') return 'A god is waiting to be named';
+  if (reading.kind === 'full') return 'The pantheon is full';
+  if (reading.kind === 'closed') return `${techDef(reading.tech).name} opens the next place`;
+  const parts = [`Next god: ${reading.cost} faith`, `${reading.banked} banked`];
+  if (reading.turns === 0) parts.push('enough is gathered');
+  else if (reading.turns !== null) {
+    parts.push(reading.turns === 1 ? 'about a turn' : `about ${reading.turns} turns`);
+  }
+  return parts.join(' · ');
+}
+
+/**
  * Would the ladder deal this empire a consecration right now, and at what price?
  * `null` when it would not.
  *
@@ -414,9 +544,49 @@ export function openFaithLadder(state: GameState): void {
     const plan = planFaithRung(state, player);
     if (!plan) continue;
     const offer = drawBeliefOffer(state, player);
+    // **The rung is paid at the deal** (the user, 2026-09-06, evening: "it
+    // should auto-draft a pantheon once you reach the requisite faith — it
+    // subtracts that amount from your faith total"). The docblock above
+    // described the earlier reading, in which the pick paid; the reading now
+    // is the culture meter's — the threshold spends what it crossed — and the
+    // rung is climbed the moment the hand is dealt. `rungCost` stays on the
+    // offer as the record of what was paid (and as the tell that this is the
+    // ladder's hand, which `rerollError` reads), and the pick charges nothing.
+    player.faithPool = Math.max(0, player.faithPool - plan.cost);
+    player.pantheon.rungs += 1;
     offer.rungCost = plan.cost;
+    offer.rerolls = 0;
     player.pantheon.pending = offer;
   }
+}
+
+/**
+ * A consecration **paid by something other than the bank** — Stonehenge's
+ * completion grant, and nothing else today (`CompletionGrant`, ruled
+ * 2026-09-06: the stones leave an augur behind and hand over a god instead).
+ *
+ * `openFaithLadder`'s deal with the ladder taken out of it, and the two
+ * differences are the whole of what "free" means here: **no rung is quoted**, so
+ * `settleBeliefChoice` charges the pick nothing and `PlayerPantheon.rungs` does
+ * not move — a god the stones gave is not a rung climbed, which is that field's
+ * own docblock and the reason it counts rungs rather than gods. The empire's
+ * next *paid* god therefore costs exactly what it would have cost anyway.
+ *
+ * Every other clause `planFaithRung` asks is asked here and in its order, and
+ * for its reasons: a place has to be open, a hand already dealt must not be
+ * destroyed by a second, and an empty bag is an End Turn blocker nobody could
+ * clear. `false` says the grant did not land, which `payCompletionGrants` reports
+ * as `done: false` rather than silently paying nothing.
+ *
+ * The pool is asked **before** the draw, `planFaithRung`'s discipline: an empty
+ * bag must not spend the generator.
+ */
+export function openFreeRung(state: GameState, player: Player): boolean {
+  if (player.pantheon.pending !== undefined) return false;
+  if (!hasOpenBeliefSlot(state, player.id)) return false;
+  if (beliefPool(state, player).length === 0) return false;
+  player.pantheon.pending = drawBeliefOffer(state, player);
+  return true;
 }
 
 // --- the reroll -------------------------------------------------------------
@@ -438,9 +608,11 @@ export function openFaithLadder(state: GameState): void {
  * bargain a purchase's currency conversion strikes: the rounding happens once,
  * at the end, and each line says how much of the total it is answerable for.
  *
- * A **belief** hand is not priced here at all: rerolling a prophet's or the
- * ladder's draft is free (ruled 2026-09-06), so this answers the Order draft's
- * question and `rerollError` decides which question is being asked.
+ * A **belief** hand is not priced here: it has its own ladder
+ * (`explainBeliefRerollCost` — the first asking free, then rising per asking on
+ * that hand, reset with the next), separate from this lifetime count (the
+ * user, 2026-09-06, evening). `rerollError` decides which question is being
+ * asked by which hand is on the table.
  */
 export interface RerollPrice {
   lines: UnitCostLine[];
@@ -475,6 +647,45 @@ export function nextRerollCost(state: GameState, playerId: number): number {
 }
 
 /**
+ * What asking **this belief hand** again would cost — the pantheon's or a
+ * prophet's, the same reading.
+ *
+ * The first asking on a hand is free and prints as such (an empty list, a
+ * total of nothing); each one after is the reroll sheet's base, the age's
+ * multiplier, and the per-asking exponent raised to the askings this hand has
+ * already had **less one** — the free one is not a step on the ladder. The
+ * count is the offer's own (`BeliefOffer.rerolls`) and dies with the hand,
+ * which is what "prophet re-rolls reset per roll" means; the Order draft's
+ * lifetime count is not consulted and does not move.
+ */
+export function explainBeliefRerollCost(state: GameState, playerId: number): RerollPrice {
+  const player = playerById(state, playerId);
+  const offer = player?.pantheon.pending;
+  const asked = Math.max(0, Math.floor(offer?.rerolls ?? 0));
+  if (!player || !offer || asked === 0) return { lines: [], total: 0 };
+  const spec = RELIGION.reroll;
+  const age = highestAge(player.techsResearched);
+  const multiplier = spec.ageMultiplier[age - 1] ?? 1;
+  const base = Math.floor(spec.base);
+  const aged = Math.floor(spec.base * multiplier);
+  const full = Math.floor(spec.base * multiplier * spec.exponent ** (asked - 1));
+  const lines: UnitCostLine[] = [{ source: 'Asking the gods again', amount: base }];
+  if (aged !== base) lines.push({ source: `Æra ${eraNumeral(age)}`, amount: aged - base });
+  if (full !== aged) {
+    lines.push({
+      source: `${asked - 1} paid asking${asked - 1 === 1 ? '' : 's'} on this hand`,
+      amount: full - aged,
+    });
+  }
+  return { lines, total: foldUnitCost(lines) };
+}
+
+/** What asking this belief hand again costs. The fold; nothing on the first asking. */
+export function nextBeliefRerollCost(state: GameState, playerId: number): number {
+  return explainBeliefRerollCost(state, playerId).total;
+}
+
+/**
  * Which draft a reroll would redeal — `'order'`, `'belief'`, or `null` when
  * there is nothing on the table.
  *
@@ -499,9 +710,9 @@ export function rerollKindFor(player: Player): 'order' | 'belief' | null {
  * The clauses, in the order a player would meet them: is there a hand at all ·
  * has this empire the door open (`RerollConfig.ability` — Chronology's Long
  * Count, which lost the Magister's die in the same pass and gained this) · can
- * the bank pay. A **belief** hand skips the last two: a prophet's draft and the
- * ladder's are free and uncounted (ruled 2026-09-06), so nothing gates them but
- * their own existence.
+ * the bank pay. A **belief** hand — the ladder's or a prophet's — skips the
+ * door: its first asking is free, and every asking after is priced on the
+ * hand's own ladder (`explainBeliefRerollCost`), which the bank must cover.
  */
 /**
  * **Is the reroll's door open to this empire at all?** — the question a surface
@@ -524,7 +735,21 @@ export function rerollError(state: GameState, playerId: number): string | null {
   if (!player) return `No player with id ${String(playerId)}`;
   const kind = rerollKindFor(player);
   if (kind === null) return `${player.name} has no draft waiting to be answered`;
-  if (kind === 'belief') return null;
+  // **A belief hand — the ladder's or a prophet's — asks nothing the first
+  // time and faith after that**, rising per asking on this hand and reset with
+  // the next (the user, 2026-09-06, evening: "once you are shown your options,
+  // you get one free re-roll … prophet re-rolls reset per roll, and are
+  // entirely separate from order drafts"). No door: the pantheon opens in Æra
+  // I, before the Long Count, and a free asking that waited on a later tech
+  // would not be free. The Order draft's clauses follow, for the Order draft.
+  if (kind === 'belief') {
+    const price = nextBeliefRerollCost(state, playerId);
+    if (price <= 0) return null;
+    if (player.faithPool < price) {
+      return `Asking again costs ${price} faith and ${player.name} has ${Math.floor(player.faithPool)}`;
+    }
+    return null;
+  }
   if (!rerollDoorOpen(state, playerId)) {
     return 'Your calendars cannot yet call for a second reading';
   }
@@ -587,12 +812,20 @@ export function settleReroll(state: GameState, player: Player): RerollOutcome | 
     } else {
       offer = drawBeliefOffer(state, player);
     }
-    // The offer's own facts travel with it: the god handed back is still handed
-    // back, and the rung the ladder quoted is still the rung the pick pays.
-    if (old.givenBack !== undefined) offer.givenBack = old.givenBack;
+    // The offer's own facts travel with it: the rung the ladder quoted is still
+    // the rung the pick pays. (`givenBack` travelled here too until the field
+    // went with the last of the recast — see `BeliefOffer`.)
     if (old.rungCost !== undefined) offer.rungCost = old.rungCost;
+    // **The hand's own count, and the hand's own price** — see `rerollError`.
+    // The first asking on any belief hand is free; every one after costs the
+    // belief ladder's price for that asking, read *before* the count moves.
+    // Nothing here touches the Order draft's lifetime count or the chairs'
+    // tally: a god asked again is not an Order asked again.
+    const paid = nextBeliefRerollCost(state, player.id);
+    player.faithPool = Math.max(0, player.faithPool - paid);
+    offer.rerolls = (old.rerolls ?? 0) + 1;
     player.pantheon.pending = offer;
-    return { kind, paid: 0, taken: player.statecraft.rerollsTaken };
+    return { kind, paid, taken: player.statecraft.rerollsTaken };
   }
 
   const sc = player.statecraft;
@@ -670,11 +903,9 @@ export function settleBeliefChoice(
   const id = offer.options[optionIndex];
   if (id === undefined || !isBeliefId(id)) return null;
   delete player.pantheon.pending;
-  const rungCost = offer.rungCost;
-  if (rungCost !== undefined) {
-    player.faithPool = Math.max(0, player.faithPool - Math.max(0, Math.floor(rungCost)));
-    player.pantheon.rungs += 1;
-  }
+  // The ladder's rung was paid and climbed when the hand was dealt
+  // (`openFaithLadder`, since the evening of 2026-09-06); the pick charges
+  // nothing. `rungCost` on the offer is the record of what was paid, not a bill.
   // **Which shelf it goes on is the offer's own answer.** One field, one
   // command, three drafts: an offer that names a pool is a prophet's and lands
   // on the religion; one that names none is an augur's and lands on the

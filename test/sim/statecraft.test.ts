@@ -16,6 +16,7 @@ import type { Command } from '../../src/sim/commands';
 import {
   cityStageSums,
   cityYieldPercents,
+  buildingProductionCost,
   cityQuote,
   cityYields,
   explainTileYield,
@@ -81,6 +82,7 @@ import {
   filledOrderSlots,
   liveEffects,
   livePool,
+  drawablePool,
   musterPeriodicUnits,
   orderAtSlotPosition,
   payWindfallGrants,
@@ -359,6 +361,10 @@ describe('the card table', () => {
       'foundingRider', 'countScaled', 'rateConversion', 'offerRider', 'effectAmplifier',
       'meterRule', 'conditionRule', 'actionRule', 'behaviorRule', 'cityStat', 'metaRule',
       'tileYield', 'renown', 'upkeepRebate',
+      // The rebate's twin, built for The Reckless Levy on 2026-09-06: a coin
+      // *added* to each soldier's keep, which the give-back vocabulary could not
+      // say and the payroll percentage said as a number nobody could read.
+      'upkeepSurcharge',
       // The user's card pass of 2026-09-03: Thalassocracy stopped being two
       // percentages and became a share of one voice paid again as another.
       'yieldConversion',
@@ -1207,7 +1213,7 @@ describe('determinism', () => {
     // from its second turn on. 76 since batch E landed the tree's own gifts the
     // same day: ten nodes hand over something else, a third conversion project
     // joined the queue's vocabulary, and a road step is an empire fact.
-    expect(SCHEMA_VERSION).toBe(78);
+    expect(SCHEMA_VERSION).toBe(81);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1573,7 +1579,7 @@ describe('the behavioural hooks, in the verbs they change', () => {
       const city = found(g.state, 0);
       if (card) slot(g.state, 0, card);
       city.queue = [{ kind: 'building', id: 'monument' }];
-      city.hammerBasket = buildingDef('monument').cost + 7;
+      city.hammerBasket = buildingProductionCost('monument') + 7;
       settleProduction(g.state, city);
       return city.hammerBasket;
     };
@@ -2204,8 +2210,12 @@ describe('the master-list cut of 2026-08-28', () => {
     player.gold = 10000;
     expect(purchaseError(g.state, 0, city.id, { kind: 'building', id: 'gildedHall' }, 'gold')).toBeNull();
     const price = explainPurchaseCost(g.state, 0, city.id, { kind: 'building', id: 'gildedHall' }, 'gold')!;
-    // The card's 500 gold is the row's 250 hammers at `goldPerHammer`.
-    expect(price.total).toBe(buildingDef('gildedHall').cost * RULES.production.goldPerHammer);
+    // The row's hammers at `goldPerHammer` — and "the row's hammers" means the
+    // folded price since 2026-09-06 (`docs/flags.md` item y), age band included,
+    // because the till converts what the basket would have paid.
+    expect(price.total).toBe(
+      buildingProductionCost('gildedHall') * RULES.production.goldPerHammer,
+    );
   });
 
   it("barbarianKillsConvert — Wolf-Mother's Pact takes the fallen instead of burying them", () => {
@@ -4433,7 +4443,10 @@ describe("the user's card pass of 2026-09-03", () => {
   });
 
   it('yieldConversion — the scope is the whole of it: an inland town mints nothing', () => {
-    const g = game(901);
+    // Seed 905: inland on the H9 board (seed 901's capital moved to the coast
+    // when the start chooser learned to seat every capital near horses and
+    // iron, 2026-09-06). The assertion below is what makes the seed honest.
+    const g = game(905);
     const city = found(g.state, 0);
     farmTown(g.state, city);
     playerById(g.state, 0)!.statecraft.doctrines.push('thalassocracy');
@@ -4785,9 +4798,9 @@ describe('the card-shapes pass of 2026-09-04', () => {
   });
 
   it('yieldConversion — the four new pairs, each with its own gate', () => {
-    // Seed 901's town is inland, which The Salting Houses' half needs — the
+    // Seed 905's town is inland, which The Salting Houses' half needs — the
     // same bench the Thalassocracy test uses, and for its reason.
-    const g = game(901);
+    const g = game(905);
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
     const paid = (name: string, voice: CityYieldKey, over: Partial<Record<CityYieldKey, number>>) =>
@@ -5364,10 +5377,13 @@ describe('the cards pass of 2026-09-05', () => {
       'mounted units gain +1 combat strength on flat ground — not built yet',
       'every stable pays +1 food — not built yet',
     ]);
+    // **The deferred half became the card** (the user's ruling of 2026-09-06):
+    // the levy is a coin on each soldier now rather than a share of the payroll,
+    // so the row carries `upkeepSurcharge` — the flat rebate's twin — and prints
+    // one clause where it used to print a percentage and an apology.
     expect(said('theRecklessLevy')).toEqual([
       "+50% production toward units",
-      "+100% the gold your units cost in maintenance",
-      "every soldier costs one coin more to keep, whatever kind of soldier it is — not built yet",
+      'all units cost 1 more gold in maintenance',
     ]);
     expect(said('theCongregation')).toEqual([
       '+1 culture per city that follows you',
@@ -7083,5 +7099,68 @@ describe('the cadence and the chairs, as ruled on the third pass', () => {
         for (const count of spread(id)) expect(count, id).toBeGreaterThanOrEqual(1);
       }
     }
+  });
+});
+
+// --- the row's own age gate -------------------------------------------------
+
+/**
+ * **A row dealt only from its age** (`OrderDef.fromAge`; the user, 2026-09-06:
+ * "the era 4 victory cards are showing in the game at age 3, that's a bug, they
+ * should only show upon reaching age 4").
+ *
+ * Governments carry no age gate, so pool V opens whenever the tier ladder
+ * says, and the four bead Orders were in an Æra III hand. The gate is the
+ * row's and read by `drawablePool` alone: the government's whole shelf
+ * (`livePool`) still lists them, the bag the draw deals from does not until
+ * the empire's highest age reaches the row's.
+ */
+describe('an Order dealt only from its age', () => {
+  const gated = ORDER_IDS.filter((id) => orderDef(id).fromAge !== undefined);
+
+  it('is the four bead Orders of pool V, gated on the last age', () => {
+    expect(gated.map((id) => orderDef(id).name).sort()).toEqual([
+      'The Final Proclamation',
+      'The Great Enquiry',
+      'The Last Laurels',
+      'The Salted Earth',
+    ]);
+    for (const id of gated) {
+      expect(orderDef(id).pool, id).toBe('governmentV');
+      expect(orderDef(id).fromAge, id).toBe(4);
+    }
+  });
+
+  it('is on the government’s shelf and out of the bag until the age arrives', () => {
+    const g = game();
+    const sc = playerById(g.state, 0)!.statecraft;
+    sc.government = 'theEmpire';
+    for (const id of gated) {
+      expect(livePool(sc), id).toContain(id);
+      expect(drawablePool(sc, 3), id).not.toContain(id);
+      expect(drawablePool(sc, 4), id).toContain(id);
+    }
+    // And nothing else in the pool minds the age.
+    expect(drawablePool(sc, 1)).toEqual(livePool(sc).filter((id) => !gated.includes(id)));
+  });
+
+  it('never deals one to an empire still in an earlier age', () => {
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const g = game(seed);
+      const player = playerById(g.state, 0)!;
+      player.statecraft.government = 'theEmpire';
+      const offer = drawOrderOffer(g.state, player);
+      for (const id of offer.options) expect(gated, `seed ${seed}`).not.toContain(id);
+    }
+  });
+
+  it('keeps the chair of a row already held, whatever the age says', () => {
+    const g = game();
+    const player = playerById(g.state, 0)!;
+    player.statecraft.government = 'theEmpire';
+    slot(g.state, 0, gated[0]!);
+    expect(player.statecraft.slots.map((s) => s?.card ?? null)).toContain(gated[0]);
+    // Held rows leave every pool reading; the gate never touches the holding.
+    expect(livePool(player.statecraft)).not.toContain(gated[0]);
   });
 });

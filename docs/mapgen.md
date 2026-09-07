@@ -22,7 +22,7 @@ types and the override seam), `docs/luxuries.md` (the resource table itself),
 1. [The contract](#the-contract)
 2. [The two fields](#the-two-fields)
 3. [Terrain, hills and mountains as shares](#terrain-hills-and-mountains-as-shares)
-4. [Features: forest and jungle](#features-forest-and-jungle)
+4. [Features: forest and jungle](#features-forest-and-jungle) · [the grain of the woods](#the-grain-of-the-woods-and-the-clearings)
 5. [Lakes, coast and rivers](#lakes-coast-and-rivers) · [pit lakes](#pit-lakes-a-river-that-ends-in-a-tarn)
 5b. [The arid features: oasis and floodplain](#the-arid-features-oasis-and-floodplain)
 5c. [The pangaea: one continent and its islands](#the-pangaea-one-continent-and-its-islands)
@@ -62,6 +62,7 @@ Passes, in order, all in `generateMapDetail`:
 | 0b | the pangaea mask, and the island belt read off it | `pangaeaPull`, `islandShelfLift` |
 | 1 | fields → terrain, hills | `buildTerrainFields`, `pickLandTerrain` |
 | 1b | forest and jungle, then oases | `assignFeatures`, `assignOases` |
+| 1c | clearings punched through the big woods (**own dice**) | `openClearings` |
 | 2 | small water bodies → lakes | `classifyLakes` (`water.ts`) |
 | 3 | ocean within `coast.rings` hexes of land → coast | `mapgen.ts` |
 | 3b | shelf run out to every island | `chainIslandShelves` (`water.ts`) |
@@ -75,10 +76,18 @@ continental field and the shelf chains are a BFS — so a map generated with
 `pangaea.enabled: false` and `shelfChains: false` is the pre-2026-09-03 world
 back, byte for byte (`test/mapgen/resources.slow.test.ts`'s `OLD_FIXTURES`).
 
-Only two passes roll dice, and both new passes are in the other camp: the oases
-are dealt off a noise layer and the floodplains are read off the finished water,
-so neither touches `rng` and resources on a given seed are drawn from exactly the
-stream they were drawn from before either existed.
+Only two passes roll the **map's** dice, and the oases and the floodplains are in
+the other camp: the oases are dealt off a noise layer and the floodplains are read
+off the finished water, so neither touches `rng` and resources on a given seed are
+drawn from exactly the stream they were drawn from before either existed.
+
+The woodland pass (1c, 2026-09-06) is the third camp and the one to copy when a
+pass needs dice of its own. Its noise table and its clearing rolls come from
+**streams keyed on the seed** — `webciv:mapgen:woodland:grain:<seed>` and
+`webciv:mapgen:woodland:clearings:<seed>` — never from `rng`, so every pass above
+it and every *draw* below it is bit-identical to a build that never had it. What
+does move is the ground the later draws land on: a forest resource needs a forest,
+so clearing a hex moves the deer.
 
 Start positions are *not* a generation pass. They are derived from the finished
 map by `chooseStartPositions` (`startPositions.ts`), which rolls nothing — so
@@ -253,6 +262,45 @@ not dealt at all; it is derived after the rivers.
 > Note the denominator. `forestShare` is a share of *eligible* ground, which is
 > about two thirds of the land — so it reads roughly two thirds as large in a
 > terrain census. A `forestShare` of 0.32 is not 32% of the map.
+
+### The grain of the woods, and the clearings
+
+Ruled 2026-09-06: *"currently forests spawn in huge patches, could we make them
+more diffuse across the map? There should be smaller patches of forest across the
+map, and some unforested tiles breaking up the large patches."* Two knobs, in the
+`woodland` block, for the two halves of that sentence.
+
+**`woodland.grain`** rides inside the forest deal. Moisture is a smooth field, so
+"the wettest 32% of eligible ground" is by construction a handful of large blobs
+— which is exactly the complaint. The deal therefore orders candidates by a
+**blend of two percentiles taken inside the eligible set**: the moisture rank and
+a copse-scale noise rank (`noise.woodlandGrain`, five tiles a cycle). Percentiles
+rather than raw values, because a rank over the whole map and raw fbm are not
+comparable and a blend of them is one field with a little dust on it.
+
+The count taken is untouched at every grain, so this decides *where* the same
+number of trees stand and never how many. `grain: 0` is the deal as it was before
+the ruling, hex for hex — the `rainShadow.enabled` bargain again. Jungle takes no
+grain: the complaint was about the woods and a rainforest should read as a mass.
+
+**`woodland.clearingChance`** is pass 1c, after the whole feature deal. A forest
+hex whose **six neighbours are all forest** is the inside of a wood; in a wood of
+at least `clearingMinPatch` hexes it is offered a clearing, and the ones that take
+it lose their trees. Two disciplines make it order-independent: enclosure is read
+off the woodland *as dealt* rather than off the half-cleared map, and the patch
+sizes are flooded first, tiles visited in index order. It rolls its own dice —
+see [The contract](#the-contract).
+
+Measured on five seeds at `standard`, before → after:
+
+| | forest share of land | woods | mean wood | largest wood | enclosed hexes |
+|---|---|---|---|---|---|
+| before | 16.1% | 24.8 | 11.8 | 74.4 | 13.6% |
+| after | 15.8% | 47.6 | 6.0 | 43.6 | 1.4% |
+
+The share is what the ruling asked to keep; the other four are what it asked to
+move. `mapgen.html`'s **The woods** panel prints all five off the live map
+(`woodlandReport`, `src/dev/mapReport.ts`).
 
 ---
 
@@ -904,7 +952,7 @@ is reconciled *afterwards*, in this order:
    `± luxuryDensityTolerance`. A top-up grows a seam beside an existing copy
    first, then anywhere else on the continent the row allows.
 
-The top-up **honours `minSpacing`**, unlike the two start guarantees below. A
+The top-up **honours `minSpacing`**, unlike the start guarantees below. A
 guarantee is a promise to a player and outranks an aesthetic; a budget *is* the
 aesthetic, so a top-up that shouldered in beside somebody else's find would be
 the density pass undoing the thing it exists to tidy. Same-kind tiles are exempt
@@ -970,7 +1018,7 @@ that number mean a *floor* rather than merely a clamp. Still short: the refused
 sites are swept too (a start on snow is a bad start; no start is a crash). Still
 short: only then does the floor itself give way to 1.
 
-### The three guarantees
+### The four guarantees
 
 The scatter is fair on average and nobody plays an average. So after it, every
 possible start (the maximum roster) is checked and each gap filled:
@@ -979,13 +1027,42 @@ possible start (the maximum roster) is checked and each gap filled:
 2. `startLuxuryKinds` distinct luxuries within `startLuxuryRadius`;
 3. one of those kinds standing in a seam of `startLuxuryCopies` tiles — Civ 5's
    region luxury. One lonely wine four hexes off is a curiosity; a seam of two is
-   a reason to plant a city on it.
+   a reason to plant a city on it;
+4. a copy of **every row in `startStrategics`** within `startStrategicRadius`
+   (`ensureStartStrategics`, ruled 2026-09-05: *"every capital has both horses
+   and iron within six tiles"*).
 
-All three **roll no dice**: the tile chosen is the nearest legal one, ties by tile
+All four **roll no dice**: the tile chosen is the nearest legal one, ties by tile
 index, and the luxury chosen prefers the continent's own hand so a guarantee does
 not flatten the character the deal just built. That keeps them reproducible
 without consuming from the stream, and means they do not shift when the scatter
 above them is retuned.
+
+#### The strategic guarantee, and the refusal behind it
+
+Whether an empire can field a horseman or a swordsman before the classical age is
+not flavour, and the scatter's twenty-two strategic tiles per 1000 land is far too
+thin to promise either — so the two rows the opening turns on are promised
+outright. It is a **list of ids**, not a count: which strategics matter at the
+opening is a design statement. The seat's reveal tech still gates *seeing* the
+copy; the guarantee is about the ground, not about knowledge.
+
+Measured over five seeds and the maximum twelve-seat roster (120 seat-resource
+pairs per size), the scatter supplies about forty of them on its own and the
+guarantee forces the rest — 68 forced at `standard`, 69 at `large`, 79 at `huge`,
+73 at `giant` — and **no seat is left short at any size from `standard` up**.
+
+What it cannot do is invent ground: iron wants a featureless hill. So the *site*
+is refused instead — `strategicGround` (`startPositions.ts`) dilates the legal
+hexes of each listed row out to the radius, once per map, and a site outside every
+row's reach is the chooser's seventh hard rejection. **That clause is unreachable
+on the standard sheet**: over the same sweep, every one of the sixty seats at
+`standard` and above has legal ground for both rows in reach. It fires only on
+`duel` asked to seat twelve — ten of sixty seats there have no featureless hill or
+no flat grass within six hexes — and there the chooser's own last-resort fallback
+seats those players on refused sites anyway, because a 40×25 board with twelve
+capitals has nowhere else to put them. A duel map seating twelve is a dev harness,
+not a game.
 
 ### Water at a start: a soft preference, not a guarantee
 
@@ -1006,14 +1083,15 @@ score. That is the shape of the remaining ~10%, and it says the residue is not a
 weighting problem. A start is seated by a greedy sweep at `startSpacing`, so the
 last few seats are choosing among whatever is left at that distance; where no
 watered site is available, no amount of preferring one conjures it. Closing the
-gap properly means a *guarantee* pass — the shape the three resource guarantees
+gap properly means a *guarantee* pass — the shape the four resource guarantees
 already have — and that is deliberately not built here.
 
-Strategic fairness — "every player can reach iron" — is deliberately **not**
-attempted. It is a much stronger claim (about distance through terrain, contested
-ground and expansion, not one ring of tiles) and the honest way to hold it is the
-AI milestone's scripted-bot harness. Map-driven military asymmetry is a feature
-of this design; a start that cannot feed itself is not.
+Strategic fairness *at the start* is now the fourth guarantee above (ruled
+2026-09-05). What is still deliberately **not** attempted is the stronger claim —
+"every player can reach iron", about distance through terrain, contested ground
+and expansion rather than one disc of tiles; the honest way to hold that is the
+AI milestone's scripted-bot harness. Map-driven military asymmetry past the
+opening is a feature of this design; an opening with no horse and no iron is not.
 
 ---
 
@@ -1101,6 +1179,8 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 | `ridgeBreak.octaves` / `.lacunarity` / `.persistence` | 3 / 2.0 / 0.5 | fbm shape |
 | `moistureLocal.cycleTiles` | 8 | tiles per copse-and-clearing cycle |
 | `moistureLocal.octaves` / `.lacunarity` / `.persistence` | 3 / 2.0 / 0.5 | |
+| `woodlandGrain.cycleTiles` | 5 | tiles per cycle of the field that breaks the woods up — the size of a copse |
+| `woodlandGrain.octaves` / `.lacunarity` / `.persistence` | 2 / 2.0 / 0.5 | fbm shape. Drawn from a stream of the seed's own, so it costs the map's dice nothing |
 
 ### elevation
 
@@ -1147,6 +1227,16 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 | `rainShadow.windDirection` | 3 | hex direction the wind comes *from*; 3 is west |
 | `rainShadow.rangeTiles` | 4 | how many hexes downwind of a range stay dry |
 | `rainShadow.strength` | 0.45 | moisture removed immediately downwind, tapering to nothing |
+
+### woodland
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `grain` | 0.55 | how much of the forest deal's ordering the copse-scale field takes, against the moisture field's. `0` is the pre-ruling world hex for hex; `1` scatters wood without regard for wet country. Never changes how much forest there is |
+| `clearingChance` | 0.4 | chance a hex with all six neighbours wooded is opened as a clearing. `0` skips pass 1c |
+| `clearingMinPatch` | 8 | smallest connected wood a clearing may be punched in — a copse is what the pass is trying to make, not to hollow |
+
+See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 
 ### lakes
 
@@ -1210,6 +1300,8 @@ on another machine. Held by `test/mapgen/mapgenOverrides.test.ts`.
 | `startFoodRadius` | 3 | how far from a start a bonus food must be for the guarantee to rest |
 | `startLuxuryRadius` | 4 | how far a start's guaranteed luxuries may be |
 | `startLuxuryKinds` | 2 | distinct luxury kinds every start is guaranteed |
+| `startStrategics` | `["horses","iron"]` | strategic rows every start is guaranteed a copy of. Empty disables both the guarantee and the site refusal behind it |
+| `startStrategicRadius` | 6 | how far from a start those copies may be |
 | `startLuxuryCopies` | 2 | tiles of one of those kinds — the region-luxury seam |
 
 ### starts

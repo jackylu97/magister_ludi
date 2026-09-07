@@ -258,7 +258,24 @@ export type CompletionGrant =
    * the grant did not land. `family` absent is the ordinary draw over the whole
    * pool.
    */
-  | { grant: 'greatPerson'; family?: Family };
+  | { grant: 'greatPerson'; family?: Family }
+  /**
+   * A **free rung of the faith ladder**, through `openFreeRung` (`religion.ts`)
+   * — Stonehenge's, and the reason it exists (ruled 2026-09-06: the stones stop
+   * leaving an augur behind and hand over the god the augur was for).
+   *
+   * It passes this union's one test: the seam already exists. The ladder's own
+   * deal opens the ordinary consecration hand, blocks End Turn until it is
+   * answered and is drawn from `state.rng` inside the log — all of it, unchanged.
+   * What "free" takes out is the *quote*: the offer carries no `rungCost`, so the
+   * pick spends nothing and no rung is climbed, which is `PlayerPantheon.rungs`'
+   * own rule ("a wonder's god is not a rung") rather than a new one.
+   *
+   * `doctrineDraft`'s clause word for word on top of that: a seat already holding
+   * an unanswered hand keeps the one it has and the report says the grant did not
+   * land, because a second offer dealt on the first would destroy it.
+   */
+  | { grant: 'faithRung' };
 
 export type BuildingId =
   // The fourteen rows the tree pass of 2026-08-30 added, in the order the ages

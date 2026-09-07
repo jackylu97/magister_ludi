@@ -19,6 +19,7 @@ import {
   effectFigure,
   figure,
   meterFigure,
+  netFigure,
   poolFigure,
   signedFigure,
   signedMeterFigure,
@@ -80,19 +81,24 @@ describe('poolFigure', () => {
     expect(poolFigure(132, 4)).toBe('132 (+4)');
   });
 
-  it('signs the rate but never the pool', () => {
-    // A shrinking or stalled treasury is still a plain magnitude; only the
-    // rate carries a sign, exactly as `signedFigure` / `figure` do everywhere
-    // else on this interface.
+  it('signs the rate but never plusses the pool', () => {
+    // A stalled treasury wears no `+`; only the rate carries an explicit sign,
+    // because only the rate is a contribution.
     expect(poolFigure(0, 0)).toBe('0 (0)');
     expect(poolFigure(50, -3)).toBe('50 (−3)');
+    // **But a bank under water keeps its minus** (2026-09-06, with item z's
+    // pass over the strip): `netFigure`, not `figure`. A treasury of −22 printed
+    // as a magnitude reads as twenty-two coins in hand, which is the one thing
+    // the chip must never say.
+    expect(poolFigure(-22, -3)).toBe('−22 (−3)');
   });
 
   it('rounds to a whole figure in the house voice, true minus sign included', () => {
     // Whole since batch X (exact yields, the user 2026-09-06 — *"just don't show
     // this to the player"*): the pools carry fractions now, and `roundYield` is
     // the one place any of them becomes a number a player reads. The tenth lives
-    // on in `meterFigure`, for the two meters and nothing else.
+    // on in `meterFigure` — for the two meters' **ledgers**, and nothing else,
+    // since item z took it off the strip (see the suite below).
     expect(poolFigure(12.34, 1.25)).toBe('12 (+1)');
     expect(signedFigure(-2.4)).toBe('−2');
     expect(signedMeterFigure(-2.4)).toBe('−2.4');
@@ -180,6 +186,95 @@ describe('the banked yields', () => {
     // would have caught faith being added to the chip and forgotten on the card.
     expect(code).not.toContain("key === 'gold'");
     expect(code).not.toContain("key === 'faith'");
+  });
+});
+
+/**
+ * `netFigure` — the voice of a quantity that may honestly be negative.
+ *
+ * The third printer, and the reason it is not `figure` is one word: `figure` is
+ * a **magnitude**. A caller quoting a cost or a strength has already decided the
+ * sign is not part of the number; the top bar's chips have decided no such
+ * thing, and a starving empire's food rate or an empire in debt is exactly the
+ * case they have to print honestly.
+ */
+describe('netFigure', () => {
+  it('rounds whole, keeps a true minus, and never wears a plus', () => {
+    expect(netFigure(2.4)).toBe('2');
+    expect(netFigure(2.5)).toBe('3');
+    expect(netFigure(0)).toBe('0');
+    expect(netFigure(-2.4)).toBe('−2');
+    expect(netFigure(-2.5)).toBe('−3');
+    // Never `+2`, and never `−0`.
+    expect(netFigure(2)).toBe('2');
+    expect(netFigure(-0.4)).toBe('0');
+  });
+
+  it('is the honest half of the pair `figure` gives up', () => {
+    // The bug it exists to prevent, spelt out: the magnitude printer says a
+    // loss and a gain with the same characters.
+    expect(figure(-6)).toBe(figure(6));
+    expect(netFigure(-6)).not.toBe(netFigure(6));
+  });
+
+  it('keeps the house abbreviation past three digits', () => {
+    expect(netFigure(-22_000)).toBe('−22k');
+    expect(netFigure(1_500)).toBe('1.5k');
+  });
+});
+
+/**
+ * **Every figure in the top bar is whole** — the user, 2026-09-06
+ * (`docs/flags.md`, rulings "late — early production", item z: "every figure in
+ * the top bar rounds to the nearest integer for display — the yield chips and
+ * both meters; the underlying fold keeps the full decimal").
+ *
+ * Two things had to move for that and both are asserted here rather than
+ * assumed, because neither can be rendered in this suite (no jsdom):
+ *
+ *   the six chips  printed `String(totals[key])` — the raw exact fold, which
+ *                  after batch X is a number like `2.6666666666666665`. They go
+ *                  through `netFigure` and `poolFigure` now.
+ *   the two meters printed `signedMeterFigure`, which keeps a tenth. They go
+ *                  through `signedFigure` with everything else on the strip.
+ *
+ * The tenth is **not deleted** — `signedMeterFigure` and `meterFigure` still
+ * keep it, and are still asserted above. What the ruling withdrew is the tenth
+ * *on the strip*; the meters' hover cards, their click-through ledgers and the
+ * authority card's capacity headline still print through the pair, because that
+ * is where the argument for the tenth lives (a fraction is worth seeing against
+ * a rung, and a ledger is where a player counts). See `signedMeterFigure`.
+ */
+describe('the top bar prints whole figures', () => {
+  const TOP_BAR = (
+    import.meta.glob('../../src/ui/topBar.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>
+  )['../../src/ui/topBar.ts']!;
+
+  /** Source with its comments taken out — the rule is not the prose about it. */
+  const code = TOP_BAR.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+  it('sends every yield chip through a printer, never a raw fold', () => {
+    expect(code).toContain('netFigure(totals[key])');
+    expect(code).not.toContain('String(totals[key])');
+  });
+
+  it('rounds both meter chips whole', () => {
+    // `writeChip` is the one place a meter's figure reaches the strip, and both
+    // calls hand it the yields' printer.
+    const chips = code.match(/writeChip\(\s*\w+Chip,\s*(\w+)\(/g) ?? [];
+    expect(chips).toHaveLength(2);
+    for (const call of chips) expect(call).toContain('signedFigure(');
+  });
+
+  it('leaves the tenth in the cards, which is where its argument lives', () => {
+    // Not "the tenth is gone": the ledger lines, the group subtotals, the
+    // card headlines and the authority card's capacity pair all still keep it.
+    expect(code).toContain('signedMeterFigure(');
+    expect(code).toContain('meterFigure(');
   });
 });
 

@@ -71,6 +71,7 @@ import {
 import { type City, type GameState, type Player, capitalCityOf } from '../sim/state';
 import { type RouteMode, routeModesAvailable, routeSlots, usedRouteSlots } from '../sim/trade';
 import { RULES } from '../sim/rulesData';
+import { unitProductionCost } from '../sim/cities';
 import { type UnitTypeId, caravanTypeId, trades, unitDef } from '../sim/unitData';
 
 const TRADE = RULES.trade;
@@ -371,7 +372,8 @@ function withSpareSlot(state: GameState, playerId: number): GameState | null {
 function caravanBuildTurns(ctx: ValueContext): number {
   const id: UnitTypeId | null = caravanTypeId();
   if (id === null) return 0;
-  return buildTurns(unitDef(id).cost, ctx);
+  // The folded price (escalation and H10's age band), never the row's base.
+  return buildTurns(unitProductionCost(ctx.state, ctx.playerId, id), ctx);
 }
 
 /**

@@ -5,7 +5,9 @@ import {
   mapReport,
   resourceCensus,
   startReport,
+  woodlandReport,
 } from '../../src/dev/mapReport';
+import { woodStats } from './forestHelpers';
 import { hslToPacked, partitionColor } from '../../src/render3d/tint3d';
 import { mapRange, tileHex, tileIndex } from '../../src/sim/map';
 import { MAPGEN_CONFIG } from '../../src/sim/mapgenData';
@@ -233,8 +235,55 @@ describe('mapReport', () => {
     expect(report.census).toEqual(resourceCensus(st));
     expect(report.continents).toEqual(continentReport(st));
     expect(report.starts).toEqual(startReport(st));
+    expect(report.woodland).toEqual(woodlandReport(st));
   });
 
+  it('counts the woods off the ground, not off the generator', () => {
+    // The one panel on the page that is a *shape* rather than a tally, and the
+    // reading the 2026-09-06 woodland ruling is judged by. It is checked
+    // against an independent count for the census's reason: a patch statistic
+    // that quietly disagreed with the map would still print plausible figures.
+    const st = state(4, 'standard');
+    const wood = woodlandReport(st);
+    const stats = woodStats(st.map);
+    expect(wood.forestTiles).toBe(stats.forest);
+    expect(wood.landTiles).toBe(stats.land);
+    expect(wood.patches).toBe(stats.patches);
+    expect(wood.largestPatch).toBe(stats.largestPatch);
+    expect(wood.enclosed).toBe(stats.enclosed);
+    expect(wood.share).toBeCloseTo(stats.share, 10);
+    expect(wood.meanPatch).toBeCloseTo(stats.meanPatch, 10);
+    expect(wood.enclosedShare).toBeCloseTo(stats.enclosedShare, 10);
+    // And it is a real reading: a map with no forest at all would pass every
+    // identity above.
+    expect(wood.forestTiles).toBeGreaterThan(0);
+    expect(wood.patches).toBeGreaterThan(1);
+  });
+
+  it('audits the strategic guarantee off the ground', () => {
+    // The 2026-09-05 promise, printed per seat. The report reads what is on the
+    // map rather than asking the pass, for the continent hand's reason — so a
+    // guarantee that silently stopped running would show up here as a seat
+    // short, which is exactly what the column exists for.
+    const st = state(4, 'standard');
+    const report = startReport(st);
+    expect(report.strategicRadius).toBe(MAPGEN_CONFIG.resources.startStrategicRadius);
+    expect(report.rows).toHaveLength(4);
+    for (const row of report.rows) {
+      const near = mapRange(st.map, tileHex(st.map.tiles[tileIndex(st.map, row.col, row.row)]!), report.strategicRadius);
+      for (const id of MAPGEN_CONFIG.resources.startStrategics) {
+        const copies = near.filter((tile) => tile.resource === id).length;
+        const listed = row.strategics.find((entry) => entry.id === id);
+        expect(`${id} ${listed?.copies ?? 0}`).toBe(`${id} ${copies}`);
+        expect(row.strategicsMissing.includes(id)).toBe(copies === 0);
+      }
+    }
+    expect(report.seatsMissingStrategics).toBe(
+      report.rows.filter((row) => row.strategicsMissing.length > 0).length,
+    );
+    // The promise itself, on this map: nobody is short.
+    expect(report.seatsMissingStrategics).toBe(0);
+  });
 });
 
 describe('partition inks', () => {

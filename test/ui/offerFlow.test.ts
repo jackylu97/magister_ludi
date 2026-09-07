@@ -153,8 +153,17 @@ describe('the reroll button', () => {
   it('offers the free hand on the votive card and the paid one on the draft', () => {
     expect(MAIN).toContain('rerollOffer(seat, showStatecraftOffer)');
     expect(MAIN).toContain('rerollOffer(seat, showReligionOffer)');
-    // The votive card says what it costs, which is nothing.
-    expect(MAIN).toContain("label: 'Ask again'");
+    // The votive card says what it costs: nothing the first time, then the
+    // hand's own ladder (`explainBeliefRerollCost`) — never the Order draft's,
+    // and never the door (2026-09-06: "the first reroll free and the following
+    // ones cost faith… entirely separate from order drafts").
+    const start = MAIN.indexOf('function beliefRerollControl(');
+    const votive = MAIN.slice(start, MAIN.indexOf('function rerollOffer(', start));
+    expect(votive).toContain("label: 'Ask again — free'");
+    expect(votive).toContain('const label = `Ask again — ${price.total}${YIELD_GLYPH.faith}`');
+    expect(votive).toContain('explainBeliefRerollCost(game.state, seat)');
+    expect(votive).not.toContain('rerollDoorOpen');
+    expect(votive).not.toContain('explainRerollCost(');
   });
 
   it('draws it as a foot control the card component knows about', () => {

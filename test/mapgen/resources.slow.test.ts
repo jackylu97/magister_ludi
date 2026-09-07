@@ -52,6 +52,13 @@ import { CONFIG, resourceTiles } from './resourceHelpers';
 import { RULES } from '../../src/sim/rulesData';
 import { chooseStartPositions } from '../../src/sim/startPositions';
 
+/**
+ * The sheet that switches the strategic start guarantee off — an empty list is
+ * its documented off switch. What comes back is the scatter's own density,
+ * which is the subject of the two budget claims below.
+ */
+const NO_GUARANTEED_STRATEGICS = { resources: { startStrategics: [] } };
+
 /** The sizes and seeds every sweep below runs over. */
 const SAMPLES: [number, string][] = [
   [1, 'duel'],
@@ -96,7 +103,15 @@ describe('placement', () => {
     for (const [seed, size] of SAMPLES) {
       const map = mapFor(seed, size);
       const starts = chooseStartPositions(map, RULES.game.maxPlayers).map((tile) => tileHex(tile));
-      const reach = Math.max(CONFIG.startFoodRadius, CONFIG.startLuxuryRadius);
+      // Every guarantee's radius, not just the two the pass shipped with: the
+      // strategic guarantee (2026-09-05) works to six hexes, which is further
+      // than either of the others, and a crowded pair it made at five would read
+      // as a leak in the scatter if this number stayed at four.
+      const reach = Math.max(
+        CONFIG.startFoodRadius,
+        CONFIG.startLuxuryRadius,
+        CONFIG.startStrategics.length > 0 ? CONFIG.startStrategicRadius : 0,
+      );
       for (const tile of resourceTiles(map)) {
         for (const near of mapRange(map, tileHex(tile), CONFIG.minSpacing - 1)) {
           if (near === tile || near.resource === undefined) continue;
@@ -142,12 +157,37 @@ describe('placement', () => {
         expect(`${where} bonus ${per1000('bonus') <= CONFIG.bonusPer1000LandTiles * 1.45}`).toBe(
           `${where} bonus true`,
         );
+        // The strategic band is read off the **scatter alone** since 2026-09-05,
+        // and that is a sharpening rather than a loosening. `startStrategics`
+        // promises horses and iron to every one of the twelve possible starts
+        // (`ensureStartStrategics`), so the guarantee's contribution is a
+        // function of the seat count and the land, not of the budget: it is
+        // twenty-odd tiles on every board, which is a rounding error on a giant
+        // map and doubles the density of a duel one. A single band over the
+        // total could only be a band wide enough to say nothing.
+        const bare = mapFor(seed, size, NO_GUARANTEED_STRATEGICS);
+        const bareLand = landTileCount(bare);
+        const barePer1000 =
+          (resourceTiles(bare).filter((tile) => resourceDef(tile.resource!).kind === 'strategic')
+            .length /
+            bareLand) *
+          1000;
         expect(
-          `${where} strategic ${per1000('strategic') >= CONFIG.strategicPer1000LandTiles * 0.7}`,
+          `${where} strategic ${barePer1000 >= CONFIG.strategicPer1000LandTiles * 0.7}`,
         ).toBe(`${where} strategic true`);
         expect(
-          `${where} strategic ${per1000('strategic') <= CONFIG.strategicPer1000LandTiles * 1.35}`,
+          `${where} strategic ${barePer1000 <= CONFIG.strategicPer1000LandTiles * 1.35}`,
         ).toBe(`${where} strategic true`);
+        // And the guarantee only ever *adds*, by at most one copy per seat per
+        // listed row — the ceiling the promise itself sets.
+        const ceiling =
+          (RULES.game.maxPlayers * CONFIG.startStrategics.length * 1000) / land;
+        expect(`${where} guarantee ${per1000('strategic') >= barePer1000 - 0.001}`).toBe(
+          `${where} guarantee true`,
+        );
+        expect(
+          `${where} guarantee ${per1000('strategic') <= barePer1000 + ceiling + 0.001}`,
+        ).toBe(`${where} guarantee true`);
         // Civ 6’s abundance, which is what this pass was asked for: a bonus
         // resource roughly every eight to twelve land tiles, so a decent city
         // site has something worth working without being hunted for.
@@ -179,7 +219,12 @@ describe('placement', () => {
     for (const size of MAP_SIZE_NAMES) {
       if (size === 'duel') continue;
       for (const seed of [1, 4242]) {
-        const map = mapFor(seed, size);
+        // The **scatter's** density, which is what a budget walked back would
+        // show up in. The start guarantee (2026-09-05) plants twenty-odd copies
+        // on top of it that no budget asked for and no budget edit can move, so
+        // measuring the total here would be a tripwire that fires on a promise
+        // rather than on a dial.
+        const map = mapFor(seed, size, NO_GUARANTEED_STRATEGICS);
         const land = landTileCount(map);
         const per1000 = (kind: string): number =>
           (resourceTiles(map).filter((tile) => resourceDef(tile.resource!).kind === kind).length /
@@ -324,12 +369,21 @@ describe('the ground did not move', () => {
   // unchanged**. Only `large` and `huge` moved, and they moved for the reason the
   // ruling asked them to — more rivers, and a tarn at the end of each one that
   // could not reach the sea.
+  // Re-measured a seventh time on 2026-09-06 for **the woods** (the woodland
+  // grain and the clearings, `docs/flags.md` item h). All five moved, and only
+  // `Tile.feature` moved in any of them: the grain reorders which eligible hexes
+  // the forest deal takes and the clearings open the inside of a big wood, so
+  // terrain, hills, elevation, moisture, river edges and freshwater are the
+  // same bytes as the sixth measurement. Nothing about the dice moved either —
+  // the pass draws from streams keyed on the seed, never from `rng` — and
+  // `OLD_FIXTURES` below reproduces the pre-ruling world through its own switch,
+  // exactly as every ruling before it does.
   const FIXTURES: [number, string, string][] = [
-    [1234, 'duel', '25dd7a72'],
-    [7, 'duel', '1d8bfa83'],
-    [31337, 'standard', 'fdd96f6b'],
-    [99, 'large', 'f375c273'],
-    [2024, 'huge', '595a7c36'],
+    [1234, 'duel', '89b2ce76'],
+    [7, 'duel', '32364642'],
+    [31337, 'standard', 'f225d718'],
+    [99, 'large', 'ba958114'],
+    [2024, 'huge', '3978407c'],
   ];
 
   it('reproduces the pre-resource generator exactly', () => {
@@ -369,6 +423,7 @@ describe('the ground did not move', () => {
         pangaea: { enabled: false, shelfChains: false },
         elevation: { ridgeBreakStrength: 0, seaLevel: 0.62, mountainShare: 0.1 },
         rivers: { minSpringElevation: 0.84, pitLakes: false },
+        woodland: { grain: 0, clearingChance: 0 },
       });
       expect(`${seed}/${size}: ${hashTerrain(map)}`).toBe(`${seed}/${size}: ${expected}`);
     }

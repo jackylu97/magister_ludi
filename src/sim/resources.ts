@@ -116,6 +116,7 @@ import {
   isBonusFood,
   resourceDef,
   resourcesOfKind,
+  tileSuitsResource,
 } from './resourceData';
 import { type Rng, nextFloat, nextInt } from './rng';
 import { RULES } from './rulesData';
@@ -145,6 +146,15 @@ import { landRegions } from './water';
  * `resources.ts` for it had to change.
  */
 export { landRegions };
+
+/**
+ * Re-exported: the terrain filter moved to `resourceData.ts` (a leaf) when the
+ * start chooser came to need it, and `resources.ts` is where every caller has
+ * always asked for it. It is a pure reading of a row against a tile — no map,
+ * no config — so the table is its home; the move is what keeps
+ * `startPositions.ts` from importing this module and closing a cycle around it.
+ */
+export { tileSuitsResource };
 
 /**
  * Graph distance from a set of source tiles, restricted to `member` tiles.
@@ -829,6 +839,24 @@ export interface ResourceConfig {
    * one copy is a curiosity, two is a reason to settle here.
    */
   startLuxuryCopies: number;
+  /**
+   * The strategic rows **every** start is guaranteed a copy of, by id.
+   *
+   * Ruled 2026-09-05 (`docs/flags.md` note 20): "every capital has both horses
+   * and iron within six tiles". The two openings a strategic gates — the
+   * horseman and the swordsman — are not flavour, they are whether an empire
+   * has an early army at all, and the scatter's own budget of twenty-two
+   * strategic tiles per 1000 land is far too thin to promise either. So they
+   * are promised, exactly as the bonus food and the two luxuries already are.
+   *
+   * A **list of ids**, not a count: which strategics matter at the opening is a
+   * design statement, and a designer removing iron from it is making that
+   * statement. An id that is not a strategic row is ignored rather than
+   * refused, so a mistyped sheet loses the guarantee instead of the map.
+   */
+  startStrategics: ResourceId[];
+  /** How far from a start those copies may be. Six, as the ruling names. */
+  startStrategicRadius: number;
   /** Land tiles one carved continent aims for. See `carveContinents`. */
   continentTargetTiles: number;
   /**
@@ -874,14 +902,6 @@ export interface ResourceConfig {
    * its rarity, which is what it takes for coffee to be a thing that exists.
    */
   luxuryScarcityBias: number;
-}
-
-/** Does this tile satisfy a resource's terrain / feature / hills filters? */
-export function tileSuitsResource(tile: Tile, def: ResourceDef): boolean {
-  if (!def.validTerrain.includes(tile.terrain)) return false;
-  if (def.validFeatures && !def.validFeatures.includes(tile.feature)) return false;
-  if (def.hills !== undefined && tile.hills !== def.hills) return false;
-  return true;
 }
 
 /** How many land tiles a map has. The scatter's budget is scaled by this. */
@@ -993,8 +1013,12 @@ function drawWeighted(
  * Mutates `map.tiles[i].resource` and nothing else. Called by `generateMap`
  * after `computeFreshwater`, and exported so a future "reroll the resources
  * only" tool — and the tests — can run it on its own.
+ *
+ * Returns how many strategic copies the start guarantee had to force
+ * (`ensureStartStrategics`). It is the one thing the finished map cannot be
+ * asked: a forced copy and a dealt copy are the same tile.
  */
-export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): void {
+export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): number {
   const spacing = Math.max(1, Math.round(config.minSpacing));
   const land = landTileCount(map);
 
@@ -1112,11 +1136,16 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
     }
   }
 
-  // The two guarantees, over the one set of possible starts chosen above. The
+  // The three guarantees, over the one set of possible starts chosen above. The
   // answer cannot change between the passes — a start is chosen on *ground*
   // (see `startPositions.ts`), and nothing here touches any.
   ensureStartFood(map, starts, config);
   ensureStartLuxuries(map, starts, continents, hands, config);
+  // The third guarantee (ruled 2026-09-05), after the other two so that a hex
+  // a luxury seam wanted is not taken from under it by a strategic: the
+  // strategic pass reaches six hexes and the luxuries four, so it has the most
+  // room to give way and gives it.
+  const forcedStrategics = ensureStartStrategics(map, starts, config);
 
   // --- pass 4: the luxury budget, settled -----------------------------------
   // The deal decides *what grows where*; this decides *how much of it there is*.
@@ -1125,6 +1154,11 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
   // Settling afterwards makes the figure on the census the figure that was
   // asked for. Rolls nothing — see `settleLuxuryDensity`.
   settleLuxuryDensity(map, continents, byContinent, starts, land, config);
+
+  // The one figure this pass has to *tell* somebody, because it cannot be read
+  // off the finished map: how many strategics the guarantee had to force. A
+  // copy it planted and a copy the scatter dealt are the same tile afterwards.
+  return forcedStrategics;
 }
 
 /**
@@ -1394,6 +1428,97 @@ function ensureStartFood(
     const chosen = pick(true) ?? pick(false);
     if (chosen) chosen.tile.resource = chosen.id;
   }
+}
+
+/**
+ * The third fairness pass: a copy of every `startStrategics` row within
+ * `startStrategicRadius` of every possible start. No dice — see the module
+ * docblock, and the note below on why that matters more here than anywhere.
+ *
+ * Ruled 2026-09-05 (`docs/flags.md` note 20), in the user's words: "every
+ * capital has both horses and iron within six tiles". The scatter deals
+ * strategics on a budget of about twenty-two tiles per 1000 land, weighted, so
+ * whether an empire can field a horseman before the classical age is decided by
+ * a uniform draw over the whole world. That is the one kind of unfairness a
+ * player reads as the game having cheated rather than as a map: a neighbour
+ * with cavalry and no answer to it.
+ *
+ * **It rolls nothing**, which is the shape both passes above it use and the
+ * shape that makes this safe to add to a shipped generator: the resource
+ * stream is untouched, so every tile the scatter dealt on a given seed is where
+ * it was, and this pass only fills the gaps that are left. (A pass that drew
+ * from `rng` here would move every discovery and every vein on every seed; a
+ * pass that drew from a side stream would be honest but would still be a
+ * choice, and there is nothing to choose — nearest legal hex, ties by tile
+ * index, is a better answer than a random one.)
+ *
+ * The hex it plants on is the **nearest legal one**, so the guarantee lands
+ * where the city would actually work it, and the spacing rule is preferred but
+ * given up rather than lose the guarantee — the same bargain the food and
+ * luxury passes strike, and the reason all three are the documented exception
+ * to `minSpacing`.
+ *
+ * What it will not do is invent ground: iron wants a hill, and a start with no
+ * featureless hill inside six hexes cannot have one. That start is *refused* by
+ * the chooser instead — see `startPositions.ts`'s `minStrategicGround` — so the
+ * clause here that gives up is the belt to that braces, not the rule.
+ *
+ * Returns how many copies it had to force, which is the number that says
+ * whether the scatter is dealing enough strategics on its own.
+ */
+function ensureStartStrategics(
+  map: GameMap,
+  starts: readonly Tile[],
+  config: ResourceConfig,
+): number {
+  const radius = Math.max(0, Math.round(config.startStrategicRadius));
+  const spacing = Math.max(1, Math.round(config.minSpacing));
+  // Table order is irrelevant here — the list is the designer's — but an id
+  // that is not a strategic row is dropped rather than trusted.
+  const wanted = (config.startStrategics ?? []).filter(
+    (id) => RESOURCE_IDS.includes(id) && resourceDef(id).kind === 'strategic',
+  );
+  if (wanted.length === 0) return 0;
+
+  let forced = 0;
+  for (const start of starts) {
+    const from = tileHex(start);
+    const near = mapRange(map, from, radius);
+    // Nearest first, ties by tile index, exactly as the two passes above order
+    // their candidates. Built once per start and re-read per resource: a tile
+    // that was taken by the first plant is skipped by the second, because the
+    // filter below asks the live tile.
+    const ordered = near
+      .map((tile) => ({
+        tile,
+        distance: wrappedDistance(map, from, tileHex(tile)),
+        index: tileIndex(map, tile.col, tile.row),
+      }))
+      .sort((a, b) => a.distance - b.distance || a.index - b.index);
+
+    for (const id of wanted) {
+      if (near.some((tile) => tile.resource === id)) continue;
+      const def = resourceDef(id);
+      const pick = (respectSpacing: boolean): Tile | null => {
+        for (const entry of ordered) {
+          if (entry.tile.resource !== undefined) continue;
+          if (!tileSuitsResource(entry.tile, def)) continue;
+          if (respectSpacing && hasResourceNear(map, entry.tile, spacing - 1, new Set())) continue;
+          return entry.tile;
+        }
+        return null;
+      };
+      const chosen = pick(true) ?? pick(false);
+      // Nothing legal in reach. The chooser is meant to have refused this site
+      // already; a map that reaches here has a start the ground cannot arm, and
+      // one copy short is the honest outcome rather than a resource on a hex its
+      // own row forbids.
+      if (chosen === null) continue;
+      chosen.resource = id;
+      forced += 1;
+    }
+  }
+  return forced;
 }
 
 /**

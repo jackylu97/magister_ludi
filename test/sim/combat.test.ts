@@ -1755,16 +1755,31 @@ describe('a war replays exactly', () => {
     expect(dispatch(game, { type: 'declareWar', playerId: 0, targetId: 1 }).ok).toBe(true);
     const home = game.state.units.find((unit) => unit.ownerId === 0)!;
     // Two passable tiles beside the opening position, found by walking the map
-    // rather than assumed: the generator owns where the start is.
+    // rather than assumed: the generator owns where the start is. The second
+    // must **touch** the first — the fights below are one blow across one
+    // edge, and a scan that happened to land the two a hex apart (the H9 board
+    // did, 2026-09-06) is a refused attack, not a war.
     const spots: { col: number; row: number }[] = [];
+    const passable = (tile: Tile): boolean =>
+      tile.terrain !== 'mountain' &&
+      tile.terrain !== 'ocean' &&
+      tile.terrain !== 'coast' &&
+      tile.terrain !== 'lake' &&
+      !game.state.units.some((u) => u.col === tile.col && u.row === tile.row);
     for (let dc = -2; dc <= 2 && spots.length < 2; dc++) {
       for (let dr = -1; dr <= 1 && spots.length < 2; dr++) {
         if (dc === 0 && dr === 0) continue;
         const tile = getTileAt(game.state.map, home.col + dc, home.row + dr);
-        if (!tile || tile.terrain === 'mountain') continue;
-        if (tile.terrain === 'ocean' || tile.terrain === 'coast' || tile.terrain === 'lake') continue;
-        if (game.state.units.some((u) => u.col === tile.col && u.row === tile.row)) continue;
+        if (!tile || !passable(tile)) continue;
         if (spots.some((s) => s.col === tile.col && s.row === tile.row)) continue;
+        if (
+          spots.length === 1 &&
+          !neighborTiles(game.state.map, tileHex(tile)).some(
+            (n) => n.col === spots[0]!.col && n.row === spots[0]!.row,
+          )
+        ) {
+          continue;
+        }
         spots.push({ col: tile.col, row: tile.row });
       }
     }

@@ -25,6 +25,8 @@ import { getTileAt } from '../../src/sim/map';
 import {
   drawBeliefOffer,
   explainRerollCost,
+  explainBeliefRerollCost,
+  nextBeliefRerollCost,
   nextRerollCost,
   openFaithLadder,
   rerollError,
@@ -236,40 +238,100 @@ describe('the reroll tally', () => {
 
 // --- the free hand ----------------------------------------------------------
 
-describe('a belief hand rerolls for nothing', () => {
-  it('costs no faith, raises no count and redeals the gods', () => {
+describe('a belief hand’s own ladder', () => {
+  // **Re-ruled 2026-09-06, evening** (the user: "make the first reroll free and
+  // the following ones cost faith… Prophet rolls should work the same way…
+  // Prophet re-rolls reset per roll, and are entirely separate from order
+  // drafts"). Every belief hand — the ladder's, a prophet's, a founding's —
+  // wears its own count (`BeliefOffer.rerolls`): the first asking is free, the
+  // next is the Order draft's base and age multiplier raised to the paid
+  // askings on this hand, no door, and `rerollsTaken` never moves.
+  it('asks nothing the first time, raises no Order count and redeals the gods', () => {
     const g = game();
     found(g.state, 0);
     learn(g.state, 0, 'divination');
     const player = playerById(g.state, 0)!;
     player.faithPool = 500;
-    // No door needed and no price asked: the ruling is that a prophet's draft is
-    // free and uncounted, and the ladder's hand is the same shape.
     player.pantheon.pending = drawBeliefOffer(g.state, player);
     expect(rerollKindFor(player)).toBe('belief');
     expect(rerollError(g.state, 0)).toBeNull();
+    expect(explainBeliefRerollCost(g.state, 0)).toEqual({ lines: [], total: 0 });
 
     const first = player.pantheon.pending.options;
     expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
     expect(player.faithPool).toBe(500);
     expect(player.statecraft.rerollsTaken).toBe(0);
+    expect(player.pantheon.pending?.rerolls).toBe(1);
     expect(player.pantheon.pending?.options).not.toBe(first);
   });
 
-  it('carries the ladder’s quoted rung over to the new hand', () => {
+  it('prices the second asking on the hand’s own count, through no door, and the pick pays nothing', () => {
     const g = game();
     found(g.state, 0);
     learn(g.state, 0, 'divination');
     const player = playerById(g.state, 0)!;
     player.faithPool = 200;
     openFaithLadder(g.state);
+    // The rung was paid at the deal; the hand carries the record.
     expect(player.pantheon.pending?.rungCost).toBe(40);
+    expect(player.faithPool).toBe(160);
+    // No door on the gods: the calendars gate Order hands only.
+    expect(player.techsResearched).not.toContain(ABILITY_TECH.get(RELIGION.reroll.ability)!);
+    expect(rerollError(g.state, 0)).toBeNull();
     expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
-    // An empire cannot reroll its way out of paying for the god it takes.
+    expect(player.faithPool).toBe(160);
+    // The second asking is priced: the base at Æra I, one paid asking's worth
+    // of exponent — 35 — and nothing of the Order ladder moves.
+    const price = nextBeliefRerollCost(g.state, 0);
+    expect(price).toBe(RELIGION.reroll.base);
+    expect(explainBeliefRerollCost(g.state, 0).lines.map((line) => line.source))
+      .toContain('Asking the gods again');
+    expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    expect(player.faithPool).toBe(160 - price);
+    expect(player.pantheon.pending?.rerolls).toBe(2);
+    expect(player.statecraft.rerollsTaken).toBe(0);
+    expect(nextRerollCost(g.state, 0)).toBe(RELIGION.reroll.base);
+    // A third asking climbs the hand's ladder.
+    expect(nextBeliefRerollCost(g.state, 0))
+      .toBe(Math.floor(RELIGION.reroll.base * RELIGION.reroll.exponent));
+    // The rung rides through every redeal, and the pick asks nothing more.
     expect(player.pantheon.pending?.rungCost).toBe(40);
     expect(dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command).ok)
       .toBe(true);
-    expect(player.faithPool).toBe(160);
+    expect(player.faithPool).toBe(160 - price);
+    expect(player.pantheon.rungs).toBe(1);
+  });
+
+  it('refuses a paid asking the bank cannot cover, and touches nothing', () => {
+    const g = game();
+    found(g.state, 0);
+    learn(g.state, 0, 'divination');
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 40;
+    openFaithLadder(g.state);
+    expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    expect(player.faithPool).toBe(0);
+    expect(rerollError(g.state, 0)).toMatch(/^Asking again costs \d+ faith/);
+    const before = snapshotState(g.state);
+    expect(applyCommand(g.state, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(false);
+    expect(snapshotState(g.state)).toEqual(before);
+  });
+
+  it('starts every hand’s count afresh — a prophet’s reroll resets per roll', () => {
+    const g = game();
+    found(g.state, 0);
+    learn(g.state, 0, 'divination');
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 500;
+    openFaithLadder(g.state);
+    dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command);
+    dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command);
+    expect(player.pantheon.pending?.rerolls).toBe(2);
+    dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command);
+    // The next hand, dealt by anyone, knows nothing of the last one's askings.
+    player.pantheon.pending = drawBeliefOffer(g.state, player);
+    expect(player.pantheon.pending.rerolls ?? 0).toBe(0);
+    expect(nextBeliefRerollCost(g.state, 0)).toBe(0);
   });
 
   it('rerolls the paid hand first when a seat is holding both', () => {

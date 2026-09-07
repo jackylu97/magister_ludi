@@ -75,7 +75,12 @@ import { RULES } from './rulesData';
 // takes `unitUpkeepOf` handed in for `cardUpkeepRebateLines`' reason exactly —
 // so the arrow between the two modules stays one-way.
 import { resourceUpkeepRebateLines } from './resourceEffects';
-import { cardRulePercent, cardUpkeepRebateLines, foldCardRulePercent } from './statecraft';
+import {
+  cardRulePercent,
+  cardUpkeepRebateLines,
+  cardUpkeepSurchargeLines,
+  foldCardRulePercent,
+} from './statecraft';
 import type { GameState, Unit } from './state';
 
 /**
@@ -295,6 +300,13 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
   }
   const lines = cardRulePercent(state, playerId, 'unitUpkeep');
   const percent = foldCardRulePercent(lines);
+  // **A payroll the law made dearer is not this list's business** — it is
+  // `explainUnitUpkeepSurcharge`'s, one function down, and it lands as a
+  // *charge* in the same fold. The two halves of the rule are split by sign and
+  // by nothing else: the percentages sum once (`foldCardRulePercent`) and the
+  // sum of that one number decides which way the money goes, so The Reckless
+  // Levy's +100 and Tyranny's −30 make one +70 surcharge rather than a charge
+  // and a give-back that both pretend to be the whole rule.
   if (percent >= 0) return out;
   // The whole rebate first, then shared out in the lines' own order so the parts
   // sum to it exactly — `explainUnitCost`'s running-difference discipline, one
@@ -307,6 +319,83 @@ export function explainUnitUpkeepRebate(state: GameState, playerId: number): Upk
     const line = lines[i]!;
     const share =
       i === lines.length - 1 ? rebate - paid : (rebate * line.percent) / percent;
+    paid += share;
+    if (share === 0) continue;
+    out.push({ source: line.source, gold: share });
+  }
+  return out;
+}
+
+/**
+ * What this empire's **law adds to** its payroll, as the labelled lines
+ * `explainEmpireGold` folds beside the gross figure — The Reckless Levy's coin
+ * a soldier, and any card that ever says an army is dearer to keep.
+ *
+ * `explainUnitUpkeepRebate`'s other half, and it exists because a *charge* on
+ * the payroll had nowhere to be printed: the flat give-back had a shape and a
+ * line and the flat charge had neither, and the percentage rule's one reader
+ * refused a positive percentage outright (`if (percent >= 0)`), so a card
+ * saying an army costs more was read, folded, found to be positive and thrown
+ * away. A rebate is a give-back and a surcharge is a **charge**: same ledger,
+ * same fold, opposite sign, and the fold is the one list the treasury's
+ * per-turn figure is the sum of. Never a second fold, which is the whole of
+ * `empireGold.ts`'s docblock.
+ *
+ * **Two sources, one list**, exactly as the give-back has two:
+ *
+ *   · the **flat per piece** (`cardUpkeepSurchargeLines`) — the Levy's coin a
+ *     soldier, which is the shape the user's ruling of 2026-09-06 asked for and
+ *     the only way to say "a knight and a warrior each cost one more" without
+ *     saying something different about each;
+ *   · the **share of the payroll** (`CardRule`'s `unitUpkeep`, positive), which
+ *     is that rule's own documented convention — *"a card that halves the
+ *     payroll prints −50 and a card that doubles it prints +100"* — and now
+ *     actually charges. No live row uses it today; it is one arm of a tested
+ *     function rather than a path of its own, so it cannot rot unread.
+ *
+ * Three things it does **not** do, each deliberately:
+ *
+ *   · **it is not clamped.** The rebate is, because a treasury that earned coin
+ *     by keeping soldiers would be a mint; there is no such ceiling on a bill,
+ *     and an empire that cannot pay it goes into arrears, which is a rule the
+ *     game already has (`treasuryInDebt`, `disbandCandidate`);
+ *   · **it does not move the gross.** `explainUnitUpkeep` stays the per-piece
+ *     price list a hover prints and `disbandCandidate` keeps picking off it, so
+ *     the creditors take the dearest *piece* under every law, exactly as the
+ *     rebate's docblock argues one function up;
+ *   · **it does not net against the give-backs.** They are their own lines in
+ *     the same fold, and a player reads what the army costs, then what the law
+ *     added, then what the law forgives.
+ *
+ * The percentages **sum before one multiplication** and the product is then
+ * shared out in the lines' own order so the parts sum to it exactly —
+ * `explainUnitUpkeepRebate`'s running-difference discipline, said again because
+ * it is the same rule. One line per card, so two levies read as two reasons.
+ */
+export function explainUnitUpkeepSurcharge(state: GameState, playerId: number): UpkeepLine[] {
+  if (!seatPays(state, playerId)) return [];
+  const gross = unitUpkeepTotal(state, playerId);
+  if (gross <= 0) return [];
+  const out: UpkeepLine[] = [];
+  // **The flat half first**, for the reason the rebate takes its flats first: a
+  // figure per soldier is counted off the pieces themselves, and the share of
+  // the payroll below is a fact about the total. `unitUpkeepOf` is handed to the
+  // card reader so the arrow between the two modules stays one-way.
+  for (const flat of cardUpkeepSurchargeLines(state, playerId, unitUpkeepOf)) {
+    out.push({ source: flat.source, gold: flat.gold });
+  }
+  const lines = cardRulePercent(state, playerId, 'unitUpkeep');
+  const percent = foldCardRulePercent(lines);
+  if (percent <= 0) return out;
+  // Exact since batch X, like every other share in the ledger: a tenth of a
+  // payroll of three is three tenths of a coin, not nothing. Taken of the
+  // **gross**, never of the gross plus the flats above: two cards must not
+  // multiply each other, which is Entry XVII's argument one ledger over.
+  const charge = (gross * percent) / 100;
+  let paid = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    const share = i === lines.length - 1 ? charge - paid : (charge * line.percent) / percent;
     paid += share;
     if (share === 0) continue;
     out.push({ source: line.source, gold: share });

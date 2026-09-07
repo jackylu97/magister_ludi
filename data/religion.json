@@ -433,7 +433,7 @@
       "name": "Winter Mother",
       "axis": "frost",
       "flavor": "She does not sleep through it. She is it.",
-      "text": "+1 food on every tundra hex. +1 faith on every tundra hex that is wooded.",
+      "text": "+1 food and +1 faith on every tundra hex.",
       "effects": [
         {
           "kind": "tileYield",
@@ -441,23 +441,7 @@
             "test": "terrain",
             "terrain": "tundra"
           },
-          "food": 1
-        },
-        {
-          "kind": "tileYield",
-          "on": {
-            "test": "all",
-            "of": [
-              {
-                "test": "terrain",
-                "terrain": "tundra"
-              },
-              {
-                "test": "feature",
-                "feature": "forest"
-              }
-            ]
-          },
+          "food": 1,
           "faith": 1
         }
       ]

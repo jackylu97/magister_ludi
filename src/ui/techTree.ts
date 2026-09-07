@@ -95,7 +95,7 @@
 
 import { buildingDef, isWonder } from '../sim/buildingData';
 import { signedYield, yieldShows } from '../sim/yieldFormat';
-import { unitProductionCost } from '../sim/cities';
+import { buildingProductionCost, unitProductionCost } from '../sim/cities';
 import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { improvementDef } from '../sim/improvementData';
@@ -124,6 +124,7 @@ import {
   type TechId,
   abilityDef,
   isAbilityId,
+  liveUnlocks,
   techAgeBands,
   techColumnCount,
   techDef,
@@ -877,7 +878,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   function renderUnlocks(id: TechId): HTMLElement {
     const { state, playerId } = passNow();
     const list = element('ul', 'tech-unlocks');
-    const { units = [], buildings = [] } = techDef(id).unlocks;
+    // The live lists: a retired row is not a gift (`liveUnlocks`).
+    const { units, buildings } = liveUnlocks(id);
     // The face's budget, spent on units before buildings. `more` is what the
     // count line says and is a fact about the *whole* list, not about whichever
     // half was reached first.
@@ -918,7 +920,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         element(
           'span',
           parts.length > 0 ? 'tech-unlock-note is-delta' : 'tech-unlock-note',
-          parts.length > 0 ? `${parts.join(' ')} now` : `${def.cost}${HAMMER}`,
+          parts.length > 0 ? `${parts.join(' ')} now` : `${buildingProductionCost(building)}${HAMMER}`,
         ),
       );
       list.append(row);
@@ -1142,7 +1144,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         gift.kind === 'unit'
           ? `${unitProductionCost(state, playerId, gift.id)}${HAMMER}`
           : gift.kind === 'building'
-            ? `${buildingDef(gift.id).cost}${HAMMER}`
+            ? `${buildingProductionCost(gift.id)}${HAMMER}`
             : gift.kind === 'project'
               ? `${projectDef(gift.id).cost}${HAMMER} → ${projectRate(gift.id, PROJECT_GLYPHS)}`
             : gift.kind === 'improvement'

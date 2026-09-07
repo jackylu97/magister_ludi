@@ -34,7 +34,7 @@
  */
 
 import type { GameMap, Tile } from '../sim/map';
-import { mapRange, tileHex, tileIndex } from '../sim/map';
+import { mapRange, tileHex, tileIndex, tileNeighbors } from '../sim/map';
 import { mapgenFor } from '../sim/mapgenData';
 import {
   RESOURCE_IDS,
@@ -228,6 +228,20 @@ export interface StartRow {
   reject: string | null;
   /** Luxury kinds within `startLuxuryRadius` — what the guarantee pass is about. */
   luxuries: LuxuryCount[];
+  /**
+   * Guaranteed strategics (`resources.startStrategics`) standing within
+   * `startStrategicRadius`, and the ones that are not.
+   *
+   * `missing` empty on every seat **is** the 2026-09-05 ruling, audited: "every
+   * capital has both horses and iron within six tiles". Read off the ground
+   * rather than reported by the pass, for the continent hand's reason — a copy
+   * the guarantee forced and a copy the scatter dealt are the same tile
+   * afterwards, and what a player has is what is there. (The count the pass
+   * *had* to force is `MapDetail.forcedStrategics`, which only generation can
+   * say.)
+   */
+  strategics: LuxuryCount[];
+  strategicsMissing: ResourceId[];
   freshwater: boolean;
   coast: boolean;
 }
@@ -235,6 +249,10 @@ export interface StartRow {
 export interface StartReport {
   /** The radius `luxuries` was gathered over, so the page can label the column. */
   luxuryRadius: number;
+  /** The radius `strategics` was gathered over. Its sibling. */
+  strategicRadius: number;
+  /** Seats missing at least one guaranteed strategic. Zero is the promise kept. */
+  seatsMissingStrategics: number;
   rows: StartRow[];
 }
 
@@ -254,7 +272,12 @@ export interface StartReport {
  */
 export function startReport(state: GameState): StartReport {
   const { map } = state;
-  const radius = Math.max(0, Math.round(resourcesOf(map).startLuxuryRadius));
+  const config = resourcesOf(map);
+  const radius = Math.max(0, Math.round(config.startLuxuryRadius));
+  const armsRadius = Math.max(0, Math.round(config.startStrategicRadius));
+  const armsWanted = (config.startStrategics ?? []).filter(
+    (id) => RESOURCE_IDS.includes(id) && resourceDef(id).kind === 'strategic',
+  );
   const starts = chooseStartPositions(map, state.players.length);
   // One walk of the land for the whole table. `scoreStartSite` would otherwise
   // recompute the landmass floor's components once per seat.
@@ -272,11 +295,40 @@ export function startReport(state: GameState): StartReport {
       score: scored.total,
       reject: scored.reject,
       luxuries: luxuriesNear(map, tile, radius),
+      strategics: strategicsNear(map, tile, armsRadius, armsWanted),
+      strategicsMissing: armsWanted.filter(
+        (id) => !mapRange(map, tileHex(tile), armsRadius).some((near) => near.resource === id),
+      ),
       freshwater: hasFreshWater(tile),
       coast: isCoastal(map, tile),
     };
   });
-  return { luxuryRadius: radius, rows };
+  return {
+    luxuryRadius: radius,
+    strategicRadius: armsRadius,
+    seatsMissingStrategics: rows.filter((row) => row.strategicsMissing.length > 0).length,
+    rows,
+  };
+}
+
+/** Each guaranteed strategic within `radius` of a tile, with its copy count. */
+function strategicsNear(
+  map: GameMap,
+  from: Tile,
+  radius: number,
+  wanted: readonly ResourceId[],
+): LuxuryCount[] {
+  const tally = new Map<ResourceId, number>();
+  for (const near of mapRange(map, tileHex(from), radius)) {
+    const id = near.resource;
+    if (id === undefined || !wanted.includes(id)) continue;
+    tally.set(id, (tally.get(id) ?? 0) + 1);
+  }
+  // Sheet order, not table order: the list is the designer's statement of which
+  // strategics an opening needs, and the column should read in that order.
+  return wanted
+    .filter((id) => tally.has(id))
+    .map((id) => ({ id, name: resourceDef(id).name, copies: tally.get(id)! }));
 }
 
 /** Every luxury kind within `radius` of a tile, with its copy count in that disc. */
@@ -290,6 +342,95 @@ function luxuriesNear(map: GameMap, from: Tile, radius: number): LuxuryCount[] {
   return luxuryList(tally);
 }
 
+// --- the woods --------------------------------------------------------------
+
+/**
+ * What the forest actually looks like, in the four numbers the 2026-09-06
+ * ruling was written against: how much wood there is, how many separate woods
+ * it comes in, how big the biggest one is, and how much of it is *inside* a
+ * wood rather than on its edge.
+ *
+ * The last is the reading that named the complaint. "Forests spawn in huge
+ * patches" is not a statement about the share — the share was already 16% of
+ * land — it is a statement about a hex whose six neighbours are all trees, and
+ * a map made of copses has almost none of those.
+ *
+ * Observational, like the continent luxury hand and for the same reason: this
+ * is the woodland **as it stands**, grain, clearings and the chop of a
+ * mid-game map all included. Re-running the pass would answer a different
+ * question.
+ */
+export interface WoodlandReport {
+  landTiles: number;
+  forestTiles: number;
+  /** Forest hexes as a share of land. Not of *eligible* ground — see `forestShare`. */
+  share: number;
+  /** Connected woods, six-neighbour adjacency, wrap included. */
+  patches: number;
+  /** Forest hexes per wood. */
+  meanPatch: number;
+  largestPatch: number;
+  /** Forest hexes whose six neighbours are all forest. */
+  enclosed: number;
+  /** Those as a share of the forest. The "huge patches" reading. */
+  enclosedShare: number;
+}
+
+export function woodlandReport(state: GameState): WoodlandReport {
+  const { map } = state;
+  const count = map.tiles.length;
+  const wooded = new Uint8Array(count);
+  let landTiles = 0;
+  let forestTiles = 0;
+  for (const tile of map.tiles) {
+    if (!isWaterTerrain(tile.terrain)) landTiles += 1;
+    if (tile.feature !== 'forest') continue;
+    wooded[tileIndex(map, tile.col, tile.row)] = 1;
+    forestTiles += 1;
+  }
+
+  const seen = new Uint8Array(count);
+  let patches = 0;
+  let largestPatch = 0;
+  for (let i = 0; i < count; i++) {
+    if (!wooded[i] || seen[i]) continue;
+    patches += 1;
+    let size = 0;
+    const stack: Tile[] = [map.tiles[i]!];
+    seen[i] = 1;
+    while (stack.length > 0) {
+      const tile = stack.pop()!;
+      size += 1;
+      for (const neighbour of tileNeighbors(map, tile)) {
+        const index = tileIndex(map, neighbour.col, neighbour.row);
+        if (!wooded[index] || seen[index]) continue;
+        seen[index] = 1;
+        stack.push(map.tiles[index]!);
+      }
+    }
+    if (size > largestPatch) largestPatch = size;
+  }
+
+  let enclosed = 0;
+  for (let i = 0; i < count; i++) {
+    if (!wooded[i]) continue;
+    const neighbours = tileNeighbors(map, map.tiles[i]!);
+    if (neighbours.length < 6) continue;
+    if (neighbours.every((n) => wooded[tileIndex(map, n.col, n.row)] === 1)) enclosed += 1;
+  }
+
+  return {
+    landTiles,
+    forestTiles,
+    share: landTiles > 0 ? forestTiles / landTiles : 0,
+    patches,
+    meanPatch: patches > 0 ? forestTiles / patches : 0,
+    largestPatch,
+    enclosed,
+    enclosedShare: forestTiles > 0 ? enclosed / forestTiles : 0,
+  };
+}
+
 // --- the whole report -------------------------------------------------------
 
 export interface MapReport {
@@ -300,6 +441,8 @@ export interface MapReport {
   census: ResourceCensus;
   continents: ContinentReport;
   starts: StartReport;
+  /** The forest's grain — patch count, size and enclosure. See `woodlandReport`. */
+  woodland: WoodlandReport;
   /** Continent id per tile index, for the overlay. `carveContinents`'s own array. */
   continentOf: Int32Array;
 }
@@ -323,6 +466,7 @@ export function mapReport(state: GameState): MapReport {
     census: resourceCensus(state),
     continents: report,
     starts: startReport(state),
+    woodland: woodlandReport(state),
     continentOf: continents.of,
   };
 }

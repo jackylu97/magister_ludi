@@ -5,7 +5,8 @@ import { describe, expect, it, vi } from 'vitest';
  *
  * Several modules document a *function-level* cycle and claim it is safe:
  * `meters.ts` ↔ `cities.ts`, `resourceEffects.ts` ↔ `cities.ts`, `tech.ts` ↔
- * `cities.ts`, `statecraft.ts` ↔ `cities.ts`, and `startPositions.ts` →
+ * `cities.ts`, `statecraft.ts` ↔ `cities.ts`, `religion.ts` ↔ `cities.ts` (the
+ * standing stones' free rung, 2026-09-06), and `startPositions.ts` →
  * `cities.ts` (closed by `mapgen → resources → startPositions`). Each claim
  * rests on the same thing: nothing reads a *value* from the other module while
  * modules are being evaluated, so whichever one happens to be pulled in first

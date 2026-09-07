@@ -37,13 +37,21 @@ describe('determinism', () => {
     ).toBe(true);
     const town = live.state.cities[0]!;
 
-    for (let turn = 0; turn < 40; turn++) {
+    // **Run until the treasury covers two warriors rather than for a fixed
+    // forty turns** (re-aimed 2026-09-06, `docs/flags.md` item y): the age band
+    // now prices the Æra I roster at ×1.25, a purchase converts the folded cost,
+    // and forty turns of this seat's income no longer covers one. The budget is
+    // a fixture of the economy, not the claim — the claim is that a log with two
+    // purchases in it replays — so it is asked as a condition and bounded.
+    const price = (): number =>
+      explainPurchaseCost(live.state, 0, town.id, WARRIOR, 'gold')!.total;
+    let turns = 0;
+    while (playerById(live.state, 0)!.gold <= price() * 2 && turns < 120) {
       dispatch(live, { type: 'endTurn', playerId: 0 } as Command);
       dispatch(live, { type: 'endTurn', playerId: 1 } as Command);
+      turns += 1;
     }
-    expect(playerById(live.state, 0)!.gold).toBeGreaterThan(
-      explainPurchaseCost(live.state, 0, town.id, WARRIOR, 'gold')!.total,
-    );
+    expect(playerById(live.state, 0)!.gold).toBeGreaterThan(price());
 
     expect(dispatch(live, buyCommand(town.id, WARRIOR)).ok).toBe(true);
     dispatch(live, { type: 'endTurn', playerId: 0 } as Command);

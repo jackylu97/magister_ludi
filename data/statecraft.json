@@ -4918,11 +4918,8 @@
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "Every man who can hold a spear, and some who cannot.",
-      "text": "+50% production toward units · your army costs twice as much to keep.",
-      "note": "A charge on each piece of an army is not built; the levy taxes the whole payroll instead, which is what the card pays for.",
-      "deferred": [
-        "every soldier costs one coin more to keep, whatever kind of soldier it is"
-      ],
+      "text": "+50% production toward units · every unit costs one more coin to keep.",
+      "note": "The coin is charged on each soldier the empire is already paying for, so a settler, a scout or a caravan is no dearer than it was.",
       "effects": [
         {
           "kind": "productionBonus",
@@ -4930,9 +4927,8 @@
           "percent": 50
         },
         {
-          "kind": "rulePercent",
-          "rule": "unitUpkeep",
-          "percent": 100
+          "kind": "upkeepSurcharge",
+          "amount": 1
         }
       ]
     },
@@ -6210,12 +6206,13 @@
     "theGreatEnquiry": {
       "name": "The Great Enquiry",
       "pool": "governmentV",
+      "fromAge": 4,
       "slot": "wildcard",
       "line": "star",
       "rarity": "rare",
       "flavor": "Ask the last questions first.",
       "text": "The learning of the last age is counted toward the great work itself.",
-      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet.",
+      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there.",
       "deferred": [
         "a bead of your own for every second technology of the fifth age you finish, while this Order stands in a slot"
       ],
@@ -6224,12 +6221,13 @@
     "theLastLaurels": {
       "name": "The Last Laurels",
       "pool": "governmentV",
+      "fromAge": 4,
       "slot": "wildcard",
       "line": "court",
       "rarity": "rare",
       "flavor": "Refuse the wreath and they carve you two.",
       "text": "A draft turned down is counted toward the great work itself.",
-      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet.",
+      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there.",
       "deferred": [
         "a bead of your own each time you pass on a draft, while this Order stands in a slot"
       ],
@@ -6238,12 +6236,13 @@
     "theSaltedEarth": {
       "name": "The Salted Earth",
       "pool": "governmentV",
+      "fromAge": 4,
       "slot": "military",
       "line": "forge",
       "rarity": "rare",
       "flavor": "Nothing grows there now. That was the point.",
       "text": "A city put to the torch is counted toward the great work itself.",
-      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet.",
+      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there.",
       "deferred": [
         "a bead of your own each time you raze a city, while this Order stands in a slot"
       ],
@@ -6252,12 +6251,13 @@
     "theFinalProclamation": {
       "name": "The Final Proclamation",
       "pool": "governmentV",
+      "fromAge": 4,
       "slot": "wildcard",
       "line": "procession",
       "rarity": "rare",
       "flavor": "Read once, in every square, at the same hour.",
       "text": "A prophet’s proclamation is counted toward the great work itself.",
-      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet.",
+      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there.",
       "deferred": [
         "a bead of your own for each prophet’s proclamation, while this Order stands in a slot"
       ],

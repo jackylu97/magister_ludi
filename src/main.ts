@@ -150,7 +150,7 @@ import { type ConfirmCard, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
 import { AXIS_MARK, beliefCardType, beliefOfferEyebrow } from './ui/religionScreen';
 import { beliefDef } from './sim/religionData';
-import { explainRerollCost, rerollDoorOpen, rerollError } from './sim/religion';
+import { explainBeliefRerollCost, explainRerollCost, rerollDoorOpen, rerollError } from './sim/religion';
 import { personOf } from './sim/greatPeople';
 import { greatPersonDef } from './sim/greatPeopleData';
 import { FAMILY_EMBLEM, TIER_ACCENT, TIER_NAME } from './ui/greatPersonFace';
@@ -2238,6 +2238,24 @@ async function boot(initial: Game | null): Promise<void> {
     return { label, note: `${fold}. The next reading costs more than this one.` };
   }
 
+  /**
+   * The belief hand's own control — the first asking free, the rest priced on
+   * the hand's ladder (`explainBeliefRerollCost`), the refusal the reducer's.
+   */
+  function beliefRerollControl(seat: number): { label: string; note: string; disabled?: boolean } {
+    const problem = rerollError(game.state, seat);
+    const price = explainBeliefRerollCost(game.state, seat);
+    if (price.total <= 0) {
+      return { label: 'Ask again — free', note: 'The gods are drawn again. Nothing is spent this once.' };
+    }
+    const label = `Ask again — ${price.total}${YIELD_GLYPH.faith}`;
+    const fold = price.lines
+      .map((line) => `${line.amount > 0 ? '+' : ''}${line.amount} · ${line.source}`)
+      .join(' · ');
+    if (problem !== null) return { label, note: problem, disabled: true };
+    return { label, note: `${fold}. Asking again on this hand costs more each time.` };
+  }
+
   /** Dispatches a reroll and puts the hand it dealt back on the sheet. */
   function rerollOffer(seat: number, again: () => void): void {
     const result = dispatch(game, { type: 'rerollOffer', playerId: seat });
@@ -2506,39 +2524,31 @@ async function boot(initial: Game | null): Promise<void> {
         // for each is `beliefOfferEyebrow`'s, which is the screen that houses
         // them — one table, both surfaces, exactly as `AXIS_MARK` is.
         eyebrow: beliefOfferEyebrow(offer.pool),
-        // **A third wording, for the one offer dealt in place of something.**
-        // `givenBack` is the offer's own answer (`BeliefOffer`), so the card
-        // does not have to know which rite opened it — and the line names the
-        // god handed over, because that is the only thing distinguishing this
-        // hand from a fresh one.
+        // **Two wordings, one per bag.** There was a third, for an offer dealt
+        // *in place of* a god handed back, and it went with `BeliefOffer.givenBack`
+        // on 2026-09-06 — nothing writes that field any more, so both sentences
+        // were unreachable and a screen that carries a line the game cannot show
+        // is a screen nobody can check.
         title:
-          offer.givenBack !== undefined
-            ? 'Name what your people keep instead'
-            : offer.pool === undefined
-              ? 'Name what your people keep'
-              : `Name what ${foundedReligion(game.state, seat)?.name ?? 'your faith'} teaches`,
+          offer.pool === undefined
+            ? 'Name what your people keep'
+            : `Name what ${foundedReligion(game.state, seat)?.name ?? 'your faith'} teaches`,
         note:
-          offer.givenBack !== undefined
-            ? `Your people have given up ${beliefDef(offer.givenBack).name}. What they keep instead pays in every city you own, for the rest of the game.`
-            : offer.pool === undefined
-              ? 'A belief pays in every city you own, for the rest of the game. The augur is spent either way.'
-              : 'This belongs to your religion, not to your empire. The prophet’s charge is spent either way.',
+          offer.pool === undefined
+            ? 'A belief pays in every city you own, for the rest of the game. The augur is spent either way.'
+            : 'This belongs to your religion, not to your empire. The prophet’s charge is spent either way.',
         weight: 'heavy',
         widening: wideningLines('belief'),
-        // **A votive hand may be drawn again for nothing** (the ruling of
-        // 2026-09-06: a great prophet's draft is free and raises no count). Only
-        // while no Order draft is outstanding, because one verb answers both and
-        // it answers the paid one first (`rerollKindFor`) — a button that said
-        // "nothing is spent" and then spent faith would be lying about which
-        // hand it was rerolling.
-        ...(player.statecraft.pendingOrder === undefined
-          ? {
-              reroll: {
-                label: 'Ask again',
-                note: 'The gods are drawn again. Nothing is spent.',
-              },
-            }
-          : {}),
+        // **Every belief hand may be asked again once for nothing, and then for
+        // faith** (the user, 2026-09-06, evening) — the ladder's and a prophet's
+        // alike, priced on the hand's own ladder (`explainBeliefRerollCost`),
+        // reset with the next hand, separate from the Order draft's lifetime
+        // count. The control prints the *next* asking's price, so the rise is
+        // visible before the click. Only while no Order draft is outstanding,
+        // because one verb answers both and it answers the paid one first
+        // (`rerollKindFor`) — a button that said "free" and then spent faith on
+        // an Order hand would be lying about which hand it was rerolling.
+        ...(player.statecraft.pendingOrder !== undefined ? {} : { reroll: beliefRerollControl(seat) }),
         options: offer.options.map((id) => {
           const def = beliefDef(id);
           return {

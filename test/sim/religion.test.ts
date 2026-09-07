@@ -27,6 +27,7 @@ import {
   explainTileYield,
   foldTileYield,
   foundCityAt,
+  realiseItem,
   yieldContextFor,
 } from '../../src/sim/cities';
 import { inquisitorAuraLines, previewCombat } from '../../src/sim/combat';
@@ -36,7 +37,11 @@ import { improvementError, improvementErrorAt } from '../../src/sim/improvements
 import {
   availableRites,
   beliefPool,
+  explainNextRung,
+  faithRungCost,
   gainBeliefError,
+  nextRungWords,
+  pantheonPlaces,
   explainPressure,
   proclaimError,
   proclaimPreview,
@@ -366,23 +371,30 @@ describe('a belief is an effect source, not a second evaluator', () => {
     );
   });
 
-  it('composes two tile conditions with `all` (Winter Mother)', () => {
+  it('pays the Winter Mother on every tundra hex, wooded or bare (re-cut 2026-09-06)', () => {
+    // The user: "tundra religious belief should give +1 faith on all tundra,
+    // not just tundra forest". The row is one tile line now — +1🌾 +1🕯 on the
+    // terrain — so the `all` composition this test used to demonstrate lives
+    // in `statecraft.test.ts`'s condition fixtures instead.
     const g = game();
     keep(g.state, 0, 'winterMother');
     const ctx = yieldContextFor(g.state, 0)!;
     const base = getTileAt(g.state.map, 4, 4)!;
     const tundra = { ...base, terrain: 'tundra' as const, feature: 'none' as const };
     const wooded = { ...tundra, feature: 'forest' as const };
-    expect(foldTileYield(explainTileYield(tundra, ctx)).faith).toBe(0);
+    const grass = { ...tundra, terrain: 'grassland' as const };
+    expect(foldTileYield(explainTileYield(tundra, ctx)).faith).toBe(1);
     expect(foldTileYield(explainTileYield(wooded, ctx)).faith).toBe(1);
+    expect(foldTileYield(explainTileYield(grass, ctx)).faith).toBe(0);
   });
 
   it('merges two lines from the same source into one entry (Winter Mother, tundra forest)', () => {
-    // Winter Mother pays two `tileYield` lines — food on any tundra hex, faith
-    // on a wooded one — and both hold on a tundra forest. The user's rule: one
-    // card is one line, carrying every voice it pays, so the breakdown must
-    // show exactly one "Belief · Winter Mother" entry with both voices summed,
-    // not two entries under the same name.
+    // Winter Mother paid two `tileYield` lines until 2026-09-06 — food on any
+    // tundra hex, faith on a wooded one — and since the user's re-cut ("+1
+    // faith on all tundra") it pays one line carrying both voices. The user's
+    // rule the test still pins either way: one card is one entry, carrying
+    // every voice it pays, so the breakdown shows exactly one "Belief · Winter
+    // Mother" line with both voices, never two entries under the same name.
     const g = game();
     keep(g.state, 0, 'winterMother');
     const ctx = yieldContextFor(g.state, 0)!;
@@ -2598,5 +2610,159 @@ describe('the ratified religion rows', () => {
     expect(said('theGreenCathedral')).toEqual([
       '+1 culture, +1 faith on every unimproved hex',
     ]);
+  });
+});
+
+// --- the ladder, as the sheets read it --------------------------------------
+
+/**
+ * The faith ladder's **reading**, and the free rung the standing stones pay for
+ * (`docs/flags.md`, rulings of 2026-09-06 evening, items b and c).
+ *
+ * Two claims, and neither is about the phase — `openFaithLadder` has its own
+ * tests one file up. This is the half the *interfaces* stand on:
+ *
+ *   1. `explainNextRung` answers the same question the phase answers, in four
+ *      states a screen can draw, off the ladder's own figures. A surface that
+ *      composed a threshold itself is a surface that will one day quote a price
+ *      the pick does not charge.
+ *   2. Stonehenge hands over a **god, not an agent**, and the god costs nothing:
+ *      the offer opens carrying no `rungCost`, so `settleBeliefChoice` spends no
+ *      faith and climbs no rung — which is `PlayerPantheon.rungs`' own rule that
+ *      a wonder's god is not a rung, applied rather than restated.
+ */
+describe('the faith ladder as a reading', () => {
+  it('says what the next god costs, what is banked, and how long at this rate', () => {
+    const g = game();
+    found(g.state, 0);
+    learn(g.state, 0, 'divination');
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 10;
+
+    const rung = explainNextRung(g.state, 0, 6);
+    expect(rung.kind).toBe('open');
+    if (rung.kind !== 'open') throw new Error('unreachable');
+    // The ladder's own figure, never a second curve.
+    expect(rung.cost).toBe(faithRungCost(player.pantheon.rungs));
+    expect(rung.banked).toBe(10);
+    expect(rung.rung).toBe(1);
+    expect(rung.turns).toBe(Math.ceil((rung.cost - 10) / 6));
+    expect(nextRungWords(rung)).toBe(
+      `Next god: ${rung.cost} faith · 10 banked · about ${rung.turns} turns`,
+    );
+  });
+
+  it('says nothing about turns when nothing is gathering, and says so when it is enough', () => {
+    const g = game();
+    found(g.state, 0);
+    learn(g.state, 0, 'divination');
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 4;
+    expect(nextRungWords(explainNextRung(g.state, 0, 0))).toBe(
+      `Next god: ${faithRungCost(0)} faith · 4 banked`,
+    );
+    player.faithPool = faithRungCost(0) + 5;
+    expect(nextRungWords(explainNextRung(g.state, 0, 3))).toContain('enough is gathered');
+  });
+
+  it('names the technology that opens the next place, and calls a full pantheon full', () => {
+    const g = game();
+    found(g.state, 0);
+    learn(g.state, 0, 'divination');
+    const player = playerById(g.state, 0)!;
+    // Both of Divination's places filled, with the High Temple still unlearnt:
+    // the ladder is not the answer here, the tree is.
+    const pool = beliefPool(g.state, player);
+    player.pantheon.beliefs.push(pool[0]!, pool[1]!);
+    const shut = explainNextRung(g.state, 0, 5);
+    expect(shut).toEqual({ kind: 'closed', tech: 'theHighTemple' });
+    expect(nextRungWords(shut)).toBe(`${techDef('theHighTemple').name} opens the next place`);
+
+    // And with every place the tree opens filled, there is nothing left to say
+    // but that.
+    learn(g.state, 0, 'theHighTemple');
+    player.pantheon.beliefs.push(pool[2]!);
+    expect(nextRungWords(explainNextRung(g.state, 0, 5))).toBe('The pantheon is full');
+  });
+
+  it('stands aside while a hand is already dealt', () => {
+    const g = game();
+    found(g.state, 0);
+    learn(g.state, 0, 'divination');
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 500;
+    openPeriodicOffers(g.state);
+    expect(player.pantheon.pending).toBeDefined();
+    expect(nextRungWords(explainNextRung(g.state, 0, 5))).toBe('A god is waiting to be named');
+  });
+
+  it('lists every place the tree will ever open, shut ones included', () => {
+    const g = game();
+    found(g.state, 0);
+    learn(g.state, 0, 'divination');
+    const places = pantheonPlaces(g.state, 0);
+    expect(places).toHaveLength(3);
+    expect(places.filter((place) => place.awaits === null)).toHaveLength(2);
+    expect(places[2]).toEqual({ belief: null, awaits: 'theHighTemple' });
+  });
+});
+
+describe('the standing stones hand over a god, not an agent', () => {
+  it('opens a consecration the pick pays nothing for', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    learn(g.state, 0, 'divination');
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 12;
+
+    const realised = realiseItem(g.state, city, { kind: 'building', id: 'stonehenge' });
+    expect(realised.grants?.map((grant) => grant.grant)).toEqual(['faithRung']);
+    expect(realised.grants?.[0]?.done).toBe(true);
+
+    const offer = player.pantheon.pending!;
+    expect(offer.options.length).toBeGreaterThan(0);
+    // **No quote, so no charge**: the stones paid, and the bank is untouched.
+    expect(offer.rungCost).toBeUndefined();
+    const rungs = player.pantheon.rungs;
+    dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 });
+    expect(player.faithPool).toBe(12);
+    expect(player.pantheon.rungs).toBe(rungs);
+    expect(player.pantheon.beliefs).toHaveLength(1);
+    // And no piece was left standing anywhere.
+    expect(g.state.units.some((unit) => unit.type === 'augur')).toBe(false);
+  });
+
+  it('opens a place with its own slot, and fills it, on a seat with no tree behind it', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    // No Divination at all: the wonder's own `pantheonSlots` line is what opens
+    // the place, and `realiseItem` pushes the building **before** it asks for
+    // the grants — so the stones raise a place and name it in one beat.
+    const realised = realiseItem(g.state, city, { kind: 'building', id: 'stonehenge' });
+    expect(realised.grants?.[0]?.done).toBe(true);
+    expect(playerById(g.state, 0)!.pantheon.pending).toBeDefined();
+  });
+
+  it('says the grant did not land when a hand is already waiting', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    learn(g.state, 0, 'divination');
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 500;
+    openPeriodicOffers(g.state);
+    const dealt = player.pantheon.pending!;
+    expect(dealt).toBeDefined();
+
+    // An offer is a decision the seat owes the game, so the one it is holding is
+    // kept and the stones report that they named nobody — `doctrineDraft`'s
+    // clause, and the reason a second hand is never dealt on top of a first.
+    const realised = realiseItem(g.state, city, { kind: 'building', id: 'stonehenge' });
+    expect(realised.grants?.[0]?.done).toBe(false);
+    expect(player.pantheon.pending).toBe(dealt);
+  });
+
+  it('never names the retired agent on the row', () => {
+    const grants = buildingDef('stonehenge').onComplete ?? [];
+    expect(grants.some((grant) => grant.grant === 'unit')).toBe(false);
   });
 });

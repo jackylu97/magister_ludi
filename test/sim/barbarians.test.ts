@@ -17,9 +17,12 @@ import {
 import { campAt, hasCampAt, settleCampBounty } from '../../src/sim/camps';
 import { assignCitizens, foundCityAt, growthThreshold } from '../../src/sim/cities';
 import {
+  advanceFortify,
   applyCombat,
   cityAttackPhase,
   cityMaxHp,
+  fortifyBonus,
+  isFortified,
   previewCombat,
   updateElimination,
 } from '../../src/sim/combat';
@@ -84,6 +87,21 @@ import { openEveryWar } from './warHelpers';
  */
 
 const BARB = RULES.barbarians;
+
+/**
+ * The wild's own source, for the roles register.
+ *
+ * Read through Vite's raw import rather than through `node:fs`, which is
+ * `test/ui/seatRoster.test.ts`' reason said again: this project has no node
+ * typings and one source assertion is not worth a dependency.
+ */
+const SIM_SOURCE = (
+  import.meta.glob('../../src/sim/barbarians.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>
+)['../../src/sim/barbarians.ts']!;
 
 /** A world with the wild in it, on blank grassland. */
 function wildState(width = 16, height = 14, seats = 2): GameState {
@@ -505,7 +523,12 @@ describe('raiding', () => {
     const raider = createUnit(state, wild, 'warrior', 10, 8);
     recomputeAllVisibility(state);
 
-    state.turn = 20;
+    // A *quiet* turn, for `QUIET_TURN`'s own reason one screenful down: a
+    // founding turn drops fresh camps under this fixture, and a camp inside
+    // `campUnitRadius` of the raider makes it that camp's warden — which is the
+    // warden rule working, not this claim failing. The claim here is about a
+    // raider with prey in front of it.
+    state.turn = QUIET_TURN;
     barbarianTurn(state);
     // Either it closed the distance or it took the worker; both are the rule
     // working. A captured civilian changes hands rather than dying.
@@ -990,7 +1013,14 @@ describe('role derivation', () => {
     createUnit(state, wild, 'worker', 8, 8);
     const captor = createUnit(state, wild, 'warrior', 8, 9);
 
-    expect(rolesOf(state).get(captor.id)).toEqual({ kind: 'raider' });
+    // Released — and put straight to the camp's own use, because it is the
+    // nearest unspoken-for soldier to a camp with nobody standing on it. The
+    // claim under test is the release (it is no longer an escort); which job it
+    // is released *into* is the warden rule one pass down.
+    expect(rolesOf(state).get(captor.id)).toEqual({
+      kind: 'warden',
+      camp: { col: 8, row: 8 },
+    });
   });
 
   it('walks a cargo nowhere at all in a world with no camps left', () => {
@@ -1169,6 +1199,249 @@ describe('escorting', () => {
       if (unit.ownerId !== wild) continue;
       expect(Object.prototype.hasOwnProperty.call(unit, 'path')).toBe(false);
     }
+  });
+});
+
+/**
+ * The warden (the user, 2026-09-06: "barbarian camps should keep 1 unit
+ * fortified on the camp tile before sending units out into the world";
+ * `docs/flags.md`, rulings of that evening, item g).
+ *
+ * The rule in three sentences, and each of them fails differently:
+ *
+ *   1. **A camp's first piece stays home and digs in.** It is mustered onto the
+ *      camp hex — which is the seat `musterTileFor` already preferred — and
+ *      fortifies through `Unit.fortifiedTurns`, the field a player's Fortify
+ *      writes, so the trench is on `planCombat`'s ledger as an ordinary labelled
+ *      line and the wild gets no entrenchment rule of its own.
+ *   2. **It is derived, not remembered** — the nearest unspoken-for soldier
+ *      inside `campUnitRadius`, which is whoever is standing on the camp, since
+ *      zero is the nearest distance there is. So a warden that dies is replaced
+ *      by the camp's next muster with nothing anywhere recording that it died.
+ *   3. **It holds.** No raiding, no wandering, no theft; one blow at what has
+ *      come within reach of the camp, and then it stays where it is.
+ */
+describe('the warden', () => {
+  /** The wild's soldiers, in state order. */
+  function bandOf(state: GameState): Unit[] {
+    return state.units.filter(
+      (unit) => unit.ownerId === wildId(state) && unitDef(unit.type).category === 'military',
+    );
+  }
+
+  it('musters its first piece onto the camp hex and digs it in there', () => {
+    const state = wildState();
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    state.turn = 1 + BARB.unitEveryTurns;
+    musterCamps(state);
+
+    const band = bandOf(state);
+    expect(band).toHaveLength(1);
+    expect({ col: band[0]!.col, row: band[0]!.row }).toEqual({ col: 8, row: 8 });
+    // Zero, not one — `applyFortify`'s own value, because the bonus is paid for
+    // turns *survived* dug in and `advanceFortify` raises it at the turn's end.
+    expect(band[0]!.fortifiedTurns).toBe(0);
+    expect(isFortified(band[0]!)).toBe(true);
+  });
+
+  it('holds the hex across turns and digs deeper, never wandering off it', () => {
+    const state = wildState();
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    const warden = createUnit(state, wildId(state), 'warrior', 8, 8);
+    state.turn = QUIET_TURN;
+
+    expect(rolesOf(state).get(warden.id)).toEqual({
+      kind: 'warden',
+      camp: { col: 8, row: 8 },
+    });
+
+    for (let step = 0; step < 6; step++) {
+      refill(state);
+      barbarianTurn(state);
+      // The phase that follows `barbarians` in the resolution, so the trench
+      // deepens on the ordinary schedule rather than by a rule of the wild's.
+      advanceFortify(state);
+      expect({ col: warden.col, row: warden.row }).toEqual({ col: 8, row: 8 });
+    }
+    // A raider with nothing in reach would have drifted (see `wander`); this one
+    // has not moved a hex, and it is dug in to the cap.
+    expect(fortifyBonus(warden)).toBe(RULES.combat.fortifyMax);
+  });
+
+  it('sends the second muster out to raid, and the warden keeps the hex', () => {
+    const state = wildState();
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    state.turn = 1 + BARB.unitEveryTurns;
+    musterCamps(state);
+    state.turn += BARB.unitEveryTurns;
+    musterCamps(state);
+
+    const band = bandOf(state);
+    expect(band).toHaveLength(2);
+    const warden = band.find((unit) => unit.col === 8 && unit.row === 8)!;
+    const roamer = band.find((unit) => unit.id !== warden.id)!;
+    // Seated on a neighbour — the camp hex was taken — and not dug in: it is
+    // the piece the camp sends out into the world.
+    expect(distance(state, roamer, { col: 8, row: 8 })).toBe(1);
+    expect(isFortified(roamer)).toBe(false);
+
+    const roles = rolesOf(state);
+    expect(roles.get(warden.id)).toEqual({ kind: 'warden', camp: { col: 8, row: 8 } });
+    expect(roles.get(roamer.id)).toEqual({ kind: 'raider' });
+  });
+
+  it('keeps the next muster home once the warden is killed', () => {
+    const state = wildState();
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    state.turn = 1 + BARB.unitEveryTurns;
+    musterCamps(state);
+    state.turn += BARB.unitEveryTurns;
+    musterCamps(state);
+
+    const warden = bandOf(state).find((unit) => unit.col === 8 && unit.row === 8)!;
+    const roamer = bandOf(state).find((unit) => unit.id !== warden.id)!;
+    // The camp is stormed and its guard cut down; the raider is away in the
+    // world. Nothing anywhere records that the camp lost anybody.
+    state.units = state.units.filter((unit) => unit.id !== warden.id);
+    roamer.col = 5;
+    roamer.row = 5;
+
+    state.turn += BARB.unitEveryTurns;
+    musterCamps(state);
+
+    const fresh = bandOf(state).find((unit) => unit.id !== roamer.id)!;
+    expect({ col: fresh.col, row: fresh.row }).toEqual({ col: 8, row: 8 });
+    expect(isFortified(fresh)).toBe(true);
+  });
+
+  it('calls a soldier home when nobody is standing on the camp', () => {
+    // The other half of "derived from where everybody stands": a camp with an
+    // empty hex claims the nearest unspoken-for soldier inside `campUnitRadius`,
+    // and that soldier walks home rather than raiding.
+    const state = wildState();
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    const soldier = createUnit(state, wildId(state), 'warrior', 10, 8);
+    state.turn = QUIET_TURN;
+
+    expect(rolesOf(state).get(soldier.id)).toEqual({
+      kind: 'warden',
+      camp: { col: 8, row: 8 },
+    });
+    for (let step = 0; step < 4; step++) {
+      refill(state);
+      barbarianTurn(state);
+    }
+    expect({ col: soldier.col, row: soldier.row }).toEqual({ col: 8, row: 8 });
+    expect(isFortified(soldier)).toBe(true);
+  });
+
+  it('never chases prey: an unguarded worker walks past the camp untaken', () => {
+    const state = wildState();
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    const warden = createUnit(state, wildId(state), 'warrior', 8, 8);
+    // Inside the warden's own sight and well inside `theftRadius`: without the
+    // warden pass this soldier is a thief, and the worker is gone.
+    const prey = createUnit(state, 0, 'worker', 10, 8);
+    recomputeAllVisibility(state);
+    expect(isVisibleTo(state, wildId(state), prey.col, prey.row)).toBe(true);
+
+    state.turn = QUIET_TURN;
+    refill(state);
+    barbarianTurn(state);
+
+    expect(state.units.find((unit) => unit.id === prey.id)!.ownerId).toBe(0);
+    expect({ col: warden.col, row: warden.row }).toEqual({ col: 8, row: 8 });
+  });
+
+  it('strikes what comes within reach of the camp, and does not pursue', () => {
+    const state = wildState();
+    state.camps.push({ col: 8, row: 8, foundedTurn: 1 });
+    const warden = createUnit(state, wildId(state), 'spearman', 8, 8);
+    // Two hexes off: a raider would march on it. The warden does nothing.
+    const soldier = createUnit(state, 0, 'warrior', 10, 8);
+    recomputeAllVisibility(state);
+    state.turn = QUIET_TURN;
+    refill(state);
+
+    const quiet = emptyTurnReport();
+    raid(state, [warden.id], quiet);
+    expect(quiet.combats).toEqual([]);
+    expect({ col: warden.col, row: warden.row }).toEqual({ col: 8, row: 8 });
+
+    // One hex off — at the camp's own door — and the blow lands from where the
+    // warden stands. It is the raider's "already in reach" clause and nothing
+    // more: no march before it, and (the defender survived) no advance after.
+    soldier.col = 9;
+    soldier.row = 8;
+    recomputeAllVisibility(state);
+    refill(state);
+
+    const struck = emptyTurnReport();
+    raid(state, [warden.id], struck);
+    expect(struck.combats).toHaveLength(1);
+    expect(struck.combats[0]!.defenderUnitId).toBe(soldier.id);
+    expect({ col: warden.col, row: warden.row }).toEqual({ col: 8, row: 8 });
+    // The blow shook it out of its trench, exactly as it would a player's
+    // spearman — and it climbed straight back in, because the wild has only this
+    // one phase in which to say so.
+    expect(isFortified(warden)).toBe(true);
+  });
+
+  it('makes a player storm the camp: the hex cannot simply be walked onto', () => {
+    // Item 4 of the brief, pinned rather than assumed. `canStopOn` reads
+    // `hasStackingRoom`, which counts *everybody* standing on a hex and not only
+    // your own pieces, so a march onto a warden's camp is refused and the camp
+    // is cleared by killing the warden and advancing — the ordinary
+    // `arriveOnTile` seam, with no barbarian clause anywhere in it.
+    const state = wildState();
+    foundCityAt(state, 0, at(state, 4, 5));
+    state.camps.push({ col: 9, row: 5, foundedTurn: 1 });
+    const warden = createUnit(state, wildId(state), 'warrior', 9, 5);
+    warden.fortifiedTurns = 2;
+    const soldier = createUnit(state, 0, 'swordsman', 8, 5);
+    recomputeAllVisibility(state);
+
+    const walked = applyCommand(state, {
+      type: 'moveUnit',
+      playerId: 0,
+      unitId: soldier.id,
+      target: { col: 9, row: 5 },
+    });
+    expect(walked.ok).toBe(false);
+    expect(hasCampAt(state, 9, 5)).toBe(true);
+
+    // And the trench is on the same ledger a player's is: a flat line for the
+    // defender, worth what `fortifyBonus` says it is worth.
+    const view = previewCombat(state, soldier.id, { col: 9, row: 5 });
+    expect(view.ok && view.fortifyBonus).toBe(fortifyBonus(warden));
+    expect(fortifyBonus(warden)).toBeGreaterThan(0);
+
+    warden.hp = 1;
+    const stormed = applyCommand(state, {
+      type: 'attack',
+      playerId: 0,
+      unitId: soldier.id,
+      target: { col: 9, row: 5 },
+    });
+    expect(stormed.ok).toBe(true);
+    expect(state.units.find((unit) => unit.id === warden.id)).toBeUndefined();
+    expect({ col: soldier.col, row: soldier.row }).toEqual({ col: 9, row: 5 });
+    expect(hasCampAt(state, 9, 5)).toBe(false);
+  });
+
+  it('is the register’s fourth job, and the register is five kinds', () => {
+    // The roles are a closed union and the sweep's switch is exhaustive over it,
+    // so a fifth *shape* is a design decision rather than a patch. Read off the
+    // source, in `test/ui/seatRoster.test.ts`' style, because the order is the
+    // rule: the passes run in the order the union lists them, and `escort >
+    // warden > theft > raid` is what "the camp keeps one back" means.
+    const union = SIM_SOURCE.slice(
+      SIM_SOURCE.indexOf('export type BarbarianRole ='),
+      SIM_SOURCE.indexOf('/** The camp nearest this cell'),
+    );
+    expect(union).not.toBe('');
+    const kinds = [...union.matchAll(/kind: '(\w+)'/g)].map((match) => match[1]);
+    expect(kinds).toEqual(['cargo', 'escort', 'warden', 'thief', 'raider']);
   });
 });
 

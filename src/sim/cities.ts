@@ -193,6 +193,7 @@ import {
   terrainDef,
 } from './terrainData';
 import {
+  BUILDING_UNLOCK_TECH,
   TECH_IDS,
   type TechId,
   UNIT_UNLOCK_TECH,
@@ -253,6 +254,16 @@ import { layRoad } from './roads';
 import { caravanTypeId } from './unitData';
 import { awardFoundingTriumphs, awardOccasion } from './triumphs';
 import { disbandCandidate, treasuryInDebt } from './upkeep';
+// **A function-level cycle, and the documented kind** (CLAUDE.md): `religion.ts`
+// imports this file for the capital, the tile-owner field and the windfall
+// settlements, and this one arm of `payCompletionGrants` imports it back for the
+// faith ladder's deal. Neither module *runs* the other at load — nothing at the
+// top level of `religion.ts` calls into this file, and nothing here calls into
+// it outside a function — which is the whole of what makes a cycle safe, and it
+// is what `test/mapgen/moduleCycles.test.ts` checks by loading every module as
+// an entry. A grant that reimplemented the deal to dodge the import would be a
+// second way to open a consecration, which is the thing worth avoiding.
+import { openFreeRung } from './religion';
 
 const CITIES = RULES.cities;
 
@@ -3236,10 +3247,19 @@ export function cityQuote(
   // this function rather than beside it, so a route's food is staged like
   // every other flat (Entry XVII) and its gold reaches the treasury through
   // the same `collectYields` as the market's.
+  // **All five voices a `RouteYieldLine` carries**, and that is the whole of the
+  // fix of 2026-09-06: the line grew science and culture with the international
+  // ruling (`routeYields.ts`, `RouteYieldLine`) and this loop still folded the
+  // three it was born with, so Ledger-Keepers' beaker and note were computed,
+  // printed by the trade panel, and then dropped on the way into the town's
+  // basket. A fold that reads some of a list is rule 5 broken quietly. Faith is
+  // the one voice absent, because no route pays it and the line has no field.
   for (const line of cityRouteYields(state, city)) {
     total.food += line.food;
     total.production += line.production;
     total.gold += line.gold;
+    total.science += line.science;
+    total.culture += line.culture;
   }
 
   // The seat of government, folded like every other list rather than added as a
@@ -3607,18 +3627,82 @@ export interface UnitCostLine {
 }
 
 /**
- * The age band a unit's price is multiplied by: the age of the technology that
- * unlocks it, or the first band for a type nothing gates.
+ * The age band **every** hammer price is multiplied by, and the label it prints
+ * under: `costAgeBase ** age`, where the age is the band of the technology that
+ * unlocks the row, or Æra I for a row nothing gates.
  *
- * Read off the tree rather than stored on the unit row, because "when does this
+ * Read off the tree rather than stored on the row, because "when does this
  * belong" is already written down once — in `unlocks` — and a second copy on
- * the unit is a second copy to forget when a designer moves a node between ages.
+ * the unit or the building is a second copy to forget when a designer moves a
+ * node between ages.
+ *
+ * One function for units, buildings and wonders alike since 2026-09-06 (the
+ * user's early-production ruling, `docs/flags.md` item y). It was a unit-only
+ * ladder before that, and the asymmetry is exactly what the ruling was about:
+ * an empire in Æra III paid twice over for its army and the printed base for
+ * everything it could raise, so hammers stopped meaning anything. See
+ * `ProductionRules.costAgeBase` for the shape of the number.
  */
-function unitCostFactor(type: UnitTypeId): { age: number; factor: number } {
-  const ladder = RULES.production.unitCostAgeMultiplier;
-  const gate = UNIT_UNLOCK_TECH.get(type);
+function ageCostBand(gate: TechId | undefined): { age: number; factor: number } {
   const age = gate === undefined ? 1 : techDef(gate).age;
-  return { age, factor: ladder[age - 1] ?? ladder[0] ?? 1 };
+  return { age, factor: RULES.production.costAgeBase ** age };
+}
+
+/** The band a unit's price is multiplied by — its unlocking tech's. */
+function unitCostFactor(type: UnitTypeId): { age: number; factor: number } {
+  return ageCostBand(UNIT_UNLOCK_TECH.get(type));
+}
+
+/** The band a building's or a wonder's price is multiplied by. */
+function buildingCostFactor(id: BuildingId): { age: number; factor: number } {
+  return ageCostBand(BUILDING_UNLOCK_TECH.get(id));
+}
+
+/**
+ * What one of this building — or this wonder — costs to raise, as the ordered
+ * list the price is the fold of (hard rule 5, said about a price).
+ *
+ * Two lines, and the second is the whole of what 2026-09-06 added:
+ *
+ *   1. **the row's price** — `cost` off `data/buildings.json`.
+ *   2. **the age band** — `ageCostBand`, on the figure above it.
+ *
+ * It takes no player, and that is a statement rather than an oversight: nothing
+ * an empire does changes what a building costs to *build*. A settler has a
+ * ladder and a card rule; a granary has neither, and the day a card cheapens
+ * buildings this grows a third line and a `playerId` in the same breath —
+ * `explainUnitCost` is the shape it would take. What an empire does change is
+ * what a building costs to *buy*, and that is `explainPurchaseCost`, which folds
+ * this list and then asks the riders.
+ *
+ * The band **floors**, once, exactly as the unit fold's does: a queue's cost is
+ * compared against a basket in `planProduction` and printed on a button beside
+ * a turn estimate, and a price with a fraction on it would be a figure no
+ * surface could print honestly. The line carries the *difference* it makes, so
+ * the list still sums to the price.
+ */
+export function explainBuildingCost(id: BuildingId): UnitCostLine[] {
+  const def = buildingDef(id);
+  const lines: UnitCostLine[] = [{ source: def.name, amount: def.cost }];
+  const { age, factor } = buildingCostFactor(id);
+  if (factor !== 1) {
+    const scaled = Math.floor(def.cost * factor);
+    lines.push({
+      source: `Age band · Æra ${eraNumeral(age)} ×${factor}`,
+      amount: scaled - def.cost,
+    });
+  }
+  return lines;
+}
+
+/**
+ * What one of this building costs to raise. The fold of `explainBuildingCost`
+ * and nothing else — `planProduction` charges it, `queueItemCost` quotes it, the
+ * build list prices its rows with it and the star chart quotes an unbuilt one
+ * through it, so the number on the button is the number the basket pays.
+ */
+export function buildingProductionCost(id: BuildingId): number {
+  return foldUnitCost(explainBuildingCost(id));
 }
 
 /**
@@ -3636,11 +3720,13 @@ function unitCostFactor(type: UnitTypeId): { age: number; factor: number } {
  *      Presence of the field is the marker, here and in `realiseItem`: a
  *      designer who writes an escalation of zero has declared an escalating
  *      type whose ladder is currently flat, not a flat type.
- *   3. **the age band** — `unitCostAgeMultiplier`, on the sum of the two above.
- *      It multiplies the *escalated* figure rather than the printed one so that
- *      a late-age escalating unit climbs in the money of its own era; the
- *      settler itself is Age I and multiplies by one, so nothing about the
- *      opening moved. See `ProductionRules`.
+ *   3. **the age band** — `ageCostBand`, on the sum of the two above. It
+ *      multiplies the *escalated* figure rather than the printed one so that a
+ *      late-age escalating unit climbs in the money of its own era. Æra I is
+ *      ×1.25 rather than ×1 since 2026-09-06 (item y), so the opening moved with
+ *      everything else: the ruling is that hammers were cheap against what a
+ *      city could make, and an exemption for the age the complaint started in
+ *      would have been a rule with a hole in it. See `ProductionRules`.
  *   4. **the empire's law** — `settlerCost`, asked only of the **settler**: the
  *      rule names the settler by id and predates the ladder's generalisation, so
  *      it is not widened to any other escalating type — a card that cheapens
@@ -3732,8 +3818,10 @@ export function unitProductionCost(
 
 /**
  * Hammers the item at the front of a queue costs *this player*, or `null` if it
- * is unknown. Units are priced by `unitProductionCost`; buildings and projects
- * are flat.
+ * is unknown. Units are priced by `unitProductionCost` and buildings by
+ * `buildingProductionCost`; a **project** is the one flat row left, and it is
+ * flat on purpose (item y, 2026-09-06: the age band prices *things*, and a
+ * conversion is not one — see `ProductionRules.costAgeBase`).
  *
  * A project's cost is what one *turn of the conversion* costs — it is charged
  * again the moment it is paid, because a project never leaves the queue (see
@@ -3755,7 +3843,7 @@ export function queueItemCost(
   if (item.kind === 'project') {
     return isProjectId(item.id) ? projectDef(item.id).cost : null;
   }
-  return isBuildingId(item.id) ? buildingDef(item.id).cost : null;
+  return isBuildingId(item.id) ? buildingProductionCost(item.id) : null;
 }
 
 /** The display name of a queue item, or its raw id if the id is unknown. */
@@ -4629,7 +4717,7 @@ function planQueueItem(
   if (isWonder(id) && wonderClaim(state, id) !== undefined) {
     return { kind: 'drop', item, index };
   }
-  const cost = buildingDef(id).cost;
+  const cost = buildingProductionCost(id);
   if (hammers < cost) return null;
   return { kind: 'building', item, index, id, cost };
 }
@@ -5307,6 +5395,19 @@ function payCompletionGrants(
       reports.push({ grant: 'greatPerson', name: 'a great person', done: true });
       continue;
     }
+    if (grant.grant === 'faithRung') {
+      // **Through the faith ladder's own deal** (`openFreeRung`), which is the
+      // seam that means "a place at the fire is being named": the hand is the
+      // ordinary consecration hand, drawn from `state.rng` inside the log and
+      // blocking End Turn until it is answered. The one thing the stones change
+      // is that no rung is quoted, so the pick spends no faith — see
+      // `CompletionGrant`. `false` covers all three refusals (a hand already
+      // waiting, no place open, an empty bag) and the report does not guess
+      // which, the unit arm's discipline above.
+      const named = openFreeRung(state, player);
+      reports.push({ grant: 'faithRung', name: 'a god', done: named });
+      continue;
+    }
     // A Doctrine draft.
     const sc = player.statecraft;
     if (sc.pendingDoctrine !== undefined) {
@@ -5872,6 +5973,10 @@ export interface TilePriceLine {
  *   4. **Luxuries** — furs' `borderCost` discount, the same −10% it takes off a
  *      culture border tile, on a line that names the reason. Land is land: an
  *      empire whose trappers know the country gets it cheaper both ways.
+ *   5. **The deck** — Chartered Companies' fifteen percent off a deed, Royal
+ *      Surveyors' quarter, one line each and named. Last because a charter is a
+ *      fact about the empire buying rather than about the ground bought, and
+ *      because a share is taken of everything above it.
  *
  * A cell outside the city, or one this function is asked about before the city
  * exists, still gets a price — this evaluator prices ground and refuses nothing.
@@ -5919,6 +6024,36 @@ export function explainTilePurchase(
     lines.push({ source: `${line.source} · ${line.percent}%`, amount: -discount });
   }
 
+  // **And the deck's own discount, as lines of this list** — Chartered
+  // Companies' fifteen percent, Royal Surveyors' quarter. It was applied to the
+  // *fold* until 2026-09-06, outside the list the docblock calls the price, so a
+  // player reading four lines that added to 95 was charged 71 and nothing said
+  // why. A card is a reason like a luxury is a reason, so it is a line like a
+  // luxury is a line.
+  //
+  // The percentages **sum before one multiplication** (`foldCardRulePercent`,
+  // the same rule the payroll's rebate obeys) and the one product is then shared
+  // out in the cards' own order so the parts sum to it exactly. Rounded per
+  // share with the remainder on the last, because a tile price is one of the
+  // game's deliberate integers and a tag reading "−7.5" would be a price nobody
+  // can pay. Floored at 1 for the reason the luxury's line is: free land is not
+  // a discount, it is a different game.
+  const charters = cardRulePercent(state, playerId, 'tilePurchase');
+  const percent = foldCardRulePercent(charters);
+  if (percent !== 0) {
+    const before = lines.reduce((sum, line) => sum + line.amount, 0);
+    const change = Math.max(1, Math.floor((before * (100 + percent)) / 100)) - before;
+    let paid = 0;
+    for (let i = 0; i < charters.length; i++) {
+      const line = charters[i]!;
+      const share =
+        i === charters.length - 1 ? change - paid : Math.round((change * line.percent) / percent);
+      paid += share;
+      if (share === 0) continue;
+      lines.push({ source: `${line.source} · ${line.percent}%`, amount: share });
+    }
+  }
+
   return lines;
 }
 
@@ -5939,14 +6074,17 @@ export function tilePurchasePrice(
   cityId: number,
   cell: Cell,
 ): number {
-  const base = foldTilePrice(explainTilePurchase(state, playerId, cityId, cell));
-  // The card discount, applied to the fold rather than as a line inside it: the
-  // ladder's lines are what the *ground* costs, and Land Grants is a fact about
-  // the empire buying it. Floored at 1 — free land is not a discount, it is a
-  // different game.
-  const percent = foldCardRulePercent(cardRulePercent(state, playerId, 'tilePurchase'));
-  if (percent === 0) return Math.max(1, base);
-  return Math.max(1, Math.floor((base * (100 + percent)) / 100));
+  // **The fold, and nothing beside it** (rule 5). The card discount used to be
+  // applied here, to the total, on the argument that the ladder's lines are what
+  // the *ground* costs and a charter is a fact about the empire buying it — but
+  // a price computed beside its own breakdown is exactly what rule 5 forbids,
+  // and the breakdown is what the tag prints. It is a line of the list now; see
+  // `explainTilePurchase`.
+  //
+  // The floor is kept as a floor rather than dropped: every line that can take
+  // money off already clamps to 1 on its way in, so this can only ever be the
+  // fold, and it is here to say out loud that ground is never free.
+  return Math.max(1, foldTilePrice(explainTilePurchase(state, playerId, cityId, cell)));
 }
 
 /**

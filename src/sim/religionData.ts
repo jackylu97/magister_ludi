@@ -188,19 +188,22 @@ export interface BeliefOffer {
    */
   pool?: ReligionBeliefPool;
   /**
-   * The god this offer was dealt **in place of** — Recasting the Omens' whole
-   * difference from a Consecrate — or the key is absent on every other draw.
-   *
-   * A record of what was handed back rather than a rule: the belief is already
-   * out of `beliefs` by the time this is written and the bag was filtered by
-   * `recastPantheonAt` before the draw, so nothing reads it to *decide*
-   * anything. It exists because the card that answers the offer has one line to
-   * say what happened, and "you gave back Keeper of the Hearth" is the only
-   * thing distinguishing a recast's hand from a fresh god's. Beside `pool` for
-   * that field's reason: the offer knows which decision it is, so no surface
-   * has to re-derive it.
+   * How many times **this hand** has been dealt again (the user, 2026-09-06,
+   * evening): every belief hand — the ladder's and a prophet's alike — may be
+   * asked again once for nothing, and every asking after that costs faith,
+   * rising with each one *on this hand*. The count lives on the offer because
+   * it is the hand's own fact: it starts at nothing with every fresh deal and
+   * has nothing to do with the Order draft's lifetime count
+   * (`PlayerStatecraft.rerollsTaken`), which never resets. Absent reads as none.
    */
-  givenBack?: BeliefId;
+  rerolls?: number;
+  // `givenBack` — the god this offer was dealt in place of — was removed on
+  // 2026-09-06 with the last of Recasting the Omens: no seam writes it any more,
+  // so the offer card's two "what your people keep instead" sentences could not
+  // be reached and the field described a hand the game cannot deal. An offer
+  // that is dealt in place of something again gets the field back with a writer
+  // beside it. An old save carrying the key reads exactly as a fresh hand, which
+  // is what it now is.
   /**
    * **What answering this offer takes out of the faith bank**, or the key is
    * absent on every offer that is paid for some other way — an augur spent, a

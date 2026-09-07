@@ -16,15 +16,18 @@ history (proposals, re-cuts, the five-age plan) lives in git and
   (V is a shelf — deliberately unbuilt). Ages follow the drawn columns
   (revision 4.2: columns 9–12 are Æra IV).
 - **A column IS a price**: one table indexed by `techColumn`
-  (`src/sim/tech.ts` docblock has it; cost(1)=13, the root's 5 is never paid).
+  (`src/sim/tech.ts` docblock has it; the root's 5 is never paid).
   Adding a tech = placement: prereqs pick the column, the column prices it
   (`src/sim/techData.ts` placement docblock).
 - **The late columns are authored above the taper** (user ruling 2026-09-03:
-  the scaling of Æra I–II stands, Æra IV–V is extremely expensive). Columns 0–5
+  the scaling of Æra I–II stands, Æra IV–V is extremely expensive). Columns 2–5
   are the formula's figures untouched; columns 6–8 lift a little and columns
   9–12 lift to 1450/1700/1950/2200. A late column is a ruling, not a value of
   the decay constant — retuning one edits the rows and the pin in
   `test/sim/tech.test.ts`.
+- **The first paid column is authored below it** (user ruling 2026-09-06, item
+  x — "the first column of technologies slightly cheaper"): column 1 is 10, not
+  the formula's 13. The four nodes are Fletching, Husbandry, Mining, Pottery.
 - **The chart is the user's drawing**: lanes (`row`) and column nudges
   (`columnShift`) are authored data; the annealer only advises on new nodes;
   crossings pinned exactly, false chains zero (`test/ui/techChart.test.ts`).
@@ -49,7 +52,10 @@ history (proposals, re-cuts, the five-age plan) lives in git and
   ruling (theme abilities otherwise live on cards and building rows). It was
   eight until batch E gave the re-gifted nodes their own rules
   (`docs/tech-gifts.md` §7).
-- **Unit prices** take the age band from the unlocking tech, never the row.
+- **Every hammer price** takes the age band from the unlocking tech, never the
+  row — units, buildings and wonders alike since the ruling of 2026-09-06
+  (item y): `cost × 1.25 ^ age`, one line in the cost fold. A row no technology
+  unlocks is Æra I.
 - `TechDef` may carry `paysBead` (Alchemy) and `ageEntryDice`; abilities ride
   `techsGrant` (`ABILITY_TECH`).
 
@@ -57,10 +63,11 @@ history (proposals, re-cuts, the five-age plan) lives in git and
 
 Regenerated from the rows — never hand-maintained. Costs come off the column
 table (`src/sim/tech.ts`, "a column is a price"): one figure per chart column,
-5 · 13 · 30 · 69 · 135 · 225 · 400 · 540 · 680 · 1450 · 1700 · 1950 · 2200.
-Columns 0–5 are the tapered ladder's own figures; columns 6–12 are authored
-above it by the ruling of 2026-09-03 (see the standing determination). The four
-ages cost 345 / 1665 / 7700 / 26000🔬 — 35710 for the whole tree.
+5 · 10 · 30 · 69 · 135 · 225 · 400 · 540 · 680 · 1450 · 1700 · 1950 · 2200.
+Columns 2–5 are the tapered ladder's own figures; columns 6–12 are authored
+above it by the ruling of 2026-09-03 and column 1 is authored below it by the
+ruling of 2026-09-06 (see the standing determination). The four ages cost
+333 / 1665 / 7700 / 26000🔬 — 35698 for the whole tree.
 Wonders in **bold**; ‡ = a row **one to a realm** (`oncePerEmpire` — the five
 uniques of the fewer-things cut, and the three national rows that always wore
 it); ◇ = a row that is granted and never built; † = a deferred half on the row
@@ -95,10 +102,10 @@ Workshop → Forge · Shrine → Temple.
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
 | Agriculture | 5 | — | Settler, Warrior, Scout, Worker | — | — |
-| Fletching | 13 | Agriculture | Archer | — | — |
-| Husbandry | 13 | Agriculture | — | **The Temple of Artemis** | reveals **Horses** |
-| Mining | 13 | Agriculture | — | — | Clear Forest |
-| Pottery | 13 | Agriculture | — | Granary | — |
+| Fletching | 10 | Agriculture | Archer | — | — |
+| Husbandry | 10 | Agriculture | — | **The Temple of Artemis** | reveals **Horses** |
+| Mining | 10 | Agriculture | — | — | Clear Forest |
+| Pottery | 10 | Agriculture | — | Granary | — |
 | Bronzeworking | 30 | Mining | Spearman | Barracks, **The Walls of Uruk** | Clear Jungle · Blessing of Arms |
 | Calendar | 30 | Fletching | — | **The Hanging Gardens**, *tithes* (project) | — |
 | Divination | 30 | Husbandry | — | Shrine, **The Oracle** | Rite of the Harvest · Omen Reading |

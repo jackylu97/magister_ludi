@@ -26,6 +26,7 @@ import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
+  buildingProductionCost,
   cityYields,
   foundCityAt,
   productionModifiers,
@@ -420,7 +421,7 @@ describe('contributing to a basket', () => {
     const g = game();
     const city = found(g.state, 0);
     queueCathedral(city);
-    const cost = buildingDef(CONSECRATOR).cost;
+    const cost = buildingProductionCost(CONSECRATOR);
     city.hammerBasket = cost - 3;
     const player = playerById(g.state, 0)!;
     player.gold = 9000;
@@ -447,7 +448,7 @@ describe('contributing to a basket', () => {
     const city = found(g.state, 0);
     queueCathedral(city);
     const player = playerById(g.state, 0)!;
-    player.gold = buildingDef(CONSECRATOR).cost * GOLD_RATE;
+    player.gold = buildingProductionCost(CONSECRATOR) * GOLD_RATE;
     const result = dispatch(g, giveCommand(city.id, 'gold'));
     expect(result.ok).toBe(true);
     expect(city.buildings).toContain(CONSECRATOR);
@@ -487,7 +488,7 @@ describe('contributing to a basket', () => {
     expect(contributeError(g.state, 0, city.id, 'gold')).toMatch(/too little gold/);
     // Already paid for.
     player.gold = 500;
-    city.hammerBasket = buildingDef(CONSECRATOR).cost;
+    city.hammerBasket = buildingProductionCost(CONSECRATOR);
     expect(contributeError(g.state, 0, city.id, 'gold')).toMatch(/already paid/);
 
     // And the reducer's guarantee: every one of those, byte for byte.
@@ -575,7 +576,7 @@ describe('a game with contributions and a consecration', () => {
       // the town's own production is what tops the cathedral out and the roll
       // happens inside a resolution rather than inside the command.
       queueCathedral(city);
-      city.hammerBasket = buildingDef(CONSECRATOR).cost - 40;
+      city.hammerBasket = buildingProductionCost(CONSECRATOR) - 40;
       player.gold = 38 * GOLD_RATE;
       expect(dispatch(g, giveCommand(city.id, 'gold')).ok).toBe(true);
       expect(city.buildings).not.toContain(CONSECRATOR);

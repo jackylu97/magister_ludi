@@ -19,6 +19,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type WonderCompletion,
   advanceProduction,
+  buildingProductionCost,
   emptyCityYields,
   foundCityAt,
   realiseItem,
@@ -137,7 +138,7 @@ function ring(map: GameMap, tile: { col: number; row: number }) {
 }
 
 /** A town with the wonder at the front of its queue and the hammers for it. */
-function racing(state: GameState, city: City, hammers = buildingDef(WONDER).cost): void {
+function racing(state: GameState, city: City, hammers = buildingProductionCost(WONDER)): void {
   learn(state, city.ownerId, 'husbandry', 'divination');
   city.queue = [{ kind: 'building', id: WONDER }];
   city.hammerBasket = hammers;
@@ -1100,7 +1101,7 @@ describe('a rite lasts longer under the observatory', () => {
 /** Finishes `id` in `city` the way the phase does, and answers the completion. */
 function finish(state: GameState, city: City, id: BuildingId) {
   city.queue = [{ kind: 'building', id }];
-  city.hammerBasket = buildingDef(id).cost;
+  city.hammerBasket = buildingProductionCost(id);
   return settleProduction(state, city);
 }
 
@@ -1229,7 +1230,7 @@ describe('a completion grant', () => {
     const city = found(g.state, 0);
     learn(g.state, 0, 'stonecraft', 'bronzeWorking', 'ironWorking');
     city.queue = [{ kind: 'building', id: 'statueOfZeus' }];
-    city.hammerBasket = buildingDef('statueOfZeus').cost;
+    city.hammerBasket = buildingProductionCost('statueOfZeus');
 
     const report = emptyTurnReport();
     advanceProduction(g.state, report);

@@ -43,7 +43,12 @@ import { tributeLines } from './deals';
 // the file did not already have and nothing here is called at load.
 import { foldRulePercent, resourceConnectionPercent } from './resourceEffects';
 import { cardAmplifier, cardAmplifierFlat, cardBehaviorRule } from './statecraft';
-import { explainBuildingUpkeep, explainUnitUpkeep, explainUnitUpkeepRebate } from './upkeep';
+import {
+  explainBuildingUpkeep,
+  explainUnitUpkeep,
+  explainUnitUpkeepRebate,
+  explainUnitUpkeepSurcharge,
+} from './upkeep';
 
 export { type ConnectedCity, connectedCities };
 
@@ -154,7 +159,10 @@ export interface TradeGoldLine {
  *     empire's own caravans laid (`Tile.road` carries the builder's seat);
  *   · **Unit maintenance**, one negative line for the whole army, the fold of
  *     `explainUnitUpkeep` (`upkeep.ts`) which is the per-piece list a hover
- *     prints;
+ *     prints — and what the law does to that payroll rides *beside* it rather
+ *     than inside it: `explainUnitUpkeepSurcharge` for the levy that made it
+ *     dearer, `explainUnitUpkeepRebate` for the charter that forgives some of
+ *     it, one labelled line each and both in this same fold;
  *   · **Building maintenance**, the same one grade over, folding
  *     `explainBuildingUpkeep`.
  *
@@ -247,6 +255,19 @@ export function explainEmpireGold(state: GameState, playerId: number): TradeGold
       source: `Unit maintenance · ${units.length} ${units.length === 1 ? 'unit' : 'units'}`,
       gold: -gold,
     });
+  }
+
+  // **What the law adds to that payroll** — The Reckless Levy's doubled wages —
+  // immediately after the charge it rides on and *before* the give-backs, which
+  // is the order the money is read in: here is the army's price, here is the
+  // law that made it dearer, here is the law that forgives some of it. A
+  // surcharge is a **charge**, so it is negated into this signed fold exactly as
+  // the gross above it is; it is not a second fold, and it is not a discount
+  // hidden inside the first line, for `explainUnitUpkeepRebate`'s reason
+  // (`upkeep.ts`) — the ledger says what the army costs and then what the law
+  // did to it.
+  for (const surcharge of explainUnitUpkeepSurcharge(state, playerId)) {
+    lines.push({ source: surcharge.source, gold: -surcharge.gold });
   }
 
   // What the law gives back on that payroll — Tyranny's, The Standing Army's.

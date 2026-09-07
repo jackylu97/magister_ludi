@@ -210,7 +210,9 @@ be renamed — it would change every seeded outcome. No further rename passes.
   11 windfall riders via `payWindfallGrants` (completion riders excepted) ·
   12 `purchaseItemAt` · 13 `settlePopulationWindfall` (fills no bucket) ·
   14 `settleBorderWindfall` · 15 the trade verbs (`startRoute`/`cancelRoute`) ·
-  16 `pressLump` · 17 `setCitizenFocus`. Future windfalls join by calling a
+  16 `pressLump` · 17 `setCitizenFocus`. The helper's own docblock is the
+  register of record and runs to **22** entries — the names above are the first
+  seventeen of it, never the whole. Future windfalls join by calling a
   `settle…Windfall`, never by reimplementing a completion.
 - **Culture**: `Player.culturePool` IS the draft basket (no second bank);
   border culture (`City.culture`) is a separate channel. Anything paying culture

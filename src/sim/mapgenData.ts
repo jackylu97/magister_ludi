@@ -265,6 +265,18 @@ export interface MapgenConfig {
     ridgeBreak: NoiseConfig;
     moistureRegional: NoiseConfig;
     moistureLocal: NoiseConfig;
+    /**
+     * The copse-scale field that breaks the woods up — see `woodland.grain`.
+     *
+     * The fifth table, and the one `ridgeBreak` above says cannot be afforded:
+     * a table drawn from the map's own `rng` moves every river and every
+     * resource on every seed. This one is drawn from a **stream of its own**
+     * (`webciv:mapgen:woodland:grain:<seed>`), so it costs the map's dice
+     * nothing and every pass before the trees is bit-identical to a build that
+     * never had it. `cycleTiles` rather than `frequency`, because a copse has
+     * to stay a copse on a giant board.
+     */
+    woodlandGrain: NoiseConfig;
   };
   elevation: {
     seaLevel: number;
@@ -366,6 +378,7 @@ export interface MapgenConfig {
       strength: number;
     };
   };
+  woodland: WoodlandConfig;
   lakes: {
     /** Water bodies of at most this many tiles become lakes. See `water.ts`. */
     maxSize: number;
@@ -384,6 +397,52 @@ export interface MapgenConfig {
   resources: ResourceConfig;
   veins: VeinConfig;
   starts: StartsConfig;
+}
+
+/**
+ * The grain of the woods: how the forest a share of eligible ground is dealt
+ * comes apart into copses instead of arriving as three continents of trees.
+ *
+ * Ruled 2026-09-06 in the user's words: "currently forests spawn in huge
+ * patches, could we make them more diffuse across the map? There should be
+ * smaller patches of forest across the map, and some unforested tiles breaking
+ * up the large patches." Two knobs for the two halves of that sentence, and
+ * they are deliberately separate because they answer different questions:
+ * `grain` decides *which* hexes get trees (and so how many patches there are),
+ * `clearingChance` punches holes in whatever patches remain (and so what the
+ * inside of a big wood looks like).
+ *
+ * Both are drawn from streams of their own, keyed on the seed — see
+ * `noise.woodlandGrain`. Nothing here costs the map's dice a draw, so the
+ * terrain, the rivers and the resource *rolls* of a given seed are exactly what
+ * they were before the woods had a grain. What does move is which hexes carry a
+ * forest, and so which hexes a forest resource may stand on.
+ */
+export interface WoodlandConfig {
+  /**
+   * How much of the forest deal's ordering the copse-scale field takes,
+   * against the moisture field's own say. `0` reproduces the world before this
+   * existed exactly — the deal is the moisture ranking and nothing else — and
+   * `1` would scatter wood over eligible ground with no regard for whether it
+   * is wet, which is a dust rather than a forest. Blended as percentiles
+   * *within the eligible set*, so the share dealt is untouched at every value:
+   * this decides where the same number of trees stand.
+   */
+  grain: number;
+  /**
+   * The chance a hex with all six neighbours wooded is opened as a clearing.
+   *
+   * Enclosure is read off the woodland **as dealt**, never off the half-cleared
+   * map, so the outcome does not depend on which hex the sweep reaches first —
+   * the sweep order decides only the order of the draws.
+   */
+  clearingChance: number;
+  /**
+   * The smallest connected wood a clearing may be punched in. A copse of five
+   * hexes is the thing this pass is trying to make more of; opening a hole in
+   * one would be the pass undoing its own work.
+   */
+  clearingMinPatch: number;
 }
 
 /**

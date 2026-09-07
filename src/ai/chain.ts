@@ -105,6 +105,7 @@ import {
 
 import { BEAD_RULES } from '../sim/beadData';
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
+import { buildingProductionCost, unitProductionCost } from '../sim/cities';
 import { IMPROVEMENT_IDS, improvementDef } from '../sim/improvementData';
 import { authorityOf, happinessOf } from '../sim/meters';
 import { type ProjectId, projectDef } from '../sim/projectData';
@@ -348,8 +349,9 @@ export function techChain(
       faith: def.faith ?? 0,
     };
     // One town's build, not every town's: towns raise in parallel, and only the
-    // hammers owed multiply by how many of them are still owing.
-    const raise = buildTurns(def.cost, ctx);
+    // hammers owed multiply by how many of them are still owing. The folded
+    // price (H10's age band), never the row's printed base.
+    const raise = buildTurns(buildingProductionCost(building), ctx);
     cursor += raise;
     const delay = cursor;
     const why = held ? 'the towns have still to raise it' : 'the node has to land and the towns to raise it';
@@ -384,7 +386,7 @@ export function techChain(
       id: building,
       name: def.name,
       towns,
-      cost: def.cost * towns,
+      cost: buildingProductionCost(building) * towns,
       rate: perTown * towns + row.total,
       delay,
       value: flatTerm.value + rowTerm.value,
@@ -819,8 +821,10 @@ export function expansionChain(
   settler: { id: UnitTypeId; walking: boolean },
 ): ExpansionChain {
   const def = unitDef(settler.id);
-  const hammers = settler.walking ? 0 : def.cost;
-  const buildDelay = settler.walking ? 0 : buildTurns(def.cost, ctx);
+  // The live price — escalation and H10's age band folded — not the row's base.
+  const price = unitProductionCost(state, player.id, settler.id);
+  const hammers = settler.walking ? 0 : price;
+  const buildDelay = settler.walking ? 0 : buildTurns(price, ctx);
   const walkDelay = Math.ceil(probe.distance / Math.max(1, def.movement));
   const delay = buildDelay + walkDelay;
 
@@ -893,7 +897,7 @@ export function expansionChain(
       id: settler.id,
       name: def.name,
       towns: 1,
-      cost: def.cost,
+      cost: price,
       rate: payoff,
       delay,
       value: payoff,

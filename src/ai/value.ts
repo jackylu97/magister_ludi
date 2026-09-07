@@ -27,13 +27,19 @@
  *     is the whole of "what would this building pay", staged by Entry XVII and
  *     hypothetical-aware because the simulation already does that arithmetic.
  *     This module only ever *weights* an answer somebody else computed.
- *   · **An unknown shape is worth a little, never nothing and never a crash.**
- *     `CardEffect` has thirty-odd members and this file recognises a dozen of
- *     them; the rest score `score.unknownEffect`. Zero would make a card whose
- *     effects this bot cannot read strictly worse than a blank one, which is the
- *     opposite of the truth, and a `never` exhaustiveness check here would make
- *     adding a card shape a compile error in the *AI*, which is not where that
- *     decision belongs.
+ *   · **Every shape has an arm, and an unread one is named** (batch H2 of
+ *     `docs/audit/orchestrator.md`). `scoreEffect` switches on an aliased
+ *     discriminant and ends in a `never`, exactly as `applyCommand`'s reducer
+ *     does, so a member of `CardEffect` declared in `statecraftData.ts` with no
+ *     arm here stops compiling. The earlier reading of this rule — *"a `never`
+ *     check would make adding a card shape a compile error in the AI, which is
+ *     not where that decision belongs"* — was measured wrong by the audit: 23 of
+ *     the 46 shapes fell through the `default` and 161 live effect rows were
+ *     worth one constant apiece, which is not a decision anybody made. A shape
+ *     with no honest reading still scores `score.unknownEffect`, but it now says
+ *     so **by name** with a line saying why, and adding a shape is a compile
+ *     error that costs one such arm. Zero is still never the answer: it would
+ *     make a card this bot cannot read strictly worse than a blank one.
  *
  * Why it is its own module rather than more of `bot.ts`: the two answer
  * different questions. `bot.ts` is a *policy* — what does this seat do next —
@@ -76,17 +82,24 @@ import type { RouteOutlook } from './routes';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import {
+  buildingProductionCost,
+  capitalCityOf,
   cityQuote,
   cityYields,
   empirePercents,
   empireRateReading,
+  explainEmpireCardYields,
+  queueCategory,
   tileOwnerField,
 } from '../sim/cities';
-import { authorityOf, happinessOf } from '../sim/meters';
+import { explainEmpireGold } from '../sim/empireGold';
+import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
 import { renownPerTurn } from '../sim/renown';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
+import { RULES } from '../sim/rulesData';
 import {
   type PlayerStatecraft,
+  type RateReading,
   buildingMatchesYieldPercent,
   countOf,
   orderAtSlotPosition,
@@ -100,6 +113,8 @@ import {
   type CardId,
   type CardPeriodicEffect,
   type OrderId,
+  type RateSource,
+  type WindfallOccasion,
   isDoctrineId,
   isOrderId,
   orderDef,
@@ -111,6 +126,8 @@ import { buildError } from '../sim/tech';
 import { type TechAge } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
 import { type UnitTypeId, isCombatant, unitDef } from '../sim/unitData';
+import { unitUpkeepTotal } from '../sim/upkeep';
+import { isExploredBy } from '../sim/visibility';
 
 /** The six voices, in the order every ledger in the game prints them. */
 export const VOICES = ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const;
@@ -1183,7 +1200,13 @@ export function scoreEffects(
 
 function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
   const nominal = nominalRate(ctx);
-  switch (effect.kind) {
+  // Switching on an **aliased discriminant** still narrows `effect` inside each
+  // case and — unlike switching on `effect.kind` — leaves `kind` (not `effect`)
+  // as the `never` the exhaustiveness check needs in `default`. `applyCommand`'s
+  // idiom (`commands.ts`), and here for batch H2's reason: a shape with no arm
+  // is a card this bot cannot see, and half the vocabulary had none.
+  const kind = effect.kind;
+  switch (kind) {
     case 'cityYields':
       // Paid in every town the scope admits; the scope is not evaluated, so the
       // capped city count stands in for "how many towns is this really".
@@ -1328,25 +1351,887 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     case 'offerRider':
       return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
     case 'rulePercent':
-      // **One rule of the nine is legible here, and deliberately only one.** The
-      // road fraction (Machinery, batch E) is a discount on a *march*, not on a
-      // town's books, so nothing else in this file was ever going to price it —
-      // and every other `CardRule` keeps the stand-in it has always been priced
-      // at, so adding this arm moved no existing appraisal by a point.
-      //
-      // What a cheaper road is worth: the share of a step it takes off, over the
-      // pieces this empire is paying to keep. A negative percentage is a
-      // discount (`CardRule`'s own sign), so the worth is the positive of it.
-      if (effect.rule !== 'roadStepCost') return ctx.ai.score.unknownEffect;
-      return (
-        (-effect.percent / 100) * ctx.ai.weights.military * countProbe(ctx, 'unitsInField')
-      );
-    default:
-      // **Never zero.** A shape this bot cannot read is a shape whose card is
-      // still worth more than a blank one, and a card whose whole text is
-      // unreadable must not sort below an empty offer.
+      return scoreRulePercent(effect, ctx);
+    case 'upkeepSurcharge':
+      // **The Reckless Levy's coin a soldier** (H1's shape, 2026-09-06), and the
+      // first thing this batch's `never` caught: a charge on every piece the
+      // empire is already paying for, at the same gold price the wage itself is
+      // charged at, so a levy is dearest to the empire whose books are bleeding.
+      // The count is the board's own (`unitsInField` with no filter counts every
+      // piece), which over-reads by the free-upkeep exemptions and is stated as
+      // such — `upkeepRebate` beside it still reads `score.nominalCount`, which
+      // is that arm's pre-existing stand-in and not this batch's to move.
+      return -costOfUpkeep(effect.amount * countProbe(ctx, 'unitsInField'), ctx);
+    // --- batch H2: the shapes that used to fall through the `default` --------
+    case 'windfallRider':
+      return scoreWindfallRider(effect, ctx);
+    case 'routeRider': {
+      // **Priced as the route it opens** — `routeSlotTerm`, the very door a
+      // market's `routeSlots` walks through, so a card that grants a slot and a
+      // shelf that grants one cannot disagree about what a slot is worth. It
+      // answers nothing while this empire has a slot going spare, which is the
+      // reading and not a silence: a second key to an empty room.
+      const slot = routeSlotTerm(effect.extra ?? 1, ctx);
+      return slot === null ? 0 : slot.value;
+    }
+    case 'effectAmplifier':
+      return scoreAmplifier(effect, ctx);
+    case 'yieldConversion': {
+      // A share of the town's own fold of `from`, paid as `to` — the same
+      // arithmetic the evaluator does (`cardYieldConversions`), read off the
+      // empire's books rather than off one town's, because the scope is not
+      // evaluated here (`cityYields`' arm strikes the same bargain).
+      const from = ratesOf(ctx)[rateKeyOf(effect.from)] ?? 0;
+      if (from <= 0) return 0;
+      return voiceWeight(ctx, effect.to as Voice) * (effect.percent / 100) * from;
+    }
+    case 'mirrorYield': {
+      // What the buildings of one category pay in `from`, paid again as `to`.
+      // The simulation's own reading, off the rows this empire has raised — the
+      // `buildingYieldPercent` arm's sweep with the share fixed at one.
+      let sum = 0;
+      for (const city of ctx.state.cities) {
+        if (city.ownerId !== ctx.playerId) continue;
+        for (const id of city.buildings) {
+          const def = buildingDef(id);
+          if (def.category !== effect.category) continue;
+          const base = def[effect.from as Voice] ?? 0;
+          if (base === 0) continue;
+          sum += voiceWeight(ctx, effect.to as Voice) * base;
+        }
+      }
+      return sum;
+    }
+    case 'rateConversion': {
+      // The books are exactly this shape's input: so many of one rate buy one
+      // helping of the payout. `RateSource` names a field of the very reading
+      // `collectYields` hands the evaluator, so nothing is estimated.
+      const per = effect.per <= 0 ? 1 : effect.per;
+      const helpings = Math.floor(rateSourceValue(effect.from, ctx) / per);
+      if (helpings === 0) return 0;
+      return helpings * scorePayout(effect.pays, ctx);
+    }
+    case 'unlocksBuilding': {
+      // A charter is worth the shelf it opens, in the towns that would raise it,
+      // discounted for the raising — `explainCounted`'s buildable-towns reading
+      // said about one named row. The row itself is priced by
+      // `explainBuildingRow` + the yields the queue would read, which is the
+      // build arm's own reading of a shelf and not a second one.
+      return scoreUnlockedBuilding(effect.building, ctx);
+    }
+    case 'meterRule':
+      return scoreMeterRule(effect, ctx);
+    case 'cityStat': {
+      // **The wall reading `explainBuildingRow` already uses**, exactly — strength
+      // points against how much this empire currently minds being attacked — so a
+      // wall written as a top-level `cityStat` field and one written as an
+      // `effects` entry are worth the same thing. It is deliberately **not**
+      // multiplied by the towns: the field's own arm does not, and a card's
+      // defence in every town is therefore under-read by the town count, which is
+      // the same bargain every scope-blind arm here strikes and is the price of
+      // the two readings agreeing. Sight is not a fighting line and has no reading
+      // in this currency — a hex seen is worth what is standing on it.
+      if (effect.stat === 'sight') return ctx.ai.score.unknownEffect;
+      return effect.amount * ctx.ai.weights.military * (1 + ctx.threat);
+    }
+    case 'conditionRule':
+      // **A gated clause is worth its clauses, while the gate is open.** The
+      // condition is the simulation's own (`liveEffects` evaluates it), and this
+      // file cannot ask it hypothetically — so the honest reading is the one the
+      // board gives: the inner effects at full price when the empire's own walk
+      // already carries them, and nothing when it does not. A card whose gate is
+      // shut is a card doing nothing today, which is what the evaluator says.
+      return conditionIsLive(effect.when, ctx) ? scoreEffects(effect.then, ctx) : 0;
+    case 'purchaseRider': {
+      // A discount on a bank this empire actually spends out of: the share it
+      // takes off, over what the purse turns over in a turn. `on: 'building'`
+      // and `on: 'all'` reach more of the book than a unit filter does, and the
+      // filter itself is not evaluated — a `UnitFilter` is the roster's question
+      // and the bot's purse does not know which rows it will spend on next.
+      const spend = Math.max(0, ratesOf(ctx).goldPerTurn ?? 0);
+      return (-effect.percent / 100) * spend * voiceWeight(ctx, 'gold');
+    }
+    case 'foundingRider':
+      return scoreFoundingRider(effect, ctx);
+    case 'pantheonSlots':
+      // Room for another god, priced at what the faith book says a belief is
+      // worth. That book is `wants.ts`, which reads *this* file — so the reading
+      // cannot be taken here without the cycle `moduleCycles.test.ts` exists to
+      // catch, and a slot meets the stand-in **per slot**. Written down rather
+      // than bent: closing it means moving the belief appraisal into a leaf.
+      return effect.amount * ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
+    case 'pressure':
+    case 'pressureRule':
+      // **The tide has no reading in this currency.** What a point of pressure
+      // is worth is what a converted town is worth, and this bot has no model of
+      // a conversion at all: `religion.prophetTechValue` prices the *first*
+      // religion and nothing prices the hundredth follower. Named rather than
+      // guessed, and it is the one family in the vocabulary where the stand-in
+      // is the honest answer rather than a debt.
       return ctx.ai.score.unknownEffect;
+    case 'projectRider': {
+      // More out of one turn of a project, priced as the payout it adds — but
+      // only for a town actually running that project, which is the reading and
+      // not a silence: a rider on a project nobody is building pays nothing.
+      const bag: YieldBag = {};
+      for (const voice of VOICES) {
+        const amount = (effect.pays as Record<string, unknown>)[voice];
+        if (typeof amount === 'number') bag[voice] = amount;
+      }
+      let running = 0;
+      for (const city of ctx.state.cities) {
+        if (city.ownerId !== ctx.playerId) continue;
+        for (const row of city.queue) {
+          if (row.kind === 'project' && row.id === effect.project) running += 1;
+        }
+      }
+      return valueOfYields(bag, ctx) * running;
+    }
+    case 'periodicOffer': {
+      // A draft dealt on a cadence: one offer's worth, over how often it comes
+      // round — `periodic`'s own arithmetic. What an *offer* is worth is the
+      // draft plan's question and the draft plan lives in `wants.ts`, so the
+      // hand meets the stand-in and the cadence is exact.
+      const every = Math.max(1, Math.floor(effect.every));
+      return (ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount) / every;
+    }
+    case 'periodicMuster': {
+      // A piece mustered on a cadence: a free soldier's worth over the period,
+      // and the soldier is `explainBuildingRow`'s own reading of a gifted piece
+      // so a wonder's spear and a card's spear are worth the same thing.
+      const every = Math.max(1, Math.floor(effect.every));
+      return (ctx.ai.weights.military * ctx.ai.score.combatScale) / every;
+    }
+    case 'unitStamp': {
+      // Strength on every piece raised from here on reads exactly as `unitStat`
+      // does — the same points on the same ledger, paid to pieces not yet built.
+      // **Hit points have no reading in this currency**: a hit point is a
+      // fraction of a piece and a stamp names no piece, so that half is named.
+      const strength = (effect.strength ?? 0) * ctx.ai.weights.military * (1 + ctx.threat);
+      return strength + (effect.hp === undefined ? 0 : ctx.ai.score.unknownEffect);
+    }
+    case 'zocRule':
+      // Every hex this empire owns tolls a foreign march. A defensive line whose
+      // subject is the whole border, priced as the towns it screens — the wall
+      // reading one grade out, and deliberately not per hex: a toll is not a
+      // strength point, and counting the border would make one card outweigh an
+      // army.
+      return ctx.ai.weights.military * (1 + ctx.threat) * ctx.cities;
+    case 'cityRule':
+      // A fact about every town declared true — fresh water, today. What it is
+      // worth is what the rows it un-gates are worth, and that is `buildError`'s
+      // question asked of a board where the rule is already live, which is the
+      // hypothetical inside `src/sim/` this bot may not ask for. Named.
+      return ctx.ai.score.unknownEffect;
+    case 'actionRule':
+      // A verb whose behaviour changes. Three of the four live rows open the
+      // great-person draft **no surface constructs** (`docs/audit/orchestrator.md`
+      // H3), so a price would be a price on a button nobody can press; the
+      // fourth (a free chop) is a saving on a worker's turn, which is the plan's
+      // currency and not a card's. Named, and it is a debt on H3 rather than
+      // here.
+      return ctx.ai.score.unknownEffect;
+    case 'behaviorRule':
+      // Something about the world that stops being true — the wild converting
+      // its killers, a realm's roads laid free. Neither is a rate and neither has
+      // a fold: the first is a rule of the barbarian turn and the second is a
+      // maintenance line that is *already* free. Named.
+      return ctx.ai.score.unknownEffect;
+    case 'metaRule':
+      // A rule of Statecraft itself — how long a chair is sealed. What a seal
+      // costs is the difference between two draft plans, which is `wants.ts`'
+      // question for `pantheonSlots`' stated reason. Named.
+      return ctx.ai.score.unknownEffect;
+    default:
+      return unreadEffect(kind, ctx);
   }
+}
+
+/**
+ * The `default` branch of the appraiser.
+ *
+ * `kind` is typed `never`, so the moment a member of `CardEffect` has no `case`
+ * above this call stops compiling — `unhandledCommand`'s idiom (`commands.ts`),
+ * and the whole of what batch H2 buys structurally. It still answers a number at
+ * runtime, because a row may have arrived from a save file written by a later
+ * build: `score.unknownEffect`, never zero, for the module's own stated reason.
+ */
+function unreadEffect(_kind: never, ctx: ValueContext): number {
+  return ctx.ai.score.unknownEffect;
+}
+
+// --- the readings the newly-armed shapes take (batch H2) ---------------------
+
+/**
+ * **The empire's own per-turn books**, remembered for the life of the context.
+ *
+ * `empireRateReading` prices every town, and half a dozen of the arms above want
+ * one voice of it — so it is asked once per sitting, which is the context's
+ * standing bargain said once more (batch 6). Deliberately the **base** reading,
+ * before any conversion pays anything, because that is what the evaluator hands
+ * a `rateConversion`: pricing a conversion against a rate that already carried
+ * conversions would be a card feeding itself.
+ */
+const RATES_MEMO = new WeakMap<ValueContext, RateReading>();
+function ratesOf(ctx: ValueContext): RateReading {
+  let held = RATES_MEMO.get(ctx);
+  if (held === undefined) {
+    held = empireRateReading(ctx.state, ctx.playerId);
+    RATES_MEMO.set(ctx, held);
+  }
+  return held;
+}
+
+/** A voice's key in the books. `food`/`production` are read, never banked. */
+function rateKeyOf(voice: string): keyof RateReading {
+  return `${voice}PerTurn` as keyof RateReading;
+}
+
+/**
+ * **What a `RateSource` reads on this board** — the same five books and two
+ * meters the evaluator hands a `rateConversion` (`statecraft.ts`), and the two
+ * meters read **positive part only**, which is that function's own rule: "per
+ * point of positive happiness" is what the cards say, and a conversion that paid
+ * a malus would be a card that rewards misery.
+ */
+function rateSourceValue(source: RateSource, ctx: ValueContext): number {
+  if (source === 'happiness') return Math.max(0, happinessOf(ctx.state, ctx.playerId));
+  if (source === 'authority') return Math.max(0, authorityOf(ctx.state, ctx.playerId));
+  return Math.max(0, ratesOf(ctx)[source] ?? 0);
+}
+
+/**
+ * **What the board says about how often things happen to this empire** — one
+ * sweep, remembered for the sitting, and the input behind `occasionRate`.
+ *
+ * Two of the five come off a sweep of the map and three off the towns, and all
+ * five are *records the board already keeps* rather than forecasts: the citizens
+ * standing are the growths that happened, the shelves standing are the buildings
+ * that were finished. The map half is read through **this seat's own fog**
+ * (`isExploredBy`) — a tempo read off ground the empire has never seen would be
+ * the bot cheating at its own estimate.
+ */
+interface BoardTempo {
+  /** Unclaimed ruins and villages on ground this seat has charted. */
+  discoveries: number;
+  /** Wooded hexes inside its own borders — the felling ground. */
+  canopy: number;
+  /** Citizens standing, less one per town: every growth that ever happened. */
+  growths: number;
+  /** Shelves standing across the realm. */
+  buildings: number;
+  /** What its citizens demand in contentment (`happinessDemand`, per town). */
+  demand: number;
+}
+
+const TEMPO_MEMO = new WeakMap<ValueContext, BoardTempo>();
+function boardTempo(ctx: ValueContext): BoardTempo {
+  let held = TEMPO_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  let growths = 0;
+  let buildings = 0;
+  let demand = 0;
+  for (const city of ctx.state.cities) {
+    if (city.ownerId !== ctx.playerId) continue;
+    growths += Math.max(0, city.population - 1);
+    buildings += city.buildings.length;
+    demand += happinessDemand(city.population);
+  }
+  const owner = tileOwnerField(ctx.state);
+  const tiles = ctx.state.map.tiles;
+  let discoveries = 0;
+  let canopy = 0;
+  for (let index = 0; index < tiles.length; index++) {
+    const tile = tiles[index]!;
+    if (tile.feature !== undefined && owner.at(index) === ctx.playerId) canopy += 1;
+    if (tile.discovery === undefined) continue;
+    if (!isExploredBy(ctx.state, ctx.playerId, tile.col, tile.row)) continue;
+    discoveries += 1;
+  }
+  held = { discoveries, canopy, growths, buildings, demand };
+  TEMPO_MEMO.set(ctx, held);
+  return held;
+}
+
+/**
+ * **How often an occasion comes round for this empire, per turn** — the register
+ * batch H2 adds, and the denominator every `windfallRider` is priced over.
+ *
+ * The brief allowed either "count the recent turns" or "estimate from the
+ * board", and this is **the board's own record wherever the board keeps one**:
+ * the technologies held over the turns played, the citizens standing, the
+ * shelves raised, the hexes bought. Those are exact histories rather than
+ * guesses, and they cost one sweep between them (`boardTempo`).
+ *
+ * Where the board keeps no record, the reading is a **stock over the horizon** —
+ * the ruins it has charted, the wooded hexes inside its borders, the camps it
+ * has sighted, all read as "these get answered over a planning horizon". That is
+ * crude and is written down as crude; it is not a forecast dressed as a fact.
+ *
+ * Three families answer nothing, each for a stated reason: the war occasions
+ * ride `ValueContext.threat`, so they are worth nothing in a quiet world and
+ * something the turn a column arrives; the survey pair is worth nothing because
+ * **the vein layer is shelved** (`veins.share` is 0 — no board has a seam); and
+ * a rite is worth nothing because no augur stands and the bot has no rite verb.
+ */
+function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const turns = Math.max(1, ctx.state.turn);
+  const player = ctx.state.players[ctx.playerId];
+  const tempo = boardTempo(ctx);
+  const war = ctx.threat / horizon;
+  switch (occasion) {
+    case 'growth':
+      return tempo.growths / turns;
+    case 'buildingCompletion':
+      return tempo.buildings / turns;
+    case 'unitCompletion': {
+      let built = 0;
+      for (const count of Object.values(player?.unitsBuilt ?? {})) built += count ?? 0;
+      return built / turns;
+    }
+    case 'completion':
+      return (tempo.buildings + unitsBuiltBy(ctx)) / turns;
+    case 'found':
+      // Towns standing over turns played. It over-counts a captured town and
+      // under-counts an empire that has lost one; the settled record of what
+      // this seat's founding tempo has been is the honest middle.
+      return ctx.cities / turns;
+    case 'tech':
+      return (player?.techsResearched.length ?? 0) / turns;
+    case 'tilePurchase':
+      return (player?.tilesPurchased ?? 0) / turns;
+    case 'discovery':
+      return tempo.discoveries / horizon;
+    case 'chop':
+      return tempo.canopy / horizon;
+    case 'camp':
+      return ctx.sighted.camps / horizon;
+    case 'kill':
+      // The forecast table's own figure, which is stated as *occasions expected
+      // over the horizon* — so it is a rate by division and by nothing else.
+      return (ctx.ai.score.tallyForecast.barbarianKill ?? 0) / horizon;
+    case 'death':
+      return (ctx.ai.score.tallyForecast.unitLost ?? 0) / horizon;
+    case 'capture':
+    case 'pillage':
+    case 'pillageTrader':
+    case 'declareWar':
+      return war;
+    case 'purchase': {
+      // What the purse turns over, against the cheapest thing it is saving for.
+      const cheapest = cheapestWantPrice(ctx);
+      if (cheapest === null) return 0;
+      return Math.max(0, ratesOf(ctx).goldPerTurn ?? 0) / cheapest;
+    }
+    case 'periodic': {
+      // Exactly the clocks this empire has slotted, summed as frequencies.
+      let rate = 0;
+      for (const held of slottedOrderEffects(ctx)) {
+        if (held.kind !== 'periodic') continue;
+        rate += 1 / periodicPeriodOf(held, 0);
+      }
+      return rate;
+    }
+    case 'veinFound':
+    case 'prospect':
+      // The Geomancy layer is shelved (`docs/flags.md`, 2026-09-06): `veins.share`
+      // is 0, so no board carries a seam and no hill can be asked.
+      return 0;
+    case 'rite':
+      // No augur stands in any measured game and this bot has no rite verb on a
+      // unit; a rate would be a rate for a thing that never happens.
+      return 0;
+    default:
+      return unreadOccasion(occasion);
+  }
+}
+
+/**
+ * The `default` branch of the occasion register. `occasion` is typed `never`, so
+ * a member added to `WindfallOccasion` stops this compiling — `unreadEffect`'s
+ * idiom one table down, and for its reason: a rider on an occasion nobody
+ * priced is a card the bot cannot see.
+ */
+function unreadOccasion(_occasion: never): number {
+  return 0;
+}
+
+/** Pieces this empire has ever completed, off its own escalation record. */
+function unitsBuiltBy(ctx: ValueContext): number {
+  let built = 0;
+  for (const count of Object.values(ctx.state.players[ctx.playerId]?.unitsBuilt ?? {})) {
+    built += count ?? 0;
+  }
+  return built;
+}
+
+/** The cheapest thing the gold book is saving for, or `null` for an empty book. */
+function cheapestWantPrice(ctx: ValueContext): number | null {
+  let cheapest: number | null = null;
+  for (const want of ctx.wants.gold) {
+    if (want.price <= 0) continue;
+    if (cheapest === null || want.price < cheapest) cheapest = want.price;
+  }
+  return cheapest;
+}
+
+/**
+ * **A rider on an occasion, priced as the occasion's own frequency times what
+ * the rider grants** — the 43-row family the audit named first, and the reason
+ * batch H2 is not merely an exhaustiveness check.
+ *
+ * Three multiplications, each of them a reading rather than a guess: how often
+ * the occasion comes round (`occasionRate`, off the board's own record), what
+ * one firing hands over (`windfallGrantWorth`, through `explainLump` — a
+ * windfall is a gift paid once and this file has one exchange rate for that),
+ * and the row's own multipliers (`perAge`, `perSlottedOrder`), which are the
+ * evaluator's own and are read off the board exactly as `windfallPayout` reads
+ * them.
+ *
+ * **The `percent` half is the one thing here that is not read**: it scales *the
+ * occasion's own payout*, and what a chop or a camp pays is composed inside
+ * `windfallPayout` from rules this file does not carry. It meets the stand-in,
+ * scaled by the share, so The Woodwrights' doubled chop still sorts above a
+ * fifty-percent one.
+ *
+ * The three narrowing flags (`vsBarbarians`, `capturedWonder`, `atPopulation`)
+ * are deliberately **not** discounted for. Two of them narrow an occasion whose
+ * rate is already the narrow one — this bot's kills are the wild's, by the
+ * forecast the rate comes off — and the third fires once in the life of every
+ * town, which the growth rate over-counts and the horizon discounts back.
+ */
+function scoreWindfallRider(
+  effect: Extract<CardEffect, { kind: 'windfallRider' }>,
+  ctx: ValueContext,
+): number {
+  const rate = occasionRate(effect.occasion, ctx);
+  if (rate <= 0) return 0;
+  let each = 0;
+  if (effect.percent !== undefined) {
+    each += (effect.percent / 100) * ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
+  }
+  if (effect.grant !== undefined) each += windfallGrantWorth(effect.grant, ctx);
+  if (each === 0) return 0;
+  if (effect.perAge === true) each *= Math.max(1, ctx.age);
+  if (effect.perSlottedOrder === true) each *= slottedOrderCount(ctx);
+  // A windfall is a **gift paid once**, and this file converts one into a rate
+  // in exactly one place (`explainLump`'s `score.lumpTurns`). Charging it here
+  // and again in the grant would be the bot paying twice for one purse, so the
+  // grant is already the per-turn figure and this is the frequency alone.
+  return each * rate;
+}
+
+/** Orders this empire has in a chair — `perSlottedOrder`'s own multiplier. */
+function slottedOrderCount(ctx: ValueContext): number {
+  const sc = statecraftOf(ctx.state, ctx.playerId);
+  if (sc === undefined) return 0;
+  let held = 0;
+  for (const slot of sc.slots) {
+    if (slot !== null) held += 1;
+  }
+  return held;
+}
+
+/**
+ * **What one firing of a rider's grant is worth**, as a per-turn figure.
+ *
+ * Every voice-shaped grant goes through `explainLump`, which is this file's one
+ * exchange rate between a purse and a rate — so a card paying twenty culture on
+ * a death and a card paying a culture a turn are compared by one number rather
+ * than by two opinions. A grant quoted **in turns of a rate** (The Lyceum's
+ * extra turn of culture) reads the empire's own books for the rate, which is
+ * `windfallPayout`'s own reading.
+ *
+ * Three keys are named and unread, each for a stated reason: a **heal** is a
+ * fraction of a piece and no piece is named; **healAll** is the same sentence
+ * over an army whose composition is not this appraisal's subject; and a
+ * **timed** grant is priced as its own effects, scaled by how much of a lump the
+ * blessing's length is — which is a real reading and the one place the timed
+ * half is not a stand-in.
+ */
+function windfallGrantWorth(
+  grant: NonNullable<Extract<CardEffect, { kind: 'windfallRider' }>['grant']>,
+  ctx: ValueContext,
+): number {
+  let worth = 0;
+  if (grant.yield !== undefined && grant.amount !== undefined) {
+    const bag: YieldBag = {};
+    const figure =
+      grant.fromRate === undefined
+        ? grant.amount
+        : grant.amount * rateSourceValue(grant.fromRate, ctx);
+    bag[grant.yield as Voice] = figure;
+    worth += explainLump(bag, ctx).total;
+  }
+  if (grant.heal !== undefined) worth += ctx.ai.score.unknownEffect;
+  if (grant.healAll === true) worth += ctx.ai.score.unknownEffect;
+  if (grant.unit !== undefined) {
+    // `explainBuildingRow`'s own reading of a gifted piece, so a wonder's spear
+    // and a card's spear are worth the same thing — divided into a rate for the
+    // reason every other half of this grant is.
+    worth += (ctx.ai.weights.military * ctx.ai.score.combatScale) / Math.max(1, ctx.ai.score.lumpTurns);
+  }
+  if (grant.timed !== undefined) {
+    const turns = Math.max(0, grant.timed.turns);
+    worth += scoreEffects(grant.timed.effects, ctx) * (turns / Math.max(1, ctx.ai.score.lumpTurns));
+  }
+  return worth;
+}
+
+/**
+ * **Every `CardRule`, priced by the fold the simulation already keeps of it** —
+ * the audit's "high" row (finding 4's second half), and the arm that used to
+ * read one rule of nine.
+ *
+ * A negative percentage is a discount and a positive one a surcharge
+ * (`CardRule`'s own sign), so every clause below reads `-percent` where the card
+ * is giving something back. Each takes the fold its rule actually modifies:
+ *
+ *   · **roadStepCost** — the share of a step, over the pieces in the field;
+ *   · **unitUpkeep** — the payroll itself (`unitUpkeepTotal`), at gold's price,
+ *     which is the same door `explainUpkeepCost` charges a wage through;
+ *   · **happinessDemand** — what this empire's citizens demand
+ *     (`happinessDemand` per town), at the live happiness price;
+ *   · **growthSurplus** — a share of the food the realm makes, at the food
+ *     weight, which is the channel the rule multiplies;
+ *   · **growthCarryover** — a share of what a growth *cost*, banked back, times
+ *     how often this empire grows (`occasionRate`), as a lump;
+ *   · **settlerCost** — the hammers the settler this empire is actually raising
+ *     would stop owing, as a lump. Nothing when no expansion chain is live,
+ *     which is the reading: a cheaper settler is worth nothing to an empire with
+ *     nowhere to put one;
+ *   · **tilePurchase** — the share off a hex, times the hexes this seat's own
+ *     record says it buys.
+ *
+ * **Two rules keep the stand-in and say why**: `borderCulture` and `borderCost`
+ * both buy *ground*, and what a hex nobody owns is worth is the settle table's
+ * currency (`site.yieldWeights`) rather than this one — the two-weight-tables
+ * gap batch 4 wrote down and nobody has closed.
+ */
+function scoreRulePercent(
+  effect: Extract<CardEffect, { kind: 'rulePercent' }>,
+  ctx: ValueContext,
+): number {
+  const share = effect.percent / 100;
+  const rule = effect.rule;
+  switch (rule) {
+    case 'roadStepCost':
+      return -share * ctx.ai.weights.military * countProbe(ctx, 'unitsInField');
+    case 'unitUpkeep':
+      return -share * costOfUpkeep(unitUpkeepTotal(ctx.state, ctx.playerId), ctx);
+    case 'happinessDemand':
+      return -share * boardTempo(ctx).demand * meterWeight(ctx, 'happiness');
+    case 'growthSurplus':
+      return share * Math.max(0, ratesOf(ctx).foodPerTurn ?? 0) * voiceWeight(ctx, 'food');
+    case 'growthCarryover': {
+      const rate = occasionRate('growth', ctx);
+      if (rate <= 0) return 0;
+      // What a growth costs is the threshold the town just spent; the realm's
+      // mean population is what prices it, off the simulation's own curve.
+      const kept = share * growthThreshold(ctx);
+      return explainLump({ food: kept }, ctx).total * rate;
+    }
+    case 'settlerCost': {
+      const chain = ctx.expansion;
+      if (chain === null) return 0;
+      return explainLump({ production: -share * chain.hammers }, ctx).total;
+    }
+    case 'tilePurchase': {
+      const rate = occasionRate('tilePurchase', ctx);
+      if (rate <= 0) return 0;
+      const ring = RULES.cities.tilePurchase.ringBase[0] ?? 0;
+      return explainLump({ gold: -share * ring }, ctx).total * rate;
+    }
+    case 'borderCulture':
+    case 'borderCost':
+      // Both buy ground, and ground is priced by the settle table rather than by
+      // this currency — the two weight tables batch 4 wrote down as a known gap.
+      return ctx.ai.score.unknownEffect;
+    default:
+      return unreadRule(rule, ctx);
+  }
+}
+
+/** `rule` is `never` here: a member added to `CardRule` stops this compiling. */
+function unreadRule(_rule: never, ctx: ValueContext): number {
+  return ctx.ai.score.unknownEffect;
+}
+
+/** What a citizen costs this empire's middling town, off the simulation's curve. */
+function growthThreshold(ctx: ValueContext): number {
+  let population = 0;
+  let towns = 0;
+  for (const city of ctx.state.cities) {
+    if (city.ownerId !== ctx.playerId) continue;
+    population += city.population;
+    towns += 1;
+  }
+  const mean = towns === 0 ? 1 : population / towns;
+  const rules = RULES.cities;
+  return rules.growthBase + rules.growthLinear * Math.pow(Math.max(1, mean), rules.growthExponent);
+}
+
+/**
+ * **A percentage on somebody else's table**, priced by the table it points at.
+ *
+ * Four of the eight targets are figures the empire's per-turn books carry, and
+ * for an **Order** they are read by the marginal door instead (`foldReadEngine`
+ * — the fold knows which lines are live and this walk cannot). This arm is what
+ * answers for the rows the margin has no pair for: a technology's, a great
+ * person's, a belief's. It reads the same figures, one level cruder.
+ *
+ *   · `routeYields` — a share of what the caravans on the road pay, read off the
+ *     best route this empire is running (`RouteOutlook`) times the slots it has
+ *     spoken for. Crude in one stated way: the *best* route stands in for the
+ *     mean of them;
+ *   · `connectionYields` — a flat step on every connected town, read as every
+ *     town but the seat of government, which is the upper reading (a town off
+ *     the road pays nothing);
+ *   · `luxuryHappiness` / `luxuryDuplicates` — the shelf this realm holds, at
+ *     the rules' own `perUniqueLuxury`, at the live happiness price;
+ *   · `founderTrickle` — the faith a founded religion pays its founder, which is
+ *     in the books as faith; the share is taken of the whole faith rate, which
+ *     over-reads an empire whose faith is mostly its temples';
+ *   · `triumphRenown` — a share of the renown this empire earns a turn;
+ *   · `greatPersonAct` and `riteDuration` — named and unread. An act's worth is
+ *     `bot.ts`' question (it prices the act it is choosing between) and a rite's
+ *     length is not a rate at all, which is F2's own written-down cut.
+ */
+function scoreAmplifier(
+  effect: Extract<CardEffect, { kind: 'effectAmplifier' }>,
+  ctx: ValueContext,
+): number {
+  const share = (effect.percent ?? 0) / 100;
+  const flat = effect.amount ?? 0;
+  const rates = ratesOf(ctx);
+  switch (effect.target) {
+    case 'routeYields': {
+      const running = Math.max(0, ctx.routes.used);
+      const best = ctx.routes.open?.pay.total ?? ctx.routes.next?.pay.total ?? 0;
+      return share * best * running;
+    }
+    case 'connectionYields': {
+      // The roads' own coin, read off the ledger that pays it: the **positive**
+      // lines of `explainEmpireGold` are the connections and a luxury's share of
+      // them, and the three negative ones are maintenance. The flat step is per
+      // connected town, which is what a connection's gold is quoted in.
+      let roads = 0;
+      for (const line of explainEmpireGold(ctx.state, ctx.playerId)) {
+        if (line.gold > 0) roads += line.gold;
+      }
+      const joined = Math.max(0, ctx.cities - 1);
+      return (share * roads + flat * joined) * voiceWeight(ctx, 'gold');
+    }
+    case 'luxuryHappiness':
+    case 'luxuryDuplicates': {
+      const goods = countProbe(ctx, 'uniqueLuxuries');
+      const each = RULES.meters.happiness.perUniqueLuxury;
+      return (flat + share * each) * goods * meterWeight(ctx, 'happiness');
+    }
+    case 'founderTrickle':
+      return share * Math.max(0, rates.faithPerTurn ?? 0) * voiceWeight(ctx, 'faith');
+    case 'triumphRenown':
+      return share * renownPerTurn(ctx.state, ctx.playerId) * ctx.ai.weights.renown;
+    case 'greatPersonAct':
+    case 'riteDuration':
+      // An act is priced where it is chosen (`bot.ts` weighs the acts it is
+      // choosing between), and a blessing's length is not a rate and appears in
+      // no reading of one — F2's own written-down cut, kept.
+      return ctx.ai.score.unknownEffect;
+    default:
+      return unreadTarget(effect.target, ctx);
+  }
+}
+
+/** `target` is `never`: a member added to `AmplifierTarget` stops this compiling. */
+function unreadTarget(_target: never, ctx: ValueContext): number {
+  return ctx.ai.score.unknownEffect;
+}
+
+/**
+ * **A charter, priced as the shelf it opens** — the twelve `unlocksBuilding`
+ * rows, which the shape's own docblock calls deferred and which are anything but:
+ * every one of them names a live building the tree otherwise never offers.
+ *
+ * The reading is the build arm's: what the row pays a town beyond its yields
+ * (`explainBuildingRow`), over the towns that would raise it, discounted for the
+ * raising (`buildTurns`) and charged the hammers through `explainLump`. It is
+ * deliberately **not** `cityYields`' hypothetical delta — that wants a town in
+ * hand and this is asked of a card in a hand — so the flats on the row are added
+ * from the row itself, which is what `explainBuildingRow`'s caller does.
+ */
+function scoreUnlockedBuilding(id: BuildingId, ctx: ValueContext): number {
+  const def = buildingDef(id);
+  const bag: YieldBag = {};
+  for (const voice of VOICES) bag[voice] = def[voice] ?? 0;
+  const each = valueOfYields(bag, ctx) + explainBuildingRow(id, ctx).total;
+  if (each <= 0) return 0;
+  const turns = buildTurns(buildingProductionCost(id), ctx);
+  return each * ctx.cities * delayDiscount(turns, ctx);
+}
+
+/**
+ * **A constant of the meters, rewritten** — the nine `meterRule` rows, priced by
+ * what the constant costs this empire today.
+ *
+ * Every one of them is a figure in `rules.meters` that a town pays or a citizen
+ * demands, so the reading is the same shape throughout: how much of the meter
+ * the change hands back (or takes), times the towns it lands in, at the meter's
+ * **live** price (`meterWeight` — batch 4's door, so a card that frees writ is
+ * worth more to an empire whose next town is blocked on writ).
+ *
+ * `value` replaces the constant and `delta` shifts it, exactly as the shape
+ * says; a rule that names a cost this empire is not paying (a coastal town in a
+ * landlocked realm) is read as the towns it *could* land in, capped at the
+ * realm, which is the same bargain `cityYields`' arm strikes with a scope.
+ */
+function scoreMeterRule(
+  effect: Extract<CardEffect, { kind: 'meterRule' }>,
+  ctx: ValueContext,
+): number {
+  const authority = RULES.meters.authority;
+  const rule = effect.rule;
+  switch (rule) {
+    case 'cityHappinessDemand': {
+      // A shift on what every town demands: a delta of +1 is a point of
+      // contentment gone in every town.
+      const change = effect.delta ?? 0;
+      return -change * ctx.cities * meterWeight(ctx, 'happiness');
+    }
+    case 'freeCitizens': {
+      // Citizens that demand nothing — contentment handed back, per town.
+      const change = effect.delta ?? effect.value ?? 0;
+      return change * RULES.meters.happiness.demandPerPop * ctx.cities * meterWeight(ctx, 'happiness');
+    }
+    case 'capturedCityCost':
+    case 'coastalCityCost':
+    case 'hillCityCost': {
+      const standing =
+        rule === 'capturedCityCost'
+          ? authority.capturedCity
+          : rule === 'coastalCityCost'
+            ? authority.coastalCity
+            : authority.foundedCity;
+      const after = effect.value ?? standing + (effect.delta ?? 0);
+      // Writ handed back per town of the kind. The towns are not counted by kind
+      // — a captured town and a coastal one are facts about a board this arm
+      // does not walk — so the realm's own count stands in, which is the same
+      // bargain every scope-blind arm in this file strikes.
+      return (standing - after) * ctx.cities * meterWeight(ctx, 'authority');
+    }
+    case 'borderFreezeExempt':
+      // Borders that keep growing through a writ deficit. What that is worth is
+      // ground, and ground is the settle table's currency — `borderCulture`'s
+      // stated gap, said once more.
+      return ctx.ai.score.unknownEffect;
+    case 'authorityUnitProductionExempt':
+      // Named by no live row. Pieces that cost no writ — priced as the writ the
+      // army this empire fields would otherwise spend, which is nothing today
+      // because no rule charges one.
+      return ctx.ai.score.unknownEffect;
+    default:
+      return unreadMeterRule(rule, ctx);
+  }
+}
+
+/** `rule` is `never`: a member added to `MeterRuleId` stops this compiling. */
+function unreadMeterRule(_rule: never, ctx: ValueContext): number {
+  return ctx.ai.score.unknownEffect;
+}
+
+/**
+ * **What a new town is founded with**, times how often this empire founds one.
+ *
+ * A citizen is the growth channel's own reading (a citizen is worth what the
+ * ground it works pays, and this file's cheapest honest statement of that is the
+ * threshold it did not have to grow through); a building is the charter's
+ * reading one shape over; a road home is the connection line it opens. All three
+ * are lumps, and the founding rate is `occasionRate`'s.
+ */
+function scoreFoundingRider(
+  effect: Extract<CardEffect, { kind: 'foundingRider' }>,
+  ctx: ValueContext,
+): number {
+  const rate = occasionRate('found', ctx);
+  if (rate <= 0) return 0;
+  let each = 0;
+  if (effect.population !== undefined) {
+    each += explainLump({ food: effect.population * growthThreshold(ctx) }, ctx).total;
+  }
+  if (effect.building !== undefined) {
+    const def = buildingDef(effect.building);
+    const bag: YieldBag = {};
+    for (const voice of VOICES) bag[voice] = def[voice] ?? 0;
+    each += valueOfYields(bag, ctx) + explainBuildingRow(effect.building, ctx).total;
+  }
+  if (effect.roads === true) {
+    // A town joined to the realm by road pays the connection line every turn,
+    // quoted per head of the pair it joins (`rules.trade.connectionPerPop`).
+    each += RULES.trade.connectionPerPop * voiceWeight(ctx, 'gold');
+  }
+  return each * rate;
+}
+
+/**
+ * **Is this empire's own walk already carrying the gated clause?** — the reading
+ * a `conditionRule` is priced by.
+ *
+ * The condition is the simulation's (`liveEffects` evaluates it under
+ * `conditionDepth`, the one stated cut), and this file may not ask it
+ * hypothetically. What it *can* do is ask the same question of the same board,
+ * which is what these five arms are: every one reads the fold the evaluator
+ * reads, and the two cannot disagree about a board they are both looking at.
+ *
+ * `queueHolds` is the one that walks the towns; the rest are three folds and a
+ * register lookup, all of them already hoisted onto the context or memoised.
+ */
+function conditionIsLive(
+  when: Extract<CardEffect, { kind: 'conditionRule' }>['when'],
+  ctx: ValueContext,
+): boolean {
+  switch (when.test) {
+    case 'cityCountAtMost':
+      return ctx.cities <= when.value;
+    case 'cityCountAtLeast':
+      return ctx.cities >= when.value;
+    case 'authorityNegative':
+      return authorityOf(ctx.state, ctx.playerId) < 0;
+    case 'authorityPositive':
+      return authorityOf(ctx.state, ctx.playerId) > 0;
+    case 'happinessNegative':
+      return happinessOf(ctx.state, ctx.playerId) < 0;
+    case 'queueHolds': {
+      const capital =
+        when.where === 'capital' ? (capitalCityOf(ctx.state, ctx.playerId) ?? null) : null;
+      if (when.where === 'capital' && capital === null) return false;
+      for (const city of ctx.state.cities) {
+        if (city.ownerId !== ctx.playerId) continue;
+        if (capital !== null && city.id !== capital.id) continue;
+        for (const row of city.queue) {
+          // `queueCategory` is the one place a row is sorted into a category, so
+          // this reads a wonder exactly as production does.
+          if (queueCategory(row) === when.category) return true;
+        }
+      }
+      return false;
+    }
+    case 'atWar': {
+      // The register itself, which is the whole of why this reading is honest:
+      // the wild is never in it, so raiders cannot open a war clause.
+      for (const war of ctx.state.wars) {
+        if (war.a === ctx.playerId || war.b === ctx.playerId) return true;
+      }
+      return false;
+    }
+    default:
+      return unreadCondition(when);
+  }
+}
+
+/** `when` is `never`: a member added to `EmpireCondition` stops this compiling. */
+function unreadCondition(_when: never): boolean {
+  return false;
 }
 
 // --- the deck, as the engines read it ---------------------------------------
@@ -1452,20 +2337,58 @@ export interface DeckReading {
   authority: number;
 }
 
-/** The nine channels, read off one board. Four empire sweeps; see `deckMargin`. */
+/** The nine channels, read off one board. Five empire sweeps; see `deckMargin`. */
 function deckReading(state: GameState, playerId: number): DeckReading {
-  const rates = empireRateReading(state, playerId);
+  const rates = marginRates(state, playerId);
   return {
+    food: rates.food,
+    production: rates.production,
+    gold: rates.gold,
+    science: rates.science,
+    culture: rates.culture,
+    faith: rates.faith,
+    renown: renownPerTurn(state, playerId),
+    happiness: happinessOf(state, playerId),
+    authority: authorityOf(state, playerId),
+  };
+}
+
+/**
+ * **The whole of what an empire banks in a turn, for the margin** — batch H2's
+ * answer to the audit's finding 5.
+ *
+ * `empireRateReading` is the **base** reading by construction: it is the input a
+ * `rateConversion` is handed, so it stops one line short of the truth and must —
+ * the empire-scale card lines are computed *from* it, and folding them back in
+ * would be a card feeding itself. The sender's foreign routes and the treasury's
+ * own four lines are already in it (`empireRates`, `cities.ts`), so the one thing
+ * missing from `V` is `explainEmpireCardYields`.
+ *
+ * That one omission was the whole of the margin's hole: the founder trickle, The
+ * Great Litany's culture, every empire-scoped `countScaled` payout — Apostles is
+ * the built case, an amplifier on a trickle that pays `where: 'empire'`, and its
+ * margin read exactly zero.
+ *
+ * It is a reading built **here** rather than a term added to `empireRateReading`,
+ * deliberately: that function has one meaning in the simulation (*the base rate a
+ * conversion reads*) and a bot that wanted a different question asks a different
+ * question. Batch H1 is in `cities.ts` at the same time; if the base reading ever
+ * grows these terms of its own, this function collapses to it.
+ */
+function marginRates(state: GameState, playerId: number): Record<Voice, number> {
+  const rates = empireRateReading(state, playerId);
+  const reading: Record<Voice, number> = {
     food: rates.foodPerTurn ?? 0,
     production: rates.productionPerTurn ?? 0,
     gold: rates.goldPerTurn ?? 0,
     science: rates.sciencePerTurn ?? 0,
     culture: rates.culturePerTurn ?? 0,
     faith: rates.faithPerTurn ?? 0,
-    renown: renownPerTurn(state, playerId),
-    happiness: happinessOf(state, playerId),
-    authority: authorityOf(state, playerId),
   };
+  for (const line of explainEmpireCardYields(state, playerId)) {
+    for (const voice of VOICES) reading[voice] += line[voice];
+  }
+  return reading;
 }
 
 /**
@@ -1668,18 +2591,27 @@ function foldReadEngine(effect: CardEffect): boolean {
 }
 
 /**
- * Which `AmplifierTarget`s land in the per-turn books. Four do — a route's pay, a
- * founder's trickle, and the two luxury readings, which are happiness — and
- * `riteDuration` does not: it moves the turn a blessing is stamped to expire on,
- * which is not a rate and never appears in a reading of one. That one keeps
- * `score.unknownEffect`, which is honest: nothing in this file can price it.
+ * Which `AmplifierTarget`s land in the per-turn books. **Five** do — a route's
+ * pay, a founder's trickle, the two luxury readings (which are happiness) and,
+ * since batch H2, the roads' own coin: `connectionYields` is folded into
+ * `explainEmpireGold`'s connection line, which is inside `goldPerTurn`, so the
+ * fold reads it exactly. No Order or Doctrine carries that one today — the two
+ * live rows are a technology's and a great person's, and `deckPair` answers
+ * `null` for both — so it moves no board; it is here because the register is a
+ * statement about *where a figure lives*, not about which rows happen to use it.
+ *
+ * `riteDuration` and `greatPersonAct` do not: the first moves the turn a blessing
+ * is stamped to expire on, which is not a rate and never appears in a reading of
+ * one, and the second is a lump this file does not price. Both keep
+ * `score.unknownEffect`, which is honest.
  */
 function foldReadsAmplifier(target: string): boolean {
   return (
     target === 'routeYields' ||
     target === 'founderTrickle' ||
     target === 'luxuryHappiness' ||
-    target === 'luxuryDuplicates'
+    target === 'luxuryDuplicates' ||
+    target === 'connectionYields'
   );
 }
 
@@ -2021,19 +2953,36 @@ function potentialTownsFor(
       if (city.buildings.includes(id)) continue;
       if (buildError(ctx.state, ctx.playerId, 'building', id, city) !== null) continue;
       open += 1;
-      hammers += buildingDef(id).cost;
+      // The folded price, age band and all (H10): the row's printed cost is a
+      // base, and a town owes the fold.
+      hammers += buildingProductionCost(id);
     }
   }
   return { open, cost: open === 0 ? 0 : hammers / open };
 }
 
-/** A `countScaled`'s payout, per unit of whatever it counts. */
+/**
+ * A `countScaled`'s payout, per unit of whatever it counts.
+ *
+ * **`where` is read** (batch H2, the audit's finding 6): the simulation pays a
+ * `where: 'city'` line in **every** town (`cardCityYields`, `statecraft.ts`), so
+ * a line priced once was an under-price by the whole of the empire's city count
+ * on five live rows — Imperium, the Assembly Hall's two, the Smithy's and Sima
+ * Qian's. The multiplier is `ValueContext.cities`, which is the count every
+ * other city-scoped arm in this file uses and is uncapped since batch 7. The
+ * scope is not evaluated, exactly as `cityYields`' own arm does not evaluate
+ * one: a line narrowed to the coast is still counted in every town, which is the
+ * standing bargain of this file rather than a new omission.
+ *
+ * `'capital'` pays once, which is what it says; `'empire'` pays once, which is
+ * what it has always been read as.
+ */
 function scorePayout(pays: PayoutShape, ctx: ValueContext): number {
   switch (pays.to) {
     case 'yield': {
       const bag: YieldBag = {};
       bag[pays.yield as Voice] = pays.amount;
-      return valueOfYields(bag, ctx);
+      return valueOfYields(bag, ctx) * (pays.where === 'city' ? ctx.cities : 1);
     }
     case 'happiness':
       return pays.amount * meterWeight(ctx, 'happiness');

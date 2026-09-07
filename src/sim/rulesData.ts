@@ -1193,20 +1193,40 @@ export interface ResearchRules {
  * different rates. Beaker costs climb roughly nine-fold between Age I and Age
  * III (16🔬 → 380🔬) while the roster's hammer prices climb about twice, so a
  * late empire's science pace buys it units that are, relative to everything
- * else it can spend hammers on, nearly free. The multiplier reprices the roster
- * by the age of the technology that unlocks it rather than by hand, so a
- * designer retuning "how much dearer is a later army" edits one array instead
- * of fourteen rows — and the Age I numbers, which the opening is balanced
- * against, are untouched at ×1.
+ * else it can spend hammers on, nearly free. The band reprices what a city
+ * builds by the age of the technology that unlocks it rather than by hand, so a
+ * designer retuning "how much dearer is a later thing" edits one number instead
+ * of a hundred rows.
+ *
+ * **It is one rule for every hammer price since 2026-09-06** (the user, after
+ * the second playtest: "my cities had way more production than things cost by
+ * age 3 … Age 3 buildings and units should probably be ~2× as expensive" —
+ * `docs/flags.md`, rulings "late — early production", item y). It used to be a
+ * hand-authored ladder that units alone read; buildings and wonders paid their
+ * printed base at every age, which is most of why a late empire ran out of
+ * things to build. Now the band is a *power* rather than a table, it is asked of
+ * buildings and wonders on the same terms, and Æra I is no longer exempt.
  */
 export interface ProductionRules {
   /**
-   * Multiplier on a unit's printed cost, indexed by `age − 1` of the technology
-   * that unlocks it. An ungated unit, and any age past the end of the array,
-   * takes the first entry. Applied inside `unitProductionCost` as its own
-   * labelled line (`explainUnitCost`), never at the point of sale.
+   * The age band every hammer price is multiplied by, as a base raised to the
+   * **age** of the technology that unlocks the row: `costAgeBase ** age`. At
+   * 1.25 that is ×1.25 · ×1.5625 · ×1.953125 · ×2.44140625 for Æra I to IV, so
+   * an Æra III thing costs about twice what its row prints.
+   *
+   * A base rather than a ladder because the ruling is a rule ("cost × 1.25 per
+   * age") and a four-entry table is a rule with three chances to disagree with
+   * itself. A row no technology unlocks is Æra I — the opening kit is priced in
+   * the money of the age it is played in, not for free.
+   *
+   * Applied as its own labelled line inside the cost fold — `explainUnitCost`
+   * and `explainBuildingCost` (`cities.ts`) — and never at the point of sale, so
+   * a purchase converts the *folded* price and the build list, the star chart
+   * and the Compendium all print the same figure the basket is charged. A
+   * project is deliberately outside it (`queueItemCost`): a project's cost is
+   * the size of one conversion, not the price of a thing.
    */
-  unitCostAgeMultiplier: number[];
+  costAgeBase: number;
   /**
    * Gold one hammer of an item's **full** production cost costs to buy outright
    * (M9's purchases, ledger Entry XXIX). The whole of the conversion, in one

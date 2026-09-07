@@ -77,7 +77,7 @@ import {
   meterStanding,
 } from '../sim/meters';
 import { empireResourceYields, foldResourceYields } from '../sim/resourceEffects';
-import { empireGold, explainEmpireGold } from '../sim/trade';
+import { empireGold, explainEmpireGold, foldRouteYield, senderRouteYields } from '../sim/trade';
 import {
   type UpkeepLine,
   explainBuildingUpkeep,
@@ -92,6 +92,7 @@ import {
   YIELD_NOTE,
   figure,
   meterFigure,
+  netFigure,
   percentFigure,
   poolFigure,
   signedFigure,
@@ -99,6 +100,7 @@ import {
 } from './figures';
 import { foldCardYields, nextDraftCost, statecraftBlocker } from '../sim/statecraft';
 import { greatPersonBlocker } from '../sim/greatPeople';
+import { explainNextRung, nextRungWords } from '../sim/religion';
 import { explainRenown, foldRenown, renownPerTurn, renownThreshold } from '../sim/renown';
 import { TRIUMPH_IDS, type TriumphScope, triumphDef } from '../sim/triumphData';
 import { BEAD_RULES, anyBeadDef } from '../sim/beadData';
@@ -167,6 +169,17 @@ export function civYields(state: GameState, playerId: number): CityYields {
   // in (Entry XLI — that is what keeps an army out of Entry XVII's staging).
   // Left out, this headline would be a rate the turn resolution disagrees with.
   total.gold += empireGold(state, playerId);
+  // **The caravans abroad**, banked once per player by `collectYields` on the
+  // luxuries' own seam (the international ruling of 2026-09-03): a route ending
+  // in a foreign town pays the empire that *sent* it, and there is no town to
+  // bank that in, so its gold, science and culture never passed through the loop
+  // above. Left out — as they were until 2026-09-06 — this headline under-reads
+  // an empire by the whole of its foreign trade every turn, which is the same
+  // claim this function has already made twice about the two totals above it.
+  const abroad = foldRouteYield(senderRouteYields(state, playerId));
+  total.gold += abroad.gold;
+  total.science += abroad.science;
+  total.culture += abroad.culture;
   // The empire-scale Statecraft lines — every `empireYields`/`countScaled` card
   // and every `rateConversion` (The Great Litany's culture off faith, The
   // Tithe's gold off culture, and the rest) — banked by `collectYields` in the
@@ -291,6 +304,38 @@ const BANKED: Partial<
 > = {
   gold: { pool: (player) => player.gold, line: 'On hand', title: 'Gold on hand' },
   faith: { pool: (player) => player.faithPool, line: 'Gathered', title: 'Faith gathered' },
+};
+
+/**
+ * Which yields buy a **ladder**, and what its line says — `BANKED`'s twin, and
+ * the same discipline: decided here once, never re-asked by key at the site.
+ *
+ * Culture's card gains the ladder it buys (Entry XV): the tier, the basket
+ * against the next threshold. Here rather than as a second chip because it is
+ * not a second number — it is what this number is *for*, and a player reading
+ * their culture rate wants the answer in the same breath. Faith's (ruled
+ * 2026-09-06: the faith hover shows what the next pantheon rung costs) is the
+ * **sim's** sentence — `nextRungWords` off `explainNextRung`, which the Religion
+ * sheet prints too — so the chip and the sheet cannot quote two thresholds; the
+ * rate handed in is the same `civYields` fold the head of the card prints.
+ */
+const LADDERS: Partial<
+  Record<
+    YieldKey,
+    (state: GameState, playerId: number) => { source: string; value?: string } | null
+  >
+> = {
+  culture: (state, playerId) => {
+    const player = playerById(state, playerId);
+    if (!player) return null;
+    return {
+      source: `Tier ${player.statecraft.drafts} · next draft`,
+      value: `${Math.max(0, Math.floor(player.culturePool))}/${nextDraftCost(player)}`,
+    };
+  },
+  faith: (state, playerId) => ({
+    source: nextRungWords(explainNextRung(state, playerId, civYields(state, playerId).faith)),
+  }),
 };
 
 /**
@@ -582,7 +627,14 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     const head = element('div', 'info-card-head');
     head.append(element('span', 'info-card-name', label));
     head.append(
-      element('span', 'info-card-kind', `${figure(civYields(state, playerId)[key])} per turn`),
+      element(
+        'span',
+        'info-card-kind',
+        // `netFigure`, because a rate goes negative — a starving empire's food, a
+        // treasury paying more maintenance than it takes — and a magnitude here
+        // would print the loss as a gain.
+        `${netFigure(civYields(state, playerId)[key])} per turn`,
+      ),
     );
     box.append(head);
 
@@ -600,7 +652,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       if (player) {
         const onHand = element('div', 'meter-total ledger-total');
         onHand.append(element('span', 'meter-line-source', banked.line));
-        onHand.append(element('span', 'meter-line-value', figure(banked.pool(player))));
+        onHand.append(element('span', 'meter-line-value', netFigure(banked.pool(player))));
         box.append(onHand);
       }
     }
@@ -667,21 +719,16 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     // Here rather than as a second chip because it is not a second number — it
     // is what this number is *for*, and a player reading their culture rate
     // wants the answer in the same breath.
-    if (key === 'culture') {
-      const player = playerById(state, playerId);
-      if (player) {
-        const sc = player.statecraft;
-        const ladder = element('div', 'meter-total ledger-total');
-        ladder.append(element('span', 'meter-line-source', `Tier ${sc.drafts} · next draft`));
-        ladder.append(
-          element(
-            'span',
-            'meter-line-value',
-            `${Math.max(0, Math.floor(player.culturePool))}/${nextDraftCost(player)}`,
-          ),
-        );
-        box.append(ladder);
-      }
+    // Faith's card gains its own, for the same reason (ruled 2026-09-06: the
+    // faith hover shows what the next pantheon rung costs). Both come off the
+    // one `LADDERS` register, `BANKED`'s twin: which yields buy a ladder is
+    // decided in one place, never re-asked by key at the site.
+    const ladder = LADDERS[key]?.(state, playerId);
+    if (ladder) {
+      const row = element('div', 'meter-total ledger-total');
+      row.append(element('span', 'meter-line-source', ladder.source));
+      if (ladder.value !== undefined) row.append(element('span', 'meter-line-value', ladder.value));
+      box.append(row);
     }
 
     const note = YIELD_NOTE[key];
@@ -1439,8 +1486,13 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         // the rate, taken from the same `civYields` fold the card breaks down,
         // so the chip and the card cannot come to disagree about it.
         const banked = BANKED[key];
+        // **Whole, always** (the user, 2026-09-06, `docs/flags.md` item z: every
+        // figure in the top bar rounds to the nearest integer for display). Batch
+        // X made every fold behind these chips exact, and the strip was printing
+        // the fraction raw — `2.6666666666666665` where a player wanted `3`. The
+        // pools and the folds keep the fraction; this is a photograph of it.
         const text =
-          banked && player ? poolFigure(banked.pool(player), totals[key]) : String(totals[key]);
+          banked && player ? poolFigure(banked.pool(player), totals[key]) : netFigure(totals[key]);
         if (el.textContent !== text) el.textContent = text;
       }
 
@@ -1493,10 +1545,13 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       const happinessLedger = happinessEntries(state, playerId);
       const authorityLedger = explainAuthority(state, playerId);
 
+      // The two meters round whole on the **chip** and keep their tenth in the
+      // card (item z again, and `signedMeterFigure`'s docblock has the argument):
+      // the strip is a glance, the ledger is where a player counts against a rung.
       const happinessStanding = meterStanding(happinessLedger);
       writeChip(
         happinessChip,
-        signedMeterFigure(happinessStanding.total),
+        signedFigure(happinessStanding.total),
         happinessStanding.total,
         effectsOf('happiness', effects),
         'Happiness',
@@ -1511,7 +1566,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       const authorityStanding = meterStanding(authorityLedger);
       writeChip(
         authorityChip,
-        signedMeterFigure(authorityStanding.total),
+        signedFigure(authorityStanding.total),
         authorityStanding.total,
         effectsOf('authority', effects),
         'Authority',

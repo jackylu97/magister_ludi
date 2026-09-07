@@ -61,7 +61,7 @@ import type { TerrainId } from './terrainData';
 // are: a technology's row carries ordinary `CardEffect`s and a tech id is a
 // `CardId`, and a *value* import either way would turn a type cycle into a
 // runtime one. See `CardId`'s tenth class.
-import type { TechId } from './techData';
+import type { TechAge, TechId } from './techData';
 import type { ModelClass, UnitCategory, UnitTypeId } from './unitData';
 
 // --- ids --------------------------------------------------------------------
@@ -1013,12 +1013,13 @@ export type CountKind =
   | 'bankedGold'
   /** Barbarian camps the empire can currently see. */
   | 'visibleCamps'
-  /**
-   * Augurs standing in **this city** with at least one rite charge left
-   * (city-scoped). Court Augurs' whole identity — the reason to keep one home
-   * rather than spend it the turn it is bought.
-   */
-  | 'chargedAugurs'
+  // `chargedAugurs` — augurs standing in this city with a rite left in them —
+  // was retired here on 2026-09-06 with the augur itself (`data/units.json`'s
+  // row is `retired`, so nothing on any board can ever be charged and the count
+  // could only answer zero). Court Augurs is re-cut to read *cities with an
+  // active rite* (`docs/fewer-things.md` §3), which is a different count and
+  // will be added as one. A member no row names and no board can satisfy is a
+  // vocabulary entry that reads as a feature.
   /**
    * Buildings in **this city** that supply science at all (city-scoped) — a
    * library, a shrine, a university. Omen Reading's, read off the building rows
@@ -3081,6 +3082,41 @@ export interface CardYieldConversionEffect {
  * fact about where the army *is* and a payroll is settled once a turn wherever
  * it happens to be standing.
  */
+/**
+ * Gold **added to** what one piece costs its empire every turn — The Reckless
+ * Levy's coin a soldier (*"every unit costs one more coin to keep"*, the user's
+ * ruling of 2026-09-06).
+ *
+ * `CardUpkeepRebateEffect`'s twin, field for field and clause for clause, and a
+ * shape of its own rather than that one with a negative `amount`: a give-back is
+ * clamped (a card cannot turn a payroll into a mint) and a charge is not (an
+ * empire that cannot pay goes into arrears, which the game already answers), so
+ * the two read the same and behave differently, and a row saying "−1 rebate"
+ * would be a row nobody could read out loud. The house rule is the deck's: a
+ * card whose text needs a shape defers or gets the shape, never a near-fit.
+ *
+ * It is deliberately **not** `CardRule`'s `unitUpkeep` either. That rule is a
+ * percentage of the payroll total and its one field is called `percent`; a coin
+ * a soldier put in it would be a number the describer prints as a percentage and
+ * a designer reads as one. A share of a total and a walk of the pieces are two
+ * arithmetics, which is exactly the argument the rebate's docblock makes above.
+ *
+ * Charged only on pieces the empire is **already paying for** (`costOf` > 0), so
+ * the three exemptions stand: a levy makes an army dearer, it does not start
+ * taxing settlers. It joins `explainEmpireGold`'s unit-maintenance line as its
+ * own labelled charge through `explainUnitUpkeepSurcharge` (`upkeep.ts`) — the
+ * same one fold the rebate's give-back lands in, never a second one.
+ */
+export interface CardUpkeepSurchargeEffect {
+  kind: 'upkeepSurcharge';
+  /** Gold added to each matching piece's own figure. */
+  amount: number;
+  /** Which pieces. Absent reaches every one this empire pays for. */
+  class?: UnitFilter;
+  /** Where the piece must be standing. Absent means anywhere. */
+  where?: 'ownTerritory' | 'foreignTerritory';
+}
+
 export interface CardUpkeepRebateEffect {
   kind: 'upkeepRebate';
   /** Gold off each matching piece's own figure. Ignored when `free` is set. */
@@ -3466,6 +3502,7 @@ export type CardEffect =
   | CardMirrorYieldEffect
   | CardYieldConversionEffect
   | CardUpkeepRebateEffect
+  | CardUpkeepSurchargeEffect
   // The engine shapes of `docs/fewer-things.md` §4 and `docs/tech-gifts.md` §7,
   // built as batch A of `docs/fewer-things-plan.md`. No data row uses one yet —
   // the rows are batches D through F — so every one of them is proved by a
@@ -3600,6 +3637,21 @@ export interface OrderDef extends CardDefBase {
    * `poolOrders` simply stops dealing it. Nothing else in the game asks.
    */
   retired?: boolean;
+  /**
+   * **Dealt only from this age on** (the user, 2026-09-06: "the era 4 victory
+   * cards are showing in the game at age 3, that's a bug, they should only
+   * show upon reaching age 4").
+   *
+   * Governments carry no age gate (ruled), so a seat that climbs the tier
+   * ladder quickly opens pool V in Æra III — and the four bead Orders, whose
+   * whole text is the last age, were in its hand. This is the row's own gate,
+   * read in `drawablePool` (the bag the draw deals from): the empire's
+   * `highestAge` must reach it or the row is out of the bag. Absent is every
+   * age. A row already held when the gate would have shut it keeps its chair —
+   * the gate is on the deal, never on the holding — and `livePool`, the
+   * government's whole shelf, stays ungated.
+   */
+  fromAge?: TechAge;
 }
 
 /** The escalating meter, and the seal. Every number the ladder is made of. */

@@ -20,7 +20,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { cityYields, foundingErrorAt } from '../../src/sim/cities';
+import { cityYields, foundingErrorAt, unitProductionCost } from '../../src/sim/cities';
 import type { Command } from '../../src/sim/commands';
 import { type Game, createGame, dispatch } from '../../src/sim/game';
 import { mapRange, tileHex } from '../../src/sim/map';
@@ -193,13 +193,30 @@ describe('what the pass did to the opening', () => {
      * — which is the shape the opening was balanced around in the first place: a
      * first piece is a handful of turns of real commitment, and the warrior sits
      * one turn inside the scout rather than level with it.
+     *
+     * **Re-aimed 2026-09-06** (`docs/flags.md`, rulings "late — early
+     * production", item y: "production costs ×1.25 across the board, and rising
+     * by age"). The rows below still print 13 / 10 / 14; the Æra I band, which
+     * the opening used to be exempt from at ×1, is ×1.25 now, so what a capital
+     * actually pays is 16 / 12 / 17 and the turn counts are **6 / 4 / 6**. The
+     * ground did not move again — the median is still 3 — and this suite was
+     * dividing the row's printed figure rather than the price, which was the
+     * same number until this ruling and is not any more. It asks
+     * `unitProductionCost` now, so it cannot come apart from the fold again.
      */
     expect(median).toBe(3);
     expect(openings[0]).toBeGreaterThanOrEqual(2);
     expect(openings[openings.length - 1]).toBeLessThanOrEqual(6);
-    expect(Math.ceil(unitDef('scout').cost / median)).toBe(5);
-    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(4);
-    expect(Math.ceil(unitDef('worker').cost / median)).toBe(5);
+    const priced = createGame({
+      seed: 4242,
+      sizeName: 'standard',
+      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
+    });
+    const turns = (id: 'scout' | 'warrior' | 'worker'): number =>
+      Math.ceil(unitProductionCost(priced.state, 0, id) / median);
+    expect(turns('scout')).toBe(6);
+    expect(turns('warrior')).toBe(4);
+    expect(turns('worker')).toBe(6);
   }, 60_000);
 
   it('costs the warband empire a quarter of its army by turn 40', () => {

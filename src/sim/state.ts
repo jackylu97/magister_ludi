@@ -1552,8 +1552,81 @@ import {
  *     rebuilds the slots array — so a v77 command log replays into an empire
  *     with a different hand at a different turn, holding a different number of
  *     chairs to put it in.
+ *
+ * v79: **the woods** (`docs/flags.md` "Rulings 2026-09-06, evening" item h; the
+ * batch is `docs/fewer-things-plan.md` H9). The user: "currently forests spawn
+ * in huge patches, could we make them more diffuse across the map? There should
+ * be smaller patches of forest across the map, and some unforested tiles
+ * breaking up the large patches." Two passes answer the two halves, both in
+ * `mapgen.ts`, both tuned by the new `woodland` block of `data/mapgen.json`.
+ *
+ *   · **The grain** (`woodland.grain` 0.55, `noise.woodlandGrain` at five tiles
+ *     a cycle): the forest deal orders its eligible ground by the moisture
+ *     percentile blended with a copse-scale one, so the same number of hexes
+ *     are wooded and they are wooded in twice as many places. Measured over
+ *     five seeds on a standard board: 25 woods of mean 11.8 became 48 of mean
+ *     6.0, and the largest wood on a map fell from 74 hexes to 44.
+ *   · **The clearings** (`woodland.clearingChance` 0.4, `clearingMinPatch` 8):
+ *     a hex whose six neighbours are all trees, in a wood of at least eight, is
+ *     offered a clearing. Forest hexes with a wooded ring fell from 13.6% of
+ *     the wood to 1.4% — which is the "huge patches" complaint stated as a
+ *     number, and the number the ruling was written against.
+ *
+ *   · **And the capitals are armed** (`docs/flags.md` note 20, ruled 2026-09-05,
+ *     never built until now): `resources.startStrategics` — horses and iron —
+ *     within `startStrategicRadius` of every possible start. The fourth
+ *     fairness guarantee, built exactly like the three beside it: it rolls no
+ *     dice, plants on the nearest legal hex, gives up `minSpacing` rather than
+ *     the promise, and never the row's own terrain filter. The scatter's
+ *     twenty-two strategic tiles per 1000 land arms about forty of the 120
+ *     seat-resource pairs a five-seed sweep asks about; the guarantee forces the
+ *     rest, and no seat is short at any size from `standard` up. Behind it, the
+ *     start chooser gained its seventh hard rejection — a site with no legal
+ *     hex for a listed row in reach (`strategicGround`), unreachable on the
+ *     standard sheet and firing only on a `duel` board asked to seat twelve.
+ *
+ *     Both draw from streams keyed on the seed
+ *     (`webciv:mapgen:woodland:grain:<seed>`, `…:clearings:<seed>`) rather than
+ *     from the map's own generator, so the terrain, the hills, the rivers and
+ *     every later pass's *dice* are bit-identical to v78 on every seed. What
+ *     moved is the ground those dice land on: a forest resource needs a forest.
+ *
+ *     The migration note: a v78 save does not load. The map is regenerated from
+ *     the config rather than stored, so a v78 command log replays onto a world
+ *     whose woods — and whose deer, furs, horses and iron — stand somewhere
+ *     else.
+ *
+ * v80: **the belief hand's own ladder** (`docs/flags.md` "Rulings 2026-09-06,
+ * evening" item i). The user: "make the first reroll free and the following
+ * ones cost faith… It should auto-draft a pantheon once you reach the requisite
+ * faith. It subtracts that amount from your faith total… Prophet re-rolls
+ * reset per roll, and are entirely separate from order drafts." Three moves in
+ * `religion.ts`: `openFaithLadder` spends the rung and climbs
+ * `PlayerPantheon.rungs` at the *deal* (the pick charges nothing; the offer's
+ * `rungCost` is the record); a belief hand's reroll is priced on the hand's
+ * own count — new `BeliefOffer.rerolls`, first asking free, then
+ * `explainBeliefRerollCost` (the Order draft's base and age multiplier, the
+ * exponent raised to the paid askings on this hand), through no door, moving
+ * neither `rerollsTaken` nor the chairs' tallies; and the count dies with the
+ * hand. A v79 log that rerolled a belief hand replays a different bank.
+ *
+ * v81: **early production** (`docs/flags.md`, "Rulings 2026-09-06, late — early
+ * production", items x and y). Two prices moved, and both of them move in every
+ * game. The first paid column of the tree is **10** beakers rather than 13 —
+ * Fletching, Husbandry, Mining and Pottery, the four nodes an empire buys before
+ * anything else. And the age band that repriced units alone is now one rule for
+ * **every hammer price**: `cost × costAgeBase ^ age` at a base of 1.25, asked of
+ * buildings and wonders on the same terms as units and folded as its own line
+ * (`explainBuildingCost` joins `explainUnitCost`). Æra I is no longer exempt at
+ * ×1, which is the ruling read as written — the complaint was that hammers had
+ * stopped meaning anything, and an age exempted from the fix would be a rule
+ * with a hole in it.
+ *
+ * A v80 log does not replay. Every research settlement banks against a different
+ * threshold and every completion against a different basket, so the first town
+ * to finish anything diverges and the rest of the log is a different game.
  */
-export const SCHEMA_VERSION = 78;
+export const SCHEMA_VERSION = 81;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

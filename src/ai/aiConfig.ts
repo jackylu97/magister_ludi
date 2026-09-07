@@ -258,12 +258,6 @@ export interface AiConfig {
     /** How much a hex of walking discounts an entry: `value / (1 + d × this)`. */
     walkDiscount: number;
     /**
-     * What an unread seam under a marked hill is worth per turn, as a stand-in
-     * for the resource nobody has named yet. The assay is priced separately and
-     * exactly (`RULES.improvements.assayGold`); this is the *seam*.
-     */
-    veinValue: number;
-    /**
      * What **one point** of a work's flat defender line is worth per turn — the
      * citadel's eight, and whatever a second work with a `defense` on its row
      * carries (`ImprovementDef.defense`, read off the marker rather than a name).
@@ -271,8 +265,13 @@ export interface AiConfig {
      * Modest on purpose, and a good deal under `weights.military`: a citadel
      * priced at what eight points of a soldier's strength are worth would beat
      * every farm on the board, and a general's citadel is a *hex* that defends
-     * itself rather than an army. It is the same kind of stand-in `veinValue` is
-     * — a number nobody can derive, written down where a tuner can reach it.
+     * itself rather than an army. A number nobody can derive, written down where
+     * a tuner can reach it.
+     *
+     * (`veinValue` stood beside it until batch H2 and is **retired**: the
+     * Geomancy layer is shelved — `veins.share` is 0 on every board — and an
+     * unread seam is worth nothing rather than an average, so `surveyEntry`
+     * prints a zero-valued label instead of a guess.)
      */
     workDefenseValue: number;
   };
@@ -494,8 +493,9 @@ export interface AiConfig {
     bead: number;
     /** Finishing the Magnum Opus — the curtain, over and above its bead. */
     victory: number;
-    /** One great-person die. */
-    die: number;
+    // `die` stood here until batch H2 and is **retired**: the great-person dice
+    // are gone from the game and the knob was read by nothing at all, while
+    // shipping as a live box on the arena panel — a dial that moved nothing.
     /** Holding one more technology, over and above what it unlocks. */
     tech: number;
     /**

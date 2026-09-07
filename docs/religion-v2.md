@@ -62,20 +62,30 @@ A consecration is **automatic**: no unit, no errand. `RELIGION.ladder`
 (`costBase` 40 · `costLinear` 15 · `costExponent` 1.5) prices rung *n* as
 `floor(40 + 15n + n^1.5)` — 40 · 56 · 72 — and `openFaithLadder`, inside the
 `religion` phase, deals the ordinary belief hand the moment `Player.faithPool`
-covers the next rung. `PlayerPantheon.rungs` is the count (rungs climbed, never
-gods held: a wonder's god and an augur's are not rungs). The offer carries the
-price it quoted (`BeliefOffer.rungCost`) and the **pick** spends it, floored at
-nothing. Three rungs, because the pantheon has three slots and the third opens
-at The High Temple — the ladder never learns the number.
+covers the next rung, **spending the rung at the deal** (the user, 2026-09-06,
+evening) and climbing `PlayerPantheon.rungs` then; the pick charges nothing.
+`rungs` counts rungs climbed, never gods held: a wonder's god (Stonehenge's
+free rung) is not a rung. The offer carries the price it paid
+(`BeliefOffer.rungCost`) as its record. Three rungs, because the pantheon has
+three slots and the third opens at The High Temple — the ladder never learns
+the number.
 
-## The reroll (schema 71)
+## The reroll (schema 71; the belief ladder the same evening)
 
-`rerollOffer {playerId}` deals a draft again. An **Order** hand costs faith —
-`RELIGION.reroll`, `floor(base × ageMultiplier[age] × exponent^rerollsTaken)`,
-35 to start at ×1.35 a use, gated on Chronology's Long Count ability — raises
-`PlayerStatecraft.rerollsTaken` and `SlottedOrder.rerollsSeen` on every chair. A
-**belief** hand is free and raises nothing, and carries its `rungCost` over. The
-skip's pity, the culture meter and the tier are untouched.
+`rerollOffer {playerId}` deals a draft again — one verb, two ladders:
+
+- An **Order** hand costs faith — `RELIGION.reroll`,
+  `floor(base × ageMultiplier[age] × exponent^rerollsTaken)`, 35 to start at
+  ×1.35 a use, gated on Chronology's Long Count ability — and raises
+  `PlayerStatecraft.rerollsTaken` (lifetime, never reset) and
+  `SlottedOrder.rerollsSeen` on every chair.
+- A **belief** hand — the pantheon's or a prophet's — asks nothing the **first**
+  time and faith after that: `explainBeliefRerollCost`, the same base and age
+  multiplier with the exponent raised to the paid askings **on this hand**
+  (`BeliefOffer.rerolls`), reset with the next hand, no door, entirely separate
+  from the Order count. The offer card prints the next asking's price.
+
+The skip's pity, the culture meter and the tier are untouched by either.
 
 ## Founding
 
@@ -154,6 +164,11 @@ Pressure sources (`explainPressure`, rule-5 list; numbers in
   (`faithPurchases`).
 - Hagia Sophia grants a real prophet; pressure rows on wonders are one JSON
   line each (Djenné/Angkor still carry none — open).
+- Stonehenge: a pantheon slot, and a **free rung** on completion
+  (`CompletionGrant` `{ grant: 'faithRung' }` → `openFreeRung`) — the ordinary
+  consecration hand, with no `BeliefOffer.rungCost`, so the pick spends nothing
+  and `PlayerPantheon.rungs` does not move (a wonder's god is not a rung). It
+  granted an augur until 2026-09-06.
 
 ## Deferred
 

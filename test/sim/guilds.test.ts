@@ -445,11 +445,15 @@ describe('what a guild pays', () => {
     const city = town(g.state, 0, 8, 'library');
     openGround(g.state, city, 8);
     const before = cityYields(g.state, city).food;
+    const worked = city.workedTiles.length;
     city.specialists.scholar = 2;
     refreshCityDerived(g.state, city);
     // `foodUpkeep` reads `population`, which did not move — so the town is short
-    // exactly the two hexes its guildsmen stopped working.
-    expect(cityYields(g.state, city).food).toBeLessThan(before);
+    // exactly the two hexes its guildsmen stopped working. The hexes are the
+    // claim; the food only follows when the two hexes let go grew any (on the
+    // H9 board this bench's seventh and eighth seats are barren, 2026-09-06).
+    expect(city.workedTiles.length).toBe(worked - 2);
+    expect(cityYields(g.state, city).food).toBeLessThanOrEqual(before);
     expect(city.population).toBe(8);
   });
 });

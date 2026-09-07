@@ -357,7 +357,7 @@ describe('determinism', () => {
     // nodes hand over different rows and a Machinery army marches further on
     // the same paving). A v70 log replays into a different world at every one
     // of those, which is what a schema number is for.
-    expect(SCHEMA_VERSION).toBe(78);
+    expect(SCHEMA_VERSION).toBe(81);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test
@@ -539,8 +539,23 @@ function playTwoFaiths(maxTurns: number): {
       // blessings never saved the prophet's price — the two-faiths game founded
       // nothing. After the founding, what is left over pays for a rite, in
       // whichever town can.
+      //
+      // **And the rite comes out of the surplus, never out of the prophet's
+      // price** (re-aimed 2026-09-06, `docs/flags.md` item y). The saving clause
+      // above could never actually save: every turn's leftover faith went into a
+      // rite, so the pool was empty again by the top of the next turn. It did not
+      // show while the faith economy ran ahead of the prophet's ladder — the age
+      // band made shrines and temples dearer, their faith arrives later, and this
+      // seat reached turn three hundred and forty holding fourteen faith and one
+      // prophet. No second prophet is no proclamation, and a determinism test
+      // over a game with no proclamation in it is a determinism test of nothing.
+      // The purchase above runs before this loop, so a pool that reaches the
+      // price is spent on the prophet first and the rites resume after.
+      const saving = home ? explainPurchaseCost(g.state, seat, home.id, PROPHET, 'faith') : null;
+      const keepSaving =
+        saving !== null && player.prophetsPurchased < 2 && player.faithPool < saving.total;
       for (const city of g.state.cities) {
-        if (!hasFaith) break;
+        if (!hasFaith || keepSaving) break;
         if (city.ownerId !== seat) continue;
         for (const rite of availableRites(g.state, seat)) {
           if (riteError(g.state, seat, city.id, rite) !== null) continue;

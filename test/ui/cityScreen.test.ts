@@ -429,8 +429,15 @@ describe('the city mode', () => {
     const rail = fn('cityPanel.ts', 'renderTownRail');
     expect(rail).toContain("disclosure('Rites'");
     // The summary figure is the turns left on the one it holds, which is the
-    // only number a player wants without opening the shelf.
+    // only number a player wants without opening the shelf — and, while it
+    // holds none and one can be said, the price; the shelf then opens by
+    // itself until the player shuts it (2026-09-06: "looks like there's no
+    // option to purchase rites in cities" — there was, behind "Rites —").
     expect(rail).toContain('cityRiteTurnsLeft(state, city)');
+    expect(rail).toContain('.filter((row) => row.blocked === null)');
+    expect(rail).toContain("disclosure('Rites', figures, riteRows, sayable.length > 0)");
+    const disc = fn('cityPanel.ts', 'disclosure');
+    expect(disc).toContain('(defaultOpen && !closedDisclosures.has(label))');
     const rites = fn('cityPanel.ts', 'renderRites');
     // Every row is the sim's: nothing here names a rite or composes a refusal.
     expect(rites).toContain('riteOptions(city.id)');
@@ -575,11 +582,19 @@ describe('the build list', () => {
     expect(declaration('.city-buildable-grid', 'grid-template-columns')).toBe('minmax(0, 1fr)');
   });
 
-  it('lays the row and the button as grids, with the buy tag in its own track', () => {
-    expect(declaration('.city-buildable-row', 'grid-template-columns')).toBe(
-      'minmax(0, 1fr) auto',
-    );
+  it('lays the row as a line with every buy tag inline, and the button as a grid', () => {
+    // A row, not a two-column grid (the user, 2026-09-06: the unit purchase "is
+    // breaking out into a second line"): a town with an open faith bank puts two
+    // tags beside a unit, and a grid's second column wrapped the third cell.
+    expect(declaration('.city-buildable-row', 'display')).toBe('flex');
+    expect(declaration('.city-buildable-row > .city-buildable', 'flex')).toBe('1 1 0');
+    expect(declaration('.city-buildable-row > .city-buildable', 'min-width')).toBe('0');
+    expect(declaration('.city-buildable-row > .city-buildable-buy', 'flex')).toBe('0 0 auto');
     expect(declaration('.city-buildable', 'display')).toBe('grid');
+    // And the tag is the figure alone — no "or" (the same ruling).
+    const tag = fn('cityPanel.ts', 'priceTag');
+    expect(tag).toContain('`${price.total}${glyph}`');
+    expect(tag).not.toContain('`or ${');
   });
 
   it('floors the two figure columns so neither steals width from a name', () => {
@@ -861,12 +876,15 @@ describe('the city mode and the camera', () => {
     expect(move.indexOf('travelled +=')).toBeLessThan(move.indexOf('panLocked()'));
   });
 
-  it('leaves the zoom and the click alone', () => {
-    // Only the pan is the mode's to refuse: clicking hexes is the mode's own
-    // input, and a player who wants a wider view of the work radius should
-    // have it.
-    expect(listener('wheel')).toContain('renderer.zoomBy(factor, pointer.x, pointer.y);');
-    expect(listener('wheel')).not.toContain('panLocked');
+  it('refuses the wheel by the same lock, and leaves the click alone', () => {
+    // The wheel joined the pan on 2026-09-06 (the user: "remove zoom from the
+    // city screen"): the frame the mode set is the one the screen talks about.
+    // Clicking hexes is still the mode's own input. The same derived lock, so
+    // no second flag can drift from the pan's.
+    const wheel = listener('wheel');
+    expect(wheel).toContain('if (panLocked()) return;');
+    expect(wheel.indexOf('panLocked()')).toBeLessThan(wheel.indexOf('renderer.zoomBy('));
+    expect((controls.match(/renderer\.zoomBy\(/g) ?? []).length).toBe(1);
     expect(listener('pointerdown')).not.toContain('panLocked');
   });
 });

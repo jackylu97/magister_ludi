@@ -29,6 +29,7 @@ import {
   type BuildingYieldContribution,
   type CityYields,
   borderGrowth,
+  buildingProductionCost,
   cityStageSums,
   type CityQuote,
   cityQuote,
@@ -480,6 +481,16 @@ function shelfShows(shelf: AddShelf): boolean {
  * fighting them rather than as a repaint.
  */
 const openDisclosures = new Set<string>();
+/**
+ * The other half of the memory: which disclosures a player has **closed**.
+ *
+ * A shelf may ask to open by itself — the Rites do, the turn a rite becomes
+ * sayable, because a closed shelf reading "Rites —" was how the user missed the
+ * verb for a whole game (2026-09-06: "looks like there's no option to purchase
+ * rites in cities"). A shelf that opens itself must also stay shut once the
+ * player shuts it, or every repaint fights them; this set is that promise.
+ */
+const closedDisclosures = new Set<string>();
 
 export interface CityPanelOptions {
   /** The element the panel lives in. Emptied and rebuilt on every render. */
@@ -1227,7 +1238,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     box.append(head);
 
     const figures = element('div', 'info-card-figures');
-    figures.append(element('span', 'info-card-cost', `${def.cost}${HAMMER}`));
+    figures.append(
+      element('span', 'info-card-cost', `${buildingProductionCost(id)}${HAMMER}`),
+    );
     figures.append(
       element(
         'span',
@@ -1465,10 +1478,17 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * than a formatter (`RouteYieldLine`).
    */
   function routeFigures(entry: RouteYieldLine): string {
+    // **Five voices, because a `RouteYieldLine` carries five** — the two that
+    // arrived with the international ruling joined the town's fold on
+    // 2026-09-06 (`cityQuote`), and a printed line that stopped at the three it
+    // was born with would be a chip multiplied without its reason beside it,
+    // which is rule 5's exact failure. Faith is absent because no route pays it.
     const voices: [number, string][] = [
       [entry.food, YIELD_GLYPH.food],
       [entry.production, YIELD_GLYPH.production],
       [entry.gold, YIELD_GLYPH.gold],
+      [entry.science, YIELD_GLYPH.science],
+      [entry.culture, YIELD_GLYPH.culture],
     ];
     return voices
       .map(([value, glyph]): [number, string] => [roundYield(value), glyph])
@@ -2547,7 +2567,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         if (wonder) button.classList.add('is-wonder');
         button.type = 'button';
         button.disabled = locked || blocked !== null;
-        button.setAttribute('aria-label', blocked ?? `${def.name} — ${def.cost} production`);
+        button.setAttribute(
+          'aria-label',
+          blocked ?? `${def.name} — ${buildingProductionCost(id)} production`,
+        );
         const name = element('span', 'city-buildable-name', def.name);
         // The eyebrow: a wonder is a different *kind* of thing to spend a hundred
         // hammers on, and a player deciding needs to know that before they read
@@ -2568,7 +2591,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         } else {
           setYieldText(
             costSpan,
-            `${def.cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length, quote))}`,
+            `${buildingProductionCost(id)}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length, quote))}`,
           );
           button.append(costSpan);
           // What this town would gain today — Orders, beliefs, wonders, whatever
@@ -2724,11 +2747,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       label === undefined ? 'city-buildable-buy' : 'city-buildable-buy is-offer',
     );
     button.type = 'button';
+    // The terse form is the figure alone (the user, 2026-09-06: "leave out the
+    // 'or'") — the plate, the coin ink and the place beside the build button
+    // already say what the number is.
     setYieldText(
       button,
-      label === undefined
-        ? `or ${price.total}${glyph}`
-        : `${label} · ${price.total}${glyph}`,
+      label === undefined ? `${price.total}${glyph}` : `${label} · ${price.total}${glyph}`,
     );
     const blocker = locked
       ? `You have ended turn ${state.turn}`
@@ -3056,7 +3080,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * The figure in the summary is what makes a closed row worth having: "Built ·
    * 7" answers the question most reads of that section were asking.
    */
-  function disclosure(label: string, figures: string, body: HTMLElement | null): HTMLElement | null {
+  function disclosure(
+    label: string,
+    figures: string,
+    body: HTMLElement | null,
+    defaultOpen = false,
+  ): HTMLElement | null {
     if (body === null) return null;
     const box = element('details', 'city-disc');
     const summary = element('summary');
@@ -3065,11 +3094,18 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     box.append(summary);
     box.append(body);
     // Closed by default and open again after a repaint if the player had opened
-    // it — see `openDisclosures` for why that is not a nicety.
-    box.open = openDisclosures.has(label);
+    // it — see `openDisclosures` for why that is not a nicety. A shelf that asks
+    // to open (`defaultOpen`) does so until the player closes it
+    // (`closedDisclosures`), and never again after.
+    box.open = openDisclosures.has(label) || (defaultOpen && !closedDisclosures.has(label));
     box.addEventListener('toggle', () => {
-      if (box.open) openDisclosures.add(label);
-      else openDisclosures.delete(label);
+      if (box.open) {
+        openDisclosures.add(label);
+        closedDisclosures.delete(label);
+      } else {
+        openDisclosures.delete(label);
+        closedDisclosures.add(label);
+      }
     });
     return box;
   }
@@ -3190,17 +3226,29 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     if (faith) standing.append(faith);
     // And what it is **keeping** — the rites, beside the faith it keeps them in.
     // The summary figure is the turns left on the one it holds, because that is
-    // the only number a player wants without opening the shelf.
+    // the only number a player wants without opening the shelf; while it holds
+    // none and one could be said, the figure is the price and the shelf opens
+    // by itself (the user, 2026-09-06: "looks like there's no option to
+    // purchase rites in cities" — there was, behind "Rites —").
     const riteRows = renderRites(city);
     if (riteRows) {
       const held = cityRite(state, city);
       const left = cityRiteTurnsLeft(state, city);
-      const rites = disclosure('Rites', held === null ? '—' : figure(left), riteRows);
+      const sayable = (options.riteOptions?.(city.id) ?? []).filter((row) => row.blocked === null);
+      const figures =
+        held !== null
+          ? figure(left)
+          : sayable.length > 0
+            ? `${figure(sayable[0]!.cost)}\u{1F56F}`
+            : '—';
+      const rites = disclosure('Rites', figures, riteRows, sayable.length > 0);
       if (rites) {
         rites.title =
-          held === null
-            ? 'This city keeps no rite'
-            : `${riteDef(held).name}, ${left} more turns`;
+          held !== null
+            ? `${riteDef(held).name}, ${left} more turns`
+            : sayable.length > 0
+              ? 'This city keeps no rite; one can be said here now'
+              : 'This city keeps no rite';
         standing.append(rites);
       }
     }

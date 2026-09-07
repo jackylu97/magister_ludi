@@ -28,7 +28,12 @@
 import { describe, expect, it } from 'vitest';
 
 const SOURCES = import.meta.glob(
-  ['../../src/ui/religionScreen.ts', '../../src/ui/statecraftScreen.ts', '../../src/style.css'],
+  [
+    '../../src/ui/religionScreen.ts',
+    '../../src/ui/statecraftScreen.ts',
+    '../../src/ui/topBar.ts',
+    '../../src/style.css',
+  ],
   { eager: true, query: '?raw', import: 'default' },
 ) as Record<string, string>;
 
@@ -93,20 +98,30 @@ describe('the Religion sheet is a split', () => {
     }
   });
 
-  it('puts the pantheon in the column and the augur and the rites in the pane', () => {
+  it('puts the pantheon in the column and the cards above the tide above the clergy', () => {
+    // **The ruling of 2026-09-06 as an order**: the sheet's subject is the deck,
+    // so the cards lead, the tide reports what they are doing, and the purchases
+    // close. The failure this guards is the old sheet's, which led with a price
+    // — a player opening the screen met a button before they met their gods.
     const draw = fn('religionScreen.ts', 'draw');
     const column = draw.indexOf('sc-column-body');
     const pantheon = draw.indexOf('drawPantheon');
     const pane = draw.indexOf("'sc-pane'");
-    const purchase = draw.indexOf('drawPurchase');
+    const pool = draw.indexOf('drawPool');
+    const religion = draw.indexOf('drawReligion');
+    const tide = draw.indexOf('drawTide');
     const rites = draw.indexOf('drawRites');
+    const clergy = draw.indexOf('drawClergy');
     // Order in the source is order in the DOM here: every one of these is an
     // `append` onto the node built just above it.
     expect(column).toBeGreaterThan(-1);
     expect(pantheon).toBeGreaterThan(column);
     expect(pane).toBeGreaterThan(pantheon);
-    expect(purchase).toBeGreaterThan(pane);
-    expect(rites).toBeGreaterThan(purchase);
+    expect(pool).toBeGreaterThan(pane);
+    expect(religion).toBeGreaterThan(pool);
+    expect(tide).toBeGreaterThan(religion);
+    expect(rites).toBeGreaterThan(tide);
+    expect(clergy).toBeGreaterThan(rites);
   });
 
   it('caps every parchment sheet at the viewport, from one rule', () => {
@@ -187,11 +202,45 @@ describe("the sheet's controls", () => {
 
   it('never sets a control on this sheet in upper case from its own markup', () => {
     // The other way a control can shout: the label written in capitals. Every
-    // button and option this screen builds takes its text from a def's `name` or
-    // from a sentence, and this pins the two literals it writes itself.
+    // button and option this screen builds takes its text from a def's `name`,
+    // from the roster's own verb (`UnitDef.purchase.verb`) or from a sentence,
+    // and this pins that none of them is typed in caps here.
     const text = source('religionScreen.ts');
-    expect(text).toContain('Call an augur · ');
     expect(/textContent = '[A-Z ]{4,}'/.test(text)).toBe(false);
+  });
+
+  it('takes the clergy row’s words off the roster, never out of this file', () => {
+    // A verb typed here would be a second name for a piece — "Call a prophet"
+    // lives on `UnitDef.purchase.verb` so a designer renaming the piece renames
+    // the button. The price is `explainPurchaseCost`'s total and the refusal is
+    // `purchaseError`'s sentence, which is what makes a pressable button a
+    // command the reducer takes.
+    const row = fn('religionScreen.ts', 'drawClergyRow');
+    expect(row).toContain('def.purchase?.verb');
+    expect(row).toContain('explainPurchaseCost(state, seat, cityId, item, currency)');
+    expect(row).toContain('purchaseError(state, seat, cityId, item, currency)');
+  });
+});
+
+/**
+ * **The retired piece is gone from the sheet, sentence and comment alike**
+ * (`docs/flags.md`, rulings of 2026-09-06 evening, item c).
+ *
+ * The augur is `retired: true` on its roster row: `buildError`, `purchaseError`
+ * and `consecrateError` all refuse it, its consecration is the faith ladder's
+ * and its rites are a town's verbs. A sheet that still sold it, still explained
+ * it, or still carried a comment written around it would be teaching a rule the
+ * reducer does not keep — and a comment is the half that rots quietest, which is
+ * why this reads the whole source rather than only the strings.
+ */
+describe('the retired agent', () => {
+  it('is named nowhere on the Religion sheet', () => {
+    expect(/augur/i.test(source('religionScreen.ts'))).toBe(false);
+  });
+
+  it('sells the three pieces that are still called, in the order they are met', () => {
+    const text = source('religionScreen.ts');
+    expect(text).toContain("const CLERGY: readonly UnitTypeId[] = ['prophet', 'apostle', 'inquisitor']");
   });
 });
 
@@ -226,14 +275,13 @@ describe('the gods in the column wear their figure', () => {
 
   it('hands every face on the sheet its own reading', () => {
     const text = source('religionScreen.ts');
-    // The pantheon's slots, the gods held beyond them, and the religion's two
-    // houses — a face drawn without a reading is a card wearing the flourish
-    // while it is quietly paying.
+    // The pantheon's places and the religion's two houses — a face drawn without
+    // a reading is a card wearing the flourish while it is quietly paying.
     const drawn = text.match(/drawBeliefFace\([^)]*\)/g) ?? [];
-    expect(drawn.length).toBeGreaterThanOrEqual(3);
+    expect(drawn.length).toBeGreaterThanOrEqual(2);
     for (const call of drawn) {
       if (call.startsWith('drawBeliefFace(\n')) continue;
-      expect(call, call).toContain('beliefStamp(state, seat, id)');
+      expect(call, call).toContain('beliefStamp(state, seat,');
     }
     // And the house's pool reaches the face, so a follower belief is not
     // announced as a god.
@@ -245,5 +293,65 @@ describe('the gods in the column wear their figure', () => {
     // the tarot face's 24px — a taller seat would grow every slot on the sheet.
     expect(declaration('.rel-slot .card-stamp', 'min-height')).toBe('20px');
     expect(declaration('.rel-slot .card-stamp', 'line-height')).toBe('20px');
+  });
+
+  it('prints every clause of a face through the descriptor writer', () => {
+    // Hard rule: a describer emits `[[kind:id|Name]]`, and a clause written with
+    // `textContent` would print the brackets. Both writers are asked here — the
+    // live one on the face, the stripped one in the platform `title` a wheel
+    // house carries.
+    const text = source('religionScreen.ts');
+    expect(text).toContain('setDescriptorText(item, clause.text, { linked })');
+    expect(text).toContain('stripRefs(clause.text)');
+    expect(/textContent = `\$\{[^}]*clause/.test(text)).toBe(false);
+  });
+});
+
+/**
+ * **The pantheon is three places, and an empty one says what it is waiting for**
+ * (`docs/flags.md`, rulings of 2026-09-06 evening, items b and d).
+ *
+ * The old sheet drew `pantheonSlots` places and stopped, so an empire before The
+ * High Temple saw two places and no third — the slot existed, the tree opened
+ * it, and the screen said nothing about either. And an empty place said
+ * "unnamed", which answers none of the three questions a player actually has:
+ * what does the next god cost, how close am I, and what opens the place after.
+ *
+ * Every figure in the answer is the **sim's** (`explainNextRung` /
+ * `nextRungWords`), and that is the load-bearing half: the faith chip's hover
+ * card prints the same sentence off the same reading, and a threshold composed
+ * twice is a threshold two surfaces will one day quote differently.
+ */
+describe('the places at the fire', () => {
+  it('walks the sim’s own list of places, not the count of open slots', () => {
+    const pantheon = fn('religionScreen.ts', 'drawPantheon');
+    expect(pantheon).toContain('pantheonPlaces(state, seat)');
+    // The shut place names its technology off the place, never out of this file.
+    expect(fn('religionScreen.ts', 'drawEmptyPlace')).toContain('techDef(place.awaits).name');
+  });
+
+  it('prints the rung’s price from the sim describer and never composes one', () => {
+    const empty = fn('religionScreen.ts', 'drawEmptyPlace');
+    expect(empty).toContain('nextRungWords(rung)');
+    // The bar is the same two figures the sentence names — `banked / cost` — so
+    // a reader of the bar and a reader of the line are told one thing. What must
+    // not appear is a threshold arithmetic of this file's own.
+    expect(empty).toContain('rung.banked / rung.cost');
+    expect(empty).not.toContain('faithRungCost');
+  });
+
+  it('leads the pane with the pool and the same ladder sentence', () => {
+    const pool = fn('religionScreen.ts', 'drawPool');
+    expect(pool).toContain('nextRungWords(explainNextRung(state, seat, rate))');
+  });
+
+  it('is the sentence the faith chip’s hover card prints, off one describer', () => {
+    // The other surface, read from its own source: two compositions of one
+    // reading is how a chip and a sheet come to quote two thresholds.
+    const bar = source('topBar.ts');
+    expect(bar).toContain("import { explainNextRung, nextRungWords } from '../sim/religion'");
+    expect(bar).toContain(
+      'nextRungWords(explainNextRung(state, playerId, civYields(state, playerId).faith))',
+    );
   });
 });

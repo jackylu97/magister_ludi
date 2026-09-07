@@ -48,6 +48,11 @@
  * that fold's **first line only**, the roster's own price, which is the same
  * figure with or without a state. See `rosterCost`.
  *
+ * A **building's** price is printed whole, and the difference is the point: it
+ * is `buildingProductionCost`, the fold of the row's figure and its age band,
+ * because nothing an empire does changes it (`explainBuildingCost` takes no
+ * player). So the book quotes the figure the town is actually charged.
+ *
  * Every entry has a stable id
  * ---------------------------
  * `unit:swordsman`, `tech:ironWorking`, `order:bloodedSpears` — the section's
@@ -64,7 +69,7 @@ import {
   buildingDef,
   isWonder,
 } from '../sim/buildingData';
-import { explainUnitCost } from '../sim/cities';
+import { buildingProductionCost, explainUnitCost } from '../sim/cities';
 import {
   type Family,
   GREAT_PERSON_IDS,
@@ -746,7 +751,10 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   const wonder = isWonder(id);
   const gate = gatingTech('building', id);
   const rows: CompendiumRow[] = [
-    ...row('Production cost', `${figure(def.cost)}${YIELD_GLYPH.production}`),
+    ...row(
+      'Production cost',
+      `${figure(buildingProductionCost(id))}${YIELD_GLYPH.production}`,
+    ),
     ...row('Yields each turn', buildingYieldFigures(def)),
     ...row(
       'Science per citizen',
@@ -1046,7 +1054,7 @@ function giftWords(gift: TechGift): string {
     // reader deciding what to research wants to know which is which: one is a
     // thing every city may raise and the other is a race against the world.
     const kind = isWonder(gift.id) ? 'New wonder' : 'New building';
-    return `${kind}: ${gift.name} — ${figure(buildingDef(gift.id).cost)}${YIELD_GLYPH.production}`;
+    return `${kind}: ${gift.name} — ${figure(buildingProductionCost(gift.id))}${YIELD_GLYPH.production}`;
   }
   if (gift.kind === 'improvement') {
     const charges = improvementDef(gift.id).chargeCost;

@@ -22,13 +22,15 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildingCityStat, buildingHappiness, foldBuildingCityStat } from '../../src/sim/buildingEffects';
-import { buildingDef } from '../../src/sim/buildingData';
+import { BUILDING_IDS, buildingDef, isWonder } from '../../src/sim/buildingData';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { previewCombat } from '../../src/sim/combat';
 import {
   advanceProduction,
+  buildingProductionCost,
   centreYield,
   cityYields,
+  explainBuildingCost,
   explainUnitCost,
   foldUnitCost,
   foundCityAt,
@@ -45,7 +47,12 @@ import { explainHappiness, happinessOf, tierPercent } from '../../src/sim/meters
 import { PROJECT_IDS, projectDef, projectRate } from '../../src/sim/projectData';
 import { RULES } from '../../src/sim/rulesData';
 import { type City, type GameState, createUnit, newGame } from '../../src/sim/state';
-import { PROJECT_UNLOCK_TECH, UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
+import {
+  BUILDING_UNLOCK_TECH,
+  PROJECT_UNLOCK_TECH,
+  UNIT_UNLOCK_TECH,
+  techDef,
+} from '../../src/sim/techData';
 import { buildError, gatingTech, isUnlocked } from '../../src/sim/tech';
 import { techGifts } from '../../src/sim/techUnlocks';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
@@ -377,8 +384,13 @@ describe('a project is gated, once, by the tree', () => {
 describe('the roster is priced in the money of its own age', () => {
   it('multiplies a unit by the band of the technology that unlocks it', () => {
     const state = flatState();
-    const band = RULES.production.unitCostAgeMultiplier;
-    expect(band[0]).toBe(1);
+    // One base raised to the age since H10 (2026-09-06, `docs/flags.md` item y):
+    // `cost × 1.25 ^ age`, and **Æra I is inside the rule** rather than exempt at
+    // ×1, which is the one thing about this pin that had to be re-aimed rather
+    // than re-derived. The band used to be a four-entry authored ladder that
+    // only units read.
+    const base = RULES.production.costAgeBase;
+    expect(base).toBeGreaterThan(1);
     for (const id of UNIT_TYPE_IDS) {
       // A great person is neither built nor bought, so it is not priced in
       // hammers at all — see `tech.test.ts`'s reading of the same exception.
@@ -393,46 +405,53 @@ describe('the roster is priced in the money of its own age', () => {
       expect(gate, id).toBeDefined();
       const age = techDef(gate!).age;
       expect(unitProductionCost(state, 0, id), id).toBe(
-        Math.floor(unitDef(id).cost * (band[age - 1] ?? 1)),
+        Math.floor(unitDef(id).cost * base ** age),
       );
     }
   });
 
-  it('leaves Age I where the opening is balanced and lifts the later rosters', () => {
+  it('prices the opening in its own money and lifts the later rosters', () => {
     const state = flatState();
-    // **Re-pinned 2026-08-28** (user ruling: units and buildings ×1.4 on
-    // `cost`, wonders ×0.8). The pass's own anchor moved with the rest of the
-    // roster — every printed `cost` below is the pre-ruling figure ×1.4,
-    // nearest hammer — and the age-band multiplier still applies on top of it.
-    expect(unitProductionCost(state, 0, 'scout')).toBe(13);
-    expect(unitProductionCost(state, 0, 'warrior')).toBe(10);
-    expect(unitProductionCost(state, 0, 'worker')).toBe(14);
-    expect(unitProductionCost(state, 0, 'spearman')).toBe(11);
-    expect(unitProductionCost(state, 0, 'archer')).toBe(11);
-    // The mounted premium, which is the earlier pass's second half: a horse is
-    // a decision arrived at sooner and now priced like one, ×1.4 again. The
-    // chariot is still Æra I's (The Wheel); **the horseman moved to Æra III**
-    // when tree revision 4 (2026-09-02) gave it to The Saddle, so its printed
-    // 17 now carries the third rung of the band — the band is read off the
-    // unlocking node and nothing on the row changed.
-    expect(unitProductionCost(state, 0, 'horseman')).toBe(34);
-    expect(unitProductionCost(state, 0, 'chariot')).toBe(24);
-    expect(unitProductionCost(state, 0, 'chariotArcher')).toBe(20);
-    // Æra II at ×1.5, III at ×2, **IV at ×2.5**, off the printed (already ×1.4)
-    // row — the fourth rung the tree pass of 2026-08-30 added to the band. The
-    // rule never moved; every figure below did, because the roster's rows moved
-    // ages under it.
-    // The re-cut of 2026-09-02 moved rows between ages, so these figures moved
-    // with them: the swordsman is Æra II's (Bronze Panoply) rather than Æra
+    // **Re-aimed 2026-09-06** (`docs/flags.md`, rulings "late — early
+    // production", item y: "production costs ×1.25 across the board, and rising
+    // by age"). The title of this case used to be "leaves Age I where the
+    // opening is balanced", and that clause is the thing the ruling withdrew:
+    // Æra I paid ×1 while every later age paid a band, and the user's reading
+    // after the second playthrough was that hammers had stopped meaning
+    // anything by Æra III. So the opening lifts a quarter with everything else.
+    //
+    // The printed `cost` on each row is untouched — this is the fold's second
+    // line, `1.25 ^ age`, floored once.
+    expect(unitProductionCost(state, 0, 'scout')).toBe(16);
+    expect(unitProductionCost(state, 0, 'warrior')).toBe(12);
+    expect(unitProductionCost(state, 0, 'worker')).toBe(17);
+    expect(unitProductionCost(state, 0, 'spearman')).toBe(13);
+    expect(unitProductionCost(state, 0, 'archer')).toBe(13);
+    // The mounted premium, which is the earlier pass's own half: a horse is a
+    // decision arrived at sooner and priced like one. The chariot is still Æra
+    // I's (The Wheel); **the horseman is Æra III's** since tree revision 4
+    // (2026-09-02) gave it to The Saddle, so its printed 17 carries the third
+    // power — the band is read off the unlocking node and nothing on the row
+    // changed.
+    expect(unitProductionCost(state, 0, 'horseman')).toBe(33);
+    expect(unitProductionCost(state, 0, 'chariot')).toBe(30);
+    expect(unitProductionCost(state, 0, 'chariotArcher')).toBe(25);
+    // Æra II at ×1.5625, III at ×1.953125, IV at ×2.44140625. The two late ages
+    // land a hammer or two *under* the ladder they replaced (×2 and ×2.5) and
+    // the two early ages a quarter over it, which is the ruling read exactly:
+    // it is a rule about the whole board, not a nerf aimed at the closing age.
+    //
+    // The re-cut of 2026-09-02 moved rows between ages, so these figures carry
+    // that too: the swordsman is Æra II's (Bronze Panoply) rather than Æra
     // III's, the Bowman is new at Siegecraft, and the pikeman is Castellany's in
     // Æra IV rather than the Æra III spear it used to be.
     expect(unitProductionCost(state, 0, 'phalanx')).toBe(21);
     expect(unitProductionCost(state, 0, 'swordsman')).toBe(21);
     expect(unitProductionCost(state, 0, 'bowman')).toBe(21);
-    expect(unitProductionCost(state, 0, 'catapult')).toBe(30);
-    expect(unitProductionCost(state, 0, 'pikeman')).toBe(52);
-    expect(unitProductionCost(state, 0, 'knight')).toBe(55);
-    expect(unitProductionCost(state, 0, 'trebuchet')).toBe(60);
+    expect(unitProductionCost(state, 0, 'catapult')).toBe(29);
+    expect(unitProductionCost(state, 0, 'pikeman')).toBe(51);
+    expect(unitProductionCost(state, 0, 'knight')).toBe(53);
+    expect(unitProductionCost(state, 0, 'trebuchet')).toBe(58);
   });
 
   it('is the fold of its own labelled lines, escalation included', () => {
@@ -442,20 +461,31 @@ describe('the roster is priced in the money of its own age', () => {
         unitProductionCost(state, 0, id),
       );
     }
-    // The settler's whole ladder, line by line, with the band's line absent
-    // because a settler is Age I and multiplies by one.
+    // The settler's whole ladder, line by line. **The band's line is there now**
+    // (H10, item y): a settler is Æra I and Æra I is ×1.25, where it used to
+    // multiply by one and print no line at all.
     const settler = explainUnitCost(state, 0, 'settler');
-    expect(settler).toEqual([{ source: 'Settler', amount: unitDef('settler').cost }]);
+    expect(settler.map((line) => line.source)).toEqual(['Settler', 'Age band · Æra I ×1.25']);
+    expect(settler[0]!.amount).toBe(unitDef('settler').cost);
     state.players[0]!.unitsBuilt.settler = 3;
     const escalated = explainUnitCost(state, 0, 'settler');
-    expect(escalated.map((line) => line.source)).toEqual(['Settler', '3 already built']);
+    expect(escalated.map((line) => line.source)).toEqual([
+      'Settler',
+      '3 already built',
+      'Age band · Æra I ×1.25',
+    ]);
+    // The band multiplies the *escalated* figure, which is the order the lines
+    // are printed in and therefore the order the arithmetic runs in.
     expect(foldUnitCost(escalated)).toBe(
-      unitDef('settler').cost + 3 * unitDef('settler').escalation!,
+      Math.floor(
+        (unitDef('settler').cost + 3 * unitDef('settler').escalation!) *
+          RULES.production.costAgeBase,
+      ),
     );
     // And a later-age unit says which band it is in.
     expect(explainUnitCost(state, 0, 'knight').map((line) => line.source)).toEqual([
       'Knight',
-      'Age band · Æra IV ×2.5',
+      'Age band · Æra IV ×2.44140625',
     ]);
   });
 
@@ -467,6 +497,84 @@ describe('the roster is priced in the money of its own age', () => {
       state.players[0]!.unitsBuilt.settler = 9;
       expect(unitProductionCost(state, 0, id), id).toBe(priced);
       state.players[0]!.unitsBuilt.settler = 0;
+    }
+  });
+});
+
+// --- 2b. what a building costs ----------------------------------------------
+
+/**
+ * **One rule for every hammer price** (the user, 2026-09-06, `docs/flags.md`
+ * rulings "late — early production", item y: "my cities had way more production
+ * than things cost by age 3 … Age 3 buildings and units should probably be ~2×
+ * as expensive").
+ *
+ * The band above priced the roster and nothing else, which is the asymmetry the
+ * ruling named: a late empire paid twice over for its army and the printed base
+ * for every building and every wonder it could raise, so hammers stopped meaning
+ * anything by Æra III. `explainBuildingCost` is the unit fold's shape one grade
+ * over — the row's figure, then the band, floored once — and it takes no player,
+ * because nothing an empire does changes what a building costs to *build*.
+ */
+describe('a building is priced in the money of its own age', () => {
+  it('is the fold of its own labelled lines, for every row in the table', () => {
+    for (const id of BUILDING_IDS) {
+      expect(foldUnitCost(explainBuildingCost(id)), id).toBe(buildingProductionCost(id));
+    }
+  });
+
+  it('multiplies by the band of the technology that unlocks it', () => {
+    const base = RULES.production.costAgeBase;
+    for (const id of BUILDING_IDS) {
+      const gate = BUILDING_UNLOCK_TECH.get(id);
+      // A row no technology unlocks is Æra I — the granted and the
+      // card-unlocked rows are priced in the opening's money rather than free
+      // of the rule.
+      const age = gate === undefined ? 1 : techDef(gate).age;
+      expect(buildingProductionCost(id), id).toBe(Math.floor(buildingDef(id).cost * base ** age));
+    }
+  });
+
+  it('names the band on its own line, wonders included', () => {
+    // The Æra I row: two lines, and the second is the band — where before this
+    // ruling an Æra I row had one line and no band at all.
+    expect(explainBuildingCost('granary').map((line) => line.source)).toEqual([
+      buildingDef('granary').name,
+      'Age band · Æra I ×1.25',
+    ]);
+    expect(buildingProductionCost('granary')).toBe(Math.floor(buildingDef('granary').cost * 1.25));
+    // A wonder is a building row and takes the same rule: `wonder` is a
+    // production category, never a pricing exception.
+    const wonder = BUILDING_IDS.find((id) => isWonder(id) && BUILDING_UNLOCK_TECH.has(id))!;
+    expect(explainBuildingCost(wonder)).toHaveLength(2);
+    expect(explainBuildingCost(wonder)[1]!.source).toContain('Age band');
+  });
+
+  it('is what the basket is charged and what the queue is quoted', () => {
+    // The one evaluator, asked the three ways the game asks it: the queue's
+    // quote, the plan the phase settles off, and the basket after it lands.
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    const cost = buildingProductionCost('monument');
+    city.queue = [{ kind: 'building', id: 'monument' }];
+    expect(queueItemCost(state, 0, city.queue[0]!)).toBe(cost);
+    city.hammerBasket = cost - 1;
+    expect(planProduction(state, city, city.hammerBasket)).toBeNull();
+    city.hammerBasket = cost + 5;
+    expect(planProduction(state, city, city.hammerBasket)).toMatchObject({ id: 'monument', cost });
+    advanceProduction(state);
+    expect(city.buildings).toEqual(['monument']);
+    expect(city.hammerBasket).toBe(5);
+  });
+
+  it('leaves a project flat, because a conversion is not a thing', () => {
+    // The one row the band deliberately does not touch: a project's cost is the
+    // size of one turn of the conversion, and it is charged again the moment it
+    // is paid. See `queueItemCost`.
+    const state = flatState();
+    plant(state, 0, 8, 5);
+    for (const id of PROJECT_IDS) {
+      expect(queueItemCost(state, 0, { kind: 'project', id }), id).toBe(projectDef(id).cost);
     }
   });
 });

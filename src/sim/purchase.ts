@@ -71,6 +71,7 @@ import {
   type ProductionCompletion,
   type RealisedItem,
   type UnitCostLine,
+  explainBuildingCost,
   explainUnitCost,
   foldUnitCost,
   productionSettledBy,
@@ -241,7 +242,10 @@ function rosterBank(item: PurchasableItem): PurchaseCurrency | undefined {
  *   2. **The treasury**: every line of the thing's production cost, then the
  *      conversion as a line of its own carrying the *difference* it makes. So a
  *      settler's price tag inherits the settler ladder and the age band because
- *      they are lines 2 and 3 of what is being converted.
+ *      they are lines 2 and 3 of what is being converted — and since 2026-09-06
+ *      (item y) a **building's** tag inherits the age band for the same reason,
+ *      because `explainBuildingCost` is the list being converted rather than the
+ *      row's printed figure. A cathedral is bought in the money of its own era.
  *
  * **A discount is a line of the list, never a multiplication afterwards.** The
  * vocabulary grew a `purchaseRider` with the wonders (the Great Ziggurat's
@@ -295,7 +299,7 @@ export function explainPurchaseCost(
   const hammers: UnitCostLine[] =
     item.kind === 'unit'
       ? explainUnitCost(state, playerId, item.id)
-      : [{ source: buildingDef(item.id).name, amount: buildingDef(item.id).cost }];
+      : explainBuildingCost(item.id);
   const cost = foldUnitCost(hammers);
   const rate = hammerRate(currency);
   const lines = [...hammers];

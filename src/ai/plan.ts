@@ -37,9 +37,11 @@
  * A hill this seat can see a sleeping seam under (`seatSeesSleepingVein`, the
  * Geomancy reveal) is worth asking: the assay is a one-time purse the rules
  * print themselves (`RULES.improvements.assayGold`), and the seam under it is
- * worth `workers.veinValue` a turn as a stand-in for a resource nobody has named
- * yet. It sits in the same table as a farm, so a worker compares digging to
- * asking rather than only reaching the survey when it has nothing else to do.
+ * worth **nothing at all** — the reveal shows *that* something sleeps there and
+ * never *what*, so there is no reading to take (batch H2 retired the
+ * `workers.veinValue` stand-in that used to guess one). It sits in the same
+ * table as a farm, so a worker compares digging to asking rather than only
+ * reaching the survey when it has nothing else to do.
  *
  * The second reading of the same ground (2026-09-04)
  * ---------------------------------------------------
@@ -359,13 +361,15 @@ function turnsUntilPlanned(player: Player, ctx: ValueContext, goal: TechId): num
 /**
  * Asking a marked hill, as a plan entry.
  *
- * Two halves and they are two different kinds of number: the **assay** is a
- * one-time purse the rules print (`RULES.improvements.assayGold`), converted to
- * a per-turn figure by `explainLump` so it can sit beside a farm; the **seam**
- * is `workers.veinValue` a turn, which is a stand-in — the whole point of the
+ * Two halves and only one of them is a number: the **assay** is a one-time purse
+ * the rules print (`RULES.improvements.assayGold`), converted to a per-turn
+ * figure by `explainLump` so it can sit beside a farm; the **seam** is worth
+ * nothing, and prints as a zero-valued label saying why. The whole point of the
  * Geomancy reveal is that the empire is shown *that* something sleeps there and
- * never *what*, so a bot that priced the actual resource would be reading a
- * card face-down.
+ * never *what*, so a bot that priced the actual resource would be reading a card
+ * face-down — and a bot that priced an *average* resource (`workers.veinValue`,
+ * retired in batch H2) would be doing the same thing with the number rounded
+ * off. The layer is shelved besides (`veins.share` is 0 on every board).
  *
  * The territory clause is this bot's own, not the rule's (`prospectError` lets
  * anybody survey anywhere): a seat that walked off to read hills in the wild
@@ -383,8 +387,8 @@ function surveyEntry(
   const terms: ValueTerm[] = [
     nest('the assay it pays out', assay),
     {
-      label: `a seam nobody has named yet, worth ${ctx.ai.workers.veinValue} a turn`,
-      value: ctx.ai.workers.veinValue,
+      label: 'the seam itself, unpriced — the reveal shows that something sleeps there, never what',
+      value: 0,
     },
   ];
   return {
@@ -392,7 +396,7 @@ function surveyEntry(
     row: tile.row,
     improvement: null,
     label: `survey the hill at (${tile.col},${tile.row})`,
-    value: assay.total + ctx.ai.workers.veinValue,
+    value: assay.total,
     terms,
     unclaimed: true,
   };
@@ -693,8 +697,7 @@ export function rankWorkSites(
  *     other bag — and that is **crude and written down as crude**: the tile's
  *     own reading of the resource already stands in `improvementYieldDelta` on
  *     both sides of the diff and cancels out of it, so this is not that number
- *     twice; it is a stand-in for holding a copy at all, the way
- *     `workers.veinValue` stands in for an unnamed seam. A luxury's *signature*
+ *     twice; it is a stand-in for holding a copy at all. A luxury's *signature*
  *     — its contentment, its per-city coin, its Æra III rider — is a list read
  *     by one evaluator that cannot be asked hypothetically, and nothing here
  *     switches on it (`CLAUDE.md`). It is therefore still unpriced, and a

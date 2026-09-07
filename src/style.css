@@ -3369,7 +3369,11 @@ body:has(.city-mode:not([hidden])) .city-mode {
 
 .city-rail.is-right {
   flex: 0 0 auto;
-  width: 264px;
+  /* 300 from 264 (the user, 2026-09-06): room for a name and *two* buy tags on
+     one line — a town with an open faith bank prints a coin tag and a faith
+     tag beside every unit, and at 264 the second one wrapped. `#hud-context`'s
+     offset below is written off this number; the two move together. */
+  width: 300px;
 }
 
 /* The tile readout owns the bottom-left corner and the town rail runs down into
@@ -3390,7 +3394,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
      its width plus the gap between them — the mirror of the reading the
      left-corner rule above makes for the town rail. */
   left: auto;
-  right: calc(14px + 264px + 14px);
+  right: calc(14px + 300px + 14px);
 }
 
 /* One card in a rail: the panel's parchment, thinner and quieter, because a
@@ -4234,19 +4238,32 @@ body:has(.city-mode:not([hidden])) #hud-context {
    genuinely different verbs. The tag takes only the width its figure needs, so
    a row with no tag (a project) is the full-width button it always was. */
 .city-buildable-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* A row, not a two-column grid (the user, 2026-09-06: the unit purchase "is
+     breaking out into a second line"): a town with an open faith bank puts
+     *two* tags beside a unit, and the grid's second column wrapped the third
+     cell under the first. Flex keeps every tag inline; the build button takes
+     what is left and shrinks its own name (`.city-buildable` clips) before a
+     tag ever leaves the line. */
+  display: flex;
   align-items: stretch;
   gap: 4px;
   min-width: 0;
 }
 
+.city-buildable-row > .city-buildable {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.city-buildable-row > .city-buildable-buy {
+  flex: 0 0 auto;
+}
+
 /* The purchase offer at the foot of the units — the augur's row. It *is* the
    offer rather than an alternative to one, so it has no build button beside it
-   and takes the whole grid. */
-.city-buildable-row.is-purchase {
-  grid-column: 1 / -1;
-  grid-template-columns: minmax(0, 1fr);
+   and takes the whole line. */
+.city-buildable-row.is-purchase > .city-buildable-buy {
+  flex: 1 1 auto;
 }
 
 /* The price in coin, in the treasury's own ink so it reads as money at a glance
@@ -7533,17 +7550,23 @@ body:has(.city-mode:not([hidden])) #hud-context {
   }
 
   .city-rail.is-right {
-    width: 214px;
+    /* 244 from 214, the wide rule's 300-from-264 shrunk by the same ratio. */
+    width: 244px;
   }
 
   /* The readout keeps clear of the narrowed rail by the same three terms. */
   body:has(.city-mode:not([hidden])) #hud-context {
-    right: calc(14px + 214px + 14px);
+    right: calc(14px + 244px + 14px);
   }
 }
 
 /* --- the charter --------------------------------------------------------- */
 
+/* Two blocks abreast at the head of a pane. Its last reader was the Religion
+   sheet's pool-and-price row, which went in the rework of 2026-09-06 — the pool
+   leads the pane on its own now and the purchases closed the sheet. Kept
+   because the shape is the parchment sheets' and the next one to want a head
+   row should find it rather than write a second. */
 .sc-head-row {
   display: flex;
   flex-wrap: wrap;
@@ -8428,23 +8451,53 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 /* The pool, in the display face: this is the one number the screen exists for.
-   It sits at the head of the pane rather than in the column, because how much
-   faith has gathered is the first line of what an augur costs. */
+   It leads the pane because every block under it is priced against it — and
+   since the rework of 2026-09-06 it carries the ladder's own line under the
+   figure, which is when the next god arrives. */
 .rel-pool {
   flex: 0 0 auto;
 }
 
 .rel-purchase {
-  flex: 1 1 340px;
+  flex: 0 0 auto;
   min-width: 0;
 }
 
 .rel-pool-figure {
-  margin: 2px 0 6px;
+  margin: 2px 0 2px;
   font-family: var(--face-num);
   font-size: 24px;
   font-variant-numeric: tabular-nums;
   color: var(--y-faith);
+}
+
+/* The ladder's sentence, under the pool. Tabular because it is three figures in
+   a row and they should line up with the pool above them; faint because it is a
+   forecast, and the pool is the fact. */
+.rel-rung-line {
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* The bank against the threshold, on the place that is waiting for it. A hair
+   of a rule rather than a widget — the sentence beside it already carries both
+   numbers, and what the bar adds is how close. */
+.rel-rung-bar {
+  flex: 1 0 100%;
+  height: 3px;
+  margin-top: 5px;
+  background: var(--rule);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.rel-rung-fill {
+  display: block;
+  height: 100%;
+  background: var(--y-faith);
+  opacity: 0.7;
 }
 
 /* The places at the fire, stacked under the wheel. A column rather than a row
@@ -8472,8 +8525,12 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--line-ink, var(--ink));
 }
 
+/* An unnamed place. It wraps since the rework of 2026-09-06: the first open
+   place carries the ladder's sentence and a bar under it, and a bar that had to
+   share a line with the sentence would be a bar nobody could read. */
 .rel-slot-empty {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   border-style: dashed;
@@ -8562,6 +8619,35 @@ body:has(.city-mode:not([hidden])) #hud-context {
   background: var(--parchment);
   color: var(--ink);
   text-transform: none;
+}
+
+/* The clergy, at the foot: three rows of one shape — the piece on the left, the
+   verb and its price on the right. `auto-fit` for the rite list's reason, so a
+   wide sheet lays the three across and a stacked one runs them down. */
+.rel-clergy-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.rel-clergy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.rel-clergy-name {
+  font-weight: 600;
+}
+
+/* The tide, under the cards. Ruled off rather than boxed: it is the same sheet
+   reading one block quieter, not a second panel. */
+.rel-tide {
+  padding-top: 8px;
+  border-top: var(--border-thin) solid var(--rule);
 }
 
 /* The rites, as compact rows in the pane. `auto-fit` rather than a fixed count

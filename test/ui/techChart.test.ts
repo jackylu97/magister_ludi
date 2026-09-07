@@ -1170,3 +1170,18 @@ describe('the chart’s Escape', () => {
     expect(close.slice(0, 80)).toContain('info.hide();');
   });
 });
+
+/**
+ * **A retired row is not printed as a gift** (the user, 2026-09-06: "remove
+ * stele of laws — and any other stale buildings — from the tech tree UX"). The
+ * face reads `liveUnlocks`, the sim's own sweep, never the raw list — so the
+ * count line ("+N more") is a count of things a player can actually build.
+ */
+describe('the face prints only what still exists', () => {
+  it('reads liveUnlocks, never the raw unlock lists', () => {
+    const body = chartFunction('function renderUnlocks(');
+    expect(body).toContain('liveUnlocks(id)');
+    expect(body).not.toContain('.unlocks;');
+    expect(body).not.toContain('techDef(id).unlocks');
+  });
+});

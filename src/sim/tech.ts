@@ -93,6 +93,26 @@
  * the formula gave them, and that is the point: the two halves of the chart are
  * priced by two different arguments on purpose.
  *
+ * The first paid column is authored below it (the user, 2026-09-06)
+ * -----------------------------------------------------------------
+ * "The first column of technologies slightly cheaper" (`docs/flags.md`, rulings
+ * of 2026-09-06 late, item x): column 1 — Fletching, Husbandry, Mining,
+ * Pottery, the four nodes every empire buys first — is **10** rather than the
+ * formula's 13. Nothing else moved: the root's nominal 5 stands, and columns 2
+ * upward are still the figures they were.
+ *
+ * So the taper now has an authored figure at each end of it, and both are the
+ * same kind of statement. The late columns say the last age is the game; this
+ * one says the *first four purchases* are the tutorial, and three beakers each
+ * is what a first empire needs off them to reach its second decision sooner. It
+ * is deliberately small — the second playtest's verdict was that the science cut
+ * had landed, so the opening is nudged rather than re-cut, and the lull the
+ * proposal actually names (`docs/early-pacing.md` §1: the Æra I → II price step)
+ * is left for a later reading.
+ *
+ * The four ages therefore cost **333 / 1665 / 7700 / 26000** — 35698 for the
+ * whole tree.
+ *
  * Everything below this paragraph is the history of the tables this replaced;
  * it is kept because it is the record of what the science economy was measured
  * to bear, and the taper was tuned against exactly that.

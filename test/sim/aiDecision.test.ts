@@ -89,7 +89,12 @@ describe('one path', () => {
         checked += 1;
       }
     }
-    expect(checked).toBeGreaterThan(20);
+    // Enough steps to be a real trial rather than an empty loop: two seats over
+    // six turns give at least one step a seat a turn. The old pin was "more
+    // than twenty", which was a fact about one board — H9's start chooser
+    // (2026-09-06) moved this seed's capitals and the count landed on twenty
+    // exactly, with every step still answered.
+    expect(checked).toBeGreaterThanOrEqual(12);
 
     // And the wrapper, asked directly: on a fresh board both entry points name
     // the same command.

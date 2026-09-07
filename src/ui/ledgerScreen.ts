@@ -77,6 +77,7 @@
 
 import {
   type CityYields,
+  cardBuildingYields,
   centreYield,
   cityContext,
   cityQuote,
@@ -91,7 +92,7 @@ import {
 import { cardCityYields, cardYieldConversions } from '../sim/statecraft';
 import { cityResourceYields, empireResourceYields } from '../sim/resourceEffects';
 import { citySpecialistYields } from '../sim/specialists';
-import { cityRouteYields, explainEmpireGold } from '../sim/trade';
+import { cityRouteYields, explainEmpireGold, senderRouteYields } from '../sim/trade';
 import { isBuildingId, isWonder } from '../sim/buildingData';
 import { isBeadCardId } from '../sim/beadData';
 import { isBeliefId, isConsecrationId, isRiteId } from '../sim/religionData';
@@ -299,11 +300,18 @@ function add(bag: LedgerBag, into: LedgerClass, line: Partial<CityYields>): void
  *
  * It is deliberately a mirror of that function rather than a call into it:
  * `CityQuote.flats` is a single fold with no labels on it, so the only way to
- * ask where a town's basket came from is to walk the same seven lists again.
+ * ask where a town's basket came from is to walk the same lists again — and
+ * every one of them is asked of the **simulation's own evaluator**, never
+ * re-derived here, which is the only thing that keeps the mirror honest between
+ * the days somebody remembers to look at it.
+ *
  * That is a real duplication and it is guarded rather than hidden — the test
  * pins this bag's fold equal to `quote.flats`, voice by voice, so a source added
  * to `cityQuote` without being added here fails loudly instead of quietly
- * swelling "other".
+ * swelling whichever classes had weight. The guard is only as good as its bench:
+ * this mirror lost `cardBuildingYields` and floored two per-citizen terms for as
+ * long as the bench had no such card and no town of odd population, which is why
+ * the bench now has both.
  *
  * The town's own two terms — a citizen's beaker and the culture a settlement
  * makes by being one — are `other`: they belong to no tile, no building and no
@@ -314,7 +322,11 @@ export function cityFlatsByClass(state: GameState, city: City): LedgerBag {
   const ctx = cityContext(state, city);
 
   add(bag, 'tiles', centreYield(state, city));
-  bag.other.science += Math.floor(city.population * CITIES.sciencePerPop);
+  // **Exact, because `cityQuote` is exact** (batch X): at `sciencePerPop` 0.5 a
+  // size-3 town banks a beaker and a half, and a mirror that floored it here
+  // reported one — a whole half-beaker a turn falling silently out of the sheet
+  // for every town with an odd population.
+  bag.other.science += city.population * CITIES.sciencePerPop;
   bag.other.culture += CITIES.baseCulturePerCity;
 
   for (const cell of city.workedTiles) {
@@ -333,9 +345,20 @@ export function cityFlatsByClass(state: GameState, city: City): LedgerBag {
   for (const entry of explainCityBuildings(city)) {
     const into = isWonder(entry.building) ? 'wonders' : 'buildings';
     add(bag, into, entry);
-    // Floored per entry, exactly as `cityQuote` floors it: two half-science
-    // buildings pay for two halves rather than rounding into a free point.
-    bag[into].science += Math.floor(city.population * entry.sciencePerPop);
+    // Per *entry* and exact, exactly as `cityQuote` takes it: two half-science
+    // sources pay for two halves and both halves are kept.
+    bag[into].science += city.population * entry.sciencePerPop;
+  }
+
+  // **What the deck adds to those same shelves** — the seven live
+  // `buildingYieldPercent` Orders, "your faith buildings give half again". The
+  // eleventh summand, and the one this mirror simply did not have until
+  // 2026-09-06: a card's share of a library was banked by the town and shared
+  // out here over whatever classes happened to have weight. Directly after the
+  // buildings and before the conversions, because that is where `cityQuote`
+  // folds it and a conversion takes a share of the whole fold including this.
+  for (const line of cardBuildingYields(state, city)) {
+    add(bag, line.card === undefined ? 'buildings' : classifyCard(line.card), line);
   }
 
   // The conversions read the fold they join, so they are asked of the flats as
@@ -369,9 +392,12 @@ export interface LedgerVoice {
  * The whole of band 1: the six voices, each split eight ways.
  *
  * Assembled in `civYields`' order and out of `civYields`' own summands — every
- * town's `cityYields`, then the empire-scale luxury signatures, then the four
- * lines of `explainEmpireGold`, then the empire-scale card lines — so the six
- * totals here are that function's six totals and the test pins it.
+ * town's `cityYields`, then the empire-scale luxury signatures, then the
+ * outbound foreign routes, then the four lines of `explainEmpireGold`, then the
+ * empire-scale card lines — so the six totals here are that function's six
+ * totals and the test pins it. The pin is against the **bank** as well now: the
+ * two surfaces agreeing with each other is what let them both miss the foreign
+ * routes for three days.
  *
  * The **staging** is where the classes have to be put back together (Entry
  * XVII): a town's percentages multiply its whole basket at once, so each town's
@@ -400,6 +426,13 @@ export function ledgerReading(state: GameState, playerId: number): LedgerVoice[]
   }
 
   for (const line of empireResourceYields(state, playerId)) add(bag, 'tiles', line);
+  // The caravans abroad, into **trade** — the class a route's line lands in when
+  // its destination is at home (`cityFlatsByClass`), said again for the half of
+  // the same money that has no town to be banked in. `civYields` adds the same
+  // fold in the same place; both were missing it until 2026-09-06, and because
+  // the only pin compared the two surfaces to *each other* they were wrong
+  // together and agreed about it.
+  for (const line of senderRouteYields(state, playerId)) add(bag, 'trade', line);
   for (const line of explainEmpireGold(state, playerId)) {
     bag[classifyEmpireGold(line.source)].gold += line.gold;
   }

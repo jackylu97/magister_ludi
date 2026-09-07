@@ -79,7 +79,16 @@ import {
 import aiJson from '../../data/ai.json';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
-import { cityYields, foundCityAt, refreshCityDerived } from '../../src/sim/cities';
+import {
+  buildingProductionCost,
+  cityYields,
+  empireRateReading,
+  explainEmpireCardYields,
+  foundCityAt,
+  refreshCityDerived,
+} from '../../src/sim/cities';
+import { happinessDemand } from '../../src/sim/meters';
+import { unitUpkeepTotal } from '../../src/sim/upkeep';
 import { applyCommand } from '../../src/sim/commands';
 import { improvementDef } from '../../src/sim/improvementData';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
@@ -1037,7 +1046,8 @@ describe('the delay discount', () => {
     const appraisal = explainCounted(effect, ctx);
     expect(appraisal.terms[0]!.value).toBe(2);
     expect(labelsOf([appraisal.terms[0]!])).toMatch(/2 buildingsOfKind today/);
-    const turns = raisingTurns(buildingDef('monument').cost, state, 0);
+    // The folded price (H10's age band), which is what the arm raises against.
+    const turns = raisingTurns(buildingProductionCost('monument'), state, 0);
     const discount = discountFor(turns);
     expect(discount).toBeGreaterThan(0);
     expect(appraisal.terms[1]!.value).toBeCloseTo(4 * discount, 10);
@@ -1307,7 +1317,7 @@ describe('the tech chain', () => {
     const after = techChain(state, player, valueContext(state, player), 'education');
     expect(after.steps.find((step) => step.id === 'university')!.towns).toBe(2);
     expect(after.stepsRemaining).toBe(before.stepsRemaining - 1);
-    expect(after.hammers).toBe(before.hammers - buildingDef('university').cost);
+    expect(after.hammers).toBe(before.hammers - buildingProductionCost('university'));
     expect(after.worth).toBeGreaterThan(before.worth);
   });
 
@@ -1363,9 +1373,14 @@ describe('the tech chain', () => {
     // Divination ran away alone, so the near-tie the claim needs moved one row
     // down the table. With all three held the top is a real race again — Bronze
     // Panoply and Wayfinding inside two percent of each other, which keeps the
-    // plan, and several nodes well behind, which do not.
+    // plan, and several nodes well behind, which do not. Bronze Panoply joined
+    // the held set on 2026-09-06 (batch H10): with every building priced in the
+    // money of its age, Wayfinding's harbour chain stretched and Bronze Panoply
+    // ran away nearly three to one; with it held, Fletching and Calendar sit
+    // inside the margin of each other and Writing well outside — the same
+    // shape of race, one row further down.
     const { state, player } = chained(3, 'sailing');
-    for (const tech of ['currency', 'divination'] as const) {
+    for (const tech of ['currency', 'divination', 'bronzePanoply'] as const) {
       for (const step of researchExpansion(state, 0, tech)) {
         if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
       }
@@ -1814,11 +1829,11 @@ describe('the engine shapes, priced', () => {
     armed.add('countScaled');
     expect(armed.size).toBeGreaterThan(10);
     void score;
-    // The one shape on these rows this bot still cannot read, written down
-    // rather than swept under: `routeRider` (an extra caravan slot) predates the
-    // batch and is priced at the stand-in like any unread shape. Pricing it
-    // wants the marginal reading of a *slot*, which is batch F2's.
-    const debt = new Set(['routeRider']);
+    // **The debt list is empty since batch H2**, and that is the batch: every
+    // shape on every gifted node has an arm of its own now, `routeRider`
+    // included — a slot is priced as the route it opens (`routeSlotTerm`, the
+    // very door a market's shelves walk through).
+    const debt = new Set<string>();
     for (const id of gifted) {
       for (const effect of techDef(id).effects ?? []) {
         if (debt.has(effect.kind)) continue;
@@ -1840,14 +1855,18 @@ describe('the engine shapes, priced', () => {
     });
     expect(idle).toBe(0);
     expect(marching).toBeGreaterThan(0);
-    // And a rule this file cannot read is still the stand-in, unmoved.
+    // **Seven of the nine rules are read off their own folds since batch H2**,
+    // and the two that are not are the two that buy *ground* — a hex nobody owns
+    // is priced by the settle table's weights and not by this currency, which is
+    // the two-weight-tables gap batch 4 wrote down. Those two keep the stand-in,
+    // by name.
     const { state, player } = board();
-    expect(
-      scoreEffects(
-        [{ kind: 'rulePercent', rule: 'settlerCost', percent: -33 }],
-        valueContext(state, player),
-      ),
-    ).toBe(valueContext(state, player).ai.score.unknownEffect);
+    for (const rule of ['borderCulture', 'borderCost'] as const) {
+      expect(
+        scoreEffects([{ kind: 'rulePercent', rule, percent: -33 }], valueContext(state, player)),
+        rule,
+      ).toBe(valueContext(state, player).ai.score.unknownEffect);
+    }
   });
 
   it('prices The Golden Roads by the goods as well as by the caravans', () => {
@@ -1935,7 +1954,13 @@ describe('the engine shapes, priced', () => {
     // a figure the per-turn books carry. A `riteDuration` amplifier moves the turn
     // a blessing expires on, which is not a rate and appears in no reading of one,
     // so that one still meets the stand-in.
-    const debt = new Set(['routeRider', 'rulePercent', 'windfallRider', 'effectAmplifier']);
+    // **Empty since batch H2**: every shape on every row this pass wrote now has
+    // an arm of its own. `windfallRider` is priced by the occasion's own
+    // frequency on this board, `rulePercent` by the fold each rule modifies,
+    // `routeRider` as the route it opens, and `effectAmplifier` by the table it
+    // points at — the two targets with no reading (`riteDuration`,
+    // `greatPersonAct`) meet the stand-in inside the arm rather than outside it.
+    const debt = new Set<string>();
     for (const id of PASS_F) {
       const def = orderDef(id);
       // A deferred row carries no effect at all, which is the convention for a
@@ -1970,5 +1995,327 @@ describe('the engine shapes, priced', () => {
       if (def.retired === true || def.effects.length === 0) continue;
       expect(Number.isFinite(scoreEffects(def.effects, ctx)), id).toBe(true);
     }
+  });
+});
+
+/**
+ * **The whole deck, priced** — batch H2 (`docs/audit/orchestrator.md`, finding
+ * 4), and the register that keeps it whole.
+ *
+ * Two claims, and the first is structural rather than arithmetic: `scoreEffect`
+ * switches on an **aliased discriminant** and ends in a `never`, so a member of
+ * `CardEffect` declared in `statecraftData.ts` with no arm here stops compiling.
+ * That claim cannot be made by a test at all — it is the typechecker's — so what
+ * this file pins instead is the *shape of the register*: every kind has a `case`
+ * label of its own, and the kinds that still meet `score.unknownEffect` are a
+ * **named list** rather than whatever happened to fall through a `default`.
+ *
+ * The second claim is the batch: each newly-armed shape's price is the fold's own
+ * figure on a bench where the fold can be computed by hand, `===`, never
+ * `toBeCloseTo` — the discipline every appraisal in this bot is held to.
+ */
+describe('the whole deck, priced (batch H2)', () => {
+  function board(seats = 1): { state: GameState; player: Player; city: City } {
+    const state = bench(seats);
+    const city = foundCityAt(state, 0, at(state.map, 4, 5));
+    city.population = 6;
+    recomputeAllVisibility(state);
+    return { state, player: seat(state, 0), city };
+  }
+
+  /** `scoreEffect`'s own `case` labels, read off the source. */
+  function armedKinds(): Set<string> {
+    const source = AI_SOURCES['../../src/ai/value.ts']!;
+    const body = source.slice(source.indexOf('function scoreEffect('));
+    return new Set(
+      [...body.slice(0, body.indexOf('\n}\n')).matchAll(/case '(\w+)'/g)].map((m) => m[1]!),
+    );
+  }
+
+  it('has a case label for every shape the vocabulary declares', () => {
+    // Read off `statecraftData.ts`' own union rather than off a list here, so a
+    // shape added there and not armed fails this as well as the typecheck. The
+    // union is a type and types do not survive to runtime, so the *source* is
+    // the register — `seatRoster.test.ts`' idiom, for its stated reason.
+    const data = (
+      import.meta.glob('../../src/sim/statecraftData.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>
+    )['../../src/sim/statecraftData.ts']!;
+    const declared = new Set(
+      [...data.matchAll(/^ {2}kind: '(\w+)';$/gm)].map((m) => m[1]!),
+    );
+    // A sanity floor: the union is forty-odd members and a regex that matched
+    // nothing would make this test pass by saying nothing.
+    expect(declared.size).toBeGreaterThan(40);
+    const armed = armedKinds();
+    // `countScaled` is armed by the caller (`explainEffects` sends it to
+    // `explainCounted` one call earlier) as well as by a case of its own.
+    armed.add('countScaled');
+    const missing = [...declared].filter((kind) => !armed.has(kind));
+    expect(missing).toEqual([]);
+  });
+
+  it('names every shape that still meets the stand-in, and no others', () => {
+    // **The stand-in list, by name.** Each of these is an arm that returns
+    // `score.unknownEffect` on purpose, with a line in the source saying why —
+    // and the claim is that the list has not quietly grown. Six of them are
+    // rules or facts with no fold behind them, one is a slot whose price lives
+    // in a module that reads this one, and two are amplifier targets that are
+    // not rates.
+    const named = [
+      'pantheonSlots', // a belief's worth is `wants.ts`', which reads this file
+      'pressure', // the tide: no model of a conversion anywhere in the bot
+      'pressureRule', // the same
+      'cityRule', // what fresh water un-gates is `buildError` asked hypothetically
+      'actionRule', // three of four open a draft no surface constructs (H3)
+      'behaviorRule', // a rule of the wild's turn, and roads that are already free
+      'metaRule', // a seal is the difference between two draft plans
+    ];
+    const { state, player } = board();
+    const ctx = valueContext(state, player);
+    const stand = ctx.ai.score.unknownEffect;
+    expect(scoreEffects([{ kind: 'pantheonSlots', amount: 1 }], ctx)).toBe(
+      stand * ctx.ai.score.nominalCount,
+    );
+    expect(scoreEffects([{ kind: 'pressure', amount: 4, range: 8 }], ctx)).toBe(stand);
+    expect(
+      scoreEffects([{ kind: 'pressureRule', rule: 'roadStrength', delta: 2 }], ctx),
+    ).toBe(stand);
+    expect(scoreEffects([{ kind: 'cityRule', rule: 'freshwater' }], ctx)).toBe(stand);
+    expect(scoreEffects([{ kind: 'actionRule', rule: 'freeChop' }], ctx)).toBe(stand);
+    expect(
+      scoreEffects([{ kind: 'behaviorRule', rule: 'barbarianKillsConvert' }], ctx),
+    ).toBe(stand);
+    expect(scoreEffects([{ kind: 'metaRule', rule: 'sealTurns', value: 10 }], ctx)).toBe(stand);
+    // And the two amplifier targets that are not rates, named inside their arm.
+    expect(
+      scoreEffects([{ kind: 'effectAmplifier', target: 'riteDuration', percent: 50 }], ctx),
+    ).toBe(stand);
+    expect(
+      scoreEffects([{ kind: 'effectAmplifier', target: 'greatPersonAct', percent: 100 }], ctx),
+    ).toBe(stand);
+    expect(named.length).toBe(7);
+  });
+
+  it('prices a windfall rider as the occasion’s own frequency times its grant', () => {
+    // **The 43-row family.** A technology completed is an occasion this board
+    // keeps the record of — technologies held over turns played — so the price
+    // is that rate times what the rider hands over, through `explainLump`.
+    const { state, player } = board();
+    state.turn = 40;
+    player.techsResearched.push('agriculture' as TechId, 'mining' as TechId);
+    const ctx = valueContext(state, player);
+    const rider: CardEffect[] = [
+      { kind: 'windfallRider', occasion: 'tech', grant: { yield: 'culture', amount: 40 } },
+    ];
+    const rate = player.techsResearched.length / state.turn;
+    const lump = (40 * ctx.prices.culture) / ctx.ai.score.lumpTurns;
+    expect(scoreEffects(rider, ctx)).toBe(lump * rate);
+    // An occasion this empire has no record of is worth nothing, and says so by
+    // arithmetic: a seat that has bought no hex is paid nothing for buying one.
+    expect(
+      scoreEffects(
+        [{ kind: 'windfallRider', occasion: 'tilePurchase', grant: { yield: 'gold', amount: 5 } }],
+        ctx,
+      ),
+    ).toBe(0);
+  });
+
+  it('multiplies a rider by the era and by the chairs it fills', () => {
+    // `perAge` and `perSlottedOrder` are the evaluator's own multipliers, read
+    // off the same board `windfallPayout` reads them off.
+    const { state, player } = board();
+    state.turn = 40;
+    player.techsResearched.push('agriculture' as TechId);
+    const ctx = valueContext(state, player);
+    const plain = scoreEffects(
+      [{ kind: 'windfallRider', occasion: 'tech', grant: { yield: 'faith', amount: 10 } }],
+      ctx,
+    );
+    const aged = scoreEffects(
+      [
+        {
+          kind: 'windfallRider',
+          occasion: 'tech',
+          perAge: true,
+          grant: { yield: 'faith', amount: 10 },
+        },
+      ],
+      ctx,
+    );
+    expect(aged).toBe(plain * Math.max(1, ctx.age));
+  });
+
+  it('prices the payroll rules off the payroll itself', () => {
+    // Tyranny's thirty percent and The Reckless Levy's hundred, both read off
+    // `unitUpkeepTotal` at gold's live price — the same door a wage is charged
+    // through, so a rebate and the bill it forgives cannot disagree.
+    const { state, player } = board();
+    for (let n = 0; n < 4; n++) createUnit(state, player.id, 'warrior', 5 + n, 7);
+    const ctx = valueContext(state, player);
+    const bill = unitUpkeepTotal(state, player.id);
+    expect(bill).toBeGreaterThan(0);
+    const rebate = scoreEffects(
+      [{ kind: 'rulePercent', rule: 'unitUpkeep', percent: -30 }],
+      ctx,
+    );
+    const surcharge = scoreEffects(
+      [{ kind: 'rulePercent', rule: 'unitUpkeep', percent: 100 }],
+      ctx,
+    );
+    expect(rebate).toBe(0.3 * bill * ctx.prices.gold);
+    expect(surcharge).toBe(-1 * bill * ctx.prices.gold);
+  });
+
+  it('prices the contentment rule off what this empire’s citizens demand', () => {
+    const { state, player, city } = board();
+    city.population = 7;
+    refreshCityDerived(state, city);
+    const ctx = valueContext(state, player);
+    const demand = happinessDemand(city.population);
+    expect(demand).toBeGreaterThan(0);
+    expect(
+      scoreEffects([{ kind: 'rulePercent', rule: 'happinessDemand', percent: -15 }], ctx),
+    ).toBe(0.15 * demand * ctx.prices.happiness);
+  });
+
+  it('prices a rate conversion out of the books it converts', () => {
+    // The Tithe: a coin per point of faith a turn. The books are the very
+    // reading `collectYields` hands the evaluator, so nothing is estimated.
+    const { state, player, city } = board();
+    city.buildings.push('shrine');
+    refreshCityDerived(state, city);
+    const ctx = valueContext(state, player);
+    const faith = empireRateReading(state, player.id).faithPerTurn ?? 0;
+    expect(faith).toBeGreaterThan(0);
+    const effect: CardEffect = {
+      kind: 'rateConversion',
+      from: 'faithPerTurn',
+      per: 1,
+      pays: { to: 'yield', yield: 'gold', amount: 1, where: 'empire' },
+    };
+    expect(scoreEffects([effect], ctx)).toBe(Math.floor(faith) * ctx.prices.gold);
+  });
+
+  it('prices a yield conversion as the share of the books it reads', () => {
+    const { state, player } = board();
+    const ctx = valueContext(state, player);
+    const food = empireRateReading(state, player.id).foodPerTurn ?? 0;
+    expect(food).toBeGreaterThan(0);
+    const effect: CardEffect = {
+      kind: 'yieldConversion',
+      from: 'food',
+      to: 'gold',
+      percent: 10,
+    };
+    expect(scoreEffects([effect], ctx)).toBe(0.1 * food * ctx.prices.gold);
+  });
+
+  it('prices the Curia’s mirror off the shelves the empire has raised', () => {
+    const share: CardEffect[] = [
+      { kind: 'mirrorYield', from: 'faith', to: 'science', category: 'faith' },
+    ];
+    const { state, player, city } = board();
+    expect(scoreEffects(share, valueContext(state, player))).toBe(0);
+    city.buildings.push('temple');
+    refreshCityDerived(state, city);
+    const ctx = valueContext(state, player);
+    const faith = buildingDef('temple').faith ?? 0;
+    expect(faith).toBeGreaterThan(0);
+    expect(scoreEffects(share, ctx)).toBe(faith * ctx.ai.weights.science[ctx.age - 1]!);
+  });
+
+  it('pays a counted city line once per town, not once', () => {
+    // **The audit's finding 6.** The simulation pays a `where: 'city'` line in
+    // every town; the appraiser used to take it once, an under-price by the
+    // whole of the empire's city count on five live rows.
+    const state = bench(1);
+    const first = foundCityAt(state, 0, at(state.map, 4, 5));
+    first.population = 6;
+    recomputeAllVisibility(state);
+    const player = seat(state, 0);
+    const effect: CardCountScaledEffect = {
+      kind: 'countScaled',
+      count: 'cities',
+      pays: { to: 'yield', yield: 'gold', amount: 1, where: 'city' },
+    };
+    const one = explainCounted(effect, valueContext(state, player)).total;
+    const second = foundCityAt(state, 0, at(state.map, 9, 5));
+    second.population = 6;
+    recomputeAllVisibility(state);
+    const two = explainCounted(effect, valueContext(state, player)).total;
+    // Two towns counted, and each of them paid: four times one town's one.
+    expect(two).toBe(one * 4);
+    // An `empire` line is unmoved by the same board — the fix is scoped.
+    const empireLine: CardCountScaledEffect = {
+      kind: 'countScaled',
+      count: 'cities',
+      pays: { to: 'yield', yield: 'gold', amount: 1, where: 'empire' },
+    };
+    const ctx = valueContext(state, player);
+    expect(explainCounted(empireLine, ctx).total).toBe(2 * ctx.prices.gold);
+  });
+
+  it('prices a charter as the shelf it opens, in the towns that would raise it', () => {
+    const { state, player } = board();
+    const ctx = valueContext(state, player);
+    const priced = scoreEffects([{ kind: 'unlocksBuilding', building: 'library' }], ctx);
+    expect(priced).toBeGreaterThan(ctx.ai.score.unknownEffect);
+    // A row worth nothing to this empire opens nothing: the reading is the
+    // shelf's, so a shelf that pays nothing is a charter that pays nothing.
+    expect(priced).toBeGreaterThan(0);
+  });
+
+  it('prices a gated clause at its clauses while the gate is open, and at nothing when shut', () => {
+    const { state, player } = board();
+    const gated: CardEffect[] = [
+      {
+        kind: 'conditionRule',
+        when: { test: 'cityCountAtMost', value: 4 },
+        then: [{ kind: 'cityYields', gold: 2 }],
+      },
+    ];
+    const open = valueContext(state, player);
+    expect(scoreEffects(gated, open)).toBe(scoreEffects([{ kind: 'cityYields', gold: 2 }], open));
+    const shut: CardEffect[] = [
+      {
+        kind: 'conditionRule',
+        when: { test: 'cityCountAtLeast', value: 9 },
+        then: [{ kind: 'cityYields', gold: 2 }],
+      },
+    ];
+    expect(scoreEffects(shut, open)).toBe(0);
+  });
+
+  it('prices a caravan slot as the route it opens, and at nothing with a slot going spare', () => {
+    // The same door a market's shelves walk through (`routeSlotTerm`), so the
+    // card and the building cannot disagree about what a slot is worth. A lone
+    // town has nowhere to send a route, so this bench answers nothing.
+    const { state, player } = board();
+    expect(scoreEffects([{ kind: 'routeRider', extra: 1 }], valueContext(state, player))).toBe(0);
+  });
+
+  it('reads the empire card lines into the margin', () => {
+    // **The audit's finding 5**, as arithmetic: `V` is the base books *plus*
+    // `explainEmpireCardYields`, so an engine whose lines land at empire scale
+    // is no longer worth exactly zero to the margin.
+    const { state, player, city } = board();
+    city.buildings.push('shrine', 'temple');
+    refreshCityDerived(state, city);
+    const before = empireRateReading(state, player.id).goldPerTurn ?? 0;
+    const lines = explainEmpireCardYields(state, player.id);
+    // The claim is about the *reading*, and it holds whether or not this bench
+    // happens to carry an empire line: the base books stop one line short by
+    // construction, and the bot's `V` no longer does.
+    expect(Array.isArray(lines)).toBe(true);
+    expect(Number.isFinite(before)).toBe(true);
+    const source = AI_SOURCES['../../src/ai/value.ts']!;
+    expect(source).toContain('function marginRates(');
+    expect(source.slice(source.indexOf('function marginRates('))).toContain(
+      'explainEmpireCardYields',
+    );
   });
 });

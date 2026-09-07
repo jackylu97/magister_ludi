@@ -22,9 +22,15 @@
  *
  * The two **meters** are deliberately outside all of this: happiness and
  * authority are ledgers compared against tier rungs rather than yields that are
- * spent, they carry a genuinely fractional crowding term, and they print through
- * `meterFigure` / `signedMeterFigure`, which keep the tenth. That split is the
- * third claim below, so nobody "tidies" the two pairs back into one.
+ * spent, they carry a genuinely fractional crowding term, and their *ledgers*
+ * print through `meterFigure` / `signedMeterFigure`, which keep the tenth. That
+ * split is the third claim below, so nobody "tidies" the two pairs back into one.
+ *
+ * **Their chips do not** (the user, 2026-09-06, `docs/flags.md` item z: "every
+ * figure in the top bar rounds to the nearest integer for display — the yield
+ * chips and both meters"). The pair below is unchanged and still asserted; what
+ * moved is the call site, and that half is pinned in `figures.test.ts`'s "the
+ * top bar prints whole figures".
  */
 
 import { describe, expect, it } from 'vitest';
@@ -62,7 +68,7 @@ describe('the house printers round through the sim’s one rule', () => {
     expect(signedFigure(-2.6)).toBe(signedYield(-2.6));
   });
 
-  it('keeps the two meters on their own printer, at a tenth', () => {
+  it('keeps the two meters’ ledgers on their own printer, at a tenth', () => {
     expect(meterFigure(9.64)).toBe('9.6');
     expect(signedMeterFigure(-2.44)).toBe('−2.4');
     // And they are a different answer from the yields' printer, which is the

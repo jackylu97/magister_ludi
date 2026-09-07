@@ -46,7 +46,7 @@ import {
   createUnit,
   unitById,
 } from '../../src/sim/state';
-import { explainEmpireGold } from '../../src/sim/trade';
+import { empireGold, explainEmpireGold } from '../../src/sim/trade';
 import { emptyTurnReport, runEndOfTurn } from '../../src/sim/turn';
 import { unitDef } from '../../src/sim/unitData';
 import {
@@ -54,6 +54,8 @@ import {
   disbandCandidate,
   explainBuildingUpkeep,
   explainUnitUpkeep,
+  explainUnitUpkeepRebate,
+  explainUnitUpkeepSurcharge,
   treasuryInDebt,
   unitUpkeep,
   unitUpkeepOf,
@@ -277,6 +279,143 @@ describe('the empire ledger', () => {
       .reduce((sum, c) => sum + cityYields(state, c, [], c.queue[0]).gold, 0);
     collectYields(state);
     expect(player.gold).toBe(100 + towns + empire);
+  });
+});
+
+// --- what the law does to a payroll -----------------------------------------
+
+/**
+ * **A surcharge is a charge, and it lands in the one fold.**
+ *
+ * The Reckless Levy is *"+50% production toward units · every unit costs one
+ * more coin to keep"* (the user's ruling of 2026-09-06), and until that day the
+ * empire kept the hammers and paid nothing at all: the charge had no shape (the
+ * flat per-piece vocabulary was give-backs only) and the percentage rule's one
+ * reader opened its arm with `if (percent >= 0) return out;`, so a payroll a
+ * card made dearer was read, folded and thrown away either way.
+ *
+ * Four claims, and they fail for different reasons: the **line** exists and is
+ * labelled with the card that spoke; it is a coin **per piece the empire pays
+ * for**, so an exempt piece is no dearer; the **treasury** actually moves by it;
+ * and it **composes** with the give-back halves in the fold's stated order — the
+ * army's price, then what the law added, then what the law forgives.
+ */
+describe('a levy on the payroll', () => {
+  /** Puts an Order in a seat's hand and in a slot. Test scaffolding only. */
+  function slot(state: GameState, playerId: number, id: string): void {
+    const sc = state.players[playerId]!.statecraft;
+    if (!sc.orders.includes(id as never)) sc.orders.push(id as never);
+    sc.slots.push({ card: id as never, sealedUntil: state.turn });
+  }
+
+  /**
+   * A world with an army worth paying for, and the coin to pay it.
+   *
+   * **Mixed on purpose**: three warriors at a coin and a swordsman at two, so
+   * the head count (4) and the payroll (5) are different numbers and a test
+   * cannot pass by confusing "one per piece" with "one fifth of the bill". A
+   * settler stands beside them, exempt, so "every unit" is read against the
+   * pieces the empire actually pays for.
+   */
+  function army(): { state: GameState; gross: number; soldiers: number } {
+    const { state } = world();
+    for (let i = 0; i < 3; i++) createUnit(state, 0, 'warrior', 5, 4 - (i % 2));
+    createUnit(state, 0, 'swordsman', 5, 6);
+    createUnit(state, 0, 'settler', 5, 7);
+    state.players[0]!.gold = 500;
+    const paid = explainUnitUpkeep(state, 0);
+    const gross = paid.reduce((sum, line) => sum + line.gold, 0);
+    expect(gross).toBe(5);
+    expect(paid).toHaveLength(4);
+    return { state, gross, soldiers: paid.length };
+  }
+
+  it('charges a coin a soldier, as its own labelled line beside the charge', () => {
+    const { state, gross, soldiers } = army();
+    const before = explainEmpireGold(state, 0);
+    expect(before.some((line) => line.source.includes('Reckless'))).toBe(false);
+
+    slot(state, 0, 'theRecklessLevy');
+    const after = explainEmpireGold(state, 0);
+    // The gross is **untouched**: the per-piece list is what a hover prints and
+    // what the creditors pick off, and a levy is not a fact about a warrior.
+    expect(explainUnitUpkeep(state, 0).reduce((sum, line) => sum + line.gold, 0)).toBe(gross);
+    expect(after.find((line) => line.source.startsWith('Unit maintenance'))?.gold).toBe(-gross);
+    // **One coin per piece the empire pays for** — the head count, not a share
+    // of the bill: four soldiers on a payroll of five is a charge of four, and
+    // the settler standing with them is charged nothing.
+    const levy = after.find((line) => line.source.includes('Reckless'));
+    expect(levy?.gold).toBe(-soldiers);
+    expect(soldiers).not.toBe(gross);
+    // And it is one line of its own, immediately after the charge it rides on.
+    expect(after.indexOf(levy!)).toBe(
+      after.findIndex((line) => line.source.startsWith('Unit maintenance')) + 1,
+    );
+    // One fold, and the treasury's figure is it.
+    expect(empireGold(state, 0)).toBe(after.reduce((sum, line) => sum + line.gold, 0));
+    expect(empireGold(state, 0)).toBe(
+      before.reduce((sum, line) => sum + line.gold, 0) - soldiers,
+    );
+  });
+
+  it('is what the phase actually banks', () => {
+    // The ledger's own pin one block up, said again with a card in the slot:
+    // a line nothing charges is a line that reads well and costs nothing.
+    const plain = army();
+    const levied = army();
+    slot(levied.state, 0, 'theRecklessLevy');
+    const purse = (state: GameState): number => state.players[0]!.gold;
+    const opened = { plain: purse(plain.state), levied: purse(levied.state) };
+    collectYields(plain.state);
+    collectYields(levied.state);
+    expect(purse(levied.state) - opened.levied).toBe(
+      purse(plain.state) - opened.plain - plain.soldiers,
+    );
+  });
+
+  it('composes with the give-backs, in the fold’s stated order', () => {
+    // The flat give-back is counted off the **pieces** and so is the levy, and
+    // neither is a share of the other: The Quartermasters take a shilling off
+    // each soldier and the Levy puts a coin back on, and both lines stand.
+    const { state, gross, soldiers } = army();
+    slot(state, 0, 'theQuartermasters');
+    const flat = explainUnitUpkeepRebate(state, 0);
+    expect(flat).toHaveLength(1);
+    slot(state, 0, 'theRecklessLevy');
+    expect(explainUnitUpkeepRebate(state, 0).map((line) => line.gold)).toEqual(
+      flat.map((line) => line.gold),
+    );
+    expect(explainUnitUpkeepSurcharge(state, 0).reduce((sum, l) => sum + l.gold, 0)).toBe(soldiers);
+
+    // And the **percentage** give-back is a third sentence again: Tyranny takes
+    // its thirty percent of the gross, which the levy has not moved.
+    state.players[0]!.statecraft.government = 'tyranny' as never;
+    const rebates = explainUnitUpkeepRebate(state, 0);
+    expect(rebates.some((line) => line.source.includes('Tyranny'))).toBe(true);
+    expect(explainUnitUpkeepSurcharge(state, 0).reduce((sum, l) => sum + l.gold, 0)).toBe(soldiers);
+
+    // The order in the one fold: the army's price, what the law added, then
+    // every give-back. A ledger that printed the forgiveness before the charge
+    // would be a ledger read backwards.
+    const ledger = explainEmpireGold(state, 0);
+    const at = (needle: string): number =>
+      ledger.findIndex((line) => line.source.includes(needle));
+    expect(at('Unit maintenance')).toBeGreaterThanOrEqual(0);
+    expect(at('Reckless')).toBe(at('Unit maintenance') + 1);
+    expect(at('Quartermasters')).toBeGreaterThan(at('Reckless'));
+    expect(at('Tyranny')).toBeGreaterThan(at('Quartermasters'));
+    // And the whole of it is still one sum: the charge, the levy, the two
+    // give-backs, and the gross untouched underneath them all.
+    expect(explainUnitUpkeep(state, 0).reduce((sum, line) => sum + line.gold, 0)).toBe(gross);
+    expect(empireGold(state, 0)).toBe(ledger.reduce((sum, line) => sum + line.gold, 0));
+  });
+
+  it('charges the wild nothing, like every other line', () => {
+    const state = bareState();
+    state.players[1]!.barbarian = true;
+    createUnit(state, 1, 'warrior', 8, 8);
+    slot(state, 1, 'theRecklessLevy');
+    expect(explainUnitUpkeepSurcharge(state, 1)).toEqual([]);
   });
 });
 

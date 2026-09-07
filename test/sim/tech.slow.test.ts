@@ -661,22 +661,42 @@ describe('pacing', () => {
     const scouts = (): number => game.state.units.filter((unit) => unit.type === 'scout').length;
     const started = scouts();
     const built = (): boolean => scouts() > started;
-    let turns = 0;
-    let rate = 0;
-    while (!built() && turns < 10) {
+    // The **priced** figure, not the row's: since 2026-09-06 (`docs/flags.md`
+    // item y) every hammer price wears its age band, so the row's 13 is not what
+    // the basket pays for a scout — `unitProductionCost` is, and it is what the
+    // relation below has to be read against.
+    const cost = unitProductionCost(game.state, 0, 'scout');
+    // **Measured against the accumulated bank, not against one rate** — the
+    // correction the settler case below already carries, and which this one now
+    // needs for the same reason. A build long enough for the borders to reach a
+    // new tile is a build in which the citizen assigner legitimately steps the
+    // rate, and dividing by the first turn's figure would be asserting that
+    // borders are slow. At the pre-ruling price of 13 the build was short enough
+    // that the two readings agreed; at 16 they do not, and the accumulated one is
+    // the honest half of the pair.
+    const income: number[] = [];
+    while (!built() && income.length < 10) {
+      const banked = capital.hammerBasket;
       expect(dispatch(game, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
-      turns += 1;
-      if (turns === 1) rate = capital.hammerBasket;
+      income.push(capital.hammerBasket - banked + (built() ? cost : 0));
     }
+    const turns = income.length;
     // The first turn's bank *is* the opening yield — if those two ever disagree
     // the production pipeline has grown a second opinion about a city's rate.
-    expect(rate).toBe(opening);
-    const cost = unitDef('scout').cost;
-    expect(turns, `${cost}⚙ at ${rate}⚙ a turn`).toBe(Math.ceil(cost / rate));
+    expect(income[0]).toBe(opening);
+    // The first turn on which the banked income covers the price, which is the
+    // turn the scout arrives.
+    let banked = 0;
+    let expected = Infinity;
+    for (let turn = 1; turn <= turns; turn++) {
+      banked += income[turn - 1]!;
+      if (banked >= cost && expected === Infinity) expected = turn;
+    }
+    expect(turns, `${cost}⚙ off ${income.join('+')}`).toBe(expected);
     // A scout inside the first handful of turns, whatever the roll: the opening
     // is not allowed to become a scoutless one. Bound re-pinned 2026-08-28 with
-    // the scout's ×1.4 cost rise (9 → 13⚙): this fixed seed's own opening rate
-    // now takes it to turn 7.
+    // the scout's ×1.4 cost rise (9 → 13⚙); it survives the Æra I band of
+    // 2026-09-06 unmoved, because this capital's rate steps inside the build.
     expect(`scout on turn ${turns}`).toBe(`scout on turn ${Math.min(turns, 7)}`);
   }, 30_000);
 
@@ -769,8 +789,11 @@ describe('pacing', () => {
     };
 
     const first = unitProductionCost(game.state, 0, 'settler');
-    // Re-pinned 2026-08-28 with the settler's ×1.4 cost rise (20 → 28⚙).
-    expect(first).toBe(28);
+    // Re-pinned 2026-08-28 with the settler's ×1.4 cost rise (20 → 28⚙), and
+    // again 2026-09-06 (`docs/flags.md` item y): the row still prints 28 and
+    // the Æra I band — which is ×1.25 now, where the opening used to be exempt
+    // at ×1 — takes what the city pays to 35.
+    expect(first).toBe(35);
     const firstBuild = buildSettler(first);
     expect(firstBuild.income.every((rate) => rate > 0)).toBe(true);
     expect(firstBuild.turns, `${first}⚙ off ${firstBuild.income.join('+')}`).toBe(
@@ -780,8 +803,16 @@ describe('pacing', () => {
 
     // And the second is a whole increment dearer — the brake the escalation is
     // there to be, and it pays for that increment in hammers too.
+    // The band multiplies the *escalated* figure (`explainUnitCost` prints its
+    // lines in the order the arithmetic runs), so a rung is not `first + step`
+    // any more — it is the row's ladder scaled and floored once.
+    const rung = (built: number): number =>
+      Math.floor(
+        (unitDef('settler').cost + built * unitDef('settler').escalation!) *
+          RULES.production.costAgeBase,
+      );
     const second = unitProductionCost(game.state, 0, 'settler');
-    expect(second).toBe(first + unitDef('settler').escalation!);
+    expect(second).toBe(rung(1));
     const secondBuild = buildSettler(second);
     expect(secondBuild.turns, `${second}⚙ off ${secondBuild.income.join('+')}`).toBe(
       turnsFor(second, secondBuild.income),
@@ -793,11 +824,9 @@ describe('pacing', () => {
     expect(turnsFor(second, firstBuild.income.concat(firstBuild.income))).toBeGreaterThan(
       firstBuild.turns,
     );
-    expect(unitProductionCost(game.state, 0, 'settler')).toBe(
-      first + 2 * unitDef('settler').escalation!,
-    );
+    expect(unitProductionCost(game.state, 0, 'settler')).toBe(rung(2));
     // The settler is the expensive end of the opening scale: a real multiple of
     // what the scout costs, whatever the capital's roll.
-    expect(first).toBeGreaterThanOrEqual(unitDef('scout').cost * 2);
+    expect(first).toBeGreaterThanOrEqual(unitProductionCost(game.state, 0, 'scout') * 2);
   }, 30_000);
 });

@@ -51,6 +51,267 @@ The play checkout (:5199) moves only when the user says; every batch lands in
 
 ## As shipped
 
+### Batch H10 as shipped (2026-09-06) — schema 81
+
+Early production (`docs/flags.md`, "Rulings 2026-09-06, late — early
+production", items x, y, z). Three rulings, one schema: the tree's first paid
+column, one age band over every hammer price, and whole figures in the top bar.
+
+#### (x) The first column of technologies
+
+Column 1 — the four nodes every empire buys before anything else — from 13 to
+**10** beakers. The root's nominal 5 and every column from 2 up are untouched,
+so the taper now carries an authored figure at each end and the measured ladder
+in the middle.
+
+| | column 0 | column 1 | columns 2–12 |
+|---|---|---|---|
+| **before** | 5 (never paid) | 13 | 30 · 69 · 135 · 225 · 400 · 540 · 680 · 1450 · 1700 · 1950 · 2200 |
+| **after** | 5 (never paid) | **10** | unchanged |
+
+Æra I costs 345 → **333**; the tree 35710 → **35698**. The nodes are Fletching,
+Husbandry, Mining and Pottery. `COLUMN_COSTS` in `test/sim/tech.test.ts` is the
+witness table and carries the ruling; `docs/tech-tree.md` mirrors it.
+
+#### (y) One age band over every hammer price
+
+`cost × costAgeBase ^ age`, base **1.25** in `data/rules.json` under
+`production`. The band was a hand-authored four-entry ladder that only units
+read; it is a power now, it is asked of buildings and wonders on the same terms,
+and Æra I is no longer exempt.
+
+| | Æra I | Æra II | Æra III | Æra IV |
+|---|---|---|---|---|
+| **units, before** | ×1 | ×1.5 | ×2 | ×2.5 |
+| **buildings and wonders, before** | ×1 | ×1 | ×1 | ×1 |
+| **everything, after** | **×1.25** | **×1.5625** | **×1.953125** | **×2.44140625** |
+
+Hammers the whole table asks for, by age — the printed rows in `data/*.json` are
+untouched, so every figure below is the fold's second line:
+
+| | Æra I | Æra II | Æra III | Æra IV |
+|---|---|---|---|---|
+| units, before | 245 | 151 | 364 | 503 |
+| units, after | **302** | **153** | **352** | **488** |
+| ordinary buildings, before | 3100 | 903 | 911 | 2038 |
+| ordinary buildings, after | **3868** | **1406** | **1775** | **4971** |
+| wonders, before | 760 | 610 | 3135 | 1295 |
+| wonders, after | **947** | **951** | **6117** | **3161** |
+
+The two late ages of the *roster* land a hammer or two under the ladder they
+replaced and the two early ages a quarter over it; what actually moved is the
+building and wonder columns, which had no band at all. An Æra III building is
+about twice its printed row, which is the ruling read literally ("Age 3 buildings
+and units should probably be ~2× as expensive"). A few rows, to read the shape:
+
+| row | age | printed | before | after |
+|---|---|---|---|---|
+| Warrior | I | 10 | 10 | **12** |
+| Settler | I | 28 | 28 | **35** |
+| Swordsman | II | 14 | 21 | 21 |
+| Knight | IV | 22 | 55 | **53** |
+| Granary | I | 21 | 21 | **26** |
+| Amphitheater | II | 74 | 74 | **115** |
+| The Great Library | III | 205 | 205 | **400** |
+| University | IV | 134 | 134 | **327** |
+
+**Rounding**: the band **floors**, once, at the fold's total. A cost is compared
+against a basket in `planProduction` and printed on a button beside a turn
+estimate, so it stays an integer — this is not batch X's exact-decimal rule,
+which is about *yields*, and the docblocks on `explainBuildingCost` and
+`ProductionRules.costAgeBase` say so. Each line carries the *difference* it
+makes, so the list still sums to the price.
+
+**Where it lands**: `explainBuildingCost` / `buildingProductionCost`
+(`cities.ts`) are `explainUnitCost`'s shape one grade over, and take **no
+player** — nothing an empire does changes what a building costs to build.
+`queueItemCost` and `planProduction` charge through them, and so does every
+surface that prints a price: the city panel's build list and its hover cards,
+the star chart's unlock notes and its node cards, the Compendium's building and
+tech entries. **Purchases** convert the folded list rather than the printed row
+(`explainPurchaseCost`'s second shape), so a cathedral is bought in the money of
+its own era. **Projects are untouched** — a project's cost is the size of one
+turn of a conversion, not the price of a thing.
+
+#### (z) Whole figures in the top bar
+
+The six yield chips printed `String(totals[key])` — the raw exact fold, which
+since batch X is a number like `2.6666666666666665`. They print through
+`netFigure` and `poolFigure` now. The two meter chips printed
+`signedMeterFigure`, which keeps a tenth; they print through `signedFigure` with
+everything else on the strip.
+
+The tenth is **withdrawn from the bar, not deleted**: `meterFigure` and
+`signedMeterFigure` keep it, and the meters' hover cards, their click-through
+ledgers and the authority card's capacity headline still print through them —
+which is where the docblock's argument for the tenth lives (a fraction is worth
+seeing against a rung, and a ledger is where a player counts). A chip is a
+glance.
+
+`netFigure` is new beside `figure` and `signedFigure`: whole, a true minus sign
+kept, never a plus. `figure` is a **magnitude** and always was, which is right
+for a cost and wrong for a chip — a food rate goes negative when a town starves
+and a treasury goes negative on maintenance, and both printed as magnitudes read
+as good news. `poolFigure`'s bank leads through it for the same reason.
+
+#### Schema and coverage
+
+Schema **81**: every research settlement banks against a different threshold and
+every completion against a different basket, so a v80 log diverges at the first
+town to finish anything.
+
+Re-aimed rather than deleted: `tech.test.ts` (the column table and the Æra I
+node prices), `buildSinks.test.ts` (the band is a power, the roster's figures,
+the settler's fold now carries an Æra I band line) plus a new
+"a building is priced in the money of its own age" suite, `cities.test.ts` (the
+two escalation ladders read their rungs through the band; every basket set from
+a row's printed cost now sets it from the folded price), `purchase.test.ts`,
+`statecraft.test.ts`, `wonders.test.ts`, `cathedral.test.ts`, `endgame.test.ts`,
+`state.test.ts`, and `figures.test.ts` / `yieldPrinters.test.ts` for the strip.
+
+### Batch H9 as shipped (2026-09-06) — schema 79
+
+The woods (`docs/flags.md` "Rulings 2026-09-06, evening" item h) and, folded in
+on the same schema, the strategic start guarantee (`docs/flags.md` note 20,
+RULED 2026-09-05 and never built).
+
+#### The woods: measured, then ground
+
+The complaint: *"currently forests spawn in huge patches, could we make them
+more diffuse across the map? There should be smaller patches of forest across
+the map, and some unforested tiles breaking up the large patches."*
+
+The cause is in the shape of the pass, not in a number. `assignFeatures` dealt
+the wettest `moisture.forestShare` of eligible ground, and moisture is a smooth
+field — so the top third of it is, by construction, a handful of large blobs.
+
+Five seeds, `standard`, before and after:
+
+| | forest share of land | woods per map | mean wood | largest wood | enclosed hexes |
+|---|---|---|---|---|---|
+| **before** | 16.1% | 24.8 | 11.8 | 74.4 | 13.6% |
+| **after** | 15.8% | 47.6 | 6.0 | 43.6 | 1.4% |
+
+*Enclosed* = a forest hex whose six neighbours are all forest. It is the reading
+the complaint actually names: a map of copses has almost none, and it fell by
+**90%**. The share — the thing the ruling asked to keep — moved 0.3 points.
+
+Isolating the two halves on the same seeds (the other switched off):
+
+| | woods | mean | largest | enclosed |
+|---|---|---|---|---|
+| grain only | 47.6 | 6.1 | 45.4 | 3.9% |
+| clearings only | 24.8 | 11.2 | 67.8 | 4.0% |
+
+Both pull. The grain makes the patches; the clearings empty their insides.
+
+#### The knobs
+
+| Key | Value | Why this number |
+|---|---|---|
+| `woodland.grain` | **0.55** | Swept 0.35 / 0.45 / 0.55 / 0.65. 0.45 misses the mean-halved target (7.3); 0.65 reaches mean 5.0 but leaves moisture only a third of the say, and the regional read — wooded country against open steppe — is the thing the two-field design exists for. 0.55 is the smallest weight that hits every target. |
+| `noise.woodlandGrain.cycleTiles` | **5** | A copse in hexes, fixed at every board size (`cycleTiles`, not `frequency`). Mean wood measured 3.7 / 7.2 / 6.1 at duel / standard / large — flat, which is the point. |
+| `woodland.clearingChance` | **0.4** | Measured 41.0% of 134 offers over ten seeds. 0.5 was swept and moved nothing the grain had not already taken. |
+| `woodland.clearingMinPatch` | **8** | A copse is what the pass is making; hollowing a five-hex wood would undo it. |
+
+`grain: 0, clearingChance: 0` reproduces the pre-ruling woods **hex for hex** —
+the `rainShadow.enabled` bargain, pinned by test.
+
+#### Determinism
+
+Both halves draw from streams keyed on the seed —
+`webciv:mapgen:woodland:grain:<seed>` and `…:clearings:<seed>` — never from the
+map's `rng`. So terrain, hills, elevation, moisture, rivers, jungle, oases and
+floodplains on a given seed are **bit-identical** to v78, and so is every later
+pass's dice stream. Pinned by generating one seed with the block on and off and
+diffing every field (`forests.test.ts`).
+
+What does move is the ground the later dice land on: a forest resource needs a
+forest. `placeResources` therefore deals differently. Over the same five seeds
+the resource **total** is unchanged (1848 → 1846 tiles) and the per-1000-land
+budgets are untouched; individual kinds shuffle as the per-continent luxury hand
+meets different ground (deer 83 → 95, furs 37 → 18, amber 12 → 31).
+
+#### The capitals are armed (note 20)
+
+`resources.startStrategics: ["horses", "iron"]`, `startStrategicRadius: 6`. The
+fourth fairness guarantee (`ensureStartStrategics`), built like the three beside
+it: **no dice**, nearest legal hex, ties by tile index, `minSpacing` given up
+rather than the promise, the row's own terrain filter never. Five seeds × the
+maximum twelve-seat roster = 120 seat-resource pairs a size:
+
+| size | forced | seats short | of those, no legal ground |
+|---|---|---|---|
+| duel | 56 | 15 | 10 |
+| standard | 68 | **0** | 0 |
+| large | 69 | **0** | 0 |
+| huge | 79 | **0** | 0 |
+| giant | 73 | **0** | 0 |
+
+Behind it, the start chooser gained its **seventh hard rejection**: a site with
+no legal hex for a listed row within the radius (`strategicGround`, one dilation
+per row per map, not a disc per candidate). **That clause is unreachable on the
+standard sheet** — zero groundless seats at `standard` and above. It fires only
+on `duel` seating twelve, where the chooser's own last-resort fallback then
+seats those players on refused sites anyway because a 40×25 board with twelve
+capitals has nowhere else. A duel map seating twelve is a dev harness.
+
+`tileSuitsResource` moved from `resources.ts` to `resourceData.ts` (a leaf,
+`Tile` imported type-only) so the chooser can read it without closing a runtime
+cycle around `resources.ts → startPositions.ts`. `resources.ts` re-exports it.
+
+#### Surfaces
+
+- `mapgen.html` gained a **The woods** panel (share, woods, mean, largest,
+  enclosed) and prints each seat's guaranteed strategics — in the refusal ink
+  when one is missing. The three woodland knobs joined its Tuning panel; that
+  page's knob list is a curated subset by its own docblock's design, unlike
+  `arena.html`, so this is a page edit by intent rather than a walk that failed.
+- `docs/mapgen.md`: pass 1c in the order table, "The grain of the woods, and the
+  clearings", the `woodland` block in Every tunable, and the four guarantees.
+- Schema **79** (`state.ts`), both halves in one changelog entry.
+
+### Evening rulings i–m as shipped (2026-09-06) — schema 80
+
+Built in main by the orchestrator, beside the H batches (`docs/flags.md`
+"Rulings 2026-09-06, evening").
+
+- **(m) A trader on its route is not in hand.** `ownUnitsAt` (the click's
+  list) and `selectedUnit` in `controls.ts` both read `Unit.trade`; the
+  selection drops the moment a route stands, and the trade screen's by-id
+  Cancel (`cancelRouteOf`) is the way to call one home. No sim change —
+  `unitAwaitsOrders` already skipped a routing trader.
+
+- **(k) The rites shelf.** The verb was already on the city screen (left
+  rail, "Rites"), closed and reading "—". Now the summary prints the price
+  while a rite can be said here, and the shelf opens by itself until the
+  player shuts it (`closedDisclosures` beside `openDisclosures`,
+  `disclosure(…, defaultOpen)`). No sim change; the tree stays the gate.
+- **(l) The bead Orders' age.** `OrderDef.fromAge` (the four pool-V bead rows
+  carry 4), read by `drawablePool(sc, age)` — the bag `drawOrderOffer` deals
+  from; `livePool` (the government's whole shelf, the bot's and the tests'
+  reading) stays ungated, and a held row keeps its chair. Their `note` and
+  the doc bullets say "dealt only once the last age is reached, and earned
+  only there". Tests: `statecraft.test.ts` "an Order dealt only from its age".
+
+- **(i) The belief hand's own ladder.** `openFaithLadder` spends the rung and
+  climbs `PlayerPantheon.rungs` at the deal; `settleBeliefChoice` charges
+  nothing (the offer's `rungCost` is the record). A belief hand's reroll —
+  the ladder's, a prophet's, a founding's — is priced on `BeliefOffer.rerolls`:
+  first asking free, then `explainBeliefRerollCost` (the Order draft's base
+  and age multiplier, `exponent^(asked−1)`), through no door, never moving
+  `rerollsTaken` or the chairs' `rerollsSeen`; the count dies with the hand.
+  The votive card's foot prints "Ask again — free" and then the price with
+  its fold. Tests: `faithLadder.test.ts` ("the deal spends the bank"),
+  `reroll.test.ts` ("a belief hand's own ladder"), `offerFlow.test.ts`.
+- **(f) Winter Mother** pays +1🌾 +1🕯 on every tundra hex — one `tileYield`
+  row on terrain, no feature clause.
+- **(j) No zoom on the city screen.** The wheel is the only zoom input; it
+  returns while `openCity()` holds, by the pan's own derived lock
+  (`panLocked`, `controls.ts`). Pinned in `cityScreen.test.ts`.
+- **Rites**: the tree is the only gate (the Chapel's `ritesDoor` clause,
+  C2's misreading, removed; the Chapel keeps `ritePays`).
+
 ### Batch G as shipped (2026-09-06) — schema 78
 
 The last batch of the pass, and the only one that turns dials rather than

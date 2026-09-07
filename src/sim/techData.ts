@@ -261,7 +261,7 @@
  */
 
 import techsJson from '../../data/techs.json';
-import { type BuildingId, isBuildingId } from './buildingData';
+import { type BuildingId, buildingDef, isBuildingId } from './buildingData';
 // Type-only, and it must stay that way in both directions: `statecraftData.ts`
 // imports `TechId` from here for `CardId`'s tenth class, and a *value* import
 // either way would turn a type cycle into a runtime one. The same bargain
@@ -273,7 +273,7 @@ import type { CardEffect } from './statecraftData';
 // cycle. `import type` is erased entirely.
 import type { BeadGrantId } from './beadData';
 import { type ProjectId, isProjectId } from './projectData';
-import { type UnitTypeId, isUnitTypeId } from './unitData';
+import { type UnitTypeId, isUnitTypeId, unitDef } from './unitData';
 
 export type TechId =
   // Æra I — The Age of Omens
@@ -657,6 +657,33 @@ export const BUILDING_UNLOCK_TECH: ReadonlyMap<BuildingId, TechId> = invert(
 export const PROJECT_UNLOCK_TECH: ReadonlyMap<ProjectId, TechId> = invert(
   (unlocks) => unlocks.projects,
 );
+
+/**
+ * What a technology hands over **that still exists** — the unlock lists with
+ * every retired unit and building row left out.
+ *
+ * The rows stay in the data on purpose: `BuildingDef.retired` keeps a cut row
+ * readable for the saves that hold it, and the tech's own list keeps naming it
+ * so the inverted tables above stay honest about who unlocked what. But a
+ * player reads the tree to decide what to research next, and a node that
+ * promises a Stele of Laws nobody can build is a lie on the one screen where
+ * the promise matters (the user, 2026-09-06: "remove stele of laws — and any
+ * other stale buildings — from the tech tree UX"). Every surface that *prints*
+ * a node's gifts reads this; the gates (`isUnlocked`, `buildError`) read the
+ * raw lists, because a retired row's refusal is its own sentence.
+ */
+export function liveUnlocks(id: TechId): {
+  units: UnitTypeId[];
+  buildings: BuildingId[];
+  projects: ProjectId[];
+} {
+  const { units = [], buildings = [], projects = [] } = techDef(id).unlocks;
+  return {
+    units: units.filter((unit) => unitDef(unit).retired !== true),
+    buildings: buildings.filter((building) => buildingDef(building).retired !== true),
+    projects: [...projects],
+  };
+}
 
 /**
  * Which tech hands over each verb. **The** register for "may this empire do
