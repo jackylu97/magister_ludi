@@ -61,9 +61,22 @@ directly to confirm rulings — user marginalia are rulings.
   bot's price; previews computed beside a fold are findings),
   `docs/audit/simplify.md` (duplications, vocabulary sprawl, structural
   cuts, the brittle pins), `docs/audit/dead-code.md` (declared-never-built,
-  deprecated-and-kept, unread exports and knobs, docs now false). Findings
-  first; fixes as batches on your markup. Two findings from the re-aim,
-  yours to rule:
+  deprecated-and-kept, unread exports and knobs, docs now false). **All
+  three landed, plus the orchestrator's own pass — `docs/audit/
+  orchestrator.md` is the summary and the fix queue.** Confirmed by reading:
+  a route's science and culture never reach the city fold (Ledger Keepers
+  pays nothing on a domestic route); a positive unit-upkeep percent is
+  dropped (the Reckless Levy's cost is never charged); the top bar and the
+  Ledger omit the sender's foreign-route income the turn banks; the bot
+  prices 23 of 46 shapes with one stand-in and its margin is blind to
+  empire lines. Surprises: three live signature clauses (The Commonwealth,
+  The Magisterium, The Academy) open a great-person draft no surface ever
+  offers; six draftable cards carry no effect; `src/proto3d/` is 2,126
+  dead lines and a ninth root page. **H1 (the fold pays what the rows say)
+  and H2 (the bot reads the whole deck) are in flight**; H3 (the draft the
+  cards promise), H4 (dead weight), H5 (one modal shell, shared helpers),
+  H6 (luxuries as cards — high risk) wait for your markup. Two findings
+  from the re-aim, yours to rule:
   1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
      user's ruling was always "unlock rites in the tech tree where they used
      to be"; C2's Chapel gate is removed (the tree is the only gate; the
