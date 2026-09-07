@@ -157,6 +157,7 @@ import {
   type Player,
   type QueueItem,
   allTurnsEnded,
+  bumpRevision,
   cityById,
   clearTurnEnded,
   createUnit,
@@ -4196,6 +4197,14 @@ export function applyCommand(state: GameState, command: Command): CommandResult 
       if (command.type !== 'setAutoExplore') delete unit.autoExplore;
     }
   }
+  // **The world moved** (batch E2). Last, after every mutation this command
+  // made and before the result leaves, so that anything reading the board after
+  // this call reads a counter that has already changed — and *only* on the
+  // accepted path, because a rejected command leaves the state byte-identical
+  // and a counter that moved would be a byte that moved with it. Every derived
+  // reading in the game is remembered under this integer; see
+  // `GameState.revision` and `bumpRevision`.
+  bumpRevision(state);
   return result;
 }
 

@@ -81,13 +81,15 @@ import type { BeadChain, ExpansionChain, TechChain } from './chain';
 import type { RouteOutlook } from './routes';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
+// The town's and the empire's published readings, remembered on
+// `state.revision` — the bot subscribes to the same source of truth the panel,
+// the top bar and the Ledger do (batch E2). See `readings.ts`.
+import { readCity, readEmpirePercents } from '../sim/readings';
 import {
   buildingProductionCost,
   capitalCityOf,
-  cityQuote,
   cityYields,
   emptyCityYields,
-  empirePercents,
   empireRateReading,
   explainEmpireCardYields,
   queueCategory,
@@ -491,13 +493,18 @@ export function townProduction(
   playerId: number,
 ): { median: number; best: number } {
   const made: number[] = [];
-  // The empire's half of every town's percentages, taken **once** for the sweep
-  // — `cityQuote`'s documented bargain (`cities.ts`), and the difference between
-  // one meter sweep and one per town. Same figure; the fold stays where it was.
-  const empire = empirePercents(state, playerId);
+  // **The town's own published list**, subscribed to rather than re-taken
+  // (batch E2): `readCity` is the quote the panel, the top bar and the Ledger
+  // are already reading this revision, with the empire's half of the
+  // percentages hoisted once for the seat inside it. Same figure; the fold
+  // stays where it was, and the sweep is paid for once by everybody.
+  //
+  // Asked toward **nothing** (`null`), deliberately: this is what a town makes,
+  // not what it makes while building a spearman, so a barracks does not flatter
+  // the median the whole appraisal divides by.
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    made.push(cityYields(state, city, [], null, cityQuote(state, city, [], empire)).production);
+    made.push(cityYields(state, city, [], null, readCity(state, city)).production);
   }
   if (made.length === 0) return { median: 1, best: 1 };
   made.sort((a, b) => a - b);
@@ -2395,7 +2402,7 @@ function marginRates(state: GameState, playerId: number): Record<Voice, number> 
   for (const line of explainEmpireCardYields(state, playerId)) {
     for (const voice of VOICES) cards[voice] += line[voice];
   }
-  const staged = stageEmpireFold(cards, empirePercents(state, playerId));
+  const staged = stageEmpireFold(cards, readEmpirePercents(state, playerId));
   for (const voice of VOICES) reading[voice] += staged[voice];
   return reading;
 }

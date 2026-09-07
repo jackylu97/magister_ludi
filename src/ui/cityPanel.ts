@@ -26,19 +26,17 @@
 
 import {
   type BuildingPreviewLine,
-  type BuildingYieldContribution,
+  type CityQuoteLine,
   type CityYields,
   borderGrowth,
   buildingProductionCost,
   cityStageSums,
   type CityQuote,
-  cityQuote,
   cityYields,
   citizenFocus,
   citizenFocusError,
   cityFocus,
   explainBuildingPreview,
-  explainCityBuildings,
   explainGrowthPercent,
   foldBuildingPreview,
   growthSurplus,
@@ -102,7 +100,6 @@ import {
   STAGE_LABEL,
 } from '../sim/modifiers';
 import { CITY_YIELD_KEYS, type CityYieldKey, resourceDef } from '../sim/resourceData';
-import { type ResourceYieldLine, cityResourceYields } from '../sim/resourceEffects';
 import {
   type SpecialistYieldLine,
   citySpecialistYields,
@@ -111,7 +108,8 @@ import {
 } from '../sim/specialists';
 import { cityGuildInflow, dismissSpecialistError, guildIdleLine } from '../sim/guilds';
 import type { SpecialistFamily } from '../sim/greatPeopleData';
-import { type RouteYieldLine, cityRouteYields } from '../sim/trade';
+// The town's one reading — see `renderCity`, and `readings.ts` for the model.
+import { readCity } from '../sim/readings';
 import { cityRouteRows, routeSlotsLine as routeSlotsLineOf } from './tradeLines';
 import { resourceLabelNodes } from './resourceMark';
 import { setYieldText, yieldMarkNode } from './yieldMark';
@@ -471,6 +469,20 @@ let addTab: AddTab = 'all';
 function shelfShows(shelf: AddShelf): boolean {
   return addTab === 'all' || addTab === shelf;
 }
+
+/**
+ * **Which of the town's eleven steps the panel's yield card prints**, in the
+ * order it prints them — the luxuries, the buildings, the guildsmen, the
+ * caravans (steps 4, 8, 5, 6 of `docs/yields.md`).
+ *
+ * A list rather than a filter over all of them, because the omissions are
+ * deliberate and each has a home: the centre and the worked hexes are the hover
+ * card over the hex itself, the cards' own lines are the card's stamp, and the
+ * conversions and the building shares are a share of the block above them rather
+ * than a source a player goes looking for. The reach is the rule (the 2026-09-03
+ * ruling: the breakdown is one hover deeper and no shallower), not the ink.
+ */
+const PANEL_LEDGER_STEPS: readonly number[] = [4, 8, 5, 6];
 
 /**
  * Which standing-fact disclosures a player has opened, by label.
@@ -1421,75 +1433,26 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   // --- sections ------------------------------------------------------------
 
   /**
-   * What one line of a building's breakdown pays, in the yields' own glyphs:
-   * `+3🌾`, `+1🔬/pop`. Empty for a line that pays nothing at all — a barracks
-   * has no yields of its own and is listed below as the modifier it is, not
-   * here as a row of six zeroes.
-   */
-  function buildingFigures(entry: BuildingYieldContribution): string {
-    const parts: string[] = [];
-    const voices: [number, string][] = [
-      [entry.food, YIELD_GLYPH.food],
-      [entry.production, YIELD_GLYPH.production],
-      [entry.gold, YIELD_GLYPH.gold],
-      [entry.science, YIELD_GLYPH.science],
-      [entry.culture, YIELD_GLYPH.culture],
-      [entry.faith, YIELD_GLYPH.faith],
-    ];
-    for (const [raw, glyph] of voices) {
-      const value = roundYield(raw);
-      if (value === 0) continue;
-      parts.push(`${value > 0 ? '+' : ''}${value}${glyph}`);
-    }
-    if (entry.sciencePerPop !== 0) {
-      const sign = entry.sciencePerPop > 0 ? '+' : '';
-      parts.push(`${sign}${entry.sciencePerPop}${YIELD_GLYPH.science}/pop`);
-    }
-    return parts.join(' ');
-  }
-
-  /**
-   * A route's three, for a caravan's line.
+   * **One line of the town's list, as figures** — `+3🌾 +1⚒`.
    *
-   * Three rather than six because a route pays three: the ruling names food,
-   * production and gold, and a fourth voice would be a design decision rather
-   * than a formatter (`RouteYieldLine`).
+   * One printer for every step, because a line is a line: batch E2 collapsed
+   * three near-identical local functions (a building's, a caravan's, a seam's)
+   * that differed only in which voices they bothered to look at and in one
+   * per-citizen suffix. `CityQuoteLine` speaks all six voices, so the printer
+   * asks all six and prints the ones that are not nought — a route simply
+   * carries no faith, and says so by carrying nought.
+   *
+   * The building's per-citizen beaker is **inside** the line's science now,
+   * where the town banks it, rather than printed beside it as a rate: "Library
+   * +1.5🔬" in a town of three is what that library is actually paying, and the
+   * figure a player can check against the chip above.
    */
-  function routeFigures(entry: RouteYieldLine): string {
-    // **Five voices, because a `RouteYieldLine` carries five** — the two that
-    // arrived with the international ruling joined the town's fold on
-    // 2026-09-06 (`cityQuote`), and a printed line that stopped at the three it
-    // was born with would be a chip multiplied without its reason beside it,
-    // which is rule 5's exact failure. Faith is absent because no route pays it.
-    const voices: [number, string][] = [
-      [entry.food, YIELD_GLYPH.food],
-      [entry.production, YIELD_GLYPH.production],
-      [entry.gold, YIELD_GLYPH.gold],
-      [entry.science, YIELD_GLYPH.science],
-      [entry.culture, YIELD_GLYPH.culture],
-    ];
-    return voices
-      .map(([value, glyph]): [number, string] => [roundYield(value), glyph])
-      .filter(([value]) => value !== 0)
-      .map(([value, glyph]) => `${value > 0 ? '+' : ''}${value}${glyph}`)
-      .join(' ');
-  }
-
-  /** The same six voices, for a luxury's signature line. */
-  function resourceFigures(entry: ResourceYieldLine): string {
+  function quoteFigures(entry: CityQuoteLine): string {
     const parts: string[] = [];
-    const voices: [number, string][] = [
-      [entry.food, YIELD_GLYPH.food],
-      [entry.production, YIELD_GLYPH.production],
-      [entry.gold, YIELD_GLYPH.gold],
-      [entry.science, YIELD_GLYPH.science],
-      [entry.culture, YIELD_GLYPH.culture],
-      [entry.faith, YIELD_GLYPH.faith],
-    ];
-    for (const [raw, glyph] of voices) {
-      const value = roundYield(raw);
+    for (const key of CITY_YIELD_KEYS) {
+      const value = roundYield(entry[key]);
       if (value === 0) continue;
-      parts.push(`${value > 0 ? '+' : ''}${value}${glyph}`);
+      parts.push(`${value > 0 ? '+' : ''}${value}${YIELD_GLYPH[key]}`);
     }
     return parts.join(' ');
   }
@@ -1583,39 +1546,30 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       list.append(item);
     };
 
-    // What the city's own improved luxuries pay it, before the buildings — the
-    // list `cityYields` folds, printed line by line, which is rule 5's whole
-    // bargain: the multiplied number is never shown without its reason beside
-    // it. An empire-scale signature is not here on purpose; it belongs to no
-    // town, and the top bar's totals carry it.
-    for (const entry of cityResourceYields(state, city)) {
-      const figures = resourceFigures(entry);
-      if (figures) line(entry.source, figures);
-    }
-    for (const entry of explainCityBuildings(city)) {
-      const figures = buildingFigures(entry);
-      if (figures) line(entry.source, figures);
-    }
-    // And the guildsmen, beside the buildings that earned them (Entry XLVIII).
-    // `citySpecialistYields` is already one of `cityYields`' flats, so leaving
-    // these out would be a chip multiplied without its reason beside it — rule
-    // 5's exact failure, and the one that would make a scholar's beakers seem to
-    // come from nowhere. `SpecialistYieldLine.source` is the simulation's own
-    // label ("3 scholars"), printed verbatim.
-    for (const entry of citySpecialistYields(city)) {
-      const figures = specialistFigures(entry);
-      if (figures) line(entry.source, figures);
-    }
-    // What the caravans sent *to* this town are bringing, after the buildings
-    // because that is what they are read off — `explainRouteYield` counts the
-    // *partner's* (the origin's) buildings and the two towns' people.
-    // `cityRouteYields` is already one of `cityYields`' flats, so leaving these
-    // out was a chip multiplied without its reason beside it (rule 5), and it is
-    // why a route's food seemed to come from nowhere. `RouteYieldLine.source` is
-    // the simulation's own label ("Caravan from Uruk · 3 buildings").
-    for (const entry of cityRouteYields(state, city)) {
-      const figures = routeFigures(entry);
-      if (figures) line(entry.source, figures);
+    // **The town's own list, printed** (batch E2). Until now this walked four of
+    // `cityQuote`'s eleven sources a second time to get the labels back, which
+    // was rule 5 kept in the simulation and rebuilt on the interface's side —
+    // one of the four private copies `docs/audit/evaluations.md` §3a names. The
+    // quote *is* the labelled list now (`CityQuoteLine`), so the panel filters
+    // it and prints.
+    //
+    // The four steps it prints are the four it has always printed and in the
+    // order it printed them: the luxuries (step 4) before the buildings (8),
+    // because a seam in the ground is older than a market built over it; the
+    // guildsmen (5) beside the stones that seated them (Entry XLVIII), since a
+    // scholar's beakers seeming to come from nowhere is rule 5's exact failure;
+    // and the caravans arriving (6) after the buildings, because that is what
+    // they are read off — `explainRouteYield` counts the *partner's* buildings.
+    // The centre, the hexes and the cards are one reach further in on purpose —
+    // a hex's own breakdown is the hover card over that hex, and the deck's is
+    // the card's stamp — and an empire-scale signature belongs to no town at
+    // all, so the top bar's totals carry it.
+    for (const step of PANEL_LEDGER_STEPS) {
+      for (const entry of quote.lines) {
+        if (entry.step !== step) continue;
+        const figures = quoteFigures(entry);
+        if (figures) line(entry.source, figures);
+      }
     }
     // Then the two multiplications, in the order they happen (Entry XVII): what
     // the town did for itself, then what the empire does to the result. Each
@@ -3359,7 +3313,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // see `CityQuote`. Everything below reads the sim fresh through it; nothing
     // survives to the next render, which is what keeps a slotted Order, a rite
     // or a religion arriving in the town from leaving a stale panel behind.
-    const quote = cityQuote(state, city);
+    // **The town's own published list**, remembered on `state.revision` and
+    // shared with the top bar, the Ledger, the ghost-diff and the bot (batch
+    // E2) — so the panel's figures and the strip's chip are the same fold and
+    // not two folds that agree. A render is one revision, which is precisely
+    // this quote's stated lifetime.
+    const quote = readCity(state, city);
 
     // The band owns the top edge, the town is on the left, the work is on the
     // right, and the way out is at the bottom. The container itself takes no

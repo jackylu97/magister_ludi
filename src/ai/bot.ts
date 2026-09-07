@@ -210,6 +210,10 @@ import {
   turnsToBuild,
   yieldScore,
 } from '../sim/cities';
+// The town's and the empire's published readings, remembered on
+// `state.revision` — the bot subscribes to the same source of truth the panel,
+// the top bar and the Ledger do (batch E2). See `readings.ts`.
+import { readCity, readEmpirePercents } from '../sim/readings';
 import { fortifyError, previewCombat } from '../sim/combat';
 import type { Command } from '../sim/commands';
 import { disbandError } from '../sim/commands';
@@ -1347,10 +1351,13 @@ function focusTable(
   // `tileContextAt`'s answer computed once per town; its lifetime is this table.
   const ground = tileContextField(state, city.ownerId);
   // **The town's books, taken once** for the two live readings below (the
-  // starvation guard and the growth clock): `cityQuote` is the ingredients and
+  // starvation guard and the growth clock): the quote is the ingredients and
   // `cityYields` is still the fold, so the figure is the same one and the empire
   // meter sweep behind it is paid for once rather than three times (batch 9).
-  const books = cityQuote(state, city, [], empirePercents(state, city.ownerId));
+  // **`readCity` since batch E2** — the town's own published list, remembered on
+  // `state.revision`, so the bot reads the very object the panel and the top bar
+  // are holding rather than a reading of its own.
+  const books = readCity(state, city);
   // **The seats to fill: `chooseCitizens`' own `cap`, bounded by the ground it
   // walks** — the citizens this town would place if it were placed right now,
   // and *not* `city.workedTiles.length`.
@@ -3386,8 +3393,8 @@ function frontRowWorth(
   ctx: ValueContext,
 ): Appraisal {
   if (item.kind === 'building') {
-    const empire = empirePercents(state, player.id);
-    const base = cityYields(state, city, [], null, cityQuote(state, city, [], empire));
+    const empire = readEmpirePercents(state, player.id);
+    const base = cityYields(state, city, [], null, readCity(state, city));
     const after = cityYields(state, city, [item.id], null, cityQuote(state, city, [item.id], empire));
     const terms: ValueTerm[] = [
       nest('what this town would actually make with it', explainYields(yieldDelta(after, base), ctx)),
@@ -3831,7 +3838,7 @@ function buildCandidates(
   // hexes, the luxuries, the cards and both meter sweeps — to answer a question
   // whose only moving part is the item at the front of the queue. Same figure,
   // one reading (batch 9).
-  const standing = cityQuote(state, city, [], empire);
+  const standing = readCity(state, city);
   const base = cityYields(state, city, [], null, standing);
 
   for (const id of BUILDING_IDS) {
@@ -4414,12 +4421,11 @@ export function isPatientRow(item: QueueItem): boolean {
 function isOpusTown(state: GameState, player: Player, city: City): boolean {
   let best: City | null = null;
   let most = -1;
-  // One meter sweep for the empire rather than one per town — `cityQuote`'s
-  // documented bargain, and the same figure either way.
-  const empire = empirePercents(state, player.id);
+  // One meter sweep for the empire rather than one per town — the bargain is
+  // `readEmpirePercents`' now, inside `readCity`, and the same figure either way.
   for (const town of state.cities) {
     if (town.ownerId !== player.id) continue;
-    const made = cityYields(state, town, [], null, cityQuote(state, town, [], empire)).production;
+    const made = cityYields(state, town, [], null, readCity(state, town)).production;
     if (made > most) {
       most = made;
       best = town;

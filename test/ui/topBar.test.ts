@@ -24,11 +24,14 @@ import {
 import { civYields } from '../../src/ui/topBar';
 import { game, found } from '../sim/statecraftHelpers';
 
-const SOURCES = import.meta.glob(['../../src/sim/cities.ts', '../../src/ui/topBar.ts'], {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-}) as Record<string, string>;
+const SOURCES = import.meta.glob(
+  ['../../src/sim/cities.ts', '../../src/sim/readings.ts', '../../src/ui/topBar.ts'],
+  {
+    eager: true,
+    query: '?raw',
+    import: 'default',
+  },
+) as Record<string, string>;
 
 function source(name: string): string {
   const key = Object.keys(SOURCES).find((path) => path.endsWith(name));
@@ -82,9 +85,13 @@ describe('civYields carries the empire-scale card lines', () => {
     // The phase's own call, inside `collectYields`.
     expect(source('cities.ts')).toMatch(/explainEmpireLines\(state, player\.id\)/);
     expect(source('cities.ts')).toMatch(/foldEmpireLines\(lines\)/);
-    // The headline's call, inside `civYields`.
-    expect(source('topBar.ts')).toMatch(
-      /foldEmpireLines\(explainEmpireLines\(state, playerId, empirePercent\)\)/,
-    );
+    // The headline's call, inside `civYields` — through `readEmpire` since batch
+    // E2, which is the same list taken once for the whole revision and shared
+    // with the Ledger, the panel and the bot. The claim is unchanged and is
+    // stronger: the strip does not merely call the same helper, it reads the
+    // very object the other surfaces read.
+    expect(source('topBar.ts')).toMatch(/readEmpire\(state, playerId\)\.totals/);
+    expect(source('readings.ts')).toMatch(/explainEmpireLines\(state, playerId, empire\)/);
+    expect(source('readings.ts')).toMatch(/foldEmpireLines\(lines\)/);
   });
 });

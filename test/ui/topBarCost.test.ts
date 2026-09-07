@@ -43,7 +43,12 @@ import { civYields } from '../../src/ui/topBar';
 import { tradeLedger } from '../../src/ui/tradeScreen';
 
 const UI_SOURCE = import.meta.glob(
-  ['../../src/ui/topBar.ts', '../../src/ui/tradeScreen.ts', '../../src/main.ts'],
+  [
+    '../../src/ui/topBar.ts',
+    '../../src/ui/tradeScreen.ts',
+    '../../src/main.ts',
+    '../../src/sim/readings.ts',
+  ],
   { eager: true, query: '?raw', import: 'default' },
 ) as Record<string, string>;
 
@@ -175,11 +180,20 @@ describe('the empire’s percentages are taken once a render', () => {
   });
 
   it('hands the empire’s half down rather than working it out beside it', () => {
-    // The hoist is the sim's own parameter, not a second derivation: `cityQuote`
-    // is handed `empirePercents`, and the figure stays `cityYields`' fold.
-    const body = declaration('export function civYields(', 'topBar.ts');
-    expect(body).toContain('empirePercents(state, playerId)');
-    expect(body).toContain('cityQuote(state, city, [], empirePercent)');
+    // The hoist moved into the simulation (batch E2) and grew a memo:
+    // `readEmpirePercents` is the seat's two meter sweeps taken once per
+    // revision, and `readCity` hands it down to `cityQuote`'s own parameter
+    // exactly as this strip used to by hand. Still the sim's own parameter, and
+    // still never a second derivation — one address further in, and now shared
+    // with every other surface instead of re-hoisted per reader.
+    expect(declaration('export function civYields(', 'topBar.ts')).toContain(
+      'readEmpire(state, playerId).totals',
+    );
+    const reading = declaration('export function readCity(', 'readings.ts');
+    expect(reading).toContain('cityQuote(state, city, [], readEmpirePercents(state, city.ownerId))');
+    expect(declaration('export function readEmpirePercents(', 'readings.ts')).toContain(
+      'empirePercents(state, playerId)',
+    );
   });
 });
 

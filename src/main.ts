@@ -3802,11 +3802,14 @@ async function boot(initial: Game | null): Promise<void> {
     closeButton: requireElement('reliquary-close'),
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
-    // The house revision: every mutation goes through `applyCommand` and every
-    // accepted command lands in the log, so its length changes on exactly the
-    // occasions a legacy's figure can. The sheet remembers the figures it has
-    // already asked for under it (`getRevision`, batch H18).
-    getRevision: () => game.log.length,
+    // **The state's own revision** (batch E2), which is what `game.log.length`
+    // was standing in for: a counter that moves on every accepted command *and*
+    // once per end-of-turn phase, so a resolution that changed a legacy's figure
+    // without adding to the log moves it too. The sheet remembers the figures it
+    // has already asked for under it (`getRevision`, batch H18), and it is now
+    // the same integer every memo in the simulation is keyed on
+    // (`docs/audit/evaluations.md` §2b).
+    getRevision: () => game.state.revision,
     onOpen: () => {
       menu.close();
       help.close();

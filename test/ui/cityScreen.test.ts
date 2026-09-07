@@ -377,15 +377,28 @@ describe('the city mode', () => {
     const text = panel();
     expect(text).toContain('strip.bind(chip, () => yieldLedger(city, quote));');
     for (const fold of [
-      'cityResourceYields(state, city)',
-      // No `state` since the renewals axe (2026-09-04): a building is worth its
-      // own row, so the fold asks for the town and nothing else.
-      'explainCityBuildings(city)',
-      'citySpecialistYields(city)',
-      'cityRouteYields(state, city)',
+      // **The town's own list, printed** (batch E2). The card used to walk four
+      // of `cityQuote`'s sources a second time to get their labels back — one
+      // of the four private rebuilds `docs/audit/evaluations.md` §3a names — and
+      // now filters the labelled list the quote returns. The steps it prints are
+      // the four it always printed, in the order it printed them (the luxuries,
+      // the buildings, the guildsmen, the caravans: 4, 8, 5, 6), so the pin is
+      // on the list of steps rather than on four call sites.
+      'const PANEL_LEDGER_STEPS: readonly number[] = [4, 8, 5, 6];',
+      'for (const step of PANEL_LEDGER_STEPS) {',
+      'if (entry.step !== step) continue;',
+      'quoteFigures(entry)',
       'stageRows(STAGE_LABEL[stage]',
     ]) {
       expect(`${fold}: ${text.includes(fold)}`).toBe(`${fold}: true`);
+    }
+    // And the four private walks are gone rather than merely unused.
+    for (const gone of [
+      'cityResourceYields(state, city)',
+      'explainCityBuildings(city)',
+      'cityRouteYields(state, city)',
+    ]) {
+      expect(`${gone}: ${text.includes(gone)}`).toBe(`${gone}: false`);
     }
   });
 

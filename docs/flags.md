@@ -324,7 +324,23 @@ directly to confirm rulings — user marginalia are rulings.
   returning the labelled list (`CityQuoteLine[]` with `source`, `card?`,
   `building?`, `resource?`, `class`, `step`), the readers (panel, Ledger,
   lens, card impact, bot) moved onto them, `cityFlatsByClass` and the
-  refresh register gone. **E3 — the three verbs and the files by layer**:
+  refresh register gone. **E2 BUILT** (schema 87; parity holds on all four
+  boards with only the twelve `snapshot` hashes regenerated, the state having
+  gained a field): `cityQuote` publishes the ten-step labelled list its flats
+  are the fold of, `src/sim/readings.ts` remembers a town's and an empire's
+  reading on the revision, and the panel, the Ledger, the top bar, the
+  ghost-diff and the bot all subscribe — `cityFlatsByClass` and the four
+  private walks are deleted, `classifyCard` and the eight classes moved to the
+  leaf `src/sim/ledgerClass.ts`. `refreshCityDerived` **stays**: it re-seats
+  citizens, which is stored derived state and the one thing a counter cannot
+  do; what it no longer claims is any part in keeping a yield fresh. Two things
+  did not ship and are named in `docs/audit/evaluations.md` §4c: `collectYields`
+  keeps its own readings (the leaf rule, and the phase prices its towns against
+  a pre-banking treasury), and **§3c's death of the effect memo's print is
+  deferred** — keying `liveReading` on the revision fails 322 tests in 27 files
+  including E1's own `yieldOrder.test.ts`, because the suite's benches mutate a
+  board by hand rather than through commands, so it wants a ruling and a batch
+  of its own. **E3 — the three verbs and the files by layer**:
   `explain`/`fold`/`read` only; `yields/{hex,town,empire,stages}.ts`,
   `statecraft/{evaluator,describers,draft}.ts`; mechanical, parity the
   gate, the harness retired at its end. **E4 — the deferred rows ruled**

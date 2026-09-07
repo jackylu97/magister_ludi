@@ -302,6 +302,86 @@ hashes over four boards at t30/t60/t150 before and after).
     named in exactly one layer — a new kind then has to say where it lands
     before it compiles.
 
+## 4c. E2 as shipped (2026-09-07)
+
+Schema **87**: `GameState.revision`, nought at `newGame`, raised by
+`applyCommand` on every **accepted** command (after the mutation, before the
+result leaves) and once by `runEndOfTurn` after **each** phase in the fixed
+order. Deterministic and replayed; no rule reads it. A v86 log replays
+identically — only the snapshot gains a field.
+
+**What became a line.** `cityQuote` returns `CityQuoteLine[]` — `step` (1–10 of
+`docs/yields.md`), `source`, `card?`, `building?`, `resource?`, `class`, the six
+voices — and `flats` is `foldQuoteLines(lines)`. Every summand it folded is now
+a line:
+
+| step | lines |
+|---|---|
+| 1 | the centre (`tiles`) **and** the town's own two terms — a citizen's beaker, a settlement's culture (`other`) |
+| 2 | per worked hex: each `add` contribution naming a card, under that card's class, then the hex's fold **minus exactly those**, labelled by its own ground |
+| 3 | `cardCityYields`, one per card line |
+| 4 | `cityResourceYields`, `tiles`, carrying the seam |
+| 5 | `citySpecialistYields`, `buildings` |
+| 6 | `cityRouteYields`, `trade` |
+| 7 | `explainPalaceYield`, `buildings` |
+| 8 | `explainCityBuildings`, `wonders`/`buildings`, the per-citizen beaker folded into the line's own science |
+| 9 | `cardBuildingYields`, the card's class (`buildings` for a line with no card) |
+| 10 | `cardYieldConversions`, over `foldQuoteLines` of steps 1–9 |
+
+`class` is decided in the simulation by `classifyCard`, which moved with the
+class vocabulary into the leaf `src/sim/ledgerClass.ts` so that `cities.ts` can
+name a slice without importing a screen.
+
+**The readings.** `src/sim/readings.ts` (a leaf above `cities.ts`, imported by
+none of it) holds three memos, each a `WeakMap` on the state carrying one slate
+per revision, thrown away whole when the revision moves and read by lookup only:
+`readEmpirePercents(state, seat)` (the two meter sweeps, hoisted once for
+everybody), `readCity(state, city)` → the plain quote, `readEmpire(state, seat)`
+→ `{ towns, lines, stage, empire, totals }`.
+
+**What was deleted.** `cityFlatsByClass` and its `addWorkedTile` (the Ledger's
+eleven-list mirror of `cityQuote` — the largest of §3a's four private copies);
+the city panel's four private walks of `cityResourceYields` /
+`explainCityBuildings` / `citySpecialistYields` / `cityRouteYields` and its three
+near-identical figure printers, now one `quoteFigures` over the published list;
+`civYields`' own town sweep and empire fold; the top bar's per-town
+`empirePercents` hoist and its second `explainEmpireLines` call; the bot's four
+hand-rolled `cityQuote(state, city, [], empire)` hoists in `value.ts`, `bot.ts`
+and `wants.ts`; `cardImpactSheet`'s private `cityCardSums` for the **real**
+board (it reads step 3 of `readCity` now, and gained `revision` in its identity
+guard). `main.ts`'s `getRevision` is `game.state.revision`.
+
+**What stayed, and why.** `refreshCityDerived` is unchanged and still called by
+all twenty-two: it re-seats citizens, which is stored derived state and the one
+thing a counter cannot do. What its docblock no longer claims is any part in
+keeping a *yield* fresh — that is the revision's, and no caller existed purely to
+invalidate a reading. `collectYields` also keeps its own calls, for two reasons:
+`cities.ts` importing `readings.ts` would be a runtime cycle
+(`moduleCycles.test.ts` is the gate), and the phase's two loops price every town
+against a **pre-banking** treasury while `explainEmpireLines` is taken after the
+towns have banked — a reading taken once for both would change the arrears every
+town is priced against.
+
+**What did not ship: §3c.** Dropping `livePrint`/`printsAgree`/`gatesAgree` and
+keying `liveReading` on the revision **fails 322 tests in 27 files**, including
+the E1 gate `test/sim/yieldOrder.test.ts`. The cause is not the simulation: it is
+that the suite's benches build a board and then mutate it by hand — slot a card,
+push a building, grant a technology — without a command behind it, so the
+revision never moves and the memo is permanently stale. The print is doing
+invalidation work the counter cannot do until every bench announces itself
+(`bumpRevision`, which is exported and which four benches now call). It wants a
+ruling and a batch of its own; the memo is otherwise untouched.
+
+**Memo keys, in one place**: `readings.ts` — `(state identity, revision, seat)`
+and `(state identity, revision, city id)`; `cardImpactSheet` — `(state identity,
+revision, seat)`; the Reliquary — `(state identity, revision, seat)`;
+`liveReading` — unchanged (the print).
+
+**Parity**: the four boards at t30/t60/t150 compare equal on every recorded
+reading. The `snapshot` field of each mark moved, and only that field was
+regenerated — the schema went to 87 and the state gained `revision`, so the
+canonical print of the board is a different string by construction.
+
 ## 5. What I think
 
 The day-one decisions are intact where they were made: the folds are

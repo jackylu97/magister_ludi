@@ -106,41 +106,25 @@
  * calls that fail loudly or not at all.
  */
 
+import type { CityQuote } from '../sim/cities';
 import {
-  type CityQuote,
+  type CityQuoteLine,
   type CityYieldPercent,
   type CityYields,
   type ProductionModifier,
   type EmpireYieldLine,
-  type TileYieldContribution,
-  cardBuildingYields,
-  centreYield,
-  cityContext,
-  cityQuote,
-  cityYields,
   emptyCityYields,
-  empirePercents,
-  explainCityBuildings,
-  explainEmpireLines,
-  explainPalaceYield,
-  explainTileYield,
-  foldTileYield,
   productionModifiers,
 } from '../sim/cities';
-import { cardCityYields, cardYieldConversions } from '../sim/statecraft';
-import { cityResourceYields } from '../sim/resourceEffects';
-import { citySpecialistYields } from '../sim/specialists';
-import { cityRouteYields } from '../sim/trade';
-import { isBuildingId, isWonder } from '../sim/buildingData';
-import { isBeadCardId } from '../sim/beadData';
-import { isBeliefId, isConsecrationId, isRiteId } from '../sim/religionData';
-import { isDoctrineId, isGovernmentId, isOrderId } from '../sim/statecraftData';
-import type { CardId } from '../sim/statecraftData';
-import { isGreatPersonId } from '../sim/greatPeopleData';
-import { highestAge, isTechId } from '../sim/techData';
+import { readEmpire } from '../sim/readings';
+import {
+  type LedgerClass,
+  LEDGER_CLASSES,
+  classifyCard,
+} from '../sim/ledgerClass';
+import { isWonder } from '../sim/buildingData';
+import { highestAge } from '../sim/techData';
 import { type City, type GameState, playerById } from '../sim/state';
-import { getTileAt } from '../sim/map';
-import { RULES } from '../sim/rulesData';
 import { type YieldKey, YIELD_GLYPH, YIELD_NAME, figure, signedFigure } from './figures';
 import { yieldMarkNode } from './yieldMark';
 import {
@@ -154,43 +138,17 @@ import {
 import { element } from './dom';
 import { createModalShell } from './modalShell';
 
-const CITIES = RULES.cities;
-
 /** The six voices, in the order every other surface in this interface prints them. */
 const VOICES: readonly YieldKey[] = ['food', 'production', 'gold', 'science', 'culture', 'faith'];
 
 /**
- * **Where a yield came from**, as a player would name it — the eight classes
- * `docs/history/loop-review.md` §3 asks for, and no ninth.
- *
- * The list is a design decision rather than a derivation: these are the answers
- * to *"is my deck doing anything?"*, which is the question the sheet exists to
- * answer, so `deck` is one class and the six things it is being compared against
- * are the rest. A source nothing can classify lands in `other` and the register
- * test says which those are, deliberately — a silent "other" is a slice that
- * grows as the game does and tells nobody.
+ * The class vocabulary now lives in `src/sim/ledgerClass.ts` — a leaf above
+ * nothing but the data tables (batch E2), because the town's own list carries a
+ * class on every line and the simulation may not import a screen. Re-exported
+ * here under the names this sheet has always published, so nothing that reads
+ * the Ledger has to learn a new address.
  */
-export type LedgerClass =
-  | 'tiles'
-  | 'buildings'
-  | 'deck'
-  | 'religion'
-  | 'people'
-  | 'trade'
-  | 'wonders'
-  | 'other';
-
-/** Drawing order, left to right along every bar. Ground first, oddments last. */
-export const LEDGER_CLASSES: readonly LedgerClass[] = [
-  'tiles',
-  'buildings',
-  'deck',
-  'religion',
-  'people',
-  'trade',
-  'wonders',
-  'other',
-];
+export { type LedgerClass, LEDGER_CLASSES, classifyCard };
 
 /**
  * What each class is called on the sheet. Plain words (hard rule 7): a player
@@ -222,46 +180,6 @@ export function emptyLedgerBag(): LedgerBag {
     wonders: emptyCityYields(),
     other: emptyCityYields(),
   };
-}
-
-/**
- * Which class a card-paid line belongs to, by the **id** and never by the label.
- *
- * Ten id spaces, disjoint by construction (`CardId`'s own docblock, and
- * `test/sim/tech.test.ts` pins the disjointness), so this is a total function
- * over every card the evaluator can hand back:
- *
- *   government · doctrine · order → **deck** — the three classes a player drafts
- *     and slots are the deck, which is the whole comparison this sheet makes.
- *   belief · rite · consecration → **religion**.
- *   a great person's legacy → **great people**.
- *   a building → **wonders** if it is one, else **buildings**. Only one-of-a-kind
- *     rows reach the evaluator at all (`liveEffects`' fifth source), but the
- *     split is asked of `isWonder` rather than assumed, because the Observatory's
- *     great works are `oncePerEmpire` buildings and are not wonders.
- *   a technology, a bead → **other**, deliberately. See the module docblock.
- *
- * An id nothing recognises is a hand-edited save and gets `other` rather than a
- * throw — a breakdown slice is not the place to take a whole frame down
- * (`anyCardDef`'s own ruling, one module over).
- *
- * **The arms are in `anyCardDef`'s order, and that is load-bearing.** The id
- * spaces are *meant* to be disjoint and four ids are not (three Doctrines share
- * a name with a bead, one building does — the test holds the closed list), so
- * for those four the answer depends on which guard is asked first. Asking them
- * in the same order the card *lookup* asks them keeps one promise that matters
- * more than either reading: the slice a line lands in and the name that line
- * prints are the same card. A classifier that disagreed with `anyCardDef` would
- * put a figure in one bar and its label in another.
- */
-export function classifyCard(card: CardId): LedgerClass {
-  if (isBeliefId(card) || isRiteId(card) || isConsecrationId(card)) return 'religion';
-  if (isOrderId(card) || isDoctrineId(card) || isGovernmentId(card)) return 'deck';
-  if (isBeadCardId(card)) return 'other';
-  if (isGreatPersonId(card)) return 'people';
-  if (isTechId(card)) return 'other';
-  if (isBuildingId(card)) return isWonder(card) ? 'wonders' : 'buildings';
-  return 'other';
 }
 
 /**
@@ -507,120 +425,36 @@ function add(bag: LedgerBag, into: LedgerClass, line: Partial<CityYields>): void
 }
 
 /**
- * **One worked hex, split by who dressed it** — the tile half of the same
- * ruling (`docs/flags.md`, jj, and the user's follow-up: *"I think it may just
- * be that the age 3 and onwards orders are not being counted in the display
- * total"*).
+ * **One town's flats, classified** — and, since batch E2, no walk at all.
  *
- * The later Order pools lean on `tileYield` where the early ones lean on
- * `cityYields`, so an Order paying a hammer on every hill is the *whole* of what
- * a late deck does — and a sheet that files every worked hex under **the land**
- * shows that deck paying nothing. Each line of the hex's own breakdown that
- * names a card (`TileYieldContribution.card`) goes to that card's class; a
- * belief's line lands in religion, which is right, and the terrain, the seam and
- * the works stay the land's.
+ * `cityQuote` returns the labelled list its flats are the fold of
+ * (`CityQuoteLine`), and every line carries the class its source belongs to —
+ * decided in the simulation, once, by the id and never by the label
+ * (`classifyCard`, `ledgerClass.ts`). So the sheet's oldest and largest piece of
+ * machinery is now a `switch`-less loop over somebody else's list.
  *
- * The **fold, minus the lines lifted out of it**, and never a second sum of the
- * remainder: `foldTileYield` is the one place a `base`/`override` list becomes a
- * number (a hill replaces the grass under it), so the land keeps the fold with
- * each lifted line subtracted rather than a re-addition of whatever was left.
- * Card lines are always `add`, which is what makes the subtraction exact — and
- * exactness is what keeps this mirror equal to `cityQuote`'s flats, voice by
- * voice, on a town of odd population.
+ * What it replaces was a **mirror**: eleven lists walked a second time on this
+ * side in the order `cityQuote` folded them, guarded by a test pinning the two
+ * folds equal, and wrong in a different way every few days —
+ * `cardBuildingYields` missing for as long as the bench had no such card, two
+ * per-citizen terms floored for as long as no town had an odd population, every
+ * worked hex filed whole under the land until the late Order pools made that
+ * matter (`docs/flags.md`, ruling jj). Four surfaces each kept one of these;
+ * this was the biggest. `docs/audit/evaluations.md` §3a is the finding and E2
+ * is the fix.
+ *
+ * The three readings that used to live in the mirror are now facts about the
+ * line and are stated where the line is made: a **worked hex** is split by the
+ * card each of its own contributions names, with the ground keeping the fold
+ * minus exactly those; the **centre** stays whole and stays the land's, because
+ * its inheritance is an excess rather than a sum of lines and there is no honest
+ * share of it to hand anybody; and a town's own two terms — a citizen's beaker
+ * and the culture a settlement makes by being one — are `other`, because they
+ * belong to no tile, no building and no card.
  */
-function addWorkedTile(bag: LedgerBag, lines: readonly TileYieldContribution[]): void {
-  const ground = foldTileYield(lines);
-  for (const entry of lines) {
-    if (entry.card === undefined || entry.kind !== 'add') continue;
-    const into = classifyCard(entry.card);
-    if (into === 'tiles') continue;
-    add(bag, into, entry);
-    for (const key of VOICES) ground[key] -= entry[key];
-  }
-  add(bag, 'tiles', ground);
-}
-
-/**
- * One town's **flats**, classified — the summands of `cityQuote`, in the order
- * `cityQuote` folds them and read from the very same functions.
- *
- * It is deliberately a mirror of that function rather than a call into it:
- * `CityQuote.flats` is a single fold with no labels on it, so the only way to
- * ask where a town's basket came from is to walk the same lists again — and
- * every one of them is asked of the **simulation's own evaluator**, never
- * re-derived here, which is the only thing that keeps the mirror honest between
- * the days somebody remembers to look at it.
- *
- * That is a real duplication and it is guarded rather than hidden — the test
- * pins this bag's fold equal to `quote.flats`, voice by voice, so a source added
- * to `cityQuote` without being added here fails loudly instead of quietly
- * swelling whichever classes had weight. The guard is only as good as its bench:
- * this mirror lost `cardBuildingYields` and floored two per-citizen terms for as
- * long as the bench had no such card and no town of odd population, which is why
- * the bench now has both.
- *
- * The town's own two terms — a citizen's beaker and the culture a settlement
- * makes by being one — are `other`: they belong to no tile, no building and no
- * card, and calling them anything else would be the sheet inventing a source.
- *
- * A **worked hex is not one class** since 2026-09-07 (`addWorkedTile`): a card's
- * line on the ground is the card's, and the rest of the hex is the land's. The
- * **centre** stays whole and stays the land's — its inheritance is an *excess*
- * over the base city yield rather than a sum of lines, so there is no honest
- * share of it to hand anybody, and a town's own square is the one hex a player
- * never chose.
- */
-export function cityFlatsByClass(state: GameState, city: City): LedgerBag {
+export function flatsByClass(lines: readonly CityQuoteLine[]): LedgerBag {
   const bag = emptyLedgerBag();
-  const ctx = cityContext(state, city);
-
-  add(bag, 'tiles', centreYield(state, city));
-  // **Exact, because `cityQuote` is exact** (batch X): at `sciencePerPop` 0.5 a
-  // size-3 town banks a beaker and a half, and a mirror that floored it here
-  // reported one — a whole half-beaker a turn falling silently out of the sheet
-  // for every town with an odd population.
-  bag.other.science += city.population * CITIES.sciencePerPop;
-  bag.other.culture += CITIES.baseCulturePerCity;
-
-  for (const cell of city.workedTiles) {
-    const tile = getTileAt(state.map, cell.col, cell.row);
-    if (!tile) continue;
-    addWorkedTile(bag, explainTileYield(tile, ctx));
-  }
-
-  for (const line of cardCityYields(state, city)) add(bag, classifyCard(line.card), line);
-  for (const line of cityResourceYields(state, city)) add(bag, 'tiles', line);
-  // A guildsman is a citizen the buildings made room for, and he is drawn beside
-  // the stones that seated him — the city panel's own reading (Entry XLVIII).
-  for (const line of citySpecialistYields(city)) add(bag, 'buildings', line);
-  for (const line of cityRouteYields(state, city)) add(bag, 'trade', line);
-  for (const line of explainPalaceYield(state, city)) add(bag, 'buildings', line);
-  for (const entry of explainCityBuildings(city)) {
-    const into = isWonder(entry.building) ? 'wonders' : 'buildings';
-    add(bag, into, entry);
-    // Per *entry* and exact, exactly as `cityQuote` takes it: two half-science
-    // sources pay for two halves and both halves are kept.
-    bag[into].science += city.population * entry.sciencePerPop;
-  }
-
-  // **What the deck adds to those same shelves** — the seven live
-  // `buildingYieldPercent` Orders, "your faith buildings give half again". The
-  // eleventh summand, and the one this mirror simply did not have until
-  // 2026-09-06: a card's share of a library was banked by the town and shared
-  // out here over whatever classes happened to have weight. Directly after the
-  // buildings and before the conversions, because that is where `cityQuote`
-  // folds it and a conversion takes a share of the whole fold including this.
-  for (const line of cardBuildingYields(state, city)) {
-    add(bag, line.card === undefined ? 'buildings' : classifyCard(line.card), line);
-  }
-
-  // The conversions read the fold they join, so they are asked of the flats as
-  // they stood *before* them — which is this bag, summed, which is what
-  // `cityQuote` hands them one file over.
-  const before = foldLedgerBag(bag);
-  for (const line of cardYieldConversions(state, city, before)) {
-    add(bag, classifyCard(line.card), line);
-  }
+  for (const line of lines) add(bag, line.class, line);
   return bag;
 }
 
@@ -655,9 +489,10 @@ export interface LedgerVoice {
  * The **staging** is where the classes have to be put back together (Entry
  * XVII): a town's percentages multiply its whole basket at once, so what each
  * class is owed is **its flats plus its share of the gain** — the flats by who
- * paid them (`cityFlatsByClass`), the gain by who supplied the percentages
- * (`percentWeights` + `shareGain`, the ruling of 2026-09-07) — and `shareOut`
- * rounds the eight figures to whole numbers that still add to the bank.
+ * paid them (`flatsByClass` over the town's own list), the gain by who supplied
+ * the percentages (`percentWeights` + `shareGain`, the ruling of 2026-09-07) —
+ * and `shareOut` rounds the eight figures to whole numbers that still add to the
+ * bank.
  *
  * Until that ruling the whole banked figure was shared over the flats alone,
  * which credited a percentage to whoever had put the base under it and left a
@@ -672,19 +507,21 @@ export interface LedgerVoice {
  */
 export function ledgerReading(state: GameState, playerId: number): LedgerVoice[] {
   const bag = emptyLedgerBag();
-  const empire = empirePercents(state, playerId);
+  // **The empire's own reading, subscribed to rather than rebuilt** (batch E2):
+  // every town's published list and total, the empire's lines and the meters,
+  // taken once for this revision and shared with the top bar, the panel, the
+  // ghost-diff and the bot. This sheet's whole job is now the *classification*
+  // of a list somebody else folded, plus the two shares below.
+  const reading = readEmpire(state, playerId);
 
-  for (const city of state.cities) {
-    if (city.ownerId !== playerId) continue;
-    const quote = cityQuote(state, city, [], empire);
-    const flats = cityFlatsByClass(state, city);
-    const banked = cityYields(state, city, [], city.queue[0], quote);
+  for (const { city, quote, total: banked } of reading.towns) {
+    const flats = flatsByClass(quote.lines);
     for (const key of VOICES) {
       let paid = 0;
       for (const cls of LEDGER_CLASSES) paid += flats[cls][key];
       // What the two stages added over the flats — negative under arrears, or
-      // under a meter tier the empire has fallen through. Exact, because
-      // `cityFlatsByClass` is exact and `cityYields` floors once.
+      // under a meter tier the empire has fallen through. Exact, because the
+      // classes are the town's own lines and `cityYields` floors once.
       const gain = shareGain(banked[key] - paid, percentWeights(state, city, quote, key));
       // `other` last, so that a basket with nothing in it hands its figure to
       // the class that means "nobody here earned this".
@@ -700,11 +537,11 @@ export function ledgerReading(state: GameState, playerId: number): LedgerVoice[]
   // of (`explainEmpireLines`, batch H19) and classified by where each came from
   // rather than by four separate walks of four folds — a luxury's signature into
   // the land, a caravan abroad into trade (the class a route's line lands in
-  // when its destination is at home, `cityFlatsByClass`, said again for the half
+  // when its destination is at home, said again for the half
   // of the same money that has no town to be banked in), the treasury's ledger
   // by the head of its label, a card's payout by the card, and the empire stage
   // into **other**.
-  for (const line of explainEmpireLines(state, playerId, empire)) {
+  for (const line of reading.lines) {
     add(bag, classifyEmpireLine(line), line);
   }
 

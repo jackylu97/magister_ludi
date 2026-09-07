@@ -57,15 +57,10 @@
  * a card always quotes the state as it is now.
  */
 
-import {
-  type CityYields,
-  cityQuote,
-  cityYields,
-  emptyCityYields,
-  empirePercents,
-  explainEmpireLines,
-  foldEmpireLines,
-} from '../sim/cities';
+import type { CityYields } from '../sim/cities';
+// The empire's one reading, remembered on `state.revision` — the single source
+// of truth this strip and every other yield surface subscribe to (batch E2).
+import { readEmpire } from '../sim/readings';
 import type { Game } from '../sim/game';
 import {
   type MeterContribution,
@@ -134,47 +129,27 @@ import { element } from './dom';
  * the hoisted reading equal to the unhoisted one, city by city.
  */
 export function civYields(state: GameState, playerId: number): CityYields {
-  const total: CityYields = emptyCityYields();
-  const empirePercent = empirePercents(state, playerId);
-  for (const city of state.cities) {
-    if (city.ownerId !== playerId) continue;
-    const yields = cityYields(
-      state,
-      city,
-      [],
-      city.queue[0],
-      cityQuote(state, city, [], empirePercent),
-    );
-    total.food += yields.food;
-    total.production += yields.production;
-    total.gold += yields.gold;
-    total.science += yields.science;
-    total.culture += yields.culture;
-    total.faith += yields.faith;
-  }
-  // **Everything the empire banks beyond its towns**, as the one list the phase
-  // itself banks the fold of (`explainEmpireLines`, batch H19): the luxuries'
-  // empire signatures, the caravans abroad, the treasury's ledger, the cards'
-  // empire-scale payouts — and the empire stage over the additive fold of them.
-  // None of it belongs to a town: a city connection is a fact about the *road*
-  // between one and the capital, road maintenance is charged on hexes, a
+  // **One reading, subscribed to** (batch E2): `readEmpire` is every town's
+  // published list and total plus the empire's own lines, remembered on
+  // `state.revision` and shared with the Ledger, the city panel, the ghost-diff
+  // and the bot. This strip is redrawn on every accepted command, which is
+  // exactly one revision, so the sweep it used to run per draw is now run once
+  // for every surface that asks.
+  //
+  // Its `totals` is the same summand-for-summand fold this function has always
+  // returned: every town's `cityYields` toward whatever it is building — the
+  // same call `collectYields` banks with, since a barracks puts a share of its
+  // city's hammers behind a unit and a strip quoting the unmodified rate would
+  // be a headline the turn resolution disagrees with — plus everything the
+  // empire banks beyond its towns (`explainEmpireLines`, batch H19: the
+  // luxuries' empire signatures, the caravans abroad, the treasury's ledger, the
+  // cards' empire-scale payouts, and the empire stage over the additive fold of
+  // them). None of that belongs to a town: a city connection is a fact about the
+  // *road* between one and the capital, road maintenance is charged on hexes, a
   // garrison's wages are charged on the army rather than on whichever town it
   // happens to be standing in (Entry XLI), and a route ending in a foreign town
-  // pays the empire that *sent* it. Read through the phase's own list rather
-  // than summed here, so a headline and the turn resolution cannot disagree —
-  // which is the claim this function used to make four separate times, once per
-  // fold, and each of the four was a chance to leave one out.
-  //
-  // The empire's percentages are handed in: `empirePercents` is a pure function
-  // of the seat and the loop above already took the reading.
-  const empire = foldEmpireLines(explainEmpireLines(state, playerId, empirePercent));
-  total.food += empire.food;
-  total.production += empire.production;
-  total.gold += empire.gold;
-  total.science += empire.science;
-  total.culture += empire.culture;
-  total.faith += empire.faith;
-  return total;
+  // pays the empire that *sent* it.
+  return { ...readEmpire(state, playerId).totals };
 }
 
 /**
@@ -608,25 +583,13 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     }
 
     const lines = element('ul', 'meter-lines ledger');
-    // The empire's half of the percentages once for the whole breakdown, exactly
-    // as `civYields` takes it — the card is the summands of that headline, so
-    // the two must be the same arithmetic as well as the same figure.
-    const empirePercent = empirePercents(state, playerId);
-    for (const city of state.cities) {
-      if (city.ownerId !== playerId) continue;
-      lines.append(
-        meterLine(
-          cityDisplayName(state, city),
-          cityYields(
-            state,
-            city,
-            [],
-            city.queue[0],
-            cityQuote(state, city, [], empirePercent),
-          )[key],
-          false,
-        ),
-      );
+    // The empire's whole reading once for the breakdown, and it is the very
+    // object `civYields` folded for the chip above — the card is the summands of
+    // that headline, so the two are now the same arithmetic by construction and
+    // not merely by inspection (batch E2).
+    const reading = readEmpire(state, playerId);
+    for (const town of reading.towns) {
+      lines.append(meterLine(cityDisplayName(state, town.city), town.total[key], false));
     }
     // Then the empire's own lines, after the cities because that is where they
     // are banked and because "Silk +2" belongs to no town — a luxury's empire
@@ -638,7 +601,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     // a `key === 'gold'` for the reason the banked register was taken away from
     // hand-rolled comparisons (`figures.test.ts`): the zero-skip is the gate.
     const details = empireGoldDetail(state, playerId);
-    for (const line of explainEmpireLines(state, playerId, empirePercent)) {
+    for (const line of reading.lines) {
       const value = line[key];
       if (value === 0) continue;
       // Signed on the treasury's own lines: they are one income and several

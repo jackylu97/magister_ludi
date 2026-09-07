@@ -210,10 +210,15 @@ describe('the build list prices rows off one quote', () => {
 
   it('takes exactly one quote, in `render`', () => {
     const source = panelSource();
-    expect(source.match(/\bcityQuote\(/g) ?? []).toHaveLength(1);
+    // **`readCity` since batch E2** — the town's own published list, remembered
+    // on `state.revision` and shared with the strip, the Ledger and the bot. The
+    // claim is unchanged and is now stronger: the panel takes one reading, and
+    // the reading it takes is the one everybody else is already holding.
+    expect(source.match(/\breadCity\(/g) ?? []).toHaveLength(1);
+    expect(source.match(/\bcityQuote\(/g) ?? []).toHaveLength(0);
     // And it is taken where the panel starts drawing, not inside a section that
     // would then be taking one per section.
-    const at = source.indexOf('cityQuote(');
+    const at = source.indexOf('readCity(state, city)');
     expect(at).toBeGreaterThan(source.indexOf('// --- the whole panel'));
   });
 

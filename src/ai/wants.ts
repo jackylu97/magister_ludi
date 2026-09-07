@@ -115,12 +115,15 @@ import {
   cityContext,
   cityQuote,
   cityYields,
-  empirePercents,
   explainTileYield,
   foldTileYield,
   purchasableTiles,
   yieldScore,
 } from '../sim/cities';
+// The town's and the empire's published readings, remembered on
+// `state.revision` — the bot subscribes to the same source of truth the panel,
+// the top bar and the Ledger do (batch E2). See `readings.ts`.
+import { readCity, readEmpirePercents } from '../sim/readings';
 import { type ImprovementId, improvementYield, workForFamily } from '../sim/improvementData';
 import { getTileAt, tileHex, wrappedDistance } from '../sim/map';
 import type { TileYield } from '../sim/terrainData';
@@ -341,10 +344,11 @@ export function purchasingPlan(
   const wants: Want[] = [];
   const towns = ownedCities(state, player.id);
   // The empire's half of every town's percentages, taken **once** for the whole
-  // sweep — `cityQuote`'s documented bargain, and the difference between one
-  // meter sweep and forty.
-  const empire = empirePercents(state, player.id);
-  const bases = towns.map((city) => cityYields(state, city, [], null, cityQuote(state, city, [], empire)));
+  // sweep — `readEmpirePercents` since batch E2, which is that bargain kept for
+  // every reader at once rather than re-hoisted here; the standing readings come
+  // through `readCity` and only the what-ifs still quote by hand.
+  const empire = readEmpirePercents(state, player.id);
+  const bases = towns.map((city) => cityYields(state, city, [], null, readCity(state, city)));
 
   for (const id of BUILDING_IDS) {
     const upkeep = buildingUpkeep(id);
@@ -1125,11 +1129,11 @@ function explainRelic(
   ctx: ValueContext,
 ): { town: string; worth: Appraisal } | null {
   if (RELIC === null) return null;
-  const empire = empirePercents(state, player.id);
+  const empire = readEmpirePercents(state, player.id);
   for (const city of ownedCities(state, player.id)) {
     if (city.buildings.includes(RELIC)) continue;
     if (!cityKeepsRelics(city)) continue;
-    const before = cityYields(state, city, [], null, cityQuote(state, city, [], empire));
+    const before = cityYields(state, city, [], null, readCity(state, city));
     const after = cityYields(state, city, [RELIC], null, cityQuote(state, city, [RELIC], empire));
     const worth = explainYields(yieldDelta(after, before), ctx);
     if (worth.terms.length === 0) continue;

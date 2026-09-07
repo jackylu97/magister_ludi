@@ -21,9 +21,11 @@
  *      the grey slice and tells nobody. So every id in every table is walked,
  *      and every label `explainEmpireGold` can emit is read out of its own
  *      source.
- *   3. **A summand added to `cityQuote` and not here.** `cityFlatsByClass` is a
- *      deliberate mirror of that function; the mirror is pinned by folding it
- *      and comparing against `CityQuote.flats` itself.
+ *   3. **A summand added to `cityQuote` and not classed.** The mirror is gone
+ *      (batch E2): the town publishes its own labelled list and every line
+ *      carries the class its source belongs to, so this is now pinned by folding
+ *      the classified bag and comparing against `CityQuote.flats` itself — a
+ *      line that reached the list without a class would fail here.
  *   4. **A leaked window listener, or a curve carried into the next game.**
  *      Entry LVII's bug in a new costume, and the ring buffer's own version of
  *      it.
@@ -50,12 +52,12 @@ import {
   LEDGER_HISTORY_CAP,
   type LedgerClass,
   type LedgerSample,
-  cityFlatsByClass,
   classifyCard,
   classifyEmpireGold,
   classifyEmpireLine,
   classifyPercent,
   createLedgerHistory,
+  flatsByClass,
   foldLedgerBag,
   ledgerCaption,
   ledgerReading,
@@ -67,6 +69,7 @@ import {
   sparkPoints,
 } from '../../src/ui/ledgerScreen';
 import { civYields } from '../../src/ui/topBar';
+import { readCity } from '../../src/sim/readings';
 import {
   cardBuildingYields,
   cityQuote,
@@ -94,7 +97,7 @@ import {
   BEAD_RECKONING_IDS,
 } from '../../src/sim/beadData';
 import type { City, GameState } from '../../src/sim/state';
-import { playerById } from '../../src/sim/state';
+import { bumpRevision, playerById } from '../../src/sim/state';
 import { found, game } from '../sim/statecraftHelpers';
 
 const SOURCES = {
@@ -156,8 +159,9 @@ function bench(): { state: GameState; playerId: number } {
   const city = found(state, 0);
   // **Odd on purpose.** The two `sciencePerPop` terms are exact since batch X —
   // half a beaker a citizen from the rules and half again from the library — and
-  // a mirror that floored them read the same as the fold on every even town.
-  // `cityFlatsByClass` did floor them, and this bench is why nobody saw it.
+  // the mirror that floored them read the same as the fold on every even town,
+  // and this bench is why nobody saw it. The mirror is gone (batch E2); the
+  // bench stays, because the class of a line is still a claim about a figure.
   city.population = 5;
   city.buildings.push('monument', 'library');
   const wonder = BUILDING_IDS.find((id) => isWonder(id));
@@ -358,9 +362,10 @@ describe('the reading', () => {
   });
 
   it('mirrors `cityQuote`’s own flats, summand for summand', () => {
-    // `cityFlatsByClass` walks the same seven lists `cityQuote` folds. A source
-    // added there and not here would not throw — it would quietly swell the
-    // town's multiplied total into whichever classes happened to have weight.
+    // The eight classes are a partition of the town's own list now (batch E2),
+    // so this is the partition's own guard: a line reaching `cityQuote` without
+    // a class, or a class the bag has no bucket for, would not throw — it would
+    // quietly drop a summand out of the sheet while the totals still added up.
     const { state } = bench();
     // The bench has to carry the two things the mirror was blind to, or this is
     // a guard that passes on the tree it was meant to catch: a card taking a
@@ -371,7 +376,7 @@ describe('the reading', () => {
 
     for (const city of state.cities) {
       if (city.ownerId !== 0) continue;
-      const flats = foldLedgerBag(cityFlatsByClass(state, city));
+      const flats = foldLedgerBag(flatsByClass(readCity(state, city).lines));
       const quote = cityQuote(state, city);
       for (const key of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
         expect(flats[key], `${city.name} ${key}`).toBe(quote.flats[key]);
@@ -393,13 +398,18 @@ describe('the reading', () => {
     // reads — a line with no card would land in "buildings" by the fallback.
     expect(shares.every((line) => line.card !== undefined)).toBe(true);
 
-    const held = cityFlatsByClass(state, town).deck.science;
+    const held = flatsByClass(readCity(state, town).lines).deck.science;
     // Take the card out of the slot and the deck's slice falls by exactly what
     // the card was paying, with nothing appearing anywhere else.
     const sc = playerById(state, 0)!.statecraft;
     sc.slots = sc.slots.filter((entry) => entry?.card !== 'theScriveners');
+    // **The world moved** (batch E2): a card taken out of a chair by hand is what
+    // `unslotOrder` does through the reducer, and every reading on this sheet is
+    // remembered under `state.revision`. A bench that mutates by hand says so the
+    // way a command does — `GameState.revision`'s stated contract.
+    bumpRevision(state);
     expect(cardBuildingYields(state, town)).toEqual([]);
-    expect(held - cityFlatsByClass(state, town).deck.science).toBe(paid);
+    expect(held - flatsByClass(readCity(state, town).lines).deck.science).toBe(paid);
   });
 
   it('finds the deck’s own slice, and says so in the caption’s words', () => {
@@ -435,7 +445,7 @@ describe('the reading', () => {
 function gainOf(state: GameState, city: City, key: 'science' | 'production' | 'faith'): number {
   const quote = cityQuote(state, city);
   const banked = cityYields(state, city, [], city.queue[0], quote);
-  return banked[key] - foldLedgerBag(cityFlatsByClass(state, city))[key];
+  return banked[key] - foldLedgerBag(flatsByClass(readCity(state, city).lines))[key];
 }
 
 describe('the gain, and who supplied it', () => {
@@ -535,6 +545,7 @@ describe('the gain, and who supplied it', () => {
     }
 
     sc.slots = sc.slots.filter((entry) => entry?.card !== 'theLampKeptLit');
+    bumpRevision(state);
     expect(gainOf(state, town, 'science')).toBe(0);
     // Taking the card out costs the empire the gain, and the deck's slice falls
     // with it — under the old reading it did not move at all.
@@ -571,6 +582,7 @@ describe('the gain, and who supplied it', () => {
     const player = playerById(state, playerId)!;
     const solvent = ledgerReading(state, playerId).find((voice) => voice.key === 'science')!;
     player.gold = -40;
+    bumpRevision(state);
     const owing = ledgerReading(state, playerId).find((voice) => voice.key === 'science')!;
     const weights = percentWeights(state, town, cityQuote(state, town), 'science');
     expect(weights).toContainEqual({ into: 'other', percent: -25 });
@@ -624,7 +636,7 @@ describe('a card that pays on the ground', () => {
     // hex's own breakdown, and every worked hex used to be filed whole under
     // "the land".
     const { state, city, playerId } = tileCardBench();
-    const flats = cityFlatsByClass(state, city);
+    const flats = flatsByClass(readCity(state, city).lines);
     // Two hills at +2🌾 each, from an Order the seat has slotted.
     expect(flats.deck.food).toBe(4);
     // And a desert at +1☥, from the pantheon.
@@ -639,7 +651,8 @@ describe('a card that pays on the ground', () => {
     const wasLand = flats.tiles.food;
     const sc = playerById(state, playerId)!.statecraft;
     sc.slots = sc.slots.filter((entry) => entry?.card !== 'terracedHillsides');
-    const after = cityFlatsByClass(state, city);
+    bumpRevision(state);
+    const after = flatsByClass(readCity(state, city).lines);
     expect(after.deck.food).toBe(0);
     expect(after.tiles.food).toBe(wasLand);
   });
@@ -649,7 +662,7 @@ describe('a card that pays on the ground', () => {
     // is still the town's own flats, which is the guard the whole mirror rests
     // on and the one a subtraction could quietly break.
     const { state, city } = tileCardBench();
-    const flats = foldLedgerBag(cityFlatsByClass(state, city));
+    const flats = foldLedgerBag(flatsByClass(readCity(state, city).lines));
     const quote = cityQuote(state, city);
     for (const key of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
       expect(flats[key], key).toBe(quote.flats[key]);

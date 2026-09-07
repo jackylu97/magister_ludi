@@ -514,10 +514,17 @@ describe('end-of-turn pipeline', () => {
     runEndOfTurn(state);
     // **Except the table**, which deals one card a turn whatever anybody does:
     // the hand fills over an age rather than all at once (design ledger Entry
-    // VI), so a quiet turn still turns a card face down onto the table. Nothing
-    // else moved — which is what the rest of this comparison says.
+    // VI), so a quiet turn still turns a card face down onto the table.
     expect(state.beads).not.toEqual(before.beads);
     state.beads = before.beads;
+    // **And except the revision** (batch E2), which is the point of it: a
+    // resolution moves the world without a command behind it, and every derived
+    // reading is keyed on this counter, so a quiet turn moves it exactly once
+    // per phase. Written as the phase count rather than as "some larger number",
+    // because "once per phase, after that phase has run" is the contract.
+    expect(state.revision - before.revision).toBe(END_OF_TURN_PHASES.length);
+    state.revision = before.revision;
+    // Nothing else moved — which is what the rest of this comparison says.
     expect(state).toEqual(before);
   });
 });
@@ -705,7 +712,7 @@ describe('the research queue field', () => {
     // `costAgeBand` [1.25, 2.5, 4.5, 8.5] by Æra, so Æra I costs exactly what
     // v81 charged and an Æra IV row eight and a half times its printed figure.
     // A v81 log diverges at the first thing built out of Æra I.
-    expect(SCHEMA_VERSION).toBe(86);
+    expect(SCHEMA_VERSION).toBe(87);
   });
 });
 

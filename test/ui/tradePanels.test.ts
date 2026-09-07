@@ -35,7 +35,7 @@ import { describe, expect, it } from 'vitest';
 
 import { applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
-import { type City, type GameState, type Unit, createUnit } from '../../src/sim/state';
+import { type City, type GameState, type Unit, bumpRevision, createUnit } from '../../src/sim/state';
 import {
   explainEmpireGold,
   explainRouteYield,
@@ -316,7 +316,13 @@ describe('the city panel’s routes row', () => {
    */
   it('prints the caravan’s lines under the chips it is already inside', () => {
     const panel = source('cityPanel.ts');
-    expect(panel).toMatch(/for \(const entry of cityRouteYields\(state, city\)\) \{/);
+    // **Step 6 of the town's own published list** since batch E2: the panel
+    // filters `CityQuoteLine`s rather than walking `cityRouteYields` a second
+    // time, so a caravan's line is printed by the same list the chips are the
+    // fold of. Step 6 is the routes arriving (`docs/yields.md`) and it is named
+    // in the panel's own `PANEL_LEDGER_STEPS`.
+    expect(panel).toMatch(/const PANEL_LEDGER_STEPS: readonly number\[\] = \[4, 8, 5, 6\];/);
+    expect(panel).toMatch(/if \(entry\.step !== step\) continue;/);
     expect(panel).toMatch(/line\(entry\.source, figures\)/);
     // And the trading post is a mark, not a building row: it is history, and all
     // it does is let later caravans reach further.
@@ -381,6 +387,12 @@ describe('the treasury’s empire lines', () => {
     const headlineBefore = civYields(state, 0).gold;
     const empireBefore = fold();
     for (const tile of state.map.tiles) delete tile.road;
+    // The roads came up by hand, which is what `pillage` does through the
+    // reducer — so the bench says the world moved, the way a command does
+    // (batch E2, `GameState.revision`). Without it the headline below is the
+    // reading taken before the roads went, which is the memo behaving exactly
+    // as it promises to.
+    bumpRevision(state);
     const empireAfter = fold();
     // The roads mattered: without this the identity below would hold trivially.
     expect(empireBefore).not.toBe(empireAfter);
@@ -392,9 +404,10 @@ describe('the treasury’s empire lines', () => {
     // The empire's lines are one list in the simulation since batch H19, so the
     // card walks `explainEmpireLines` — the very list the resolution banks the
     // fold of — instead of an adapter of its own over the four gold lines.
-    expect(bar).toMatch(
-      /for \(const line of explainEmpireLines\(state, playerId, empirePercent\)\) \{/,
-    );
+    // Through `readEmpire` since batch E2 — the same list, taken once for the
+    // revision and shared with the chip above it, the Ledger and the bot.
+    expect(bar).toMatch(/const reading = readEmpire\(state, playerId\);/);
+    expect(bar).toMatch(/for \(const line of reading\.lines\) \{/);
     expect(bar).toMatch(/const value = line\[key\];/);
     // The banked register's rule, one surface over: no site re-asks which yield
     // it is looking at.

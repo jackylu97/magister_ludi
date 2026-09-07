@@ -357,7 +357,7 @@ describe('determinism', () => {
     // nodes hand over different rows and a Machinery army marches further on
     // the same paving). A v70 log replays into a different world at every one
     // of those, which is what a schema number is for.
-    expect(SCHEMA_VERSION).toBe(86);
+    expect(SCHEMA_VERSION).toBe(87);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

@@ -324,9 +324,13 @@ describe('the Reliquary screen', () => {
     expect(SCREEN).toContain('drawReliquaryCard(withFigure(state, playerId, roll[at]!))');
     expect(SCREEN).toContain('stampedState !== state || stampedAt !== revision || stampedSeat !== playerId');
     expect(SCREEN).toContain('getRevision?.()');
-    // And the game is where the revision comes from — `game.log.length`, never
-    // a clock and never a counter this file keeps.
-    expect(source('main.ts')).toContain('getRevision: () => game.log.length');
+    // And the game is where the revision comes from — `state.revision` since
+    // batch E2, never a clock and never a counter this file keeps. It was
+    // `game.log.length`, which was the right idea read one layer too high: the
+    // simulation's own phases move the state without moving the log, so the
+    // counter now lives on the state and is the same integer every memo in the
+    // game is keyed on.
+    expect(source('main.ts')).toContain('getRevision: () => game.state.revision');
   });
 
   it('writes the figure at rest and never replays the count', () => {

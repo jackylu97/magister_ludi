@@ -67,7 +67,7 @@ import {
 } from '../../src/sim/upkeep';
 import { makeRng } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, createUnit, newGame } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision, createUnit, newGame } from '../../src/sim/state';
 import { type TechAge, type TechId, highestAge } from '../../src/sim/techData';
 import { plainTechs } from './techHelpers';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -172,6 +172,13 @@ function plant(state: GameState, city: City, col: number, row: number, id: Resou
   const tile = at(state.map, col, row);
   tile.resource = id;
   tile.improvement = improvementForResource(id)!;
+  // **The world moved** (batch E2). A seam written straight onto a tile is what
+  // the `buildImprovement` verb does through the reducer, and a reader's memo is
+  // keyed on `state.revision` — so a bench that mutates by hand says so the way a
+  // command does, or `civYields` below answers with the board before the seam.
+  // The contract is on `GameState.revision`: a writer moves the state and the
+  // revision moves with it.
+  bumpRevision(state);
   expect(state.tileOwner[row * state.map.width + col]).toBe(city.id);
   expect(cityResources(state, city, 'luxury')).toContain(id);
   return tile;
@@ -1613,6 +1620,12 @@ describe('signatures and the replay', () => {
     const player = state.players[0]!;
     const banked = player.gold;
     collectYields(state);
+    // A phase run by hand is a phase, and `runEndOfTurn` moves the revision once
+    // after each one it runs (batch E2) — the counter every reader's memo is
+    // keyed on. Called here for the same reason `plant` calls it: this bench
+    // drives the pipeline a piece at a time, so it owes the announcement the
+    // pipeline makes.
+    bumpRevision(state);
     expect(player.gold - banked).toBe(civYields(state, 0).gold);
   });
 });

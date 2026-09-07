@@ -319,8 +319,11 @@ describe('the audit holds in the source', () => {
   /** Every fold the audit classified as (a) — a floor here is the bug back. */
   const FOLDS: readonly { path: string; snippet: string }[] = [
     { path: 'src/sim/modifiers.ts', snippet: 'return (base * (100 + sums.city) * (100 + sums.empire)) / 10_000;' },
-    { path: 'src/sim/cities.ts', snippet: 'science: city.population * CITIES.sciencePerPop + centre.science,' },
-    { path: 'src/sim/cities.ts', snippet: 'total.science += city.population * entry.sciencePerPop;' },
+    // Batch E2 split the town's own terms out of the centre's line and folded a
+    // building's per-citizen beaker into the building's own line; both are still
+    // the exact product, which is the claim.
+    { path: 'src/sim/cities.ts', snippet: 'science: city.population * CITIES.sciencePerPop,' },
+    { path: 'src/sim/cities.ts', snippet: 'science: entry.science + city.population * entry.sciencePerPop,' },
     { path: 'src/sim/cities.ts', snippet: 'share[voice] = (share[voice] * worksPercent) / 100;' },
     { path: 'src/sim/cities.ts', snippet: 'share[voice] = (ground[voice] * groundPercent) / 100;' },
     { path: 'src/sim/cities.ts', snippet: 'return surplus * factor;' },

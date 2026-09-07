@@ -145,7 +145,7 @@ import {
   routeTarget,
 } from './trade';
 import { type TriumphAward, triumphMarks, triumphsSince } from './triumphs';
-import { type GameState, type Unit, wakeUnit } from './state';
+import { type GameState, type Unit, bumpRevision, wakeUnit } from './state';
 import { isCombatant, unitDef, unitMaxHp } from './unitData';
 import { fullMovement, isRested } from './units';
 import { RULES } from './rulesData';
@@ -1136,7 +1136,16 @@ export function runEndOfTurn(state: GameState): TurnReport {
   // `advanceProduction`, a palace taken by a raider in `resetMovement` — and the
   // `beads` phase itself is only one of them.
   const beadMarksBefore = beadMarks(state);
-  for (const phase of END_OF_TURN_PHASES) phase.run(state, report);
+  // **Each phase moves the revision** (batch E2). A resolution is the one place
+  // the simulation mutates without a command behind it — the very hole the
+  // effect memo's per-ask print was dug to cover (`docs/audit/evaluations.md`
+  // §3c) — so the counter every derived reading is remembered under is raised
+  // once per phase, after that phase has run. Deterministic by construction:
+  // the phase list is fixed and ordered, so a replay reaches the same integer.
+  for (const phase of END_OF_TURN_PHASES) {
+    phase.run(state, report);
+    bumpRevision(state);
+  }
   report.triumphs.push(...triumphsSince(state, marks));
   // The diff, minus what the phase already reported with its boon lines intact.
   // Matching on the pair `(playerId, id)` is exact: a bead is claimed once in

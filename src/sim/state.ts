@@ -283,8 +283,26 @@ import {
  * meter tier (or an arrears penalty) and an empire-scale line, at which point
  * that turn banks a different figure and every threshold downstream of it — a
  * technology, a border rung, a draft — is crossed on a different turn.
+ *
+ * v87: **the revision** (batch E2, `docs/flags.md` item pp;
+ * `docs/audit/evaluations.md` §2b and §3c — the user, 2026-09-07: *"variables
+ * are cached and updated with the user's actions, so yields that have not
+ * changed are not recalculated"*). One integer, `GameState.revision`, nought at
+ * `newGame`, raised by `applyCommand` on every accepted command and once by
+ * each end-of-turn phase after it runs. It is the key every derived reading is
+ * remembered under — the town's labelled list (`readCity`), the empire's
+ * (`readEmpire`), the law reaching a seat (`liveReading`), the interface's own
+ * "re-read" trigger — replacing four private invalidation schemes, of which the
+ * loudest was a **print** of everything a seat held, rebuilt on every one of the
+ * hundred-odd-thousand asks a late turn makes.
+ *
+ * A v86 log replays **identically**: the counter is derived from the log and the
+ * fixed phase order, no rule reads it, and no figure moves. What moves is the
+ * *snapshot* — `snapshotState` is `JSON.stringify(state)`, so a saved state
+ * gains a field and its hash changes, which is why this is a schema bump and not
+ * a quiet addition.
  */
-export const SCHEMA_VERSION = 86;
+export const SCHEMA_VERSION = 87;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2056,6 +2074,34 @@ export interface GameState {
   schemaVersion: number;
   /** 1-based; `data/rules.json` sets the starting value. */
   turn: number;
+  /**
+   * **How many times the world has moved** — the key every derived reading is
+   * remembered under (`docs/audit/evaluations.md` §2b, §3c; batch E2).
+   *
+   * Nought in `newGame`, raised by `applyCommand` on every command it *accepts*
+   * and once by each end-of-turn phase after that phase has run. Those are the
+   * only two ways the simulation moves at all, so a counter that follows them
+   * is the answer to "has anything changed since I last asked" — and because
+   * both sites are inside the replay, a save that replays reaches the same
+   * counter as the game it was saved from. It is state and not a module
+   * variable for that reason exactly: a number two games in one process shared
+   * would be a memo of the other board.
+   *
+   * **It is not a clock and it is not a turn.** Nothing compares two revisions
+   * for size, nothing does arithmetic on one; the only question ever asked of it
+   * is whether it is the same integer it was, which is what makes a memo keyed
+   * on it a two-integer compare rather than a walk of everything a seat holds
+   * (`liveReading`, `statecraft.ts`, was O(every card, building, bead and tech)
+   * per ask).
+   *
+   * Its guarantee is stated at command and phase granularity and no finer: a
+   * reading taken *inside* a handler, between the mutation and the bump, is a
+   * reading of a world in the middle of moving. Nothing in the simulation does
+   * that on purpose — a reader is a reader and a writer is a writer — and
+   * `bumpRevision` is exported so that a test which pokes the state by hand can
+   * say so the way a command would.
+   */
+  revision: number;
   /** The one and only gameplay generator. Advanced by mutation. */
   rng: Rng;
   /** Next id handed to a unit or city. See the module docblock. */
@@ -2408,6 +2454,8 @@ export function newGame(config: GameConfig): GameState {
   const state: GameState = {
     schemaVersion: SCHEMA_VERSION,
     turn: RULES.game.startingTurn,
+    // Nought, and the first accepted command makes it one. See `GameState.revision`.
+    revision: 0,
     rng,
     nextEntityId: RULES.game.firstEntityId,
     players: normalized.players.map((spec, index) => ({
@@ -2920,6 +2968,29 @@ export function claimWonder(
   };
   state.wonders.push(claim);
   return claim;
+}
+
+// --- the revision -----------------------------------------------------------
+
+/**
+ * **The world moved** — the one writer of `GameState.revision`.
+ *
+ * Two callers in the simulation and they are the whole contract: `applyCommand`
+ * after a command it accepted, and `runEndOfTurn` after each phase in the fixed
+ * order. Everything else that would like to say "the board is different now"
+ * says it by being one of those two, because a third bump site is a third place
+ * to forget — and a memo trusting a counter nobody raised is the one failure
+ * this whole scheme can cause.
+ *
+ * A test that pokes the state by hand — slots a card, revokes a legacy, moves
+ * the turn on — is doing by hand what a command does, and calls this for the
+ * same reason a command does. That is not a leak in the design; it is the
+ * design said out loud: **a writer moves the state and the revision moves with
+ * it**, and the readings follow without being told (`docs/audit/evaluations.md`
+ * §2b).
+ */
+export function bumpRevision(state: GameState): void {
+  state.revision += 1;
 }
 
 // --- turn status ------------------------------------------------------------

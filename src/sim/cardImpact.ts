@@ -129,6 +129,17 @@ import {
 import { CITY_YIELD_KEYS, type CityYieldKey } from './resourceData';
 import { type GreatPersonId, greatPersonDef } from './greatPeopleData';
 import { type MeterId, authorityOf, happinessOf } from './meters';
+// The town's own published list, remembered on the revision — the real board's
+// half of every ghost-diff on a screen (batch E2, `docs/audit/evaluations.md`
+// §3b). See `CardImpactSheet`.
+import { readCity } from './readings';
+
+/**
+ * Which of `docs/yields.md`'s town steps the cards' city lines are — step 3, the
+ * one `cityCardSums` used to walk for itself. Named rather than spelled `3` at
+ * the filter, because a number in a filter is a number nobody can search for.
+ */
+const CARD_CITY_STEP = 3;
 import { getTileAt } from './map';
 import type { Tile } from './map';
 import { highestAge } from './techData';
@@ -487,14 +498,26 @@ class Bucket {
   }
 }
 
-/** Every yield-bearing line one empire's cards pay one town, keyed by source. */
-function cityCardSums(state: GameState, city: City): Map<string, CityYields> {
+/**
+ * Every yield-bearing line one empire's cards pay one town, keyed by source.
+ *
+ * The `×N` tail is stripped from the **key** and kept on the label, for
+ * `explainBuildingPreview`'s reason exactly: a `countScaled` line re-labels the
+ * very line the card changes, and keyed raw the two halves of the diff never
+ * meet.
+ *
+ * Taken over a *list* rather than over a town, because the two sides of a
+ * ghost-diff come by different roads since batch E2: the ghost's lines are built
+ * for the ghost and thrown away, while the real board's are step 3 of the town's
+ * own published list (`readCity`), already in hand for whatever else on the
+ * screen has asked. One accumulator, so the two sides cannot come to be summed
+ * two different ways.
+ */
+function cardSumsOf(
+  lines: readonly (CityYields & { source: string })[],
+): Map<string, CityYields> {
   const map = new Map<string, CityYields>();
-  for (const line of cardCityYields(state, city)) {
-    // The `×N` tail is stripped from the **key** and kept on the label, for
-    // `explainBuildingPreview`'s reason exactly: a `countScaled` line re-labels
-    // the very line the card changes, and keyed raw the two halves of the diff
-    // never meet.
+  for (const line of lines) {
     const key = line.source.replace(/ · ×\d+$/, '');
     let sum = map.get(key);
     if (!sum) {
@@ -504,6 +527,11 @@ function cityCardSums(state: GameState, city: City): Map<string, CityYields> {
     for (const voice of CITY_YIELD_KEYS) sum[voice] += line[voice];
   }
   return map;
+}
+
+/** The ghost's side: a town of a board nothing else is reading. */
+function cityCardSums(state: GameState, city: City): Map<string, CityYields> {
+  return cardSumsOf(cardCityYields(state, city));
 }
 
 /**
@@ -737,6 +765,14 @@ function knockOnLadder(
 export interface CardImpactSheet {
   /** The board these readings belong to. Compared by identity, never trusted past it. */
   readonly state: GameState;
+  /**
+   * **The revision the sheet was taken at** (batch E2). Identity alone was never
+   * quite the claim: `GameState` is mutated in place, so the same object one
+   * command later is a different board, and "its lifetime is one draw" was a rule
+   * kept by everybody remembering it. Now it is checked — a sheet whose revision
+   * has moved is simply not used, and the reading falls back to asking.
+   */
+  readonly revision: number;
   readonly playerId: number;
   readonly percents: () => EmpirePercents;
   readonly empireLines: () => Map<string, CityYields>;
@@ -747,6 +783,7 @@ export interface CardImpactSheet {
 }
 
 export function cardImpactSheet(state: GameState, playerId: number): CardImpactSheet {
+  const revision = state.revision;
   let percents: EmpirePercents | undefined;
   let empireLines: Map<string, CityYields> | undefined;
   const meters = new Map<MeterId, number>();
@@ -761,6 +798,7 @@ export function cardImpactSheet(state: GameState, playerId: number): CardImpactS
 
   return {
     state,
+    revision,
     playerId,
     percents: () => (percents ??= empirePercents(state, playerId)),
     empireLines: () => {
@@ -775,10 +813,19 @@ export function cardImpactSheet(state: GameState, playerId: number): CardImpactS
       }
       return held;
     },
+    // **Step 3 of the town's own published list** (batch E2), rather than a
+    // private walk of the same evaluator: the real board's card lines are what
+    // `readCity` has already folded for the panel, the Ledger and the top bar
+    // this revision, so a screenful of stamps pays nothing for them at all. The
+    // local map stays because a sheet may be handed a town whose reading nobody
+    // else asked for, and the accumulator is `cardSumsOf`'s — one shape for both
+    // sides of every diff.
     cardSums: (city) => {
       let held = sums.get(city.id);
       if (!held) {
-        held = cityCardSums(state, city);
+        held = cardSumsOf(
+          readCity(state, city).lines.filter((line) => line.step === CARD_CITY_STEP),
+        );
         sums.set(city.id, held);
       }
       return held;
@@ -823,7 +870,10 @@ export function explainCardImpact(
   if (!pair || !without || !held) return occasionLines(subject);
 
   /** The sheet, iff it is a sheet about *this* board and this seat. */
-  const shared = sheet && sheet.state === state && sheet.playerId === playerId ? sheet : undefined;
+  const shared =
+    sheet && sheet.state === state && sheet.revision === state.revision && sheet.playerId === playerId
+      ? sheet
+      : undefined;
   /** True for the side of the pair that is the real board — the shared half. */
   const isReal = (which: GameState): boolean => shared !== undefined && which === state;
 
