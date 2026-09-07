@@ -653,3 +653,44 @@ body {
   text-transform: uppercase;
   color: rgba(29, 26, 32, 0.6);
 }
+
+/* --- the city banner -------------------------------------------------------
+   The plate's stall, one label over: the banner is only ever seen floating over
+   the diorama, so it gets the same flat swatch of the board's sage.
+
+   The banner is `position: absolute` in the game and lifted 46px clear of its
+   town by a negative margin, because `projectCell` anchors it at the tile
+   centre every frame. Nothing anchors it here, so both are undone and it
+   returns to the flow. That placement pair is the only thing this page says
+   about the class — the pill, the roundel and the bar on its foot are the
+   game's own rules, painted by the game's own functions. */
+.banner-ground {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  align-items: flex-start;
+  padding: 26px 18px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: #93a877;
+}
+
+.banner-slot {
+  display: grid;
+  justify-items: center;
+  gap: 9px;
+}
+
+.banner-slot .city-banner {
+  position: static;
+  margin-top: 0;
+}
+
+.banner-caption {
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(29, 26, 32, 0.6);
+}

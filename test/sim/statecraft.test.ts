@@ -59,10 +59,12 @@ import {
   cardTileLines,
   scopedCardTileLines,
   tileConditionHolds,
+  tileConditionReadsFold,
   cardBehaviorRule,
   cardCityStat,
   cityScopeAdmits,
   cardCityYields,
+  cardLinesOnBuilding,
   cardProduction,
   cardYieldConversions,
   cardFoundingRider,
@@ -6363,6 +6365,39 @@ describe('the engine shapes', () => {
     expect(tileConditionHolds(tile, on)).toBe(false);
   });
 
+  it('reads a belief’s faith on the hex — the asking lines land after the paying ones', () => {
+    // The user, 2026-09-07: "+1 faith on every hex that gives faith isn't
+    // applying correctly to my desert tiles that have +1 faith from my
+    // religion." The Sacred Ground pays on what the hex already pays; the
+    // Desert Fathers put the faith there. Both are lines in one fold, and the
+    // fold used to take its reading before either had spoken.
+    const g = game();
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    const tile = getTileAt(g.state.map, (city.col + 1) % g.state.map.width, city.row)!;
+    tile.terrain = 'desert';
+    tile.hills = false;
+    tile.feature = 'none';
+    delete tile.resource;
+    delete tile.improvement;
+    // Bare desert, nothing held: no faith, and The Sacred Ground alone has
+    // nothing to pay on.
+    slot(g.state, 0, 'theSacredGround');
+    expect(explainTileYield(tile, yieldContextFor(g.state, 0)).some((l) => l.faith > 0)).toBe(false);
+    // The belief lands first, the Order reads it: two faith, two named lines.
+    player.pantheon.beliefs.push('desertFathers');
+    const lines = explainTileYield(tile, yieldContextFor(g.state, 0));
+    const faith = lines.reduce((sum, l) => sum + l.faith, 0);
+    expect(faith).toBe(2);
+    expect(lines.some((l) => l.source.includes(orderDef('theSacredGround').name) && l.faith === 1)).toBe(true);
+    // The asking line is the one the fold holds back; the paying line is not.
+    expect(tileConditionReadsFold({ test: 'yields', yield: 'faith' })).toBe(true);
+    expect(tileConditionReadsFold({ test: 'terrain', terrain: 'desert' })).toBe(false);
+    expect(
+      tileConditionReadsFold({ test: 'all', of: [{ test: 'terrain', terrain: 'desert' }, { test: 'yields', yield: 'faith' }] }),
+    ).toBe(true);
+  });
+
   // --- 4. the slot-position reader -------------------------------------------
 
   it('keeps the slots array and the layout in one order, index for index', () => {
@@ -7193,5 +7228,47 @@ describe('an Order dealt only from its age', () => {
     expect(player.statecraft.slots.map((s) => s?.card ?? null)).toContain(gated[0]);
     // Held rows leave every pool reading; the gate never touches the holding.
     expect(livePool(player.statecraft)).not.toContain(gated[0]);
+  });
+});
+
+// --- a building's share counts what the law put on it -----------------------
+
+/**
+ * The user, 2026-09-07: *"the Synod — your faith buildings provide 50% more
+ * yields — it should count my religion bonuses on my temples, and great people
+ * improvements to temples."* A `buildingYieldPercent`'s share is taken of the
+ * building's row **plus** every `cityYields` line whose scope names that
+ * building (`cardLinesOnBuilding`), whoever wrote it — an Order, a belief, a
+ * legacy. The lines themselves are banked once as the cards' own; the share
+ * is what widens.
+ */
+describe('a building’s share counts what the law put on it', () => {
+  it('takes the Synod’s half over the temple’s row and The Choir’s culture on it', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    city.buildings.push('temple');
+    slot(g.state, 0, 'theChoir');
+    slot(g.state, 0, 'theSynod');
+    const def = buildingDef('temple');
+    const synod = cardBuildingYields(g.state, city).find((line) => line.card === 'theSynod')!;
+    expect(synod).toBeDefined();
+    // Half of the row's own culture plus The Choir's three — not half the row alone.
+    expect(synod.culture).toBeCloseTo(((def.culture ?? 0) + 3) * 0.5, 10);
+    expect(synod.faith).toBeCloseTo((def.faith ?? 0) * 0.5, 10);
+    // The Choir's own line is banked once, unchanged.
+    const choir = cardCityYields(g.state, city).find((line) => line.card === 'theChoir')!;
+    expect(choir.culture).toBe(3);
+  });
+
+  it('reads a belief on the temple the same way, and nothing scoped to the town alone', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    city.buildings.push('temple');
+    const onIt = cardLinesOnBuilding(g.state, city, 'temple');
+    expect(onIt.culture).toBe(0);
+    slot(g.state, 0, 'theChoir');
+    expect(cardLinesOnBuilding(g.state, city, 'temple').culture).toBe(3);
+    // A monument's line is the monument's, not the temple's.
+    expect(cardLinesOnBuilding(g.state, city, 'monument').culture).toBe(0);
   });
 });

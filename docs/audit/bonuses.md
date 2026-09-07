@@ -249,7 +249,7 @@ Two further blind spots that are not stand-ins but omissions:
 | card stamp | `explainCardImpact` `cardImpact.ts:649` | **same fold** — two ghosts of `cityYields`, `explainEmpireCardYields`, `empireResourceYields`, `explainEmpireGold`, `happinessOf`, `authorityOf` | best-built preview in the tree; misses `senderRouteYields` for the same reason finding 3 does |
 | top bar headline | `civYields` `topBar.ts:134` | **beside it** | re-sums `collectYields`' six steps and omits step 4 — finding 3 |
 | Ledger band 1 · totals | `ledgerReading` `ledgerScreen.ts` | **beside it** | same omission; pinned only against `civYields` |
-| Ledger band 1 · classes | `cityFlatsByClass` `ledgerScreen.ts:311` | **beside it, declared** | drifted three ways — finding 4 |
+| Ledger band 1 · classes | `cityFlatsByClass` `ledgerScreen.ts:311` | **beside it, declared** | drifted three ways — finding 4; the *crediting* was re-ruled 2026-09-07 (flags jj): the multiplied gain goes to who supplied the percentages, a card's tile line to the card |
 | purchase price | `explainPurchaseCost` `purchase.ts:266` | **same fold** — `foldUnitCost` of its own lines | riders carry the *difference*, so the list sums exactly |
 | unit cost | `explainUnitCost` `cities.ts:3659` | **same fold** | every step carries its difference |
 | tile purchase | `explainTilePurchase` `cities.ts:5881` | **beside it** for the card half | finding 8 |

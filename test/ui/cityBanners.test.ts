@@ -2,7 +2,11 @@
  * The one further exclusion `visibleCityBanners` layers on top of fog: the
  * open city's own banner drops out of the list, full stop, whatever else is
  * true about it — and, since the growth ring landed, the three states that ring
- * has, the ink it is drawn in and the one seat it is shown to.
+ * has, the ink it is drawn in and the one seat it is shown to — and, since the
+ * hit-point bar landed beside it, the wound on the banner's foot: the town that
+ * carries none because it is whole, the one that carries none because it is
+ * only remembered, and the walls that are a longer bar rather than a second
+ * segment.
  *
  * Pure and state-in, list-out (see `cityBanners.ts`'s "The open city has no
  * banner"), so this is asserted without a renderer, a `container`, or any DOM
@@ -17,13 +21,16 @@
 import { describe, expect, it } from 'vitest';
 
 import { foundCityAt, growthThreshold } from '../../src/sim/cities';
-import { createMap, getTileAt } from '../../src/sim/map';
+import { cityMaxHp } from '../../src/sim/combat';
+import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { type GameState, newGame } from '../../src/sim/state';
-import { resetVisibility } from '../../src/sim/visibility';
+import { EXPLORED, resetVisibility } from '../../src/sim/visibility';
 import {
   RING,
   cityGrowthRing,
+  cityHealthBar,
   growthRing,
+  healthBar,
   visibleCityBanners,
 } from '../../src/ui/cityBanners';
 
@@ -115,6 +122,151 @@ describe('visibleCityBanners', () => {
     // Their size is a thing you can count by looking; their next citizen is not.
     expect(theirs.pop).not.toBe('');
     expect(theirs.growth).toBeNull();
+  });
+
+  /**
+   * The bar is the *size figure's* kind of fact and not the ring's: a rival's
+   * countdown is that empire's food ledger read off tiles this seat cannot see,
+   * while a rival's hit points are a fact about a thing this seat is looking at
+   * — the board already draws exactly that bar over every hurt piece on it,
+   * whoever owns the piece.
+   */
+  it('puts a bar on every watched town that is hurt, yours and theirs', () => {
+    const state = boardState();
+    const mine = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    const rival = foundCityAt(state, 1, getTileAt(state.map, 5, 4)!);
+    rival.hp = Math.round(cityMaxHp(rival) / 2);
+
+    const facts = visibleCityBanners(state, 0, null);
+    const ours = facts.find((b) => b.cityId === mine.id)!;
+    const theirs = facts.find((b) => b.cityId === rival.id)!;
+
+    // A whole town is the banner that shipped before this pass: no bar at all.
+    expect(ours.health).toBeNull();
+    expect(theirs.health).not.toBeNull();
+    expect(theirs.health!.filled).toBeCloseTo(0.5, 2);
+    // And still no ring on it, which is what makes the two gates two rules.
+    expect(theirs.growth).toBeNull();
+  });
+
+  /**
+   * The fog rule the banner already keeps, kept: a sighting is a name and a
+   * flag (`rememberedFacts`), and hit points twenty turns stale would be the
+   * worst number on this surface to quote as current — a siege that may have
+   * been lifted, or lost.
+   */
+  it('draws no bar on a remembered town, however hurt it was', () => {
+    const state = boardState();
+    foundCityAt(state, 0, getTileAt(state.map, 2, 2)!);
+    // Far outside seat 0's sight, then wounded and *remembered*.
+    const far = foundCityAt(state, 1, getTileAt(state.map, 13, 8)!);
+    far.hp = 3;
+    const tile = getTileAt(state.map, far.col, far.row)!;
+    state.visibility[0]![tileIndex(state.map, tile.col, tile.row)] = EXPLORED;
+    state.citySightings[0] = [
+      { cityId: far.id, col: far.col, row: far.row, name: far.name, ownerId: far.ownerId },
+    ];
+
+    const remembered = visibleCityBanners(state, 0, null).find((b) => b.cityId === far.id)!;
+    expect(remembered.stale).toBe(true);
+    expect(remembered.health).toBeNull();
+    // The other two memory-less figures are still absent, which is the rule
+    // this one joined rather than a rule of its own.
+    expect(remembered.pop).toBe('');
+    expect(remembered.growth).toBeNull();
+  });
+});
+
+/**
+ * The bar's three answers (the user, 2026-09-07, `docs/flags.md` item ii: "we
+ * need an hp bar for cities, maybe it can be integrated with the city banner"):
+ * nothing at all, a fraction of the channel, and the floor a besieger cannot
+ * push a town past.
+ *
+ * Asked of the arithmetic half for `growthRing`'s reason — the absence is the
+ * design, and an absence is the one thing that cannot be read back off a banner
+ * as a number.
+ */
+describe('healthBar', () => {
+  it('draws nothing at all on a town that is whole', () => {
+    // **The** rule of this bar, and the piece's own (`hpBarFill`): a full bar
+    // on every town is furniture, and the reading wanted is which town is hurt.
+    expect(healthBar(100, 100, false)).toBeNull();
+  });
+
+  it('fills the channel with what is left, and prints the panel’s own figures', () => {
+    expect(healthBar(84, 115, false)).toEqual({
+      filled: 84 / 115,
+      breached: false,
+      label: '84/115 hp',
+    });
+  });
+
+  /**
+   * "Walls down" is a clause on the hover and not a second drawing: the town is
+   * on `cityBeatenDown`'s floor, which is the predicate the three beats of an
+   * assault turn on, and the bar is already sitting on its minimum.
+   */
+  it('names the breach in words rather than in a second mark', () => {
+    const bar = healthBar(1, 115, true)!;
+    expect(bar.breached).toBe(true);
+    expect(bar.label).toBe('Walls down · 1/115 hp');
+    expect(bar.filled).toBeCloseTo(1 / 115, 10);
+  });
+
+  it('clamps rather than overflowing, whatever a save holds', () => {
+    // Above the maximum reads as whole, which is the same answer as whole.
+    expect(healthBar(140, 115, false)).toBeNull();
+    // And below zero is the empty channel, not a negative width.
+    expect(healthBar(-4, 115, true)!.filled).toBe(0);
+  });
+
+  /**
+   * Not reachable through `cityMaxHp`, but a hand-edited save is a thing and a
+   * division by zero writes a `NaN` width — which the DOM resolves to no width
+   * at all, silently, on every hurt town at once.
+   */
+  it('survives a maximum of nothing rather than painting NaN', () => {
+    expect(healthBar(5, 0, false)).toBeNull();
+  });
+});
+
+/**
+ * The seam to the simulation, and the trap CLAUDE.md names by name: a town's
+ * maximum is `cityMaxHp` — the base plus every wall it has built — and never
+ * `combat.cityBaseHp`.
+ */
+describe('cityHealthBar', () => {
+  it('measures against the walls the town actually built', () => {
+    const state = boardState();
+    const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    expect(cityHealthBar(city)).toBeNull();
+
+    const bare = cityMaxHp(city);
+    city.hp = bare - 10;
+    const wounded = cityHealthBar(city)!;
+    expect(wounded.filled).toBeCloseTo((bare - 10) / bare, 10);
+    expect(wounded.label).toBe(`${bare - 10}/${bare} hp`);
+
+    // The palisade is the walls decision in one assertion: it lengthens the bar
+    // rather than adding a segment to it, so the *same* hit points read as less
+    // of a wound the day the stakes go up.
+    city.buildings = [...city.buildings, 'palisade'];
+    const walled = cityHealthBar(city)!;
+    expect(cityMaxHp(city)).toBeGreaterThan(bare);
+    expect(walled.filled).toBeLessThan(wounded.filled);
+    expect(walled.label).toBe(`${bare - 10}/${cityMaxHp(city)} hp`);
+  });
+
+  it('says the walls are down on the floor the simulation holds', () => {
+    const state = boardState();
+    const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    city.hp = 1;
+    expect(cityHealthBar(city)!.breached).toBe(true);
+    city.hp = 2;
+    // One above the floor is a wounded town and not a breached one — the bar
+    // asks `cityBeatenDown` rather than comparing hit points itself.
+    expect(cityHealthBar(city)!.breached).toBe(false);
   });
 });
 
@@ -275,6 +427,52 @@ describe('the ring\u2019s ink', () => {
     expect(Number(opacity![1])).toBeGreaterThan(0);
   });
 
+  /**
+   * The bar's half of the same bargain. Its two insets are the pill's own
+   * geometry — one clears the size roundel so the bar never cuts across the
+   * seat's tincture, the other clears the 999px cap at the height the bar sits
+   * at — and neither is a thing TypeScript can be wrong about.
+   */
+  it('lays the channel on the pill’s foot, clear of the badge and the cap', () => {
+    const channel = rule('.city-banner-health');
+    expect(channel).toMatch(/position:\s*absolute/);
+    expect(channel).toMatch(/bottom:\s*2px/);
+    // The badge is a 26px roundel in a 32px box against the pill's left edge.
+    const left = /left:\s*(\d+)px/.exec(channel);
+    expect(left).not.toBeNull();
+    expect(Number(left![1])).toBeGreaterThanOrEqual(29);
+    // And the right end stops short of the cap rather than poking out of it.
+    const right = /right:\s*(\d+)px/.exec(channel);
+    expect(right).not.toBeNull();
+    expect(Number(right![1])).toBeGreaterThan(0);
+    // The pill is the button; a child that swallowed a press would be a banner
+    // with a dead stripe across it.
+    expect(channel).toMatch(/pointer-events:\s*none/);
+  });
+
+  it('speaks the channel in the ring’s track and the fill in the alarm', () => {
+    // One convention per surface: the ground is ink, so a channel is parchment
+    // held back — the ring's track exactly, and never an ink rim, which on ink
+    // is not a channel but nothing.
+    expect(rule('.city-banner-health')).toMatch(
+      /background:\s*rgba\(247,\s*242,\s*225,\s*0\.22\)/,
+    );
+    // One ink, because the bar is drawn only on a town that is hurt. The board's
+    // second, calmer colour sorts a battle line of pieces; a banner shows one
+    // town, and the ring beside it already owns two colours about food.
+    expect(rule('.city-banner-health-fill')).toMatch(/background:\s*var\(--vermilion-lit\)/);
+  });
+
+  /**
+   * `hpBarFillWidth`'s rule, one surface over: a town on the floor still holds
+   * its hex, and a channel with nothing in it reads as a razed one.
+   */
+  it('never lets the fill draw as nothing', () => {
+    const min = /min-width:\s*([\d.]+)px/.exec(rule('.city-banner-health-fill'));
+    expect(min).not.toBeNull();
+    expect(Number(min![1])).toBeGreaterThan(0);
+  });
+
   it('keeps the badge inside the ring it is drawn in', () => {
     const box = /width:\s*(\d+)px/.exec(rule('.city-banner-size'));
     const badge = /height:\s*([\d.]+)px/.exec(rule('.city-banner-pop'));
@@ -283,6 +481,90 @@ describe('the ring\u2019s ink', () => {
     // The stroke is drawn on the radius, so the ring's inner edge is half a
     // stroke inside the box: a badge as wide as the box would sit under it.
     expect(Number(badge![1])).toBeLessThan(Number(box![1]) - RING.width * 2);
+  });
+});
+
+/**
+ * The two halves of "it repaints when the town's hit points move, and never
+ * otherwise", neither of which is a value a caller can read back: the module's
+ * own signature gate, and the gallery's standing bargain that nothing on
+ * `flair.html` is a second copy of what the game draws.
+ *
+ * Read as source for `test/ui/tilePriceTags.test.ts` reads its plate — there is
+ * no jsdom in this project, so the DOM half of this module is pinned by what it
+ * is written to do.
+ */
+describe('the wound’s fingerprint, and its stall', () => {
+  const MODULES = import.meta.glob(
+    [
+      '../../src/ui/cityBanners.ts',
+      '../../src/flairGallery/flourishes.ts',
+      '../../src/flairGallery/style.css',
+    ],
+    { eager: true, query: '?raw', import: 'default' },
+  ) as Record<string, string>;
+
+  function source(name: string): string {
+    const key = Object.keys(MODULES).find((path) => path.endsWith(name));
+    const text = key === undefined ? undefined : MODULES[key];
+    if (typeof text !== 'string' || text.length === 0) {
+      throw new Error(`${name} came back empty`);
+    }
+    return text;
+  }
+
+  /**
+   * The banner's rebuild rule is its **signature string** and not the board's
+   * city fingerprint. `signCities`/`CityLook` gate the houses, the pole and the
+   * walls of the 3D town, and hit points move none of them — a town would
+   * rebuild its sculpt every time it was scratched, and the banner is not in
+   * that layer at all (it is DOM over the canvas).
+   */
+  it('folds the bar into the signature the banner is rewritten on', () => {
+    const text = source('ui/cityBanners.ts').replace(/\/\*[\s\S]*?\*\//g, '');
+    const line = text.split('\n').find((row) => row.includes('const signature = '));
+    expect(line).toBeDefined();
+    expect(line!).toMatch(/\$\{wound\}/);
+    // And the term is the fraction *and* the words, so a blow that lands, a
+    // wall that finishes and a breach all move it.
+    expect(text).toMatch(/const wound = [^\n]*filled\.toFixed\(4\)[^\n]*label/);
+    // Painted inside the gate, beside the arcs, rather than on every refresh.
+    expect(text).toMatch(/paintHealthBar\(banner\.health, facts\.health\)/);
+  });
+
+  /**
+   * The cabinet's bargain (`flairGallery/main.ts`, "Nothing is reproduced"): the
+   * page may lay the banner out and give it a ground; it may not own a second
+   * copy of what a width means, or the stall goes stale silently the first time
+   * the shipping rule moves.
+   */
+  it('shows the shipping bar on flair.html rather than a drawing of one', () => {
+    const gallery = source('flairGallery/flourishes.ts');
+    for (const called of ['buildHealthBar', 'paintHealthBar', 'cityHealthBar', 'cityMaxHp']) {
+      expect(gallery).toMatch(new RegExp(`\\b${called}\\b`));
+    }
+    // The knob drives real hit points on a real town, which is the only way a
+    // bar measured against `cityMaxHp` can be judged with the walls on.
+    expect(gallery).toMatch(/foundCityAt/);
+    expect(gallery).toMatch(/'palisade'/);
+    // No arithmetic of its own: a percentage or a `filled` written here would be
+    // the page repainting the thing it exists to inspect.
+    const stall = gallery.slice(gallery.indexOf('function cityBannerStall'));
+    const body = stall.slice(0, stall.indexOf('\n}\n'));
+    expect(body).not.toMatch(/filled/);
+    expect(body).not.toMatch(/%`/);
+  });
+
+  it('lets the gallery place the banner and repaint nothing', () => {
+    const local = source('flairGallery/style.css');
+    const banner = local.slice(local.indexOf('--- the city banner'));
+    // The one override, and the reason: the pill is `position: absolute` and
+    // lifted clear of its tile because `projectCell` anchors it every frame,
+    // and nothing anchors it here.
+    expect(banner).toMatch(/\.banner-slot \.city-banner \{[\s\S]*?position: static;/);
+    for (const painted of ['--vermilion-lit', 'min-width', 'city-banner-health-fill']) {
+      expect(banner.includes(painted)).toBe(false);
+    }
   });
 });
 

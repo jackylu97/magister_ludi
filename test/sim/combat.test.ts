@@ -2609,3 +2609,41 @@ describe('cards and stamps on the strength ledger', () => {
     expect(b.hp).toBeLessThanOrEqual(unitMaxHp(b));
   });
 });
+
+// --- the floor does not mend under the enemy's eyes --------------------------
+
+/**
+ * The user, 2026-09-07: *"once a city is at 0 hp, it should stop healing every
+ * turn (its walls are broken)."* A siege needs every hex denied; one column at
+ * the gate is not one, and a beaten-down town that mended twenty points a turn
+ * beside it made the three beats a treadmill. `enemyAtTheGate` is the smaller
+ * question, read off the same field.
+ */
+describe('a town at the floor beside an enemy', () => {
+  it('does not heal while an enemy stands adjacent, and mends the turn they withdraw', () => {
+    const state = flatState();
+    state.players[0]!.techsResearched.push('siegecraft');
+    const city = foundCityAt(state, 1, at(state.map, 8, 4));
+    const gate = neighborTiles(state.map, tileHex(at(state.map, city.col, city.row)))[0]!;
+    const enemy = createUnit(state, 0, 'warrior', gate.col, gate.row);
+    city.hp = 1;
+    expect(cityBeatenDown(city)).toBe(true);
+    healCities(state);
+    expect(city.hp).toBe(1);
+    // The enemy withdraws: the walls are mended at the ordinary rate.
+    state.units = state.units.filter((unit) => unit.id !== enemy.id);
+    healCities(state);
+    expect(city.hp).toBe(1 + COMBAT.cityHealPerTurn);
+  });
+
+  it('still heals a town above the floor beside an enemy — its walls stand', () => {
+    const state = flatState();
+    state.players[0]!.techsResearched.push('siegecraft');
+    const city = foundCityAt(state, 1, at(state.map, 8, 4));
+    const gate = neighborTiles(state.map, tileHex(at(state.map, city.col, city.row)))[0]!;
+    createUnit(state, 0, 'warrior', gate.col, gate.row);
+    city.hp = 30;
+    healCities(state);
+    expect(city.hp).toBe(30 + COMBAT.cityHealPerTurn);
+  });
+});

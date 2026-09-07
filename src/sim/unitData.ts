@@ -541,18 +541,9 @@ export interface UnitDef {
    * still strikes once a turn and then merely has somewhere to be.
    */
   hitAndRun?: boolean;
-  /**
-   * True when this piece **paves the hex it comes to rest on** — the
-   * Legionary's, and the whole of "the road is the army, laid down behind it".
-   *
-   * Presence is the marker, exactly as with `hitAndRun`, `blockades` and
-   * `trades`: nothing in `src/sim/` compares a type against `"legionary"`, so a
-   * later engineer inherits the rule from one data field. It is read in exactly
-   * one place — `arriveOnTile` (`arrival.ts`), the one "a unit came to rest
-   * here" seam — beside the trader's own paving, and it goes through `layRoad`
-   * (`roads.ts`), which is still the **only** writer of `Tile.road`.
-   */
-  laysRoad?: boolean;
+  // `laysRoad` stood here from the tree pass of 2026-08-30 (the Legionary's
+  // "the road is the army") until 2026-09-07, when the user withdrew it; the
+  // reason is in `layRoadUnder`'s docblock (`roads.ts`).
   /**
    * True when this row's ranged blow is a **bombardment** — it is built to
    * batter walls — or the field is absent.

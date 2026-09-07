@@ -126,6 +126,7 @@ import {
   type TileLine,
   cardActionRule,
   cardBuildingPercents,
+  cardLinesOnBuilding,
   cardMeterFlag,
   cardCityYields,
   cardEmpireYields,
@@ -149,6 +150,7 @@ import {
   recordWorldScalingOccasion,
   settleCultureWindfall,
   tileConditionHolds,
+  tileConditionReadsFold,
   windfallPayout,
 } from './statecraft';
 import {
@@ -366,6 +368,20 @@ export interface TileYieldContribution extends TileYield {
   /** Display label: the terrain, the feature, the resource, the tech. */
   source: string;
   kind: TileYieldKind;
+  /**
+   * The card that put this line on the hex, when one did (`TileLine.card`) —
+   * absent for the ground, the seam, the works, a renewal and a resource's own
+   * line, which is to say for most of the list most of the time.
+   *
+   * Nothing in the simulation reads it: the fold does not care who wrote a line
+   * and no rule branches on it. It is here for the **Ledger**, which has to say
+   * whose slice a figure belongs in, and which was crediting every card that
+   * pays on ground — the later Order pools' whole idiom — to *the land*
+   * (`docs/flags.md`, ruling jj). A breakdown line that knows its card is the
+   * only way a hex's yield can be split by who earned it, and it is the same
+   * answer `CityYieldPercent.card` gives one fold up.
+   */
+  card?: CardId;
 }
 
 /**
@@ -652,14 +668,14 @@ export function explainTileYield(
   };
 
   const sourceIndex = new Map<string, number>();
-  for (const line of ctx?.lines ?? []) {
-    if (!tileConditionHolds(tile, line.on, paidSoFar)) continue;
+  const pushLine = (line: TileLine): void => {
+    if (!tileConditionHolds(tile, line.on, paidSoFar)) return;
     // A line that is **only** a percentage carries no bag at all (The
     // Commonwealth's works). It is paid by the pass at the foot of this
     // function, and a zero-in-every-voice entry pushed here would be a row in
     // the hover that explains nothing — the same reading `paysSomething` takes
     // of a card's city yields one ledger over.
-    if (!TILE_YIELD_KEYS.some((voice) => line[voice] !== 0)) continue;
+    if (!TILE_YIELD_KEYS.some((voice) => line[voice] !== 0)) return;
     const clamped = {
       food: clampTakeBack('food', line.food),
       production: clampTakeBack('production', line.production),
@@ -669,7 +685,7 @@ export function explainTileYield(
       faith: clampTakeBack('faith', line.faith),
     };
     // A taking-back line whose whole bag was already empty says nothing.
-    if (!TILE_YIELD_KEYS.some((voice) => clamped[voice] !== 0)) continue;
+    if (!TILE_YIELD_KEYS.some((voice) => clamped[voice] !== 0)) return;
     const existingAt = sourceIndex.get(line.source);
     if (existingAt !== undefined) {
       const merged = list[existingAt];
@@ -679,11 +695,15 @@ export function explainTileYield(
       merged.science += clamped.science;
       merged.culture += clamped.culture;
       merged.faith += clamped.faith;
-      continue;
+      return;
     }
     sourceIndex.set(line.source, list.length);
     list.push({
       source: line.source,
+      // Whoever wrote the line, carried through for the Ledger's crediting. The
+      // merge above keeps the first appearance's card, which is the same card:
+      // lines merge on `source`, and a source is a card's own name.
+      card: line.card,
       kind: 'add',
       food: clamped.food,
       production: clamped.production,
@@ -692,6 +712,25 @@ export function explainTileYield(
       culture: clamped.culture,
       faith: clamped.faith,
     });
+  };
+  // **Two passes, and the reading between them** (the user, 2026-09-07: "the
+  // Sacred Ground isn't working properly — +1 faith on every hex that gives
+  // faith isn't applying to my desert tiles that have +1 faith from my
+  // religion"). A line that pays on what the hex *already* pays (`yields`,
+  // `CardRulePercentEffect.scope`'s bargain) used to read the ground alone —
+  // `paidSoFar` was taken once, before any law had spoken — so the Desert
+  // Fathers' faith on a desert hex was invisible to The Sacred Ground standing
+  // beside it. Now every line that asks nothing of the fold lands first, the
+  // memo is taken again over the ground *and* those lines, and the asking lines
+  // land second. Order inside each pass is `ctx.lines`' own, so the outcome
+  // depends on an order the data carries; and an asking line never sees
+  // another asking line's bag, so two of them cannot pay each other interest.
+  for (const line of ctx?.lines ?? []) {
+    if (!tileConditionReadsFold(line.on)) pushLine(line);
+  }
+  paid = undefined;
+  for (const line of ctx?.lines ?? []) {
+    if (tileConditionReadsFold(line.on)) pushLine(line);
   }
 
   // **A percentage on the works, and on nothing else** — The Commonwealth's half
@@ -718,8 +757,10 @@ export function explainTileYield(
   // reaches a card's own line, so two cards cannot pay each other interest.
   let worksPercent = 0;
   const worksSources: string[] = [];
+  const worksCards: CardId[] = [];
   let groundPercent = 0;
   const groundSources: string[] = [];
+  const groundCards: CardId[] = [];
   for (const line of ctx?.lines ?? []) {
     const works = line.percent ?? 0;
     const ground = line.basePercent ?? 0;
@@ -728,15 +769,26 @@ export function explainTileYield(
     if (works !== 0) {
       worksPercent += works;
       if (!worksSources.includes(line.source)) worksSources.push(line.source);
+      if (line.card !== undefined && !worksCards.includes(line.card)) worksCards.push(line.card);
     }
     if (ground !== 0) {
       groundPercent += ground;
       if (!groundSources.includes(line.source)) groundSources.push(line.source);
+      if (line.card !== undefined && !groundCards.includes(line.card)) groundCards.push(line.card);
     }
   }
+  // **Whose share it is**, when it is anybody's. Two cards that each say +50%
+  // sum into ONE line (the discipline above), and a line naming two cards can be
+  // credited to neither — so the card is carried only when the share has exactly
+  // one author, which is every case the data holds today. A share with two
+  // authors is the land's, which is where an unattributable figure has always
+  // gone.
+  const soleCard = (cards: readonly CardId[]): CardId | undefined =>
+    cards.length === 1 ? cards[0] : undefined;
   if (worksPercent !== 0 && worksTo > worksFrom) {
     const share: TileYieldContribution = {
       source: worksSources.join(' + '),
+      card: soleCard(worksCards),
       kind: 'add',
       food: 0,
       production: 0,
@@ -760,6 +812,7 @@ export function explainTileYield(
     const ground = foldTileYield(list.slice(0, worksFrom));
     const share: TileYieldContribution = {
       source: groundSources.join(' + '),
+      card: soleCard(groundCards),
       kind: 'add',
       food: 0,
       production: 0,
@@ -2430,14 +2483,20 @@ export function cardBuildingYields(
   for (const entry of explainCityBuildings(city, hypothetical)) {
     // The building's own figure, per voice — the row's flats plus the per-citizen
     // beaker, exact exactly as `cityQuote` is exact, so the share is taken of the
-    // number the town actually banks.
+    // number the town actually banks — **plus what the law put on this building
+    // by name** (`cardLinesOnBuilding`: a follower belief's science on a temple,
+    // The Choir's culture, a legacy's faith). The user, 2026-09-07: the Synod
+    // "should count my religion bonuses on my temples, and great people
+    // improvements to temples". Those lines are banked once as the cards' own;
+    // here they only widen what the share is over.
+    const onIt = cardLinesOnBuilding(state, city, entry.building);
     const base: Record<CityYieldKey, number> = {
-      food: entry.food,
-      production: entry.production,
-      gold: entry.gold,
-      science: entry.science + city.population * entry.sciencePerPop,
-      culture: entry.culture,
-      faith: entry.faith,
+      food: entry.food + onIt.food,
+      production: entry.production + onIt.production,
+      gold: entry.gold + onIt.gold,
+      science: entry.science + city.population * entry.sciencePerPop + onIt.science,
+      culture: entry.culture + onIt.culture,
+      faith: entry.faith + onIt.faith,
     };
     const raised: Record<CityYieldKey, number> = { ...base };
     for (const pass of [false, true]) {
@@ -2721,6 +2780,13 @@ export interface ProductionModifier {
   building?: BuildingId;
   /** The resource this line belongs to, or absent for a building's line. */
   resource?: ResourceId;
+  /**
+   * The card that put these hammers behind the build, for the card half of the
+   * list — `CityYieldPercent.card`'s sibling, and carried for its reason: a
+   * percentage that cannot name its source can only be credited to whoever
+   * happened to have flats in the town (the Ledger's ruling of 2026-09-07).
+   */
+  card?: CardId;
   /** Signed percent, as a figure a surface prints rather than a fraction. */
   percent: number;
   /**
@@ -2821,7 +2887,7 @@ export function productionModifiers(
     toward.kind === 'building' && isBuildingId(toward.id) ? toward.id : undefined;
   for (const line of cardProduction(state, city, category, unitType, buildingId)) {
     if (line.percent === 0) continue;
-    list.push({ source: line.source, percent: line.percent, stage: 'city' });
+    list.push({ source: line.source, card: line.card, percent: line.percent, stage: 'city' });
   }
   return list;
 }
@@ -2864,6 +2930,23 @@ export interface CityYieldPercent {
   meter?: MeterId;
   /** The resource this line came from, or absent for a meter's line. */
   resource?: ResourceId;
+  /**
+   * The card this line came from — an Order, a Doctrine, a government, a
+   * belief, a legacy, a technology, or **a building** whose own row carries a
+   * `percentYields` clause (a Forum's tenth, Machu Picchu's quarter): every
+   * such percentage reaches this list through `cardPercentYields`, so the id is
+   * the only handle that can say which of them it was.
+   *
+   * Written down for the Ledger, and it is not decoration. Entry XVII multiplies
+   * a town's whole basket at once, so the *gain* over the flats has to be
+   * credited to somebody, and until 2026-09-07 the Ledger credited it to whoever
+   * had put the base flats there — which meant a card paying nothing but a
+   * percentage printed a figure on its own face and added nothing at all to
+   * "your cards" (`docs/flags.md`, ruling jj). The gain is shared by who
+   * supplied the percentages; a percentage that cannot name its source cannot be
+   * shared to it.
+   */
+  card?: CardId;
 }
 
 /**
@@ -2970,7 +3053,13 @@ export function cityYieldPercents(
   // line in one of two sums.
   for (const line of cardPercentYields(state, city)) {
     if (line.percent === 0) continue;
-    list.push({ source: line.source, yield: line.yield, percent: line.percent, stage: line.stage });
+    list.push({
+      source: line.source,
+      yield: line.yield,
+      percent: line.percent,
+      stage: line.stage,
+      card: line.card,
+    });
   }
   // And the arrears, at the foot — see `empirePercents`, which is where the two
   // empire-scale lines live now that a screen may want them hoisted.

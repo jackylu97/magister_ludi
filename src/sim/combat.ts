@@ -2687,6 +2687,23 @@ export function underSiege(state: GameState, city: City, field: SiegeField): boo
   return besiegers > 0;
 }
 
+/**
+ * Is an enemy **standing** on a hex beside this city — held, not merely denied?
+ *
+ * `underSiege`'s smaller question: a siege asks whether every road out is shut;
+ * this asks whether anybody is at the gate at all. Read off the same hoisted
+ * field, and it is what keeps a beaten-down town from mending (`healCities`).
+ * The wild counts — a camp's raiders at the walls are at the walls.
+ */
+export function enemyAtTheGate(state: GameState, city: City, field: SiegeField): boolean {
+  const centre = getTileAt(state.map, city.col, city.row);
+  if (!centre) return false;
+  for (const neighbour of neighborTiles(state.map, tileHex(centre))) {
+    if (field.held[tileIndex(state.map, neighbour.col, neighbour.row)] === 1) return true;
+  }
+  return false;
+}
+
 // --- turn phases ------------------------------------------------------------
 
 /**
@@ -2726,6 +2743,16 @@ export function healCities(state: GameState, report?: { sieges: SiegeReport[] })
       report?.sieges.push({ cityId: city.id, ownerId: city.ownerId, damage });
       continue;
     }
+    // **A town at the floor does not heal under the enemy's eyes** (the user,
+    // 2026-09-07: "once a city is at 0 hp, it should stop healing every turn —
+    // its walls are broken"). A siege needs every hex denied; one column at
+    // the gate is not one, and a beaten-down town that mended twenty points a
+    // turn beside it made the three beats a treadmill. So the floor holds
+    // while any enemy stands adjacent, and mends the turn they withdraw. A
+    // town above the floor still heals beside an enemy — its walls stand, and
+    // the standing rule (one archer must not be able to hold a town at a
+    // point forever) is about that town, not this one.
+    if (cityBeatenDown(city) && enemyAtTheGate(state, city, field)) continue;
     const max = cityMaxHp(city);
     if (city.hp >= max) {
       clampCityHp(city);

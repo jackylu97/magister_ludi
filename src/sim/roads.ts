@@ -95,13 +95,13 @@ export function layRoad(tile: Tile, ownerId: number, free = false): boolean {
  * it wears one only while it is actually *carrying* a route (`Unit.trade`) — an
  * idle trader parked on a hill is not a trade road.
  *
- * **Or when the piece is a road-builder** (`UnitDef.laysRoad`, the tree pass of
- * 2026-08-30 — the Legionary's "the road is the army, laid down behind it").
- * A second marker rather than a second function, because it is the same
- * sentence: a piece of this kind, come to rest here, paves the hex. It goes
- * through `layRoad` like everything else, so the legion's road and the
- * caravan's are one mark on one field and the maintenance count cannot tell
- * them apart — which is the point.
+ * **Only a route paves.** The Legionary used to as well (`UnitDef.laysRoad`,
+ * the tree pass of 2026-08-30 — "the road is the army, laid down behind it"),
+ * through this same seam; the user withdrew it on 2026-09-07 ("my legionaries
+ * are creating roads wherever they walk"): every hex a legion rested on joined
+ * the road maintenance bill, and an army's trail across the wild is not a
+ * network. The marker is gone with it — a second kind of road-layer is a
+ * design decision, and this docblock is where it would be argued.
  *
  * **A sea route lays nothing at all** (the user's ruling, 2026-09-03). A route
  * is entirely a land route or entirely a sea route, and the sea half wears no
@@ -114,7 +114,6 @@ export function layRoad(tile: Tile, ownerId: number, free = false): boolean {
  */
 export function layRoadUnder(unit: Unit, tile: Tile): boolean {
   const def = unitDef(unit.type);
-  if (def.laysRoad === true) return layRoad(tile, unit.ownerId);
   if (!trades(def)) return false;
   if (unit.trade === undefined) return false;
   if (unit.trade.sea === true) return false;

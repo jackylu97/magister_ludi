@@ -31,12 +31,41 @@
  * `explainEmpireCardYields` / `empireResourceYields` for the three empire-scale
  * lists — and the whole of what this file adds is a **classification** of the
  * lines those functions already return, plus the arithmetic that shares a
- * multiplied total back out over the flats that earned it (`shareOut`).
+ * town's **flats** to the classes that paid them and its **multiplied gain** to
+ * the classes that supplied the percentages (`shareOut`, and the ruling below).
  *
  * The empire total per voice is therefore `topBar.ts`'s `civYields` exactly,
  * summand for summand, and `test/ui/ledgerScreen.test.ts` pins that: a band that
  * disagreed with the chip a player clicked to open it would be worse than no
  * band at all.
+ *
+ * Who earns the multiplied gain (the ruling of 2026-09-07)
+ * -------------------------------------------------------
+ * The flats are only half a town's basket. Entry XVII multiplies the whole of it
+ * at once, and the difference — `banked − Σ flats` — is the **gain**, which has
+ * to be credited to somebody. Until this ruling it was credited to whoever had
+ * put the *base flats* there, on the argument that a percentage is worth
+ * whatever it multiplies. That reading was tidy and it was wrong where it
+ * mattered most: a card that pays nothing but a percentage (The Lamp Kept Lit's
+ * quarter more science in the capital, The Hermit Crown's third more food, a
+ * Forum's tenth, a barracks' hammers behind a spearman) printed a figure on its
+ * own face and added **nothing** to the slice it belonged in. The
+ * user, on a live board: *"my yields are simply not showing in the total … they
+ * seem to be calculated correctly on the cards themselves, just not showing in
+ * the total."* (`docs/flags.md`, ruling jj.)
+ *
+ * So the gain is shared by **who supplied the percentages** — `percentWeights`
+ * below, one weight per percentage standing on that voice of that town,
+ * classified by the line's own source.
+ *
+ * And the **flats' split moved once too**, on the same day and on the user's
+ * follow-up: *"I think it may just be that the age 3 and onwards orders are not
+ * being counted in the display total."* They were not. The later Order pools
+ * lean on `tileYield` where the early ones lean on `cityYields`, a card's line
+ * on the ground lands in the hex's own breakdown, and every worked hex was filed
+ * whole under **the land** — so an Order paying a hammer on every hill, which is
+ * the entire idiom of a late deck, showed up as the land getting better.
+ * `addWorkedTile` splits a hex by the card each of its lines names.
  *
  * Classifying by the **card**, not by the label
  * ---------------------------------------------
@@ -76,7 +105,11 @@
  */
 
 import {
+  type CityQuote,
+  type CityYieldPercent,
   type CityYields,
+  type ProductionModifier,
+  type TileYieldContribution,
   cardBuildingYields,
   centreYield,
   cityContext,
@@ -87,7 +120,9 @@ import {
   explainCityBuildings,
   explainEmpireCardYields,
   explainPalaceYield,
-  tileYieldOf,
+  explainTileYield,
+  foldTileYield,
+  productionModifiers,
 } from '../sim/cities';
 import { cardCityYields, cardYieldConversions } from '../sim/statecraft';
 import { cityResourceYields, empireResourceYields } from '../sim/resourceEffects';
@@ -257,19 +292,160 @@ export function classifyEmpireGold(source: string): LedgerClass {
 }
 
 /**
- * A multiplied total, shared back out over the flats that earned it.
+ * Which class **supplied a percentage**, off the line's own markers.
  *
- * Entry XVII's two stages multiply a town's whole basket at once, so there is no
- * such thing as "the deck's share of the percentages" — the honest reading is
- * that a percentage is worth whatever it multiplies, and the gain belongs to
- * whoever put the base there. This shares `total` across `weights` in
- * proportion, and the **parts sum to the total exactly** however the rounding
- * falls: `explainUnitUpkeepRebate`'s running-difference discipline, which is the
- * house rule wherever a floored figure has to be shown as its parts.
+ * The four handles a percentage can carry, in precedence, and the precedence is
+ * the specific-before-general one every classifier in this file keeps:
  *
- * A weightless basket that somehow banked something (every flat zero, a
- * percentage on nothing) hands the whole figure to the last slot, which callers
- * make `other` — a number with no earner is exactly what that class is for.
+ *   · `card` → `classifyCard`. This is the arm that carries the ruling: an
+ *     Order's or a Doctrine's percentage is the **deck's**, a belief's is
+ *     religion's, a legacy's is a great person's — and a *building's own*
+ *     `percentYields` clause (a Forum's tenth of science, an Observatory's,
+ *     Machu Picchu's quarter of gold) reaches this list as a card too, because
+ *     `cityBuildingEffects` is one of `liveEffects`' sources. So the stones are
+ *     split by `isWonder` inside `classifyCard`, exactly as their flat lines
+ *     are, and no arm here has to know a building from a wonder.
+ *   · `building` → the stones, split by `isWonder`. Only a `ProductionModifier`
+ *     carries it: a barracks' hammers behind a unit are a percentage on
+ *     production that never passes through the card evaluator at all.
+ *   · `resource` → **the land**. A seam's signature is the ground's, which is
+ *     where its flat yield already goes.
+ *   · nothing → **other**, and that is two named cases rather than a shrug: a
+ *     **meter tier** (the empire's mood is not a thing a player built) and the
+ *     **arrears** penalty on a treasury under water. Both are the empire leaning
+ *     on every town at once, and `other` is the class that means exactly that.
+ */
+export function classifyPercent(line: CityYieldPercent | ProductionModifier): LedgerClass {
+  if (line.card !== undefined) return classifyCard(line.card);
+  if ('building' in line && line.building !== undefined) {
+    return isWonder(line.building) ? 'wonders' : 'buildings';
+  }
+  if (line.resource !== undefined) return 'tiles';
+  return 'other';
+}
+
+/** One percentage standing on one voice of one town, and who put it there. */
+export interface PercentWeight {
+  into: LedgerClass;
+  /** Signed whole percent, exactly as the line carries it. */
+  percent: number;
+}
+
+/**
+ * **Every percentage standing on one voice of one town**, classified — the
+ * weights the multiplied gain is shared over.
+ *
+ * Two lists, because Entry XVII's staging is fed from two places and this has to
+ * be the same set of lines `cityYields` actually multiplied by:
+ *
+ *   · `quote.percents` — `cityYieldPercents`' whole list, both stages at once.
+ *     The stage decides *when* a line applies and this asks only *who supplied
+ *     it*, so a city-stage Forum and an empire-stage happiness tier are two
+ *     weights in one basket. Sharing proportionally across a pair of
+ *     multiplications is an approximation either way (a point of city stage and
+ *     a point of empire stage are not worth the same); the alternative is
+ *     shading two stages' credit differently on a bar four pixels tall.
+ *   · `productionModifiers` for **production alone** — the barracks, the marble
+ *     and the cards' hammers behind whatever the town has at the front of its
+ *     queue. `cityStageSums` folds these into the production city stage, so a
+ *     reading that left them out would hand a barracks town's whole gain to
+ *     `other`. `city.queue[0]` is asked because that is what `ledgerReading`
+ *     banks at, and the two must be the same build or the weights price a
+ *     different bonus than the figure did.
+ *
+ * The one line this does **not** mirror is `cityStageSums`' authority exemption
+ * (The Great Warring Tribes takes a meter's production malus off the table while
+ * a town builds a unit). It is a negative line that classifies to `other`, and
+ * the arrears beside it classify to `other` too, so mirroring the rule here
+ * would move a figure from `other` to `other` — and a second copy of a card's
+ * one-off is exactly what this tree refuses to keep.
+ */
+export function percentWeights(
+  state: GameState,
+  city: City,
+  quote: CityQuote,
+  key: YieldKey,
+): PercentWeight[] {
+  const weights: PercentWeight[] = [];
+  for (const line of quote.percents) {
+    if (line.yield !== key || line.percent === 0) continue;
+    weights.push({ into: classifyPercent(line), percent: line.percent });
+  }
+  if (key === 'production') {
+    for (const line of productionModifiers(state, city, city.queue[0])) {
+      if (line.percent === 0) continue;
+      weights.push({ into: classifyPercent(line), percent: line.percent });
+    }
+  }
+  return weights;
+}
+
+/**
+ * **The gain, shared by who supplied the percentages** — the ruling of
+ * 2026-09-07, in one function (`docs/flags.md`, jj).
+ *
+ * `gain` is `banked − Σ flats`: what Entry XVII's two multiplications added to a
+ * town's basket, plus the single flooring at the end of them. It is shared over
+ * the percentages that were standing on that voice, each weighted by its
+ * magnitude — a +25% card next to a +10% Forum takes five parts of seven.
+ *
+ * **The same-sign rule**, and it is the honest one of the three that were on the
+ * table:
+ *
+ *   · *signed weights* (a −25% arrears counting as −25) is arithmetically the
+ *     prettiest and is unusable on a bar: the shares are `gain × w / Σw`, so a
+ *     +100% card beside a −99% penalty divides by one and draws the deck a
+ *     hundred times the gain, with a compensating negative slice beside it. A
+ *     stacked bar whose parts are each many times the whole is not a reading.
+ *   · *magnitudes, signs ignored* credits a **penalty with a share of a gain** —
+ *     arrears would appear to be earning the empire science, which is the
+ *     opposite of what it is doing.
+ *   · **same sign** is what ships: a gain is shared among the percentages that
+ *     pushed the town up, a loss among the ones that pushed it down, each in
+ *     proportion to its magnitude. Nobody is credited with moving a town the way
+ *     it did not move, every share carries the sign of the total it is part of,
+ *     and the arithmetic is bounded — a share can never exceed the gain.
+ *
+ * A gain with **no same-signed weight at all** is the guard, and it hands the
+ * whole figure to `other`: a town that banked more than its flats with nothing
+ * multiplying it should not happen, and if it does, "nobody here earned this" is
+ * the true sentence rather than a slice invented for somebody.
+ */
+export function shareGain(
+  gain: number,
+  weights: readonly PercentWeight[],
+): Record<LedgerClass, number> {
+  const shares = {} as Record<LedgerClass, number>;
+  for (const cls of LEDGER_CLASSES) shares[cls] = 0;
+  if (gain === 0) return shares;
+  const counts = (weight: PercentWeight): boolean =>
+    gain > 0 ? weight.percent > 0 : weight.percent < 0;
+  let sum = 0;
+  for (const weight of weights) if (counts(weight)) sum += Math.abs(weight.percent);
+  if (sum === 0) {
+    shares.other = gain;
+    return shares;
+  }
+  for (const weight of weights) {
+    if (!counts(weight)) continue;
+    shares[weight.into] += (gain * Math.abs(weight.percent)) / sum;
+  }
+  return shares;
+}
+
+/**
+ * A town's banked figure, handed out as the whole numbers a bar can draw.
+ *
+ * The **parts sum to the total exactly** however the rounding falls:
+ * `explainUnitUpkeepRebate`'s running-difference discipline, which is the house
+ * rule wherever a floored figure has to be shown as its parts. `weights` is what
+ * each class is *owed* — its flats plus its share of the gain — so the division
+ * here is a rounding rather than an apportionment, and the last slot carries
+ * whatever the rounding left over.
+ *
+ * A weightless basket that somehow banked something hands the whole figure to
+ * the last slot, which callers make `other` — a number with no earner is exactly
+ * what that class is for.
  */
 export function shareOut(total: number, weights: readonly number[]): number[] {
   const shares = weights.map(() => 0);
@@ -297,6 +473,40 @@ function add(bag: LedgerBag, into: LedgerClass, line: Partial<CityYields>): void
 }
 
 /**
+ * **One worked hex, split by who dressed it** — the tile half of the same
+ * ruling (`docs/flags.md`, jj, and the user's follow-up: *"I think it may just
+ * be that the age 3 and onwards orders are not being counted in the display
+ * total"*).
+ *
+ * The later Order pools lean on `tileYield` where the early ones lean on
+ * `cityYields`, so an Order paying a hammer on every hill is the *whole* of what
+ * a late deck does — and a sheet that files every worked hex under **the land**
+ * shows that deck paying nothing. Each line of the hex's own breakdown that
+ * names a card (`TileYieldContribution.card`) goes to that card's class; a
+ * belief's line lands in religion, which is right, and the terrain, the seam and
+ * the works stay the land's.
+ *
+ * The **fold, minus the lines lifted out of it**, and never a second sum of the
+ * remainder: `foldTileYield` is the one place a `base`/`override` list becomes a
+ * number (a hill replaces the grass under it), so the land keeps the fold with
+ * each lifted line subtracted rather than a re-addition of whatever was left.
+ * Card lines are always `add`, which is what makes the subtraction exact — and
+ * exactness is what keeps this mirror equal to `cityQuote`'s flats, voice by
+ * voice, on a town of odd population.
+ */
+function addWorkedTile(bag: LedgerBag, lines: readonly TileYieldContribution[]): void {
+  const ground = foldTileYield(lines);
+  for (const entry of lines) {
+    if (entry.card === undefined || entry.kind !== 'add') continue;
+    const into = classifyCard(entry.card);
+    if (into === 'tiles') continue;
+    add(bag, into, entry);
+    for (const key of VOICES) ground[key] -= entry[key];
+  }
+  add(bag, 'tiles', ground);
+}
+
+/**
  * One town's **flats**, classified — the summands of `cityQuote`, in the order
  * `cityQuote` folds them and read from the very same functions.
  *
@@ -318,6 +528,13 @@ function add(bag: LedgerBag, into: LedgerClass, line: Partial<CityYields>): void
  * The town's own two terms — a citizen's beaker and the culture a settlement
  * makes by being one — are `other`: they belong to no tile, no building and no
  * card, and calling them anything else would be the sheet inventing a source.
+ *
+ * A **worked hex is not one class** since 2026-09-07 (`addWorkedTile`): a card's
+ * line on the ground is the card's, and the rest of the hex is the land's. The
+ * **centre** stays whole and stays the land's — its inheritance is an *excess*
+ * over the base city yield rather than a sum of lines, so there is no honest
+ * share of it to hand anybody, and a town's own square is the one hex a player
+ * never chose.
  */
 export function cityFlatsByClass(state: GameState, city: City): LedgerBag {
   const bag = emptyLedgerBag();
@@ -334,7 +551,7 @@ export function cityFlatsByClass(state: GameState, city: City): LedgerBag {
   for (const cell of city.workedTiles) {
     const tile = getTileAt(state.map, cell.col, cell.row);
     if (!tile) continue;
-    add(bag, 'tiles', tileYieldOf(tile, ctx));
+    addWorkedTile(bag, explainTileYield(tile, ctx));
   }
 
   for (const line of cardCityYields(state, city)) add(bag, classifyCard(line.card), line);
@@ -402,10 +619,19 @@ export interface LedgerVoice {
  * routes for three days.
  *
  * The **staging** is where the classes have to be put back together (Entry
- * XVII): a town's percentages multiply its whole basket at once, so each town's
- * multiplied total is shared back over its own flats by `shareOut`. The empire
- * lines are banked after every city has collected and are multiplied by nothing,
- * so they are added flat.
+ * XVII): a town's percentages multiply its whole basket at once, so what each
+ * class is owed is **its flats plus its share of the gain** — the flats by who
+ * paid them (`cityFlatsByClass`), the gain by who supplied the percentages
+ * (`percentWeights` + `shareGain`, the ruling of 2026-09-07) — and `shareOut`
+ * rounds the eight figures to whole numbers that still add to the bank.
+ *
+ * Until that ruling the whole banked figure was shared over the flats alone,
+ * which credited a percentage to whoever had put the base under it and left a
+ * card that pays nothing but a percentage out of "your cards" entirely. The
+ * module docblock has the user's words for it.
+ *
+ * The empire lines are banked after every city has collected and are multiplied
+ * by nothing, so they are added flat.
  */
 export function ledgerReading(state: GameState, playerId: number): LedgerVoice[] {
   const bag = emptyLedgerBag();
@@ -417,10 +643,16 @@ export function ledgerReading(state: GameState, playerId: number): LedgerVoice[]
     const flats = cityFlatsByClass(state, city);
     const banked = cityYields(state, city, [], city.queue[0], quote);
     for (const key of VOICES) {
+      let paid = 0;
+      for (const cls of LEDGER_CLASSES) paid += flats[cls][key];
+      // What the two stages added over the flats — negative under arrears, or
+      // under a meter tier the empire has fallen through. Exact, because
+      // `cityFlatsByClass` is exact and `cityYields` floors once.
+      const gain = shareGain(banked[key] - paid, percentWeights(state, city, quote, key));
       // `other` last, so that a basket with nothing in it hands its figure to
       // the class that means "nobody here earned this".
-      const weights = LEDGER_CLASSES.map((cls) => flats[cls][key]);
-      const shares = shareOut(banked[key], weights);
+      const owed = LEDGER_CLASSES.map((cls) => flats[cls][key] + gain[cls]);
+      const shares = shareOut(banked[key], owed);
       LEDGER_CLASSES.forEach((cls, at) => {
         bag[cls][key] += shares[at]!;
       });
@@ -506,16 +738,20 @@ export const DECK_AGGREGATE_LABEL = 'your cards';
  *     It is also eleven full empire folds, twice each, on every draw.
  *   · `ledgerReading`'s `deck` class is the **banked** figure: the very lines
  *     `collectYields` pays, classified by the card that pays them
- *     (`classifyCard`), with each town's multiplied total shared back over the
- *     flats that earned it. It is a sum by construction, and it is `civYields`'
- *     own summands — which is the property the test at the head of this suite
- *     pins voice by voice.
+ *     (`classifyCard`), with each town's flats going to the cards that paid them
+ *     and each town's multiplied gain to the cards that supplied the percentages
+ *     (`shareGain`). It is a sum by construction, and it is `civYields`' own
+ *     summands — which is the property the test at the head of this suite pins
+ *     voice by voice.
  *
- * So the aggregate is the second, and batch A's modifier lines join it the day
- * they land without an edit here: an amplifier over card yields is a
- * `CardYieldLine` like any other, folded in the evaluator's own order — base
- * lines, then the modifiers that read them — and classified by the card that
- * carries it.
+ * So the aggregate is the second, and the deck's engines join it without an edit
+ * here: an amplifier over card yields is a `CardYieldLine` like any other,
+ * folded in the evaluator's own order — base lines, then the modifiers that read
+ * them — and classified by the card that carries it, while a card that pays only
+ * a percentage arrives through the gain instead. Which half a card's figure
+ * comes down is the evaluator's business, not this function's; that it arrives
+ * at all was the ruling of 2026-09-07, and the module docblock says why it did
+ * not before.
  *
  * The stamp's shape rather than a bag, so the figure lands through the one
  * printer (`landCardStamp` / `playCardStamp`) wherever it is drawn.

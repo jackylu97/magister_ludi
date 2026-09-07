@@ -260,11 +260,20 @@ describe('the design of record, held at the source', () => {
     expect(glow).not.toContain('border:');
   });
 
-  /** Digits and the words beside them share one baseline, and never wrap. */
-  it('keeps the figure on one baseline and one line', () => {
+  /**
+   * Digits and the words beside them share one baseline; the row wraps
+   * **between** figures and never through one (the user, 2026-09-07: a deck
+   * paying five or six voices ran past the card's edge under `nowrap`).
+   */
+  it('keeps each figure on one baseline and one line, and lets the row wrap between them', () => {
     const block = STYLE.slice(STYLE.indexOf('.card-stamp {'), STYLE.indexOf('.card-stamp-flourish'));
     expect(block).toContain('align-items: baseline');
-    expect(block).toContain('flex-wrap: nowrap');
+    expect(block).toContain('flex-wrap: wrap');
+    const figure = STYLE.slice(
+      STYLE.indexOf('.card-stamp-figure {'),
+      STYLE.indexOf('.card-stamp-occasion {'),
+    );
+    expect(figure).toContain('white-space: nowrap');
   });
 
   /** The number is tabular mono, like every number in this interface. */

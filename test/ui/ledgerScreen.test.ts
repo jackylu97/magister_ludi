@@ -27,6 +27,15 @@
  *   4. **A leaked window listener, or a curve carried into the next game.**
  *      Entry LVII's bug in a new costume, and the ring buffer's own version of
  *      it.
+ *   5. **A card paying a figure the sheet credits to somebody else.** The
+ *      bands added up perfectly while a card that paid only a *percentage*, and
+ *      every late Order that pays on *ground*, showed as nothing in "your
+ *      cards" — the whole of ruling jj (2026-09-07). So the crediting is pinned
+ *      twice: on the arithmetic (`shareGain`'s same-sign rule, `classifyPercent`
+ *      over every handle a percentage can carry) and on the **seams**, by
+ *      reading `statecraft.ts` and `cities.ts` for the card id being handed on.
+ *      A dropped id is not an error — it is a slice landing in the grey bar and
+ *      nobody hearing about it.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -44,12 +53,15 @@ import {
   cityFlatsByClass,
   classifyCard,
   classifyEmpireGold,
+  classifyPercent,
   createLedgerHistory,
   foldLedgerBag,
   ledgerCaption,
   ledgerReading,
   ledgerSample,
   netFigure,
+  percentWeights,
+  shareGain,
   shareOut,
   sparkPoints,
 } from '../../src/ui/ledgerScreen';
@@ -57,6 +69,7 @@ import { civYields } from '../../src/ui/topBar';
 import {
   cardBuildingYields,
   cityQuote,
+  cityYields,
   collectYields,
   foundCityAt,
 } from '../../src/sim/cities';
@@ -77,7 +90,7 @@ import {
   BEAD_QUEST_IDS,
   BEAD_RECKONING_IDS,
 } from '../../src/sim/beadData';
-import type { GameState } from '../../src/sim/state';
+import type { City, GameState } from '../../src/sim/state';
 import { playerById } from '../../src/sim/state';
 import { found, game } from '../sim/statecraftHelpers';
 
@@ -92,7 +105,7 @@ const SOURCES = {
     import: 'default',
     eager: true,
   }) as Record<string, string>),
-  ...(import.meta.glob('../../src/sim/empireGold.ts', {
+  ...(import.meta.glob('../../src/sim/{empireGold.ts,statecraft.ts,cities.ts}', {
     query: '?raw',
     import: 'default',
     eager: true,
@@ -115,6 +128,18 @@ function source(file: string): string {
   return raw(file)
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
+}
+
+/**
+ * One function's body, between two anchors that are themselves the register: a
+ * renamed neighbour fails here rather than silently widening the window.
+ */
+function region(text: string, from: string, to: string): string {
+  const start = text.indexOf(from);
+  expect(start, from).toBeGreaterThan(-1);
+  const end = text.indexOf(to, start + from.length);
+  expect(end, to).toBeGreaterThan(start);
+  return text.slice(start, end);
 }
 
 /**
@@ -148,8 +173,51 @@ function bench(): { state: GameState; playerId: number } {
   const scrivened = 'theScriveners' as (typeof ORDER_IDS)[number];
   if (!sc.orders.includes(scrivened)) sc.orders.push(scrivened);
   sc.slots.push({ card: scrivened, sealedUntil: state.turn });
+  // **And a card that pays nothing but a percentage** (The Lamp Kept Lit, a
+  // quarter more science in the capital). The ruling of 2026-09-07: until it
+  // landed, this card printed a figure on its own face and added nothing at all
+  // to "your cards", because a town's multiplied gain was credited to whoever
+  // had put the base flats there. A bench with no such card in it cannot tell.
+  const lamp = 'theLampKeptLit' as (typeof ORDER_IDS)[number];
+  if (!sc.orders.includes(lamp)) sc.orders.push(lamp);
+  sc.slots.push({ card: lamp, sealedUntil: state.turn });
   player.pantheon = { beliefs: [ALL_BELIEF_IDS[0]!], rungs: 1 };
   return { state, playerId: 0 };
+}
+
+/**
+ * A town whose worked hexes are **dressed by cards** — three hills an Order
+ * pays on and a desert a belief pays on.
+ *
+ * The tile half of the same ruling, and it needs a hand-built board rather than
+ * the duel bench: what has to be shown is a card paying on ground the town
+ * actually works, and a generated map's start is whatever the seed made of it.
+ *
+ * The later Order pools lean on `tileYield` where the early ones lean on
+ * `cityYields` (the user, 2026-09-07: *"I think it may just be that the age 3
+ * and onwards orders are not being counted in the display total"*), so this is
+ * the bench that says whether a late deck reads as a deck at all.
+ */
+function tileCardBench(): { state: GameState; city: City; playerId: number } {
+  const state = bareState(16, 9);
+  state.wars = [];
+  const city = foundCityAt(state, 0, at(state, 4, 4));
+  const hills = [at(state, 4, 3), at(state, 5, 4)];
+  for (const tile of hills) tile.hills = true;
+  const desert = at(state, 3, 4);
+  desert.terrain = 'desert';
+  city.population = 3;
+  city.workedTiles = [...hills, desert].map((tile) => ({ col: tile.col, row: tile.row }));
+  const player = playerById(state, 0)!;
+  const sc = player.statecraft;
+  // +2🌾 on every hills hex — a card whose whole payment is on the ground.
+  const terraces = 'terracedHillsides' as (typeof ORDER_IDS)[number];
+  if (!sc.orders.includes(terraces)) sc.orders.push(terraces);
+  sc.slots.push({ card: terraces, sealedUntil: state.turn });
+  // And a belief that pays on ground too, so "a card's line" is not quietly
+  // read as "the deck's line": the Desert Fathers' faith is religion's.
+  player.pantheon = { beliefs: ['desertFathers' as (typeof ALL_BELIEF_IDS)[number]], rungs: 1 };
+  return { state, city, playerId: 0 };
 }
 
 /**
@@ -316,6 +384,243 @@ describe('the reading', () => {
   });
 });
 
+// --- band 1: who earned the multiplied gain ---------------------------------
+
+/** The gain a town banked over its own flats, on one voice. */
+function gainOf(state: GameState, city: City, key: 'science' | 'production' | 'faith'): number {
+  const quote = cityQuote(state, city);
+  const banked = cityYields(state, city, [], city.queue[0], quote);
+  return banked[key] - foldLedgerBag(cityFlatsByClass(state, city))[key];
+}
+
+describe('the gain, and who supplied it', () => {
+  it('classifies a percentage by what put it there, never by its words', () => {
+    // The four handles a percentage can carry. A building's own `percentYields`
+    // clause reaches the list as a **card** (`cityBuildingEffects` is one of
+    // `liveEffects`' sources), so the stones are split by `isWonder` inside
+    // `classifyCard` and no arm here has to know one from the other.
+    const percent = { source: 'x', yield: 'science' as const, percent: 10, stage: 'city' as const };
+    expect(classifyPercent({ ...percent, card: 'theLampKeptLit' as CardId })).toBe('deck');
+    expect(classifyPercent({ ...percent, card: 'forum' as CardId })).toBe('buildings');
+    expect(classifyPercent({ ...percent, card: 'machuPicchu' as CardId })).toBe('wonders');
+    expect(classifyPercent({ ...percent, card: 'desertFathers' as CardId })).toBe('religion');
+    expect(classifyPercent({ ...percent, resource: 'gems' })).toBe('tiles');
+    // A meter tier is the empire's mood and the arrears are its debts: neither
+    // is a thing a player built, and `other` is the class that means that.
+    expect(classifyPercent({ ...percent, meter: 'happiness' })).toBe('other');
+    expect(classifyPercent({ source: 'Treasury in debt', yield: 'science', percent: -25, stage: 'empire' })).toBe('other');
+    // And the hammers behind a build, which never pass the card evaluator.
+    expect(classifyPercent({ source: 'Barracks', percent: 10, stage: 'city', building: 'barracks' })).toBe('buildings');
+    expect(classifyPercent({ source: 'Marble', percent: 15, stage: 'city', resource: 'marble' })).toBe('tiles');
+  });
+
+  it('shares a gain in proportion, and never credits a penalty with one', () => {
+    // Weighted by magnitude among the lines pushing the *same way* the town
+    // moved. A +20 beside a +10 takes two thirds.
+    const both = shareGain(30, [
+      { into: 'deck', percent: 20 },
+      { into: 'buildings', percent: 10 },
+    ]);
+    expect(both.deck).toBe(20);
+    expect(both.buildings).toBe(10);
+    // The same-sign rule: arrears took nothing *away* from a town that went up,
+    // so arrears earn none of the rise. Weighting by magnitude alone would have
+    // made a penalty look like a source of science.
+    const mixed = shareGain(10, [
+      { into: 'deck', percent: 25 },
+      { into: 'other', percent: -25 },
+    ]);
+    expect(mixed.deck).toBe(10);
+    expect(mixed.other).toBe(0);
+    // And the other way: a loss is shared among the lines that took it.
+    const loss = shareGain(-8, [
+      { into: 'deck', percent: 25 },
+      { into: 'other', percent: -25 },
+    ]);
+    expect(loss.other).toBe(-8);
+    expect(loss.deck).toBe(0);
+  });
+
+  it('hands a gain nobody supplied to “other”, and always adds up', () => {
+    expect(shareGain(5, []).other).toBe(5);
+    // Every share carries the sign of the total it is part of — a stacked bar
+    // whose parts point both ways is not a reading of anything.
+    expect(shareGain(5, [{ into: 'deck', percent: -10 }]).other).toBe(5);
+    for (const gain of [0, 7, -13, 1001]) {
+      const shares = shareGain(gain, [
+        { into: 'deck', percent: 25 },
+        { into: 'buildings', percent: 10 },
+        { into: 'other', percent: -25 },
+      ]);
+      let sum = 0;
+      for (const cls of LEDGER_CLASSES) sum += shares[cls];
+      expect(sum, `gain ${gain}`).toBeCloseTo(gain, 9);
+    }
+  });
+
+  it('gives a card that pays only a percentage a slice of its own', () => {
+    // The ruling, end to end (`docs/flags.md`, jj). The Lamp Kept Lit pays no
+    // flats at all — a quarter more science in the capital and nothing else —
+    // so under the old reading its whole worth was credited to the library and
+    // the citizens whose beakers it multiplied.
+    const { state, playerId } = bench();
+    const town = state.cities.find((city) => city.ownerId === playerId)!;
+    const sc = playerById(state, playerId)!.statecraft;
+    const deckOf = (): number =>
+      ledgerReading(state, playerId).find((voice) => voice.key === 'science')!.byClass.deck;
+    const totalOf = (): number =>
+      ledgerReading(state, playerId).find((voice) => voice.key === 'science')!.total;
+
+    const held = deckOf();
+    const raised = totalOf();
+    const gain = gainOf(state, town, 'science');
+    expect(gain).toBeGreaterThan(0);
+    // The card is the only thing multiplying this town's science, so the whole
+    // of the gain is its own.
+    const weights = percentWeights(state, town, cityQuote(state, town), 'science');
+    expect(weights).toContainEqual({ into: 'deck', percent: 25 });
+    expect(weights.filter((weight) => weight.percent > 0)).toHaveLength(1);
+
+    // Whose gain it is, before any rounding: the whole of it, and nobody
+    // else's. The rounding to whole slices is `shareOut`'s and pinned there.
+    const shares = shareGain(gain, weights);
+    expect(shares.deck).toBeCloseTo(gain, 9);
+    for (const cls of LEDGER_CLASSES) {
+      if (cls !== 'deck') expect(shares[cls], cls).toBe(0);
+    }
+
+    sc.slots = sc.slots.filter((entry) => entry?.card !== 'theLampKeptLit');
+    expect(gainOf(state, town, 'science')).toBe(0);
+    // Taking the card out costs the empire the gain, and the deck's slice falls
+    // with it — under the old reading it did not move at all.
+    expect(raised - totalOf()).toBeCloseTo(gain, 9);
+    expect(held - deckOf()).toBeGreaterThan(0);
+  });
+
+  it('leaves a building’s own percentage in the buildings’ bar', () => {
+    const { state, playerId } = bench();
+    const town = state.cities.find((city) => city.ownerId === playerId)!;
+    const wasGain = gainOf(state, town, 'science');
+    // A Forum: a tenth more science in the town that holds one, written on the
+    // building's own row and reaching the percent list as a **card** — which is
+    // why no arm of `classifyPercent` has to know a Forum from an Order.
+    town.buildings.push('forum');
+    const weights = percentWeights(state, town, cityQuote(state, town), 'science');
+    expect(weights).toContainEqual({ into: 'buildings', percent: 10 });
+    const gain = gainOf(state, town, 'science');
+    expect(gain).toBeGreaterThan(wasGain);
+    // The two percentages split the rise between them, ten parts to
+    // twenty-five, and the stones' ten stay the stones'.
+    const shares = shareGain(gain, weights);
+    expect(shares.buildings).toBeGreaterThan(0);
+    expect(shares.deck / shares.buildings).toBeCloseTo(2.5, 9);
+    expect(shares.buildings + shares.deck).toBeCloseTo(gain, 9);
+  });
+
+  it('leaves the empire’s own thumb — a meter, the arrears — in “other”', () => {
+    // Arrears is the one percentage a test can force from outside: a treasury
+    // under water costs the empire a quarter of its science, at the empire
+    // stage, and the loss belongs to nobody a player could have built.
+    const { state, playerId } = bench();
+    const town = state.cities.find((city) => city.ownerId === playerId)!;
+    const player = playerById(state, playerId)!;
+    const solvent = ledgerReading(state, playerId).find((voice) => voice.key === 'science')!;
+    player.gold = -40;
+    const owing = ledgerReading(state, playerId).find((voice) => voice.key === 'science')!;
+    const weights = percentWeights(state, town, cityQuote(state, town), 'science');
+    expect(weights).toContainEqual({ into: 'other', percent: -25 });
+    // The empire makes less science than it did, and the town now banks less
+    // than its own flats — a **negative** gain, which the same-sign rule hands
+    // whole to the line that took it. The deck's +25% earns none of a loss.
+    expect(owing.total).toBeLessThan(solvent.total);
+    const gain = gainOf(state, town, 'science');
+    expect(gain).toBeLessThan(0);
+    const shares = shareGain(gain, weights);
+    expect(shares.other).toBeCloseTo(gain, 9);
+    expect(shares.deck).toBe(0);
+    let parts = 0;
+    for (const cls of LEDGER_CLASSES) parts += owing.byClass[cls];
+    expect(parts).toBe(owing.total);
+  });
+
+  it('shares the hammers behind a build to the stones that put them there', () => {
+    // Production's city stage carries `productionModifiers` as well as the
+    // percent list (`cityStageSums`), so a barracks town building a unit has a
+    // gain no percentage on the yield can explain. Left out of the weights, the
+    // whole of it would fall to "other".
+    const { state, playerId } = bench();
+    const town = state.cities.find((city) => city.ownerId === playerId)!;
+    town.buildings.push('barracks');
+    town.queue = [{ kind: 'unit', id: 'warrior' }];
+    const weights = percentWeights(state, town, cityQuote(state, town), 'production');
+    expect(weights).toContainEqual({ into: 'buildings', percent: 10 });
+    const gain = gainOf(state, town, 'production');
+    expect(gain).toBeGreaterThan(0);
+    expect(shareGain(gain, weights).buildings).toBeGreaterThan(0);
+    // And nothing but production carries them: the hammers behind a build are a
+    // fact about the pair (town, item), never about the town's science.
+    expect(percentWeights(state, town, cityQuote(state, town), 'science')).not.toContainEqual({
+      into: 'buildings',
+      percent: 10,
+    });
+    const hammers = ledgerReading(state, playerId).find((voice) => voice.key === 'production')!;
+    let parts = 0;
+    for (const cls of LEDGER_CLASSES) parts += hammers.byClass[cls];
+    expect(parts).toBe(hammers.total);
+  });
+});
+
+// --- band 1: a card's line on the ground ------------------------------------
+
+describe('a card that pays on the ground', () => {
+  it('is the deck’s, not the land’s — and a belief’s is religion’s', () => {
+    // The user's follow-up, and the half of the ruling the percentages do not
+    // reach: the later Order pools pay through `tileYield`, which lands in the
+    // hex's own breakdown, and every worked hex used to be filed whole under
+    // "the land".
+    const { state, city, playerId } = tileCardBench();
+    const flats = cityFlatsByClass(state, city);
+    // Two hills at +2🌾 each, from an Order the seat has slotted.
+    expect(flats.deck.food).toBe(4);
+    // And a desert at +1☥, from the pantheon.
+    expect(flats.religion.faith).toBe(1);
+    // The land keeps the ground itself, and keeps it whole: the hills' own
+    // hammers are still the land's.
+    expect(flats.tiles.production).toBeGreaterThan(0);
+    expect(flats.tiles.food).toBeGreaterThan(0);
+
+    // Unslot the Order and the food moves back to nobody — the hex pays it no
+    // longer, so the deck's slice falls and the land's does not rise.
+    const wasLand = flats.tiles.food;
+    const sc = playerById(state, playerId)!.statecraft;
+    sc.slots = sc.slots.filter((entry) => entry?.card !== 'terracedHillsides');
+    const after = cityFlatsByClass(state, city);
+    expect(after.deck.food).toBe(0);
+    expect(after.tiles.food).toBe(wasLand);
+  });
+
+  it('still mirrors `cityQuote`’s flats exactly, hex by hex', () => {
+    // The split must not lose or invent a point: the fold of the eight classes
+    // is still the town's own flats, which is the guard the whole mirror rests
+    // on and the one a subtraction could quietly break.
+    const { state, city } = tileCardBench();
+    const flats = foldLedgerBag(cityFlatsByClass(state, city));
+    const quote = cityQuote(state, city);
+    for (const key of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
+      expect(flats[key], key).toBe(quote.flats[key]);
+    }
+  });
+
+  it('reaches the aggregate the ceremony counts up', () => {
+    const { state, playerId } = tileCardBench();
+    const food = ledgerReading(state, playerId).find((voice) => voice.key === 'food')!;
+    expect(food.byClass.deck).toBeGreaterThan(0);
+    let parts = 0;
+    for (const cls of LEDGER_CLASSES) parts += food.byClass[cls];
+    expect(parts).toBe(food.total);
+  });
+});
+
 function emptyClasses(): Record<LedgerClass, number> {
   const bag = {} as Record<LedgerClass, number>;
   for (const cls of LEDGER_CLASSES) bag[cls] = 0;
@@ -458,6 +763,55 @@ describe('the source register', () => {
     // luxury's share of the connection gold.
     expect(classifyEmpireGold('Spices · city connections')).toBe('tiles');
     expect(classifyEmpireGold('Unit maintenance · 7 units')).toBe('other');
+  });
+
+  it('emits every percentage from one function, and every one names its card', () => {
+    // **The register that keeps the ruling true.** A percentage line that could
+    // not name its card was the whole of the bug: it could only be credited to
+    // whoever had put the base flats under it. So there is one emitter, and a
+    // second one — a new function handing back the same shape — fails here
+    // rather than fails quietly on the sheet.
+    const sc = source('statecraft.ts');
+    expect(sc.split('): CardPercentLine[] {')).toHaveLength(2);
+    const body = region(sc, 'export function cardPercentYields', 'export interface CardProductionLine');
+    const pushes = [...body.matchAll(/list\.push\(\{[\s\S]*?\}\);/g)];
+    expect(pushes).toHaveLength(2);
+    for (const [push] of pushes) expect(push).toContain('card');
+    // The hammers behind a build travel the same seam, in one emitter of their
+    // own — and `CardProductionLine.card` is required, so a push that dropped
+    // it would not compile.
+    expect(sc.split('): CardProductionLine[] {')).toHaveLength(2);
+  });
+
+  it('builds every tile line with its card, in the two places one is built', () => {
+    // A card's line on the ground is the other half of the ruling: seven
+    // producers, but only two literals — `tileLinesFrom`, which every producer
+    // but one funnels through, and the amplifier's own helping.
+    const sc = source('statecraft.ts');
+    const built = [...sc.matchAll(/const line: CardTileLine = \{[\s\S]*?\n {6}\};/g)];
+    expect(built).toHaveLength(1);
+    for (const [literal] of built) expect(literal).toContain('card');
+    const funnel = region(sc, 'function tileLinesFrom', 'export interface CardPercentLine');
+    expect(funnel).toContain('const { source, card, effect } of found');
+    expect(funnel).toMatch(/const line: CardTileLine = \{\n\s*source,\n\s*card,/);
+  });
+
+  it('hands the card on at every seam between the evaluator and this sheet', () => {
+    // Three propagations in `cities.ts`, and each is a place the id was being
+    // dropped on the floor before 2026-09-07. A dropped id is not an error —
+    // it is a slice landing in "the land" and nobody hearing about it.
+    const ct = source('cities.ts');
+    expect(region(ct, 'export function cityYieldPercents', 'export function stageSumsFor')).toContain(
+      'card: line.card',
+    );
+    expect(region(ct, 'export function productionModifiers', 'export function modifierPercent')).toContain(
+      'card: line.card',
+    );
+    // And the hex's own breakdown: the card lines, and the two percentage
+    // shares at the foot, which carry a card only when they have exactly one.
+    const tile = region(ct, 'const sourceIndex = new Map<string, number>()', 'export function foldTileYield');
+    expect(tile).toContain('card: line.card');
+    expect(tile.split('card: soleCard(')).toHaveLength(3);
   });
 
   it('gives every class a plain name, with no identifier in it', () => {

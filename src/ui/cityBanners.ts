@@ -69,6 +69,68 @@
  * banner is a thing you can *count* by looking; the turn to its next citizen is
  * not.
  *
+ * The wound on the foot
+ * ---------------------
+ * The user, 2026-09-07 (`docs/flags.md`, "In flight right now", item ii): "we
+ * need an hp bar for cities, maybe it can be integrated with the city banner".
+ * It is integrated, and the whole of the design is that **a whole town has no
+ * bar at all** — the piece's own rule (`hpBarFill` in `render3d/pieces.ts`
+ * returns `null` at full health), taken as read rather than re-argued: a full
+ * bar over every town on the map is forty pieces of furniture saying nothing,
+ * and the reading a player needs is *which* of their towns is hurt, from across
+ * the board, without opening one.
+ *
+ * Where it is drawn, precisely, so it can be judged on `flair.html`:
+ *
+ *   · a **channel** absolutely positioned inside the banner pill, on its foot —
+ *     `bottom: 2px`, three pixels tall, rounded like the pill. It starts to the
+ *     right of the size badge (`left: 33px`) rather than at the pill's left
+ *     edge, because the badge is a 26px roundel in a 32px box and a bar run
+ *     under it would cut across the seat's own tincture; it ends 11px short of
+ *     the right edge, which is what clears the pill's 999px cap at that height.
+ *     So the bar is a rule under the *name and the queue*, inside the plate,
+ *     which is what "integrated with the banner" has to mean on a pill.
+ *   · the channel's ground is parchment at a whisper — the growth ring's track
+ *     ink exactly. The specimen's ink-outlined channel is for parchment ground;
+ *     the banner's ground is ink, and an ink rim on ink is not a channel, it is
+ *     nothing. One convention on this surface, and the ring already set it.
+ *   · the fill is `hp / cityMaxHp` of the channel, in the **alarm ink** and only
+ *     that ink. The board's bar carries a second, calmer colour above half
+ *     because it is drawn on every hurt piece in a battle line and has to sort
+ *     them; a banner shows one town, and the two other things on this pill that
+ *     can change colour (the ring's green, the ring's alarm) are about food. A
+ *     third hue here would be a third quantity to learn. Present-and-vermilion
+ *     is the reading: this town is hurt.
+ *   · the fill never draws as nothing (`min-width` in the stylesheet). That is
+ *     `hpBarFillWidth`'s rule and its reason, one surface over: a town at the
+ *     floor is a town that still stands, and an empty channel over a live city
+ *     reads as a razed one.
+ *
+ * **Walls are not a second bar**, and that is the sim's ruling rather than a
+ * layout choice: a town has one pool of hit points and its walls are *in* it
+ * (`explainCityMaxHp` folds `combat.cityBaseHp` plus every `BuildingDef.cityHp`
+ * into one figure). So a palisade lengthens the bar rather than adding a
+ * segment to it, and the one state the three beats turn on — `cityBeatenDown`,
+ * the floor a besieger cannot push past — is the bar sitting on its minimum. It
+ * is said in words rather than drawn a second time: the hover reads "Walls down
+ * · 1/115 hp" there and "84/115 hp" everywhere else, the same figures in the
+ * same order as the city panel's own chip, so the glance and the panel cannot
+ * disagree.
+ *
+ * The siege badge stays on the panel. A besieged town is a *condition* and the
+ * bar is a *quantity*; the panel names the condition in a sentence, and a second
+ * badge on a pill that already carries a roundel, a ring, a name and a queue is
+ * the chip the growth ruling refused.
+ *
+ * Whose banners carry one: **every watched town, yours and theirs**, which is
+ * the size figure's rule and not the ring's. A rival's countdown is that
+ * empire's food ledger read off tiles this seat cannot see; a rival's hit points
+ * are a fact about a thing this seat is looking at, and the board already draws
+ * exactly that bar over every hurt *piece* on the map whoever owns it. A
+ * remembered town has none at all — memory keeps a name and a flag (see
+ * `rememberedFacts`), and hit points twenty turns stale would be the worst
+ * number on this surface to quote as current.
+ *
  * Three states, since fog of war
  * ------------------------------
  * The shape that was predicted here before M8 turned out to be right, and it
@@ -116,6 +178,7 @@ import {
   turnsToBuild,
   turnsToFill,
 } from '../sim/cities';
+import { cityBeatenDown, cityMaxHp } from '../sim/combat';
 import type { Game } from '../sim/game';
 import type { City, GameState } from '../sim/state';
 import { type CitySighting, isExploredBy, isVisibleTo } from '../sim/visibility';
@@ -175,6 +238,8 @@ interface Banner {
   size: HTMLElement;
   pop: HTMLElement;
   ring: RingParts;
+  /** The channel on the banner's foot. See "The wound on the foot". */
+  health: HealthParts;
   production: HTMLElement;
   /** Last text written, so an unchanged banner is not rewritten every frame. */
   signature: string;
@@ -203,6 +268,13 @@ interface BannerFacts {
    * saying — a rival's, and a memory of your own. See "The growth ring".
    */
   growth: GrowthRing | null;
+  /**
+   * The wound on the banner's foot, or `null` for a town that is whole — and
+   * for a remembered one, which keeps no figures at all. See "The wound on the
+   * foot". Not behind the `mine` gate the ring and the queue sit behind: this
+   * is the size figure's kind of fact, not the food ledger's.
+   */
+  health: HealthBar | null;
   production: string;
   mine: boolean;
   /** Drawn from `citySightings` rather than from the city itself. */
@@ -319,6 +391,64 @@ export function cityGrowthRing(state: GameState, city: City): GrowthRing {
   );
 }
 
+/** What a banner says about a town's hurt. See "The wound on the foot". */
+export interface HealthBar {
+  /** 0…1 of the channel: the hit points still standing, against `cityMaxHp`. */
+  filled: number;
+  /**
+   * The walls are down — `cityBeatenDown`, the floor a besieger cannot push a
+   * town past and the predicate the three beats of an assault turn on. Not a
+   * second drawing: it is what the hover's first clause says.
+   */
+  breached: boolean;
+  /** The figures in plain words, for the tooltip and the screen reader. */
+  label: string;
+}
+
+/**
+ * The bar from a town's hit points against its maximum, or `null` for a town
+ * with no bar to draw: the arithmetic half, with no state and no DOM in it.
+ *
+ * Split from `cityHealthBar` for `growthRing`'s reason exactly — the states are
+ * the part that can be quietly wrong on every banner at once — and pure so the
+ * gallery can drive it from a slider without a game running.
+ *
+ * `null` at full health is **the** rule of this bar and not an optimisation:
+ * a banner at full health is the banner that shipped yesterday, and the reading
+ * asked for is which towns are hurt. It is the piece's own rule (`hpBarFill`),
+ * so a wounded town and a wounded warrior appear and disappear by one law.
+ *
+ * `breached` is passed in rather than derived from the two figures, because
+ * "the walls are down" is a floor the simulation owns (`cityBeatenDown`) and a
+ * banner that compared hit points against one of its own would be a second copy
+ * of the rule the assault is resolved by.
+ */
+export function healthBar(hp: number, max: number, breached: boolean): HealthBar | null {
+  // A maximum of nothing is not reachable through `cityMaxHp`, but a
+  // hand-edited save is a thing and a division by zero paints a `NaN` width —
+  // which the DOM resolves to no width at all, silently, on every hurt town.
+  if (!(max > 0)) return null;
+  const filled = clamp01(hp / max);
+  if (filled >= 1) return null;
+  // The panel's own chip, word for word (`renderBand`), so the glance and the
+  // screen a click away cannot print the same town's toughness two ways. The
+  // breach takes a clause in front of it rather than a colour of its own.
+  const figures = `${hp}/${max} hp`;
+  return { filled, breached, label: breached ? `Walls down · ${figures}` : figures };
+}
+
+/**
+ * One town's bar, read off the simulation.
+ *
+ * `cityMaxHp` and not `combat.cityBaseHp`, which is the trap CLAUDE.md names:
+ * a town's maximum is the base plus every wall it has built, and a bar measured
+ * against the base would report a town with stone walls as wounded the day it
+ * finished them.
+ */
+export function cityHealthBar(city: City): HealthBar | null {
+  return healthBar(city.hp, cityMaxHp(city), cityBeatenDown(city));
+}
+
 /**
  * What a live, watched city's banner says.
  *
@@ -335,6 +465,11 @@ function watchedFacts(state: GameState, city: City, mine: boolean): BannerFacts 
     ownerId: city.ownerId,
     pop: `${city.population}`,
     growth: null,
+    // On this side of the `mine` gate, deliberately: a town's hurt is a fact
+    // about a thing this seat is watching, exactly like the size figure, and
+    // the board already draws the same bar over every hurt piece it can see
+    // whoever owns it. See "The wound on the foot".
+    health: cityHealthBar(city),
     production: '',
     mine,
     stale: false,
@@ -363,8 +498,8 @@ function watchedFacts(state: GameState, city: City, mine: boolean): BannerFacts 
  * What a remembered city's banner says: its name and its flag as they were,
  * and nothing else.
  *
- * No population, no growth and no production even on your own city, because
- * none of the three is a thing a chart remembers — a size on a banner over
+ * No population, no growth, no hurt and no production even on your own city,
+ * because none of the four is a thing a chart remembers — a size on a banner over
  * ground nobody is watching would be the interface quoting a number twenty
  * turns stale as though it were current, and a countdown there would be worse:
  * it would be counting. The name and the flag are exactly what a paper map
@@ -386,6 +521,10 @@ function rememberedFacts(state: GameState, sighting: CitySighting, mine: boolean
     ownerId: sighting.ownerId,
     pop: '',
     growth: null,
+    // Nor its hurt: a sighting is a name and a flag, and a bar drawn from a
+    // twenty-turn-old assault would be the interface reporting a siege that may
+    // already have been lifted or lost.
+    health: null,
     production: '',
     mine,
     stale: true,
@@ -494,6 +633,61 @@ function paintArc(circle: SVGCircleElement, span: number, from: number): void {
   circle.setAttribute('stroke-dashoffset', `${(-from * RING_CIRCUMFERENCE).toFixed(2)}`);
 }
 
+/** The channel and the ink in it, kept so a repaint is one width write. */
+export interface HealthParts {
+  root: HTMLElement;
+  fill: HTMLElement;
+}
+
+/**
+ * The bar as elements: a channel with one fill in it, built once per banner and
+ * never rebuilt — the ring's discipline, and the text half's before it.
+ *
+ * Exported with its painter so `flair.html` can show the real bar rather than a
+ * drawing of one. That is the cabinet's standing bargain (`flairGallery/main.ts`,
+ * "Nothing is reproduced"): the gallery may lay this out and give it a ground,
+ * and it may not own a second copy of what a width means.
+ */
+export function buildHealthBar(): HealthParts {
+  const root = document.createElement('div');
+  root.className = 'city-banner-health';
+  const fill = document.createElement('span');
+  fill.className = 'city-banner-health-fill';
+  root.append(fill);
+  return { root, fill };
+}
+
+/**
+ * Paints one bar, or takes it away.
+ *
+ * The width is a **percentage of the channel** rather than a pixel count,
+ * because the channel is as wide as the banner is and a banner is as wide as
+ * its town's name: a fraction resolved in CSS cannot go stale when a city is
+ * renamed or its queue changes length. Rounded to a hundredth of a percent for
+ * `paintArc`'s reason — a width carried to the fifteenth decimal place is a
+ * longer string than the element and moves nothing.
+ *
+ * `display` and not the `hidden` attribute, for the size box's reason: the
+ * stylesheet gives this element a `display` of its own and an author rule
+ * outranks `[hidden]`.
+ */
+export function paintHealthBar(parts: HealthParts, bar: HealthBar | null): void {
+  parts.root.style.display = bar === null ? 'none' : '';
+  if (bar === null) {
+    parts.root.removeAttribute('title');
+    parts.root.removeAttribute('role');
+    parts.root.removeAttribute('aria-label');
+    return;
+  }
+  parts.fill.style.width = `${(bar.filled * 100).toFixed(2)}%`;
+  // The drawing is a glance and the figures are one hover away — the ring's
+  // bargain. `role="img"` is what makes a label on a plain element reliably its
+  // accessible *name* rather than a hint some readers drop.
+  parts.root.title = bar.label;
+  parts.root.setAttribute('role', 'img');
+  parts.root.setAttribute('aria-label', bar.label);
+}
+
 export function createCityBanners(options: CityBannersOptions): CityBanners {
   const { container, renderer, getGame, localPlayerId, onOpenCity, openCity, onHoverCity } =
     options;
@@ -515,8 +709,12 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     size.append(ring.svg, pop);
     const production = document.createElement('span');
     production.className = 'city-banner-production';
+    // Last in the DOM and first on the eye: the channel is positioned on the
+    // pill's foot rather than laid out in its row, so the order here is the
+    // reading order — name, queue, and then the wound underneath both.
+    const health = buildHealthBar();
 
-    root.append(size, name, production);
+    root.append(size, name, production, health.root);
     // The banner sits inside the viewport, and the viewport turns a pointer
     // press into a pan or a move order. Without this, clicking a banner would
     // also send the selected unit to whichever tile happened to be under the
@@ -536,6 +734,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       size,
       pop,
       ring,
+      health,
       production,
       signature: '',
       col: 0,
@@ -594,7 +793,20 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       // and a basket filling is a thing it says. Without them a town's ring
       // would sit still until its name, size or queue happened to move.
       const arcs = growth === null ? '' : `${growth.filled.toFixed(4)}/${growth.ahead.toFixed(4)}`;
-      const signature = `${facts.pop}|${arcs}|${growth?.label ?? ''}|${facts.name}|${
+      // **The bar is a signature term too**, and this is the whole of "it
+      // rebuilds only when the town's hit points move": nothing here polls, and
+      // a banner is rewritten exactly when what it says changes. The label
+      // carries the figures and the breach, so a blow that lands and a wall
+      // that finishes both move it; the fraction is carried beside it at the
+      // precision the width is written to, so a town healing a point at a time
+      // repaints and a town at rest does not. The 3D city fingerprint
+      // (`signCities`/`CityLook`) is deliberately *not* where this lives: that
+      // one gates the houses, the pole and the walls, and hit points change
+      // none of them — a town would rebuild its sculpt every time it was
+      // scratched, and the banner is not in that layer at all.
+      const hurt = facts.health;
+      const wound = hurt === null ? '' : `${hurt.filled.toFixed(4)}/${hurt.label}`;
+      const signature = `${facts.pop}|${arcs}|${growth?.label ?? ''}|${wound}|${facts.name}|${
         facts.production
       }|${facts.stale ? 1 : 0}`;
       if (signature !== banner.signature) {
@@ -624,6 +836,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
         paintArc(banner.ring.fill, growth?.filled ?? 0, 0);
         paintArc(banner.ring.ahead, growth?.ahead ?? 0, growth?.filled ?? 0);
         banner.ring.svg.style.display = growth === null ? 'none' : '';
+        paintHealthBar(banner.health, facts.health);
         banner.name.textContent = facts.name;
         banner.production.textContent = facts.production;
         banner.production.hidden = facts.production === '';

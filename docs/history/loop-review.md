@@ -21,9 +21,19 @@ system list where every entry feeds the deck loop — those are the three.
 > people - trade - wonders - other — bucketed off the simulation's own breakdown
 > lines by **card id**, never by label; the one label read is
 > `explainEmpireGold`'s, keyed on the head before the ` - ` as `empireTradeLines`
-> already keys it. No new fold: the six totals are `civYields`' own, and Entry
-> XVII's multiplied total is shared back over the flats that earned it
-> (`shareOut`). Band 2 is a session ring buffer of 400 turns sampled at
+> already keys it. No new fold: the six totals are `civYields`' own. Entry
+> XVII's multiplied **gain** (`banked − Σ flats`) is shared by **who supplied
+> the percentages** — each `CityYieldPercent` and each `ProductionModifier` on
+> that voice of that town, weighted by magnitude among the lines pushing the way
+> the town actually moved (`percentWeights` + `shareGain`; a meter tier and the
+> arrears are `other`'s, a building's own percent is the stones'); the flats keep
+> their own split, and `shareOut` rounds the eight owed figures into whole slices
+> that still add to the bank. A card's `tileYield` line is the **card's** and not
+> the land's (`addWorkedTile`, off `TileYieldContribution.card`) — the centre
+> stays whole and stays the land's, its inheritance being an excess rather than a
+> sum. Both were ruled 2026-09-07 (`docs/flags.md` jj) after the user found that
+> a card paying only a percentage, and every late Order paying on ground, added
+> nothing to "your cards". Band 2 is a session ring buffer of 400 turns sampled at
 > `onTurnResolved`, not saved, and the band says so. **Band 3 is still open** —
 > it is drawn as a labelled empty band saying the lifetime figures are not kept
 > yet, and it still wants the tally schema and the `collectYields` writer

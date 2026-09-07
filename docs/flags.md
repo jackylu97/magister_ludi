@@ -204,7 +204,63 @@ directly to confirm rulings — user marginalia are rulings.
   the whole canvas) — **built**: `camera.cityFrameInsetPx` (586, the two
   rails and their four gutters) narrows the fit in `frameCells`, so the
   radius lands in the clear ground between the rails; `frameBoard` is
-  untouched. Pinned against the stylesheet in `cityScreen.test.ts`.
+  untouched. Pinned against the stylesheet in `cityScreen.test.ts`. (hh)
+  **The Legionary no longer paves** ("my legionaries are creating roads
+  wherever they walk" — a designed gift of the tree pass, withdrawn:
+  `UnitDef.laysRoad` gone with its row's marker; only a carried land route
+  paves) — **built**. (ii) **A city HP bar on the city banner** —
+  **built** (batch **H16 — the banner's wound**): a channel on the foot of
+  the banner pill, absent at full health, the fill `hp / cityMaxHp` in the
+  alarm ink; walls are the same pool lengthened and never a second segment,
+  "walls down" (`cityBeatenDown`) is a clause on the hover; a signature term
+  on the DOM banner, not on `CityLook`. (jj) **"Your cards" misses what
+  the cards show** ("my yields are simply not showing in the total … they
+  seem to be calculated correctly on the cards themselves"). Measured: the
+  deck's flats are right (beliefs and rites file under religion by design),
+  but the Ledger shares each town's **multiplied gain** back over the
+  *flats* that earned it — so a card paying a percentage (+25% science in
+  the capital, an amplifier's share, a building-category percent) prints
+  its figure on its own face and adds nothing to the total. Ruled by the
+  finding: the gain is shared by **who supplied the percentages** — a
+  percent line learns its card (`CityYieldPercent.card`), the deck's percent
+  cards take the deck's share of the gain, meters and arrears stay `other`,
+  a building's percent stays `buildings`; the flats keep their own split.
+  The chips still sum to `civYields`. Batch **H17 — the deck's share of the
+  gain** — **built**: `CityYieldPercent.card` /
+  `ProductionModifier.card` / `TileLine.card` / `TileYieldContribution.card`
+  carry the id down every seam, `percentWeights` + `shareGain` share the gain
+  by magnitude among the lines pushing the way the town moved (a penalty earns
+  no share of a rise), and `addWorkedTile` files a worked hex's card-sourced
+  lines by their card — **widened** by the user's follow-up ("the age 3 and
+  onwards orders are not being counted"): the later pools lean on
+  `tileYield`, whose lines the Ledger filed under the land; a worked hex's
+  card-sourced lines are the deck's now (H17). (kk) **The Sacred Ground
+  reads a belief's faith** ("+1 faith on every hex that gives faith isn't
+  applying to my desert tiles that have +1 faith from my religion") —
+  **built**: `explainTileYield` lands the lines that ask nothing of the
+  fold first, takes its reading again, then lands the lines that pay on
+  what the hex already pays (`tileConditionReadsFold`); an asking line
+  never sees another asking line. Pinned in `statecraft.test.ts`. (ll)
+  **A building's share counts what the law put on it** ("the Synod … should
+  count my religion bonuses on my temples, and great people improvements to
+  temples") — **built**: every `buildingYieldPercent` (the Synod, the
+  doublers, the Heroic Epic's kin) takes its share over the building's row
+  **plus** every `cityYields` line whose scope names that building
+  (`cardLinesOnBuilding`, `statecraft.ts`) — an Order's, a belief's, a
+  legacy's alike; a line that reaches the town by category (The Curia's
+  mirror) is a town fact and stays outside. Pinned in `statecraft.test.ts`.
+  (mm) **A town at the floor does not mend under the enemy's eyes** ("once
+  a city is at 0 hp, it should stop healing every turn — its walls are
+  broken") — **built**: `healCities` skips a beaten-down town while any
+  enemy stands adjacent (`enemyAtTheGate`, the siege field's smaller
+  question); it mends the turn they withdraw, and a town above the floor
+  still heals beside an enemy. Pinned in `combat.test.ts`. The orchestrator's
+  reading of "stop healing": while an enemy is at the gate — say if you
+  meant "until repaired" instead. Open, yours to rule: **the bead
+  tables open on the world's clock** (the first empire into an age turns
+  its hand face up for all; the Long Count shows the next hand early) — the
+  user saw Æra IV draws in Æra III and asked for them only on reaching the
+  age; the three readings are in the orchestrator's message of 2026-09-07.
   **Rulings 2026-09-06, late — early production** (the user, after the
   early-pacing discussion; these supersede `docs/early-pacing.md` §2a where
   they overlap): (x) **the first column of technologies slightly cheaper** —

@@ -748,7 +748,6 @@
       "combatStrength": 17,
       "cost": 16,
       "requiresResource": "iron",
-      "laysRoad": true,
       "upgradesTo": "longswordsman",
       "modelClass": "melee",
       "foundsCity": false,

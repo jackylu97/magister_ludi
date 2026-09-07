@@ -3582,6 +3582,52 @@ export function buildingMatchesYieldPercent(
   return paid > 0;
 }
 
+/** Does this scope name **this** building — `hasBuilding` on it, alone or inside an `all`? */
+function scopeNamesBuilding(scope: CityScope | undefined, id: BuildingId): boolean {
+  if (scope === undefined) return false;
+  if (scope.test === 'hasBuilding') return scope.building === id;
+  if (scope.test === 'all') return scope.of.some((inner) => scopeNamesBuilding(inner, id));
+  return false;
+}
+
+/**
+ * **What the law adds to one building's own yield** — every `cityYields` line
+ * in this town whose scope names the building (a follower belief's science on
+ * a temple, The Choir's culture, a legacy's faith), summed per voice.
+ *
+ * The user, 2026-09-07: *"the Synod — your faith buildings provide 50% more
+ * yields — it should count my religion bonuses on my temples, and great
+ * people improvements to temples."* A `buildingYieldPercent` used to take its
+ * share of the building's **row** alone; a temple carrying two beliefs and an
+ * Order was still "a temple" to it. The building's yield is its row plus what
+ * the law put on it by name, and that is the figure the share is taken of.
+ * These lines are banked once as the cards' own (`cardCityYields`); this
+ * reading is only what the share is *over*, never a second banking. A line
+ * that reaches the town by some other door (`hasBuildingYielding`, a
+ * category `mirrorYield`) is a fact about the town, not about the temple, and
+ * is deliberately not here.
+ */
+export function cardLinesOnBuilding(
+  state: GameState,
+  city: City,
+  id: BuildingId,
+): Record<CityYieldKey, number> {
+  const total: Record<CityYieldKey, number> = {
+    food: 0,
+    production: 0,
+    gold: 0,
+    science: 0,
+    culture: 0,
+    faith: 0,
+  };
+  for (const { effect } of cityEffectsOfKind(state, city, 'cityYields')) {
+    if (!scopeNamesBuilding(effect.scope, id)) continue;
+    if (!cityScopeAdmits(state, city, effect.scope)) continue;
+    for (const key of VOICES) total[key] += effect[key] ?? 0;
+  }
+  return total;
+}
+
 /** The fold of any list of card-yield lines. The only sum of them. */
 export function foldCardYields(list: readonly CardYieldLine[]): Record<CityYieldKey, number> {
   const total: Record<CityYieldKey, number> = {
@@ -3620,6 +3666,21 @@ export function foldCardYields(list: readonly CardYieldLine[]): Record<CityYield
 export interface TileLine {
   source: string;
   on: TileCondition;
+  /**
+   * The card that wrote this line, for the producers that have one — every
+   * `tileYield` clause reaching the ground through `tileLinesFrom`, and the
+   * amplifier's helping beside it. A resource's line and a granary's water line
+   * carry none: they are the seam's and the stones', not a card's.
+   *
+   * Carried for the Ledger, and the reason is the same one `CityYieldPercent`
+   * grew a `card` for on the same day (`docs/flags.md`, ruling jj, and the
+   * user's follow-up: *"the age 3 and onwards orders are not being counted in
+   * the display total"*). The later Order pools lean on `tileYield` where the
+   * early ones lean on `cityYields`, and a card's food on a hex lands in the
+   * hex's own breakdown — so the whole of a late deck was being credited to
+   * **the land**. A line that cannot name its card cannot be credited to it.
+   */
+  card?: CardId;
   /**
    * A percentage on **what the hex's improvement already pays**, where the six
    * voices below are a flat addition. See `CardTileYieldEffect.percent`, which
@@ -3744,6 +3805,20 @@ export function tileConditionHolds(
 }
 
 /**
+ * Does this condition **read the fold** — ask what the hex already pays —
+ * rather than the ground alone? `explainTileYield` lands the lines that do not
+ * ask first and the lines that do second, so a belief's faith on a desert hex
+ * is there to be read by an Order that pays on faith (the user, 2026-09-07).
+ * The one reader is `yields`; `all` asks its parts.
+ */
+export function tileConditionReadsFold(on: TileCondition | undefined): boolean {
+  if (on === undefined) return false;
+  if (on.test === 'yields') return true;
+  if (on.test === 'all') return on.of.some((inner) => tileConditionReadsFold(inner));
+  return false;
+}
+
+/**
  * Every `tileYield` line this empire's cards put on the ground, for the context
  * a tile evaluation carries.
  *
@@ -3800,6 +3875,11 @@ function tileAmplifierLines(
       if (dressed.card === card || !isOrderId(dressed.card)) continue;
       const line: CardTileLine = {
         source: label(source, tileConditionWords(dressed.effect.on)),
+        // **The amplifier's own card, not the card it read.** The helping is
+        // the engine's doing — it is what the engine is for — and a Ledger that
+        // credited it to the dressed Order would be crediting the same slice
+        // twice over on the day the two sit in different classes.
+        card,
         on: dressed.effect.on,
         food: 0,
         production: 0,
@@ -3906,12 +3986,13 @@ export function consecrationCardTileLines(state: GameState, city: City): CardTil
 
 /** One list of `tileYield` effects turned into lines. The only such conversion. */
 function tileLinesFrom(
-  found: readonly { source: string; effect: CardTileYieldEffect }[],
+  found: readonly { source: string; card?: CardId; effect: CardTileYieldEffect }[],
 ): CardTileLine[] {
   const list: CardTileLine[] = [];
-  for (const { source, effect } of found) {
+  for (const { source, card, effect } of found) {
     const line: CardTileLine = {
       source,
+      card,
       on: effect.on,
       food: (effect.food ?? 0),
       production: (effect.production ?? 0),

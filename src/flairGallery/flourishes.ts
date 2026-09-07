@@ -24,11 +24,22 @@
  */
 
 import { EPIGRAPHS } from '../ui/frontispiece';
+import {
+  type HealthParts,
+  buildHealthBar,
+  cityHealthBar,
+  paintHealthBar,
+} from '../ui/cityBanners';
 import { CARD_LINE_ACCENT, cardLineMarkUrl } from '../ui/cardLine';
 import { printerDeviceMarkUrl } from '../ui/deviceMarks';
 import { AXIS_MARK } from '../ui/religionScreen';
 import { drawPantheonWheel, pantheonWheelLayout } from '../ui/pantheonWheel';
 import { YIELD_GLYPH, setYieldText } from '../ui/yieldMark';
+import { foundCityAt } from '../sim/cities';
+import { cityMaxHp } from '../sim/combat';
+import { createMap, getTileAt } from '../sim/map';
+import { newGame } from '../sim/state';
+import { resetVisibility } from '../sim/visibility';
 import { type BeliefId, BELIEF_IDS, beliefDef } from '../sim/religionData';
 import { block, button, checkbox, controls, element, slider } from './sheet';
 
@@ -53,6 +64,7 @@ export function drawFlourishes(into: HTMLElement): void {
   cardBackStall(into);
   giltFrameStall(into);
   pricePlateStall(into);
+  cityBannerStall(into);
   inscriptionStall(into);
   ledgerStall(into);
 }
@@ -120,6 +132,100 @@ function pricePlateStall(into: HTMLElement): void {
   });
   slider(knobs, 'throw', { min: 0, max: 6, step: 1, value: 2 }, (v) => `${v}px`, (v) => {
     dial('--price-throw', `${v}px`);
+  });
+}
+
+/**
+ * The city banner carrying its hit-point bar, over a scrap of board.
+ *
+ * It earns a stall for the price plate's reason and one of its own. The plate's:
+ * the banner is only ever seen floating over a diorama, several at a time, with
+ * the player looking at the ground rather than at the label. Its own: **the bar
+ * is absent at full health** (`healthBar`), so the one thing a running game
+ * cannot show you is the two states side by side — a town has to be hit for the
+ * mark to exist at all, and the state it is most worth judging (a town on the
+ * floor, walls down) takes a siege to reach.
+ *
+ * The town is a real `GameState` — `newGame`, a flat map, `foundCityAt` — for
+ * `cityStage.ts`'s reason: `cityMaxHp` is the base plus every wall the town has
+ * built, so the palisade knob has to move a real `city.buildings` or the bar
+ * here would be measured against a number no town in a game has. The pills wear
+ * the shipping classes and the bar is built and painted by the shipping
+ * functions; nothing on this page knows what a width means.
+ */
+function cityBannerStall(into: HTMLElement): void {
+  const root = block(
+    into,
+    'The city banner’s wound',
+    'A thin channel on the foot of the banner pill, inside the plate: parchment at a whisper for the channel — the growth ring’s own track, because the pill’s ground is ink — and what is left of the town’s hit points in the alarm ink. Absent at full health, which is the whole design: a full bar on every town is furniture, and the reading wanted is which town is hurt. Walls are not a second segment — a town has one pool and its walls are in it, so a palisade lengthens the bar and “walls down” is the bar on its floor, said in words on the hover.',
+  );
+  const grid = stallGrid(root);
+  const cell = stall(grid, 'whole, and hurt');
+  const ground = element('div', 'banner-ground');
+
+  const state = newGame({
+    seed: 7,
+    sizeName: 'duel',
+    players: [{ name: 'Seat 1', color: '#b3402f', isHuman: true }],
+  });
+  state.map = createMap({ width: 8, height: 6, terrain: 'grassland' });
+  state.units.length = 0;
+  state.cities.length = 0;
+  state.camps.length = 0;
+  state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
+  // The grids are sized to the map they were made for, and the table above is
+  // not that map — `cityStage.ts` does the same, for the same reason.
+  resetVisibility(state);
+  // Two real towns rather than one: the reference pill has to be a town nobody
+  // has touched for the whole length of the page, and the knob below damages
+  // the other one.
+  const whole = foundCityAt(state, 0, getTileAt(state.map, 1, 1)!);
+  const town = foundCityAt(state, 0, getTileAt(state.map, 5, 3)!);
+
+  const pill = (name: string, pop: string, queue: string, caption: string): HealthParts => {
+    const slot = element('div', 'banner-slot');
+    const banner = element('div', 'city-banner is-mine');
+    banner.style.setProperty('--banner-color', '#b3402f');
+    const size = element('span', 'city-banner-size');
+    size.append(element('span', 'city-banner-pop', pop));
+    const bar = buildHealthBar();
+    banner.append(
+      size,
+      element('span', 'city-banner-name', name),
+      element('span', 'city-banner-production', queue),
+      bar.root,
+    );
+    slot.append(banner, element('span', 'banner-caption', caption));
+    ground.append(slot);
+    return bar;
+  };
+
+  // The reference: a town nobody has touched, which is the banner that shipped
+  // before this pass. Painted through the same function, from the same rule, so
+  // "no bar" on this page is the *absence* the game draws and not a pill this
+  // stall left a bar off.
+  paintHealthBar(pill('Eridu', '4', 'Warrior · 5t', 'whole'), cityHealthBar(whole));
+  const hurt = pill('Uruk', '6', 'Palisade · 3t', 'hit points');
+  cell.append(ground);
+
+  const repaint = (): void => {
+    // Clamped rather than trusted: a hand-set `hp` above the maximum is a state
+    // the simulation never reaches (`clampCityHp`), and the knob must not be
+    // able to invent one.
+    town.hp = Math.min(town.hp, cityMaxHp(town));
+    paintHealthBar(hurt, cityHealthBar(town));
+  };
+
+  const knobs = controls(root);
+  slider(knobs, 'hit points', { min: 1, max: 140, step: 1, value: 62 }, (v) => `${v} hp`, (v) => {
+    town.hp = v;
+    repaint();
+  });
+  // The walls knob is the stall's argument about segments: the same hit points
+  // read as less of a wound because the town's maximum grew.
+  checkbox(knobs, 'palisade', false, (on) => {
+    town.buildings = on ? ['palisade'] : [];
+    repaint();
   });
 }
 

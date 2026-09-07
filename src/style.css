@@ -3004,6 +3004,43 @@ kbd {
   stroke: var(--vermilion-lit);
 }
 
+/* The wound on the banner's foot (`cityBanners.ts`, "The wound on the foot").
+   Absolutely positioned on the pill rather than laid out in its row: the banner
+   is a single line of flex and a bar belongs *under* what it is about.
+
+   The two insets are the pill's own geometry. On the left it clears the 26px
+   size roundel in its 32px box, so the bar never cuts across the seat's
+   tincture; on the right it clears the 999px cap, which at three pixels off the
+   floor has eaten about eight of them. It takes no pointer: the pill is the
+   button, and a child that swallowed a press would be a banner with a dead
+   stripe across it. */
+.city-banner-health {
+  position: absolute;
+  left: 33px;
+  right: 11px;
+  bottom: 2px;
+  height: 3px;
+  border-radius: 999px;
+  /* The growth ring's track, exactly: parchment at a whisper is what a channel
+     is on this ground. An ink rim — the specimen's channel, drawn for
+     parchment — is invisible on a pill whose ground is ink. */
+  background: rgba(247, 242, 225, 0.22);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* What is left, in the alarm this ground takes — one ink, because the bar is
+   only ever drawn on a town that is hurt (see `healthBar`). `min-width` is the
+   board's own pip rule (`hpBarFillWidth`): a town at the floor still holds its
+   hex, and a channel with nothing in it reads as a razed one. */
+.city-banner-health-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 999px;
+  background: var(--vermilion-lit);
+}
+
 .city-banner-name {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 90;
@@ -11916,12 +11953,18 @@ body.compendium-page {
   --stamp-ink: var(--line-ink, var(--ink));
   position: relative;
   display: flex;
-  /* One baseline for the digits and every word beside them (the ruling), and
-     no wrapping: a figure that broke across two lines would stop being one. */
+  /* One baseline for the digits and every word beside them (the ruling). The
+     row wraps **between** figures and never inside one: each figure is an
+     atomic `inline-flex` item (`.card-stamp-figure`, `white-space: nowrap`), so
+     a figure that broke across two lines — the thing the old `nowrap` guarded
+     against — still cannot happen, while a deck paying five or six voices no
+     longer runs past the card's edge (the user, 2026-09-07: "I feel like I may
+     have overflowed it with the number of unique yields I have"). A second
+     line grows the card by one line-height, which is the honest cost. */
   align-items: baseline;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   justify-content: center;
-  gap: 6px;
+  gap: 2px 6px;
   /* **The seat does not resize when the number lands.** One line-height in
      pixels, inherited by both faces, and a `min-height` equal to it: the
      flourish (0.8rem, name face) and the figure (1.05rem mono, with a mark
@@ -11969,6 +12012,9 @@ body.compendium-page {
   letter-spacing: 0.01em;
   color: var(--stamp-ink);
   transform-origin: 50% 60%;
+  /* One figure is one word: the row above may wrap between figures, never
+     through one. */
+  white-space: nowrap;
 }
 
 .card-stamp[data-face='flourish'] .card-stamp-figure,
