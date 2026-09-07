@@ -1,0 +1,19 @@
+<!-- Not a Tabler icon: Tabler has no lance and no armoured rider, so this is a
+     *composition* of one of its drawings and one shape drawn here, and is marked as one.
+     The horse is Tabler `horse` (MIT) verbatim, at the same 0.75 scale in the same corner
+     the two ranged ranks put it in, with its stroke-width divided back out (2.75/0.75) so
+     it prints at the family's weight — the family says the line. The rank is the
+     **lance**: one haft laid clear across the box on a shallow diagonal, aimed the way
+     the horse is facing. It is the longest single stroke in the badge set and that is the
+     whole of the mark; a spike head was drawn on the point and cut, because a triangle
+     three units wide on the end of a bar at this weight is a mallet, and the piece read
+     as a horse under a hammer. Length and axis, which are what survive twenty-four
+     pixels — a short arrow in the corner is the ranged rank, a bar across the whole box
+     is this one. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(0 5.5) scale(0.75)" stroke-width="3.667">
+<path d="M7 10l-.85 8.507a1.357 1.357 0 0 0 1.35 1.493h.146a2 2 0 0 0 1.857 -1.257l.994 -2.486a2 2 0 0 1 1.857 -1.257h1.292a2 2 0 0 1 1.857 1.257l.994 2.486a2 2 0 0 0 1.857 1.257h.146a1.37 1.37 0 0 0 1.364 -1.494l-.864 -9.506h-8c0 -3 -3 -5 -6 -5l-3 6l2 2l3 -2"/>
+<path d="M22 14v-2a3 3 0 0 0 -3 -3"/>
+</g>
+<path d="M21 10.8l-14.2 -6.3"/>
+</g></svg>

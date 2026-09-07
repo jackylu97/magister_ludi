@@ -6590,7 +6590,12 @@ body:has(.city-mode:not([hidden])) #hud-context {
    it fits and does not. */
 .offer-answers {
   display: flex;
-  justify-content: center;
+  /* The reroll keeps the left, the pass takes the sheet's **bottom right** (the
+     user, 2026-09-07): the two answers are opposite decisions — keep playing
+     this hand, or give it up — and opposite corners say so before a word is
+     read. `space-between` places them; a sheet with only one of the two still
+     puts the pass on the right (`margin-left: auto` on its cell). */
+  justify-content: space-between;
   /* The hand's own gutter (`GAP` in `offerCard.ts`), so the two answers stand on
      the same rhythm the cards above them do. */
   gap: 12px;
@@ -6604,6 +6609,10 @@ body:has(.city-mode:not([hidden])) #hud-context {
   gap: 4px;
   width: var(--offer-card, 240px);
   text-align: center;
+}
+
+.offer-answer-pass-cell {
+  margin-left: auto;
 }
 
 /* Two lines on the face: what it does, and what it is worth. The figure is
@@ -6634,15 +6643,52 @@ body:has(.city-mode:not([hidden])) #hud-context {
 /* The pass wears the vermilion this interface reserves for a thing that is
    spent — the hand is gone and the culture stays spent — and the reroll wears
    plain parchment, because a purchase must not borrow the warning colour. */
-.offer-answer-pass {
-  background: var(--vermilion);
+/* **Both decorated, and equally** (the user, 2026-09-07: "more
+   prominent/decorated … keep the emphasis on the reroll and pass the same —
+   they should be seen as equally important. Maybe have them be separate
+   colors for visual distinction"). One plate for the two: the border doubled,
+   a parchment hairline inset inside it so the face reads as a framed seal
+   rather than a flat block, a deeper ink shadow, the label in small capitals
+   with air between the letters. What tells them apart is the ground alone —
+   the pass in the vermilion this interface reserves for a thing that is
+   spent, the reroll in lapis, the one strong colour here that is neither the
+   warning nor the gilt of a price. */
+.offer-answer-pass,
+.offer-answer-reroll {
   color: var(--parchment);
   border-color: var(--ink);
+  border-width: 2px;
+  box-shadow: 4px 4px 0 var(--ink);
+  outline: 1px solid rgba(255, 250, 236, 0.75);
+  outline-offset: -5px;
+  padding: 9px 12px 10px;
+}
+
+.offer-answer-pass {
+  background: var(--vermilion);
 }
 
 .offer-answer-reroll {
-  background: var(--parchment);
-  color: var(--ink);
+  background: var(--lapis);
+}
+
+.offer-answer-pass .offer-answer-label,
+.offer-answer-reroll .offer-answer-label {
+  font-size: 13.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.offer-answer-pass .offer-answer-figure {
+  font-family: var(--face-ui);
+  font-style: italic;
+  opacity: 0.95;
+}
+
+.offer-answer-pass:active:not(:disabled),
+.offer-answer-reroll:active:not(:disabled) {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--ink);
 }
 
 /* **The face is kept and the ink is greyed** (the ruling's own words). The

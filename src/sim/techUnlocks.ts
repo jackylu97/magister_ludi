@@ -53,6 +53,7 @@ import {
   type TechId,
   abilityDef,
   isTechId,
+  liveUnlocks,
   techDef,
 } from './techData';
 import { type UnitTypeId, unitDef } from './unitData';
@@ -183,7 +184,11 @@ export type TechGift =
  */
 export function techGifts(id: TechId): TechGift[] {
   const gifts: TechGift[] = [];
-  const { units = [], buildings = [], projects = [] } = techDef(id).unlocks;
+  // The live lists (`liveUnlocks`): a retired row is not a gift. The node's
+  // face read them since 2026-09-06; the info card and the Compendium read
+  // this walk and kept printing the Stele of Laws for a day (the user,
+  // 2026-09-07: "I still see stele of laws in the tech tree").
+  const { units, buildings, projects } = liveUnlocks(id);
 
   for (const unit of units) {
     gifts.push({ kind: 'unit', id: unit, name: unitDef(unit).name, glyph: unitDef(unit).glyph });

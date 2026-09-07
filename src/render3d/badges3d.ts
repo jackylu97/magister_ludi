@@ -269,7 +269,50 @@ export type BadgeClass =
   | 'crossbowman'
   | 'chariot'
   | 'knight'
-  | 'trebuchet';
+  | 'trebuchet'
+  /**
+   * **The six later-age rows that were wearing an Æra I forebear's mark** (user,
+   * ruling (v), `docs/flags.md`: *"the phalanx needs its own unit icon"*).
+   *
+   * The one-mark-per-row pass above drew every row the roster had at the time and
+   * then the roster grew: a phalanx was handed the spearman's `spear`, a legionary
+   * the swordsman's `melee`, a spear wall the pikeman's, a horse archer the
+   * chariot archer's `mountedRanged`, and a cataphract and a war elephant the
+   * horseman's `mounted`. That is not the fallback doing its job — the fallback is
+   * for a row nobody has drawn yet, and a *named* row pointing at somebody else's
+   * cell is the board telling the player they have built the piece they upgraded
+   * from.
+   *
+   * Drawn by the two rules the pass was drawn by and no new one. The family says
+   * the line: the phalanx and the spear wall are shields and hafts, the legionary
+   * is a blade, the horse archer and the cataphract are the same Tabler horse the
+   * rest of the mounted line rides. The axis or the count says the rank: a shield
+   * *rank* against one spear, three raked hafts against two braced ones, a short
+   * blade stood upright beside a tall shield against a long one on the diagonal,
+   * an arrow loosed out ahead of the horse against one away over its tail, a lance
+   * the length of the box against an arrow in the corner.
+   *
+   * Four of the six were drawn two or three times, and what was thrown away is on
+   * each file in an XML comment, because the failures are the same failure every
+   * time and it is worth writing down once per mark: **a closed shape smaller than
+   * about four units fills in at this weight.** A bow beside a horse closed into a
+   * letter D; a spike on the end of a lance made a mallet; a boss ruled inside a
+   * rectangular scutum made a battery; an elephant's hanging trunk merged with its
+   * own front leg and made a bus.
+   *
+   * `warElephant` is the one member that is not a rank of anything, and it is the
+   * exception the rules name rather than one they miss: it upgrades from nothing
+   * and into nothing, and a beast that is not a horse cannot be said with an axis
+   * or a count. So it is drawn as its own silhouette — a trunk and a howdah — and
+   * it stays in the mounted line because that is the line the roster puts it in
+   * (`BADGE_LINES` says so in words).
+   */
+  | 'phalanx'
+  | 'legionary'
+  | 'spearWall'
+  | 'horseArcher'
+  | 'cataphract'
+  | 'warElephant';
 
 /**
  * The atlas layout, in cell order, and the authority on which cell a class
@@ -330,6 +373,17 @@ export const BADGE_CELLS: readonly BadgeClass[] = [
   // `navalMarks.ts` and five more cells on the end of this list, and the append
   // rule holds at that scale exactly as it held when eight arrived at once.
   ...NAVAL_RIGS.flatMap((rig) => NAVAL_CANTONS.map((canton) => navalBadgeId(rig, canton))),
+  // And the six later-age rows of ruling (v), appended after the naval block for
+  // the fifth time the rule has been asked and the fifth time nothing moved: the
+  // thirty-nine above are byte-identical and in the same order, and a four-wide
+  // atlas that was ten rows is eleven and a half — twelve, rounded up by
+  // `badgeAtlasLayout`, which has always been a function of the count.
+  'phalanx',
+  'legionary',
+  'spearWall',
+  'horseArcher',
+  'cataphract',
+  'warElephant',
 ];
 
 /**
@@ -380,13 +434,13 @@ export interface BadgeLine {
 export const BADGE_LINES: readonly BadgeLine[] = [
   {
     line: 'The sword line',
-    note: 'Club, sword, crossed swords. The club runs on the opposite diagonal so the first two ranks cross rather than echo, and the third is more sword rather than a longer one — a blade’s length is not a silhouette.',
-    members: ['warrior', 'melee', 'longswordsman'],
+    note: 'Club, sword, a shield with a short blade, crossed swords. The club runs on the opposite diagonal so the first two ranks cross rather than echo; the legionary is the one rank that answers with mass — the tallest shape in the line, beside a blade deliberately shorter than the one before it and stood upright rather than raked — and the last is more sword rather than a longer one, because a blade’s length is not a silhouette.',
+    members: ['warrior', 'melee', 'legionary', 'longswordsman'],
   },
   {
     line: 'The spear line',
-    note: 'One haft against two. A pike is a spear you cannot carry alone, so the rank is a count and not a length, and the pike’s narrow spike drops the spear’s leaf blade.',
-    members: ['spear', 'pikeman'],
+    note: 'One haft, then a shield rank, then three raked hafts, then two braced ones. The rank is a count and an angle and never a length: the phalanx is the only mark in the set carrying two shields, and the pike ranks drop the spear’s leaf blade for a narrow spike so the head says the rank too.',
+    members: ['spear', 'phalanx', 'spearWall', 'pikeman'],
   },
   {
     line: 'The bow line',
@@ -395,8 +449,16 @@ export const BADGE_LINES: readonly BadgeLine[] = [
   },
   {
     line: 'The mounted line',
-    note: 'Horse, spoked wheel, chess knight — and the horse-archer, which is the mounted-ranged mark and the only row that wears it. The chariot is the one circle in the line and the knight the one upright.',
-    members: ['mounted', 'chariot', 'knight', 'mountedRanged'],
+    note: 'Horse, spoked wheel, couched lance, chess knight — then the two that shoot, on opposite diagonals, one arrow away over the tail and one out ahead of the animal — and the elephant, which is the one mark here that is not a horse and does not pretend to be. The chariot is the one circle in the line, the knight the one upright, the lance the longest stroke in the set, and the beast is a raised trunk and a howdah because a silhouette is all an elephant needs.',
+    members: [
+      'mounted',
+      'chariot',
+      'cataphract',
+      'knight',
+      'mountedRanged',
+      'horseArcher',
+      'warElephant',
+    ],
   },
   {
     line: 'The siege line',
@@ -434,19 +496,21 @@ export const BADGE_LINES: readonly BadgeLine[] = [
  * the tile atlas has no `loadIcon` left). The reason those moved is that the
  * *interface* prints the same marks in four inks, and a file can only be one
  * colour. A class badge is printed here and nowhere else, so it has never paid
- * that cost, and a set of twenty in which one member arrived by a different route
- * would be a set of nine plus an exception. If a DOM surface ever needs these,
+ * that cost, and a set this size in which one member arrived by a different route
+ * would be a set with an exception rather than a set. If a DOM surface ever needs these,
  * the whole set moves together — `paintMarkPaths` in this file is already the
  * printer that would take them.
  *
  * As of the icon pass the drawings behind these are **Tabler Icons** (MIT)
  * rather than this project's own hand — the same decision `yieldMarks.ts` made
  * for the six yield voices, for the same reason and at the same weight (2.75 of
- * a 24-unit box, where upstream ships 2). Twelve are Tabler drawings copied
- * verbatim; the horse-archer is two of them composed and the other seven are
- * drawn here in Tabler's geometry, because neither Tabler nor Lucide has a
- * catapult, a trebuchet, a spear, a pike, a chariot, a crossbow or a club — the
- * whole medieval half of a 4X roster is a hole in every icon set there is — and
+ * a 24-unit box, where upstream ships 2). Ten are Tabler drawings copied
+ * verbatim; three are *compositions* of two paths apiece — the chariot archer,
+ * the horse archer and the cataphract each stand Tabler's `horse` under a mark of
+ * their own — and the other fourteen are drawn here in Tabler's geometry, because
+ * neither Tabler nor Lucide has a catapult, a trebuchet, a spear, a pike, a
+ * chariot, a crossbow, a club, a shield wall or an elephant — the whole medieval
+ * half of a 4X roster is a hole in every icon set there is — and
  * a filled silhouette from a third family would make this set two sets.
  * `public/sprites/CREDITS.md` names each one; the files carry it too.
  *
@@ -461,7 +525,7 @@ export const BADGE_LINES: readonly BadgeLine[] = [
  * A badge class whose artwork is a **file**. Every cell that is not naval.
  *
  * The split arrived with the naval line (2026-08-29) and it is worth the type it
- * costs. The twenty-one below are still files for the reason the docblock above
+ * costs. The twenty-seven below are still files for the reason the docblock above
  * gives — each is printed here and nowhere else, so it never paid what a file
  * charges. The eighteen naval cells could not take that bargain even in
  * principle: fifteen of them are *composed*, a hull of one age with a class's
@@ -471,7 +535,7 @@ export const BADGE_LINES: readonly BadgeLine[] = [
  * mark in the tile atlas.
  *
  * Exhaustive over *this* half rather than over `BadgeClass`, which is the point:
- * a twenty-second file class still fails to compile without a file, and the
+ * a twenty-eighth file class still fails to compile without a file, and the
  * naval cells are not silently missing one. The partition is asserted in
  * `test/render/badges3d.test.ts` — every cell in exactly one table.
  */
@@ -502,6 +566,12 @@ export const BADGE_ICON_FILES: Record<FileBadgeClass, string> = {
   knight: 'sprites/icons/knight.svg',
   trebuchet: 'sprites/icons/trebuchet.svg',
   prophet: 'sprites/icons/prophet.svg',
+  phalanx: 'sprites/icons/phalanx.svg',
+  legionary: 'sprites/icons/legionary.svg',
+  spearWall: 'sprites/icons/spearWall.svg',
+  horseArcher: 'sprites/icons/horseArcher.svg',
+  cataphract: 'sprites/icons/cataphract.svg',
+  warElephant: 'sprites/icons/warElephant.svg',
 };
 
 /**
@@ -509,7 +579,7 @@ export const BADGE_ICON_FILES: Record<FileBadgeClass, string> = {
  * being the eighteen naval cells, which are drawn.
  *
  * Derived from `BADGE_CELLS` by asking the file table, never written out: two
- * lists of the same twenty-one would be the drift this file spends its whole
+ * lists of the same twenty-seven would be the drift this file spends its whole
  * cell-order discipline avoiding. It is what the on-disk sweep in
  * `test/render/badges3d.test.ts` walks, so "every named file exists and every
  * file is named" stays a total claim about the half it is a claim about.

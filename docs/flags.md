@@ -170,20 +170,41 @@ directly to confirm rulings — user marginalia are rulings.
   buildings — from the tech tree UX") — **built**: ten retired rows still
   hung on their techs; `liveUnlocks` (`techData.ts`) is what the tree's
   faces print, the raw lists stay for the gates and the inverted tables.
-  (v) **The phalanx needs its own unit icon** — it wears the spearman's.
-  Queued (a flair pass, not a fix): `data/view3d.json` `byUnitType` maps
-  `phalanx` to the `spear` badge; the same map hands `legionary` the
-  swordsman's `melee`, `spearWall` the pikeman's, `horseArcher` the chariot
-  archer's `mountedRanged`, and `cataphract` and `warElephant` the
-  horseman's `mounted` — six later-age units drawn as their Æra I forebears.
-  One pass draws the six badges (`lookData.ts`, `geometry.ts` minis) and
-  lands them in `flair.html` the same pass, per the house rule.
+  **Second half, 2026-09-07** ("I still see stele of laws in the tech
+  tree"): the info card and the Compendium print `techGifts`, a second walk
+  that kept the raw lists; it reads `liveUnlocks` now, pinned across every
+  node in `techUnlocks.test.ts`.
+  (v) **The phalanx needs its own unit icon** — it wore the spearman's.
+  **Built (H15)**: six badges and six bodies, and both halves of
+  `view3d.json`'s `byUnitType` now name each row after itself — the phalanx a
+  shield rank, the spear wall three raked pikes, the legionary a tall shield
+  and a short blade, the horse archer the chariot archer's arrow mirrored onto
+  the other diagonal, the cataphract a couched lance the length of the box, the
+  war elephant a raised trunk and a howdah; the marks join `flair.html` off
+  `BADGE_LINES` and the sculpts join `pieces.html` off `SCULPT_IDS`, neither
+  page edited.
   (w) **The unit purchase tag broke onto a second line** — **built**: a town
   with an open faith bank prints two tags beside a unit and the row's
   two-column grid wrapped the second; the row is a flex line now (every tag
   inline, the name is what gives), the work rail is 300px from 264 (244
   from 214 at the narrow breakpoint; `cityFrameBiasPx` 35 follows), and the
-  tag prints the figure alone — no "or".
+  tag prints the figure alone — no "or". (ff) **The pass at the bottom
+  right, in a player's words** (2026-09-07, after H14's buttons: "make the
+  pass button more prominent/decorated and put it in the bottom right … the
+  'rare 1 -> 2' text isn't informative") — **built** in main by the
+  orchestrator: the answers row places the reroll left and the pass at the
+  sheet's bottom right, both answers wear one heavier plate (doubled border,
+  a parchment hairline inset, small capitals — "keep the emphasis on the
+  reroll and pass the same"), told apart by ground alone (vermilion for the
+  spent hand, lapis for the purchase), and the pass's face says "See rarer
+  cards next draft" — the bag's weights are still the reading, never the
+  words. Pinned in `offerFlow.test.ts`. (gg) **The city screen zooms out a
+  little further** ("some of the tiles sit behind the menu panels" — the
+  work rail grew to 300px under ruling w and the frame fitted the radius to
+  the whole canvas) — **built**: `camera.cityFrameInsetPx` (586, the two
+  rails and their four gutters) narrows the fit in `frameCells`, so the
+  radius lands in the clear ground between the rails; `frameBoard` is
+  untouched. Pinned against the stylesheet in `cityScreen.test.ts`.
   **Rulings 2026-09-06, late — early production** (the user, after the
   early-pacing discussion; these supersede `docs/early-pacing.md` §2a where
   they overlap): (x) **the first column of technologies slightly cheaper** —

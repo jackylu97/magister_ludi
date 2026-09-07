@@ -1153,3 +1153,37 @@ describe('the citizen focus pane', () => {
     expect(declaration('.city-focus-choices', 'grid-template-columns')).toBe('repeat(4, 1fr)');
   });
 });
+
+/**
+ * **The frame fits the ground the rails leave clear** (the user, 2026-09-07:
+ * "zoom out a little bit further in the city screen, some of the tiles sit
+ * behind the menu panels"). The camera cannot read the stylesheet, so the
+ * inset it subtracts from the canvas's width is written in `view3d.json` and
+ * kept in step with the two rails and their gutters here.
+ */
+describe('the framed city clears both rails', () => {
+  it('insets the fit by the two rails and their four gutters', () => {
+    const left = pixels('.city-rail.is-left', 'width');
+    const right = pixels('.city-rail.is-right', 'width');
+    // `.city-body`: 14px of padding at either edge and a 14px gap between each
+    // rail and the board — four gutters between the two rails.
+    const gutters = 4 * 14;
+    const inset = viewJson.camera.cityFrameInsetPx;
+    expect(Math.abs(inset - (left + right + gutters))).toBeLessThanOrEqual(2);
+  });
+
+  it('is what frameCells hands the fit, and frameBoard does not', () => {
+    const camera = (
+      import.meta.glob('../../src/render3d/camera3d.ts', { eager: true, query: '?raw', import: 'default' }) as Record<
+        string,
+        string
+      >
+    )['../../src/render3d/camera3d.ts'];
+    const cells = camera.slice(camera.indexOf('frameCells(bounds: Bounds'));
+    expect(cells.slice(0, cells.indexOf('const toFrustum'))).toContain(
+      'this.neededFrustumFor(bounds, CAMERA.cityFrameInsetPx)',
+    );
+    const board = camera.slice(camera.indexOf('frameBoard(bounds: Bounds'));
+    expect(board.slice(0, board.indexOf('\n  }\n'))).toContain('this.neededFrustumFor(bounds);');
+  });
+});

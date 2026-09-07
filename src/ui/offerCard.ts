@@ -1092,7 +1092,10 @@ export function createOfferCard(
       className: string,
       onPress: () => void,
     ): HTMLElement {
-      const cell = element('div', 'offer-answer-cell');
+      // The cell wears the answer's class too, so the row can place the pass
+      // at the sheet's bottom right (the user, 2026-09-07) without asking the
+      // button what it is.
+      const cell = element('div', `offer-answer-cell ${className}-cell`);
       const button = document.createElement('button');
       button.className = `btn offer-answer ${className}`;
       button.type = 'button';

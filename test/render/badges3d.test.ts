@@ -282,12 +282,24 @@ describe('the badge atlas layout', () => {
     // kept its cell.
     expect(BADGE_CELLS.slice(21, 24)).toEqual(['navalLight', 'navalHeavy', 'navalRanged']);
     expect(BADGE_CELLS.slice(24, 27)).toEqual(['naval1Chevrons', 'naval1Rook', 'naval1Crosshair']);
-    expect(BADGE_CELLS[BADGE_CELLS.length - 1]).toBe('naval5Crosshair');
-    expect(BADGE_CELLS).toHaveLength(39);
+    expect(BADGE_CELLS[38]).toBe('naval5Crosshair');
+    // Ruling (v) (2026-09-06) appended six more — the later-age rows that were
+    // wearing an Æra I forebear's mark — and the rule held for the fifth time:
+    // the thirty-nine above are byte-identical and in the same order, so every
+    // badge already on a board kept its cell, and the atlas grew two rows.
+    expect(BADGE_CELLS.slice(39)).toEqual([
+      'phalanx',
+      'legionary',
+      'spearWall',
+      'horseArcher',
+      'cataphract',
+      'warElephant',
+    ]);
+    expect(BADGE_CELLS).toHaveLength(45);
     const layout = badgeAtlasSize();
     expect(layout.columns).toBe(4);
-    expect(layout.rows).toBe(10);
-    expect(layout.height).toBe(10 * BADGE.atlasCell);
+    expect(layout.rows).toBe(12);
+    expect(layout.height).toBe(12 * BADGE.atlasCell);
     // And the twelve before them did not move: the rectangle of cell 0 is still
     // the top-left one, which is what `badgeCellRect` is asked for everywhere.
     expect(badgeCellRect(BADGE_CELLS[0]!).u0).toBe(0);
@@ -311,7 +323,7 @@ describe('the badge atlas layout', () => {
    * answered by the *rules* ahead of it, and a test that read the table would
    * miss the two rows most likely to break.
    */
-  it('gives each of the twenty-one unit types a badge no other type wears', () => {
+  it('gives each of the twenty-seven unit types a badge no other type wears', () => {
     const roster: UnitTypeId[] = [
       'warrior',
       'scout',
@@ -338,6 +350,18 @@ describe('the badge atlas layout', () => {
       // table's — which is why this sweep asks `badgeClassFor` at all.
       'prophet',
       'greatPerson',
+      // Ruling (v)'s six (2026-09-06). They were on this list already, in the
+      // sense that they were *rows* — and each was answering with the mark of
+      // the piece it upgrades from, which is the one failure a sweep for
+      // distinctness cannot catch while the rows are missing from it. The
+      // user's words are "the phalanx needs its own unit icon"; the other five
+      // were found beside it in `badges.byUnitType`.
+      'phalanx',
+      'legionary',
+      'spearWall',
+      'horseArcher',
+      'cataphract',
+      'warElephant',
     ];
     const badges = new Map<string, UnitTypeId>();
     for (const type of roster) {
@@ -347,7 +371,7 @@ describe('the badge atlas layout', () => {
       expect(taken, `${type} and ${String(taken)} share the ${badge} badge`).toBeUndefined();
       badges.set(badge, type);
     }
-    expect(badges.size).toBe(21);
+    expect(badges.size).toBe(27);
     // Twenty-one types, twenty-one cells — and since the naval line the atlas is
     // eighteen longer, which is the one place this claim had to give. Twelve of
     // those cells are worn by the twelve hulls (the sweep below), and the three
@@ -408,7 +432,7 @@ describe('the badge atlas layout', () => {
         NAVAL_CLASS_CANTON[cls as keyof typeof NAVAL_CLASS_CANTON] !== undefined;
       expect(file !== drawn, `${cls} has ${file && drawn ? 'two sources' : 'none'}`).toBe(true);
     }
-    expect(FILE_BADGE_CELLS).toHaveLength(21);
+    expect(FILE_BADGE_CELLS).toHaveLength(27);
     expect(BADGE_MARK_PAIRS.size).toBe(15);
   });
 
@@ -454,6 +478,20 @@ describe('the badge atlas layout', () => {
       ['chariot', 'knight'],
       ['horseman', 'knight'],
       ['catapult', 'trebuchet'],
+      // Ruling (v)'s six, each paired with the row it was wearing the mark of —
+      // which is the sentence that has to become false again for the complaint
+      // to come back. `spearman`/`phalanx` is the user's own words; the rest
+      // were found beside it.
+      ['spearman', 'phalanx'],
+      ['phalanx', 'spearWall'],
+      ['spearWall', 'pikeman'],
+      ['swordsman', 'legionary'],
+      ['legionary', 'longswordsman'],
+      ['chariotArcher', 'horseArcher'],
+      ['horseman', 'cataphract'],
+      ['cataphract', 'knight'],
+      ['horseman', 'warElephant'],
+      ['cataphract', 'warElephant'],
     ];
     for (const [a, b] of pairs) {
       expect(badgeClassFor(a), `${a} and ${b} still share a badge`).not.toBe(badgeClassFor(b));

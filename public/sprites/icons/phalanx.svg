@@ -1,0 +1,16 @@
+<!-- Not a Tabler icon: Tabler draws no spear, pike or shield wall of any kind (the same
+     hole `spear.svg` and `pikeman.svg` were cut to fill), so this one is drawn here in
+     Tabler's geometry — the 24-unit box, the family's 2.75 stroke, round caps and joins,
+     no fill anywhere. It is the spear's line grown into a **wall**: two heater shields
+     standing side by side across the bottom of the box with two hafts raking out above
+     them. The shields are the rank and nothing else in the set carries one, so the mark
+     reads low and solid where `spear.svg` reads as one thin upright — mass, not length.
+     The hafts are deliberately bare. Heads were drawn on them and taken off again: at
+     2.75 of 24 a spear point three units long is a blob, four strokes is about what this
+     box holds, and the two pike ranks are what head shape is spent on. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M2.4 12.4h8v3.4c0 3.4 -3.4 4.8 -4 5.6c-.6 -.8 -4 -2.2 -4 -5.6z"/>
+<path d="M13.9 12.4h8v3.4c0 3.4 -3.4 4.8 -4 5.6c-.6 -.8 -4 -2.2 -4 -5.6z"/>
+<path d="M6.6 8.5l1.4 -6.4"/>
+<path d="M16.6 8.5l1.4 -6.4"/>
+</g></svg>

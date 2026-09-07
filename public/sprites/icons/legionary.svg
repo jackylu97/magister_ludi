@@ -1,0 +1,18 @@
+<!-- Not a Tabler icon: Tabler has `sword` and `swords` — which is why the swordsman and
+     the longswordsman are vendored verbatim — but nothing that is a *shield* beside a
+     blade, and a filled silhouette from a third family would make this set two sets. So
+     this one is drawn here in Tabler's geometry: the 24-unit box, the family's 2.75
+     stroke, round caps and joins, no fill anywhere. It is the sword line **in armour**,
+     and both halves say so at once: a shield taller than anything else in the line, and
+     a blade deliberately *shorter* than `melee.svg`'s and stood upright rather than run
+     on the diagonal. Axis and mass, never a longer blade.
+     The shield was drawn as a plain rectangle first, a scutum with a boss ruled across
+     it, and it read as a battery at every size — a rounded box with a mark inside is a
+     container before it is a shield. So it takes the heater outline instead, at nearly
+     the full height of the box, which is a shape with only one meaning. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4.2 4.2h8v9.5c0 3.6 -2.8 5.6 -4 6.6c-1.2 -1 -4 -3 -4 -6.6z"/>
+<path d="M18.4 3.8v8.8"/>
+<path d="M16.4 12.9h4"/>
+<path d="M18.4 12.9v3"/>
+</g></svg>

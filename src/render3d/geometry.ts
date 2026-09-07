@@ -3281,6 +3281,358 @@ export const trebuchetMini: MiniFactory = (spec) => {
   return mini.build();
 };
 
+// --- the six later-age bodies (ruling (v), 2026-09-06) ----------------------
+
+/**
+ * The six rows that were standing in an Æra I forebear's body.
+ *
+ * The consolidation that gave this file eight model classes was right about
+ * forty pixels of bronze — a swordsman and a longswordsman are the same
+ * silhouette, and carving the difference is carving something nobody can see —
+ * and it is *not* a licence for a phalanx to be a swordsman, a war elephant to be
+ * a horseman, or a spear wall to be whichever foot soldier the roster hung it on.
+ * Those are not two ranks of one shape; they are different shapes, and every one
+ * of them differs in the only currency this scale trades in: **outline**. A
+ * shield rank has a mass a lone spearman has not. A tower shield is a rectangle
+ * where a kite is a point. Three hafts are three. An elephant is not a horse.
+ *
+ * So each of the six below is built to change the *outline* and nothing else. No
+ * new primitive, no new ink role, no carved detail: the same base disc, the same
+ * turned token, the same shafts, spikes, slabs, discs and horse the rest of the
+ * roster is cut from, rearranged until the piece can be told from its neighbour
+ * with the colour taken away. Each stays inside its unit row's own size class
+ * (`MINI_SCULPTS` in `board3d.ts` names them), because a badge and an HP bar hang
+ * at `pieceHeightFor`, which asks the *type*, and a body that outgrew its class
+ * would push its own tag off its head.
+ *
+ * They are named by unit id rather than by class, which is the rule the sculpt
+ * roster already carries (`EXTRA_SCULPT_IDS`): a sculpt is called after a class
+ * exactly when it is still what an undrawn row would fall back to, and after a
+ * row when it exists for that row alone.
+ */
+
+/**
+ * Phalanx: the spear line grown into a wall.
+ *
+ * Two big round shields — the only *pair* of shields on the board — standing
+ * abutted across the front of the base, one a little forward of the other along
+ * z so they overlap the way a rank's do rather than reading as one wide slab.
+ * Behind them a shorter token than the spearman's (0.82 of the body height
+ * against 0.86, so the man is *behind* the wall rather than beside it), and two
+ * spears standing full class height, staggered on the same diagonal as the
+ * shields.
+ *
+ * What makes it read against `spearmanMini` at game zoom is where the mass is.
+ * A spearman is a thin upright with a small oval on one arm; this is a low wall
+ * with two points over it, and the difference survives the piece being forty
+ * pixels tall and turned to a hashed yaw, because it is a difference of
+ * *footprint* and not of ornament.
+ */
+export const phalanxMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h * 0.82, r * 0.94, t));
+
+  // The rank. `shieldAt` puts a shield on one arm at z ≈ 0; these two are pushed
+  // apart along z and staggered along x, which is what turns two shields into a
+  // line of them seen at an angle.
+  const shieldY = t + h * 0.42;
+  const front = shieldAt(0.106, 0.03, 8, 1.04, -r * 0.9, shieldY);
+  front.translate(0, 0, 0.06);
+  const back = shieldAt(0.098, 0.03, 8, 1.04, -r * 0.66, shieldY - h * 0.03);
+  back.translate(0, 0, -0.058);
+  mini.add('wood', front, back);
+
+  const tipH = h * 0.13;
+  const shaftH = h - tipH;
+  for (const [x, z] of [
+    [r * 0.74, 0.05],
+    [r * 1.06, -0.05],
+  ] as const) {
+    const pole = shaft(shaftH, 0.018);
+    pole.translate(x, t, z);
+    mini.add('wood', pole);
+    const tip = spike(0.028, tipH, 5);
+    tip.translate(x, t + shaftH, z);
+    mini.add('metal', tip);
+  }
+  return mini.build();
+};
+
+/**
+ * Legionary: the sword line in armour.
+ *
+ * The swordsman's construction with two things changed and nothing added: the
+ * kite shield — a five-sided disc, a point at the bottom — becomes a **scutum**,
+ * a plain rectangular slab as tall as half the body and deep enough to read as a
+ * wall rather than a plank, with a small steel boss stood proud of it; and the
+ * blade is cut from 0.34 of the body height to 0.24, which is a gladius. A crest
+ * lies fore-and-aft across the crown in the accent ink, the one part of the piece
+ * that is above the head and so the one part that survives a unit standing in a
+ * wood.
+ *
+ * Shorter blade, bigger shield, a ridge on the helmet. The badge answers with the
+ * first two of those and drops the third, which is the point of a look having two
+ * halves: a crest is a thing you can carve on a piece an inch tall and cannot draw
+ * on a roundel twenty pixels across.
+ */
+export const legionaryMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h * 0.92, r, t));
+
+  const shieldX = -r * 1.0;
+  mini.add('wood', slabAt(0.03, h * 0.52, 0.17, shieldX, t + h * 0.44, 0.01));
+  mini.add('metal', slabAt(0.022, 0.05, 0.05, shieldX - 0.024, t + h * 0.44, 0.01));
+
+  const x = r * 1.0;
+  const guardY = t + h * 0.5;
+  const bladeH = h * 0.24;
+  mini.add(
+    'metal',
+    slabAt(0.048, bladeH, 0.022, x, guardY + bladeH / 2, 0.03),
+    slabAt(0.1, 0.026, 0.03, x, guardY, 0.03),
+  );
+  mini.add('wood', slabAt(0.032, 0.062, 0.032, x, guardY - 0.042, 0.03));
+  mini.add('accent', slabAt(0.035, 0.05, 0.11, 0, t + h * 0.92 + 0.02, 0));
+  return mini.build();
+};
+
+/**
+ * Spear wall: the pike line massed.
+ *
+ * The pikeman's lean and the pikeman's bargain — no shield, both hands on the
+ * shaft — with the count taken from one haft to **three**, stepped along the
+ * diagonal so that from any yaw at least two of them are separated on screen.
+ * Each is a shaft under a spike, and the three are cut so the highest point lands
+ * exactly on the class height however the lean is retuned (the shaft length is
+ * solved from the lean, as the pikeman's is).
+ *
+ * A hedge, in other words, which is the one thing three of anything can be. The
+ * token is shorter again (0.84) so the hafts clear the head: a rank of pikes is
+ * read off the pikes, and a figure standing level with them would break the
+ * repetition that makes three of them count as three.
+ */
+export const spearWallMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const h = spec.height - t;
+  const r = spec.tokenRadius * 1.02;
+  const lean = 0.11;
+  const mini = new Mini().add('body', miniBase(spec), ...miniToken(h * 0.84, r, t));
+
+  const tipH = h * 0.13;
+  const shaftH = (h - tipH * Math.cos(lean)) / Math.cos(lean);
+  for (const [x, z] of [
+    [r * 0.95, 0.09],
+    [r * 1.15, 0],
+    [r * 1.35, -0.09],
+  ] as const) {
+    const pike = shaft(shaftH, 0.018);
+    pike.rotateZ(lean);
+    pike.translate(x, t, z);
+    mini.add('wood', pike);
+
+    const tip = spike(0.026, tipH, 5);
+    tip.rotateZ(lean);
+    tip.translate(x - Math.sin(lean) * shaftH, t + Math.cos(lean) * shaftH, z);
+    mini.add('metal', tip);
+  }
+  return mini.build();
+};
+
+/**
+ * Horse archer: the mounted-ranged line with the chariot taken away.
+ *
+ * `chariotMini` is a horse, a two-wheeled car, a driver stood in it and a
+ * standard over him — four objects, and the widest piece in the mounted class.
+ * This is the same line one rank on and the design is subtraction: the bare horse
+ * of `horsemanMini`, a rider at full class height, the archer's own bow arc held
+ * across his front and a quiver raked across his back. Nothing on the ground
+ * behind the animal at all.
+ *
+ * So the two ranks differ by *footprint* first and by kit second, which is the
+ * right way round for a piece that is often seen from behind a hill: a chariot is
+ * long, a horse archer is a horse. The bow is `bowArc` at the archer's own tube
+ * radius, sized to the rider rather than to the piece, so it clears the horse's
+ * neck without becoming the silhouette.
+ *
+ * The **badge cannot carry the bow and this can**, which is worth the sentence
+ * because it is the two halves of a look disagreeing on purpose. A stave and its
+ * chord at 2.75 of a 24-unit box close into a solid lens (`crossbowman.svg`'s own
+ * note), so the mark says the rank with an axis — the chariot archer's arrow
+ * mirrored — while the piece, which is seen in three dimensions with light on it,
+ * simply holds the bow.
+ */
+export const horseArcherMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const H = spec.height;
+  const horse = miniHorse(H, t, -H * 0.045);
+  const riderR = spec.tokenRadius * 0.78;
+  const mini = new Mini()
+    .add('body', miniBase(spec))
+    .add('accent', ...horse.parts)
+    .add('body', ...miniToken(H - horse.saddleY, riderR, horse.saddleY));
+
+  mini.add(
+    'wood',
+    bowArc(H * 0.19, 0.015, Math.PI * 1.05, -riderR * 0.95, horse.saddleY + H * 0.15, 6),
+  );
+  mini.add(
+    'accent',
+    slabAt(0.042, 0.14, 0.042, riderR * 0.95, horse.saddleY + H * 0.12, -0.055, 0.3),
+  );
+  return mini.build();
+};
+
+/**
+ * Cataphract: the mounted line in mail.
+ *
+ * The knight's two ideas — barding on the horse, a lance on the rider — taken one
+ * step further and turned through ninety degrees, which is how this set says
+ * "the same thing, later". The barding is a deeper skirt than the knight's (0.26
+ * of the height against 0.2, and wider across the barrel), the rider wears a
+ * steel gorget disc at the shoulders, and the lance is stood **upright** where
+ * the knight's is couched at 0.7 radians.
+ *
+ * Upright rather than longer, deliberately: the knight is a bench sculpt today
+ * and the day it takes a seat the two will stand on a board together, and a lance
+ * that differed only in length would be the carved detail the whole consolidation
+ * was argued against. An axis survives; a measurement does not. The lance is cut
+ * so its point lands exactly on the class height, and the rider is built a touch
+ * under it, so the tallest thing on the piece is the weapon.
+ */
+export const cataphractMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const H = spec.height;
+  const forward = -H * 0.045;
+  const horse = miniHorse(H, t, forward);
+  const riderR = spec.tokenRadius * 0.84;
+  const riderTop = H * 0.9;
+  const mini = new Mini()
+    .add('body', miniBase(spec))
+    .add('accent', ...horse.parts)
+    .add('body', ...miniToken(riderTop - horse.saddleY, riderR, horse.saddleY));
+
+  const barding = spike(H * 0.17, H * 0.26, 6);
+  barding.scale(horse.barrelLength / (H * 0.2), 1, 0.7);
+  barding.translate(forward, t + H * 0.14, 0);
+  mini.add('metal', barding);
+
+  const gorget = disc(riderR * 1.15, 0.026, 8);
+  gorget.translate(0, horse.saddleY + (riderTop - horse.saddleY) * 0.52, 0);
+  mini.add('metal', gorget);
+
+  const headH = H * 0.11;
+  const lanceH = H - horse.saddleY - headH;
+  const lanceX = spec.tokenRadius * 1.05;
+  const lance = shaft(lanceH, 0.02);
+  lance.translate(lanceX, horse.saddleY, 0.06);
+  mini.add('wood', lance);
+  const point = spike(0.028, headH, 5);
+  point.translate(lanceX, horse.saddleY + lanceH, 0.06);
+  mini.add('metal', point);
+  return mini.build();
+};
+
+/**
+ * War elephant: the one piece in the mounted class that is not a rider.
+ *
+ * `miniHorse` is not reached for at all, and that is the whole sculpt. A horse on
+ * this board is a long thin barrel on four wire legs with a raked neck; an
+ * elephant is a *deep* barrel — half again as deep and two-fifths again as long
+ * as the horse's — on four columns, with no neck, a trunk hanging off the chest
+ * and a box on its back. The
+ * proportions are the drawing: at the size a piece is actually seen, "deep body,
+ * thick legs, something square on top" is a silhouette nobody confuses with a
+ * horseman, and no amount of carved ear would have been.
+ *
+ * Its trunk **hangs** where the badge's is raised, and the two halves of the look
+ * disagree on purpose. A drawn trunk that hangs runs down the front of the animal
+ * at exactly the place the front leg is, and on a flat 24-unit mark at the badge's
+ * stroke weight the two merge into a rounded bonnet (the file's own comment records
+ * three drafts lost that way). Here there is depth, light and a real gap between
+ * them, so the natural pose costs nothing and the raised one would only put a
+ * cantilever over the tile next door.
+ *
+ * The trunk is two tapered cylinders hung end to end, each swung a little further
+ * forward than the last, which is a curve at a cost of two primitives; the tusks
+ * are two small cones raked forward in steel. The howdah is a timber deck with a
+ * rail down each side, and the crew is an ordinary token — a short one — stood in
+ * it, so the *player's* ink rides on top of a bone-coloured animal exactly as it
+ * does on the horse (see `miniHorse` for why the animal is never the seat's
+ * colour). Its head lands on the class height, which is where a mounted piece's
+ * badge hangs.
+ */
+export const warElephantMini: MiniFactory = (spec) => {
+  const t = spec.baseThickness;
+  const H = spec.height;
+  const forward = -H * 0.02;
+  const legH = H * 0.32;
+  const barrelH = H * 0.26;
+  const barrelL = H * 0.44;
+  const barrelW = H * 0.22;
+  const barrelY = t + legH + barrelH / 2;
+  const deckY = t + legH + barrelH;
+  const mini = new Mini().add('body', miniBase(spec));
+
+  mini.add('accent', slabAt(barrelL, barrelH, barrelW, forward, barrelY, 0));
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      // Five sides where the horse's legs take four: a column reads round and a
+      // wire reads flat, and that is the difference between the two animals down
+      // at the ground where the base disc is the loudest thing on the piece.
+      const leg = new CylinderGeometry(H * 0.042, H * 0.05, legH, 5, 1);
+      leg.translate(forward + sx * barrelL * 0.34, t + legH / 2, sz * barrelW * 0.3);
+      mini.add('accent', leg);
+    }
+  }
+
+  const headX = forward + barrelL * 0.52;
+  const headY = barrelY + barrelH * 0.1;
+  mini.add('accent', slabAt(H * 0.16, H * 0.17, H * 0.16, headX, headY, 0));
+
+  let trunkX = headX + H * 0.06;
+  let trunkY = headY - H * 0.02;
+  for (const [length, swing, top, bottom] of [
+    [H * 0.16, 0.35, H * 0.032, H * 0.026],
+    [H * 0.13, 0.75, H * 0.026, H * 0.018],
+  ] as const) {
+    const segment = new CylinderGeometry(bottom, top, length, 5, 1);
+    segment.translate(0, -length / 2, 0);
+    // `rotateZ` by a positive angle swings a hanging segment toward +x, which is
+    // the way the head faces — so the trunk falls forward rather than into the
+    // animal's own chest.
+    segment.rotateZ(swing);
+    segment.translate(trunkX, trunkY, 0);
+    mini.add('accent', segment);
+    trunkX += Math.sin(swing) * length;
+    trunkY -= Math.cos(swing) * length;
+  }
+
+  for (const sz of [-1, 1]) {
+    const tusk = spike(H * 0.018, H * 0.11, 4);
+    tusk.rotateZ(-1.75);
+    tusk.translate(headX + H * 0.05, headY - H * 0.05, sz * H * 0.05);
+    mini.add('metal', tusk);
+  }
+
+  const deckL = H * 0.24;
+  const deckX = forward - H * 0.03;
+  mini.add(
+    'wood',
+    slabAt(deckL, H * 0.03, H * 0.19, deckX, deckY + H * 0.015, 0),
+    slabAt(deckL, H * 0.09, H * 0.022, deckX, deckY + H * 0.07, H * 0.085),
+    slabAt(deckL, H * 0.09, H * 0.022, deckX, deckY + H * 0.07, -H * 0.085),
+  );
+  mini.add(
+    'body',
+    ...miniToken(H - deckY - H * 0.03, spec.tokenRadius * 0.66, deckY + H * 0.03),
+  );
+  return mini.build();
+};
+
 /**
  * The foot a paper standee stands in: a flattened disc, a narrower collar on
  * top of it, and the little clip the card slots into.

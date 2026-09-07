@@ -531,9 +531,11 @@ function deviceFamily(into: HTMLElement): void {
  * The badge icons — the one family on this page that is **not** path data in a
  * module.
  *
- * Twenty vendored SVG files under `public/`, rasterised into the unit-badge
+ * Twenty-seven vendored SVG files under `public/`, rasterised into the unit-badge
  * atlas by the only `loadIcon` call left in the renderer: one mark per roster row
- * since the 2026-08-28 ruling ("could we get unique badges for each unit type").
+ * since the 2026-08-28 ruling ("could we get unique badges for each unit type"),
+ * and six more since ruling (v) of 2026-09-06 ("the phalanx needs its own unit
+ * icon") caught six later-age rows still wearing an Æra I forebear's.
  * Shown exactly as everything else is, masked through `currentColor`, which is
  * what the atlas does to them too (it recolours them to the badge's ink) — and at
  * the same three sizes, which is the whole point of putting them on this page:
@@ -551,8 +553,8 @@ function deviceFamily(into: HTMLElement): void {
  * Their being files is the reason there is no note under each *cell*: a file has
  * no `note` field, and inventing one here would be inventing provenance —
  * `public/sprites/CREDITS.md` is where that lives, and there is real provenance
- * to keep straight, because eleven of the twenty-one are somebody else's
- * drawings.
+ * to keep straight, because thirteen of the twenty-seven are somebody else's
+ * drawings in whole or in part.
  * What each line gets instead is the sentence saying how its ranks differ, which
  * is a fact about the *set* and lives with the set.
  */

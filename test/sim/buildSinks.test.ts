@@ -758,7 +758,10 @@ describe('the palisade is a wall the town built', () => {
       'pyramids',
     ]);
     const games = techGifts('bronzeWorking').filter((gift) => gift.kind === 'building');
-    expect(games.map((gift) => gift.id)).toEqual(['barracks', 'funeralGames', 'wallsOfUruk']);
+    // The Funeral Games left this list on 2026-09-07: batch D retired the row,
+    // and `techGifts` reads the live lists now — a retired row is not a gift
+    // (the row itself stays, and its cost is still pinned below).
+    expect(games.map((gift) => gift.id)).toEqual(['barracks', 'wallsOfUruk']);
   });
 
   it('costs what an Age I sink should: a real decision against a settler', () => {

@@ -304,3 +304,53 @@ describe('every draft deals a tarot face', () => {
     expect(rule).toContain('mask-image: none');
   });
 });
+
+/**
+ * **The pass, at the bottom right and in a player's words** (the user,
+ * 2026-09-07: "make the pass button more prominent/decorated and put it in the
+ * bottom right … the 'rare 1 -> 2' text isn't informative for a player").
+ * The face says the promise, never the bag's weights; the row places the two
+ * answers in opposite corners; the pass wears the heavier plate.
+ */
+describe('the pass at the bottom right', () => {
+  const STYLE = (
+    import.meta.glob('../../src/style.css', { eager: true, query: '?raw', import: 'default' }) as Record<
+      string,
+      string
+    >
+  )['../../src/style.css'];
+  const CARD = (
+    import.meta.glob('../../src/ui/offerCard.ts', { eager: true, query: '?raw', import: 'default' }) as Record<
+      string,
+      string
+    >
+  )['../../src/ui/offerCard.ts'];
+
+  it('says the promise, not the weights', () => {
+    const start = MAIN.indexOf('function passFigure(');
+    const body = MAIN.slice(start, MAIN.indexOf('\n  }\n', start));
+    expect(body).toContain("'See rarer cards next draft'");
+    expect(body).toContain("'No rarer cards next draft'");
+    expect(body).not.toContain('→');
+    // Still the simulation's reading: the knob retuned to nothing prints nothing rarer.
+    expect(body).toContain("rarityDrawWeight('rare', skips + 1)");
+  });
+
+  it('places the two answers in opposite corners, on one plate, in two colours', () => {
+    // Equal emphasis (the user, the same day: "keep the emphasis on the reroll
+    // and pass the same — they should be seen as equally important … separate
+    // colors for visual distinction"): the decoration is one shared rule, and
+    // only the ground differs — vermilion for the spent hand, lapis for the
+    // purchase.
+    expect(CARD).toContain('`offer-answer-cell ${className}-cell`');
+    const answers = STYLE.slice(STYLE.indexOf('.offer-answers {'));
+    expect(answers.slice(0, answers.indexOf('}'))).toContain('justify-content: space-between;');
+    expect(STYLE).toContain('.offer-answer-pass-cell {\n  margin-left: auto;\n}');
+    const plate = STYLE.slice(STYLE.indexOf('.offer-answer-pass,\n.offer-answer-reroll {'));
+    const rule = plate.slice(0, plate.indexOf('}'));
+    expect(rule).toContain('border-width: 2px;');
+    expect(rule).toContain('outline-offset: -5px;');
+    expect(STYLE).toContain('.offer-answer-pass {\n  background: var(--vermilion);\n}');
+    expect(STYLE).toContain('.offer-answer-reroll {\n  background: var(--lapis);\n}');
+  });
+});

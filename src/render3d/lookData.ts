@@ -1109,6 +1109,17 @@ export interface CameraSpec {
    */
   cityFrameBiasPx: number;
   /**
+   * How many screen pixels of the canvas's width the city mode's two rails
+   * cover between them (their widths plus their gutters, `.city-rail` and
+   * `.city-body` in `style.css`), so the work radius is fitted to the clear
+   * ground *between* the rails rather than to the whole canvas (the user,
+   * 2026-09-07: "some of the tiles sit behind the menu panels"). A fixed pixel
+   * figure for `cityFrameBiasPx`'s reason: a rail is a CSS width regardless of
+   * zoom. The camera cannot read the stylesheet, so the two are kept in step by
+   * `test/ui/cityScreen.test.ts`.
+   */
+  cityFrameInsetPx: number;
+  /**
    * How close a brand-new game's opening camera sits, as a fraction of the
    * way from the ordinary `frustum` down to `minFrustum` (the closest zoom
    * the camera allows) — 0 opens at the ordinary zoom, 1 opens fully zoomed

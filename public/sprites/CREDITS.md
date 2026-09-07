@@ -4,7 +4,7 @@ Most artwork in this directory is by **Kenney** (<https://kenney.nl>) and is rel
 **CC0 1.0 Universal** (public domain dedication). No attribution is required; it is given
 anyway because the work deserves it. The two exceptions are called out in their own sections
 below: `units/` (the project owner's illustrations) and `icons/` (ten **Tabler Icons**
-under the MIT licence, one composed from two more, and ten drawn for this project in
+under the MIT licence, three composed from two more, and fourteen drawn for this project in
 Tabler's geometry, CC0).
 
 Source packs:
@@ -84,14 +84,14 @@ with a feathered edge — see `src/render3d/sprites3d.ts`, tuned by `units.sprit
 A unit type with no file here falls back to its procedural game piece, which is why the
 settler still stands as a piece while these two are billboards.
 
-## `icons/*.svg` — 21 badge icons, one per unit type
+## `icons/*.svg` — 27 badge icons, one per unit type
 
-**Not our work any more, and that is the point.** Twenty SVG files, one per `BadgeClass`
+**Not our work any more, and that is the point.** Twenty-seven SVG files, one per file-backed `BadgeClass`
 (`src/render3d/badges3d.ts`), rasterised into the parchment roundel that floats over a
 piece and says which unit is standing there. They were drawn for this project until the
-icon pass; ten of them are now **Tabler Icons** verbatim and an eleventh is composed from
-two more, and the other ten are drawn here in Tabler's geometry because no icon set in the
-world draws the medieval half of a 4X roster.
+icon pass; ten of them are now **Tabler Icons** verbatim and three more are composed from
+two Tabler paths apiece, and the other fourteen are drawn here in Tabler's geometry because
+no icon set in the world draws the medieval half of a 4X roster.
 The reason the vendored ones are vendored is the same sentence the six yield voices get
 (see below): a set drawn by people who draw icon sets for a living reads better at twenty
 pixels than anything this project would author for itself, and the badge is the smallest
@@ -133,16 +133,22 @@ Two rules decided all twenty, and they are the whole design:
 | --- | --- | --- | --- | --- |
 | `warrior.svg` | `warrior` | sword · 1 | *drawn here* | a club: tapered haft, round head, one binding — on the diagonal opposite the sword |
 | `melee.svg` | `melee` | sword · 2 | Tabler `sword` | a sword on the diagonal, hilt low |
-| `longswordsman.svg` | `longswordsman` | sword · 3 | Tabler `swords` | two swords crossed — more sword, not a longer one |
+| `legionary.svg` | `legionary` | sword · 3 | *drawn here* | a tall shield, and a short blade stood upright beside it |
+| `longswordsman.svg` | `longswordsman` | sword · 4 | Tabler `swords` | two swords crossed — more sword, not a longer one |
 | `spear.svg` | `spear` | spear · 1 | *drawn here* | a spear upright: leaf blade, socket collar, two lugs |
-| `pikeman.svg` | `pikeman` | spear · 2 | *drawn here* | two hafts braced in a hedge under narrow spikes |
+| `phalanx.svg` | `phalanx` | spear · 2 | *drawn here* | two heater shields abutted, two hafts raking over them |
+| `spearWall.svg` | `spearWall` | spear · 3 | *drawn here* | three hafts raked in step, each under a narrow spike |
+| `pikeman.svg` | `pikeman` | spear · 4 | *drawn here* | two hafts braced in a hedge under narrow spikes |
 | `ranged.svg` | `ranged` | bow · 1 | Tabler `bow` | a bow loosed on the diagonal, the arrow away to the corner |
 | `compositeBowman.svg` | `compositeBowman` | bow · 2 | *drawn here* | a recurve bow stood upright at full draw, arrow still on the string |
 | `crossbowman.svg` | `crossbowman` | bow · 3 | *drawn here* | a crossbow spanned: prod, string drawn back to the nut, bolt, butt |
 | `mounted.svg` | `mounted` | mounted · 1 | Tabler `horse` | a horse in full, head down |
 | `chariot.svg` | `chariot` | mounted · 2 | *drawn here* | a big spoked wheel and its draught pole |
-| `knight.svg` | `knight` | mounted · 3 | Tabler `chess-knight` | the chess knight, on its base |
-| `mountedRanged.svg` | `mountedRanged` | mounted · ranged | *composed* — Tabler `horse` + Tabler `bow` | the horse, smaller, under a loosed arrow |
+| `cataphract.svg` | `cataphract` | mounted · 3 | *composed* — Tabler `horse` + a lance drawn here | the horse under one long couched lance, right across the box |
+| `knight.svg` | `knight` | mounted · 4 | Tabler `chess-knight` | the chess knight, on its base |
+| `mountedRanged.svg` | `mountedRanged` | mounted · ranged 1 | *composed* — Tabler `horse` + Tabler `bow` | the horse, smaller, under a loosed arrow |
+| `horseArcher.svg` | `horseArcher` | mounted · ranged 2 | *composed* — Tabler `horse` + Tabler `bow`, mirrored | the same horse, the arrow loosed out ahead instead of behind |
+| `warElephant.svg` | `warElephant` | mounted · the beast | *drawn here* | a deep body on stumpy legs, a raised curling trunk, a howdah |
 | `siege.svg` | `siege` | siege · 1 | *drawn here* | a catapult: base, A-frame, arm thrown, shot in the air |
 | `trebuchet.svg` | `trebuchet` | siege · 2 | *drawn here* | a tall frame, the beam pivoted high, the counterweight hung |
 | `settler.svg` | `settler` | civilian | Tabler `tent` | an A-frame tent, its door thrown open |
@@ -153,7 +159,7 @@ Two rules decided all twenty, and they are the whole design:
 | `greatPerson.svg` | `greatPerson` | called | Tabler `laurel-wreath` | a laurel wreath, eight leaves and a tie |
 | `prophet.svg` | `prophet` | called | *drawn here* — Tabler `candle`, ringed | the augur's candle, smaller, under a halo arc |
 
-Twelve names in the class column are model classes and eight are unit ids, and the two
+Twelve names in the class column are model classes and the rest are unit ids, and the two
 namings are not a muddle: a badge is named after its **class** exactly when it is still the
 drawing a roster row nobody has named would fall back to, and after a **row** when it exists
 for that row alone. `melee.svg` is the swordsman's sword *and* what any unnamed foot soldier
@@ -257,6 +263,54 @@ being touched — so they are now recounted from the table rather than adjusted 
   because at twenty pixels the axis of a diagonal is read before anything drawn on it. Club
   and sword cross rather than echo.
 
+The six below arrived together on the user's ruling (v) of 2026-09-06 — *"the phalanx needs
+its own unit icon"* — and the finding behind it: `badges.byUnitType` was handing six
+later-age rows the mark of the piece they upgrade **from**, so a phalanx wore the spearman's
+spear, a legionary the swordsman's sword, a spear wall the pikeman's hedge, a horse archer
+the chariot archer's arrow, and a cataphract and a war elephant the horseman's horse. That is
+the fallback answering for rows somebody *had* named, which is the one thing a register is
+supposed to make impossible. They are drawn to the same two rules as the rest — the family
+says the line, the axis or the count says the rank — and no new one.
+
+- `phalanx.svg` — the only mark in the set that carries a **shield**, and two of them: a pair
+  of heater shields abutted across the bottom of the box with two hafts raking out over them.
+  The rank is mass and not length. `spear.svg` is one thin upright, this is a low wall, and
+  the two read apart at twelve pixels where a longer spear would not. The hafts are drawn
+  bare — no heads — because four strokes is what a 24-unit box holds at 2.75, and the head
+  shapes are what the two pike ranks are told apart by.
+- `spearWall.svg` — `pikeman.svg` counted once more and raked further: three hafts instead of
+  two, stepped evenly across the box, each under the line's own narrow spike. Count and angle,
+  which are the two things that survive twenty-four pixels.
+- `legionary.svg` — the sword line answering with **mass** for one rank. A shield taller than
+  anything else in the line, beside a gladius that is deliberately shorter than `melee.svg`'s
+  blade and stood upright rather than run on the diagonal. Tabler has `sword` and `swords`
+  but nothing that is a shield beside a blade. It was drawn first as a *rectangular* scutum
+  with a boss ruled across it, which is what a scutum is and which read as a **battery** at
+  every size — a rounded box with a mark inside is a container before it is a shield — so it
+  takes the heater outline the rest of the world draws a shield with.
+- `cataphract.svg` — Tabler's `horse` verbatim at the same 0.75 scale the two ranged ranks
+  put it at, under one **lance** drawn here: a single haft laid clear across the box on a
+  shallow diagonal, aimed the way the horse is facing. It is the longest single stroke in the
+  set, which is the whole of why it reads against `mountedRanged.svg`'s short arrow in the
+  corner. A spike head was drawn on the point and cut: a triangle three units wide on the end
+  of a bar at 2.75 is a mallet, and the mark read as a horse under a hammer.
+- `horseArcher.svg` — the same horse with `mountedRanged.svg`'s own arrow **mirrored about
+  the middle of the box**, so the chariot archer's shot goes away over the tail and this one
+  goes out ahead of the animal. Both upstream Tabler paths survive the mirror
+  (`M17 3h4v4` → `M7 3h-4v4`) and nothing was re-fitted. A bow at full draw was the first
+  design and was drawn four times and thrown away each time — `crossbowman.svg`'s entry
+  above already records why, and a bow small enough to sit beside a horse closes into a
+  letter D — so the rank is carried by the axis, which is the rule `warrior.svg` and
+  `melee.svg` are already separated by.
+- `warElephant.svg` — the one mark in the mounted line that is not a horse and does not try to
+  be. A deep body on three stumpy legs, a howdah — an open-bottomed box — on the back, and the
+  trunk **raised**, curling up and forward off the head. Raised is the hard-won line: a trunk
+  that hangs runs down the front of the animal at exactly the place the front leg is, and at
+  this weight the two merge into a rounded bonnet — three drafts came back as a bus, and one
+  with the legs evened out came back as a garden rake. In the air the trunk touches nothing.
+  It is the one row here that is not a rank of anything, because it upgrades from nothing and
+  into nothing, and an axis or a count cannot say "not a horse".
+
 `knight.svg` is the one vendored drawing that needs a word, being a chess piece in a set of
 weapons and animals: the mounted line needed a third rank that was neither a horse in profile
 (which is rank 1) nor a horse under something (which is the horse-archer), and Tabler's
@@ -265,8 +319,10 @@ separation, and on theme for a game called Magister Ludi.
 
 ### Which row wears which, and who decides
 
-`BadgeClass` is `ModelClass` plus twelve. Two of the twelve are decided by the **rules** and
-ten by the **art table**, and the fence is the point rather than an inconsistency: what a
+`BadgeClass` is `ModelClass` plus thirty-four. **Three** of them are decided by the rules
+(the laurel, the candle and the prophet's ringed candle) and **fifteen** more are *composed*
+from two fields of a naval row rather than named anywhere; the remaining **sixteen** are the
+**art table**'s, and the fence is the point rather than an inconsistency: what a
 piece *does* is the simulation's fact and belongs on the unit row, while which drawing names
 it is the renderer's, and a `badge:` column in `data/units.json` would be the art reaching
 across into the rules' own file.

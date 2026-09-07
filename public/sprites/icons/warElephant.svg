@@ -1,0 +1,19 @@
+<!-- Not a Tabler icon: Tabler has no elephant of any kind, so this one is drawn here in
+     Tabler's geometry — the 24-unit box, the family's 2.75 stroke, round caps and joins,
+     no fill anywhere. It is the one mark in the mounted line that is not a horse and does
+     not try to be, so the **silhouette is the whole answer**: a deep body on three
+     stumpy legs, a howdah — an open-bottomed box — set on the back, and the trunk
+     **raised**, curling up and forward off the head.
+     Raised rather than hanging, and that is the one hard-won line in this drawing. A
+     trunk that hangs runs down the front of the animal at exactly the place the front leg
+     is, and at this weight the two merge into a rounded bonnet: three drafts came back as
+     a bus, and one with the legs evened out came back as a garden rake. In the air the
+     trunk touches nothing, and a curl on the end of a raised one is a shape no other mark
+     in this set has. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M6.5 20.5v-5.5a4.5 4.5 0 0 1 4.5 -4.5h4a4 4 0 0 1 4 4v6"/>
+<path d="M6.5 17.4h12.5"/>
+<path d="M13 17.4v3.1"/>
+<path d="M6.9 12.8c-3.2 -.3 -5.1 -2.2 -5.1 -4.6c0 -1.5 1.5 -2.3 2.7 -1.2"/>
+<path d="M12.2 10.5v-3h5v3"/>
+</g></svg>

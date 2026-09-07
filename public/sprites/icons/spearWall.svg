@@ -1,0 +1,16 @@
+<!-- Not a Tabler icon: Tabler draws no pike, spear or polearm under any name (the hole
+     `spear.svg` and `pikeman.svg` were cut to fill), so this one is drawn here in
+     Tabler's geometry — the 24-unit box, the family's 2.75 stroke, round caps and
+     joins, no fill anywhere. It is `pikeman.svg` counted once more and raked: **three**
+     hafts instead of two, stepped evenly across the box and leaned further off the
+     upright, each under the line's own narrow spike head rather than the spear's leaf
+     blade. The rank is the count and the angle, which are the two things that survive
+     twenty-four pixels; a longer haft is not a difference and never was. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<path d="M8.5 21l-4.1 -11.5"/>
+<path d="M2.9 9.9l.5 -4l2.1 3.2z"/>
+<path d="M14 21l-4.1 -11.5"/>
+<path d="M8.4 9.9l.5 -4l2.1 3.2z"/>
+<path d="M19.5 21l-4.1 -11.5"/>
+<path d="M13.9 9.9l.5 -4l2.1 3.2z"/>
+</g></svg>

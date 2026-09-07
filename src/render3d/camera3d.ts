@@ -234,7 +234,7 @@ export class DioramaCamera {
    * camera must already be pointed at the rectangle's centre — `target` set
    * and `apply()` called — before this is asked; both callers do that first.
    */
-  private neededFrustumFor(bounds: Bounds): number {
+  private neededFrustumFor(bounds: Bounds, insetPx = 0): number {
     const corner = new Vector3();
     let halfWidth = 0;
     let halfHeight = 0;
@@ -245,7 +245,15 @@ export class DioramaCamera {
         halfHeight = Math.max(halfHeight, Math.abs(corner.y));
       }
     }
-    return Math.max(halfHeight, halfWidth / this.aspect) * CAMERA.fitPadding + VIEW3D.board.hexRadius;
+    // `insetPx` is the width the caller's chrome covers (the city mode's two
+    // rails — `frameCells`), so the rectangle is fitted to the clear ground
+    // between them: the usable aspect is the canvas's, less that many pixels.
+    // Nothing narrows the height; the rails run the full height already.
+    const usable = Math.max(0.1, 1 - insetPx / Math.max(1, this.viewportWidth));
+    return (
+      Math.max(halfHeight, halfWidth / (this.aspect * usable)) * CAMERA.fitPadding +
+      VIEW3D.board.hexRadius
+    );
   }
 
   /**
@@ -297,7 +305,9 @@ export class DioramaCamera {
     const toZ = (bounds.minZ + bounds.maxZ) / 2;
     this.target.set(toX, 0, toZ);
     this.apply();
-    const needed = this.neededFrustumFor(bounds);
+    // Fitted to the ground the rails leave clear, not the whole canvas (the
+    // user, 2026-09-07: "some of the tiles sit behind the menu panels").
+    const needed = this.neededFrustumFor(bounds, CAMERA.cityFrameInsetPx);
     const toFrustum = Math.min(this.maxFrustum, Math.max(CAMERA.minFrustum, needed));
 
     const worldPerPixel = (toFrustum * 2) / this.viewportHeight;

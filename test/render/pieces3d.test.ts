@@ -153,7 +153,15 @@ describe('the model-class roster', () => {
     // Written as a containment plus a named list rather than a sorted equality,
     // so a twenty-first cell somebody adds without deciding what it is fails
     // here; `test/render/badges3d.test.ts` pins the atlas order itself.
-    const NOT_A_SCULPT = [
+    //
+    // The list is named for what it is: a cell whose name is **not a model
+    // class**. It used to be exactly "not a sculpt" as well, and ruling (v)
+    // (2026-09-06) broke the second half of that — six of the nineteen below are
+    // now sculpts too, named in `MINI_SCULPTS` as extras, because a phalanx and a
+    // war elephant earned a *body* as well as a mark. The claim being made here
+    // is unchanged: every model class has a cell, every cell that is not a model
+    // class is named, and nothing has crept into the atlas undecided.
+    const NOT_A_MODEL_CLASS = [
       'greatPerson',
       'religious',
       'spear',
@@ -167,15 +175,21 @@ describe('the model-class roster', () => {
       'knight',
       'trebuchet',
       'prophet',
+      'phalanx',
+      'legionary',
+      'spearWall',
+      'horseArcher',
+      'cataphract',
+      'warElephant',
     ] as const;
     for (const id of MODEL_CLASS_IDS) expect(BADGE_CELLS).toContain(id);
-    for (const id of NOT_A_SCULPT) expect(BADGE_CELLS).toContain(id);
+    for (const id of NOT_A_MODEL_CLASS) expect(BADGE_CELLS).toContain(id);
     // The naval line broke the old equality and did so deliberately: fifteen
     // **composed** cells (hull × canton) are worn by twelve hulls through
     // `badgeClassFor`'s fourth clause and by nothing in either list here. What
     // survives, and is the claim that mattered, is that every sculpt and every
     // named extra still has a cell.
-    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + NOT_A_SCULPT.length + 15);
+    expect(BADGE_CELLS).toHaveLength(MODEL_CLASS_IDS.length + NOT_A_MODEL_CLASS.length + 15);
     // Every cell that is a *file* names one; the drawn half is `navalMarks.ts`
     // and its own partition assertion lives in `badges3d.test.ts`.
     for (const id of FILE_BADGE_CELLS) {
@@ -366,6 +380,36 @@ describe('the model-class roster', () => {
     // The augur keeps the plain worker body, which is the half of that pair the
     // table does not name — and must not, or the split would say nothing.
     expect(sculptFor('augur')).toBe('worker');
+    // **Ruling (v)** (2026-09-06, `docs/flags.md`: "the phalanx needs its own
+    // unit icon"). Six later-age rows were standing in an Æra I forebear's body
+    // *and* wearing its mark, and the ruling names the first of them; the other
+    // five were found beside it. Each is named here with the row it was drawn as,
+    // because "a phalanx is a swordsman" is the sentence that has to become false
+    // again for the complaint to come back — and the row it upgrades from must
+    // keep its own body, which is the half that would rot quietly.
+    const SPLIT: [UnitTypeId, UnitTypeId][] = [
+      ['phalanx', 'swordsman'],
+      ['legionary', 'swordsman'],
+      ['spearWall', 'swordsman'],
+      ['horseArcher', 'chariotArcher'],
+      ['cataphract', 'horseman'],
+      ['warElephant', 'horseman'],
+    ];
+    for (const [row, was] of SPLIT) {
+      expect(sculptFor(row), `${row} is still drawn as its forebear`).toBe(row);
+      expect(sculptFor(row), row).not.toBe(sculptFor(was));
+      // A badge split and a sculpt split are two decisions, and both were taken:
+      // the mark says which one, the body says it is not the other.
+      expect(badgeClassFor(row), row).toBe(row);
+    }
+    expect(sculptFor('swordsman')).toBe('melee');
+    expect(sculptFor('horseman')).toBe('mounted');
+    expect(sculptFor('chariotArcher')).toBe('mountedRanged');
+    // …and the *class* is untouched by all six, which is the fence: a body is an
+    // art decision and `modelClass` is the rules' own file.
+    for (const [row] of SPLIT) {
+      expect(MINI_SCULPTS[sculptFor(row)].cls, row).toBe(MINI_SCULPTS[modelClassFor(row)].cls);
+    }
     for (const type of UNIT_TYPE_IDS) {
       if (type in table) continue;
       expect(sculptFor(type), type).toBe(modelClassFor(type));
@@ -699,6 +743,98 @@ describe('the reserve sculpts', () => {
       expect(box.max.y / spec.height, name).toBeLessThan(1.06);
       expect(piece.parts[0], name).toBe('body');
       piece.geometry.dispose();
+    }
+  });
+});
+
+/**
+ * Ruling (v)'s six bodies, measured against the ones they were standing in.
+ *
+ * The whole risk of drawing six sculpts in one pass is that they arrive as six
+ * *bigger* sculpts — a shield rank, a hedge of pikes, an elephant with ears — and
+ * the roster stops being a set of toys cut from one kit and becomes six models
+ * beside eleven. The general cap (`< 400` triangles, above) is a long way off and
+ * would not catch that; what catches it is the *neighbour*. Each new body is
+ * pinned against the one whose place it took, at a ratio a reader can argue with:
+ * a phalanx carries two shields and two spears where a spearman carries one of
+ * each, so it may cost more, and it may not cost twice as much.
+ *
+ * The elephant is the one with a looser ceiling, and it says why in its own row:
+ * it is the only piece in the class that is not a horse with somebody on it, so
+ * it pays for a body, four columns, a trunk, tusks and a howdah where a horseman
+ * pays for a horse.
+ */
+describe('the six later-age bodies (ruling (v))', () => {
+  const NEIGHBOURS: [SculptId, SculptId, number][] = [
+    ['phalanx', 'melee', 1.55],
+    ['legionary', 'melee', 1.3],
+    ['spearWall', 'melee', 1.35],
+    ['horseArcher', 'mounted', 1.45],
+    ['cataphract', 'mounted', 1.5],
+    ['warElephant', 'mounted', 1.65],
+  ];
+
+  it('keeps each new body within a neighbour\'s reach of triangles', () => {
+    const board = geometry();
+    const triangles = (id: SculptId): number =>
+      board.pieces[id].geometry.getAttribute('position').count / 3;
+    for (const [id, against, ceiling] of NEIGHBOURS) {
+      const cost = triangles(id) / triangles(against);
+      expect(cost, `${id} costs ${cost.toFixed(2)} of ${against}`).toBeLessThan(ceiling);
+      // …and it is a real drawing rather than the neighbour renamed: every one of
+      // the six adds geometry the body it replaced has not got.
+      expect(triangles(id), `${id} is no bigger than ${against}`).toBeGreaterThan(
+        triangles(against),
+      );
+    }
+    board.dispose();
+  });
+
+  it('carries the class colour and the equipment inks, and never the gilt', () => {
+    // The kit's own bargain, held for the six: `body` is the seat's ink and comes
+    // first (the base disc), the equipment is wood and steel, an animal is bone —
+    // and none of them reaches for the reserved note. The gilt sweep above is the
+    // total claim; this is the positive half, that each of the six actually
+    // painted something.
+    const board = geometry();
+    for (const [id] of NEIGHBOURS) {
+      const parts = board.pieces[id].parts;
+      expect(parts[0], id).toBe('body');
+      // Three roles at least — the seat's ink plus two of the kit's — because a
+      // piece painted in one colour beyond its base is a silhouette with nothing
+      // to hold the eye once the fog has washed it.
+      expect(parts.length, id).toBeGreaterThanOrEqual(3);
+      expect(parts, id).not.toContain('gilt');
+    }
+    // The three mounted rows ride a bone animal, exactly as the horseman does —
+    // the seat's colour is the *person*, never the beast (see `miniHorse`).
+    for (const id of ['horseArcher', 'cataphract', 'warElephant'] as const) {
+      expect(board.pieces[id].parts, id).toContain('accent');
+    }
+    board.dispose();
+  });
+
+  /**
+   * The Armory lists them with no page edit, which is the house rule.
+   *
+   * `flair.html` gets the six *marks* for free — `badgeFamily` walks
+   * `BADGE_LINES` and `test/render/badges3d.test.ts` pins that partition — and the
+   * six *bodies* land on `pieces.html`, which is the page that exists to ask
+   * whether the roster reads as one set. That is only true while the Armory walks
+   * the registry rather than a list of its own, so the walk is pinned here: a
+   * gallery with a hand-written roster would silently stop showing the newest
+   * sculpt, which is the one anybody wants to look at.
+   */
+  it('is listed by the Armory off the sculpt registry rather than a list of its own', () => {
+    const modules = import.meta.glob('../../src/piecesGallery/stage.ts', {
+      eager: true,
+      query: '?raw',
+      import: 'default',
+    }) as Record<string, string>;
+    const source = Object.values(modules)[0]!;
+    expect(source).toContain('SCULPT_IDS');
+    for (const [id] of NEIGHBOURS) {
+      expect(source, `${id} is named on the page`).not.toContain(`'${id}'`);
     }
   });
 });

@@ -152,8 +152,13 @@ import {
   sawPit,
   scoutMini,
   apostleMini,
+  cataphractMini,
+  horseArcherMini,
+  legionaryMini,
+  phalanxMini,
   prophetMini,
   settlerMini,
+  spearWallMini,
   silkFrame,
   spiceBush,
   spriteQuad,
@@ -167,6 +172,7 @@ import {
   toyHorse,
   trellisRows,
   vineTrellis,
+  warElephantMini,
   wheatStand,
   workerMini,
 } from './geometry';
@@ -357,9 +363,11 @@ const BADGE_OVERRIDES: ReadonlyMap<UnitTypeId, BadgeClass> = (() => {
  * soldier, the archer the clearest bow, the horseman the clearest rider. The
  * factories that lost their seat stay in `geometry.ts` — see the docblock there.
  *
- * The two beyond them are the caravan and the caravan with something on its
- * back; see `EXTRA_SCULPT_IDS` for why a sculpt may now be finer than a model
- * class, and `MiniSculpt.laden` for why one of them is never named by data.
+ * Everything beyond them is an **extra** — a sculpt one grade finer than a model
+ * class — and the list has grown three times: the caravan and the caravan with
+ * something on its back, then the called and the hulls, then ruling (v)'s six.
+ * See `EXTRA_SCULPT_IDS` for why a sculpt may be finer than a class at all, and
+ * `MiniSculpt.laden` for why two of them are never named by data.
  */
 export const MINI_SCULPTS: Record<SculptId, MiniSculpt> = {
   settler: { cls: 'foot', build: settlerMini },
@@ -374,6 +382,26 @@ export const MINI_SCULPTS: Record<SculptId, MiniSculpt> = {
   traderLaden: { cls: 'foot', build: caravanLadenMini },
   prophet: { cls: 'foot', build: prophetMini },
   apostle: { cls: 'foot', build: apostleMini },
+  /**
+   * **The six later-age bodies** (ruling (v), `docs/flags.md`).
+   *
+   * Each is cut to *its own row's* size class — the class the row's `modelClass`
+   * would have handed it — and never to a finer one, because a badge and an HP
+   * bar hang at `pieceHeightFor`, which asks the type; a phalanx built to the
+   * `polearm` class would carry its tag at a height nothing else about the piece
+   * agrees with. So the three foot rows stay `foot` and the three mounted rows
+   * stay `mounted`, and what changes is only the drawing.
+   *
+   * Named by unit id rather than by class for `EXTRA_SCULPT_IDS`' stated reason,
+   * and each is reached through `pieces.byUnitType` — the art table — rather than
+   * through a column in the rules' own file.
+   */
+  phalanx: { cls: 'foot', build: phalanxMini },
+  legionary: { cls: 'foot', build: legionaryMini },
+  spearWall: { cls: 'foot', build: spearWallMini },
+  horseArcher: { cls: 'mounted', build: horseArcherMini },
+  cataphract: { cls: 'mounted', build: cataphractMini },
+  warElephant: { cls: 'mounted', build: warElephantMini },
   boat: { cls: 'foot', build: boatMini },
   /**
    * **The naval line: three hulls, five rigs, twelve bodies** (2026-08-29).
@@ -472,6 +500,22 @@ const EXTRA_SCULPT_IDS = [
   // prophet's reason exactly — its roster row is `modelClass: 'worker'` and
   // rightly so, and which drawing a row wears is a decision about drawings.
   'apostle',
+  // The six of ruling (v) (2026-09-06), and they are the first extras that are
+  // neither a civilian split nor a hull's rank. The argument is the same one
+  // one grade up in
+  // `badgeClassFor`: a phalanx, a legionary, a spear wall, a horse archer, a
+  // cataphract and a war elephant were each standing in an Æra I forebear's body
+  // — the swordsman's, the horseman's, the chariot archer's — and while the
+  // consolidation is right that a swordsman and a longswordsman are one
+  // silhouette, a shield wall and a swordsman are not, and an elephant is not a
+  // horse. Which drawing a row wears stays a decision about drawings, so it is
+  // made here and in `data/view3d.json`.
+  'phalanx',
+  'legionary',
+  'spearWall',
+  'horseArcher',
+  'cataphract',
+  'warElephant',
   'boat',
   // The nine later rigs of the three naval lines. Each *is* named by
   // `pieces.byUnitType` — unlike `traderLaden` and `boat`, which are reached

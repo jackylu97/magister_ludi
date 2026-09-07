@@ -2213,20 +2213,22 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
-   * What a pass is **worth**, on the button's face, in the bag's own numbers.
+   * What a pass is **worth**, on the button's face, in a player's words.
    *
-   * The pity is a weight, not a percentage: every skip adds `skipPity` to the
-   * uncommon and rare rungs of the next draw (`rarityDrawWeight`, the
-   * simulation's one reading of the bag). So the figure is that reading asked
-   * twice — the weight a rare card carries in the bag as it stands, and the
-   * weight it would carry in the bag the next hand is dealt from — and the
-   * interface invents no number of its own. A knob retuned to nothing prints
-   * nothing rather than an arrow between two equal figures.
+   * It printed the bag's own weights for a day ("rare 1 → 2") and the user
+   * read it as noise (2026-09-07: *"the 'rare 1 -> 2' text isn't informative
+   * for a player — maybe just have it say 'see rarer cards next draft'"*). The
+   * pity is a weight, not a percentage, and a weight is not a number a player
+   * has a feel for; what they want to know is the *promise*. So the face says
+   * the promise, and the sentence under it (`passNote`) counts the drafts
+   * already passed. The reading is still the simulation's — `rarityDrawWeight`
+   * asked twice — so a knob retuned to nothing prints an honest nothing rather
+   * than a promise the bag will not keep.
    */
   function passFigure(skips: number): string {
     const now = rarityDrawWeight('rare', skips);
     const next = rarityDrawWeight('rare', skips + 1);
-    return next === now ? 'rarer cards next time' : `rare ${now} → ${next}`;
+    return next === now ? 'No rarer cards next draft' : 'See rarer cards next draft';
   }
 
   /** What the offer card wants for one of its two answers. */

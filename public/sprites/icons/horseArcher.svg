@@ -1,0 +1,22 @@
+<!-- Not a Tabler icon: a *composition* of two Tabler drawings, and it is `mountedRanged.svg`
+     with one thing changed. The horse is Tabler `horse` (MIT) verbatim, at the same 0.75
+     scale in the same corner with its stroke-width divided back out (2.75/0.75), because
+     the family has to say the line — these two are the mounted line's ranged ranks and
+     they ride the same animal. The rank is the **diagonal**: `bow`'s arrowhead corner and
+     shaft, mirrored about the middle of the box (`M17 3h4v4` → `M7 3h-4v4`), so the
+     chariot archer's shot goes away over the tail and the horse archer's goes out ahead
+     of the animal. Nothing was re-fitted; both upstream paths are still copy-pasteable.
+     A bow at full draw was the first design and it was drawn four times and thrown away
+     each time: `crossbowman.svg`'s own note already records why (at this weight a stave
+     and its chord close into a solid lens), and a bow small enough to sit beside a horse
+     closes into a letter D. So the rank is carried by the axis, which is the rule the
+     club and the sword are separated by — `warrior.svg` runs on the diagonal opposite
+     `melee.svg` for exactly this reason. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="256" height="256"><g fill="none" stroke="#2f2b32" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+<g transform="translate(0 5.5) scale(0.75)" stroke-width="3.667">
+<path d="M7 10l-.85 8.507a1.357 1.357 0 0 0 1.35 1.493h.146a2 2 0 0 0 1.857 -1.257l.994 -2.486a2 2 0 0 1 1.857 -1.257h1.292a2 2 0 0 1 1.857 1.257l.994 2.486a2 2 0 0 0 1.857 1.257h.146a1.37 1.37 0 0 0 1.364 -1.494l-.864 -9.506h-8c0 -3 -3 -5 -6 -5l-3 6l2 2l3 -2"/>
+<path d="M22 14v-2a3 3 0 0 0 -3 -3"/>
+</g>
+<path d="M7 3h-4v4"/>
+<path d="M3 3l6 6"/>
+</g></svg>

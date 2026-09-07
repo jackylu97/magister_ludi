@@ -89,9 +89,10 @@ describe('techGifts', () => {
     // among them, because a wonder is an ordinary building on this list. The
     // lumbermill left for Siegecraft on 2026-09-03 (user: "lumbermills need to
     // be way earlier in the tech tree, early age 2 probably"), so Engineering
-    // hands over buildings and nothing else.
+    // hands over buildings and nothing else. Three since 2026-09-07, not
+    // four: batch D retired the Baths and the walk now reads the live lists
+    // (`liveUnlocks`), so a retired row is not a gift on any surface.
     expect(techGifts('engineering').map((gift) => gift.kind)).toEqual([
-      'building',
       'building',
       'building',
       'building',
@@ -113,10 +114,11 @@ describe('techGifts', () => {
     // rite (Blessing of Arms). Both sort with the verbs at the end.
     // The **reveal** left this list in the re-cut of 2026-09-02: iron is named
     // by Iron Working now, which is what the worksheet means by "gates this
-    // line". Bronzeworking keeps the spear, the three buildings and the verbs.
+    // line". Bronzeworking keeps the spear, the buildings and the verbs — two
+    // buildings since 2026-09-07, not three: batch D retired the Funeral Games,
+    // and the walk reads the live lists now, so a retired row is not a gift.
     expect(techGifts('bronzeWorking').map((gift) => gift.kind)).toEqual([
       'unit',
-      'building',
       'building',
       'building',
       'ability',
@@ -411,5 +413,39 @@ describe('an ability names its bearer', () => {
     for (const feature of CHOPPABLE_FEATURES) {
       expect(isAbilityId(feature), feature).toBe(false);
     }
+  });
+});
+
+
+/**
+ * **A retired row is not a gift, on every surface.** `liveUnlocks` reached the
+ * node's face on 2026-09-06; this walk — the info card's and the Compendium's —
+ * kept the raw lists for a day (the user, 2026-09-07: "I still see stele of
+ * laws in the tech tree").
+ */
+describe('techGifts prints only what still exists', () => {
+  it('names no retired building or unit on any node', () => {
+    let dropped = 0;
+    for (const id of TECH_IDS) {
+      const raw = techDef(id).unlocks;
+      const gifts = techGifts(id);
+      for (const building of raw.buildings ?? []) {
+        const named = gifts.some((gift) => gift.kind === 'building' && gift.id === building);
+        expect(named, `${id} → ${building}`).toBe(buildingDef(building).retired !== true);
+        if (!named) dropped += 1;
+      }
+      for (const unit of raw.units ?? []) {
+        const named = gifts.some((gift) => gift.kind === 'unit' && gift.id === unit);
+        expect(named, `${id} → ${unit}`).toBe(unitDef(unit).retired !== true);
+        if (!named) dropped += 1;
+      }
+    }
+    expect(dropped).toBeGreaterThan(0);
+  });
+
+  it('keeps Kingship’s Imperial Throne and loses its Stele of Laws', () => {
+    const ids = techGifts('kingship').map((gift) => gift.id);
+    expect(ids).toContain('imperialThrone');
+    expect(ids).not.toContain('steleOfLaws');
   });
 });
