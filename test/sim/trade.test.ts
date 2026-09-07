@@ -1755,7 +1755,7 @@ describe('The Imperial Post', () => {
     const player = state.players[playerId]!;
     for (const id of TECH_IDS) {
       if (!(techDef(id).effects ?? []).some((effect) =>
-        effect.kind === 'behaviorRule' && effect.rule === 'freeCityRoads',
+        effect.kind === 'rule' && effect.rule === 'freeCityRoads',
       )) {
         continue;
       }

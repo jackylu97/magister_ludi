@@ -243,7 +243,8 @@ describe('the effect vocabulary', () => {
     //     nerf;
     //   · `percentYields` left because every row that had one was a percentage
     //     of a wide empire's total, which is the same snowball read as a share;
-    //   · `authoritySupply` left with spices' and silver's writ lines;
+    //   · `authority` (`authoritySupply` until batch H6 gave it the card table's
+    //     own name) left with spices' and silver's writ lines;
     //   · `happinessTierBoost` left with amber's, and `perPopulationYields` with
     //     olives' half a coin a head.
     //
@@ -257,7 +258,7 @@ describe('the effect vocabulary', () => {
     }
     expect(RESOURCE_EFFECT_KINDS.filter((kind) => !declared.has(kind))).toEqual([
       'perPopulationYields',
-      'authoritySupply',
+      'authority',
       'percentYields',
       'happinessTierBoost',
     ]);
@@ -460,7 +461,10 @@ describe('perCityYields: the wide shape', () => {
   });
 
   it('honours a coastal scope: the harbour is paid and the inland town is not', () => {
-    const coastal = luxuryWith('perCityYields', (effect) => effect.scope === 'coastal');
+    const coastal = luxuryWith(
+      'perCityYields',
+      (effect) => effect.scope !== undefined && effect.scope !== 'owner' && effect.scope.test === 'coastal',
+    );
     expect(coastal).toBeDefined();
     const { id, effect } = coastal!;
 
@@ -482,7 +486,7 @@ describe('perCityYields: the wide shape', () => {
       cityResourceYields(state, city).filter((line) => line.resource === id).length;
     expect(linesFor(harbour)).toBeGreaterThan(0);
     expect(linesFor(inland)).toBe(0);
-    expect(effect.scope).toBe('coastal');
+    expect(effect.scope).toEqual({ test: 'coastal' });
     expect(plantable(id)).toBe(true);
   });
 });
@@ -593,9 +597,9 @@ describe('extraHappiness: a second line, not a bigger one', () => {
  * discount" rule is a claim about `meters.ts` that nothing else asserts, and it
  * costs one branch in the evaluator.
  */
-describe('authoritySupply: capacity, never a discount', () => {
+describe('authority: capacity, never a discount', () => {
   it('adds a gain line to the writ, and never touches what a city costs', () => {
-    withSignature([{ kind: 'authoritySupply', amount: 2 }], () => {
+    withSignature([{ kind: 'authority', amount: 2 }], () => {
       const id: ResourceId = 'gems';
       const state = flatState();
       const city = foundCityAt(state, 0, at(state.map, 6, 5));
@@ -621,7 +625,7 @@ describe('authoritySupply: capacity, never a discount', () => {
   });
 
   it('multiplies a "per city" writ by the empire\'s towns', () => {
-    withSignature([{ kind: 'authoritySupply', amount: 1, per: 'city' }], () => {
+    withSignature([{ kind: 'authority', amount: 1, per: 'city' }], () => {
       const id: ResourceId = 'gems';
       const state = flatState();
       const first = foundCityAt(state, 0, at(state.map, 6, 5));
@@ -853,7 +857,7 @@ describe('percentYields: two sums, each applied once', () => {
 
   it('scopes to the coast when the row says so', () => {
     withSignature(
-      [{ kind: 'percentYields', yield: 'science', percent: 20, scope: 'coastal' }],
+      [{ kind: 'percentYields', yield: 'science', percent: 20, scope: { test: 'coastal' } }],
       () => {
         const id: ResourceId = 'gems';
         const state = flatState();
@@ -1018,7 +1022,10 @@ describe('happinessTierBoost: a luxury lifts the bonus rungs', () => {
  */
 describe("perCityYields at 'capital' scope: one town, however wide the empire", () => {
   it('pays the capital and no other town, wherever the seam is', () => {
-    const capitalRow = plantableWith('perCityYields', (effect) => effect.scope === 'capital');
+    const capitalRow = plantableWith(
+      'perCityYields',
+      (effect) => effect.scope !== undefined && effect.scope !== 'owner' && effect.scope.test === 'capital',
+    );
     expect(capitalRow).toBeDefined();
     const { id, effect } = capitalRow!;
 

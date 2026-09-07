@@ -4718,7 +4718,7 @@ export type ProductionPlan =
  * What the front of the queue would do — or, under The Standing Levy, what the
  * first *unit* in it would do when the front cannot be paid for.
  *
- * The card's clause is `unitJumpsQueue` (`actionRule`), and it is read **here**
+ * The card's clause is `unitJumpsQueue` (a `rule`), and it is read **here**
  * rather than in the phase so that a windfall gets it too: a chop that covers a
  * spearman two places down the queue finishes the spearman, exactly as an
  * end-of-turn basket would. The plan carries the queue `index` it names, which

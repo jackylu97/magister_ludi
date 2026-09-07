@@ -26,7 +26,7 @@ is the rules, not the list. Proposal history: `docs/design-history.md`.
 A wonder earns its row by **playing with a system that already exists** —
 its effect is written in the existing card vocabulary; a wonder needing a
 new shape is a design decision argued individually (the pantheon-slot grant,
-the purchase-price line, `zocRule`, and the Sistine's global percent were the
+the purchase-price line, the `borders` zone-of-control rule, and the Sistine's global percent were the
 four that made it).
 
 ## Refused, on purpose

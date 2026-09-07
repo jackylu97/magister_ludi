@@ -360,7 +360,11 @@ describe('the card table', () => {
       'cityYields', 'percentYields', 'productionBonus', 'rulePercent', 'happiness',
       'authority', 'happinessTierBoost', 'combatLine', 'unitStat', 'windfallRider',
       'foundingRider', 'countScaled', 'rateConversion', 'offerRider', 'effectAmplifier',
-      'meterRule', 'conditionRule', 'actionRule', 'behaviorRule', 'cityStat', 'metaRule',
+      // Batch H6: `actionRule`, `behaviorRule`, `cityRule` and `zocRule` were
+      // four names for one evaluation and are one `rule` shape now. The register
+      // asks for the survivor; the four rules the live table names are still the
+      // four rules it named.
+      'meterRule', 'conditionRule', 'rule', 'cityStat', 'metaRule',
       'tileYield', 'renown', 'upkeepRebate',
       // The rebate's twin, built for The Reckless Levy on 2026-09-06: a coin
       // *added* to each soldier's keep, which the give-back vocabulary could not
@@ -1659,7 +1663,7 @@ describe('the behavioural hooks, in the verbs they change', () => {
     expect(nearestTarget(g.state, wild, raider)).not.toBeNull();
     g.state.players[0]!.timed = [{
       card: 'wolfMothersPact',
-      effect: { kind: 'behaviorRule', rule: 'barbariansPassive' },
+      effect: { kind: 'rule', rule: 'barbariansPassive' },
       expiresTurn: g.state.turn + 10,
     }];
     expect(nearestTarget(g.state, wild, raider)).toBeNull();
@@ -2266,7 +2270,7 @@ describe('the master-list cut of 2026-08-28', () => {
     g.state.camps.push({ col: tile.col, row: tile.row, foundedTurn: 0 });
     player.timed = [{
       card: 'wolfMothersPact',
-      effect: { kind: 'behaviorRule', rule: 'noCampClearing' },
+      effect: { kind: 'rule', rule: 'noCampClearing' },
       expiresTurn: g.state.turn + 10,
     }];
     expect(arriveOnTile(g.state, unit, tile).camp).toBeNull();
@@ -3261,7 +3265,7 @@ describe('the Orders pass of 2026-08-29', () => {
     for (const id of ORDER_IDS) {
       for (const effect of orderDef(id).effects) used.add(effect.kind);
     }
-    for (const kind of ['unitStamp', 'cityRule', 'routeRider'] as CardEffectKind[]) {
+    for (const kind of ['unitStamp', 'rule', 'routeRider'] as CardEffectKind[]) {
       expect(used.has(kind), kind).toBe(true);
     }
   });

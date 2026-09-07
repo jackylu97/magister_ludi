@@ -5,8 +5,41 @@
  * Every luxury pays the same two things — whatever its row puts on its tile, and
  * a flat `meters.happiness.perUniqueLuxury` to whoever has it in hand. On top of
  * that each row declares a *list* of `effects` (`resourceData.ts`), and this
- * module is the only place in the game that reads one. Thirteen shapes go in;
+ * module is the only place in the game that reads one. Fifteen shapes go in;
  * labelled lists come out; nothing anywhere else switches on `effect.kind`.
+ *
+ * What batch H6 did, and what it did not
+ * --------------------------------------
+ * The audit's charge (`docs/audit/simplify.md` §2, §4.3) was that this file is a
+ * *second card evaluator*: two effect unions, two scope unions, two rule unions,
+ * six identically-named private helpers, and five `kind` names living in both
+ * vocabularies with two implementations behind them. That was true, and the part
+ * of it that was **one idea in two dialects** is gone:
+ *
+ *   · the **yield bag** is `CardYieldBag` — the two were byte-identical;
+ *   · the **rule** union is `Extract<CardRule, …>`, so the constraint
+ *     `resourceData.ts` had documented in prose ("a word this table knew and the
+ *     cards did not would fail to compile") is now the type;
+ *   · the **scope** union is `CityScope` plus one word, and `scopeAdmits` and
+ *     `scopeWords` delegate to `cityScopeAdmits` and `cityScopeWords` — three of
+ *     the four scopes were the cards' predicates written a second time;
+ *   · `empireYields`, `happinessTierBoost` and the shape that was called
+ *     `authoritySupply` **are** `CardEmpireYieldsEffect`,
+ *     `CardHappinessTierBoostEffect` and `CardAuthorityEffect`;
+ *   · the colliding private names are one each: the walk is
+ *     `liveLuxuryEffects`, the label is `lineLabel`, the town count is
+ *     `citiesOf` (`state.ts`), and `signed` was already one.
+ *
+ * What is **not** done, deliberately and with the reason written where the next
+ * reader will look for it: a luxury is not a *card class*. Folding it into
+ * `liveEffects` means widening `CardId` to hold a `ResourceId`, an eleventh arm
+ * in `anyCardDef`, a Compendium entry and a keyword ref per row, and rerouting
+ * fourteen folds whose flooring is not the card arms' flooring — `resourceRenown`
+ * and `resourceHappiness` floor per line where their card twins floor per fold.
+ * That is a milestone with its own gate, not an evaluator swap, and H6's gate is
+ * byte-identity. What this file keeps is the half that is genuinely its own and
+ * is not a card fact at all: **which luxuries an empire controls, and how many
+ * copies each one counts for**.
  *
  * That is the whole design, and it is deliberately narrower than "luxuries can
  * do things". A table where a row could name an arbitrary behaviour is a table
@@ -31,7 +64,7 @@
  *     in two cities pays twice — which is the point of a "powerfully local"
  *     shape and the reason to settle the second seam rather than shrug at it.
  *   · **wide** (`perCityYields`, `perPopulationYields`, an `extraHappiness` or
- *     an `authoritySupply` with a `per`) counts once per kind for the empire and
+ *     an `authority` with a `per`) counts once per kind for the empire and
  *     then lands in **every** city it owns — or every coastal one. This is the
  *     shape the ratified table is mostly built out of, and it is deliberately
  *     empire-scaling: a wide empire earns more from one seam of gems than a tall
@@ -104,8 +137,8 @@ import {
   resourceEffects,
 } from './resourceData';
 import { type ImprovementId, improvementDef } from './improvementData';
-import { type TileLine, cardAmplifier } from './statecraft';
-import { type City, type GameState, type Unit, capitalCityOf, playerById } from './state';
+import { type TileLine, cardAmplifier, cityScopeAdmits, cityScopeWords } from './statecraft';
+import { type City, type GameState, type Unit, citiesOf, playerById } from './state';
 import { type TechAge, highestAge } from './techData';
 
 /**
@@ -234,6 +267,22 @@ function copiesFor(
 /**
  * Does a scoped effect land in this city? Absent scope means every city.
  *
+ * **One word of its own, and then the cards'** (batch H6). A luxury's scope used
+ * to be a four-word union — `all`, `coastal`, `owner`, `capital` — and three of
+ * those four were `CityScope` said in a second dialect: `coastal` and `capital`
+ * are `{ test: 'coastal' }` and `{ test: 'capital' }` down to the same two
+ * predicates (`isCoastalCity`, `capitalCityOf`), and `all` is what an absent
+ * scope has always meant on both tables. So the four became `CityScope` plus one
+ * word, and this function became a delegation plus one clause.
+ *
+ * The word that stays is **`'owner'`** — the town that actually holds the seam —
+ * and it stays because it is the one reading `CityScope` cannot state without
+ * the row naming itself. `{ test: 'holding', resources: ['jade'] }` on the jade
+ * row *is* that scope, spelled out; a shorthand that means "this row's own
+ * resource" is worth one word to a table where every effect already belongs to a
+ * named seam. Nothing else in the four-word union survived, and nothing needed
+ * to.
+ *
  * `local` is the list of kinds this city holds itself, passed in rather than
  * asked for here because the caller already has it and it costs a sweep of the
  * city's territory. It is only read by the `'owner'` scope.
@@ -245,14 +294,8 @@ function scopeAdmits(
   local: readonly ResourceId[],
   id: ResourceId,
 ): boolean {
-  if (scope === 'coastal') return isCoastalCity(state, city);
   if (scope === 'owner') return local.includes(id);
-  // **The capital**, asked of `capitalCityOf` rather than of a flag, so a
-  // conquered empire's seat of government is wherever the one rule says it is
-  // and a luxury's "in your capital" line moves with it. The walk is the city
-  // list and is only paid by a row that names the scope.
-  if (scope === 'capital') return capitalCityOf(state, city.ownerId)?.id === city.id;
-  return true;
+  return cityScopeAdmits(state, city, scope);
 }
 
 /**
@@ -281,12 +324,21 @@ function scopeStage(_scope: ResourceCityScope | undefined): ModifierStage {
   return 'city';
 }
 
-/** What a scoped line says about where it landed. */
+/**
+ * What a scoped line says about where it landed — the **label**, not the rule.
+ *
+ * A breakdown line has room for two or three words where a card's printed clause
+ * has room for a sentence, so this stays the luxury table's own and is not
+ * `cityScopeWords`: "Gems · every city" is a line in a ledger and "+2 gold in
+ * every city" is a rule on a hover, and the two want different lengths of the
+ * same fact. The rule's words *are* the cards' (`describeOne` below).
+ */
 function scopeNote(scope: ResourceCityScope | undefined): string {
-  if (scope === 'coastal') return 'coastal city';
   if (scope === 'owner') return 'this city';
-  if (scope === 'capital') return 'capital';
-  return 'every city';
+  if (scope === undefined) return 'every city';
+  if (scope.test === 'coastal') return 'coastal city';
+  if (scope.test === 'capital') return 'capital';
+  return cityScopeWords(scope);
 }
 
 /**
@@ -298,7 +350,7 @@ function scopeNote(scope: ResourceCityScope | undefined): string {
  * not in the list at all: it is shown by `describeResourceSignature`, which is
  * what the hover reads.
  */
-function label(id: ResourceId, note: string | null, copies: number): string {
+function lineLabel(id: ResourceId, note: string | null, copies: number): string {
   const name = resourceDef(id).name;
   const parts = [name];
   if (note) parts.push(note);
@@ -318,7 +370,7 @@ function lineOf(
   const at = (key: keyof ResourceYieldBag): number => (bag[key] ?? 0) * copies * scale;
   return {
     resource: id,
-    source: label(id, note, copies),
+    source: lineLabel(id, note, copies),
     food: at('food'),
     production: at('production'),
     gold: at('gold'),
@@ -336,7 +388,7 @@ function lineOf(
  * the uniqueness reading, the age gate and the table order ten times — which is
  * how "one evaluator" stays true as the vocabulary grows.
  */
-function liveEffects(
+function liveLuxuryEffects(
   state: GameState,
   playerId: number,
 ): { id: ResourceId; effect: ResourceEffect }[] {
@@ -371,7 +423,7 @@ export function cityResourceYields(state: GameState, city: City): ResourceYieldL
   const owner = city.ownerId;
   const local = cityResources(state, city, 'luxury');
   const list: ResourceYieldLine[] = [];
-  for (const { id, effect } of liveEffects(state, owner)) {
+  for (const { id, effect } of liveLuxuryEffects(state, owner)) {
     if (effect.kind === 'buildingCategoryYields') {
       // **Paid where the building stands.** The shape's whole reading: a
       // workshop is what earns the line, so the town that raised the workshop is
@@ -439,7 +491,7 @@ function foldOne(line: ResourceYieldLine): number {
  */
 export function empireResourceYields(state: GameState, playerId: number): ResourceYieldLine[] {
   const list: ResourceYieldLine[] = [];
-  for (const { id, effect } of liveEffects(state, playerId)) {
+  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'empireYields') continue;
     list.push(lineOf(id, effect, 'empire', copiesFor(state, playerId, id, effect)));
   }
@@ -500,7 +552,7 @@ export function resourceTileLines(state: GameState, playerId: number): TileLine[
   // refresh, so this is the difference between a fifth of a turn resolution and
   // nothing at all on the boards where the sea is empty.
   if (!boardHasAny(state, IMPROVEMENTS_PAID_ON)) return list;
-  for (const { id, effect } of liveEffects(state, playerId)) {
+  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'improvementYields') continue;
     const copies = copiesFor(state, playerId, id, effect);
     // Through `lineOf` so a `perCopy` improvement line scales and labels itself
@@ -597,7 +649,7 @@ export function endpointLuxuryCount(state: GameState, from: City, to: City): num
 export function resourceRouteYields(state: GameState, playerId: number): ResourceRouteLine[] {
   const list: ResourceRouteLine[] = [];
   if (!tableHasLive(state, playerId, 'routeYields')) return list;
-  for (const { id, effect } of liveEffects(state, playerId)) {
+  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'routeYields') continue;
     const paid = lineOf(id, effect, 'trade route', copiesFor(state, playerId, id, effect));
     if (paid.food === 0 && paid.production === 0 && paid.gold === 0) continue;
@@ -647,7 +699,7 @@ export function resourceUpkeepRebateLines(
 ): ResourceUpkeepLine[] {
   const list: ResourceUpkeepLine[] = [];
   if (!tableHasLive(state, playerId, 'unitUpkeepRebate')) return list;
-  for (const { id, effect } of liveEffects(state, playerId)) {
+  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'unitUpkeepRebate') continue;
     const off = effect.amount * copiesFor(state, playerId, id, effect);
     if (off <= 0) continue;
@@ -660,7 +712,7 @@ export function resourceUpkeepRebateLines(
     }
     gold = Math.floor(gold);
     if (gold <= 0) continue;
-    list.push({ resource: id, source: label(id, 'each soldier', 1), gold });
+    list.push({ resource: id, source: lineLabel(id, 'each soldier', 1), gold });
   }
   return list;
 }
@@ -692,15 +744,19 @@ export function foldResourceYields(list: readonly ResourceYieldLine[]): {
  * How many cities of a scope a player holds — the multiplier behind a "per
  * city" happiness or authority line.
  *
- * Walks `state.cities`, which is founding order and part of the state, so the
- * count a replay reaches is the count the original run reached.
+ * The walk is `citiesOf` (`state.ts`) since batch H6: this was the **fifth**
+ * copy of "the towns this empire holds" in `src/sim/` — `beads.ts`,
+ * `triumphs.ts` and `statecraft.ts` each kept one, and two of those fed counts
+ * two evaluators both had to answer. Founding order and part of the state
+ * either way, so the count a replay reaches is the count the original run
+ * reached; what is gone is four chances for one of them to drift.
  */
 function cityCount(state: GameState, playerId: number, coastalOnly: boolean): number {
+  const held = citiesOf(state, playerId);
+  if (!coastalOnly) return held.length;
   let count = 0;
-  for (const city of state.cities) {
-    if (city.ownerId !== playerId) continue;
-    if (coastalOnly && !isCoastalCity(state, city)) continue;
-    count += 1;
+  for (const city of held) {
+    if (isCoastalCity(state, city)) count += 1;
   }
   return count;
 }
@@ -720,7 +776,7 @@ function cityCount(state: GameState, playerId: number, coastalOnly: boolean): nu
  */
 export function resourceHappiness(state: GameState, playerId: number): ResourceHappinessLine[] {
   const list: ResourceHappinessLine[] = [];
-  for (const { id, effect } of liveEffects(state, playerId)) {
+  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
     // **A building's contentment is the empire's**, not the town's — happiness
     // is an empire meter and there is no city-scale reading of it to land in
     // (`meters.ts`). So the same selector that pays faith into one workshop's
@@ -739,7 +795,7 @@ export function resourceHappiness(state: GameState, playerId: number): ResourceH
       if (total === 0) continue;
       list.push({
         resource: id,
-        source: label(id, `${selectorNote(effect)} ×${held}`, copies),
+        source: lineLabel(id, `${selectorNote(effect)} ×${held}`, copies),
         amount: total,
       });
       continue;
@@ -754,7 +810,7 @@ export function resourceHappiness(state: GameState, playerId: number): ResourceH
       effect.per === undefined
         ? 'signature'
         : `${effect.per === 'coastalCity' ? 'coastal cities' : 'cities'} ×${towns}`;
-    list.push({ resource: id, source: label(id, note, copies), amount });
+    list.push({ resource: id, source: lineLabel(id, note, copies), amount });
   }
   return list;
 }
@@ -768,14 +824,14 @@ export function resourceHappiness(state: GameState, playerId: number): ResourceH
  */
 export function resourceAuthority(state: GameState, playerId: number): ResourceAuthorityLine[] {
   const list: ResourceAuthorityLine[] = [];
-  for (const { id, effect } of liveEffects(state, playerId)) {
-    if (effect.kind !== 'authoritySupply') continue;
+  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
+    if (effect.kind !== 'authority') continue;
     const copies = copiesFor(state, playerId, id, effect);
     const towns = effect.per === 'city' ? cityCount(state, playerId, false) : 1;
     const amount = effect.amount * copies * towns;
     if (amount === 0) continue;
     const note = effect.per === 'city' ? `cities ×${towns}` : 'writ';
-    list.push({ resource: id, source: label(id, note, copies), amount });
+    list.push({ resource: id, source: lineLabel(id, note, copies), amount });
   }
   return list;
 }
@@ -797,13 +853,13 @@ export function resourceAuthority(state: GameState, playerId: number): ResourceA
  */
 export function resourceRenown(state: GameState, playerId: number): ResourceRenownLine[] {
   const list: ResourceRenownLine[] = [];
-  for (const { id, effect } of liveEffects(state, playerId)) {
+  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'renownPerCity') continue;
     const copies = copiesFor(state, playerId, id, effect);
     const towns = cityCount(state, playerId, false);
     const amount = effect.amount * copies * towns;
     if (amount === 0) continue;
-    list.push({ resource: id, source: label(id, `cities ×${towns}`, copies), amount });
+    list.push({ resource: id, source: lineLabel(id, `cities ×${towns}`, copies), amount });
   }
   return list;
 }
@@ -823,13 +879,13 @@ export function resourceTierBoost(state: GameState, playerId: number): {
 } {
   const lines: ResourceHappinessLine[] = [];
   let points = 0;
-  for (const { id, effect } of liveEffects(state, playerId)) {
+  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'happinessTierBoost') continue;
     const copies = copiesFor(state, playerId, id, effect);
     const amount = effect.points * copies;
     if (amount === 0) continue;
     points += amount;
-    lines.push({ resource: id, source: label(id, 'contentment', copies), amount });
+    lines.push({ resource: id, source: lineLabel(id, 'contentment', copies), amount });
   }
   return { lines, points };
 }
@@ -854,13 +910,13 @@ export function resourceProduction(
   const owner = city.ownerId;
   const local = cityResources(state, city, 'luxury');
   const list: ResourceProductionLine[] = [];
-  for (const { id, effect } of liveEffects(state, owner)) {
+  for (const { id, effect } of liveLuxuryEffects(state, owner)) {
     if (effect.kind !== 'productionBonus' || effect.category !== category) continue;
     if (effect.scope !== 'empire' && !local.includes(id)) continue;
     const copies = copiesFor(state, owner, id, effect);
     list.push({
       resource: id,
-      source: label(id, null, copies),
+      source: lineLabel(id, null, copies),
       percent: effect.percent * copies,
     });
   }
@@ -886,13 +942,13 @@ export function resourceProduction(
 export function resourcePercentYields(state: GameState, city: City): ResourcePercentLine[] {
   const owner = city.ownerId;
   const list: ResourcePercentLine[] = [];
-  for (const { id, effect } of liveEffects(state, owner)) {
+  for (const { id, effect } of liveLuxuryEffects(state, owner)) {
     if (effect.kind !== 'percentYields') continue;
     if (!scopeAdmits(state, city, effect.scope, cityResources(state, city, 'luxury'), id)) continue;
     const copies = copiesFor(state, owner, id, effect);
     list.push({
       resource: id,
-      source: label(id, effect.scope === undefined ? null : scopeNote(effect.scope), copies),
+      source: lineLabel(id, effect.scope === undefined ? null : scopeNote(effect.scope), copies),
       yield: effect.yield,
       percent: effect.percent * copies,
       stage: scopeStage(effect.scope),
@@ -918,12 +974,12 @@ export function resourceRulePercent(
   rule: ResourceRule,
 ): ResourceRuleLine[] {
   const list: ResourceRuleLine[] = [];
-  for (const { id, effect } of liveEffects(state, playerId)) {
+  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'rulePercent' || effect.rule !== rule) continue;
     const copies = copiesFor(state, playerId, id, effect);
     list.push({
       resource: id,
-      source: label(id, null, copies),
+      source: lineLabel(id, null, copies),
       percent: effect.percent * copies,
     });
   }
@@ -947,12 +1003,12 @@ export function resourceConnectionPercent(
   playerId: number,
 ): ResourceRuleLine[] {
   const list: ResourceRuleLine[] = [];
-  for (const { id, effect } of liveEffects(state, playerId)) {
+  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'connectionPercent') continue;
     const copies = copiesFor(state, playerId, id, effect);
     list.push({
       resource: id,
-      source: label(id, 'city connections', copies),
+      source: lineLabel(id, 'city connections', copies),
       percent: effect.percent * copies,
     });
   }
@@ -1021,7 +1077,7 @@ function describeOne(effect: ResourceEffect): string | null {
       effect.per === 'city' ? ' per city' : effect.per === 'coastalCity' ? ' per coastal city' : '';
     return `${signed(effect.amount)} happiness${where}${each}`;
   }
-  if (effect.kind === 'authoritySupply') {
+  if (effect.kind === 'authority') {
     return `${signed(effect.amount)} authority${effect.per === 'city' ? ' per city' : ''}${each}`;
   }
   if (effect.kind === 'happinessTierBoost') {
@@ -1090,10 +1146,17 @@ const RULE_WORDS: Record<ResourceRule, string> = {
   growthCarryover: 'of the stored food kept when a city grows',
 };
 
+/**
+ * A scope in a printed rule's words — **`cityScopeWords`, plus the one word**.
+ *
+ * It was a fourth copy of the cards' own sentence-builder and answered
+ * identically for every scope the table names ("every coastal city", "your
+ * capital", "every city"). One reading now, so a luxury's hover and a card's
+ * clause cannot describe the same set of towns two ways. See `scopeAdmits` for
+ * why `'owner'` is the word that stayed.
+ */
 function scopeWords(scope: ResourceCityScope | undefined): string {
-  if (scope === 'coastal') return 'every coastal city';
   if (scope === 'owner') return 'this city';
-  if (scope === 'capital') return 'your capital';
-  return 'every city';
+  return cityScopeWords(scope);
 }
 

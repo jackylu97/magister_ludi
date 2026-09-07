@@ -443,7 +443,7 @@ export function greatPersonPurchaseOpen(
  * settlement below opens an offer rather than minting anybody, and why a seat
  * that already holds one is refused: it has nothing to buy.
  *
- * The gate is an `actionRule` and therefore a *card's* to grant, which is the
+ * The gate is a `rule` clause and therefore a *card's* to grant, which is the
  * whole of The Commonwealth, The Magisterium and now The Academy. Refusals in
  * precedence, each a different sentence: who you are, what your law allows, what
  * you already owe the game, whether the roster has anybody left **to deal from

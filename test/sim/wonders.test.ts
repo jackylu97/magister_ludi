@@ -558,7 +558,7 @@ describe('the ratified roster', () => {
     for (const kind of [
       'pantheonSlots',
       'purchaseRider',
-      'zocRule',
+      'rule',
       'projectRider',
       'combatLine',
       'countScaled',

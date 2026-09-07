@@ -303,7 +303,15 @@ directly to confirm rulings — user marginalia are rulings.
   through every file the live batches hold; **H5** (one modal shell, the
   helpers into leaves) after H3 and H14 settle the offer surfaces; **H6**
   (one evaluator — luxuries as cards) alone and last, byte-identity over
-  the acceptance games being its gate.
+  the acceptance games being its gate. **H3, H4, H5 landed** (main 55027c6 ·
+  4d479e3 · 1597f7b). **H6 landed** with one line drawn: the luxury
+  vocabulary is the cards' (yield bag, scope, rule union, three interfaces),
+  the four flag-rule kinds are one `rule`, the bead and Triumph occasions
+  are one union (`occasions.ts`), five private town walks are `citiesOf` —
+  but a luxury is **not** a card class (`resourceEffects.ts`' docblock says
+  why: fourteen folds whose flooring differs, a `CardId` widening — a
+  milestone with its own gate, yours to schedule if wanted). Identity held
+  byte for byte on four boards; schema 85. The audit's queue is closed.
   **H3 BUILT** (schema 84): the three signature clauses have a surface — a
   rail of **calls** at the foot of the Reliquary, one control per purchase
   the empire's law opens, priced and refused by the simulation's own

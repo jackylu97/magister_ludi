@@ -94,6 +94,19 @@
 import resourcesJson from '../../data/resources.json';
 
 import type { BuildingCategory, ProductionCategory } from './buildingData';
+// Type-only, and it must stay that way in both directions: `statecraftData.ts`
+// imports `CityYieldKey`, `ResourceId` and `ResourceKind` from here as types,
+// and these three come back the same way. Two data leaves that named the same
+// six voices, the same city scopes and three of the same rules in two dialects
+// until batch H6; one vocabulary now, and no runtime edge either way.
+import type {
+  CardAuthorityEffect,
+  CardEmpireYieldsEffect,
+  CardHappinessTierBoostEffect,
+  CardRule,
+  CardYieldBag,
+  CityScope,
+} from './statecraftData';
 // Type-only, and it must stay that way: `improvementData.ts` imports
 // `RESOURCE_IDS` from here as a *value* and validates at load, so a value import
 // back would close a cycle around two tables that both build indexes on
@@ -128,15 +141,15 @@ export type ResourceKind = 'bonus' | 'strategic' | 'luxury';
  * Six voices, the same six a `TileYield` carries since the luxuries pass — a
  * luxury's signature is a fact about a *city* or an *empire* rather than about a
  * hex, and faith, science and culture all exist at those scales.
+ *
+ * **It is `CardYieldBag`** (`statecraftData.ts`) since batch H6, not a second
+ * interface with the same six fields. The two were byte-identical declarations
+ * of one idea in two files, which is the sharpest possible version of the thing
+ * that batch is about: a luxury's signature and a card's clause pay in the same
+ * six voices because there are only six, and the day a seventh arrives it has to
+ * arrive in both at once or in neither.
  */
-export interface ResourceYieldBag {
-  food?: number;
-  production?: number;
-  gold?: number;
-  science?: number;
-  culture?: number;
-  faith?: number;
-}
+export type ResourceYieldBag = CardYieldBag;
 
 /** A yield a percentage may be taken of. Every voice a city banks. */
 export type CityYieldKey = 'food' | 'production' | 'gold' | 'science' | 'culture' | 'faith';
@@ -165,7 +178,7 @@ export type CityYieldKey = 'food' | 'production' | 'gold' | 'science' | 'culture
  * a capital line is a fixed amount however far the borders run, which is the
  * same tall-friendly reading `empireYields` gives one grade out.
  */
-export type ResourceCityScope = 'all' | 'coastal' | 'owner' | 'capital';
+export type ResourceCityScope = 'owner' | CityScope;
 
 /**
  * A rule of the simulation a signature may put a signed percentage on.
@@ -177,7 +190,10 @@ export type ResourceCityScope = 'all' | 'coastal' | 'owner' | 'capital';
  * of the connections line is `connectionPercent` — its own shape, one consumer —
  * rather than a fourth rule nobody else could name.
  */
-export type ResourceRule = 'happinessDemand' | 'borderCost' | 'growthCarryover';
+export type ResourceRule = Extract<
+  CardRule,
+  'happinessDemand' | 'borderCost' | 'growthCarryover'
+>;
 
 /**
  * The two *modifiers* every shape below may carry.
@@ -240,8 +256,11 @@ type Signature<T> = T & ResourceEffectModifiers;
  *                       does nothing is worse than one that fails to load.
  *   · `extraHappiness`  on top of the flat `perUniqueLuxury` every luxury pays,
  *                       optionally *per city* or *per coastal city*.
- *   · `authoritySupply` flat authority capacity, optionally per city. The meter
- *                       prints it as its own line, beside the palace's.
+ *   · `authority`      flat authority capacity, optionally per city. The meter
+ *                       prints it as its own line, beside the palace's. It was
+ *                       `authoritySupply` until batch H6 found it to be
+ *                       `CardAuthorityEffect` field for field; it is that
+ *                       interface now, under that name.
  *   · `productionBonus` a percentage of hammers behind one *category* of thing a
  *                       city may be building, in the owning city or empire-wide.
  *   · `percentYields`   a percentage of one yield, empire-wide or in each
@@ -316,9 +335,16 @@ type Signature<T> = T & ResourceEffectModifiers;
 export type ResourceEffect =
   | Signature<{ kind: 'perCityYields'; scope?: ResourceCityScope } & ResourceYieldBag>
   | Signature<{ kind: 'perPopulationYields'; scope?: ResourceCityScope } & ResourceYieldBag>
-  | Signature<{ kind: 'empireYields' } & ResourceYieldBag>
+  // **The card's own shape, not a copy of it** (batch H6). `CardEmpireYieldsEffect`
+  // and this were the same interface declared in two files, so this is that
+  // interface with the two modifiers on it. A voice added to the bag arrives in
+  // both tables at once or in neither.
+  | Signature<CardEmpireYieldsEffect>
   | Signature<{ kind: 'extraHappiness'; amount: number; per?: 'city' | 'coastalCity' }>
-  | Signature<{ kind: 'authoritySupply'; amount: number; per?: 'city' }>
+  // The same, one meter over: `CardAuthorityEffect` is `{ amount, per?: 'city' }`
+  // exactly, which is what `authoritySupply` was. The luxury name is retired
+  // into the card's — one word for one reading, on both tables.
+  | Signature<CardAuthorityEffect>
   | Signature<{
       kind: 'productionBonus';
       category: ProductionCategory;
@@ -333,7 +359,8 @@ export type ResourceEffect =
       scope?: ResourceCityScope;
     }>
   | Signature<{ kind: 'rulePercent'; rule: ResourceRule; percent: number }>
-  | Signature<{ kind: 'happinessTierBoost'; points: number }>
+  // Amber's shape, and `CardHappinessTierBoostEffect` down to the field name.
+  | Signature<CardHappinessTierBoostEffect>
   | Signature<{ kind: 'improvementYields'; improvement: ImprovementId } & ResourceYieldBag>
   | Signature<
       {
@@ -357,7 +384,9 @@ export const RESOURCE_EFFECT_KINDS: readonly ResourceEffect['kind'][] = [
   'perPopulationYields',
   'empireYields',
   'extraHappiness',
-  'authoritySupply',
+  // `authoritySupply` until batch H6, when the shape became the card table's own
+  // `authority` — one reading, one word. No live row named it either way.
+  'authority',
   'productionBonus',
   'percentYields',
   'rulePercent',
@@ -696,7 +725,7 @@ function validateEffect(where: string, effect: ResourceEffect): void {
   }
   if (
     effect.kind === 'extraHappiness' ||
-    effect.kind === 'authoritySupply' ||
+    effect.kind === 'authority' ||
     effect.kind === 'renownPerCity' ||
     effect.kind === 'unitUpkeepRebate'
   ) {

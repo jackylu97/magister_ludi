@@ -1482,33 +1482,30 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       const strength = (effect.strength ?? 0) * ctx.ai.weights.military * (1 + ctx.threat);
       return strength + (effect.hp === undefined ? 0 : ctx.ai.score.unknownEffect);
     }
-    case 'zocRule':
-      // Every hex this empire owns tolls a foreign march. A defensive line whose
-      // subject is the whole border, priced as the towns it screens — the wall
-      // reading one grade out, and deliberately not per hex: a toll is not a
-      // strength point, and counting the border would make one card outweigh an
-      // army.
-      return ctx.ai.weights.military * (1 + ctx.threat) * ctx.cities;
-    case 'cityRule':
-      // A fact about every town declared true — fresh water, today. What it is
-      // worth is what the rows it un-gates are worth, and that is `buildError`'s
-      // question asked of a board where the rule is already live, which is the
-      // hypothetical inside `src/sim/` this bot may not ask for. Named.
-      return ctx.ai.score.unknownEffect;
-    case 'actionRule':
-      // A verb whose behaviour changes. Three of the four live rows open the
-      // great-person draft **no surface constructs** (`docs/audit/orchestrator.md`
-      // H3), so a price would be a price on a button nobody can press; the
-      // fourth (a free chop) is a saving on a worker's turn, which is the plan's
-      // currency and not a card's. Named, and it is a debt on H3 rather than
-      // here.
-      return ctx.ai.score.unknownEffect;
-    case 'behaviorRule':
-      // Something about the world that stops being true — the wild converting
-      // its killers, a realm's roads laid free. Neither is a rate and neither has
-      // a fold: the first is a rule of the barbarian turn and the second is a
-      // maintenance line that is *already* free. Named.
-      return ctx.ai.score.unknownEffect;
+    case 'rule':
+      // **A flag-shaped rule declared true.** Four kinds came in here before
+      // batch H6 and they are one shape now; the arm keeps the four readings
+      // apart, because what a rule is *worth* is a fact about the rule and not
+      // about the shape it is written in.
+      //
+      //   · `borders` — every hex this empire owns tolls a foreign march. A
+      //     defensive line whose subject is the whole border, priced as the
+      //     towns it screens (the wall reading one grade out), and deliberately
+      //     not per hex: a toll is not a strength point, and counting the border
+      //     would make one card outweigh an army.
+      //   · `freshwater` — what it is worth is what the rows it un-gates are
+      //     worth, and that is `buildError`'s question asked of a board where the
+      //     rule is already live, which is the hypothetical inside `src/sim/`
+      //     this bot may not ask for. Named.
+      //   · the verbs — three of the four open the great-person draft, priced as
+      //     a button this bot does not press; the fourth (a free chop) is a
+      //     saving on a worker's turn, which is the plan's currency and not a
+      //     card's. Named, and a debt on H3 rather than here.
+      //   · the world's rules — the wild converting its killers, a realm's roads
+      //     laid free. Neither is a rate and neither has a fold. Named.
+      return effect.rule === 'borders'
+        ? ctx.ai.weights.military * (1 + ctx.threat) * ctx.cities
+        : ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal
       // costs is the difference between two draft plans, which is `wants.ts`'

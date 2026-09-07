@@ -873,7 +873,7 @@
       "cityHp": 25,
       "effects": [
         {
-          "kind": "zocRule",
+          "kind": "rule",
           "rule": "borders"
         },
         {

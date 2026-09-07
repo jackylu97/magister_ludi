@@ -54,7 +54,7 @@
  * disagree with itself.
  */
 
-import type { BuildingId } from './buildingData';
+import { type BuildingId, isWonder } from './buildingData';
 import {
   type BeadCardId,
   type BeadFamily,
@@ -3063,6 +3063,83 @@ export function capitalCityOf(state: GameState, playerId: number): City | undefi
     fallback ??= city;
   }
   return fallback;
+}
+
+/**
+ * **The towns this empire holds**, in `state.cities` order — which is founding
+ * order, which is part of the state.
+ *
+ * Beside `capitalCityOf` because it is the same register read one question
+ * wider, and here rather than in any of its callers because it had **four**
+ * implementations before batch H6: `beads.ts` and `triumphs.ts` each kept a
+ * private `citiesOf`, `statecraft.ts` kept a private `cityCount` that was this
+ * loop with a counter instead of a list, and `resourceEffects.ts` kept a fifth
+ * with a coastal filter on it. Two of them fed counts that two evaluators both
+ * had to answer (`countOf`'s `cities` and `beadCount`'s `cities`), which is the
+ * shape of duplication H6 is for: not two vocabularies, one reading written
+ * out four times.
+ *
+ * A fresh array every call, because a caller that filtered a shared one would be
+ * filtering the board.
+ */
+export function citiesOf(state: GameState, playerId: number): City[] {
+  const held: City[] = [];
+  for (const city of state.cities) {
+    if (city.ownerId === playerId) held.push(city);
+  }
+  return held;
+}
+
+/**
+ * **How many wonders stand in this empire's towns.**
+ *
+ * `citiesOf`'s reason exactly: `beadCount`'s `wondersHeld` and `countOf`'s
+ * `wonders` were the same three nested loops in two files, and a wonder counted
+ * one way for a feat and another for a card would be the kind of drift no test
+ * asks about. A wonder is one per world, so the empire's own towns are the whole
+ * of the question — and a captured wonder joins this count the turn the town
+ * changes hands, which is the wonders framework's own rule (what a wonder *pays*
+ * follows the stones).
+ *
+ * `age` narrows it to the wonders of one era, which is a bead's question and not
+ * a card's; the era of a wonder is the tree's to answer, so the caller hands in
+ * the reading rather than this leaf importing the tree. Absent counts them all.
+ */
+export function wondersHeldBy(
+  state: GameState,
+  playerId: number,
+  ageOf?: (id: BuildingId) => number,
+  age?: number,
+): number {
+  let held = 0;
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    for (const id of city.buildings) {
+      if (!isWonder(id)) continue;
+      if (age !== undefined && ageOf !== undefined && ageOf(id) !== age) continue;
+      held += 1;
+    }
+  }
+  return held;
+}
+
+/**
+ * **How many Orders this empire has sitting in a chair.**
+ *
+ * The council, and the third reading two evaluators both kept (`countOf`'s
+ * `slottedOrders`, `beadCount`'s). A card in the hand is not a law of the realm,
+ * which is the whole of what a slot means — and it counted the *levels* of those
+ * cards until the levelling ruling of 2026-09-04 emptied the word of meaning, so
+ * a full council is a count of chairs.
+ */
+export function slottedOrderCount(state: GameState, playerId: number): number {
+  const sc = playerById(state, playerId)?.statecraft;
+  if (!sc) return 0;
+  let filled = 0;
+  for (const slotted of sc.slots) {
+    if (slotted !== null) filled += 1;
+  }
+  return filled;
 }
 
 /**

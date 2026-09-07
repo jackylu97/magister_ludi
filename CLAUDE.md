@@ -141,7 +141,7 @@ be renamed — it would change every seeded outcome. No further rename passes.
   general aura are labelled strength lines, never multipliers (only attacker-side
   percentages remain). City strength = `cityBaseStrength` (best buildable unit);
   max hp = `cityMaxHp` (never compare against `cityBaseHp`). `siegeField` ≠
-  `zocField` (Great Wall's `zocRule` would besiege by nobody); `underSiege`
+  `zocField` (Great Wall's `rule: 'borders'` would besiege by nobody); `underSiege`
   derived, never stored. Cities are attacked in three beats (walls → garrison →
   capture off the plan); `canAdvanceOnto`/`canStopOn` refuse foreign city hexes.
   The wild never captures. A unit's escalation ladder is its row's
@@ -187,7 +187,13 @@ be renamed — it would change every seeded outcome. No further rename passes.
   (`resourceIsVisibleTo` gates label, access, yield); context-less
   `explainTileYield(tile)` is the omniscient reading (mapgen/tests only).
 - **A luxury's signature is a list** on its row read by ONE evaluator
-  (`resourceEffects.ts`) — nothing else switches on its `effect.kind`. Effects
+  (`resourceEffects.ts`) — nothing else switches on its `effect.kind`. Its
+  vocabulary is the cards' where the two mean the same thing (batch H6: the
+  yield bag is `CardYieldBag`, the scope is `CityScope` plus `'owner'`, the
+  rule union an `Extract<CardRule>`, `empireYields`/`happinessTierBoost`/
+  `authority` the card interfaces); a luxury is still not a card *class* —
+  the file's docblock says why. `citiesOf`/`wondersHeldBy` (`state.ts`) are
+  the one town walk every evaluator uses. Effects
   may carry `fromAge`, `perCopy` (silver/gold Æra III only), `scope`
   (`coastal`/`owner`/`capital`), building-category selectors, `renownPerCity`
   (family-less by construction). Adding a shape is a design decision; a luxury
@@ -222,7 +228,11 @@ be renamed — it would change every seeded outcome. No further rename passes.
   seals are absolute turns.
 - **Cards**: `statecraft.ts` is the ONLY module switching on `CardEffect.kind`;
   a new card is a JSON row, a new *shape* is a design decision, and a shape
-  declared but never read fails the register test. The fold registry (who folds
+  declared but never read fails the register test. The four flag-rule kinds
+  are one `rule` kind (`CardFlagRuleId` = action | behavior | city | zoc,
+  batch H6); the moments the world announces are one union in
+  `occasions.ts` (beads take it whole, Triumphs an `Extract`) — the windfall,
+  tally and order-bead occasions are different questions and stay their own. The fold registry (who folds
   what) is pinned in `test/sim/statecraft.test.ts`. A card whose text needs a
   one-off is **deferred and annotated**, never bent into a near-fit (this rule
   repeats across beliefs, legacies, wonders — always defer, never bend).

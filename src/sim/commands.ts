@@ -1264,7 +1264,7 @@ export interface ChooseGreatPersonCommand extends PlayerCommand {
  * which bank each charges, what it costs, whose names it deals and whether it
  * moves the ladder. It carries no `cityId` for the reason it carries no unit — a
  * recruitment belongs to the empire and lands in its capital the way every other
- * one does. Each purchase is gated by its own `actionRule`, so an empire under
+ * one does. Each purchase is gated by its own `rule` clause, so an empire under
  * any other law is refused with a sentence.
  *
  * Turn-gated like every other act.

@@ -418,7 +418,7 @@
       "text": "Great people may be bought with gold. Great-person improvements pay +50% more.",
       "effects": [
         {
-          "kind": "actionRule",
+          "kind": "rule",
           "rule": "buyGreatPersonWithGold"
         },
         {
@@ -490,7 +490,7 @@
           "per": "wonder"
         },
         {
-          "kind": "actionRule",
+          "kind": "rule",
           "rule": "buyGreatPersonWithFaith"
         }
       ]
@@ -637,7 +637,7 @@
       "text": "Barbarians you kill join you at full health.",
       "effects": [
         {
-          "kind": "behaviorRule",
+          "kind": "rule",
           "rule": "barbarianKillsConvert"
         }
       ]
@@ -772,7 +772,7 @@
       "text": "Clearing a forest or jungle costs no worker charge.",
       "effects": [
         {
-          "kind": "actionRule",
+          "kind": "rule",
           "rule": "freeChop"
         }
       ],
@@ -1096,7 +1096,7 @@
           "stage": "empire"
         },
         {
-          "kind": "actionRule",
+          "kind": "rule",
           "rule": "buyScholarDraftWithFaith"
         }
       ]
@@ -2648,7 +2648,7 @@
       "text": "Leftover production from a completed item is doubled.",
       "effects": [
         {
-          "kind": "actionRule",
+          "kind": "rule",
           "rule": "doubleOverflow"
         }
       ],
@@ -3496,7 +3496,7 @@
       "note": "It answers what is asked of a city — whether the town can drink. A hex out in the fields is still watered by the river or by nothing.",
       "effects": [
         {
-          "kind": "cityRule",
+          "kind": "rule",
           "rule": "freshwater"
         }
       ]

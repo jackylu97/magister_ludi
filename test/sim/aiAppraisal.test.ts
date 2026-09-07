@@ -2076,9 +2076,14 @@ describe('the whole deck, priced (batch H2)', () => {
       'pantheonSlots', // a belief's worth is `wants.ts`', which reads this file
       'pressure', // the tide: no model of a conversion anywhere in the bot
       'pressureRule', // the same
-      'cityRule', // what fresh water un-gates is `buildError` asked hypothetically
-      'actionRule', // three of four open a draft no surface constructs (H3)
-      'behaviorRule', // a rule of the wild's turn, and roads that are already free
+      // Batch H6 folded the four flag kinds into one `rule` shape. Three of the
+      // four readings under it are still stand-ins — fresh water (what it
+      // un-gates is `buildError` asked hypothetically), the verbs (three of four
+      // open a draft no surface constructs, H3) and the world's rules (a rule of
+      // the wild's turn, and roads that are already free) — while the fourth,
+      // the border's zone of control, is priced. So the kind is named here and
+      // the arm is asserted on both sides below.
+      'rule',
       'metaRule', // a seal is the difference between two draft plans
     ];
     const { state, player } = board();
@@ -2091,11 +2096,15 @@ describe('the whole deck, priced (batch H2)', () => {
     expect(
       scoreEffects([{ kind: 'pressureRule', rule: 'roadStrength', delta: 2 }], ctx),
     ).toBe(stand);
-    expect(scoreEffects([{ kind: 'cityRule', rule: 'freshwater' }], ctx)).toBe(stand);
-    expect(scoreEffects([{ kind: 'actionRule', rule: 'freeChop' }], ctx)).toBe(stand);
+    expect(scoreEffects([{ kind: 'rule', rule: 'freshwater' }], ctx)).toBe(stand);
+    expect(scoreEffects([{ kind: 'rule', rule: 'freeChop' }], ctx)).toBe(stand);
     expect(
-      scoreEffects([{ kind: 'behaviorRule', rule: 'barbarianKillsConvert' }], ctx),
+      scoreEffects([{ kind: 'rule', rule: 'barbarianKillsConvert' }], ctx),
     ).toBe(stand);
+    // The one rule under the shape that is *not* a stand-in: the border's toll,
+    // priced as the towns it screens. Named here so the merged arm cannot quietly
+    // become one constant for all four readings.
+    expect(scoreEffects([{ kind: 'rule', rule: 'borders' }], ctx)).not.toBe(stand);
     expect(scoreEffects([{ kind: 'metaRule', rule: 'sealTurns', value: 10 }], ctx)).toBe(stand);
     // And the two amplifier targets that are not rates, named inside their arm.
     expect(
@@ -2104,7 +2113,8 @@ describe('the whole deck, priced (batch H2)', () => {
     expect(
       scoreEffects([{ kind: 'effectAmplifier', target: 'greatPersonAct', percent: 100 }], ctx),
     ).toBe(stand);
-    expect(named.length).toBe(7);
+    // Seven before batch H6 folded three of the four flag kinds into one.
+    expect(named.length).toBe(5);
   });
 
   it('prices a windfall rider as the occasion’s own frequency times its grant', () => {

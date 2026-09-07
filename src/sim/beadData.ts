@@ -58,6 +58,7 @@ import beadsJson from '../../data/beads.json';
 // `religionData.ts` is: a boon's `effects` are ordinary card effects read by the
 // ordinary evaluator, and a *value* import either way would turn a type cycle
 // into a runtime one.
+import { OCCASIONS, type Occasion } from './occasions';
 import type { CardEffect } from './statecraftData';
 import { type BuildingId, isBuildingId, buildingDef } from './buildingData';
 import { type Family, isFamily } from './greatPeopleData';
@@ -117,50 +118,25 @@ export function isBeadAge(value: unknown): value is BeadAge {
 // --- what a deed can ask ----------------------------------------------------
 
 /**
- * A moment a seam announces. Ten of these are `TriumphOccasion`'s own — the
- * bead evaluator is hung off `awardOccasion`, so a seam that already says "a
- * wonder was finished" says it once for both systems — and the rest are hooked
- * where the Triumph table has nothing to say (a religion founded, a palace
- * taken, a great person called).
+ * A moment a seam announces — **`Occasion`, whole** (`occasions.ts`).
  *
- * Deliberately **not** an alias of `TriumphOccasion`: the two vocabularies
- * overlap because the same things happen in the world, not because one is the
- * other, and a bead occasion the Triumph table never wanted would otherwise
- * have to be added to the Triumph trigger union to exist at all.
+ * It was its own thirteen-word union until batch H6, and ten of those thirteen
+ * were `TriumphOccasion`'s own words typed a second time. The two lists were
+ * kept in step by nothing but the fact that `awardOccasion` hands its argument
+ * straight to `awardBeadOccasion`; a moment added to one and not the other would
+ * have compiled and announced nothing.
+ *
+ * So the union moved to a leaf both systems read, and this is an alias rather
+ * than a deletion because the *name* is worth keeping: a deed's field is a bead
+ * occasion, and a reader following `BeadDeed.occasion` should land on a word
+ * about beads. What it no longer is, is a second list. The Triumph side takes
+ * the intersection with its own trigger vocabulary instead (see `occasions.ts`,
+ * which states which of the four "occasion" unions merged and which did not).
  */
-export type BeadOccasion =
-  | 'ageEntered'
-  | 'wonderCompleted'
-  | 'cityFounded'
-  | 'cityCaptured'
-  | 'governmentAdopted'
-  | 'beliefConsecrated'
-  | 'discoveryClaimed'
-  | 'campCleared'
-  | 'battleWonAgainstStronger'
-  | 'cityOnOtherContinent'
-  /** A religion was founded. Hooked at `foundReligion`. */
-  | 'religionFounded'
-  /** A rival's seat of government changed hands. Hooked at `captureCity`. */
-  | 'capitalCaptured'
-  /** A great person was called. Hooked at `settleGreatPersonChoice`. */
-  | 'greatPersonRecruited';
+export type BeadOccasion = Occasion;
 
-export const BEAD_OCCASIONS: readonly BeadOccasion[] = [
-  'ageEntered',
-  'wonderCompleted',
-  'cityFounded',
-  'cityCaptured',
-  'governmentAdopted',
-  'beliefConsecrated',
-  'discoveryClaimed',
-  'campCleared',
-  'battleWonAgainstStronger',
-  'cityOnOtherContinent',
-  'religionFounded',
-  'capitalCaptured',
-  'greatPersonRecruited',
-];
+/** Every occasion a deed may name — the shared register. */
+export const BEAD_OCCASIONS: readonly BeadOccasion[] = OCCASIONS;
 
 /**
  * Every standing count a deed, a reckoning or a streak may name — **the

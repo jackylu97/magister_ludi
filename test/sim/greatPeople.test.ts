@@ -1404,7 +1404,7 @@ describe('the one-row shapes, built generically', () => {
     found(g.state, 0);
     g.state.players[0]!.timed = [{
       card: 'homer',
-      effect: { kind: 'behaviorRule', rule: 'noHealAbroad' },
+      effect: { kind: 'rule', rule: 'noHealAbroad' },
       expiresTurn: g.state.turn + 10,
     }];
     const unit = g.state.units.find((u) => u.ownerId === 0 && u.type !== 'settler')!;

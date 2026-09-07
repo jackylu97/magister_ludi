@@ -2216,7 +2216,7 @@ export interface CardUnitStatEffect {
    *     reason exactly: there is no negation composite and there will not be
    *     one, so a reading the ratified table actually asks for earns its own
    *     word. The Wintering Grounds' mending, and the same reach
-   *     `behaviorRule`'s `noHealAbroad` already takes — a hex nobody owns is
+   *     the `noHealAbroad` rule already takes — a hex nobody owns is
    *     outside your borders, which is what makes the clause bite on a campaign
    *     rather than only in a rival's homeland.
    *   · `'embarked'` — on water, which for a piece that is on the board at all
@@ -2302,13 +2302,12 @@ export interface CardUnitStampEffect {
  * improvement gate's waiver), and a cistern in the town square does not water
  * the third ring. That is the honest split rather than a silence, and the row
  * says so in its own words.
+ *
+ * The shape it is said in is `CardRuleEffect` (`"kind": "rule"`) since batch H6:
+ * `cityRule` was one of four flag kinds that were one evaluation apiece. What
+ * survives is the id union, which is the typed door `cityHasFreshwater` knocks
+ * on.
  */
-export interface CardCityRuleEffect {
-  kind: 'cityRule';
-  rule: CityRuleId;
-}
-
-/** A fact about every one of an empire's cities that a card declares true. */
 export type CityRuleId = 'freshwater';
 
 /** A rider on a windfall. See `WindfallOccasion` for what "rider" means. */
@@ -2424,7 +2423,7 @@ export interface CardFoundingRiderEffect {
    * The new town is **joined to the realm by road** — The Founders' Road's
    * second half, live since the trade pass gave the game roads.
    *
-   * On this shape rather than on an `actionRule` because it is the same
+   * On this shape rather than on a `rule` clause because it is the same
    * question the other two fields answer — what does this empire's law found a
    * city *with* — and a founding is where all three are read (`foundCityAt`,
    * through `cardFoundingRider`). The road is laid along the path the caravan
@@ -2619,17 +2618,43 @@ export interface CardConditionRuleEffect {
   then: CardEffect[];
 }
 
-/** A verb whose behaviour changes. See `ActionRuleId`. */
-export interface CardActionRuleEffect {
-  kind: 'actionRule';
-  rule: ActionRuleId;
+/**
+ * **A rule this empire's law simply declares true.** One shape for every
+ * flag-shaped clause (batch H6).
+ *
+ * Four kinds stood here before — `actionRule`, `behaviorRule`, `cityRule` and
+ * `zocRule` — and all four were *the same evaluation written out four times*:
+ * walk the live list for one kind, return true if any effect names this rule.
+ * Nothing distinguished them but the id union each drew from, and the four
+ * unions are disjoint, so a card naming `freeChop` and a card naming
+ * `noHealAbroad` were never two questions — they were one question asked in two
+ * dialects, with two describer arms, two bot arms and two readers to keep in
+ * step. The four names are **retired**; the rows say `"kind": "rule"` and name
+ * the same rule they always named.
+ *
+ * The **id unions stay four**, and that is the half worth keeping: a seam asks
+ * `cardActionRule` or `cardBehaviorRule` and cannot accidentally ask whether the
+ * wild is passive when what it meant was whether a chop is free. One shape in
+ * the data, four typed doors in the code, one evaluation under all of them
+ * (`cardRuleHolds`).
+ *
+ * No namespace on the id, deliberately: the four unions share no member, so a
+ * flat union is unambiguous today and a collision tomorrow is a compile error in
+ * `RULE_WORDS` rather than a silent overlap. A prefix would have been a
+ * migration of every row for a hazard the type system already refuses.
+ */
+export interface CardRuleEffect {
+  kind: 'rule';
+  rule: CardFlagRuleId;
 }
 
-/** Something about the world that stops being true. See `BehaviorRuleId`. */
-export interface CardBehaviorRuleEffect {
-  kind: 'behaviorRule';
-  rule: BehaviorRuleId;
-}
+/**
+ * Every rule a `rule` effect may name — the four disjoint sub-unions, joined.
+ *
+ * `RULE_WORDS` in `statecraft.ts` is an exhaustive `Record` over this, so a
+ * member added to any of the four and left unworded fails the build.
+ */
+export type CardFlagRuleId = ActionRuleId | BehaviorRuleId | CityRuleId | ZocRuleId;
 
 /** A stat on the empire's *cities* — what they are worth to storm, and how far
  * they see. */
@@ -2845,11 +2870,11 @@ export interface CardPurchaseRiderEffect {
  * arithmetic and its four readers are untouched — a border is simply another
  * source, and `stepCost` prices a step alongside it the way it prices a step
  * alongside a spearman.
+ *
+ * Said as `CardRuleEffect` (`"kind": "rule"`) since batch H6, with the other
+ * three flag kinds. The union below is the typed door `cardBorderZoc` knocks on.
  */
-export interface CardZocRuleEffect {
-  kind: 'zocRule';
-  rule: 'borders';
-}
+export type ZocRuleId = 'borders';
 
 /**
  * More out of one turn of a **project** — the Water Clock of Su Song's beakers
@@ -3537,7 +3562,6 @@ export type CardEffect =
   | CardCombatLineEffect
   | CardUnitStatEffect
   | CardUnitStampEffect
-  | CardCityRuleEffect
   | CardWindfallRiderEffect
   | CardFoundingRiderEffect
   | CardCountScaledEffect
@@ -3547,17 +3571,17 @@ export type CardEffect =
   | CardEffectAmplifierEffect
   | CardMeterRuleEffect
   | CardConditionRuleEffect
-  | CardActionRuleEffect
-  | CardBehaviorRuleEffect
   | CardCityStatEffect
   | CardMetaRuleEffect
+  // Batch H6: `actionRule`, `behaviorRule`, `cityRule` and `zocRule` were four
+  // names for one evaluation and are retired into this one. See `CardRuleEffect`.
+  | CardRuleEffect
   | CardTileYieldEffect
   | CardPeriodicOfferEffect
   | CardPeriodicMusterEffect
   | CardUnlocksBuildingEffect
   | CardPantheonSlotsEffect
   | CardPurchaseRiderEffect
-  | CardZocRuleEffect
   | CardProjectRiderEffect
   | CardRenownEffect
   | CardPressureRuleEffect

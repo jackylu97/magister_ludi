@@ -899,7 +899,7 @@ export interface ZocField {
  *   - **Enemy cities.** A town is a garrison that cannot be killed by a march,
  *     and Civ V's rule is that it holds ground like one.
  *   - **Enemy *borders*, for a seat whose law says so** — the Great Wall, and
- *     the only card in the game that speaks to this field (`zocRule`). Every hex
+ *     the only card in the game that speaks to this field (`rule: 'borders'`). Every hex
  *     that empire owns projects control exactly as one of its spearmen would,
  *     which means that inside such a border **every step pays the toll**: a
  *     mover crossing it is always leaving one owned hex alongside another, so it

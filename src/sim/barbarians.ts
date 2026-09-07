@@ -534,7 +534,7 @@ export function nearestTarget(state: GameState, wild: Player, unit: Unit): RaidT
   const consider = (col: number, row: number, ownerId: number): void => {
     if (ownerId === wild.id) return;
     // Wolf-Mother's Pact: **barbarians never attack you.** The one
-    // `behaviorRule` the vocabulary has, and it is read here rather than inside
+    // world's rule the vocabulary has, and it is read here rather than inside
     // `applyCombat` on purpose — the pact is a fact about what the wild *wants*,
     // not a rule that makes an empire unhittable, so the raid simply never picks
     // this seat and everything else about combat is unchanged. Theft continues,

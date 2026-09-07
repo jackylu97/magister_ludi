@@ -940,7 +940,7 @@ describe('role derivation', () => {
     // clause a JSON row rather than a change to the wild's own module.
     state.players[0]!.timed = [{
       card: 'wolfMothersPact' as never,
-      effect: { kind: 'behaviorRule', rule: 'barbariansPassive' },
+      effect: { kind: 'rule', rule: 'barbariansPassive' },
       expiresTurn: state.turn + 10,
     }];
     expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'raider' });

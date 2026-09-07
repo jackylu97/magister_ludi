@@ -2182,7 +2182,7 @@ tree while this batch was being written.**
 | `conditionRule` | 6 | its clauses at full price while the gate is open on **this board**, nothing when shut |
 | `purchaseRider` | 5 | the share off, over what the purse turns over in a turn |
 | `foundingRider` | 5 | a citizen at the growth threshold · a shelf · a road home, × the founding rate |
-| `zocRule` · `unitStamp` | 1 · 1 | the wall reading and the `unitStat` reading |
+| `rule: 'borders'` · `unitStamp` | 1 · 1 | the wall reading and the `unitStat` reading |
 | `projectRider` | 1 | the payout it adds × the towns actually running that project |
 | `mirrorYield` | 1 | the category's shelves' own `from` figure, at the `to` price |
 | `periodicOffer` · `periodicMuster` | 1 · 1 | one firing over the cadence — `periodic`'s arithmetic |
@@ -2243,9 +2243,9 @@ source:
 | `pressure` · `pressureRule` | **The tide has no reading in this currency.** The bot prices the *first* religion (`religion.prophetTechValue`) and nothing anywhere prices the hundredth follower |
 | `pantheonSlots` | a belief's worth is the faith book's, and the faith book (`wants.ts`) reads *this* file — taking it here is the cycle `moduleCycles.test.ts` exists to catch. Closing it means moving the belief appraisal into a leaf |
 | `metaRule` | a seal is the difference between two draft plans, same module, same reason |
-| `cityRule` | what fresh water un-gates is `buildError` asked hypothetically, which is the hypothetical inside `src/sim/` this bot may not ask for |
-| `actionRule` | three of the four live rows open the great-person draft **no surface constructs** (the audit's own surprise, queued as H3); a price on a button nobody can press is worse than a stand-in |
-| `behaviorRule` | a rule of the wild's turn, and roads that are already free |
+| `rule` → `freshwater` | what fresh water un-gates is `buildError` asked hypothetically, which is the hypothetical inside `src/sim/` this bot may not ask for |
+| `rule` → the verbs | three of the four live rows open the great-person draft **no surface constructs** (the audit's own surprise, queued as H3); a price on a button nobody can press is worse than a stand-in |
+| `rule` → the world's rules | a rule of the wild's turn, and roads that are already free |
 | `rulePercent` → `borderCulture`, `borderCost` | both buy **ground**, and a hex nobody owns is priced by the settle table's weights (`site.yieldWeights`) rather than by this currency — batch 4's two-weight-tables gap, unclosed |
 | `effectAmplifier` → `riteDuration`, `greatPersonAct` | neither is a rate. F2's own written-down cut, kept |
 | a `unitStamp`'s `hp`, a rider's `heal`/`healAll` | a hit point is a fraction of a piece and none of the three names a piece |
@@ -2323,11 +2323,11 @@ the gold *rate* is a small number beside a shelf.
 
 Arms asked per game (the tally, duel 5): `windfallRider` 1,149 · `rulePercent`
 533 · `cityStat` 402 · `purchaseRider` 275 · `pantheonSlots` 180 · `routeRider`
-173 · `pressure` 136 · `behaviorRule` 94 · `zocRule` 93 · `effectAmplifier` 93 ·
+173 · `pressure` 136 · `rule` 187 (94 the world's, 93 the border's) · `effectAmplifier` 93 ·
 `meterRule` 80 · `unlocksBuilding` 48 · `periodicOffer` 41 · `foundingRider` 25 ·
 `yieldConversion` 24 · `upkeepSurcharge` 24 · `conditionRule` 2 ·
 `rateConversion` 1. `mirrorYield`, `projectRider`, `periodicMuster`, `unitStamp`,
-`cityRule`, `actionRule` and `metaRule` are asked **nothing** on these boards —
+the `freshwater` and verb rules and `metaRule` are asked **nothing** on these boards —
 their rows are on cards no seat holds inside seventy-five turns, which is why
 they are pinned by fixture and by nothing else.
 

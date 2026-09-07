@@ -120,9 +120,12 @@ import {
   type TimedEffect,
   type Unit,
   cityReligion,
+  citiesOf,
   followerCount,
   playerById,
   realPlayers,
+  slottedOrderCount,
+  wondersHeldBy,
 } from './state';
 import {
   type ActionRuleId,
@@ -135,6 +138,7 @@ import {
   type CardPeriodicEffect,
   type CardDefBase,
   type CardEffect,
+  type CardFlagRuleId,
   type CardId,
   type CardPayout,
   type CardRule,
@@ -2095,11 +2099,7 @@ function cityEffectsOfKind<K extends CardEffect['kind']>(
 
 /** How many cities this player holds. Walks `state.cities`, which is founding order. */
 function cityCount(state: GameState, playerId: number): number {
-  let count = 0;
-  for (const city of state.cities) {
-    if (city.ownerId === playerId) count += 1;
-  }
-  return count;
+  return citiesOf(state, playerId).length;
 }
 
 /**
@@ -2247,7 +2247,7 @@ function hasAdjacentGreatWork(state: GameState, city: City): boolean {
  * **THE** question "can this town drink" — the board's answer, or a card's.
  *
  * The one predicate `cityScopeAdmits`' `freshwater` and `notFreshwater` arms go
- * through, and the only reader of the `cityRule` shape (Cistern Works). It is a
+ * through, and the only reader of the `freshwater` rule (Cistern Works). It is a
  * predicate rather than two copies of `cityTile(...).freshwater` precisely so
  * that a card declaring the fact cannot be true for one arm and false for its
  * mirror — a River Kings penalty that still bit a town the aqueducts had already
@@ -2272,10 +2272,7 @@ export function cityHasFreshwater(state: GameState, city: City): boolean {
 
 /** Does this empire hold a card declaring this fact about its cities? */
 function cardCityRule(state: GameState, playerId: number, rule: CityRuleId): boolean {
-  for (const { effect } of effectsOfKind(state, playerId, 'cityRule')) {
-    if (effect.rule === rule) return true;
-  }
-  return false;
+  return cardRuleHolds(state, playerId, rule);
 }
 
 /** Default reach of the `frontier` scope, in hexes. */
@@ -2709,20 +2706,14 @@ export function countOf(
       }
       return total;
     }
-    case 'wonders': {
-      // A wonder is one per world, so the empire's own towns are the whole of
-      // the question — and a captured wonder joins this count the turn the town
-      // changes hands, which is the framework's rule (what a wonder pays follows
-      // the stones).
-      let total = 0;
-      for (const town of state.cities) {
-        if (town.ownerId !== playerId) continue;
-        for (const id of town.buildings) {
-          if (isWonder(id)) total += 1;
-        }
-      }
-      return total;
-    }
+    case 'wonders':
+      // `wondersHeldBy` (`state.ts`) since batch H6 — `beadCount` asked the same
+      // three loops for a feat and a count that disagreed with itself between a
+      // card and a bead is drift nothing would have caught. A wonder is one per
+      // world, so the empire's own towns are the whole of the question, and a
+      // captured wonder joins this count the turn the town changes hands (what a
+      // wonder pays follows the stones).
+      return wondersHeldBy(state, playerId);
     case 'revealedTiles': {
       // The seat's own monotone grid, counted whole. Anything above `HIDDEN`
       // has been walked past once, which is what "revealed" means everywhere
@@ -2926,20 +2917,14 @@ export function countOf(
       }
       return total;
     }
-    case 'slottedOrders': {
+    case 'slottedOrders':
       // The council: one helping per Order sitting in a chair. `slots` is the
       // chairs, which is the same table `perSlottedOrder` reads for its
-      // multiplier. It counted *levels* until the levelling ruling of
-      // 2026-09-04 emptied the word of meaning; a card is one card now.
-      const sc = playerById(state, playerId)?.statecraft;
-      if (!sc) return 0;
-      let total = 0;
-      for (const slotted of sc.slots) {
-        if (slotted === null) continue;
-        total += 1;
-      }
-      return total;
-    }
+      // multiplier — and the same table `beadCount` counted for itself until
+      // batch H6 gave the two one `slottedOrderCount` (`state.ts`). It counted
+      // *levels* until the levelling ruling of 2026-09-04 emptied the word of
+      // meaning; a card is one card now.
+      return slottedOrderCount(state, playerId);
     case 'unslottedOrders': {
       // The shelf: cards held and not sitting in a chair — an archive is a
       // shelf of decisions.
@@ -5589,12 +5574,29 @@ export function payWindfallGrants(
 
 // --- the flag-shaped hooks --------------------------------------------------
 
-/** Does this empire hold a card declaring this action rule? */
-export function cardActionRule(state: GameState, playerId: number, rule: ActionRuleId): boolean {
-  for (const { effect } of effectsOfKind(state, playerId, 'actionRule')) {
+/**
+ * **Does this empire's law declare this rule?** The one flag-shaped reading.
+ *
+ * Four functions stood here before batch H6 — one per flag kind — and they were
+ * the same six lines four times over: walk the live list, compare the id, answer
+ * yes. The four kinds are one `rule` shape now (`CardRuleEffect`) and this is
+ * the whole of what reads it.
+ *
+ * The **doors below stay four** and stay typed, because that half was never the
+ * duplication: a seam that means "is a chop free" has no business being able to
+ * ask whether the wild is passive, and a sub-union each is what refuses it at
+ * compile time. Every one of them is one line onto this walk.
+ */
+function cardRuleHolds(state: GameState, playerId: number, rule: CardFlagRuleId): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'rule')) {
     if (effect.rule === rule) return true;
   }
   return false;
+}
+
+/** Does this empire hold a card declaring this action rule? */
+export function cardActionRule(state: GameState, playerId: number, rule: ActionRuleId): boolean {
+  return cardRuleHolds(state, playerId, rule);
 }
 
 /** Does this empire hold a card declaring this behaviour rule? */
@@ -5603,10 +5605,7 @@ export function cardBehaviorRule(
   playerId: number,
   rule: BehaviorRuleId,
 ): boolean {
-  for (const { effect } of effectsOfKind(state, playerId, 'behaviorRule')) {
-    if (effect.rule === rule) return true;
-  }
-  return false;
+  return cardRuleHolds(state, playerId, rule);
 }
 
 /**
@@ -5740,7 +5739,7 @@ export function cardPantheonSlots(state: GameState, playerId: number): number {
  *
  * The Great Wall's one clause, asked of an empire rather than of a hex, so
  * `zocField` resolves it once per sweep beside the units and the cities it
- * already walks. See `zocRule`.
+ * already walks. See the `borders` rule.
  */
 /**
  * How far this empire's cards move one number of **the tide**, in all.
@@ -5812,10 +5811,7 @@ export function cardPressureSources(state: GameState, playerId: number): CardPre
 }
 
 export function cardBorderZoc(state: GameState, playerId: number): boolean {
-  for (const { effect } of effectsOfKind(state, playerId, 'zocRule')) {
-    if (effect.rule === 'borders') return true;
-  }
-  return false;
+  return cardRuleHolds(state, playerId, 'borders');
 }
 
 /**
@@ -6525,7 +6521,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
   switch (kind) {
     case 'cityYields': {
       const words = bagWords(effect);
-      if (words) out.push({ text: `${words} in ${scopeWords(effect.scope)}` });
+      if (words) out.push({ text: `${words} in ${cityScopeWords(effect.scope)}` });
       return;
     }
     case 'empireYields': {
@@ -6539,7 +6535,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       // line is about *whose* ground: Petra's desert is the desert of one town,
       // and the sentence has to say so without turning the hex into a
       // possessive nobody can parse.
-      const whose = effect.scope === undefined ? '' : `, in ${scopeWords(effect.scope)}`;
+      const whose = effect.scope === undefined ? '' : `, in ${cityScopeWords(effect.scope)}`;
       if (words) out.push({ text: `${words} on every ${tileConditionWords(effect.on)}${whose}` });
       // The percentage is its own clause, because it is a share of a *different*
       // number: the flat is what the card pays and this is what the works pay
@@ -6569,7 +6565,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
     case 'percentYields': {
       const voice = effect.yield === 'all' ? 'all yields' : effect.yield;
       out.push({
-        text: `${signed(effect.percent)}% ${voice} in ${scopeWords(effect.scope)}`,
+        text: `${signed(effect.percent)}% ${voice} in ${cityScopeWords(effect.scope)}`,
       });
       return;
     }
@@ -6608,7 +6604,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       // The scope trails as its own clause, exactly as a scoped `tileYield`'s
       // does: "+20% production toward wonders, in your capital" says *where* the
       // hammers are quicker without turning the category into a possessive.
-      const whose = effect.scope === undefined ? '' : `, in ${scopeWords(effect.scope)}`;
+      const whose = effect.scope === undefined ? '' : `, in ${cityScopeWords(effect.scope)}`;
       out.push({
         text: `${signed(effect.percent)}% production toward ${what}${whose}`,
       });
@@ -6621,14 +6617,14 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
           // A rate that names towns says which, for `cityYields`' reason: an
           // unqualified "of the stored food kept when a city grows" reads as a
           // law of the realm, and Common Table is a law of one congregation.
-          (effect.scope === undefined ? '' : `, in ${scopeWords(effect.scope)}`),
+          (effect.scope === undefined ? '' : `, in ${cityScopeWords(effect.scope)}`),
       });
       return;
     case 'happiness':
       out.push({
         text:
           `${signed(effect.amount)} happiness` +
-          (effect.per === 'city' ? ` in ${scopeWords(effect.scope)}` : ''),
+          (effect.per === 'city' ? ` in ${cityScopeWords(effect.scope)}` : ''),
       });
       return;
     case 'authority':
@@ -6718,8 +6714,8 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       }
       return;
     }
-    case 'cityRule':
-      out.push({ text: CITY_RULE_WORDS[effect.rule] });
+    case 'rule':
+      out.push({ text: FLAG_RULE_WORDS[effect.rule] });
       return;
     case 'windfallRider': {
       // The occasion, narrowed where the row narrows it — "killing a barbarian
@@ -6934,7 +6930,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       out.push({
         text:
           `${effect.category} buildings supply ${effect.to} equal to their ` +
-          `${effect.from}, in ${scopeWords(effect.scope)}`,
+          `${effect.from}, in ${cityScopeWords(effect.scope)}`,
       });
       return;
     case 'yieldConversion':
@@ -6944,7 +6940,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       // away, a share of it is paid a second time in another voice.
       out.push({
         text:
-          `${effect.percent}% of the ${effect.from} in ${scopeWords(effect.scope)} ` +
+          `${effect.percent}% of the ${effect.from} in ${cityScopeWords(effect.scope)} ` +
           `is gained again as ${effect.to}`,
       });
       return;
@@ -6981,15 +6977,9 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       });
       return;
     }
-    case 'actionRule':
-      out.push({ text: ACTION_WORDS[effect.rule] });
-      return;
-    case 'behaviorRule':
-      out.push({ text: BEHAVIOR_WORDS[effect.rule] });
-      return;
     case 'cityStat':
       out.push({
-        text: `${scopeWords(effect.scope)}: ${signed(effect.amount)} ${
+        text: `${cityScopeWords(effect.scope)}: ${signed(effect.amount)} ${
           effect.stat === 'defense' ? 'city defence' : 'city sight'
         }`,
       });
@@ -7064,11 +7054,6 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       });
       return;
     }
-    case 'zocRule':
-      out.push({
-        text: 'every hex you own exerts zone of control on enemy units, as a unit of yours would',
-      });
-      return;
     case 'projectRider': {
       const bag = bagWords(effect.pays);
       if (bag) out.push({ text: `${projectDef(effect.project).name} pays ${bag}` });
@@ -7123,7 +7108,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       // "one more, on every line the other cards pay" and the share is "worth
       // half again". A row carrying both prints both, in that order.
       const voice = effect.yield === 'all' ? 'a yield' : effect.yield;
-      const where = effect.scope === undefined ? '' : ` in ${scopeWords(effect.scope)}`;
+      const where = effect.scope === undefined ? '' : ` in ${cityScopeWords(effect.scope)}`;
       if ((effect.amount ?? 0) !== 0) {
         out.push({
           text:
@@ -7141,7 +7126,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
     case 'buildingYieldPercent': {
       const voice = effect.yield === undefined || effect.yield === 'all' ? '' : ` ${effect.yield}`;
       const last = effect.appliedLast === true ? ', counted after every other bonus on them' : '';
-      const where = effect.scope === undefined ? '' : ` in ${scopeWords(effect.scope)}`;
+      const where = effect.scope === undefined ? '' : ` in ${cityScopeWords(effect.scope)}`;
       out.push({
         text:
           `your ${buildingClassWords(effect)} pay ${signed(effect.percent)}%` +
@@ -7179,7 +7164,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       return;
     case 'cityRenownPercent':
       out.push({
-        text: `${scopeWords(effect.scope)} earns ${signed(effect.percent)}% more renown`,
+        text: `${cityScopeWords(effect.scope)} earns ${signed(effect.percent)}% more renown`,
       });
       return;
     case 'routeYield': {
@@ -7194,7 +7179,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       const whose =
         effect.origin === undefined
           ? 'every trade route you send'
-          : `every trade route sent from ${scopeWords(effect.origin)}`;
+          : `every trade route sent from ${cityScopeWords(effect.origin)}`;
       // **What the row is paid *for***, when it is paid more than once. The
       // Golden Roads pays its bag per good on the road, so the sentence has to
       // say so or a player reads a flat coin where a caravan of six is earning
@@ -7702,7 +7687,12 @@ function buildingName(id: BuildingId): string {
   return ref(isWonder(id) ? 'wonder' : 'building', id, buildingDef(id).name);
 }
 
-function scopeWords(scope?: CityScope): string {
+/**
+ * A scope in the words a printed rule uses. **The one sentence-builder** — the
+ * luxury table delegated its own to this in batch H6, so a card's "every coastal
+ * city" and a luxury's are one string from one place.
+ */
+export function cityScopeWords(scope?: CityScope): string {
   if (!scope) return 'every city';
   // The capital is a **single** town, and the one scope that does not read as
   // "every …". It is also the only one that can say "your".
@@ -8303,28 +8293,32 @@ const METER_RULE_SWITCHES: readonly MeterRuleId[] = [
   'authorityUnitProductionExempt',
 ];
 
-const ACTION_WORDS: Record<ActionRuleId, string> = {
+/**
+ * Every flag-shaped rule in one sentence each — the words half of batch H6's one
+ * `rule` shape.
+ *
+ * Three tables stood here (`ACTION_WORDS`, `CITY_RULE_WORDS`, `BEHAVIOR_WORDS`)
+ * plus a sentence written inline in the zone-of-control arm, for four kinds that were
+ * one evaluation. One table now, exhaustive over `CardFlagRuleId`, so a member
+ * added to any of the four sub-unions and left unworded fails the build — which
+ * is the guarantee three tables and an inline string could not give.
+ *
+ * A whole sentence rather than a stem, because a rule of this kind has no figure
+ * to hang a noun phrase off. The city sentence says *city* out loud, because the
+ * honest half of Cistern Works is which questions it does not reach (a farm
+ * beside a river is a fact about the ground).
+ */
+const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
+  // Verbs whose behaviour a card changes. `ActionRuleId`.
   freeChop: 'clearing a forest or jungle costs no worker charge',
   doubleOverflow: 'leftover production from a completed item is doubled',
   unitJumpsQueue: 'a unit that would finish sooner jumps ahead of a building in the queue',
   buyGreatPersonWithGold: 'a great person waiting to be called may be bought with gold',
   buyGreatPersonWithFaith: 'a great person waiting to be called may be bought with faith',
   buyScholarDraftWithFaith: 'a draft of great scholars may be bought with faith',
-};
-
-/**
- * The facts a card simply declares true of a realm's towns. See `CityRuleId`.
- *
- * A whole sentence rather than a stem, `ACTION_WORDS`' shape, because a rule of
- * this kind has no figure to hang a noun phrase off — and the sentence says
- * *city* out loud, because the honest half of Cistern Works is which questions
- * it does not reach (a farm beside a river is a fact about the ground).
- */
-const CITY_RULE_WORDS: Record<CityRuleId, string> = {
+  // Facts a card declares true of every town. `CityRuleId`.
   freshwater: 'every city of yours counts as being on fresh water',
-};
-
-const BEHAVIOR_WORDS: Record<BehaviorRuleId, string> = {
+  // Things about the world that stop being true — or start. `BehaviorRuleId`.
   barbariansPassive: 'barbarians never attack you',
   // "At full health" since the user's card pass of 2026-09-03, which is the
   // whole of what the pact is now — a clause a player has to be told, because it
@@ -8333,6 +8327,8 @@ const BEHAVIOR_WORDS: Record<BehaviorRuleId, string> = {
   noCampClearing: 'you can no longer clear a barbarian camp',
   noHealAbroad: 'your units do not heal outside your own borders',
   freeCityRoads: 'roads near your cities cost nothing to keep',
+  // The zone of control, and the only rule of it there is. `ZocRuleId`.
+  borders: 'every hex you own exerts zone of control on enemy units, as a unit of yours would',
 };
 
 const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {

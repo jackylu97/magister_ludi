@@ -613,7 +613,7 @@
       },
       "effects": [
         {
-          "kind": "behaviorRule",
+          "kind": "rule",
           "rule": "freeCityRoads"
         },
         {

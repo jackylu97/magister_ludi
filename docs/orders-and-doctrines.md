@@ -21,7 +21,7 @@ generic:
   a great person is still **called**: what is for sale is the *recruitment*. The new
   `purchaseGreatPersonOffer { playerId, currency }` charges the bank and pours the remaining
   renown through `settleRenownWindfall`, so there is one draft path and `chooseGreatPerson`
-  still answers. Gated by `actionRule` `buyGreatPersonWithGold` / `…WithFaith`; priced at
+  still answers. Gated by `rule` `buyGreatPersonWithGold` / `…WithFaith`; priced at
   `rules.greatPeople.offerPriceGold` (300💰) / `offerPriceFaith` (150🕯).
 - **The Commonwealth** *(great-person improvements pay +50% more)* — `tileYield.percent`
   plus `TileCondition.greatWork`, read in `explainTileYield` as one more labelled line

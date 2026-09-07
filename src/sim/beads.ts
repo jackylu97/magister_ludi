@@ -82,7 +82,7 @@ import {
   isBeadEndeavourId,
   isBeadReckoningId,
 } from './beadData';
-import { type BuildingId, isWonder, buildingDef } from './buildingData';
+import { type BuildingId, buildingDef } from './buildingData';
 import type { CardEffect, OrderBeadOccasion } from './statecraftData';
 import {
   capitalCityOf,
@@ -107,8 +107,11 @@ import {
   type EarnedBead,
   type GameState,
   type Player,
+  citiesOf,
   playerById,
   realPlayers,
+  slottedOrderCount,
+  wondersHeldBy,
 } from './state';
 import {
   type CardClause,
@@ -466,17 +469,14 @@ export function beadCount(state: GameState, playerId: number, count: BeadCount):
       }
       return worth;
     }
-    case 'slottedOrders': {
+    case 'slottedOrders':
       // The **slotted** ones, never the whole collection: a card in the hand is
       // not a law of the realm, which is the whole of what a slot means. It
       // counted the levels of those cards until the levelling ruling of
-      // 2026-09-04; a card is held once now, so this is a count of chairs.
-      let filled = 0;
-      for (const slot of player.statecraft.slots) {
-        if (slot) filled += 1;
-      }
-      return filled;
-    }
+      // 2026-09-04; a card is held once now, so this is a count of chairs — and
+      // it is `slottedOrderCount` (`state.ts`) since batch H6, the same reading
+      // `countOf`'s own `slottedOrders` arm makes.
+      return slottedOrderCount(state, playerId);
     case 'bestCityFood':
       return bestCityYield(state, playerId, 'food');
     case 'bestCityProduction':
@@ -494,23 +494,19 @@ export function beadCount(state: GameState, playerId: number, count: BeadCount):
   }
 }
 
-/** This empire's cities, in `state.cities` order — founding order. */
-function citiesOf(state: GameState, playerId: number): City[] {
-  return state.cities.filter((city) => city.ownerId === playerId);
-}
-
-/** Wonders standing in this empire's cities, optionally only those of one age. */
+/**
+ * Wonders standing in this empire's cities, optionally only those of one age.
+ *
+ * The count is `wondersHeldBy` (`state.ts`) since batch H6 — the same three
+ * loops stood in `statecraft.ts`'s `countOf` and a wonder counted one way for a
+ * feat and another for a card would be drift no test asks about. What stays here
+ * is the *era*, because an era is the tree's answer and the shared reading is a
+ * leaf that may not read the tree: it takes the reading, it does not fetch it.
+ */
 function wondersHeld(state: GameState, playerId: number, age: number | null): number {
-  let held = 0;
-  for (const city of state.cities) {
-    if (city.ownerId !== playerId) continue;
-    for (const id of city.buildings) {
-      if (!isWonder(id)) continue;
-      if (age !== null && wonderAge(id) !== age) continue;
-      held += 1;
-    }
-  }
-  return held;
+  return age === null
+    ? wondersHeldBy(state, playerId)
+    : wondersHeldBy(state, playerId, wonderAge, age);
 }
 
 /**

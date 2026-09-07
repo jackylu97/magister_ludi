@@ -473,7 +473,7 @@ export interface TradeRules {
   roadsPerMaintenance: number;
   /**
    * How near a town a road has to be for **The Imperial Post** to keep it for
-   * nothing (`behaviorRule: 'freeCityRoads'`), in hexes.
+   * nothing (`rule: 'freeCityRoads'`), in hexes.
    *
    * On the trade block rather than on a card, for `roadsPerMaintenance`'s
    * reason: how far a post road reaches is a constant of the world, and the

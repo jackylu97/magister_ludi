@@ -49,6 +49,7 @@ import { awardBeadOccasion } from './beads';
 import { controlledHoldings } from './cities';
 import type { Family } from './greatPeopleData';
 import { tileIndex } from './map';
+import type { Occasion } from './occasions';
 import { landRegions } from './resources';
 import type { RenownGrant } from './renown';
 import { settleRenownWindfall } from './renown';
@@ -58,6 +59,7 @@ import {
   type EarnedTriumph,
   type GameState,
   type Player,
+  citiesOf,
   playerById,
 } from './state';
 import { highestAge } from './techData';
@@ -75,20 +77,16 @@ import { isWonder } from './buildingData';
  *
  * A type of its own so a seam names one and cannot accidentally announce
  * `cityPopulation`, which nothing announces because nothing has to.
+ *
+ * **Derived rather than listed** since batch H6: it is the intersection of the
+ * world's announced moments (`Occasion`, `occasions.ts`) with the trigger
+ * vocabulary this table happens to speak. It was a hand-written `Extract` of ten
+ * words that were also, word for word, ten of `BeadOccasion`'s thirteen — one
+ * list kept in three places, and the third was the fact that `awardOccasion`
+ * hands its argument straight to `awardBeadOccasion`. That hand-off now
+ * typechecks by construction: a triumph occasion *is* an occasion.
  */
-export type TriumphOccasion = Extract<
-  TriumphTriggerKind,
-  | 'cityFounded'
-  | 'ageEntered'
-  | 'wonderCompleted'
-  | 'battleWonAgainstStronger'
-  | 'campCleared'
-  | 'discoveryClaimed'
-  | 'governmentAdopted'
-  | 'beliefConsecrated'
-  | 'cityOnOtherContinent'
-  | 'cityCaptured'
->;
+export type TriumphOccasion = Extract<Occasion, TriumphTriggerKind>;
 
 /** What an award did, for the line the interface announces it in. */
 export interface TriumphAward {
@@ -321,11 +319,6 @@ export function awardCountTriumphs(state: GameState, playerId: number): TriumphA
 }
 
 // --- the seams' helpers -----------------------------------------------------
-
-/** This empire's cities, in `state.cities` order — founding order. */
-function citiesOf(state: GameState, playerId: number): City[] {
-  return state.cities.filter((city) => city.ownerId === playerId);
-}
 
 /**
  * Everything a **founding** may earn: the third hearth, and the far shore.

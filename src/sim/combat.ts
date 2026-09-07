@@ -2539,7 +2539,7 @@ export interface SiegeReport {
  * Which hexes are denied to one empire, for the siege question and nothing else.
  *
  * `zocField`'s sibling and deliberately **not** `zocField` itself, for one
- * reason: the movement field has a `zocRule: 'borders'` clause (the Great Wall),
+ * reason: the movement field has a `rule: 'borders'` clause (the Great Wall),
  * under which every hex a rival *owns* projects control. That is right for a
  * march — the wall slows an army crossing it — and catastrophic for a siege,
  * because a town standing inside a Great Wall empire's borders would be starving
