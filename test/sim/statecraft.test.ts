@@ -22,6 +22,7 @@ import {
   explainTileYield,
   foldTileYield,
   empireRateReading,
+  explainEmpireCardYields,
   growthThreshold,
   ownedTiles,
   settleGrowthWindfall,
@@ -1005,6 +1006,41 @@ describe('every hook family, end to end', () => {
     expect(cardEmpireYields(g.state, 0, { faithPerTurn: 7 }).find((l) => l.card === 'theTithe')?.gold).toBe(7);
     // Zero rate, no line — a card that pays nothing is not in the list.
     expect(cardEmpireYields(g.state, 0, { faithPerTurn: 0 }).some((l) => l.card === 'theTithe')).toBe(false);
+  });
+
+  it('rateConversion — the reading is taken only when a card asks for one', () => {
+    // Batch H18. `empireRates` prices every town in the realm, only this arm
+    // reads it, and `explainEmpireCardYields` is asked twice per card stamp,
+    // once per Ledger open and once per top-bar refresh — so it hands the
+    // *taking* of the reading in rather than the reading, and an empire holding
+    // no such card never pays for a figure nothing looks at. What must not move
+    // is the answer for an empire that does hold one.
+    const g = game();
+    const city = found(g.state, 0);
+    city.buildings.push('shrine', 'temple');
+    refreshCityDerived(g.state, city);
+    g.state.players[0]!.statecraft.doctrines.push('theTithe');
+    // The lazy form and the eager one, on the very same board: one list.
+    expect(explainEmpireCardYields(g.state, 0)).toEqual(
+      cardEmpireYields(g.state, 0, empireRateReading(g.state, 0)),
+    );
+    // And the thunk is resolved **once**, so two conversions read one set of
+    // books exactly as they did when the reading was taken up front.
+    let takings = 0;
+    const lines = cardEmpireYields(g.state, 0, () => {
+      takings += 1;
+      return empireRateReading(g.state, 0);
+    });
+    expect(lines).toEqual(explainEmpireCardYields(g.state, 0));
+    expect(takings).toBe(1);
+    // An empire holding no such card never asks at all.
+    g.state.players[0]!.statecraft.doctrines = [];
+    let asked = 0;
+    cardEmpireYields(g.state, 0, () => {
+      asked += 1;
+      return {};
+    });
+    expect(asked).toBe(0);
   });
 
   it('windfallRider — The Woodwrights changes the printed number', () => {

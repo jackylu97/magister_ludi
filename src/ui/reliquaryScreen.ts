@@ -71,7 +71,7 @@
  */
 
 import { type GameState, playerById } from '../sim/state';
-import { type GreatPersonFace, greatPersonFace } from './greatPersonFace';
+import { type GreatPersonFace, greatPersonCard, greatPersonStamp } from './greatPersonFace';
 import { type GreatPersonId, isGreatPersonId } from '../sim/greatPeopleData';
 import {
   OFFER_PURCHASE_IDS,
@@ -97,6 +97,14 @@ import { createModalShell } from './modalShell';
  * two empires can be heeded in one and struck in the other.
  */
 export interface ReliquaryCard {
+  /**
+   * The face, **with no figure on it** — `greatPersonCard`'s half.
+   *
+   * The whole roll is built on every draw and only one card of it is face up, so
+   * the figure is asked for that one card and nowhere else (`reliquaryStamped`,
+   * batch H18). `face.stamp` is therefore `null` on every card in this list, and
+   * means *not asked*.
+   */
   face: GreatPersonFace;
   /** The empire's era when this person was spent — the record's own stamp. */
   age: number;
@@ -131,12 +139,37 @@ export function reliquaryRoll(state: GameState, playerId: number): ReliquaryCard
     const record = player.legacies[at]!;
     if (!isGreatPersonId(record.id)) continue;
     roll.push({
-      face: greatPersonFace(state, playerId, record.id),
+      // The words, the accent and the emblem — never the figure. See
+      // `ReliquaryCard.face` and `reliquaryStamped`.
+      face: greatPersonCard(record.id),
       age: record.age,
       revoked: record.revoked === true,
     });
   }
   return roll;
+}
+
+/**
+ * The one card that is **face up**, with its figure asked for.
+ *
+ * The Reliquary's whole arithmetic, and batch H18's fix to it. `greatPersonFace`
+ * asks `explainCardImpact` — a ghost-diff that prices every town in this empire
+ * twice — and the roll used to ask it for every legacy in the pile on every
+ * draw, which is once per open *and* once per press of an arrow. Only one card
+ * is ever face up and the two under-cards are drawn edge-on with nothing on
+ * them, so the pile was paying five or ten readings to print one.
+ *
+ * A **struck** record is handed back untouched, and that is the same ruling
+ * `drawReliquaryCard` keeps one function down: a revoked legacy goes back to the
+ * flourish, so there was never a figure to ask for. It was being priced anyway.
+ */
+export function reliquaryStamped(
+  state: GameState,
+  playerId: number,
+  card: ReliquaryCard,
+): ReliquaryCard {
+  if (card.revoked) return card;
+  return { ...card, face: { ...card.face, stamp: greatPersonStamp(state, playerId, card.face.id) } };
 }
 
 /**
@@ -278,6 +311,21 @@ export interface ReliquaryScreenOptions {
   trigger?: HTMLElement;
   getState: () => GameState;
   getPlayerId: () => number;
+  /**
+   * How many commands this game has accepted — `game.log.length`, the house
+   * revision (batch H18).
+   *
+   * The key the face-up card's figure is remembered under, together with the
+   * state object itself. It changes on exactly the occasions the answer can:
+   * every mutation in this game goes through `applyCommand` and every accepted
+   * command is appended to the log, so a figure taken at one length is the
+   * figure at that length. The state object is in the key beside it because a
+   * game *loaded* over this one is a different board that may sit at the same
+   * length, and `restoreState` always builds a fresh object.
+   *
+   * Optional, and a screen without one simply remembers nothing.
+   */
+  getRevision?: () => number;
   onOpen?: () => void;
   /**
    * A call was bought. The screen dispatches nothing itself — `controls.ts`'s
@@ -384,8 +432,43 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
   /** A name to land on the next time the screen draws — the ceremony's hand-off. */
   let wanted: GreatPersonId | null = null;
 
+  /**
+   * The figures already asked for, under the board they were asked about.
+   *
+   * `‹ ›` walk the pile, and a player walking back to a card they have already
+   * looked at should not pay a second ghost-diff for a board that has not moved.
+   * The key is `(the state object, the revision)` — see `getRevision` — and the
+   * whole table is thrown away the moment either changes, so nothing here can
+   * outlive the answer it belongs to. A screen given no revision remembers
+   * nothing at all and simply asks every time, which is what it did before.
+   */
+  const stamped = new Map<GreatPersonId, ReliquaryCard>();
+  let stampedState: GameState | null = null;
+  let stampedAt = -1;
+  /** Whose ledger those figures were read off. A seat hop is a different empire. */
+  let stampedSeat = -1;
+
+  /** The face-up card, its figure asked for once per card per board. */
+  function withFigure(state: GameState, playerId: number, card: ReliquaryCard): ReliquaryCard {
+    const revision = options.getRevision?.();
+    if (revision === undefined) return reliquaryStamped(state, playerId, card);
+    if (stampedState !== state || stampedAt !== revision || stampedSeat !== playerId) {
+      stamped.clear();
+      stampedState = state;
+      stampedAt = revision;
+      stampedSeat = playerId;
+    }
+    const known = stamped.get(card.face.id);
+    if (known !== undefined) return known;
+    const fresh = reliquaryStamped(state, playerId, card);
+    stamped.set(card.face.id, fresh);
+    return fresh;
+  }
+
   function draw(flip: boolean): void {
-    const roll = reliquaryRoll(options.getState(), options.getPlayerId());
+    const state = options.getState();
+    const playerId = options.getPlayerId();
+    const roll = reliquaryRoll(state, playerId);
     body.replaceChildren();
     if (wanted !== null) {
       const found = roll.findIndex((card) => card.face.id === wanted);
@@ -428,7 +511,8 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
     }
     const host = element('div', 'offer-options rel-face');
     host.dataset.face = 'tarot';
-    const card = drawReliquaryCard(roll[at]!);
+    // The figure is asked for **here**, for this one card — see `reliquaryStamped`.
+    const card = drawReliquaryCard(withFigure(state, playerId, roll[at]!));
     if (flip) card.classList.add('is-flipping');
     host.append(card);
     stack.append(host);

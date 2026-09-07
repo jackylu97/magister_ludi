@@ -92,6 +92,8 @@
 import {
   type CityYields,
   type EmpirePercents,
+  type TileYieldContext,
+  type TileYieldContribution,
   cityContext,
   cityQuote,
   cityYields,
@@ -129,6 +131,7 @@ import { type MeterId, authorityOf, happinessOf } from './meters';
 import { empireResourceYields } from './resourceEffects';
 import { explainEmpireGold } from './empireGold';
 import { getTileAt } from './map';
+import type { Tile } from './map';
 import { highestAge } from './techData';
 import type { City } from './state';
 
@@ -615,6 +618,53 @@ function meterMoved(from: number, to: number): number {
   return Math.round((to - from) * 10) / 10;
 }
 
+/**
+ * True when the empire's percentages read **exactly the same** with the card and
+ * without it — the card moved neither meter's tier and put the treasury neither
+ * into debt nor out of it.
+ *
+ * The overwhelmingly common case, and the whole of what the ladder below costs
+ * when it holds: every rung of it prices every town in the empire again, three
+ * more sweeps on top of the two the direct diff already took, to report three
+ * lines that are nought (batch H18 measured the ladder at three of the seven
+ * town sweeps one stamp pays for).
+ *
+ * It is a **proof and not a hope** that skipping it prints the same list. Two of
+ * the three rungs are the same percentages in the same order as `townsThen`'s —
+ * every meter line carries a `meter`, so `swap(['happiness','authority'])` keeps
+ * none of the base list and takes all of the ahead one, and the last rung is
+ * `ahead` itself. The first rung is those same lines re-ordered, and a
+ * re-ordering is only safe to call equal because `foldStages` sums the
+ * percentages and nothing else reads them: a sum of **whole** numbers is the
+ * same figure in any order, which is why the whole-number test is part of the
+ * question rather than an assumption about the data. A fractional percentage
+ * ever landing here falls through and the ladder is walked as it always was.
+ */
+function metersUnmoved(base: EmpirePercents, ahead: EmpirePercents): boolean {
+  const same = (
+    was: readonly EmpirePercents['meters'][number][],
+    now: readonly EmpirePercents['meters'][number][],
+  ): boolean => {
+    if (was.length !== now.length) return false;
+    for (let at = 0; at < was.length; at++) {
+      const a = was[at]!;
+      const b = now[at]!;
+      if (!Number.isInteger(a.percent)) return false;
+      if (
+        a.percent !== b.percent ||
+        a.yield !== b.yield ||
+        a.stage !== b.stage ||
+        a.source !== b.source ||
+        a.meter !== b.meter
+      ) {
+        return false;
+      }
+    }
+    return true;
+  };
+  return same(base.meters, ahead.meters) && same(base.arrears, ahead.arrears);
+}
+
 function knockOnLadder(
   base: EmpirePercents,
   ahead: EmpirePercents,
@@ -638,6 +688,87 @@ function knockOnLadder(
 }
 
 /**
+ * **The readings of the real board that every card on one screen shares** —
+ * fold once, ghost N times (batch H18).
+ *
+ * A screen of cards is N ghost-diffs, and exactly half of each of them is a
+ * reading of the board as it actually stands: one side of every pair is `state`
+ * itself (a slotted Order, an adopted Doctrine, an honoured legacy price
+ * *backward*, so the ghost is the world without them and the real state is the
+ * world with). The Statecraft sheet was taking that same half nine times over,
+ * and the empire fold inside it prices every town in the realm.
+ *
+ * So a screen takes one sheet at the top of its draw, hands it to every card,
+ * and drops it. What it holds is not a shortcut anywhere: every entry is the
+ * very function's own answer for the very state object it is keyed to, taken
+ * once instead of nine times. `test/sim/cardImpact.test.ts` pins that a card
+ * stamped with a sheet reads identically to a card stamped without one.
+ *
+ * **Its lifetime is one draw** — `cityQuote`'s rule and `zocField`'s, and for
+ * their reason: `GameState` is mutated in place by the reducer, so a sheet kept
+ * past the command that follows it would answer with a board the game has moved
+ * on from. Take one, spend it, let it go. Nothing stores one.
+ */
+export interface CardImpactSheet {
+  /** The board these readings belong to. Compared by identity, never trusted past it. */
+  readonly state: GameState;
+  readonly playerId: number;
+  readonly percents: () => EmpirePercents;
+  readonly empireLines: () => Map<string, CityYields>;
+  readonly meter: (meter: MeterId) => number;
+  readonly cardSums: (city: City) => Map<string, CityYields>;
+  readonly context: (city: City) => TileYieldContext | undefined;
+  readonly tileAdds: (city: City, tile: Tile) => readonly TileYieldContribution[];
+}
+
+export function cardImpactSheet(state: GameState, playerId: number): CardImpactSheet {
+  let percents: EmpirePercents | undefined;
+  let empireLines: Map<string, CityYields> | undefined;
+  const meters = new Map<MeterId, number>();
+  const sums = new Map<number, Map<string, CityYields>>();
+  const contexts = new Map<number, TileYieldContext | undefined>();
+  const tiles = new Map<string, readonly TileYieldContribution[]>();
+
+  const context = (city: City): TileYieldContext | undefined => {
+    if (!contexts.has(city.id)) contexts.set(city.id, cityContext(state, city));
+    return contexts.get(city.id);
+  };
+
+  return {
+    state,
+    playerId,
+    percents: () => (percents ??= empirePercents(state, playerId)),
+    empireLines: () => (empireLines ??= empireLinesOf(state, playerId)),
+    meter: (meter) => {
+      let held = meters.get(meter);
+      if (held === undefined) {
+        held = meterTotal(state, playerId, meter);
+        meters.set(meter, held);
+      }
+      return held;
+    },
+    cardSums: (city) => {
+      let held = sums.get(city.id);
+      if (!held) {
+        held = cityCardSums(state, city);
+        sums.set(city.id, held);
+      }
+      return held;
+    },
+    context,
+    tileAdds: (city, tile) => {
+      const key = `${city.id}:${tile.col}:${tile.row}`;
+      let held = tiles.get(key);
+      if (!held) {
+        held = explainTileYield(tile, context(city));
+        tiles.set(key, held);
+      }
+      return held;
+    },
+  };
+}
+
+/**
  * What this card would change about the empire's per-turn ledger, as the
  * ordered labelled list the stamp is the fold of.
  *
@@ -645,11 +776,16 @@ function knockOnLadder(
  * empire that does not exist answers the empty list, and so does a card with
  * nothing to say — which the interface draws as the card's own small flourish
  * rather than as a nought.
+ *
+ * `sheet` is the screen's shared half — see `CardImpactSheet`. It changes no
+ * figure: it is consulted only for readings of the very state object it was
+ * taken from, and every one of them is that reading's own function.
  */
 export function explainCardImpact(
   state: GameState,
   playerId: number,
   subject: CardImpactSubject,
+  sheet?: CardImpactSheet,
 ): CardImpactLine[] {
   const player = playerById(state, playerId);
   if (!player) return [];
@@ -658,12 +794,17 @@ export function explainCardImpact(
   const held = pair?.with;
   if (!pair || !without || !held) return occasionLines(subject);
 
+  /** The sheet, iff it is a sheet about *this* board and this seat. */
+  const shared = sheet && sheet.state === state && sheet.playerId === playerId ? sheet : undefined;
+  /** True for the side of the pair that is the real board — the shared half. */
+  const isReal = (which: GameState): boolean => shared !== undefined && which === state;
+
   // The meters as the realm reads them **without** the card. Lent to both sides
   // of the direct diff so the card's own arithmetic cannot borrow the tier it
   // caused — see the module docblock, and `empirePercents` for why lending a
   // reading to a ghost is exact rather than approximate.
-  const base = empirePercents(without, playerId);
-  const ahead = empirePercents(held, playerId);
+  const base = isReal(without) ? shared!.percents() : empirePercents(without, playerId);
+  const ahead = isReal(held) ? shared!.percents() : empirePercents(held, playerId);
 
   const lines: CardImpactLine[] = [];
 
@@ -675,15 +816,16 @@ export function explainCardImpact(
   const ground = new Bucket();
   for (const city of without.cities) {
     if (city.ownerId !== playerId) continue;
-    const was = cityCardSums(without, city);
-    for (const [source, now] of cityCardSums(held, city)) {
+    const was = isReal(without) ? shared!.cardSums(city) : cityCardSums(without, city);
+    const now = isReal(held) ? shared!.cardSums(city) : cityCardSums(held, city);
+    for (const [source, sum] of now) {
       const before = was.get(source);
       for (const key of CITY_YIELD_KEYS) {
-        towns.add(source, 'city', key, now[key] - (before?.[key] ?? 0));
+        towns.add(source, 'city', key, sum[key] - (before?.[key] ?? 0));
       }
     }
-    const groundBefore = cityContext(without, city);
-    const groundAfter = cityContext(held, city);
+    const groundBefore = isReal(without) ? shared!.context(city) : cityContext(without, city);
+    const groundAfter = isReal(held) ? shared!.context(city) : cityContext(held, city);
     for (const cell of city.workedTiles) {
       const tile = getTileAt(without.map, cell.col, cell.row);
       if (!tile) continue;
@@ -692,7 +834,10 @@ export function explainCardImpact(
       // exact rather than approximate (`explainBuildingPreview`'s ground pass,
       // one scale out).
       const old = new Map<string, CityYields>();
-      for (const entry of explainTileYield(tile, groundBefore)) {
+      const wasLines = isReal(without)
+        ? shared!.tileAdds(city, tile)
+        : explainTileYield(tile, groundBefore);
+      for (const entry of wasLines) {
         if (entry.kind !== 'add') continue;
         let sum = old.get(entry.source);
         if (!sum) {
@@ -701,7 +846,10 @@ export function explainCardImpact(
         }
         for (const key of CITY_YIELD_KEYS) sum[key] += entry[key];
       }
-      for (const entry of explainTileYield(tile, groundAfter)) {
+      const nowLines = isReal(held)
+        ? shared!.tileAdds(city, tile)
+        : explainTileYield(tile, groundAfter);
+      for (const entry of nowLines) {
         if (entry.kind !== 'add') continue;
         const before = old.get(entry.source);
         for (const key of CITY_YIELD_KEYS) {
@@ -731,8 +879,8 @@ export function explainCardImpact(
   //    banks all three beside the towns' and a stamp that left them out would
   //    be a figure the turn resolution disagrees with.
   const realm = new Bucket();
-  const empireWas = empireLinesOf(without, playerId);
-  const empireNow = empireLinesOf(held, playerId);
+  const empireWas = isReal(without) ? shared!.empireLines() : empireLinesOf(without, playerId);
+  const empireNow = isReal(held) ? shared!.empireLines() : empireLinesOf(held, playerId);
   for (const [source, now] of empireNow) {
     const before = empireWas.get(source);
     for (const key of CITY_YIELD_KEYS) realm.add(source, 'empire', key, now[key] - (before?.[key] ?? 0));
@@ -754,8 +902,8 @@ export function explainCardImpact(
   //    the rows. These pay in no voice; they are the stamp's other figures.
   for (const meter of METER_ORDER) {
     const moved = meterMoved(
-      meterTotal(without, playerId, meter),
-      meterTotal(held, playerId, meter),
+      isReal(without) ? shared!.meter(meter) : meterTotal(without, playerId, meter),
+      isReal(held) ? shared!.meter(meter) : meterTotal(held, playerId, meter),
     );
     if (moved === 0) continue;
     const line = emptyLine(METER_WORD[meter], 'meter');
@@ -769,14 +917,20 @@ export function explainCardImpact(
   //    tiers flipping at once are two lines rather than one lump — and the last
   //    step's reading is the true one, which is what makes the whole list fold
   //    to `cityYields(ghost) − cityYields(state)` exactly.
-  let running = townsThen;
-  for (const step of knockOnLadder(base, ahead)) {
-    const next = townsTotal(held, playerId, step.percents);
-    const line = emptyLine(step.source, 'knockOn');
-    if (step.meter !== null) line.meter = step.meter;
-    for (const key of CITY_YIELD_KEYS) line[key] = next[key] - running[key];
-    if (pays(line)) lines.push(line);
-    running = next;
+  //
+  //    A card that moved neither meter has no ladder to walk and the three rungs
+  //    are three empire-wide sweeps reporting nought — see `metersUnmoved`,
+  //    which is why the guard is a proof rather than a shortcut.
+  if (!metersUnmoved(base, ahead)) {
+    let running = townsThen;
+    for (const step of knockOnLadder(base, ahead)) {
+      const next = townsTotal(held, playerId, step.percents);
+      const line = emptyLine(step.source, 'knockOn');
+      if (step.meter !== null) line.meter = step.meter;
+      for (const key of CITY_YIELD_KEYS) line[key] = next[key] - running[key];
+      if (pays(line)) lines.push(line);
+      running = next;
+    }
   }
 
   // 6. The occasions, which a diff can never see. See `occasionLines`.

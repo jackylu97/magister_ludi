@@ -465,6 +465,26 @@ describe('the bench and the offices', () => {
   });
 
   /**
+   * **One reading of the real board per draw** (`cardImpactSheet`, batch H18).
+   *
+   * A sheet of a dozen cards is a dozen ghost-diffs, and one side of every one
+   * of them is the empire as it actually stands. Taken once and handed to every
+   * card, a late-game Statecraft draw measured 120ms → 57ms. Its lifetime is
+   * **one draw** — the reducer mutates `GameState` in place — so the pin is on
+   * both halves: it is taken in `draw`, and it is let go in a `finally`.
+   */
+  it('takes one shared reading of the board per draw, and lets go of it', () => {
+    expect(SCREEN).toContain('cardImpactSheet(options.getState(), options.getPlayerId())');
+    expect(SCREEN).toContain('explainCardImpact(state, seat, subject, sheet ?? undefined)');
+    const draw = SCREEN.slice(SCREEN.indexOf('function draw(): void {'));
+    expect(draw.slice(0, draw.indexOf('function paint('))).toContain('sheet = null;');
+    // The Religion sheet keeps the same bargain, one screen over.
+    const votive = source('religionScreen.ts');
+    expect(votive).toContain('cardImpactSheet(options.getState(), options.getPlayerId())');
+    expect(votive.slice(votive.indexOf('function draw(): void {'))).toContain('sheet = null;');
+  });
+
+  /**
    * **Confirm plays the count, and nothing else does** — the reveal ruling
    * (`docs/history/fewer-things.md` §1 "The reveal", RULED 2026-09-06, the user's own
    * words: *"aggregate yields fire after hitting confirm"*).

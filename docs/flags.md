@@ -256,7 +256,17 @@ directly to confirm rulings — user marginalia are rulings.
   question); it mends the turn they withdraw, and a town above the floor
   still heals beside an enemy. Pinned in `combat.test.ts`. The orchestrator's
   reading of "stop healing": while an enemy is at the gate — say if you
-  meant "until repaired" instead. Open, yours to rule: **the bead
+  meant "until repaired" instead. **A miss to own** (f3e2e54): kk, ll and
+  mm each change what a command log replays and shipped at schema 85 with
+  the note "saves still load"; the user's game did not ("the latest changes
+  were breaking, I lost my game"). The rule stands as CLAUDE.md states it —
+  a save is `{config, log}` and replays — so every rule change bumps the
+  schema, however small; the next batch takes 86. (nn) **A performance
+  pass** ("it's starting to feel slow again. The Reliquary in particular is
+  very slow") — batch **H18 — the performance pass** in flight: measure on
+  a late board first, then the Reliquary's per-legacy ghost-diffs on every
+  refresh, the per-card impact folds, the per-hex context, the effect-list
+  hoists; speed only, byte-identity the gate. Open, yours to rule: **the bead
   tables open on the world's clock** (the first empire into an age turns
   its hand face up for all; the Long Count shows the next hand early) — the
   user saw Æra IV draws in Æra III and asked for them only on reaching the
@@ -481,6 +491,38 @@ directly to confirm rulings — user marginalia are rulings.
      citizen line and the Counting Houses are the deck's answer; the tree
      has none. One gate per batch; one schema per batch that
   changes a save (71 → 75). The play checkout on :5199 stays where it is.
+
+- **H18 — the performance pass — BUILT** (the user, 2026-09-07: "could you do
+  a performance pass on the game? I think it's starting to feel slow again.
+  The Reliquary in particular is very slow."). Measured on a 150-turn
+  `standard` board, two bot seats, five towns — the readings the interface
+  takes per open and per accepted command. Nothing changed a replay: the
+  `snapshotState` hashes at t50 / t100 / t150 are byte-identical before and
+  after (`5d387bca` · `a96f27b7` · `d9e00cbf`). Four fixes, in order of
+  ms × frequency. **The Reliquary asks the ledger for one card, not the
+  whole pile**: the roll built a full face for every legacy on every draw and
+  on every press of an arrow, and each face is a ghost-diff pricing every
+  town twice — six legacies cost **81ms a draw, now 0.05ms**, with the one
+  face-up card's figure asked separately (12ms for the whole draw) and
+  remembered under `(the state object, game.log.length, the seat)`, so
+  walking back through the pile is free; a struck legacy is no longer priced
+  at all, its figure having always been thrown away for the flourish.
+  **The knock-on ladder is not walked when the card moved neither meter**:
+  three of the seven empire-wide town sweeps one stamp paid for were
+  reporting three noughts — a card stamp **13.1ms → 9.6ms**. **The empire's
+  card fold takes its rate reading lazily**: `empireRates` prices every town
+  and only a `rateConversion` card reads it, so it is handed in as the
+  *taking* of it — the top bar's headline now sweeps the meters once for a
+  twelve-town empire instead of twice, and the same 150 bot turns ran 42.0s
+  → 39.4s. **A screen of cards shares one reading of the real board**
+  (`cardImpactSheet`, lifetime one draw): the Statecraft sheet's nine stamps
+  **120ms → 55ms**, and the Religion sheet keeps the same bargain. Left alone
+  and reported: `runEndOfTurn` is 85ms (collectYields 27 · barbarians 27 ·
+  beads 15), and the bots' own thinking is **790ms a turn** at t150 — an
+  order of magnitude more than the resolution, and the real answer to "the
+  turn takes a moment". No sheet computes while hidden today: all eight
+  `modalShell` screens gate `refresh` on `isOpen`, the Abacus only marks
+  itself stale, the Compendium builds once.
 
 ### In flight earlier (2026-09-05, evening)
 

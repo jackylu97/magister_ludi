@@ -199,13 +199,21 @@ export interface GreatPersonFace {
   stamp: StampReading | null;
 }
 
-export function greatPersonFace(
-  state: GameState,
-  playerId: number,
-  id: GreatPersonId,
-): GreatPersonFace {
+/**
+ * The face **without asking the ledger** — everything a card of this person says
+ * that is a fact about the person rather than about the empire holding them.
+ *
+ * The split is batch H18's, and the reason is the Reliquary: a pile of six
+ * legacies used to be six ghost-diffs on every draw and on every press of an
+ * arrow, when only one card is face up and only that one prints a figure. This
+ * half is a table lookup; the other half prices every town in the empire twice
+ * (`explainCardImpact`), so the two are asked at different rates and the caller
+ * decides which it needs. `stamp: null` here means *not asked*; a face that was
+ * asked and had nothing to say answers with the same `null`, which is honest
+ * either way — both leave the flourish standing.
+ */
+export function greatPersonCard(id: GreatPersonId): GreatPersonFace {
   const def = greatPersonDef(id);
-  const reading = stampReading(explainCardImpact(state, playerId, { kind: 'legacy', id }));
   return {
     id,
     name: def.name,
@@ -219,6 +227,30 @@ export function greatPersonFace(
     legacy: legacyHeadline(describeCard(id)),
     deed: deedFootnote(def.family),
     flavor: def.epigram,
-    stamp: stampIsEmpty(reading) ? null : reading,
+    stamp: null,
   };
+}
+
+/**
+ * The figure alone — the ghost-diff, priced for one person in one empire.
+ *
+ * Its own function so a surface that draws many faces and prints one figure can
+ * ask for the one (`reliquaryScreen.ts`). `null` when the reading has nothing in
+ * it, which is what leaves the flourish standing rather than printing a nought.
+ */
+export function greatPersonStamp(
+  state: GameState,
+  playerId: number,
+  id: GreatPersonId,
+): StampReading | null {
+  const reading = stampReading(explainCardImpact(state, playerId, { kind: 'legacy', id }));
+  return stampIsEmpty(reading) ? null : reading;
+}
+
+export function greatPersonFace(
+  state: GameState,
+  playerId: number,
+  id: GreatPersonId,
+): GreatPersonFace {
+  return { ...greatPersonCard(id), stamp: greatPersonStamp(state, playerId, id) };
 }

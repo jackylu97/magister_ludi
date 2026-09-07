@@ -19,7 +19,9 @@
  *      offers.
  *   2. **`empireRates`** (`cities.ts`, behind `explainEmpireCardYields`) does the
  *      same for its own sweep — which is the phase that *banks* the turn as well
- *      as the headline that quotes it.
+ *      as the headline that quotes it. Since batch H18 that sweep is also
+ *      *skipped* for an empire holding no `rateConversion` card: the reading is
+ *      handed in as the taking of it, and only that one arm reads it.
  *   3. **`tradeLedger` asks `explainEmpireGold` once**, where it used to ask
  *      twice: once for the lines and again through `empireGold`, which is
  *      nothing but the fold of them.
@@ -124,12 +126,30 @@ function counting<T>(
 }
 
 describe('the empire’s percentages are taken once a render', () => {
-  it('sweeps the meters twice for a twelve-town empire, not two dozen times', () => {
-    // Two, and both are hoists: `civYields`' own, and the one inside
-    // `empireRates` behind `explainEmpireCardYields`. Before this pass it was
-    // one per town per sweep — twenty-four — and the strip is redrawn on every
-    // accepted command.
+  it('sweeps the meters once for a twelve-town empire, not two dozen times', () => {
+    // **One**, and it is `civYields`' own hoist. Before that hoist it was one
+    // sweep per town — twenty-four — and the strip is redrawn on every accepted
+    // command.
+    //
+    // It was two until batch H18, the second being `empireRates`' behind
+    // `explainEmpireCardYields`. That reading prices every town in the realm and
+    // only a `rateConversion` card reads it, so it is now handed in as the
+    // *taking* of it and an empire holding no such card never takes it at all —
+    // see the test below, which is the same claim from the other side.
     const state = empire(12);
+    const swept = counting(meters, 'meterEffects', () => civYields(state, 0));
+    expect(swept.count).toBe(1);
+    expect(swept.count).toBeLessThan(state.cities.length);
+  });
+
+  it('takes the rate reading’s own sweep only for an empire that reads a rate', () => {
+    // The Tithe converts a turn of faith into gold, so the books have to be
+    // opened — and then exactly once, hoisted inside `empireRates` as before.
+    // The figure is unchanged either way: `cardEmpireYields` resolves the thunk
+    // on the first conversion it meets and once only
+    // (`test/sim/statecraft.test.ts` pins that half).
+    const state = empire(12);
+    state.players[0]!.statecraft.doctrines.push('theTithe');
     const swept = counting(meters, 'meterEffects', () => civYields(state, 0));
     expect(swept.count).toBe(2);
     expect(swept.count).toBeLessThan(state.cities.length);

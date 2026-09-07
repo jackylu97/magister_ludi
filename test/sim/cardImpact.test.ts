@@ -16,6 +16,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   type CardImpactLine,
+  type CardImpactSubject,
+  cardImpactSheet,
   explainCardImpact,
   foldCardImpact,
   foldCardOccasions,
@@ -203,6 +205,32 @@ describe('a meter knock-on', () => {
     const { state } = bench();
     const lines = explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays' });
     expect(lines.filter((line) => line.kind === 'knockOn')).toEqual([]);
+  });
+
+  /**
+   * And it is silent **without walking the ladder** (batch H18). Each of its
+   * three rungs prices every town in the realm again, three sweeps on top of
+   * the two the direct diff already took, to report three noughts — three of
+   * the seven town sweeps one stamp used to pay for. `metersUnmoved` is the
+   * guard, and it is a proof rather than a shortcut: two of the three rungs are
+   * the same percentages in the same order as the reading already taken, the
+   * third is those lines re-ordered, and a sum of whole numbers is the same
+   * figure in any order — which is why the whole-number test is part of the
+   * question. The pin is on the guard, because a silent list is what a walked
+   * ladder produces too and no assertion about the *answer* can tell them apart.
+   */
+  it('does not walk the ladder at all when neither meter moved', () => {
+    const source = Object.entries(
+      import.meta.glob('../../src/sim/*.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>,
+    ).find(([path]) => path.endsWith('/cardImpact.ts'))![1];
+    expect(source).toContain('if (!metersUnmoved(base, ahead)) {');
+    expect(source).toContain('if (!Number.isInteger(a.percent)) return false;');
+    // The ladder is reached from nowhere else — one guard, one caller.
+    expect(source.match(/knockOnLadder\(base, ahead\)/g)).toHaveLength(1);
   });
 });
 
@@ -787,6 +815,83 @@ describe('the order pass stamps', () => {
       'theVotiveTally', 'theGreatEnquiry'] as OrderId[]) {
       explainCardImpact(state, 0, { kind: 'order', id });
     }
+    expect(snapshotState(state)).toBe(before);
+  });
+});
+
+/**
+ * **The screen's shared half** (`cardImpactSheet`, batch H18).
+ *
+ * A screen of a dozen cards is a dozen ghost-diffs, and one side of every one of
+ * them is the board as it actually stands — the same empire fold, the same town
+ * contexts, the same meters, a dozen times over. The sheet is that half taken
+ * once and handed to every card, and the only claim worth pinning about it is
+ * that it is not a shortcut anywhere: a card stamped with a sheet must read
+ * **identically** to a card stamped without one, on every class of card and on
+ * both sides of the pair (a card in force prices backward, a card not held
+ * prices forward).
+ */
+describe('the sheet a screen shares between its cards', () => {
+  it('changes no figure, for any class of card, held or not', () => {
+    const { state, city } = bench();
+    // Enough scenery that every register of the list has something in it: a
+    // meter near a rung, a shelf for a building share, a card in force.
+    city.buildings.push('cathedral', 'hallOfDeeds', 'circusMaximus', 'library', 'market');
+    refreshCityDerived(state, city);
+    const sc = state.players[0]!.statecraft;
+    sc.orders.push('weightsAndMeasures');
+    sc.slots[sc.slots.findIndex((slot) => slot === null)] = {
+      card: 'weightsAndMeasures',
+      sealedUntil: state.turn,
+    };
+    sc.doctrines.push('theAcademyOfDeeds');
+    state.players[0]!.legacies.push({ id: 'homer', age: 1 });
+
+    const subjects: CardImpactSubject[] = [
+      // In force, so the ghost is the world *without* them — the shared half is
+      // the real board, which is the case the sheet exists for.
+      { kind: 'order', id: 'weightsAndMeasures' },
+      { kind: 'doctrine', id: 'theAcademyOfDeeds' },
+      { kind: 'legacy', id: 'homer' },
+      // Not held, so the ghost is the world *with* them and the shared half is
+      // the other side of the pair.
+      { kind: 'order', id: 'festivalDays' },
+      { kind: 'order', id: 'borderBallads' },
+      { kind: 'order', id: 'firstRites' },
+      { kind: 'doctrine', id: 'riverKings' },
+      { kind: 'government', id: 'chiefdom' },
+      { kind: 'legacy', id: 'imhotep' },
+      { kind: 'belief', id: 'goddessOfTheHarvest' },
+    ];
+    const sheet = cardImpactSheet(state, 0);
+    for (const subject of subjects) {
+      const alone = explainCardImpact(state, 0, subject);
+      const shared = explainCardImpact(state, 0, subject, sheet);
+      expect(shared, `${subject.kind}:${subject.id}`).toEqual(alone);
+    }
+  });
+
+  /**
+   * A sheet taken for another board or another seat is **ignored**, never
+   * believed. It is compared by the state object's own identity, so a sheet
+   * handed to the wrong question answers the wrong question's own way.
+   */
+  it('is ignored when it belongs to another board or another seat', () => {
+    const { state } = bench();
+    const other = bench();
+    const subject: CardImpactSubject = { kind: 'order', id: 'weightsAndMeasures' };
+    const alone = explainCardImpact(state, 0, subject);
+    expect(explainCardImpact(state, 0, subject, cardImpactSheet(other.state, 0))).toEqual(alone);
+    expect(explainCardImpact(state, 0, subject, cardImpactSheet(state, 1))).toEqual(alone);
+  });
+
+  /** And it leaves the board alone, exactly as an unshared reading does. */
+  it('leaves the state byte-identical', () => {
+    const { state } = bench();
+    const before = snapshotState(state);
+    const sheet = cardImpactSheet(state, 0);
+    explainCardImpact(state, 0, { kind: 'order', id: 'weightsAndMeasures' }, sheet);
+    explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays' }, sheet);
     expect(snapshotState(state)).toBe(before);
   });
 });

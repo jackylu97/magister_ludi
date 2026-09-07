@@ -3417,13 +3417,24 @@ function deckModifierLines(
  * which is the whole difference between an empire line and a per-city one.
  * `rates` carries the turn's totals the phase has just computed — see
  * `RateReading` for why they are handed in rather than asked for again.
+ *
+ * **It may be handed a thunk instead** (batch H18), and that is the whole of
+ * what `empireRateReading`'s docblock always promised: a rate reading prices
+ * every town in the empire, and only the `rateConversion` arm below reads one.
+ * A caller with the turn's totals already in hand passes them; a caller that
+ * would have to *take* the reading passes the taking, and an empire holding no
+ * such card never pays for it. Resolved at most once, so two conversions read
+ * one set of books exactly as they did when the reading was taken up front.
  */
 export function cardEmpireYields(
   state: GameState,
   playerId: number,
-  rates: RateReading = {},
+  rates: RateReading | (() => RateReading) = {},
 ): CardYieldLine[] {
   const list: CardYieldLine[] = [];
+  let taken: RateReading | undefined = typeof rates === 'function' ? undefined : rates;
+  const reading = (): RateReading =>
+    (taken ??= typeof rates === 'function' ? rates() : rates);
 
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'empireYields')) {
     const line = emptyLine(card, source);
@@ -3446,7 +3457,7 @@ export function cardEmpireYields(
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'rateConversion')) {
     const pays = effect.pays;
     if (pays.to !== 'yield') continue;
-    const times = helpings(rateOf(state, playerId, effect.from, rates), effect.per, undefined);
+    const times = helpings(rateOf(state, playerId, effect.from, reading()), effect.per, undefined);
     if (times === 0) continue;
     const line = emptyLine(card, label(source, `×${times}`));
     line[pays.yield] = pays.amount * times;

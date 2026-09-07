@@ -3802,6 +3802,11 @@ async function boot(initial: Game | null): Promise<void> {
     closeButton: requireElement('reliquary-close'),
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
+    // The house revision: every mutation goes through `applyCommand` and every
+    // accepted command lands in the log, so its length changes on exactly the
+    // occasions a legacy's figure can. The sheet remembers the figures it has
+    // already asked for under it (`getRevision`, batch H18).
+    getRevision: () => game.log.length,
     onOpen: () => {
       menu.close();
       help.close();

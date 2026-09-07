@@ -91,9 +91,15 @@ function fn(file: string, name: string): string {
   throw new Error(`${file}'s ${name} never closes`);
 }
 
+/**
+ * The painting itself is `paint`, not `draw`: since batch H18 `draw` is the
+ * frame around it — it takes the one reading of the real board every belief on
+ * this sheet shares (`cardImpactSheet`) and lets go of it on the way out — and
+ * everything about the *layout* is one function in.
+ */
 describe('the Religion sheet is a split', () => {
   it("builds the Statecraft screen's own four split classes", () => {
-    const draw = fn('religionScreen.ts', 'draw');
+    const draw = fn('religionScreen.ts', 'paint');
     for (const className of ['sc-split', 'sc-column', 'sc-column-body', 'sc-pane']) {
       expect(`${className}: ${draw.includes(`'${className}`)}`).toBe(`${className}: true`);
     }
@@ -104,7 +110,7 @@ describe('the Religion sheet is a split', () => {
     // so the cards lead, the tide reports what they are doing, and the purchases
     // close. The failure this guards is the old sheet's, which led with a price
     // — a player opening the screen met a button before they met their gods.
-    const draw = fn('religionScreen.ts', 'draw');
+    const draw = fn('religionScreen.ts', 'paint');
     const column = draw.indexOf('sc-column-body');
     const pantheon = draw.indexOf('drawPantheon');
     const pane = draw.indexOf("'sc-pane'");
@@ -277,8 +283,10 @@ describe('the gods in the column wear their figure', () => {
 
   it('reads the figure from the sim and shows nothing when there is nothing', () => {
     const text = source('religionScreen.ts');
+    // The sheet's shared half rides in as the fourth argument (batch H18) and
+    // changes no figure — `test/sim/cardImpact.test.ts` pins that.
     expect(text).toContain(
-      "stampReading(explainCardImpact(state, seat, { kind: 'belief', id }))",
+      "stampReading(explainCardImpact(state, seat, { kind: 'belief', id }, sheet ?? undefined))",
     );
     // A belief that pays nothing standing keeps the flourish rather than a nought.
     expect(text).toContain('stampIsEmpty(reading) ? null : reading');

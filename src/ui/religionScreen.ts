@@ -92,7 +92,7 @@ import {
   stampIsEmpty,
   stampReading,
 } from './cardStamp';
-import { explainCardImpact } from '../sim/cardImpact';
+import { type CardImpactSheet, cardImpactSheet, explainCardImpact } from '../sim/cardImpact';
 import { poolFigure } from './figures';
 import {
   type NextRung,
@@ -614,9 +614,20 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
    * `ghostPair`'s pair.
    */
   function beliefStamp(state: GameState, seat: number, id: BeliefId): StampReading | null {
-    const reading = stampReading(explainCardImpact(state, seat, { kind: 'belief', id }));
+    const reading = stampReading(explainCardImpact(state, seat, { kind: 'belief', id }, sheet ?? undefined));
     return stampIsEmpty(reading) ? null : reading;
   }
+
+  /**
+   * The half of this draw's stamps that is a reading of the **real** board,
+   * taken once and shared by every belief on the sheet (`cardImpactSheet`,
+   * batch H18) — the Statecraft sheet's own bargain, one screen over.
+   *
+   * Its lifetime is **one draw**: the reducer mutates `GameState` in place, so a
+   * sheet kept past the next command would answer with a board the game has
+   * moved on from. Set and let go in `draw`, stored nowhere.
+   */
+  let sheet: CardImpactSheet | null = null;
 
   /**
    * The pool, its rate, and **when the next god arrives** — the Faith chip's
@@ -1173,6 +1184,15 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   let aimedCityId: number | null = null;
 
   function draw(): void {
+    sheet = cardImpactSheet(options.getState(), options.getPlayerId());
+    try {
+      paint();
+    } finally {
+      sheet = null;
+    }
+  }
+
+  function paint(): void {
     const state = options.getState();
     const seat = options.getPlayerId();
     body.replaceChildren();

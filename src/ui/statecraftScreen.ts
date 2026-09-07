@@ -168,7 +168,12 @@ import {
   stampReading,
 } from './cardStamp';
 import { DECK_AGGREGATE_LABEL, deckAggregate, deckAggregateLine } from './ledgerScreen';
-import { type CardImpactSubject, explainCardImpact } from '../sim/cardImpact';
+import {
+  type CardImpactSheet,
+  type CardImpactSubject,
+  cardImpactSheet,
+  explainCardImpact,
+} from '../sim/cardImpact';
 import { CARD_LINE_NAME, cardLineMarkNode, lineOf, slotMarkNode } from './cardLine';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import { createModalShell } from './modalShell';
@@ -924,7 +929,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * is the same number as what it is paying.
    */
   function stampFor(state: GameState, seat: number, subject: CardImpactSubject) {
-    const reading = stampReading(explainCardImpact(state, seat, subject));
+    const reading = stampReading(explainCardImpact(state, seat, subject, sheet ?? undefined));
     return stampIsEmpty(reading) ? null : reading;
   }
 
@@ -1072,7 +1077,29 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     return block;
   }
 
+  /**
+   * The half of this draw's stamps that is a reading of the **real** board, taken
+   * once and shared by every card on the sheet (`cardImpactSheet`, batch H18).
+   *
+   * A screen of a dozen cards is a dozen ghost-diffs, and one side of every one
+   * of them is the empire as it actually stands — the same empire fold, the same
+   * town contexts, the same meters, twelve times over. Its lifetime is **one
+   * draw**, which is why it is set and let go in `draw` rather than kept: the
+   * reducer mutates `GameState` in place, so a sheet held past the next command
+   * would answer with a board the game has moved on from.
+   */
+  let sheet: CardImpactSheet | null = null;
+
   function draw(): void {
+    sheet = cardImpactSheet(options.getState(), options.getPlayerId());
+    try {
+      paint();
+    } finally {
+      sheet = null;
+    }
+  }
+
+  function paint(): void {
     const state = options.getState();
     const seat = options.getPlayerId();
     const player = playerById(state, seat);

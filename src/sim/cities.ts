@@ -4406,9 +4406,18 @@ export function empireRateReading(state: GameState, playerId: number): RateReadi
  * disagrees with, which is exactly the Great Litany bug this function exists
  * to close. `empireRates` stays private — it is an input this function alone
  * needs, not a fact anything else asks for.
+ *
+ * **The reading is handed in as the taking of it** (batch H18), which is what
+ * `empireRateReading`'s docblock has always said it was: `empireRates` prices
+ * every town in the empire, only a `rateConversion` card reads it, and this
+ * list is asked twice per card stamp, once per Ledger open and once per top-bar
+ * refresh. An empire holding no such card was paying a whole extra sweep of its
+ * own cities for a figure nothing looked at. Nothing about the answer moves:
+ * `cardEmpireYields` resolves the thunk on the first conversion it meets and
+ * once only, so a realm that holds one reads exactly the books it read before.
  */
 export function explainEmpireCardYields(state: GameState, playerId: number): CardYieldLine[] {
-  return cardEmpireYields(state, playerId, empireRates(state, playerId));
+  return cardEmpireYields(state, playerId, () => empireRates(state, playerId));
 }
 
 /**

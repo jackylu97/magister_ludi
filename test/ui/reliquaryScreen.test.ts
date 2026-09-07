@@ -23,6 +23,7 @@ import {
   reliquaryCalls,
   reliquaryCount,
   reliquaryRoll,
+  reliquaryStamped,
   reliquaryStep,
 } from '../../src/ui/reliquaryScreen';
 import {
@@ -37,6 +38,7 @@ import {
   TIER_ACCENT,
   TIER_MARK,
   deedFootnote,
+  greatPersonCard,
   greatPersonFace,
   legacyHeadline,
   legacyIsSilent,
@@ -226,6 +228,63 @@ describe('the legacy is the headline', () => {
   });
 });
 
+
+// --- the one figure ---------------------------------------------------------
+
+/**
+ * **The pile asks the ledger once, for the card that is face up** (batch H18).
+ *
+ * `greatPersonFace` asks `explainCardImpact` — a ghost-diff that prices every
+ * town in the empire twice — and the roll used to ask it for every legacy in the
+ * pile, on every open and on every press of an arrow, to print one number. Six
+ * legacies on a late board measured 81ms a draw; the roll is now 0.07ms and the
+ * one face-up card pays the reading. What is under test is that the split did
+ * not quietly lose the figure, and that a struck record is never priced at all.
+ */
+describe('the figure, asked for the card that is face up', () => {
+  it('builds the roll with no figure on any card', () => {
+    // `stamp: null` on a card in the roll means *not asked* — see
+    // `ReliquaryCard.face`. Every card, including the one that will be drawn.
+    for (const card of reliquaryRoll(withLegacies(), 0)) {
+      expect(card.face.stamp, card.face.id).toBeNull();
+    }
+  });
+
+  it('asks for it when the card is turned over, and answers the whole face', () => {
+    const state = withLegacies();
+    const roll = reliquaryRoll(state, 0);
+    const top = roll[0]!;
+    const shown = reliquaryStamped(state, 0, top);
+    // Everything the cheap half said is still said, and the figure is the one
+    // the full face would have carried — the same function, asked once.
+    expect(shown.face.name).toBe(top.face.name);
+    expect(shown.face.legacy).toEqual(top.face.legacy);
+    expect(shown.face.stamp).toEqual(greatPersonFace(state, 0, top.face.id).stamp);
+  });
+
+  it('never prices a struck legacy — it wears the flourish', () => {
+    // The screen draws a revoked card with the struck flourish and no figure
+    // (`drawReliquaryCard`), so the ghost-diff was work done for a number that
+    // was thrown away. The card comes back untouched.
+    const state = withLegacies();
+    const struck = reliquaryRoll(state, 0).find((card) => card.revoked)!;
+    expect(reliquaryStamped(state, 0, struck)).toBe(struck);
+  });
+
+  it('gives the cheap half of every roster row a face that can be drawn', () => {
+    // `greatPersonCard`'s own sweep: a row added without an accent, an emblem or
+    // a mark fails here as it does for the full face, and nothing in it asks the
+    // simulation anything.
+    for (const id of GREAT_PERSON_IDS) {
+      const face = greatPersonCard(id);
+      expect(face.line, id).toBe(TIER_ACCENT[greatPersonDef(id).tier]);
+      expect(face.emblem, id).toContain('url(');
+      expect(face.deed, id).toContain('Spent as a');
+      expect(face.stamp, id).toBeNull();
+    }
+  });
+});
+
 // --- the screen -------------------------------------------------------------
 
 describe('the Reliquary screen', () => {
@@ -250,6 +309,24 @@ describe('the Reliquary screen', () => {
     // And nothing this screen writes contains a mark of its own.
     expect(RELIQUARY_EMPTY).not.toContain('[[');
     expect(REVOKED_BAND).not.toContain('[[');
+  });
+
+  it('asks the ghost-diff for one card, and remembers it under the log', () => {
+    // The pin on batch H18's two halves. The roll is built from the cheap face
+    // (`greatPersonCard`), so a draw of a pile of any size is a table lookup;
+    // the figure is asked for the one card the draw actually turns over, and it
+    // is remembered under `(the state object, the revision, the seat)` — the
+    // house key, which changes on exactly the occasions the answer can. A screen
+    // that went back to `greatPersonFace` inside the roll would be a screen
+    // paying a ghost-diff per legacy on every arrow press again.
+    expect(SCREEN).toContain('face: greatPersonCard(record.id)');
+    expect(SCREEN).not.toContain('greatPersonFace(');
+    expect(SCREEN).toContain('drawReliquaryCard(withFigure(state, playerId, roll[at]!))');
+    expect(SCREEN).toContain('stampedState !== state || stampedAt !== revision || stampedSeat !== playerId');
+    expect(SCREEN).toContain('getRevision?.()');
+    // And the game is where the revision comes from — `game.log.length`, never
+    // a clock and never a counter this file keeps.
+    expect(source('main.ts')).toContain('getRevision: () => game.log.length');
   });
 
   it('writes the figure at rest and never replays the count', () => {
