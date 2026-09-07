@@ -89,7 +89,9 @@ be renamed — it would change every seeded outcome. No further rename passes.
    `explainTileYield(tile, ctx?)` / `tileYieldOf` in `src/sim/cities.ts`
    (`explainCentreYield`/`centreYield` for the centre). `ctx` gates the renewals
    AND the resource reveal; who passes one is the `yieldContextFor` docblock's
-   register; an owned tile is always evaluated with its owner's ctx.
+   register; an owned tile is always evaluated with its owner's ctx. The ORDER
+   the folds compose in is `docs/yields.md` — the sequence of record, sync-tested
+   against `cityQuote`'s and `explainEmpireLines`'s own source.
 6. Docblock comments explain *why*, in the existing files' voice.
 7. **Player-facing words are plain**: rules stated in a first-time player's terms
    through the word tables in `statecraft.ts`; a data row's `note`/`deferred` is

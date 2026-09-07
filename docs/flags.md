@@ -312,7 +312,13 @@ directly to confirm rulings — user marginalia are rulings.
   `snapshotState` hashes, each town's flats/percents/total, `civYields`,
   `ledgerReading`, `deckAggregate`, `explainCardImpact` for every held card,
   every worked hex's fold — then compares on every later run. One-time:
-  it is deleted when E3 lands. **E2 — the list is the artefact**:
+  it is deleted when E3 lands. **E1 BUILT** (no behaviour, no number, no
+  replay moved; schema stays 86): `docs/yields.md` states eighteen steps with
+  `test/sim/yieldsDocSync.test.ts` walking the source in that order and
+  classifying all 45 effect kinds, `test/sim/yieldOrder.test.ts` pins the eight
+  boundaries on real rows, and `test/sim/parity.slow.test.ts` +
+  `parityHelpers.ts` wrote 208 KB of fixtures over four boards in 92 s.
+  **E2 — the list is the artefact**:
   `state.revision` (bumped in `applyCommand` and once per phase; serialised;
   schema 87), `readCity`/`readEmpire` as the two memoised sources of truth
   returning the labelled list (`CityQuoteLine[]` with `source`, `card?`,
