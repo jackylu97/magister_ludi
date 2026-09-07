@@ -1,7 +1,7 @@
 /**
  * Every shape on the board, built from primitives and nothing else.
  *
- * Adapted from the look-dev prototype's `src/proto3d/geometry.ts`, which proved
+ * Adapted from the look-dev prototype that preceded this renderer, which proved
  * the point this file inherits: no asset here was drawn, downloaded or baked. A
  * tile is a `CylinderGeometry` with six sides, a pine is a cone on a stick, a
  * knight is a box horse under a lathed rider holding a cylinder. The look

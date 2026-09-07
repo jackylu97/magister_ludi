@@ -85,7 +85,7 @@ import {
   isImprovementId,
   prospectDef,
 } from './improvementData';
-import { type Tile, getTileAt, tileIndex, tileNeighbors } from './map';
+import { type Tile, getTileAt, tileNeighbors } from './map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
 import { type FeatureId } from './terrainData';
@@ -1480,21 +1480,3 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   return report;
 }
 
-// --- queries ----------------------------------------------------------------
-
-/**
- * The tile index of every improvement on the board, in map order.
- *
- * A pure read used by the renderer's fingerprint and by tests. In map order
- * rather than in build order, because "what is on the board" is a question about
- * the board and an order that depended on history would make two identical
- * states hash differently.
- */
-export function improvedCells(state: GameState): { index: number; id: ImprovementId }[] {
-  const out: { index: number; id: ImprovementId }[] = [];
-  for (const tile of state.map.tiles) {
-    if (tile.improvement === undefined) continue;
-    out.push({ index: tileIndex(state.map, tile.col, tile.row), id: tile.improvement });
-  }
-  return out;
-}

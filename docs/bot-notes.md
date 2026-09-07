@@ -1,2 +1,0 @@
-- ai needs to prioritize early scouts.
-- my general build order is scout settler settler worker, that might not be optimal but first build being a scout should be hard-coded.

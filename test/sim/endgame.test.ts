@@ -290,10 +290,10 @@ describe('the closing node pays every empire that reaches it', () => {
 });
 
 /**
- * Re-aimed 2026-09-06 (schema 71, `docs/fewer-things.md` §1). The Long Count
+ * Re-aimed 2026-09-06 (schema 71, `docs/history/fewer-things.md` §1). The Long Count
  * used to pay a die of the Magister for every age its holder entered; the dice
  * are gone from the game entirely and what the node carries in their place is
- * the **reroll's door** (`docs/tech-gifts.md` §2), which is a gate a verb asks
+ * the **reroll's door** (`docs/history/tech-gifts.md` §2), which is a gate a verb asks
  * about rather than a payout a resolution makes. So the three tests that stood
  * here — a die paid, none paid to a seat without the count, none paid for an age
  * already behind you — have nothing left to weigh, and what is pinned instead is

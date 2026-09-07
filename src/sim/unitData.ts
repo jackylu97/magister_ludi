@@ -429,7 +429,7 @@ export interface UnitDef {
    *
    * `OrderDef.retired` and `RiteDef.retired`'s discipline one table over. The
    * augur went when the rites became city verbs and the faith ladder took over
-   * its consecration (`docs/fewer-things.md` §3, ruled 2026-09-06) — but a piece
+   * its consecration (`docs/history/fewer-things.md` §3, ruled 2026-09-06) — but a piece
    * that once stood is a piece a save may hold, and a row deleted outright is a
    * log that cannot be replayed. So the row stays, every rule that reads it
    * keeps working for a piece already on the board, and the two doors close:

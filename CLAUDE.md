@@ -238,13 +238,15 @@ be renamed — it would change every seeded outcome. No further rename passes.
   `retired: true` rows leave every pool, keep the row for saves. Governments:
   tiers ride `tierLadder`; pools via `poolOfGovernment` (current + previous only).
 - **Religion**: `bankPressure` has exactly two callers — `spreadReligion` (the
-  tide) and `pressLump` (prophet/augur lumps; a proclamation is an instant lump,
+  tide) and `pressLump` (a prophet's lump; a proclamation is an instant lump,
   no pulse, no broom) — pinned by source. A city's religion is derived (majority),
   never stored. Follower beliefs apply city-locally to whoever owns the city;
   founder-side pay follows the stones (`religionFounder` = holder of the holy
   site). A follower row paying an empire fails the build. Beliefs/rites are rows
-  of the same effect vocabulary read by the same evaluator. One-charge prophet
-  and augur; an augur's rite is its whole turn (`augurHasActed`).
+  of the same effect vocabulary read by the same evaluator. One-charge prophet.
+  The augur is **retired** (`data/units.json`): rites are a city's verbs now,
+  and `consecrateError`/`consecrateAt` are a deliberately unreachable arm kept
+  so the rule is not deleted with the piece.
 - **Wonders**: `GameState.wonders` is the register, written by `claimWonder`
   from `realiseItem`. The claim is history; pay follows the stones (holding
   city's `buildings`). "Banked toward it" = the front row or nothing (refund
@@ -259,9 +261,12 @@ be renamed — it would change every seeded outcome. No further rename passes.
   (`settleRenownWindfall`); `explainRenown` is its rule-5 list; a spent roster
   banks rather than blocks. The draw is weighted (1000 + feed share), never
   restricted, spills `[age, previous…, next…]`; `chooseGreatPerson` is the
-  reducer's one refusal that mutates (redraw on a taken name). The Academy's
-  scholar draft goes through `OFFER_PURCHASES` (`buys`, not currency), charges
-  faith, moves no renown. A work stands anywhere but water/mountain and opens
+  reducer's one refusal that mutates (redraw on a taken name). The three card
+  clauses that buy a great person are `OFFER_PURCHASES` — the Academy's scholar
+  draft (`buys`, not currency; charges faith, moves no renown) beside the two
+  tier-45 governments' — issued by `purchaseGreatPersonOffer` from the rail at
+  the foot of the Reliquary (`src/ui/reliquaryScreen.ts`, the only surface that
+  constructs it). A work stands anywhere but water/mountain and opens
   the seam it covers ("Iron · academy"); a citadel is a flat defender line.
   Legacies are `liveEffects`' sixth source; revoked by MARKING
   (`LegacyRecord.revoked`, `revokeLegacies` the only writer), never deleting.

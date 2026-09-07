@@ -1,5 +1,5 @@
 /**
- * **The buildings cut, with chains** — `docs/fewer-things.md` §2, `docs/tech-gifts.md`
+ * **The buildings cut, with chains** — `docs/history/fewer-things.md` §2, `docs/history/tech-gifts.md`
  * §7 and `docs/balance-turn.md` §4, landed as batch D of the fewer-things pass
  * (2026-09-06, schema 73).
  *
@@ -150,7 +150,7 @@ describe('a chained building wants its parent standing in the same town', () => 
   });
 
   /**
-   * **A grant ignores the chain** (RULED, `docs/fewer-things.md` §6.4).
+   * **A grant ignores the chain** (RULED, `docs/history/fewer-things.md` §6.4).
    *
    * The Theatre of Dionysus hands over an Amphitheater, and the Amphitheater now
    * wants a Monument. The grant path is `realiseItem`, which never asks
@@ -361,7 +361,7 @@ describe('the five unique buildings', () => {
   });
 
   /**
-   * **The Throne's placement half** (`docs/tech-gifts.md` §7): a piece raised in
+   * **The Throne's placement half** (`docs/history/tech-gifts.md` §7): a piece raised in
    * the town that holds it is a gold a turn cheaper to keep, for the rest of its
    * life.
    *

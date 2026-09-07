@@ -1,7 +1,7 @@
 /**
  * The Ledger — where this turn's yield comes from, and where the curve goes.
  *
- * `docs/loop-review.md` §3, bands 1 and 2 (band 3 is a labelled hole until the
+ * `docs/history/loop-review.md` §3, bands 1 and 2 (band 3 is a labelled hole until the
  * lifetime tally has a schema field). Three kinds of test, and the split is this
  * suite's usual one (`reliquaryScreen.test.ts` says why): the **reading** is a
  * fold over the state and is driven for real, the **register** is a walk over

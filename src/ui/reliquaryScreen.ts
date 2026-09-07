@@ -1,7 +1,7 @@
 /**
  * The Reliquary: **the honored dead, and what they still pay you.**
  *
- * `docs/doctrine-ideas.md`, "The Reliquary is a SCREEN" (re-ruled 2026-09-03).
+ * `docs/history/doctrine-ideas.md`, "The Reliquary is a SCREEN" (re-ruled 2026-09-03).
  * It fixes a real and quiet gap: a legacy reaches the empire's ledger through
  * `liveEffects`' sixth source and appears on **no surface at all** once the
  * ceremony is over — a player three ages in has six permanent abilities and no
@@ -56,7 +56,7 @@
  * always saw.
  *
  * What is deliberately **not** here: the lifetime "has produced" tally. It is
- * phase 2 and it needs a schema field (`docs/doctrine-ideas.md`), and a dash
+ * phase 2 and it needs a schema field (`docs/history/doctrine-ideas.md`), and a dash
  * standing in for it would be a number the screen does not have, printed as
  * though it did. The line is omitted whole.
  *

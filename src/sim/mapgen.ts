@@ -67,7 +67,6 @@ import {
   type GameMap,
   type Tile,
   createMap,
-  offsetToAxial,
   tileHex,
   tileIndex,
   tileNeighbors,
@@ -1304,9 +1303,4 @@ export function generateMapDetail(
   placeVeins(map, rng, config.veins);
 
   return { map, rivers, lakeCount, floodplainCount, clearingCount: clearings, forcedStrategics };
-}
-
-/** Convenience for the UI: axial coordinates of a tile. */
-export function tileAxial(tile: Tile) {
-  return offsetToAxial(tile.col, tile.row);
 }

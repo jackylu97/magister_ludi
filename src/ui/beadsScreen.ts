@@ -746,7 +746,7 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
       });
       rod.append(wire);
       // The rod used to carry a line of dice of the Magister under the wire.
-      // The dice went with schema 71 (`docs/fewer-things.md` §1 — faith rerolls
+      // The dice went with schema 71 (`docs/history/fewer-things.md` §1 — faith rerolls
       // a draft now), and nothing stands in their place: the rod counts beads,
       // which is the whole of what it was ever for.
       column.append(rod);

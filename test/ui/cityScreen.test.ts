@@ -416,7 +416,7 @@ describe('the city mode', () => {
   });
 
   /**
-   * **The rites are the town's verb** (`docs/fewer-things.md` §3, ruled
+   * **The rites are the town's verb** (`docs/history/fewer-things.md` §3, ruled
    * 2026-09-06).
    *
    * The user's complaint about the augur was an errand, so the errand went and
@@ -681,7 +681,7 @@ describe('the build list', () => {
   });
 
   /**
-   * **The chain's own sentence, on the row** (batch D, `docs/fewer-things.md`
+   * **The chain's own sentence, on the row** (batch D, `docs/history/fewer-things.md`
    * §2). A chained building is *greyed*, not hidden — the reason is the whole
    * point of it, because "raise a Library and this opens" is the decision the
    * chain exists to create. Read from the source, like every other claim in this

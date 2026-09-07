@@ -4,8 +4,8 @@ The user: *"I agree with your mix of orders, engines, payoffs and standalones
 … i think we can cut some standalones and add more payoff/engine cards.
 Could you do a proposal pass?"*
 
-Rulings this pass obeys (`docs/fewer-things.md` §4 and §6; `docs/balance-turn.md`
-as marked up; `docs/tech-gifts.md` §7):
+Rulings this pass obeys (`docs/history/fewer-things.md` §4 and §6; `docs/balance-turn.md`
+as marked up; `docs/history/tech-gifts.md` §7):
 
 - **Roles**: an **engine** reads the deck or the board's *kind* (a line count,
   a slot position, an amplifier over card yields by voice, a building category,
@@ -525,7 +525,7 @@ per pool.
 
 1. **Pools, confirmed**: "age 2 / age 3" are the Government II and III pools.
 2. **Lines, confirmed**: `CardLine` stays a drawn mark only; `slottedOrdersOfLine`
-   is not built; slot-flavour counts stay. `docs/fewer-things.md` §4 and §6
+   is not built; slot-flavour counts stay. `docs/history/fewer-things.md` §4 and §6
    item 8 are re-ruled by this.
 3. **"Every faith roll" = every faith reroll of an Order draft.** The shrine
    engine is a tally on rerolls taken while slotted (+1🕯 on Shrines per

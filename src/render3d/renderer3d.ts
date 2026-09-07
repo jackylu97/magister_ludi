@@ -1,7 +1,7 @@
 /**
  * The playable 3D renderer: scene, lights, board, pieces, overlays, input glue.
  *
- * This is the prototype in `src/proto3d/` grown up. The look is unchanged and
+ * This is the look-dev prototype grown up. The look is unchanged and
  * deliberately so — same palette, same three-band toon ramp, same inverted-hull
  * outlines, same warm-key/cool-fill rig, same 57° orthographic angle, same
  * grout-line substrate. What was added is everything a look test did not need:

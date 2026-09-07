@@ -1,7 +1,7 @@
 /**
  * The spend ceremony — the card rises, the legacy counts, the deed appears.
  *
- * `docs/doctrine-ideas.md`, "The great person's three beats", re-ruled
+ * `docs/history/doctrine-ideas.md`, "The great person's three beats", re-ruled
  * 2026-09-03 as the **inversion**: the legacy is the animated content and the
  * act or work is the footnote under it. Everything this file guards is a thing
  * that renders perfectly while being wrong — a ceremony raised on a refused

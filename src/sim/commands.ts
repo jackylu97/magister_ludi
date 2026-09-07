@@ -849,7 +849,7 @@ export interface SkipOrderOfferCommand extends PlayerCommand {
 
 /**
  * **Deals the draft again, for faith** — the Magister's dice replaced by the
- * currency that had nothing to buy (ruled 2026-09-06, `docs/fewer-things.md` §1:
+ * currency that had nothing to buy (ruled 2026-09-06, `docs/history/fewer-things.md` §1:
  * *"the dice go entirely; faith rerolls a draft"*).
  *
  * It names nothing, exactly as a pass names nothing: there is one hand on the
@@ -1061,7 +1061,7 @@ export interface ChooseBeliefCommand extends PlayerCommand {
 }
 
 /**
- * **A city performs a rite** (ruled 2026-09-06, `docs/fewer-things.md` §3).
+ * **A city performs a rite** (ruled 2026-09-06, `docs/history/fewer-things.md` §3).
  *
  * It named a piece until this pass — an augur, walked to a town and spent — and
  * the errand was the whole complaint. It names a **town** now: no unit, no

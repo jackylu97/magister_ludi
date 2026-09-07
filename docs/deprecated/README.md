@@ -9,6 +9,7 @@ authoritative; the master for each is named beside it. Moved 2026-08-29.
 | `statecraft-cards.md` — the Æra I–II Statecraft working doc, fourth pass | `docs/orders-and-doctrines.md` (the master list) |
 | `statecraft-ages-3-5.md` — the later pools, first draft | `docs/orders-and-doctrines.md` (its Æra III–V tables) |
 | `playable.md` — the playable-loop plan of 2026-08-23 | executed; `docs/design-notes.md` Entries XVI–XLVII |
+| `veins.md` — the vein layer, SHELVED 2026-09-06 | nothing yet. The code is intact and the shelving is one number (`data/mapgen.json` `veins.share = 0`); this doc **is** the drawer it went into. Moved here 2026-09-07 (batch H4) |
 
 Earlier consolidations went further and *deleted* rather than moved: `ages.md`,
 `mythic-sciences.md`, `tech-tree-ages-2-5.md` and `tech-unlocks.md` live in git history and

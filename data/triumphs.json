@@ -145,7 +145,7 @@
       "pays": 8,
       "scope": "once",
       "family": "merchant",
-      "deferred": "Two cities connected by road — there are no roads and no connections yet."
+      "deferred": "Two cities connected by road — roads and connections are both here, but nothing yet watches for the moment two towns are joined."
     },
     "eightLuxuries": {
       "name": "The Eight Luxuries",
@@ -181,7 +181,7 @@
       "pays": 5,
       "scope": "once",
       "family": "engineer",
-      "deferred": "Your first naval unit — there are no naval units; Sailing embarks civilians only."
+      "deferred": "Your first naval unit — the hulls are drawn but no age has opened them yet."
     },
     "cityOfMarvels": {
       "name": "The City of Marvels",

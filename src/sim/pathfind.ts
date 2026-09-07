@@ -123,7 +123,7 @@ export interface Cell {
 /**
  * The denominator every movement point in this game is a whole multiple of.
  *
- * **Fifteen** since Machinery (`docs/tech-gifts.md` §7 — *"roads at a fifth
+ * **Fifteen** since Machinery (`docs/history/tech-gifts.md` §7 — *"roads at a fifth
  * instead of a third"*), and fifteen for exactly that reason: it is the least
  * common multiple of the two road fractions the game now has, so a third is five
  * fifteenths, a fifth is three, and both are exact. It was three while a road

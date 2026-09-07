@@ -1,7 +1,7 @@
 /**
  * Entry point for The Armory — the piece gallery.
  *
- * A second look-dev page beside `proto3d.html`, and the same bargain: it exists
+ * A look-dev page like `flair.html`, and the same bargain: it exists
  * to answer one question, and it reads the real thing to answer it. The question
  * used to be "do fifteen sculpted miniatures read as fifteen different units?"
  * and the answer at board scale was no, which is why there are eight model

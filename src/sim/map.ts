@@ -348,10 +348,6 @@ export function tileHex(tile: Tile): Hex {
   return offsetToAxial(tile.col, tile.row);
 }
 
-export function forEachTile(map: GameMap, fn: (tile: Tile) => void): void {
-  for (const tile of map.tiles) fn(tile);
-}
-
 // --- map-aware neighbourhood ------------------------------------------------
 
 /**

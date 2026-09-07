@@ -308,7 +308,7 @@ export interface AiConfig {
     huntRadius: number;
     /**
      * **The opening's scouts, and the glut that followed them** (the user's
-     * notes, `docs/bot-notes.md`: *"ai needs to prioritize early scouts"*; the
+     * notes, `docs/flags.md`: *"ai needs to prioritize early scouts"*; the
      * ruling of 2026-09-04 after the t75 diagnostics found twelve to forty
      * rangers a seat: *"sharply deprioritize having more than 3 scouts at a
      * time, and deprioritize as turns go on"*).

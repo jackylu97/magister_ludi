@@ -1,5 +1,5 @@
 /**
- * **The reveal** — what a card shows, and when (`docs/fewer-things.md` §1 "The
+ * **The reveal** — what a card shows, and when (`docs/history/fewer-things.md` §1 "The
  * levers", rows *Slot order* and *The reveal*, and §4 "Making the combo
  * visible", all RULED 2026-09-06).
  *
@@ -227,7 +227,7 @@ describe('the offices are ordered, and the word says which', () => {
   /**
    * **Gated on the reading, not on a constant.** The word appears where a
    * position engine could read it, and batch F is the pass that wrote the first
-   * ones — the four chair-readers of `docs/orders-pass-3.md` §3. The gate walks
+   * ones — the four chair-readers of `docs/history/orders-pass-3.md` §3. The gate walks
    * this empire's *slotted* Orders and asks the sim's own effect vocabulary, so
    * a fifth chair-reader drafted tomorrow opens the word with no page edit.
    */

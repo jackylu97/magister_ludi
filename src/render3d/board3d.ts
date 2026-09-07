@@ -2,7 +2,7 @@
  * Turns a `GameMap` into a pile of `InstancedMesh`es: the terrain, its
  * decorations, and the substrate slab underneath.
  *
- * Adapted from the prototype's `src/proto3d/board.ts`. Two things changed on the
+ * Adapted from the look-dev prototype's board. Two things changed on the
  * way in. The map is now baked three times side by side so the east–west wrap
  * works (see `instances.ts`), and units left: they change on every command and
  * belong to a layer that can be rebuilt on its own, not to a board that is built
@@ -1479,7 +1479,7 @@ export interface BuiltBoard {
    * writes it down.
    *
    * In map order rather than in any order the game produced, for
-   * `improvedCells`' reason: it is a fact about the board, and an order that
+   * `discoveryCells`' reason: it is a fact about the board, and an order that
    * depended on history would make two identical boards behave differently.
    */
   treedCells: readonly number[];

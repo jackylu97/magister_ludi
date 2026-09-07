@@ -1,6 +1,6 @@
 /**
  * The reroll: faith buys another hand (schema 71, ruled 2026-09-06 —
- * `docs/fewer-things.md` §1's *"the dice go entirely; faith rerolls a draft"*).
+ * `docs/history/fewer-things.md` §1's *"the dice go entirely; faith rerolls a draft"*).
  *
  * Three claims, and the file is in that order:
  *

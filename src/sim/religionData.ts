@@ -135,7 +135,7 @@ export interface BeliefDef extends CardDefBase {
 
 /**
  * One rite: **a city's verb**, paid for in faith and standing for ten turns
- * (`docs/fewer-things.md` §3, ruled 2026-09-06).
+ * (`docs/history/fewer-things.md` §3, ruled 2026-09-06).
  *
  * It was a charge of an augur spent on a moment, and the errand was the whole
  * complaint: call the piece, walk it, aim it, spend it — four to six clicks for
@@ -157,10 +157,14 @@ export interface RiteDef extends CardDefBase {
    * `OrderDef.retired`'s discipline one table over and for its reason exactly. A
    * rite the design has taken out (Recasting the Omens, whose redraw is the
    * faith reroll's job now; The Preaching, whose lump is the prophet's) is not a
-   * rite that never existed — a `TimedEffect` in a save may still name it, and
-   * `anyCardDef` would throw on an id the table had forgotten. So the row stays,
-   * `availableRites` stops offering it, and the load validator stops asking it
-   * for a duration and an ability it no longer has.
+   * rite that never existed — a `TimedEffect` still standing on a city inside a
+   * game that has already begun names it, and `anyCardDef` would throw on an id
+   * the table had forgotten. So the row stays, `availableRites` stops offering
+   * it, and the load validator stops asking it for a duration and an ability it
+   * no longer has. What the row is *not* keeping is an older save readable:
+   * `loadGame` tests the schema for exact equality, and retiring a row is
+   * itself a bump — so the row a save could name is a row this build still
+   * deals.
    */
   retired?: boolean;
 }
@@ -317,7 +321,7 @@ export interface ReligionPoolsConfig {
 
 /**
  * **The faith ladder** — what banked faith the next pantheon consecration asks
- * (the fewer-things pass, `docs/fewer-things.md` §3, ruled 2026-09-06).
+ * (the fewer-things pass, `docs/history/fewer-things.md` §3, ruled 2026-09-06).
  *
  * `StatecraftConfig.meter`'s shape one currency over, and deliberately the same
  * three numbers: `base + linear·n + n^exp`, floored, with `n` the rungs this
@@ -361,7 +365,7 @@ export interface RerollConfig {
   ageMultiplier: number[];
   /**
    * The ability that opens the reroll at all — Chronology's Long Count, which
-   * lost its die of the Magister in the same pass (`docs/tech-gifts.md` §2).
+   * lost its die of the Magister in the same pass (`docs/history/tech-gifts.md` §2).
    *
    * A data field rather than a constant for `riteAbility`'s reason: which node
    * carries a door is a design decision that lives in the tables, and nothing in
@@ -372,7 +376,7 @@ export interface RerollConfig {
 
 /**
  * **What a rite costs a city**, in faith, by the age its empire stands in
- * (ruled 2026-09-06, `docs/fewer-things.md` §6's "Still open": *a rite costs the
+ * (ruled 2026-09-06, `docs/history/fewer-things.md` §6's "Still open": *a rite costs the
  * faith ladder's first rung, rising a rung per age*).
  *
  * So the numbers are not a second curve: they are `faithRungCost` read off by
@@ -392,7 +396,7 @@ export interface RiteCostConfig {
 
 /**
  * **What an apostle's three acts are worth** (ruled 2026-09-06,
- * `docs/fewer-things.md` §3 and `docs/tech-gifts.md` §7).
+ * `docs/history/fewer-things.md` §3 and `docs/history/tech-gifts.md` §7).
  *
  * Here rather than in `rules.religion` for `RiteGrantSpec.lump`'s old reason,
  * which outlived the field: the *bomb's* numbers are the rules' and belong to

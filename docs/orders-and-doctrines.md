@@ -39,7 +39,7 @@ generic:
   `AmplifierTarget.triumphRenown`, folded into the printed figure in `awardTriumph` before
   `settleRenownWindfall` banks it, so the annal and the pool are one number.
 
-**As built, 2026-09-04 (the card-shapes pass, `docs/card-shapes.md`)** — nine rows, two
+**As built, 2026-09-04 (the card-shapes pass, `docs/history/card-shapes.md`)** — nine rows, two
 retirements and five small vocabulary additions, each read by a live row:
 
 - **The deck-readers** — The War Council · The Guild Charter · The Synod. One `CountKind`,
@@ -145,7 +145,7 @@ The Levée en Masse (nothing happens when a border is crossed) · Religious Mand
 *hex* — `cityIsWatered` and `TileCondition.freshwater` are two different questions, and the
 row ships the town's half with the field's half struck through).
 
-**As built, 2026-09-05 (the cards pass, `docs/cards-pass-2.md`)** — the two late Order
+**As built, 2026-09-05 (the cards pass, `docs/history/cards-pass-2.md`)** — the two late Order
 pools, eight cuts, eight modifications, nine new rows and the deferred late Doctrines,
 on **one** new vocabulary member.
 
@@ -177,7 +177,7 @@ on **one** new vocabulary member.
   Absolutism, Pax Magistri and The Philosopher's Stone ship their stock halves with the
   rest struck from the text; Blitz, which had no stock half at all, is retired.
 
-**As built, 2026-09-05 (the Æra III fork, `docs/age-three.md` sections 1–3)** — the three
+**As built, 2026-09-05 (the Æra III fork, `docs/history/age-three.md` sections 1–3)** — the three
 tier-18 signatures, six Pool III rows and one new occasion, on the vocabulary the
 card-shapes pass left:
 
@@ -366,7 +366,7 @@ nought.
 RULING (2026-09-04): orders are never upgraded. A card is what it prints, held once; a draft
 is take one or pass.
 
-**Role** (built 2026-09-06, batch F — `docs/orders-pass-3.md` §1): **E** an *engine*, a row
+**Role** (built 2026-09-06, batch F — `docs/history/orders-pass-3.md` §1): **E** an *engine*, a row
 whose subject is the deck or the board's *kind* — a count of the chairs, the Order sitting in
 one named chair, an amplifier over what your other Orders pay, a share on a class of
 buildings, a "hexes that already supply this" test, a shortener of the calendar. **P** a
@@ -377,7 +377,7 @@ boon on the calendar. The mark is **derived from the row's own effects** and a s
 the column against that derivation, so a row that changes shape changes its letter or fails
 the build. The ruled share is 25% engines · 30% payoffs · 45% standalones **per game** rather
 than per pool: the early pools lean standalone and the late ones lean multiplier, which is
-the ladder `docs/orders-pass-3.md` §9 rules.
+the ladder `docs/history/orders-pass-3.md` §9 rules.
 
 ### Chiefdom pool (12)
 
@@ -590,7 +590,7 @@ Deliberately stocked with the rows that wait on Æra V content, so building the
 pool and building the content are one decision.
 
 **Name clash to settle**: batch F gave a live Government V Order the name *The
-Encyclopaedists* (the periodic science-to-song conversion `docs/orders-pass-3.md`
+Encyclopaedists* (the periodic science-to-song conversion `docs/history/orders-pass-3.md`
 §2 asked for). The proposal below of the same name is older and unbuilt; one of
 the two wants renaming before this pool is ever dealt.
 

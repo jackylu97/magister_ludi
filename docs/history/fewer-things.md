@@ -42,7 +42,7 @@ Two of the assumptions this pass started from do not survive the arithmetic.
 
 | Assumption | What the data says | Consequence |
 |---|---|---|
-| "The draft is too rare — Entry XV wanted one every five turns and the harness measured 9.3" | Against the **user's** culture curve the ladder deals a draft every 4–5 turns from turn 4 to turn 90, and the model reproduces the user's t92 state exactly (20 drafts, 19 orders held) — §1's ladder table. The 9.3 reading was the bot's | `docs/cards-pass-2.md` §E.3 ("more drafts, smaller cards") is **wrong for a human empire** and is superseded here. The cadence is already at target; the size is not |
+| "The draft is too rare — Entry XV wanted one every five turns and the harness measured 9.3" | Against the **user's** culture curve the ladder deals a draft every 4–5 turns from turn 4 to turn 90, and the model reproduces the user's t92 state exactly (20 drafts, 19 orders held) — §1's ladder table. The 9.3 reading was the bot's | `docs/history/cards-pass-2.md` §E.3 ("more drafts, smaller cards") is **wrong for a human empire** and is superseded here. The cadence is already at target; the size is not |
 | "The deck has readers and conversions; the pass is about ratio" | Of 158 live Order rows, **nine** read anything about the player's other cards — seven count slotted Orders by *slot flavour*, two amplify another system's figure. **Not one reads a card's line.** `CardLine` exists on every row and is presentation only by its own docblock | The synergy problem is not a ratio problem. The vocabulary for "this card reads my other cards" is one count wide and asks the wrong question — and the user's answer (§4) is to read the *board* rather than the cards' colours |
 
 ---
@@ -94,7 +94,7 @@ The ladder is not the problem; the size of what it deals is.
 | Research | 1.3 | 1.3 | unchanged (the queue absorbs the clicks) | — |
 | Production | ~10 | **6** | §2's cut list, with prerequisite chains — fewer rows, each a longer build | RULED in shape; the list is §2 |
 | Citizen focus / locks | 1 | 1 | unchanged | — |
-| Worker verbs | ~8 | **3** | prospectable hills are **marked** once the tech is held; the survey stays a choice (`docs/veins.md`, in flight) | **RULED** (third pass) |
+| Worker verbs | ~8 | **3** | prospectable hills are **marked** once the tech is held; the survey stays a choice (`docs/deprecated/veins.md`, in flight) | **RULED** (third pass) |
 | Rites | 1.5 at 4–6 clicks | **0.5 at 1 click** | rites are city verbs (§3) | **RULED** |
 | Unit orders | 40–70 | 40–70 | not a design problem; sleep, fortify and route persistence carry it | — |
 
@@ -111,7 +111,7 @@ The ladder is not the problem; the size of what it deals is.
 | The pass | spends the hand, `skipPity` +1 to uncommon and rare | unchanged; it now has a *reason* — pass an off-line hand toward the payoff you want | proposed |
 | **The reroll** | the Magister's dice (`Player.dice`, bead boons' `dice`, `startingDice`, Chronology's die) — nothing spends them | **the dice go entirely; faith rerolls a draft.** The price scales by age and by rerolls taken so far, and the button prints the *next* price so the rise is visible before the click — "used sparingly" is the design | **RULED** (2026-09-06); the price curve is **OPEN** (§6.5) |
 | Ordinary buildings per age | 8 · 6 · 11 · 13 | **7 · 5 · 5 · 9** (§2, after the user's keeps) | RULED per row where marked; §2 says which |
-| Verbs that go passive | `prospect` on a vein; `survey` | prospectable hills are marked once the tech is held; veins may hide **unique luxuries** (rare minerals) with powerful bonuses — `docs/veins.md` | **RULED** (third pass) |
+| Verbs that go passive | `prospect` on a vein; `survey` | prospectable hills are marked once the tech is held; veins may hide **unique luxuries** (rare minerals) with powerful bonuses — `docs/deprecated/veins.md` | **RULED** (third pass) |
 
 ### What "bigger and rarer" does to pacing and to the bot
 
@@ -421,7 +421,7 @@ no longer the ceiling.
 
 **Rarity — RULED** (the balance-turn markup: "rarity should correlate with
 power/payoff"): engines common and uncommon, payoffs rare. That also carries
-out `docs/cards-pass-2.md` §E.6's ○ = rule-changer, which the audit found was
+out `docs/history/cards-pass-2.md` §E.6's ○ = rule-changer, which the audit found was
 never done. The counter-argument (Balatro's rares are often the engines) does
 not survive our cadence: a hand every four to eight turns wants reliable
 engines, not surprising ones.
@@ -545,11 +545,11 @@ above and listed here for the record:
 | 4 | A grant **ignores the chain** |
 | 5 | The **faith ladder**: thresholds shaped like the augur's old price ladder (40, +15 a rung), three rungs for the pantheon's three slots. The **reroll**: 35 faith to start, rising per use at a slight exponent; a great prophet's draft is free and does not raise the count |
 | 7 | The apostle's third act is the **relic** (faith per turn, one per cathedral); no other act |
-| 8 | **All twelve lines readable**, not three — **re-ruled 2026-09-06 by the order pass (`docs/orders-pass-3.md` §9): lines stay drawn marks, nothing reads them; slot-flavour counts stay** |
+| 8 | **All twelve lines readable**, not three — **re-ruled 2026-09-06 by the order pass (`docs/history/orders-pass-3.md` §9): lines stay drawn marks, nothing reads them; slot-flavour counts stay** |
 | 9 | Cadence 2.25 → 2.8 **and** chairs down a quarter — Gov III to 8, **Gov IV and V commensurately** |
 | 10 | *("what's a tag-blind hand?")* — a hand or deck chosen for each card's own number with no regard to what the other cards read: Deck 1 above, the strongest eleven flats. Under the proposal such a pile keeps its numbers and stops being the ceiling; the question was whether a first-time player who drafts that way should feel the gap. Left as recommended: leave it, and let the tutorial show one combo |
-| 11 | The **tech gift table** is its own doc — `docs/tech-gifts.md`, in flight, before the order pass |
-| 12 | **Veins are marked** once the tech is held; veins may hide **unique luxuries — rare minerals (obsidian, mercury, …) with powerful bonuses**. `docs/veins.md`, in flight: the vein mechanics and the proposed new luxuries |
+| 11 | The **tech gift table** is its own doc — `docs/history/tech-gifts.md`, in flight, before the order pass |
+| 12 | **Veins are marked** once the tech is held; veins may hide **unique luxuries — rare minerals (obsidian, mercury, …) with powerful bonuses**. `docs/deprecated/veins.md`, in flight: the vein mechanics and the proposed new luxuries |
 | 13 | The base beaker halves **as marked**: science moves into the orders; the next playtest calibrates how much science the order set must carry |
 | 14 | **Projects**: production → gold, production → science, production → culture. Kept simple; revisited later |
 

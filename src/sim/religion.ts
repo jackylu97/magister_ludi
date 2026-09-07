@@ -169,11 +169,6 @@ export function pantheonSlots(state: GameState, playerId: number): number {
   return Math.max(0, slotsFromTechs(player.techsResearched) + cardPantheonSlots(state, playerId));
 }
 
-/** Gods held. The other half of "is there room". */
-export function beliefsHeld(player: Player): readonly BeliefId[] {
-  return player.pantheon.beliefs;
-}
-
 /** Is a slot open for another god? */
 export function hasOpenBeliefSlot(state: GameState, playerId: number): boolean {
   const player = playerById(state, playerId);
@@ -289,7 +284,7 @@ export function isAugur(unit: Unit): boolean {
 
 /**
  * Why this augur cannot consecrate — **always**, since the faith ladder took the
- * consecration over (`docs/fewer-things.md` §3, ruled 2026-09-06).
+ * consecration over (`docs/history/fewer-things.md` §3, ruled 2026-09-06).
  *
  * The verb is **retired, not deleted**, and the distinction is the whole of why
  * this function still exists and still opens with the ownership clauses. A
@@ -994,7 +989,7 @@ function refreshBeliefDerived(state: GameState, player: Player): void {
 
 // --- rites ------------------------------------------------------------------
 //
-// **A rite is a city's verb** (`docs/fewer-things.md` §3, ruled 2026-09-06).
+// **A rite is a city's verb** (`docs/history/fewer-things.md` §3, ruled 2026-09-06).
 //
 // It was an augur's: call the piece for forty faith, walk it one to three
 // hexes, aim it, spend it — four to six clicks for something worth under one
@@ -1441,14 +1436,6 @@ export function empireRiteAt(
 }
 
 // --- timed effects ----------------------------------------------------------
-
-/** The live rites hanging on one holder, for a panel that lists them. */
-export function liveTimedEffects(
-  state: GameState,
-  holder: { timed?: TimedEffect[] },
-): TimedEffect[] {
-  return (holder.timed ?? []).filter((entry) => timedEffectIsLive(state, entry));
-}
 
 /**
  * Sweeps every rite that has run out.
@@ -2282,7 +2269,7 @@ export function proclaimPreview(state: GameState, unitId: number): ProclaimPrevi
 
 // --- the apostle -------------------------------------------------------------
 //
-// **The small preacher** (`docs/tech-gifts.md` §7, ruled 2026-09-06). The
+// **The small preacher** (`docs/history/tech-gifts.md` §7, ruled 2026-09-06). The
 // prophet's price put a travelling agent out of reach for most of a game, so
 // Theology opens a cheaper one: two charges, four movement, and three acts each
 // worth one charge — a proclamation at half a prophet's weight, a laying-on of

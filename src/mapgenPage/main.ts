@@ -2,7 +2,7 @@
  * Entry point for the mapgen inspection page — a whole generated game, judged at
  * a glance.
  *
- * The fourth dev page beside `proto3d.html`, `pieces.html` and `abacus.html`,
+ * A dev page beside `pieces.html`, `abacus.html` and `flair.html`,
  * and the same bargain each of those makes: one question, answered with the real
  * thing. The question here is *what did the generator actually deal* — how much
  * of each resource, where the continents fell, and what the four or eight seats

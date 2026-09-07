@@ -179,16 +179,6 @@ export function truceTurnsLeft(state: GameState, x: number, y: number): number {
   return truce === null ? 0 : Math.max(0, truce.untilTurn - state.turn);
 }
 
-/** Every empire this seat is at war with, in `state.players` order. */
-export function enemiesOf(state: GameState, playerId: number): number[] {
-  const list: number[] = [];
-  for (const player of state.players) {
-    if (player.id === playerId) continue;
-    if (atWar(state, playerId, player.id)) list.push(player.id);
-  }
-  return list;
-}
-
 /** Has this seat put a standing peace offer on this war? */
 export function hasPeaceOffer(state: GameState, from: number, to: number): boolean {
   const war = warBetween(state, from, to);

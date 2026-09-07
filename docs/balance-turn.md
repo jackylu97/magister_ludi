@@ -4,7 +4,7 @@ The ruling (`docs/flags.md` §A, "RULED, awaiting build → The balance turn"):
 **orders get more powerful, everything else is nerfed a little**, and the Æra
 III orders most of all. The earlier half of the same direction stands —
 ordinary building flats down a quarter, cards carrying more of the empire's
-power (`docs/loop-review.md` §E, `docs/cards-pass-2.md` §E).
+power (`docs/history/loop-review.md` §E, `docs/history/cards-pass-2.md` §E).
 
 This doc is the worksheet for that ruling: every live Order row weighed against
 the user's own turn-92 reading, a diagnosis of what the weak rows have in
@@ -381,7 +381,7 @@ Of the twenty live rare rows, four pay above *modest* for this empire
 rule-changer). Against that: emergencyPowers pays zero, titheBarns is net
 negative, theCharterOfTheMarches and theFoundingOath are negligible, and
 theFactorHouses — a Government **IV** rare — pays less than a fiftieth of one
-voice. `docs/cards-pass-2.md` §E.6 already ruled that ○ should mean
+voice. `docs/history/cards-pass-2.md` §E.6 already ruled that ○ should mean
 "rule-changer, not bigger number"; on the audit, ○ today means neither.
 
 ### Why Æra III does not read as a spike
@@ -783,7 +783,7 @@ thing.
    ruled on, above
 
 4. **Rarity: correlated with power, or orthogonal?** Today it is neither — ○
-   marks four strong rows and eight rows that pay nothing. `docs/cards-pass-2.md`
+   marks four strong rows and eight rows that pay nothing. `docs/history/cards-pass-2.md`
    §E.6 ruled ○ = rule-changer; the audit says that ruling was never carried out.
    Either (a) ○ means rule-changer and the draw's rarity weighting is the *only*
    thing rarity does, or (b) ○ also means bigger, and the proposal tables should
@@ -818,7 +818,7 @@ happy empire. You marked "happiness already very strong" on tolerationEdicts,
 so the recommendation is **neither** rule 3 nor the clamp: the pure-cheer rows
 are the "fewer things" pass's first cuts or become conditional payoffs (cheer
 *and* something only a wide empire has). Listed for the strike in
-`docs/fewer-things.md`.
+`docs/history/fewer-things.md`.
 
 **Not in the proposal tables**: the twenty-nine rows rule 4 left alone — war,
 wild and expansion — because they read zero at peace and finished expanding,
@@ -871,7 +871,7 @@ doc's option A makes rites the first of these):
 
 The conversions are the same thing seen from the deck: an *engine* card
 ("faith buys culture at 2:1", "each rite also pays science") is a faith path
-that changes how you play, and that is `docs/fewer-things.md` §4's job.
+that changes how you play, and that is `docs/history/fewer-things.md` §4's job.
 
 **Your edits that need a new shape** (rule 2 said none; two of yours do):
 

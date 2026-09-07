@@ -125,12 +125,6 @@ export const METER_GLYPH: Record<MeterId, string> = {
   authority: '⚜',
 };
 
-/** The word behind each meter mark, for the surfaces that have to *say* one. */
-export const METER_NAME: Record<MeterId, string> = {
-  happiness: 'happiness',
-  authority: 'authority',
-};
-
 /**
  * A sentence a yield's hover card ends with, for a yield that needs an
  * explanation rather than a breakdown.

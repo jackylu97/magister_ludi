@@ -145,7 +145,7 @@ describe('pacing', () => {
         const queue: { kind: 'unit' | 'building'; id: string }[] = [];
         for (const id of wanted) {
           if (city.buildings.includes(id as never)) continue;
-          // **The reducer's own gate, since batch D** (`docs/fewer-things.md`
+          // **The reducer's own gate, since batch D** (`docs/history/fewer-things.md`
           // §2). `isUnlocked` answers about the *tree* alone, and a queue is
           // validated row by row — so one chained row whose parent is not up
           // yet (a Temple before its Shrine) refused the whole command and the

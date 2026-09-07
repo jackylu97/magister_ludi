@@ -266,14 +266,6 @@ export function isDiscoveryId(value: unknown): value is DiscoveryId {
   );
 }
 
-/** Runtime guard for the site kind, for the same reason. */
-export function isDiscoveryKind(value: unknown): value is DiscoveryKind {
-  return (
-    typeof value === 'string' &&
-    Object.prototype.hasOwnProperty.call(DISCOVERY_DATA.kinds, value)
-  );
-}
-
 /**
  * What this kind of site *is* — the gate and the ground.
  *

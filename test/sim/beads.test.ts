@@ -640,7 +640,7 @@ describe('a boon settles through the seam that already exists', () => {
   });
 
   /**
-   * Re-aimed 2026-09-06 (schema 71, `docs/fewer-things.md` §1): the dice of the
+   * Re-aimed 2026-09-06 (schema 71, `docs/history/fewer-things.md` §1): the dice of the
    * Magister are gone — `Player.dice`, `BeadRules.startingDice` and the eight
    * boons that paid one. The two tests that stood here pinned the starting dice
    * and the absence of a cap on them; what is left to pin is that the seven

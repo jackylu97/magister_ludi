@@ -1,10 +1,10 @@
 # The fewer-things pass — the build plan (2026-09-06)
 
 What the four marked-up docs rule, cut into batches with fences. The docs of
-record: `docs/fewer-things.md` (buildings, religion, the deck's shapes, cadence),
+record: `docs/history/fewer-things.md` (buildings, religion, the deck's shapes, cadence),
 `docs/balance-turn.md` (the standalones' numbers, the science cut),
-`docs/tech-gifts.md` (the tree's gifts, the unique buildings),
-`docs/orders-pass-3.md` (every Order's verdict, the grammar). Agents read those
+`docs/history/tech-gifts.md` (the tree's gifts, the unique buildings),
+`docs/history/orders-pass-3.md` (every Order's verdict, the grammar). Agents read those
 files, never this chat. Each batch: typecheck + core + build in a clean
 worktree, committed by explicit path; `TEST_TIER=all` before every push; the
 pacing harnesses re-aimed **once per batch**, dated; one schema bump per
@@ -433,7 +433,7 @@ Built in main by the orchestrator, beside the H batches (`docs/flags.md`
 ### Batch G as shipped (2026-09-06) — schema 78
 
 The last batch of the pass, and the only one that turns dials rather than
-writing rows. `docs/fewer-things.md` §1 "The levers" and §6 item 9, RULED on the
+writing rows. `docs/history/fewer-things.md` §1 "The levers" and §6 item 9, RULED on the
 third pass. Two numbers, no new shape, no `src/sim/` logic: the deck was
 finished in F, so **how often a card arrives** and **how many can sit down** are
 set against the finished deck.
@@ -553,7 +553,7 @@ statecraft files, the twelve witnesses, `statecraftStaging`, `reroll`, `aiWar`,
 
 ### Batch F as shipped (2026-09-06) — schema 77
 
-The deck itself. `docs/orders-pass-3.md` §2 as the user marked it and §9 as it
+The deck itself. `docs/history/orders-pass-3.md` §2 as the user marked it and §9 as it
 rules, with `docs/balance-turn.md` §3's marked numbers on every surviving
 standalone. **No shape was invented**: batch A declared all seven and this is the
 pass that puts them on cards, so `src/sim/` gained not one line — the batch is
@@ -736,7 +736,7 @@ The reason nothing moved is the reason the ruling exists: `playEmpire` takes the
 first legal card in every draft and never arranges a deck, so a pass whose whole
 power is in engines and multipliers pays a scripted seat almost nothing. The
 measurement that would matter — what a *played* deck is worth — is the hand
-arithmetic in `docs/orders-pass-3.md` §6, and no harness in the repo can arrange
+arithmetic in `docs/history/orders-pass-3.md` §6, and no harness in the repo can arrange
 one until the bot drafts engines (batch F2). That is the pass's real open number.
 
 #### The bot
@@ -1047,7 +1047,7 @@ the same afternoon, so the twelve schema witnesses read 76 and the changelog in
 
 ### Batch E as shipped (2026-09-06) — schema 76
 
-The tree's gifts, `docs/tech-gifts.md` §7 as the user marked it. Batch D left six
+The tree's gifts, `docs/history/tech-gifts.md` §7 as the user marked it. Batch D left six
 nodes handing over no building; this is what they hand over instead. **Every gift
 is a row** — the effect vocabulary the tree has carried since the Age I rework
 (`TechDef.effects`, `liveEffects`' tenth source) plus the engine shapes batch A
@@ -1640,7 +1640,7 @@ and either the Monument's writ or `meters.authority`'s own capacity.
 - **One edit outside the fence, and it was forced.** `printingHouses` (Gov V)
   scoped a clause to `hasBuilding: printingHouse`, which is now a row with no
   page — the keyword sweep fails on a mark that points nowhere. Its second clause
-  is re-cut to the ruled shape (*"+10% science in every city"*, `docs/fewer-things.md`
+  is re-cut to the ruled shape (*"+10% science in every city"*, `docs/history/fewer-things.md`
   §2's own words) and its `text` and doc row follow. **The first clause's number
   is untouched**: the ruled re-aim is "+3🎵 per Library", and the 1 → 3 is batch
   F's number to derive.
@@ -1705,7 +1705,7 @@ die now pay nothing and say so in a `deferred` line (the lint was widened to
 allow an empty boon **iff** the row owns up to it — a silent empty boon is still
 a data mistake). **The Auspicious Seal** — the one Order that paid a die — is
 **retired** (`retired: true`, the row kept for saves), which is what
-`docs/orders-pass-3.md` §2 marks it, and `OrderSlotGrant.grant` is one member
+`docs/history/orders-pass-3.md` §2 marks it, and `OrderSlotGrant.grant` is one member
 wide again.
 
 **The faith ladder.** `RELIGION.ladder` = `costBase 40 · costLinear 15 ·
@@ -1747,7 +1747,7 @@ difference lines (base · the age's numeral · the rerolls already taken):
 | Æra III (×1.6) | 56 | 75 | 102 | 137 | 186 | 251 |
 | Æra IV (×2.2) | 77 | 103 | 140 | 189 | 255 | 344 |
 
-The **door** is Chronology's Long Count ability (`docs/tech-gifts.md` §2 — the
+The **door** is Chronology's Long Count ability (`docs/history/tech-gifts.md` §2 — the
 node loses its die and gains this); Æra I is unreachable in practice and its
 entry stands for the table's shape. `PlayerStatecraft.rerollsTaken` is the
 empire's bill and is never zeroed. `orderSkips`, the meter and the tier are
@@ -1813,7 +1813,7 @@ Debts and notes:
 ### Batch A as shipped (2026-09-06)
 
 The seven engine shapes, the three counts and the one occasion that
-`docs/fewer-things.md` §4, `docs/orders-pass-3.md` §9 and `docs/tech-gifts.md` §7
+`docs/history/fewer-things.md` §4, `docs/history/orders-pass-3.md` §9 and `docs/history/tech-gifts.md` §7
 ruled. **No `data/` row uses any of them** — the rows are batches D through F —
 so the batch is byte-identical by construction and no schema moved.
 
@@ -1923,7 +1923,7 @@ own rule one shape over.
 
 **The written-down debt stands and is deliberate**: an engine appraised in
 isolation is worth nearly nothing, because it multiplies a deck this reading
-cannot see. That is `docs/fewer-things.md` §5's marginal reading and it is batch
+cannot see. That is `docs/history/fewer-things.md` §5's marginal reading and it is batch
 F2's, not this batch's.
 
 #### Byte-identity

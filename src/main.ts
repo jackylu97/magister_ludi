@@ -729,7 +729,7 @@ let ledger: LedgerScreen | null = null;
  * The Ledger's curve, and the one piece of *history* this interface keeps.
  *
  * The simulation stores none and must not grow any for a view
- * (`docs/loop-review.md` §3), so the six per-turn totals are sampled here, once
+ * (`docs/history/loop-review.md` §3), so the six per-turn totals are sampled here, once
  * per resolved turn, into a capped ring. It lives at module scope rather than
  * inside the screen because it has to outlive every open and shut of the sheet
  * — a player who has never opened the Ledger still wants a curve when they do —
@@ -2653,7 +2653,7 @@ async function boot(initial: Game | null): Promise<void> {
    * greyed line rather than being joined into a sentence that would claim it.
    *
    * **Every card here wears the flourish, and none wears a number** (the
-   * uniformity ruling, `docs/doctrine-ideas.md` — "recruit is a promise"). This
+   * uniformity ruling, `docs/history/doctrine-ideas.md` — "recruit is a promise"). This
    * is the one tarot offer in the game that passes no `cardStamp`, and it is
    * deliberate rather than an omission: a great person's legacy does not reach
    * any ledger until they are *spent*, which happens turns later on a verb the
@@ -3743,7 +3743,7 @@ async function boot(initial: Game | null): Promise<void> {
    * The Ledger: where this turn's yield came from, and which way the curve is
    * heading.
    *
-   * The eighth parchment sheet (`ledgerScreen.ts`, `docs/loop-review.md` §3),
+   * The eighth parchment sheet (`ledgerScreen.ts`, `docs/history/loop-review.md` §3),
    * built on each open off the state and off the session's curve — the one
    * thing on it that is not derived, and the reason `history` is handed in
    * rather than held by the screen: the ring outlives every open and belongs to

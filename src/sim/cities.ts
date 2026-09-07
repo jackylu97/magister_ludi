@@ -2394,7 +2394,7 @@ export function explainCityBuildings(
 /**
  * **What the deck adds to this town's shelves** — the "your faith buildings give
  * half again" engine and the doublers, as the ordered list its total is the fold
- * of (`CardBuildingYieldPercentEffect`, `docs/fewer-things.md` §4).
+ * of (`CardBuildingYieldPercentEffect`, `docs/history/fewer-things.md` §4).
  *
  * A **flat** line, and that is the whole of its stage: a percentage on a
  * *building's own figure* is not a percentage on the town, so it lands beside
@@ -4945,7 +4945,7 @@ export interface WonderRefund {
  * **Three of the four voices settle nothing** — gold, science and faith are
  * pools that accumulate and are read where they lie. Culture is the fourth and
  * it is a *basket*: a culture pool that fills is a draft owed, so Pageants (the
- * third conversion, Code of Laws — `docs/tech-gifts.md` §7) ends this function
+ * third conversion, Code of Laws — `docs/history/tech-gifts.md` §7) ends this function
  * with `settleCultureWindfall`, which is the one wrapper that pays that debt.
  * That is the door `projectData.ts` left open, walked through rather than
  * widened: nothing here is a second path into the bucket the register in
@@ -5239,7 +5239,7 @@ export function realiseItem(
   // either way — which is exactly why it is a parameter and not a rule. See
   // `Unit.freeUpkeep` for the register of who passes it.
   if (options.free) unit.freeUpkeep = true;
-  // **The Throne's bargain, stamped where it is struck** (`docs/tech-gifts.md`
+  // **The Throne's bargain, stamped where it is struck** (`docs/history/tech-gifts.md`
   // §7): a town holding a row that forgives its soldiers' keep
   // (`BuildingDef.unitUpkeepRebate`) sends every piece it raises out cheaper to
   // hold, for the rest of that piece's life. Read off the town's own buildings

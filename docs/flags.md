@@ -311,6 +311,21 @@ directly to confirm rulings — user marginalia are rulings.
   `poolDoctrines` deals from never — they are already out of every bag, and
   marking them `retired` would say the wrong thing about a row that was never
   dealt. They stay parked until their shapes exist.
+  **H4 BUILT** (no schema — nothing a save holds moved): `src/proto3d/` and
+  `proto3d.html` deleted with their build input, so CLAUDE.md's "eight root
+  pages" is true by counting; the schema changelog's entries 3–v78 moved to
+  `docs/history/schema-changelog.md` behind a five-line pointer (−1432 lines
+  from `state.ts`); 28 exported symbols nothing read deleted; four dead CSS
+  rules and `beads.rules.startingDice` gone; nine false statements corrected in
+  CLAUDE.md, `docs/design-notes.md`, `data/triumphs.json` and four docblocks;
+  ten folded working docs moved to `docs/history/` and `veins.md` to
+  `docs/deprecated/`. **One finding of the audit's does not hold**: retired row
+  bodies **cannot** be trimmed to `{id, name, retired, note}`. The Compendium
+  walks `ORDER_IDS` and `DOCTRINE_IDS` **unfiltered**, so a withdrawn card is
+  still printed in full — which is exactly what `OrderDef.retired`'s "never
+  dealt, and still fully readable" promises — and `BuildingDef.retired`'s own
+  docblock keeps a standing copy's yields live. The ≈1000 JSON lines the audit
+  costed are load-bearing; the two docblocks now say so out loud.
   Two findings from the re-aim, yours to rule:
   1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
      user's ruling was always "unlock rites in the tech tree where they used
@@ -469,7 +484,7 @@ Fixes queue in main for the next session unless the user says otherwise.
     `data/mapgen.json`'s start-position spacing — the same map with more seats
     is the cheaper experiment.
 17. **"I'm just building more buildings in my cities"** (NOTED — a reading
-    for the balance turn, `docs/loop-review.md`'s direction: cards carry more
+    for the balance turn, `docs/history/loop-review.md`'s direction: cards carry more
     of the empire's power, building flats −25%). Your turn-92 snapshot, six
     cities, for the ledger:
 
@@ -552,7 +567,7 @@ Fixes queue in main for the next session unless the user says otherwise.
   V's rows become victory accelerators (Opus cost cuts, bead purses,
   tempo). Nothing Æra V is built or re-cut before then; Gov VI stays
   proposed.
-- **The world age** (`docs/age-three.md` §4, your marginalia): the counter
+- **The world age** (`docs/history/age-three.md` §4, your marginalia): the counter
   is the **MEAN age of all players including bots** — "for single player
   campaigns, it should punish you if you're behind the bots." The laggard's
   cost is the point: the wild's tier follows the world age, and a trailing
@@ -566,7 +581,7 @@ Fixes queue in main for the next session unless the user says otherwise.
 - **Camps** — DEFERRED on the bot side ("a smaller concern"); a player-side
   Wild Hunt payoff (The Wolf-Standard) is deferred on the row until a camp's
   bounty can have more than one destination.
-- **The engine view** (`docs/loop-review.md` §3, the Ledger) — bands 1–2
+- **The engine view** (`docs/history/loop-review.md` §3, the Ledger) — bands 1–2
   are a UI batch with no sim change; band 3 wants the lifetime tally
   schema. Not yet scheduled.
 - **The balance turn** — RULED in direction 2026-09-05 (turn 92 of the
@@ -737,7 +752,7 @@ rulings yet:
   **engines** (weak alone, read other cards by tag) and **payoffs** (scale
   with what is slotted beside them) beside a smaller share of standalone
   flats; a path (faith, war, trade, growth) has to be a different *engine*
-  for the primary yields, not a side dish. `docs/fewer-things.md` — DRAFTED,
+  for the primary yields, not a side dish. `docs/history/fewer-things.md` — DRAFTED,
   awaiting your markup: the choice-size ladder, 38 → 19 buildings per age
   with a clause each, the augur options (recommends A split by act: rites a
   city verb, the augur a rare consecrator), the engine/payoff/standalone
@@ -749,7 +764,7 @@ rulings yet:
   2.25 → 2.8 with chairs down a quarter) is the coupled proposal. Largest
   bot debt: the draft plan prices cards alone, so it can never draft an
   engine — a marginal reading `V(deck ∪ card) − V(deck)` is the fix.
-  **Rulings from the markup (2026-09-06)** — `docs/fewer-things.md` §7:
+  **Rulings from the markup (2026-09-06)** — `docs/history/fewer-things.md` §7:
   the engine shapes are the user's five (amplifier by voice over card yields;
   building-yield percent by category; a "yields X" tile test; a periodic
   occasion with its own period-shortener; the slot-position reader — **slots
@@ -763,7 +778,7 @@ rulings yet:
   apostle and a relic (faith per turn, once per cathedral) are faith's
   "magisterial supplement" ideas, open; buildings keep prerequisite chains.
   **Third pass (2026-09-06)** — every open item answered, folded into
-  `docs/fewer-things.md` (§6 is the record): all twelve lines readable;
+  `docs/history/fewer-things.md` (§6 is the record): all twelve lines readable;
   cadence 2.8 and chairs down a quarter incl. Gov IV/V; ten chains; the
   Chapel pays culture on a rite (no gate — the tree is the only gate); the Cathedral keeps its roll; Court Augurs
   renamed to pay every city with an active rite; grants ignore chains; the
@@ -773,7 +788,7 @@ rulings yet:
   calibrates); three projects (production → gold / science / culture);
   veins marked, with hidden unique minerals. **Still open: the rites' faith
   price and per-city seal** (a default is proposed there).
-  `docs/tech-gifts.md` — MARKED UP and folded (2026-09-06): **unique
+  `docs/history/tech-gifts.md` — MARKED UP and folded (2026-09-06): **unique
   buildings, once per empire, as each age's anchor** (Heroic Epic · Imperial
   Throne · High Temple · Forum · the Caravanserai returned as the route hub;
   priced at half a wonder of the age; effects city-scoped bar the Throne's
@@ -781,7 +796,7 @@ rulings yet:
   connected-city percents, Machinery's roads at a fifth, The Silk Road's
   endpoint luxuries, Horology's two periodic figures — "bursts are strong");
   the apostle at Theology; eight small shapes beside fewer-things' ten.
-  `docs/orders-pass-3.md` — MARKED UP (2026-09-06), folded in its §9: the
+  `docs/history/orders-pass-3.md` — MARKED UP (2026-09-06), folded in its §9: the
   grammar is **put yields on a thing, then multiply the thing** (routes,
   Markets, the capital, great works, faith buildings — multipliers late,
   rare, applied last); **line readers withdrawn** for Orders (slot-flavour
@@ -789,7 +804,7 @@ rulings yet:
   lean standalone; periodic conversions (science↔faith↔culture, gold→science)
   as bursts; the cheer rows kept and the clamp left as is until the next playtest; the shrine engine tallies faith rerolls;
   four Gov V "just win now" bead Orders. All four questions in §9 answered. And
-  `docs/veins.md` — **SHELVED on your word (2026-09-06)**: the layer was
+  `docs/deprecated/veins.md` — **SHELVED on your word (2026-09-06)**: the layer was
   unreachable for most of a game (its gate an Æra IV node) and a survey is
   the small frequent click this pass removes. `veins.share` is 0 (the last
   mapgen pass — every seed's ground stays bit-identical); the verb stays
@@ -813,6 +828,12 @@ rulings yet:
   destination's growth are the missing terms); naval is a hard null; the
   war economy's baselines sit outside the currency; the bot's culture plan
   prices drafts but a pass never conditions on the hand it just saw.
+- **The opening build order, yours** (was `docs/flags.md`, folded here
+  2026-09-07 by batch H4 — two lines are a flag, not a doc): *"ai needs to
+  prioritize early scouts"* and *"my general build order is scout settler
+  settler worker, that might not be optimal but first build being a scout
+  should be hard-coded."* Unbuilt: nothing in `src/ai/` hard-codes a first
+  build.
 - **Late-game cost** — batch 9 in flight (above); if your game's End Turn
   drags past ~t100 on standard, say so and it jumps the queue.
 - **Pamphlet shots: 3 outstanding** — move-attack, worker-improve,

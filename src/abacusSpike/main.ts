@@ -1,7 +1,7 @@
 /**
  * Entry point for The Abacus — the victory-scoreboard look-dev page.
  *
- * The third look-dev page beside `proto3d.html` and `pieces.html`, and the same
+ * A look-dev page beside `pieces.html` and `flair.html`, and the same
  * bargain: one question, answered with the real renderer. The question here was
  * whether *scoring* can be a physical event. The board already knew how to be a
  * place; the score was still a number in a bar, and a number cannot be knocked

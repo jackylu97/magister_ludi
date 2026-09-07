@@ -237,17 +237,6 @@ export function dealIsLive(state: GameState, deal: DealState): boolean {
   return state.turn < deal.untilTurn;
 }
 
-/** Every live deal this empire is party to, in signing order. */
-export function dealsOf(state: GameState, playerId: number): DealState[] {
-  const list: DealState[] = [];
-  for (const deal of state.deals) {
-    if (deal.a !== playerId && deal.b !== playerId) continue;
-    if (!dealIsLive(state, deal)) continue;
-    list.push(deal);
-  }
-  return list;
-}
-
 /** Every live deal between this pair, in signing order. */
 export function dealsBetween(state: GameState, x: number, y: number): DealState[] {
   if (x === y) return [];
@@ -259,14 +248,6 @@ export function dealsBetween(state: GameState, x: number, y: number): DealState[
     list.push(deal);
   }
   return list;
-}
-
-/** The row with this id, live or spent, or `undefined`. */
-export function dealById(state: GameState, id: number): DealState | undefined {
-  for (const deal of state.deals) {
-    if (deal.id === id) return deal;
-  }
-  return undefined;
 }
 
 /** Turns this deal still has to run, or zero when it is spent. */

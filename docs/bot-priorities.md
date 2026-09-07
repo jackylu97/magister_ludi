@@ -1,6 +1,6 @@
 # The priority system — spec of record (ratified in chat, 2026-09-04)
 
-The architecture the user and orchestrator settled after `docs/bot-audit.md`:
+The architecture the user and orchestrator settled after `docs/history/bot-audit.md`:
 the bot figures out its priorities first, and every decision arm reads them
 once the values are known. Long-term goals are CHAINS priced over time;
 currencies and constraints carry SHADOW PRICES; the arms keep their existing

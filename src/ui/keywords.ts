@@ -102,11 +102,6 @@ export function splitDescriptor(text: string): DescriptorPart[] {
   return parts;
 }
 
-/** Does this string carry a mark at all? The cheap check before the walk. */
-export function hasKeyword(text: string): boolean {
-  return text.includes('[[');
-}
-
 // --- where a keyword goes ---------------------------------------------------
 
 let opener: ((entryId: string) => void) | null = null;

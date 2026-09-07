@@ -180,7 +180,7 @@ describe('the knobs the book replaced', () => {
       // Batch 2's flat potential weight, and batch 3's beeline divisor.
       'potentialWeight',
       'costDivisor',
-      // **Batch 4's gate pile** (`docs/bot-audit.md`'s inventory table). Each is
+      // **Batch 4's gate pile** (`docs/history/bot-audit.md`'s inventory table). Each is
       // a price now: the citizen `explainCitizen` charges, the writ and the
       // contentment the expansion chain charges, the settle table's floor
       // replaced by the build arm's own competition, and three quotas replaced by

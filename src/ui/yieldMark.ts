@@ -290,18 +290,6 @@ export function yieldFigureNodes(text: string, key: YieldKey): DocumentFragment 
 }
 
 /**
- * "⚙ +25%" — the mark before the figure, the modifier voice.
- *
- * The other of the two orders, and the distinction is real rather than
- * typographic: `yieldFigureNodes` quotes an *amount of* something, so the mark
- * is its unit and belongs after it, while a modifier line names *what is being
- * modified* and then says by how much.
- */
-export function yieldLabelNodes(key: YieldKey, text: string): DocumentFragment {
-  return yieldTextNodes(`${YIELD_GLYPH[key]} ${text}`);
-}
-
-/**
  * The plain-text glyph, re-exported so a surface that has *decided* to stay text
  * says so by importing from here rather than by reaching past this module.
  *

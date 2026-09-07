@@ -3469,7 +3469,7 @@ function cityCommand(
  *     `cityYields(state, city, [id])` − `cityYields(state, city)`, weighted —
  *     which is the simulation's own fold, already staged by Entry XVII, already
  *     percentaged, already aware that a second library pays nothing — plus what
- *     the row gives that a yield cannot say (`valueOfBuildingRow`: happiness,
+ *     the row gives that a yield cannot say (`explainBuildingRow`: happiness,
  *     authority, walls, renown, a bead, the curtain);
  *   · **value** for a unit is its role: a town, a worker, a caravan, or strength
  *     plus whatever the threat is worth (`valueOfSoldier`);
@@ -3593,7 +3593,7 @@ function productionTable(
 /**
  * **The opening book, and it is one row long.**
  *
- * The user's ruling, verbatim (`docs/bot-notes.md`): *"my general build order is
+ * The user's ruling, verbatim (`docs/flags.md`): *"my general build order is
  * scout settler settler worker, that might not be optimal but first build being
  * a scout should be hard-coded."* So it is hard-coded, ahead of the scoring,
  * rather than expressed as a weight big enough to win — a weight that has to win
@@ -3776,7 +3776,7 @@ interface BuildCandidate {
  * route's pay and the wage for the caravan, the surplus charge for the levy.
  * What survives are *rules* (a lone town has nowhere to send a route) and the
  * one honest kind of cap, a bound on compute (`expansion.siteSearchRadius`,
- * `military.scoutCap`'s glut charge — see `docs/bot-audit.md`).
+ * `military.scoutCap`'s glut charge — see `docs/history/bot-audit.md`).
  *
  * The levy is the one that moves with the board: `military.armyPerCity` per
  * town, plus `threat.extraArmyPerThreat` per enemy piece standing near one of
@@ -6186,7 +6186,7 @@ function friendlyPiecesAround(
  * An augur's whole brain, since the piece was **withdrawn**: stand quiet.
  *
  * The rites are a town's verbs now and the gods arrive on a faith threshold
- * (`docs/fewer-things.md` §3), so an augur left standing on a board from before
+ * (`docs/history/fewer-things.md` §3), so an augur left standing on a board from before
  * the pass has nothing it may legally do — `consecrateError` refuses always and
  * there is no unit-borne rite to refuse. It is kept, with its sentence, rather
  * than deleted: a save may hold one, and a piece the bot had no arm for at all

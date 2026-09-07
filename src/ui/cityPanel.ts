@@ -2821,7 +2821,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
   /**
    * **The rites this town may keep** — the verb the fewer-things pass moved off
-   * the augur and onto the city (`docs/fewer-things.md` §3, ruled 2026-09-06).
+   * the augur and onto the city (`docs/history/fewer-things.md` §3, ruled 2026-09-06).
    *
    * One row per rite in the table, greyed with the reducer's own sentence, which
    * is `renderBuildables`' contract and `riteOptions`' one system over: a row a

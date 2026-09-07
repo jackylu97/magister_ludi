@@ -51,7 +51,7 @@ history (proposals, re-cuts, the five-age plan) lives in git and
 - **Sixteen effect-carrying techs** are the exceptions to the neutral-tree
   ruling (theme abilities otherwise live on cards and building rows). It was
   eight until batch E gave the re-gifted nodes their own rules
-  (`docs/tech-gifts.md` §7).
+  (`docs/history/tech-gifts.md` §7).
 - **Every hammer price** takes the age band from the unlocking tech, never the
   row — units, buildings and wonders alike since the ruling of 2026-09-06
   (item y). The band is the user's own table since 2026-09-07 (item aa):
@@ -77,14 +77,14 @@ it); ◇ = a row that is granted and never built; † = a deferred half on the r
 says so. *Renewals are slated for the axe (user ruling 2026-09-02) and are listed
 while they stand.* A withdrawn row (`retired`) is not printed at all.
 
-**The fewer-things cut** (2026-09-06, `docs/fewer-things.md` §2): twelve ordinary
+**The fewer-things cut** (2026-09-06, `docs/history/fewer-things.md` §2): twelve ordinary
 rows left the buildable set — Funeral Games, the Stele of Laws, the Monastery,
 the Baths, the Examination Hall, the Clocktower, the Reliquary, the Mint, the
 Armoury and the Printing House are withdrawn outright; the Forum and the
 Caravanserai return as two of the five uniques. Their rows stay in
 `data/buildings.json` so a save that raised one still replays.
 
-**Batch E — the tree's gifts** (2026-09-06, `docs/tech-gifts.md` §7 as the user
+**Batch E — the tree's gifts** (2026-09-06, `docs/history/tech-gifts.md` §7 as the user
 marked it). The six nodes batch D left handing over no building hand over
 something else now, and every gift is a **row** rather than a branch: the effect
 vocabulary the tree has carried since the Age I rework (`TechDef.effects`) plus

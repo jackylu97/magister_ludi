@@ -750,7 +750,7 @@ describe('never hand-written prose about a number', () => {
   });
 
   /**
-   * **The chain, on the shelf** (batch D, `docs/fewer-things.md` §2). A row that
+   * **The chain, on the shelf** (batch D, `docs/history/fewer-things.md` §2). A row that
    * wants a parent standing says so where the site requirement says its own
    * thing — both answer "where may I put one", one about the ground and one
    * about what is on it — and it says it off the field, so the tenth chain and

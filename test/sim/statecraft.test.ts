@@ -887,7 +887,7 @@ describe('every hook family, end to end', () => {
     // became The King's Table and pays happiness off the capital's rolls now,
     // so the flat writ line moved to the card that still carries one.
     slot(g.state, 0, 'provincialGovernors');
-    // Batch F scoped the feast to the capital (`docs/orders-pass-3.md` §2, the
+    // Batch F scoped the feast to the capital (`docs/history/orders-pass-3.md` §2, the
     // user's own re-cut), so the line is a per-city one and carries its count.
     expect(
       explainHappiness(g.state, 0).some((l) => l.source.startsWith('Order · Festival Days')),
@@ -2102,7 +2102,7 @@ describe('the master-list cut of 2026-08-28', () => {
     const g = game();
     const from = found(g.state, 0);
     const to = foundCityAt(g.state, 0, getTileAt(g.state.map, (from.col + 5) % g.state.map.width, from.row)!);
-    // Batch F moved Silk Roads' coin **onto the road** (`docs/orders-pass-3.md`
+    // Batch F moved Silk Roads' coin **onto the road** (`docs/history/orders-pass-3.md`
     // §9's grammar: put yields on a thing, then multiply the thing), so The
     // Wayhouses carries the empire count this test was written against and the
     // caravan itself carries the coin.
@@ -2278,7 +2278,7 @@ describe('the master-list cut of 2026-08-28', () => {
   });
 
   /**
-   * Re-aimed 2026-09-06 (schema 71, `docs/fewer-things.md` §1). This pinned the
+   * Re-aimed 2026-09-06 (schema 71, `docs/history/fewer-things.md` §1). This pinned the
    * once-per-game slot grant through The Auspicious Seal's die of the Magister:
    * slotted once it paid, unslotted and slotted again it did not. The dice are
    * gone from the game and the Seal is retired with them, so **no live row
@@ -3409,7 +3409,7 @@ describe('the balance pass of 2026-08-31', () => {
     expect(cheer()).toBe(1);
     // **Satrapies is the only node that cheers a joined town** since batch E:
     // Movable Type used to say the same sentence a second time and now says a
-    // different one entirely (`docs/tech-gifts.md` §7 — the cheer out, two
+    // different one entirely (`docs/history/tech-gifts.md` §7 — the cheer out, two
     // percentages in), so the scope has one reader on the tree and the stacking
     // the worksheet once ruled deliberate has nothing to stack with.
     playerById(g.state, 0)!.techsResearched.push('movableType');
@@ -4534,7 +4534,7 @@ describe("the user's card pass of 2026-09-03", () => {
     expect(poolDoctrines(10).includes('mountainHold' as never)).toBe(false);
     expect(describeCard('mountainHold').length).toBeGreaterThan(0);
     // And the second row the pass added is dealt. **First Fruits is not**: batch
-    // F retired the first citizen's tithe (`docs/orders-pass-3.md` §2), so it is
+    // F retired the first citizen's tithe (`docs/history/orders-pass-3.md` §2), so it is
     // out of every pool and readable, like the three above it.
     expect(poolOrders('chiefdom').includes('firstFruitsOffering' as never)).toBe(false);
     expect(describeCard('firstFruitsOffering').length).toBeGreaterThan(0);
@@ -4571,7 +4571,7 @@ describe("the user's card pass of 2026-09-03", () => {
 // --- the card-shapes pass of 2026-09-04 -------------------------------------
 
 /**
- * The rows the user ruled in `docs/card-shapes.md` — the deck-readers, the four
+ * The rows the user ruled in `docs/history/card-shapes.md` — the deck-readers, the four
  * conversions, the two payoffs and the two retirements — and the five members of
  * the vocabulary they needed.
  *
@@ -4636,7 +4636,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
     const g = game(940);
     found(g.state, 0);
     // **Batch F moved this reading off The Synod**, which is now a share on the
-    // faith shelves (`docs/orders-pass-3.md` §9's ruled table). First Rites'
+    // faith shelves (`docs/history/orders-pass-3.md` §9's ruled table). First Rites'
     // second clause is the same count on the same flavour, so the claim moves
     // with it rather than lapsing.
     slot(g.state, 0, 'firstRites');
@@ -4706,7 +4706,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
     expect(spears()).toBe(2);
     slot(g.state, 0, 'theLongWatch');
     expect(spears()).toBe(3);
-    // **No cap since batch F** (`docs/orders-pass-3.md` §9: the caps come off
+    // **No cap since batch F** (`docs/history/orders-pass-3.md` §9: the caps come off
     // Ore Tithes and the War Council), so a fourth soldier on the council is a
     // fourth point.
     slot(g.state, 0, 'militiaLevies');
@@ -4932,7 +4932,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
 // --- the synergy-density pass of 2026-09-05 ---------------------------------
 
 /**
- * `docs/loop-review.md` section 4, and the user's marginalia on its table.
+ * `docs/history/loop-review.md` section 4, and the user's marginalia on its table.
  *
  * The claim the pass is testing: a pool of flat numbers is a pool where no two
  * cards are better together than apart. Eight rows stopped being flat, three
@@ -5079,7 +5079,7 @@ describe('the synergy-density pass of 2026-09-05', () => {
     expect(hammers()).toBe(4);
     slot(g.state, 0, 'horseLords');
     expect(hammers()).toBe(6);
-    // **No cap since batch F** — `docs/orders-pass-3.md` §9 takes it off this
+    // **No cap since batch F** — `docs/history/orders-pass-3.md` §9 takes it off this
     // row and off The War Council, and leaves it on the other three readers.
     slot(g.state, 0, 'farRunners');
     expect(slottedOrdersOfFlavour(g.state, 0, 'military')).toBe(4);
@@ -5206,7 +5206,7 @@ describe('the synergy-density pass of 2026-09-05', () => {
 
 
 /**
- * **The cards pass of 2026-09-05** (`docs/cards-pass-2.md`, ruled the same day):
+ * **The cards pass of 2026-09-05** (`docs/history/cards-pass-2.md`, ruled the same day):
  * the two late Order pools, the eight cuts, the eight modifications and the nine
  * rows written for the holes.
  *
@@ -5418,7 +5418,7 @@ describe('the cards pass of 2026-09-05', () => {
 // --- the Æra III fork, 2026-09-05 -------------------------------------------
 
 /**
- * The fork (`docs/age-three.md`, sections 1–3 with the user's marginalia).
+ * The fork (`docs/history/age-three.md`, sections 1–3 with the user's marginalia).
  *
  * The claim the pass rests on: **each tier-18 government is a reader of its own
  * dominant chair**, so "which government" becomes "which deck". Every signature
@@ -5764,7 +5764,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     // rule-changing. The doc's marks are pinned against these by
     // `statecraftDocSync.test.ts`.
     // Batch F made the cistern an uncommon on the user's mark
-    // (`docs/orders-pass-3.md` §9's ruled table), which is a move of the bag and
+    // (`docs/history/orders-pass-3.md` §9's ruled table), which is a move of the bag and
     // the reason this batch bumps the schema.
     expect(orderDef('cisternWorks').rarity).toBe('uncommon');
     expect(orderDef('mandateOfHeaven').rarity).toBe('uncommon');
@@ -6116,7 +6116,7 @@ describe('the print register', () => {
 // --- the engine shapes (batch A of `docs/fewer-things-plan.md`) --------------
 
 /**
- * The seven shapes `docs/fewer-things.md` §4 and `docs/tech-gifts.md` §7 ruled,
+ * The seven shapes `docs/history/fewer-things.md` §4 and `docs/history/tech-gifts.md` §7 ruled,
  * proved by **fixtures** rather than by rows.
  *
  * No live card uses any of them — the rows are batches D through F — which is
@@ -6705,7 +6705,7 @@ describe('the engine shapes', () => {
    * **Which Orders carry an engine shape, in the data file's own row order.**
    *
    * Batch A declared the seven shapes and no row used one; batch F is the pass
-   * that wrote them onto the cards (`docs/orders-pass-3.md` §9's grammar: put
+   * that wrote them onto the cards (`docs/history/orders-pass-3.md` §9's grammar: put
    * yields on a thing, then multiply the thing). This list is therefore the
    * register the byte-identity claim became — a row that picks up an engine
    * without being written down here fails.
@@ -6805,7 +6805,7 @@ describe('the engine shapes', () => {
       // Batch D — two of the five uniques.
       'caravanserai · routeYield',
       'heroicEpic · cityRenownPercent',
-      // Batch E — the tree's own gifts (`docs/tech-gifts.md` §7).
+      // Batch E — the tree's own gifts (`docs/history/tech-gifts.md` §7).
       'theLongCount · periodic',
       'theLongCount · buildingsOfCategories',
       'horology · periodic',
@@ -6828,7 +6828,7 @@ describe('the engine shapes', () => {
 // --- batch F, the order pass ------------------------------------------------
 
 /**
- * **The deck, gone over row by row** — `docs/orders-pass-3.md` §2 as the user
+ * **The deck, gone over row by row** — `docs/history/orders-pass-3.md` §2 as the user
  * marked it and §9 as it rules, cut into `docs/fewer-things-plan.md` F.
  *
  * The pass retired twenty-four Orders, wrote thirty-four and re-priced every
@@ -7042,7 +7042,7 @@ describe('the order pass of 2026-09-06', () => {
 
 /**
  * **Batch G — cadence and chairs** (`docs/fewer-things-plan.md` row G;
- * `docs/fewer-things.md` §1 "The levers" and §6 item 9, ruled by the user on the
+ * `docs/history/fewer-things.md` §1 "The levers" and §6 item 9, ruled by the user on the
  * third pass, 2026-09-06). The last batch of the fewer-things pass and the one
  * that turns dials rather than writing rows: the deck was finished in batch F,
  * so the two numbers that say *how often a card arrives* and *how many can sit
@@ -7056,7 +7056,7 @@ describe('the order pass of 2026-09-06', () => {
  */
 describe('the cadence and the chairs, as ruled on the third pass', () => {
   it('steepens the draft ladder to 12 + 6n + n^2.8', () => {
-    // 2.25 → 2.8 (`docs/fewer-things.md` §1's lever table, RULED third pass):
+    // 2.25 → 2.8 (`docs/history/fewer-things.md` §1's lever table, RULED third pass):
     // "20 drafts by t92 → 14; opening drafts land on the same turns (4, 7, 11);
     // late gaps open to 8–10". The other three terms are untouched, and the
     // seal in particular is RULED untouched — a card slotted in and out is skill

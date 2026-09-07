@@ -462,7 +462,7 @@ export interface PlayerStatecraft {
   rerollsTaken: number;
   /**
    * **What each growing card has watched happen** — the counters the scaling
-   * family reads (`docs/doctrine-ideas.md`, ruled 2026-09-04).
+   * family reads (`docs/history/doctrine-ideas.md`, ruled 2026-09-04).
    *
    * A list of `{card, count}` rather than a map, for `Player.legacies`' reason
    * and `grantedOnSlot`'s: iteration order that is part of the state is
@@ -627,7 +627,7 @@ function orderWatches(id: OrderId, occasion: TallyOccasion): boolean {
  * The slot types this government opens, military first.
  *
  * **THE slot-order contract**, stated once here because two systems now depend on
- * it (ruled 2026-09-06, `docs/fewer-things.md` §1's levers):
+ * it (ruled 2026-09-06, `docs/history/fewer-things.md` §1's levers):
  *
  *   · this array and `PlayerStatecraft.slots` are **the same order, index for
  *     index** — `newPlayerStatecraft` and `adoptGovernmentAt` both build the
@@ -1208,11 +1208,6 @@ function readCardDef(id: CardId): CardDefBase {
     };
   }
   return { name: String(id), flavor: '', effects: [] };
-}
-
-/** A card's name across all five classes. `cardName`'s wider twin. */
-export function anyCardName(id: CardId): string {
-  return anyCardDef(id).name;
 }
 
 /**
@@ -8943,11 +8938,6 @@ export function hasStatecraftOffer(player: Player): boolean {
     sc.pendingDoctrine !== undefined ||
     sc.pendingGovernment !== undefined
   );
-}
-
-/** Every pool this table knows, for a screen that lists what is still drawable. */
-export function poolSizeOf(sc: PlayerStatecraft, age: TechAge): number {
-  return drawablePool(sc, age).length;
 }
 
 /** The Orders of one pool, for the screen's browser. Re-exported for one import. */

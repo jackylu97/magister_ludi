@@ -16,7 +16,7 @@ The rest of this doc is the proposal as it stood when shelved.
 
 ---
 
-The ruling (`docs/fewer-things.md` §6 item 12, the user): *"Mark them. Let's
+The ruling (`docs/history/fewer-things.md` §6 item 12, the user): *"Mark them. Let's
 have unique luxuries that can possibly be hidden in them that give powerful
 bonuses. Start a doc with all of the vein mechanics and some proposed new
 luxuries (rare minerals, like obsidian, mercury, etc.)"* — after the first
@@ -163,7 +163,7 @@ Design notes:
 - **Power**: each row is worth a *card* — obsidian at t92 is ≈33⚒ of unit
   hammers and 4💰 of upkeep; quicksilver ≈20🔬 plus the capital's line; alum
   ≈9💰 + ≈7💰 of connection gold on three routes — the strongest luxuries in
-  the game, as ruled, and each one pushes a *path* (`docs/fewer-things.md`
+  the game, as ruled, and each one pushes a *path* (`docs/history/fewer-things.md`
   §4: War, Learning, Trade, Works, Faith, Coast, Wide).
 - **Unique**: one copy of each per map (`maxCopies` 1 — a placement knob, not
   a shape); they count as unique luxuries for the Bazaar and `uniqueLuxuries`

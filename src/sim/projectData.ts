@@ -38,7 +38,7 @@
  * science and faith all accumulate and are read where they lie.
  *
  * **Culture is the fourth, and it arrived by the door this docblock left open**
- * (Pageants, Code of Laws, `docs/tech-gifts.md` §7). `Player.culturePool` is a
+ * (Pageants, Code of Laws, `docs/history/tech-gifts.md` §7). `Player.culturePool` is a
  * *basket* whose filling is a draft (Entry XV), so a project paying it owes
  * `settleCultureWindfall` — and that is exactly how it joined: `payProject`
  * calls the wrapper, the way every other filler of that basket does, rather

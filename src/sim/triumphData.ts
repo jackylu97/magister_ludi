@@ -156,14 +156,6 @@ export function triumphDef(id: TriumphId): TriumphDef {
   return def;
 }
 
-/** Runtime guard. Triumph ids reach this build out of save files. */
-export function isTriumphId(value: unknown): value is TriumphId {
-  return (
-    typeof value === 'string' &&
-    Object.prototype.hasOwnProperty.call(TRIUMPH_DATA.triumphs, value)
-  );
-}
-
 /** Every trigger kind a row may name. The register the evaluator's switch answers. */
 const TRIGGER_KINDS: readonly TriumphTriggerKind[] = [
   'cityFounded',

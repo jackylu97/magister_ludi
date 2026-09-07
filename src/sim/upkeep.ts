@@ -419,13 +419,6 @@ function upkeepRebateRowWords(): string {
   return names.length === 0 ? 'Where they were raised' : names.join(' · ');
 }
 
-/** The fold of `explainBuildingUpkeep`, positive. The only sum of one. */
-export function buildingUpkeepTotal(state: GameState, playerId: number): number {
-  let total = 0;
-  for (const line of explainBuildingUpkeep(state, playerId)) total += line.gold;
-  return total;
-}
-
 // --- the debt spiral --------------------------------------------------------
 
 /**

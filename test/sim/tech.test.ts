@@ -1803,7 +1803,7 @@ describe('the shape of the tree', () => {
 
   /**
    * **The five uniques sit on the five nodes the gift table names**
-   * (`docs/tech-gifts.md` §7, batch D). One per node, each `oncePerEmpire`, and
+   * (`docs/history/tech-gifts.md` §7, batch D). One per node, each `oncePerEmpire`, and
    * the Caravanserai moved down two ages from The Golden Roads to Mathematics —
    * a hub is a decision about *where*, and the age of trade is where the
    * decision belongs.
@@ -1965,7 +1965,7 @@ describe('the shape of the tree', () => {
 // --- batch E: the tree's gifts ----------------------------------------------
 
 /**
- * `docs/tech-gifts.md` §7 as the user marked it, node by node.
+ * `docs/history/tech-gifts.md` §7 as the user marked it, node by node.
  *
  * Batch D left six nodes handing over no building; these are what they hand over
  * instead. Every gift is a **row** — the effect vocabulary the tree has carried
@@ -2154,7 +2154,7 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
 
   it('names the two doors faith opens, in the two nodes’ own prose', () => {
     // The ladder's door and the reroll's, said in plain words with no number in
-    // them — `docs/tech-gifts.md` §2. The rule they describe is C1's; what E owes
+    // them — `docs/history/tech-gifts.md` §2. The rule they describe is C1's; what E owes
     // is that the card the player reads says so.
     expect(techDef('divination').note).toMatch(/faith runs deep enough/);
     expect(techDef('theLongCount').note).toMatch(/second reading of a draft/);
@@ -2166,7 +2166,7 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
   });
 
   it('leaves every re-gifted node with something a player will notice', () => {
-    // The pass's own rule (`docs/fewer-things.md` §5 step 5). Six nodes handed
+    // The pass's own rule (`docs/history/fewer-things.md` §5 step 5). Six nodes handed
     // over no building after batch D; each one now hands over a gift of some
     // kind — a unit, a building, a project, a verb, a renewal or a rule of its
     // own. Engineering is on the list deliberately and is *not* one of them: it

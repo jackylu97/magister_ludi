@@ -1,8 +1,8 @@
 /**
  * Entry point for The Flair Cabinet — the art inspection gallery.
  *
- * The fourth look-dev page beside `proto3d.html`, `pieces.html` and
- * `mapgen.html`, and it makes the same bargain every one of them does: it
+ * A look-dev page beside `pieces.html` and `mapgen.html`, and it makes the
+ * same bargain every one of them does: it
  * exists to answer a question, and it reads the real thing to answer it. The
  * Armory asks "do eight model classes read as eight kinds of thing"; the map
  * page asks "does the generator make a world worth playing". This one asks the

@@ -1,6 +1,6 @@
 /**
  * The card stamp: the number a card wears, and the choreography that puts it
- * there (`src/ui/cardStamp.ts`, `docs/doctrine-ideas.md` Part IV — the design of
+ * there (`src/ui/cardStamp.ts`, `docs/history/doctrine-ideas.md` Part IV — the design of
  * record).
  *
  * There is no jsdom in this suite (see `test/ui/statecraftCards.test.ts` for the
@@ -364,9 +364,13 @@ describe('the design of record, held at the source', () => {
     // than by being the last one in the file: the spend ceremony added a second
     // (`greatPersonCeremony.ts`, 2026-09-03) and a later surface will add a
     // third, and "the last block" would quietly start asserting somebody else's.
+    //
+    // The anchor was `.card-stamp-figure.is-tick` until batch H4 cut that rule
+    // (nothing ever set the class); it is now the stamp's landing keyframe,
+    // which is declared once, immediately above the block that switches it off.
     const at = STYLE.indexOf(
       '@media (prefers-reduced-motion: reduce)',
-      STYLE.indexOf('.card-stamp-figure.is-tick') - 800,
+      STYLE.indexOf('@keyframes stamp-land'),
     );
     expect(at).toBeGreaterThan(-1);
     const media = STYLE.slice(at, STYLE.indexOf('\n}\n', at));
@@ -451,7 +455,7 @@ describe('the bench and the offices', () => {
 
   /**
    * **Confirm plays the count, and nothing else does** — the reveal ruling
-   * (`docs/fewer-things.md` §1 "The reveal", RULED 2026-09-06, the user's own
+   * (`docs/history/fewer-things.md` §1 "The reveal", RULED 2026-09-06, the user's own
    * words: *"aggregate yields fire after hitting confirm"*).
    *
    * The three halves of it that can be quietly broken: the list is armed by the

@@ -59,7 +59,7 @@ describe('the statecraft offer chain checks its results', () => {
 /**
  * The stamp reaches every tarot-face offer, and reaches it the same way: one
  * adapter spread into the option beside `cardFace`, asked once when the offer
- * opens (`docs/doctrine-ideas.md` Part IV — the design of record).
+ * opens (`docs/history/doctrine-ideas.md` Part IV — the design of record).
  */
 describe('every statecraft offer carries a stamp', () => {
   it('weighs each class of card through the one evaluator', () => {
@@ -75,7 +75,7 @@ describe('every statecraft offer carries a stamp', () => {
 
   /**
    * **And the great-person draft carries none** — the uniformity ruling
-   * (`docs/doctrine-ideas.md`, "recruit is a promise", 2026-09-03). It used to:
+   * (`docs/history/doctrine-ideas.md`, "recruit is a promise", 2026-09-03). It used to:
    * the legacy subject was the sixth line of the list above, and it made the
    * hand ragged in a way that read as a balance statement — a legacy written as
    * flat yields showed a figure and a legacy written as a combat rule showed the
@@ -118,7 +118,7 @@ describe('every statecraft offer carries a stamp', () => {
 
 /**
  * **The reroll prints the next price before the click** (schema 71, ruled
- * 2026-09-06 — `docs/fewer-things.md` §1: *"the button prints the next price so
+ * 2026-09-06 — `docs/history/fewer-things.md` §1: *"the button prints the next price so
  * the rise is visible before the click"*).
  *
  * Source-read like the rest of this file: the claim is about where the figure

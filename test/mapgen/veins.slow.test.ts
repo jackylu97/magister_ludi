@@ -58,7 +58,7 @@ describe('how much is buried', () => {
     // has nothing to measure, and a sweep over an empty layer would be a test
     // that passes by saying nothing. So while the layer is off this pins the
     // shelving instead — five seeds, no seam — and the ladder claim below
-    // wakes up the day the share is set again (`docs/veins.md`).
+    // wakes up the day the share is set again (`docs/deprecated/veins.md`).
     if (VEINS.share === 0) {
       expect([...counts.values()].reduce((sum, n) => sum + n, 0)).toBe(0);
       return;

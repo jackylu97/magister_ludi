@@ -366,7 +366,7 @@ export type BuildingId =
   // leaves one in a town that has topped out a cathedral. It carries `placed`,
   // so no technology, no card and no bank opens it — see `BuildingDef.placed`.
   | 'relic'
-  // **The uniques** (`docs/tech-gifts.md` §7, ruled 2026-09-06): one to a realm,
+  // **The uniques** (`docs/history/tech-gifts.md` §7, ruled 2026-09-06): one to a realm,
   // each on its own node, each at about half its age's wonder. Two more of the
   // set are rows that already existed and were re-cut in place rather than added
   // — the Forum at Philosophy and the Caravanserai at Mathematics — which is
@@ -652,7 +652,7 @@ export interface BuildingDef {
   awaitsTech?: boolean;
   /**
    * **A parent that must already stand in the same town** — the University's
-   * Library, the Castle's Stone Walls (`docs/fewer-things.md` §2, RULED). Absent
+   * Library, the Castle's Stone Walls (`docs/history/fewer-things.md` §2, RULED). Absent
    * means a row anybody may raise, which is most of them.
    *
    * The shape the cut list is built on: ten chains replace thirty-eight
@@ -663,7 +663,7 @@ export interface BuildingDef {
    * Compendium prints a "Needs standing here" row off the same field.
    *
    * **A grant ignores the chain**, and that is a ruling rather than an oversight
-   * (`docs/fewer-things.md` §6.4). The two paths that hand a town a building —
+   * (`docs/history/fewer-things.md` §6.4). The two paths that hand a town a building —
    * `realiseItem`'s `CompletionGrant` (the Theatre of Dionysus' Amphitheater)
    * and `cardFoundingRider`'s founding list (Charter Towns' Granary) — never ask
    * `buildError` about anything, so neither asks about this: a wonder that
@@ -680,16 +680,19 @@ export interface BuildingDef {
   requiresBuilding?: BuildingId;
   /**
    * **This row has left the buildable set** — the twelve ordinary buildings the
-   * fewer-things pass cut (`docs/fewer-things.md` §2). Absent means a live row,
+   * fewer-things pass cut (`docs/history/fewer-things.md` §2). Absent means a live row,
    * which is every row but those.
    *
    * `awaitsTech`'s mirror image and deliberately a second marker rather than a
    * reuse: that one says *not yet* and this one says *never again*, the two
    * sentences a player reads are opposites, and a row that carried both would be
-   * a row of nothing. The row itself **stays in the table forever** — a save is
-   * `{config, log}` and a v72 log holds towns that raised a Mint, so deleting
-   * the row would make the replay of a legal game impossible. This is the
-   * standing convention for a cut row (`OrderDef.retired`, one table over).
+   * a row of nothing. The row itself **stays in the table forever**, because
+   * `buildingDef` must resolve every id anything can still name — a copy
+   * standing in a town, a card or a wonder that grants one, a save being
+   * replayed. It is *not* keeping an older save loadable: `loadGame` tests the
+   * schema for exact equality and a retirement is itself a bump, so the oldest
+   * save that can name a Mint is one this build wrote. This is the standing
+   * convention for a cut row (`OrderDef.retired`, one table over).
    *
    * Refused in `buildError` (and therefore in `purchaseError`, which asks it),
    * hidden from the city panel's add-list and from the Compendium, and invisible
@@ -713,7 +716,7 @@ export interface BuildingDef {
   grantedOnly?: boolean;
   /**
    * **What this building takes off the maintenance of every unit raised in its
-   * town**, per turn — the Imperial Throne's one gold (`docs/tech-gifts.md` §7).
+   * town**, per turn — the Imperial Throne's one gold (`docs/history/tech-gifts.md` §7).
    * Absent means a building the payroll passes by.
    *
    * A number the caller interprets, `purchaseDiscount`'s bargain one ledger

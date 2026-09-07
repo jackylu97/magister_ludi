@@ -222,7 +222,7 @@ export interface Want {
   ground?: { cityId: number; col: number; row: number };
   /**
    * **The rite this town could perform this turn** — the rites' want since they
-   * became city verbs (2026-09-06, `docs/fewer-things.md` §3).
+   * became city verbs (2026-09-06, `docs/history/fewer-things.md` §3).
    *
    * A third field beside `buy` and `ground` for `ground`'s stated reason: a rite
    * is a different verb (`performRite`) held to a different gate (`riteError`),
@@ -731,7 +731,7 @@ function ladderClaim(player: Player, ladder: readonly Want[]): number {
 
 /**
  * **What the next rung of the faith ladder is worth** — `draftPlan`'s shape one
- * currency over (schema 71, `docs/fewer-things.md` §3).
+ * currency over (schema 71, `docs/history/fewer-things.md` §3).
  *
  * A rung is not a purchase: nothing is bought, the offer opens on its own when
  * the bank crosses the threshold and the pick takes the faith. But that is

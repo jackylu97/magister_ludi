@@ -1,7 +1,7 @@
 /**
  * The Reliquary — the honored dead, and what they still pay.
  *
- * `docs/doctrine-ideas.md`, "The Reliquary is a SCREEN" (2026-09-03). Two kinds
+ * `docs/history/doctrine-ideas.md`, "The Reliquary is a SCREEN" (2026-09-03). Two kinds
  * of test, and the split is the one this suite always makes (`greatPeople.test.ts`
  * says why): the **roll** — who is in the pile, in what order, and what each card
  * says — is a fold over the state and is driven for real; the *drawing* lives in
@@ -276,7 +276,7 @@ describe('the Reliquary screen', () => {
   });
 
   it('omits the lifetime tally entirely rather than printing a dash for it', () => {
-    // Phase 2, and it needs a schema field (`docs/doctrine-ideas.md`). A dash
+    // Phase 2, and it needs a schema field (`docs/history/doctrine-ideas.md`). A dash
     // standing in for a number the screen does not have is a number, printed as
     // though it did.
     expect(SCREEN).not.toContain('has produced');

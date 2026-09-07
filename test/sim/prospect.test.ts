@@ -43,7 +43,7 @@ const GATE = prospectDef().tech;
  * That helper deliberately withholds every node whose gift is a *rule*
  * (`TechDef.effects`), so a fixture is not quietly running seven rewritten rules
  * of the world — and since batch E gave Geomancy its seam-under-the-mine line
- * (`docs/tech-gifts.md` §7) the survey's own node is one of them. This file is
+ * (`docs/history/tech-gifts.md` §7) the survey's own node is one of them. This file is
  * about that node, so it is the one file that asks for it back by name.
  */
 function bareState(width?: number, height?: number, wild?: boolean): GameState {
@@ -574,7 +574,7 @@ describe('the word a player reads for the surveying hand', () => {
     // would be the sheet lying. What the node still gives — the mine's further
     // hammer — is what its note says. The positive half of the old pin ("a
     // worker or a scout may survey…") comes back with the layer
-    // (`docs/veins.md`).
+    // (`docs/deprecated/veins.md`).
     const note = techDef(prospectDef().tech).note ?? '';
     expect(note).not.toMatch(/survey/i);
     expect(note).not.toMatch(/sleeps/i);

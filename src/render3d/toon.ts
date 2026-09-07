@@ -1,6 +1,6 @@
 /**
  * The two shaders the whole look is built out of: a banded toon material and an
- * inverted-hull outline material. Adapted from `src/proto3d/toon.ts`; the only
+ * inverted-hull outline material. Adapted from the look-dev prototype; the only
  * change is that the ramp floor now comes from `view3d.json` instead of being a
  * constant, and the library also hands out the unlit materials the overlays use.
  *

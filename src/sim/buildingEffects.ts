@@ -149,21 +149,6 @@ export function cityIsWatered(city: City): boolean {
 }
 
 /**
- * The rows a town holds that are **placed rather than built** — the relic an
- * apostle leaves (`BuildingDef.placed`).
- *
- * A list rather than a boolean because "one relic per cathedral" is a question
- * about *which* row, and because the act that places one has to be able to name
- * what is already standing. The gate itself (`placeRelicError`) asks about one
- * id; this is what lets a panel say what a town is keeping without naming any.
- */
-export function placedBuildings(city: City): BuildingId[] {
-  return BUILDING_IDS.filter(
-    (id) => city.buildings.includes(id) && buildingDef(id).placed === true,
-  );
-}
-
-/**
  * **The row an act leaves behind** — the relic, and nothing else today.
  *
  * `workForFamily`'s trick one table over: the *rule* is "the placed row", the

@@ -35,7 +35,7 @@ cut lists: `docs/design-history.md`.
   names one family (D domination · C culture · S science · E economic).
 - **No hold-X-for-N-turns cards** (ruled: tedious).
 - **The dice of the Magister are gone** (schema 71, 2026-09-06 —
-  `docs/fewer-things.md` §1): nothing ever spent one, and faith rerolls an Order
+  `docs/history/fewer-things.md` §1): nothing ever spent one, and faith rerolls an Order
   draft in their place. Seven Æra III/IV quests that paid only a die keep their
   rows and carry a `deferred` line until a new boon is written for them.
 - Contested claims resolve through `state.contested` keyed `(id, age)`,

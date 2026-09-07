@@ -89,7 +89,7 @@ the gate is a real barrier, not a formality.
   `statecraftDocSync.test.ts`): Chiefdom 1/1/1 · tier 4 five each · tier 10
   seven each · tier 18 **eight** each (1/4/3 · 4/2/2 · 2/2/4) · tier 29 ten
   each (2/4/4 · 5/2/3 · 3/3/4) · tier 45 twelve each (2/5/5 · 5/3/4 · 3/4/5).
-  Tiers 18/29/45 came down a quarter on 2026-09-06 (`docs/fewer-things.md` §6
+  Tiers 18/29/45 came down a quarter on 2026-09-06 (`docs/history/fewer-things.md` §6
   item 9) so that chairs stay contested against the slower ladder.
 - **No levels** (schema 63): a card is what its row prints, held once. A draft
   is take one or pass — `skipOrderOffer` spends the hand, raises `orderSkips`
@@ -103,7 +103,8 @@ the gate is a real barrier, not a formality.
 ## Religion
 
 One-charge prophet (plant founds; founding drafts two rungs of the belief
-ladder) and one-charge augur (consecrate OR one rite, the whole turn).
+ladder). The augur is retired (`UnitDef.retired`, 2026-09-06): a rite is a
+city's verb now, not a piece's.
 Pressure is a tide (`spreadReligion`) plus lumps (`pressLump`); a city's
 religion is derived majority. Follower beliefs pay the city's owner;
 founder-side pay follows the holy site's stones. The Inquisitor purges
@@ -206,8 +207,9 @@ lake half waits on lakes anyone can reach — the honest hole is on the row);
 the Workshop and the Stele of Laws reworked to the user's numbers; Stone
 Walls joins the wall family at Siegecraft; the Spear Wall takes its
 age-appropriate name. The tooltip half is the bigger deal: ability gifts
-head by their BEARER (the augur's rites stop hiding under "Workers may
-also"), effect-techs print their own hand-written notes — one clause per
+head by their BEARER (the rites stopped hiding under "Workers may
+also" — they were the augur's then and are a city's now), effect-techs print
+their own hand-written notes — one clause per
 line, the card and the Compendium reading identical words through one
 function — and "buildings pay new ground" moves to the building entries
 where a builder actually looks. A register test now refuses a new

@@ -1,9 +1,10 @@
 /**
  * Entry point for the Compendium page — the game's own reference, in a tab.
  *
- * The sixth root page, and the only one of the six that is not a *dev* page:
- * `proto3d.html`, `pieces.html`, `abacus.html`, `mapgen.html` and `flair.html`
- * are look-dev and inspection surfaces, and this is a thing a player reads.
+ * The only root page beside `index.html` that is not a *dev* page:
+ * `pieces.html`, `abacus.html`, `mapgen.html`, `flair.html`, `spectate.html`
+ * and `arena.html` are look-dev and inspection surfaces, and this is a thing a
+ * player reads.
  *
  * One module, two mounts
  * ----------------------

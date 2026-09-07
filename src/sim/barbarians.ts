@@ -1273,10 +1273,5 @@ export function barbarianTurn(state: GameState, report?: TurnReport): void {
   raid(state, veterans, report);
 }
 
-/** Every camp on the board, as cells — a pure read for the renderer and tests. */
-export function campCells(state: GameState): { col: number; row: number }[] {
-  return state.camps.map((camp) => ({ col: camp.col, row: camp.row }));
-}
-
 /** Is there a camp here? Re-exported so callers ask the wild about the wild. */
 export { campAt, hasCampAt };

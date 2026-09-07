@@ -225,11 +225,6 @@ export function explainWarScore(
   ]);
 }
 
-/** `explainWarScore`'s number alone. */
-export function warScore(state: GameState, player: Player, enemy: Player, ai: AiConfig): number {
-  return explainWarScore(state, player, enemy, ai).total;
-}
-
 // --- what a paper is worth --------------------------------------------------
 
 /**

@@ -984,7 +984,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       });
     }
     // **The augur's one remaining row.** Its rites are a town's verbs now
-    // (`docs/fewer-things.md` §3) and its gods arrive on a faith threshold, so
+    // (`docs/history/fewer-things.md` §3) and its gods arrive on a faith threshold, so
     // there is one row left and it is always greyed — with the reducer's own
     // sentence, which is what says *why*. Kept rather than deleted: a piece
     // already standing on a board from before the pass must be able to say what

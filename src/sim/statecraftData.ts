@@ -183,13 +183,6 @@ export type OrderPool =
  */
 export type OrderRarity = 'common' | 'uncommon' | 'rare';
 
-/** The rungs in that order. The register a sweep or a screen walks. */
-export const ORDER_RARITIES: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
-
-export function isOrderRarity(value: unknown): value is OrderRarity {
-  return value === 'common' || value === 'uncommon' || value === 'rare';
-}
-
 /**
  * The pools in ladder order — which is also "which pool retires when": since
  * 2026-09-03 a pool retires whole the moment the next government opens, so this
@@ -1017,7 +1010,7 @@ export type CountKind =
   // was retired here on 2026-09-06 with the augur itself (`data/units.json`'s
   // row is `retired`, so nothing on any board can ever be charged and the count
   // could only answer zero). Court Augurs is re-cut to read *cities with an
-  // active rite* (`docs/fewer-things.md` §3), which is a different count and
+  // active rite* (`docs/history/fewer-things.md` §3), which is a different count and
   // will be added as one. A member no row names and no board can satisfy is a
   // vocabulary entry that reads as a feature.
   /**
@@ -1295,7 +1288,7 @@ export type CountKind =
   | 'followersHere'
   /**
    * **What this card has watched happen** — the growing cards' counter
-   * (`docs/doctrine-ideas.md`, "Growing cards", ruled 2026-09-04).
+   * (`docs/history/doctrine-ideas.md`, "Growing cards", ruled 2026-09-04).
    *
    * Every other member of this union is a question the board answers *now*: ask
    * it twice and it says the same thing, because the luxuries, the citizens and
@@ -1371,7 +1364,7 @@ export type CountKind =
   | 'empireYield'
   /**
    * **Order drafts this empire has rerolled while this card sat in its chair** —
-   * the shrine engine of `docs/orders-pass-3.md` §9 ("+1🕯 on Shrines for every
+   * the shrine engine of `docs/history/orders-pass-3.md` §9 ("+1🕯 on Shrines for every
    * faith roll while this Order is slotted").
    *
    * `tally`'s cousin and deliberately not a `TallyOccasion`: a tally belongs to
@@ -3131,7 +3124,7 @@ export interface CardUpkeepRebateEffect {
 
 /**
  * **What your other Orders pay, paid again** — the engine shape of
- * `docs/fewer-things.md` §4, ruled: *"your Orders that give food give an
+ * `docs/history/fewer-things.md` §4, ruled: *"your Orders that give food give an
  * additional food"*.
  *
  * The first clause in the vocabulary whose subject is the **deck**. Every other
@@ -3144,7 +3137,7 @@ export interface CardUpkeepRebateEffect {
  * -----------------------------------------------------------------------
  * *"Amplifiers stack additively, not multiplicatively … (per line instance, so
  * it stacks with '+1 food on each resource hex' hex by hex)"*
- * (`docs/orders-pass-3.md` §9). `amount` is therefore paid **once per line
+ * (`docs/history/orders-pass-3.md` §9). `amount` is therefore paid **once per line
  * instance** — per town for a per-town line, per hex for a hex line, once for an
  * empire line — which is what makes the engine worth more in a wide realm and
  * worth more beside a card that already dresses forty hexes. A share (`percent`)
@@ -3278,7 +3271,7 @@ export interface CardSlotPositionEffect {
 
 /**
  * **Every so many turns, a boon** — the periodic occasion of
- * `docs/fewer-things.md` §4, ruled worthwhile because *frequency × size* is a
+ * `docs/history/fewer-things.md` §4, ruled worthwhile because *frequency × size* is a
  * second axis of scaling beside the flats.
  *
  * Nothing ticks, and that is the whole of the discipline
@@ -3338,7 +3331,7 @@ export interface CardPeriodicEffect {
 
 /**
  * **Your every-N-turn cards come round sooner** — the shortener of
- * `docs/fewer-things.md` §4 (The Almanac of Hours, The Great Clock, Horology's
+ * `docs/history/fewer-things.md` §4 (The Almanac of Hours, The Great Clock, Horology's
  * Water Clock), and the reason "every 5, shortened by 2" is a different card
  * from "every 10".
  *
@@ -3374,7 +3367,7 @@ export interface CardPeriodShortenEffect {
 
 /**
  * **A share on what one town earns in renown** — the Heroic Epic's *"this city
- * gains +50% renown"* (`docs/tech-gifts.md` §7).
+ * gains +50% renown"* (`docs/history/tech-gifts.md` §7).
  *
  * Renown is a flat per building today (`BuildingDef.renown`), so this is the
  * first percentage the ladder has ever had, and it is city-scoped by
@@ -3405,7 +3398,7 @@ export interface CardCityRenownPercentEffect {
  * **Yields put on the route itself** — Silk Roads' coin and the Caravanserai's
  * grain, and the thing "double your trade route yields" is a doubling *of*.
  *
- * The grammar the user's marks revealed (`docs/orders-pass-3.md` §9): *put yields
+ * The grammar the user's marks revealed (`docs/history/orders-pass-3.md` §9): *put yields
  * on a thing, then multiply the thing*. A caravan is the clearest such thing on
  * the board, and until now nothing could put anything on one — a card that wanted
  * to pay for trade had to pay a town instead, which the multiplier
@@ -3439,7 +3432,7 @@ export interface CardRouteYieldEffect {
   /**
    * **Paid once for every luxury held at either end of the road** — The Golden
    * Roads' *"+1💰 from each luxury resource in the origin or destination city"*
-   * (`docs/tech-gifts.md` §7).
+   * (`docs/history/tech-gifts.md` §7).
    *
    * A multiplier on this row's own bag rather than a count shape of its own,
    * because the thing counted is a fact about *the route* and nothing else in
@@ -3573,10 +3566,12 @@ export type CardEffect =
   | CardYieldConversionEffect
   | CardUpkeepRebateEffect
   | CardUpkeepSurchargeEffect
-  // The engine shapes of `docs/fewer-things.md` §4 and `docs/tech-gifts.md` §7,
-  // built as batch A of `docs/fewer-things-plan.md`. No data row uses one yet —
-  // the rows are batches D through F — so every one of them is proved by a
-  // fixture in `test/sim/statecraft.test.ts` rather than by the table.
+  // The engine shapes of `docs/history/fewer-things.md` §4 and `docs/history/tech-gifts.md` §7,
+  // built as batch A of `docs/fewer-things-plan.md` ahead of the rows that
+  // would use them. Batches D through F wrote those rows, and all seven shapes
+  // are now live in the table — so the fixtures in `test/sim/statecraft.test.ts`
+  // that proved them before any row existed are a second reading rather than
+  // the only one.
   | CardYieldAmplifierEffect
   | CardBuildingYieldPercentEffect
   | CardSlotPositionEffect
@@ -3666,7 +3661,7 @@ export interface OrderSlotGrant {
    *
    * There was a second, `'die'`, until schema 71: The Auspicious Seal handed
    * over a die of the Magister the first time it was slotted. The dice went with
-   * the fewer-things pass (`docs/fewer-things.md` §1 — faith rerolls a draft
+   * the fewer-things pass (`docs/history/fewer-things.md` §1 — faith rerolls a draft
    * now) and the card was retired with them, so the union is one member wide
    * again. A second *kind* is a design decision; a second card wanting the
    * existing one is a JSON row.
@@ -3703,11 +3698,20 @@ export interface OrderDef extends CardDefBase {
    * **Withdrawn from the pool**: never dealt, and still fully readable.
    *
    * A card the design has taken out (The Loose Rein, 2026-08-28) rather than a
-   * card that never existed, and the distinction is the whole point: a save from
-   * before the cut may hold it slotted, and a row deleted outright would be a
-   * save that cannot be replayed — `anyCardDef` would throw on an id in the log.
-   * So the row stays, its effects stay live for whoever holds it, and
-   * `poolOrders` simply stops dealing it. Nothing else in the game asks.
+   * card that never existed, and the distinction is the whole point: an empire
+   * that holds it holds it still — `anyCardDef` resolves the id and its effects
+   * fold like any other's — and a row deleted outright would be a log that
+   * cannot be replayed. So the row stays, its effects stay live for whoever
+   * holds it, and `poolOrders` simply stops dealing it.
+   *
+   * The row is not, however, keeping an *older* save readable: `loadGame` tests
+   * the schema for exact equality and a retirement is itself a bump, so the
+   * only save that can name a withdrawn card is one this build wrote. What the
+   * row is really for is the two readings above plus the third: the Compendium
+   * walks `ORDER_IDS` and `DOCTRINE_IDS` unfiltered, so **a withdrawn card is
+   * still printed in full** — name, slot, pool, rarity, line, clauses, flavour
+   * and note — which is what "still fully readable" means and why none of those
+   * fields may be trimmed off a retired row.
    */
   retired?: boolean;
   /**
@@ -3740,7 +3744,7 @@ export interface StatecraftMeterConfig {
    *
    * **One number for every shelf**, and the Æra III fork of 2026-09-05 is why
    * that is written down rather than assumed: the fork's proposal was a longer
-   * seal from Government III on (`docs/age-three.md` section 3) and the user
+   * seal from Government III on (`docs/history/age-three.md` section 3) and the user
    * vetoed it the same day — *certain cards you want to slot in and out; that
    * should be part of the game's skill expression*. So a seal is a fixed price
    * for anticipating a posture (Entry XV), never a tax that climbs with the
@@ -3882,7 +3886,8 @@ export function cardDef(id: CardId): CardDefBase {
 
 /**
  * A Statecraft card's name, or the raw id when nothing here knows it — which
- * includes every belief and every rite. See `cardDef` above and `anyCardName`.
+ * includes every belief and every rite — `anyCardDef` in `statecraft.ts` is the
+ * lookup that spans all five classes. See `cardDef` above.
  */
 export function cardName(id: CardId): string {
   if (isOrderId(id) || isDoctrineId(id) || isGovernmentId(id)) return cardDef(id).name;

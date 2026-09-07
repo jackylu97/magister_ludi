@@ -1,6 +1,6 @@
 /**
  * The faith ladder: the pantheon dealt by a bank rather than by an errand
- * (schema 71, ruled 2026-09-06 — `docs/fewer-things.md` §3, `docs/fewer-things-plan.md` C1).
+ * (schema 71, ruled 2026-09-06 — `docs/history/fewer-things.md` §3, `docs/fewer-things-plan.md` C1).
  *
  * A consecration used to be an augur bought for forty faith, walked to a town
  * and spent. The errand is gone: faith accumulates the way culture does, and
@@ -70,7 +70,7 @@ function believer(seed = 7, faith = 0) {
 
 describe('the ladder’s arithmetic', () => {
   it('wears the augur’s old price ladder: 40, +15 a rung, at a slight exponent', () => {
-    // The ruled numbers (`docs/fewer-things.md` §6 item 5). The augur cost 40
+    // The ruled numbers (`docs/history/fewer-things.md` §6 item 5). The augur cost 40
     // with 15 more for each one already called — 40 · 55 · 70, 165 all told —
     // and the ladder reproduces it to within three faith across three rungs.
     expect(faithRungCost(0)).toBe(40);

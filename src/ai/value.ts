@@ -471,20 +471,6 @@ export function buildTurns(cost: number, ctx: ValueContext): number {
 }
 
 /**
- * The median production of this empire's towns — `ValueContext.medianProduction`,
- * computed once by `valueContext` and read from the context everywhere else.
- *
- * The reading is `cityYields`, the simulation's own fold, so a town's hammers
- * mean here exactly what they mean in the queue that spends them. An empire with
- * no town at all answers 1 rather than 0: a division has to be safe, and "one
- * hammer a turn" is the honest floor for an empire that has yet to found
- * anything.
- */
-export function medianTownProduction(state: GameState, playerId: number): number {
-  return townProduction(state, playerId).median;
-}
-
-/**
  * **Both hammer readings, in one sweep** — the middle town's and the busiest
  * town's (`ValueContext.medianProduction` / `bestProduction`).
  *
@@ -1025,10 +1011,6 @@ export function explainBuildingRow(id: BuildingId, ctx: ValueContext): Appraisal
   return appraise(terms);
 }
 
-export function valueOfBuildingRow(id: BuildingId, ctx: ValueContext): number {
-  return explainBuildingRow(id, ctx).total;
-}
-
 /**
  * A repeatable conversion's worth: what one turn of it pays, weighted, against
  * the hammers one turn of it costs — expressed as a per-turn figure so the
@@ -1048,10 +1030,6 @@ export function explainProjectRow(id: ProjectId, ctx: ValueContext): Appraisal {
   const terms: ValueTerm[] = [nest('what one turn of it pays', explainYields(bag, ctx))];
   if (def.bead !== undefined) terms.push({ label: 'a glass bead', value: ctx.ai.weights.bead });
   return appraise(terms);
-}
-
-export function valueOfProjectRow(id: ProjectId, ctx: ValueContext): number {
-  return explainProjectRow(id, ctx).total;
 }
 
 /**
@@ -1264,7 +1242,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     // is `explainCounted`'s own rule read one shape over: an engine is worth what
     // it multiplies, so a deck with nothing to multiply prices it near nought —
     // and that is the honest reading rather than a stand-in. It is also the
-    // *written-down* debt of this pass (`docs/fewer-things.md` §5): a card
+    // *written-down* debt of this pass (`docs/history/fewer-things.md` §5): a card
     // appraised in isolation cannot see the deck it would be drafted into, and
     // the marginal reading `V(deck ∪ card) − V(deck)` is batch F2's.
     case 'cardYieldAmplifier': {

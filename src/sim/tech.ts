@@ -370,11 +370,6 @@ export function prereqsMet(state: GameState, playerId: number, techId: TechId): 
   return techDef(techId).prereqs.every((prereq) => hasTech(state, playerId, prereq));
 }
 
-/** The prerequisites this player is still missing, in the tech's own order. */
-export function missingPrereqs(state: GameState, playerId: number, techId: TechId): TechId[] {
-  return techDef(techId).prereqs.filter((prereq) => !hasTech(state, playerId, prereq));
-}
-
 /**
  * May this player build this unit type / building yet?
  *
@@ -775,7 +770,7 @@ export function buildError(
     }
   }
   /**
-   * **The chain** (`BuildingDef.requiresBuilding`, `docs/fewer-things.md` §2):
+   * **The chain** (`BuildingDef.requiresBuilding`, `docs/history/fewer-things.md` §2):
    * a University wants a Library standing in the same town.
    *
    * With the site clause below and only when a town is in hand, because it is
@@ -1320,7 +1315,7 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   if (highestAge(player.techsResearched) > eraBefore) {
     // The one moment in the game that knows an empire has *entered* an age
     // rather than merely standing in one. The Long Count used to pay a die of
-    // the Magister here; the dice went with schema 71 (`docs/fewer-things.md`
+    // the Magister here; the dice went with schema 71 (`docs/history/fewer-things.md`
     // §1) and what the node pays now is the reroll's door, which is a gate a
     // verb asks about and never a payout.
     awardOccasion(state, player.id, 'ageEntered');

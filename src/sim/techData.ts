@@ -399,9 +399,12 @@ export type AbilityId =
   | 'riteOfPlenty'
   // Recasting the Omens and The Preaching stood here until the fewer-things
   // pass (2026-09-06). Their rows are withdrawn rather than deleted
-  // (`RiteDef.retired`) so a save that names one still resolves to a card; the
-  // *abilities* go entirely, because an ability nothing teaches is a gift on a
-  // tech card promising a verb no surface offers.
+  // (`RiteDef.retired`) so that `anyCardDef` still resolves the id and the
+  // Compendium can say the rite was taken out rather than pretend it never
+  // stood — not because an old save loads, which no save written before this
+  // schema does (`loadGame` tests exact equality). The *abilities* go entirely,
+  // because an ability nothing teaches is a gift on a tech card promising a
+  // verb no surface offers.
   /**
    * **The great-person offer opens at all** (the tree pass of 2026-08-30).
    *
@@ -472,7 +475,7 @@ export type AbilityId =
  * filed under a piece that has nothing to do with them.
  *
  * `city` is the sixth and the only bearer that is not a piece at all: since the
- * rites became city verbs (`docs/fewer-things.md` §3, ruled 2026-09-06) the
+ * rites became city verbs (`docs/history/fewer-things.md` §3, ruled 2026-09-06) the
  * thing that gains the verb is a **town**, and the card says so. `augur` stays
  * in the union although no live row wears it — the augur's own rows are
  * withdrawn, not deleted, and a save may still name one.

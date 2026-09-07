@@ -744,7 +744,7 @@ export function beadDataProblems(): string[] {
       (boon.effects?.length ?? 0) > 0;
     // **A row that pays nothing must say so on its own face.** Seven quests paid
     // a die of the Magister and nothing else, and the dice went with schema 71
-    // (`docs/fewer-things.md` §1) — so those rows now carry a `deferred` line
+    // (`docs/history/fewer-things.md` §1) — so those rows now carry a `deferred` line
     // instead, which is this codebase's standing answer for a card promising
     // something the vocabulary cannot yet pay. A silent empty boon stays a data
     // mistake; an annotated one is a debt in the open.

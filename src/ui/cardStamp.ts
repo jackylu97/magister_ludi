@@ -38,7 +38,7 @@
  *     coastal read, a count — is the hover breakdown's rule-5 lines, and the
  *     evaluator still labels a cascade distinctly so the hover can lean on it.
  *   · **the pending mark** — `— on Confirm`, for a card laid in an office this
- *     session and not yet signed. The reveal ruling (`docs/fewer-things.md` §1,
+ *     session and not yet signed. The reveal ruling (`docs/history/fewer-things.md` §1,
  *     "The reveal", RULED 2026-09-06): *"don't show the yield until you confirm
  *     its placement in the government"*. A figure printed the instant a card
  *     drops answers the question the ceremony exists to ask, so the seat says

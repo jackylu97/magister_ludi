@@ -70,22 +70,6 @@ export function unitsOnTile(state: GameState, col: number, row: number): Unit[] 
   return result;
 }
 
-/** The first unit of `category` on a cell, ignoring `exceptId`. */
-export function unitOnTile(
-  state: GameState,
-  col: number,
-  row: number,
-  category: UnitCategory,
-  exceptId = -1,
-): Unit | undefined {
-  for (const unit of state.units) {
-    if (unit.id === exceptId) continue;
-    if (unit.col !== col || unit.row !== row) continue;
-    if (unitDef(unit.type).category === category) return unit;
-  }
-  return undefined;
-}
-
 /** True when a unit not owned by `ownerId` stands on the cell. */
 export function hasForeignUnit(
   state: GameState,

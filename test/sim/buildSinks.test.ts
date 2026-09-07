@@ -389,7 +389,7 @@ describe('a project is gated, once, by the tree', () => {
     expect(projectDef('tithes').cost / projectDef('tithes').pays.gold!).toBe(4);
     expect(projectDef('scholarship').cost / projectDef('scholarship').pays.science!).toBe(4);
     // The third conversion trades at the same rate as its two siblings (batch E,
-    // `docs/tech-gifts.md` §7 — Code of Laws' pageants).
+    // `docs/history/tech-gifts.md` §7 — Code of Laws' pageants).
     expect(projectDef('pageants').cost / projectDef('pageants').pays.culture!).toBe(4);
   });
 });

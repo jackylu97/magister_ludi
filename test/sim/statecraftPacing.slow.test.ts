@@ -146,7 +146,7 @@ describe('the culture ladder', () => {
     // changes" — every measurement here is printed, not banded), and the one
     // assertion left is that the three tiers this slice claims to reach do
     // arrive inside it. `meter.costExponent` 2.25 → 2.8
-    // (`docs/fewer-things.md` §1's lever table, §6 item 9) makes the twentieth
+    // (`docs/history/fewer-things.md` §1's lever table, §6 item 9) makes the twentieth
     // rung four and a half times dearer, and this deliberately conservative
     // scripted empire's third government slipped from turn 275 to **turn 695**.
     // The full ladder on this seed, after the ruling:

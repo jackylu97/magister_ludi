@@ -187,15 +187,6 @@ export function isExploredBy(
   return visibilityAt(state, playerId, col, row) !== HIDDEN;
 }
 
-export function isHiddenFrom(
-  state: GameState,
-  playerId: number,
-  col: number,
-  row: number,
-): boolean {
-  return visibilityAt(state, playerId, col, row) === HIDDEN;
-}
-
 /** What this player remembers of a city, or `null` if they never saw it. */
 export function citySightingOf(
   state: GameState,

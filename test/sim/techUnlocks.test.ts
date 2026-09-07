@@ -77,7 +77,7 @@ describe('techGifts', () => {
     // and then Petra — a wonder is an ordinary building on the list. The
     // library's renewal used to sort after all three; it was struck by the
     // renewals axe (2026-09-04). Batch D put the **Caravanserai** on the node
-    // as the age's route hub (`docs/tech-gifts.md` §7), so it is four gifts
+    // as the age's route hub (`docs/history/tech-gifts.md` §7), so it is four gifts
     // again and the two buildings still sort behind the two pieces.
     expect(techGifts('mathematics').map((gift) => gift.kind)).toEqual([
       'unit',

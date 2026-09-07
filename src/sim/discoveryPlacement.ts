@@ -404,7 +404,7 @@ function ensureStartDiscoveries(
  * Every tile carrying a discovery, in map order.
  *
  * A pure read for the renderer's fingerprint and for tests. In map order rather
- * than in placement order, for `improvedCells`'s reason: "what is on the board"
+ * than in placement order, for `BuiltBoard.treedCells`' reason: "what is on the board"
  * is a question about the board, and an order that depended on history would make
  * two identical states hash differently.
  */

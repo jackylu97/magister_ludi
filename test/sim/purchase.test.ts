@@ -573,7 +573,7 @@ describe('every refusal, and each leaves the state byte-identical', () => {
 
 /**
  * **The faith bank a building opens** — the Reliquary's until the fewer-things
- * cut, the **Cathedral's** since (`docs/fewer-things.md` §2: the Reliquary is
+ * cut, the **Cathedral's** since (`docs/history/fewer-things.md` §2: the Reliquary is
  * withdrawn and its door moves onto the row that was always the faith line's
  * house).
  *
@@ -681,7 +681,7 @@ describe('a town holding a Cathedral sells its units for faith', () => {
 
   it('pays a quarter more faith in the town the High Temple stands in', () => {
     // The clause the Reliquary used to carry, re-homed on one of the five
-    // uniques (`docs/tech-gifts.md` §7) and written the same way: an ordinary
+    // uniques (`docs/history/tech-gifts.md` §7) and written the same way: an ordinary
     // `percentYields` scoped to the building, read through the empire's own
     // walk because a `oncePerEmpire` row belongs to it. Nothing in the evaluator
     // learned a building's name either time, which is why the move was a JSON

@@ -145,7 +145,7 @@ describe('the orders and doctrines doc mirrors the data', () => {
   });
 
   /**
-   * The **role** half (batch F, 2026-09-06 — `docs/orders-pass-3.md` §1).
+   * The **role** half (batch F, 2026-09-06 — `docs/history/orders-pass-3.md` §1).
    *
    * The worksheet's new Role column says which of the three kinds of card a row
    * is: an **engine** (its subject is the deck or the board's *kind*), a
@@ -301,7 +301,7 @@ describe('the orders and doctrines doc mirrors the data', () => {
   });
 
   /**
-   * The **chairs** half (batch G, 2026-09-06 — `docs/fewer-things.md` §6 item 9,
+   * The **chairs** half (batch G, 2026-09-06 — `docs/history/fewer-things.md` §6 item 9,
    * "chairs down a quarter: Government III 11 → 8, and Government IV and V
    * commensurately").
    *

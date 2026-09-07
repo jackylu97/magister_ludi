@@ -42,8 +42,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       // Dev serves any root HTML file, but the build only walks the entry
-      // points it is told about. `proto3d.html` is the 3D look-dev prototype
-      // (see `src/proto3d/`), `pieces.html` is the piece gallery (see
+      // points it is told about. `pieces.html` is the piece gallery (see
       // `src/piecesGallery/`), `abacus.html` is the victory-scoreboard spike
       // (see `src/abacusSpike/`), `mapgen.html` is the map inspection page (see
       // `src/mapgenPage/`) and `flair.html` is the art cabinet — every drawn
@@ -54,26 +53,25 @@ export default defineConfig({
       // pulling `node:path` into a config the tsconfig typechecks with only the
       // DOM and Vite client libs.
       //
-      // `spectate.html` is the seventh dev surface: an all-bot game stepped one
-      // decision at a time, with every candidate the policy weighed and the
+      // `spectate.html` is the bot's own dev surface: an all-bot game stepped
+      // one decision at a time, with every candidate the policy weighed and the
       // arithmetic that ranked them (see `src/spectate/`). It owns its own
       // renderer the way `mapgen.html` does, and drives the game only through
       // `createBotStepper` — the driver's own loop, unrolled.
       //
-      // `arena.html` is the eighth and the newest: the bot's whole tuning sheet
-      // as a generated panel, and five headless games (one Web Worker each)
-      // averaged per seat position (see `src/arenaPage/`). It is the page the
-      // spectate page's questions get *answered* on — one decision explained
-      // there, five games of consequences measured here.
+      // `arena.html` is the newest: the bot's whole tuning sheet as a generated
+      // panel, and five headless games (one Web Worker each) averaged per seat
+      // position (see `src/arenaPage/`). It is the page the spectate page's
+      // questions get *answered* on — one decision explained there, five games
+      // of consequences measured here.
       //
-      // `compendium.html` is the sixth, and the only one of the five extra pages
-      // that is **not** a dev surface: it is the game's own reference, mounted
-      // from the very module the in-game overlay mounts (`src/ui/compendium.ts`
-      // — one book, two mounts), which is why it lives beside `index.html`
-      // rather than under a gallery.
+      // `compendium.html` is the only one of the seven extra pages that is
+      // **not** a dev surface: it is the game's own reference, mounted from the
+      // very module the in-game overlay mounts (`src/ui/compendium.ts` — one
+      // book, two mounts), which is why it lives beside `index.html` rather
+      // than under a gallery.
       input: {
         main: 'index.html',
-        proto3d: 'proto3d.html',
         pieces: 'pieces.html',
         abacus: 'abacus.html',
         mapgen: 'mapgen.html',

@@ -540,7 +540,7 @@ describe('a belief is an effect source, not a second evaluator', () => {
 // --- rites, end to end ------------------------------------------------------
 
 /**
- * **A rite is a city's verb** (`docs/fewer-things.md` §3, ruled 2026-09-06).
+ * **A rite is a city's verb** (`docs/history/fewer-things.md` §3, ruled 2026-09-06).
  *
  * The user's complaint was the errand — call an augur, walk it, aim it, spend it
  * — so the errand is gone and the town says the rite itself, out of the empire's

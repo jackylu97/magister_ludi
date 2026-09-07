@@ -44,7 +44,7 @@ describe('seeding the veins', () => {
     // seed's ground above it is bit-identical to what it was. The machinery
     // below is kept alive by the tests that hand `placeVeins` a share of their
     // own; this pin is what says the *sheet* is off, on purpose, and that
-    // turning it back on is one number (`docs/veins.md`).
+    // turning it back on is one number (`docs/deprecated/veins.md`).
     expect(VEINS.share).toBe(0);
     expect(veinCells(generateMap(4242, 'duel'))).toEqual([]);
     expect(veinCells(generateMap(4242, 'standard'))).toEqual([]);

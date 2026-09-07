@@ -1,7 +1,7 @@
 /**
  * The spend ceremony: **they served you; their legacy remains.**
  *
- * `docs/doctrine-ideas.md`, "The great person's three beats", with the
+ * `docs/history/doctrine-ideas.md`, "The great person's three beats", with the
  * 2026-09-03 **inversion**: the LEGACY is the card's prominent content and the
  * animated reveal, and the act or work — the thing the player just clicked, the
  * thing that paid — is a small mono line that simply appears beneath it. The

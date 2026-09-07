@@ -1,6 +1,6 @@
 # Tech gifts — every node's gift after the cut (2026-09-06)
 
-The ruling (`docs/fewer-things.md` §6 item 11, the user): the tech gift
+The ruling (`docs/history/fewer-things.md` §6 item 11, the user): the tech gift
 table is its own doc, **before the order pass**. The rule for the pass
 (fewer-things §5 step 5): **no tech node without a gift a player will
 notice.** The lanes are the user's chart (2026-09-03) and do not move; a
@@ -16,7 +16,7 @@ buildings `funeralGames`, `steleOfLaws`, `monastery`, `baths`, `forum`,
 projects (production → gold / science / culture), the faith ladder and the
 reroll, the city rites, the apostle, the engine shapes a tech may carry as a
 card effect (`TechDef.effects`), and the vein layer's two halves
-(`docs/veins.md`).
+(`docs/deprecated/veins.md`).
 
 **Nothing under `data/` or `src/` moves until §6 is marked.**
 
@@ -32,7 +32,7 @@ What a node can hand over, and whether the shape exists.
 | a building | `unlocks.buildings` | yes | **with chains, one row is two gifts**: the Bank *exists* at Banking and is *buildable* once a Market stands. The doc tables say "needs X" |
 | an improvement | `requiresTech` on the improvement row | yes | farm · mine · pasture · camp · quarry · fishing boats · plantation · lumber mill · floating gardens |
 | a verb / ability | `unlocks.abilities` (`ABILITY_TECH`) | yes | embark · sea legs · siege · open borders · the great-person gate · The Long Count · ocean-going · **the five rites, one by one, on their current nodes — RULED** (the bearer becomes the city) |
-| a reveal | `requiresTech` on a resource row | yes | horses (Husbandry) · iron (Bronze Panoply) · niter (Alchemy); the minerals (Geomancy, `docs/veins.md`) |
+| a reveal | `requiresTech` on a resource row | yes | horses (Husbandry) · iron (Bronze Panoply) · niter (Alchemy); the minerals (Geomancy, `docs/deprecated/veins.md`) |
 | a project | `unlocks.projects` | yes | `tithes` (Calendar) · `scholarship` (Letters) today; **the third, production → culture, is ruled and has no node** — §2 places it |
 | a card effect carried by the tech | `TechDef.effects` (`liveEffects`' tenth source) | yes | Epic Poetry's verse, Raised Fields' tile line, State Workforce's discount, the Imperial Post's rules, Daughter Cities' rider, The Qadi's Court's meter rule, Steel's stat, Movable Type's cheer. **The strongest tool for filling a gap**: the tree's own civic, an engine or payoff shape from fewer-things §4 granted passively. New *shapes* are the five ruled there; a tech using one is a row |
 | a tile line | `effects[].kind: tileYield` | yes | Raised Fields is the precedent; the renewals were axed (schema 62) but a tech-gated tile line is honest when it is *the* gift, not a renewal beside a building |
@@ -40,7 +40,7 @@ What a node can hand over, and whether the shape exists.
 | a bead | `paysBead` | yes | Alchemy |
 | a card into your pool | — | **no** | a tech that adds a named Order to your draw bag. Not proposed: a card the tree hands you is a card the draft did not — it takes the decision out of the draft, which is the wrong direction for this pass |
 | a rung of the faith ladder · the reroll | — | ruled, not yet placed | §2: the ladder opens with the Shrine (Divination); the reroll opens at The Long Count |
-| the vein layer | — | **shelved** (`docs/veins.md`) | the survey stays greyed by the tree; the layer is off in data |
+| the vein layer | — | **shelved** (`docs/deprecated/veins.md`) | the survey stays greyed by the tree; the layer is off in data |
 
 ---
 

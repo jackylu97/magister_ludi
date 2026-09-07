@@ -218,7 +218,7 @@ export interface OfferOption {
    * What this card would be **worth**, for the stamp — and the one thing on this
    * face that is deliberately not shown while the offer is up.
    *
-   * The choreography is the mock's (`docs/doctrine-ideas.md`, Part IV, the
+   * The choreography is the mock's (`docs/history/doctrine-ideas.md`, Part IV, the
    * design of record): during selection every card wears the small flourish and
    * **no digits at all**, because a hand of three figures is a hand that has
    * already chosen for the player. The pick reveals the taken card's number —

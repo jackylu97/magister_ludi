@@ -55,7 +55,7 @@
  *
  * The reveal is Confirm's
  * ------------------------
- * `docs/fewer-things.md` §1 ("The reveal") and §4, RULED 2026-09-06, in the
+ * `docs/history/fewer-things.md` §1 ("The reveal") and §4, RULED 2026-09-06, in the
  * user's own words: *"don't show the yield until you confirm its placement in
  * the government — hit confirm, locking the card in its slot, aggregate yields
  * fire after hitting confirm"*. So a card laid in an office this session wears
@@ -101,7 +101,7 @@
  * spread out grouped by flavour in `SLOT_TYPES` order — so **the array index is
  * the position**, and this screen draws the column in array index order, which is
  * what makes "the first economic slot" a fact rather than an opinion (the Slot
- * order ruling, `docs/fewer-things.md` §1). The position word is printed on the
+ * order ruling, `docs/history/fewer-things.md` §1). The position word is printed on the
  * office line only when something in the empire's law could *read* a position —
  * `deckReadsSlotPosition`, which walks the slotted Orders' own effects for a
  * position-reading count. Today no card carries one and the word never shows; the
@@ -814,7 +814,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   /**
    * **The aggregate** — what your cards pay you, in one figure per voice.
    *
-   * The scoring ceremony's band (`docs/fewer-things.md` §4, RULED): it stands
+   * The scoring ceremony's band (`docs/history/fewer-things.md` §4, RULED): it stands
    * quietly at rest and **counts up on Confirm**, which is the one moment the
    * number changed by something the player just did. The figure is
    * `deckAggregate`, the Ledger's own deck slice, so the band and the sheet

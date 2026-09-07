@@ -73,8 +73,6 @@ of the status card, and it is the same list as this one.
 - `src/render/` — the frozen 2D canvas pipeline. Reads simulation state, never
   mutates it. All per-tile art goes through `src/render/tileVisuals.ts`; the
   vertical squash and the elevation offsets live in `src/render/projection.ts`.
-- `src/proto3d/` + `proto3d.html` — the look-dev sandbox the 3D view grew out of.
-  No interaction, no wrap; a page for judging a palette and a light rig.
 - `src/ui/` — pointer and keyboard handling (`controls.ts` owns the whole input
   contract above), the city screen, the tech screen (`techTree.ts`: the star
   chart, the one deliberately dark surface in the interface), the city banners,

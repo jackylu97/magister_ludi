@@ -52,12 +52,27 @@ or `src/ai/`.
 | **H1 — the fold pays what the rows say** | findings 1, 2, 3; the Ledger's mirror of `cityQuote` re-derived from the quote (it misses `cardBuildingYields` and floors two per-citizen terms); `tilePurchasePrice`'s discount printed in its list; every surface pinned to the *banked* figure | `cities.ts`, `upkeep.ts`, `empireGold.ts`, `topBar.ts`, `ledgerScreen.ts`, tests | low — each is one seam with a test that would have caught it |
 | **H2 — the bot reads the whole deck** | finding 4 (exhaustive scorer, then price the stand-in families by row count), finding 5 (empire lines in the margin), `where:'city'` × cities, `caravanScale`/`veinValue` stand-ins retired where a reading exists | `src/ai/value.ts`, `wants.ts`, tests | low–medium — every priced shape moves a decision; acceptance games re-hashed |
 | **H3 — the great-person draft the cards promise** | **BUILT** (schema 84): the purchases are a rail at the foot of the Reliquary, and the four Æra V bead Orders carry one new shape (`beadPerOccasion`) on four hooked deeds — the other two `effects: []` rows are tier 0 and were never in the bag | `src/ui/`, `main.ts`, `statecraft*.ts`, `beads*.ts`, the four seams, tests | medium — new shape |
-| **H4 — dead weight** | `proto3d/` out; the schema changelog to history (the current entry stays); retired row bodies trimmed to `{id, name, retired, note}`; the 33 unread exports; `augurHasActed`, `chargedAugurs`, `BeliefOffer.givenBack`, the dice knobs, the four CSS rules; the nine false doc statements and CLAUDE.md's stale trap lines; the fifteen folded docs to `docs/history/` | broad, mechanical | low — deletions pinned by typecheck and the register tests |
+| **H4 — dead weight** | **BUILT** (no schema): `proto3d/` and its page out, the changelog's tail to `docs/history/schema-changelog.md`, 28 unread exports, four CSS rules and `startingDice` deleted, the false statements corrected and ten working docs folded — **except the retired row bodies, which are not dead** (see the correction below) | broad, mechanical | low — deletions pinned by typecheck and the register tests |
 | **H5 — unify** | one modal shell for the nine screens; the seven duplicated helpers into leaves; `signed`/`round`/`element` once | `src/ui/` | low |
 | **H6 — one evaluator** | luxuries as cards (`ResourceEffect` ⊂ `CardEffect`); the rider/rule/percent families collapsed on a field; the two count unions and four occasion unions reconciled | `statecraft*.ts`, `resourceEffects.ts`, data | **high** — byte-identity over the acceptance games is the gate |
 
 H1 and H2 start now (disjoint fences, narrow tests, no arenas). H3–H6 wait
 for the user's markup of this file and the three readers'.
+
+**Correction to `dead-code.md` §2.1** (found building H4): the retired row
+bodies are **not** trimmable to `{id, name, retired, note}`, and the ≈1000 JSON
+lines it costs are load-bearing. `compendium.ts` walks `ORDER_IDS` and
+`DOCTRINE_IDS` **unfiltered**, so a withdrawn card is still printed in full —
+name, slot, pool, rarity, line, clauses, flavour and note — which is exactly
+what `OrderDef.retired`'s own docblock promises ("never dealt, and still fully
+readable"), and `BuildingDef.retired`'s says a standing copy keeps its yields.
+Per table: **Orders/Doctrines** every field has a Compendium reader; **rites**
+the same, plus `riteEntry`'s "Performed by — nobody — withdrawn"; **buildings**
+the Compendium skips them but `city.buildings` does not, so the yields stay;
+**the augur** keeps its stats for a piece on a board. What §2.1 got right and
+what H4 acted on is the *marker*'s honest job — and both docblocks now say so
+out loud, including that the marker is **not** keeping an older save loadable
+(`loadGame` tests exact equality; a retirement is itself a bump).
 
 **Correction to `dead-code.md` §1.5** (found building H3): of the six draftable
 rows with `effects: []`, only four are draftable. Religious Mandate and The

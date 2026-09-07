@@ -962,7 +962,7 @@ describe('a road', () => {
   });
 
   it('pays The Golden Roads a coin for every good at either end, counted once', () => {
-    // Batch E (`docs/tech-gifts.md` §7). The count is the **union** of the two
+    // Batch E (`docs/history/tech-gifts.md` §7). The count is the **union** of the two
     // towns' luxuries — wine at both ends of a road is one wine — and it is the
     // one reading only this module can take, because a `CityScope` answers about
     // one town and this question is about a pair.
@@ -990,7 +990,7 @@ describe('a road', () => {
   });
 
   it('costs a fifth once Machinery lands, and a third before it — the four readers agree', () => {
-    // Batch E (`docs/tech-gifts.md` §7): the road fraction is an **empire fact**,
+    // Batch E (`docs/history/tech-gifts.md` §7): the road fraction is an **empire fact**,
     // folded once per sweep into `MoveProfile.roadStep` off
     // `cardRulePercent(…, 'roadStepCost')` and read only where a step is priced.
     // A third is five fifteenths and a fifth is three, which is why

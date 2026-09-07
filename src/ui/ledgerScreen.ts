@@ -1,7 +1,7 @@
 /**
  * The Ledger: **where this turn's yield comes from, and what the curve is doing.**
  *
- * `docs/loop-review.md` §3, "The engine view — watching your own snowball". The
+ * `docs/history/loop-review.md` §3, "The engine view — watching your own snowball". The
  * gap it fills is stated there and it is a real one: formidability is a feeling
  * of *relative* growth, and the game shows growth only as a top-bar number for
  * this turn. A card's stamp says what one card did; nothing said what the deck
@@ -60,7 +60,7 @@
  *
  * The history is the session's, and says so
  * -----------------------------------------
- * The simulation keeps no history and must not grow one for a view (`docs/loop-review.md`
+ * The simulation keeps no history and must not grow one for a view (`docs/history/loop-review.md`
  * is explicit). So band 2 is a **UI-side ring buffer**, sampled once per
  * `onTurnResolved` and capped; it is not saved, a reloaded game starts its curve
  * at the reload, and the band's footnote says so in plain words. An honest
@@ -121,7 +121,7 @@ const VOICES: readonly YieldKey[] = ['food', 'production', 'gold', 'science', 'c
 
 /**
  * **Where a yield came from**, as a player would name it — the eight classes
- * `docs/loop-review.md` §3 asks for, and no ninth.
+ * `docs/history/loop-review.md` §3 asks for, and no ninth.
  *
  * The list is a design decision rather than a derivation: these are the answers
  * to *"is my deck doing anything?"*, which is the question the sheet exists to
@@ -488,7 +488,7 @@ export const DECK_AGGREGATE_LABEL = 'your cards';
  * at the head of this sheet's first band.
  *
  * One function for both, because the ruling that put the number on Confirm
- * (`docs/fewer-things.md` §4, "Making the combo visible") is a ruling about a
+ * (`docs/history/fewer-things.md` §4, "Making the combo visible") is a ruling about a
  * *scoring ceremony*, and a ceremony celebrating a figure the Ledger disagrees
  * with would be worse than no ceremony at all.
  *
