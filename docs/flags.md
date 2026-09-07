@@ -199,6 +199,33 @@ directly to confirm rulings — user marginalia are rulings.
   and the purchase price off the fold; `netFigure` for the chips, the hover
   ledgers keep the meters' tenth; the bot's seven printed-cost reads moved
   onto the fold by the orchestrator. Tables in `docs/fewer-things-plan.md`.
+  **Finding from the push gate (the bot's faith book)**: under H2's
+  whole-deck pass the arena bot stops buying a prophet on its seed — no
+  religion is founded in two hundred turns, though both seats fill their
+  pantheon. H2 traced it to a knife-edge (no single arm restores it), and
+  H10's dearer hammers sharpen it. The arena's founding claim is now a
+  printed `[arena]` reading; the fix is the faith book's deferred work (a
+  prophet's worth, a rite's worth, a contribution priced by the book) —
+  yours to schedule with H3–H6.
+  **Rulings 2026-09-07, small hours** (the user, on the H10 numbers): (aa)
+  **"production costs are way too low, they probably need to be like 4–5×
+  what they are now (the live deployed version)"** — the live version is
+  b8a5ca2: buildings and wonders at their printed base, units at the old
+  ladder ×1 · 1.5 · 2 · 2.5. The rule gains a flat scale under the age band:
+  `cost × costScale × costAgeBase^age` with **`production.costScale` 4**
+  beside `costAgeBase` 1.25 — Æra I ×5 · II ×6.25 · III ×7.81 · IV ×9.77
+  against a printed base, which is 5× the live buildings in Æra I and 3.9×
+  the live units in Æra III. One printed line in the fold ("Æra I ×5"),
+  never two; purchases follow the fold (`goldPerHammer` × full cost);
+  projects untouched. Batch **H11 — the cost scale**. (bb) **The bot's
+  faith book learns the new faith** — the ladder that spends at the deal,
+  the prophet's worth (founding: the holy site's yields, the follower and
+  enhancer rungs, the founder trickle, the tide), **rites valued** (a rite is
+  ten turns of its blessing, priced through the same appraisal a card's
+  timed effect gets, against `religion.rite.costByAge`), the apostle and the
+  relic, and the free first reroll. The arena's `[arena]` founding line is
+  the reading it is measured against; the claim returns to a pin when the
+  book buys a prophet again. Batch **H12 — the faith book**.
   Two findings from the re-aim, yours to rule:
   1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
      user's ruling was always "unlock rites in the tech tree where they used

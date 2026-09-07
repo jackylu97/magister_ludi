@@ -377,9 +377,17 @@ describe('a hundred turns of arithmetic', () => {
       // hundred turns. Incidental, as every move on this list has been; the
       // deal arm is unchanged and pinned deliberately in `aiWar.test.ts`. Eight
       // kinds, and the sentence above stays true of the register.
+      //
+      // **`deal` came back and `disband` left, 2026-09-06 (batch H9)**: the
+      // start chooser now seats every capital within six of horses and iron,
+      // which moved this seed's board — the seats meet sooner and strike a
+      // deal, and neither dips into arrears inside the hundred turns. Both
+      // arms unchanged, both pinned deliberately elsewhere (`aiWar.test.ts`,
+      // `aiBot.test.ts`); this list is the incidental record it has always
+      // been. Eight kinds.
       expect([...kinds].sort()).toEqual([
         'build',
-        'disband',
+        'deal',
         'draft',
         'endTurn',
         'focus',
