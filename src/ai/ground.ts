@@ -34,7 +34,29 @@ import {
   yieldContextFor,
 } from '../sim/cities';
 import type { Tile } from '../sim/map';
-import { type GameState, cityById } from '../sim/state';
+import { type GameState, type Religion, cityById } from '../sim/state';
+
+/**
+ * The religion this empire founded, or `null`. `GameState.religions` is the
+ * register — a founding is not a flag on the player.
+ *
+ * Here rather than in either of its two readers because it *had* two: `wants.ts`
+ * asked it for the founder-side beliefs a card might pay, and `bot.ts` had
+ * written the same walk out again as a predicate (`docs/audit/simplify.md` §2).
+ * This module is where a sim reading the bot shares lives, and it is a leaf, so
+ * both can have it without either importing the other.
+ */
+export function foundedReligionOf(state: GameState, playerId: number): Religion | null {
+  for (const religion of state.religions) {
+    if (religion.founderId === playerId) return religion;
+  }
+  return null;
+}
+
+/** Has this empire founded a religion? The predicate half of the reading above. */
+export function hasFoundedReligion(state: GameState, playerId: number): boolean {
+  return foundedReligionOf(state, playerId) !== null;
+}
 
 /** What one hex prices through. `tileContextAt`'s answer, by lookup. */
 export type TileContextField = (tile: Tile) => TileYieldContext | undefined;

@@ -33,6 +33,7 @@ const SOURCES = import.meta.glob(
     '../../src/ui/statecraftScreen.ts',
     '../../src/ui/topBar.ts',
     '../../src/style.css',
+    '../../index.html',
   ],
   { eager: true, query: '?raw', import: 'default' },
 ) as Record<string, string>;
@@ -128,32 +129,41 @@ describe('the Religion sheet is a split', () => {
     // The cap is what makes a pane scroll instead of the page: without it the
     // sheet grows and the "fixed" column leaves with it.
     //
-    // **Eight ids now, and still one rule** — the block's own comment asks a
-    // later overlay borrowing this paper to name itself here, and the Trade
-    // screen, the Compendium (2026-08-27), the Bead Race (2026-08-30), the
-    // Diplomacy table, the Reliquary (2026-09-03) and the Ledger have. What is
-    // pinned is that the list is one rule with all eight in it: a second block
-    // that agreed today would be two blocks the first time either was touched.
+    // **The cap belongs to the paper** (batch H5). It used to name the eight
+    // overlay ids, on the argument that a later overlay borrowing this paper
+    // should be one column until it said otherwise — and eight sheets later the
+    // list had been repeated in five places and no sheet had ever wanted the
+    // uncapped version. So it is scoped to `.statecraft-overlay`, which is the
+    // class every one of them already wears, and a ninth sheet is capped by
+    // putting the paper on. What is pinned is that there is exactly **one** cap
+    // rule: a second that agreed today would be two the first time either moved.
     //
-    // The Reliquary is the only one that then *narrows* — it takes the cap and
+    // The Reliquary is the only sheet that then *narrows* — it takes the cap and
     // overrides the width to ~30rem, because there is one card on it. Which is
     // the invitation working as intended: borrow the paper, then say what is
-    // different. The Ledger is the eighth and takes the paper as it is: three
-    // bands of six rows are exactly what 1240px is for.
-    const SHEETS = [
-      '#statecraft-overlay',
-      '#religion-overlay',
-      '#trade-overlay',
-      '#compendium-overlay',
-      '#diplomacy-overlay',
-      '#beads-overlay',
-      '#reliquary-overlay',
-      '#ledger-overlay',
-    ];
-    expect(declaration(SHEETS.join(',\n'), 'overflow')).toBe('hidden');
-    expect(
-      declaration(SHEETS.map((id) => `${id} .statecraft-sheet`).join(',\n'), 'max-height'),
-    ).toBe('100%');
+    // different.
+    expect(declaration('.statecraft-overlay', 'overflow')).toBe('hidden');
+    // One selector, one rule: the overlay's half of the cap is set on the paper's
+    // own block rather than in a second block with the same selector.
+    expect(css().match(/\n\.statecraft-overlay \{/g)).toHaveLength(1);
+    expect(declaration('.statecraft-overlay .statecraft-sheet', 'max-height')).toBe('100%');
+    const html = source('index.html');
+    for (const id of [
+      'statecraft',
+      'religion',
+      'trade',
+      'compendium',
+      'diplomacy',
+      'beads',
+      'reliquary',
+      'ledger',
+    ]) {
+      expect(html, id).toMatch(
+        new RegExp(`id="${id}-overlay"\\s*\\n\\s*class="statecraft-overlay"`),
+      );
+    }
+    // And no sheet has grown a cap of its own beside the shared one.
+    expect(css()).not.toMatch(/#[a-z]+-overlay \.statecraft-sheet \{/);
   });
 
   it('scrolls the two halves in themselves, not the sheet', () => {
@@ -166,14 +176,15 @@ describe('the breakpoint', () => {
   it('stacks both sheets in one and the same media query', () => {
     const text = css();
     const queries = [...text.matchAll(/@media \(max-width: (\d+)px\) \{([\s\S]*?)\n\}/g)].filter(
-      ([, , body]) => body.includes('#statecraft-overlay') || body.includes('#religion-overlay'),
+      ([, , body]) => body.includes('.statecraft-overlay'),
     );
-    // Exactly one, naming both: two queries that agree today are two numbers.
+    // Exactly one, for the paper every sheet wears: two queries that agree today
+    // are two numbers. (Batch H5 — see the cap's own pin above.)
     expect(queries).toHaveLength(1);
     const [, width, body] = queries[0]!;
     expect(Number(width)).toBe(860);
-    expect(body).toContain('#statecraft-overlay');
-    expect(body).toContain('#religion-overlay');
+    expect(body).toContain('.statecraft-overlay');
+    expect(body).toContain('.statecraft-overlay .statecraft-sheet');
     // And what stacking means: the split becomes a column and the two scrollers
     // give their scrolling back to the sheet.
     expect(body).toContain('.sc-split');

@@ -7,6 +7,16 @@
  * flourish set in Entry VII of `docs/design-notes.md`). Everything else on the
  * screen is parchment on a table; this is the table at night.
  *
+ * **Not on `modalShell.ts`.** With the Abacus, this is one of the two
+ * full-screen overlays batch H5 left off the parchment sheets' shared frame, and
+ * for reasons written into `setOpen` below: the chart is laid out from the height
+ * of the element it is going into, so the opening is a sequence with a measure in
+ * the middle of it; it puts the keyboard back where it found it rather than on a
+ * bar control; and its Escape is claimed on the overlay rather than the window so
+ * that the same handler can swallow `T` before `controls.ts` reopens what it just
+ * shut. It keeps a second, non-capturing window listener for the presses that
+ * start outside the overlay — see `onWindowKeyDown`.
+ *
  * It also fills the HUD's research card, the fixed surface at the top-left that
  * says what the empire is learning (`renderStatus`, at the foot of this file).
  * The card is this screen's handle and its readout at once, and it lives here
@@ -148,6 +158,7 @@ import {
 } from './techFit';
 import { BEAKER, researchProgress } from './researchProgress';
 import { resourceMarkNode } from './resourceMark';
+import { yieldElement as element } from './yieldMark';
 
 /**
  * ÆRA I … IV — the ages, in the numerals the specimen sets them in, and the
@@ -503,27 +514,6 @@ export interface TechTreeOptions {
    * Abacus), so each closes the other on the way in.
    */
   onOpen?: () => void;
-}
-
-/**
- * The chart's element builder, and — since the yield glyphs became drawn marks —
- * its yield printer.
- *
- * `setYieldText` rather than `textContent`, the same one-line change the city
- * panel made and for the same reason: every figure on this screen is composed as
- * text in `YIELD_GLYPH` (`figures.ts`) and lands here — a node's unlock lines, a
- * gift's `40⚙`, a renewal's `+1🌾`. Routing the builder leaves the composition
- * above untouched and makes an emoji impossible to reintroduce by accident.
- */
-function element<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tag);
-  if (className) el.className = className;
-  if (text !== undefined) setYieldText(el, text);
-  return el;
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

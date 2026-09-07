@@ -113,6 +113,8 @@ import {
   stampFigures,
   stampText,
 } from './cardStamp';
+import { element } from './dom';
+import { createModalShell } from './modalShell';
 
 const CITIES = RULES.cities;
 
@@ -686,13 +688,6 @@ export interface LedgerScreenOptions {
   onOpen?: () => void;
 }
 
-function element(tag: string, className: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function svg<K extends keyof SVGElementTagNameMap>(
@@ -810,10 +805,6 @@ export function createLedgerScreen(options: LedgerScreenOptions): LedgerScreen {
   /** Which voice the chip that opened the sheet named. A fact about a click. */
   let focus: YieldKey | null = null;
 
-  function isOpen(): boolean {
-    return !overlay.hidden;
-  }
-
   /**
    * The aggregate at the head of band 1 — the same figure, from the same
    * function, that Confirm counts up one screen over (`deckAggregate`).
@@ -910,59 +901,42 @@ export function createLedgerScreen(options: LedgerScreenOptions): LedgerScreen {
     body.append(drawThisTurn(), drawCurve(), drawProduced());
   }
 
-  function open(next?: YieldKey): void {
-    focus = next ?? null;
-    if (isOpen()) {
-      draw();
-      return;
-    }
-    options.onOpen?.();
-    overlay.hidden = false;
-    draw();
-    closeButton.focus();
-  }
-
-  function close(): void {
-    if (!isOpen()) return;
-    overlay.hidden = true;
-    focus = null;
-  }
-
   /**
-   * Escape closes, capturing like every other parchment sheet's, so the board
-   * never sees the key from underneath.
+   * The frame (`modalShell.ts`) — `hidden` is the whole of the screen state, the
+   * ×, Escape and a press on the ground all arrive at one `close`, and the
+   * disposer is the game's.
+   *
+   * The one thing this sheet keeps for itself is the **voice the chip that
+   * opened it named**: a fact about a click, written down before the shell shows
+   * the sheet and forgotten on the way out. Because the shell repaints a sheet
+   * that is already up, pressing a second chip while the Ledger stands picks out
+   * that voice instead of doing nothing.
+   *
+   * There is no trigger: this sheet is reached from any of six yield chips
+   * rather than from one control, so there is no `aria-expanded` to mirror and
+   * nowhere in particular to put the keyboard back.
    */
-  function onKeyDown(event: KeyboardEvent): void {
-    if (!isOpen()) return;
-    if (event.key !== 'Escape') return;
-    event.preventDefault();
-    event.stopPropagation();
-    close();
-  }
-
-  const onOverlayClick = (event: MouseEvent): void => {
-    if (event.target === overlay) close();
-  };
-
-  closeButton.addEventListener('click', close);
-  overlay.addEventListener('click', onOverlayClick);
-  window.addEventListener('keydown', onKeyDown, true);
+  const shell = createModalShell({
+    overlay,
+    body,
+    closeButton,
+    draw,
+    onOpen: () => options.onOpen?.(),
+    onClose: () => {
+      focus = null;
+    },
+  });
 
   return {
     get isOpen(): boolean {
-      return isOpen();
+      return shell.isOpen;
     },
-    open,
-    close,
-    refresh(): void {
-      if (isOpen()) draw();
+    open(next?: YieldKey): void {
+      focus = next ?? null;
+      shell.open();
     },
-    dispose(): void {
-      closeButton.removeEventListener('click', close);
-      overlay.removeEventListener('click', onOverlayClick);
-      window.removeEventListener('keydown', onKeyDown, true);
-      overlay.hidden = true;
-      body.replaceChildren();
-    },
+    close: shell.close,
+    refresh: shell.refresh,
+    dispose: shell.dispose,
   };
 }

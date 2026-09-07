@@ -152,6 +152,7 @@ import { cityRite, cityRiteTurnsLeft } from '../sim/religion';
 import { type RiteId, riteDef } from '../sim/religionData';
 import { createInfoCard } from './infoCard';
 import { setDescriptorText } from './keywords';
+import { yieldElement as element } from './yieldMark';
 
 
 /**
@@ -560,29 +561,6 @@ export interface CityPanelOptions {
 
 export interface CityPanel {
   render(): void;
-}
-
-/**
- * The panel's element builder, and — since the yield glyphs became drawn marks —
- * its yield printer.
- *
- * `setYieldText` rather than `textContent`, which is the one edit that retired
- * the emoji from this whole file. Every figure in this panel is composed as text
- * in `YIELD_GLYPH` (`figures.ts`) and lands here: a build button's `40⚙`, a
- * building card's `+3🌾 every turn`, the modifier ledger's `⚙ +25%`. Routing the
- * *builder* means the composition code above is untouched and cannot be got
- * wrong, and it costs a substring check on strings that carry no glyph — which
- * is nearly all of them.
- */
-function element<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tag);
-  if (className) el.className = className;
-  if (text !== undefined) setYieldText(el, text);
-  return el;
 }
 
 /** One row of the modifier list: what it is, what it is worth, how it reads. */

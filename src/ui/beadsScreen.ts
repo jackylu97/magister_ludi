@@ -10,10 +10,11 @@
  *
  * The sibling it is built from
  * ----------------------------
- * The Statecraft and Religion sheets, exactly — same overlay classes, same
- * keyboard contract (`hidden` is the whole of the screen state, Escape closes
- * it, the × and a click on the ground do the same, opening it closes whatever
- * else was up), same split: a fixed column on the left for *where everyone
+ * The Statecraft and Religion sheets, exactly — same overlay classes, the same
+ * keyboard contract, and, since batch H5, literally the same frame:
+ * `modalShell.ts` is where `hidden` is the whole of the screen state, where the
+ * ×, Escape and a press on the ground arrive at one `close`, and where opening
+ * closes whatever else was up. Same split, too: a fixed column on the left for *where everyone
  * stands*, a scrolling pane on the right for *what is on the table*. Three
  * systems that deal cards from a pool must not look like three different games.
  *
@@ -65,6 +66,8 @@ import { eraWord, figure } from './figures';
 import { setDescriptorText } from './keywords';
 import type { CardClause } from '../sim/statecraft';
 import { stripRefs } from '../sim/statecraft';
+import { element } from './dom';
+import { createModalShell } from './modalShell';
 
 // --- the four families ------------------------------------------------------
 
@@ -447,17 +450,16 @@ export interface BeadsScreenOptions {
   overlay: HTMLElement;
   body: HTMLElement;
   closeButton: HTMLElement;
+  /**
+   * The control the table is reached from, for the `aria-expanded` mirror and
+   * the focus return. Not a door: the doors are `main.ts`'s (`onToggleBeads`
+   * from the bar's chip, a rod on the Abacus, `V`) and the simulation's
+   * (`announceAge`), like every other sheet's.
+   */
   trigger?: HTMLElement;
   getState: () => GameState;
   getPlayerId: () => number;
   onOpen?: () => void;
-}
-
-function element(tag: string, className: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
 }
 
 /**
@@ -494,10 +496,6 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
    * closes, so a player who comes back to the table by `V` gets the table.
    */
   let banner: BeadAge | null = null;
-
-  function isOpen(): boolean {
-    return !overlay.hidden;
-  }
 
   /** Who took this card, or null. Read off the world's register. */
   function claimOf(state: GameState, id: BeadCardId): BeadClaimView | null {
@@ -806,54 +804,43 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     body.append(pane);
   }
 
-  function setOpen(next: boolean): void {
-    if (next === isOpen()) return;
-    overlay.hidden = !next;
-    trigger?.setAttribute('aria-expanded', String(next));
-    // The banner is the *raising*, not the screen: a table reopened by `V` is
-    // the table. Dropped on close rather than on open so that a screen already
-    // standing when an age opens keeps the banner `announceAge` just set.
-    if (!next) {
+  /**
+   * The frame (`modalShell.ts`) — `hidden` is the whole of the screen state, the
+   * ×, Escape and a press on the ground all arrive at one `close`, the keyboard
+   * goes to the × and comes back to the bar, and the disposer is the game's.
+   *
+   * What this table hangs on it is the **banner**, and it is dropped on the way
+   * out rather than set on the way in: a screen already standing when an age
+   * opens keeps the banner `announceAge` has just put on it, and a table
+   * reopened by `V` afterwards is the table.
+   */
+  const shell = createModalShell({
+    overlay,
+    body,
+    closeButton,
+    trigger,
+    onOpen: () => options.onOpen?.(),
+    draw: render,
+    onClose: () => {
       banner = null;
-      return;
-    }
-    options.onOpen?.();
-    render();
-    closeButton.focus({ preventScroll: true });
-  }
-
-  closeButton.addEventListener('click', () => setOpen(false));
-  trigger?.addEventListener('click', () => setOpen(!isOpen()));
-
-  overlay.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') return;
-    event.stopPropagation();
-    setOpen(false);
-  });
-  overlay.addEventListener('pointerdown', (event) => {
-    if (event.target === overlay) setOpen(false);
+    },
   });
 
   return {
     get isOpen(): boolean {
-      return isOpen();
+      return shell.isOpen;
     },
-    open: () => setOpen(true),
-    close: () => setOpen(false),
-    toggle: () => setOpen(!isOpen()),
+    open: shell.open,
+    close: shell.close,
+    toggle: shell.toggle,
     announceAge: (age: BeadAge) => {
       banner = age;
       // Already up — the player was reading the table when the age turned over.
-      // Re-render in place rather than closing and reopening it under them.
-      if (isOpen()) render();
-      else setOpen(true);
+      // `open` on a standing sheet repaints it rather than closing and reopening
+      // it under them, which is the shell's rule and this screen's need.
+      shell.open();
     },
-    refresh: () => {
-      if (isOpen()) render();
-    },
-    dispose: () => {
-      overlay.hidden = true;
-      body.replaceChildren();
-    },
+    refresh: shell.refresh,
+    dispose: shell.dispose,
   };
 }

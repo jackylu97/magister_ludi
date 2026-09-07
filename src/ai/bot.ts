@@ -309,6 +309,8 @@ import { isExploredBy, isVisibleTo } from '../sim/visibility';
 import { atWar } from '../sim/wars';
 import { hasFreshWater, isCoastal } from '../sim/water';
 import { type TurnBlocker, firstBlocker } from '../ui/turnBlockers';
+import { round as round1 } from './decision';
+import { hasFoundedReligion } from './ground';
 
 /**
  * The tuning surface, re-exported so every existing reader keeps its import
@@ -2241,10 +2243,29 @@ function beliefDecision(state: GameState, player: Player, sitting?: BotSitting):
  * **Ask the gods again, for nothing** — `beliefDecision`'s other half, or `null`
  * when this hand is worth taking (or when asking again is not free).
  *
- * Every clause is the simulation's own: `rerollKindFor` says the belief hand is
- * the one a reroll would redeal (an Order draft outranks it, and rerolling *that*
- * costs faith and is a different decision), `nextBeliefRerollCost` says whether
- * this asking is free, and `rerollError` is the gate the command is held to.
+ * Every clause is the simulation's own, and the first two are the **belief
+ * hand's own facts**: there is a hand on the table (`pantheon.pending`), and
+ * `nextBeliefRerollCost` says this asking is free. `rerollError` is then the
+ * gate the command is held to.
+ *
+ * The third clause is not about this hand and is the one worth reading twice.
+ * `rerollOffer` is **one verb over four hands** and it answers the heaviest one
+ * on the table (`rerollKindFor`): an Order draft, then a Doctrine draft, then
+ * the belief hand, then a name. So a seat holding a Doctrine *and* a belief hand
+ * that sent this command would be buying a **Doctrine** redeal, for faith, off
+ * an arm that has decided nothing about Doctrines. This clause is what stops
+ * that, and it is stated as "hold the redeal while a heavier hand stands"
+ * rather than as "the verb happens to name us", because the precedence is the
+ * interface's to change and the refusal is not.
+ *
+ * Holding costs nothing, which is why holding is the honest answer rather than
+ * answering the Doctrine first: `firstBlocker` raises the *same* four hands in
+ * the *same* order (`rerollKindFor`'s docblock says so out loud), and
+ * `nextBotDecision` answers one blocker per step. A seat holding both therefore
+ * takes its Doctrine on this step and reaches this arm on the next, with the
+ * belief hand untouched and its first asking still free. The clause is a guard,
+ * not a forfeit — but it *is* load-bearing, because nothing stops a caller
+ * asking `beliefDecision` on a state the blocker loop has not walked down to.
  */
 function beliefRedeal(
   state: GameState,
@@ -2254,8 +2275,8 @@ function beliefRedeal(
 ): BotDecision | null {
   const offer = player.pantheon.pending;
   if (offer === undefined || offer.options.length === 0) return null;
-  if (rerollKindFor(player) !== 'belief') return null;
   if (nextBeliefRerollCost(state, player.id) > 0) return null;
+  if (rerollKindFor(player) !== 'belief') return null;
   if (rerollError(state, player.id) !== null) return null;
 
   const pool = redealBag(state, player);
@@ -3404,14 +3425,6 @@ function frontRowEndsTheGame(city: City): boolean {
   const front = city.queue[0];
   if (front === undefined || front.kind !== 'building') return false;
   return buildingDef(front.id).endsTheGame === true;
-}
-
-/** Has this empire founded a religion? `GameState.religions` is the register. */
-function hasFoundedReligion(state: GameState, playerId: number): boolean {
-  for (const religion of state.religions) {
-    if (religion.founderId === playerId) return true;
-  }
-  return false;
 }
 
 // --- cities -----------------------------------------------------------------
@@ -6473,12 +6486,6 @@ function itemName(item: QueueItem): string {
 /** A piece, named the way a spectator would point at it. */
 function unitLabel(unit: Unit): string {
   return `${unitDef(unit.type).name} ${unit.id}`;
-}
-
-/** One decimal place, for a summary sentence. */
-function round1(value: number): string {
-  const fixed = Math.round(value * 10) / 10;
-  return Number.isInteger(fixed) ? String(fixed) : fixed.toFixed(1);
 }
 
 /** `foldTerms`, under the name the arithmetic reads best as. */

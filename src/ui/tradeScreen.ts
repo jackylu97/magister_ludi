@@ -3,9 +3,10 @@
  *
  * The fifth full-screen overlay and the third parchment one, and it is
  * deliberately the Religion sheet's sibling rather than a new language: same
- * bones (`.sc-*`), same split at the same breakpoint, same keyboard contract
- * (`hidden` is the whole of the screen state, Escape closes it, the × and a
- * click on the ground do the same, opening it closes whatever else was up).
+ * bones (`.sc-*`), same split at the same breakpoint, and since batch H5 the
+ * same frame — `modalShell.ts`, where `hidden` is the whole of the screen state,
+ * the ×, Escape and a press on the ground arrive at one `close`, and opening
+ * closes whatever else was up.
  *
  * The split is the same division those two make — *what I have* against *what I
  * can do with it*. The left column is the empire's running routes and what they
@@ -73,6 +74,8 @@ import { cityDisplayName } from './cityDisplay';
 import { YIELD_GLYPH, figure, signedFigure } from './figures';
 import { NO_ROUTE_CAPACITY, hasFreeRouteSlot, routeFigures } from './tradeLines';
 import { setYieldText } from './yieldMark';
+import { createModalShell } from './modalShell';
+import { element } from './dom';
 
 // --- the running half -------------------------------------------------------
 
@@ -691,13 +694,6 @@ export interface TradeScreenOptions {
   onOpen?: () => void;
 }
 
-function element(tag: string, className?: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  if (className !== undefined) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
 function button(className: string, label: string): HTMLButtonElement {
   const node = element('button', className, label) as HTMLButtonElement;
   node.type = 'button';
@@ -763,14 +759,6 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
   let sortDirection: SortDirection = 'desc';
   /** The town whose group is shown alone, or `null` for all of them. */
   let originFilter: number | null = null;
-
-  function isOpen(): boolean {
-    return !overlay.hidden;
-  }
-
-  function setExpanded(): void {
-    trigger?.setAttribute('aria-expanded', String(isOpen()));
-  }
 
   /** The left column: what is on the road, and what the empire is earning by it. */
   function drawRunning(state: GameState, seat: number): HTMLElement {
@@ -1081,7 +1069,8 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
   }
 
   function draw(): void {
-    if (!isOpen()) return;
+    // The shell never paints a sheet that is down (`refresh` guards, `open`
+    // shows first), and the four gestures below only exist while it is up.
     const state = options.getState();
     const seat = options.getPlayerId();
     body.replaceChildren();
@@ -1095,58 +1084,48 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     body.append(split);
   }
 
-  function open(chooser: number | null = null): void {
-    options.onOpen?.();
-    chooserUnitId = chooser;
-    overlay.hidden = false;
-    setExpanded();
-    draw();
-  }
-
-  function close(): void {
-    overlay.hidden = true;
-    // The chooser, the sort and the filter are all facts about *this* opening
-    // (see `chooserUnitId`): a screen reached from the bar tomorrow starts from
-    // the sheet's own defaults rather than from a picture somebody left behind.
-    chooserUnitId = null;
-    sortKey = null;
-    sortDirection = 'desc';
-    originFilter = null;
-    setExpanded();
-  }
-
-  function onKey(event: KeyboardEvent): void {
-    if (!isOpen()) return;
-    if (event.key !== 'Escape') return;
-    event.preventDefault();
-    event.stopPropagation();
-    close();
-  }
-
-  function onGround(event: MouseEvent): void {
-    if (event.target === overlay) close();
-  }
-
-  closeButton.addEventListener('click', close);
-  overlay.addEventListener('mousedown', onGround);
-  window.addEventListener('keydown', onKey, true);
-  setExpanded();
+  /**
+   * The frame (`modalShell.ts`) — `hidden` is the whole of the screen state, the
+   * ×, Escape and a press on the ground all arrive at one `close`, and the
+   * disposer is the game's.
+   *
+   * What this sheet hangs on it is the **facts about one opening**: the chooser
+   * (see `chooserUnitId`), the sort and the filter are a picture of a
+   * conversation, not of the empire, so a sheet reached from the bar tomorrow
+   * starts from the sheet's own defaults rather than from where somebody left
+   * off.
+   *
+   * `open` takes a chooser and the shell's `open` takes nothing, so the argument
+   * is written down first and the shell shows the sheet — and because the shell
+   * repaints a sheet that is already up, "open it on *this* caravan" works
+   * whether or not it was open.
+   */
+  const shell = createModalShell({
+    overlay,
+    body,
+    closeButton,
+    trigger,
+    onOpen: () => options.onOpen?.(),
+    draw,
+    onClose: () => {
+      chooserUnitId = null;
+      sortKey = null;
+      sortDirection = 'desc';
+      originFilter = null;
+    },
+  });
 
   return {
     get isOpen(): boolean {
-      return isOpen();
+      return shell.isOpen;
     },
-    open,
-    close,
-    toggle: () => {
-      if (isOpen()) close();
-      else open();
+    open(chooser: number | null = null): void {
+      chooserUnitId = chooser;
+      shell.open();
     },
-    refresh: draw,
-    dispose: () => {
-      closeButton.removeEventListener('click', close);
-      overlay.removeEventListener('mousedown', onGround);
-      window.removeEventListener('keydown', onKey, true);
-    },
+    close: shell.close,
+    toggle: shell.toggle,
+    refresh: shell.refresh,
+    dispose: shell.dispose,
   };
 }

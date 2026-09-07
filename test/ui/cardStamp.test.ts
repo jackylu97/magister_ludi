@@ -379,7 +379,9 @@ describe('the design of record, held at the source', () => {
     expect(media).toContain('animation: none');
     // And the module itself lands the number instantly rather than skipping it.
     const module = source('cardStamp.ts');
-    expect(module).toContain("'(prefers-reduced-motion: reduce)'");
+    // The query is `ui/motion.ts`'s since batch H5 folded eight copies of it
+    // into one; what this module must show is that it asks the shared reader.
+    expect(module).toContain("import { wantsMotion } from './motion';");
     expect(module).toMatch(/if \(!wantsMotion\(\)\) \{\s*landCardStamp\(stamp, reading\);/);
   });
 });

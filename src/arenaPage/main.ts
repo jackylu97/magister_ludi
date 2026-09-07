@@ -44,6 +44,7 @@ import type { ArenaMessage, ArenaTask } from './protocol';
 import { MAP_SIZE_NAMES } from '../sim/mapgenData';
 import { RULES } from '../sim/rulesData';
 import { playerPieceColor } from '../render3d/lookData';
+import { element } from '../ui/dom';
 
 // --- the furniture ------------------------------------------------------------
 
@@ -92,24 +93,17 @@ function figure(value: number): string {
   return value.toFixed(1);
 }
 
-function element<T extends HTMLElement>(tag: string, className?: string, text?: string): T {
-  const made = document.createElement(tag);
-  if (className !== undefined) made.className = className;
-  if (text !== undefined) made.textContent = text;
-  return made as T;
-}
-
 // --- the run controls ---------------------------------------------------------
 
 for (const name of MAP_SIZE_NAMES) {
-  const option = element<HTMLOptionElement>('option', undefined, name);
+  const option = element('option', undefined, name);
   option.value = name;
   sizeSelect.append(option);
 }
 sizeSelect.value = MAP_SIZE_NAMES.includes('standard') ? 'standard' : (MAP_SIZE_NAMES[0] ?? '');
 
 for (let seats = Math.max(2, RULES.game.minPlayers); seats <= RULES.game.maxPlayers; seats++) {
-  const option = element<HTMLOptionElement>('option', undefined, String(seats));
+  const option = element('option', undefined, String(seats));
   option.value = String(seats);
   seatsSelect.append(option);
 }
@@ -121,15 +115,15 @@ function buildSeatPickers(): void {
   const held = [...seatPersonasEl.querySelectorAll('select')].map((select) => select.value);
   seatPersonasEl.replaceChildren();
   for (let index = 0; index < wanted; index++) {
-    const field = element<HTMLLabelElement>('label', 'field seat-field');
+    const field = element('label', 'field seat-field');
     const label = element('span', 'field-label', seatName(index));
     (label as HTMLElement).style.setProperty('--seat-ink', seatColor(index));
     label.classList.add('seat-label');
-    const select = element<HTMLSelectElement>('select');
+    const select = element('select');
     // The persona ids, in the data file's own order — this page reads the sheet
     // itself, so there is nothing to launder them through.
     for (const id of PERSONA_IDS) {
-      const option = element<HTMLOptionElement>('option', undefined, personaLabel(id));
+      const option = element('option', undefined, personaLabel(id));
       option.value = id;
       select.append(option);
     }
@@ -430,7 +424,7 @@ function publish(header: RunHeader): void {
 }
 
 function table(readings: readonly GameReading[], header: RunHeader): HTMLElement {
-  const made = element<HTMLTableElement>('table');
+  const made = element('table');
 
   const head = element('tr');
   head.append(element('th', undefined, 'seed'));

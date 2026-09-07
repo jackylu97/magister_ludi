@@ -42,6 +42,7 @@
 
 import { type NotificationAction, type NotificationEntry, isActionable } from './notifications';
 import { setYieldText } from './yieldMark';
+import { prefersReducedMotion } from './motion';
 
 /** How long a toast stays up before it starts leaving. */
 const TOAST_MS = 5200;
@@ -51,15 +52,6 @@ const TOAST_FADE_MS = 260;
 
 /** How many are on screen at once. See the module docblock. */
 const TOAST_MAX = 3;
-
-/**
- * Does this viewer want animation suppressed? Read at the moment of use rather
- * than cached, exactly as `controls.ts` and `damageNumbers.ts` read it: the
- * setting can change while the page is open.
- */
-function prefersReducedMotion(): boolean {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
-}
 
 export interface ToastStack {
   /** Puts one announcement up. */

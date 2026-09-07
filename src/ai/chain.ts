@@ -114,6 +114,7 @@ import { buildError, gatingTech, opusOpen, researchExpansion, researchPlan } fro
 import { type TechId, techDef } from '../sim/techData';
 import { readTileYield } from '../sim/terrainData';
 import { type UnitTypeId, isCombatant, isExplorer, trades, unitDef } from '../sim/unitData';
+import { round } from './decision';
 
 /** What a step of a chain is: a row a town raises, a piece, or ground worked. */
 export type ChainStepKind = 'building' | 'unit' | 'rider';
@@ -1417,8 +1418,3 @@ function ordinal(n: number): string {
   return `${n}th`;
 }
 
-/** One decimal place, and no trailing `.0` — a label is read, not parsed. */
-function round(value: number): string {
-  const fixed = Math.round(value * 10) / 10;
-  return Number.isInteger(fixed) ? String(fixed) : fixed.toFixed(1);
-}

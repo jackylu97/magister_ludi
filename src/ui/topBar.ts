@@ -112,6 +112,7 @@ import { meterMarkNode, renownMarkNode } from './meterMark';
 import { type Popover, createPopover } from './popover';
 import { tradeLedger } from './tradeScreen';
 import { YIELD_GLYPH, setYieldText, yieldMarkNode } from './yieldMark';
+import { element } from './dom';
 
 /**
  * Everything the player's cities make this turn, added up.
@@ -378,17 +379,6 @@ const TRIUMPH_SCOPE_WORD: Record<TriumphScope, string> = {
   contested: 'first in the world',
   perEvent: 'every time',
 };
-
-function element<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tag);
-  if (className) el.className = className;
-  if (text !== undefined) el.textContent = text;
-  return el;
-}
 
 /**
  * "science +10%, culture +10%" — an effect in words, for the hover card.

@@ -115,8 +115,10 @@ directly to confirm rulings — user marginalia are rulings.
   per asking, reset with the next hand; a **prophet's hand** works the same
   way; both are entirely separate from the Order draft's lifetime count.
   **Built** (schema 80): `openFaithLadder` pays at the deal; `BeliefOffer.rerolls`
-  + `explainBeliefRerollCost` in `religion.ts`; the votive card's foot prints
-  "Ask again — free" then the price; `docs/religion-v2.md` is current.
+  + `explainBeliefRerollCost` in `religion.ts`; the votive card's foot is an
+  "Ask again" button whose figure is the price — `free` on the first asking,
+  the faith figure after (split into a label and a figure by H14);
+  `docs/religion-v2.md` is current.
   (j) **No zoom on the city screen** — **built**: the wheel is the only zoom
   input, and it now returns while `openCity()` holds (the `panLocked` rule in
   `controls.ts`, extended from the pan to the wheel). (k) **"No option to
@@ -336,6 +338,44 @@ directly to confirm rulings — user marginalia are rulings.
   dealt, and still fully readable" promises — and `BuildingDef.retired`'s own
   docblock keeps a standing copy's yields live. The ≈1000 JSON lines the audit
   costed are load-bearing; the two docblocks now say so out loud.
+  **H5 BUILT** (no schema — structure only, no number and no word moved):
+  `src/ui/modalShell.ts` is one frame under **eight** of the ten full-screen
+  sheets — Statecraft, Religion, Trade, Diplomacy, the Ledger, the Reliquary,
+  the Bead table and the Compendium — carrying the contract they each kept a
+  copy of (`hidden` is the whole of the screen state, three doors into one
+  `close`, Escape capturing on the window, the keyboard to the × and back to
+  the trigger, the disposer into `gameDisposers`). It settles the four ways the
+  copies had drifted: the ground-press is `mousedown` everywhere (a `click`
+  also fires when a selection dragged from inside the paper is released past
+  its edge), every sheet hands the keyboard back, `open` on a standing sheet
+  repaints instead of re-running the HUD's shut-everything hook, and every
+  sheet empties its body on the way out. **The star chart and the Abacus stay
+  off it**, stated rather than forgotten: both size a stage after `hidden`
+  clears, both give the keyboard back to whatever had it rather than to a bar
+  control, and both claim Escape on the overlay precisely so the same handler
+  can swallow `T`/`A` before `controls.ts` reopens what it just shut. The seven
+  duplicated helpers are one each — `ui/dom.ts` (`element` ×23,
+  `requireElement` ×5, `withArticle` ×2), `ui/motion.ts` (the reduced-motion
+  query ×8 under two names), `yieldFormat.signedPlain` (×3), `ai/decision.ts`
+  (`round`/`round1` ×6, `signed`), `ai/ground.ts` (`hasFoundedReligion`), and
+  `test/ui/sourceHelpers.ts` for the suites' own `source`/`between`/brace-body
+  readers — plus `yieldMark.yieldElement`, the deliberate second builder for
+  the three panels that print composed figures. The capped-overlay rule is the
+  paper's class now instead of eight ids repeated in five places, so a ninth
+  sheet is capped by wearing `.statecraft-overlay`. **One finding does not
+  hold**: `validateTable` ×4 is a shared *name*, not a shared implementation —
+  the four bodies are entirely per-table rules and a generic would cost more
+  than it saved. Two things fixed on the way: Statecraft, Religion, Trade and
+  the Abacus were disposed by name in `showLanding` and by nothing in `boot`,
+  so a save loaded straight onto a board leaked their listeners and the
+  Abacus's WebGL context — all four are in the register now and nothing is
+  disposed by name; and the bot's free belief-redeal arm is gated on the belief
+  hand's own facts, with the "a heavier hand is on the table" clause kept and
+  documented as a guard rather than as the gate (the verb redeals the heaviest
+  hand, so sending it with a Doctrine standing would buy a Doctrine redeal for
+  faith — and holding costs nothing, because `firstBlocker` puts the Doctrine
+  first and the bot answers one blocker per step, so the free asking is still
+  free on the next).
   Two findings from the re-aim, yours to rule:
   1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
      user's ruling was always "unlock rites in the tech tree where they used

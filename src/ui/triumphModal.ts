@@ -44,6 +44,7 @@
  */
 
 import { renownMarkNode } from './meterMark';
+import { element } from './dom';
 
 /** One Triumph, as this sheet needs to read it. `triumphData.ts`'s row, flattened. */
 export interface TriumphNews {
@@ -121,13 +122,6 @@ export interface TriumphModal {
   /** Drops the whole queue and takes the sheet down. Called on a new game. */
   clear(): void;
   dispose(): void;
-}
-
-function element(tag: string, className?: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
 }
 
 export interface TriumphModalOptions {

@@ -35,6 +35,7 @@
  */
 
 import type { CellRef, MapView } from './mapView';
+import { prefersReducedMotion } from './motion';
 
 /** How long a number stays on screen. Matches `damage-rise` in style.css. */
 const LIFETIME_MS = 900;
@@ -62,10 +63,6 @@ export interface DamageNumbers {
   /** Takes every figure down at once — a new game, a seat change. */
   clear(): void;
   dispose(): void;
-}
-
-function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 interface Floater {

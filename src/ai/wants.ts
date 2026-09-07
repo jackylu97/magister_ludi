@@ -150,7 +150,7 @@ import {
   riteError,
 } from '../sim/religion';
 import { RULES } from '../sim/rulesData';
-import type { City, GameState, Player, Religion } from '../sim/state';
+import type { City, GameState, Player } from '../sim/state';
 import { isExploredBy } from '../sim/visibility';
 import {
   anyCardDef,
@@ -164,6 +164,8 @@ import { hasAbility } from '../sim/tech';
 import { techDef } from '../sim/techData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
 import { buildingUpkeep } from '../sim/upkeep';
+import { round } from './decision';
+import { foundedReligionOf, hasFoundedReligion } from './ground';
 
 /**
  * The two **banks** the book prices. The two *constraints* — authority and
@@ -1159,14 +1161,6 @@ const HOLY_SITE: ImprovementId | null = workForFamily('prophet');
 /** The shelf an apostle leaves, off the building table's own `placed` marker. */
 const RELIC: BuildingId | null = BUILDING_IDS.find((id) => buildingDef(id).placed === true) ?? null;
 
-/** The religion this empire founded, or `null`. `GameState.religions` is the register. */
-function foundedReligionOf(state: GameState, playerId: number): Religion | null {
-  for (const religion of state.religions) {
-    if (religion.founderId === playerId) return religion;
-  }
-  return null;
-}
-
 /**
  * **What a rite is worth to this town, for the faith it asks** — the rites'
  * want since they became city verbs (2026-09-06).
@@ -1863,18 +1857,8 @@ function ownsAny(state: GameState, playerId: number, type: UnitTypeId): boolean 
   return false;
 }
 
-/** Has this empire founded a religion? `GameState.religions` is the register. */
-function hasFoundedReligion(state: GameState, playerId: number): boolean {
-  return foundedReligionOf(state, playerId) !== null;
-}
-
 /** A card's own printed name, for a row a reader has to recognise. */
 function cardNameOf(id: OrderId): string {
   return anyCardDef(id).name;
 }
 
-/** One decimal place, and no trailing `.0` — a label is read, not parsed. */
-function round(value: number): string {
-  const fixed = Math.round(value * 10) / 10;
-  return Number.isInteger(fixed) ? String(fixed) : fixed.toFixed(1);
-}

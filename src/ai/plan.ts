@@ -93,6 +93,7 @@ import { researchPlan } from '../sim/tech';
 import { type TechId, techDef } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
 import { hasFreshWater } from '../sim/water';
+import { round } from './decision';
 
 /**
  * One thing a spade could do, and what it would be worth per turn.
@@ -753,8 +754,3 @@ function workGifts(
   return terms;
 }
 
-/** One decimal place, and no trailing `.0` — a label is read, not parsed. */
-function round(value: number): string {
-  const fixed = Math.round(value * 10) / 10;
-  return Number.isInteger(fixed) ? String(fixed) : fixed.toFixed(1);
-}

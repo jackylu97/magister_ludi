@@ -40,6 +40,8 @@
  * Data is data: every string arrives as a text node (`turnSplash.ts`'s rule).
  */
 
+import { element } from './dom';
+
 /** What a caller asks. `cancelLabel` is the only thing with a default. */
 export interface ConfirmRequest {
   /** The question, in the display face: "Disband the Warrior?" */
@@ -146,13 +148,6 @@ export interface ConfirmCard {
   close(): void;
   readonly isOpen: boolean;
   dispose(): void;
-}
-
-function element(tag: string, className?: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
 }
 
 export function createConfirmCard(container: HTMLElement): ConfirmCard {

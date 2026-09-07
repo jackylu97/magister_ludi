@@ -115,12 +115,28 @@ describe('every surface that composes a figure itself names the rule', () => {
    * and luxury figures. They keep the ASCII hyphen their ratified wording uses —
    * the true minus is the *interface's* rule — but they round through the same
    * function, so no clause can print `+1.5 science`.
+   *
+   * That hyphenated voice was written out three times (`statecraft.ts`,
+   * `resourceEffects.ts`, and the Religion screen's pressure ledger) until batch
+   * H5 folded it into `signedPlain`, beside `signedYield` in the one rounding
+   * file. So what is pinned now is that each describer *asks* for it rather than
+   * keeping a fourth copy of `roundYield` plus a sign test.
    */
   it('rounds the sim’s describers through the same function', () => {
-    for (const path of ['src/sim/statecraft.ts', 'src/sim/resourceEffects.ts']) {
+    for (const path of [
+      'src/sim/statecraft.ts',
+      'src/sim/resourceEffects.ts',
+      'src/ui/religionScreen.ts',
+    ]) {
       const source = read(path);
-      expect(source, path).toContain("import { roundYield } from './yieldFormat';");
-      expect(source, path).toContain('const rounded = roundYield(value);');
+      expect(source, path).toMatch(
+        /import \{[^}]*\bsignedPlain as signed\b[^}]*\} from '[^']*yieldFormat';/,
+      );
+      expect(source, path).not.toContain('function signed(');
     }
+    // And the one definition rounds, exactly as the three copies did.
+    const format = read('src/sim/yieldFormat.ts');
+    expect(format).toContain('export function signedPlain(value: number): string {');
+    expect(format).toContain('const rounded = roundYield(value);');
   });
 });

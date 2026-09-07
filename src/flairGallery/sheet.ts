@@ -11,17 +11,14 @@
  * `style.css` beside it.
  */
 
-/** An element with a class, and optionally its text. */
-export function element<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (className !== undefined) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
+/**
+ * An element with a class, and optionally its text — the game's own
+ * (`src/ui/dom.ts`), re-exported so the cabinet's sections keep importing their
+ * furniture from one place.
+ */
+import { element } from '../ui/dom';
+
+export { element };
 
 /** One numbered section of the sheet, with its title and its in-game note. */
 export interface Section {

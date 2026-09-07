@@ -166,6 +166,8 @@ import { describeBeadBoon } from '../sim/beads';
 import { AXIS_MARK, riteGrantWords } from './religionScreen';
 import { resourceMarkNode } from './resourceMark';
 import { setYieldText } from './yieldMark';
+import { element, withArticle } from './dom';
+import { createModalShell } from './modalShell';
 
 // --- the model --------------------------------------------------------------
 
@@ -344,18 +346,6 @@ function techName(id: TechId | null | undefined): string {
  */
 function plural(count: number, singular: string, many = `${singular}s`): string {
   return Math.abs(count) === 1 ? singular : many;
-}
-
-/**
- * "a Landmark", "an Academy" — the indefinite article, off the name.
- *
- * `plural`'s sibling and the same argument: a sentence composed around a data
- * row still has to be grammatical, and "a Academy" is the version that shipped.
- * The vowel test is the crude one on purpose; every name it is asked about is an
- * improvement's, and the table has no "a university" trap in it.
- */
-function withArticle(name: string): string {
-  return `${'aeiouAEIOU'.includes(name[0] ?? '') ? 'an' : 'a'} ${name}`;
 }
 
 /** A list in words, with the last pair joined by `join`. */
@@ -1949,13 +1939,6 @@ export function compendiumShow(
 
 // --- the DOM half -----------------------------------------------------------
 
-function element(tag: string, className?: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  if (className !== undefined) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
 /** The mark, drawn the way its own kind is always drawn. See `CompendiumMark`. */
 function markNode(mark: CompendiumMark): HTMLElement {
   if (mark.kind === 'resource') {
@@ -2209,10 +2192,10 @@ export interface CompendiumOptions {
 }
 
 /**
- * The Compendium as a screen: the star chart's class, with the same keyboard
- * contract (`hidden` is the whole of the screen state, Escape closes it, the ×
- * and a click on the ground do the same, opening it closes whatever else was
- * up).
+ * The Compendium as a screen: the parchment sheets' paper, on the parchment
+ * sheets' frame (`modalShell.ts`) — `hidden` is the whole of the screen state,
+ * the ×, Escape and a press on the ground arrive at one `close`, and opening it
+ * closes whatever else was up.
  *
  * Built once and never rebuilt on open, unlike the Statecraft and Religion
  * sheets: nothing on these cards is a fact about a seat or a turn, so there is
@@ -2224,66 +2207,56 @@ export function createCompendium(options: CompendiumOptions): Compendium {
   const { overlay, body, closeButton, trigger } = options;
   const view = renderCompendium(body, { getState: options.getState });
 
-  function isOpen(): boolean {
-    return !overlay.hidden;
-  }
-
-  function setExpanded(): void {
-    trigger?.setAttribute('aria-expanded', String(isOpen()));
-  }
-
   /** The entry a `#…` in the address bar names, or `null`. */
   function hashEntry(): string | null {
     const hash = window.location.hash.replace(/^#/, '');
     return hash.length > 0 && sectionOfId(hash) !== null ? hash : null;
   }
 
-  function open(entryId?: string): void {
-    options.onOpen?.();
-    overlay.hidden = false;
-    setExpanded();
-    view.refresh();
-    // With no id and no hash to honour, the book opens on the Introduction's
-    // first page rather than wherever the index happens to start.
-    view.show(entryId ?? hashEntry() ?? DEFAULT_ENTRY);
-  }
+  /** The entry the next opening should turn to, or `undefined` for the default. */
+  let wanted: string | undefined;
 
-  function close(): void {
-    overlay.hidden = true;
-    setExpanded();
-  }
-
-  function onKey(event: KeyboardEvent): void {
-    if (!isOpen()) return;
-    if (event.key !== 'Escape') return;
-    event.preventDefault();
-    event.stopPropagation();
-    close();
-  }
-
-  function onGround(event: MouseEvent): void {
-    if (event.target === overlay) close();
-  }
-
-  closeButton.addEventListener('click', close);
-  overlay.addEventListener('mousedown', onGround);
-  window.addEventListener('keydown', onKey, true);
-  setExpanded();
+  /**
+   * The frame (`modalShell.ts`) — `hidden` is the whole of the screen state, the
+   * ×, Escape and a press on the ground all arrive at one `close`, and the
+   * keyboard goes to the × and comes back to the control that opened it.
+   *
+   * Two things about this one are not the other seven's.
+   *
+   * **No `body`.** The book's two panes are built once at construction rather
+   * than on each open (see the docblock above), so there is nothing to empty and
+   * emptying it would take the book apart.
+   *
+   * **The disposer is the page's, not a game's.** `main.ts` deliberately never
+   * disposes this screen: it is a property of the page, built at module scope
+   * beside the help sheet, reachable from the controls card before anything has
+   * been started. Disposing it would unbind its Escape for the rest of the
+   * session.
+   */
+  const shell = createModalShell({
+    overlay,
+    closeButton,
+    trigger,
+    onOpen: () => options.onOpen?.(),
+    draw: () => {
+      view.refresh();
+      // With no id and no hash to honour, the book opens on the Introduction's
+      // first page rather than wherever the index happens to start.
+      view.show(wanted ?? hashEntry() ?? DEFAULT_ENTRY);
+    },
+  });
 
   return {
     get isOpen(): boolean {
-      return isOpen();
+      return shell.isOpen;
     },
-    open,
-    close,
-    toggle: () => {
-      if (isOpen()) close();
-      else open();
+    open(entryId?: string): void {
+      wanted = entryId;
+      shell.open();
+      wanted = undefined;
     },
-    dispose: () => {
-      closeButton.removeEventListener('click', close);
-      overlay.removeEventListener('mousedown', onGround);
-      window.removeEventListener('keydown', onKey, true);
-    },
+    close: shell.close,
+    toggle: shell.toggle,
+    dispose: shell.dispose,
   };
 }

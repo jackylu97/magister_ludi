@@ -230,6 +230,8 @@ describe('the legacy is the headline', () => {
 
 describe('the Reliquary screen', () => {
   const SCREEN = source('reliquaryScreen.ts');
+  /** The frame the eight parchment sheets share. See `src/ui/modalShell.ts`. */
+  const SHELL = source('modalShell.ts');
 
   it('draws the offer card’s own tarot face, so a card kept is the card dealt', () => {
     expect(SCREEN).toContain("element('div', 'offer-options rel-face')");
@@ -290,13 +292,19 @@ describe('the Reliquary screen', () => {
   });
 
   it('keeps the sheet family’s keyboard contract, and adds the pile’s two keys', () => {
-    expect(SCREEN).toContain("if (event.key === 'Escape')");
-    expect(SCREEN).toContain("if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return");
+    // Escape and the capturing window listener are the shell's since batch H5 —
+    // one binding for all eight sheets (`modalShell.ts`) — and this screen is
+    // the shell's only user of `onKey`, which is where the pile's arrows live.
+    expect(SHELL).toContain("if (event.key !== 'Escape') return;");
+    expect(SHELL).toContain("window.addEventListener('keydown', onKeyDown, true)");
+    expect(SHELL).toContain("window.removeEventListener('keydown', onKeyDown, true)");
+    // Claimed only while it is up — the board reads the arrows too, and the
+    // shell hands a key on only after checking that the sheet is showing.
+    expect(SHELL).toMatch(
+      /function onKeyDown\(event: KeyboardEvent\): void \{\s*if \(!isOpen\(\)\) return;\s*if \(options\.onKey/,
+    );
+    expect(SCREEN).toContain("if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return false;");
     expect(SCREEN).toContain("step(event.key === 'ArrowLeft' ? -1 : 1)");
-    // Claimed only while it is up — the board reads the arrows too.
-    expect(SCREEN).toMatch(/function onKeyDown\(event: KeyboardEvent\): void \{\s*if \(!isOpen\(\)\) return;/);
-    expect(SCREEN).toContain("window.addEventListener('keydown', onKeyDown, true)");
-    expect(SCREEN).toContain("window.removeEventListener('keydown', onKeyDown, true)");
     // And the arrows are real buttons, not decorated spans.
     expect(SCREEN).toContain("back.className = 'rel-arrow'");
     expect(SCREEN).toContain("forward.className = 'rel-arrow'");

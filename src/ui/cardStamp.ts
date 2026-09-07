@@ -73,6 +73,7 @@ import { setYieldText, yieldTextWriter } from './yieldMark';
 import { roundYield, yieldShows } from '../sim/yieldFormat';
 import type { CardImpactLine } from '../sim/cardImpact';
 import type { MeterId } from '../sim/meters';
+import { wantsMotion } from './motion';
 
 /**
  * The mock's four beats, in milliseconds.
@@ -343,11 +344,6 @@ export function stampCountAt(target: number, elapsed: number, duration = STAMP_T
   // the number below it rather than the number itself shown twice.
   const value = target * eased;
   return target < 0 ? Math.ceil(value) : Math.floor(value);
-}
-
-/** Does this viewer want motion? Asked at the moment the stamp is played. */
-function wantsMotion(): boolean {
-  return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 }
 
 function span(className: string): HTMLSpanElement {

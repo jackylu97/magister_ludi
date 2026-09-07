@@ -35,6 +35,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { uiSource } from './sourceHelpers';
 
 import { applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
@@ -298,16 +299,8 @@ describe('the sentences', () => {
 });
 
 describe('the wiring that spans files', () => {
-  const sources = import.meta.glob('../../src/{main,ui/hudDock,ui/diplomacyScreen}.ts', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-  }) as Record<string, string>;
-  const source = (name: string): string => {
-    const key = Object.keys(sources).find((k) => k.endsWith(`/${name}`));
-    if (!key) throw new Error(`source not globbed: ${name}`);
-    return sources[key]!;
-  };
+  // The sources come from the suite's shared glob (`sourceHelpers.ts`).
+  const source = uiSource;
 
   it('gives the dock a third button and mounts all three', () => {
     const dock = source('hudDock.ts');

@@ -206,12 +206,7 @@ import {
 import { faithHoverCard, faithHoverReading } from './ui/faithHover';
 import { cityAt } from './sim/cities';
 import type { TurnBlocker } from './ui/turnBlockers';
-
-function requireElement<T extends HTMLElement>(id: string): T {
-  const el = document.getElementById(id);
-  if (!el) throw new Error(`Missing element #${id}`);
-  return el as T;
-}
+import { requireElement } from './ui/dom';
 
 /**
  * The stale-deploy watch, armed **before anything else in this module runs**.
@@ -978,19 +973,16 @@ function showLanding(): void {
   // And the victory sheet, for the same reason.
   victory?.clear();
   setRestartConfirm(false);
-  // The Abacus holds a WebGL context of its own, and the game it was counting
-  // is over. `closePopovers` above has already shut it; this gives the context
-  // and its five thousand triangles back, and the next game builds a fresh
-  // stage on the first press of `A`.
-  abacus?.dispose();
-  statecraft?.dispose();
-  religion?.dispose();
-  trade?.dispose();
-  diplomacy?.dispose();
-  reliquary?.dispose();
-  ledger?.dispose();
-  // And every per-game window listener this boot hung (Entry LVII) — the four
-  // above dispose more than listeners, these seven dispose exactly that.
+  // Every per-game screen this boot built (Entry LVII): the window listeners
+  // each one hung, the arrangement the Statecraft sheet was holding, and the
+  // Abacus's own WebGL context — five thousand triangles and the one context
+  // the page hands out, given back so the next game builds a fresh stage on the
+  // first press of `A`. `closePopovers` above has already shut them; this is
+  // what makes them stop existing.
+  //
+  // One register rather than a list of names here, because `boot` sweeps the
+  // same register and a save loaded without visiting the landing has to be
+  // covered by the same sweep.
   disposeGameScreens();
   // The Compendium is deliberately **not** disposed here. It is a property of
   // the page rather than of a game — built at module scope beside the help
@@ -3612,6 +3604,13 @@ async function boot(initial: Game | null): Promise<void> {
     },
   });
 
+  // The three parchment sheets built here bind a capturing `keydown` on the
+  // window like every other one (`modalShell.ts`), so they join the register
+  // the same way. `showLanding` used to dispose them by name and `boot` did
+  // not, which left exactly one door — a save loaded without going back to the
+  // landing — where Entry LVII could happen again.
+  gameDisposers.push(() => statecraft?.dispose());
+
   /**
    * The Religion screen: the faith pool, the pantheon's places, the augur's
    * price and the rites it carries.
@@ -3656,6 +3655,8 @@ async function boot(initial: Game | null): Promise<void> {
       statecraft?.close();
     },
   });
+
+  gameDisposers.push(() => religion?.dispose());
 
   /**
    * The Trade screen: every caravan on the road, and every road not yet taken.
@@ -3709,6 +3710,8 @@ async function boot(initial: Game | null): Promise<void> {
     },
   });
 
+  gameDisposers.push(() => trade?.dispose());
+
   /**
    * The Abacus: the score, as an object on the table.
    *
@@ -3747,6 +3750,11 @@ async function boot(initial: Game | null): Promise<void> {
       beads?.open();
     },
   });
+
+  // The Abacus disposes more than listeners — it holds a WebGL context of its
+  // own — but it joins the register for the reason every screen does: a load
+  // that goes straight from a save to a board never passes the landing.
+  gameDisposers.push(() => abacus?.dispose());
 
   /**
    * The Beads screen: the Bead Race's table.

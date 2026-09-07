@@ -72,6 +72,7 @@ const SOURCES = import.meta.glob(
     '../../src/ui/unitPanel.ts',
     '../../src/ui/cityPanel.ts',
     '../../src/ui/controls.ts',
+    '../../src/ui/modalShell.ts',
     '../../src/main.ts',
   ],
   { eager: true, query: '?raw', import: 'default' },
@@ -816,15 +817,20 @@ describe('the screen’s four doors and its one camera', () => {
     // Both the Escape stack and the hotkey guard know about it.
     expect(main).toContain('trade?.close()');
     expect(main).toContain('(trade?.isOpen ?? false)');
-    expect(source('tradeScreen.ts')).toContain("event.key !== 'Escape'");
+    // Escape is the shell's, capturing on the window, for all eight sheets.
+    expect(source('modalShell.ts')).toContain("if (event.key !== 'Escape') return;");
+    expect(source('tradeScreen.ts')).toContain('const shell = createModalShell({');
   });
 
   it('drops the chooser, the sort and the filter when it closes', () => {
     // All three are facts about one opening: a screen reached from the bar
     // tomorrow starts from the sheet's own defaults.
+    // On the shell's `onClose` hook, which is where every door of the sheet
+    // arrives (`modalShell.ts`) rather than at each door in turn.
     const screen = source('tradeScreen.ts');
-    const close = screen.slice(screen.indexOf('function close(): void'));
-    const body = close.slice(0, close.indexOf('\n  }'));
+    const shell = screen.slice(screen.indexOf('const shell = createModalShell('));
+    const body = shell.slice(0, shell.indexOf('\n  });'));
+    expect(body).toContain('onClose: () => {');
     expect(body).toContain('chooserUnitId = null');
     expect(body).toContain('sortKey = null');
     expect(body).toContain('originFilter = null');

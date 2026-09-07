@@ -352,9 +352,12 @@ describe('the doors to the screen', () => {
     expect(source('abacusScreen.ts')).toContain('onOpenBeads()');
     expect(main).toContain('onToggleBeads: () => beads?.toggle(),');
     // The screen is rendered on open and on `refresh`, which is the commit
-    // funnel's own path (Entry XLVII) — never on a hover.
+    // funnel's own path (Entry XLVII) — never on a hover. Since batch H5 both
+    // are the shell's: `draw` is what an open paints and what `refresh` repaints
+    // while the sheet is up (`modalShell.ts`).
     const screen = source('beadsScreen.ts');
-    expect(screen).toContain('refresh: () => {');
+    expect(screen).toContain('draw: render,');
+    expect(screen).toContain('refresh: shell.refresh,');
     expect(screen).not.toContain('pointermove');
   });
 

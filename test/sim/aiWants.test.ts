@@ -72,12 +72,19 @@ import {
   foundReligion,
   nextBeliefRerollCost,
   openFaithLadder,
+  rerollKindFor,
   riteCostFor,
   riteError,
 } from '../../src/sim/religion';
 import { improvementYield, workForFamily } from '../../src/sim/improvementData';
 import { livePool, slotTypesOf } from '../../src/sim/statecraft';
-import { ORDER_IDS, type OrderId, orderDef, orderFitsSlot } from '../../src/sim/statecraftData';
+import {
+  ORDER_IDS,
+  type OrderId,
+  orderDef,
+  orderFitsSlot,
+  poolDoctrines,
+} from '../../src/sim/statecraftData';
 import {
   empireRateReading,
   foundCityAt,
@@ -2104,5 +2111,46 @@ describe('the faith book', () => {
     offer!.rerolls = 1;
     expect(nextBeliefRerollCost(state, player.id)).toBeGreaterThan(0);
     expect(nextBotDecision(state, player.id)?.command.type).toBe('chooseBelief');
+  });
+
+  it('holds the free redeal while a Doctrine stands, and takes it the step after', () => {
+    // **Batch H5, handed over from H14.** `rerollOffer` is one verb over four
+    // hands and it answers the heaviest on the table (`rerollKindFor`): since the
+    // Doctrine draft joined that ladder, a seat holding a Doctrine *and* a belief
+    // hand that sent the command would be buying a **Doctrine** redeal, for
+    // faith, off the arm that decided a belief was worth sending back.
+    //
+    // So the arm holds — and holding costs it nothing, which is the point.
+    // `firstBlocker` raises the same four hands in the same order and the bot
+    // answers one per step, so the Doctrine goes on this step and the free redeal
+    // on the next, with the hand untouched and its first asking still free.
+    const { state, player } = faithful(1, 'divination');
+    player.pantheon.beliefs = [];
+    player.faithPool = 400;
+    openFaithLadder(state);
+    const offer = player.pantheon.pending;
+    expect(offer).toBeDefined();
+    const ctx = valueContext(state, player);
+    const ranked = [...beliefPool(state, player)].sort(
+      (a, b) => explainCard(player, a as never, ctx).total - explainCard(player, b as never, ctx).total,
+    );
+    // The worst gods in the bag: on its own this is the hand the arm sends back.
+    offer!.options = ranked.slice(0, offer!.options.length) as never;
+    expect(nextBeliefRerollCost(state, player.id)).toBe(0);
+    expect(nextBotDecision(state, player.id)?.command.type).toBe('rerollOffer');
+
+    // Now put a Doctrine draft on the table beside it. The verb would redeal
+    // *that*, so the belief arm stands down and the seat answers the Doctrine.
+    player.statecraft.pendingDoctrine = { options: poolDoctrines(4).slice(0, 3) };
+    expect(player.statecraft.pendingDoctrine.options.length).toBeGreaterThan(0);
+    expect(rerollKindFor(player)).toBe('doctrine');
+    const first = nextBotDecision(state, player.id);
+    expect(first?.command.type).toBe('chooseDoctrine');
+
+    // And the step after — the Doctrine answered, the hand as bad as it was, the
+    // first asking still free — the redeal is back.
+    delete player.statecraft.pendingDoctrine;
+    expect(nextBeliefRerollCost(state, player.id)).toBe(0);
+    expect(nextBotDecision(state, player.id)?.command.type).toBe('rerollOffer');
   });
 });

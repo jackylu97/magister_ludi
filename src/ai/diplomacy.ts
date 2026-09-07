@@ -78,6 +78,7 @@ import type { City, GameState, Player } from '../sim/state';
 import { playerById, realPlayers } from '../sim/state';
 import { type UnitTypeId, isCombatant, unitDef } from '../sim/unitData';
 import { hasPeaceOffer, peaceTermsOn, warBetween } from '../sim/wars';
+import { round as round1 } from './decision';
 
 /**
  * The one entry point: what this seat wants to say to somebody else, or `null`
@@ -787,11 +788,5 @@ function swapDecision(state: GameState, player: Player, ctx: ValueContext): BotD
     }
   }
   return null;
-}
-
-/** One decimal place, for a summary sentence. `bot.ts`' own `round1`. */
-function round1(value: number): string {
-  const fixed = Math.round(value * 10) / 10;
-  return Number.isInteger(fixed) ? String(fixed) : fixed.toFixed(1);
 }
 

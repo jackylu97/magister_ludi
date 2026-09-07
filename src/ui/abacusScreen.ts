@@ -9,7 +9,19 @@
  * It follows the star chart's shape exactly — `hidden` is the whole of the
  * screen state, Escape closes it and hands the keyboard back, the × and a click
  * on the ground around the sheet do the same, and opening it closes whatever
- * else was up. The two screens are deliberately opposite in tone: the chart is
+ * else was up.
+ *
+ * **Not on `modalShell.ts`, and it is the chart's reasons.** This screen and the
+ * chart are the two full-screen overlays batch H5 deliberately left off the
+ * parchment sheets' shared frame: both own a *measured stage* rather than a
+ * document, so the opening is a sequence with the sizing in the middle of it
+ * (a canvas measures zero while `display: none`) rather than a paint at the end;
+ * both put the keyboard back where they found it rather than on a bar control;
+ * and both claim Escape on the **overlay** instead of the window precisely so
+ * the same handler can swallow the hotkey — `A` reaches `controls.ts` through a
+ * window listener, and a screen that closed on `A` without stopping the press
+ * would be reopened by it on the way out.
+ * The two screens are deliberately opposite in tone: the chart is
  * the table at night, this is the table in daylight, vellum ground and a real
  * object sitting on it.
  *
@@ -53,6 +65,7 @@ import type { BeadFamily } from '../sim/beadData';
 import type { EarnedBead } from '../sim/state';
 import { BEAD_FAMILY_MARK, abacusRodSlots, beadHoverText } from './beadsScreen';
 import { figure } from './figures';
+import { element } from './dom';
 
 /**
  * The simulation's four bead families, in the look file's four scoring-family
@@ -126,17 +139,6 @@ interface RodLabels {
   name: HTMLElement;
   tally: HTMLElement;
   count: HTMLElement;
-}
-
-function element<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tag);
-  if (className) el.className = className;
-  if (text !== undefined) el.textContent = text;
-  return el;
 }
 
 /** What the rods are cut from, so a change of table can be recognised. */

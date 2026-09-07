@@ -254,7 +254,11 @@ describe('the sheet itself', () => {
     // Read per render rather than cached: the setting can change while the page
     // is open, and the face is what carries the answer into the drawing.
     expect(modal).toContain('still: prefersReducedMotion()');
-    expect(modal).toContain("window.matchMedia('(prefers-reduced-motion: reduce)')");
+    // The query itself is `ui/motion.ts`'s, since batch H5 folded eight copies
+    // of it into one — so what this file must show is that it *asks*, and that
+    // the thing it asks is the shared reader rather than a fourth local copy.
+    expect(modal).toContain("import { prefersReducedMotion } from './motion';");
+    expect(modal).not.toContain('matchMedia');
   });
 
   it('marks the arriving chip off the face and never works it out itself', () => {
@@ -449,17 +453,21 @@ describe('the Beads screen wearing the banner', () => {
 
   it('keeps the banner for the raising and drops it on close', () => {
     // A table reopened by `V` is the table. Dropped on close rather than on
-    // open, so a screen already standing when the age turns over keeps it.
-    const open = screen.slice(screen.indexOf('function setOpen'));
-    const body = open.slice(0, open.indexOf('closeButton.addEventListener'));
-    expect(body).toContain('banner = null;');
+    // open, so a screen already standing when the age turns over keeps it —
+    // which since batch H5 is the shell's `onClose` hook (`modalShell.ts`),
+    // the one place every door of this screen arrives at.
+    const shell = screen.slice(screen.indexOf('const shell = createModalShell('));
+    const body = shell.slice(0, shell.indexOf('\n  });'));
+    expect(body).toContain('onClose: () => {\n      banner = null;\n    },');
   });
 
   it('re-renders in place when the screen is already up', () => {
     // Closing and reopening it under a player who is reading it is the failure.
+    // The shell's `open` repaints a sheet that is already showing and steals
+    // nothing back, so the announcement is one call either way.
     const announce = screen.slice(screen.indexOf('announceAge: (age: BeadAge)'));
     const body = announce.slice(0, announce.indexOf('refresh:'));
-    expect(body).toContain('if (isOpen()) render();');
-    expect(body).toContain('else setOpen(true);');
+    expect(body).toContain('shell.open();');
+    expect(body).not.toContain('close');
   });
 });

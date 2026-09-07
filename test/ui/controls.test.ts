@@ -25,6 +25,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { between } from './sourceHelpers';
 
 import { foundCityAt } from '../../src/sim/cities';
 import { type PillageReport, chopBaseFor } from '../../src/sim/improvements';
@@ -702,15 +703,6 @@ describe('a hover refreshes the readout, never the panels', () => {
       throw new Error(`${name} came back empty`);
     }
     return text;
-  }
-
-  /** The text between two landmarks, with both of them checked for existence. */
-  function between(text: string, from: string, to: string): string {
-    const start = text.indexOf(from);
-    expect(start, from).toBeGreaterThan(-1);
-    const end = text.indexOf(to, start + from.length);
-    expect(end, to).toBeGreaterThan(-1);
-    return text.slice(start, end);
   }
 
   it('offers `onHover` beside `onUpdate` on the options', () => {

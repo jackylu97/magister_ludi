@@ -77,6 +77,29 @@ export function signedYield(value: number): string {
 }
 
 /**
+ * `signedYield`'s **plain** twin: `"+7"`, `"-2"`, `"+0"` — a hyphen where the
+ * house voice would set a true minus, and a sign on zero.
+ *
+ * The describers want it, and they are the reason it is different. A card's
+ * clause, a luxury's signature and a temple's pressure line are the
+ * simulation's own ratified prose: composed here, drawn verbatim by whatever
+ * surface quotes them, and quoted in places that are not the HUD (the arena
+ * sheet, a test's expectation, a toast). The specimen's `−` is a *typesetting*
+ * rule for figures the interface sets in tabular mono; a sentence is not one of
+ * those, and a sentence whose sign character depended on where it was printed
+ * would be two sentences.
+ *
+ * It was written three times — `statecraft.ts`, `resourceEffects.ts` and the
+ * Religion screen's pressure ledger — byte-identical twice and equivalent the
+ * third time (`docs/audit/simplify.md` §2). One rounding rule, one file, and
+ * this is the second voice it speaks in.
+ */
+export function signedPlain(value: number): string {
+  const rounded = roundYield(value);
+  return rounded >= 0 ? `+${rounded}` : `${rounded}`;
+}
+
+/**
  * True when a figure is worth printing at all — it rounds to something other
  * than zero.
  *

@@ -59,17 +59,7 @@ import { hasReligionOffer } from '../sim/religion';
 import { hasStatecraftOffer } from '../sim/statecraft';
 import { type Player, playerById } from '../sim/state';
 import { yieldMarkDataUri } from '../art/yieldMarks';
-
-function element<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tag);
-  if (className) el.className = className;
-  if (text !== undefined) el.textContent = text;
-  return el;
-}
+import { element } from './dom';
 
 /**
  * Is Statecraft owed a look? The dock button's badge, factored out of the DOM

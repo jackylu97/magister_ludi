@@ -4,9 +4,10 @@
  *
  * The sixth full-screen overlay and the fourth parchment one, and it is
  * deliberately the Trade sheet's sibling rather than a new language: same bones
- * (`.sc-*`), same keyboard contract (`hidden` is the whole of the screen state,
- * Escape closes it, the × and a click on the ground do the same, opening it
- * closes whatever else was up), same rule that every write is a **command**.
+ * (`.sc-*`), the same keyboard contract — and since batch H5 the same *frame*,
+ * `modalShell.ts`, where `hidden` is the whole of the screen state, the ×,
+ * Escape and a press on the ground arrive at one `close`, and opening closes
+ * whatever else was up — and the same rule that every write is a **command**.
  *
  * The user's ruling of 2026-09-03 put it here rather than in a seat-strip
  * popover: *"lets have it be a new menu, it can sit alongside the statecraft/
@@ -94,6 +95,8 @@ import { capitalCityOf, controlledHoldings, resourceCopies } from '../sim/cities
 import { type ResourceId, resourceDef } from '../sim/resourceData';
 import { figure } from './figures';
 import type { ConfirmRequest } from './confirmCard';
+import { element } from './dom';
+import { createModalShell } from './modalShell';
 
 // --- the row model ----------------------------------------------------------
 
@@ -618,13 +621,6 @@ export interface DiplomacyScreen {
   dispose(): void;
 }
 
-function element(tag: string, className?: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  if (className !== undefined) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
 function button(className: string, label: string): HTMLButtonElement {
   const node = element('button', className, label) as HTMLButtonElement;
   node.type = 'button';
@@ -675,14 +671,6 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       drafts.set(playerId, draft);
     }
     return draft;
-  }
-
-  function isOpen(): boolean {
-    return !overlay.hidden;
-  }
-
-  function setExpanded(): void {
-    trigger?.setAttribute('aria-expanded', String(isOpen()));
   }
 
   /** The empire the pane is drawing: the chosen one, or the first on the sheet. */
@@ -1209,7 +1197,8 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
   }
 
   function draw(): void {
-    if (!isOpen()) return;
+    // The shell never paints a sheet that is down (`refresh` guards, `open`
+    // shows first), and every gesture below only exists while it is up.
     const state = options.getState();
     const seat = options.getPlayerId();
     body.replaceChildren();
@@ -1231,55 +1220,36 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     body.append(split);
   }
 
-  function open(): void {
-    options.onOpen?.();
-    overlay.hidden = false;
-    setExpanded();
-    draw();
-  }
-
-  function close(): void {
-    overlay.hidden = true;
-    // Which empire was on the table is a fact about *this* opening (the Trade
-    // sheet's rule for its own chooser): a sheet opened tomorrow starts at the
-    // top of the roster. The half-written papers are not — a draft is the
-    // player's own work and outlives the screen.
-    selectedId = null;
-    setExpanded();
-  }
-
-  function onKey(event: KeyboardEvent): void {
-    if (!isOpen()) return;
-    if (event.key !== 'Escape') return;
-    event.preventDefault();
-    event.stopPropagation();
-    close();
-  }
-
-  function onGround(event: MouseEvent): void {
-    if (event.target === overlay) close();
-  }
-
-  closeButton.addEventListener('click', close);
-  overlay.addEventListener('mousedown', onGround);
-  window.addEventListener('keydown', onKey, true);
-  setExpanded();
+  /**
+   * The frame (`modalShell.ts`) — `hidden` is the whole of the screen state, the
+   * ×, Escape and a press on the ground all arrive at one `close`, and the
+   * disposer is the game's.
+   *
+   * What it hangs on the shell is the Trade sheet's rule for its own chooser:
+   * **which empire was on the table is a fact about this opening**, so a sheet
+   * opened tomorrow starts at the top of the roster. The half-written papers are
+   * not — a draft is the player's own work and outlives the screen.
+   */
+  const shell = createModalShell({
+    overlay,
+    body,
+    closeButton,
+    trigger,
+    onOpen: () => options.onOpen?.(),
+    draw,
+    onClose: () => {
+      selectedId = null;
+    },
+  });
 
   return {
     get isOpen(): boolean {
-      return isOpen();
+      return shell.isOpen;
     },
-    open,
-    close,
-    toggle: () => {
-      if (isOpen()) close();
-      else open();
-    },
-    refresh: draw,
-    dispose: () => {
-      closeButton.removeEventListener('click', close);
-      overlay.removeEventListener('mousedown', onGround);
-      window.removeEventListener('keydown', onKey, true);
-    },
+    open: shell.open,
+    close: shell.close,
+    toggle: shell.toggle,
+    refresh: shell.refresh,
+    dispose: shell.dispose,
   };
 }

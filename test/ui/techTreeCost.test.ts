@@ -30,6 +30,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
+import { braceBody, uiSource } from './sourceHelpers';
 
 import * as cities from '../../src/sim/cities';
 import type { BuildingId } from '../../src/sim/buildingData';
@@ -39,32 +40,14 @@ import { buildingYieldDelta, cityBaselines } from '../../src/sim/tech';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { resetVisibility } from '../../src/sim/visibility';
 
-const CHART_SOURCE = import.meta.glob(['../../src/ui/techTree.ts'], {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-}) as Record<string, string>;
-
+/** The star chart's own source. See `sourceHelpers.ts` on why the glob is shared. */
 function chartSource(): string {
-  const text = Object.values(CHART_SOURCE)[0];
-  if (typeof text !== 'string' || text.length === 0) throw new Error('techTree.ts came back empty');
-  return text;
+  return uiSource('techTree.ts');
 }
 
 /** The body of one declaration, brace-matched. `techChart.test.ts`'s reader. */
 function chartFunction(declaration: string): string {
-  const text = chartSource();
-  const at = text.indexOf(declaration);
-  expect(at, `no "${declaration}" in techTree.ts`).toBeGreaterThanOrEqual(0);
-  let depth = 0;
-  for (let index = text.indexOf('{', at); index < text.length; index += 1) {
-    if (text[index] === '{') depth += 1;
-    else if (text[index] === '}') {
-      depth -= 1;
-      if (depth === 0) return text.slice(at, index + 1);
-    }
-  }
-  throw new Error(`"${declaration}" is never closed`);
+  return braceBody(chartSource(), declaration);
 }
 
 /** How many times a call appears in the whole module. */

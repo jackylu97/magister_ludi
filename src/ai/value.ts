@@ -130,6 +130,8 @@ import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
 import { type UnitTypeId, isCombatant, unitDef } from '../sim/unitData';
 import { unitUpkeepTotal } from '../sim/upkeep';
 import { isExploredBy } from '../sim/visibility';
+import { round } from './decision';
+import { signed } from './decision';
 
 /** The six voices, in the order every ledger in the game prints them. */
 export const VOICES = ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const;
@@ -879,16 +881,6 @@ export function explainLump(bag: YieldBag, ctx: ValueContext): Appraisal {
     nest('what it pays, weighted', weighted),
     { label: `÷ ${round(turns)} — a gift paid once, not every turn`, value: turns, op: 'div' },
   ]);
-}
-
-/** One decimal place, and no trailing `.0` — a label is read, not parsed. */
-function round(value: number): string {
-  const fixed = Math.round(value * 10) / 10;
-  return Number.isInteger(fixed) ? String(fixed) : fixed.toFixed(1);
-}
-
-function signed(value: number): string {
-  return value >= 0 ? `+${round(value)}` : round(value);
 }
 
 /**

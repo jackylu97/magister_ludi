@@ -356,9 +356,16 @@ be renamed — it would change every seeded outcome. No further rename passes.
 - End Turn is three beats (marches → turn card → camera), timed by the
   renderer's `pendingAnimationMs()` (0 collapses to synchronous).
   `onTurnResolved` (autosave) and `onTurnHandedOver` (card) stay two moments.
+- **A full-screen sheet builds on `modalShell.ts`** (batch H5): `hidden` is the
+  whole of its state, ×/Escape/a press on the ground arrive at one `close`, the
+  keyboard goes back to the trigger, `dispose` unbinds and registers itself in
+  `gameDisposers`; it wears `.statecraft-overlay` for the one cap rule. The star
+  chart and the Abacus are the two stated exceptions (a measured stage). Eight
+  sheets build on it; a ninth does too.
 - Per-game screens push their window listeners into `gameDisposers` (`main.ts`),
-  swept in `showLanding` + boot (`test/ui/screenLifecycle.test.ts`). The sticky
-  info card's capture handlers claim nothing while hidden/disconnected.
+  swept in `showLanding` + boot (`test/ui/screenLifecycle.test.ts`) — nothing
+  disposes by name. The sticky info card's capture handlers claim nothing while
+  hidden/disconnected.
 - **A named thing in a describer is a keyword ref**: describers emit
   `[[kind:id|Name]]` via `ref()`; every printed clause goes through
   `setDescriptorText` or `stripRefs`; a raw `[[` on any surface fails the sweep.

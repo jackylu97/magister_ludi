@@ -24,6 +24,8 @@
  * the board underneath stays draggable while a splash is up.
  */
 
+import { prefersReducedMotion } from './motion';
+
 /** How long a full turn announcement stays up. */
 const TURN_MS = 1600;
 /** The seat hop is housekeeping, so it says its piece and goes. */
@@ -58,10 +60,6 @@ export interface TurnSplash {
   /** Takes down whatever is showing. Called on a new game. */
   clear(): void;
   dispose(): void;
-}
-
-function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 export function createTurnSplash(container: HTMLElement): TurnSplash {

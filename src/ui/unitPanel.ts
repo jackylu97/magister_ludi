@@ -59,6 +59,7 @@ import { createInfoCard } from './infoCard';
 import { setDescriptorText } from './keywords';
 import type { RouteReading } from './tradeLines';
 import { setYieldText, yieldFigureNodes } from './yieldMark';
+import { element } from './dom';
 
 /** The three voices an improvement can move, in the order the panel reads them. */
 const DELTA_KEYS = ['food', 'production', 'gold'] as const;
@@ -395,17 +396,6 @@ interface UnitAction {
    */
   card?: () => Node;
   run: () => void;
-}
-
-function element<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tag);
-  if (className) el.className = className;
-  if (text !== undefined) el.textContent = text;
-  return el;
 }
 
 /**

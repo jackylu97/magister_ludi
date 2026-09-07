@@ -25,6 +25,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { uiSource } from './sourceHelpers';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
@@ -311,16 +312,8 @@ describe('the sentences', () => {
 });
 
 describe('the wiring that spans files', () => {
-  const sources = import.meta.glob('../../src/{main,ui/controls,ui/diplomacyScreen}.ts', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-  }) as Record<string, string>;
-  const source = (name: string): string => {
-    const key = Object.keys(sources).find((k) => k.endsWith(`/${name}`));
-    if (!key) throw new Error(`source not globbed: ${name}`);
-    return sources[key]!;
-  };
+  // The sources come from the suite's shared glob (`sourceHelpers.ts`).
+  const source = uiSource;
 
   it('sends every deal write as a command, and never touches the state itself', () => {
     const screen = source('diplomacyScreen.ts');

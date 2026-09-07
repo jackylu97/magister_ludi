@@ -9,17 +9,10 @@
  * for its next costume.
  */
 import { describe, expect, it } from 'vitest';
+import { uiSource } from './sourceHelpers';
 
-const sources = import.meta.glob('../../src/{main,ui/techTree}.ts', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>;
-const source = (name: string): string => {
-  const key = Object.keys(sources).find((k) => k.endsWith(`/${name}`));
-  if (!key) throw new Error(`source not globbed: ${name}`);
-  return sources[key]!;
-};
+// The sources come from the suite's shared glob (`sourceHelpers.ts`).
+const source = uiSource;
 
 describe('the game-screen disposal register', () => {
   it('gives the star chart a real dispose that unbinds both window listeners', () => {
@@ -54,9 +47,41 @@ describe('the game-screen disposal register', () => {
       // string of timers, and a timer left running against a torn-down tree is
       // the bug every animation in this interface has already had once.
       'ceremony?.dispose()',
+      // The four that batch H5 moved in. All four were disposed by name in
+      // `showLanding` and by nothing at all in `boot`, so a save loaded straight
+      // onto a board — the one re-entry that skips the landing — left the
+      // Statecraft, Religion and Trade sheets' capturing `keydown` listeners
+      // hanging, and the Abacus's WebGL context with them. The register is
+      // swept at both doors, which is the whole reason it exists.
+      'statecraft?.dispose()',
+      'religion?.dispose()',
+      'trade?.dispose()',
+      'abacus?.dispose()',
     ]) {
       expect(main, call).toContain(`gameDisposers.push(() => ${call});`);
     }
+    // And nothing disposes a per-game screen by name any more: a call outside
+    // the register is a screen only one of the two doors knows how to tear down.
+    for (const call of ['statecraft?.dispose();', 'ledger?.dispose();', 'abacus?.dispose();']) {
+      expect(main.includes(`\n  ${call}`), call).toBe(false);
+    }
+  });
+
+  /**
+   * The eight parchment sheets bind their window listener once, in the frame
+   * they share (`src/ui/modalShell.ts`), and every one of their `dispose`s is
+   * that frame's. A screen that grew its own copy of the contract is a screen
+   * whose teardown is nobody's job in particular — which is the shape Entry
+   * LVII's bug had.
+   */
+  it('binds and unbinds the sheets’ Escape in the one frame they share', () => {
+    const shell = source('modalShell.ts');
+    expect(shell).toContain("window.addEventListener('keydown', onKeyDown, true)");
+    expect(shell).toContain("window.removeEventListener('keydown', onKeyDown, true)");
+    expect(shell).toContain("overlay.addEventListener('mousedown', onGround)");
+    expect(shell).toContain("overlay.removeEventListener('mousedown', onGround)");
+    expect(shell).toContain("closeButton.addEventListener('click', close)");
+    expect(shell).toContain("closeButton.removeEventListener('click', close)");
   });
 
   it('sweeps the register at both re-entry doors', () => {

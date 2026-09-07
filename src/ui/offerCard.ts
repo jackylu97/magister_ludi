@@ -87,7 +87,8 @@
 import { STAMP_TIMING, type StampReading, cardStampNode, playCardStamp, stampIsEmpty } from './cardStamp';
 import { cardLineMarkUrl } from './cardLine';
 import { setDescriptorText } from './keywords';
-import { setYieldText } from './yieldMark';
+import { yieldElement as element } from './yieldMark';
+import { wantsMotion } from './motion';
 
 // --- the back ---------------------------------------------------------------
 
@@ -101,18 +102,6 @@ import { setYieldText } from './yieldMark';
  */
 const DEAL_MS = 420;
 const DEAL_STAGGER_MS = 110;
-
-/**
- * Does this viewer want motion?
- *
- * Asked at the moment of dealing rather than cached, because the preference can
- * change while the page is up and the honest answer is the one that holds when
- * the cards are laid. Guarded for `matchMedia`'s absence, which is not a browser
- * this game runs in but is every test environment that ever renders a DOM.
- */
-function wantsMotion(): boolean {
-  return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-}
 
 /**
  * One card's back: the weave, the gilt rules and the neutral seal.
@@ -421,19 +410,6 @@ export interface OfferCard {
   /** Takes the card down without choosing. For a new game, not for a player. */
   clear(): void;
   dispose(): void;
-}
-
-/**
- * The card's element builder, and its yield printer: the payoff line is composed
- * in `YIELD_GLYPH` by `main.ts` ("+20⚙ to Uruk") and the glyph in it is drawn
- * here. Same one-line seam as the city panel's and the star chart's — see
- * `src/ui/yieldMark.ts`.
- */
-function element(tag: string, className: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) setYieldText(node, text);
-  return node;
 }
 
 /** The window the spread is being laid out in. */

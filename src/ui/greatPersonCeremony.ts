@@ -55,6 +55,8 @@ import { cardStampNode, landCardStamp, playCardStamp } from './cardStamp';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import type { GameState } from '../sim/state';
 import type { GreatPersonId } from '../sim/greatPeopleData';
+import { element } from './dom';
+import { wantsMotion } from './motion';
 
 /**
  * The mock's beats, in milliseconds, measured from the moment the overlay is
@@ -136,18 +138,6 @@ export interface GreatPersonCeremonyOptions {
   target?: () => HTMLElement | null;
   /** The card has landed in the pile and the overlay is down. */
   onClosed?: () => void;
-}
-
-/** Does this viewer want motion? Asked at the moment the ceremony is played. */
-function wantsMotion(): boolean {
-  return !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-}
-
-function element(tag: string, className: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
 }
 
 export function createGreatPersonCeremony(

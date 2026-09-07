@@ -53,6 +53,8 @@ import {
 } from './beadsScreen';
 import { figure } from './figures';
 import { setDescriptorText } from './keywords';
+import { element } from './dom';
+import { prefersReducedMotion } from './motion';
 
 /**
  * One bead award, as this sheet needs to read it. `BeadAward`'s fields plus the
@@ -185,22 +187,6 @@ export interface BeadModalOptions {
    * less than one. See `main.ts`, which pumps its pending bead news from here.
    */
   onClosed?: () => void;
-}
-
-/**
- * Does this viewer want animation suppressed? `controls.ts`'s reading, and read
- * at the moment of use for its reason: the setting can change while the page is
- * open, and this is one media query per sheet.
- */
-function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
-function element(tag: string, className?: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
 }
 
 export function createBeadModal(

@@ -46,6 +46,7 @@
  * in `figures.ts`.
  */
 
+import { element } from './dom';
 import { METER_GLYPH, YIELD_GLYPH, type YieldKey } from './figures';
 import { meterMarkNode } from './meterMark';
 import { yieldMarkDataUri } from '../art/yieldMarks';
@@ -210,6 +211,32 @@ export function setYieldText(element: HTMLElement, text: string): void {
     return;
   }
   element.replaceChildren(yieldTextNodes(text));
+}
+
+/**
+ * `element` with its text written through `setYieldText` — the builder for a
+ * panel whose lines carry composed figures.
+ *
+ * Taking the note above at its word: routing a whole panel's element builder
+ * through the printer is safe because a string with no glyph in it falls through
+ * to `textContent`, so a heading and a cost can be built by the same call. Three
+ * surfaces want it — the city panel, the offer card and the star chart — and all
+ * three import it *as* `element`, because at a call site the only interesting
+ * question is "an element with this class and this text" and the answer to
+ * "…with its marks drawn?" is yes on every line of those three files.
+ *
+ * It lives here rather than in `dom.ts` so that the plain builder stays a leaf:
+ * `dom.ts` knows about `document` and nothing else, and the yield printer's
+ * dependencies (the glyph table, the mark art) stop at this module.
+ */
+export function yieldElement<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  className?: string,
+  text?: string,
+): HTMLElementTagNameMap[K] {
+  const node = element(tag, className);
+  if (text !== undefined) setYieldText(node, text);
+  return node;
 }
 
 /**

@@ -573,28 +573,26 @@ describe('the band that is not built yet', () => {
 
 describe('the eighth parchment sheet', () => {
   it('joins the one capped-overlay rule rather than growing a block of its own', () => {
+    // Batch H5: the cap used to name the eight overlay ids in five places, and
+    // now belongs to the paper — `.statecraft-overlay` is what a sheet wears to
+    // borrow this furniture, and the cap is part of what it is borrowing. So
+    // what this sheet has to show is that it wears the class and says nothing
+    // about the cap of its own.
     const css = raw('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
-    const capped = css.match(/#statecraft-overlay,[\s\S]*?\{\s*overflow: hidden;/);
+    const capped = css.match(/\.statecraft-overlay \{[^}]*overflow: hidden;/);
     expect(capped, 'the capped-overlay rule').not.toBeNull();
-    expect(capped![0]).toContain('#ledger-overlay');
-    // Both halves of it: the overlay and the sheet inside it.
-    const sheets = css.match(/#statecraft-overlay \.statecraft-sheet,[\s\S]*?max-height: 100%/);
+    const sheets = css.match(/\.statecraft-overlay \.statecraft-sheet \{[\s\S]*?max-height: 100%/);
     expect(sheets, 'the capped sheet rule').not.toBeNull();
-    expect(sheets![0]).toContain('#ledger-overlay .statecraft-sheet');
-    // And it is named in exactly the two shared blocks — the cap and the
-    // breakpoint that lifts it — and in no rule of its own. A third would be the
-    // sheet growing a block that agreed with those two today.
-    expect(css.match(/#ledger-overlay \.statecraft-sheet/g)).toHaveLength(2);
-    for (const at of [...css.matchAll(/#ledger-overlay \.statecraft-sheet/g)]) {
-      const list = css.slice(Math.max(0, (at.index ?? 0) - 400), at.index ?? 0);
-      expect(list).toContain('#statecraft-overlay .statecraft-sheet');
-    }
+    expect(raw('index.html')).toMatch(/id="ledger-overlay"\s*\n\s*class="statecraft-overlay"/);
+    // And it names itself in no cap rule of its own. One would be the sheet
+    // growing a block that agreed with the shared one today.
+    expect(css).not.toContain('#ledger-overlay .statecraft-sheet');
   });
 
   it('stacks its bands at the breakpoint the other sheets share', () => {
     const css = raw('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
     const queries = [...css.matchAll(/@media \(max-width: (\d+)px\) \{([\s\S]*?)\n\}/g)].filter(
-      ([, , body]) => body.includes('#statecraft-overlay'),
+      ([, , body]) => body.includes('.statecraft-overlay'),
     );
     expect(queries).toHaveLength(1);
     expect(Number(queries[0]![1])).toBe(860);
@@ -636,9 +634,12 @@ describe('the door in the yield strip', () => {
     // every other parchment sheet, so a leaked one would answer Escape for a
     // game that is over.
     expect(source('main.ts')).toContain('gameDisposers.push(() => ledger?.dispose());');
-    const screen = source('ledgerScreen.ts');
-    expect(screen).toContain("window.addEventListener('keydown', onKeyDown, true)");
-    expect(screen).toContain("window.removeEventListener('keydown', onKeyDown, true)");
+    // The listener itself is the shell's since batch H5 — one binding for all
+    // eight sheets, unbound by the `dispose` the register above holds.
+    const shell = source('modalShell.ts');
+    expect(shell).toContain("window.addEventListener('keydown', onKeyDown, true)");
+    expect(shell).toContain("window.removeEventListener('keydown', onKeyDown, true)");
+    expect(source('ledgerScreen.ts')).toContain('const shell = createModalShell({');
   });
 
   it('samples the curve at the one clean moment, and empties it on a new game', () => {
@@ -653,6 +654,8 @@ describe('the door in the yield strip', () => {
     const main = source('main.ts');
     expect(main).toContain('(ledger?.isOpen ?? false)');
     expect(main).toContain('ledger?.close();');
-    expect(main).toContain('ledger?.dispose();');
+    // The way out is the register's, not a call in `showLanding`: `boot` sweeps
+    // the same list, so a save loaded without visiting the landing is covered.
+    expect(main).toContain('gameDisposers.push(() => ledger?.dispose());');
   });
 });

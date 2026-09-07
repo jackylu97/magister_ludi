@@ -194,3 +194,36 @@ export function rankedCandidates(candidates: readonly BotCandidate[]): BotCandid
   scored.sort((a, b) => b.score - a.score || order.get(a)! - order.get(b)!);
   return [...scored, ...refused];
 }
+
+/**
+ * **How the feed writes a number.** One decimal place, and no trailing `.0` — a
+ * label is read, not parsed.
+ *
+ * Nothing in the bot ever reads one of these back, which is the whole reason the
+ * rule can be this loose: a `BotCandidate` carries its exact `score` and its
+ * exact `ValueTerm`s, and these strings are what goes in the `label` and the
+ * `summary` beside them. A seat that decided anything on a rounded figure would
+ * be a seat whose play depended on how the spectate page happens to print.
+ *
+ * It was six copies under two names — `round` in `value.ts`, `chain.ts`,
+ * `wants.ts` and `plan.ts`, `round1` in `bot.ts` and `diplomacy.ts`, all six
+ * byte-identical (`docs/audit/simplify.md` §2). Here, because this module is
+ * already the vocabulary the feed is written in and the only one every scorer
+ * imports.
+ */
+export function round(value: number): string {
+  const fixed = Math.round(value * 10) / 10;
+  return Number.isInteger(fixed) ? String(fixed) : fixed.toFixed(1);
+}
+
+/**
+ * `round` with the sign always said, for a term that is a *change* rather than
+ * a quantity: "+1.5" reads as a difference and "1.5" reads as a total.
+ *
+ * The hyphen, not the specimen's true minus — the feed is plain text quoted by
+ * the spectate page, the arena's sheet and a test's expectation alike, and none
+ * of those is a tabular-mono figure box.
+ */
+export function signed(value: number): string {
+  return value >= 0 ? `+${round(value)}` : round(value);
+}

@@ -50,12 +50,7 @@ import {
   seatTinctures,
 } from './marks';
 import { block, checkbox, controls, element, section, select } from './sheet';
-
-function requireElement<T extends HTMLElement>(id: string): T {
-  const node = document.getElementById(id);
-  if (!node) throw new Error(`Missing element #${id}`);
-  return node as T;
-}
+import { requireElement } from '../ui/dom';
 
 const indexNav = requireElement<HTMLElement>('index');
 const sheet = requireElement<HTMLElement>('sheet');

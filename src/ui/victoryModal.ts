@@ -21,6 +21,8 @@
  * Data is data: every string arrives as a text node (`turnSplash.ts`'s rule).
  */
 
+import { element } from './dom';
+
 /** One decided game, as this sheet needs to read it. */
 export interface VictoryNews {
   /** "Crimson". The winner's own name, whoever is reading. */
@@ -76,13 +78,6 @@ export interface VictoryModal {
   /** Takes the sheet down. Called on a new game. */
   clear(): void;
   dispose(): void;
-}
-
-function element(tag: string, className?: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
 }
 
 export function createVictoryModal(container: HTMLElement): VictoryModal {

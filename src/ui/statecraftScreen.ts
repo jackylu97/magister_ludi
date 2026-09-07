@@ -6,10 +6,11 @@
  * chart is the table at night and the Abacus is the table in daylight; this is
  * the table covered in paper — a government's charter down the left with a row
  * of wax seals under it, and the collection spread out beside it like cards a
- * player is deciding between. It follows both of the others' shape exactly:
- * `hidden` is the whole of the screen state, Escape closes it and hands the
- * keyboard back, the × and a click on the ground around the sheet do the same,
- * and opening it closes whatever else was up.
+ * player is deciding between. It follows both of the others' shape exactly, and
+ * since batch H5 it is built on the frame every parchment sheet shares
+ * (`modalShell.ts`): `hidden` is the whole of the screen state, Escape closes it
+ * and hands the keyboard back, the × and a press on the ground around the sheet
+ * do the same, and opening it closes whatever else was up.
  *
  * The naming bible (Entry X) is load-bearing here and nowhere else in the
  * interface: the slottable cards are **Orders**, the permanent ones are
@@ -170,6 +171,7 @@ import { DECK_AGGREGATE_LABEL, deckAggregate, deckAggregateLine } from './ledger
 import { type CardImpactSubject, explainCardImpact } from '../sim/cardImpact';
 import { CARD_LINE_NAME, cardLineMarkNode, lineOf, slotMarkNode } from './cardLine';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
+import { createModalShell } from './modalShell';
 import {
   type SlotCommand,
   type StagedSlots,
@@ -184,6 +186,7 @@ import {
 } from './statecraftStaging';
 import type { GameState } from '../sim/state';
 import { playerById } from '../sim/state';
+import { element } from './dom';
 
 /**
  * The wax seal, and the empty slot's ghost of one.
@@ -303,13 +306,6 @@ export interface StatecraftScreenOptions {
   onRefuse?: (message: string) => void;
   /** Called when this screen opens, so the others can close. */
   onOpen?: () => void;
-}
-
-function element(tag: string, className: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
 }
 
 /**
@@ -456,14 +452,6 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   function stopCounting(): void {
     for (const cancel of counting) cancel();
     counting = [];
-  }
-
-  function isOpen(): boolean {
-    return !overlay.hidden;
-  }
-
-  function setExpanded(): void {
-    trigger?.setAttribute('aria-expanded', String(isOpen()));
   }
 
   /** Throws the arrangement away. Revert, seat changes, and the way out of a game. */
@@ -1147,69 +1135,32 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     body.append(split);
   }
 
-  function open(): void {
-    if (isOpen()) return;
-    options.onOpen?.();
-    overlay.hidden = false;
-    setExpanded();
-    // A fresh sheet of paper: whatever the last visit proposed is either signed
-    // (it closed) or thrown away (the chair changed), so an opening screen never
-    // inherits an arrangement.
-    discardStaging();
-    draw();
-    closeButton.focus();
-  }
-
   /**
-   * Leaving locks it in — the user's rule, and it is enforced here rather than
-   * at each door, because every door in the interface (Escape, the ×, a click on
-   * the table, another screen opening, `closePopovers`) comes through this one
-   * function. The overlay is hidden *first* so a repaint provoked by the batch
-   * cannot draw a screen that is on its way out.
+   * The frame (`modalShell.ts`) — `hidden` is the whole of the screen state, the
+   * ×, Escape and a press on the ground all arrive at one `close`, and the
+   * disposer is the game's.
+   *
+   * What this screen adds to it is the two halves of *leaving locks it in* — the
+   * user's rule. An opening throws away whatever the last visit proposed (it was
+   * either signed on the way out or abandoned by a change of chair, so a fresh
+   * sheet never inherits an arrangement), and a closing signs it. Both are hung
+   * on the shell's hooks rather than written at each door precisely because
+   * there are four doors — Escape, the ×, the table, and another screen opening
+   * through `closePopovers`.
    */
-  function close(): void {
-    if (!isOpen()) return;
-    overlay.hidden = true;
-    setExpanded();
-    // A ceremony playing on a sheet nobody can see has nothing left to say.
-    stopCounting();
-    commitStaging();
-    discardStaging();
-    trigger?.focus();
-  }
-
-  function onKeyDown(event: KeyboardEvent): void {
-    if (!isOpen()) return;
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      close();
-    }
-  }
-
-  // A click on the ground around the sheet closes it, exactly as the chart and
-  // the Abacus do — the overlay itself is the target only when the sheet was
-  // missed.
-  const onOverlayClick = (event: MouseEvent): void => {
-    if (event.target === overlay) close();
-  };
-
-  closeButton.addEventListener('click', close);
-  overlay.addEventListener('click', onOverlayClick);
-  window.addEventListener('keydown', onKeyDown, true);
-
-  return {
-    get isOpen(): boolean {
-      return isOpen();
-    },
-    open,
-    close,
-    toggle(): void {
-      if (isOpen()) close();
-      else open();
-    },
-    refresh(): void {
-      if (isOpen()) draw();
+  const shell = createModalShell({
+    overlay,
+    body,
+    closeButton,
+    trigger,
+    onOpen: () => options.onOpen?.(),
+    onShow: discardStaging,
+    draw,
+    onClose: () => {
+      // A ceremony playing on a sheet nobody can see has nothing left to say.
+      stopCounting();
+      commitStaging();
+      discardStaging();
     },
     /**
      * The game is going away (the landing screen). The arrangement is
@@ -1217,14 +1168,20 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
      * about to stop existing, and `showLanding` has already closed the screen —
      * which is where a proposal about a game still being played gets signed.
      */
-    dispose(): void {
-      closeButton.removeEventListener('click', close);
-      overlay.removeEventListener('click', onOverlayClick);
-      window.removeEventListener('keydown', onKeyDown, true);
-      overlay.hidden = true;
+    onDispose: () => {
       stopCounting();
       discardStaging();
-      body.replaceChildren();
     },
+  });
+
+  return {
+    get isOpen(): boolean {
+      return shell.isOpen;
+    },
+    open: shell.open,
+    close: shell.close,
+    toggle: shell.toggle,
+    refresh: shell.refresh,
+    dispose: shell.dispose,
   };
 }

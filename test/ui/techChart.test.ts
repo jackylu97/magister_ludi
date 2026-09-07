@@ -15,6 +15,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { braceBody, uiSource } from './sourceHelpers';
 import {
   type ChartCell,
   type ChartLayout,
@@ -900,16 +901,9 @@ import {
   planPlace,
 } from '../../src/ui/techTree';
 
-const CHART_SOURCE = import.meta.glob(['../../src/ui/techTree.ts'], {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-}) as Record<string, string>;
-
+/** The star chart's own source. See `sourceHelpers.ts` on why the glob is shared. */
 function chartSource(): string {
-  const text = Object.values(CHART_SOURCE)[0];
-  if (typeof text !== 'string' || text.length === 0) throw new Error('techTree.ts came back empty');
-  return text;
+  return uiSource('techTree.ts');
 }
 
 /**
@@ -920,18 +914,7 @@ function chartSource(): string {
  * and half of what this file is checking is *which* function does a thing.
  */
 function chartFunction(declaration: string): string {
-  const text = chartSource();
-  const at = text.indexOf(declaration);
-  expect(at, `no "${declaration}" in techTree.ts`).toBeGreaterThanOrEqual(0);
-  let depth = 0;
-  for (let index = text.indexOf('{', at); index < text.length; index += 1) {
-    if (text[index] === '{') depth += 1;
-    else if (text[index] === '}') {
-      depth -= 1;
-      if (depth === 0) return text.slice(at, index + 1);
-    }
-  }
-  throw new Error(`"${declaration}" is never closed`);
+  return braceBody(chartSource(), declaration);
 }
 
 /**

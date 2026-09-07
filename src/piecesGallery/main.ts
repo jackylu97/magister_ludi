@@ -21,12 +21,7 @@ import { VIEW3D } from '../render3d/lookData';
 import { UnitSprites } from '../render3d/sprites3d';
 
 import { type GalleryStyle, PiecesStage } from './stage';
-
-function requireElement<T extends HTMLElement>(id: string): T {
-  const element = document.getElementById(id);
-  if (!element) throw new Error(`Missing element #${id}`);
-  return element as T;
-}
+import { requireElement } from '../ui/dom';
 
 const canvas = requireElement<HTMLCanvasElement>('gl');
 const labelLayer = requireElement<HTMLElement>('labels');

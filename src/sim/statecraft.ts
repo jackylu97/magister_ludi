@@ -71,7 +71,7 @@ import {
   tileOwnerCityId,
   tileOwnerPlayerId,
 } from './cities';
-import { roundYield } from './yieldFormat';
+import { signedPlain as signed } from './yieldFormat';
 import {
   BUILDING_IDS,
   type BuildingId,
@@ -6187,21 +6187,6 @@ export function stripRefs(text: string): string {
   return text.replace(new RegExp(REF_PATTERN.source, 'g'), (_match, _kind, _id, name: string) =>
     name,
   );
-}
-
-/**
- * A card's figure, in words — `roundYield`'s wrapper (batch X).
- *
- * A row's own amounts are whole numbers in `data/`, but a describer composes
- * them (an amplified trickle, a share of a rate), and a clause reading
- * `+1.5 science` would be the one place in the game a player met a fraction.
- * One rounding rule with every chip above the card; the **hyphen** stays a
- * hyphen here rather than becoming the specimen's true minus, because these
- * clauses are the sim's own ratified prose and the printer draws them verbatim.
- */
-function signed(value: number): string {
-  const rounded = roundYield(value);
-  return rounded >= 0 ? `+${rounded}` : `${rounded}`;
 }
 
 /** A yield bag in words: "+2 gold, +1 culture". */

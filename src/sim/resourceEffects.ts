@@ -81,7 +81,7 @@
  */
 
 import { type ProductionCategory, buildingDef } from './buildingData';
-import { roundYield } from './yieldFormat';
+import { signedPlain as signed } from './yieldFormat';
 import type { ModifierStage } from './modifiers';
 import {
   cityResources,
@@ -1097,12 +1097,3 @@ function scopeWords(scope: ResourceCityScope | undefined): string {
   return 'every city';
 }
 
-/**
- * A luxury's figure, in words — `roundYield`'s rule with every other (batch X),
- * and the hyphen kept for `statecraft.ts`'s reason: ratified prose, drawn as it
- * is written.
- */
-function signed(value: number): string {
-  const rounded = roundYield(value);
-  return rounded >= 0 ? `+${rounded}` : `${rounded}`;
-}

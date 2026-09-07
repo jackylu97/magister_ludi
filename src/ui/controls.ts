@@ -348,6 +348,8 @@ import {
   routeSlotsLine as routeSlotsLineOf,
 } from './tradeLines';
 import { type TurnBlocker, firstBlocker } from './turnBlockers';
+import { prefersReducedMotion } from './motion';
+import { withArticle } from './dom';
 
 /** How far the pointer may travel between down and up and still be a click. */
 const CLICK_SLOP_PX = 4;
@@ -758,16 +760,6 @@ export interface GreatPersonView {
 }
 
 /**
- * Does this viewer want animation suppressed?
- *
- * Read at the moment of use rather than cached: the setting can change while the
- * page is open, and this is one media query per seat change.
- */
-function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
-/**
  * What a digit key does to the manual lens: which mode to set, or `null` when
  * the digit does nothing.
  *
@@ -899,11 +891,6 @@ export interface GrantNotice {
   unitId?: number;
   /** True on the one grant that puts a decision on the seat. See `reportGrants`. */
   opensDoctrine?: boolean;
-}
-
-/** "a Spearman", "an Augur" — the article the name itself asks for. */
-function withArticle(name: string): string {
-  return `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;
 }
 
 /**

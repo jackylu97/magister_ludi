@@ -271,9 +271,12 @@ describe('no composed yield figure reaches the DOM unprinted', () => {
         printsHere || handedTo !== undefined,
         `${path} composes a yield figure but neither prints it nor hands it to a printer`,
       ).toBe(true);
-      // And whoever it hands off to had better be a printer itself.
+      // And whoever it hands off to had better be a printer itself — either by
+      // calling `setYieldText` or by building its elements with `yieldElement`,
+      // which is the same call routed through the whole builder (batch H5).
       if (!printsHere && handedTo) {
-        expect(code(UI_SOURCE[`../../src/ui/${handedTo}`]!)).toContain('setYieldText');
+        const target = code(UI_SOURCE[`../../src/ui/${handedTo}`]!);
+        expect(/setYieldText|yieldElement/.test(target), handedTo).toBe(true);
       }
     }
   });

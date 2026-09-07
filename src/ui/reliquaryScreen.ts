@@ -11,11 +11,13 @@
  * The sibling it is built from, and where it stops
  * -----------------------------------------------
  * The Statecraft / Religion / Trade / Bead sheets, in the family sense: the same
- * overlay classes, the same keyboard contract (`hidden` is the whole of the
- * screen state, Escape closes it, the × and a click on the ground do the same),
- * and it joins the capped-overlay rule in `style.css` as the seventh id — the
- * block's own comment invites exactly this, and a second block that agreed today
- * would be two blocks the first time either was touched.
+ * overlay classes, and since batch H5 the same frame — `modalShell.ts`, where
+ * `hidden` is the whole of the screen state and the ×, Escape and a press on the
+ * ground arrive at one `close`. This is the shell's only user of `onKey`, for
+ * the ‹ › that walk the pile. It wears `.statecraft-overlay` like every other
+ * sheet, which is what the capped-overlay rule in `style.css` is scoped to now,
+ * and then narrows its own width under its own id — the block's own comment
+ * invites exactly that.
  *
  * It is **lighter** than its four siblings and deliberately so: it splits into
  * nothing, it scrolls nothing, and it is ≈30rem wide rather than 1240px. There
@@ -83,6 +85,8 @@ import { YIELD_GLYPH } from './figures';
 import { setYieldText } from './yieldMark';
 import { cardStampNode, landCardStamp } from './cardStamp';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
+import { element } from './dom';
+import { createModalShell } from './modalShell';
 
 /**
  * One card in the roll: the face, plus the one fact the face itself cannot
@@ -283,13 +287,6 @@ export interface ReliquaryScreenOptions {
   onCall?: (purchase: OfferPurchaseId) => void;
 }
 
-function element(tag: string, className: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
 /**
  * One full tarot face, in the very classes the offer card deals.
  *
@@ -386,14 +383,6 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
   let at = 0;
   /** A name to land on the next time the screen draws — the ceremony's hand-off. */
   let wanted: GreatPersonId | null = null;
-
-  function isOpen(): boolean {
-    return !overlay.hidden;
-  }
-
-  function setExpanded(): void {
-    trigger?.setAttribute('aria-expanded', String(isOpen()));
-  }
 
   function draw(flip: boolean): void {
     const roll = reliquaryRoll(options.getState(), options.getPlayerId());
@@ -506,75 +495,45 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
     draw(true);
   }
 
-  function open(): void {
-    if (isOpen()) return;
-    options.onOpen?.();
-    overlay.hidden = false;
-    setExpanded();
-    draw(false);
-    closeButton.focus();
-  }
-
-  function close(): void {
-    if (!isOpen()) return;
-    overlay.hidden = true;
-    setExpanded();
-    trigger?.focus();
-  }
-
   /**
-   * Escape closes, and ‹ › walk the pile.
+   * The frame (`modalShell.ts`) — `hidden` is the whole of the screen state, the
+   * ×, Escape and a press on the ground all arrive at one `close`, and the
+   * disposer is the game's.
    *
-   * The arrow keys are claimed only while the screen is up — the board reads
-   * them too, and a screen that swallowed them while hidden would be the leaked
-   * listener of Entry LVII wearing a different costume. Capturing, like every
-   * other parchment sheet's, so the board never sees the key underneath.
+   * This sheet is the shell's one user of `onKey`: **‹ › walk the pile**. The
+   * arrows are claimed only while the screen is up, because the board reads them
+   * too and a screen that swallowed them while hidden would be the leaked
+   * listener of Entry LVII wearing a different costume — which is exactly the
+   * guarantee the shell's own `isOpen` check gives every key it hands on.
    */
-  function onKeyDown(event: KeyboardEvent): void {
-    if (!isOpen()) return;
-    if (event.key === 'Escape') {
+  const shell = createModalShell({
+    overlay,
+    body,
+    closeButton,
+    trigger,
+    onOpen: () => options.onOpen?.(),
+    draw: () => draw(false),
+    onKey: (event) => {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return false;
       event.preventDefault();
       event.stopPropagation();
-      close();
-      return;
-    }
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-    event.preventDefault();
-    event.stopPropagation();
-    step(event.key === 'ArrowLeft' ? -1 : 1);
-  }
-
-  const onOverlayClick = (event: MouseEvent): void => {
-    if (event.target === overlay) close();
-  };
-
-  closeButton.addEventListener('click', close);
-  overlay.addEventListener('click', onOverlayClick);
-  window.addEventListener('keydown', onKeyDown, true);
+      step(event.key === 'ArrowLeft' ? -1 : 1);
+      return true;
+    },
+  });
 
   return {
     get isOpen(): boolean {
-      return isOpen();
+      return shell.isOpen;
     },
-    open,
-    close,
-    toggle(): void {
-      if (isOpen()) close();
-      else open();
-    },
-    refresh(): void {
-      if (isOpen()) draw(false);
-    },
+    open: shell.open,
+    close: shell.close,
+    toggle: shell.toggle,
+    refresh: shell.refresh,
     showPerson(id: GreatPersonId): void {
       wanted = id;
-      if (isOpen()) draw(false);
+      if (shell.isOpen) draw(false);
     },
-    dispose(): void {
-      closeButton.removeEventListener('click', close);
-      overlay.removeEventListener('click', onOverlayClick);
-      window.removeEventListener('keydown', onKeyDown, true);
-      overlay.hidden = true;
-      body.replaceChildren();
-    },
+    dispose: shell.dispose,
   };
 }

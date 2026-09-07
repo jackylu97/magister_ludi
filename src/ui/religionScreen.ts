@@ -18,9 +18,9 @@
  *
  * The fourth full-screen overlay and the second parchment one, and it is
  * deliberately the Statecraft sheet's sibling rather than a new language: same
- * bones, same keyboard contract (`hidden` is the whole of the screen state,
- * Escape closes it, the × and a click on the ground do the same, opening it
- * closes whatever else was up), same card face. Two systems that draft
+ * bones, same card face, and since batch H5 the same frame — `modalShell.ts`,
+ * where `hidden` is the whole of the screen state, the ×, Escape and a press on
+ * the ground arrive at one `close`, and opening closes whatever else was up. Two systems that draft
  * permanent things from a pool should not look like two different games.
  *
  * What it graduates from
@@ -83,7 +83,8 @@
  */
 
 import { civYields } from './topBar';
-import { roundYield, signedYield, yieldShows } from '../sim/yieldFormat';
+import { signedPlain as signed, signedYield, yieldShows } from '../sim/yieldFormat';
+import { createModalShell } from './modalShell';
 import {
   type StampReading,
   cardStampNode,
@@ -145,6 +146,7 @@ import { gatingTech } from '../sim/tech';
 import { type TechId, techDef } from '../sim/techData';
 import { type UnitTypeId, unitDef } from '../sim/unitData';
 import { YIELD_GLYPH } from './yieldMark';
+import { element } from './dom';
 
 /**
  * The mark each axis wears, and the accent it is drawn in.
@@ -445,20 +447,6 @@ export function priceLedgerText(price: PurchasePrice): string {
 }
 
 /**
- * A signed whole figure, for a ledger a temple can subtract from.
- *
- * `roundYield`'s rule rather than its own arithmetic (batch X): pressure is not
- * a yield — nothing in the fold that fills `pressureBank` carries fractions —
- * but a temple's line is a *difference* off a percentage, and the one rounding
- * rule in the game is cheaper to share than to reason about twice. The hyphen
- * stays a hyphen: this string is the hover's ratified wording.
- */
-function signed(amount: number): string {
-  const rounded = roundYield(amount);
-  return rounded < 0 ? String(rounded) : `+${rounded}`;
-}
-
-/**
  * The eyebrow the offer card wears when a belief is dealt, which is the one
  * place a player is told **which bag** the three cards came out of.
  *
@@ -518,13 +506,6 @@ export interface ReligionScreenOptions {
   /** Said in the manicule line — a refusal, in the reducer's own words. */
   onRefuse?: (message: string) => void;
   onOpen?: () => void;
-}
-
-function element(tag: string, className: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
 }
 
 /** The axis mark as a span that takes the accent ink. `cardLineMarkNode`'s twin. */
@@ -616,14 +597,6 @@ function drawBeliefFace(
 
 export function createReligionScreen(options: ReligionScreenOptions): ReligionScreen {
   const { overlay, body, closeButton, trigger } = options;
-
-  function isOpen(): boolean {
-    return !overlay.hidden;
-  }
-
-  function setExpanded(): void {
-    trigger?.setAttribute('aria-expanded', String(isOpen()));
-  }
 
   /**
    * What a belief this seat **holds** is worth, as the stamp reads it.
@@ -1235,58 +1208,32 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     body.append(split);
   }
 
-  function open(): void {
-    if (isOpen()) return;
-    options.onOpen?.();
-    overlay.hidden = false;
-    setExpanded();
-    draw();
-    closeButton.focus();
-  }
-
-  function close(): void {
-    if (!isOpen()) return;
-    overlay.hidden = true;
-    setExpanded();
-    trigger?.focus();
-  }
-
-  function onKeyDown(event: KeyboardEvent): void {
-    if (!isOpen()) return;
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      event.stopPropagation();
-      close();
-    }
-  }
-
-  const onOverlayClick = (event: MouseEvent): void => {
-    if (event.target === overlay) close();
-  };
-
-  closeButton.addEventListener('click', close);
-  overlay.addEventListener('click', onOverlayClick);
-  window.addEventListener('keydown', onKeyDown, true);
+  /**
+   * The frame (`modalShell.ts`) — `hidden` is the whole of the screen state, the
+   * ×, Escape and a press on the ground all arrive at one `close`, the keyboard
+   * goes to the × and comes back to the bar, and the disposer is the game's.
+   *
+   * This sheet adds nothing to it. There is no proposal on this screen and
+   * nothing it forgets on the way out: a belief is taken by a command the
+   * instant it is picked, so leaving is only leaving.
+   */
+  const shell = createModalShell({
+    overlay,
+    body,
+    closeButton,
+    trigger,
+    onOpen: () => options.onOpen?.(),
+    draw,
+  });
 
   return {
     get isOpen(): boolean {
-      return isOpen();
+      return shell.isOpen;
     },
-    open,
-    close,
-    toggle(): void {
-      if (isOpen()) close();
-      else open();
-    },
-    refresh(): void {
-      if (isOpen()) draw();
-    },
-    dispose(): void {
-      closeButton.removeEventListener('click', close);
-      overlay.removeEventListener('click', onOverlayClick);
-      window.removeEventListener('keydown', onKeyDown, true);
-      overlay.hidden = true;
-      body.replaceChildren();
-    },
+    open: shell.open,
+    close: shell.close,
+    toggle: shell.toggle,
+    refresh: shell.refresh,
+    dispose: shell.dispose,
   };
 }

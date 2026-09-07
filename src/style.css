@@ -7285,7 +7285,9 @@ body:has(.city-mode:not([hidden])) #hud-context {
   display: grid;
   place-items: start center;
   padding: 24px;
-  overflow-y: auto;
+  /* The cap. See "the split" below for what it is for and why it is the
+     paper's; the breakpoint at the foot of that block lifts it again. */
+  overflow: hidden;
   background: rgba(29, 26, 32, 0.72);
   animation: offer-fade 160ms ease-out both;
 }
@@ -7358,37 +7360,29 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 /* --- the split ------------------------------------------------------------
-   **Both** parchment sheets split, and they split the same way — so this block
-   is written once and named twice. It is scoped to the two ids rather than to
-   the shared `.statecraft-*` classes because the cap is a fact about a
-   *screen*: any later overlay borrowing this paper is one column until it says
-   otherwise here.
+   Every parchment sheet splits, and they split the same way — so this block is
+   written once, for the class they all already wear.
+
+   It used to name the eight overlay ids instead, on the argument that the cap
+   is a fact about a *screen* rather than about the paper, so a later overlay
+   borrowing this paper would be one column until it said otherwise here. Eight
+   sheets later that argument had produced one list of eight ids repeated in
+   five places and a ninth sheet that would have had to be added to all five
+   (`docs/audit/simplify.md` §2, batch H5) — and no screen had ever wanted the
+   uncapped version. So the cap is the paper's now: `.statecraft-overlay` is
+   what a sheet puts on to borrow this furniture, and taking the cap is part of
+   borrowing it. A sheet that wants something else says so under its own id, the
+   way the Reliquary narrows its width below.
 
    The user's note (2026-08-27), made twice: on Statecraft, "you had to scroll
    far down to pick an Order and back up to slot it"; on Religion, "ideally it
    would also fit on a single screen; split panes would be good here too". So
    each sheet is capped at the viewport, the half a player reads *from* is a
    column that never moves — the offices, the pantheon — and the half they act
-   on scrolls in its own pane beside it. */
-#statecraft-overlay,
-#religion-overlay,
-#trade-overlay,
-#compendium-overlay,
-#diplomacy-overlay,
-#beads-overlay,
-#reliquary-overlay,
-#ledger-overlay {
-  overflow: hidden;
-}
-
-#statecraft-overlay .statecraft-sheet,
-#religion-overlay .statecraft-sheet,
-#trade-overlay .statecraft-sheet,
-#compendium-overlay .statecraft-sheet,
-#diplomacy-overlay .statecraft-sheet,
-#beads-overlay .statecraft-sheet,
-#reliquary-overlay .statecraft-sheet,
-#ledger-overlay .statecraft-sheet {
+   on scrolls in its own pane beside it. The overlay's own half of the cap
+   (`overflow: hidden`) is set on the base rule above, because with the ids gone
+   the two blocks had the same selector and one selector should have one rule. */
+.statecraft-overlay .statecraft-sheet {
   display: flex;
   flex-direction: column;
   width: min(1240px, 100%);
@@ -7396,14 +7390,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   min-height: 0;
 }
 
-#statecraft-overlay .statecraft-body,
-#religion-overlay .statecraft-body,
-#trade-overlay .statecraft-body,
-#compendium-overlay .statecraft-body,
-#diplomacy-overlay .statecraft-body,
-#beads-overlay .statecraft-body,
-#reliquary-overlay .statecraft-body,
-#ledger-overlay .statecraft-body {
+.statecraft-overlay .statecraft-body {
   flex: 1 1 auto;
   min-height: 0;
   gap: 14px;
@@ -7465,25 +7452,11 @@ body:has(.city-mode:not([hidden])) #hud-context {
      One media query for both sheets, deliberately: the width at which a split
      stops being readable is a fact about the split, and two breakpoints that
      agree today are two breakpoints. */
-  #statecraft-overlay,
-  #religion-overlay,
-  #trade-overlay,
-  #compendium-overlay,
-  #diplomacy-overlay,
-  #beads-overlay,
-  #reliquary-overlay,
-  #ledger-overlay {
+  .statecraft-overlay {
     overflow-y: auto;
   }
 
-  #statecraft-overlay .statecraft-sheet,
-  #religion-overlay .statecraft-sheet,
-  #trade-overlay .statecraft-sheet,
-  #compendium-overlay .statecraft-sheet,
-  #diplomacy-overlay .statecraft-sheet,
-  #beads-overlay .statecraft-sheet,
-  #reliquary-overlay .statecraft-sheet,
-  #ledger-overlay .statecraft-sheet {
+  .statecraft-overlay .statecraft-sheet {
     max-height: none;
   }
 
@@ -12195,8 +12168,8 @@ body.compendium-page {
    it joins the capped-overlay rule above with the other six, and then narrows.
    There is one thing on it and it is one card at a time, so 1240px of paper
    would be a wide empty table with a tarot card in the middle of it. */
-/* Named through the overlay's id because the rule it is narrowing is
-   `#reliquary-overlay .statecraft-sheet` — an id in the selector, which a bare
+/* Named through the overlay's id because the rule it is narrowing is the capped
+   block's `.statecraft-overlay .statecraft-sheet` — two classes, which a bare
    class beside it loses to every time. This is the invitation the capped block
    makes working as intended: borrow the paper, then say what is different. */
 #reliquary-overlay .reliquary-sheet {

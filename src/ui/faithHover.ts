@@ -75,6 +75,7 @@ import { cityFaithRows } from './cityPanel';
 import { cityDisplayName } from './cityDisplay';
 import { figure } from './figures';
 import { pressureLedgerText } from './religionScreen';
+import { element } from './dom';
 
 /** How well the seat knows this town right now. See the module docblock. */
 export type FaithKnowledge = 'watched' | 'remembered';
@@ -281,13 +282,6 @@ function faithLedgerText(faith: FaithHoverFaith): string {
 }
 
 // --- the card ---------------------------------------------------------------
-
-function element(tag: string, className?: string, text?: string): HTMLElement {
-  const node = document.createElement(tag);
-  if (className !== undefined) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
 
 /**
  * The reading, dressed — the city panel's Faith block in the hover card's

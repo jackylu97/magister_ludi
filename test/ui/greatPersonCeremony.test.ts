@@ -218,7 +218,9 @@ describe('the four beats', () => {
 
 describe('reduced motion', () => {
   it('arrives already landed and holds, rather than playing faster', () => {
-    expect(CEREMONY).toContain("'(prefers-reduced-motion: reduce)'");
+    // The query is `ui/motion.ts`'s since batch H5 folded eight copies of it
+    // into one; what this module must show is that it asks the shared reader.
+    expect(CEREMONY).toContain("import { wantsMotion } from './motion';");
     const arm = CEREMONY.slice(
       CEREMONY.indexOf('if (!wantsMotion()) {'),
       CEREMONY.indexOf("card.dataset.phase = 'rising';"),
