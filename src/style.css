@@ -6578,66 +6578,88 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-faint);
 }
 
-/* The second answer, on its own line under View map (the draft's pass, ruled
-   2026-09-04). It is `.offer-look`'s twin in every dimension and its opposite in
-   meaning, so it is drawn the same size and given the vermilion rim the rest of
-   this interface reserves for a thing that is spent: quiet enough not to compete
-   with the cards, marked enough that nobody presses it for a close button. Its
-   own sentence sits beside it, because "nothing is spent" is true of the control
-   above and false of this one. */
-.offer-foot-pass {
-  margin-top: 4px;
+/* The two answers that are not cards: ask again, and pass (ruled 2026-09-07 —
+   "fully featured, decorated buttons that are *meant* to be taken sometimes for
+   optimal play"). They were foot links beside View map and read as ways out of
+   the sheet; they are the house's own `.btn` now — same block, same hard ink
+   shadow, same press — the width of a card each, side by side under the hand.
+
+   `--offer-card` is the width `offerSpread` dealt the cards at, so an answer is
+   exactly a card wide however wide the hand is; the strip's whole height is
+   `FOOT` in `offerCard.ts`, and the two must move together or the spread thinks
+   it fits and does not. */
+.offer-answers {
+  display: flex;
+  justify-content: center;
+  /* The hand's own gutter (`GAP` in `offerCard.ts`), so the two answers stand on
+     the same rhythm the cards above them do. */
+  gap: 12px;
+  margin-top: 10px;
 }
 
-.offer-pass {
-  display: inline-flex;
+.offer-answer-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: var(--offer-card, 240px);
+  text-align: center;
+}
+
+/* Two lines on the face: what it does, and what it is worth. The figure is
+   tabular mono because every number in this interface is. */
+.offer-answer {
+  display: flex;
+  flex: none;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 3px 9px 4px;
-  border: var(--border-thin) solid var(--vermilion);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--vermilion);
-  font-family: var(--face-ui);
-  font-size: 11px;
-  cursor: pointer;
+  gap: 1px;
+  padding: 7px 10px 8px;
 }
 
-.offer-pass:hover,
-.offer-pass:focus-visible {
+.offer-answer-label {
+  font-family: var(--face-ui);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.offer-answer-figure {
+  font-family: var(--face-num);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+}
+
+/* The pass wears the vermilion this interface reserves for a thing that is
+   spent — the hand is gone and the culture stays spent — and the reroll wears
+   plain parchment, because a purchase must not borrow the warning colour. */
+.offer-answer-pass {
   background: var(--vermilion);
   color: var(--parchment);
+  border-color: var(--ink);
 }
 
-/* The reroll (schema 71): a third control in the foot, drawn in plain ink
-   rather than in the vermilion the pass wears. The pass is the irreversible
-   half of the sheet — the hand is gone and the culture stays spent — and the
-   reroll is a purchase, so it must not borrow the warning colour.
-
-   It is also the one control here that may be greyed, because its price rises
-   with every use: a reroll nobody can afford still has to print what it would
-   cost, or the mechanism is invisible until the moment it is paid. */
-.offer-reroll {
-  border-color: var(--ink-faint);
+.offer-answer-reroll {
+  background: var(--parchment);
   color: var(--ink);
 }
 
-.offer-reroll:hover,
-.offer-reroll:focus-visible {
-  background: var(--ink);
-  color: var(--parchment);
-}
-
-.offer-reroll:disabled {
+/* **The face is kept and the ink is greyed** (the ruling's own words). The
+   ordinary `.btn:disabled` swaps the ground for the table colour, which would
+   take the button off the sheet entirely — and the whole point of a reroll
+   nobody can afford is that its rising price stays legible. The sentence that
+   says why is the button's `title`, so it answers on hover. */
+.offer-answer:disabled {
+  background: var(--parchment);
+  color: var(--ink-faint);
   border-color: var(--ink-faint);
-  color: var(--ink-faint);
+  box-shadow: 3px 3px 0 rgba(29, 26, 32, 0.18);
   cursor: default;
-  opacity: 0.55;
 }
 
-.offer-reroll:disabled:hover {
-  background: transparent;
-  color: var(--ink-faint);
+.offer-answer:disabled .offer-answer-figure {
+  opacity: 1;
 }
 
 /* The way back, pinned above End Turn while an offer is being held off-screen.
@@ -6689,8 +6711,8 @@ body:has(.city-mode:not([hidden])) #hud-context {
    There was a second half here — a card lifted out of the row and centred
    beneath it, the draft's deepening — until the levelling ruling of 2026-09-04
    took the "deepen or widen" question away. What replaced it is not a card at
-   all but a control in the foot (`.offer-pass`), which is why this block is one
-   grid again. */
+   all but an answer under the hand (`.offer-answers`), which is why this block
+   is one grid again. */
 .offer-options {
   display: grid;
   gap: 12px;
@@ -12323,10 +12345,12 @@ body.compendium-page {
 /* --- the calls -------------------------------------------------------------
    The rail of great-person purchases a law may open (`ReliquaryCall`, batch H3
    — the draft three signature clauses promised and no screen offered). It wears
-   the offer sheet's own foot control (`.offer-pass.offer-reroll`) rather than a
-   button of its own, for the reason the card up the page wears `.offer-option`:
-   a purchase is a purchase wherever it is drawn, and two spellings of one
-   control is how the two come to disagree. */
+   the offer sheet's own answer (`.btn.offer-answer.offer-answer-reroll`) rather
+   than a button of its own, for the reason the card up the page wears
+   `.offer-option`: a purchase is a purchase wherever it is drawn, and two
+   spellings of one control is how the two come to disagree. It followed that
+   control onto the decorated face when ruling (r) landed (batch H14), which is
+   the face its own docblock had been describing since H3. */
 .rel-calls {
   display: flex;
   flex-direction: column;
@@ -12342,6 +12366,12 @@ body.compendium-page {
   flex-direction: column;
   gap: 4px;
   align-items: center;
+}
+
+/* A call stands on its own in a column rail rather than beside a twin, so it
+   takes a width of its own where the offer sheet's answers take a card's. */
+.rel-call {
+  min-width: 16rem;
 }
 
 .rel-call-note {

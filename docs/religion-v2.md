@@ -70,22 +70,38 @@ free rung) is not a rung. The offer carries the price it paid
 three slots and the third opens at The High Temple — the ladder never learns
 the number.
 
-## The reroll (schema 71; the belief ladder the same evening)
+## The reroll (schema 71; the belief ladder the same evening; the heavy hands at 85)
 
-`rerollOffer {playerId}` deals a draft again — one verb, two ladders:
+`rerollOffer {playerId}` deals a draft again — one verb, four hands, two ladders:
 
 - An **Order** hand costs faith — `RELIGION.reroll`,
   `floor(base × ageMultiplier[age] × exponent^rerollsTaken)`, 35 to start at
   ×1.35 a use, gated on Chronology's Long Count ability — and raises
   `PlayerStatecraft.rerollsTaken` (lifetime, never reset) and
   `SlottedOrder.rerollsSeen` on every chair.
+- A **Doctrine** hand and a **great-person** hand cost **twice** that (item q,
+  2026-09-07): the same ladder, the same age table, the same door and the same
+  lifetime count, times `RELIGION.reroll.heavyMultiple` — printed as a line of
+  `explainRerollCost`'s fold ("A Doctrine is kept for good", "A name the whole
+  world is drawing on"), never as a hidden factor. **One ladder for the three**:
+  rerolling any of them makes the next reroll of all of them dearer. Neither
+  raises `rerollsSeen` — The Votive Tally is written on the Order draft and says
+  so. The redeal is each hand's own dealer: a Doctrine at the seat's own
+  government tier, a name into `GreatPersonOffer.family` when the hand was dealt
+  narrow (The Academy's bought scholar draft is rerollable, and is redealt as
+  scholars).
 - A **belief** hand — the pantheon's or a prophet's — asks nothing the **first**
   time and faith after that: `explainBeliefRerollCost`, the same base and age
   multiplier with the exponent raised to the paid askings **on this hand**
   (`BeliefOffer.rerolls`), reset with the next hand, no door, entirely separate
   from the Order count. The offer card prints the next asking's price.
 
-The skip's pity, the culture meter and the tier are untouched by either.
+`rerollKindFor` decides which hand the verb answers when a seat holds several:
+Order · Doctrine · belief · name, which is `firstBlocker`'s order — the order the
+interface raises them in — so the free hand is behind every hand that charges the
+bank and no button spends on a hand that is off screen.
+
+The skip's pity, the culture meter and the tier are untouched by any of them.
 
 ## Founding
 

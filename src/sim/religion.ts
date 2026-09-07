@@ -120,6 +120,7 @@ import {
   cardPeriodicOffers,
   cardPressureRule,
   cardPressureSources,
+  drawDoctrineOffer,
   drawOrderOffer,
   drawWithoutReplacement,
   offerSize,
@@ -137,7 +138,13 @@ import {
   buildingRitePay,
   cityKeepsRelics,
 } from './buildingEffects';
-import type { PressureRuleId } from './statecraftData';
+import { type PressureRuleId, governmentDef } from './statecraftData';
+// The great-person dealer, for the heavy hand `settleReroll` redeals. A
+// function-level import (the documented exception): `greatPeople.ts` reaches
+// `cities.ts`, which reaches this module — the cycle `cities.ts` and this file
+// have always stood in — so nothing here may be read at load time, and nothing
+// is: it is called from inside one arm of one verb.
+import { drawGreatPersonOffer } from './greatPeople';
 import { type ImprovementId, workForFamily } from './improvementData';
 import { improvementErrorAt } from './improvements';
 import { nextFloat } from './rng';
@@ -608,13 +615,55 @@ export function openFreeRung(state: GameState, player: Player): boolean {
  * that hand, reset with the next), separate from this lifetime count (the
  * user, 2026-09-06, evening). `rerollError` decides which question is being
  * asked by which hand is on the table.
+ *
+ * A **heavy** hand — a Doctrine draft or a great-person draft — is priced here
+ * and adds a fourth line: the same ladder read at the same point, multiplied by
+ * `RerollConfig.heavyMultiple` (ruled 2026-09-07, item q — *twice the Order
+ * price, on the same ladder*). The line says **why** rather than "twice", so the
+ * sentence survives a retune of the multiple and the amount carries the figure,
+ * which is rule 5's bargain everywhere else in this file.
  */
 export interface RerollPrice {
   lines: UnitCostLine[];
   total: number;
 }
 
-export function explainRerollCost(state: GameState, playerId: number): RerollPrice {
+/**
+ * Which hand a reroll is being priced for — and, in `settleReroll`, which one it
+ * redeals.
+ *
+ * Four members and **one ladder** behind three of them: an Order draft, a
+ * Doctrine draft and a great-person draft all read `PlayerStatecraft.rerollsTaken`
+ * and all raise it, so rerolling any of the three makes the next reroll of all
+ * three dearer (the ruling's own sentence). The fourth, `belief`, is the hand
+ * with a ladder of its own (`explainBeliefRerollCost`) and is priced nowhere near
+ * the other three.
+ */
+export type RerollKind = 'order' | 'belief' | 'doctrine' | 'greatPerson';
+
+/**
+ * Why a heavy hand costs what it costs, in the player's words — one line each,
+ * and neither of them says a number.
+ *
+ * A table rather than a sentence composed at the call site, because these are
+ * the only two heavy hands there are and a third would be a design decision
+ * rather than a string somebody appends.
+ */
+const HEAVY_WORD: Record<'doctrine' | 'greatPerson', string> = {
+  doctrine: 'A Doctrine is kept for good',
+  greatPerson: 'A name the whole world is drawing on',
+};
+
+/** Is this hand priced at the heavy multiple? The one reading of that question. */
+function isHeavyKind(kind: RerollKind): kind is 'doctrine' | 'greatPerson' {
+  return kind === 'doctrine' || kind === 'greatPerson';
+}
+
+export function explainRerollCost(
+  state: GameState,
+  playerId: number,
+  kind: RerollKind = 'order',
+): RerollPrice {
   const player = playerById(state, playerId);
   const spec = RELIGION.reroll;
   const taken = Math.max(0, Math.floor(player?.statecraft.rerollsTaken ?? 0));
@@ -633,12 +682,28 @@ export function explainRerollCost(state: GameState, playerId: number): RerollPri
       amount: full - aged,
     });
   }
+  // **The doubling, last and printed.** It multiplies what the three lines above
+  // came to — never the base alone — so a heavy hand climbs the ladder and the
+  // age exactly as an Order hand does and is then worth twice as much of it.
+  if (isHeavyKind(kind)) {
+    const heavy = Math.floor(full * Math.max(0, spec.heavyMultiple));
+    if (heavy !== full) lines.push({ source: HEAVY_WORD[kind], amount: heavy - full });
+  }
   return { lines, total: foldUnitCost(lines) };
 }
 
-/** What this empire's next reroll of an Order draft costs. The fold. */
-export function nextRerollCost(state: GameState, playerId: number): number {
-  return explainRerollCost(state, playerId).total;
+/**
+ * What this empire's next reroll of `kind` costs. The fold.
+ *
+ * Defaulted to the Order draft, which is what every caller written before the
+ * heavy hands existed was asking about.
+ */
+export function nextRerollCost(
+  state: GameState,
+  playerId: number,
+  kind: RerollKind = 'order',
+): number {
+  return explainRerollCost(state, playerId, kind).total;
 }
 
 /**
@@ -681,17 +746,28 @@ export function nextBeliefRerollCost(state: GameState, playerId: number): number
 }
 
 /**
- * Which draft a reroll would redeal — `'order'`, `'belief'`, or `null` when
- * there is nothing on the table.
+ * Which draft a reroll would redeal, or `null` when there is nothing on the
+ * table.
  *
- * **One command, two hands**, and the precedence is the Order draft's because it
- * is the one that costs something: an empire holding both is being asked to
- * spend faith, and a verb that quietly rerolled the free hand instead would be
- * a button that did something other than what its own price said.
+ * **One command, four hands**, and a seat can hold all four at once. The
+ * precedence is `firstBlocker`'s (`src/ui/turnBlockers.ts`) — Order draft,
+ * Doctrine draft, belief hand, name — because that is the order the interface
+ * raises them in, so the hand this verb answers is the hand the player is
+ * looking at when they press the button. A precedence of its own would be a
+ * button that redealt something off screen.
+ *
+ * The old rule (the Order draft first because it was the one that cost
+ * something) survives inside it: it is still first, and the belief hand — the
+ * one whose first asking is free — is still behind every hand that charges the
+ * faith bank, so a control that says "free" is never the control that spends.
  */
-export function rerollKindFor(player: Player): 'order' | 'belief' | null {
+export function rerollKindFor(player: Player): RerollKind | null {
   if (player.statecraft.pendingOrder !== undefined) return 'order';
+  if (player.statecraft.pendingDoctrine !== undefined) return 'doctrine';
   if (player.pantheon.pending !== undefined) return 'belief';
+  if (player.greatPersonOffer !== undefined && player.greatPersonOffer.options.length > 0) {
+    return 'greatPerson';
+  }
   return null;
 }
 
@@ -708,6 +784,11 @@ export function rerollKindFor(player: Player): 'order' | 'belief' | null {
  * the bank pay. A **belief** hand — the ladder's or a prophet's — skips the
  * door: its first asking is free, and every asking after is priced on the
  * hand's own ladder (`explainBeliefRerollCost`), which the bank must cover.
+ *
+ * A **heavy** hand — a Doctrine draft, a name — meets exactly the Order draft's
+ * clauses, at the Order draft's door and on the Order draft's lifetime ladder,
+ * with the price the heavy multiple's (ruled 2026-09-07, item q). One set of
+ * clauses for all three, because they are one bargain read three times.
  */
 /**
  * **Is the reroll's door open to this empire at all?** — the question a surface
@@ -748,7 +829,7 @@ export function rerollError(state: GameState, playerId: number): string | null {
   if (!rerollDoorOpen(state, playerId)) {
     return 'Your calendars cannot yet call for a second reading';
   }
-  const price = nextRerollCost(state, playerId);
+  const price = nextRerollCost(state, playerId, kind);
   if (player.faithPool < price) {
     return `A second reading asks ${price} faith and ${player.name} has ${Math.floor(player.faithPool)}`;
   }
@@ -757,8 +838,8 @@ export function rerollError(state: GameState, playerId: number): string | null {
 
 /** What a reroll did, for the line the interface announces it in. */
 export interface RerollOutcome {
-  kind: 'order' | 'belief';
-  /** Faith the bank gave up. Nought for a belief hand. */
+  kind: RerollKind;
+  /** Faith the bank gave up. Nought for a belief hand's first asking. */
   paid: number;
   /** Rerolls this empire has taken once this one is counted. */
   taken: number;
@@ -790,7 +871,35 @@ export interface RerollOutcome {
  * the moment the faith is paid — the shrine engine's count (the order pass, §9
  * question 3). On the slot record rather than on the player, so a card that was
  * benched while the rerolls happened counts none of them, which is the same
- * bargain `recordScalingOccasion` strikes for every other growing card.
+ * bargain `recordScalingOccasion` strikes for every other growing card. It
+ * counts **Order** drafts and nothing else, which is that field's own docblock
+ * and stayed true when the heavy hands arrived (2026-09-07): The Votive Tally is
+ * written on the draft it sits in the government's chairs beside, and a card that
+ * silently started counting two more kinds of hand would be a different card from
+ * the one the player took. Its row says so in words.
+ *
+ * A **heavy** hand — a Doctrine draft, a name — is the Order arm with a different
+ * bag: the same door, the same lifetime count raised, the price the heavy
+ * multiple's, and the redeal is each draft's own dealer.
+ *
+ *   · a **Doctrine** is redealt at the seat's own government tier
+ *     (`governmentDef(sc.government).tier`), which is the tier every dealer of a
+ *     Doctrine hand passes — the adoption's, because the government has just been
+ *     sworn, and the completion grant's, which reads it here. Nothing is stored on
+ *     the offer, so there is no second answer to keep in step.
+ *   · a **name** is redealt **into the family the hand was dealt for**
+ *     (`GreatPersonOffer.family`, schema 85). The Academy's scholar draft is a
+ *     narrowed hand somebody bought with faith (`OFFER_PURCHASES`), and it may be
+ *     asked again like any other — refusing would make the one hand a player paid
+ *     for the only hand they cannot reroll — but it is asked again *as scholars*.
+ *     A reroll that widened it would be buying the whole roster at the reroll's
+ *     price, which is not what was bought.
+ *
+ * Neither bag can come back **empty**, which is why there is no clause about it:
+ * a hand on the table has been spent by nothing, and both bags are "what is left
+ * after what has been taken" — a Doctrine joins `sc.doctrines` on the pick and a
+ * name joins `state.recruited` on the pick — so the pool a redeal draws from
+ * still holds at least the cards being given up.
  */
 export function settleReroll(state: GameState, player: Player): RerollOutcome | null {
   const kind = rerollKindFor(player);
@@ -824,9 +933,26 @@ export function settleReroll(state: GameState, player: Player): RerollOutcome | 
   }
 
   const sc = player.statecraft;
-  const paid = nextRerollCost(state, player.id);
+  const paid = nextRerollCost(state, player.id, kind);
   player.faithPool = Math.max(0, player.faithPool - paid);
   sc.rerollsTaken += 1;
+
+  if (kind === 'doctrine') {
+    sc.pendingDoctrine = drawDoctrineOffer(state, player, governmentDef(sc.government).tier);
+    return { kind, paid, taken: sc.rerollsTaken };
+  }
+  if (kind === 'greatPerson') {
+    const old = player.greatPersonOffer!;
+    // The family travels with the hand exactly as a belief hand's quoted rung
+    // does: what was dealt narrowed is dealt narrowed again.
+    player.greatPersonOffer =
+      old.family === undefined
+        ? drawGreatPersonOffer(state, player)
+        : drawGreatPersonOffer(state, player, old.family);
+    return { kind, paid, taken: sc.rerollsTaken };
+  }
+
+  // The Order draft, and the one hand the chairs are counting.
   for (const slot of sc.slots) {
     if (slot === null) continue;
     slot.rerollsSeen = (slot.rerollsSeen ?? 0) + 1;

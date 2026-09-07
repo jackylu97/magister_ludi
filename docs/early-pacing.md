@@ -177,7 +177,7 @@ and The Lamp Kept Lit is `percentYields` at the city stage under the `capital`
 scope. All three read as **payoffs** by the doc's own derivation, not engines —
 the Role column is derived from the effects and says so.
 
-### 2f. Rerolls for Doctrines and great people (ruled, q)
+### 2f. Rerolls for Doctrines and great people (ruled, q) — built (H14)
 
 One ladder: `PlayerStatecraft.rerollsTaken` counts every reroll of any of
 the three; the price is `RELIGION.reroll` (35 × age multiplier × 1.35^taken)
@@ -187,7 +187,16 @@ their own free-first ladder (ruling i). `rerollOffer` gains the two kinds;
 the Doctrine card and the great-person offer get the reroll foot. The bot
 does not reroll (unchanged).
 
-### 2g. The reroll and the pass as buttons (ruled, r)
+**Built (H14, schema 85)** as written. `RerollKind` is four members;
+`RELIGION.reroll.heavyMultiple` (2) is the doubling and it is a **line** of
+`explainRerollCost`'s fold, not a factor beside it. The precedence when a seat
+holds several hands is `firstBlocker`'s — Order · Doctrine · belief · name —
+so the verb answers the hand the player is looking at and the free hand is last.
+`SlottedOrder.rerollsSeen` still counts Order drafts alone (its own docblock, and
+The Votive Tally's row now says so in words). `GreatPersonOffer.family` is new, so
+The Academy's bought scholar draft is rerollable and is redealt as scholars.
+
+### 2g. The reroll and the pass as buttons (ruled, r) — built (H14)
 
 The offer card's foot today: "Ask again — 35🕯" and "Pass" as quiet links
 beside View map. Proposed: two decorated buttons at the card's foot, the
@@ -195,6 +204,18 @@ width of a card each, ink-on-parchment with the specimen's button treatment
 (`docs/design-specimen.html`), the price set in tabular mono on the face,
 the pity line ("your next hand leans rarer") on the pass. Disabled state
 keeps the face and greys the ink with the reducer's sentence on hover.
+
+**Built (H14)** as proposed. The two answers are the house's own `.btn` — the
+bordered block on a hard ink shadow the specimen draws every button as — a card
+wide each (`--offer-card`), in their own row under the hand, above View map.
+Two lines on each face: the words, and the figure in tabular mono — the price
+through the yield printer for the reroll, and for the pass the bag's own reading
+(`rarityDrawWeight` asked for the rare rung now and after this pass), never a
+number written on the interface's side. The greyed reroll keeps its parchment
+ground and answers on hover with the reducer's sentence. The Reliquary's rail of
+calls followed the same face, which is the one its docblock had described since
+H3. No drawn asset, so nothing joins `flair.html`: the treatment is CSS on
+classes that already existed.
 
 ## 3. What is not proposed
 

@@ -24,6 +24,15 @@
  * greyed — because its price rises with every use and a price nobody can afford
  * still has to be legible.
  *
+ * **And the two of them are buttons now** (the user, 2026-09-07, ruling r:
+ * *"they should feel like fully featured, decorated buttons that are meant to be
+ * taken sometimes for optimal play"*). They were quiet foot links beside View
+ * map, which read as ways out of the sheet rather than as answers to it. They
+ * are the house's own `.btn` block — the width of a card each, in their own row
+ * under the hand, with the figure on the face in tabular mono and the sentence
+ * that made it underneath. Nothing about what they *do* moved; what moved is
+ * that they look like the decisions they are.
+ *
  * Modal, and it means it
  * ----------------------
  * This is the one screen in the interface that is genuinely blocking, and that is
@@ -38,10 +47,10 @@
  * **A pass is a choice, never a dismiss** (the Statecraft draft, 2026-09-04).
  * `Offer.pass` puts a second answer on the sheet — "take none of these" — and
  * it is a *button that reports back to the caller*, which dispatches a command,
- * exactly as taking a card does. It is drawn in the foot beside View map and
- * spelled out in words, because the two are the opposite of one another and the
- * one thing this component may never do is let them be confused: View map keeps
- * the offer, a pass spends it. Nothing here decides that a pass is available —
+ * exactly as taking a card does. It is drawn in the answers row above View map
+ * and spelled out in words, because the two are the opposite of one another and
+ * the one thing this component may never do is let them be confused: View map
+ * keeps the offer, a pass spends it. Nothing here decides that a pass is available —
  * an offer that carries no `pass` shows no such button, which is every offer but
  * the Order draft.
  *
@@ -280,9 +289,18 @@ export interface Offer {
    * nothing about drafts, rarity or pity and must not start guessing.
    */
   pass?: {
-    /** The button's own words. "Pass — rarer cards next time". */
+    /** The button's own words. "Pass". */
     label: string;
-    /** The line beside it, in the foot's quiet voice. What it costs. */
+    /**
+     * The line **on the face**, set in tabular mono under the label: what this
+     * answer is worth. A price for the reroll, and for the pass the pity — what
+     * the next hand's bag is dealt at, which is the only thing a pass buys.
+     *
+     * A string, like everything else that crosses this boundary: the caller has
+     * asked the simulation what the figure is and composed the glyph.
+     */
+    figure: string;
+    /** The line under it, in the foot's quiet voice, and the words on hover. */
     note: string;
   };
   /**
@@ -302,11 +320,13 @@ export interface Offer {
    * already folded the price into words.
    */
   reroll?: {
-    /** The button's own words. "Reroll — 35 faith". */
+    /** The button's own words. "Ask again". */
     label: string;
-    /** The line beside it: what it costs, or why it cannot be pressed. */
+    /** The price, on the face, in tabular mono. See `Offer.pass.figure`. */
+    figure: string;
+    /** The line under it: the fold that made the price, or why it cannot be pressed. */
     note: string;
-    /** Greyed, with `note` saying why. */
+    /** Greyed, with `note` saying why — on the face and on hover. */
     disabled?: boolean;
   };
 }
@@ -454,14 +474,21 @@ const GAP = 12;
 /** The head: eyebrow, title, lede, the widening chips, the rule and its margin. */
 const HEAD = 119;
 /**
- * The View map control and its note, under the hand: a small button, its note,
- * and the margin above them.
+ * Everything under the hand: the two **answers** — the reroll and the pass, a
+ * decorated button the width of a card each, with their notes beneath — and the
+ * View map strip below them.
  *
- * In the budget for the same reason `HEAD` is — the row's height is what is
+ * In the budget for the same reason `HEAD` is: the row's height is what is
  * *left*, and a strip added to the sheet without being subtracted here is a
  * spread that thinks it fits and does not.
+ *
+ * It is the **full** foot, reserved on every offer — including a discovery's,
+ * which carries neither answer. A budget that varied with the controls would
+ * make the same hand a different size on two sheets, and the room is there: the
+ * arithmetic still fits five cards on the shortest window this game is played
+ * on (`test/ui/offerCard.test.ts`).
  */
-const FOOT = 38;
+const FOOT = 132;
 /** A hair of air at the foot, so "exactly fits" is never "exactly overflows". */
 const SLACK = 10;
 
@@ -1063,14 +1090,63 @@ export function createOfferCard(
     offer.options.forEach((option, index) => row.append(face(option, index)));
     list.append(row);
     sheet.append(list);
-    // The controls on this sheet that are not cards. At the foot, after the
-    // hand, because they are what you reach for *having read them* — and small
-    // and quiet, because the decision is still the cards.
-    //
-    // **Two of them, and they are opposites**, which is why each carries its own
-    // sentence rather than sharing one: View map keeps the offer and spends
-    // nothing, and a pass spends it outright. A foot that said "nothing is
-    // spent" over both would be a foot that lies about one of them.
+    /**
+     * **The answers that are not cards**: ask again, and pass.
+     *
+     * They were quiet foot links beside View map until the second playtest (the
+     * user, 2026-09-07, ruling r: *"they should feel like fully featured,
+     * decorated buttons that are meant to be taken sometimes for optimal
+     * play"*). So they are the house's own button — `.btn`, the bordered block
+     * on a hard ink shadow that every button in this game is — the width of a
+     * card each, in a row under the hand: the reroll first, because it is the
+     * answer that keeps playing, and the pass beside it.
+     *
+     * Each carries its **figure on the face** in tabular mono, which is the
+     * whole of what makes them decisions rather than escape hatches: a price
+     * that rises with every use, and a bag that leans rarer with every hand
+     * given up. The sentence under each says where its figure came from, and it
+     * is the button's `title` too — so a greyed reroll answers "why not" on
+     * hover with the reducer's own words.
+     *
+     * They are deliberately **not** keyboard-shortcut controls: the digits pick
+     * cards, and the two irreversible answers on this sheet take a click.
+     */
+    function answer(
+      spec: { label: string; figure: string; note: string; disabled?: boolean },
+      className: string,
+      onPress: () => void,
+    ): HTMLElement {
+      const cell = element('div', 'offer-answer-cell');
+      const button = document.createElement('button');
+      button.className = `btn offer-answer ${className}`;
+      button.type = 'button';
+      button.append(element('span', 'offer-answer-label', spec.label));
+      // The figure goes through the yield printer like every other composed
+      // figure that reaches the DOM (`setYieldText`, via `element`), so a faith
+      // price wears the drawn mark rather than a glyph the font decides about.
+      button.append(element('span', 'offer-answer-figure', spec.figure));
+      button.title = spec.note;
+      button.disabled = spec.disabled === true;
+      button.addEventListener('click', onPress);
+      cell.append(button, element('p', 'offer-foot-note', spec.note));
+      return cell;
+    }
+
+    if (offer.reroll !== undefined || offer.pass !== undefined) {
+      const answers = element('div', 'offer-answers');
+      if (offer.reroll !== undefined) {
+        answers.append(answer(offer.reroll, 'offer-answer-reroll', () => reroll()));
+      }
+      if (offer.pass !== undefined) {
+        answers.append(answer(offer.pass, 'offer-answer-pass', () => skip()));
+      }
+      sheet.append(answers);
+    }
+
+    // The way back, and it is not an answer: View map keeps the offer and spends
+    // nothing, which is why it keeps its own quiet strip under the two buttons
+    // rather than standing in the row with them. A foot that said "nothing is
+    // spent" over all three would be a foot that lies about two of them.
     const foot = element('div', 'offer-foot');
     const look = document.createElement('button');
     look.className = 'offer-look';
@@ -1086,47 +1162,7 @@ export function createOfferCard(
     });
     foot.append(look);
     foot.append(element('p', 'offer-foot-note', 'the offer waits — nothing is spent'));
-    if (offer.pass !== undefined) {
-      // The second answer. A `<button>` of its own, in its own group, with the
-      // words the caller wrote — never a keyboard shortcut, because the one
-      // irreversible thing on this sheet that is not a card should take a
-      // deliberate click rather than a stray key.
-      const passFoot = element('div', 'offer-foot offer-foot-pass');
-      const button = document.createElement('button');
-      button.className = 'offer-pass';
-      button.type = 'button';
-      button.append(element('span', 'offer-look-label', offer.pass.label));
-      button.title = offer.pass.note;
-      button.addEventListener('click', () => {
-        skip();
-      });
-      passFoot.append(button);
-      passFoot.append(element('p', 'offer-foot-note', offer.pass.note));
-      sheet.append(foot, passFoot);
-    } else {
-      sheet.append(foot);
-    }
-    if (offer.reroll !== undefined) {
-      // **The third answer**, in a group of its own under the pass and drawn
-      // like it: a deliberate click, no keyboard shortcut, its own sentence. It
-      // is the only control on this sheet that may be greyed, and when it is,
-      // the label still prints the price — the rising cost is the mechanism, and
-      // a player who cannot afford this one is exactly the player who needs to
-      // see it.
-      const rerollFoot = element('div', 'offer-foot offer-foot-pass');
-      const button = document.createElement('button');
-      button.className = 'offer-pass offer-reroll';
-      button.type = 'button';
-      button.append(element('span', 'offer-look-label', offer.reroll.label));
-      button.title = offer.reroll.note;
-      button.disabled = offer.reroll.disabled === true;
-      button.addEventListener('click', () => {
-        reroll();
-      });
-      rerollFoot.append(button);
-      rerollFoot.append(element('p', 'offer-foot-note', offer.reroll.note));
-      sheet.append(rerollFoot);
-    }
+    sheet.append(foot);
     container.append(sheet);
     container.hidden = false;
     moveTo('show');

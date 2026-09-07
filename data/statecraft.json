@@ -5893,8 +5893,8 @@
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "Ask the gods twice and they remember your face.",
-      "text": "+1 faith for each draft you have asked again while this Order stands in a slot.",
-      "note": "Only the drafts you paid faith to see again are counted, and only while this Order sits in a chair.",
+      "text": "+1 faith for each Order draft you have asked again while this stands in a slot.",
+      "note": "Only Order drafts you paid faith to see again are counted, and only while this sits in a chair. A doctrine, a name or a hand of gods asked again counts for nothing here.",
       "effects": [
         {
           "kind": "countScaled",

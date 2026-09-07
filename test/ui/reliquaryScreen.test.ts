@@ -401,9 +401,12 @@ describe('the calls at the foot', () => {
     const call = calls[0]!;
     expect(call.disabled).toBe(false);
     // The figure is `greatPersonOfferPrice`'s and the coin is
-    // `greatPersonOfferBank`'s — never a number written on this side of the wall.
-    expect(call.label).toContain(String(greatPersonOfferPrice('gold')));
-    expect(call.label).toContain(YIELD_GLYPH[greatPersonOfferBank('gold')]);
+    // `greatPersonOfferBank`'s — never a number written on this side of the
+    // wall. It is its own field since ruling (r) gave the calls the offer
+    // sheet's decorated face, where the words and the figure are two lines.
+    expect(call.label).not.toMatch(/\d/);
+    expect(call.figure).toContain(String(greatPersonOfferPrice('gold')));
+    expect(call.figure).toContain(YIELD_GLYPH[greatPersonOfferBank('gold')]);
     // And the note is the interface's plain words, with no figure in them.
     expect(call.note).not.toMatch(/\d/);
   });
@@ -414,7 +417,7 @@ describe('the calls at the foot', () => {
     state.players[0]!.faithPool = 10_000;
     const calls = reliquaryCalls(state, 0);
     expect(calls.map((call) => call.purchase)).toEqual(['scholarDraft']);
-    expect(calls[0]!.label).toContain(YIELD_GLYPH.faith);
+    expect(calls[0]!.figure).toContain(YIELD_GLYPH.faith);
     expect(calls[0]!.disabled).toBe(false);
   });
 
@@ -427,7 +430,7 @@ describe('the calls at the foot', () => {
     expect(call.note).toBe(greatPersonPurchaseError(state, 0, 'gold'));
     // The price is still on the button — a mechanism nobody can see is a
     // mechanism nobody can plan around.
-    expect(call.label).toContain(String(greatPersonOfferPrice('gold')));
+    expect(call.figure).toContain(String(greatPersonOfferPrice('gold')));
   });
 
   it('greys it again while a hand is already waiting, rather than dealing a second', () => {
@@ -446,9 +449,14 @@ describe('the calls at the foot', () => {
     expect(screen).toContain("body.append(element('p', 'rel-empty', RELIQUARY_EMPTY));");
   });
 
-  it('wears the offer sheet’s own foot control rather than a button of its own', () => {
+  it('wears the offer sheet’s own answer rather than a button of its own', () => {
     const screen = source('reliquaryScreen.ts');
-    expect(screen).toContain("button.className = 'offer-pass offer-reroll rel-call';");
+    // Re-aimed with ruling (r) (batch H14): the offer sheet's reroll and pass
+    // became the house's decorated `.btn`, and the rail followed them — which is
+    // the face this screen's own docblock has claimed since H3.
+    expect(screen).toContain(
+      "button.className = 'btn offer-answer offer-answer-reroll rel-call';",
+    );
     expect(screen).toContain('button.disabled = call.disabled;');
     expect(STYLE).toContain('.rel-calls {');
     expect(STYLE).toContain('.rel-call-note {');

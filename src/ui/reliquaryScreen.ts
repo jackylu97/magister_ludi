@@ -184,8 +184,17 @@ export function reliquaryStep(index: number, total: number, direction: number): 
  */
 export interface ReliquaryCall {
   purchase: OfferPurchaseId;
-  /** The button's words, the price included. "Call a name — 250💰". */
+  /** The button's words. "Call a name". */
   label: string;
+  /**
+   * The price, on the face and in tabular mono — "250💰".
+   *
+   * Split from the label when the offer sheet's two answers became decorated
+   * buttons (ruling r, 2026-09-07): a call wears the same face, and on that face
+   * the words and the figure are two lines, because every number in this
+   * interface is set in the mono and the words are not.
+   */
+  figure: string;
   /** The line beneath: what it deals, or the reducer's refusal. */
   note: string;
   /** True when the law is open and the bank is not. Greyed, never hidden. */
@@ -234,11 +243,11 @@ export function reliquaryCalls(state: GameState, playerId: number): ReliquaryCal
     if (!greatPersonPurchaseOpen(state, playerId, purchase)) continue;
     const words = CALL_WORDS[purchase];
     const glyph = YIELD_GLYPH[greatPersonOfferBank(purchase)];
-    const label = `${words.verb} — ${greatPersonOfferPrice(purchase)}${glyph}`;
     const problem = greatPersonPurchaseError(state, playerId, purchase);
     calls.push({
       purchase,
-      label,
+      label: words.verb,
+      figure: `${greatPersonOfferPrice(purchase)}${glyph}`,
       note: problem ?? words.note,
       disabled: problem !== null,
     });
@@ -470,11 +479,17 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
       const line = element('div', 'rel-call-line');
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = 'offer-pass offer-reroll rel-call';
-      // Through the printer, never as text: the label carries the bank's glyph.
-      const label = element('span', 'offer-look-label');
-      setYieldText(label, call.label);
+      // The offer sheet's own answer, one spelling of one control: a purchase is
+      // a purchase wherever it is drawn, and this is the face ruling (r) gave the
+      // reroll and the pass.
+      button.className = 'btn offer-answer offer-answer-reroll rel-call';
+      const label = element('span', 'offer-answer-label');
+      label.textContent = call.label;
       button.append(label);
+      // Through the printer, never as text: the figure carries the bank's glyph.
+      const figure = element('span', 'offer-answer-figure');
+      setYieldText(figure, call.figure);
+      button.append(figure);
       button.title = call.note;
       button.disabled = call.disabled;
       button.addEventListener('click', () => options.onCall?.(call.purchase));

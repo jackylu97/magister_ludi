@@ -854,11 +854,14 @@ export interface SkipOrderOfferCommand extends PlayerCommand {
  *
  * It names nothing, exactly as a pass names nothing: there is one hand on the
  * table and the whole of it goes back in the bag. Which hand that is, is the
- * state's answer rather than the command's (`rerollKindFor`) — an Order draft
- * costs faith and is counted, a belief draft is free and is counted by nothing,
- * and an empire holding both is rerolling the one it would be charged for,
- * because a button that quietly redealt the free hand would be doing something
- * other than what its own price says.
+ * state's answer rather than the command's (`rerollKindFor`), and there are four
+ * of them — an Order draft, a **Doctrine** draft, a **great-person** draft
+ * (schema 85, ruled 2026-09-07: item q) and a belief hand. The first three cost
+ * faith on one lifetime ladder and the last has a ladder of its own whose first
+ * asking is free, so the precedence is the interface's own reading order
+ * (`firstBlocker`) and the free hand is behind every paid one: a button that
+ * quietly redealt the free hand would be doing something other than what its own
+ * price says.
  *
  * **The hand is spent and a new one is drawn in its place**, inside this
  * command, so the drawn-once doctrine holds: the deal is a function of the log
@@ -867,8 +870,11 @@ export interface SkipOrderOfferCommand extends PlayerCommand {
  * see another one is the opposite bargain.
  *
  * The price rises with every reroll this empire has taken
- * (`PlayerStatecraft.rerollsTaken`) and with the age, and the button prints the
- * *next* one before the click, which is the whole of "used sparingly".
+ * (`PlayerStatecraft.rerollsTaken`, raised by all three paid kinds) and with the
+ * age, and doubles for the two heavy hands (`RerollConfig.heavyMultiple` — a
+ * Doctrine is kept for good and a name is drawn from a roster the world shares).
+ * The button prints the *next* price before the click, which is the whole of
+ * "used sparingly".
  *
  * Turn-gated like every other act, and not a trap for `chooseOrder`'s reason:
  * the End Turn blocker will not let a seat hand over with a draft outstanding.

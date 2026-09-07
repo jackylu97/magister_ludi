@@ -148,9 +148,19 @@ directly to confirm rulings — user marginalia are rulings.
   (shape per row in the doc); (p) **some authority into the Orders** (rows
   proposed in the doc, early pools); (q) **rerolls for Doctrines and great
   people at twice the Order price, on the same ladder** — one `rerollsTaken`
-  count: rerolling any of the three raises the price of all three; (r) **the
-  reroll and the pass are fully featured, decorated buttons** — "meant to be
-  taken sometimes for optimal play", not foot links. Inclined, not ruled:
+  count: rerolling any of the three raises the price of all three — **built
+  (H14, schema 85)**: `RerollKind` is four members, the doubling is
+  `religion.reroll.heavyMultiple` printed as a line of `explainRerollCost`'s
+  fold, the precedence is `firstBlocker`'s (Order · Doctrine · belief · name),
+  the shrine engine's `rerollsSeen` still counts Order drafts alone, and
+  `GreatPersonOffer.family` keeps a bought scholar draft narrow through the
+  redeal; (r) **the reroll and the pass are fully featured, decorated buttons** —
+  "meant to be taken sometimes for optimal play", not foot links — **built
+  (H14)**: both are the house's own `.btn`, a card wide each in a row under the
+  hand, with the words and a tabular-mono figure on the face (the price through
+  the yield printer; the pass's pity read off `rarityDrawWeight`), the greyed
+  reroll keeping its ground and answering on hover with the reducer's sentence,
+  and the Reliquary's calls following onto the same face. Inclined, not ruled:
   (s) **cheaper Æra I techs**; (t) **more science Orders early** — the doc
   argues where the lull actually is (the Æra I → II price step) and proposes
   numbers for both. (u) **Stale buildings out of the tech tree** ("I meant

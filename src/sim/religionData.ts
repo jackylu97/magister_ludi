@@ -364,6 +364,24 @@ export interface RerollConfig {
   /** By `TechAge`, one entry per age, indexed from Æra I. */
   ageMultiplier: number[];
   /**
+   * What a **heavy** hand costs, as a multiple of the Order draft's price at the
+   * same point on the same ladder (ruled 2026-09-07, `docs/flags.md` item q:
+   * *"rerolls for Doctrines and great people at twice the Order price, on the
+   * same ladder"*).
+   *
+   * Heavy is what the two of them have in common and what the Order draft does
+   * not: a Doctrine is permanent and slotless, and a name is drawn from a roster
+   * the whole world shares — neither hand comes round again, so seeing another
+   * one is worth more than seeing another Order.
+   *
+   * A **multiple** rather than a second base, because the ruling is a relation:
+   * retune the Order price, or the age table, or the exponent, and these two
+   * follow without a second set of dials to keep in step. It is a line of its own
+   * in `explainRerollCost`'s fold, so the doubling prints rather than hiding
+   * inside a figure.
+   */
+  heavyMultiple: number;
+  /**
    * The ability that opens the reroll at all — Chronology's Long Count, which
    * lost its die of the Magister in the same pass (`docs/history/tech-gifts.md` §2).
    *

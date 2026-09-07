@@ -150,7 +150,14 @@ import { type ConfirmCard, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
 import { AXIS_MARK, beliefCardType, beliefOfferEyebrow } from './ui/religionScreen';
 import { beliefDef } from './sim/religionData';
-import { explainBeliefRerollCost, explainRerollCost, rerollDoorOpen, rerollError } from './sim/religion';
+import {
+  type RerollKind,
+  explainBeliefRerollCost,
+  explainRerollCost,
+  rerollDoorOpen,
+  rerollError,
+  rerollKindFor,
+} from './sim/religion';
 import { personOf } from './sim/greatPeople';
 import { greatPersonDef } from './sim/greatPeopleData';
 import { FAMILY_EMBLEM, TIER_ACCENT, TIER_NAME } from './ui/greatPersonFace';
@@ -166,7 +173,13 @@ import {
   createGreatPersonCeremony,
 } from './ui/greatPersonCeremony';
 import { CARD_LINE_NAME, cardLineMarkUrl, lineOf, slotMarkUrl } from './ui/cardLine';
-import { type OfferKind, SLOT_WORDS, describeCard, explainOfferSize } from './sim/statecraft';
+import {
+  type OfferKind,
+  SLOT_WORDS,
+  describeCard,
+  explainOfferSize,
+  rarityDrawWeight,
+} from './sim/statecraft';
 import {
   type GovernmentId,
   SLOT_TYPES,
@@ -2202,17 +2215,37 @@ async function boot(initial: Game | null): Promise<void> {
    */
   function passNote(skips: number): string {
     const cost = 'These cards are gone and the culture stays spent.';
-    if (skips <= 0) return `${cost} Your next draft is likelier to be rare.`;
+    if (skips <= 0) return `${cost} Your next hand leans rarer.`;
     const runs = skips === 1 ? 'one draft passed' : `${skips} drafts passed`;
-    return `${cost} ${runs} — the next one is likelier to be rare again.`;
+    return `${cost} ${runs} — your next hand leans rarer still.`;
   }
 
   /**
+   * What a pass is **worth**, on the button's face, in the bag's own numbers.
+   *
+   * The pity is a weight, not a percentage: every skip adds `skipPity` to the
+   * uncommon and rare rungs of the next draw (`rarityDrawWeight`, the
+   * simulation's one reading of the bag). So the figure is that reading asked
+   * twice — the weight a rare card carries in the bag as it stands, and the
+   * weight it would carry in the bag the next hand is dealt from — and the
+   * interface invents no number of its own. A knob retuned to nothing prints
+   * nothing rather than an arrow between two equal figures.
+   */
+  function passFigure(skips: number): string {
+    const now = rarityDrawWeight('rare', skips);
+    const next = rarityDrawWeight('rare', skips + 1);
+    return next === now ? 'rarer cards next time' : `rare ${now} → ${next}`;
+  }
+
+  /** What the offer card wants for one of its two answers. */
+  type AnswerControl = { label: string; figure: string; note: string; disabled?: boolean };
+
+  /**
    * The reroll's button and its sentence, or `undefined` when this seat has no
-   * reroll to offer at all.
+   * reroll of `kind` to offer at all.
    *
    * **The price is the point** (the ruling of 2026-09-06: *"the button prints
-   * the next price so the rise is visible before the click"*), so the label
+   * the next price so the rise is visible before the click"*), so the face
    * carries the figure and the note carries the fold that made it —
    * `explainRerollCost`'s ordered lines, joined, which is the same bargain every
    * breakdown in this HUD strikes: the sim says what each line is and the
@@ -2223,37 +2256,71 @@ async function boot(initial: Game | null): Promise<void> {
    * mechanism nobody can plan around. One that is not open at all — the door is
    * a technology — is left off entirely: a control for a rule the empire has not
    * met yet is a question it cannot answer.
+   *
+   * **One builder for all three paid hands** (the Order draft, a Doctrine, a
+   * name — ruling q, 2026-09-07), rather than a second one for the doubled kinds:
+   * they are one ladder, one door and one lifetime count, and the doubling is a
+   * *line of the same fold*. A builder of its own would be a second place for
+   * that fold to be printed and the one place it could come to disagree. The
+   * belief hand keeps a builder of its own below, because its ladder genuinely is
+   * a different one.
+   *
+   * It also refuses to draw a control for a hand the verb would not answer:
+   * `rerollOffer` names nothing and `rerollKindFor` decides, so a card whose kind
+   * is not the one on the table shows no button rather than one that would redeal
+   * something else.
    */
-  function rerollControl(seat: number): { label: string; note: string; disabled?: boolean } | undefined {
+  function rerollControl(seat: number, kind: RerollKind): AnswerControl | undefined {
+    const player = playerById(game.state, seat);
+    if (!player || rerollKindFor(player) !== kind) return undefined;
     // The door itself, asked as a question rather than read out of a refusal's
     // words: a shut door draws no button at all, and everything else draws one.
     if (!rerollDoorOpen(game.state, seat)) return undefined;
     const problem = rerollError(game.state, seat);
-    const price = explainRerollCost(game.state, seat);
-    const label = `Reroll — ${price.total}${YIELD_GLYPH.faith}`;
+    const price = explainRerollCost(game.state, seat, kind);
+    const figure = `${price.total}${YIELD_GLYPH.faith}`;
     const fold = price.lines
       .map((line) => `${line.amount > 0 ? '+' : ''}${line.amount} · ${line.source}`)
       .join(' · ');
-    if (problem !== null) return { label, note: problem, disabled: true };
-    return { label, note: `${fold}. The next reading costs more than this one.` };
+    if (problem !== null) return { label: 'Ask again', figure, note: problem, disabled: true };
+    return {
+      label: 'Ask again',
+      figure,
+      note: `${fold}. The next reading costs more than this one, whichever hand it is.`,
+    };
   }
 
   /**
    * The belief hand's own control — the first asking free, the rest priced on
    * the hand's ladder (`explainBeliefRerollCost`), the refusal the reducer's.
+   *
+   * Drawn only while the verb would answer *this* hand: the paid hands come
+   * first (`rerollKindFor`), and a button saying "free" over a command that
+   * would spend faith on a Doctrine draft would be lying about which hand it
+   * was rerolling.
    */
-  function beliefRerollControl(seat: number): { label: string; note: string; disabled?: boolean } {
+  function beliefRerollControl(seat: number): AnswerControl | undefined {
+    const player = playerById(game.state, seat);
+    if (!player || rerollKindFor(player) !== 'belief') return undefined;
     const problem = rerollError(game.state, seat);
     const price = explainBeliefRerollCost(game.state, seat);
     if (price.total <= 0) {
-      return { label: 'Ask again — free', note: 'The gods are drawn again. Nothing is spent this once.' };
+      return {
+        label: 'Ask again',
+        figure: 'free',
+        note: 'The gods are drawn again. Nothing is spent this once.',
+      };
     }
-    const label = `Ask again — ${price.total}${YIELD_GLYPH.faith}`;
+    const figure = `${price.total}${YIELD_GLYPH.faith}`;
     const fold = price.lines
       .map((line) => `${line.amount > 0 ? '+' : ''}${line.amount} · ${line.source}`)
       .join(' · ');
-    if (problem !== null) return { label, note: problem, disabled: true };
-    return { label, note: `${fold}. Asking again on this hand costs more each time.` };
+    if (problem !== null) return { label: 'Ask again', figure, note: problem, disabled: true };
+    return {
+      label: 'Ask again',
+      figure,
+      note: `${fold}. Asking again on this hand costs more each time.`,
+    };
   }
 
   /** Dispatches a reroll and puts the hand it dealt back on the sheet. */
@@ -2370,13 +2437,18 @@ async function boot(initial: Game | null): Promise<void> {
           // spent and the cards do not come back, which a player has to be told
           // before they press it rather than after.
           pass: {
-            label: 'Pass — rarer cards next time',
+            label: 'Pass',
+            // The bag's own numbers, never a sentence with a figure invented in
+            // it — see `passFigure`.
+            figure: passFigure(sc.orderSkips),
             note: passNote(sc.orderSkips),
           },
           // **The third answer** (2026-09-06): faith buys another hand. Absent
           // for a seat whose calendars have not opened the door — see
           // `rerollControl`.
-          ...(rerollControl(seat) === undefined ? {} : { reroll: rerollControl(seat)! }),
+          ...(rerollControl(seat, 'order') === undefined
+            ? {}
+            : { reroll: rerollControl(seat, 'order')! }),
         },
         (index) => {
           // The result is *checked* (the deployed bug of 2026-08-30): a refused
@@ -2461,6 +2533,14 @@ async function boot(initial: Game | null): Promise<void> {
           note: 'A Doctrine occupies no slot and is never given up. One per government.',
           weight: 'heavy',
           widening: wideningLines('doctrine'),
+          // **The Doctrine hand may be asked again, at twice the Order price**
+          // (ruling q, 2026-09-07) — the same ladder, the same door, the same
+          // lifetime count, and the doubling printed as a line of the fold. There
+          // is no pass: a Doctrine draft is a decision the empire owes the game,
+          // and passing on one was never an answer it had.
+          ...(rerollControl(seat, 'doctrine') === undefined
+            ? {}
+            : { reroll: rerollControl(seat, 'doctrine')! }),
           options: offer.options.map((id) => ({
             title: doctrineDef(id).name,
             payoff: 'permanent doctrine',
@@ -2479,6 +2559,10 @@ async function boot(initial: Game | null): Promise<void> {
           if (!result.ok) controls.guide(`☞ ${result.error}`);
           controls.refresh();
           statecraft?.refresh();
+        },
+        undefined,
+        () => {
+          rerollOffer(seat, showStatecraftOffer);
         },
       );
     }
@@ -2544,11 +2628,14 @@ async function boot(initial: Game | null): Promise<void> {
         // alike, priced on the hand's own ladder (`explainBeliefRerollCost`),
         // reset with the next hand, separate from the Order draft's lifetime
         // count. The control prints the *next* asking's price, so the rise is
-        // visible before the click. Only while no Order draft is outstanding,
-        // because one verb answers both and it answers the paid one first
+        // visible before the click. Only while no paid hand is outstanding,
+        // because one verb answers them all and it answers the paid ones first
         // (`rerollKindFor`) — a button that said "free" and then spent faith on
-        // an Order hand would be lying about which hand it was rerolling.
-        ...(player.statecraft.pendingOrder !== undefined ? {} : { reroll: beliefRerollControl(seat) }),
+        // an Order or a Doctrine hand would be lying about which hand it was
+        // rerolling. `beliefRerollControl` asks that question itself.
+        ...(beliefRerollControl(seat) === undefined
+          ? {}
+          : { reroll: beliefRerollControl(seat)! }),
         options: offer.options.map((id) => {
           const def = beliefDef(id);
           return {
@@ -2680,6 +2767,14 @@ async function boot(initial: Game | null): Promise<void> {
         title: 'Who will serve you',
         note: 'One name, from a roster the whole world draws on. Their legacy stays whichever verb you spend them on.',
         widening: wideningLines('greatPerson'),
+        // **A name may be asked for again, at twice the Order price** (ruling q,
+        // 2026-09-07) — one ladder with the Order and the Doctrine drafts, so
+        // asking here makes the next asking of any of the three dearer. A hand
+        // dealt narrow (The Academy's scholars, bought with faith) is dealt
+        // narrow again: `GreatPersonOffer.family` travels with it.
+        ...(rerollControl(seat, 'greatPerson') === undefined
+          ? {}
+          : { reroll: rerollControl(seat, 'greatPerson')! }),
         options: offer.options.map((id) => {
           const def = greatPersonDef(id);
           const option: OfferOption = {
@@ -2716,6 +2811,10 @@ async function boot(initial: Game | null): Promise<void> {
         if (result.ok && taken !== undefined) announceRecruit(seat, taken);
         controls.refresh();
         statecraft?.refresh();
+      },
+      undefined,
+      () => {
+        rerollOffer(seat, showGreatPersonOffer);
       },
     );
   }

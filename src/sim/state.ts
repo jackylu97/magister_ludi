@@ -247,8 +247,24 @@ import {
  * the Opus door opens sooner, and every seat's reading of the race differs from
  * there. Nothing about the draw itself moved — the four rows were already in
  * the bag — so the divergence is a payout rather than a deal.
+ *
+ * v85: **the rerolls, on one ladder** (batch H14, `docs/flags.md` item q;
+ * `docs/early-pacing.md` §2f). `rerollOffer` knew two hands and knows four: a
+ * **Doctrine** draft and a **great-person** draft join the Order draft on
+ * `PlayerStatecraft.rerollsTaken` — one lifetime count, so rerolling any of the
+ * three raises the price of all three — at **twice** the Order price
+ * (`religion.reroll.heavyMultiple`, a line of its own in the fold) and through
+ * the same door. The belief hand keeps its own free-first ladder, untouched, and
+ * the shrine engine's tally still counts Order drafts alone. One field is new:
+ * `GreatPersonOffer.family`, so a scholar draft bought narrow is redealt narrow.
+ *
+ * A v84 log does not replay past the first reroll of either new hand — the
+ * redeal is drawn inside the command from `state.rng`, so the generator moves
+ * where it did not and every draw after it belongs to a different game. A log
+ * with no such reroll in it replays identically: nothing about a deal, an Order
+ * reroll's price or the tally moved.
  */
-export const SCHEMA_VERSION = 84;
+export const SCHEMA_VERSION = 85;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -941,6 +957,20 @@ export interface EarnedTriumph {
  */
 export interface GreatPersonOffer {
   options: GreatPersonId[];
+  /**
+   * The family this hand was **narrowed to** when it was dealt, and absent —
+   * which is every hand but one — for a draft from the whole roster.
+   *
+   * Written by `drawGreatPersonOffer` and read by exactly one thing: the reroll
+   * (schema 85), which deals the hand again *as what it was dealt as*. The
+   * Academy's scholar draft is bought narrow (`OFFER_PURCHASES`), and a reroll
+   * that dealt the whole roster back would be handing the player something other
+   * than the thing they paid for.
+   *
+   * Absent rather than a widening flag, so a game with no such row serialises
+   * exactly as it did before this field existed.
+   */
+  family?: Family;
 }
 
 /**

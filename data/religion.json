@@ -18,6 +18,7 @@
     "base": 35,
     "exponent": 1.35,
     "ageMultiplier": [1, 1, 1.6, 2.2],
+    "heavyMultiple": 2,
     "ability": "theLongCount"
   },
   "rite": {

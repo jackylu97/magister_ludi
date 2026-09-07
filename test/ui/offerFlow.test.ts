@@ -128,7 +128,7 @@ describe('every statecraft offer carries a stamp', () => {
 describe('the reroll button', () => {
   it('takes its figure from the simulation’s own explainer, never composed beside it', () => {
     const control = offerSource('rerollControl');
-    expect(control).toContain('explainRerollCost(game.state, seat)');
+    expect(control).toContain('explainRerollCost(game.state, seat, kind)');
     expect(control).toContain('price.total');
     // The fold is printed too, line by line, so the rise says where it came from.
     expect(control).toContain('price.lines');
@@ -143,6 +143,28 @@ describe('the reroll button', () => {
     expect(control).toContain('if (!rerollDoorOpen(game.state, seat)) return undefined;');
   });
 
+  /**
+   * **One builder for the three paid hands** (ruling q, 2026-09-07): an Order
+   * draft, a Doctrine draft and a great-person draft are one ladder, one door and
+   * one lifetime count, and the doubling is a line of the same fold. A second
+   * builder for the doubled kinds would be a second place that fold is printed,
+   * and the one place the two could come to disagree.
+   */
+  it('prices all three paid hands through the one builder, on the kind it is asked about', () => {
+    const control = offerSource('rerollControl');
+    expect(control).toContain('kind: RerollKind');
+    // It draws nothing for a hand the verb would not answer — `rerollOffer`
+    // names no hand, so a control on the wrong card would redeal another one.
+    expect(control).toContain('rerollKindFor(player) !== kind');
+    for (const site of [
+      "rerollControl(seat, 'order')",
+      "rerollControl(seat, 'doctrine')",
+      "rerollControl(seat, 'greatPerson')",
+    ]) {
+      expect(MAIN, site).toContain(site);
+    }
+  });
+
   it('checks the result and re-deals the hand it was given', () => {
     const send = offerSource('rerollOffer');
     expect(send).toContain("type: 'rerollOffer', playerId: seat");
@@ -150,26 +172,71 @@ describe('the reroll button', () => {
     expect(send).toContain('if (!hasEndedTurn(game.state, seat)) again();');
   });
 
-  it('offers the free hand on the votive card and the paid one on the draft', () => {
+  it('re-deals each of the four hands onto the card that was showing it', () => {
     expect(MAIN).toContain('rerollOffer(seat, showStatecraftOffer)');
     expect(MAIN).toContain('rerollOffer(seat, showReligionOffer)');
+    expect(MAIN).toContain('rerollOffer(seat, showGreatPersonOffer)');
+    // The Doctrine card is `showStatecraftOffer`'s third arm, so its redeal
+    // re-enters the same function — pinned inside that arm rather than by a
+    // count, which would pass on the Order draft's line alone.
+    const doctrine = MAIN.slice(MAIN.indexOf('if (sc.pendingDoctrine !== undefined) {'));
+    expect(doctrine.slice(0, doctrine.indexOf('function showReligionOffer')))
+      .toContain('rerollOffer(seat, showStatecraftOffer)');
+  });
+
+  it('offers the free hand on the votive card and the paid one on the draft', () => {
     // The votive card says what it costs: nothing the first time, then the
     // hand's own ladder (`explainBeliefRerollCost`) — never the Order draft's,
     // and never the door (2026-09-06: "the first reroll free and the following
     // ones cost faith… entirely separate from order drafts").
-    const start = MAIN.indexOf('function beliefRerollControl(');
-    const votive = MAIN.slice(start, MAIN.indexOf('function rerollOffer(', start));
-    expect(votive).toContain("label: 'Ask again — free'");
-    expect(votive).toContain('const label = `Ask again — ${price.total}${YIELD_GLYPH.faith}`');
+    const votive = offerSource('beliefRerollControl');
+    expect(votive).toContain("figure: 'free'");
     expect(votive).toContain('explainBeliefRerollCost(game.state, seat)');
     expect(votive).not.toContain('rerollDoorOpen');
     expect(votive).not.toContain('explainRerollCost(');
+    // And it draws nothing while a paid hand is on the table: one verb answers
+    // them all and it answers the paid ones first (`rerollKindFor`).
+    expect(votive).toContain("rerollKindFor(player) !== 'belief'");
   });
 
-  it('draws it as a foot control the card component knows about', () => {
-    expect(OFFER_CARD).toContain('offer.reroll !== undefined');
-    expect(OFFER_CARD).toContain("button.className = 'offer-pass offer-reroll'");
-    expect(OFFER_CARD).toContain('button.disabled = offer.reroll.disabled === true');
+  /**
+   * **The two answers are decorated buttons** (the user, 2026-09-07, ruling r —
+   * *"meant to be taken sometimes for optimal play"*), not the quiet foot links
+   * they were. The house's own `.btn` block, a card wide each, with the figure on
+   * the face in tabular mono and the sentence that made it beneath.
+   */
+  it('draws the two answers as the house’s own button, a card wide', () => {
+    expect(OFFER_CARD).toContain('offer.reroll !== undefined || offer.pass !== undefined');
+    expect(OFFER_CARD).toContain("button.className = `btn offer-answer ${className}`");
+    expect(OFFER_CARD).toContain('button.disabled = spec.disabled === true');
+    // The figure is a real line on the face, and it goes through the yield
+    // printer like every composed figure that reaches the DOM (`element`).
+    expect(OFFER_CARD).toContain("element('span', 'offer-answer-figure', spec.figure)");
+    // The refusal answers on hover, which is the whole of the greyed state.
+    expect(OFFER_CARD).toContain('button.title = spec.note');
+    // A card wide each, off the width the spread dealt the cards at.
+    const at = STYLE.indexOf('.offer-answer-cell {');
+    expect(at).toBeGreaterThan(-1);
+    expect(STYLE.slice(at, STYLE.indexOf('}', at))).toContain('width: var(--offer-card');
+    // And the greyed face keeps its ground: `.btn:disabled` would swap it for
+    // the table colour and take the price off the sheet.
+    const greyed = STYLE.indexOf('.offer-answer:disabled {');
+    expect(greyed).toBeGreaterThan(-1);
+    expect(STYLE.slice(greyed, STYLE.indexOf('}', greyed))).toContain('background: var(--parchment)');
+  });
+
+  /**
+   * **The pass prints the bag, not a sentence with a number in it** (ruling r).
+   * The pity is `rarityDrawWeight`'s reading asked twice — the weight a rare card
+   * carries now, and in the bag the next hand is dealt from — so a retuned
+   * `skipPity` moves the button with no edit here.
+   */
+  it('reads the pity off the simulation’s own bag', () => {
+    const figure = offerSource('passFigure');
+    expect(figure).toContain("rarityDrawWeight('rare', skips)");
+    expect(figure).toContain("rarityDrawWeight('rare', skips + 1)");
+    expect(offerSource('passNote')).toContain('leans rarer');
+    expect(MAIN).toContain('figure: passFigure(sc.orderSkips)');
   });
 });
 

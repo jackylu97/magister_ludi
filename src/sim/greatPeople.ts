@@ -283,6 +283,12 @@ export function greatPersonWeights(
  * narrowed draft is the same machine with a shorter bag. Absent — which is every
  * caller but one — is the whole roster, and a game with no such row deals
  * byte-identically to one played before the parameter existed.
+ *
+ * It is also **written onto the offer** (schema 85), which is the one thing about
+ * a hand that could not be read back off it: the reroll deals the hand again and
+ * has to deal it as what it was dealt as, or a scholar draft somebody bought
+ * would widen into the whole roster the moment they asked again. Set only when
+ * one was given, so an ordinary hand serialises exactly as it always has.
  */
 export function drawGreatPersonOffer(
   state: GameState,
@@ -314,7 +320,7 @@ export function drawGreatPersonOffer(
     remaining.splice(chosen, 1);
     weights.splice(chosen, 1);
   }
-  return { options };
+  return family === undefined ? { options } : { options, family };
 }
 
 // --- buying the recruitment -------------------------------------------------

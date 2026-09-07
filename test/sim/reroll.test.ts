@@ -14,6 +14,15 @@
  *
  * The tally the shrine engine reads (`SlottedOrder.rerollsSeen`) is written here
  * and nowhere else, so it is pinned here too.
+ *
+ * **The heavy hands** join at the foot (schema 85, ruled 2026-09-07 — item q,
+ * `docs/early-pacing.md` §2f): a Doctrine draft and a great-person draft are
+ * rerolled by the same verb, through the same door, on the same lifetime count,
+ * at **twice** the Order price. What that section holds still is the arithmetic
+ * (a printed line, never a hidden multiplier), the one ladder (rerolling any of
+ * the three makes all three dearer), the redeal each hand's own dealer draws, and
+ * the two things the doubling did *not* reach — the shrine engine's tally and the
+ * belief hand's free first asking.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -34,8 +43,10 @@ import {
   settleReroll,
 } from '../../src/sim/religion';
 import { RELIGION } from '../../src/sim/religionData';
-import { drawOrderOffer } from '../../src/sim/statecraft';
-import { slotLayout } from '../../src/sim/statecraftData';
+import { drawDoctrineOffer, drawOrderOffer } from '../../src/sim/statecraft';
+import { governmentDef, poolDoctrines, slotLayout } from '../../src/sim/statecraftData';
+import { drawGreatPersonOffer } from '../../src/sim/greatPeople';
+import { type Family, greatPersonDef } from '../../src/sim/greatPeopleData';
 import { type GameState, playerById } from '../../src/sim/state';
 import { ABILITY_TECH } from '../../src/sim/techData';
 
@@ -80,6 +91,33 @@ function drafting(seed = 7, faith = 500) {
   const player = playerById(g.state, 0)!;
   player.faithPool = faith;
   player.statecraft.pendingOrder = drawOrderOffer(g.state, player);
+  return g;
+}
+
+/**
+ * A seat holding a **Doctrine** draft: a government of the tier whose pool the
+ * hand came from, so the redeal draws from the same bag the deal did.
+ */
+function doctrineDrafting(seed = 7, faith = 500) {
+  const g = game(seed);
+  found(g.state, 0);
+  openTheDoor(g.state, 0);
+  const player = playerById(g.state, 0)!;
+  player.faithPool = faith;
+  const sc = player.statecraft;
+  sc.government = 'councilOfElders';
+  sc.pendingDoctrine = drawDoctrineOffer(g.state, player, governmentDef(sc.government).tier);
+  return g;
+}
+
+/** A seat holding a **great-person** draft, narrowed or not. */
+function nameDrafting(seed = 7, faith = 500, family?: Family) {
+  const g = game(seed);
+  found(g.state, 0);
+  openTheDoor(g.state, 0);
+  const player = playerById(g.state, 0)!;
+  player.faithPool = faith;
+  player.greatPersonOffer = drawGreatPersonOffer(g.state, player, family);
   return g;
 }
 
@@ -346,5 +384,172 @@ describe('a belief hand’s own ladder', () => {
     expect(outcome?.paid).toBe(35);
     // The free hand is untouched: one verb, and it answers the one that costs.
     expect(player.pantheon.pending.options).toEqual(gods);
+  });
+});
+
+// --- the heavy hands --------------------------------------------------------
+
+/**
+ * **Twice the Order price, on the one ladder** (ruled 2026-09-07, item q).
+ *
+ * The claims, in the order a player meets them: the doubling is a *line* of the
+ * fold rather than a multiplier hidden inside the figure; the count is shared, so
+ * asking for one hand again makes every hand dearer; the door is the same one;
+ * the redeal is each hand's own dealer, with the narrowing kept; and the two
+ * things the ruling deliberately did not reach.
+ */
+describe('a Doctrine hand and a name, at twice the price', () => {
+  it('doubles the Order price and prints the doubling as a line of its own', () => {
+    const g = doctrineDrafting();
+    const order = explainRerollCost(g.state, 0, 'order');
+    const doctrine = explainRerollCost(g.state, 0, 'doctrine');
+    expect(RELIGION.reroll.heavyMultiple).toBe(2);
+    expect(doctrine.total).toBe(order.total * RELIGION.reroll.heavyMultiple);
+    // Rule 5: the fold *is* the figure, and the last line is what the doubling
+    // is answerable for — never a factor applied beside the list.
+    expect(doctrine.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(doctrine.total);
+    expect(doctrine.lines.slice(0, order.lines.length)).toEqual(order.lines);
+    expect(doctrine.lines).toHaveLength(order.lines.length + 1);
+    const doubling = doctrine.lines[doctrine.lines.length - 1]!;
+    expect(doubling.amount).toBe(order.total);
+    // And no figure in the words: the amount carries it.
+    expect(doubling.source).not.toMatch(/\d/);
+  });
+
+  it('prices a name the same way, in its own words', () => {
+    const g = nameDrafting();
+    const name = explainRerollCost(g.state, 0, 'greatPerson');
+    expect(name.total).toBe(nextRerollCost(g.state, 0) * RELIGION.reroll.heavyMultiple);
+    const doctrineLines = explainRerollCost(g.state, 0, 'doctrine').lines;
+    expect(name.lines[name.lines.length - 1]!.source).not.toBe(
+      doctrineLines[doctrineLines.length - 1]!.source,
+    );
+  });
+
+  it('climbs the ladder and the age with the Order draft, then doubles what it came to', () => {
+    const g = doctrineDrafting();
+    const player = playerById(g.state, 0)!;
+    learn(g.state, 0, 'ironWorking');
+    player.statecraft.rerollsTaken = 3;
+    // The Order draft's own figure at this point on the ladder — 137 (pinned
+    // above) — and the heavy hand is that, twice.
+    expect(nextRerollCost(g.state, 0)).toBe(137);
+    expect(nextRerollCost(g.state, 0, 'doctrine')).toBe(274);
+  });
+
+  it('spends one lifetime count: asking for a doctrine makes the next Order dearer', () => {
+    const g = doctrineDrafting();
+    const player = playerById(g.state, 0)!;
+    expect(nextRerollCost(g.state, 0)).toBe(35);
+    expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    expect(player.faithPool).toBe(500 - 70);
+    expect(player.statecraft.rerollsTaken).toBe(1);
+    // The whole of "on the same ladder": every kind is dearer now.
+    expect(nextRerollCost(g.state, 0)).toBe(47);
+    expect(nextRerollCost(g.state, 0, 'doctrine')).toBe(94);
+    expect(nextRerollCost(g.state, 0, 'greatPerson')).toBe(94);
+  });
+
+  it('deals the Doctrine hand again from the seat’s own tier, and the same seed deals the same', () => {
+    const a = doctrineDrafting(11);
+    const b = doctrineDrafting(11);
+    const first = playerById(a.state, 0)!.statecraft.pendingDoctrine!.options;
+    expect(dispatch(a, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    expect(dispatch(b, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    const dealt = playerById(a.state, 0)!.statecraft.pendingDoctrine!;
+    expect(dealt.options).not.toBe(first);
+    expect(dealt.options.length).toBe(first.length);
+    // The tier is the seat's government's, so every card dealt belongs to the
+    // pool the first hand came from.
+    for (const id of dealt.options) {
+      expect(poolDoctrines(governmentDef('councilOfElders').tier)).toContain(id);
+    }
+    expect(dealt).toEqual(playerById(b.state, 0)!.statecraft.pendingDoctrine);
+  });
+
+  it('deals a bought scholar draft again as scholars', () => {
+    // The Academy's hand is narrowed when it is bought (`OFFER_PURCHASES`), and
+    // a reroll that widened it would hand back something other than what was
+    // paid for. The narrowing rides on the offer.
+    const g = nameDrafting(9, 500, 'scholar');
+    const player = playerById(g.state, 0)!;
+    expect(player.greatPersonOffer?.family).toBe('scholar');
+    expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    const dealt = player.greatPersonOffer!;
+    expect(dealt.family).toBe('scholar');
+    for (const id of dealt.options) expect(greatPersonDef(id).family).toBe('scholar');
+  });
+
+  it('leaves an ordinary hand unnarrowed through the redeal', () => {
+    const g = nameDrafting();
+    const player = playerById(g.state, 0)!;
+    expect(player.greatPersonOffer?.family).toBeUndefined();
+    expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    expect(player.greatPersonOffer?.family).toBeUndefined();
+    expect(player.greatPersonOffer?.options.length).toBeGreaterThan(0);
+  });
+
+  it('asks the same door of both, and refuses byte-identically when it is shut', () => {
+    for (const make of [doctrineDrafting, nameDrafting]) {
+      const g = make(7, 500);
+      // The calendars, taken back off the seat: a heavy hand meets the Order
+      // draft's door and no other.
+      const player = playerById(g.state, 0)!;
+      const gate = ABILITY_TECH.get(RELIGION.reroll.ability)!;
+      player.techsResearched = player.techsResearched.filter((id) => id !== gate);
+      expect(rerollError(g.state, 0)).toBe('Your calendars cannot yet call for a second reading');
+      const before = snapshotState(g.state);
+      expect(applyCommand(g.state, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(false);
+      expect(snapshotState(g.state)).toEqual(before);
+    }
+  });
+
+  it('refuses a bank that cannot cover the doubled price, and touches nothing', () => {
+    // Enough for an Order hand and not for a heavy one — the exact seam the
+    // doubling opens, and the state must come out of it unchanged.
+    const g = doctrineDrafting(7, 40);
+    expect(rerollError(g.state, 0)).toBe('A second reading asks 70 faith and Ada has 40');
+    const before = snapshotState(g.state);
+    expect(applyCommand(g.state, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(false);
+    expect(snapshotState(g.state)).toEqual(before);
+  });
+
+  it('raises no chair’s tally: the Votive Tally counts Order drafts alone', () => {
+    const g = doctrineDrafting();
+    const sc = playerById(g.state, 0)!.statecraft;
+    const index = slotLayout(sc.government).indexOf('wildcard');
+    const seated = 'theArchives' as (typeof sc.orders)[number];
+    sc.orders.push(seated);
+    sc.slots[index] = { card: seated, sealedUntil: g.state.turn };
+    expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
+    expect(sc.rerollsTaken).toBe(1);
+    expect(sc.slots[index]?.rerollsSeen ?? 0).toBe(0);
+  });
+
+  /**
+   * The precedence is `firstBlocker`'s — the order the interface raises the four
+   * hands in — so the verb answers the hand the player is looking at, and the
+   * free hand is behind every hand that charges the bank.
+   */
+  it('answers the hands in the order the interface raises them', () => {
+    const g = drafting(7, 500);
+    const player = playerById(g.state, 0)!;
+    learn(g.state, 0, 'divination');
+    player.statecraft.government = 'councilOfElders';
+    player.statecraft.pendingDoctrine = drawDoctrineOffer(g.state, player, 4);
+    player.pantheon.pending = drawBeliefOffer(g.state, player);
+    player.greatPersonOffer = drawGreatPersonOffer(g.state, player);
+
+    expect(rerollKindFor(player)).toBe('order');
+    delete player.statecraft.pendingOrder;
+    expect(rerollKindFor(player)).toBe('doctrine');
+    delete player.statecraft.pendingDoctrine;
+    expect(rerollKindFor(player)).toBe('belief');
+    delete player.pantheon.pending;
+    expect(rerollKindFor(player)).toBe('greatPerson');
+    // A spent roster leaves an empty hand behind for an instant; it blocks
+    // nothing and is not a hand to reroll.
+    player.greatPersonOffer = { options: [] };
+    expect(rerollKindFor(player)).toBeNull();
   });
 });
