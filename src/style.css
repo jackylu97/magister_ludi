@@ -12362,6 +12362,40 @@ body.compendium-page {
   color: var(--ink-soft);
 }
 
+/* --- the calls -------------------------------------------------------------
+   The rail of great-person purchases a law may open (`ReliquaryCall`, batch H3
+   — the draft three signature clauses promised and no screen offered). It wears
+   the offer sheet's own foot control (`.offer-pass.offer-reroll`) rather than a
+   button of its own, for the reason the card up the page wears `.offer-option`:
+   a purchase is a purchase wherever it is drawn, and two spellings of one
+   control is how the two come to disagree. */
+.rel-calls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: var(--border-thin) solid var(--ink-faint);
+}
+
+.rel-call-line {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.rel-call-note {
+  max-width: 24rem;
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
 /* --- the revoked decorator ------------------------------------------------
    **History, not deletion** (`LegacyRecord.revoked` — the record stays in spend
    order and only `liveEffects` stops reading it). So the card stays in the pile,

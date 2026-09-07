@@ -20,10 +20,17 @@ import { describe, expect, it } from 'vitest';
 import {
   RELIQUARY_EMPTY,
   REVOKED_BAND,
+  reliquaryCalls,
   reliquaryCount,
   reliquaryRoll,
   reliquaryStep,
 } from '../../src/ui/reliquaryScreen';
+import {
+  greatPersonOfferBank,
+  greatPersonOfferPrice,
+  greatPersonPurchaseError,
+} from '../../src/sim/greatPeople';
+import { YIELD_GLYPH } from '../../src/ui/figures';
 import {
   FAMILY_EMBLEM,
   FOREVER,
@@ -356,5 +363,117 @@ describe('the renown chip is the door', () => {
     const main = source('main.ts');
     expect(main).toContain('onOpenReliquary: () => {');
     expect(main).toContain('reliquary?.open();');
+  });
+});
+
+// --- the calls at the foot ---------------------------------------------------
+
+/**
+ * **The draft three signature clauses promised and no screen offered** (batch
+ * H3, `docs/audit/orchestrator.md` — "What surprised me":
+ * `purchaseGreatPersonOffer` was fully built in the simulation and constructed
+ * by nothing in `src/ui/` or `main.ts`).
+ *
+ * Two halves again, and the split is this file's own. Which controls an empire
+ * is offered, what they cost and what a refused one says are a fold over the
+ * state and are driven for real; that the rail is drawn on an empty screen, that
+ * the screen dispatches nothing itself and that `main.ts` checks the result are
+ * read from the source.
+ */
+describe('the calls at the foot', () => {
+  function commonwealth(): GameState {
+    const state = withLegacies();
+    state.players[0]!.statecraft.government = 'theCommonwealth';
+    state.players[0]!.gold = 10_000;
+    return state;
+  }
+
+  it('draws nothing at all under a law that opens no purchase', () => {
+    // The ordinary empire sees the screen it always saw. A control for a rule
+    // nobody has met is a question that cannot be answered.
+    expect(reliquaryCalls(withLegacies(), 0)).toEqual([]);
+  });
+
+  it('offers one control per open purchase, priced and banked by the simulation', () => {
+    const state = commonwealth();
+    const calls = reliquaryCalls(state, 0);
+    expect(calls.map((call) => call.purchase)).toEqual(['gold']);
+    const call = calls[0]!;
+    expect(call.disabled).toBe(false);
+    // The figure is `greatPersonOfferPrice`'s and the coin is
+    // `greatPersonOfferBank`'s — never a number written on this side of the wall.
+    expect(call.label).toContain(String(greatPersonOfferPrice('gold')));
+    expect(call.label).toContain(YIELD_GLYPH[greatPersonOfferBank('gold')]);
+    // And the note is the interface's plain words, with no figure in them.
+    expect(call.note).not.toMatch(/\d/);
+  });
+
+  it('offers The Academy’s scholars on the same rail, out of the faith bank', () => {
+    const state = withLegacies();
+    state.players[0]!.statecraft.doctrines.push('theAcademyOfDeeds' as never);
+    state.players[0]!.faithPool = 10_000;
+    const calls = reliquaryCalls(state, 0);
+    expect(calls.map((call) => call.purchase)).toEqual(['scholarDraft']);
+    expect(calls[0]!.label).toContain(YIELD_GLYPH.faith);
+    expect(calls[0]!.disabled).toBe(false);
+  });
+
+  it('greys a call the bank cannot cover, carrying the reducer’s own sentence', () => {
+    const state = commonwealth();
+    state.players[0]!.gold = greatPersonOfferPrice('gold') - 1;
+    const call = reliquaryCalls(state, 0)[0]!;
+    expect(call.disabled).toBe(true);
+    // Not a sentence composed here: the string the command would have failed with.
+    expect(call.note).toBe(greatPersonPurchaseError(state, 0, 'gold'));
+    // The price is still on the button — a mechanism nobody can see is a
+    // mechanism nobody can plan around.
+    expect(call.label).toContain(String(greatPersonOfferPrice('gold')));
+  });
+
+  it('greys it again while a hand is already waiting, rather than dealing a second', () => {
+    const state = commonwealth();
+    state.players[0]!.greatPersonOffer = { options: ['imhotep'] };
+    const call = reliquaryCalls(state, 0)[0]!;
+    expect(call.disabled).toBe(true);
+    expect(call.note).toContain('already has');
+  });
+
+  it('draws the rail on the empty screen too — the clause a new adopter has', () => {
+    const screen = source('reliquaryScreen.ts');
+    // Both arms of `draw` reach it: the empire that has spent nobody is exactly
+    // the one whose whole signature clause lives on this rail.
+    expect(screen.match(/drawCalls\(\);/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(screen).toContain("body.append(element('p', 'rel-empty', RELIQUARY_EMPTY));");
+  });
+
+  it('wears the offer sheet’s own foot control rather than a button of its own', () => {
+    const screen = source('reliquaryScreen.ts');
+    expect(screen).toContain("button.className = 'offer-pass offer-reroll rel-call';");
+    expect(screen).toContain('button.disabled = call.disabled;');
+    expect(STYLE).toContain('.rel-calls {');
+    expect(STYLE).toContain('.rel-call-note {');
+  });
+
+  it('dispatches nothing itself — the screen names the verb, main makes the command', () => {
+    const screen = source('reliquaryScreen.ts');
+    expect(screen).toContain('options.onCall?.(call.purchase)');
+    expect(screen).not.toContain('dispatch(');
+    const main = source('main.ts');
+    const site = main.indexOf("type: 'purchaseGreatPersonOffer'");
+    expect(site).toBeGreaterThan(-1);
+    const around = main.slice(site - 400, site + 400);
+    expect(around).toContain('const result = dispatch(');
+    expect(around).toContain('if (!result.ok) controls.guide(');
+  });
+
+  it('hands the bought hand straight to the tarot offer', () => {
+    // What a call buys is a decision the game is now owed, so the pile gets out
+    // of the way and the offer comes up exactly as a trickle's would.
+    const main = source('main.ts');
+    const site = main.indexOf('onCall: (purchase) => {');
+    expect(site).toBeGreaterThan(-1);
+    const arm = main.slice(site, main.indexOf('\n    },', site));
+    expect(arm).toContain('reliquary?.close();');
+    expect(arm).toContain('showGreatPersonOffer();');
   });
 });

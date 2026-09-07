@@ -144,7 +144,7 @@ directly to confirm rulings — user marginalia are rulings.
   three cities before the Stele. The proposal with numbers is
   **`docs/early-pacing.md`** — mark it up; nothing there moves until you do.
   Ruled outright: (n) **+1 authority back on the Monument** (`authorityCapacity`
-  1); (o) **the once-per-empire buildings scale with the number of cities**
+  1) — **built (H13)**; (o) **the once-per-empire buildings scale with the number of cities**
   (shape per row in the doc); (p) **some authority into the Orders** (rows
   proposed in the doc, early pools); (q) **rerolls for Doctrines and great
   people at twice the Order price, on the same ladder** — one `rerollsTaken`
@@ -211,13 +211,22 @@ directly to confirm rulings — user marginalia are rulings.
   **"production costs are way too low, they probably need to be like 4–5×
   what they are now (the live deployed version)"** — the live version is
   b8a5ca2: buildings and wonders at their printed base, units at the old
-  ladder ×1 · 1.5 · 2 · 2.5. The rule gains a flat scale under the age band:
-  `cost × costScale × costAgeBase^age` with **`production.costScale` 4**
-  beside `costAgeBase` 1.25 — Æra I ×5 · II ×6.25 · III ×7.81 · IV ×9.77
-  against a printed base, which is 5× the live buildings in Æra I and 3.9×
-  the live units in Æra III. One printed line in the fold ("Æra I ×5"),
-  never two; purchases follow the fold (`goldPerHammer` × full cost);
-  projects untouched. Batch **H11 — the cost scale**. (bb) **The bot's
+  ladder ×1 · 1.5 · 2 · 2.5. **Corrected a minute later: "they need to be
+  4–5× what they are now in age 4 only."** So Æra I keeps ruling (y)'s
+  ×1.25 and the band climbs steeper. **Re-ruled once more, with the curve
+  written out** (the user, after seeing a Library at 35 and a University at
+  599 under a 1.53 ratio: "the curve needs to be fairly exponential"): the
+  band is the user's **table**, not a base — `production.costAgeBand`
+  **[1.25, 2.5, 4.5, 8.5]** by Æra, replacing `costAgeBase`. A row's price
+  is `floor(cost × costAgeBand[age − 1])`, age = the unlocking tech's band.
+  A Library (28, Æra I) is 35; a Market (59, Æra II) 147; a Workshop (69,
+  Æra III) 310; a University (134, Æra IV) 1139. One printed line in the
+  fold ("Æra III ×4.5"), never two;
+  purchases follow the fold (`goldPerHammer` × full cost); projects
+  untouched. Batch **H11 — the cost scale** — **BUILT** (schema 82:
+  `production.costAgeBand` in `data/rules.json`, one fold line, dd's unique
+  line beside it; `docs/fewer-things-plan.md`, "Batch H11 as shipped"; the bot
+  still prices a unique at the breakeven, H12's fence). (bb) **The bot's
   faith book learns the new faith** — the ladder that spends at the deal,
   the prophet's worth (founding: the holy site's yields, the follower and
   enhancer rungs, the founder trickle, the tide), **rites valued** (a rite is
@@ -225,7 +234,83 @@ directly to confirm rulings — user marginalia are rulings.
   timed effect gets, against `religion.rite.costByAge`), the apostle and the
   relic, and the free first reroll. The arena's `[arena]` founding line is
   the reading it is measured against; the claim returns to a pin when the
-  book buys a prophet again. Batch **H12 — the faith book**.
+  book buys a prophet again. Batch **H12 — the faith book** — **BUILT**
+  (`docs/bot-priorities.md`, "Batch H12 as shipped": a prophet is the best
+  act it has in it — the stones, the two rungs the founding deals, the
+  founder trickle over the tide's reach, with the appetite as a printed
+  floor; a rite the bank cannot yet pay stays in the book and is priced for
+  one town; the ladder's rung is taken off what anything else may save; the
+  apostle is its relic and has an arm; the free redeal is taken below the
+  bag's mean; `religion.tideShare` is the one new knob. The arena's founding
+  reading goes **1 → 2** and both seats found, so the claim is a pin again.
+  One finding left for you: the appetite is diluted by the tree's new beaker
+  prices — under H11's costs neither seat reaches The High Temple inside 140
+  turns, so the door opens late and moving `religion.prophetTechValue` is a
+  tuning call the arena may not be run to make).
+  **Rulings 2026-09-07 — the early-pacing doc, marked** (the user's
+  marginalia in `docs/early-pacing.md`, folded in; that doc's §2c–2e carry
+  the tables): (cc) **authority in the Orders — all four rows as written**:
+  The Elders' Writ (chiefdom, E, ●, +1 authority capacity) · The Marches
+  (Government I, M, ◆, +2 capacity, −1 happiness in every city) · The Census
+  (Government I, E, ◆, +1 capacity for each **2** cities held) · the
+  Doctrine **The Founders' Charter** (tier 4, +2 capacity, a newly founded
+  city starts with a Monument — a founding rider that places a building; a
+  new shape if none fits, deferred-and-annotated if it needs a one-off).
+  The Monument's `authorityCapacity` 1 (ruling n) rides the same batch.
+  **BUILT with H13** (schema 83, nothing deferred): all four rows and the
+  Monument's line are data — `foundingRider.building` already existed and had
+  stood unread since The Founders' Road lost its own free Monument, so the
+  Charter needed no new shape.
+  (dd) **The once-per-empire buildings scale in COST with the number of
+  cities**, not in effect (the effect-side table withdrawn): one more line
+  in the hammer fold for every `oncePerEmpire` row, **× √(cities held ÷
+  `production.uniqueCostBreakeven`)** with the breakeven **4** — 1 city
+  ×0.5 · 3 ×0.87 · 4 ×1 · 9 ×1.5 · 16 ×2 — after the age band, floored once
+  at the total; purchases follow the fold. **H11 carries the line** (it owns
+  the fold) — **BUILT** with H11 (`explainBuildingCost` takes an empire now;
+  a context-less asking, the Compendium's, prices at the breakeven). And **the Imperial Throne's effect becomes +3 authority
+  capacity and +1 more for every 3 cities held** (was a flat +5; rebate and
+  renown stay) — **BUILT with H13**: the flat 3 stays `authorityCapacity` and
+  the count is a `countScaled` on the row's own `effects`, read once per realm
+  as every `oncePerEmpire` row is. (ee) **the three early science Orders as written**:
+  The Tally Sticks (chiefdom, E, ●, +1🔬 in every city with a Monument) ·
+  The Scribes' Hall (Government I, E, ◆, +1🔬 for each 3 citizens in every
+  city) · The Lamp Kept Lit (Government I, W, ○, +25% 🔬 in the capital
+  while slotted). **BUILT with H13**: three data rows on standing shapes
+  (`hasBuilding` scope, `population` per 3 `within: 'city'`, a capital-scoped
+  `percentYields`); all three read as *payoffs* by the doc's derived Role
+  column rather than as the engines §2e hoped for. Batch **H13 — the wide-play
+  rows** built cc, ee and the Throne (schema 83); **H14 — the rerolls and the
+  buttons** (rulings q, r) follows.
+  **The audit's queue, kicked off** (the user, 2026-09-07: "lets kick off
+  the rest of the queue (H3–H6)" — no markup on `docs/audit/orchestrator.md`;
+  the fix-queue rows as written are the spec). Order, by collision with the
+  batches in flight: **H3** (the great-person draft the cards promise, the
+  six empty cards get their bead shape) starts now beside H11/H12/H13;
+  **H4** (dead weight) starts with the next gate — its deletions run
+  through every file the live batches hold; **H5** (one modal shell, the
+  helpers into leaves) after H3 and H14 settle the offer surfaces; **H6**
+  (one evaluator — luxuries as cards) alone and last, byte-identity over
+  the acceptance games being its gate.
+  **H3 BUILT** (schema 84): the three signature clauses have a surface — a
+  rail of **calls** at the foot of the Reliquary, one control per purchase
+  the empire's law opens, priced and refused by the simulation's own
+  (`reliquaryCalls`; an accepted call closes the sheet and deals the tarot
+  hand). And the four Æra V bead Orders pay at last, on **one** new shape:
+  `beadPerOccasion` mints a grant bead of the empire's own on a last-age
+  deed, hooked at four seams — `settleResearch`, `settleOrderSkip`,
+  `razeCityAt`, `proclaimAt`. `awardBead` is still the one writer of the rod;
+  the four bead rows carry `repeatable`, which gives up the grant class's
+  once-per-empire key and nothing else. **"The last age" is Æra IV**, read
+  off the chart (`LAST_TECH_AGE`) rather than written as a numeral — Æra V is
+  designed and has no nodes, so The Great Enquiry counts nodes of the fourth
+  today and of the fifth the day one belongs to it; "earned only there" is
+  `OrderDef.fromAge` on the deal (item l) and no second gate. **A
+  correction**: the audit counted six empty cards; only four were ever dealt.
+  Religious Mandate and The Closed Realm are tier-0 Doctrines, which
+  `poolDoctrines` deals from never — they are already out of every bag, and
+  marking them `retired` would say the wrong thing about a row that was never
+  dealt. They stay parked until their shapes exist.
   Two findings from the re-aim, yours to rule:
   1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
      user's ruling was always "unlock rites in the tech tree where they used

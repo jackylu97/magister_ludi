@@ -40,6 +40,13 @@ prints as its own clause.
   (`offerPriceFaith` **150**, The Magisterium); The Academy's **scholar
   draft** (`scholarDraftFaith` **1000**🕯, scholar-only, no renown moved).
   All through the one draw path.
+- **Where a player meets them** (batch H3, 2026-09-07): a rail of calls at the
+  foot of the **Reliquary** — the renown chip's own door — one control per
+  purchase the empire's law opens (`reliquaryCalls`). Priced by
+  `greatPersonOfferPrice`, banked by `greatPersonOfferBank`, greyed with
+  `greatPersonPurchaseError`'s own sentence, and drawn at all only when
+  `greatPersonPurchaseOpen` says the law names it. An accepted call closes the
+  sheet and deals the tarot offer, which is the one draft path.
 
 ## The person — one charge, two verbs
 

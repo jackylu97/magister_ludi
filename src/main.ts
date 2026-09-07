@@ -3708,6 +3708,34 @@ async function boot(initial: Game | null): Promise<void> {
       diplomacy?.close();
       compendium.close();
     },
+    /**
+     * A call bought at the ladder — The Commonwealth's gold, The Magisterium's
+     * faith, The Academy's scholars (`purchaseGreatPersonOffer`, batch H3).
+     *
+     * The screen names the verb and this is where the command is made, which is
+     * the discipline every other sheet keeps. On acceptance the sheet **gets out
+     * of the way**: what the purchase buys is a hand of names, and a hand of
+     * names is a decision the game is now owed, so the pile closes and the tarot
+     * offer comes up exactly as an end-of-turn trickle's would. A refusal is the
+     * reducer's own sentence in the guide, and the rail redraws so its greyed
+     * button says the same thing.
+     */
+    onCall: (purchase) => {
+      const seat = controls.localPlayerId();
+      const result = dispatch(game, {
+        type: 'purchaseGreatPersonOffer',
+        playerId: seat,
+        buys: purchase,
+      });
+      if (!result.ok) controls.guide(`☞ ${result.error}`);
+      controls.refresh();
+      if (!result.ok) {
+        reliquary?.refresh();
+        return;
+      }
+      reliquary?.close();
+      showGreatPersonOffer();
+    },
   });
   gameDisposers.push(() => reliquary?.dispose());
 

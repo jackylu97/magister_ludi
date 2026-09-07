@@ -151,6 +151,7 @@ import {
   type MeterRuleId,
   type OfferRiderScope,
   type OfferRuleId,
+  type OrderBeadOccasion,
   type OrderId,
   type OrderRarity,
   type OrderSlotGrant,
@@ -180,8 +181,8 @@ import {
   slotLayout,
 } from './statecraftData';
 import { isWaterTerrain } from './terrainData';
-import { anyBeadDef, isBeadCardId } from './beadData';
-import { beadCapEffects } from './beads';
+import { type BeadGrantId, anyBeadDef, beadGrantDef, isBeadCardId } from './beadData';
+import { awardOrderBeads, beadCapEffects } from './beads';
 import { awardOccasion } from './triumphs';
 import { type TechAge, UNIT_UNLOCK_TECH, eraNumeral, highestAge, isTechId, techDef } from './techData';
 import {
@@ -5605,6 +5606,43 @@ export function cardBehaviorRule(
   return false;
 }
 
+/**
+ * Which **glass beads** this empire's standing cards mint on this occasion.
+ *
+ * The card half of the four Æra V bead Orders, and the whole of what this module
+ * knows about them: it answers *which rows*, and `awardOrderBeads` (`beads.ts`)
+ * answers *how a bead is earned*, which is `awardBead` and nothing else. The
+ * evaluator's one-switch rule is kept exactly — `beadPerOccasion` is read here
+ * and nowhere else in the game.
+ *
+ * `count` is the empire's own running total of this occasion, the one the seam
+ * already keeps. A row asking for a **rhythm** (`every`) is paid only on a
+ * multiple of it, and paid nothing at all where the seam counts nothing: a card
+ * that promises a bead for every second deed and was handed no tally would
+ * otherwise pay on the first, which is the card lying about itself. A row with
+ * no rhythm ignores `count` altogether.
+ *
+ * File order, like every other fold here, so two Orders minting on one occasion
+ * always resolve the same way.
+ */
+export function cardBeadOccasions(
+  state: GameState,
+  playerId: number,
+  occasion: OrderBeadOccasion,
+  count?: number,
+): BeadGrantId[] {
+  const minted: BeadGrantId[] = [];
+  for (const { effect } of effectsOfKind(state, playerId, 'beadPerOccasion')) {
+    if (effect.occasion !== occasion) continue;
+    const every = Math.max(1, Math.floor(effect.every ?? 1));
+    if (every > 1) {
+      if (count === undefined || count <= 0 || count % every !== 0) continue;
+    }
+    minted.push(effect.bead);
+  }
+  return minted;
+}
+
 /** Does this empire hold a card declaring this offer rule? */
 export function cardOfferRule(state: GameState, playerId: number, rule: OfferRuleId): boolean {
   for (const { effect } of effectsOfKind(state, playerId, 'offerRider')) {
@@ -6090,7 +6128,10 @@ export type RefKind =
   | 'belief'
   | 'rite'
   | 'greatPerson'
-  | 'triumph';
+  | 'triumph'
+  // The Compendium's bead entries are anchored `bead:<id>` already; the four
+  // Æra V bead Orders are the first describers to name one (H3).
+  | 'bead';
 
 /**
  * `[[building:granary|a Granary]]` — one named thing, marked inside a clause.
@@ -7177,6 +7218,18 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       out.push({ text: `${words} on ${whose}${each}` });
       return;
     }
+    case 'beadPerOccasion': {
+      // The deed first and the bead second, because the deed is the part a
+      // player decides. The bead is named — it is a card on the rod like any
+      // other, and a keyword ref so the reader can go and read it — and the
+      // rhythm trails only where there is one to say.
+      const every = Math.max(1, Math.floor(effect.every ?? 1));
+      const deed = ORDER_BEAD_OCCASION_WORDS[effect.occasion];
+      const rhythm = every > 1 ? `every ${ordinalWords(every)} time ` : 'each time ';
+      const name = beadGrantDef(effect.bead).name;
+      out.push({ text: `${rhythm}${deed}, a glass bead of your own — ${ref('bead', effect.bead, name)}` });
+      return;
+    }
     default: {
       const unhandled: never = kind;
       void unhandled;
@@ -7196,6 +7249,20 @@ function buildingClassWords(effect: CardBuildingYieldPercentEffect): string {
   const kind = effect.category === undefined ? 'buildings' : `${effect.category} buildings`;
   return effect.pays === undefined ? kind : `${kind} that supply ${effect.pays}`;
 }
+
+/**
+ * The four last-age deeds, in the words a card says them in.
+ *
+ * Written as the tail of "each time …" so the clause reads as one sentence, and
+ * plain throughout: no identifier, no numeral, and the *deed* rather than the
+ * seam that hooks it. See `OrderBeadOccasion`.
+ */
+const ORDER_BEAD_OCCASION_WORDS: Record<OrderBeadOccasion, string> = {
+  lastAgeTechnology: 'you finish a technology of the last age',
+  draftPassed: 'you turn down a draft',
+  cityRazed: 'you put a city to the torch',
+  proclamationMade: 'a prophet of yours proclaims',
+};
 
 /** Positions, in the words a slot is counted in. See `CardSlotPositionEffect`. */
 const ORDINAL_WORDS: readonly string[] = [
@@ -8554,12 +8621,18 @@ export interface OrderSkip {
  * ticks it and nothing ages it, so a seat that passes on turn ten and drafts on
  * turn ninety draws that ninetieth hand with one skip's worth of pity, which is
  * the honest reading of "consecutive".
+ *
+ * It takes the **state** for one reason: The Last Laurels pays a glass bead for
+ * a hand turned down, and the pass has exactly one mechanism, so the occasion is
+ * announced here rather than in the reducer — the ten Triumph seams' rule, and
+ * what makes a bot that passes earn the bead a player would.
  */
-export function settleOrderSkip(player: Player): OrderSkip | null {
+export function settleOrderSkip(state: GameState, player: Player): OrderSkip | null {
   const sc = player.statecraft;
   if (!sc.pendingOrder) return null;
   delete sc.pendingOrder;
   sc.orderSkips += 1;
+  awardOrderBeads(state, player.id, 'draftPassed');
   return { skips: sc.orderSkips };
 }
 

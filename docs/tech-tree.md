@@ -54,8 +54,10 @@ history (proposals, re-cuts, the five-age plan) lives in git and
   (`docs/tech-gifts.md` §7).
 - **Every hammer price** takes the age band from the unlocking tech, never the
   row — units, buildings and wonders alike since the ruling of 2026-09-06
-  (item y): `cost × 1.25 ^ age`, one line in the cost fold. A row no technology
-  unlocks is Æra I.
+  (item y). The band is the user's own table since 2026-09-07 (item aa):
+  `cost × costAgeBand[age − 1]`, **1.25 · 2.5 · 4.5 · 8.5** by Æra, one line in
+  the cost fold. A row no technology unlocks is Æra I. A ‡ row (one to a realm)
+  carries a second line, `√(cities ÷ 4)` (item dd).
 - `TechDef` may carry `paysBead` (Alchemy) and `ageEntryDice`; abilities ride
   `techsGrant` (`ABILITY_TECH`).
 

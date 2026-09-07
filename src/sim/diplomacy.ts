@@ -35,6 +35,7 @@
  */
 
 import { arriveOnTile } from './arrival';
+import { awardOrderBeads } from './beads';
 import { type City, allocateEntityId, cityById, playerById, realPlayers } from './state';
 import type { GameState, Unit } from './state';
 import {
@@ -1147,6 +1148,12 @@ export function razeCityAt(
   // cheapest honest answer is the whole world's eyes. It happens once, on a
   // verb a player issues by hand.
   recomputeAllVisibility(state);
+  // **The Salted Earth's bead**, announced here rather than in the reducer for
+  // the ten Triumph seams' reason: razing has one mechanism, and a bot that
+  // burns a town earns what a player burning one would. After the town is off
+  // the roster and before elimination is judged — the deed is done either way,
+  // and an empire that razed its way out of the game still did the deed.
+  awardOrderBeads(state, report.ownerId, 'cityRazed');
   updateElimination(state);
   return { report, routesEnded };
 }

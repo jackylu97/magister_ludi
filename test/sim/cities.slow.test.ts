@@ -37,7 +37,7 @@ const STEP = unitDef('settler').escalation!;
  * ladder rather than a price.
  */
 const rung = (built: number): number =>
-  Math.floor((BASE + built * STEP) * RULES.production.costAgeBase);
+  Math.floor((BASE + built * STEP) * RULES.production.costAgeBand[0]!);
 
 describe('escalating settler cost', () => {
   it('replays a run of escalating settlers byte for byte', () => {

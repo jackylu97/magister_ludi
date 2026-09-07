@@ -613,7 +613,10 @@ describe('the Opus is funded the cathedral’s way', () => {
 
     const player = playerById(g.state, 0)!;
     // Enough coin to cover the whole row at the printed rate, in one press.
-    player.gold = buildingProductionCost(OPUS) * RULES.production.goldPerHammer;
+    // **Asked with the empire in hand** (2026-09-07, `docs/flags.md` item dd):
+    // the Opus is a `oncePerEmpire` row, so a one-city seat is charged half the
+    // breakeven price and a context-less quote would leave coin in the bank.
+    player.gold = buildingProductionCost(OPUS, g.state, 0) * RULES.production.goldPerHammer;
     const result = applyCommand(g.state, {
       type: 'contribute',
       playerId: 0,

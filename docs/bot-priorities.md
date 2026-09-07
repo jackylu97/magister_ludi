@@ -2400,3 +2400,189 @@ that is the price of the two readings agreeing.
   other half of its `banks` claim — was retired out from under it the same day)
   or *the faith book wants the attention batch 1 deferred*: a rite's worth and a
   contribution priced by the book are both still open, and neither is H2's fence.
+
+## Batch H12 as shipped — the faith book (2026-09-07)
+
+The ruling (`docs/flags.md`, item bb): *"the bot's faith book learns the new
+faith — the ladder that spends at the deal, the prophet's worth, rites valued,
+the apostle and the relic, and the free first reroll."* What it replaced was one
+constant and one silence: a prophet was worth `religion.prophetTechValue`
+whatever it was about to do, an apostle was worth the faith it cost, and a rite
+the bank could not pay that afternoon was not in the book at all.
+
+### What the book prices now, and the arithmetic
+
+**A prophet is the best act it has in it.** A prophet is spent *whole* on one act
+(`spendProphet`), so its worth is the maximum of its acts and never their sum —
+`prophetTerms` builds the list and prints the winner:
+
+| act | the reading |
+|---|---|
+| found the faith | `explainFounding`, below |
+| deepen one already founded | the best row of the bag `nextBeliefPool` says it would draw from, through `explainEffects` |
+| a rite over every town | `explainEmpireRite` — one town's blessing, times the towns |
+
+**`explainFounding` is four lines and no constants of the bot's own:**
+
+- **the stones** — `improvementYield(workForFamily('prophet'))` at this empire's
+  own prices, so the holy site's +2🕯 +1🎵 is read off the improvement table
+  rather than spelled here;
+- **the rungs the founding deals** — `plantHolySiteAt` deals one belief hand and
+  owes a second, both out of the follower bag, so it is the **best two** rows of
+  `poolBeliefs('follower')` priced by `explainEffects` (best two rather than
+  twice the best: two hands cannot deal one belief twice);
+- **the founder's trickle** — `RELIGION.founderTrickle` is a pair of ordinary
+  `countScaled` rows, and they are read as ordinary rows through H12's one
+  addition to `value.ts`, `explainForecastCount`: the same cap, `per` and
+  `scorePayout` arithmetic `explainCounted` uses, with the board's count replaced
+  by a forecast the caller has to name. The board's own count is **nought** for an
+  empire with no faith, which is exactly why the row a prophet is bought *for*
+  priced at nothing before;
+- **the tide's reach** supplies that count — the foreign towns inside
+  `rules.religion.siteRange` of one of this empire's own, through **this seat's
+  own fog** (`isExploredBy`, H2's rule for a reading of a world the bot may not
+  have seen), times the one new knob, `religion.tideShare`.
+
+Two things it deliberately does not count, both to avoid paying twice: the
+empire's own towns converting (a follower belief's city clauses are already
+priced in every town by `explainEffects`' standing bargain) and the later rungs
+of the ladder the founding opens (each of those wants a prophet of its own, and
+that prophet is the row being priced, one purchase later).
+
+**The appetite is the founding's floor, not its price.**
+`religion.prophetTechValue` is what the sheet *says* a first faith is worth, and
+it is the same number the beeline leans on to open the door at all (`unitTerm`,
+`chain.ts`). The board's reading of a founding is a rate of a dozen or two points
+a turn against six hundred. Adding them would pay twice for one religion;
+replacing the appetite with the reading would withdraw the design addendum the
+knob *is*, and the zealot's sheet with it. So the reading stands where it beats
+the appetite, the appetite stands where it does not, and the difference is
+**printed** so a reader of the feed can see which one is talking.
+
+**An apostle is the relic it would leave.** A relic is a `placed` building, so it
+is priced exactly as a bought shelf is — the town's own yields asked
+hypothetically through `cityYields`, staged and percentaged — in the first town of
+the realm that has topped out a cathedral and holds no relic yet. Its other two
+charges (`proclaim`, `healAdjacent`) stay stand-ins **and say so on the row**: a
+proclamation is a lump on a tide this bot has no reading of, and a healing is hit
+points, which is a fraction of a piece. The piece also has an arm for the first
+time (`apostleCommand`): leave the relic, else walk to a town that would keep one,
+else stand quiet — it used to fall through `isPlainBuilder` into the *worker's*
+brain and stand in a field it could never dig.
+
+**A rite is ten turns of its blessing, priced for one town.** The pricing itself
+predates this batch; two things about it were wrong.
+
+- **A rite the bank cannot yet pay is still a want.** `riteError` asks about the
+  bank *last*, exactly as `purchaseError` does, so `ritePlan` — which dropped
+  every refused row — was dropping every rite the empire was two turns of faith
+  away from. The measured consequence on the arena's own board: a seat at
+  **+23🕯 a turn** with a full pantheon and no prophet tech had **no faith want at
+  all**, priced its bank at the band's floor (1.50 against a 9–12 ceiling) and
+  banked a currency it had told itself was worthless. `riteOutOfReach` is
+  `outOfReachFor`'s twin — the simulation's money sentence said back to it — and a
+  short row now carries no command, rides the book, and raises a saving row.
+- **A rite is one town's blessing, and the evaluator prices a city clause in
+  every town.** `townScoped(ctx)` is the correction: the same opinion of the same
+  board with `ValueContext.cities` set to one, taken **once per plan** (the memos
+  in `value.ts` are keyed on the context object, so a fresh one per row would
+  price the empire's books five times a town). Left alone the arithmetic ran away
+  — Omen Reading (a science line per shelf, `where: 'city'`) read at 861 points of
+  blessing on an eight-town board, outranking a prophet two to one. The residual
+  gap is written down in the source: a city-scoped **count** is still summed over
+  the realm's towns (`realizedCount`), so a row that counts shelves counts the
+  realm's; closing it means a town-scoped count in `value.ts`, which is a change
+  to that file's contract rather than a reading `wants.ts` may take.
+
+**The ladder spends at the deal** (ruling i, schema 80), so the faith it is about
+to take is not faith anything else may save toward. `ladderClaim` reads the next
+rung's price off the ladder plan's own row — nought while a hand is pending,
+because that hand's rung was paid when it was dealt — and the saving rows are
+built against `bank − claim`. An empire one rung short of a consecration was
+forecasting a bank the `religion` phase had already spoken for.
+
+**The free redeal.** The pantheon's hand asks nothing the first time
+(`explainBeliefRerollCost`), so `beliefDecision` sends back a hand whose best god
+scores below the **mean of the bag it was dealt from** — the simplest honest bar:
+a fresh hand is several draws out of that bag, so what it deals is at least the
+mean, and taking a free redeal below the mean is a comparison the bot cannot lose
+on average. No knob: a free redeal of a below-average hand is not a matter of
+taste. It fires at most once per hand by construction (`settleReroll` raises
+`BeliefOffer.rerolls`; the second asking costs faith and the arm only asks while
+the asking is free), which is what keeps the driver's loop finite.
+
+**The augur's remains, swept.** `turnsToFirstGod` hunted the roster for the
+cheapest row marked `consecrates` and priced it through `explainPurchaseCost`; no
+row consecrates since C2, so it answered *"no god in sight"* on every board in the
+game and quietly priced every godless empire's prophet at nothing. It reads the
+ladder now (`nextFaithRungCost` over the faith rate), which is the only way to a
+first god. The `firstGod` clause of `faithRowTerms` went with it — its appetite
+has lived on `ladderPlan`'s rung since schema 74. `augurCommand` stays: a save may
+hold one, and a piece with no arm is a piece the bot stares at every turn.
+
+### The knob added
+
+`religion.tideShare` (0.5) — what share of the foreign towns inside a holy site's
+reach this bot expects actually to follow it. The founder's trickle pays per
+*following* foreign city and nothing on a board with no religion can say how many
+of the neighbours would convert; what the bot can count is the reach, and this is
+the share of it the trickle is priced on. Zero withdraws the trickle from a
+prophet's price (the stones and the rungs still stand); one is an empire that
+expects to convert the world. It appears on `arena.html` with no page edit, like
+every other leaf of the sheet.
+
+### The arena reading, before and after
+
+The claim is `test/sim/aiBot.slow.test.ts`, *"both empires reach a pantheon, and
+somebody founds a faith"*, and the reading is the `[arena]` line the orchestrator
+printed when the founding was un-pinned (f242f75).
+
+```
+before  [arena] religions founded by t200: 1 · Crimson 3 gods, 128🕯 · Teal 4 gods, 133🕯
+after   [arena] religions founded by t200: 2 · Crimson 3 gods, 192🕯 · Teal 4 gods, 303🕯
+```
+
+**One founding became two, and both seats founded.** The claim is therefore back
+to a pin — `expect(religions.length).toBeGreaterThan(0)` — with the `[arena]` line
+kept beside it, because a printed reading is what the next pass measures against
+and a pin says only that the number is not nought.
+
+**The tree moved between the two readings** and the report says so rather than
+claiming the whole difference: H11's cost scale (every hammer price ×5 in Æra I)
+landed between them. It is a large move on the same board and it cuts the other
+way — measured on a 140-turn probe of the arena's own map with the new prices,
+**neither seat reaches The High Temple inside 140 turns**, where the pre-H11 board
+had one there by t101 and a religion founded at t106. The door opens later and the
+book walks through it twice.
+
+Which leaves one finding for the user, measured and not acted on: **the appetite
+is diluted by the tree's new beaker prices.** `bestTechGoal` scores a node at
+*what it gives over the beakers of its whole closure*, and `religion.prophetTechValue`
+(600) was set when an Æra II closure cost a third of what it costs after batch D's
+science cut and the re-aim. On the probe board The High Temple sits four nodes out
+from t61 — inside `research.goalHorizon`, weighed every turn, and beaten by
+Shipwrights and The Cataphract every time until well past t140. Raising the
+appetite is a one-line tuning change and it is deliberately **not** made here: the
+user has ruled that the arena is not a tuning harness, and this batch spent its
+two runs on one reading each side.
+
+### The tests
+
+- `aiWants.test.ts`, new block **the faith book** — seven claims: the prophet's
+  founding names the stones and the two rungs (and the stones' voices are the
+  improvement row's own); the appetite is a printed floor and never a second
+  payment; a founded empire's prophet is priced by the rung it would draw; a rite
+  the bank cannot pay stays in the book, carries no command and raises a hold row;
+  the ladder's claim moves the hold row's wait by exactly the next rung; the
+  apostle is priced by its relic; the free redeal is taken below the bag's mean,
+  not above it, and never once the asking costs faith.
+- `aiWants.test.ts`, **the reroll pin re-aimed**. It asserted that no file in
+  `src/ai` names `'rerollOffer'` at all. That was honest while every reroll cost
+  faith; it now asserts the paid half — `bot.ts` is the only file that asks, and
+  the arm is gated on `nextBeliefRerollCost(...) > 0` returning nothing.
+- `aiWants.test.ts`, **the focus arm re-seeded** (20260905 → 20260903), which is
+  not this batch's claim at all: H11's cost scale moved the board out from under
+  the seed a second time and 20260905 now raises no focus order inside fifty-two
+  turns. Verified by running the same test at HEAD with H12's files copied in and
+  H11's held out — it passes there, so the batch that moved it is named in the
+  comment.

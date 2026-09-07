@@ -2,8 +2,10 @@
 
 Every Order, Doctrine and government in one place, tables only. **Regenerated from
 `data/statecraft.json` 2026-09-06** (batch F, the order pass) — the Effect column is each row's own ratified `text`;
-counts and tiers are the data's (pools: Chiefdom 10 · Gov I 28 · Gov II 49 · Gov III 42 ·
-Gov IV 20 · Gov V 18; doctrine tiers ride the ladder 4/10/18/29/45). Edit here; the two working docs (`deprecated/statecraft-cards.md`, `deprecated/statecraft-ages-3-5.md`) keep the commentary and are no longer the source. Tier: ● defining · ◆ strong · ○ situational (blank = not yet tiered).
+counts and tiers are the data's (pools: Chiefdom 12 · Gov I 32 · Gov II 49 · Gov III 42 ·
+Gov IV 20 · Gov V 18; doctrine tiers ride the ladder 4/10/18/29/45). The six wide-play rows
+of batch H13 (2026-09-07, `docs/early-pacing.md` §2c and §2e) join the first two pools, and
+The Founders' Charter joins tier 4. Edit here; the two working docs (`deprecated/statecraft-cards.md`, `deprecated/statecraft-ages-3-5.md`) keep the commentary and are no longer the source. Tier: ● defining · ◆ strong · ○ situational (blank = not yet tiered).
 
 **As built, 2026-08-28 (second pass)** — six of those halves are built and the shapes are
 generic:
@@ -203,6 +205,37 @@ card-shapes pass left:
   lengthening was vetoed** by the user mid-build — a card you want to slot in and out is
   skill expression — so every shelf still seals for the same five turns.
 
+**As built, 2026-09-07 (batch H3, `docs/audit/orchestrator.md`)** — the four Æra V bead
+Orders and the great-person purchases, on **one** new vocabulary member.
+
+- **A glass bead of your own, on a deed you choose to do** — `beadPerOccasion`, the shape
+  all four rows were written for and waited on. The card names a **grant** bead row and one
+  of four last-age deeds (`OrderBeadOccasion`: a technology of the last age finished, a
+  draft turned down, a city razed, a prophet's proclamation), `cardBeadOccasions`
+  (`statecraft.ts`) answers which rows a live card mints, and `awardBead` is still the one
+  and only writer of `Player.beads` — so the bead is announced, registered and diffed onto
+  the rod by the machinery every other bead uses. `every` is a rhythm, not a cap, and is
+  paid only where the seam keeps a count: The Great Enquiry's is a read of the technologies
+  of the last age this empire holds. The bead rows carry `repeatable`, which is the whole of
+  what lets one empire mint one more than once (`BeadGrantDef.repeatable`). Each deed is
+  hooked at its own single seam — `settleResearch`, `settleOrderSkip`, `razeCityAt`,
+  `proclaimAt` — and none of the four knows anything about cards or beads.
+- **"The last age" is Æra IV**, because that is the last age the chart has (`LAST_TECH_AGE`,
+  read off `TECH_AGES` and never written as a numeral). Æra V is designed and has no nodes,
+  so The Great Enquiry counts nodes of the fourth today and of the fifth the day one
+  belongs to it. "Earned only there" is `OrderDef.fromAge` on the deal and nothing else: a
+  card nobody can be holding earlier needs no second age gate.
+- **The purchases have a surface at last.** `purchaseGreatPersonOffer` had been built in the
+  simulation since The Commonwealth was written and no screen ever constructed the command —
+  three live signature clauses doing nothing. They are a rail at the foot of the Reliquary
+  (`reliquaryCalls`, the renown chip's own door), priced by `greatPersonOfferPrice`, banked
+  by `greatPersonOfferBank`, refused with `greatPersonPurchaseError`'s own sentence, and
+  drawn only under a law that opens one (`greatPersonPurchaseOpen`).
+- **Religious Mandate and The Closed Realm stay as they are.** The audit read them as
+  draftable rows paying nothing; they are tier 0, which `poolDoctrines` deals from never, so
+  they are already out of every pool and out of every table. Marking them `retired` would
+  say the wrong thing — that is for a row that *was* dealt and has been taken back out.
+
 ## Themes (the archetype lines)
 
 | Line | Playstyle | Ideas |
@@ -256,6 +289,7 @@ card-shapes pass left:
 | The Great Litany | 🕯 | +1 culture for each 3 faith you gain per turn. |
 | Wolf-Mother's Pact | 🏹 | Barbarians you kill join you at full health. |
 | The Founders' Road | — | Newly founded cities are joined to your nearest city by road · +1 culture in every city. |
+| The Founders' Charter | 📜 | +2 authority capacity · newly founded cities are founded with a Monument. |
 
 ### Pool II (tier 10)
 
@@ -345,7 +379,7 @@ the build. The ruled share is 25% engines · 30% payoffs · 45% standalones **pe
 than per pool: the early pools lean standalone and the late ones lean multiplier, which is
 the ladder `docs/orders-pass-3.md` §9 rules.
 
-### Chiefdom pool (10)
+### Chiefdom pool (12)
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
@@ -359,8 +393,10 @@ the ladder `docs/orders-pass-3.md` §9 rules.
 | First Rites | W | 🕯 | ● | E | +1 faith in your capital, and +1 faith for each wildcard Order you have in a slot. |
 | Fire-Keepers | W | 🕯 | ● | P | +1 faith in your capital for every 2 citizens living there. |
 | The Founding Oath | W | 📜 | ○ | P | Your capital pays +1 of every yield for each building standing in it, at most 3. |
+| The Elders' Writ | E | 📜 | ● | S | +1 authority capacity. |
+| The Tally Sticks | E | ✶ | ● | P | +1 science in every city with a Monument. |
 
-### Government I pool (28)
+### Government I pool (32)
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
@@ -392,6 +428,10 @@ the ladder `docs/orders-pass-3.md` §9 rules.
 | The Muster Rolls | M | ⚒ | ◆ | E | The Order in your first military slot pays twice. |
 | The Harvest Home | E | 🌱 | ● | E | Your Orders that give food give an additional food. |
 | The Reeve’s Bell | E | 🌾 | ● | S | Every 8 turns, your capital gains food for each citizen in your empire. |
+| The Marches | M | 📜 | ◆ | S | +2 authority capacity · −1 happiness in every city. |
+| The Census | E | 📜 | ◆ | P | +1 authority capacity for each 2 cities you hold. |
+| The Scribes' Hall | E | ✶ | ◆ | P | +1 science in every city for each 3 citizens living there. |
+| The Lamp Kept Lit | W | ✶ | ○ | P | +25% science in your capital. |
 
 ### Government II pool (49)
 
@@ -649,10 +689,10 @@ the two wants renaming before this pool is ever dealt.
 - **The Magister's Court** — A card may name a silhouette or a roster row but never a great person, so the second charge is not built. † great people arrive with a second charge
 - **The Votive Tally** — Only the drafts you paid faith to see again are counted, and only while this Order sits in a chair.
 - **The Jubilee** — One Order keeps one calendar, so a second boon on this row would never come round. † the same festival was to fill the archives with song as well as the shrines with faith
-- **The Great Enquiry** — Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there. † a bead of your own for every second technology of the fifth age you finish, while this Order stands in a slot
-- **The Last Laurels** — Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there. † a bead of your own each time you pass on a draft, while this Order stands in a slot
-- **The Salted Earth** — Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there. † a bead of your own each time you raze a city, while this Order stands in a slot
-- **The Final Proclamation** — Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there. † a bead of your own for each prophet’s proclamation, while this Order stands in a slot
+- **The Great Enquiry** — Dealt only once the last age is reached, and earned only there.
+- **The Last Laurels** — Dealt only once the last age is reached, and earned only there.
+- **The Salted Earth** — Dealt only once the last age is reached, and earned only there.
+- **The Final Proclamation** — Dealt only once the last age is reached, and earned only there.
 
 ---
 

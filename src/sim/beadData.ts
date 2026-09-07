@@ -434,6 +434,25 @@ export interface BeadReckoningDef extends BeadDefBase {
 export interface BeadGrantDef extends BeadDefBase {
   /** Where the bead comes from, in a first-time player's words. Hard rule 7. */
   source: string;
+  /**
+   * **Minted every time the thing that names it happens**, instead of once per
+   * empire.
+   *
+   * The class's own rule is once — a wonder is raised once and the last node of
+   * the chart is finished once, so `beadGrantedTo` refusing a second copy is
+   * simply the truth about those rows. The four Æra V bead Orders are not like
+   * that: what names them is a *deed the empire chooses to repeat* — a city
+   * burnt, a draft turned down, a proclamation read, a node of the last age
+   * finished — and each is meant to be counted every time (`docs/beads.md`, the
+   * bead Orders). So the flag is on the **row** rather than a branch in
+   * `awardBead`, and everything else about a repeatable grant is unchanged: it
+   * is announced, it goes on the world's register, and it is diffed onto the
+   * rod by exactly the machinery every other bead uses.
+   *
+   * What it gives up is the once-per-empire key, and nothing else. A row that
+   * did not come from a standing card should never carry it.
+   */
+  repeatable?: boolean;
 }
 
 export type BeadFeatId = keyof typeof beadsJson.feats & string;

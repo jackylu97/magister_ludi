@@ -341,7 +341,13 @@
     "scholarDraftFaith": 1000
   },
   "production": {
-    "costAgeBase": 1.25,
+    "costAgeBand": [
+      1.25,
+      2.5,
+      4.5,
+      8.5
+    ],
+    "uniqueCostBreakeven": 4,
     "goldPerHammer": 4,
     "faithPerHammer": 1,
     "wonderRefundGoldPerHammer": 1

@@ -3015,7 +3015,7 @@ function applySkipOrderOffer(state: GameState, command: SkipOrderOfferCommand): 
   const problem = orderSkipError(state, actor.id);
   if (problem) return fail(problem);
 
-  settleOrderSkip(actor);
+  settleOrderSkip(state, actor);
   return ok();
 }
 

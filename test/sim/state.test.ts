@@ -700,7 +700,12 @@ describe('the research queue field', () => {
     // wonders as well as units, Æra I no longer exempt. A v80 log settles its
     // first research and its first completion against different figures, and
     // diverges from there.
-    expect(SCHEMA_VERSION).toBe(81);
+    // 82 since batch H11 (2026-09-07, item aa — "4–5× what they are now in age
+    // 4 only", then the curve written out): the band is the user's table,
+    // `costAgeBand` [1.25, 2.5, 4.5, 8.5] by Æra, so Æra I costs exactly what
+    // v81 charged and an Æra IV row eight and a half times its printed figure.
+    // A v81 log diverges at the first thing built out of Æra I.
+    expect(SCHEMA_VERSION).toBe(84);
   });
 });
 
@@ -723,10 +728,12 @@ describe('the unitsBuilt field (schema 31)', () => {
     const state = newGame(config());
     const player = state.players[0]!;
     delete (player as { unitsBuilt?: unknown }).unitsBuilt;
-    // The row's figure through its Æra I band (2026-09-06, item y) and no
-    // ladder — an empty count is what this case is about, not the band.
+    // The row's figure through its Æra I band (2026-09-06 item y, 2026-09-07
+    // item aa) and no ladder — an empty count is what this case is about, not
+    // the band. Both rows are Æra I, so the table's first entry is the whole of
+    // the band here.
     const banded = (cost: number): number =>
-      Math.floor(cost * RULES.production.costAgeBase);
+      Math.floor(cost * RULES.production.costAgeBand[0]!);
     expect(unitProductionCost(state, 0, 'settler')).toBe(banded(unitDef('settler').cost));
     expect(unitProductionCost(state, 0, 'worker')).toBe(banded(unitDef('worker').cost));
   });

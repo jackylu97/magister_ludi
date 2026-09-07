@@ -350,8 +350,9 @@ export function techChain(
     };
     // One town's build, not every town's: towns raise in parallel, and only the
     // hammers owed multiply by how many of them are still owing. The folded
-    // price (H10's age band), never the row's printed base.
-    const raise = buildTurns(buildingProductionCost(building), ctx);
+    // price (H10's age band) asked of **this empire** (H11's per-empire line on a
+    // `oncePerEmpire` row), never the row's printed base.
+    const raise = buildTurns(buildingProductionCost(building, ctx.state, ctx.playerId), ctx);
     cursor += raise;
     const delay = cursor;
     const why = held ? 'the towns have still to raise it' : 'the node has to land and the towns to raise it';
@@ -386,7 +387,7 @@ export function techChain(
       id: building,
       name: def.name,
       towns,
-      cost: buildingProductionCost(building) * towns,
+      cost: buildingProductionCost(building, ctx.state, ctx.playerId) * towns,
       rate: perTown * towns + row.total,
       delay,
       value: flatTerm.value + rowTerm.value,

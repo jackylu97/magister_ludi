@@ -51,10 +51,18 @@ or `src/ai/`.
 |---|---|---|---|
 | **H1 — the fold pays what the rows say** | findings 1, 2, 3; the Ledger's mirror of `cityQuote` re-derived from the quote (it misses `cardBuildingYields` and floors two per-citizen terms); `tilePurchasePrice`'s discount printed in its list; every surface pinned to the *banked* figure | `cities.ts`, `upkeep.ts`, `empireGold.ts`, `topBar.ts`, `ledgerScreen.ts`, tests | low — each is one seam with a test that would have caught it |
 | **H2 — the bot reads the whole deck** | finding 4 (exhaustive scorer, then price the stand-in families by row count), finding 5 (empire lines in the margin), `where:'city'` × cities, `caravanScale`/`veinValue` stand-ins retired where a reading exists | `src/ai/value.ts`, `wants.ts`, tests | low–medium — every priced shape moves a decision; acceptance games re-hashed |
-| **H3 — the great-person draft the cards promise** | build the `purchaseGreatPersonOffer` surface (the Academy's scholar draft, the two governments'); the six `effects: []` cards either get their shape (a bead-granting effect + four occasions) or leave the bag until they do | `src/ui/`, `main.ts`, `statecraftData.ts` (one effect + four occasions), tests | medium — new shape |
+| **H3 — the great-person draft the cards promise** | **BUILT** (schema 84): the purchases are a rail at the foot of the Reliquary, and the four Æra V bead Orders carry one new shape (`beadPerOccasion`) on four hooked deeds — the other two `effects: []` rows are tier 0 and were never in the bag | `src/ui/`, `main.ts`, `statecraft*.ts`, `beads*.ts`, the four seams, tests | medium — new shape |
 | **H4 — dead weight** | `proto3d/` out; the schema changelog to history (the current entry stays); retired row bodies trimmed to `{id, name, retired, note}`; the 33 unread exports; `augurHasActed`, `chargedAugurs`, `BeliefOffer.givenBack`, the dice knobs, the four CSS rules; the nine false doc statements and CLAUDE.md's stale trap lines; the fifteen folded docs to `docs/history/` | broad, mechanical | low — deletions pinned by typecheck and the register tests |
 | **H5 — unify** | one modal shell for the nine screens; the seven duplicated helpers into leaves; `signed`/`round`/`element` once | `src/ui/` | low |
 | **H6 — one evaluator** | luxuries as cards (`ResourceEffect` ⊂ `CardEffect`); the rider/rule/percent families collapsed on a field; the two count unions and four occasion unions reconciled | `statecraft*.ts`, `resourceEffects.ts`, data | **high** — byte-identity over the acceptance games is the gate |
 
 H1 and H2 start now (disjoint fences, narrow tests, no arenas). H3–H6 wait
 for the user's markup of this file and the three readers'.
+
+**Correction to `dead-code.md` §1.5** (found building H3): of the six draftable
+rows with `effects: []`, only four are draftable. Religious Mandate and The
+Closed Realm are Doctrines at **tier 0**, and `poolDoctrines` returns nothing
+for a tier of 0 — they are in no pool and in no doc table, and the doc already
+files them under "Parked". Marking them `retired` would say the wrong thing:
+that field is for a row that *was* dealt and has been taken back out. They stay
+as they are, deferred and unreachable, until their shapes exist.

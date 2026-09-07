@@ -406,6 +406,27 @@ export function greatPersonOfferBank(purchase: OfferPurchaseId): OfferCurrency {
 }
 
 /**
+ * **Is this purchase open to this empire at all** — does its law name it?
+ *
+ * `rerollDoorOpen`'s twin (`religion.ts`), and here for that function's reason
+ * exactly: the interface has two different silences to keep. A purchase the law
+ * has not opened draws **no control** — a button for a rule the empire has never
+ * met is a question it cannot answer — while a purchase that is open and cannot
+ * be afforded draws a greyed one carrying `greatPersonPurchaseError`'s sentence,
+ * because a price nobody can see is a plan nobody can make.
+ *
+ * Asked as a question rather than read out of a refusal's words, so the two
+ * silences never have to be told apart by matching on prose.
+ */
+export function greatPersonPurchaseOpen(
+  state: GameState,
+  playerId: number,
+  purchase: OfferPurchaseId,
+): boolean {
+  return cardActionRule(state, playerId, OFFER_PURCHASES[purchase].rule);
+}
+
+/**
  * Why this empire cannot make this purchase at the offer, or `null`.
  *
  * **A great person is neither built nor bought — it is *called*** (CLAUDE.md),

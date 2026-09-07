@@ -1625,8 +1625,62 @@ import {
  * A v80 log does not replay. Every research settlement banks against a different
  * threshold and every completion against a different basket, so the first town
  * to finish anything diverges and the rest of the log is a different game.
+ *
+ * v82: **the cost scale** (`docs/flags.md`, "Rulings 2026-09-07, small hours",
+ * item aa — the user on v81's own numbers: "production costs are way too low,
+ * they probably need to be like 4–5× what they are now", corrected to "in age 4
+ * only", then drawn out in full: "the curve needs to be fairly exponential").
+ * The band v81 made a power is the user's **table**: `production.costAgeBand`
+ * **[1.25, 2.5, 4.5, 8.5]** by Æra, replacing `costAgeBase`, and a price is
+ * `floor(cost × costAgeBand[age − 1])`. Æra I is untouched from v81 and the
+ * later eras are two to three and a half times dearer than they were — a
+ * Library 35, a Market 147, a Workshop 310, a University 1139. One printed line
+ * still ("Æra III ×4.5"); purchases move with it because they convert the
+ * folded price, and projects stay outside it as before.
+ *
+ * A v81 log does not replay — anything an empire built after leaving Æra I
+ * finishes on a different turn, and from there the game is a different one.
+ *
+ * v83: **the wide-play rows** (`docs/flags.md`, "Rulings 2026-09-07 — the
+ * early-pacing doc, marked", items cc and ee and the Throne half of dd;
+ * `docs/early-pacing.md` §2c–2e). Seven cards and two building rows, and every
+ * one of them a JSON row — nothing in the vocabulary moved. The Monument
+ * carries `authorityCapacity` 1 again (ruling n), so the fourth town of Æra I
+ * is reachable without a technology; the Imperial Throne's flat five writ
+ * becomes **three plus one for every three cities held** (a `countScaled` on
+ * the row's own `effects`, read at the empire scale as every `oncePerEmpire`
+ * row is). Three authority Orders (The Elders' Writ, The Marches, The Census)
+ * and three science Orders (The Tally Sticks, The Scribes' Hall, The Lamp Kept
+ * Lit) join the chiefdom and Government I pools, and The Founders' Charter
+ * joins the tier-4 Doctrines — its Monument is `foundingRider.building`, the
+ * shape The Founders' Road left standing when its own free Monument was taken
+ * away on 2026-09-03.
+ *
+ * A v82 log does not replay. Six new rows in two early pools is a different
+ * bag, so the first draft an empire is dealt is a different hand, and every
+ * pick after it lands on a different board.
+ *
+ * v84: **the bead Orders, and the draft the cards promised** (batch H3,
+ * `docs/audit/orchestrator.md` — the fix queue and "What surprised me"). Four
+ * rare Æra V Orders carried `effects: []` and were being dealt paying nothing;
+ * they now carry one shape between them, `CardEffect`'s `beadPerOccasion` — a
+ * grant bead of the empire's own, minted on one of four last-age deeds
+ * (`OrderBeadOccasion`: a node of the last age finished, a draft turned down, a
+ * city razed, a prophet's proclamation), each hooked at its own single seam.
+ * `awardBead` is still the only writer of `Player.beads`; the four new bead
+ * rows carry `BeadGrantDef.repeatable`, which gives up the grant class's
+ * once-per-empire key and nothing else. Beside it, the surface for
+ * `purchaseGreatPersonOffer` — built in the simulation since The Commonwealth
+ * was written and constructed by no screen until now — is a rail of calls at
+ * the foot of the Reliquary.
+ *
+ * A v83 log replays **identically until an Æra IV empire holds one of the four
+ * cards**, at which point a bead is minted where none was: the rod is longer,
+ * the Opus door opens sooner, and every seat's reading of the race differs from
+ * there. Nothing about the draw itself moved — the four rows were already in
+ * the bag — so the divergence is a payout rather than a deal.
  */
-export const SCHEMA_VERSION = 81;
+export const SCHEMA_VERSION = 84;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

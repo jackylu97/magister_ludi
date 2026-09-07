@@ -365,6 +365,17 @@ export type TechAge = 1 | 2 | 3 | 4;
 export const TECH_AGES: readonly TechAge[] = [1, 2, 3, 4];
 
 /**
+ * **The last age the chart has** — read, never written down as a numeral.
+ *
+ * Æra V is designed and has no nodes (`docs/tech-tree.md`), so "the last age" is
+ * the fourth today and would be the fifth the day a node belongs to one. The
+ * four Æra V bead Orders are dealt from it (`OrderDef.fromAge`) and The Great
+ * Enquiry counts technologies *of* it, so both halves of that promise move with
+ * the chart instead of with a number somebody has to remember to change.
+ */
+export const LAST_TECH_AGE: TechAge = TECH_AGES[TECH_AGES.length - 1]!;
+
+/**
  * A *verb* a technology hands an empire, as opposed to a thing it may make.
  *
  * The union is the register: an ability is a rule somewhere in the simulation

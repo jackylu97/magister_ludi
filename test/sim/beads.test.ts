@@ -39,6 +39,7 @@ import {
 import {
   awardBead,
   awardBeadOccasion,
+  awardOrderBeads,
   beadCount,
   beadHandIsShownTo,
   describeBeadBoon,
@@ -49,7 +50,7 @@ import {
 } from '../../src/sim/beads';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { ABILITY_TECH, TECH_IDS } from '../../src/sim/techData';
-import { stripRefs } from '../../src/sim/statecraft';
+import { cardBeadOccasions, settleOrderSkip, stripRefs } from '../../src/sim/statecraft';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   advanceProduction,
@@ -69,6 +70,7 @@ import {
   newGame,
 } from '../../src/sim/state';
 import { buildError, isUnlocked } from '../../src/sim/tech';
+import { razeCityAt } from '../../src/sim/diplomacy';
 import { END_OF_TURN_PHASES, runEndOfTurn } from '../../src/sim/turn';
 import { resetVisibility } from '../../src/sim/visibility';
 import { openEveryWar } from './warHelpers';
@@ -217,7 +219,7 @@ describe('the bead catalogue', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(81);
+    expect(SCHEMA_VERSION).toBe(84);
   });
 
   it('puts the beads phase directly after renown', () => {
@@ -982,5 +984,141 @@ describe('The Long Count', () => {
     state.beads.hands['4'] = [{ id: 'theMetropolis', faceUp: false }];
     expect(state.beads.hands['4']!.every((card) => !card.faceUp)).toBe(true);
     expect(beadHandIsShownTo(state, 1, 4)).toBe(false);
+  });
+});
+
+// --- 10. the bead Orders ----------------------------------------------------
+
+/**
+ * **A glass bead of your own, on a deed you choose to do** — the four Æra V
+ * Orders, built as batch H3 (`docs/audit/orchestrator.md`). Until this batch
+ * they carried `effects: []`, were dealt like any other rare card and paid
+ * nothing at all.
+ *
+ * The division of labour is what these tests are really pinning. A seam says
+ * the name of the deed and knows nothing else; `statecraft.ts` answers which
+ * rows a live card mints and is the only module that reads the shape;
+ * `awardBead` is still the only writer of `Player.beads`. So the rod, the
+ * register and the announcement are unchanged, and what a card added is one
+ * more caller.
+ */
+describe('the bead Orders', () => {
+  /** Slots a card, as a draft and a chair would have. Scaffolding only. */
+  function slotOrder(state: GameState, playerId: number, id: string): void {
+    const sc = state.players[playerId]!.statecraft;
+    if (!sc.orders.includes(id as never)) sc.orders.push(id as never);
+    sc.slots.push({ card: id as never, sealedUntil: state.turn });
+  }
+
+  it('mints nothing for an empire holding none of them', () => {
+    const state = flatState();
+    expect(cardBeadOccasions(state, 0, 'cityRazed')).toEqual([]);
+    expect(awardOrderBeads(state, 0, 'cityRazed')).toEqual([]);
+    expect(state.players[0]!.beads).toEqual([]);
+  });
+
+  it('pays The Salted Earth at the raze, and pays it again the next time', () => {
+    const state = flatState();
+    slotOrder(state, 0, 'theSaltedEarth');
+    const first = plant(state, 0, 4, 4);
+    const second = plant(state, 0, 8, 4);
+
+    razeCityAt(state, first);
+    expect(state.players[0]!.beads.map((bead) => bead.id)).toEqual(['theSownSalt']);
+    // **The repeat is the whole point** (`BeadGrantDef.repeatable`): the deed is
+    // one an empire chooses to do again, so the grant class's once-per-empire
+    // key is the one thing these rows give up.
+    razeCityAt(state, second);
+    expect(state.players[0]!.beads.map((bead) => bead.id)).toEqual([
+      'theSownSalt',
+      'theSownSalt',
+    ]);
+    // And it is on the world's register both times, like every other bead.
+    expect(state.beads.claimed.filter((claim) => claim.id === 'theSownSalt')).toHaveLength(2);
+  });
+
+  it('pays The Last Laurels at the pass, in the mechanism rather than the reducer', () => {
+    const state = flatState();
+    slotOrder(state, 0, 'theLastLaurels');
+    const player = state.players[0]!;
+    player.statecraft.pendingOrder = { options: [] } as never;
+
+    const skip = settleOrderSkip(state, player);
+    expect(skip).not.toBeNull();
+    expect(player.beads.map((bead) => bead.id)).toEqual(['theWreathRefused']);
+    // A pass that was not owed spends nothing and mints nothing.
+    expect(settleOrderSkip(state, player)).toBeNull();
+    expect(player.beads).toHaveLength(1);
+  });
+
+  it('pays The Final Proclamation for the act itself', () => {
+    const state = flatState();
+    slotOrder(state, 0, 'theFinalProclamation');
+    expect(awardOrderBeads(state, 0, 'proclamationMade').map((award) => award.id)).toEqual([
+      'theWordGoneOut',
+    ]);
+    // A different deed on the same rail pays nothing — the occasion is the key.
+    expect(awardOrderBeads(state, 0, 'cityRazed')).toEqual([]);
+  });
+
+  /**
+   * The rhythm, and the honest refusal beside it. The Great Enquiry pays on
+   * every *second* node of the last age, so the card is asked against the tally
+   * the seam keeps — and a seam that keeps none is told nothing rather than
+   * being paid on the first, which would be the card paying twice what it says.
+   */
+  it('pays The Great Enquiry on every second node of the last age, and only then', () => {
+    const state = flatState();
+    slotOrder(state, 0, 'theGreatEnquiry');
+    expect(cardBeadOccasions(state, 0, 'lastAgeTechnology', 1)).toEqual([]);
+    expect(cardBeadOccasions(state, 0, 'lastAgeTechnology', 2)).toEqual(['theLastLearning']);
+    expect(cardBeadOccasions(state, 0, 'lastAgeTechnology', 3)).toEqual([]);
+    expect(cardBeadOccasions(state, 0, 'lastAgeTechnology', 4)).toEqual(['theLastLearning']);
+    // No tally at all: nothing, rather than a bead on every node.
+    expect(cardBeadOccasions(state, 0, 'lastAgeTechnology')).toEqual([]);
+    expect(cardBeadOccasions(state, 0, 'lastAgeTechnology', 0)).toEqual([]);
+  });
+
+  it('reads the card only while it stands in a slot', () => {
+    const state = flatState();
+    slotOrder(state, 0, 'theSaltedEarth');
+    expect(cardBeadOccasions(state, 0, 'cityRazed')).toEqual(['theSownSalt']);
+    // Held but unslotted is the collection, not the law.
+    state.players[0]!.statecraft.slots = [];
+    expect(cardBeadOccasions(state, 0, 'cityRazed')).toEqual([]);
+  });
+
+  it('mints nothing for the wild, which has no rod to put one on', () => {
+    const state = flatState();
+    const wild = state.players.find((player) => player.barbarian);
+    if (wild) {
+      wild.statecraft.slots.push({ card: 'theSaltedEarth' as never, sealedUntil: 0 });
+      expect(awardOrderBeads(state, wild.id, 'cityRazed')).toEqual([]);
+      expect(wild.beads).toEqual([]);
+    }
+  });
+
+  /**
+   * The four seams, read at the source. Each is one line in the mechanism that
+   * does the thing — never in the reducer — which is what makes a bot that
+   * razes, passes, proclaims or finishes the chart earn what a player would.
+   */
+  it('hooks each deed at the one place it happens', () => {
+    const sims = import.meta.glob('../../src/sim/*.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    const read = (file: string): string =>
+      sims[Object.keys(sims).find((path) => path.endsWith(`/${file}`))!]!;
+    expect(read('tech.ts')).toContain(
+      "awardOrderBeads(state, player.id, 'lastAgeTechnology', lastAgeTechCount(player))",
+    );
+    expect(read('statecraft.ts')).toContain("awardOrderBeads(state, player.id, 'draftPassed')");
+    expect(read('diplomacy.ts')).toContain("awardOrderBeads(state, report.ownerId, 'cityRazed')");
+    expect(read('religion.ts')).toContain("awardOrderBeads(state, player.id, 'proclamationMade')");
+    // And `awardBead` is still the only writer of the rod.
+    const beads = read('beads.ts');
+    expect(beads.match(/player\.beads\.push\(/g)).toHaveLength(1);
   });
 });

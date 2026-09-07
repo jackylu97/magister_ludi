@@ -69,15 +69,17 @@
  *     the realisation build-times — which is batch 3's template, and wiring half
  *     of it here would mean writing `explainTechGifts` twice. Batch 1 ships the
  *     purchasing plan and the faith plan alone.
- *   · **What an augur's rites are worth.** A faith row with no live appetite is
- *     priced at exactly what the faith it costs is worth (`explainLump`) and no
- *     more, which is honest rather than generous: nothing in this bot can price
- *     a rite, and a guess dressed as a price is worse than the silence. It puts
- *     such a row level with holding the faith, which is where it belongs until
- *     the rites are appraised.
+ *   · ~~**What an augur's rites are worth.**~~ **Closed by batch H12.** A rite is
+ *     a town's verb now, not a piece's charge, and it is priced as one: the
+ *     blessing's effects over the turns it runs, through the same evaluator a
+ *     card goes through, for one town (`ritePlan`). The whole faith side went
+ *     with it — a prophet is the best act it has in it, an apostle is the relic
+ *     it would leave, and a rite the bank cannot pay yet stays in the book so
+ *     that faith has something to be held for.
  *   · **"Legal but for the price."** The simulation has one gate and it asks
  *     about the bank last, so a want beyond the purse comes back as a refusal
- *     rather than as a price — see `outOfReachFor`.
+ *     rather than as a price — see `outOfReachFor`, and `riteOutOfReach` beside
+ *     it for the same sentence one verb over.
  *
  * **Batch 4 adds the constraints** (`meterPrices`, at the foot of the file), and
  * they are priced by the same formula around a different reading: what is short
@@ -96,6 +98,7 @@ import {
   delayTerm,
   explainBuildingRow,
   explainEffects,
+  explainForecastCount,
   explainLump,
   explainUpkeepCost,
   explainYields,
@@ -118,7 +121,8 @@ import {
   purchasableTiles,
   yieldScore,
 } from '../sim/cities';
-import { getTileAt } from '../sim/map';
+import { type ImprovementId, improvementYield, workForFamily } from '../sim/improvementData';
+import { getTileAt, tileHex, wrappedDistance } from '../sim/map';
 import type { TileYield } from '../sim/terrainData';
 import {
   type PurchasableItem,
@@ -127,15 +131,27 @@ import {
   purchasableName,
   purchaseError,
 } from '../sim/purchase';
-import { LIVE_RITE_IDS, type RiteId, beliefDef, riteAbility, riteDef } from '../sim/religionData';
+import {
+  LIVE_RITE_IDS,
+  RELIGION,
+  type RiteId,
+  beliefDef,
+  poolBeliefs,
+  riteAbility,
+  riteDef,
+} from '../sim/religionData';
 import {
   beliefPool,
   hasOpenBeliefSlot,
+  nextBeliefPool,
   nextFaithRungCost,
+  religionBeliefPool,
   riteCostFor,
   riteError,
 } from '../sim/religion';
-import type { City, GameState, Player } from '../sim/state';
+import { RULES } from '../sim/rulesData';
+import type { City, GameState, Player, Religion } from '../sim/state';
+import { isExploredBy } from '../sim/visibility';
 import {
   anyCardDef,
   livePool,
@@ -587,20 +603,22 @@ function wageReserveRow(ctx: ValueContext, reserve: number): Want | null {
  *
  * The appetite that used to be an *order* (`faithAppetiteOrder`, ranks 0/1/2
  * over two lowered thresholds) is now a *worth*, and the ranking falls out of
- * the arithmetic: an augur that would consecrate this empire's first god is
- * worth `religion.prophetTechValue` for forty faith, a prophet that would found
- * its first religion is worth the same for a hundred and twenty, and the augur
- * therefore wins on worth per coin exactly while there is no god — which is the
- * order the ladder was hand-writing.
+ * the arithmetic: the ladder's first rung carries `religion.prophetTechValue`
+ * for forty faith and a prophet that would found a religion carries what the
+ * founding would pay — floored at that same appetite — for a hundred and twenty,
+ * so the god sorts above the faith exactly while there is no god, which is the
+ * order the ladder used to hand-write.
  *
- * The restraint the ladder also carried — *stop buying augurs and save for a
- * prophet* — is now the saving row's job and is better for it: an empire whose
- * faith rate can reach the prophet inside the horizon holds for it, and one
- * whose rate cannot is no longer told to bank faith for eighty turns against a
- * price it will never see.
+ * The restraint the ladder also carried — *take the god first and save for the
+ * prophet* — is the saving row's job and is better for it: an empire whose faith
+ * rate can reach the prophet inside the horizon holds for it, and one whose rate
+ * cannot is no longer told to bank faith for eighty turns against a price it
+ * will never see. **What the ladder is about to spend is taken off that saving**
+ * (batch H12, ruling i): a rung is charged at the deal, by the phase, with no
+ * decision asked of anybody.
  *
  * A row this empire already has one of is left out of the book entirely: a
- * second augur standing beside an idle first is faith that bought nothing.
+ * second prophet standing beside an idle first is faith that bought nothing.
  */
 export function faithPlan(
   state: GameState,
@@ -614,7 +632,7 @@ export function faithPlan(
   const unfounded = !hasFoundedReligion(state, player.id);
   // **How far off the god is**, for the one row whose wait is another row (see
   // `faithRowTerms`). Asked once for the whole plan rather than per town.
-  const godTurns = noPantheon ? turnsToFirstGod(state, player, towns, inputs.faithRate, ctx) : 0;
+  const godTurns = noPantheon ? turnsToFirstGod(state, player, inputs.faithRate, ctx) : 0;
 
   for (const id of UNIT_TYPE_IDS) {
     const def = unitDef(id);
@@ -638,10 +656,10 @@ export function faithPlan(
           reach,
           city,
           item,
-          faithRowTerms(state, ctx, reach.price, {
-            firstGod: def.consecrates === true && noPantheon,
+          faithRowTerms(state, player, ctx, reach.price, {
+            prophet: def.prophesies === true,
+            apostle: def.proclaims === true,
             founder: def.prophesies === true && unfounded,
-            saysRites: def.prophesies === true,
             towns: towns.length,
             noPantheon,
             godTurns,
@@ -672,15 +690,43 @@ export function faithPlan(
   }
 
   // **The faith ladder** (schema 71): the consecration nobody has to walk to.
-  for (const row of ladderPlan(state, player, ctx, inputs)) wants.push(row);
+  const ladder = ladderPlan(state, player, ctx, inputs);
+  for (const row of ladder) wants.push(row);
   // **The rites** (schema 72): a town's verb, bought out of this same bank and
   // ranked against everything else in it by worth per coin.
   for (const row of ritePlan(state, player, ctx)) wants.push(row);
 
-  for (const row of savingRows(wants, ctx, bankOf(player, 'faith'), inputs.faithRate)) {
+  // **The ladder spends at the deal** (ruling i, schema 80), so the faith it is
+  // about to take is not faith anything else may save — batch H12. An empire one
+  // rung short of a consecration will have the rung taken out of its bank by the
+  // `religion` phase the instant it covers it, with no decision asked of anybody;
+  // a saving row that counted that faith toward a prophet would be forecasting a
+  // bank the simulation has already spoken for, and the empire would then hold
+  // for a price it never reaches. Nought while a hand is pending: the rung it
+  // carries was paid when it was dealt, and the pool this reads is already the
+  // charged one.
+  const claim = ladderClaim(player, ladder);
+  const spare = Math.max(0, bankOf(player, 'faith') - claim);
+  for (const row of savingRows(wants, ctx, spare, inputs.faithRate)) {
     wants.push(row);
   }
   return wants;
+}
+
+/**
+ * **What the ladder is about to take out of this bank** — the next rung's price
+ * while a rung is open, nought otherwise.
+ *
+ * Read off the ladder plan's own row rather than re-asked, so the number the
+ * saving rows discount by and the number the book prices the rung at cannot
+ * disagree; a plan with no row is an empire the ladder cannot deal to at all
+ * (`ladderPlan`'s own three refusals), and nothing is owed.
+ */
+function ladderClaim(player: Player, ladder: readonly Want[]): number {
+  if (player.pantheon.pending !== undefined) return 0;
+  let owed = 0;
+  for (const row of ladder) owed = Math.max(owed, row.price);
+  return owed;
 }
 
 /**
@@ -767,55 +813,358 @@ function ladderPlan(
  * the discipline `src/sim/` keeps and a reader of the same tables has no
  * business breaking.
  *
- * Three clauses and one deferral: the first god and the first religion are the
- * empire's stated appetite (`religion.prophetTechValue`); a prophet an empire
- * has no god for is that appetite **discounted by how far off the god is**,
- * because the god comes first and the ladder always said so; and everything else
- * is worth exactly the faith it costs, which puts it level with holding until
- * somebody prices a rite.
+ * **Batch H12 gave the two clergy rows a reading of their own.** They used to
+ * meet one constant apiece: a prophet was `religion.prophetTechValue` and an
+ * apostle was worth the faith it cost, which is the same sentence as *"this bot
+ * cannot see what either of them does"*. What they do is now priced through the
+ * evaluators everything else in the book goes through:
  *
- * That middle clause was a flat λ until batch 2 of `docs/bot-priorities.md`. The
- * honest delay is the wait for the *other* row: `turnsToFirstGod`, the cheapest
- * consecration this empire could buy, over its faith rate. An empire two turns
- * from its first god wants the prophet behind it almost at full price; one that
- * cannot see a god inside the horizon wants it at nothing, and prints so.
+ *   · **a prophet is the best of the acts it could perform** (`prophetTerms`) —
+ *     founding a faith, drawing another rung of one already founded, or saying a
+ *     rite over the whole realm. A prophet is spent *whole* on one act
+ *     (`spendProphet`), so its worth is the best of them and not their sum;
+ *   · **an apostle is the relic it would leave** (`explainRelic`), which is a
+ *     shelf paying a stated trickle in a town that has topped out a cathedral.
+ *     Its other two charges stay stand-ins and say so;
+ *   · **everything else** is worth exactly the faith it costs, which puts it
+ *     level with holding — the inquisitor's purge is the one row left there, and
+ *     a purge is a negative lump on somebody else's tide, which this bot has no
+ *     reading of in this currency.
+ *
+ * The **appetite is a floor now, not the price** (see `prophetTerms`). And the
+ * `firstGod` clause is gone with the augur: no row consecrates any more, the
+ * ladder is the only way to a first god, and its appetite is `ladderPlan`'s.
  */
 function faithRowTerms(
   state: GameState,
+  player: Player,
   ctx: ValueContext,
   price: number,
   row: {
-    firstGod: boolean;
+    prophet: boolean;
+    apostle: boolean;
     founder: boolean;
-    saysRites: boolean;
     towns: number;
     noPantheon: boolean;
     godTurns: number;
   },
 ): ValueTerm[] {
-  const appetite = ctx.ai.religion.prophetTechValue;
-  if (row.firstGod) {
-    return [{ label: 'the first god — this empire holds no belief at all', value: appetite }];
-  }
-  if (row.founder && !row.noPantheon) {
-    return [{ label: 'the first religion — a god is held and no faith founded', value: appetite }];
-  }
-  if (row.founder) {
-    return [
-      { label: 'the first religion, once this empire has a god at all', value: appetite },
-      delayTerm(row.godTurns, ctx, 'the god comes first'),
-    ];
-  }
-  if (row.saysRites) {
-    // **The prophet's rite over the realm**, priced by the same arithmetic the
-    // town's own rite is. The other two acts of a two-charge prophet are the
-    // appetite above; this is the one that has a figure.
-    const rites = explainEmpireRite(state, ctx, row.towns);
-    if (rites.terms.length > 0) return [nest('a rite said over every town', rites)];
+  if (row.prophet) return prophetTerms(state, player, ctx, row);
+  if (row.apostle) {
+    const relic = explainRelic(state, player, ctx);
+    if (relic !== null) {
+      return [
+        nest(`the relic it would leave at ${relic.town}`, relic.worth),
+        {
+          label: 'its other two charges — a proclamation and a healing — are unpriced stand-ins',
+          value: ctx.ai.score.unknownEffect,
+        },
+      ];
+    }
   }
   return [
     nest('worth at least the faith it costs — nothing it does is priced', explainLump({ faith: price }, ctx)),
   ];
+}
+
+/**
+ * **What a prophet is worth: the best single thing it could do** — batch H12.
+ *
+ * A prophet carries two charges and every act worth having spends the whole
+ * piece (`spendProphet`, `docs/religion-v2.md`), so the honest price of one is
+ * the best of its acts rather than the sum of them:
+ *
+ *   · **found the faith** (`explainFounding`) — the stones, the rungs the
+ *     founding deals, the founder's trickle over the towns the tide would reach;
+ *   · **deepen it** (`explainNextRung`) — one more follower or enhancer belief,
+ *     priced by the evaluator a belief is always priced by;
+ *   · **say a rite over every town** (`explainEmpireRite`) — the fourth act, and
+ *     the one that was already priced before this batch.
+ *
+ * **The appetite is the floor, not the price.** `religion.prophetTechValue` is
+ * what this empire *says* a first faith is worth — it is the same number the
+ * beeline leans on to open the door at all (`chain.ts`, `ValueContext.faithAppetite`)
+ * — and the board's own reading of a founding is a rate of a dozen or two points
+ * a turn against it. Adding the two would pay twice for one religion; replacing
+ * the appetite with the reading would quietly withdraw the design addendum the
+ * knob *is*, and the zealot's sheet with it. So the reading stands where it
+ * beats the appetite and the appetite stands where it does not, printed as the
+ * difference so a reader of the feed can see which one is talking.
+ */
+function prophetTerms(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  row: { founder: boolean; towns: number; noPantheon: boolean; godTurns: number },
+): ValueTerm[] {
+  const acts: { label: string; worth: Appraisal }[] = [];
+  if (row.founder) {
+    acts.push({ label: 'the faith it would found', worth: explainFounding(state, player, ctx) });
+  } else {
+    const rung = explainNextRung(state, player, ctx);
+    if (rung !== null) acts.push({ label: `another rung of ${rung.faith}`, worth: rung.worth });
+  }
+  const rites = explainEmpireRite(state, ctx, row.towns);
+  if (rites.terms.length > 0) acts.push({ label: 'a rite said over every town', worth: rites });
+
+  let best: { label: string; worth: Appraisal } | null = null;
+  for (const act of acts) {
+    if (best === null || act.worth.total > best.worth.total) best = act;
+  }
+
+  const terms: ValueTerm[] =
+    best === null
+      ? []
+      : [nest(`the best act this prophet has in it — ${best.label}`, best.worth)];
+  if (!row.founder) return terms;
+
+  // **The appetite, as the floor under a founding.** Printed as what it adds
+  // rather than folded away, so the feed says whether the board or the sheet is
+  // deciding — and nothing is added at all once the board reads higher.
+  const appetite = ctx.ai.religion.prophetTechValue;
+  const read = best === null ? 0 : best.worth.total;
+  if (read < appetite) {
+    terms.push({
+      label:
+        'the empire’s stated appetite for a first faith stands above the board’s own reading of it',
+      value: appetite - read,
+    });
+  }
+  // A prophet bought before any god is a prophet that cannot found: the ladder
+  // has to deal a pantheon first, and how long that takes is `turnsToFirstGod`.
+  if (row.noPantheon) terms.push(delayTerm(row.godTurns, ctx, 'the god comes first'));
+  return terms;
+}
+
+/**
+ * **What founding a religion is worth** — the ruling of 2026-09-07 (item bb),
+ * priced in four lines and no constants of this file's own.
+ *
+ *   · **the stones themselves.** A holy site is an improvement like any other and
+ *     pays what its row pays (`improvementYield`), read off the improvement
+ *     table's own inverse (`workForFamily('prophet')`) rather than by name;
+ *   · **the rungs the founding deals.** `plantHolySiteAt` deals a belief hand and
+ *     owes a second, both out of the follower bag, and a belief is priced by
+ *     `explainEffects` — the evaluator every card in this bot goes through. The
+ *     best two of the bag, because two hands cannot deal one belief twice;
+ *   · **the founder's trickle.** `RELIGION.founderTrickle` is a pair of ordinary
+ *     `countScaled` rows and they are read as ordinary rows
+ *     (`explainForecastCount`) — the board's own count is nought for an empire
+ *     with no faith, so the count handed in is the tide's reach;
+ *   · **the tide's reach** is what supplies that count: the foreign towns a holy
+ *     site raised here could press on, times `religion.tideShare` — the share of
+ *     them this bot expects actually to convert.
+ *
+ * Two things it deliberately does **not** count, both to avoid paying twice:
+ * the empire's own towns converting (a follower belief's city clauses are
+ * already priced in every town by `explainEffects`' standing bargain), and the
+ * later rungs of the ladder the founding opens (each of those wants a prophet of
+ * its own, and that prophet is the row this function is pricing, one purchase
+ * later).
+ */
+function explainFounding(state: GameState, player: Player, ctx: ValueContext): Appraisal {
+  const terms: ValueTerm[] = [];
+  if (HOLY_SITE !== null) {
+    terms.push(
+      nest('the stones it raises', explainYields(bagOfTileYield(improvementYield(HOLY_SITE)), ctx)),
+    );
+  }
+  const rungs = foundingRungs(ctx);
+  if (rungs.terms.length > 0) terms.push(nest('the rungs the founding deals', rungs));
+  const reach = tideReach(state, player, ctx);
+  if (reach > 0) {
+    terms.push(
+      nest(
+        'the founder’s trickle',
+        explainForecastCount(
+          RELIGION.founderTrickle,
+          reach,
+          'foreign towns inside a holy site’s reach, at this sheet’s share of them',
+          ctx,
+        ),
+      ),
+    );
+  }
+  return appraise(terms);
+}
+
+/**
+ * The two beliefs the founding's own hands would take — the best two of the
+ * follower bag, priced by `explainEffects`.
+ *
+ * The best *two* rather than twice the best, because the second hand is dealt
+ * from a bag the first has been taken out of (`payBeliefDebt`), so a bag whose
+ * single best row is enormous does not pay this empire twice for it. The same
+ * ceiling `ladderPlan` writes down rides here — the best of a bag rather than
+ * the expected best of a hand — and it errs high by the width of a hand.
+ */
+function foundingRungs(ctx: ValueContext): Appraisal {
+  const scored: number[] = [];
+  for (const id of poolBeliefs('follower')) {
+    scored.push(explainEffects(beliefDef(id).effects ?? [], ctx).total);
+  }
+  scored.sort((a, b) => b - a);
+  const taken = scored.slice(0, FOUNDING_HANDS);
+  if (taken.length === 0) return appraise([]);
+  return appraise(
+    taken.map((value, index) => ({
+      label:
+        index === 0
+          ? 'the best follower belief the founding could take'
+          : 'the next best, for the hand the founding owes',
+      value,
+    })),
+  );
+}
+
+/**
+ * How many belief hands a founding is worth: the one `plantHolySiteAt` deals and
+ * the one it owes (`PlayerPantheon.owed`). Two, and it is the simulation's own
+ * shape rather than a number this file chose — a third hand would want a third
+ * prophet.
+ */
+const FOUNDING_HANDS = 2;
+
+/**
+ * **What one more rung of a faith already founded is worth** — a prophet's other
+ * whole-piece act (`gainBelief`), `null` when the ladder has nothing left to
+ * deal this empire.
+ *
+ * The pool is the simulation's own answer (`nextBeliefPool` — followers to three,
+ * then enhancers to two, enhancers behind Theology), the bag is the one it would
+ * actually draw from, and a belief is priced by `explainEffects`. The stated
+ * ceiling is `ladderPlan`'s, said once more: the best of the bag rather than the
+ * expected best of a hand.
+ */
+function explainNextRung(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+): { faith: string; worth: Appraisal } | null {
+  const religion = foundedReligionOf(state, player.id);
+  if (religion === null) return null;
+  const pool = nextBeliefPool(religion);
+  if (pool === null) return null;
+  const bag = religionBeliefPool(religion, pool);
+  let best: Appraisal | null = null;
+  for (const id of bag) {
+    const folded = explainEffects(beliefDef(id).effects ?? [], ctx);
+    if (best === null || folded.total > best.total) best = folded;
+  }
+  if (best === null) return null;
+  return {
+    faith: religion.name,
+    worth: appraise([nest(`the best of the ${bag.length} ${pool} beliefs it could still take`, best)]),
+  };
+}
+
+/**
+ * **The foreign towns a holy site raised in this realm could press on**, times
+ * the share of them this sheet expects to convert (`religion.tideShare`).
+ *
+ * The count is the tide's own geometry asked of the board: `rules.religion`'s
+ * `siteRange` around each of this empire's towns — a prophet plants beside one of
+ * them — read through **this seat's own fog** (`isExploredBy`), which is batch
+ * H2's rule for every reading of the world the bot has not necessarily seen. A
+ * neighbour nobody has met presses nobody, as far as this empire can honestly
+ * say.
+ *
+ * Crude in one stated way: a town inside the range is counted whether or not it
+ * already follows somebody else's faith, and a rival temple halves what reaches
+ * it. That is what `religion.tideShare` is for — the sheet's opinion of how much
+ * of the reach becomes a congregation, in one number a tuner can move.
+ */
+function tideReach(state: GameState, player: Player, ctx: ValueContext): number {
+  const range = RULES.religion.siteRange;
+  const towns = ownedCities(state, player.id);
+  if (towns.length === 0) return 0;
+  const seats = towns
+    .map((city) => getTileAt(state.map, city.col, city.row))
+    .filter((tile): tile is NonNullable<typeof tile> => tile !== undefined)
+    .map((tile) => tileHex(tile));
+  let reached = 0;
+  for (const city of state.cities) {
+    if (city.ownerId === player.id) continue;
+    if (!isExploredBy(state, player.id, city.col, city.row)) continue;
+    const tile = getTileAt(state.map, city.col, city.row);
+    if (!tile) continue;
+    const where = tileHex(tile);
+    for (const seat of seats) {
+      if (wrappedDistance(state.map, seat, where) <= range) {
+        reached += 1;
+        break;
+      }
+    }
+  }
+  return reached * Math.max(0, ctx.ai.religion.tideShare);
+}
+
+/**
+ * **What an apostle's relic would pay, and where** — `null` when no town of this
+ * empire could keep one.
+ *
+ * A relic is a *building* (`BuildingDef.placed`): never built, never bought, left
+ * by an act in a town that has topped out a cathedral, one per town. So it is
+ * priced exactly as the purchasing plan prices a shelf — the town's own yields
+ * asked hypothetically, staged and percentaged by the simulation's arithmetic —
+ * and not as a number read off the row, which would miss every percentage the
+ * town carries.
+ *
+ * The gate is `placeRelicError`'s, restated in the only way this file may: the
+ * row is `placed`, the town must not already hold one, and there must be a
+ * cathedral to keep it in. That last clause is asked of the simulation by asking
+ * for the *yield delta* — a town with no cathedral simply is not offered as the
+ * seat. The first town that would take one is the one priced, in founding order,
+ * because an apostle walks and any of them will do.
+ */
+function explainRelic(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+): { town: string; worth: Appraisal } | null {
+  if (RELIC === null) return null;
+  const empire = empirePercents(state, player.id);
+  for (const city of ownedCities(state, player.id)) {
+    if (city.buildings.includes(RELIC)) continue;
+    if (!cityKeepsRelics(city)) continue;
+    const before = cityYields(state, city, [], null, cityQuote(state, city, [], empire));
+    const after = cityYields(state, city, [RELIC], null, cityQuote(state, city, [RELIC], empire));
+    const worth = explainYields(yieldDelta(after, before), ctx);
+    if (worth.terms.length === 0) continue;
+    return { town: city.name, worth };
+  }
+  return null;
+}
+
+/**
+ * Would this town keep a relic — has it a **consecrated** shelf standing?
+ *
+ * `placeRelicError` asks `cityKeepsRelics` (`religion.ts`), which is not
+ * exported; what it means is the cathedral's own marker, and the marker is what
+ * is read here rather than a building's name. A town with a consecrated shelf is
+ * a town an apostle may leave a relic in, which is the clause this file needs and
+ * the only one it restates — written down as the coupling it is, and pinned by a
+ * test that asks the simulation's own refusal of the same board.
+ */
+function cityKeepsRelics(city: City): boolean {
+  for (const id of city.buildings) {
+    if (buildingDef(id).consecrated === true) return true;
+  }
+  return false;
+}
+
+/** The stones a prophet plants, off the improvement table's own inverse. */
+const HOLY_SITE: ImprovementId | null = workForFamily('prophet');
+
+/** The shelf an apostle leaves, off the building table's own `placed` marker. */
+const RELIC: BuildingId | null = BUILDING_IDS.find((id) => buildingDef(id).placed === true) ?? null;
+
+/** The religion this empire founded, or `null`. `GameState.religions` is the register. */
+function foundedReligionOf(state: GameState, playerId: number): Religion | null {
+  for (const religion of state.religions) {
+    if (religion.founderId === playerId) return religion;
+  }
+  return null;
 }
 
 /**
@@ -840,33 +1189,60 @@ function faithRowTerms(
  *   · **the effects are read by the fold the drafts use** (`explainEffects`), so
  *     a rite is priced by exactly the reader a slotted Order is.
  *
- * The gap: `explainEffects` is asked **without a town in hand**, so a city-scoped
- * clause is priced by `cityYields`' own standing bargain rather than by this
- * town's board. A rite is city-scoped by construction, so every row here is that
- * approximation — stated rather than hidden, and it is the same approximation
- * every scoped card in the book already carries.
+ * **The scope, corrected** (batch H12). `explainEffects` prices a city clause in
+ * *every* town — the standing bargain of `value.ts`, and right for a card, which
+ * is held by an empire. A rite is said over **one** town, so it is priced through
+ * a context that says the empire has one (`townScoped`), and every city-scoped
+ * arm in the evaluator then pays it once. Left alone, the arithmetic ran away
+ * with the board: Omen Reading (a science line per shelf, `where: 'city'`) was
+ * read at the realm's shelves times the realm's towns, which is 861 points of
+ * blessing on an eight-town board and a rite outranking a prophet by two to one.
+ *
+ * The gap that is left, stated: a **count** is still the realm's rather than this
+ * town's (`realizedCount` sums a city-scoped count over the empire's towns), so a
+ * row that counts shelves reads the realm's shelves and not the ones standing
+ * here. Closing it means a town-scoped count in `value.ts`, which is a change to
+ * that file's contract rather than a reading this one may take.
  */
 function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
   const wants: Want[] = [];
   const price = riteCostFor(state, player.id);
-  const bank = bankOf(player, 'faith');
+  const here = townScoped(ctx);
   for (const city of ownedCities(state, player.id)) {
     for (const id of LIVE_RITE_IDS) {
-      if (riteError(state, player.id, city.id, id) !== null) continue;
-      const worth = explainRite(id, ctx);
-      wants.push({
+      const refusal = riteError(state, player.id, city.id, id);
+      // **A rite the bank cannot yet pay is still a want** (batch H12) — the
+      // whole of `reachOf`'s bargain, one verb over, and the reason it had to be
+      // fixed: `riteError` asks about the bank *last*, exactly as `purchaseError`
+      // does, so a rite this town could say the moment the faith arrived was
+      // falling out of the book entirely. An empire whose every rite was two
+      // turns' faith away therefore had no faith wants at all, priced its bank at
+      // the band's floor, and banked a currency it had told itself was worthless.
+      const short = refusal !== null && riteOutOfReach(player, id, price, refusal);
+      if (refusal !== null && !short) continue;
+      const worth = explainRite(id, here);
+      const row: Want = {
         label: `${riteDef(id).name} at ${city.name}`,
         currency: 'faith',
         price,
         worth: worth.total,
         delay: 0,
         terms: worth.terms,
-        rite: { cityId: city.id, rite: id },
-        outOfReach: bank < price,
-      });
+        outOfReach: short,
+      };
+      if (!short) row.rite = { cityId: city.id, rite: id };
+      wants.push(row);
     }
   }
   return wants;
+}
+
+/** `riteError`'s money clause, said back to it. `outOfReachFor`'s twin. */
+function riteOutOfReach(player: Player, id: RiteId, price: number, refusal: string): boolean {
+  const held = bankOf(player, 'faith');
+  return (
+    refusal === `${riteDef(id).name} asks ${price} faith and ${player.name} has ${Math.floor(held)}`
+  );
 }
 
 /**
@@ -875,6 +1251,10 @@ function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
  * There is no grant arm any more, and the deletion is the news: a rite pays
  * nothing the instant it lands (`RiteDef`), so the whole appraisal is the
  * lasting half — which is the half this file could always read exactly.
+ *
+ * The context handed in is the **town-scoped** one (`townScoped`): a rite is one
+ * town's blessing and every city-scoped arm of the evaluator has to pay it once.
+ * See `ritePlan`.
  */
 function explainRite(id: RiteId, ctx: ValueContext): Appraisal {
   const def = riteDef(id);
@@ -909,9 +1289,14 @@ function explainRite(id: RiteId, ctx: ValueContext): Appraisal {
  */
 function explainEmpireRite(state: GameState, ctx: ValueContext, towns: number): Appraisal {
   let best: { id: RiteId; worth: Appraisal } | null = null;
+  // **One town's blessing, times the towns** — `ritePlan`'s own correction, and
+  // it matters twice as much here: reading each town's share at the empire's
+  // scale and then multiplying by the towns again would price a prophet's rite at
+  // the square of the realm.
+  const here = townScoped(ctx);
   for (const id of LIVE_RITE_IDS) {
     if (!hasAbility(state, ctx.playerId, riteAbility(id))) continue;
-    const worth = explainRite(id, ctx);
+    const worth = explainRite(id, here);
     if (best === null || worth.total > best.worth.total) best = { id, worth };
   }
   if (best === null || towns <= 0) return appraise([]);
@@ -922,37 +1307,32 @@ function explainEmpireRite(state: GameState, ctx: ValueContext, towns: number): 
 }
 
 /**
- * **How long until this empire has a god at all** — the cheapest consecration
- * any of its towns could take delivery of, over what its faith bank fills at.
+ * **How long until this empire has a god at all** — the ladder's next rung over
+ * what its faith bank fills at.
  *
- * Read off the markers rather than off a name (`UnitDef.consecrates`) and priced
- * by the simulation's own `explainPurchaseCost`, exactly as every other row in
- * the book is. `max(1, rate)` is `savingRows`' bargain said again: an empire
- * banking nothing is treated as banking a point a turn rather than as never
- * arriving.
+ * **The augur's last reading, re-aimed** (batch H12). It used to hunt the roster
+ * for the cheapest row marked `consecrates` and price it through
+ * `explainPurchaseCost`; the augur is retired, no row consecrates any more, and
+ * the search therefore answered "no god in sight" on every board in the game —
+ * a dead branch quietly pricing every godless empire's prophet at nothing. The
+ * ladder is the only way to a first god now (schema 71), it deals itself, and
+ * what it asks is `nextFaithRungCost`.
  *
- * An empire that can buy no consecration anywhere — the tech is not held, no
- * town takes the row — answers the horizon, so the prophet behind the god prices
- * at nothing. That is the honest reading: there is no god in sight.
+ * `max(1, rate)` is `savingRows`' bargain said again: an empire banking nothing
+ * is treated as banking a point a turn rather than as never arriving. An empire
+ * the ladder cannot deal to at all — no slot open, an empty bag — answers the
+ * horizon, which is the honest reading of *there is no god in sight*.
  */
 function turnsToFirstGod(
   state: GameState,
   player: Player,
-  towns: readonly City[],
   rate: number,
   ctx: ValueContext,
 ): number {
-  let cheapest: number | null = null;
-  for (const id of UNIT_TYPE_IDS) {
-    if (unitDef(id).consecrates !== true) continue;
-    for (const city of towns) {
-      const price = explainPurchaseCost(state, player.id, city.id, { kind: 'unit', id }, 'faith');
-      if (price === null) continue;
-      if (cheapest === null || price.total < cheapest) cheapest = price.total;
-    }
-  }
-  if (cheapest === null) return ctx.ai.priorities.horizonTurns;
-  return Math.max(0, cheapest - bankOf(player, 'faith')) / Math.max(1, rate);
+  if (!hasOpenBeliefSlot(state, player.id)) return ctx.ai.priorities.horizonTurns;
+  if (beliefPool(state, player).length === 0) return ctx.ai.priorities.horizonTurns;
+  const cost = nextFaithRungCost(player);
+  return Math.max(0, cost - bankOf(player, 'faith')) / Math.max(1, rate);
 }
 
 // --- the draft plan ----------------------------------------------------------
@@ -1447,6 +1827,25 @@ function want(
   };
 }
 
+/**
+ * **The same opinion, read as though this empire held one town** — the context a
+ * rite is priced through (batch H12).
+ *
+ * `ValueContext.cities` is the number every city-scoped arm of the evaluator
+ * multiplies a clause by, because a *card* is held by an empire and pays in every
+ * town of it. A rite is not held by an empire: it is said over one town, for ten
+ * turns, and paid for once. So the honest reading is the same evaluator asked of
+ * the same board with that one number set to one.
+ *
+ * A copy rather than a mutation, for the context's own stated lifetime rule — and
+ * taken **once per plan** rather than per row, because the memos in `value.ts`
+ * are keyed on the context object and a fresh one per rite would price the whole
+ * empire's books five times a town.
+ */
+function townScoped(ctx: ValueContext): ValueContext {
+  return { ...ctx, cities: 1 };
+}
+
 /** This empire's towns, in founding order — an array, so the walk is the log's. */
 function ownedCities(state: GameState, playerId: number): City[] {
   const towns: City[] = [];
@@ -1466,10 +1865,7 @@ function ownsAny(state: GameState, playerId: number, type: UnitTypeId): boolean 
 
 /** Has this empire founded a religion? `GameState.religions` is the register. */
 function hasFoundedReligion(state: GameState, playerId: number): boolean {
-  for (const religion of state.religions) {
-    if (religion.founderId === playerId) return true;
-  }
-  return false;
+  return foundedReligionOf(state, playerId) !== null;
 }
 
 /** A card's own printed name, for a row a reader has to recognise. */

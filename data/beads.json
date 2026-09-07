@@ -147,6 +147,34 @@
       "family": "science",
       "source": "Raising The Alchemical Codex.",
       "text": "Everything the workshops learned, bound in one book and issued to the army."
+    },
+    "theLastLearning": {
+      "name": "The Last Learning",
+      "family": "science",
+      "repeatable": true,
+      "source": "The learning of the last age, while The Great Enquiry stands in a slot.",
+      "text": "Nothing is left to find, so the finding itself is what the age is counted by."
+    },
+    "theWreathRefused": {
+      "name": "The Wreath Refused",
+      "family": "culture",
+      "repeatable": true,
+      "source": "Turning down a draft, while The Last Laurels stands in a slot.",
+      "text": "An honour declined in front of everybody is remembered longer than one taken."
+    },
+    "theSownSalt": {
+      "name": "The Sown Salt",
+      "family": "domination",
+      "repeatable": true,
+      "source": "Putting a city to the torch, while The Salted Earth stands in a slot.",
+      "text": "The field is ruined and the lesson is not."
+    },
+    "theWordGoneOut": {
+      "name": "The Word Gone Out",
+      "family": "culture",
+      "repeatable": true,
+      "source": "A prophet's proclamation, while The Final Proclamation stands in a slot.",
+      "text": "Read in every square at the same hour, and heard in all of them."
     }
   },
   "endeavours": {

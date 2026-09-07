@@ -51,6 +51,7 @@ import {
   hammerTerm,
   hasFoldReadEngine,
   meterWeight,
+  bagOfTileYield,
   realmResources,
   voiceWeight,
   yieldWeight,
@@ -65,8 +66,16 @@ import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
 import { UNIT_UNLOCK_TECH } from '../../src/sim/techData';
 import { gatingTech, researchExpansion } from '../../src/sim/tech';
-import { BELIEF_IDS } from '../../src/sim/religionData';
-import { riteCostFor, riteError } from '../../src/sim/religion';
+import { BELIEF_IDS, poolBeliefs } from '../../src/sim/religionData';
+import {
+  beliefPool,
+  foundReligion,
+  nextBeliefRerollCost,
+  openFaithLadder,
+  riteCostFor,
+  riteError,
+} from '../../src/sim/religion';
+import { improvementYield, workForFamily } from '../../src/sim/improvementData';
 import { livePool, slotTypesOf } from '../../src/sim/statecraft';
 import { ORDER_IDS, type OrderId, orderDef, orderFitsSlot } from '../../src/sim/statecraftData';
 import {
@@ -1241,13 +1250,15 @@ describe('the focus arm', () => {
     // forth until `driver.commandsPerSeat` cut the seat off. Fifty-two turns is
     // what it takes to reach; the claim is the same one the test above makes.
     //
-    // Seed 20260905, not 20260904, since 2026-09-06: H9's start chooser seats
-    // every capital within six of horses and iron, which moved the measured
-    // board out from under its seed — 20260904 now raises no focus order in
-    // fifty-two turns at all, and a test that pins nothing pins nothing. The
-    // neighbouring seed raises eleven from turn thirty-seven, the same shape
-    // of town (one, mid-sized, food-heavy), and the claim is unchanged.
-    const game = createGame({ ...CONFIG, seed: 20260905 });
+    // Seed 20260903, not 20260905, since 2026-09-07: H11's cost scale (every
+    // hammer price ×5 in Æra I) moved the board out from under its seed a second
+    // time — 20260905 now raises no focus order inside fifty-two turns, exactly
+    // as 20260904 stopped doing when H9 moved the start chooser, and a test that
+    // pins nothing pins nothing. The neighbouring seed raises eighteen from turn
+    // forty-one, every one accepted, and the claim is unchanged. (Measured with
+    // the faith book's own batch held out: the same board raises them at HEAD
+    // with H12 in and H11 out.)
+    const game = createGame({ ...CONFIG, seed: 20260903 });
     const stepper = createBotStepper(game, { warn: () => {} });
     const steps: { decision: BotDecision; turn: number; ok: boolean }[] = [];
     for (let turn = 0; turn < 52; turn++) {
@@ -1886,18 +1897,212 @@ describe('the marginal draft reading', () => {
     expect(seated.total).toBeGreaterThan(0);
   });
 
-  it('never rerolls a draft, and prices no reroll — written down', () => {
-    // The reroll (batch C1) is a faith verb on an offer, and nothing in this bot
-    // has ever asked for one: the draft plan prices the *hand*, and a second hand
-    // for faith would need the same expectation asked of a pool the reroll has not
-    // dealt yet. Pinned as an absence rather than left to a reader's memory.
+  it('rerolls exactly one draft, and never a paid one — the belief hand, free', () => {
+    // **Re-aimed by batch H12** (ruling i, schema 80). The absence this pinned was
+    // honest while every reroll cost faith; the pantheon's hand now asks nothing
+    // the *first* time, so a bad hand is free to send back and a bot that never
+    // sent one back was leaving a draw on the table. What is still pinned as an
+    // absence is the paid half: the draft plan prices a *hand*, not a second one,
+    // and no arm anywhere may pay for a redeal.
     const sources = import.meta.glob('../../src/ai/*.ts', {
       query: '?raw',
       import: 'default',
       eager: true,
     }) as Record<string, string>;
-    for (const path of Object.keys(sources)) {
-      expect(sources[path]!.includes("'rerollOffer'"), path).toBe(false);
+    const asking = Object.keys(sources).filter((path) => sources[path]!.includes("'rerollOffer'"));
+    expect(asking.map((path) => path.split('/').pop())).toEqual(['bot.ts']);
+    // The one arm that asks is gated on the asking being free — the sentence, in
+    // the source, beside the command.
+    expect(sources[asking[0]!]!).toContain('nextBeliefRerollCost(state, player.id) > 0');
+  });
+});
+
+// --- batch H12: the faith book ----------------------------------------------
+
+/**
+ * **Batch H12 of `docs/bot-priorities.md`** — the faith book learns the faith
+ * that shipped: a prophet priced by what it would actually do, a rite the bank
+ * cannot yet pay kept in the book so there is something to save toward, the
+ * ladder's own claim on the bank, the apostle's relic, and the free redeal.
+ *
+ * Every claim here is about *arithmetic printed on a row*, in the shape the rest
+ * of this file uses: the worth is the fold of the terms, the price is the
+ * simulation's own, and the acts are commands the reducer would take.
+ */
+describe('the faith book', () => {
+  /** A bench with towns, a god in hand and a technology granted. */
+  function faithful(towns: number, tech: string): { state: GameState; player: Player } {
+    const state = benchState(towns);
+    const player = seat(state, 0);
+    for (const step of researchExpansion(state, 0, tech as never)) {
+      if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
     }
+    player.pantheon.beliefs = [BELIEF_IDS[0] as never];
+    return { state, player };
+  }
+
+  it('prices a prophet by the faith it would found — the stones, the rungs, the trickle', () => {
+    // **The ruling of 2026-09-07 (item bb).** A prophet used to meet one
+    // constant; what it is worth now is the best act it has in it, and for a
+    // seat with a god and no faith that act is the founding — read off the
+    // improvement table, the belief bag and the trickle's own rows.
+    const { state, player } = faithful(2, UNIT_UNLOCK_TECH.get('prophet' as never)!);
+    player.faithPool = 900;
+    const ctx = valueContext(state, player);
+    const row = ctx.wants.faith.find((want) => want.label.startsWith('Prophet at '));
+    expect(row).toBeDefined();
+    expect(foldTerms(row!.terms)).toBe(row!.worth);
+    const act = row!.terms[0]!;
+    expect(act.label).toBe('the best act this prophet has in it — the faith it would found');
+    const named = (act.parts ?? []).map((term) => term.label);
+    expect(named).toContain('the stones it raises');
+    expect(named).toContain('the rungs the founding deals');
+    // The stones are the improvement's own row — every voice it pays, priced,
+    // and nothing this file spelled by hand. (The value itself is folded at the
+    // **prior**, which is the book's own standing bargain: a book priced at the
+    // shadow prices it is about to set would be a fixed point.)
+    const stones = (act.parts ?? []).find((term) => term.label === 'the stones it raises')!;
+    const paid = bagOfTileYield(improvementYield(workForFamily('prophet')!));
+    const voices = (['food', 'production', 'gold', 'science', 'culture', 'faith'] as const).filter(
+      (voice) => (paid[voice] ?? 0) !== 0,
+    );
+    expect(voices.length).toBeGreaterThan(0);
+    for (const voice of voices) {
+      expect((stones.parts ?? []).some((term) => term.label.startsWith(voice)), voice).toBe(true);
+    }
+    expect(stones.value).toBeGreaterThan(0);
+    // And it is the **two** rungs the founding deals — the hand it deals and the
+    // hand it owes — best first, out of a bag `poolBeliefs` says has them.
+    const rungs = (act.parts ?? []).find((term) => term.label === 'the rungs the founding deals')!;
+    expect(poolBeliefs('follower').length).toBeGreaterThan(1);
+    expect((rungs.parts ?? []).map((term) => term.label)).toEqual([
+      'the best follower belief the founding could take',
+      'the next best, for the hand the founding owes',
+    ]);
+    expect(rungs.parts![0]!.value).toBeGreaterThanOrEqual(rungs.parts![1]!.value);
+    expect(rungs.value).toBeCloseTo(rungs.parts![0]!.value + rungs.parts![1]!.value, 9);
+  });
+
+  it('keeps the appetite as the floor under a founding, never as a second payment', () => {
+    // The knob is the design addendum and the beeline leans on it; the board's
+    // reading is a rate of a dozen points a turn. Adding them would pay twice for
+    // one religion, so the appetite is printed as the *difference* — and vanishes
+    // the day the board reads higher.
+    const { state, player } = faithful(2, UNIT_UNLOCK_TECH.get('prophet' as never)!);
+    player.faithPool = 900;
+    const ctx = valueContext(state, player);
+    const row = ctx.wants.faith.find((want) => want.label.startsWith('Prophet at '))!;
+    const floor = row.terms.find((term) => /stated appetite for a first faith/.test(term.label));
+    expect(floor).toBeDefined();
+    expect(row.worth).toBeCloseTo(AI.religion.prophetTechValue, 9);
+    expect(row.terms[0]!.value + floor!.value).toBeCloseTo(row.worth, 9);
+  });
+
+  it('prices a prophet in a founded empire by the rung it would draw', () => {
+    // The other act, and the one the old book had no reading of at all: an empire
+    // that has founded is buying a belief, out of the pool the simulation would
+    // draw from.
+    const { state, player } = faithful(2, UNIT_UNLOCK_TECH.get('prophet' as never)!);
+    const religion = foundReligion(state, player);
+    player.faithPool = 900;
+    const ctx = valueContext(state, player);
+    const row = ctx.wants.faith.find((want) => want.label.startsWith('Prophet at '))!;
+    expect(row.terms[0]!.label).toBe(
+      `the best act this prophet has in it — another rung of ${religion.name}`,
+    );
+    expect(foldTerms(row.terms)).toBe(row.worth);
+    // No appetite floor once the faith is founded: the appetite is about the
+    // *first* one, and `ValueContext.faithAppetite` switches off with it.
+    expect(row.terms.some((term) => /stated appetite/.test(term.label))).toBe(false);
+  });
+
+  it('keeps a rite the bank cannot yet pay in the book, and saves toward it', () => {
+    // **The finding this batch was aimed at.** `riteError` asks about the bank
+    // last, exactly as `purchaseError` does, so a rite two turns of faith away was
+    // falling out of the book entirely: the empire then had no faith want at all,
+    // priced its bank at the band's floor, and banked a currency it had told
+    // itself was worthless.
+    const { state, player } = faithful(1, 'divination');
+    for (const city of state.cities) city.buildings.push('chapel');
+    player.faithPool = 0;
+    const ctx = valueContext(state, player);
+    const rite = ctx.wants.faith.find((want) => /^Omen Reading at |^Blessing/.test(want.label));
+    expect(rite).toBeDefined();
+    expect(rite!.outOfReach).toBe(true);
+    // A row the rules would refuse today carries no command, which is the spend
+    // arm's contract.
+    expect(rite!.rite).toBeUndefined();
+    expect(rite!.price).toBe(riteCostFor(state, player.id));
+    // And it is what the bank is now being held for.
+    const holding = ctx.wants.faith.find((want) => want.holding === 'saving');
+    expect(holding).toBeDefined();
+    expect(ctx.priceNotes.faith).not.toContain('nothing this empire could buy');
+  });
+
+  it('does not save faith the ladder is about to spend at the deal', () => {
+    // **Ruling i, schema 80**: the pantheon's hand opens by itself and takes its
+    // rung the moment the bank covers it. Faith spoken for is not faith a prophet
+    // may be saved toward, and the hold row's wait says so.
+    const { state, player } = faithful(2, UNIT_UNLOCK_TECH.get('prophet' as never)!);
+    // Short of the prophet's price (so the row is one to save toward) and well
+    // clear of the rung's (so the ladder's claim is what moves the wait).
+    player.faithPool = 110;
+    const ctx = valueContext(state, player);
+    const rung = ctx.wants.faith.find((want) => want.label.startsWith('the next consecration'));
+    expect(rung).toBeDefined();
+    const holding = ctx.wants.faith.find((want) => want.holding === 'saving' && want.label.includes('Prophet'));
+    expect(holding).toBeDefined();
+    const rate = empireRateReading(state, player.id).faithPerTurn ?? 0;
+    const spare = Math.max(0, player.faithPool - rung!.price);
+    expect(holding!.delay).toBeCloseTo((holding!.price - spare) / Math.max(1, rate), 9);
+  });
+
+  it('prices an apostle by the relic it would leave, and walks it there', () => {
+    // A relic is a placed shelf paying a standing trickle in a town that has
+    // topped out its cathedral, so it is priced exactly as a bought shelf is —
+    // the town's own yields asked hypothetically — and the piece has an arm of
+    // its own for the first time.
+    const { state, player } = faithful(2, UNIT_UNLOCK_TECH.get('apostle' as never)!);
+    const town = state.cities[0]!;
+    town.buildings.push('cathedral');
+    refreshCityDerived(state, town);
+    player.faithPool = 900;
+    const ctx = valueContext(state, player);
+    const row = ctx.wants.faith.find((want) => want.label.startsWith('Apostle at '));
+    expect(row).toBeDefined();
+    expect(row!.terms[0]!.label).toBe(`the relic it would leave at ${town.name}`);
+    expect(row!.terms[0]!.value).toBeGreaterThan(0);
+    expect(foldTerms(row!.terms)).toBe(row!.worth);
+  });
+
+  it('takes the free redeal of a below-average belief hand, and pays for none', () => {
+    // The pantheon's hand asks nothing the first time (`explainBeliefRerollCost`),
+    // so a hand whose best god is below what an average draw from the bag would
+    // give is a hand worth sending back for nothing.
+    const { state, player } = faithful(1, 'divination');
+    player.pantheon.beliefs = [];
+    player.faithPool = 400;
+    openFaithLadder(state);
+    const offer = player.pantheon.pending;
+    expect(offer).toBeDefined();
+    const ctx = valueContext(state, player);
+    // Deal it the worst gods in the bag, so the redeal is the honest answer.
+    const ranked = [...beliefPool(state, player)].sort(
+      (a, b) => explainCard(player, a as never, ctx).total - explainCard(player, b as never, ctx).total,
+    );
+    offer!.options = ranked.slice(0, offer!.options.length) as never;
+    const asked = nextBotDecision(state, player.id);
+    expect(asked?.command.type).toBe('rerollOffer');
+    expect(nextBeliefRerollCost(state, player.id)).toBe(0);
+    // The best gods, and it takes one instead — the arm is a comparison, not a
+    // habit.
+    offer!.options = ranked.slice(-offer!.options.length).reverse() as never;
+    expect(nextBotDecision(state, player.id)?.command.type).toBe('chooseBelief');
+    // And a hand already asked again costs faith, so the arm stands down — which
+    // is what keeps the driver's loop finite.
+    offer!.options = ranked.slice(0, offer!.options.length) as never;
+    offer!.rerolls = 1;
+    expect(nextBeliefRerollCost(state, player.id)).toBeGreaterThan(0);
+    expect(nextBotDecision(state, player.id)?.command.type).toBe('chooseBelief');
   });
 });

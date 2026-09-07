@@ -3627,9 +3627,9 @@ export interface UnitCostLine {
 }
 
 /**
- * The age band **every** hammer price is multiplied by, and the label it prints
- * under: `costAgeBase ** age`, where the age is the band of the technology that
- * unlocks the row, or Æra I for a row nothing gates.
+ * The factor **every** hammer price is multiplied by, and the label it prints
+ * under: `costAgeBand[age − 1]`, where the age is the band of the technology
+ * that unlocks the row, or Æra I for a row nothing gates.
  *
  * Read off the tree rather than stored on the row, because "when does this
  * belong" is already written down once — in `unlocks` — and a second copy on
@@ -3640,57 +3640,134 @@ export interface UnitCostLine {
  * user's early-production ruling, `docs/flags.md` item y). It was a unit-only
  * ladder before that, and the asymmetry is exactly what the ruling was about:
  * an empire in Æra III paid twice over for its army and the printed base for
- * everything it could raise, so hammers stopped meaning anything. See
- * `ProductionRules.costAgeBase` for the shape of the number.
+ * everything it could raise, so hammers stopped meaning anything.
+ *
+ * The steep end arrived on 2026-09-07 (item aa — "4–5× what they are now in age
+ * 4 only", then the curve drawn out: 1.25 · 2.5 · 4.5 · 8.5). One line prints,
+ * whatever the table says: "Æra III ×4.5", never the designer's arithmetic.
+ *
+ * An age past the end of the table takes the last entry rather than falling to
+ * ×1: the tree stops at Æra IV today, and the day an Æra V node lands its row
+ * should be dear until the user prices the era, not free.
  */
-function ageCostBand(gate: TechId | undefined): { age: number; factor: number } {
+function ageCostBand(gate: TechId | undefined): CostBand {
   const age = gate === undefined ? 1 : techDef(gate).age;
-  return { age, factor: RULES.production.costAgeBase ** age };
+  const band = RULES.production.costAgeBand;
+  const factor = band[Math.min(age, band.length) - 1] ?? 1;
+  return { age, factor, label: `Age band · Æra ${eraNumeral(age)} ×${factor}` };
+}
+
+/** What the age band does to one price: the era it read, the factor, the line. */
+interface CostBand {
+  age: number;
+  factor: number;
+  label: string;
 }
 
 /** The band a unit's price is multiplied by — its unlocking tech's. */
-function unitCostFactor(type: UnitTypeId): { age: number; factor: number } {
+function unitCostFactor(type: UnitTypeId): CostBand {
   return ageCostBand(UNIT_UNLOCK_TECH.get(type));
 }
 
 /** The band a building's or a wonder's price is multiplied by. */
-function buildingCostFactor(id: BuildingId): { age: number; factor: number } {
+function buildingCostFactor(id: BuildingId): CostBand {
   return ageCostBand(BUILDING_UNLOCK_TECH.get(id));
+}
+
+/**
+ * How many cities this empire holds, for the unique's own line below. Founding
+ * order, `state.cities`, owner by id — the same reading every other sweep takes.
+ */
+function citiesHeldBy(state: GameState, playerId: number): number {
+  let held = 0;
+  for (const city of state.cities) if (city.ownerId === playerId) held += 1;
+  return held;
+}
+
+/**
+ * What a **once-per-empire** row costs an empire of this size, against its
+ * printed price: `√(cities ÷ uniqueCostBreakeven)`.
+ *
+ * The ruling (2026-09-07, `docs/flags.md` item dd — "the once-per-empire
+ * buildings scale in COST with the number of cities, not in effect"): a single
+ * Forum paying the whole realm is worth what the realm is, so a one-city seat
+ * buys it at half price and a nine-city empire at half again over. A root
+ * rather than a straight share because the alternative punishes width twice —
+ * the empire that has more cities to pay for it is already the one paying more
+ * maintenance for them.
+ *
+ * A context-less asking (the Compendium, which has no empire in hand) is priced
+ * at the **breakeven**, ×1: the entry then prints the row's own figure, which is
+ * the honest neutral reading, and the panel a player actually buys from always
+ * has a seat.
+ */
+function uniqueCostFactor(cities: number): number {
+  const breakeven = RULES.production.uniqueCostBreakeven;
+  if (!(breakeven > 0)) return 1;
+  // Floored at one city: an empire with none cannot build anything, and a
+  // factor of zero would print a free capstone on a star chart.
+  return Math.sqrt(Math.max(1, cities) / breakeven);
 }
 
 /**
  * What one of this building — or this wonder — costs to raise, as the ordered
  * list the price is the fold of (hard rule 5, said about a price).
  *
- * Two lines, and the second is the whole of what 2026-09-06 added:
+ * Three lines, at most:
  *
  *   1. **the row's price** — `cost` off `data/buildings.json`.
- *   2. **the age band** — `ageCostBand`, on the figure above it.
+ *   2. **the age band** — `ageCostBand`, on the figure above it. It is the
+ *      user's four-figure table since 2026-09-07 (item aa), which is why an Æra
+ *      IV building folds to eight and a half times its printed row and still
+ *      prints one line.
+ *   3. **the empire's size**, for a `oncePerEmpire` row only — `uniqueCostFactor`
+ *      on the banded figure, after the band and never inside it.
  *
- * It takes no player, and that is a statement rather than an oversight: nothing
- * an empire does changes what a building costs to *build*. A settler has a
- * ladder and a card rule; a granary has neither, and the day a card cheapens
- * buildings this grows a third line and a `playerId` in the same breath —
- * `explainUnitCost` is the shape it would take. What an empire does change is
- * what a building costs to *buy*, and that is `explainPurchaseCost`, which folds
- * this list and then asks the riders.
+ * **It takes a player now** (2026-09-07, item dd), and that is the reversal of a
+ * statement this docblock used to make: "nothing an empire does changes what a
+ * building costs to build" was true of every row until the unique's line, and
+ * the day it named — "the day a card cheapens buildings this grows a third line
+ * and a `playerId` in the same breath" — arrived as a cost that scales with how
+ * many cities the one copy will serve. The empire is **optional**, because two
+ * honest callers have none: the Compendium, which describes rows rather than a
+ * game, and a caller pricing a row before it belongs to anybody. Both get the
+ * breakeven reading (see `uniqueCostFactor`), and every ordinary row is
+ * unaffected either way.
  *
- * The band **floors**, once, exactly as the unit fold's does: a queue's cost is
+ * Each line **floors**, exactly as the unit fold's do: a queue's cost is
  * compared against a basket in `planProduction` and printed on a button beside
  * a turn estimate, and a price with a fraction on it would be a figure no
- * surface could print honestly. The line carries the *difference* it makes, so
- * the list still sums to the price.
+ * surface could print honestly. Each line carries the *difference* it makes, so
+ * the list still sums to the price however the roundings fall.
  */
-export function explainBuildingCost(id: BuildingId): UnitCostLine[] {
+export function explainBuildingCost(
+  id: BuildingId,
+  state?: GameState,
+  playerId?: number,
+): UnitCostLine[] {
   const def = buildingDef(id);
   const lines: UnitCostLine[] = [{ source: def.name, amount: def.cost }];
-  const { age, factor } = buildingCostFactor(id);
+  let running = def.cost;
+  const { factor, label } = buildingCostFactor(id);
   if (factor !== 1) {
-    const scaled = Math.floor(def.cost * factor);
-    lines.push({
-      source: `Age band · Æra ${eraNumeral(age)} ×${factor}`,
-      amount: scaled - def.cost,
-    });
+    const scaled = Math.floor(running * factor);
+    lines.push({ source: label, amount: scaled - running });
+    running = scaled;
+  }
+  if (def.oncePerEmpire === true) {
+    const cities =
+      state !== undefined && playerId !== undefined
+        ? citiesHeldBy(state, playerId)
+        : RULES.production.uniqueCostBreakeven;
+    const share = uniqueCostFactor(cities);
+    if (share !== 1) {
+      const scaled = Math.floor(running * share);
+      lines.push({
+        source: `Empire of ${Math.max(1, cities)} cities ×${share.toFixed(2)}`,
+        amount: scaled - running,
+      });
+      running = scaled;
+    }
   }
   return lines;
 }
@@ -3700,9 +3777,17 @@ export function explainBuildingCost(id: BuildingId): UnitCostLine[] {
  * and nothing else — `planProduction` charges it, `queueItemCost` quotes it, the
  * build list prices its rows with it and the star chart quotes an unbuilt one
  * through it, so the number on the button is the number the basket pays.
+ *
+ * The empire is optional for the reason `explainBuildingCost`'s docblock gives:
+ * it changes a `oncePerEmpire` row's price and nothing else, and a caller with
+ * no seat in hand is asking about the row rather than about a game.
  */
-export function buildingProductionCost(id: BuildingId): number {
-  return foldUnitCost(explainBuildingCost(id));
+export function buildingProductionCost(
+  id: BuildingId,
+  state?: GameState,
+  playerId?: number,
+): number {
+  return foldUnitCost(explainBuildingCost(id, state, playerId));
 }
 
 /**
@@ -3726,7 +3811,9 @@ export function buildingProductionCost(id: BuildingId): number {
  *      ×1.25 rather than ×1 since 2026-09-06 (item y), so the opening moved with
  *      everything else: the ruling is that hammers were cheap against what a
  *      city could make, and an exemption for the age the complaint started in
- *      would have been a rule with a hole in it. See `ProductionRules`.
+ *      would have been a rule with a hole in it. Item aa's curve (2026-09-07)
+ *      left that opening figure exactly where it was and took the far end to
+ *      ×8.5. See `ProductionRules`.
  *   4. **the empire's law** — `settlerCost`, asked only of the **settler**: the
  *      rule names the settler by id and predates the ladder's generalisation, so
  *      it is not widened to any other escalating type — a card that cheapens
@@ -3767,13 +3854,10 @@ export function explainUnitCost(
     }
   }
 
-  const { age, factor } = unitCostFactor(type);
+  const { factor, label } = unitCostFactor(type);
   if (factor !== 1) {
     const scaled = Math.floor(running * factor);
-    lines.push({
-      source: `Age band · Æra ${eraNumeral(age)} ×${factor}`,
-      amount: scaled - running,
-    });
+    lines.push({ source: label, amount: scaled - running });
     running = scaled;
   }
 
@@ -3821,7 +3905,7 @@ export function unitProductionCost(
  * is unknown. Units are priced by `unitProductionCost` and buildings by
  * `buildingProductionCost`; a **project** is the one flat row left, and it is
  * flat on purpose (item y, 2026-09-06: the age band prices *things*, and a
- * conversion is not one — see `ProductionRules.costAgeBase`).
+ * conversion is not one — see `ProductionRules.costAgeBand`).
  *
  * A project's cost is what one *turn of the conversion* costs — it is charged
  * again the moment it is paid, because a project never leaves the queue (see
@@ -3843,7 +3927,9 @@ export function queueItemCost(
   if (item.kind === 'project') {
     return isProjectId(item.id) ? projectDef(item.id).cost : null;
   }
-  return isBuildingId(item.id) ? buildingProductionCost(item.id) : null;
+  // The owner rides through to the building fold as well since item dd: a
+  // `oncePerEmpire` row is priced against how many cities it will serve.
+  return isBuildingId(item.id) ? buildingProductionCost(item.id, state, playerId) : null;
 }
 
 /** The display name of a queue item, or its raw id if the id is unknown. */
@@ -4717,7 +4803,7 @@ function planQueueItem(
   if (isWonder(id) && wonderClaim(state, id) !== undefined) {
     return { kind: 'drop', item, index };
   }
-  const cost = buildingProductionCost(id);
+  const cost = buildingProductionCost(id, state, city.ownerId);
   if (hammers < cost) return null;
   return { kind: 'building', item, index, id, cost };
 }

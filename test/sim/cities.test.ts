@@ -2553,14 +2553,15 @@ describe('escalating settler cost', () => {
    *
    * **Re-aimed 2026-09-06** (`docs/flags.md` item y): Æra I used to multiply by
    * one, so the ladder's rungs were the row's own arithmetic and this suite
-   * could say `BASE + n * STEP`. The band is `1.25 ^ age` for every age now, so
-   * a rung is the *escalated* figure scaled and floored once — which is the
-   * order `explainUnitCost` prints its lines in, and therefore the order the
-   * arithmetic runs in. `ROW + n * STEP` is no longer a price and is not used
-   * as one anywhere below.
+   * could say `BASE + n * STEP`. Every age has a band now (`costAgeBand`, one
+   * factor per Æra since H11), so a rung is the *escalated* figure scaled and
+   * floored once — which is the order `explainUnitCost` prints its lines in, and
+   * therefore the order the arithmetic runs in. `ROW + n * STEP` is no longer a
+   * price and is not used as one anywhere below. A settler is Æra I, whose
+   * factor H11 left exactly where H10 set it.
    */
   const priced = (built: number): number =>
-    Math.floor((ROW + built * STEP) * RULES.production.costAgeBase);
+    Math.floor((ROW + built * STEP) * RULES.production.costAgeBand[0]!);
   const BASE = priced(0);
 
   /** A city big enough to finish a settler, with hammers to spare. */
@@ -2607,11 +2608,11 @@ describe('escalating settler cost', () => {
       expect(unitProductionCost(state, 0, id), id).toBe(priced);
       state.players[0]!.unitsBuilt.settler = 5;
       // And the band is the only thing between the printed cost and the price.
-      // One base raised to the age since H10 (2026-09-06, `docs/flags.md` item
-      // y), where it used to be a hand-authored four-entry ladder: `cost ×
-      // 1.25 ^ age`, and Æra I is inside the rule rather than exempt at ×1.
+      // One factor per Æra since H11 (2026-09-07, `docs/flags.md` item aa —
+      // 1.25 · 2.5 · 4.5 · 8.5), asked of every hammer price, with Æra I inside
+      // the rule rather than exempt at ×1 (H10, item y).
       const age = techDef(UNIT_UNLOCK_TECH.get(id)!).age;
-      expect(priced, id).toBe(Math.floor(def.cost * RULES.production.costAgeBase ** age));
+      expect(priced, id).toBe(Math.floor(def.cost * RULES.production.costAgeBand[age - 1]!));
     }
     // Two types escalate today: the settler (founds cities) and the worker (a
     // per-type ladder of its own, schema 31's generalisation).
@@ -2748,7 +2749,7 @@ describe('escalating settler cost', () => {
     expect(worker.ownerId).toBe(0);
     expect(state.players[0]!.unitsBuilt.worker).toBeUndefined();
     expect(unitProductionCost(state, 0, 'worker')).toBe(
-      Math.floor(unitDef('worker').cost * RULES.production.costAgeBase),
+      Math.floor(unitDef('worker').cost * RULES.production.costAgeBand[0]!),
     );
   });
 });
@@ -2763,7 +2764,7 @@ describe('escalating worker cost', () => {
   const STEP = unitDef('worker').escalation!;
   /** The settler suite's own reading of a rung — see the docblock there. */
   const priced = (built: number): number =>
-    Math.floor((ROW + built * STEP) * RULES.production.costAgeBase);
+    Math.floor((ROW + built * STEP) * RULES.production.costAgeBand[0]!);
   const BASE = priced(0);
 
   it('reads the base off the row and climbs by the row\'s own step', () => {
@@ -2794,7 +2795,7 @@ describe('escalating worker cost', () => {
     expect(unitProductionCost(state, 0, 'settler')).toBe(
       Math.floor(
         (unitDef('settler').cost + 5 * unitDef('settler').escalation!) *
-          RULES.production.costAgeBase,
+          RULES.production.costAgeBand[0]!,
       ),
     );
   });
@@ -3292,7 +3293,7 @@ describe('determinism with cities', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(81);
+    expect(SCHEMA_VERSION).toBe(84);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

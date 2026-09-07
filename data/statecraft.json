@@ -674,6 +674,23 @@
         }
       ]
     },
+    "foundersCharter": {
+      "name": "The Founders' Charter",
+      "tier": 4,
+      "line": "charter",
+      "flavor": "The charter is read aloud before the first stone is laid.",
+      "text": "+2 authority capacity · newly founded cities are founded with a Monument.",
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 2
+        },
+        {
+          "kind": "foundingRider",
+          "building": "monument"
+        }
+      ]
+    },
     "thalassocracy": {
       "name": "Thalassocracy",
       "tier": 10,
@@ -6212,11 +6229,15 @@
       "rarity": "rare",
       "flavor": "Ask the last questions first.",
       "text": "The learning of the last age is counted toward the great work itself.",
-      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there.",
-      "deferred": [
-        "a bead of your own for every second technology of the fifth age you finish, while this Order stands in a slot"
-      ],
-      "effects": []
+      "note": "Dealt only once the last age is reached, and earned only there.",
+      "effects": [
+        {
+          "kind": "beadPerOccasion",
+          "occasion": "lastAgeTechnology",
+          "bead": "theLastLearning",
+          "every": 2
+        }
+      ]
     },
     "theLastLaurels": {
       "name": "The Last Laurels",
@@ -6227,11 +6248,14 @@
       "rarity": "rare",
       "flavor": "Refuse the wreath and they carve you two.",
       "text": "A draft turned down is counted toward the great work itself.",
-      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there.",
-      "deferred": [
-        "a bead of your own each time you pass on a draft, while this Order stands in a slot"
-      ],
-      "effects": []
+      "note": "Dealt only once the last age is reached, and earned only there.",
+      "effects": [
+        {
+          "kind": "beadPerOccasion",
+          "occasion": "draftPassed",
+          "bead": "theWreathRefused"
+        }
+      ]
     },
     "theSaltedEarth": {
       "name": "The Salted Earth",
@@ -6242,11 +6266,14 @@
       "rarity": "rare",
       "flavor": "Nothing grows there now. That was the point.",
       "text": "A city put to the torch is counted toward the great work itself.",
-      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there.",
-      "deferred": [
-        "a bead of your own each time you raze a city, while this Order stands in a slot"
-      ],
-      "effects": []
+      "note": "Dealt only once the last age is reached, and earned only there.",
+      "effects": [
+        {
+          "kind": "beadPerOccasion",
+          "occasion": "cityRazed",
+          "bead": "theSownSalt"
+        }
+      ]
     },
     "theFinalProclamation": {
       "name": "The Final Proclamation",
@@ -6257,11 +6284,130 @@
       "rarity": "rare",
       "flavor": "Read once, in every square, at the same hour.",
       "text": "A prophet’s proclamation is counted toward the great work itself.",
-      "note": "Not built: a bead is won by the deeds each age deals out, and no Order can hand one over yet. Dealt only once the last age is reached, and earned only there.",
-      "deferred": [
-        "a bead of your own for each prophet’s proclamation, while this Order stands in a slot"
-      ],
-      "effects": []
+      "note": "Dealt only once the last age is reached, and earned only there.",
+      "effects": [
+        {
+          "kind": "beadPerOccasion",
+          "occasion": "proclamationMade",
+          "bead": "theWordGoneOut"
+        }
+      ]
+    },
+    "theEldersWrit": {
+      "name": "The Elders' Writ",
+      "pool": "chiefdom",
+      "slot": "economic",
+      "line": "charter",
+      "rarity": "common",
+      "flavor": "The old men remember where every boundary stone was set.",
+      "text": "+1 authority capacity.",
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 1
+        }
+      ]
+    },
+    "theTallySticks": {
+      "name": "The Tally Sticks",
+      "pool": "chiefdom",
+      "slot": "economic",
+      "line": "star",
+      "rarity": "common",
+      "flavor": "A notch for each debt, and a shelf of notches is a school.",
+      "text": "+1 science in every city with a Monument.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "science": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "monument"
+          }
+        }
+      ]
+    },
+    "theMarches": {
+      "name": "The Marches",
+      "pool": "governmentI",
+      "slot": "military",
+      "line": "charter",
+      "rarity": "uncommon",
+      "flavor": "The border is held by men who were promised the land beyond it.",
+      "text": "+2 authority capacity · −1 happiness in every city.",
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 2
+        },
+        {
+          "kind": "happiness",
+          "amount": -1,
+          "per": "city"
+        }
+      ]
+    },
+    "theCensus": {
+      "name": "The Census",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "charter",
+      "rarity": "uncommon",
+      "flavor": "Every hearth counted, and every hearth answerable.",
+      "text": "+1 authority capacity for each 2 cities you hold.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "cities",
+          "per": 2,
+          "pays": {
+            "to": "authority",
+            "amount": 1
+          }
+        }
+      ]
+    },
+    "theScribesHall": {
+      "name": "The Scribes' Hall",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "star",
+      "rarity": "uncommon",
+      "flavor": "A town grows large enough, and somebody starts writing things down.",
+      "text": "+1 science in every city for each 3 citizens living there.",
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "population",
+          "per": 3,
+          "within": "city",
+          "pays": {
+            "to": "yield",
+            "yield": "science",
+            "amount": 1,
+            "where": "city"
+          }
+        }
+      ]
+    },
+    "theLampKeptLit": {
+      "name": "The Lamp Kept Lit",
+      "pool": "governmentI",
+      "slot": "wildcard",
+      "line": "star",
+      "rarity": "rare",
+      "flavor": "One window in the palace burns all night, and has for a hundred years.",
+      "text": "+25% science in your capital.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 25,
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
     }
   },
   "tierLadder": [

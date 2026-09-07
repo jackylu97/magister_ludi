@@ -541,8 +541,13 @@ describe('a game with contributions and a consecration', () => {
       const g = game(77);
       const city = found(g.state, 0);
       const player = playerById(g.state, 0)!;
-      player.gold = 5000;
+      // Deep enough that the two presses below finish the row, whatever the age
+      // band says it costs: the faith bank buys sixty hammers and the treasury
+      // has to cover the rest. **Re-aimed for H11** (2026-09-07, item aa —
+      // an Æra III row is ×4.5 now, so a flat 5000 gold stopped completing it),
+      // and computed through the fold so the next retune moves nothing.
       player.faithPool = 60;
+      player.gold = buildingProductionCost(CONSECRATOR) * GOLD_RATE;
       queueCathedral(city);
       for (const command of [
         giveCommand(city.id, 'faith'),

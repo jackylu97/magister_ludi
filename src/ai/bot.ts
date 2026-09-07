@@ -240,13 +240,24 @@ import {
   explainContribution,
   purchaseError,
 } from '../sim/purchase';
-import { gainBeliefError, plantHolySiteError, riteError } from '../sim/religion';
+import {
+  beliefPool,
+  gainBeliefError,
+  nextBeliefRerollCost,
+  placeRelicError,
+  plantHolySiteError,
+  religionBeliefPool,
+  rerollError,
+  rerollKindFor,
+  riteError,
+} from '../sim/religion';
 import { riteDef } from '../sim/religionData';
 import { totalSpecialists } from '../sim/specialists';
 import {
   SLOT_WORDS,
   anyCardDef,
   draftCost,
+  heldReligions,
   livePool,
   offerSize,
   slotOrderError,
@@ -2181,11 +2192,39 @@ function doctrineDecision(state: GameState, player: Player, sitting?: BotSitting
   };
 }
 
-/** The best-scoring god of a Consecrate's hand, or a follower bag's. */
+/**
+ * The best-scoring god of a Consecrate's hand, or a follower bag's — **or the
+ * free redeal, when the hand is a poor one** (batch H12).
+ *
+ * The reroll is the one verb in Statecraft this bot had never asked for, and the
+ * ruling of 2026-09-07 (item i) is what made it worth asking: the pantheon's hand
+ * **pays its rung at the deal**, and the *first* asking on any belief hand is free
+ * (`explainBeliefRerollCost`). So a bad hand costs nothing to send back, and a
+ * bot that never sent one back was leaving a free draw on the table every time
+ * the ladder dealt it three gods it did not want.
+ *
+ * **The bar is the pool's own mean**, and it is deliberately the simplest honest
+ * one. A fresh hand is several draws out of the same bag, so what it deals is at
+ * *least* as good as one draw — the mean — and usually better; taking the redeal
+ * only when the best card on the table falls below that mean is therefore a
+ * comparison this bot cannot lose on average, without an expectation-of-the-
+ * maximum over a bag whose draw weights are not the Order table's
+ * (`expectedBestOrder` is typed to Orders and reads `orderDrawWeight`).
+ * Deliberately not tuned by a knob: a free redeal of a below-average hand is not
+ * a matter of taste.
+ *
+ * It fires **at most once per hand** by construction, which is what keeps the
+ * driver's loop finite: `settleReroll` raises `BeliefOffer.rerolls`, the second
+ * asking costs faith, and this arm only ever asks while the asking is free.
+ */
 function beliefDecision(state: GameState, player: Player, sitting?: BotSitting): BotDecision {
   const playerId = player.id;
-  const options = player.pantheon.pending?.options ?? [];
-  const picked = pickCard(player, options, seatContext(state, player, sitting));
+  const offer = player.pantheon.pending;
+  const options = offer?.options ?? [];
+  const ctx = seatContext(state, player, sitting);
+  const picked = pickCard(player, options, ctx);
+  const redeal = beliefRedeal(state, player, ctx, picked);
+  if (redeal !== null) return redeal;
   return {
     kind: 'draft',
     command: { type: 'chooseBelief', playerId, optionIndex: picked.index },
@@ -2196,6 +2235,76 @@ function beliefDecision(state: GameState, player: Player, sitting?: BotSitting):
         : `Takes ${cardName(options[picked.index]!)} — the best-scoring belief on offer.`,
     candidates: picked.candidates,
   };
+}
+
+/**
+ * **Ask the gods again, for nothing** — `beliefDecision`'s other half, or `null`
+ * when this hand is worth taking (or when asking again is not free).
+ *
+ * Every clause is the simulation's own: `rerollKindFor` says the belief hand is
+ * the one a reroll would redeal (an Order draft outranks it, and rerolling *that*
+ * costs faith and is a different decision), `nextBeliefRerollCost` says whether
+ * this asking is free, and `rerollError` is the gate the command is held to.
+ */
+function beliefRedeal(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  picked: { index: number; candidates: BotCandidate[] },
+): BotDecision | null {
+  const offer = player.pantheon.pending;
+  if (offer === undefined || offer.options.length === 0) return null;
+  if (rerollKindFor(player) !== 'belief') return null;
+  if (nextBeliefRerollCost(state, player.id) > 0) return null;
+  if (rerollError(state, player.id) !== null) return null;
+
+  const pool = redealBag(state, player);
+  if (pool.length === 0) return null;
+  let sum = 0;
+  for (const id of pool) sum += scoreCard(player, id, ctx);
+  const mean = sum / pool.length;
+  const best = picked.candidates.reduce((top, candidate) => Math.max(top, candidate.score), 0);
+  if (best >= mean) return null;
+
+  const candidates: BotCandidate[] = [
+    ...picked.candidates.map((candidate) => ({ ...candidate, chosen: false })),
+    {
+      label: 'ask again — the first asking is free',
+      score: mean,
+      chosen: true,
+      terms: [
+        {
+          label: `the mean of the ${pool.length} gods still in the bag, which a fresh hand deals at least`,
+          value: mean,
+        },
+      ],
+    },
+  ];
+  return {
+    kind: 'draft',
+    command: { type: 'rerollOffer', playerId: player.id },
+    subject: player.name,
+    summary:
+      `Asks the gods again — the first asking on a hand is free, and the best god on this table is ` +
+      `worth ${round1(best)} against ${round1(mean)} for an average draw from the bag.`,
+    candidates,
+  };
+}
+
+/**
+ * **The bag the redeal would draw from** — the pantheon's own (`beliefPool`) or
+ * the founded faith's remaining follower/enhancer rows (`religionBeliefPool`),
+ * whichever hand is on the table.
+ *
+ * The simulation's two readings, asked rather than reimplemented: which one it is
+ * is `BeliefOffer.pool`'s answer, exactly as `settleReroll` reads it when it
+ * deals the replacement.
+ */
+function redealBag(state: GameState, player: Player): readonly BeliefId[] {
+  const pool = player.pantheon.pending?.pool;
+  if (pool === undefined) return beliefPool(state, player);
+  const mine = heldReligions(state, player.id)[0];
+  return mine === undefined ? [] : religionBeliefPool(mine, pool);
 }
 
 /**
@@ -4366,6 +4475,7 @@ function unitCommand(
     if (trades(def)) return traderCommand(state, player, unit, sitting);
     if (def.consecrates === true) return augurCommand(state, player, unit);
     if (def.prophesies === true) return prophetCommand(state, player, unit);
+    if (def.proclaims === true) return apostleCommand(state, player, unit);
     if (isPlainBuilder(def)) return workerCommand(state, player, unit, sitting);
     if (isExplorer(def)) return scoutCommand(state, player, unit);
     if (isCombatant(def)) return soldierCommand(state, player, unit);
@@ -4416,6 +4526,10 @@ function isPlainBuilder(def: ReturnType<typeof unitDef>): boolean {
   if (def.greatWork === true) return false;
   if (def.consecrates === true) return false;
   if (def.prophesies === true) return false;
+  // **And the apostle** (batch H12). It carries charges and none of the markers
+  // above, so it fell through to the spade's brain and stood in a field it could
+  // never dig; its charges are a relic, a proclamation and a healing.
+  if (def.proclaims === true) return false;
   return true;
 }
 
@@ -6132,6 +6246,67 @@ function prophetCommand(state: GameState, player: Player, unit: Unit): UnitChoic
     };
   }
   return standDown(unit, 'Nowhere to plant, nothing to deepen and nowhere legal to step.');
+}
+
+/**
+ * An apostle's: **leave the relic where it will be kept, else walk to a town
+ * that would keep one, else stand quiet.**
+ *
+ * Batch H12, and it is the piece's first arm of any kind — an apostle used to
+ * fall through `isPlainBuilder` into the *worker's* brain (it carries charges and
+ * none of the three markers that branch above it), where it stared at a wheat
+ * field it may never plough. Of its three charges this bot prices exactly one:
+ * `placeRelic`, a shelf paying a standing trickle in a town that has topped out
+ * its cathedral (`explainRelic`, `wants.ts`). The other two are written down as
+ * unpriced rather than guessed at — a proclamation is a lump on a tide this bot
+ * has no reading of, and a healing is hit points, which is a fraction of a piece.
+ *
+ * The walk is the settler's shape without the settler's search: the towns are
+ * this empire's own, the gate on each is the simulation's (`placeRelicError`
+ * asked as though the piece stood there is not a thing this file may do, so the
+ * *reachable* town is chosen by the path and the refusal is asked again on
+ * arrival, which is the same bargain every arm here strikes with the reducer).
+ */
+function apostleCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
+  const tried: BotCandidate[] = [];
+  const here = placeRelicError(state, player.id, unit.id);
+  if (here === null) {
+    tried.push(chosenAt('leave the relic', 0));
+    return {
+      command: { type: 'placeRelic', playerId: player.id, unitId: unit.id },
+      summary: 'Leaves its relic in this town, which keeps paying long after the apostle is gone.',
+      candidates: tried,
+    };
+  }
+  tried.push(refused('leave the relic', here));
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id) continue;
+    if (city.col === unit.col && city.row === unit.row) continue;
+    const tile = getTileAt(state.map, city.col, city.row);
+    if (!tile) continue;
+    if (findPath(state, unit, tile) === null) continue;
+    // The town has to be one a relic could actually be left in, and the one
+    // reading of that this file keeps is the *shelf's* marker — the same clause
+    // `explainRelic` prices the apostle by, so the piece walks to the town the
+    // book bought it for.
+    if (!cityWouldKeepRelic(city)) continue;
+    tried.push(chosenAt(`walk to ${city.name}`, tried.length));
+    return {
+      command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: { col: city.col, row: city.row } },
+      summary: `Walks to ${city.name}, whose cathedral would keep the relic it carries.`,
+      candidates: tried,
+      focus: { col: city.col, row: city.row },
+    };
+  }
+  return standDown(unit, 'No town of this empire would keep a relic, and its other charges are unpriced.');
+}
+
+/** Has this town a consecrated shelf — the clause `placeRelicError` calls `cityKeepsRelics`? */
+function cityWouldKeepRelic(city: City): boolean {
+  for (const id of city.buildings) {
+    if (buildingDef(id).consecrated === true) return true;
+  }
+  return false;
 }
 
 /** A hex beside the prophet where its work would be legal, or `null`. */

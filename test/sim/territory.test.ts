@@ -233,14 +233,14 @@ describe('a monument buys three or four tiles by the early game', () => {
     const city = foundCityAt(state, 0, at(state.map, 8, 8));
     city.buildings.push('monument');
 
-    // No `+ 1` since batch D: the monument supplies no writ any more, and the
-    // town is here for its culture rather than for its capacity.
+    // The `+ 1` is back (ruling n, 2026-09-07 — batch H13): the Monument
+    // supplies a writ again, so a monument town stands at the first writ rung
+    // and its accrual carries the rung's percentage. The schedule below is
+    // therefore the curve **under the writ**, not the bare one batch D pinned.
     expect(authorityOf(state, 0)).toBe(
-      WRIT.palaceCapacity + RULES.meters.authority.capital * -1 - WRIT.capital,
+      WRIT.palaceCapacity + RULES.meters.authority.capital * -1 - WRIT.capital + 1,
     );
-    // **And below the first writ rung since batch D**, so nothing multiplies
-    // this town's accrual at all and the schedule below is the bare curve.
-    expect(tierPercent(authorityOf(state, 0))).toBe(0);
+    expect(tierPercent(authorityOf(state, 0))).toBeGreaterThan(0);
 
     const claimedOn: number[] = [];
     let claimed = 0;
@@ -259,7 +259,12 @@ describe('a monument buys three or four tiles by the early game', () => {
     // that the town's own culture is no longer floored on its way through Entry
     // XVII's stages, so a fraction of a point a turn accumulates instead of
     // being thrown away, and every rung after the first arrives a turn sooner.
-    expect(claimedOn.slice(0, 5)).toEqual([2, 4, 8, 15, 24]);
+    // Re-pinned 2026-09-07 (ruling n, batch H13 — the Monument's writ back):
+    // 2 · 4 · 8 · 15 · 24 became 2 · 4 · 8 · 14 · 22. The curve did not move;
+    // the town now stands at the first writ rung, and the rung's tenth on
+    // three culture a turn — the three tenths batch X stopped throwing away —
+    // buys the fourth and fifth tiles a turn or two sooner.
+    expect(claimedOn.slice(0, 5)).toEqual([2, 4, 8, 14, 22]);
 
     // And the claim, as a band over the window: four or five tiles on every
     // turn from 25 to 30 (the 2026-09-05 ruling's reading — it was three or

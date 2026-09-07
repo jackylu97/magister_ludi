@@ -48,5 +48,13 @@ cut lists: `docs/design-history.md`.
   count read once in the `renown` phase of the age-advance turn.
 - `CompletionGrant` includes `bead` and `greatPerson(family)`;
   `TechDef.paysBead` (Alchemy) and `ageEntryDice` ride tech rows.
+- **The bead Orders** (batch H3, 2026-09-07): a card may mint a grant bead of
+  its own on a deed — `CardEffect`'s `beadPerOccasion`, four last-age deeds
+  (`OrderBeadOccasion`), one bead row each. `awardBead` is still the only
+  writer; what these rows give up is the grant class's once-per-empire key
+  (`BeadGrantDef.repeatable`), because the deed is one an empire repeats. The
+  four are dealt only from the last age (`OrderDef.fromAge`) and earned only
+  there — "the last age" is whichever age the chart ends in (`LAST_TECH_AGE`),
+  Æra IV until Æra V has nodes.
 - UI: the abacus flip modal per award; the age-opening deed sheet shows the
   revealed table to everyone at world-first.

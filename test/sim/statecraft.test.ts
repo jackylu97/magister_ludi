@@ -34,6 +34,7 @@ import {
   yieldContextFor,
 } from '../../src/sim/cities';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
+import { beadGrantDef } from '../../src/sim/beadData';
 import { previewCombat } from '../../src/sim/combat';
 import { type BuildingId, BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { chopFeatureAt, pillageAt, prospectAt } from '../../src/sim/improvements';
@@ -372,6 +373,10 @@ describe('the card table', () => {
       // `cardUnlocksBuilding` is read by `isUnlocked` and The Gilded Court
       // really does hand the Gilded Hall over.
       'unlocksBuilding',
+      // Batch H3: the four Æra V bead Orders carried `effects: []` and were
+      // being dealt paying nothing (`docs/audit/dead-code.md` §1.5). One shape
+      // lights all four, and it is in this register the moment it is declared.
+      'beadPerOccasion',
     ];
     for (const kind of expected) expect(used.has(kind), kind).toBe(true);
   });
@@ -1213,7 +1218,7 @@ describe('determinism', () => {
     // from its second turn on. 76 since batch E landed the tree's own gifts the
     // same day: ten nodes hand over something else, a third conversion project
     // joined the queue's vocabulary, and a road step is an empire fact.
-    expect(SCHEMA_VERSION).toBe(81);
+    expect(SCHEMA_VERSION).toBe(84);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -6967,23 +6972,45 @@ describe('the order pass of 2026-09-06', () => {
     }
   });
 
-  it('defers the four Æra V bead Orders whole, and says why on the row', () => {
-    // The pass's one debt in the data: a bead is won by the deeds each age
-    // deals, and no `CardEffect` can hand one to a card — so the four "just win
-    // now" Orders (`docs/orders-pass-3.md` §9) ship with their text and a
-    // `deferred` line, which is the vocabulary's own convention for a card whose
-    // shape does not exist yet.
-    for (const id of ['theGreatEnquiry', 'theLastLaurels', 'theSaltedEarth',
-      'theFinalProclamation'] as OrderId[]) {
-      const def = orderDef(id);
-      expect(def.effects, id).toEqual([]);
-      expect((def.deferred ?? []).length, id).toBe(1);
-      expect(def.note, id).toBeTruthy();
+  /**
+   * Re-aimed by batch H3 (`docs/audit/orchestrator.md`). It used to pin the four
+   * rows as **deferred whole** — the order pass's one debt in the data — and the
+   * audit's finding was that a deferred row is still dealt, so four of the last
+   * age's rare cards were paying nothing at all. The debt is paid: one shape
+   * (`beadPerOccasion`), four deeds, and the test now pins what the rows say
+   * rather than that they say nothing.
+   */
+  it('pays the four Æra V bead Orders on one shape, each on its own deed', () => {
+    const deeds: Record<string, string> = {
+      theGreatEnquiry: 'lastAgeTechnology',
+      theLastLaurels: 'draftPassed',
+      theSaltedEarth: 'cityRazed',
+      theFinalProclamation: 'proclamationMade',
+    };
+    const minted = new Set<string>();
+    for (const [id, occasion] of Object.entries(deeds)) {
+      const def = orderDef(id as OrderId);
+      expect(def.effects.length, id).toBe(1);
+      const effect = def.effects[0]!;
+      expect(effect.kind, id).toBe('beadPerOccasion');
+      if (effect.kind !== 'beadPerOccasion') throw new Error('unreachable');
+      expect(effect.occasion, id).toBe(occasion);
+      // The bead is a **repeatable grant** row, which is the whole of what lets
+      // one empire mint it more than once (`BeadGrantDef.repeatable`).
+      expect(beadGrantDef(effect.bead).repeatable, id).toBe(true);
+      minted.add(effect.bead);
+      // Nothing is left struck through on a row that now does what it says.
+      expect(def.deferred, id).toBeUndefined();
+      // The note keeps the half that is still true — where the card is dealt and
+      // where it is earned — and has dropped "Not built".
+      expect(def.note, id).toContain('last age');
+      expect(def.note, id).not.toContain('Not built');
       expect(def.pool, id).toBe('governmentV');
-      // And they are dealt: a deferred row is still a card in the bag, so the
-      // day the occasion exists it is already in play.
-      expect(poolOrders('governmentV').includes(id), id).toBe(true);
+      expect(poolOrders('governmentV').includes(id as OrderId), id).toBe(true);
     }
+    // One bead row each: four cards minting one bead between them would be four
+    // cards a player could not tell apart on the rod.
+    expect(minted.size).toBe(4);
   });
 
   it('takes the cap off exactly the two slot-flavour counts §9 named', () => {

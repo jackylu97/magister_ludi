@@ -189,7 +189,8 @@
     "projectValue": 10
   },
   "religion": {
-    "prophetTechValue": 600
+    "prophetTechValue": 600,
+    "tideShare": 0.5
   },
   "puppetProfile": {
     "weights": {

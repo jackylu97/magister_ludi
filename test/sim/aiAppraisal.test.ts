@@ -1976,11 +1976,18 @@ describe('the engine shapes, priced', () => {
         expect(armed.has(effect.kind), `${id} · ${effect.kind}`).toBe(true);
       }
     }
-    // And the four Æra V bead Orders really are the deferred ones.
+    // And the four Æra V bead Orders — the last rows in the deck that carried
+    // no effect at all — are built and priced (batch H3,
+    // `docs/audit/orchestrator.md`). They used to be this claim's stated
+    // exception; each now carries exactly one `beadPerOccasion`, and the arm
+    // that reads it is a `case` like any other.
     for (const id of ['theGreatEnquiry', 'theLastLaurels', 'theSaltedEarth',
       'theFinalProclamation'] as OrderId[]) {
-      expect(orderDef(id).effects, id).toEqual([]);
-      expect((orderDef(id).deferred ?? []).length, id).toBeGreaterThan(0);
+      const def = orderDef(id);
+      expect(def.effects.length, id).toBe(1);
+      expect(def.effects[0]!.kind, id).toBe('beadPerOccasion');
+      expect(def.deferred, id).toBeUndefined();
+      expect(armed.has('beadPerOccasion'), id).toBe(true);
     }
   });
 

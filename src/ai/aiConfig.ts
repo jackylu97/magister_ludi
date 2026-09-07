@@ -726,8 +726,34 @@ export interface AiConfig {
      * that lacks them, which is what makes faith dear in exactly the window the
      * beeline is already leaning toward the node. One number for one appetite,
      * rather than a worth here and two thresholds elsewhere.
+     *
+     * **It is the founding's *floor* since batch H12**, not its whole price: the
+     * faith book now reads what founding a religion would actually pay this
+     * empire (`explainFounding` — the stones, the rungs, the trickle) and the
+     * appetite stands under that reading rather than in place of it. What the
+     * knob still *is*, exactly, is the design addendum: how badly a seat with a
+     * god and no faith wants the door open at all.
      */
     prophetTechValue: number;
+    /**
+     * **What share of the foreign towns inside a holy site's reach this bot
+     * expects actually to follow it** — the tide, as one number (batch H12).
+     *
+     * The founder's trickle pays per *following* foreign city, and nothing on a
+     * board with no religion on it can say how many of the neighbours a faith
+     * founded today would end up converting: the tide is a race between two
+     * empires' sites, their temples halve what reaches them, and a town that
+     * follows this year may not next. What the bot *can* count is the reach —
+     * the foreign towns inside `rules.religion.siteRange` of one of its own,
+     * through its own fog — and this is the share of that count the trickle is
+     * priced on.
+     *
+     * At a half it says *some of your neighbours, not all of them*, which is
+     * what two hundred turns of the arena look like. Zero withdraws the trickle
+     * from the prophet's price entirely (the stones and the rungs still stand);
+     * one is an empire that expects to convert the world.
+     */
+    tideShare: number;
   };
 }
 

@@ -1239,7 +1239,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
     const figures = element('div', 'info-card-figures');
     figures.append(
-      element('span', 'info-card-cost', `${buildingProductionCost(id)}${HAMMER}`),
+      element('span', 'info-card-cost', `${buildingProductionCost(id, getGame().state, city.ownerId)}${HAMMER}`),
     );
     figures.append(
       element(
@@ -2569,7 +2569,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         button.disabled = locked || blocked !== null;
         button.setAttribute(
           'aria-label',
-          blocked ?? `${def.name} — ${buildingProductionCost(id)} production`,
+          blocked ?? `${def.name} — ${buildingProductionCost(id, state, city.ownerId)} production`,
         );
         const name = element('span', 'city-buildable-name', def.name);
         // The eyebrow: a wonder is a different *kind* of thing to spend a hundred
@@ -2591,7 +2591,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         } else {
           setYieldText(
             costSpan,
-            `${buildingProductionCost(id)}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length, quote))}`,
+            `${buildingProductionCost(id, state, city.ownerId)}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length, quote))}`,
           );
           button.append(costSpan);
           // What this town would gain today — Orders, beliefs, wonders, whatever

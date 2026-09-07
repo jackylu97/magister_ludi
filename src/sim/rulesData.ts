@@ -1189,14 +1189,14 @@ export interface ResearchRules {
  * a building's, a project's — lives in the content tables, because those
  * describe *a thing* rather than the system.
  *
- * One knob today, and it exists because the two halves of the game move at
- * different rates. Beaker costs climb roughly nine-fold between Age I and Age
- * III (16🔬 → 380🔬) while the roster's hammer prices climb about twice, so a
- * late empire's science pace buys it units that are, relative to everything
- * else it can spend hammers on, nearly free. The band reprices what a city
- * builds by the age of the technology that unlocks it rather than by hand, so a
- * designer retuning "how much dearer is a later thing" edits one number instead
- * of a hundred rows.
+ * One knob that matters here, and it exists because the two halves of the game
+ * move at different rates. Beaker costs climb roughly nine-fold between Age I
+ * and Age III (16🔬 → 380🔬) while the roster's printed hammer prices climb
+ * about twice, so a late empire's science pace buys it units that are, relative
+ * to everything else it can spend hammers on, nearly free. The band reprices
+ * what a city builds by the age of the technology that unlocks it rather than by
+ * hand, so a designer retuning "how much dearer is a later thing" edits four
+ * numbers instead of a hundred rows.
  *
  * **It is one rule for every hammer price since 2026-09-06** (the user, after
  * the second playtest: "my cities had way more production than things cost by
@@ -1204,20 +1204,47 @@ export interface ResearchRules {
  * `docs/flags.md`, rulings "late — early production", item y). It used to be a
  * hand-authored ladder that units alone read; buildings and wonders paid their
  * printed base at every age, which is most of why a late empire ran out of
- * things to build. Now the band is a *power* rather than a table, it is asked of
- * buildings and wonders on the same terms, and Æra I is no longer exempt.
+ * things to build. Since then it is asked of buildings and wonders on the same
+ * terms, and Æra I is no longer exempt.
+ *
+ * **The curve is the user's own, written out, since 2026-09-07** (item aa:
+ * "production costs are way too low… 4–5× what they are now in age 4 only",
+ * then, on seeing what a ratio produced, "the curve needs to be fairly
+ * exponential"). It was a power for a day — `costAgeBase ** age` — on the
+ * argument that a rule beats a table. The ruling settled that: the shape the
+ * user wants is not any power's, the four figures are the spec of record, and a
+ * table nobody can derive is a table the designer can tune era by era.
  */
 export interface ProductionRules {
   /**
-   * The age band every hammer price is multiplied by, as a base raised to the
-   * **age** of the technology that unlocks the row: `costAgeBase ** age`. At
-   * 1.25 that is ×1.25 · ×1.5625 · ×1.953125 · ×2.44140625 for Æra I to IV, so
-   * an Æra III thing costs about twice what its row prints.
+   * **What an era's things are worth** — one factor per Æra, in order, and every
+   * hammer price is `floor(cost × costAgeBand[age − 1])` where the age is the
+   * band of the technology that unlocks the row.
    *
-   * A base rather than a ladder because the ruling is a rule ("cost × 1.25 per
-   * age") and a four-entry table is a rule with three chances to disagree with
-   * itself. A row no technology unlocks is Æra I — the opening kit is priced in
-   * the money of the age it is played in, not for free.
+   * The ruling's own figures (2026-09-07, item aa — the user drew the curve
+   * after a ratio produced a University at 599 and the answer was "the curve
+   * needs to be fairly exponential"):
+   *
+   * | Æra I | Æra II | Æra III | Æra IV |
+   * |---|---|---|---|
+   * | ×1.25 | ×2.5 | ×4.5 | ×8.5 |
+   *
+   * so a Library (28, Æra I) costs 35, a Market (59, Æra II) 147, a Workshop
+   * (69, Æra III) 310 and a University (134, Æra IV) 1139. The table above is
+   * pinned against `data/rules.json` by a sync test — a figure edited in one
+   * place and not the other fails core.
+   *
+   * A **table** rather than a base raised to the age, which is what this was for
+   * a day: a power gives one shape and the shape the design wants is steeper at
+   * the end than at the start. Four authored numbers cannot disagree with the
+   * ruling the way a fitted curve can, and a designer retuning one era touches
+   * one entry.
+   *
+   * A row no technology unlocks is Æra I — the opening kit is priced in the
+   * money of the age it is played in, not for free. An age past the end of the
+   * table takes the last entry (`ageCostBand`, `cities.ts`): the tree stops at
+   * Æra IV today, and an Æra V row appearing before its factor does should cost
+   * the most the table knows rather than nothing.
    *
    * Applied as its own labelled line inside the cost fold — `explainUnitCost`
    * and `explainBuildingCost` (`cities.ts`) — and never at the point of sale, so
@@ -1226,7 +1253,27 @@ export interface ProductionRules {
    * project is deliberately outside it (`queueItemCost`): a project's cost is
    * the size of one conversion, not the price of a thing.
    */
-  costAgeBase: number;
+  costAgeBand: number[];
+  /**
+   * The empire size a **once-per-empire** building is priced at, in cities. A
+   * unique's hammers are multiplied by `√(cities ÷ uniqueCostBreakeven)` after
+   * the age band, so at 4 an empire of one city pays half, three cities 0.87,
+   * four the printed figure, nine one and a half, sixteen double.
+   *
+   * The ruling (2026-09-07, `docs/flags.md` item dd): the capstones pay the
+   * whole realm from one set of stones, so a wide empire was buying far more
+   * with the same hammers than a tall one. The scaling is on the **cost** and
+   * not on the effect — the effect-side table was withdrawn in the same breath,
+   * because a building that pays differently in every empire is a building
+   * nobody can read off its own card.
+   *
+   * Read in one place, `explainBuildingCost` (`cities.ts`), as its own labelled
+   * line; every surface that prints a price folds that list, so a purchase, a
+   * build list and a star chart all quote the same figure. A caller with no
+   * empire in hand — the Compendium — is priced at this figure exactly, which
+   * is what makes it the breakeven rather than a floor.
+   */
+  uniqueCostBreakeven: number;
   /**
    * Gold one hammer of an item's **full** production cost costs to buy outright
    * (M9's purchases, ledger Entry XXIX). The whole of the conversion, in one

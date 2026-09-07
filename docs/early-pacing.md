@@ -112,33 +112,48 @@ Doctrines own):
 |---|---|---|---|---|
 | chiefdom | The Elders' Writ | E | ● | +1 authority capacity. |
 | governmentI | The Marches | M | ◆ | +2 authority capacity · −1 happiness in every city. |
-| governmentI | The Census | E | ◆ | +1 authority capacity for each 3 cities you hold. |
+| governmentI | The Census | E | ◆ | +1 authority capacity for each 2 cities you hold. |
 | governmentII | (Provincial Governors stays) | | | |
 
 And one Doctrine at tier 4: **The Founders' Charter** — +2 authority
 capacity, a newly founded city starts with a Monument. (The tier-10 Gentle
 Yoke *costs* authority; it stays.)
 
-**Your call:** ☐ the four rows as written · ☐ fewer/other (mark the table).
+**Ruled 2026-09-07** (the user's marginalia: "Great, lets add these in", with
+The Census at *each 2 cities*): all four rows as written. `docs/flags.md`
+(cc); batch H13.
 
-### 2d. The once-per-empire buildings scale with the number of cities
+**Built (H13)** — schema 83. The Monument's `authorityCapacity` 1, the three
+Orders and The Founders' Charter, all as data rows: the flat capacity is
+`authority`, The Census is `countScaled` on `cities` per 2 (Assize Courts'
+shape), and the Charter's Monument is `foundingRider.building` — the shape The
+Founders' Road left standing when its own free Monument was taken away.
 
-*Ruled (o).* Shape: the row's effect carries `perCity: true` — the printed
-number is multiplied by the count of cities the empire holds, read once in
-`buildingEffects.ts`. The five uniques, as they stand and as proposed:
+### 2d. The once-per-empire buildings scale in **cost** with the number of cities
 
-| Building | Today | Proposed (× cities held) |
-|---|---|---|
-| Forum | +10% 🔬 🎵 in its city | **+2% 🔬 🎵 in every city per city you hold** (5 cities → +10% empire-wide) |
-| Caravanserai | +1🌾 +1⚙ on routes from its city | **+1🌾 +1⚙ on every route** (already scales: more towns, more routes) |
-| Heroic Epic | +50% renown in its city | **+10% renown in every city per city you hold**, general family only |
-| Imperial Throne | (yields only) | **+1 authority capacity per 3 cities you hold** |
-| High Temple | +6 pressure r6 · +25% 🕯 in its city | **+5% 🕯 in every city per city you hold**; the pressure stays |
+**Re-ruled 2026-09-07** (the user's marginalia: "I meant lets have the once
+per empire buildings scale in _cost_ with the number of cities … breakeven
+cost at 4 cities, it should grow sublinearly. However, lets have Imperial
+Throne get that bonus"). The effect-side table I proposed (Forum +2% per
+city, etc.) is **withdrawn**; the effects stay as they are.
 
-The Æra III–IV uniques (Chart the Stars, The Turning Heavens, The Alchemical
-Codex, The Magnum Opus) are unit and endgame rows and are left alone.
+- **The cost.** A `oncePerEmpire` row's hammer price carries one more line
+  in the fold: **× √(cities held ÷ 4)** — breakeven at four cities, below it
+  cheaper, above it dearer and sublinear (1 city ×0.5 · 2 ×0.71 · 3 ×0.87 ·
+  4 ×1 · 6 ×1.22 · 9 ×1.5 · 16 ×2). Applied after the age band, floored
+  once at the fold's total with everything else; the purchase price follows
+  the fold. The line reads "Empire of N cities ×f". `production.uniqueCostBreakeven`
+  4 in `data/rules.json`. Every once-per-empire row, the endgame ones
+  included (a bigger empire pays more for its Magnum Opus, which is the
+  wide/tall trade the ruling is for) — say if the Opus should be excepted.
+- **The Imperial Throne's effect** becomes **+3 authority capacity, and +1
+  more for every 3 cities you hold** (was a flat +5). Its upkeep rebate
+  and renown stay. **Built (H13)** — the second clause is a `countScaled` on
+  the row's own `effects` array, read once per realm because a `oncePerEmpire`
+  row is swept at the empire scale; the flat 3 stays `authorityCapacity`.
 
-**Your call:** mark each row; ☐ all five as written.
+`docs/flags.md` (dd). The cost line is H11's (it owns the fold tonight);
+the Throne's effect is H13's.
 
 ### 2e. Science Orders early (inclined, t)
 
@@ -152,7 +167,15 @@ engines up):
 | governmentI | The Scribes' Hall | E | ◆ | +1🔬 for each 3 citizens in every city. |
 | governmentI | The Lamp Kept Lit | W | ○ | +25% 🔬 in the capital while this stands in a slot. |
 
-**Your call:** ☐ the three · ☐ two of them (mark) · ☐ none — 2a is enough.
+**Ruled 2026-09-07** (the user's marginalia: "lets add all three"). All
+three rows as written. `docs/flags.md` (ee); batch H13.
+
+**Built (H13)** — schema 83. Three data rows on shapes that already stood: The
+Tally Sticks is `cityYields` under the `hasBuilding` scope, The Scribes' Hall is
+`countScaled` on `population` per 3 `within: 'city'` (Statute Labour's shape),
+and The Lamp Kept Lit is `percentYields` at the city stage under the `capital`
+scope. All three read as **payoffs** by the doc's own derivation, not engines —
+the Role column is derived from the effects and says so.
 
 ### 2f. Rerolls for Doctrines and great people (ruled, q)
 
@@ -181,9 +204,11 @@ keeps the face and greys the ink with the reducer's sentence on hover.
 - No new building rows: the complaint is *when* buildings arrive, not how
   many there are.
 
-## 4. Build order once marked
+## 4. Build order as marked (2026-09-07)
 
-1. 2b (the sweep + sync test) and 2c's Monument line — one batch, trivial.
-2. 2a's table.
-3. 2c's rows, 2d's `perCity`, 2e's rows — one data-and-shape batch.
-4. 2f and 2g — one statecraft + UI batch.
+1. 2b — built. 2a — superseded by rulings x, y, aa (H10, H11).
+2. **H11** (in flight) carries 2d's cost line beside the age band.
+3. **H13 — the wide-play rows**: 2c's Monument line and four rows, 2d's
+   Throne effect, 2e's three rows. One data-and-shape batch.
+4. **H14 — the rerolls and the buttons**: 2f and 2g. One statecraft + UI
+   batch, after H13.

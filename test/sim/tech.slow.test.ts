@@ -809,7 +809,7 @@ describe('pacing', () => {
     const rung = (built: number): number =>
       Math.floor(
         (unitDef('settler').cost + built * unitDef('settler').escalation!) *
-          RULES.production.costAgeBase,
+          RULES.production.costAgeBand[0]!,
       );
     const second = unitProductionCost(game.state, 0, 'settler');
     expect(second).toBe(rung(1));

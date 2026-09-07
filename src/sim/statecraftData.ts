@@ -47,7 +47,7 @@ import statecraftJson from '../../data/statecraft.json';
 // Type-only in both directions with `beadData.ts`, exactly as `religionData.ts`
 // is: a bead's boon carries ordinary `CardEffect`s and a bead id is a `CardId`,
 // and a *value* import either way would turn a type cycle into a runtime one.
-import type { BeadCardId } from './beadData';
+import type { BeadCardId, BeadGrantId } from './beadData';
 import type { BuildingCategory, BuildingId, ProductionCategory } from './buildingData';
 // Type-only in both directions, exactly as `religionData.ts` is. See `CardId`.
 import type { Family, GreatPersonId } from './greatPeopleData';
@@ -3461,6 +3461,76 @@ export interface CardRouteYieldEffect {
   perEndpointLuxury?: true;
 }
 
+/**
+ * A deed the **last age** counts, for the four Æra V bead Orders.
+ *
+ * A union of its own rather than a widening of `BeadOccasion`, and the reason is
+ * that the two lists answer different questions. `BeadOccasion` is *what the
+ * world announces* — thirteen firsts a deck may race for, each hooked once — and
+ * every one of them is already announced whether or not anybody is looking. These
+ * four are things the game does not announce at all, because until now nothing
+ * paid for them: a draft turned down, a town burnt, a proclamation read, and a
+ * node of the last age. Each is hooked at its own single seam and each is asked
+ * of one empire.
+ *
+ * They are named for the deed and never for the card, so a second row wanting
+ * "each time you raze a city" is a JSON row rather than a fifth occasion.
+ * `docs/audit/orchestrator.md` H3; reconciling the four occasion unions is H6's.
+ */
+export type OrderBeadOccasion =
+  /** A technology of the last age of the chart was finished. `settleResearch`. */
+  | 'lastAgeTechnology'
+  /** A whole Order draft was turned down. `settleOrderSkip`. */
+  | 'draftPassed'
+  /** A city this empire held was pulled down. `razeCityAt`. */
+  | 'cityRazed'
+  /** A prophet spoke. `proclaimAt`. */
+  | 'proclamationMade';
+
+/** Every occasion in the union, for the register test and the seams. */
+export const ORDER_BEAD_OCCASIONS: readonly OrderBeadOccasion[] = [
+  'lastAgeTechnology',
+  'draftPassed',
+  'cityRazed',
+  'proclamationMade',
+];
+
+/**
+ * **A glass bead of your own, on a deed you choose to do** — the shape the four
+ * Æra V bead Orders were written for and waited on (`docs/audit/dead-code.md`
+ * §1.5: four rows, one shape).
+ *
+ * It is a *rider on an occasion*, which is what keeps it out of the bead
+ * machinery's way: the row names a **grant** bead (`data/beads.json`) and the
+ * occasion that mints it, `statecraft.ts` answers which rows a live card mints,
+ * and `awardBead` is still the one and only writer of `Player.beads`. So the
+ * bead is announced, registered, diffed onto the rod and shown on the Abacus by
+ * exactly the machinery every other bead in the game uses, and the card added
+ * nothing beside it. The bead row carries `repeatable`, which is what lets one
+ * empire mint it more than once — see `BeadGrantDef.repeatable`.
+ *
+ * `every` is a **rhythm**, not a cap: The Great Enquiry pays on every second
+ * node of the last age, and the count it is measured against is the empire's own
+ * running total of that occasion, which only a seam that already keeps one can
+ * supply. An effect asking for a rhythm at a seam that counts nothing mints
+ * nothing rather than paying every time — the honest refusal, because the
+ * alternative is a card quietly paying twice what its own words promise.
+ *
+ * **Who may hold it is the deal's rule and not this one.** `OrderDef.fromAge`
+ * keeps these four rows out of every bag before the last age (`drawablePool`,
+ * the ruling of 2026-09-06 item (l)), so "earned only there" is true of a card
+ * nobody can be holding earlier, and a second age gate here would be the same
+ * rule written twice.
+ */
+export interface CardBeadOccasionEffect {
+  kind: 'beadPerOccasion';
+  occasion: OrderBeadOccasion;
+  /** Which bead row is minted. A grant row, and a repeatable one. */
+  bead: BeadGrantId;
+  /** Mint on every nth occasion instead of on each. Absent is every one. */
+  every?: number;
+}
+
 /** Everything a card may say. One union, one evaluator (`statecraft.ts`). */
 export type CardEffect =
   | CardCityYieldsEffect
@@ -3513,7 +3583,10 @@ export type CardEffect =
   | CardPeriodicEffect
   | CardPeriodShortenEffect
   | CardCityRenownPercentEffect
-  | CardRouteYieldEffect;
+  | CardRouteYieldEffect
+  // H3's one new shape (`docs/audit/orchestrator.md`): the four Æra V bead
+  // Orders had `effects: []` and were being dealt paying nothing.
+  | CardBeadOccasionEffect;
 
 /** Every `kind` in the union, for the register test that pins the evaluator. */
 export type CardEffectKind = CardEffect['kind'];

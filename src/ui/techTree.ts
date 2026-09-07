@@ -920,7 +920,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         element(
           'span',
           parts.length > 0 ? 'tech-unlock-note is-delta' : 'tech-unlock-note',
-          parts.length > 0 ? `${parts.join(' ')} now` : `${buildingProductionCost(building)}${HAMMER}`,
+          parts.length > 0 ? `${parts.join(' ')} now` : `${buildingProductionCost(building, state, playerId)}${HAMMER}`,
         ),
       );
       list.append(row);
@@ -1144,7 +1144,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         gift.kind === 'unit'
           ? `${unitProductionCost(state, playerId, gift.id)}${HAMMER}`
           : gift.kind === 'building'
-            ? `${buildingProductionCost(gift.id)}${HAMMER}`
+            ? `${buildingProductionCost(gift.id, state, playerId)}${HAMMER}`
             : gift.kind === 'project'
               ? `${projectDef(gift.id).cost}${HAMMER} → ${projectRate(gift.id, PROJECT_GLYPHS)}`
             : gift.kind === 'improvement'

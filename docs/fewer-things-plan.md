@@ -51,6 +51,124 @@ The play checkout (:5199) moves only when the user says; every batch lands in
 
 ## As shipped
 
+### Batch H11 as shipped (2026-09-07) — schema 82
+
+The cost scale (`docs/flags.md`, "Rulings 2026-09-07, small hours", item aa, and
+"the early-pacing doc, marked", item dd's cost half). Two rulings, one schema:
+the age band becomes the user's own curve, and the once-per-empire rows are
+priced against the realm they serve.
+
+#### (aa) The band is a table
+
+The complaint was about the level: *"production costs are way too low, they
+probably need to be like 4–5× what they are now"*, corrected a minute later to
+*"4–5× what they are now **in age 4 only**"*, and then, on being shown what a
+fitted ratio produced, *"the curve needs to be fairly exponential"*. So the band
+stopped being a rule and became four authored figures —
+`production.costAgeBand` in `data/rules.json`, read by `ageCostBand`
+(`cities.ts`) and by nothing else:
+
+| | Æra I | Æra II | Æra III | Æra IV |
+|---|---|---|---|---|
+| **H10 (`1.25 ^ age`)** | ×1.25 | ×1.5625 | ×1.953125 | ×2.44140625 |
+| **H11 (the table)** | **×1.25** | **×2.5** | **×4.5** | **×8.5** |
+
+Æra I is untouched — that is the correction read literally, and it is why most
+Æra I pins in the suite did not move. `costAgeBase` is gone; the doc table on
+`ProductionRules.costAgeBand` mirrors the data row and carries a sync test
+(`buildSinks.test.ts`), so a figure edited in one place and not the other fails
+core.
+
+Hammers the whole table asks for, by age — the printed rows in `data/*.json` are
+untouched, so every figure below is the fold's second line (the *before* column
+is today's rows under H10's power, so it differs by a hammer or two from the H10
+section's own table where rows have moved since):
+
+| | Æra I | Æra II | Æra III | Æra IV |
+|---|---|---|---|---|
+| units, before | 302 | 153 | 352 | 488 |
+| units, after | **302** | **252** | **817** | **1715** |
+| ordinary buildings, before | 3929 | 1484 | 2551 | 6751 |
+| ordinary buildings, after | **3929** | **2381** | **5889** | **23527** |
+| wonders, before | 947 | 951 | 6117 | 3161 |
+| wonders, after | **947** | **1524** | **14104** | **11007** |
+
+The four rows the user priced by hand when the curve was drawn, and four more to
+read the shape:
+
+| row | age | printed | H10 | H11 |
+|---|---|---|---|---|
+| Library | I | 28 | 35 | **35** |
+| Market | II | 59 | 92 | **147** |
+| Workshop | III | 69 | 134 | **310** |
+| University | IV | 134 | 327 | **1139** |
+| Warrior | I | 10 | 12 | **12** |
+| Swordsman | II | 14 | 21 | **35** |
+| Knight | IV | 22 | 53 | **187** |
+| The Great Library | III | 205 | 400 | **922** |
+
+**One printed line**, always: the fold says `Age band · Æra III ×4.5` and never
+the designer's arithmetic. The rounding H10 settled stands — each line carries
+the *difference* it makes to the running figure and floors there, so the list
+sums to the price the basket is charged. Purchases followed with no edit
+(`explainPurchaseCost` converts the folded list), and **projects are untouched**:
+a project's cost is the size of one turn of a conversion, not the price of a
+thing.
+
+#### (dd) A unique is priced against the realm it serves
+
+*"The once-per-empire buildings scale in COST with the number of cities, not in
+effect."* One more line in `explainBuildingCost`, after the age band and floored
+with it: `× √(cities held ÷ production.uniqueCostBreakeven)`, breakeven **4**.
+
+| cities | 1 | 2 | 3 | 4 | 9 | 16 |
+|---|---|---|---|---|---|---|
+| **factor** | ×0.50 | ×0.71 | ×0.87 | ×1.00 | ×1.50 | ×2.00 |
+
+It reads `Empire of 9 cities ×1.50` on its own line, and it touches the nine
+`oncePerEmpire` rows only — Heroic Epic, Imperial Throne, High Temple, Forum,
+Caravanserai, Chart the Stars, The Turning Heavens, The Alchemical Codex, The
+Magnum Opus. The Throne's *effect* change in the same ruling is H13's.
+
+**`explainBuildingCost` takes an empire now**, which reverses a statement H10's
+docblock made deliberately ("it takes no player… the day a card cheapens
+buildings this grows a third line and a `playerId` in the same breath"). The day
+came; the docblock says so in those words rather than quietly losing the claim.
+The empire is **optional** because two honest callers have none — a caller
+pricing a row before it belongs to anybody, and the Compendium, which describes
+rows rather than a game. Both get the **breakeven** reading, ×1: the book quotes
+the row's own banded figure and its docblock declares the exception. Every
+surface with a seat passes it: `queueItemCost`, the settlement plan,
+`explainPurchaseCost`, the city panel's three prices, the star chart's two.
+
+#### Schema and coverage
+
+Schema **82**: Æra I costs what v81 charged and everything after it costs more,
+so a v81 log diverges at the first thing an empire builds out of the opening age.
+
+Re-aimed rather than deleted: `buildSinks.test.ts` (the band is a table again;
+the roster's Æra II–IV figures; the fold's line reads `×8.5`; a new sync case for
+the ruling's four figures and a new "a unique is priced against the empire it
+will serve" suite), `cities.test.ts` · `cities.slow.test.ts` · `purchase.test.ts`
+· `state.test.ts` · `tech.slow.test.ts` (every `costAgeBase` reading is the
+table's entry now — all Æra I, so no figure moved), `cathedral.test.ts` (the
+replay harness funded a cathedral with a flat 5000 gold and an Æra III row is
+×4.5 now — it funds through the fold), `endgame.test.ts` (the Opus is a unique,
+so the contribution case funds it *with the empire in hand*), and the eleven
+schema pins.
+
+Measured after, on the scripted harnesses (all green, no loop bound moved): the
+five-town empire closes its ages on **76 · 142 · 470 · 950** (was 78 · 151 · 482
+· 967 before the unique line, 80 · 156 · 481 · 999 at the H10 re-aim); Government
+I t43, II t110, III t558 (this last pair read after H13's card rows landed
+beside this batch — it was t124 · t610 with the deck H11 measured against); the
+Æra III bead table opens t299; the one-city seat opens the Opus at **t3450**.
+
+**Left for the bot** (`src/ai/*` is H12's fence this batch): the bot prices
+buildings through `buildingProductionCost(id)` with no empire, so it reads a
+unique at the breakeven — cheap for a wide empire, dear for a one-city seat.
+One argument at each call site, whenever H12 frees the files.
+
 ### Batch H10 as shipped (2026-09-06) — schema 81
 
 Early production (`docs/flags.md`, "Rulings 2026-09-06, late — early

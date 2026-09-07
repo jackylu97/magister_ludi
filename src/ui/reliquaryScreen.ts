@@ -45,6 +45,16 @@
  * this file keeps is which card is face up, which is a fact about a conversation
  * and not about the game (`statecraftScreen.ts`'s held card, four screens over).
  *
+ * The one thing on it that is not a memory
+ * ----------------------------------------
+ * A rail of **calls** at the foot (`ReliquaryCall`, batch H3): the purchases The
+ * Commonwealth, The Magisterium and The Academy open at the great-person ladder,
+ * which the simulation has answered since those cards were written and which no
+ * screen in the game had ever offered. It is a foot rail rather than a second
+ * subject — the pile is still what the screen is for — and it draws nothing at
+ * all under a law that opens nothing, so the ordinary empire sees the screen it
+ * always saw.
+ *
  * What is deliberately **not** here: the lifetime "has produced" tally. It is
  * phase 2 and it needs a schema field (`docs/doctrine-ideas.md`), and a dash
  * standing in for it would be a number the screen does not have, printed as
@@ -61,6 +71,16 @@
 import { type GameState, playerById } from '../sim/state';
 import { type GreatPersonFace, greatPersonFace } from './greatPersonFace';
 import { type GreatPersonId, isGreatPersonId } from '../sim/greatPeopleData';
+import {
+  OFFER_PURCHASE_IDS,
+  type OfferPurchaseId,
+  greatPersonOfferBank,
+  greatPersonOfferPrice,
+  greatPersonPurchaseError,
+  greatPersonPurchaseOpen,
+} from '../sim/greatPeople';
+import { YIELD_GLYPH } from './figures';
+import { setYieldText } from './yieldMark';
 import { cardStampNode, landCardStamp } from './cardStamp';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 
@@ -142,6 +162,90 @@ export function reliquaryStep(index: number, total: number, direction: number): 
   return (((index + direction) % total) + total) % total;
 }
 
+/**
+ * One purchase the empire's law has opened at the great-person ladder, drawn as
+ * a control at the foot of this screen.
+ *
+ * **The draft the cards promised and no screen offered** (`docs/audit/
+ * orchestrator.md`, "What surprised me"): `purchaseGreatPersonOffer` has been
+ * built in the simulation since The Commonwealth was written, and until now
+ * nothing anywhere constructed the command — three live signature clauses that
+ * did nothing at all. It belongs *here* rather than on the offer card, because
+ * the offer card only exists when a hand has already been dealt and this is how
+ * a hand is dealt early; and here rather than on the Statecraft sheet, because
+ * the renown chip is the door a player already walks — renown, then a name, then
+ * what the name left behind.
+ *
+ * Every figure is the simulation's: `greatPersonOfferPrice` says what it costs,
+ * `greatPersonOfferBank` says which coin, and a refusal is
+ * `greatPersonPurchaseError`'s own sentence rather than a rule restated here.
+ * The interface supplies the glyph and the verb, exactly as it does on the
+ * reroll (`rerollControl`, `main.ts`).
+ */
+export interface ReliquaryCall {
+  purchase: OfferPurchaseId;
+  /** The button's words, the price included. "Call a name — 250💰". */
+  label: string;
+  /** The line beneath: what it deals, or the reducer's refusal. */
+  note: string;
+  /** True when the law is open and the bank is not. Greyed, never hidden. */
+  disabled: boolean;
+}
+
+/**
+ * What each purchase is **called**, and what taking it does.
+ *
+ * The interface's words, like the glyph — the simulation says which bank, what
+ * it costs and what it deals, and never how to say it. Two sentences at most and
+ * no number in either: the figure is on the button.
+ *
+ * The two halves of the ladder ruling are the whole difference between the
+ * notes. A ladder purchase buys a **rung**: the renown pool is spent covering it
+ * and the next recruitment is dearer. The Academy's scholars buy the **hand**:
+ * the pool is not touched and the threshold does not move.
+ */
+const CALL_WORDS: Record<OfferPurchaseId, { verb: string; note: string }> = {
+  gold: {
+    verb: 'Call a name',
+    note: 'The renown you still owe is covered and a hand of names opens at once. The pool is spent for it, so the call after this one asks for more.',
+  },
+  faith: {
+    verb: 'Call a name',
+    note: 'The renown you still owe is covered and a hand of names opens at once. The pool is spent for it, so the call after this one asks for more.',
+  },
+  scholarDraft: {
+    verb: 'Call for scholars',
+    note: 'A hand of great scholars, dealt on the spot. Your renown is not touched and the next call is no dearer for it.',
+  },
+};
+
+/**
+ * Every call this empire may be offered, in the register's own order.
+ *
+ * A closed law draws **nothing** and an open one draws a control whatever the
+ * bank holds — `greatPersonPurchaseOpen`'s two silences (`greatPeople.ts`). Pure,
+ * because "which buttons does a Commonwealth see" is exactly the sort of thing
+ * that is quietly wrong forever.
+ */
+export function reliquaryCalls(state: GameState, playerId: number): ReliquaryCall[] {
+  const calls: ReliquaryCall[] = [];
+  if (!playerById(state, playerId)) return calls;
+  for (const purchase of OFFER_PURCHASE_IDS) {
+    if (!greatPersonPurchaseOpen(state, playerId, purchase)) continue;
+    const words = CALL_WORDS[purchase];
+    const glyph = YIELD_GLYPH[greatPersonOfferBank(purchase)];
+    const label = `${words.verb} — ${greatPersonOfferPrice(purchase)}${glyph}`;
+    const problem = greatPersonPurchaseError(state, playerId, purchase);
+    calls.push({
+      purchase,
+      label,
+      note: problem ?? words.note,
+      disabled: problem !== null,
+    });
+  }
+  return calls;
+}
+
 export interface ReliquaryScreen {
   readonly isOpen: boolean;
   open(): void;
@@ -162,6 +266,12 @@ export interface ReliquaryScreenOptions {
   getState: () => GameState;
   getPlayerId: () => number;
   onOpen?: () => void;
+  /**
+   * A call was bought. The screen dispatches nothing itself — `controls.ts`'s
+   * discipline one sheet over: a screen names the verb and `main.ts` is the only
+   * place a command is constructed.
+   */
+  onCall?: (purchase: OfferPurchaseId) => void;
 }
 
 function element(tag: string, className: string, text?: string): HTMLElement {
@@ -287,6 +397,10 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
     if (roll.length === 0) {
       at = 0;
       body.append(element('p', 'rel-empty', RELIQUARY_EMPTY));
+      // **The calls are drawn on an empty screen too**, and that is the case
+      // that matters most: an empire that has just adopted The Commonwealth has
+      // no legacies yet and its whole signature clause lives on this rail.
+      drawCalls();
       return;
     }
     at = Math.min(Math.max(at, 0), roll.length - 1);
@@ -334,6 +448,41 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
     const count = element('p', 'rel-count', reliquaryCount(at, roll.length));
     count.setAttribute('aria-live', 'polite');
     body.append(count);
+    drawCalls();
+  }
+
+  /**
+   * The rail of calls at the foot — see `ReliquaryCall`.
+   *
+   * Below the pile rather than above it, because the pile is what the screen is
+   * for and this is a verb the law happens to allow; and drawn as decorated
+   * buttons in plain ink rather than as foot links (the user's ruling of
+   * 2026-09-06, item (r): a control meant to be taken sometimes for optimal play
+   * is a button). A refused call is **greyed with the refusal on it** rather
+   * than dropped, for the reroll's reason exactly: a price nobody can see is a
+   * plan nobody can make.
+   */
+  function drawCalls(): void {
+    const calls = reliquaryCalls(options.getState(), options.getPlayerId());
+    if (calls.length === 0) return;
+    const rail = element('div', 'rel-calls');
+    for (const call of calls) {
+      const line = element('div', 'rel-call-line');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'offer-pass offer-reroll rel-call';
+      // Through the printer, never as text: the label carries the bank's glyph.
+      const label = element('span', 'offer-look-label');
+      setYieldText(label, call.label);
+      button.append(label);
+      button.title = call.note;
+      button.disabled = call.disabled;
+      button.addEventListener('click', () => options.onCall?.(call.purchase));
+      line.append(button);
+      line.append(element('p', 'rel-call-note', call.note));
+      rail.append(line);
+    }
+    body.append(rail);
   }
 
   function step(direction: number): void {

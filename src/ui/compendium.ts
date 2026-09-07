@@ -50,8 +50,14 @@
  *
  * A **building's** price is printed whole, and the difference is the point: it
  * is `buildingProductionCost`, the fold of the row's figure and its age band,
- * because nothing an empire does changes it (`explainBuildingCost` takes no
- * player). So the book quotes the figure the town is actually charged.
+ * which is what any town in any empire is charged — with **one** exception,
+ * declared here rather than hidden. A `oncePerEmpire` row (the Forum, the three
+ * great works, the Opus) costs more the more cities the empire holds since
+ * 2026-09-07 (`docs/flags.md` item dd), so the book asks the fold with no seat
+ * and gets the **breakeven** reading: the figure an empire of
+ * `production.uniqueCostBreakeven` cities pays, which is the row's own banded
+ * price and the honest neutral quote for a page that describes rows rather than
+ * a game. The city panel, which has a seat, prints what that seat is charged.
  *
  * Every entry has a stable id
  * ---------------------------
@@ -1477,14 +1483,21 @@ function beadEntry(id: BeadCardId): CompendiumEntry {
   for (const line of def.deferred ?? []) clauses.push({ text: line, deferred: true });
   if (def.dormant !== undefined) clauses.push({ text: def.dormant, note: true });
 
+  // A **repeatable** reward says so instead of saying "once per empire", which
+  // would be the eyebrow contradicting the card underneath it: the four bead
+  // Orders mint theirs every time the deed is done (`BeadGrantDef.repeatable`).
+  const kindWord =
+    kind === 'grant' && (def as { repeatable?: boolean }).repeatable === true
+      ? 'a reward, every time it is earned'
+      : BEAD_KIND_WORD[kind];
   const scope =
     kind === 'feat'
       ? (def as { once: 'game' | 'age' }).once === 'age'
         ? 'a first in the world, once in each age'
         : 'a first in the world, once per game'
       : age === null
-        ? BEAD_KIND_WORD[kind]
-        : `${BEAD_KIND_WORD[kind]}, dealt in ${deckEraWord(age)}`;
+        ? kindWord
+        : `${kindWord}, dealt in ${deckEraWord(age)}`;
 
   const rows: CompendiumRow[] = [{ label: 'Family', figures: family.word }];
   if (kind === 'endeavour') {

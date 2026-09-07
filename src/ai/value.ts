@@ -96,6 +96,8 @@ import { explainEmpireGold } from '../sim/empireGold';
 import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
 import { renownPerTurn } from '../sim/renown';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
+import { availableRites } from '../sim/religion';
+import { LIVE_RITE_IDS, riteDef } from '../sim/religionData';
 import { RULES } from '../sim/rulesData';
 import {
   type PlayerStatecraft,
@@ -1542,6 +1544,17 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // costs is the difference between two draft plans, which is `wants.ts`'
       // question for `pantheonSlots`' stated reason. Named.
       return ctx.ai.score.unknownEffect;
+    case 'beadPerOccasion':
+      // **A glass bead the empire mints itself**, on a deed it chooses to do
+      // (the four Æra V bead Orders, H3). There is no rate for these four
+      // occasions in `tallyForecast` and there should not be one: a raze, a
+      // pass, a proclamation and a last-age node are decisions rather than
+      // tides, so a forecast would be this bot predicting its own future
+      // choices. What is honest is the **floor** — hold the card, do the deed
+      // the number of times the rhythm asks, and it has paid one bead — priced
+      // at `weights.bead`, the same coin the endgame chain prices the Opus and
+      // the Observatory's great works in.
+      return ctx.ai.weights.bead / Math.max(1, Math.floor(effect.every ?? 1));
     default:
       return unreadEffect(kind, ctx);
   }
@@ -1672,7 +1685,8 @@ function boardTempo(ctx: ValueContext): BoardTempo {
  * ride `ValueContext.threat`, so they are worth nothing in a quiet world and
  * something the turn a column arrives; the survey pair is worth nothing because
  * **the vein layer is shelved** (`veins.share` is 0 — no board has a seam); and
- * a rite is worth nothing because no augur stands and the bot has no rite verb.
+ * and a rite is a town's verb this bot now says, so it is the tempo the rules
+ * allow — a town keeps one for its blessing's length (batch H12).
  */
 function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
@@ -1738,10 +1752,19 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // The Geomancy layer is shelved (`docs/flags.md`, 2026-09-06): `veins.share`
       // is 0, so no board carries a seam and no hill can be asked.
       return 0;
-    case 'rite':
-      // No augur stands in any measured game and this bot has no rite verb on a
-      // unit; a rate would be a rate for a thing that never happens.
-      return 0;
+    case 'rite': {
+      // **A rite is a thing this bot does now** (batch H12): the faith book
+      // prices one per town per rite it knows, and the spend arm says one
+      // whenever the blessing beats holding the faith. So the rate is the tempo
+      // the rules allow rather than nought — a town keeps one rite at a time for
+      // `duration` turns, so a realm saying them steadily fires this occasion
+      // about once per town per blessing's length. Bounded by the rites the
+      // empire actually knows: a realm taught none says none.
+      const known = availableRites(ctx.state, ctx.playerId).length;
+      if (known === 0) return 0;
+      const span = Math.max(1, riteDef(LIVE_RITE_IDS[0]!).duration ?? 1);
+      return ctx.cities / span;
+    }
     default:
       return unreadOccasion(occasion);
   }
@@ -2067,7 +2090,10 @@ function scoreUnlockedBuilding(id: BuildingId, ctx: ValueContext): number {
   for (const voice of VOICES) bag[voice] = def[voice] ?? 0;
   const each = valueOfYields(bag, ctx) + explainBuildingRow(id, ctx).total;
   if (each <= 0) return 0;
-  const turns = buildTurns(buildingProductionCost(id), ctx);
+  // **The empire is handed in** (H11's handover): a `oncePerEmpire` row's price
+  // carries a line for the towns already held, so a context-less asking quotes
+  // the four-town breakeven to a realm of one and to a realm of twelve alike.
+  const turns = buildTurns(buildingProductionCost(id, ctx.state, ctx.playerId), ctx);
   return each * ctx.cities * delayDiscount(turns, ctx);
 }
 
@@ -2814,6 +2840,57 @@ export function explainCounted(
 }
 
 /**
+ * **What a counted row would pay at a count the caller has forecast** — batch
+ * H12, and the one thing `explainCounted` structurally cannot do.
+ *
+ * `explainCounted` asks the *board* what this empire counts, which is exactly
+ * right for a card being drafted and exactly wrong for the founder's trickle: an
+ * empire that has founded no religion has no following city anywhere, so the
+ * board's honest answer is nought and the row a prophet is being bought *for*
+ * prices at nothing. The count is the caller's here, and the caller has to have
+ * a reason for it — `why` is printed beside the number so a reader of the feed
+ * sees whose forecast it is.
+ *
+ * Everything after the count is `explainCounted`'s own arithmetic said again in
+ * the same order — the row's cap, `per` helpings, then `scorePayout` — so the
+ * trickle a prophet is priced by and the trickle a card would double are read
+ * through one reading of one payout. A row that is not a `countScaled` at all
+ * falls to `scoreEffect`, which is what it would have got anywhere else.
+ */
+export function explainForecastCount(
+  effects: readonly CardEffect[],
+  count: number,
+  why: string,
+  ctx: ValueContext,
+): Appraisal {
+  const terms: ValueTerm[] = [];
+  for (const effect of effects) {
+    if (effect.kind !== 'countScaled') {
+      terms.push({ label: effect.kind, value: scoreEffect(effect, ctx) });
+      continue;
+    }
+    const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
+    const capped = effect.max === undefined ? count : Math.min(count, effect.max * per);
+    const payout = scorePayout(effect.pays, ctx);
+    const inner: ValueTerm[] = [{ label: `${round(capped)} ${effect.count} — ${why}`, value: capped }];
+    if (capped < count) {
+      inner.push({
+        label: `(the row caps at ${effect.max} helping${effect.max === 1 ? '' : 's'})`,
+        value: 0,
+      });
+    }
+    if (per !== 1) inner.push({ label: `÷ ${per} counted per helping`, value: per, op: 'div' });
+    inner.push({
+      label: `× ${round(payout)} — what one helping pays`,
+      value: payout,
+      op: 'mul',
+    });
+    terms.push(nest(effect.count, appraise(inner)));
+  }
+  return appraise(terms);
+}
+
+/**
  * What this empire counts **today**, or `null` when nothing on the board can
  * answer at all.
  *
@@ -2953,9 +3030,10 @@ function potentialTownsFor(
       if (city.buildings.includes(id)) continue;
       if (buildError(ctx.state, ctx.playerId, 'building', id, city) !== null) continue;
       open += 1;
-      // The folded price, age band and all (H10): the row's printed cost is a
-      // base, and a town owes the fold.
-      hammers += buildingProductionCost(id);
+      // The folded price, age band and all (H10), asked **of this empire** (H11):
+      // the row's printed cost is a base, and a unique's price rises with the
+      // towns already held.
+      hammers += buildingProductionCost(id, ctx.state, ctx.playerId);
     }
   }
   return { open, cost: open === 0 ? 0 : hammers / open };

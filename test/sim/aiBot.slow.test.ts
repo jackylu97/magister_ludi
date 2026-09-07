@@ -391,15 +391,22 @@ describe('the arena: two hundred turns, two bots, one economy', () => {
         held: player.pantheon.beliefs.length > 0,
       }));
       expect(gods).toEqual(gods.map((entry) => ({ seat: entry.seat, held: true })));
-      // The founding is **printed, not pinned**, since 2026-09-06. The bot's
-      // faith book has no reading for what a prophet is worth (H2's report:
-      // the prophet purchase stopped on this seed under the whole-deck pass
-      // and no single arm brings it back — a knife-edge, not a mispriced
-      // shape), and H10's dearer hammers sharpen it. The machinery — the
-      // ladder deals, the pantheon fills — is the claim above; whether a
-      // prophet is bought is the book's deferred work, and this line is what
-      // the next pass measures against (`docs/flags.md`, the bot's faith
-      // book).
+      // **The founding is a pin again** (batch H12, 2026-09-07). It was printed
+      // and not pinned for a day: H2's whole-deck pass left the prophet's
+      // purchase on a knife-edge on this seed and no single arm brought it
+      // back, so the claim was un-pinned and this `[arena]` line was left in
+      // its place as the reading the faith book would be measured against
+      // (`docs/flags.md`, item bb). The book now prices what a prophet would
+      // actually do — the stones, the two rungs a founding deals, the founder's
+      // trickle over the tide's reach — and keeps a rite the bank cannot yet pay
+      // in the book so faith has something to be held for; the reading went
+      // **1 → 2**, both seats founding, and the claim is a pin again.
+      //
+      // Still a floor rather than a count, for the reason it always was: what is
+      // asserted is that the appetite works at all, not the tuning that decides
+      // how many faiths a two-hundred-turn board carries. The printed line stays
+      // beside it, because a pin says only that the number is not nought.
+      expect(played.game.state.religions.length).toBeGreaterThan(0);
       console.info(
         `[arena] religions founded by t200: ${played.game.state.religions.length} · ` +
           realPlayers(played.game.state)

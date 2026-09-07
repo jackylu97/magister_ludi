@@ -9,7 +9,8 @@
       "gold": 0,
       "science": 0,
       "culture": 2,
-      "sciencePerPop": 0
+      "sciencePerPop": 0,
+      "authorityCapacity": 1
     },
     "granary": {
       "name": "Granary",
@@ -2312,14 +2313,25 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "authorityCapacity": 5,
+      "authorityCapacity": 3,
       "oncePerEmpire": true,
       "unitUpkeepRebate": 1,
+      "effects": [
+        {
+          "kind": "countScaled",
+          "count": "cities",
+          "per": 3,
+          "pays": {
+            "to": "authority",
+            "amount": 1
+          }
+        }
+      ],
       "renown": {
         "family": "general",
         "perTurn": 1
       },
-      "note": "The seat of the realm. Soldiers raised in its shadow cost a little less to keep, for as long as they live."
+      "note": "The seat of the realm. The wider the realm, the further its writ carries. Soldiers raised in its shadow cost a little less to keep, for as long as they live."
     },
     "highTemple": {
       "name": "High Temple",

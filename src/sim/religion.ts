@@ -142,7 +142,7 @@ import { type ImprovementId, workForFamily } from './improvementData';
 import { improvementErrorAt } from './improvements';
 import { nextFloat } from './rng';
 import { RULES } from './rulesData';
-import { awardBeadOccasion } from './beads';
+import { awardBeadOccasion, awardOrderBeads } from './beads';
 import { awardOccasion } from './triumphs';
 import { unitDef, unitMaxHp } from './unitData';
 
@@ -2210,6 +2210,10 @@ export function proclaimAt(state: GameState, player: Player, unit: Unit): Procla
   const { range, lump } = bombFigures(state, player.id, unit);
   const report = pressLump(state, religion, { col: unit.col, row: unit.row }, range, lump);
   spendCharge(state, unit);
+  // **The Final Proclamation's bead** — announced at the act rather than at the
+  // command, the ten Triumph seams' rule: this is the one place a proclamation
+  // happens, and a prophet is a prophet whoever is driving it.
+  awardOrderBeads(state, player.id, 'proclamationMade');
   return report;
 }
 

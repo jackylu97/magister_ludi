@@ -299,7 +299,7 @@ export function explainPurchaseCost(
   const hammers: UnitCostLine[] =
     item.kind === 'unit'
       ? explainUnitCost(state, playerId, item.id)
-      : explainBuildingCost(item.id);
+      : explainBuildingCost(item.id, state, playerId);
   const cost = foldUnitCost(hammers);
   const rate = hammerRate(currency);
   const lines = [...hammers];

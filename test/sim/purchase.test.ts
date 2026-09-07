@@ -292,7 +292,7 @@ describe('buying a unit', () => {
     // 2026-09-06 (item y) — the ladder is what this case is about, and it starts
     // from the banded figure.
     expect(before).toBe(
-      Math.floor(unitDef('worker').cost * RULES.production.costAgeBase),
+      Math.floor(unitDef('worker').cost * RULES.production.costAgeBand[0]!),
     );
     expect(dispatch(g, buyCommand(city.id, WORKER)).ok).toBe(true);
     expect(player.unitsBuilt.worker).toBe(1);
@@ -300,7 +300,7 @@ describe('buying a unit', () => {
     // The empire's *next* worker is dearer; its settler ladder never moved.
     expect(unitProductionCost(g.state, 0, 'worker')).toBeGreaterThan(before);
     expect(unitProductionCost(g.state, 0, 'settler')).toBe(
-      Math.floor(unitDef('settler').cost * RULES.production.costAgeBase),
+      Math.floor(unitDef('settler').cost * RULES.production.costAgeBand[0]!),
     );
   });
 
@@ -829,6 +829,6 @@ describe('the schema witness', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(81);
+    expect(SCHEMA_VERSION).toBe(84);
   });
 });

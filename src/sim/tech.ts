@@ -280,6 +280,7 @@ import {
   BUILDING_UNLOCK_TECH,
   TECH_IDS,
   type TechId,
+  LAST_TECH_AGE,
   PROJECT_UNLOCK_TECH,
   UNIT_UNLOCK_TECH,
   highestAge,
@@ -290,7 +291,7 @@ import {
 } from './techData';
 import { awardOccasion } from './triumphs';
 import { BEAD_RULES, isBeadEndeavourId } from './beadData';
-import { awardBeadGrant, endeavourError, endeavourIsOffered } from './beads';
+import { awardBeadGrant, awardOrderBeads, endeavourError, endeavourIsOffered } from './beads';
 import { isProjectId, projectDef } from './projectData';
 import { type UnitTypeId, isNaval, isUnitTypeId, unitDef, unitMaxHp } from './unitData';
 
@@ -1331,6 +1332,14 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   // of the chart is paid for it, which is the user's ruling in full.
   const bead = techDef(plan.techId).paysBead;
   if (bead !== undefined) awardBeadGrant(state, player.id, bead);
+  // **The Great Enquiry's**, beside it and on the same principle: a node of the
+  // *last* age of the chart is the deed, the running tally is a read of the list
+  // the line above just pushed to, and the card decides whether that tally is
+  // worth a bead. `TECH_AGES` says which age is last rather than a numeral here,
+  // so a fifth age with nodes in it moves this with the chart.
+  if (techDef(plan.techId).age === LAST_TECH_AGE) {
+    awardOrderBeads(state, player.id, 'lastAgeTechnology', lastAgeTechCount(player));
+  }
   upgradeUnits(state, player);
   // The Lyceum's fifteen. Inside the one completion routine (Entry XVIII.1), so
   // a technology finished by star tablets pays the same verse as one finished by
@@ -1342,6 +1351,25 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
     settleCultureWindfall(state, player);
   }
   return { player, techId: plan.techId, name: techDef(plan.techId).name, cost: plan.cost };
+}
+
+/**
+ * How many nodes of the **last age** this empire has finished, the one just
+ * pushed included. The Great Enquiry's rhythm is measured against it.
+ *
+ * Derived rather than counted, which is the whole reason the card needs no field
+ * of its own: `techsResearched` is the record and the age is the node's own, so a
+ * technology finished by beakers, by star tablets or by a ruin is the same one
+ * deed however it arrived. `isTechId` guards the lookup for `state.ts`'s stated
+ * reason — a hand-edited save is the one thing that can put an unknown id here.
+ */
+function lastAgeTechCount(player: Player): number {
+  let count = 0;
+  for (const id of player.techsResearched) {
+    if (!isTechId(id)) continue;
+    if (techDef(id).age === LAST_TECH_AGE) count += 1;
+  }
+  return count;
 }
 
 /**

@@ -63,6 +63,7 @@ import {
   type BeadKind,
   type BeadOccasion,
   type BeadGrant,
+  type BeadGrantDef,
   type BeadGrantId,
   type BeadPrerequisite,
   type BeadWindfall,
@@ -82,7 +83,7 @@ import {
   isBeadReckoningId,
 } from './beadData';
 import { type BuildingId, isWonder, buildingDef } from './buildingData';
-import type { CardEffect } from './statecraftData';
+import type { CardEffect, OrderBeadOccasion } from './statecraftData';
 import {
   capitalCityOf,
   cityYields,
@@ -111,6 +112,7 @@ import {
 } from './state';
 import {
   type CardClause,
+  cardBeadOccasions,
   describeEffects,
   ref,
   religionFounder,
@@ -204,8 +206,13 @@ export function awardBead(
   // in this function: a grant is once per empire (`beadGrantedTo`), everything
   // else is once in the world at its age (`beadClaimed`). Both write the same
   // record, so the next check refuses by exactly the line this one wrote.
+  // A **repeatable** grant is the one row the register does not refuse a second
+  // time (`BeadGrantDef.repeatable`, the four Æra V bead Orders): the deed that
+  // names it is a deed an empire chooses to repeat, so the claim is still
+  // written and still announced and only the once-per-empire key is given up.
+  const repeats = kind === 'grant' && (def as BeadGrantDef).repeatable === true;
   const held = kind === 'grant' ? beadGrantedTo(state, id, playerId) : beadClaimed(state, id, age);
-  if (held) return null;
+  if (held && !repeats) return null;
   state.beads.claimed.push({ id, age, playerId: player.id, turn: state.turn });
   const earned: EarnedBead = { id, kind, family: def.family, turn: state.turn };
   player.beads.push(earned);
@@ -973,6 +980,46 @@ export function awardBeadGrant(
   id: BeadGrantId,
 ): BeadAward | null {
   return awardBead(state, playerId, id, 0);
+}
+
+/**
+ * Hands one empire whatever **its own standing cards** mint on this occasion —
+ * the four Æra V bead Orders, and the fourth seam into the grant class.
+ *
+ * The division of labour is the one the audit asked for: `statecraft.ts` is
+ * still the only module that switches on a `CardEffect.kind`, so it answers
+ * *which rows are minted* (`cardBeadOccasions`) and this answers *how a bead is
+ * earned*, which is `awardBead` and nothing else. Neither seam below knows
+ * about cards and neither knows about beads — each says the name of the thing
+ * that just happened, exactly as the ten Triumph seams do.
+ *
+ * `count` is the running total of this occasion for this empire, and it is
+ * passed only where the game already keeps one: The Great Enquiry pays on every
+ * second node of the last age, and "how many have I finished" is a read of
+ * `techsResearched` rather than a counter anybody has to maintain. An effect
+ * asking for a rhythm the seam cannot count mints nothing, which is the honest
+ * refusal — see `cardBeadOccasions`.
+ *
+ * **Nothing is reported out**: `applyCommand` diffs `beadMarks` around every
+ * command and `endTurn` diffs them around a resolution, so a bead minted here
+ * reaches the toast, the chronicle and the Abacus by the machinery that already
+ * carries every other bead. That is the whole reason this returns its awards
+ * for a caller that wants them and threads nothing.
+ */
+export function awardOrderBeads(
+  state: GameState,
+  playerId: number,
+  occasion: OrderBeadOccasion,
+  count?: number,
+): BeadAward[] {
+  const awards: BeadAward[] = [];
+  const player = playerById(state, playerId);
+  if (!player || player.barbarian) return awards;
+  for (const bead of cardBeadOccasions(state, playerId, occasion, count)) {
+    const award = awardBeadGrant(state, playerId, bead);
+    if (award) awards.push(award);
+  }
+  return awards;
 }
 
 // --- the endgame ------------------------------------------------------------
