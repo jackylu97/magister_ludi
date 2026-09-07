@@ -75,8 +75,32 @@ directly to confirm rulings — user marginalia are rulings.
   dead lines and a ninth root page. **H1 (the fold pays what the rows say)
   and H2 (the bot reads the whole deck) are in flight**; H3 (the draft the
   cards promise), H4 (dead weight), H5 (one modal shell, shared helpers),
-  H6 (luxuries as cards — high risk) wait for your markup. Two findings
-  from the re-aim, yours to rule:
+  H6 (luxuries as cards — high risk) wait for your markup.
+  **Rulings 2026-09-06, evening** (the user): (a) **the Reckless Levy's
+  cost is +1 maintenance per unit** — a flat per-unit charge, not a percent
+  (H1 carries it); (b) **the faith hover shows what the next pantheon rung
+  costs** — the faith ladder's next threshold and how far the bank is from
+  it; (c) **augurs leave Stonehenge and the religion panel** — Stonehenge's
+  completion grant becomes a free rung of the faith ladder (the orchestrator's
+  reading of "remove augurs": the same gift, a god, without the unit — say
+  if you meant something else), the panel's augur block goes; (d) **the
+  religion panel is reworked around the cards**: the pantheon's three faces
+  and the belief rungs as the sheet's subject (full faces, stamps, the next
+  rung's price and the bank's progress toward it), the tide and the
+  purchases (prophet · apostle · inquisitor) secondary. Batch **H7 — the
+  faith sheet** in flight. (e) **Pantheon rerolls are not free** — "it looks
+  like I'm allowed unlimited rerolls on my pantheon beliefs?": C1 read "great
+  prophets treated as free" as every belief hand; corrected in main — the
+  ladder's hand (the one carrying a rung) pays the Order draft's price and
+  counts, a prophet's hand stays free. (f) **Winter Mother pays +1 faith on
+  every tundra hex**, not only wooded tundra (one tile line: +1🌾 +1🕯 on
+  tundra). (g) **A barbarian camp keeps one unit fortified on the camp tile
+  before sending units out** — a fourth derived role beside raider / thief /
+  escort / cargo (`barbarianRoles` derives per turn, never stores): the
+  camp's first standing unit is its **warden**, holds the camp hex and
+  fortifies; every further muster raids as now. A camp whose warden dies
+  keeps its next-mustered piece home. Batch **H8 — the warden** in flight.
+  Two findings from the re-aim, yours to rule:
   1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
      user's ruling was always "unlock rites in the tech tree where they used
      to be"; C2's Chapel gate is removed (the tree is the only gate; the
