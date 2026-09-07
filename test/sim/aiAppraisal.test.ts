@@ -69,7 +69,13 @@ import {
   foldTerms,
 } from '../../src/ai/decision';
 import { type PlanEntry, buildImprovementPlan, rankWorkSites } from '../../src/ai/plan';
-import { delayTerm, explainBuildingRow, explainCounted, scoreEffects } from '../../src/ai/value';
+import {
+  delayTerm,
+  explainBuildingRow,
+  explainCounted,
+  hasFoldReadEngine,
+  scoreEffects,
+} from '../../src/ai/value';
 import aiJson from '../../data/ai.json';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
@@ -1879,9 +1885,14 @@ describe('the engine shapes, priced', () => {
    * register's stated reason — a percentage shape is *deliberately* priced
    * against the stand-in, so a number this test picked could collide by luck.
    *
-   * What an engine is *worth* is a different question and still an open debt:
-   * appraised alone an engine multiplies a deck this reading cannot see, which
-   * is `docs/fewer-things.md` §5's marginal reading and batch F2's job.
+   * What an engine is *worth* was a different question and an open debt until
+   * **batch F2**: appraised alone an engine multiplies a deck no reading of one
+   * row can see, so the four shapes the empire's own per-turn books *can* see
+   * (`hasFoldReadEngine`, `value.ts`) are priced by the difference the board
+   * reads — `V(deck ∪ card) − V(deck)` — and are armed by that door rather than
+   * by a `case` in `scoreEffect`. That is what takes **The Exchequer** off the
+   * debt list below: it doubles what `routeYields.ts` prints, and the marginal
+   * reading is the only appraiser in the bot that can see the caravans.
    */
   it('has an arm for every shape batch F wrote onto a card', () => {
     const PASS_F: OrderId[] = [
@@ -1917,12 +1928,14 @@ describe('the engine shapes, priced', () => {
     // The named debts, written down rather than swept under. Each wants a
     // reading this file does not have and each prices at the stand-in: an extra
     // caravan *slot* (batch E's, still open); every `CardRule` but the road
-    // fraction; and a percentage on **another table's** figure — The Exchequer
-    // doubles what `routeYields.ts` prints, which the appraiser reaches only
-    // through the marginal reading batch F2 builds.
-    // `windfallRider` is the oldest of them: an occasion's grant is worth what
-    // the occasion is worth, which no arm has ever tried to guess.
-    const debt = new Set(['routeRider', 'rulePercent', 'effectAmplifier', 'windfallRider']);
+    // fraction; and an occasion's grant, which is worth what the occasion is
+    // worth and which no arm has ever tried to guess.
+    //
+    // `effectAmplifier` left this list in batch F2 — but only where its target is
+    // a figure the per-turn books carry. A `riteDuration` amplifier moves the turn
+    // a blessing expires on, which is not a rate and appears in no reading of one,
+    // so that one still meets the stand-in.
+    const debt = new Set(['routeRider', 'rulePercent', 'windfallRider', 'effectAmplifier']);
     for (const id of PASS_F) {
       const def = orderDef(id);
       // A deferred row carries no effect at all, which is the convention for a
@@ -1932,6 +1945,8 @@ describe('the engine shapes, priced', () => {
         continue;
       }
       for (const effect of def.effects) {
+        // Armed by the marginal door (batch F2) rather than by a `case` label.
+        if (hasFoldReadEngine([effect])) continue;
         if (debt.has(effect.kind)) continue;
         expect(armed.has(effect.kind), `${id} · ${effect.kind}`).toBe(true);
       }

@@ -369,9 +369,16 @@ describe('a hundred turns of arithmetic', () => {
       // redundant piece go. Same sentence as the 2026-09-04 note, one cause
       // over — the arm doing its job rather than the economy failing — and the
       // list now reads all NINE kinds this bot has, which is the whole register.
+      //
+      // **`deal` left on 2026-09-06**, from batch G of the fewer-things pass
+      // (`docs/fewer-things-plan.md`): the draft ladder steepened
+      // (`meter.costExponent` 2.8) and the late chairs shrank, and on this seed
+      // the seats' trajectories no longer bring a deal to the table inside the
+      // hundred turns. Incidental, as every move on this list has been; the
+      // deal arm is unchanged and pinned deliberately in `aiWar.test.ts`. Eight
+      // kinds, and the sentence above stays true of the register.
       expect([...kinds].sort()).toEqual([
         'build',
-        'deal',
         'disband',
         'draft',
         'endTurn',

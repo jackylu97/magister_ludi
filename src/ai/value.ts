@@ -75,13 +75,23 @@ import type { BeadChain, ExpansionChain, TechChain } from './chain';
 import type { RouteOutlook } from './routes';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
-import { cityQuote, cityYields, empirePercents, tileOwnerField } from '../sim/cities';
+import {
+  cityQuote,
+  cityYields,
+  empirePercents,
+  empireRateReading,
+  tileOwnerField,
+} from '../sim/cities';
+import { authorityOf, happinessOf } from '../sim/meters';
+import { renownPerTurn } from '../sim/renown';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
 import {
+  type PlayerStatecraft,
   buildingMatchesYieldPercent,
   countOf,
   orderAtSlotPosition,
   periodicProbe,
+  slotTypesOf,
   statecraftOf,
 } from '../sim/statecraft';
 import {
@@ -89,8 +99,11 @@ import {
   type CardEffect,
   type CardId,
   type CardPeriodicEffect,
+  type OrderId,
+  isDoctrineId,
   isOrderId,
   orderDef,
+  orderFitsSlot,
 } from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
 import type { City, GameState } from '../sim/state';
@@ -1412,6 +1425,371 @@ function periodicWorth(effect: CardPeriodicEffect, ctx: ValueContext): number {
   if (figure === 0) return 0;
   if (effect.pays === 'renown') return figure * ctx.ai.weights.renown;
   return voiceWeight(ctx, effect.pays as Voice) * figure;
+}
+
+// --- the marginal reading: what a card does to the deck it would join --------
+
+/**
+ * **The whole of what this empire makes in a turn**, in the nine channels an
+ * appraisal in this file knows how to weigh — batch F2's `V`
+ * (`docs/fewer-things-plan.md`, row F2).
+ *
+ * Six of them are the simulation's own per-turn books (`empireRateReading`, the
+ * same fold the top bar prints and the resolution banks), and the other three are
+ * the standing readings the card arms already weigh: what the empire earns in
+ * renown a turn, and where its two meters stand. Nothing is estimated and no
+ * stand-in appears anywhere in it — this is the board's own answer.
+ */
+export interface DeckReading {
+  food: number;
+  production: number;
+  gold: number;
+  science: number;
+  culture: number;
+  faith: number;
+  renown: number;
+  happiness: number;
+  authority: number;
+}
+
+/** The nine channels, read off one board. Four empire sweeps; see `deckMargin`. */
+function deckReading(state: GameState, playerId: number): DeckReading {
+  const rates = empireRateReading(state, playerId);
+  return {
+    food: rates.foodPerTurn ?? 0,
+    production: rates.productionPerTurn ?? 0,
+    gold: rates.goldPerTurn ?? 0,
+    science: rates.sciencePerTurn ?? 0,
+    culture: rates.culturePerTurn ?? 0,
+    faith: rates.faithPerTurn ?? 0,
+    renown: renownPerTurn(state, playerId),
+    happiness: happinessOf(state, playerId),
+    authority: authorityOf(state, playerId),
+  };
+}
+
+/**
+ * The difference between two readings, weighted — **the** printed arithmetic of
+ * a marginal reading, and the reason the total and the breakdown cannot disagree:
+ * the value of the reading *is* the fold of these terms, so a channel that moved
+ * is a line a reader of the feed can see.
+ *
+ * The two meters are weighed at `meterWeight` and the renown at `weights.renown`,
+ * which is exactly what the flat card arms above weigh them at — the whole point
+ * of the reading is that it changes *what* is counted, never *how* it is priced.
+ */
+function readingTerms(before: DeckReading, after: DeckReading, ctx: ValueContext): ValueTerm[] {
+  const terms: ValueTerm[] = [];
+  for (const voice of VOICES) {
+    const delta = after[voice] - before[voice];
+    if (delta === 0) continue;
+    const weight = voiceWeight(ctx, voice);
+    terms.push({
+      label: `${voice} ${signed(delta)} a turn × ${round(weight)} ${weightWords(ctx, voice)}`,
+      value: delta * weight,
+    });
+  }
+  const renown = after.renown - before.renown;
+  if (renown !== 0) {
+    terms.push({
+      label: `renown ${signed(renown)} a turn × ${round(ctx.ai.weights.renown)}`,
+      value: renown * ctx.ai.weights.renown,
+    });
+  }
+  for (const meter of ['happiness', 'authority'] as const) {
+    const delta = after[meter] - before[meter];
+    if (delta === 0) continue;
+    terms.push({
+      label: `${meter} ${signed(delta)} × ${meterWords(ctx, meter)}`,
+      value: delta * meterWeight(ctx, meter),
+    });
+  }
+  return terms;
+}
+
+/**
+ * **The two boards a margin is the difference of** — this empire with the card in
+ * its deck, and the same empire without it — or `null` when there is no honest
+ * pair to read.
+ *
+ * The pair is taken from whichever side the empire is actually standing on, which
+ * is what makes the reading the same question for a card in a chair and a card on
+ * the table:
+ *
+ *   · a card **not** held is placed, and `without` is the board as it stands;
+ *   · a card **already slotted** has its chair emptied instead, and `with` is the
+ *     board as it stands. That is not a nicety: the arm that improves an
+ *     arrangement (`reslotDecision`, `bot.ts`) appraises the sitting card against
+ *     the challenger in one table, and a sitting card that answered "nothing,
+ *     because it is already played" would be swapped out of its chair for
+ *     anything at all.
+ *
+ * Both scratch boards are **shallow** clones, and every layer of them is shared
+ * but the one that changes: the players array, the one player, its
+ * `PlayerStatecraft`, and the slots. That is safe because every reading
+ * `deckReading` takes is a pure fold — `cityYields`, `explainEmpireGold`,
+ * `explainRenown` and the two meters mutate nothing — and it is what makes the
+ * marginal reading affordable at all. The evaluator's own memo (`liveReading`,
+ * `statecraft.ts`) is a `WeakMap` on the state object keyed by a print of the
+ * walk's *inputs*, so a scratch board builds its list once, answers off it, and is
+ * collected with it.
+ *
+ * **Which chair the card would take** is the placement the bot itself would make
+ * (`slottingDecision`, `bot.ts`): the first empty chair whose flavour admits it,
+ * and — when every chair that admits it is full — the chair of the worst card it
+ * would have to bench, which is `replacementCost`'s reading in `wants.ts` said
+ * about a *fitting* chair rather than about the whole government. A card no chair
+ * admits is a card this empire cannot play, and the pair is `null`.
+ *
+ * A **Doctrine** is not slotted at all: it is adopted, and `liveEffects` reads it
+ * off `PlayerStatecraft.doctrines`, so the scratch simply holds one more. Beliefs,
+ * technologies and every other card class answer `null` — the hypothetical would
+ * be a different verb each time, and none of them carries an engine shape today.
+ */
+function deckPair(
+  state: GameState,
+  playerId: number,
+  id: CardId,
+): { with: GameState; without: GameState } | null {
+  const sc = statecraftOf(state, playerId);
+  if (sc === undefined) return null;
+  if (isDoctrineId(id)) {
+    if (sc.doctrines.includes(id)) {
+      return {
+        with: state,
+        without: rewritten(state, playerId, {
+          ...sc,
+          doctrines: sc.doctrines.filter((held) => held !== id),
+        }),
+      };
+    }
+    return {
+      with: rewritten(state, playerId, { ...sc, doctrines: [...sc.doctrines, id] }),
+      without: state,
+    };
+  }
+  if (!isOrderId(id)) return null;
+  const seated = sc.slots.findIndex((slot) => slot !== null && slot.card === id);
+  if (seated >= 0) {
+    const slots = [...sc.slots];
+    slots[seated] = null;
+    return { with: state, without: rewritten(state, playerId, { ...sc, slots }) };
+  }
+  const chair = chairFor(sc, id);
+  if (chair === null) return null;
+  const slots = [...sc.slots];
+  slots[chair] = { card: id, sealedUntil: state.turn };
+  return { with: rewritten(state, playerId, { ...sc, slots }), without: state };
+}
+
+/** One seat's Statecraft, replaced, on a board that shares everything else. */
+function rewritten(state: GameState, playerId: number, sc: PlayerStatecraft): GameState {
+  const players = state.players.map((player) =>
+    player.id === playerId ? { ...player, statecraft: sc } : player,
+  );
+  return { ...state, players };
+}
+
+/**
+ * The chair this Order would take, or `null` when none admits it.
+ *
+ * The bench, when every fitting chair is full, is chosen by the card's **plain**
+ * reading — its effects alone, with no synergy and no margin of its own — and
+ * that is not merely thrift: `explainCard` is what asks for this, so ranking the
+ * benched cards by `explainCard` would be a recursion with no floor.
+ */
+function chairFor(sc: PlayerStatecraft, id: OrderId): number | null {
+  const layout = slotTypesOf(sc);
+  let worst: { chair: number; score: number } | null = null;
+  for (let index = 0; index < sc.slots.length; index++) {
+    const type = layout[index];
+    if (type === undefined || !orderFitsSlot(id, type)) continue;
+    const seated = sc.slots[index];
+    if (!seated) return index;
+    if (!isOrderId(seated.card)) continue;
+    const score = plainOrderScore(seated.card);
+    if (worst === null || score < worst.score) worst = { chair: index, score };
+  }
+  return worst === null ? null : worst.chair;
+}
+
+/**
+ * A benched card's rank, and nothing else it is used for — the count of what its
+ * row prints, weighted by nothing at all.
+ *
+ * A deliberately crude ordering, because what it decides is only *which* full
+ * chair the hypothetical takes when several would do. Anything richer would have
+ * to be an appraisal, and an appraisal is the thing calling this.
+ */
+function plainOrderScore(id: OrderId): number {
+  let score = 0;
+  for (const effect of orderDef(id).effects) score += Object.keys(effect).length;
+  return score;
+}
+
+/**
+ * **The shapes whose worth the empire fold can actually see** — the register
+ * batch F2 turns on, and the whole of what changes.
+ *
+ * Each of the four multiplies something that is already on the board and is
+ * therefore worth what the board makes it worth, never what a row alone says:
+ *
+ *   · `cardYieldAmplifier` — the deck engine. Its lines are the *other* slotted
+ *     Orders', so a card counted per town, a card scoped to the capital and a
+ *     card dressing hexes all pay differently, and only the fold knows which;
+ *   · `buildingYieldPercent` — the category payoff, which is worth a share of
+ *     shelves this empire has actually raised, staged and floored by the town's
+ *     own percentages (and composed with any `appliedLast` doubler already
+ *     slotted, which no reading of one row could see);
+ *   · `cityRenownPercent` — the same sentence in the renown channel;
+ *   · `effectAmplifier`, and only where its target is a figure the per-turn books
+ *     carry (see `foldReadsAmplifier`). **The Exchequer** is this clause: batch F
+ *     named it the deck's clearest trade payoff and the one the bot most
+ *     under-priced, because it fell to `score.unknownEffect` — six points for
+ *     doubling every caravan in the realm.
+ *
+ * Everything else keeps the arm it has, and three of them by explicit ruling:
+ * `periodic` and `periodShorten` pay a **windfall** rather than a rate, so the
+ * per-turn books cannot see them at all; `slotPosition` is priced as the doubled
+ * card's own reading, which is the brief's own sentence and reaches the half of a
+ * card (combat, rules) no yield fold carries.
+ */
+function foldReadEngine(effect: CardEffect): boolean {
+  switch (effect.kind) {
+    case 'cardYieldAmplifier':
+    case 'buildingYieldPercent':
+    case 'cityRenownPercent':
+      return true;
+    case 'effectAmplifier':
+      return foldReadsAmplifier(effect.target);
+    default:
+      return false;
+  }
+}
+
+/**
+ * Which `AmplifierTarget`s land in the per-turn books. Four do — a route's pay, a
+ * founder's trickle, and the two luxury readings, which are happiness — and
+ * `riteDuration` does not: it moves the turn a blessing is stamped to expire on,
+ * which is not a rate and never appears in a reading of one. That one keeps
+ * `score.unknownEffect`, which is honest: nothing in this file can price it.
+ */
+function foldReadsAmplifier(target: string): boolean {
+  return (
+    target === 'routeYields' ||
+    target === 'founderTrickle' ||
+    target === 'luxuryHappiness' ||
+    target === 'luxuryDuplicates'
+  );
+}
+
+/** Does this row carry a shape the marginal reading is for? See `foldReadEngine`. */
+export function hasFoldReadEngine(effects: readonly CardEffect[]): boolean {
+  for (const effect of effects) {
+    if (foldReadEngine(effect)) return true;
+  }
+  return false;
+}
+
+/**
+ * **`V(deck ∪ card) − V(deck)`**, asked of the board itself — batch F2's whole
+ * arithmetic, and the answer to the debt batch A and batch F both wrote down:
+ * *an engine appraised alone multiplies a deck this reading cannot see*.
+ *
+ * Two readings of the nine channels, one with the card in the chair it would
+ * take and one without it, differenced channel by channel and weighed exactly as
+ * every flat card arm weighs the same channels. That is the whole of it: no
+ * stand-in, no nominal helping, no guess at how many towns a line reaches — the
+ * simulation's own folds answer, with this empire's own buildings, hexes,
+ * caravans and slotted cards underneath them.
+ *
+ * `null` when there is no honest reading: a card no chair admits, a Doctrine
+ * already taken, a class of card that is not played into the deck at all.
+ *
+ * **What it costs**, and why that is affordable: two `deckReading`s. `valueContext`
+ * asks for a card's worth once per row of the government's live pool (the draft
+ * plan's `expectedBestOrder`) and the slotting arm asks once per held card per
+ * chair — so the answer is remembered for the life of the context that asked for
+ * it (`MARGIN_MEMO`), which is one seat's sitting. Only the rows that carry one of
+ * the four shapes ever ask at all, and a live pool holds a handful of them.
+ */
+export function deckMargin(ctx: ValueContext, id: CardId): Appraisal | null {
+  const memo = marginMemo(ctx);
+  const held = memo.get(id);
+  if (held !== undefined) return held;
+  const answer = readDeckMargin(ctx, id);
+  memo.set(id, answer);
+  return answer;
+}
+
+function readDeckMargin(ctx: ValueContext, id: CardId): Appraisal | null {
+  const pair = deckPair(ctx.state, ctx.playerId, id);
+  if (pair === null) return null;
+  const before = deckReading(pair.without, ctx.playerId);
+  const after = deckReading(pair.with, ctx.playerId);
+  const terms = readingTerms(before, after, ctx);
+  // **The hammer premium, on the hammers the fold actually found** — the same
+  // door every other production-raising candidate walks through (batch 6), so a
+  // card that shortens the engines this empire is raising is credited for it
+  // here exactly as a mine is. It is the difference from the table and not the
+  // whole price, because the production channel above has already paid the table.
+  const hammers = hammerTerm(after.production - before.production, ctx);
+  if (hammers !== null) terms.push(hammers);
+  return appraise(terms);
+}
+
+/**
+ * **A card's effects, priced by the deck it would join where the fold can see
+ * them** — the one door batch F2 adds, and `explainCard`'s (`bot.ts`) only change.
+ *
+ * A row carrying one of the four shapes `foldReadEngine` names is worth
+ * `V(deck ∪ card) − V(deck)` and nothing else: the isolated walk is not consulted
+ * for it at all, because every clause of such a row is a *multiplier* on something
+ * the board already has, and a multiplier read off the row alone is a number about
+ * nothing. Every other row keeps the walk it has always had, exactly, which is
+ * what makes a board where no engine is offered byte-identical.
+ *
+ * **The stated cut**: a row that mixed an engine with a shape the per-turn books
+ * cannot carry — a combat line, an offer rider — would lose that half, because the
+ * margin is the whole card's. No Order in the table mixes at all (the fourteen
+ * engine rows carry one clause each), and the one Doctrine that does (the Grand
+ * Bazaar: two luxury amplifiers and a count of luxuries paid in gold) is read
+ * whole by the fold anyway. A future row that mixed the two would want splitting,
+ * and this is where it would be split.
+ *
+ * Falls back to the walk whenever there is no honest pair to difference — a card
+ * no chair of this government admits, a class of card that is not played into a
+ * deck (see `deckPair`).
+ */
+export function explainCardEffects(
+  id: CardId,
+  effects: readonly CardEffect[],
+  ctx: ValueContext,
+): Appraisal {
+  if (!hasFoldReadEngine(effects)) return explainEffects(effects, ctx, id);
+  const margin = deckMargin(ctx, id);
+  return margin ?? explainEffects(effects, ctx, id);
+}
+
+/**
+ * The remembered margins of one context.
+ *
+ * Keyed on the `ValueContext` object rather than on the state, which is the
+ * sitting's own bargain said once more (batch 6): a context is one seat's book
+ * for one turn, everything hanging off it was read at the moment it was built,
+ * and an arm that needs a board the turn has moved past re-reads *the state*
+ * rather than the book. A margin is a reading of the same board the rest of the
+ * book was read off, so it belongs to the same sitting and dies with it.
+ */
+const MARGIN_MEMO = new WeakMap<ValueContext, Map<CardId, Appraisal | null>>();
+
+function marginMemo(ctx: ValueContext): Map<CardId, Appraisal | null> {
+  let held = MARGIN_MEMO.get(ctx);
+  if (held === undefined) {
+    held = new Map<CardId, Appraisal | null>();
+    MARGIN_MEMO.set(ctx, held);
+  }
+  return held;
 }
 
 // --- counted effects, at the delay discount ---------------------------------

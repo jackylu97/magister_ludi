@@ -147,6 +147,7 @@ import {
   delayDiscount,
   delayTerm,
   explainBuildingRow,
+  explainCardEffects,
   explainEffects,
   explainLump,
   explainProjectRow,
@@ -2282,7 +2283,13 @@ export function explainCard(player: Player, id: CardId, ctx: ValueContext) {
   // count is a fact about *this holding* (`CountKind`'s `tally`), so an
   // appraisal that did not say which card it was reading would price a counter
   // twelve occasions deep exactly as it prices an empty one.
-  const terms: ValueTerm[] = [nest('what its effects are worth', explainEffects(def.effects ?? [], ctx, id))];
+  // **`explainCardEffects`, not `explainEffects`** (batch F2 of
+  // `docs/fewer-things-plan.md`): a row whose whole text is a multiplier on the
+  // deck or on the shelves is priced by the difference the board itself reads
+  // (`V(deck ∪ card) − V(deck)`), and every other row by the same walk as ever.
+  const terms: ValueTerm[] = [
+    nest('what its effects are worth', explainCardEffects(id, def.effects ?? [], ctx)),
+  ];
   const line = def.line;
   if (line !== undefined) {
     const held = heldOnLine(player, line);

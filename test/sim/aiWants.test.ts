@@ -32,6 +32,7 @@ import {
   type BotDecision,
   botSitting,
   chooseProduction,
+  explainCard,
   nextBotCommand,
   nextBotDecision,
   valueContext,
@@ -41,10 +42,15 @@ import { createBotStepper } from '../../src/ai/stepper';
 import { type ValueTerm, foldTerms } from '../../src/ai/decision';
 import { incumbentGoal, racePays, raceTerm } from '../../src/ai/chain';
 import {
+  deckMargin,
   explainBuildingRow,
+  explainCardEffects,
+  explainEffects,
   explainYields,
   hammerPrice,
   hammerTerm,
+  hasFoldReadEngine,
+  meterWeight,
   realmResources,
   voiceWeight,
   yieldWeight,
@@ -64,11 +70,14 @@ import { riteCostFor, riteError } from '../../src/sim/religion';
 import { livePool, slotTypesOf } from '../../src/sim/statecraft';
 import { ORDER_IDS, type OrderId, orderDef, orderFitsSlot } from '../../src/sim/statecraftData';
 import {
+  empireRateReading,
   foundCityAt,
   hasResource,
   purchasableTiles,
   refreshCityDerived,
 } from '../../src/sim/cities';
+import { authorityOf, happinessOf } from '../../src/sim/meters';
+import { renownPerTurn } from '../../src/sim/renown';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { newGame } from '../../src/sim/state';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
@@ -1666,5 +1675,222 @@ describe('batch 8 — the hexes a town would buy', () => {
     // `aiConfig.ts` *declares* the two numbers, which is the tuning surface's
     // job; `value.ts` is the only module that reads them.
     expect(naming).toEqual(['aiConfig.ts', 'value.ts']);
+  });
+});
+
+/**
+ * **The marginal reading — batch F2 of `docs/fewer-things-plan.md`.**
+ *
+ * The debt batch A and batch F both wrote down: an engine is a card whose whole
+ * text is a *multiplier* on something the empire already has — the other slotted
+ * Orders' lines, the shelves a category of buildings stands on, the caravans on
+ * the road — and a reading taken off the row alone is a number about nothing. So
+ * such a row is priced by the difference the board itself reads,
+ * `V(deck ∪ card) − V(deck)`, over the simulation's own per-turn books.
+ *
+ * The claims below are the batch's own, in its own order: the difference is
+ * exactly what the books say it is; an engine is taken beside two flats when the
+ * deck makes it worth taking and passed over when the deck is empty; a category
+ * payoff is priced with the buildings it would multiply; and **every row that is
+ * not an engine is appraised by exactly the walk it always was**, which is what
+ * makes a board where no engine is offered byte-identical.
+ */
+describe('the marginal draft reading', () => {
+  /**
+   * A bench with a government, its chairs, and a deck arranged in them.
+   *
+   * The chairs are `councilOfElders`' — two economic and three wildcard — because
+   * a wildcard admits any card, so a fourth Order joins the deck without having
+   * to bench one of the three the case is about.
+   */
+  function deckBench(deck: readonly OrderId[], towns = 3): { state: GameState; player: Player } {
+    const state = benchState(towns);
+    const player = seat(state, 0);
+    const sc = player.statecraft;
+    sc.government = 'councilOfElders' as never;
+    sc.slots = slotTypesOf(sc).map(() => null);
+    sc.orders = [...deck];
+    const layout = slotTypesOf(sc);
+    for (const id of deck) {
+      const chair = layout.findIndex(
+        (type, index) => sc.slots[index] === null && orderFitsSlot(id, type),
+      );
+      expect(chair, id).toBeGreaterThanOrEqual(0);
+      sc.slots[chair] = { card: id, sealedUntil: 0 };
+    }
+    for (const city of state.cities) refreshCityDerived(state, city);
+    return { state, player };
+  }
+
+  /** The nine channels the reading weighs, off the board as it stands. */
+  function reading(state: GameState, playerId: number): Record<string, number> {
+    const rates = empireRateReading(state, playerId);
+    return {
+      food: rates.foodPerTurn ?? 0,
+      production: rates.productionPerTurn ?? 0,
+      gold: rates.goldPerTurn ?? 0,
+      science: rates.sciencePerTurn ?? 0,
+      culture: rates.culturePerTurn ?? 0,
+      faith: rates.faithPerTurn ?? 0,
+      renown: renownPerTurn(state, playerId),
+      happiness: happinessOf(state, playerId),
+      authority: authorityOf(state, playerId),
+    };
+  }
+
+  it('is exactly the difference the simulation’s own books read', () => {
+    // A deck that pays food off the hills every town of this bench stands on,
+    // and the food amplifier offered into an empty wildcard chair.
+    const { state, player } = deckBench(['terracedHillsides'] as OrderId[]);
+    const ctx = valueContext(state, player);
+    const margin = deckMargin(ctx, 'theHarvestHome' as never)!;
+    expect(margin).not.toBeNull();
+
+    // Now play the card for real — the same chair the reading chose, which is the
+    // first one that admits it — and ask the books again.
+    const sc = player.statecraft;
+    const before = reading(state, player.id);
+    const layout = slotTypesOf(sc);
+    const chair = layout.findIndex(
+      (type, index) => sc.slots[index] === null && orderFitsSlot('theHarvestHome' as never, type),
+    );
+    sc.slots[chair] = { card: 'theHarvestHome' as never, sealedUntil: 0 };
+    const after = reading(state, player.id);
+
+    // The expectation is folded in the reading's own order — the six voices, the
+    // renown, the two meters, then the hammer premium — because a regrouped sum
+    // is a different number and this test is an `===`.
+    const terms: ValueTerm[] = [];
+    for (const voice of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
+      const delta = after[voice]! - before[voice]!;
+      if (delta === 0) continue;
+      terms.push({ label: voice, value: delta * voiceWeight(ctx, voice) });
+    }
+    const renown = after.renown! - before.renown!;
+    if (renown !== 0) terms.push({ label: 'renown', value: renown * ctx.ai.weights.renown });
+    for (const meter of ['happiness', 'authority'] as const) {
+      const delta = after[meter]! - before[meter]!;
+      if (delta === 0) continue;
+      terms.push({ label: meter, value: delta * meterWeight(ctx, meter) });
+    }
+    const hammers = hammerTerm(after.production! - before.production!, ctx);
+    if (hammers !== null) terms.push(hammers);
+
+    expect(margin.total).toBe(foldTerms(terms));
+    // And the appraisal's own contract: the number IS the fold of what it prints.
+    expect(foldTerms(margin.terms)).toBe(margin.total);
+    // The amplifier really did something on this board, or the case is vacuous.
+    expect(after.food!).toBeGreaterThan(before.food!);
+    expect(margin.total).toBeGreaterThan(0);
+  });
+
+  it('takes the food amplifier beside two flats when the deck pays food, and not when it is empty', () => {
+    const deck = ['terracedHillsides', 'theUnbrokenLand', 'theFoundingOath'] as OrderId[];
+    const flats = ['waysideShrines', 'firstRites'] as OrderId[];
+    const engine = 'theHarvestHome' as OrderId;
+
+    // The full deck: three food-paying Orders in their chairs, and the ground and
+    // the shelves that make each of them pay.
+    const loaded = deckBench(deck);
+    for (const tile of loaded.state.map.tiles) tile.feature = 'forest' as never;
+    for (const city of loaded.state.cities) {
+      city.buildings.push('granary' as never, 'monument' as never, 'shrine' as never);
+      refreshCityDerived(loaded.state, city);
+    }
+    const withDeck = valueContext(loaded.state, loaded.player);
+    const engineWorth = explainCard(loaded.player, engine, withDeck).total;
+    for (const flat of flats) {
+      expect(engineWorth, flat).toBeGreaterThan(explainCard(loaded.player, flat, withDeck).total);
+    }
+
+    // The same board, the same two flats, and no deck at all: the amplifier has
+    // nothing to amplify and is worth exactly nothing.
+    const bare = deckBench([]);
+    for (const tile of bare.state.map.tiles) tile.feature = 'forest' as never;
+    for (const city of bare.state.cities) {
+      city.buildings.push('granary' as never, 'monument' as never, 'shrine' as never);
+      refreshCityDerived(bare.state, city);
+    }
+    const empty = valueContext(bare.state, bare.player);
+    expect(deckMargin(empty, engine)!.total).toBe(0);
+    const bareEngine = explainCard(bare.player, engine, empty).total;
+    for (const flat of flats) {
+      expect(bareEngine, flat).toBeLessThan(explainCard(bare.player, flat, empty).total);
+    }
+  });
+
+  it('prices a category payoff with the buildings it would multiply', () => {
+    const shelves = ['library', 'granary', 'monument'] as const;
+    const bare = deckBench([]);
+    const without = valueContext(bare.state, bare.player);
+    expect(deckMargin(without, 'theScriveners' as never)!.total).toBe(0);
+
+    const stocked = deckBench([]);
+    for (const city of stocked.state.cities) {
+      for (const id of shelves) city.buildings.push(id as never);
+      refreshCityDerived(stocked.state, city);
+    }
+    const with_ = valueContext(stocked.state, stocked.player);
+    const margin = deckMargin(with_, 'theScriveners' as never)!;
+    // Half of what the science shelves pay, through the town's own staged fold —
+    // and it is a *reading*, so it folds out of its own printed terms exactly.
+    expect(margin.total).toBeGreaterThan(0);
+    expect(foldTerms(margin.terms)).toBe(margin.total);
+    expect(margin.terms.some((term) => term.label.startsWith('science'))).toBe(true);
+  });
+
+  it('leaves every row that is not an engine appraised by exactly the walk it always was', () => {
+    const game = grownGame(RIPE);
+    const player = seat(game.state, 0);
+    const ctx = valueContext(game.state, player);
+    let engines = 0;
+    for (const id of ORDER_IDS) {
+      const def = orderDef(id);
+      const marginal = explainCardEffects(id, def.effects, ctx);
+      const walked = explainEffects(def.effects, ctx, id);
+      if (hasFoldReadEngine(def.effects)) {
+        engines += 1;
+        continue;
+      }
+      expect(marginal.total, id).toBe(walked.total);
+      expect(marginal.terms, id).toEqual(walked.terms);
+    }
+    // The register: fourteen rows in the whole table carry a shape the fold reads,
+    // and they are the only rows whose appraisal this batch moved.
+    expect(engines).toBe(14);
+    // Batch F named The Exchequer the deck's clearest trade payoff and the one
+    // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
+    // six points for doubling every caravan in the realm. It is read by the books
+    // now, and this is where that is written down.
+    expect(hasFoldReadEngine(orderDef('theExchequer' as OrderId).effects)).toBe(true);
+    // And the one target the books genuinely cannot carry keeps the stand-in: a
+    // rite's duration is a stamp, not a rate.
+    expect(hasFoldReadEngine([{ kind: 'effectAmplifier', target: 'riteDuration', percent: 50 }]))
+      .toBe(false);
+  });
+
+  it('reads a card already in its chair as what it pays there, not as nothing', () => {
+    // `reslotDecision` weighs the sitting card against the challenger in one
+    // table, so a card that answered "nothing, I am already played" would be
+    // swapped out of its chair for anything at all.
+    const { state, player } = deckBench(['terracedHillsides', 'theHarvestHome'] as OrderId[]);
+    const ctx = valueContext(state, player);
+    const seated = deckMargin(ctx, 'theHarvestHome' as never)!;
+    expect(seated.total).toBeGreaterThan(0);
+  });
+
+  it('never rerolls a draft, and prices no reroll — written down', () => {
+    // The reroll (batch C1) is a faith verb on an offer, and nothing in this bot
+    // has ever asked for one: the draft plan prices the *hand*, and a second hand
+    // for faith would need the same expectation asked of a pool the reroll has not
+    // dealt yet. Pinned as an absence rather than left to a reader's memory.
+    const sources = import.meta.glob('../../src/ai/*.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    for (const path of Object.keys(sources)) {
+      expect(sources[path]!.includes("'rerollOffer'"), path).toBe(false);
+    }
   });
 });

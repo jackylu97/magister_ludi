@@ -1970,3 +1970,171 @@ margin: the balanced candidate scores exactly nought by construction, so
 zero can be re-pointed on consecutive turns (seed 20260831, seat 1's town, t43
 to t49 — production, default, production, default). One order per town per turn is guaranteed; one order per town per *era*
 is not, and a margin for it would need a baseline that is not zero.
+
+## Batch F2 as shipped — the bot drafts engines (2026-09-06)
+
+The debt batch A wrote down and batch F repeated: *an engine appraised alone
+multiplies a deck this reading cannot see.* `docs/fewer-things-plan.md` row F2
+asked for the marginal reading `V(deck ∪ card) − V(deck)`, and this is it.
+
+### The approach, and why it is (a)
+
+**A scratch board**, the brief's option (a), and the reason is that option (b) —
+an "as if slotted" overlay on `countOf` and the fold — would put a hypothetical
+inside `src/sim/`, which is the one place a hypothetical must not go: the
+evaluator is the game's law, and a law that can be asked *what if* is a law with
+a second reading of itself. A scratch board asks the existing law an ordinary
+question about a board that is not the real one, which is what
+`cityYields(state, city, [candidate])` has always been.
+
+`deckPair(state, playerId, id)` builds the two boards a margin is the difference
+of. Both are **shallow** clones and every layer is shared but the one that
+changes — the players array, the one player, its `PlayerStatecraft`, the slots —
+which is safe because every reading taken off them is a pure fold (`cityYields`,
+`explainEmpireGold`, `explainRenown`, the two meters mutate nothing). The
+evaluator's own memo (`liveReading`, batch 10) is a `WeakMap` keyed on the state
+object over a **print of the walk's inputs**, so a scratch board builds its list
+once, answers off it, and is collected with it.
+
+The pair is taken from whichever side the empire is standing on:
+
+- a card **not held** is placed, and `without` is the board as it stands;
+- a card **already in a chair** has its chair emptied instead, and `with` is the
+  board as it stands. That is not a nicety: `reslotDecision` weighs the sitting
+  card against the challenger in one table, and a sitting card that answered
+  *"nothing, I am already played"* would be swapped out for anything at all.
+
+**The chair it would take** is the bot's own placement (`slottingDecision`): the
+first empty chair whose flavour admits it, and — when every fitting chair is full
+— the chair of the worst card it would bench, ranked by a deliberately crude
+count of the row's own clauses, because `explainCard` is what asks for this and
+ranking the bench by `explainCard` would be a recursion with no floor.
+
+### `V`, the nine channels
+
+`deckReading` = the simulation's own per-turn books (`empireRateReading`: the six
+voices) plus `renownPerTurn`, `happinessOf` and `authorityOf`. The difference is
+weighed **exactly as the flat card arms weigh the same channels** — `voiceWeight`
+for the voices (so gold, faith and culture go through the shadow prices),
+`weights.renown`, `meterWeight` for the two meters — plus `hammerTerm` on the
+production it found, the same door a mine walks through. The reading changes
+*what* is counted, never *how* it is priced, and `total` is the fold of the very
+terms it prints, per channel, in the fold's own order.
+
+### What is priced by it, and what is not
+
+The margin is taken for a row carrying at least one shape **the empire's per-turn
+books can actually see** (`hasFoldReadEngine`), and for such a row the isolated
+walk is not consulted at all. Four shapes qualify:
+
+| shape | why the books, not the row |
+|---|---|
+| `cardYieldAmplifier` | its lines are the *other* slotted Orders', so a per-town line, a capital-scoped line and a hex line pay differently and only the fold knows which — and the scopes are **evaluated**, which no line count can do |
+| `buildingYieldPercent` | a share of shelves this empire has actually raised, staged and floored by the town's own percentages, composed with any `appliedLast` doubler already slotted |
+| `cityRenownPercent` | the same sentence in the renown channel |
+| `effectAmplifier`, where the target is a rate the books carry (`routeYields`, `founderTrickle`, `luxuryHappiness`, `luxuryDuplicates`) | **The Exchequer**, the named debt: it fell to `score.unknownEffect` — six points for doubling every caravan in the realm |
+
+**Fourteen rows of the whole 167-row table** carry one, and they are the only
+rows whose appraisal moved (pinned in `aiWants.test.ts`).
+
+Three shapes stay on their existing arms, by ruling rather than by omission:
+`periodic` and `periodShorten` pay a **windfall**, not a rate, so a reading of the
+per-turn books cannot see them at all; `slotPosition` is priced as the doubled
+card's own appraisal, which is the brief's own sentence and reaches the half of a
+card (combat lines, rules) no yield fold carries. `riteDuration` keeps the
+stand-in for the same reason: it moves the turn a blessing is stamped to expire
+on, which is not a rate.
+
+### Byte-identity
+
+Seven games, the acceptance harness of batches 9/10 (seeds 5 / 777 / 20260904,
+duel and standard, both seats driven to t75) plus the standard board at t60,
+hashed before the batch and after it on the same tree:
+
+| game | state | log | |
+|---|---|---|---|
+| duel 5 | `b80083fe04b9d159` | `07480245a0f88414` | identical |
+| duel 777 | `c197b1ca1b2a414d` | `e2915a5ca59606af` | identical |
+| duel 20260904 | `2b048068bcb79126` | `6633b38a541040ec` | identical |
+| standard 5 | `dedbb8db9787f471` | `5e9fd63c3d26d981` | identical |
+| standard 777 | `827cf147e8f2fe1c` | `a904acbdedb45a7f` | identical |
+| standard 20260904 | `1cac3d6f3de46bfe` → `e1bd89305ee00507` | `269e46…` → `58b083…` | **moved** |
+| standard 20260831, t60 | `87d24dba6ac42d19` | `2f9042ee325eb9ff` | identical |
+
+**Six of seven identical; one moved, and it is fully attributed.** The first
+difference on standard 20260904 is at t48, and it is not a card decision at all:
+seat 1 issues one extra `setCitizenFocus`. Measured on that very board with the
+door switched off and on:
+
+```
+seat 1  gov=councilOfElders  pool=27  engines in pool = 1 [theHarvestHome]
+  draft want worth   off 62.9976   on 62.1331
+  culture price      off  9.5451   on  9.4141
+seat 0  gov=chiefdom  pool=8  engines in pool = 0
+  every price identical
+```
+
+The Harvest Home is in seat 1's live pool; its marginal reading is *lower* than
+its isolated one (that seat's only food-paying Order is scoped to a luxury it
+does not hold, so the amplifier has no live line to amplify — the isolated arm
+counts the line and the fold does not). `draftPlan`'s `E[best of the hand]` falls,
+culture's shadow price falls with it, and one focus decision near a hairline flips.
+
+So the honest statement of the rule is one clause stronger than the brief's: a
+board is byte-identical while **no engine row stands in the government's live
+pool**, not merely while none is dealt into a hand — because the draft plan
+prices the pool, and the pool's expectation is what sets culture's price.
+
+### What the bot now drafts
+
+On the test fixture (three food-paying Orders in their chairs — Terraced
+Hillsides on an all-hills bench, The Unbroken Land on planted forest, The Founding
+Oath over stocked shelves — with **The Harvest Home** offered beside two flats):
+
+- with the deck, the amplifier outscores both flats and is taken;
+- with **the same board and no deck at all**, its margin is exactly `0` and both
+  flats outscore it.
+
+That pair is the batch, said as a test. Two more of the same kind: The Scriveners
+prices at exactly `0` in an empire with no science shelf and above zero the moment
+one stands, and the margin is `===` the difference the simulation's own books read
+when the card is actually put in the chair.
+
+### Cost
+
+None worth reporting. The acceptance harness (seven bot-driven games, 510
+seat-turns) ran 63.4s before and 41.5s after on the same machine — noise, and in
+the wrong direction to be a cost. Two reasons: only the fourteen rows ask for a
+margin at all, and every answer is remembered for the life of the context that
+asked for it (`MARGIN_MEMO`, a `WeakMap` on the `ValueContext`) — which is the
+sitting's own bargain said once more, batch 6.
+
+### Known gaps, written down rather than fixed
+
+- **The reroll stays unpriced, and the bot never rerolls.** A reroll (batch C1) is
+  a faith verb on an offer; pricing it would be `expectedBestOrder` asked of a hand
+  the reroll has not dealt yet, against a faith price the same book sets. Pinned as
+  an *absence*: no module in `src/ai/` names `'rerollOffer'`.
+- **A flat card joining an engine deck is still priced alone.** The Harvest Home
+  drafted into a deck of food cards is priced by the deck; a food card drafted into
+  a deck that already holds The Harvest Home is not, because the card carries no
+  engine shape and the margin is therefore not taken. Closing it means taking the
+  margin for *every* card whenever the deck holds an engine, which was measured to
+  move every board with a percentage card in a chair — the fold and the isolated
+  walk disagree about ordinary rows by a factor of two or three, in both directions
+  (measured on the standard board at t60: The Old Ways 28 alone against 211 folded,
+  The Laureate 350 against 4). Unifying the two readings is a bigger pass than F2
+  and it is the honest next one.
+- **The margin is the whole card's.** A future row mixing an engine with a shape
+  the books cannot carry — a combat line, an offer rider — would lose that half.
+  No Order in the table mixes (the fourteen carry one clause each) and the one
+  Doctrine that does (the Grand Bazaar) is read whole by the fold anyway.
+  `explainCardEffects` is where such a row would be split.
+- **Beliefs and technologies take no margin.** `deckPair` answers `null` for them:
+  the hypothetical is a different verb for each and none carries an engine shape
+  today.
+- **`aiDecision.slow`'s coverage set is red on this tree, and not from this
+  batch.** The `deal` kind has left seed 1's hundred turns. Verified by running the
+  same test with the F2 door switched off: it fails identically. Not re-aimed —
+  the coverage list moves deliberately or not at all, and this batch is not what
+  moved it.
