@@ -384,17 +384,20 @@ describe('a hundred turns of arithmetic', () => {
       // deal, and neither dips into arrears inside the hundred turns. Both
       // arms unchanged, both pinned deliberately elsewhere (`aiWar.test.ts`,
       // `aiBot.test.ts`); this list is the incidental record it has always
-      // been. Eight kinds.
-      expect([...kinds].sort()).toEqual([
-        'build',
-        'deal',
-        'draft',
-        'endTurn',
-        'focus',
-        'purchase',
-        'research',
-        'unitOrder',
-      ]);
+      // been.
+      //
+      // **And the claim stopped naming them, 2026-09-07 (batch H11)**: the
+      // cost table by age flipped the pair back (disband in, deal out) — the
+      // sixth time this list has moved with a retune, each time by one of the
+      // same two kinds, each time incidental. So the claim is now the one its
+      // own history has been stating: the **seven kinds every board reaches**
+      // are named and required, and `deal` and `disband` are admitted but not
+      // demanded — their arms are pinned where they are provoked. Nothing
+      // outside the register may appear.
+      const always = ['build', 'draft', 'endTurn', 'focus', 'purchase', 'research', 'unitOrder'];
+      const incidental = ['deal', 'disband'];
+      for (const kind of always) expect([...kinds], kind).toContain(kind);
+      for (const kind of kinds) expect([...always, ...incidental], kind).toContain(kind);
       for (const step of walked.steps) {
         if (step.decision.kind === 'endTurn') continue;
         expect(step.decision.summary.length).toBeGreaterThan(0);
