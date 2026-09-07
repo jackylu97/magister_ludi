@@ -48,9 +48,13 @@ directly to confirm rulings — user marginalia are rulings.
   keeps one clock). The bot under-prices the Exchequer (`effectAmplifier`
   is a stand-in) — F2's. **F and G LANDED in main** (F 9362cac, G 7bd4e1d:
   exponent 2.8, chairs 8 · 10 · 12 from Government III up, schema 78).
-  **F2 (the bot drafts engines) in flight** — the last batch. Then the
-  all-tier gate (heavy; on your word for timing) and the push. Two findings
-  from the re-aim, yours to rule:
+  **F2 LANDED** (b8a5ca2: a scratch-board margin for the fourteen engine
+  rows; six of seven acceptance games byte-identical). **The pass is built.**
+  The play checkout on :5199 is refreshed to b8a5ca2 for the second
+  playthrough (schema 78 — the turn-92 save does not load). Main on GitHub
+  is still at the vein shelving: the all-tier gate for the push is heavy
+  and waits for a moment the machine is free. Two findings from the re-aim,
+  yours to rule:
   1. ~~The rite door is a lottery~~ — **my misreading, corrected**: the
      user's ruling was always "unlock rites in the tech tree where they used
      to be"; C2's Chapel gate is removed (the tree is the only gate; the
