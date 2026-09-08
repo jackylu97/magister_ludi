@@ -489,6 +489,11 @@ function siteWords(site: CityScope): string {
       return 'the seat of your government';
     case 'onTerrain':
       return `${site.terrain} to stand on`;
+    case 'terrainBeside':
+      // Petra's. Named as the place the refusal completes — "wants desert to
+      // stand on or beside; Lagash has none" — which says both halves of the
+      // rule in the order a player would check them.
+      return `${site.terrain} to stand on or beside`;
     case 'holding':
       return `${site.resources.map((id) => resourceDef(id).name).join(' or ')}`;
     case 'holdingCategory':

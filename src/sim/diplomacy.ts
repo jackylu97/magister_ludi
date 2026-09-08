@@ -49,8 +49,8 @@ import { type City, allocateEntityId, cityById, playerById, realPlayers } from '
 import type { GameState, Unit } from './state';
 import {
   capitalCityOf,
-  hasResource,
   refreshCityDerived,
+  resourceCopies,
   settleProductionWindfall,
   tileOwnerField,
   tileOwnerPlayerId,
@@ -359,11 +359,15 @@ function reseatEmpire(state: GameState, playerId: number): void {
  *     A tribute is not: an empire may promise more per turn than it earns and
  *     go into arrears for it, which is a real decision the creditors already
  *     price (`upkeep.ts`);
- *   · **seams they hold** — a luxury, named once each, that this empire
- *     actually controls (`hasResource`, which already answers *false* for
- *     anything it has lent to somebody else, so a seam cannot be promised
- *     twice). Only luxuries: iron and horses are what an army is made of, and
- *     trading the strategic table is a design decision nobody has taken;
+ *   · **copies they hold** — a luxury, named once each, that this empire has at
+ *     least one **net** copy of (`resourceCopies`, which has already subtracted
+ *     everything promised to somebody else, so an empire cannot lend the same
+ *     copy twice). Since the copies ruling (flags (tt)) a row names a kind once
+ *     and lends one copy of it, so an empire with two amber may sign two
+ *     bargains and is refused a third; lending the **last** copy stays legal,
+ *     which is `lentCopiesAwayBy`'s stated ruling and not an oversight. Only
+ *     luxuries: iron and horses are what an army is made of, and trading the
+ *     strategic table is a design decision nobody has taken;
  *   · **a right of way both may write** — the mutual technology gate below;
  *   · **towns they own, in a peace** — a city may change hands only in a peace
  *     deal (the ruling, 9b), never in an ordinary bargain, and never a seat of
@@ -408,7 +412,7 @@ export function dealSideError(
     }
     if (seen.includes(id)) return `${resourceDef(id).name} is named twice`;
     seen.push(id);
-    if (!hasResource(state, giverId, id)) {
+    if (resourceCopies(state, giverId, id) < 1) {
       return `The ${giver.name} have no ${resourceDef(id).name.toLowerCase()} to lend`;
     }
   }

@@ -406,10 +406,15 @@ directly to confirm rulings — user marginalia are rulings.
   (opened tiles − copies lent + copies received) stay above zero; the
   tile itself goes on paying its yield (only the signature moves); a
   city-local signature follows the empire's net holding. Batch **T1**
-  (schema). (uu) **Petra's site relaxed** (the user, 2026-09-08: "To
+  (schema) — **built (T1)**, schema 91: `lentCopiesAwayBy` /
+  `lentCopiesToPlayer` replace the kind lists, the clause is gone from
+  `openedResource`, and `resourceCopies` is the one subtraction
+  `hasResource`, `controlledHoldings` and `cityResources` all read.
+  (uu) **Petra's site relaxed** (the user, 2026-09-08: "To
   build petra, you only need to be settled on or adjacent to desert"):
   `requiresSite` becomes the centre on desert **or** desert adjacent to
-  the centre — with T1. (vv) **The tech ladder re-anchored at 10** (the
+  the centre — with T1; **built**, as the new `terrainBeside` scope
+  beside `onTerrain` and `terrainInBorders`. (vv) **The tech ladder re-anchored at 10** (the
   user, 2026-09-08: "adjust the science tree costs according to the
   decreased cost from the first tech … let's go with A for now"): the
   taper `cost(1)=13, cost(n)=friendly(cost(n−1)×r(n)), r(n)=1+1.3×0.72^max(0,n−3)`

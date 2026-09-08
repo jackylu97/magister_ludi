@@ -486,12 +486,15 @@ function dealSide(
       id: holding.id,
       label: resourceDef(holding.id).name,
       // A **spare** is what the panel marks, not what it enforces: an empire
-      // may lend its only copy and simply hand the contentment across, which is
+      // may lend its last copy and simply hand the contentment across, which is
       // the ruling. The mark is there so a player can see which lending costs
-      // them nothing.
+      // them nothing — and since the copies ruling it is exact, because
+      // `resourceCopies` has already taken off everything promised elsewhere:
+      // two amber with one lent reads as one, and the mark goes out.
       note: copies > 1 ? 'spare' : null,
-      // A seam already lent away is not in `controlledHoldings` at all, so
-      // there is nothing here to grey — the list *is* the gate.
+      // A kind with no **net** copy left is not in `controlledHoldings` at all,
+      // which is the same figure `dealSideError` refuses on, so there is nothing
+      // here to grey — the list *is* the gate.
       error: null,
     });
   }

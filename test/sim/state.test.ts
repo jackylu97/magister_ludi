@@ -718,7 +718,7 @@ describe('the research queue field', () => {
     // 90 since batch D1 (`docs/war-diplomacy.md` §12): a peace closes on the
     // second signature and `declinePeace` exists, so a v89 log with a peace in
     // it ends its war a beat earlier and never rejoins.
-    expect(SCHEMA_VERSION).toBe(90);
+    expect(SCHEMA_VERSION).toBe(91);
   });
 });
 

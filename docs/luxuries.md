@@ -141,6 +141,17 @@ Ledgers say which: "Gems · mine" against "Gems · city". Holding the same kind
 both ways is still **one** holding, and the improved reading wins the label —
 it is the more specific fact and the one a pillage can take away.
 
+**Lending is arithmetic on top, never a clause in that rule** (ruled 2026-09-08,
+flags (tt)). One deal row lends **one copy** of a kind; a second copy is a second
+deal. `resourceCopies` is the whole of it — opened tiles, less the copies
+promised away, floored at nothing, plus the copies somebody lent you — and
+`hasResource`, `controlledHoldings` and a town's own `cityResources` are three
+readings of that one figure. So an empire with two amber that lends one keeps
+amber, and an empire that lends its only amber keeps neither the contentment nor
+the line amber pays in the town that digs it. **The ground is untouched**: a lent
+seam is a caravan leaving, and the tile goes on paying its owner exactly what its
+row prints. Lending your last copy is legal — the signature simply moves.
+
 ---
 
 ## Balance flags from play

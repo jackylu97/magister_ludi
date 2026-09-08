@@ -681,6 +681,8 @@ function scopeWords(site: CityScope): string {
       return `a city with a ${buildingDef(site.building).name}`;
     case 'onTerrain':
       return `a city built on ${site.terrain}`;
+    case 'terrainBeside':
+      return `a city built on or next to ${site.terrain}`;
     // `all` is the only composite the scope vocabulary has, deliberately — see
     // `CityScope`. So one branch covers every conjunction a row can carry.
     case 'all':

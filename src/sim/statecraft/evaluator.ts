@@ -137,7 +137,7 @@ import {
   isOrderId,
   orderDef,
 } from '../statecraftData';
-import { isWaterTerrain } from '../terrainData';
+import { type TerrainId, isWaterTerrain } from '../terrainData';
 import { type BeadGrantId, anyBeadDef, isBeadCardId } from '../beadData';
 import { beadCapEffects } from '../beads';
 import { UNIT_UNLOCK_TECH, eraNumeral, highestAge, isTechId, techDef } from '../techData';
@@ -1246,6 +1246,26 @@ function hasAdjacentImprovement(state: GameState, city: City, improvement: Impro
 }
 
 /**
+ * Is this town's own hex, or one of the six touching it, this terrain?
+ *
+ * `hasAdjacentImprovement`'s reach asked of the ground rather than of what has
+ * been built on it, and `isMountainAdjacent`'s ring of six with the terrain
+ * named by the row instead of baked in — the mountain reading keeps its own
+ * function because its rows spell a radius and this one never will. The centre
+ * counts, for the reason it counts in every member of the family: a town founded
+ * *in* the sand is not further from the desert than its neighbour is.
+ */
+function isTerrainBeside(state: GameState, city: City, terrain: TerrainId): boolean {
+  const tile = getTileAt(state.map, city.col, city.row);
+  if (!tile) return false;
+  if (tile.terrain === terrain) return true;
+  for (const neighbour of neighborTiles(state.map, tileHex(tile))) {
+    if (neighbour.terrain === terrain) return true;
+  }
+  return false;
+}
+
+/**
  * Does a great person's work stand on this town's hex or on one of the six
  * touching it? `hasAdjacentImprovement` asked of the *family*.
  *
@@ -1420,6 +1440,12 @@ export function cityScopeAdmits(
     case 'onTerrain':
       // The centre's own hex and nothing wider. See the scope's docblock.
       return cityTile(state.map, city).terrain === scope.terrain;
+    case 'terrainBeside':
+      // The centre and the ring of six — `hasAdjacentImprovement`'s reach asked
+      // of the ground, and never a border: what a town is *at the edge of* is
+      // fixed the day the settler stops, where `terrainInBorders` moves with
+      // culture. Petra's desert.
+      return isTerrainBeside(state, city, scope.terrain);
     case 'terrainInBorders':
       // What the *borders* have taken in, which is a different question from
       // what the centre stands on and from what touches it. `ownedTiles` is the
@@ -1544,6 +1570,8 @@ function scopeNote(scope?: CityScope): string | null {
       return scope.wonder === true ? `${scope.yields} wonder` : `${scope.yields} building`;
     case 'onTerrain':
       return `${scope.terrain} city`;
+    case 'terrainBeside':
+      return `on or beside ${scope.terrain}`;
     case 'terrainInBorders':
       return `${scope.terrain} in its borders`;
     case 'hasImprovement':

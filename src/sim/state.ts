@@ -361,8 +361,31 @@ import {
  * is one the war ends a beat earlier — inside the signing command rather than in
  * that turn's resolution — and the expulsions, the ceded towns and everything
  * the rest of that turn was priced against move with it.
+ *
+ * v91: **a luxury is lent by the copy, and Petra stands at the edge of the sand**
+ * (batch T1, flags (tt) and (uu)). The deal register lent the *kind*: a clause in
+ * `openedResource` refused the giver every tile of a promised luxury, so an
+ * empire with two amber that lent one kept none of it and the ground stopped
+ * paying as well (the user, 2026-09-08: *"i have two copies of amber. I traded
+ * one amber to the bot for marble. I should be getting the +4 happiness from
+ * having a unique amber and a unique marble"*). The clause is gone. One deal row
+ * now lends **one copy**; `resourceCopies` is where the whole rule lives — opened
+ * tiles, less the copies promised away, floored, plus the copies received — and
+ * `hasResource`, `controlledHoldings` and a town's own `cityResources` are three
+ * readings of that one figure. The tile itself never stops paying its yield:
+ * only the signature crosses the table. Beside it, Petra's `requiresSite` takes
+ * the new `terrainBeside` scope (the user, same day: *"To build petra, you only
+ * need to be settled on or adjacent to desert"*) — the centre hex or the ring of
+ * six, a third question beside `onTerrain`'s centre and `terrainInBorders`'
+ * culture-fed borders.
+ *
+ * A v90 log replays identically only where nobody ever lent a luxury and nobody
+ * raised Petra. Where a bargain was struck the contentment on both sides of it
+ * moves, and every growth, purchase and build priced against that happiness
+ * moves with it; where a town beside the sand can now raise a wonder it could
+ * not, its whole queue is a different game.
  */
-export const SCHEMA_VERSION = 90;
+export const SCHEMA_VERSION = 91;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

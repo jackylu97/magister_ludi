@@ -1297,7 +1297,7 @@ describe('determinism', () => {
     // from its second turn on. 76 since batch E landed the tree's own gifts the
     // same day: ten nodes hand over something else, a third conversion project
     // joined the queue's vocabulary, and a road step is an empire fact.
-    expect(SCHEMA_VERSION).toBe(90);
+    expect(SCHEMA_VERSION).toBe(91);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -7617,5 +7617,68 @@ describe('the deferred rows of batch E4a', () => {
     ]);
     payWindfallGrants(g.state, player, payout);
     expect(player.renownPool - before).toBe(25);
+  });
+});
+
+/**
+ * The scope minted by the site ruling of 2026-09-08 (batch T1, flags (uu): "To
+ * build petra, you only need to be settled on or adjacent to desert").
+ *
+ * One behavioural test for the new member and one register beside it, the
+ * discipline every scope pass above keeps: the kind-level registers cannot see a
+ * *value inside* a shape they already count, so a scope declared and read by
+ * nothing would be a switch arm nobody reaches. This one is named by a
+ * building's `requiresSite` rather than by a card, which is where the register
+ * has to look for it.
+ */
+describe('terrainBeside — the third ring in the family', () => {
+  it('admits the centre and the six around it, and nothing further out', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const scope = { test: 'terrainBeside', terrain: 'desert' } as const;
+    const centre = getTileAt(g.state.map, city.col, city.row)!;
+    centre.terrain = 'grassland';
+    const around = neighborTiles(g.state.map, tileHex(centre));
+    for (const tile of around) tile.terrain = 'grassland';
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
+
+    // The ring of six admits it — this is the half `onTerrain` refused.
+    around[0]!.terrain = 'desert';
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(true);
+    expect(cityScopeAdmits(g.state, city, { test: 'onTerrain', terrain: 'desert' })).toBe(false);
+
+    // And so does the centre itself, for the family's reason: a town founded in
+    // the sand is not further from the desert than its neighbour is.
+    around[0]!.terrain = 'grassland';
+    centre.terrain = 'desert';
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(true);
+
+    // Ground the borders may one day take in is not ground beside the town —
+    // that is `terrainInBorders`, and a different question.
+    centre.terrain = 'grassland';
+    const far = getTileAt(g.state.map, city.col + 2, city.row)!;
+    expect(around.includes(far)).toBe(false);
+    far.terrain = 'desert';
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
+    expect(cityScopeAdmits(g.state, city, { test: 'terrainInBorders', terrain: 'desert' })).toBe(
+      false,
+    );
+  });
+
+  it('is named by a live row — Petra, which the ruling widened', () => {
+    const named = new Set<string>();
+    const note = (scope: unknown): void => {
+      if (!scope || typeof scope !== 'object') return;
+      const test = (scope as { test?: string }).test;
+      if (test !== undefined) named.add(test);
+      for (const inner of (scope as { of?: unknown[] }).of ?? []) note(inner);
+    };
+    for (const id of BUILDING_IDS) note(buildingDef(id).requiresSite);
+    expect(named.has('terrainBeside')).toBe(true);
+    // Petra's own row, so the ruling cannot be quietly moved off it.
+    expect(buildingDef('petra').requiresSite).toEqual({
+      test: 'terrainBeside',
+      terrain: 'desert',
+    });
   });
 });

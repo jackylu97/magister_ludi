@@ -72,6 +72,15 @@ on the backburner: some kind of diplomacy meter that affects trade deals. Probab
 - ▢ Anything else you want IN v1: open borders, trade cities/resources/gold/gpt, these can all be used in peace deals or normal trades
 - trade deals: ai players should accept trades for 1:1 luxuries for copies that it has duplicates of. Figure out a good baseline for gpt/gold for luxuries. Other types of trades can come later.
 - sidebar: Should resource access from other players happen through trade routes? civ 7 has an interesting take on this but i don't want to build their whole resource slotting system.
+- **A luxury is lent by the copy** (ruled 2026-09-08, flags (tt); batch T1,
+  schema 91). One deal row lends **one copy** of a kind — a row names a kind
+  once, and a second copy is a second bargain. The giver keeps the kind while its
+  **net** copies stay above zero: opened tiles, less the copies promised away,
+  plus the copies received (`resourceCopies`, `cities.ts`). The **tile goes on
+  paying** — only the signature crosses the table, never the ground — and a
+  city-local signature follows the empire's net holding, so an empire that lent
+  its only amber keeps neither the contentment nor the local line. Lending the
+  last copy is legal; `dealSideError` refuses a lend with no net copy left.
 
 ## 8. Bots at war
 
@@ -152,7 +161,8 @@ on the backburner: some kind of diplomacy meter that affects trade deals. Probab
   diplomacy screen (hud dock) + toasts + red glow for enemies · white-peace
   proposal command (bots answer in P3) · schema 56.
 - **P2 (deals)**: open borders (both need Writing) · luxury / gold / gpt
-  trades · peace terms incl. cities · lent-access clause in openedResource ·
+  trades · peace terms incl. cities · the lending readings at empire scale
+  (`resourceCopies`; the clause left `openedResource` in T1, see §7) ·
   the deal state (20-turn expiry).
 - **P3 (bots at war, after brain v1 merges)**: declaration policy + warscore
   peace + trade acceptance (1:1 duplicate luxuries, gold baselines) · puppet

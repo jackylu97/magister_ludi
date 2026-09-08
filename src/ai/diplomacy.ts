@@ -344,9 +344,11 @@ function explainPaper(
  * about what it is worth. Priced instead, a big enough pile of coin would always
  * buy an empire's only silk — and the happiness it pays goes with it.
  *
- * `resourceCopies` counts tiles (and a lent seam as one), which is the same
- * reading `dealSideError` gates the term with, so "we hold two" here and "they
- * may lend it" there cannot disagree.
+ * `resourceCopies` counts **net** copies — tiles, less what is already promised
+ * elsewhere, plus what somebody lent us (flags (tt)) — which is the same reading
+ * `dealSideError` gates the term with, so "we hold two" here and "they may lend
+ * it" there cannot disagree. Two amber with one already out on a bargain reads
+ * as one, and this refuses the second the way it refuses an only copy.
  */
 function asksOurLastCopy(
   state: GameState,

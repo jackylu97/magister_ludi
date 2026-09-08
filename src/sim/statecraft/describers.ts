@@ -1586,6 +1586,13 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'onTerrain':
       into.adjectives.push(scope.terrain);
       return;
+    case 'terrainBeside':
+      // A qualifier and not an adjective, `terrainInBorders`' reason exactly:
+      // "every desert city" would name the hex the centre stands on, which is
+      // the neighbouring scope and a different card. "On or beside" is the whole
+      // of the rule in the words the ruling was given in.
+      into.qualifiers.push(`on or beside ${scope.terrain}`);
+      return;
     case 'terrainInBorders':
       // A qualifier and not an adjective, because the ground is not what the
       // town *is*: "every mountain city" would name the hex the centre stands

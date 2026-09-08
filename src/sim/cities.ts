@@ -71,7 +71,7 @@ import {
 // The two sides of the lending rule (schema 57). `deals.ts` is a leaf — it
 // imports `state.ts`, the resource table and the rule book and stops there — so
 // the largest module in the simulation may read it without a shape of cycle.
-import { lentAwayBy, lentToPlayer } from './deals';
+import { type LentCopies, lentCopiesAwayBy, lentCopiesToPlayer } from './deals';
 // The class a breakdown line carries, decided once where the line is made — a
 // leaf above nothing but the data tables, so the simulation can name a slice
 // without importing a screen (batch E2). See `ledgerClass.ts`.
@@ -254,7 +254,7 @@ export function emptyCityYields(): CityYields {
  *     how to work it. A town quarries the marble it was built on.
  *   · `lent` — **another empire lent it** under a live deal. Not a fact about
  *     any tile at all, which is why this one arrives at empire scale rather
- *     than out of `openedResource`; see `lentToPlayer` (`deals.ts`).
+ *     than out of `openedResource`; see `lentCopiesToPlayer` (`deals.ts`).
  */
 export type ResourceVia = 'improvement' | 'city' | 'lent';
 
@@ -284,6 +284,11 @@ export interface ResourceHolding {
  * whole kind at once, `cityResources` of one city's ground, and `resourceCopies`
  * counts the tiles that answer. There is deliberately no second path anywhere in
  * the simulation — every "do I have iron?" in the game goes through here.
+ *
+ * It is a question about **ground**, and since the copies ruling (flags (tt))
+ * that is all it is: what an empire has promised across a table is arithmetic on
+ * top of this answer, done once in `resourceCopies`, and the clause that used to
+ * sit second here is gone. See the note where it stood.
  *
  * Three clauses, in this precedence:
  *
@@ -328,24 +333,20 @@ function openedResource(
   if (!player) return null;
   if (!resourceIsVisibleTo(id, player.techsResearched)) return null;
 
-  /**
-   * **A seam this empire has lent away is not in its hands** (the deal
-   * vocabulary, schema 57 — `DealTerms.luxuries`).
-   *
-   * Placed **second**, immediately after the reveal gate and before every
-   * clause about ground, and the position is the ruling: the other three ask
-   * *how* a tile is worked, and this asks whether the empire is entitled to
-   * what it works at all. A citadel standing on lent silk must not hand it
-   * back, and neither must a town founded on it — so nothing below this line
-   * can reach a resource that has been promised across a table.
-   *
-   * It lends the **kind**, not the tile: two improved silk seams are one silk
-   * in anybody's hands (`controlledHoldings`), so an empire that lends silk
-   * lends all of it, and `resourceCopies` falls to nothing with it. The
-   * receiver's half cannot live here — they own no tile carrying the seam —
-   * and joins the three empire-scale readings below.
-   */
-  if (lentAwayBy(state, playerId).includes(id)) return null;
+  // **There is no lending clause here, and that is the ruling** (the user,
+  // 2026-09-08 — flags (tt)). A deal used to be asked at this line, and the
+  // giver's every tile of a promised kind answered `null`: an empire with two
+  // amber that lent one kept neither, and the ground it stood on stopped paying
+  // as though the plantation had been dug up. Lending is a *signature* crossing
+  // a table, never the seam itself — so the arithmetic moved whole to
+  // `resourceCopies` below, where a copy given and a copy received are the same
+  // subtraction seen from two chairs, and this rule went back to answering the
+  // one question it is named for: what does this hex put in this empire's hands.
+  //
+  // The tile therefore goes on paying its owner (rule 5's `explainTileYield`
+  // reads the same three clauses), which is Civ's model and the only reading
+  // under which a player who traded a spare amber for marble ends the turn with
+  // two unique luxuries rather than one.
 
   // **A work opens whatever it stands on** (user, 2026-08-27), and it is read
   // *before* the table because the table cannot answer for it: a citadel is not
@@ -394,58 +395,83 @@ export function hasResource(
   playerId: number,
   resourceId: ResourceId,
 ): boolean {
-  const owner = tileOwnerField(state);
-  const tiles = state.map.tiles;
-  for (let index = 0; index < tiles.length; index++) {
-    const tile = tiles[index]!;
-    if (tile.resource !== resourceId) continue;
-    if (owner.at(index) !== playerId) continue;
-    if (openedResource(state, tile, playerId) !== null) return true;
-  }
-  // And a seam somebody lent this empire, which is in its hands without being
-  // on its ground. See `lentHoldings` for the whole of the asymmetry.
-  return lentHoldings(state, playerId).some((holding) => holding.id === resourceId);
+  // **Net copies above nothing**, which is the copies ruling said as a boolean:
+  // an empire with two amber that lent one still has amber, an empire that lent
+  // its only one does not, and a caravan somebody sent counts like a seam. One
+  // arithmetic rather than two readings that could disagree — `resourceCopies`
+  // is where the whole of the lending rule lives.
+  return resourceCopies(state, playerId, resourceId) > 0;
 }
 
 /**
- * Every luxury lent **to** this empire under a live deal, as holdings.
+ * The copies lent **to** this empire under live deals, the reveal gate applied.
  *
- * The receiver's half of the lending rule, and the reason it cannot be a clause
- * in `openedResource`: that rule answers about a *tile*, and the empire being
- * paid owns no tile carrying the seam. So the giver's side is a clause there
- * and this is the same fact said at empire scale, read by the three questions
- * that are asked of an empire — `hasResource`, `resourceCopies` and
- * `controlledHoldings`.
+ * The receiver's half of the lending rule, and the reason it could never be a
+ * clause in `openedResource`: that rule answers about a *tile*, and the empire
+ * being paid owns no tile carrying the seam. Since the copies ruling neither
+ * half is a clause there — both are arithmetic at empire scale, done in
+ * `resourceCopies` and read from it by `hasResource` and `controlledHoldings`.
  *
- * **The reveal gate still binds the receiver** (`resourceIsVisibleTo`), the
- * same first clause `openedResource` opens with: a people with no word for
- * silk draw nothing from a caravan of it, whoever sent it.
+ * **The reveal gate binds the receiver** (`resourceIsVisibleTo`), the same first
+ * clause `openedResource` opens with: a people with no word for silk draw
+ * nothing from a caravan of it, whoever sent it. A copy withheld by the gate is
+ * dropped rather than counted, so a receiver who learns the word later gains the
+ * caravan on the turn they learn it and nothing has to remember to say so.
+ */
+function lentCopiesHeld(state: GameState, playerId: number): LentCopies {
+  const player = playerById(state, playerId);
+  if (!player) return {};
+  const sent = lentCopiesToPlayer(state, playerId);
+  const kept: LentCopies = {};
+  for (const id of RESOURCE_IDS) {
+    const count = sent[id] ?? 0;
+    if (count === 0) continue;
+    if (!resourceIsVisibleTo(id, player.techsResearched)) continue;
+    kept[id] = count;
+  }
+  return kept;
+}
+
+/**
+ * Every luxury lent to this empire, as holdings — one per kind, `via: 'lent'`.
  *
- * `cityResources` is deliberately **not** a reader, and that is a stated cut
- * rather than an omission: a lent seam is held by no town, so the part of the
- * luxury vocabulary that is local — a signature paying "in the city that owns
- * the improved tile" (`resourceEffects.ts`) — has no city to pay in. What
- * moves across a table is the empire-scale half: the contentment, the
- * empire-scoped signatures, and the copies.
+ * The label half of `lentCopiesHeld`: a ledger line saying "Silk · lent" wants a
+ * holding, and the arithmetic wants a count, so the count is the reading and
+ * this is one `map` over it. Uniqueness per kind, exactly as an empire's own
+ * holdings are — two caravans of silk are one silk on the happiness meter, and
+ * how many there are is `resourceCopies`' answer, not this one's.
  */
 function lentHoldings(state: GameState, playerId: number): ResourceHolding[] {
-  const player = playerById(state, playerId);
-  if (!player) return [];
-  const list: ResourceHolding[] = [];
-  for (const id of lentToPlayer(state, playerId)) {
-    if (!resourceIsVisibleTo(id, player.techsResearched)) continue;
-    list.push({ id, via: 'lent', improvement: null });
-  }
-  return list;
+  const held = lentCopiesHeld(state, playerId);
+  return RESOURCE_IDS.filter((id) => (held[id] ?? 0) > 0).map((id) => ({
+    id,
+    via: 'lent' as const,
+    improvement: null,
+  }));
 }
 
 /**
- * How many **tiles** of one resource this player controls.
+ * How many copies of one resource this player holds — **the net figure**, and
+ * the one place the lending rule is arithmetic.
  *
- * The count `perCopy` scales by, and the one place in the game that asks the
- * question the uniqueness rule usually refuses to ask. It walks the same
- * `openedResource` rule everything else does, so a pillaged silver mine stops
- * being a copy at exactly the moment it stops being a holding.
+ * Opened tiles, minus the copies this empire has promised away, floored at
+ * nothing, plus the copies somebody has lent it:
+ *
+ *   · **the tiles** are `openedResource` asked of every hex this empire owns, so
+ *     a pillaged silver mine stops being a copy at exactly the moment it stops
+ *     being a holding;
+ *   · **minus what was promised** — one per deal row naming the kind (flags
+ *     (tt), the user's two amber). Floored, because a save hand-edited into
+ *     promising three amber from two seams must not lend the third out of a
+ *     negative number;
+ *   · **plus what was promised to it**, which is a fact about a table and never
+ *     about ground.
+ *
+ * The count `perCopy` scales by, the boolean `hasResource` is a comparison on,
+ * and the figure `controlledHoldings` drops a kind for when it reaches nothing:
+ * three questions, one subtraction, so an empire can never read as holding a
+ * kind on one surface and not on another. Two empires can never hold three
+ * copies between them where there were two.
  */
 export function resourceCopies(
   state: GameState,
@@ -454,20 +480,16 @@ export function resourceCopies(
 ): number {
   const owner = tileOwnerField(state);
   const tiles = state.map.tiles;
-  let copies = 0;
+  let mine = 0;
   for (let index = 0; index < tiles.length; index++) {
     const tile = tiles[index]!;
     if (tile.resource !== resourceId) continue;
     if (owner.at(index) !== playerId) continue;
-    if (openedResource(state, tile, playerId) !== null) copies += 1;
+    if (openedResource(state, tile, playerId) !== null) mine += 1;
   }
-  // **A lent seam is one copy**, whatever the lender had of it. The giver's
-  // count falls to nothing (the clause in `openedResource` is about the kind,
-  // not the tile) and the receiver gains exactly one, which is the reading that
-  // makes lending a *transfer* rather than a multiplication: two empires can
-  // never hold three copies between them where there were two.
-  if (lentHoldings(state, playerId).some((holding) => holding.id === resourceId)) copies += 1;
-  return copies;
+  const lentAway = lentCopiesAwayBy(state, playerId)[resourceId] ?? 0;
+  const lentIn = lentCopiesHeld(state, playerId)[resourceId] ?? 0;
+  return Math.max(0, mine - lentAway) + lentIn;
 }
 
 /**
@@ -506,6 +528,11 @@ export function controlledHoldings(
   // The whole holding rather than its `via` alone, because the ledger's word for
   // it now depends on *which* improvement opened the seam and not on the table.
   const held = new Map<ResourceId, ResourceHolding>();
+  // And the tiles counted in the same sweep, because since the copies ruling a
+  // kind is dropped from this list when its **net** figure reaches nothing, and
+  // asking `resourceCopies` per kind would be a map sweep apiece on the
+  // most-asked question in the game.
+  const opened = new Map<ResourceId, number>();
   const owner = tileOwnerField(state);
   const tiles = state.map.tiles;
   for (let index = 0; index < tiles.length; index++) {
@@ -513,18 +540,28 @@ export function controlledHoldings(
     const tile = tiles[index]!;
     const holding = openedResource(state, tile, playerId);
     if (holding === null || resourceDef(holding.id).kind !== kind) continue;
+    opened.set(holding.id, (opened.get(holding.id) ?? 0) + 1);
     if (held.get(holding.id)?.via === 'improvement') continue;
     held.set(holding.id, holding);
   }
-  // A seam another empire lent, added **after** the sweep and only where the
-  // empire holds none of its own: your own silk is the more specific fact, the
-  // same precedence the improved reading already wins by above, and it is the
-  // one a pillage or an expiry can take away separately.
+  const lentAway = lentCopiesAwayBy(state, playerId);
+  const lentIn = lentCopiesHeld(state, playerId);
+  // A seam another empire lent, folded in **after** the sweep and only where the
+  // empire holds none of its own left: your own silk is the more specific fact,
+  // the same precedence the improved reading already wins by above, and it is
+  // the one a pillage or an expiry can take away separately.
   for (const lent of lentHoldings(state, playerId)) {
     if (resourceDef(lent.id).kind !== kind || held.has(lent.id)) continue;
     held.set(lent.id, lent);
   }
-  return RESOURCE_IDS.filter((id) => held.has(id)).map((id) => held.get(id)!);
+  return RESOURCE_IDS.filter((id) => {
+    if (!held.has(id)) return false;
+    // `resourceCopies`' arithmetic, off the sweep just taken: an empire that
+    // lent its only amber keeps no amber to be content about, and one that lent
+    // the spare of two keeps the kind. The line that survives is its own — a
+    // caravan is a holding of its own only where nothing of the kind is left.
+    return Math.max(0, (opened.get(id) ?? 0) - (lentAway[id] ?? 0)) + (lentIn[id] ?? 0) > 0;
+  }).map((id) => held.get(id)!);
 }
 
 /** The same list as ids alone — what most callers want. */
@@ -550,6 +587,17 @@ export function controlledResources(
  * Uniqueness is per city and that is the design, not a shortcut: two jade seams
  * in one city are one jade's signature, and jade in a second city is a second
  * signature. See the uniqueness note in `resourceEffects.ts`.
+ *
+ * **A local signature follows the empire's net holding** (flags (tt)). The
+ * ground is untouched by a bargain — the tile goes on paying its yield — but the
+ * *signature* is what crossed the table, and an empire that lent its only amber
+ * keeps neither the contentment nor the line amber pays in the town that digs
+ * it. Anything else would print the two halves of one luxury in two places and
+ * let a player sell a thing they still have. Asked through `hasResource`, so the
+ * town and the empire cannot disagree about what is held, and asked **only of a
+ * kind this empire has actually promised away** — the gate costs nothing at all
+ * in the ordinary game, where the register is empty and this walks one city's
+ * ground exactly as it always did.
  */
 export function cityResources(
   state: GameState,
@@ -562,7 +610,11 @@ export function cityResources(
     if (holding === null || resourceDef(holding.id).kind !== kind) continue;
     held.add(holding.id);
   }
-  return RESOURCE_IDS.filter((id) => held.has(id));
+  const lentAway = lentCopiesAwayBy(state, city.ownerId);
+  return RESOURCE_IDS.filter(
+    (id) =>
+      held.has(id) && ((lentAway[id] ?? 0) === 0 || hasResource(state, city.ownerId, id)),
+  );
 }
 
 /** True when a citizen may be assigned to this tile at all. */

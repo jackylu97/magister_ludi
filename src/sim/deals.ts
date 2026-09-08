@@ -13,7 +13,7 @@
  * ------------------
  * Three of the lowest modules in the simulation read it — the movement
  * evaluator (open borders is a clause beside `atWar` in `closedBordersFor`),
- * the resource rule (`openedResource` in `cities.ts`), and the empire ledger
+ * the resource readings (`resourceCopies` in `cities.ts`), and the empire ledger
  * (`explainEmpireGold`) — so it may import nothing that imports them. It takes
  * `state.ts`, the resource table and the rule book and stops there, exactly as
  * `wars.ts` does one system over. `state.ts` names the shapes below in a
@@ -60,10 +60,12 @@ export interface DealTerms {
    */
   goldPerTurn?: number;
   /**
-   * Luxuries **lent**, by id: for the deal's life they count as held by the
-   * receiver and not by the giver (`openedResource` in `cities.ts`). The
-   * happiness simply moves — see `lentAwayBy` for why lending your only copy
-   * is legal.
+   * Luxuries **lent**, by id: for the deal's life the receiver holds a copy of
+   * each and the giver holds one fewer (`resourceCopies` in `cities.ts`).
+   *
+   * A row names a kind **once**, and one row lends **one copy** — an empire
+   * that wants to lend its second amber signs a second bargain. See
+   * `lentCopiesAwayBy` for why the count is the whole of the rule.
    */
   luxuries?: ResourceId[];
   /**
@@ -304,51 +306,64 @@ export function bordersOpenTo(state: GameState, holderId: number, moverId: numbe
   return false;
 }
 
+/** A tally of lent copies, by kind. Absent is nought, exactly as a bag is. */
+export type LentCopies = Partial<Record<ResourceId, number>>;
+
 /**
- * Every luxury this empire has **lent out**, in signing order, once each.
+ * How many copies of each luxury this empire has **lent out** — one per row that
+ * names the kind, summed over every live deal.
  *
- * Read by `openedResource` (`cities.ts`) as the clause right after the reveal
- * gate: a seam an empire has promised away is not in its hands, however it is
- * worked. The lending is of the **kind**, not of a tile — two improved silk
- * seams are one silk in anybody's hands (`controlledHoldings`), so lending
- * "silk" lends the silk, and an empire with two seams that lends silk keeps
- * neither.
+ * **A deal lends one copy, never the kind** (the user, 2026-09-08: *"i have two
+ * copies of amber. I traded one amber to the bot for marble. I should be getting
+ * the +4 happiness from having a unique amber and a unique marble"* — flags
+ * (tt)). The old reading lent the *kind*, and `openedResource` refused every
+ * tile of it to the giver, so an empire with two amber that promised one kept
+ * none. That is neither Civ's model nor anything a player would predict from
+ * the sentence they signed.
  *
- * A player **may lend their only copy**, and that is the ruling rather than an
- * oversight: the happiness simply moves across the table, which is what makes a
+ * So the register counts. A row still names a kind once — `dealSideError`
+ * refuses a second mention — and an empire that wants to lend its second amber
+ * signs a second bargain, which is one row per promise and a clock each. The
+ * subtraction happens once, at empire scale, in `resourceCopies` (`cities.ts`):
+ * **the ground is untouched**, because a lent seam is a caravan leaving, not a
+ * plantation changing hands. The tile goes on paying its owner the yield printed
+ * on its row.
+ *
+ * A player **may lend their last copy**, and that is the ruling rather than an
+ * oversight: the signature simply moves across the table, which is what makes a
  * one-for-one swap of duplicates a *good* bargain and lending your last wine an
  * expensive one. The bot only ever trades duplicates (P3); a human may do the
  * other thing.
  */
-export function lentAwayBy(state: GameState, playerId: number): ResourceId[] {
-  const list: ResourceId[] = [];
+export function lentCopiesAwayBy(state: GameState, playerId: number): LentCopies {
+  const copies: LentCopies = {};
   for (const deal of state.deals) {
     if (!dealIsLive(state, deal)) continue;
     for (const id of sideGivenBy(deal, playerId).luxuries ?? []) {
-      if (!list.includes(id)) list.push(id);
+      copies[id] = (copies[id] ?? 0) + 1;
     }
   }
-  return list;
+  return copies;
 }
 
 /**
- * Every luxury lent **to** this empire, in signing order, once each.
+ * How many copies of each luxury has been lent **to** this empire.
  *
- * `lentAwayBy`'s mirror and the half that cannot live in `openedResource`: the
- * receiver owns no tile carrying the seam, and `openedResource` answers about a
- * *tile*. So the giver's side is a clause in that rule and the receiver's side
- * joins `controlledHoldings`, `hasResource` and `resourceCopies` at empire
- * scale — the asymmetry is stated there, where a reader will meet it.
+ * `lentCopiesAwayBy`'s mirror, and the half that could never have lived in
+ * `openedResource`: the receiver owns no tile carrying the seam, and that rule
+ * answers about a *tile*. Since the copies ruling neither half lives there —
+ * both sides are arithmetic at empire scale, in `resourceCopies`, which is
+ * where a reader now meets the whole of the rule at once.
  */
-export function lentToPlayer(state: GameState, playerId: number): ResourceId[] {
-  const list: ResourceId[] = [];
+export function lentCopiesToPlayer(state: GameState, playerId: number): LentCopies {
+  const copies: LentCopies = {};
   for (const deal of state.deals) {
     if (!dealIsLive(state, deal)) continue;
     for (const id of sideTakenBy(deal, playerId).luxuries ?? []) {
-      if (!list.includes(id)) list.push(id);
+      copies[id] = (copies[id] ?? 0) + 1;
     }
   }
-  return list;
+  return copies;
 }
 
 /** One turn's tribute, as a line in somebody's ledger. */

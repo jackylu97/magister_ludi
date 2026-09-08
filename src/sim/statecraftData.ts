@@ -407,6 +407,28 @@ export type CityScope =
    */
   | { test: 'onTerrain'; terrain: TerrainId }
   /**
+   * The town's **own hex or one of the six touching it** is this terrain —
+   * Petra, which wants a caravan city at the edge of the sand.
+   *
+   * The third ring in the family, and the three are deliberately three questions
+   * rather than one with a radius on it: `onTerrain` asks what the *centre*
+   * stands on, this asks what the centre stands **at the edge of**, and
+   * `terrainInBorders` asks what the *borders* have taken in — a set that grows
+   * with culture and shrinks when a rival's does. A radius argument would have
+   * made the second and third one shape and then lied about it, because they are
+   * not the same measurement: the ring of six is fixed ground that no border can
+   * move, and a hex three rings out is inside the borders and not beside
+   * anything. `mountainAdjacent` is this exact reach, written before the family
+   * existed and kept because the mountain rows spell their radius; a row that
+   * wants a terrain names it here.
+   *
+   * Ruled on 2026-09-08 for Petra (the user: *"To build petra, you only need to
+   * be settled on or adjacent to desert"*, flags (uu)), which had been the
+   * centre alone — a wonder about a desert trading city that only a town founded
+   * *in* the sand could raise.
+   */
+  | { test: 'terrainBeside'; terrain: TerrainId }
+  /**
    * The town's **own hex** carries a resource of this kind — The Prize Grounds'
    * city founded on a luxury.
    *

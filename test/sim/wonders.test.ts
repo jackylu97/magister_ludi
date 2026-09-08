@@ -788,6 +788,42 @@ describe('a site requirement', () => {
     expect(buildError(g.state, 0, 'building', 'colossus', city)).toBeNull();
   });
 
+  /**
+   * **Petra wants the edge of the sand, not the middle of it** (the user,
+   * 2026-09-08: *"To build petra, you only need to be settled on or adjacent to
+   * desert"* — flags (uu)). The row carried `onTerrain`, which is the centre hex
+   * alone, so a caravan city looking out over the dunes could not raise the
+   * wonder about caravan cities. `terrainBeside` is the third question in the
+   * family, and this is all three of its answers.
+   */
+  it('Petra takes desert beside the town, and not desert two hexes out', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    learn(g.state, 0, 'mathematics');
+    const centre = at(g.state.map, city.col, city.row);
+    centre.terrain = 'grassland';
+    for (const tile of ring(g.state.map, centre)) tile.terrain = 'grassland';
+
+    // Sand two hexes out — inside the borders one day, never beside the town.
+    const far = at(g.state.map, city.col + 2, city.row);
+    expect(ring(g.state.map, centre).includes(far)).toBe(false);
+    far.terrain = 'desert';
+    const refusal = buildError(g.state, 0, 'building', 'petra', city);
+    expect(refusal).toContain('wants desert to stand on or beside');
+    expect(refusal).toContain(city.name);
+
+    // One hex in, and the wonder stands: the ring of six is the whole of the
+    // widening.
+    ring(g.state.map, centre)[0]!.terrain = 'desert';
+    expect(buildError(g.state, 0, 'building', 'petra', city)).toBeNull();
+
+    // And the old reading still passes — a town founded in the sand keeps it.
+    for (const tile of ring(g.state.map, centre)) tile.terrain = 'grassland';
+    expect(buildError(g.state, 0, 'building', 'petra', city)).not.toBeNull();
+    centre.terrain = 'desert';
+    expect(buildError(g.state, 0, 'building', 'petra', city)).toBeNull();
+  });
+
   it('says nothing at all to a caller with no town in hand', () => {
     const g = game();
     learn(g.state, 0, 'sailing', 'wayfinding');

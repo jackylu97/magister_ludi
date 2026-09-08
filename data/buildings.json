@@ -762,8 +762,9 @@
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
+      "note": "A caravan city at the edge of the sand: it may be raised in a town standing on desert, or in one with desert beside it.",
       "requiresSite": {
-        "test": "onTerrain",
+        "test": "terrainBeside",
         "terrain": "desert"
       },
       "effects": [

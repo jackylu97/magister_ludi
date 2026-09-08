@@ -27,6 +27,7 @@ import { describe, expect, it } from 'vitest';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
+  cityResources,
   controlledHoldings,
   foundCityAt,
   hasResource,
@@ -48,7 +49,8 @@ import {
   playerById,
   bumpRevision,
 } from '../../src/sim/state';
-import { dealsBetween, lentAwayBy, lentToPlayer } from '../../src/sim/deals';
+import { dealsBetween, lentCopiesAwayBy, lentCopiesToPlayer } from '../../src/sim/deals';
+import { explainTileYield, yieldContextFor } from '../../src/sim/yields/hex';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { openWar, setPeaceOffer, truceTurnsLeft, warBetween } from '../../src/sim/wars';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
@@ -386,8 +388,8 @@ describe('a lent luxury', () => {
 
     lend(state);
 
-    expect(lentAwayBy(state, 0)).toEqual(['silk']);
-    expect(lentToPlayer(state, 1)).toEqual(['silk']);
+    expect(lentCopiesAwayBy(state, 0)).toEqual({ silk: 1 });
+    expect(lentCopiesToPlayer(state, 1)).toEqual({ silk: 1 });
     expect(hasResource(state, 0, 'silk')).toBe(false);
     expect(hasResource(state, 1, 'silk')).toBe(true);
     // And the ledger says *why* it is in the receiver's hands.
@@ -411,25 +413,118 @@ describe('a lent luxury', () => {
     expect(after[0]!.value).toBe(before[0]!.value);
   });
 
-  it('lends the kind, so two seams go together and count as one copy', () => {
+  /**
+   * **A row lends one copy, not the kind** (the user, 2026-09-08 — flags (tt):
+   * *"i have two copies of amber. I traded one amber to the bot for marble. I
+   * should be getting the +4 happiness from having a unique amber and a unique
+   * marble"*). Every claim of that ruling is asserted here, because each one was
+   * wrong before it: the count, the ground, the contentment and the gate.
+   */
+  it('lends one copy, so a spare seam keeps the kind at home', () => {
     const { state, mine } = silkBench();
     giveLuxury(state, mine, 4, 5, 'silk');
     expect(resourceCopies(state, 0, 'silk')).toBe(2);
 
     lend(state);
 
-    // The giver keeps neither, and the receiver holds exactly one — two empires
-    // can never hold three copies where there were two.
-    expect(resourceCopies(state, 0, 'silk')).toBe(0);
+    // One copy went, one stayed — and the receiver holds exactly one, so two
+    // empires can never hold three copies where there were two.
+    expect(resourceCopies(state, 0, 'silk')).toBe(1);
     expect(resourceCopies(state, 1, 'silk')).toBe(1);
+    expect(hasResource(state, 0, 'silk')).toBe(true);
+    expect(hasResource(state, 1, 'silk')).toBe(true);
+    // The kind is still in the giver's ledger, and by its own seam rather than
+    // by anybody's caravan.
+    expect(controlledHoldings(state, 0, 'luxury').map((h) => h.via)).toEqual(['improvement']);
   });
 
-  it('lets an empire lend its only copy — the happiness simply moves', () => {
+  it('never stops the ground paying — only the signature crosses the table', () => {
     const { state } = silkBench();
-    expect(resourceCopies(state, 0, 'silk')).toBe(1);
+    const tile = at(state.map, 2, 3);
+    const silkLine = (): number => {
+      const ctx = yieldContextFor(state, 0);
+      return explainTileYield(tile, ctx)
+        .filter((line) => line.source === 'Silk')
+        .reduce((sum, line) => sum + line.culture, 0);
+    };
+    const before = silkLine();
+    expect(before).toBeGreaterThan(0);
+
     lend(state);
+
+    // The plantation was not dug up. A lent seam is a caravan leaving, and the
+    // hex goes on paying its owner exactly what its row prints — which is what
+    // the clause that used to sit in `openedResource` got wrong.
+    expect(silkLine()).toBe(before);
+  });
+
+  it('keeps the contentment for a spare copy, and adds the one it took', () => {
+    const { state, mine, theirs } = silkBench();
+    giveLuxury(state, mine, 4, 5, 'silk');
+    // The other seat brings something the first has never had, and brings its
+    // own spare of it — the user's swap exactly: a duplicate out, a new kind in,
+    // on both sides of the table.
+    giveLuxury(state, theirs, 10, 3, 'wine');
+    giveLuxury(state, theirs, 12, 5, 'wine');
+    const uniques = (seat: number): string[] =>
+      controlledHoldings(state, seat, 'luxury').map((holding) => holding.id);
+    expect(uniques(0)).toEqual(['silk']);
+
+    applyCommand(state, propose(0, 1, { luxuries: ['silk'] }, { luxuries: ['wine'] }));
+    expect(
+      applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: onlyProposal(state) }).ok,
+    ).toBe(true);
+
+    // **Two unique luxuries where there was one.** The silk line does not fall —
+    // a spare was promised, not the seam — and the wine line arrives beside it.
+    const lines = explainHappiness(state, 0).map((line) => line.source);
+    expect(lines).toContain('Silk · plantation');
+    expect(lines).toContain('Wine · lent');
+    expect(uniques(0)).toEqual(['silk', 'wine']);
+    // And the other seat reads the mirror of it.
+    expect(uniques(1)).toEqual(['silk', 'wine']);
+  });
+
+  it('lets an empire lend its only copy — the signature simply moves', () => {
+    const { state, mine } = silkBench();
+    expect(resourceCopies(state, 0, 'silk')).toBe(1);
+    // The town's own list, which is the walk the city-local signatures read
+    // (`cityResources`, `resourceEffects.ts`).
+    expect(cityResources(state, mine, 'luxury')).toEqual(['silk']);
+
+    lend(state);
+
     expect(hasResource(state, 0, 'silk')).toBe(false);
     expect(hasResource(state, 1, 'silk')).toBe(true);
+    // Both halves go together: an empire that lent its only silk keeps neither
+    // the contentment nor the line the town that digs it would pay.
+    expect(explainHappiness(state, 0).some((line) => line.source.startsWith('Silk'))).toBe(false);
+    expect(cityResources(state, mine, 'luxury')).toEqual([]);
+  });
+
+  it('lends a second copy under a second bargain, and refuses a third', () => {
+    const state = bench(3);
+    const mine = foundCityAt(state, 0, at(state.map, 3, 4));
+    foundCityAt(state, 1, at(state.map, 11, 4));
+    foundCityAt(state, 2, at(state.map, 7, 8));
+    claimBlock(state, mine, [2, 3, 4], [3, 4, 5]);
+    giveLuxury(state, mine, 2, 3, 'silk');
+    giveLuxury(state, mine, 4, 5, 'silk');
+    expect(resourceCopies(state, 0, 'silk')).toBe(2);
+
+    // **A row names a kind once**, so a second copy is a second bargain.
+    applyCommand(state, propose(0, 1, { luxuries: ['silk'] }, {}));
+    applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: onlyProposal(state) });
+    expect(resourceCopies(state, 0, 'silk')).toBe(1);
+    applyCommand(state, propose(0, 2, { luxuries: ['silk'] }, {}));
+    applyCommand(state, { type: 'acceptDeal', playerId: 2, dealId: onlyProposal(state) });
+
+    expect(lentCopiesAwayBy(state, 0)).toEqual({ silk: 2 });
+    expect(resourceCopies(state, 0, 'silk')).toBe(0);
+    expect(resourceCopies(state, 1, 'silk')).toBe(1);
+    expect(resourceCopies(state, 2, 'silk')).toBe(1);
+    // Two seams, two promises, and nothing left to promise a third time.
+    expect(proposeDealError(state, 0, 1, { luxuries: ['silk'] }, {})).toContain('no silk to lend');
   });
 
   it('refuses to lend the same seam twice, because it is no longer held', () => {
